@@ -1,0 +1,12 @@
+[2026-03-26 19:08:05,839][datasets][INFO] - PyTorch version 2.7.0+cu128 available.
+[2026-03-26 19:08:07,260][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-26 19:08:08,157][h5py._conv][DEBUG] - Creating converter from 7 to 5
+[2026-03-26 19:08:08,157][h5py._conv][DEBUG] - Creating converter from 5 to 7
+[2026-03-26 19:08:08,157][h5py._conv][DEBUG] - Creating converter from 7 to 5
+[2026-03-26 19:08:08,157][h5py._conv][DEBUG] - Creating converter from 5 to 7
+[2026-03-26 19:08:08,220][matplotlib][DEBUG] - matplotlib data path: /home/ziwang/miniconda3/envs/hv10/lib/python3.10/site-packages/matplotlib/mpl-data
+[2026-03-26 19:08:08,225][matplotlib][DEBUG] - CONFIGDIR=/home/ziwang/.config/matplotlib
+[2026-03-26 19:08:08,226][matplotlib][DEBUG] - interactive is False
+[2026-03-26 19:08:08,226][matplotlib][DEBUG] - platform is linux
+[2026-03-26 19:08:08,357][matplotlib][DEBUG] - CACHEDIR=/home/ziwang/.cache/matplotlib
+[2026-03-26 19:08:08,358][matplotlib.font_manager][DEBUG] - Using fontManager instance from /home/ziwang/.cache/matplotlib/fontlist-v390.json

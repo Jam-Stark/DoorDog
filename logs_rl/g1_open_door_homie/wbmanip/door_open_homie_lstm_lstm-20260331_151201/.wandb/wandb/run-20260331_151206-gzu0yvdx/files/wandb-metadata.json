@@ -1,0 +1,54 @@
+{
+  "os": "Linux-6.14.0-37-generic-x86_64-with-glibc2.39",
+  "python": "CPython 3.11.15",
+  "startedAt": "2026-03-31T22:12:06.915293Z",
+  "args": [
+    "+exp=wbmanip/door_open_homie_lstm",
+    "++num_envs=64",
+    "++algo.config.entropy_coef=0.001",
+    "++algo.config.num_steps_per_env=32",
+    "++env.config.delta_action_scale=0.3"
+  ],
+  "program": "/home/ziwang/projects/VIRAL/groot/rl/train_agent_trl.py",
+  "codePath": "groot/rl/train_agent_trl.py",
+  "codePathLocal": "groot/rl/train_agent_trl.py",
+  "git": {
+    "remote": "ssh://gitlab-master.nvidia.com:12051/ziwang/VIRAL.git",
+    "commit": "ba454d7543698eae2927db0eb039d2c0648c09e6"
+  },
+  "email": "ziwang@nvidia.com",
+  "root": "logs_rl/g1_open_door_homie/wbmanip/door_open_homie_lstm_lstm-20260331_151201/.wandb",
+  "host": "824158e-lcedt",
+  "executable": "/home/ziwang/miniconda3/envs/viral/bin/python",
+  "cpu_count": 24,
+  "cpu_count_logical": 32,
+  "gpu": "NVIDIA RTX 5880 Ada Generation",
+  "gpu_count": 2,
+  "disk": {
+    "/": {
+      "total": "1951973801984",
+      "used": "1678187315200"
+    }
+  },
+  "memory": {
+    "total": "134733721600"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA RTX 5880 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 14080,
+      "architecture": "Ada",
+      "uuid": "GPU-388ea1ba-4da9-74cd-0c4b-6d6cfb2be730"
+    },
+    {
+      "name": "NVIDIA RTX 5880 Ada Generation",
+      "memoryTotal": "51527024640",
+      "cudaCores": 14080,
+      "architecture": "Ada",
+      "uuid": "GPU-81605def-2013-831f-ead2-7fb6237b3fda"
+    }
+  ],
+  "cudaVersion": "12.8",
+  "writerId": "x3glq6ti0jbomaie20hp7ydvl01p21f3"
+}

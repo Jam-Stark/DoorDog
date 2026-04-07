@@ -1,0 +1,68 @@
+2026-03-26 20:27:23.914 | INFO     | __main__:main:290 - Saving wandb logs to logs_rl/wsdpt_teacher_BTFv8q8_zi_debug/loco_manip/walk_stand_place_grasp_turn_homie_walk_stand_place_grasp_turn_homie-20260326_202717/.wandb
+2026-03-26 20:27:23.916 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 20:27:23.935 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 20:27:23.938 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 20:27:23.941 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 20:27:23.941 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 20:27:23.941 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 20:27:23.942 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'rev-parse', '--show-toplevel'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 20:27:23.949 | DEBUG    | logging:callHandlers:1706 - Starting new HTTPS connection (1): api.wandb.ai:443
+2026-03-26 20:27:24.124 | DEBUG    | logging:callHandlers:1706 - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+2026-03-26 20:27:24.345 | DEBUG    | logging:callHandlers:1706 - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+2026-03-26 20:27:24.595 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 20:27:24.595 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 20:27:24.595 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 20:27:24.597 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'cat-file', '--batch-check'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=<valid stream>, shell=False, universal_newlines=False)
+2026-03-26 20:27:25.797 | INFO     | groot.rl.utils.helpers:pre_process_config:45 - obs_dims: {'base_lin_vel': 3, 'base_ang_vel': 3, 'projected_gravity': 3, 'actions': 31, 'stage': 5, 'delta_actions': 11, 'dof_pos': 43, 'dof_vel': 43, 'placement_pos': 2, 'table_pelvis_transform': 9, 'hold_fingers_tips_force': 12, 'hold_obj_transform': 9, 'hold_hand_object_transform': 9, 'target_place_pos': 3, 'grasp_fingers_tips_force': 12, 'grasp_obj_transform': 9, 'grasp_hand_object_transform': 9, 'target_lift_pos': 3, 'b_homie_commands': 7, 'e_homie_dof_pos': 29, 'f_homie_dof_vel': 29, 'c_homie_base_ang_vel': 3, 'd_homie_projected_gravity': 3, 'homie_torso_ang_vel': 3, 'homie_torso_projected_gravity': 3, 'g_homie_body_actions': 15}
+2026-03-26 20:27:25.811 | INFO     | groot.rl.utils.helpers:pre_process_config:64 - auxiliary_obs_dims: {'history_long': 3285, 'history_short': 219, 'a_history_homie': 430}
+2026-03-26 20:27:25.813 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: base_lin_vel has dim: 3
+2026-03-26 20:27:25.814 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: base_ang_vel has dim: 3
+2026-03-26 20:27:25.815 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: projected_gravity has dim: 3
+2026-03-26 20:27:25.816 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: actions has dim: 31
+2026-03-26 20:27:25.817 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: stage has dim: 5
+2026-03-26 20:27:25.818 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: delta_actions has dim: 11
+2026-03-26 20:27:25.819 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: dof_pos has dim: 43
+2026-03-26 20:27:25.820 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: dof_vel has dim: 43
+2026-03-26 20:27:25.821 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: placement_pos has dim: 2
+2026-03-26 20:27:25.821 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: table_pelvis_transform has dim: 9
+2026-03-26 20:27:25.822 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: hold_fingers_tips_force has dim: 12
+2026-03-26 20:27:25.823 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: hold_obj_transform has dim: 9
+2026-03-26 20:27:25.824 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: hold_hand_object_transform has dim: 9
+2026-03-26 20:27:25.825 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: target_place_pos has dim: 3
+2026-03-26 20:27:25.826 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: grasp_fingers_tips_force has dim: 12
+2026-03-26 20:27:25.827 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: grasp_obj_transform has dim: 9
+2026-03-26 20:27:25.828 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: grasp_hand_object_transform has dim: 9
+2026-03-26 20:27:25.828 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: target_lift_pos has dim: 3
+2026-03-26 20:27:25.829 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - actor_obs: b_homie_commands has dim: 7
+2026-03-26 20:27:25.830 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: base_lin_vel has dim: 3
+2026-03-26 20:27:25.831 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: base_ang_vel has dim: 3
+2026-03-26 20:27:25.832 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: projected_gravity has dim: 3
+2026-03-26 20:27:25.833 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: actions has dim: 31
+2026-03-26 20:27:25.834 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: stage has dim: 5
+2026-03-26 20:27:25.835 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: delta_actions has dim: 11
+2026-03-26 20:27:25.836 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: dof_pos has dim: 43
+2026-03-26 20:27:25.836 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: dof_vel has dim: 43
+2026-03-26 20:27:25.837 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: placement_pos has dim: 2
+2026-03-26 20:27:25.838 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: table_pelvis_transform has dim: 9
+2026-03-26 20:27:25.839 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: hold_fingers_tips_force has dim: 12
+2026-03-26 20:27:25.840 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: hold_obj_transform has dim: 9
+2026-03-26 20:27:25.841 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: hold_hand_object_transform has dim: 9
+2026-03-26 20:27:25.842 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: target_place_pos has dim: 3
+2026-03-26 20:27:25.842 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: grasp_fingers_tips_force has dim: 12
+2026-03-26 20:27:25.843 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: grasp_obj_transform has dim: 9
+2026-03-26 20:27:25.844 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: grasp_hand_object_transform has dim: 9
+2026-03-26 20:27:25.845 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: target_lift_pos has dim: 3
+2026-03-26 20:27:25.846 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - critic_obs: b_homie_commands has dim: 7
+2026-03-26 20:27:25.847 | INFO     | groot.rl.utils.helpers:pre_process_config:77 - homie_obs: a_history_homie has dim: 430
+2026-03-26 20:27:25.848 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - homie_obs: b_homie_commands has dim: 7
+2026-03-26 20:27:25.848 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - homie_obs: c_homie_base_ang_vel has dim: 3
+2026-03-26 20:27:25.849 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - homie_obs: d_homie_projected_gravity has dim: 3
+2026-03-26 20:27:25.850 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - homie_obs: e_homie_dof_pos has dim: 29
+2026-03-26 20:27:25.851 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - homie_obs: f_homie_dof_vel has dim: 29
+2026-03-26 20:27:25.852 | INFO     | groot.rl.utils.helpers:pre_process_config:74 - homie_obs: g_homie_body_actions has dim: 15
+2026-03-26 20:27:25.853 | INFO     | groot.rl.utils.helpers:pre_process_config:85 - algo_obs_dim_dict: {'actor_obs': 226, 'critic_obs': 226, 'homie_obs': 516}
+2026-03-26 20:27:25.853 | DEBUG    | groot.rl.utils.helpers:pre_process_config:96 - PPO CONFIG
+2026-03-26 20:27:25.853 | DEBUG    | groot.rl.utils.helpers:pre_process_config:98 - {'actor': {'input_dim': ['actor_obs'], 'output_dim': ['robot_action_dim'], 'layer_config': {'type': 'MLP', 'hidden_dims': [512, 256, 128], 'activation': 'ELU'}}, 'critic': {'type': 'MLP', 'input_dim': ['critic_obs'], 'output_dim': [1], 'layer_config': {'type': 'MLP', 'hidden_dims': [512, 256, 128], 'activation': 'ELU'}}}
+2026-03-26 20:27:26.062 | ERROR    | logging:callHandlers:1706 - Error getting class at groot.rl.simulator.isaacsim.isaacsim.IsaacSim: Error loading 'groot.rl.simulator.isaacsim.isaacsim.IsaacSim':
+ModuleNotFoundError("No module named 'groot.rl.simulator.isaacsim.isaaclab_viewpoint_camera_controller'")
+Are you sure that 'isaacsim' is importable from module 'groot.rl.simulator.isaacsim'?

@@ -1,0 +1,280 @@
+[2026-03-27 17:49:45,408][datasets][INFO] - PyTorch version 2.7.0+cu128 available.
+[2026-03-27 17:49:45,408][datasets][INFO] - Duckdb version 1.4.3 available.
+[2026-03-27 17:49:46,773][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'any' as 'Any'
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'bool' as 'Bool' and array 'BoolArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'bundle' as 'Bundle'
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'colord[3]' as 'Color3d' and array 'Color3dArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'colorf[3]' as 'Color3f' and array 'Color3fArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'colorh[3]' as 'Color3h' and array 'Color3hArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'colord[4]' as 'Color4d' and array 'Color4dArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'colorf[4]' as 'Color4f' and array 'Color4fArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'colorh[4]' as 'Color4h' and array 'Color4hArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'double' as 'Double' and array 'DoubleArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'double[2]' as 'Double2' and array 'Double2Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'double[3]' as 'Double3' and array 'Double3Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'double[4]' as 'Double4' and array 'Double4Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'execution' as 'Execution'
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'float' as 'Float' and array 'FloatArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'float[2]' as 'Float2' and array 'Float2Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'float[3]' as 'Float3' and array 'Float3Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'float[4]' as 'Float4' and array 'Float4Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'frame[4]' as 'Frame' and array 'FrameArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'half' as 'Half' and array 'HalfArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'half[2]' as 'Half2' and array 'Half2Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'half[3]' as 'Half3' and array 'Half3Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'half[4]' as 'Half4' and array 'Half4Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'int' as 'Int' and array 'IntArray
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'int[2]' as 'Int2' and array 'Int2Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'int[3]' as 'Int3' and array 'Int3Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'int[4]' as 'Int4' and array 'Int4Array
+[2026-03-27 17:49:48,531][AutoNode][DEBUG] - Defining data type 'int64' as 'Int64' and array 'Int64Array
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'matrixd[2]' as 'Matrix2d' and array 'Matrix2dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'matrixd[3]' as 'Matrix3d' and array 'Matrix3dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'matrixd[4]' as 'Matrix4d' and array 'Matrix4dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'normald[3]' as 'Normal3d' and array 'Normal3dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'normalf[3]' as 'Normal3f' and array 'Normal3fArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'normalh[3]' as 'Normal3h' and array 'Normal3hArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'objectId' as 'ObjectId' and array 'ObjectIdArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'path' as 'Path'
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'pointd[3]' as 'Point3d' and array 'Point3dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'pointf[3]' as 'Point3f' and array 'Point3fArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'pointh[3]' as 'Point3h' and array 'Point3hArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'quatd[4]' as 'Quatd' and array 'QuatdArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'quatf[4]' as 'Quatf' and array 'QuatfArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'quath[4]' as 'Quath' and array 'QuathArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'string' as 'String'
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'target' as 'Target'
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'texcoordd[2]' as 'TexCoord2d' and array 'TexCoord2dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'texcoordf[2]' as 'TexCoord2f' and array 'TexCoord2fArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'texcoordh[2]' as 'TexCoord2h' and array 'TexCoord2hArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'texcoordd[3]' as 'TexCoord3d' and array 'TexCoord3dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'texcoordf[3]' as 'TexCoord3f' and array 'TexCoord3fArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'texcoordh[3]' as 'TexCoord3h' and array 'TexCoord3hArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'timecode' as 'Timecode' and array 'TimecodeArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'token' as 'Token' and array 'TokenArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'uchar' as 'UChar' and array 'UCharArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'uint' as 'UInt' and array 'UIntArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'uint64' as 'UInt64' and array 'UInt64Array
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'vectord[3]' as 'Vector3d' and array 'Vector3dArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'vectorf[3]' as 'Vector3f' and array 'Vector3fArray
+[2026-03-27 17:49:48,532][AutoNode][DEBUG] - Defining data type 'vectorh[3]' as 'Vector3h' and array 'Vector3hArray
+[2026-03-27 17:49:49,361][h5py._conv][DEBUG] - Creating converter from 7 to 5
+[2026-03-27 17:49:49,361][h5py._conv][DEBUG] - Creating converter from 5 to 7
+[2026-03-27 17:49:49,361][h5py._conv][DEBUG] - Creating converter from 7 to 5
+[2026-03-27 17:49:49,361][h5py._conv][DEBUG] - Creating converter from 5 to 7
+[2026-03-27 17:49:49,415][matplotlib][DEBUG] - matplotlib data path: /home/ziwang/miniconda3/envs/isaacsim5.1/lib/python3.11/site-packages/matplotlib/mpl-data
+[2026-03-27 17:49:49,420][matplotlib][DEBUG] - CONFIGDIR=/home/ziwang/.config/matplotlib
+[2026-03-27 17:49:49,421][matplotlib][DEBUG] - interactive is False
+[2026-03-27 17:49:49,421][matplotlib][DEBUG] - platform is linux
+[2026-03-27 17:49:49,545][matplotlib][DEBUG] - CACHEDIR=/home/ziwang/.cache/matplotlib
+[2026-03-27 17:49:49,547][matplotlib.font_manager][DEBUG] - Using fontManager instance from /home/ziwang/.cache/matplotlib/fontlist-v390.json
+[2026-03-27 17:49:52,655][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:52,674][git.cmd][DEBUG] - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+[2026-03-27 17:49:52,676][git.cmd][DEBUG] - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+[2026-03-27 17:49:52,678][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-27 17:49:52,678][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-27 17:49:52,679][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-27 17:49:52,679][git.cmd][DEBUG] - Popen(['git', 'rev-parse', '--show-toplevel'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+[2026-03-27 17:49:52,686][urllib3.connectionpool][DEBUG] - Starting new HTTPS connection (1): api.wandb.ai:443
+[2026-03-27 17:49:52,811][urllib3.connectionpool][DEBUG] - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+[2026-03-27 17:49:52,919][urllib3.connectionpool][DEBUG] - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+[2026-03-27 17:49:53,162][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-27 17:49:53,163][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-27 17:49:53,163][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-27 17:49:53,166][git.cmd][DEBUG] - Popen(['git', 'cat-file', '--batch-check'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=<valid stream>, shell=False, universal_newlines=False)
+[2026-03-27 17:49:57,200][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,378][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,395][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,414][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,442][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,463][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,483][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,504][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,530][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,548][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,573][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,599][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,619][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,640][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,663][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,681][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,704][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,725][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,744][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,766][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,784][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,841][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,867][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,885][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,904][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,921][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,942][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:57,966][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,030][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,055][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,073][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,098][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,123][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,143][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,206][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,233][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,252][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,276][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,295][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,314][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,341][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,359][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,376][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,403][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,431][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,452][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,471][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,488][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,510][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,532][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,558][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,583][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,603][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,633][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,662][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,690][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:49:58,715][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,721][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,742][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,758][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,777][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,797][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,813][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,832][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,846][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,864][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,877][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,896][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,914][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,928][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,942][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,957][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,969][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:07,989][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,008][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,022][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,043][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,055][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,074][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,090][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,107][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,122][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,140][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,159][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,174][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,193][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,208][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,227][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,241][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,258][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,273][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,294][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,306][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,326][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,339][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,358][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,376][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,389][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,403][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,416][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,433][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,445][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,463][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,477][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,490][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,502][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,515][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,534][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,552][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,564][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,576][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,594][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,607][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,620][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,634][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,646][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,660][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,679][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,692][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,712][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,728][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,747][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,762][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,779][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,792][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,810][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,824][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,842][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,855][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,875][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,891][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,905][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,921][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,971][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:08,990][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,009][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,021][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,038][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,051][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,070][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,091][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,108][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,124][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,136][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,149][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,165][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,180][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,199][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,211][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,229][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,241][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,256][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,274][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,295][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,308][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,327][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,339][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,357][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,371][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,391][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,404][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,424][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,439][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,454][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,470][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,483][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,498][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,513][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,525][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,547][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,568][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,582][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,596][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,612][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,629][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,632][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,635][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,637][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,638][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,640][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,641][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,643][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,644][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,646][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,647][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,649][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,651][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,652][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,654][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,656][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,657][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,660][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,662][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:09,664][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-27 17:50:12,839][groot.rl.trl.trainer.distill_trainer][INFO] - Loading teacher actor from logs_rl/walk_stand_place_grasp_turn_homie_predrop_project_name-wsdpt_teacher_BTFv8q9_qben_exppredrop_leanz_hand_predrop_pos_distance-10.0_penalty_bottle_lean_during_pick--3500.0_penalty_bottle_non_z_up_velocity_during_pick--1000.0-20251105_004910/model_step_044500.pt

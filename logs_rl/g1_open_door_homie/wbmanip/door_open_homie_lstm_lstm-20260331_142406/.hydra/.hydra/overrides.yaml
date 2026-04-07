@@ -1,0 +1,2 @@
+- +exp=wbmanip/door_open_homie_lstm
+- ++num_envs=4

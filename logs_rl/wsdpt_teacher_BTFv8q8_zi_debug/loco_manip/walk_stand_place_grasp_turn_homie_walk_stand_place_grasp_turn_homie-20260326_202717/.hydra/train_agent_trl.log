@@ -1,0 +1,30 @@
+[2026-03-26 20:27:19,295][datasets][INFO] - PyTorch version 2.7.0+cu128 available.
+[2026-03-26 20:27:19,296][datasets][INFO] - Duckdb version 1.4.3 available.
+[2026-03-26 20:27:20,734][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-26 20:27:21,762][h5py._conv][DEBUG] - Creating converter from 7 to 5
+[2026-03-26 20:27:21,762][h5py._conv][DEBUG] - Creating converter from 5 to 7
+[2026-03-26 20:27:21,762][h5py._conv][DEBUG] - Creating converter from 7 to 5
+[2026-03-26 20:27:21,762][h5py._conv][DEBUG] - Creating converter from 5 to 7
+[2026-03-26 20:27:21,809][matplotlib][DEBUG] - matplotlib data path: /home/ziwang/miniconda3/envs/isaacsim5.1/lib/python3.11/site-packages/matplotlib/mpl-data
+[2026-03-26 20:27:21,812][matplotlib][DEBUG] - CONFIGDIR=/home/ziwang/.config/matplotlib
+[2026-03-26 20:27:21,813][matplotlib][DEBUG] - interactive is False
+[2026-03-26 20:27:21,813][matplotlib][DEBUG] - platform is linux
+[2026-03-26 20:27:21,928][matplotlib][DEBUG] - CACHEDIR=/home/ziwang/.cache/matplotlib
+[2026-03-26 20:27:21,929][matplotlib.font_manager][DEBUG] - Using fontManager instance from /home/ziwang/.cache/matplotlib/fontlist-v390.json
+[2026-03-26 20:27:23,915][asyncio][DEBUG] - Using selector: EpollSelector
+[2026-03-26 20:27:23,935][git.cmd][DEBUG] - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+[2026-03-26 20:27:23,938][git.cmd][DEBUG] - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+[2026-03-26 20:27:23,941][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-26 20:27:23,941][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-26 20:27:23,941][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-26 20:27:23,942][git.cmd][DEBUG] - Popen(['git', 'rev-parse', '--show-toplevel'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+[2026-03-26 20:27:23,949][urllib3.connectionpool][DEBUG] - Starting new HTTPS connection (1): api.wandb.ai:443
+[2026-03-26 20:27:24,124][urllib3.connectionpool][DEBUG] - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+[2026-03-26 20:27:24,345][urllib3.connectionpool][DEBUG] - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+[2026-03-26 20:27:24,595][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-26 20:27:24,595][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-26 20:27:24,595][git.util][DEBUG] - sys.platform='linux', git_executable='git'
+[2026-03-26 20:27:24,597][git.cmd][DEBUG] - Popen(['git', 'cat-file', '--batch-check'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=<valid stream>, shell=False, universal_newlines=False)
+[2026-03-26 20:27:26,061][hydra.utils][ERROR] - Error getting class at groot.rl.simulator.isaacsim.isaacsim.IsaacSim: Error loading 'groot.rl.simulator.isaacsim.isaacsim.IsaacSim':
+ModuleNotFoundError("No module named 'groot.rl.simulator.isaacsim.isaaclab_viewpoint_camera_controller'")
+Are you sure that 'isaacsim' is importable from module 'groot.rl.simulator.isaacsim'?

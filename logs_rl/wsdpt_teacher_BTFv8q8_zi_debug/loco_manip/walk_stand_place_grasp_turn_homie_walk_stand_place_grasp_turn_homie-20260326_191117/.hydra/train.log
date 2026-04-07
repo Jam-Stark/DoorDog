@@ -1,0 +1,192 @@
+2026-03-26 19:11:22.189 | INFO     | __main__:main:287 - Saving wandb logs to logs_rl/wsdpt_teacher_BTFv8q8_zi_debug/loco_manip/walk_stand_place_grasp_turn_homie_walk_stand_place_grasp_turn_homie-20260326_191117/.wandb
+2026-03-26 19:11:22.190 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:22.215 | DEBUG    | git.cmd:execute:1253 - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 19:11:22.217 | DEBUG    | git.cmd:execute:1253 - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 19:11:22.222 | DEBUG    | git.cmd:execute:1253 - Popen(['git', 'rev-parse', '--show-toplevel'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 19:11:22.231 | DEBUG    | urllib3.connectionpool:_new_conn:1049 - Starting new HTTPS connection (1): api.wandb.ai:443
+2026-03-26 19:11:22.361 | DEBUG    | urllib3.connectionpool:_make_request:544 - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+2026-03-26 19:11:22.485 | DEBUG    | urllib3.connectionpool:_make_request:544 - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+2026-03-26 19:11:22.545 | DEBUG    | sentry_sdk.scope:set_new_propagation_context:240 - [Tracing] Create new propagation context: {'trace_id': 'c4dac44b598541488979f229f278efbd', 'span_id': '992c30a86888d0d0', 'parent_span_id': None, 'dynamic_sampling_context': None}
+2026-03-26 19:11:22.761 | DEBUG    | git.cmd:execute:1253 - Popen(['git', 'cat-file', '--batch-check'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=<valid stream>, shell=False, universal_newlines=False)
+2026-03-26 19:11:23.735 | INFO     | groot.rl.utils.helpers:pre_process_config:49 - obs_dims: {'base_lin_vel': 3, 'base_ang_vel': 3, 'projected_gravity': 3, 'actions': 31, 'stage': 5, 'delta_actions': 11, 'dof_pos': 43, 'dof_vel': 43, 'placement_pos': 2, 'table_pelvis_transform': 9, 'hold_fingers_tips_force': 12, 'hold_obj_transform': 9, 'hold_hand_object_transform': 9, 'target_place_pos': 3, 'grasp_fingers_tips_force': 12, 'grasp_obj_transform': 9, 'grasp_hand_object_transform': 9, 'target_lift_pos': 3, 'b_homie_commands': 7, 'e_homie_dof_pos': 29, 'f_homie_dof_vel': 29, 'c_homie_base_ang_vel': 3, 'd_homie_projected_gravity': 3, 'homie_torso_ang_vel': 3, 'homie_torso_projected_gravity': 3, 'g_homie_body_actions': 15}
+2026-03-26 19:11:23.749 | INFO     | groot.rl.utils.helpers:pre_process_config:68 - auxiliary_obs_dims: {'history_long': 3285, 'history_short': 219, 'a_history_homie': 430}
+2026-03-26 19:11:23.750 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: base_lin_vel has dim: 3
+2026-03-26 19:11:23.751 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: base_ang_vel has dim: 3
+2026-03-26 19:11:23.752 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: projected_gravity has dim: 3
+2026-03-26 19:11:23.753 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: actions has dim: 31
+2026-03-26 19:11:23.754 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: stage has dim: 5
+2026-03-26 19:11:23.754 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: delta_actions has dim: 11
+2026-03-26 19:11:23.755 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: dof_pos has dim: 43
+2026-03-26 19:11:23.756 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: dof_vel has dim: 43
+2026-03-26 19:11:23.757 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: placement_pos has dim: 2
+2026-03-26 19:11:23.758 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: table_pelvis_transform has dim: 9
+2026-03-26 19:11:23.758 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: hold_fingers_tips_force has dim: 12
+2026-03-26 19:11:23.759 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: hold_obj_transform has dim: 9
+2026-03-26 19:11:23.760 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: hold_hand_object_transform has dim: 9
+2026-03-26 19:11:23.761 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: target_place_pos has dim: 3
+2026-03-26 19:11:23.762 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: grasp_fingers_tips_force has dim: 12
+2026-03-26 19:11:23.762 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: grasp_obj_transform has dim: 9
+2026-03-26 19:11:23.763 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: grasp_hand_object_transform has dim: 9
+2026-03-26 19:11:23.764 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: target_lift_pos has dim: 3
+2026-03-26 19:11:23.765 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: b_homie_commands has dim: 7
+2026-03-26 19:11:23.765 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: base_lin_vel has dim: 3
+2026-03-26 19:11:23.766 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: base_ang_vel has dim: 3
+2026-03-26 19:11:23.767 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: projected_gravity has dim: 3
+2026-03-26 19:11:23.768 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: actions has dim: 31
+2026-03-26 19:11:23.768 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: stage has dim: 5
+2026-03-26 19:11:23.769 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: delta_actions has dim: 11
+2026-03-26 19:11:23.770 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: dof_pos has dim: 43
+2026-03-26 19:11:23.771 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: dof_vel has dim: 43
+2026-03-26 19:11:23.771 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: placement_pos has dim: 2
+2026-03-26 19:11:23.772 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: table_pelvis_transform has dim: 9
+2026-03-26 19:11:23.773 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: hold_fingers_tips_force has dim: 12
+2026-03-26 19:11:23.774 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: hold_obj_transform has dim: 9
+2026-03-26 19:11:23.774 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: hold_hand_object_transform has dim: 9
+2026-03-26 19:11:23.775 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: target_place_pos has dim: 3
+2026-03-26 19:11:23.776 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: grasp_fingers_tips_force has dim: 12
+2026-03-26 19:11:23.776 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: grasp_obj_transform has dim: 9
+2026-03-26 19:11:23.777 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: grasp_hand_object_transform has dim: 9
+2026-03-26 19:11:23.778 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: target_lift_pos has dim: 3
+2026-03-26 19:11:23.779 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: b_homie_commands has dim: 7
+2026-03-26 19:11:23.779 | INFO     | groot.rl.utils.helpers:pre_process_config:81 - homie_obs: a_history_homie has dim: 430
+2026-03-26 19:11:23.780 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: b_homie_commands has dim: 7
+2026-03-26 19:11:23.781 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: c_homie_base_ang_vel has dim: 3
+2026-03-26 19:11:23.781 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: d_homie_projected_gravity has dim: 3
+2026-03-26 19:11:23.782 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: e_homie_dof_pos has dim: 29
+2026-03-26 19:11:23.783 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: f_homie_dof_vel has dim: 29
+2026-03-26 19:11:23.784 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: g_homie_body_actions has dim: 15
+2026-03-26 19:11:23.785 | INFO     | groot.rl.utils.helpers:pre_process_config:89 - algo_obs_dim_dict: {'actor_obs': 226, 'critic_obs': 226, 'homie_obs': 516}
+2026-03-26 19:11:23.785 | DEBUG    | groot.rl.utils.helpers:pre_process_config:100 - PPO CONFIG
+2026-03-26 19:11:23.785 | DEBUG    | groot.rl.utils.helpers:pre_process_config:102 - {'actor': {'input_dim': ['actor_obs'], 'output_dim': ['robot_action_dim'], 'layer_config': {'type': 'MLP', 'hidden_dims': [512, 256, 128], 'activation': 'ELU'}}, 'critic': {'type': 'MLP', 'input_dim': ['critic_obs'], 'output_dim': [1], 'layer_config': {'type': 'MLP', 'hidden_dims': [512, 256, 128], 'activation': 'ELU'}}}
+2026-03-26 19:11:23.962 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:173 - [TELEMETRY] Rank 0: Entering IsaacSim.__init__ on device cuda:0
+2026-03-26 19:11:23.963 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:176 - [TELEMETRY] Rank 0: CUDA device idx=1, name=NVIDIA RTX 5880 Ada Generation, memory reserved=0.0MB, memory allocated=0.0MB
+2026-03-26 19:11:23.980 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:221 - IsaacSim initialized.
+2026-03-26 19:11:23.980 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:223 - [INFO]: Base environment:
+2026-03-26 19:11:23.980 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:224 - 	Environment device    : cuda:0
+2026-03-26 19:11:23.980 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:225 - 	Physics step-size     : 0.005
+2026-03-26 19:11:23.981 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:226 - 	Rendering step-size   : 0.005
+2026-03-26 19:11:23.981 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:__init__:235 - The render interval (1) is smaller than the decimation (4). Multiple render calls will happen for each environment step.If this is not intended, set the render interval to be equal to the decimation.
+2026-03-26 19:11:23.986 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:576 - [TELEMETRY] Rank 0: _setup_scene started
+2026-03-26 19:11:23.987 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:590 - num_position_iterations: 8
+2026-03-26 19:11:23.988 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:591 - num_velocity_iterations: 4
+2026-03-26 19:11:23.998 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:731 - dof_armature_list [0.01017752004, 0.025101925, 0.01017752004, 0.025101925, 0.00721945, 0.00721945, 0.01017752004, 0.025101925, 0.01017752004, 0.025101925, 0.00721945, 0.00721945, 0.01017752004, 0.00721945, 0.00721945, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.00425, 0.00425, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.00425, 0.00425, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+2026-03-26 19:11:23.999 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:732 - dof_joint_friction_list [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+2026-03-26 19:11:24.266 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:863 - camera_types: ['rgb']
+2026-03-26 19:11:25.130 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'any' as 'Any'
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'bool' as 'Bool' and array 'BoolArray
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'bundle' as 'Bundle'
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'colord[3]' as 'Color3d' and array 'Color3dArray
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'colorf[3]' as 'Color3f' and array 'Color3fArray
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'colorh[3]' as 'Color3h' and array 'Color3hArray
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'colord[4]' as 'Color4d' and array 'Color4dArray
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'colorf[4]' as 'Color4f' and array 'Color4fArray
+2026-03-26 19:11:25.131 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'colorh[4]' as 'Color4h' and array 'Color4hArray
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'double' as 'Double' and array 'DoubleArray
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'double[2]' as 'Double2' and array 'Double2Array
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'double[3]' as 'Double3' and array 'Double3Array
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'double[4]' as 'Double4' and array 'Double4Array
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'execution' as 'Execution'
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'float' as 'Float' and array 'FloatArray
+2026-03-26 19:11:25.132 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'float[2]' as 'Float2' and array 'Float2Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'float[3]' as 'Float3' and array 'Float3Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'float[4]' as 'Float4' and array 'Float4Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'frame[4]' as 'Frame' and array 'FrameArray
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'half' as 'Half' and array 'HalfArray
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'half[2]' as 'Half2' and array 'Half2Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'half[3]' as 'Half3' and array 'Half3Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'half[4]' as 'Half4' and array 'Half4Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'int' as 'Int' and array 'IntArray
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'int[2]' as 'Int2' and array 'Int2Array
+2026-03-26 19:11:25.133 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'int[3]' as 'Int3' and array 'Int3Array
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'int[4]' as 'Int4' and array 'Int4Array
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'int64' as 'Int64' and array 'Int64Array
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'matrixd[2]' as 'Matrix2d' and array 'Matrix2dArray
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'matrixd[3]' as 'Matrix3d' and array 'Matrix3dArray
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'matrixd[4]' as 'Matrix4d' and array 'Matrix4dArray
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'normald[3]' as 'Normal3d' and array 'Normal3dArray
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'normalf[3]' as 'Normal3f' and array 'Normal3fArray
+2026-03-26 19:11:25.134 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'normalh[3]' as 'Normal3h' and array 'Normal3hArray
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'objectId' as 'ObjectId' and array 'ObjectIdArray
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'path' as 'Path'
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'pointd[3]' as 'Point3d' and array 'Point3dArray
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'pointf[3]' as 'Point3f' and array 'Point3fArray
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'pointh[3]' as 'Point3h' and array 'Point3hArray
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'quatd[4]' as 'Quatd' and array 'QuatdArray
+2026-03-26 19:11:25.135 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'quatf[4]' as 'Quatf' and array 'QuatfArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'quath[4]' as 'Quath' and array 'QuathArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'string' as 'String'
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'target' as 'Target'
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'texcoordd[2]' as 'TexCoord2d' and array 'TexCoord2dArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'texcoordf[2]' as 'TexCoord2f' and array 'TexCoord2fArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'texcoordh[2]' as 'TexCoord2h' and array 'TexCoord2hArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'texcoordd[3]' as 'TexCoord3d' and array 'TexCoord3dArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'texcoordf[3]' as 'TexCoord3f' and array 'TexCoord3fArray
+2026-03-26 19:11:25.136 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'texcoordh[3]' as 'TexCoord3h' and array 'TexCoord3hArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'timecode' as 'Timecode' and array 'TimecodeArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'token' as 'Token' and array 'TokenArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'uchar' as 'UChar' and array 'UCharArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'uint' as 'UInt' and array 'UIntArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'uint64' as 'UInt64' and array 'UInt64Array
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'vectord[3]' as 'Vector3d' and array 'Vector3dArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'vectorf[3]' as 'Vector3f' and array 'Vector3fArray
+2026-03-26 19:11:25.137 | DEBUG    | omni.graph.tools._impl.autonode_generator.ogn_types:_define_data_type_annotation:51 - Defining data type 'vectorh[3]' as 'Vector3h' and array 'Vector3hArray
+2026-03-26 19:11:25.327 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.657 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.676 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.690 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.706 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.726 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.746 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.766 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.785 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.803 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.821 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.839 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.862 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.881 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.898 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.921 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.938 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.958 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.974 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:25.994 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.013 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.067 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.085 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.102 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.119 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.135 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.151 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.171 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.229 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.247 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.268 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.287 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.306 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.326 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.383 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.401 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.418 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.442 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.463 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.484 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.501 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.517 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.533 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.553 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.569 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.591 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.609 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.632 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.651 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.669 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.688 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.708 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.728 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.744 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.763 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.786 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.806 | DEBUG    | asyncio.selector_events:__init__:54 - Using selector: EpollSelector
+2026-03-26 19:11:26.827 | INFO     | walk_stand_place_grasp_turn_homie:_init_usd_path_list:148 - Found 1 USD files in /home/ziwang/projects/gr00t-wsg-teleop/groot/rl/data/objects/grab
+2026-03-26 19:11:26.827 | INFO     | walk_stand_place_grasp_turn_homie:_init_usd_path_list:149 - Object classes: ['bottle']
+2026-03-26 19:11:26.827 | INFO     | walk_stand_place_grasp_turn_homie:_init_usd_path_list:150 - USD_PATH_LIST: 

@@ -1248,8 +1248,8 @@ class IsaacSim(BaseSimulator):
                 # self.scene.sensors["object_table_contact_sensor"] = self.object_table_contact_sensor
 
                 target_obj_transform_prim_path = f"/World/envs/env_.*/{self.task_config.target_obj}"
-                # if self.task_config.get("target_obj_transform_sub_prim_path", None) is not None:
-                #     target_obj_transform_prim_path = os.path.join(target_obj_transform_prim_path, self.task_config.target_obj_transform_sub_prim_path)
+                if self.task_config.get("target_obj_transform_sub_prim_path", None) is not None:
+                    target_obj_transform_prim_path = os.path.join(target_obj_transform_prim_path, self.task_config.target_obj_transform_sub_prim_path)
 
                 left_hand_frame_transformer_config = FrameTransformerCfg(
                     prim_path="/World/envs/env_.*/Robot/left_hand_palm_link",

@@ -1,0 +1,1026 @@
+2026-03-26 19:44:18.845 | INFO     | __main__:main:287 - Saving wandb logs to logs_rl/wsdpt_student_for_teacher_v8q8_002_debug/wsdpt_student_for_teacher_v8q8_002-20260326_194410/.wandb
+2026-03-26 19:44:18.847 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:18.865 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 19:44:18.869 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'version'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 19:44:18.871 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 19:44:18.871 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 19:44:18.871 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 19:44:18.872 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'rev-parse', '--show-toplevel'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=None, shell=False, universal_newlines=False)
+2026-03-26 19:44:18.882 | DEBUG    | logging:callHandlers:1706 - Starting new HTTPS connection (1): api.wandb.ai:443
+2026-03-26 19:44:18.997 | DEBUG    | logging:callHandlers:1706 - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+2026-03-26 19:44:19.147 | DEBUG    | logging:callHandlers:1706 - https://api.wandb.ai:443 "POST /graphql HTTP/1.1" 200 None
+2026-03-26 19:44:19.391 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 19:44:19.391 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 19:44:19.391 | DEBUG    | logging:callHandlers:1706 - sys.platform='linux', git_executable='git'
+2026-03-26 19:44:19.393 | DEBUG    | logging:callHandlers:1706 - Popen(['git', 'cat-file', '--batch-check'], cwd=/home/ziwang/projects/gr00t-wsg-teleop, stdin=<valid stream>, shell=False, universal_newlines=False)
+2026-03-26 19:44:20.296 | INFO     | groot.rl.utils.helpers:pre_process_config:49 - obs_dims: {'base_lin_vel': 3, 'base_ang_vel': 3, 'projected_gravity': 3, 'actions': 31, 'stage': 5, 'delta_actions': 11, 'dof_pos': 43, 'dof_vel': 43, 'dof_pos_wo_finger': 29, 'dof_vel_wo_finger': 29, 'placement_pos': 2, 'table_pelvis_transform': 9, 'hold_fingers_tips_force': 12, 'hold_obj_transform': 9, 'hold_hand_object_transform': 9, 'target_place_pos': 3, 'grasp_fingers_tips_force': 12, 'grasp_obj_transform': 9, 'grasp_hand_object_transform': 9, 'target_lift_pos': 3, 'rgb_image': '108*192*3', 'rgb_image_delayed': '108*192*3', 'target_obj_pos': 3, 'b_homie_commands': 7, 'e_homie_dof_pos': 29, 'f_homie_dof_vel': 29, 'c_homie_base_ang_vel': 3, 'd_homie_projected_gravity': 3, 'homie_torso_ang_vel': 3, 'homie_torso_projected_gravity': 3, 'g_homie_body_actions': 15}
+2026-03-26 19:44:20.313 | INFO     | groot.rl.utils.helpers:pre_process_config:68 - auxiliary_obs_dims: {'rgb_delay_buffer': 311040, 'history_long': 3285, 'a_history_homie': 430, 'history_short': 219}
+2026-03-26 19:44:20.314 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: base_ang_vel has dim: 3
+2026-03-26 19:44:20.315 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: projected_gravity has dim: 3
+2026-03-26 19:44:20.316 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: actions has dim: 31
+2026-03-26 19:44:20.317 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: dof_pos_wo_finger has dim: 29
+2026-03-26 19:44:20.318 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: dof_vel_wo_finger has dim: 29
+2026-03-26 19:44:20.319 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: delta_actions has dim: 11
+2026-03-26 19:44:20.320 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - actor_obs: b_homie_commands has dim: 7
+2026-03-26 19:44:20.321 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - vision_obs: rgb_image_delayed has dim: 62208
+2026-03-26 19:44:20.321 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: base_lin_vel has dim: 3
+2026-03-26 19:44:20.322 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: base_ang_vel has dim: 3
+2026-03-26 19:44:20.323 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: projected_gravity has dim: 3
+2026-03-26 19:44:20.324 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: actions has dim: 31
+2026-03-26 19:44:20.325 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: stage has dim: 5
+2026-03-26 19:44:20.327 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: delta_actions has dim: 11
+2026-03-26 19:44:20.328 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: dof_pos has dim: 43
+2026-03-26 19:44:20.329 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: dof_vel has dim: 43
+2026-03-26 19:44:20.329 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: placement_pos has dim: 2
+2026-03-26 19:44:20.330 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: table_pelvis_transform has dim: 9
+2026-03-26 19:44:20.331 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: hold_fingers_tips_force has dim: 12
+2026-03-26 19:44:20.332 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: hold_obj_transform has dim: 9
+2026-03-26 19:44:20.333 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: hold_hand_object_transform has dim: 9
+2026-03-26 19:44:20.334 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: target_place_pos has dim: 3
+2026-03-26 19:44:20.335 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: grasp_fingers_tips_force has dim: 12
+2026-03-26 19:44:20.336 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: grasp_obj_transform has dim: 9
+2026-03-26 19:44:20.337 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: grasp_hand_object_transform has dim: 9
+2026-03-26 19:44:20.337 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: target_lift_pos has dim: 3
+2026-03-26 19:44:20.338 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - teacher_obs: b_homie_commands has dim: 7
+2026-03-26 19:44:20.339 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - gt_obj_pos: target_obj_pos has dim: 3
+2026-03-26 19:44:20.341 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: base_lin_vel has dim: 3
+2026-03-26 19:44:20.341 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: base_ang_vel has dim: 3
+2026-03-26 19:44:20.342 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: projected_gravity has dim: 3
+2026-03-26 19:44:20.343 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: actions has dim: 31
+2026-03-26 19:44:20.344 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: stage has dim: 5
+2026-03-26 19:44:20.345 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: delta_actions has dim: 11
+2026-03-26 19:44:20.346 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: dof_pos has dim: 43
+2026-03-26 19:44:20.347 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: dof_vel has dim: 43
+2026-03-26 19:44:20.347 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: placement_pos has dim: 2
+2026-03-26 19:44:20.348 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: table_pelvis_transform has dim: 9
+2026-03-26 19:44:20.349 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: hold_fingers_tips_force has dim: 12
+2026-03-26 19:44:20.350 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: hold_obj_transform has dim: 9
+2026-03-26 19:44:20.351 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: hold_hand_object_transform has dim: 9
+2026-03-26 19:44:20.352 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: target_place_pos has dim: 3
+2026-03-26 19:44:20.353 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: grasp_fingers_tips_force has dim: 12
+2026-03-26 19:44:20.354 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: grasp_obj_transform has dim: 9
+2026-03-26 19:44:20.354 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: grasp_hand_object_transform has dim: 9
+2026-03-26 19:44:20.355 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: target_lift_pos has dim: 3
+2026-03-26 19:44:20.356 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - critic_obs: b_homie_commands has dim: 7
+2026-03-26 19:44:20.357 | INFO     | groot.rl.utils.helpers:pre_process_config:81 - homie_obs: a_history_homie has dim: 430
+2026-03-26 19:44:20.358 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: b_homie_commands has dim: 7
+2026-03-26 19:44:20.358 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: c_homie_base_ang_vel has dim: 3
+2026-03-26 19:44:20.359 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: d_homie_projected_gravity has dim: 3
+2026-03-26 19:44:20.360 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: e_homie_dof_pos has dim: 29
+2026-03-26 19:44:20.361 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: f_homie_dof_vel has dim: 29
+2026-03-26 19:44:20.362 | INFO     | groot.rl.utils.helpers:pre_process_config:78 - homie_obs: g_homie_body_actions has dim: 15
+2026-03-26 19:44:20.363 | INFO     | groot.rl.utils.helpers:pre_process_config:89 - algo_obs_dim_dict: {'actor_obs': 113, 'vision_obs': 62208, 'teacher_obs': 226, 'gt_obj_pos': 3, 'critic_obs': 226, 'homie_obs': 516}
+2026-03-26 19:44:20.363 | DEBUG    | groot.rl.utils.helpers:pre_process_config:100 - PPO CONFIG
+2026-03-26 19:44:20.363 | DEBUG    | groot.rl.utils.helpers:pre_process_config:102 - {'encoder': {'input_dim': ['vision_obs'], 'output_dim': ['vision_feature_dim'], 'layer_config': {'type': 'CNN', 'channel_dims': [16, 32, 32], 'activation': 'ELU', 'norm_config': {'use_batch_norm': True}, 'layers': [{'type': 'conv', 'kernel_size': 3, 'stride': 1, 'padding': 1}, {'type': 'pool', 'kernel_size': 2, 'stride': 2}, {'type': 'conv', 'kernel_size': 3, 'stride': 1, 'padding': 1}, {'type': 'pool', 'kernel_size': 2, 'stride': 2}, {'type': 'conv', 'kernel_size': 3, 'stride': 1, 'padding': 1}]}}, 'actor': {'input_dim': ['actor_obs', 'vision_feature_dim'], 'output_dim': ['robot_action_dim'], 'layer_config': {'type': 'MLP', 'hidden_dims': [512, 256, 128], 'activation': 'ELU'}}, 'teacher_actor': {'input_dim': ['teacher_obs'], 'output_dim': ['robot_action_dim'], 'layer_config': {'type': 'MLP', 'hidden_dims': [512, 256, 128], 'activation': 'ELU'}}}
+2026-03-26 19:44:20.598 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:173 - [TELEMETRY] Rank N/A: Entering IsaacSim.__init__ on device cuda:0
+2026-03-26 19:44:20.598 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:176 - [TELEMETRY] Rank N/A: CUDA device idx=0, name=NVIDIA RTX 5880 Ada Generation, memory reserved=2.1MB, memory allocated=0.0MB
+2026-03-26 19:44:20.621 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:221 - IsaacSim initialized.
+2026-03-26 19:44:20.622 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:223 - [INFO]: Base environment:
+2026-03-26 19:44:20.622 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:224 - 	Environment device    : cuda:0
+2026-03-26 19:44:20.622 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:225 - 	Physics step-size     : 0.005
+2026-03-26 19:44:20.622 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:226 - 	Rendering step-size   : 0.005
+2026-03-26 19:44:20.622 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:__init__:235 - The render interval (1) is smaller than the decimation (4). Multiple render calls will happen for each environment step.If this is not intended, set the render interval to be equal to the decimation.
+2026-03-26 19:44:20.628 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:576 - [TELEMETRY] Rank N/A: _setup_scene started
+2026-03-26 19:44:20.629 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:590 - num_position_iterations: 8
+2026-03-26 19:44:20.629 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:591 - num_velocity_iterations: 4
+2026-03-26 19:44:20.641 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:731 - dof_armature_list [0.01017752004, 0.025101925, 0.01017752004, 0.025101925, 0.00721945, 0.00721945, 0.01017752004, 0.025101925, 0.01017752004, 0.025101925, 0.00721945, 0.00721945, 0.01017752004, 0.00721945, 0.00721945, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.00425, 0.00425, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.003609725, 0.00425, 0.00425, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+2026-03-26 19:44:20.641 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:732 - dof_joint_friction_list [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+2026-03-26 19:44:20.840 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:863 - camera_types: ['rgb']
+2026-03-26 19:44:21.627 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.818 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.840 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.860 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.885 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.904 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.922 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.952 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.977 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:21.997 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.016 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.035 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.053 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.080 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.100 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.117 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.139 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.161 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.180 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.207 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.228 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.283 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.307 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.326 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.343 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.362 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.380 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.404 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.456 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.474 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.498 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.518 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.536 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.560 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.616 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.636 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.653 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.677 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.695 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.714 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.732 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.755 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.775 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.796 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.818 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.839 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.862 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.887 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.905 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.925 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.947 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.969 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:22.988 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:23.005 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:23.030 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:23.051 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:23.069 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:44:23.085 | INFO     | walk_stand_place_grasp_turn_homie:_init_usd_path_list:148 - Found 1 USD files in /home/ziwang/projects/gr00t-wsg-teleop/groot/rl/data/objects/grab
+2026-03-26 19:44:23.085 | INFO     | walk_stand_place_grasp_turn_homie:_init_usd_path_list:149 - Object classes: ['bottle']
+2026-03-26 19:44:23.086 | INFO     | walk_stand_place_grasp_turn_homie:_init_usd_path_list:150 - USD_PATH_LIST: 
+2026-03-26 19:44:23.087 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-54-32_0.765m_v0.npz...
+2026-03-26 19:44:23.095 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.620000000000001 sec, frames: 582
+2026-03-26 19:44:23.097 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-40-00_0.755m_v1.npz...
+2026-03-26 19:44:23.102 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.26 sec, frames: 514
+2026-03-26 19:44:23.103 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-32-21_0.687m.npz...
+2026-03-26 19:44:23.106 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.98 sec, frames: 500
+2026-03-26 19:44:23.107 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-05-56_0.695m_v0.npz...
+2026-03-26 19:44:23.111 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.72 sec, frames: 587
+2026-03-26 19:44:23.112 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-06-43_0.750m.npz...
+2026-03-26 19:44:23.116 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.08 sec, frames: 505
+2026-03-26 19:44:23.117 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-36-28_0.685m_v0..npz...
+2026-03-26 19:44:23.121 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.42 sec, frames: 572
+2026-03-26 19:44:23.122 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-06-50_0.695m_v0.npz...
+2026-03-26 19:44:23.126 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.16 sec, frames: 609
+2026-03-26 19:44:23.127 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-01-05_0.715m_v1.npz...
+2026-03-26 19:44:23.131 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.540000000000001 sec, frames: 678
+2026-03-26 19:44:23.155 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:1029 - Object class distribution across 24 environments:
+2026-03-26 19:44:23.155 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:1031 -   bottle: 24 environments (100.0%)
+2026-03-26 19:44:26.214 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:1212 - Failed to get table top positions with RigidPrim method: 'IsaacSim' object has no attribute 'get_all_table_top_positions'
+2026-03-26 19:44:26.215 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:1216 - Successfully retrieved table top positions using USD method for 8 environments
+2026-03-26 19:44:26.247 | INFO     | groot.rl.simulator.isaacsim.isaacsim:_setup_scene:1309 - [TELEMETRY] Rank N/A: _setup_scene completed all assets and sensors initialization
+2026-03-26 19:44:26.251 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:256 - Starting the simulation. This may take a few seconds. Please wait...
+2026-03-26 19:46:40.782 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.798 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.815 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.832 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.848 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.861 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.876 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.892 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.905 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.925 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.936 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.949 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.962 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.980 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:40.997 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.018 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.032 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.053 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.071 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.088 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.103 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.121 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.135 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.153 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.167 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.184 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.196 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.216 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.234 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.251 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.266 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.279 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.292 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.305 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.318 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.332 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.347 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.361 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.378 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.392 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.406 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.417 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.431 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.445 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.457 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.477 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.489 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.507 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.518 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.530 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.544 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.559 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.574 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.588 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.604 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.618 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.638 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.651 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.670 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.684 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.700 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.723 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.743 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.763 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.776 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.788 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.803 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.820 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.837 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.858 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.873 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.892 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.907 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.925 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.938 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:41.951 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.047 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.063 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.077 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.092 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.106 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.116 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.130 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.148 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.163 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.180 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.195 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.208 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.225 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.244 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.259 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.277 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.291 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.310 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.323 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.336 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.353 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.366 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.382 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.397 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.419 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.431 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.448 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.464 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.484 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.501 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.515 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.530 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.547 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.560 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.573 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.588 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.602 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.619 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.633 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.653 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.667 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.684 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.686 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.688 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.689 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.691 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.693 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.694 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.697 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.699 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.701 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.702 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.704 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.705 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.707 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.708 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.711 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.713 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.714 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.716 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.718 | DEBUG    | logging:callHandlers:1706 - Using selector: EpollSelector
+2026-03-26 19:46:42.721 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:550 - Completed setting up the environment...
+2026-03-26 19:46:42.721 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:553 - [TELEMETRY] Rank N/A: _setup_scene finished
+2026-03-26 19:46:42.966 | INFO     | groot.rl.simulator.isaacsim.isaacsim:__init__:559 - Material randomization memory optimization completed
+2026-03-26 19:46:42.987 | INFO     | groot.rl.simulator.isaacsim.isaacsim:load_assets:1371 - Camera attached link: d435_link, Camera body id: [14]
+2026-03-26 19:46:42.987 | WARNING  | groot.rl.simulator.isaacsim.isaacsim:load_assets:1394 - The order of the joint_names in the robot_config does not match the order of the joint_ids in IsaacSim.
+2026-03-26 19:46:43.172 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hip_pitch_joint were defined, setting them to 150.0 and 2.0
+2026-03-26 19:46:43.173 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hip_roll_joint were defined, setting them to 150.0 and 2.0
+2026-03-26 19:46:43.174 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hip_yaw_joint were defined, setting them to 150.0 and 2.0
+2026-03-26 19:46:43.175 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_knee_joint were defined, setting them to 200.0 and 4.0
+2026-03-26 19:46:43.176 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_ankle_pitch_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.177 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_ankle_roll_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.177 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hip_pitch_joint were defined, setting them to 150.0 and 2.0
+2026-03-26 19:46:43.178 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hip_roll_joint were defined, setting them to 150.0 and 2.0
+2026-03-26 19:46:43.179 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hip_yaw_joint were defined, setting them to 150.0 and 2.0
+2026-03-26 19:46:43.179 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_knee_joint were defined, setting them to 200.0 and 4.0
+2026-03-26 19:46:43.180 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_ankle_pitch_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.181 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_ankle_roll_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.182 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint waist_yaw_joint were defined, setting them to 250.0 and 5.0
+2026-03-26 19:46:43.182 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint waist_roll_joint were defined, setting them to 250.0 and 5.0
+2026-03-26 19:46:43.184 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint waist_pitch_joint were defined, setting them to 250.0 and 5.0
+2026-03-26 19:46:43.185 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_shoulder_pitch_joint were defined, setting them to 100.0 and 5.0
+2026-03-26 19:46:43.186 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_shoulder_roll_joint were defined, setting them to 100.0 and 5.0
+2026-03-26 19:46:43.186 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_shoulder_yaw_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.187 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_elbow_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.188 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_wrist_roll_joint were defined, setting them to 20.0 and 2.0
+2026-03-26 19:46:43.189 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_wrist_pitch_joint were defined, setting them to 20.0 and 2.0
+2026-03-26 19:46:43.189 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_wrist_yaw_joint were defined, setting them to 20.0 and 2.0
+2026-03-26 19:46:43.190 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_shoulder_pitch_joint were defined, setting them to 100.0 and 5.0
+2026-03-26 19:46:43.191 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_shoulder_roll_joint were defined, setting them to 100.0 and 5.0
+2026-03-26 19:46:43.192 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_shoulder_yaw_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.192 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_elbow_joint were defined, setting them to 40.0 and 2.0
+2026-03-26 19:46:43.193 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_wrist_roll_joint were defined, setting them to 20.0 and 2.0
+2026-03-26 19:46:43.194 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_wrist_pitch_joint were defined, setting them to 20.0 and 2.0
+2026-03-26 19:46:43.195 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_wrist_yaw_joint were defined, setting them to 20.0 and 2.0
+2026-03-26 19:46:43.196 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_index_0_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.196 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_middle_0_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.197 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_thumb_0_joint were defined, setting them to 2.0 and 0.10000000149011612
+2026-03-26 19:46:43.198 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_index_0_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.199 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_middle_0_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.199 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_thumb_0_joint were defined, setting them to 2.0 and 0.10000000149011612
+2026-03-26 19:46:43.200 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_index_1_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.201 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_middle_1_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.202 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_thumb_1_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.203 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_index_1_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.204 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_middle_1_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.205 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_thumb_1_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.205 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint left_hand_thumb_2_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.206 | DEBUG    | groot.rl.envs.legged_base_task.legged_robot_base:_init_buffers:129 - PD gain of joint right_hand_thumb_2_joint were defined, setting them to 0.5 and 0.10000000149011612
+2026-03-26 19:46:43.215 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:208 - [32mTairan set reward on 20251002[0m
+2026-03-26 19:46:43.216 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: termination = -2000.0
+2026-03-26 19:46:43.216 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_upfront_heading = -10000.0
+2026-03-26 19:46:43.216 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_bottle_in_middle = -1.0
+2026-03-26 19:46:43.216 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_delta_action_rate = -0.01
+2026-03-26 19:46:43.216 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_dof_vel = -0.5
+2026-03-26 19:46:43.217 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_dof_acc = -3e-06
+2026-03-26 19:46:43.217 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_torques = -0.001
+2026-03-26 19:46:43.217 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_output_smoothness = -9.0
+2026-03-26 19:46:43.217 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_finger_primitive_limit = -20.0
+2026-03-26 19:46:43.217 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_command_large_linvel_x = -20.0
+2026-03-26 19:46:43.217 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_command_large_linvel_y = -20.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_command_large_angvel = -20.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_command_large_upper_body_actions = -10.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_zero_linvel_x_y = -10.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: task_robot_distance_to_box = 2.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_upper_body_actions = -1.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_keep_hand_closed = 9.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_hand_predrop_pos_distance = -10000.0
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: hand_object_distance = 20
+2026-03-26 19:46:43.218 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: grasp_based_on_obj_finger_dir = 5.0
+2026-03-26 19:46:43.219 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: grasp_force = 1.0
+2026-03-26 19:46:43.219 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: lift_goal_distance = 10
+2026-03-26 19:46:43.219 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: lift_z = 200
+2026-03-26 19:46:43.220 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: release_bottle = -1.0
+2026-03-26 19:46:43.220 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: task_turn_around = 15
+2026-03-26 19:46:43.220 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: holding_object = 1.0
+2026-03-26 19:46:43.221 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: right_arm_qpos_tracking_hold_object = 5.0
+2026-03-26 19:46:43.221 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: right_arm_qpos_tracking_front_object = 25.0
+2026-03-26 19:46:43.221 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_fast_right_arm_qvel = -80.0
+2026-03-26 19:46:43.222 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: zero_XY_Ang_velocity_command_during_drop_and_pick = 0.0
+2026-03-26 19:46:43.222 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: zero_XY_velocity_command_during_tuning = 0.0
+2026-03-26 19:46:43.222 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: zero_Ang_velocity_command_during_tuning = 0.0
+2026-03-26 19:46:43.222 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: finger_qvel_during_right_arm_qvel = 15.0
+2026-03-26 19:46:43.223 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_finger_qvel_during_single_foot_contact = -315.0
+2026-03-26 19:46:43.223 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_arm_qvel_during_single_foot_contact = -1300.0
+2026-03-26 19:46:43.223 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_standing_still_abs = -0.0
+2026-03-26 19:46:43.223 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_standing_still_square = -0.0
+2026-03-26 19:46:43.223 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_standing_still_exp = 0.0
+2026-03-26 19:46:43.224 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_zero_XY_Ang_Ddp_ABS = -12.0
+2026-03-26 19:46:43.224 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_zero_XY_Ddpt_ABS = -4.0
+2026-03-26 19:46:43.224 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_zero_Ang_At_ABS = -4.0
+2026-03-26 19:46:43.224 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: track_xy_after_turning = 15.0
+2026-03-26 19:46:43.224 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_bottle_move_table_contact = -1000
+2026-03-26 19:46:43.225 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:213 - Scale: penalty_bottle_relative_move = -2000.0
+2026-03-26 19:46:43.225 | INFO     | groot.rl.envs.legged_base_task.legged_robot_base:_prepare_reward_function:224 - [32mUse Reward Penalty: 0.0[0m
+2026-03-26 19:46:43.233 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:50 - Using camera resolution from config: (108, 192, 3)
+2026-03-26 19:46:43.233 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:59 - Vision history buffer for rgb_image: shape (108, 192, 3), history length 5
+2026-03-26 19:46:43.233 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:60 - Total history buffer shape: torch.Size([8, 5, 108, 192, 3])
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:65 - [32mHistory Handler Initialized[0m
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: rgb_image, Value: 5
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: base_lin_vel, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: base_ang_vel, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: projected_gravity, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: actions, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: stage, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: delta_actions, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: dof_pos, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: dof_vel, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: placement_pos, Value: 15
+2026-03-26 19:46:43.234 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: table_pelvis_transform, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: hold_fingers_tips_force, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: hold_obj_transform, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: hold_hand_object_transform, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: target_place_pos, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: grasp_fingers_tips_force, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: grasp_obj_transform, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: grasp_hand_object_transform, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: target_lift_pos, Value: 15
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: b_homie_commands, Value: 5
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: c_homie_base_ang_vel, Value: 5
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: d_homie_projected_gravity, Value: 5
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: e_homie_dof_pos, Value: 5
+2026-03-26 19:46:43.235 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: f_homie_dof_vel, Value: 5
+2026-03-26 19:46:43.236 | INFO     | groot.rl.envs.env_utils.history_handler:__init__:67 - Key: g_homie_body_actions, Value: 5
+2026-03-26 19:46:43.237 | INFO     | groot.rl.utils.teleop_reset_lib.dataset_wsppt:__init__:29 - number of motion files under dir groot/rl/data/motions/g1_wsdpt/33demos_675_775: 295
+2026-03-26 19:46:43.237 | INFO     | groot.rl.utils.teleop_reset_lib.dataset_wsppt:__init__:30 - motion files: ['groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-54-32_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-40-00_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-32-21_0.687m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-05-56_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-06-43_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-36-28_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-06-50_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-01-05_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-46-35_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-01-43_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-28-35_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-32-46_0.734m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-05-19_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-11-57_0.735m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-36-45_0.754m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-29-39_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-37-22_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-03-48_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-58-03_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-21-05_0.677m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-35-06_0.697m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-48-32_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-56-56_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-07-48_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-25-41_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-09-16_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-07-29_0.674m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-12-43_0.744m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-33-23_0.675m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-38-47_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-03-08_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-16-50_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-39-26_0.697m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-33-48_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-51-12_0.725m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-30-31_0.734m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-46-34_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-07-20_0.724m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-07-07_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-31-54_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-42-17_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-42-33_0.707m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-24-46_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-33-48_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-41-06_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-34-27_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-57-48_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-51-20_0.684m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-38-10_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-51-22_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-08-10_0.724m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-04-10_0.704m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-27-02_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-49-21_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-07-19_0.735m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-51-58_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-22-47_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-30-39_0.675m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-03-15_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-00-02_0.704m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-12-40_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-23-34_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-52-15_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-49-40_0.725m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-16-28_0.667m..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-18-36_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-28-19_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-32-39_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-39-22_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-07-55_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-33-29_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-41-32_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-04-02_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-48-04_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-35-05_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-18-45_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-04-35_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-11-23_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-01-46_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-47-5_0.717m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-39-18_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-37-37_0.697m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-27-12_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-22-41_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-39-18_0.754m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-38-25_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-33-23_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-17-29_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-36-40_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-47-57_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-58-32_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-14-58_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-29-53_0.687m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-23-49_0.714m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-31-34_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-34-03_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-11-42_0.744m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-06-02_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-21-03_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-38-59_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-58-27_0.704m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-50-31_0.717m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-53-37_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-39-58_0.754m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-29-22_0.675m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-25-17_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-42-14_0.700m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-49-18_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-24-26_0.677m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-28-47_0.675m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-05-40_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-16-52_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-43-11_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-16-23_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-51-45_0.725m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-45-08_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-42-41_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-09-38_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-28-48_0.734m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-35-38_0.675m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-49-56_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-47-36_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-05-35_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-10-53_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-43-50_0.707m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-26-49_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-17-23_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-17-12_0.667m..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-49-49_0.717m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-49-30_0.684m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-43-06_0.664m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-45-05_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-15-45_0.694m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-00-22_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-19-17_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-23-16_0.677m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-19-04_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-46-37_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-39-36_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-10-40_0.674m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-01-18_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-42-00_0.707m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-55-59_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-38-02_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-16-17_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-50-57_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-55-09_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-50-22_0.725m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-33-07_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-47-18_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-48-50_0.684m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-32-31_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-44-34_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-51-57_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-10-59_0.735m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-16-47_0.694m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-59-06_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-50-06_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-45-04_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-34-53_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-34-07_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-26-13_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-44-20_0.700m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-06-17_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-30-43_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-45-52_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-18-08_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-03-22_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-33-06_0.687m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-18-09_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-40-17_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-02-28_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-18-01_0.667m..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-11-32_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-52-25_0.725m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-52-58_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-16-54_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-41-35_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-45-49_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-28-38_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-01-55_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-57-19_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-25-51_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-53-52_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-59-03_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-43-44_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-29-35_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-52-25_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-40-26_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-36-02_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-09-58_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-14-50_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-32-35_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-15-49_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-02-41_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-32-36_0.675m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-21-05_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-52-39_0.715m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-03-30_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-47-07_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-55-35_0.765m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-01-01_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-13-48_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-03-00_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-06-43_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-01-13_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-23-29_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-41-26_0.700m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-08-29_0.735m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-10-12_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-08-50_0.724m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-45-00_0.700m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-44-55_0.707m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-22-28_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-17-27_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-38-16_0.697m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-44-04_0.664m..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-48-59_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-43-11_0.700m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-04-47_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-27-21_0.687m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-43-03_0.707m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-13-41_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-09-30_0.674m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-31-23_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-24-12_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-35-27_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-38-45_0.697m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-30-56_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-03-44_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-21-58_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-30-18_0.685m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-59-11_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-21-29_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-02-51_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-22-53_-0.714m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-37-24_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-47-09_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-12-01_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-58-26_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-21-45_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-39-57_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-59-13_0.704m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-34-21_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-38-19_0.754m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-16-53_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-50-10_0.684m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-02-26_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-13-37_0.675m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-46-10_0.700m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-38-09_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-44-19_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-06-35_0.724m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-41-06_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-24-41_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-54-56_0.735m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-19-35_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-58-32_0.775m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-31-38_0.734m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-15-04_0.694m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-05-04_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-27-47_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-31-24_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-15-39_0.667m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-37-10_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-48-56_0.717m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-42-45_0.725m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-44-51_0.664m..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-45-35_0.664m..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-37-24_0.685m_v0..npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-12-34_0.695_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-49-13_0.725m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-41-00_0.755m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-02-03_0.704m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-52-05_0.684m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-43-46_0.685m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-05-23_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-02-14_0.715m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-27-52_0.725m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-00-53_0.750m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-29-10_0.705m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-08-56_0.735m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-42-08_0.705m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-11-04_0.744m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-55-27_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-25-27_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-21-58_0.745m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-56-54_0.695m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-24-37_0.675m_v1.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-17-41_0.775m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-27-44_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-25-16_0.714m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-29-02_0.755m_v0.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-21-43_0.677m.npz', 'groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-18-08_0.695_v1.npz']
+2026-03-26 19:46:43.237 | INFO     | groot.rl.utils.teleop_reset_lib.dataset_wsppt:__init__:31 - overriding motion files with motion files under dir groot/rl/data/motions/g1_wsdpt/33demos_675_775
+2026-03-26 19:46:43.238 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-54-32_0.765m_v0.npz...
+2026-03-26 19:46:43.245 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.620000000000001 sec, frames: 582
+2026-03-26 19:46:43.246 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-40-00_0.755m_v1.npz...
+2026-03-26 19:46:43.251 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.26 sec, frames: 514
+2026-03-26 19:46:43.251 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-32-21_0.687m.npz...
+2026-03-26 19:46:43.255 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.98 sec, frames: 500
+2026-03-26 19:46:43.255 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-05-56_0.695m_v0.npz...
+2026-03-26 19:46:43.259 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.72 sec, frames: 587
+2026-03-26 19:46:43.260 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-06-43_0.750m.npz...
+2026-03-26 19:46:43.263 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.08 sec, frames: 505
+2026-03-26 19:46:43.263 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-36-28_0.685m_v0..npz...
+2026-03-26 19:46:43.267 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.42 sec, frames: 572
+2026-03-26 19:46:43.267 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-06-50_0.695m_v0.npz...
+2026-03-26 19:46:43.271 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.16 sec, frames: 609
+2026-03-26 19:46:43.272 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-01-05_0.715m_v1.npz...
+2026-03-26 19:46:43.276 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.540000000000001 sec, frames: 678
+2026-03-26 19:46:43.276 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-46-35_0.685m_v1.npz...
+2026-03-26 19:46:43.280 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.72 sec, frames: 587
+2026-03-26 19:46:43.280 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-01-43_0.695m_v0.npz...
+2026-03-26 19:46:43.284 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.24 sec, frames: 663
+2026-03-26 19:46:43.284 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-28-35_0.725m_v0.npz...
+2026-03-26 19:46:43.288 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.64 sec, frames: 683
+2026-03-26 19:46:43.288 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-32-46_0.734m.npz...
+2026-03-26 19:46:43.292 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.14 sec, frames: 608
+2026-03-26 19:46:43.292 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-05-19_0.675m_v0.npz...
+2026-03-26 19:46:43.296 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.5 sec, frames: 676
+2026-03-26 19:46:43.296 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-11-57_0.735m_v1.npz...
+2026-03-26 19:46:43.300 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.1 sec, frames: 556
+2026-03-26 19:46:43.300 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-36-45_0.754m.npz...
+2026-03-26 19:46:43.304 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.88 sec, frames: 595
+2026-03-26 19:46:43.304 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-29-39_0.705m_v0.npz...
+2026-03-26 19:46:43.308 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.14 sec, frames: 708
+2026-03-26 19:46:43.309 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-37-22_0.705m_v1.npz...
+2026-03-26 19:46:43.312 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.700000000000001 sec, frames: 636
+2026-03-26 19:46:43.313 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-03-48_0.750m.npz...
+2026-03-26 19:46:43.316 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 8.76 sec, frames: 439
+2026-03-26 19:46:43.316 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-58-03_0.715m_v1.npz...
+2026-03-26 19:46:43.320 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.74 sec, frames: 538
+2026-03-26 19:46:43.320 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-21-05_0.677m.npz...
+2026-03-26 19:46:43.323 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.98 sec, frames: 550
+2026-03-26 19:46:43.324 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-35-06_0.697m.npz...
+2026-03-26 19:46:43.327 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.5 sec, frames: 526
+2026-03-26 19:46:43.327 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-48-32_0.715m_v0.npz...
+2026-03-26 19:46:43.331 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.14 sec, frames: 658
+2026-03-26 19:46:43.331 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-56-56_0.715m_v1.npz...
+2026-03-26 19:46:43.335 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.18 sec, frames: 610
+2026-03-26 19:46:43.335 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-07-48_0.675m_v0.npz...
+2026-03-26 19:46:43.340 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.22 sec, frames: 712
+2026-03-26 19:46:43.340 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-25-41_0.705m_v0.npz...
+2026-03-26 19:46:43.344 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.94 sec, frames: 648
+2026-03-26 19:46:43.344 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-09-16_0.675m_v0.npz...
+2026-03-26 19:46:43.348 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.46 sec, frames: 674
+2026-03-26 19:46:43.348 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-07-29_0.674m.npz...
+2026-03-26 19:46:43.352 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.3 sec, frames: 716
+2026-03-26 19:46:43.352 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-12-43_0.744m.npz...
+2026-03-26 19:46:43.356 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.28 sec, frames: 565
+2026-03-26 19:46:43.357 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-33-23_0.675m.npz...
+2026-03-26 19:46:43.360 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.3 sec, frames: 566
+2026-03-26 19:46:43.361 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-38-47_0.755m_v1.npz...
+2026-03-26 19:46:43.364 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.78 sec, frames: 490
+2026-03-26 19:46:43.364 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-03-08_0.715m_v1.npz...
+2026-03-26 19:46:43.368 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.86 sec, frames: 594
+2026-03-26 19:46:43.368 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-16-50_0.775m.npz...
+2026-03-26 19:46:43.372 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.22 sec, frames: 512
+2026-03-26 19:46:43.372 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-39-26_0.697m.npz...
+2026-03-26 19:46:43.376 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.84 sec, frames: 543
+2026-03-26 19:46:43.377 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-33-48_0.705m_v1.npz...
+2026-03-26 19:46:43.380 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.780000000000001 sec, frames: 690
+2026-03-26 19:46:43.381 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-51-12_0.725m.npz...
+2026-03-26 19:46:43.384 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.94 sec, frames: 498
+2026-03-26 19:46:43.384 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-30-31_0.734m.npz...
+2026-03-26 19:46:43.388 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.46 sec, frames: 574
+2026-03-26 19:46:43.388 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-46-34_0.725m_v1.npz...
+2026-03-26 19:46:43.392 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.6 sec, frames: 581
+2026-03-26 19:46:43.392 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-07-20_0.724m.npz...
+2026-03-26 19:46:43.395 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.84 sec, frames: 493
+2026-03-26 19:46:43.396 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-07-07_0.775m_v0.npz...
+2026-03-26 19:46:43.399 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.200000000000001 sec, frames: 511
+2026-03-26 19:46:43.399 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-31-54_0.755m_v0.npz...
+2026-03-26 19:46:43.403 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.200000000000001 sec, frames: 511
+2026-03-26 19:46:43.403 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-42-17_0.685m_v1.npz...
+2026-03-26 19:46:43.408 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.22 sec, frames: 712
+2026-03-26 19:46:43.409 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-42-33_0.707m.npz...
+2026-03-26 19:46:43.412 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.540000000000001 sec, frames: 578
+2026-03-26 19:46:43.413 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-24-46_0.745m_v0.npz...
+2026-03-26 19:46:43.416 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.08 sec, frames: 555
+2026-03-26 19:46:43.416 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-33-48_0.685m_v0..npz...
+2026-03-26 19:46:43.420 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.66 sec, frames: 634
+2026-03-26 19:46:43.421 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-41-06_0.685m_v1.npz...
+2026-03-26 19:46:43.425 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.46 sec, frames: 674
+2026-03-26 19:46:43.426 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-34-27_0.705m_v1.npz...
+2026-03-26 19:46:43.429 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.08 sec, frames: 605
+2026-03-26 19:46:43.429 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-57-48_0.695m_v0.npz...
+2026-03-26 19:46:43.433 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.5 sec, frames: 576
+2026-03-26 19:46:43.433 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-51-20_0.684m.npz...
+2026-03-26 19:46:43.438 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.92 sec, frames: 547
+2026-03-26 19:46:43.439 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-38-10_0.755m_v1.npz...
+2026-03-26 19:46:43.443 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.84 sec, frames: 593
+2026-03-26 19:46:43.443 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-51-22_0.715m_v0.npz...
+2026-03-26 19:46:43.447 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.72 sec, frames: 587
+2026-03-26 19:46:43.447 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-08-10_0.724m.npz...
+2026-03-26 19:46:43.451 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.36 sec, frames: 519
+2026-03-26 19:46:43.451 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-04-10_0.704m.npz...
+2026-03-26 19:46:43.459 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.5 sec, frames: 576
+2026-03-26 19:46:43.459 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-27-02_0.725m_v0.npz...
+2026-03-26 19:46:43.467 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 16.3 sec, frames: 816
+2026-03-26 19:46:43.468 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-49-21_0.715m_v0.npz...
+2026-03-26 19:46:43.473 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.58 sec, frames: 580
+2026-03-26 19:46:43.473 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-07-19_0.735m_v1.npz...
+2026-03-26 19:46:43.477 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.34 sec, frames: 568
+2026-03-26 19:46:43.477 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-51-58_0.715m_v0.npz...
+2026-03-26 19:46:43.481 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.96 sec, frames: 699
+2026-03-26 19:46:43.481 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-22-47_0.675m_v1.npz...
+2026-03-26 19:46:43.485 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.14 sec, frames: 608
+2026-03-26 19:46:43.485 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-30-39_0.675m.npz...
+2026-03-26 19:46:43.489 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.48 sec, frames: 675
+2026-03-26 19:46:43.490 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-03-15_0.775m_v0.npz...
+2026-03-26 19:46:43.493 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.18 sec, frames: 560
+2026-03-26 19:46:43.494 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-00-02_0.704m.npz...
+2026-03-26 19:46:43.497 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.24 sec, frames: 613
+2026-03-26 19:46:43.498 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-12-40_0.675m_v0.npz...
+2026-03-26 19:46:43.501 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.18 sec, frames: 510
+2026-03-26 19:46:43.501 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-23-34_0.745m_v0.npz...
+2026-03-26 19:46:43.505 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.24 sec, frames: 513
+2026-03-26 19:46:43.506 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-52-15_0.735m_v0.npz...
+2026-03-26 19:46:43.510 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.84 sec, frames: 743
+2026-03-26 19:46:43.510 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-49-40_0.725m.npz...
+2026-03-26 19:46:43.514 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.24 sec, frames: 613
+2026-03-26 19:46:43.514 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-16-28_0.667m..npz...
+2026-03-26 19:46:43.518 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.94 sec, frames: 548
+2026-03-26 19:46:43.518 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-18-36_0.775m.npz...
+2026-03-26 19:46:43.522 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.68 sec, frames: 535
+2026-03-26 19:46:43.522 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-28-19_0.755m_v0.npz...
+2026-03-26 19:46:43.526 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.26 sec, frames: 514
+2026-03-26 19:46:43.526 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-32-39_0.755m_v0.npz...
+2026-03-26 19:46:43.530 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.48 sec, frames: 675
+2026-03-26 19:46:43.530 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-39-22_0.755m_v1.npz...
+2026-03-26 19:46:43.534 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.64 sec, frames: 583
+2026-03-26 19:46:43.535 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-07-55_0.750m.npz...
+2026-03-26 19:46:43.539 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.44 sec, frames: 573
+2026-03-26 19:46:43.540 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-33-29_0.725m_v0.npz...
+2026-03-26 19:46:43.544 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.280000000000001 sec, frames: 665
+2026-03-26 19:46:43.544 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-41-32_0.705m_v1.npz...
+2026-03-26 19:46:43.549 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.46 sec, frames: 674
+2026-03-26 19:46:43.549 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-04-02_0.775m_v0.npz...
+2026-03-26 19:46:43.553 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.86 sec, frames: 594
+2026-03-26 19:46:43.553 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-48-04_0.685m_v1.npz...
+2026-03-26 19:46:43.557 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.42 sec, frames: 672
+2026-03-26 19:46:43.558 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-35-05_0.705m_v1.npz...
+2026-03-26 19:46:43.561 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.9 sec, frames: 546
+2026-03-26 19:46:43.562 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-18-45_0.695_v1.npz...
+2026-03-26 19:46:43.565 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.36 sec, frames: 619
+2026-03-26 19:46:43.566 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-04-35_0.775m_v0.npz...
+2026-03-26 19:46:43.569 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.94 sec, frames: 548
+2026-03-26 19:46:43.569 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-11-23_0.695_v1.npz...
+2026-03-26 19:46:43.574 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.18 sec, frames: 760
+2026-03-26 19:46:43.574 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-01-46_0.775m_v0.npz...
+2026-03-26 19:46:43.578 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.56 sec, frames: 579
+2026-03-26 19:46:43.579 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-47-5_0.717m.npz...
+2026-03-26 19:46:43.582 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.52 sec, frames: 527
+2026-03-26 19:46:43.583 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-39-18_0.705m_v1.npz...
+2026-03-26 19:46:43.587 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.6 sec, frames: 581
+2026-03-26 19:46:43.587 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-37-37_0.697m.npz...
+2026-03-26 19:46:43.591 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.32 sec, frames: 517
+2026-03-26 19:46:43.592 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-27-12_0.755m_v0.npz...
+2026-03-26 19:46:43.595 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.6 sec, frames: 581
+2026-03-26 19:46:43.595 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-22-41_0.705m_v0.npz...
+2026-03-26 19:46:43.599 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.48 sec, frames: 625
+2026-03-26 19:46:43.600 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-39-18_0.754m.npz...
+2026-03-26 19:46:43.604 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.32 sec, frames: 667
+2026-03-26 19:46:43.604 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-38-25_0.725m_v1.npz...
+2026-03-26 19:46:43.608 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.9 sec, frames: 646
+2026-03-26 19:46:43.608 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-33-23_0.755m_v0.npz...
+2026-03-26 19:46:43.612 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.06 sec, frames: 604
+2026-03-26 19:46:43.613 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-17-29_0.695_v1.npz...
+2026-03-26 19:46:43.616 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.28 sec, frames: 565
+2026-03-26 19:46:43.617 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-36-40_0.705m_v1.npz...
+2026-03-26 19:46:43.621 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.72 sec, frames: 637
+2026-03-26 19:46:43.621 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-47-57_0.715m_v0.npz...
+2026-03-26 19:46:43.625 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.94 sec, frames: 598
+2026-03-26 19:46:43.625 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-58-32_0.715m_v1.npz...
+2026-03-26 19:46:43.629 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.88 sec, frames: 695
+2026-03-26 19:46:43.629 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-14-58_0.775m.npz...
+2026-03-26 19:46:43.633 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.52 sec, frames: 527
+2026-03-26 19:46:43.633 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-29-53_0.687m.npz...
+2026-03-26 19:46:43.636 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.120000000000001 sec, frames: 557
+2026-03-26 19:46:43.637 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-23-49_0.714m.npz...
+2026-03-26 19:46:43.641 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.8 sec, frames: 641
+2026-03-26 19:46:43.641 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-31-34_0.685m_v0..npz...
+2026-03-26 19:46:43.645 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.32 sec, frames: 617
+2026-03-26 19:46:43.645 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-34-03_0.725m_v0.npz...
+2026-03-26 19:46:43.649 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.9 sec, frames: 696
+2026-03-26 19:46:43.649 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-11-42_0.744m.npz...
+2026-03-26 19:46:43.654 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.08 sec, frames: 555
+2026-03-26 19:46:43.654 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-06-02_0.715m_v1.npz...
+2026-03-26 19:46:43.658 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.28 sec, frames: 465
+2026-03-26 19:46:43.658 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-21-03_0.705m_v0.npz...
+2026-03-26 19:46:43.663 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.64 sec, frames: 783
+2026-03-26 19:46:43.663 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-38-59_0.725m_v1.npz...
+2026-03-26 19:46:43.667 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.68 sec, frames: 635
+2026-03-26 19:46:43.667 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-58-27_0.704m.npz...
+2026-03-26 19:46:43.671 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.5 sec, frames: 576
+2026-03-26 19:46:43.672 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-50-31_0.717m.npz...
+2026-03-26 19:46:43.676 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.92 sec, frames: 597
+2026-03-26 19:46:43.676 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-53-37_0.735m_v0.npz...
+2026-03-26 19:46:43.680 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.14 sec, frames: 708
+2026-03-26 19:46:43.680 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-39-58_0.754m.npz...
+2026-03-26 19:46:43.684 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.44 sec, frames: 723
+2026-03-26 19:46:43.685 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-29-22_0.675m.npz...
+2026-03-26 19:46:43.689 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.02 sec, frames: 652
+2026-03-26 19:46:43.690 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-25-17_0.725m_v0.npz...
+2026-03-26 19:46:43.693 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.22 sec, frames: 612
+2026-03-26 19:46:43.694 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-42-14_0.700m.npz...
+2026-03-26 19:46:43.698 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.200000000000001 sec, frames: 611
+2026-03-26 19:46:43.698 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-49-18_0.765m_v0.npz...
+2026-03-26 19:46:43.702 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.200000000000001 sec, frames: 611
+2026-03-26 19:46:43.702 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-24-26_0.677m.npz...
+2026-03-26 19:46:43.706 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.46 sec, frames: 524
+2026-03-26 19:46:43.707 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-28-47_0.675m.npz...
+2026-03-26 19:46:43.710 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.72 sec, frames: 637
+2026-03-26 19:46:43.711 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-05-40_0.775m_v0.npz...
+2026-03-26 19:46:43.715 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.700000000000001 sec, frames: 636
+2026-03-26 19:46:43.715 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-16-52_0.745m_v0.npz...
+2026-03-26 19:46:43.720 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.0 sec, frames: 551
+2026-03-26 19:46:43.721 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-43-11_0.755m_v1.npz...
+2026-03-26 19:46:43.725 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.88 sec, frames: 545
+2026-03-26 19:46:43.725 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-16-23_0.775m.npz...
+2026-03-26 19:46:43.729 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.16 sec, frames: 459
+2026-03-26 19:46:43.729 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-51-45_0.725m.npz...
+2026-03-26 19:46:43.732 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.6 sec, frames: 481
+2026-03-26 19:46:43.732 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-45-08_0.685m_v1.npz...
+2026-03-26 19:46:43.736 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.96 sec, frames: 599
+2026-03-26 19:46:43.737 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-42-41_0.705m_v1.npz...
+2026-03-26 19:46:43.741 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.34 sec, frames: 568
+2026-03-26 19:46:43.742 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-09-38_0.695_v1.npz...
+2026-03-26 19:46:43.746 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.120000000000001 sec, frames: 657
+2026-03-26 19:46:43.746 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-28-48_0.734m.npz...
+2026-03-26 19:46:43.750 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.94 sec, frames: 648
+2026-03-26 19:46:43.750 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-35-38_0.675m.npz...
+2026-03-26 19:46:43.755 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.24 sec, frames: 563
+2026-03-26 19:46:43.755 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-49-56_0.715m_v0.npz...
+2026-03-26 19:46:43.759 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.94 sec, frames: 748
+2026-03-26 19:46:43.759 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-47-36_0.765m_v0.npz...
+2026-03-26 19:46:43.763 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.46 sec, frames: 624
+2026-03-26 19:46:43.764 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-05-35_0.750m.npz...
+2026-03-26 19:46:43.770 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 8.58 sec, frames: 430
+2026-03-26 19:46:43.771 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-10-53_0.675m_v0.npz...
+2026-03-26 19:46:43.776 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.16 sec, frames: 659
+2026-03-26 19:46:43.776 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-43-50_0.707m.npz...
+2026-03-26 19:46:43.780 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.84 sec, frames: 593
+2026-03-26 19:46:43.780 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-26-49_0.705m_v0.npz...
+2026-03-26 19:46:43.784 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.32 sec, frames: 617
+2026-03-26 19:46:43.784 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-17-23_0.745m_v0.npz...
+2026-03-26 19:46:43.788 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.36 sec, frames: 619
+2026-03-26 19:46:43.789 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-17-12_0.667m..npz...
+2026-03-26 19:46:43.792 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.88 sec, frames: 545
+2026-03-26 19:46:43.793 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-49-49_0.717m.npz...
+2026-03-26 19:46:43.796 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.24 sec, frames: 563
+2026-03-26 19:46:43.797 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-49-30_0.684m.npz...
+2026-03-26 19:46:43.801 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.46 sec, frames: 624
+2026-03-26 19:46:43.801 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-43-06_0.664m.npz...
+2026-03-26 19:46:43.809 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 17.86 sec, frames: 894
+2026-03-26 19:46:43.809 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-45-05_0.725m_v1.npz...
+2026-03-26 19:46:43.816 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.78 sec, frames: 540
+2026-03-26 19:46:43.816 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-15-45_0.694m.npz...
+2026-03-26 19:46:43.823 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.540000000000001 sec, frames: 678
+2026-03-26 19:46:43.824 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-00-22_0.715m_v1.npz...
+2026-03-26 19:46:43.830 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.9 sec, frames: 546
+2026-03-26 19:46:43.830 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-19-17_0.775m.npz...
+2026-03-26 19:46:43.834 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.82 sec, frames: 592
+2026-03-26 19:46:43.834 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-23-16_0.677m.npz...
+2026-03-26 19:46:43.839 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.46 sec, frames: 624
+2026-03-26 19:46:43.839 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-19-04_0.745m_v0.npz...
+2026-03-26 19:46:43.843 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.66 sec, frames: 584
+2026-03-26 19:46:43.843 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-46-37_0.715m_v0.npz...
+2026-03-26 19:46:43.847 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.42 sec, frames: 622
+2026-03-26 19:46:43.847 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-39-36_0.725m_v1.npz...
+2026-03-26 19:46:43.851 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.66 sec, frames: 684
+2026-03-26 19:46:43.851 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-10-40_0.674m.npz...
+2026-03-26 19:46:43.855 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.46 sec, frames: 774
+2026-03-26 19:46:43.856 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-01-18_0.775m_v0.npz...
+2026-03-26 19:46:43.859 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.92 sec, frames: 547
+2026-03-26 19:46:43.860 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-42-00_0.707m.npz...
+2026-03-26 19:46:43.863 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.34 sec, frames: 568
+2026-03-26 19:46:43.864 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-55-59_0.735m_v0.npz...
+2026-03-26 19:46:43.868 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.040000000000001 sec, frames: 703
+2026-03-26 19:46:43.868 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-38-02_0.705m_v1.npz...
+2026-03-26 19:46:43.872 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.66 sec, frames: 584
+2026-03-26 19:46:43.872 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-16-17_0.745m_v0.npz...
+2026-03-26 19:46:43.876 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.26 sec, frames: 514
+2026-03-26 19:46:43.876 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-50-57_0.735m_v0.npz...
+2026-03-26 19:46:43.880 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.8 sec, frames: 691
+2026-03-26 19:46:43.880 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-55-09_0.765m_v0.npz...
+2026-03-26 19:46:43.884 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.22 sec, frames: 512
+2026-03-26 19:46:43.884 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-50-22_0.725m.npz...
+2026-03-26 19:46:43.888 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.42 sec, frames: 522
+2026-03-26 19:46:43.888 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-33-07_0.685m_v0..npz...
+2026-03-26 19:46:43.893 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.76 sec, frames: 789
+2026-03-26 19:46:43.893 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-47-18_0.715m_v0.npz...
+2026-03-26 19:46:43.897 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.540000000000001 sec, frames: 578
+2026-03-26 19:46:43.897 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-48-50_0.684m.npz...
+2026-03-26 19:46:43.901 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.8 sec, frames: 641
+2026-03-26 19:46:43.901 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-32-31_0.725m_v0.npz...
+2026-03-26 19:46:43.905 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.98 sec, frames: 750
+2026-03-26 19:46:43.906 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-44-34_0.725m_v1.npz...
+2026-03-26 19:46:43.909 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.46 sec, frames: 524
+2026-03-26 19:46:43.909 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-51-57_0.765m_v0.npz...
+2026-03-26 19:46:43.913 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.48 sec, frames: 525
+2026-03-26 19:46:43.913 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-10-59_0.735m_v1.npz...
+2026-03-26 19:46:43.917 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.700000000000001 sec, frames: 636
+2026-03-26 19:46:43.918 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-16-47_0.694m.npz...
+2026-03-26 19:46:43.921 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.24 sec, frames: 663
+2026-03-26 19:46:43.922 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-59-06_0.695m_v0.npz...
+2026-03-26 19:46:43.926 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.14 sec, frames: 608
+2026-03-26 19:46:43.926 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-50-06_0.765m_v0.npz...
+2026-03-26 19:46:43.930 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.14 sec, frames: 608
+2026-03-26 19:46:43.930 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-45-04_0.715m_v0.npz...
+2026-03-26 19:46:43.934 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.94 sec, frames: 598
+2026-03-26 19:46:43.934 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-34-53_0.685m_v0..npz...
+2026-03-26 19:46:43.938 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.22 sec, frames: 562
+2026-03-26 19:46:43.938 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-34-07_0.755m_v0.npz...
+2026-03-26 19:46:43.942 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.24 sec, frames: 563
+2026-03-26 19:46:43.942 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-26-13_0.705m_v0.npz...
+2026-03-26 19:46:43.947 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.98 sec, frames: 700
+2026-03-26 19:46:43.947 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-44-20_0.700m.npz...
+2026-03-26 19:46:43.950 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.66 sec, frames: 484
+2026-03-26 19:46:43.950 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-06-17_0.775m_v0.npz...
+2026-03-26 19:46:43.954 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.540000000000001 sec, frames: 528
+2026-03-26 19:46:43.955 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-30-43_0.755m_v0.npz...
+2026-03-26 19:46:43.958 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.36 sec, frames: 519
+2026-03-26 19:46:43.958 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-45-52_0.685m_v1.npz...
+2026-03-26 19:46:43.962 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.82 sec, frames: 642
+2026-03-26 19:46:43.962 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-18-08_0.745m_v0.npz...
+2026-03-26 19:46:43.966 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.6 sec, frames: 581
+2026-03-26 19:46:43.966 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-03-22_0.695m_v0.npz...
+2026-03-26 19:46:43.970 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.58 sec, frames: 680
+2026-03-26 19:46:43.971 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-33-06_0.687m.npz...
+2026-03-26 19:46:43.974 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.44 sec, frames: 523
+2026-03-26 19:46:43.975 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-18-09_0.675m_v1.npz...
+2026-03-26 19:46:43.979 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.58 sec, frames: 780
+2026-03-26 19:46:43.979 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-40-17_0.725m_v1.npz...
+2026-03-26 19:46:43.983 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.44 sec, frames: 673
+2026-03-26 19:46:43.983 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-02-28_0.735m_v0.npz...
+2026-03-26 19:46:43.987 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.6 sec, frames: 631
+2026-03-26 19:46:43.988 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-18-01_0.667m..npz...
+2026-03-26 19:46:43.991 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.6 sec, frames: 581
+2026-03-26 19:46:43.992 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-11-32_0.675m_v0.npz...
+2026-03-26 19:46:43.995 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.96 sec, frames: 599
+2026-03-26 19:46:43.996 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-52-25_0.725m.npz...
+2026-03-26 19:46:43.999 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.9 sec, frames: 496
+2026-03-26 19:46:44.000 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-52-58_0.765m_v0.npz...
+2026-03-26 19:46:44.004 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.88 sec, frames: 595
+2026-03-26 19:46:44.005 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-16-54_0.675m_v1.npz...
+2026-03-26 19:46:44.009 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.76 sec, frames: 589
+2026-03-26 19:46:44.009 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-41-35_0.755m_v1.npz...
+2026-03-26 19:46:44.012 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.34 sec, frames: 568
+2026-03-26 19:46:44.013 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-45-49_0.715m_v0.npz...
+2026-03-26 19:46:44.016 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.02 sec, frames: 602
+2026-03-26 19:46:44.017 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-28-38_0.705m_v0.npz...
+2026-03-26 19:46:44.021 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.16 sec, frames: 609
+2026-03-26 19:46:44.021 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-01-55_0.735m_v0.npz...
+2026-03-26 19:46:44.025 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.700000000000001 sec, frames: 486
+2026-03-26 19:46:44.025 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-57-19_0.735m_v0.npz...
+2026-03-26 19:46:44.029 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.700000000000001 sec, frames: 686
+2026-03-26 19:46:44.029 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-25-51_0.725m_v0.npz...
+2026-03-26 19:46:44.033 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 17.64 sec, frames: 883
+2026-03-26 19:46:44.034 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-53-52_0.765m_v0.npz...
+2026-03-26 19:46:44.038 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.56 sec, frames: 579
+2026-03-26 19:46:44.038 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-59-03_0.735m_v0.npz...
+2026-03-26 19:46:44.042 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.08 sec, frames: 505
+2026-03-26 19:46:44.042 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-43-44_0.725m_v1.npz...
+2026-03-26 19:46:44.046 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.46 sec, frames: 674
+2026-03-26 19:46:44.046 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-29-35_0.755m_v0.npz...
+2026-03-26 19:46:44.049 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.0 sec, frames: 551
+2026-03-26 19:46:44.049 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-52-25_0.765m_v0.npz...
+2026-03-26 19:46:44.053 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.4 sec, frames: 571
+2026-03-26 19:46:44.053 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-40-26_0.755m_v1.npz...
+2026-03-26 19:46:44.057 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.74 sec, frames: 638
+2026-03-26 19:46:44.058 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-36-02_0.705m_v1.npz...
+2026-03-26 19:46:44.061 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.18 sec, frames: 660
+2026-03-26 19:46:44.061 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-09-58_0.675m_v0.npz...
+2026-03-26 19:46:44.065 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.46 sec, frames: 524
+2026-03-26 19:46:44.065 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-14-50_0.695_v1.npz...
+2026-03-26 19:46:44.069 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.24 sec, frames: 613
+2026-03-26 19:46:44.069 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-32-35_0.685m_v0..npz...
+2026-03-26 19:46:44.073 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.5 sec, frames: 626
+2026-03-26 19:46:44.073 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-15-49_0.775m.npz...
+2026-03-26 19:46:44.077 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.4 sec, frames: 471
+2026-03-26 19:46:44.077 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_02-02-41_0.775m_v0.npz...
+2026-03-26 19:46:44.081 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.46 sec, frames: 574
+2026-03-26 19:46:44.081 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-32-36_0.675m.npz...
+2026-03-26 19:46:44.084 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.9 sec, frames: 596
+2026-03-26 19:46:44.085 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-21-05_0.675m_v1.npz...
+2026-03-26 19:46:44.089 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.16 sec, frames: 659
+2026-03-26 19:46:44.089 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-52-39_0.715m_v0.npz...
+2026-03-26 19:46:44.092 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.120000000000001 sec, frames: 557
+2026-03-26 19:46:44.093 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-03-30_0.675m_v0.npz...
+2026-03-26 19:46:44.096 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.58 sec, frames: 630
+2026-03-26 19:46:44.096 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-47-07_0.725m_v1.npz...
+2026-03-26 19:46:44.100 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.08 sec, frames: 655
+2026-03-26 19:46:44.100 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-55-35_0.765m_v0.npz...
+2026-03-26 19:46:44.105 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.64 sec, frames: 583
+2026-03-26 19:46:44.105 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-01-01_0.695m_v0.npz...
+2026-03-26 19:46:44.109 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.06 sec, frames: 604
+2026-03-26 19:46:44.109 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-13-48_0.775m.npz...
+2026-03-26 19:46:44.113 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.86 sec, frames: 594
+2026-03-26 19:46:44.113 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-03-00_0.750m.npz...
+2026-03-26 19:46:44.117 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.86 sec, frames: 594
+2026-03-26 19:46:44.117 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-06-43_0.675m_v0.npz...
+2026-03-26 19:46:44.121 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.120000000000001 sec, frames: 657
+2026-03-26 19:46:44.122 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-01-13_0.735m_v0.npz...
+2026-03-26 19:46:44.125 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.040000000000001 sec, frames: 553
+2026-03-26 19:46:44.125 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-23-29_0.675m_v1.npz...
+2026-03-26 19:46:44.129 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.540000000000001 sec, frames: 678
+2026-03-26 19:46:44.130 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-41-26_0.700m.npz...
+2026-03-26 19:46:44.133 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.86 sec, frames: 744
+2026-03-26 19:46:44.134 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-08-29_0.735m_v1.npz...
+2026-03-26 19:46:44.138 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.02 sec, frames: 502
+2026-03-26 19:46:44.139 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-10-12_0.695_v1.npz...
+2026-03-26 19:46:44.142 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.84 sec, frames: 643
+2026-03-26 19:46:44.143 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-08-50_0.724m.npz...
+2026-03-26 19:46:44.146 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.3 sec, frames: 666
+2026-03-26 19:46:44.147 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-45-00_0.700m.npz...
+2026-03-26 19:46:44.150 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.94 sec, frames: 598
+2026-03-26 19:46:44.150 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-44-55_0.707m.npz...
+2026-03-26 19:46:44.155 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.0 sec, frames: 601
+2026-03-26 19:46:44.155 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-22-28_0.745m_v0.npz...
+2026-03-26 19:46:44.159 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.84 sec, frames: 593
+2026-03-26 19:46:44.159 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-17-27_0.675m_v1.npz...
+2026-03-26 19:46:44.163 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.84 sec, frames: 693
+2026-03-26 19:46:44.163 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-38-16_0.697m.npz...
+2026-03-26 19:46:44.166 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.08 sec, frames: 505
+2026-03-26 19:46:44.167 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-44-04_0.664m..npz...
+2026-03-26 19:46:44.171 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.120000000000001 sec, frames: 507
+2026-03-26 19:46:44.171 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-48-59_0.685m_v1.npz...
+2026-03-26 19:46:44.175 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.46 sec, frames: 674
+2026-03-26 19:46:44.176 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-43-11_0.700m.npz...
+2026-03-26 19:46:44.179 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.8 sec, frames: 591
+2026-03-26 19:46:44.180 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-04-47_0.715m_v1.npz...
+2026-03-26 19:46:44.183 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.16 sec, frames: 609
+2026-03-26 19:46:44.183 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-27-21_0.687m.npz...
+2026-03-26 19:46:44.188 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.02 sec, frames: 602
+2026-03-26 19:46:44.189 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-43-03_0.707m.npz...
+2026-03-26 19:46:44.193 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.74 sec, frames: 688
+2026-03-26 19:46:44.193 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-13-41_0.695_v1.npz...
+2026-03-26 19:46:44.197 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.200000000000001 sec, frames: 661
+2026-03-26 19:46:44.197 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-09-30_0.674m.npz...
+2026-03-26 19:46:44.201 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.4 sec, frames: 721
+2026-03-26 19:46:44.201 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-31-23_0.725m_v0.npz...
+2026-03-26 19:46:44.205 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.94 sec, frames: 748
+2026-03-26 19:46:44.206 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-24-12_0.745m_v0.npz...
+2026-03-26 19:46:44.209 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.26 sec, frames: 564
+2026-03-26 19:46:44.210 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-35-27_0.685m_v0..npz...
+2026-03-26 19:46:44.214 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.280000000000001 sec, frames: 665
+2026-03-26 19:46:44.214 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-38-45_0.697m.npz...
+2026-03-26 19:46:44.217 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.02 sec, frames: 602
+2026-03-26 19:46:44.218 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-30-56_0.685m_v0..npz...
+2026-03-26 19:46:44.222 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.1 sec, frames: 756
+2026-03-26 19:46:44.222 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-03-44_0.715m_v1.npz...
+2026-03-26 19:46:44.226 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.22 sec, frames: 562
+2026-03-26 19:46:44.226 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-21-58_0.705m_v0.npz...
+2026-03-26 19:46:44.230 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 15.14 sec, frames: 758
+2026-03-26 19:46:44.230 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-30-18_0.685m_v0.npz...
+2026-03-26 19:46:44.234 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.4 sec, frames: 671
+2026-03-26 19:46:44.234 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-59-11_0.775m_v0.npz...
+2026-03-26 19:46:44.239 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.08 sec, frames: 555
+2026-03-26 19:46:44.239 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-21-29_0.745m_v0.npz...
+2026-03-26 19:46:44.243 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.82 sec, frames: 542
+2026-03-26 19:46:44.244 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-02-51_0.675m_v0.npz...
+2026-03-26 19:46:44.251 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.3 sec, frames: 666
+2026-03-26 19:46:44.251 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-22-53_-0.714m.npz...
+2026-03-26 19:46:44.256 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.46 sec, frames: 624
+2026-03-26 19:46:44.257 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-37-24_0.725m_v1.npz...
+2026-03-26 19:46:44.260 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.42 sec, frames: 672
+2026-03-26 19:46:44.261 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-47-09_0.685m_v1.npz...
+2026-03-26 19:46:44.264 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.040000000000001 sec, frames: 653
+2026-03-26 19:46:44.265 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-12-01_0.695_v1.npz...
+2026-03-26 19:46:44.268 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.24 sec, frames: 663
+2026-03-26 19:46:44.269 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-58-26_0.735m_v0.npz...
+2026-03-26 19:46:44.272 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.32 sec, frames: 617
+2026-03-26 19:46:44.273 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-21-45_0.675m_v1.npz...
+2026-03-26 19:46:44.277 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.9 sec, frames: 696
+2026-03-26 19:46:44.277 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-39-57_0.705m_v1.npz...
+2026-03-26 19:46:44.281 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.74 sec, frames: 738
+2026-03-26 19:46:44.281 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-59-13_0.704m.npz...
+2026-03-26 19:46:44.285 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.22 sec, frames: 612
+2026-03-26 19:46:44.285 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-34-21_0.685m_v0..npz...
+2026-03-26 19:46:44.289 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.5 sec, frames: 626
+2026-03-26 19:46:44.289 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-38-19_0.754m.npz...
+2026-03-26 19:46:44.293 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.4 sec, frames: 721
+2026-03-26 19:46:44.293 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-16-53_0.695_v1.npz...
+2026-03-26 19:46:44.297 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.14 sec, frames: 608
+2026-03-26 19:46:44.297 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-50-10_0.684m.npz...
+2026-03-26 19:46:44.301 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.32 sec, frames: 567
+2026-03-26 19:46:44.301 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-02-26_0.695m_v0.npz...
+2026-03-26 19:46:44.305 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.780000000000001 sec, frames: 640
+2026-03-26 19:46:44.305 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-13-37_0.675m_v0.npz...
+2026-03-26 19:46:44.309 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.02 sec, frames: 652
+2026-03-26 19:46:44.309 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-46-10_0.700m.npz...
+2026-03-26 19:46:44.313 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.68 sec, frames: 485
+2026-03-26 19:46:44.313 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-38-09_0.685m_v0..npz...
+2026-03-26 19:46:44.317 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 16.44 sec, frames: 823
+2026-03-26 19:46:44.317 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-44-19_0.685m_v1.npz...
+2026-03-26 19:46:44.321 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.18 sec, frames: 660
+2026-03-26 19:46:44.322 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-06-35_0.724m.npz...
+2026-03-26 19:46:44.325 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.96 sec, frames: 549
+2026-03-26 19:46:44.326 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-41-06_0.725m_v1.npz...
+2026-03-26 19:46:44.335 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.84 sec, frames: 643
+2026-03-26 19:46:44.335 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-24-41_0.705m_v0.npz...
+2026-03-26 19:46:44.344 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.24 sec, frames: 663
+2026-03-26 19:46:44.345 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-54-56_0.735m_v0.npz...
+2026-03-26 19:46:44.353 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 16.38 sec, frames: 820
+2026-03-26 19:46:44.354 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-19-35_0.745m_v0.npz...
+2026-03-26 19:46:44.362 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.06 sec, frames: 554
+2026-03-26 19:46:44.363 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-58-32_0.775m_v0.npz...
+2026-03-26 19:46:44.367 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.38 sec, frames: 570
+2026-03-26 19:46:44.368 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-31-38_0.734m.npz...
+2026-03-26 19:46:44.372 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.98 sec, frames: 700
+2026-03-26 19:46:44.373 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-15-04_0.694m.npz...
+2026-03-26 19:46:44.377 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.64 sec, frames: 633
+2026-03-26 19:46:44.378 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-05-04_0.750m.npz...
+2026-03-26 19:46:44.381 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.68 sec, frames: 485
+2026-03-26 19:46:44.382 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-27-47_0.705m_v0.npz...
+2026-03-26 19:46:44.387 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.14 sec, frames: 658
+2026-03-26 19:46:44.387 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-31-24_0.755m_v0.npz...
+2026-03-26 19:46:44.392 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.78 sec, frames: 540
+2026-03-26 19:46:44.393 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-15-39_0.667m.npz...
+2026-03-26 19:46:44.397 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.48 sec, frames: 525
+2026-03-26 19:46:44.397 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-37-10_0.755m_v1.npz...
+2026-03-26 19:46:44.404 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.28 sec, frames: 515
+2026-03-26 19:46:44.405 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-48-56_0.717m.npz...
+2026-03-26 19:46:44.411 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.72 sec, frames: 537
+2026-03-26 19:46:44.412 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-42-45_0.725m_v1.npz...
+2026-03-26 19:46:44.416 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.44 sec, frames: 673
+2026-03-26 19:46:44.416 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-44-51_0.664m..npz...
+2026-03-26 19:46:44.421 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.1 sec, frames: 656
+2026-03-26 19:46:44.421 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-45-35_0.664m..npz...
+2026-03-26 19:46:44.426 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.26 sec, frames: 714
+2026-03-26 19:46:44.426 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-37-24_0.685m_v0..npz...
+2026-03-26 19:46:44.430 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.42 sec, frames: 622
+2026-03-26 19:46:44.430 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-12-34_0.695_v1.npz...
+2026-03-26 19:46:44.434 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.5 sec, frames: 676
+2026-03-26 19:46:44.434 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_21-49-13_0.725m.npz...
+2026-03-26 19:46:44.438 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 8.48 sec, frames: 425
+2026-03-26 19:46:44.439 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-41-00_0.755m_v1.npz...
+2026-03-26 19:46:44.442 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.46 sec, frames: 574
+2026-03-26 19:46:44.443 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-02-03_0.704m.npz...
+2026-03-26 19:46:44.446 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.66 sec, frames: 534
+2026-03-26 19:46:44.446 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-52-05_0.684m.npz...
+2026-03-26 19:46:44.450 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.52 sec, frames: 577
+2026-03-26 19:46:44.450 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-43-46_0.685m_v1.npz...
+2026-03-26 19:46:44.454 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.84 sec, frames: 593
+2026-03-26 19:46:44.455 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-05-23_0.695m_v0.npz...
+2026-03-26 19:46:44.458 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.32 sec, frames: 617
+2026-03-26 19:46:44.459 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-02-14_0.715m_v1.npz...
+2026-03-26 19:46:44.462 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.48 sec, frames: 625
+2026-03-26 19:46:44.463 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_00-27-52_0.725m_v0.npz...
+2026-03-26 19:46:44.466 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.88 sec, frames: 695
+2026-03-26 19:46:44.467 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-00-53_0.750m.npz...
+2026-03-26 19:46:44.471 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.64 sec, frames: 533
+2026-03-26 19:46:44.471 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-29-10_0.705m_v0.npz...
+2026-03-26 19:46:44.475 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.92 sec, frames: 547
+2026-03-26 19:46:44.475 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-08-56_0.735m_v1.npz...
+2026-03-26 19:46:44.479 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 14.1 sec, frames: 706
+2026-03-26 19:46:44.479 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-42-08_0.705m_v1.npz...
+2026-03-26 19:46:44.483 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.14 sec, frames: 608
+2026-03-26 19:46:44.483 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-11-04_0.744m.npz...
+2026-03-26 19:46:44.486 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.26 sec, frames: 514
+2026-03-26 19:46:44.487 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-55-27_0.695m_v0.npz...
+2026-03-26 19:46:44.490 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 13.620000000000001 sec, frames: 682
+2026-03-26 19:46:44.491 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-25-27_0.675m_v1.npz...
+2026-03-26 19:46:44.494 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.76 sec, frames: 489
+2026-03-26 19:46:44.494 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-21-58_0.745m_v0.npz...
+2026-03-26 19:46:44.498 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.98 sec, frames: 500
+2026-03-26 19:46:44.498 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-56-54_0.695m_v0.npz...
+2026-03-26 19:46:44.501 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.6 sec, frames: 631
+2026-03-26 19:46:44.501 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_22-24-37_0.675m_v1.npz...
+2026-03-26 19:46:44.505 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.92 sec, frames: 597
+2026-03-26 19:46:44.506 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-14_22-17-41_0.775m.npz...
+2026-03-26 19:46:44.509 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 10.06 sec, frames: 504
+2026-03-26 19:46:44.509 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-27-44_0.755m_v0.npz...
+2026-03-26 19:46:44.513 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.5 sec, frames: 576
+2026-03-26 19:46:44.513 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_03-25-16_0.714m.npz...
+2026-03-26 19:46:44.516 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 12.34 sec, frames: 618
+2026-03-26 19:46:44.517 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-27_01-29-02_0.755m_v0.npz...
+2026-03-26 19:46:44.520 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 8.92 sec, frames: 447
+2026-03-26 19:46:44.520 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-31_04-21-43_0.677m.npz...
+2026-03-26 19:46:44.524 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 9.92 sec, frames: 497
+2026-03-26 19:46:44.524 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:from_file:122 - Loading motion from groot/rl/data/motions/g1_wsdpt/33demos_675_775/record_2025-10-26_23-18-08_0.695_v1.npz...
+2026-03-26 19:46:44.527 | INFO     | groot.rl.utils.teleop_reset_lib.motion_loader_wsppt:__init__:116 - Motion loaded: duration: 11.78 sec, frames: 590
+2026-03-26 19:46:44.528 | INFO     | groot.rl.utils.teleop_reset_lib.dataset_wsppt:__init__:34 - number of motion loaders: 295
+2026-03-26 19:46:46.466 | INFO     | __main__:main:390 - Saving config file to logs_rl/wsdpt_student_for_teacher_v8q8_002_debug/wsdpt_student_for_teacher_v8q8_002-20260326_194410
+2026-03-26 19:46:46.649 | INFO     | logging:callHandlers:1706 - Loading teacher actor from logs_rl/walk_stand_place_grasp_turn_homie_predrop_project_name-wsdpt_teacher_BTFv8q9_qben_exppredrop_leanz_hand_predrop_pos_distance-10.0_penalty_bottle_lean_during_pick--3500.0_penalty_bottle_non_z_up_velocity_during_pick--1000.0-20251105_004910/model_step_044500.pt

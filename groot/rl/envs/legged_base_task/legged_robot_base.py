@@ -19,14 +19,14 @@ from groot.rl.envs.base_task.base_task import BaseTask
 from groot.rl.envs.env_utils.history_handler import HistoryHandler
 from groot.rl.envs.env_utils.visualization import Point
 from groot.rl.envs.legged_base_task.live_reward_plotter import RewardPlotter
-from groot.rl.isaac_utils.rotations import (
+from groot.rl.utils.torch_utils import *  # noqa: F403
+from groot.rl.isaac_utils.rotations import (  # noqa: E402
     get_euler_xyz_in_tensor,
     quat_from_angle_axis,
     quat_mul_norm,
     wrap_to_pi,
 )
 from groot.rl.utils.helpers import parse_observation
-from groot.rl.utils.torch_utils import *
 from groot.rl.utils.torch_utils import to_torch
 
 # from isaacgym import gymtorch, gymapi, gymutil

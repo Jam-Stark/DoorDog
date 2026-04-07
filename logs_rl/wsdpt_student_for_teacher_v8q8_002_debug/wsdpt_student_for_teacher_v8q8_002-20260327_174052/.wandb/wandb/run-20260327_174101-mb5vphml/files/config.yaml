@@ -1,0 +1,2358 @@
+_wandb:
+    value:
+        cli_version: 0.24.0
+        e:
+            79j0hazv4nze3dp1pq5wryvxdrqv3z1l:
+                args:
+                    - +exp=loco_manip/wsdpt_student_for_teacher_v8q8.002_resnet_rgb_delay
+                    - num_envs=8
+                    - headless=True
+                    - experiment_name=wsdpt_student_for_teacher_v8q8_002
+                    - project_name=wsdpt_student_for_teacher_v8q8_002_debug
+                codePath: groot/rl/train_agent_trl.py
+                codePathLocal: groot/rl/train_agent_trl.py
+                cpu_count: 24
+                cpu_count_logical: 32
+                cudaVersion: "12.8"
+                disk:
+                    /:
+                        total: "1951973801984"
+                        used: "1626503225344"
+                email: ziwang@nvidia.com
+                executable: /home/ziwang/miniconda3/envs/isaacsim5.1/bin/python3.11
+                git:
+                    commit: 8918d31d4c53995ffd58fc6cea902907a059ac7f
+                    remote: ssh://gitlab-master.nvidia.com:12051/GR00T/gr00t/gr00t.git
+                gpu: NVIDIA RTX 5880 Ada Generation
+                gpu_count: 2
+                gpu_nvidia:
+                    - architecture: Ada
+                      cudaCores: 14080
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX 5880 Ada Generation
+                      uuid: GPU-388ea1ba-4da9-74cd-0c4b-6d6cfb2be730
+                    - architecture: Ada
+                      cudaCores: 14080
+                      memoryTotal: "51527024640"
+                      name: NVIDIA RTX 5880 Ada Generation
+                      uuid: GPU-81605def-2013-831f-ead2-7fb6237b3fda
+                host: 824158e-lcedt
+                memory:
+                    total: "134733721600"
+                os: Linux-6.14.0-37-generic-x86_64-with-glibc2.39
+                program: /home/ziwang/projects/gr00t-wsg-teleop/groot/rl/train_agent_trl.py
+                python: CPython 3.11.6
+                root: logs_rl/wsdpt_student_for_teacher_v8q8_002_debug/wsdpt_student_for_teacher_v8q8_002-20260327_174052/.wandb
+                startedAt: "2026-03-28T00:41:01.140449Z"
+                writerId: 79j0hazv4nze3dp1pq5wryvxdrqv3z1l
+        m: []
+        python_version: 3.11.6
+        t:
+            "1":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 50
+                - 51
+                - 53
+                - 71
+                - 84
+                - 98
+                - 105
+            "2":
+                - 1
+                - 5
+                - 11
+                - 41
+                - 49
+                - 50
+                - 51
+                - 53
+                - 71
+                - 84
+                - 98
+                - 105
+            "3":
+                - 13
+                - 16
+                - 35
+            "4": 3.11.6
+            "5": 0.24.0
+            "6": 5.3.0
+            "12": 0.24.0
+            "13": linux-x86_64
+algo:
+    value:
+        config:
+            actor:
+                _target_: groot.rl.trl.modules.vision_actor_critic_modules_obj_pred.VisionActorObjPred
+                backbone:
+                    mlp_module:
+                        _target_: groot.rl.agents.modules.modules.BaseModule
+                        module_config_dict:
+                            input_dim:
+                                - actor_obs
+                                - vision_feature_dim
+                            layer_config:
+                                activation: SiLU
+                                hidden_dims:
+                                    - 512
+                                    - 256
+                                    - 128
+                                type: MLP
+                            output_dim:
+                                - -1
+                        process_output_dim: true
+                    obj_pred_mlp:
+                        _target_: groot.rl.agents.modules.modules.BaseModule
+                        module_config_dict:
+                            input_dim:
+                                - vision_feature_dim
+                            layer_config:
+                                activation: SiLU
+                                hidden_dims:
+                                    - 256
+                                    - 128
+                                    - 64
+                                type: MLP
+                            output_dim:
+                                - 3
+                        process_output_dim: true
+                    vision_module:
+                        _target_: groot.rl.agents.modules.modules.BaseModule
+                        module_config_dict:
+                            input_dim:
+                                - vision_obs
+                            layer_config:
+                                pretrained: true
+                                resnet_type: resnet18
+                                trainable: true
+                                type: ResNet
+                            output_dim:
+                                - vision_feature_dim
+                        process_output_dim: true
+                running_mean_std: false
+            actor_learning_rate: 0.0002
+            clamp_noise_std: true
+            clip_param: 0.2
+            cosine_scheduler_final_lr: 1e-06
+            cosine_scheduler_warmup_steps: 500
+            critic_learning_rate: 2e-05
+            dagger_bc_loss_coef: 1
+            dagger_bc_loss_type: l2
+            desired_kl: 0.01
+            enforce_teacher_rollout: true
+            entropy_coef: 0.01
+            eval:
+                eval_interval: 0
+                num_eval_episodes: 200
+                num_save_episodes: 200
+                save_goal_reached_only: false
+                save_trajectories: false
+                save_videos: false
+                video_save_prob: 0.05
+            eval_callbacks: null
+            freeze_noise_std: true
+            gamma: 0.998
+            global_rank: 0
+            homie_stand_model_path: ./models/model_stand.pt
+            homie_switch_threshold: 0.5
+            homie_walk_model_path: ./models/model_walk.pt
+            init_at_random_ep_len: true
+            init_noise_std: 0.001
+            lam: 0.97
+            load_optimizer: true
+            max_grad_norm: 1
+            max_noise_std: 0.001
+            module_dict:
+                actor:
+                    input_dim:
+                        - actor_obs
+                        - vision_feature_dim
+                    layer_config:
+                        activation: ELU
+                        hidden_dims:
+                            - 512
+                            - 256
+                            - 128
+                        type: MLP
+                    output_dim:
+                        - robot_action_dim
+                encoder:
+                    input_dim:
+                        - vision_obs
+                    layer_config:
+                        activation: ELU
+                        channel_dims:
+                            - 16
+                            - 32
+                            - 32
+                        layers:
+                            - kernel_size: 3
+                              padding: 1
+                              stride: 1
+                              type: conv
+                            - kernel_size: 2
+                              stride: 2
+                              type: pool
+                            - kernel_size: 3
+                              padding: 1
+                              stride: 1
+                              type: conv
+                            - kernel_size: 2
+                              stride: 2
+                              type: pool
+                            - kernel_size: 3
+                              padding: 1
+                              stride: 1
+                              type: conv
+                        norm_config:
+                            use_batch_norm: true
+                        type: CNN
+                    output_dim:
+                        - vision_feature_dim
+                teacher_actor:
+                    input_dim:
+                        - teacher_obs
+                    layer_config:
+                        activation: ELU
+                        hidden_dims:
+                            - 512
+                            - 256
+                            - 128
+                        type: MLP
+                    output_dim:
+                        - robot_action_dim
+            module_dim:
+                vision_feature_dim: 128
+            network_load_dict:
+                teacher_actor:
+                    path: ${teacher_actor_path}
+            num_learning_epochs: 1
+            num_learning_iterations: 1000000
+            num_mini_batches: 4
+            num_steps_per_env: 1
+            obj_pred_loss_coef: 0
+            obj_pred_loss_type: l2
+            opt_homie: false
+            ppo_shuffle_every_epoch: true
+            ratio_teacher_rollout: 0.5
+            rollout_with_teacher_num_steps: 0
+            save_interval: 100
+            schedule: adaptive
+            sync_advantage_normalization: true
+            teacher_actor:
+                _target_: groot.rl.trl.modules.actor_critic_modules.Actor
+                backbone:
+                    _target_: groot.rl.agents.modules.modules.BaseModule
+                    module_config_dict:
+                        input_dim:
+                            - teacher_obs
+                        layer_config:
+                            activation: SiLU
+                            hidden_dims:
+                                - 512
+                                - 256
+                                - 128
+                            type: MLP
+                        output_dim:
+                            - -1
+                    process_output_dim: true
+                running_mean_std: true
+            train_with_evaluating_env: false
+            use_clipped_value_loss: true
+            use_cosine_scheduler: false
+            use_dagger: true
+            use_new_actor_critic: true
+            use_padding_mask: false
+            value_loss_coef: 1
+            world_size: 1
+        trl:
+            dataset_name: dummy
+            disable_tqdm: true
+            gamma: ${algo.config.gamma}
+            gradient_accumulation_steps: 1
+            lam: ${algo.config.lam}
+            learning_rate: ${algo.config.actor_learning_rate}
+            lr_scheduler_type: constant
+            num_mini_batches: ${algo.config.num_mini_batches}
+            num_ppo_epochs: ${algo.config.num_learning_epochs}
+            num_total_batches: 50000
+            output_dir: logs_rl/wsdpt_student_for_teacher_v8q8_002_debug/wsdpt_student_for_teacher_v8q8_002-20260327_174052
+            per_device_train_batch_size: null
+            report_to: none
+            save_strategy: "no"
+            total_episodes: null
+            vf_coef: ${algo.config.value_loss_coef}
+auto_load_latest:
+    value: false
+base_dir:
+    value: logs_rl
+callbacks:
+    value:
+        autoresume:
+            _target_: groot.rl.trl.callbacks.autoresume_callback.AutoResumeCallback
+            every_n_steps: 10
+            save_dir: ${experiment_dir}
+        model_save:
+            _target_: groot.rl.trl.callbacks.model_save_callback.ModelSaveCallback
+            save_dir: ${experiment_dir}
+            save_frequency: 200
+        read_eval_locomanip:
+            _target_: groot.rl.trl.callbacks.read_eval_locomanip_callback.ReadEvalLocomanipCallback
+            check_interval: 1
+            eval_dir: ${experiment_dir}/eval
+        wandb:
+            _target_: groot.rl.trl.callbacks.wandb_callback.WandbCallback
+checkpoint:
+    value: null
+codebase_version:
+    value: 1
+domain_rand:
+    value:
+        added_mass_range:
+            - -5
+            - 10
+        base_com_range:
+            x:
+                - -0.1
+                - 0.1
+            "y":
+                - -0.1
+                - 0.1
+            z:
+                - -0.01
+                - 0.01
+        born_distance: 0.25
+        born_heading_curriculum: false
+        born_heading_degree: 10
+        born_heading_level_degree: 5e-05
+        born_heading_level_down_threshold: 50
+        born_heading_level_up_threshold: 120
+        born_heading_randomization: false
+        born_heading_range:
+            - 0
+            - 180
+        born_offset: false
+        born_offset_curriculum: false
+        born_offset_level_down_threshold: 50
+        born_offset_level_up_threshold: 120
+        born_offset_possibility: 1
+        born_offset_range:
+            - 0
+            - 1
+        ctrl_delay_step_range:
+            - 0
+            - 2
+        depth_augmentation:
+            depth_dropout:
+                enabled: true
+                patch_dropout:
+                    enabled: true
+                    num_patches_range:
+                        - 1
+                        - 5
+                    patch_size_range:
+                        - 5
+                        - 15
+                pixel_dropout:
+                    dropout_rate_range:
+                        - 0.01
+                        - 0.05
+                    enabled: true
+                probability: 0.2
+            depth_noise:
+                enabled: true
+                gaussian_noise:
+                    enabled: true
+                    std_range:
+                        - 0.001
+                        - 0.01
+                perlin_noise:
+                    amplitude_range:
+                        - 0.001
+                        - 0.005
+                    enabled: false
+                    scale_range:
+                        - 0.1
+                        - 0.5
+                probability: 0.3
+            depth_quantization:
+                enabled: true
+                levels_range:
+                    - 32
+                    - 256
+                probability: 0.25
+            depth_scaling:
+                enabled: true
+                probability: 0.3
+                scale_range:
+                    - 0.9
+                    - 1.1
+            enabled: true
+        dof_pos_randomization_curriculum: false
+        dof_pos_randomization_initial_range:
+            - -0.05
+            - 0.05
+        dof_pos_randomization_level_down_threshold: 200
+        dof_pos_randomization_level_up_threshold: 400
+        dof_pos_randomization_max_range:
+            - -0.1
+            - 0.1
+        dof_pos_randomization_min_range:
+            - -0.005
+            - 0.005
+        dof_pos_vel_randomization_curriculum_degree: 1e-05
+        dof_pos_vel_randomization_level_down_threshold: 75
+        dof_pos_vel_randomization_level_up_threshold: 175
+        dof_vel_randomization_curriculum: false
+        dof_vel_randomization_curriculum_degree: 0.05
+        dof_vel_randomization_initial_range:
+            - -0.05
+            - 0.05
+        dof_vel_randomization_level_down_threshold: 200
+        dof_vel_randomization_level_up_threshold: 400
+        dof_vel_randomization_max_range:
+            - -0.1
+            - 0.1
+        dof_vel_randomization_min_range:
+            - -0.02
+            - 0.02
+        dome_light_intensity_distribution: uniform
+        dome_light_intensity_range:
+            - 800
+            - 2000
+        dome_light_texture_folder_paths:
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Indoor/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Clear/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Cloudy/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Night/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Studio/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Environments/2024_1/DomeLights/Clear/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Environments/2024_1/DomeLights/Cloudy/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Environments/2024_1/DomeLights/Indoor/
+        dome_light_yaw_distribution: uniform
+        dome_light_yaw_range:
+            - -3.142
+            - 3.142
+        extrinsics_randomization:
+            curriculum:
+                enabled: false
+                extrinsics_noise_curriculum_degree: 0.001
+                extrinsics_noise_level_down_threshold: 25
+                extrinsics_noise_level_up_threshold: 70
+                position_noise_init_range:
+                    - -0.005
+                    - 0.005
+                position_noise_max_range:
+                    - -0.02
+                    - 0.02
+                position_noise_min_range:
+                    - -0.002
+                    - 0.002
+                rotation_noise_init_range:
+                    pitch: 0.05
+                    roll: 0.025
+                    yaw: 0.025
+                rotation_noise_max_range:
+                    pitch: 0.1
+                    roll: 0.05
+                    yaw: 0.05
+                rotation_noise_min_range:
+                    pitch: 0.02
+                    roll: 0.01
+                    yaw: 0.01
+            enabled: true
+            position_noise_range:
+                x: 0.01
+                "y": 0.05
+                z: 0.01
+            rotation_noise_range:
+                pitch: 0.1
+                roll: 0.05
+                yaw: 0.05
+        floor_material_folder_paths:
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Wood/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Carpet/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Masonry/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Metals/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Natural/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Plastics/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Stone/
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Wall_Board/
+        friction_range:
+            - -0.6
+            - 1.2
+        image_augmentation:
+            brightness:
+                enabled: true
+                probability: 0.25
+                range:
+                    - 0.7
+                    - 2
+            contrast:
+                enabled: true
+                probability: 0.25
+                range:
+                    - 0.5
+                    - 1.5
+            enabled: true
+            gaussian_blur:
+                enabled: true
+                kernel_size_range:
+                    - 3
+                    - 5
+                probability: 0.25
+                sigma_range:
+                    - 0.1
+                    - 1.5
+            gaussian_noise:
+                enabled: true
+                probability: 0.25
+                std_range:
+                    - 0
+                    - 0.15
+            hue:
+                enabled: true
+                probability: 0.5
+                range:
+                    - -0.1
+                    - 0.1
+            saturation:
+                enabled: true
+                probability: 0.25
+                range:
+                    - 0.5
+                    - 2
+        init_pos_range_x:
+            - -0.1
+            - 0.1
+        init_pos_range_y:
+            - -0.075
+            - 0.075
+        init_pos_range_z:
+            - -0.075
+            - 0.075
+        initial_dof_pos_distribution: uniform
+        initial_dof_pos_range:
+            - -0.05
+            - 0.05
+        initial_dof_vel_distribution: uniform
+        initial_dof_vel_range:
+            - -0.1
+            - 0.1
+        kd_range:
+            - 0.75
+            - 1.25
+        kp_range:
+            - 0.75
+            - 1.25
+        level_degree: 5e-05
+        link_mass_range:
+            - 0.7
+            - 1.3
+        max_push_vel_xy: 1
+        motion_package_loss: false
+        motion_ref_xyz_range:
+            - - -0.02
+              - 0.02
+            - - -0.02
+              - 0.02
+            - - -0.1
+              - 0.1
+        object_material_folder_paths:
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/
+        package_loss_interval_s: 2
+        package_loss_range:
+            - 1
+            - 10
+        push_interval_s:
+            - 5
+            - 10
+        push_robots: false
+        randomize_base_com: false
+        randomize_base_mass: false
+        randomize_ctrl_delay: false
+        randomize_dome_light: true
+        randomize_floor_material: true
+        randomize_friction: false
+        randomize_goal_and_obj_positions: false
+        randomize_init_pos: false
+        randomize_initial_dof_pos: false
+        randomize_initial_dof_vel: false
+        randomize_link_body_names:
+            - pelvis
+            - left_hip_yaw_link
+            - left_hip_roll_link
+            - left_hip_pitch_link
+            - left_knee_link
+            - right_hip_yaw_link
+            - right_hip_roll_link
+            - right_hip_pitch_link
+            - right_knee_link
+        randomize_link_mass: false
+        randomize_motion_ref_xyz: false
+        randomize_object_material: true
+        randomize_pd_gain: false
+        randomize_rfi_lim: false
+        randomize_robot_material: true
+        randomize_table_material: true
+        randomize_torque_rfi: false
+        rfi_lim: 0.1
+        rfi_lim_range:
+            - 0.5
+            - 1.5
+        robot_material_distribution: uniform
+        robot_material_metallic_range:
+            - 0
+            - 0.8
+        robot_material_roughness_range:
+            - 0
+            - 0.8
+        robot_material_shader_prim_paths:
+            - /World/envs/env_0/Robot/Looks/Rubber_Textured/Shader
+            - /World/envs/env_0/Robot/Looks/Marble_Tile_12/Shader
+        robot_material_specular_range:
+            - 0
+            - 0.8
+        table_material_folder_paths:
+            - https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Materials/Base/Wood/
+        wsdpt_palm_push_force_range: 10
+        wsdpt_push: false
+        wsdpt_push_interval_s:
+            - 2
+            - 4
+        wsdpt_torso_push_force_range: 30
+enable_cameras:
+    value: true
+env:
+    value:
+        _recursive_: false
+        _target_: groot.rl.envs.loco_manip.walk_stand_place_grasp_turn_homie.WalkStandPlaceGraspTurnHomie
+        config:
+            accumulate_stage_reward: false
+            arm_vel_threshold: 0.2
+            award_remaining_time_on_advance: true
+            bottle_pos_range_x:
+                - -0.02
+                - 0
+            bottle_pos_range_y:
+                - -0.01
+                - 0.01
+            bottle_pos_range_z:
+                - 0.9
+                - 1.2
+            ckpt_dir: null
+            clip_homie_angvel_threshold: 1
+            clip_homie_command: true
+            clip_homie_linvel_x_threshold: 0.5
+            clip_homie_linvel_y_threshold: 0.5
+            clip_homie_lower_height_threshold: 0.3
+            clip_homie_torso_pitch_lower_threshold: -0.5
+            clip_homie_torso_pitch_upper_threshold: 0.5
+            clip_homie_torso_roll_lower_threshold: -0.5
+            clip_homie_torso_roll_upper_threshold: 0.5
+            clip_homie_torso_yaw_lower_threshold: -0.5
+            clip_homie_torso_yaw_upper_threshold: 0.5
+            clip_homie_upper_height_threshold: 0.75
+            clip_upper_actions: false
+            clip_upper_actions_threshold: 0.5
+            delta_action_indices:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                - 6
+                - 7
+                - 8
+                - 9
+                - 10
+            delta_action_scale: 0.1
+            domain_rand: ${domain_rand}
+            enable_obj_pred_visualization: false
+            enable_staged_reset: false
+            enforce_no_vis: true
+            enforce_vis: false
+            env_spacing: 5
+            experiment_dir: null
+            experiment_name: ${experiment_name}
+            goal_pos:
+                - 1
+                - 0
+                - 0.875
+            headless: ${headless}
+            hold_object_hand_distance_threshold: 0.2
+            hold_object_tray_distance_threshold: 0.3
+            homie_command_scale: 1
+            init_noise_scale:
+                dof_pos: 0.1
+                dof_vel: 0.15
+                root_ang_vel: 0.01
+                root_pos: 0.05
+                root_rot: 10
+                root_vel: 0.01
+            lift_goal_offset_pelvis:
+                - 0.3
+                - -0.1
+                - 0.3
+            max_consecutive_success_frames: 50
+            max_episode_length_s: 8
+            max_stage_time:
+                - 300
+                - 50
+                - 50
+                - 100
+                - 100
+            no_delta_vel: true
+            no_reward_for_awarded_time: false
+            noise_to_initial_level: 0
+            normalization:
+                clip_actions: 100
+                clip_observations: 100
+            num_envs: ${num_envs}
+            obj_pred_vis_eval_frequency: 1
+            obj_pred_vis_frequency: 1
+            obj_pred_vis_max_envs: 20
+            obs: ${obs}
+            randomize_init_pos: true
+            randomize_init_pos_range:
+                vel:
+                    - -0.5
+                    - 0.5
+                x:
+                    - 1.6
+                    - 1.7
+                "y":
+                    - -0.01
+                    - 0.01
+            ref_height: 0.75
+            reset_delta_actions_with_backmap: true
+            reset_from_dataset:
+                device: ""
+                enable: true
+                motion_file_dir: groot/rl/data/motions/g1_wsdpt/33demos_675_775
+                motion_files: null
+                num_per_sample: 10
+                resample_every: 1000
+                reset_from_teleop_curriculum: false
+                sample_interval_s: 0.1
+                use_motion_file_dir: true
+            reset_from_teleop_start: false
+            reset_on_complete: false
+            reset_task_every_n_steps: 1000
+            rewards: ${rewards}
+            robot: ${robot}
+            save_rendering_dir: null
+            show_rgb_image: false
+            simulator: ${simulator}
+            stage_reward_scale:
+                - 1
+                - 1
+                - 1
+                - 1
+                - 1
+            staged_reset_max_samples_per_stage: 200
+            staged_reset_ratios:
+                - 0.1
+                - 0.1
+                - 0.1
+                - 0.6
+                - 0.1
+            target_root_vel: 0.5
+            task:
+                back_object: back_object
+                back_object_contact_sensor: false
+                front_object: front_object
+                front_object_contact_sensor: true
+                hold_object: hold_object
+                hold_object_contact_sensor: true
+                manipulate_hand: right_hand_palm_link
+                max_object_number: 12
+                name: walk_stand_place_grasp_turn_homie
+                objects:
+                    - table_grid
+                    - hold_object
+                    - front_object
+                    - back_object
+                    - tray_object
+                thershold: 0.05
+                tray_object: tray_object
+                type: manipulation
+                which_hand: right_hand
+            termin_hold_object_hand_distance_threshold: 0.1
+            termination:
+                terminate_after_finish_turning_for_student: true
+                terminate_by_angvel_when_near_front_object: false
+                terminate_by_contact: false
+                terminate_by_face_mul: true
+                terminate_by_fast_right_arm_qvel: true
+                terminate_by_finger_qvel_during_right_arm_qvel: false
+                terminate_by_gravity: false
+                terminate_by_hand_object_contact: false
+                terminate_by_hold_object_tray_distance: true
+                terminate_by_large_homie_linvel_command: false
+                terminate_by_linvel_x_when_near_front_object: false
+                terminate_by_linvel_y_when_near_front_object: false
+                terminate_by_low_height: false
+                terminate_by_throw_object: true
+                terminate_by_xy_far_from_front_object_init_pos: false
+                terminate_object_by_low_height: true
+                terminate_when_close_to_dof_pos_limit: false
+                terminate_when_close_to_dof_vel_limit: false
+                terminate_when_close_to_torque_limit: false
+            termination_curriculum:
+                degree: -8e-05
+                initial_level: 1
+                level_down_ave_goal_reached_rate: 0.6
+                level_up_ave_goal_reached_rate: 0.96
+                max_level: 1
+                min_level: 0.1
+            termination_large_homie_linvel_command_curriculum:
+                degree_change: 5e-05
+                enable: false
+                init_limit: 0.75
+                level_down_episode_length: 100
+                level_up_episode_length: 285
+                lower_limit: 0.5
+                upper_limit: 1.5
+            termination_probality:
+                terminate_when_close_to_dof_pos_limit: 0.25
+                terminate_when_close_to_dof_vel_limit: 0.25
+                terminate_when_close_to_torque_limit: 0.25
+            termination_scales:
+                homie_command_angvel_over_threshold_2x: 0.7
+                homie_command_linvel_xy_over_threshold_2x: 0.7
+                robot_to_init_front_object_distance_threshold_2x: 1.7
+                termination_close_to_dof_pos_limit: 0.98
+                termination_close_to_dof_vel_limit: 0.98
+                termination_close_to_torque_limit: 0.98
+                termination_contact_force: 10
+                termination_fast_right_arm_qvel_threshold: 3.14
+                termination_finger_qvel_during_right_arm_qvel_threshold: 0.5
+                termination_gravity_x: 0.5
+                termination_gravity_y: 0.5
+                termination_hold_object_threshold: 0.1
+                termination_hold_object_tray_distance_threshold: 0.16
+                termination_large_homie_linvel_command_threshold: 0.75
+                termination_min_base_height: 0.3
+                termination_object_by_low_height_threshold: 0.6
+            terrain: ${terrain}
+            throw_object_contact_force_threshold: 1
+            zero_finger: false
+            zero_vel: true
+env_spacing:
+    value: 20
+eval_overrides:
+    value:
+        auto_load_latest: false
+        headless: false
+        num_envs: 1
+        use_wandb: false
+exp_base:
+    value: ${hydra:runtime.choices.exp}
+exp_var:
+    value: test
+experiment_dir:
+    value: ${base_dir}/${project_name}/${experiment_name}-${timestamp}
+experiment_name:
+    value: wsdpt_student_for_teacher_v8q8_002
+force_flat_terrain:
+    value: false
+global_rank:
+    value: 0
+headless:
+    value: true
+log_task_name:
+    value: walk_stand_place_grasp_turn_homie
+max_retries:
+    value: 1
+multi_gpu:
+    value: false
+num_envs:
+    value: 8
+num_gpus:
+    value: 1
+obs:
+    value:
+        add_noise_currculum: false
+        history_save_interval: 1
+        homie_command_default:
+            height:
+                - 0
+            left_arm:
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+            left_hand:
+                - 0
+            loco_vel:
+                - 0
+                - 0
+                - 0
+            right_arm:
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+            right_hand:
+                - 0
+            rpy:
+                - 0
+                - 0
+                - 0
+        homie_command_index:
+            height:
+                - 3
+            left_arm:
+                - 7
+                - 8
+                - 9
+                - 10
+                - 11
+                - 12
+                - 13
+            left_hand:
+                - 21
+            loco_vel:
+                - 0
+                - 1
+                - 2
+            right_arm:
+                - 14
+                - 15
+                - 16
+                - 17
+                - 18
+                - 19
+                - 20
+            right_hand:
+                - 22
+            rpy:
+                - 4
+                - 5
+                - 6
+        homie_command_keys:
+            loco_vel: null
+            right_arm: null
+            right_hand: null
+        homie_default_height: 0.74
+        homie_history_length: 5
+        noise_initial_value: 0.05
+        noise_scales:
+            a_history_homie: 0
+            actions: 0
+            b_homie_commands: 0
+            base_ang_vel: 0
+            base_lin_vel: 0
+            c_homie_base_ang_vel: 0
+            d_homie_projected_gravity: 0
+            delta_actions: 0
+            dof_pos: 0
+            dof_pos_wo_finger: 0
+            dof_vel: 0
+            dof_vel_wo_finger: 0
+            e_homie_dof_pos: 0
+            f_homie_dof_vel: 0
+            g_homie_body_actions: 0
+            grasp_fingers_tips_force: 0
+            grasp_hand_object_transform: 0
+            grasp_obj_transform: 0
+            hold_fingers_tips_force: 0
+            hold_hand_object_transform: 0
+            hold_obj_transform: 0
+            placement_pos: 0
+            projected_gravity: 0
+            rgb_image: 0
+            rgb_image_delayed: 0
+            stage: 0
+            table_pelvis_transform: 0
+            target_lift_pos: 0
+            target_obj_pos: 0
+            target_place_pos: 0
+        noise_value_max: 1
+        noise_value_min: 1e-05
+        obs_auxiliary:
+            a_history_homie:
+                b_homie_commands: 5
+                c_homie_base_ang_vel: 5
+                d_homie_projected_gravity: 5
+                e_homie_dof_pos: 5
+                f_homie_dof_vel: 5
+                g_homie_body_actions: 5
+            history_long:
+                actions: 15
+                base_ang_vel: 15
+                base_lin_vel: 15
+                delta_actions: 15
+                dof_pos: 15
+                dof_vel: 15
+                grasp_fingers_tips_force: 15
+                grasp_hand_object_transform: 15
+                grasp_obj_transform: 15
+                hold_fingers_tips_force: 15
+                hold_hand_object_transform: 15
+                hold_obj_transform: 15
+                placement_pos: 15
+                projected_gravity: 15
+                stage: 15
+                table_pelvis_transform: 15
+                target_lift_pos: 15
+                target_place_pos: 15
+            history_short:
+                actions: 1
+                base_ang_vel: 1
+                base_lin_vel: 1
+                delta_actions: 1
+                dof_pos: 1
+                dof_vel: 1
+                grasp_fingers_tips_force: 1
+                grasp_hand_object_transform: 1
+                grasp_obj_transform: 1
+                hold_fingers_tips_force: 1
+                hold_hand_object_transform: 1
+                hold_obj_transform: 1
+                placement_pos: 1
+                projected_gravity: 1
+                stage: 1
+                table_pelvis_transform: 1
+                target_lift_pos: 1
+                target_place_pos: 1
+            rgb_delay_buffer:
+                rgb_image: 5
+        obs_dict:
+            actor_obs:
+                - base_ang_vel
+                - projected_gravity
+                - actions
+                - dof_pos_wo_finger
+                - dof_vel_wo_finger
+                - delta_actions
+                - b_homie_commands
+            critic_obs:
+                - base_lin_vel
+                - base_ang_vel
+                - projected_gravity
+                - actions
+                - stage
+                - delta_actions
+                - dof_pos
+                - dof_vel
+                - placement_pos
+                - table_pelvis_transform
+                - hold_fingers_tips_force
+                - hold_obj_transform
+                - hold_hand_object_transform
+                - target_place_pos
+                - grasp_fingers_tips_force
+                - grasp_obj_transform
+                - grasp_hand_object_transform
+                - target_lift_pos
+                - b_homie_commands
+            gt_obj_pos:
+                - target_obj_pos
+            homie_obs:
+                - a_history_homie
+                - b_homie_commands
+                - c_homie_base_ang_vel
+                - d_homie_projected_gravity
+                - e_homie_dof_pos
+                - f_homie_dof_vel
+                - g_homie_body_actions
+            teacher_obs:
+                - base_lin_vel
+                - base_ang_vel
+                - projected_gravity
+                - actions
+                - stage
+                - delta_actions
+                - dof_pos
+                - dof_vel
+                - placement_pos
+                - table_pelvis_transform
+                - hold_fingers_tips_force
+                - hold_obj_transform
+                - hold_hand_object_transform
+                - target_place_pos
+                - grasp_fingers_tips_force
+                - grasp_obj_transform
+                - grasp_hand_object_transform
+                - target_lift_pos
+                - b_homie_commands
+            vision_obs:
+                - rgb_image_delayed
+        obs_dims:
+            - base_lin_vel: 3
+            - base_ang_vel: 3
+            - projected_gravity: 3
+            - actions: ${robot.actions_dim}
+            - stage: 5
+            - delta_actions: 11
+            - dof_pos: ${robot.dof_obs_size}
+            - dof_vel: ${robot.dof_obs_size}
+            - dof_pos_wo_finger: 29
+            - dof_vel_wo_finger: 29
+            - placement_pos: 2
+            - table_pelvis_transform: 9
+            - hold_fingers_tips_force: 12
+            - hold_obj_transform: 9
+            - hold_hand_object_transform: 9
+            - target_place_pos: 3
+            - grasp_fingers_tips_force: 12
+            - grasp_obj_transform: 9
+            - grasp_hand_object_transform: 9
+            - target_lift_pos: 3
+            - rgb_image: ${simulator.config.cameras.camera_resolutions[0]}*${simulator.config.cameras.camera_resolutions[1]}*3
+            - rgb_image_delayed: ${simulator.config.cameras.camera_resolutions[0]}*${simulator.config.cameras.camera_resolutions[1]}*3
+            - target_obj_pos: 3
+            - b_homie_commands: 7
+            - e_homie_dof_pos: ${robot.homie_dof_obs_size}
+            - f_homie_dof_vel: ${robot.homie_dof_obs_size}
+            - c_homie_base_ang_vel: 3
+            - d_homie_projected_gravity: 3
+            - homie_torso_ang_vel: 3
+            - homie_torso_projected_gravity: 3
+            - g_homie_body_actions: ${robot.lower_body_actions_dim}
+        obs_scales:
+            a_history_homie: 1
+            actions: 1
+            b_homie_commands: 1
+            base_ang_vel: 1
+            base_lin_vel: 1
+            c_homie_base_ang_vel: 0.5
+            d_homie_projected_gravity: 1
+            delta_actions: 1
+            dof_pos: 1
+            dof_pos_wo_finger: 1
+            dof_vel: 0.05
+            dof_vel_wo_finger: 0.05
+            e_homie_dof_pos: 1
+            f_homie_dof_vel: 0.05
+            g_homie_body_actions: 1
+            grasp_fingers_tips_force: 1
+            grasp_hand_object_transform: 1
+            grasp_obj_transform: 1
+            hold_fingers_tips_force: 1
+            hold_hand_object_transform: 1
+            hold_obj_transform: 1
+            placement_pos: 1
+            projected_gravity: 1
+            rgb_image: 1
+            rgb_image_delayed: 1
+            stage: 1
+            table_pelvis_transform: 1
+            target_lift_pos: 1
+            target_obj_pos: 1
+            target_place_pos: 1
+        rgb_image_delay_random: false
+        rgb_image_delay_resample_on_reset: false
+        rgb_image_delay_step: 1
+        rgb_image_delay_step_max: 5
+        rgb_image_delay_step_min: 1
+        soft_dof_pos_curriculum_degree: 1e-05
+        soft_dof_pos_curriculum_level_down_threshold: 100
+        soft_dof_pos_curriculum_level_up_threshold: 900
+output_dir:
+    value: ${experiment_dir}/output
+project_name:
+    value: wsdpt_student_for_teacher_v8q8_002_debug
+rewards:
+    value:
+        arm_qvel_during_base_vel_exp_coeff: -6
+        bottle_preplace_distance_exp_coeff: -4
+        finger_dof_pos_l1_std: 0.3
+        finger_primitive_value: 0.5
+        finger_qvel_during_base_vel_exp_coeff: -6
+        finger_qvel_during_right_arm_qvel_exp_coeff: -6
+        hand_distance_to_object_exp_coeff: -10
+        hand_predrop_pos_distance_exp_coeff: -4
+        holding_object_distance_exp_coeff: -4
+        homie_angvel_threshold: 0.8
+        homie_linvel_x_threshold: 0.4
+        homie_linvel_y_threshold: 0.4
+        homie_lower_height_threshold: 0.2
+        homie_lower_pitch_threshold: -0.5
+        homie_lower_roll_threshold: -0.5
+        homie_lower_yaw_threshold: -0.5
+        homie_upper_body_actions_threshold: 6.28
+        homie_upper_height_threshold: 0.8
+        homie_upper_pitch_threshold: 0.5
+        homie_upper_roll_threshold: 0.5
+        homie_upper_yaw_threshold: 0.5
+        lift_distance_to_goal_exp_coeff: -10
+        lift_z_threshold: 0.1
+        num_compute_average_epl: 10000
+        only_positive_rewards: false
+        penalty_keep_hand_closed_exp_coeff: -4
+        positive_hand_closed_exp_coeff: -4
+        reward_initial_penalty_scale: 0.11
+        reward_limit:
+            reward_limits_curriculum:
+                soft_dof_pos_curriculum: false
+                soft_dof_pos_curriculum_degree: 2.5e-07
+                soft_dof_pos_curriculum_level_down_threshold: 40
+                soft_dof_pos_curriculum_level_up_threshold: 42
+                soft_dof_pos_initial_limit: 1.15
+                soft_dof_pos_max_limit: 1.15
+                soft_dof_pos_min_limit: 0.95
+                soft_dof_vel_curriculum: false
+                soft_dof_vel_curriculum_degree: 2.5e-07
+                soft_dof_vel_curriculum_level_down_threshold: 40
+                soft_dof_vel_curriculum_level_up_threshold: 42
+                soft_dof_vel_initial_limit: 1.15
+                soft_dof_vel_max_limit: 1.25
+                soft_dof_vel_min_limit: 0.95
+                soft_torque_curriculum: false
+                soft_torque_curriculum_degree: 2.5e-07
+                soft_torque_curriculum_level_down_threshold: 40
+                soft_torque_curriculum_level_up_threshold: 42
+                soft_torque_initial_limit: 1.15
+                soft_torque_max_limit: 1.25
+                soft_torque_min_limit: 0.85
+            soft_dof_pos_limit: 0.9
+            soft_dof_vel_limit: 0.9
+            soft_torque_limit: 0.825
+        reward_max_penalty_scale: 1
+        reward_min_penalty_scale: 0.1
+        reward_penalty_curriculum: false
+        reward_penalty_degree: 1.2e-05
+        reward_penalty_level_down_threshold: 200
+        reward_penalty_level_up_threshold: 300
+        reward_penalty_reward_names: []
+        reward_scales:
+            finger_qvel_during_right_arm_qvel: 15
+            grasp_based_on_obj_finger_dir: 5
+            grasp_force: 1
+            hand_object_distance: 20
+            holding_object: 1
+            lift_goal_distance: 10
+            lift_z: 200
+            penalty_arm_qvel_during_single_foot_contact: -1300
+            penalty_bottle_in_middle: -1
+            penalty_bottle_move_table_contact: -1000
+            penalty_bottle_relative_move: -2000
+            penalty_command_large_angvel: -20
+            penalty_command_large_linvel_x: -20
+            penalty_command_large_linvel_y: -20
+            penalty_command_large_upper_body_actions: -10
+            penalty_delta_action_rate: -0.01
+            penalty_dof_acc: -3e-06
+            penalty_dof_vel: -0.5
+            penalty_fast_right_arm_qvel: -80
+            penalty_finger_primitive_limit: -20
+            penalty_finger_qvel_during_single_foot_contact: -315
+            penalty_hand_predrop_pos_distance: -10000
+            penalty_keep_hand_closed: 9
+            penalty_output_smoothness: -9
+            penalty_standing_still_abs: -0
+            penalty_standing_still_exp: 0
+            penalty_standing_still_square: -0
+            penalty_torques: -0.001
+            penalty_upfront_heading: -10000
+            penalty_upper_body_actions: -1
+            penalty_zero_Ang_At_ABS: -4
+            penalty_zero_XY_Ang_Ddp_ABS: -12
+            penalty_zero_XY_Ddpt_ABS: -4
+            penalty_zero_linvel_x_y: -10
+            release_bottle: -1
+            right_arm_qpos_tracking_front_object: 25
+            right_arm_qpos_tracking_hold_object: 5
+            task_robot_distance_to_box: 2
+            task_turn_around: 15
+            termination: -2000
+            track_xy_after_turning: 15
+            zero_Ang_velocity_command_during_tuning: 0
+            zero_XY_Ang_velocity_command_during_drop_and_pick: 0
+            zero_XY_velocity_command_during_tuning: 0
+        right_arm_qpos_idx:
+            - 22
+            - 23
+            - 24
+            - 25
+            - 26
+            - 27
+            - 28
+        right_arm_qpos_target_front_object:
+            - -0.4
+            - -0.4
+            - 0
+            - -0.6
+            - 0
+            - 0
+            - 0
+        right_arm_qpos_target_hold_object:
+            - -1
+            - -0.25
+            - 0
+            - 0.75
+            - 0
+            - 0
+            - 0
+        right_arm_qpos_tracking_front_object_exp_coeff: -4
+        right_arm_qpos_tracking_hold_object_exp_coeff: -4
+        robot_distance_to_box_exp_coeff: -4
+        set_reward: Tairan
+        set_reward_date: 20251002
+        standing_still_exp_coeff: -4
+        standing_still_reward_std: 0.15
+        track_xy_after_turning_exp_coeff: -1
+        tracking_grasp_target_std: 0.3
+        tracking_lift_target_dist_std: 0.2
+        walk_stand_threshold_distance: 0.45
+        walk_to_table_reward_std: 0.25
+        zero_Ang_velocity_command_during_tuning_exp_coeff: -5
+        zero_XY_Ang_velocity_command_during_drop_and_pick_exp_coeff: -5
+        zero_XY_velocity_command_during_tuning_exp_coeff: -5
+robot:
+    value:
+        actions_dim: 31
+        algo_obs_dim_dict: ???
+        arm_body_names:
+            - left_shoulder_pitch_link
+            - right_shoulder_pitch_link
+            - left_ankle_pitch_link
+            - right_ankle_pitch_link
+            - left_shoulder_roll_link
+            - right_shoulder_roll_link
+            - left_ankle_roll_link
+            - right_ankle_roll_link
+            - left_shoulder_yaw_link
+            - right_shoulder_yaw_link
+            - left_elbow_link
+            - right_elbow_link
+            - left_wrist_roll_link
+            - right_wrist_roll_link
+            - left_wrist_pitch_link
+            - right_wrist_pitch_link
+            - left_wrist_yaw_link
+            - right_wrist_yaw_link
+            - left_hand_palm_link
+            - right_hand_palm_link
+        arm_dof_names:
+            - left_shoulder_pitch_joint
+            - left_shoulder_roll_joint
+            - left_shoulder_yaw_joint
+            - left_elbow_joint
+            - left_wrist_roll_joint
+            - left_wrist_pitch_joint
+            - left_wrist_yaw_joint
+            - right_shoulder_pitch_joint
+            - right_shoulder_roll_joint
+            - right_shoulder_yaw_joint
+            - right_elbow_joint
+            - right_wrist_roll_joint
+            - right_wrist_pitch_joint
+            - right_wrist_yaw_joint
+        asset:
+            angular_damping: 0.01
+            armature: 0.001
+            asset_root: groot/rl/data/robots
+            collapse_fixed_joints: true
+            default_dof_drive_mode: 3
+            density: 0.001
+            disable_gravity: null
+            filter_ints: null
+            fix_base_link: false
+            flip_visual_attachments: false
+            linear_damping: 0.01
+            max_angular_velocity: 1000
+            max_linear_velocity: 1000
+            replace_cylinder_with_capsule: true
+            robot_type: g1_43dof
+            self_collisions: 0
+            thickness: 0.01
+            urdf_file: g1/${robot.asset.robot_type}.urdf
+            usd_file: g1/${robot.asset.robot_type}_s3.usda
+            xml_file: g1/${robot.asset.robot_type}.xml
+        body_keys:
+            - lower_body
+            - upper_body
+        body_names:
+            - pelvis
+            - left_hip_pitch_link
+            - right_hip_pitch_link
+            - waist_yaw_link
+            - left_hip_roll_link
+            - right_hip_roll_link
+            - waist_roll_link
+            - left_hip_yaw_link
+            - right_hip_yaw_link
+            - torso_link
+            - left_knee_link
+            - right_knee_link
+            - left_shoulder_pitch_link
+            - right_shoulder_pitch_link
+            - left_ankle_pitch_link
+            - right_ankle_pitch_link
+            - left_shoulder_roll_link
+            - right_shoulder_roll_link
+            - left_ankle_roll_link
+            - right_ankle_roll_link
+            - left_shoulder_yaw_link
+            - right_shoulder_yaw_link
+            - left_elbow_link
+            - right_elbow_link
+            - left_wrist_roll_link
+            - right_wrist_roll_link
+            - left_wrist_pitch_link
+            - right_wrist_pitch_link
+            - left_wrist_yaw_link
+            - right_wrist_yaw_link
+            - left_hand_palm_link
+            - right_hand_palm_link
+            - left_hand_index_0_link
+            - left_hand_middle_0_link
+            - left_hand_thumb_0_link
+            - right_hand_index_0_link
+            - right_hand_middle_0_link
+            - right_hand_thumb_0_link
+            - left_hand_index_1_link
+            - left_hand_middle_1_link
+            - left_hand_thumb_1_link
+            - right_hand_index_1_link
+            - right_hand_middle_1_link
+            - right_hand_thumb_1_link
+            - left_hand_thumb_2_link
+            - right_hand_thumb_2_link
+        check_action_dim: false
+        contact_bodies: []
+        contact_pairs_multiplier: 16
+        control:
+            action_clip_value: 100
+            action_scale: 0.25
+            clamp_actions: 1
+            clip_torques: true
+            control_type: P
+            damping:
+                ankle_pitch: 2
+                ankle_roll: 2
+                elbow: 2
+                hand_index: 0.1
+                hand_middle: 0.1
+                hand_thumb_0: 0.1
+                hand_thumb_1: 0.1
+                hand_thumb_2: 0.1
+                hip_pitch: 2
+                hip_roll: 2
+                hip_yaw: 2
+                knee: 4
+                shoulder_pitch: 5
+                shoulder_roll: 5
+                shoulder_yaw: 2
+                waist_pitch: 5
+                waist_roll: 5
+                waist_yaw: 5
+                wrist_pitch: 2
+                wrist_roll: 2
+                wrist_yaw: 2
+            isaac_pd_scale: false
+            stiffness:
+                ankle_pitch: 40
+                ankle_roll: 40
+                elbow: 40
+                hand_index: 0.5
+                hand_middle: 0.5
+                hand_thumb_0: 2
+                hand_thumb_1: 0.5
+                hand_thumb_2: 0.5
+                hip_pitch: 150
+                hip_roll: 150
+                hip_yaw: 150
+                knee: 200
+                shoulder_pitch: 100
+                shoulder_roll: 100
+                shoulder_yaw: 40
+                waist_pitch: 250
+                waist_roll: 250
+                waist_yaw: 250
+                wrist_pitch: 20
+                wrist_roll: 20
+                wrist_yaw: 20
+        critic_obs_dim: -1
+        dof_armature_list:
+            - 0.01017752004
+            - 0.025101925
+            - 0.01017752004
+            - 0.025101925
+            - 0.00721945
+            - 0.00721945
+            - 0.01017752004
+            - 0.025101925
+            - 0.01017752004
+            - 0.025101925
+            - 0.00721945
+            - 0.00721945
+            - 0.01017752004
+            - 0.00721945
+            - 0.00721945
+            - 0.003609725
+            - 0.003609725
+            - 0.003609725
+            - 0.003609725
+            - 0.003609725
+            - 0.00425
+            - 0.00425
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.003609725
+            - 0.003609725
+            - 0.003609725
+            - 0.003609725
+            - 0.003609725
+            - 0.00425
+            - 0.00425
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+            - 0.01
+        dof_effort_limit_list:
+            - 88
+            - 139
+            - 88
+            - 139
+            - 35
+            - 35
+            - 88
+            - 139
+            - 88
+            - 139
+            - 35
+            - 35
+            - 88
+            - 35
+            - 35
+            - 25
+            - 25
+            - 25
+            - 25
+            - 25
+            - 5
+            - 5
+            - 25
+            - 25
+            - 25
+            - 25
+            - 25
+            - 5
+            - 5
+            - 1.4
+            - 1.4
+            - 2.45
+            - 1.4
+            - 1.4
+            - 2.45
+            - 1.4
+            - 1.4
+            - 1.4
+            - 1.4
+            - 1.4
+            - 1.4
+            - 1.4
+            - 1.4
+        dof_effort_limit_scale: 0.95
+        dof_joint_friction_list:
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+        dof_names:
+            - left_hip_pitch_joint
+            - left_hip_roll_joint
+            - left_hip_yaw_joint
+            - left_knee_joint
+            - left_ankle_pitch_joint
+            - left_ankle_roll_joint
+            - right_hip_pitch_joint
+            - right_hip_roll_joint
+            - right_hip_yaw_joint
+            - right_knee_joint
+            - right_ankle_pitch_joint
+            - right_ankle_roll_joint
+            - waist_yaw_joint
+            - waist_roll_joint
+            - waist_pitch_joint
+            - left_shoulder_pitch_joint
+            - left_shoulder_roll_joint
+            - left_shoulder_yaw_joint
+            - left_elbow_joint
+            - left_wrist_roll_joint
+            - left_wrist_pitch_joint
+            - left_wrist_yaw_joint
+            - right_shoulder_pitch_joint
+            - right_shoulder_roll_joint
+            - right_shoulder_yaw_joint
+            - right_elbow_joint
+            - right_wrist_roll_joint
+            - right_wrist_pitch_joint
+            - right_wrist_yaw_joint
+            - left_hand_index_0_joint
+            - left_hand_middle_0_joint
+            - left_hand_thumb_0_joint
+            - right_hand_index_0_joint
+            - right_hand_middle_0_joint
+            - right_hand_thumb_0_joint
+            - left_hand_index_1_joint
+            - left_hand_middle_1_joint
+            - left_hand_thumb_1_joint
+            - right_hand_index_1_joint
+            - right_hand_middle_1_joint
+            - right_hand_thumb_1_joint
+            - left_hand_thumb_2_joint
+            - right_hand_thumb_2_joint
+        dof_obs_size: 43
+        dof_pos_humanly_lower_limit_list:
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1.5708
+            - -0.174533
+            - -1e+09
+            - -1.5708
+            - -0.523599
+            - -1.7453
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1.5708
+            - -1e+09
+            - -1.22173
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+            - -1e+09
+        dof_pos_humanly_upper_limit_list:
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1.5708
+            - 1e+09
+            - 1e+09
+            - 2.35619
+            - 1e+09
+            - 1.22173
+            - 1.5708
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 2.35619
+            - 0.523599
+            - 1.7453
+            - 1.5708
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+            - 1e+09
+        dof_pos_lower_limit_list:
+            - -2.5307
+            - -0.5236
+            - -2.7576
+            - -0.087267
+            - -0.87267
+            - -0.2618
+            - -2.5307
+            - -2.9671
+            - -2.7576
+            - -0.087267
+            - -0.87267
+            - -0.2618
+            - -2.618
+            - -0.52
+            - -0.52
+            - -3.0892
+            - -1.5882
+            - -2.618
+            - -1.0472
+            - -1.972222054
+            - -1.61443
+            - -1.61443
+            - -3.0892
+            - -2.2515
+            - -2.618
+            - -1.0472
+            - -1.972222054
+            - -1.61443
+            - -1.61443
+            - -1.5708
+            - -1.5708
+            - -1.0472
+            - 0
+            - 0
+            - -1.0472
+            - -1.74533
+            - -1.74533
+            - -0.724312
+            - 0
+            - 0
+            - -1.0472
+            - 0
+            - -1.74533
+        dof_pos_upper_limit_list:
+            - 2.8798
+            - 2.9671
+            - 2.7576
+            - 2.8798
+            - 0.5236
+            - 0.2618
+            - 2.8798
+            - 0.5236
+            - 2.7576
+            - 2.8798
+            - 0.5236
+            - 0.2618
+            - 2.618
+            - 0.52
+            - 0.52
+            - 2.6704
+            - 2.2515
+            - 2.618
+            - 2.0944
+            - 1.972222054
+            - 1.61443
+            - 1.61443
+            - 2.6704
+            - 1.5882
+            - 2.618
+            - 2.0944
+            - 1.972222054
+            - 1.61443
+            - 1.61443
+            - 0
+            - 0
+            - 1.0472
+            - 1.5708
+            - 1.5708
+            - 1.0472
+            - 0
+            - 0
+            - 1.0472
+            - 1.74533
+            - 1.74533
+            - 0.724312
+            - 1.74533
+            - 0
+        dof_vel_limit_list:
+            - 32
+            - 20
+            - 32
+            - 20
+            - 30
+            - 30
+            - 32
+            - 20
+            - 32
+            - 20
+            - 30
+            - 30
+            - 32
+            - 30
+            - 30
+            - 37
+            - 37
+            - 37
+            - 37
+            - 37
+            - 22
+            - 22
+            - 37
+            - 37
+            - 37
+            - 37
+            - 37
+            - 22
+            - 22
+            - 12
+            - 12
+            - 6.857
+            - 12
+            - 12
+            - 6.857
+            - 12
+            - 12
+            - 12
+            - 12
+            - 12
+            - 12
+            - 12
+            - 12
+        finger_dof_configuration_overcurling:
+            - -1.0472
+            - -1.7453
+            - 1.5708
+            - 1.7453
+            - 1.5708
+            - 1.7453
+        finger_dof_configuration_straight:
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+            - 0
+        finger_primitive:
+            num_non_primitive_dof: 29
+            primitive_action_map:
+                left:
+                    dof_names:
+                        - left_hand_index_0_joint
+                        - left_hand_middle_0_joint
+                        - left_hand_thumb_0_joint
+                        - left_hand_index_1_joint
+                        - left_hand_middle_1_joint
+                        - left_hand_thumb_1_joint
+                        - left_hand_thumb_2_joint
+                    inheritrange: 1
+                    mode: discrete
+                    pos_0:
+                        - -0
+                        - -0
+                        - -0
+                        - -0
+                        - -0
+                        - -0
+                        - -0
+                    pos_1:
+                        - -0.8976
+                        - -0.8976
+                        - -0
+                        - -0.99731429
+                        - -0.99731429
+                        - 0.5984
+                        - 0.99731429
+                right:
+                    dof_names:
+                        - right_hand_index_0_joint
+                        - right_hand_middle_0_joint
+                        - right_hand_thumb_0_joint
+                        - right_hand_index_1_joint
+                        - right_hand_middle_1_joint
+                        - right_hand_thumb_1_joint
+                        - right_hand_thumb_2_joint
+                    inheritrange: 1
+                    mode: discrete
+                    pos_0:
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                        - 0
+                    pos_1:
+                        - 0.8976
+                        - 0.8976
+                        - 0
+                        - 0.99731429
+                        - 0.99731429
+                        - -0.5984
+                        - -0.99731429
+                    pos_init:
+                        - 0.5
+                        - 0.5
+                        - 0
+                        - 0.5
+                        - 0.5
+                        - -0.2
+                        - -0.2
+        finger_tip_links:
+            - right_hand_thumb_2_link
+            - right_hand_index_1_link
+            - right_hand_middle_1_link
+        foot_name: ankle_roll_link
+        has_torso: true
+        has_upper_body_dof: true
+        homie_dof_obs_size: 29
+        init_state:
+            ang_vel:
+                - 0
+                - 0
+                - 0
+            default_joint_angles:
+                left_ankle_pitch_joint: -0.2
+                left_ankle_roll_joint: 0
+                left_elbow_joint: 0
+                left_hand_index_0_joint: 0
+                left_hand_index_1_joint: 0
+                left_hand_middle_0_joint: -0
+                left_hand_middle_1_joint: 0
+                left_hand_thumb_0_joint: 0
+                left_hand_thumb_1_joint: 0
+                left_hand_thumb_2_joint: 0
+                left_hip_pitch_joint: -0.1
+                left_hip_roll_joint: 0
+                left_hip_yaw_joint: 0
+                left_knee_joint: 0.3
+                left_shoulder_pitch_joint: 0
+                left_shoulder_roll_joint: 0
+                left_shoulder_yaw_joint: 0
+                left_wrist_pitch_joint: 0
+                left_wrist_roll_joint: 0
+                left_wrist_yaw_joint: 0
+                right_ankle_pitch_joint: -0.2
+                right_ankle_roll_joint: 0
+                right_elbow_joint: 0
+                right_hand_index_0_joint: 0
+                right_hand_index_1_joint: 0
+                right_hand_middle_0_joint: 0
+                right_hand_middle_1_joint: 0
+                right_hand_thumb_0_joint: 0
+                right_hand_thumb_1_joint: -0
+                right_hand_thumb_2_joint: 0
+                right_hip_pitch_joint: -0.1
+                right_hip_roll_joint: 0
+                right_hip_yaw_joint: 0
+                right_knee_joint: 0.3
+                right_shoulder_pitch_joint: 0
+                right_shoulder_roll_joint: 0
+                right_shoulder_yaw_joint: 0
+                right_wrist_pitch_joint: 0
+                right_wrist_roll_joint: 0
+                right_wrist_yaw_joint: 0
+                waist_pitch_joint: 0
+                waist_roll_joint: 0
+                waist_yaw_joint: 0
+            lin_vel:
+                - 0
+                - 0
+                - 0
+            pos:
+                - 0
+                - 0
+                - 0.75
+            rot:
+                - 0
+                - 0
+                - 0
+                - 1
+        key_bodies: []
+        knee_dof_names:
+            - left_knee_joint
+            - right_knee_joint
+        knee_name: knee_link
+        left_ankle_dof_names:
+            - left_ankle_pitch_joint
+            - left_ankle_roll_joint
+        left_arm_dof_names:
+            - left_shoulder_pitch_joint
+            - left_shoulder_roll_joint
+            - left_shoulder_yaw_joint
+            - left_elbow_joint
+            - left_wrist_roll_joint
+            - left_wrist_pitch_joint
+            - left_wrist_yaw_joint
+        left_foot_name: left_ankle_roll_link
+        left_hand_body_names:
+            - left_hand_palm_link
+            - left_hand_index_0_link
+            - left_hand_middle_0_link
+            - left_hand_thumb_0_link
+            - left_hand_index_1_link
+            - left_hand_middle_1_link
+            - left_hand_thumb_1_link
+            - left_hand_thumb_2_link
+        left_hand_dof_names:
+            - left_hand_thumb_0_joint
+            - left_hand_thumb_1_joint
+            - left_hand_thumb_2_joint
+            - left_hand_middle_0_joint
+            - left_hand_middle_1_joint
+            - left_hand_index_0_joint
+            - left_hand_index_1_joint
+        left_hand_palm_side_direction:
+            - -y
+            - -y
+            - -y
+            - +x
+            - -y
+            - -y
+            - +x
+            - +x
+        lower_body_actions_dim: 15
+        lower_dof_names:
+            - left_hip_pitch_joint
+            - left_hip_roll_joint
+            - left_hip_yaw_joint
+            - left_knee_joint
+            - left_ankle_pitch_joint
+            - left_ankle_roll_joint
+            - right_hip_pitch_joint
+            - right_hip_roll_joint
+            - right_hip_yaw_joint
+            - right_knee_joint
+            - right_ankle_pitch_joint
+            - right_ankle_roll_joint
+            - waist_yaw_joint
+            - waist_roll_joint
+            - waist_pitch_joint
+        mimic_small_marker_bodies: null
+        num_bodies: 46
+        num_feet: 2
+        num_key_bodies: ${len:${robot.key_bodies}}
+        number_of_actions: ???
+        overcurling_dof_names:
+            - right_hand_thumb_1_joint
+            - right_hand_thumb_2_joint
+            - right_hand_middle_0_joint
+            - right_hand_middle_1_joint
+            - right_hand_index_0_joint
+            - right_hand_index_1_joint
+        penalize_contacts_on:
+            - pelvis
+            - shoulder
+            - hip
+        policy_obs_dim: -1
+        randomize_link_body_names:
+            - pelvis
+            - left_hip_yaw_link
+            - left_hip_roll_link
+            - left_hip_pitch_link
+            - left_knee_link
+            - right_hip_yaw_link
+            - right_hip_roll_link
+            - right_hip_pitch_link
+            - right_knee_link
+        right_ankle_dof_names:
+            - right_ankle_pitch_joint
+            - right_ankle_roll_joint
+        right_arm_dof_names:
+            - right_shoulder_pitch_joint
+            - right_shoulder_roll_joint
+            - right_shoulder_yaw_joint
+            - right_elbow_joint
+            - right_wrist_roll_joint
+            - right_wrist_pitch_joint
+            - right_wrist_yaw_joint
+        right_fingers_palm_body_names:
+            - right_hand_thumb_2_link
+            - right_hand_index_1_link
+            - right_hand_middle_1_link
+            - right_hand_palm_link
+        right_foot_name: right_ankle_roll_link
+        right_hand_body_names:
+            - right_hand_palm_link
+            - right_hand_index_0_link
+            - right_hand_middle_0_link
+            - right_hand_thumb_0_link
+            - right_hand_index_1_link
+            - right_hand_middle_1_link
+            - right_hand_thumb_1_link
+            - right_hand_thumb_2_link
+        right_hand_dof_names:
+            - right_hand_thumb_0_joint
+            - right_hand_thumb_1_joint
+            - right_hand_thumb_2_joint
+            - right_hand_middle_0_joint
+            - right_hand_middle_1_joint
+            - right_hand_index_0_joint
+            - right_hand_index_1_joint
+        right_hand_palm_link: right_hand_palm_link
+        right_hand_palm_side_direction:
+            - +y
+            - +y
+            - +y
+            - +x
+            - +y
+            - +y
+            - +x
+            - +x
+        self_obs_max_coords: ???
+        terminate_after_contacts_on:
+            - knee
+        thumb_tip_link: right_hand_index_1_link
+        torso_name: torso_link
+        upper_body_actions_dim: 28
+        upper_dof_names:
+            - left_shoulder_pitch_joint
+            - left_shoulder_roll_joint
+            - left_shoulder_yaw_joint
+            - left_elbow_joint
+            - left_wrist_roll_joint
+            - left_wrist_pitch_joint
+            - left_wrist_yaw_joint
+            - right_shoulder_pitch_joint
+            - right_shoulder_roll_joint
+            - right_shoulder_yaw_joint
+            - right_elbow_joint
+            - right_wrist_roll_joint
+            - right_wrist_pitch_joint
+            - right_wrist_yaw_joint
+            - left_hand_index_0_joint
+            - left_hand_middle_0_joint
+            - left_hand_thumb_0_joint
+            - right_hand_index_0_joint
+            - right_hand_middle_0_joint
+            - right_hand_thumb_0_joint
+            - left_hand_index_1_joint
+            - left_hand_middle_1_joint
+            - left_hand_thumb_1_joint
+            - right_hand_index_1_joint
+            - right_hand_middle_1_joint
+            - right_hand_thumb_1_joint
+            - left_hand_thumb_2_joint
+            - right_hand_thumb_2_joint
+        upper_left_arm_dof_names:
+            - left_shoulder_pitch_joint
+            - left_shoulder_roll_joint
+            - left_shoulder_yaw_joint
+            - left_elbow_joint
+            - left_wrist_roll_joint
+            - left_wrist_pitch_joint
+            - left_wrist_yaw_joint
+            - left_hand_index_0_joint
+            - left_hand_middle_0_joint
+            - left_hand_thumb_0_joint
+            - left_hand_thumb_2_joint
+        upper_right_arm_dof_names:
+            - right_shoulder_pitch_joint
+            - right_shoulder_roll_joint
+            - right_shoulder_yaw_joint
+            - right_elbow_joint
+            - right_wrist_roll_joint
+            - right_wrist_pitch_joint
+            - right_wrist_yaw_joint
+            - right_hand_index_0_joint
+            - right_hand_middle_0_joint
+            - right_hand_thumb_0_joint
+            - right_hand_index_1_joint
+            - right_hand_middle_1_joint
+            - right_hand_thumb_1_joint
+            - right_hand_thumb_2_joint
+        use_primitive: true
+        waist_dof_names:
+            - waist_yaw_joint
+            - waist_roll_joint
+            - waist_pitch_joint
+        waist_pitch_dof_name: waist_pitch_joint
+        waist_roll_dof_name: waist_roll_joint
+        waist_yaw_dof_name: waist_yaw_joint
+save_dir:
+    value: ${experiment_dir}/.hydra
+seed:
+    value: 0
+sim_type:
+    value: isaacgym
+simulator:
+    value:
+        _recursive_: false
+        _target_: groot.rl.simulator.isaacsim.isaacsim.IsaacSim
+        config:
+            actuators:
+                actuation_mode: idealpd
+            cameras:
+                camera_attached_link: d435_link
+                camera_clipping_range: (0.1, 20.0)
+                camera_focal_length: 1.88
+                camera_focus_distance: 0.5
+                camera_horizontal_aperture: 2.6035
+                camera_pos_offset:
+                    - 0
+                    - 0.035
+                    - 0
+                camera_resolutions:
+                    - 108
+                    - 192
+                camera_rot_offset:
+                    - 0.99955
+                    - 0
+                    - 0.0299955
+                    - 0
+                camera_types:
+                    - rgb: true
+                    - depth: false
+                camera_vertical_aperture: 1.4621
+                camera_yaw_only: true
+                enable_cameras: true
+                image_mean:
+                    - 0.485
+                    - 0.456
+                    - 0.406
+                image_std:
+                    - 0.229
+                    - 0.224
+                    - 0.225
+            heightmap:
+                enable_heightmap: false
+                grid_size: 1.6
+                resolution: 9
+            name: isaacsim
+            plane:
+                dynamic_friction: 1
+                restitution: 0
+                static_friction: 1
+            render_results: false
+            scene:
+                env_spacing: 10
+                num_envs: ${num_envs}
+                replicate_physics: false
+            sim:
+                control_decimation: 4
+                fps: 200
+                physx:
+                    bounce_threshold_velocity: 0.5
+                    contact_collection: 2
+                    contact_offset: 0.01
+                    default_buffer_size_multiplier: 5
+                    max_depenetration_velocity: 1
+                    num_position_iterations: 8
+                    num_threads: 10
+                    num_velocity_iterations: 4
+                    rest_offset: 0
+                    solver_type: 1
+                render_interval: 1
+                render_mode: human
+                substeps: 1
+            terrain: ${terrain}
+teacher_actor_path:
+    value: logs_rl/walk_stand_place_grasp_turn_homie_predrop_project_name-wsdpt_teacher_BTFv8q9_qben_exppredrop_leanz_hand_predrop_pos_distance-10.0_penalty_bottle_lean_during_pick--3500.0_penalty_bottle_non_z_up_velocity_during_pick--1000.0-20251105_004910/model_step_044500.pt
+terrain:
+    value:
+        border_size: 40
+        curriculum: false
+        dynamic_friction: 1
+        horizontal_scale: 0.1
+        max_init_terrain_level: 9
+        measure_heights: false
+        measured_points_x:
+            - 0
+        measured_points_y:
+            - 0
+        mesh_type: plane
+        num_cols: 20
+        num_rows: 10
+        restitution: 0
+        selected: false
+        slope_treshold: 0.75
+        static_friction: 1
+        terrain_kwargs: null
+        terrain_length: 8
+        terrain_proportions:
+            - 0.2
+            - 0.6
+            - 0.2
+            - 0
+            - 0
+        terrain_types:
+            - flat
+            - rough
+            - low_obst
+            - smooth_slope
+            - rough_slope
+        terrain_width: 8
+        vertical_scale: 0.005
+timestamp:
+    value: ${now:%Y%m%d_%H%M%S}
+trainer:
+    value:
+        _target_: groot.rl.trl.trainer.distill_trainer_obj_pred_homie_api.TRLDistillTrainerObjPredHomieAPI
+use_wandb:
+    value: true
+wandb:
+    value:
+        wandb_dir: ${experiment_dir}/.wandb
+        wandb_entity: null
+        wandb_group: null
+        wandb_id: null
+        wandb_project: null
+        wandb_tags: online

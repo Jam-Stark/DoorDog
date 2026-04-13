@@ -139,7 +139,7 @@ hydra:
     - path: hydra.conf
       schema: pkg
       provider: hydra
-    - path: /home/ziwang/projects/gr00t-wsg-teleop/groot/rl/config
+    - path: /home/ziwang/projects/gr00t-wsg-teleop/gr00t/rl/config
       schema: file
       provider: main
     - path: ''

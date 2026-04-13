@@ -8,8 +8,8 @@ _wandb:
                     - num_envs=48
                     - project_name=wsdpt_teacher_BTFv8q8_zi_debug
                     - env.config.reset_from_dataset.enable=False
-                codePath: groot/rl/train_agent_trl.py
-                codePathLocal: groot/rl/train_agent_trl.py
+                codePath: gr00t/rl/train_agent_trl.py
+                codePathLocal: gr00t/rl/train_agent_trl.py
                 cpu_count: 24
                 cpu_count_logical: 32
                 cudaVersion: "12.8"
@@ -39,7 +39,7 @@ _wandb:
                 memory:
                     total: "134733721600"
                 os: Linux-6.14.0-37-generic-x86_64-with-glibc2.39
-                program: /home/ziwang/projects/gr00t-wsg-teleop/groot/rl/train_agent_trl.py
+                program: /home/ziwang/projects/gr00t-wsg-teleop/gr00t/rl/train_agent_trl.py
                 python: CPython 3.10.16
                 root: logs_rl/wsdpt_teacher_BTFv8q8_zi_debug/loco_manip/walk_stand_place_grasp_turn_homie_walk_stand_place_grasp_turn_homie-20260326_191117/.wandb
                 startedAt: "2026-03-27T02:11:22.485840Z"
@@ -83,12 +83,12 @@ _wandb:
 algo:
     value:
         _recursive_: false
-        _target_: groot.rl.agents.ppo.ppo.PPO
+        _target_: gr00t.rl.agents.ppo.ppo.PPO
         config:
             actor:
-                _target_: groot.rl.trl.modules.actor_critic_modules.Actor
+                _target_: gr00t.rl.trl.modules.actor_critic_modules.Actor
                 backbone:
-                    _target_: groot.rl.agents.modules.modules.BaseModule
+                    _target_: gr00t.rl.agents.modules.modules.BaseModule
                     module_config_dict:
                         input_dim:
                             - actor_obs
@@ -107,9 +107,9 @@ algo:
             clamp_noise_std: true
             clip_param: 0.2
             critic:
-                _target_: groot.rl.trl.modules.actor_critic_modules.Critic
+                _target_: gr00t.rl.trl.modules.actor_critic_modules.Critic
                 backbone:
-                    _target_: groot.rl.agents.modules.modules.BaseModule
+                    _target_: gr00t.rl.agents.modules.modules.BaseModule
                     module_config_dict:
                         input_dim:
                             - critic_obs
@@ -212,19 +212,19 @@ base_dir:
 callbacks:
     value:
         autoresume:
-            _target_: groot.rl.trl.callbacks.autoresume_callback.AutoResumeCallback
+            _target_: gr00t.rl.trl.callbacks.autoresume_callback.AutoResumeCallback
             every_n_steps: 10
             save_dir: ${experiment_dir}
         model_save:
-            _target_: groot.rl.trl.callbacks.model_save_callback.ModelSaveCallback
+            _target_: gr00t.rl.trl.callbacks.model_save_callback.ModelSaveCallback
             save_dir: ${experiment_dir}
             save_frequency: 100
         read_eval_locomanip:
-            _target_: groot.rl.trl.callbacks.read_eval_locomanip_callback.ReadEvalLocomanipCallback
+            _target_: gr00t.rl.trl.callbacks.read_eval_locomanip_callback.ReadEvalLocomanipCallback
             check_interval: 1
             eval_dir: ${experiment_dir}/eval
         wandb:
-            _target_: groot.rl.trl.callbacks.wandb_callback.WandbCallback
+            _target_: gr00t.rl.trl.callbacks.wandb_callback.WandbCallback
 checkpoint:
     value: logs_rl/TRL_G1_Track/loco_manip/walk_stand_place_grasp_turn_homie_leanz_project_name-wsdpt_teacher_BTFv7t2_qben_nostage0_finger_penalty_finger_qvel_during_single_foot_contact--3000_penalty_bottle_lean_during_pick--1000.0_penalty_bottle_non_z_up_velocity_during_pick--500-20251101_221826/model_step_043900.pt
 codebase_version:
@@ -501,7 +501,7 @@ domain_rand:
 env:
     value:
         _recursive_: false
-        _target_: groot.rl.envs.loco_manip.walk_stand_place_grasp_turn_homie.WalkStandPlaceGraspTurnHomie
+        _target_: gr00t.rl.envs.loco_manip.walk_stand_place_grasp_turn_homie.WalkStandPlaceGraspTurnHomie
         config:
             accumulate_stage_reward: false
             arm_vel_threshold: 0.2
@@ -599,7 +599,7 @@ env:
             reset_from_dataset:
                 device: ""
                 enable: false
-                motion_file_dir: groot/rl/data/motions/g1_wsdpt/33demos_675_775
+                motion_file_dir: gr00t/rl/data/motions/g1_wsdpt/33demos_675_775
                 motion_files: null
                 num_per_sample: 10
                 resample_every: 1000
@@ -1188,7 +1188,7 @@ robot:
         asset:
             angular_damping: 0.01
             armature: 0.001
-            asset_root: groot/rl/data/robots
+            asset_root: gr00t/rl/data/robots
             collapse_fixed_joints: true
             default_dof_drive_mode: 3
             density: 0.001
@@ -2068,7 +2068,7 @@ sim_type:
 simulator:
     value:
         _recursive_: false
-        _target_: groot.rl.simulator.isaacsim.isaacsim.IsaacSim
+        _target_: gr00t.rl.simulator.isaacsim.isaacsim.IsaacSim
         config:
             actuators:
                 actuation_mode: idealpd
@@ -2175,7 +2175,7 @@ timestamp:
     value: ${now:%Y%m%d_%H%M%S}
 trainer:
     value:
-        _target_: groot.rl.trl.trainer.ppo_trainer_homie_api.TRLPPOTrainer
+        _target_: gr00t.rl.trl.trainer.ppo_trainer_homie_api.TRLPPOTrainer
 use_wandb:
     value: true
 wandb:

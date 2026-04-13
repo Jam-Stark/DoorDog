@@ -1,0 +1,6 @@
+- +exp=loco_manip/wsdpt_student_for_teacher_v8q8.002_resnet_rgb_delay
+- num_envs=8
+- headless=True
+- experiment_name=wsdpt_student
+- project_name=wsdpt_student_debug
+- headless=False

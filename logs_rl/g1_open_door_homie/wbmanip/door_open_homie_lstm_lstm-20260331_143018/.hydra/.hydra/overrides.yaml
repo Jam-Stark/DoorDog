@@ -1,5 +1,0 @@
-- +exp=wbmanip/door_open_homie_lstm
-- ++num_envs=2
-- ++algo.config.entropy_coef=0.001
-- ++algo.config.num_steps_per_env=32
-- ++env.config.delta_action_scale=0.3

@@ -1,4 +1,0 @@
-- +exp=loco_manip/walk_stand_place_grasp_turn_homie
-- num_envs=48
-- project_name=wsdpt_teacher
-- headless=False

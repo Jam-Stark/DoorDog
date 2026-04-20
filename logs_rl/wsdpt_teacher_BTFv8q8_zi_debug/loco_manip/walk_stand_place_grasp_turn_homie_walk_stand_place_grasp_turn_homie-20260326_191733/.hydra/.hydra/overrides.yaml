@@ -1,4 +1,0 @@
-- +exp=loco_manip/walk_stand_place_grasp_turn_homie
-- num_envs=48
-- project_name=wsdpt_teacher_BTFv8q8_zi_debug
-- env.config.reset_from_dataset.enable=False

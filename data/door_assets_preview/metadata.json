@@ -1,0 +1,27 @@
+{
+  "door_0000": {
+    "doorWidth": 0.9123620356542088,
+    "doorHeight": 2.185214291922975,
+    "doorHandleHeight": 0.9231993941811405,
+    "doorHandleWidth": 0.10809390610620744,
+    "doorWeight": 86.24074561769746,
+    "doorHandleType": "lever",
+    "doorOpenLR": -1,
+    "doorOpenIO": -1,
+    "totalWallHeight": 2.4935967122017213,
+    "axleLength": 0.181742508365046,
+    "handleLength": 0.13598528437324806,
+    "hookLength": 0.05202230023486418,
+    "handleRadius": 0.013832290311184181,
+    "spawnHook": true,
+    "hingeDriveMaxForce": 3.7349629402160645,
+    "hingeDriveStiffness": 6.504878520965576,
+    "handleDriveMaxForce": 1.007066249847412,
+    "front": 3.1614369752899103,
+    "rear": 6.673422621808724,
+    "leftFront": 4.598748745437299,
+    "rightFront": 1.419990968922539,
+    "leftRear": 9.763799669573132,
+    "rightRear": 3.094942063872738
+  }
+}

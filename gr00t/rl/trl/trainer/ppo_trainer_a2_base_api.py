@@ -4,6 +4,8 @@
 
 from collections import deque
 from copy import deepcopy
+import json
+from pathlib import Path
 from typing import Dict, Optional
 
 import pandas as pd
@@ -34,9 +36,48 @@ from gr00t.rl.trl.modules.homie_modules import (
 )
 
 
+def _load_a2_base_metadata(metadata_path):
+    path = Path(metadata_path).expanduser()
+    with path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    obs_contract = metadata["contracts"]["obs"]
+    action_contract = metadata["contracts"]["action"]
+    contract = {
+        "obs_dim": int(obs_contract["flattened_dim"]),
+        "history_length": int(obs_contract["history_length"]),
+        "frame_dim": int(obs_contract["dog_frame_dim"]),
+        "action_dim": int(action_contract["dim"]),
+        "leg_joint_names": list(action_contract["leg_joint_names"]),
+        "leg_action_scale": float(action_contract["leg_action_scale"]),
+        "use_default_offset": bool(action_contract["use_default_offset"]),
+    }
+    if contract["obs_dim"] != contract["history_length"] * contract["frame_dim"]:
+        raise ValueError(f"A2_Base metadata obs contract is inconsistent: {contract}")
+    return contract
+
+
+def _validate_optional_a2_config_value(config, key, metadata_value):
+    if key in config and config.get(key) != metadata_value:
+        raise ValueError(
+            f"A2_Base config {key}={config.get(key)} disagrees with metadata {metadata_value}"
+        )
+
+
 class PolicyAndValueWrapper(nn.Module):
     def __init__(
-        self, policy, value_model, homie_walk_model, homie_stand_model, ref_model=None
+        self,
+        policy,
+        value_model,
+        homie_walk_model=None,
+        homie_stand_model=None,
+        ref_model=None,
+        a2_base_model=None,
+        a2_base_command_scale=0.25,
+        a2_base_command_multipliers=None,
+        a2_base_obs_dim=1620,
+        a2_base_frame_dim=54,
+        a2_base_action_dim=12,
+        a2_base_action_sigma=0.0,
     ) -> None:
         super().__init__()
         self.policy = policy
@@ -44,12 +85,28 @@ class PolicyAndValueWrapper(nn.Module):
         self.homie_walk_model = homie_walk_model
         self.homie_stand_model = homie_stand_model
         self.ref_model = ref_model
+        self.a2_base_model = a2_base_model
+        self.use_a2_base = a2_base_model is not None
+        self.a2_base_command_scale = a2_base_command_scale
+        self.a2_base_obs_dim = a2_base_obs_dim
+        self.a2_base_frame_dim = a2_base_frame_dim
+        self.a2_base_action_dim = a2_base_action_dim
+        self.a2_base_action_sigma = a2_base_action_sigma
+        if a2_base_command_multipliers is None:
+            a2_base_command_multipliers = [2.0, 2.0, 0.25]
+        self.register_buffer(
+            "a2_base_command_multipliers",
+            torch.tensor(a2_base_command_multipliers, dtype=torch.float32),
+        )
         self.opt_homie = False
         self.homie_switch_threshold = 0.5
 
     def set_mode(self, mode):
         if hasattr(self.policy, "mode"):
             self.policy.mode = mode
+        if self.use_a2_base:
+            self.a2_base_model.eval()
+            return
         if hasattr(self.homie_walk_model, "train") and hasattr(self.homie_walk_model, "eval"):
             if self.opt_homie and mode == "train":
                 self.homie_walk_model.train()
@@ -75,9 +132,47 @@ class PolicyAndValueWrapper(nn.Module):
             results[mode] = self.forward_component(mode, **input_kwargs[mode])
         return results
 
+    def _a2_base_actions(self, obs_dict, high_level_actions):
+        a2_base_obs = obs_dict["a2_base_obs"].clone()
+        obs_shape = a2_base_obs.shape
+        if obs_shape[-1] != self.a2_base_obs_dim:
+            raise ValueError(
+                f"A2_Base obs dim mismatch: got {obs_shape[-1]}, expected {self.a2_base_obs_dim}"
+            )
+        action_shape = high_level_actions.shape
+        flat_obs = a2_base_obs.reshape(-1, obs_shape[-1])
+        flat_high_level_actions = high_level_actions.reshape(-1, action_shape[-1])
+        final_frame_start = flat_obs.shape[-1] - self.a2_base_frame_dim
+        command_scale = self.a2_base_command_multipliers.to(
+            device=flat_obs.device, dtype=flat_obs.dtype
+        )
+        flat_obs[:, final_frame_start + 39 : final_frame_start + 42] = (
+            flat_high_level_actions[:, :3] * self.a2_base_command_scale * command_scale
+        )
+        flat_obs[:, final_frame_start + 42 : final_frame_start + 44] = 0.0
+        with torch.no_grad():
+            flat_actions = self.a2_base_model(flat_obs)
+        if flat_actions.shape[-1] != self.a2_base_action_dim:
+            raise ValueError(
+                f"A2_Base action dim mismatch: got {flat_actions.shape[-1]}, expected {self.a2_base_action_dim}"
+            )
+        return flat_actions.reshape(*action_shape[:-1], flat_actions.shape[-1])
+
     def forward_component(self, mode, actions=None, **kwargs):
         if mode == "policy":
             self.policy.act(**kwargs)
+            if self.use_a2_base:
+                high_level_actions = actions[..., : self.policy.num_actions]
+                a2_actions = self._a2_base_actions(kwargs["obs_dict"], high_level_actions)
+                policy_log_probs = self.policy.get_actions_log_prob(actions=high_level_actions)
+                a2_sigma = torch.full_like(a2_actions, self.a2_base_action_sigma)
+                results = {
+                    "logprobs": policy_log_probs,
+                    "action_mean": torch.cat([self.policy.action_mean, a2_actions], dim=-1),
+                    "action_std": torch.cat([self.policy.action_std, a2_sigma], dim=-1),
+                    "entropy": self.policy.entropy,
+                }
+                return results
             homie_obs = kwargs["obs_dict"]["homie_obs"]
             stand_homie_obs = homie_obs.clone()
             reshaped_obs = stand_homie_obs.view(
@@ -471,20 +566,72 @@ class TRLPPOTrainer(PPOTrainer):
             )
         self.local_dataloader_batch_size = args.local_batch_size
 
-        # homie policy import
-        homie_walk_state_dict = torch.load(
-            self.config.homie_walk_model_path, map_location=self.device
-        )
-        homie_walk_model = HIMActorCritic(**init_actor_critic_dict)
-        homie_walk_model.load_state_dict(homie_walk_state_dict["model_state_dict"])
-        self.homie_walk_model = HomieActorModule(homie_walk_model).to(self.device)
+        self.use_a2_base = bool(self.config.get("use_a2_base", False))
+        if self.config.get("a2_base", None) is not None:
+            self.use_a2_base = self.use_a2_base or bool(
+                self.config.a2_base.get("enabled", False)
+            )
 
-        homie_stand_state_dict = torch.load(
-            self.config.homie_stand_model_path, map_location=self.device
-        )
-        homie_stand_model = HIMActorCritic(**init_actor_critic_dict)
-        homie_stand_model.load_state_dict(homie_stand_state_dict["model_state_dict"])
-        self.homie_stand_model = HomieActorModule(homie_stand_model).to(self.device)
+        self.homie_walk_model = None
+        self.homie_stand_model = None
+        self.a2_base_model = None
+        self.a2_base_action_dim = 0
+        self.a2_base_obs_dim = 0
+        self.a2_base_frame_dim = 0
+        self.a2_base_leg_action_scale = 0.0
+        self.a2_base_command_scale = 0.25
+        self.a2_base_command_multipliers = [2.0, 2.0, 0.25]
+        self.a2_base_action_sigma = 0.0
+
+        if self.use_a2_base:
+            a2_base_config = self.config.get("a2_base", {})
+            a2_base_policy_path = a2_base_config.get(
+                "policy_path", "./gr00t/rl/data/policies/A2_Base/policy.pt"
+            )
+            a2_base_metadata_path = a2_base_config.get(
+                "metadata_path", "./gr00t/rl/data/policies/A2_Base/policy_metadata.json"
+            )
+            a2_base_contract = _load_a2_base_metadata(a2_base_metadata_path)
+            _validate_optional_a2_config_value(
+                a2_base_config, "obs_dim", a2_base_contract["obs_dim"]
+            )
+            _validate_optional_a2_config_value(
+                a2_base_config, "action_dim", a2_base_contract["action_dim"]
+            )
+            _validate_optional_a2_config_value(
+                a2_base_config, "leg_action_scale", a2_base_contract["leg_action_scale"]
+            )
+            if not a2_base_contract["use_default_offset"]:
+                raise ValueError("A2_Base metadata requires use_default_offset=true")
+            self.a2_base_obs_dim = a2_base_contract["obs_dim"]
+            self.a2_base_frame_dim = a2_base_contract["frame_dim"]
+            self.a2_base_leg_action_scale = a2_base_contract["leg_action_scale"]
+            self.a2_base_action_dim = a2_base_contract["action_dim"]
+            self.a2_base_command_scale = float(a2_base_config.get("command_scale", 0.25))
+            self.a2_base_command_multipliers = list(
+                a2_base_config.get("command_multipliers", [2.0, 2.0, 0.25])
+            )
+            self.a2_base_action_sigma = float(a2_base_config.get("action_sigma", 0.0))
+            self.a2_base_model = torch.jit.load(a2_base_policy_path, map_location=self.device)
+            self.a2_base_model.eval()
+            self.a2_base_model.to(self.device)
+            for p in self.a2_base_model.parameters():
+                p.requires_grad = False
+        else:
+            # homie policy import
+            homie_walk_state_dict = torch.load(
+                self.config.homie_walk_model_path, map_location=self.device
+            )
+            homie_walk_model = HIMActorCritic(**init_actor_critic_dict)
+            homie_walk_model.load_state_dict(homie_walk_state_dict["model_state_dict"])
+            self.homie_walk_model = HomieActorModule(homie_walk_model).to(self.device)
+
+            homie_stand_state_dict = torch.load(
+                self.config.homie_stand_model_path, map_location=self.device
+            )
+            homie_stand_model = HIMActorCritic(**init_actor_critic_dict)
+            homie_stand_model.load_state_dict(homie_stand_state_dict["model_state_dict"])
+            self.homie_stand_model = HomieActorModule(homie_stand_model).to(self.device)
 
         #########
         # setup model, optimizer, and others
@@ -497,11 +644,15 @@ class TRLPPOTrainer(PPOTrainer):
                 self.reward_model,
                 self.homie_walk_model,
                 self.homie_stand_model,
+                self.a2_base_model,
             ]:
                 if module is not None:
                     disable_dropout_in_model(module)
 
-        if not self.config.get("opt_homie", False):
+        if self.use_a2_base:
+            print("Using frozen A2_Base policy for low-level leg actions")
+            disable_dropout_in_model(self.a2_base_model)
+        elif not self.config.get("opt_homie", False):
             print("Freezing homie model parameters")
             for p in self.homie_walk_model.parameters():
                 p.requires_grad = False
@@ -512,26 +663,40 @@ class TRLPPOTrainer(PPOTrainer):
             self.homie_stand_model.eval()
             disable_dropout_in_model(self.homie_stand_model)
         self.model = PolicyAndValueWrapper(
-            self.policy_model, self.value_model, self.homie_walk_model, self.homie_stand_model
+            self.policy_model,
+            self.value_model,
+            self.homie_walk_model,
+            self.homie_stand_model,
+            a2_base_model=self.a2_base_model,
+            a2_base_command_scale=self.a2_base_command_scale,
+            a2_base_command_multipliers=self.a2_base_command_multipliers,
+            a2_base_obs_dim=self.a2_base_obs_dim,
+            a2_base_frame_dim=self.a2_base_frame_dim,
+            a2_base_action_dim=self.a2_base_action_dim,
+            a2_base_action_sigma=self.a2_base_action_sigma,
         )
-        if hasattr(self.model, "homie_switch_threshold"):
-            self.homie_switch_threshold = self.model.homie_switch_threshold
+        if self.use_a2_base:
+            self.homie_switch_threshold = 0.0
+            self.opt_homie = False
         else:
-            self.homie_switch_threshold = self.model.module.homie_switch_threshold
+            if hasattr(self.model, "homie_switch_threshold"):
+                self.homie_switch_threshold = self.model.homie_switch_threshold
+            else:
+                self.homie_switch_threshold = self.model.module.homie_switch_threshold
 
-        if hasattr(self.model, "opt_homie"):
-            self.model.opt_homie = self.config.get("opt_homie", False)
-            self.opt_homie = self.model.opt_homie
-        else:
-            self.model.module.opt_homie = self.config.get("opt_homie", False)
-            self.opt_homie = self.model.module.opt_homie
+            if hasattr(self.model, "opt_homie"):
+                self.model.opt_homie = self.config.get("opt_homie", False)
+                self.opt_homie = self.model.opt_homie
+            else:
+                self.model.module.opt_homie = self.config.get("opt_homie", False)
+                self.opt_homie = self.model.module.opt_homie
 
-        if hasattr(self.model, "homie_switch_threshold"):
-            self.model.homie_switch_threshold = self.config.get("homie_switch_threshold", 0.5)
-        else:
-            self.model.module.homie_switch_threshold = self.config.get(
-                "homie_switch_threshold", 0.5
-            )
+            if hasattr(self.model, "homie_switch_threshold"):
+                self.model.homie_switch_threshold = self.config.get("homie_switch_threshold", 0.5)
+            else:
+                self.model.module.homie_switch_threshold = self.config.get(
+                    "homie_switch_threshold", 0.5
+                )
 
         # self.homie_policy = load_onnx_policy(path=config.homie_policy_path, device=self.device)
 
@@ -675,7 +840,10 @@ class TRLPPOTrainer(PPOTrainer):
         # Env related Config
         self.num_envs: int = self.env.config.num_envs
         self.algo_obs_dim_dict = self.env.config.robot.algo_obs_dim_dict
-        self.num_act = self.policy_model.num_actions + self.homie_walk_model.num_actions
+        if self.use_a2_base:
+            self.num_act = self.policy_model.num_actions + self.a2_base_action_dim
+        else:
+            self.num_act = self.policy_model.num_actions + self.homie_walk_model.num_actions
 
         self.num_steps_per_env = self.config.num_steps_per_env
         self.use_padding_mask = self.config.get("use_padding_mask", False)
@@ -779,6 +947,29 @@ class TRLPPOTrainer(PPOTrainer):
         policy_out = policy_model.rollout(
             obs_dict=actor_obs_dict, episode_attnmask=episode_attnmask, cur_dones=cur_dones
         )
+
+        if self.use_a2_base:
+            a2_actions = self.unwrapped_model._a2_base_actions(
+                obs_dict, policy_out["actions"]
+            )
+            actions_log_prob = policy_model.get_actions_log_prob(
+                actions=policy_out["actions"]
+            ).unsqueeze(1)
+            a2_sigma = torch.full_like(a2_actions, self.a2_base_action_sigma)
+            policy_state_dict = {
+                "actions": torch.cat([policy_out["actions"], a2_actions], dim=-1),
+                "action_mean": torch.cat([policy_out["action_mean"], a2_actions], dim=-1),
+                "action_sigma": torch.cat([policy_out["action_sigma"], a2_sigma], dim=-1),
+                "actions_log_prob": actions_log_prob,
+            }
+
+            if store_hidden_states and actor_hidden_states is not None:
+                policy_state_dict["hidden_states"] = (
+                    actor_hidden_states,
+                    None,
+                )
+
+            return policy_state_dict
 
         homie_obs = obs_dict["homie_obs"]
         stand_homie_obs = homie_obs.clone()
@@ -2087,22 +2278,27 @@ class TRLPPOTrainer(PPOTrainer):
                     actions = policy_model.rollout(obs_dict=obs_dict)
                     action_mean = policy_model.action_mean.detach()
 
-                    homie_obs = obs_dict["homie_obs"]
-                    walk_out = homie_walk_model(homie_obs)
-                    stand_out = homie_stand_model(homie_obs)
-                    homie_one_step_obs = init_actor_critic_dict["num_one_step_obs"]
-                    commands = homie_obs[..., -homie_one_step_obs : -(homie_one_step_obs - 3)]
-                    walk_mask = (
-                        torch.norm(commands, dim=-1, keepdim=True) > self.homie_switch_threshold
-                    )
-                    m = walk_mask
-                    while m.dim() < walk_out["actions"].dim():
-                        m = m.unsqueeze(-1)
+                    if self.use_a2_base:
+                        a2_actions = model._a2_base_actions(obs_dict, action_mean)
+                        step_actions = torch.cat([action_mean, a2_actions], dim=-1)
+                    else:
+                        homie_obs = obs_dict["homie_obs"]
+                        walk_out = homie_walk_model(homie_obs)
+                        stand_out = homie_stand_model(homie_obs)
+                        homie_one_step_obs = init_actor_critic_dict["num_one_step_obs"]
+                        commands = homie_obs[..., -homie_one_step_obs : -(homie_one_step_obs - 3)]
+                        walk_mask = (
+                            torch.norm(commands, dim=-1, keepdim=True)
+                            > self.homie_switch_threshold
+                        )
+                        m = walk_mask
+                        while m.dim() < walk_out["actions"].dim():
+                            m = m.unsqueeze(-1)
 
-                    homie_actions = torch.where(
-                        m, walk_out["action_mean"], stand_out["action_mean"]
-                    )
-                    step_actions = torch.cat([action_mean, homie_actions], dim=-1)
+                        homie_actions = torch.where(
+                            m, walk_out["action_mean"], stand_out["action_mean"]
+                        )
+                        step_actions = torch.cat([action_mean, homie_actions], dim=-1)
 
                     actor_state["actions"] = step_actions
 

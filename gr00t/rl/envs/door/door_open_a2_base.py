@@ -20,8 +20,8 @@ from pxr import Usd
 from typing_extensions import override
 
 from gr00t.rl.envs.base_task.delta_action_base import DeltaActionBase
+from gr00t.rl.envs.base_task.a2_base import A2Base
 from gr00t.rl.envs.base_task.finger_primitive_base import FingerPrimitiveBase
-from gr00t.rl.envs.base_task.homie_base import HomieBase
 from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
 from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
@@ -33,7 +33,7 @@ class DoorPregrasp(
     StagedTaskBase,
     DeltaActionBase,
     WarpedActionBase,
-    HomieBase,
+    A2Base,
     FingerPrimitiveBase,
     ResetFromDataset,
 ):
@@ -45,7 +45,12 @@ class DoorPregrasp(
     STAGE_THROUGH = 5
 
     def __init__(self, config, device):
+        self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         super().__init__(config, device)
+
+        if self._use_a2_base:
+            self._init_a2_door_pregrasp_state()
+            return
 
         # finger primitive related
         self._left_p0 = torch.tensor(
@@ -190,6 +195,72 @@ class DoorPregrasp(
             None, :
         ]
 
+    def _init_door_metadata(self):
+        stage: Usd.Stage = omni.usd.get_context().get_stage()
+        self.door_width = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_height = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_handle_height = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self.door_handle_width = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_weight = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_open_lr = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_open_io = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+
+        for env_id in range(self.num_envs):
+            door_prim_path = f"/World/envs/env_{env_id}/door"
+            door_prim = stage.GetPrimAtPath(door_prim_path)
+            door_metadata = door_prim.GetPrim().GetMetadata("customData")
+            self.door_width[env_id] = door_metadata["doorWidth"]
+            self.door_height[env_id] = door_metadata["doorHeight"]
+            self.door_handle_height[env_id] = door_metadata["doorHandleHeight"]
+            self.door_handle_width[env_id] = door_metadata["doorHandleWidth"]
+            self.door_weight[env_id] = door_metadata["doorWeight"]
+            self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+
+    def _init_a2_door_pregrasp_state(self):
+        self._init_door_metadata()
+        self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
+        self._upper_non_finger_dof_idx = list(self.upper_dof_indices)
+        self._left_arm_dof_idx = torch.tensor(self.arm_dof_indices[:6], device=self.device)
+        self._right_arm_dof_idx = torch.tensor(self.arm_dof_indices[:6], device=self.device)
+        self.finger_dof_idx = torch.empty(0, dtype=torch.long, device=self.device)
+        self.wrist_dof_idx = torch.empty(0, dtype=torch.long, device=self.device)
+        self.left_hand_indices = []
+        self.right_hand_indices = []
+        self.left_hand_indices_tgt_ct_sensor = []
+        self.right_hand_indices_tgt_ct_sensor = []
+        self.left_hand_indices_convert = []
+        self.right_hand_indices_convert = []
+        self.left_palm_idx = self.end_effector_index
+        self.right_palm_idx = self.end_effector_index
+        self.left_hand_palm_side_direction = torch.tensor(
+            [1.0, 0.0, 0.0, 0.0], device=self.device
+        )
+        self.right_hand_palm_side_direction = torch.tensor(
+            [1.0, 0.0, 0.0, 0.0], device=self.device
+        )
+        self.dof_pos_humanly_lower_limit = torch.tensor(
+            self.simulator.robot_config.dof_pos_lower_limit_list, device=self.device
+        )[None, :]
+        self.dof_pos_humanly_upper_limit = torch.tensor(
+            self.simulator.robot_config.dof_pos_upper_limit_list, device=self.device
+        )[None, :]
+
+        self._register_task_state_to_track(self.simulator.scene.articulations["door"], "door")
+        self._register_buffer_to_track(
+            "delta_actions",
+            self._get_delta_actions_buffer_shape(),
+            self._store_delta_actions_buffer,
+            self._load_delta_actions_buffer,
+            dtype=torch.float32,
+        )
+
+        self.resting_dof_pos = torch.tensor([self.config.resting_dof_pos], device=self.device)
+        self.target_root_pos = torch.tensor(self.config.target_root_pos, device=self.device)[
+            None, :
+        ]
+
     def _init_buffers(self):
         super()._init_buffers()
         self.relative_door_pos_buf = torch.zeros(
@@ -256,6 +327,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_THROUGH])
     def _reward_pregrasp_finger_dof_pos_l1(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         left_diff = self.simulator.dof_pos[:, self._left_hand_dof_idx] - self._left_p0
         right_diff = self.simulator.dof_pos[:, self._right_hand_dof_idx] - self._right_p0
         left_vel = self.simulator.dof_vel[:, self._left_hand_dof_idx] * torch.sign(left_diff)
@@ -288,6 +361,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_hand_handle_orientation(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         mask = (self.door_open_lr < 0)[:, None]
         rot_90 = quat_from_euler_xyz(
             torch.full((self.num_envs,), torch.pi / 2.0, device=self.device),
@@ -328,6 +403,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_PREGRASP)
     def _reward_pregrasp_target_distance(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         pre_grasp_target = self._compute_pre_grasp_target()
 
         left_hand_pos = self.simulator._rigid_body_pos[:, self.left_palm_idx, :]
@@ -380,6 +457,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp_finger_dof_pos_l1(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         left_diff = self.simulator.dof_pos[:, self._left_hand_dof_idx] - self._left_p1
         right_diff = self.simulator.dof_pos[:, self._right_hand_dof_idx] - self._right_p1
         left_vel = self.simulator.dof_vel[:, self._left_hand_dof_idx] * torch.sign(left_diff)
@@ -399,6 +478,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp_target_distance(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         grasp_target = self._compute_grasp_target()
 
         left_hand_pos = self.simulator._rigid_body_pos[:, self.left_palm_idx, :]
@@ -424,6 +505,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         left_contact_forces = self.simulator.object_to_hand_contact_forces[
             :, 0, self.left_hand_indices_tgt_ct_sensor, :
         ][:, self.left_hand_indices_convert, :]
@@ -491,6 +574,8 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_OPEN)
     def _reward_push_door_force(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, device=self.device)
         left_net_force = self.simulator.object_to_hand_contact_forces[
             :, 0, self.left_hand_indices_tgt_ct_sensor, :
         ].sum(dim=-2)
@@ -649,6 +734,8 @@ class DoorPregrasp(
         return torch.cat([self.relative_door_pos_buf, relative_door_rot_6d], dim=-1)
 
     def _get_obs_hand_handle_transform(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, 18, device=self.device)
         left_hand_pos = self.simulator.left_hand_transform_pos[:, 0, :]
         left_hand_rot_wxyz = self.simulator.left_hand_transform_rot[:, 0, :]
         left_hand_rot_6d = quat_to_tan_norm(wxyz_to_xyzw(left_hand_rot_wxyz), w_last=True)
@@ -660,6 +747,8 @@ class DoorPregrasp(
         )
 
     def _get_obs_hand_force(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, 48, device=self.device)
         left_hand_force = self.simulator.contact_forces[:, self.left_hand_indices, :]
         right_hand_force = self.simulator.contact_forces[:, self.right_hand_indices, :]
         return torch.cat(
@@ -702,6 +791,10 @@ class DoorPregrasp(
         )
 
     def _compute_grasp_target(self):
+        if self._use_a2_base:
+            grasp_target_pos_w = self.simulator.get_task_root_state("door")[:, :3].clone()
+            grasp_target_pos_w[:, 2] = self.door_handle_height
+            return grasp_target_pos_w
         grasp_target_pos_w = (
             self.simulator.scene.sensors["right_hand_frame_transformer"]
             .data.target_pos_w[:, 0, :]
@@ -718,6 +811,12 @@ class DoorPregrasp(
     def _reset_object_states_callback(self, env_ids):
         self._reset_door_states(env_ids)
         return super()._reset_object_states_callback(env_ids)
+
+    @override
+    def _reset_robot_states_callback(self, env_ids, target_states=None):
+        if self._use_a2_base:
+            return A2Base._reset_robot_states_callback(self, env_ids, target_states)
+        return super()._reset_robot_states_callback(env_ids, target_states)
 
     @override
     def _reset_root_states(self, env_ids, target_root_states=None):
@@ -740,6 +839,8 @@ class DoorPregrasp(
 
     @override
     def _reset_dofs(self, env_ids, target_state=None):
+        if self._use_a2_base:
+            return A2Base._reset_dofs(self, env_ids, target_state)
         # randomize wrist in +- 80 deg
         xx, yy = torch.meshgrid(env_ids, self.wrist_dof_idx)
         self.target_robot_dof_state[xx, yy, 0] = torch_rand_float(
@@ -846,6 +947,8 @@ class DoorPregrasp(
         return self._stage_1_to_2_advance_condition()
 
     def _stage_1_to_2_advance_condition(self):
+        if self._use_a2_base:
+            return self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 0.174533
         # raise hand to pre-grasp position
         pre_grasp_target = self._compute_pre_grasp_target()
 
@@ -897,6 +1000,8 @@ class DoorPregrasp(
         return torch.norm(self.get_physical_homie_commands()[:, :3], dim=1) <= 0.1
 
     def _stage_2_to_complete_condition(self):
+        if self._use_a2_base:
+            return torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         # TODO: check error
         # grasp the door handle
         left_hand_handle_contact_count = (
@@ -965,6 +1070,9 @@ class DoorPregrasp(
             door_panel_unwanted_contact_sensor_config
         )
 
+        if self._use_a2_base:
+            return
+
         head_target_frame_transformer_config: FrameTransformerCfg = FrameTransformerCfg(
             prim_path="/World/envs/env_.*/Robot/head_link",
             target_frames=[
@@ -978,6 +1086,12 @@ class DoorPregrasp(
         simulator.scene.sensors["head_target_frame_transformer"] = FrameTransformer(
             head_target_frame_transformer_config
         )
+
+    @override
+    def _apply_force_in_physics_step(self):
+        if self._use_a2_base:
+            return A2Base._apply_force_in_physics_step(self)
+        return super()._apply_force_in_physics_step()
 
     def _parse_palm_side_direction(self, palm_side_direction: list[str]) -> torch.Tensor:
         """

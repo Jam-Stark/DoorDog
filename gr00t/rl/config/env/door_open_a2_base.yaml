@@ -5,7 +5,7 @@ defaults:
 
 # Env structure
 env:
-  _target_: gr00t.rl.envs.door.door_open_homie.DoorPregrasp
+  _target_: gr00t.rl.envs.door.door_open_a2_base.DoorPregrasp
   config:
     max_episode_length_s: 20
 
@@ -60,6 +60,24 @@ env:
 
     ref_height: 0.75
 
+    a2_base:
+      enabled: True
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      high_level_action_dim: 10
+      leg_action_dim: 12
+      obs_history_length: 30
+      obs_frame_dim: 54
+      base_command_scale: 0.25
+      base_command_obs_multipliers: [2.0, 2.0, 0.25]
+      gait_frequency: 2.0
+      gripper_close_target: [0.0, 0.0]
+      gripper_open_target: [0.035, -0.035]
+      policy_leg_order: [
+        "FL_hip_joint", "FR_hip_joint", "RL_hip_joint", "RR_hip_joint",
+        "FL_thigh_joint", "FR_thigh_joint", "RL_thigh_joint", "RR_thigh_joint",
+        "FL_calf_joint", "FR_calf_joint", "RL_calf_joint", "RR_calf_joint"
+      ]
+
     pregrasp_target_vel: 0.3
     target_root_vel: 0.3
 
@@ -72,11 +90,7 @@ env:
     # no_reward_for_overtime: True
     stage_reward_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
-    delta_action_indices: [
-      0, 1, 2,  # homie command
-      3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  # upper body
-      17, 18  # finger primitives
-    ]
+    delta_action_indices: [3, 4, 5, 6, 7, 8]
     delta_action_scale: 0.3
     delta_action_clip: 15.0
     reset_delta_actions_with_backmap: True
@@ -95,18 +109,11 @@ env:
     randomize_door_init_state: False
 
     resting_dof_pos: [
-      -0.1, 0, 0, 0.3, -0.2, 0,  # l hip knee ankle
-      -0.1, 0, 0, 0.3, -0.2, 0,  # r hip knee ankle
-      0, 0, 0,  # waist
-      0.261799, 0.174533, 0, 0.261799,  # l shoulder elbow
-      1.5708, 0, 0,  # l wrist
-      0.261799, -0.174533, 0, 0.261799,  # r shoulder elbow
-      -1.5708, 0, 0,  # r wrist
-      -1.0472, -1.0472, 0,  # l hand 0
-      1.0472, 1.0472, 0,  # r hand 0
-      -0.523599, -0.523599, 0,  # l hand 1
-      0.523599, 0.523599, 0,  # r hand 1
-      0.523599, -0.523599  # lr thumb 2
+      0.0, 0.5, -1.0,
+      0.0, 0.5, -1.0,
+      0.0, 0.5, -1.0,
+      0.0, 0.5, -1.0,
+      0.0, 1.48, -0.63, -0.84, 0.0, 1.57, 0.0, 0.0
     ]
 
     clip_homie_command: True

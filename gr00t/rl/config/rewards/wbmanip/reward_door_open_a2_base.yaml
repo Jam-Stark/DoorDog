@@ -15,31 +15,31 @@ rewards:
 
       termination: -1000.0
       limits_dof_pos: -5.0
-      limits_primitive_action: -1.0
+      limits_primitive_action: 0.0
       # limits_dof_vel: -5.0
       # limits_torque: -0.1
 
       # walk to door
       walk_to_door: 5.0
-      penalty_upper_body_non_finger_deviation_l1: -1.0
+      penalty_upper_body_non_finger_deviation_l1: 0.0
       penalty_face_door: -1.0
 
       # pregrasp
-      hand_handle_orientation: 3.0
-      pregrasp_finger_dof_pos_l1: 1.5
-      penalty_unused_dof_deviation_l1: -1.0
-      pregrasp_target_distance: 6.0
+      hand_handle_orientation: 0.0
+      pregrasp_finger_dof_pos_l1: 0.0
+      penalty_unused_dof_deviation_l1: 0.0
+      pregrasp_target_distance: 0.0
       penalty_not_standing_still: -15.0
 
       # grasp
-      grasp_finger_dof_pos_l1: 3.0
-      grasp_target_distance: 3.0
-      grasp: 0.2
+      grasp_finger_dof_pos_l1: 0.0
+      grasp_target_distance: 0.0
+      grasp: 0.0
 
       # open
       push_door_handle: 6.0
       push_door_hinge: 6.0
-      push_door_force: 0.3
+      push_door_force: 0.0
 
       # swing
       dont_push_door_handle: 3.0
@@ -50,7 +50,7 @@ rewards:
       stage: 1.0
       complete: 4.0
       success_save_time: 0.5
-      penalty_humanly_dof_limit: -1.0
+      penalty_humanly_dof_limit: 0.0
       penalty_door_frame_contact: -0.1
       penalty_door_panel_contact: -0.1
       # penalty_homie_action_rate: -1.0

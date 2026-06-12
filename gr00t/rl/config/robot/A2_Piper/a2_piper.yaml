@@ -1,0 +1,185 @@
+# @package _global_
+
+defaults:
+  - robot_base
+
+robot:
+  num_bodies: 27
+  dof_obs_size: 20
+  homie_dof_obs_size: 12
+  upper_body_actions_dim: 8
+  lower_body_actions_dim: 12
+  actions_dim: 20
+  policy_obs_dim: -1
+  critic_obs_dim: -1
+  algo_obs_dim_dict:
+    actor_obs: 0
+    critic_obs: 0
+
+  key_bodies: []
+  contact_bodies: []
+  num_feet: 4
+  foot_name: "foot"
+  knee_name: "calf"
+  has_torso: true
+  torso_name: "trunk"
+  has_upper_body_dof: true
+  has_end_effector: true
+  end_effector_name: "arm_body6_to_gripper"
+
+  dof_names: [
+    "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
+    "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
+    "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint",
+    "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint",
+    "arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6", "arm_j7", "arm_j8"
+  ]
+  lower_dof_names: [
+    "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
+    "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
+    "FR_hip_joint", "FR_thigh_joint", "FR_calf_joint",
+    "RR_hip_joint", "RR_thigh_joint", "RR_calf_joint"
+  ]
+  upper_dof_names: ["arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6", "arm_j7", "arm_j8"]
+  arm_dof_names: ["arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6", "arm_j7", "arm_j8"]
+  waist_dof_names: []
+  knee_dof_names: ["FL_calf_joint", "RL_calf_joint", "FR_calf_joint", "RR_calf_joint"]
+
+  body_names: [
+    "trunk",
+    "FL_hip", "FL_thigh", "FL_calf", "FL_foot",
+    "RL_hip", "RL_thigh", "RL_calf", "RL_foot",
+    "FR_hip", "FR_thigh", "FR_calf", "FR_foot",
+    "RR_hip", "RR_thigh", "RR_calf", "RR_foot",
+    "arm_body0", "arm_body1", "arm_body2", "arm_body3", "arm_body4", "arm_body5",
+    "arm_body6", "arm_body6_to_gripper", "arm_body7", "arm_body8"
+  ]
+  arm_body_names: [
+    "arm_body0", "arm_body1", "arm_body2", "arm_body3", "arm_body4", "arm_body5",
+    "arm_body6", "arm_body6_to_gripper", "arm_body7", "arm_body8"
+  ]
+
+  dof_pos_lower_limit_list: [
+    -1.01, -2.34, -2.77,
+    -1.01, -1.56, -2.77,
+    -1.01, -2.34, -2.77,
+    -1.01, -1.56, -2.77,
+    -2.618, 0.0, -2.967, -1.745, -1.22, -2.0944, 0.0, -0.035
+  ]
+  dof_pos_upper_limit_list: [
+    1.01, 3.15, -0.54,
+    1.01, 3.94, -0.54,
+    1.01, 3.15, -0.54,
+    1.01, 3.94, -0.54,
+    2.618, 3.14, 0.0, 1.745, 1.22, 2.0944, 0.035, 0.0
+  ]
+  dof_vel_limit_list: [
+    22.0, 22.0, 14.6667,
+    22.0, 22.0, 14.6667,
+    22.0, 22.0, 14.6667,
+    22.0, 22.0, 14.6667,
+    5.0, 5.0, 5.0, 5.0, 5.0, 3.0, 1.0, 1.0
+  ]
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 10.0, 10.0
+  ]
+  dof_armature_list: [
+    0.01, 0.01, 0.01,
+    0.01, 0.01, 0.01,
+    0.01, 0.01, 0.01,
+    0.01, 0.01, 0.01,
+    0.005, 0.005, 0.005, 0.005, 0.005, 0.005, 0.001, 0.001
+  ]
+  dof_joint_friction_list: [
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0,
+    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+  ]
+
+  terminate_after_contacts_on: []
+  penalize_contacts_on: []
+  randomize_link_body_names: ["trunk"]
+
+  init_state:
+    pos: [0.0, 0.0, 0.55]
+    rot: [0.0, 0.0, 0.0, 1.0]
+    lin_vel: [0.0, 0.0, 0.0]
+    ang_vel: [0.0, 0.0, 0.0]
+    default_joint_angles:
+      FL_hip_joint: 0.0
+      FL_thigh_joint: 0.5
+      FL_calf_joint: -1.0
+      RL_hip_joint: 0.0
+      RL_thigh_joint: 0.5
+      RL_calf_joint: -1.0
+      FR_hip_joint: 0.0
+      FR_thigh_joint: 0.5
+      FR_calf_joint: -1.0
+      RR_hip_joint: 0.0
+      RR_thigh_joint: 0.5
+      RR_calf_joint: -1.0
+      arm_j1: 0.0
+      arm_j2: 1.48
+      arm_j3: -0.63
+      arm_j4: -0.84
+      arm_j5: 0.0
+      arm_j6: 1.57
+      arm_j7: 0.0
+      arm_j8: 0.0
+
+  control:
+    control_type: P
+    stiffness:
+      hip: 80.0
+      thigh: 80.0
+      calf: 80.0
+      arm_j1: 40.0
+      arm_j2: 40.0
+      arm_j3: 40.0
+      arm_j4: 40.0
+      arm_j5: 20.0
+      arm_j6: 20.0
+      arm_j7: 1000.0
+      arm_j8: 1000.0
+    damping:
+      hip: 4.0
+      thigh: 4.0
+      calf: 4.0
+      arm_j1: 2.0
+      arm_j2: 2.0
+      arm_j3: 2.0
+      arm_j4: 2.0
+      arm_j5: 1.0
+      arm_j6: 1.0
+      arm_j7: 10.0
+      arm_j8: 10.0
+    action_scale: 0.25
+    action_clip_value: 100.0
+    clip_torques: true
+
+  asset:
+    urdf_file: "A2_Piper/a2_piper.urdf"
+    usd_file: "A2_Piper/a2_piper.usd"
+    xml_file: null
+    robot_type: a2_piper
+    self_collisions: 0
+    fix_base_link: false
+    collapse_fixed_joints: false
+    replace_cylinder_with_capsule: false
+    flip_visual_attachments: false
+    armature: 0.001
+    thickness: 0.01
+    max_angular_velocity: 1000.0
+    max_linear_velocity: 1000.0
+    density: 0.001
+    angular_damping: 0.01
+    linear_damping: 0.01
+    disable_gravity: false
+    default_dof_drive_mode: 3
+    filter_ints: null

@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import json
+from pathlib import Path
+
 import torch
 from typing_extensions import override
 
@@ -10,8 +13,40 @@ from gr00t.rl.envs.legged_base_task.legged_robot_base import LeggedRobotBase
 from gr00t.rl.utils.torch_utils import quat_rotate
 
 
-class HomieBase(LeggedRobotBase):
+def _load_a2_base_metadata(metadata_path):
+    path = Path(metadata_path).expanduser()
+    with path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    obs_contract = metadata["contracts"]["obs"]
+    action_contract = metadata["contracts"]["action"]
+    contract = {
+        "obs_dim": int(obs_contract["flattened_dim"]),
+        "history_length": int(obs_contract["history_length"]),
+        "frame_dim": int(obs_contract["dog_frame_dim"]),
+        "action_dim": int(action_contract["dim"]),
+        "leg_joint_names": list(action_contract["leg_joint_names"]),
+        "leg_action_scale": float(action_contract["leg_action_scale"]),
+        "use_default_offset": bool(action_contract["use_default_offset"]),
+    }
+    if contract["obs_dim"] != contract["history_length"] * contract["frame_dim"]:
+        raise ValueError(f"A2_Base metadata obs contract is inconsistent: {contract}")
+    return contract
+
+
+def _validate_optional_a2_config_value(config, key, metadata_value):
+    if key in config and config.get(key) != metadata_value:
+        raise ValueError(
+            f"A2_Base config {key}={config.get(key)} disagrees with metadata {metadata_value}"
+        )
+
+
+class A2Base(LeggedRobotBase):
     def __init__(self, config, device):
+        self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
+        if self._use_a2_base:
+            LeggedRobotBase.__init__(self, config, device)
+            self._init_a2_base_action_chain()
+            return
         super().__init__(config, device)
         self._homie_history_length = self.config.obs.homie_history_length
         self._num_body_dof = self.config.robot.homie_dof_obs_size
@@ -92,13 +127,124 @@ class HomieBase(LeggedRobotBase):
                 "clip_upper_actions_threshold", 0.5
             )
 
+    def _init_a2_base_action_chain(self):
+        a2_config = self.config.get("a2_base", {})
+        a2_base_metadata_path = a2_config.get(
+            "metadata_path", "./gr00t/rl/data/policies/A2_Base/policy_metadata.json"
+        )
+        a2_base_contract = _load_a2_base_metadata(a2_base_metadata_path)
+        _validate_optional_a2_config_value(
+            a2_config, "leg_action_dim", a2_base_contract["action_dim"]
+        )
+        _validate_optional_a2_config_value(
+            a2_config, "obs_history_length", a2_base_contract["history_length"]
+        )
+        _validate_optional_a2_config_value(
+            a2_config, "obs_frame_dim", a2_base_contract["frame_dim"]
+        )
+        if "policy_leg_order" in a2_config:
+            configured_leg_order = list(a2_config.get("policy_leg_order"))
+            if configured_leg_order != a2_base_contract["leg_joint_names"]:
+                raise ValueError(
+                    "A2_Base config policy_leg_order disagrees with metadata "
+                    f"{a2_base_contract['leg_joint_names']}"
+                )
+        if not a2_base_contract["use_default_offset"]:
+            raise ValueError("A2_Base metadata requires use_default_offset=true")
+        robot_action_scale = float(self.config.robot.control.action_scale)
+        if abs(a2_base_contract["leg_action_scale"] - robot_action_scale) > 1e-6:
+            raise ValueError(
+                "A2_Base leg_action_scale must match robot.control.action_scale: "
+                f"{a2_base_contract['leg_action_scale']} vs {robot_action_scale}"
+            )
+
+        self._a2_high_level_action_dim = int(a2_config.get("high_level_action_dim", 10))
+        self._a2_leg_action_dim = a2_base_contract["action_dim"]
+        self._a2_obs_history_length = a2_base_contract["history_length"]
+        self._a2_obs_frame_dim = a2_base_contract["frame_dim"]
+        self._a2_obs_dim = a2_base_contract["obs_dim"]
+        self._a2_leg_action_scale = a2_base_contract["leg_action_scale"]
+        self._a2_gait_frequency = float(a2_config.get("gait_frequency", 2.0))
+        self._a2_base_command_scale = float(a2_config.get("base_command_scale", 0.25))
+        self._a2_base_command_obs_multipliers = torch.tensor(
+            a2_config.get("base_command_obs_multipliers", [2.0, 2.0, 0.25]),
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=False,
+        )
+        self._a2_policy_leg_order = a2_base_contract["leg_joint_names"]
+        self._a2_leg_sim_indices = torch.tensor(
+            [self.dof_names.index(name) for name in self._a2_policy_leg_order],
+            device=self.device,
+            dtype=torch.long,
+        )
+        self._a2_arm_dof_indices = torch.tensor(
+            [self.dof_names.index(f"arm_j{i}") for i in range(1, 7)],
+            device=self.device,
+            dtype=torch.long,
+        )
+        self._a2_gripper_dof_indices = torch.tensor(
+            [self.dof_names.index("arm_j7"), self.dof_names.index("arm_j8")],
+            device=self.device,
+            dtype=torch.long,
+        )
+        self._a2_gripper_open_target = torch.tensor(
+            a2_config.get("gripper_open_target", [0.035, -0.035]),
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=False,
+        )
+        self._a2_gripper_close_target = torch.tensor(
+            a2_config.get("gripper_close_target", [0.0, 0.0]),
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=False,
+        )
+        self._last_a2_leg_actions = torch.zeros(
+            self.num_envs, self._a2_leg_action_dim, device=self.device, requires_grad=False
+        )
+        self._a2_base_command_raw = torch.zeros(
+            self.num_envs, 3, device=self.device, requires_grad=False
+        )
+        self._a2_base_obs_history = torch.zeros(
+            self.num_envs,
+            self._a2_obs_history_length,
+            self._a2_obs_frame_dim,
+            device=self.device,
+            requires_grad=False,
+        )
+        self._num_homie_commands = int(self.config.obs.obs_dims.get("b_homie_commands", 7))
+        self._num_lower_dof = self._a2_leg_action_dim
+        self._num_body_dof = self._a2_leg_action_dim
+        self._homie_commands = torch.zeros(
+            self.num_envs, self._num_homie_commands, device=self.device, requires_grad=False
+        )
+        self._homie_commands_unclipped = torch.zeros_like(self._homie_commands)
+        self._last_homie_commands = torch.zeros_like(self._homie_commands)
+        self._homie_actions = torch.zeros(
+            self.num_envs, self._a2_leg_action_dim, device=self.device, requires_grad=False
+        )
+
     @override
     def _reset_buffers_callback(self, env_ids, target_buf):
+        if self._use_a2_base:
+            LeggedRobotBase._reset_buffers_callback(self, env_ids, target_buf)
+            self._last_a2_leg_actions[env_ids, :] = 0.0
+            self._a2_base_command_raw[env_ids, :] = 0.0
+            self._a2_base_obs_history[env_ids, :, :] = 0.0
+            self._homie_actions[env_ids, :] = 0.0
+            self._homie_commands[env_ids, :] = 0.0
+            self._homie_commands_unclipped[env_ids, :] = 0.0
+            self._last_homie_commands[env_ids, :] = 0.0
+            return
         super()._reset_buffers_callback(env_ids, target_buf)
         self._homie_actions[env_ids, :] = 0.0
 
     @override
     def step(self, actor_state):
+        if self._use_a2_base:
+            return self._step_a2_base(actor_state)
+
         actions = actor_state["actions"]
         self.processed_commands = (
             self._default_policy_actions.clone()
@@ -165,8 +311,72 @@ class HomieBase(LeggedRobotBase):
 
         return self.obs_buf_dict, self.rew_buf, self.reset_buf, self.extras
 
+    def _step_a2_base(self, actor_state):
+        actions = actor_state["actions"]
+        if actions.shape[-1] != self._a2_high_level_action_dim + self._a2_leg_action_dim:
+            raise ValueError(
+                "A2_Base mode expects trainer action dim "
+                f"{self._a2_high_level_action_dim + self._a2_leg_action_dim}, got {actions.shape[-1]}"
+            )
+
+        high_level_actions = actions[:, : self._a2_high_level_action_dim]
+        raw_base_action = high_level_actions[:, 0:3]
+        arm_actions = high_level_actions[:, 3:9]
+        gripper_primitive = high_level_actions[:, 9:10]
+        leg_actions = actions[:, -self._a2_leg_action_dim :]
+
+        final_actions = torch.zeros(
+            self.num_envs, self.num_dof, device=self.device, dtype=actions.dtype
+        )
+        final_actions[:, self._a2_leg_sim_indices] = leg_actions
+        final_actions[:, self._a2_arm_dof_indices] = arm_actions
+
+        gripper_target = torch.where(
+            gripper_primitive > 0.0,
+            self._a2_gripper_open_target[None, :],
+            self._a2_gripper_close_target[None, :],
+        )
+        gripper_raw = (
+            gripper_target - self.default_dof_pos[:, self._a2_gripper_dof_indices]
+        ) / self.config.robot.control.action_scale
+        final_actions[:, self._a2_gripper_dof_indices] = gripper_raw
+
+        self._a2_base_command_raw[:] = raw_base_action
+        self._homie_commands[:, :] = 0.0
+        self._homie_commands[:, :3] = raw_base_action * self._a2_base_command_scale
+        self._homie_commands_unclipped[:] = self._homie_commands
+        self._homie_actions[:] = leg_actions
+        self._last_a2_leg_actions[:] = leg_actions
+
+        self._pre_physics_step(final_actions)
+        self._physics_step()
+        self._post_physics_step()
+
+        self._last_homie_commands[:] = self._homie_commands
+
+        return self.obs_buf_dict, self.rew_buf, self.reset_buf, self.extras
+
     @override
     def _action_backmap(self):
+        if self._use_a2_base:
+            action = torch.zeros(
+                self.num_envs,
+                self._a2_high_level_action_dim + self._a2_leg_action_dim,
+                device=self.device,
+            )
+            whole_body_action_backmap = LeggedRobotBase._action_backmap(self)
+            action[:, 3:9] = whole_body_action_backmap[:, self._a2_arm_dof_indices]
+            action[:, 9:10] = torch.where(
+                self.simulator.dof_pos[:, self._a2_gripper_dof_indices[0:1]]
+                > 0.5 * self._a2_gripper_open_target[0],
+                torch.ones(self.num_envs, 1, device=self.device),
+                torch.zeros(self.num_envs, 1, device=self.device),
+            )
+            action[:, -self._a2_leg_action_dim :] = whole_body_action_backmap[
+                :, self._a2_leg_sim_indices
+            ]
+            return action
+
         whole_body_action_backmap = super()._action_backmap()
 
         return torch.cat(
@@ -218,6 +428,40 @@ class HomieBase(LeggedRobotBase):
     def _get_obs_g_homie_body_actions(self):
         return self._homie_actions
 
+    def _get_a2_base_obs_frame(self):
+        frame = torch.zeros(
+            self.num_envs, self._a2_obs_frame_dim, device=self.device, requires_grad=False
+        )
+        leg_pos = self.simulator.dof_pos[:, self._a2_leg_sim_indices]
+        default_leg_pos = self.default_dof_pos[:, self._a2_leg_sim_indices]
+        leg_vel = self.simulator.dof_vel[:, self._a2_leg_sim_indices]
+        frame[:, 0:3] = self.projected_gravity
+        frame[:, 3:15] = leg_pos - default_leg_pos
+        frame[:, 15:27] = leg_vel * 0.05
+        frame[:, 27:39] = self._last_a2_leg_actions
+        frame[:, 39:42] = (
+            self._a2_base_command_raw
+            * self._a2_base_command_scale
+            * self._a2_base_command_obs_multipliers[None, :]
+        )
+        frame[:, 42:44] = 0.0
+        frame[:, 44:50] = 0.0
+        frame[:, 50:52] = self.rpy[:, :2]
+        phase = self.episode_length_buf.to(dtype=torch.float) * self.dt * self._a2_gait_frequency
+        frame[:, 52] = torch.sin(2.0 * torch.pi * phase)
+        frame[:, 53] = torch.cos(2.0 * torch.pi * phase)
+        return frame
+
+    def _get_obs_a2_base_obs(self):
+        self._a2_base_obs_history[:, :-1, :] = self._a2_base_obs_history[:, 1:, :].clone()
+        self._a2_base_obs_history[:, -1, :] = self._get_a2_base_obs_frame()
+        obs = self._a2_base_obs_history.reshape(self.num_envs, -1)
+        if obs.shape[-1] != self._a2_obs_dim:
+            raise ValueError(
+                f"A2_Base obs dim mismatch: got {obs.shape[-1]}, expected {self._a2_obs_dim}"
+            )
+        return obs
+
     def _get_obs_a_history_homie(self):
         assert "a_history_homie" in self.config.obs.obs_auxiliary.keys()
         history_config = self.config.obs.obs_auxiliary["a_history_homie"]
@@ -229,7 +473,7 @@ class HomieBase(LeggedRobotBase):
         return torch.cat(history_tensors, dim=-1)
 
 
-class TestHomieBase(HomieBase):
+class TestA2Base(A2Base):
     def _reward_test_homie(self):
         root_vel = self.simulator.robot_root_states[:, 7:10]
         ref_root_vel = torch.tensor([[0.2, 0.3, 0.0]], device=self.device).repeat(self.num_envs, 1)
@@ -250,7 +494,7 @@ class TestHomieBase(HomieBase):
         ).sum(dim=-1)
 
 
-class TestHomieWithFingerPrimitive(TestHomieBase, FingerPrimitiveBase):
+class TestA2WithFingerPrimitive(TestA2Base, FingerPrimitiveBase):
     def __init__(self, config, device):
         super().__init__(config, device)
         self._left_p0 = torch.tensor(
@@ -319,3 +563,10 @@ class TestHomieWithFingerPrimitive(TestHomieBase, FingerPrimitiveBase):
         return torch.sin(self.episode_length_buf * 2 * torch.pi * self.dt / self._target_period)[
             :, None
         ]
+
+
+# Compatibility aliases for legacy callers that import these symbols from this
+# module. Current A2 action path imports A2Base directly.
+HomieBase = A2Base
+TestHomieBase = TestA2Base
+TestHomieWithFingerPrimitive = TestA2WithFingerPrimitive

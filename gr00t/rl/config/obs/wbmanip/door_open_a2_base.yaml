@@ -61,6 +61,10 @@ obs:
       # homie_clock_inputs,
     ]
 
+    a2_base_obs: [
+      a2_base_obs
+    ]
+
   # define those coumpounds in obs_dict, for example, you can define different long/short history with different length
   obs_auxiliary: 
     history_long: {
@@ -154,7 +158,8 @@ obs:
     # homie_torso_projected_gravity: 1.0,
     g_homie_body_actions: 1.0,
     # homie_clock_inputs: 1.0,
-    a_history_homie: 1.0
+    a_history_homie: 1.0,
+    a2_base_obs: 1.0
   }
 
   noise_scales: {
@@ -190,7 +195,8 @@ obs:
     # homie_torso_projected_gravity: 0.0,
     g_homie_body_actions: 0.0,
     # homie_clock_inputs: 0.0,
-    a_history_homie: 0.0
+    a_history_homie: 0.0,
+    a2_base_obs: 0.0
   }
 
   add_noise_currculum: False
@@ -223,6 +229,7 @@ obs:
     # - homie_torso_projected_gravity: 3
     - g_homie_body_actions: ${robot.lower_body_actions_dim}
     #- homie_clock_inputs: 2
+    - a2_base_obs: 1620
     - transition: 1
     - complete: 1
     - time_in_stage: 1

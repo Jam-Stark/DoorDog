@@ -2,15 +2,15 @@
 
 defaults:
   - /algo: ppo
-  - /env: door_open_homie
+  - /env: door_open_a2_base
   - /simulator: isaacsim
   - /domain_rand: NO_domain_rand
-  - /rewards: wbmanip/reward_door_open_homie
-  - /robot: g1/g1_43dof
+  - /rewards: wbmanip/reward_door_open_a2_base
+  - /robot: A2_Piper/a2_piper
   - /terrain: terrain_locomotion_plane
-  - /obs: wbmanip/door_open_homie
+  - /obs: wbmanip/door_open_a2_base
   - /opt: wandb
-  - override /trainer: trl_homie_api
+  - override /trainer: trl_a2_base_api
 
 exp_base: ${hydra:runtime.choices.exp}
 exp_var: lstm
@@ -18,7 +18,7 @@ experiment_name: ${exp_base}_${exp_var}
 experiment_dir: ${base_dir}/${project_name}/${experiment_name}-${timestamp}
 
 num_envs: 4096
-project_name: g1_open_door_homie
+project_name: a2_piper_open_door_a2_base
 
 algo:
   config:
@@ -32,10 +32,18 @@ algo:
     sync_advantage_normalization: True
     actor_learning_rate: 1.0e-4
     critic_learning_rate: 1.0e-4
-    homie_walk_model_path: ./models/model_walk.pt
-    homie_stand_model_path: ./models/model_stand.pt
+    use_a2_base: True
+    a2_base:
+      enabled: True
+      policy_path: ./gr00t/rl/data/policies/A2_Base/policy.pt
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      obs_dim: 1620
+      action_dim: 12
+      command_scale: 0.25
+      command_multipliers: [2.0, 2.0, 0.25]
+      action_sigma: 0.0
     homie_command_dim: 3
-    non_homie_command_actions_dim: 16  # 14 upper body dofs + 2 finger primitives
+    non_homie_command_actions_dim: 7  # 6D Piper arm + 1D gripper primitive
     opt_homie: False
     desired_kl: 0.005
 
@@ -97,31 +105,7 @@ simulator:
 robot:
   asset:
     self_collisions: 0
-  finger_primitive:
-    primitive_action_map:
-      left:
-        pos_0: [
-          -1.0472, -1.0472, 0.0,
-          -0.523599, -0.523599, -0.523599,
-          0.523599
-        ]
-        pos_1: [
-          -1.5708, -1.5708, 0.0,
-          -1.5708, -1.5708, 0.785398,
-          1.5708
-        ]
-      right:
-        pos_0: [
-          1.0472, 1.0472, 0.0,
-          0.523599, 0.523599, 0.523599,
-          -0.523599
-        ]
-        pos_1: [
-          1.5708, 1.5708, 0.0,
-          1.5708, 1.5708, -0.785398,
-          -1.5708
-        ]
-  use_primitive: True
-  actions_dim: 31
-  check_action_dim: False
-  terminate_after_contacts_on : ["head", "knee", "wrist"]
+  use_primitive: False
+  actions_dim: 20
+  check_action_dim: True
+  terminate_after_contacts_on : []

@@ -6,6 +6,40 @@ Generate randomized articulated door USD assets offline, matching the same distr
   <img src="../../../media/door_assets.gif" width="90%">
 </p>
 
+## A2_Piper Door Scene Preview
+
+Preview the Doorman door scene with the A2_Piper robot, without training, policy loading, DoorPregrasp, HOMIE, or finger primitive logic:
+
+```bash
+CUDA_VISIBLE_DEVICES=2 PUBLIC_IP=10.120.16.39 LIVESTREAM=1 ENABLE_CAMERAS=1 \
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python \
+/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/scripts/preview_a2_piper_door_scene.py \
+--num-envs 1 --device cuda:0
+```
+
+If this shell has the expected IsaacLab/Python PATH, the wrapper form can also be used with `/home/baoquanc/workspace/IsaacLab/isaaclab.sh -p`.
+For IsaacSim/UsdRT livestream or camera preview, `--device cuda:0` must be the logical GPU; use `CUDA_VISIBLE_DEVICES=N` to map physical GPU `N` to logical `cuda:0`.
+Use plain `python3 gr00t/rl/scripts/preview_a2_piper_door_scene.py --help` only to inspect CLI options.
+Stage-0 robot reset pose can be tuned with `--root-x`, `--root-y`, `--root-z`, and `--root-yaw`.
+The default pose is `x=-0.9`, `y=0.0`, `z=0.55`, `yaw=0.0`.
+To visualize the preview-only robot placement bounds, launch four envs at the XY range corners:
+
+```bash
+CUDA_VISIBLE_DEVICES=2 PUBLIC_IP=10.120.16.39 LIVESTREAM=1 ENABLE_CAMERAS=1 \
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python \
+/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/scripts/preview_a2_piper_door_scene.py \
+--placement-preview corners --device cuda:0
+```
+
+`--placement-preview corners` auto-sets `--num-envs 4`; each env keeps the original Doorman door scene and places A2_Piper at one XY vertex of the selected placement bounds.
+By default this uses the current Doorman stage-0 reset bounds from `_reset_root_states`: `x=[-1.5, -0.6]`, `y=[-0.5, 0.5]`, and `yaw=[-pi/4, pi/4]`; z still comes from `--root-z` and defaults to `0.55`.
+In this default bounds mode, `--root-x`, `--root-y`, and `--root-yaw` still apply to the normal single-robot preview, but not to the Doorman bounds corners.
+For a preview-only range around the current `--root-*` pose instead, pass `--placement-bounds root-centered`; then `--placement-x-half-range 0.35`, `--placement-y-half-range 0.35`, and `--placement-yaw-half-range 0.25` are applied around the root center.
+Use `--placement-corner-yaws uniform` to keep all four robots at `--root-yaw` instead of showing yaw min/max.
+The preview requires `gr00t/rl/data/robots/A2_Piper/a2_piper.usd`; if it is missing, the entrypoint fails fast and prints the conversion command instead of falling back to G1.
+In livestream/headless Kit runtimes without `omni.kit.widget.toolbar`, the preview logs a warning and skips IsaacLab toolbar button hiding while continuing scene creation.
+For livestream/headless camera preview, the script uses an existing rendering Kit path and does not copy Kit files into the IsaacLab checkout.
+
 ## Generate Door Assets
 
 ```bash

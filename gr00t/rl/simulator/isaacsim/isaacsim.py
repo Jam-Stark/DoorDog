@@ -530,10 +530,14 @@ class IsaacSim(BaseSimulator):
                 },
             )
 
-        self.torso_index = self._robot.find_bodies("torso_link", preserve_order=True)[0][0]
-        self.right_palm_index = self._robot.find_bodies(
-            "right_hand_palm_link", preserve_order=True
-        )[0][0]
+        if self.config.robot.asset.get("robot_type", "") == "a2_piper":
+            self.torso_index = self._robot.find_bodies("trunk", preserve_order=True)[0][0]
+            self.right_palm_index = self.torso_index
+        else:
+            self.torso_index = self._robot.find_bodies("torso_link", preserve_order=True)[0][0]
+            self.right_palm_index = self._robot.find_bodies(
+                "right_hand_palm_link", preserve_order=True
+            )[0][0]
 
         # if self.domain_rand_config.get("randomize_object_material", False):
         #     # Load object materials from cloud directory - can use different materials than tables
@@ -1233,7 +1237,10 @@ class IsaacSim(BaseSimulator):
             )
 
         if hasattr(self, "task_config"):
-            if hasattr(self.task_config, "target_obj_contact_sensor"):
+            use_target_obj_hand_sensors = hasattr(
+                self.task_config, "target_obj_contact_sensor"
+            ) and self.config.robot.asset.get("robot_type", "") != "a2_piper"
+            if use_target_obj_hand_sensors:
                 self.object_to_hand_contact_sensor = ContactSensor(
                     object_to_hand_contact_sensor_config
                 )
@@ -1337,7 +1344,7 @@ class IsaacSim(BaseSimulator):
                     self.front_object_table_contact_sensor
                 )
 
-            if hasattr(self.task_config, "target_obj_contact_sensor"):
+            if use_target_obj_hand_sensors:
                 self.scene.sensors["left_hand_frame_transformer"] = FrameTransformer(
                     left_hand_frame_transformer_config
                 )
@@ -1885,7 +1892,10 @@ class IsaacSim(BaseSimulator):
         self.all_root_base_quat["robot"] = self.base_quat
 
         if hasattr(self, "task_config"):
-            if hasattr(self.task_config, "target_obj_contact_sensor"):
+            use_target_obj_hand_sensors = hasattr(
+                self.task_config, "target_obj_contact_sensor"
+            ) and self.config.robot.asset.get("robot_type", "") != "a2_piper"
+            if use_target_obj_hand_sensors:
                 self.object_to_hand_contact_forces = (
                     self.object_to_hand_contact_sensor.data.force_matrix_w.clone()
                 )
@@ -1937,7 +1947,7 @@ class IsaacSim(BaseSimulator):
                     ].data.target_quat_source.clone()
                 else:
                     raise ValueError(f"Invalid hand: {which_hand}")
-            else:
+            elif use_target_obj_hand_sensors:
                 self.left_hand_transform_pos = self.scene.sensors[
                     "left_hand_frame_transformer"
                 ].data.target_pos_source.clone()

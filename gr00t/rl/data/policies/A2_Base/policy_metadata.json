@@ -1,0 +1,241 @@
+{
+  "contracts": {
+    "action": {
+      "delay": [
+        0,
+        1
+      ],
+      "dim": 12,
+      "leg_action_scale": 0.25,
+      "leg_joint_names": [
+        "FL_hip_joint",
+        "FR_hip_joint",
+        "RL_hip_joint",
+        "RR_hip_joint",
+        "FL_thigh_joint",
+        "FR_thigh_joint",
+        "RL_thigh_joint",
+        "RR_thigh_joint",
+        "FL_calf_joint",
+        "FR_calf_joint",
+        "RL_calf_joint",
+        "RR_calf_joint"
+      ],
+      "use_default_offset": true
+    },
+    "obs": {
+      "adaptation_latent_dim": 25,
+      "dog_frame_dim": 54,
+      "flattened_dim": 1620,
+      "history_length": 30,
+      "history_order": "frame-major [obs(t-29), ..., obs(t)]"
+    }
+  },
+  "dog_policy_config": {
+    "action_dim": 12,
+    "activation": "elu",
+    "actor_hidden_dims": [
+      512,
+      256,
+      128
+    ],
+    "actor_input_dim": 1645,
+    "adaptation_module_branch_hidden_dims": [
+      256,
+      128
+    ],
+    "latent_dim": 25,
+    "matches_expected_dog_contract": true,
+    "obs_history_dim": 1620,
+    "runner_dog_actor_cfg": {
+      "activation": "elu",
+      "actor_hidden_dims": [
+        512,
+        256,
+        128
+      ],
+      "adaptation_module_branch_hidden_dims": [
+        256,
+        128
+      ],
+      "critic_hidden_dims": [
+        512,
+        256,
+        128
+      ],
+      "init_noise_std": 1.0
+    },
+    "std_shape": [
+      12
+    ]
+  },
+  "export": {
+    "checkpoint_tag": "last",
+    "script": "/home/baoquanc/workspace/LMP/scripts/manager_dual_policy/export_dog_policy.py",
+    "timestamp_hkt": "2026-06-12 20:50:22 HKT",
+    "torch_version": "2.7.0+cu128"
+  },
+  "git": {
+    "branch": "main",
+    "commit": "a96f071939f72c9cba40f95aee966c590be9a6e1",
+    "dirty": true,
+    "errors": {
+      "branch": null,
+      "commit": null,
+      "status": null
+    },
+    "repo_root": "/home/baoquanc/workspace/LMP",
+    "status_short": [
+      "M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/MEMORY.md",
+      " M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/a2-piper/DONE.md",
+      " M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/a2-piper/TODO.md",
+      " M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/a2-piper/description.md",
+      " M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/dual-policy-training/DONE.md",
+      " M source/LMP/LMP/tasks/manager_based/lmp_manager/docs/memory/dual-policy-training/description.md",
+      " M source/LMP/LMP/tasks/manager_based/lmp_manager/lmp_manager_env_cfg.py",
+      "?? scripts/manager_dual_policy/export_dog_policy.py",
+      "?? source/LMP/LMP/tasks/manager_based/lmp_manager/docs/reference/training/dog_policy_export.md"
+    ]
+  },
+  "outputs": {
+    "metadata_path": "/home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_dog/exported/policy_metadata.json",
+    "policy_path": "/home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_dog/exported/policy.pt",
+    "policy_sha256": "783c65386ce49127a17ec261794ed3c7002309e293e3cb88562dee922c894b1b"
+  },
+  "runner_state": {
+    "checkpoint_format_version": 2,
+    "found": true,
+    "iteration": 2000,
+    "runner_cfg": {
+      "arm_actor_cfg": {
+        "activation": "elu",
+        "actor_hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "adaptation_module_branch_hidden_dims": [
+          256,
+          128
+        ],
+        "critic_hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "init_noise_std": 0.1,
+        "num_plan_actions": 2
+      },
+      "arm_ppo_cfg": {
+        "adaptation_module_learning_rate": 0.0005,
+        "clip_param": 0.2,
+        "desired_kl": 0.01,
+        "entropy_coef": 0.01,
+        "gamma": 0.99,
+        "lam": 0.95,
+        "learning_rate": 0.0005,
+        "max_grad_norm": 1.0,
+        "num_adaptation_module_substeps": 1,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "schedule": "adaptive",
+        "selective_adaptation_module_loss": false,
+        "use_clipped_value_loss": true,
+        "value_loss_coef": 1.0
+      },
+      "dog_actor_cfg": {
+        "activation": "elu",
+        "actor_hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "adaptation_module_branch_hidden_dims": [
+          256,
+          128
+        ],
+        "critic_hidden_dims": [
+          512,
+          256,
+          128
+        ],
+        "init_noise_std": 1.0
+      },
+      "dog_ppo_cfg": {
+        "adaptation_module_learning_rate": 0.0005,
+        "clip_param": 0.2,
+        "desired_kl": 0.01,
+        "entropy_coef": 0.01,
+        "gamma": 0.99,
+        "lam": 0.95,
+        "learning_rate": 0.0005,
+        "max_grad_norm": 1.0,
+        "num_adaptation_module_substeps": 1,
+        "num_learning_epochs": 5,
+        "num_mini_batches": 4,
+        "schedule": "adaptive",
+        "selective_adaptation_module_loss": false,
+        "use_clipped_value_loss": true,
+        "value_loss_coef": 1.0
+      },
+      "experiment_name": "lmp_dual_policy",
+      "log_interval": 10,
+      "max_iterations": 2000,
+      "num_steps_per_env": 24,
+      "save_interval": 400
+    },
+    "switch_scheduler": {
+      "cfg": {
+        "interpolation": "instant",
+        "pretrained_to_hybrid_end": 100000,
+        "pretrained_to_hybrid_start": 10000
+      },
+      "count": 2000,
+      "switch_flag": false
+    },
+    "tot_timesteps": 196608000
+  },
+  "self_check": {
+    "random_1x1620": {
+      "input_shape": [
+        1,
+        1620
+      ],
+      "max_abs_diff_vs_eager": 0.0,
+      "output_shape": [
+        1,
+        12
+      ]
+    },
+    "random_4x1620": {
+      "input_shape": [
+        4,
+        1620
+      ],
+      "max_abs_diff_vs_eager": 0.0,
+      "output_shape": [
+        4,
+        12
+      ]
+    },
+    "zeros_1x1620": {
+      "input_shape": [
+        1,
+        1620
+      ],
+      "max_abs_diff_vs_eager": 0.0,
+      "output_shape": [
+        1,
+        12
+      ]
+    }
+  },
+  "sources": {
+    "checkpoint_path": "/home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_dog/ac_weights_last.pt",
+    "checkpoint_sha256": "e795e81d4007c2052e3a9b066605c0324bde6fc0d0769438162f3bceca5d5e15",
+    "log_dir": "/home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09",
+    "runner_state_path": "/home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_meta/runner_state_last.pt",
+    "runner_state_sha256": "8a7d9cdca615e579623437439258ae1621941e35f65471f3d5e6f0ecd27af0e1"
+  },
+  "usage_snippet": "import torch\npolicy = torch.jit.load('/home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_dog/exported/policy.pt', map_location='cpu')\nobs_history = torch.zeros(1, 1620)\naction = policy(obs_history)"
+}

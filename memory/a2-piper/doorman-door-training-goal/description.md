@@ -2,7 +2,7 @@
 name: doorman-door-training-goal
 scope: A2_Piper long-term goal for Doorman-based robot replacement and door-opening training
 status: active
-last_updated: 2026-06-12 23:17 HKT
+last_updated: 2026-06-14 17:48 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/doorman-door-training-goal/description.md
@@ -65,7 +65,14 @@ read_when:
 - 2026-06-12 20:56 HKT - A2_Base `policy.pt` 已在 conda env `isaaclab` 中通过 `torch.jit.load` CPU smoke：输入 shape `[2, 1620]`，输出 shape `[2, 12]`，与 `policy_metadata.json` 的 obs/action contract 一致。
 - 2026-06-12 22:41 HKT - A2_Piper + A2_Base action chain replacement 第一阶段已接入当前 `trl_a2_base_api` / `DoorPregrasp` path：high-level actor contract 为 `10D = 3D base command + 6D Piper arm + 1D gripper primitive`，trainer rollout action 为 `22D = 10D high-level + 12D A2_Base leg action`，env 最终 simulator joint command 为 `20D = 12D legs + 6D arm_j1-6 + 2D gripper joints`。本阶段只做 action chain 与 frozen A2_Base 必需 low-level obs adapter，未启动 PPO/train，也未做 Isaac Sim/env smoke。
 - 2026-06-12 23:05 HKT - 当前 A2 action-chain primary entrypoint 已完成命名清理：Hydra experiment/config/source module 使用 `door_open_a2_base_lstm`、`door_open_a2_base`、`reward_door_open_a2_base`、`trl_a2_base_api`、`ppo_trainer_a2_base_api`、`a2_base`；primary env import/继承改用 `A2Base`，旧 `HomieBase` 仅作为新 module 内兼容 alias 保留。
+- 2026-06-12 23:34 HKT - 用户提供下一阶段 observation replacement overview：Dog policy observation 目标对齐 RoboDuet `auto_train` path 的 `54D x 30 = 1620D` history；后续会逐项描述详细逻辑并分步实现，当前先作为 memory Goal/TODO 记录。
+- 2026-06-13 21:15 HKT - 用户补充 A2_Base 训练来源：A2_Base 是在 LMP manager-based workflow 下训练完成的，核心配置入口为 `/home/baoquanc/workspace/LMP/source/LMP/LMP/tasks/manager_based/lmp_manager/lmp_manager_env_cfg.py`。后续每个 A2_Base observation 字段迁移前，应先追溯该 manager-based 训练源码中的 observation/action 计算与更新逻辑，再制定 DoorDog direct/env-hook 侧实现方案。
 - 2026-06-12 22:50 HKT - Reviewer follow-up 已修复 action contract 细节：Piper gripper primitive 从 `delta_action_indices` 移除，现仅 arm dims `[3..8]` 累积 delta，gripper dim `9` 保持 instantaneous open/close primitive；A2_Base `policy_metadata.json` 已接入 trainer/env setup，用于校验/派生 `1620D` obs、`30 x 54` history、`12D` action、metadata leg order、`leg_action_scale=0.25` 与 `use_default_offset=true`。
+- 2026-06-13 21:33 HKT - 完成 A2_Base observation slice `0:27` parity：DoorDog direct path 的 projected gravity、leg joint position relative default、leg joint velocity scaled `0.05` 已拆为独立 helper 并按 LMP `LEG_JOINT_NAMES` / metadata order 取数；`a2_base_obs` history reset 改为 reset 后首帧用 current frame 填满 30 slots，已初始化 env 继续 shift/append。
+- 2026-06-13 22:00 HKT - 完成 A2_Base observation slice `27:50` parity：DoorDog direct path 现在拆出 raw dog action、scaled 5D `commands_dog` 与 6D zero `arm_command_obs` helpers；`commands_dog[39:42]` 由 high-level base command 按 `0.25 * [2.0, 2.0, 0.25]` 注入，`[42:44]` 支持 `_a2_body_pitch_roll_raw * 0.4`，trainer 不再清零 final frame pitch/roll slice。
+- 2026-06-13 22:13 HKT - 完成 A2_Base observation slice `50:52` parity：新增 `_get_a2_base_roll_pitch()` 显式返回 `self.rpy[:, 0:2]`，语义为 `[base_roll, base_pitch]` rad，无 scale，并由 `_get_a2_base_obs_frame()` 写入 frame `[50:52]`。
+- 2026-06-14 17:22 HKT - 完成 A2_Base observation slice `52:54` parity：DoorDog direct path 新增 LMP-style gait phase buffer、`common_step_counter` at-most-once update guard、reset initial phase/last step pinning 与 standing command phase reset；`_get_a2_base_obs_frame()` 现在用 `_get_a2_gait_clock_signal()` 写入 `clock_inputs`。
+- 2026-06-14 17:48 HKT - 新增 standalone full Isaac Sim GUI A2_Base flat-ground locomotion smoke/monitor：`gr00t/rl/scripts/smoke_a2_base_flat_walk.py` 只加载 A2_Piper USD、A2_Base TorchScript policy 与 metadata，在 flat ground 上按 `54D x 30` history contract 直接驱动 12D leg action，不启动 PPO/DAgger/DoorPregrasp/door high-level checkpoint。命令约定为 `--base-command-raw` raw high-level base command、`--base-command-physical` physical `[vx, vy, yaw]`，兼容 `--command` 作为 physical alias；默认 raw `[1,0,0]` 对应 physical `vx=0.25 m/s`。
 
 ## Action Progress Snapshot
 
@@ -76,14 +83,39 @@ read_when:
 - 2026-06-12 23:05 HKT - 当前 action entrypoint names：`+exp=wbmanip/door_open_a2_base_lstm`、`/env: door_open_a2_base`、`/obs: wbmanip/door_open_a2_base`、`/rewards: wbmanip/reward_door_open_a2_base`、`/trainer: trl_a2_base_api`。
 - 2026-06-12 23:17 HKT - Train smoke 溯源提醒：若后续 Hydra compose、Python import、checkpoint resume 或 log path 出现 `door_open_homie*`、`trl_homie_api`、`ppo_trainer_homie_api`、`homie_base` 相关 missing target / stale import / config not found，应优先回查 2026-06-12 23:05 HKT 的 action entrypoint rename；当前 canonical A2 entrypoint 是 `+exp=wbmanip/door_open_a2_base_lstm`，对应 env/obs/reward/trainer/source 均为 `a2_base` 命名。
 
+## Observation Replacement Goal
+
+2026-06-12 23:34 HKT - 下一阶段 observation 替换目标先聚焦 frozen A2_Base dog policy observation contract，保持 RoboDuet-compatible history：
+
+- History shape: `54D x 30 = 1620D`，frame-major order 为 `[obs(t-29), obs(t-28), ..., obs(t)]`。
+- RoboDuet source assumption: single-frame layout replicates RoboDuet `auto_train` path；`config_go1()` disables `observe_vel`，`config_wtw()` enables `observe_clock_inputs`，`auto_train()` disables `observe_two_prev_actions`，最终 dog actor obs 为 `54D`。
+- `[0:3] projected_gravity_b`: 投影重力方向 `3D`。
+- `[3:15] dog_joint_pos - default_joint_pos`: 腿部 `12` 关节位置偏差。
+- `[15:27] dog_joint_vel x obs_scales.dof_vel`: 腿部 `12` 关节速度 scaled。
+- `[27:39] dog_actions`: 上一步腿部 `12D` action。
+- `[39:44] commands_dog x commands_scale_dog`: 狗指令 `[lin_x, lin_y, yaw, pitch, roll]`。
+- `[44:50] arm_command_obs`: 机械臂目标观测 `6D`，语义为 `lpy + abg`。
+- `[50] base_roll`: 机体 roll angle，单位 rad。
+- `[51] base_pitch`: 机体 pitch angle，单位 rad。
+- `[52:54] clock_inputs`: global gait clock `[sin, cos]`。
+
+Implementation reminder:
+
+- 用户强调原始设计按 IsaacLab `manager-based` workflow 规范使用 `ObservationManager` 管理 observation 拼接与 history；后续实现前必须查询 IsaacLab official docs（Context7 library ID `/websites/isaac-sim_github_io_isaaclab_main`）并可对照 local source `/home/baoquanc/workspace/IsaacLab`，确认 `direct` workflow 与 `manager-based` workflow 在 observation registration、`ObsTerm`、`ObsGroup.concatenate_terms=True`、`history_length=30`、`flatten_history_dim=False` 等行为上的差异。
+- 目标 manager-based 语义：每个 observation semantic field 注册为独立 `ObsTerm`，由 `ObsGroup.concatenate_terms=True` 拼接单帧 observation；`history_length=30` 保留最近 30 帧；`flatten_history_dim=False` 让 manager 返回 `(N, H, D)`，wrapper 再展平成 RoboDuet-compatible frame-major history。
+- 当前 Doorman/A2 path 是否继续沿用 direct env obs hooks、引入 manager-based adapter、或做 wrapper bridge，需要等用户逐项给出详细逻辑后再定；不要在未确认 workflow 差异前直接大改 observation runtime。
+- A2_Base manager-based training source: `/home/baoquanc/workspace/LMP/source/LMP/LMP/tasks/manager_based/lmp_manager/lmp_manager_env_cfg.py`。后续每个 field implementation 前，应先提取训练时对应 `ObsTerm`/helper/config 的数据源、scale、update timing、history/clock/action buffer 语义，再映射到 DoorDog 当前 `door_open_a2_base` direct path。
+
 ## TODO Summary
 
 - 2026-06-12 18:02 HKT - 后续训练阶段需在 preview 基础上设计 training-grade A2_Piper kinematics/collision/control mapping，并决定是否复用/替换现有 simulator `robot.asset.usd_file` loader。
 - 2026-06-12 22:41 HKT - 后续 observation 目标：在已完成 `a2_base_obs` low-level adapter 之外，继续设计 training-grade A2_Piper task observation，覆盖 Piper arm/gripper proprioception、EE/handle/door state、door/handle task frame、normalization 与 actor/critic obs contract。
+- 2026-06-13 21:15 HKT - Observation migration workflow TODO：每个 A2_Base obs field 实现前，先从 LMP manager-based training source `lmp_manager_env_cfg.py` 及其 helper 中确认训练时计算/更新逻辑，再给出 DoorDog 当前 direct path 的实现方案；长期协作 subagent Bella 负责辅助提取/总结这部分来源逻辑。
 - 2026-06-12 16:59 HKT - 设计 door-opening reward spec，覆盖 approach、handle interaction、door progress、success condition、termination、penalty 与 reward weights。
 - 2026-06-12 18:02 HKT - 在 preview-only env 之后继续接入并验证 training env config、training config、smoke test 与 eval workflow，形成可重复的训练入口。
 - 2026-06-12 23:17 HKT - 后续 train smoke 若遇到 Hydra/import/checkpoint resume 指向旧 `homie` entrypoint 的错误，先按 action entrypoint rename 记录检查命令、config defaults、`_target_`、log/checkpoint metadata 是否仍引用旧名。
 - 2026-06-12 19:35 HKT - 后续若 `door_open_a2_base.py::_reset_root_states` 的 Doorman stage-0 hardcoded x/y/yaw bounds 改动，需同步更新 A2_Piper preview local constants 与 README，避免 placement bounds preview 漂移。
+- 2026-06-14 17:48 HKT - 后续由 main/user 在可交互 full GUI Isaac Sim session 运行 `smoke_a2_base_flat_walk.py`，观察 flat-ground A2_Base stability、root velocity tracking 与 action norm；本 worker 仅做 py_compile、`--help`、metadata/policy fake inference 等非 GUI 验证，不启动 full GUI。
 
 ## DONE Summary
 
@@ -107,6 +139,13 @@ read_when:
 - 2026-06-12 22:59 HKT - 整理当前 action progress snapshot，明确 action chain replacement 已完成到 static/reviewer-approved milestone：G1/HOMIE lower-body 被 A2_Base 替代，high-level action 为 `10D`，gripper 为 instantaneous 1D primitive，后续重点转入 full task observation/reward 与 env/train smoke。
 - 2026-06-12 23:05 HKT - 完成当前 A2 action-chain entrypoint rename：primary config/source 从 `door_open_homie_lstm`、`door_open_homie`、`reward_door_open_homie`、`trl_homie_api`、`ppo_trainer_homie_api`、`homie_base` 重命名为 `door_open_a2_base_lstm`、`door_open_a2_base`、`reward_door_open_a2_base`、`trl_a2_base_api`、`ppo_trainer_a2_base_api`、`a2_base`；primary env import/继承改用 `A2Base`，旧 `HomieBase` 仅作为新 module 内兼容 alias 保留。
 - 2026-06-12 23:17 HKT - 补充 action entrypoint rename 的 train smoke traceability reminder：后续若 smoke 失败并出现旧 `homie` config/module 名，应优先检查命令、Hydra defaults、`_target_`、resume checkpoint/log metadata 是否还指向 rename 前入口。
+- 2026-06-12 23:34 HKT - 记录下一阶段 observation replacement Goal/TODO：A2_Base dog policy observation 目标为 RoboDuet-compatible `54D x 30 = 1620D` history，single-frame semantic slices 已写入 memory，并补充实现前必须查询 IsaacLab official docs/local source 以确认 `direct` 与 `manager-based ObservationManager` workflow 差异。
+- 2026-06-13 21:15 HKT - 记录 A2_Base manager-based training source 与 observation migration workflow：A2_Base 来源入口为 LMP `lmp_manager_env_cfg.py`，后续每个 observation field 先追溯训练时 computation/update logic，再制定 DoorDog direct path 实现方案；Bella 作为长期只读 subagent 协助提取/总结 LMP observation/action 逻辑。
+- 2026-06-13 21:33 HKT - 完成 A2_Base observation slice `0:27` parity：`_get_a2_projected_gravity_b()` 对齐 `projected_gravity`，`_get_a2_dog_joint_pos_rel()` 对齐 `joint_pos_rel` + default offset，`_get_a2_dog_joint_vel_scaled()` 对齐 `joint_vel(scale=0.05)`；env config 显式记录 `dog_joint_vel_scale: 0.05`，history reset parity 支持 uninitialized env 首帧 full-history fill 与 mixed batch shift/append。
+- 2026-06-13 22:00 HKT - 完成 A2_Base observation slice `27:50` parity：新增 `_get_a2_dog_actions()` 返回 raw `_last_a2_leg_actions`，`_get_a2_commands_dog_scaled()` 输出 `[lin_x, lin_y, yaw, pitch, roll]`，`_get_a2_arm_command_obs()` 输出 6D zero arm command；env config 显式记录 `command_scale: 0.25`、`command_obs_multipliers: [2.0, 2.0, 0.25]`、`body_pitch_roll_scale: 0.4`，trainer 保持 10D high-level action 且不再清零 final frame `[42:44]`。验证通过 `py_compile`、A2Base fake tensor smoke、trainer fake smoke 与 `body_pitch_roll_scale == 0.4` static check；未启动 PPO/Isaac Sim。
+- 2026-06-13 22:13 HKT - 完成 A2_Base observation slice `50:52` parity：`_get_a2_base_roll_pitch()` 对齐 LMP `base_roll_pitch()` 的 roll then pitch 语义，DoorDog direct path 使用 `LeggedRobotBase` 已维护的 `self.rpy[:, 0:2]` 写入 frame `[50:52]`；验证通过 `py_compile`、A2Base fake tensor smoke 与 `git diff --check`，未启动 PPO/Isaac Sim。
+- 2026-06-14 17:22 HKT - 完成 A2_Base observation slice `52:54` parity：新增 direct gait phase buffer `_a2_gait_phase` 与 `_a2_gait_last_update_step`，按 LMP `GaitPhaseCommand` 语义在每个 `common_step_counter` 最多 advance 一次，standing physical command phase reset 为 0，`clock_inputs` 输出 `[sin(2*pi*phase), cos(2*pi*phase)]`；验证通过 `py_compile`、A2Base fake tensor smoke、YAML/static grep 与 `git diff --check`，未启动 PPO/Isaac Sim。
+- 2026-06-14 17:48 HKT - 完成 standalone full GUI A2_Base flat walk smoke entrypoint：`smoke_a2_base_flat_walk.py` 复用 preview AppLauncher/toolbar guard/logical `cuda:0` fail-fast/cleanup 思路与 A2_Piper robot cfg，构建 flat scene（ground、dome light、robot only），按 metadata leg order name-based remap policy action 到 simulator joint targets，并在 `gr00t/rl/scripts/README.md` 记录 launch command 与 raw/physical command convention；未启动 full GUI。
 
 ## Recommended Next Files To Read
 

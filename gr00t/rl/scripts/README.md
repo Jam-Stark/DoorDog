@@ -40,6 +40,22 @@ The preview requires `gr00t/rl/data/robots/A2_Piper/a2_piper.usd`; if it is miss
 In livestream/headless Kit runtimes without `omni.kit.widget.toolbar`, the preview logs a warning and skips IsaacLab toolbar button hiding while continuing scene creation.
 For livestream/headless camera preview, the script uses an existing rendering Kit path and does not copy Kit files into the IsaacLab checkout.
 
+## A2_Base Flat Walk Smoke
+
+Open a full Isaac Sim GUI flat-ground monitor for the frozen A2_Base locomotion policy on A2_Piper, without door assets, DoorPregrasp, PPO, DAgger, or high-level door checkpoints:
+
+```bash
+CUDA_VISIBLE_DEVICES=2 \
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python \
+/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/scripts/smoke_a2_base_flat_walk.py \
+--device cuda:0 --num-envs 1 --command 0.25 0.0 0.0
+```
+
+`--command` is a compatibility alias for physical base command `[vx_mps, vy_mps, yaw_radps]`; new invocations should prefer `--base-command-physical 0.25 0.0 0.0` or `--base-command-raw 1.0 0.0 0.0`.
+The script prints both command forms and uses `physical = raw * 0.25`; the default raw command therefore yields physical `vx=0.25 m/s`.
+It runs until the GUI closes by default; use `--max-steps N` only for bounded smoke checks.
+The same UsdRT logical GPU caveat applies: use `CUDA_VISIBLE_DEVICES=N ... --device cuda:0` instead of passing `--device cuda:N`.
+
 ## Generate Door Assets
 
 ```bash

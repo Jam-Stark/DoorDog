@@ -165,13 +165,68 @@ class A2Base(LeggedRobotBase):
         self._a2_obs_dim = a2_base_contract["obs_dim"]
         self._a2_leg_action_scale = a2_base_contract["leg_action_scale"]
         self._a2_gait_frequency = float(a2_config.get("gait_frequency", 2.0))
-        self._a2_base_command_scale = float(a2_config.get("base_command_scale", 0.25))
-        self._a2_base_command_obs_multipliers = torch.tensor(
-            a2_config.get("base_command_obs_multipliers", [2.0, 2.0, 0.25]),
+        self._a2_gait_initial_phase = float(a2_config.get("gait_initial_phase", 0.0)) % 1.0
+        self._a2_gait_standing_command_thresholds = torch.tensor(
+            a2_config.get("gait_standing_command_thresholds", [0.1, 0.1, 0.2]),
             device=self.device,
             dtype=torch.float,
             requires_grad=False,
         )
+        if self._a2_gait_standing_command_thresholds.numel() != 3:
+            raise ValueError(
+                "A2_Base gait_standing_command_thresholds must have 3 values, got "
+                f"{self._a2_gait_standing_command_thresholds.numel()}"
+            )
+        self._a2_gait_standing_command_thresholds = (
+            self._a2_gait_standing_command_thresholds.reshape(3)
+        )
+        if (
+            "command_scale" in a2_config
+            and "base_command_scale" in a2_config
+            and float(a2_config.get("command_scale")) != float(a2_config.get("base_command_scale"))
+        ):
+            raise ValueError(
+                "A2_Base config command_scale disagrees with base_command_scale: "
+                f"{a2_config.get('command_scale')} vs {a2_config.get('base_command_scale')}"
+            )
+        self._a2_base_command_scale = float(
+            a2_config.get("command_scale", a2_config.get("base_command_scale", 0.25))
+        )
+        self._a2_body_pitch_roll_scale = float(a2_config.get("body_pitch_roll_scale", 0.4))
+        if self._a2_body_pitch_roll_scale <= 0.0:
+            raise ValueError(
+                "A2_Base body_pitch_roll_scale must be positive, got "
+                f"{self._a2_body_pitch_roll_scale}"
+            )
+        self._a2_dog_joint_vel_scale = float(a2_config.get("dog_joint_vel_scale", 0.05))
+        if self._a2_dog_joint_vel_scale <= 0.0:
+            raise ValueError(
+                f"A2_Base dog_joint_vel_scale must be positive, got {self._a2_dog_joint_vel_scale}"
+            )
+        if (
+            "command_obs_multipliers" in a2_config
+            and "base_command_obs_multipliers" in a2_config
+            and list(a2_config.get("command_obs_multipliers"))
+            != list(a2_config.get("base_command_obs_multipliers"))
+        ):
+            raise ValueError(
+                "A2_Base config command_obs_multipliers disagrees with "
+                "base_command_obs_multipliers"
+            )
+        self._a2_base_command_obs_multipliers = torch.tensor(
+            a2_config.get(
+                "command_obs_multipliers",
+                a2_config.get("base_command_obs_multipliers", [2.0, 2.0, 0.25]),
+            ),
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=False,
+        )
+        if self._a2_base_command_obs_multipliers.numel() != 3:
+            raise ValueError(
+                "A2_Base command_obs_multipliers must have 3 values, got "
+                f"{self._a2_base_command_obs_multipliers.numel()}"
+            )
         self._a2_policy_leg_order = a2_base_contract["leg_joint_names"]
         self._a2_leg_sim_indices = torch.tensor(
             [self.dof_names.index(name) for name in self._a2_policy_leg_order],
@@ -206,12 +261,28 @@ class A2Base(LeggedRobotBase):
         self._a2_base_command_raw = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False
         )
+        self._a2_gait_phase = torch.zeros(
+            self.num_envs, device=self.device, requires_grad=False
+        )
+        self._a2_gait_last_update_step = torch.full(
+            (self.num_envs,),
+            self._get_a2_gait_current_step(),
+            device=self.device,
+            dtype=torch.long,
+            requires_grad=False,
+        )
+        self._a2_body_pitch_roll_raw = torch.zeros(
+            self.num_envs, 2, device=self.device, requires_grad=False
+        )
         self._a2_base_obs_history = torch.zeros(
             self.num_envs,
             self._a2_obs_history_length,
             self._a2_obs_frame_dim,
             device=self.device,
             requires_grad=False,
+        )
+        self._a2_base_obs_history_initialized = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool, requires_grad=False
         )
         self._num_homie_commands = int(self.config.obs.obs_dims.get("b_homie_commands", 7))
         self._num_lower_dof = self._a2_leg_action_dim
@@ -231,7 +302,11 @@ class A2Base(LeggedRobotBase):
             LeggedRobotBase._reset_buffers_callback(self, env_ids, target_buf)
             self._last_a2_leg_actions[env_ids, :] = 0.0
             self._a2_base_command_raw[env_ids, :] = 0.0
+            self._a2_gait_phase[env_ids] = self._a2_gait_initial_phase
+            self._a2_gait_last_update_step[env_ids] = self._get_a2_gait_current_step()
+            self._a2_body_pitch_roll_raw[env_ids, :] = 0.0
             self._a2_base_obs_history[env_ids, :, :] = 0.0
+            self._a2_base_obs_history_initialized[env_ids] = False
             self._homie_actions[env_ids, :] = 0.0
             self._homie_commands[env_ids, :] = 0.0
             self._homie_commands_unclipped[env_ids, :] = 0.0
@@ -428,33 +503,122 @@ class A2Base(LeggedRobotBase):
     def _get_obs_g_homie_body_actions(self):
         return self._homie_actions
 
-    def _get_a2_base_obs_frame(self):
-        frame = torch.zeros(
-            self.num_envs, self._a2_obs_frame_dim, device=self.device, requires_grad=False
+    def _get_a2_projected_gravity_b(self):
+        return self.projected_gravity
+
+    def _get_a2_dog_joint_pos_rel(self):
+        return (
+            self.simulator.dof_pos[:, self._a2_leg_sim_indices]
+            - self.default_dof_pos[:, self._a2_leg_sim_indices]
         )
-        leg_pos = self.simulator.dof_pos[:, self._a2_leg_sim_indices]
-        default_leg_pos = self.default_dof_pos[:, self._a2_leg_sim_indices]
-        leg_vel = self.simulator.dof_vel[:, self._a2_leg_sim_indices]
-        frame[:, 0:3] = self.projected_gravity
-        frame[:, 3:15] = leg_pos - default_leg_pos
-        frame[:, 15:27] = leg_vel * 0.05
-        frame[:, 27:39] = self._last_a2_leg_actions
-        frame[:, 39:42] = (
+
+    def _get_a2_dog_joint_vel_scaled(self):
+        return (
+            self.simulator.dof_vel[:, self._a2_leg_sim_indices]
+            * self._a2_dog_joint_vel_scale
+        )
+
+    def _get_a2_dog_actions(self):
+        return self._last_a2_leg_actions
+
+    def _get_a2_commands_dog_scaled(self):
+        commands = torch.zeros(
+            self.num_envs,
+            5,
+            device=self.device,
+            dtype=self._a2_base_command_raw.dtype,
+            requires_grad=False,
+        )
+        commands[:, 0:3] = (
             self._a2_base_command_raw
             * self._a2_base_command_scale
             * self._a2_base_command_obs_multipliers[None, :]
         )
-        frame[:, 42:44] = 0.0
-        frame[:, 44:50] = 0.0
-        frame[:, 50:52] = self.rpy[:, :2]
-        phase = self.episode_length_buf.to(dtype=torch.float) * self.dt * self._a2_gait_frequency
-        frame[:, 52] = torch.sin(2.0 * torch.pi * phase)
-        frame[:, 53] = torch.cos(2.0 * torch.pi * phase)
+        commands[:, 3:5] = self._a2_body_pitch_roll_raw * self._a2_body_pitch_roll_scale
+        return commands
+
+    def _get_a2_arm_command_obs(self):
+        return torch.zeros(
+            self.num_envs,
+            6,
+            device=self.device,
+            dtype=self._a2_base_command_raw.dtype,
+            requires_grad=False,
+        )
+
+    def _get_a2_base_roll_pitch(self):
+        return self.rpy[:, 0:2]
+
+    def _get_a2_gait_current_step(self):
+        return int(getattr(self, "common_step_counter", 0))
+
+    def _get_a2_gait_standing_mask(self):
+        physical_command = self._a2_base_command_raw * self._a2_base_command_scale
+        thresholds = self._a2_gait_standing_command_thresholds.to(
+            dtype=physical_command.dtype
+        )
+        return (torch.abs(physical_command) < thresholds[None, :]).all(dim=1)
+
+    def _update_a2_gait_phase_once(self):
+        current_step = self._get_a2_gait_current_step()
+        standing_mask = self._get_a2_gait_standing_mask()
+        update_mask = self._a2_gait_last_update_step < current_step
+
+        if update_mask.any():
+            moving_update_mask = update_mask & ~standing_mask
+            if moving_update_mask.any():
+                phase_inc = float(self.dt) * self._a2_gait_frequency
+                self._a2_gait_phase[moving_update_mask] = torch.remainder(
+                    self._a2_gait_phase[moving_update_mask] + phase_inc,
+                    1.0,
+                )
+            standing_update_mask = update_mask & standing_mask
+            if standing_update_mask.any():
+                self._a2_gait_phase[standing_update_mask] = 0.0
+            self._a2_gait_last_update_step[update_mask] = current_step
+
+        if standing_mask.any():
+            self._a2_gait_phase[standing_mask] = 0.0
+
+    def _get_a2_gait_clock_signal(self):
+        self._update_a2_gait_phase_once()
+        return torch.stack(
+            [
+                torch.sin(2.0 * torch.pi * self._a2_gait_phase),
+                torch.cos(2.0 * torch.pi * self._a2_gait_phase),
+            ],
+            dim=1,
+        )
+
+    def _get_a2_base_obs_frame(self):
+        frame = torch.zeros(
+            self.num_envs, self._a2_obs_frame_dim, device=self.device, requires_grad=False
+        )
+        frame[:, 0:3] = self._get_a2_projected_gravity_b()
+        frame[:, 3:15] = self._get_a2_dog_joint_pos_rel()
+        frame[:, 15:27] = self._get_a2_dog_joint_vel_scaled()
+        frame[:, 27:39] = self._get_a2_dog_actions()
+        frame[:, 39:44] = self._get_a2_commands_dog_scaled()
+        frame[:, 44:50] = self._get_a2_arm_command_obs()
+        frame[:, 50:52] = self._get_a2_base_roll_pitch()
+        frame[:, 52:54] = self._get_a2_gait_clock_signal()
         return frame
 
     def _get_obs_a2_base_obs(self):
-        self._a2_base_obs_history[:, :-1, :] = self._a2_base_obs_history[:, 1:, :].clone()
-        self._a2_base_obs_history[:, -1, :] = self._get_a2_base_obs_frame()
+        current_frame = self._get_a2_base_obs_frame()
+        initialized_envs = self._a2_base_obs_history_initialized
+        uninitialized_envs = ~initialized_envs
+
+        if initialized_envs.any():
+            self._a2_base_obs_history[initialized_envs, :-1, :] = self._a2_base_obs_history[
+                initialized_envs, 1:, :
+            ].clone()
+            self._a2_base_obs_history[initialized_envs, -1, :] = current_frame[initialized_envs]
+        if uninitialized_envs.any():
+            self._a2_base_obs_history[uninitialized_envs, :, :] = current_frame[
+                uninitialized_envs
+            ].unsqueeze(1).expand(-1, self._a2_obs_history_length, -1)
+            self._a2_base_obs_history_initialized[uninitialized_envs] = True
         obs = self._a2_base_obs_history.reshape(self.num_envs, -1)
         if obs.shape[-1] != self._a2_obs_dim:
             raise ValueError(

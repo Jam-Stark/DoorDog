@@ -149,7 +149,7 @@ class PolicyAndValueWrapper(nn.Module):
         flat_obs[:, final_frame_start + 39 : final_frame_start + 42] = (
             flat_high_level_actions[:, :3] * self.a2_base_command_scale * command_scale
         )
-        flat_obs[:, final_frame_start + 42 : final_frame_start + 44] = 0.0
+        # Keep [42:44] from env obs; future 12D door action can fill body pitch/roll here.
         with torch.no_grad():
             flat_actions = self.a2_base_model(flat_obs)
         if flat_actions.shape[-1] != self.a2_base_action_dim:
@@ -608,8 +608,20 @@ class TRLPPOTrainer(PPOTrainer):
             self.a2_base_leg_action_scale = a2_base_contract["leg_action_scale"]
             self.a2_base_action_dim = a2_base_contract["action_dim"]
             self.a2_base_command_scale = float(a2_base_config.get("command_scale", 0.25))
+            if (
+                "command_obs_multipliers" in a2_base_config
+                and "command_multipliers" in a2_base_config
+                and list(a2_base_config.get("command_obs_multipliers"))
+                != list(a2_base_config.get("command_multipliers"))
+            ):
+                raise ValueError(
+                    "A2_Base config command_obs_multipliers disagrees with command_multipliers"
+                )
             self.a2_base_command_multipliers = list(
-                a2_base_config.get("command_multipliers", [2.0, 2.0, 0.25])
+                a2_base_config.get(
+                    "command_obs_multipliers",
+                    a2_base_config.get("command_multipliers", [2.0, 2.0, 0.25]),
+                )
             )
             self.a2_base_action_sigma = float(a2_base_config.get("action_sigma", 0.0))
             self.a2_base_model = torch.jit.load(a2_base_policy_path, map_location=self.device)

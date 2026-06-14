@@ -689,24 +689,39 @@ class IsaacSim(BaseSimulator):
         logger.warning(
             f"num_velocity_iterations: {self.simulator_config.sim.physx.num_velocity_iterations}"
         )
+        robot_type = str(getattr(self.robot_config.asset, "robot_type", ""))
+        max_depenetration_velocity = float(
+            getattr(self.simulator_config.sim.physx, "max_depenetration_velocity", 1.0)
+        )
+        rigid_props_kwargs = {
+            "disable_gravity": False,
+            "retain_accelerations": False,
+            "linear_damping": 0.0,
+            "angular_damping": 0.0,
+            "max_linear_velocity": 1000.0,
+            "max_angular_velocity": 1000.0,
+            "max_depenetration_velocity": max_depenetration_velocity,
+        }
+        articulation_props_kwargs = {
+            "enabled_self_collisions": not bool(self.env_config.robot.asset.self_collisions),
+            "solver_position_iteration_count": self.simulator_config.sim.physx.num_position_iterations,
+            "solver_velocity_iteration_count": self.simulator_config.sim.physx.num_velocity_iterations,
+        }
+        if robot_type == "a2_piper":
+            rigid_props_kwargs["rigid_body_enabled"] = True
+            articulation_props_kwargs.update(
+                {
+                    "sleep_threshold": 0.005,
+                    "stabilization_threshold": 0.001,
+                    "articulation_enabled": True,
+                }
+            )
         # import ipdb; ipdb.set_trace()
         spawn = sim_utils.UsdFileCfg(
             usd_path=asset_abs_path,
             activate_contact_sensors=True,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                disable_gravity=False,
-                retain_accelerations=False,
-                linear_damping=0.0,
-                angular_damping=0.0,
-                max_linear_velocity=1000.0,
-                max_angular_velocity=1000.0,
-                max_depenetration_velocity=1.0,
-            ),
-            articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                enabled_self_collisions=not bool(self.env_config.robot.asset.self_collisions),
-                solver_position_iteration_count=self.simulator_config.sim.physx.num_position_iterations,
-                solver_velocity_iteration_count=self.simulator_config.sim.physx.num_velocity_iterations,
-            ),
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(**rigid_props_kwargs),
+            articulation_props=sim_utils.ArticulationRootPropertiesCfg(**articulation_props_kwargs),
         )
 
         # urdf_path = self.robot_config.asset.urdf_file
@@ -805,29 +820,104 @@ class IsaacSim(BaseSimulator):
         # )
 
         # ImplicitID
-        stiffness_dict = {".*" + key + ".*": value for key, value in stiffness_dict.items()}
-        damping_dict = {".*" + key + ".*": value for key, value in damping_dict.items()}
-        actuators = dict()
-        actuators["all"] = ImplicitActuatorCfg(
-            joint_names_expr=[dof_names_list[i] for i in range(len(dof_names_list))],
-            effort_limit_sim={
-                dof_names_list[i]: dof_effort_limit_list[i] for i in range(len(dof_names_list))
-            },
-            velocity_limit_sim={
-                dof_names_list[i]: dof_vel_limit_list[i] for i in range(len(dof_names_list))
-            },
-            # stiffness=0,
-            # damping=0,
-            stiffness=stiffness_dict,
-            damping=damping_dict,
-            armature={
-                dof_names_list[i]: dof_armature_list[i] * 3 for i in range(len(dof_names_list))
-            },
-            friction={
-                dof_names_list[i]: dof_joint_friction_list[i] * 0
-                for i in range(len(dof_names_list))
-            },
-        )
+        if robot_type == "a2_piper":
+            actuators = {
+                "hips": ImplicitActuatorCfg(
+                    joint_names_expr=[
+                        "FL_hip_joint",
+                        "FR_hip_joint",
+                        "RL_hip_joint",
+                        "RR_hip_joint",
+                    ],
+                    effort_limit_sim=120.0,
+                    velocity_limit_sim=22.0,
+                    stiffness=140.0,
+                    damping=4.5,
+                    armature=0.03,
+                    friction=0.0,
+                ),
+                "thighs": ImplicitActuatorCfg(
+                    joint_names_expr=[
+                        "FL_thigh_joint",
+                        "FR_thigh_joint",
+                        "RL_thigh_joint",
+                        "RR_thigh_joint",
+                    ],
+                    effort_limit_sim=120.0,
+                    velocity_limit_sim=22.0,
+                    stiffness=140.0,
+                    damping=4.5,
+                    armature=0.03,
+                    friction=0.0,
+                ),
+                "calfs": ImplicitActuatorCfg(
+                    joint_names_expr=[
+                        "FL_calf_joint",
+                        "FR_calf_joint",
+                        "RL_calf_joint",
+                        "RR_calf_joint",
+                    ],
+                    effort_limit_sim=180.0,
+                    velocity_limit_sim=14.6667,
+                    stiffness=220.0,
+                    damping=9.0,
+                    armature=0.03,
+                    friction=0.0,
+                ),
+                "arm": ImplicitActuatorCfg(
+                    joint_names_expr=["arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5"],
+                    effort_limit_sim=100.0,
+                    velocity_limit_sim=5.0,
+                    stiffness=80.0,
+                    damping=4.0,
+                    armature=0.0,
+                    friction=0.0,
+                ),
+                "arm_wrist": ImplicitActuatorCfg(
+                    joint_names_expr=["arm_j6"],
+                    effort_limit_sim=100.0,
+                    velocity_limit_sim=3.0,
+                    stiffness=60.0,
+                    damping=3.0,
+                    armature=0.0,
+                    friction=0.0,
+                ),
+                "gripper_hold": ImplicitActuatorCfg(
+                    joint_names_expr=["arm_j7", "arm_j8"],
+                    effort_limit_sim=10.0,
+                    velocity_limit_sim=1.0,
+                    stiffness=40.0,
+                    damping=1.0,
+                    armature=0.0,
+                    friction=0.0,
+                ),
+            }
+        else:
+            stiffness_dict = {".*" + key + ".*": value for key, value in stiffness_dict.items()}
+            damping_dict = {".*" + key + ".*": value for key, value in damping_dict.items()}
+            actuators = dict()
+            actuators["all"] = ImplicitActuatorCfg(
+                joint_names_expr=[dof_names_list[i] for i in range(len(dof_names_list))],
+                effort_limit_sim={
+                    dof_names_list[i]: dof_effort_limit_list[i]
+                    for i in range(len(dof_names_list))
+                },
+                velocity_limit_sim={
+                    dof_names_list[i]: dof_vel_limit_list[i] for i in range(len(dof_names_list))
+                },
+                # stiffness=0,
+                # damping=0,
+                stiffness=stiffness_dict,
+                damping=damping_dict,
+                armature={
+                    dof_names_list[i]: dof_armature_list[i] * 3
+                    for i in range(len(dof_names_list))
+                },
+                friction={
+                    dof_names_list[i]: dof_joint_friction_list[i] * 0
+                    for i in range(len(dof_names_list))
+                },
+            )
         logger.warning(f"dof_armature_list {dof_armature_list}")
         logger.warning(f"dof_joint_friction_list {dof_joint_friction_list}")
 

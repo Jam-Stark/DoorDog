@@ -99,8 +99,9 @@ simulator:
       env_spacing: 20.0
     sim:
       physx:
-        num_position_iterations: 8
-        num_velocity_iterations: 4
+        num_position_iterations: 4
+        num_velocity_iterations: 0
+        max_depenetration_velocity: 300.0
 
 robot:
   asset:

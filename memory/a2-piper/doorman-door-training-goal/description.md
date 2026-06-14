@@ -2,7 +2,7 @@
 name: doorman-door-training-goal
 scope: A2_Piper long-term goal for Doorman-based robot replacement and door-opening training
 status: active
-last_updated: 2026-06-14 17:48 HKT
+last_updated: 2026-06-14 20:54 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/doorman-door-training-goal/description.md
@@ -73,6 +73,9 @@ read_when:
 - 2026-06-13 22:13 HKT - 完成 A2_Base observation slice `50:52` parity：新增 `_get_a2_base_roll_pitch()` 显式返回 `self.rpy[:, 0:2]`，语义为 `[base_roll, base_pitch]` rad，无 scale，并由 `_get_a2_base_obs_frame()` 写入 frame `[50:52]`。
 - 2026-06-14 17:22 HKT - 完成 A2_Base observation slice `52:54` parity：DoorDog direct path 新增 LMP-style gait phase buffer、`common_step_counter` at-most-once update guard、reset initial phase/last step pinning 与 standing command phase reset；`_get_a2_base_obs_frame()` 现在用 `_get_a2_gait_clock_signal()` 写入 `clock_inputs`。
 - 2026-06-14 17:48 HKT - 新增 standalone full Isaac Sim GUI A2_Base flat-ground locomotion smoke/monitor：`gr00t/rl/scripts/smoke_a2_base_flat_walk.py` 只加载 A2_Piper USD、A2_Base TorchScript policy 与 metadata，在 flat ground 上按 `54D x 30` history contract 直接驱动 12D leg action，不启动 PPO/DAgger/DoorPregrasp/door high-level checkpoint。命令约定为 `--base-command-raw` raw high-level base command、`--base-command-physical` physical `[vx, vy, yaw]`，兼容 `--command` 作为 physical alias；默认 raw `[1,0,0]` 对应 physical `vx=0.25 m/s`。
+- 2026-06-14 18:27 HKT - 完成 A2_Piper USD Plant 对齐 LMP Stage1：保持 USD entrypoint，不切 URDF；`a2_piper_physics.usd`、preview/flat-walk `build_a2_piper_robot_cfg()`、A2 door training `isaacsim.py` runtime override、A2 robot YAML 与 exp PhysX override 均对齐 LMP Stage1-equivalent physics/control plant，避免旧 preview plant 覆盖 flat-walk smoke 或后续 door env。
+- 2026-06-14 18:37 HKT - 用户在 full Isaac Sim GUI monitor 中确认 A2_Base flat-walk 已能正常 walk；A2_Base observation/action build line 与 USD plant 对齐被标记为成功，可作为 Doorman 原 G1/HOMIE locomotion policy 的替代基础。下一阶段转入 door-opening training policy 的 task observation/action 设计，以及将原 G1 reward 适配为 A2+Piper reward。
+- 2026-06-14 20:54 HKT - 已完成 G1 Doorman stage0 baseline reward/transition summary，输出到 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md`；该文档总结 stage0 `STAGE_WALK_TO_DOOR` 的 active rewards、global penalties、stage0 -> stage1 advance condition 与 A2+Piper 迁移启发，供后续 stage0 reward adaptation 使用。
 
 ## Action Progress Snapshot
 
@@ -82,6 +85,7 @@ read_when:
 - 2026-06-12 22:59 HKT - 当前 validation boundary：已通过 `py_compile`、YAML/static metadata checks、TorchScript fake inference `[N,1620] -> [N,12]`、fake compose `[N,10]+[N,12]->[N,20]` 与 reviewer double check；未启动 PPO/train，也未启动 Isaac Sim/env smoke。下一步应接续 full task observation/reward 替换，再做 env/train smoke。
 - 2026-06-12 23:05 HKT - 当前 action entrypoint names：`+exp=wbmanip/door_open_a2_base_lstm`、`/env: door_open_a2_base`、`/obs: wbmanip/door_open_a2_base`、`/rewards: wbmanip/reward_door_open_a2_base`、`/trainer: trl_a2_base_api`。
 - 2026-06-12 23:17 HKT - Train smoke 溯源提醒：若后续 Hydra compose、Python import、checkpoint resume 或 log path 出现 `door_open_homie*`、`trl_homie_api`、`ppo_trainer_homie_api`、`homie_base` 相关 missing target / stale import / config not found，应优先回查 2026-06-12 23:05 HKT 的 action entrypoint rename；当前 canonical A2 entrypoint 是 `+exp=wbmanip/door_open_a2_base_lstm`，对应 env/obs/reward/trainer/source 均为 `a2_base` 命名。
+- 2026-06-14 18:37 HKT - A2_Base locomotion replacement status：frozen A2_Base policy、`54D x 30` dog obs adapter、`12D` leg action remap、Piper arm/gripper action composition、USD LMP Stage1 plant 与 flat-walk full GUI visual check 已共同通过 milestone；后续 door policy 可把 A2_Base 当作 stable locomotion layer，而不是继续维护 G1/HOMIE lower-body path。
 
 ## Observation Replacement Goal
 
@@ -106,16 +110,18 @@ Implementation reminder:
 - 当前 Doorman/A2 path 是否继续沿用 direct env obs hooks、引入 manager-based adapter、或做 wrapper bridge，需要等用户逐项给出详细逻辑后再定；不要在未确认 workflow 差异前直接大改 observation runtime。
 - A2_Base manager-based training source: `/home/baoquanc/workspace/LMP/source/LMP/LMP/tasks/manager_based/lmp_manager/lmp_manager_env_cfg.py`。后续每个 field implementation 前，应先提取训练时对应 `ObsTerm`/helper/config 的数据源、scale、update timing、history/clock/action buffer 语义，再映射到 DoorDog 当前 `door_open_a2_base` direct path。
 
+2026-06-14 18:37 HKT - A2_Base low-level dog observation/action migration 已由用户 visual monitor 标记为成功；后续 `Observation Replacement Goal` 的主语切换为 door-opening training policy 的 task-level observation/action：Piper arm/gripper proprioception、EE/handle/door state、door/handle task frame、normalization、actor/critic obs contract，以及 high-level door policy action surface。
+
 ## TODO Summary
 
-- 2026-06-12 18:02 HKT - 后续训练阶段需在 preview 基础上设计 training-grade A2_Piper kinematics/collision/control mapping，并决定是否复用/替换现有 simulator `robot.asset.usd_file` loader。
-- 2026-06-12 22:41 HKT - 后续 observation 目标：在已完成 `a2_base_obs` low-level adapter 之外，继续设计 training-grade A2_Piper task observation，覆盖 Piper arm/gripper proprioception、EE/handle/door state、door/handle task frame、normalization 与 actor/critic obs contract。
+- 2026-06-14 18:27 HKT - A2_Piper USD physics/control plant 已对齐 LMP Stage1；剩余 training-grade kinematics/collision mapping TODO 收窄为 door-task contact body selection、Piper EE/handle frame、arm/gripper contact semantics 与 reward/observation 侧验证。
+- 2026-06-14 18:37 HKT - Door policy observation/action TODO：基于已成功的 A2_Base locomotion layer，设计 training-grade A2_Piper door-opening task observation 与 high-level action surface，覆盖 Piper arm/gripper proprioception、EE/handle/door state、door/handle task frame、normalization、actor/critic obs contract、base command、arm command 与 gripper primitive 的 policy interface。
 - 2026-06-13 21:15 HKT - Observation migration workflow TODO：每个 A2_Base obs field 实现前，先从 LMP manager-based training source `lmp_manager_env_cfg.py` 及其 helper 中确认训练时计算/更新逻辑，再给出 DoorDog 当前 direct path 的实现方案；长期协作 subagent Bella 负责辅助提取/总结这部分来源逻辑。
-- 2026-06-12 16:59 HKT - 设计 door-opening reward spec，覆盖 approach、handle interaction、door progress、success condition、termination、penalty 与 reward weights。
+- 2026-06-14 18:37 HKT - A2+Piper reward adaptation TODO：将原 G1/HOMIE-oriented door reward 改为适配 A2+Piper，重新设计/替换 approach、Piper EE/handle interaction、gripper/contact semantics、door progress、success condition、termination、safety penalty 与 reward weights。
+- 2026-06-14 20:54 HKT - Stage0 reward migration TODO：以后设计 A2+Piper stage0 reward/transition 时，优先参考 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 中的 G1 baseline 表格，并逐项替换 G1 upper-body/finger/HOMIE-specific terms。
 - 2026-06-12 18:02 HKT - 在 preview-only env 之后继续接入并验证 training env config、training config、smoke test 与 eval workflow，形成可重复的训练入口。
 - 2026-06-12 23:17 HKT - 后续 train smoke 若遇到 Hydra/import/checkpoint resume 指向旧 `homie` entrypoint 的错误，先按 action entrypoint rename 记录检查命令、config defaults、`_target_`、log/checkpoint metadata 是否仍引用旧名。
 - 2026-06-12 19:35 HKT - 后续若 `door_open_a2_base.py::_reset_root_states` 的 Doorman stage-0 hardcoded x/y/yaw bounds 改动，需同步更新 A2_Piper preview local constants 与 README，避免 placement bounds preview 漂移。
-- 2026-06-14 17:48 HKT - 后续由 main/user 在可交互 full GUI Isaac Sim session 运行 `smoke_a2_base_flat_walk.py`，观察 flat-ground A2_Base stability、root velocity tracking 与 action norm；本 worker 仅做 py_compile、`--help`、metadata/policy fake inference 等非 GUI 验证，不启动 full GUI。
 
 ## DONE Summary
 
@@ -146,6 +152,9 @@ Implementation reminder:
 - 2026-06-13 22:13 HKT - 完成 A2_Base observation slice `50:52` parity：`_get_a2_base_roll_pitch()` 对齐 LMP `base_roll_pitch()` 的 roll then pitch 语义，DoorDog direct path 使用 `LeggedRobotBase` 已维护的 `self.rpy[:, 0:2]` 写入 frame `[50:52]`；验证通过 `py_compile`、A2Base fake tensor smoke 与 `git diff --check`，未启动 PPO/Isaac Sim。
 - 2026-06-14 17:22 HKT - 完成 A2_Base observation slice `52:54` parity：新增 direct gait phase buffer `_a2_gait_phase` 与 `_a2_gait_last_update_step`，按 LMP `GaitPhaseCommand` 语义在每个 `common_step_counter` 最多 advance 一次，standing physical command phase reset 为 0，`clock_inputs` 输出 `[sin(2*pi*phase), cos(2*pi*phase)]`；验证通过 `py_compile`、A2Base fake tensor smoke、YAML/static grep 与 `git diff --check`，未启动 PPO/Isaac Sim。
 - 2026-06-14 17:48 HKT - 完成 standalone full GUI A2_Base flat walk smoke entrypoint：`smoke_a2_base_flat_walk.py` 复用 preview AppLauncher/toolbar guard/logical `cuda:0` fail-fast/cleanup 思路与 A2_Piper robot cfg，构建 flat scene（ground、dome light、robot only），按 metadata leg order name-based remap policy action 到 simulator joint targets，并在 `gr00t/rl/scripts/README.md` 记录 launch command 与 raw/physical command convention；未启动 full GUI。
+- 2026-06-14 18:27 HKT - 完成 A2_Piper USD Plant 对齐 LMP Stage1：保持 `UsdFileCfg`/`a2_piper.usd` entrypoint，不切 URDF；patch `configuration/a2_piper_physics.usd` articulation/rigid/drive attrs，并同步 preview/flat-walk builder、A2 door training runtime overrides、robot YAML 与 README。当前 USD readback 确认 self-collision enabled、solver `4/0`、sleep `0.005`、stabilization `0.001`、rigid max velocity `1000.0`、depenetration `300.0`、damping `0.0`、force-style neutral drive；training-grade kinematics/collision TODO 已收窄到 door-task contact body 与 EE/handle frame 验证。
+- 2026-06-14 18:37 HKT - 用户 full GUI monitor 确认 A2_Base flat-walk 已能正常 walk；A2_Base observation/action build 与 USD LMP Stage1 plant 对齐整体标记为成功，当前可替代 G1/HOMIE locomotion policy。后续工作切换到 door-opening policy 的 task observation/action 与 A2+Piper reward adaptation。
+- 2026-06-14 20:54 HKT - 完成 G1 Doorman stage0 reward/transition 人类可读表格：`scriptsFORhuman/g1_doorman_stage0_reward_transition.md`，作为 A2+Piper stage0 reward adaptation 的 baseline reference。
 
 ## Recommended Next Files To Read
 

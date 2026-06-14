@@ -114,6 +114,27 @@ A2_PIPER_VELOCITY_LIMITS = {
     "arm_j8": 1.0,
 }
 
+A2_PIPER_HIP_JOINT_NAMES = [
+    "FL_hip_joint",
+    "FR_hip_joint",
+    "RL_hip_joint",
+    "RR_hip_joint",
+]
+A2_PIPER_THIGH_JOINT_NAMES = [
+    "FL_thigh_joint",
+    "FR_thigh_joint",
+    "RL_thigh_joint",
+    "RR_thigh_joint",
+]
+A2_PIPER_CALF_JOINT_NAMES = [
+    "FL_calf_joint",
+    "FR_calf_joint",
+    "RL_calf_joint",
+    "RR_calf_joint",
+]
+A2_PIPER_ARM_JOINT_NAMES = ["arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6"]
+A2_PIPER_GRIPPER_JOINT_NAMES = ["arm_j7", "arm_j8"]
+
 
 def yaw_to_wxyz(yaw: float) -> tuple[float, float, float, float]:
     half_yaw = 0.5 * yaw
@@ -185,18 +206,22 @@ def build_a2_piper_robot_cfg(
             usd_path=str(usd_path.resolve()),
             activate_contact_sensors=False,
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
+                rigid_body_enabled=True,
                 disable_gravity=False,
                 retain_accelerations=False,
                 linear_damping=0.0,
                 angular_damping=0.0,
                 max_linear_velocity=1000.0,
                 max_angular_velocity=1000.0,
-                max_depenetration_velocity=1.0,
+                max_depenetration_velocity=300.0,
             ),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                enabled_self_collisions=False,
-                solver_position_iteration_count=8,
-                solver_velocity_iteration_count=4,
+                enabled_self_collisions=True,
+                solver_position_iteration_count=4,
+                solver_velocity_iteration_count=0,
+                sleep_threshold=0.005,
+                stabilization_threshold=0.001,
+                articulation_enabled=True,
             ),
         ),
         init_state=ArticulationCfg.InitialStateCfg(
@@ -207,29 +232,60 @@ def build_a2_piper_robot_cfg(
         ),
         soft_joint_pos_limit_factor=0.9,
         actuators={
-            "all": ImplicitActuatorCfg(
-                joint_names_expr=A2_PIPER_DOF_NAMES,
-                effort_limit_sim=A2_PIPER_EFFORT_LIMITS,
-                velocity_limit_sim=A2_PIPER_VELOCITY_LIMITS,
-                stiffness={
-                    ".*hip.*": 80.0,
-                    ".*thigh.*": 80.0,
-                    ".*calf.*": 80.0,
-                    "arm_j[1-4]": 40.0,
-                    "arm_j[5-6]": 20.0,
-                    "arm_j[7-8]": 1000.0,
-                },
-                damping={
-                    ".*hip.*": 4.0,
-                    ".*thigh.*": 4.0,
-                    ".*calf.*": 4.0,
-                    "arm_j[1-4]": 2.0,
-                    "arm_j[5-6]": 1.0,
-                    "arm_j[7-8]": 10.0,
-                },
-                armature={joint_name: 0.003 for joint_name in A2_PIPER_DOF_NAMES},
-                friction={joint_name: 0.0 for joint_name in A2_PIPER_DOF_NAMES},
-            )
+            "hips": ImplicitActuatorCfg(
+                joint_names_expr=A2_PIPER_HIP_JOINT_NAMES,
+                effort_limit_sim=120.0,
+                velocity_limit_sim=22.0,
+                stiffness=140.0,
+                damping=4.5,
+                armature=0.03,
+                friction=0.0,
+            ),
+            "thighs": ImplicitActuatorCfg(
+                joint_names_expr=A2_PIPER_THIGH_JOINT_NAMES,
+                effort_limit_sim=120.0,
+                velocity_limit_sim=22.0,
+                stiffness=140.0,
+                damping=4.5,
+                armature=0.03,
+                friction=0.0,
+            ),
+            "calfs": ImplicitActuatorCfg(
+                joint_names_expr=A2_PIPER_CALF_JOINT_NAMES,
+                effort_limit_sim=180.0,
+                velocity_limit_sim=14.6667,
+                stiffness=220.0,
+                damping=9.0,
+                armature=0.03,
+                friction=0.0,
+            ),
+            "arm": ImplicitActuatorCfg(
+                joint_names_expr=A2_PIPER_ARM_JOINT_NAMES[:5],
+                effort_limit_sim=100.0,
+                velocity_limit_sim=5.0,
+                stiffness=80.0,
+                damping=4.0,
+                armature=0.0,
+                friction=0.0,
+            ),
+            "arm_wrist": ImplicitActuatorCfg(
+                joint_names_expr=[A2_PIPER_ARM_JOINT_NAMES[5]],
+                effort_limit_sim=100.0,
+                velocity_limit_sim=3.0,
+                stiffness=60.0,
+                damping=3.0,
+                armature=0.0,
+                friction=0.0,
+            ),
+            "gripper_hold": ImplicitActuatorCfg(
+                joint_names_expr=A2_PIPER_GRIPPER_JOINT_NAMES,
+                effort_limit_sim=10.0,
+                velocity_limit_sim=1.0,
+                stiffness=40.0,
+                damping=1.0,
+                armature=0.0,
+                friction=0.0,
+            ),
         },
     )
 

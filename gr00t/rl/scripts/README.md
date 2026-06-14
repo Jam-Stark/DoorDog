@@ -37,6 +37,7 @@ In this default bounds mode, `--root-x`, `--root-y`, and `--root-yaw` still appl
 For a preview-only range around the current `--root-*` pose instead, pass `--placement-bounds root-centered`; then `--placement-x-half-range 0.35`, `--placement-y-half-range 0.35`, and `--placement-yaw-half-range 0.25` are applied around the root center.
 Use `--placement-corner-yaws uniform` to keep all four robots at `--root-yaw` instead of showing yaw min/max.
 The preview requires `gr00t/rl/data/robots/A2_Piper/a2_piper.usd`; if it is missing, the entrypoint fails fast and prints the conversion command instead of falling back to G1.
+The A2_Piper USD asset, door scene preview, flat-walk smoke, and A2 door training config now share the USD-based LMP Stage1-equivalent physics/control plant: self-collision enabled, solver `4/0`, rigid depenetration `300.0`, zero rigid damping, force-style neutral USD drives, and LMP actuator gains/armatures.
 In livestream/headless Kit runtimes without `omni.kit.widget.toolbar`, the preview logs a warning and skips IsaacLab toolbar button hiding while continuing scene creation.
 For livestream/headless camera preview, the script uses an existing rendering Kit path and does not copy Kit files into the IsaacLab checkout.
 

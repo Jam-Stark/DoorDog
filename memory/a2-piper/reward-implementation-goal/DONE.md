@@ -1,0 +1,13 @@
+# DONE
+
+- 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。
+- 2026-06-15 14:32 HKT - 在 `door_open_a2_base.py` 中给 `walk_to_door` 与 `penalty_face_door` 加注释，标记这两个 G1-derived reward 第一版 stage0 pass，并记录 target parameterization 与 yaw-only/heading-offset 两种未来改法。
+- 2026-06-15 14:55 HKT - 实现 A2 `pregrasp_gripper_dof_pos_l1` 与 `penalty_upper_body_non_gripper_deviation_l1`：reward config 启用 G1-equivalent scales，A2 reward 使用 actual gripper close tracking，upper-body non-gripper index 与 stage0 transition 均排除 gripper DOF。
+- 2026-06-15 14:59 HKT - 按 reviewer 二轮意见修正 reward curriculum membership：upper-body non-gripper penalty 从 `reward_penalty_reward_names` 移除，pregrasp gripper positive shaping 继续保留，保持 G1-equivalent curriculum 行为。
+- 2026-06-15 15:16 HKT - 删除旧 `pregrasp_finger_dof_pos_l1` / `penalty_upper_body_non_finger_deviation_l1` legacy reward methods 与 G1 finger fallback；在 A2 gripper/non-gripper reward 函数中标记 stage0 `PASS`，并在 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 表格中新增 `A2适配状态` 列，将 4 个已适配 reward 标记为 `PASS`。
+- 2026-06-15 16:59 HKT - 完成 A2 global/stage0 reward PASS 第二批：DOF safety 使用 non-gripper arm index，door frame/panel contact 与 stage flow reward 标记 PASS，`penalty_homie_action_limit` 迁移为 `penalty_base_command_limit`，并将 `penalty_undesired_contact` 调整为 deferred/disabled。
+- 2026-06-15 20:21 HKT - 启用 A2 `penalty_undesired_contact`：`penalize_contacts_on` 使用用户给定的 trunk、leg links 与 non-gripper Piper arm links，并通过 A2-only exact match flag 避免包含 gripper links；reward scale 对齐 G1 原版 `-0.2`，并在 transition 表格标记 PASS。
+- 2026-06-15 21:05 HKT - 完成两项 deferred reward 替换：新增 A2 raw `limits_gripper_primitive_action` reward 与 LMP-style `ref_dof_legs` reward/config，reward YAML 启用 `-1.0` / `0.25`，transition 表格标记 PASS，且两者不加入 `reward_penalty_reward_names`。
+- 2026-06-15 21:24 HKT - 记录 gripper primitive/reward future work：当前 1D binary primitive 不改代码；下一版优先 continuous aperture primitive，并在 grasp reward 中避免奖励 fully closed target，改用 aperture/contact/force/handle stability 约束。
+- 2026-06-15 21:29 HKT - 修正 continuous gripper primitive future design：采用“raw 越界记录 -> runtime clamp -> clipped 映射 aperture”的原版 primitive 思路，`limits_gripper_primitive_action` 后续应惩罚 raw 越界量，控制目标只使用 clipped action。
+- 2026-06-15 22:33 HKT - 完成 A2 stage0/global 剩余 reward/termination 适配：`penalty_delta_action_rate` 标记 PASS 并说明 6D Piper `arm_j1..arm_j6` delta smoothing；active `penalty_upright` 替换为 LMP-style `orientation_control: -5.0`；termination 对齐 LMP `root_height_below_minimum=0.30` 与 `bad_orientation=0.9`，并保持 arm overspeed 只检查 `_upper_non_gripper_dof_idx`。

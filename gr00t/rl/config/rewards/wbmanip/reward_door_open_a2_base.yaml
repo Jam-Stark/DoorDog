@@ -15,18 +15,18 @@ rewards:
 
       termination: -1000.0
       limits_dof_pos: -5.0
-      limits_primitive_action: 0.0
+      limits_gripper_primitive_action: -1.0
       # limits_dof_vel: -5.0
       # limits_torque: -0.1
 
       # walk to door
       walk_to_door: 5.0
-      penalty_upper_body_non_finger_deviation_l1: 0.0
+      penalty_upper_body_non_gripper_deviation_l1: -1.0
       penalty_face_door: -1.0
 
       # pregrasp
       hand_handle_orientation: 0.0
-      pregrasp_finger_dof_pos_l1: 0.0
+      pregrasp_gripper_dof_pos_l1: 1.5
       penalty_unused_dof_deviation_l1: 0.0
       pregrasp_target_distance: 0.0
       penalty_not_standing_still: -15.0
@@ -50,14 +50,14 @@ rewards:
       stage: 1.0
       complete: 4.0
       success_save_time: 0.5
-      penalty_humanly_dof_limit: 0.0
+      ref_dof_legs: 0.25
       penalty_door_frame_contact: -0.1
       penalty_door_panel_contact: -0.1
       # penalty_homie_action_rate: -1.0
-      penalty_homie_action_limit: -1.0
+      penalty_base_command_limit: -1.0
       penalty_undesired_contact: -0.2
       penalty_dof_overspeed: -0.1
-      penalty_upright: -1.0
+      orientation_control: -5.0
       # penalty_upper_body_dof_vel: -0.1
       # penalty_overtime: -1.0
       # transition: 50.0
@@ -107,7 +107,7 @@ rewards:
 
       # pregrasp
       "hand_handle_orientation",
-      "pregrasp_finger_dof_pos_l1",
+      "pregrasp_gripper_dof_pos_l1",
       "pregrasp_target_distance",
 
       # grasp

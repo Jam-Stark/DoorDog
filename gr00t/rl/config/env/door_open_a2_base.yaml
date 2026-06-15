@@ -31,7 +31,7 @@ env:
       termination_close_to_torque_limit : 0.98
       termination_gravity_x : 0.5
       termination_gravity_y : 0.5
-      termination_min_base_height : 0.5
+      termination_min_base_height : 0.3
       termination_contact_force : 10.0
     termination_probality:
       terminate_when_close_to_dof_pos_limit: 0.25
@@ -73,11 +73,19 @@ env:
       command_obs_multipliers: [2.0, 2.0, 0.25]
       base_command_obs_multipliers: [2.0, 2.0, 0.25]
       body_pitch_roll_scale: 0.4
+      bad_orientation_limit_angle: 0.9
       gait_frequency: 2.0
       gait_initial_phase: 0.0
       gait_standing_command_thresholds: [0.1, 0.1, 0.2]
+      ref_dof_legs_sigma: 0.1
+      ref_dof_legs_phase_offset: 0.5
+      ref_dof_legs_target_joint_pos_thd: 0.1
+      ref_dof_legs_target_joint_pos_scale: 0.35
+      ref_dof_legs_calf_scale_factor: 2.0
       gripper_close_target: [0.0, 0.0]
       gripper_open_target: [0.035, -0.035]
+      gripper_primitive_limit: 1.0
+      gripper_primitive_limit_tolerance: 1.1
       policy_leg_order: [
         "FL_hip_joint", "FR_hip_joint", "RL_hip_joint", "RR_hip_joint",
         "FL_thigh_joint", "FR_thigh_joint", "RL_thigh_joint", "RR_thigh_joint",

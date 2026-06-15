@@ -180,6 +180,33 @@ class A2Base(LeggedRobotBase):
         self._a2_gait_standing_command_thresholds = (
             self._a2_gait_standing_command_thresholds.reshape(3)
         )
+        self._a2_ref_dof_legs_sigma = float(a2_config.get("ref_dof_legs_sigma", 0.1))
+        if self._a2_ref_dof_legs_sigma <= 0.0:
+            raise ValueError(
+                f"A2_Base ref_dof_legs_sigma must be positive, got {self._a2_ref_dof_legs_sigma}"
+            )
+        self._a2_ref_dof_legs_phase_offset = float(
+            a2_config.get("ref_dof_legs_phase_offset", 0.5)
+        )
+        self._a2_ref_dof_legs_target_joint_pos_thd = float(
+            a2_config.get("ref_dof_legs_target_joint_pos_thd", 0.1)
+        )
+        self._a2_ref_dof_legs_target_joint_pos_scale = float(
+            a2_config.get("ref_dof_legs_target_joint_pos_scale", 0.35)
+        )
+        if self._a2_ref_dof_legs_target_joint_pos_scale < 0.0:
+            raise ValueError(
+                "A2_Base ref_dof_legs_target_joint_pos_scale must be non-negative, got "
+                f"{self._a2_ref_dof_legs_target_joint_pos_scale}"
+            )
+        self._a2_ref_dof_legs_calf_scale_factor = float(
+            a2_config.get("ref_dof_legs_calf_scale_factor", 2.0)
+        )
+        if self._a2_ref_dof_legs_calf_scale_factor < 0.0:
+            raise ValueError(
+                "A2_Base ref_dof_legs_calf_scale_factor must be non-negative, got "
+                f"{self._a2_ref_dof_legs_calf_scale_factor}"
+            )
         if (
             "command_scale" in a2_config
             and "base_command_scale" in a2_config
@@ -191,6 +218,33 @@ class A2Base(LeggedRobotBase):
             )
         self._a2_base_command_scale = float(
             a2_config.get("command_scale", a2_config.get("base_command_scale", 0.25))
+        )
+        self._clip_homie_command = bool(self.config.get("clip_homie_command", False))
+        if self._clip_homie_command:
+            a2_base_command_low_thres = [
+                -self.config.clip_homie_linvel_x_threshold,
+                -self.config.clip_homie_linvel_y_threshold,
+                -self.config.clip_homie_angvel_threshold,
+            ]
+            a2_base_command_high_thres = [
+                self.config.clip_homie_linvel_x_threshold,
+                self.config.clip_homie_linvel_y_threshold,
+                self.config.clip_homie_angvel_threshold,
+            ]
+        else:
+            a2_base_command_low_thres = [-float("inf"), -float("inf"), -float("inf")]
+            a2_base_command_high_thres = [float("inf"), float("inf"), float("inf")]
+        self._a2_base_command_low_thres = torch.tensor(
+            a2_base_command_low_thres,
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=False,
+        )
+        self._a2_base_command_high_thres = torch.tensor(
+            a2_base_command_high_thres,
+            device=self.device,
+            dtype=torch.float,
+            requires_grad=False,
         )
         self._a2_body_pitch_roll_scale = float(a2_config.get("body_pitch_roll_scale", 0.4))
         if self._a2_body_pitch_roll_scale <= 0.0:
@@ -255,11 +309,30 @@ class A2Base(LeggedRobotBase):
             dtype=torch.float,
             requires_grad=False,
         )
+        self._a2_gripper_primitive_limit = float(
+            a2_config.get("gripper_primitive_limit", 1.0)
+        )
+        if self._a2_gripper_primitive_limit <= 0.0:
+            raise ValueError(
+                "A2_Base gripper_primitive_limit must be positive, got "
+                f"{self._a2_gripper_primitive_limit}"
+            )
+        self._a2_gripper_primitive_limit_tolerance = float(
+            a2_config.get("gripper_primitive_limit_tolerance", 1.1)
+        )
+        if self._a2_gripper_primitive_limit_tolerance <= 0.0:
+            raise ValueError(
+                "A2_Base gripper_primitive_limit_tolerance must be positive, got "
+                f"{self._a2_gripper_primitive_limit_tolerance}"
+            )
         self._last_a2_leg_actions = torch.zeros(
             self.num_envs, self._a2_leg_action_dim, device=self.device, requires_grad=False
         )
         self._a2_base_command_raw = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False
+        )
+        self._a2_gripper_primitive_raw = torch.zeros(
+            self.num_envs, 1, device=self.device, requires_grad=False
         )
         self._a2_gait_phase = torch.zeros(
             self.num_envs, device=self.device, requires_grad=False
@@ -302,6 +375,7 @@ class A2Base(LeggedRobotBase):
             LeggedRobotBase._reset_buffers_callback(self, env_ids, target_buf)
             self._last_a2_leg_actions[env_ids, :] = 0.0
             self._a2_base_command_raw[env_ids, :] = 0.0
+            self._a2_gripper_primitive_raw[env_ids, :] = 0.0
             self._a2_gait_phase[env_ids] = self._a2_gait_initial_phase
             self._a2_gait_last_update_step[env_ids] = self._get_a2_gait_current_step()
             self._a2_body_pitch_roll_raw[env_ids, :] = 0.0
@@ -398,6 +472,7 @@ class A2Base(LeggedRobotBase):
         raw_base_action = high_level_actions[:, 0:3]
         arm_actions = high_level_actions[:, 3:9]
         gripper_primitive = high_level_actions[:, 9:10]
+        self._a2_gripper_primitive_raw[:] = gripper_primitive
         leg_actions = actions[:, -self._a2_leg_action_dim :]
 
         final_actions = torch.zeros(
@@ -416,10 +491,21 @@ class A2Base(LeggedRobotBase):
         ) / self.config.robot.control.action_scale
         final_actions[:, self._a2_gripper_dof_indices] = gripper_raw
 
+        scaled_base_command_raw = raw_base_action * self._a2_base_command_scale
+        if self._clip_homie_command:
+            scaled_base_command = torch.clamp(
+                scaled_base_command_raw,
+                self._a2_base_command_low_thres.to(dtype=actions.dtype),
+                self._a2_base_command_high_thres.to(dtype=actions.dtype),
+            )
+        else:
+            scaled_base_command = scaled_base_command_raw
+
         self._a2_base_command_raw[:] = raw_base_action
         self._homie_commands[:, :] = 0.0
-        self._homie_commands[:, :3] = raw_base_action * self._a2_base_command_scale
-        self._homie_commands_unclipped[:] = self._homie_commands
+        self._homie_commands_unclipped[:, :] = 0.0
+        self._homie_commands_unclipped[:, :3] = scaled_base_command_raw
+        self._homie_commands[:, :3] = scaled_base_command
         self._homie_actions[:] = leg_actions
         self._last_a2_leg_actions[:] = leg_actions
 
@@ -465,8 +551,23 @@ class A2Base(LeggedRobotBase):
     def _reward_penalty_homie_action_rate(self):
         return torch.sum(torch.square(self._last_homie_commands - self._homie_commands), dim=1)
 
+    def _reward_penalty_base_command_limit(self):
+        return torch.sum(
+            torch.square(self._homie_commands_unclipped[:, :3] - self._homie_commands[:, :3]),
+            dim=1,
+        )
+
     def _reward_penalty_homie_action_limit(self):
+        if self._use_a2_base:
+            return self._reward_penalty_base_command_limit()
         return torch.sum(torch.square(self._homie_commands_unclipped - self._homie_commands), dim=1)
+
+    def _reward_limits_gripper_primitive_action(self):
+        limit = (
+            self._a2_gripper_primitive_limit
+            * self._a2_gripper_primitive_limit_tolerance
+        )
+        return torch.relu(torch.abs(self._a2_gripper_primitive_raw) - limit).squeeze(-1)
 
     def get_physical_homie_commands(self):
         commands = self._homie_commands.clone()
@@ -530,9 +631,7 @@ class A2Base(LeggedRobotBase):
             requires_grad=False,
         )
         commands[:, 0:3] = (
-            self._a2_base_command_raw
-            * self._a2_base_command_scale
-            * self._a2_base_command_obs_multipliers[None, :]
+            self._homie_commands[:, :3] * self._a2_base_command_obs_multipliers[None, :]
         )
         commands[:, 3:5] = self._a2_body_pitch_roll_raw * self._a2_body_pitch_roll_scale
         return commands
@@ -553,7 +652,7 @@ class A2Base(LeggedRobotBase):
         return int(getattr(self, "common_step_counter", 0))
 
     def _get_a2_gait_standing_mask(self):
-        physical_command = self._a2_base_command_raw * self._a2_base_command_scale
+        physical_command = self._homie_commands[:, :3]
         thresholds = self._a2_gait_standing_command_thresholds.to(
             dtype=physical_command.dtype
         )
@@ -588,6 +687,59 @@ class A2Base(LeggedRobotBase):
                 torch.cos(2.0 * torch.pi * self._a2_gait_phase),
             ],
             dim=1,
+        )
+
+    def _get_a2_ref_dof_legs(self):
+        ref_dof = self.default_dof_pos[:, self._a2_leg_sim_indices]
+        if ref_dof.shape[0] == 1:
+            ref_dof = ref_dof.repeat(self.num_envs, 1)
+        elif ref_dof.shape[0] == self.num_envs:
+            ref_dof = ref_dof.clone()
+        else:
+            raise ValueError(
+                "A2_Base default_dof_pos batch dim must be 1 or num_envs, got "
+                f"{ref_dof.shape[0]} for num_envs={self.num_envs}"
+            )
+        # Use the cached gait phase; gait clock observation owns phase advancement.
+        phase = self._a2_gait_phase.to(dtype=ref_dof.dtype)
+        foot_phase = torch.remainder(
+            torch.stack(
+                [
+                    phase + self._a2_ref_dof_legs_phase_offset,
+                    phase,
+                    phase,
+                    phase + self._a2_ref_dof_legs_phase_offset,
+                ],
+                dim=1,
+            ),
+            1.0,
+        )
+        sin_wave = torch.sin(2.0 * torch.pi * foot_phase)
+        swing_mask = sin_wave > 0.0
+        threshold = torch.tensor(
+            self._a2_ref_dof_legs_target_joint_pos_thd,
+            device=self.device,
+            dtype=ref_dof.dtype,
+        ).clamp(-0.99, 0.99)
+        lift = torch.clamp(sin_wave - threshold, min=0.0) / (1.0 - threshold)
+        lift = torch.where(swing_mask, lift, torch.zeros_like(lift))
+        standing_mask = self._get_a2_gait_standing_mask()
+        lift = torch.where(standing_mask[:, None], torch.zeros_like(lift), lift)
+
+        ref_dof[:, 4:8] += lift * self._a2_ref_dof_legs_target_joint_pos_scale
+        ref_dof[:, 8:12] -= (
+            lift
+            * self._a2_ref_dof_legs_target_joint_pos_scale
+            * self._a2_ref_dof_legs_calf_scale_factor
+        )
+        return ref_dof
+
+    def _reward_ref_dof_legs(self):
+        current_dof = self.simulator.dof_pos[:, self._a2_leg_sim_indices]
+        ref_dof = self._get_a2_ref_dof_legs()
+        return torch.exp(
+            -torch.sum(torch.square(current_dof - ref_dof), dim=1)
+            / self._a2_ref_dof_legs_sigma
         )
 
     def _get_a2_base_obs_frame(self):

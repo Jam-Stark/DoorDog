@@ -182,6 +182,7 @@ source/
 .DS_Store
 sim_dependencies/
 .venv/*
+${data}
 
 
 # Mujoco

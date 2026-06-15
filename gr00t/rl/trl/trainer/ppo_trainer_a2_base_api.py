@@ -78,6 +78,9 @@ class PolicyAndValueWrapper(nn.Module):
         a2_base_frame_dim=54,
         a2_base_action_dim=12,
         a2_base_action_sigma=0.0,
+        a2_base_command_clip_enabled=False,
+        a2_base_command_clip_low=None,
+        a2_base_command_clip_high=None,
     ) -> None:
         super().__init__()
         self.policy = policy
@@ -92,11 +95,24 @@ class PolicyAndValueWrapper(nn.Module):
         self.a2_base_frame_dim = a2_base_frame_dim
         self.a2_base_action_dim = a2_base_action_dim
         self.a2_base_action_sigma = a2_base_action_sigma
+        self.a2_base_command_clip_enabled = a2_base_command_clip_enabled
         if a2_base_command_multipliers is None:
             a2_base_command_multipliers = [2.0, 2.0, 0.25]
         self.register_buffer(
             "a2_base_command_multipliers",
             torch.tensor(a2_base_command_multipliers, dtype=torch.float32),
+        )
+        if a2_base_command_clip_low is None:
+            a2_base_command_clip_low = [-float("inf"), -float("inf"), -float("inf")]
+        if a2_base_command_clip_high is None:
+            a2_base_command_clip_high = [float("inf"), float("inf"), float("inf")]
+        self.register_buffer(
+            "a2_base_command_clip_low",
+            torch.tensor(a2_base_command_clip_low, dtype=torch.float32),
+        )
+        self.register_buffer(
+            "a2_base_command_clip_high",
+            torch.tensor(a2_base_command_clip_high, dtype=torch.float32),
         )
         self.opt_homie = False
         self.homie_switch_threshold = 0.5
@@ -146,8 +162,15 @@ class PolicyAndValueWrapper(nn.Module):
         command_scale = self.a2_base_command_multipliers.to(
             device=flat_obs.device, dtype=flat_obs.dtype
         )
+        scaled_base_command = flat_high_level_actions[:, :3] * self.a2_base_command_scale
+        if self.a2_base_command_clip_enabled:
+            scaled_base_command = torch.clamp(
+                scaled_base_command,
+                self.a2_base_command_clip_low.to(device=flat_obs.device, dtype=flat_obs.dtype),
+                self.a2_base_command_clip_high.to(device=flat_obs.device, dtype=flat_obs.dtype),
+            )
         flat_obs[:, final_frame_start + 39 : final_frame_start + 42] = (
-            flat_high_level_actions[:, :3] * self.a2_base_command_scale * command_scale
+            scaled_base_command * command_scale
         )
         # Keep [42:44] from env obs; future 12D door action can fill body pitch/roll here.
         with torch.no_grad():
@@ -582,6 +605,9 @@ class TRLPPOTrainer(PPOTrainer):
         self.a2_base_command_scale = 0.25
         self.a2_base_command_multipliers = [2.0, 2.0, 0.25]
         self.a2_base_action_sigma = 0.0
+        self.a2_base_command_clip_enabled = False
+        self.a2_base_command_clip_low = None
+        self.a2_base_command_clip_high = None
 
         if self.use_a2_base:
             a2_base_config = self.config.get("a2_base", {})
@@ -624,6 +650,20 @@ class TRLPPOTrainer(PPOTrainer):
                 )
             )
             self.a2_base_action_sigma = float(a2_base_config.get("action_sigma", 0.0))
+            self.a2_base_command_clip_enabled = bool(
+                self.env.config.get("clip_homie_command", False)
+            )
+            if self.a2_base_command_clip_enabled:
+                self.a2_base_command_clip_low = [
+                    -float(self.env.config.clip_homie_linvel_x_threshold),
+                    -float(self.env.config.clip_homie_linvel_y_threshold),
+                    -float(self.env.config.clip_homie_angvel_threshold),
+                ]
+                self.a2_base_command_clip_high = [
+                    float(self.env.config.clip_homie_linvel_x_threshold),
+                    float(self.env.config.clip_homie_linvel_y_threshold),
+                    float(self.env.config.clip_homie_angvel_threshold),
+                ]
             self.a2_base_model = torch.jit.load(a2_base_policy_path, map_location=self.device)
             self.a2_base_model.eval()
             self.a2_base_model.to(self.device)
@@ -686,6 +726,9 @@ class TRLPPOTrainer(PPOTrainer):
             a2_base_frame_dim=self.a2_base_frame_dim,
             a2_base_action_dim=self.a2_base_action_dim,
             a2_base_action_sigma=self.a2_base_action_sigma,
+            a2_base_command_clip_enabled=self.a2_base_command_clip_enabled,
+            a2_base_command_clip_low=self.a2_base_command_clip_low,
+            a2_base_command_clip_high=self.a2_base_command_clip_high,
         )
         if self.use_a2_base:
             self.homie_switch_threshold = 0.0

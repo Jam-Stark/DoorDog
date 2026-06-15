@@ -255,9 +255,21 @@ class BaseTask(gym.Env):
     def _setup_robot_body_indices(self):
         feet_names = [s for s in self.body_names if self.config.robot.foot_name in s]
         knee_names = [s for s in self.body_names if self.config.robot.knee_name in s]
+        penalize_contacts_exact_match = self.config.robot.get(
+            "penalize_contacts_exact_match", False
+        )
         penalized_contact_names = []
         for name in self.config.robot.penalize_contacts_on:
-            penalized_contact_names.extend([s for s in self.body_names if name in s])
+            if penalize_contacts_exact_match:
+                exact_matches = [s for s in self.body_names if name == s]
+                if not exact_matches:
+                    raise ValueError(
+                        "config.robot.penalize_contacts_on exact match failed for "
+                        f"{name!r}. Available body_names: {self.body_names}"
+                    )
+                penalized_contact_names.extend(exact_matches)
+            else:
+                penalized_contact_names.extend([s for s in self.body_names if name in s])
         termination_contact_names = []
         for name in self.config.robot.terminate_after_contacts_on:
             termination_contact_names.extend([s for s in self.body_names if name in s])

@@ -2,7 +2,7 @@
 name: doorman-door-training-goal
 scope: A2_Piper long-term goal for Doorman-based robot replacement and door-opening training
 status: active
-last_updated: 2026-06-14 20:54 HKT
+last_updated: 2026-06-15 21:29 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/doorman-door-training-goal/description.md
@@ -76,6 +76,7 @@ read_when:
 - 2026-06-14 18:27 HKT - 完成 A2_Piper USD Plant 对齐 LMP Stage1：保持 USD entrypoint，不切 URDF；`a2_piper_physics.usd`、preview/flat-walk `build_a2_piper_robot_cfg()`、A2 door training `isaacsim.py` runtime override、A2 robot YAML 与 exp PhysX override 均对齐 LMP Stage1-equivalent physics/control plant，避免旧 preview plant 覆盖 flat-walk smoke 或后续 door env。
 - 2026-06-14 18:37 HKT - 用户在 full Isaac Sim GUI monitor 中确认 A2_Base flat-walk 已能正常 walk；A2_Base observation/action build line 与 USD plant 对齐被标记为成功，可作为 Doorman 原 G1/HOMIE locomotion policy 的替代基础。下一阶段转入 door-opening training policy 的 task observation/action 设计，以及将原 G1 reward 适配为 A2+Piper reward。
 - 2026-06-14 20:54 HKT - 已完成 G1 Doorman stage0 baseline reward/transition summary，输出到 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md`；该文档总结 stage0 `STAGE_WALK_TO_DOOR` 的 active rewards、global penalties、stage0 -> stage1 advance condition 与 A2+Piper 迁移启发，供后续 stage0 reward adaptation 使用。
+- 2026-06-14 21:48 HKT - 新增 dedicated reward memory entry：`memory/a2-piper/reward-implementation-goal/description.md`。接下来 reward 小目标收窄为实现 global rewards 和 stage0-enabled rewards；reward 迁移必须遵守 IsaacLab direct workflow，必要时分别让 Bella/Galileo 核查 LMP manager-based source logic，让 Ava 核查 Doorman origin-code logic。
 
 ## Action Progress Snapshot
 
@@ -86,6 +87,7 @@ read_when:
 - 2026-06-12 23:05 HKT - 当前 action entrypoint names：`+exp=wbmanip/door_open_a2_base_lstm`、`/env: door_open_a2_base`、`/obs: wbmanip/door_open_a2_base`、`/rewards: wbmanip/reward_door_open_a2_base`、`/trainer: trl_a2_base_api`。
 - 2026-06-12 23:17 HKT - Train smoke 溯源提醒：若后续 Hydra compose、Python import、checkpoint resume 或 log path 出现 `door_open_homie*`、`trl_homie_api`、`ppo_trainer_homie_api`、`homie_base` 相关 missing target / stale import / config not found，应优先回查 2026-06-12 23:05 HKT 的 action entrypoint rename；当前 canonical A2 entrypoint 是 `+exp=wbmanip/door_open_a2_base_lstm`，对应 env/obs/reward/trainer/source 均为 `a2_base` 命名。
 - 2026-06-14 18:37 HKT - A2_Base locomotion replacement status：frozen A2_Base policy、`54D x 30` dog obs adapter、`12D` leg action remap、Piper arm/gripper action composition、USD LMP Stage1 plant 与 flat-walk full GUI visual check 已共同通过 milestone；后续 door policy 可把 A2_Base 当作 stable locomotion layer，而不是继续维护 G1/HOMIE lower-body path。
+- 2026-06-15 21:29 HKT - Future action work：当前 Piper gripper dim `9` 的 1D binary primitive 是 minimum viable 版本（`>0` open target，`<=0` close target）。下一版建议改为 continuous aperture primitive，并恢复原版 `FingerPrimitiveBase` 的安全思想：先记录 raw 越界量，再 clamp runtime action，最后用 clipped value 映射 gripper target。推荐语义为 `raw = high_level_actions[:, 9:10]`；`over_limit = relu(abs(raw) - 1.1)` 供 `limits_gripper_primitive_action` 使用；`clipped = raw.clamp(-1.0, 1.0)`；`alpha = (clipped + 1.0) * 0.5`；`target = close_target + alpha * (open_target - close_target)`。这表示 `raw=-1` close/min aperture、`raw=0` half aperture、`raw=+1` fully open；若后续确需 discrete primitive，可在 continuous `alpha` 上 quantize 到 `0/25/50/75/100%` bins，但优先保持 PPO-friendly continuous action surface。
 
 ## Observation Replacement Goal
 
@@ -119,6 +121,7 @@ Implementation reminder:
 - 2026-06-13 21:15 HKT - Observation migration workflow TODO：每个 A2_Base obs field 实现前，先从 LMP manager-based training source `lmp_manager_env_cfg.py` 及其 helper 中确认训练时计算/更新逻辑，再给出 DoorDog 当前 direct path 的实现方案；长期协作 subagent Bella 负责辅助提取/总结这部分来源逻辑。
 - 2026-06-14 18:37 HKT - A2+Piper reward adaptation TODO：将原 G1/HOMIE-oriented door reward 改为适配 A2+Piper，重新设计/替换 approach、Piper EE/handle interaction、gripper/contact semantics、door progress、success condition、termination、safety penalty 与 reward weights。
 - 2026-06-14 20:54 HKT - Stage0 reward migration TODO：以后设计 A2+Piper stage0 reward/transition 时，优先参考 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 中的 G1 baseline 表格，并逐项替换 G1 upper-body/finger/HOMIE-specific terms。
+- 2026-06-14 21:48 HKT - Reward implementation workflow TODO：后续 global/stage0 reward 设计、实现、review 前先读 `memory/a2-piper/reward-implementation-goal/description.md`，并按该 entry 中的 Bella/Galileo、Ava 与 IsaacLab direct workflow 约束执行。
 - 2026-06-12 18:02 HKT - 在 preview-only env 之后继续接入并验证 training env config、training config、smoke test 与 eval workflow，形成可重复的训练入口。
 - 2026-06-12 23:17 HKT - 后续 train smoke 若遇到 Hydra/import/checkpoint resume 指向旧 `homie` entrypoint 的错误，先按 action entrypoint rename 记录检查命令、config defaults、`_target_`、log/checkpoint metadata 是否仍引用旧名。
 - 2026-06-12 19:35 HKT - 后续若 `door_open_a2_base.py::_reset_root_states` 的 Doorman stage-0 hardcoded x/y/yaw bounds 改动，需同步更新 A2_Piper preview local constants 与 README，避免 placement bounds preview 漂移。
@@ -155,6 +158,7 @@ Implementation reminder:
 - 2026-06-14 18:27 HKT - 完成 A2_Piper USD Plant 对齐 LMP Stage1：保持 `UsdFileCfg`/`a2_piper.usd` entrypoint，不切 URDF；patch `configuration/a2_piper_physics.usd` articulation/rigid/drive attrs，并同步 preview/flat-walk builder、A2 door training runtime overrides、robot YAML 与 README。当前 USD readback 确认 self-collision enabled、solver `4/0`、sleep `0.005`、stabilization `0.001`、rigid max velocity `1000.0`、depenetration `300.0`、damping `0.0`、force-style neutral drive；training-grade kinematics/collision TODO 已收窄到 door-task contact body 与 EE/handle frame 验证。
 - 2026-06-14 18:37 HKT - 用户 full GUI monitor 确认 A2_Base flat-walk 已能正常 walk；A2_Base observation/action build 与 USD LMP Stage1 plant 对齐整体标记为成功，当前可替代 G1/HOMIE locomotion policy。后续工作切换到 door-opening policy 的 task observation/action 与 A2+Piper reward adaptation。
 - 2026-06-14 20:54 HKT - 完成 G1 Doorman stage0 reward/transition 人类可读表格：`scriptsFORhuman/g1_doorman_stage0_reward_transition.md`，作为 A2+Piper stage0 reward adaptation 的 baseline reference。
+- 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。
 
 ## Recommended Next Files To Read
 

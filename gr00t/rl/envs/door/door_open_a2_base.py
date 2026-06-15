@@ -86,6 +86,7 @@ class DoorPregrasp(
             for i in self.upper_dof_indices
             if i not in self._left_hand_dof_idx and i not in self._right_hand_dof_idx
         ]
+        self._upper_non_gripper_dof_idx = list(self._upper_non_finger_dof_idx)
 
         # read the door metadata
         stage: Usd.Stage = omni.usd.get_context().get_stage()
@@ -222,6 +223,12 @@ class DoorPregrasp(
         self._init_door_metadata()
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
         self._upper_non_finger_dof_idx = list(self.upper_dof_indices)
+        gripper_dof_indices = set(self._a2_gripper_dof_indices.tolist())
+        self._upper_non_gripper_dof_idx = [
+            int(dof_idx)
+            for dof_idx in self.upper_dof_indices
+            if int(dof_idx) not in gripper_dof_indices
+        ]
         self._left_arm_dof_idx = torch.tensor(self.arm_dof_indices[:6], device=self.device)
         self._right_arm_dof_idx = torch.tensor(self.arm_dof_indices[:6], device=self.device)
         self.finger_dof_idx = torch.empty(0, dtype=torch.long, device=self.device)
@@ -300,6 +307,9 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
+        # A2 stage0 pass: keep the G1 Doorman door-root velocity shaping for the first
+        # reward smoke. Future option: parameterize this target as door_root,
+        # grasp_target, or a Piper-specific approach_anchor.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
         door_root_pos = self.simulator.get_task_root_state("door")[:, :3].clone()
         door_root_pos[:, 2] = current_root_pos[:, 2]
@@ -318,33 +328,36 @@ class DoorPregrasp(
         )
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_THROUGH])
-    def _reward_penalty_upper_body_non_finger_deviation_l1(self):
-        """Maintain upper body pose during walking to the door"""
+    def _reward_penalty_upper_body_non_gripper_deviation_l1(self):
+        """A2 stage0 PASS: replace G1 non-finger penalty with Piper arm_j1..j6 shaping."""
+        # Exclude arm_j7/arm_j8 so gripper open/close does not affect arm pose shaping.
         return torch.abs(
-            self.simulator.dof_pos[:, self._upper_non_finger_dof_idx]
-            - self.resting_dof_pos[:, self._upper_non_finger_dof_idx]
+            self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
+            - self.resting_dof_pos[:, self._upper_non_gripper_dof_idx]
         ).sum(dim=-1)
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_THROUGH])
-    def _reward_pregrasp_finger_dof_pos_l1(self):
-        if self._use_a2_base:
-            return torch.zeros(self.num_envs, device=self.device)
-        left_diff = self.simulator.dof_pos[:, self._left_hand_dof_idx] - self._left_p0
-        right_diff = self.simulator.dof_pos[:, self._right_hand_dof_idx] - self._right_p0
-        left_vel = self.simulator.dof_vel[:, self._left_hand_dof_idx] * torch.sign(left_diff)
-        right_vel = self.simulator.dof_vel[:, self._right_hand_dof_idx] * torch.sign(right_diff)
-
-        pos_diff = torch.where(self.door_open_lr[:, None] < 0, left_diff, right_diff)
+    def _reward_pregrasp_gripper_dof_pos_l1(self):
+        """A2 stage0 PASS: replace G1 finger shaping with Piper gripper close tracking."""
+        gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
+        gripper_vel = self.simulator.dof_vel[:, self._a2_gripper_dof_indices]
+        target = self._a2_gripper_close_target
+        span = (self._a2_gripper_open_target - target).abs().clamp_min(1.0e-4)
         pos_track = self._tracking_reward_util(
-            pos_diff, std=0.3, target=0.0, scale=1.0, offset=0.0
+            (gripper_pos - target[None, :]) / span[None, :],
+            std=0.25,
+            target=0.0,
+            scale=1.0,
+            offset=0.0,
         ).mean(dim=-1)
-
-        vel_diff = torch.where(self.door_open_lr[:, None] < 0, left_vel, right_vel)
         vel_track = self._tracking_reward_util(
-            vel_diff, std=0.2, target=0.6, scale=1.0, offset=0.0
+            gripper_vel / span[None, :],
+            std=0.5,
+            target=0.0,
+            scale=1.0,
+            offset=0.0,
         ).mean(dim=-1)
-
-        return (pos_track + vel_track).clamp(max=1.0)
+        return (pos_track + 0.2 * vel_track).clamp(max=1.0)
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_penalty_unused_dof_deviation_l1(self):
@@ -643,6 +656,8 @@ class DoorPregrasp(
 
     @override
     def _reward_limits_dof_pos(self):
+        # A2 global PASS: use A2 arm body DOF / Piper arm_j1..j6 safety,
+        # excluding arm_j7/arm_j8 gripper DOFs.
         # Penalize dof positions too close to the limit
         if self.use_reward_limits_dof_pos_curriculum:
             m = (
@@ -656,9 +671,11 @@ class DoorPregrasp(
             upper_soft_limit = self.simulator.dof_pos_limits[:, 1]
         out_of_limits = -(self.simulator.dof_pos - lower_soft_limit).clip(max=0.0)  # lower limit
         out_of_limits += (self.simulator.dof_pos - upper_soft_limit).clip(min=0.0)
-        return torch.sum(out_of_limits[:, self._upper_non_finger_dof_idx], dim=1)
+        return torch.sum(out_of_limits[:, self._upper_non_gripper_dof_idx], dim=1)
 
     def _reward_penalty_humanly_dof_limit(self):
+        # A2 reward YAML no longer enables this G1 humanoid-specific posture limit;
+        # A2 replaces it with the positive LMP-style ref_dof_legs prior.
         lower_limit_violations = -1.0 * (
             self.simulator.dof_pos - self.dof_pos_humanly_lower_limit
         ).clip(max=0.0).sum(dim=-1)
@@ -668,12 +685,16 @@ class DoorPregrasp(
         return lower_limit_violations + upper_limit_violations
 
     def _reward_penalty_door_frame_contact(self):
+        # A2 global PASS: A2 scene callback creates the same door frame contact sensor
+        # before the A2 branch returns, so the G1 door-contact penalty is reusable.
         door_frame_unwanted_contact_forces = self.simulator.scene.sensors[
             "door_frame_unwanted_contact_sensor"
         ].data.net_forces_w
         return door_frame_unwanted_contact_forces.norm(dim=-1).sum(dim=-1)
 
     def _reward_penalty_door_panel_contact(self):
+        # A2 global PASS: A2 scene callback creates the same door panel contact sensor
+        # before the A2 branch returns, so the G1 door-contact penalty is reusable.
         door_panel_unwanted_contact_forces = self.simulator.scene.sensors[
             "door_panel_unwanted_contact_sensor"
         ].data.net_forces_w
@@ -686,6 +707,9 @@ class DoorPregrasp(
         [STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH]
     )
     def _reward_penalty_face_door(self):
+        # A2 stage0 pass: keep the G1 Doorman full root-to-door orientation penalty
+        # for the first reward smoke. Future option: switch to yaw-only heading
+        # error or add a desired heading offset if A2 needs a non-square stance.
         return wrap_to_pi(
             axis_angle_from_quat(xyzw_to_wxyz(self.relative_door_rot_buf)).norm(dim=-1)
         )
@@ -698,20 +722,37 @@ class DoorPregrasp(
         rotated_vec = quat_apply(torso_quat_wxyz, upright_vec)
         return torch.sum(torch.square(rotated_vec - upright_vec), dim=-1)
 
+    def _reward_orientation_control(self):
+        # A2 global PASS: LMP-style body pitch/roll command tracking, reading the
+        # direct buffers without advancing A2 observation history or gait phase.
+        pitch_cmd = self._a2_body_pitch_roll_raw[:, 0] * self._a2_body_pitch_roll_scale
+        roll_cmd = self._a2_body_pitch_roll_raw[:, 1] * self._a2_body_pitch_roll_scale
+        desired_x = -torch.sin(pitch_cmd) * torch.cos(roll_cmd)
+        desired_y = torch.sin(roll_cmd)
+        desired_xy = torch.stack((desired_x, desired_y), dim=-1)
+        actual_xy = self.projected_gravity[:, :2]
+        return torch.sum(torch.square(actual_xy - desired_xy), dim=-1)
+
     @override
     def _reward_penalty_dof_acc(self):
+        # A2 global PASS: use A2 arm body DOF / Piper arm_j1..j6 safety,
+        # excluding arm_j7/arm_j8 gripper DOFs.
         return torch.sum(
-            torch.square(self.simulator.dof_acc[:, self._upper_non_finger_dof_idx]), dim=-1
+            torch.square(self.simulator.dof_acc[:, self._upper_non_gripper_dof_idx]), dim=-1
         )
 
     @override
     def _reward_penalty_dof_vel(self):
+        # A2 global PASS: use A2 arm body DOF / Piper arm_j1..j6 safety,
+        # excluding arm_j7/arm_j8 gripper DOFs.
         return torch.sum(
-            torch.square(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx]), dim=-1
+            torch.square(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]), dim=-1
         )
 
     @override
     def _reward_penalty_undesired_contact(self):
+        # A2 global PASS: uses A2-specific penalize_contacts_on body set with
+        # exact leg/base + non-gripper arm links, excluding gripper links.
         undesired_contact = torch.sum(
             torch.norm(self.simulator.contact_forces[:, self.penalised_contact_indices, :], dim=-1)
             > 1,
@@ -721,10 +762,12 @@ class DoorPregrasp(
         return undesired_contact
 
     def _reward_penalty_dof_overspeed(self):
+        # A2 global PASS: use A2 arm body DOF / Piper arm_j1..j6 safety,
+        # excluding arm_j7/arm_j8 gripper DOFs.
         return (
             torch.maximum(
-                torch.abs(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx]) - 2.0,
-                torch.zeros_like(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx]),
+                torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]) - 2.0,
+                torch.zeros_like(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]),
             )
             ** 2
         ).sum(dim=-1)
@@ -890,10 +933,19 @@ class DoorPregrasp(
     @override
     def _check_termination(self):
         super()._check_termination()
+        if self._use_a2_base:
+            a2_config = self.config.get("a2_base", {})
+            bad_orientation_limit_angle = float(
+                a2_config.get("bad_orientation_limit_angle", 0.9)
+            )
+            tilt = torch.acos(torch.clamp(-self.projected_gravity[:, 2], -1.0, 1.0))
+            self.reset_buf |= tilt > bad_orientation_limit_angle
+
         self.reset_buf |= self.relative_door_pos_buf.norm(dim=-1) > 4.0
 
+        # A2 arm body DOF / Piper arm_j1..j6 overspeed termination; gripper excluded.
         dof_overspeed = torch.any(
-            torch.abs(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx])
+            torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx])
             > self.termination_level * 20.0,
             dim=-1,
         )
@@ -924,11 +976,11 @@ class DoorPregrasp(
         root_pos[:, 2] = grasp_target[:, 2]
         cond = (root_pos - grasp_target).norm(dim=-1) < 0.3
 
-        # keep hands down
+        # keep A2 arm body DOF / Piper arm_j1..j6 down; gripper arm_j7/8 are excluded.
         max_deviation = (
             torch.abs(
-                self.simulator.dof_pos[:, self._upper_non_finger_dof_idx]
-                - self.resting_dof_pos[:, self._upper_non_finger_dof_idx]
+                self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
+                - self.resting_dof_pos[:, self._upper_non_gripper_dof_idx]
             )
             .max(dim=-1)
             .values

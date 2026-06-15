@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, especially global and stage0-enabled rewards
 status: active
-last_updated: 2026-06-15 22:33 HKT
+last_updated: 2026-06-15 22:44 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -25,6 +25,7 @@ read_when:
 - Scope 第一阶段只覆盖 global reward 和 stage0 reward；stage1/pregrasp、grasp、open、swing、through 的完整 reward adaptation 暂不作为本小目标验收标准。
 - Stage0 baseline reference: `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 已总结 G1 Doorman stage0 active rewards、global penalties 与 stage0 -> stage1 advance condition，可作为 A2+Piper stage0 reward adaptation 的对照表。
 - 2026-06-15 22:33 HKT - A2 stage0/global reward adaptation 第一版完成：`penalty_delta_action_rate` 标记 PASS，`penalty_upright` 替换为 LMP-style `orientation_control`，termination 完成 A2/LMP height/orientation/arm overspeed 适配。
+- 2026-06-15 22:44 HKT - 用户确认当前 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment，可作为后续训练 smoke 的 stage0/global reward baseline；下一步 reward work 转向 stage1+ 的 Piper EE/handle、gripper/contact、door progress 与 success shaping。
 
 ## Reward Term Decisions
 
@@ -45,6 +46,7 @@ read_when:
 - 2026-06-15 22:33 HKT - `penalty_delta_action_rate` 标记 A2 PASS：不改 `DeltaActionBase` runtime，当前 A2 语义由 `delta_action_indices=[3..8]` 决定，只平滑 Piper `arm_j1..arm_j6` 的 6D delta action，不覆盖 base command 或 gripper primitive。
 - 2026-06-15 22:33 HKT - `penalty_upright` 替换为 LMP-style `orientation_control`：读取 `_a2_body_pitch_roll_raw[:,0/1]` 作为 pitch/roll raw command，乘 `body_pitch_roll_scale` 后构造 desired XY `[-sin(pitch)*cos(roll), sin(roll)]`，再对 `projected_gravity[:,:2]` 做 squared error；reward scale 使用 LMP `-5.0`，不加入 `reward_penalty_reward_names`。当前 A2 high-level action 仍是 10D，暂未输出 pitch/roll，`_a2_body_pitch_roll_raw` 默认 zero。
 - 2026-06-15 22:33 HKT - Termination 完成 A2/LMP adjustment：`termination_min_base_height` 改为 `0.3`，A2 config 新增 `bad_orientation_limit_angle=0.9`，`DoorPregrasp._check_termination()` 在 `super()._check_termination()` 后显式检查 `acos(-projected_gravity[:,2]) > 0.9`；不启用 `terminate_by_gravity`，不改变 shared `LeggedRobotBase` termination 语义。arm overspeed termination 继续使用 `_upper_non_gripper_dof_idx`，只覆盖 Piper `arm_j1..arm_j6`，排除 gripper `arm_j7/arm_j8`。
+- 2026-06-15 22:44 HKT - Stage0/global reward baseline status：`scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 中 stage0 active terms 与主要 global terms 已标记 PASS 或 A2 replacement；仍需后续在 train/env smoke 中验证 reward magnitude、stage transition cadence、termination frequency 与 A2_Piper behavior。
 
 ## Engineering Constraints
 
@@ -85,3 +87,4 @@ read_when:
 - 2026-06-15 21:24 HKT - 记录 gripper primitive/reward future work：当前 1D binary primitive 不改代码；下一版优先 continuous aperture primitive，并在 grasp reward 中避免奖励 fully closed target，改用 aperture/contact/force/handle stability 约束。
 - 2026-06-15 21:29 HKT - 修正 continuous gripper primitive future design：采用“raw 越界记录 -> runtime clamp -> clipped 映射 aperture”的原版 primitive 思路，`limits_gripper_primitive_action` 后续应惩罚 raw 越界量，控制目标只使用 clipped action。
 - 2026-06-15 22:33 HKT - 完成 A2 stage0/global 剩余 reward/termination 适配：`penalty_delta_action_rate` 标记 PASS 并说明 6D Piper `arm_j1..arm_j6` delta smoothing；active `penalty_upright` 替换为 LMP-style `orientation_control: -5.0`；termination 对齐 LMP `root_height_below_minimum=0.30` 与 `bad_orientation=0.9`，并保持 arm overspeed 只检查 `_upper_non_gripper_dof_idx`。
+- 2026-06-15 22:44 HKT - 用户确认 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment；该状态已记录为 stage0/global reward baseline，后续 reward 重点转向 stage1+ interaction/progress/success terms 与 smoke 后的权重调参。

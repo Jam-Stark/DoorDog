@@ -2,7 +2,7 @@
 name: doorman-door-training-goal
 scope: A2_Piper long-term goal for Doorman-based robot replacement and door-opening training
 status: active
-last_updated: 2026-06-15 21:29 HKT
+last_updated: 2026-06-15 22:44 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/doorman-door-training-goal/description.md
@@ -77,6 +77,7 @@ read_when:
 - 2026-06-14 18:37 HKT - 用户在 full Isaac Sim GUI monitor 中确认 A2_Base flat-walk 已能正常 walk；A2_Base observation/action build line 与 USD plant 对齐被标记为成功，可作为 Doorman 原 G1/HOMIE locomotion policy 的替代基础。下一阶段转入 door-opening training policy 的 task observation/action 设计，以及将原 G1 reward 适配为 A2+Piper reward。
 - 2026-06-14 20:54 HKT - 已完成 G1 Doorman stage0 baseline reward/transition summary，输出到 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md`；该文档总结 stage0 `STAGE_WALK_TO_DOOR` 的 active rewards、global penalties、stage0 -> stage1 advance condition 与 A2+Piper 迁移启发，供后续 stage0 reward adaptation 使用。
 - 2026-06-14 21:48 HKT - 新增 dedicated reward memory entry：`memory/a2-piper/reward-implementation-goal/description.md`。接下来 reward 小目标收窄为实现 global rewards 和 stage0-enabled rewards；reward 迁移必须遵守 IsaacLab direct workflow，必要时分别让 Bella/Galileo 核查 LMP manager-based source logic，让 Ava 核查 Doorman origin-code logic。
+- 2026-06-15 22:44 HKT - 用户确认 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment：stage0 active terms、A2 arm/gripper replacement、base command limit、undesired contact、LMP-style `orientation_control`、height/orientation/arm overspeed termination 等已形成第一版 baseline；后续 reward 工作主要转向 stage1+ Piper EE/handle、gripper/contact、door progress、success 与 smoke 后调参。
 
 ## Action Progress Snapshot
 
@@ -119,9 +120,8 @@ Implementation reminder:
 - 2026-06-14 18:27 HKT - A2_Piper USD physics/control plant 已对齐 LMP Stage1；剩余 training-grade kinematics/collision mapping TODO 收窄为 door-task contact body selection、Piper EE/handle frame、arm/gripper contact semantics 与 reward/observation 侧验证。
 - 2026-06-14 18:37 HKT - Door policy observation/action TODO：基于已成功的 A2_Base locomotion layer，设计 training-grade A2_Piper door-opening task observation 与 high-level action surface，覆盖 Piper arm/gripper proprioception、EE/handle/door state、door/handle task frame、normalization、actor/critic obs contract、base command、arm command 与 gripper primitive 的 policy interface。
 - 2026-06-13 21:15 HKT - Observation migration workflow TODO：每个 A2_Base obs field 实现前，先从 LMP manager-based training source `lmp_manager_env_cfg.py` 及其 helper 中确认训练时计算/更新逻辑，再给出 DoorDog 当前 direct path 的实现方案；长期协作 subagent Bella 负责辅助提取/总结这部分来源逻辑。
-- 2026-06-14 18:37 HKT - A2+Piper reward adaptation TODO：将原 G1/HOMIE-oriented door reward 改为适配 A2+Piper，重新设计/替换 approach、Piper EE/handle interaction、gripper/contact semantics、door progress、success condition、termination、safety penalty 与 reward weights。
-- 2026-06-14 20:54 HKT - Stage0 reward migration TODO：以后设计 A2+Piper stage0 reward/transition 时，优先参考 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 中的 G1 baseline 表格，并逐项替换 G1 upper-body/finger/HOMIE-specific terms。
-- 2026-06-14 21:48 HKT - Reward implementation workflow TODO：后续 global/stage0 reward 设计、实现、review 前先读 `memory/a2-piper/reward-implementation-goal/description.md`，并按该 entry 中的 Bella/Galileo、Ava 与 IsaacLab direct workflow 约束执行。
+- 2026-06-15 22:44 HKT - A2+Piper reward adaptation TODO：stage0 reward 与大部分 global reward 已形成第一版 baseline；后续重点转向 stage1/pregrasp、grasp、open、swing、through 的 Piper EE/handle interaction、gripper/contact semantics、door progress、success condition 与 reward weights。
+- 2026-06-15 22:44 HKT - Reward implementation workflow TODO：后续 stage1+ reward 设计、实现、review 前仍先读 `memory/a2-piper/reward-implementation-goal/description.md`，并按 Bella/Galileo、Ava 与 IsaacLab direct workflow 约束执行；若新增 stage-specific transition doc，继续维护 `A2适配状态` 列。
 - 2026-06-12 18:02 HKT - 在 preview-only env 之后继续接入并验证 training env config、training config、smoke test 与 eval workflow，形成可重复的训练入口。
 - 2026-06-12 23:17 HKT - 后续 train smoke 若遇到 Hydra/import/checkpoint resume 指向旧 `homie` entrypoint 的错误，先按 action entrypoint rename 记录检查命令、config defaults、`_target_`、log/checkpoint metadata 是否仍引用旧名。
 - 2026-06-12 19:35 HKT - 后续若 `door_open_a2_base.py::_reset_root_states` 的 Doorman stage-0 hardcoded x/y/yaw bounds 改动，需同步更新 A2_Piper preview local constants 与 README，避免 placement bounds preview 漂移。
@@ -159,6 +159,7 @@ Implementation reminder:
 - 2026-06-14 18:37 HKT - 用户 full GUI monitor 确认 A2_Base flat-walk 已能正常 walk；A2_Base observation/action build 与 USD LMP Stage1 plant 对齐整体标记为成功，当前可替代 G1/HOMIE locomotion policy。后续工作切换到 door-opening policy 的 task observation/action 与 A2+Piper reward adaptation。
 - 2026-06-14 20:54 HKT - 完成 G1 Doorman stage0 reward/transition 人类可读表格：`scriptsFORhuman/g1_doorman_stage0_reward_transition.md`，作为 A2+Piper stage0 reward adaptation 的 baseline reference。
 - 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。
+- 2026-06-15 22:44 HKT - 用户确认 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment；长期 door-training 目标中的 reward work 从 stage0/global baseline 迁移收窄为 stage1+ interaction/progress/success reward 与 smoke 后权重调参。
 
 ## Recommended Next Files To Read
 

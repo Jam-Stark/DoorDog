@@ -33,3 +33,4 @@
 - 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。
 - 2026-06-15 21:24 HKT - 记录 gripper primitive future work：当前 1D binary primitive 保持 minimum viable，不做代码修改；后续优先迁移为 continuous aperture primitive，并保留旧 `0/negative close`、`+1 open` 语义。
 - 2026-06-15 21:29 HKT - 修正 continuous gripper primitive future design：采用“raw 越界记录 -> runtime clamp -> clipped 映射 aperture”的原版 primitive 思路，推荐 `alpha = (clipped + 1.0) * 0.5`，不再使用上一条记录中的 `alpha = clamp(raw, 0, 1)` 方案。
+- 2026-06-15 22:44 HKT - 用户确认 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment；长期 door-training 目标中的 reward work 从 stage0/global baseline 迁移收窄为 stage1+ interaction/progress/success reward 与 smoke 后权重调参。

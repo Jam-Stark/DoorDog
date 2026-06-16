@@ -63,15 +63,15 @@ env:
     a2_base:
       enabled: True
       metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
-      high_level_action_dim: 10
+      high_level_action_dim: 12
       leg_action_dim: 12
       obs_history_length: 30
       obs_frame_dim: 54
       command_scale: 0.25
       base_command_scale: 0.25
       dog_joint_vel_scale: 0.05
-      command_obs_multipliers: [2.0, 2.0, 0.25]
-      base_command_obs_multipliers: [2.0, 2.0, 0.25]
+      command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      base_command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
       body_pitch_roll_scale: 0.4
       bad_orientation_limit_angle: 0.9
       gait_frequency: 2.0
@@ -104,13 +104,13 @@ env:
     # no_reward_for_overtime: True
     stage_reward_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
-    delta_action_indices: [3, 4, 5, 6, 7, 8]
+    delta_action_indices: [5, 6, 7, 8, 9, 10]
     delta_action_scale: 0.3
     delta_action_clip: 15.0
     reset_delta_actions_with_backmap: True
 
     warped_action:
-      indices: [0, 1, 2]
+      indices: [0, 1, 2, 3, 4]
       k: 0.0
       s: 0.0
 

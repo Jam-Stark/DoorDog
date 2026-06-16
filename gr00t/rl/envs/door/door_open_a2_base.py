@@ -6,6 +6,7 @@ import omni.usd
 import torch
 import torch.nn.functional as F
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
+from isaaclab.sensors.frame_transformer import OffsetCfg
 from isaaclab.utils.math import (
     axis_angle_from_quat,
     euler_xyz_from_quat,
@@ -43,6 +44,7 @@ class DoorPregrasp(
     STAGE_OPEN = 3
     STAGE_SWING = 4
     STAGE_THROUGH = 5
+    A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -222,6 +224,20 @@ class DoorPregrasp(
     def _init_a2_door_pregrasp_state(self):
         self._init_door_metadata()
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
+        a2_gripper_body_names = ("arm_body7", "arm_body8")
+        missing_gripper_bodies = [
+            body_name
+            for body_name in a2_gripper_body_names
+            if body_name not in self.simulator.body_names
+        ]
+        if missing_gripper_bodies:
+            raise RuntimeError(
+                "A2 hand_force requires gripper contact bodies "
+                f"{a2_gripper_body_names}, missing {missing_gripper_bodies}"
+            )
+        self._a2_gripper_force_body_indices = [
+            self.simulator.body_names.index(body_name) for body_name in a2_gripper_body_names
+        ]
         self._upper_non_finger_dof_idx = list(self.upper_dof_indices)
         gripper_dof_indices = set(self._a2_gripper_dof_indices.tolist())
         self._upper_non_gripper_dof_idx = [
@@ -724,9 +740,10 @@ class DoorPregrasp(
 
     def _reward_orientation_control(self):
         # A2 global PASS: LMP-style body pitch/roll command tracking, reading the
-        # direct buffers without advancing A2 observation history or gait phase.
-        pitch_cmd = self._a2_body_pitch_roll_raw[:, 0] * self._a2_body_pitch_roll_scale
-        roll_cmd = self._a2_body_pitch_roll_raw[:, 1] * self._a2_body_pitch_roll_scale
+        # physical base command buffer without advancing A2 observation history or gait phase.
+        physical_base_command = self.get_physical_base_command()
+        pitch_cmd = physical_base_command[:, 3]
+        roll_cmd = physical_base_command[:, 4]
         desired_x = -torch.sin(pitch_cmd) * torch.cos(roll_cmd)
         desired_y = torch.sin(roll_cmd)
         desired_xy = torch.stack((desired_x, desired_y), dim=-1)
@@ -778,7 +795,10 @@ class DoorPregrasp(
 
     def _get_obs_hand_handle_transform(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, 18, device=self.device)
+            raise RuntimeError(
+                "A2 obs key 'hand_handle_transform' is legacy G1 compatibility. "
+                "Use 'gripper_handle_transform' in A2 configs."
+            )
         left_hand_pos = self.simulator.left_hand_transform_pos[:, 0, :]
         left_hand_rot_wxyz = self.simulator.left_hand_transform_rot[:, 0, :]
         left_hand_rot_6d = quat_to_tan_norm(wxyz_to_xyzw(left_hand_rot_wxyz), w_last=True)
@@ -789,9 +809,76 @@ class DoorPregrasp(
             [left_hand_pos, left_hand_rot_6d, right_hand_pos, right_hand_rot_6d], dim=-1
         )
 
+    def _get_a2_gripper_handle_frame_transformer(self):
+        sensor_name = self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER
+        try:
+            transformer = self.simulator.scene.sensors[sensor_name]
+        except (AttributeError, KeyError) as exc:
+            raise RuntimeError(
+                f"A2 requires scene sensor '{sensor_name}' for gripper_handle_transform "
+                "and grasp target helpers."
+            ) from exc
+
+        data = transformer.data
+        target_pos_w = getattr(data, "target_pos_w", None)
+        if target_pos_w is None or target_pos_w.ndim != 3 or target_pos_w.shape[1] != 2:
+            shape = None if target_pos_w is None else tuple(target_pos_w.shape)
+            raise RuntimeError(
+                f"A2 sensor '{sensor_name}' must expose exactly 2 target frames; "
+                f"target_pos_w shape is {shape}."
+            )
+
+        target_names = getattr(data, "target_frame_names", None)
+        expected_names = ["handle", "pregrasp"]
+        if target_names is not None and list(target_names) != expected_names:
+            raise RuntimeError(
+                f"A2 sensor '{sensor_name}' target order must be {expected_names}; "
+                f"got {list(target_names)}."
+            )
+        return transformer
+
+    def _get_obs_gripper_handle_transform(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "gripper_handle_transform is only defined for A2 Piper gripper observations."
+            )
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        target_quat_source = getattr(data, "target_quat_source", None)
+        if (
+            target_pos_source is None
+            or target_quat_source is None
+            or target_pos_source.ndim != 3
+            or target_quat_source.ndim != 3
+            or target_pos_source.shape[1] != 2
+            or target_quat_source.shape[1] != 2
+        ):
+            pos_shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            quat_shape = None if target_quat_source is None else tuple(target_quat_source.shape)
+            raise RuntimeError(
+                "A2 gripper_handle_transform requires 2 source-relative target poses; "
+                f"target_pos_source shape={pos_shape}, target_quat_source shape={quat_shape}."
+            )
+
+        handle_pos = target_pos_source[:, 0, :]
+        handle_rot_6d = quat_to_tan_norm(
+            wxyz_to_xyzw(target_quat_source[:, 0, :]), w_last=True
+        )
+        pregrasp_pos = target_pos_source[:, 1, :]
+        pregrasp_rot_6d = quat_to_tan_norm(
+            wxyz_to_xyzw(target_quat_source[:, 1, :]), w_last=True
+        )
+        return torch.cat([handle_pos, handle_rot_6d, pregrasp_pos, pregrasp_rot_6d], dim=-1)
+
     def _get_obs_hand_force(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, 48, device=self.device)
+            if not hasattr(self, "_a2_gripper_force_body_indices"):
+                raise RuntimeError(
+                    "A2 hand_force requires name-based gripper body indices for "
+                    "arm_body7 and arm_body8."
+                )
+            hand_force = self.simulator.contact_forces[:, self._a2_gripper_force_body_indices, :]
+            return hand_force.reshape(hand_force.shape[0], 6)
         left_hand_force = self.simulator.contact_forces[:, self.left_hand_indices, :]
         right_hand_force = self.simulator.contact_forces[:, self.right_hand_indices, :]
         return torch.cat(
@@ -835,9 +922,9 @@ class DoorPregrasp(
 
     def _compute_grasp_target(self):
         if self._use_a2_base:
-            grasp_target_pos_w = self.simulator.get_task_root_state("door")[:, :3].clone()
-            grasp_target_pos_w[:, 2] = self.door_handle_height
-            return grasp_target_pos_w
+            return self._get_a2_gripper_handle_frame_transformer().data.target_pos_w[
+                :, 0, :
+            ].clone()
         grasp_target_pos_w = (
             self.simulator.scene.sensors["right_hand_frame_transformer"]
             .data.target_pos_w[:, 0, :]
@@ -846,6 +933,10 @@ class DoorPregrasp(
         return grasp_target_pos_w
 
     def _compute_pre_grasp_target(self):
+        if self._use_a2_base:
+            return self._get_a2_gripper_handle_frame_transformer().data.target_pos_w[
+                :, 1, :
+            ].clone()
         grasp_target_pos_w = self._compute_grasp_target()
         grasp_target_pos_w[:, 2] += 0.1
         return grasp_target_pos_w
@@ -1108,12 +1199,15 @@ class DoorPregrasp(
         return (self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]) > 1.5
 
     def scene_creation_callback(self, simulator):
+        target_obj = simulator.task_config.get("target_obj", None)
+        if target_obj is None:
+            raise RuntimeError("DoorPregrasp scene creation requires task.target_obj.")
         door_frame_unwanted_contact_sensor_config: ContactSensorCfg = ContactSensorCfg(
-            prim_path=f"/World/envs/env_.*/{simulator.task_config.target_obj}/root",
+            prim_path=f"/World/envs/env_.*/{target_obj}/root",
         )
 
         door_panel_unwanted_contact_sensor_config: ContactSensorCfg = ContactSensorCfg(
-            prim_path=f"/World/envs/env_.*/{simulator.task_config.target_obj}/door_panel",
+            prim_path=f"/World/envs/env_.*/{target_obj}/door_panel",
         )
         simulator.scene.sensors["door_frame_unwanted_contact_sensor"] = ContactSensor(
             door_frame_unwanted_contact_sensor_config
@@ -1123,6 +1217,44 @@ class DoorPregrasp(
         )
 
         if self._use_a2_base:
+            target_sub_prim = simulator.task_config.get(
+                "target_obj_transform_sub_prim_path", None
+            )
+            if target_sub_prim != "grasp_target":
+                raise RuntimeError(
+                    "A2 Piper gripper-handle transformer requires "
+                    "task.target_obj_transform_sub_prim_path='grasp_target'; "
+                    f"got {target_sub_prim!r}."
+                )
+            target_obj_transform_prim_path = (
+                f"/World/envs/env_.*/{target_obj}/{target_sub_prim}"
+            )
+            piper_gripper_handle_frame_transformer_config: FrameTransformerCfg = (
+                FrameTransformerCfg(
+                    prim_path="/World/envs/env_.*/Robot/arm_body6_to_gripper",
+                    source_frame_offset=OffsetCfg(
+                        pos=(0.0, 0.0, 0.105),
+                        rot=(1.0, 0.0, 0.0, 0.0),
+                    ),
+                    target_frames=[
+                        FrameTransformerCfg.FrameCfg(
+                            prim_path=target_obj_transform_prim_path,
+                            name="handle",
+                        ),
+                        FrameTransformerCfg.FrameCfg(
+                            prim_path=target_obj_transform_prim_path,
+                            name="pregrasp",
+                            offset=OffsetCfg(
+                                pos=(0.0, 0.0, 0.10),
+                                rot=(1.0, 0.0, 0.0, 0.0),
+                            ),
+                        ),
+                    ],
+                )
+            )
+            simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = FrameTransformer(
+                piper_gripper_handle_frame_transformer_config
+            )
             return
 
         head_target_frame_transformer_config: FrameTransformerCfg = FrameTransformerCfg(

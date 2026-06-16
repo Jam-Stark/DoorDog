@@ -112,7 +112,7 @@ class DeltaActionBase(LeggedRobotBase):
                     .nonzero(as_tuple=False)
                     .squeeze(-1)
                 )
-                actor_state["actions"][zero_env_ids, 10] = 0.5
+                actor_state["actions"][zero_env_ids, 11] = 0.5
 
         if self.config.get("print_delta_actions", False):
             logger.info(f"policy actions: {self._last_delta_actions}")

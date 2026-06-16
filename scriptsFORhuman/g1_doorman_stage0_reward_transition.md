@@ -30,7 +30,7 @@
 | `stage` | `+1.0` | 是 | `_reward_stage()` 对当前 stage 的 reward condition 给常数 stage reward；stage0 condition 恒 True，且 `stage_reward_scale[0]=1.0` | flow reward，不是 pure alive bonus；在 stage0 中只要处于合法 stage，就给小正奖励 | PASS |
 | `penalty_dof_acc` | `-1.0e-5` | 是，全局 | 上身非手指 DOF acceleration squared sum | 平滑上身动作，降低抖动 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
 | `penalty_dof_vel` | `-1.0e-3` | 是，全局 | 上身非手指 DOF velocity squared sum | 抑制上身非手指关节高速运动 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
-| `penalty_delta_action_rate` | `-0.01` | 是，全局 | delta action buffer 的 squared sum | 抑制 high-level delta action 大幅跳变 | PASS：当前 A2 `delta_action_indices=[3..8]`，仅做 Piper `arm_j1..arm_j6` 的 6D delta action smoothing，不覆盖 base/gripper |
+| `penalty_delta_action_rate` | `-0.01` | 是，全局 | delta action buffer 的 squared sum | 抑制 high-level delta action 大幅跳变 | PASS：当前 A2 `delta_action_indices=[5..10]`，仅做 Piper `arm_j1..arm_j6` 的 6D delta action smoothing，不覆盖 5D base command 或 gripper primitive |
 | `limits_dof_pos` | `-5.0` | 是，全局 | 上身非手指 DOF 超出 soft joint position limit 的 violation sum | 防止上身关节靠近/越过 limit | PASS -> A2 non-gripper `arm_j1..arm_j6` |
 | `limits_primitive_action` | `-1.0` | 是，全局 | finger primitive action over-limit buffer sum | 防止手指 primitive action 超界 | PASS -> `limits_gripper_primitive_action`：raw A2 gripper primitive over-limit，不混用 actual gripper joint pose |
 | `penalty_humanly_dof_limit` | `-1.0` | 是，全局 | 全身 DOF 相对 humanly lower/upper limit 的 violation sum | 限制 G1 姿态在人形可接受范围内 | PASS -> `ref_dof_legs`：LMP gait ref prior，A2 weight `0.25` |
@@ -44,8 +44,8 @@
 
 ## A2 当前迁移摘要
 
-- `penalty_delta_action_rate` 不改运行逻辑：A2 stage0/global 语义是对 `delta_action_indices=[3..8]` 的 6D arm delta action smoothing，也就是 Piper `arm_j1..arm_j6`，不覆盖 base command 或 gripper primitive。
-- `penalty_upright` 不再 active；A2 使用 LMP-style `orientation_control`，从 `_a2_body_pitch_roll_raw` 读取 pitch/roll command，经 `body_pitch_roll_scale` 缩放后构造 desired gravity XY，当前 10D high-level action 暂未输出 pitch/roll，因此该 buffer 默认 zero。
+- `penalty_delta_action_rate` 不改运行逻辑：A2 stage0/global 语义是对 `delta_action_indices=[5..10]` 的 6D arm delta action smoothing，也就是 Piper `arm_j1..arm_j6`，不覆盖 5D base command 或 gripper primitive。
+- `penalty_upright` 不再 active；A2 使用 LMP-style `orientation_control`，从 5D physical base command tensor 的 `[pitch, roll]` 读取姿态命令；对应 Teacher obs public term 为 `a2_base_command`，经 `body_pitch_roll_scale=0.4` 缩放语义构造 desired gravity XY。当前 12D high-level action 已输出 pitch/roll raw dims `[3:5]`。
 - `termination` 对齐 A2/LMP：`termination_min_base_height=0.3`，显式 bad orientation check 使用 `acos(-projected_gravity[:,2]) > 0.9`，arm DOF overspeed 继续只覆盖 `_upper_non_gripper_dof_idx` / Piper `arm_j1..arm_j6`，排除 gripper `arm_j7/arm_j8`。
 
 ## Stage0 配置了但通常不是 Stage0 驱动信号的项

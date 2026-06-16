@@ -40,10 +40,11 @@ algo:
       obs_dim: 1620
       action_dim: 12
       command_scale: 0.25
-      command_multipliers: [2.0, 2.0, 0.25]
+      command_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      body_pitch_roll_scale: 0.4
       action_sigma: 0.0
-    homie_command_dim: 3
-    non_homie_command_actions_dim: 7  # 6D Piper arm + 1D gripper primitive
+    base_command_dim: 5
+    manipulation_action_dim: 7  # 6D Piper arm + 1D gripper primitive
     opt_homie: False
     desired_kl: 0.005
 
@@ -69,7 +70,7 @@ algo:
         module_config_dict:
           input_dim: [actor_obs]
           output_dim:
-            - ${eval:'${algo.config.homie_command_dim} + ${algo.config.non_homie_command_actions_dim}'}
+            - ${eval:'${algo.config.base_command_dim} + ${algo.config.manipulation_action_dim}'}
           layer_config:
             type: MLP
             hidden_dims: [512, 256, 128]

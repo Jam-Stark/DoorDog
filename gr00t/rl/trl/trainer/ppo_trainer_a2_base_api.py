@@ -73,6 +73,7 @@ class PolicyAndValueWrapper(nn.Module):
         ref_model=None,
         a2_base_model=None,
         a2_base_command_scale=0.25,
+        a2_base_body_pitch_roll_scale=0.4,
         a2_base_command_multipliers=None,
         a2_base_obs_dim=1620,
         a2_base_frame_dim=54,
@@ -91,21 +92,34 @@ class PolicyAndValueWrapper(nn.Module):
         self.a2_base_model = a2_base_model
         self.use_a2_base = a2_base_model is not None
         self.a2_base_command_scale = a2_base_command_scale
+        self.a2_base_body_pitch_roll_scale = a2_base_body_pitch_roll_scale
         self.a2_base_obs_dim = a2_base_obs_dim
         self.a2_base_frame_dim = a2_base_frame_dim
         self.a2_base_action_dim = a2_base_action_dim
         self.a2_base_action_sigma = a2_base_action_sigma
         self.a2_base_command_clip_enabled = a2_base_command_clip_enabled
         if a2_base_command_multipliers is None:
-            a2_base_command_multipliers = [2.0, 2.0, 0.25]
+            a2_base_command_multipliers = [2.0, 2.0, 0.25, 1.0, 1.0]
         self.register_buffer(
             "a2_base_command_multipliers",
             torch.tensor(a2_base_command_multipliers, dtype=torch.float32),
         )
         if a2_base_command_clip_low is None:
-            a2_base_command_clip_low = [-float("inf"), -float("inf"), -float("inf")]
+            a2_base_command_clip_low = [
+                -float("inf"),
+                -float("inf"),
+                -float("inf"),
+                -float("inf"),
+                -float("inf"),
+            ]
         if a2_base_command_clip_high is None:
-            a2_base_command_clip_high = [float("inf"), float("inf"), float("inf")]
+            a2_base_command_clip_high = [
+                float("inf"),
+                float("inf"),
+                float("inf"),
+                float("inf"),
+                float("inf"),
+            ]
         self.register_buffer(
             "a2_base_command_clip_low",
             torch.tensor(a2_base_command_clip_low, dtype=torch.float32),
@@ -162,17 +176,23 @@ class PolicyAndValueWrapper(nn.Module):
         command_scale = self.a2_base_command_multipliers.to(
             device=flat_obs.device, dtype=flat_obs.dtype
         )
-        scaled_base_command = flat_high_level_actions[:, :3] * self.a2_base_command_scale
+        scaled_base_command = torch.cat(
+            [
+                flat_high_level_actions[:, :3] * self.a2_base_command_scale,
+                flat_high_level_actions[:, 3:5].clamp(-1.0, 1.0)
+                * self.a2_base_body_pitch_roll_scale,
+            ],
+            dim=-1,
+        )
         if self.a2_base_command_clip_enabled:
             scaled_base_command = torch.clamp(
                 scaled_base_command,
                 self.a2_base_command_clip_low.to(device=flat_obs.device, dtype=flat_obs.dtype),
                 self.a2_base_command_clip_high.to(device=flat_obs.device, dtype=flat_obs.dtype),
             )
-        flat_obs[:, final_frame_start + 39 : final_frame_start + 42] = (
+        flat_obs[:, final_frame_start + 39 : final_frame_start + 44] = (
             scaled_base_command * command_scale
         )
-        # Keep [42:44] from env obs; future 12D door action can fill body pitch/roll here.
         with torch.no_grad():
             flat_actions = self.a2_base_model(flat_obs)
         if flat_actions.shape[-1] != self.a2_base_action_dim:
@@ -603,7 +623,8 @@ class TRLPPOTrainer(PPOTrainer):
         self.a2_base_frame_dim = 0
         self.a2_base_leg_action_scale = 0.0
         self.a2_base_command_scale = 0.25
-        self.a2_base_command_multipliers = [2.0, 2.0, 0.25]
+        self.a2_base_body_pitch_roll_scale = 0.4
+        self.a2_base_command_multipliers = [2.0, 2.0, 0.25, 1.0, 1.0]
         self.a2_base_action_sigma = 0.0
         self.a2_base_command_clip_enabled = False
         self.a2_base_command_clip_low = None
@@ -634,6 +655,9 @@ class TRLPPOTrainer(PPOTrainer):
             self.a2_base_leg_action_scale = a2_base_contract["leg_action_scale"]
             self.a2_base_action_dim = a2_base_contract["action_dim"]
             self.a2_base_command_scale = float(a2_base_config.get("command_scale", 0.25))
+            self.a2_base_body_pitch_roll_scale = float(
+                a2_base_config.get("body_pitch_roll_scale", 0.4)
+            )
             if (
                 "command_obs_multipliers" in a2_base_config
                 and "command_multipliers" in a2_base_config
@@ -646,7 +670,9 @@ class TRLPPOTrainer(PPOTrainer):
             self.a2_base_command_multipliers = list(
                 a2_base_config.get(
                     "command_obs_multipliers",
-                    a2_base_config.get("command_multipliers", [2.0, 2.0, 0.25]),
+                    a2_base_config.get(
+                        "command_multipliers", [2.0, 2.0, 0.25, 1.0, 1.0]
+                    ),
                 )
             )
             self.a2_base_action_sigma = float(a2_base_config.get("action_sigma", 0.0))
@@ -658,11 +684,35 @@ class TRLPPOTrainer(PPOTrainer):
                     -float(self.env.config.clip_homie_linvel_x_threshold),
                     -float(self.env.config.clip_homie_linvel_y_threshold),
                     -float(self.env.config.clip_homie_angvel_threshold),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_pitch_lower_threshold",
+                            -self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_roll_lower_threshold",
+                            -self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
                 ]
                 self.a2_base_command_clip_high = [
                     float(self.env.config.clip_homie_linvel_x_threshold),
                     float(self.env.config.clip_homie_linvel_y_threshold),
                     float(self.env.config.clip_homie_angvel_threshold),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_pitch_upper_threshold",
+                            self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_roll_upper_threshold",
+                            self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
                 ]
             self.a2_base_model = torch.jit.load(a2_base_policy_path, map_location=self.device)
             self.a2_base_model.eval()
@@ -721,6 +771,7 @@ class TRLPPOTrainer(PPOTrainer):
             self.homie_stand_model,
             a2_base_model=self.a2_base_model,
             a2_base_command_scale=self.a2_base_command_scale,
+            a2_base_body_pitch_roll_scale=self.a2_base_body_pitch_roll_scale,
             a2_base_command_multipliers=self.a2_base_command_multipliers,
             a2_base_obs_dim=self.a2_base_obs_dim,
             a2_base_frame_dim=self.a2_base_frame_dim,

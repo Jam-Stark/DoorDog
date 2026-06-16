@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, especially global and stage0-enabled rewards
 status: active
-last_updated: 2026-06-15 22:44 HKT
+last_updated: 2026-06-16 21:41 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -43,8 +43,8 @@ read_when:
 - 2026-06-15 21:05 HKT - Deferred reward terms 已完成替换：`limits_primitive_action` 迁移为 A2 `limits_gripper_primitive_action`，只惩罚 raw high-level gripper primitive 超过 `limit * tolerance`，不混用 actual gripper joint pose；`penalty_humanly_dof_limit` 不复用 G1 humanoid-specific posture limit，替换为 LMP-style positive `ref_dof_legs` gait ref prior，A2 weight 使用 `0.25`。
 - 2026-06-15 21:24 HKT - Future gripper/reward design：当前 1D binary gripper primitive 会在 close target 为 `[0.0, 0.0]` 且 handle 挡在中间时持续用 position actuator 追完全闭合，可能造成过大接触力、抖动或真实机器人不舒适的夹紧目标。后续 grasp reward 不应奖励“完全闭合”，而应奖励合适 aperture/contact/handle constraint，例如两侧 gripper 接触 handle、接触力不过大、handle 相对 gripper 稳定；actual close tracking 只适合作为 pregrasp/close-default shaping，不应在 grasp 阶段强推完全闭合。
 - 2026-06-15 21:29 HKT - Future continuous gripper primitive design 修正：下一版不采用单纯 `alpha = clamp(raw, 0, 1)`，而采用更接近原版 primitive 的三步链路：`raw` 先用于记录越界量 `over_limit = relu(abs(raw) - 1.1)`；runtime 使用 `clipped = raw.clamp(-1.0, 1.0)`；aperture 用 `alpha = (clipped + 1.0) * 0.5` 映射，`target = close_target + alpha * (open_target - close_target)`。这样 `limits_gripper_primitive_action` 与 actual gripper target 解耦，越界惩罚看 raw action，控制目标看 clipped action。
-- 2026-06-15 22:33 HKT - `penalty_delta_action_rate` 标记 A2 PASS：不改 `DeltaActionBase` runtime，当前 A2 语义由 `delta_action_indices=[3..8]` 决定，只平滑 Piper `arm_j1..arm_j6` 的 6D delta action，不覆盖 base command 或 gripper primitive。
-- 2026-06-15 22:33 HKT - `penalty_upright` 替换为 LMP-style `orientation_control`：读取 `_a2_body_pitch_roll_raw[:,0/1]` 作为 pitch/roll raw command，乘 `body_pitch_roll_scale` 后构造 desired XY `[-sin(pitch)*cos(roll), sin(roll)]`，再对 `projected_gravity[:,:2]` 做 squared error；reward scale 使用 LMP `-5.0`，不加入 `reward_penalty_reward_names`。当前 A2 high-level action 仍是 10D，暂未输出 pitch/roll，`_a2_body_pitch_roll_raw` 默认 zero。
+- 2026-06-15 22:33 HKT / 2026-06-16 21:41 HKT updated - `penalty_delta_action_rate` 标记 A2 PASS：不改 `DeltaActionBase` runtime，当前 A2 语义由 `delta_action_indices=[5..10]` 决定，只平滑 Piper `arm_j1..arm_j6` 的 6D delta action，不覆盖 5D base command 或 gripper primitive。
+- 2026-06-15 22:33 HKT / 2026-06-16 21:41 HKT updated - `penalty_upright` 替换为 LMP-style `orientation_control`：读取当前 12D high-level action 写入后的 physical 5D `base_command` 中 `[pitch, roll]`，其 raw dims 为 `[3:5]` 且按 `body_pitch_roll_scale=0.4` 转为 rad；再构造 desired XY `[-sin(pitch)*cos(roll), sin(roll)]`，对 `projected_gravity[:,:2]` 做 squared error；reward scale 使用 LMP `-5.0`，不加入 `reward_penalty_reward_names`。
 - 2026-06-15 22:33 HKT - Termination 完成 A2/LMP adjustment：`termination_min_base_height` 改为 `0.3`，A2 config 新增 `bad_orientation_limit_angle=0.9`，`DoorPregrasp._check_termination()` 在 `super()._check_termination()` 后显式检查 `acos(-projected_gravity[:,2]) > 0.9`；不启用 `terminate_by_gravity`，不改变 shared `LeggedRobotBase` termination 语义。arm overspeed termination 继续使用 `_upper_non_gripper_dof_idx`，只覆盖 Piper `arm_j1..arm_j6`，排除 gripper `arm_j7/arm_j8`。
 - 2026-06-15 22:44 HKT - Stage0/global reward baseline status：`scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 中 stage0 active terms 与主要 global terms 已标记 PASS 或 A2 replacement；仍需后续在 train/env smoke 中验证 reward magnitude、stage transition cadence、termination frequency 与 A2_Piper behavior。
 
@@ -73,6 +73,7 @@ read_when:
 - 2026-06-15 16:59 HKT - 后续单独做 homie compatibility naming cleanup：`_homie_commands`、`get_physical_homie_commands`、`b_homie_commands` 等仍是历史兼容名，本轮只完成 reward-facing `penalty_base_command_limit` rename。
 - 2026-06-15 21:29 HKT - 后续若 gripper action 改为 continuous aperture primitive，同步更新 `limits_gripper_primitive_action` 为 raw range penalty：`relu(abs(raw) - 1.1)`；runtime control 先 clamp raw 到 `[-1, 1]`，再用 `alpha = (clipped + 1) * 0.5` 映射 aperture。该 term 只约束 policy raw action 幅度，不根据 actual gripper joint pose/contact 判定。
 - 2026-06-15 21:24 HKT - 后续 grasp-stage reward 设计应从“完全闭合 target”转向 aperture/contact/force/stability：避免奖励 gripper 把 handle 硬夹到 fully closed target，改为奖励合适开合度、双侧接触、不过大的 contact force、handle 与 gripper 相对稳定。
+- 2026-06-16 21:41 HKT - 同步 A2 12D high-level action contract 到 reward memory：`penalty_delta_action_rate` 当前覆盖 arm dims `[5..10]`；`orientation_control` 读取 5D physical `base_command` 的 pitch/roll，而不是旧 10D placeholder buffer。
 
 ## DONE Summary
 

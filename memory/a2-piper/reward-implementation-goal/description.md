@@ -1,8 +1,8 @@
 ---
 name: reward-implementation-goal
-scope: A2+Piper Doorman reward implementation, especially global and stage0-enabled rewards
+scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-16 21:41 HKT
+last_updated: 2026-06-17 18:43 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Purpose
 
-记录 A2+Piper Doorman reward implementation 的近期目标、工程约束、source-of-truth 协作方式与安全边界。当前重点不是完整开门任务所有 stage reward，而是先实现 global rewards 和 stage0-enabled rewards。
+记录 A2+Piper Doorman reward implementation 的近期目标、工程约束、source-of-truth 协作方式与安全边界。Stage0/global reward baseline 已形成第一版；当前下一步聚焦 `stage1 reward + transition correctness`，尤其是 Piper TCP/pregrasp、gripper/contact、door progress 与 success shaping。
 
 ## Current Small Goal
 
@@ -26,12 +26,15 @@ read_when:
 - Stage0 baseline reference: `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 已总结 G1 Doorman stage0 active rewards、global penalties 与 stage0 -> stage1 advance condition，可作为 A2+Piper stage0 reward adaptation 的对照表。
 - 2026-06-15 22:33 HKT - A2 stage0/global reward adaptation 第一版完成：`penalty_delta_action_rate` 标记 PASS，`penalty_upright` 替换为 LMP-style `orientation_control`，termination 完成 A2/LMP height/orientation/arm overspeed 适配。
 - 2026-06-15 22:44 HKT - 用户确认当前 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment，可作为后续训练 smoke 的 stage0/global reward baseline；下一步 reward work 转向 stage1+ 的 Piper EE/handle、gripper/contact、door progress 与 success shaping。
+- 2026-06-17 00:00 HKT - 新增两份 human-facing checklist：`scriptsFORhuman/g1_doorman_transition_correctness_a2_adaptation.md` 和 `scriptsFORhuman/g1_doorman_stage1_reward_adaptation.md`。下一步施工焦点明确为 stage1 reward + transition correctness；主要 blocker 是 A2 `_stage_1_to_2_advance_condition()` 只有 door hinge shortcut，以及 `_stage_2_to_complete_condition()` 在 A2 path all false。
+- 2026-06-17 18:43 HKT - A2 `gripper_handle_orientation` reward metric 已实现并启用；stage1 reward 剩余 P0 是 `pregrasp_target_distance` 和 `grasp`。Transition correctness 尚未完成，后续 `_stage_1_to_2_advance_condition()` 必须复用 raw orientation metrics，而不是继续只看 hinge shortcut。
 
 ## Reward Term Decisions
 
 - 2026-06-15 14:32 HKT - `walk_to_door` stage0 reward 第一版标记 pass：Ava 与 main review 判断该 term 不是 G1/HOMIE-specific，当前可沿用 G1 Doorman 的 door-root velocity shaping。代码中已注释记录未来改法：target 可参数化为 `door_root`、`grasp_target` 或 Piper-specific `approach_anchor`。
 - 2026-06-15 14:32 HKT - `penalty_face_door` reward 第一版标记 pass：当前可沿用 G1 Doorman 的 full root-to-door orientation penalty。代码中已注释记录未来改法：如果 A2 trunk roll/pitch 或非正对站姿被过度惩罚，则改为 yaw-only heading error 或增加 desired heading offset。
 - 2026-06-15 14:55 HKT - `pregrasp_finger_dof_pos_l1` 已迁移为 `pregrasp_gripper_dof_pos_l1`：A2 第一版使用 actual Piper gripper DOF (`arm_j7/arm_j8`) close target tracking，close target 为 `[0.0, 0.0]`，span 来自 open-close 行程，不使用 G1 finger raw velocity target `0.6`。
+- 2026-06-17 16:25 HKT - `pregrasp_gripper_dof_pos_l1` active scale 从 `1.5` 降为 `0.5`：当前 A2 gripper primitive 仍是 binary close/open，close-target tracking 只作为 stage0/stage1 gripper baseline，不应过强驱动 fully closed target。NOTE: 未来 gripper primitive 改为 continuous aperture 后，该 reward 才值得重新设计为 aperture/contact-aware readiness，而不是完全闭合 tracking。
 - 2026-06-15 14:55 HKT - `penalty_upper_body_non_finger_deviation_l1` 已迁移为 `penalty_upper_body_non_gripper_deviation_l1`：A2 使用 `_upper_non_gripper_dof_idx` 只约束 `arm_j1..arm_j6` 相对 `resting_dof_pos` 的 L1 deviation；stage0 -> stage1 的 arm stability `max_deviation` 同步排除 `arm_j7/arm_j8`，gripper 开闭不阻塞 stage transition。
 - 2026-06-15 14:59 HKT - Reviewer 二轮修正：`penalty_upper_body_non_gripper_deviation_l1` 不加入 `reward_penalty_reward_names`，保持 origin G1 中 upper-body penalty 不受 `reward_penalty_scale` curriculum 影响的行为；`pregrasp_gripper_dof_pos_l1` 继续保留在该 list 中，对齐 origin `pregrasp_finger_dof_pos_l1` 的 positive shaping curriculum 行为。
 - 2026-06-15 15:16 HKT - `door_open_a2_base.py` 已删除旧 `finger` / `non_finger` reward legacy aliases 和 `pregrasp_gripper_dof_pos_l1` 内的 G1 finger fallback；A2 文件中该 reward 现在只保留 Piper gripper actual DOF close tracking。
@@ -47,6 +50,12 @@ read_when:
 - 2026-06-15 22:33 HKT / 2026-06-16 21:41 HKT updated - `penalty_upright` 替换为 LMP-style `orientation_control`：读取当前 12D high-level action 写入后的 physical 5D `base_command` 中 `[pitch, roll]`，其 raw dims 为 `[3:5]` 且按 `body_pitch_roll_scale=0.4` 转为 rad；再构造 desired XY `[-sin(pitch)*cos(roll), sin(roll)]`，对 `projected_gravity[:,:2]` 做 squared error；reward scale 使用 LMP `-5.0`，不加入 `reward_penalty_reward_names`。
 - 2026-06-15 22:33 HKT - Termination 完成 A2/LMP adjustment：`termination_min_base_height` 改为 `0.3`，A2 config 新增 `bad_orientation_limit_angle=0.9`，`DoorPregrasp._check_termination()` 在 `super()._check_termination()` 后显式检查 `acos(-projected_gravity[:,2]) > 0.9`；不启用 `terminate_by_gravity`，不改变 shared `LeggedRobotBase` termination 语义。arm overspeed termination 继续使用 `_upper_non_gripper_dof_idx`，只覆盖 Piper `arm_j1..arm_j6`，排除 gripper `arm_j7/arm_j8`。
 - 2026-06-15 22:44 HKT - Stage0/global reward baseline status：`scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 中 stage0 active terms 与主要 global terms 已标记 PASS 或 A2 replacement；仍需后续在 train/env smoke 中验证 reward magnitude、stage transition cadence、termination frequency 与 A2_Piper behavior。
+- 2026-06-17 00:00 HKT - Stage1 reward mapping 已整理为 human checklist：`stage` 与 `penalty_not_standing_still` 当前只是 `PASS carrier/baseline`；`hand_handle_orientation`、`pregrasp_target_distance`、`grasp` 在 A2 path 仍是 zero placeholder/zero scale；`penalty_unused_dof_deviation_l1` 对 one-arm Piper 不能直接复用。
+- 2026-06-17 16:25 HKT - Stage1 checklist 补充确认：`_stage_1_reward_condition()` 与 `stage` reward 只是 carrier/baseline，不能代表 Piper TCP/pregrasp correctness；`pregrasp_gripper_dof_pos_l1` 改名已完成，并因 binary gripper primitive 暂时降权到 `0.5`。
+- 2026-06-17 16:47 HKT - `_stage_0_to_1_advance_condition()` 的 A2 平面距离阈值从 G1 origin `<0.3m` 调整为 `<0.6m`：G1 是直立人形，A2 是四足机器狗且 base/trunk footprint 更长，若沿用 `0.3m` 会诱导 A2 trunk 贴门/撞门。Stage1 carrier `_stage_1_reward_condition()` 继承该 A2-safe near-handle window。
+- 2026-06-17 16:47 HKT - Ava footprint review：`0.3m` 不是孤立问题。`walk_to_door`、`penalty_face_door`、`_stage_1_reward_condition()`、`penalty_not_standing_still` 最需要后续 A2 footprint smoke/review；door contact penalties、`penalty_undesired_contact`、`stage` carrier 继续 PASS 但必须 watch contact frequency / stage occupancy；termination height/orientation、`orientation_control`、`ref_dof_legs`、`pregrasp_gripper_dof_pos_l1` 暂不因 root footprint 直接改。
+- 2026-06-17 18:43 HKT - `penalty_unused_dof_deviation_l1` 标记 PASS disabled / not applicable to one-arm Piper：A2 reward YAML 保持 scale `0.0`，不复用 G1 双臂 unused-arm deviation 逻辑。
+- 2026-06-17 18:43 HKT - `hand_handle_orientation` 已替换为 A2 `gripper_handle_orientation`：reward YAML active scale `3.0`；实现读取 `piper_gripper_handle_frame_transformer.data.target_quat_source[:, 1, :]` 的 pregrasp target relative source rotation，使用 source local `+Y` opening axis 与 source local `+Z` approach axis，target-frame reference，用户选定 `+Z` approach sign；`opening_alignment = abs(dot(source_y, target_y_source))`，`approach_alignment = dot(source_z, target_z_source)`；reward 是两个 `std=0.25` tracking terms 的 product 并 clamp `[0,1]`；legacy `_reward_hand_handle_orientation()` A2 path fail-fast。
 
 ## Engineering Constraints
 
@@ -63,12 +72,16 @@ read_when:
 
 ## TODO Summary
 
-- 2026-06-15 22:33 HKT - Stage0/global reward adaptation 第一版已完成；后续进入 stage1/pregrasp、grasp、open、swing、through reward adaptation 时，继续沿用 mapping 表方式记录 G1 term、A2 replacement、数据源、scale、stage gating、direct workflow update timing 与验证方式。
+- 2026-06-17 18:43 HKT - 下一步 stage1 reward implementation/review 必须先使用 `scriptsFORhuman/g1_doorman_stage1_reward_adaptation.md`：remaining P0 是 `pregrasp_target_distance` 和 `grasp`，并保持 fail-fast，不用 G1 palm/finger fallback。
+- 2026-06-17 18:43 HKT - Stage1 reward/transition review 时继续注意：`stage` / `_stage_1_reward_condition()` 当前只是 stage framework carrier；`gripper_handle_orientation` reward metric 已实现，但真正 pregrasp transition correctness 仍必须由 Piper TCP/pregrasp distance、gripper readiness/contact 与 `_stage_1_to_2_advance_condition()` 补齐，且该 transition 后续必须复用 raw orientation metrics。
+- 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
+- 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
+- 2026-06-17 00:00 HKT - 下一步 transition correctness implementation/review 必须先使用 `scriptsFORhuman/g1_doorman_transition_correctness_a2_adaptation.md`：优先修复 `_stage_1_to_2_advance_condition()` 的 Piper pregrasp correctness，以及 `_stage_2_to_complete_condition()` / `_stage_2_to_3_advance_condition()` 的 Piper grasp/contact semantics。
+- 2026-06-17 00:00 HKT - Stage1+ reward adaptation 已建立 mapping docs；后续进入 grasp/open/swing/through reward implementation 时继续沿用表格记录 G1 term、A2 replacement、数据源、scale、stage gating、direct workflow update timing 与验证方式，并同步更新 human docs 的 `A2适配状态` 列。
 - 2026-06-15 22:33 HKT - 后续若新增来自 LMP manager-based 的 reward term，仍需先提取原始计算逻辑，再决定 direct path 迁移方案；本轮 `orientation_control` 已按 LMP source logic 完成 direct buffer 实现。
 - 2026-06-14 21:48 HKT - 对来自 G1 Doorman 的 reward/stage semantics，先让 Ava 给出带 code reference 的核查意见；破坏性修改必须经 Ava 和 user 同意。
 - 2026-06-15 14:32 HKT - `walk_to_door` 未来如 stage0 target 与 A2/Piper reach envelope 不匹配，将 reward target 参数化为 `door_root` / `grasp_target` / `approach_anchor`。
 - 2026-06-15 14:32 HKT - `penalty_face_door` 未来如 full-quat penalty 对 A2 trunk roll/pitch 或必要侧向站姿过强，将改为 yaw-only heading error 或加入 desired heading offset。
-- 2026-06-15 22:33 HKT - 后续若新增 stage0/global reward 或进入 stage1+ reward adaptation，同步更新 `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 或新增对应 transition doc 的 `A2适配状态` 列。
 - 2026-06-15 14:59 HKT - 后续迁移 reward scale 时同步核对 origin `reward_penalty_reward_names` membership；不要仅根据 reward scale 正负决定是否加入 penalty curriculum。
 - 2026-06-15 16:59 HKT - 后续单独做 homie compatibility naming cleanup：`_homie_commands`、`get_physical_homie_commands`、`b_homie_commands` 等仍是历史兼容名，本轮只完成 reward-facing `penalty_base_command_limit` rename。
 - 2026-06-15 21:29 HKT - 后续若 gripper action 改为 continuous aperture primitive，同步更新 `limits_gripper_primitive_action` 为 raw range penalty：`relu(abs(raw) - 1.1)`；runtime control 先 clamp raw 到 `[-1, 1]`，再用 `alpha = (clipped + 1) * 0.5` 映射 aperture。该 term 只约束 policy raw action 幅度，不根据 actual gripper joint pose/contact 判定。
@@ -89,3 +102,7 @@ read_when:
 - 2026-06-15 21:29 HKT - 修正 continuous gripper primitive future design：采用“raw 越界记录 -> runtime clamp -> clipped 映射 aperture”的原版 primitive 思路，`limits_gripper_primitive_action` 后续应惩罚 raw 越界量，控制目标只使用 clipped action。
 - 2026-06-15 22:33 HKT - 完成 A2 stage0/global 剩余 reward/termination 适配：`penalty_delta_action_rate` 标记 PASS 并说明 6D Piper `arm_j1..arm_j6` delta smoothing；active `penalty_upright` 替换为 LMP-style `orientation_control: -5.0`；termination 对齐 LMP `root_height_below_minimum=0.30` 与 `bad_orientation=0.9`，并保持 arm overspeed 只检查 `_upper_non_gripper_dof_idx`。
 - 2026-06-15 22:44 HKT - 用户确认 stage0 reward 与大部分 global reward 已完成可复用审核和 A2_Piper adjustment；该状态已记录为 stage0/global reward baseline，后续 reward 重点转向 stage1+ interaction/progress/success terms 与 smoke 后的权重调参。
+- 2026-06-17 00:00 HKT - 新增 stage1+ human docs：`scriptsFORhuman/g1_doorman_transition_correctness_a2_adaptation.md` 记录 staged transition correctness source facts、A2 PASS/TODO 边界与 primary blockers；`scriptsFORhuman/g1_doorman_stage1_reward_adaptation.md` 记录 stage1 reward term mapping、zero placeholder、baseline/global reward 与后续检查建议。
+- 2026-06-17 16:25 HKT - 将 A2 `pregrasp_gripper_dof_pos_l1` scale 从 `1.5` 调整为 `0.5`，并在 stage1 checklist 与 memory 中记录 binary gripper primitive 下该 term 仅作低权重 baseline；continuous aperture primitive 后再重设 reward。
+- 2026-06-17 16:47 HKT - 将 A2 `_stage_0_to_1_advance_condition()` root-to-handle 平面距离阈值从 `0.3m` 调整为 `0.6m`，并在 transition/stage0/stage1 human docs 中记录原因：G1 直立人形和 A2 四足机器狗的 root footprint 不同，A2 需要更远的 approach boundary 以避免 base/trunk 撞门。
+- 2026-06-17 18:43 HKT - 完成 A2 `gripper_handle_orientation` reward metric implementation/review：config 启用 `gripper_handle_orientation: 3.0`，旧 `hand_handle_orientation` 不在 A2 reward YAML / `reward_penalty_reward_names` active path；`penalty_unused_dof_deviation_l1` 记录为 one-arm Piper 不适用并保持 scale `0.0`。Transition correctness 未完成，后续 `_stage_1_to_2_advance_condition()` 仍需接入 raw orientation metrics。

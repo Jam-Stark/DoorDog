@@ -388,10 +388,55 @@ class DoorPregrasp(
         )
         return torch.where(self.door_open_lr[:, None] < 0, right_diff, left_diff).abs().sum(dim=-1)
 
+    def _get_a2_gripper_handle_orientation_metrics(self):
+        if not self._use_a2_base:
+            raise RuntimeError("gripper_handle_orientation is only defined for A2 Piper configs.")
+
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_quat_source = getattr(data, "target_quat_source", None)
+        if (
+            target_quat_source is None
+            or target_quat_source.ndim != 3
+            or target_quat_source.shape[0] != self.num_envs
+            or target_quat_source.shape[1] != 2
+            or target_quat_source.shape[2] != 4
+        ):
+            shape = None if target_quat_source is None else tuple(target_quat_source.shape)
+            raise RuntimeError(
+                "A2 gripper_handle_orientation requires target_quat_source shape "
+                f"({self.num_envs}, 2, 4); got {shape}."
+            )
+
+        q_target_source = target_quat_source[:, 1, :]
+        source_y = q_target_source.new_tensor((0.0, 1.0, 0.0)).expand(self.num_envs, -1)
+        source_z = q_target_source.new_tensor((0.0, 0.0, 1.0)).expand(self.num_envs, -1)
+
+        target_y_source = quat_apply(q_target_source, source_y)
+        target_z_source = quat_apply(q_target_source, source_z)
+        opening_alignment = torch.abs(torch.sum(source_y * target_y_source, dim=-1)).clamp(
+            0.0, 1.0
+        )
+        approach_alignment = torch.sum(source_z * target_z_source, dim=-1).clamp(-1.0, 1.0)
+        return opening_alignment, approach_alignment
+
+    @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
+    def _reward_gripper_handle_orientation(self):
+        opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
+        opening_track = self._tracking_reward_util(
+            1.0 - opening_alignment, std=0.25, target=0.0, scale=1.0, offset=0.0
+        )
+        approach_track = self._tracking_reward_util(
+            1.0 - approach_alignment, std=0.25, target=0.0, scale=1.0, offset=0.0
+        )
+        return (opening_track * approach_track).clamp(0.0, 1.0)
+
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_hand_handle_orientation(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, device=self.device)
+            raise RuntimeError(
+                "A2 configs must use 'gripper_handle_orientation' instead of legacy "
+                "'hand_handle_orientation'."
+            )
         mask = (self.door_open_lr < 0)[:, None]
         rot_90 = quat_from_euler_xyz(
             torch.full((self.num_envs,), torch.pi / 2.0, device=self.device),
@@ -1065,7 +1110,9 @@ class DoorPregrasp(
         grasp_target = self._compute_grasp_target()
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = grasp_target[:, 2]
-        cond = (root_pos - grasp_target).norm(dim=-1) < 0.3
+        # A2 is a quadruped with a longer trunk/base footprint than upright G1.
+        # Keep the root farther from the handle target to avoid trunk-door collisions.
+        cond = (root_pos - grasp_target).norm(dim=-1) < 0.6
 
         # keep A2 arm body DOF / Piper arm_j1..j6 down; gripper arm_j7/8 are excluded.
         max_deviation = (

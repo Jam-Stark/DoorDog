@@ -23,11 +23,11 @@
 
 | Reward term | YAML scale | Stage0 是否生效 | 计算逻辑摘要 | 作用 | A2适配状态 |
 |---|---:|---|---|---|---|
-| `walk_to_door` | `+5.0` | 是，`STAGE_WALK_TO_DOOR` only | 计算 robot root 指向 door root 的方向，目标速度为 `target_root_vel * target_dir`，默认 `target_root_vel=0.3`；对 `norm(current_root_vel - target_vel)` 做 Gaussian tracking reward，`std=0.15` | 主任务 shaping：鼓励 G1 沿门方向移动，而不是原地摆手或乱走 | PASS |
+| `walk_to_door` | `+5.0` | 是，`STAGE_WALK_TO_DOOR` only | 计算 robot root 指向 door root 的方向，目标速度为 `target_root_vel * target_dir`，默认 `target_root_vel=0.3`；对 `norm(current_root_vel - target_vel)` 做 Gaussian tracking reward，`std=0.15` | 主任务 shaping：鼓励 G1 沿门方向移动，而不是原地摆手或乱走 | PASS first-version / needs A2 footprint smoke：A2 stage0->1 阈值已改为 `<0.6m`，但该 reward 仍可能鼓励 root 继续朝 door root 推进；后续考虑 `approach_anchor` 或 near-stop radius |
 | `penalty_upper_body_non_finger_deviation_l1` | `-1.0` | 是，stage0 与 stage5 | 上身非手指 DOF 相对 `resting_dof_pos` 的 L1 deviation sum | 行走阶段保持上身/手臂收敛在 resting pose，避免还没到门前就提前抬手干扰 locomotion | PASS -> `penalty_upper_body_non_gripper_deviation_l1` |
 | `pregrasp_finger_dof_pos_l1` | `+1.5` | 是，stage0、stage1、stage5 | 根据 `door_open_lr` 选择操作侧手指，跟踪 finger primitive `pos_0` 及对应 finger velocity shaping，最后 clamp 到 `<=1.0` | 虽然名字带 `pregrasp`，stage0 也在用：让操作侧手指保持 pregrasp/open-like 初始姿态，为后续靠近把手做准备 | PASS -> `pregrasp_gripper_dof_pos_l1` |
-| `penalty_face_door` | `-1.0` | 是，stage0、stage1、stage2、stage5 | 使用 robot root 到 door frame 的 relative rotation，惩罚 `axis_angle` norm | 鼓励 base 朝向门，减少侧身或背对门走到目标点导致下一阶段 pregrasp 困难 | PASS |
-| `stage` | `+1.0` | 是 | `_reward_stage()` 对当前 stage 的 reward condition 给常数 stage reward；stage0 condition 恒 True，且 `stage_reward_scale[0]=1.0` | flow reward，不是 pure alive bonus；在 stage0 中只要处于合法 stage，就给小正奖励 | PASS |
+| `penalty_face_door` | `-1.0` | 是，stage0、stage1、stage2、stage5 | 使用 robot root 到 door frame 的 relative rotation，惩罚 `axis_angle` norm | 鼓励 base 朝向门，减少侧身或背对门走到目标点导致下一阶段 pregrasp 困难 | PASS first-version / needs A2 footprint smoke：A2 长 base 可能需要 offset/斜向 stance 给 Piper arm 留空间；如过度“正对门”导致碰撞或够不到 handle，改 yaw-only heading 或 desired heading offset |
+| `stage` | `+1.0` | 是 | `_reward_stage()` 对当前 stage 的 reward condition 给常数 stage reward；stage0 condition 恒 True，且 `stage_reward_scale[0]=1.0` | flow reward，不是 pure alive bonus；在 stage0 中只要处于合法 stage，就给小正奖励 | PASS carrier only：跟随 stage condition；若 root/door distance 或 heading 对 A2 footprint 不合理，它会奖励错误阶段停留 |
 | `penalty_dof_acc` | `-1.0e-5` | 是，全局 | 上身非手指 DOF acceleration squared sum | 平滑上身动作，降低抖动 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
 | `penalty_dof_vel` | `-1.0e-3` | 是，全局 | 上身非手指 DOF velocity squared sum | 抑制上身非手指关节高速运动 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
 | `penalty_delta_action_rate` | `-0.01` | 是，全局 | delta action buffer 的 squared sum | 抑制 high-level delta action 大幅跳变 | PASS：当前 A2 `delta_action_indices=[5..10]`，仅做 Piper `arm_j1..arm_j6` 的 6D delta action smoothing，不覆盖 5D base command 或 gripper primitive |
@@ -62,7 +62,7 @@
 | 判断项 | 原版逻辑 | 阈值/细节 | 作用 |
 |---|---|---|---|
 | grasp target 来源 | `_compute_grasp_target()` 读取 `right_hand_frame_transformer.data.target_pos_w[:, 0, :]`，对应 door `grasp_target` frame | Env config 中 `target_obj_transform_sub_prim_path: "grasp_target"` | stage0 不是对 door root 终点判定，而是对 handle/grasp target 附近的位置判定 |
-| root 与 grasp target 距离 | 取 robot root position，并把 `root_pos.z` 替换为 `grasp_target.z` 后计算 3D norm | `(root_pos - grasp_target).norm() < 0.3`；因为 z 被替换，本质是水平/平面距离阈值 | 判断 base 是否已经走到把手附近，可以开始 pregrasp |
+| root 与 grasp target 距离 | 取 robot root position，并把 `root_pos.z` 替换为 `grasp_target.z` 后计算 3D norm | G1 origin 为 `<0.3m`；A2 当前改为 `<0.6m`，因为 A2 四足 base/trunk footprint 比 G1 直立人形更长，`0.3m` 会诱导 trunk 贴门/撞门；因为 z 被替换，本质是水平/平面距离阈值 | 判断 base 是否已经走到把手附近，可以开始 pregrasp；A2 还需 smoke 检查 Piper reach envelope 与 false-positive |
 | 上身保持 resting pose | 对 `_upper_non_finger_dof_idx` 计算 `abs(dof_pos - resting_dof_pos).max()` | `max_deviation < 0.25` rad | 防止靠近过程中提前抬手或上身偏离太大；只有“走到门前且手还收着”才进入下一阶段 |
 | reset 后不立刻 advance | `StagedTaskBase` 会执行 `advance_mask &= ~just_resetted_buf` | reset 当步即使条件满足也不会推进 stage | 避免 staged reset 或初始状态导致误触发 advance |
 | advance 行为 | 条件满足且当前 `stage_buf == 0` 时，`stage_buf += 1`，`actual_time_in_stage_buf=0`；因为 `award_remaining_time_on_advance=True`，`time_in_stage_buf` 会扣掉当前 stage 最大时长 | stage0 -> stage1，即进入 `STAGE_PREGRASP` | stage0 的“完成”在训练 runtime 中就是 transition 到 stage1，不等于全任务 complete |

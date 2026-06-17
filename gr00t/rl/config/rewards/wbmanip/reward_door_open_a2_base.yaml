@@ -25,8 +25,8 @@ rewards:
       penalty_face_door: -1.0
 
       # pregrasp
-      hand_handle_orientation: 0.0
-      pregrasp_gripper_dof_pos_l1: 1.5
+      gripper_handle_orientation: 3.0
+      pregrasp_gripper_dof_pos_l1: 0.5
       penalty_unused_dof_deviation_l1: 0.0
       pregrasp_target_distance: 0.0
       penalty_not_standing_still: -15.0
@@ -106,7 +106,7 @@ rewards:
       "walk_to_door",
 
       # pregrasp
-      "hand_handle_orientation",
+      "gripper_handle_orientation",
       "pregrasp_gripper_dof_pos_l1",
       "pregrasp_target_distance",
 

@@ -28,13 +28,13 @@ rewards:
       gripper_handle_orientation: 3.0
       pregrasp_gripper_dof_pos_l1: 0.5
       penalty_unused_dof_deviation_l1: 0.0
-      pregrasp_target_distance: 0.0
+      pregrasp_target_distance: 6.0
       penalty_not_standing_still: -15.0
 
       # grasp
       grasp_finger_dof_pos_l1: 0.0
-      grasp_target_distance: 0.0
-      grasp: 0.0
+      grasp_target_distance: 3.0
+      grasp: 0.2
 
       # open
       push_door_handle: 6.0

@@ -45,6 +45,7 @@ class DoorPregrasp(
     STAGE_SWING = 4
     STAGE_THROUGH = 5
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
+    A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -478,7 +479,91 @@ class DoorPregrasp(
     @StagedTaskBase.effective_in_stage(STAGE_PREGRASP)
     def _reward_pregrasp_target_distance(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, device=self.device)
+            data = self._get_a2_gripper_handle_frame_transformer().data
+
+            target_pos_source = getattr(data, "target_pos_source", None)
+            if (
+                target_pos_source is None
+                or target_pos_source.ndim != 3
+                or target_pos_source.shape != (self.num_envs, 2, 3)
+            ):
+                shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+                raise RuntimeError(
+                    "A2 pregrasp_target_distance requires target_pos_source shape "
+                    f"({self.num_envs}, 2, 3); got {shape}."
+                )
+
+            target_pos_w = getattr(data, "target_pos_w", None)
+            if (
+                target_pos_w is None
+                or target_pos_w.ndim != 3
+                or target_pos_w.shape != (self.num_envs, 2, 3)
+            ):
+                shape = None if target_pos_w is None else tuple(target_pos_w.shape)
+                raise RuntimeError(
+                    "A2 pregrasp_target_distance requires target_pos_w shape "
+                    f"({self.num_envs}, 2, 3); got {shape}."
+                )
+
+            source_pos_w = getattr(data, "source_pos_w", None)
+            if (
+                source_pos_w is None
+                or source_pos_w.ndim != 2
+                or source_pos_w.shape != (self.num_envs, 3)
+            ):
+                shape = None if source_pos_w is None else tuple(source_pos_w.shape)
+                raise RuntimeError(
+                    "A2 pregrasp_target_distance requires source_pos_w shape "
+                    f"({self.num_envs}, 3); got {shape}."
+                )
+
+            rigid_body_vel = getattr(self.simulator, "_rigid_body_vel", None)
+            if (
+                rigid_body_vel is None
+                or rigid_body_vel.ndim != 3
+                or rigid_body_vel.shape[0] != self.num_envs
+                or rigid_body_vel.shape[1] <= self.end_effector_index
+                or rigid_body_vel.shape[2] < 3
+            ):
+                shape = None if rigid_body_vel is None else tuple(rigid_body_vel.shape)
+                raise RuntimeError(
+                    "A2 pregrasp_target_distance requires simulator._rigid_body_vel "
+                    f"with shape ({self.num_envs}, >{self.end_effector_index}, >=3); "
+                    f"got {shape}."
+                )
+
+            if "pregrasp_target_vel" not in self.config:
+                raise RuntimeError(
+                    "A2 pregrasp_target_distance requires config key 'pregrasp_target_vel'."
+                )
+            pregrasp_target_vel = float(self.config.pregrasp_target_vel)
+            if pregrasp_target_vel <= 0.0:
+                raise RuntimeError(
+                    "A2 pregrasp_target_distance requires positive pregrasp_target_vel; "
+                    f"got {pregrasp_target_vel}."
+                )
+
+            pregrasp_pos_source = target_pos_source[:, 1, :]
+            distance = torch.linalg.norm(pregrasp_pos_source, dim=-1)
+            pos_reward = self._tracking_reward_util(
+                distance,
+                std=0.2,
+                target=0.0,
+                scale=1.0,
+                offset=0.0,
+            )
+
+            direction = F.normalize(target_pos_w[:, 1, :] - source_pos_w, dim=-1)
+            current_vel = rigid_body_vel[:, self.end_effector_index, :3]
+            target_vel = pregrasp_target_vel * direction
+            vel_reward = self._tracking_reward_util(
+                torch.linalg.norm(current_vel - target_vel, dim=-1),
+                std=0.15,
+                target=0.0,
+                scale=1.0,
+                offset=0.0,
+            )
+            return (pos_reward + vel_reward).clamp(max=1.0)
         pre_grasp_target = self._compute_pre_grasp_target()
 
         left_hand_pos = self.simulator._rigid_body_pos[:, self.left_palm_idx, :]
@@ -553,7 +638,28 @@ class DoorPregrasp(
     @StagedTaskBase.effective_in_stage([STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp_target_distance(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, device=self.device)
+            data = self._get_a2_gripper_handle_frame_transformer().data
+            target_pos_source = getattr(data, "target_pos_source", None)
+            if (
+                target_pos_source is None
+                or target_pos_source.ndim != 3
+                or target_pos_source.shape != (self.num_envs, 2, 3)
+            ):
+                shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+                raise RuntimeError(
+                    "A2 grasp_target_distance requires target_pos_source shape "
+                    f"({self.num_envs}, 2, 3); got {shape}."
+                )
+
+            handle_pos_source = target_pos_source[:, 0, :]
+            distance = torch.linalg.norm(handle_pos_source, dim=-1)
+            return self._tracking_reward_util(
+                distance,
+                std=0.1,
+                target=0.0,
+                scale=1.0,
+                offset=0.0,
+            )
         grasp_target = self._compute_grasp_target()
 
         left_hand_pos = self.simulator._rigid_body_pos[:, self.left_palm_idx, :]
@@ -580,7 +686,36 @@ class DoorPregrasp(
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, device=self.device)
+            forces_w = self._get_a2_gripper_handle_contact_forces()
+            data = self._get_a2_gripper_handle_frame_transformer().data
+            source_quat_w = getattr(data, "source_quat_w", None)
+            if (
+                source_quat_w is None
+                or source_quat_w.ndim != 2
+                or source_quat_w.shape != (self.num_envs, 4)
+            ):
+                shape = None if source_quat_w is None else tuple(source_quat_w.shape)
+                raise RuntimeError(
+                    "A2 grasp reward requires source_quat_w shape "
+                    f"({self.num_envs}, 4); got {shape}."
+                )
+
+            source_quat = source_quat_w[:, None, :].expand(-1, 2, -1).reshape(-1, 4)
+            forces_source = quat_apply(
+                quat_inv(source_quat), forces_w.reshape(-1, 3)
+            ).reshape(self.num_envs, 2, 3)
+
+            axis_force = torch.abs(forces_source[:, :, 1])
+            off_axis_force = torch.abs(forces_source[:, :, 0]) + torch.abs(
+                forces_source[:, :, 2]
+            )
+            per_body = (axis_force - off_axis_force).clamp(min=-10.0, max=10.0)
+            raw_reward = per_body.min(dim=-1).values
+
+            pregrasp_mask = self.stage_buf == DoorPregrasp.STAGE_PREGRASP
+            contact_mag = torch.linalg.norm(forces_w, dim=-1).sum(dim=-1).clamp(max=10.0)
+            raw_reward[pregrasp_mask] = -contact_mag[pregrasp_mask]
+            return raw_reward
         left_contact_forces = self.simulator.object_to_hand_contact_forces[
             :, 0, self.left_hand_indices_tgt_ct_sensor, :
         ][:, self.left_hand_indices_convert, :]
@@ -882,6 +1017,30 @@ class DoorPregrasp(
             )
         return transformer
 
+    def _get_a2_gripper_handle_contact_forces(self):
+        sensor_name = self.A2_GRIPPER_HANDLE_CONTACT_SENSOR
+        try:
+            sensor = self.simulator.scene.sensors[sensor_name]
+        except (AttributeError, KeyError) as exc:
+            raise RuntimeError(
+                f"A2 grasp reward requires scene sensor '{sensor_name}' for "
+                "handle-specific gripper contact forces."
+            ) from exc
+
+        force_matrix_w = getattr(sensor.data, "force_matrix_w", None)
+        expected_shape = (self.num_envs, 1, 2, 3)
+        if (
+            force_matrix_w is None
+            or force_matrix_w.ndim != 4
+            or tuple(force_matrix_w.shape) != expected_shape
+        ):
+            shape = None if force_matrix_w is None else tuple(force_matrix_w.shape)
+            raise RuntimeError(
+                f"A2 sensor '{sensor_name}' must expose force_matrix_w shape "
+                f"{expected_shape}; got {shape}."
+            )
+        return force_matrix_w[:, 0, :, :]
+
     def _get_obs_gripper_handle_transform(self):
         if not self._use_a2_base:
             raise RuntimeError(
@@ -1138,7 +1297,52 @@ class DoorPregrasp(
 
     def _stage_1_to_2_advance_condition(self):
         if self._use_a2_base:
-            return self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 0.174533
+            data = self._get_a2_gripper_handle_frame_transformer().data
+            target_pos_source = getattr(data, "target_pos_source", None)
+            if (
+                target_pos_source is None
+                or target_pos_source.ndim != 3
+                or target_pos_source.shape != (self.num_envs, 2, 3)
+            ):
+                shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+                raise RuntimeError(
+                    "A2 stage1->2 transition requires target_pos_source shape "
+                    f"({self.num_envs}, 2, 3); got {shape}."
+                )
+
+            pregrasp_distance = torch.linalg.norm(target_pos_source[:, 1, :], dim=-1)
+            opening_alignment, approach_alignment = (
+                self._get_a2_gripper_handle_orientation_metrics()
+            )
+            base_still = torch.norm(self.get_physical_homie_commands()[:, :3], dim=1) <= 0.1
+
+            gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
+            close_target = self._a2_gripper_close_target
+            open_target = self._a2_gripper_open_target
+            span = (open_target - close_target).abs()
+            if torch.any(span <= 1.0e-4):
+                raise RuntimeError(
+                    "A2 stage1->2 transition requires non-zero gripper open/close span; "
+                    f"open_target={open_target.tolist()}, close_target={close_target.tolist()}."
+                )
+            lower = torch.minimum(close_target, open_target) - 0.25 * span
+            upper = torch.maximum(close_target, open_target) + 0.25 * span
+            gripper_ready = torch.all(
+                (gripper_pos >= lower[None, :]) & (gripper_pos <= upper[None, :]),
+                dim=-1,
+            )
+
+            pregrasp_ready = (
+                (pregrasp_distance < 0.1)
+                & (opening_alignment >= 0.8)
+                & (approach_alignment >= 0.8)
+                & base_still
+                & gripper_ready
+            )
+            door_open_bypass = (
+                self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 0.174533
+            )
+            return pregrasp_ready | door_open_bypass
         # raise hand to pre-grasp position
         pre_grasp_target = self._compute_pre_grasp_target()
 
@@ -1191,7 +1395,31 @@ class DoorPregrasp(
 
     def _stage_2_to_complete_condition(self):
         if self._use_a2_base:
-            return torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            forces_w = self._get_a2_gripper_handle_contact_forces()
+            data = self._get_a2_gripper_handle_frame_transformer().data
+            source_quat_w = getattr(data, "source_quat_w", None)
+            if (
+                source_quat_w is None
+                or source_quat_w.ndim != 2
+                or source_quat_w.shape != (self.num_envs, 4)
+            ):
+                shape = None if source_quat_w is None else tuple(source_quat_w.shape)
+                raise RuntimeError(
+                    "A2 stage2 completion requires source_quat_w shape "
+                    f"({self.num_envs}, 4); got {shape}."
+                )
+
+            source_quat = source_quat_w[:, None, :].expand(-1, 2, -1).reshape(-1, 4)
+            forces_source = quat_apply(
+                quat_inv(source_quat), forces_w.reshape(-1, 3)
+            ).reshape(self.num_envs, 2, 3)
+
+            contact_force = torch.linalg.norm(forces_w, dim=-1)
+            both_contact = torch.all(contact_force > 1.0, dim=-1)
+            squeeze_y = forces_source[:, :, 1]
+            sufficient_squeeze = torch.all(torch.abs(squeeze_y) > 0.5, dim=-1)
+            opposite_squeeze = squeeze_y[:, 0] * squeeze_y[:, 1] < 0.0
+            return both_contact & sufficient_squeeze & opposite_squeeze
         # TODO: check error
         # grasp the door handle
         left_hand_handle_contact_count = (
@@ -1301,6 +1529,25 @@ class DoorPregrasp(
             )
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = FrameTransformer(
                 piper_gripper_handle_frame_transformer_config
+            )
+            target_contact_sub_prim = simulator.task_config.get(
+                "target_obj_contact_sub_prim_path", None
+            )
+            if target_contact_sub_prim != "door_handle":
+                raise RuntimeError(
+                    "A2 Piper grasp reward requires "
+                    "task.target_obj_contact_sub_prim_path='door_handle'; "
+                    f"got {target_contact_sub_prim!r}."
+                )
+            a2_gripper_handle_contact_sensor_config: ContactSensorCfg = ContactSensorCfg(
+                prim_path=f"/World/envs/env_.*/{target_obj}/{target_contact_sub_prim}",
+                filter_prim_paths_expr=[
+                    "/World/envs/env_.*/Robot/arm_body7",
+                    "/World/envs/env_.*/Robot/arm_body8",
+                ],
+            )
+            simulator.scene.sensors[self.A2_GRIPPER_HANDLE_CONTACT_SENSOR] = ContactSensor(
+                a2_gripper_handle_contact_sensor_config
             )
             return
 

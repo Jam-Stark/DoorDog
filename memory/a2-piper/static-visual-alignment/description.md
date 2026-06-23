@@ -2,7 +2,7 @@
 name: static-visual-alignment
 scope: Full Isaac Sim GUI static visualization workflow for A2_Piper-door relative pose/orientation and reward tuning
 status: active
-last_updated: 2026-06-12 23:05 HKT
+last_updated: 2026-06-23 13:41 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/static-visual-alignment/description.md
@@ -115,6 +115,9 @@ CUDA_VISIBLE_DEVICES=2 PUBLIC_IP=10.120.16.39 LIVESTREAM=1 ENABLE_CAMERAS=0 \
 ## Current State
 
 - 2026-06-12 19:48 HKT - 已建立 full Isaac Sim GUI static alignment memory。静态观察 robot-door 相对位置/朝向的规范命令应使用 `isaaclab.python.kit`、`ENABLE_CAMERAS=0`、不加 `--headless`、`--max-steps -1 --reset-interval 0`。
+- 2026-06-22 23:53 HKT - 与 stage0-2 training visualization route 对齐：本 entry 的 full GUI/static import workflow 仍限定为 preview-only scene，不接训练入口、runner、policy、checkpoint 或 reward execution path；训练过程 WebRTC 可视化属于 IsaacLab `AppLauncher` livestream/headless rendering path，应单独用 single-process visual run 观察。
+- 2026-06-23 00:24 HKT - 清理旧 visual/WebRTC 进程时明确保留 4-rank long training 组 `820453/820562-820565`；已清掉 orphan single-process visual run `843774`、其 `wandb` 子进程 `844546/844587`、旧 livestream log tail `839708` 和 orphan Omni telemetry `809435`。清理后 `nvidia-smi` 只显示 long training worker。
+- 2026-06-23 13:41 HKT - 当前 `xpra :100` session 已启动并提供 `14500` HTML endpoint，但 display 后端为 `Xvfb-for-Xpra-:100`，`glxinfo -B` 显示 `llvmpipe` software renderer；full Isaac Sim GUI/static alignment 仍需要 GPU-backed X display，不能直接用该 xpra Xvfb session 验证 Vulkan/RTX GUI。
 
 ## TODO Summary
 
@@ -124,6 +127,9 @@ CUDA_VISIBLE_DEVICES=2 PUBLIC_IP=10.120.16.39 LIVESTREAM=1 ENABLE_CAMERAS=0 \
 ## DONE Summary
 
 - 2026-06-12 19:48 HKT - 新建 static visual alignment memory entry，记录 full Isaac Sim GUI experience 命令规范、preview script 调整边界、placement corners 用法与 reward tuning 可视化用途。
+- 2026-06-22 23:53 HKT - 补充 WebRTC/training 可视化边界：static import/full GUI preview 与 stage0-2 PPO training livestream 是两条 workflow，后者不要直接复用 preview-only script 或塞进 multi-rank long training。
+- 2026-06-23 00:24 HKT - 清理旧 visual/WebRTC 残留进程，保留当前 4-rank long training 组；后续再开 visual run 前先用 `ps`/`nvidia-smi` 确认没有 stale single-process visual run 占用 GPU/Omni resources。
+- 2026-06-23 13:41 HKT - 记录 xpra display validation：`xpra :100` web endpoint 可用，但当前 renderer 是 Xvfb/llvmpipe；full GUI preview 需要 GPU-backed display 或 VirtualGL/TurboVNC/NoMachine 路线。
 
 ## Recommended Next Files To Read
 

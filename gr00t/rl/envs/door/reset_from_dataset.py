@@ -12,6 +12,16 @@ from gr00t.rl.utils.teleop_reset_lib.dataset import MotionDataset
 class ResetFromDataset(LeggedRobotBase):
     def __init__(self, config, device):
         super().__init__(config, device)
+        if self._reset_from_dataset_enabled():
+            self._init_reset_from_dataset(config, device)
+
+    def _reset_from_dataset_enabled(self):
+        reset_config = self.config.get("reset_from_dataset", None)
+        if reset_config is None:
+            raise ValueError("ResetFromDataset requires config.reset_from_dataset.")
+        return bool(reset_config.get("enabled", True))
+
+    def _init_reset_from_dataset(self, config, device):
         config.reset_from_dataset.device = device
         self.reset_dataset = MotionDataset(config.reset_from_dataset)
         self.reset_count = 0
@@ -25,10 +35,11 @@ class ResetFromDataset(LeggedRobotBase):
         ]
 
     def _post_compute_observations_callback(self):
-        self.reset_count += 1
-        if self.reset_count % self.config.reset_from_dataset.resample_every == 0:
-            self.reset_dataset.resample()
-            self.reset_count = 0
+        if self._reset_from_dataset_enabled():
+            self.reset_count += 1
+            if self.reset_count % self.config.reset_from_dataset.resample_every == 0:
+                self.reset_dataset.resample()
+                self.reset_count = 0
         return super()._post_compute_observations_callback()
 
     @override

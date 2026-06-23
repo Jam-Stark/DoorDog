@@ -164,6 +164,14 @@ class A2Base(LeggedRobotBase):
         self._a2_obs_frame_dim = a2_base_contract["frame_dim"]
         self._a2_obs_dim = a2_base_contract["obs_dim"]
         self._a2_leg_action_scale = a2_base_contract["leg_action_scale"]
+        if "homie_history_length" not in self.config.obs:
+            raise ValueError("A2_Base mode requires obs.homie_history_length.")
+        self._homie_history_length = int(self.config.obs.homie_history_length)
+        if self._homie_history_length <= 0:
+            raise ValueError(
+                "A2_Base obs.homie_history_length must be positive, got "
+                f"{self._homie_history_length}"
+            )
         self._a2_gait_frequency = float(a2_config.get("gait_frequency", 2.0))
         self._a2_gait_initial_phase = float(a2_config.get("gait_initial_phase", 0.0)) % 1.0
         self._a2_gait_standing_command_thresholds = torch.tensor(

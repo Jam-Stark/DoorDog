@@ -2,14 +2,19 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import re
+
+import isaaclab.sim as sim_utils
 import omni.usd
 import torch
 import torch.nn.functional as F
+from isaacsim.core.simulation_manager import SimulationManager
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
 from isaaclab.sensors.frame_transformer import OffsetCfg
 from isaaclab.utils.math import (
     axis_angle_from_quat,
     euler_xyz_from_quat,
+    is_identity_pose,
     quat_apply,
     quat_from_euler_xyz,
     quat_inv,
@@ -17,7 +22,7 @@ from isaaclab.utils.math import (
     subtract_frame_transforms,
     wrap_to_pi,
 )
-from pxr import Usd
+from pxr import Usd, UsdPhysics
 from typing_extensions import override
 
 from gr00t.rl.envs.base_task.delta_action_base import DeltaActionBase
@@ -28,6 +33,190 @@ from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
+
+
+class OrderedTargetFrameTransformer(FrameTransformer):
+    """FrameTransformer variant that preserves cfg.target_frames order for duplicate target bodies."""
+
+    def _initialize_impl(self):
+        super(FrameTransformer, self)._initialize_impl()
+
+        source_frame_offset_pos = torch.tensor(self.cfg.source_frame_offset.pos, device=self.device)
+        source_frame_offset_quat = torch.tensor(
+            self.cfg.source_frame_offset.rot, device=self.device
+        )
+        self._apply_source_frame_offset = True
+        if is_identity_pose(source_frame_offset_pos, source_frame_offset_quat):
+            self._apply_source_frame_offset = False
+        else:
+            self._source_frame_offset_pos = source_frame_offset_pos.unsqueeze(0).repeat(
+                self._num_envs, 1
+            )
+            self._source_frame_offset_quat = source_frame_offset_quat.unsqueeze(0).repeat(
+                self._num_envs, 1
+            )
+
+        body_names_to_frames = {}
+        target_offsets = {}
+        self._apply_target_frame_offset = False
+        self._source_is_also_target_frame = False
+
+        target_frame_names = set()
+        for target_frame in self.cfg.target_frames:
+            frame_name = (
+                target_frame.name
+                if target_frame.name is not None
+                else target_frame.prim_path.rsplit("/", 1)[-1]
+            )
+            if frame_name in target_frame_names:
+                raise RuntimeError(
+                    f"FrameTransformer target frame name {frame_name!r} is duplicated."
+                )
+            target_frame_names.add(frame_name)
+
+            offset = target_frame.offset
+            if offset is not None:
+                offset_pos = torch.tensor(offset.pos, device=self.device)
+                offset_quat = torch.tensor(offset.rot, device=self.device)
+                if not is_identity_pose(offset_pos, offset_quat):
+                    self._apply_target_frame_offset = True
+                target_offsets[frame_name] = {"pos": offset_pos, "quat": offset_quat}
+
+        frames = [None] + [target_frame.name for target_frame in self.cfg.target_frames]
+        frame_prim_paths = [self.cfg.prim_path] + [
+            target_frame.prim_path for target_frame in self.cfg.target_frames
+        ]
+        frame_types = ["source"] + ["target"] * len(self.cfg.target_frames)
+        for frame, prim_path, frame_type in zip(frames, frame_prim_paths, frame_types):
+            matching_prims = sim_utils.find_matching_prims(prim_path)
+            if len(matching_prims) == 0:
+                raise ValueError(
+                    f"Failed to create frame transformer for frame '{frame}' with path "
+                    f"'{prim_path}'. No matching prims were found."
+                )
+            for prim in matching_prims:
+                matching_prim_path = prim.GetPath().pathString
+                if not prim.HasAPI(UsdPhysics.RigidBodyAPI):
+                    raise ValueError(
+                        f"While resolving expression '{prim_path}' found a prim "
+                        f"'{matching_prim_path}' which is not a rigid body. The class only "
+                        "supports transformations between rigid bodies."
+                    )
+
+                body_name = self._get_relative_body_path(matching_prim_path)
+                frame_name = frame if frame is not None else matching_prim_path.rsplit("/", 1)[-1]
+
+                if body_name in body_names_to_frames:
+                    if frame_name not in body_names_to_frames[body_name]["frames"]:
+                        body_names_to_frames[body_name]["frames"].append(frame_name)
+                    if body_names_to_frames[body_name]["type"] == "source" and frame_type == "target":
+                        self._source_is_also_target_frame = True
+                else:
+                    body_names_to_frames[body_name] = {
+                        "frames": [frame_name],
+                        "prim_path": matching_prim_path,
+                        "type": frame_type,
+                    }
+
+        tracked_prim_paths = [
+            body_names_to_frames[body_name]["prim_path"] for body_name in body_names_to_frames.keys()
+        ]
+        tracked_body_names = [body_name for body_name in body_names_to_frames.keys()]
+        body_names_regex = [
+            tracked_prim_path.replace("env_0", "env_*")
+            for tracked_prim_path in tracked_prim_paths
+        ]
+
+        self._physics_sim_view = SimulationManager.get_physics_sim_view()
+        self._frame_physx_view = self._physics_sim_view.create_rigid_body_view(body_names_regex)
+
+        all_prim_paths = self._frame_physx_view.prim_paths
+        if "env_" in all_prim_paths[0]:
+
+            def extract_env_num_and_prim_path(item: str) -> tuple[int, str]:
+                match = re.search(r"env_(\d+)(.*)", item)
+                return (int(match.group(1)), match.group(2))
+
+            self._per_env_indices = [
+                index
+                for index, _ in sorted(
+                    list(enumerate(all_prim_paths)), key=lambda x: extract_env_num_and_prim_path(x[1])
+                )
+            ]
+            sorted_prim_paths = [
+                all_prim_paths[index]
+                for index in self._per_env_indices
+                if "env_0" in all_prim_paths[index]
+            ]
+        else:
+            self._per_env_indices = [
+                index for index, _ in sorted(enumerate(all_prim_paths), key=lambda x: x[1])
+            ]
+            sorted_prim_paths = [all_prim_paths[index] for index in self._per_env_indices]
+
+        self._target_frame_body_names = [
+            self._get_relative_body_path(prim_path) for prim_path in sorted_prim_paths
+        ]
+        self._source_frame_body_name = self._get_relative_body_path(self.cfg.prim_path)
+        source_frame_index = self._target_frame_body_names.index(self._source_frame_body_name)
+
+        if not self._source_is_also_target_frame:
+            self._target_frame_body_names.remove(self._source_frame_body_name)
+
+        all_ids = torch.arange(self._num_envs * len(tracked_body_names))
+        self._source_frame_body_ids = (
+            torch.arange(self._num_envs) * len(tracked_body_names) + source_frame_index
+        )
+
+        if self._source_is_also_target_frame:
+            self._target_frame_body_ids = all_ids
+        else:
+            self._target_frame_body_ids = all_ids[~torch.isin(all_ids, self._source_frame_body_ids)]
+
+        self._target_frame_names = []
+        target_frame_offset_pos = []
+        target_frame_offset_quat = []
+        duplicate_frame_indices = []
+        for i, body_name in enumerate(self._target_frame_body_names):
+            for frame in body_names_to_frames[body_name]["frames"]:
+                if frame in target_offsets:
+                    target_frame_offset_pos.append(target_offsets[frame]["pos"])
+                    target_frame_offset_quat.append(target_offsets[frame]["quat"])
+                    self._target_frame_names.append(frame)
+                    duplicate_frame_indices.append(i)
+
+        duplicate_frame_indices = torch.tensor(duplicate_frame_indices, device=self.device)
+        if self._source_is_also_target_frame:
+            num_target_body_frames = len(tracked_body_names)
+        else:
+            num_target_body_frames = len(tracked_body_names) - 1
+
+        self._duplicate_frame_indices = torch.cat(
+            [
+                duplicate_frame_indices + num_target_body_frames * env_num
+                for env_num in range(self._num_envs)
+            ]
+        )
+
+        if self._apply_target_frame_offset:
+            self._target_frame_offset_pos = torch.stack(target_frame_offset_pos).repeat(
+                self._num_envs, 1
+            )
+            self._target_frame_offset_quat = torch.stack(target_frame_offset_quat).repeat(
+                self._num_envs, 1
+            )
+
+        self._data.target_frame_names = self._target_frame_names
+        self._data.source_pos_w = torch.zeros(self._num_envs, 3, device=self._device)
+        self._data.source_quat_w = torch.zeros(self._num_envs, 4, device=self._device)
+        self._data.target_pos_w = torch.zeros(
+            self._num_envs, len(duplicate_frame_indices), 3, device=self._device
+        )
+        self._data.target_quat_w = torch.zeros(
+            self._num_envs, len(duplicate_frame_indices), 4, device=self._device
+        )
+        self._data.target_pos_source = torch.zeros_like(self._data.target_pos_w)
+        self._data.target_quat_source = torch.zeros_like(self._data.target_quat_w)
 
 
 class DoorPregrasp(
@@ -52,6 +241,8 @@ class DoorPregrasp(
         super().__init__(config, device)
 
         if self._use_a2_base:
+            if self._reset_from_dataset_enabled():
+                self._init_reset_from_dataset(config, device)
             self._init_a2_door_pregrasp_state()
             return
 
@@ -1527,8 +1718,8 @@ class DoorPregrasp(
                     ],
                 )
             )
-            simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = FrameTransformer(
-                piper_gripper_handle_frame_transformer_config
+            simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = (
+                OrderedTargetFrameTransformer(piper_gripper_handle_frame_transformer_config)
             )
             target_contact_sub_prim = simulator.task_config.get(
                 "target_obj_contact_sub_prim_path", None

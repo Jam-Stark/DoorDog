@@ -89,7 +89,7 @@ class PolicyAndValueWrapper(nn.Module):
         self.homie_walk_model = homie_walk_model
         self.homie_stand_model = homie_stand_model
         self.ref_model = ref_model
-        self.a2_base_model = a2_base_model
+        object.__setattr__(self, "_a2_base_model", a2_base_model)
         self.use_a2_base = a2_base_model is not None
         self.a2_base_command_scale = a2_base_command_scale
         self.a2_base_body_pitch_roll_scale = a2_base_body_pitch_roll_scale
@@ -131,6 +131,10 @@ class PolicyAndValueWrapper(nn.Module):
         self.opt_homie = False
         self.homie_switch_threshold = 0.5
 
+    @property
+    def a2_base_model(self):
+        return self._a2_base_model
+
     def set_mode(self, mode):
         if hasattr(self.policy, "mode"):
             self.policy.mode = mode
@@ -162,7 +166,7 @@ class PolicyAndValueWrapper(nn.Module):
             results[mode] = self.forward_component(mode, **input_kwargs[mode])
         return results
 
-    def _a2_base_actions(self, obs_dict, high_level_actions):
+    def _a2_base_actions(self, obs_dict, high_level_actions, masks=None, original_dones=None):
         a2_base_obs = obs_dict["a2_base_obs"].clone()
         obs_shape = a2_base_obs.shape
         if obs_shape[-1] != self.a2_base_obs_dim:
@@ -170,6 +174,37 @@ class PolicyAndValueWrapper(nn.Module):
                 f"A2_Base obs dim mismatch: got {obs_shape[-1]}, expected {self.a2_base_obs_dim}"
             )
         action_shape = high_level_actions.shape
+        if obs_shape[:-1] != action_shape[:-1]:
+            if masks is None or original_dones is None:
+                raise ValueError(
+                    "A2_Base obs/action leading shape mismatch without recurrent masks: "
+                    f"obs leading dims {tuple(obs_shape[:-1])}, "
+                    f"high_level_actions leading dims {tuple(action_shape[:-1])}"
+                )
+            if masks.dim() != 2 or original_dones.dim() != 2:
+                raise ValueError(
+                    "A2_Base recurrent unsplit expects masks [num_trajectories, max_traj_len] "
+                    f"and original_dones [num_envs, num_steps], got {masks.shape=} "
+                    f"{original_dones.shape=}"
+                )
+            if obs_shape[:2] != masks.shape or action_shape[:2] != original_dones.shape:
+                raise ValueError(
+                    "A2_Base recurrent obs/action layout mismatch: expected obs leading dims "
+                    f"{tuple(masks.shape)} and action leading dims "
+                    f"{tuple(original_dones.shape)}, got obs {tuple(obs_shape[:-1])} "
+                    f"and actions {tuple(action_shape[:-1])}"
+                )
+
+            from gr00t.rl.trl.utils.rl import unsplit_trajectories
+
+            a2_base_obs = unsplit_trajectories(a2_base_obs, masks, original_dones)
+            obs_shape = a2_base_obs.shape
+            if obs_shape[:-1] != action_shape[:-1]:
+                raise ValueError(
+                    "A2_Base unsplit obs/action leading shape mismatch: "
+                    f"unsplit obs leading dims {tuple(obs_shape[:-1])}, "
+                    f"high_level_actions leading dims {tuple(action_shape[:-1])}"
+                )
         flat_obs = a2_base_obs.reshape(-1, obs_shape[-1])
         flat_high_level_actions = high_level_actions.reshape(-1, action_shape[-1])
         final_frame_start = flat_obs.shape[-1] - self.a2_base_frame_dim
@@ -206,7 +241,12 @@ class PolicyAndValueWrapper(nn.Module):
             self.policy.act(**kwargs)
             if self.use_a2_base:
                 high_level_actions = actions[..., : self.policy.num_actions]
-                a2_actions = self._a2_base_actions(kwargs["obs_dict"], high_level_actions)
+                a2_actions = self._a2_base_actions(
+                    kwargs["obs_dict"],
+                    high_level_actions,
+                    masks=kwargs.get("masks"),
+                    original_dones=kwargs.get("original_dones"),
+                )
                 policy_log_probs = self.policy.get_actions_log_prob(actions=high_level_actions)
                 a2_sigma = torch.full_like(a2_actions, self.a2_base_action_sigma)
                 results = {

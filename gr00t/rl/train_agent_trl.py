@@ -166,6 +166,38 @@ def process_output_dim_in_config(config):
             adapt_backbone_output_dim(config.algo.config.teacher_actor.backbone, "teacher_actor")
 
 
+def patch_app_launcher_toolbar_hiding(AppLauncher: type) -> None:
+    """Skip optional toolbar hiding when the selected Kit omits the toolbar widget."""
+    if getattr(AppLauncher, "_a2_piper_toolbar_hiding_patch_applied", False):
+        return
+
+    missing_module = "omni.kit.widget.toolbar"
+
+    def make_wrapper(method_name: str, original_method):
+        def wrapped(self, *args, **kwargs):
+            try:
+                return original_method(self, *args, **kwargs)
+            except ModuleNotFoundError as exc:
+                if exc.name != missing_module:
+                    raise
+                print(
+                    "[WARN]: IsaacLab AppLauncher "
+                    f"`{method_name}` skipped because `{missing_module}` is unavailable "
+                    "in this Kit runtime.",
+                    file=sys.stderr,
+                    flush=True,
+                )
+                return None
+
+        return wrapped
+
+    for method_name in ("_hide_stop_button", "_hide_play_button"):
+        original_method = getattr(AppLauncher, method_name, None)
+        if original_method is not None:
+            setattr(AppLauncher, method_name, make_wrapper(method_name, original_method))
+    setattr(AppLauncher, "_a2_piper_toolbar_hiding_patch_applied", True)
+
+
 @hydra.main(config_path="config", config_name="base", version_base="1.1")
 def main(config: OmegaConf):
     # Auto-calculate vision_feature_dim for history-based vision models
@@ -229,6 +261,7 @@ def main(config: OmegaConf):
 
         parser = argparse.ArgumentParser(description="Train an RL agent with TRL.")
         AppLauncher.add_app_launcher_args(parser)
+        patch_app_launcher_toolbar_hiding(AppLauncher)
 
         args_cli, hydra_args = parser.parse_known_args()
         sys.argv = [sys.argv[0]] + hydra_args

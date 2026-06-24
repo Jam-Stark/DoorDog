@@ -207,13 +207,15 @@ class StagedTaskBase(LeggedRobotBase):
         super()._check_termination()
         is_overtime = self.time_in_stage_buf >= self.max_stage_time[self.stage_buf]
         is_last_stage = self._make_mask(self.num_stages - 1)
-        is_complete = self.stage_complete_cond_func() & (self.episode_length_buf >= 2)
+        is_stage_complete = self.stage_complete_cond_func() & (self.episode_length_buf >= 2)
+        is_complete = is_last_stage & is_stage_complete
         assert is_complete.shape == (self.num_envs,)
         assert is_complete.dtype == torch.bool
 
         is_overtime &= ~(is_last_stage & is_complete)
 
         if self.config.get("reset_on_overtime", True):
+            self._mark_terminal_reason("stage_overtime", is_overtime)
             self.reset_buf |= is_overtime
         self.current_completed_task_buf |= is_complete
 
@@ -225,9 +227,11 @@ class StagedTaskBase(LeggedRobotBase):
                 is_complete_and_delayed = is_complete & (
                     self.time_since_completion_buf >= delay_time
                 )
+                self._mark_terminal_reason("complete", is_complete_and_delayed)
                 self.reset_buf |= is_complete_and_delayed
                 self.time_out_buf |= is_complete_and_delayed
             else:
+                self._mark_terminal_reason("complete", is_complete)
                 self.reset_buf |= is_complete
                 self.time_out_buf |= is_complete
 

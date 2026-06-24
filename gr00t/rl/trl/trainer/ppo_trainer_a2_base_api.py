@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional
 
+import numpy as np
 import pandas as pd
 import torch
 import torchvision
@@ -61,6 +62,34 @@ def _validate_optional_a2_config_value(config, key, metadata_value):
         raise ValueError(
             f"A2_Base config {key}={config.get(key)} disagrees with metadata {metadata_value}"
         )
+
+
+def _make_json_safe(value, path="root"):
+    if isinstance(value, torch.Tensor):
+        tensor = value.detach().cpu()
+        if tensor.ndim == 0:
+            return _make_json_safe(tensor.item(), path)
+        return _make_json_safe(tensor.tolist(), path)
+    if isinstance(value, np.ndarray):
+        return _make_json_safe(value.tolist(), path)
+    if isinstance(value, np.generic):
+        return _make_json_safe(value.item(), path)
+    if isinstance(value, dict):
+        converted = {}
+        for key, item in value.items():
+            if not isinstance(key, (str, int, float, bool, type(None))):
+                raise TypeError(
+                    f"Unsupported eval metrics key type at {path}: "
+                    f"{type(key).__name__}"
+                )
+            key_path = f"{path}.{key}" if isinstance(key, str) else f"{path}[{repr(key)}]"
+            converted[key] = _make_json_safe(item, key_path)
+        return converted
+    if isinstance(value, (list, tuple)):
+        return [_make_json_safe(item, f"{path}[{idx}]") for idx, item in enumerate(value)]
+    if isinstance(value, (str, int, float, bool, type(None))):
+        return value
+    raise TypeError(f"Unsupported eval metrics value type at {path}: {type(value).__name__}")
 
 
 class PolicyAndValueWrapper(nn.Module):
@@ -2394,6 +2423,7 @@ class TRLPPOTrainer(PPOTrainer):
             self.env.num_envs, dtype=torch.int32, device=self.accelerator.device
         )
         completed_episodes = 0
+        self.env.render_results(frame_type="initial")
 
         def terminate_rollout():
             if eval_num_envs_episodes:
@@ -2448,7 +2478,6 @@ class TRLPPOTrainer(PPOTrainer):
 
                     actor_state["actions"] = step_actions
 
-                    self.env.render_results()
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
 
                     for obs_key in obs_dict.keys():
@@ -2489,6 +2518,25 @@ class TRLPPOTrainer(PPOTrainer):
                         # Reset environment episode tracking
                         self.env.reset_eval_episode_tracking(new_ids)
 
+                        if not terminate_rollout():
+                            if eval_num_envs_episodes:
+                                restart_env_ids = new_ids[
+                                    ~self.env_episode_completed[new_ids][:, 0]
+                                ]
+                            else:
+                                restart_env_ids = new_ids
+                            self.env.render_results(
+                                env_ids=restart_env_ids.flatten(), frame_type="initial"
+                            )
+
+                    if not terminate_rollout():
+                        non_terminal_env_ids = (dones == 0).nonzero(as_tuple=False).flatten()
+                        if eval_num_envs_episodes:
+                            non_terminal_env_ids = non_terminal_env_ids[
+                                ~self.env_episode_completed[non_terminal_env_ids]
+                            ]
+                        self.env.render_results(env_ids=non_terminal_env_ids, frame_type="step")
+
         self.env.end_render_results()
         self.policy_model.clear_rollout()
         print(f"Evaluation completed - {completed_episodes} episodes finished")
@@ -2505,8 +2553,11 @@ class TRLPPOTrainer(PPOTrainer):
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
         metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
-        with open(metrics_eval_path, "w") as f:
-            json.dump(eval_dict, f, indent=4)
+        metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"
+        safe_eval_dict = _make_json_safe(eval_dict)
+        with open(metrics_eval_tmp_path, "w") as f:
+            json.dump(safe_eval_dict, f, indent=4)
+        os.replace(metrics_eval_tmp_path, metrics_eval_path)
 
         logger.info(f"Saved eval_dict to {metrics_eval_path}")  # self.args.eval_output_dir
 

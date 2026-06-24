@@ -1092,6 +1092,29 @@ class IsaacSim(BaseSimulator):
         logger.info(f"camera_types: {camera_types}")
 
         if getattr(self.simulator_config, "render_results", False):
+            eval_camera_resolutions = self.simulator_config.cameras.get(
+                "eval_camera_resolutions", None
+            )
+            if eval_camera_resolutions is None:
+                raise ValueError(
+                    "simulator.config.cameras.eval_camera_resolutions is required "
+                    "when render_results=true"
+                )
+            eval_camera_resolutions = list(eval_camera_resolutions)
+            if len(eval_camera_resolutions) != 2:
+                raise ValueError(
+                    "simulator.config.cameras.eval_camera_resolutions must be "
+                    f"[height, width], got {eval_camera_resolutions!r}"
+                )
+            eval_camera_height, eval_camera_width = eval_camera_resolutions
+            if any(
+                isinstance(value, bool) or not isinstance(value, int) or value <= 0
+                for value in (eval_camera_height, eval_camera_width)
+            ):
+                raise ValueError(
+                    "simulator.config.cameras.eval_camera_resolutions must contain "
+                    f"positive integer [height, width], got {eval_camera_resolutions!r}"
+                )
             eval_camera_config = TiledCameraCfg(
                 prim_path="/World/envs/env_.*/eval_camera",
                 offset=TiledCameraCfg.OffsetCfg(
@@ -1104,8 +1127,8 @@ class IsaacSim(BaseSimulator):
                     horizontal_aperture=5,
                     clipping_range=(0.1, 20.0),
                 ),
-                width=256,
-                height=256,
+                width=eval_camera_width,
+                height=eval_camera_height,
             )
             self.eval_camera = TiledCamera(eval_camera_config)
             self.scene.sensors["eval_camera"] = self.eval_camera

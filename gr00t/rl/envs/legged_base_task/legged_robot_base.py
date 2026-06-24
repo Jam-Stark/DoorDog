@@ -258,6 +258,20 @@ class LeggedRobotBase(BaseTask):
             self.past_length = self.config.obs.get("past_length", 1)
 
         self.visualize_env_id = 0
+        self._terminal_reason_names = (
+            "complete",
+            "stage_overtime",
+            "episode_timeout",
+            "low_height",
+            "bad_orientation",
+            "door_distance",
+            "upper_dof_overspeed",
+            "unknown_reset",
+        )
+        self._terminal_reason_bufs = {
+            name: torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            for name in self._terminal_reason_names
+        }
 
     def _domain_rand_config(self):
         if self.config.domain_rand.push_robots:
@@ -285,6 +299,141 @@ class LeggedRobotBase(BaseTask):
         self.push_robot_counter[:] += 1
         self.push_robot_plot_counter[:] += 1
         self.command_counter[:] += 1
+
+    def _clear_terminal_reason_buffers(self):
+        for reason_buf in self._terminal_reason_bufs.values():
+            reason_buf[:] = False
+
+    def _mark_terminal_reason(self, reason, mask):
+        if reason not in self._terminal_reason_bufs:
+            raise KeyError(f"unknown terminal reason {reason!r}")
+        if mask.shape != (self.num_envs,):
+            raise ValueError(
+                f"terminal reason mask {reason!r} must have shape {(self.num_envs,)}, "
+                f"got {tuple(mask.shape)}"
+            )
+        if mask.dtype != torch.bool:
+            raise TypeError(
+                f"terminal reason mask {reason!r} must have dtype torch.bool, got {mask.dtype}"
+            )
+        self._terminal_reason_bufs[reason] |= mask
+
+    def _terminal_reasons_for_env_ids(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        reasons = []
+        reason_names = [name for name in self._terminal_reason_names if name != "unknown_reset"]
+        for env_id in env_ids.tolist():
+            env_reasons = [
+                name
+                for name in reason_names
+                if bool(self._terminal_reason_bufs[name][env_id].item())
+            ]
+            if not env_reasons:
+                env_reasons = ["unknown_reset"]
+            reasons.append("+".join(env_reasons))
+        return reasons
+
+    def _get_terminal_diagnostics(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
+        diagnostics = []
+        for idx, env_id in enumerate(env_ids.tolist()):
+            diagnostic = {
+                "env_id": int(env_id),
+                "episode_length_buf": int(self.episode_length_buf[env_id].item()),
+                "terminal_reasons": terminal_reasons[idx],
+            }
+            if hasattr(self, "stage_buf"):
+                diagnostic["stage_buf"] = int(self.stage_buf[env_id].item())
+            if hasattr(self, "time_in_stage_buf"):
+                diagnostic["time_in_stage_buf"] = int(
+                    self.time_in_stage_buf[env_id].item()
+                )
+            diagnostics.append(diagnostic)
+        return diagnostics
+
+    def _capture_terminal_diagnostics(self, env_ids):
+        if "_pending_terminal_diagnostics" not in self.__dict__:
+            return
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        if getattr(self, "_use_a2_base", False):
+            get_a2_diagnostics = getattr(self, "_get_a2_terminal_diagnostics", None)
+            if get_a2_diagnostics is None:
+                raise RuntimeError(
+                    "A2 eval terminal diagnostics requires _get_a2_terminal_diagnostics()."
+                )
+            diagnostics = get_a2_diagnostics(env_ids)
+        else:
+            diagnostics = self._get_terminal_diagnostics(env_ids)
+
+        if not isinstance(diagnostics, list):
+            raise TypeError(
+                "terminal diagnostics helper must return a list of dicts, "
+                f"got {type(diagnostics).__name__}"
+            )
+        if len(diagnostics) != env_ids.numel():
+            raise RuntimeError(
+                "terminal diagnostics helper returned "
+                f"{len(diagnostics)} entries for {env_ids.numel()} env ids"
+            )
+
+        for env_id, diagnostic in zip(env_ids.tolist(), diagnostics):
+            if not isinstance(diagnostic, dict):
+                raise TypeError(
+                    "terminal diagnostics entries must be dicts, "
+                    f"got {type(diagnostic).__name__} for env_id {env_id}"
+                )
+            if diagnostic.get("env_id") != int(env_id):
+                raise RuntimeError(
+                    "terminal diagnostics env_id mismatch: "
+                    f"expected {int(env_id)}, got {diagnostic.get('env_id')!r}"
+                )
+            self._pending_terminal_diagnostics[int(env_id)] = diagnostic
+
+    def _pop_pending_terminal_diagnostics(self, env_ids):
+        if "_pending_terminal_diagnostics" not in self.__dict__:
+            raise RuntimeError(
+                "eval terminal diagnostics requested before init_eval_metrics_tracking()."
+            )
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        diagnostics = []
+        missing_env_ids = []
+        sentinel = object()
+        for env_id in env_ids.tolist():
+            diagnostic = self._pending_terminal_diagnostics.pop(int(env_id), sentinel)
+            if diagnostic is sentinel:
+                missing_env_ids.append(int(env_id))
+            else:
+                diagnostics.append(diagnostic)
+        if missing_env_ids:
+            raise RuntimeError(
+                "missing pending terminal diagnostics for completed eval env ids "
+                f"{missing_env_ids}; terminal diagnostics must be captured before reset."
+            )
+        return diagnostics
+
+    def _capture_terminal_render_results(self, env_ids):
+        if not self._render_results_enabled():
+            return
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        render_config = self._get_eval_rendering_config()
+        if render_config["write_terminal_frame"]:
+            self.render_results(env_ids=env_ids, frame_type="terminal")
+
+        self.close_render_results_for_envs(
+            env_ids,
+            episode_lengths=[int(self.episode_length_buf[env_id].item()) for env_id in env_ids],
+            terminal_reasons=self._terminal_reasons_for_env_ids(env_ids),
+        )
 
     def _init_domain_rand_buffers(self):
         ######################################### DR related tensors #########################################
@@ -532,51 +681,251 @@ class LeggedRobotBase(BaseTask):
                 :, self.end_effector_index, :
             ]
 
-    def render_results(self):
-        if (
+    def _render_results_enabled(self):
+        return (
             self.config.simulator.config.get("render_results", False)
             and self.config.simulator.config.name == "isaacsim"
-        ):
-            if self.debug_viz:
-                self._draw_debug_vis()
+        )
 
+    def _get_eval_rendering_config(self):
+        if "_eval_rendering_config_cache" in self.__dict__:
+            return self._eval_rendering_config_cache
+
+        render_config = self.config.get("eval_rendering", None)
+        if render_config is None:
+            raise KeyError(
+                "env.config.eval_rendering is required when simulator.config.render_results=true"
+            )
+
+        required_keys = (
+            "camera_mode",
+            "camera_eye",
+            "camera_lookat",
+            "fps",
+            "write_initial_frame",
+            "write_terminal_frame",
+        )
+        missing_keys = [key for key in required_keys if key not in render_config]
+        if missing_keys:
+            raise KeyError(
+                "env.config.eval_rendering missing required keys: "
+                + ", ".join(missing_keys)
+            )
+
+        camera_mode = render_config["camera_mode"]
+        if camera_mode not in ("env_static", "root_tracking", "door_top_down"):
+            raise ValueError(
+                "env.config.eval_rendering.camera_mode must be 'env_static', "
+                f"'root_tracking', or 'door_top_down', got {camera_mode!r}"
+            )
+
+        def _read_vec3(key):
+            value = torch.tensor(
+                list(render_config[key]), dtype=torch.float32, device=self.device
+            )
+            if value.shape != (3,):
+                raise ValueError(
+                    f"env.config.eval_rendering.{key} must contain exactly 3 values, "
+                    f"got shape {tuple(value.shape)}"
+                )
+            return value
+
+        fps = render_config["fps"]
+        if isinstance(fps, bool) or not isinstance(fps, (int, np.integer)) or fps <= 0:
+            raise ValueError(
+                f"env.config.eval_rendering.fps must be a positive integer, got {fps!r}"
+            )
+
+        write_initial_frame = render_config["write_initial_frame"]
+        write_terminal_frame = render_config["write_terminal_frame"]
+        if not isinstance(write_initial_frame, bool):
+            raise TypeError(
+                "env.config.eval_rendering.write_initial_frame must be bool, "
+                f"got {type(write_initial_frame).__name__}"
+            )
+        if not isinstance(write_terminal_frame, bool):
+            raise TypeError(
+                "env.config.eval_rendering.write_terminal_frame must be bool, "
+                f"got {type(write_terminal_frame).__name__}"
+            )
+
+        self._eval_rendering_config_cache = {
+            "camera_mode": camera_mode,
+            "camera_eye": _read_vec3("camera_eye"),
+            "camera_lookat": _read_vec3("camera_lookat"),
+            "fps": int(fps),
+            "write_initial_frame": write_initial_frame,
+            "write_terminal_frame": write_terminal_frame,
+        }
+        return self._eval_rendering_config_cache
+
+    def _normalize_render_env_ids(self, env_ids):
+        if env_ids is None:
+            return torch.arange(self.num_envs, device=self.device, dtype=torch.long)
+        if not torch.is_tensor(env_ids):
+            env_ids = torch.tensor(env_ids, device=self.device, dtype=torch.long)
+        env_ids = env_ids.to(device=self.device, dtype=torch.long).flatten()
+        if env_ids.numel() == 0:
+            return env_ids
+        if torch.any(env_ids < 0) or torch.any(env_ids >= self.num_envs):
+            raise IndexError(f"render env_ids out of range: {env_ids.tolist()}")
+        return env_ids
+
+    def _compute_eval_render_camera_poses(self):
+        render_config = self._get_eval_rendering_config()
+        camera_eye = render_config["camera_eye"]
+        camera_lookat = render_config["camera_lookat"]
+
+        if render_config["camera_mode"] == "env_static":
+            origins = self.env_origins.to(self.device)
+            eye = origins + camera_eye[None, :]
+            lookat = origins + camera_lookat[None, :]
+        elif render_config["camera_mode"] == "root_tracking":
             root_pos = self.simulator._rigid_body_pos[:, 0]
-            eye = root_pos + torch.tensor([2, 2, 1], device=self.device)
+            eye = root_pos + camera_eye[None, :]
+            lookat = root_pos + camera_lookat[None, :]
+        elif render_config["camera_mode"] == "door_top_down":
+            door_root_pos = self.simulator.get_task_root_state("door")[:, :3]
+            eye = door_root_pos + camera_eye[None, :]
+            lookat = door_root_pos + camera_lookat[None, :]
+        else:
+            raise ValueError(
+                f"unknown eval rendering camera mode {render_config['camera_mode']!r}"
+            )
 
-            self.simulator.eval_camera.set_world_poses_from_view(eye, root_pos)
-            rgb_viewer = self.simulator.eval_camera.data.output["rgb"].clone()
+        return eye, lookat
 
-            if "writers_rendering_results" not in self.__dict__:
+    def _init_eval_rendering_state(self):
+        if "_eval_render_writers" in self.__dict__:
+            return
 
-                os.makedirs(self.config.save_rendering_dir, exist_ok=True)
-                self.writers_rendering_results = []
-                time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        if self.config.save_rendering_dir is None:
+            raise ValueError(
+                "env.config.save_rendering_dir must be set when render_results is enabled"
+            )
+        os.makedirs(self.config.save_rendering_dir, exist_ok=True)
+        self._eval_render_writers = [None for _ in range(self.num_envs)]
+        self._eval_render_tmp_paths = [None for _ in range(self.num_envs)]
+        self._eval_render_episode_indices = [0 for _ in range(self.num_envs)]
+        self._eval_render_session = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-                for i in range(self.num_envs):
-                    file_name = f"{self.config.save_rendering_dir}/{time_str}_viewer_{i}.mp4"
-                    print(f"Saving rendering to {file_name}")
-                    writer = imageio.get_writer(file_name, fps=int(1 / self.dt))
-                    writer.append_data(rgb_viewer[i].cpu().numpy())
-                    self.writers_rendering_results.append(writer)
-            else:
-                for i in range(self.num_envs):
-                    self.writers_rendering_results[i].append_data(rgb_viewer[i].cpu().numpy())
+    def _open_eval_render_writer(self, env_id):
+        self._init_eval_rendering_state()
+        if self._eval_render_writers[env_id] is not None:
+            return self._eval_render_writers[env_id]
+
+        episode_index = self._eval_render_episode_indices[env_id]
+        filename = (
+            f"{self._eval_render_session}_env{env_id:04d}_episode{episode_index:04d}"
+            ".writing.mp4"
+        )
+        filepath = str(Path(self.config.save_rendering_dir) / filename)
+        print(f"Saving rendering to {filepath}")
+        writer = imageio.get_writer(filepath, fps=self._get_eval_rendering_config()["fps"])
+        self._eval_render_writers[env_id] = writer
+        self._eval_render_tmp_paths[env_id] = filepath
+        return writer
+
+    def _sanitize_render_reason(self, reason):
+        return "".join(c if c.isalnum() or c in ("-", "_", "+") else "_" for c in reason)
+
+    def _close_eval_render_writer(
+        self, env_id, episode_length=None, terminal_reason="rollout_end"
+    ):
+        self._init_eval_rendering_state()
+        writer = self._eval_render_writers[env_id]
+        tmp_path = self._eval_render_tmp_paths[env_id]
+
+        if writer is not None:
+            writer.close()
+            reason = self._sanitize_render_reason(terminal_reason)
+            if episode_length is None:
+                episode_length = int(self.episode_length_buf[env_id].item())
+            episode_index = self._eval_render_episode_indices[env_id]
+            filename = (
+                f"{self._eval_render_session}_env{env_id:04d}_episode{episode_index:04d}"
+                f"_len{int(episode_length)}_reason-{reason}.mp4"
+            )
+            final_path = str(Path(self.config.save_rendering_dir) / filename)
+            os.replace(tmp_path, final_path)
+
+        self._eval_render_writers[env_id] = None
+        self._eval_render_tmp_paths[env_id] = None
+        self._eval_render_episode_indices[env_id] += 1
+
+    def render_results(self, env_ids=None, frame_type="step"):
+        if not self._render_results_enabled():
+            return
+
+        render_config = self._get_eval_rendering_config()
+        if frame_type == "initial" and not render_config["write_initial_frame"]:
+            return
+        if frame_type == "terminal" and not render_config["write_terminal_frame"]:
+            return
+        if frame_type not in ("initial", "step", "terminal"):
+            raise ValueError(f"unknown render frame_type {frame_type!r}")
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        if self.debug_viz:
+            self._draw_debug_vis()
+
+        eye, lookat = self._compute_eval_render_camera_poses()
+        if not hasattr(self.simulator.eval_camera._view, "_sync_usd_on_fabric_write"):
+            raise RuntimeError("eval camera view does not expose USD/Fabric sync control")
+        # Tiled render products consume USD-authored camera transforms. TiledCamera's
+        # XformPrimView defaults to Fabric-only writes, so mirror pose writes to USD.
+        self.simulator.eval_camera._view._sync_usd_on_fabric_write = True
+        self.simulator.eval_camera.set_world_poses_from_view(eye, lookat)
+        self.simulator.sim.render()
+        self.simulator.eval_camera.update(dt=0.0, force_recompute=True)
+        rgb_viewer = self.simulator.eval_camera.data.output["rgb"].clone()
+
+        for env_id in env_ids.tolist():
+            writer = self._open_eval_render_writer(env_id)
+            writer.append_data(rgb_viewer[env_id].cpu().numpy())
+
+    def close_render_results_for_envs(self, env_ids, episode_lengths=None, terminal_reasons=None):
+        if not self._render_results_enabled():
+            return
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        if episode_lengths is None:
+            episode_lengths = [None for _ in range(env_ids.numel())]
+        if terminal_reasons is None:
+            terminal_reasons = ["rollout_end" for _ in range(env_ids.numel())]
+
+        if len(episode_lengths) != env_ids.numel():
+            raise ValueError("episode_lengths must match env_ids length")
+        if len(terminal_reasons) != env_ids.numel():
+            raise ValueError("terminal_reasons must match env_ids length")
+
+        for env_id, episode_length, terminal_reason in zip(
+            env_ids.tolist(), episode_lengths, terminal_reasons
+        ):
+            self._close_eval_render_writer(env_id, episode_length, terminal_reason)
 
     def end_render_results(self):
-        if (
-            self.config.simulator.config.get("render_results", False)
-            and self.config.simulator.config.name == "isaacsim"
-        ):
-            for writer in self.writers_rendering_results:
-                writer.close()
+        if not self._render_results_enabled() or "_eval_render_writers" not in self.__dict__:
+            return
 
-    def end_render_results(self):
-        if (
-            self.config.simulator.config.get("render_results", False)
-            and self.config.simulator.config.name == "isaacsim"
-        ):
-            for writer in self.writers_rendering_results:
-                writer.close()
+        open_env_ids = [
+            env_id for env_id, writer in enumerate(self._eval_render_writers) if writer is not None
+        ]
+        if not open_env_ids:
+            return
+        self.close_render_results_for_envs(
+            open_env_ids,
+            episode_lengths=[
+                int(self.episode_length_buf[env_id].item()) for env_id in open_env_ids
+            ],
+            terminal_reasons=["rollout_end" for _ in open_env_ids],
+        )
 
     def _update_meta_pd_scale(self, sim_sub_t):
         use_meta_pd = self.config.robot.get("use_meta_pd", False)
@@ -694,6 +1043,8 @@ class LeggedRobotBase(BaseTask):
         self._compute_reward()
         # check terminations
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
+        self._capture_terminal_diagnostics(env_ids)
+        self._capture_terminal_render_results(env_ids)
         self.reset_envs_idx(env_ids)
 
         # set envs
@@ -863,6 +1214,7 @@ class LeggedRobotBase(BaseTask):
         # Note: DO NOT USE FOLLOWING TWO LINES STYLE
         self.reset_buf[:] = 0
         self.time_out_buf[:] = 0
+        self._clear_terminal_reason_buffers()
 
         self._update_reset_buf()
         self._update_timeout_buf()
@@ -897,9 +1249,12 @@ class LeggedRobotBase(BaseTask):
         if self.config.termination.terminate_by_low_height:
             # import ipdb; ipdb.set_trace()
             robot_height = self.simulator.robot_root_states[:, 2:3] - self.ground_height
-            self.reset_buf |= torch.any(
-                robot_height < self.config.termination_scales.termination_min_base_height, dim=1
+            low_height = torch.any(
+                robot_height < self.config.termination_scales.termination_min_base_height,
+                dim=1,
             )
+            self._mark_terminal_reason("low_height", low_height)
+            self.reset_buf |= low_height
         if self.config.termination.get("terminate_by_hand_object_contact", False):
             termination_contact_force = self.config.termination_scales.get(
                 "termination_contact_force", 1.0
@@ -961,9 +1316,9 @@ class LeggedRobotBase(BaseTask):
                 self.reset_buf |= out_of_torque_limits > 0.0
 
     def _update_timeout_buf(self):
-        self.time_out_buf |= (
-            self.episode_length_buf > self.max_episode_length
-        )  # no terminal reward for time-outs
+        episode_timeout = self.episode_length_buf > self.max_episode_length
+        self._mark_terminal_reason("episode_timeout", episode_timeout)
+        self.time_out_buf |= episode_timeout  # no terminal reward for time-outs
 
     def reset_envs_idx(self, env_ids, target_states=None, target_buf=None):
         """Reset some environments.
@@ -2431,8 +2786,15 @@ class LeggedRobotBase(BaseTask):
     def init_eval_metrics_tracking(self, device):
         self.eval_metrics = {
             "episode_goal_reached": torch.zeros(self.num_envs, dtype=torch.bool, device=device),
-            "goal_reached_buffer": [torch.zeros(self.num_envs, dtype=torch.bool, device=device)],
+            "goal_reached_buffer": [],
+            "episode_lengths": [],
+            "episode_rewards": [],
+            "episode_goal_reached_buffer": [],
+            "episode_max_stage_reached": [],
+            "episode_terminal_reasons": [],
+            "episode_terminal_diagnostics": [],
         }
+        self._pending_terminal_diagnostics = {}
 
     def update_eval_metrics_per_step(self, infos):
         pass
@@ -2440,13 +2802,79 @@ class LeggedRobotBase(BaseTask):
     def process_eval_episode_completions(
         self, completed_env_ids, cur_reward_sum, cur_episode_length
     ):
-        pass
+        env_ids = completed_env_ids.to(device=self.device, dtype=torch.long).flatten()
+        if env_ids.numel() == 0:
+            return
+
+        reward_env_ids = completed_env_ids.to(
+            device=cur_reward_sum.device, dtype=torch.long
+        ).flatten()
+        length_env_ids = completed_env_ids.to(
+            device=cur_episode_length.device, dtype=torch.long
+        ).flatten()
+
+        episode_rewards = (
+            cur_reward_sum[reward_env_ids].detach().cpu().reshape(-1).tolist()
+        )
+        episode_lengths = (
+            cur_episode_length[length_env_ids].detach().cpu().reshape(-1).tolist()
+        )
+
+        if hasattr(self, "last_completed_task_buf"):
+            goal_reached = self.last_completed_task_buf[env_ids].bool()
+        else:
+            goal_reached = self._terminal_reason_bufs["complete"][env_ids]
+
+        if hasattr(self, "last_max_stage_buf"):
+            max_stage_reached = self.last_max_stage_buf[env_ids]
+        else:
+            max_stage_reached = torch.zeros(
+                env_ids.numel(), dtype=torch.long, device=self.device
+            )
+
+        terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
+        terminal_diagnostics = self._pop_pending_terminal_diagnostics(env_ids)
+
+        metric_env_ids = completed_env_ids.to(
+            device=self.eval_metrics["episode_goal_reached"].device, dtype=torch.long
+        ).flatten()
+        self.eval_metrics["episode_goal_reached"][metric_env_ids] = goal_reached.to(
+            self.eval_metrics["episode_goal_reached"].device
+        )
+        goal_reached_list = goal_reached.detach().cpu().reshape(-1).tolist()
+
+        self.eval_metrics["episode_rewards"].extend(float(value) for value in episode_rewards)
+        self.eval_metrics["episode_lengths"].extend(int(value) for value in episode_lengths)
+        self.eval_metrics["episode_goal_reached_buffer"].extend(
+            bool(value) for value in goal_reached_list
+        )
+        self.eval_metrics["goal_reached_buffer"].extend(
+            bool(value) for value in goal_reached_list
+        )
+        self.eval_metrics["episode_max_stage_reached"].extend(
+            int(value) for value in max_stage_reached.detach().cpu().reshape(-1).tolist()
+        )
+        self.eval_metrics["episode_terminal_reasons"].extend(terminal_reasons)
+        self.eval_metrics["episode_terminal_diagnostics"].extend(terminal_diagnostics)
 
     def reset_eval_episode_tracking(self, completed_env_ids):
-        pass
+        env_ids = completed_env_ids.to(
+            device=self.eval_metrics["episode_goal_reached"].device, dtype=torch.long
+        ).flatten()
+        self.eval_metrics["episode_goal_reached"][env_ids] = False
 
     def get_eval_metrics_summary(self):
-        return self.eval_metrics
+        return {
+            "episode_lengths": self.eval_metrics["episode_lengths"],
+            "episode_rewards": self.eval_metrics["episode_rewards"],
+            "episode_goal_reached": self.eval_metrics["episode_goal_reached_buffer"],
+            "episode_max_stage_reached": self.eval_metrics["episode_max_stage_reached"],
+            "episode_terminal_reasons": self.eval_metrics["episode_terminal_reasons"],
+            "episode_terminal_diagnostics": self.eval_metrics[
+                "episode_terminal_diagnostics"
+            ],
+            "goal_reached_buffer": self.eval_metrics["goal_reached_buffer"],
+        }
 
     @staticmethod
     def _tracking_reward_util(

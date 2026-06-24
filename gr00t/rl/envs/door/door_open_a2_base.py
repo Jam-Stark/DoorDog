@@ -1232,6 +1232,446 @@ class DoorPregrasp(
             )
         return force_matrix_w[:, 0, :, :]
 
+    def _get_a2_stage2_grasp_contact_history_length(self):
+        history_length = self.config.get("stage2_grasp_contact_history_length", None)
+        if (
+            history_length is None
+            or isinstance(history_length, bool)
+            or not isinstance(history_length, int)
+            or history_length <= 0
+        ):
+            raise RuntimeError(
+                "A2 stage2 grasp completion requires env.config."
+                "stage2_grasp_contact_history_length to be a positive int; "
+                f"got {history_length!r}."
+            )
+        return history_length
+
+    def _get_a2_gripper_handle_contact_force_history(self):
+        sensor_name = self.A2_GRIPPER_HANDLE_CONTACT_SENSOR
+        try:
+            sensor = self.simulator.scene.sensors[sensor_name]
+        except (AttributeError, KeyError) as exc:
+            raise RuntimeError(
+                f"A2 stage2 completion requires scene sensor '{sensor_name}' for "
+                "handle-specific gripper contact force history."
+            ) from exc
+
+        history_length = self._get_a2_stage2_grasp_contact_history_length()
+        force_matrix_w_history = getattr(sensor.data, "force_matrix_w_history", None)
+        expected_shape = (self.num_envs, history_length, 1, 2, 3)
+        if (
+            force_matrix_w_history is None
+            or force_matrix_w_history.ndim != 5
+            or tuple(force_matrix_w_history.shape) != expected_shape
+        ):
+            shape = (
+                None
+                if force_matrix_w_history is None
+                else tuple(force_matrix_w_history.shape)
+            )
+            raise RuntimeError(
+                f"A2 sensor '{sensor_name}' must expose force_matrix_w_history shape "
+                f"{expected_shape}; got {shape}."
+            )
+        return force_matrix_w_history[:, :, 0, :, :]
+
+    def _get_a2_axes_from_quat(self, quat, context):
+        expected_shape = (self.num_envs, 4)
+        if (
+            quat is None
+            or not torch.is_tensor(quat)
+            or quat.ndim != 2
+            or tuple(quat.shape) != expected_shape
+        ):
+            shape = None if quat is None else tuple(quat.shape)
+            raise RuntimeError(
+                f"{context} requires quaternion shape {expected_shape}; got {shape}."
+            )
+
+        basis = quat.new_tensor(
+            (
+                (1.0, 0.0, 0.0),
+                (0.0, 1.0, 0.0),
+                (0.0, 0.0, 1.0),
+            )
+        )
+        basis = basis.unsqueeze(0).expand(self.num_envs, -1, -1)
+        quat_expanded = quat[:, None, :].expand(-1, 3, -1).reshape(-1, 4)
+        return quat_apply(quat_expanded, basis.reshape(-1, 3)).reshape(
+            self.num_envs, 3, 3
+        )
+
+    def _get_a2_orientation_alignment_and_axes(self, target_quat_source, context):
+        target_axes_source = self._get_a2_axes_from_quat(target_quat_source, context)
+        source_y = target_quat_source.new_tensor((0.0, 1.0, 0.0)).expand(
+            self.num_envs, -1
+        )
+        source_z = target_quat_source.new_tensor((0.0, 0.0, 1.0)).expand(
+            self.num_envs, -1
+        )
+
+        opening_alignment = torch.abs(
+            torch.sum(source_y * target_axes_source[:, 1, :], dim=-1)
+        ).clamp(0.0, 1.0)
+        approach_alignment = torch.sum(
+            source_z * target_axes_source[:, 2, :], dim=-1
+        ).clamp(-1.0, 1.0)
+        return opening_alignment, approach_alignment, target_axes_source
+
+    def _format_a2_axes_for_terminal_diagnostics(self, axes):
+        return {
+            "x": axes[0],
+            "y": axes[1],
+            "z": axes[2],
+        }
+
+    def _get_a2_terminal_diagnostics(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if not self._use_a2_base:
+            return self._get_terminal_diagnostics(env_ids)
+
+        expected_frame_names = ["handle", "pregrasp"]
+        transformer = self._get_a2_gripper_handle_frame_transformer()
+        data = transformer.data
+        target_frame_names = getattr(data, "target_frame_names", None)
+        if target_frame_names is None or list(target_frame_names) != expected_frame_names:
+            raise RuntimeError(
+                f"A2 terminal diagnostics requires target order {expected_frame_names}; "
+                f"got {None if target_frame_names is None else list(target_frame_names)}."
+            )
+
+        target_pos_source = getattr(data, "target_pos_source", None)
+        expected_target_pos_source_shape = (self.num_envs, 2, 3)
+        if (
+            target_pos_source is None
+            or target_pos_source.ndim != 3
+            or tuple(target_pos_source.shape) != expected_target_pos_source_shape
+        ):
+            shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires target_pos_source shape "
+                f"{expected_target_pos_source_shape}; got {shape}."
+            )
+
+        target_quat_source = getattr(data, "target_quat_source", None)
+        expected_target_quat_source_shape = (self.num_envs, 2, 4)
+        if (
+            target_quat_source is None
+            or target_quat_source.ndim != 3
+            or tuple(target_quat_source.shape) != expected_target_quat_source_shape
+        ):
+            shape = None if target_quat_source is None else tuple(target_quat_source.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires target_quat_source shape "
+                f"{expected_target_quat_source_shape}; got {shape}."
+            )
+
+        source_quat_w = getattr(data, "source_quat_w", None)
+        expected_source_quat_w_shape = (self.num_envs, 4)
+        if (
+            source_quat_w is None
+            or source_quat_w.ndim != 2
+            or tuple(source_quat_w.shape) != expected_source_quat_w_shape
+        ):
+            shape = None if source_quat_w is None else tuple(source_quat_w.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires source_quat_w shape "
+                f"{expected_source_quat_w_shape}; got {shape}."
+            )
+
+        gripper_dof_names = ("arm_j7", "arm_j8")
+        missing_gripper_dofs = [
+            dof_name for dof_name in gripper_dof_names if dof_name not in self.dof_names
+        ]
+        if missing_gripper_dofs:
+            raise RuntimeError(
+                "A2 terminal diagnostics requires gripper DOFs "
+                f"{gripper_dof_names}, missing {missing_gripper_dofs}."
+            )
+        expected_gripper_dof_indices = torch.tensor(
+            [self.dof_names.index(dof_name) for dof_name in gripper_dof_names],
+            device=self.device,
+            dtype=torch.long,
+        )
+        gripper_dof_indices = getattr(self, "_a2_gripper_dof_indices", None)
+        if (
+            gripper_dof_indices is None
+            or not torch.is_tensor(gripper_dof_indices)
+            or tuple(gripper_dof_indices.shape) != (2,)
+            or not torch.equal(gripper_dof_indices.to(self.device), expected_gripper_dof_indices)
+        ):
+            shape = None if gripper_dof_indices is None else tuple(gripper_dof_indices.shape)
+            value = None if gripper_dof_indices is None else gripper_dof_indices.tolist()
+            raise RuntimeError(
+                "A2 terminal diagnostics requires arm_j7/arm_j8 DOF mapping "
+                f"{expected_gripper_dof_indices.tolist()}; got shape={shape}, value={value}."
+            )
+
+        gripper_body_names = ("arm_body7", "arm_body8")
+        missing_gripper_bodies = [
+            body_name
+            for body_name in gripper_body_names
+            if body_name not in self.simulator.body_names
+        ]
+        if missing_gripper_bodies:
+            raise RuntimeError(
+                "A2 terminal diagnostics requires gripper contact bodies "
+                f"{gripper_body_names}, missing {missing_gripper_bodies}."
+            )
+        expected_gripper_body_indices = [
+            self.simulator.body_names.index(body_name) for body_name in gripper_body_names
+        ]
+        gripper_force_body_indices = getattr(self, "_a2_gripper_force_body_indices", None)
+        if gripper_force_body_indices is None:
+            raise RuntimeError(
+                "A2 terminal diagnostics requires _a2_gripper_force_body_indices for "
+                "arm_body7/arm_body8."
+            )
+        if list(gripper_force_body_indices) != expected_gripper_body_indices:
+            raise RuntimeError(
+                "A2 terminal diagnostics requires arm_body7/arm_body8 body mapping "
+                f"{expected_gripper_body_indices}; got {list(gripper_force_body_indices)}."
+            )
+
+        contact_forces = getattr(self.simulator, "contact_forces", None)
+        if (
+            contact_forces is None
+            or contact_forces.ndim != 3
+            or contact_forces.shape[0] != self.num_envs
+            or contact_forces.shape[2] != 3
+            or contact_forces.shape[1] <= max(expected_gripper_body_indices)
+        ):
+            shape = None if contact_forces is None else tuple(contact_forces.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires simulator.contact_forces shape "
+                f"({self.num_envs}, >= {max(expected_gripper_body_indices) + 1}, 3); "
+                f"got {shape}."
+            )
+        contact_force_arm_body7_8_w = contact_forces[:, expected_gripper_body_indices, :]
+        contact_force_arm_body7_8_norm = torch.linalg.norm(
+            contact_force_arm_body7_8_w, dim=-1
+        )
+
+        handle_contact_force_w = self._get_a2_gripper_handle_contact_forces()
+        if tuple(handle_contact_force_w.shape) != (self.num_envs, 2, 3):
+            raise RuntimeError(
+                "A2 terminal diagnostics requires handle contact force shape "
+                f"({self.num_envs}, 2, 3); got {tuple(handle_contact_force_w.shape)}."
+            )
+        handle_contact_force_norm = torch.linalg.norm(handle_contact_force_w, dim=-1)
+
+        source_quat = source_quat_w[:, None, :].expand(-1, 2, -1).reshape(-1, 4)
+        handle_contact_force_source = quat_apply(
+            quat_inv(source_quat), handle_contact_force_w.reshape(-1, 3)
+        ).reshape(self.num_envs, 2, 3)
+        squeeze_y = handle_contact_force_source[:, :, 1]
+
+        dof_pos = getattr(self.simulator, "dof_pos", None)
+        if (
+            dof_pos is None
+            or dof_pos.ndim != 2
+            or dof_pos.shape[0] != self.num_envs
+            or dof_pos.shape[1] <= int(torch.max(expected_gripper_dof_indices).item())
+        ):
+            shape = None if dof_pos is None else tuple(dof_pos.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires simulator.dof_pos shape "
+                f"({self.num_envs}, >= {int(torch.max(expected_gripper_dof_indices).item()) + 1}); "
+                f"got {shape}."
+            )
+        arm_j7_j8_pos = dof_pos[:, expected_gripper_dof_indices]
+
+        close_target = getattr(self, "_a2_gripper_close_target", None)
+        if (
+            close_target is None
+            or not torch.is_tensor(close_target)
+            or tuple(close_target.shape) != (2,)
+        ):
+            shape = None if close_target is None else tuple(close_target.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires _a2_gripper_close_target shape "
+                f"(2,); got {shape}."
+            )
+        arm_j7_j8_close_error = arm_j7_j8_pos - close_target[None, :]
+
+        gripper_primitive_raw = getattr(self, "_a2_gripper_primitive_raw", None)
+        if (
+            gripper_primitive_raw is None
+            or not torch.is_tensor(gripper_primitive_raw)
+            or tuple(gripper_primitive_raw.shape) != (self.num_envs, 1)
+        ):
+            shape = None if gripper_primitive_raw is None else tuple(gripper_primitive_raw.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires _a2_gripper_primitive_raw shape "
+                f"({self.num_envs}, 1); got {shape}."
+            )
+
+        for field_name in ("stage_buf", "time_in_stage_buf", "episode_length_buf"):
+            field_value = getattr(self, field_name, None)
+            if (
+                field_value is None
+                or not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+            ):
+                shape = None if field_value is None else tuple(field_value.shape)
+                raise RuntimeError(
+                    f"A2 terminal diagnostics requires {field_name} shape "
+                    f"({self.num_envs},); got {shape}."
+                )
+
+        target_pos_source_handle_distance = torch.linalg.norm(
+            target_pos_source[:, 0, :], dim=-1
+        )
+        target_pos_source_pregrasp_distance = torch.linalg.norm(
+            target_pos_source[:, 1, :], dim=-1
+        )
+        handle_opening_alignment, handle_approach_alignment, target_axes_source_handle = (
+            self._get_a2_orientation_alignment_and_axes(
+                target_quat_source[:, 0, :],
+                "A2 terminal diagnostics handle target orientation",
+            )
+        )
+        (
+            pregrasp_opening_alignment,
+            pregrasp_approach_alignment,
+            target_axes_source_pregrasp,
+        ) = self._get_a2_orientation_alignment_and_axes(
+            target_quat_source[:, 1, :],
+            "A2 terminal diagnostics pregrasp target orientation",
+        )
+        gripper_source_axes_w = self._get_a2_axes_from_quat(
+            source_quat_w, "A2 terminal diagnostics gripper source orientation"
+        )
+        terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
+
+        selected_stage_buf = self.stage_buf[env_ids].detach().cpu().tolist()
+        selected_time_in_stage_buf = self.time_in_stage_buf[env_ids].detach().cpu().tolist()
+        selected_episode_length_buf = self.episode_length_buf[env_ids].detach().cpu().tolist()
+        selected_contact_force_arm_body7_8_w = (
+            contact_force_arm_body7_8_w[env_ids].detach().cpu().tolist()
+        )
+        selected_contact_force_arm_body7_8_norm = (
+            contact_force_arm_body7_8_norm[env_ids].detach().cpu().tolist()
+        )
+        selected_handle_contact_force_w = (
+            handle_contact_force_w[env_ids].detach().cpu().tolist()
+        )
+        selected_handle_contact_force_norm = (
+            handle_contact_force_norm[env_ids].detach().cpu().tolist()
+        )
+        selected_squeeze_y = squeeze_y[env_ids].detach().cpu().tolist()
+        selected_arm_j7_j8_pos = arm_j7_j8_pos[env_ids].detach().cpu().tolist()
+        selected_arm_j7_j8_close_error = (
+            arm_j7_j8_close_error[env_ids].detach().cpu().tolist()
+        )
+        selected_gripper_primitive_raw = (
+            gripper_primitive_raw[env_ids].detach().cpu().tolist()
+        )
+        selected_handle_distance = (
+            target_pos_source_handle_distance[env_ids].detach().cpu().tolist()
+        )
+        selected_pregrasp_distance = (
+            target_pos_source_pregrasp_distance[env_ids].detach().cpu().tolist()
+        )
+        selected_handle_opening_alignment = (
+            handle_opening_alignment[env_ids].detach().cpu().tolist()
+        )
+        selected_handle_approach_alignment = (
+            handle_approach_alignment[env_ids].detach().cpu().tolist()
+        )
+        selected_pregrasp_opening_alignment = (
+            pregrasp_opening_alignment[env_ids].detach().cpu().tolist()
+        )
+        selected_pregrasp_approach_alignment = (
+            pregrasp_approach_alignment[env_ids].detach().cpu().tolist()
+        )
+        selected_source_quat_w = source_quat_w[env_ids].detach().cpu().tolist()
+        selected_source_axes_w = gripper_source_axes_w[env_ids].detach().cpu().tolist()
+        selected_target_quat_source_handle = (
+            target_quat_source[env_ids, 0, :].detach().cpu().tolist()
+        )
+        selected_target_quat_source_pregrasp = (
+            target_quat_source[env_ids, 1, :].detach().cpu().tolist()
+        )
+        selected_target_axes_source_handle = (
+            target_axes_source_handle[env_ids].detach().cpu().tolist()
+        )
+        selected_target_axes_source_pregrasp = (
+            target_axes_source_pregrasp[env_ids].detach().cpu().tolist()
+        )
+        selected_target_pos_source_handle = (
+            target_pos_source[env_ids, 0, :].detach().cpu().tolist()
+        )
+        selected_target_pos_source_pregrasp = (
+            target_pos_source[env_ids, 1, :].detach().cpu().tolist()
+        )
+        close_target_list = close_target.detach().cpu().tolist()
+
+        diagnostics = []
+        for idx, env_id in enumerate(env_ids.tolist()):
+            diagnostics.append(
+                {
+                    "env_id": int(env_id),
+                    "stage_buf": int(selected_stage_buf[idx]),
+                    "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
+                    "episode_length_buf": int(selected_episode_length_buf[idx]),
+                    "terminal_reasons": terminal_reasons[idx],
+                    "contact_force_arm_body7_8_w": selected_contact_force_arm_body7_8_w[
+                        idx
+                    ],
+                    "contact_force_arm_body7_8_norm": selected_contact_force_arm_body7_8_norm[
+                        idx
+                    ],
+                    "handle_contact_force_w": selected_handle_contact_force_w[idx],
+                    "handle_contact_force_norm": selected_handle_contact_force_norm[idx],
+                    "squeeze_y": selected_squeeze_y[idx],
+                    "arm_j7_j8_pos": selected_arm_j7_j8_pos[idx],
+                    "arm_j7_j8_close_target": close_target_list,
+                    "arm_j7_j8_close_error": selected_arm_j7_j8_close_error[idx],
+                    "gripper_primitive_raw": selected_gripper_primitive_raw[idx],
+                    "target_pos_source_handle_distance": float(
+                        selected_handle_distance[idx]
+                    ),
+                    "target_pos_source_pregrasp_distance": float(
+                        selected_pregrasp_distance[idx]
+                    ),
+                    "pregrasp_opening_alignment": float(
+                        selected_pregrasp_opening_alignment[idx]
+                    ),
+                    "pregrasp_approach_alignment": float(
+                        selected_pregrasp_approach_alignment[idx]
+                    ),
+                    "handle_opening_alignment": float(
+                        selected_handle_opening_alignment[idx]
+                    ),
+                    "handle_approach_alignment": float(
+                        selected_handle_approach_alignment[idx]
+                    ),
+                    "gripper_source_quat_w": selected_source_quat_w[idx],
+                    "gripper_source_axes_w": self._format_a2_axes_for_terminal_diagnostics(
+                        selected_source_axes_w[idx]
+                    ),
+                    "target_quat_source_handle": selected_target_quat_source_handle[
+                        idx
+                    ],
+                    "target_quat_source_pregrasp": selected_target_quat_source_pregrasp[
+                        idx
+                    ],
+                    "target_axes_source_handle": self._format_a2_axes_for_terminal_diagnostics(
+                        selected_target_axes_source_handle[idx]
+                    ),
+                    "target_axes_source_pregrasp": self._format_a2_axes_for_terminal_diagnostics(
+                        selected_target_axes_source_pregrasp[idx]
+                    ),
+                    "target_pos_source_handle": selected_target_pos_source_handle[idx],
+                    "target_pos_source_pregrasp": selected_target_pos_source_pregrasp[
+                        idx
+                    ],
+                }
+            )
+        return diagnostics
+
     def _get_obs_gripper_handle_transform(self):
         if not self._use_a2_base:
             raise RuntimeError(
@@ -1349,6 +1789,30 @@ class DoorPregrasp(
 
     @override
     def _reset_root_states(self, env_ids, target_root_states=None):
+        if self._use_a2_base:
+            if target_root_states is not None:
+                return A2Base._reset_root_states(self, env_ids, target_root_states)
+
+            self.target_robot_root_states[env_ids] = self.base_init_state
+            self.target_robot_root_states[env_ids, :3] += self.env_origins[env_ids]
+            self.target_robot_root_states[env_ids, 0:1] = (
+                torch_rand_float(-1.5, -0.6, (len(env_ids), 1), device=str(self.device))
+                + self.env_origins[env_ids, 0:1]
+            )
+            self.target_robot_root_states[env_ids, 1:2] = (
+                torch_rand_float(-0.5, 0.5, (len(env_ids), 1), device=str(self.device))
+                + self.env_origins[env_ids, 1:2]
+            )
+            r, p, _ = euler_xyz_from_quat(self.target_robot_root_states[env_ids, 3:7])
+            random_yaw = torch_rand_float(
+                -torch.pi / 4, torch.pi / 4, (len(env_ids), 1), device=str(self.device)
+            )[:, 0]
+            self.target_robot_root_states[env_ids, 3:7] = quat_from_euler_xyz(
+                r, p, random_yaw
+            )
+            self.target_robot_root_states[env_ids, 7:13] = 0.0
+            return
+
         self.target_robot_root_states[env_ids, 7:13] = torch_rand_float(
             -0.5, 0.5, (len(env_ids), 6), device=str(self.device)
         )  # [7:10]: lin vel, [10:13]: ang vel
@@ -1369,7 +1833,16 @@ class DoorPregrasp(
     @override
     def _reset_dofs(self, env_ids, target_state=None):
         if self._use_a2_base:
-            return A2Base._reset_dofs(self, env_ids, target_state)
+            if target_state is not None:
+                return A2Base._reset_dofs(self, env_ids, target_state)
+
+            self.target_robot_dof_state[env_ids, :, 0] = (
+                self.default_dof_pos
+                * torch_rand_float(0.8, 1.2, (len(env_ids), self.num_dof), device=str(self.device))
+            )
+            self.target_robot_dof_state[env_ids, :, 1] = 0.0
+            return
+
         # randomize wrist in +- 80 deg
         xx, yy = torch.meshgrid(env_ids, self.wrist_dof_idx)
         self.target_robot_dof_state[xx, yy, 0] = torch_rand_float(
@@ -1425,9 +1898,13 @@ class DoorPregrasp(
                 a2_config.get("bad_orientation_limit_angle", 0.9)
             )
             tilt = torch.acos(torch.clamp(-self.projected_gravity[:, 2], -1.0, 1.0))
-            self.reset_buf |= tilt > bad_orientation_limit_angle
+            bad_orientation = tilt > bad_orientation_limit_angle
+            self._mark_terminal_reason("bad_orientation", bad_orientation)
+            self.reset_buf |= bad_orientation
 
-        self.reset_buf |= self.relative_door_pos_buf.norm(dim=-1) > 4.0
+        door_distance = self.relative_door_pos_buf.norm(dim=-1) > 4.0
+        self._mark_terminal_reason("door_distance", door_distance)
+        self.reset_buf |= door_distance
 
         # A2 arm body DOF / Piper arm_j1..j6 overspeed termination; gripper excluded.
         dof_overspeed = torch.any(
@@ -1437,7 +1914,9 @@ class DoorPregrasp(
         )
         not_just_resetted = self.episode_length_buf > 20
 
-        self.reset_buf |= dof_overspeed & not_just_resetted
+        upper_dof_overspeed = dof_overspeed & not_just_resetted
+        self._mark_terminal_reason("upper_dof_overspeed", upper_dof_overspeed)
+        self.reset_buf |= upper_dof_overspeed
 
         # reset if the homie command is too large when grasping or opening the door
         # is_grasping_or_opening = (self.stage_buf == DoorPregrasp.STAGE_GRASP) | (self.stage_buf == DoorPregrasp.STAGE_OPEN)
@@ -1586,7 +2065,7 @@ class DoorPregrasp(
 
     def _stage_2_to_complete_condition(self):
         if self._use_a2_base:
-            forces_w = self._get_a2_gripper_handle_contact_forces()
+            forces_w_history = self._get_a2_gripper_handle_contact_force_history()
             data = self._get_a2_gripper_handle_frame_transformer().data
             source_quat_w = getattr(data, "source_quat_w", None)
             if (
@@ -1600,17 +2079,52 @@ class DoorPregrasp(
                     f"({self.num_envs}, 4); got {shape}."
                 )
 
-            source_quat = source_quat_w[:, None, :].expand(-1, 2, -1).reshape(-1, 4)
-            forces_source = quat_apply(
-                quat_inv(source_quat), forces_w.reshape(-1, 3)
-            ).reshape(self.num_envs, 2, 3)
+            history_length = self._get_a2_stage2_grasp_contact_history_length()
+            if tuple(forces_w_history.shape) != (self.num_envs, history_length, 2, 3):
+                raise RuntimeError(
+                    "A2 stage2 completion requires contact force history shape "
+                    f"({self.num_envs}, {history_length}, 2, 3); "
+                    f"got {tuple(forces_w_history.shape)}."
+                )
 
-            contact_force = torch.linalg.norm(forces_w, dim=-1)
+            source_quat = (
+                source_quat_w[:, None, None, :]
+                .expand(-1, history_length, 2, -1)
+                .reshape(-1, 4)
+            )
+            forces_source = quat_apply(
+                quat_inv(source_quat), forces_w_history.reshape(-1, 3)
+            ).reshape(self.num_envs, history_length, 2, 3)
+
+            contact_force = torch.linalg.norm(forces_w_history, dim=-1)
             both_contact = torch.all(contact_force > 1.0, dim=-1)
-            squeeze_y = forces_source[:, :, 1]
+            squeeze_y = forces_source[:, :, :, 1]
             sufficient_squeeze = torch.all(torch.abs(squeeze_y) > 0.5, dim=-1)
-            opposite_squeeze = squeeze_y[:, 0] * squeeze_y[:, 1] < 0.0
-            return both_contact & sufficient_squeeze & opposite_squeeze
+            opposite_squeeze = squeeze_y[:, :, 0] * squeeze_y[:, :, 1] < 0.0
+            all_history_squeezed = torch.all(
+                both_contact & sufficient_squeeze & opposite_squeeze, dim=-1
+            )
+            actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+            if (
+                actual_time_in_stage_buf is None
+                or not torch.is_tensor(actual_time_in_stage_buf)
+                or tuple(actual_time_in_stage_buf.shape) != (self.num_envs,)
+            ):
+                shape = (
+                    None
+                    if actual_time_in_stage_buf is None
+                    else tuple(actual_time_in_stage_buf.shape)
+                )
+                raise RuntimeError(
+                    "A2 stage2 completion requires actual_time_in_stage_buf shape "
+                    f"({self.num_envs},); got {shape}."
+                )
+            history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
+            return (
+                (self.stage_buf == self.STAGE_GRASP)
+                & history_window_in_stage
+                & all_history_squeezed
+            )
         # TODO: check error
         # grasp the door handle
         left_hand_handle_contact_count = (
@@ -1706,13 +2220,17 @@ class DoorPregrasp(
                         FrameTransformerCfg.FrameCfg(
                             prim_path=target_obj_transform_prim_path,
                             name="handle",
+                            offset=OffsetCfg(
+                                pos=(0.0, 0.0, 0.0),
+                                rot=(0.5, 0.5, 0.5, 0.5),
+                            ),
                         ),
                         FrameTransformerCfg.FrameCfg(
                             prim_path=target_obj_transform_prim_path,
                             name="pregrasp",
                             offset=OffsetCfg(
                                 pos=(0.0, 0.0, 0.10),
-                                rot=(1.0, 0.0, 0.0, 0.0),
+                                rot=(0.5, 0.5, 0.5, 0.5),
                             ),
                         ),
                     ],
@@ -1732,6 +2250,7 @@ class DoorPregrasp(
                 )
             a2_gripper_handle_contact_sensor_config: ContactSensorCfg = ContactSensorCfg(
                 prim_path=f"/World/envs/env_.*/{target_obj}/{target_contact_sub_prim}",
+                history_length=self._get_a2_stage2_grasp_contact_history_length(),
                 filter_prim_paths_expr=[
                     "/World/envs/env_.*/Robot/arm_body7",
                     "/World/envs/env_.*/Robot/arm_body8",

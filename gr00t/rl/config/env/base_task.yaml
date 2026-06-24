@@ -9,6 +9,13 @@ env:
     headless: ${headless}
     simulator: ${simulator}
     save_rendering_dir: null
+    eval_rendering:
+      camera_mode: door_top_down
+      camera_eye: [-2.5, -2.5, 2.2]
+      camera_lookat: [-0.5, 0.0, 0.45]
+      fps: 20
+      write_initial_frame: true
+      write_terminal_frame: true
     experiment_dir: null
     ckpt_dir: null
 

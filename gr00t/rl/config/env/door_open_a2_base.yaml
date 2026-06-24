@@ -95,6 +95,7 @@ env:
     pregrasp_target_vel: 0.3
     target_root_vel: 0.3
 
+    stage2_grasp_contact_history_length: 5
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

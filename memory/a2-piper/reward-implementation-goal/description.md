@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-17 22:41 HKT
+last_updated: 2026-06-25 18:10 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -40,6 +40,7 @@ read_when:
   - 新增 `a2_stage2_close_command`（scale `1.0`）与 `a2_stage2_close_progress`（scale `0.5`）stage2 close shaping rewards，gate 为 stage2 + handle distance `<0.015m` + opening/approach alignment `>=0.9`。
   - `_reward_pregrasp_gripper_dof_pos_l1` 改为 stage-aware target：stage0（STAGE_WALK_TO_DOOR）track `close_target`（行走时收起），stage1（STAGE_PREGRASP）track `open_target`（准备抓取），span 统一用 `open_target - close_target`。
   - 新增 `penalty_base_roll_pitch_l2: -2.0`（stage0/1），直接约束 actual base roll/pitch `self.rpy[:, 0:2]` 的 L2，避免 stage0/1 为了接近 door/handle 学出明显倾斜。
+  - 2026-06-25 18:10 HKT - pregrasp target pos offset 坐标系修复：`FrameTransformerCfg.FrameCfg.offset.pos` 在 target prim frame（door_handle = door frame, identity rot）中定义，不是 rotated target frame。原 `pos=(0,0,0.10)` = 沿 door Z（up）10cm = handle 上方，导致 pregrasp target 偏上而非正前方。修复为 `pos=(0.10,0,0)` = 沿 door X（normal/approach）10cm = handle 正前方。`rot=(0.5,0.5,0.5,0.5)` 只影响 target frame 朝向，不影响 pos offset 方向。
 
 ## Reward Term Decisions
 

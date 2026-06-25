@@ -611,6 +611,44 @@ class DoorPregrasp(
         approach_alignment = torch.sum(source_z * target_z_source, dim=-1).clamp(-1.0, 1.0)
         return opening_alignment, approach_alignment
 
+    def _get_a2_stage2_close_reward_gate(self):
+        if not self._use_a2_base:
+            raise RuntimeError("A2 stage2 close rewards are only defined for A2 Piper configs.")
+
+        stage_buf = getattr(self, "stage_buf", None)
+        if (
+            stage_buf is None
+            or not torch.is_tensor(stage_buf)
+            or tuple(stage_buf.shape) != (self.num_envs,)
+        ):
+            shape = None if stage_buf is None else tuple(stage_buf.shape)
+            raise RuntimeError(
+                "A2 stage2 close rewards require stage_buf shape "
+                f"({self.num_envs},); got {shape}."
+            )
+
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        if (
+            target_pos_source is None
+            or target_pos_source.ndim != 3
+            or tuple(target_pos_source.shape) != (self.num_envs, 2, 3)
+        ):
+            shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            raise RuntimeError(
+                "A2 stage2 close rewards require target_pos_source shape "
+                f"({self.num_envs}, 2, 3); got {shape}."
+            )
+
+        handle_distance = torch.linalg.norm(target_pos_source[:, 0, :], dim=-1)
+        opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
+        return (
+            (stage_buf == self.STAGE_GRASP)
+            & (handle_distance < 0.03)
+            & (opening_alignment >= 0.9)
+            & (approach_alignment >= 0.9)
+        )
+
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_gripper_handle_orientation(self):
         opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
@@ -874,6 +912,111 @@ class DoorPregrasp(
             offset=0.0,
         )
 
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_close_command(self):
+        if not self._use_a2_base:
+            raise RuntimeError("a2_stage2_close_command is only defined for A2 Piper configs.")
+
+        gripper_primitive_raw = getattr(self, "_a2_gripper_primitive_raw", None)
+        if (
+            gripper_primitive_raw is None
+            or not torch.is_tensor(gripper_primitive_raw)
+            or tuple(gripper_primitive_raw.shape) != (self.num_envs, 1)
+        ):
+            shape = (
+                None
+                if gripper_primitive_raw is None
+                else tuple(gripper_primitive_raw.shape)
+            )
+            raise RuntimeError(
+                "a2_stage2_close_command requires _a2_gripper_primitive_raw shape "
+                f"({self.num_envs}, 1); got {shape}."
+            )
+
+        gate = self._get_a2_stage2_close_reward_gate()
+        primitive = gripper_primitive_raw.squeeze(-1)
+        reward = ((-primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        return reward * gate.float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_close_progress(self):
+        if not self._use_a2_base:
+            raise RuntimeError("a2_stage2_close_progress is only defined for A2 Piper configs.")
+
+        gripper_dof_indices = getattr(self, "_a2_gripper_dof_indices", None)
+        if (
+            gripper_dof_indices is None
+            or not torch.is_tensor(gripper_dof_indices)
+            or tuple(gripper_dof_indices.shape) != (2,)
+        ):
+            shape = None if gripper_dof_indices is None else tuple(gripper_dof_indices.shape)
+            raise RuntimeError(
+                "a2_stage2_close_progress requires _a2_gripper_dof_indices shape "
+                f"(2,); got {shape}."
+            )
+        if gripper_dof_indices.dtype not in (torch.int32, torch.int64):
+            raise RuntimeError(
+                "a2_stage2_close_progress requires integer _a2_gripper_dof_indices; "
+                f"got dtype={gripper_dof_indices.dtype}."
+            )
+        if torch.any(gripper_dof_indices < 0) or torch.unique(gripper_dof_indices).numel() != 2:
+            raise RuntimeError(
+                "a2_stage2_close_progress requires two distinct non-negative "
+                f"gripper DOF indices; got {gripper_dof_indices.tolist()}."
+            )
+
+        open_target = getattr(self, "_a2_gripper_open_target", None)
+        if (
+            open_target is None
+            or not torch.is_tensor(open_target)
+            or tuple(open_target.shape) != (2,)
+        ):
+            shape = None if open_target is None else tuple(open_target.shape)
+            raise RuntimeError(
+                "a2_stage2_close_progress requires _a2_gripper_open_target shape "
+                f"(2,); got {shape}."
+            )
+
+        close_target = getattr(self, "_a2_gripper_close_target", None)
+        if (
+            close_target is None
+            or not torch.is_tensor(close_target)
+            or tuple(close_target.shape) != (2,)
+        ):
+            shape = None if close_target is None else tuple(close_target.shape)
+            raise RuntimeError(
+                "a2_stage2_close_progress requires _a2_gripper_close_target shape "
+                f"(2,); got {shape}."
+            )
+
+        span = (open_target - close_target).abs()
+        if torch.any(span <= 1.0e-4):
+            raise RuntimeError(
+                "a2_stage2_close_progress requires non-zero gripper open/close span; "
+                f"open_target={open_target.tolist()}, close_target={close_target.tolist()}."
+            )
+
+        dof_pos = getattr(self.simulator, "dof_pos", None)
+        max_gripper_dof_index = int(gripper_dof_indices.max().item())
+        if (
+            dof_pos is None
+            or not torch.is_tensor(dof_pos)
+            or dof_pos.ndim != 2
+            or dof_pos.shape[0] != self.num_envs
+            or dof_pos.shape[1] <= max_gripper_dof_index
+        ):
+            shape = None if dof_pos is None else tuple(dof_pos.shape)
+            raise RuntimeError(
+                "a2_stage2_close_progress requires simulator.dof_pos shape "
+                f"({self.num_envs}, >{max_gripper_dof_index}); got {shape}."
+            )
+
+        gate = self._get_a2_stage2_close_reward_gate()
+        gripper_pos = dof_pos[:, gripper_dof_indices]
+        progress = (open_target[None, :] - gripper_pos).abs() / span[None, :]
+        reward = (progress.mean(dim=-1) / 0.6).clamp(0.0, 1.0)
+        return reward * gate.float()
+
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):
         if self._use_a2_base:
@@ -1100,6 +1243,23 @@ class DoorPregrasp(
         return wrap_to_pi(
             axis_angle_from_quat(xyzw_to_wxyz(self.relative_door_rot_buf)).norm(dim=-1)
         )
+
+    @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP])
+    def _reward_penalty_base_roll_pitch_l2(self):
+        rpy = getattr(self, "rpy", None)
+        if (
+            rpy is None
+            or not torch.is_tensor(rpy)
+            or rpy.ndim != 2
+            or rpy.shape[0] != self.num_envs
+            or rpy.shape[1] < 2
+        ):
+            shape = None if rpy is None else tuple(rpy.shape)
+            raise RuntimeError(
+                "penalty_base_roll_pitch_l2 requires self.rpy shape "
+                f"({self.num_envs}, >=2); got {shape}."
+            )
+        return torch.sum(torch.square(rpy[:, 0:2]), dim=-1)
 
     def _reward_penalty_upright(self):
         upright_vec = torch.repeat_interleave(
@@ -1671,6 +1831,72 @@ class DoorPregrasp(
                 }
             )
         return diagnostics
+
+    def init_a2_eval_stage2_step_trace(self):
+        if not self._use_a2_base:
+            raise RuntimeError("A2 stage2 step trace can only be initialized for A2 envs.")
+        if not getattr(self, "is_evaluating", False):
+            raise RuntimeError("A2 stage2 step trace must be initialized in eval mode.")
+        self._a2_stage2_step_trace_records = []
+        self._a2_stage2_step_trace_step_index = 0
+
+    def _capture_a2_eval_stage2_step_trace(self):
+        if not self._use_a2_base:
+            return
+        if not getattr(self, "is_evaluating", False):
+            return
+        if "_a2_stage2_step_trace_records" not in self.__dict__:
+            raise RuntimeError(
+                "A2 stage2 step trace capture requested before "
+                "init_a2_eval_stage2_step_trace()."
+            )
+
+        stage_buf = getattr(self, "stage_buf", None)
+        if (
+            stage_buf is None
+            or not torch.is_tensor(stage_buf)
+            or tuple(stage_buf.shape) != (self.num_envs,)
+        ):
+            shape = None if stage_buf is None else tuple(stage_buf.shape)
+            raise RuntimeError(
+                "A2 stage2 step trace requires stage_buf shape "
+                f"({self.num_envs},); got {shape}."
+            )
+
+        step_index = getattr(self, "_a2_stage2_step_trace_step_index", None)
+        if isinstance(step_index, bool) or not isinstance(step_index, int) or step_index < 0:
+            raise RuntimeError(
+                "A2 stage2 step trace requires non-negative integer step index; "
+                f"got {step_index!r}."
+            )
+
+        stage2_env_ids = (stage_buf == self.STAGE_GRASP).nonzero(as_tuple=False).flatten()
+        if stage2_env_ids.numel() > 0:
+            records = self._get_a2_terminal_diagnostics(stage2_env_ids)
+            if len(records) != stage2_env_ids.numel():
+                raise RuntimeError(
+                    "A2 stage2 step trace diagnostics returned "
+                    f"{len(records)} entries for {stage2_env_ids.numel()} env ids."
+                )
+            for record in records:
+                if not isinstance(record, dict):
+                    raise TypeError(
+                        "A2 stage2 step trace records must be dicts, "
+                        f"got {type(record).__name__}."
+                    )
+                record["step_index"] = step_index
+            self._a2_stage2_step_trace_records.extend(records)
+
+        self._a2_stage2_step_trace_step_index += 1
+
+    def get_a2_eval_stage2_step_trace_records(self):
+        if not self._use_a2_base:
+            raise RuntimeError("A2 stage2 step trace is only available for A2 envs.")
+        if "_a2_stage2_step_trace_records" not in self.__dict__:
+            raise RuntimeError(
+                "A2 stage2 step trace requested before init_a2_eval_stage2_step_trace()."
+            )
+        return [dict(record) for record in self._a2_stage2_step_trace_records]
 
     def _get_obs_gripper_handle_transform(self):
         if not self._use_a2_base:

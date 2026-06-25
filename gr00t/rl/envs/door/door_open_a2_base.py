@@ -546,13 +546,20 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_THROUGH])
     def _reward_pregrasp_gripper_dof_pos_l1(self):
-        """A2 stage0 PASS: replace G1 finger shaping with Piper gripper close tracking."""
+        """A2 stage0/1 gripper shaping: stage0 tracks close target (gripper stowed
+        while walking), stage1 tracks open target (gripper opens to prepare grasp).
+        """
         gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
         gripper_vel = self.simulator.dof_vel[:, self._a2_gripper_dof_indices]
-        target = self._a2_gripper_close_target
-        span = (self._a2_gripper_open_target - target).abs().clamp_min(1.0e-4)
+        is_walk = self.stage_buf == self.STAGE_WALK_TO_DOOR
+        target = torch.where(
+            is_walk[:, None],
+            self._a2_gripper_close_target,
+            self._a2_gripper_open_target,
+        )
+        span = (self._a2_gripper_open_target - self._a2_gripper_close_target).abs().clamp_min(1.0e-4)
         pos_track = self._tracking_reward_util(
-            (gripper_pos - target[None, :]) / span[None, :],
+            (gripper_pos - target) / span[None, :],
             std=0.25,
             target=0.0,
             scale=1.0,
@@ -644,7 +651,7 @@ class DoorPregrasp(
         opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
         return (
             (stage_buf == self.STAGE_GRASP)
-            & (handle_distance < 0.03)
+            & (handle_distance < 0.015)
             & (opening_alignment >= 0.9)
             & (approach_alignment >= 0.9)
         )

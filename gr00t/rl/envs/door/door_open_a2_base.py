@@ -2462,7 +2462,7 @@ class DoorPregrasp(
                             prim_path=target_obj_transform_prim_path,
                             name="pregrasp",
                             offset=OffsetCfg(
-                                pos=(0.0, 0.0, 0.10),
+                                pos=(0.10, 0.0, 0.0),
                                 rot=(0.5, 0.5, 0.5, 0.5),
                             ),
                         ),

@@ -1,6 +1,6 @@
 code风格规范：fail-fast 策略。isaaclab相关code必须避免为了 “所谓的code健壮性” 来添加不必要的保护性操作/fallback强行让仿真/训练运行下去。我需要将code问题在运行/训练中暴露出来。
 复杂task code implement要求（简单修改任务直接自己去implement code，自己更新相关Memory/文档，不用交给子agent）：
-你作为user需求主管(main agent)不需要自己去implement code。将code implement工作，阐述清晰背景，需求，计划交给一个子agent（code worker）去实现。等coder worker有第一次结果返回后启动另一个子agent（implement reviewer）进行double check,和更新相关Memory/文档（强调是reviewer去更新文档）。 main agent做最后的复核即可。
+你作为user需求主管(main agent)不需要自己去implement code。将code implement工作，阐述清晰背景，需求，计划交给一个子agent（code worker）去实现，同时完成code implement后，code worker返回一个commit 描述。等coder worker有第一次结果返回后启动另一个子agent（implement reviewer）进行double check,和更新相关Memory/文档（强调是reviewer去更新文档）。 main agent做最后的复核和git commit即可。
 补充：不要轻易直接去修改code，每次修改code/启动code worker前应该将方案发送给user审核。
 
 你正在当前项目根目录中工作。开始任何实现、调试、review 或文档更新前，必须先合理使用项目内 file-based memory system。（如果当前项目没有实现Memory机制请忽略）

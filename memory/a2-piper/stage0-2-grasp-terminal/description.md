@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-24 22:54 HKT
+last_updated: 2026-06-25 17:30 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -38,6 +38,10 @@ read_when:
 - 2026-06-24 22:45 HKT - A2 Stage2 Close Shaping Rewards 已完成 implement reviewer static review，并做最小修正：`a2_stage2_close_command` 显式使用 `clamp((-primitive - 0.2) / 0.8, 0, 1)`；`a2_stage2_close_progress` 使用 open target 到当前 gripper DOF 的 abs progress / abs open-close span，先 mean two DOFs，再 `clamp(mean_progress / 0.6, 0, 1)`。shared/full 与 quick config 均启用 scale `1.0/0.5` 并加入 `reward_penalty_reward_names`；本轮不改 complete predicate、contact history gate、stage transition、reset、camera、render timing 或 action semantics。
 - 2026-06-24 22:49 HKT - A2 Stage2 Close Shaping Rewards bounded PPO smoke 已完成：quick exp 跑到 `Learning iteration 1`，reward functions 正常注册并打印 `rew_a2_stage2_close_command` / `rew_a2_stage2_close_progress`，无 reward shape 或 rollout crash；tiny stage0-only smoke 中两项 reward 为 0 属 expected。
 - 2026-06-24 22:54 HKT - 新增 `penalty_base_roll_pitch_l2: -2.0`，只在 `STAGE_WALK_TO_DOOR` 与 `STAGE_PREGRASP` 生效，直接约束 actual base roll/pitch `self.rpy[:, 0:2]` 的 L2，避免 stage0/1 为了接近 door/handle 学出明显倾斜；本轮不改 reset、termination、stage transition、gripper reward 或 reward penalty curriculum routing。
+- 2026-06-25 10:30 HKT - 最新训练 checkpoint `stage2_finished_grasp-20260624_225622/model_step_003000.pt` 720p eval + `stage2_step_trace.json` 诊断：两个 env 均在 stage2 overtime，trace 显示 stage2 全程 `gripper_primitive_raw ∈ [-1.2, -0.93]`（close），`arm_j7/j8_pos ≈ [0.005, -0.000001]`（接近 close_target），handle_distance 最小 0.0015m（gate 内），但 contact force 全程为 0——闭合 gripper 撞向 handle 但未夹住。
+- 2026-06-25 10:40 HKT - 修复 `_reward_pregrasp_gripper_dof_pos_l1` stage-aware target：原实现 stage0/1 均用 `_a2_gripper_close_target`，导致 stage0/1 全程 reward gripper 闭合，policy 进入 stage2 时 gripper 已闭合，gate 内 `a2_stage2_close_*` 无法形成"张开→闭合"真实抓取。修复后 stage0（STAGE_WALK_TO_DOOR）track `close_target`（行走时收起），stage1（STAGE_PREGRASP）track `open_target`（准备抓取），span 统一用 `open_target - close_target`。`py_compile` 通过；未改 stage2 close rewards、complete predicate、contact history gate、stage transition、reset、camera、render timing 或 action semantics。
+- 2026-06-25 17:30 HKT - `stage2_finished_grasp_OPEN-20260625_105101/last.pt` eval trace 诊断：stage1→stage2 gripper 确实张开了（stage0/1 修复生效），但 stage2 gate 外（handle_dist>0.03）gripper 提前闭合——env0 在 dist=0.062 时 prim 从 0.349 转 -0.001，gate 首次触发（dist=0.0255）时 prim 已为 -0.927；env1 同样在 gate 外提前闭合。根因：gate 阈值 0.03m（3cm）过大，close reward 在 gripper 未真正到位时触发；且 stage2 gate 外无 reward 引导保持张开。
+- 2026-06-25 17:30 HKT - 收紧 `_get_a2_stage2_close_reward_gate` handle_distance 阈值从 `< 0.03` 改为 `< 0.015`（1.5cm），防止 close reward 过早触发；未改 close rewards 公式、complete predicate、contact history gate、stage transition、reset、camera、render timing 或 action semantics。
 - Stage mapping 保持 Doorman/A2 当前语义：`stage0 = STAGE_WALK_TO_DOOR`，`stage1 = STAGE_PREGRASP`，`stage2 = STAGE_GRASP`。
 - 在本 quick test 中，`_stage_2_to_complete_condition()` 表示 terminal success；也就是 A2 branch 的 handle-specific two-sided gripper contact、source local `+Y` squeeze threshold 与 opposite-sign squeeze check 成立后，视为任务完成。
 - 默认 full task 仍是 6-stage：`STAGE_OPEN`、`STAGE_SWING`、`STAGE_THROUGH` 不应从主线删除；本实验应通过独立 config 或 branch-local override 实现，不污染默认 `door_open_a2_base_lstm` 语义。

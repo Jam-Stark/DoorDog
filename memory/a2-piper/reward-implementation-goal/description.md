@@ -35,6 +35,11 @@ read_when:
 - 2026-06-17 22:11 HKT - A2 `grasp_target_distance` reward metric 已完成 implementation review 并启用 scale `3.0`：A2 branch 使用 Piper TCP/source 到 handle target 的 `target_pos_source[:, 0, :]` distance，保持 fail-fast shape check 和 `std=0.1` tracking；`grasp_finger_dof_pos_l1` 继续 disabled/deferred。
 - 2026-06-17 22:34 HKT - Main + Ava + independent reviewer 三方确认：当前 A2 stage2 reward completion / A2 adaptation 可记录为 `static PASS`；stage2 静态层面没有必须补齐的 blocker。剩余工作是 bounded smoke 统计 stage2 dwell、completion route、door-open bypass ratio、contact spike 与 stage3 entry timing；下一轮进入 stage3/open reward completion/A2 adaptation。`_stage_2_to_3_advance_condition()` 当前保持 G1-equivalent `completion | door_open_bypass`，不需要立即改。
 - 2026-06-17 22:41 HKT - 新增 `scriptsFORhuman/g1_doorman_stage3_reward_completion_a2_adaptation.md`：记录 G1 stage3/open source facts、A2 stage3 reward mapping、`push_door_handle` / `push_door_hinge` baseline 边界、`push_door_force` disabled/TODO design，以及后续 smoke 验收项。
+- 2026-06-25 20:30 HKT - 从 `quickTEST` branch 合并回 A2_Piper 主线的 B 类 reward/predicate 改动（详见 `quicktest-merge` entry）：
+  - `_stage_2_to_complete_condition()` 从瞬时 contact 改为 5-step contact history gate（`stage2_grasp_contact_history_length: 5`），要求最近 H 个 contact history samples 都来自 stage2 且满足 both_contact / sufficient_squeeze / opposite_squeeze，防止 open-gripper collision spike 误触发 stage2→stage3 advance。
+  - 新增 `a2_stage2_close_command`（scale `1.0`）与 `a2_stage2_close_progress`（scale `0.5`）stage2 close shaping rewards，gate 为 stage2 + handle distance `<0.015m` + opening/approach alignment `>=0.9`。
+  - `_reward_pregrasp_gripper_dof_pos_l1` 改为 stage-aware target：stage0（STAGE_WALK_TO_DOOR）track `close_target`（行走时收起），stage1（STAGE_PREGRASP）track `open_target`（准备抓取），span 统一用 `open_target - close_target`。
+  - 新增 `penalty_base_roll_pitch_l2: -2.0`（stage0/1），直接约束 actual base roll/pitch `self.rpy[:, 0:2]` 的 L2，避免 stage0/1 为了接近 door/handle 学出明显倾斜。
 
 ## Reward Term Decisions
 

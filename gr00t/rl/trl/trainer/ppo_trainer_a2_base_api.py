@@ -2414,6 +2414,15 @@ class TRLPPOTrainer(PPOTrainer):
 
         # Initialize environment-based metrics tracking
         self.env.init_eval_metrics_tracking(self.accelerator.device)
+        a2_stage2_trace_enabled = bool(getattr(self.env, "_use_a2_base", False))
+        if a2_stage2_trace_enabled:
+            init_stage2_trace = getattr(self.env, "init_a2_eval_stage2_step_trace", None)
+            if init_stage2_trace is None:
+                raise RuntimeError(
+                    "A2 eval stage2 step trace requires "
+                    "env.init_a2_eval_stage2_step_trace()."
+                )
+            init_stage2_trace()
 
         # Initialize episode tracking
         self.cur_reward_sum = torch.zeros(
@@ -2552,6 +2561,26 @@ class TRLPPOTrainer(PPOTrainer):
         eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if a2_stage2_trace_enabled:
+            get_stage2_trace = getattr(
+                self.env, "get_a2_eval_stage2_step_trace_records", None
+            )
+            if get_stage2_trace is None:
+                raise RuntimeError(
+                    "A2 eval stage2 step trace requires "
+                    "env.get_a2_eval_stage2_step_trace_records()."
+                )
+            stage2_trace_path = os.path.join(eval_output_dir, "stage2_step_trace.json")
+            stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
+            safe_stage2_trace = _make_json_safe(
+                get_stage2_trace(), path="stage2_step_trace"
+            )
+            with open(stage2_trace_tmp_path, "w") as f:
+                json.dump(safe_stage2_trace, f, indent=4)
+            os.replace(stage2_trace_tmp_path, stage2_trace_path)
+            logger.info(f"Saved A2 stage2 step trace to {stage2_trace_path}")
+
         metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
         metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"
         safe_eval_dict = _make_json_safe(eval_dict)

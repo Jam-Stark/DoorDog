@@ -1043,6 +1043,9 @@ class LeggedRobotBase(BaseTask):
         self._compute_reward()
         # check terminations
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
+        capture_a2_step_trace = getattr(self, "_capture_a2_eval_stage2_step_trace", None)
+        if capture_a2_step_trace is not None:
+            capture_a2_step_trace()
         self._capture_terminal_diagnostics(env_ids)
         self._capture_terminal_render_results(env_ids)
         self.reset_envs_idx(env_ids)

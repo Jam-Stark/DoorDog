@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-25 18:10 HKT
+last_updated: 2026-06-26 01:00 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -41,6 +41,9 @@ read_when:
   - `_reward_pregrasp_gripper_dof_pos_l1` 改为 stage-aware target：stage0（STAGE_WALK_TO_DOOR）track `close_target`（行走时收起），stage1（STAGE_PREGRASP）track `open_target`（准备抓取），span 统一用 `open_target - close_target`。
   - 新增 `penalty_base_roll_pitch_l2: -2.0`（stage0/1），直接约束 actual base roll/pitch `self.rpy[:, 0:2]` 的 L2，避免 stage0/1 为了接近 door/handle 学出明显倾斜。
   - 2026-06-25 18:10 HKT - pregrasp target pos offset 坐标系修复：`FrameTransformerCfg.FrameCfg.offset.pos` 在 target prim frame（door_handle = door frame, identity rot）中定义，不是 rotated target frame。原 `pos=(0,0,0.10)` = 沿 door Z（up）10cm = handle 上方，导致 pregrasp target 偏上而非正前方。修复为 `pos=(0.10,0,0)` = 沿 door X（normal/approach）10cm = handle 正前方。`rot=(0.5,0.5,0.5,0.5)` 只影响 target frame 朝向，不影响 pos offset 方向。
+  - 2026-06-26 01:00 HKT - `_reward_pregrasp_gripper_dof_pos_l1` 扩展到 stage2 gate 外 track open target（方案 B）：`effective_in_stage` 加入 `STAGE_GRASP`，A2 branch 在 stage2 gate 外（handle_dist ≥ 0.015）track `open_target`，gate 内 return 0 交给 `a2_stage2_close_*`。解决 stage2 gate 外 reward 真空导致 gripper 过早闭合的问题。
+  - 2026-06-26 00:50 HKT - Piper arm stiffness/damping 调整：arm_j2 stiffness 128/damping 3，其余 arm（j1/j3-j6）stiffness 64/damping 1.5，gripper（j7/j8）不变。让 arm 更硬以更好靠近 pregrasp target。
+  - 2026-06-26 00:50 HKT - pregrasp_distance 阈值曾放宽 0.1→0.15 后改回 0.1：对比 eval 发现仅 stiffness 调整即可进入 stage2，不需要放宽阈值。
 
 ## Reward Term Decisions
 

@@ -544,19 +544,35 @@ class DoorPregrasp(
             - self.resting_dof_pos[:, self._upper_non_gripper_dof_idx]
         ).sum(dim=-1)
 
-    @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_THROUGH])
+    @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH])
     def _reward_pregrasp_gripper_dof_pos_l1(self):
-        """A2 stage0/1 gripper shaping: stage0 tracks close target (gripper stowed
-        while walking), stage1 tracks open target (gripper opens to prepare grasp).
+        """A2 gripper shaping: stage0 tracks close target (gripper stowed while
+        walking); stage1 and stage2-gate-outside track open target (gripper opens
+        to prepare grasp and stays open until close to handle); stage2 gate inside
+        is excluded so a2_stage2_close_* rewards take over.
         """
         gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
         gripper_vel = self.simulator.dof_vel[:, self._a2_gripper_dof_indices]
         is_walk = self.stage_buf == self.STAGE_WALK_TO_DOOR
-        target = torch.where(
-            is_walk[:, None],
-            self._a2_gripper_close_target,
-            self._a2_gripper_open_target,
-        )
+        # In stage2, only track open target when outside the close-reward gate
+        # (i.e. gripper not yet close enough to handle). Inside the gate, return
+        # zero so a2_stage2_close_command / a2_stage2_close_progress drive close.
+        if self._use_a2_base:
+            stage2_gate = self._get_a2_stage2_close_reward_gate()
+            track_open = (~is_walk) & (~stage2_gate)
+            target = torch.where(
+                is_walk[:, None],
+                self._a2_gripper_close_target,
+                self._a2_gripper_open_target,
+            )
+            gate_mask = track_open.float()
+        else:
+            target = torch.where(
+                is_walk[:, None],
+                self._a2_gripper_close_target,
+                self._a2_gripper_open_target,
+            )
+            gate_mask = (~is_walk).float()
         span = (self._a2_gripper_open_target - self._a2_gripper_close_target).abs().clamp_min(1.0e-4)
         pos_track = self._tracking_reward_util(
             (gripper_pos - target) / span[None, :],
@@ -572,7 +588,7 @@ class DoorPregrasp(
             scale=1.0,
             offset=0.0,
         ).mean(dim=-1)
-        return (pos_track + 0.2 * vel_track).clamp(max=1.0)
+        return ((pos_track + 0.2 * vel_track).clamp(max=1.0)) * gate_mask
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_penalty_unused_dof_deviation_l1(self):

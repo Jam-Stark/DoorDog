@@ -72,6 +72,9 @@ instance/
 .claude/
 CLAUDE.md
 
+# OpenCode runtime state
+.omo/
+
 # Scrapy stuff:
 .scrapy
 

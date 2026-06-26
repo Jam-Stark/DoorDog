@@ -19,7 +19,7 @@
 
 ## 2. Code 风格
 
-IsaacLab 相关 code 必须遵循 **fail-fast** 策略：
+code 必须遵循 **fail-fast** 策略：
 
 - 不为 "所谓的 code 健壮性" 添加不必要的保护性操作 / fallback
 - 不强行让仿真 / 训练运行下去

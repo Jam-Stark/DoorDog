@@ -51,6 +51,12 @@ code 必须遵循 **fail-fast** 策略：
 - 更新对应 `description.md` 的 TODO / DONE summary
 - 如新增 entry 或改变路由，同步更新相关 `MEMORY.md`
 
+**任何有影响的操作后必须交叉验证 memory 一致性**（不仅限于主动实施改动）：
+
+- **Git merge / cherry-pick / rebase 后**：逐个检查被 merge 改动的 code/config 文件，对照相关 memory entry 的 `description.md` / `TODO.md` / `DONE.md`，确认 (a) `last_updated` timestamp 不是 stale，(b) TODO 中已实施的 item 已移除或标记完成，(c) DONE 中有对应记录，(d) `description.md` 的 summary 覆盖了新改动
+- **Conflict resolution 后**：冲突解决改变了文件内容，必须验证最终 state 与 memory 记录一致（例如冲突中取了某一侧的实现，memory 中应记录该实现而非被丢弃的一侧）
+- **任何 code/config/reward 改动后**：确认 `description.md` 的 `last_updated` 和 decision 记录与代码实际 state 匹配
+
 ### 3.3 Memory 维护责任分配（已固化，不自行决断）
 
 | 角色 | omo agent | 能否写文件 | Memory 责任 |
@@ -230,8 +236,9 @@ task(
 ## 8. 约束清单（不可违反）
 
 - **Approval gate**: 复杂任务改 code 前必须发送 plan 给 user 审核
-- **fail-fast**: IsaacLab code 不添加不必要的 defensive / fallback
+- **fail-fast**: code 不添加不必要的 defensive / fallback
 - **Memory 同步**: 完成 TODO 后必须在同一次变更中更新 TODO.md / DONE.md / description.md
+- **Memory 交叉验证**: merge / cherry-pick / rebase / conflict resolution / 任何 code/config 改动后，必须验证相关 memory entry 的 `last_updated`、TODO 状态、DONE 记录与代码实际 state 一致。发现 stale 必须在同一变更中修复
 - **Agent 角色固化**:
   - Code implement → Sisyphus-Junior (`task(category=...)`)
   - Code review → Oracle (`task(subagent_type="oracle")`)，不用 Sisyphus-Junior review code

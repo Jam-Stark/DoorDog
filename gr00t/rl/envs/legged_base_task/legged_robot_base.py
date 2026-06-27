@@ -712,11 +712,18 @@ class LeggedRobotBase(BaseTask):
                 + ", ".join(missing_keys)
             )
 
+        valid_camera_modes = (
+            "env_static",
+            "root_tracking",
+            "door_top_down",
+            "handle_top_down",
+            "handle_side",
+        )
         camera_mode = render_config["camera_mode"]
-        if camera_mode not in ("env_static", "root_tracking", "door_top_down"):
+        if camera_mode not in valid_camera_modes:
             raise ValueError(
-                "env.config.eval_rendering.camera_mode must be 'env_static', "
-                f"'root_tracking', or 'door_top_down', got {camera_mode!r}"
+                "env.config.eval_rendering.camera_mode must be one of "
+                f"{valid_camera_modes}, got {camera_mode!r}"
             )
 
         def _read_vec3(key):
@@ -749,6 +756,83 @@ class LeggedRobotBase(BaseTask):
                 f"got {type(write_terminal_frame).__name__}"
             )
 
+        # Optional additional cameras (multi-camera eval). Missing or empty =>
+        # backward-compatible single-camera behavior (only "main").
+        additional_cameras_raw = render_config.get("additional_cameras", [])
+        if additional_cameras_raw is None:
+            additional_cameras_raw = []
+        if not isinstance(additional_cameras_raw, (list, tuple)):
+            from omegaconf import ListConfig as _LC
+            if not isinstance(additional_cameras_raw, _LC):
+                raise TypeError(
+                    "env.config.eval_rendering.additional_cameras must be a list, "
+                    f"got {type(additional_cameras_raw).__name__}"
+                )
+
+        additional_cameras: list[dict] = []
+        seen_names = {"main"}
+        for idx, cam_cfg in enumerate(additional_cameras_raw):
+            if not isinstance(cam_cfg, dict):
+                from omegaconf import DictConfig as _DC
+                if not isinstance(cam_cfg, _DC):
+                    raise TypeError(
+                        "env.config.eval_rendering.additional_cameras entries must be "
+                        f"dicts, got {type(cam_cfg).__name__} at index {idx}"
+                    )
+            cam_required_keys = ("name", "camera_mode", "camera_eye", "camera_lookat")
+            cam_missing = [k for k in cam_required_keys if k not in cam_cfg]
+            if cam_missing:
+                raise KeyError(
+                    "env.config.eval_rendering.additional_cameras[] missing keys: "
+                    + ", ".join(cam_missing)
+                )
+
+            name = cam_cfg["name"]
+            if not isinstance(name, str) or not name:
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].name must be "
+                    f"a non-empty string, got {name!r}"
+                )
+            if not all(c.isalnum() or c == "_" for c in name):
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].name must be "
+                    f"alphanumeric/underscore, got {name!r}"
+                )
+            if name in seen_names:
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].name must be "
+                    f"unique (and not 'main'), duplicate {name!r}"
+                )
+            seen_names.add(name)
+
+            cam_mode = cam_cfg["camera_mode"]
+            if cam_mode not in valid_camera_modes:
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].camera_mode must "
+                    f"be one of {valid_camera_modes}, got {cam_mode!r}"
+                )
+
+            def _read_cam_vec3(key):
+                value = torch.tensor(
+                    list(cam_cfg[key]), dtype=torch.float32, device=self.device
+                )
+                if value.shape != (3,):
+                    raise ValueError(
+                        "env.config.eval_rendering.additional_cameras[]."
+                        f"{key} must contain exactly 3 values, "
+                        f"got shape {tuple(value.shape)}"
+                    )
+                return value
+
+            additional_cameras.append(
+                {
+                    "name": name,
+                    "camera_mode": cam_mode,
+                    "camera_eye": _read_cam_vec3("camera_eye"),
+                    "camera_lookat": _read_cam_vec3("camera_lookat"),
+                }
+            )
+
         self._eval_rendering_config_cache = {
             "camera_mode": camera_mode,
             "camera_eye": _read_vec3("camera_eye"),
@@ -756,6 +840,7 @@ class LeggedRobotBase(BaseTask):
             "fps": int(fps),
             "write_initial_frame": write_initial_frame,
             "write_terminal_frame": write_terminal_frame,
+            "additional_cameras": additional_cameras,
         }
         return self._eval_rendering_config_cache
 
@@ -771,29 +856,60 @@ class LeggedRobotBase(BaseTask):
             raise IndexError(f"render env_ids out of range: {env_ids.tolist()}")
         return env_ids
 
+    def _get_handle_anchor_pos(self):
+        """World-space anchor (e.g. lever center) for handle_* camera modes.
+
+        Base class cannot provide this; A2 subclass overrides to return the
+        grasp_target world pos. Shape: (num_envs, 3).
+        """
+        raise NotImplementedError(
+            "handle_* eval camera modes require an override of _get_handle_anchor_pos"
+        )
+
     def _compute_eval_render_camera_poses(self):
+        """Compute eye/lookat poses for every eval camera.
+
+        Returns:
+            dict[str, tuple[torch.Tensor, torch.Tensor]]: keyed by camera name
+            ("main" plus any additional cameras). Each value is (eye, lookat)
+            with shape (num_envs, 3).
+        """
         render_config = self._get_eval_rendering_config()
-        camera_eye = render_config["camera_eye"]
-        camera_lookat = render_config["camera_lookat"]
+        poses: dict[str, tuple[torch.Tensor, torch.Tensor]] = {}
 
-        if render_config["camera_mode"] == "env_static":
-            origins = self.env_origins.to(self.device)
-            eye = origins + camera_eye[None, :]
-            lookat = origins + camera_lookat[None, :]
-        elif render_config["camera_mode"] == "root_tracking":
-            root_pos = self.simulator._rigid_body_pos[:, 0]
-            eye = root_pos + camera_eye[None, :]
-            lookat = root_pos + camera_lookat[None, :]
-        elif render_config["camera_mode"] == "door_top_down":
-            door_root_pos = self.simulator.get_task_root_state("door")[:, :3]
-            eye = door_root_pos + camera_eye[None, :]
-            lookat = door_root_pos + camera_lookat[None, :]
-        else:
-            raise ValueError(
-                f"unknown eval rendering camera mode {render_config['camera_mode']!r}"
+        def _compute_for_mode(mode, eye_offset, lookat_offset):
+            if mode == "env_static":
+                origins = self.env_origins.to(self.device)
+                eye = origins + eye_offset[None, :]
+                lookat = origins + lookat_offset[None, :]
+            elif mode == "root_tracking":
+                root_pos = self.simulator._rigid_body_pos[:, 0]
+                eye = root_pos + eye_offset[None, :]
+                lookat = root_pos + lookat_offset[None, :]
+            elif mode == "door_top_down":
+                door_root_pos = self.simulator.get_task_root_state("door")[:, :3]
+                eye = door_root_pos + eye_offset[None, :]
+                lookat = door_root_pos + lookat_offset[None, :]
+            elif mode in ("handle_top_down", "handle_side"):
+                anchor = self._get_handle_anchor_pos()
+                eye = anchor + eye_offset[None, :]
+                lookat = anchor + lookat_offset[None, :]
+            else:
+                raise ValueError(f"unknown eval rendering camera mode {mode!r}")
+            return eye, lookat
+
+        poses["main"] = _compute_for_mode(
+            render_config["camera_mode"],
+            render_config["camera_eye"],
+            render_config["camera_lookat"],
+        )
+        for cam_cfg in render_config["additional_cameras"]:
+            poses[cam_cfg["name"]] = _compute_for_mode(
+                cam_cfg["camera_mode"],
+                cam_cfg["camera_eye"],
+                cam_cfg["camera_lookat"],
             )
-
-        return eye, lookat
+        return poses
 
     def _init_eval_rendering_state(self):
         if "_eval_render_writers" in self.__dict__:
@@ -804,54 +920,67 @@ class LeggedRobotBase(BaseTask):
                 "env.config.save_rendering_dir must be set when render_results is enabled"
             )
         os.makedirs(self.config.save_rendering_dir, exist_ok=True)
-        self._eval_render_writers = [None for _ in range(self.num_envs)]
-        self._eval_render_tmp_paths = [None for _ in range(self.num_envs)]
+        # Per-env, per-camera writer dict: _eval_render_writers[env_id][cam_name]
+        self._eval_render_writers: list[dict] = [dict() for _ in range(self.num_envs)]
+        self._eval_render_tmp_paths: list[dict] = [dict() for _ in range(self.num_envs)]
         self._eval_render_episode_indices = [0 for _ in range(self.num_envs)]
         self._eval_render_session = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-    def _open_eval_render_writer(self, env_id):
-        self._init_eval_rendering_state()
-        if self._eval_render_writers[env_id] is not None:
-            return self._eval_render_writers[env_id]
+    def _eval_render_camera_names(self):
+        """Names of all eval cameras to render, in deterministic order."""
+        render_config = self._get_eval_rendering_config()
+        names = ["main"]
+        names.extend(cam["name"] for cam in render_config["additional_cameras"])
+        return names
 
+    def _eval_render_filename(self, env_id, cam_name, suffix, ext):
+        """Build a render filename. cam_name='main' => no name suffix."""
         episode_index = self._eval_render_episode_indices[env_id]
-        filename = (
+        name_part = "" if cam_name == "main" else f"_{cam_name}"
+        return (
             f"{self._eval_render_session}_env{env_id:04d}_episode{episode_index:04d}"
-            ".writing.mp4"
+            f"{name_part}{suffix}.{ext}"
         )
+
+    def _open_eval_render_writer(self, env_id, cam_name):
+        self._init_eval_rendering_state()
+        if cam_name in self._eval_render_writers[env_id]:
+            return self._eval_render_writers[env_id][cam_name]
+
+        filename = self._eval_render_filename(env_id, cam_name, ".writing", "mp4")
         filepath = str(Path(self.config.save_rendering_dir) / filename)
         print(f"Saving rendering to {filepath}")
         writer = imageio.get_writer(filepath, fps=self._get_eval_rendering_config()["fps"])
-        self._eval_render_writers[env_id] = writer
-        self._eval_render_tmp_paths[env_id] = filepath
+        self._eval_render_writers[env_id][cam_name] = writer
+        self._eval_render_tmp_paths[env_id][cam_name] = filepath
         return writer
 
     def _sanitize_render_reason(self, reason):
         return "".join(c if c.isalnum() or c in ("-", "_", "+") else "_" for c in reason)
 
     def _close_eval_render_writer(
-        self, env_id, episode_length=None, terminal_reason="rollout_end"
+        self, env_id, cam_name, episode_length=None, terminal_reason="rollout_end"
     ):
         self._init_eval_rendering_state()
-        writer = self._eval_render_writers[env_id]
-        tmp_path = self._eval_render_tmp_paths[env_id]
+        writer = self._eval_render_writers[env_id].get(cam_name)
+        tmp_path = self._eval_render_tmp_paths[env_id].get(cam_name)
 
         if writer is not None:
             writer.close()
             reason = self._sanitize_render_reason(terminal_reason)
             if episode_length is None:
                 episode_length = int(self.episode_length_buf[env_id].item())
-            episode_index = self._eval_render_episode_indices[env_id]
-            filename = (
-                f"{self._eval_render_session}_env{env_id:04d}_episode{episode_index:04d}"
-                f"_len{int(episode_length)}_reason-{reason}.mp4"
+            filename = self._eval_render_filename(
+                env_id,
+                cam_name,
+                f"_len{int(episode_length)}_reason-{reason}",
+                "mp4",
             )
             final_path = str(Path(self.config.save_rendering_dir) / filename)
             os.replace(tmp_path, final_path)
 
-        self._eval_render_writers[env_id] = None
-        self._eval_render_tmp_paths[env_id] = None
-        self._eval_render_episode_indices[env_id] += 1
+        self._eval_render_writers[env_id].pop(cam_name, None)
+        self._eval_render_tmp_paths[env_id].pop(cam_name, None)
 
     def render_results(self, env_ids=None, frame_type="step"):
         if not self._render_results_enabled():
@@ -872,20 +1001,33 @@ class LeggedRobotBase(BaseTask):
         if self.debug_viz:
             self._draw_debug_vis()
 
-        eye, lookat = self._compute_eval_render_camera_poses()
-        if not hasattr(self.simulator.eval_camera._view, "_sync_usd_on_fabric_write"):
-            raise RuntimeError("eval camera view does not expose USD/Fabric sync control")
-        # Tiled render products consume USD-authored camera transforms. TiledCamera's
-        # XformPrimView defaults to Fabric-only writes, so mirror pose writes to USD.
-        self.simulator.eval_camera._view._sync_usd_on_fabric_write = True
-        self.simulator.eval_camera.set_world_poses_from_view(eye, lookat)
-        self.simulator.sim.render()
-        self.simulator.eval_camera.update(dt=0.0, force_recompute=True)
-        rgb_viewer = self.simulator.eval_camera.data.output["rgb"].clone()
+        poses = self._compute_eval_render_camera_poses()
+        eval_cameras = self.simulator.eval_cameras
 
-        for env_id in env_ids.tolist():
-            writer = self._open_eval_render_writer(env_id)
-            writer.append_data(rgb_viewer[env_id].cpu().numpy())
+        # PHASE 1 — set all camera poses (USD mirror + view transform).
+        for cam_name, (eye, lookat) in poses.items():
+            camera = eval_cameras[cam_name]
+            if not hasattr(camera._view, "_sync_usd_on_fabric_write"):
+                raise RuntimeError(
+                    f"eval camera '{cam_name}' view does not expose USD/Fabric sync control"
+                )
+            # Tiled render products consume USD-authored camera transforms. TiledCamera's
+            # XformPrimView defaults to Fabric-only writes, so mirror pose writes to USD.
+            camera._view._sync_usd_on_fabric_write = True
+            camera.set_world_poses_from_view(eye, lookat)
+
+        # PHASE 2 — single render for ALL cameras.
+        self.simulator.sim.render()
+
+        # PHASE 3 — read rgb + append to per-camera writers.
+        env_id_list = env_ids.tolist()
+        for cam_name in poses:
+            camera = eval_cameras[cam_name]
+            camera.update(dt=0.0, force_recompute=True)
+            rgb = camera.data.output["rgb"].clone()
+            for env_id in env_id_list:
+                writer = self._open_eval_render_writer(env_id, cam_name)
+                writer.append_data(rgb[env_id].cpu().numpy())
 
     def close_render_results_for_envs(self, env_ids, episode_lengths=None, terminal_reasons=None):
         if not self._render_results_enabled():
@@ -905,17 +1047,24 @@ class LeggedRobotBase(BaseTask):
         if len(terminal_reasons) != env_ids.numel():
             raise ValueError("terminal_reasons must match env_ids length")
 
+        cam_names = self._eval_render_camera_names()
         for env_id, episode_length, terminal_reason in zip(
             env_ids.tolist(), episode_lengths, terminal_reasons
         ):
-            self._close_eval_render_writer(env_id, episode_length, terminal_reason)
+            for cam_name in cam_names:
+                self._close_eval_render_writer(
+                    env_id, cam_name, episode_length, terminal_reason
+                )
+            self._eval_render_episode_indices[env_id] += 1
 
     def end_render_results(self):
         if not self._render_results_enabled() or "_eval_render_writers" not in self.__dict__:
             return
 
         open_env_ids = [
-            env_id for env_id, writer in enumerate(self._eval_render_writers) if writer is not None
+            env_id
+            for env_id, writers in enumerate(self._eval_render_writers)
+            if writers
         ]
         if not open_env_ids:
             return

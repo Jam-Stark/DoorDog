@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-26 01:00 HKT
+last_updated: 2026-06-28 01:00 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -125,6 +125,32 @@ read_when:
 - 2026-06-24 22:54 HKT source fact: `penalty_base_roll_pitch_l2` 使用 actual `self.rpy`，要求 shape `(num_envs, >=2)`，返回 `roll^2 + pitch^2`；stage decorator 限定 stage0/1，因此 stage2 grasp 不受该 upright penalty 直接作用。该项未加入 `reward_penalty_reward_names`，保持 fixed scale `-2.0`，与现有 `penalty_face_door` / `penalty_not_standing_still` 等 fixed penalty 风格一致。
 - 2026-06-24 22:54 HKT validation: `py_compile`、targeted `git diff --check` 通过；Hydra quick compose resolved 3-stage lists 且 `penalty_base_roll_pitch_l2: -2.0`，Hydra full A2 compose resolved 6-stage lists 且同样启用该 scale；no-sim tensor formula sanity 验证 `[0,0] -> 0`、`[0.1,-0.2] -> 0.05`、`[0.3,0.4] -> 0.25`。
 
+## Source Facts (continued)
+
+- 2026-06-26 20:30 HKT - Diagnosis chain: root cause of contact=0 at grasp was grasp_target position off the handle lever. Eval `logs_eval/a2_stage0_2_eval_stage2_ADD_GRASP_GATE-20260626_172243` showed both envs reach stage2, handle_dist < 1cm, gripper closed (prim ≈ -1.25, j7/j8 ≈ close_target), but contact_force=0, goal_reached=false, terminal=stage_overtime.
+- 2026-06-26 20:30 HKT - Diagnosis chain: per-step `stage2_step_trace.json` analysis revealed contact force ONLY appears during OPEN approach (transient side-swipe of lever by one finger, NOT a stable grasp). Contact drops to 0 BEFORE gripper starts closing. Throughout the close phase (hd 0.033→0.003, prim 0→-1.3) contact is strictly 0. Only ONE finger contacts, not both — handle touches one finger, not between both.
+- 2026-06-26 20:30 HKT - Diagnosis chain: gripper geometry (URDF + STL mesh measurement): source_frame_offset pos=(0,0,0.105) places source at gripper_base local Z=0.105. Finger (link7/8) in source frame z∈[-0.046, +0.031]; finger front end is only 3.1cm ahead of source (NOT 12cm as initially estimated). Finger length 7.65cm, width 5.6cm (x∈[±0.028]), grip-open direction is Y. source_frame_offset=0.105 is a DESIGN CHOICE: source lands at finger mid-section for more stable grasp.
+- 2026-06-26 20:30 HKT - Diagnosis chain: target_pos_source_handle (full vector) at contact peak: env0 (-0.101, 0.029, -0.043) — handle is in source -X (lateral) 10cm, NOT +Z (forward). hd=0.113 is mostly lateral distance, not forward distance. The handle lever rod extends from door panel; grasp_target point was off the lever.
+- 2026-06-26 20:30 HKT - Diagnosis chain: door asset geometry (door.py): grasp_target was a zero-mass prim at door_handle frame (-0.15, -handle_length/2*door_open_lr, 0.02). handle_inside capsule (the lever) center is at (-axle_length/2, -handle_length/2*door_open_lr, 0). Difference: X = -0.15 - (-axle_length/2) ∈ [-0.06, -0.045] (4.5-6cm toward door panel side), Z = +0.02 (2cm above lever center). grasp_target was NOT on the lever. When source reaches grasp_target (hd→0), lever is ~1cm in front of finger front end → contact=0, close grasps empty space.
+- 2026-06-26 20:30 HKT - Diagnosis chain: FrameTransformer offset semantics (IsaacLab frame_transformer.py + OrderedTargetFrameTransformer): target offset pos applied in target prim local frame (= door root frame, since grasp_target FixedJoint to door_handle with identity rot). pos and quat independent; rot=(0.5,0.5,0.5,0.5) only remaps orientation axes, doesn't affect pos. source_frame_offset applied in source body local frame. Memory's record of pregrasp (0.10,0,0)=along door X(normal) 10cm is CORRECT.
+- 2026-06-26 20:30 HKT - Fix: door.py lines 567-577 & 582-584. set_prim_transform grasp_target world pos: X -0.15→-axle_length/2, Z door_handle_height+0.02→door_handle_height. FixedJoint LocalPos1: Gf.Vec3f(-0.15, -handle_length/2*lr, 0.02)→Gf.Vec3f(-axle_length/2, -handle_length/2*lr, 0.0). Z +0.02 removed: lever center (Z=0 in handle frame) is most stable grasp point; handle lands at source mid-section (source z∈[-0.046,+0.031], Z=0 is centered). +0.02 was G1-hand approach-space preference, not needed for Piper 2-finger.
+- 2026-06-26 20:30 HKT - Fix: randomization fully tracked — X tracks axle_length(0.18-0.21), Y tracks handle_length(0.11-0.14), Z(world) tracks door_handle_height(0.85-0.95). handle_radius doesn't affect center. No residual mean-error (unlike a fixed-offset compensation). _update_joint_transform kept commented (line 585); hand-maintained consistency between set_prim_transform and LocalPos1 preserved. py_compile passes.
+- 2026-06-26 20:30 HKT - Consequence: reward/stage semantics auto-correct (grasp_target_distance, pregrasp_target_distance, stage1→2 advance, stage2 close gate now measure distance to lever center, not 4.5-6cm off). close gate hd<0.015 ≈ handle_radius(0.011-0.015) = source at lever surface = natural correct close timing. Old checkpoints invalid, must retrain. Runtime spawn (scenario_cfg uses DoorSpawnerCfg func=spawn_door), no asset cache to regenerate.
+- 2026-06-26 22:00 HKT - IsaacLab TiledCamera multi-instance norm: each instance has distinct prim_path (leaf must be plain name not regex). One sim.render() renders ALL cameras. set_world_poses_from_view() must be called individually on EACH camera before render. _sync_usd_on_fabric_write must be manually set True on each eval camera (TiledCamera render products consume USD-authored transforms, Fabric-only writes not visible).
+- 2026-06-26 22:00 HKT - Additional cameras are created in isaacsim.py _setup_scene (after existing eval_camera), reading from env_config.eval_rendering.additional_cameras. self.eval_cameras: dict[str, TiledCamera] always contains "main" plus additional. Backward compat: missing/empty additional_cameras → dict has only "main".
+- 2026-06-26 22:00 HKT - render_results 3-phase: (1) set all camera poses + USD sync per camera, (2) single sim.render(), (3) per-camera update(force_recompute=True) + read rgb + write mp4.
+- 2026-06-26 22:00 HKT - New camera_mode handle_top_down / handle_side: anchor = handle world pos (lever center = grasp_target pos_w). Base class _get_handle_anchor_pos raises NotImplementedError; A2 overrides to return piper_gripper_handle_frame_transformer.data.target_pos_w[:, 0, :].
+- 2026-06-26 22:00 HKT - handle_top: eye offset [0,0,0.15] (above lever 15cm), lookat [0,0,0] (lever center) — top-down ego view of gripper closing on lever. handle_side: eye offset [0,0.12,0.02] (side 12cm, slightly up 2cm), lookat [0,0,0] — side view to see handle depth in finger envelope when TCP reaches grasp_target.
+- 2026-06-26 22:00 HKT - Config: base_task.yaml eval_rendering.additional_cameras optional list, each entry {name, camera_mode, camera_eye, camera_lookat}. mp4 filenames: main → no suffix (backward compat), additional → _{cam_name} suffix.
+- 2026-06-28 01:00 HKT - grasp_target capsule correction: original fix placed grasp_target on handle_inside capsule (X=-axle_length/2, 门内侧杆), but gripper approaches from +X (门外侧). This caused pregrasp target to land at door panel position (X≈0), forcing gripper to side-slide around panel instead of straight approach. Fix: grasp_target moved to handle_outside capsule (X=+axle_length/2, 门外侧杆). pregrasp offset (0.10,0,0) unchanged → pregrasp now at X≈+0.20 (门外侧, gripper reachable). Root cause analysis: grasp_target position only affects approach path + close gate hd + reward direction, NOT which lever the finger contacts (contact sensor filters whole door_handle prim incl. both capsules; finger naturally hits outside lever first when approaching from +X). gripper could still contact handle with wrong grasp_target, but approach path was suboptimal (side-slide) and close gate hd measured distance to wrong lever.
+- 2026-06-28 01:00 HKT - Camera offset tuning: handle_top eye [0,0,0.15]→[0,0,0.65] (above lever 65cm), handle_side eye [0,0.12,0.02]→[0,0.62,0.02] (side 62cm). Reason: original 15cm/12cm too close, couldn't see pregrasp-stage handle-gripper relative position clearly.
+
+## Current Decision (continued)
+
+- 2026-06-26 20:30 HKT - grasp_target moved to handle_inside capsule center (lever center), tracking axle_length/handle_length/door_handle_height randomization. Z +0.02 removed. Root cause: grasp_target was 4.5-6cm off the lever toward door panel (+Z 2cm above lever center). When gripper source reached grasp_target (hd→0), the lever was ~1cm in front of finger tips → contact=0, close grasps empty space.
+- 2026-06-26 22:00 HKT - 新增 multi-camera eval rendering：2 个 additional cameras（handle_top ego-view + handle_side depth-view）与既有 main eval camera 同时渲染。所有 camera 通过一次 sim.render() 输出，各自写入独立 mp4。Backward compatible：无 additional_cameras config 时仅有 main camera，行为与之前完全相同。
+- 2026-06-28 01:00 HKT - grasp_target capsule corrected from handle_inside (X=-axle_length/2, 门内侧) to handle_outside (X=+axle_length/2, 门外侧). 原选错 capsule 导致 pregrasp 落在门板位置、gripper 侧滑 approach。改后 pregrasp 在门外侧、gripper 直前 approach。camera handle_top/handle_side offset 远离至 65cm/62cm。
+
 ## Implementation Boundary
 
 - 优先新增独立 experiment/env config，例如 stage0-2 quick test config，而不是直接改默认 full 6-stage config。
@@ -135,10 +161,13 @@ read_when:
 
 ## TODO Summary
 
-- 2026-06-24 22:54 HKT - A2 Stage2 Close Shaping Rewards 与 stage0/1 base roll/pitch upright penalty 已完成 static validation；下一步需要用新 reward retraining，继续观察 stage occupancy、stage0/1 roll/pitch magnitude、stage2 close command/progress、contact/squeeze complete、overtime reset、termination frequency 与 `average_goal_reached`。
+- 2026-06-26 20:30 HKT - grasp_target 已修正到 handle lever center（root cause fix：原 grasp_target 在把手上方 2cm 且偏门板 4.5-6cm）。下一步需要用新 asset retraining，观察 contact force、complete predicate、goal_reached 是否改善；同时确认 close gate hd<0.015 对应 lever surface 的自然闭合时机。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
+- 2026-06-26 22:00 HKT - Multi-camera eval rendering 已完成实现与静态 review，但完整 IsaacSim runtime eval 验证（确认 3 个 mp4 同时生成、视野正确、FPS 一致、backward compat 无 regress）仍需 main-agent 复跑。
 
 ## DONE Summary
+
+- 2026-06-26 20:30 HKT - 完成 grasp_target 位置修正根因诊断与修复：诊断链覆盖 eval trace 分析（contact 仅出现在 open approach，close 全程 contact=0）、gripper 几何测量（source_frame_offset=0.105 是 finger mid-section 设计，finger 仅前伸 3.1cm）、door asset 几何计算（grasp_target 距 lever center X 方向 4.5-6cm、Z 方向 +2cm）。修复将 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height（移除 +0.02）。Z 随机化跟踪 door_handle_height(0.85-0.95)，X 跟踪 axle_length(0.18-0.21)，Y 跟踪 handle_length(0.11-0.14)。auto-correct: grasp_target_distance/pregrasp_target_distance/stage1→2/stage2 close gate 现在量的是 lever center 而不是偏 4.5-6cm 的点。旧 checkpoint 无效，需 retrain。
 
 - 2026-06-22 20:29 HKT - 创建独立 memory entry `stage0-2-grasp-terminal`，记录 quickTEST 分支的 stage0-2-only training 目标、stage2 terminal success 语义、与 full 6-stage task 的边界。
 - 2026-06-22 20:42 HKT - 新增独立 stage0-2 quick test config，并完成 Hydra static validation：3-stage list values、reset delay 0、stage3+ reward scales 0.0、`obs_dims.stage: 3` 均符合计划。

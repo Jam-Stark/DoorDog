@@ -2016,6 +2016,23 @@ class DoorPregrasp(
         )
         return grasp_target_pos_w
 
+    @override
+    def _get_handle_anchor_pos(self):
+        """Lever center (grasp_target world pos) for handle_* eval cameras.
+
+        target_pos_w[:, 0, :] is the handle frame target (= lever center after
+        the grasp_target fix). Shape: (num_envs, 3).
+        """
+        transformer = self._get_a2_gripper_handle_frame_transformer()
+        target_pos_w = transformer.data.target_pos_w
+        if target_pos_w.ndim != 3 or target_pos_w.shape[1] < 1:
+            shape = None if target_pos_w is None else tuple(target_pos_w.shape)
+            raise RuntimeError(
+                f"A2 handle anchor requires target_pos_w[:, 0, :] with shape "
+                f"(num_envs, >=1, 3); got {shape}."
+            )
+        return target_pos_w[:, 0, :].clone()
+
     def _compute_pre_grasp_target(self):
         if self._use_a2_base:
             return self._get_a2_gripper_handle_frame_transformer().data.target_pos_w[

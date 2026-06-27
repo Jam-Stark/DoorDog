@@ -1133,6 +1133,69 @@ class IsaacSim(BaseSimulator):
             self.eval_camera = TiledCamera(eval_camera_config)
             self.scene.sensors["eval_camera"] = self.eval_camera
 
+            # Additional eval cameras (multi-camera rendering). Each gets its own
+            # prim_path leaf (plain name, not regex) and shares the main camera's
+            # resolution + spawn config. A single sim.render() renders all of them.
+            additional_cameras_cfg = self.env_config.get("eval_rendering", {}).get(
+                "additional_cameras", []
+            )
+            if additional_cameras_cfg is None:
+                additional_cameras_cfg = []
+            if not isinstance(additional_cameras_cfg, (list, tuple)):
+                from omegaconf import ListConfig
+                if not isinstance(additional_cameras_cfg, ListConfig):
+                    raise TypeError(
+                        "env.config.eval_rendering.additional_cameras must be a list, "
+                        f"got {type(additional_cameras_cfg).__name__}"
+                    )
+
+            self.eval_cameras: dict[str, TiledCamera] = {"main": self.eval_camera}
+            seen_names = {"main"}
+            for cam_cfg in additional_cameras_cfg:
+                if not isinstance(cam_cfg, dict):
+                    from omegaconf import DictConfig
+                    if not isinstance(cam_cfg, DictConfig):
+                        raise TypeError(
+                            "env.config.eval_rendering.additional_cameras entries must "
+                            f"be dicts, got {type(cam_cfg).__name__}"
+                        )
+                name = cam_cfg.get("name")
+                if not isinstance(name, str) or not name:
+                    raise ValueError(
+                        "env.config.eval_rendering.additional_cameras[].name must "
+                        f"be a non-empty string, got {name!r}"
+                    )
+                if not all(c.isalnum() or c == "_" for c in name):
+                    raise ValueError(
+                        "env.config.eval_rendering.additional_cameras[].name must "
+                        f"be alphanumeric/underscore, got {name!r}"
+                    )
+                if name in seen_names:
+                    raise ValueError(
+                        "env.config.eval_rendering.additional_cameras[].name must "
+                        f"be unique (and not 'main'), duplicate {name!r}"
+                    )
+                seen_names.add(name)
+
+                additional_config = TiledCameraCfg(
+                    prim_path=f"/World/envs/env_.*/eval_camera_{name}",
+                    offset=TiledCameraCfg.OffsetCfg(
+                        pos=(0, 0, 0), rot=(1, 0, 0, 0), convention="world"
+                    ),
+                    data_types=["rgb"],
+                    spawn=sim_utils.PinholeCameraCfg(
+                        focal_length=5.0,
+                        focus_distance=50.0,
+                        horizontal_aperture=5,
+                        clipping_range=(0.1, 20.0),
+                    ),
+                    width=eval_camera_width,
+                    height=eval_camera_height,
+                )
+                camera = TiledCamera(additional_config)
+                self.eval_cameras[name] = camera
+                self.scene.sensors[f"eval_camera_{name}"] = camera
+
         if (self.terrain_config.mesh_type == "heightfield") or (
             self.terrain_config.mesh_type == "trimesh"
         ):

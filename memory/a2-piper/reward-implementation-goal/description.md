@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-26 01:00 HKT
+last_updated: 2026-06-26 20:30 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -44,6 +44,8 @@ read_when:
   - 2026-06-26 01:00 HKT - `_reward_pregrasp_gripper_dof_pos_l1` 扩展到 stage2 gate 外 track open target（方案 B）：`effective_in_stage` 加入 `STAGE_GRASP`，A2 branch 在 stage2 gate 外（handle_dist ≥ 0.015）track `open_target`，gate 内 return 0 交给 `a2_stage2_close_*`。解决 stage2 gate 外 reward 真空导致 gripper 过早闭合的问题。
   - 2026-06-26 00:50 HKT - Piper arm stiffness/damping 调整：arm_j2 stiffness 128/damping 3，其余 arm（j1/j3-j6）stiffness 64/damping 1.5，gripper（j7/j8）不变。让 arm 更硬以更好靠近 pregrasp target。
   - 2026-06-26 00:50 HKT - pregrasp_distance 阈值曾放宽 0.1→0.15 后改回 0.1：对比 eval 发现仅 stiffness 调整即可进入 stage2，不需要放宽阈值。
+
+- 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
 ## Reward Term Decisions
 

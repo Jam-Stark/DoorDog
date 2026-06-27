@@ -16,6 +16,15 @@ env:
       fps: 20
       write_initial_frame: true
       write_terminal_frame: true
+      additional_cameras:
+        - name: handle_top
+          camera_mode: handle_top_down
+          camera_eye: [0.0, 0.0, 0.65]
+          camera_lookat: [0.0, 0.0, 0.0]
+        - name: handle_side
+          camera_mode: handle_side
+          camera_eye: [0.0, 0.62, 0.02]
+          camera_lookat: [0.0, 0.0, 0.0]
     experiment_dir: null
     ckpt_dir: null
 

@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-28 01:00 HKT
+last_updated: 2026-06-28 01:30 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -144,12 +144,14 @@ read_when:
 - 2026-06-26 22:00 HKT - Config: base_task.yaml eval_rendering.additional_cameras optional list, each entry {name, camera_mode, camera_eye, camera_lookat}. mp4 filenames: main → no suffix (backward compat), additional → _{cam_name} suffix.
 - 2026-06-28 01:00 HKT - grasp_target capsule correction: original fix placed grasp_target on handle_inside capsule (X=-axle_length/2, 门内侧杆), but gripper approaches from +X (门外侧). This caused pregrasp target to land at door panel position (X≈0), forcing gripper to side-slide around panel instead of straight approach. Fix: grasp_target moved to handle_outside capsule (X=+axle_length/2, 门外侧杆). pregrasp offset (0.10,0,0) unchanged → pregrasp now at X≈+0.20 (门外侧, gripper reachable). Root cause analysis: grasp_target position only affects approach path + close gate hd + reward direction, NOT which lever the finger contacts (contact sensor filters whole door_handle prim incl. both capsules; finger naturally hits outside lever first when approaching from +X). gripper could still contact handle with wrong grasp_target, but approach path was suboptimal (side-slide) and close gate hd measured distance to wrong lever.
 - 2026-06-28 01:00 HKT - Camera offset tuning: handle_top eye [0,0,0.15]→[0,0,0.65] (above lever 65cm), handle_side eye [0,0.12,0.02]→[0,0.62,0.02] (side 62cm). Reason: original 15cm/12cm too close, couldn't see pregrasp-stage handle-gripper relative position clearly.
+- 2026-06-28 01:30 HKT - **grasp_target capsule 纠错回退**：01:00 的修改把 grasp_target 从 handle_inside（X=-axle_length/2）改到 handle_outside（X=+axle_length/2），这是错误的。用户从 eval 视频确认 handle_inside 才是正确的 grasp target——gripper 应该抓握内侧杆。已改回 -axle_length/2。教训：grasp_target 选哪条 capsule 不能只靠几何推理（"gripper 从外侧 approach 应选外侧杆"是错误直觉），必须以实际 eval 视频中 gripper 与 handle 的物理交互为准。eval 视频显示 gripper 能正确抓握 inside 杆，改到 outside 后旧 policy 完全失效（停在 stage0）。camera offset 远离 50cm 的修改保留（与 capsule 选择无关）。
 
 ## Current Decision (continued)
 
 - 2026-06-26 20:30 HKT - grasp_target moved to handle_inside capsule center (lever center), tracking axle_length/handle_length/door_handle_height randomization. Z +0.02 removed. Root cause: grasp_target was 4.5-6cm off the lever toward door panel (+Z 2cm above lever center). When gripper source reached grasp_target (hd→0), the lever was ~1cm in front of finger tips → contact=0, close grasps empty space.
 - 2026-06-26 22:00 HKT - 新增 multi-camera eval rendering：2 个 additional cameras（handle_top ego-view + handle_side depth-view）与既有 main eval camera 同时渲染。所有 camera 通过一次 sim.render() 输出，各自写入独立 mp4。Backward compatible：无 additional_cameras config 时仅有 main camera，行为与之前完全相同。
 - 2026-06-28 01:00 HKT - grasp_target capsule corrected from handle_inside (X=-axle_length/2, 门内侧) to handle_outside (X=+axle_length/2, 门外侧). 原选错 capsule 导致 pregrasp 落在门板位置、gripper 侧滑 approach。改后 pregrasp 在门外侧、gripper 直前 approach。camera handle_top/handle_side offset 远离至 65cm/62cm。
+- 2026-06-28 01:30 HKT - **撤销 01:00 的 capsule 修改，改回 handle_inside（X=-axle_length/2）**。用户从 eval 视频确认 inside 是正确的 grasp handle，gripper 能正确抓握内侧杆。"gripper 从外侧 approach 应选外侧杆"是错误直觉。camera offset 保留。
 
 ## Implementation Boundary
 

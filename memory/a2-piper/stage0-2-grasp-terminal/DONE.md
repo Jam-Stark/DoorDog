@@ -1,5 +1,7 @@
 # DONE
 
+- 2026-06-28 01:30 HKT - 撤销 grasp_target capsule 改动，改回 handle_inside（X=-axle_length/2）。01:00 错误地改为 handle_outside，用户从 eval 视频确认 inside 是正确的 grasp handle。教训：grasp_target capsule 选择必须以 eval 视频物理交互为准，不能只靠几何推理。camera offset 远离 50cm 保留。
+
 - 2026-06-28 01:00 HKT - 完成 grasp_target capsule correction + camera offset tuning。grasp_target 从 handle_inside（X=-axle_length/2, 门内侧杆）改到 handle_outside（X=+axle_length/2, 门外侧杆）。原因：gripper 从 +X（门外侧）approach，grasp_target 应在外侧杆；原选内侧杆导致 pregrasp 落在门板位置（X≈0），gripper 被迫侧滑绕过门板。改后 pregrasp 在门外侧（X≈+0.20），gripper 可直前 approach。诊断：grasp_target 位置不影响 finger 碰到哪条杆（contact sensor 测整个 door_handle prim），只影响 approach 路径 + close gate hd + reward 方向。camera handle_top eye [0,0,0.15]→[0,0,0.65]、handle_side eye [0,0.12,0.02]→[0,0.62,0.02]，远离 50cm 以看清 pregrasp 阶段相对位置。py_compile 通过。
 
 - 2026-06-26 22:00 HKT - 完成 multi-camera eval rendering 实现：新增 2 个 additional cameras（handle_top ego-view + handle_side depth-view）与既有 main eval camera 同时渲染。所有 camera 通过一次 sim.render() 输出，各自写入独立 mp4。isaacsim.py 创建 `self.eval_cameras: dict[str, TiledCamera]`（always 含 "main" + additional），legged_robot_base.py render_results 改为 3-phase（set all poses→single sim.render()→per-camera update+write），新 camera_mode handle_top_down/handle_side 用 lever center（grasp_target pos_w）做 anchor，A2 override `_get_handle_anchor_pos`。base_task.yaml 加 optional `additional_cameras` list。Backward compatible：无 additional_cameras 时仅有 main camera，filename/行为不变。py_compile 通过。runtime eval 验证待跑。

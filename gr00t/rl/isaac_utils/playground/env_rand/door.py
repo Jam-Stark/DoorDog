@@ -568,7 +568,7 @@ def spawn_door(
         stage,
         grasp_target_prim_path,
         (
-            axle_length / 2,
+            -axle_length / 2,
             (half_door_width - door_handle_width - handle_length / 2) * door_open_lr,
             door_handle_height,
         ),
@@ -580,7 +580,7 @@ def spawn_door(
     grasp_target_joint.CreateBody0Rel().SetTargets([grasp_target_prim_path])
     grasp_target_joint.CreateBody1Rel().SetTargets([handle_prim_path])
     grasp_target_joint.CreateLocalPos1Attr().Set(
-        Gf.Vec3f(axle_length / 2, -handle_length / 2 * door_open_lr, 0.0)
+        Gf.Vec3f(-axle_length / 2, -handle_length / 2 * door_open_lr, 0.0)
     )
     # _update_joint_transform(stage, grasp_target_joint_prim_path, grasp_target_prim_path, handle_prim_path)
 

@@ -73,9 +73,7 @@ instance/
 CLAUDE.md
 
 # OpenCode runtime state + project-local config (kept branch-local, not tracked)
-.omo/
-.github/
-opencode.json
+AGENTS.md
 
 # Scrapy stuff:
 .scrapy

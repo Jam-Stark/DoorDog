@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-28 18:00 HKT
+last_updated: 2026-06-28 18:10 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -147,6 +147,7 @@ read_when:
 - 2026-06-28 01:30 HKT - **grasp_target capsule 纠错回退**：01:00 的修改把 grasp_target 从 handle_inside（X=-axle_length/2）改到 handle_outside（X=+axle_length/2），这是错误的。用户从 eval 视频确认 handle_inside 才是正确的 grasp target——gripper 应该抓握内侧杆。已改回 -axle_length/2。教训：grasp_target 选哪条 capsule 不能只靠几何推理（"gripper 从外侧 approach 应选外侧杆"是错误直觉），必须以实际 eval 视频中 gripper 与 handle 的物理交互为准。eval 视频显示 gripper 能正确抓握 inside 杆，改到 outside 后旧 policy 完全失效（停在 stage0）。camera offset 远离 50cm 的修改保留（与 capsule 选择无关）。
 - 2026-06-28 02:08 HKT - pregrasp offset 方向修正：从 (+0.10, 0, 0) 改为 (-0.10, 0, 0)。原 +0.10 把 pregrasp 放在门板和 handle 之间（错误侧），-0.10 把 pregrasp 放在 handle 的正确外侧（用户从视频确认红球位置正确）。同时加 A2_PREGRASP_OFFSET 常量 + visual debug spheres（绿球=grasp_target, 红球=pregrasp）。
 - 2026-06-28 18:00 HKT - **严重教训：code 改动未同步到训练侧**。训练 `stage2_FixPregraspOffset-20260628_021735` 用的 pregrasp offset 是 commit `1751947` 的 `(+0.10, 0, 0)`（旧方向），而 eval 时 code 已改为 `(-0.10, 0, 0)`（新方向）。训练和 eval 的 pregrasp offset 不一致，导致 policy 学到的是 approach +0.10 方向，eval 时红球在 -0.10 方向——policy 不去 reach 红球。**教训：修改 code 中的几何参数（offset/阈值/方向）后，必须确认训练 config 用的是同一份 code。如果改动在 commit 之后但训练拉的是旧 commit，就会不一致。改完几何参数应立即 commit 或确认训练命令用的工作区 code。**
+- 2026-06-28 18:10 HKT - walk_to_door reward target 从 door_root 改为 grasp_target（handle）。原 G1 设计引导 base 走向 door_root（门正中），handle 在门右侧（door_open_lr=-1），base 到门正中后 handle 在 base 右侧——适配 G1 右手但不适配 A2+Piper 单臂。改为 grasp_target 后 base 走向 handle 正前方，arm 可直前伸 reach pregrasp/handle。未改 advance condition、penalty_face_door 或其他 reward。
 
 ## Current Decision (continued)
 

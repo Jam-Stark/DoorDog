@@ -516,14 +516,13 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
-        # A2 stage0 pass: keep the G1 Doorman door-root velocity shaping for the first
-        # reward smoke. Future option: parameterize this target as door_root,
-        # grasp_target, or a Piper-specific approach_anchor.
+        # A2: walk toward grasp_target (handle) instead of door_root, so base
+        # aligns with handle Y position for straight arm approach.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
-        door_root_pos = self.simulator.get_task_root_state("door")[:, :3].clone()
-        door_root_pos[:, 2] = current_root_pos[:, 2]
-        door_direction = door_root_pos - current_root_pos
-        target_dir = F.normalize(door_direction, dim=-1)
+        grasp_target_pos = self._compute_grasp_target().clone()
+        grasp_target_pos[:, 2] = current_root_pos[:, 2]
+        target_direction = grasp_target_pos - current_root_pos
+        target_dir = F.normalize(target_direction, dim=-1)
         current_root_vel = self.simulator.robot_root_states[:, 7:10].clone()
 
         target_vel = self.config.get("target_root_vel", 0.3) * target_dir

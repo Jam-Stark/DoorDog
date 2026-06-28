@@ -584,6 +584,10 @@ def spawn_door(
     )
     # _update_joint_transform(stage, grasp_target_joint_prim_path, grasp_target_prim_path, handle_prim_path)
 
+    # Visual debug spheres (green=grasp_target, red=pregrasp) are spawned in
+    # door_open_a2_base.py scene_creation_callback so they read offsets directly
+    # from the FrameTransformer config (A2_PREGRASP_OFFSET / handle offset).
+
     # set material
     if cfg.randomize_material and door_frame_material_prim_paths and handle_material_prim_paths:
         door_frame_material_prim_path = np.random.choice(door_frame_material_prim_paths)

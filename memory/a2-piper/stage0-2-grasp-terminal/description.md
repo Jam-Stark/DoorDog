@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-28 01:30 HKT
+last_updated: 2026-06-28 18:00 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -145,6 +145,8 @@ read_when:
 - 2026-06-28 01:00 HKT - grasp_target capsule correction: original fix placed grasp_target on handle_inside capsule (X=-axle_length/2, 门内侧杆), but gripper approaches from +X (门外侧). This caused pregrasp target to land at door panel position (X≈0), forcing gripper to side-slide around panel instead of straight approach. Fix: grasp_target moved to handle_outside capsule (X=+axle_length/2, 门外侧杆). pregrasp offset (0.10,0,0) unchanged → pregrasp now at X≈+0.20 (门外侧, gripper reachable). Root cause analysis: grasp_target position only affects approach path + close gate hd + reward direction, NOT which lever the finger contacts (contact sensor filters whole door_handle prim incl. both capsules; finger naturally hits outside lever first when approaching from +X). gripper could still contact handle with wrong grasp_target, but approach path was suboptimal (side-slide) and close gate hd measured distance to wrong lever.
 - 2026-06-28 01:00 HKT - Camera offset tuning: handle_top eye [0,0,0.15]→[0,0,0.65] (above lever 65cm), handle_side eye [0,0.12,0.02]→[0,0.62,0.02] (side 62cm). Reason: original 15cm/12cm too close, couldn't see pregrasp-stage handle-gripper relative position clearly.
 - 2026-06-28 01:30 HKT - **grasp_target capsule 纠错回退**：01:00 的修改把 grasp_target 从 handle_inside（X=-axle_length/2）改到 handle_outside（X=+axle_length/2），这是错误的。用户从 eval 视频确认 handle_inside 才是正确的 grasp target——gripper 应该抓握内侧杆。已改回 -axle_length/2。教训：grasp_target 选哪条 capsule 不能只靠几何推理（"gripper 从外侧 approach 应选外侧杆"是错误直觉），必须以实际 eval 视频中 gripper 与 handle 的物理交互为准。eval 视频显示 gripper 能正确抓握 inside 杆，改到 outside 后旧 policy 完全失效（停在 stage0）。camera offset 远离 50cm 的修改保留（与 capsule 选择无关）。
+- 2026-06-28 02:08 HKT - pregrasp offset 方向修正：从 (+0.10, 0, 0) 改为 (-0.10, 0, 0)。原 +0.10 把 pregrasp 放在门板和 handle 之间（错误侧），-0.10 把 pregrasp 放在 handle 的正确外侧（用户从视频确认红球位置正确）。同时加 A2_PREGRASP_OFFSET 常量 + visual debug spheres（绿球=grasp_target, 红球=pregrasp）。
+- 2026-06-28 18:00 HKT - **严重教训：code 改动未同步到训练侧**。训练 `stage2_FixPregraspOffset-20260628_021735` 用的 pregrasp offset 是 commit `1751947` 的 `(+0.10, 0, 0)`（旧方向），而 eval 时 code 已改为 `(-0.10, 0, 0)`（新方向）。训练和 eval 的 pregrasp offset 不一致，导致 policy 学到的是 approach +0.10 方向，eval 时红球在 -0.10 方向——policy 不去 reach 红球。**教训：修改 code 中的几何参数（offset/阈值/方向）后，必须确认训练 config 用的是同一份 code。如果改动在 commit 之后但训练拉的是旧 commit，就会不一致。改完几何参数应立即 commit 或确认训练命令用的工作区 code。**
 
 ## Current Decision (continued)
 

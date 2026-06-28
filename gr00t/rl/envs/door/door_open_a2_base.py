@@ -235,6 +235,7 @@ class DoorPregrasp(
     STAGE_THROUGH = 5
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
+    A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -2495,7 +2496,7 @@ class DoorPregrasp(
                             prim_path=target_obj_transform_prim_path,
                             name="pregrasp",
                             offset=OffsetCfg(
-                                pos=(0.10, 0.0, 0.0),
+                                pos=self.A2_PREGRASP_OFFSET,
                                 rot=(0.5, 0.5, 0.5, 0.5),
                             ),
                         ),
@@ -2525,6 +2526,37 @@ class DoorPregrasp(
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_CONTACT_SENSOR] = ContactSensor(
                 a2_gripper_handle_contact_sensor_config
             )
+
+            # Visual debug spheres: green = grasp_target (handle), red = pregrasp target.
+            # Both read offsets directly from FrameTransformer config so they auto-track
+            # any config changes. Pure visual — no collision/mass/rigidbody.
+            import isaaclab.sim as sim_utils_vis
+            _vis_radius = 0.02
+            vis_grasp_cfg = sim_utils_vis.SphereCfg(
+                radius=_vis_radius,
+                visual_material=sim_utils_vis.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0)),
+                collision_props=None,
+                mass_props=None,
+                rigid_props=None,
+            )
+            sim_utils_vis.spawn_sphere(
+                prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_grasp_target",
+                cfg=vis_grasp_cfg,
+                translation=(0.0, 0.0, 0.0),  # handle target offset = (0,0,0)
+            )
+            vis_pregrasp_cfg = sim_utils_vis.SphereCfg(
+                radius=_vis_radius,
+                visual_material=sim_utils_vis.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0)),
+                collision_props=None,
+                mass_props=None,
+                rigid_props=None,
+            )
+            sim_utils_vis.spawn_sphere(
+                prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_pregrasp_target",
+                cfg=vis_pregrasp_cfg,
+                translation=self.A2_PREGRASP_OFFSET,
+            )
+
             return
 
         head_target_frame_transformer_config: FrameTransformerCfg = FrameTransformerCfg(

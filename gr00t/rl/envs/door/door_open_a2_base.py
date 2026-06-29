@@ -522,7 +522,7 @@ class DoorPregrasp(
         grasp_target_pos = self._compute_grasp_target().clone()
         # staging target: 40cm from handle along -X (door normal, toward robot side)
         stage0_target_pos = grasp_target_pos.clone()
-        stage0_target_pos[:, 0] -= 0.50
+        stage0_target_pos[:, 0] -= 0.70
         stage0_target_pos[:, 2] = current_root_pos[:, 2]
         target_direction = stage0_target_pos - current_root_pos
         target_dir = F.normalize(target_direction, dim=-1)
@@ -2211,7 +2211,7 @@ class DoorPregrasp(
         # get close enough to the staging position (40cm in front of handle)
         grasp_target = self._compute_grasp_target()
         stage0_target = grasp_target.clone()
-        stage0_target[:, 0] -= 0.50
+        stage0_target[:, 0] -= 0.70
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = stage0_target[:, 2]
         cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
@@ -2572,7 +2572,7 @@ class DoorPregrasp(
             sim_utils_vis.spawn_sphere(
                 prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_stage0_target",
                 cfg=vis_stage0_cfg,
-                translation=(-0.50, 0.0, 0.0),  # staging pos: 50cm from handle along -X
+                translation=(-0.70, 0.0, 0.0),  # staging pos: 70cm from handle along -X
             )
 
             # Handle coordinate axis visualizer: 3 cylinders (R=X, G=Y, B=Z) at grasp_target.

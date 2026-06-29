@@ -516,12 +516,15 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
-        # A2: walk toward grasp_target (handle) instead of door_root, so base
-        # aligns with handle Y position for straight arm approach.
+        # A2: walk toward a staging position 40cm in front of handle (door normal -X),
+        # so base aligns with handle Y and stops at a comfortable arm reach distance.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
         grasp_target_pos = self._compute_grasp_target().clone()
-        grasp_target_pos[:, 2] = current_root_pos[:, 2]
-        target_direction = grasp_target_pos - current_root_pos
+        # staging target: 40cm from handle along -X (door normal, toward robot side)
+        stage0_target_pos = grasp_target_pos.clone()
+        stage0_target_pos[:, 0] -= 0.40
+        stage0_target_pos[:, 2] = current_root_pos[:, 2]
+        target_direction = stage0_target_pos - current_root_pos
         target_dir = F.normalize(target_direction, dim=-1)
         current_root_vel = self.simulator.robot_root_states[:, 7:10].clone()
 
@@ -2201,13 +2204,13 @@ class DoorPregrasp(
         return self._stage_0_to_1_advance_condition()
 
     def _stage_0_to_1_advance_condition(self):
-        # get close enough to the door
+        # get close enough to the staging position (40cm in front of handle)
         grasp_target = self._compute_grasp_target()
+        stage0_target = grasp_target.clone()
+        stage0_target[:, 0] -= 0.40
         root_pos = self.simulator.robot_root_states[:, :3].clone()
-        root_pos[:, 2] = grasp_target[:, 2]
-        # A2 is a quadruped with a longer trunk/base footprint than upright G1.
-        # Keep the root farther from the handle target to avoid trunk-door collisions.
-        cond = (root_pos - grasp_target).norm(dim=-1) < 0.6
+        root_pos[:, 2] = stage0_target[:, 2]
+        cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
 
         # keep A2 arm body DOF / Piper arm_j1..j6 down; gripper arm_j7/8 are excluded.
         max_deviation = (

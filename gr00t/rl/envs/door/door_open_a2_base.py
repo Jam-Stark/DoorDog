@@ -2269,7 +2269,7 @@ class DoorPregrasp(
             )
 
             pregrasp_ready = (
-                (pregrasp_distance < 0.03)
+                (pregrasp_distance < 0.1)
                 & (opening_alignment >= 0.8)
                 & (approach_alignment >= 0.8)
                 & base_still

@@ -522,7 +522,7 @@ class DoorPregrasp(
         grasp_target_pos = self._compute_grasp_target().clone()
         # staging target: 40cm from handle along -X (door normal, toward robot side)
         stage0_target_pos = grasp_target_pos.clone()
-        stage0_target_pos[:, 0] -= 0.40
+        stage0_target_pos[:, 0] -= 0.50
         stage0_target_pos[:, 2] = current_root_pos[:, 2]
         target_direction = stage0_target_pos - current_root_pos
         target_dir = F.normalize(target_direction, dim=-1)
@@ -2207,7 +2207,7 @@ class DoorPregrasp(
         # get close enough to the staging position (40cm in front of handle)
         grasp_target = self._compute_grasp_target()
         stage0_target = grasp_target.clone()
-        stage0_target[:, 0] -= 0.40
+        stage0_target[:, 0] -= 0.50
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = stage0_target[:, 2]
         cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
@@ -2558,6 +2558,52 @@ class DoorPregrasp(
                 cfg=vis_pregrasp_cfg,
                 translation=self.A2_PREGRASP_OFFSET,
             )
+            vis_stage0_cfg = sim_utils_vis.SphereCfg(
+                radius=_vis_radius,
+                visual_material=sim_utils_vis.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0)),
+                collision_props=None,
+                mass_props=None,
+                rigid_props=None,
+            )
+            sim_utils_vis.spawn_sphere(
+                prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_stage0_target",
+                cfg=vis_stage0_cfg,
+                translation=(-0.50, 0.0, 0.0),  # staging pos: 50cm from handle along -X
+            )
+
+            # Handle coordinate axis visualizer: 3 cylinders (R=X, G=Y, B=Z) at grasp_target.
+            # Length and diameter = visual sphere diameter (2 * _vis_radius = 0.04m).
+            _axis_len = _vis_radius * 2  # 0.04m
+            _axis_radius = _vis_radius * 0.15  # thin cylinders
+            _axis_colors = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)]
+            _axis_rots = [(0.0, 90.0, 0.0), (90.0, 0.0, 0.0), (0.0, 0.0, 0.0)]  # X/Y/Z oriented cylinders
+            _axis_trans = [(_axis_len / 2, 0.0, 0.10), (0.0, _axis_len / 2, 0.10), (0.0, 0.0, 0.10 + _axis_len / 2)]
+            _axis_names = ["x", "y", "z"]
+            for color, rot, trans, name in zip(_axis_colors, _axis_rots, _axis_trans, _axis_names):
+                import math
+                # Convert RPY (deg) to quaternion (w, x, y, z)
+                rx, ry, rz = [math.radians(a) for a in rot]
+                cx, sx = math.cos(rx/2), math.sin(rx/2)
+                cy, sy = math.cos(ry/2), math.sin(ry/2)
+                cz, sz = math.cos(rz/2), math.sin(rz/2)
+                qw = cx*cy*cz + sx*sy*sz
+                qx = sx*cy*cz - cx*sy*sz
+                qy = cx*sy*cz + sx*cy*sz
+                qz = cx*cy*sz - sx*sy*cz
+                axis_cfg = sim_utils_vis.CylinderCfg(
+                    radius=_axis_radius,
+                    height=_axis_len,
+                    visual_material=sim_utils_vis.PreviewSurfaceCfg(diffuse_color=color),
+                    collision_props=None,
+                    mass_props=None,
+                    rigid_props=None,
+                )
+                sim_utils_vis.spawn_cylinder(
+                    prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_handle_axis_{name}",
+                    cfg=axis_cfg,
+                    translation=trans,
+                    orientation=(qw, qx, qy, qz),
+                )
 
             return
 

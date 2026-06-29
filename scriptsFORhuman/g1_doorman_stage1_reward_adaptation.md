@@ -2,14 +2,17 @@
 
 本文用于把 G1/HOMIE Doorman `STAGE_PREGRASP = 1` 的 reward 迁移到 A2+Piper 时做 human quick-check。重点是 reward term mapping、已完成的 stage1->2 pregrasp completion condition、A2 当前 stage2 transition placeholder 边界、以及后续 stage2 grasp completion semantics 的施工顺序。
 
+> **最后更新：2026-06-29 21:30 HKT** — 已根据当前 A2 code/YAML 同步。
+
 ## 优先级清单
 
-- DONE reward metric + transition input: `hand_handle_orientation` 已替换为 A2 `gripper_handle_orientation`，active scale `+3.0`；2026-06-17 20:34 HKT stage1 -> 2 主判断已消费 raw `opening_alignment >= 0.8` 与 `approach_alignment >= 0.8`。
-- DONE reward metric + transition input: `pregrasp_target_distance` 已用 Piper TCP/pregrasp target distance + velocity shaping 重建，active scale `+6.0`，stage `[1]`；2026-06-17 20:34 HKT stage1 -> 2 主判断已消费 `target_pos_source[:, 1, :]` distance `<0.1m`。
-- DONE reward metric: `grasp` 已用 handle-specific contact sensor 重建，active scale `+0.2`，stages `[1,2,3,4]`；stage1 惩罚 premature handle contact，stage2+ 奖励 two-sided handle contact force。
-- P0: transition correctness 仍剩 stage2 completion：stage1 -> 2 Piper pregrasp completion 已完成；stage2 completion 仍需 grasp/contact semantics。
-- P1: `penalty_unused_dof_deviation_l1` 对 one-arm Piper 不适用，当前保持 disabled。
-- P1: `stage`、`penalty_not_standing_still`、stage0/global baseline terms 可以作为 carrier/baseline，但必须 smoke reward magnitudes。
+- DONE reward metric + transition input: `gripper_handle_orientation` active scale `+3.0`；stage1→2 消费 raw `opening_alignment >= 0.8` 与 `approach_alignment >= 0.8`。
+- DONE reward metric + transition input: `pregrasp_target_distance` active scale `+6.0`，stage `[1]`；stage1→2 消费 `target_pos_source[:, 1, :]` distance `<0.1m`。
+- DONE reward metric: `grasp` active scale `+0.2`，stages `[1,2,3,4]`；stage1 惩罚 premature handle contact。
+- DONE transition correctness: stage1→2 `pregrasp_ready | door_open_bypass` 已完成；stage2 completion 已有 5-step contact history gate。
+- PASS baseline: `penalty_base_roll_pitch_l2` (`-2.0`, stages `[0,1]`) A2 新增项，约束 actual base roll/pitch。
+- P1: `penalty_unused_dof_deviation_l1` 对 one-arm Piper 不适用，保持 disabled。
+- P1: `stage`、`penalty_not_standing_still`、stage0/global baseline terms 作为 carrier/baseline，需 smoke reward magnitudes。
 
 ## Source of Truth
 
@@ -45,13 +48,14 @@
 | Reward term | Origin scale / stage | Origin logic summary | Current A2 state | A2适配状态 | 开发/检查建议 |
 |---|---:|---|---|---|---|
 | `stage` | `+1.0`, all stages via `_reward_stage()` | 根据 `_stage_1_reward_condition()` 给 flow reward；不是 pure alive bonus | A2 同 scale，同 StagedTaskBase carrier | PASS carrier only | 不要把 `stage` reward 当成 pregrasp correctness；等 stage1 condition/transition 完成后再看 stage reward cadence。 |
-| `pregrasp_finger_dof_pos_l1` -> `pregrasp_gripper_dof_pos_l1` | G1 `+1.5`, stages `[0,1,5]` | G1 selected finger p0 / velocity shaping，pregrasp 阶段准备手指 | A2 已改名完成，scale 降为 `+0.5`，stages `[0,1,5]`；当前跟踪 Piper `arm_j7/arm_j8` close target，`pos_track + 0.2 * vel_track` | PASS baseline, not grasp correctness | 当前 gripper primitive 仍是 binary close/open，先降低权重避免过度驱动 fully closed target；未来改 continuous aperture 后再重新设计该 reward。 |
-| `penalty_unused_dof_deviation_l1` | `-1.0`, stages `[1,2,3,4]` | 双臂 G1 中惩罚 unused arm 偏离 resting pose | A2 scale `0.0`；one-arm Piper 直接复用 invalid | PASS disabled / not applicable to one-arm Piper | 保持 `0.0`；若未来需要，另建 A2-specific non-task arm/body regularization，不要为了对齐 origin 强开。 |
-| `hand_handle_orientation` -> `gripper_handle_orientation` | `+3.0`, stages `[1,2,3,4]` | selected hand frame 与 handle orientation tracking，stage1 transition 要求 reward `>0.2` | A2 active scale `+3.0`；使用 `piper_gripper_handle_frame_transformer.data.target_quat_source[:, 1, :]` 的 pregrasp target relative source rotation，source local `+Y` 为 opening axis，source local `+Z` 为 approach axis；`opening_alignment = abs(dot(source_y, target_y_source))`，`approach_alignment = dot(source_z, target_z_source)`，采用用户选定 `+Z` approach sign；reward 为两个 `std=0.25` tracking terms 的 product 并 clamp `[0,1]`；legacy `_reward_hand_handle_orientation()` A2 path fail-fast；stage1 -> 2 transition 使用 raw `opening_alignment >= 0.8` 与 `approach_alignment >= 0.8` | PASS reward metric + transition input | 该 reward 能教 gripper 在 pregrasp 阶段对准 handle/pregrasp target；transition 中的 raw alignment 只表示 pregrasp pose 合格，不表示已经抓住、接触或开门。 |
-| `pregrasp_target_distance` | `+6.0`, stage `[1]` | palm 到 pregrasp target distance tracking + palm velocity toward target | A2 active scale `+6.0`；`_reward_pregrasp_target_distance()` 使用 `piper_gripper_handle_frame_transformer.data.target_pos_source[:, 1, :]` 计算 Piper TCP 到 pregrasp target distance，使用 `target_pos_w[:, 1, :] - source_pos_w` 做 velocity direction，当前 velocity 来自 `simulator._rigid_body_vel[:, end_effector_index, :3]`；`pregrasp_target_vel` 必须存在且为正数；保持 G1 `std=0.2` pos + `std=0.15` vel 和 clamp max `1.0`；stage1 -> 2 transition 使用同一 `target_pos_source[:, 1, :]` distance `<0.1m` | PASS reward metric + transition input | 已按 fail-fast config/source 检查实现，无 G1 palm/finger fallback；smoke 中检查 reward magnitude、TCP 到 target 的收敛和 bypass route 比例。 |
-| `penalty_not_standing_still` | `-15.0`, stages `[1,2,3]` | 惩罚 physical base command norm，鼓励 pregrasp/grasp/open 时 base 不动 | A2 scale `-15.0`，同 carrier `get_physical_homie_commands()[:, :3]` | PASS baseline | 语义是 no translate/yaw while pregrasping；后续看 pitch/roll command 是否需要额外约束。 |
-| `grasp` | `+0.2`, stages `[1,2,3,4]` | Contact force reward；在 stage1 取 `-abs(reward)`，惩罚 premature/incorrect contact | A2 active scale `+0.2`；新增 `a2_gripper_handle_contact_sensor` 只读取 `/door_handle` 对 `arm_body7` / `arm_body8` 的 `force_matrix_w`；`_reward_grasp()` 将 world force 旋到 Piper TCP/source frame，使用 source local `+Y` 作为 gripper opening/closing force axis；stage1 对任何 handle contact magnitude 给 negative reward，stage2+ 用 two-sided `min` contact reward 并惩罚 off-axis force | PASS reward metric; grasp completion TODO | Reward metric 已完成且保持 fail-fast sensor/shape/source 检查；但 `_stage_2_to_complete_condition()` 尚未使用该 contact source，stage2+ completion 仍需 aperture/contact stability semantics。 |
-| `penalty_face_door` | `-1.0`, stages `[0,1,2,5]` | 惩罚 root-to-door orientation error，鼓励面对 door | A2 当前保留 baseline | PASS baseline | 若 A2 trunk roll/pitch 或必要侧身站姿被过度惩罚，改 yaw-only heading error 或加 desired heading offset。 |
+| `pregrasp_finger_dof_pos_l1` -> `pregrasp_gripper_dof_pos_l1` | G1 `+1.5`, stages `[0,1,5]` | G1 selected finger p0 / velocity shaping | A2 scale `0.5`，stages 扩展为 `[0,1,2,5]`；stage0/5 track close target（gripper 收起），stage1/2-gate-outside track open target；`gate_mask=(track_close\|track_open).float()` 确保 stage0/5 真正主动给 reward；stage2-gate-inside return 0 交给 `a2_stage2_close_*` | PASS baseline | binary gripper primitive 下降低权重；continuous aperture 后再重新设计。 |
+| `penalty_unused_dof_deviation_l1` | `-1.0`, stages `[1,2,3,4]` | 双臂 G1 中惩罚 unused arm | A2 scale `0.0`；one-arm Piper 不适用 | PASS disabled | 保持 `0.0`。 |
+| `hand_handle_orientation` -> `gripper_handle_orientation` | `+3.0`, stages `[1,2,3,4]` | G1 selected hand frame 与 handle orientation tracking | A2 active scale `+3.0`；使用 `target_quat_source[:, 1, :]` 的 pregrasp target relative source rotation，source local `+Y` opening axis + `+Z` approach axis；`opening_alignment = abs(dot(source_y, target_y_source))`，`approach_alignment = dot(source_z, target_z_source)`；reward = product of two `std=0.25` tracking terms clamp `[0,1]`；stage1→2 transition 使用 raw `>=0.8` thresholds | PASS reward metric + transition input | offset `(0.5,0.5,0.5,0.5)` 在 handle local frame 动态跟随 handle 转动。 |
+| `pregrasp_target_distance` | `+6.0`, stage `[1]` | palm 到 pregrasp target distance tracking + velocity | A2 active scale `+6.0`；`target_pos_source[:, 1, :]` Piper TCP→pregrasp distance + `_rigid_body_vel` velocity shaping；`std=0.2` pos + `std=0.15` vel | PASS reward metric + transition input | stage1→2 使用同一 distance `<0.1m`。 |
+| `penalty_not_standing_still` | `-15.0`, stages `[1,2,3]` | 惩罚 base command norm，鼓励 base 不动 | A2 scale `-15.0`，同 carrier | PASS baseline | smoke 看是否过强。 |
+| `grasp` | `+0.2`, stages `[1,2,3,4]` | Contact force reward；stage1 取 `-abs(reward)` 惩罚 premature contact | A2 active scale `+0.2`；handle-specific `arm_body7`/`arm_body8` contact sensor，source local `+Y` squeeze axis | PASS reward metric | stage2 completion 已复用该 contact source + 5-step history gate。 |
+| `penalty_face_door` | `-1.0`, stages `[0,1,2]` | root-to-door orientation penalty | A2 scale `-1.0`，同 G1 logic | PASS baseline | stage5 已移除（从 `[0,1,2,5]` 改为 `[0,1,2]`）。 |
+| `penalty_base_roll_pitch_l2` | `-2.0`, stages `[0,1]` | A2 新增项，非 G1 origin | A2: `self.rpy[:, 0:2]` L2 norm | PASS baseline | 防止 stage0/1 trunk 过度倾斜。 |
 
 ## Stage1 Active Global / Baseline Rewards
 

@@ -7,9 +7,11 @@
 ## 优先级清单
 
 - DONE 2026-06-17 22:34 HKT: stage2 reward completion / A2 adaptation 已三方确认 `static PASS`，`_stage_2_to_3_advance_condition()` 保持 `completion | door_open_bypass`。
-- DONE 2026-06-17 22:41 HKT: Ava 确认 G1 stage3 是 `STAGE_OPEN = 3`；stage3 reward condition 是“stage2->3 已满足 + base stillness”。
-- P0: 先让 user 审核本 checklist，确认 stage3/open 的 adaptation 边界。
-- P0: 下一轮优先审核/实现 `push_door_handle`、`push_door_hinge`、`push_door_force` 的 A2 状态。
+- DONE 2026-06-17 22:41 HKT: Ava 确认 G1 stage3 是 `STAGE_OPEN = 3`；stage3 reward condition 是"stage2->3 已满足 + base stillness"。
+- DONE 2026-06-29 17:00 HKT: 静态确认 `push_door_handle` / `push_door_hinge` 的 door joint index 和方向。index 0=hinge、1=handle（articulation prim traversal 顺序确认），hinge/handle joint 方向正确（lower=0, upper=正，开门=正角度增长）。与 G1 origin 完全一致，不需要改 code。
+- DONE 2026-06-29 17:00 HKT: 确认 `push_door_force` 保持 disabled（scale 0.0）。G1 实际只训推门（out），`push_door_force` 的 world -x 对拉门恒为 0。A2 若后续启用必须做 door-frame 或 source-frame force projection。
+- DONE 2026-06-29 17:00 HKT: 确认 `gripper_handle_orientation` offset `(0.5,0.5,0.5,0.5)` 在 grasp_target（=handle）local frame 里应用，handle 转动时 offset 动态跟随。opening_alignment 已实现 gripper Y ‖ handle Z 的动态约束，不需要改 code。
+- DONE 2026-06-29 17:00 HKT: Stage3 所有 reward terms 确认 `static PASS`，不需要改 code。后续问题等训练暴露。
 - P1: bounded smoke 仍要统计 stage2->3 route、stage3 dwell、handle joint progress、hinge progress、grasp hold、door-open bypass ratio。
 
 ## Source of Truth
@@ -93,7 +95,8 @@
 
 | 验收项 | 当前状态 | 看什么 |
 |---|---|---|
-| Static source review | TODO after user review | `push_door_handle` / `push_door_hinge` 是否只依赖 door articulation，是否可作为 A2 baseline。 |
-| Force reward review | TODO design | `push_door_force` 是否继续 disabled，或设计 A2 source/door-frame projection。 |
-| Stage routing review | PASS static from stage2 | `_stage_2_to_3_advance_condition()` 不立即改；stage3 reward condition 复用它。 |
+| Static source review | DONE 2026-06-29 | `push_door_handle` / `push_door_hinge` 只依赖 door articulation，joint index 0=hinge/1=handle 确认，方向正确。可作为 A2 baseline。 |
+| Force reward review | DONE 2026-06-29 | `push_door_force` 保持 disabled。G1 实际只训推门，world -x 对拉门恒为 0。A2 若启用必须做 door-frame / source-frame projection。 |
+| Orientation review | DONE 2026-06-29 | `gripper_handle_orientation` offset 在 handle local frame 动态跟随，opening_alignment = gripper Y ‖ handle Z，不需要改 code。 |
+| Stage routing review | PASS static from stage2 | `_stage_2_to_3_advance_condition()` 不改；stage3 reward condition 复用它。 |
 | Runtime smoke | TODO | stage3 是否真的转 handle / 推 hinge，而不是刚进 stage3 就靠阈值跳走或 reset。 |

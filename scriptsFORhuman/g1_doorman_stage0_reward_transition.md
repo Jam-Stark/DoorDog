@@ -1,11 +1,16 @@
 # G1 Doorman Stage0 Reward 与 Stage Transition 摘要
 
-本文只总结原版 G1/HOMIE Doorman 的 stage0 逻辑，用于后续 A2+Piper stage0 training 设计参考。source-of-truth 来自只读 baseline worktree：
+本文总结原版 G1/HOMIE Doorman 的 stage0 逻辑及 A2+Piper 的当前适配状态。source-of-truth 来自只读 baseline worktree 与 A2_Piper worktree：
 
-- Env: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/envs/door/door_open_homie.py`
-- Reward config: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/config/rewards/wbmanip/reward_door_open_homie.yaml`
-- Stage base: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/envs/base_task/staged_task_base.py`
-- Env config: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/config/env/door_open_homie.yaml`
+- G1 Env: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/envs/door/door_open_homie.py`
+- G1 Reward config: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/config/rewards/wbmanip/reward_door_open_homie.yaml`
+- G1 Stage base: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/envs/base_task/staged_task_base.py`
+- G1 Env config: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/config/env/door_open_homie.yaml`
+- A2 Env: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/envs/door/door_open_a2_base.py`
+- A2 Reward config: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml`
+- A2 Env config: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/config/env/door_open_a2_base.yaml`
+
+> **最后更新：2026-06-29 21:30 HKT** — 已根据当前 A2 code/YAML 同步。
 
 ## Stage0 定义
 
@@ -23,24 +28,25 @@
 
 | Reward term | YAML scale | Stage0 是否生效 | 计算逻辑摘要 | 作用 | A2适配状态 |
 |---|---:|---|---|---|---|
-| `walk_to_door` | `+5.0` | 是，`STAGE_WALK_TO_DOOR` only | 计算 robot root 指向 door root 的方向，目标速度为 `target_root_vel * target_dir`，默认 `target_root_vel=0.3`；对 `norm(current_root_vel - target_vel)` 做 Gaussian tracking reward，`std=0.15` | 主任务 shaping：鼓励 G1 沿门方向移动，而不是原地摆手或乱走 | PASS first-version / needs A2 footprint smoke：A2 stage0->1 阈值已改为 `<0.6m`，但该 reward 仍可能鼓励 root 继续朝 door root 推进；后续考虑 `approach_anchor` 或 near-stop radius |
-| `penalty_upper_body_non_finger_deviation_l1` | `-1.0` | 是，stage0 与 stage5 | 上身非手指 DOF 相对 `resting_dof_pos` 的 L1 deviation sum | 行走阶段保持上身/手臂收敛在 resting pose，避免还没到门前就提前抬手干扰 locomotion | PASS -> `penalty_upper_body_non_gripper_deviation_l1` |
-| `pregrasp_finger_dof_pos_l1` | `+1.5` | 是，stage0、stage1、stage5 | 根据 `door_open_lr` 选择操作侧手指，跟踪 finger primitive `pos_0` 及对应 finger velocity shaping，最后 clamp 到 `<=1.0` | 虽然名字带 `pregrasp`，stage0 也在用：让操作侧手指保持 pregrasp/open-like 初始姿态，为后续靠近把手做准备 | PASS -> `pregrasp_gripper_dof_pos_l1` |
-| `penalty_face_door` | `-1.0` | 是，stage0、stage1、stage2、stage5 | 使用 robot root 到 door frame 的 relative rotation，惩罚 `axis_angle` norm | 鼓励 base 朝向门，减少侧身或背对门走到目标点导致下一阶段 pregrasp 困难 | PASS first-version / needs A2 footprint smoke：A2 长 base 可能需要 offset/斜向 stance 给 Piper arm 留空间；如过度“正对门”导致碰撞或够不到 handle，改 yaw-only heading 或 desired heading offset |
-| `stage` | `+1.0` | 是 | `_reward_stage()` 对当前 stage 的 reward condition 给常数 stage reward；stage0 condition 恒 True，且 `stage_reward_scale[0]=1.0` | flow reward，不是 pure alive bonus；在 stage0 中只要处于合法 stage，就给小正奖励 | PASS carrier only：跟随 stage condition；若 root/door distance 或 heading 对 A2 footprint 不合理，它会奖励错误阶段停留 |
-| `penalty_dof_acc` | `-1.0e-5` | 是，全局 | 上身非手指 DOF acceleration squared sum | 平滑上身动作，降低抖动 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
-| `penalty_dof_vel` | `-1.0e-3` | 是，全局 | 上身非手指 DOF velocity squared sum | 抑制上身非手指关节高速运动 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
-| `penalty_delta_action_rate` | `-0.01` | 是，全局 | delta action buffer 的 squared sum | 抑制 high-level delta action 大幅跳变 | PASS：当前 A2 `delta_action_indices=[5..10]`，仅做 Piper `arm_j1..arm_j6` 的 6D delta action smoothing，不覆盖 5D base command 或 gripper primitive |
-| `limits_dof_pos` | `-5.0` | 是，全局 | 上身非手指 DOF 超出 soft joint position limit 的 violation sum | 防止上身关节靠近/越过 limit | PASS -> A2 non-gripper `arm_j1..arm_j6` |
-| `limits_primitive_action` | `-1.0` | 是，全局 | finger primitive action over-limit buffer sum | 防止手指 primitive action 超界 | PASS -> `limits_gripper_primitive_action`：raw A2 gripper primitive over-limit，不混用 actual gripper joint pose |
-| `penalty_humanly_dof_limit` | `-1.0` | 是，全局 | 全身 DOF 相对 humanly lower/upper limit 的 violation sum | 限制 G1 姿态在人形可接受范围内 | PASS -> `ref_dof_legs`：LMP gait ref prior，A2 weight `0.25` |
-| `penalty_door_frame_contact` | `-0.1` | 是，全局 | door frame unwanted contact sensor force norm sum | stage0 靠近门时避免撞门框 | PASS |
-| `penalty_door_panel_contact` | `-0.1` | 是，全局 | door panel unwanted contact sensor force norm sum | stage0 靠近门时避免撞门板 | PASS |
-| `penalty_homie_action_limit` | `-1.0` | 是，全局 | unclipped HOMIE command 与 clipped command 的 squared difference | 惩罚超出 HOMIE command clip range 的 base command | PASS -> `penalty_base_command_limit` |
-| `penalty_undesired_contact` | `-0.2` | 是，全局 | penalised contact bodies force norm `>1` 的计数 | 避免非期望身体部位接触环境 | PASS -> A2-specific `penalize_contacts_on` + exact match，覆盖 trunk、leg links 与 non-gripper arm links，排除 feet/gripper links |
-| `penalty_dof_overspeed` | `-0.1` | 是，全局 | 上身非手指 DOF velocity 超过 `2.0` 后的 squared excess | 防止上身关节过速 | PASS -> A2 non-gripper `arm_j1..arm_j6` |
-| `penalty_upright` | `-1.0` | 是，全局 | torso up vector 与 world up `[0,0,1]` 的 squared error | 保持躯干直立，避免摔倒或倾斜走到门前 | PASS -> `orientation_control`：LMP-style pitch/roll command tracking，scale `-5.0` |
-| `termination` | `-1000.0` | 条件式，全局 | `reset_buf` 触发时加 termination penalty；在 reward clipping 后单独加入 | 对失败 reset 给强负反馈 | PASS with A2/LMP adjustments：base min height `0.3`、bad_orientation angle `0.9`、overspeed 只检查 Piper `arm_j1..arm_j6` |
+| `walk_to_door` | `+5.0` | 是，`STAGE_WALK_TO_DOOR` only | G1: root → door root 方向 velocity tracking。A2: root → `grasp_target` 前方 0.5m staging position 方向 velocity tracking，`std=0.15` | 主任务 shaping：鼓励 robot 走到 handle 前方 | PASS baseline：A2 改为指向 staging position 而非 door root，给 arm 留 reach 空间 |
+| `penalty_upper_body_non_gripper_deviation_l1` | `-1.0` | 是，stage0 与 stage5 | A2: `_upper_non_gripper_dof_idx`（arm_j1..j6）相对 `resting_dof_pos` 的 L1 deviation sum | 行走时手臂保持 resting pose | PASS：A2 排除 arm_j7/arm_j8 gripper |
+| `pregrasp_gripper_dof_pos_l1` | `+0.5` | 是，stages `[0,1,2,5]` | A2: stage0/5 track close target（gripper 收起），stage1/2-gate-outside track open target；`gate_mask=(track_close\|track_open).float()`，stage0/5 gate_mask=1 真正主动给 reward | stage0 gripper 收起 shaping | PASS baseline：scale 从 G1 `1.5` 降为 `0.5`；stages 从 G1 `[0,1,5]` 扩展为 `[0,1,2,5]`；gate_mask 已修复 |
+| `penalty_face_door` | `-1.0` | 是，stages `[0,1,2]` | A2: `relative_door_rot_buf` full rotation penalty | 鼓励 base 朝向门 | PASS baseline：stage5 已移除（从 `[0,1,2,5]` 改为 `[0,1,2]`） |
+| `penalty_base_roll_pitch_l2` | `-2.0` | 是，stages `[0,1]` | A2 新增项：`self.rpy[:, 0:2]`（actual base roll/pitch）L2 norm | 防止 A2 行走/接近门时 trunk 过度倾斜 | PASS baseline：A2-specific，无 G1 对应项 |
+| `stage` | `+1.0` | 是 | StagedTaskBase flow reward | flow reward | PASS carrier |
+| `penalty_dof_acc` | `-1.0e-5` | 是，全局 | DOF acceleration squared sum | 平滑动作 | PASS → A2 non-gripper `arm_j1..arm_j6` |
+| `penalty_dof_vel` | `-1.0e-3` | 是，全局 | DOF velocity squared sum | 抑制高速运动 | PASS → A2 non-gripper `arm_j1..arm_j6` |
+| `penalty_delta_action_rate` | `-0.01` | 是，全局 | delta action squared sum | 抑制 action 跳变 | PASS：A2 `delta_action_indices=[5..10]`，仅 Piper `arm_j1..arm_j6` |
+| `limits_dof_pos` | `-5.0` | 是，全局 | DOF soft limit violation sum | 防止关节超限 | PASS → A2 non-gripper `arm_j1..arm_j6` |
+| `limits_gripper_primitive_action` | `-1.0` | 是，全局 | A2 raw gripper primitive over-limit | 防止 primitive action 超界 | PASS：A2 replacement for G1 `limits_primitive_action` |
+| `ref_dof_legs` | `+0.25` | 是，全局 | LMP-style gait ref prior | 保持步态参考 | PASS：A2 replacement for G1 `penalty_humanly_dof_limit` |
+| `penalty_door_frame_contact` | `-0.1` | 是，全局 | door frame contact sensor force norm sum | 避免撞门框 | PASS |
+| `penalty_door_panel_contact` | `-0.1` | 是，全局 | door panel contact sensor force norm sum | 避免撞门板 | PASS |
+| `penalty_base_command_limit` | `-1.0` | 是，全局 | unclipped vs clipped base command squared diff | 惩罚 base command 超限 | PASS：A2 replacement for G1 `penalty_homie_action_limit` |
+| `penalty_undesired_contact` | `-0.2` | 是，全局 | A2-specific contact bodies force norm `>1` count | 避免非期望接触 | PASS：A2 exact-match，覆盖 trunk/leg/non-gripper arm，排除 feet/gripper |
+| `penalty_dof_overspeed` | `-0.1` | 是，全局 | DOF velocity 超过 2.0 的 squared excess | 防止过速 | PASS → A2 non-gripper `arm_j1..arm_j6` |
+| `orientation_control` | `-5.0` | 是，全局 | LMP-style pitch/roll command tracking | 保持躯干稳定 | PASS：A2 replacement for G1 `penalty_upright` |
+| `termination` | `-1000.0` | 条件式，全局 | reset 时 termination penalty | 失败惩罚 | PASS：A2 height `0.3`、bad orientation `0.9`、arm overspeed 只检查 `arm_j1..j6` |
 
 ## A2 当前迁移摘要
 

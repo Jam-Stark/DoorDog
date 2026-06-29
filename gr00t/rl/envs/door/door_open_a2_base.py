@@ -549,33 +549,35 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH])
     def _reward_pregrasp_gripper_dof_pos_l1(self):
-        """A2 gripper shaping: stage0 tracks close target (gripper stowed while
-        walking); stage1 and stage2-gate-outside track open target (gripper opens
-        to prepare grasp and stays open until close to handle); stage2 gate inside
-        is excluded so a2_stage2_close_* rewards take over.
+        """A2 gripper shaping: stage0 and stage5 track close target (gripper
+        stowed while walking); stage1 and stage2-gate-outside track open target
+        (gripper opens to prepare grasp and stays open until close to handle);
+        stage2 gate inside is excluded so a2_stage2_close_* rewards take over.
         """
         gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
         gripper_vel = self.simulator.dof_vel[:, self._a2_gripper_dof_indices]
         is_walk = self.stage_buf == self.STAGE_WALK_TO_DOOR
+        is_through = self.stage_buf == self.STAGE_THROUGH
+        track_close = is_walk | is_through
         # In stage2, only track open target when outside the close-reward gate
         # (i.e. gripper not yet close enough to handle). Inside the gate, return
         # zero so a2_stage2_close_command / a2_stage2_close_progress drive close.
         if self._use_a2_base:
             stage2_gate = self._get_a2_stage2_close_reward_gate()
-            track_open = (~is_walk) & (~stage2_gate)
+            track_open = (~track_close) & (~stage2_gate)
             target = torch.where(
-                is_walk[:, None],
+                track_close[:, None],
                 self._a2_gripper_close_target,
                 self._a2_gripper_open_target,
             )
-            gate_mask = track_open.float()
+            gate_mask = (track_close | track_open).float()
         else:
             target = torch.where(
-                is_walk[:, None],
+                track_close[:, None],
                 self._a2_gripper_close_target,
                 self._a2_gripper_open_target,
             )
-            gate_mask = (~is_walk).float()
+            gate_mask = torch.ones(self.num_envs, device=self.device)
         span = (self._a2_gripper_open_target - self._a2_gripper_close_target).abs().clamp_min(1.0e-4)
         pos_track = self._tracking_reward_util(
             (gripper_pos - target) / span[None, :],
@@ -1260,12 +1262,14 @@ class DoorPregrasp(
         return torch.sum(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx] ** 2, dim=-1)
 
     @StagedTaskBase.effective_in_stage(
-        [STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH]
+        [STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP]
     )
     def _reward_penalty_face_door(self):
         # A2 stage0 pass: keep the G1 Doorman full root-to-door orientation penalty
         # for the first reward smoke. Future option: switch to yaw-only heading
         # error or add a desired heading offset if A2 needs a non-square stance.
+        # Stage5 (THROUGH) disabled: A2 穿门后自然转头看前方，不应继续惩罚 root-to-door
+        # orientation deviation。G1 原版 stages [0,1,2,5] 含 stage5，A2 改为 [0,1,2]。
         return wrap_to_pi(
             axis_angle_from_quat(xyzw_to_wxyz(self.relative_door_rot_buf)).norm(dim=-1)
         )

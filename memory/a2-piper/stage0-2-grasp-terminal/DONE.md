@@ -1,5 +1,7 @@
 # DONE
 
+- 2026-06-29 15:00 HKT - 完成 walk_to_door staging position + stage0→1 advance condition 修改。walk_to_door target 从 grasp_target 改为 grasp_target+(-0.40,0,0)（handle 前方 40cm staging pos），advance condition 从 `(root_pos-grasp_target).norm<0.6` 改为 `(root_pos-stage0_target).norm<0.1`。原条件太松（0.6m 就转换，base Y 差 4-5cm 没对齐 handle），新条件强制 base 到 staging pos 10cm 内才转换。同时改了 arm init joint state：j2 1.48→0, j3 -0.63→0, j4 -0.84→0.25, j5 0→0.5（yaml+USD 三处同步）。pregrasp_distance 阈值从 0.03 改回 0.1（0.03 太紧导致 stage1 overtime）。memory 记录了原值和新值方便恢复。
+
 - 2026-06-28 01:30 HKT - 撤销 grasp_target capsule 改动，改回 handle_inside（X=-axle_length/2）。01:00 错误地改为 handle_outside，用户从 eval 视频确认 inside 是正确的 grasp handle。教训：grasp_target capsule 选择必须以 eval 视频物理交互为准，不能只靠几何推理。camera offset 远离 50cm 保留。
 
 - 2026-06-28 01:00 HKT - 完成 grasp_target capsule correction + camera offset tuning。grasp_target 从 handle_inside（X=-axle_length/2, 门内侧杆）改到 handle_outside（X=+axle_length/2, 门外侧杆）。原因：gripper 从 +X（门外侧）approach，grasp_target 应在外侧杆；原选内侧杆导致 pregrasp 落在门板位置（X≈0），gripper 被迫侧滑绕过门板。改后 pregrasp 在门外侧（X≈+0.20），gripper 可直前 approach。诊断：grasp_target 位置不影响 finger 碰到哪条杆（contact sensor 测整个 door_handle prim），只影响 approach 路径 + close gate hd + reward 方向。camera handle_top eye [0,0,0.15]→[0,0,0.65]、handle_side eye [0,0.12,0.02]→[0,0.62,0.02]，远离 50cm 以看清 pregrasp 阶段相对位置。py_compile 通过。

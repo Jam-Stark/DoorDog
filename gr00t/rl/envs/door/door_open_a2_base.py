@@ -668,11 +668,16 @@ class DoorPregrasp(
                 f"({self.num_envs}, 2, 3); got {shape}."
             )
 
-        handle_distance = torch.linalg.norm(target_pos_source[:, 0, :], dim=-1)
+        handle_pos_source = target_pos_source[:, 0, :]
+        y_tol = float(self.config.stage2_close_gate_y_tol)
+        z_tol = float(self.config.stage2_close_gate_z_tol)
+        x_tol = float(self.config.stage2_close_gate_x_tol)
         opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
         return (
             (stage_buf == self.STAGE_GRASP)
-            & (handle_distance < 0.015)
+            & (handle_pos_source[:, 1].abs() < y_tol)
+            & (handle_pos_source[:, 2].abs() < z_tol)
+            & (handle_pos_source[:, 0].abs() < x_tol)
             & (opening_alignment >= 0.9)
             & (approach_alignment >= 0.9)
         )
@@ -1044,6 +1049,66 @@ class DoorPregrasp(
         progress = (open_target[None, :] - gripper_pos).abs() / span[None, :]
         reward = (progress.mean(dim=-1) / 0.6).clamp(0.0, 1.0)
         return reward * gate.float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_handle_center_y(self):
+        """Axis-aware centering: drive handle Y (opening axis) to 0 in gripper source frame.
+
+        Only active in stage2 outside the close gate; inside the gate,
+        a2_stage2_close_* rewards take over.
+        """
+        if not self._use_a2_base:
+            raise RuntimeError("a2_stage2_handle_center_y is only defined for A2 Piper configs.")
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        if (
+            target_pos_source is None
+            or target_pos_source.ndim != 3
+            or tuple(target_pos_source.shape) != (self.num_envs, 2, 3)
+        ):
+            shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            raise RuntimeError(
+                "a2_stage2_handle_center_y requires target_pos_source shape "
+                f"({self.num_envs}, 2, 3); got {shape}."
+            )
+        gate = self._get_a2_stage2_close_reward_gate()
+        handle_y = target_pos_source[:, 0, 1].abs()
+        reward = self._tracking_reward_util(
+            handle_y, std=0.05, target=0.0, scale=1.0, offset=0.0
+        )
+        return reward * (~gate).float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_handle_approach_xz(self):
+        """Axis-aware approach: drive handle X (lateral) and Z (approach depth) to 0.
+
+        Only active in stage2 outside the close gate; inside the gate,
+        a2_stage2_close_* rewards take over.
+        """
+        if not self._use_a2_base:
+            raise RuntimeError("a2_stage2_handle_approach_xz is only defined for A2 Piper configs.")
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        if (
+            target_pos_source is None
+            or target_pos_source.ndim != 3
+            or tuple(target_pos_source.shape) != (self.num_envs, 2, 3)
+        ):
+            shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            raise RuntimeError(
+                "a2_stage2_handle_approach_xz requires target_pos_source shape "
+                f"({self.num_envs}, 2, 3); got {shape}."
+            )
+        gate = self._get_a2_stage2_close_reward_gate()
+        handle_x = target_pos_source[:, 0, 0].abs()
+        handle_z = target_pos_source[:, 0, 2].abs()
+        x_reward = self._tracking_reward_util(
+            handle_x, std=0.05, target=0.0, scale=1.0, offset=0.0
+        )
+        z_reward = self._tracking_reward_util(
+            handle_z, std=0.05, target=0.0, scale=1.0, offset=0.0
+        )
+        return ((x_reward + z_reward) / 2.0).clamp(max=1.0) * (~gate).float()
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):

@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-29 15:00 HKT
+last_updated: 2026-06-30 15:00 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -162,6 +162,16 @@ read_when:
 - 2026-06-28 01:00 HKT - grasp_target capsule corrected from handle_inside (X=-axle_length/2, 门内侧) to handle_outside (X=+axle_length/2, 门外侧). 原选错 capsule 导致 pregrasp 落在门板位置、gripper 侧滑 approach。改后 pregrasp 在门外侧、gripper 直前 approach。camera handle_top/handle_side offset 远离至 65cm/62cm。
 - 2026-06-28 01:30 HKT - **撤销 01:00 的 capsule 修改，改回 handle_inside（X=-axle_length/2）**。用户从 eval 视频确认 inside 是正确的 grasp handle，gripper 能正确抓握内侧杆。"gripper 从外侧 approach 应选外侧杆"是错误直觉。camera offset 保留。
 
+- 2026-06-30 15:00 HKT - Axis-aware stage2 close gate + 两个新 stage2 tracking rewards（A2_Piper 主线）完成。
+
+  (1) Close gate 从 `norm(target_pos_source[:,0,:]) < 0.015` 改为 per-axis `abs()` checks：`abs(Y) < stage2_close_gate_y_tol(0.012)`、`abs(Z) < stage2_close_gate_z_tol(0.015)`、`abs(X) < stage2_close_gate_x_tol(0.02)`。Config keys 在 `door_open_a2_base.yaml`。
+
+  (2) 新 tracking rewards（gate 外生效）：`a2_stage2_handle_center_y`（scale 3.0, std 0.05，驱动 opening-axis Y → 0）和 `a2_stage2_handle_approach_xz`（scale 3.0, std 0.05，驱动 lateral X + approach Z → 0）。两者 gated by `~close_gate`，均加入 `reward_penalty_reward_names`。
+
+  (3) Oracle review PASS，py_compile OK。No-sim sanity: centered handle → max reward；FacePos70 [0.005, 0.022, 0.011] → gate False（Y=0.022 > y_tol=0.012），center_y=0.9077，approach_xz=0.9856。
+
+  (4) Rationale: FacePos70 eval 显示 L2 gate + L2 reward 将 opening-axis Y offset（2.2cm）与 approach depth 混合成单一 norm，policy 无法区分 Y 偏差 vs 前后位置，导致 handle 旁停滞、124 帧一侧接触、0 帧两侧接触。
+
 ## Implementation Boundary
 
 - 优先新增独立 experiment/env config，例如 stage0-2 quick test config，而不是直接改默认 full 6-stage config。
@@ -221,3 +231,5 @@ read_when:
 - 2026-06-24 22:45 HKT - 完成 A2 Stage2 Close Shaping Rewards implement review：确认新增 `a2_stage2_close_command` 与 `a2_stage2_close_progress`，strict gate 为 stage2 + handle distance `<0.03m` + opening/approach alignment `>=0.9`；reviewer 最小修正了 command literal formula、progress mean-clamp order、zero span fail-fast 与 gripper DOF index validation。验证通过 `py_compile`、Hydra quick/full compose 与 no-sim formula sanity。
 - 2026-06-24 22:49 HKT - 完成 A2 Stage2 Close Shaping Rewards bounded PPO smoke：quick exp 跑到 `Learning iteration 1`，reward functions 正常注册并输出 `rew_a2_stage2_close_command` / `rew_a2_stage2_close_progress`，无 reward shape 或 rollout crash；tiny `2x8` stage0-only smoke 中两项 reward 为 0 属 expected，训练主体完成后 IsaacSim shutdown hang，Ctrl-C 后 exit code 0。
 - 2026-06-24 22:54 HKT - 完成 stage0/1 actual base roll/pitch upright penalty：新增 `penalty_base_roll_pitch_l2: -2.0`，reward helper 直接返回 `self.rpy[:,0:2]` 的 L2 并对 rpy shape fail-fast；验证通过 `py_compile`、targeted `git diff --check`、Hydra quick/full compose 与 no-sim formula sanity。
+
+- 2026-06-30 15:00 HKT - 完成 axis-aware stage2 close gate + 两个新 stage2 tracking rewards（A2_Piper 主线）。Close gate 从 L2 norm 改为 per-axis `abs()` checks with per-axis tolerances。新增 `a2_stage2_handle_center_y`（opening-axis tracking, scale 3.0, std 0.05）和 `a2_stage2_handle_approach_xz`（approach-axis tracking, scale 3.0, std 0.05），both gated by `~close_gate`，加入 `reward_penalty_reward_names`。Oracle review PASS。动机：FacePos70 eval 显示 L2 gate + L2 reward 混合 lateral/approach 误差，policy 停滞 handle 侧、单指接触（124 帧 single-finger, 0 帧 both_contact）。

@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-29 21:30 HKT
+last_updated: 2026-06-30 15:00 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -44,6 +44,14 @@ read_when:
   - 2026-06-26 01:00 HKT - `_reward_pregrasp_gripper_dof_pos_l1` 扩展到 stage2 gate 外 track open target（方案 B）：`effective_in_stage` 加入 `STAGE_GRASP`，A2 branch 在 stage2 gate 外（handle_dist ≥ 0.015）track `open_target`，gate 内 return 0 交给 `a2_stage2_close_*`。解决 stage2 gate 外 reward 真空导致 gripper 过早闭合的问题。
   - 2026-06-26 00:50 HKT - Piper arm stiffness/damping 调整：arm_j2 stiffness 128/damping 3，其余 arm（j1/j3-j6）stiffness 64/damping 1.5，gripper（j7/j8）不变。让 arm 更硬以更好靠近 pregrasp target。
   - 2026-06-26 00:50 HKT - pregrasp_distance 阈值曾放宽 0.1→0.15 后改回 0.1：对比 eval 发现仅 stiffness 调整即可进入 stage2，不需要放宽阈值。
+
+- 2026-06-30 15:00 HKT - Axis-aware stage2 close gate + 两个新 stage2 tracking rewards 完成（A2_Piper 主线）。
+
+  (1) close gate 从 `norm(target_pos_source[:,0,:]) < 0.015` 改为 per-axis `abs()` checks：`abs(Y) < stage2_close_gate_y_tol(0.012)`、`abs(Z) < stage2_close_gate_z_tol(0.015)`、`abs(X) < stage2_close_gate_x_tol(0.02)`。Config keys 在 `door_open_a2_base.yaml`。
+
+  (2) 新增 `a2_stage2_handle_center_y`（scale 3.0, std 0.05，drives opening-axis Y → 0）和 `a2_stage2_handle_approach_xz`（scale 3.0, std 0.05，drives lateral X + approach Z → 0）。两者 gated by `~close_gate`，均加入 `reward_penalty_reward_names`。
+
+  (3) FacePos70 eval 诊断驱动：L2 gate + L2 reward 将 opening-axis Y offset（2.2cm）与 approach depth 混合成单一 norm，policy 无法区分 Y 偏差 vs 前后位置，导致 handle 旁停滞、124 帧一侧接触、0 帧两侧接触。Oracle review PASS，py_compile OK。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -149,3 +157,5 @@ read_when:
 - 2026-06-29 21:00 HKT - Stage3-5 transition conditions 核查完成：`_stage_3_reward_condition()` / `_stage_3_to_4_advance_condition()` / `_stage_4_reward_condition()` / `_stage_4_to_5_advance_condition()` / `_stage_5_reward_condition()` / `_stage_5_to_complete_condition()` 全部与 G1 origin 逐字节一致，不需要改 code。这些 condition 只依赖两类数据：(1) door articulation joint state（hinge/handle joint_pos threshold，与 robot 无关）；(2) robot root x 位置（`robot_root_states[:,0]`，A2 trunk 与 G1 pelvis 的 x 语义相同）。唯一需要 smoke 验证的 threshold 是 `walked_through_door: root_x > 0.0`（A2 四足 trunk 在身体中间，trunk x>0 时后腿可能还没过门）和 `complete: root_x > 1.5`（A2 步态速度可能不同），但都是 threshold tuning 不是 code bug。
 - 2026-06-29 21:00 HKT - Stage4 checklist 清理：移除 stage4 不生效的 terms（`penalty_not_standing_still` stages[1,2,3]、`penalty_face_door` stages[0,1,2,5]、`push_door_handle` stage[3]、`push_door_force` stage[3]），同步更新 `target_root_pos` z=0.5 已完成的标记。
 - 2026-06-29 21:30 HKT - Stage5/through reward adaptation：(1) `pregrasp_gripper_dof_pos_l1` 修正 stage5 track close target——新增 `is_through` 判断，`track_close = is_walk | is_through`，并修复 gate_mask 逻辑从 `track_open.float()` 改为 `(track_close | track_open).float()`，使 stage0 和 stage5 都真正主动奖励 gripper 收起（之前 gate_mask=0 导致 reward 返回 0）。(2) `penalty_face_door` stage5 改为 disabled——`effective_in_stage` 从 `[0,1,2,5]` 改为 `[0,1,2]`，A2 穿门后不再惩罚 root-to-door orientation deviation。Oracle review PASS。改动文件：`gr00t/rl/envs/door/door_open_a2_base.py`。
+
+- 2026-06-30 15:00 HKT - 完成 axis-aware stage2 close gate + `a2_stage2_handle_center_y` / `a2_stage2_handle_approach_xz` tracking rewards。Close gate 从 L2 norm 改为 per-axis `abs()` with per-axis tolerances。Tracking rewards 在 gate 外独立驱动 opening-axis Y 与 approach-axis XZ，scale 3.0/3.0, std 0.05/0.05，加入 `reward_penalty_reward_names`。Oracle review PASS。动机：FacePos70 eval L2 gate 无法区分 lateral Y offset 与 approach depth。

@@ -1,5 +1,7 @@
 # DONE
 
+- 2026-06-30 15:00 HKT - 完成 axis-aware stage2 close gate + `a2_stage2_handle_center_y` / `a2_stage2_handle_approach_xz` tracking rewards（A2_Piper 主线）。Close gate 从 L2 norm `<0.015` 改为 per-axis `abs()` with per-axis tolerances（`stage2_close_gate_y_tol=0.012`、`z_tol=0.015`、`x_tol=0.02`）。新 rewards gated by `~close_gate`，scale `3.0/3.0`，std `0.05/0.05`，加入 `reward_penalty_reward_names`。改动文件：`door_open_a2_base.yaml`、`reward_door_open_a2_base.yaml`、`door_open_a2_base.py`。Oracle review PASS，py_compile OK。Rationale：FacePos70 eval L2 gate 无法区分 lateral Y offset（2.2cm, opening axis）与 approach depth，policy 停滞 handle 旁、124 帧单指接触、0 帧 both_contact。
+
 - 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。
 - 2026-06-15 14:32 HKT - 在 `door_open_a2_base.py` 中给 `walk_to_door` 与 `penalty_face_door` 加注释，标记这两个 G1-derived reward 第一版 stage0 pass，并记录 target parameterization 与 yaw-only/heading-offset 两种未来改法。
 - 2026-06-15 14:55 HKT - 实现 A2 `pregrasp_gripper_dof_pos_l1` 与 `penalty_upper_body_non_gripper_deviation_l1`：reward config 启用 G1-equivalent scales，A2 reward 使用 actual gripper close tracking，upper-body non-gripper index 与 stage0 transition 均排除 gripper DOF。

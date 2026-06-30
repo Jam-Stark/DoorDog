@@ -38,6 +38,8 @@ rewards:
       grasp: 0.2
       a2_stage2_close_command: 1.0
       a2_stage2_close_progress: 0.5
+      a2_stage2_handle_center_y: 3.0
+      a2_stage2_handle_approach_xz: 3.0
 
       # open
       push_door_handle: 6.0
@@ -119,6 +121,8 @@ rewards:
       "grasp",
       "a2_stage2_close_command",
       "a2_stage2_close_progress",
+      "a2_stage2_handle_center_y",
+      "a2_stage2_handle_approach_xz",
 
       # open
       "push_door_handle",

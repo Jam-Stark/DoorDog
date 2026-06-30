@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-06-30 15:00 HKT - 完成 axis-aware stage2 close gate + 两个新 stage2 tracking rewards（A2_Piper 主线，非 quickTEST）。
+
+  (1) close gate 从 L2 norm `norm(target_pos_source[:,0,:]) < 0.015` 改为 per-axis `abs()` checks：`abs(Y) < stage2_close_gate_y_tol(0.012)`、`abs(Z) < stage2_close_gate_z_tol(0.015)`、`abs(X) < stage2_close_gate_x_tol(0.02)`。Config keys 在 `door_open_a2_base.yaml`。
+
+  (2) 新增两个 stage2 tracking rewards（outside close gate）：`a2_stage2_handle_center_y`（scale 3.0, std 0.05，驱动 opening-axis Y → 0）和 `a2_stage2_handle_approach_xz`（scale 3.0, std 0.05，驱动 lateral X + approach Z → 0）。两者 gated by `~close_gate`，均加入 `reward_penalty_reward_names` 用于 curriculum。
+
+  (3) 改动文件：`gr00t/rl/config/env/door_open_a2_base.yaml`、`gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml`、`gr00t/rl/envs/door/door_open_a2_base.py`。
+
+  (4) Oracle review PASS，py_compile OK。No-sim formula sanity 验证：centered handle → max reward；FacePos70 [0.005, 0.022, 0.011] → gate False（Y 超 y_tol=0.012），center_y reward=0.9077，approach_xz reward=0.9856。
+
+  (5) 动机：FacePos70 eval 视频显示 L2 gate + L2 reward 无法区分 lateral Y offset（2.2cm, opening axis）与 approach depth，policy 在 handle 旁停滞、124 帧单指接触、0 帧 both_contact。
+
 - 2026-06-29 15:00 HKT - 完成 walk_to_door staging position + stage0→1 advance condition 修改。walk_to_door target 从 grasp_target 改为 grasp_target+(-0.40,0,0)（handle 前方 40cm staging pos），advance condition 从 `(root_pos-grasp_target).norm<0.6` 改为 `(root_pos-stage0_target).norm<0.1`。原条件太松（0.6m 就转换，base Y 差 4-5cm 没对齐 handle），新条件强制 base 到 staging pos 10cm 内才转换。同时改了 arm init joint state：j2 1.48→0, j3 -0.63→0, j4 -0.84→0.25, j5 0→0.5（yaml+USD 三处同步）。pregrasp_distance 阈值从 0.03 改回 0.1（0.03 太紧导致 stage1 overtime）。memory 记录了原值和新值方便恢复。
 
 - 2026-06-28 01:30 HKT - 撤销 grasp_target capsule 改动，改回 handle_inside（X=-axle_length/2）。01:00 错误地改为 handle_outside，用户从 eval 视频确认 inside 是正确的 grasp handle。教训：grasp_target capsule 选择必须以 eval 视频物理交互为准，不能只靠几何推理。camera offset 远离 50cm 保留。

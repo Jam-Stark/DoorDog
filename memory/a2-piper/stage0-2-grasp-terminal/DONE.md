@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-06-30 22:00 HKT - 完成 A2_Piper arm/gripper stiffness calibration trial。
+
+  (1) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 shoulder `arm_j2` stiffness 改为 168.0。
+
+  (2) 其余 Piper arm/gripper joints `arm_j1, arm_j3, arm_j4, arm_j5, arm_j6, arm_j7, arm_j8` stiffness 改为 128.0。
+
+  (3) Damping/Kd 暂不改；leg stiffness/damping 不改；effort limits 不改。
+
+  (4) Rationale: `restrictPre-Grasp_v2` 中 gripper close error 约 1cm，旧 `arm_j7/j8 stiffness=40.0` 在 P-control 下只会产生约 0.4N 级 effort，与 trace contact force `<1N` 对齐，未表达 Piper 官方 40N 夹持能力。该 trial 先验证更高 Kp 是否能把 contact force / squeeze 推到 success predicate 区间，同时 watch contact chatter / over-force。
+
 - 2026-06-30 21:47 HKT - 完成 `logs_eval/restrictPre-Grasp_v2` 的 Stage2 Grasp Target Tracking Reward Fix runtime 诊断记录。
 
   (1) metrics 结果仍是 `episode_goal_reached=[false,false]`，terminal reason 均为 `stage_overtime`，因此不能记录为正式 env complete success。

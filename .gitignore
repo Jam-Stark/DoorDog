@@ -70,12 +70,13 @@ instance/
 .cursor/
 .cursor*
 .claude/
-.github/*
+
 CLAUDE.md
 
 # OpenCode runtime state + project-local config (kept branch-local, not tracked)
 AGENTS.md
-.omo/*
+.omo
+.github
 
 # Scrapy stuff:
 .scrapy

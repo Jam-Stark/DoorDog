@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-06-30 21:47 HKT - 完成 `logs_eval/restrictPre-Grasp_v2` 的 Stage2 reward runtime 结论记录。
+
+  (1) 这次 eval 不是 formal success：`episode_goal_reached=[false,false]`，terminal reason 均为 `stage_overtime`。
+
+  (2) Reward fix 的有效进展是明确的：stage2 内 close gate、center-Y、handle-distance tracking 都已明显改善，`gripper_primitive_raw` 持续 close，视频上出现 grasp-like clamp / 双侧弱接触。
+
+  (3) Formal complete 失败点是 contact force / squeeze history 不够：`both force > 1.0` 为 0 帧，completion predicate frames 为 0，`min(abs(squeeze_y))` 最高约 0.419 / 0.472，未满足 5-step history threshold。
+
+  (4) Reward design 方向更新：当前 blocker 更可能来自 1D binary gripper primitive 太简单、close/aperture/contact-force/stability shaping 不足，或 close/contact dynamics 不足；下一步设计应优先考虑 continuous aperture primitive、primitive rate/hysteresis、bilateral squeeze/contact-force reward 与 force stability / over-force penalty，避免 grasp 阶段继续奖励 fully closed target。
+
 - 2026-06-30 19:31 HKT - 完成 Stage0 Arm Default Pose Fix（A2_Piper 主线 memory 记录）。
 
   (1) `penalty_upper_body_non_gripper_deviation_l1` 现在对 A2 `arm_j1..arm_j6` track robot `default_dof_pos`，不再 track env `resting_dof_pos`；`-5.0` scale 只保留为 historical shaping mitigation，不再是最新/final state。

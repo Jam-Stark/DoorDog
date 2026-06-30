@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-06-30 21:47 HKT - 完成 `logs_eval/restrictPre-Grasp_v2` 的 Stage2 Grasp Target Tracking Reward Fix runtime 诊断记录。
+
+  (1) metrics 结果仍是 `episode_goal_reached=[false,false]`，terminal reason 均为 `stage_overtime`，因此不能记录为正式 env complete success。
+
+  (2) stage2 trace 显示 reward fix 已基本解决 grasp target tracking：stage2 non-negative timer 内两条 env 都是 101/101 帧在 close gate 内；`target_pos_source_handle` 的 abs-Y p95 约 0.0049 / 0.0038；末端 handle distance 约 0.0058 / 0.0088；`gripper_primitive_raw` stage2 内保持 negative close command，没有 open/close sign flip。
+
+  (3) 视频上可见 grasp-like clamp / 双侧弱接触，但 completion predicate 仍未满足：`both force > 1.0` 为 0 帧，predicate frames 为 0；`min(abs(squeeze_y))` 最大约 0.419 / 0.472，低于 `abs(squeeze_y)>0.5` threshold，且没有 5-step two-sided contact history。
+
+  (4) 当前结论：Stage2 reward 修改已经把 policy 从单侧 Y offset / target drift 推到比较准确的 handle center close attempt；剩余 blocker 更可能来自 1D binary gripper primitive 太简单、close/aperture/force/stability shaping 不足，或 gripper close/contact dynamics 不足。后续方案应优先考虑 continuous aperture primitive、primitive rate/hysteresis、bilateral squeeze/contact-force reward 与 force stability / over-force penalty，而不是继续改 grasp_target 位置。
+
 - 2026-06-30 19:31 HKT - 完成 Stage0 Arm Default Pose Fix（stage0-2 relevant memory 记录）。
 
   (1) Stage0 arm drift 的 current root-cause fix 是 `default_dof_pos` target + stage0 action gate；14:05 的 `penalty_upper_body_non_gripper_deviation_l1: -5.0` 只作为 historical shaping mitigation 保留。

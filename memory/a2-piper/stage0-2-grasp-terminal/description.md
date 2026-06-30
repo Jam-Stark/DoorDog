@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-30 19:31 HKT
+last_updated: 2026-06-30 21:47 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -175,6 +175,7 @@ read_when:
 - 2026-06-30 18:53 HKT - Stage2 Grasp Target Tracking Reward Fix 已完成（FacePos70/restrictPre-Grasp diagnosis 后）。`stage2_close_gate_y_tol` 从 0.012 放宽到 0.022，`z_tol=0.015` 与 `x_tol=0.02` 不变；新增 env config std/threshold keys：`a2_stage2_handle_center_y_std=0.015`、`a2_stage2_handle_approach_xz_std=0.05`、`a2_grasp_target_distance_std=0.05`、`a2_stage2_single_finger_contact_force_threshold=1.0`。`a2_stage2_handle_center_y` scale 从 3.0 提升到 6.0，且 `a2_stage2_handle_center_y` / `a2_stage2_handle_approach_xz` 改为整个 `STAGE_GRASP` 持续生效，不再被 `~close_gate` mask。A2 `grasp_target_distance` 改用 `a2_grasp_target_distance_std`，non-A2/G1 path 保持旧 std 0.1。新增 stage2-only `penalty_a2_stage2_single_finger_contact: -2.0`，复用 `_get_a2_gripper_handle_contact_forces()`，仅 exactly one gripper body contact norm 超过 threshold 时返回 1；该 penalty 不加入 `reward_penalty_reward_names`。Validation/review：py_compile PASS、git diff --check PASS、pure-Python no-sim formula sanity PASS、independent review PASS；PPO smoke 按用户指令跳过，下一步由用户直接 retrain。
 
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成（主线 stage0-2 relevant behavior）。Stage0 arm drift 的 current root-cause fix 是 `default_dof_pos` target + stage0 action gate，而不是 14:05 的 `penalty_upper_body_non_gripper_deviation_l1: -5.0` scale mitigation。A2 `arm_j1..arm_j6` reward target、reset target、stage0->1 arm stability target 均改为 robot `default_dof_pos`；`_stage_0_to_1_advance_condition()` 使用 `a2_stage0_arm_default_max_deviation: 0.10`；`DoorPregrasp` 通过 `DeltaActionBase` no-op override hook 在 stage0 清零 arm delta buffer dims `[5..10]`，让 base moving 时 arm 保持 default pose。Static validation 与 independent review PASS；未跑 PPO/IsaacSim smoke，后续 stage0-2 retrain/eval 需同时观察 arm default 保持、stage1 reaching 与 grasp terminal path。
+- 2026-06-30 21:47 HKT - `logs_eval/restrictPre-Grasp_v2` 记录为 Stage2 Grasp Target Tracking Reward Fix 后的第一轮 runtime evidence：两条 env 都进入 `STAGE_GRASP` 并全程在 close gate 内，`target_pos_source_handle` 的 Y 误差已压到毫米级（stage2 non-negative timer 内 abs-Y p95 约 0.0049 / 0.0038），`target_pos_source_handle_distance` 末端约 0.0058 / 0.0088，`gripper_primitive_raw` 在 stage2 内保持 negative close command。视频上可见 grasp-like clamp / 双侧弱接触；但 env 结果仍是 `episode_goal_reached=[false,false]`、terminal reason `stage_overtime`，因为 `both force > 1.0` 为 0 帧，completion predicate frames 为 0，`min(abs(squeeze_y))` 最高约 0.419 / 0.472，未达到 5-step two-sided contact history 的 success predicate。当前判断：reward fix 已基本解决 grasp target tracking / 单侧 Y offset 问题，下一步主要 blocker 更可能是 1D binary gripper primitive 过简单、close/aperture/force/stability reward 不足，或 gripper close/contact dynamics 不足，而不是继续调 grasp target 位置。
 
 ## Implementation Boundary
 
@@ -187,12 +188,13 @@ read_when:
 ## TODO Summary
 
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
-- 2026-06-30 18:53 HKT - Stage2 Grasp Target Tracking Reward Fix 已记录；下一步是直接 retrain/eval 该 reward fix，观察 both_contact、single-finger penalty、center-Y tracking 与 complete predicate 是否改善。既有 runtime/retrain TODO 未因本次 memory update 完成。
-- 2026-06-26 20:30 HKT - grasp_target 已修正到 handle lever center（root cause fix：原 grasp_target 在把手上方 2cm 且偏门板 4.5-6cm）。下一步需要用新 asset retraining，观察 contact force、complete predicate、goal_reached 是否改善；同时确认 close gate hd<0.015 对应 lever surface 的自然闭合时机。
+- 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 Stage2 Grasp Target Tracking Reward Fix 改善了 close gate / center-Y / handle-distance tracking，并能产生视觉 grasp-like 双侧弱接触；但 env completion 仍未通过。下一步 TODO 从“首次 retrain/eval reward fix”转为设计/验证 gripper primitive 或 close-stage reward：continuous aperture primitive、gripper primitive rate/hysteresis、bilateral squeeze/contact-force shaping、force stability / over-force penalty，避免只奖励 fully closed target。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
 - 2026-06-26 22:00 HKT - Multi-camera eval rendering 已完成实现与静态 review，但完整 IsaacSim runtime eval 验证（确认 3 个 mp4 同时生成、视野正确、FPS 一致、backward compat 无 regress）仍需 main-agent 复跑。
 
 ## DONE Summary
+
+- 2026-06-30 21:47 HKT - 完成 `restrictPre-Grasp_v2` reward-fix runtime 诊断记录：当前 reward 修改已让 policy 在 stage2 内稳定进入 close gate、精确 track handle center，并出现视觉 grasp-like clamp / 双侧弱接触；正式 env success 仍为 false，原因是 contact force / squeeze history 未过 `_stage_2_to_complete_condition()` 阈值。下一步重点转向 gripper primitive 与 close/aperture/contact-force/stability 设计。
 
 - 2026-06-30 19:31 HKT - 完成 Stage0 Arm Default Pose Fix 记录：A2 `arm_j1..arm_j6` 在 reward、reset、stage0->1 stability check 与 stage0 delta action gate 中统一回到 robot `default_dof_pos`；14:05 的 `-5.0` scale 只是 historical mitigation。Static validation / independent review PASS；PPO/IsaacSim smoke 未跑。
 

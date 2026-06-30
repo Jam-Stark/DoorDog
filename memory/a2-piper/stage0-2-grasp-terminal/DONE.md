@@ -1,5 +1,19 @@
 # DONE
 
+- 2026-06-30 18:53 HKT - 完成 Stage2 Grasp Target Tracking Reward Fix（FacePos70/restrictPre-Grasp diagnosis 后，A2_Piper 主线）。
+
+  (1) `stage2_close_gate_y_tol` 从 0.012 放宽到 0.022；`stage2_close_gate_z_tol=0.015` 与 `stage2_close_gate_x_tol=0.02` 不变。
+
+  (2) 新增 env config：`a2_stage2_handle_center_y_std: 0.015`、`a2_stage2_handle_approach_xz_std: 0.05`、`a2_grasp_target_distance_std: 0.05`、`a2_stage2_single_finger_contact_force_threshold: 1.0`。
+
+  (3) `a2_stage2_handle_center_y` reward scale 从 3.0 提升到 6.0；`a2_stage2_handle_center_y` 与 `a2_stage2_handle_approach_xz` 改为整个 `STAGE_GRASP` 持续 active，不再被 `~close_gate` mask。
+
+  (4) A2 `grasp_target_distance` 改用 `a2_grasp_target_distance_std`；non-A2/G1 path 保持旧 std 0.1。
+
+  (5) 新增 `penalty_a2_stage2_single_finger_contact: -2.0`，stage2 only，复用 `_get_a2_gripper_handle_contact_forces()`；只有 exactly one gripper body contact norm 超过 threshold 时返回 1。该 penalty 不加入 `reward_penalty_reward_names`。
+
+  (6) Validation/review 已完成：py_compile PASS、git diff --check PASS、pure-Python no-sim formula sanity PASS、independent review PASS。PPO smoke 按用户指令跳过，因为用户将直接启动 training。
+
 - 2026-06-30 15:00 HKT - 完成 axis-aware stage2 close gate + 两个新 stage2 tracking rewards（A2_Piper 主线，非 quickTEST）。
 
   (1) close gate 从 L2 norm `norm(target_pos_source[:,0,:]) < 0.015` 改为 per-axis `abs()` checks：`abs(Y) < stage2_close_gate_y_tol(0.012)`、`abs(Z) < stage2_close_gate_z_tol(0.015)`、`abs(X) < stage2_close_gate_x_tol(0.02)`。Config keys 在 `door_open_a2_base.yaml`。

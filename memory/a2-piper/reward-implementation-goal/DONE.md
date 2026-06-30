@@ -1,5 +1,19 @@
 # DONE
 
+- 2026-06-30 18:53 HKT - 完成 Stage2 Grasp Target Tracking Reward Fix（FacePos70/restrictPre-Grasp diagnosis 后）。
+
+  (1) `stage2_close_gate_y_tol` 从 0.012 放宽到 0.022；`stage2_close_gate_z_tol=0.015` 与 `stage2_close_gate_x_tol=0.02` 不变。
+
+  (2) 新增 env config：`a2_stage2_handle_center_y_std: 0.015`、`a2_stage2_handle_approach_xz_std: 0.05`、`a2_grasp_target_distance_std: 0.05`、`a2_stage2_single_finger_contact_force_threshold: 1.0`。
+
+  (3) `a2_stage2_handle_center_y` reward scale 从 3.0 提升到 6.0；`a2_stage2_handle_center_y` 与 `a2_stage2_handle_approach_xz` 现在贯穿 `STAGE_GRASP`，不再被 `~close_gate` mask。
+
+  (4) A2 `grasp_target_distance` 改用 `a2_grasp_target_distance_std`；non-A2/G1 path 保持旧 std 0.1。
+
+  (5) 新增 `penalty_a2_stage2_single_finger_contact: -2.0`，stage2 only，使用 existing `_get_a2_gripper_handle_contact_forces()`，仅 exactly one gripper body contact norm 超过 threshold 时返回 1；未加入 `reward_penalty_reward_names`。
+
+  (6) Validation/review：py_compile PASS、git diff --check PASS、pure-Python no-sim formula sanity PASS、independent review PASS。PPO smoke 按用户指令跳过，用户将直接开始 training。
+
 - 2026-06-30 15:00 HKT - 完成 axis-aware stage2 close gate + `a2_stage2_handle_center_y` / `a2_stage2_handle_approach_xz` tracking rewards（A2_Piper 主线）。Close gate 从 L2 norm `<0.015` 改为 per-axis `abs()` with per-axis tolerances（`stage2_close_gate_y_tol=0.012`、`z_tol=0.015`、`x_tol=0.02`）。新 rewards gated by `~close_gate`，scale `3.0/3.0`，std `0.05/0.05`，加入 `reward_penalty_reward_names`。改动文件：`door_open_a2_base.yaml`、`reward_door_open_a2_base.yaml`、`door_open_a2_base.py`。Oracle review PASS，py_compile OK。Rationale：FacePos70 eval L2 gate 无法区分 lateral Y offset（2.2cm, opening axis）与 approach depth，policy 停滞 handle 旁、124 帧单指接触、0 帧 both_contact。
 
 - 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。

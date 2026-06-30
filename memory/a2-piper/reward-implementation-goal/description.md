@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-30 15:00 HKT
+last_updated: 2026-06-30 18:53 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -52,6 +52,8 @@ read_when:
   (2) 新增 `a2_stage2_handle_center_y`（scale 3.0, std 0.05，drives opening-axis Y → 0）和 `a2_stage2_handle_approach_xz`（scale 3.0, std 0.05，drives lateral X + approach Z → 0）。两者 gated by `~close_gate`，均加入 `reward_penalty_reward_names`。
 
   (3) FacePos70 eval 诊断驱动：L2 gate + L2 reward 将 opening-axis Y offset（2.2cm）与 approach depth 混合成单一 norm，policy 无法区分 Y 偏差 vs 前后位置，导致 handle 旁停滞、124 帧一侧接触、0 帧两侧接触。Oracle review PASS，py_compile OK。
+
+- 2026-06-30 18:53 HKT - Stage2 Grasp Target Tracking Reward Fix 已完成（FacePos70/restrictPre-Grasp diagnosis 后）。`stage2_close_gate_y_tol` 0.012 -> 0.022，`z_tol=0.015`、`x_tol=0.02` 不变；新增 env config `a2_stage2_handle_center_y_std=0.015`、`a2_stage2_handle_approach_xz_std=0.05`、`a2_grasp_target_distance_std=0.05`、`a2_stage2_single_finger_contact_force_threshold=1.0`。`a2_stage2_handle_center_y` scale 3.0 -> 6.0；`a2_stage2_handle_center_y` / `a2_stage2_handle_approach_xz` 在整个 `STAGE_GRASP` active，不再 gated by `~close_gate`。A2 `grasp_target_distance` 使用 `a2_grasp_target_distance_std`，non-A2/G1 path 仍用 std 0.1。新增 `penalty_a2_stage2_single_finger_contact: -2.0`，stage2 only，基于 existing `_get_a2_gripper_handle_contact_forces()`，exactly one gripper body contact norm 超 threshold 时返回 1，且不加入 `reward_penalty_reward_names`。Validation/review：py_compile PASS、git diff --check PASS、pure-Python no-sim formula sanity PASS、independent review PASS；PPO smoke 按用户指令跳过，下一步直接 training/eval。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -107,6 +109,7 @@ read_when:
 
 ## TODO Summary
 
+- 2026-06-30 18:53 HKT - Stage2 Grasp Target Tracking Reward Fix 已记录；下一步 runtime 工作是 retrain/eval 该 reward fix，重点看 center-Y 收敛、single-finger contact penalty、both_contact frame ratio 与 stage2 complete route。既有 Stage3-5 smoke / runtime TODO 不因本次 code change 完成。
 - 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
 - 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
 - 2026-06-17 22:34 HKT - Stage2 static PASS 后的剩余 TODO：跑 bounded smoke，确认 stage2 dwell、completion route、door-open bypass ratio、stage3/open entry timing，以及是否存在 contact spike 误判；并开始 stage3/open reward completion/A2 adaptation review。
@@ -123,6 +126,8 @@ read_when:
 - 2026-06-16 21:41 HKT - 同步 A2 12D high-level action contract 到 reward memory：`penalty_delta_action_rate` 当前覆盖 arm dims `[5..10]`；`orientation_control` 读取 5D physical `base_command` 的 pitch/roll，而不是旧 10D placeholder buffer。
 
 ## DONE Summary
+
+- 2026-06-30 18:53 HKT - 完成 Stage2 Grasp Target Tracking Reward Fix：Y close gate 放宽到 0.022；新增独立 std/threshold config；center-Y reward scale 提升到 6.0 且 std 收紧到 0.015；center-Y / approach-XZ tracking 在整个 `STAGE_GRASP` active；A2 `grasp_target_distance` 使用 std 0.05；新增 stage2-only single-finger contact penalty（不进 `reward_penalty_reward_names`）。Validation/review PASS，PPO smoke 按用户指令跳过。
 
 - 2026-06-14 21:48 HKT - 新建 reward implementation memory entry，记录 global/stage0 reward 小目标、IsaacLab direct workflow 约束、Bella/Galileo 与 Ava 协作职责，以及 Doorman-derived 破坏性修改审核门槛。
 - 2026-06-15 14:32 HKT - 在 `door_open_a2_base.py` 中给 `walk_to_door` 与 `penalty_face_door` 加注释，标记这两个 G1-derived reward 第一版 stage0 pass，并记录 target parameterization 与 yaw-only/heading-offset 两种未来改法。

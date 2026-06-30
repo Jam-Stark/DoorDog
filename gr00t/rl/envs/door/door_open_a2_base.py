@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
+import math
 import re
 
 import isaaclab.sim as sim_utils
@@ -236,6 +237,23 @@ class DoorPregrasp(
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
+
+    def _get_required_positive_float_config(self, key: str, context: str) -> float:
+        if key not in self.config:
+            raise RuntimeError(f"{context} requires env.config.{key}.")
+        value = self.config[key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise RuntimeError(
+                f"{context} requires env.config.{key} to be a positive float; "
+                f"got {value!r} ({type(value).__name__})."
+            )
+        value = float(value)
+        if not math.isfinite(value) or value <= 0.0:
+            raise RuntimeError(
+                f"{context} requires env.config.{key} to be finite and > 0.0; "
+                f"got {value}."
+            )
+        return value
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -669,9 +687,15 @@ class DoorPregrasp(
             )
 
         handle_pos_source = target_pos_source[:, 0, :]
-        y_tol = float(self.config.stage2_close_gate_y_tol)
-        z_tol = float(self.config.stage2_close_gate_z_tol)
-        x_tol = float(self.config.stage2_close_gate_x_tol)
+        y_tol = self._get_required_positive_float_config(
+            "stage2_close_gate_y_tol", "A2 stage2 close rewards"
+        )
+        z_tol = self._get_required_positive_float_config(
+            "stage2_close_gate_z_tol", "A2 stage2 close rewards"
+        )
+        x_tol = self._get_required_positive_float_config(
+            "stage2_close_gate_x_tol", "A2 stage2 close rewards"
+        )
         opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
         return (
             (stage_buf == self.STAGE_GRASP)
@@ -915,9 +939,12 @@ class DoorPregrasp(
 
             handle_pos_source = target_pos_source[:, 0, :]
             distance = torch.linalg.norm(handle_pos_source, dim=-1)
+            std = self._get_required_positive_float_config(
+                "a2_grasp_target_distance_std", "A2 grasp_target_distance"
+            )
             return self._tracking_reward_util(
                 distance,
-                std=0.1,
+                std=std,
                 target=0.0,
                 scale=1.0,
                 offset=0.0,
@@ -1054,8 +1081,7 @@ class DoorPregrasp(
     def _reward_a2_stage2_handle_center_y(self):
         """Axis-aware centering: drive handle Y (opening axis) to 0 in gripper source frame.
 
-        Only active in stage2 outside the close gate; inside the gate,
-        a2_stage2_close_* rewards take over.
+        Active throughout stage2 so Y centering continues during close attempts.
         """
         if not self._use_a2_base:
             raise RuntimeError("a2_stage2_handle_center_y is only defined for A2 Piper configs.")
@@ -1071,19 +1097,20 @@ class DoorPregrasp(
                 "a2_stage2_handle_center_y requires target_pos_source shape "
                 f"({self.num_envs}, 2, 3); got {shape}."
             )
-        gate = self._get_a2_stage2_close_reward_gate()
+        std = self._get_required_positive_float_config(
+            "a2_stage2_handle_center_y_std", "a2_stage2_handle_center_y"
+        )
         handle_y = target_pos_source[:, 0, 1].abs()
         reward = self._tracking_reward_util(
-            handle_y, std=0.05, target=0.0, scale=1.0, offset=0.0
+            handle_y, std=std, target=0.0, scale=1.0, offset=0.0
         )
-        return reward * (~gate).float()
+        return reward
 
     @StagedTaskBase.effective_in_stage(STAGE_GRASP)
     def _reward_a2_stage2_handle_approach_xz(self):
         """Axis-aware approach: drive handle X (lateral) and Z (approach depth) to 0.
 
-        Only active in stage2 outside the close gate; inside the gate,
-        a2_stage2_close_* rewards take over.
+        Active throughout stage2 so approach alignment continues during close attempts.
         """
         if not self._use_a2_base:
             raise RuntimeError("a2_stage2_handle_approach_xz is only defined for A2 Piper configs.")
@@ -1099,16 +1126,32 @@ class DoorPregrasp(
                 "a2_stage2_handle_approach_xz requires target_pos_source shape "
                 f"({self.num_envs}, 2, 3); got {shape}."
             )
-        gate = self._get_a2_stage2_close_reward_gate()
+        std = self._get_required_positive_float_config(
+            "a2_stage2_handle_approach_xz_std", "a2_stage2_handle_approach_xz"
+        )
         handle_x = target_pos_source[:, 0, 0].abs()
         handle_z = target_pos_source[:, 0, 2].abs()
         x_reward = self._tracking_reward_util(
-            handle_x, std=0.05, target=0.0, scale=1.0, offset=0.0
+            handle_x, std=std, target=0.0, scale=1.0, offset=0.0
         )
         z_reward = self._tracking_reward_util(
-            handle_z, std=0.05, target=0.0, scale=1.0, offset=0.0
+            handle_z, std=std, target=0.0, scale=1.0, offset=0.0
         )
-        return ((x_reward + z_reward) / 2.0).clamp(max=1.0) * (~gate).float()
+        return ((x_reward + z_reward) / 2.0).clamp(max=1.0)
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_penalty_a2_stage2_single_finger_contact(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_stage2_single_finger_contact is only defined for A2 Piper configs."
+            )
+        forces_w = self._get_a2_gripper_handle_contact_forces()
+        threshold = self._get_required_positive_float_config(
+            "a2_stage2_single_finger_contact_force_threshold",
+            "penalty_a2_stage2_single_finger_contact",
+        )
+        contacting = torch.linalg.norm(forces_w, dim=-1) > threshold
+        return (contacting.sum(dim=-1) == 1).float()
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):

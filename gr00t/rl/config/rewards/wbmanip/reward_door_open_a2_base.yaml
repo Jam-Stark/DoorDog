@@ -38,8 +38,9 @@ rewards:
       grasp: 0.2
       a2_stage2_close_command: 1.0
       a2_stage2_close_progress: 0.5
-      a2_stage2_handle_center_y: 3.0
+      a2_stage2_handle_center_y: 6.0
       a2_stage2_handle_approach_xz: 3.0
+      penalty_a2_stage2_single_finger_contact: -2.0
 
       # open
       push_door_handle: 6.0

@@ -96,9 +96,13 @@ env:
     target_root_vel: 0.3
 
     stage2_grasp_contact_history_length: 5
-    stage2_close_gate_y_tol: 0.012
+    stage2_close_gate_y_tol: 0.022
     stage2_close_gate_z_tol: 0.015
     stage2_close_gate_x_tol: 0.02
+    a2_stage2_handle_center_y_std: 0.015
+    a2_stage2_handle_approach_xz_std: 0.05
+    a2_grasp_target_distance_std: 0.05
+    a2_stage2_single_finger_contact_force_threshold: 1.0
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

@@ -95,6 +95,7 @@ env:
     pregrasp_target_vel: 0.3
     target_root_vel: 0.3
 
+    a2_stage0_arm_default_max_deviation: 0.10
     stage2_grasp_contact_history_length: 5
     stage2_close_gate_y_tol: 0.022
     stage2_close_gate_z_tol: 0.015

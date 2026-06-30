@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-06-30 18:53 HKT
+last_updated: 2026-06-30 19:31 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -55,6 +55,8 @@ read_when:
 
 - 2026-06-30 18:53 HKT - Stage2 Grasp Target Tracking Reward Fix 已完成（FacePos70/restrictPre-Grasp diagnosis 后）。`stage2_close_gate_y_tol` 0.012 -> 0.022，`z_tol=0.015`、`x_tol=0.02` 不变；新增 env config `a2_stage2_handle_center_y_std=0.015`、`a2_stage2_handle_approach_xz_std=0.05`、`a2_grasp_target_distance_std=0.05`、`a2_stage2_single_finger_contact_force_threshold=1.0`。`a2_stage2_handle_center_y` scale 3.0 -> 6.0；`a2_stage2_handle_center_y` / `a2_stage2_handle_approach_xz` 在整个 `STAGE_GRASP` active，不再 gated by `~close_gate`。A2 `grasp_target_distance` 使用 `a2_grasp_target_distance_std`，non-A2/G1 path 仍用 std 0.1。新增 `penalty_a2_stage2_single_finger_contact: -2.0`，stage2 only，基于 existing `_get_a2_gripper_handle_contact_forces()`，exactly one gripper body contact norm 超 threshold 时返回 1，且不加入 `reward_penalty_reward_names`。Validation/review：py_compile PASS、git diff --check PASS、pure-Python no-sim formula sanity PASS、independent review PASS；PPO smoke 按用户指令跳过，下一步直接 training/eval。
 
+- 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成（memory update for completed implementation）。`penalty_upper_body_non_gripper_deviation_l1` 现在对 A2 `arm_j1..arm_j6` track robot `default_dof_pos`，不再 track env `resting_dof_pos`；A2 reset exact-resets `arm_j1..arm_j6` 到 `default_dof_pos`，legs 保持 randomized，gripper 保持既有 default randomization；`_stage_0_to_1_advance_condition()` 的 arm stability 改为检查 default pose，并使用 config `a2_stage0_arm_default_max_deviation: 0.10`。`DeltaActionBase` 增加 no-op delta-action override hook，`DoorPregrasp` A2 override 在 stage0 将 arm delta buffer action dims `[5..10]` 清零，避免 robot moving 时 policy delta action 把 arm 推离 default pose。14:05 的 `-5.0` scale 调整仅保留为 historical shaping mitigation；当前 root-cause fix 是 `default_dof_pos` target + stage0 action gate。Static validation 与 independent review 已通过；本轮未跑 PPO/IsaacSim smoke。
+
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
 ## Reward Term Decisions
@@ -63,9 +65,10 @@ read_when:
 - 2026-06-15 14:32 HKT - `penalty_face_door` reward 第一版标记 pass：当前可沿用 G1 Doorman 的 full root-to-door orientation penalty。代码中已注释记录未来改法：如果 A2 trunk roll/pitch 或非正对站姿被过度惩罚，则改为 yaw-only heading error 或增加 desired heading offset。
 - 2026-06-15 14:55 HKT - `pregrasp_finger_dof_pos_l1` 已迁移为 `pregrasp_gripper_dof_pos_l1`：A2 第一版使用 actual Piper gripper DOF (`arm_j7/arm_j8`) close target tracking，close target 为 `[0.0, 0.0]`，span 来自 open-close 行程，不使用 G1 finger raw velocity target `0.6`。
 - 2026-06-17 16:25 HKT - `pregrasp_gripper_dof_pos_l1` active scale 从 `1.5` 降为 `0.5`：当前 A2 gripper primitive 仍是 binary close/open，close-target tracking 只作为 stage0/stage1 gripper baseline，不应过强驱动 fully closed target。NOTE: 未来 gripper primitive 改为 continuous aperture 后，该 reward 才值得重新设计为 aperture/contact-aware readiness，而不是完全闭合 tracking。
-- 2026-06-15 14:55 HKT - `penalty_upper_body_non_finger_deviation_l1` 已迁移为 `penalty_upper_body_non_gripper_deviation_l1`：A2 使用 `_upper_non_gripper_dof_idx` 只约束 `arm_j1..arm_j6` 相对 `resting_dof_pos` 的 L1 deviation；stage0 -> stage1 的 arm stability `max_deviation` 同步排除 `arm_j7/arm_j8`，gripper 开闭不阻塞 stage transition。
+- 2026-06-15 14:55 HKT - `penalty_upper_body_non_finger_deviation_l1` 已迁移为 `penalty_upper_body_non_gripper_deviation_l1`：初版 A2 使用 `_upper_non_gripper_dof_idx` 只约束 `arm_j1..arm_j6` 相对 `resting_dof_pos` 的 L1 deviation；stage0 -> stage1 的 arm stability `max_deviation` 同步排除 `arm_j7/arm_j8`，gripper 开闭不阻塞 stage transition。`resting_dof_pos` target 语义已在 2026-06-30 19:31 root-cause fix 中替换为 robot `default_dof_pos`。
 - 2026-06-15 14:59 HKT - Reviewer 二轮修正：`penalty_upper_body_non_gripper_deviation_l1` 不加入 `reward_penalty_reward_names`，保持 origin G1 中 upper-body penalty 不受 `reward_penalty_scale` curriculum 影响的行为；`pregrasp_gripper_dof_pos_l1` 继续保留在该 list 中，对齐 origin `pregrasp_finger_dof_pos_l1` 的 positive shaping curriculum 行为。
-- 2026-06-30 14:05 HKT - `penalty_upper_body_non_gripper_deviation_l1` scale 从 `-1.0` 提升到 `-5.0`：FacePos70 eval 视频显示 stage0（walk to door）期间 A2 arm 漂移严重，原 `-1.0` 相对 `walk_to_door`（+5.0）太弱。`-5.0` 使 arm 抑制成为有意义的 counterweight。注意：这是 shaping-strength mitigation，不是 stage0→1 缺失 velocity gate 的 root-cause fix。若 -5.0 后 arm drift 仍存在，velocity gate 是真正的 fix。Oracle review PASS with caveat。
+- 2026-06-30 14:05 HKT - `penalty_upper_body_non_gripper_deviation_l1` scale 从 `-1.0` 提升到 `-5.0`：FacePos70 eval 视频显示 stage0（walk to door）期间 A2 arm 漂移严重，原 `-1.0` 相对 `walk_to_door`（+5.0）太弱。`-5.0` 使 arm 抑制成为有意义的 counterweight。注意：这是 historical shaping-strength mitigation，不是最终 root-cause fix；2026-06-30 19:31 已用 `default_dof_pos` target + stage0 action gate 处理 root cause。Oracle review PASS with caveat。
+- 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 标记为当前 root-cause decision：A2 arm default 语义统一到 robot `default_dof_pos`，包括 `penalty_upper_body_non_gripper_deviation_l1` target、A2 reset exact arm reset、`_stage_0_to_1_advance_condition()` arm stability check（config `a2_stage0_arm_default_max_deviation: 0.10`）以及 `DoorPregrasp` stage0 arm delta action gate（dims `[5..10]`）。`DeltaActionBase` hook 默认 no-op，只有 A2 `DoorPregrasp` 在 stage0 override；stage1+ arm control 不被该 gate 禁用。Static validation / independent review PASS；PPO/IsaacSim smoke 未跑，需后续 training/eval 观察。
 - 2026-06-15 15:16 HKT - `door_open_a2_base.py` 已删除旧 `finger` / `non_finger` reward legacy aliases 和 `pregrasp_gripper_dof_pos_l1` 内的 G1 finger fallback；A2 文件中该 reward 现在只保留 Piper gripper actual DOF close tracking。
 - 2026-06-15 16:59 HKT - A2 global DOF safety 第一批标记 PASS：`penalty_dof_acc`、`penalty_dof_vel`、`limits_dof_pos`、`penalty_dof_overspeed` 以及 `_check_termination()` upper-body overspeed 均改用 `_upper_non_gripper_dof_idx`，只覆盖 Piper `arm_j1..arm_j6`，排除 `arm_j7/arm_j8` gripper。
 - 2026-06-15 16:59 HKT - `stage` 标记 PASS：沿用 `StagedTaskBase._reward_stage()` flow reward；它不是 pure alive bonus，而是依赖当前 stage reward condition。`penalty_door_frame_contact` / `penalty_door_panel_contact` 标记 PASS：A2 scene callback 在 A2 branch return 前创建同名 door contact sensors。
@@ -109,6 +112,7 @@ read_when:
 
 ## TODO Summary
 
+- 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 runtime/eval 需确认 stage0 行走时 `arm_j1..arm_j6` 保持 `default_dof_pos`、stage0 action gate 未误伤 stage1+ arm reaching、`_stage_0_to_1_advance_condition()` cadence/termination 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-06-30 18:53 HKT - Stage2 Grasp Target Tracking Reward Fix 已记录；下一步 runtime 工作是 retrain/eval 该 reward fix，重点看 center-Y 收敛、single-finger contact penalty、both_contact frame ratio 与 stage2 complete route。既有 Stage3-5 smoke / runtime TODO 不因本次 code change 完成。
 - 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
 - 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
@@ -126,6 +130,8 @@ read_when:
 - 2026-06-16 21:41 HKT - 同步 A2 12D high-level action contract 到 reward memory：`penalty_delta_action_rate` 当前覆盖 arm dims `[5..10]`；`orientation_control` 读取 5D physical `base_command` 的 pitch/roll，而不是旧 10D placeholder buffer。
 
 ## DONE Summary
+
+- 2026-06-30 19:31 HKT - 完成 Stage0 Arm Default Pose Fix 记录：`penalty_upper_body_non_gripper_deviation_l1`、A2 reset、stage0->1 arm stability check 与 stage0 arm delta action gate 均对齐 robot `default_dof_pos`；`-5.0` scale 只保留为 historical mitigation，不再作为最新/final state。Static validation 与 independent review PASS；PPO/IsaacSim smoke 未跑。
 
 - 2026-06-30 18:53 HKT - 完成 Stage2 Grasp Target Tracking Reward Fix：Y close gate 放宽到 0.022；新增独立 std/threshold config；center-Y reward scale 提升到 6.0 且 std 收紧到 0.015；center-Y / approach-XZ tracking 在整个 `STAGE_GRASP` active；A2 `grasp_target_distance` 使用 std 0.05；新增 stage2-only single-finger contact penalty（不进 `reward_penalty_reward_names`）。Validation/review PASS，PPO smoke 按用户指令跳过。
 

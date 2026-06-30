@@ -495,6 +495,72 @@ class DoorPregrasp(
             None, :
         ]
 
+    def _get_a2_arm_default_dof_pos(self, env_ids=None):
+        if not self._use_a2_base:
+            raise RuntimeError("A2 arm default DOF target is only defined for A2 Piper configs.")
+        num_arm_dof = len(self._upper_non_gripper_dof_idx)
+        if num_arm_dof != 6:
+            raise RuntimeError(
+                "A2 arm default DOF target expects exactly arm_j1..arm_j6; "
+                f"got {num_arm_dof} DOF indices: {self._upper_non_gripper_dof_idx}."
+            )
+
+        arm_default_pos = self.default_dof_pos[:, self._upper_non_gripper_dof_idx]
+        if arm_default_pos.ndim != 2 or arm_default_pos.shape[1] != num_arm_dof:
+            raise RuntimeError(
+                "A2 arm default DOF target requires default_dof_pos[:, arm_j1..arm_j6] "
+                f"shape (1 or {self.num_envs}, {num_arm_dof}); got "
+                f"{tuple(arm_default_pos.shape)}."
+            )
+
+        if env_ids is None:
+            target_batch = self.num_envs
+        else:
+            target_batch = len(env_ids)
+
+        if arm_default_pos.shape[0] == 1:
+            return arm_default_pos.repeat(target_batch, 1)
+        if arm_default_pos.shape[0] == self.num_envs:
+            if env_ids is None:
+                return arm_default_pos
+            return arm_default_pos[env_ids]
+        raise RuntimeError(
+            "A2 arm default DOF target requires default_dof_pos batch dim to be "
+            f"1 or num_envs={self.num_envs}; got {arm_default_pos.shape[0]}."
+        )
+
+    @override
+    def _apply_delta_action_overrides(self):
+        if not self._use_a2_base:
+            return
+
+        expected_delta_action_indices = torch.tensor(
+            [5, 6, 7, 8, 9, 10], dtype=self._delta_action_indices.dtype, device=self.device
+        )
+        if not torch.equal(self._delta_action_indices, expected_delta_action_indices):
+            raise RuntimeError(
+                "A2 stage0 arm default gate requires delta_action_indices "
+                f"{expected_delta_action_indices.tolist()}; got "
+                f"{self._delta_action_indices.tolist()}."
+            )
+
+        expected_shape = (self.num_envs, expected_delta_action_indices.numel())
+        if tuple(self._delta_actions.shape) != expected_shape:
+            raise RuntimeError(
+                "A2 stage0 arm default gate requires _delta_actions shape "
+                f"{expected_shape}; got {tuple(self._delta_actions.shape)}."
+            )
+
+        stage_buf = getattr(self, "stage_buf", None)
+        stage_shape = None if not torch.is_tensor(stage_buf) else tuple(stage_buf.shape)
+        if stage_shape != (self.num_envs,):
+            raise RuntimeError(
+                "A2 stage0 arm default gate requires stage_buf shape "
+                f"({self.num_envs},); got {stage_shape}."
+            )
+
+        self._delta_actions[stage_buf == self.STAGE_WALK_TO_DOOR, :] = 0.0
+
     def _init_buffers(self):
         super()._init_buffers()
         self.relative_door_pos_buf = torch.zeros(
@@ -558,11 +624,15 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_THROUGH])
     def _reward_penalty_upper_body_non_gripper_deviation_l1(self):
-        """A2 stage0 PASS: replace G1 non-finger penalty with Piper arm_j1..j6 shaping."""
+        """A2 stage0 PASS: Piper arm_j1..j6 default-pose shaping."""
         # Exclude arm_j7/arm_j8 so gripper open/close does not affect arm pose shaping.
+        if self._use_a2_base:
+            target_pos = self._get_a2_arm_default_dof_pos()
+        else:
+            target_pos = self.default_dof_pos[:, self._upper_non_gripper_dof_idx]
         return torch.abs(
             self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
-            - self.resting_dof_pos[:, self._upper_non_gripper_dof_idx]
+            - target_pos
         ).sum(dim=-1)
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH])
@@ -2221,6 +2291,9 @@ class DoorPregrasp(
                 self.default_dof_pos
                 * torch_rand_float(0.8, 1.2, (len(env_ids), self.num_dof), device=str(self.device))
             )
+            self.target_robot_dof_state[
+                env_ids[:, None], self._upper_non_gripper_dof_idx, 0
+            ] = self._get_a2_arm_default_dof_pos(env_ids)
             self.target_robot_dof_state[env_ids, :, 1] = 0.0
             return
 
@@ -2324,16 +2397,24 @@ class DoorPregrasp(
         root_pos[:, 2] = stage0_target[:, 2]
         cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
 
-        # keep A2 arm body DOF / Piper arm_j1..j6 down; gripper arm_j7/8 are excluded.
+        # keep A2 arm body DOF / Piper arm_j1..j6 at robot default; gripper arm_j7/8 are excluded.
+        if self._use_a2_base:
+            arm_target_pos = self._get_a2_arm_default_dof_pos()
+        else:
+            arm_target_pos = self.default_dof_pos[:, self._upper_non_gripper_dof_idx]
+        arm_max_deviation = self._get_required_positive_float_config(
+            "a2_stage0_arm_default_max_deviation",
+            "stage0->1 arm default transition",
+        )
         max_deviation = (
             torch.abs(
                 self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
-                - self.resting_dof_pos[:, self._upper_non_gripper_dof_idx]
+                - arm_target_pos
             )
             .max(dim=-1)
             .values
         )
-        cond &= max_deviation < 0.25
+        cond &= max_deviation < arm_max_deviation
         return cond
 
     def _stage_1_reward_condition(self):

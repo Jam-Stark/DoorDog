@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-06-30 19:31 HKT - 完成 Stage0 Arm Default Pose Fix（A2_Piper 主线 memory 记录）。
+
+  (1) `penalty_upper_body_non_gripper_deviation_l1` 现在对 A2 `arm_j1..arm_j6` track robot `default_dof_pos`，不再 track env `resting_dof_pos`；`-5.0` scale 只保留为 historical shaping mitigation，不再是最新/final state。
+
+  (2) A2 reset exact-resets `arm_j1..arm_j6` 到 `default_dof_pos`；legs 继续 randomized，gripper 继续走既有 default randomization。
+
+  (3) `_stage_0_to_1_advance_condition()` 的 arm stability 改为 default pose check，阈值来自 config `a2_stage0_arm_default_max_deviation: 0.10`。
+
+  (4) `DeltaActionBase` 新增 no-op delta-action override hook；`DoorPregrasp` A2 override 在 stage0 将 arm delta buffer action dims `[5..10]` 清零，使 robot moving 期间 arm 维持 default pose。Stage1+ arm reaching 不被该 gate 禁用。
+
+  (5) Static validation 与 independent review PASS。PPO/IsaacSim smoke 未跑，runtime 行为留给后续 retrain/eval 验证。
+
 - 2026-06-30 18:53 HKT - 完成 Stage2 Grasp Target Tracking Reward Fix（FacePos70/restrictPre-Grasp diagnosis 后）。
 
   (1) `stage2_close_gate_y_tol` 从 0.012 放宽到 0.022；`stage2_close_gate_z_tol=0.015` 与 `stage2_close_gate_x_tol=0.02` 不变。
@@ -50,4 +62,4 @@
 - 2026-06-29 21:00 HKT - Stage3-5 transition conditions 核查完成：`_stage_3_reward_condition()` / `_stage_3_to_4_advance_condition()` / `_stage_4_reward_condition()` / `_stage_4_to_5_advance_condition()` / `_stage_5_reward_condition()` / `_stage_5_to_complete_condition()` 全部与 G1 origin 逐字节一致，不需要改 code。只依赖 door joint state 和 robot root x 位置，都是 robot-agnostic。
 - 2026-06-29 21:00 HKT - Stage4 checklist 清理完成：移除 4 个 stage4 不生效的 terms，同步 z=0.5 已完成标记。
 - 2026-06-29 21:30 HKT - Stage5/through reward adaptation：(1) `pregrasp_gripper_dof_pos_l1` 修正 stage5 track close target——新增 `is_through`，`track_close = is_walk | is_through`，修复 gate_mask 从 `track_open.float()` 改为 `(track_close | track_open).float()`，stage0/5 现在真正主动奖励 gripper 收起。(2) `penalty_face_door` stage5 disabled——`effective_in_stage` 从 `[0,1,2,5]` 改为 `[0,1,2]`。Oracle review PASS。
-- 2026-06-30 14:05 HKT - `penalty_upper_body_non_gripper_deviation_l1` scale 从 `-1.0` 改为 `-5.0`。Reason: FacePos70 eval videos 显示 stage0（walk to door）中 robot arm 漂移，-1.0 相对 walk_to_door（+5.0）太弱，无法抑制 arm drift。-5.0 使 arm 抑制成为有意义的 counterweight。Oracle review PASS with caveat：若 -5.0 后 stage0 arm drift 仍存在，velocity gate 才是真正 fix。改动文件：`gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml` line 24。
+- 2026-06-30 14:05 HKT - `penalty_upper_body_non_gripper_deviation_l1` scale 从 `-1.0` 改为 `-5.0`。Reason: FacePos70 eval videos 显示 stage0（walk to door）中 robot arm 漂移，-1.0 相对 walk_to_door（+5.0）太弱，无法抑制 arm drift。-5.0 使 arm 抑制成为有意义的 counterweight。Oracle review PASS with caveat。该项后来被 2026-06-30 19:31 的 `default_dof_pos` target + stage0 action gate root-cause fix supersede；`-5.0` 只保留为 historical shaping mitigation。改动文件：`gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml` line 24。

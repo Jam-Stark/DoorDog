@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-06-30 19:31 HKT - 完成 Stage0 Arm Default Pose Fix（stage0-2 relevant memory 记录）。
+
+  (1) Stage0 arm drift 的 current root-cause fix 是 `default_dof_pos` target + stage0 action gate；14:05 的 `penalty_upper_body_non_gripper_deviation_l1: -5.0` 只作为 historical shaping mitigation 保留。
+
+  (2) `penalty_upper_body_non_gripper_deviation_l1` 对 A2 `arm_j1..arm_j6` track robot `default_dof_pos`；A2 reset exact-resets `arm_j1..arm_j6` 到 `default_dof_pos`，legs randomized 与 gripper default randomization 保持原有行为。
+
+  (3) `_stage_0_to_1_advance_condition()` arm stability 改为 default pose check，并使用 config `a2_stage0_arm_default_max_deviation: 0.10`。
+
+  (4) `DeltaActionBase` 新增 no-op delta-action override hook；`DoorPregrasp` A2 override 在 stage0 清零 arm delta buffer action dims `[5..10]`，避免 robot moving 时 arm drift。Stage1+ arm reaching 不被该 gate 禁用。
+
+  (5) Static validation 与 independent review PASS。PPO/IsaacSim smoke 未跑，后续 stage0-2 retrain/eval 需验证 arm default 保持、stage1 reaching 和 grasp terminal path。
+
 - 2026-06-30 18:53 HKT - 完成 Stage2 Grasp Target Tracking Reward Fix（FacePos70/restrictPre-Grasp diagnosis 后，A2_Piper 主线）。
 
   (1) `stage2_close_gate_y_tol` 从 0.012 放宽到 0.022；`stage2_close_gate_z_tol=0.015` 与 `stage2_close_gate_x_tol=0.02` 不变。

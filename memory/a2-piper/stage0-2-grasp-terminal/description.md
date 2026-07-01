@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-01 19:05 HKT
+last_updated: 2026-07-01 19:17 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -179,6 +179,7 @@ read_when:
 - 2026-06-30 22:00 HKT - A2_Piper arm/gripper stiffness calibration trial：`gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 shoulder `arm_j2` stiffness 调为 168.0，其余 Piper arm/gripper joints `arm_j1, arm_j3, arm_j4, arm_j5, arm_j6, arm_j7, arm_j8` 调为 128.0；damping/Kd 暂不改。动机是 `restrictPre-Grasp_v2` 中 gripper close error 约 1cm 时，旧 `arm_j7/j8 stiffness=40.0` 只能产生约 0.4N 级 P-control effort，与 trace contact force `<1N` 对齐，明显没有表达 Piper 官方 40N 夹持能力。该 trial 只用于观察 contact force / squeeze 是否进入合理区间，不代表 binary primitive / force-window reward 已完成。
 - 2026-07-01 13:50 HKT - `logs_eval/restrictPre-Grasp_upKP1000` 显示整体提高 arm/gripper stiffness 没有解决 formal grasp：两条 env 仍 `goal_reached=false` / `stage_overtime`；env0 末端 force 约 `[0.217, 0.635]`，trace 中 `both force > 1.0` 为 0，env1 contact force 全程 0 且 gripper primitive 保持 open。用户同时观察到 stage1 更倾向 base 往前蹭而不是伸 arm。当前决策：回退 `arm_j1..j6` stiffness 到上一版 arm values（`j1=64,j2=128,j3-j6=64`），只把 gripper `arm_j7/j8` 设为 80.0 做中间夹持力 trial；damping/Kd、leg stiffness/damping、effort limits 不改。
 - 2026-07-01 19:05 HKT - A2_Piper actual IsaacSim actuator yaml routing 已修正：A2 branch 现在用 `a2_piper.yaml` 生成 exact per-DOF `ImplicitActuatorCfg`，覆盖 stiffness/damping/effort_limit_sim/velocity_limit_sim/armature/friction；gripper `arm_j7/j8` effort limit 从 `10.0` 改为 `30.0`，当前 actual gripper setting 为 `Kp=80.0, Kd=1.0, effort_limit_sim=30.0`。`restrictPre-Grasp_upKP1000` 与 `restrictPre-Grasp_KP80` 的 identical trace/checkpoint state 说明旧 yaml stiffness trial 没进入 actual IsaacSim implicit actuator；后续 grasp terminal contact-force/squeeze 结论必须基于本修正后的 retrain/eval。
+- 2026-07-01 19:17 HKT - A2_Piper actuator yaml routing runtime correction：训练 traceback 中的 `RecursionError` 来自 Hydra/OmegaConf `ListConfig` 被传入 IsaacLab `ImplicitActuatorCfg.joint_names_expr`，触发 `ArticulationCfg.validate()` configclass recursion。`isaacsim.py` 已在构造 actuator config 前将 `dof_names` 转为 plain `list[str]`，并将 per-DOF numeric lists 转为 plain `list[float]`。这不改变 Kp/Kd/limit，只保证下一轮 stage0-2 retrain 能用实际 yaml actuator config 创建 env。
 
 ## Implementation Boundary
 
@@ -192,6 +193,7 @@ read_when:
 
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-01 19:05 HKT - A2_Piper actual IsaacSim actuator 现在从 yaml 读取 Kp/Kd/limits；下一轮 retrain/eval 必须基于本修正重新训练，重点检查 `arm_j7/j8=80` + gripper effort limit `30N` 后 contact force 是否适度提高、`squeeze_y`/5-step predicate 是否改善、是否出现 gripper chatter/over-force，以及 stage1 是否仍用 base 往前蹭替代 arm reaching。
+- 2026-07-01 19:17 HKT - actuator yaml routing 的 env-create blocker 已修复：OmegaConf `ListConfig` 不再直接进入 IsaacLab `ImplicitActuatorCfg`；如果下一轮训练仍在 env construction 失败，应优先看新的 traceback，而不是继续归因到本次 `joint_names_expr` container type。
 - 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 Stage2 Grasp Target Tracking Reward Fix 改善了 close gate / center-Y / handle-distance tracking，并能产生视觉 grasp-like 双侧弱接触；但 env completion 仍未通过。下一步 TODO 从“首次 retrain/eval reward fix”转为设计/验证 gripper primitive 或 close-stage reward：continuous aperture primitive、gripper primitive rate/hysteresis、bilateral squeeze/contact-force shaping、force stability / over-force penalty，避免只奖励 fully closed target。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
 - 2026-06-26 22:00 HKT - Multi-camera eval rendering 已完成实现与静态 review，但完整 IsaacSim runtime eval 验证（确认 3 个 mp4 同时生成、视野正确、FPS 一致、backward compat 无 regress）仍需 main-agent 复跑。
@@ -199,6 +201,7 @@ read_when:
 ## DONE Summary
 
 - 2026-07-01 19:05 HKT - 完成 A2_Piper actual IsaacSim actuator yaml routing：`ImplicitActuatorCfg` 从 `a2_piper.yaml` per-DOF 解析 stiffness/damping/effort/velocity/armature/friction，gripper effort limit 改为 `30.0`；旧 upKP/KP80 stiffness trial 不再视作 actual actuator gain 证据，需重新 retrain/eval。
+- 2026-07-01 19:17 HKT - 完成 actuator yaml routing 的 OmegaConf container boundary 修正：`dof_names` 与 per-DOF numeric lists 在进入 IsaacLab `ImplicitActuatorCfg` 前转为 plain Python containers，修复 `ArticulationCfg.validate()` RecursionError。
 
 - 2026-07-01 13:50 HKT - 完成 upKP1000 eval 结论记录与 stiffness 回退：`arm_j1=64.0`、`arm_j2=128.0`、`arm_j3-j6=64.0`，`arm_j7/j8=80.0`，damping/Kd 不变。高 stiffness trial 的 env0 force 仍低于 complete threshold，env1 无 contact，因此不继续整体加硬 arm。
 

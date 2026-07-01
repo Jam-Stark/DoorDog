@@ -812,13 +812,15 @@ class IsaacSim(BaseSimulator):
             joint_vel={".*": 0.0},
         )
 
-        dof_names_list = copy.deepcopy(self.robot_config.dof_names)
+        dof_names_list = [str(dof_name) for dof_name in self.robot_config.dof_names]
         # for i, name in enumerate(dof_names_list):
         #     dof_names_list[i] = name.replace("_joint", "")
-        dof_effort_limit_list = self.robot_config.dof_effort_limit_list
-        dof_vel_limit_list = self.robot_config.dof_vel_limit_list
-        dof_armature_list = self.robot_config.dof_armature_list
-        dof_joint_friction_list = self.robot_config.dof_joint_friction_list
+        dof_effort_limit_list = [float(value) for value in self.robot_config.dof_effort_limit_list]
+        dof_vel_limit_list = [float(value) for value in self.robot_config.dof_vel_limit_list]
+        dof_armature_list = [float(value) for value in self.robot_config.dof_armature_list]
+        dof_joint_friction_list = [
+            float(value) for value in self.robot_config.dof_joint_friction_list
+        ]
 
         stiffness_dict = self.robot_config.control.stiffness
         damping_dict = self.robot_config.control.damping
@@ -1781,7 +1783,7 @@ class IsaacSim(BaseSimulator):
         save self.num_dofs, self.num_bodies, self.dof_names, self.body_names in simulator class
         """
 
-        dof_names_list = copy.deepcopy(self.robot_config.dof_names)
+        dof_names_list = [str(dof_name) for dof_name in self.robot_config.dof_names]
 
         self.dof_ids, self.dof_names = self._robot.find_joints(dof_names_list, preserve_order=True)
         # import ipdb; ipdb.set_trace()

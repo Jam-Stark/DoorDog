@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-01 19:17 HKT - 修复 A2_Piper actual actuator yaml routing 的 IsaacLab configclass runtime crash。
+
+  (1) 用户训练 traceback 显示 `ArticulationCfg.validate()` 在 `__instancecheck__` 中递归到 `RecursionError`；root cause 是 A2 branch 把 Hydra/OmegaConf `ListConfig` 直接传给 `ImplicitActuatorCfg.joint_names_expr`。
+
+  (2) `gr00t/rl/simulator/isaacsim/isaacsim.py` 现在在 IsaacLab config boundary 将 `robot_config.dof_names` 转为 plain `list[str]`，并将 `dof_effort_limit_list`、`dof_vel_limit_list`、`dof_armature_list`、`dof_joint_friction_list` 转为 plain `list[float]` 后再构造 per-DOF dict。
+
+  (3) 这是 container type correction，不改变 A2_Piper actuator 数值语义；当前 gripper actual setting 仍为 `arm_j7/j8 Kp=80.0, Kd=1.0, effort_limit_sim=30.0`。
+
 - 2026-07-01 19:05 HKT - 完成 A2_Piper actual IsaacSim actuator yaml routing 修正。
 
   (1) `gr00t/rl/simulator/isaacsim/isaacsim.py` 的 `robot_type == "a2_piper"` branch 不再 hardcode `ImplicitActuatorCfg` Kp/Kd，而是从 `robot.control.stiffness` / `robot.control.damping` 解析到 exact per-DOF dict。

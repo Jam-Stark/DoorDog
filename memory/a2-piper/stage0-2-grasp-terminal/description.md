@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-06-30 22:00 HKT
+last_updated: 2026-07-01 13:50 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -177,6 +177,7 @@ read_when:
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成（主线 stage0-2 relevant behavior）。Stage0 arm drift 的 current root-cause fix 是 `default_dof_pos` target + stage0 action gate，而不是 14:05 的 `penalty_upper_body_non_gripper_deviation_l1: -5.0` scale mitigation。A2 `arm_j1..arm_j6` reward target、reset target、stage0->1 arm stability target 均改为 robot `default_dof_pos`；`_stage_0_to_1_advance_condition()` 使用 `a2_stage0_arm_default_max_deviation: 0.10`；`DoorPregrasp` 通过 `DeltaActionBase` no-op override hook 在 stage0 清零 arm delta buffer dims `[5..10]`，让 base moving 时 arm 保持 default pose。Static validation 与 independent review PASS；未跑 PPO/IsaacSim smoke，后续 stage0-2 retrain/eval 需同时观察 arm default 保持、stage1 reaching 与 grasp terminal path。
 - 2026-06-30 21:47 HKT - `logs_eval/restrictPre-Grasp_v2` 记录为 Stage2 Grasp Target Tracking Reward Fix 后的第一轮 runtime evidence：两条 env 都进入 `STAGE_GRASP` 并全程在 close gate 内，`target_pos_source_handle` 的 Y 误差已压到毫米级（stage2 non-negative timer 内 abs-Y p95 约 0.0049 / 0.0038），`target_pos_source_handle_distance` 末端约 0.0058 / 0.0088，`gripper_primitive_raw` 在 stage2 内保持 negative close command。视频上可见 grasp-like clamp / 双侧弱接触；但 env 结果仍是 `episode_goal_reached=[false,false]`、terminal reason `stage_overtime`，因为 `both force > 1.0` 为 0 帧，completion predicate frames 为 0，`min(abs(squeeze_y))` 最高约 0.419 / 0.472，未达到 5-step two-sided contact history 的 success predicate。当前判断：reward fix 已基本解决 grasp target tracking / 单侧 Y offset 问题，下一步主要 blocker 更可能是 1D binary gripper primitive 过简单、close/aperture/force/stability reward 不足，或 gripper close/contact dynamics 不足，而不是继续调 grasp target 位置。
 - 2026-06-30 22:00 HKT - A2_Piper arm/gripper stiffness calibration trial：`gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 shoulder `arm_j2` stiffness 调为 168.0，其余 Piper arm/gripper joints `arm_j1, arm_j3, arm_j4, arm_j5, arm_j6, arm_j7, arm_j8` 调为 128.0；damping/Kd 暂不改。动机是 `restrictPre-Grasp_v2` 中 gripper close error 约 1cm 时，旧 `arm_j7/j8 stiffness=40.0` 只能产生约 0.4N 级 P-control effort，与 trace contact force `<1N` 对齐，明显没有表达 Piper 官方 40N 夹持能力。该 trial 只用于观察 contact force / squeeze 是否进入合理区间，不代表 binary primitive / force-window reward 已完成。
+- 2026-07-01 13:50 HKT - `logs_eval/restrictPre-Grasp_upKP1000` 显示整体提高 arm/gripper stiffness 没有解决 formal grasp：两条 env 仍 `goal_reached=false` / `stage_overtime`；env0 末端 force 约 `[0.217, 0.635]`，trace 中 `both force > 1.0` 为 0，env1 contact force 全程 0 且 gripper primitive 保持 open。用户同时观察到 stage1 更倾向 base 往前蹭而不是伸 arm。当前决策：回退 `arm_j1..j6` stiffness 到上一版 arm values（`j1=64,j2=128,j3-j6=64`），只把 gripper `arm_j7/j8` 设为 80.0 做中间夹持力 trial；damping/Kd、leg stiffness/damping、effort limits 不改。
 
 ## Implementation Boundary
 
@@ -189,12 +190,14 @@ read_when:
 ## TODO Summary
 
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
-- 2026-06-30 22:00 HKT - A2 arm/gripper stiffness calibration trial 已实施；下一轮 retrain/eval 需要重点检查 `contact_force_arm_body7_8_norm`、`squeeze_y`、5-step completion predicate frames、gripper contact chatter/抖动，以及是否出现过大 contact force 或 arm tracking side effects。
+- 2026-07-01 13:50 HKT - 高 stiffness trial 未提升 formal grasp，且可能加剧 stage1 base creep / arm tracking side effects；下一轮 retrain/eval 使用 arm stiffness 回退 + `arm_j7/j8=80`，重点检查 contact force 是否适度提高、`squeeze_y`/5-step predicate 是否改善、是否出现 gripper chatter/over-force，以及 stage1 是否仍用 base 往前蹭替代 arm reaching。
 - 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 Stage2 Grasp Target Tracking Reward Fix 改善了 close gate / center-Y / handle-distance tracking，并能产生视觉 grasp-like 双侧弱接触；但 env completion 仍未通过。下一步 TODO 从“首次 retrain/eval reward fix”转为设计/验证 gripper primitive 或 close-stage reward：continuous aperture primitive、gripper primitive rate/hysteresis、bilateral squeeze/contact-force shaping、force stability / over-force penalty，避免只奖励 fully closed target。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
 - 2026-06-26 22:00 HKT - Multi-camera eval rendering 已完成实现与静态 review，但完整 IsaacSim runtime eval 验证（确认 3 个 mp4 同时生成、视野正确、FPS 一致、backward compat 无 regress）仍需 main-agent 复跑。
 
 ## DONE Summary
+
+- 2026-07-01 13:50 HKT - 完成 upKP1000 eval 结论记录与 stiffness 回退：`arm_j1=64.0`、`arm_j2=128.0`、`arm_j3-j6=64.0`，`arm_j7/j8=80.0`，damping/Kd 不变。高 stiffness trial 的 env0 force 仍低于 complete threshold，env1 无 contact，因此不继续整体加硬 arm。
 
 - 2026-06-30 22:00 HKT - 完成 A2_Piper arm/gripper stiffness calibration trial 记录：`arm_j2=168.0`，其余 Piper arm/gripper joints `arm_j1,j3-j8=128.0`，Kd/damping 不变。下一步用 retrain/eval 判断 contact force、squeeze、completion predicate 与抖动/over-force 风险。
 

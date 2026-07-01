@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-01 13:50 HKT - 完成 `logs_eval/restrictPre-Grasp_upKP1000` stiffness trial 结论记录与 robot stiffness 调整。
+
+  (1) upKP1000 eval 仍为 `episode_goal_reached=[false,false]` / `stage_overtime`，因此高 stiffness trial 没有解决 formal grasp。
+
+  (2) env0 terminal force 约 `[0.217, 0.635]`，trace 中 `both force > 1.0` 为 0；env1 contact force 全程为 0 且 primitive 保持 open。高 stiffness 没有稳定提高到 both-contact/squeeze history threshold。
+
+  (3) 当前配置回退 arm stiffness 到上一版 arm values：`arm_j1=64.0`、`arm_j2=128.0`、`arm_j3=64.0`、`arm_j4=64.0`、`arm_j5=64.0`、`arm_j6=64.0`；只把 gripper `arm_j7/j8` 调到 80.0 做中间夹持力 trial。Damping/Kd 不变。
+
+  (4) Reward/primitive 方向保持不变：grasp-stage 后续仍应从 aperture/contact/force/stability 设计入手，而不是奖励 fully closed target 或继续整体提高 arm stiffness。
+
 - 2026-06-30 22:00 HKT - 完成 A2_Piper arm/gripper stiffness calibration trial。
 
   (1) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 shoulder `arm_j2` stiffness 改为 168.0。

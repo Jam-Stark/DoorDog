@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-01 19:05 HKT - 完成 A2_Piper actual IsaacSim actuator yaml routing 修正。
+
+  (1) `gr00t/rl/simulator/isaacsim/isaacsim.py` 的 A2_Piper `ImplicitActuatorCfg` 不再使用 hardcoded leg/arm/gripper Kp/Kd/limits，而是从 `a2_piper.yaml` 生成 exact per-DOF actuator config。
+
+  (2) `stiffness/damping` 使用 fail-fast mapping：leg DOF 解析到 `hip/thigh/calf` group key，Piper arm/gripper 解析到 exact `arm_j1..arm_j8`；missing/unused/unexpected key 直接报错。
+
+  (3) `effort_limit_sim/velocity_limit_sim/armature/friction` 使用 robot yaml per-DOF lists；gripper `arm_j7/j8` effort limit 从 `10.0` 改为 `30.0`。
+
+  (4) `restrictPre-Grasp_upKP1000` 和 `restrictPre-Grasp_KP80` 的相同 trace/checkpoint state 应解释为之前 yaml stiffness 没进入 actual IsaacSim implicit actuator；旧 trial 不是 actual actuator Kp/Kd A/B。后续 stage0-2 grasp retrain/eval 需要基于本修正重新判断 contact force、squeeze 与 base-creep/arm-reaching behavior。
+
 - 2026-07-01 13:50 HKT - 完成 `logs_eval/restrictPre-Grasp_upKP1000` stiffness trial 诊断与回退调整。
 
   (1) upKP1000 eval 仍是 `episode_goal_reached=[false,false]`，terminal reason 均为 `stage_overtime`，因此不能记录为 formal grasp success。

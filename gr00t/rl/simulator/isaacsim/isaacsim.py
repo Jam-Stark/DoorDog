@@ -164,6 +164,54 @@ def list_mdl_files_recursive(folder_path, mdl_files):
 
 
 class IsaacSim(BaseSimulator):
+    @staticmethod
+    def _get_a2_piper_control_key_for_dof(dof_name):
+        if dof_name.startswith("arm_j"):
+            return dof_name
+
+        if dof_name.endswith("_joint"):
+            split_name = dof_name.split("_")
+            if len(split_name) != 3:
+                raise ValueError(f"Unexpected A2_Piper leg DOF name format: {dof_name}")
+            leg_prefix, joint_group, joint_suffix = split_name
+            if leg_prefix not in ("FL", "FR", "RL", "RR") or joint_suffix != "joint":
+                raise ValueError(f"Unexpected A2_Piper leg DOF name format: {dof_name}")
+            if joint_group not in ("hip", "thigh", "calf"):
+                raise ValueError(f"Unexpected A2_Piper leg joint group: {dof_name}")
+            return joint_group
+
+        raise ValueError(f"Unexpected A2_Piper DOF name: {dof_name}")
+
+    @classmethod
+    def _resolve_a2_piper_control_dict(cls, dof_names, control_values, value_name):
+        resolved_values = {}
+        matched_keys = set()
+        for dof_name in dof_names:
+            key = cls._get_a2_piper_control_key_for_dof(dof_name)
+            if key not in control_values:
+                raise KeyError(
+                    f"A2_Piper control.{value_name} missing key '{key}' for DOF '{dof_name}'"
+                )
+            resolved_values[dof_name] = float(control_values[key])
+            matched_keys.add(key)
+
+        unused_keys = sorted(set(control_values.keys()) - matched_keys)
+        if unused_keys:
+            raise KeyError(
+                f"A2_Piper control.{value_name} has unused keys: {unused_keys}. "
+                f"Resolved keys: {sorted(matched_keys)}"
+            )
+        return resolved_values
+
+    @staticmethod
+    def _build_a2_piper_dof_value_dict(dof_names, values, value_name):
+        if len(dof_names) != len(values):
+            raise ValueError(
+                f"A2_Piper {value_name} length mismatch: "
+                f"{len(values)} values for {len(dof_names)} DOFs"
+            )
+        return {dof_name: float(values[i]) for i, dof_name in enumerate(dof_names)}
+
     def __init__(self, config, device, **kwargs):
         super().__init__(config, device)
 
@@ -772,19 +820,8 @@ class IsaacSim(BaseSimulator):
         dof_armature_list = self.robot_config.dof_armature_list
         dof_joint_friction_list = self.robot_config.dof_joint_friction_list
 
-        # get kp and kd from config
-        kp_list = []
-        kd_list = []
         stiffness_dict = self.robot_config.control.stiffness
         damping_dict = self.robot_config.control.damping
-
-        for i in range(len(dof_names_list)):
-            dof_names_i_without_joint = dof_names_list[i].replace("_joint", "")
-            for key in stiffness_dict.keys():
-                if key in dof_names_i_without_joint:
-                    kp_list.append(stiffness_dict[key])
-                    kd_list.append(damping_dict[key])
-                    print(f"key: {key}, kp: {stiffness_dict[key]}, kd: {damping_dict[key]}")
 
         # IdealPDActuatorCfg
         # actuators = {
@@ -821,75 +858,29 @@ class IsaacSim(BaseSimulator):
 
         # ImplicitID
         if robot_type == "a2_piper":
+            stiffness_by_dof = self._resolve_a2_piper_control_dict(
+                dof_names_list, stiffness_dict, "stiffness"
+            )
+            damping_by_dof = self._resolve_a2_piper_control_dict(
+                dof_names_list, damping_dict, "damping"
+            )
             actuators = {
-                "hips": ImplicitActuatorCfg(
-                    joint_names_expr=[
-                        "FL_hip_joint",
-                        "FR_hip_joint",
-                        "RL_hip_joint",
-                        "RR_hip_joint",
-                    ],
-                    effort_limit_sim=120.0,
-                    velocity_limit_sim=22.0,
-                    stiffness=140.0,
-                    damping=4.5,
-                    armature=0.03,
-                    friction=0.0,
-                ),
-                "thighs": ImplicitActuatorCfg(
-                    joint_names_expr=[
-                        "FL_thigh_joint",
-                        "FR_thigh_joint",
-                        "RL_thigh_joint",
-                        "RR_thigh_joint",
-                    ],
-                    effort_limit_sim=120.0,
-                    velocity_limit_sim=22.0,
-                    stiffness=140.0,
-                    damping=4.5,
-                    armature=0.03,
-                    friction=0.0,
-                ),
-                "calfs": ImplicitActuatorCfg(
-                    joint_names_expr=[
-                        "FL_calf_joint",
-                        "FR_calf_joint",
-                        "RL_calf_joint",
-                        "RR_calf_joint",
-                    ],
-                    effort_limit_sim=180.0,
-                    velocity_limit_sim=14.6667,
-                    stiffness=220.0,
-                    damping=9.0,
-                    armature=0.03,
-                    friction=0.0,
-                ),
-                "arm": ImplicitActuatorCfg(
-                    joint_names_expr=["arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5"],
-                    effort_limit_sim=100.0,
-                    velocity_limit_sim=5.0,
-                    stiffness=80.0,
-                    damping=4.0,
-                    armature=0.0,
-                    friction=0.0,
-                ),
-                "arm_wrist": ImplicitActuatorCfg(
-                    joint_names_expr=["arm_j6"],
-                    effort_limit_sim=100.0,
-                    velocity_limit_sim=3.0,
-                    stiffness=60.0,
-                    damping=3.0,
-                    armature=0.0,
-                    friction=0.0,
-                ),
-                "gripper_hold": ImplicitActuatorCfg(
-                    joint_names_expr=["arm_j7", "arm_j8"],
-                    effort_limit_sim=10.0,
-                    velocity_limit_sim=1.0,
-                    stiffness=40.0,
-                    damping=1.0,
-                    armature=0.0,
-                    friction=0.0,
+                "all": ImplicitActuatorCfg(
+                    joint_names_expr=dof_names_list,
+                    effort_limit_sim=self._build_a2_piper_dof_value_dict(
+                        dof_names_list, dof_effort_limit_list, "dof_effort_limit_list"
+                    ),
+                    velocity_limit_sim=self._build_a2_piper_dof_value_dict(
+                        dof_names_list, dof_vel_limit_list, "dof_vel_limit_list"
+                    ),
+                    stiffness=stiffness_by_dof,
+                    damping=damping_by_dof,
+                    armature=self._build_a2_piper_dof_value_dict(
+                        dof_names_list, dof_armature_list, "dof_armature_list"
+                    ),
+                    friction=self._build_a2_piper_dof_value_dict(
+                        dof_names_list, dof_joint_friction_list, "dof_joint_friction_list"
+                    ),
                 ),
             }
         else:

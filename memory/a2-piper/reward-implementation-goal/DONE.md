@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-01 19:05 HKT - 完成 A2_Piper actual IsaacSim actuator yaml routing 修正。
+
+  (1) `gr00t/rl/simulator/isaacsim/isaacsim.py` 的 `robot_type == "a2_piper"` branch 不再 hardcode `ImplicitActuatorCfg` Kp/Kd，而是从 `robot.control.stiffness` / `robot.control.damping` 解析到 exact per-DOF dict。
+
+  (2) 解析规则 fail-fast：leg DOF 只允许 `hip/thigh/calf` group key，Piper arm/gripper 只允许 exact `arm_j1..arm_j8` key；missing key、unused key、unexpected DOF name 或 per-DOF list length mismatch 都直接 raise。
+
+  (3) A2_Piper actual actuator 的 `effort_limit_sim`、`velocity_limit_sim`、`armature`、`friction` 也从 robot yaml per-DOF lists 进入 `ImplicitActuatorCfg`，不再用 hardcoded A2 branch values；non-A2 branch 不变。
+
+  (4) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 将 gripper `arm_j7/j8` effort limit 从 `10.0` 改为 `30.0`；当前 resolved actual gripper setting 为 `arm_j7/j8 Kp=80.0, Kd=1.0, effort_limit_sim=30.0`。
+
+  (5) 纠正实验解释：`restrictPre-Grasp_upKP1000` / `restrictPre-Grasp_KP80` 之前的 stiffness trial 只改变 saved config 和 computed diagnostic torque，不是 actual IsaacSim implicit actuator gain 的有效 A/B；后续 contact-force 结论必须基于本修正后的 retrain/eval。
+
 - 2026-07-01 13:50 HKT - 完成 `logs_eval/restrictPre-Grasp_upKP1000` stiffness trial 结论记录与 robot stiffness 调整。
 
   (1) upKP1000 eval 仍为 `episode_goal_reached=[false,false]` / `stage_overtime`，因此高 stiffness trial 没有解决 formal grasp。

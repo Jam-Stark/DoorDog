@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-01 19:17 HKT
+last_updated: 2026-07-01 21:55 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -180,6 +180,7 @@ read_when:
 - 2026-07-01 13:50 HKT - `logs_eval/restrictPre-Grasp_upKP1000` 显示整体提高 arm/gripper stiffness 没有解决 formal grasp：两条 env 仍 `goal_reached=false` / `stage_overtime`；env0 末端 force 约 `[0.217, 0.635]`，trace 中 `both force > 1.0` 为 0，env1 contact force 全程 0 且 gripper primitive 保持 open。用户同时观察到 stage1 更倾向 base 往前蹭而不是伸 arm。当前决策：回退 `arm_j1..j6` stiffness 到上一版 arm values（`j1=64,j2=128,j3-j6=64`），只把 gripper `arm_j7/j8` 设为 80.0 做中间夹持力 trial；damping/Kd、leg stiffness/damping、effort limits 不改。
 - 2026-07-01 19:05 HKT - A2_Piper actual IsaacSim actuator yaml routing 已修正：A2 branch 现在用 `a2_piper.yaml` 生成 exact per-DOF `ImplicitActuatorCfg`，覆盖 stiffness/damping/effort_limit_sim/velocity_limit_sim/armature/friction；gripper `arm_j7/j8` effort limit 从 `10.0` 改为 `30.0`，当前 actual gripper setting 为 `Kp=80.0, Kd=1.0, effort_limit_sim=30.0`。`restrictPre-Grasp_upKP1000` 与 `restrictPre-Grasp_KP80` 的 identical trace/checkpoint state 说明旧 yaml stiffness trial 没进入 actual IsaacSim implicit actuator；后续 grasp terminal contact-force/squeeze 结论必须基于本修正后的 retrain/eval。
 - 2026-07-01 19:17 HKT - A2_Piper actuator yaml routing runtime correction：训练 traceback 中的 `RecursionError` 来自 Hydra/OmegaConf `ListConfig` 被传入 IsaacLab `ImplicitActuatorCfg.joint_names_expr`，触发 `ArticulationCfg.validate()` configclass recursion。`isaacsim.py` 已在构造 actuator config 前将 `dof_names` 转为 plain `list[str]`，并将 per-DOF numeric lists 转为 plain `list[float]`。这不改变 Kp/Kd/limit，只保证下一轮 stage0-2 retrain 能用实际 yaml actuator config 创建 env。
+- 2026-07-01 21:55 HKT - Stage0 staging target 改为 config-driven `a2_stage0_staging_x_offset=0.50`，取代旧 hardcoded `0.70`；`_reward_walk_to_door()`、`_stage_0_to_1_advance_condition()` 与 `vis_stage0_target` 均使用同一 config。Online door spawn path 的 `DoorSpawnerCfg.door_handle_tblr` 高度范围从 `0.85~0.95m` 扩到 `0.80~1.35m`，宽度随机化保持 `0.08~0.15m`；offline `generate_door_assets.py` 未改。
 
 ## Implementation Boundary
 
@@ -191,6 +192,7 @@ read_when:
 
 ## TODO Summary
 
+- 2026-07-01 21:55 HKT - 下一轮 retrain/eval 需确认 `doorHandleHeight` metadata 覆盖 `0.80~1.35m`，stage0->1 从 handle 前 `50cm` staging distance 进入，且更近的 staging 不会强化 stage1 base creep；重点观察 stage1 是否用 arm reaching 而不是 base/trunk 继续蹭近 handle。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-01 19:05 HKT - A2_Piper actual IsaacSim actuator 现在从 yaml 读取 Kp/Kd/limits；下一轮 retrain/eval 必须基于本修正重新训练，重点检查 `arm_j7/j8=80` + gripper effort limit `30N` 后 contact force 是否适度提高、`squeeze_y`/5-step predicate 是否改善、是否出现 gripper chatter/over-force，以及 stage1 是否仍用 base 往前蹭替代 arm reaching。
 - 2026-07-01 19:17 HKT - actuator yaml routing 的 env-create blocker 已修复：OmegaConf `ListConfig` 不再直接进入 IsaacLab `ImplicitActuatorCfg`；如果下一轮训练仍在 env construction 失败，应优先看新的 traceback，而不是继续归因到本次 `joint_names_expr` container type。
@@ -200,6 +202,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-01 21:55 HKT - 完成 stage0 staging offset 与 online door handle height randomization 调整：stage0 staging offset 从 hardcoded `0.70m` 改为 config `a2_stage0_staging_x_offset=0.50`，online `DoorSpawnerCfg.door_handle_tblr` height range 从 `0.85~0.95m` 改为 `0.80~1.35m`；py_compile、Hydra compose 与 no-sim source sanity 通过，PPO smoke 按用户指令未跑。
 - 2026-07-01 19:05 HKT - 完成 A2_Piper actual IsaacSim actuator yaml routing：`ImplicitActuatorCfg` 从 `a2_piper.yaml` per-DOF 解析 stiffness/damping/effort/velocity/armature/friction，gripper effort limit 改为 `30.0`；旧 upKP/KP80 stiffness trial 不再视作 actual actuator gain 证据，需重新 retrain/eval。
 - 2026-07-01 19:17 HKT - 完成 actuator yaml routing 的 OmegaConf container boundary 修正：`dof_names` 与 per-DOF numeric lists 在进入 IsaacLab `ImplicitActuatorCfg` 前转为 plain Python containers，修复 `ArticulationCfg.validate()` RecursionError。
 

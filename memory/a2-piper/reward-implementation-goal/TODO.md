@@ -1,5 +1,6 @@
 # TODO
 
+- 2026-07-01 21:55 HKT - 下一轮 runtime/eval 需要验证 stage0 reward/transition 数据分布变化：`a2_stage0_staging_x_offset=0.50` 是否让 base 在 handle 前 50cm 转入 stage1，`doorHandleHeight` 是否覆盖 `0.80~1.35m`，以及 handle 高度随机化后 stage1 是否通过 arm reaching 追踪 pregrasp/grasp target，而不是继续依赖 base creep。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成 static/review，但未跑 PPO/IsaacSim smoke；后续 runtime/eval 需要确认 stage0 行走时 `arm_j1..arm_j6` 维持 `default_dof_pos`、stage0 action gate 不影响 stage1+ arm reaching、`a2_stage0_arm_default_max_deviation: 0.10` 不造成 stage0->1 cadence regression。
 - 2026-07-01 19:05 HKT - 下一轮 runtime/eval 必须基于 A2_Piper actual IsaacSim actuator 已从 yaml 读取 Kp/Kd/limit 的版本重新训练；重点检查 `arm_j7/j8=80` + gripper effort limit `30N` 后 contact force / squeeze history 是否改善，同时 watch gripper contact chatter、over-force、upper-body overspeed、stage1 base creep 与 arm reaching regression。
 - 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 current stage2 reward 能把 gripper 推到 handle center close attempt / 视觉 grasp-like weak contact，但 formal complete 仍未通过；下一步需要围绕 gripper primitive / close-stage reward 设计方案：continuous aperture primitive、primitive rate/hysteresis、bilateral squeeze/contact-force reward、force stability / over-force penalty。不要继续把主要 blocker 归因到 grasp target 位置。

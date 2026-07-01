@@ -237,6 +237,7 @@ class DoorPregrasp(
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
+    A2_STAGE0_STAGING_OFFSET_CONFIG_KEY = "a2_stage0_staging_x_offset"
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -254,6 +255,12 @@ class DoorPregrasp(
                 f"got {value}."
             )
         return value
+
+    def _get_a2_stage0_staging_x_offset(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE0_STAGING_OFFSET_CONFIG_KEY,
+            "A2 stage0 staging target",
+        )
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -600,13 +607,13 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
-        # A2: walk toward a staging position 40cm in front of handle (door normal -X),
+        # A2: walk toward a staging position in front of handle (door normal -X),
         # so base aligns with handle Y and stops at a comfortable arm reach distance.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
         grasp_target_pos = self._compute_grasp_target().clone()
-        # staging target: 40cm from handle along -X (door normal, toward robot side)
+        # staging target: configured distance from handle along -X (door normal, toward robot side)
         stage0_target_pos = grasp_target_pos.clone()
-        stage0_target_pos[:, 0] -= 0.70
+        stage0_target_pos[:, 0] -= self._get_a2_stage0_staging_x_offset()
         stage0_target_pos[:, 2] = current_root_pos[:, 2]
         target_direction = stage0_target_pos - current_root_pos
         target_dir = F.normalize(target_direction, dim=-1)
@@ -2389,10 +2396,10 @@ class DoorPregrasp(
         return self._stage_0_to_1_advance_condition()
 
     def _stage_0_to_1_advance_condition(self):
-        # get close enough to the staging position (40cm in front of handle)
+        # get close enough to the configured staging position in front of handle
         grasp_target = self._compute_grasp_target()
         stage0_target = grasp_target.clone()
-        stage0_target[:, 0] -= 0.70
+        stage0_target[:, 0] -= self._get_a2_stage0_staging_x_offset()
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = stage0_target[:, 2]
         cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
@@ -2761,7 +2768,7 @@ class DoorPregrasp(
             sim_utils_vis.spawn_sphere(
                 prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_stage0_target",
                 cfg=vis_stage0_cfg,
-                translation=(-0.70, 0.0, 0.0),  # staging pos: 70cm from handle along -X
+                translation=(-self._get_a2_stage0_staging_x_offset(), 0.0, 0.0),
             )
 
             # Handle coordinate axis visualizer: 3 cylinders (R=X, G=Y, B=Z) at grasp_target.

@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-01 21:55 HKT - 完成 Stage0 Staging Offset + Door Handle Height Randomization 的 reward/transition 相关记录。
+
+  (1) Stage0 walk reward、stage0->1 transition 与 `vis_stage0_target` 现在统一使用 env config `a2_stage0_staging_x_offset=0.50`，替代旧 hardcoded 70cm staging distance。
+
+  (2) Online `DoorSpawnerCfg.door_handle_tblr` height range 改为 `(TOP=1.35, BOTTOM=0.80)`，`spawn_door()` 仍使用 `uniform(bottom, top)`；这会扩大 stage1/2 pregrasp/grasp target 高度分布，用于逼迫 policy 学 arm reach，而不是单一固定高度下用 base/trunk 蹭近。
+
+  (3) Static validation 已完成：py_compile、Hydra compose full/stage0-2 config、no-sim source sanity 与 `git diff --check` 均通过。Runtime/PPO smoke 按用户指令跳过。
+
 - 2026-07-01 19:17 HKT - 修复 A2_Piper actual actuator yaml routing 的 IsaacLab configclass runtime crash。
 
   (1) 用户训练 traceback 显示 `ArticulationCfg.validate()` 在 `__instancecheck__` 中递归到 `RecursionError`；root cause 是 A2 branch 把 Hydra/OmegaConf `ListConfig` 直接传给 `ImplicitActuatorCfg.joint_names_expr`。

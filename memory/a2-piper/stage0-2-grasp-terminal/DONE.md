@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-01 21:55 HKT - 完成 Stage0 Staging Offset + Door Handle Height Randomization。
+
+  (1) `gr00t/rl/config/env/door_open_a2_base.yaml` 新增 `a2_stage0_staging_x_offset: 0.50`，`DoorPregrasp` 的 stage0 walk reward、stage0->1 advance condition 与 `vis_stage0_target` 都通过同一个 fail-fast config helper 读取该 offset，不再 hardcode `0.70`。
+
+  (2) `gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py` 的 online `DoorSpawnerCfg.door_handle_tblr` 从 `(0.95, 0.85, 0.08, 0.15)` 改为 `(1.35, 0.80, 0.08, 0.15)`；`spawn_door()` 仍按 `uniform(bottom, top)` 采样 height，因此实际范围为 `0.80~1.35m`。Offline generator 未改，避免误扩 scope。
+
+  (3) Validation: `py_compile` PASS；Hydra compose full A2 与 stage0-2 quick config 均解析出 `a2_stage0_staging_x_offset=0.50`；no-sim source sanity 确认 `door_handle_tblr` 与 `uniform(bottom, top)` semantics；`git diff --check` PASS。PPO/IsaacSim smoke 按用户指令未跑。
+
 - 2026-07-01 19:17 HKT - 修复 A2_Piper actuator yaml routing 导致的 env construction `RecursionError`。
 
   (1) 训练 traceback 的 crash 点是 `Articulation(robot_articulation_config)` 内部调用 `ArticulationCfg.validate()`；root cause 是 `ImplicitActuatorCfg.joint_names_expr` 收到了 Hydra/OmegaConf `ListConfig`。

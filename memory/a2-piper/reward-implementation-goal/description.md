@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-01 19:17 HKT
+last_updated: 2026-07-01 21:55 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -61,6 +61,7 @@ read_when:
 - 2026-07-01 13:50 HKT - `logs_eval/restrictPre-Grasp_upKP1000` 反馈高 stiffness trial 不成立为下一步方向：formal success 仍为 false，env0 force 仍低于 both-contact threshold，env1 无 contact 且 primitive open；同时 stage1 仍出现 base forward creep。当前配置回退 arm stiffness 到上一版 arm values（`arm_j1=64, arm_j2=128, arm_j3-j6=64`），仅将 gripper `arm_j7/j8` 设为 80.0 做中间夹持力 trial；这不改变 reward design 判断，后续仍应聚焦 gripper primitive / aperture-contact-force-stability。
 - 2026-07-01 19:05 HKT - A2_Piper actual IsaacSim actuator yaml routing 已修正：`isaacsim.py` 的 A2 branch 现在从 `a2_piper.yaml` 解析 per-DOF `stiffness/damping/effort_limit_sim/velocity_limit_sim/armature/friction` 到 `ImplicitActuatorCfg`，不再 hardcode `arm_j1..j5=80/4`、`arm_j6=60/3`、`arm_j7/j8=40/1`。Gripper `arm_j7/j8` effort limit 改为 `30.0`，当前 actual gripper config 为 `Kp=80.0, Kd=1.0, effort_limit_sim=30.0`。之前 `upKP1000/KP80` stiffness trial 只改变 saved config，不是 actual actuator gain 的有效 A/B；后续 contact force / squeeze 结论必须基于本修正后的 retrain/eval。
 - 2026-07-01 19:17 HKT - A2_Piper actuator yaml routing 的 runtime correction 已完成：Hydra/OmegaConf 的 `ListConfig` 不能直接传给 IsaacLab `ImplicitActuatorCfg.joint_names_expr`，否则 `ArticulationCfg.validate()` 会在 configclass validation 中递归到 `RecursionError`。`isaacsim.py` 现在在 IsaacLab config boundary 将 `dof_names` 转成 plain `list[str]`，并将 per-DOF limit/armature/friction lists 转成 plain `list[float]`；这不改变 Kp/Kd/limit 语义，只修正 container type。
+- 2026-07-01 21:55 HKT - Stage0 walk-to-door staging target 已参数化为 `a2_stage0_staging_x_offset=0.50`，并统一用于 stage0 reward、stage0->1 transition 与 debug visual；online door handle height randomization 从 `0.85~0.95m` 扩为 `0.80~1.35m`。该改动影响 stage0/stage1 reward/transition 数据分布，下一轮 runtime 需重点检查 arm reaching vs base creep。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -136,6 +137,8 @@ read_when:
 - 2026-06-16 21:41 HKT - 同步 A2 12D high-level action contract 到 reward memory：`penalty_delta_action_rate` 当前覆盖 arm dims `[5..10]`；`orientation_control` 读取 5D physical `base_command` 的 pitch/roll，而不是旧 10D placeholder buffer。
 
 ## DONE Summary
+
+- 2026-07-01 21:55 HKT - 完成 stage0 staging offset 参数化与 online door handle height randomization 调整：stage0 reward/transition/debug visual 统一使用 `a2_stage0_staging_x_offset=0.50`，online `DoorSpawnerCfg.door_handle_tblr` height range 改为 `0.80~1.35m`；static validation 通过，PPO smoke 未跑。
 
 - 2026-07-01 19:05 HKT - 完成 A2_Piper actual IsaacSim actuator yaml routing：A2 branch 的 `ImplicitActuatorCfg` 从 `a2_piper.yaml` per-DOF 解析 stiffness/damping/effort/velocity/armature/friction，gripper effort limit 改为 `30.0`；旧 upKP/KP80 结论标记为 saved-config trial，后续需基于本修正 retrain/eval。
 

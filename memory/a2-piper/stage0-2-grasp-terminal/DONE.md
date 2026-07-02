@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-02 18:41 HKT - 完成 gripper effort `30N` single-variable ablation config。
+
+  (1) 用户已重新训练/eval `restrictPre-Grasp_v2` reproduction control config，并确认行为与原 `restrictPre-Grasp_v2` 一致。
+
+  (2) 本次只将 A2 Piper gripper `arm_j7/j8` effort limit 从 `10.0` 改为 `30.0`；Kp/Kd 保持 v2 actual-equivalent（`arm_j1..j5=80/4`、`arm_j6=60/3`、`arm_j7/j8=40/1`）。
+
+  (3) Stage0 staging offset 仍为 config `0.70`，online handle height 仍为 `0.85~0.95m`；reward、gate、stage transition、gripper primitive 与 complete predicate 均未改变。
+
+  (4) PPO smoke 未跑；该 change 只服务下一轮 `30N` ablation retrain/eval。
+
 - 2026-07-02 16:17 HKT - 完成 `restrictPre-Grasp_v2` reproduction control config rollback 记录。
 
   (1) Stage0 staging offset 通过 config 回到 `0.70`，不是 hardcode。

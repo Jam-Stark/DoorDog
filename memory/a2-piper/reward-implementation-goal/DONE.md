@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0` effort-only ablation 诊断。
+
+  (1) Saved training config 与 `replay_v2` 递归 diff 仅有 experiment/output path 和 `robot.dof_effort_limit_list[18/19] 10.0 -> 30.0`。
+
+  (2) Eval 结果为负向分叉：`episode_goal_reached=[false,false]`，terminal reason 均为 `stage_overtime`，episode rewards 从 `replay_v2` 的约 `102-105` 降到约 `71-82`。
+
+  (3) `stage2_step_trace.json` 显示 `base_v0` 两条 env 的 `gripper_primitive_raw` 全程 positive/open，contact force 与 squeeze 全程 0；env0 虽有 279/330 帧 close gate 但未学会 close command，env1 close gate 0/310。
+
+  (4) 结论：`30N` effort limit 不是当前 sufficient fix；下一步应回到 gripper primitive / close-stage shaping 与 stage1/base-creep 约束设计，不继续把 blocker 归因于单纯夹持力上限不足。
+
 - 2026-07-02 18:51 HKT - 完成 stage0-2 train/eval log cleanup。
 
   (1) `logs_eval` 只保留 `replay_v2`，删除其他 historical eval records。

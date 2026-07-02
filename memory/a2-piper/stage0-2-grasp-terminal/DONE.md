@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-02 18:51 HKT - 完成 stage0-2 train/eval log cleanup。
+
+  (1) `logs_eval` 只保留 `replay_v2`，删除其他 historical eval records。
+
+  (2) `logs_rl/a2_piper_stage0_2_grasp_terminal_a2_base` 只保留 `replay_v2-20260702_162608`，删除其他 historical training records。
+
+  (3) 后续 stage0-2 ablation training/eval 以 `replay_v2` 为 baseline，逐个变量做对照。
+
 - 2026-07-02 18:41 HKT - 完成 gripper effort `30N` single-variable ablation config。
 
   (1) 用户已重新训练/eval `restrictPre-Grasp_v2` reproduction control config，并确认行为与原 `restrictPre-Grasp_v2` 一致。

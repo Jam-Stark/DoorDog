@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-02 18:41 HKT
+last_updated: 2026-07-02 18:51 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -64,6 +64,7 @@ read_when:
 - 2026-07-01 21:55 HKT - Stage0 walk-to-door staging target 已参数化为 `a2_stage0_staging_x_offset=0.50`，并统一用于 stage0 reward、stage0->1 transition 与 debug visual；online door handle height randomization 从 `0.85~0.95m` 扩为 `0.80~1.35m`。该数据分布 trial 已被 2026-07-02 reproduction control 暂停。
 - 2026-07-02 16:17 HKT - 当前 active 对照改为 `restrictPre-Grasp_v2` reproduction control config：stage0 staging offset 通过 config 回到 `0.70`（不是 hardcode），online `DoorSpawnerCfg.door_handle_tblr=(0.95, 0.85, 0.08, 0.15)` 恢复 `0.85~0.95m`，A2 Piper yaml actuator 回到 v2 actual-equivalent（`arm_j1..j5=80/4`、`arm_j6=60/3`、`arm_j7/j8=40/1`、gripper effort `10.0`）且继续走 yaml-driven routing。Reward、gate、stage transition、gripper primitive 与 complete predicate 不变；PPO smoke 未跑。`0.50` staging、`0.80~1.35m` handle height 与 `arm_j7/j8=80` + `30N` gripper effort trial 暂停，等 control 对照完成后再决定是否恢复。
 - 2026-07-02 18:41 HKT - 用户完成 reproduction training/eval，确认 `restrictPre-Grasp_v2` control config 行为与原 v2 一致；当前 active ablation 只把 gripper `arm_j7/j8` effort limit 从 `10.0` 提到 `30.0`，保留 v2 control 的 stage0 offset `0.70`、handle height `0.85~0.95m`、Kp/Kd（`arm_j1..j5=80/4`、`arm_j6=60/3`、`arm_j7/j8=40/1`）以及 reward/gate/stage transition/gripper primitive/complete predicate 不变。
+- 2026-07-02 18:51 HKT - 清理 historical stage0-2 train/eval logs，只保留 `logs_rl/a2_piper_stage0_2_grasp_terminal_a2_base/replay_v2-20260702_162608` 与 `logs_eval/replay_v2`；后续 reward/actuator/staging/height ablation 的 runtime 对照都以该 `replay_v2` baseline 为准。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -122,7 +123,7 @@ read_when:
 
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该 reward/transition 数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 runtime/eval 需确认 stage0 行走时 `arm_j1..arm_j6` 保持 `default_dof_pos`、stage0 action gate 未误伤 stage1+ arm reaching、`_stage_0_to_1_advance_condition()` cadence/termination 正常。本轮未跑 PPO/IsaacSim smoke。
-- 2026-07-02 18:41 HKT - `restrictPre-Grasp_v2` control 已复现；当前下一轮 retrain/eval 只验证 gripper effort `10.0 -> 30.0` 单变量变化，Kp/Kd、stage0 offset、handle height 与 reward/gate 等保持 v2 control 不变。
+- 2026-07-02 18:51 HKT - 后续 stage0-2 reward/actuator/staging/height ablation 以 `replay_v2` 为 baseline；当前下一轮 retrain/eval 只验证 gripper effort `10.0 -> 30.0` 单变量变化，Kp/Kd、stage0 offset、handle height 与 reward/gate 等保持 v2 control 不变。
 - 2026-06-30 21:47 HKT - Stage2 Grasp Target Tracking Reward Fix 的第一轮 runtime eval 已记录：center-Y / close gate / handle-distance tracking 明显改善，并能产生视觉 grasp-like weak contact；但 stage2 complete 仍未通过。下一步 reward/primitive work 应聚焦 gripper primitive 与 close-stage shaping（continuous aperture、primitive rate/hysteresis、bilateral squeeze/contact-force、force stability / over-force penalty），而不是继续追 grasp target 位置。
 - 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
 - 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
@@ -141,6 +142,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-02 18:51 HKT - 完成 stage0-2 train/eval log cleanup：`logs_eval` 只保留 `replay_v2`，`logs_rl/a2_piper_stage0_2_grasp_terminal_a2_base` 只保留 `replay_v2-20260702_162608`；该 run/eval 成为后续逐个 ablation 试验的 baseline。
 - 2026-07-02 18:41 HKT - 完成 gripper effort `30N` single-variable ablation config：保留 `restrictPre-Grasp_v2` 复刻 control 的 stage0 offset `0.70`、online handle height `0.85~0.95m` 与 A2 Piper Kp/Kd，单独将 `arm_j7/j8` effort limit 从 `10.0` 改为 `30.0`；reward/gate/stage transition/gripper primitive/complete predicate 未改，PPO smoke 未跑。
 - 2026-07-02 16:17 HKT - 完成 `restrictPre-Grasp_v2` reproduction control config rollback 记录：stage0 offset config `0.70`、online handle height `0.85~0.95m`、A2 Piper yaml actuator v2 actual-equivalent（含 `arm_j7/j8=40/1`、gripper effort `10.0`）；reward/gate/stage transition/gripper primitive/complete predicate 未改，PPO smoke 未跑。
 - 2026-07-01 21:55 HKT - 完成 stage0 staging offset 参数化与 online door handle height randomization 调整：stage0 reward/transition/debug visual 统一使用 `a2_stage0_staging_x_offset=0.50`，online `DoorSpawnerCfg.door_handle_tblr` height range 改为 `0.80~1.35m`；static validation 通过，PPO smoke 未跑。该数据分布 trial 已被 2026-07-02 reproduction control 暂停。

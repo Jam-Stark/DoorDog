@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-02 16:17 HKT - 完成 `restrictPre-Grasp_v2` reproduction control config rollback 记录。
+
+  (1) Stage0 staging offset 通过 config 回到 `0.70`，不是 hardcode。
+
+  (2) Online door handle height range 通过 `DoorSpawnerCfg.door_handle_tblr=(0.95, 0.85, 0.08, 0.15)` 恢复为 `0.85~0.95m`。
+
+  (3) A2 Piper yaml actuator 数值回到 v2 actual-equivalent，同时保留 yaml-driven routing：`arm_j1..j5=80/4`、`arm_j6=60/3`、`arm_j7/j8=40/1`、gripper effort `10.0`。
+
+  (4) Reward、gate、stage transition、gripper primitive 与 complete predicate 均未改变；PPO smoke 未跑。
+
 - 2026-07-01 21:55 HKT - 完成 Stage0 Staging Offset + Door Handle Height Randomization。
 
   (1) `gr00t/rl/config/env/door_open_a2_base.yaml` 新增 `a2_stage0_staging_x_offset: 0.50`，`DoorPregrasp` 的 stage0 walk reward、stage0->1 advance condition 与 `vis_stage0_target` 都通过同一个 fail-fast config helper 读取该 offset，不再 hardcode `0.70`。

@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-02 21:31 HKT - 完成 arm Kp/Kd ablation config。
+
+  (1) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 将 `arm_j7/j8` effort limit 从 `30.0/30.0` 回退到 `10.0/10.0`。
+
+  (2) Actual arm Kp/Kd 改为：`arm_j1=64/3`、`arm_j2=128/4.5`、`arm_j3=64/3`、`arm_j4=64/3`、`arm_j5=64/3`、`arm_j6=64/3`；`arm_j7/j8` 保持 `40/1`。
+
+  (3) Stage0 offset、online handle height、reward/gate、stage transition、gripper primitive 与 complete predicate 均未改；目标是基于 `replay_v2` baseline 重新训练/评估 softer/lower-damped arm dynamics 对 stage1 reach vs base creep 与 stage2 grasp tracking 的影响。
+
+  (4) Validation: YAML sanity PASS，`git diff --check` PASS，read-only Oracle-style review PASS；当前 shell 缺少 `hydra` module，未跑 Hydra compose。未跑 PPO/IsaacSim smoke。
+
 - 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0` effort-only ablation 诊断。
 
   (1) Saved training config 与 `replay_v2` 递归 diff 仅有 experiment/output path 和 `robot.dof_effort_limit_list[18/19] 10.0 -> 30.0`。

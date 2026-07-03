@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-03 12:18 HKT - 完成 gripper Kp/Kd ablation config。
+
+  (1) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 `arm_j7/j8` stiffness 从 `40.0/40.0` 改为 `80.0/80.0`。
+
+  (2) `arm_j7/j8` damping 从 `1.0/1.0` 改为 `3.0/3.0`。
+
+  (3) `arm_j7/j8 effort_limit_sim` 保持 `10.0/10.0`，`arm_j1..j6` 保持 base_v1 gains，stage0 offset、online handle height、reward/gate、stage transition、gripper primitive 与 complete predicate 均未改。
+
+  (4) Validation: YAML sanity PASS，`git diff --check` PASS，read-only Oracle-style review PASS。未跑 PPO/IsaacSim smoke。
+
 - 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1` arm Kp/Kd ablation runtime 记录。
 
   (1) Saved config 相对 `replay_v2` 只差 arm_j1-j6 Kp/Kd 与 run path；`arm_j7/j8 effort_limit_sim` 已回到 `10.0/10.0`。

@@ -153,8 +153,8 @@ robot:
       arm_j4: 64.0
       arm_j5: 64.0
       arm_j6: 64.0
-      arm_j7: 40.0
-      arm_j8: 40.0
+      arm_j7: 80.0
+      arm_j8: 80.0
     damping:
       hip: 4.5
       thigh: 4.5
@@ -165,8 +165,8 @@ robot:
       arm_j4: 3.0
       arm_j5: 3.0
       arm_j6: 3.0
-      arm_j7: 1.0
-      arm_j8: 1.0
+      arm_j7: 3.0
+      arm_j8: 3.0
     action_scale: 0.25
     action_clip_value: 100.0
     clip_torques: true

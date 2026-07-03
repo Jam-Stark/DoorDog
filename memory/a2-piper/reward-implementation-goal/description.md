@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-03 09:40 HKT
+last_updated: 2026-07-03 12:18 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -68,6 +68,7 @@ read_when:
 - 2026-07-02 21:23 HKT - `logs_eval/base_v0` 完成 `arm_j7/j8 effort_limit_sim 10.0 -> 30.0` effort-only ablation eval，结果为负向分叉：saved config 与 `replay_v2` 只差 experiment/output path 与两个 gripper effort limit，但 policy 在 stage2 全程保持 open primitive，contact force/squeeze 为 0，且 env1 完全不进 close gate。该结果强化 2026-06-30 21:47 的 reward design 判断：下一步应处理 close-stage action/reward/primitive credit assignment 与 base/pose 局部最优，不应继续把主要 blocker 解释为 gripper effort limit 太低。
 - 2026-07-02 21:31 HKT - 当前 active actuator ablation config：`arm_j7/j8 effort_limit_sim` 回退到 `10.0/10.0`，`arm_j1..j6` actual Kp/Kd 改为 `arm_j1=64/3`、`arm_j2=128/4.5`、`arm_j3..j6=64/3`；`arm_j7/j8` Kp/Kd 维持 `40/1`。Reward/gate/stage transition 未改，该 trial 只验证 arm dynamics 对 stage1 reach/base creep 与 stage2 grasp tracking 的影响。
 - 2026-07-03 09:40 HKT - `logs_eval/base_v1` 完成 arm Kp/Kd ablation eval，行为接近 `replay_v2`：reward `103.45/101.65`，stage2 close gate `339/348` 与 `333/341`，negative close command `335/348` 与 `328/341`。这支持当前 arm gains 是正确优化，同时说明 `base_v0` 的大行为差异主要来自 `30N` effort-only 改动改变了 close-stage credit/local optimum，而不是 retrain 随机性本身或 arm gain 调整必然导致漂移。
+- 2026-07-03 12:18 HKT - 当前 active gripper-force ablation config：在 `base_v1` actuator gains 上只把 `arm_j7/j8` Kp/Kd 从 `40/1` 提到 `80/3`，`arm_j7/j8 effort_limit_sim` 保持 `10.0/10.0`；reward/gate/stage transition 未改。目的：优先验证 gripper drive stiffness/damping 是否能提高 close-stage contact force/squeeze，而不是再次直接提高 effort cap。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -126,7 +127,7 @@ read_when:
 
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该 reward/transition 数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 runtime/eval 需确认 stage0 行走时 `arm_j1..arm_j6` 保持 `default_dof_pos`、stage0 action gate 未误伤 stage1+ arm reaching、`_stage_0_to_1_advance_condition()` cadence/termination 正常。本轮未跑 PPO/IsaacSim smoke。
-- 2026-07-03 09:40 HKT - `base_v1` arm Kp/Kd ablation 已验证为行为上接近 `replay_v2` 的正确优化；下一步 reward/primitive work 仍应聚焦 gripper primitive / close-stage shaping、force/contact reward 与 stage1/base-creep 约束。若未来重新试 `30N`，应作为 late curriculum / post-close-stabilization trial。
+- 2026-07-03 12:18 HKT - 下一轮 retrain/eval 以 `base_v1` actuator gains 为 baseline，验证 gripper Kp/Kd ablation：`arm_j7/j8 Kp=80.0, Kd=3.0, effort_limit_sim=10.0/10.0`。重点看是否保持 close behavior basin、contact force/squeeze 是否上升、是否出现 chatter/over-force 或重新掉入 open-gripper local optimum。
 - 2026-06-30 21:47 HKT - Stage2 Grasp Target Tracking Reward Fix 的第一轮 runtime eval 已记录：center-Y / close gate / handle-distance tracking 明显改善，并能产生视觉 grasp-like weak contact；但 stage2 complete 仍未通过。下一步 reward/primitive work 应聚焦 gripper primitive 与 close-stage shaping（continuous aperture、primitive rate/hysteresis、bilateral squeeze/contact-force、force stability / over-force penalty），而不是继续追 grasp target 位置。
 - 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
 - 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
@@ -145,6 +146,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-03 12:18 HKT - 完成 gripper Kp/Kd ablation config：`arm_j7/j8` actual Kp/Kd 从 `40/1` 改为 `80/3`，effort limit 保持 `10.0/10.0`；reward/gate/stage transition 未改，YAML sanity 与 read-only review PASS，未跑 PPO/IsaacSim smoke。
 - 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1` arm Kp/Kd ablation runtime 记录：该 run 复现 `replay_v2` 的 close gate / negative close command 行为，reward 接近 baseline，说明 5ca012a actuator gains 是正确优化；formal success 仍未通过，后续 blocker 仍是 close/force/contact/primitive design。
 - 2026-07-02 21:31 HKT - 完成 arm Kp/Kd ablation config：gripper effort 从 `30.0/30.0` 回退到 `10.0/10.0`，`arm_j1..j6` actual Kp/Kd 改为 `64/3, 128/4.5, 64/3, 64/3, 64/3, 64/3`；reward/gate/stage transition 未改，review PASS，未跑 PPO/IsaacSim smoke。
 - 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0` effort-only ablation 诊断：`arm_j7/j8 effort_limit_sim 10.0 -> 30.0` 未复现 `replay_v2` close/grasp-like 行为，stage2 primitive 全程 open、contact force/squeeze 为 0，formal success 仍 false；reward design 方向保持 gripper primitive / close-stage shaping。

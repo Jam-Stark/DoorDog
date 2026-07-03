@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1` arm Kp/Kd ablation runtime 记录。
+
+  (1) Saved config 相对 `replay_v2` 只差 arm_j1-j6 Kp/Kd 与 run path；`arm_j7/j8 effort_limit_sim` 已回到 `10.0/10.0`。
+
+  (2) Eval behavior 接近 `replay_v2`：episode reward `103.45/101.65` vs baseline `104.90/102.12`，stage2 close gate `339/348` 与 `333/341`，negative close command `335/348` 与 `328/341`。
+
+  (3) Contact/squeeze 仍不足 formal success：both-contact predicate frames 仍为 0；该 run 是 actuator behavior 正确优化，不是 complete fix。
+
+  (4) 结论：5ca012a arm gains 可以作为当前 actuator config；`base_v0` 的行为大变更应解释为 `30N` effort-only 改动导致训练 credit / local optimum 分叉，而不是所有 actuator retrain 都会大漂移。
+
 - 2026-07-02 21:31 HKT - 完成 arm Kp/Kd ablation config。
 
   (1) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 将 `arm_j7/j8` effort limit 从 `30.0/30.0` 回退到 `10.0/10.0`。

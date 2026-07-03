@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-03 20:22 HKT - 记录 curriculum-state 调试规则。
+
+  (1) A2 checkpoints 保存并恢复 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`。
+
+  (2) `termination_level` 当前影响 A2 `upper_dof_overspeed` threshold：`termination_level * 20 rad/s`，覆盖 `arm_j1..j6`，排除 gripper `arm_j7/j8`。
+
+  (3) `reward_penalty_scale` 会乘到 `reward_penalty_reward_names` 内的 positive shaping reward，例如 `walk_to_door`、`gripper_handle_orientation`、`pregrasp_target_distance`、`grasp_target_distance`、`a2_stage2_close_command/progress`、`a2_stage2_handle_center_y/approach_xz` 等。
+
+  (4) 后续 reward/behavior 诊断看到 reward drop、short episode、stage1/2 behavior drift 或 eval early termination 时，应先核对这两个 saved env-state values 和 wandb history，避免把 curriculum state 的影响误判为 reward/gate/actuator 本身的单变量效果。
+
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config。
 
   (1) 保留当前 `base_v2` actuator config：`arm_j7/j8 Kp=80, Kd=3, effort_limit_sim=10`。

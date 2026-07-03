@@ -1,5 +1,6 @@
 # TODO
 
+- 2026-07-03 20:22 HKT - 后续 reward debug / ablation 需要把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项：尤其是 resume/eval checkpoint 时，先确认 strict termination 是否正在约束 arm smoothing、positive shaping 是否被 `reward_penalty_scale` 压低，再解释 policy behavior 或提出 reward 修改。
 - 2026-07-02 16:17 HKT - 暂停验证 stage0 reward/transition 数据分布 trial：`a2_stage0_staging_x_offset=0.50` 与 `doorHandleHeight 0.80~1.35m` 先不作为当前 active config；先运行 `restrictPre-Grasp_v2` reproduction control config（stage0 offset config `0.70`，online handle height `0.85~0.95m`），再决定是否恢复该 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成 static/review，但未跑 PPO/IsaacSim smoke；后续 runtime/eval 需要确认 stage0 行走时 `arm_j1..arm_j6` 维持 `default_dof_pos`、stage0 action gate 不影响 stage1+ arm reaching、`a2_stage0_arm_default_max_deviation: 0.10` 不造成 stage0->1 cadence regression。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且两者均不进入 `reward_penalty_reward_names`。下一步 retrain/eval 检查 negative close command frames 是否恢复、base forward creep 是否下降、behavior 是否向 `base_v1/replay_v2` basin 回归；formal success/contact force 不作为该 config alone 的预期。

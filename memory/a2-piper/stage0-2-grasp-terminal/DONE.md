@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-03 20:22 HKT - 记录 `base_v3` curriculum-state finding。
+
+  (1) A2 stage0-2 checkpoint 会保存 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`，eval/resume 会恢复这些 env-state curriculum values。
+
+  (2) `base_v3` final checkpoint 的 `termination_level≈0.25` 将 A2 `upper_dof_overspeed` threshold 从 `20 rad/s` 收紧到约 `5 rad/s`，解释原 `logs_eval/base_v3` 在 `stage1` 约 4s 以 `upper_dof_overspeed` early termination。
+
+  (3) 临时复制同一 actor checkpoint 并只把 `termination_level` 改回 `1.0` 后，`logs_eval/base_v3_term1` 两条 env 均进入 `STAGE_GRASP` 并以 `complete` terminal，说明原 4s 终止主要来自 saved strict termination curriculum state，而不是 actor 完全不会 grasp。
+
+  (4) 同一 checkpoint 的 `reward_penalty_scale≈0.25` 会缩小 `reward_penalty_reward_names` 内 positive shaping terms 的训练/episode reward 贡献，例如 `gripper_handle_orientation`、`grasp_target_distance`、`a2_stage2_handle_center_y/approach_xz`、`a2_stage2_close_command/progress`。后续解读 base_v3 resume 曲线时必须同时看这两个 env-state values。
+
 - 2026-07-03 19:47 HKT - 记录 A2 stage0-2 TRL resume semantics 诊断。
 
   (1) `TRLPPOTrainer.train()` 会把 `state.max_steps` 设为 CLI/Hydra 的 `algo.trl.num_total_batches`。

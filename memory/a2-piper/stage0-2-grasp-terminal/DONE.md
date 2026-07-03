@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-03 19:47 HKT - 记录 A2 stage0-2 TRL resume semantics 诊断。
+
+  (1) `TRLPPOTrainer.train()` 会把 `state.max_steps` 设为 CLI/Hydra 的 `algo.trl.num_total_batches`。
+
+  (2) `load_checkpoint()` 会恢复 checkpoint 内的 `state.global_step`；Transformers `DefaultFlowCallback.on_step_end()` 在 `global_step >= max_steps` 时设置 `should_training_stop=True`。
+
+  (3) 因此当前 A2 stage0-2 resume 命令里的 `algo.trl.num_total_batches` 是最终 target global step，不是额外再训练 batch 数。`last.pt global_step=600` 时，若目标是最终 1200 iterations，应传 `algo.trl.num_total_batches=1200`；传 600 会在 resume 后第一步立刻 stop，表现为只有一个 iteration / no iteration 2，并可能被误判为 GPU/PhysX shutdown error。
+
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config 记录。
 
   (1) 保留当前 `base_v2` actuator config：`arm_j7/j8 Kp=80, Kd=3, effort_limit_sim=10`。

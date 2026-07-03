@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-03 15:45 HKT
+last_updated: 2026-07-03 19:47 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -53,6 +53,7 @@ read_when:
 - 当前默认 A2 env config 是 6-stage：`max_stage_time`、`stage_reward_scale` 与 `staged_reset_ratios` 都是 6 项。
 - 当前默认代码中 `_stage_2_to_complete_condition()` 已实现 A2 grasp completion；但在 6-stage config 下，`_stage_2_to_3_advance_condition()` 使用 `completion | door_open_bypass` 进入 stage3，不是 episode terminal。
 - `stage` observation dim 来自 `len(env.config.max_stage_time)`。把任务截成 3-stage 会改变 actor/critic input dim，因此不能直接 resume 6-stage checkpoint。
+- 2026-07-03 19:47 HKT resume semantics diagnosis: `TRLPPOTrainer.train()` 会把 `state.max_steps` 设为 CLI/Hydra 的 `algo.trl.num_total_batches`，而 `load_checkpoint()` 会恢复 checkpoint 内的 `state.global_step`。Transformers `DefaultFlowCallback.on_step_end()` 在 `global_step >= max_steps` 时设置 `should_training_stop=True`。因此当前 A2 stage0-2 resume 命令里的 `algo.trl.num_total_batches` 是最终 target global step，不是“额外再训练 batch 数”；例如 `last.pt global_step=600` 时，想继续到 1200 iterations 应传 `algo.trl.num_total_batches=1200`，不是 600。若传 600，resume 后第一步就会因 `global_step >= max_steps` 停止，容易误判为 GPU/PhysX shutdown error 或 iteration 2 missing。
 - 2026-06-22 20:42 HKT static validation resolved `obs_dims.stage: 3`，并确认 stage3+ reward scales 在 quick test config 中为 `0.0`。
 - 2026-06-22 21:23 HKT reviewer validation: `py_compile` passed；lightweight probe confirmed A2_Base TorchScript is absent from wrapper `named_children()` / `named_modules()` / `named_parameters()` while property access still works；bounded smoke reached `Using frozen A2_Base policy for low-level leg actions` and `===training policy===`，说明旧 optimizer `ParameterDict contains()` blocker 已移除。
 - 2026-06-22 21:31 HKT source fact: IsaacLab `FrameTransformer` 对 duplicate target body 的 frame names 使用 `set`，会让同一个 `grasp_target` rigid body 上的 `handle` / `pregrasp` target order 不可靠；A2-local `OrderedTargetFrameTransformer` 只用于该 gripper-handle sensor，并让 `_get_a2_gripper_handle_frame_transformer()` 保持 exact `['handle', 'pregrasp']` fail-fast contract。
@@ -211,6 +212,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-03 19:47 HKT - 记录 A2 stage0-2 TRL resume semantics：`algo.trl.num_total_batches` 是最终 `state.max_steps` / target global step，不是额外 batch 数；`last.pt global_step=600` 继续到 1200 应传 `algo.trl.num_total_batches=1200`，传 600 会在 resume 后被 Transformers `DefaultFlowCallback` 立刻 stop。
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config 记录：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full A2 targeted Hydra compose、stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review 均 PASS，PPO smoke 未跑。
 - 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录：`arm_j7/j8 Kp/Kd 80/3`、effort `10/10` 未提升 force/squeeze，反而和 `base_v0` 一样让 policy 在 stage2 全程 open primitive、contact force/squeeze 为 0；该 trial 不作为当前正向配置。
 - 2026-07-03 12:18 HKT - 完成 gripper Kp/Kd ablation config：`arm_j7/j8` actual Kp/Kd 从 `40/1` 改为 `80/3`，effort limit 保持 `10.0/10.0`；其他 actuator/reward/env/stage logic 未改，YAML sanity 与 read-only review PASS，未跑 PPO/IsaacSim smoke。

@@ -111,3 +111,8 @@ robot:
   actions_dim: 20
   check_action_dim: True
   terminate_after_contacts_on : []
+
+env:
+  config:
+    reset_from_dataset:
+      enabled: False

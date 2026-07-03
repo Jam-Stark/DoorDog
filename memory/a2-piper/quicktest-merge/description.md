@@ -2,7 +2,7 @@
 name: quicktest-merge
 scope: 记录 2026-06-25 从 quickTEST branch 合并回 A2_Piper 主线的内容清单、分类与 6-stage 影响边界
 status: active
-last_updated: 2026-06-25 20:30 HKT
+last_updated: 2026-07-03 20:53 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/quicktest-merge/description.md
@@ -72,8 +72,17 @@ read_when:
 ## 6-stage 影响说明
 
 - 默认 full task config `door_open_a2_base_lstm.yaml` 未被 quickTEST 修改，6-stage 语义保持。
+- 2026-07-03 20:53 HKT - full 6-stage exp 现在显式设置 `env.config.reset_from_dataset.enabled=False`，与 stage0-2 quick exp 一样避免 A2_Piper 误走 G1/LAFAN `ResetFromDataset` motion reset path；这只修复 full entry 的 reset blocker，不改变 reward、stage transition、robot actuator 或 shared env 默认。
 - `staged_task_base.py` 的 `is_complete = is_last_stage & is_stage_complete` 是 bugfix：原代码在 6-stage 下 stage2 complete 就会终止 episode，这是错误的；修复后只有 last stage（stage5）complete 才触发 episode terminal，中间 stage complete 只触发 stage advance。
 - B 类改动（contact history gate、stage2 close rewards）会改变 6-stage 的 stage2→stage3 advance 条件，但这是为了修复 false-success（open gripper 撞出 contact spike 误触发 advance）。用户已审查并确认接受这些改动进入 6-stage 主线。
+
+## TODO Summary
+
+- 2026-07-03 20:53 HKT - full 6-stage entry 的 G1 `ResetFromDataset` blocker 已修；如果正式训练前仍要遵循原 TODO，应跑 small PPO smoke 验证 A+B 类 quickTEST merge 改动在 6-stage 下无 crash。用户当前计划可直接开 full stage training，并在 runtime 中观察 stage2→3、stage3→4、stage4→5、completion 与 curriculum state。
+
+## DONE Summary
+
+- 2026-07-03 20:53 HKT - `door_open_a2_base_lstm.yaml` 新增 `env.config.reset_from_dataset.enabled=False`，Hydra resolved full exp 确认该 key 为 `False` 且 `max_stage_time` 仍为 6-stage `[250,100,100,100,100,200]`。
 
 ## Source Facts
 

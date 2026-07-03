@@ -2,7 +2,7 @@
 name: door-asset-randomization-baseline
 scope: 当前 Doorman/G1 与 A2_Piper door training asset baseline，以及后续 door asset randomization 的入口事实
 status: active
-last_updated: 2026-07-03 16:24 HKT
+last_updated: 2026-07-03 16:31 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/door-asset-randomization-baseline/description.md
@@ -56,6 +56,17 @@ read_when:
 - Caveat：A2+Piper 是 single-arm setup，`door_open_lr` left/right 只是 handle-side mirror randomization，不等于已经 runtime 验证 single-arm workspace 对 left/right 都舒服。实现前仍应先跑 GUI/static preview 或 short smoke，检查 base staging、Piper reach、`penalty_face_door`、stage0->1 threshold、stage1 pregrasp 与 stage2 close gate。
 - 推荐顺序：先完成并确认 `right-only` stage0-2 稳定，再启用 `door_open_lr=["left", "right"]` retrain；暂时不要同时启用 `door_open_io=["in", "out"]`。
 
+## In/Out Randomization Decision
+
+- 2026-07-03 16:31 HKT - 讨论结论：如果后续做 push/pull style randomization，不建议保持 `door_open_io=["out"]` 然后隐藏地 mirror robot initial pose。更推荐启用 `door_open_io=["out", "in"]`，并把 `door_open_io` 当作 task-side semantic label，驱动 robot-door relative pose 与 through direction。
+- 理由：保持 asset metadata `out` 但让部分 env 从另一侧 approach，会造成 config/obs/eval/log/curriculum/checkpoint 语义混乱；episode 到底是 push 还是 pull 无法从 `doorOpenIO` 判断，debug 成本高。
+- 当前 `doorOpenIO` 不改变 door asset 物理构造、hinge sign、handle geometry 或 reward routing；真正要 randomize 的是 robot 与 door 的相对侧。可将 `door_open_io` 语义定义为：
+  - `out`: current default side，robot 从 `-X` 侧 approach，reset yaw around `0`，stage0 staging 为 `grasp_target.x - offset`，through direction / target 为 `+X`。
+  - `in`: mirrored side，robot 从 `+X` 侧 approach，reset yaw around `pi`，stage0 staging 为 `grasp_target.x + offset`，through direction / target 为 `-X`。
+- 工程上需要引入 per-env `approach_sign` / `through_sign`，并同步修改 `_reset_root_states()`、`_reward_walk_to_door()`、`_stage_0_to_1_advance_condition()`、`target_root_pos` / `target_root_distance`、stage4/5 through conditions（当前固定 `root_x > 0.0` / `root_x > 1.5`），以及 `penalty_face_door` / heading 类 reward 的方向假设。
+- 同时必须真正读取 `door_metadata["doorOpenIO"]` 写入 `self.door_open_io`，并在 obs/log/diagnostics 中保留该 semantic label；不要继续让 `self.door_open_io` 全 0。
+- Door hinge / door joint progress reward 可以先保持统一正向：当前 hinge 正角度增长代表 opening progress；in/out mixed 的首要工作是 robot side / stage direction semantics，而不是改 door asset hinge sign。
+
 ## Source Files / Evidence
 
 - `gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py`
@@ -81,8 +92,10 @@ read_when:
 - 2026-07-03 16:16 HKT - 后续 door asset randomization 方案设计前，先决定 randomization scope：geometry/dynamics/material only、left/right handedness、还是真正 in/out push/pull mixed task；不同 scope 对 env/reward/obs/transition 的施工量不同。
 - 2026-07-03 16:16 HKT - 若计划启用 `door_open_lr` 或 `door_open_io` randomization，必须先做 static plan + user approval，再实现并用 GUI/runtime smoke 验证 spawn pose、handle side、grasp target、stage transitions 与 reward direction。
 - 2026-07-03 16:24 HKT - `door_open_lr=["left", "right"]` randomization 的推荐 gate：先把当前 `right-only` stage0-2 调到稳定，再做 mixed retrain；验证重点是 base staging 是否随 handle Y 镜像、Piper reachability、stage1 pregrasp route、stage2 close gate/contact 指标。
+- 2026-07-03 16:31 HKT - 若实现 `door_open_io=["out", "in"]` randomization，不要 hidden mirror；用 `doorOpenIO` 作为 semantic label，显式 mirror root reset side/yaw、stage0 staging sign、target_root_pos / through direction、stage4/5 success condition，并写入 obs/log/diagnostics。
 
 ## DONE Summary
 
 - 2026-07-03 16:16 HKT - 记录当前训练 baseline：origin G1 与 A2 training scene 均固定 `door_open_lr=["right"]`、`door_open_io=["out"]`；当前 repo 没有 push/pull mixed training 证据。明确对 G1/A2 当前 task 可理解为面朝门、右手侧 handle、推门进入；后续 `door_open_io` in/out randomization 是新任务，不是当前 baseline 的简单开关。
 - 2026-07-03 16:24 HKT - 记录 left/right randomization discussion：A2 stage0 staging、pregrasp、grasp target/reward plumbing 均由 handle-relative `grasp_target` / frame transformer 驱动，理论上会随 `door_open_lr` 镜像；因此在 `right-only` stage0-2 稳定后，可将 `door_open_lr=["left", "right"]` 作为第一阶段 retrain randomization。该结论不覆盖 `door_open_io` in/out mixed task。
+- 2026-07-03 16:31 HKT - 记录 in/out randomization discussion：物理上可以理解为 mirror robot pose，但工程上应启用 `door_open_io=["out", "in"]` 并按该 semantic label mirror robot approach side、yaw、stage0 target、through target/success direction 与 diagnostics；不建议保持 `door_open_io=["out"]` 同时偷偷 mirror robot 初始状态。

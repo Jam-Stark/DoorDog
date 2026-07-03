@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录。
+
+  (1) Saved config 相对 `base_v1` 只差 `arm_j7/j8 Kp/Kd 40/1 -> 80/3` 与 run path；`arm_j7/j8 effort_limit_sim` 仍为 `10.0/10.0`。
+
+  (2) Eval 结果为负向分叉：episode reward `84.58/80.85`，接近 `base_v0` 的低 reward 区间而非 `base_v1`。
+
+  (3) `stage2_step_trace.json` 显示两条 env 的 negative close command frames 为 `0/330` 与 `0/328`，contact force/squeeze 全程 0；env0 虽有 `313/330` 帧 close gate，但仍保持 open primitive，env1 close gate 为 0。
+
+  (4) 结论：增强 gripper joint Kp/Kd 会像 30N effort-only trial 一样扰动 close-stage credit / local optimum，使 policy 选择 open gripper + base/trunk approach；该 trial 不作为当前正向配置。
+
 - 2026-07-03 12:18 HKT - 完成 gripper Kp/Kd ablation config。
 
   (1) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 `arm_j7/j8` stiffness 从 `40.0/40.0` 改为 `80.0/80.0`。

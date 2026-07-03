@@ -1566,7 +1566,7 @@ class DoorPregrasp(
         # excluding arm_j7/arm_j8 gripper DOFs.
         return (
             torch.maximum(
-                torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]) - 2.0,
+                torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]) - 3.0,
                 torch.zeros_like(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]),
             )
             ** 2
@@ -2405,9 +2405,10 @@ class DoorPregrasp(
         self.reset_buf |= door_distance
 
         # A2 arm body DOF / Piper arm_j1..j6 overspeed termination; gripper excluded.
+        upper_dof_overspeed_threshold = torch.clamp(self.termination_level * 20.0, min=3.0)
         dof_overspeed = torch.any(
             torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx])
-            > self.termination_level * 20.0,
+            > upper_dof_overspeed_threshold,
             dim=-1,
         )
         not_just_resetted = self.episode_length_buf > 20

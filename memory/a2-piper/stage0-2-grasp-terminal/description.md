@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-03 20:22 HKT
+last_updated: 2026-07-03 21:59 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -55,6 +55,7 @@ read_when:
 - `stage` observation dim 来自 `len(env.config.max_stage_time)`。把任务截成 3-stage 会改变 actor/critic input dim，因此不能直接 resume 6-stage checkpoint。
 - 2026-07-03 19:47 HKT resume semantics diagnosis: `TRLPPOTrainer.train()` 会把 `state.max_steps` 设为 CLI/Hydra 的 `algo.trl.num_total_batches`，而 `load_checkpoint()` 会恢复 checkpoint 内的 `state.global_step`。Transformers `DefaultFlowCallback.on_step_end()` 在 `global_step >= max_steps` 时设置 `should_training_stop=True`。因此当前 A2 stage0-2 resume 命令里的 `algo.trl.num_total_batches` 是最终 target global step，不是“额外再训练 batch 数”；例如 `last.pt global_step=600` 时，想继续到 1200 iterations 应传 `algo.trl.num_total_batches=1200`，不是 600。若传 600，resume 后第一步就会因 `global_step >= max_steps` 停止，容易误判为 GPU/PhysX shutdown error 或 iteration 2 missing。
 - 2026-07-03 20:22 HKT curriculum-state diagnosis: A2 stage0-2 checkpoints 会保存并在 eval/resume 中恢复 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`。`base_v3` final checkpoint 中 `termination_level≈0.25` 让 A2 `upper_dof_overspeed` threshold 从 `20 rad/s` 收紧到 `~5 rad/s`，导致原 eval 在 `stage1` 约 4s 以 `upper_dof_overspeed` 早停；临时把同一 actor checkpoint copy 的 `termination_level` 改回 `1.0` 后，`logs_eval/base_v3_term1` 两条 env 均进入 `stage2` 并 `complete`。`reward_penalty_scale≈0.25` 同时会缩小 `reward_penalty_reward_names` 内 positive shaping terms（如 `gripper_handle_orientation`、`grasp_target_distance`、`a2_stage2_handle_center_y/approach_xz`、close command/progress）的训练/episode reward 贡献；后续 debug `base_v3` resume 或类似 run 时必须先检查这两个 saved env-state curriculum values，再决定是否改 reward/termination。
+- 2026-07-03 21:59 HKT base_v3_term2 diagnosis/update: resume 到 `model_step_001050.pt` 后 `termination_level=0.1`、`reward_penalty_scale≈0.2`，`logs_eval/base_v3_term2` 两条 env 均 formal complete（length 215/253），但 stage1/2 arm reach 明显变慢。A2 Piper `arm_j1..j6` overspeed adaptation 已将 `penalty_dof_overspeed` threshold 从 `2.0 rad/s` 放宽到 `3.0 rad/s`，并给 `upper_dof_overspeed` hard termination threshold 加 `min=3.0 rad/s` floor；仍排除 gripper `arm_j7/j8`，不改变 `termination_level` curriculum 本身。
 - 2026-06-22 20:42 HKT static validation resolved `obs_dims.stage: 3`，并确认 stage3+ reward scales 在 quick test config 中为 `0.0`。
 - 2026-06-22 21:23 HKT reviewer validation: `py_compile` passed；lightweight probe confirmed A2_Base TorchScript is absent from wrapper `named_children()` / `named_modules()` / `named_parameters()` while property access still works；bounded smoke reached `Using frozen A2_Base policy for low-level leg actions` and `===training policy===`，说明旧 optimizer `ParameterDict contains()` blocker 已移除。
 - 2026-06-22 21:31 HKT source fact: IsaacLab `FrameTransformer` 对 duplicate target body 的 frame names 使用 `set`，会让同一个 `grasp_target` rigid body 上的 `handle` / `pregrasp` target order 不可靠；A2-local `OrderedTargetFrameTransformer` 只用于该 gripper-handle sensor，并让 `_get_a2_gripper_handle_frame_transformer()` 保持 exact `['handle', 'pregrasp']` fail-fast contract。
@@ -203,7 +204,7 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-03 20:22 HKT - `base_v3` 后续 resume/eval 需显式检查 checkpoint 中的 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`：若继续训练后仍出现 short episode / `upper_dof_overspeed`，先判断是否是 strict `termination_level` 下 policy 尚未学会平滑 arm reach，或 positive shaping 被 `reward_penalty_scale` 压低导致恢复信号不足，再决定是否调整 reward、completion predicate 或 curriculum。
+- 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且不进 `reward_penalty_reward_names`。下一步 retrain/eval 需检查 negative close command frames 是否恢复到 `base_v1/replay_v2` 水平、base forward creep 是否下降、reward 是否脱离 `base_v0/base_v2` open-gripper local optimum；formal success/contact force 不作为该 config alone 的预期验收。
@@ -214,6 +215,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation：`penalty_dof_overspeed` 只对 `arm_j1..j6` 超过 `3.0 rad/s` 的部分计二次 penalty；`upper_dof_overspeed` hard termination 仍使用 `termination_level * 20.0`，但增加 `min=3.0 rad/s` floor，避免 `termination_level=0.1` 时把 Piper arm 限到过慢的 `2 rad/s`。
 - 2026-07-03 20:22 HKT - 记录 `base_v3` curriculum-state finding：`termination_level` / `reward_penalty_scale` 是 checkpoint env-state，会在 eval/resume 恢复；`base_v3` 的 `termination_level≈0.25` 将 `upper_dof_overspeed` threshold 收紧到约 `5 rad/s` 并解释原 eval 4s stage1 early termination，临时改回 `1.0` 后同一 actor 在 `logs_eval/base_v3_term1` 可进入 stage2 并 formal complete。后续训练效果解读必须同时看这两个 curriculum state。
 - 2026-07-03 19:47 HKT - 记录 A2 stage0-2 TRL resume semantics：`algo.trl.num_total_batches` 是最终 `state.max_steps` / target global step，不是额外 batch 数；`last.pt global_step=600` 继续到 1200 应传 `algo.trl.num_total_batches=1200`，传 600 会在 resume 后被 Transformers `DefaultFlowCallback` 立刻 stop。
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config 记录：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full A2 targeted Hydra compose、stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review 均 PASS，PPO smoke 未跑。

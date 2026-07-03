@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-03 20:22 HKT
+last_updated: 2026-07-03 21:59 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -72,6 +72,7 @@ read_when:
 - 2026-07-03 15:13 HKT - `logs_eval/base_v2` 完成 gripper Kp/Kd ablation eval，结果为负向分叉：`arm_j7/j8 Kp/Kd 80/3`、effort `10/10` 没有提高 force/squeeze，而是让 policy 在 stage2 全程 positive/open primitive，contact force/squeeze 为 0，reward 掉到 `84.58/80.85`。该结果强化当前 reward design 判断：`arm_j7/j8` 是任务语义 actuator，直接参与 gripper primitive、stage1/2 open-target shaping、close progress 与 contact predicate；单纯增强其 dynamics 会改变 close-stage credit/local optimum，不能替代 gripper primitive / close-stage reward 设计。
 - 2026-07-03 15:45 HKT - 已实现 `base_v2` rescue ablation config：在 `base_v2` actuator（`arm_j7/j8 Kp=80, Kd=3, effort=10`）上新增 close-gate open primitive penalty `penalty_a2_stage2_open_command_in_close_gate: -0.4` 与 stage1/stage2 base forward creep penalty `penalty_a2_stage1_stage2_base_forward_creep: -0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`。该 config 用于验证 close-stage credit assignment 与 base-creep 约束能否恢复 negative close command / reduce creep，不预期单独达成 formal success/contact force。
 - 2026-07-03 20:22 HKT - Reward/termination curriculum debugging guardrail: A2 checkpoints 保存并恢复 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`。`termination_level` 当前影响 A2 `upper_dof_overspeed` threshold（`termination_level * 20 rad/s`，只覆盖 `arm_j1..j6`）；`reward_penalty_scale` 乘在 `reward_penalty_reward_names` 内的 positive shaping reward 上。后续看到 reward drop、short episode、stage1/2 behavior drift 或 eval early termination 时，先检查这两个 saved env-state values 和对应 wandb history，再决定是否修改 reward scale、gate、completion predicate 或 actuator config。
+- 2026-07-03 21:59 HKT - A2 Piper arm overspeed adaptation: `penalty_dof_overspeed` 对 `arm_j1..j6` 的 threshold 从 `2.0 rad/s` 放宽到 `3.0 rad/s`；`upper_dof_overspeed` hard termination 仍使用 `termination_level * 20.0`，但新增 `min=3.0 rad/s` floor。该改动源于 `logs_eval/base_v3_term2`：strict `termination_level=0.1` 下 policy 能 formal grasp，但 stage1/2 arm reach 过慢。Gripper `arm_j7/j8` 仍排除，`termination_level` curriculum 本身未改。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -128,7 +129,7 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-03 20:22 HKT - 后续 reward debug / ablation 需要把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项：尤其是 resume/eval checkpoint 时，先确认 strict termination 是否正在约束 arm smoothing、positive shaping 是否被 `reward_penalty_scale` 压低，再解释 policy behavior 或提出 reward 修改。
+- 2026-07-03 21:59 HKT - 后续 reward debug / ablation 继续把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项；同时验证 A2 Piper `arm_j1..j6` overspeed threshold `3.0 rad/s` 是否能减少 strict curriculum 下 arm reach 过慢和 `upper_dof_overspeed`，且不重新诱发 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该 reward/transition 数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 runtime/eval 需确认 stage0 行走时 `arm_j1..arm_j6` 保持 `default_dof_pos`、stage0 action gate 未误伤 stage1+ arm reaching、`_stage_0_to_1_advance_condition()` cadence/termination 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且不进 `reward_penalty_reward_names`。下一步 retrain/eval 需检查 negative close command frames 是否恢复、base forward creep 是否下降、behavior 是否向 `base_v1/replay_v2` 回归；formal success/contact force 不作为该 config alone 的预期。
@@ -150,6 +151,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation：`penalty_dof_overspeed` threshold `2.0 -> 3.0 rad/s`；`upper_dof_overspeed` hard termination threshold 增加 `min=3.0 rad/s` floor，仍只覆盖 `arm_j1..j6` 且排除 gripper `arm_j7/j8`。该改动不改变 reward scale、`termination_level` curriculum、stage gate 或 complete predicate。
 - 2026-07-03 20:22 HKT - 记录 curriculum-state 调试规则：`termination_level` / `reward_penalty_scale` 是 checkpoint env-state；前者会改变 A2 `upper_dof_overspeed` 严格度，后者会缩放 `reward_penalty_reward_names` 内 positive shaping。后续 reward/behavior 诊断必须先核对这两个值，避免把 curriculum state 的影响误判为 reward/gate/actuator 本身的单变量效果。
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full/stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review PASS，PPO smoke 未跑。
 - 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录：`arm_j7/j8 Kp/Kd 80/3`、effort `10/10` 未提升 force/squeeze，反而和 `base_v0` 一样让 policy 在 stage2 全程 open primitive、contact force/squeeze 为 0；reward design 下一步仍是 gripper primitive / close-stage shaping。

@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
+
+  (1) `logs_eval/base_v3_term2` runtime 结论：resume 到 `termination_level=0.1` 后两条 env 均 formal complete，但 stage1/2 arm reach 明显变慢；此时旧 hard termination floor 等效为 `2 rad/s`，低于 A2 Piper `arm_j1..j5` robot yaml velocity limit `5 rad/s` 和 `arm_j6` limit `3 rad/s`。
+
+  (2) `gr00t/rl/envs/door/door_open_a2_base.py::_reward_penalty_dof_overspeed()` 的 threshold 从 `2.0 rad/s` 改为 `3.0 rad/s`，仍只覆盖 `_upper_non_gripper_dof_idx`（Piper `arm_j1..j6`），继续排除 gripper `arm_j7/j8`。
+
+  (3) `_check_termination()` 的 `upper_dof_overspeed` threshold 仍由 `termination_level * 20.0` 驱动，但新增 `min=3.0 rad/s` floor，避免 curriculum 到 `termination_level=0.1` 时把 A2 Piper arm 限到过慢的 `2 rad/s`。`termination_level` curriculum 本身未改。
+
 - 2026-07-03 20:22 HKT - 记录 `base_v3` curriculum-state finding。
 
   (1) A2 stage0-2 checkpoint 会保存 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`，eval/resume 会恢复这些 env-state curriculum values。

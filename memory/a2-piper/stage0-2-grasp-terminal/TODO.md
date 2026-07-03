@@ -1,6 +1,6 @@
 # TODO
 
-- 2026-07-03 20:22 HKT - `base_v3` 后续 resume/eval 需显式检查 checkpoint 中的 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`：若继续训练后仍出现 short episode / `upper_dof_overspeed`，先判断是否是 strict `termination_level` 下 policy 尚未学会平滑 arm reach，或 positive shaping 被 `reward_penalty_scale` 压低导致恢复信号不足，再决定是否调整 reward、completion predicate 或 curriculum。
+- 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - 暂停验证 `a2_stage0_staging_x_offset=0.50` 与 `doorHandleHeight 0.80~1.35m` 数据分布 trial；先运行 `restrictPre-Grasp_v2` reproduction control config（stage0 offset 回到 config `0.70`，online handle height 回到 `0.85~0.95m`），待 control 对照完成后再决定是否恢复该 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成 static/review，但未跑 PPO/IsaacSim smoke；后续 stage0-2 retrain/eval 需要确认 `arm_j1..arm_j6` 在 stage0 保持 `default_dof_pos`、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 无 regression。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty，且两者均不进入 `reward_penalty_reward_names`。下一步 retrain/eval 检查 negative close command frames 是否恢复、base forward creep 是否下降、behavior 是否向 `base_v1/replay_v2` basin 回归；formal success/contact force 不作为该 config alone 的预期。

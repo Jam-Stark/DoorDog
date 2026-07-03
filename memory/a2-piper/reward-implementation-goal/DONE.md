@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
+
+  (1) 基于 `logs_eval/base_v3_term2` 诊断：`termination_level=0.1` / `reward_penalty_scale≈0.2` 下 eval 两条 env 均 formal complete，但 arm reach 明显慢，旧 `upper_dof_overspeed` hard threshold 等效为 `2 rad/s`。
+
+  (2) `penalty_dof_overspeed` threshold 从 `2.0 rad/s` 改为 `3.0 rad/s`，只覆盖 Piper `arm_j1..j6`，继续排除 gripper `arm_j7/j8`。
+
+  (3) `upper_dof_overspeed` hard termination 仍由 `termination_level * 20.0` 控制，但增加 `min=3.0 rad/s` floor；不改变 `termination_level` curriculum、reward scale、stage gate 或 complete predicate。
+
 - 2026-07-03 20:22 HKT - 记录 curriculum-state 调试规则。
 
   (1) A2 checkpoints 保存并恢复 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`。

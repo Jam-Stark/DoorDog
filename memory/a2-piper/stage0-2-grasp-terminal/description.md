@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-03 15:13 HKT
+last_updated: 2026-07-03 15:45 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -189,6 +189,7 @@ read_when:
 - 2026-07-03 09:40 HKT - `logs_eval/base_v1` 完成 arm Kp/Kd ablation eval，用户视频观察无明显行为分叉，可视为正确优化。Saved config 相对 `replay_v2` 只差 arm_j1-j6 Kp/Kd 与 run path；gripper effort 已回到 `10.0/10.0`。Metrics reward `103.45/101.65` 接近 `replay_v2` 的 `104.90/102.12`，stage2 close gate `339/348` 与 `333/341`，`gripper_primitive_raw` negative close command `335/348` 与 `328/341`，contact/squeeze 仍不足 formal success。结论：`base_v1` 保持 `replay_v2` 的 close/grasp-like behavior basin；`base_v0` 的行为大变主要来自 30N effort-only 改动造成训练 credit / local optimum 分叉，而非一般 retrain 必然漂移。
 - 2026-07-03 12:18 HKT - 当前 active gripper-force ablation config：在 `base_v1` actuator gains 上只把 `arm_j7/j8` Kp/Kd 从 `40/1` 提到 `80/3`，`arm_j7/j8 effort_limit_sim` 保持 `10.0/10.0`；`arm_j1..j6`、stage0 offset、handle height、reward/gate、stage transition、gripper primitive 与 complete predicate 均不改。目的：验证更高 gripper drive stiffness/damping 是否能提高 close-stage contact force/squeeze，同时避免 `30N` effort cap from-scratch 分叉。
 - 2026-07-03 15:13 HKT - `logs_eval/base_v2` 完成 gripper Kp/Kd ablation eval，结果为负向分叉，行为接近 `base_v0` 而非 `base_v1`：saved config 相对 `base_v1` 只差 `arm_j7/j8 Kp/Kd 40/1 -> 80/3` 与 run path，gripper effort 仍为 `10.0/10.0`。Eval reward `84.58/80.85`，stage2 `gripper_primitive_raw` negative close frames 为 `0/330` 与 `0/328`，contact force/squeeze 全程 0；env0 close gate `313/330` 但仍保持 open，env1 close gate `0/328`。结论：增强 gripper joint dynamics 会扰动 close-stage credit/local optimum，使 policy 选择 open gripper + base/trunk approach；继续纯 actuator ablation 不是优先方向，应转向 gripper primitive / close-stage reward 与 base-creep 约束。
+- 2026-07-03 15:45 HKT - 已实现 `base_v2` rescue ablation config：保留当前 `base_v2` actuator（`arm_j7/j8 Kp=80, Kd=3, effort=10`），新增 A2 stage2 close-gate only open primitive penalty `penalty_a2_stage2_open_command_in_close_gate: -0.4`，以及 stage1/stage2 base forward creep penalty `penalty_a2_stage1_stage2_base_forward_creep: -0.75`（`deadband=0.10`, `scale=0.15`）；两项 penalty 均不加入 `reward_penalty_reward_names`。目的只是测试 reward/creep fixes 是否能把 `base_v2` 的 open-gripper/base-creep local optimum 拉回 `base_v1/replay_v2` 行为，formal success/contact force 不应由该 config alone 预期。
 
 ## Implementation Boundary
 
@@ -202,7 +203,7 @@ read_when:
 
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
-- 2026-07-03 15:13 HKT - `base_v2` 已验证 `arm_j7/j8 Kp/Kd 80/3` 会导致 open-gripper local optimum，不作为当前正向配置。下一步应先设计 gripper primitive / close-stage reward credit assignment 与 stage1/base-creep 约束；如需再试更强 gripper dynamics，应放在 close behavior 稳定后的 curriculum/fine-tune，而不是 from-scratch 单独提高 gripper Kp/Kd 或 effort cap。
+- 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且不进 `reward_penalty_reward_names`。下一步 retrain/eval 需检查 negative close command frames 是否恢复到 `base_v1/replay_v2` 水平、base forward creep 是否下降、reward 是否脱离 `base_v0/base_v2` open-gripper local optimum；formal success/contact force 不作为该 config alone 的预期验收。
 - 2026-07-01 19:17 HKT - actuator yaml routing 的 env-create blocker 已修复：OmegaConf `ListConfig` 不再直接进入 IsaacLab `ImplicitActuatorCfg`；如果下一轮训练仍在 env construction 失败，应优先看新的 traceback，而不是继续归因到本次 `joint_names_expr` container type。
 - 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 Stage2 Grasp Target Tracking Reward Fix 改善了 close gate / center-Y / handle-distance tracking，并能产生视觉 grasp-like 双侧弱接触；但 env completion 仍未通过。下一步 TODO 从“首次 retrain/eval reward fix”转为设计/验证 gripper primitive 或 close-stage reward：continuous aperture primitive、gripper primitive rate/hysteresis、bilateral squeeze/contact-force shaping、force stability / over-force penalty，避免只奖励 fully closed target。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
@@ -210,6 +211,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config 记录：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full A2 targeted Hydra compose、stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review 均 PASS，PPO smoke 未跑。
 - 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录：`arm_j7/j8 Kp/Kd 80/3`、effort `10/10` 未提升 force/squeeze，反而和 `base_v0` 一样让 policy 在 stage2 全程 open primitive、contact force/squeeze 为 0；该 trial 不作为当前正向配置。
 - 2026-07-03 12:18 HKT - 完成 gripper Kp/Kd ablation config：`arm_j7/j8` actual Kp/Kd 从 `40/1` 改为 `80/3`，effort limit 保持 `10.0/10.0`；其他 actuator/reward/env/stage logic 未改，YAML sanity 与 read-only review PASS，未跑 PPO/IsaacSim smoke。
 - 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1` arm Kp/Kd ablation runtime 记录：该 run 复现 `replay_v2` 的 close gate / negative close command 行为，reward 接近 baseline，说明 5ca012a actuator gains 是正确优化；formal success 仍未通过，后续 blocker 仍是 close/force/contact/primitive design。

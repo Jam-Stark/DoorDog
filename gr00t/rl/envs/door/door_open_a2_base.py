@@ -262,6 +262,24 @@ class DoorPregrasp(
             "A2 stage0 staging target",
         )
 
+    def _get_a2_gripper_primitive_raw_column(self, context: str) -> torch.Tensor:
+        gripper_primitive_raw = getattr(self, "_a2_gripper_primitive_raw", None)
+        if (
+            gripper_primitive_raw is None
+            or not torch.is_tensor(gripper_primitive_raw)
+            or tuple(gripper_primitive_raw.shape) != (self.num_envs, 1)
+        ):
+            shape = (
+                None
+                if gripper_primitive_raw is None
+                else tuple(gripper_primitive_raw.shape)
+            )
+            raise RuntimeError(
+                f"{context} requires _a2_gripper_primitive_raw shape "
+                f"({self.num_envs}, 1); got {shape}."
+            )
+        return gripper_primitive_raw.squeeze(-1)
+
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         super().__init__(config, device)
@@ -1054,25 +1072,23 @@ class DoorPregrasp(
         if not self._use_a2_base:
             raise RuntimeError("a2_stage2_close_command is only defined for A2 Piper configs.")
 
-        gripper_primitive_raw = getattr(self, "_a2_gripper_primitive_raw", None)
-        if (
-            gripper_primitive_raw is None
-            or not torch.is_tensor(gripper_primitive_raw)
-            or tuple(gripper_primitive_raw.shape) != (self.num_envs, 1)
-        ):
-            shape = (
-                None
-                if gripper_primitive_raw is None
-                else tuple(gripper_primitive_raw.shape)
-            )
+        gate = self._get_a2_stage2_close_reward_gate()
+        primitive = self._get_a2_gripper_primitive_raw_column("a2_stage2_close_command")
+        reward = ((-primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        return reward * gate.float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_penalty_a2_stage2_open_command_in_close_gate(self):
+        if not self._use_a2_base:
             raise RuntimeError(
-                "a2_stage2_close_command requires _a2_gripper_primitive_raw shape "
-                f"({self.num_envs}, 1); got {shape}."
+                "penalty_a2_stage2_open_command_in_close_gate is only defined for A2 Piper configs."
             )
 
         gate = self._get_a2_stage2_close_reward_gate()
-        primitive = gripper_primitive_raw.squeeze(-1)
-        reward = ((-primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        primitive = self._get_a2_gripper_primitive_raw_column(
+            "penalty_a2_stage2_open_command_in_close_gate"
+        )
+        reward = ((primitive - 0.2) / 0.8).clamp(0.0, 1.0)
         return reward * gate.float()
 
     @StagedTaskBase.effective_in_stage(STAGE_GRASP)
@@ -1475,6 +1491,27 @@ class DoorPregrasp(
                 f"({self.num_envs}, >=2); got {shape}."
             )
         return torch.sum(torch.square(rpy[:, 0:2]), dim=-1)
+
+    @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP])
+    def _reward_penalty_a2_stage1_stage2_base_forward_creep(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_stage1_stage2_base_forward_creep is only defined for A2 Piper configs."
+            )
+
+        deadband = self._get_required_positive_float_config(
+            "a2_stage1_stage2_base_forward_creep_deadband",
+            "penalty_a2_stage1_stage2_base_forward_creep",
+        )
+        scale = self._get_required_positive_float_config(
+            "a2_stage1_stage2_base_forward_creep_scale",
+            "penalty_a2_stage1_stage2_base_forward_creep",
+        )
+        grasp_target = self._compute_grasp_target()
+        stage0_target_x = grasp_target[:, 0] - self._get_a2_stage0_staging_x_offset()
+        root_x = self.simulator.robot_root_states[:, 0]
+        reward = ((root_x - stage0_target_x - deadband) / scale).clamp(0.0, 1.0)
+        return reward
 
     def _reward_penalty_upright(self):
         upright_vec = torch.repeat_interleave(

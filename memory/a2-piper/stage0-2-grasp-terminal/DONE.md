@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config 记录。
+
+  (1) 保留当前 `base_v2` actuator config：`arm_j7/j8 Kp=80, Kd=3, effort_limit_sim=10`。
+
+  (2) 新增 A2 stage2 close-gate only open primitive penalty `penalty_a2_stage2_open_command_in_close_gate: -0.4`，用于惩罚 close gate 内继续输出 open primitive；该 penalty 不加入 `reward_penalty_reward_names`。
+
+  (3) 新增 stage1/stage2 base forward creep penalty `penalty_a2_stage1_stage2_base_forward_creep: -0.75`，env config 为 `a2_stage1_stage2_base_forward_creep_deadband: 0.10` 与 `a2_stage1_stage2_base_forward_creep_scale: 0.15`；该 penalty 不加入 `reward_penalty_reward_names`。
+
+  (4) Purpose: 测试 reward/creep fixes 是否能 rescue `base_v2` 的 open-gripper/base-creep local optimum，使 behavior 回到 `base_v1/replay_v2` 的 close-command basin；formal success/contact force 不预期由该 config alone 达成。
+
+  (5) Validation/review: py_compile PASS，`git diff --check` PASS，full A2 targeted Hydra compose PASS，stage0-2 targeted Hydra compose PASS，no-sim formula sanity PASS，Oracle-style review PASS。PPO smoke 未跑。
+
 - 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录。
 
   (1) Saved config 相对 `base_v1` 只差 `arm_j7/j8 Kp/Kd 40/1 -> 80/3` 与 run path；`arm_j7/j8 effort_limit_sim` 仍为 `10.0/10.0`。

@@ -2,7 +2,7 @@
 name: door-asset-openio-sign
 scope: 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响
 status: active
-last_updated: 2026-06-29 15:56 HKT
+last_updated: 2026-07-03 16:16 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/door-asset-openio-sign/description.md
@@ -119,9 +119,10 @@ stage3 checklist 原本就标这个 term 为 disabled。本次核查进一步确
 ## TODO Summary
 
 - 2026-06-29 15:56 HKT - 静态核查 door asset / env 中 `doorOpenIO` 字段是否影响 hinge joint sign、reward routing、stage condition。**已完成**：`doorOpenIO` 在 door 构造与 reward routing 中完全未被使用，只作为 privileged obs 标签。
-- 2026-06-29 15:56 HKT - 后续 runtime smoke 验证：训练时 in/out 门在物理 sim 中是否真的表现为镜像（robot 站位 / door spawn yaw 是否按 `doorOpenIO` 切换）。需要读 `scenario_cfg/isaacsim.py` 与 door spawn 调用，或在 GUI 里直接观察 in/out 门的物理姿态。**当前静态代码无法定论**。
+- 2026-07-03 16:16 HKT - 当前 origin G1 与 A2 training scene 的 `scenario_cfg/isaacsim.py` 均已确认固定 `door_open_lr=["right"]`、`door_open_io=["out"]`，并无 `doorOpenIO` 驱动的 spawn yaw / robot stance 切换。后续如果真的启用 in/out mixed randomization，仍需 runtime/GUI smoke 验证物理表现与 task semantics。
 - 2026-06-29 15:56 HKT - 后续若 A2 要启用 `push_door_force`，必须基于 door-frame 或 source-frame force projection 设计，不使用 world-x；如混训 in/out，force projection 必须方向对称。
 
 ## DONE Summary
 
 - 2026-06-29 15:56 HKT - 完成静态核查：`doorOpenIO` 在 origin G1 与 A2 door.py 中只赋值、写 metadata、读取到 env，不参与任何 hinge joint 构造、joint axis/sign/limit、reward routing 或 stage condition；hinge joint 对 in/out 门物理构造完全相同（axis Z、lower 0、upper 150、target -10）；`door_open_io` 在 origin/A2 env 中只用于 privileged obs stack；所有 left/right reward routing 只按 `door_open_lr`。`push_door_hinge` / `push_door_handle` / stage3→4 advance condition 对 in/out 门天然对称，维持 PASS baseline。`push_door_force` 维持 PASS disabled / TODO design，后续若启用必须做 door-frame 或 source-frame force projection。
+- 2026-07-03 16:16 HKT - 补充完成 scenario/spawn 层静态核查：origin G1 与 A2 的 `gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py` 均固定 `door_open_lr=["right"]`、`door_open_io=["out"]`，官方 GitHub `doorman` branch raw file 同样如此；当前训练 baseline 可视为 right-hinge + out-opening，不是 push/pull mixed distribution。详细 randomization 入口事实另见 `memory/a2-piper/door-asset-randomization-baseline/description.md`。

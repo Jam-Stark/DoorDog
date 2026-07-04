@@ -2401,6 +2401,10 @@ class TRLPPOTrainer(PPOTrainer):
             obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
 
         eval_num_envs_episodes = self.config.get("eval", {}).get("eval_num_envs_episodes", False)
+        dump_eval_to_log_metrics = self.config.get("eval", {}).get(
+            "dump_to_log_metrics", False
+        )
+        eval_to_log_records = []
 
         if eval_num_envs_episodes:
             max_episodes = self.env.num_envs  # One episode per environment
@@ -2494,6 +2498,20 @@ class TRLPPOTrainer(PPOTrainer):
 
                     rewards, dones = rewards.to(device), dones.to(device)
 
+                    if dump_eval_to_log_metrics:
+                        if "to_log" not in infos or not isinstance(infos["to_log"], dict):
+                            raise RuntimeError(
+                                "eval.dump_to_log_metrics requires env.step() infos['to_log'] "
+                                f"to be a dict; got {type(infos.get('to_log', None)).__name__}."
+                            )
+                        to_log_record = {
+                            "step_index": len(eval_to_log_records),
+                            "episode_length_buf": self.cur_episode_length.clone(),
+                            "dones": dones.clone(),
+                        }
+                        to_log_record.update(infos["to_log"])
+                        eval_to_log_records.append(to_log_record)
+
                     self.cur_reward_sum += rewards
                     self.cur_episode_length += 1
 
@@ -2561,6 +2579,17 @@ class TRLPPOTrainer(PPOTrainer):
         eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if dump_eval_to_log_metrics:
+            to_log_metrics_path = os.path.join(eval_output_dir, "eval_to_log_metrics.json")
+            to_log_metrics_tmp_path = f"{to_log_metrics_path}.tmp"
+            safe_to_log_metrics = _make_json_safe(
+                eval_to_log_records, path="eval_to_log_metrics"
+            )
+            with open(to_log_metrics_tmp_path, "w") as f:
+                json.dump(safe_to_log_metrics, f, indent=4)
+            os.replace(to_log_metrics_tmp_path, to_log_metrics_path)
+            logger.info(f"Saved eval to_log metrics to {to_log_metrics_path}")
 
         if a2_stage2_trace_enabled:
             get_stage2_trace = getattr(

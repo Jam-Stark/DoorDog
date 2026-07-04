@@ -13,6 +13,8 @@
 
   (5) 未改 reward scales、`reward_penalty_reward_names`、termination curriculum、actuator config、YAML 或 continuous aperture primitive。Oracle-style review PASS；IsaacSim/PPO smoke 尚未运行，runtime/eval 验证保留在 TODO。
 
+- 2026-07-04 22:34 HKT - 完成 eval `to_log` scalar dump 与旧 full-stage `ckpt6000` 复验：输出 `logs_eval/full_stage_base_v0_ckpt6000_strict_route_tolog/eval_to_log_metrics.json`。精确 scalar 显示 `a2_stage1_to2_bypass_blocked_frac=0`、`a2_stage2_to3_bypass_blocked_frac=0`；stage1→2 仅由 true pregrasp 在 step 113/116 推进；stage2→3 由 `a2_stage2_grasp_complete_frac` 在 step 147/148 非零推进；door-open bypass 首次出现 step 193，晚于 stage2→3。结论：strict route 生效，剩余问题是 stage2 grasp completion predicate 可被短暂 close/contact/squeeze spike 触发。
+
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
 
   (1) 基于 `logs_eval/base_v3_term2` 诊断：`termination_level=0.1` / `reward_penalty_scale≈0.2` 下 eval 两条 env 均 formal complete，但 arm reach 明显慢，旧 `upper_dof_overspeed` hard threshold 等效为 `2 rad/s`。

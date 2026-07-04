@@ -107,6 +107,9 @@ env:
     a2_stage2_handle_approach_xz_std: 0.05
     a2_grasp_target_distance_std: 0.05
     a2_stage2_single_finger_contact_force_threshold: 1.0
+    a2_stage2_completion_close_gate_required: true
+    a2_stage2_completion_gripper_close_command_threshold: -0.2
+    a2_stage2_completion_gripper_close_progress_min: 0.45
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

@@ -256,6 +256,54 @@ class DoorPregrasp(
             )
         return value
 
+    def _get_required_finite_float_config(self, key: str, context: str) -> float:
+        if key not in self.config:
+            raise RuntimeError(f"{context} requires env.config.{key}.")
+        value = self.config[key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise RuntimeError(
+                f"{context} requires env.config.{key} to be a finite float; "
+                f"got {value!r} ({type(value).__name__})."
+            )
+        value = float(value)
+        if not math.isfinite(value):
+            raise RuntimeError(
+                f"{context} requires env.config.{key} to be finite; got {value}."
+            )
+        return value
+
+    def _get_a2_stage2_completion_close_gate_required(self) -> bool:
+        key = "a2_stage2_completion_close_gate_required"
+        context = "A2 stage2 completion close gate"
+        if key not in self.config:
+            raise RuntimeError(f"{context} requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(
+                f"{context} requires env.config.{key} to be a bool; "
+                f"got {value!r} ({type(value).__name__})."
+            )
+        return value
+
+    def _get_a2_stage2_completion_close_command_threshold(self) -> float:
+        return self._get_required_finite_float_config(
+            "a2_stage2_completion_gripper_close_command_threshold",
+            "A2 stage2 completion close command threshold",
+        )
+
+    def _get_a2_stage2_completion_close_progress_min_threshold(self) -> float:
+        value = self._get_required_positive_float_config(
+            "a2_stage2_completion_gripper_close_progress_min",
+            "A2 stage2 completion close progress min",
+        )
+        if value > 1.0:
+            raise RuntimeError(
+                "A2 stage2 completion close progress min requires "
+                "env.config.a2_stage2_completion_gripper_close_progress_min <= 1.0; "
+                f"got {value}."
+            )
+        return value
+
     def _get_a2_stage0_staging_x_offset(self) -> float:
         return self._get_required_positive_float_config(
             self.A2_STAGE0_STAGING_OFFSET_CONFIG_KEY,
@@ -1170,6 +1218,81 @@ class DoorPregrasp(
         reward = (progress.mean(dim=-1) / 0.6).clamp(0.0, 1.0)
         return reward * gate.float()
 
+    def _get_a2_stage2_gripper_close_progress_min(self) -> torch.Tensor:
+        gripper_dof_indices = getattr(self, "_a2_gripper_dof_indices", None)
+        if (
+            gripper_dof_indices is None
+            or not torch.is_tensor(gripper_dof_indices)
+            or tuple(gripper_dof_indices.shape) != (2,)
+        ):
+            shape = None if gripper_dof_indices is None else tuple(gripper_dof_indices.shape)
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires "
+                f"_a2_gripper_dof_indices shape (2,); got {shape}."
+            )
+        if gripper_dof_indices.dtype not in (torch.int32, torch.int64):
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires integer "
+                f"_a2_gripper_dof_indices; got dtype={gripper_dof_indices.dtype}."
+            )
+        if torch.any(gripper_dof_indices < 0) or torch.unique(gripper_dof_indices).numel() != 2:
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires two distinct "
+                f"non-negative gripper DOF indices; got {gripper_dof_indices.tolist()}."
+            )
+
+        open_target = getattr(self, "_a2_gripper_open_target", None)
+        if (
+            open_target is None
+            or not torch.is_tensor(open_target)
+            or tuple(open_target.shape) != (2,)
+        ):
+            shape = None if open_target is None else tuple(open_target.shape)
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires "
+                f"_a2_gripper_open_target shape (2,); got {shape}."
+            )
+
+        close_target = getattr(self, "_a2_gripper_close_target", None)
+        if (
+            close_target is None
+            or not torch.is_tensor(close_target)
+            or tuple(close_target.shape) != (2,)
+        ):
+            shape = None if close_target is None else tuple(close_target.shape)
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires "
+                f"_a2_gripper_close_target shape (2,); got {shape}."
+            )
+
+        span = (open_target - close_target).abs()
+        if torch.any(span <= 1.0e-4):
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires non-zero "
+                "gripper open/close span; "
+                f"open_target={open_target.tolist()}, close_target={close_target.tolist()}."
+            )
+
+        dof_pos = getattr(self.simulator, "dof_pos", None)
+        max_gripper_dof_index = int(gripper_dof_indices.max().item())
+        if (
+            dof_pos is None
+            or not torch.is_tensor(dof_pos)
+            or dof_pos.ndim != 2
+            or dof_pos.shape[0] != self.num_envs
+            or dof_pos.shape[1] <= max_gripper_dof_index
+        ):
+            shape = None if dof_pos is None else tuple(dof_pos.shape)
+            raise RuntimeError(
+                "a2_stage2_completion_gripper_close_progress_min requires "
+                "simulator.dof_pos shape "
+                f"({self.num_envs}, >{max_gripper_dof_index}); got {shape}."
+            )
+
+        gripper_pos = dof_pos[:, gripper_dof_indices]
+        progress = (open_target[None, :] - gripper_pos).abs() / span[None, :]
+        return progress.clamp(0.0, 1.0).min(dim=-1).values
+
     @StagedTaskBase.effective_in_stage(STAGE_GRASP)
     def _reward_a2_stage2_handle_center_y(self):
         """Axis-aware centering: drive handle Y (opening axis) to 0 in gripper source frame.
@@ -1802,16 +1925,37 @@ class DoorPregrasp(
                 f"({self.num_envs},); got {shape}."
             )
         history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
-        completion = (
+        base_completion = (
             (self.stage_buf == self.STAGE_GRASP)
             & history_window_in_stage
             & all_history_squeezed
         )
+
+        close_gate_required = self._get_a2_stage2_completion_close_gate_required()
+        close_command_threshold = self._get_a2_stage2_completion_close_command_threshold()
+        close_progress_threshold = (
+            self._get_a2_stage2_completion_close_progress_min_threshold()
+        )
+        close_gate = self._get_a2_stage2_close_reward_gate()
+        primitive = self._get_a2_gripper_primitive_raw_column(
+            "a2_stage2 completion stable close"
+        )
+        stable_close = primitive < close_command_threshold
+        close_progress_min = self._get_a2_stage2_gripper_close_progress_min()
+        close_progress_complete = close_progress_min >= close_progress_threshold
+        completion = base_completion
+        if close_gate_required:
+            completion = (
+                completion & close_gate & stable_close & close_progress_complete
+            )
         return {
             "completion": completion,
             "both_contact_current": both_contact[:, 0],
             "sufficient_squeeze_current": sufficient_squeeze[:, 0],
             "opposite_squeeze_current": opposite_squeeze[:, 0],
+            "close_gate": close_gate,
+            "stable_close": stable_close,
+            "close_progress_min": close_progress_min,
         }
 
     def _update_a2_full_stage_route_diagnostics(self, stage2_completion_masks=None):
@@ -1849,6 +1993,21 @@ class DoorPregrasp(
             stage2_active
             & (self._get_a2_gripper_primitive_raw_column("A2 route diagnostics") < 0.0)
         )
+        close_progress_threshold = (
+            self._get_a2_stage2_completion_close_progress_min_threshold()
+        )
+        stage2_completion_close_gate = stage2_active & stage2_completion_masks["close_gate"]
+        stage2_stable_close = stage2_active & stage2_completion_masks["stable_close"]
+        stage2_close_command = stage2_active & (
+            self._get_a2_gripper_primitive_raw_column(
+                "A2 route diagnostics close command"
+            )
+            < self._get_a2_stage2_completion_close_command_threshold()
+        )
+        stage2_close_progress = (
+            stage2_active
+            & (stage2_completion_masks["close_progress_min"] >= close_progress_threshold)
+        )
         stage2_both_contact = (
             stage2_active & stage2_completion_masks["both_contact_current"]
         )
@@ -1871,6 +2030,10 @@ class DoorPregrasp(
             "a2_stage2_to3_advance_frac": stage2_to3_advance,
             "a2_stage2_to3_bypass_blocked_frac": stage2_to3_bypass_blocked,
             "a2_stage2_close_gate_frac": self._get_a2_stage2_close_reward_gate(),
+            "a2_stage2_completion_close_gate_frac": stage2_completion_close_gate,
+            "a2_stage2_gripper_stable_close_frac": stage2_stable_close,
+            "a2_stage2_gripper_close_command_frac": stage2_close_command,
+            "a2_stage2_gripper_close_progress_frac": stage2_close_progress,
             "a2_stage2_negative_gripper_primitive_frac": stage2_negative_gripper_primitive,
             "a2_stage2_both_contact_frac": stage2_both_contact,
             "a2_stage2_sufficient_squeeze_frac": stage2_sufficient_squeeze,

@@ -1,6 +1,7 @@
 # DONE
 
 - 2026-07-04 21:56 HKT - 完成 Full-stage False-Success Route Fix。
+- 2026-07-04 22:26 HKT - 完成旧 full-stage `ckpt6000` strict-route 短 eval：命令使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=2`、`render_results=false`，输出在 `logs_eval/full_stage_base_v0_ckpt6000_strict_route_eval1`。结果 `episode_goal_reached=[true,true]`、`episode_max_stage_reached=[5,5]`、terminal reason 均为 `complete`；stage2 trace 有短暂 negative gripper primitive、both-contact 与 opposite-squeeze spike，说明 strict route 没有把该旧 policy 挡在 stage2。现有 eval runner 未导出 `infos["to_log"]`，因此本次没有精确 `a2_stage*_bypass_blocked_frac` scalar。
 
   (1) A2 `stage1 -> stage2` 现在只由 true pregrasp readiness 推进，door-open bypass 不再推进 A2 stage1；non-A2/G1 path 保持旧 `door_opened` bypass semantics。
 

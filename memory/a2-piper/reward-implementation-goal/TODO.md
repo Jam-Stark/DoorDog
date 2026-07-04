@@ -1,19 +1,20 @@
 # TODO
 
 - 2026-07-03 21:59 HKT - 后续 reward debug / ablation 继续把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项；同时验证 A2 Piper `arm_j1..j6` overspeed threshold `3.0 rad/s` 是否能减少 strict curriculum 下 arm reach 过慢和 `upper_dof_overspeed`，且不重新诱发 violent fast-complete / orientation drift。
+- 2026-07-04 21:56 HKT - Full-stage strict A2 route fix 已完成但未跑 IsaacSim/PPO smoke；下一步短 A2 eval/retrain 验收：确认旧 full-stage checkpoint 不再通过 door-open bypass 假成功完成，检查 `a2_stage1_to2_bypass_blocked_frac`、`a2_stage2_to3_bypass_blocked_frac`、`a2_stage2_grasp_complete_frac`、contact/squeeze diagnostics 与 `a2_stage2_negative_gripper_primitive_frac` 是否符合预期。
 - 2026-07-02 16:17 HKT - 暂停验证 stage0 reward/transition 数据分布 trial：`a2_stage0_staging_x_offset=0.50` 与 `doorHandleHeight 0.80~1.35m` 先不作为当前 active config；先运行 `restrictPre-Grasp_v2` reproduction control config（stage0 offset config `0.70`，online handle height `0.85~0.95m`），再决定是否恢复该 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成 static/review，但未跑 PPO/IsaacSim smoke；后续 runtime/eval 需要确认 stage0 行走时 `arm_j1..arm_j6` 维持 `default_dof_pos`、stage0 action gate 不影响 stage1+ arm reaching、`a2_stage0_arm_default_max_deviation: 0.10` 不造成 stage0->1 cadence regression。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且两者均不进入 `reward_penalty_reward_names`。下一步 retrain/eval 检查 negative close command frames 是否恢复、base forward creep 是否下降、behavior 是否向 `base_v1/replay_v2` basin 回归；formal success/contact force 不作为该 config alone 的预期。
 - 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 current stage2 reward 能把 gripper 推到 handle center close attempt / 视觉 grasp-like weak contact，但 formal complete 仍未通过；下一步需要围绕 gripper primitive / close-stage reward 设计方案：continuous aperture primitive、primitive rate/hysteresis、bilateral squeeze/contact-force reward、force stability / over-force penalty。不要继续把主要 blocker 归因到 grasp target 位置。
 - 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
 - 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
-- 2026-06-17 22:34 HKT - Stage2 static PASS 后的剩余 TODO：跑 bounded smoke，确认 stage2 dwell、completion route、door-open bypass ratio、stage3/open entry timing，以及是否存在 contact spike 误判。
+- 2026-06-17 22:34 HKT - Stage2 static PASS 后的剩余 TODO：跑 bounded smoke，确认 stage2 dwell、strict completion route、stage3/open entry timing，以及是否存在 contact spike 误判；A2 door-open bypass diagnostic visibility 已由 2026-07-04 strict route fix 补齐。
 - 2026-06-29 21:30 HKT - Stage5 reward code work 完成（`pregrasp_gripper_dof_pos_l1` gate_mask 修正 + `penalty_face_door` stage5 disabled，Oracle PASS）。stage0-5 全部 reward code work + transition conditions 已 static PASS。剩余全部是 runtime/smoke 验证项：
   - Stage3-5 bounded smoke 需统计：stage3→4 route、stage4 dwell、handle 回弹 timing、hinge 持续 progress、root locomotion（target_root_pos z=0.5）、door contact penalties、reset/overtime。
   - `penalty_standing_still` std=0.05 是否匹配 A2 四足走动量级。
   - `walked_through_door: root_x > 0.0` 是否过早（A2 四足 trunk 在身体中间，trunk x>0 时后腿可能还没过门）。
   - `complete: root_x > 1.5` 是否匹配 A2 步态速度。
-  - door-open bypass ratio（stage2→3、stage3→4）。
+  - A2 stage2→3 strict completion route 与 `a2_stage2_to3_bypass_blocked_frac`；non-A2/G1 door-open bypass ratio 仅在对照需要时检查。
   - `pregrasp_gripper_dof_pos_l1` stage5 close target tracking 是否有效（gate_mask 修复后 stage0/5 都主动给 reward）。
   - `penalty_face_door` stage5 disabled 后 A2 穿门姿态是否合理。
 - 2026-06-17 00:00 HKT - Stage1+ reward adaptation 已建立 mapping docs；后续进入 open/swing/through reward implementation 或 grasp completion semantics 时继续沿用表格记录 G1 term、A2 replacement、数据源、scale、stage gating、direct workflow update timing 与验证方式，并同步更新 human docs 的 `A2适配状态` 列。

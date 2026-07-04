@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-04 21:56 HKT - 完成 Full-stage False-Success Route Fix。
+
+  (1) A2 `stage1 -> stage2` 现在只由 true pregrasp readiness 推进，door-open bypass 不再推进 A2 stage1；non-A2/G1 path 保持旧 `door_opened` bypass semantics。
+
+  (2) A2 `stage2 -> stage3` 现在只由 strict grasp completion 推进，door-open bypass 不再推进 A2 stage2；strict completion 仍基于 stage2 contact history、both-contact、sufficient squeeze 与 opposite squeeze predicate。
+
+  (3) A2 `_stage_3_reward_condition()` 改用 base stillness condition，避免进入 stage3 后 `_stage_2_to_3_advance_condition()` 因 `stage_buf != STAGE_GRASP` 变 false 而导致 stage3 reward edge case。
+
+  (4) 新增 15 个 A2 all-env fraction diagnostics：stage1/2 active、pregrasp/grasp readiness、door-open bypass、stage1/2 advance、bypass blocked、stage2 close gate、negative gripper primitive、both-contact、sufficient squeeze 与 opposite squeeze。
+
+  (5) 未改 reward scales、`reward_penalty_reward_names`、termination curriculum、actuator config、YAML 或 continuous aperture primitive。Oracle-style review PASS；IsaacSim/PPO smoke 尚未运行，runtime/eval 验证保留在 TODO。
+
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
 
   (1) 基于 `logs_eval/base_v3_term2` 诊断：`termination_level=0.1` / `reward_penalty_scale≈0.2` 下 eval 两条 env 均 formal complete，但 arm reach 明显慢，旧 `upper_dof_overspeed` hard threshold 等效为 `2 rad/s`。

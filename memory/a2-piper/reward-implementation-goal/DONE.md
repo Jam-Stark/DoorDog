@@ -255,3 +255,11 @@
 - 2026-07-05 19:14 HKT - 完成 A2 stage2 completion A/B rollback config：`gr00t/rl/config/env/door_open_a2_base.yaml` 默认 `a2_stage2_completion_close_gate_required: false`。本次只恢复 base contact-history completion path 作为 short full-stage train 对照，保留 strict A2 stage1/2 route、tightened gates 的 manual override path、diagnostics、reward scales、termination curriculum 与 actuator config 不变。
 
 - 2026-07-05 21:34 HKT - 完成 rollback short full-stage 600 checkpoint scalar eval：命令使用 `logs_rl/a2_piper_full_stage_a2_base/base_v1_lose_close_gate-20260705_192136/last.pt`、2 env、no rendering、`dump_to_log_metrics=true`，输出 `logs_eval/full_stage_base_v1_lose_close_gate_ckpt600_tolog`。结果 `episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`；`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`a2_stage2_negative_gripper_primitive_frac=0`、`both_contact/sufficient_squeeze/opposite_squeeze=0`。Trace 显示 close gate 大量触发（env0 `305/332`、env1 `265/325`），但 handle contact force/squeeze 全程 0，terminal primitive 仍 positive/open。
+
+- 2026-07-05 22:04 HKT - 完成 full-stage base creep penalty 增强 config ablation。
+
+  (1) `gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml` 中 `penalty_a2_stage1_stage2_base_forward_creep` 从 `-0.75` 加强到 `-1.5`。
+
+  (2) `gr00t/rl/config/env/door_open_a2_base.yaml` 中 `a2_stage1_stage2_base_forward_creep_deadband` 从 `0.10` 收紧到 `0.05`，`a2_stage1_stage2_base_forward_creep_scale` 从 `0.15` 收紧到 `0.10`。
+
+  (3) 本轮只增强已有 A2 stage1/2 base-forward creep penalty，目标是压低 full-stage 中用 base 替代 arm reach handle 的 local optimum；未改 reward 函数、strict A2 stage route、stage2 completion predicate、actuator config、reward curriculum membership 或 `reward_penalty_reward_names`。

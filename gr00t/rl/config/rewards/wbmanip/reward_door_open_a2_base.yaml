@@ -42,7 +42,7 @@ rewards:
       a2_stage2_handle_center_y: 6.0
       a2_stage2_handle_approach_xz: 3.0
       penalty_a2_stage2_single_finger_contact: -2.0
-      penalty_a2_stage1_stage2_base_forward_creep: -0.75
+      penalty_a2_stage1_stage2_base_forward_creep: -1.5
 
       # open
       push_door_handle: 6.0

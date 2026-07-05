@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-05 18:38 HKT
+last_updated: 2026-07-05 19:14 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -81,6 +81,8 @@ read_when:
 
 - 2026-07-05 18:38 HKT - tightened completion 旧 full-stage `ckpt6000` route eval 已完成。用户 render run `logs_eval/full_stage_base_v0_ckpt6000_tightened` 显示 env0/env1 episode0000 均 `len452_reason-stage_overtime`。补充 scalar-only run `logs_eval/full_stage_base_v0_ckpt6000_tightened_tolog` 确认 `model_step_006000_full_tightened.pt` 与原 `model_step_006000.pt` 的 `policy_state_dict` / `value_state_dict` 完全一致，差异只在 env/optimizer state；结果 `episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`，`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`a2_stage2_close_gate_frac=0`、`a2_stage2_completion_close_gate_frac=0`。旧 policy 仍产生 close command/contact/squeeze 信号，但因 close gate/progress gate 不满足不能 stage2→3，说明 tightened completion 正在挡住旧 contact/squeeze spike route。
 
+- 2026-07-05 19:14 HKT - A2 stage2 completion A/B rollback 已实施：默认 config 将 `a2_stage2_completion_close_gate_required` 从 `true` 改为 `false`，保持 strict route、contact-history base completion、diagnostics、reward scales、termination curriculum 与 actuator config 不变。Purpose: 让 600/1000 iteration short full-stage train 隔离验证 strict route 是否能保留，同时避免 tightened close-gate/progress gate 误杀 `base_v3` 已证明的真实 bilateral contact/squeeze grasp。
+
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
 ## Reward Term Decisions
@@ -137,7 +139,7 @@ read_when:
 ## TODO Summary
 
 - 2026-07-03 21:59 HKT - 后续 reward debug / ablation 继续把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项；同时验证 A2 Piper `arm_j1..j6` overspeed threshold `3.0 rad/s` 是否能减少 strict curriculum 下 arm reach 过慢和 `upper_dof_overspeed`，且不重新诱发 violent fast-complete / orientation drift。
-- 2026-07-05 18:38 HKT - tightened completion 旧 `ckpt6000` route eval 已确认旧 policy 被挡在 stage2；后续 fresh full-stage retrain 后仍需保留 A/B rollback 记忆：如果训练效果变好/变差，要考虑对照恢复 `a2_stage2_completion_close_gate_required=false`，不要把 strict route 与 tightened completion 两个变量混在一起判断。
+- 2026-07-05 19:14 HKT - A2 stage2 completion A/B rollback 已实施：当前默认 `a2_stage2_completion_close_gate_required=false`。后续 600/1000 iteration short full-stage train/eval 重点检查 strict route 是否保留、stage2 contact/squeeze 是否恢复、是否重新出现短暂 contact spike false-success；若失败，再设计 contact/stability-aware completion，不要回到固定 close-progress gate。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该 reward/transition 数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 runtime/eval 需确认 stage0 行走时 `arm_j1..arm_j6` 保持 `default_dof_pos`、stage0 action gate 未误伤 stage1+ arm reaching、`_stage_0_to_1_advance_condition()` cadence/termination 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且不进 `reward_penalty_reward_names`。下一步 retrain/eval 需检查 negative close command frames 是否恢复、base forward creep 是否下降、behavior 是否向 `base_v1/replay_v2` 回归；formal success/contact force 不作为该 config alone 的预期。
@@ -165,6 +167,7 @@ read_when:
 - 2026-07-04 22:34 HKT - 完成 eval `to_log` scalar dump 与旧 `ckpt6000` 复验：`eval_to_log_metrics.json` 显示 bypass blocked scalars 均为 0，stage2→3 由 `a2_stage2_grasp_complete_frac` 非零触发，door-open bypass 出现在 stage3 之后。
 - 2026-07-04 22:56 HKT - 完成 A2 stage2 completion predicate 收紧 (reversible experiment)。`_get_a2_stage2_grasp_completion_masks()` 在 `a2_stage2_completion_close_gate_required: true` 时 AND 三个新 gate：close_gate（复用 axis-aware `_get_a2_stage2_close_reward_gate()` per-axis tol）、stable_close（raw primitive < `a2_stage2_completion_gripper_close_command_threshold: -0.2`）、close_progress_min（min per-finger `(open_target - dof_pos).abs()/span` >= 0.45，clamped [0,1]）。Flag false 时 completion 回退到旧 history/contact/squeeze 行为（A/B rollback）。新增 4 个 diagnostics。py_compile / git diff --check / Hydra compose / no-sim predicate check PASS。Oracle review PASS。
 - 2026-07-05 19:00 HKT - 完成 `base_v3` tightened-completion 对照 eval：`logs_eval/base_v3_tightened_tolog` 显示 same `arm_j7/j8 Kp/Kd=80/3` policy 在真实 contact/squeeze 很强时仍被 tightened completion 拒绝，2/2 未 complete 并由 `upper_dof_overspeed` 终止。该结果修正 debug 方向：full-stage `base_v1` stage2 failure 不应主要归因于 gripper gain；下一步优先 A/B rollback `a2_stage2_completion_close_gate_required=false` 或重新设计 completion，让真实 bilateral contact/squeeze 成为主条件，而不是强依赖 fixed close-progress gate。
+- 2026-07-05 19:14 HKT - 完成 A2 stage2 completion A/B rollback config：默认 `a2_stage2_completion_close_gate_required=false`，tightened close_gate/stable_close/close_progress gates 保留为可手动 override 的 experiment path；本次只改 env config 默认值与 memory，不改 Python predicate、strict route、reward scales、termination curriculum 或 actuator config。
 - 2026-07-05 18:38 HKT - 完成 tightened-completion 旧 `ckpt6000` scalar eval：`logs_eval/full_stage_base_v0_ckpt6000_tightened_tolog` 显示 2/2 `stage_overtime` at stage2，`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`，旧 contact/squeeze spike 不再推进 stage2→3。
 - 2026-07-03 20:22 HKT - 记录 curriculum-state 调试规则：`termination_level` / `reward_penalty_scale` 是 checkpoint env-state；前者会改变 A2 `upper_dof_overspeed` 严格度，后者会缩放 `reward_penalty_reward_names` 内 positive shaping。后续 reward/behavior 诊断必须先核对这两个值，避免把 curriculum state 的影响误判为 reward/gate/actuator 本身的单变量效果。
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full/stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review PASS，PPO smoke 未跑。

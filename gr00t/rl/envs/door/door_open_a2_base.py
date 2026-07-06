@@ -304,6 +304,39 @@ class DoorPregrasp(
             )
         return value
 
+    def _get_a2_stage2_contact_force_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            "a2_stage2_contact_force_threshold",
+            "A2 stage2 contact force threshold",
+        )
+
+    def _get_a2_stage2_squeeze_force_min(self) -> float:
+        return self._get_required_positive_float_config(
+            "a2_stage2_squeeze_force_min",
+            "A2 stage2 squeeze force min",
+        )
+
+    def _get_a2_stage2_squeeze_force_max(self) -> float:
+        squeeze_min = self._get_a2_stage2_squeeze_force_min()
+        squeeze_max = self._get_required_positive_float_config(
+            "a2_stage2_squeeze_force_max",
+            "A2 stage2 squeeze force max",
+        )
+        if squeeze_max <= squeeze_min:
+            raise RuntimeError(
+                "A2 stage2 squeeze force window requires "
+                "env.config.a2_stage2_squeeze_force_max > "
+                "env.config.a2_stage2_squeeze_force_min; "
+                f"got min={squeeze_min}, max={squeeze_max}."
+            )
+        return squeeze_max
+
+    def _get_a2_stage2_over_force_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            "a2_stage2_over_force_threshold",
+            "A2 stage2 over-force threshold",
+        )
+
     def _get_a2_stage0_staging_x_offset(self) -> float:
         return self._get_required_positive_float_config(
             self.A2_STAGE0_STAGING_OFFSET_CONFIG_KEY,
@@ -567,6 +600,18 @@ class DoorPregrasp(
         self.target_root_pos = torch.tensor(self.config.target_root_pos, device=self.device)[
             None, :
         ]
+        self._a2_stage2_single_contact_duration = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_stage2_prev_gripper_open_command = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_stage2_prev_gripper_raw_sign_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_stage2_last_gripper_raw_sign_flip = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
 
     def _get_a2_arm_default_dof_pos(self, env_ids=None):
         if not self._use_a2_base:
@@ -1362,12 +1407,64 @@ class DoorPregrasp(
                 "penalty_a2_stage2_single_finger_contact is only defined for A2 Piper configs."
             )
         forces_w = self._get_a2_gripper_handle_contact_forces()
-        threshold = self._get_required_positive_float_config(
-            "a2_stage2_single_finger_contact_force_threshold",
-            "penalty_a2_stage2_single_finger_contact",
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            forces_w, "penalty_a2_stage2_single_finger_contact"
         )
-        contacting = torch.linalg.norm(forces_w, dim=-1) > threshold
-        return (contacting.sum(dim=-1) == 1).float()
+        return masks["single_contact"].float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_both_contact(self):
+        if not self._use_a2_base:
+            raise RuntimeError("a2_stage2_both_contact is only defined for A2 Piper configs.")
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_forces(),
+            "a2_stage2_both_contact",
+        )
+        return masks["both_contact"].float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_opposite_squeeze(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage2_opposite_squeeze is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_forces(),
+            "a2_stage2_opposite_squeeze",
+        )
+        return (masks["both_contact"] & masks["opposite_squeeze"]).float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_squeeze_force_window(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage2_squeeze_force_window is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_forces(),
+            "a2_stage2_squeeze_force_window",
+        )
+        return masks["squeeze_window"].float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_a2_stage2_contact_stability(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage2_contact_stability is only defined for A2 Piper configs."
+            )
+        return self._get_a2_stage2_contact_stability_mask().float()
+
+    @StagedTaskBase.effective_in_stage(STAGE_GRASP)
+    def _reward_penalty_a2_stage2_over_force(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_stage2_over_force is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_forces(),
+            "penalty_a2_stage2_over_force",
+        )
+        return masks["over_force"].float()
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):
@@ -1811,6 +1908,121 @@ class DoorPregrasp(
             )
         return force_matrix_w_history[:, :, 0, :, :]
 
+    def _get_a2_stage2_forces_source(self, forces_w, context):
+        if not torch.is_tensor(forces_w):
+            raise RuntimeError(f"{context} requires forces_w to be a torch.Tensor.")
+        if forces_w.ndim == 3:
+            expected_shape = (self.num_envs, 2, 3)
+            if tuple(forces_w.shape) != expected_shape:
+                raise RuntimeError(
+                    f"{context} requires forces_w shape {expected_shape}; "
+                    f"got {tuple(forces_w.shape)}."
+                )
+            expand_shape = (self.num_envs, 2, 4)
+        elif forces_w.ndim == 4:
+            if (
+                forces_w.shape[0] != self.num_envs
+                or forces_w.shape[2] != 2
+                or forces_w.shape[3] != 3
+            ):
+                raise RuntimeError(
+                    f"{context} requires forces_w shape ({self.num_envs}, H, 2, 3); "
+                    f"got {tuple(forces_w.shape)}."
+                )
+            expand_shape = (self.num_envs, forces_w.shape[1], 2, 4)
+        else:
+            raise RuntimeError(
+                f"{context} requires forces_w rank 3 or 4; got shape {tuple(forces_w.shape)}."
+            )
+
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        source_quat_w = getattr(data, "source_quat_w", None)
+        if (
+            source_quat_w is None
+            or source_quat_w.ndim != 2
+            or tuple(source_quat_w.shape) != (self.num_envs, 4)
+        ):
+            shape = None if source_quat_w is None else tuple(source_quat_w.shape)
+            raise RuntimeError(
+                f"{context} requires source_quat_w shape ({self.num_envs}, 4); "
+                f"got {shape}."
+            )
+        source_quat = source_quat_w
+        for _ in range(forces_w.ndim - 2):
+            source_quat = source_quat[:, None, :]
+        source_quat = source_quat.expand(expand_shape).reshape(-1, 4)
+        return quat_apply(quat_inv(source_quat), forces_w.reshape(-1, 3)).reshape(
+            forces_w.shape
+        )
+
+    def _get_a2_stage2_contact_squeeze_masks(self, forces_w, context):
+        forces_source = self._get_a2_stage2_forces_source(forces_w, context)
+        contact_force = torch.linalg.norm(forces_w, dim=-1)
+        contact_threshold = self._get_a2_stage2_contact_force_threshold()
+        squeeze_min = self._get_a2_stage2_squeeze_force_min()
+        squeeze_max = self._get_a2_stage2_squeeze_force_max()
+        over_force_threshold = self._get_a2_stage2_over_force_threshold()
+
+        contacting = contact_force > contact_threshold
+        squeeze_y = forces_source[..., :, 1]
+        squeeze_abs = torch.abs(squeeze_y)
+        squeeze_in_window = (squeeze_abs >= squeeze_min) & (squeeze_abs <= squeeze_max)
+        both_contact = torch.all(contacting, dim=-1)
+        single_contact = contacting.sum(dim=-1) == 1
+        opposite_squeeze = squeeze_y[..., 0] * squeeze_y[..., 1] < 0.0
+        sufficient_squeeze = torch.all(squeeze_abs > squeeze_min, dim=-1)
+        squeeze_window = (
+            both_contact
+            & opposite_squeeze
+            & torch.all(squeeze_in_window, dim=-1)
+        )
+        over_force = torch.any(contact_force > over_force_threshold, dim=-1)
+        return {
+            "contact_force": contact_force,
+            "contacting": contacting,
+            "single_contact": single_contact,
+            "single_contact_arm_body7": contacting[..., 0] & ~contacting[..., 1],
+            "single_contact_arm_body8": ~contacting[..., 0] & contacting[..., 1],
+            "both_contact": both_contact,
+            "squeeze_y": squeeze_y,
+            "sufficient_squeeze": sufficient_squeeze,
+            "opposite_squeeze": opposite_squeeze,
+            "squeeze_window": squeeze_window,
+            "over_force": over_force,
+        }
+
+    def _get_a2_stage2_contact_stability_mask(self):
+        history_length = self._get_a2_stage2_grasp_contact_history_length()
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_force_history(),
+            "A2 stage2 contact stability",
+        )
+        both_contact_history = masks["both_contact"]
+        if tuple(both_contact_history.shape) != (self.num_envs, history_length):
+            raise RuntimeError(
+                "A2 stage2 contact stability requires both_contact history shape "
+                f"({self.num_envs}, {history_length}); got "
+                f"{tuple(both_contact_history.shape)}."
+            )
+
+        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+        if (
+            actual_time_in_stage_buf is None
+            or not torch.is_tensor(actual_time_in_stage_buf)
+            or tuple(actual_time_in_stage_buf.shape) != (self.num_envs,)
+        ):
+            shape = (
+                None
+                if actual_time_in_stage_buf is None
+                else tuple(actual_time_in_stage_buf.shape)
+            )
+            raise RuntimeError(
+                "A2 stage2 contact stability requires actual_time_in_stage_buf shape "
+                f"({self.num_envs},); got {shape}."
+            )
+        history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
+        return history_window_in_stage & torch.all(both_contact_history, dim=-1)
+
     def _get_a2_stage1_pregrasp_ready_mask(self):
         data = self._get_a2_gripper_handle_frame_transformer().data
         target_pos_source = getattr(data, "target_pos_source", None)
@@ -1871,19 +2083,6 @@ class DoorPregrasp(
 
     def _get_a2_stage2_grasp_completion_masks(self):
         forces_w_history = self._get_a2_gripper_handle_contact_force_history()
-        data = self._get_a2_gripper_handle_frame_transformer().data
-        source_quat_w = getattr(data, "source_quat_w", None)
-        if (
-            source_quat_w is None
-            or source_quat_w.ndim != 2
-            or source_quat_w.shape != (self.num_envs, 4)
-        ):
-            shape = None if source_quat_w is None else tuple(source_quat_w.shape)
-            raise RuntimeError(
-                "A2 stage2 completion requires source_quat_w shape "
-                f"({self.num_envs}, 4); got {shape}."
-            )
-
         history_length = self._get_a2_stage2_grasp_contact_history_length()
         if tuple(forces_w_history.shape) != (self.num_envs, history_length, 2, 3):
             raise RuntimeError(
@@ -1892,20 +2091,12 @@ class DoorPregrasp(
                 f"got {tuple(forces_w_history.shape)}."
             )
 
-        source_quat = (
-            source_quat_w[:, None, None, :]
-            .expand(-1, history_length, 2, -1)
-            .reshape(-1, 4)
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            forces_w_history, "A2 stage2 completion"
         )
-        forces_source = quat_apply(
-            quat_inv(source_quat), forces_w_history.reshape(-1, 3)
-        ).reshape(self.num_envs, history_length, 2, 3)
-
-        contact_force = torch.linalg.norm(forces_w_history, dim=-1)
-        both_contact = torch.all(contact_force > 1.0, dim=-1)
-        squeeze_y = forces_source[:, :, :, 1]
-        sufficient_squeeze = torch.all(torch.abs(squeeze_y) > 0.5, dim=-1)
-        opposite_squeeze = squeeze_y[:, :, 0] * squeeze_y[:, :, 1] < 0.0
+        both_contact = masks["both_contact"]
+        sufficient_squeeze = masks["sufficient_squeeze"]
+        opposite_squeeze = masks["opposite_squeeze"]
         all_history_squeezed = torch.all(
             both_contact & sufficient_squeeze & opposite_squeeze, dim=-1
         )
@@ -1953,6 +2144,12 @@ class DoorPregrasp(
             "both_contact_current": both_contact[:, 0],
             "sufficient_squeeze_current": sufficient_squeeze[:, 0],
             "opposite_squeeze_current": opposite_squeeze[:, 0],
+            "squeeze_window_current": masks["squeeze_window"][:, 0],
+            "over_force_current": masks["over_force"][:, 0],
+            "single_contact_current": masks["single_contact"][:, 0],
+            "single_contact_arm_body7_current": masks["single_contact_arm_body7"][:, 0],
+            "single_contact_arm_body8_current": masks["single_contact_arm_body8"][:, 0],
+            "contact_stability": self._get_a2_stage2_contact_stability_mask(),
             "close_gate": close_gate,
             "stable_close": stable_close,
             "close_progress_min": close_progress_min,
@@ -2017,6 +2214,115 @@ class DoorPregrasp(
         stage2_opposite_squeeze = (
             stage2_active & stage2_completion_masks["opposite_squeeze_current"]
         )
+        stage2_single_contact = (
+            stage2_active & stage2_completion_masks["single_contact_current"]
+        )
+        stage2_single_contact_arm_body7 = (
+            stage2_active & stage2_completion_masks["single_contact_arm_body7_current"]
+        )
+        stage2_single_contact_arm_body8 = (
+            stage2_active & stage2_completion_masks["single_contact_arm_body8_current"]
+        )
+        stage2_squeeze_window = (
+            stage2_active & stage2_completion_masks["squeeze_window_current"]
+        )
+        stage2_contact_stability = (
+            stage2_active & stage2_completion_masks["contact_stability"]
+        )
+        stage2_over_force = stage2_active & stage2_completion_masks["over_force_current"]
+
+        single_contact_duration = getattr(
+            self, "_a2_stage2_single_contact_duration", None
+        )
+        if (
+            single_contact_duration is None
+            or not torch.is_tensor(single_contact_duration)
+            or tuple(single_contact_duration.shape) != (self.num_envs,)
+        ):
+            shape = (
+                None
+                if single_contact_duration is None
+                else tuple(single_contact_duration.shape)
+            )
+            raise RuntimeError(
+                "A2 stage2 diagnostics require _a2_stage2_single_contact_duration "
+                f"shape ({self.num_envs},); got {shape}."
+            )
+        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+        if (
+            actual_time_in_stage_buf is None
+            or not torch.is_tensor(actual_time_in_stage_buf)
+            or tuple(actual_time_in_stage_buf.shape) != (self.num_envs,)
+        ):
+            shape = (
+                None
+                if actual_time_in_stage_buf is None
+                else tuple(actual_time_in_stage_buf.shape)
+            )
+            raise RuntimeError(
+                "A2 stage2 diagnostics require actual_time_in_stage_buf shape "
+                f"({self.num_envs},); got {shape}."
+            )
+        reset_single_contact_duration = (~stage2_active) | (actual_time_in_stage_buf <= 1)
+        self._a2_stage2_single_contact_duration[:] = torch.where(
+            reset_single_contact_duration,
+            torch.zeros_like(single_contact_duration),
+            torch.where(
+                stage2_single_contact,
+                single_contact_duration + 1,
+                torch.zeros_like(single_contact_duration),
+            ),
+        )
+
+        primitive_open = (
+            self._get_a2_gripper_primitive_raw_column("A2 route diagnostics raw sign") > 0.0
+        )
+        prev_open = getattr(self, "_a2_stage2_prev_gripper_open_command", None)
+        prev_valid = getattr(self, "_a2_stage2_prev_gripper_raw_sign_valid", None)
+        last_flip = getattr(self, "_a2_stage2_last_gripper_raw_sign_flip", None)
+        for field_name, field_value in (
+            ("_a2_stage2_prev_gripper_open_command", prev_open),
+            ("_a2_stage2_prev_gripper_raw_sign_valid", prev_valid),
+            ("_a2_stage2_last_gripper_raw_sign_flip", last_flip),
+        ):
+            if (
+                field_value is None
+                or not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != torch.bool
+            ):
+                shape = None if field_value is None else tuple(field_value.shape)
+                dtype = None if field_value is None else field_value.dtype
+                raise RuntimeError(
+                    f"A2 stage2 diagnostics require {field_name} bool tensor shape "
+                    f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+                )
+        raw_sign_flip = (
+            stage2_active
+            & (actual_time_in_stage_buf > 1)
+            & prev_valid
+            & (primitive_open != prev_open)
+        )
+        self._a2_stage2_last_gripper_raw_sign_flip[:] = raw_sign_flip
+        self._a2_stage2_prev_gripper_open_command[:] = torch.where(
+            stage2_active, primitive_open, torch.zeros_like(primitive_open)
+        )
+        self._a2_stage2_prev_gripper_raw_sign_valid[:] = stage2_active
+
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        if (
+            target_pos_source is None
+            or target_pos_source.ndim != 3
+            or tuple(target_pos_source.shape) != (self.num_envs, 2, 3)
+        ):
+            shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            raise RuntimeError(
+                "A2 stage2 diagnostics require target_pos_source shape "
+                f"({self.num_envs}, 2, 3); got {shape}."
+            )
+        target_offset = target_pos_source[:, 0, :]
+        stage2_active_float = stage2_active.float()
 
         diagnostics = {
             "a2_stage1_active_frac": stage1_active,
@@ -2038,9 +2344,31 @@ class DoorPregrasp(
             "a2_stage2_both_contact_frac": stage2_both_contact,
             "a2_stage2_sufficient_squeeze_frac": stage2_sufficient_squeeze,
             "a2_stage2_opposite_squeeze_frac": stage2_opposite_squeeze,
+            "a2_stage2_single_contact_frac": stage2_single_contact,
+            "a2_stage2_single_contact_arm_body7_frac": stage2_single_contact_arm_body7,
+            "a2_stage2_single_contact_arm_body8_frac": stage2_single_contact_arm_body8,
+            "a2_stage2_squeeze_window_frac": stage2_squeeze_window,
+            "a2_stage2_contact_stability_frac": stage2_contact_stability,
+            "a2_stage2_over_force_frac": stage2_over_force,
+            "a2_stage2_gripper_raw_sign_flip_frac": raw_sign_flip,
         }
         for name, mask in diagnostics.items():
             self.log_dict[name] = mask.float().mean()
+        self.log_dict["a2_stage2_single_contact_duration_mean"] = (
+            self._a2_stage2_single_contact_duration.float().mean()
+        )
+        self.log_dict["a2_stage2_target_offset_x_abs_mean"] = (
+            target_offset[:, 0].abs() * stage2_active_float
+        ).mean()
+        self.log_dict["a2_stage2_target_offset_y_abs_mean"] = (
+            target_offset[:, 1].abs() * stage2_active_float
+        ).mean()
+        self.log_dict["a2_stage2_target_offset_z_abs_mean"] = (
+            target_offset[:, 2].abs() * stage2_active_float
+        ).mean()
+        self.log_dict["a2_stage2_target_offset_norm_mean"] = (
+            torch.linalg.norm(target_offset, dim=-1) * stage2_active_float
+        ).mean()
 
     def _get_a2_axes_from_quat(self, quat, context):
         expected_shape = (self.num_envs, 4)
@@ -2232,6 +2560,23 @@ class DoorPregrasp(
             quat_inv(source_quat), handle_contact_force_w.reshape(-1, 3)
         ).reshape(self.num_envs, 2, 3)
         squeeze_y = handle_contact_force_source[:, :, 1]
+        contact_masks = self._get_a2_stage2_contact_squeeze_masks(
+            handle_contact_force_w, "A2 terminal diagnostics stage2 contact state"
+        )
+        contact_stability = self._get_a2_stage2_contact_stability_mask()
+        gripper_raw_sign_flip = getattr(self, "_a2_stage2_last_gripper_raw_sign_flip", None)
+        if (
+            gripper_raw_sign_flip is None
+            or not torch.is_tensor(gripper_raw_sign_flip)
+            or tuple(gripper_raw_sign_flip.shape) != (self.num_envs,)
+            or gripper_raw_sign_flip.dtype != torch.bool
+        ):
+            shape = None if gripper_raw_sign_flip is None else tuple(gripper_raw_sign_flip.shape)
+            dtype = None if gripper_raw_sign_flip is None else gripper_raw_sign_flip.dtype
+            raise RuntimeError(
+                "A2 terminal diagnostics requires _a2_stage2_last_gripper_raw_sign_flip "
+                f"bool tensor shape ({self.num_envs},); got shape={shape}, dtype={dtype}."
+            )
 
         dof_pos = getattr(self.simulator, "dof_pos", None)
         if (
@@ -2327,6 +2672,28 @@ class DoorPregrasp(
             handle_contact_force_norm[env_ids].detach().cpu().tolist()
         )
         selected_squeeze_y = squeeze_y[env_ids].detach().cpu().tolist()
+        selected_single_contact = (
+            contact_masks["single_contact"][env_ids].detach().cpu().tolist()
+        )
+        selected_single_contact_arm_body7 = (
+            contact_masks["single_contact_arm_body7"][env_ids].detach().cpu().tolist()
+        )
+        selected_single_contact_arm_body8 = (
+            contact_masks["single_contact_arm_body8"][env_ids].detach().cpu().tolist()
+        )
+        selected_both_contact = (
+            contact_masks["both_contact"][env_ids].detach().cpu().tolist()
+        )
+        selected_squeeze_window = (
+            contact_masks["squeeze_window"][env_ids].detach().cpu().tolist()
+        )
+        selected_over_force = (
+            contact_masks["over_force"][env_ids].detach().cpu().tolist()
+        )
+        selected_contact_stability = contact_stability[env_ids].detach().cpu().tolist()
+        selected_gripper_raw_sign_flip = (
+            gripper_raw_sign_flip[env_ids].detach().cpu().tolist()
+        )
         selected_arm_j7_j8_pos = arm_j7_j8_pos[env_ids].detach().cpu().tolist()
         selected_arm_j7_j8_close_error = (
             arm_j7_j8_close_error[env_ids].detach().cpu().tolist()
@@ -2392,13 +2759,29 @@ class DoorPregrasp(
                     "handle_contact_force_w": selected_handle_contact_force_w[idx],
                     "handle_contact_force_norm": selected_handle_contact_force_norm[idx],
                     "squeeze_y": selected_squeeze_y[idx],
+                    "single_contact": bool(selected_single_contact[idx]),
+                    "single_contact_arm_body7": bool(
+                        selected_single_contact_arm_body7[idx]
+                    ),
+                    "single_contact_arm_body8": bool(
+                        selected_single_contact_arm_body8[idx]
+                    ),
+                    "both_contact": bool(selected_both_contact[idx]),
+                    "squeeze_window": bool(selected_squeeze_window[idx]),
+                    "contact_stability": bool(selected_contact_stability[idx]),
+                    "over_force": bool(selected_over_force[idx]),
                     "arm_j7_j8_pos": selected_arm_j7_j8_pos[idx],
                     "arm_j7_j8_close_target": close_target_list,
                     "arm_j7_j8_close_error": selected_arm_j7_j8_close_error[idx],
                     "gripper_primitive_raw": selected_gripper_primitive_raw[idx],
+                    "gripper_raw_sign_flip": bool(selected_gripper_raw_sign_flip[idx]),
+                    "target_offset_x_abs": abs(selected_target_pos_source_handle[idx][0]),
+                    "target_offset_y_abs": abs(selected_target_pos_source_handle[idx][1]),
+                    "target_offset_z_abs": abs(selected_target_pos_source_handle[idx][2]),
                     "target_pos_source_handle_distance": float(
                         selected_handle_distance[idx]
                     ),
+                    "target_offset_norm": float(selected_handle_distance[idx]),
                     "target_pos_source_pregrasp_distance": float(
                         selected_pregrasp_distance[idx]
                     ),

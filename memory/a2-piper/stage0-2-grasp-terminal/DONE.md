@@ -1,5 +1,11 @@
 # DONE
 
+- 2026-07-06 15:45 HKT - 完成 stage0-2 grasp memory 对 bilateral contact/squeeze dense reward implementation 的同步记录。
+
+  (1) Continuous aperture primitive 仍 deferred，binary gripper primitive 按 user decision 保持不变；本轮已在 main env 实现 bilateral contact/squeeze dense reward、force-window/contact-stability/over-force shaping 与 diagnostics。
+
+  (2) Stage0-2 相关 TODO 从“设计 bilateral squeeze/contact-force reward”改为“retrain/eval 验证新 dense reward 是否改善 both-contact/squeeze、contact stability 与 gripper raw sign flip”。该记录不表示 stage0-2 terminal success 已 runtime PASS。
+
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
 
   (1) `logs_eval/base_v3_term2` runtime 结论：resume 到 `termination_level=0.1` 后两条 env 均 formal complete，但 stage1/2 arm reach 明显变慢；此时旧 hard termination floor 等效为 `2 rad/s`，低于 A2 Piper `arm_j1..j5` robot yaml velocity limit `5 rad/s` 和 `arm_j6` limit `3 rad/s`。

@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-06 15:45 HKT - 完成 A2 stage2 bilateral contact/squeeze dense reward 与 diagnostics memory record。
+
+  (1) Binary gripper primitive 保持不变；hard active single-finger penalty 通过 reward scale `0.0` disabled，但保留函数与 diagnostics visibility。
+
+  (2) 新增 A2 stage2 dense rewards：`a2_stage2_both_contact`、`a2_stage2_opposite_squeeze`、`a2_stage2_squeeze_force_window`、`a2_stage2_contact_stability`、`penalty_a2_stage2_over_force`。新增 env thresholds：`a2_stage2_contact_force_threshold=1.0`、`a2_stage2_squeeze_force_min=0.5`、`a2_stage2_squeeze_force_max=20.0`、`a2_stage2_over_force_threshold=40.0`。
+
+  (3) Diagnostics/trace 扩展覆盖 single contact、`arm_body7` / `arm_body8`、duration、both contact、squeeze window、contact stability、over-force、target offset x/y/z/norm 与 gripper raw sign flip。
+
+  (4) Eval-only legacy checkpoint config migration 已显式处理旧 `a2_stage2_single_finger_contact_force_threshold` key；validation 为 `py_compile eval_agent_trl.py + door_open_a2_base.py` PASS、`git diff --check` PASS、conda `isaaclab` no-sim migration sanity PASS。Plain Python Hydra compose 因缺少 `hydra` module 不可用；review PASS。
+
 - 2026-07-04 21:56 HKT - 完成 Full-stage False-Success Route Fix。
 - 2026-07-04 22:26 HKT - 完成旧 full-stage `ckpt6000` strict-route 短 eval：命令使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=2`、`render_results=false`，输出在 `logs_eval/full_stage_base_v0_ckpt6000_strict_route_eval1`。结果 `episode_goal_reached=[true,true]`、`episode_max_stage_reached=[5,5]`、terminal reason 均为 `complete`；stage2 trace 有短暂 negative gripper primitive、both-contact 与 opposite-squeeze spike，说明 strict route 没有把该旧 policy 挡在 stage2。现有 eval runner 未导出 `infos["to_log"]`，因此本次没有精确 `a2_stage*_bypass_blocked_frac` scalar。
 

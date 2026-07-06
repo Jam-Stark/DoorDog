@@ -44,6 +44,61 @@ from gr00t.rl.utils.config_utils import register_rl_resolvers
 register_rl_resolvers()
 
 
+_A2_STAGE2_LEGACY_CONTACT_FORCE_KEY = "a2_stage2_single_finger_contact_force_threshold"
+_A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS = {
+    "a2_stage2_squeeze_force_min": 0.5,
+    "a2_stage2_squeeze_force_max": 20.0,
+    "a2_stage2_over_force_threshold": 40.0,
+}
+_A2_STAGE2_GRASP_REWARD_CONFIG_KEYS = (
+    "a2_stage2_contact_force_threshold",
+    *_A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS.keys(),
+)
+
+
+def migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path):
+    """Migrate checkpoint-adjacent legacy A2 stage2 grasp reward config."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    missing_keys = [
+        key for key in _A2_STAGE2_GRASP_REWARD_CONFIG_KEYS if key not in env_config
+    ]
+    if not missing_keys:
+        return
+
+    present_keys = [
+        key for key in _A2_STAGE2_GRASP_REWARD_CONFIG_KEYS if key in env_config
+    ]
+    if present_keys:
+        raise RuntimeError(
+            "Partial legacy A2 stage2 grasp reward config in "
+            f"{config_path}; missing keys: {missing_keys}"
+        )
+
+    if _A2_STAGE2_LEGACY_CONTACT_FORCE_KEY not in env_config:
+        raise RuntimeError(
+            "Missing A2 stage2 grasp reward config in "
+            f"{config_path}; missing keys: {missing_keys}"
+        )
+
+    env_config.a2_stage2_contact_force_threshold = env_config[
+        _A2_STAGE2_LEGACY_CONTACT_FORCE_KEY
+    ]
+    for key, value in _A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS.items():
+        env_config[key] = value
+    logger.info(
+        "Migrated legacy A2 stage2 grasp reward config from "
+        f"{config_path} using {_A2_STAGE2_LEGACY_CONTACT_FORCE_KEY}"
+    )
+
+
 def process_output_dim_in_config(config):
     """Process and adapt output dimensions for actor and teacher_actor backbones.
 
@@ -124,6 +179,7 @@ def main(override_config: OmegaConf):
             if train_config.eval_overrides is not None:
                 train_config = OmegaConf.merge(train_config, train_config.eval_overrides)
 
+            migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path)
             config = OmegaConf.merge(train_config, override_config)
         else:
             config = override_config

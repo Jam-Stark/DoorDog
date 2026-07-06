@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-03 21:59 HKT
+last_updated: 2026-07-06 15:45 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -26,6 +26,7 @@ read_when:
 - 2026-06-22 21:23 HKT - `PolicyAndValueWrapper` 已改为通过 `object.__setattr__(..., "_a2_base_model", a2_base_model)` 持有 frozen A2_Base TorchScript model，并用 property 暴露访问；该 model 不再注册为 child `nn.Module`，避免 HuggingFace Trainer optimizer parameter scanning 进入 TorchScript `ParameterDict.contains()` crash。
 - 2026-06-22 21:31 HKT - `piper_gripper_handle_frame_transformer` 已切换为 A2-local `OrderedTargetFrameTransformer`，保留 `handle -> pregrasp` target order；bounded smoke 已越过旧 target-order fail-fast，当前下一 blocker 是 `_homie_history_length` missing init。
 - 2026-06-22 21:35 HKT - A2_Base init path 已显式初始化 `_homie_history_length`，bounded smoke 已越过 `a_history_homie` reset observation；当前下一 blocker 是 `ResetFromDataset` 的 `reset_count` missing init。
+- 2026-07-06 15:45 HKT - Stage2 close-stage reward direction 已更新：continuous aperture primitive 仍 deferred，binary gripper primitive 保持不变；main env 已实现 bilateral contact/squeeze dense reward、force-window/contact-stability/over-force shaping 与 diagnostics。Stage0-2 下一步是 short train/eval 验证，而不是继续只做设计记录。
 - 2026-06-22 21:39 HKT - stage0-2 quick config 已显式关闭 G1 `ResetFromDataset` motion reset，bounded smoke 已推进到 PPO recurrent model forward；当前下一 blocker 是 A2_Base frozen policy injection 的 recurrent minibatch shape mismatch。
 - 2026-06-22 22:03 HKT - PPO recurrent A2_Base injection shape mismatch 已按最小边界修复：只在 A2_Base injection 侧将 padded `a2_base_obs` unsplit 回 env-major 后与 `high_level_actions` 对齐，不改 PPO loss tensors 的 env-major contract。
 - 2026-06-24 17:36 HKT - A2 terminal orientation diagnostics 已完成 static review，可进入 runtime orientation diagnosis；本次只扩展 `episode_terminal_diagnostics` 字段，不改变 reward、stage transition、complete predicate、reset、camera、rendering timing 或 trainer action logic。
@@ -209,13 +210,14 @@ read_when:
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且不进 `reward_penalty_reward_names`。下一步 retrain/eval 需检查 negative close command frames 是否恢复到 `base_v1/replay_v2` 水平、base forward creep 是否下降、reward 是否脱离 `base_v0/base_v2` open-gripper local optimum；formal success/contact force 不作为该 config alone 的预期验收。
 - 2026-07-01 19:17 HKT - actuator yaml routing 的 env-create blocker 已修复：OmegaConf `ListConfig` 不再直接进入 IsaacLab `ImplicitActuatorCfg`；如果下一轮训练仍在 env construction 失败，应优先看新的 traceback，而不是继续归因到本次 `joint_names_expr` container type。
-- 2026-06-30 21:47 HKT - `restrictPre-Grasp_v2` 已验证 Stage2 Grasp Target Tracking Reward Fix 改善了 close gate / center-Y / handle-distance tracking，并能产生视觉 grasp-like 双侧弱接触；但 env completion 仍未通过。下一步 TODO 从“首次 retrain/eval reward fix”转为设计/验证 gripper primitive 或 close-stage reward：continuous aperture primitive、gripper primitive rate/hysteresis、bilateral squeeze/contact-force shaping、force stability / over-force penalty，避免只奖励 fully closed target。
+- 2026-07-06 15:45 HKT - Continuous aperture primitive 仍 deferred；bilateral contact/squeeze dense reward、force-window/contact-stability/over-force shaping 与 diagnostics 已在 main env 实现。下一步 stage0-2 / full-stage short train-eval 验证新 dense reward 是否提高 both-contact/squeeze、contact stability，并减少 single-contact / over-force / gripper raw sign flip。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
 - 2026-06-26 22:00 HKT - Multi-camera eval rendering 已完成实现与静态 review，但完整 IsaacSim runtime eval 验证（确认 3 个 mp4 同时生成、视野正确、FPS 一致、backward compat 无 regress）仍需 main-agent 复跑。
 
 ## DONE Summary
 
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation：`penalty_dof_overspeed` 只对 `arm_j1..j6` 超过 `3.0 rad/s` 的部分计二次 penalty；`upper_dof_overspeed` hard termination 仍使用 `termination_level * 20.0`，但增加 `min=3.0 rad/s` floor，避免 `termination_level=0.1` 时把 Piper arm 限到过慢的 `2 rad/s`。
+- 2026-07-06 15:45 HKT - 同步 main env A2 stage2 bilateral contact/squeeze dense reward implementation：binary gripper primitive 保持不变、continuous aperture primitive deferred；新增 dense reward/diagnostics 已完成并通过 review/validation，stage0-2 下一步改为 retrain/eval 验证 behavior。
 - 2026-07-03 20:22 HKT - 记录 `base_v3` curriculum-state finding：`termination_level` / `reward_penalty_scale` 是 checkpoint env-state，会在 eval/resume 恢复；`base_v3` 的 `termination_level≈0.25` 将 `upper_dof_overspeed` threshold 收紧到约 `5 rad/s` 并解释原 eval 4s stage1 early termination，临时改回 `1.0` 后同一 actor 在 `logs_eval/base_v3_term1` 可进入 stage2 并 formal complete。后续训练效果解读必须同时看这两个 curriculum state。
 - 2026-07-03 19:47 HKT - 记录 A2 stage0-2 TRL resume semantics：`algo.trl.num_total_batches` 是最终 `state.max_steps` / target global step，不是额外 batch 数；`last.pt global_step=600` 继续到 1200 应传 `algo.trl.num_total_batches=1200`，传 600 会在 resume 后被 Transformers `DefaultFlowCallback` 立刻 stop。
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config 记录：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full A2 targeted Hydra compose、stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review 均 PASS，PPO smoke 未跑。

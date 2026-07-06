@@ -263,3 +263,13 @@
   (2) `gr00t/rl/config/env/door_open_a2_base.yaml` 中 `a2_stage1_stage2_base_forward_creep_deadband` 从 `0.10` 收紧到 `0.05`，`a2_stage1_stage2_base_forward_creep_scale` 从 `0.15` 收紧到 `0.10`。
 
   (3) 本轮只增强已有 A2 stage1/2 base-forward creep penalty，目标是压低 full-stage 中用 base 替代 arm reach handle 的 local optimum；未改 reward 函数、strict A2 stage route、stage2 completion predicate、actuator config、reward curriculum membership 或 `reward_penalty_reward_names`。
+
+- 2026-07-06 14:20 HKT - 完成 `base_v2` 1000-step render/scalar eval 与 workflow preference 记录。
+
+  (1) Eval checkpoint：`logs_rl/a2_piper_full_stage_a2_base/base_v2-20260705_221205/last.pt`（loaded step 1000）。Outputs：`logs_eval/full_stage_base_v2_ckpt1000_render`（2 env × default/handle_top/handle_side videos）与 `logs_eval/full_stage_base_v2_ckpt1000_tolog`；render metrics 与 scalar-only metrics 一致。
+
+  (2) Result：`episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`、rewards `97.66/95.23`。Curriculum sanity：`termination_level≈1.0001`、`reward_penalty_scale≈1.0001`，`penalty_a2_stage1_stage2_base_forward_creep=-1.5` 生效且仍不在 `reward_penalty_reward_names`。
+
+  (3) Behavior diagnosis：相比 `base_v1_lose_close_gate` 的 `negative_gripper_primitive=0`，本 run `a2_stage2_negative_gripper_primitive_frac mean=0.379`，`a2_stage2_gripper_stable_close_frac mean=0.324`，`a2_stage2_close_gate_frac mean=0.765`，handle distance 到 2-6mm；但 `a2_stage2_grasp_complete_frac=0`、`both_contact/sufficient_squeeze/opposite_squeeze=0`。Trace 中只有 transient single-side `arm_body8` contact（env0 any contact 34/357，env1 48/353），`arm_body7` 始终 0，因此无法 bilateral squeeze。
+
+  (4) User workflow preference：后续 policy eval 默认生成 rendering 版本；如先跑 no-render scalar prepass，应随后补 render eval，并用 render + scalar/trace 一起判断行为。

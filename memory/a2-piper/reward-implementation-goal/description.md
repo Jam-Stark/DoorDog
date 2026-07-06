@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-05 22:04 HKT
+last_updated: 2026-07-06 14:20 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -85,6 +85,7 @@ read_when:
 
 - 2026-07-05 21:34 HKT - 完成 rollback short full-stage 600 checkpoint scalar eval：`logs_eval/full_stage_base_v1_lose_close_gate_ckpt600_tolog` 使用 `logs_rl/a2_piper_full_stage_a2_base/base_v1_lose_close_gate-20260705_192136/last.pt`（loaded step 600）。结果 2/2 `stage_overtime` at stage2，`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`both_contact/sufficient_squeeze/opposite_squeeze=0`、`negative_gripper_primitive=0`；两 env 均长期处于 close gate（trace env0 `305/332`、env1 `265/325`），但 handle contact force/squeeze 全程 0，terminal raw gripper primitive 仍为 positive/open。结论：600 iteration rollback 还没有恢复 close/grasp，当前 failure 是 close-stage policy/open primitive + no-contact，而不是 completion gate 误杀真实 grasp。
 - 2026-07-05 22:04 HKT - 完成 full-stage base creep penalty 增强 config ablation：`penalty_a2_stage1_stage2_base_forward_creep` 从 `-0.75` 加强到 `-1.5`，`a2_stage1_stage2_base_forward_creep_deadband` 从 `0.10` 收紧到 `0.05`，`a2_stage1_stage2_base_forward_creep_scale` 从 `0.15` 收紧到 `0.10`。目的：在 strict A2 route 下压低 stage1/2 用 base 替代 arm reach handle 的 local optimum，促使 policy 在 close gate 前更多使用 arm/TCP 调整；不改 reward 函数、completion predicate、strict route、actuator config 或 `reward_penalty_reward_names`。
+- 2026-07-06 14:20 HKT - 完成 base creep penalty 增强后的 full-stage `base_v2` 1000-step render/scalar eval：`logs_eval/full_stage_base_v2_ckpt1000_render` 与 `logs_eval/full_stage_base_v2_ckpt1000_tolog` 使用 `logs_rl/a2_piper_full_stage_a2_base/base_v2-20260705_221205/last.pt`（loaded step 1000），2/2 `stage_overtime` at stage2，reward `97.66/95.23`，`episode_max_stage_reached=[2,2]`，`a2_stage2_close_gate_frac mean=0.765`，`a2_stage2_negative_gripper_primitive_frac mean=0.379`，但 `a2_stage2_grasp_complete/both_contact/sufficient_squeeze/opposite_squeeze=0`。Trace 显示 handle distance 已到 2-6mm、negative close 已恢复，但 contact 只是 transient single-side `arm_body8`，`arm_body7` 一直 0，无法形成 bilateral squeeze。结论：base creep penalty 改善了 open-primitive/no-contact local optimum，但当前 blocker 已转为 close-stage bilateral contact / gripper aperture-contact geometry，不应继续主要归因到 completion gate、gripper gain 或单纯 base creep。
 
 - 2026-06-26 20:30 HKT - grasp_target 位置已修正到 door handle lever center（door.py 中 set_prim_transform 与 FixedJoint LocalPos1 的 X 从 -0.15 改为 -axle_length/2、Z 从 door_handle_height+0.02 改为 door_handle_height）。原 grasp_target 距 lever center X 方向 4.5-6cm（偏门板）、Z 方向 +2cm（把手上方），导致 gripper source 到达 grasp_target（hd→0）时 lever 在手指前方~1cm、contact=0、闭合夹空。修复后 auto-correct 效果：grasp_target_distance/pregrasp_target_distance/stage2-close-gate 现在量的是 lever center，close gate hd<0.015 对应 handle_radius(0.011-0.015) = 自然闭合时机。旧 checkpoint 无效，需 retrain。
 
@@ -133,6 +134,7 @@ read_when:
 - 若 reward term 需要从 LMP `manager-based` 项目迁移，必须先和 Bella/Galileo 讨论并提取训练时 source logic、scale、timing、manager semantics，再设计 DoorDog direct path 的等价实现。
 - 若 reward term 来自 Doorman 原版 G1/HOMIE chain，必须让 Ava 做 origin-code 逻辑核查/解释。Ava 的回答必须带 source code path、函数名与关键 code/line 方便核查。
 - Doorman 原版实现链路如需破坏性修改、移除或改变语义，必须先获得 Ava 的风险核查，以及 user 审核/同意；不要在未确认的情况下直接破坏 Doorman-derived stage/reward/control routing。
+- 2026-07-06 14:20 HKT - User eval workflow preference：后续 policy eval 默认生成 rendering 版本；如果为了快速定位先跑 scalar-only/no-render eval，必须说明原因并随后补 render eval，行为结论以 render + scalar/trace 一起判断。
 
 ## Subagent Roles
 
@@ -142,8 +144,7 @@ read_when:
 ## TODO Summary
 
 - 2026-07-03 21:59 HKT - 后续 reward debug / ablation 继续把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项；同时验证 A2 Piper `arm_j1..j6` overspeed threshold `3.0 rad/s` 是否能减少 strict curriculum 下 arm reach 过慢和 `upper_dof_overspeed`，且不重新诱发 violent fast-complete / orientation drift。
-- 2026-07-05 21:34 HKT - rollback short full-stage 600 eval 已确认：strict route 保留且无 contact/squeeze/no close。后续等 1000 checkpoint/eval 再判断是否只是 early checkpoint；若 1000 仍 `negative_gripper_primitive=0` 且 contact/squeeze=0，应转向 close-stage reward credit / arm-vs-base reach shaping，而不是 completion gate 或 gripper gain。
-- 2026-07-05 22:04 HKT - 当前 active full-stage ablation：增强 `penalty_a2_stage1_stage2_base_forward_creep`（weight `-1.5`、deadband `0.05`、scale `0.10`）。下一次 train/eval 重点看 stage1/2 base creep 是否下降、arm/TCP reach 是否增加、deterministic `negative_gripper_primitive` 是否从 0 恢复。
+- 2026-07-06 14:20 HKT - `base_v2` 1000-step render eval 确认 enhanced base creep penalty 已恢复 deterministic negative close 并保持 close gate / handle tracking，但 still 2/2 stage2 overtime；下一步不要继续单纯加 base creep，应诊断 close-stage bilateral contact / gripper aperture-contact geometry：为什么 handle distance 已到 2-6mm 且 raw close 为负时只有 `arm_body8` transient contact、`arm_body7` 始终 0，导致 `both_contact/sufficient_squeeze/opposite_squeeze=0`。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该 reward/transition 数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 runtime/eval 需确认 stage0 行走时 `arm_j1..arm_j6` 保持 `default_dof_pos`、stage0 action gate 未误伤 stage1+ arm reaching、`_stage_0_to_1_advance_condition()` cadence/termination 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-06-30 21:47 HKT - Stage2 Grasp Target Tracking Reward Fix 的第一轮 runtime eval 已记录：center-Y / close gate / handle-distance tracking 明显改善，并能产生视觉 grasp-like weak contact；但 stage2 complete 仍未通过。下一步 reward/primitive work 应聚焦 gripper primitive 与 close-stage shaping（continuous aperture、primitive rate/hysteresis、bilateral squeeze/contact-force、force stability / over-force penalty），而不是继续追 grasp target 位置。
@@ -173,6 +174,7 @@ read_when:
 - 2026-07-05 19:14 HKT - 完成 A2 stage2 completion A/B rollback config：默认 `a2_stage2_completion_close_gate_required=false`，tightened close_gate/stable_close/close_progress gates 保留为可手动 override 的 experiment path；本次只改 env config 默认值与 memory，不改 Python predicate、strict route、reward scales、termination curriculum 或 actuator config。
 - 2026-07-05 21:34 HKT - 完成 rollback short full-stage 600 checkpoint scalar eval：`logs_eval/full_stage_base_v1_lose_close_gate_ckpt600_tolog` 显示 2/2 stage2 overtime，stage1 strict pregrasp advance 正常但 stage2 `grasp_complete/to3=0`；close gate 大量触发，negative close command/contact/squeeze 全为 0。该结果说明 600 iteration 时 policy 仍处于 base/TCP close-gate tracking + open gripper local optimum。
 - 2026-07-05 22:04 HKT - 完成 full-stage base creep penalty 增强 config：reward weight `-0.75 -> -1.5`，deadband `0.10 -> 0.05`，saturation scale `0.15 -> 0.10`；只改变已有 penalty 参数，不改变 stage route / completion / actuator / curriculum membership。
+- 2026-07-06 14:20 HKT - 完成 `base_v2` 1000-step render/scalar eval：`logs_eval/full_stage_base_v2_ckpt1000_render` 产出 2 env × 3 camera videos，`logs_eval/full_stage_base_v2_ckpt1000_tolog`/render metrics 一致。结果 2/2 `stage_overtime` at stage2；base creep ablation 使 negative gripper primitive 从 `base_v1_lose_close_gate` 的 0 恢复到 mean `0.379`，stable close/progress 也恢复，但 still no bilateral contact/squeeze completion。
 - 2026-07-05 18:38 HKT - 完成 tightened-completion 旧 `ckpt6000` scalar eval：`logs_eval/full_stage_base_v0_ckpt6000_tightened_tolog` 显示 2/2 `stage_overtime` at stage2，`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`，旧 contact/squeeze spike 不再推进 stage2→3。
 - 2026-07-03 20:22 HKT - 记录 curriculum-state 调试规则：`termination_level` / `reward_penalty_scale` 是 checkpoint env-state；前者会改变 A2 `upper_dof_overspeed` 严格度，后者会缩放 `reward_penalty_reward_names` 内 positive shaping。后续 reward/behavior 诊断必须先核对这两个值，避免把 curriculum state 的影响误判为 reward/gate/actuator 本身的单变量效果。
 - 2026-07-03 15:45 HKT - 完成 `base_v2` rescue ablation config：保留 `arm_j7/j8 Kp=80, Kd=3, effort=10`，新增 close-gate open primitive penalty `-0.4` 与 stage1/stage2 base forward creep penalty `-0.75`（`deadband=0.10`, `scale=0.15`），两者均不进 `reward_penalty_reward_names`；py_compile、git diff --check、full/stage0-2 targeted Hydra compose、no-sim formula sanity 与 Oracle-style review PASS，PPO smoke 未跑。

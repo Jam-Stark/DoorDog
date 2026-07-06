@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-06 21:00 HKT - 完成 full-stage `base_v3` ckpt1000 no-render stage2 completion A/B。
+
+  (1) Shared setup: checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`，均使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=16`、`render_results=false`、`dump_to_log_metrics=true`，因此是 one episode per env。
+
+  (2) `stage2_grasp_contact_history_length=3` 输出 `logs_eval/full_stage_base_v3_ckpt1000_hist3_tolog`：0/16 success，16/16 max/terminal at stage3，全部 `stage_overtime`；`a2_stage2_grasp_complete_frac` / `a2_stage2_to3_advance_frac` 16 个 step 非零，`a2_stage2_door_open_bypass_frac=0`；terminal 15/16 single-contact、1/16 both-contact/contact-stability，mean reward 64.46。结论：history 3 能打开 stage2→3，但对当前 policy 过于宽松，容易让 stage3 在 durable grasp 前启动。
+
+  (3) `a2_stage2_contact_force_threshold=0.8` 输出 `logs_eval/full_stage_base_v3_ckpt1000_thr0p8_tolog`：0/16 success，5/16 max/terminal at stage3、11/16 at stage2，全部 `stage_overtime`；`a2_stage2_grasp_complete_frac` / `a2_stage2_to3_advance_frac` 5 个 step 非零，`a2_stage2_door_open_bypass_frac=0`；terminal 7/16 both-contact/squeeze-window、1/16 contact-stability，mean reward 103.19。结论：threshold 0.8 更保守，更像下一步 render 验证 / potential default config 候选。
+
+  (4) 两组都没有 full-stage success，符合预期：old checkpoint 几乎没学过 stage3/open after strict completion unblock。该 A/B 只判断 route unlocking 与假推进风险，不代表 door-opening behavior 已解决。
+
 - 2026-07-06 20:35 HKT - 完成 full-stage `base_v3` ckpt1000 no-render scalar/trace eval 诊断记录。
 
   (1) Eval path: `logs_eval/full_stage_base_v3_ckpt1000_tolog_norender`，checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`。本次因 override path 走默认 `150 total episodes`，不是原计划 one-episode-per-env。

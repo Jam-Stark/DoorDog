@@ -1,5 +1,13 @@
 # DONE
 
+- 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` ckpt1000 no-render completion A/B 对 stage0-2 terminal semantics 的影响。
+
+  (1) `stage2_grasp_contact_history_length=3`：`logs_eval/full_stage_base_v3_ckpt1000_hist3_tolog`，16/16 进入 stage3 但 0/16 success，全部 stage3 overtime；terminal 多为 single-contact，说明该 history 对 terminal success 语义偏宽。
+
+  (2) `a2_stage2_contact_force_threshold=0.8`：`logs_eval/full_stage_base_v3_ckpt1000_thr0p8_tolog`，5/16 进入 stage3、11/16 留在 stage2，0/16 success；terminal both-contact/squeeze-window 比 history 3 更好，且 door-open bypass 为 0。
+
+  (3) Stage0-2 若复用当前 full-stage grasp completion 作为 terminal success，下一步应优先 render/short-run 验证 threshold 0.8，而不是直接放宽 history 到 3。
+
 - 2026-07-06 20:35 HKT - 同步 full-stage `base_v3` ckpt1000 no-render eval 对 stage0-2 grasp terminal 方向的影响。
 
   (1) Eval path: `logs_eval/full_stage_base_v3_ckpt1000_tolog_norender`。0/150 success；stage2→3 真实 advance 仅 3 env-step。

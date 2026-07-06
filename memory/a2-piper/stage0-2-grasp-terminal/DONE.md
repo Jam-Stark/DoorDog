@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-06 20:35 HKT - 同步 full-stage `base_v3` ckpt1000 no-render eval 对 stage0-2 grasp terminal 方向的影响。
+
+  (1) Eval path: `logs_eval/full_stage_base_v3_ckpt1000_tolog_norender`。0/150 success；stage2→3 真实 advance 仅 3 env-step。
+
+  (2) Close-stage behavior 已改善：policy 能正确使用 arm reach、进入 close gate、持续 negative close primitive，target offset 与 raw sign flip 不再是主 blocker。
+
+  (3) Stage2 completion blocker 是 `arm_body7` force 与 bilateral contact continuity：`arm_body8` 通常有足够 contact/squeeze，但 `arm_body7` >1N 比例低，current history 5 仅 4/159 stage2 segments 能满足。
+
+  (4) 下一步 stage0-2 / full-stage completion A/B 应优先比较 history 3 与 threshold 0.8；threshold 0.5 过宽，可能重新引入 spike/false-positive terminal route。
+
 - 2026-07-06 15:45 HKT - 完成 stage0-2 grasp memory 对 bilateral contact/squeeze dense reward implementation 的同步记录。
 
   (1) Continuous aperture primitive 仍 deferred，binary gripper primitive 按 user decision 保持不变；本轮已在 main env 实现 bilateral contact/squeeze dense reward、force-window/contact-stability/over-force shaping 与 diagnostics。

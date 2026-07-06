@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-06 20:35 HKT - 完成 full-stage `base_v3` ckpt1000 no-render scalar/trace eval 诊断记录。
+
+  (1) Eval path: `logs_eval/full_stage_base_v3_ckpt1000_tolog_norender`，checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`。本次因 override path 走默认 `150 total episodes`，不是原计划 one-episode-per-env。
+
+  (2) Result: 0/150 success，144/150 terminal/max at stage2，`a2_stage2_to3_advance_frac` 只有 3 个 env-step 非零；`termination_level≈1.0`、`reward_penalty_scale≈1.0`，不是 curriculum-state blocker。
+
+  (3) Behavior diagnosis: close-stage reward 生效，`close_gate/stable_close/negative primitive≈0.77`，target offset norm mean `8.8mm`，raw sign flip 很低；但 completion 卡在 unstable bilateral contact，`single_contact≈0.63` 且主要是 `arm_body8`，`arm_body7` force >1N 仅约 25% stage2 records / terminal 34/150，`contact_stability` 仅 3 records。
+
+  (4) What-if trace analysis: current `contact_threshold=1.0` + history 5 只有 4/159 stage2 segments 满足；history 3 可到 59/159；threshold 0.8 + history 5 可到 36/159；threshold 0.5 + history 5 可到 138/159，风险较高。
+
 - 2026-07-06 15:45 HKT - 完成 A2 stage2 bilateral contact/squeeze dense reward 与 diagnostics memory record。
 
   (1) Binary gripper primitive 保持不变；hard active single-finger penalty 通过 reward scale `0.0` disabled，但保留函数与 diagnostics visibility。

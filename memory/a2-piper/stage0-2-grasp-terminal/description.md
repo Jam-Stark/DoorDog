@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-06 21:00 HKT
+last_updated: 2026-07-07 16:17 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -29,6 +29,7 @@ read_when:
 - 2026-07-06 15:45 HKT - Stage2 close-stage reward direction 已更新：continuous aperture primitive 仍 deferred，binary gripper primitive 保持不变；main env 已实现 bilateral contact/squeeze dense reward、force-window/contact-stability/over-force shaping 与 diagnostics。Stage0-2 下一步是 short train/eval 验证，而不是继续只做设计记录。
 - 2026-07-06 20:35 HKT - Full-stage `base_v3` ckpt1000 no-render eval 显示 dense reward 已恢复 arm reach + close/grasp basin，但 stage2 terminal/completion 仍卡在 `arm_body7` force 与 bilateral contact continuity。Stage0-2 若复用该 completion semantics，下一步应优先做 history/threshold A/B，而不是继续改 target offset、actuator gain 或 gripper primitive。
 - 2026-07-06 21:00 HKT - Full-stage `base_v3` completion A/B 对 stage0-2 terminal semantics 的影响：history 3 虽能让 16/16 stage2→3，但 terminal 多为 single-contact，作为 terminal success 会偏宽；contact threshold 0.8 只让 5/16 推进且保留更多 contact/stability 约束，若 stage0-2 复用该 predicate，也应优先验证 threshold 0.8 而不是 history 3。
+- 2026-07-07 16:17 HKT - Full-stage `base_v4` 2k four-way eval 更新 stage0-2 terminal 判断：不能只看 completion rate，`thr0p8_kd5_vel0` 虽 16/16 complete 但 force/raw 过激；当前 hard predicate 未使用 `squeeze_window` / `~over_force`，会把 dense reward 不鼓励的 force spike route 仍判为 terminal success。Stage0-2 若复用该 predicate，下一步应先修 force-window/no-overforce completion semantics，再评估 threshold/Kd。
 - 2026-06-22 21:39 HKT - stage0-2 quick config 已显式关闭 G1 `ResetFromDataset` motion reset，bounded smoke 已推进到 PPO recurrent model forward；当前下一 blocker 是 A2_Base frozen policy injection 的 recurrent minibatch shape mismatch。
 - 2026-06-22 22:03 HKT - PPO recurrent A2_Base injection shape mismatch 已按最小边界修复：只在 A2_Base injection 侧将 padded `a2_base_obs` unsplit 回 env-major 后与 `high_level_actions` 对齐，不改 PPO loss tensors 的 env-major contract。
 - 2026-06-24 17:36 HKT - A2 terminal orientation diagnostics 已完成 static review，可进入 runtime orientation diagnosis；本次只扩展 `episode_terminal_diagnostics` 字段，不改变 reward、stage transition、complete predicate、reset、camera、rendering timing 或 trainer action logic。
@@ -212,13 +213,14 @@ read_when:
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
 - 2026-07-03 15:45 HKT - `base_v2` rescue ablation config 已实现：close-gate open primitive penalty 与 stage1/stage2 base forward creep penalty 已加入，且不进 `reward_penalty_reward_names`。下一步 retrain/eval 需检查 negative close command frames 是否恢复到 `base_v1/replay_v2` 水平、base forward creep 是否下降、reward 是否脱离 `base_v0/base_v2` open-gripper local optimum；formal success/contact force 不作为该 config alone 的预期验收。
 - 2026-07-01 19:17 HKT - actuator yaml routing 的 env-create blocker 已修复：OmegaConf `ListConfig` 不再直接进入 IsaacLab `ImplicitActuatorCfg`；如果下一轮训练仍在 env construction 失败，应优先看新的 traceback，而不是继续归因到本次 `joint_names_expr` container type。
-- 2026-07-06 21:00 HKT - Full-stage `base_v3` completion A/B 已完成。Stage0-2 后续若调整 terminal predicate，优先看 `a2_stage2_contact_force_threshold=0.8`，不要直接改 `stage2_grasp_contact_history_length=3`；history 3 对 terminal success 语义偏宽。
+- 2026-07-07 16:17 HKT - Full-stage `base_v4` four-way 2k eval 已完成。Stage0-2 / full-stage 后续若调整 completion/terminal predicate，应先把 hard completion history 改为 `squeeze_window & ~over_force` 语义，并保留 diagnostics 判断 blocked route；暂不直接默认 history 3、threshold 0.5、或 `thr0p8_kd5_vel0`。
 - 2026-06-24 22:45 HKT - true close/aperture condition 或 complete predicate 强化仍未实施；本轮只加 close shaping rewards，不应混入 contact history gate、stage transition、reset、camera、render timing 或 action semantics 修改。
 - 2026-06-26 22:00 HKT - Multi-camera eval rendering 已完成实现与静态 review，但完整 IsaacSim runtime eval 验证（确认 3 个 mp4 同时生成、视野正确、FPS 一致、backward compat 无 regress）仍需 main-agent 复跑。
 
 ## DONE Summary
 
-- 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` completion A/B：history 3 让 16/16 stage2→3 但多为 single-contact / early stage3，threshold 0.8 只让 5/16 推进且更保守；stage0-2 terminal predicate 后续优先验证 threshold 0.8，history 3 暂不作为默认。
+- 2026-07-07 16:17 HKT - 同步 full-stage `base_v4` four-way 2k eval：`thr1p0_kd3_vel1` 是当前最可用候选，`thr0p8_kd5_vel0` 虽 complete 率最高但 force/raw 过激；terminal predicate 下一步应对齐 dense reward 的 `squeeze_window` 与 `over_force` 语义。
+- 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` completion A/B：history 3 让 16/16 stage2→3 但多为 single-contact / early stage3，threshold 0.8 只让 5/16 推进且更保守；stage0-2 terminal predicate 后续优先验证 threshold 0.8，history 3 暂不作为默认。该结论已被 2026-07-07 four-way A/B 更新：先修 completion force-window/no-overforce，再调 threshold。
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation：`penalty_dof_overspeed` 只对 `arm_j1..j6` 超过 `3.0 rad/s` 的部分计二次 penalty；`upper_dof_overspeed` hard termination 仍使用 `termination_level * 20.0`，但增加 `min=3.0 rad/s` floor，避免 `termination_level=0.1` 时把 Piper arm 限到过慢的 `2 rad/s`。
 - 2026-07-06 15:45 HKT - 同步 main env A2 stage2 bilateral contact/squeeze dense reward implementation：binary gripper primitive 保持不变、continuous aperture primitive deferred；新增 dense reward/diagnostics 已完成并通过 review/validation，stage0-2 下一步改为 retrain/eval 验证 behavior。
 - 2026-07-06 20:35 HKT - 同步 full-stage `base_v3` ckpt1000 no-render eval diagnosis：dense reward 使 policy 正确使用 arm reach 并持续 close，但 formal stage2 completion 仍被 `1.0N` both-finger threshold + 5-frame history 拒绝；what-if 指向 history 3 或 contact threshold 0.8 作为下一轮 reversible A/B。

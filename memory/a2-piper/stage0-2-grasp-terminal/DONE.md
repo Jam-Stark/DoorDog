@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-07 16:17 HKT - 同步 full-stage `base_v4` four-way 2k eval 对 stage0-2 terminal semantics 的影响。
+
+  (1) `threshold=0.8,Kd=3,velocity_iter=1` 与 `threshold=1.0,Kd=5,velocity_iter=0` 均 0/16 success 且无 contact，不能作为 stage0-2 terminal predicate 候选 evidence。
+
+  (2) `threshold=0.8,Kd=5,velocity_iter=0` 虽 16/16 complete，但 raw close 饱和且 contact force spike 可达 250N+，不应作为 terminal success 正例。
+
+  (3) `threshold=1.0,Kd=3,velocity_iter=1` 为 15/16 complete，stable-contact subset 无 over-force，是当前最可用候选；但仍有 single-contact force spike 和一次 `upper_dof_overspeed`，需要 predicate 先排除 over-force route。
+
+  (4) Stage0-2 若复用 full-stage stage2 completion 作为 terminal success，下一步必须让 hard predicate 使用 `squeeze_window` / `~over_force`，不能只靠降低 contact threshold 或提高 gripper Kd。
+
 - 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` ckpt1000 no-render completion A/B 对 stage0-2 terminal semantics 的影响。
 
   (1) `stage2_grasp_contact_history_length=3`：`logs_eval/full_stage_base_v3_ckpt1000_hist3_tolog`，16/16 进入 stage3 但 0/16 success，全部 stage3 overtime；terminal 多为 single-contact，说明该 history 对 terminal success 语义偏宽。

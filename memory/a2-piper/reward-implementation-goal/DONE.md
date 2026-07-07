@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-07 16:17 HKT - 完成 full-stage `base_v4` 2k four-way no-render eval analysis。
+
+  (1) Runs: `logs_eval/base_v4_thr0p8_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr0p8_kd5_vel0_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr1p0_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr1p0_kd5_vel0_ckpt2000_tolog_norender`。
+
+  (2) `threshold=0.8,Kd=3,velocity_iter=1` 与 `threshold=1.0,Kd=5,velocity_iter=0` 均 0/16 success，episode 全部 stage2 overtime，trace contact/squeeze/over-force/signflip 全为 0；说明这两组没有学到有效 handle contact。
+
+  (3) `threshold=0.8,Kd=5,velocity_iter=0` 为 16/16 complete，但 trace 显示 raw close 更饱和、force spike 可达 250N+，stable-contact subset 也出现 over-force；该 run 不应作为正向默认，只能说明 hard predicate 仍允许 violent completion route。
+
+  (4) `threshold=1.0,Kd=3,velocity_iter=1` 为 15/16 complete，1/16 `upper_dof_overspeed`；contact-stability records 无 over-force，raw close 幅度比 Kd5 温和，是四组中最可用候选。但仍存在 single-contact force spike，说明还不能直接作为 solved behavior。
+
+  (5) Code finding: `_get_a2_stage2_grasp_completion_masks()` 当前 completion history 使用 `both_contact & sufficient_squeeze & opposite_squeeze`，没有要求 `squeeze_window`，也没有排除 `over_force`。因此 dense reward 已经记录/惩罚 force-window 与 over-force，但 hard stage2→3 predicate 仍可被超大 force route 触发。下一步应先修 completion predicate，而不是继续单纯调 contact threshold 或 gripper Kd。
+
 - 2026-07-06 21:00 HKT - 完成 full-stage `base_v3` ckpt1000 no-render stage2 completion A/B。
 
   (1) Shared setup: checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`，均使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=16`、`render_results=false`、`dump_to_log_metrics=true`，因此是 one episode per env。

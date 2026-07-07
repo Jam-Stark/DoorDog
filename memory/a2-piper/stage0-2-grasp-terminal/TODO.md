@@ -1,5 +1,6 @@
 # TODO
 
+- 2026-07-07 22:09 HKT - base_v6 current code 已将 A2 `source_frame_offset` 改为 `(0,0,0.085)` 且 `arm_j7/j8 effort_limit_sim=40.0/40.0`。后续若 stage0-2 branch 或 stage0-2-only eval 复用 main code，需要重新检查 finger envelope、`arm_body7/8` bilateral contact、`squeeze_window` 与 over-force；不要继续把 2026-06-26 `0.105` 几何测量当作当前配置。
 - 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - 暂停验证 `a2_stage0_staging_x_offset=0.50` 与 `doorHandleHeight 0.80~1.35m` 数据分布 trial；先运行 `restrictPre-Grasp_v2` reproduction control config（stage0 offset 回到 config `0.70`，online handle height 回到 `0.85~0.95m`），待 control 对照完成后再决定是否恢复该 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成 static/review，但未跑 PPO/IsaacSim smoke；后续 stage0-2 retrain/eval 需要确认 `arm_j1..arm_j6` 在 stage0 保持 `default_dof_pos`、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 无 regression。

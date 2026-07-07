@@ -207,7 +207,7 @@ Important A2 compatibility behavior:
 
 - A2 config 不再引用 `hand_handle_transform`；A2 mode 如果旧 key 被调用会 raise，不再提供 zero compatibility。
 - `hand_force` 不再 padding 到 48D，也不返回 zeros；A2 dim 是 `6D`，scale `0.01`、noise `0.0` 保持。
-- `gripper_handle_transform` source frame is `/World/envs/env_.*/Robot/arm_body6_to_gripper` with source TCP offset `(0,0,0.105)`；targets are `/World/envs/env_.*/door/grasp_target` handle frame and same target with target-side `+Z 0.10m` pregrasp offset.
+- `gripper_handle_transform` source frame is `/World/envs/env_.*/Robot/arm_body6_to_gripper` with current source TCP offset `(0,0,0.085)` (2026-07-07 base_v6; historical baseline was `(0,0,0.105)`); targets are `/World/envs/env_.*/door/grasp_target` handle frame and same target with target-side `+Z 0.10m` pregrasp offset.
 - Sorted obs order changes because `a2_base_command*` / `gripper_handle_transform` sort by key；actor/critic input dim remains `133D/138D`.
 - `a2_base_obs: 1620D` 仍是独立 obs group，只服务 frozen A2_Base trainer inference，不混入 Teacher `actor_obs` / `critic_obs`。
 

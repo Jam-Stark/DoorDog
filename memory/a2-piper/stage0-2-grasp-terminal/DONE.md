@@ -1,5 +1,7 @@
 # DONE
 
+- 2026-07-07 22:09 HKT - 同步 base_v6 TCP/effort current config 对 stage0-2 grasp-terminal 语义的影响：当前 main code 的 A2 `source_frame_offset` 为 `(0,0,0.085)`，`arm_j7/j8 effort_limit_sim=40.0/40.0`；2026-06-26 `0.105` finger-envelope 记录保留为 historical baseline，后续 stage0-2 trace/eval 必须按 current offset 重新判断 handle 是否位于 finger mid-section。
+
 - 2026-07-07 16:17 HKT - 同步 full-stage `base_v4` four-way 2k eval 对 stage0-2 terminal semantics 的影响。
 
   (1) `threshold=0.8,Kd=3,velocity_iter=1` 与 `threshold=1.0,Kd=5,velocity_iter=0` 均 0/16 success 且无 contact，不能作为 stage0-2 terminal predicate 候选 evidence。

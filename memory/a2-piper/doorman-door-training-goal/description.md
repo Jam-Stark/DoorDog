@@ -2,7 +2,7 @@
 name: doorman-door-training-goal
 scope: A2_Piper long-term goal for Doorman-based robot replacement and door-opening training
 status: active
-last_updated: 2026-06-16 22:24 HKT
+last_updated: 2026-07-07 22:09 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/doorman-door-training-goal/description.md
@@ -92,13 +92,14 @@ read_when:
 - 2026-06-16 14:08 HKT - Ava 已单独核查 G1 Teacher privileged observation contract，并整理 `scriptsFORhuman/g1_doorman_teacher_privileged_obs_a2_adaptation_map.md`：逐项列出 G1 actor/critic obs term、shape、origin getter、A2 当前状态与 adaptation risk。关键结论：当前 A2 high-level `actor_obs/critic_obs` 仍是 G1-style schema；`hand_handle_transform` 与 `hand_force` 是 zero-shape compatibility，必须优先替换为 Piper EE/handle/gripper/contact semantics。
 - 2026-06-16 14:49 HKT - 完成本批 A2 Teacher high-level obs parity：`dof_pos` / `dof_vel` 保持 full A2 robot `20D` getter；`actions` 从 final simulator `20D` 改为 A2/G1 parity action surface `19D = 12D A2_Base leg output + 6D effective Piper arm action + 1D gripper primitive raw`。Actor obs dim `176 -> 175`，critic obs dim `181 -> 180`；`actions` 不含 base command、不含 expanded gripper joint target，`a2_base_obs` 仍不混入 Teacher actor/critic obs。
 - 2026-06-16 15:34 HKT - 完成第二批 Teacher high-level observation direct reuse 审核/标记：`projected_gravity`、`base_lin_vel`、`base_ang_vel`、`relative_to_door`、`door_dof_pos` 均无需 code adaptation，直接基于 A2 `trunk`/base root state 或 door articulation 复用；`relative_to_door` 仅作为 base-door navigation term，不替代 Piper EE/handle task-frame observation。
-- 2026-06-16 19:38 HKT - 完成 A2 Teacher obs strict replacement：`hand_force` 改为 `arm_body7`/`arm_body8` gripper net/body force 6D；`hand_handle_transform` rename/替换为 `gripper_handle_transform` 18D，读取 `piper_gripper_handle_frame_transformer`，source 为 `arm_body6_to_gripper` + TCP offset `(0,0,0.105)`，target 为 `grasp_target` handle 与 target-side `grasp_target +Z 0.10m` pregrasp frame。A2 path 不再有 zeros fallback 或 door-root approximation，旧 key、missing bodies、missing/wrong transformer target order 均 fail-fast。
+- 2026-06-16 19:38 HKT - 完成 A2 Teacher obs strict replacement：`hand_force` 改为 `arm_body7`/`arm_body8` gripper net/body force 6D；`hand_handle_transform` rename/替换为 `gripper_handle_transform` 18D，读取 `piper_gripper_handle_frame_transformer`，source 为 `arm_body6_to_gripper` + TCP offset（当时为 `(0,0,0.105)`；2026-07-07 base_v6 当前值已改为 `(0,0,0.085)`），target 为 `grasp_target` handle 与 target-side `grasp_target +Z 0.10m` pregrasp frame。A2 path 不再有 zeros fallback 或 door-root approximation，旧 key、missing bodies、missing/wrong transformer target order 均 fail-fast。
 - 2026-06-16 20:54 HKT - 完成 A2 Teacher PPO high-level action contract 10D/22D -> 12D/24D 迁移：旧 `10D = 3D base + 6D Piper arm + 1D gripper` 与 `22D = 10D + 12D A2_Base` 记录已 superseded；新 high-level policy action `12D = 5D base_command_raw [x,y,yaw,pitch,roll] + 6D Piper arm_j1..j6 + 1D gripper primitive`，trainer rollout action `24D = 12D high-level + 12D A2_Base leg action`，final simulator joint command 仍为 `20D`。
 - 2026-06-16 21:41 HKT - Ava 复核补充 residual TODO：standalone `smoke_a2_base_flat_walk.py` 仍是 velocity-only 3D command monitor，不应作为 5D `[x,y,yaw,pitch,roll]` Teacher PPO action contract 的 pitch/roll 验收工具；后续需升级为 5D smoke 或在 CLI/README 明确标注 velocity-only。
 - 2026-06-16 21:46 HKT - 完成 Teacher PPO obs status 文档更新：`privileged_door_info` 与 `stage` 标记 `PASS`，`delta_actions` 标记 `PASS with A2-specific semantics: 6D Piper arm raw delta only`；明确 `delta_actions` 只覆盖 Piper arm raw delta，不含 5D base command 与 1D gripper primitive。
 - 2026-06-16 21:59 HKT - 完成 Teacher PPO command obs public rename：active A2 Teacher obs public terms 现在是 `a2_base_command_raw` 与 `a2_base_command`。`a2_base_command_raw` 是 warp/scale/clip 前 5D raw high-level base action `[x,y,yaw,pitch,roll]`，来源关系对应 G1 `unwarped_actions`；`a2_base_command` 是 processed/clipped/scaled 5D physical command obs，scale `[2,2,0.25,1,1]`，small-command zeroing 只作用 velocity/yaw `[0:3]`，不作用 pitch/roll。旧 public `unwarped_actions`、`base_command`、`b_homie_commands` 不再出现在 active A2 obs config 中。
 - 2026-06-16 22:13 HKT - 完成 Teacher PPO critic-only `transition/complete/time_in_stage/actual_time_in_stage/total_time` obs PASS 标记；语义来自 `StagedTaskBase` stage/timer bookkeeping，robot-agnostic，不读取 robot/joint/body/contact。该 PASS 只覆盖 obs carrier/normalization direct reuse，不代表 stage1+ transition/reward semantics 完成。
 - 2026-06-16 22:24 HKT - 三方 review（main + Ava + independent reviewer）结论均为 `FINISH_OK`：Teacher PPO door-open policy observation adaptation phase / obs carrier-input contract 可阶段性完成。当前 actor/critic dims 为 `133D/138D`，active obs terms 均已有 A2 mapping、direct reuse、strict replacement 或 A2-specific semantics。该完成边界不包含 PPO train smoke、stage1+ transition/reward correctness、Student/vision route，也不把 gripper aperture/contact/grasp cues、normalization/RMS、continuous gripper primitive 作为当前 obs adaptation blocker。
+- 2026-07-07 22:09 HKT - Full-stage base_v6 当前 global A2 TCP/effort config：`gripper_handle_transform` source TCP offset 已从 historical `(0,0,0.105)` 改为 `(0,0,0.085)`，`arm_j7/j8 effort_limit_sim` 已从 `10.0/10.0` 改为 `40.0/40.0`；该 run 同时改变 TCP geometry 与 gripper effort cap，后续训练/eval 不能当作单变量 effort ablation 解读。
 
 ## Action Progress Snapshot
 
@@ -143,6 +144,7 @@ Implementation reminder:
 2026-06-16 13:58 HKT - Teacher PPO experiment 是当前短期优先级；Student DAgger vision / distillation 暂缓。Teacher PPO network architecture 复用 G1 origin recurrent actor/critic，只围绕 A2_Piper door task 改 observation input 和 action output。
 2026-06-16 14:49 HKT - 第一批 G1 origin parity 已完成 `dof_pos/dof_vel/actions`。2026-06-16 15:34 HKT 第二批 direct reuse 已标记 `PASS`：`projected_gravity`、`base_lin_vel`、`base_ang_vel`、`relative_to_door`、`door_dof_pos`。后续又完成 Piper EE/handle frame、hand-force/contact strict replacement 与 command obs rename。
 2026-06-16 22:24 HKT - Teacher PPO observation adaptation phase 已阶段性完成：active obs direct reuse/pass 列表包含 `projected_gravity/base_lin_vel/base_ang_vel/relative_to_door/door_dof_pos`、`privileged_door_info`、`stage`、critic-only `transition/complete/time_in_stage/actual_time_in_stage/total_time`，并已完成 `hand_force -> 6D arm_body7/8 force`、`hand_handle_transform -> gripper_handle_transform 18D TCP-to-handle/pregrasp`、`a2_base_command_raw` raw 5D、`a2_base_command` processed/clipped/scaled 5D、`delta_actions` 6D Piper arm raw delta semantics 与 `actions` 19D A2/G1 parity surface。当前 actor/critic dims 为 `133D/138D`。gripper aperture/contact/grasp cues、normalization/RMS、actor/critic privileged split 与 continuous gripper primitive 进入 post-finish enhancement/validation；stage1+ transition/reward correctness 明确转入下一阶段。
+2026-07-07 22:09 HKT - base_v6 TCP/effort A/B 已改变 current `gripper_handle_transform` source geometry：历史 `(0,0,0.105)` 只作为 2026-06-16/06-26 baseline；当前训练/eval 应按 `(0,0,0.085)` 解读 TCP-to-handle observation、pregrasp/handle distance 和 grasp-frame diagnostics。
 
 ## TODO Summary
 
@@ -157,6 +159,7 @@ Implementation reminder:
 
 ## DONE Summary
 
+- 2026-07-07 22:09 HKT - 记录 base_v6 current TCP/effort config：A2 `gripper_handle_transform` source TCP offset `(0,0,0.085)`，`arm_j7/j8 effort_limit_sim=40.0/40.0`；历史 `0.105` geometry 仅作为 earlier baseline。
 - 2026-06-12 16:59 HKT - 新建独立 memory entry，记录基于 Doorman 替换用户自有 robot 并适配 observation/action/reward 完成开门训练的长期目标。
 - 2026-06-12 17:07 HKT - 记录用户已加入 A2_Piper robot URDF assets：`gr00t/rl/data/robots/A2_Piper/a2_piper.urdf` 与对应 `meshes/` STL assets。
 - 2026-06-12 18:02 HKT - 完成 preview milestone：`gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 定义 A2_Piper DOF/body/limits/default joint pose，`gr00t/rl/data/robots/A2_Piper/a2_piper.usd` 由 URDF 生成，`gr00t/rl/envs/door/a2_piper_door_scene_preview.py` 与 `gr00t/rl/scripts/preview_a2_piper_door_scene.py` 提供 Doorman door scene + A2_Piper zero-action hold preview；入口缺失 USD 时 fail-fast 并打印生成命令，不 fallback to G1。

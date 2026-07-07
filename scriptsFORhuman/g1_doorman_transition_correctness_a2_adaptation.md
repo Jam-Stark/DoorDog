@@ -63,7 +63,7 @@
 
 | 检查项 | Origin 语义 | A2 可用 source | A2适配状态 | 开发/检查建议 |
 |---|---|---|---|---|
-| Target source | `_compute_pre_grasp_target()` = `grasp_target + Z 0.1m` | A2 `_compute_pre_grasp_target()` 读取 `piper_gripper_handle_frame_transformer` target `pregrasp`，source frame 是 `/Robot/arm_body6_to_gripper` + TCP offset `(0,0,0.105)` | PASS carrier | 保持 fail-fast：target order 必须是 `["handle", "pregrasp"]`，`target_obj_transform_sub_prim_path` 必须是 `grasp_target`。 |
+| Target source | `_compute_pre_grasp_target()` = `grasp_target + Z 0.1m` | A2 `_compute_pre_grasp_target()` 读取 `piper_gripper_handle_frame_transformer` target `pregrasp`，source frame 是 `/Robot/arm_body6_to_gripper` + current TCP offset `(0,0,0.085)`（2026-07-07 base_v6；historical baseline was `(0,0,0.105)`） | PASS carrier | 保持 fail-fast：target order 必须是 `["handle", "pregrasp"]`，`target_obj_transform_sub_prim_path` 必须是 `grasp_target`。 |
 | Height above handle | selected palm z `> handle_height+0.05` | Piper TCP/pregrasp target and `door_handle_height` | PASS intentionally omitted | A2 stage1->2 不加入 TCP above-handle 条件，避免把 G1 palm-height heuristic 强套到 Piper TCP/pregrasp target。 |
 | Pregrasp distance | palm to pregrasp distance `<0.1` | `gripper_handle_transform` / frame transformer source-relative target pose；A2 `pregrasp_target_distance` reward metric 已使用 `target_pos_source[:, 1, :]` 和 TCP velocity shaping | PASS correctness | `_stage_1_to_2_advance_condition()` 使用 `target_pos_source[:, 1, :]` norm `<0.1m`。 |
 | Finger p0 readiness | selected finger p0 mean error `<0.174533` | A2 gripper `arm_j7/arm_j8` aperture / primitive state | PASS correctness | A2 使用 actual `arm_j7/arm_j8` position 是否落在 open/close target 外扩 25% span 内作为 pregrasp readiness；span zero/near-zero 直接 raise，不 fallback 到 G1 finger p0。 |

@@ -3359,7 +3359,7 @@ class DoorPregrasp(
                 FrameTransformerCfg(
                     prim_path="/World/envs/env_.*/Robot/arm_body6_to_gripper",
                     source_frame_offset=OffsetCfg(
-                        pos=(0.0, 0.0, 0.105),
+                        pos=(0.0, 0.0, 0.085),
                         rot=(1.0, 0.0, 0.0, 0.0),
                     ),
                     target_frames=[

@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-07 22:09 HKT - 完成 full-stage `base_v6` TCP/effort A/B 配置改动。
+
+  (1) `gr00t/rl/envs/door/door_open_a2_base.py` 中 A2 `piper_gripper_handle_frame_transformer` 的 `source_frame_offset.pos` 从 `(0.0, 0.0, 0.105)` 改为 `(0.0, 0.0, 0.085)`。IsaacLab `FrameTransformerCfg.source_frame_offset` 语义是相对 source prim frame 的 local offset，因此该改动让 Piper TCP/source 沿 `arm_body6_to_gripper` local `-Z` 后退 2cm。
+
+  (2) `gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` 中 `dof_effort_limit_list` 最后两个值（`arm_j7/arm_j8`）从 `10.0/10.0` 改为 `40.0/40.0`。`isaacsim.py` 的 A2 actuator routing 会按 `dof_names` 将该 list 传入 `ImplicitActuatorCfg.effort_limit_sim`。
+
+  (3) 本轮未改 reward、stage transition / completion predicate、Kp/stiffness、Kd/damping、velocity iterations、termination curriculum 或 `reward_penalty_reward_names`。目的仅是验证“handle 从 finger tip 移向 finger mid-section + 更高 gripper effort cap”是否改善 `arm_body8` 单侧顶住、`arm_body7` 进不来的 failure mode。
+
+  (4) Validation/review：`py_compile door_open_a2_base.py` PASS、`git diff --check` PASS、Hydra compose sanity PASS（`effort_tail=[100.0, 100.0, 40.0, 40.0]`）、read-only review PASS。Caveat：40N 是 joint effort cap，不等价于保证 40N handle contact force。
+
 - 2026-07-07 16:17 HKT - 完成 full-stage `base_v4` 2k four-way no-render eval analysis。
 
   (1) Runs: `logs_eval/base_v4_thr0p8_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr0p8_kd5_vel0_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr1p0_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr1p0_kd5_vel0_ckpt2000_tolog_norender`。

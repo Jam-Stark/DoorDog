@@ -2268,5 +2268,5 @@
 <text x="716.0" y="248.0" font-size="13" text-anchor="start" fill="#374151" font-weight="400" font-family="Arial, Helvetica, sans-serif">PiPER base A mounted at x=+0.145 m</text>
 <text x="682.0" y="281.0" font-size="12" text-anchor="start" fill="#6b7280" font-weight="400" font-family="Arial, Helvetica, sans-serif">Green zone: URDF-reach warm start only.</text>
 <text x="682.0" y="298.0" font-size="12" text-anchor="start" fill="#6b7280" font-weight="400" font-family="Arial, Helvetica, sans-serif">Replace after IK/collision/torque scan.</text>
-<text x="28.0" y="978.0" font-size="12" text-anchor="start" fill="#4b5563" font-weight="400" font-family="Arial, Helvetica, sans-serif">URDF values used: trunk footprint union 0.722 x 0.280 m; hip joints x=+-0.25944, y=+-0.075113; arm_j0 xyz=(0.145,0,0.154); TCP offset=(0,0,0.105).</text>
+<text x="28.0" y="978.0" font-size="12" text-anchor="start" fill="#4b5563" font-weight="400" font-family="Arial, Helvetica, sans-serif">URDF values used: trunk footprint union 0.722 x 0.280 m; hip joints x=+-0.25944, y=+-0.075113; arm_j0 xyz=(0.145,0,0.154); current TCP offset=(0,0,0.085), old baseline=(0,0,0.105).</text>
 </svg>

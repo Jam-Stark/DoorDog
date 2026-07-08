@@ -105,13 +105,13 @@ rewards:
       soft_torque_curriculum_level_down_threshold: 40
       soft_torque_curriculum_level_up_threshold: 42
 
-  reward_penalty_curriculum: True
+  reward_penalty_curriculum: False
   reward_initial_penalty_scale : 1.0
-  reward_min_penalty_scale: 0.2
+  reward_min_penalty_scale: 1.0
   reward_max_penalty_scale: 1.0
   reward_penalty_level_down_ave_goal_reached_rate: 0.5
   reward_penalty_level_up_ave_goal_reached_rate: 0.7
-  reward_penalty_degree: -0.0001
+  reward_penalty_degree: 0.0
   num_compute_average_epl: 10000
 
   reward_penalty_reward_names : [

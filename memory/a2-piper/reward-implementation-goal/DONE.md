@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-08 20:20 HKT - 完成 full-stage `base_v7` TCP/effort A/B 1000-step train/eval 结果归档，并将 A config 写回默认配置。
+
+  (1) A config: `TCP=0.085`、`arm_j7/j8 effort_limit_sim=10.0/10.0`、`arm_j7/j8 Kp/Kd=80/3`、`num_velocity_iterations=1`、`reward_penalty_curriculum=false` 且 reward penalty scale 固定 1。Eval `logs_eval/base_v7_A_tcp085_effort10_ckpt1000` 为 2/2 complete，`episode_max_stage_reached=[5,5]`，episode length `525/528`，training log iteration 1000 `Env/average_goal_reached=0.7470`。
+
+  (2) B config: `TCP=0.105`、`arm_j7/j8 effort_limit_sim=40.0/40.0`、其余关键 override 与 A 对齐。Eval `logs_eval/base_v7_B_tcp105_effort40_ckpt1000` 为 0/2 success，`episode_max_stage_reached=[4,4]`，episode length `654/654`，terminal reason `stage_overtime`，training log iteration 1000 `Env/average_goal_reached=0.0000`。
+
+  (3) A/B 均未复现 `base_v6_40_effort_08TCP_offset` 的 stage1 no-arm collapse：A 证明 `TCP=0.085` 单独不是 blocker，B 证明 `effort=40` 单独不必然导致 stage1 collapse。base_v6 更可能是 `TCP=0.085 + effort=40` 组合或 stochastic bad basin；若需要确认，后续单独 repeat C。
+
+  (4) B 的可复用经验：stage2 dwell 长（env0 115 frames、env1 105 frames）、negative close command 占比约 91%-93%，target offset mean 2-3cm，说明 40N/旧 TCP 能学到更持久的 stage2 close/contact；但 terminal stage4 gripper raw 为 positive open (`~0.21-0.23`)，j7/j8 接近 open，最终 through 卡门框，说明 stage3/4 缺少 keep-close/contact-retention 与 through heading/clearance reward/diagnostics。
+
+  (5) 默认配置已收敛到 A：`gr00t/rl/config/robot/A2_Piper/a2_piper.yaml` gripper effort 回到 `10/10`；`gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml` full-stage `num_velocity_iterations=1`；`gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml` 默认关闭 reward penalty curriculum 并固定 scale=1。
+
 - 2026-07-08 14:20 HKT - 完成 `base_v6_40_effort_08TCP_offset` ckpt1000 eval log diagnosis。
 
   (1) User-provided path `logs_eval/full_stage_base_v5_no_reward_penalty_scale_last_render_eval2` 不是 base_v6 evidence：该 eval mtime 为 2026-07-07 21:43，早于 base_v6 train dir `base_v6_40_effort_08TCP_offset-20260707_221058`，且 matching saved config `base_v5_no_reward_penalty_scale-20260707_184832/config.yaml` 中 `arm_j7/j8 effort_limit_sim=10.0/10.0`。

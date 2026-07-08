@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-08 22:30 HKT - 完成 Base_v7 A route release-after-open implementation memory 记录。
+
+  (1) A2-only stage3->4 threshold 从 `0.174533` 放宽到 `0.6`，只影响 A2 route。
+
+  (2) A2 stage4 release handle：禁用强 `gripper_handle_orientation` / `grasp_target_distance` / `grasp`，新增 `penalty_a2_stage4_arm_default_pose_l1: -1.0`，并将 `penalty_base_roll_pitch_l2` 扩展到 stage4/5。
+
+  (3) Shared diagnostics 补齐 `stage2_5_step_trace.json`，保留 legacy `stage2_step_trace.json`，并增加 stage3/4/5 raw/contact/door/root/doorframe scalar diagnostics。
+
+  (4) 未改 gripper primitive/gain/effort/stage2 completion；validation/review PASS：`py_compile`、`git diff --check`、Hydra compose、no-sim source sanity、read-only review PASS。
+
 - 2026-07-08 20:20 HKT - 完成 full-stage `base_v7` TCP/effort A/B 1000-step train/eval 结果归档，并将 A config 写回默认配置。
 
   (1) A config: `TCP=0.085`、`arm_j7/j8 effort_limit_sim=10.0/10.0`、`arm_j7/j8 Kp/Kd=80/3`、`num_velocity_iterations=1`、`reward_penalty_curriculum=false` 且 reward penalty scale 固定 1。Eval `logs_eval/base_v7_A_tcp085_effort10_ckpt1000` 为 2/2 complete，`episode_max_stage_reached=[5,5]`，episode length `525/528`，training log iteration 1000 `Env/average_goal_reached=0.7470`。

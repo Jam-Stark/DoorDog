@@ -612,6 +612,15 @@ class DoorPregrasp(
         self._a2_stage2_last_gripper_raw_sign_flip = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+        self._a2_stage3_stage4_prev_gripper_open_command = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_stage3_stage4_prev_gripper_raw_sign_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_stage3_stage4_last_gripper_raw_sign_flip = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
 
     def _get_a2_arm_default_dof_pos(self, env_ids=None):
         if not self._use_a2_base:
@@ -752,6 +761,35 @@ class DoorPregrasp(
             self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
             - target_pos
         ).sum(dim=-1)
+
+    @StagedTaskBase.effective_in_stage(STAGE_SWING)
+    def _reward_penalty_a2_stage4_arm_default_pose_l1(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_stage4_arm_default_pose_l1 is only defined for A2 Piper configs."
+            )
+        target_pos = self._get_a2_arm_default_dof_pos()
+        dof_pos = getattr(self.simulator, "dof_pos", None)
+        max_arm_dof_index = max(self._upper_non_gripper_dof_idx)
+        if (
+            dof_pos is None
+            or not torch.is_tensor(dof_pos)
+            or dof_pos.ndim != 2
+            or dof_pos.shape[0] != self.num_envs
+            or dof_pos.shape[1] <= max_arm_dof_index
+        ):
+            shape = None if dof_pos is None else tuple(dof_pos.shape)
+            raise RuntimeError(
+                "penalty_a2_stage4_arm_default_pose_l1 requires simulator.dof_pos "
+                f"shape ({self.num_envs}, >{max_arm_dof_index}); got {shape}."
+            )
+        arm_pos = dof_pos[:, self._upper_non_gripper_dof_idx]
+        if tuple(arm_pos.shape) != (self.num_envs, 6):
+            raise RuntimeError(
+                "penalty_a2_stage4_arm_default_pose_l1 expects arm_j1..arm_j6 "
+                f"shape ({self.num_envs}, 6); got {tuple(arm_pos.shape)}."
+            )
+        return torch.abs(arm_pos - target_pos).sum(dim=-1)
 
     @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP, STAGE_THROUGH])
     def _reward_pregrasp_gripper_dof_pos_l1(self):
@@ -903,7 +941,14 @@ class DoorPregrasp(
         approach_track = self._tracking_reward_util(
             1.0 - approach_alignment, std=0.25, target=0.0, scale=1.0, offset=0.0
         )
-        return (opening_track * approach_track).clamp(0.0, 1.0)
+        reward = (opening_track * approach_track).clamp(0.0, 1.0)
+        if self._use_a2_base:
+            reward = torch.where(
+                self.stage_buf == self.STAGE_SWING,
+                torch.zeros_like(reward),
+                reward,
+            )
+        return reward
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_hand_handle_orientation(self):
@@ -1109,33 +1154,41 @@ class DoorPregrasp(
 
         return (pos_track + vel_track).clamp(max=1.0)
 
+    def _get_a2_grasp_target_distance_reward(self, context):
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        if (
+            target_pos_source is None
+            or target_pos_source.ndim != 3
+            or target_pos_source.shape != (self.num_envs, 2, 3)
+        ):
+            shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            raise RuntimeError(
+                f"{context} requires target_pos_source shape "
+                f"({self.num_envs}, 2, 3); got {shape}."
+            )
+
+        handle_pos_source = target_pos_source[:, 0, :]
+        distance = torch.linalg.norm(handle_pos_source, dim=-1)
+        std = self._get_required_positive_float_config(
+            "a2_grasp_target_distance_std", context
+        )
+        return self._tracking_reward_util(
+            distance,
+            std=std,
+            target=0.0,
+            scale=1.0,
+            offset=0.0,
+        )
+
     @StagedTaskBase.effective_in_stage([STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp_target_distance(self):
         if self._use_a2_base:
-            data = self._get_a2_gripper_handle_frame_transformer().data
-            target_pos_source = getattr(data, "target_pos_source", None)
-            if (
-                target_pos_source is None
-                or target_pos_source.ndim != 3
-                or target_pos_source.shape != (self.num_envs, 2, 3)
-            ):
-                shape = None if target_pos_source is None else tuple(target_pos_source.shape)
-                raise RuntimeError(
-                    "A2 grasp_target_distance requires target_pos_source shape "
-                    f"({self.num_envs}, 2, 3); got {shape}."
-                )
-
-            handle_pos_source = target_pos_source[:, 0, :]
-            distance = torch.linalg.norm(handle_pos_source, dim=-1)
-            std = self._get_required_positive_float_config(
-                "a2_grasp_target_distance_std", "A2 grasp_target_distance"
-            )
-            return self._tracking_reward_util(
-                distance,
-                std=std,
-                target=0.0,
-                scale=1.0,
-                offset=0.0,
+            reward = self._get_a2_grasp_target_distance_reward("A2 grasp_target_distance")
+            return torch.where(
+                self.stage_buf == self.STAGE_SWING,
+                torch.zeros_like(reward),
+                reward,
             )
         grasp_target = self._compute_grasp_target()
 
@@ -1498,6 +1551,11 @@ class DoorPregrasp(
             pregrasp_mask = self.stage_buf == DoorPregrasp.STAGE_PREGRASP
             contact_mag = torch.linalg.norm(forces_w, dim=-1).sum(dim=-1).clamp(max=10.0)
             raw_reward[pregrasp_mask] = -contact_mag[pregrasp_mask]
+            raw_reward = torch.where(
+                self.stage_buf == self.STAGE_SWING,
+                torch.zeros_like(raw_reward),
+                raw_reward,
+            )
             return raw_reward
         left_contact_forces = self.simulator.object_to_hand_contact_forces[
             :, 0, self.left_hand_indices_tgt_ct_sensor, :
@@ -1695,7 +1753,9 @@ class DoorPregrasp(
             axis_angle_from_quat(xyzw_to_wxyz(self.relative_door_rot_buf)).norm(dim=-1)
         )
 
-    @StagedTaskBase.effective_in_stage([STAGE_WALK_TO_DOOR, STAGE_PREGRASP])
+    @StagedTaskBase.effective_in_stage(
+        [STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_SWING, STAGE_THROUGH]
+    )
     def _reward_penalty_base_roll_pitch_l2(self):
         rpy = getattr(self, "rpy", None)
         if (
@@ -1864,6 +1924,57 @@ class DoorPregrasp(
             )
         return force_matrix_w[:, 0, :, :]
 
+    def _get_door_joint_pos(self, context, min_joints):
+        joint_pos = self.simulator.scene.articulations["door"].data.joint_pos
+        if (
+            joint_pos is None
+            or not torch.is_tensor(joint_pos)
+            or joint_pos.ndim != 2
+            or joint_pos.shape[0] != self.num_envs
+            or joint_pos.shape[1] < min_joints
+        ):
+            shape = None if joint_pos is None else tuple(joint_pos.shape)
+            raise RuntimeError(
+                f"{context} requires door joint_pos shape "
+                f"({self.num_envs}, >={min_joints}); got {shape}."
+            )
+        return joint_pos
+
+    def _get_door_frame_contact_force_per_env(self, context):
+        sensor = self.simulator.scene.sensors["door_frame_unwanted_contact_sensor"]
+        net_forces_w = getattr(sensor.data, "net_forces_w", None)
+        if (
+            net_forces_w is None
+            or not torch.is_tensor(net_forces_w)
+            or net_forces_w.ndim != 3
+            or net_forces_w.shape[0] != self.num_envs
+            or net_forces_w.shape[2] != 3
+        ):
+            shape = None if net_forces_w is None else tuple(net_forces_w.shape)
+            raise RuntimeError(
+                f"{context} requires door_frame_unwanted_contact_sensor.net_forces_w "
+                f"shape ({self.num_envs}, B, 3); got {shape}."
+            )
+        return net_forces_w.norm(dim=-1).sum(dim=-1)
+
+    def _get_a2_target_root_pos_for_all_envs(self, context):
+        target_root_pos = getattr(self, "target_root_pos", None)
+        if (
+            target_root_pos is None
+            or not torch.is_tensor(target_root_pos)
+            or target_root_pos.ndim != 2
+            or target_root_pos.shape[1] != 3
+            or target_root_pos.shape[0] not in (1, self.num_envs)
+        ):
+            shape = None if target_root_pos is None else tuple(target_root_pos.shape)
+            raise RuntimeError(
+                f"{context} requires target_root_pos shape (1, 3) or "
+                f"({self.num_envs}, 3); got {shape}."
+            )
+        if target_root_pos.shape[0] == 1:
+            return target_root_pos.repeat(self.num_envs, 1)
+        return target_root_pos
+
     def _get_a2_stage2_grasp_contact_history_length(self):
         history_length = self.config.get("stage2_grasp_contact_history_length", None)
         if (
@@ -2023,6 +2134,58 @@ class DoorPregrasp(
         history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
         return history_window_in_stage & torch.all(both_contact_history, dim=-1)
 
+    def _get_a2_stage3_stage4_contact_squeeze_masks(self, context):
+        return self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_forces(),
+            context,
+        )
+
+    def _get_a2_stage3_stage4_contact_stability_mask(self):
+        history_length = self._get_a2_stage2_grasp_contact_history_length()
+        masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_force_history(),
+            "A2 stage3/4 contact stability",
+        )
+        both_contact_history = masks["both_contact"]
+        if tuple(both_contact_history.shape) != (self.num_envs, history_length):
+            raise RuntimeError(
+                "A2 stage3/4 contact stability requires both_contact history shape "
+                f"({self.num_envs}, {history_length}); got "
+                f"{tuple(both_contact_history.shape)}."
+            )
+
+        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+        if (
+            actual_time_in_stage_buf is None
+            or not torch.is_tensor(actual_time_in_stage_buf)
+            or tuple(actual_time_in_stage_buf.shape) != (self.num_envs,)
+        ):
+            shape = (
+                None
+                if actual_time_in_stage_buf is None
+                else tuple(actual_time_in_stage_buf.shape)
+            )
+            raise RuntimeError(
+                "A2 stage3/4 contact stability requires actual_time_in_stage_buf shape "
+                f"({self.num_envs},); got {shape}."
+            )
+
+        stage_buf = getattr(self, "stage_buf", None)
+        if (
+            stage_buf is None
+            or not torch.is_tensor(stage_buf)
+            or tuple(stage_buf.shape) != (self.num_envs,)
+        ):
+            shape = None if stage_buf is None else tuple(stage_buf.shape)
+            raise RuntimeError(
+                "A2 stage3/4 contact stability requires stage_buf shape "
+                f"({self.num_envs},); got {shape}."
+            )
+
+        history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
+        stage3_stage4 = (stage_buf == self.STAGE_OPEN) | (stage_buf == self.STAGE_SWING)
+        return stage3_stage4 & history_window_in_stage & torch.all(both_contact_history, dim=-1)
+
     def _get_a2_stage1_pregrasp_ready_mask(self):
         data = self._get_a2_gripper_handle_frame_transformer().data
         target_pos_source = getattr(data, "target_pos_source", None)
@@ -2066,19 +2229,7 @@ class DoorPregrasp(
         )
 
     def _get_a2_door_open_bypass_mask(self):
-        joint_pos = self.simulator.scene.articulations["door"].data.joint_pos
-        if (
-            joint_pos is None
-            or not torch.is_tensor(joint_pos)
-            or joint_pos.ndim != 2
-            or joint_pos.shape[0] != self.num_envs
-            or joint_pos.shape[1] < 1
-        ):
-            shape = None if joint_pos is None else tuple(joint_pos.shape)
-            raise RuntimeError(
-                "A2 door-open bypass diagnostics require door joint_pos shape "
-                f"({self.num_envs}, >=1); got {shape}."
-            )
+        joint_pos = self._get_door_joint_pos("A2 door-open bypass diagnostics", 1)
         return joint_pos[:, 0] > 0.174533
 
     def _get_a2_stage2_grasp_completion_masks(self):
@@ -2230,6 +2381,33 @@ class DoorPregrasp(
             stage2_active & stage2_completion_masks["contact_stability"]
         )
         stage2_over_force = stage2_active & stage2_completion_masks["over_force_current"]
+        stage3_active = stage_buf == self.STAGE_OPEN
+        stage4_active = stage_buf == self.STAGE_SWING
+        stage5_active = stage_buf == self.STAGE_THROUGH
+        stage3_stage4_active = stage3_active | stage4_active
+        stage3_stage4_primitive = self._get_a2_gripper_primitive_raw_column(
+            "A2 stage3/4 route diagnostics"
+        )
+        stage3_stage4_raw_close = stage3_stage4_active & (stage3_stage4_primitive < -0.2)
+        stage3_stage4_raw_open = stage3_stage4_active & (stage3_stage4_primitive > 0.2)
+        stage3_stage4_contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "A2 stage3/4 route diagnostics"
+        )
+        stage3_stage4_both_contact = (
+            stage3_stage4_active & stage3_stage4_contact_masks["both_contact"]
+        )
+        stage3_stage4_opposite_squeeze = (
+            stage3_stage4_active
+            & stage3_stage4_contact_masks["both_contact"]
+            & stage3_stage4_contact_masks["opposite_squeeze"]
+        )
+        stage3_stage4_squeeze_window = (
+            stage3_stage4_active & stage3_stage4_contact_masks["squeeze_window"]
+        )
+        stage3_stage4_contact_stability = self._get_a2_stage3_stage4_contact_stability_mask()
+        stage3_stage4_over_force = (
+            stage3_stage4_active & stage3_stage4_contact_masks["over_force"]
+        )
 
         single_contact_duration = getattr(
             self, "_a2_stage2_single_contact_duration", None
@@ -2309,6 +2487,58 @@ class DoorPregrasp(
         )
         self._a2_stage2_prev_gripper_raw_sign_valid[:] = stage2_active
 
+        stage3_stage4_primitive_open = stage3_stage4_primitive > 0.0
+        stage3_stage4_prev_open = getattr(
+            self, "_a2_stage3_stage4_prev_gripper_open_command", None
+        )
+        stage3_stage4_prev_valid = getattr(
+            self, "_a2_stage3_stage4_prev_gripper_raw_sign_valid", None
+        )
+        stage3_stage4_last_flip = getattr(
+            self, "_a2_stage3_stage4_last_gripper_raw_sign_flip", None
+        )
+        for field_name, field_value in (
+            (
+                "_a2_stage3_stage4_prev_gripper_open_command",
+                stage3_stage4_prev_open,
+            ),
+            (
+                "_a2_stage3_stage4_prev_gripper_raw_sign_valid",
+                stage3_stage4_prev_valid,
+            ),
+            (
+                "_a2_stage3_stage4_last_gripper_raw_sign_flip",
+                stage3_stage4_last_flip,
+            ),
+        ):
+            if (
+                field_value is None
+                or not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != torch.bool
+            ):
+                shape = None if field_value is None else tuple(field_value.shape)
+                dtype = None if field_value is None else field_value.dtype
+                raise RuntimeError(
+                    f"A2 stage3/4 diagnostics require {field_name} bool tensor shape "
+                    f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+                )
+        stage3_stage4_raw_sign_flip = (
+            stage3_stage4_active
+            & (actual_time_in_stage_buf > 1)
+            & stage3_stage4_prev_valid
+            & (stage3_stage4_primitive_open != stage3_stage4_prev_open)
+        )
+        self._a2_stage3_stage4_last_gripper_raw_sign_flip[:] = (
+            stage3_stage4_raw_sign_flip
+        )
+        self._a2_stage3_stage4_prev_gripper_open_command[:] = torch.where(
+            stage3_stage4_active,
+            stage3_stage4_primitive_open,
+            torch.zeros_like(stage3_stage4_primitive_open),
+        )
+        self._a2_stage3_stage4_prev_gripper_raw_sign_valid[:] = stage3_stage4_active
+
         data = self._get_a2_gripper_handle_frame_transformer().data
         target_pos_source = getattr(data, "target_pos_source", None)
         if (
@@ -2351,6 +2581,17 @@ class DoorPregrasp(
             "a2_stage2_contact_stability_frac": stage2_contact_stability,
             "a2_stage2_over_force_frac": stage2_over_force,
             "a2_stage2_gripper_raw_sign_flip_frac": raw_sign_flip,
+            "a2_stage3_active_frac": stage3_active,
+            "a2_stage4_active_frac": stage4_active,
+            "a2_stage5_active_frac": stage5_active,
+            "a2_stage3_stage4_raw_close_frac": stage3_stage4_raw_close,
+            "a2_stage3_stage4_raw_open_frac": stage3_stage4_raw_open,
+            "a2_stage3_stage4_raw_sign_flip_frac": stage3_stage4_raw_sign_flip,
+            "a2_stage3_stage4_both_contact_frac": stage3_stage4_both_contact,
+            "a2_stage3_stage4_opposite_squeeze_frac": stage3_stage4_opposite_squeeze,
+            "a2_stage3_stage4_squeeze_window_frac": stage3_stage4_squeeze_window,
+            "a2_stage3_stage4_contact_stability_frac": stage3_stage4_contact_stability,
+            "a2_stage3_stage4_over_force_frac": stage3_stage4_over_force,
         }
         for name, mask in diagnostics.items():
             self.log_dict[name] = mask.float().mean()
@@ -2369,6 +2610,65 @@ class DoorPregrasp(
         self.log_dict["a2_stage2_target_offset_norm_mean"] = (
             torch.linalg.norm(target_offset, dim=-1) * stage2_active_float
         ).mean()
+
+        door_joint_pos = self._get_door_joint_pos("A2 route diagnostics", 2)
+        root_states = getattr(self.simulator, "robot_root_states", None)
+        if (
+            root_states is None
+            or not torch.is_tensor(root_states)
+            or root_states.ndim != 2
+            or root_states.shape[0] != self.num_envs
+            or root_states.shape[1] < 7
+        ):
+            shape = None if root_states is None else tuple(root_states.shape)
+            raise RuntimeError(
+                "A2 route diagnostics require simulator.robot_root_states shape "
+                f"({self.num_envs}, >=7); got {shape}."
+            )
+        env_origins = getattr(self, "env_origins", None)
+        if (
+            env_origins is None
+            or not torch.is_tensor(env_origins)
+            or env_origins.ndim != 2
+            or tuple(env_origins.shape) != (self.num_envs, 3)
+        ):
+            shape = None if env_origins is None else tuple(env_origins.shape)
+            raise RuntimeError(
+                "A2 route diagnostics require env_origins shape "
+                f"({self.num_envs}, 3); got {shape}."
+            )
+        rpy = getattr(self, "rpy", None)
+        if (
+            rpy is None
+            or not torch.is_tensor(rpy)
+            or rpy.ndim != 2
+            or rpy.shape[0] != self.num_envs
+            or rpy.shape[1] < 3
+        ):
+            shape = None if rpy is None else tuple(rpy.shape)
+            raise RuntimeError(
+                "A2 route diagnostics require self.rpy shape "
+                f"({self.num_envs}, >=3); got {shape}."
+            )
+        root_pos_rel = root_states[:, :3] - env_origins
+        target_root_pos = self._get_a2_target_root_pos_for_all_envs("A2 route diagnostics")
+        target_root_distance = torch.linalg.norm(root_pos_rel - target_root_pos, dim=-1)
+        door_frame_contact_force = self._get_door_frame_contact_force_per_env(
+            "A2 route diagnostics"
+        )
+
+        self.log_dict["a2_door_hinge_joint_pos_mean"] = door_joint_pos[:, 0].mean()
+        self.log_dict["a2_door_handle_joint_pos_mean"] = door_joint_pos[:, 1].mean()
+        self.log_dict["a2_root_x_mean"] = root_pos_rel[:, 0].mean()
+        self.log_dict["a2_root_y_mean"] = root_pos_rel[:, 1].mean()
+        self.log_dict["a2_root_yaw_mean"] = rpy[:, 2].mean()
+        self.log_dict["a2_root_roll_mean"] = rpy[:, 0].mean()
+        self.log_dict["a2_root_pitch_mean"] = rpy[:, 1].mean()
+        self.log_dict["a2_target_root_distance_mean"] = target_root_distance.mean()
+        self.log_dict["a2_doorframe_contact_force_mean"] = door_frame_contact_force.mean()
+        self.log_dict["a2_doorframe_contact_frac"] = (
+            door_frame_contact_force > 1.0
+        ).float().mean()
 
     def _get_a2_axes_from_quat(self, quat, context):
         expected_shape = (self.num_envs, 4)
@@ -2739,6 +3039,90 @@ class DoorPregrasp(
         selected_target_pos_source_pregrasp = (
             target_pos_source[env_ids, 1, :].detach().cpu().tolist()
         )
+        door_joint_pos = self._get_door_joint_pos("A2 terminal diagnostics", 2)
+        selected_door_hinge_joint_pos = door_joint_pos[env_ids, 0].detach().cpu().tolist()
+        selected_door_handle_joint_pos = door_joint_pos[env_ids, 1].detach().cpu().tolist()
+
+        root_states = getattr(self.simulator, "robot_root_states", None)
+        if (
+            root_states is None
+            or not torch.is_tensor(root_states)
+            or root_states.ndim != 2
+            or root_states.shape[0] != self.num_envs
+            or root_states.shape[1] < 7
+        ):
+            shape = None if root_states is None else tuple(root_states.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires simulator.robot_root_states shape "
+                f"({self.num_envs}, >=7); got {shape}."
+            )
+        env_origins = getattr(self, "env_origins", None)
+        if (
+            env_origins is None
+            or not torch.is_tensor(env_origins)
+            or env_origins.ndim != 2
+            or tuple(env_origins.shape) != (self.num_envs, 3)
+        ):
+            shape = None if env_origins is None else tuple(env_origins.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires env_origins shape "
+                f"({self.num_envs}, 3); got {shape}."
+            )
+        rpy = getattr(self, "rpy", None)
+        if (
+            rpy is None
+            or not torch.is_tensor(rpy)
+            or rpy.ndim != 2
+            or rpy.shape[0] != self.num_envs
+            or rpy.shape[1] < 3
+        ):
+            shape = None if rpy is None else tuple(rpy.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires self.rpy shape "
+                f"({self.num_envs}, >=3); got {shape}."
+            )
+        root_pos_rel = root_states[:, :3] - env_origins
+        target_root_pos = self._get_a2_target_root_pos_for_all_envs(
+            "A2 terminal diagnostics"
+        )
+        target_root_distance = torch.linalg.norm(root_pos_rel - target_root_pos, dim=-1)
+        doorframe_contact_force = self._get_door_frame_contact_force_per_env(
+            "A2 terminal diagnostics"
+        )
+        selected_root_pos_rel = root_pos_rel[env_ids].detach().cpu().tolist()
+        selected_root_rpy = rpy[env_ids, :3].detach().cpu().tolist()
+        selected_target_root_distance = target_root_distance[env_ids].detach().cpu().tolist()
+        selected_doorframe_contact_force = (
+            doorframe_contact_force[env_ids].detach().cpu().tolist()
+        )
+
+        stage3_stage4_gripper_raw_sign_flip = getattr(
+            self, "_a2_stage3_stage4_last_gripper_raw_sign_flip", None
+        )
+        if (
+            stage3_stage4_gripper_raw_sign_flip is None
+            or not torch.is_tensor(stage3_stage4_gripper_raw_sign_flip)
+            or tuple(stage3_stage4_gripper_raw_sign_flip.shape) != (self.num_envs,)
+            or stage3_stage4_gripper_raw_sign_flip.dtype != torch.bool
+        ):
+            shape = (
+                None
+                if stage3_stage4_gripper_raw_sign_flip is None
+                else tuple(stage3_stage4_gripper_raw_sign_flip.shape)
+            )
+            dtype = (
+                None
+                if stage3_stage4_gripper_raw_sign_flip is None
+                else stage3_stage4_gripper_raw_sign_flip.dtype
+            )
+            raise RuntimeError(
+                "A2 terminal diagnostics requires "
+                "_a2_stage3_stage4_last_gripper_raw_sign_flip bool tensor shape "
+                f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+            )
+        selected_stage3_stage4_gripper_raw_sign_flip = (
+            stage3_stage4_gripper_raw_sign_flip[env_ids].detach().cpu().tolist()
+        )
         close_target_list = close_target.detach().cpu().tolist()
 
         diagnostics = []
@@ -2750,6 +3134,14 @@ class DoorPregrasp(
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
                     "terminal_reasons": terminal_reasons[idx],
+                    "door_hinge_joint_pos": float(selected_door_hinge_joint_pos[idx]),
+                    "door_handle_joint_pos": float(selected_door_handle_joint_pos[idx]),
+                    "root_pos_rel": selected_root_pos_rel[idx],
+                    "root_roll": float(selected_root_rpy[idx][0]),
+                    "root_pitch": float(selected_root_rpy[idx][1]),
+                    "root_yaw": float(selected_root_rpy[idx][2]),
+                    "target_root_distance": float(selected_target_root_distance[idx]),
+                    "doorframe_contact_force": float(selected_doorframe_contact_force[idx]),
                     "contact_force_arm_body7_8_w": selected_contact_force_arm_body7_8_w[
                         idx
                     ],
@@ -2775,6 +3167,9 @@ class DoorPregrasp(
                     "arm_j7_j8_close_error": selected_arm_j7_j8_close_error[idx],
                     "gripper_primitive_raw": selected_gripper_primitive_raw[idx],
                     "gripper_raw_sign_flip": bool(selected_gripper_raw_sign_flip[idx]),
+                    "stage3_stage4_gripper_raw_sign_flip": bool(
+                        selected_stage3_stage4_gripper_raw_sign_flip[idx]
+                    ),
                     "target_offset_x_abs": abs(selected_target_pos_source_handle[idx][0]),
                     "target_offset_y_abs": abs(selected_target_pos_source_handle[idx][1]),
                     "target_offset_z_abs": abs(selected_target_pos_source_handle[idx][2]),
@@ -2823,9 +3218,9 @@ class DoorPregrasp(
 
     def init_a2_eval_stage2_step_trace(self):
         if not self._use_a2_base:
-            raise RuntimeError("A2 stage2 step trace can only be initialized for A2 envs.")
+            raise RuntimeError("A2 stage2-5 step trace can only be initialized for A2 envs.")
         if not getattr(self, "is_evaluating", False):
-            raise RuntimeError("A2 stage2 step trace must be initialized in eval mode.")
+            raise RuntimeError("A2 stage2-5 step trace must be initialized in eval mode.")
         self._a2_stage2_step_trace_records = []
         self._a2_stage2_step_trace_step_index = 0
 
@@ -2836,7 +3231,7 @@ class DoorPregrasp(
             return
         if "_a2_stage2_step_trace_records" not in self.__dict__:
             raise RuntimeError(
-                "A2 stage2 step trace capture requested before "
+                "A2 stage2-5 step trace capture requested before "
                 "init_a2_eval_stage2_step_trace()."
             )
 
@@ -2848,29 +3243,35 @@ class DoorPregrasp(
         ):
             shape = None if stage_buf is None else tuple(stage_buf.shape)
             raise RuntimeError(
-                "A2 stage2 step trace requires stage_buf shape "
+                "A2 stage2-5 step trace requires stage_buf shape "
                 f"({self.num_envs},); got {shape}."
             )
 
         step_index = getattr(self, "_a2_stage2_step_trace_step_index", None)
         if isinstance(step_index, bool) or not isinstance(step_index, int) or step_index < 0:
             raise RuntimeError(
-                "A2 stage2 step trace requires non-negative integer step index; "
+                "A2 stage2-5 step trace requires non-negative integer step index; "
                 f"got {step_index!r}."
             )
 
-        stage2_env_ids = (stage_buf == self.STAGE_GRASP).nonzero(as_tuple=False).flatten()
-        if stage2_env_ids.numel() > 0:
-            records = self._get_a2_terminal_diagnostics(stage2_env_ids)
-            if len(records) != stage2_env_ids.numel():
+        trace_stage_mask = (
+            (stage_buf == self.STAGE_GRASP)
+            | (stage_buf == self.STAGE_OPEN)
+            | (stage_buf == self.STAGE_SWING)
+            | (stage_buf == self.STAGE_THROUGH)
+        )
+        trace_env_ids = trace_stage_mask.nonzero(as_tuple=False).flatten()
+        if trace_env_ids.numel() > 0:
+            records = self._get_a2_terminal_diagnostics(trace_env_ids)
+            if len(records) != trace_env_ids.numel():
                 raise RuntimeError(
-                    "A2 stage2 step trace diagnostics returned "
-                    f"{len(records)} entries for {stage2_env_ids.numel()} env ids."
+                    "A2 stage2-5 step trace diagnostics returned "
+                    f"{len(records)} entries for {trace_env_ids.numel()} env ids."
                 )
             for record in records:
                 if not isinstance(record, dict):
                     raise TypeError(
-                        "A2 stage2 step trace records must be dicts, "
+                        "A2 stage2-5 step trace records must be dicts, "
                         f"got {type(record).__name__}."
                     )
                 record["step_index"] = step_index
@@ -2880,10 +3281,10 @@ class DoorPregrasp(
 
     def get_a2_eval_stage2_step_trace_records(self):
         if not self._use_a2_base:
-            raise RuntimeError("A2 stage2 step trace is only available for A2 envs.")
+            raise RuntimeError("A2 stage2-5 step trace is only available for A2 envs.")
         if "_a2_stage2_step_trace_records" not in self.__dict__:
             raise RuntimeError(
-                "A2 stage2 step trace requested before init_a2_eval_stage2_step_trace()."
+                "A2 stage2-5 step trace requested before init_a2_eval_stage2_step_trace()."
             )
         return [dict(record) for record in self._a2_stage2_step_trace_records]
 
@@ -3301,7 +3702,8 @@ class DoorPregrasp(
 
     def _stage_3_to_4_advance_condition(self):
         # rotate the door handle and open the door
-        door_opened = self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 0.174533
+        threshold = 0.6 if self._use_a2_base else 0.174533
+        door_opened = self._get_door_joint_pos("stage3 to stage4 advance", 1)[:, 0] > threshold
         return door_opened
 
     def _stage_4_reward_condition(self):

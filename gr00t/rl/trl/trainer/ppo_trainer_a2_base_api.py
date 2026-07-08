@@ -2600,15 +2600,16 @@ class TRLPPOTrainer(PPOTrainer):
                     "A2 eval stage2 step trace requires "
                     "env.get_a2_eval_stage2_step_trace_records()."
                 )
-            stage2_trace_path = os.path.join(eval_output_dir, "stage2_step_trace.json")
-            stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
             safe_stage2_trace = _make_json_safe(
                 get_stage2_trace(), path="stage2_step_trace"
             )
-            with open(stage2_trace_tmp_path, "w") as f:
-                json.dump(safe_stage2_trace, f, indent=4)
-            os.replace(stage2_trace_tmp_path, stage2_trace_path)
-            logger.info(f"Saved A2 stage2 step trace to {stage2_trace_path}")
+            for trace_filename in ("stage2_5_step_trace.json", "stage2_step_trace.json"):
+                stage2_trace_path = os.path.join(eval_output_dir, trace_filename)
+                stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
+                with open(stage2_trace_tmp_path, "w") as f:
+                    json.dump(safe_stage2_trace, f, indent=4)
+                os.replace(stage2_trace_tmp_path, stage2_trace_path)
+                logger.info(f"Saved A2 stage2-5 step trace to {stage2_trace_path}")
 
         metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
         metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"

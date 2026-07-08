@@ -1,5 +1,15 @@
 # DONE
 
+- 2026-07-08 14:20 HKT - 完成 `base_v6_40_effort_08TCP_offset` ckpt1000 eval log diagnosis。
+
+  (1) User-provided path `logs_eval/full_stage_base_v5_no_reward_penalty_scale_last_render_eval2` 不是 base_v6 evidence：该 eval mtime 为 2026-07-07 21:43，早于 base_v6 train dir `base_v6_40_effort_08TCP_offset-20260707_221058`，且 matching saved config `base_v5_no_reward_penalty_scale-20260707_184832/config.yaml` 中 `arm_j7/j8 effort_limit_sim=10.0/10.0`。
+
+  (2) 该 base_v5 eval 确实复现视频观察到的 unstable tip / single-finger contact：`episode_max_stage_reached=[2,2]`，env0 stage2 trace `arm_body8` force max `18.44N`、`>1N` 332/349 frames，`arm_body7` max `0.79N` 且 `>1N` 0 frames；env1 `arm_body8` max `88.32N`、`arm_body7` max `2.33N`，但 `both_contact` 仅 2 frames、`contact_stability=0`，仍是 single `arm_body8` dominant / no stable bilateral grasp。
+
+  (3) 真正 base_v6 eval path 是 `logs_eval/base_v6_40_effort_08TCP_offset_ckpt1000`，输出 mtime 2026-07-08 14:10。结果 `episode_max_stage_reached=[1,1]`、terminal `stage_buf=1`、`stage2_step_trace.json` 为空；terminal diagnostics `contact_force_arm_body7_8_norm=[0,0]`、`squeeze_y=[0,0]`。因此本次不能判断 40N effort 对 stage2 contact force 是否改善。
+
+  (4) base_v6 卡 stage1 的直接日志原因是 pregrasp distance 未达 strict threshold：terminal `target_pos_source_pregrasp_distance=0.166/0.152m`，而 stage1→2 需要 `<0.1m`；orientation 已好（opening/approach alignment 约 `0.996/0.98`），gripper raw 仍 open (`0.72/0.70`)。下一步如果继续 base_v6，应先让 later checkpoint 或 targeted eval 进入 stage2，再比较 `arm_body7` contact、both-contact/contact-stability/squeeze-window 与 over-force。
+
 - 2026-07-07 22:09 HKT - 完成 full-stage `base_v6` TCP/effort A/B 配置改动。
 
   (1) `gr00t/rl/envs/door/door_open_a2_base.py` 中 A2 `piper_gripper_handle_frame_transformer` 的 `source_frame_offset.pos` 从 `(0.0, 0.0, 0.105)` 改为 `(0.0, 0.0, 0.085)`。IsaacLab `FrameTransformerCfg.source_frame_offset` 语义是相对 source prim frame 的 local offset，因此该改动让 Piper TCP/source 沿 `arm_body6_to_gripper` local `-Z` 后退 2cm。

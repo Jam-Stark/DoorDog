@@ -58,7 +58,7 @@ rewards:
       dont_push_door_handle: 3.0
       target_root_distance: 12.0
       penalty_standing_still: -1.0
-      penalty_a2_stage4_arm_default_pose_l1: -1.0
+      penalty_a2_stage4_arm_default_pose_l1: 0.0
 
       # always on
       stage: 1.0

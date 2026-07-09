@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-09 12:33 HKT - 完成 `base_v8 A'` release-after-open route 修正。
+
+  (1) 基于 `logs_eval/base_v8_A_release_after_open_ckpt1000` 诊断：A2 stage3 能正确下压 handle，但因 stage3->4 threshold `0.6` 且 stage3 仍有 base stillness / `penalty_not_standing_still` 语义，policy 只用 arm 推门，hinge 卡在约 `0.25~0.28 rad`，未进入 stage4。
+
+  (2) A2 stage3->4 threshold 回退到 legacy `0.174533`，恢复“handle/hinge 刚开始打开后进入 stage4，由 stage4 through/root reward 接管”的原始 stage semantics。
+
+  (3) 保留 A2 stage4 release handle：`gripper_handle_orientation` / `grasp_target_distance` / `grasp` 在 `STAGE_SWING` 归零；保留 `penalty_base_roll_pitch_l2` active stages `[STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_SWING, STAGE_THROUGH]`。
+
+  (4) `penalty_a2_stage4_arm_default_pose_l1` 默认 scale 从 `-1.0` 改为 `0.0`，函数保留但默认 disabled，避免 stage4 early 仍需推门时 arm default pose shaping 与推门动作冲突。
+
+  (5) 未改 gripper primitive/gain/effort/stage2 completion、`reward_penalty_reward_names`、diagnostics 或 B worktree；validation/review PASS：`py_compile`、`git diff --check`、Hydra compose、no-sim source sanity、read-only review PASS。
+
 - 2026-07-08 22:30 HKT - 完成 Base_v7 A route release-after-open implementation memory 记录。
 
   (1) A2-only stage3->4 threshold 从 `0.174533` 放宽到 `0.6`，只影响 A2 route。

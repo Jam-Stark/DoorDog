@@ -3702,8 +3702,7 @@ class DoorPregrasp(
 
     def _stage_3_to_4_advance_condition(self):
         # rotate the door handle and open the door
-        threshold = 0.6 if self._use_a2_base else 0.174533
-        door_opened = self._get_door_joint_pos("stage3 to stage4 advance", 1)[:, 0] > threshold
+        door_opened = self._get_door_joint_pos("stage3 to stage4 advance", 1)[:, 0] > 0.174533
         return door_opened
 
     def _stage_4_reward_condition(self):

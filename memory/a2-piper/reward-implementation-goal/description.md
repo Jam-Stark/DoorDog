@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-08 22:30 HKT
+last_updated: 2026-07-09 12:33 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -21,6 +21,7 @@ read_when:
 
 ## Current Small Goal
 
+- 2026-07-09 12:33 HKT - `base_v8 A'` release-after-open adjustment 已完成：A2 stage3->4 hinge threshold 从 `0.6` 回退到 legacy `0.174533`，保留 A2 stage4 release handle（`gripper_handle_orientation` / `grasp_target_distance` / `grasp` 在 `STAGE_SWING` 归零）与 stage4/5 `penalty_base_roll_pitch_l2`；`penalty_a2_stage4_arm_default_pose_l1` 默认 scale 改为 `0.0`，避免 stage4 early 仍需推门时 arm default pose shaping 把 arm 拉回 default。下一步 runtime 对照优先训练/eval `base_v8 A'`，再和 B hold-handle route 比较。
 - 2026-06-14 21:48 HKT - 接下来的小目标：实现 A2+Piper Doorman training 中全局启用的 reward，以及 stage0 启用的 reward。
 - Scope 第一阶段只覆盖 global reward 和 stage0 reward；stage1/pregrasp、grasp、open、swing、through 的完整 reward adaptation 暂不作为本小目标验收标准。
 - Stage0 baseline reference: `scriptsFORhuman/g1_doorman_stage0_reward_transition.md` 已总结 G1 Doorman stage0 active rewards、global penalties 与 stage0 -> stage1 advance condition，可作为 A2+Piper stage0 reward adaptation 的对照表。

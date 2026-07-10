@@ -39,6 +39,20 @@ from gr00t.rl.trl.modules.homie_modules import (
 )
 
 
+_CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+
+
+def validate_checkpoint_load_mode(checkpoint_load_mode):
+    if not isinstance(checkpoint_load_mode, str) or checkpoint_load_mode not in (
+        _CHECKPOINT_LOAD_MODES
+    ):
+        raise ValueError(
+            "checkpoint_load_mode must be exactly one of "
+            f"{sorted(_CHECKPOINT_LOAD_MODES)}; got {checkpoint_load_mode!r}."
+        )
+    return checkpoint_load_mode
+
+
 def _load_a2_base_metadata(metadata_path):
     path = Path(metadata_path).expanduser()
     with path.open("r", encoding="utf-8") as f:
@@ -700,10 +714,16 @@ class TRLPPOTrainer(PPOTrainer):
         peft_config=None,
         use_ref_model=False,
         checkpoint=None,
+        checkpoint_load_mode="full",
         local_seed=None,
         schedule_dict=None,
         accelerator=None,
     ) -> None:
+        self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
+        if self.checkpoint_load_mode == "policy_only" and not checkpoint:
+            raise ValueError(
+                "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
+            )
         self.accelerator = accelerator
         self._init_trl(
             args,
@@ -732,7 +752,10 @@ class TRLPPOTrainer(PPOTrainer):
         self._current_first_traj = 0
 
         if checkpoint is not None:
-            self.load_checkpoint(checkpoint)
+            if self.checkpoint_load_mode == "full":
+                self.load_checkpoint(checkpoint)
+            else:
+                self.load_policy_checkpoint(checkpoint)
 
     def _init_trl(
         self,
@@ -2513,6 +2536,28 @@ class TRLPPOTrainer(PPOTrainer):
 
         for param_group in optimizer.param_groups:
             param_group["lr"] = self.args.learning_rate
+
+    def load_policy_checkpoint(self, checkpoint_path):
+        """Strictly load only the actor policy weights from a checkpoint."""
+        print(f"Loading policy-only checkpoint from {checkpoint_path}")
+        checkpoint = torch.load(
+            checkpoint_path, map_location="cpu", weights_only=False
+        )
+        actor_keys = (
+            "policy_state_dict",
+            "actor_model_state_dict",
+        )
+        present_actor_keys = [key for key in actor_keys if key in checkpoint]
+        if len(present_actor_keys) != 1:
+            raise RuntimeError(
+                "Policy-only checkpoint must contain exactly one actor state key from "
+                f"{actor_keys}; found {present_actor_keys}."
+            )
+
+        model = self.accelerator.unwrap_model(self.model)
+        actor_key = present_actor_keys[0]
+        model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+        print(f"Loaded policy-only checkpoint actor from key {actor_key!r}")
 
     def load_checkpoint(self, checkpoint_path):
         """Load a checkpoint to restore the state of model, optimizer, trainer etc.

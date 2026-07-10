@@ -241,6 +241,7 @@ class DoorPregrasp(
     A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage3_to4_door_hinge_threshold"
     )
+    A2_STAGE3_BASE_UNLOCKED_CONFIG_KEY = "a2_stage3_base_unlocked"
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -278,6 +279,19 @@ class DoorPregrasp(
     def _get_a2_stage2_completion_close_gate_required(self) -> bool:
         key = "a2_stage2_completion_close_gate_required"
         context = "A2 stage2 completion close gate"
+        if key not in self.config:
+            raise RuntimeError(f"{context} requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(
+                f"{context} requires env.config.{key} to be a bool; "
+                f"got {value!r} ({type(value).__name__})."
+            )
+        return value
+
+    def _get_a2_stage3_base_unlocked(self) -> bool:
+        key = self.A2_STAGE3_BASE_UNLOCKED_CONFIG_KEY
+        context = "A2 stage3 base mobility"
         if key not in self.config:
             raise RuntimeError(f"{context} requires env.config.{key}.")
         value = self.config[key]
@@ -965,14 +979,7 @@ class DoorPregrasp(
         approach_track = self._tracking_reward_util(
             1.0 - approach_alignment, std=0.25, target=0.0, scale=1.0, offset=0.0
         )
-        reward = (opening_track * approach_track).clamp(0.0, 1.0)
-        if self._use_a2_base:
-            reward = torch.where(
-                self.stage_buf == self.STAGE_SWING,
-                torch.zeros_like(reward),
-                reward,
-            )
-        return reward
+        return (opening_track * approach_track).clamp(0.0, 1.0)
 
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_hand_handle_orientation(self):
@@ -1012,6 +1019,12 @@ class DoorPregrasp(
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN])
     def _reward_penalty_not_standing_still(self):
         norm = torch.norm(self.get_physical_homie_commands()[:, :3], dim=1)
+        if self._use_a2_base and self._get_a2_stage3_base_unlocked():
+            norm = torch.where(
+                self.stage_buf == self.STAGE_OPEN,
+                torch.zeros_like(norm),
+                norm,
+            )
         return norm
 
     @StagedTaskBase.effective_in_stage(STAGE_SWING)
@@ -1235,6 +1248,16 @@ class DoorPregrasp(
             target=0.0,
             scale=1.0,
             offset=0.0,
+        )
+
+    @StagedTaskBase.effective_in_stage(STAGE_SWING)
+    def _reward_a2_stage4_grasp_target_distance_mild(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage4_grasp_target_distance_mild is only defined for A2 Piper configs."
+            )
+        return self._get_a2_grasp_target_distance_reward(
+            "A2 stage4 mild grasp_target_distance"
         )
 
     @StagedTaskBase.effective_in_stage(STAGE_GRASP)
@@ -1543,6 +1566,80 @@ class DoorPregrasp(
         )
         return masks["over_force"].float()
 
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_a2_stage3_stage4_keep_close_command(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage3_stage4_keep_close_command is only defined for A2 Piper configs."
+            )
+        primitive = self._get_a2_gripper_primitive_raw_column(
+            "a2_stage3_stage4_keep_close_command"
+        )
+        return ((-primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_penalty_a2_stage3_stage4_open_command(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_stage3_stage4_open_command is only defined for A2 Piper configs."
+            )
+        primitive = self._get_a2_gripper_primitive_raw_column(
+            "penalty_a2_stage3_stage4_open_command"
+        )
+        return ((primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_a2_stage3_stage4_both_contact(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage3_stage4_both_contact is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "a2_stage3_stage4_both_contact"
+        )
+        return masks["both_contact"].float()
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_a2_stage3_stage4_opposite_squeeze(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage3_stage4_opposite_squeeze is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "a2_stage3_stage4_opposite_squeeze"
+        )
+        return (masks["both_contact"] & masks["opposite_squeeze"]).float()
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_a2_stage3_stage4_squeeze_force_window(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage3_stage4_squeeze_force_window is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "a2_stage3_stage4_squeeze_force_window"
+        )
+        return masks["squeeze_window"].float()
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_a2_stage3_stage4_contact_stability(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage3_stage4_contact_stability is only defined for A2 Piper configs."
+            )
+        return self._get_a2_stage3_stage4_contact_stability_mask().float()
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_penalty_a2_stage3_stage4_over_force(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_stage3_stage4_over_force is only defined for A2 Piper configs."
+            )
+        masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "penalty_a2_stage3_stage4_over_force"
+        )
+        return masks["over_force"].float()
+
     @StagedTaskBase.effective_in_stage([STAGE_PREGRASP, STAGE_GRASP, STAGE_OPEN, STAGE_SWING])
     def _reward_grasp(self):
         if self._use_a2_base:
@@ -1575,11 +1672,6 @@ class DoorPregrasp(
             pregrasp_mask = self.stage_buf == DoorPregrasp.STAGE_PREGRASP
             contact_mag = torch.linalg.norm(forces_w, dim=-1).sum(dim=-1).clamp(max=10.0)
             raw_reward[pregrasp_mask] = -contact_mag[pregrasp_mask]
-            raw_reward = torch.where(
-                self.stage_buf == self.STAGE_SWING,
-                torch.zeros_like(raw_reward),
-                raw_reward,
-            )
             return raw_reward
         left_contact_forces = self.simulator.object_to_hand_contact_forces[
             :, 0, self.left_hand_indices_tgt_ct_sensor, :
@@ -4398,6 +4490,12 @@ class DoorPregrasp(
     def _stage_3_reward_condition(self):
         # keep grasping the door handle
         if self._use_a2_base:
+            if self._get_a2_stage3_base_unlocked():
+                return torch.ones(
+                    self.num_envs,
+                    dtype=torch.bool,
+                    device=self.device,
+                )
             return self._stage_2_reward_condition()
         return self._stage_2_to_3_advance_condition() & self._stage_2_reward_condition()
 

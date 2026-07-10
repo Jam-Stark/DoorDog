@@ -53,10 +53,18 @@ rewards:
       push_door_handle: 6.0
       push_door_hinge: 6.0
       push_door_force: 0.0
+      a2_stage3_stage4_keep_close_command: 0.5
+      penalty_a2_stage3_stage4_open_command: -1.0
+      a2_stage3_stage4_both_contact: 0.5
+      a2_stage3_stage4_opposite_squeeze: 0.5
+      a2_stage3_stage4_squeeze_force_window: 0.5
+      a2_stage3_stage4_contact_stability: 0.5
+      penalty_a2_stage3_stage4_over_force: -1.0
 
       # swing
       dont_push_door_handle: 3.0
       target_root_distance: 12.0
+      a2_stage4_grasp_target_distance_mild: 1.0
       penalty_standing_still: -1.0
       penalty_a2_stage4_arm_default_pose_l1: 0.0
 
@@ -65,7 +73,7 @@ rewards:
       complete: 4.0
       success_save_time: 0.5
       ref_dof_legs: 0.25
-      penalty_door_frame_contact: -0.1
+      penalty_door_frame_contact: -1.0
       penalty_door_panel_contact: -0.1
       # penalty_homie_action_rate: -1.0
       penalty_base_command_limit: -1.0
@@ -142,7 +150,13 @@ rewards:
       "dont_push_door_handle",
       "push_door_hinge",
       "push_door_force",
+      "a2_stage3_stage4_keep_close_command",
+      "a2_stage3_stage4_both_contact",
+      "a2_stage3_stage4_opposite_squeeze",
+      "a2_stage3_stage4_squeeze_force_window",
+      "a2_stage3_stage4_contact_stability",
 
       # swing
       "target_root_distance",
+      "a2_stage4_grasp_target_distance_mild",
   ]

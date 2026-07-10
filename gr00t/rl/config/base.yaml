@@ -23,6 +23,7 @@ num_envs: 4096
 ### Checkpoint logic
 auto_load_latest: False
 checkpoint: null
+checkpoint_load_mode: full
 
 ### Naming and dir structure
 project_name: TEST
@@ -51,4 +52,3 @@ eval_overrides:
   num_envs: 1
   auto_load_latest: False
   use_wandb: False
-

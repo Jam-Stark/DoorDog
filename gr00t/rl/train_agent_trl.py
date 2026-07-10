@@ -55,6 +55,36 @@ from gr00t.rl.utils.config_utils import register_rl_resolvers
 register_rl_resolvers()
 
 
+_A2_BASE_API_TRAINER_TARGET = (
+    "gr00t.rl.trl.trainer.ppo_trainer_a2_base_api.TRLPPOTrainer"
+)
+_CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+
+
+def _validate_training_checkpoint_load_config(config):
+    checkpoint_load_mode = config.checkpoint_load_mode
+    if not isinstance(checkpoint_load_mode, str) or checkpoint_load_mode not in (
+        _CHECKPOINT_LOAD_MODES
+    ):
+        raise ValueError(
+            "checkpoint_load_mode must be exactly one of "
+            f"{sorted(_CHECKPOINT_LOAD_MODES)}; got {checkpoint_load_mode!r}."
+        )
+
+    trainer_target = config.trainer["_target_"]
+    if checkpoint_load_mode == "policy_only":
+        if not config.checkpoint:
+            raise ValueError(
+                "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
+            )
+        if trainer_target != _A2_BASE_API_TRAINER_TARGET:
+            raise ValueError(
+                "checkpoint_load_mode='policy_only' is only implemented by "
+                f"{_A2_BASE_API_TRAINER_TARGET}; got trainer target {trainer_target!r}."
+            )
+    return checkpoint_load_mode, trainer_target
+
+
 def seeding(seed=0, torch_deterministic=False):
     """Set random seeds for reproducibility across all libraries."""
     import torch
@@ -202,6 +232,7 @@ def patch_app_launcher_toolbar_hiding(AppLauncher: type) -> None:
 def main(config: OmegaConf):
     # Auto-calculate vision_feature_dim for history-based vision models
     auto_calculate_vision_feature_dim(config)
+    checkpoint_load_mode, trainer_target = _validate_training_checkpoint_load_config(config)
 
     from transformers import HfArgumentParser
     from trl import ModelConfig, PPOConfig, ScriptArguments
@@ -449,6 +480,10 @@ def main(config: OmegaConf):
         yaml.safe_dump(meta, open(meta_path, "w"))
         print("saved meta:", meta)
 
+    checkpoint_load_kwargs = {}
+    if trainer_target == _A2_BASE_API_TRAINER_TARGET:
+        checkpoint_load_kwargs["checkpoint_load_mode"] = checkpoint_load_mode
+
     trainer = custom_instantiate(
         config.trainer,
         args=training_args,
@@ -466,6 +501,7 @@ def main(config: OmegaConf):
         log_dir=experiment_save_dir,
         accelerator=accelerator,
         _resolve=False,
+        **checkpoint_load_kwargs,
     )
 
     # --- Training loop ---

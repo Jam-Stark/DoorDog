@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-10 21:14 HKT - 完成 user 审批后的 `base_v9` B hold-handle route 施工、review 与 bounded runtime validation；正式长训练尚未启动。
+
+  (1) Common B route 已实现：stage3/4 持续启用 gripper-handle orientation 与 grasp/contact retention，stage4 使用 mild handle distance，新增 keep-close / open-command penalty / bilateral contact / opposite squeeze / squeeze-force window / contact stability / over-force penalty 七项 hold terms，并将 doorframe penalty scale 对齐 B route；`penalty_a2_stage4_arm_default_pose_l1` 继续保持 `0.0`。
+
+  (2) 新增 strict `env.config.a2_stage3_base_unlocked`，默认 `false`；`true` 只在 A2 `STAGE_OPEN` 移除 `penalty_not_standing_still` 与 `_stage_3_reward_condition()` 的 base-still gate，stage1/2、locked 与 non-A2 semantics 不变。四份 config `base_v9_A/B/C/D` 精确实现 threshold `{0.174533, 0.25}` × unlocked `{false, true}`，不夹带 checkpoint 或其他 factor。
+
+  (3) 新增 `checkpoint_load_mode`，默认 `full`；`policy_only` 从 checkpoint CPU-load 后 strict-load actor 权重，只用于 warm start，因此 critic、optimizer、scheduler、global step、env curriculum 与 staged snapshots 均保持 fresh。Eval runtime normalize 为 `full`，并为缺少 `a2_stage3_base_unlocked` 的 legacy A2 saved config 显式 migration 到 `false`，不使用 silent fallback。
+
+  (4) Independent review PASS；source compile、`git diff --check`、四份 Hydra compose、actual `base_v8 A` ckpt1000 strict actor load 均 PASS。2-rank runtime smoke 使用 2 GPUs、每 rank 4 env，成功注册 B reward terms 并完成一个 PPO batch / 64 timesteps；batch 完成后的 linger cleanup 才由人工 `SIGINT`，不应解释为训练失败，也不提供 policy performance evidence。
+
+  (5) 1-env legacy eval 在 migration 后自然结束；`.hydra/runtime_config.yaml` 记录 `checkpoint_load_mode: full` 与 `a2_stage3_base_unlocked: false`，checkpoint 恢复到 step1000。该 eval 只验证 legacy routing/load semantics，不是 `base_v9` performance result。下一步是 user 运行四组 1000-batch matched formal training，每组 2 processes × 2048 env/rank = 4096 total。
+
 - 2026-07-10 18:54 HKT - 完成 `base_v8 A` ckpt1000 on A' code 的 hold-handle precursor diagnostics、D0/D1/D2 controlled eval 与 D3 default-off regression，并形成 `base_v9` 首轮 2×2 ablation 建议。
 
   (1) Diagnostic implementation 覆盖 7 个既有 source/config 文件：stage3→4 hinge threshold 参数化为 env config single source of truth，并为 legacy A2 checkpoint 做显式 migration；新增 opt-in expanded A2 eval trace、reward-term decomposition、arm soft-limit margin、base physical command/root motion、TCP-handle slip、per-body contact 与 door progress diagnostics；新增 eval-only forced-close intervention，默认 `enabled=false`、value `-1.0`。修正后的 trace 保证 first-episode isolation，并在 control action 生效后的正确 timing 采样。未添加 silent fallback；static/config tests 与 Oracle review PASS。

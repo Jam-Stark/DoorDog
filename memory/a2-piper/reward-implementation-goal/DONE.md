@@ -1,5 +1,21 @@
 # DONE
 
+- 2026-07-10 18:54 HKT - 完成 `base_v8 A` ckpt1000 on A' code 的 hold-handle precursor diagnostics、D0/D1/D2 controlled eval 与 D3 default-off regression，并形成 `base_v9` 首轮 2×2 ablation 建议。
+
+  (1) Diagnostic implementation 覆盖 7 个既有 source/config 文件：stage3→4 hinge threshold 参数化为 env config single source of truth，并为 legacy A2 checkpoint 做显式 migration；新增 opt-in expanded A2 eval trace、reward-term decomposition、arm soft-limit margin、base physical command/root motion、TCP-handle slip、per-body contact 与 door progress diagnostics；新增 eval-only forced-close intervention，默认 `enabled=false`、value `-1.0`。修正后的 trace 保证 first-episode isolation，并在 control action 生效后的正确 timing 采样。未添加 silent fallback；static/config tests 与 Oracle review PASS。
+
+  (2) 三个 causal run 使用同一个 `base_v8 A` ckpt1000、8 env、每 env 1 episode、no-render，输出分别为 `logs_eval/base_v8_A_ckpt1000_D0_diag_Aprime_8env_20260710`、`logs_eval/base_v8_A_ckpt1000_D1_diag_AtrainThreshold_8env_20260710`、`logs_eval/base_v8_A_ckpt1000_D2_diag_forcedClose_8env_20260710`。D0/D2 的 threshold 为 `0.174533`，D1 为 `0.6`；只有 D2 对 stage3/4 gripper primitive 强制 `-1.0`。这些是 frozen A policy 的 intervention，不等同于重新训练后的 B policy。
+
+  (3) D0 8/8 进入 stage4，hinge mean max/end 为 `0.1872/0.1282 rad`；stage3/stage4 base physical linear command 约 `0.0026/0.0060 m/s`，root 仅 millimeter-level motion。stage4 的 1616/1616 frames 都是 `arm_body8`-only single contact，无 bilateral contact/stability；close target 已下发但 `arm_j8` 仍在 open stop。stage3 即使只有单侧接触，当前 diagnostic reward 仍约 `+0.336/step`。该 run 说明 early stage transition 把 frozen A policy 切到未训练的 stage4 distribution，handle retention 与 hinge progress 随后回弹。
+
+  (4) D1 8/8 留在 stage3，hinge mean max/end 为 `0.2570/0.2568 rad`，没有 D0 的 transition rebound；但 stage3 frames 中 normalized minimum arm soft-limit margin `<0.05` 占 `34.3%`、越出 soft limit 占 `4.49%`，8/8 limiting joint 都是 `arm_j6`，base 仍只有 millimeter-level motion。该对照确认主要瓶颈是 stage3 arm-only workspace exhaustion，而不是 door 无法继续被推开。
+
+  (5) D2 相对 D0 的 bilateral-contact ratio 仍精确为 `0.137%`，stability 与 stage4 bilateral contact 都为 0；hinge mean max/end 只增加 `0.0147/0.0187 rad`，root motion 不变，TCP distance/slip 反而更差，且 2 env 在脱离 handle 后仍收到空 close command。因而“只强制 close”不足以形成握持，首轮 `base_v9` 不应把 forced-close、Kp/effort 或 keep-close scale 作为主变量。
+
+  (6) Default-off regression `logs_eval/base_v8_A_ckpt1000_D3_defaultOffRegression_2env_20260710` 在 diagnostics/forced-close 均关闭时 2/2 正常结束并到达 max stage4，且不生成 `a2_eval_diagnostic_metadata.json`，验证 opt-in runtime path 未污染普通 eval。
+
+  (7) 基于上述证据，待 user 审批的首轮 `base_v9` 方案是 threshold `{0.174533, 0.25}` × stage3 base `{locked current, unlocked}`。四组共享 B hold bundle、同一 A ckpt1000 policy-only initialization，并重置 optimizer/curriculum/snapshots、对齐 seeds；workspace-margin shaping 保留到第二轮 single-variable ablation。详细分析见 `scriptsFORhuman/base_v8_to_v9_hold_handle_diagnostic_20260710.md`。
+
 - 2026-07-10 16:24 HKT - 完成 `base_v8 B` hold-handle ckpt1000 16-env no-render `P0-D0` quick eval 与 runtime routing 核查。
 
   (1) Source-of-truth checkpoint 为 sibling worktree `/home/baoquanc/workspace/DoorDog-A2_Piper_hold_handle/logs_rl/a2_piper_full_stage_a2_base/base_v8_B_hold_handle-20260708_215508/model_step_001000.pt`。有效输出为 `/home/baoquanc/workspace/DoorDog-A2_Piper_hold_handle/logs_eval/base_v8_B_ckpt1000_D0_16env_module_20260710`，包含 `metrics_eval.json`、legacy `stage2_step_trace.json` 与 `stage2_5_step_trace.json`；两个 trace SHA256 相同。

@@ -5,6 +5,7 @@
 from collections import deque
 from copy import deepcopy
 import json
+import math
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -12,6 +13,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torchvision
+from omegaconf import ListConfig
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
@@ -90,6 +92,185 @@ def _make_json_safe(value, path="root"):
     if isinstance(value, (str, int, float, bool, type(None))):
         return value
     raise TypeError(f"Unsupported eval metrics value type at {path}: {type(value).__name__}")
+
+
+def _read_a2_eval_diagnostic_config(eval_config):
+    diagnostic_enabled = eval_config.get("a2_diagnostic_trace_enabled", False)
+    forced_close_enabled = eval_config.get("a2_forced_gripper_close_enabled", False)
+    for key, value in (
+        ("a2_diagnostic_trace_enabled", diagnostic_enabled),
+        ("a2_forced_gripper_close_enabled", forced_close_enabled),
+    ):
+        if not isinstance(value, bool):
+            raise RuntimeError(f"eval.{key} must be bool; got {value!r}.")
+    if forced_close_enabled and not diagnostic_enabled:
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_enabled=true requires "
+            "eval.a2_diagnostic_trace_enabled=true for action auditability."
+        )
+
+    reward_terms = eval_config.get("a2_diagnostic_reward_terms", ())
+    if diagnostic_enabled:
+        if not isinstance(reward_terms, (list, tuple, ListConfig)):
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must be a list of reward names; "
+                f"got {type(reward_terms).__name__}."
+            )
+        reward_terms = tuple(reward_terms)
+        if not reward_terms:
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must be non-empty when diagnostics are enabled."
+            )
+        if any(not isinstance(name, str) or not name for name in reward_terms):
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must contain non-empty strings; "
+                f"got {reward_terms}."
+            )
+        if len(set(reward_terms)) != len(reward_terms):
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must be unique; "
+                f"got {reward_terms}."
+            )
+    else:
+        reward_terms = ()
+
+    forced_close_value = eval_config.get("a2_forced_gripper_close_value", -1.0)
+    if (
+        isinstance(forced_close_value, bool)
+        or not isinstance(forced_close_value, (int, float))
+        or not math.isfinite(float(forced_close_value))
+        or float(forced_close_value) >= 0.0
+    ):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_value must be a finite negative number; "
+            f"got {forced_close_value!r}."
+        )
+    forced_close_value = float(forced_close_value)
+
+    forced_close_stages = eval_config.get("a2_forced_gripper_close_stages", (3, 4))
+    if not isinstance(forced_close_stages, (list, tuple, ListConfig)):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_stages must be a list of stage ids; "
+            f"got {type(forced_close_stages).__name__}."
+        )
+    forced_close_stages = tuple(forced_close_stages)
+    if not forced_close_stages or any(
+        isinstance(stage, bool) or not isinstance(stage, int)
+        for stage in forced_close_stages
+    ):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_stages must contain integer stage ids; "
+            f"got {forced_close_stages}."
+        )
+    if len(set(forced_close_stages)) != len(forced_close_stages):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_stages must be unique; "
+            f"got {forced_close_stages}."
+        )
+
+    return {
+        "diagnostic_enabled": diagnostic_enabled,
+        "reward_terms": reward_terms,
+        "forced_close_enabled": forced_close_enabled,
+        "forced_close_value": forced_close_value,
+        "forced_close_stages": forced_close_stages,
+    }
+
+
+def _build_a2_eval_first_episode_active_mask(
+    eval_num_envs_episodes,
+    env_episode_completed,
+    num_envs,
+    device,
+):
+    if not isinstance(eval_num_envs_episodes, bool):
+        raise RuntimeError(
+            "A2 eval first-episode mode flag must be bool; "
+            f"got {eval_num_envs_episodes!r}."
+        )
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs <= 0:
+        raise RuntimeError(f"A2 eval num_envs must be a positive int; got {num_envs!r}.")
+    expected_device = torch.device(device)
+    if not eval_num_envs_episodes:
+        return torch.ones(num_envs, dtype=torch.bool, device=expected_device)
+    if (
+        not torch.is_tensor(env_episode_completed)
+        or tuple(env_episode_completed.shape) != (num_envs,)
+        or env_episode_completed.dtype != torch.bool
+        or env_episode_completed.device != expected_device
+    ):
+        shape = (
+            None
+            if not torch.is_tensor(env_episode_completed)
+            else tuple(env_episode_completed.shape)
+        )
+        dtype = (
+            None if not torch.is_tensor(env_episode_completed) else env_episode_completed.dtype
+        )
+        actual_device = (
+            None if not torch.is_tensor(env_episode_completed) else env_episode_completed.device
+        )
+        raise RuntimeError(
+            "A2 eval first-episode completion bookkeeping requires bool tensor shape "
+            f"({num_envs},) on {expected_device}; got shape={shape}, dtype={dtype}, "
+            f"device={actual_device}."
+        )
+    return ~env_episode_completed
+
+
+def _build_a2_eval_forced_close_mask(
+    stage_buf,
+    first_episode_active_mask,
+    forced_close_enabled,
+    forced_close_stage_ids,
+):
+    if not isinstance(forced_close_enabled, bool):
+        raise RuntimeError(
+            "A2 eval forced-close enabled flag must be bool; "
+            f"got {forced_close_enabled!r}."
+        )
+    if (
+        not torch.is_tensor(stage_buf)
+        or stage_buf.ndim != 1
+        or stage_buf.dtype != torch.long
+    ):
+        shape = None if not torch.is_tensor(stage_buf) else tuple(stage_buf.shape)
+        dtype = None if not torch.is_tensor(stage_buf) else stage_buf.dtype
+        raise RuntimeError(
+            "A2 eval forced-close stage_buf requires a 1D long tensor; "
+            f"got shape={shape}, dtype={dtype}."
+        )
+    if (
+        not torch.is_tensor(first_episode_active_mask)
+        or tuple(first_episode_active_mask.shape) != tuple(stage_buf.shape)
+        or first_episode_active_mask.dtype != torch.bool
+        or first_episode_active_mask.device != stage_buf.device
+    ):
+        shape = (
+            None
+            if not torch.is_tensor(first_episode_active_mask)
+            else tuple(first_episode_active_mask.shape)
+        )
+        dtype = (
+            None
+            if not torch.is_tensor(first_episode_active_mask)
+            else first_episode_active_mask.dtype
+        )
+        device = (
+            None
+            if not torch.is_tensor(first_episode_active_mask)
+            else first_episode_active_mask.device
+        )
+        raise RuntimeError(
+            "A2 eval forced-close first-episode active mask requires bool tensor "
+            f"shape {tuple(stage_buf.shape)} on {stage_buf.device}; got "
+            f"shape={shape}, dtype={dtype}, device={device}."
+        )
+    forced_close_mask = torch.zeros_like(first_episode_active_mask)
+    if forced_close_enabled:
+        for stage_id in forced_close_stage_ids:
+            forced_close_mask |= stage_buf == stage_id
+    return forced_close_mask & first_episode_active_mask
 
 
 class PolicyAndValueWrapper(nn.Module):
@@ -2404,6 +2585,9 @@ class TRLPPOTrainer(PPOTrainer):
         dump_eval_to_log_metrics = self.config.get("eval", {}).get(
             "dump_to_log_metrics", False
         )
+        a2_eval_diagnostics = _read_a2_eval_diagnostic_config(
+            self.config.get("eval", {})
+        )
         eval_to_log_records = []
 
         if eval_num_envs_episodes:
@@ -2415,10 +2599,17 @@ class TRLPPOTrainer(PPOTrainer):
             self.env_episode_completed = torch.zeros(
                 self.env.num_envs, dtype=torch.bool, device=self.accelerator.device
             )
+        eval_episode_indices = torch.zeros(
+            self.env.num_envs,
+            dtype=torch.long,
+            device=self.accelerator.device,
+        )
 
         # Initialize environment-based metrics tracking
         self.env.init_eval_metrics_tracking(self.accelerator.device)
         a2_stage2_trace_enabled = bool(getattr(self.env, "_use_a2_base", False))
+        if a2_eval_diagnostics["diagnostic_enabled"] and not a2_stage2_trace_enabled:
+            raise RuntimeError("A2 eval diagnostics can only be enabled for an A2_Base env.")
         if a2_stage2_trace_enabled:
             init_stage2_trace = getattr(self.env, "init_a2_eval_stage2_step_trace", None)
             if init_stage2_trace is None:
@@ -2426,7 +2617,27 @@ class TRLPPOTrainer(PPOTrainer):
                     "A2 eval stage2 step trace requires "
                     "env.init_a2_eval_stage2_step_trace()."
                 )
-            init_stage2_trace()
+            init_stage2_trace(
+                diagnostic_enabled=a2_eval_diagnostics["diagnostic_enabled"],
+                diagnostic_reward_terms=a2_eval_diagnostics["reward_terms"],
+            )
+
+        forced_close_stage_ids = a2_eval_diagnostics["forced_close_stages"]
+        if a2_eval_diagnostics["forced_close_enabled"]:
+            allowed_forced_close_stages = {
+                self.env.STAGE_OPEN,
+                self.env.STAGE_SWING,
+            }
+            if not set(forced_close_stage_ids).issubset(allowed_forced_close_stages):
+                raise RuntimeError(
+                    "A2 eval forced gripper close may only target stage3/open and "
+                    f"stage4/swing; got {forced_close_stage_ids}."
+                )
+        forced_close_applied_counts = torch.zeros(
+            self.env.num_envs,
+            dtype=torch.long,
+            device=self.accelerator.device,
+        )
 
         # Initialize episode tracking
         self.cur_reward_sum = torch.zeros(
@@ -2468,8 +2679,96 @@ class TRLPPOTrainer(PPOTrainer):
                     action_mean = policy_model.action_mean.detach()
 
                     if self.use_a2_base:
-                        a2_actions = model._a2_base_actions(obs_dict, action_mean)
-                        step_actions = torch.cat([action_mean, a2_actions], dim=-1)
+                        get_action_layout = getattr(
+                            self.env, "get_a2_high_level_action_layout", None
+                        )
+                        if get_action_layout is None:
+                            raise RuntimeError(
+                                "A2 eval requires env.get_a2_high_level_action_layout()."
+                            )
+                        action_layout = get_action_layout()
+                        expected_action_shape = (
+                            self.env.num_envs,
+                            action_layout["dim"],
+                        )
+                        if (
+                            not torch.is_tensor(action_mean)
+                            or tuple(action_mean.shape) != expected_action_shape
+                            or not torch.is_floating_point(action_mean)
+                            or not torch.all(torch.isfinite(action_mean))
+                        ):
+                            shape = (
+                                None
+                                if not torch.is_tensor(action_mean)
+                                else tuple(action_mean.shape)
+                            )
+                            dtype = (
+                                None
+                                if not torch.is_tensor(action_mean)
+                                else action_mean.dtype
+                            )
+                            raise RuntimeError(
+                                "A2 eval policy action_mean requires finite floating tensor "
+                                f"shape {expected_action_shape}; got shape={shape}, "
+                                f"dtype={dtype}."
+                            )
+
+                        env_episode_completed = (
+                            self.env_episode_completed
+                            if eval_num_envs_episodes
+                            else None
+                        )
+                        first_episode_active_mask = (
+                            _build_a2_eval_first_episode_active_mask(
+                                eval_num_envs_episodes=eval_num_envs_episodes,
+                                env_episode_completed=env_episode_completed,
+                                num_envs=self.env.num_envs,
+                                device=action_mean.device,
+                            )
+                        )
+                        stage_buf = getattr(self.env, "stage_buf", None)
+                        forced_close_mask = _build_a2_eval_forced_close_mask(
+                            stage_buf=stage_buf,
+                            first_episode_active_mask=first_episode_active_mask,
+                            forced_close_enabled=a2_eval_diagnostics[
+                                "forced_close_enabled"
+                            ],
+                            forced_close_stage_ids=forced_close_stage_ids,
+                        )
+                        post_forced_override_pre_env_action = action_mean
+                        if a2_eval_diagnostics["forced_close_enabled"]:
+                            post_forced_override_pre_env_action = action_mean.clone()
+                            post_forced_override_pre_env_action[
+                                forced_close_mask,
+                                action_layout["gripper_index"],
+                            ] = a2_eval_diagnostics["forced_close_value"]
+                            forced_close_applied_counts += forced_close_mask.long()
+
+                        if a2_eval_diagnostics["diagnostic_enabled"]:
+                            set_diagnostic_actions = getattr(
+                                self.env, "set_a2_eval_diagnostic_actions", None
+                            )
+                            if set_diagnostic_actions is None:
+                                raise RuntimeError(
+                                    "A2 eval diagnostics require "
+                                    "env.set_a2_eval_diagnostic_actions()."
+                                )
+                            set_diagnostic_actions(
+                                policy_high_level_action_raw=action_mean,
+                                post_forced_override_pre_env_action=(
+                                    post_forced_override_pre_env_action
+                                ),
+                                forced_gripper_close_mask=forced_close_mask,
+                                first_episode_active_mask=first_episode_active_mask,
+                                episode_indices=eval_episode_indices,
+                            )
+
+                        a2_actions = model._a2_base_actions(
+                            obs_dict, post_forced_override_pre_env_action
+                        )
+                        step_actions = torch.cat(
+                            [post_forced_override_pre_env_action, a2_actions], dim=-1
+                        )
                     else:
                         homie_obs = obs_dict["homie_obs"]
                         walk_out = homie_walk_model(homie_obs)
@@ -2541,6 +2840,7 @@ class TRLPPOTrainer(PPOTrainer):
 
                         self.cur_reward_sum[new_ids] = 0
                         self.cur_episode_length[new_ids] = 0
+                        eval_episode_indices[new_ids.flatten()] += 1
 
                         # Reset environment episode tracking
                         self.env.reset_eval_episode_tracking(new_ids)
@@ -2590,6 +2890,70 @@ class TRLPPOTrainer(PPOTrainer):
                 json.dump(safe_to_log_metrics, f, indent=4)
             os.replace(to_log_metrics_tmp_path, to_log_metrics_path)
             logger.info(f"Saved eval to_log metrics to {to_log_metrics_path}")
+
+        if a2_eval_diagnostics["diagnostic_enabled"]:
+            get_action_layout = getattr(
+                self.env, "get_a2_high_level_action_layout", None
+            )
+            get_hinge_threshold = getattr(
+                self.env, "_get_a2_stage3_to4_door_hinge_threshold", None
+            )
+            if get_action_layout is None or get_hinge_threshold is None:
+                raise RuntimeError(
+                    "A2 eval diagnostic metadata requires canonical action layout and "
+                    "stage3->4 hinge threshold accessors."
+                )
+            diagnostic_metadata = {
+                "diagnostic_trace_enabled": True,
+                "reward_terms": list(a2_eval_diagnostics["reward_terms"]),
+                "forced_gripper_close_enabled": a2_eval_diagnostics[
+                    "forced_close_enabled"
+                ],
+                "forced_gripper_close_value": a2_eval_diagnostics[
+                    "forced_close_value"
+                ],
+                "forced_gripper_close_stages": list(forced_close_stage_ids),
+                "forced_gripper_close_applied_counts": forced_close_applied_counts,
+                "canonical_high_level_action_layout": get_action_layout(),
+                "stage3_to4_door_hinge_threshold": get_hinge_threshold(),
+                "trace_timing": {
+                    "policy_and_post_forced_override": (
+                        "computed from the pre-step observation and pre-step stage_buf"
+                    ),
+                    "post_delta_post_warp_env_action": (
+                        "captured inside A2Base after DeltaActionBase and "
+                        "WarpedActionBase, before action-to-joint-target mapping"
+                    ),
+                    "articulation_state_contact_reward": (
+                        "captured after physics tensor refresh and reward computation, "
+                        "before reset and before staged-task stage advancement"
+                    ),
+                    "joint_pos_target": (
+                        "the Articulation position target used for the completed physics "
+                        "step, read after physics and before reset"
+                    ),
+                    "stage_buf": "pre-stage-advance for the completed physics step",
+                },
+                "first_episode_contract": (
+                    "when eval_num_envs_episodes=true, intervention, counts, and expanded "
+                    "trace include only envs whose first episode is still active; "
+                    "episode_index audits reset boundaries"
+                ),
+            }
+            diagnostic_metadata_path = os.path.join(
+                eval_output_dir, "a2_eval_diagnostic_metadata.json"
+            )
+            diagnostic_metadata_tmp_path = f"{diagnostic_metadata_path}.tmp"
+            safe_diagnostic_metadata = _make_json_safe(
+                diagnostic_metadata, path="a2_eval_diagnostic_metadata"
+            )
+            with open(diagnostic_metadata_tmp_path, "w") as f:
+                json.dump(safe_diagnostic_metadata, f, indent=4)
+            os.replace(diagnostic_metadata_tmp_path, diagnostic_metadata_path)
+            logger.info(
+                "Saved A2 eval diagnostic metadata to "
+                f"{diagnostic_metadata_path}"
+            )
 
         if a2_stage2_trace_enabled:
             get_stage2_trace = getattr(

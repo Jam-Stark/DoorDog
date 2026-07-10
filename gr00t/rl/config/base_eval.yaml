@@ -20,6 +20,27 @@ algo:
       # The following two parameters are about saving trajectories
       save_trajectories: false
       num_save_episodes: 200  # number of episodes to save per device; will override num_eval_episodes
+
+      # A2 eval-only causal diagnostics. The expanded step trace is opt-in;
+      # forced close is additionally gated on the expanded trace for auditability.
+      a2_diagnostic_trace_enabled: false
+      a2_diagnostic_reward_terms:
+        - gripper_handle_orientation
+        - grasp_target_distance
+        - grasp
+        - penalty_not_standing_still
+        - push_door_handle
+        - push_door_hinge
+        - dont_push_door_handle
+        - target_root_distance
+        - penalty_standing_still
+        - stage
+        - penalty_door_frame_contact
+        - penalty_door_panel_contact
+        - penalty_base_roll_pitch_l2
+      a2_forced_gripper_close_enabled: false
+      a2_forced_gripper_close_value: -1.0
+      a2_forced_gripper_close_stages: [3, 4]
       
 
 eval_timestamp: ${now:%Y%m%d_%H%M%S}

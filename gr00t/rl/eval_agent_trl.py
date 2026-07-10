@@ -54,6 +54,8 @@ _A2_STAGE2_GRASP_REWARD_CONFIG_KEYS = (
     "a2_stage2_contact_force_threshold",
     *_A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS.keys(),
 )
+_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY = "a2_stage3_to4_door_hinge_threshold"
+_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT = 0.174533
 
 
 def migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path):
@@ -96,6 +98,29 @@ def migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path):
     logger.info(
         "Migrated legacy A2 stage2 grasp reward config from "
         f"{config_path} using {_A2_STAGE2_LEGACY_CONTACT_FORCE_KEY}"
+    )
+
+
+def migrate_legacy_a2_stage3_to4_threshold_config(train_config, config_path):
+    """Add the historical A2 hinge threshold to pre-parameterization checkpoints."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    if _A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY in env_config:
+        return
+    env_config[_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY] = (
+        _A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT
+    )
+    logger.info(
+        "Migrated legacy A2 stage3->4 hinge threshold config from "
+        f"{config_path} using historical default "
+        f"{_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT}"
     )
 
 
@@ -180,6 +205,7 @@ def main(override_config: OmegaConf):
                 train_config = OmegaConf.merge(train_config, train_config.eval_overrides)
 
             migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path)
+            migrate_legacy_a2_stage3_to4_threshold_config(train_config, config_path)
             config = OmegaConf.merge(train_config, override_config)
         else:
             config = override_config

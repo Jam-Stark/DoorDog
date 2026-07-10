@@ -113,6 +113,9 @@ env:
     a2_stage2_completion_close_gate_required: false
     a2_stage2_completion_gripper_close_command_threshold: -0.2
     a2_stage2_completion_gripper_close_progress_min: 0.45
+    # Single source of truth for the A2 stage3->4 door hinge transition and
+    # matching A2 door-open bypass diagnostics. Override to 0.6 for D1.
+    a2_stage3_to4_door_hinge_threshold: 0.174533
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

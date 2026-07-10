@@ -41,6 +41,10 @@ def _validate_optional_a2_config_value(config, key, metadata_value):
 
 
 class A2Base(LeggedRobotBase):
+    A2_BASE_COMMAND_ACTION_DIM = 5
+    A2_ARM_ACTION_DIM = 6
+    A2_GRIPPER_PRIMITIVE_ACTION_DIM = 1
+
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         if self._use_a2_base:
@@ -405,6 +409,48 @@ class A2Base(LeggedRobotBase):
             self.num_envs, self._a2_leg_action_dim, device=self.device, requires_grad=False
         )
 
+        # Validate the configured high-level action contract against the canonical
+        # base + Piper arm + gripper layout consumed by _step_a2_base().
+        self.get_a2_high_level_action_layout()
+
+    def get_a2_high_level_action_layout(self) -> dict[str, int]:
+        if not self._use_a2_base:
+            raise RuntimeError("A2 high-level action layout is only defined in A2_Base mode.")
+        expected_dim = (
+            self.A2_BASE_COMMAND_ACTION_DIM
+            + self.A2_ARM_ACTION_DIM
+            + self.A2_GRIPPER_PRIMITIVE_ACTION_DIM
+        )
+        if self._a2_high_level_action_dim != expected_dim:
+            raise RuntimeError(
+                "A2 high-level action layout requires "
+                f"high_level_action_dim={expected_dim}; got {self._a2_high_level_action_dim}."
+            )
+        if tuple(self._a2_arm_dof_indices.shape) != (self.A2_ARM_ACTION_DIM,):
+            raise RuntimeError(
+                "A2 high-level action layout requires six arm DOF indices; "
+                f"got shape {tuple(self._a2_arm_dof_indices.shape)}."
+            )
+        if tuple(self._a2_gripper_dof_indices.shape) != (2,):
+            raise RuntimeError(
+                "A2 high-level action layout requires arm_j7/arm_j8 DOF indices; "
+                f"got shape {tuple(self._a2_gripper_dof_indices.shape)}."
+            )
+
+        base_start = 0
+        base_end = base_start + self.A2_BASE_COMMAND_ACTION_DIM
+        arm_start = base_end
+        arm_end = arm_start + self.A2_ARM_ACTION_DIM
+        gripper_index = arm_end
+        return {
+            "dim": expected_dim,
+            "base_start": base_start,
+            "base_end": base_end,
+            "arm_start": arm_start,
+            "arm_end": arm_end,
+            "gripper_index": gripper_index,
+        }
+
     @override
     def _reset_buffers_callback(self, env_ids, target_buf):
         if self._use_a2_base:
@@ -504,10 +550,18 @@ class A2Base(LeggedRobotBase):
                 f"{self._a2_high_level_action_dim + self._a2_leg_action_dim}, got {actions.shape[-1]}"
             )
 
-        high_level_actions = actions[:, : self._a2_high_level_action_dim]
-        raw_base_action = high_level_actions[:, 0:5]
-        arm_actions = high_level_actions[:, 5:11]
-        gripper_primitive = high_level_actions[:, 11:12]
+        layout = self.get_a2_high_level_action_layout()
+        high_level_actions = actions[:, : layout["dim"]]
+        capture_eval_env_action = getattr(
+            self, "_capture_a2_eval_post_delta_post_warp_env_action", None
+        )
+        if capture_eval_env_action is not None:
+            capture_eval_env_action(high_level_actions)
+        raw_base_action = high_level_actions[:, layout["base_start"] : layout["base_end"]]
+        arm_actions = high_level_actions[:, layout["arm_start"] : layout["arm_end"]]
+        gripper_primitive = high_level_actions[
+            :, layout["gripper_index"] : layout["gripper_index"] + 1
+        ]
         self._a2_gripper_primitive_raw[:] = gripper_primitive
         leg_actions = actions[:, -self._a2_leg_action_dim :]
 

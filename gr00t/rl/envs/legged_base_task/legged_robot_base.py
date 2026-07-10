@@ -1590,10 +1590,25 @@ class LeggedRobotBase(BaseTask):
         """
         self.rew_buf[:] = 0.0
         reward_dict = {}
+        begin_eval_reward_diagnostics = getattr(
+            self, "_begin_eval_reward_term_diagnostics", None
+        )
+        capture_eval_reward_diagnostics = getattr(
+            self, "_capture_eval_reward_term_diagnostics", None
+        )
+        if (begin_eval_reward_diagnostics is None) != (
+            capture_eval_reward_diagnostics is None
+        ):
+            raise RuntimeError(
+                "Eval reward diagnostics must define both begin and capture hooks."
+            )
+        if begin_eval_reward_diagnostics is not None:
+            begin_eval_reward_diagnostics(tuple(self.reward_names))
         for i in range(len(self.reward_functions)):
             name = self.reward_names[i]
             try:
-                rew = self.reward_functions[i]() * self.reward_scales[name]
+                raw_rew = self.reward_functions[i]()
+                rew = raw_rew * self.reward_scales[name]
             except:
                 import ipdb
 
@@ -1609,6 +1624,8 @@ class LeggedRobotBase(BaseTask):
             if name in self.config.rewards.reward_penalty_reward_names:
                 if self.config.rewards.reward_penalty_curriculum:
                     rew *= self.reward_penalty_scale
+            if capture_eval_reward_diagnostics is not None:
+                capture_eval_reward_diagnostics(name, raw_rew, rew)
             self.rew_buf += rew
             self.episode_sums[name] += rew
             reward_dict[name] = rew.mean().item() / self.dt

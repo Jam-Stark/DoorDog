@@ -2,7 +2,7 @@
 name: reward-implementation-goal
 scope: A2+Piper Doorman reward implementation, global/stage0 baseline and stage1 reward/transition correctness planning
 status: active
-last_updated: 2026-07-10 16:24 HKT
+last_updated: 2026-07-10 18:54 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/reward-implementation-goal/description.md
@@ -17,11 +17,12 @@ read_when:
 
 ## Purpose
 
-记录 A2+Piper Doorman reward implementation 的近期目标、工程约束、source-of-truth 协作方式与安全边界。Stage0/global reward baseline 已形成第一版；当前下一步聚焦 `stage1 reward + transition correctness`，尤其是 Piper TCP/pregrasp、gripper/contact、door progress 与 success shaping。
+记录 A2+Piper Doorman reward implementation 的近期目标、工程约束、source-of-truth 协作方式与安全边界。Stage0/global reward baseline 已形成第一版；当前 small goal 是以 `base_v8 A` ckpt1000 在 A' code 上呈现的“handle 全程接触但未闭合、arm 到 workspace 极限”行为为 precursor，推进 `base_v9` B hold-handle route 的 threshold × stage3 base-mobility controlled ablation。
 
 ## Current Small Goal
 
-- 2026-07-10 16:24 HKT - 用户决定暂停 `base_v8 A/A'` release-after-open 路线，当前只推进 `base_v8 B` hold-handle 路线。B ckpt1000 的 16-env no-render `P0-D0` 已在 hold-handle sibling worktree 完成：16/16 均 `stage_overtime` at stage2、`goal_reached=false`，5647 条 stage2 trace 中 close gate、negative/close raw、任何 contact/squeeze/over-force 全为 0；stage2 entry handle distance median `0.187m`，terminal median `0.311m`，16/16 terminal 均比 entry 更远，gripper raw 全程 positive/open。该结果确认当前 blocker 位于 stage2 grasp acquisition；结合 source reward formula，行为与 open-gripper/TCP-retreat reward local optimum 一致，而不是 stage3/4 hold-retention failure。下一步先设计 `P0-D1/D2` near-gate reset / base-mask diagnostic；任何 code 改动或长训练前先通知 user。
+- 2026-07-10 18:54 HKT - 当前 destination 明确为 `base_v9` B hold-handle route：policy 应在开门过程中持续握持 handle，并允许 robot 随门运动，避免 arm 单独推到 workspace 极限。受控诊断均复用同一个 `base_v8 A` ckpt1000、8 env、每 env 1 episode：`D0`（threshold `0.174533`）8/8 进入 stage4 后 hinge 从 mean max `0.1872` 回弹到 end `0.1282`，stage4 1616/1616 frames 只有 `arm_body8` 单侧接触且 base 几乎不动；`D1`（threshold `0.6`）8/8 留在 stage3，hinge mean max/end `0.2570/0.2568` 无回弹，但 `arm_j6` 在 8/8 成为 limiting joint，证明 arm-only workspace bottleneck；`D2` 在 D0 上强制 close target 仍未建立 bilateral/stable grasp，只有轻微 hinge 增益且 TCP slip 变差，证明 keep-close command 本身不足。下一步在 user 审批后做 2×2 ablation：threshold `{0.174533, 0.25}` × stage3 base `{locked current, unlocked}`；所有组共享 B hold bundle 和同一 policy-only initialization，并重置 optimizer/curriculum/snapshots/seeds。
+- 2026-07-10 16:24 HKT - Historical evidence（不再是当前 destination）：scratch `base_v8 B` ckpt1000 的 16-env no-render `P0-D0` 为 16/16 stage2 overtime，close gate、close raw、contact/squeeze 均为 0，确认该 scratch checkpoint 卡在 stage2 open-gripper/TCP-retreat local optimum，不能评价 stage3/4 hold retention。原计划的 near-gate reset / stage2 base-mask diagnostic 未实施并暂缓；用户随后指定以 `base_v8 A` on A' code 的可达 stage3/4 行为作为 hold-route precursor。
 - 2026-07-09 12:33 HKT - `base_v8 A'` release-after-open adjustment 已完成：A2 stage3->4 hinge threshold 从 `0.6` 回退到 legacy `0.174533`，保留 A2 stage4 release handle（`gripper_handle_orientation` / `grasp_target_distance` / `grasp` 在 `STAGE_SWING` 归零）与 stage4/5 `penalty_base_roll_pitch_l2`；`penalty_a2_stage4_arm_default_pose_l1` 默认 scale 改为 `0.0`，避免 stage4 early 仍需推门时 arm default pose shaping 把 arm 拉回 default。下一步 runtime 对照优先训练/eval `base_v8 A'`，再和 B hold-handle route 比较。
 - 2026-06-14 21:48 HKT - 接下来的小目标：实现 A2+Piper Doorman training 中全局启用的 reward，以及 stage0 启用的 reward。
 - Scope 第一阶段只覆盖 global reward 和 stage0 reward；stage1/pregrasp、grasp、open、swing、through 的完整 reward adaptation 暂不作为本小目标验收标准。
@@ -153,7 +154,8 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-10 16:24 HKT - `base_v8 B`-only runtime follow-up：`P0-D0` 已确认 scratch ckpt1000 在 stage2 形成 open-gripper/TCP-retreat local optimum，尚未采样 stage3/4 hold reward。下一步先提交 `P0-D1/D2` code 方案供 user 审核：使用物理一致的 near-gate stage2 reset，对比 base free / stage2 base masked，并补齐 stage1->2 前后 reward/action/history diagnostics；根据结果再决定进入 B warm-start viability 或 scratch stage2 reward `aggregation x approach-depth std` ablation。
+- 2026-07-10 18:54 HKT - 等待 user 审批 `base_v9` 首轮 2×2 ablation：threshold `{0.174533, 0.25}` × stage3 base `{locked current, unlocked}`。`unlocked` 组只移除 stage3 `penalty_not_standing_still=-15` 与 `_stage_3_reward_condition()` 中 `base physical command norm <= 0.1` 的 base-still gate；stage1/2 stillness gates、B hold bundle、A ckpt1000 policy-only init、optimizer/curriculum/snapshot reset 与 train/eval seeds 必须对齐。审批前不改训练 config、不启动长训练。
+- 2026-07-10 18:54 HKT - 首轮先固定 workspace-margin shaping；仅在 2×2 结果仍显示 `arm_j6` soft-limit saturation 且 base-unlock 没有缓解时，第二轮再把 normalized arm margin `<0.05` 作为 single-variable factor。不要把 arm default-pose reward、forced-close、Kp/effort 或 keep-close scale 设为 `base_v9` 首轮主变量。
 - 2026-07-03 21:59 HKT - 后续 reward debug / ablation 继续把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项；同时验证 A2 Piper `arm_j1..j6` overspeed threshold `3.0 rad/s` 是否能减少 strict curriculum 下 arm reach 过慢和 `upper_dof_overspeed`，且不重新诱发 violent fast-complete / orientation drift。
 - 2026-07-07 16:17 HKT - `base_v4` four-way 2k eval 已完成；不要把 `thr0p8_kd5_vel0` 的 16/16 complete 当作可用成功，它伴随 saturated raw close 与 250N+ force spike。下一步优先修改 `_get_a2_stage2_grasp_completion_masks()`：hard completion history 应基于 `squeeze_window` 并排除 `over_force`，同时补 `completion_squeeze_window` / `completion_over_force_blocked` diagnostics；之后以 `a2_stage2_contact_force_threshold=1.0, arm_j7/j8 Kd=3, num_velocity_iterations=1` 作为当前最干净候选重新短训/eval。继续避免 history 3 默认化、避免 threshold 0.5、避免优先提高 Kd 到 5。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该 reward/transition 数据分布 trial。
@@ -176,6 +178,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-10 18:54 HKT - 完成 `base_v8 A` ckpt1000 的 D0/D1/D2 controlled eval diagnosis 和 D3 default-off regression：D0 证明 early `0.174533` transition 后进入 untrained stage4 distribution 并回弹，D1 证明 threshold `0.6` 下 arm-only workspace bottleneck，D2 因 forced close 不改变 bilateral/stability 而排除“单加 close command/Kp/effort”作为首要方向；D3 2/2 正常到 max stage4 且未产出 diagnostic metadata，验证 diagnostics/forced-close default-off runtime path。诊断 code 通过 static/config checks、三轮 P1 修正后的 Oracle review 与 D0-D3 runtime verification。
 - 2026-07-10 16:24 HKT - 完成 `base_v8 B` ckpt1000 16-env no-render `P0-D0`：16/16 stage2 overtime、0/16 goal，所有 stage2 trace 均无 close gate/close raw/contact/squeeze；entry handle distance median `0.187m`，terminal median `0.311m`。确认 B hold terms 尚未进入因果链，并记录 sibling eval 必须使用 `python -m gr00t.rl.eval_agent_trl` 或显式 source routing，避免 direct-script invocation 命中 A2_Piper editable install。
 - 2026-07-08 22:30 HKT - 完成 Base_v7 A route release-after-open implementation：A2-only stage3->4 threshold `0.174533 -> 0.6`，stage4 释放强 grasp/orientation/handle-distance rewards，新增 arm default-pose penalty 与 stage4/5 roll-pitch penalty，并补齐 shared stage2_5 trace/scalar diagnostics。未改 gripper primitive/gain/effort/stage2 completion；validation/review PASS。
 - 2026-07-08 20:20 HKT - 完成 full-stage `base_v7` A/B 1000-step result 归档并默认化 A config：A (`TCP=0.085, effort=10`) train/eval 成功率明显优于 B；B (`TCP=0.105, effort=40`) 能学到 stage2 grasp/close 但 stage4 through 失败且 gripper 在后段 open。默认 config 已写回 A：`arm_j7/j8 effort_limit_sim=10.0/10.0`、full-stage `num_velocity_iterations=1`、reward penalty curriculum disabled/scale=1。

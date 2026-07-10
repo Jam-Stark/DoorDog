@@ -238,6 +238,9 @@ class DoorPregrasp(
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
     A2_STAGE0_STAGING_OFFSET_CONFIG_KEY = "a2_stage0_staging_x_offset"
+    A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
+        "a2_stage3_to4_door_hinge_threshold"
+    )
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -343,6 +346,20 @@ class DoorPregrasp(
             "A2 stage0 staging target",
         )
 
+    def _get_a2_stage3_to4_door_hinge_threshold(self) -> float:
+        threshold = getattr(self, "_a2_stage3_to4_door_hinge_threshold", None)
+        if isinstance(threshold, bool) or not isinstance(threshold, float):
+            raise RuntimeError(
+                "A2 stage3->4 door hinge threshold was not initialized as a float; "
+                f"got {threshold!r}."
+            )
+        if not math.isfinite(threshold) or threshold <= 0.0:
+            raise RuntimeError(
+                "A2 stage3->4 door hinge threshold must be finite and > 0.0; "
+                f"got {threshold}."
+            )
+        return threshold
+
     def _get_a2_gripper_primitive_raw_column(self, context: str) -> torch.Tensor:
         gripper_primitive_raw = getattr(self, "_a2_gripper_primitive_raw", None)
         if (
@@ -363,6 +380,7 @@ class DoorPregrasp(
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
+        self._a2_eval_diagnostic_trace_enabled = False
         super().__init__(config, device)
 
         if self._use_a2_base:
@@ -539,6 +557,12 @@ class DoorPregrasp(
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
 
     def _init_a2_door_pregrasp_state(self):
+        self._a2_stage3_to4_door_hinge_threshold = (
+            self._get_required_positive_float_config(
+                self.A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY,
+                "A2 stage3->4 door hinge transition",
+            )
+        )
         self._init_door_metadata()
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
         a2_gripper_body_names = ("arm_body7", "arm_body8")
@@ -2230,7 +2254,7 @@ class DoorPregrasp(
 
     def _get_a2_door_open_bypass_mask(self):
         joint_pos = self._get_door_joint_pos("A2 door-open bypass diagnostics", 1)
-        return joint_pos[:, 0] > 0.174533
+        return joint_pos[:, 0] > self._get_a2_stage3_to4_door_hinge_threshold()
 
     def _get_a2_stage2_grasp_completion_masks(self):
         forces_w_history = self._get_a2_gripper_handle_contact_force_history()
@@ -3216,13 +3240,644 @@ class DoorPregrasp(
             )
         return diagnostics
 
-    def init_a2_eval_stage2_step_trace(self):
+    def _begin_eval_reward_term_diagnostics(self, active_reward_names):
+        if not self._a2_eval_diagnostic_trace_enabled:
+            return
+        if tuple(active_reward_names) != tuple(self.reward_names):
+            raise RuntimeError(
+                "A2 eval reward diagnostics active reward ordering changed within eval: "
+                f"expected {tuple(self.reward_names)}, got {tuple(active_reward_names)}."
+            )
+        self._a2_eval_reward_raw_by_name = {}
+        self._a2_eval_reward_scaled_by_name = {}
+
+    def _capture_eval_reward_term_diagnostics(self, name, raw_reward, scaled_reward):
+        if not self._a2_eval_diagnostic_trace_enabled:
+            return
+        if name not in self._a2_eval_diagnostic_reward_term_names:
+            return
+        for value_name, value in (
+            ("raw_reward", raw_reward),
+            ("scaled_reward", scaled_reward),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or not torch.is_floating_point(value)
+                or not torch.all(torch.isfinite(value))
+            ):
+                shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                dtype = None if not torch.is_tensor(value) else value.dtype
+                raise RuntimeError(
+                    "A2 eval reward diagnostics require finite floating tensors "
+                    f"shape ({self.num_envs},); {name}.{value_name} got "
+                    f"shape={shape}, dtype={dtype}."
+                )
+        if name in self._a2_eval_reward_raw_by_name:
+            raise RuntimeError(
+                f"A2 eval reward diagnostics captured reward term {name!r} twice in one step."
+            )
+        self._a2_eval_reward_raw_by_name[name] = raw_reward.detach().clone()
+        self._a2_eval_reward_scaled_by_name[name] = scaled_reward.detach().clone()
+
+    def init_a2_eval_stage2_step_trace(
+        self,
+        diagnostic_enabled: bool = False,
+        diagnostic_reward_terms=(),
+    ):
         if not self._use_a2_base:
             raise RuntimeError("A2 stage2-5 step trace can only be initialized for A2 envs.")
         if not getattr(self, "is_evaluating", False):
             raise RuntimeError("A2 stage2-5 step trace must be initialized in eval mode.")
+        if not isinstance(diagnostic_enabled, bool):
+            raise RuntimeError(
+                "A2 eval diagnostic trace enabled flag must be bool; "
+                f"got {diagnostic_enabled!r}."
+            )
+        if not isinstance(diagnostic_reward_terms, (list, tuple)):
+            raise RuntimeError(
+                "A2 eval diagnostic reward terms must be a list or tuple of names; "
+                f"got {type(diagnostic_reward_terms).__name__}."
+            )
+        reward_terms = tuple(diagnostic_reward_terms)
+        if diagnostic_enabled:
+            if not reward_terms:
+                raise RuntimeError(
+                    "A2 eval diagnostic trace requires at least one reward term."
+                )
+            if any(not isinstance(name, str) or not name for name in reward_terms):
+                raise RuntimeError(
+                    "A2 eval diagnostic reward term names must be non-empty strings; "
+                    f"got {reward_terms}."
+                )
+            if len(set(reward_terms)) != len(reward_terms):
+                raise RuntimeError(
+                    "A2 eval diagnostic reward term names must be unique; "
+                    f"got {reward_terms}."
+                )
+            active_reward_names = tuple(self.reward_names)
+            missing_reward_terms = [
+                name for name in reward_terms if name not in active_reward_names
+            ]
+            if missing_reward_terms:
+                raise RuntimeError(
+                    "A2 eval diagnostic reward terms must be active non-zero reward terms; "
+                    f"missing {missing_reward_terms}, active={active_reward_names}."
+                )
+        elif reward_terms:
+            raise RuntimeError(
+                "A2 eval diagnostic reward terms were provided while diagnostic trace is disabled."
+            )
+
+        self._a2_eval_diagnostic_trace_enabled = diagnostic_enabled
+        self._a2_eval_diagnostic_reward_term_names = reward_terms
+        self._a2_eval_policy_high_level_action_raw = None
+        self._a2_eval_post_forced_override_pre_env_action = None
+        self._a2_eval_post_delta_post_warp_env_action = None
+        self._a2_eval_forced_gripper_close_mask = None
+        self._a2_eval_first_episode_active_mask = None
+        self._a2_eval_episode_indices = None
+        self._a2_eval_reward_raw_by_name = None
+        self._a2_eval_reward_scaled_by_name = None
         self._a2_stage2_step_trace_records = []
         self._a2_stage2_step_trace_step_index = 0
+
+    def set_a2_eval_diagnostic_actions(
+        self,
+        policy_high_level_action_raw: torch.Tensor,
+        post_forced_override_pre_env_action: torch.Tensor,
+        forced_gripper_close_mask: torch.Tensor,
+        first_episode_active_mask: torch.Tensor,
+        episode_indices: torch.Tensor,
+    ) -> None:
+        if not self._use_a2_base or not getattr(self, "is_evaluating", False):
+            raise RuntimeError("A2 eval diagnostic actions require an evaluating A2 env.")
+        if not self._a2_eval_diagnostic_trace_enabled:
+            raise RuntimeError(
+                "A2 eval diagnostic actions require a2_diagnostic_trace_enabled=true."
+            )
+        layout = self.get_a2_high_level_action_layout()
+        expected_action_shape = (self.num_envs, layout["dim"])
+        for action_name, action in (
+            ("policy_high_level_action_raw", policy_high_level_action_raw),
+            (
+                "post_forced_override_pre_env_action",
+                post_forced_override_pre_env_action,
+            ),
+        ):
+            if (
+                not torch.is_tensor(action)
+                or tuple(action.shape) != expected_action_shape
+                or not torch.is_floating_point(action)
+                or not torch.all(torch.isfinite(action))
+            ):
+                shape = None if not torch.is_tensor(action) else tuple(action.shape)
+                dtype = None if not torch.is_tensor(action) else action.dtype
+                raise RuntimeError(
+                    f"A2 eval diagnostic {action_name} requires finite floating tensor "
+                    f"shape {expected_action_shape}; got shape={shape}, dtype={dtype}."
+                )
+        for mask_name, mask in (
+            ("forced_gripper_close_mask", forced_gripper_close_mask),
+            ("first_episode_active_mask", first_episode_active_mask),
+        ):
+            if (
+                not torch.is_tensor(mask)
+                or tuple(mask.shape) != (self.num_envs,)
+                or mask.dtype != torch.bool
+            ):
+                shape = None if not torch.is_tensor(mask) else tuple(mask.shape)
+                dtype = None if not torch.is_tensor(mask) else mask.dtype
+                raise RuntimeError(
+                    f"A2 eval {mask_name} requires bool tensor shape "
+                    f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+                )
+        if torch.any(forced_gripper_close_mask & ~first_episode_active_mask):
+            raise RuntimeError(
+                "A2 eval forced gripper close mask must be a subset of the "
+                "first-episode active mask."
+            )
+        if (
+            not torch.is_tensor(episode_indices)
+            or tuple(episode_indices.shape) != (self.num_envs,)
+            or episode_indices.dtype != torch.long
+            or torch.any(episode_indices < 0)
+        ):
+            shape = None if not torch.is_tensor(episode_indices) else tuple(
+                episode_indices.shape
+            )
+            dtype = None if not torch.is_tensor(episode_indices) else episode_indices.dtype
+            raise RuntimeError(
+                "A2 eval episode indices require non-negative long tensor shape "
+                f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+            )
+        expected_device = torch.device(self.device)
+        for tensor_name, tensor in (
+            ("policy_high_level_action_raw", policy_high_level_action_raw),
+            (
+                "post_forced_override_pre_env_action",
+                post_forced_override_pre_env_action,
+            ),
+            ("forced_gripper_close_mask", forced_gripper_close_mask),
+            ("first_episode_active_mask", first_episode_active_mask),
+            ("episode_indices", episode_indices),
+        ):
+            if tensor.device != expected_device:
+                raise RuntimeError(
+                    f"A2 eval diagnostic {tensor_name} must be on {expected_device}; "
+                    f"got {tensor.device}."
+                )
+
+        self._a2_eval_policy_high_level_action_raw = (
+            policy_high_level_action_raw.detach().clone()
+        )
+        self._a2_eval_post_forced_override_pre_env_action = (
+            post_forced_override_pre_env_action.detach().clone()
+        )
+        self._a2_eval_forced_gripper_close_mask = (
+            forced_gripper_close_mask.detach().clone()
+        )
+        self._a2_eval_first_episode_active_mask = (
+            first_episode_active_mask.detach().clone()
+        )
+        self._a2_eval_episode_indices = episode_indices.detach().clone()
+
+    def _capture_a2_eval_post_delta_post_warp_env_action(
+        self, post_delta_post_warp_env_action: torch.Tensor
+    ) -> None:
+        if not self._a2_eval_diagnostic_trace_enabled:
+            return
+        layout = self.get_a2_high_level_action_layout()
+        expected_shape = (self.num_envs, layout["dim"])
+        if (
+            not torch.is_tensor(post_delta_post_warp_env_action)
+            or tuple(post_delta_post_warp_env_action.shape) != expected_shape
+            or not torch.is_floating_point(post_delta_post_warp_env_action)
+            or not torch.all(torch.isfinite(post_delta_post_warp_env_action))
+            or post_delta_post_warp_env_action.device != torch.device(self.device)
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(post_delta_post_warp_env_action)
+                else tuple(post_delta_post_warp_env_action.shape)
+            )
+            dtype = (
+                None
+                if not torch.is_tensor(post_delta_post_warp_env_action)
+                else post_delta_post_warp_env_action.dtype
+            )
+            device = (
+                None
+                if not torch.is_tensor(post_delta_post_warp_env_action)
+                else post_delta_post_warp_env_action.device
+            )
+            raise RuntimeError(
+                "A2 eval post-delta/post-warp env action requires finite floating "
+                f"tensor shape {expected_shape} on {self.device}; got "
+                f"shape={shape}, dtype={dtype}, device={device}."
+            )
+        self._a2_eval_post_delta_post_warp_env_action = (
+            post_delta_post_warp_env_action.detach().clone()
+        )
+
+    def _get_a2_eval_diagnostic_step_fields(self, env_ids: torch.Tensor):
+        if not self._a2_eval_diagnostic_trace_enabled:
+            raise RuntimeError(
+                "A2 expanded eval diagnostic fields requested while diagnostics are disabled."
+            )
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(env_ids) else tuple(env_ids.shape)
+            dtype = None if not torch.is_tensor(env_ids) else env_ids.dtype
+            device = None if not torch.is_tensor(env_ids) else env_ids.device
+            raise RuntimeError(
+                "A2 expanded eval diagnostic env_ids require long tensor on env device; "
+                f"got shape={shape}, dtype={dtype}, device={device}."
+            )
+
+        layout = self.get_a2_high_level_action_layout()
+        expected_action_shape = (self.num_envs, layout["dim"])
+        policy_action = self._a2_eval_policy_high_level_action_raw
+        post_forced_action = self._a2_eval_post_forced_override_pre_env_action
+        post_delta_post_warp_action = self._a2_eval_post_delta_post_warp_env_action
+        forced_close_mask = self._a2_eval_forced_gripper_close_mask
+        for action_name, action in (
+            ("policy action", policy_action),
+            ("post-forced-override pre-env action", post_forced_action),
+            ("post-delta/post-warp env action", post_delta_post_warp_action),
+        ):
+            if (
+                not torch.is_tensor(action)
+                or tuple(action.shape) != expected_action_shape
+                or not torch.is_floating_point(action)
+                or not torch.all(torch.isfinite(action))
+            ):
+                shape = None if not torch.is_tensor(action) else tuple(action.shape)
+                dtype = None if not torch.is_tensor(action) else action.dtype
+                raise RuntimeError(
+                    f"A2 expanded eval diagnostic {action_name} requires finite floating "
+                    f"tensor shape {expected_action_shape}; got shape={shape}, dtype={dtype}."
+                )
+        if (
+            not torch.is_tensor(forced_close_mask)
+            or tuple(forced_close_mask.shape) != (self.num_envs,)
+            or forced_close_mask.dtype != torch.bool
+        ):
+            shape = None if not torch.is_tensor(forced_close_mask) else tuple(
+                forced_close_mask.shape
+            )
+            dtype = None if not torch.is_tensor(forced_close_mask) else forced_close_mask.dtype
+            raise RuntimeError(
+                "A2 expanded eval diagnostic forced-close mask requires bool tensor shape "
+                f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+            )
+        first_episode_active_mask = self._a2_eval_first_episode_active_mask
+        if (
+            not torch.is_tensor(first_episode_active_mask)
+            or tuple(first_episode_active_mask.shape) != (self.num_envs,)
+            or first_episode_active_mask.dtype != torch.bool
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(first_episode_active_mask)
+                else tuple(first_episode_active_mask.shape)
+            )
+            dtype = (
+                None
+                if not torch.is_tensor(first_episode_active_mask)
+                else first_episode_active_mask.dtype
+            )
+            raise RuntimeError(
+                "A2 expanded eval first-episode active mask requires bool tensor shape "
+                f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+            )
+        if torch.any(forced_close_mask & ~first_episode_active_mask):
+            raise RuntimeError(
+                "A2 expanded eval forced-close mask contains inactive completed envs."
+            )
+        episode_indices = self._a2_eval_episode_indices
+        if (
+            not torch.is_tensor(episode_indices)
+            or tuple(episode_indices.shape) != (self.num_envs,)
+            or episode_indices.dtype != torch.long
+            or torch.any(episode_indices < 0)
+        ):
+            shape = None if not torch.is_tensor(episode_indices) else tuple(
+                episode_indices.shape
+            )
+            dtype = None if not torch.is_tensor(episode_indices) else episode_indices.dtype
+            raise RuntimeError(
+                "A2 expanded eval episode indices require non-negative long tensor shape "
+                f"({self.num_envs},); got shape={shape}, dtype={dtype}."
+            )
+
+        raw_rewards = self._a2_eval_reward_raw_by_name
+        scaled_rewards = self._a2_eval_reward_scaled_by_name
+        if not isinstance(raw_rewards, dict) or not isinstance(scaled_rewards, dict):
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require cached reward maps from the current "
+                "reward pipeline step."
+            )
+        expected_reward_names = set(self._a2_eval_diagnostic_reward_term_names)
+        if set(raw_rewards) != expected_reward_names or set(scaled_rewards) != expected_reward_names:
+            raise RuntimeError(
+                "A2 expanded eval diagnostic reward cache mismatch: "
+                f"expected={sorted(expected_reward_names)}, "
+                f"raw={sorted(raw_rewards)}, scaled={sorted(scaled_rewards)}."
+            )
+
+        robot = self.simulator.scene.articulations["robot"]
+        robot_data = robot.data
+        simulator_dof_ids = getattr(self.simulator, "dof_ids", None)
+        if (
+            not isinstance(simulator_dof_ids, list)
+            or len(simulator_dof_ids) != self.num_dof
+            or len(set(simulator_dof_ids)) != self.num_dof
+            or any(not isinstance(joint_id, int) for joint_id in simulator_dof_ids)
+        ):
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require simulator.dof_ids to be a unique "
+                f"list[int] of length {self.num_dof}; got {simulator_dof_ids!r}."
+            )
+        ordered_joint_ids = torch.tensor(
+            simulator_dof_ids, device=self.device, dtype=torch.long
+        )
+        required_joint_fields = {
+            "joint_pos": robot_data.joint_pos,
+            "joint_vel": robot_data.joint_vel,
+            "joint_pos_target": robot_data.joint_pos_target,
+        }
+        articulation_joint_count = robot_data.joint_pos.shape[1]
+        if torch.any(ordered_joint_ids < 0) or torch.any(
+            ordered_joint_ids >= articulation_joint_count
+        ):
+            raise RuntimeError(
+                "A2 expanded eval diagnostics simulator.dof_ids are outside the robot "
+                f"Articulation joint range [0, {articulation_joint_count})."
+            )
+        for field_name, field_value in required_joint_fields.items():
+            expected_shape = (self.num_envs, articulation_joint_count)
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != expected_shape
+                or not torch.all(torch.isfinite(field_value))
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                raise RuntimeError(
+                    f"A2 expanded eval diagnostics require Articulation.data.{field_name} "
+                    f"finite shape {expected_shape}; got {shape}."
+                )
+
+        soft_joint_pos_limits = robot_data.soft_joint_pos_limits
+        expected_limit_shape = (self.num_envs, articulation_joint_count, 2)
+        if (
+            not torch.is_tensor(soft_joint_pos_limits)
+            or tuple(soft_joint_pos_limits.shape) != expected_limit_shape
+            or not torch.all(torch.isfinite(soft_joint_pos_limits))
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(soft_joint_pos_limits)
+                else tuple(soft_joint_pos_limits.shape)
+            )
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require "
+                f"Articulation.data.soft_joint_pos_limits finite shape "
+                f"{expected_limit_shape}; got {shape}."
+            )
+
+        ordered_joint_pos = robot_data.joint_pos[:, ordered_joint_ids]
+        ordered_joint_vel = robot_data.joint_vel[:, ordered_joint_ids]
+        ordered_joint_target = robot_data.joint_pos_target[:, ordered_joint_ids]
+        ordered_soft_limits = soft_joint_pos_limits[:, ordered_joint_ids, :]
+        arm_indices = self._a2_arm_dof_indices
+        gripper_indices = self._a2_gripper_dof_indices
+        arm_pos = ordered_joint_pos[:, arm_indices]
+        arm_vel = ordered_joint_vel[:, arm_indices]
+        arm_target = ordered_joint_target[:, arm_indices]
+        arm_soft_limits = ordered_soft_limits[:, arm_indices, :]
+        arm_soft_span = arm_soft_limits[:, :, 1] - arm_soft_limits[:, :, 0]
+        if torch.any(arm_soft_span <= 0.0) or not torch.all(torch.isfinite(arm_soft_span)):
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require positive finite arm soft joint spans."
+            )
+        arm_soft_limit_normalized_margin = torch.minimum(
+            arm_pos - arm_soft_limits[:, :, 0],
+            arm_soft_limits[:, :, 1] - arm_pos,
+        ) / arm_soft_span
+
+        gripper_pos = ordered_joint_pos[:, gripper_indices]
+        gripper_target = ordered_joint_target[:, gripper_indices]
+        gripper_target_error = gripper_target - gripper_pos
+
+        root_fields = {
+            "root_pos_w": robot_data.root_pos_w,
+            "root_quat_w": robot_data.root_quat_w,
+            "root_lin_vel_w": robot_data.root_lin_vel_w,
+            "root_ang_vel_w": robot_data.root_ang_vel_w,
+        }
+        expected_root_dims = {
+            "root_pos_w": 3,
+            "root_quat_w": 4,
+            "root_lin_vel_w": 3,
+            "root_ang_vel_w": 3,
+        }
+        for field_name, field_value in root_fields.items():
+            expected_shape = (self.num_envs, expected_root_dims[field_name])
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != expected_shape
+                or not torch.all(torch.isfinite(field_value))
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                raise RuntimeError(
+                    f"A2 expanded eval diagnostics require Articulation.data.{field_name} "
+                    f"finite shape {expected_shape}; got {shape}."
+                )
+
+        physical_base_command = self.get_physical_base_command()
+        if (
+            not torch.is_tensor(physical_base_command)
+            or tuple(physical_base_command.shape) != (self.num_envs, 5)
+            or not torch.all(torch.isfinite(physical_base_command))
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(physical_base_command)
+                else tuple(physical_base_command.shape)
+            )
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require physical base command finite shape "
+                f"({self.num_envs}, 5); got {shape}."
+            )
+
+        transform_data = self._get_a2_gripper_handle_frame_transformer().data
+        target_pos_source = transform_data.target_pos_source
+        target_quat_source = transform_data.target_quat_source
+        if (
+            not torch.is_tensor(target_pos_source)
+            or tuple(target_pos_source.shape) != (self.num_envs, 2, 3)
+            or not torch.all(torch.isfinite(target_pos_source))
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(target_pos_source)
+                else tuple(target_pos_source.shape)
+            )
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require FrameTransformer target_pos_source "
+                f"finite shape ({self.num_envs}, 2, 3); got {shape}."
+            )
+        if (
+            not torch.is_tensor(target_quat_source)
+            or tuple(target_quat_source.shape) != (self.num_envs, 2, 4)
+            or not torch.all(torch.isfinite(target_quat_source))
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(target_quat_source)
+                else tuple(target_quat_source.shape)
+            )
+            raise RuntimeError(
+                "A2 expanded eval diagnostics require FrameTransformer target_quat_source "
+                f"finite shape ({self.num_envs}, 2, 4); got {shape}."
+            )
+
+        arm_joint_names = [f"arm_j{joint_index}" for joint_index in range(1, 7)]
+        gripper_joint_names = ["arm_j7", "arm_j8"]
+        records = []
+        for env_id in env_ids.tolist():
+            raw_reward_record = {
+                name: float(raw_rewards[name][env_id].item())
+                for name in self._a2_eval_diagnostic_reward_term_names
+            }
+            scaled_reward_record = {
+                name: float(scaled_rewards[name][env_id].item())
+                for name in self._a2_eval_diagnostic_reward_term_names
+            }
+            records.append(
+                {
+                    "policy_high_level_action_raw": policy_action[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "policy_base_action_raw": policy_action[
+                        env_id, layout["base_start"] : layout["base_end"]
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "policy_arm_action_raw": policy_action[
+                        env_id, layout["arm_start"] : layout["arm_end"]
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "policy_gripper_primitive_raw": float(
+                        policy_action[env_id, layout["gripper_index"]].item()
+                    ),
+                    "post_forced_override_pre_env_action": post_forced_action[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "post_forced_override_pre_env_base_action": post_forced_action[
+                        env_id, layout["base_start"] : layout["base_end"]
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "post_forced_override_pre_env_arm_action": post_forced_action[
+                        env_id, layout["arm_start"] : layout["arm_end"]
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "post_forced_override_pre_env_gripper_primitive": float(
+                        post_forced_action[env_id, layout["gripper_index"]].item()
+                    ),
+                    "post_delta_post_warp_env_action": post_delta_post_warp_action[
+                        env_id
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "post_delta_post_warp_base_action": post_delta_post_warp_action[
+                        env_id, layout["base_start"] : layout["base_end"]
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "actual_post_delta_post_warp_arm_action": post_delta_post_warp_action[
+                        env_id, layout["arm_start"] : layout["arm_end"]
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "post_delta_post_warp_gripper_primitive": float(
+                        post_delta_post_warp_action[
+                            env_id, layout["gripper_index"]
+                        ].item()
+                    ),
+                    "forced_gripper_close_applied": bool(forced_close_mask[env_id].item()),
+                    "first_episode_active": bool(
+                        first_episode_active_mask[env_id].item()
+                    ),
+                    "episode_index": int(episode_indices[env_id].item()),
+                    "physical_base_command": physical_base_command[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "root_pos_w": robot_data.root_pos_w[env_id].detach().cpu().tolist(),
+                    "root_quat_w": robot_data.root_quat_w[env_id].detach().cpu().tolist(),
+                    "root_lin_vel_w": robot_data.root_lin_vel_w[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "root_ang_vel_w": robot_data.root_ang_vel_w[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "arm_joint_names": arm_joint_names,
+                    "arm_joint_pos": arm_pos[env_id].detach().cpu().tolist(),
+                    "arm_joint_vel": arm_vel[env_id].detach().cpu().tolist(),
+                    "arm_joint_pos_target": arm_target[env_id].detach().cpu().tolist(),
+                    "arm_soft_joint_pos_limits": arm_soft_limits[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "arm_soft_limit_normalized_margin": arm_soft_limit_normalized_margin[
+                        env_id
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "gripper_joint_names": gripper_joint_names,
+                    "gripper_joint_pos": gripper_pos[env_id].detach().cpu().tolist(),
+                    "gripper_joint_pos_target": gripper_target[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "gripper_joint_target_error": gripper_target_error[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "tcp_to_handle_pos": target_pos_source[env_id, 0]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "tcp_to_handle_quat": target_quat_source[env_id, 0]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "reward_raw": raw_reward_record,
+                    "reward_scaled": scaled_reward_record,
+                }
+            )
+        return records
 
     def _capture_a2_eval_stage2_step_trace(self):
         if not self._use_a2_base:
@@ -3260,6 +3915,28 @@ class DoorPregrasp(
             | (stage_buf == self.STAGE_SWING)
             | (stage_buf == self.STAGE_THROUGH)
         )
+        if self._a2_eval_diagnostic_trace_enabled:
+            first_episode_active_mask = self._a2_eval_first_episode_active_mask
+            if (
+                not torch.is_tensor(first_episode_active_mask)
+                or tuple(first_episode_active_mask.shape) != (self.num_envs,)
+                or first_episode_active_mask.dtype != torch.bool
+            ):
+                shape = (
+                    None
+                    if not torch.is_tensor(first_episode_active_mask)
+                    else tuple(first_episode_active_mask.shape)
+                )
+                dtype = (
+                    None
+                    if not torch.is_tensor(first_episode_active_mask)
+                    else first_episode_active_mask.dtype
+                )
+                raise RuntimeError(
+                    "A2 expanded eval trace requires first-episode active bool mask "
+                    f"shape ({self.num_envs},); got shape={shape}, dtype={dtype}."
+                )
+            trace_stage_mask &= first_episode_active_mask
         trace_env_ids = trace_stage_mask.nonzero(as_tuple=False).flatten()
         if trace_env_ids.numel() > 0:
             records = self._get_a2_terminal_diagnostics(trace_env_ids)
@@ -3268,12 +3945,36 @@ class DoorPregrasp(
                     "A2 stage2-5 step trace diagnostics returned "
                     f"{len(records)} entries for {trace_env_ids.numel()} env ids."
                 )
-            for record in records:
+            if self._a2_eval_diagnostic_trace_enabled:
+                diagnostic_fields = self._get_a2_eval_diagnostic_step_fields(
+                    trace_env_ids
+                )
+                if len(diagnostic_fields) != len(records):
+                    raise RuntimeError(
+                        "A2 expanded eval diagnostics returned "
+                        f"{len(diagnostic_fields)} entries for {len(records)} trace records."
+                    )
+            else:
+                diagnostic_fields = [{} for _ in records]
+
+            hinge_threshold = self._get_a2_stage3_to4_door_hinge_threshold()
+            for record, extra_fields in zip(records, diagnostic_fields):
                 if not isinstance(record, dict):
                     raise TypeError(
                         "A2 stage2-5 step trace records must be dicts, "
                         f"got {type(record).__name__}."
                     )
+                overlap = set(record).intersection(extra_fields)
+                if overlap:
+                    raise RuntimeError(
+                        "A2 expanded eval diagnostic fields overlap base trace fields: "
+                        f"{sorted(overlap)}."
+                    )
+                record.update(extra_fields)
+                record["stage3_to4_door_hinge_threshold"] = hinge_threshold
+                record["stage3_to4_door_hinge_margin"] = (
+                    record["door_hinge_joint_pos"] - hinge_threshold
+                )
                 record["step_index"] = step_index
             self._a2_stage2_step_trace_records.extend(records)
 
@@ -3702,7 +4403,15 @@ class DoorPregrasp(
 
     def _stage_3_to_4_advance_condition(self):
         # rotate the door handle and open the door
-        door_opened = self._get_door_joint_pos("stage3 to stage4 advance", 1)[:, 0] > 0.174533
+        threshold = (
+            self._get_a2_stage3_to4_door_hinge_threshold()
+            if self._use_a2_base
+            else 0.174533
+        )
+        door_opened = (
+            self._get_door_joint_pos("stage3 to stage4 advance", 1)[:, 0]
+            > threshold
+        )
         return door_opened
 
     def _stage_4_reward_condition(self):

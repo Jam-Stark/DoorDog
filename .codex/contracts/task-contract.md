@@ -1,0 +1,70 @@
+# Delegated Task Contract
+
+每个 delegated task 必须由 Main 提供完整 contract。缺失 destination、stopping condition、write ownership 或 validation target 时，child 返回 `BLOCKED` 或 `SCOPE_REQUEST`，不得自行扩展。
+
+## Required Envelope
+
+```text
+TASK_ID:
+REVISION:
+ROLE:
+
+DESTINATION:
+STOPPING_CONDITION:
+ACCEPTANCE_CRITERIA:
+
+BACKGROUND:
+MEMORY_CONTEXT:
+  - exact paths
+  - read order
+  - verified decisions and caveats
+
+BASE_SHA:
+PRE_EXISTING_DIRTY_PATHS:
+
+READ_SET:
+WRITE_SET:
+RESOURCE_LEASES:
+
+DEPENDENCIES:
+BLOCKED_BY:
+
+DELIVERABLE:
+VERIFY:
+
+MUST_DO:
+MUST_NOT_DO:
+
+OUTPUT_CONTRACT:
+```
+
+## Contract Semantics
+
+- Main 独占 scope、approval、lease 与 acceptance criteria。
+- `READ_SET` 可与其他 reader 重叠；`WRITE_SET` 必须是 exclusive lease。
+- Child 只能写 `WRITE_SET`，不得 stage、commit、push、reset 或清理 pre-existing dirty paths。
+- 发现额外工作时发出 `SCOPE_REQUEST`；在 Main 回复前保持 blocked。
+- Shared output directory、GPU、IsaacSim process、display 与 port 都必须作为 resource lease 明确登记。
+- Task revision 改变时，child 必须确认使用最新 contract；旧 revision 的结果不能直接并入新 candidate。
+
+## Required Result
+
+```text
+STATUS: PASS | FAIL | BLOCKED | INCONCLUSIVE
+
+RESULT:
+EVIDENCE:
+  - files and symbols
+  - exact commands
+  - actual output
+
+CHANGED_PATHS:
+VALIDATION:
+UNVERIFIED_CLAIMS:
+MEMORY_FACTS_USED:
+MEMORY_DELTA_CANDIDATES:
+BLOCKERS:
+RECOMMENDED_NEXT_ACTION:
+```
+
+`PASS` 需要满足 stopping condition 与 acceptance criteria 的 evidence。Acknowledgement、计划、requested configuration 或没有实际输出的 “done” 都不是 substantive completion。

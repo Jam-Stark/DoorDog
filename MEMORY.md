@@ -1,13 +1,15 @@
 # DoorDog / A2_Piper Memory 入口
 
-本项目的 file-based memory 包含 origin reference memory 与 A2_Piper development memory。
+本项目的 file-based memory 包含 origin reference、A2_Piper development 与 repo-wide agent-system memory。
 
 Origin reference memory 用于记录 upstream baseline、runtime 环境、door workflows、assets/data 与 documentation truth map。A2_Piper development memory 用于记录本 branch/worktree 的 robot migration、reward design、workspace routing、experiment progress 与当前 TODO/DONE。
+Agent-system memory 用于记录 Codex multi-agent architecture、runtime compatibility 与 role evaluation rollout；它不保存 live heartbeat 或临时 mailbox 状态。
 
 ## Route
 
 - 读取项目 origin/baseline 参考事实时，从 [memory/origin-reference/MEMORY.md](memory/origin-reference/MEMORY.md) 开始。
 - 读取 A2_Piper branch/worktree 开发约定、robot/reward 迁移状态或 workspace routing 时，从 [memory/a2-piper/MEMORY.md](memory/a2-piper/MEMORY.md) 开始。
+- 读取 Codex multi-agent policy、role activation status 或 compatibility evidence 时，从 [memory/agent-system/MEMORY.md](memory/agent-system/MEMORY.md) 开始。
 
 ## Update Rules
 

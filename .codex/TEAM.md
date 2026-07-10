@@ -2,175 +2,147 @@
 
 ## Status
 
-当前为 **Phase 0A foundation + role-discovery sentinel**。本阶段只建立 project config、team contracts 与 `role_probe`；production roles、hooks、parallel writers 和 deep-research agent 尚未启用。
+当前为 **Phase 2 registered production v1**：project config 直接注册九个 production roles 与 `role_probe`，`max_threads = 4`、`max_depth = 1`。Registration 是可用 routing，不是 effective child identity/model/effort evidence；runtime 不暴露的 metadata 保持 `UNKNOWN/INCONCLUSIVE`。
+
+Hooks 尚未配置，等待 capability eval 与 separate user approval。`deep_researcher` 已注册但 dormant-by-policy，每次 invocation 仍需 exact separate user approval。
 
 ## Sources of Truth
 
-- Repository root `AGENTS.md`：repo-wide canonical policy，拥有最高 project-policy priority。
-- 本文件：multi-agent orchestration architecture 与 rollout boundary。
-- `contracts/*.md`：delegation、message、review 与 deep-research 的 executable contract。
-- `evals/*.md`：可重复的 compatibility smoke。
-- `memory/`：verified durable project knowledge；不是 agent heartbeat、mailbox 或 live task ledger。
+- Root `AGENTS.md`：repo-wide canonical policy。
+- 本文件：Phase 2 orchestration、role routing、waves、lease 与 closure。
+- `contracts/*.md`：task、message、review 与 deep-research executable contracts。
+- `evals/*.md` / `evals/*.toml`：static、coordination 与 write-safety evidence contract。
+- `memory/`：verified durable knowledge，不是 heartbeat/mailbox/live task ledger。
 
-Nested `.codex/AGENTS.md` 只约束 `.codex/` subtree，不承担 repository root policy。
+Nested `.codex/AGENTS.md` 只维护 `.codex` subtree，不能覆盖 root policy。
 
 ## Hard Invariants
 
-1. Main 默认使用 `gpt-5.6-sol` / `xhigh`，并且是唯一 scope、approval、lease、integration 与 Git authority。
-2. `agents.max_threads = 4`，包含 Main；一个 wave 最多同时运行三个 child lanes。
-3. `agents.max_depth = 1`；v1 child 不得 recursive fan-out。
-4. Shared filesystem 上同一文件同一时刻只有一个 writer。Main 在派发前登记 `READ_SET`、`WRITE_SET` 与 resource lease。
-5. Child 禁止 stage、commit、push、reset/revert unrelated work，禁止扩大 scope 或 acceptance criteria。
-6. Review 只读取 frozen candidate；source/config diff 改变后旧 verdict 全部失效。
-7. Canonical memory 只有一个 writer，并且晚于 required code review 与 QA。
-8. 每个 role 显式固定 model/effort；role 未生效、model unavailable 或 silent downgrade 都不能继续伪装成功。
-9. 普通 role 的 reasoning 上限是 `max`。`gpt-5.6-sol` / `ultra` 只允许 deep research，且每次 invocation 都要 user 明确批准。
-10. `FAIL`、`INCONCLUSIVE`、`NOT_RUN` 与缺失 evidence 都不是 PASS。
+1. Main 是唯一 scope、user approval、acceptance、lease、candidate、integration、memory authorization 与 Git authority。
+2. 四个 total threads 包含 Main；一个 wave 最多三个 children。Depth 1，child 不得 recursive fan-out。
+3. Shared filesystem 上同一路径同一 revision 只有一个 writer；same-path/resource conflict 必须串行。
+4. Child 禁止 stage、commit、push、branch/reset/stash/merge/rebase、扩大 scope 或转移 lease。
+5. Review 只针对 frozen candidate；candidate content/status 变化使旧 verdict 失效。
+6. `FAIL`、`BLOCKED`、`INCONCLUSIVE`、`NOT_RUN` 与缺失 evidence 都不是 PASS。
+7. Static catalog PASS 不证明 effective runtime identity/model/effort；不允许 silent downgrade 或 false model/runtime PASS。
+8. Canonical memory 在全部 required review PASS 后由单一 `memory_curator` 写入，Main 再验证。
+9. 普通 role ceiling 为 `max`；Deep 是唯一 Sol/Ultra exception，且逐次 approval。
 
-## Authority Model
+## Registered Role Matrix
 
-Main 独占以下决定：
+| Registry | Model / effort | Sandbox | Trigger / modes |
+|---|---|---|---|
+| `role_probe` | Terra / high | read-only | `SENTINEL` compatibility evidence |
+| `scope_planner` | Sol / xhigh | read-only | scope、architecture、DAG、acceptance、approval-ready plan |
+| `context_researcher` | Terra / high | read-only | `REPO_DISCOVERY`、`ISAACLAB_DOCS`、`MEMORY_EXPERIENCE`、`MEMORY_CONTEXT_REVIEW` |
+| `deep_researcher` | Sol / ultra | read-only | exact approved deep brief only；never self-activate |
+| `isaaclab_worker` | Luna / max | workspace-write | `IMPLEMENT`、`DEBUG`，只写 leased `WRITE_SET` |
+| `goal_reviewer` | Sol / max | read-only | `PLAN_GATE`、`CANDIDATE_GATE` |
+| `code_reviewer` | Sol / max | read-only | `CODE_QUALITY`；conditional `SECURITY`、`PERFORMANCE`、`DATA_COMPAT` |
+| `isaaclab_reviewer` | Sol / max | read-only | independent IsaacLab/high-level API/tensor/reward/fail-fast lane |
+| `runtime_qa` | Terra / high | workspace-write | 只写 leased evidence/output，绝不修改 candidate |
+| `memory_curator` | Terra / high | workspace-write | review PASS 后原子更新 approved memory entry |
 
-- 明确 destination、stopping condition 与 acceptance criteria；
-- 请求和记录 user approval；
-- 分配、扩大或转移 file/resource lease；
-- 选择 required lanes、model tier 与 escalation；
-- freeze candidate、判定 verdict invalidation、整合 patch；
-- 授权 canonical memory update；
-- stage 与 commit。除非 user 明确要求，否则不 push。
-
-Child 只在 task contract 内执行 bounded work。需要额外文件、资源、model 或行为变化时，返回 `SCOPE_REQUEST`，不得先做后报。
-
-## Orchestration State Machine
+## Phase 2 State Machine and Waves
 
 ```text
 PREFLIGHT
   -> DISCOVERY_WAVE
   -> PLAN_SYNTHESIS
-  -> PLAN_REVIEW
-  -> WAIT_USER_APPROVAL          # complex product write only
+  -> PLAN_GATE
+  -> WAIT_USER_APPROVAL
   -> IMPLEMENTATION_WAVE
   -> FREEZE_CANDIDATE
   -> REVIEW_WAVE_1
-  -> REVIEW_WAVE_2
-  -> TARGETED_FIX | MEMORY_FINALIZE
+  -> TARGETED_FIX | REVIEW_WAVE_2
+  -> MEMORY_FINALIZE
   -> MEMORY_CONSISTENCY_CHECK
   -> MAIN_FINAL_AUDIT
   -> MAIN_STAGE_AND_COMMIT
 ```
 
-Deep research 是 `DISCOVERY_WAVE` 与 `PLAN_SYNTHESIS` 之间的 optional approved branch，必须满足 `contracts/deep-research-contract.md`。
+### Discovery and Planning
 
-## Concurrent Waves
+- Main 可并发最多三个 `context_researcher`，每个使用不同 mode/axis，避免重复检索。
+- `scope_planner` 综合 scope、architecture、DAG、leases 与 acceptance criteria。
+- `goal_reviewer:PLAN_GATE` 独立检查 plan；Main 修订后向 user 请求 explicit approval。
+- Deep 只作为 discovery 与 plan 之间的 approved branch；没有 exact per-call brief 不得启动。
 
-并发只用于 dependency-independent lanes；Main 在 child 运行时可以执行 non-overlapping work。
+### Implementation
 
-- Discovery：最多三个 read-only lanes，例如 scope、codebase、official API evidence。
-- Implementation：v1 默认单 writer。未来只有 `WRITE_SET`、output 与 resource lease 完全不重叠时才允许 parallel writers。
-- Review Wave 1：Goal/Constraint、Code Quality、IsaacLab/Fail-fast。
-- Review Wave 2：Runtime QA、Memory Context，以及按风险触发的 Security 或 Final Gate。
-- Deep research：只有逐次 user approval 后才可建立 read-only lanes；Phase 0A 没有可运行的 deep role TOML。
+- Main 为每个 `isaaclab_worker` 发 self-contained task contract 与 exclusive `WRITE_SET`/resource lease。
+- 默认 single writer。多个 worker 仅在 Main 能证明 `WRITE_SET`、artifact directory、GPU、IsaacSim/display/port/process 等全部 disjoint 时并发。
+- 任一 path/resource overlap 都建立 dependency edge 并串行；peer 不得互授 lease。
+- Write-safety runtime eval 当前 `NOT_RUN`，因此不得把一般 multi-writer safety 声称为 runtime PASS。
 
-Wave barrier 要求所有 dependency lanes 返回 substantive terminal result。只返回 acknowledgement 不算完成。
+### Frozen Review Wave 1
 
-## Shared Filesystem Leases
+所有 writer terminal、lease released 且 Main freeze manifest/candidate 后，并发三个 independent lanes：
 
-Main 的 live task ledger 至少记录：
+1. `goal_reviewer:CANDIDATE_GATE`
+2. `code_reviewer:CODE_QUALITY`
+3. `isaaclab_reviewer`
+
+任一 FAIL/INCONCLUSIVE 阻断。Reviewer 不修 code；Main 递增 revision，将 targeted fix 交给获 lease writer，重新 freeze 并重跑 required lanes。
+
+### Review Wave 2
+
+Wave 1 全 PASS 后，最多并发：
+
+1. `runtime_qa`
+2. `context_researcher:MEMORY_CONTEXT_REVIEW`
+3. 按风险触发的 `code_reviewer:SECURITY|PERFORMANCE|DATA_COMPAT`
+
+Runtime QA 的 `WRITE_SET` 只能包含 evidence/output paths，candidate 必须 before/after immutable。缺少 runtime/resource evidence返回 INCONCLUSIVE，不降级测试并伪报 PASS。
+
+### Memory and Closure
+
+所有 required lane PASS 后，Main 授予 `memory_curator` 一个 atomic memory lease（description/TODO/DONE 与必要 route）。Curator 完成后 Main 重读 actual files、重建 manifest、运行 Memory Context/final audit，然后独占 stage/commit；默认不 push。
+
+## Task, Lease, and Candidate Contract
+
+每个 task 必须使用 `contracts/task-contract.md`，包含 TASK_ID、REVISION、destination/stopping/acceptance、MEMORY_CONTEXT、BASE_SHA/dirty baseline、READ_SET/WRITE_SET/resource lease、dependencies、deliverable 与 VERIFY。
+
+Main live ledger 至少跟踪：
 
 ```text
-TASK_ID
-REVISION
-AGENT
-STATE
-BASE_SHA
-READ_SET
-WRITE_SET
-RESOURCE_LEASES
-BLOCKED_BY
-CANDIDATE_ID
-LAST_SUBSTANTIVE_RESULT
+TASK_ID REVISION AGENT STATE BASE_SHA READ_SET WRITE_SET
+RESOURCE_LEASES BLOCKED_BY CANDIDATE_ID LAST_SUBSTANTIVE_RESULT
 ```
 
-Read lease 可以重叠；write lease 不可重叠。Git index、branch、commit 永久属于 Main。一个 memory entry 的 `description.md`、`TODO.md` 与 `DONE.md` 作为同一 atomic write unit。
+Frozen candidate 使用 `contracts/review-contract.md` 的 canonical manifest：approved tracked/untracked/ignored-explicit/deleted paths 全部按 status + exact content hash 排序，结合 BASE_SHA 计算 `CANDIDATE_ID`。Reviewer 必须核对 manifest/worktree，而不是复述 Main 的 ID。
 
-Interrupted writer 可能留下 partial writes。Main 必须先审计其完整 `WRITE_SET` 和 dirty baseline，再 follow up、转移 lease 或重新派发，不能直接假定 rollback。
+## Message and Lifecycle Semantics
 
-## Frozen Candidate
+- `send_message`：给 running agent 补 evidence 或 non-destructive correction；不转移 scope/lease。
+- Peer `FINDING`/`QUESTION` 可以直接发送，但影响 scope/candidate/verdict/lease 的 distilled finding 必须 mirror 给 Main。
+- `followup_task`：唤醒 idle/completed agent处理 bounded targeted follow-up，携带最新 revision/candidate。
+- `interrupt_agent`：停止 current turn；不等于 rollback。Main 等待 terminal 后审计完整 lease/partial writes，invalidate candidate，再决定 continuation/reassignment。
+- Main 在 agents 运行时继续 non-overlapping work，不做高频 polling；final 前所有 spawned agents 必须 terminal 或明确 abandoned。
 
-所有 writer terminal 后，Main 审计 dirty baseline、assigned paths 与 static validation，然后建立 canonical manifest：
+完整 envelope 与 closure 见 `contracts/message-protocol.md`。
 
-```text
-CANDIDATE_MANIFEST = sort_by_repo_relative_path([
-  path + status_relative_to_BASE_SHA + sha256(exact_current_content_or_DELETED)
-  for every approved task path
-])
+## Deep Research Registered-but-Dormant Policy
 
-CANDIDATE_ID = sha256(BASE_SHA + canonical_serialize(CANDIDATE_MANIFEST))
-```
+`deep_researcher` 每次 invocation 前必须向 user 提交 `contracts/deep-research-contract.md` 的 exact brief。Registration、旧 approval、ordinary research request 或 planner recommendation都不构成调用授权。
 
-Manifest 必须覆盖 approved `WRITE_SET` 与明确批准的 task artifact 中的每个路径，包括 tracked modification、tracked deletion、untracked file、ignored-but-explicit task file，以及 approved path 下递归出现的文件。存在的文件记录 exact content hash；deletion 使用明确的 `DELETED` status/sentinel。Main 还必须确认没有 out-of-scope changed path。
+- Missing approval：`BLOCKED`。
+- Effective Sol/Ultra/read-only 明确 mismatch：`FAIL`。
+- Runtime 未暴露任一 effective value：`INCONCLUSIVE`。
+- Never self-activate、never spawn child、never write、never downgrade。
 
-每个 reviewer 必须验证 manifest 路径全集、status、content hash 与 worktree 精确一致，并回报同一个 `CANDIDATE_ID`；只复述 Main 给出的 ID 不算验证。Review 期间禁止 writer 修改 candidate。任何 approved task path 的 status/content 变化都生成新 ID，并使旧 code/config/runtime verdict 失效；只改 canonical memory 时必须重建 manifest，并重跑 Memory Context 与 final audit。
+## Known Unverified Limits
 
-详细 verdict 与 evidence 规则见 `contracts/review-contract.md`。
+- Profiles 与 registry 已 static-validated，但 current runtime 可能不暴露 effective child role/model/effort；这些字段只能是 `UNKNOWN/INCONCLUSIVE`。
+- Child read-only command runner 曾受 `bwrap` loopback permission 阻断；不能把 command-runner behavior 当作已验证。
+- Parallel coordination、write lease collision、interrupt/partial-write 与 hook enforcement 需要对应 eval；未运行项保持 `NOT_RUN`。
+- Hooks 当前未配置。只有 `evals/hooks-capability.md` 证明 identity/revision/dynamic lease/path/atomic deny 覆盖且 user另行批准后才可创建。
 
-## Message and Agent Lifecycle
+## Evidence Levels and Closure
 
-Message types、`send_message`、`followup_task`、`interrupt_agent` 与 peer evidence transfer 见 `contracts/message-protocol.md`。
+- `STATIC_PASS`：parse、registry/path/name/model matrix 与 prompt contract一致。
+- `RUNTIME_BEHAVIOR_PASS`：指定 role 完成 tool-free 或 approved runtime behavior contract。
+- `INCONCLUSIVE`：effective metadata、sandbox/tool execution 或 required evidence 不完整。
+- Requested profile、identity token 或 self-report 不得升级为 effective model/effort PASS。
 
-核心语义：
-
-- `send_message` 为 running agent 补充 evidence 或 non-destructive correction；不会转移 authority。
-- `followup_task` 唤醒 idle agent 处理同一 bounded context 中的 targeted follow-up。
-- `interrupt_agent` 真正停止当前 turn；停止后必须进行 partial-write audit。
-- Peer-to-peer finding 若影响 scope、candidate 或 verdict，必须同步给 Main。
-- Final 前 Main 必须让所有 spawned agents 进入 terminal state，不能把 cleanup 留给 user。
-
-## Memory Lifecycle
-
-Live task state 留在当前 task ledger，包括 heartbeat、agent state、lease、revision、candidate 与 transient blockers；不得写进 canonical memory。
-
-Canonical memory 只记录 verified architecture decision、completed TODO、stable blocker、reproducible runtime/debug fact 与 cross-task handoff。Required reviews PASS 后，由单一 memory writer atomic 更新相关 `TODO.md`、`DONE.md` 与 `description.md`，Main 再做 consistency audit。Static、smoke、runtime 与 training evidence 必须明确区分。
-
-## Deep Research Exception
-
-Deep research 是唯一允许 `gpt-5.6-sol` / `ultra` 的 role class。每次调用前 Main 都必须提供 research brief 并取得 user 明确确认；它保持 read-only，不能 self-activate、写 code/memory、改变 plan 或创建 Git state。
-
-如果 Ultra、effective role 或 effort 缺少明确 runtime evidence，结果为 `INCONCLUSIVE`；如果明确 mismatch，结果为 `FAIL`。禁止自动降级到 `max` 或其他 model。Phase 0A 只保存 contract，不创建 production deep agent TOML。
-
-## No-Fallback Policy
-
-- 不因 role selection 失败而切换 built-in/default agent 并继续相同 gate。
-- 不因 model/effort unavailable 而 silent downgrade。
-- 不把 static parse、requested profile 或 prompt echo 当作 effective runtime evidence。
-- 不用 defensive fallback 掩盖 IsaacLab API、tensor shape、device、asset 或 training semantics 问题。
-
-## Closure Contract
-
-Main final 前确认：
-
-- 所有 spawned agents 为 completed、interrupted 或明确 abandoned；
-- 没有 active writer、overlapping lease 或 pending scope/deep/resource approval；
-- 每个 mandatory lane 有 substantive result，并绑定当前 candidate；
-- code/config 与 canonical memory 一致，或明确记录 no memory delta；
-- Git index 只包含当前 task 文件；
-- 未验证行为保持 `INCONCLUSIVE` 或 `NOT_RUN`。
-
-## Phase 0A/1 Gates
-
-### Foundation Artifact Acceptance
-
-Phase 0A static foundation artifact 可以在以下 evidence 全部 PASS 后完成：
-
-1. 两个 TOML 均可由 Python `tomllib` 解析。
-2. Codex strict-config startup parse 接受 project config 与 sentinel schema/path。
-3. `config_file`、required files、relative links 与 allowlist paths 全部存在且一致。
-4. `git diff --check` 与 candidate manifest audit PASS。
-
-这个 static acceptance 只证明 foundation artifact 可解析且内部一致，不证明 custom role 已在 runtime 生效。
-
-### Runtime Role-Discovery Activation
-
-Role-discovery runtime 在取得 explicit effective role/model/effort/sandbox 与 no-write evidence 前必须保持 `NOT_RUN` 或 `INCONCLUSIVE`。Sentinel token、文件存在、requested profile、strict-config parse 或 agent 复述都不能把该 gate 变成 PASS。
-
-只有 runtime activation gate PASS 后，才可另行批准 production roles。Production role TOML、deep-research TOML、hooks 与 parallel writers 在此之前全部保持 disabled；foundation artifact acceptance 不得绕过这一 activation gate。
+Main final 前确认：所有 agents terminal；无 active writer/overlapping lease/pending approval；required lanes绑定当前 candidate并 PASS；memory一致；Git index只含批准路径；未验证项明确保留 `INCONCLUSIVE/NOT_RUN`。

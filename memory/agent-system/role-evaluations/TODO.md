@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-11 01:29 HKT - 当 runtime 暴露 effective child role/model/effort 且 child read-only runner 可用时，重跑 role-discovery eval 并取得 child-owned no-write snapshot；完整 activation PASS 前保持 production role rollout disabled。
+- 2026-07-11 02:50 HKT - 运行九个 non-Deep tool-free role contract cases与 parallel coordination eval；write-safety 需 separate approval，Deep runtime smoke 必须取得该次完整 approval brief，hooks 先完成 capability assessment。

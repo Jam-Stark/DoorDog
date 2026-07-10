@@ -2,7 +2,7 @@
 
 ## Purpose
 
-验证当前 Codex Desktop/runtime 是否真正选择 project-scoped `role_probe`，并提供 effective role/model/effort/sandbox evidence。该 eval 只验证 sentinel，不启用 production roles。
+验证当前 Codex Desktop/runtime 对 project-scoped `role_probe` 的 effective role/model/effort/sandbox 与 no-write observability。该 eval 只评估 metadata evidence，不控制已经 user-approved 的 Phase 2 profile registration 或 Main-controlled routing。
 
 ## Preconditions
 
@@ -50,7 +50,7 @@ Agent 从自己的 TOML、prompt 或 output template 复述这些值，不算 ef
 - `FAIL`：任一 effective value 明确 mismatch、sentinel token 错误，或 probe 发生 write。
 - `INCONCLUSIVE`：token 正确但 runtime 没有明确暴露任一 effective role/model/effort/sandbox evidence，或 evidence 不完整。
 
-`INCONCLUSIVE` 是缺少 runtime observability 时的预期安全结果；不得因此启用 production agents，也不得 silent fallback。
+`INCONCLUSIVE` 是缺少 runtime observability 时的预期安全结果：它表示不能声称 effective model/effort/sandbox 或相关 runtime PASS。它不会 unregister、删除或要求停用已经 user-approved 的 registered profiles，但仍禁止 silent fallback 与虚假 metadata claim。
 
 ## Report Template
 
@@ -73,4 +73,4 @@ NEXT_ACTION:
 
 ## Stopping Condition
 
-记录一次 evidence-backed verdict 后停止。`INCONCLUSIVE` 时只报告缺失 observability；不要自行增加 production role、修改 global config、创建 hook 或启动 deep research。
+记录一次 evidence-backed metadata verdict 后停止。`INCONCLUSIVE` 时只报告缺失 observability，保持 registered catalog 与 ordinary routing 不变；不要修改 global config、创建 hook、启动 deep research、运行未批准 write eval、删除或禁用 registered role。

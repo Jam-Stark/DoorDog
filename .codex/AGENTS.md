@@ -1,27 +1,30 @@
 # `.codex` Local Policy
 
-本文件只作用于 `.codex/` subtree。它不会替代 repository root 的 `AGENTS.md`，也不得被解释为 project code 的独立 policy source。
+本文件只作用于 `.codex/` subtree，不替代 repository root `AGENTS.md`。
 
-## Read Order
+## Read and Precedence
 
-维护 `.codex/` 中的配置、contracts 或 eval 前，按以下顺序读取：
+维护 `.codex` 前依次读取：
 
-1. `../AGENTS.md`：repo-wide canonical policy，包括 approval、fail-fast、memory、review 与 commit gate。
-2. `TEAM.md`：Codex multi-agent architecture、authority、waves、lease、candidate freeze 与 closure contract。
-3. 与当前改动直接相关的 `contracts/*.md` 或 `evals/*.md`。
+1. `../AGENTS.md`：repo-wide canonical policy。
+2. `TEAM.md`：Phase 2 architecture、role routing、waves、leases、candidate 与 closure。
+3. 当前改动相关的 `contracts/*.md` 与 `evals/*.md`。
 
-发生冲突时，repository root `AGENTS.md` 优先；将冲突报告给 user，不自行弱化 root gate。
+发生冲突时 root `AGENTS.md` 优先；不得自行弱化 approval、fail-fast、memory、review 或 Main-only Git gate。
 
-## Scope Rules
+## Registered Catalog Maintenance
 
-- Main 是唯一 scope、approval、file/resource lease 与 Git authority。
-- Custom agent 不得自行 stage、commit、push、扩大 `WRITE_SET` 或修改 acceptance criteria。
-- Shared filesystem 上同一路径同一时刻只能有一个 writer；不得覆盖 user 或其他 agent 的 dirty work。
-- Product code/config 改动继续遵循 root `AGENTS.md` 的 Plan → Approval → Implement → Review → Memory Update 流程。
-- Canonical memory 是 durable project state，不是 live agent message bus；只由获授权的 memory writer 在 review PASS 后更新。
-- 缺少明确 evidence 时使用 `INCONCLUSIVE`，不得把 requested profile、静态解析或 agent 自述当作 runtime PASS。
-- Model、effort 或 role selection 不允许 silent fallback。发生 mismatch 时 fail fast 并交回 Main。
+Phase 2 registry 必须保持 `.codex/config.toml`、`agents/<role>.toml`、`TEAM.md` role matrix、`evals/role-contract-cases.toml` 与相关 eval 同步。任何 role rename、model/effort/sandbox、mode、activation policy 或 config path 改动必须在同一 candidate 中更新全部对应项，并通过 TOML/path/matrix validation。
 
-## Phase 0A Boundary
+- Main 是唯一 scope、approval、lease、candidate、memory authorization 与 Git authority。
+- Shared filesystem 同一路径同一 revision 只有一个 writer；same-path/resource conflict 串行。
+- Static profile、requested values 或 agent self-report 不证明 effective child role/model/effort。Runtime 未暴露时写 `UNKNOWN/INCONCLUSIVE`，不得 silent fallback。
+- Product code/config 继续执行 root 的 Plan → Approval → lease-bound implementation → frozen review → memory → Main commit gate。
+- Canonical memory 不是 live message bus，只能在 required review PASS 后由获授权 `memory_curator` 原子更新。
 
-当前 `.codex/agents/` 只允许 `role-probe.toml` sentinel。不要在没有新的 approved rollout task 时创建 production role TOML、deep-research role、hook 或 recursive delegation 配置。
+## Prohibitions
+
+- 不得未经 user approval 创建或启用 hook；当前 hooks 未配置，仅允许 capability eval。
+- 不得因 `deep_researcher` 已注册而自行调用。每次 invocation 必须取得 exact separate approval brief；不得写文件、spawn child 或降级 Ultra。
+- 不得修改 global `~/.codex/config.toml`。
+- Child 不得 stage、commit、push、扩大 `WRITE_SET`、转移 lease 或修改 acceptance criteria。

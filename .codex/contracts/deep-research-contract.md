@@ -38,7 +38,7 @@ STOPPING_CONDITION:
 ## Required Result
 
 ```text
-STATUS: PASS | FAIL | INCONCLUSIVE
+STATUS: PASS | FAIL | BLOCKED | INCONCLUSIVE
 RESEARCH_QUESTION:
 EFFECTIVE_RUNTIME_EVIDENCE:
 FINDINGS:
@@ -50,6 +50,8 @@ STOPPING_CONDITION_RESULT:
 RECOMMENDED_NEXT_ACTION:
 ```
 
-## Phase 0A Restriction
+## Phase 2 Registered Profile
 
-本阶段只保存 contract，不创建 production deep-research TOML，也不进行 Ultra smoke。后续 rollout 必须再次获得 user approval。
+Phase 2 已注册 `deep_researcher` profile，但 registration 不是 invocation approval，也不证明 effective Sol/Ultra/read-only runtime。该 role 仍保持 dormant-by-policy、never self-activate，且本次 registration 不授权 Ultra smoke。
+
+每一次实际调用都必须重新提交本文件的完整 approval brief 并取得 user 明确确认。缺少逐次 approval 时返回 `BLOCKED`；缺少 effective runtime evidence 时返回 `INCONCLUSIVE`。不得因为 profile 已注册而跳过 approval、降级 model/effort、写文件或 spawn child。

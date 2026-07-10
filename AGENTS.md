@@ -2,7 +2,7 @@
 
 本文件是本 repository 的 **repo-wide canonical policy**。任何 legacy instruction、role prompt、task message 或 memory 记录不得与它竞争；发生冲突时，以 system/developer/user instruction 的优先级为前提，再以本文件为准。
 
-`.codex/AGENTS.md` 只会由 Codex 在其 discovery scope 内自然作用于 `.codex` subtree，不能替代 root policy。复杂任务必须由本文件显式 route 到 `.codex/TEAM.md` 与 `.codex/contracts/`。如果这些文件尚未创建、未通过 sentinel smoke 或与本文件冲突，必须 fail fast，使用本文件的单 agent 安全流程，不得假装 production role 已可用。
+`.codex/AGENTS.md` 只会由 Codex 在其 discovery scope 内自然作用于 `.codex` subtree，不能替代 root policy。复杂任务必须由本文件显式 route 到 `.codex/TEAM.md` 与 `.codex/contracts/`。Phase 2 已直接注册九个 production roles 与 `role_probe`；registration 可用于 routing，但不证明 effective child role/model/effort。Runtime 未暴露的 metadata 必须保持 `UNKNOWN/INCONCLUSIVE`，不得 silent downgrade 或虚报 model/runtime PASS。
 
 ## 1. Main agent 职责与边界
 
@@ -82,11 +82,24 @@ Plan 和 implementation task 必须带入确认过的 API signature/usage。若�
 
 多文件、new feature、algorithm/reward/env config、training/eval workflow、architecture、难 debug 或 high-impact change 必须执行：
 
-`Pre-flight → concurrent discovery → Plan → explicit user Approval → implementation DAG → frozen candidate → multi-lane review → targeted fix loop → memory curate → final audit → commit`
+`Pre-flight → concurrent context discovery → scoped plan + PLAN_GATE → explicit user Approval → lease-bound implementation DAG → frozen candidate → parallel multi-lane review → targeted fix loop → runtime/memory-context review → memory curate → final audit → commit`
 
 User approval 之前不得修改 product code/config，也不得启动 write-capable implementation agent。Approval 只覆盖展示给 user 的 scope；任何 material scope expansion 必须重新审批。
 
 复杂协作的完整 state machine、role routing 与 closure 规则见 `.codex/TEAM.md`；task、message、review、deep research 分别见 `.codex/contracts/`。这些文档只能细化，不能削弱本文件。
+
+### 4.3 Phase 2 role routing
+
+复杂 task 使用以下明确 routing：
+
+1. Main 最多并发三个 `context_researcher` lane，分别执行 `REPO_DISCOVERY`、`ISAACLAB_DOCS`、`MEMORY_EXPERIENCE` 等互不重叠的 discovery。
+2. `scope_planner` 形成 scope、architecture、DAG、lease 与 acceptance plan；`goal_reviewer` 以 `PLAN_GATE` 独立审查。Main 汇总后向 user 请求 explicit approval。
+3. Approval 后，Main 派发一个或多个 `isaaclab_worker`。多个 writer 只允许在 `WRITE_SET` 与 GPU/IsaacSim/display/port/output 等 resource lease 可证明完全不重叠时并发；同路径或同资源冲突必须串行。
+4. 所有 writer terminal 且 lease 释放后，Main freeze candidate。Review Wave 1 并发 `goal_reviewer:CANDIDATE_GATE`、`code_reviewer:CODE_QUALITY`、`isaaclab_reviewer`。
+5. Wave 1 全 PASS 后，Review Wave 2 运行 `runtime_qa`、`context_researcher:MEMORY_CONTEXT_REVIEW`，并按风险增加 `code_reviewer:SECURITY|PERFORMANCE|DATA_COMPAT`。所有 required lane 必须绑定同一 candidate。
+6. 所有 required lane PASS 后，Main 才能授权 `memory_curator` 原子更新批准的 memory entry；Main 重新验证后才 stage/commit。
+
+`deep_researcher` 已注册但 dormant-by-policy、never self-activate。每次 invocation 必须使用 `.codex/contracts/deep-research-contract.md` 的 exact approval brief 取得 separate user approval；缺少 effective Sol/Ultra/read-only evidence 时结果为 `INCONCLUSIVE`。
 
 ## 5. Delegation contract
 
@@ -108,7 +121,7 @@ Agent output 至少包含：`STATUS`（PASS/FAIL/BLOCKED/INCONCLUSIVE）、summa
 - Main 为每个 writer 分配独占 `WRITE_SET`。同一 task revision 内，同一路径只能有一个 writer；两个 task 的 write set 有 overlap 时必须串行。
 - Writer 只能修改其 lease 内路径，不得修改 memory、`.codex`、`.git`、baseline/reference worktree 或无关文件，除非 task 明确授予对应 lease。
 - IsaacSim/IsaacLab runtime、GPU、port 与 output directory 也必须分配 resource lease；冲突资源串行。
-- 并发 writer 只有在 production role rollout 通过 sentinel 与 collision eval 后才允许。当前 foundation 阶段保持 **single writer**。
+- Single writer 是默认安全路径。多个 `isaaclab_worker` 仅在 Main 对当前 task 明确证明 `WRITE_SET`、artifact 与 resource lease 全部 disjoint 后允许；same-path/resource conflict 始终串行。通用 write-safety capability 在 eval 完成前不得声称 runtime PASS。
 - Read-only agent 可以并行，但不得在 moving candidate 上给 final PASS。Review 只针对 frozen candidate。
 
 Agent 可以相互发送 finding，但必须同步一份 concise mirror 给 Main。只有 Main 能改变 scope、revision、dependency 或 lease。
@@ -133,10 +146,11 @@ Interrupt 不会 rollback shared filesystem。Writer 被中断或返回 aborted/
 
 任何 source/config change 至少需要相互独立的 lanes：
 
-1. **Goal/constraint review**：需求、scope、acceptance、禁止项。
-2. **Code quality review**：correctness、regression、type/API contract、fail-fast。
-3. **Relevant QA**：targeted static/runtime test；不能运行时返回 INCONCLUSIVE，不得伪造 PASS。
-4. **IsaacLab/fail-fast review**：涉及 IsaacLab、RL、reward、scene/env/training 时强制，检查 high-level API、tensor shape/device、manager semantics、reward/termination routing 与 fallback。
+1. `goal_reviewer:CANDIDATE_GATE`：需求、scope、acceptance、approval 与禁止项。
+2. `code_reviewer:CODE_QUALITY`：correctness、regression、type/API contract、fail-fast。
+3. `isaaclab_reviewer`：涉及 IsaacLab、RL、reward、scene/env/training 时强制，检查 high-level API、tensor shape/device、manager semantics、reward/termination routing 与 fallback。
+4. `runtime_qa`：targeted static/runtime test；不能运行时返回 INCONCLUSIVE，不得伪造 PASS。
+5. `context_researcher:MEMORY_CONTEXT_REVIEW`：candidate、完成声明与 proposed memory delta 一致性。
 
 Security、performance、data compatibility 等 lane 按改动触发。所有 required lane 必须读取同一 frozen `CANDIDATE_ID`。`FAIL`、`BLOCKED` 或 `INCONCLUSIVE` 都不等于 PASS，也不能 proceed to memory/commit。
 
@@ -173,7 +187,8 @@ Main 主动 commit，但默认 **不 push**；只有 user 明确要求才 push�
 - `Sol` 用于 ambiguous planning、architecture、high-risk review；`Terra` 用于 exploration、docs、memory、QA 等 read-heavy work；`Luna` 用于 bounded implementation。
 - 常规 agent 默认从 `high` 起，根据职责使用 `xhigh`/`max`；常规 ceiling 是 `max`。
 - `deep_researcher` 是唯一 `gpt-5.6-sol` / `ultra` exception。它必须 read-only、never self-activate，每次 invocation 都要获得 user 对 exact research brief 的明确 approval；旧批准不能复用。Ultra unavailable、role selection 不可证明或发生 silent downgrade 时必须 fail fast，不自动退到 Max。
-- Production role catalog、parallel writers 与 deep execution 在 sentinel role/effective model/effort/sandbox evidence 通过前保持 disabled。当前仅允许 foundation/sentinel rollout，不得声称 production roles 已可用。
+- Phase 2 已按 user 明确决策直接注册 `scope_planner`、`context_researcher`、`deep_researcher`、`isaaclab_worker`、`goal_reviewer`、`code_reviewer`、`isaaclab_reviewer`、`runtime_qa`、`memory_curator` 与 `role_probe`。这些 profiles 可用于 ordinary routing；static catalog PASS 不证明 effective runtime identity/model/effort，未暴露值必须标记 `UNKNOWN/INCONCLUSIVE`。
+- `deep_researcher` 的 registration 不构成 invocation approval；它仍是唯一 Ultra exception，并保持逐次 approval、read-only、no-spawn、no-downgrade。
 
 ## 12. 不可违反的结论
 

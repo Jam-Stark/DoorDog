@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-11 01:19 HKT - 只有 runtime sentinel activation PASS 且取得 separate user approval 后，才设计并 rollout production role catalog/evals；在此之前保持 production roles、deep execution、hooks 与 parallel writers disabled。
+- 2026-07-11 02:50 HKT - 依次执行九个 non-Deep role contract cases、parallel coordination 与另行批准的 write-safety eval；完成 hooks capability assessment，Deep 只在 exact per-invocation approval 后调用。

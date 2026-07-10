@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-11 01:29 HKT - 当 runtime 能显式暴露 effective child role/model/effort 且 child read-only command runner 可正常执行时，重跑 fresh project-scoped `role_probe` 并补齐 child-owned before/after snapshot；任一 mismatch 必须 fail fast，production activation 在完整 PASS 前保持 disabled。
+- 2026-07-11 02:50 HKT - 执行九个 non-Deep role contract runtime cases并继续调查 effective child role/model/effort observability 与 `bwrap` child runner blocker；保持 metadata `UNKNOWN/INCONCLUSIVE`，任何 explicit mismatch fail fast。

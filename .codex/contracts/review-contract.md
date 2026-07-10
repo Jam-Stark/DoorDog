@@ -88,9 +88,9 @@ Canonical memory update 晚于 review PASS。Memory-only patch 必须重跑 Memo
 
 ## Foundation Versus Runtime Activation
 
-Static foundation artifact acceptance 与 runtime role activation 是两个独立 gate：
+Static catalog acceptance 与 effective runtime observability 是两个独立 evidence dimensions：
 
-- Foundation artifact 可以通过 TOML parse、Codex strict-config startup parse、path/schema checks、candidate manifest audit 与 `git diff --check` 获得 static PASS。
-- Role-discovery runtime 在缺少 explicit effective role/model/effort/sandbox 与 no-write evidence 时必须保持 `NOT_RUN` 或 `INCONCLUSIVE`。
-- Static PASS、sentinel token、requested profile 或 agent 自述不能替代 runtime activation PASS。
-- Production roles、deep-research TOML、hooks 与 parallel writers 在 separate runtime activation gate PASS 前保持 disabled。
+- Phase 2 catalog 可以通过 TOML parse、Codex strict-config startup parse、path/schema checks、candidate manifest audit 与 `git diff --check` 获得 static PASS。User 已明确批准 direct registration，因此 registered profiles 可以用于 Main-controlled routing；registration/static PASS 不证明 effective child identity/model/effort。
+- Role-discovery 在缺少 explicit effective role/model/effort/sandbox 与 no-write evidence时保持 `NOT_RUN` 或 `INCONCLUSIVE`。这个 observability gap 不会 unregister 已批准 profiles，也不要求停止 ordinary routing，但任何 effective model/effort、sandbox 或 runtime behavior claim 必须保持 UNKNOWN/INCONCLUSIVE。
+- Static PASS、sentinel token、requested profile 或 agent自述不能替代 effective runtime evidence，也不得升级成 false model/runtime PASS。
+- `deep_researcher` 每次 invocation 的 explicit approval、write-safety runtime eval、hooks capability + separate approval，以及任何被声称为 PASS 的 runtime behavior 都保留各自独立 gate；不得用 catalog registration 绕过。

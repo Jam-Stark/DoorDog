@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-11 02:50 HKT - 运行九个 non-Deep tool-free role contract cases与 parallel coordination eval；write-safety 需 separate approval，Deep runtime smoke 必须取得该次完整 approval brief，hooks 先完成 capability assessment。
+- 2026-07-11 04:40 HKT - 获取 authoritative effective role/model/effort/sandbox metadata；诊断 `agent thread limit reached` 并重测 true simultaneous three-reviewer wave；在 isolated/stable environment 重跑 full-tree write safety；完成 hooks capability assessment。Deep runtime smoke 继续要求 exact separate approval。

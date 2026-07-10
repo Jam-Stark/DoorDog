@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-11 02:50 HKT - 执行九个 non-Deep contract cases、parallel coordination 与另行批准的 write-lease safety cases；评估 hooks capability，Deep 仅在 exact approved brief 下运行。
+- 2026-07-11 04:40 HKT - 获取 authoritative effective role/model/effort/sandbox metadata；诊断并重测 true simultaneous three-reviewer concurrency；在 isolated/stable environment 重跑 full-tree write safety；完成 hooks capability assessment。Deep 保持 dormant，仅在 exact separate approved brief 下运行。

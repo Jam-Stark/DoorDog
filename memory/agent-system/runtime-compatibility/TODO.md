@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-11 02:50 HKT - 执行九个 non-Deep role contract runtime cases并继续调查 effective child role/model/effort observability 与 `bwrap` child runner blocker；保持 metadata `UNKNOWN/INCONCLUSIVE`，任何 explicit mismatch fail fast。
+- 2026-07-11 04:40 HKT - 获取 authoritative effective role/model/effort/sandbox metadata；诊断并重测 true simultaneous three-reviewer concurrency；在 isolated/stable environment 重跑 full-tree write safety；评估 hooks capability。保留 historical `bwrap` evidence 并在其他 lanes 复测；Deep 保持 dormant，等待 exact separate approval。

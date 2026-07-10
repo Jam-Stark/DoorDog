@@ -1,5 +1,21 @@
 # DONE
 
+- 2026-07-10 16:24 HKT - 完成 `base_v8 B` hold-handle ckpt1000 16-env no-render `P0-D0` quick eval 与 runtime routing 核查。
+
+  (1) Source-of-truth checkpoint 为 sibling worktree `/home/baoquanc/workspace/DoorDog-A2_Piper_hold_handle/logs_rl/a2_piper_full_stage_a2_base/base_v8_B_hold_handle-20260708_215508/model_step_001000.pt`。有效输出为 `/home/baoquanc/workspace/DoorDog-A2_Piper_hold_handle/logs_eval/base_v8_B_ckpt1000_D0_16env_module_20260710`，包含 `metrics_eval.json`、legacy `stage2_step_trace.json` 与 `stage2_5_step_trace.json`；两个 trace SHA256 相同。
+
+  (2) 16/16 episode 均 length `452`、`episode_max_stage_reached=2`、terminal `stage_overtime`、`goal_reached=false`。Reward mean/median 为 `64.786/64.700`。5647 条 stage2 record 中 close gate、negative raw、raw `<-0.2`、任何 single/both contact、squeeze window、contact stability 与 over-force 均为 0；gripper raw range `+0.581~+0.760`，始终是 open command。
+
+  (3) Stage2 entry handle distance median `0.187m`（range `0.174~0.195m`），pregrasp distance median `0.095m`；terminal handle distance median `0.311m`（range `0.207~0.339m`）。16/16 terminal handle distance 都大于 entry；14/16 root x 后退，但另外 2 env 即使 root x 前移也仍发生 TCP retreat，说明 base escape 不是唯一 root cause。Hinge 始终为 numerical zero（全 trace `max(abs(door_hinge_joint_pos))=2.31e-7 rad`），handle contact force max 为 0。
+
+  (4) 旧 2-env render eval 的 env0/env1 在新 D0 中可复现：reward 只差 `-0.023/-0.050`，terminal handle distance 与 gripper raw 近似一致。结合 training end `average_stage_reached~2`，结论从 2-episode observation 升级为 16-env bounded eval evidence：当前 B checkpoint 不能评价 stage3/4 hold retention，blocker 位于 stage2 acquisition；reward local-optimum 判断来自该 runtime evidence 与 source reward formula 的联合诊断。
+
+  (5) 旧 2-env render artifact 的 main / handle-side MP4 已补做视觉交叉验证（20 FPS、453 frames）。Env0 stage2 entry 附近 gripper 明显保持 open；entry 后约 20~40 frames 内 arm/TCP 撤出 handle-side 近景并停在远处，door panel/handle 未产生可见运动。该 rendering 与 scalar/trace 的 positive-open raw、Z retreat、zero contact/hinge progress 一致；本轮无需重新生成 rendering。
+
+  (6) 首次 direct-script invocation `python gr00t/rl/eval_agent_trl.py` fail-fast 暴露 source routing mismatch：conda editable install 将 `gr00t` 映射到 `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t`，导致 sibling B saved config 与 current A2_Piper source 混用并报缺少 B hold reward method。未添加 fallback；改用 `python -m gr00t.rl.eval_agent_trl` 后明确加载 sibling source 并成功完成 16-env eval。该 invocation 规则应继续用于 sibling worktree eval。
+
+  (7) 本轮未修改 code/config、未启动训练、未生成新 rendering。下一步 `P0-D1/D2` 需要 near-gate reset/base-mask 与额外 diagnostics code，按 user 指令必须先通知并经 approval gate 后再实施。
+
 - 2026-07-09 12:33 HKT - 完成 `base_v8 A'` release-after-open route 修正。
 
   (1) 基于 `logs_eval/base_v8_A_release_after_open_ckpt1000` 诊断：A2 stage3 能正确下压 handle，但因 stage3->4 threshold `0.6` 且 stage3 仍有 base stillness / `penalty_not_standing_still` 语义，policy 只用 arm 推门，hinge 卡在约 `0.25~0.28 rad`，未进入 stage4。

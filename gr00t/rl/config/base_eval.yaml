@@ -42,6 +42,37 @@ algo:
       a2_forced_gripper_close_enabled: false
       a2_forced_gripper_close_value: -1.0
       a2_forced_gripper_close_stages: [3, 4]
+      # Formal-eval, first-episode-only deterministic hold oracle. The normal
+      # policy path is bit-for-bit unchanged while this flag is false.
+      a2_hold_oracle_enabled: false
+      a2_hold_oracle_center_timeout_steps: 80
+      a2_hold_oracle_center_position_tolerance_m: 0.005
+      a2_hold_oracle_center_orientation_tolerance_rad: 0.10
+      a2_hold_oracle_depress_timeout_steps: 100
+      a2_hold_oracle_push_timeout_steps: 150
+      a2_hold_oracle_depress_offset_m: 0.012
+      a2_hold_oracle_push_offset_m: 0.012
+      a2_hold_oracle_offset_ramp_steps: 20
+      a2_hold_oracle_sign_smoke_steps: 10
+      a2_hold_oracle_sign_min_delta: 0.005
+      a2_hold_oracle_handle_target_rad: 0.50
+      a2_hold_oracle_hinge_progress_target_rad: 0.20
+      a2_hold_oracle_contact_slip_grace_steps: 5
+      a2_hold_oracle_dls_lambda: 0.01
+      a2_hold_oracle_max_position_step_m: 0.002
+      a2_hold_oracle_max_orientation_step_rad: 0.02
+      a2_hold_oracle_jacobian_condition_max: 1000000.0
+      a2_hold_oracle_joint_limit_margin: 0.0001
+      a2_hold_oracle_soft_limit_progress_tolerance: 0.000001
+      a2_hold_oracle_raw_action_abs_max: 10.0
+      # Eval-only deterministic base relief. Relief steps still consume the
+      # current oracle phase timeout budget.
+      a2_hold_oracle_base_relief_speed_mps: 0.15
+      a2_hold_oracle_base_relief_sign_window_steps: 20
+      a2_hold_oracle_base_relief_min_residual_decrease_m: 0.001
+      a2_hold_oracle_base_relief_timeout_steps: 60
+      a2_hold_oracle_base_relief_max_displacement_m: 0.10
+      a2_hold_oracle_base_relief_min_solvable_horizontal_error_m: 0.002
       
 
 eval_timestamp: ${now:%Y%m%d_%H%M%S}

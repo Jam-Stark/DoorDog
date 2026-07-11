@@ -103,6 +103,8 @@ def _make_json_safe(value, path="root"):
         return converted
     if isinstance(value, (list, tuple)):
         return [_make_json_safe(item, f"{path}[{idx}]") for idx, item in enumerate(value)]
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"Non-finite eval artifact value at {path}: {value!r}")
     if isinstance(value, (str, int, float, bool, type(None))):
         return value
     raise TypeError(f"Unsupported eval metrics value type at {path}: {type(value).__name__}")
@@ -2666,6 +2668,40 @@ class TRLPPOTrainer(PPOTrainer):
                 diagnostic_enabled=a2_eval_diagnostics["diagnostic_enabled"],
                 diagnostic_reward_terms=a2_eval_diagnostics["reward_terms"],
             )
+            init_hold_oracle = getattr(self.env, "init_a2_eval_hold_oracle", None)
+            if init_hold_oracle is None:
+                raise RuntimeError("A2 eval requires env.init_a2_eval_hold_oracle().")
+            a2_hold_oracle_config = init_hold_oracle(
+                self.config.get("eval", {}),
+                diagnostic_enabled=a2_eval_diagnostics["diagnostic_enabled"],
+            )
+            if a2_hold_oracle_config["enabled"] and not eval_num_envs_episodes:
+                raise RuntimeError(
+                    "A2 hold oracle requires eval.eval_num_envs_episodes=true for strict first-episode isolation."
+                )
+            if a2_hold_oracle_config["enabled"] and a2_eval_diagnostics["forced_close_enabled"]:
+                raise RuntimeError(
+                    "A2 hold oracle and generic eval forced-close intervention are mutually exclusive."
+                )
+            hold_detail_enabled = self.env._get_a2_hold_contact_detail_enabled()
+            if hold_detail_enabled and not a2_eval_diagnostics["diagnostic_enabled"]:
+                raise RuntimeError(
+                    "A2 detailed hold diagnostics require eval.a2_diagnostic_trace_enabled=true."
+                )
+            a2_hold_runtime_metadata = None
+            if hold_detail_enabled:
+                get_hold_metadata = getattr(
+                    self.env, "get_a2_hold_diagnostic_runtime_metadata", None
+                )
+                if get_hold_metadata is None:
+                    raise RuntimeError(
+                        "A2 detailed hold diagnostics require runtime metadata getter."
+                    )
+                a2_hold_runtime_metadata = get_hold_metadata()
+        else:
+            a2_hold_oracle_config = {"enabled": False}
+            hold_detail_enabled = False
+            a2_hold_runtime_metadata = None
 
         forced_close_stage_ids = a2_eval_diagnostics["forced_close_stages"]
         if a2_eval_diagnostics["forced_close_enabled"]:
@@ -2789,6 +2825,22 @@ class TRLPPOTrainer(PPOTrainer):
                             ] = a2_eval_diagnostics["forced_close_value"]
                             forced_close_applied_counts += forced_close_mask.long()
 
+                        post_oracle_override_pre_env_action = (
+                            post_forced_override_pre_env_action
+                        )
+                        if a2_hold_oracle_config["enabled"]:
+                            apply_hold_oracle = getattr(
+                                self.env, "apply_a2_eval_hold_oracle_action_override", None
+                            )
+                            if apply_hold_oracle is None:
+                                raise RuntimeError(
+                                    "A2 hold oracle requires env action override hook."
+                                )
+                            post_oracle_override_pre_env_action, _ = apply_hold_oracle(
+                                post_forced_override_pre_env_action,
+                                first_episode_active_mask,
+                            )
+
                         if a2_eval_diagnostics["diagnostic_enabled"]:
                             set_diagnostic_actions = getattr(
                                 self.env, "set_a2_eval_diagnostic_actions", None
@@ -2809,10 +2861,10 @@ class TRLPPOTrainer(PPOTrainer):
                             )
 
                         a2_actions = model._a2_base_actions(
-                            obs_dict, post_forced_override_pre_env_action
+                            obs_dict, post_oracle_override_pre_env_action
                         )
                         step_actions = torch.cat(
-                            [post_forced_override_pre_env_action, a2_actions], dim=-1
+                            [post_oracle_override_pre_env_action, a2_actions], dim=-1
                         )
                     else:
                         homie_obs = obs_dict["homie_obs"]
@@ -2932,7 +2984,7 @@ class TRLPPOTrainer(PPOTrainer):
                 eval_to_log_records, path="eval_to_log_metrics"
             )
             with open(to_log_metrics_tmp_path, "w") as f:
-                json.dump(safe_to_log_metrics, f, indent=4)
+                json.dump(safe_to_log_metrics, f, indent=4, allow_nan=False)
             os.replace(to_log_metrics_tmp_path, to_log_metrics_path)
             logger.info(f"Saved eval to_log metrics to {to_log_metrics_path}")
 
@@ -2993,12 +3045,41 @@ class TRLPPOTrainer(PPOTrainer):
                 diagnostic_metadata, path="a2_eval_diagnostic_metadata"
             )
             with open(diagnostic_metadata_tmp_path, "w") as f:
-                json.dump(safe_diagnostic_metadata, f, indent=4)
+                json.dump(safe_diagnostic_metadata, f, indent=4, allow_nan=False)
             os.replace(diagnostic_metadata_tmp_path, diagnostic_metadata_path)
             logger.info(
                 "Saved A2 eval diagnostic metadata to "
                 f"{diagnostic_metadata_path}"
             )
+
+        if hold_detail_enabled:
+            hold_metadata_path = os.path.join(
+                eval_output_dir, "a2_hold_diagnostic_runtime_metadata.json"
+            )
+            hold_metadata_tmp_path = f"{hold_metadata_path}.tmp"
+            safe_hold_metadata = _make_json_safe(
+                a2_hold_runtime_metadata, path="a2_hold_diagnostic_runtime_metadata"
+            )
+            with open(hold_metadata_tmp_path, "w") as f:
+                json.dump(safe_hold_metadata, f, indent=4, allow_nan=False)
+            os.replace(hold_metadata_tmp_path, hold_metadata_path)
+            logger.info(f"Saved A2 hold runtime metadata to {hold_metadata_path}")
+
+        if a2_hold_oracle_config["enabled"]:
+            get_hold_summary = getattr(self.env, "get_a2_hold_oracle_summary", None)
+            if get_hold_summary is None:
+                raise RuntimeError("A2 hold oracle requires env summary getter.")
+            hold_summary_path = os.path.join(
+                eval_output_dir, "a2_hold_oracle_summary.json"
+            )
+            hold_summary_tmp_path = f"{hold_summary_path}.tmp"
+            safe_hold_summary = _make_json_safe(
+                get_hold_summary(), path="a2_hold_oracle_summary"
+            )
+            with open(hold_summary_tmp_path, "w") as f:
+                json.dump(safe_hold_summary, f, indent=4, allow_nan=False)
+            os.replace(hold_summary_tmp_path, hold_summary_path)
+            logger.info(f"Saved A2 hold oracle summary to {hold_summary_path}")
 
         if a2_stage2_trace_enabled:
             get_stage2_trace = getattr(
@@ -3016,7 +3097,7 @@ class TRLPPOTrainer(PPOTrainer):
                 stage2_trace_path = os.path.join(eval_output_dir, trace_filename)
                 stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
                 with open(stage2_trace_tmp_path, "w") as f:
-                    json.dump(safe_stage2_trace, f, indent=4)
+                    json.dump(safe_stage2_trace, f, indent=4, allow_nan=False)
                 os.replace(stage2_trace_tmp_path, stage2_trace_path)
                 logger.info(f"Saved A2 stage2-5 step trace to {stage2_trace_path}")
 
@@ -3024,7 +3105,7 @@ class TRLPPOTrainer(PPOTrainer):
         metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"
         safe_eval_dict = _make_json_safe(eval_dict)
         with open(metrics_eval_tmp_path, "w") as f:
-            json.dump(safe_eval_dict, f, indent=4)
+            json.dump(safe_eval_dict, f, indent=4, allow_nan=False)
         os.replace(metrics_eval_tmp_path, metrics_eval_path)
 
         logger.info(f"Saved eval_dict to {metrics_eval_path}")  # self.args.eval_output_dir

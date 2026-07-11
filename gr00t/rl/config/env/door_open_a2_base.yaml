@@ -96,6 +96,13 @@ env:
     target_root_vel: 0.3
 
     a2_stage0_staging_x_offset: 0.70
+    # A2 Piper virtual TCP. 0.09755 is the measured finger-collider longitudinal
+    # midpoint; the current policy/training default remains 0.085.
+    a2_gripper_source_tcp_offset_z: 0.085
+    # Eval-only detailed hold diagnostics. Keep disabled for training/default eval.
+    a2_hold_diagnostic_contact_detail_enabled: false
+    a2_hold_diagnostic_max_contact_data_count_per_prim: 8
+    a2_hold_diagnostic_friction_override: null
     a2_stage0_arm_default_max_deviation: 0.10
     a2_stage1_stage2_base_forward_creep_deadband: 0.05
     a2_stage1_stage2_base_forward_creep_scale: 0.10

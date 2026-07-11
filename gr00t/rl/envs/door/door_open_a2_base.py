@@ -4,6 +4,7 @@
 
 import math
 import re
+from collections import Counter
 
 import isaaclab.sim as sim_utils
 import omni.usd
@@ -11,19 +12,27 @@ import torch
 import torch.nn.functional as F
 from isaacsim.core.simulation_manager import SimulationManager
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
+from isaaclab.controllers import DifferentialIKController, DifferentialIKControllerCfg
 from isaaclab.sensors.frame_transformer import OffsetCfg
 from isaaclab.utils.math import (
+    apply_delta_pose,
     axis_angle_from_quat,
+    combine_frame_transforms,
+    compute_pose_error,
     euler_xyz_from_quat,
     is_identity_pose,
+    matrix_from_quat,
     quat_apply,
+    quat_apply_inverse,
     quat_from_euler_xyz,
     quat_inv,
     quat_mul,
     subtract_frame_transforms,
+    skew_symmetric_matrix,
     wrap_to_pi,
+    yaw_quat,
 )
-from pxr import Usd, UsdPhysics
+from pxr import PhysxSchema, Usd, UsdPhysics
 from typing_extensions import override
 
 from gr00t.rl.envs.base_task.delta_action_base import DeltaActionBase
@@ -34,6 +43,986 @@ from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
+
+
+A2_HOLD_PHASE_WAIT_GATE = 0
+A2_HOLD_PHASE_CENTER_CLOSE = 1
+A2_HOLD_PHASE_DEPRESS = 2
+A2_HOLD_PHASE_FOLLOW_PUSH = 3
+A2_HOLD_PHASE_DONE = 4
+A2_HOLD_PHASE_NAMES = {
+    A2_HOLD_PHASE_WAIT_GATE: "WAIT_GATE",
+    A2_HOLD_PHASE_CENTER_CLOSE: "CENTER_CLOSE",
+    A2_HOLD_PHASE_DEPRESS: "DEPRESS",
+    A2_HOLD_PHASE_FOLLOW_PUSH: "FOLLOW_PUSH",
+    A2_HOLD_PHASE_DONE: "DONE",
+}
+A2_HOLD_TARGET_ORIENTATION_SEMANTIC = (
+    "handle_orientation_composed_with_handoff_handle_to_gripper_relative_orientation"
+)
+A2_HOLD_OUTCOME_NAMES = (
+    "PENDING",
+    "NO_GATE",
+    "CENTER_NO_BILATERAL",
+    "UNILATERAL_WEDGE",
+    "IK_TRACKING_FAILURE",
+    "IK_INVALID",
+    "JOINT_LIMIT",
+    "BASE_RELIEF_WRONG_SIGN",
+    "BASE_RELIEF_TIMEOUT",
+    "BASE_RELIEF_DISPLACEMENT_LIMIT",
+    "DEPRESS_WRONG_SIGN",
+    "DEPRESS_TIMEOUT",
+    "CONTACT_SLIP",
+    "PUSH_WRONG_SIGN",
+    "PUSH_PROGRESS",
+    "PUSH_NO_PROGRESS",
+    "PUSH_TIMEOUT",
+    "RETAINED",
+)
+A2_HOLD_OUTCOME_TO_ID = {name: index for index, name in enumerate(A2_HOLD_OUTCOME_NAMES)}
+
+
+def a2_hold_aggregate_normal_force_direction(normal_force_w: torch.Tensor):
+    """Return aggregate normal-force direction and a validity mask without fabricating zero directions."""
+    if not torch.is_tensor(normal_force_w) or normal_force_w.shape[-1] != 3:
+        raise ValueError("normal_force_w must be a tensor with trailing dimension 3.")
+    norm = torch.linalg.norm(normal_force_w, dim=-1)
+    valid = norm > 0.0
+    direction = torch.full_like(normal_force_w, float("nan"))
+    direction[valid] = normal_force_w[valid] / norm[valid].unsqueeze(-1)
+    return direction, valid
+
+
+def a2_hold_nullable_tensor_list(value: torch.Tensor):
+    """Convert an explicitly optional diagnostic tensor to JSON-safe nested values."""
+    if not torch.is_tensor(value):
+        raise ValueError("nullable diagnostic value must be a tensor.")
+    result = value.detach().cpu().tolist()
+
+    def convert(item):
+        if isinstance(item, list):
+            return [convert(child) for child in item]
+        scalar = float(item)
+        return scalar if math.isfinite(scalar) else None
+
+    return convert(result)
+
+
+def a2_hold_contact_sensor_detail_kwargs(enabled: bool, capacity):
+    if not isinstance(enabled, bool):
+        raise ValueError("contact detail enabled must be bool.")
+    if not enabled:
+        return {}
+    if isinstance(capacity, bool) or not isinstance(capacity, int) or capacity < 1:
+        raise ValueError("detailed contact capacity must be a positive int.")
+    return {
+        "track_pose": True,
+        "track_contact_points": True,
+        "track_friction_forces": True,
+        "max_contact_data_count_per_prim": capacity,
+    }
+
+
+def a2_hold_validate_friction_override(value):
+    if value is None:
+        return None
+    raise ValueError(
+        "a2_hold_diagnostic_friction_override is unsupported for the instanceable "
+        "Piper collider; conditional friction implementation is deferred until the "
+        "measured-midpoint diagnostic produces CONTACT_SLIP."
+    )
+
+
+def a2_hold_map_task_to_articulation_joint_ids(
+    simulator_dof_ids,
+    task_joint_indices: torch.Tensor,
+    task_dof_names,
+    articulation_joint_count: int,
+    device,
+):
+    if (
+        not isinstance(simulator_dof_ids, list)
+        or len(simulator_dof_ids) != len(task_dof_names)
+        or len(set(simulator_dof_ids)) != len(simulator_dof_ids)
+        or any(not isinstance(joint_id, int) for joint_id in simulator_dof_ids)
+    ):
+        raise ValueError("simulator_dof_ids must be a unique list[int] matching task DOFs.")
+    if (
+        not torch.is_tensor(task_joint_indices)
+        or tuple(task_joint_indices.shape) != (2,)
+        or task_joint_indices.dtype != torch.long
+    ):
+        raise ValueError("gripper task indices must be a long tensor shape (2,).")
+    indices = task_joint_indices.detach().cpu().tolist()
+    if any(index < 0 or index >= len(task_dof_names) for index in indices):
+        raise ValueError("gripper task indices are outside task DOF order.")
+    names = [task_dof_names[index] for index in indices]
+    if names != ["arm_j7", "arm_j8"]:
+        raise ValueError(f"gripper task order must be arm_j7,arm_j8; got {names}.")
+    articulation_ids = [simulator_dof_ids[index] for index in indices]
+    if any(joint_id < 0 or joint_id >= articulation_joint_count for joint_id in articulation_ids):
+        raise ValueError("mapped gripper articulation ids are out of range.")
+    return torch.tensor(articulation_ids, dtype=torch.long, device=device)
+
+
+def a2_hold_pd_effort_estimates(
+    joint_pos: torch.Tensor,
+    joint_vel: torch.Tensor,
+    joint_pos_target: torch.Tensor,
+    stiffness: torch.Tensor,
+    damping: torch.Tensor,
+    effort_limit: torch.Tensor,
+):
+    expected_shape = joint_pos.shape
+    fields = (joint_vel, joint_pos_target, stiffness, damping, effort_limit)
+    if not torch.is_tensor(joint_pos) or any(
+        not torch.is_tensor(field) or field.shape != expected_shape for field in fields
+    ):
+        raise ValueError("PD effort estimate inputs must be tensors with identical shapes.")
+    if torch.any(effort_limit <= 0.0):
+        raise ValueError("PD effort limits must be positive.")
+    unclipped = stiffness * (joint_pos_target - joint_pos) - damping * joint_vel
+    clipped = torch.clamp(unclipped, min=-effort_limit, max=effort_limit)
+    saturated = torch.abs(unclipped) > effort_limit
+    return unclipped, clipped, saturated
+
+
+def a2_hold_apply_source_offset_to_jacobian(
+    jacobian_root: torch.Tensor, source_offset_pos: torch.Tensor
+) -> torch.Tensor:
+    """Apply the same body-offset correction as IsaacLab DifferentialIKAction."""
+    if not torch.is_tensor(jacobian_root) or jacobian_root.ndim != 3 or jacobian_root.shape[1] != 6:
+        raise ValueError("jacobian_root must have shape (N, 6, J).")
+    if (
+        not torch.is_tensor(source_offset_pos)
+        or source_offset_pos.shape != (jacobian_root.shape[0], 3)
+        or source_offset_pos.device != jacobian_root.device
+    ):
+        raise ValueError("source_offset_pos must have shape (N, 3) on the Jacobian device.")
+    corrected = jacobian_root.clone()
+    corrected[:, 0:3, :] += torch.bmm(
+        -skew_symmetric_matrix(source_offset_pos), corrected[:, 3:, :]
+    )
+    return corrected
+
+
+def a2_hold_rotate_jacobian_to_root(
+    jacobian_w: torch.Tensor, root_quat_w: torch.Tensor
+) -> torch.Tensor:
+    if not torch.is_tensor(jacobian_w) or jacobian_w.ndim != 3 or jacobian_w.shape[1] != 6:
+        raise ValueError("jacobian_w must have shape (N, 6, J).")
+    if (
+        not torch.is_tensor(root_quat_w)
+        or root_quat_w.shape != (jacobian_w.shape[0], 4)
+        or root_quat_w.device != jacobian_w.device
+    ):
+        raise ValueError("root_quat_w must have shape (N, 4) on the Jacobian device.")
+    rotation = matrix_from_quat(quat_inv(root_quat_w))
+    jacobian_root = jacobian_w.clone()
+    jacobian_root[:, :3] = torch.bmm(rotation, jacobian_w[:, :3])
+    jacobian_root[:, 3:] = torch.bmm(rotation, jacobian_w[:, 3:])
+    return jacobian_root
+
+
+def a2_hold_absolute_target_to_cumulative_action(
+    q_des: torch.Tensor,
+    q_default: torch.Tensor,
+    d_prev: torch.Tensor,
+    *,
+    robot_action_scale: float = 0.25,
+    delta_action_scale: float = 0.3,
+):
+    if not all(torch.is_tensor(value) for value in (q_des, q_default, d_prev)):
+        raise ValueError("q_des, q_default and d_prev must be tensors.")
+    if q_des.shape != q_default.shape or q_des.shape != d_prev.shape:
+        raise ValueError("q_des, q_default and d_prev must have identical shapes.")
+    if robot_action_scale != 0.25 or delta_action_scale != 0.3:
+        raise ValueError(
+            "A2 hold oracle cumulative conversion requires action_scale=0.25 and delta_scale=0.3."
+        )
+    d_des = (q_des - q_default) / robot_action_scale
+    raw_action = (d_des - d_prev) / delta_action_scale
+    return d_des, raw_action
+
+
+def a2_hold_center_transition_masks(
+    center_mask: torch.Tensor,
+    bilateral_gate: torch.Tensor,
+    phase_step: torch.Tensor,
+    timeout_steps: int,
+    single_body7: torch.Tensor,
+    single_body8: torch.Tensor,
+    converged: torch.Tensor,
+):
+    tensors = (bilateral_gate, phase_step, single_body7, single_body8, converged)
+    if not torch.is_tensor(center_mask) or any(
+        not torch.is_tensor(value) or value.shape != center_mask.shape for value in tensors
+    ):
+        raise ValueError("A2 hold center transition inputs must have identical shapes.")
+    if center_mask.dtype != torch.bool or bilateral_gate.dtype != torch.bool:
+        raise ValueError("A2 hold center masks must be bool.")
+    if isinstance(timeout_steps, bool) or not isinstance(timeout_steps, int) or timeout_steps <= 0:
+        raise ValueError("A2 hold center timeout must be a positive int.")
+    ready = center_mask & bilateral_gate & converged
+    timeout = center_mask & ~ready & (phase_step >= timeout_steps)
+    tracking_failure = timeout & ~converged
+    wedge = timeout & converged & (single_body7 | single_body8)
+    return ready, tracking_failure, wedge, timeout & converged & ~wedge
+
+
+def a2_hold_center_converged(
+    position_residual: torch.Tensor,
+    orientation_residual: torch.Tensor,
+    position_tolerance: float,
+    orientation_tolerance: float,
+) -> torch.Tensor:
+    if (
+        not torch.is_tensor(position_residual)
+        or not torch.is_tensor(orientation_residual)
+        or position_residual.shape != orientation_residual.shape
+    ):
+        raise ValueError("center residual tensors must have identical shapes.")
+    return (
+        torch.isfinite(position_residual)
+        & torch.isfinite(orientation_residual)
+        & (position_residual <= position_tolerance)
+        & (orientation_residual <= orientation_tolerance)
+    )
+
+
+def a2_hold_capture_handoff_relative_orientation(
+    handle_pos_w: torch.Tensor,
+    handle_quat_w: torch.Tensor,
+    source_pos_w: torch.Tensor,
+    source_quat_w: torch.Tensor,
+    capture_mask: torch.Tensor,
+    relative_quat_state: torch.Tensor,
+    captured_mask: torch.Tensor,
+):
+    frame_tensors = (
+        handle_pos_w,
+        handle_quat_w,
+        source_pos_w,
+        source_quat_w,
+        relative_quat_state,
+    )
+    if (
+        not all(torch.is_tensor(value) for value in frame_tensors)
+        or handle_pos_w.ndim != 2
+        or handle_pos_w.shape[1] != 3
+        or source_pos_w.shape != handle_pos_w.shape
+        or handle_quat_w.shape != (handle_pos_w.shape[0], 4)
+        or source_quat_w.shape != handle_quat_w.shape
+        or relative_quat_state.shape != handle_quat_w.shape
+        or not torch.is_tensor(capture_mask)
+        or not torch.is_tensor(captured_mask)
+        or capture_mask.shape != (handle_pos_w.shape[0],)
+        or captured_mask.shape != capture_mask.shape
+        or capture_mask.dtype != torch.bool
+        or captured_mask.dtype != torch.bool
+    ):
+        raise ValueError("handoff capture inputs have incompatible shapes or mask dtypes.")
+    if not handle_pos_w.is_floating_point() or any(
+        value.dtype != handle_pos_w.dtype for value in frame_tensors[1:]
+    ):
+        raise ValueError("handoff capture frame inputs must have one common floating dtype.")
+    if any(value.device != handle_pos_w.device for value in frame_tensors[1:]) or any(
+        mask.device != handle_pos_w.device for mask in (capture_mask, captured_mask)
+    ):
+        raise ValueError("handoff capture inputs must be on one common device.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (handle_pos_w, handle_quat_w, source_pos_w, source_quat_w)
+    ):
+        raise ValueError("handoff capture frame inputs must be finite.")
+    if torch.any(captured_mask & ~torch.all(torch.isfinite(relative_quat_state), dim=-1)):
+        raise ValueError("captured handoff-relative quaternion state must be finite.")
+    if torch.any(capture_mask & captured_mask):
+        raise ValueError("handoff-relative orientation cannot be captured twice.")
+    updated_relative_quat = relative_quat_state.clone()
+    updated_captured_mask = captured_mask.clone()
+    if torch.any(capture_mask):
+        _, relative_quat = subtract_frame_transforms(
+            handle_pos_w[capture_mask],
+            handle_quat_w[capture_mask],
+            source_pos_w[capture_mask],
+            source_quat_w[capture_mask],
+        )
+        if not torch.all(torch.isfinite(relative_quat)):
+            raise ValueError("captured handoff-relative quaternion must be finite.")
+        updated_relative_quat[capture_mask] = relative_quat
+        updated_captured_mask[capture_mask] = True
+    return updated_relative_quat, updated_captured_mask
+
+
+def a2_hold_compose_handoff_target_orientation(
+    handle_pos_w: torch.Tensor,
+    handle_quat_w: torch.Tensor,
+    source_quat_w: torch.Tensor,
+    relative_quat_state: torch.Tensor,
+    active_mask: torch.Tensor,
+    captured_mask: torch.Tensor,
+):
+    frame_tensors = (handle_pos_w, handle_quat_w, source_quat_w, relative_quat_state)
+    if (
+        not all(torch.is_tensor(value) for value in frame_tensors)
+        or handle_pos_w.ndim != 2
+        or handle_pos_w.shape[1] != 3
+        or handle_quat_w.shape != (handle_pos_w.shape[0], 4)
+        or source_quat_w.shape != handle_quat_w.shape
+        or relative_quat_state.shape != handle_quat_w.shape
+        or not torch.is_tensor(active_mask)
+        or not torch.is_tensor(captured_mask)
+        or active_mask.shape != (handle_pos_w.shape[0],)
+        or captured_mask.shape != active_mask.shape
+        or active_mask.dtype != torch.bool
+        or captured_mask.dtype != torch.bool
+    ):
+        raise ValueError("handoff target inputs have incompatible shapes or mask dtypes.")
+    if not handle_pos_w.is_floating_point() or any(
+        value.dtype != handle_pos_w.dtype for value in frame_tensors[1:]
+    ):
+        raise ValueError("handoff target frame inputs must have one common floating dtype.")
+    if any(value.device != handle_pos_w.device for value in frame_tensors[1:]) or any(
+        mask.device != handle_pos_w.device for mask in (active_mask, captured_mask)
+    ):
+        raise ValueError("handoff target inputs must be on one common device.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (handle_pos_w, handle_quat_w, source_quat_w)
+    ):
+        raise ValueError("handoff target frame inputs must be finite.")
+    if torch.any(active_mask & ~captured_mask):
+        raise ValueError("active handoff target requested before relative orientation capture.")
+    if torch.any(captured_mask & ~torch.all(torch.isfinite(relative_quat_state), dim=-1)):
+        raise ValueError("captured handoff-relative quaternion state must be finite.")
+    target_quat_w = source_quat_w.clone()
+    if torch.any(active_mask):
+        zero_relative_pos = torch.zeros_like(handle_pos_w[active_mask])
+        _, active_target_quat_w = combine_frame_transforms(
+            handle_pos_w[active_mask],
+            handle_quat_w[active_mask],
+            zero_relative_pos,
+            relative_quat_state[active_mask],
+        )
+        if not torch.all(torch.isfinite(active_target_quat_w)):
+            raise ValueError("composed handoff target quaternion must be finite.")
+        target_quat_w[active_mask] = active_target_quat_w
+    return target_quat_w
+
+
+def a2_hold_bound_pose_command_step(
+    current_pos: torch.Tensor,
+    current_quat: torch.Tensor,
+    final_pos: torch.Tensor,
+    final_quat: torch.Tensor,
+    max_position_step_m: float,
+    max_orientation_step_rad: float,
+):
+    if (
+        not all(torch.is_tensor(value) for value in (current_pos, current_quat, final_pos, final_quat))
+        or current_pos.shape != final_pos.shape
+        or current_quat.shape != final_quat.shape
+        or current_pos.ndim != 2
+        or current_pos.shape[1] != 3
+        or current_quat.ndim != 2
+        or current_quat.shape[1] != 4
+        or current_pos.shape[0] != current_quat.shape[0]
+    ):
+        raise ValueError("pose-step inputs must be batched positions (N,3) and quaternions (N,4).")
+    pose_tensors = (current_pos, current_quat, final_pos, final_quat)
+    if not current_pos.is_floating_point() or any(
+        value.dtype != current_pos.dtype for value in pose_tensors[1:]
+    ):
+        raise ValueError("pose-step inputs must have one common floating dtype.")
+    if any(value.device != current_pos.device for value in pose_tensors[1:]):
+        raise ValueError("pose-step inputs must be on one common device.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in pose_tensors
+    ):
+        raise ValueError("pose-step inputs must be finite.")
+    for name, value in (
+        ("max_position_step_m", max_position_step_m),
+        ("max_orientation_step_rad", max_orientation_step_rad),
+    ):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or value <= 0.0:
+            raise ValueError(f"{name} must be a finite positive float.")
+    position_error, orientation_error = compute_pose_error(
+        current_pos,
+        current_quat,
+        final_pos,
+        final_quat,
+        rot_error_type="axis_angle",
+    )
+    position_norm = torch.linalg.norm(position_error, dim=-1)
+    orientation_norm = torch.linalg.norm(orientation_error, dim=-1)
+    eps = torch.finfo(current_pos.dtype).eps
+    position_scale = torch.minimum(
+        torch.ones_like(position_norm),
+        float(max_position_step_m) / position_norm.clamp_min(eps),
+    )
+    orientation_scale = torch.minimum(
+        torch.ones_like(orientation_norm),
+        float(max_orientation_step_rad) / orientation_norm.clamp_min(eps),
+    )
+    bounded_delta = torch.cat(
+        (
+            position_error * position_scale.unsqueeze(-1),
+            orientation_error * orientation_scale.unsqueeze(-1),
+        ),
+        dim=-1,
+    )
+    command_pos, command_quat = apply_delta_pose(current_pos, current_quat, bounded_delta)
+    return command_pos, command_quat, position_norm, orientation_norm, bounded_delta
+
+
+def a2_hold_progress_aware_joint_limit_masks(
+    current_q: torch.Tensor,
+    q_des: torch.Tensor,
+    hard_limits: torch.Tensor,
+    soft_limits: torch.Tensor,
+    hard_margin: float,
+    soft_margin: float,
+    progress_tolerance: float,
+):
+    if (
+        not all(torch.is_tensor(value) for value in (current_q, q_des, hard_limits, soft_limits))
+        or current_q.shape != q_des.shape
+        or hard_limits.shape != (*current_q.shape, 2)
+        or soft_limits.shape != (*current_q.shape, 2)
+    ):
+        raise ValueError("joint-limit inputs have incompatible shapes.")
+    limit_tensors = (current_q, q_des, hard_limits, soft_limits)
+    if not current_q.is_floating_point() or any(
+        value.dtype != current_q.dtype for value in limit_tensors[1:]
+    ):
+        raise ValueError("joint-limit inputs must have one common floating dtype.")
+    if any(value.device != current_q.device for value in limit_tensors[1:]):
+        raise ValueError("joint-limit inputs must be on one common device.")
+    if not all(torch.all(torch.isfinite(value)) for value in limit_tensors):
+        raise ValueError("joint-limit inputs must be finite.")
+    for name, value in (
+        ("hard_margin", hard_margin),
+        ("soft_margin", soft_margin),
+        ("progress_tolerance", progress_tolerance),
+    ):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or value < 0.0:
+            raise ValueError(f"{name} must be a finite non-negative float.")
+    hard_lower = hard_limits[..., 0] + float(hard_margin)
+    hard_upper = hard_limits[..., 1] - float(hard_margin)
+    soft_lower = soft_limits[..., 0] + float(soft_margin)
+    soft_upper = soft_limits[..., 1] - float(soft_margin)
+    if torch.any(hard_lower >= hard_upper) or torch.any(soft_lower >= soft_upper):
+        raise ValueError("joint-limit margins collapse a valid interval.")
+    hard_valid_per_joint = (q_des > hard_lower) & (q_des < hard_upper)
+    current_inside_soft = (current_q >= soft_lower) & (current_q <= soft_upper)
+    desired_inside_soft = (q_des >= soft_lower) & (q_des <= soft_upper)
+    current_below_soft = current_q < soft_lower
+    current_above_soft = current_q > soft_upper
+    moves_not_farther_below = q_des >= current_q - float(progress_tolerance)
+    moves_not_farther_above = q_des <= current_q + float(progress_tolerance)
+    soft_valid_per_joint = torch.where(
+        current_inside_soft,
+        desired_inside_soft,
+        torch.where(
+            current_below_soft,
+            moves_not_farther_below & (q_des <= soft_upper),
+            moves_not_farther_above & (q_des >= soft_lower),
+        ),
+    )
+    hard_valid = torch.all(hard_valid_per_joint, dim=-1)
+    soft_progress_valid = torch.all(soft_valid_per_joint, dim=-1)
+    return hard_valid & soft_progress_valid, hard_valid, soft_progress_valid
+
+
+def a2_hold_base_relief_branch_masks(
+    active: torch.Tensor,
+    ik_valid: torch.Tensor,
+    limit_valid: torch.Tensor,
+    delta_valid: torch.Tensor,
+    raw_valid: torch.Tensor,
+    horizontal_solvable: torch.Tensor,
+):
+    masks = (active, ik_valid, limit_valid, delta_valid, raw_valid, horizontal_solvable)
+    if any(
+        not torch.is_tensor(mask)
+        or mask.shape != active.shape
+        or mask.dtype != torch.bool
+        or mask.device != active.device
+        for mask in masks
+    ):
+        raise ValueError("base-relief branch inputs must be same-device bool masks of one shape.")
+    ik_invalid = active & ~ik_valid
+    limit_infeasible = active & ik_valid & ~limit_valid
+    joint_limit = limit_infeasible & ~horizontal_solvable
+    relief = limit_infeasible & horizontal_solvable
+    action_invalid = active & ik_valid & limit_valid & ~(delta_valid & raw_valid)
+    arm_dls = active & ik_valid & limit_valid & delta_valid & raw_valid
+    return arm_dls, relief, ik_invalid, joint_limit, action_invalid
+
+
+def a2_hold_base_relief_command(
+    horizontal_error_w: torch.Tensor,
+    root_quat_w: torch.Tensor,
+    candidate_mask: torch.Tensor,
+    physical_speed_mps: float,
+    base_command_scale: float,
+    min_solvable_horizontal_error_m: float,
+):
+    if (
+        not torch.is_tensor(horizontal_error_w)
+        or horizontal_error_w.ndim != 2
+        or horizontal_error_w.shape[1] != 2
+        or not torch.is_tensor(root_quat_w)
+        or root_quat_w.shape != (horizontal_error_w.shape[0], 4)
+        or not torch.is_tensor(candidate_mask)
+        or candidate_mask.shape != (horizontal_error_w.shape[0],)
+        or candidate_mask.dtype != torch.bool
+    ):
+        raise ValueError("base-relief command inputs have incompatible shapes or mask dtype.")
+    if not horizontal_error_w.is_floating_point() or root_quat_w.dtype != horizontal_error_w.dtype:
+        raise ValueError("base-relief frame inputs must have one common floating dtype.")
+    if (
+        root_quat_w.device != horizontal_error_w.device
+        or candidate_mask.device != horizontal_error_w.device
+    ):
+        raise ValueError("base-relief command inputs must be on one common device.")
+    if not torch.all(torch.isfinite(horizontal_error_w)) or not torch.all(
+        torch.isfinite(root_quat_w)
+    ):
+        raise ValueError("base-relief frame inputs must be finite.")
+    for name, value in (
+        ("physical_speed_mps", physical_speed_mps),
+        ("base_command_scale", base_command_scale),
+        ("min_solvable_horizontal_error_m", min_solvable_horizontal_error_m),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or value <= 0.0
+        ):
+            raise ValueError(f"{name} must be a finite positive float.")
+    horizontal_residual = torch.linalg.norm(horizontal_error_w, dim=-1)
+    horizontal_solvable = horizontal_residual >= float(min_solvable_horizontal_error_m)
+    commanded_body_velocity = torch.zeros_like(horizontal_error_w)
+    commanded_raw_base = torch.zeros(
+        horizontal_error_w.shape[0],
+        5,
+        device=horizontal_error_w.device,
+        dtype=horizontal_error_w.dtype,
+    )
+    command_mask = candidate_mask & horizontal_solvable
+    if torch.any(command_mask):
+        velocity_w = torch.zeros(
+            horizontal_error_w.shape[0],
+            3,
+            device=horizontal_error_w.device,
+            dtype=horizontal_error_w.dtype,
+        )
+        velocity_w[command_mask, :2] = (
+            horizontal_error_w[command_mask]
+            / horizontal_residual[command_mask].unsqueeze(-1)
+            * float(physical_speed_mps)
+        )
+        velocity_body = quat_apply_inverse(
+            yaw_quat(root_quat_w), velocity_w
+        )
+        commanded_body_velocity[command_mask] = velocity_body[command_mask, :2]
+        commanded_raw_base[command_mask, :2] = (
+            velocity_body[command_mask, :2] / float(base_command_scale)
+        )
+    return (
+        horizontal_residual,
+        horizontal_solvable,
+        commanded_body_velocity,
+        commanded_raw_base,
+    )
+
+
+def a2_hold_update_base_relief_state(
+    relief_mask: torch.Tensor,
+    previous_active: torch.Tensor,
+    previous_steps: torch.Tensor,
+    previous_initial_residual: torch.Tensor,
+    previous_start_root_xy: torch.Tensor,
+    current_residual: torch.Tensor,
+    current_root_xy: torch.Tensor,
+    sign_window_steps: int,
+    min_residual_decrease_m: float,
+    timeout_steps: int,
+    max_displacement_m: float,
+):
+    num_envs = relief_mask.shape[0] if torch.is_tensor(relief_mask) and relief_mask.ndim == 1 else -1
+    if (
+        num_envs < 0
+        or not torch.is_tensor(previous_active)
+        or previous_active.shape != (num_envs,)
+        or relief_mask.dtype != torch.bool
+        or previous_active.dtype != torch.bool
+        or not torch.is_tensor(previous_steps)
+        or previous_steps.shape != (num_envs,)
+        or previous_steps.dtype != torch.long
+        or not torch.is_tensor(previous_initial_residual)
+        or previous_initial_residual.shape != (num_envs,)
+        or not torch.is_tensor(previous_start_root_xy)
+        or previous_start_root_xy.shape != (num_envs, 2)
+        or not torch.is_tensor(current_residual)
+        or current_residual.shape != (num_envs,)
+        or not torch.is_tensor(current_root_xy)
+        or current_root_xy.shape != (num_envs, 2)
+    ):
+        raise ValueError("base-relief state inputs have incompatible shapes or dtypes.")
+    floating = (previous_initial_residual, previous_start_root_xy, current_residual, current_root_xy)
+    if not current_residual.is_floating_point() or any(
+        value.dtype != current_residual.dtype for value in floating
+    ):
+        raise ValueError("base-relief state values must have one common floating dtype.")
+    tensors = (previous_active, previous_steps, *floating)
+    if any(value.device != relief_mask.device for value in tensors):
+        raise ValueError("base-relief state inputs must be on one common device.")
+    if not torch.all(torch.isfinite(current_residual)) or not torch.all(
+        torch.isfinite(current_root_xy)
+    ):
+        raise ValueError("current base-relief state inputs must be finite.")
+    if torch.any(previous_active & ~torch.isfinite(previous_initial_residual)) or torch.any(
+        previous_active & ~torch.all(torch.isfinite(previous_start_root_xy), dim=-1)
+    ):
+        raise ValueError("active previous base-relief state must be finite.")
+    if (
+        isinstance(sign_window_steps, bool)
+        or not isinstance(sign_window_steps, int)
+        or sign_window_steps <= 0
+        or isinstance(timeout_steps, bool)
+        or not isinstance(timeout_steps, int)
+        or timeout_steps <= sign_window_steps
+    ):
+        raise ValueError("base-relief timeout must be greater than its positive sign window.")
+    for name, value in (
+        ("min_residual_decrease_m", min_residual_decrease_m),
+        ("max_displacement_m", max_displacement_m),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or value <= 0.0
+        ):
+            raise ValueError(f"{name} must be a finite positive float.")
+
+    entering = relief_mask & ~previous_active
+    continuing = relief_mask & previous_active
+    cleared = ~relief_mask & previous_active
+    updated_active = relief_mask.clone()
+    updated_steps = previous_steps.clone()
+    updated_initial_residual = previous_initial_residual.clone()
+    updated_start_root_xy = previous_start_root_xy.clone()
+    updated_steps[entering] = 0
+    updated_initial_residual[entering] = current_residual[entering]
+    updated_start_root_xy[entering] = current_root_xy[entering]
+    updated_steps[continuing] += 1
+    updated_steps[cleared] = 0
+    updated_initial_residual[cleared] = float("nan")
+    updated_start_root_xy[cleared] = float("nan")
+    decrease = updated_initial_residual - current_residual
+    displacement = torch.linalg.norm(current_root_xy - updated_start_root_xy, dim=-1)
+    wrong_sign = (
+        continuing
+        & (updated_steps == sign_window_steps)
+        & (decrease < float(min_residual_decrease_m))
+    )
+    timeout = continuing & (updated_steps >= timeout_steps)
+    displacement_limit = relief_mask & (displacement > float(max_displacement_m))
+    return {
+        "active": updated_active,
+        "steps": updated_steps,
+        "initial_residual": updated_initial_residual,
+        "start_root_xy": updated_start_root_xy,
+        "current_residual": torch.where(
+            relief_mask, current_residual, torch.full_like(current_residual, float("nan"))
+        ),
+        "entered": entering,
+        "cleared": cleared,
+        "wrong_sign": wrong_sign,
+        "timeout": timeout,
+        "displacement_limit": displacement_limit,
+    }
+
+
+def a2_hold_clear_base_relief_state(
+    clear_mask: torch.Tensor,
+    active: torch.Tensor,
+    branch_applied: torch.Tensor,
+    steps: torch.Tensor,
+    initial_residual: torch.Tensor,
+    current_residual: torch.Tensor,
+    start_root_xy: torch.Tensor,
+    body_velocity_command: torch.Tensor,
+    raw_command: torch.Tensor,
+):
+    num_envs = clear_mask.shape[0] if torch.is_tensor(clear_mask) and clear_mask.ndim == 1 else -1
+    if (
+        num_envs < 0
+        or clear_mask.dtype != torch.bool
+        or not torch.is_tensor(active)
+        or active.shape != (num_envs,)
+        or active.dtype != torch.bool
+        or not torch.is_tensor(branch_applied)
+        or branch_applied.shape != (num_envs,)
+        or branch_applied.dtype != torch.bool
+        or not torch.is_tensor(steps)
+        or steps.shape != (num_envs,)
+        or steps.dtype != torch.long
+        or not torch.is_tensor(initial_residual)
+        or initial_residual.shape != (num_envs,)
+        or not torch.is_tensor(current_residual)
+        or current_residual.shape != (num_envs,)
+        or not torch.is_tensor(start_root_xy)
+        or start_root_xy.shape != (num_envs, 2)
+        or not torch.is_tensor(body_velocity_command)
+        or body_velocity_command.shape != (num_envs, 2)
+        or not torch.is_tensor(raw_command)
+        or raw_command.shape != (num_envs, 5)
+    ):
+        raise ValueError("base-relief clear inputs have incompatible shapes or dtypes.")
+    state_tensors = (
+        active,
+        branch_applied,
+        steps,
+        initial_residual,
+        current_residual,
+        start_root_xy,
+        body_velocity_command,
+        raw_command,
+    )
+    if any(value.device != clear_mask.device for value in state_tensors):
+        raise ValueError("base-relief clear inputs must be on one common device.")
+    floating = (
+        initial_residual,
+        current_residual,
+        start_root_xy,
+        body_velocity_command,
+        raw_command,
+    )
+    if not initial_residual.is_floating_point() or any(
+        value.dtype != initial_residual.dtype for value in floating[1:]
+    ):
+        raise ValueError("base-relief clear values must have one common floating dtype.")
+    if torch.any(steps < 0) or not torch.all(torch.isfinite(body_velocity_command)) or not torch.all(
+        torch.isfinite(raw_command)
+    ):
+        raise ValueError("base-relief clear steps and commands must be valid.")
+    if torch.any(active & ~torch.isfinite(initial_residual)) or torch.any(
+        active & ~torch.isfinite(current_residual)
+    ) or torch.any(active & ~torch.all(torch.isfinite(start_root_xy), dim=-1)):
+        raise ValueError("active base-relief state must be finite before clear.")
+    result = {
+        "active": active.clone(),
+        "branch_applied": branch_applied.clone(),
+        "steps": steps.clone(),
+        "initial_residual": initial_residual.clone(),
+        "current_residual": current_residual.clone(),
+        "start_root_xy": start_root_xy.clone(),
+        "body_velocity_command": body_velocity_command.clone(),
+        "raw_command": raw_command.clone(),
+    }
+    result["active"][clear_mask] = False
+    result["branch_applied"][clear_mask] = False
+    result["steps"][clear_mask] = 0
+    result["initial_residual"][clear_mask] = float("nan")
+    result["current_residual"][clear_mask] = float("nan")
+    result["start_root_xy"][clear_mask] = float("nan")
+    result["body_velocity_command"][clear_mask] = 0.0
+    result["raw_command"][clear_mask] = 0.0
+    return result
+
+
+def a2_hold_apply_oracle_branch_actions(
+    action: torch.Tensor,
+    arm_dls_mask: torch.Tensor,
+    relief_mask: torch.Tensor,
+    arm_action_raw: torch.Tensor,
+    relief_base_action_raw: torch.Tensor,
+    base_slice: tuple[int, int],
+    arm_slice: tuple[int, int],
+    gripper_index: int,
+):
+    num_envs = action.shape[0] if torch.is_tensor(action) and action.ndim == 2 else -1
+    if (
+        num_envs < 0
+        or action.shape[1] != 12
+        or not action.is_floating_point()
+        or not torch.is_tensor(arm_dls_mask)
+        or not torch.is_tensor(relief_mask)
+        or arm_dls_mask.shape != (num_envs,)
+        or relief_mask.shape != (num_envs,)
+        or arm_dls_mask.dtype != torch.bool
+        or relief_mask.dtype != torch.bool
+        or not torch.is_tensor(arm_action_raw)
+        or arm_action_raw.shape != (num_envs, 6)
+        or not torch.is_tensor(relief_base_action_raw)
+        or relief_base_action_raw.shape != (num_envs, 5)
+        or base_slice != (0, 5)
+        or arm_slice != (5, 11)
+        or gripper_index != 11
+    ):
+        raise ValueError("oracle branch action contract mismatch.")
+    tensors = (arm_dls_mask, relief_mask, arm_action_raw, relief_base_action_raw)
+    if any(value.device != action.device for value in tensors):
+        raise ValueError("oracle branch action inputs must be on one common device.")
+    if arm_action_raw.dtype != action.dtype or relief_base_action_raw.dtype != action.dtype:
+        raise ValueError("oracle branch action values must share the action floating dtype.")
+    if not torch.all(torch.isfinite(action)) or not torch.all(
+        torch.isfinite(arm_action_raw)
+    ) or not torch.all(torch.isfinite(relief_base_action_raw)):
+        raise ValueError("oracle branch action values must be finite.")
+    if torch.any(arm_dls_mask & relief_mask):
+        raise ValueError("arm-DLS and base-relief branches must be disjoint.")
+    result = action.clone()
+    override_mask = arm_dls_mask | relief_mask
+    result[arm_dls_mask, base_slice[0] : base_slice[1]] = 0.0
+    result[arm_dls_mask, arm_slice[0] : arm_slice[1]] = arm_action_raw[arm_dls_mask]
+    result[relief_mask, base_slice[0] : base_slice[1]] = relief_base_action_raw[relief_mask]
+    result[relief_mask, arm_slice[0] : arm_slice[1]] = 0.0
+    result[override_mask, gripper_index] = -1.0
+    return result, override_mask
+
+
+def a2_hold_update_phase_arm_sign_check(
+    phase_mask: torch.Tensor,
+    arm_dls_write_mask: torch.Tensor,
+    previous_arm_dls_count: torch.Tensor,
+    previous_checked: torch.Tensor,
+    phase_progress_delta: torch.Tensor,
+    sign_window_steps: int,
+    minimum_progress_delta: float,
+):
+    masks = (phase_mask, arm_dls_write_mask, previous_checked)
+    if (
+        any(
+            not torch.is_tensor(mask)
+            or mask.shape != phase_mask.shape
+            or mask.dtype != torch.bool
+            or mask.device != phase_mask.device
+            for mask in masks
+        )
+        or not torch.is_tensor(previous_arm_dls_count)
+        or previous_arm_dls_count.shape != phase_mask.shape
+        or previous_arm_dls_count.dtype != torch.long
+        or previous_arm_dls_count.device != phase_mask.device
+        or not torch.is_tensor(phase_progress_delta)
+        or phase_progress_delta.shape != phase_mask.shape
+        or not phase_progress_delta.is_floating_point()
+        or phase_progress_delta.device != phase_mask.device
+    ):
+        raise ValueError("phase arm-sign inputs have incompatible shapes, dtypes or devices.")
+    if torch.any(previous_arm_dls_count < 0) or not torch.all(
+        torch.isfinite(phase_progress_delta)
+    ):
+        raise ValueError("phase arm-sign counter must be non-negative and progress finite.")
+    if (
+        isinstance(sign_window_steps, bool)
+        or not isinstance(sign_window_steps, int)
+        or sign_window_steps <= 0
+    ):
+        raise ValueError("phase arm-sign window must be a positive int.")
+    if (
+        isinstance(minimum_progress_delta, bool)
+        or not isinstance(minimum_progress_delta, (int, float))
+        or not math.isfinite(float(minimum_progress_delta))
+        or minimum_progress_delta <= 0.0
+    ):
+        raise ValueError("phase arm-sign minimum progress must be a finite positive float.")
+    due = phase_mask & ~previous_checked & (
+        previous_arm_dls_count >= sign_window_steps
+    )
+    wrong_sign = due & ~a2_hold_positive_sign_pass(
+        phase_progress_delta, float(minimum_progress_delta)
+    )
+    updated_checked = previous_checked | due
+    actual_arm_write = phase_mask & arm_dls_write_mask & ~wrong_sign
+    updated_count = previous_arm_dls_count.clone()
+    updated_count[actual_arm_write] += 1
+    return {
+        "count": updated_count,
+        "checked": updated_checked,
+        "due": due,
+        "wrong_sign": wrong_sign,
+        "actual_arm_write": actual_arm_write,
+    }
+
+
+def a2_hold_positive_sign_pass(delta: torch.Tensor, minimum_delta: float) -> torch.Tensor:
+    if not torch.is_tensor(delta) or not math.isfinite(minimum_delta) or minimum_delta <= 0.0:
+        raise ValueError("Sign smoke requires a tensor delta and finite positive minimum_delta.")
+    return delta >= minimum_delta
+
+
+def a2_hold_depress_timeout_mask(
+    depress_mask: torch.Tensor,
+    depress_done: torch.Tensor,
+    phase_step: torch.Tensor,
+    timeout_steps: int,
+):
+    if any(
+        not torch.is_tensor(value) or value.shape != depress_mask.shape
+        for value in (depress_done, phase_step)
+    ):
+        raise ValueError("depress timeout inputs must have identical shapes.")
+    return depress_mask & ~depress_done & (phase_step >= timeout_steps)
+
+
+def a2_hold_depress_transition_mask(
+    depress_mask: torch.Tensor,
+    depress_done: torch.Tensor,
+    outcome_pending: torch.Tensor,
+):
+    if any(
+        not torch.is_tensor(value) or value.shape != depress_mask.shape
+        for value in (depress_done, outcome_pending)
+    ):
+        raise ValueError("depress transition inputs must have identical shapes.")
+    if any(value.dtype != torch.bool for value in (depress_mask, depress_done, outcome_pending)):
+        raise ValueError("depress transition inputs must be bool.")
+    return depress_mask & depress_done & outcome_pending
+
+
+def a2_hold_push_timeout_masks(
+    push_mask: torch.Tensor,
+    reached_progress: torch.Tensor,
+    phase_step: torch.Tensor,
+    timeout_steps: int,
+    hinge_delta: torch.Tensor,
+    minimum_delta: float,
+):
+    if any(
+        not torch.is_tensor(value) or value.shape != push_mask.shape
+        for value in (reached_progress, phase_step, hinge_delta)
+    ):
+        raise ValueError("push timeout inputs must have identical shapes.")
+    timeout = push_mask & ~reached_progress & (phase_step >= timeout_steps)
+    return timeout & (hinge_delta < minimum_delta), timeout & (hinge_delta >= minimum_delta)
+
+
+def a2_hold_action_with_exact_disabled_equivalence(
+    policy_action: torch.Tensor, active_mask: torch.Tensor
+) -> torch.Tensor:
+    if (
+        not torch.is_tensor(active_mask)
+        or active_mask.dtype != torch.bool
+        or active_mask.shape != policy_action.shape[:1]
+    ):
+        raise ValueError("active_mask must be bool shape (N,).")
+    return policy_action if not torch.any(active_mask) else policy_action.clone()
+
+
+def a2_hold_summarize_outcomes(outcome_names):
+    if any(name not in A2_HOLD_OUTCOME_TO_ID for name in outcome_names):
+        raise ValueError(f"Unknown A2 hold outcome in {outcome_names!r}.")
+    counts = Counter(outcome_names)
+    return {name: int(counts.get(name, 0)) for name in A2_HOLD_OUTCOME_NAMES}
 
 
 class OrderedTargetFrameTransformer(FrameTransformer):
@@ -242,6 +1231,12 @@ class DoorPregrasp(
         "a2_stage3_to4_door_hinge_threshold"
     )
     A2_STAGE3_BASE_UNLOCKED_CONFIG_KEY = "a2_stage3_base_unlocked"
+    A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY = "a2_gripper_source_tcp_offset_z"
+    A2_HOLD_CONTACT_DETAIL_CONFIG_KEY = "a2_hold_diagnostic_contact_detail_enabled"
+    A2_HOLD_CONTACT_CAPACITY_CONFIG_KEY = (
+        "a2_hold_diagnostic_max_contact_data_count_per_prim"
+    )
+    A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY = "a2_hold_diagnostic_friction_override"
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -275,6 +1270,38 @@ class DoorPregrasp(
                 f"{context} requires env.config.{key} to be finite; got {value}."
             )
         return value
+
+    def _get_a2_gripper_source_tcp_offset_z(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY,
+            "A2 Piper gripper source TCP",
+        )
+
+    def _get_a2_hold_contact_detail_enabled(self) -> bool:
+        value = self.config.get(self.A2_HOLD_CONTACT_DETAIL_CONFIG_KEY, None)
+        if not isinstance(value, bool):
+            raise RuntimeError(
+                f"env.config.{self.A2_HOLD_CONTACT_DETAIL_CONFIG_KEY} must be bool; got {value!r}."
+            )
+        return value
+
+    def _get_a2_hold_contact_capacity(self) -> int:
+        value = self.config.get(self.A2_HOLD_CONTACT_CAPACITY_CONFIG_KEY, None)
+        if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+            raise RuntimeError(
+                f"env.config.{self.A2_HOLD_CONTACT_CAPACITY_CONFIG_KEY} must be a positive int; "
+                f"got {value!r}."
+            )
+        return value
+
+    def _get_a2_hold_friction_override(self):
+        value = self.config.get(self.A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY, None)
+        try:
+            return a2_hold_validate_friction_override(value)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"env.config.{self.A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY}: {exc}"
+            ) from exc
 
     def _get_a2_stage2_completion_close_gate_required(self) -> bool:
         key = "a2_stage2_completion_close_gate_required"
@@ -3572,6 +4599,1376 @@ class DoorPregrasp(
             post_delta_post_warp_env_action.detach().clone()
         )
 
+    @staticmethod
+    def _parse_a2_hold_oracle_config(eval_config):
+        enabled = eval_config.get("a2_hold_oracle_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(f"eval.a2_hold_oracle_enabled must be bool; got {enabled!r}.")
+
+        def positive_float(key):
+            value = eval_config.get(key, None)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise RuntimeError(f"eval.{key} must be a finite positive float; got {value!r}.")
+            value = float(value)
+            if not math.isfinite(value) or value <= 0.0:
+                raise RuntimeError(f"eval.{key} must be a finite positive float; got {value!r}.")
+            return value
+
+        def positive_int(key):
+            value = eval_config.get(key, None)
+            if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+                raise RuntimeError(f"eval.{key} must be a positive int; got {value!r}.")
+            return value
+
+        config = {
+            "enabled": enabled,
+            "center_timeout_steps": positive_int("a2_hold_oracle_center_timeout_steps"),
+            "center_position_tolerance_m": positive_float(
+                "a2_hold_oracle_center_position_tolerance_m"
+            ),
+            "center_orientation_tolerance_rad": positive_float(
+                "a2_hold_oracle_center_orientation_tolerance_rad"
+            ),
+            "depress_timeout_steps": positive_int("a2_hold_oracle_depress_timeout_steps"),
+            "push_timeout_steps": positive_int("a2_hold_oracle_push_timeout_steps"),
+            "depress_offset_m": positive_float("a2_hold_oracle_depress_offset_m"),
+            "push_offset_m": positive_float("a2_hold_oracle_push_offset_m"),
+            "offset_ramp_steps": positive_int("a2_hold_oracle_offset_ramp_steps"),
+            "sign_smoke_steps": positive_int("a2_hold_oracle_sign_smoke_steps"),
+            "sign_min_delta": positive_float("a2_hold_oracle_sign_min_delta"),
+            "handle_target_rad": positive_float("a2_hold_oracle_handle_target_rad"),
+            "hinge_progress_target_rad": positive_float(
+                "a2_hold_oracle_hinge_progress_target_rad"
+            ),
+            "contact_slip_grace_steps": positive_int(
+                "a2_hold_oracle_contact_slip_grace_steps"
+            ),
+            "dls_lambda": positive_float("a2_hold_oracle_dls_lambda"),
+            "max_position_step_m": positive_float(
+                "a2_hold_oracle_max_position_step_m"
+            ),
+            "max_orientation_step_rad": positive_float(
+                "a2_hold_oracle_max_orientation_step_rad"
+            ),
+            "jacobian_condition_max": positive_float(
+                "a2_hold_oracle_jacobian_condition_max"
+            ),
+            "joint_limit_margin": positive_float("a2_hold_oracle_joint_limit_margin"),
+            "soft_limit_progress_tolerance": positive_float(
+                "a2_hold_oracle_soft_limit_progress_tolerance"
+            ),
+            "raw_action_abs_max": positive_float("a2_hold_oracle_raw_action_abs_max"),
+            "base_relief_speed_mps": positive_float(
+                "a2_hold_oracle_base_relief_speed_mps"
+            ),
+            "base_relief_sign_window_steps": positive_int(
+                "a2_hold_oracle_base_relief_sign_window_steps"
+            ),
+            "base_relief_min_residual_decrease_m": positive_float(
+                "a2_hold_oracle_base_relief_min_residual_decrease_m"
+            ),
+            "base_relief_timeout_steps": positive_int(
+                "a2_hold_oracle_base_relief_timeout_steps"
+            ),
+            "base_relief_max_displacement_m": positive_float(
+                "a2_hold_oracle_base_relief_max_displacement_m"
+            ),
+            "base_relief_min_solvable_horizontal_error_m": positive_float(
+                "a2_hold_oracle_base_relief_min_solvable_horizontal_error_m"
+            ),
+        }
+        if config["sign_smoke_steps"] >= config["depress_timeout_steps"]:
+            raise RuntimeError("A2 hold depress sign-smoke window must be shorter than its timeout.")
+        if config["sign_smoke_steps"] >= config["push_timeout_steps"]:
+            raise RuntimeError("A2 hold push sign-smoke window must be shorter than its timeout.")
+        if config["base_relief_sign_window_steps"] >= config["base_relief_timeout_steps"]:
+            raise RuntimeError(
+                "A2 hold base-relief sign window must be shorter than its timeout."
+            )
+        return config
+
+    def init_a2_eval_hold_oracle(self, eval_config, *, diagnostic_enabled: bool) -> dict:
+        if not self._use_a2_base or not getattr(self, "is_evaluating", False):
+            raise RuntimeError("A2 hold oracle can only initialize in an evaluating A2 env.")
+        cfg = self._parse_a2_hold_oracle_config(eval_config)
+        cfg["tcp_offset_z"] = self._get_a2_gripper_source_tcp_offset_z()
+        if cfg["enabled"] and not diagnostic_enabled:
+            raise RuntimeError("A2 hold oracle requires eval.a2_diagnostic_trace_enabled=true.")
+        if (cfg["enabled"] or self._get_a2_hold_friction_override() is not None) and not self._get_a2_hold_contact_detail_enabled():
+            raise RuntimeError(
+                "A2 hold oracle/material override requires env detailed contact diagnostics enabled."
+            )
+        if cfg["enabled"]:
+            action_scale = float(self.config.robot.control.action_scale)
+            delta_scale = float(self.config.delta_action_scale)
+            delta_clip = float(self.config.delta_action_clip)
+            if action_scale != 0.25 or delta_scale != 0.3 or delta_clip != 15.0:
+                raise RuntimeError(
+                    "A2 hold oracle cumulative semantics require robot action_scale=0.25, "
+                    f"delta_action_scale=0.3 and delta_action_clip=15.0; got "
+                    f"{action_scale}, {delta_scale}, {delta_clip}."
+                )
+            layout = self.get_a2_high_level_action_layout()
+            expected_layout = {
+                "dim": 12,
+                "base_start": 0,
+                "base_end": 5,
+                "arm_start": 5,
+                "arm_end": 11,
+                "gripper_index": 11,
+            }
+            if layout != expected_layout:
+                raise RuntimeError(
+                    f"A2 hold base relief requires canonical action layout {expected_layout}; "
+                    f"got {layout}."
+                )
+            if self._k != 0 or self._s != 0:
+                raise RuntimeError(
+                    "A2 hold base relief requires warped_action k=0 and s=0; "
+                    f"got k={self._k}, s={self._s}."
+                )
+            if (
+                not math.isfinite(float(self._a2_base_command_scale))
+                or self._a2_base_command_scale <= 0.0
+            ):
+                raise RuntimeError(
+                    "A2 hold base relief requires a finite positive A2 base command scale; "
+                    f"got {self._a2_base_command_scale}."
+                )
+            if self._clip_homie_command:
+                clip_x = float(self.config.clip_homie_linvel_x_threshold)
+                clip_y = float(self.config.clip_homie_linvel_y_threshold)
+                if (
+                    not math.isfinite(clip_x)
+                    or not math.isfinite(clip_y)
+                    or clip_x <= 0.0
+                    or clip_y <= 0.0
+                    or cfg["base_relief_speed_mps"] > clip_x
+                    or cfg["base_relief_speed_mps"] > clip_y
+                ):
+                    raise RuntimeError(
+                        "A2 hold base-relief physical speed must fit both enabled XY "
+                        "command clip thresholds without downstream clipping; "
+                        f"speed={cfg['base_relief_speed_mps']}, x={clip_x}, y={clip_y}."
+                    )
+        self._a2_hold_oracle_cfg = cfg
+        self._a2_hold_oracle_phase = torch.full(
+            (self.num_envs,), A2_HOLD_PHASE_WAIT_GATE, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_phase_step = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_outcome = torch.full(
+            (self.num_envs,), A2_HOLD_OUTCOME_TO_ID["PENDING"], device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_activated = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_slip_steps = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_last_single_body7 = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_last_single_body8 = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_handle_start = torch.zeros(self.num_envs, device=self.device)
+        self._a2_hold_oracle_hinge_start = torch.zeros(self.num_envs, device=self.device)
+        self._a2_hold_oracle_q_des = torch.full(
+            (self.num_envs, 6), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_d_des = torch.full_like(self._a2_hold_oracle_q_des, float("nan"))
+        self._a2_hold_oracle_d_prev = torch.full_like(self._a2_hold_oracle_q_des, float("nan"))
+        self._a2_hold_oracle_a_raw = torch.full_like(self._a2_hold_oracle_q_des, float("nan"))
+        self._a2_hold_oracle_target_pos_root = torch.full(
+            (self.num_envs, 3), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_target_quat_root = torch.full(
+            (self.num_envs, 4), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_bounded_command_pos_root = torch.full(
+            (self.num_envs, 3), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_bounded_command_quat_root = torch.full(
+            (self.num_envs, 4), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_bounded_position_step = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_bounded_orientation_step = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_position_residual = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_orientation_residual = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_singular_values = torch.full(
+            (self.num_envs, 6), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_jacobian_condition = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_ik_valid = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_delta_ok = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_raw_ok = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_last_hinge_delta = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_hold_oracle_last_override_mask = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_arm_dls_branch = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_phase_arm_dls_count = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_phase_sign_checked = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_phase_sign_check_due = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_base_relief_active = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_base_relief_branch_applied = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_base_relief_ever_entered = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_base_relief_steps = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_base_relief_initial_horizontal_residual = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_base_relief_start_root_xy = torch.full(
+            (self.num_envs, 2), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_base_relief_current_horizontal_residual = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_horizontal_residual = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_base_relief_body_velocity_command = torch.zeros(
+            self.num_envs, 2, device=self.device
+        )
+        self._a2_hold_oracle_base_relief_raw_command = torch.zeros(
+            self.num_envs, 5, device=self.device
+        )
+        self._a2_hold_oracle_arm_candidate_action_raw = torch.full_like(
+            self._a2_hold_oracle_q_des, float("nan")
+        )
+        self._a2_hold_oracle_limit_valid = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_post_override_action = None
+        if not cfg["enabled"]:
+            return dict(cfg)
+        robot = self.simulator.scene.articulations["robot"]
+        handoff_dtype = robot.data.body_quat_w.dtype
+        self._a2_hold_oracle_handoff_relative_quat = torch.full(
+            (self.num_envs, 4),
+            float("nan"),
+            device=self.device,
+            dtype=handoff_dtype,
+        )
+        self._a2_hold_oracle_handoff_orientation_captured = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        body_ids, body_names = robot.find_bodies("arm_body6_to_gripper", preserve_order=True)
+        if len(body_ids) != 1 or body_names != ["arm_body6_to_gripper"]:
+            raise RuntimeError(
+                "A2 hold oracle requires exactly one arm_body6_to_gripper; "
+                f"got {body_ids}, {body_names}."
+            )
+        joint_ids, joint_names = robot.find_joints(
+            [f"arm_j{i}" for i in range(1, 7)], preserve_order=True
+        )
+        if joint_names != [f"arm_j{i}" for i in range(1, 7)]:
+            raise RuntimeError(f"A2 hold oracle arm joint order mismatch: {joint_names}.")
+        self._a2_hold_oracle_body_id = body_ids[0]
+        self._a2_hold_oracle_joint_ids = joint_ids
+        self._a2_hold_oracle_jacobian_body_id = body_ids[0]
+        self._a2_hold_oracle_jacobian_joint_ids = [joint_id + 6 for joint_id in joint_ids]
+        self._a2_hold_oracle_controller = DifferentialIKController(
+            DifferentialIKControllerCfg(
+                command_type="pose",
+                use_relative_mode=False,
+                ik_method="dls",
+                ik_params={"lambda_val": cfg["dls_lambda"]},
+            ),
+            num_envs=self.num_envs,
+            device=self.device,
+        )
+        return dict(cfg)
+
+    def _set_a2_hold_outcome(self, mask: torch.Tensor, outcome: str) -> None:
+        if outcome not in A2_HOLD_OUTCOME_TO_ID:
+            raise RuntimeError(f"Unknown A2 hold oracle outcome {outcome!r}.")
+        mask = mask & (
+            self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        )
+        self._a2_hold_oracle_outcome[mask] = A2_HOLD_OUTCOME_TO_ID[outcome]
+        self._a2_hold_oracle_phase[mask] = A2_HOLD_PHASE_DONE
+
+    def _clear_a2_hold_base_relief_state(self, clear_mask: torch.Tensor) -> None:
+        cleared = a2_hold_clear_base_relief_state(
+            clear_mask,
+            self._a2_hold_oracle_base_relief_active,
+            self._a2_hold_oracle_base_relief_branch_applied,
+            self._a2_hold_oracle_base_relief_steps,
+            self._a2_hold_oracle_base_relief_initial_horizontal_residual,
+            self._a2_hold_oracle_base_relief_current_horizontal_residual,
+            self._a2_hold_oracle_base_relief_start_root_xy,
+            self._a2_hold_oracle_base_relief_body_velocity_command,
+            self._a2_hold_oracle_base_relief_raw_command,
+        )
+        self._a2_hold_oracle_base_relief_active[:] = cleared["active"]
+        self._a2_hold_oracle_base_relief_branch_applied[:] = cleared[
+            "branch_applied"
+        ]
+        self._a2_hold_oracle_base_relief_steps[:] = cleared["steps"]
+        self._a2_hold_oracle_base_relief_initial_horizontal_residual[:] = cleared[
+            "initial_residual"
+        ]
+        self._a2_hold_oracle_base_relief_current_horizontal_residual[:] = cleared[
+            "current_residual"
+        ]
+        self._a2_hold_oracle_base_relief_start_root_xy[:] = cleared["start_root_xy"]
+        self._a2_hold_oracle_base_relief_body_velocity_command[:] = cleared[
+            "body_velocity_command"
+        ]
+        self._a2_hold_oracle_base_relief_raw_command[:] = cleared["raw_command"]
+
+    def _a2_hold_bilateral_gate(self):
+        masks = self._get_a2_stage2_grasp_completion_masks()
+        return (
+            masks["contact_stability"]
+            & masks["squeeze_window_current"]
+            & ~masks["over_force_current"]
+        ), masks
+
+    def _get_a2_hold_oracle_world_frames(self):
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        body_id = self._a2_hold_oracle_body_id
+        root_pos_w = data.root_pos_w
+        root_quat_w = data.root_quat_w
+        body_pos_w = data.body_pos_w[:, body_id]
+        body_quat_w = data.body_quat_w[:, body_id]
+        source_offset = torch.tensor(
+            (0.0, 0.0, self._a2_hold_oracle_cfg["tcp_offset_z"]),
+            device=self.device,
+            dtype=body_pos_w.dtype,
+        ).repeat(self.num_envs, 1)
+        identity_quat = torch.zeros(
+            self.num_envs, 4, device=self.device, dtype=body_quat_w.dtype
+        )
+        identity_quat[:, 0] = 1.0
+        source_pos_w, source_quat_w = combine_frame_transforms(
+            body_pos_w, body_quat_w, source_offset, identity_quat
+        )
+        transform = self._get_a2_gripper_handle_frame_transformer().data
+        handle_pos_w = transform.target_pos_w[:, 0]
+        handle_quat_w = transform.target_quat_w[:, 0]
+        return {
+            "robot": robot,
+            "root_pos_w": root_pos_w,
+            "root_quat_w": root_quat_w,
+            "body_pos_w": body_pos_w,
+            "body_quat_w": body_quat_w,
+            "source_pos_w": source_pos_w,
+            "source_quat_w": source_quat_w,
+            "handle_pos_w": handle_pos_w,
+            "handle_quat_w": handle_quat_w,
+        }
+
+    def _get_a2_hold_oracle_pose_state(
+        self, target_local_offset: torch.Tensor, active_mask: torch.Tensor
+    ):
+        if (
+            not torch.is_tensor(target_local_offset)
+            or tuple(target_local_offset.shape) != (self.num_envs, 3)
+            or target_local_offset.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(target_local_offset))
+        ):
+            raise RuntimeError(
+                "A2 hold oracle target_local_offset must be finite shape "
+                f"({self.num_envs},3) on {self.device}."
+            )
+        if (
+            not torch.is_tensor(active_mask)
+            or tuple(active_mask.shape) != (self.num_envs,)
+            or active_mask.dtype != torch.bool
+            or active_mask.device != target_local_offset.device
+        ):
+            raise RuntimeError("A2 hold oracle pose active mask contract mismatch.")
+        frames = self._get_a2_hold_oracle_world_frames()
+        robot = frames["robot"]
+        root_pos_w = frames["root_pos_w"]
+        root_quat_w = frames["root_quat_w"]
+        body_pos_w = frames["body_pos_w"]
+        body_quat_w = frames["body_quat_w"]
+        source_pos_w = frames["source_pos_w"]
+        source_quat_w = frames["source_quat_w"]
+        handle_pos_w = frames["handle_pos_w"]
+        handle_quat_w = frames["handle_quat_w"]
+        target_pos_w = handle_pos_w + quat_apply(handle_quat_w, target_local_offset)
+        target_quat_w = a2_hold_compose_handoff_target_orientation(
+            handle_pos_w,
+            handle_quat_w,
+            source_quat_w,
+            self._a2_hold_oracle_handoff_relative_quat,
+            active_mask,
+            self._a2_hold_oracle_handoff_orientation_captured,
+        )
+        source_pos_root, source_quat_root = subtract_frame_transforms(
+            root_pos_w, root_quat_w, source_pos_w, source_quat_w
+        )
+        body_pos_root, _ = subtract_frame_transforms(
+            root_pos_w, root_quat_w, body_pos_w, body_quat_w
+        )
+        target_pos_root, target_quat_root = subtract_frame_transforms(
+            root_pos_w, root_quat_w, target_pos_w, target_quat_w
+        )
+        position_residual = torch.linalg.norm(target_pos_root - source_pos_root, dim=-1)
+        quat_error = quat_mul(target_quat_root, quat_inv(source_quat_root))
+        orientation_residual = torch.linalg.norm(axis_angle_from_quat(quat_error), dim=-1)
+        return {
+            "robot": robot,
+            "root_pos_w": root_pos_w,
+            "root_quat_w": root_quat_w,
+            "source_pos_w": source_pos_w,
+            "source_pos_root": source_pos_root,
+            "source_quat_root": source_quat_root,
+            "source_offset_root": source_pos_root - body_pos_root,
+            "target_pos_root": target_pos_root,
+            "target_quat_root": target_quat_root,
+            "target_pos_w": target_pos_w,
+            "position_residual": position_residual,
+            "orientation_residual": orientation_residual,
+        }
+
+    def _compute_a2_hold_oracle_joint_target(
+        self, target_local_offset: torch.Tensor, active_mask: torch.Tensor
+    ):
+        pose_state = self._get_a2_hold_oracle_pose_state(target_local_offset, active_mask)
+        robot = pose_state["robot"]
+        data = robot.data
+        num_envs = self.num_envs
+        joint_ids = self._a2_hold_oracle_joint_ids
+        jacobian = robot.root_physx_view.get_jacobians()[
+            :, self._a2_hold_oracle_jacobian_body_id, :, self._a2_hold_oracle_jacobian_joint_ids
+        ]
+        if tuple(jacobian.shape) != (num_envs, 6, 6) or not torch.all(torch.isfinite(jacobian)):
+            raise RuntimeError(
+                f"A2 hold oracle requires finite raw Jacobian shape ({num_envs},6,6); "
+                f"got {tuple(jacobian.shape)}."
+            )
+        jacobian_root = a2_hold_rotate_jacobian_to_root(
+            jacobian, pose_state["root_quat_w"]
+        )
+        jacobian_root = a2_hold_apply_source_offset_to_jacobian(
+            jacobian_root, pose_state["source_offset_root"]
+        )
+        singular_values = torch.linalg.svdvals(jacobian_root)
+        condition = singular_values[:, 0] / singular_values[:, -1]
+        ik_valid = torch.isfinite(condition) & (
+            condition <= self._a2_hold_oracle_cfg["jacobian_condition_max"]
+        )
+        (
+            bounded_command_pos,
+            bounded_command_quat,
+            _,
+            _,
+            bounded_delta,
+        ) = a2_hold_bound_pose_command_step(
+            pose_state["source_pos_root"],
+            pose_state["source_quat_root"],
+            pose_state["target_pos_root"],
+            pose_state["target_quat_root"],
+            self._a2_hold_oracle_cfg["max_position_step_m"],
+            self._a2_hold_oracle_cfg["max_orientation_step_rad"],
+        )
+        command = torch.cat((bounded_command_pos, bounded_command_quat), dim=-1)
+        self._a2_hold_oracle_controller.set_command(command)
+        q = data.joint_pos[:, joint_ids]
+        q_des = self._a2_hold_oracle_controller.compute(
+            pose_state["source_pos_root"],
+            pose_state["source_quat_root"],
+            jacobian_root,
+            q,
+        )
+        if not torch.all(torch.isfinite(q_des)):
+            raise RuntimeError("A2 hold oracle DLS returned non-finite q_des.")
+        return (
+            q_des,
+            ik_valid,
+            singular_values,
+            condition,
+            pose_state["target_pos_root"],
+            pose_state["target_quat_root"],
+            pose_state["position_residual"],
+            pose_state["orientation_residual"],
+            bounded_command_pos,
+            bounded_command_quat,
+            torch.linalg.norm(bounded_delta[:, :3], dim=-1),
+            torch.linalg.norm(bounded_delta[:, 3:], dim=-1),
+            pose_state["target_pos_w"][:, :2] - pose_state["source_pos_w"][:, :2],
+            pose_state["root_pos_w"][:, :2],
+            pose_state["root_quat_w"],
+        )
+
+    def apply_a2_eval_hold_oracle_action_override(
+        self, policy_action: torch.Tensor, first_episode_active_mask: torch.Tensor
+    ):
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None:
+            raise RuntimeError("A2 hold oracle action requested before initialization.")
+        if not cfg["enabled"]:
+            self._a2_hold_oracle_last_override_mask.zero_()
+            self._a2_hold_oracle_post_override_action = policy_action
+            return policy_action, self._a2_hold_oracle_last_override_mask
+        if not self._use_a2_base or not getattr(self, "is_evaluating", False):
+            raise RuntimeError("A2 hold oracle action override requires an evaluating A2 env.")
+        layout = self.get_a2_high_level_action_layout()
+        if tuple(policy_action.shape) != (self.num_envs, layout["dim"]):
+            raise RuntimeError("A2 hold oracle policy action shape mismatch.")
+        if (
+            not torch.is_tensor(first_episode_active_mask)
+            or tuple(first_episode_active_mask.shape) != (self.num_envs,)
+            or first_episode_active_mask.dtype != torch.bool
+            or first_episode_active_mask.device != policy_action.device
+        ):
+            raise RuntimeError("A2 hold oracle first-episode mask contract mismatch.")
+
+        close_gate = self._get_a2_stage2_close_reward_gate()
+        wait_mask = self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE
+        activate = (
+            wait_mask
+            & first_episode_active_mask
+            & (self.stage_buf == self.STAGE_GRASP)
+            & close_gate
+        )
+        if torch.any(activate):
+            handoff_frames = self._get_a2_hold_oracle_world_frames()
+            (
+                updated_relative_quat,
+                updated_captured_mask,
+            ) = a2_hold_capture_handoff_relative_orientation(
+                handoff_frames["handle_pos_w"],
+                handoff_frames["handle_quat_w"],
+                handoff_frames["source_pos_w"],
+                handoff_frames["source_quat_w"],
+                activate,
+                self._a2_hold_oracle_handoff_relative_quat,
+                self._a2_hold_oracle_handoff_orientation_captured,
+            )
+            self._a2_hold_oracle_handoff_relative_quat = updated_relative_quat
+            self._a2_hold_oracle_handoff_orientation_captured = updated_captured_mask
+        self._a2_hold_oracle_phase[activate] = A2_HOLD_PHASE_CENTER_CLOSE
+        self._a2_hold_oracle_phase_step[activate] = 0
+        self._a2_hold_oracle_activated[activate] = True
+        self._a2_hold_oracle_phase_arm_dls_count[activate] = 0
+        self._a2_hold_oracle_phase_sign_checked[activate] = False
+        self._a2_hold_oracle_phase_sign_check_due[activate] = False
+
+        ended_without_gate = wait_mask & ~first_episode_active_mask
+        self._set_a2_hold_outcome(ended_without_gate, "NO_GATE")
+        active = (
+            self._a2_hold_oracle_activated
+            & first_episode_active_mask
+            & (self._a2_hold_oracle_phase != A2_HOLD_PHASE_DONE)
+            & (self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
+        )
+        action = a2_hold_action_with_exact_disabled_equivalence(policy_action, active)
+        if not torch.any(active):
+            self._clear_a2_hold_base_relief_state(torch.ones_like(active))
+            self._a2_hold_oracle_arm_dls_branch.zero_()
+            self._a2_hold_oracle_phase_sign_check_due.zero_()
+            self._a2_hold_oracle_last_override_mask = active
+            self._a2_hold_oracle_post_override_action = action
+            return action, active
+
+        bilateral_gate, contact_masks = self._a2_hold_bilateral_gate()
+        self._a2_hold_oracle_last_single_body7[active] = contact_masks[
+            "single_contact_arm_body7_current"
+        ][active]
+        self._a2_hold_oracle_last_single_body8[active] = contact_masks[
+            "single_contact_arm_body8_current"
+        ][active]
+        center = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_CENTER_CLOSE)
+        current_center_pose_state = self._get_a2_hold_oracle_pose_state(
+            torch.zeros(self.num_envs, 3, device=self.device),
+            active,
+        )
+        center_converged = a2_hold_center_converged(
+            current_center_pose_state["position_residual"],
+            current_center_pose_state["orientation_residual"],
+            cfg["center_position_tolerance_m"],
+            cfg["center_orientation_tolerance_rad"],
+        )
+        center_ready, tracking_failure, wedge, center_no_bilateral = (
+            a2_hold_center_transition_masks(
+                center,
+                bilateral_gate,
+                self._a2_hold_oracle_phase_step,
+                cfg["center_timeout_steps"],
+                contact_masks["single_contact_arm_body7_current"],
+                contact_masks["single_contact_arm_body8_current"],
+                center_converged,
+            )
+        )
+        door_joint_pos = self._get_door_joint_pos("A2 hold oracle", 2)
+        self._a2_hold_oracle_phase[center_ready] = A2_HOLD_PHASE_DEPRESS
+        self._a2_hold_oracle_phase_step[center_ready] = 0
+        self._a2_hold_oracle_phase_arm_dls_count[center_ready] = 0
+        self._a2_hold_oracle_phase_sign_checked[center_ready] = False
+        self._a2_hold_oracle_phase_sign_check_due[center_ready] = False
+        self._a2_hold_oracle_handle_start[center_ready] = door_joint_pos[center_ready, 1]
+        self._set_a2_hold_outcome(tracking_failure, "IK_TRACKING_FAILURE")
+        self._set_a2_hold_outcome(wedge, "UNILATERAL_WEDGE")
+        self._set_a2_hold_outcome(center_no_bilateral, "CENTER_NO_BILATERAL")
+
+        depress = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_DEPRESS)
+        depress_delta = door_joint_pos[:, 1] - self._a2_hold_oracle_handle_start
+        self._a2_hold_oracle_slip_steps[depress] = torch.where(
+            bilateral_gate[depress],
+            torch.zeros_like(self._a2_hold_oracle_slip_steps[depress]),
+            self._a2_hold_oracle_slip_steps[depress] + 1,
+        )
+        slipped = depress & (
+            self._a2_hold_oracle_slip_steps >= cfg["contact_slip_grace_steps"]
+        )
+        self._set_a2_hold_outcome(slipped, "CONTACT_SLIP")
+        depress_reached_target = depress & (
+            door_joint_pos[:, 1] >= cfg["handle_target_rad"]
+        )
+        depress_done = a2_hold_depress_transition_mask(
+            depress,
+            depress_reached_target,
+            self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"],
+        )
+        self._a2_hold_oracle_phase[depress_done] = A2_HOLD_PHASE_FOLLOW_PUSH
+        self._a2_hold_oracle_phase_step[depress_done] = 0
+        self._a2_hold_oracle_phase_arm_dls_count[depress_done] = 0
+        self._a2_hold_oracle_phase_sign_checked[depress_done] = False
+        self._a2_hold_oracle_phase_sign_check_due[depress_done] = False
+        self._a2_hold_oracle_hinge_start[depress_done] = door_joint_pos[depress_done, 0]
+        depress_timeout = a2_hold_depress_timeout_mask(
+            depress,
+            depress_reached_target,
+            self._a2_hold_oracle_phase_step,
+            cfg["depress_timeout_steps"],
+        )
+        self._set_a2_hold_outcome(depress_timeout, "DEPRESS_TIMEOUT")
+
+        push = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_FOLLOW_PUSH)
+        hinge_delta = door_joint_pos[:, 0] - self._a2_hold_oracle_hinge_start
+        self._a2_hold_oracle_last_hinge_delta[push] = hinge_delta[push]
+        self._a2_hold_oracle_slip_steps[push] = torch.where(
+            bilateral_gate[push],
+            torch.zeros_like(self._a2_hold_oracle_slip_steps[push]),
+            self._a2_hold_oracle_slip_steps[push] + 1,
+        )
+        push_slip = push & (
+            self._a2_hold_oracle_slip_steps >= cfg["contact_slip_grace_steps"]
+        )
+        self._set_a2_hold_outcome(push_slip, "CONTACT_SLIP")
+        push_progress = push & (hinge_delta >= cfg["hinge_progress_target_rad"])
+        self._set_a2_hold_outcome(push_progress & bilateral_gate, "RETAINED")
+        self._set_a2_hold_outcome(push_progress & ~bilateral_gate, "PUSH_PROGRESS")
+        push_no_progress, push_timeout = a2_hold_push_timeout_masks(
+            push,
+            push_progress,
+            self._a2_hold_oracle_phase_step,
+            cfg["push_timeout_steps"],
+            hinge_delta,
+            cfg["sign_min_delta"],
+        )
+        self._set_a2_hold_outcome(
+            push_no_progress,
+            "PUSH_NO_PROGRESS",
+        )
+        self._set_a2_hold_outcome(
+            push_timeout,
+            "PUSH_TIMEOUT",
+        )
+
+        active = (
+            self._a2_hold_oracle_activated
+            & first_episode_active_mask
+            & (self._a2_hold_oracle_phase != A2_HOLD_PHASE_DONE)
+            & (self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
+        )
+        local_offset = torch.zeros(self.num_envs, 3, device=self.device)
+        phase_fraction = (
+            self._a2_hold_oracle_phase_step.to(torch.float)
+            / float(cfg["offset_ramp_steps"])
+        ).clamp(max=1.0)
+        depress = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_DEPRESS)
+        push = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_FOLLOW_PUSH)
+        local_offset[depress, 1] = -cfg["depress_offset_m"] * phase_fraction[depress]
+        local_offset[push, 1] = -cfg["depress_offset_m"]
+        local_offset[push, 2] = cfg["push_offset_m"] * phase_fraction[push]
+        (
+            q_des,
+            ik_valid,
+            singular_values,
+            jacobian_condition,
+            target_pos_root,
+            target_quat_root,
+            pos_res,
+            rot_res,
+            bounded_command_pos_root,
+            bounded_command_quat_root,
+            bounded_position_step,
+            bounded_orientation_step,
+            horizontal_error_w,
+            root_xy_w,
+            root_quat_w,
+        ) = self._compute_a2_hold_oracle_joint_target(local_offset, active)
+        robot = self.simulator.scene.articulations["robot"]
+        joint_ids = self._a2_hold_oracle_joint_ids
+        hard_limits = robot.data.joint_pos_limits[:, joint_ids]
+        soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
+        if not torch.all(torch.isfinite(hard_limits)) or not torch.all(torch.isfinite(soft_limits)):
+            raise RuntimeError("A2 hold oracle requires finite hard and soft arm joint limits.")
+        limit_valid, _, _ = a2_hold_progress_aware_joint_limit_masks(
+            robot.data.joint_pos[:, joint_ids],
+            q_des,
+            hard_limits,
+            soft_limits,
+            cfg["joint_limit_margin"],
+            cfg["joint_limit_margin"],
+            cfg["soft_limit_progress_tolerance"],
+        )
+        q_default = robot.data.default_joint_pos[:, joint_ids]
+        if q_default.shape[0] == 1:
+            q_default = q_default.repeat(self.num_envs, 1)
+        d_prev = self._delta_actions.clone()
+        if not torch.all(torch.isfinite(q_default)) or not torch.all(torch.isfinite(d_prev)):
+            raise RuntimeError("A2 hold oracle requires finite q_default and pre-step delta buffer.")
+        d_des, a_raw = a2_hold_absolute_target_to_cumulative_action(
+            q_des, q_default, d_prev
+        )
+        if not torch.all(torch.isfinite(d_des)) or not torch.all(torch.isfinite(a_raw)):
+            raise RuntimeError("A2 hold oracle cumulative conversion returned non-finite values.")
+        delta_ok = torch.all(torch.abs(d_des) <= 15.0, dim=-1)
+        raw_ok = torch.all(torch.abs(a_raw) <= cfg["raw_action_abs_max"], dim=-1)
+        relief_candidate = active & ik_valid & ~limit_valid
+        (
+            horizontal_residual,
+            horizontal_solvable,
+            relief_body_velocity,
+            relief_base_raw,
+        ) = a2_hold_base_relief_command(
+            horizontal_error_w,
+            root_quat_w,
+            relief_candidate,
+            cfg["base_relief_speed_mps"],
+            self._a2_base_command_scale,
+            cfg["base_relief_min_solvable_horizontal_error_m"],
+        )
+        (
+            arm_dls_mask,
+            relief_mask,
+            ik_invalid_mask,
+            joint_limit_mask,
+            action_invalid_mask,
+        ) = a2_hold_base_relief_branch_masks(
+            active,
+            ik_valid,
+            limit_valid,
+            delta_ok,
+            raw_ok,
+            horizontal_solvable,
+        )
+        relief_state = a2_hold_update_base_relief_state(
+            relief_mask,
+            self._a2_hold_oracle_base_relief_active,
+            self._a2_hold_oracle_base_relief_steps,
+            self._a2_hold_oracle_base_relief_initial_horizontal_residual,
+            self._a2_hold_oracle_base_relief_start_root_xy,
+            horizontal_residual,
+            root_xy_w,
+            cfg["base_relief_sign_window_steps"],
+            cfg["base_relief_min_residual_decrease_m"],
+            cfg["base_relief_timeout_steps"],
+            cfg["base_relief_max_displacement_m"],
+        )
+        self._a2_hold_oracle_base_relief_active[:] = relief_state["active"]
+        self._a2_hold_oracle_base_relief_steps[:] = relief_state["steps"]
+        self._a2_hold_oracle_base_relief_initial_horizontal_residual[:] = relief_state[
+            "initial_residual"
+        ]
+        self._a2_hold_oracle_base_relief_start_root_xy[:] = relief_state["start_root_xy"]
+        self._a2_hold_oracle_base_relief_current_horizontal_residual[:] = relief_state[
+            "current_residual"
+        ]
+        self._a2_hold_oracle_base_relief_ever_entered |= relief_state["entered"]
+        self._set_a2_hold_outcome(ik_invalid_mask, "IK_INVALID")
+        self._set_a2_hold_outcome(joint_limit_mask, "JOINT_LIMIT")
+        self._set_a2_hold_outcome(action_invalid_mask, "IK_INVALID")
+        self._set_a2_hold_outcome(
+            relief_state["displacement_limit"], "BASE_RELIEF_DISPLACEMENT_LIMIT"
+        )
+        self._set_a2_hold_outcome(relief_state["wrong_sign"], "BASE_RELIEF_WRONG_SIGN")
+        self._set_a2_hold_outcome(relief_state["timeout"], "BASE_RELIEF_TIMEOUT")
+        relief_failure = (
+            relief_state["displacement_limit"]
+            | relief_state["wrong_sign"]
+            | relief_state["timeout"]
+        )
+        self._clear_a2_hold_base_relief_state(relief_failure)
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        arm_dls_mask &= pending
+        relief_mask &= pending
+        sign_phase_mask = (depress | push) & pending
+        sign_progress_delta = torch.where(depress, depress_delta, hinge_delta)
+        phase_sign_state = a2_hold_update_phase_arm_sign_check(
+            sign_phase_mask,
+            arm_dls_mask,
+            self._a2_hold_oracle_phase_arm_dls_count,
+            self._a2_hold_oracle_phase_sign_checked,
+            sign_progress_delta,
+            cfg["sign_smoke_steps"],
+            cfg["sign_min_delta"],
+        )
+        self._a2_hold_oracle_phase_arm_dls_count[:] = phase_sign_state["count"]
+        self._a2_hold_oracle_phase_sign_checked[:] = phase_sign_state["checked"]
+        self._a2_hold_oracle_phase_sign_check_due[:] = phase_sign_state["due"]
+        self._set_a2_hold_outcome(
+            phase_sign_state["wrong_sign"] & depress, "DEPRESS_WRONG_SIGN"
+        )
+        self._set_a2_hold_outcome(
+            phase_sign_state["wrong_sign"] & push, "PUSH_WRONG_SIGN"
+        )
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        arm_dls_mask &= pending
+        relief_mask &= pending
+        action, override_mask = a2_hold_apply_oracle_branch_actions(
+            action,
+            arm_dls_mask,
+            relief_mask,
+            a_raw,
+            relief_base_raw,
+            (layout["base_start"], layout["base_end"]),
+            (layout["arm_start"], layout["arm_end"]),
+            layout["gripper_index"],
+        )
+        applied_arm_raw = torch.zeros_like(a_raw)
+        applied_arm_raw[arm_dls_mask] = a_raw[arm_dls_mask]
+        applied_base_raw = torch.zeros_like(relief_base_raw)
+        applied_base_raw[relief_mask] = relief_base_raw[relief_mask]
+        applied_body_velocity = torch.zeros_like(relief_body_velocity)
+        applied_body_velocity[relief_mask] = relief_body_velocity[relief_mask]
+        self._a2_hold_oracle_q_des[:] = q_des
+        self._a2_hold_oracle_d_des[:] = d_des
+        self._a2_hold_oracle_d_prev[:] = d_prev
+        self._a2_hold_oracle_arm_candidate_action_raw[:] = a_raw
+        self._a2_hold_oracle_a_raw[:] = applied_arm_raw
+        self._a2_hold_oracle_target_pos_root[:] = target_pos_root
+        self._a2_hold_oracle_target_quat_root[:] = target_quat_root
+        self._a2_hold_oracle_bounded_command_pos_root[:] = bounded_command_pos_root
+        self._a2_hold_oracle_bounded_command_quat_root[:] = bounded_command_quat_root
+        self._a2_hold_oracle_bounded_position_step[:] = bounded_position_step
+        self._a2_hold_oracle_bounded_orientation_step[:] = bounded_orientation_step
+        self._a2_hold_oracle_position_residual[:] = pos_res
+        self._a2_hold_oracle_orientation_residual[:] = rot_res
+        self._a2_hold_oracle_singular_values[:] = singular_values
+        self._a2_hold_oracle_jacobian_condition[:] = jacobian_condition
+        self._a2_hold_oracle_ik_valid[:] = ik_valid
+        self._a2_hold_oracle_limit_valid[:] = limit_valid
+        self._a2_hold_oracle_delta_ok[:] = delta_ok
+        self._a2_hold_oracle_raw_ok[:] = raw_ok
+        self._a2_hold_oracle_horizontal_residual[:] = horizontal_residual
+        self._a2_hold_oracle_base_relief_body_velocity_command[:] = applied_body_velocity
+        self._a2_hold_oracle_base_relief_raw_command[:] = applied_base_raw
+        self._a2_hold_oracle_arm_dls_branch[:] = arm_dls_mask
+        self._a2_hold_oracle_base_relief_branch_applied[:] = relief_mask
+        self._a2_hold_oracle_phase_step[override_mask] += 1
+        self._a2_hold_oracle_last_override_mask = override_mask.detach().clone()
+        self._a2_hold_oracle_post_override_action = action.detach().clone()
+        return action, override_mask
+
+    def _get_a2_hold_oracle_trace_fields(self, env_ids: torch.Tensor):
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg["enabled"]:
+            return [{} for _ in env_ids.tolist()]
+        post_action = self._a2_hold_oracle_post_override_action
+        if not torch.is_tensor(post_action):
+            raise RuntimeError("A2 hold oracle trace requires post-oracle action.")
+        robot = self.simulator.scene.articulations["robot"]
+        actual_target = robot.data.joint_pos_target[:, self._a2_hold_oracle_joint_ids]
+        records = []
+        for env_id in env_ids.tolist():
+            outcome_id = int(self._a2_hold_oracle_outcome[env_id].item())
+            phase_id = int(self._a2_hold_oracle_phase[env_id].item())
+            records.append(
+                {
+                    "hold_oracle_tcp_offset_z": cfg["tcp_offset_z"],
+                    "hold_oracle_tcp_offset_label": (
+                        "measured finger-collider longitudinal midpoint"
+                        if cfg["tcp_offset_z"] == 0.09755
+                        else "configured longitudinal TCP"
+                    ),
+                    "hold_oracle_target_orientation_semantic": (
+                        A2_HOLD_TARGET_ORIENTATION_SEMANTIC
+                    ),
+                    "hold_oracle_handoff_orientation_captured": bool(
+                        self._a2_hold_oracle_handoff_orientation_captured[env_id].item()
+                    ),
+                    "hold_oracle_handoff_handle_to_gripper_relative_quat_wxyz": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_handoff_relative_quat[env_id]
+                        )
+                    ),
+                    "hold_oracle_phase": A2_HOLD_PHASE_NAMES[phase_id],
+                    "hold_oracle_phase_step": int(self._a2_hold_oracle_phase_step[env_id].item()),
+                    "hold_oracle_phase_arm_dls_actuation_count": int(
+                        self._a2_hold_oracle_phase_arm_dls_count[env_id].item()
+                    ),
+                    "hold_oracle_phase_sign_checked": bool(
+                        self._a2_hold_oracle_phase_sign_checked[env_id].item()
+                    ),
+                    "hold_oracle_phase_sign_check_due_this_step": bool(
+                        self._a2_hold_oracle_phase_sign_check_due[env_id].item()
+                    ),
+                    "hold_oracle_phase_sign_counter_semantic": (
+                        "completed_prior_arm_dls_writes_checked_before_current_write"
+                    ),
+                    "hold_oracle_outcome": A2_HOLD_OUTCOME_NAMES[outcome_id],
+                    "hold_oracle_override_applied": bool(self._a2_hold_oracle_last_override_mask[env_id].item()),
+                    "post_hold_oracle_override_pre_env_action": post_action[env_id].detach().cpu().tolist(),
+                    "hold_oracle_q_des": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_q_des[env_id]
+                    ),
+                    "hold_oracle_d_des": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_d_des[env_id]
+                    ),
+                    "hold_oracle_d_prev": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_d_prev[env_id]
+                    ),
+                    "hold_oracle_arm_action_raw": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_a_raw[env_id]
+                    ),
+                    "hold_oracle_arm_candidate_action_raw": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_arm_candidate_action_raw[env_id]
+                    ),
+                    "hold_oracle_control_branch": (
+                        "ARM_DLS"
+                        if self._a2_hold_oracle_arm_dls_branch[env_id].item()
+                        else (
+                            "BASE_RELIEF"
+                            if self._a2_hold_oracle_base_relief_branch_applied[env_id].item()
+                            else "NONE"
+                        )
+                    ),
+                    "hold_oracle_arm_limit_valid": bool(
+                        self._a2_hold_oracle_limit_valid[env_id].item()
+                    ),
+                    "hold_oracle_horizontal_residual": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_horizontal_residual[env_id]
+                    ),
+                    "hold_oracle_base_relief_active": bool(
+                        self._a2_hold_oracle_base_relief_active[env_id].item()
+                    ),
+                    "hold_oracle_base_relief_ever_entered": bool(
+                        self._a2_hold_oracle_base_relief_ever_entered[env_id].item()
+                    ),
+                    "hold_oracle_base_relief_steps": int(
+                        self._a2_hold_oracle_base_relief_steps[env_id].item()
+                    ),
+                    "hold_oracle_base_relief_initial_horizontal_residual": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_base_relief_initial_horizontal_residual[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_base_relief_current_horizontal_residual": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_base_relief_current_horizontal_residual[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_base_relief_start_root_xy": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_base_relief_start_root_xy[env_id]
+                    ),
+                    "hold_oracle_base_relief_body_velocity_command": (
+                        self._a2_hold_oracle_base_relief_body_velocity_command[env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "hold_oracle_base_relief_raw_command": (
+                        self._a2_hold_oracle_base_relief_raw_command[env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "hold_oracle_base_relief_phase_timeout_semantic": (
+                        "relief_steps_consume_current_phase_timeout"
+                    ),
+                    "hold_oracle_actual_joint_pos_target": actual_target[env_id].detach().cpu().tolist(),
+                    "hold_oracle_final_target_pos_root": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_target_pos_root[env_id]
+                    ),
+                    "hold_oracle_final_target_quat_root": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_target_quat_root[env_id]
+                    ),
+                    "hold_oracle_final_position_residual": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_position_residual[env_id]
+                    ),
+                    "hold_oracle_final_orientation_residual": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_orientation_residual[env_id]
+                    ),
+                    "hold_oracle_bounded_command_pos_root": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_bounded_command_pos_root[env_id]
+                    ),
+                    "hold_oracle_bounded_command_quat_root": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_bounded_command_quat_root[env_id]
+                    ),
+                    "hold_oracle_bounded_position_step": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_bounded_position_step[env_id]
+                    ),
+                    "hold_oracle_bounded_orientation_step": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_bounded_orientation_step[env_id]
+                    ),
+                    "hold_oracle_jacobian_singular_values": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_singular_values[env_id]
+                    ),
+                    "hold_oracle_jacobian_condition": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_jacobian_condition[env_id]
+                    ),
+                    "hold_oracle_ik_valid": bool(
+                        self._a2_hold_oracle_ik_valid[env_id].item()
+                    ),
+                    "hold_oracle_delta_ok": bool(
+                        self._a2_hold_oracle_delta_ok[env_id].item()
+                    ),
+                    "hold_oracle_raw_ok": bool(
+                        self._a2_hold_oracle_raw_ok[env_id].item()
+                    ),
+                }
+            )
+        return records
+
+    def get_a2_hold_oracle_summary(self):
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg["enabled"]:
+            raise RuntimeError("A2 hold oracle summary requested while oracle is disabled.")
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        no_gate = pending & ~self._a2_hold_oracle_activated
+        self._a2_hold_oracle_outcome[no_gate] = A2_HOLD_OUTCOME_TO_ID["NO_GATE"]
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        center = pending & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_CENTER_CLOSE)
+        if torch.any(center):
+            converged = a2_hold_center_converged(
+                self._a2_hold_oracle_position_residual,
+                self._a2_hold_oracle_orientation_residual,
+                cfg["center_position_tolerance_m"],
+                cfg["center_orientation_tolerance_rad"],
+            )
+            tracking_failure = center & ~converged
+            self._a2_hold_oracle_outcome[tracking_failure] = A2_HOLD_OUTCOME_TO_ID[
+                "IK_TRACKING_FAILURE"
+            ]
+            wedge = center & converged & (
+                self._a2_hold_oracle_last_single_body7
+                | self._a2_hold_oracle_last_single_body8
+            )
+            self._a2_hold_oracle_outcome[wedge] = A2_HOLD_OUTCOME_TO_ID[
+                "UNILATERAL_WEDGE"
+            ]
+            self._a2_hold_oracle_outcome[center & converged & ~wedge] = A2_HOLD_OUTCOME_TO_ID[
+                "CENTER_NO_BILATERAL"
+            ]
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        depress = pending & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_DEPRESS)
+        self._a2_hold_oracle_outcome[depress] = A2_HOLD_OUTCOME_TO_ID[
+            "DEPRESS_TIMEOUT"
+        ]
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        push = pending & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_FOLLOW_PUSH)
+        reached = push & (
+            self._a2_hold_oracle_last_hinge_delta
+            >= cfg["hinge_progress_target_rad"]
+        )
+        self._a2_hold_oracle_outcome[reached] = A2_HOLD_OUTCOME_TO_ID[
+            "PUSH_PROGRESS"
+        ]
+        no_progress = push & (
+            self._a2_hold_oracle_last_hinge_delta < cfg["sign_min_delta"]
+        )
+        self._a2_hold_oracle_outcome[no_progress] = A2_HOLD_OUTCOME_TO_ID[
+            "PUSH_NO_PROGRESS"
+        ]
+        self._a2_hold_oracle_outcome[push & ~reached & ~no_progress] = (
+            A2_HOLD_OUTCOME_TO_ID["PUSH_TIMEOUT"]
+        )
+        names = [A2_HOLD_OUTCOME_NAMES[int(value)] for value in self._a2_hold_oracle_outcome.cpu().tolist()]
+        return {
+            "config": dict(cfg),
+            "tcp_offset_label": (
+                "measured finger-collider longitudinal midpoint"
+                if cfg["tcp_offset_z"] == 0.09755
+                else "configured longitudinal TCP"
+            ),
+            "per_env_outcome": names,
+            "outcome_counts": a2_hold_summarize_outcomes(names),
+            "activated_count": int(self._a2_hold_oracle_activated.sum().item()),
+            "base_relief_ever_entered_count": int(
+                self._a2_hold_oracle_base_relief_ever_entered.sum().item()
+            ),
+            "per_env_base_relief_ever_entered": (
+                self._a2_hold_oracle_base_relief_ever_entered.detach().cpu().tolist()
+            ),
+            "base_relief_phase_timeout_semantic": (
+                "relief_steps_consume_current_phase_timeout"
+            ),
+        }
+
+    def _get_a2_hold_detailed_step_fields(self, env_ids: torch.Tensor):
+        if not self._get_a2_hold_contact_detail_enabled():
+            return [{} for _ in env_ids.tolist()]
+        sensor = self.simulator.scene.sensors[self.A2_GRIPPER_HANDLE_CONTACT_SENSOR]
+        expected_filters = [
+            "/World/envs/env_.*/Robot/arm_body7",
+            "/World/envs/env_.*/Robot/arm_body8",
+        ]
+        if list(sensor.cfg.filter_prim_paths_expr) != expected_filters:
+            raise RuntimeError(
+                "A2 detailed hold diagnostic filter pair order mismatch: "
+                f"expected={expected_filters}, got={list(sensor.cfg.filter_prim_paths_expr)}."
+            )
+        data = sensor.data
+        expected = (self.num_envs, 1, 2, 3)
+        contact_pos_w = getattr(data, "contact_pos_w", None)
+        friction_w = getattr(data, "friction_forces_w", None)
+        force_matrix_w = getattr(data, "force_matrix_w", None)
+        for name, value in (
+            ("contact_pos_w", contact_pos_w),
+            ("friction_forces_w", friction_w),
+            ("force_matrix_w", force_matrix_w),
+        ):
+            if not torch.is_tensor(value) or tuple(value.shape) != expected:
+                shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                raise RuntimeError(
+                    f"A2 detailed hold diagnostics require ContactSensorData.{name} "
+                    f"shape {expected}; got {shape}."
+                )
+        sensor_pos_w = getattr(data, "pos_w", None)
+        sensor_quat_w = getattr(data, "quat_w", None)
+        if not torch.is_tensor(sensor_pos_w) or tuple(sensor_pos_w.shape) != (self.num_envs, 1, 3):
+            raise RuntimeError("A2 detailed hold diagnostics require sensor pos_w shape (N,1,3).")
+        if not torch.is_tensor(sensor_quat_w) or tuple(sensor_quat_w.shape) != (self.num_envs, 1, 4):
+            raise RuntimeError("A2 detailed hold diagnostics require sensor quat_w shape (N,1,4).")
+
+        normal_force_w = force_matrix_w[:, 0]
+        normal_direction_w, normal_direction_valid = (
+            a2_hold_aggregate_normal_force_direction(normal_force_w)
+        )
+        transform_data = self._get_a2_gripper_handle_frame_transformer().data
+        source_pos_w = transform_data.source_pos_w
+        source_quat_w = transform_data.source_quat_w
+        target_pos_w = transform_data.target_pos_w
+        target_quat_w = transform_data.target_quat_w
+        contact_delta_w = contact_pos_w[:, 0] - source_pos_w[:, None, :]
+        source_quat_expanded = source_quat_w[:, None, :].expand(-1, 2, -1).reshape(-1, 4)
+        contact_pos_source = quat_apply(
+            quat_inv(source_quat_expanded), contact_delta_w.reshape(-1, 3)
+        ).reshape(self.num_envs, 2, 3)
+
+        robot = self.simulator.scene.articulations["robot"]
+        robot_data = robot.data
+        gripper_body_ids = []
+        for body_name in ("arm_body7", "arm_body8"):
+            ids, names = robot.find_bodies(body_name, preserve_order=True)
+            if len(ids) != 1 or names != [body_name]:
+                raise RuntimeError(
+                    f"A2 detailed hold diagnostics require exactly one {body_name}; got {ids}, {names}."
+                )
+            gripper_body_ids.append(ids[0])
+        door = self.simulator.scene.articulations["door"]
+        handle_ids, handle_names = door.find_bodies("door_handle", preserve_order=True)
+        if len(handle_ids) != 1 or handle_names != ["door_handle"]:
+            raise RuntimeError(
+                "A2 detailed hold diagnostics require exactly one door_handle body; "
+                f"got {handle_ids}, {handle_names}."
+            )
+
+        joint_ids = a2_hold_map_task_to_articulation_joint_ids(
+            self.simulator.dof_ids,
+            self._a2_gripper_dof_indices,
+            self.dof_names,
+            robot_data.joint_pos.shape[1],
+            self.device,
+        )
+        mapped_joint_names = [robot.joint_names[index] for index in joint_ids.tolist()]
+        if mapped_joint_names != ["arm_j7", "arm_j8"]:
+            raise RuntimeError(
+                "A2 detailed hold mapped articulation joint order must be arm_j7,arm_j8; "
+                f"got ids={joint_ids.tolist()}, names={mapped_joint_names}."
+            )
+        q = robot_data.joint_pos[:, joint_ids]
+        qdot = robot_data.joint_vel[:, joint_ids]
+        qtarget = robot_data.joint_pos_target[:, joint_ids]
+        kp = robot_data.joint_stiffness[:, joint_ids]
+        kd = robot_data.joint_damping[:, joint_ids]
+        limit = robot_data.joint_effort_limits[:, joint_ids]
+        pd_unclipped, pd_clipped, pd_saturated = a2_hold_pd_effort_estimates(
+            q, qdot, qtarget, kp, kd, limit
+        )
+        implicit_computed = robot_data.computed_torque[:, joint_ids]
+        implicit_applied = robot_data.applied_torque[:, joint_ids]
+
+        records = []
+        for env_id in env_ids.tolist():
+            records.append(
+                {
+                    "handle_filter_pair_order": ["arm_body7", "arm_body8"],
+                    "handle_contact_pos_w_average": a2_hold_nullable_tensor_list(
+                        contact_pos_w[env_id, 0]
+                    ),
+                    "handle_contact_pos_source_average": a2_hold_nullable_tensor_list(
+                        contact_pos_source[env_id]
+                    ),
+                    "handle_normal_force_w_sum": normal_force_w[env_id].detach().cpu().tolist(),
+                    "handle_normal_force_direction_w_aggregate": a2_hold_nullable_tensor_list(
+                        normal_direction_w[env_id]
+                    ),
+                    "handle_normal_force_direction_valid": normal_direction_valid[env_id].detach().cpu().tolist(),
+                    "handle_friction_force_w_sum": friction_w[env_id, 0].detach().cpu().tolist(),
+                    "handle_contact_sensor_pos_w": sensor_pos_w[env_id, 0].detach().cpu().tolist(),
+                    "handle_contact_sensor_quat_w": sensor_quat_w[env_id, 0].detach().cpu().tolist(),
+                    "gripper_source_pos_w": source_pos_w[env_id].detach().cpu().tolist(),
+                    "gripper_source_quat_w_detailed": source_quat_w[env_id].detach().cpu().tolist(),
+                    "handle_target_pos_w": target_pos_w[env_id, 0].detach().cpu().tolist(),
+                    "handle_target_quat_w": target_quat_w[env_id, 0].detach().cpu().tolist(),
+                    "arm_body7_body8_pos_w": robot_data.body_pos_w[env_id, gripper_body_ids].detach().cpu().tolist(),
+                    "arm_body7_body8_quat_w": robot_data.body_quat_w[env_id, gripper_body_ids].detach().cpu().tolist(),
+                    "door_handle_body_pos_w": door.data.body_pos_w[env_id, handle_ids[0]].detach().cpu().tolist(),
+                    "door_handle_body_quat_w": door.data.body_quat_w[env_id, handle_ids[0]].detach().cpu().tolist(),
+                    "gripper_joint_vel": qdot[env_id].detach().cpu().tolist(),
+                    "gripper_joint_stiffness": kp[env_id].detach().cpu().tolist(),
+                    "gripper_joint_damping": kd[env_id].detach().cpu().tolist(),
+                    "gripper_joint_effort_limit": limit[env_id].detach().cpu().tolist(),
+                    "pd_effort_estimate_unclipped": pd_unclipped[env_id].detach().cpu().tolist(),
+                    "pd_effort_estimate_clipped": pd_clipped[env_id].detach().cpu().tolist(),
+                    "pd_effort_estimated_saturation": pd_saturated[env_id].detach().cpu().tolist(),
+                    "isaaclab_implicit_computed_effort_estimate": implicit_computed[env_id].detach().cpu().tolist(),
+                    "isaaclab_implicit_applied_effort_estimate": implicit_applied[env_id].detach().cpu().tolist(),
+                    "isaaclab_implicit_effort_estimate_crosscheck_error": (
+                        implicit_computed[env_id] - pd_unclipped[env_id]
+                    ).detach().cpu().tolist(),
+                }
+            )
+        return records
+
+    @staticmethod
+    def _a2_hold_read_material_binding(stage: Usd.Stage, prim: Usd.Prim):
+        current = prim
+        while current.IsValid():
+            rel = current.GetRelationship("material:binding:physics")
+            targets = rel.GetTargets() if rel.IsValid() else []
+            if targets:
+                material_path = str(targets[0])
+                material_prim = stage.GetPrimAtPath(material_path)
+                usd_api = UsdPhysics.MaterialAPI(material_prim)
+                physx_api = PhysxSchema.PhysxMaterialAPI(material_prim)
+                return {
+                    "binding_source_prim": str(current.GetPath()),
+                    "material_path": material_path,
+                    "static_friction": usd_api.GetStaticFrictionAttr().Get(),
+                    "dynamic_friction": usd_api.GetDynamicFrictionAttr().Get(),
+                    "restitution": usd_api.GetRestitutionAttr().Get(),
+                    "friction_combine_mode": physx_api.GetFrictionCombineModeAttr().Get(),
+                    "restitution_combine_mode": physx_api.GetRestitutionCombineModeAttr().Get(),
+                }
+            current = current.GetParent()
+        return None
+
+    def get_a2_hold_diagnostic_runtime_metadata(self):
+        if not self._use_a2_base or not getattr(self, "is_evaluating", False):
+            raise RuntimeError("A2 hold runtime metadata requires an evaluating A2 env.")
+        if not self._get_a2_hold_contact_detail_enabled():
+            raise RuntimeError("A2 hold runtime metadata requires detailed contact diagnostics.")
+        stage = omni.usd.get_context().get_stage()
+        default_material = self.simulator.sim.cfg.physics_material
+        collision_records = []
+        handle_radii = []
+        for env_id in range(self.num_envs):
+            door_prim = stage.GetPrimAtPath(f"/World/envs/env_{env_id}/door")
+            custom_data = door_prim.GetMetadata("customData")
+            if not isinstance(custom_data, dict) or "handleRadius" not in custom_data:
+                raise RuntimeError(f"A2 hold metadata env {env_id} is missing handleRadius customData.")
+            handle_radii.append(float(custom_data["handleRadius"]))
+            parents = [
+                f"/World/envs/env_{env_id}/Robot/arm_body7",
+                f"/World/envs/env_{env_id}/Robot/arm_body8",
+            ]
+            collision_paths = []
+            for parent in parents:
+                collision_paths.extend(self._a2_hold_collision_descendants(stage, parent))
+            handle_path = f"/World/envs/env_{env_id}/door/door_handle/handle_inside"
+            handle_prim = stage.GetPrimAtPath(handle_path)
+            if not handle_prim.IsValid() or not handle_prim.HasAPI(UsdPhysics.CollisionAPI):
+                raise RuntimeError(f"A2 hold metadata missing selected handle collider {handle_path}.")
+            collision_paths.append(handle_path)
+            for collision_path in collision_paths:
+                prim = stage.GetPrimAtPath(collision_path)
+                mesh_api = UsdPhysics.MeshCollisionAPI(prim)
+                approximation = mesh_api.GetApproximationAttr().Get() if mesh_api else None
+                collision_records.append(
+                    {
+                        "env_id": env_id,
+                        "collision_prim_path": collision_path,
+                        "prim_type": prim.GetTypeName(),
+                        "collision_approximation": approximation,
+                        "physics_material": self._a2_hold_read_material_binding(stage, prim),
+                    }
+                )
+        return {
+            "contact_sensor_body": "door_handle",
+            "contact_filter_pair_order": ["arm_body7", "arm_body8"],
+            "contact_pos_semantics": "average per sensor-body/filter pair",
+            "normal_force_semantics": "summed normal contact force; direction is aggregate force direction, not raw geometric normal",
+            "friction_force_semantics": "summed friction force per sensor-body/filter pair",
+            "actual_implicit_drive_force": "UNAVAILABLE/INCONCLUSIVE; logged torque fields are IsaacLab implicit PD estimates",
+            "gripper_source_tcp_offset_z": self._get_a2_gripper_source_tcp_offset_z(),
+            "oracle_tcp_offset_label": "measured finger-collider longitudinal midpoint when z=0.09755",
+            "sampled_handle_radius": handle_radii,
+            "collision_and_material": collision_records,
+            "simulation_default_material": {
+                "static_friction": float(default_material.static_friction),
+                "dynamic_friction": float(default_material.dynamic_friction),
+                "restitution": float(default_material.restitution),
+                "friction_combine_mode": str(default_material.friction_combine_mode),
+                "restitution_combine_mode": str(default_material.restitution_combine_mode),
+            },
+            "friction_override": None,
+            "friction_override_support": (
+                "unsupported for the instanceable Piper collider; conditional friction "
+                "implementation is deferred until measured-midpoint CONTACT_SLIP"
+            ),
+        }
+
     def _get_a2_eval_diagnostic_step_fields(self, env_ids: torch.Tensor):
         if not self._a2_eval_diagnostic_trace_enabled:
             raise RuntimeError(
@@ -3969,6 +6366,17 @@ class DoorPregrasp(
                     "reward_scaled": scaled_reward_record,
                 }
             )
+        detailed_records = self._get_a2_hold_detailed_step_fields(env_ids)
+        oracle_records = self._get_a2_hold_oracle_trace_fields(env_ids)
+        for record, detailed, oracle in zip(records, detailed_records, oracle_records):
+            overlap = set(record).intersection(detailed) | set(record).intersection(oracle)
+            overlap |= set(detailed).intersection(oracle)
+            if overlap:
+                raise RuntimeError(
+                    f"A2 hold diagnostic trace field collision: {sorted(overlap)}."
+                )
+            record.update(detailed)
+            record.update(oracle)
         return records
 
     def _capture_a2_eval_stage2_step_trace(self):
@@ -4532,6 +6940,24 @@ class DoorPregrasp(
     def _stage_5_to_complete_condition(self):
         return (self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]) > 1.5
 
+    @staticmethod
+    def _a2_hold_collision_descendants(stage: Usd.Stage, parent_path: str):
+        parent = stage.GetPrimAtPath(parent_path)
+        if not parent.IsValid():
+            raise RuntimeError(f"A2 hold diagnostic collision parent does not exist: {parent_path}")
+        paths = [
+            str(prim.GetPath())
+            for prim in Usd.PrimRange(parent, Usd.TraverseInstanceProxies())
+            if prim.HasAPI(UsdPhysics.CollisionAPI)
+            and UsdPhysics.CollisionAPI(prim).GetCollisionEnabledAttr().Get() is not False
+        ]
+        if len(paths) != 1:
+            raise RuntimeError(
+                "A2 hold diagnostic requires exactly one enabled collision prim below "
+                f"{parent_path}; got {paths}."
+            )
+        return paths
+
     def scene_creation_callback(self, simulator):
         target_obj = simulator.task_config.get("target_obj", None)
         if target_obj is None:
@@ -4567,7 +6993,7 @@ class DoorPregrasp(
                 FrameTransformerCfg(
                     prim_path="/World/envs/env_.*/Robot/arm_body6_to_gripper",
                     source_frame_offset=OffsetCfg(
-                        pos=(0.0, 0.0, 0.085),
+                        pos=(0.0, 0.0, self._get_a2_gripper_source_tcp_offset_z()),
                         rot=(1.0, 0.0, 0.0, 0.0),
                     ),
                     target_frames=[
@@ -4602,6 +7028,11 @@ class DoorPregrasp(
                     "task.target_obj_contact_sub_prim_path='door_handle'; "
                     f"got {target_contact_sub_prim!r}."
                 )
+            contact_detail_enabled = self._get_a2_hold_contact_detail_enabled()
+            contact_detail_kwargs = a2_hold_contact_sensor_detail_kwargs(
+                contact_detail_enabled,
+                self._get_a2_hold_contact_capacity() if contact_detail_enabled else None,
+            )
             a2_gripper_handle_contact_sensor_config: ContactSensorCfg = ContactSensorCfg(
                 prim_path=f"/World/envs/env_.*/{target_obj}/{target_contact_sub_prim}",
                 history_length=self._get_a2_stage2_grasp_contact_history_length(),
@@ -4609,10 +7040,12 @@ class DoorPregrasp(
                     "/World/envs/env_.*/Robot/arm_body7",
                     "/World/envs/env_.*/Robot/arm_body8",
                 ],
+                **contact_detail_kwargs,
             )
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_CONTACT_SENSOR] = ContactSensor(
                 a2_gripper_handle_contact_sensor_config
             )
+            self._get_a2_hold_friction_override()
 
             # Visual debug spheres: green = grasp_target (handle), red = pregrasp target.
             # Both read offsets directly from FrameTransformer config so they auto-track

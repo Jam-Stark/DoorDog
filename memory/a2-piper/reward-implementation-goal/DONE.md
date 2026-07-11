@@ -1,5 +1,11 @@
 # DONE
 
+- 2026-07-11 22:19 HKT - 完成 eval-only deterministic hold-oracle exact diagnosis 的 candidate review 与 runtime matrix（partial completion）。Candidate 为 `9513f6f95d266b185a1aa89eb10ca074195bb8101f86ba0ec58b6744392c6571`，no-sim targeted tests 为 `28 passed`；每组 runtime 均产出 `a2_hold_oracle_summary.json`、`a2_hold_diagnostic_runtime_metadata.json`、`stage2_step_trace.json`、`stage2_5_step_trace.json`、`metrics_eval.json`、`eval_to_log_metrics.json` 六个 artifact。
+
+  Exact 80-step matrix：G1 TCP `0.085` 为 `ARM_DLS/BASE_RELIEF=79/1`、limit-valid `79/80`、position/orientation residual `0.016590→0.058500m` / `0.000000→0.019240rad`、body7/body8 max force `0.000/18.355N`；G2 TCP `0.09755` 为 `80/0`、`80/80`、`0.016615→0.429228m` / `0.000000→0.695775rad`、`0.165/22.694N`；G3 TCP `0.105` 为 `77/3`、`77/80`、`0.019397→0.432759m` / `0.000000→0.708920rad`、`0.000/29.222N`。三组均在 `CENTER_CLOSE` 的 bilateral contact `0/80`，未进入 `DEPRESS`，无 `CONTACT_SLIP` 或 PD saturation，delta/raw validity 均 `80/80`，最终 center timeout / `IK_TRACKING_FAILURE`。G1/G3 分别有 `1/3` frame 真实进入 base-relief branch，证明 controller path 可达但未修复 convergence。
+
+  Runtime metadata 确认 body7/body8 collider 为 convexHull、`handle_inside` 为 Capsule，per-prim physics material 为 `null`，simulation default static/dynamic friction 为 `0.5/0.5`；actual implicit-drive force 不可得，logged torque 仅是 IsaacLab implicit-PD estimate。Current baseline 为 TCP `0.085`、effort `10/10`；本轮未改 Kp/friction。未解决项精确收敛为 inner contact surface、finger closing axis / closed aperture 与 `grasp_target` bilateral reachability。
+
 - 2026-07-11 16:44 HKT - 完成 `base_v9` 四组 formal training、matched scalar/trace eval 与 qualified A/B rendering 归档。
 
   (1) 四个 exact training dirs 为 `logs_rl/a2_piper_full_stage_a2_base/base_v9_A-20260710_212238`、`base_v9_B-20260710_212247`、`base_v9_C-20260710_212256`、`base_v9_D-20260710_212303`。四组都到达 step1000 / `262,144,000` timesteps，logged training values finite、无 runtime error，training goal metric 均为 0。

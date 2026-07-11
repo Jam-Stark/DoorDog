@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-07 22:09 HKT
+last_updated: 2026-07-11 22:19 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -17,10 +17,11 @@ read_when:
 
 ## Purpose
 
-记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线，只服务于快速验证 walk、pregrasp、grasp 三段是否能学起来。
+记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 baseline 是 TCP `0.085`、`arm_j7/j8 effort_limit_sim=10/10`；hold-oracle exact diagnosis 尚未形成 bilateral contact，因此下一步是 inner geometry / aperture / reachability，而不是 Kp/friction tuning。
 
 ## Current Decision
 
+- 2026-07-11 22:19 HKT - Full-stage eval-only hold-oracle 已将 stage0-2 grasp blocker 收敛到 exact geometry / reachability。G1/G2/G3 的 80-step `CENTER_CLOSE` 均 bilateral contact `0/80`、未进入 `DEPRESS`，无 slip/saturation，并以 center timeout / `IK_TRACKING_FAILURE` 结束。G1 TCP `0.085` 与 G3 TCP `0.105` 分别有 `1/3` frame 进入 base-relief branch，故 controller path 可达但不足以建立 bilateral grasp。Current baseline 为 TCP `0.085`、effort `10/10`；本轮未改 Kp/friction。
 - 2026-06-22 20:29 HKT - 用户确认从 `A2_Piper` 切出新分支 `quickTEST`，用于 stage0-2 grasp-terminal quick test。
 - 2026-06-22 20:42 HKT - 已新增独立 config `gr00t/rl/config/exp/wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm.yaml`，入口为 `+exp=wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm`；默认 `door_open_a2_base_lstm.yaml` 未改动。
 - 2026-06-22 21:23 HKT - `PolicyAndValueWrapper` 已改为通过 `object.__setattr__(..., "_a2_base_model", a2_base_model)` 持有 frozen A2_Base TorchScript model，并用 property 暴露访问；该 model 不再注册为 child `nn.Module`，避免 HuggingFace Trainer optimizer parameter scanning 进入 TorchScript `ParameterDict.contains()` crash。
@@ -30,7 +31,7 @@ read_when:
 - 2026-07-06 20:35 HKT - Full-stage `base_v3` ckpt1000 no-render eval 显示 dense reward 已恢复 arm reach + close/grasp basin，但 stage2 terminal/completion 仍卡在 `arm_body7` force 与 bilateral contact continuity。Stage0-2 若复用该 completion semantics，下一步应优先做 history/threshold A/B，而不是继续改 target offset、actuator gain 或 gripper primitive。
 - 2026-07-06 21:00 HKT - Full-stage `base_v3` completion A/B 对 stage0-2 terminal semantics 的影响：history 3 虽能让 16/16 stage2→3，但 terminal 多为 single-contact，作为 terminal success 会偏宽；contact threshold 0.8 只让 5/16 推进且保留更多 contact/stability 约束，若 stage0-2 复用该 predicate，也应优先验证 threshold 0.8 而不是 history 3。
 - 2026-07-07 16:17 HKT - Full-stage `base_v4` 2k four-way eval 更新 stage0-2 terminal 判断：不能只看 completion rate，`thr0p8_kd5_vel0` 虽 16/16 complete 但 force/raw 过激；当前 hard predicate 未使用 `squeeze_window` / `~over_force`，会把 dense reward 不鼓励的 force spike route 仍判为 terminal success。Stage0-2 若复用该 predicate，下一步应先修 force-window/no-overforce completion semantics，再评估 threshold/Kd。
-- 2026-07-07 22:09 HKT - Full-stage base_v6 current code 改变了 gripper source geometry 与 effort cap：`source_frame_offset` 从旧 baseline `(0,0,0.105)` 改为 `(0,0,0.085)`，`arm_j7/j8 effort_limit_sim` 从 `10.0/10.0` 改为 `40.0/40.0`。Stage0-2 若复用当前 main code 或 checkpoint 解读 trace，必须把 2026-06-26 的 `0.105` finger-envelope 测量视为 historical baseline，并重新检查 handle 是否落在 finger mid-section。
+- 2026-07-07 22:09 HKT - Historical base_v6 曾将 `source_frame_offset` 从 `(0,0,0.105)` 改为 `(0,0,0.085)`，并将 `arm_j7/j8 effort_limit_sim` 从 `10.0/10.0` 改为 `40.0/40.0`。该 effort 值已被后续 baseline supersede；当前必须使用 TCP `0.085` 与 effort `10/10` 解读 trace，2026-06-26 的 TCP `0.105` 只保留为 historical comparison。
 - 2026-06-22 21:39 HKT - stage0-2 quick config 已显式关闭 G1 `ResetFromDataset` motion reset，bounded smoke 已推进到 PPO recurrent model forward；当前下一 blocker 是 A2_Base frozen policy injection 的 recurrent minibatch shape mismatch。
 - 2026-06-22 22:03 HKT - PPO recurrent A2_Base injection shape mismatch 已按最小边界修复：只在 A2_Base injection 侧将 padded `a2_base_obs` unsplit 回 env-major 后与 `high_level_actions` 对齐，不改 PPO loss tensors 的 env-major contract。
 - 2026-06-24 17:36 HKT - A2 terminal orientation diagnostics 已完成 static review，可进入 runtime orientation diagnosis；本次只扩展 `episode_terminal_diagnostics` 字段，不改变 reward、stage transition、complete predicate、reset、camera、rendering timing 或 trainer action logic。
@@ -209,6 +210,7 @@ read_when:
 
 ## TODO Summary
 
+- 2026-07-11 22:19 HKT - 在同一坐标系中确认 `arm_body7/8` convexHull 与 `handle_inside` Capsule 的 exact inner contact surface、finger closing axis / closed aperture，并验证 current `grasp_target` / TCP `0.085` 的 bilateral reachability。Current effort baseline 为 `10/10`；不先改 Kp/friction 或单独放大 base relief。
 - 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
@@ -220,6 +222,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-11 22:19 HKT - 同步 hold-oracle candidate `9513f6f9…` 的 `28 passed` 与 G1/G2/G3 80-step runtime matrix：三组均无 bilateral/depress/slip/saturation，G1/G3 实际进入 base relief 但仍不收敛；actual collider/material/default friction/drive availability 已记录。该 diagnosis 为 partial completion，未解决 exact inner geometry / aperture / reachability。
 - 2026-07-07 16:17 HKT - 同步 full-stage `base_v4` four-way 2k eval：`thr1p0_kd3_vel1` 是当前最可用候选，`thr0p8_kd5_vel0` 虽 complete 率最高但 force/raw 过激；terminal predicate 下一步应对齐 dense reward 的 `squeeze_window` 与 `over_force` 语义。
 - 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` completion A/B：history 3 让 16/16 stage2→3 但多为 single-contact / early stage3，threshold 0.8 只让 5/16 推进且更保守；stage0-2 terminal predicate 后续优先验证 threshold 0.8，history 3 暂不作为默认。该结论已被 2026-07-07 four-way A/B 更新：先修 completion force-window/no-overforce，再调 threshold。
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation：`penalty_dof_overspeed` 只对 `arm_j1..j6` 超过 `3.0 rad/s` 的部分计二次 penalty；`upper_dof_overspeed` hard termination 仍使用 `termination_level * 20.0`，但增加 `min=3.0 rad/s` floor，避免 `termination_level=0.1` 时把 Piper arm 限到过慢的 `2 rad/s`。

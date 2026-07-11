@@ -58,6 +58,12 @@ _A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY = "a2_stage3_to4_door_hinge_threshold"
 _A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT = 0.174533
 _A2_STAGE3_BASE_UNLOCKED_KEY = "a2_stage3_base_unlocked"
 _A2_STAGE3_BASE_UNLOCKED_LEGACY_DEFAULT = False
+_A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS = {
+    "a2_gripper_source_tcp_offset_z": 0.085,
+    "a2_hold_diagnostic_contact_detail_enabled": False,
+    "a2_hold_diagnostic_max_contact_data_count_per_prim": 8,
+    "a2_hold_diagnostic_friction_override": None,
+}
 _A2_BASE_API_TRAINER_TARGET = (
     "gr00t.rl.trl.trainer.ppo_trainer_a2_base_api.TRLPPOTrainer"
 )
@@ -178,6 +184,37 @@ def migrate_legacy_a2_stage3_base_unlocked_config(train_config, config_path):
     )
 
 
+def migrate_legacy_a2_hold_diagnostic_env_config(train_config, config_path):
+    """Add the complete historical/default-off hold-diagnostic group to legacy A2 checkpoints."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    present = [key for key in _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS if key in env_config]
+    if len(present) == len(_A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS):
+        return
+    if present:
+        missing = [
+            key for key in _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS if key not in env_config
+        ]
+        raise RuntimeError(
+            "Partial legacy A2 hold diagnostic env config in "
+            f"{config_path}; present={present}, missing={missing}."
+        )
+    for key, value in _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS.items():
+        env_config[key] = value
+    logger.info(
+        "Migrated legacy A2 hold diagnostic env config from {} using historical "
+        "TCP z=0.085 and default-off detailed/material settings",
+        config_path,
+    )
+
+
 def process_output_dim_in_config(config):
     """Process and adapt output dimensions for actor and teacher_actor backbones.
 
@@ -272,6 +309,7 @@ def main(override_config: OmegaConf):
             migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path)
             migrate_legacy_a2_stage3_to4_threshold_config(train_config, config_path)
             migrate_legacy_a2_stage3_base_unlocked_config(train_config, config_path)
+            migrate_legacy_a2_hold_diagnostic_env_config(train_config, config_path)
             config = OmegaConf.merge(train_config, override_config)
         else:
             config = override_config

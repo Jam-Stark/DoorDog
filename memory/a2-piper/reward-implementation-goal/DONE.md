@@ -1,5 +1,19 @@
 # DONE
 
+- 2026-07-11 16:44 HKT - 完成 `base_v9` 四组 formal training、matched scalar/trace eval 与 qualified A/B rendering 归档。
+
+  (1) 四个 exact training dirs 为 `logs_rl/a2_piper_full_stage_a2_base/base_v9_A-20260710_212238`、`base_v9_B-20260710_212247`、`base_v9_C-20260710_212256`、`base_v9_D-20260710_212303`。四组都到达 step1000 / `262,144,000` timesteps，logged training values finite、无 runtime error，training goal metric 均为 0。
+
+  (2) Matched scalar/trace runtime PASS：A/B/C/D 各取 16 个 first episodes，四组都是 `0/16 goal_reached`，terminal reason 全为 `stage_overtime`。Hinge primary mean max / true terminal / rebound `max-end` 分别为：A `1.806586/1.473302/0.333284 rad`，B `1.608041/1.450195/0.157847 rad`，C `1.060336/0.906377/0.153958 rad`，D `0.122457/0.116454/0.006004 rad`。Episode max-stage distribution 分别为 A `{4:3,5:13}`、B `{2:1,4:1,5:14}`、C `{3:3,4:11,5:2}`、D `{3:16}`。
+
+  (3) Hold-handle objective 未实现：stage3/4 contact stability 约为 A `0.107%`、B `0%`、C `0.105%`、D `0%`；四组 close command ratio 约 `99%`，但 handle contact 仍由 `arm_body8` 主导，并持续出现 `arm_j6` / arm workspace bottleneck。因此“close command 已下发”仍不能解释为 bilateral grasp 或全程握持。
+
+  (4) Single-seed 结论是 locked A/B 明显强于当前 unlocked C/D；A 是 provisional best，B 是 terminal hinge 接近且 rebound 更低的 close runner-up。该结果不是 final/statistical winner，也不能扩展为“所有 base mobility 都无效”；当前只说明本轮 `a2_stage3_base_unlocked` 语义没有改善该 seed/config 下的结果。
+
+  (5) Qualified rendering 仅作 qualitative evidence：A/B 的 env3/env5 都表现为 pivot-area brief push/contact 后 detach；B env3 出现 `91.8N` doorframe event，B env5 在 stage2 jam。B render 有 48 个预期 episode0 artifacts；A 有 48 个有效 episode0 artifacts，但额外生成 3 个 env0 episode1 terminal-only artifacts，因此 A render strict total-count FAIL。Primary comparison 继续以 matched scalar/trace 为准，render 不记录为 strict PASS。
+
+  (6) 下一步转为 read-only exact geometry diagnosis：核对 `FrameTransformer` source/target、`grasp_target` prim pose、`arm_body7/8` finger colliders、handle collider/contact surfaces、finger closing axis / closed aperture 与 bilateral reachability。Geometry root cause 仍是 hypothesis；诊断前不进入 v10 code/plan/long training，workspace-margin ablation 同步 deferred。
+
 - 2026-07-10 21:14 HKT - 完成 user 审批后的 `base_v9` B hold-handle route 施工、review 与 bounded runtime validation；正式长训练尚未启动。
 
   (1) Common B route 已实现：stage3/4 持续启用 gripper-handle orientation 与 grasp/contact retention，stage4 使用 mild handle distance，新增 keep-close / open-command penalty / bilateral contact / opposite squeeze / squeeze-force window / contact stability / over-force penalty 七项 hold terms，并将 doorframe penalty scale 对齐 B route；`penalty_a2_stage4_arm_default_pose_l1` 继续保持 `0.0`。

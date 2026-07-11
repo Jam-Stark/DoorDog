@@ -2,17 +2,46 @@
 
 ## Technical Summary
 
-结论先行：后续应走 B hold-handle route，但第一优先级不是继续加 forced-close / gripper Kp / effort，而是让 base 在 stage3 随开门过程移动，并把 stage3→4 transition 放在“已有门进度、尚未耗尽 arm workspace”的区间。
+结论先行：`base_v9` 的 B hold-handle route 四组 formal training 和 matched eval 已完成，但“全程握住门把手”仍未实现。四组 policy 约 99% 时间下发 close command，stage3/4 contact stability 却只有约 `0~0.107%`，接触继续由 `arm_body8` 单侧主导，且 `arm_j6` / arm workspace bottleneck 仍存在。这把下一步从 reward/base ablation 转向 read-only exact geometry diagnosis；在核对 finger/handle 的 collider、closing axis、closed aperture 与 bilateral reachability 前，不应进入 v10 code 或长训练。
 
-同一个 frozen `base_v8 A` ckpt1000 的三组 controlled eval 给出一致证据：
+四组都完成 step1000 / `262,144,000` timesteps，logged values finite、无 runtime error，但 training goal metric 均为 0。Matched scalar eval 各取 16 个 first episodes，A/B/C/D 均为 `0/16 goal_reached` 且全部 `stage_overtime`。Locked A/B 明显强于 current unlocked C/D；A 是 single-seed provisional best，B 的 true terminal hinge 接近且 rebound 更低，是 close runner-up。该排序不是 final/statistical winner，也不支持“所有 base mobility 都无效”的泛化结论。
+
+2026-07-10 的 D0-D3 是设计 `base_v9` 的 historical diagnostic evidence，不再是当前 policy-performance 结论：
 
 - `D0` 在 threshold `0.174533` 时 8/8 提前进入 stage4，door 随后回弹；stage4 全程只有 `arm_body8` 单侧接触，base 几乎不动。
 - `D1` 在训练时 threshold `0.6` 下 8/8 留在 stage3，door 能稳定推到约 `0.257 rad`，但 `arm_j6` 在 8/8 成为 limiting joint，直接暴露 arm-only workspace bottleneck。
 - `D2` 在 D0 上强制 gripper close 没有增加 bilateral/stable contact，只带来很小 door 增益并恶化 TCP slip，证明“下发 close target”不是“握住 handle”。
 
-该诊断驱动的 `base_v9` 首轮 2×2 已完成施工并 ready for formal training：threshold `{0.174533, 0.25}` × stage3 base `{locked current, unlocked}`。四组共享 B hold bundle，并使用相同 policy-only initialization、重置 critic / optimizer / scheduler / global step / env curriculum / staged snapshots、对齐 seeds。workspace-margin shaping 保留为第二轮 single-variable ablation；截至本文更新尚未运行四组正式长训练。
+## Base v9 Formal Training and Matched Eval（2026-07-11）
 
-## Provenance and Scope
+| Config | Exact training dir | Budget / runtime status |
+|---|---|---|
+| A | [`base_v9_A-20260710_212238`](../logs_rl/a2_piper_full_stage_a2_base/base_v9_A-20260710_212238) | step1000 / `262,144,000` timesteps；finite；无 runtime error；training goal=0 |
+| B | [`base_v9_B-20260710_212247`](../logs_rl/a2_piper_full_stage_a2_base/base_v9_B-20260710_212247) | step1000 / `262,144,000` timesteps；finite；无 runtime error；training goal=0 |
+| C | [`base_v9_C-20260710_212256`](../logs_rl/a2_piper_full_stage_a2_base/base_v9_C-20260710_212256) | step1000 / `262,144,000` timesteps；finite；无 runtime error；training goal=0 |
+| D | [`base_v9_D-20260710_212303`](../logs_rl/a2_piper_full_stage_a2_base/base_v9_D-20260710_212303) | step1000 / `262,144,000` timesteps；finite；无 runtime error；training goal=0 |
+
+Scalar/trace primary 统一使用 step1000、16 env、每 env 的 first episode：
+
+| Config | Goal / terminal | Hinge mean max | True terminal | Rebound `max-end` | Max-stage distribution | Contact stability |
+|---|---|---:|---:|---:|---|---:|
+| A | `0/16`, all `stage_overtime` | `1.806586` | `1.473302` | `0.333284` | `{4:3,5:13}` | `~0.107%` |
+| B | `0/16`, all `stage_overtime` | `1.608041` | `1.450195` | `0.157847` | `{2:1,4:1,5:14}` | `0%` |
+| C | `0/16`, all `stage_overtime` | `1.060336` | `0.906377` | `0.153958` | `{3:3,4:11,5:2}` | `~0.105%` |
+| D | `0/16`, all `stage_overtime` | `0.122457` | `0.116454` | `0.006004` | `{3:16}` | `0%` |
+
+关键判断：A/B 的 door progress 与 stage progression 都明显强于 C/D，说明 current stage3-unlocked implementation 在这个 seed/config 下没有带来预期改善。A 的最大与 terminal hinge 最高，因此暂列 provisional best；B 的 terminal 仅略低但 rebound 更小，是 close runner-up。四组都没有 goal，且 bilateral stability 几乎为 0，所以不能把 door angle 排序解释为握持成功。
+
+四组 close command ratio 均约 `99%`，却仍是 `arm_body8` dominance；这说明 failure 已不是“policy 没有尝试闭合”这么简单。当前最值得检验的是 `FrameTransformer` source/target、`grasp_target` prim pose、`arm_body7/8` finger colliders、handle collider/contact surfaces、finger closing axis、closed aperture 与 bilateral reachability 是否几何一致。几何 root cause 目前仍是 hypothesis，不应在诊断前写成已证实结论。
+
+### Qualified A/B Rendering
+
+- A/B env3/env5 都只显示 pivot-area brief push/contact，随后 detach，没有形成可见的全程双侧夹持。
+- B env3 出现约 `91.8N` doorframe event；B env5 在 stage2 jam，这两项是 candidate-specific qualitative guardrail。
+- B 生成 48 个预期 episode0 artifacts。A 有 48 个有效 episode0 artifacts，但另外多出 3 个 env0 episode1 terminal-only artifacts，因此 A render **strict total-count FAIL**；不能把它记录为 matched render strict PASS。
+- Scalar/trace 是 primary comparison；render 只用于解释接触位置、detach、doorframe event 与 jam，不参与 success-rate 或严格 matched-count 统计。
+
+## Historical D0-D3 Provenance and Scope
 
 | Item | Control |
 |---|---|
@@ -55,12 +84,16 @@ D2 直接覆盖 gripper primitive，但 bilateral contact、stability 和 root m
 
 ## Limitations
 
+- `base_v9` formal comparison 只有一个 training seed；16-env first-episode scalar eval 能做 bounded ranking，不能给出 statistical winner 或泛化 success rate。
+- 四组都是 `0/16 goal` / `stage_overtime`。A/B 的更高 door angle 是 relative progress，不是 task success，更不是 hold success。
+- A rendering 多出 3 个 env0 episode1 terminal-only artifacts，strict total-count FAIL；A/B render 只能作为 qualitative evidence，不能覆盖 matched scalar/trace primary。
+- `arm_body8` dominance、close command 与低 contact stability 支持 geometry diagnosis 的优先级，但尚未证明具体 root cause。必须核对 transform、collider、contact surface、closing axis/aperture 与 bilateral reachability 后才能下结论。
+- Current unlocked C/D 较弱只描述本轮 `a2_stage3_base_unlocked` 语义、seed 与 config；不能据此声称所有 base mobility 或 locomotion assistance 都无效。
 - D0/D1/D2 只有 8 env、单 seed、每 env 1 episode；它们是 bounded diagnosis，不是 success-rate estimate。
-- 三组复用 frozen A policy。特别是 D0/D2 把在 threshold `0.6` 训练过的 policy 提前切到 stage4，包含明确的 out-of-training-distribution stage switch；这正适合诊断回弹，但不能替代 v9 retraining。
-- 本轮快速 causal runs 是 no-render；视觉表述来自已有 A-on-A' reference，新的量化结论来自 scalar/trace。最终候选仍应补同 seed rendering。
+- 三组 historical D0-D2 复用 frozen A policy。特别是 D0/D2 把在 threshold `0.6` 训练过的 policy 提前切到 stage4，包含明确的 out-of-training-distribution stage switch；这些 run 适合解释设计来源，不应与已经 retrain 的 v9 scalar 混为同一证据层级。
 - Soft-limit margin 是 joint-space proxy，不等于完整 Cartesian manipulability、torque reserve 或 self-collision margin。
 
-## Implemented Base v9 2×2
+## Implemented and Evaluated Base v9 2×2
 
 四组共同 invariants：保留 B hold-handle bundle，即 stage3/4 的 handle orientation、grasp/contact-retention 语义持续 active，stage4 使用 mild target distance，并加入 keep-close / open-command penalty / bilateral contact / opposite squeeze / squeeze-force window / contact stability / over-force penalty 七项 hold terms；doorframe scale 对齐 B route，`penalty_a2_stage4_arm_default_pose_l1` 保持 `0.0`。Gripper primitive、actuator gain/effort、stage2 completion 与 workspace-margin shaping均不改。全部从同一个 A ckpt1000 做 policy-only initialization，训练/eval budget 和 seeds 严格一致。
 
@@ -73,7 +106,7 @@ D2 直接覆盖 gripper primitive，但 bilateral contact、stability 和 root m
 
 `unlocked` 的单变量定义应保持窄：移除 stage3 `penalty_not_standing_still=-15`，并移除 `_stage_3_reward_condition()` 中 `base physical command norm <= 0.1` 的 base-still gate；stage1/2 stillness gates 与 B hold reward terms 保持不变，不要同时改 arm pose 或 gripper dynamics。
 
-解释方式：A↔B 与 C↔D 是 threshold effect；A↔C 与 B↔D 是 base-unlock effect；若 D 只在两者同时存在时改善，则存在 interaction。Primary metrics 应是 terminal hinge、rebound `max-end`、stage3/4 bilateral stability、stage progression/goal；guardrails 是 min arm margin、door-frame contact、base roll/pitch、TCP slip 与 root displacement。
+解释方式：A↔B 与 C↔D 是 threshold effect；A↔C 与 B↔D 是 base-unlock effect。Observed result 是 locked A/B 明显强于 unlocked C/D，且 A/B 的 terminal hinge 接近、B rebound 更低；但所有组的 bilateral stability 与 goal 都失败，因此这一轮没有产生 hold-handle winner。Primary metrics 是 terminal hinge、rebound `max-end`、stage3/4 bilateral stability、stage progression/goal；guardrails 是 min arm margin、door-frame contact、base roll/pitch、TCP slip 与 root displacement。
 
 ### Warm-Start and Runtime Semantics
 
@@ -89,13 +122,14 @@ D2 直接覆盖 gripper primitive，但 bilateral contact、stability 和 root m
 - 不直接采用 threshold `0.6`；D1 已显示它把 arm 推到 workspace boundary。
 - 不直接把 `0.174533` 当最终答案；D0 显示 frozen policy 的 early stage switch 会回弹。
 - 不恢复 stage4 arm default-pose reward；它与继续推门/握持目标冲突。
-- 不把 workspace-margin shaping 混进首轮 2×2。若 base-unlock 后 `arm_j6` saturation 仍存在，再做第二轮 single-variable A/B。
+- 不把 workspace-margin shaping 当作当前 immediate fix。先完成 exact geometry diagnosis；只有 geometry/contact reachability 合理且 `arm_j6` saturation 仍持续，才做第二轮 single-variable A/B。
+- 不因 C/D 较弱就宣布所有 base mobility 无效，也不把 A 的 single-seed scalar lead 写成 final/statistical winner。
 - 不把 scratch B ckpt1000 的 stage2 acquisition failure 与本轮 stage3/4 hold ablation 混为同一因素。
 
 ## Next Steps
 
-1. User 使用同一个 `base_v8 A` ckpt1000，以 `checkpoint_load_mode=policy_only` 运行 A/B/C/D 四组 1000-batch formal training；每组 2 processes、每 rank 2048 env，seeds 与其余 budget/config 严格一致。
-2. 如任一组出现 OOM，先记录完整 traceback 和该组 GPU memory 状态并反馈；不要单独降低 env count。资源调整必须四组统一后再继续。
-3. 训练结束后收集四个 exact run dir 与 ckpt1000；先运行 matched scalar/trace eval，比较 terminal hinge、rebound、bilateral stability、stage progression/goal 及 arm margin / doorframe / roll-pitch / TCP-slip guardrails。
-4. 根据 scalar/trace 选领先组，再补同 seed multi-camera rendering；若 base-unlock 有效，优先在 C/D 中选 winner；若无效，先检查 actor raw base action、physical command 与 measured root motion，再决定 locomotion shaping。
-5. 只有首轮 winner 仍持续出现 `arm_j6` margin `<0.05` 时，才进入 workspace-margin second-round single-variable ablation；forced-close、Kp/effort、arm-default pose 与额外 keep-close scale 继续不混入首轮。
+1. Read-only 核对 `piper_gripper_handle_frame_transformer` 的 source prim、source offset、target prim、target offset、`target_pos_source` / `source_quat_w` 语义，并把 `grasp_target` prim 的实际 pose 对到同一坐标系。
+2. Exact 检查 `arm_body7/8` finger collider 的 shape/extent/orientation、handle collider 与有效 contact surfaces；确认当前 handle 是否在两指可接触区域，而不是只在 `arm_body8` 外侧/末端相交。
+3. 量化 finger closing axis、open/closed aperture、joint sign/limits 与 handle 横截面，判断 bilateral reachability。必要时用静态 GUI/geometry measurement 验证，但本阶段不改 product code/config。
+4. 只有 geometry diagnosis 给出可证伪 root cause 后，才形成 v10 plan 并重新走 user approval gate；此前不启动长训练。
+5. Workspace-margin shaping deferred 到 geometry/contact reachability 确认之后。若 geometry 合理而 `arm_j6` workspace saturation 仍是独立 blocker，再设计 single-variable ablation。

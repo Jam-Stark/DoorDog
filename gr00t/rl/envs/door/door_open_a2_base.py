@@ -60,6 +60,10 @@ A2_HOLD_PHASE_NAMES = {
 A2_HOLD_TARGET_ORIENTATION_SEMANTIC = (
     "handle_orientation_composed_with_handoff_handle_to_gripper_relative_orientation"
 )
+A2_HOLD_OFFSET_TARGET_ORIENTATION_SEMANTIC = (
+    "captured gate source quaternion is fixed-world residual reference; placement uses "
+    "Cartesian DLS; static clamp uses accumulated joint-target hold with arm raw zero"
+)
 A2_HOLD_OUTCOME_NAMES = (
     "PENDING",
     "NO_GATE",
@@ -81,8 +85,202 @@ A2_HOLD_OUTCOME_NAMES = (
     "RETAINED",
     "STATIC_CLAMP_COMPLETE",
     "STATIC_CLAMP_INCOMPLETE",
+    "PLACEMENT_INCOMPLETE",
+    "PLACEMENT_NOT_CONVERGED",
+    "OFFSET_PLACEMENT_COMPLETE_EPISODE_ENDED",
+    "STABILIZATION_CONTACT_CONTAMINATED",
+    "STABILIZATION_GATE_LOST",
+    "STABILIZATION_INCOMPLETE",
+    "STABILIZATION_READY",
+    "STABILIZATION_NOT_SETTLED",
 )
 A2_HOLD_OUTCOME_TO_ID = {name: index for index, name in enumerate(A2_HOLD_OUTCOME_NAMES)}
+
+
+def a2_hold_quaternion_geodesic_rad(quat_a: torch.Tensor, quat_b: torch.Tensor):
+    """Return the sign-invariant geodesic angle between unit WXYZ quaternions."""
+    if (
+        not torch.is_tensor(quat_a)
+        or not torch.is_tensor(quat_b)
+        or quat_a.shape != quat_b.shape
+        or quat_a.ndim < 1
+        or quat_a.shape[-1] != 4
+        or not quat_a.is_floating_point()
+        or quat_b.dtype != quat_a.dtype
+        or quat_b.device != quat_a.device
+        or not torch.all(torch.isfinite(quat_a))
+        or not torch.all(torch.isfinite(quat_b))
+    ):
+        raise ValueError("quaternion geodesic inputs must be finite matching (...,4) tensors.")
+    norm_a = torch.linalg.norm(quat_a, dim=-1)
+    norm_b = torch.linalg.norm(quat_b, dim=-1)
+    if not torch.allclose(norm_a, torch.ones_like(norm_a), atol=1.0e-5, rtol=0.0) or not torch.allclose(
+        norm_b, torch.ones_like(norm_b), atol=1.0e-5, rtol=0.0
+    ):
+        raise ValueError("quaternion geodesic inputs must be unit length.")
+    dot = torch.abs(torch.sum(quat_a * quat_b, dim=-1)).clamp(max=1.0)
+    return 2.0 * torch.acos(dot)
+
+
+def a2_hold_pose_motion_metrics(position: torch.Tensor, quaternion: torch.Tensor):
+    """Compute adjacent and first-to-last motion for a time-major pose window."""
+    if (
+        not torch.is_tensor(position)
+        or position.ndim != 3
+        or position.shape[-1] != 3
+        or position.shape[0] < 2
+        or not torch.is_tensor(quaternion)
+        or quaternion.shape != (*position.shape[:-1], 4)
+        or not position.is_floating_point()
+        or quaternion.dtype != position.dtype
+        or quaternion.device != position.device
+        or not torch.all(torch.isfinite(position))
+        or not torch.all(torch.isfinite(quaternion))
+    ):
+        raise ValueError("pose motion inputs must be finite time-major (T,N,3)/(T,N,4) tensors.")
+    adjacent_translation = torch.linalg.norm(position[1:] - position[:-1], dim=-1)
+    adjacent_rotation = a2_hold_quaternion_geodesic_rad(quaternion[1:], quaternion[:-1])
+    window_translation = torch.linalg.norm(position[-1] - position[0], dim=-1)
+    window_rotation = a2_hold_quaternion_geodesic_rad(quaternion[-1], quaternion[0])
+    return {
+        "per_call_translation_max": adjacent_translation.max(dim=0).values,
+        "per_call_rotation_max": adjacent_rotation.max(dim=0).values,
+        "window_translation": window_translation,
+        "window_rotation": window_rotation,
+    }
+
+
+def a2_hold_open_stabilization_action(
+    policy_action: torch.Tensor, override_mask: torch.Tensor
+):
+    """Apply the exact base-zero, arm-raw-zero, gripper-open preflight action."""
+    if (
+        not torch.is_tensor(policy_action)
+        or policy_action.ndim != 2
+        or policy_action.shape[1] != 12
+        or not policy_action.is_floating_point()
+        or not torch.all(torch.isfinite(policy_action))
+        or not torch.is_tensor(override_mask)
+        or override_mask.shape != policy_action.shape[:1]
+        or override_mask.dtype != torch.bool
+        or override_mask.device != policy_action.device
+    ):
+        raise ValueError("open-stabilization action inputs violate the canonical A2 action contract.")
+    action = policy_action.clone()
+    action[override_mask, :11] = 0.0
+    action[override_mask, 11] = 1.0
+    return action
+
+
+def a2_hold_open_stabilization_terminal_partition(
+    affected_mask: torch.Tensor,
+    action_count: torch.Tensor,
+    contact_contaminated: torch.Tensor,
+    composite_gate: torch.Tensor,
+    target_steps: int,
+):
+    """Partition a forced finish with CONTACT > GATE > endpoint > incomplete priority."""
+    tensors = (affected_mask, contact_contaminated, composite_gate)
+    if (
+        any(
+            not torch.is_tensor(value)
+            or value.shape != affected_mask.shape
+            or value.dtype != torch.bool
+            or value.device != affected_mask.device
+            for value in tensors
+        )
+        or affected_mask.ndim != 1
+        or not torch.is_tensor(action_count)
+        or action_count.shape != affected_mask.shape
+        or action_count.dtype != torch.long
+        or action_count.device != affected_mask.device
+        or torch.any(action_count < 0)
+        or isinstance(target_steps, bool)
+        or not isinstance(target_steps, int)
+        or target_steps <= 0
+    ):
+        raise ValueError("open-stabilization terminal partition inputs are invalid.")
+    exceeded = affected_mask & (action_count > target_steps)
+    if torch.any(exceeded):
+        raise ValueError("open-stabilization action count exceeded its exact target.")
+    contact = affected_mask & contact_contaminated
+    gate_lost = affected_mask & ~contact & ~composite_gate
+    endpoint = affected_mask & ~contact & composite_gate & (action_count == target_steps)
+    incomplete = affected_mask & ~contact & composite_gate & (action_count < target_steps)
+    return {
+        "contact_contaminated": contact,
+        "gate_lost": gate_lost,
+        "endpoint": endpoint,
+        "incomplete": incomplete,
+    }
+
+
+def a2_hold_validate_open_stabilization_runtime_invariants(
+    captured_arm_target: torch.Tensor,
+    accumulated_arm_target: torch.Tensor,
+    post_delta_arm_target: torch.Tensor,
+    stiffness: torch.Tensor,
+    damping: torch.Tensor,
+    effort_limit: torch.Tensor,
+):
+    """Fail immediately when a controlled preflight frame violates its fixed command/runtime tuple."""
+    arm_values = (accumulated_arm_target, post_delta_arm_target)
+    gripper_values = (stiffness, damping, effort_limit)
+    if (
+        not torch.is_tensor(captured_arm_target)
+        or captured_arm_target.ndim != 2
+        or captured_arm_target.shape[1] != 6
+        or not captured_arm_target.is_floating_point()
+        or any(
+            not torch.is_tensor(value)
+            or value.shape != captured_arm_target.shape
+            or not value.is_floating_point()
+            or value.dtype != captured_arm_target.dtype
+            or value.device != captured_arm_target.device
+            or not torch.all(torch.isfinite(value))
+            for value in arm_values
+        )
+        or any(
+            not torch.is_tensor(value)
+            or value.shape != (captured_arm_target.shape[0], 2)
+            or not value.is_floating_point()
+            or value.dtype != captured_arm_target.dtype
+            or value.device != captured_arm_target.device
+            or not torch.all(torch.isfinite(value))
+            for value in gripper_values
+        )
+        or not torch.all(torch.isfinite(captured_arm_target))
+    ):
+        raise ValueError(
+            "open-stabilization runtime invariant inputs require finite same-device "
+            "(N,6) arm targets and (N,2) gripper properties."
+        )
+    accumulated_ok = torch.all(accumulated_arm_target == captured_arm_target, dim=-1)
+    if not torch.all(accumulated_ok):
+        raise ValueError(
+            "accumulated arm target changed from the captured gate target; "
+            f"rows={torch.nonzero(~accumulated_ok, as_tuple=False).flatten().detach().cpu().tolist()}."
+        )
+    post_delta_ok = torch.all(post_delta_arm_target == captured_arm_target, dim=-1)
+    if not torch.all(post_delta_ok):
+        raise ValueError(
+            "authoritative post-delta arm target differs from the captured gate target; "
+            f"rows={torch.nonzero(~post_delta_ok, as_tuple=False).flatten().detach().cpu().tolist()}."
+        )
+    stiffness_ok = torch.all(stiffness == torch.full_like(stiffness, 80.0), dim=-1)
+    damping_ok = torch.all(damping == torch.full_like(damping, 3.0), dim=-1)
+    effort_ok = torch.all(effort_limit == torch.full_like(effort_limit, 10.0), dim=-1)
+    gain_effort_ok = stiffness_ok & damping_ok & effort_ok
+    if not torch.all(gain_effort_ok):
+        raise ValueError(
+            "actual gripper Kp/Kd/effort differs from exact 80/3/10; "
+            f"rows={torch.nonzero(~gain_effort_ok, as_tuple=False).flatten().detach().cpu().tolist()}."
+        )
+    return {
+        "accumulated_arm_target_invariant": accumulated_ok,
+        "post_delta_arm_target_invariant": post_delta_ok,
+        "runtime_gripper_gain_effort_exact": gain_effort_ok,
+    }
 
 
 def a2_hold_aggregate_normal_force_direction(normal_force_w: torch.Tensor):
@@ -357,6 +555,47 @@ def a2_hold_static_clamp_terminal_partition(
     }
 
 
+def a2_hold_offset_terminal_partition(
+    affected_mask: torch.Tensor,
+    placement_action_count: torch.Tensor,
+    target_steps: int,
+):
+    """Partition terminal placement without treating a completed action 20 as incomplete."""
+    if (
+        not torch.is_tensor(affected_mask)
+        or affected_mask.ndim != 1
+        or affected_mask.dtype != torch.bool
+        or not torch.is_tensor(placement_action_count)
+        or placement_action_count.shape != affected_mask.shape
+        or placement_action_count.dtype != torch.long
+        or placement_action_count.device != affected_mask.device
+        or torch.any(placement_action_count < 0)
+        or isinstance(target_steps, bool)
+        or not isinstance(target_steps, int)
+        or target_steps <= 0
+    ):
+        raise ValueError("offset placement terminal partition inputs are invalid.")
+    exceeded = affected_mask & (placement_action_count > target_steps)
+    if torch.any(exceeded):
+        raise ValueError(
+            "offset placement action count exceeded its exact target: "
+            f"count={placement_action_count[exceeded].detach().cpu().tolist()}, "
+            f"target={target_steps}."
+        )
+    return {
+        "incomplete": affected_mask & (placement_action_count < target_steps),
+        "endpoint_check": affected_mask & (placement_action_count == target_steps),
+    }
+
+
+def a2_hold_target_orientation_semantic(offset_probe_enabled: bool) -> str:
+    if not isinstance(offset_probe_enabled, bool):
+        raise ValueError("offset_probe_enabled must be bool.")
+    if offset_probe_enabled:
+        return A2_HOLD_OFFSET_TARGET_ORIENTATION_SEMANTIC
+    return A2_HOLD_TARGET_ORIENTATION_SEMANTIC
+
+
 def a2_hold_apply_static_clamp_action(
     policy_action: torch.Tensor,
     override_mask: torch.Tensor,
@@ -379,6 +618,281 @@ def a2_hold_apply_static_clamp_action(
     action[override_mask, :11] = 0.0
     action[override_mask, 11] = -1.0
     return action
+
+
+def a2_hold_offset_fixed_world_target(
+    gate_source_pos_w: torch.Tensor,
+    gate_source_quat_w: torch.Tensor,
+    offset_m: float,
+):
+    """Build one non-accumulating world target along gate source-local +Y."""
+    if (
+        not torch.is_tensor(gate_source_pos_w)
+        or gate_source_pos_w.ndim != 2
+        or gate_source_pos_w.shape[1] != 3
+        or not torch.is_tensor(gate_source_quat_w)
+        or gate_source_quat_w.shape != (gate_source_pos_w.shape[0], 4)
+        or not gate_source_pos_w.is_floating_point()
+        or gate_source_quat_w.dtype != gate_source_pos_w.dtype
+        or gate_source_quat_w.device != gate_source_pos_w.device
+        or not torch.all(torch.isfinite(gate_source_pos_w))
+        or not torch.all(torch.isfinite(gate_source_quat_w))
+        or isinstance(offset_m, bool)
+        or not isinstance(offset_m, (int, float))
+        or not math.isfinite(float(offset_m))
+    ):
+        raise ValueError("offset fixed-target inputs must be finite same-dtype poses.")
+    quat_norm = torch.linalg.norm(gate_source_quat_w, dim=-1)
+    if not torch.allclose(
+        quat_norm, torch.ones_like(quat_norm), atol=1.0e-5, rtol=0.0
+    ):
+        raise ValueError("offset fixed-target source quaternion must be unit length.")
+    local_y = torch.zeros_like(gate_source_pos_w)
+    local_y[:, 1] = 1.0
+    axis_w = quat_apply(gate_source_quat_w, local_y)
+    axis_norm = torch.linalg.norm(axis_w, dim=-1)
+    if not torch.allclose(
+        axis_norm, torch.ones_like(axis_norm), atol=1.0e-5, rtol=0.0
+    ):
+        raise ValueError("offset fixed-target source +Y axis must be unit length.")
+    displacement_w = float(offset_m) * axis_w
+    target_pos_w = gate_source_pos_w + displacement_w
+    projection = torch.sum(displacement_w * axis_w, dim=-1)
+    orthogonal = displacement_w - projection[:, None] * axis_w
+    if not torch.allclose(
+        projection,
+        torch.full_like(projection, float(offset_m)),
+        atol=1.0e-7,
+        rtol=0.0,
+    ) or torch.any(torch.linalg.norm(orthogonal, dim=-1) > 1.0e-7):
+        raise ValueError("offset fixed-target displacement decomposition is inconsistent.")
+    return axis_w, target_pos_w, gate_source_quat_w.clone()
+
+
+def a2_hold_validate_offset_axis_opening_dots(
+    source_local_y_axis_w: torch.Tensor,
+    signed_opening_axes_w: torch.Tensor,
+    *,
+    alignment_tolerance: float = 1.0e-4,
+):
+    """Verify source +Y points toward body8 opening and opposite body7 opening."""
+    if (
+        not torch.is_tensor(source_local_y_axis_w)
+        or source_local_y_axis_w.ndim != 2
+        or source_local_y_axis_w.shape[1] != 3
+        or not torch.is_tensor(signed_opening_axes_w)
+        or signed_opening_axes_w.shape != (source_local_y_axis_w.shape[0], 2, 3)
+        or not source_local_y_axis_w.is_floating_point()
+        or signed_opening_axes_w.dtype != source_local_y_axis_w.dtype
+        or signed_opening_axes_w.device != source_local_y_axis_w.device
+        or not torch.all(torch.isfinite(source_local_y_axis_w))
+        or not torch.all(torch.isfinite(signed_opening_axes_w))
+        or isinstance(alignment_tolerance, bool)
+        or not isinstance(alignment_tolerance, (int, float))
+        or not math.isfinite(float(alignment_tolerance))
+        or alignment_tolerance <= 0.0
+        or alignment_tolerance >= 1.0
+    ):
+        raise ValueError("offset/opening-axis validation inputs are invalid.")
+    source_norm = torch.linalg.norm(source_local_y_axis_w, dim=-1)
+    opening_norm = torch.linalg.norm(signed_opening_axes_w, dim=-1)
+    if not torch.allclose(source_norm, torch.ones_like(source_norm), atol=1.0e-5, rtol=0.0):
+        raise ValueError("offset source +Y axis must be unit length.")
+    if not torch.allclose(opening_norm, torch.ones_like(opening_norm), atol=1.0e-5, rtol=0.0):
+        raise ValueError("offset signed opening axes must be unit length.")
+    dots = torch.sum(signed_opening_axes_w * source_local_y_axis_w[:, None], dim=-1)
+    valid = (dots[:, 0] <= -1.0 + float(alignment_tolerance)) & (
+        dots[:, 1] >= 1.0 - float(alignment_tolerance)
+    )
+    if not torch.all(valid):
+        raise ValueError(
+            "offset source +Y must oppose body7 opening and align with body8 opening; "
+            f"dots={dots[~valid].detach().cpu().tolist()}."
+        )
+    return dots
+
+
+def a2_hold_offset_placement_step_masks(
+    enabled: bool,
+    activate_mask: torch.Tensor,
+    first_episode_active_mask: torch.Tensor,
+    previous_active: torch.Tensor,
+    previous_action_count: torch.Tensor,
+    target_steps: int,
+):
+    """Emit exactly target placement actions, then check on the next control call."""
+    masks = (activate_mask, first_episode_active_mask, previous_active)
+    if (
+        not isinstance(enabled, bool)
+        or any(
+            not torch.is_tensor(mask)
+            or mask.shape != activate_mask.shape
+            or mask.dtype != torch.bool
+            or mask.device != activate_mask.device
+            for mask in masks
+        )
+        or not torch.is_tensor(previous_action_count)
+        or previous_action_count.shape != activate_mask.shape
+        or previous_action_count.dtype != torch.long
+        or previous_action_count.device != activate_mask.device
+        or torch.any(previous_action_count < 0)
+        or isinstance(target_steps, bool)
+        or not isinstance(target_steps, int)
+        or target_steps <= 0
+    ):
+        raise ValueError("offset placement step-state inputs are invalid.")
+    if not enabled:
+        if torch.any(previous_active) or torch.any(previous_action_count != 0):
+            raise ValueError("disabled offset placement state must remain inactive and zero.")
+        zero = torch.zeros_like(previous_active)
+        return {
+            "entering": zero,
+            "override": zero,
+            "endpoint_check": zero,
+            "incomplete": zero,
+            "active": previous_active,
+            "action_count": previous_action_count,
+        }
+    if torch.any((previous_action_count != 0) & ~previous_active):
+        raise ValueError("inactive offset placement cannot retain a live action count.")
+    overrun = previous_active & (previous_action_count > target_steps)
+    if torch.any(overrun):
+        raise ValueError(
+            "offset placement action count exceeded its exact target: "
+            f"{previous_action_count[overrun].detach().cpu().tolist()}."
+        )
+    endpoint_check = (
+        previous_active
+        & first_episode_active_mask
+        & (previous_action_count == target_steps)
+    )
+    incomplete = previous_active & ~first_episode_active_mask
+    entering = activate_mask & first_episode_active_mask & ~previous_active
+    working = (previous_active | entering) & first_episode_active_mask
+    override = working & ~endpoint_check
+    updated_count = previous_action_count.clone()
+    updated_count[entering] = 0
+    updated_count[override] += 1
+    return {
+        "entering": entering,
+        "override": override,
+        "endpoint_check": endpoint_check,
+        "incomplete": incomplete,
+        "active": override.clone(),
+        "action_count": updated_count,
+    }
+
+
+def a2_hold_apply_offset_placement_action(
+    policy_action: torch.Tensor,
+    placement_mask: torch.Tensor,
+    arm_raw_action: torch.Tensor,
+):
+    if (
+        not torch.is_tensor(policy_action)
+        or policy_action.ndim != 2
+        or policy_action.shape[1] != 12
+        or not policy_action.is_floating_point()
+        or not torch.all(torch.isfinite(policy_action))
+        or not torch.is_tensor(placement_mask)
+        or placement_mask.shape != policy_action.shape[:1]
+        or placement_mask.dtype != torch.bool
+        or placement_mask.device != policy_action.device
+        or not torch.is_tensor(arm_raw_action)
+        or arm_raw_action.shape != (policy_action.shape[0], 6)
+        or arm_raw_action.dtype != policy_action.dtype
+        or arm_raw_action.device != policy_action.device
+        or not torch.all(torch.isfinite(arm_raw_action))
+    ):
+        raise ValueError("offset placement action inputs violate the A2 action contract.")
+    if not torch.any(placement_mask):
+        return policy_action
+    action = policy_action.clone()
+    action[placement_mask, :5] = 0.0
+    action[placement_mask, 5:11] = arm_raw_action[placement_mask]
+    action[placement_mask, 11] = 1.0
+    return action
+
+
+def a2_hold_offset_endpoint_metrics(
+    current_source_pos_w: torch.Tensor,
+    current_source_quat_w: torch.Tensor,
+    gate_source_pos_w: torch.Tensor,
+    fixed_target_pos_w: torch.Tensor,
+    fixed_target_quat_w: torch.Tensor,
+    source_local_y_axis_w: torch.Tensor,
+    requested_offset_m: float,
+    position_tolerance_m: float,
+    orientation_tolerance_rad: float,
+):
+    values = (
+        current_source_pos_w,
+        current_source_quat_w,
+        gate_source_pos_w,
+        fixed_target_pos_w,
+        fixed_target_quat_w,
+        source_local_y_axis_w,
+    )
+    n = current_source_pos_w.shape[0] if torch.is_tensor(current_source_pos_w) else -1
+    expected_shapes = ((n, 3), (n, 4), (n, 3), (n, 3), (n, 4), (n, 3))
+    if (
+        n < 0
+        or any(
+            not torch.is_tensor(value)
+            or value.shape != shape
+            or not value.is_floating_point()
+            or value.dtype != current_source_pos_w.dtype
+            or value.device != current_source_pos_w.device
+            or not torch.all(torch.isfinite(value))
+            for value, shape in zip(values, expected_shapes, strict=True)
+        )
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in (
+                requested_offset_m,
+                position_tolerance_m,
+                orientation_tolerance_rad,
+            )
+        )
+        or position_tolerance_m <= 0.0
+        or orientation_tolerance_rad <= 0.0
+    ):
+        raise ValueError("offset endpoint metric inputs are invalid.")
+    axis_norm = torch.linalg.norm(source_local_y_axis_w, dim=-1)
+    quat_norms = (
+        torch.linalg.norm(current_source_quat_w, dim=-1),
+        torch.linalg.norm(fixed_target_quat_w, dim=-1),
+    )
+    if not torch.allclose(axis_norm, torch.ones_like(axis_norm), atol=1.0e-5, rtol=0.0):
+        raise ValueError("offset endpoint axis must be unit length.")
+    if any(
+        not torch.allclose(norm, torch.ones_like(norm), atol=1.0e-5, rtol=0.0)
+        for norm in quat_norms
+    ):
+        raise ValueError("offset endpoint quaternions must be unit length.")
+    achieved_delta = current_source_pos_w - gate_source_pos_w
+    achieved_signed_offset = torch.sum(achieved_delta * source_local_y_axis_w, dim=-1)
+    orthogonal = achieved_delta - achieved_signed_offset[:, None] * source_local_y_axis_w
+    orthogonal_residual = torch.linalg.norm(orthogonal, dim=-1)
+    position_residual = torch.linalg.norm(fixed_target_pos_w - current_source_pos_w, dim=-1)
+    quat_dot = torch.abs(torch.sum(current_source_quat_w * fixed_target_quat_w, dim=-1))
+    orientation_residual = 2.0 * torch.acos(quat_dot.clamp(max=1.0))
+    signed_offset_error = torch.abs(achieved_signed_offset - float(requested_offset_m))
+    converged = (
+        (position_residual <= float(position_tolerance_m))
+        & (orientation_residual <= float(orientation_tolerance_rad))
+        & (signed_offset_error <= float(position_tolerance_m))
+    )
+    return {
+        "achieved_signed_offset_m": achieved_signed_offset,
+        "signed_offset_error_m": signed_offset_error,
+        "orthogonal_residual_m": orthogonal_residual,
+        "position_residual_m": position_residual,
+        "orientation_residual_rad": orientation_residual,
+        "converged": converged,
+    }
 
 
 def a2_hold_validate_friction_override(value):
@@ -4877,6 +5391,15 @@ class DoorPregrasp(
                 raise RuntimeError(f"eval.{key} must be a positive int; got {value!r}.")
             return value
 
+        def finite_float(key):
+            value = eval_config.get(key, None)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise RuntimeError(f"eval.{key} must be a finite float; got {value!r}.")
+            value = float(value)
+            if not math.isfinite(value):
+                raise RuntimeError(f"eval.{key} must be a finite float; got {value!r}.")
+            return value
+
         def required_bool(key):
             value = eval_config.get(key, None)
             if not isinstance(value, bool):
@@ -4951,6 +5474,51 @@ class DoorPregrasp(
             "static_clamp_damping": positive_float(
                 "a2_hold_oracle_static_clamp_damping"
             ),
+            "static_clamp_offset_probe_enabled": required_bool(
+                "a2_hold_oracle_static_clamp_offset_probe_enabled"
+            ),
+            "static_clamp_offset_m": finite_float(
+                "a2_hold_oracle_static_clamp_offset_m"
+            ),
+            "static_clamp_offset_placement_steps": positive_int(
+                "a2_hold_oracle_static_clamp_offset_placement_steps"
+            ),
+            "static_clamp_offset_position_tolerance_m": positive_float(
+                "a2_hold_oracle_static_clamp_offset_position_tolerance_m"
+            ),
+            "static_clamp_offset_orientation_tolerance_rad": positive_float(
+                "a2_hold_oracle_static_clamp_offset_orientation_tolerance_rad"
+            ),
+            "open_stabilization_preflight_enabled": required_bool(
+                "a2_hold_oracle_open_stabilization_preflight_enabled"
+            ),
+            "open_stabilization_steps": positive_int(
+                "a2_hold_oracle_open_stabilization_steps"
+            ),
+            "open_stabilization_quiet_window_steps": positive_int(
+                "a2_hold_oracle_open_stabilization_quiet_window_steps"
+            ),
+            "open_stabilization_root_linear_speed_max_mps": positive_float(
+                "a2_hold_oracle_open_stabilization_root_linear_speed_max_mps"
+            ),
+            "open_stabilization_root_angular_speed_max_radps": positive_float(
+                "a2_hold_oracle_open_stabilization_root_angular_speed_max_radps"
+            ),
+            "open_stabilization_pose_per_call_translation_max_m": positive_float(
+                "a2_hold_oracle_open_stabilization_pose_per_call_translation_max_m"
+            ),
+            "open_stabilization_pose_per_call_rotation_max_rad": positive_float(
+                "a2_hold_oracle_open_stabilization_pose_per_call_rotation_max_rad"
+            ),
+            "open_stabilization_pose_window_translation_max_m": positive_float(
+                "a2_hold_oracle_open_stabilization_pose_window_translation_max_m"
+            ),
+            "open_stabilization_pose_window_rotation_max_rad": positive_float(
+                "a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad"
+            ),
+            "open_stabilization_contact_force_max_n": positive_float(
+                "a2_hold_oracle_open_stabilization_contact_force_max_n"
+            ),
         }
         if config["sign_smoke_steps"] >= config["depress_timeout_steps"]:
             raise RuntimeError("A2 hold depress sign-smoke window must be shorter than its timeout.")
@@ -4978,6 +5546,78 @@ class DoorPregrasp(
                     "A2 static clamp requires an exact approved (Kp,Kd) pair in "
                     f"{allowed_gain_pairs}; got {gain_pair}."
                 )
+        if config["static_clamp_offset_probe_enabled"]:
+            if not config["enabled"] or not config["static_clamp_enabled"]:
+                raise RuntimeError(
+                    "A2 offset probe requires hold oracle and static clamp enabled."
+                )
+            if config["static_clamp_offset_m"] not in (-0.003, 0.0, 0.003):
+                raise RuntimeError(
+                    "A2 offset probe requires exact offset in {-0.003,0,+0.003}; "
+                    f"got {config['static_clamp_offset_m']}."
+                )
+            if config["static_clamp_offset_placement_steps"] != 20:
+                raise RuntimeError("A2 offset probe requires exactly 20 placement actions.")
+            if config["static_clamp_steps"] != 40:
+                raise RuntimeError("A2 offset probe requires exactly 40 clamp actions.")
+            if (
+                config["static_clamp_stiffness"],
+                config["static_clamp_damping"],
+            ) != (160.0, 6.0):
+                raise RuntimeError("A2 offset probe requires exact clamp Kp/Kd=(160,6).")
+            formal_protocol = {
+                "static_clamp_offset_position_tolerance_m": 0.0005,
+                "static_clamp_offset_orientation_tolerance_rad": 0.02,
+                "max_position_step_m": 0.002,
+                "max_orientation_step_rad": 0.02,
+                "dls_lambda": 0.01,
+                "jacobian_condition_max": 1.0e6,
+                "joint_limit_margin": 1.0e-4,
+                "soft_limit_progress_tolerance": 1.0e-6,
+                "raw_action_abs_max": 10.0,
+            }
+            mismatched = {
+                key: (config[key], expected)
+                for key, expected in formal_protocol.items()
+                if config[key] != expected
+            }
+            if mismatched:
+                raise RuntimeError(
+                    "A2 offset probe requires the exact formal protocol tuple; "
+                    f"mismatched={mismatched}."
+                )
+        if config["open_stabilization_preflight_enabled"]:
+            if not config["enabled"]:
+                raise RuntimeError(
+                    "A2 open stabilization preflight requires a2_hold_oracle_enabled=true."
+                )
+            if config["static_clamp_enabled"] or config[
+                "static_clamp_offset_probe_enabled"
+            ]:
+                raise RuntimeError(
+                    "A2 open stabilization preflight is mutually exclusive with static clamp and offset probe."
+                )
+            formal_protocol = {
+                "open_stabilization_steps": 40,
+                "open_stabilization_quiet_window_steps": 5,
+                "open_stabilization_root_linear_speed_max_mps": 0.01,
+                "open_stabilization_root_angular_speed_max_radps": 0.02,
+                "open_stabilization_pose_per_call_translation_max_m": 0.0005,
+                "open_stabilization_pose_per_call_rotation_max_rad": 0.0005,
+                "open_stabilization_pose_window_translation_max_m": 0.001,
+                "open_stabilization_pose_window_rotation_max_rad": 0.002,
+                "open_stabilization_contact_force_max_n": 1.0,
+            }
+            mismatched = {
+                key: (config[key], expected)
+                for key, expected in formal_protocol.items()
+                if config[key] != expected
+            }
+            if mismatched:
+                raise RuntimeError(
+                    "A2 open stabilization preflight requires the exact formal protocol tuple; "
+                    f"mismatched={mismatched}."
+                )
         return config
 
     def init_a2_eval_hold_oracle(self, eval_config, *, diagnostic_enabled: bool) -> dict:
@@ -4989,6 +5629,16 @@ class DoorPregrasp(
             raise RuntimeError("A2 hold oracle requires eval.a2_diagnostic_trace_enabled=true.")
         if cfg["static_clamp_enabled"] and not self._get_a2_hold_contact_detail_enabled():
             raise RuntimeError("A2 static clamp requires detailed hold diagnostics.")
+        if cfg["static_clamp_offset_probe_enabled"]:
+            if cfg["tcp_offset_z"] != 0.085:
+                raise RuntimeError("A2 offset probe requires exact current TCP z=0.085.")
+            if self._get_a2_hold_friction_override() is not None:
+                raise RuntimeError("A2 offset probe requires friction override=null.")
+        if cfg["open_stabilization_preflight_enabled"]:
+            if cfg["tcp_offset_z"] != 0.085:
+                raise RuntimeError("A2 open stabilization requires exact current TCP z=0.085.")
+            if self._get_a2_hold_friction_override() is not None:
+                raise RuntimeError("A2 open stabilization requires friction override=null.")
         if (cfg["enabled"] or self._get_a2_hold_friction_override() is not None) and not self._get_a2_hold_contact_detail_enabled():
             raise RuntimeError(
                 "A2 hold oracle/material override requires env detailed contact diagnostics enabled."
@@ -5223,6 +5873,146 @@ class DoorPregrasp(
         self._a2_hold_oracle_static_clamp_step40_snapshot = [
             None for _ in range(self.num_envs)
         ]
+        self._a2_hold_oracle_offset_placement_active = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_offset_placement_ever_activated = torch.zeros_like(
+            self._a2_hold_oracle_offset_placement_active
+        )
+        self._a2_hold_oracle_offset_placement_validated = torch.zeros_like(
+            self._a2_hold_oracle_offset_placement_active
+        )
+        self._a2_hold_oracle_offset_endpoint_checked = torch.zeros_like(
+            self._a2_hold_oracle_offset_placement_active
+        )
+        self._a2_hold_oracle_offset_placement_branch = torch.zeros_like(
+            self._a2_hold_oracle_offset_placement_active
+        )
+        self._a2_hold_oracle_offset_placement_action_count = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_offset_final_placement_action_count = torch.full(
+            (self.num_envs,), -1, device=self.device, dtype=torch.long
+        )
+        offset_pose_shape = (self.num_envs, 3)
+        offset_quat_shape = (self.num_envs, 4)
+        self._a2_hold_oracle_offset_gate_source_pos_w = torch.full(
+            offset_pose_shape, float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_offset_gate_source_quat_w = torch.full(
+            offset_quat_shape, float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_offset_gate_handle_pos_w = torch.full_like(
+            self._a2_hold_oracle_offset_gate_source_pos_w, float("nan")
+        )
+        self._a2_hold_oracle_offset_gate_handle_quat_w = torch.full_like(
+            self._a2_hold_oracle_offset_gate_source_quat_w, float("nan")
+        )
+        self._a2_hold_oracle_offset_source_local_y_axis_w = torch.full_like(
+            self._a2_hold_oracle_offset_gate_source_pos_w, float("nan")
+        )
+        self._a2_hold_oracle_offset_fixed_target_pos_w = torch.full_like(
+            self._a2_hold_oracle_offset_gate_source_pos_w, float("nan")
+        )
+        self._a2_hold_oracle_offset_fixed_target_quat_w = torch.full_like(
+            self._a2_hold_oracle_offset_gate_source_quat_w, float("nan")
+        )
+        self._a2_hold_oracle_offset_opening_axis_dots_body7_body8 = torch.full(
+            (self.num_envs, 2), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_offset_achieved_signed_offset_m = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_offset_signed_offset_error_m = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_orthogonal_residual_m = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_position_residual_m = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_orientation_residual_rad = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_root_start_xy_w = torch.full(
+            (self.num_envs, 2), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_offset_root_displacement_m = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_handle_joint_start = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_hinge_joint_start = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_handle_joint_delta = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_hinge_joint_delta = torch.full_like(
+            self._a2_hold_oracle_offset_achieved_signed_offset_m, float("nan")
+        )
+        self._a2_hold_oracle_offset_preclamp_snapshot = [
+            None for _ in range(self.num_envs)
+        ]
+        self._a2_hold_oracle_open_stabilization_active = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_open_stabilization_ever_activated = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
+        self._a2_hold_oracle_open_stabilization_action_count = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_open_stabilization_final_action_count = torch.full(
+            (self.num_envs,), -1, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_open_stabilization_gate_captured = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
+        self._a2_hold_oracle_open_stabilization_gate_root_pos_w = torch.full(
+            (self.num_envs, 3), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_open_stabilization_gate_root_quat_w = torch.full(
+            (self.num_envs, 4), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_open_stabilization_gate_source_pos_w = torch.full_like(
+            self._a2_hold_oracle_open_stabilization_gate_root_pos_w, float("nan")
+        )
+        self._a2_hold_oracle_open_stabilization_gate_source_quat_w = torch.full_like(
+            self._a2_hold_oracle_open_stabilization_gate_root_quat_w, float("nan")
+        )
+        self._a2_hold_oracle_open_stabilization_gate_handle_pos_w = torch.full_like(
+            self._a2_hold_oracle_open_stabilization_gate_root_pos_w, float("nan")
+        )
+        self._a2_hold_oracle_open_stabilization_gate_handle_quat_w = torch.full_like(
+            self._a2_hold_oracle_open_stabilization_gate_root_quat_w, float("nan")
+        )
+        self._a2_hold_oracle_open_stabilization_arm_target_capture = torch.full(
+            (self.num_envs, 6), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_open_stabilization_samples = [
+            [] for _ in range(self.num_envs)
+        ]
+        self._a2_hold_oracle_open_stabilization_result = [
+            None for _ in range(self.num_envs)
+        ]
+        self._a2_hold_oracle_open_stabilization_reason_contact = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
+        self._a2_hold_oracle_open_stabilization_reason_gate = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
+        self._a2_hold_oracle_open_stabilization_reason_incomplete = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
+        self._a2_hold_oracle_open_stabilization_reason_ready = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
+        self._a2_hold_oracle_open_stabilization_reason_not_settled = torch.zeros_like(
+            self._a2_hold_oracle_open_stabilization_active
+        )
         self._a2_hold_oracle_finalized = False
         self._a2_hold_oracle_post_override_action = None
         if not cfg["enabled"]:
@@ -5281,6 +6071,291 @@ class DoorPregrasp(
         )
         self._a2_hold_oracle_outcome[mask] = A2_HOLD_OUTCOME_TO_ID[outcome]
         self._a2_hold_oracle_phase[mask] = A2_HOLD_PHASE_DONE
+
+    def _get_a2_offset_opening_axes_w(self) -> torch.Tensor:
+        robot = self.simulator.scene.articulations["robot"]
+        body_ids = []
+        for body_name in ("arm_body7", "arm_body8"):
+            ids, names = robot.find_bodies(body_name, preserve_order=True)
+            if len(ids) != 1 or names != [body_name]:
+                raise RuntimeError(
+                    f"A2 offset probe requires exactly one {body_name}; got {ids}, {names}."
+                )
+            body_ids.append(ids[0])
+        joint_ids = a2_hold_map_task_to_articulation_joint_ids(
+            self.simulator.dof_ids,
+            self._a2_gripper_dof_indices,
+            self.dof_names,
+            robot.data.joint_pos.shape[1],
+            self.device,
+        )
+        joint_names = [robot.joint_names[index] for index in joint_ids.tolist()]
+        if joint_names != ["arm_j7", "arm_j8"]:
+            raise RuntimeError(
+                "A2 offset probe requires mapped arm_j7,arm_j8 order; "
+                f"got {joint_names}."
+            )
+        jacobian = robot.root_physx_view.get_jacobians()
+        return a2_hold_signed_gripper_opening_axes_from_jacobian(
+            jacobian,
+            torch.tensor(body_ids, device=self.device, dtype=torch.long),
+            joint_ids,
+            self._a2_gripper_open_target.to(
+                device=self.device, dtype=jacobian.dtype
+            ),
+            self._a2_gripper_close_target.to(
+                device=self.device, dtype=jacobian.dtype
+            ),
+        )
+
+    def _capture_a2_offset_gate(self, capture_mask: torch.Tensor) -> None:
+        env_ids = torch.nonzero(capture_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        if torch.any(self._a2_hold_oracle_offset_placement_ever_activated[env_ids]):
+            raise RuntimeError("A2 offset gate may only be captured once per env.")
+        frames = self._get_a2_hold_oracle_world_frames()
+        gate_pos = frames["source_pos_w"][env_ids]
+        gate_quat = frames["source_quat_w"][env_ids]
+        try:
+            axis_w, target_pos_w, target_quat_w = a2_hold_offset_fixed_world_target(
+                gate_pos,
+                gate_quat,
+                self._a2_hold_oracle_cfg["static_clamp_offset_m"],
+            )
+            dots = a2_hold_validate_offset_axis_opening_dots(
+                axis_w, self._get_a2_offset_opening_axes_w()[env_ids]
+            )
+        except ValueError as exc:
+            raise RuntimeError(f"A2 offset gate capture failed: {exc}") from exc
+        _, _, gripper_state = self._get_a2_static_clamp_gripper_state(env_ids)
+        expected_stiffness = torch.full_like(gripper_state["stiffness"], 80.0)
+        expected_damping = torch.full_like(gripper_state["damping"], 3.0)
+        expected_effort = torch.full_like(gripper_state["effort_limit"], 10.0)
+        if (
+            not torch.equal(gripper_state["stiffness"], expected_stiffness)
+            or not torch.equal(gripper_state["damping"], expected_damping)
+            or not torch.equal(gripper_state["effort_limit"], expected_effort)
+        ):
+            raise RuntimeError(
+                "A2 offset placement requires initial gripper Kp/Kd=80/3 and effort=10/10."
+            )
+        door_joint_pos = self._get_door_joint_pos("A2 offset gate capture", 2)
+        self._a2_hold_oracle_offset_gate_source_pos_w[env_ids] = gate_pos
+        self._a2_hold_oracle_offset_gate_source_quat_w[env_ids] = gate_quat
+        self._a2_hold_oracle_offset_gate_handle_pos_w[env_ids] = frames[
+            "handle_pos_w"
+        ][env_ids]
+        self._a2_hold_oracle_offset_gate_handle_quat_w[env_ids] = frames[
+            "handle_quat_w"
+        ][env_ids]
+        self._a2_hold_oracle_offset_source_local_y_axis_w[env_ids] = axis_w
+        self._a2_hold_oracle_offset_fixed_target_pos_w[env_ids] = target_pos_w
+        self._a2_hold_oracle_offset_fixed_target_quat_w[env_ids] = target_quat_w
+        self._a2_hold_oracle_offset_opening_axis_dots_body7_body8[env_ids] = dots
+        self._a2_hold_oracle_offset_root_start_xy_w[env_ids] = frames["root_pos_w"][
+            env_ids, :2
+        ]
+        self._a2_hold_oracle_offset_hinge_joint_start[env_ids] = door_joint_pos[
+            env_ids, 0
+        ]
+        self._a2_hold_oracle_offset_handle_joint_start[env_ids] = door_joint_pos[
+            env_ids, 1
+        ]
+        self._a2_hold_oracle_offset_placement_ever_activated[env_ids] = True
+
+    def _snapshot_a2_offset_placement_state(self, snapshot_mask: torch.Tensor) -> dict:
+        env_ids = torch.nonzero(snapshot_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return {"converged": torch.zeros_like(snapshot_mask)}
+        if torch.any(self._a2_hold_oracle_static_clamp_gain_applied[env_ids]):
+            raise RuntimeError("A2 offset endpoint snapshot must precede clamp gains.")
+        frames = self._get_a2_hold_oracle_world_frames()
+        try:
+            endpoint = a2_hold_offset_endpoint_metrics(
+                frames["source_pos_w"][env_ids],
+                frames["source_quat_w"][env_ids],
+                self._a2_hold_oracle_offset_gate_source_pos_w[env_ids],
+                self._a2_hold_oracle_offset_fixed_target_pos_w[env_ids],
+                self._a2_hold_oracle_offset_fixed_target_quat_w[env_ids],
+                self._a2_hold_oracle_offset_source_local_y_axis_w[env_ids],
+                self._a2_hold_oracle_cfg["static_clamp_offset_m"],
+                self._a2_hold_oracle_cfg[
+                    "static_clamp_offset_position_tolerance_m"
+                ],
+                self._a2_hold_oracle_cfg[
+                    "static_clamp_offset_orientation_tolerance_rad"
+                ],
+            )
+        except ValueError as exc:
+            raise RuntimeError(f"A2 offset placement endpoint failed: {exc}") from exc
+        field_map = {
+            "achieved_signed_offset_m": self._a2_hold_oracle_offset_achieved_signed_offset_m,
+            "signed_offset_error_m": self._a2_hold_oracle_offset_signed_offset_error_m,
+            "orthogonal_residual_m": self._a2_hold_oracle_offset_orthogonal_residual_m,
+            "position_residual_m": self._a2_hold_oracle_offset_position_residual_m,
+            "orientation_residual_rad": self._a2_hold_oracle_offset_orientation_residual_rad,
+        }
+        for name, destination in field_map.items():
+            destination[env_ids] = endpoint[name]
+        root_displacement = torch.linalg.norm(
+            frames["root_pos_w"][env_ids, :2]
+            - self._a2_hold_oracle_offset_root_start_xy_w[env_ids],
+            dim=-1,
+        )
+        self._a2_hold_oracle_offset_root_displacement_m[env_ids] = root_displacement
+        door_joint_pos = self._get_door_joint_pos("A2 offset placement snapshot", 2)
+        self._a2_hold_oracle_offset_hinge_joint_delta[env_ids] = (
+            door_joint_pos[env_ids, 0]
+            - self._a2_hold_oracle_offset_hinge_joint_start[env_ids]
+        )
+        self._a2_hold_oracle_offset_handle_joint_delta[env_ids] = (
+            door_joint_pos[env_ids, 1]
+            - self._a2_hold_oracle_offset_handle_joint_start[env_ids]
+        )
+        details = self._get_a2_hold_detailed_step_fields(env_ids)
+        robot = self.simulator.scene.articulations["robot"]
+        gripper_ids = torch.tensor(
+            self._a2_hold_oracle_gripper_joint_ids,
+            device=self.device,
+            dtype=torch.long,
+        )
+        for local_index, (env_id, detail) in enumerate(
+            zip(env_ids.tolist(), details, strict=True)
+        ):
+            if self._a2_hold_oracle_offset_preclamp_snapshot[env_id] is not None:
+                raise RuntimeError("A2 offset placement snapshot cannot be captured twice.")
+            record = dict(detail)
+            record.update(
+                {
+                    "offset_phase": "PLACEMENT_CHECK",
+                    "static_clamp_gain_applied_at_snapshot": False,
+                    "placement_action_count": int(
+                        self._a2_hold_oracle_offset_placement_action_count[
+                            env_id
+                        ].item()
+                    ),
+                    "gripper_joint_pos": robot.data.joint_pos[
+                        env_id, gripper_ids
+                    ].detach().cpu().tolist(),
+                    "achieved_signed_offset_m": float(
+                        endpoint["achieved_signed_offset_m"][local_index].item()
+                    ),
+                    "signed_offset_error_m": float(
+                        endpoint["signed_offset_error_m"][local_index].item()
+                    ),
+                    "orthogonal_residual_m": float(
+                        endpoint["orthogonal_residual_m"][local_index].item()
+                    ),
+                    "position_residual_m": float(
+                        endpoint["position_residual_m"][local_index].item()
+                    ),
+                    "orientation_residual_rad": float(
+                        endpoint["orientation_residual_rad"][local_index].item()
+                    ),
+                    "root_displacement_m": float(root_displacement[local_index].item()),
+                    "hinge_joint_delta": float(
+                        self._a2_hold_oracle_offset_hinge_joint_delta[env_id].item()
+                    ),
+                    "handle_joint_delta": float(
+                        self._a2_hold_oracle_offset_handle_joint_delta[env_id].item()
+                    ),
+                }
+            )
+            self._a2_hold_oracle_offset_preclamp_snapshot[env_id] = record
+        converged = torch.zeros_like(snapshot_mask)
+        converged[env_ids] = endpoint["converged"]
+        return {"converged": converged}
+
+    def _refresh_a2_offset_live_telemetry(self, refresh_mask: torch.Tensor) -> None:
+        env_ids = torch.nonzero(refresh_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        frames = self._get_a2_hold_oracle_world_frames()
+        try:
+            metrics = a2_hold_offset_endpoint_metrics(
+                frames["source_pos_w"][env_ids],
+                frames["source_quat_w"][env_ids],
+                self._a2_hold_oracle_offset_gate_source_pos_w[env_ids],
+                self._a2_hold_oracle_offset_fixed_target_pos_w[env_ids],
+                self._a2_hold_oracle_offset_fixed_target_quat_w[env_ids],
+                self._a2_hold_oracle_offset_source_local_y_axis_w[env_ids],
+                self._a2_hold_oracle_cfg["static_clamp_offset_m"],
+                self._a2_hold_oracle_cfg[
+                    "static_clamp_offset_position_tolerance_m"
+                ],
+                self._a2_hold_oracle_cfg[
+                    "static_clamp_offset_orientation_tolerance_rad"
+                ],
+            )
+        except ValueError as exc:
+            raise RuntimeError(f"A2 offset live telemetry failed: {exc}") from exc
+        field_map = {
+            "achieved_signed_offset_m": self._a2_hold_oracle_offset_achieved_signed_offset_m,
+            "signed_offset_error_m": self._a2_hold_oracle_offset_signed_offset_error_m,
+            "orthogonal_residual_m": self._a2_hold_oracle_offset_orthogonal_residual_m,
+            "position_residual_m": self._a2_hold_oracle_offset_position_residual_m,
+            "orientation_residual_rad": self._a2_hold_oracle_offset_orientation_residual_rad,
+        }
+        for name, destination in field_map.items():
+            destination[env_ids] = metrics[name]
+        self._a2_hold_oracle_offset_root_displacement_m[env_ids] = torch.linalg.norm(
+            frames["root_pos_w"][env_ids, :2]
+            - self._a2_hold_oracle_offset_root_start_xy_w[env_ids],
+            dim=-1,
+        )
+        door_joint_pos = self._get_door_joint_pos("A2 offset live telemetry", 2)
+        self._a2_hold_oracle_offset_hinge_joint_delta[env_ids] = (
+            door_joint_pos[env_ids, 0]
+            - self._a2_hold_oracle_offset_hinge_joint_start[env_ids]
+        )
+        self._a2_hold_oracle_offset_handle_joint_delta[env_ids] = (
+            door_joint_pos[env_ids, 1]
+            - self._a2_hold_oracle_offset_handle_joint_start[env_ids]
+        )
+
+    def _finish_a2_offset_placement(self, affected_mask: torch.Tensor) -> None:
+        if (
+            not torch.is_tensor(affected_mask)
+            or tuple(affected_mask.shape) != (self.num_envs,)
+            or affected_mask.dtype != torch.bool
+            or affected_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("A2 offset placement finish mask contract mismatch.")
+        affected = affected_mask
+        if not torch.any(affected):
+            return
+        if torch.any(
+            affected & ~self._a2_hold_oracle_offset_placement_ever_activated
+        ) or torch.any(affected & self._a2_hold_oracle_static_clamp_gain_applied):
+            raise RuntimeError("A2 offset placement finish state is inconsistent.")
+        try:
+            partition = a2_hold_offset_terminal_partition(
+                affected,
+                self._a2_hold_oracle_offset_placement_action_count,
+                self._a2_hold_oracle_cfg["static_clamp_offset_placement_steps"],
+            )
+        except ValueError as exc:
+            raise RuntimeError("A2 offset placement finish partition failed.") from exc
+        endpoint = partition["endpoint_check"]
+        endpoint_result = self._snapshot_a2_offset_placement_state(endpoint)
+        converged = endpoint_result["converged"]
+        self._a2_hold_oracle_offset_final_placement_action_count[affected] = (
+            self._a2_hold_oracle_offset_placement_action_count[affected]
+        )
+        self._a2_hold_oracle_offset_endpoint_checked[endpoint] = True
+        self._a2_hold_oracle_offset_placement_validated[converged] = True
+        self._a2_hold_oracle_offset_placement_active[affected] = False
+        self._a2_hold_oracle_offset_placement_action_count[affected] = 0
+        self._set_a2_hold_outcome(
+            partition["incomplete"], "PLACEMENT_INCOMPLETE"
+        )
+        self._set_a2_hold_outcome(
+            endpoint & ~converged, "PLACEMENT_NOT_CONVERGED"
+        )
+        self._set_a2_hold_outcome(
+            endpoint & converged, "OFFSET_PLACEMENT_COMPLETE_EPISODE_ENDED"
+        )
 
     def _get_a2_static_clamp_gripper_state(self, env_ids: torch.Tensor):
         robot = self.simulator.scene.articulations["robot"]
@@ -5484,9 +6559,19 @@ class DoorPregrasp(
         if self._a2_hold_oracle_finalized:
             if torch.any(self._a2_hold_oracle_static_clamp_gain_applied) or torch.any(
                 self._a2_hold_oracle_static_clamp_active
+            ) or torch.any(self._a2_hold_oracle_offset_placement_active) or torch.any(
+                self._a2_hold_oracle_open_stabilization_active
             ):
-                raise RuntimeError("Finalized A2 hold oracle retained active static clamp gains.")
+                raise RuntimeError("Finalized A2 hold oracle retained active diagnostic state.")
             return
+        if cfg["open_stabilization_preflight_enabled"]:
+            self._finish_a2_open_stabilization(
+                self._a2_hold_oracle_open_stabilization_active.clone()
+            )
+        if cfg["static_clamp_offset_probe_enabled"]:
+            self._finish_a2_offset_placement(
+                self._a2_hold_oracle_offset_placement_active.clone()
+            )
         if cfg["static_clamp_enabled"]:
             self._finish_a2_static_clamp(
                 self._a2_hold_oracle_static_clamp_gain_applied.clone()
@@ -5564,6 +6649,536 @@ class DoorPregrasp(
             "handle_pos_w": handle_pos_w,
             "handle_quat_w": handle_quat_w,
         }
+
+    def _get_a2_open_stabilization_contact_force_norm(self) -> torch.Tensor:
+        sensor = self.simulator.scene.sensors[
+            self.A2_GRIPPER_HANDLE_CONTACT_SENSOR
+        ]
+        expected_filters = [
+            "/World/envs/env_.*/Robot/arm_body7",
+            "/World/envs/env_.*/Robot/arm_body8",
+        ]
+        if list(sensor.cfg.filter_prim_paths_expr) != expected_filters:
+            raise RuntimeError(
+                "A2 open stabilization filter pair order mismatch: "
+                f"expected={expected_filters}, got={list(sensor.cfg.filter_prim_paths_expr)}."
+            )
+        force = getattr(sensor.data, "force_matrix_w", None)
+        expected_shape = (self.num_envs, 1, 2, 3)
+        if (
+            not torch.is_tensor(force)
+            or tuple(force.shape) != expected_shape
+            or not force.is_floating_point()
+            or force.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(force))
+        ):
+            shape = None if not torch.is_tensor(force) else tuple(force.shape)
+            raise RuntimeError(
+                "A2 open stabilization requires finite handle-filter force_matrix_w "
+                f"shape {expected_shape} on {self.device}; got {shape}."
+            )
+        return torch.linalg.norm(force[:, 0], dim=-1)
+
+    def _get_a2_open_stabilization_composite_gate(self) -> torch.Tensor:
+        gate = (self.stage_buf == self.STAGE_GRASP) & self._get_a2_stage2_close_reward_gate()
+        if (
+            not torch.is_tensor(gate)
+            or tuple(gate.shape) != (self.num_envs,)
+            or gate.dtype != torch.bool
+            or gate.device != torch.device(self.device)
+        ):
+            raise RuntimeError("A2 open stabilization composite gate contract mismatch.")
+        return gate
+
+    def _capture_a2_open_stabilization_gate(self, capture_mask: torch.Tensor) -> None:
+        env_ids = torch.nonzero(capture_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        if torch.any(self._a2_hold_oracle_open_stabilization_ever_activated[env_ids]):
+            raise RuntimeError("A2 open stabilization gate may only be captured once per env.")
+        if (
+            not torch.is_tensor(self._delta_actions)
+            or tuple(self._delta_actions.shape) != (self.num_envs, 6)
+            or not torch.all(torch.isfinite(self._delta_actions))
+        ):
+            raise RuntimeError(
+                "A2 open stabilization requires finite accumulated arm target shape (N,6)."
+            )
+        frames = self._get_a2_hold_oracle_world_frames()
+        for name, expected_shape in (
+            ("root_pos_w", (self.num_envs, 3)),
+            ("root_quat_w", (self.num_envs, 4)),
+            ("source_pos_w", (self.num_envs, 3)),
+            ("source_quat_w", (self.num_envs, 4)),
+            ("handle_pos_w", (self.num_envs, 3)),
+            ("handle_quat_w", (self.num_envs, 4)),
+        ):
+            value = frames[name]
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != expected_shape
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(
+                    f"A2 open stabilization gate requires finite {name} shape {expected_shape}."
+                )
+        _, _, gripper = self._get_a2_static_clamp_gripper_state(env_ids)
+        expected_stiffness = torch.full_like(gripper["stiffness"], 80.0)
+        expected_damping = torch.full_like(gripper["damping"], 3.0)
+        expected_effort = torch.full_like(gripper["effort_limit"], 10.0)
+        if (
+            not torch.equal(gripper["stiffness"], expected_stiffness)
+            or not torch.equal(gripper["damping"], expected_damping)
+            or not torch.equal(gripper["effort_limit"], expected_effort)
+        ):
+            raise RuntimeError(
+                "A2 open stabilization requires actual gripper Kp/Kd/effort=80/3/10 at gate."
+            )
+        self._a2_hold_oracle_open_stabilization_gate_root_pos_w[env_ids] = frames[
+            "root_pos_w"
+        ][env_ids]
+        self._a2_hold_oracle_open_stabilization_gate_root_quat_w[env_ids] = frames[
+            "root_quat_w"
+        ][env_ids]
+        self._a2_hold_oracle_open_stabilization_gate_source_pos_w[env_ids] = frames[
+            "source_pos_w"
+        ][env_ids]
+        self._a2_hold_oracle_open_stabilization_gate_source_quat_w[env_ids] = frames[
+            "source_quat_w"
+        ][env_ids]
+        self._a2_hold_oracle_open_stabilization_gate_handle_pos_w[env_ids] = frames[
+            "handle_pos_w"
+        ][env_ids]
+        self._a2_hold_oracle_open_stabilization_gate_handle_quat_w[env_ids] = frames[
+            "handle_quat_w"
+        ][env_ids]
+        self._a2_hold_oracle_open_stabilization_arm_target_capture[env_ids] = (
+            self._delta_actions[env_ids]
+        )
+        self._a2_hold_oracle_open_stabilization_gate_captured[env_ids] = True
+        self._a2_hold_oracle_open_stabilization_ever_activated[env_ids] = True
+        self._a2_hold_oracle_open_stabilization_active[env_ids] = True
+
+    def _capture_a2_open_stabilization_post_action_samples(self) -> None:
+        cfg = self._a2_hold_oracle_cfg
+        sample_mask = (
+            self._a2_hold_oracle_open_stabilization_active
+            & self._a2_hold_oracle_last_override_mask
+        )
+        env_ids = torch.nonzero(sample_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        counts = self._a2_hold_oracle_open_stabilization_action_count[env_ids]
+        if torch.any(counts < 1) or torch.any(
+            counts > cfg["open_stabilization_steps"]
+        ):
+            raise RuntimeError("A2 open stabilization sample count is outside actions 1..40.")
+        post_delta = getattr(self, "_a2_eval_post_delta_post_warp_env_action", None)
+        if (
+            not torch.is_tensor(post_delta)
+            or tuple(post_delta.shape) != (self.num_envs, 12)
+            or post_delta.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(post_delta))
+        ):
+            raise RuntimeError(
+                "A2 open stabilization requires finite post-delta authoritative action shape (N,12)."
+            )
+        frames = self._get_a2_hold_oracle_world_frames()
+        pose_shapes = {
+            "root_pos_w": (self.num_envs, 3),
+            "root_quat_w": (self.num_envs, 4),
+            "source_pos_w": (self.num_envs, 3),
+            "source_quat_w": (self.num_envs, 4),
+            "handle_pos_w": (self.num_envs, 3),
+            "handle_quat_w": (self.num_envs, 4),
+        }
+        for name, expected_shape in pose_shapes.items():
+            value = frames[name]
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != expected_shape
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(
+                    f"A2 open stabilization sample requires finite {name} shape {expected_shape}."
+                )
+        robot_data = frames["robot"].data
+        for name, value in (
+            ("root_lin_vel_w", robot_data.root_lin_vel_w),
+            ("root_ang_vel_w", robot_data.root_ang_vel_w),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs, 3)
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(
+                    f"A2 open stabilization sample requires finite {name} shape (N,3)."
+                )
+        if (
+            not torch.is_tensor(self._delta_actions)
+            or tuple(self._delta_actions.shape) != (self.num_envs, 6)
+            or not torch.all(torch.isfinite(self._delta_actions))
+        ):
+            raise RuntimeError(
+                "A2 open stabilization sample requires finite accumulated arm target shape (N,6)."
+            )
+        source_pos_root, source_quat_root = subtract_frame_transforms(
+            frames["root_pos_w"],
+            frames["root_quat_w"],
+            frames["source_pos_w"],
+            frames["source_quat_w"],
+        )
+        frozen_pos_root, frozen_quat_root = subtract_frame_transforms(
+            frames["root_pos_w"],
+            frames["root_quat_w"],
+            self._a2_hold_oracle_open_stabilization_gate_source_pos_w,
+            self._a2_hold_oracle_open_stabilization_gate_source_quat_w,
+        )
+        contact = self._get_a2_open_stabilization_contact_force_norm()
+        gate = self._get_a2_open_stabilization_composite_gate()
+        _, _, gripper = self._get_a2_static_clamp_gripper_state(env_ids)
+        try:
+            invariant = a2_hold_validate_open_stabilization_runtime_invariants(
+                self._a2_hold_oracle_open_stabilization_arm_target_capture[
+                    env_ids
+                ],
+                self._delta_actions[env_ids],
+                post_delta[env_ids, 5:11],
+                gripper["stiffness"],
+                gripper["damping"],
+                gripper["effort_limit"],
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                "A2 open stabilization post-action runtime invariant failed for "
+                f"envs={env_ids.detach().cpu().tolist()}, "
+                f"actions={counts.detach().cpu().tolist()}: {exc}"
+            ) from exc
+        applied_action = self._a2_hold_oracle_post_override_action
+        if (
+            not torch.is_tensor(applied_action)
+            or tuple(applied_action.shape) != (self.num_envs, 12)
+            or applied_action.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(applied_action))
+        ):
+            raise RuntimeError("A2 open stabilization applied-action telemetry is invalid.")
+        for local, env_id in enumerate(env_ids.tolist()):
+            action_number = int(counts[local].item())
+            samples = self._a2_hold_oracle_open_stabilization_samples[env_id]
+            if len(samples) != action_number - 1:
+                raise RuntimeError(
+                    "A2 open stabilization requires one pre-reset sample per action; "
+                    f"env={env_id}, action={action_number}, existing={len(samples)}."
+                )
+            samples.append(
+                {
+                    "action": action_number,
+                    "root_pos_w": frames["root_pos_w"][env_id].detach().cpu().tolist(),
+                    "root_quat_w": frames["root_quat_w"][env_id].detach().cpu().tolist(),
+                    "root_linear_speed_mps": float(
+                        torch.linalg.norm(robot_data.root_lin_vel_w[env_id]).item()
+                    ),
+                    "root_angular_speed_radps": float(
+                        torch.linalg.norm(robot_data.root_ang_vel_w[env_id]).item()
+                    ),
+                    "frozen_gate_source_pos_root": frozen_pos_root[env_id].detach().cpu().tolist(),
+                    "frozen_gate_source_quat_root": frozen_quat_root[env_id].detach().cpu().tolist(),
+                    "source_pos_root": source_pos_root[env_id].detach().cpu().tolist(),
+                    "source_quat_root": source_quat_root[env_id].detach().cpu().tolist(),
+                    "handle_pos_w": frames["handle_pos_w"][env_id].detach().cpu().tolist(),
+                    "handle_quat_w": frames["handle_quat_w"][env_id].detach().cpu().tolist(),
+                    "handle_filter_force_norm_body7_body8": contact[env_id].detach().cpu().tolist(),
+                    "composite_gate": bool(gate[env_id].item()),
+                    "gripper_stiffness": gripper["stiffness"][local].detach().cpu().tolist(),
+                    "gripper_damping": gripper["damping"][local].detach().cpu().tolist(),
+                    "gripper_effort_limit": gripper["effort_limit"][local].detach().cpu().tolist(),
+                    "accumulated_arm_target": self._delta_actions[env_id].detach().cpu().tolist(),
+                    "captured_accumulated_arm_target": self._a2_hold_oracle_open_stabilization_arm_target_capture[
+                        env_id
+                    ].detach().cpu().tolist(),
+                    "post_delta_arm_target": post_delta[env_id, 5:11].detach().cpu().tolist(),
+                    "accumulated_arm_target_invariant": bool(
+                        invariant["accumulated_arm_target_invariant"][local].item()
+                    ),
+                    "post_delta_arm_target_invariant": bool(
+                        invariant["post_delta_arm_target_invariant"][local].item()
+                    ),
+                    "runtime_gripper_gain_effort_exact": bool(
+                        invariant["runtime_gripper_gain_effort_exact"][local].item()
+                    ),
+                    "applied_high_level_action": applied_action[env_id].detach().cpu().tolist(),
+                    "control_branch": "ARM0_OPEN_STABILIZATION",
+                }
+            )
+
+    def _evaluate_a2_open_stabilization_quiet_window(self, env_id: int) -> dict:
+        cfg = self._a2_hold_oracle_cfg
+        samples = self._a2_hold_oracle_open_stabilization_samples[env_id]
+        target_steps = cfg["open_stabilization_steps"]
+        quiet_steps = cfg["open_stabilization_quiet_window_steps"]
+        quiet = samples[-quiet_steps:]
+        pose_window = samples[-(quiet_steps + 1) :]
+        if (
+            len(samples) != target_steps
+            or [sample["action"] for sample in quiet]
+            != list(range(target_steps - quiet_steps + 1, target_steps + 1))
+            or [sample["action"] for sample in pose_window]
+            != list(range(target_steps - quiet_steps, target_steps + 1))
+        ):
+            raise RuntimeError(
+                "A2 open stabilization READY evaluation requires instantaneous samples36..40 "
+                "and pose samples35..40."
+            )
+        pose_fields = {
+            "root_world": ("root_pos_w", "root_quat_w"),
+            "frozen_gate_source_in_current_root": (
+                "frozen_gate_source_pos_root",
+                "frozen_gate_source_quat_root",
+            ),
+            "source_in_current_root": ("source_pos_root", "source_quat_root"),
+            "handle_world": ("handle_pos_w", "handle_quat_w"),
+        }
+        pose_metrics = {}
+        pose_ok = True
+        for label, (position_key, quaternion_key) in pose_fields.items():
+            position = torch.tensor(
+                [[sample[position_key]] for sample in pose_window],
+                device=self.device,
+                dtype=self._a2_hold_oracle_open_stabilization_gate_root_pos_w.dtype,
+            )
+            quaternion = torch.tensor(
+                [[sample[quaternion_key]] for sample in pose_window],
+                device=self.device,
+                dtype=self._a2_hold_oracle_open_stabilization_gate_root_quat_w.dtype,
+            )
+            try:
+                metrics = a2_hold_pose_motion_metrics(position, quaternion)
+            except ValueError as exc:
+                raise RuntimeError(
+                    f"A2 open stabilization {label} quiet-window pose math failed: {exc}"
+                ) from exc
+            json_metrics = {name: float(value.item()) for name, value in metrics.items()}
+            json_metrics["within_threshold"] = (
+                json_metrics["per_call_translation_max"]
+                <= cfg["open_stabilization_pose_per_call_translation_max_m"]
+                and json_metrics["per_call_rotation_max"]
+                <= cfg["open_stabilization_pose_per_call_rotation_max_rad"]
+                and json_metrics["window_translation"]
+                <= cfg["open_stabilization_pose_window_translation_max_m"]
+                and json_metrics["window_rotation"]
+                <= cfg["open_stabilization_pose_window_rotation_max_rad"]
+            )
+            pose_ok = pose_ok and json_metrics["within_threshold"]
+            pose_metrics[label] = json_metrics
+        max_root_linear_speed = max(sample["root_linear_speed_mps"] for sample in quiet)
+        max_root_angular_speed = max(sample["root_angular_speed_radps"] for sample in quiet)
+        max_contact = max(
+            max(sample["handle_filter_force_norm_body7_body8"]) for sample in quiet
+        )
+        reasons = {
+            "root_linear_speed_ok": max_root_linear_speed
+            <= cfg["open_stabilization_root_linear_speed_max_mps"],
+            "root_angular_speed_ok": max_root_angular_speed
+            <= cfg["open_stabilization_root_angular_speed_max_radps"],
+            "pose_motion_ok": pose_ok,
+            "contact_force_ok": max_contact
+            < cfg["open_stabilization_contact_force_max_n"],
+            "composite_gate_ok": all(sample["composite_gate"] for sample in quiet),
+        }
+        return {
+            "ready": all(reasons.values()),
+            "reason_booleans": reasons,
+            "max_root_linear_speed_mps": max_root_linear_speed,
+            "max_root_angular_speed_radps": max_root_angular_speed,
+            "max_handle_filter_contact_force_n": max_contact,
+            "pose_motion": pose_metrics,
+            "quiet_window_actions": [sample["action"] for sample in quiet],
+            "pose_window_actions": [sample["action"] for sample in pose_window],
+            "pose_transition_actions": [
+                [pose_window[index]["action"], pose_window[index + 1]["action"]]
+                for index in range(len(pose_window) - 1)
+            ],
+            "quiet_window_samples": quiet,
+            "pose_window_samples": pose_window,
+        }
+
+    def _finish_a2_open_stabilization(self, affected_mask: torch.Tensor) -> None:
+        cfg = self._a2_hold_oracle_cfg
+        if not cfg["enabled"] or not cfg["open_stabilization_preflight_enabled"]:
+            raise RuntimeError("A2 open stabilization finish requires the enabled preflight.")
+        if (
+            not torch.is_tensor(affected_mask)
+            or tuple(affected_mask.shape) != (self.num_envs,)
+            or affected_mask.dtype != torch.bool
+            or affected_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("A2 open stabilization finish mask contract mismatch.")
+        affected = affected_mask & self._a2_hold_oracle_open_stabilization_active
+        if not torch.any(affected):
+            return
+        contact = self._get_a2_open_stabilization_contact_force_norm()
+        gate = self._get_a2_open_stabilization_composite_gate()
+        threshold = cfg["open_stabilization_contact_force_max_n"]
+        try:
+            partition = a2_hold_open_stabilization_terminal_partition(
+                affected,
+                self._a2_hold_oracle_open_stabilization_action_count,
+                torch.any(contact >= threshold, dim=-1),
+                gate,
+                cfg["open_stabilization_steps"],
+            )
+        except ValueError as exc:
+            raise RuntimeError(
+                f"A2 open stabilization finish partition failed: {exc}"
+            ) from exc
+        for env_id in torch.nonzero(affected, as_tuple=False).flatten().tolist():
+            count = int(
+                self._a2_hold_oracle_open_stabilization_action_count[env_id].item()
+            )
+            if count < 0 or count > cfg["open_stabilization_steps"]:
+                raise RuntimeError("A2 open stabilization final count is outside 0..40.")
+            if len(self._a2_hold_oracle_open_stabilization_samples[env_id]) != count:
+                raise RuntimeError(
+                    "A2 open stabilization cannot finish without one pre-reset sample per action."
+                )
+            one = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
+            one[env_id] = True
+            if partition["contact_contaminated"][env_id].item():
+                outcome = "STABILIZATION_CONTACT_CONTAMINATED"
+                self._a2_hold_oracle_open_stabilization_reason_contact[env_id] = True
+                result = {
+                    "ready": False,
+                    "reason_booleans": {"contact_force_ok": False},
+                    "final_handle_filter_force_norm_body7_body8": contact[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                }
+            elif partition["gate_lost"][env_id].item():
+                outcome = "STABILIZATION_GATE_LOST"
+                self._a2_hold_oracle_open_stabilization_reason_gate[env_id] = True
+                result = {"ready": False, "reason_booleans": {"composite_gate_ok": False}}
+            elif partition["endpoint"][env_id].item():
+                result = self._evaluate_a2_open_stabilization_quiet_window(env_id)
+                if result["ready"]:
+                    outcome = "STABILIZATION_READY"
+                    self._a2_hold_oracle_open_stabilization_reason_ready[env_id] = True
+                else:
+                    outcome = "STABILIZATION_NOT_SETTLED"
+                    self._a2_hold_oracle_open_stabilization_reason_not_settled[
+                        env_id
+                    ] = True
+            elif partition["incomplete"][env_id].item():
+                outcome = "STABILIZATION_INCOMPLETE"
+                self._a2_hold_oracle_open_stabilization_reason_incomplete[env_id] = True
+                result = {
+                    "ready": False,
+                    "reason_booleans": {"exact_40_actions_complete": False},
+                }
+            else:
+                raise RuntimeError("A2 open stabilization terminal partition was not exhaustive.")
+            result["final_action_count"] = count
+            result["outcome"] = outcome
+            self._a2_hold_oracle_open_stabilization_result[env_id] = result
+            self._a2_hold_oracle_open_stabilization_final_action_count[env_id] = count
+            self._a2_hold_oracle_open_stabilization_active[env_id] = False
+            self._set_a2_hold_outcome(one, outcome)
+
+    def _apply_a2_open_stabilization_action(
+        self,
+        policy_action: torch.Tensor,
+        first_episode_active_mask: torch.Tensor,
+        activate: torch.Tensor,
+    ):
+        cfg = self._a2_hold_oracle_cfg
+        contact = self._get_a2_open_stabilization_contact_force_norm()
+        gate = self._get_a2_open_stabilization_composite_gate()
+        active = self._a2_hold_oracle_open_stabilization_active
+        finish = active & (
+            torch.any(
+                contact >= cfg["open_stabilization_contact_force_max_n"], dim=-1
+            )
+            | ~gate
+            | ~first_episode_active_mask
+            | (
+                self._a2_hold_oracle_open_stabilization_action_count
+                >= cfg["open_stabilization_steps"]
+            )
+        )
+        self._finish_a2_open_stabilization(finish)
+
+        entering_contact = activate & torch.any(
+            contact >= cfg["open_stabilization_contact_force_max_n"], dim=-1
+        )
+        if torch.any(entering_contact):
+            self._a2_hold_oracle_open_stabilization_ever_activated[
+                entering_contact
+            ] = True
+            self._a2_hold_oracle_open_stabilization_final_action_count[
+                entering_contact
+            ] = 0
+            self._a2_hold_oracle_open_stabilization_reason_contact[
+                entering_contact
+            ] = True
+            for env_id in torch.nonzero(
+                entering_contact, as_tuple=False
+            ).flatten().tolist():
+                self._a2_hold_oracle_open_stabilization_result[env_id] = {
+                    "ready": False,
+                    "outcome": "STABILIZATION_CONTACT_CONTAMINATED",
+                    "final_action_count": 0,
+                    "reason_booleans": {"contact_force_ok": False},
+                    "final_handle_filter_force_norm_body7_body8": contact[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                }
+            self._set_a2_hold_outcome(
+                entering_contact, "STABILIZATION_CONTACT_CONTAMINATED"
+            )
+        clean_entering = activate & ~entering_contact
+        self._capture_a2_open_stabilization_gate(clean_entering)
+
+        override = (
+            self._a2_hold_oracle_open_stabilization_active
+            & first_episode_active_mask
+            & (
+                self._a2_hold_oracle_outcome
+                == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            )
+        )
+        if torch.any(
+            self._a2_hold_oracle_open_stabilization_action_count[override]
+            >= cfg["open_stabilization_steps"]
+        ):
+            raise RuntimeError("A2 open stabilization refused action 41.")
+        if torch.any(
+            self._delta_actions[override]
+            != self._a2_hold_oracle_open_stabilization_arm_target_capture[override]
+        ):
+            raise RuntimeError(
+                "A2 open stabilization accumulated arm target changed before action write."
+            )
+        self._a2_hold_oracle_open_stabilization_action_count[override] += 1
+        self._a2_hold_oracle_phase_step[override] = (
+            self._a2_hold_oracle_open_stabilization_action_count[override]
+        )
+        try:
+            action = a2_hold_open_stabilization_action(policy_action, override)
+        except ValueError as exc:
+            raise RuntimeError(f"A2 open stabilization action failed: {exc}") from exc
+        self._a2_hold_oracle_a_raw.zero_()
+        self._a2_hold_oracle_offset_placement_branch.zero_()
+        self._a2_hold_oracle_arm_dls_branch.zero_()
+        self._a2_hold_oracle_base_relief_branch_applied.zero_()
+        self._a2_hold_oracle_phase_sign_check_due.zero_()
+        self._a2_hold_oracle_last_override_mask = override.clone()
+        self._a2_hold_oracle_post_override_action = action.detach().clone()
+        return action, override
 
     def _get_a2_hold_oracle_pose_state(
         self, target_local_offset: torch.Tensor, active_mask: torch.Tensor
@@ -5701,6 +7316,374 @@ class DoorPregrasp(
             pose_state["root_quat_w"],
         )
 
+    def _compute_a2_hold_offset_joint_target(self, active_mask: torch.Tensor):
+        frames = self._get_a2_hold_oracle_world_frames()
+        target_pos_w = frames["source_pos_w"].clone()
+        target_quat_w = frames["source_quat_w"].clone()
+        target_pos_w[active_mask] = self._a2_hold_oracle_offset_fixed_target_pos_w[
+            active_mask
+        ]
+        target_quat_w[active_mask] = self._a2_hold_oracle_offset_fixed_target_quat_w[
+            active_mask
+        ]
+        source_pos_root, source_quat_root = subtract_frame_transforms(
+            frames["root_pos_w"],
+            frames["root_quat_w"],
+            frames["source_pos_w"],
+            frames["source_quat_w"],
+        )
+        body_pos_root, _ = subtract_frame_transforms(
+            frames["root_pos_w"],
+            frames["root_quat_w"],
+            frames["body_pos_w"],
+            frames["body_quat_w"],
+        )
+        target_pos_root, target_quat_root = subtract_frame_transforms(
+            frames["root_pos_w"],
+            frames["root_quat_w"],
+            target_pos_w,
+            target_quat_w,
+        )
+        position_residual = torch.linalg.norm(
+            target_pos_root - source_pos_root, dim=-1
+        )
+        quat_error = quat_mul(target_quat_root, quat_inv(source_quat_root))
+        orientation_residual = torch.linalg.norm(
+            axis_angle_from_quat(quat_error), dim=-1
+        )
+        robot = frames["robot"]
+        joint_ids = self._a2_hold_oracle_joint_ids
+        jacobian = robot.root_physx_view.get_jacobians()[
+            :,
+            self._a2_hold_oracle_jacobian_body_id,
+            :,
+            self._a2_hold_oracle_jacobian_joint_ids,
+        ]
+        if tuple(jacobian.shape) != (self.num_envs, 6, 6) or not torch.all(
+            torch.isfinite(jacobian)
+        ):
+            raise RuntimeError(
+                f"A2 offset placement requires finite Jacobian ({self.num_envs},6,6)."
+            )
+        jacobian_root = a2_hold_rotate_jacobian_to_root(
+            jacobian, frames["root_quat_w"]
+        )
+        jacobian_root = a2_hold_apply_source_offset_to_jacobian(
+            jacobian_root, source_pos_root - body_pos_root
+        )
+        singular_values = torch.linalg.svdvals(jacobian_root)
+        condition = singular_values[:, 0] / singular_values[:, -1]
+        ik_valid = torch.isfinite(condition) & (
+            condition <= self._a2_hold_oracle_cfg["jacobian_condition_max"]
+        )
+        (
+            bounded_command_pos,
+            bounded_command_quat,
+            _,
+            _,
+            bounded_delta,
+        ) = a2_hold_bound_pose_command_step(
+            source_pos_root,
+            source_quat_root,
+            target_pos_root,
+            target_quat_root,
+            self._a2_hold_oracle_cfg["max_position_step_m"],
+            self._a2_hold_oracle_cfg["max_orientation_step_rad"],
+        )
+        self._a2_hold_oracle_controller.set_command(
+            torch.cat((bounded_command_pos, bounded_command_quat), dim=-1)
+        )
+        # DifferentialIKController has a fixed num_envs batch and no masked set_command API.
+        # Inactive rows target their current source pose, and their computed rows are neither
+        # applied nor persisted; this controller buffer is only ephemeral batched IK workspace.
+        q_des = self._a2_hold_oracle_controller.compute(
+            source_pos_root,
+            source_quat_root,
+            jacobian_root,
+            robot.data.joint_pos[:, joint_ids],
+        )
+        if not torch.all(torch.isfinite(q_des)):
+            raise RuntimeError("A2 offset placement DLS returned non-finite q_des.")
+        return (
+            q_des,
+            ik_valid,
+            singular_values,
+            condition,
+            target_pos_root,
+            target_quat_root,
+            position_residual,
+            orientation_residual,
+            bounded_command_pos,
+            bounded_command_quat,
+            torch.linalg.norm(bounded_delta[:, :3], dim=-1),
+            torch.linalg.norm(bounded_delta[:, 3:], dim=-1),
+            frames["root_pos_w"][:, :2],
+        )
+
+    def _compute_a2_offset_placement_arm_raw(
+        self, placement_mask: torch.Tensor
+    ) -> torch.Tensor:
+        placement_env_ids = torch.nonzero(
+            placement_mask, as_tuple=False
+        ).flatten()
+        if torch.any(self._a2_hold_oracle_static_clamp_gain_applied[placement_env_ids]):
+            raise RuntimeError("A2 offset placement cannot run with clamp gains applied.")
+        _, _, gripper_state = self._get_a2_static_clamp_gripper_state(
+            placement_env_ids
+        )
+        if (
+            not torch.equal(
+                gripper_state["stiffness"],
+                torch.full_like(gripper_state["stiffness"], 80.0),
+            )
+            or not torch.equal(
+                gripper_state["damping"],
+                torch.full_like(gripper_state["damping"], 3.0),
+            )
+            or not torch.equal(
+                gripper_state["effort_limit"],
+                torch.full_like(gripper_state["effort_limit"], 10.0),
+            )
+        ):
+            raise RuntimeError(
+                "A2 offset placement must retain gripper Kp/Kd=80/3 and effort=10/10."
+            )
+        (
+            q_des,
+            ik_valid,
+            singular_values,
+            condition,
+            target_pos_root,
+            target_quat_root,
+            pos_res,
+            rot_res,
+            bounded_command_pos_root,
+            bounded_command_quat_root,
+            bounded_position_step,
+            bounded_orientation_step,
+            root_xy_w,
+        ) = self._compute_a2_hold_offset_joint_target(placement_mask)
+        robot = self.simulator.scene.articulations["robot"]
+        joint_ids = self._a2_hold_oracle_joint_ids
+        hard_limits = robot.data.joint_pos_limits[:, joint_ids]
+        soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
+        if not torch.all(torch.isfinite(hard_limits)) or not torch.all(
+            torch.isfinite(soft_limits)
+        ):
+            raise RuntimeError("A2 offset placement requires finite arm joint limits.")
+        limit_valid, _, _ = a2_hold_progress_aware_joint_limit_masks(
+            robot.data.joint_pos[:, joint_ids],
+            q_des,
+            hard_limits,
+            soft_limits,
+            self._a2_hold_oracle_cfg["joint_limit_margin"],
+            self._a2_hold_oracle_cfg["joint_limit_margin"],
+            self._a2_hold_oracle_cfg["soft_limit_progress_tolerance"],
+        )
+        q_default = robot.data.default_joint_pos[:, joint_ids]
+        if q_default.shape[0] == 1:
+            q_default = q_default.repeat(self.num_envs, 1)
+        d_prev = self._delta_actions.clone()
+        if not torch.all(torch.isfinite(q_default)) or not torch.all(
+            torch.isfinite(d_prev)
+        ):
+            raise RuntimeError("A2 offset placement requires finite cumulative action state.")
+        d_des, a_raw = a2_hold_absolute_target_to_cumulative_action(
+            q_des, q_default, d_prev
+        )
+        delta_ok = torch.all(torch.abs(d_des) <= 15.0, dim=-1)
+        raw_ok = torch.all(
+            torch.abs(a_raw) <= self._a2_hold_oracle_cfg["raw_action_abs_max"],
+            dim=-1,
+        )
+        valid = ik_valid & limit_valid & delta_ok & raw_ok
+        invalid = placement_mask & ~valid
+        if torch.any(invalid):
+            ids = torch.nonzero(invalid, as_tuple=False).flatten().detach().cpu().tolist()
+            raise RuntimeError(
+                "A2 offset placement DLS/limit/delta/raw validation failed for envs "
+                f"{ids}; ik={ik_valid[invalid].detach().cpu().tolist()}, "
+                f"limit={limit_valid[invalid].detach().cpu().tolist()}, "
+                f"delta={delta_ok[invalid].detach().cpu().tolist()}, "
+                f"raw={raw_ok[invalid].detach().cpu().tolist()}."
+            )
+        self._a2_hold_oracle_q_des[placement_mask] = q_des[placement_mask]
+        self._a2_hold_oracle_d_des[placement_mask] = d_des[placement_mask]
+        self._a2_hold_oracle_d_prev[placement_mask] = d_prev[placement_mask]
+        self._a2_hold_oracle_arm_candidate_action_raw[placement_mask] = a_raw[
+            placement_mask
+        ]
+        self._a2_hold_oracle_a_raw[placement_mask] = a_raw[placement_mask]
+        self._a2_hold_oracle_target_pos_root[placement_mask] = target_pos_root[
+            placement_mask
+        ]
+        self._a2_hold_oracle_target_quat_root[placement_mask] = target_quat_root[
+            placement_mask
+        ]
+        self._a2_hold_oracle_bounded_command_pos_root[placement_mask] = (
+            bounded_command_pos_root[placement_mask]
+        )
+        self._a2_hold_oracle_bounded_command_quat_root[placement_mask] = (
+            bounded_command_quat_root[placement_mask]
+        )
+        self._a2_hold_oracle_bounded_position_step[placement_mask] = (
+            bounded_position_step[placement_mask]
+        )
+        self._a2_hold_oracle_bounded_orientation_step[placement_mask] = (
+            bounded_orientation_step[placement_mask]
+        )
+        self._a2_hold_oracle_position_residual[placement_mask] = pos_res[
+            placement_mask
+        ]
+        self._a2_hold_oracle_orientation_residual[placement_mask] = rot_res[
+            placement_mask
+        ]
+        self._a2_hold_oracle_singular_values[placement_mask] = singular_values[
+            placement_mask
+        ]
+        self._a2_hold_oracle_jacobian_condition[placement_mask] = condition[
+            placement_mask
+        ]
+        self._a2_hold_oracle_ik_valid[placement_mask] = ik_valid[placement_mask]
+        self._a2_hold_oracle_limit_valid[placement_mask] = limit_valid[
+            placement_mask
+        ]
+        self._a2_hold_oracle_delta_ok[placement_mask] = delta_ok[placement_mask]
+        self._a2_hold_oracle_raw_ok[placement_mask] = raw_ok[placement_mask]
+        root_displacement = torch.linalg.norm(
+            root_xy_w - self._a2_hold_oracle_offset_root_start_xy_w, dim=-1
+        )
+        self._a2_hold_oracle_offset_root_displacement_m[placement_mask] = (
+            root_displacement[placement_mask]
+        )
+        live_frames = self._get_a2_hold_oracle_world_frames()
+        try:
+            live_metrics = a2_hold_offset_endpoint_metrics(
+                live_frames["source_pos_w"][placement_env_ids],
+                live_frames["source_quat_w"][placement_env_ids],
+                self._a2_hold_oracle_offset_gate_source_pos_w[placement_env_ids],
+                self._a2_hold_oracle_offset_fixed_target_pos_w[placement_env_ids],
+                self._a2_hold_oracle_offset_fixed_target_quat_w[placement_env_ids],
+                self._a2_hold_oracle_offset_source_local_y_axis_w[placement_env_ids],
+                self._a2_hold_oracle_cfg["static_clamp_offset_m"],
+                self._a2_hold_oracle_cfg[
+                    "static_clamp_offset_position_tolerance_m"
+                ],
+                self._a2_hold_oracle_cfg[
+                    "static_clamp_offset_orientation_tolerance_rad"
+                ],
+            )
+        except ValueError as exc:
+            raise RuntimeError(f"A2 offset live placement telemetry failed: {exc}") from exc
+        live_field_map = {
+            "achieved_signed_offset_m": self._a2_hold_oracle_offset_achieved_signed_offset_m,
+            "signed_offset_error_m": self._a2_hold_oracle_offset_signed_offset_error_m,
+            "orthogonal_residual_m": self._a2_hold_oracle_offset_orthogonal_residual_m,
+            "position_residual_m": self._a2_hold_oracle_offset_position_residual_m,
+            "orientation_residual_rad": self._a2_hold_oracle_offset_orientation_residual_rad,
+        }
+        for name, destination in live_field_map.items():
+            destination[placement_env_ids] = live_metrics[name]
+        door_joint_pos = self._get_door_joint_pos("A2 offset placement", 2)
+        self._a2_hold_oracle_offset_hinge_joint_delta[placement_mask] = (
+            door_joint_pos[placement_mask, 0]
+            - self._a2_hold_oracle_offset_hinge_joint_start[placement_mask]
+        )
+        self._a2_hold_oracle_offset_handle_joint_delta[placement_mask] = (
+            door_joint_pos[placement_mask, 1]
+            - self._a2_hold_oracle_offset_handle_joint_start[placement_mask]
+        )
+        return a_raw
+
+    def _apply_a2_offset_probe_action(
+        self,
+        policy_action: torch.Tensor,
+        first_episode_active_mask: torch.Tensor,
+        activate: torch.Tensor,
+    ):
+        cfg = self._a2_hold_oracle_cfg
+        self._a2_hold_oracle_a_raw.zero_()
+        placement_state = a2_hold_offset_placement_step_masks(
+            True,
+            activate,
+            first_episode_active_mask,
+            self._a2_hold_oracle_offset_placement_active,
+            self._a2_hold_oracle_offset_placement_action_count,
+            cfg["static_clamp_offset_placement_steps"],
+        )
+        self._a2_hold_oracle_offset_placement_active[:] = placement_state["active"]
+        self._a2_hold_oracle_offset_placement_action_count[:] = placement_state[
+            "action_count"
+        ]
+        self._a2_hold_oracle_phase_step[placement_state["override"]] = placement_state[
+            "action_count"
+        ][placement_state["override"]]
+        self._finish_a2_offset_placement(placement_state["incomplete"])
+        endpoint_mask = placement_state["endpoint_check"]
+        endpoint_result = self._snapshot_a2_offset_placement_state(endpoint_mask)
+        converged = endpoint_result["converged"]
+        if torch.any(endpoint_mask):
+            self._a2_hold_oracle_offset_endpoint_checked[endpoint_mask] = True
+            self._a2_hold_oracle_offset_final_placement_action_count[endpoint_mask] = (
+                self._a2_hold_oracle_offset_placement_action_count[endpoint_mask]
+            )
+            self._a2_hold_oracle_offset_placement_active[endpoint_mask] = False
+            self._a2_hold_oracle_offset_placement_action_count[endpoint_mask] = 0
+            self._a2_hold_oracle_offset_placement_validated[converged] = True
+            self._set_a2_hold_outcome(
+                endpoint_mask & ~converged, "PLACEMENT_NOT_CONVERGED"
+            )
+
+        static_state = a2_hold_static_clamp_step_masks(
+            True,
+            converged,
+            first_episode_active_mask,
+            self._a2_hold_oracle_static_clamp_active,
+            self._a2_hold_oracle_static_clamp_write_count,
+            cfg["static_clamp_steps"],
+        )
+        self._apply_a2_static_clamp_gains(static_state["entering"])
+        self._a2_hold_oracle_static_clamp_active[:] = static_state["active"]
+        self._a2_hold_oracle_static_clamp_write_count[:] = static_state[
+            "write_count"
+        ]
+        self._a2_hold_oracle_phase_step[static_state["override"]] = static_state[
+            "write_count"
+        ][static_state["override"]]
+        self._finish_a2_static_clamp(
+            static_state["complete"] | static_state["incomplete"]
+        )
+
+        action = policy_action
+        placement_override = placement_state["override"]
+        if torch.any(placement_override):
+            arm_raw = self._compute_a2_offset_placement_arm_raw(placement_override)
+            action = a2_hold_apply_offset_placement_action(
+                action, placement_override, arm_raw
+            )
+        action = a2_hold_apply_static_clamp_action(action, static_state["override"])
+        combined_override = placement_override | static_state["override"]
+        if torch.any(placement_override & static_state["override"]):
+            raise RuntimeError("A2 offset placement and clamp overrides cannot overlap.")
+        if torch.any(self._a2_hold_oracle_a_raw[~placement_override] != 0.0):
+            raise RuntimeError(
+                "A2 offset applied-arm telemetry must be zero outside placement DLS."
+            )
+        if torch.any(combined_override) and not torch.equal(
+            action[combined_override, 5:11],
+            self._a2_hold_oracle_a_raw[combined_override],
+        ):
+            raise RuntimeError(
+                "A2 offset controlled arm action disagrees with applied-arm telemetry."
+            )
+        self._a2_hold_oracle_offset_placement_branch[:] = placement_override
+        self._a2_hold_oracle_arm_dls_branch[:] = placement_override
+        self._a2_hold_oracle_base_relief_branch_applied.zero_()
+        self._a2_hold_oracle_phase_sign_check_due.zero_()
+        self._a2_hold_oracle_last_override_mask = combined_override.clone()
+        self._a2_hold_oracle_post_override_action = action
+        return action, combined_override
+
     def apply_a2_eval_hold_oracle_action_override(
         self, policy_action: torch.Tensor, first_episode_active_mask: torch.Tensor
     ):
@@ -5748,6 +7731,8 @@ class DoorPregrasp(
             )
             self._a2_hold_oracle_handoff_relative_quat = updated_relative_quat
             self._a2_hold_oracle_handoff_orientation_captured = updated_captured_mask
+            if cfg["static_clamp_offset_probe_enabled"]:
+                self._capture_a2_offset_gate(activate)
         self._a2_hold_oracle_phase[activate] = A2_HOLD_PHASE_CENTER_CLOSE
         self._a2_hold_oracle_phase_step[activate] = 0
         self._a2_hold_oracle_activated[activate] = True
@@ -5757,6 +7742,14 @@ class DoorPregrasp(
 
         ended_without_gate = wait_mask & ~first_episode_active_mask
         self._set_a2_hold_outcome(ended_without_gate, "NO_GATE")
+        if cfg["open_stabilization_preflight_enabled"]:
+            return self._apply_a2_open_stabilization_action(
+                policy_action, first_episode_active_mask, activate
+            )
+        if cfg["static_clamp_offset_probe_enabled"]:
+            return self._apply_a2_offset_probe_action(
+                policy_action, first_episode_active_mask, activate
+            )
         if cfg["static_clamp_enabled"]:
             static_state = a2_hold_static_clamp_step_masks(
                 True,
@@ -6109,6 +8102,14 @@ class DoorPregrasp(
         post_action = self._a2_hold_oracle_post_override_action
         if not torch.is_tensor(post_action):
             raise RuntimeError("A2 hold oracle trace requires post-oracle action.")
+        if cfg["open_stabilization_preflight_enabled"]:
+            self._capture_a2_open_stabilization_post_action_samples()
+        if cfg["static_clamp_offset_probe_enabled"]:
+            self._refresh_a2_offset_live_telemetry(
+                self._a2_hold_oracle_offset_placement_branch
+                | self._a2_hold_oracle_static_clamp_active
+                | self._a2_hold_oracle_static_clamp_gain_applied
+            )
         robot = self.simulator.scene.articulations["robot"]
         actual_target = robot.data.joint_pos_target[:, self._a2_hold_oracle_joint_ids]
         records = []
@@ -6124,7 +8125,9 @@ class DoorPregrasp(
                         else "configured longitudinal TCP"
                     ),
                     "hold_oracle_target_orientation_semantic": (
-                        A2_HOLD_TARGET_ORIENTATION_SEMANTIC
+                        a2_hold_target_orientation_semantic(
+                            cfg["static_clamp_offset_probe_enabled"]
+                        )
                     ),
                     "hold_oracle_handoff_orientation_captured": bool(
                         self._a2_hold_oracle_handoff_orientation_captured[env_id].item()
@@ -6167,21 +8170,189 @@ class DoorPregrasp(
                         self._a2_hold_oracle_arm_candidate_action_raw[env_id]
                     ),
                     "hold_oracle_control_branch": (
-                        "STATIC_CLAMP"
-                        if cfg["static_clamp_enabled"]
+                        "ARM0_OPEN_STABILIZATION"
+                        if cfg["open_stabilization_preflight_enabled"]
                         and self._a2_hold_oracle_last_override_mask[env_id].item()
                         else (
-                            "ARM_DLS"
-                            if self._a2_hold_oracle_arm_dls_branch[env_id].item()
+                            "OFFSET_PLACE"
+                            if self._a2_hold_oracle_offset_placement_branch[env_id].item()
                             else (
-                                "BASE_RELIEF"
-                                if self._a2_hold_oracle_base_relief_branch_applied[
-                                    env_id
-                                ].item()
-                                else "NONE"
+                                "STATIC_CLAMP"
+                                if cfg["static_clamp_enabled"]
+                                and self._a2_hold_oracle_last_override_mask[env_id].item()
+                                else (
+                                    "ARM_DLS"
+                                    if self._a2_hold_oracle_arm_dls_branch[env_id].item()
+                                    else (
+                                        "BASE_RELIEF"
+                                        if self._a2_hold_oracle_base_relief_branch_applied[
+                                            env_id
+                                        ].item()
+                                        else "NONE"
+                                    )
+                                )
                             )
                         )
                     ),
+                    "hold_oracle_open_stabilization_enabled": cfg[
+                        "open_stabilization_preflight_enabled"
+                    ],
+                    "hold_oracle_open_stabilization_active": bool(
+                        self._a2_hold_oracle_open_stabilization_active[env_id].item()
+                    ),
+                    "hold_oracle_open_stabilization_action_count": int(
+                        self._a2_hold_oracle_open_stabilization_action_count[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_open_stabilization_final_action_count": int(
+                        self._a2_hold_oracle_open_stabilization_final_action_count[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_open_stabilization_gate_captured": bool(
+                        self._a2_hold_oracle_open_stabilization_gate_captured[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_open_stabilization_captured_arm_target": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_open_stabilization_arm_target_capture[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_open_stabilization_latest_sample": (
+                        self._a2_hold_oracle_open_stabilization_samples[env_id][-1]
+                        if self._a2_hold_oracle_open_stabilization_samples[env_id]
+                        else None
+                    ),
+                    "hold_oracle_offset_probe_enabled": cfg[
+                        "static_clamp_offset_probe_enabled"
+                    ],
+                    "hold_oracle_offset_factor_label": (
+                        "O+"
+                        if cfg["static_clamp_offset_m"] > 0.0
+                        else ("O-" if cfg["static_clamp_offset_m"] < 0.0 else "O0")
+                    ),
+                    "hold_oracle_offset_factor_semantic": (
+                        "O+ is source local +Y/body8 opening direction; "
+                        "O- is source local -Y/body7 opening direction"
+                    ),
+                    "hold_oracle_offset_state_machine": (
+                        "WAIT_GATE->OFFSET_PLACE(20 actions)->PLACEMENT_CHECK"
+                        "->STATIC_CLAMP(40 actions)"
+                    ),
+                    "hold_oracle_offset_phase": (
+                        "OFFSET_PLACE"
+                        if self._a2_hold_oracle_offset_placement_branch[
+                            env_id
+                        ].item()
+                        else (
+                            "STATIC_CLAMP"
+                            if self._a2_hold_oracle_static_clamp_gain_applied[
+                                env_id
+                            ].item()
+                            else (
+                                "PLACEMENT_CHECK"
+                                if self._a2_hold_oracle_offset_endpoint_checked[
+                                    env_id
+                                ].item()
+                                else "WAIT_GATE"
+                            )
+                        )
+                    ),
+                    "hold_oracle_offset_requested_m": cfg["static_clamp_offset_m"],
+                    "hold_oracle_offset_placement_active": bool(
+                        self._a2_hold_oracle_offset_placement_active[env_id].item()
+                    ),
+                    "hold_oracle_offset_placement_ever_activated": bool(
+                        self._a2_hold_oracle_offset_placement_ever_activated[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_offset_placement_branch": bool(
+                        self._a2_hold_oracle_offset_placement_branch[env_id].item()
+                    ),
+                    "hold_oracle_offset_placement_action_count": int(
+                        self._a2_hold_oracle_offset_placement_action_count[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_offset_final_placement_action_count": int(
+                        self._a2_hold_oracle_offset_final_placement_action_count[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_offset_endpoint_checked": bool(
+                        self._a2_hold_oracle_offset_endpoint_checked[env_id].item()
+                    ),
+                    "hold_oracle_offset_placement_validated": bool(
+                        self._a2_hold_oracle_offset_placement_validated[env_id].item()
+                    ),
+                    "hold_oracle_offset_gate_source_pos_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_gate_source_pos_w[env_id]
+                    ),
+                    "hold_oracle_offset_gate_source_quat_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_gate_source_quat_w[env_id]
+                    ),
+                    "hold_oracle_offset_gate_handle_pos_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_gate_handle_pos_w[env_id]
+                    ),
+                    "hold_oracle_offset_gate_handle_quat_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_gate_handle_quat_w[env_id]
+                    ),
+                    "hold_oracle_offset_source_local_y_axis_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_source_local_y_axis_w[env_id]
+                    ),
+                    "hold_oracle_offset_fixed_target_pos_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_fixed_target_pos_w[env_id]
+                    ),
+                    "hold_oracle_offset_fixed_target_quat_w": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_fixed_target_quat_w[env_id]
+                    ),
+                    "hold_oracle_offset_opening_axis_dots_body7_body8": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_offset_opening_axis_dots_body7_body8[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_offset_achieved_signed_offset_m": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_offset_achieved_signed_offset_m[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_offset_signed_offset_error_m": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_signed_offset_error_m[env_id]
+                    ),
+                    "hold_oracle_offset_orthogonal_residual_m": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_orthogonal_residual_m[env_id]
+                    ),
+                    "hold_oracle_offset_position_residual_m": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_position_residual_m[env_id]
+                    ),
+                    "hold_oracle_offset_orientation_residual_rad": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_offset_orientation_residual_rad[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_offset_root_displacement_m": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_root_displacement_m[env_id]
+                    ),
+                    "hold_oracle_offset_hinge_joint_delta": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_hinge_joint_delta[env_id]
+                    ),
+                    "hold_oracle_offset_handle_joint_delta": a2_hold_nullable_tensor_list(
+                        self._a2_hold_oracle_offset_handle_joint_delta[env_id]
+                    ),
+                    "hold_oracle_offset_base_raw_action": post_action[
+                        env_id, :5
+                    ].detach().cpu().tolist(),
                     "hold_oracle_static_clamp_enabled": cfg["static_clamp_enabled"],
                     "hold_oracle_static_clamp_active": bool(
                         self._a2_hold_oracle_static_clamp_active[env_id].item()
@@ -6361,6 +8532,29 @@ class DoorPregrasp(
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
         if cfg is None or not cfg["enabled"]:
             raise RuntimeError("A2 hold oracle summary requested while oracle is disabled.")
+        if cfg["open_stabilization_preflight_enabled"]:
+            if not self._a2_hold_oracle_finalized:
+                raise RuntimeError(
+                    "A2 open stabilization summary requires finalized lifecycle state."
+                )
+            if torch.any(self._a2_hold_oracle_open_stabilization_active):
+                raise RuntimeError(
+                    "A2 open stabilization summary rejects active preflight state."
+                )
+            ever = self._a2_hold_oracle_open_stabilization_ever_activated
+            final_count = self._a2_hold_oracle_open_stabilization_final_action_count
+            if torch.any(ever & ((final_count < 0) | (final_count > 40))):
+                raise RuntimeError(
+                    "A2 open stabilization summary rejects invalid durable action counts."
+                )
+            if any(
+                ever[env_id].item()
+                and self._a2_hold_oracle_open_stabilization_result[env_id] is None
+                for env_id in range(self.num_envs)
+            ):
+                raise RuntimeError(
+                    "A2 open stabilization summary requires a durable result for every activated env."
+                )
         if cfg["static_clamp_enabled"]:
             if not self._a2_hold_oracle_finalized:
                 raise RuntimeError("A2 static clamp summary requires finalized restore state.")
@@ -6447,6 +8641,61 @@ class DoorPregrasp(
                 )
             ):
                 raise RuntimeError("A2 static clamp summary rejects gain/effort restore mismatch.")
+        if cfg["static_clamp_offset_probe_enabled"]:
+            if torch.any(self._a2_hold_oracle_offset_placement_active) or torch.any(
+                self._a2_hold_oracle_offset_placement_action_count != 0
+            ):
+                raise RuntimeError("A2 offset summary rejects active placement state.")
+            placement_ever = self._a2_hold_oracle_offset_placement_ever_activated
+            final_placement_count = (
+                self._a2_hold_oracle_offset_final_placement_action_count
+            )
+            invalid_count = placement_ever & (
+                (final_placement_count < 0)
+                | (
+                    final_placement_count
+                    > cfg["static_clamp_offset_placement_steps"]
+                )
+            )
+            if torch.any(invalid_count):
+                raise RuntimeError("A2 offset summary rejects invalid final placement count.")
+            snapshots_present = torch.tensor(
+                [
+                    value is not None
+                    for value in self._a2_hold_oracle_offset_preclamp_snapshot
+                ],
+                device=self.device,
+                dtype=torch.bool,
+            )
+            checked = self._a2_hold_oracle_offset_endpoint_checked
+            validated = self._a2_hold_oracle_offset_placement_validated
+            completed_placement = placement_ever & (
+                final_placement_count
+                == cfg["static_clamp_offset_placement_steps"]
+            )
+            if torch.any(checked != completed_placement) or torch.any(
+                validated & ~checked
+            ):
+                raise RuntimeError("A2 offset summary rejects endpoint/count mismatch.")
+            if torch.any(placement_ever & (snapshots_present != checked)):
+                raise RuntimeError(
+                    "A2 offset summary requires snapshots exactly for checked endpoints."
+                )
+            ended_after_placement = (
+                self._a2_hold_oracle_outcome
+                == A2_HOLD_OUTCOME_TO_ID[
+                    "OFFSET_PLACEMENT_COMPLETE_EPISODE_ENDED"
+                ]
+            )
+            clamp_activated = self._a2_hold_oracle_static_clamp_ever_activated
+            if torch.any(
+                validated & ~(clamp_activated | ended_after_placement)
+            ) or torch.any(
+                clamp_activated & ~validated
+            ) or torch.any(
+                ended_after_placement & (~validated | clamp_activated)
+            ):
+                raise RuntimeError("A2 offset summary rejects placement/gain routing mismatch.")
         pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
         no_gate = pending & ~self._a2_hold_oracle_activated
         self._a2_hold_oracle_outcome[no_gate] = A2_HOLD_OUTCOME_TO_ID["NO_GATE"]
@@ -6496,7 +8745,77 @@ class DoorPregrasp(
         self._a2_hold_oracle_outcome[push & ~reached & ~no_progress] = (
             A2_HOLD_OUTCOME_TO_ID["PUSH_TIMEOUT"]
         )
+        if torch.any(
+            self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        ):
+            raise RuntimeError("A2 hold oracle summary cannot retain PENDING outcomes.")
         names = [A2_HOLD_OUTCOME_NAMES[int(value)] for value in self._a2_hold_oracle_outcome.cpu().tolist()]
+        if cfg["open_stabilization_preflight_enabled"]:
+            if "PENDING" in names:
+                raise RuntimeError(
+                    "A2 open stabilization summary cannot retain PENDING outcomes."
+                )
+            return {
+                "config": dict(cfg),
+                "preflight": "ARM0_OPEN_STABILIZATION_PREFLIGHT",
+                "state_machine": (
+                    "WAIT_GATE->CONTACT_PREFLIGHT->ACTIONS_1_TO_40"
+                    "->INSTANTANEOUS_WINDOW_36_TO_40_AND_POSE_TRANSITIONS_35_TO_40->STOP"
+                ),
+                "terminal_priority": (
+                    "CONTACT_CONTAMINATED>GATE_LOST>READY_OR_NOT_SETTLED>INCOMPLETE"
+                ),
+                "per_env_outcome": names,
+                "outcome_counts": a2_hold_summarize_outcomes(names),
+                "per_env_ever_activated": ever.detach().cpu().tolist(),
+                "per_env_gate_captured": self._a2_hold_oracle_open_stabilization_gate_captured.detach()
+                .cpu()
+                .tolist(),
+                "per_env_final_action_count": final_count.detach().cpu().tolist(),
+                "per_env_gate_root_pos_w": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_gate_root_pos_w
+                ),
+                "per_env_gate_root_quat_w": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_gate_root_quat_w
+                ),
+                "per_env_gate_source_pos_w": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_gate_source_pos_w
+                ),
+                "per_env_gate_source_quat_w": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_gate_source_quat_w
+                ),
+                "per_env_gate_handle_pos_w": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_gate_handle_pos_w
+                ),
+                "per_env_gate_handle_quat_w": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_gate_handle_quat_w
+                ),
+                "per_env_captured_accumulated_arm_target": a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_open_stabilization_arm_target_capture
+                ),
+                "per_env_reason_contact_contaminated": self._a2_hold_oracle_open_stabilization_reason_contact.detach()
+                .cpu()
+                .tolist(),
+                "per_env_reason_gate_lost": self._a2_hold_oracle_open_stabilization_reason_gate.detach()
+                .cpu()
+                .tolist(),
+                "per_env_reason_incomplete": self._a2_hold_oracle_open_stabilization_reason_incomplete.detach()
+                .cpu()
+                .tolist(),
+                "per_env_reason_ready": self._a2_hold_oracle_open_stabilization_reason_ready.detach()
+                .cpu()
+                .tolist(),
+                "per_env_reason_not_settled": self._a2_hold_oracle_open_stabilization_reason_not_settled.detach()
+                .cpu()
+                .tolist(),
+                "per_env_result": list(
+                    self._a2_hold_oracle_open_stabilization_result
+                ),
+                "per_env_samples": list(
+                    self._a2_hold_oracle_open_stabilization_samples
+                ),
+                "finalize_called": self._a2_hold_oracle_finalized,
+            }
         return {
             "config": dict(cfg),
             "tcp_offset_label": (
@@ -6515,6 +8834,91 @@ class DoorPregrasp(
             ),
             "base_relief_phase_timeout_semantic": (
                 "relief_steps_consume_current_phase_timeout"
+            ),
+            "offset_probe_enabled": cfg["static_clamp_offset_probe_enabled"],
+            "offset_factor_label": (
+                "O+"
+                if cfg["static_clamp_offset_m"] > 0.0
+                else ("O-" if cfg["static_clamp_offset_m"] < 0.0 else "O0")
+            ),
+            "offset_factor_semantic": (
+                "O+ source +Y/body8 opening direction; "
+                "O- source -Y/body7 opening direction"
+            ),
+            "offset_state_machine": (
+                "WAIT_GATE->OFFSET_PLACE(20 actions)->PLACEMENT_CHECK"
+                "->STATIC_CLAMP(40 actions)"
+            ),
+            "per_env_offset_placement_ever_activated": (
+                self._a2_hold_oracle_offset_placement_ever_activated.detach()
+                .cpu()
+                .tolist()
+            ),
+            "per_env_offset_final_placement_action_count": (
+                self._a2_hold_oracle_offset_final_placement_action_count.detach()
+                .cpu()
+                .tolist()
+            ),
+            "per_env_offset_endpoint_checked": (
+                self._a2_hold_oracle_offset_endpoint_checked.detach().cpu().tolist()
+            ),
+            "per_env_offset_placement_validated": (
+                self._a2_hold_oracle_offset_placement_validated.detach()
+                .cpu()
+                .tolist()
+            ),
+            "per_env_offset_gate_source_pos_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_gate_source_pos_w
+            ),
+            "per_env_offset_gate_source_quat_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_gate_source_quat_w
+            ),
+            "per_env_offset_gate_handle_pos_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_gate_handle_pos_w
+            ),
+            "per_env_offset_gate_handle_quat_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_gate_handle_quat_w
+            ),
+            "per_env_offset_source_local_y_axis_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_source_local_y_axis_w
+            ),
+            "per_env_offset_fixed_target_pos_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_fixed_target_pos_w
+            ),
+            "per_env_offset_fixed_target_quat_w": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_fixed_target_quat_w
+            ),
+            "per_env_offset_opening_axis_dots_body7_body8": (
+                a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_offset_opening_axis_dots_body7_body8
+                )
+            ),
+            "per_env_offset_achieved_signed_offset_m": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_achieved_signed_offset_m
+            ),
+            "per_env_offset_signed_offset_error_m": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_signed_offset_error_m
+            ),
+            "per_env_offset_orthogonal_residual_m": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_orthogonal_residual_m
+            ),
+            "per_env_offset_position_residual_m": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_position_residual_m
+            ),
+            "per_env_offset_orientation_residual_rad": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_orientation_residual_rad
+            ),
+            "per_env_offset_root_displacement_m": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_root_displacement_m
+            ),
+            "per_env_offset_hinge_joint_delta": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_hinge_joint_delta
+            ),
+            "per_env_offset_handle_joint_delta": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_offset_handle_joint_delta
+            ),
+            "per_env_offset_preclamp_snapshot": list(
+                self._a2_hold_oracle_offset_preclamp_snapshot
             ),
             "static_clamp_ever_activated_count": int(
                 self._a2_hold_oracle_static_clamp_ever_activated.sum().item()
@@ -7543,9 +9947,48 @@ class DoorPregrasp(
         grasp_target_pos_w[:, 2] += 0.1
         return grasp_target_pos_w
 
+    def _finish_a2_offset_placement_before_reset(self, env_ids: torch.Tensor) -> None:
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("A2 offset placement reset requires valid device-local env ids.")
+        affected = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        affected[env_ids] = self._a2_hold_oracle_offset_placement_active[env_ids]
+        self._finish_a2_offset_placement(affected)
+
     @override
     def _reset_buffers_callback(self, env_ids, target_buf=None):
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if (
+            cfg is not None
+            and cfg["enabled"]
+            and cfg["open_stabilization_preflight_enabled"]
+        ):
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "A2 open stabilization reset requires valid device-local env ids."
+                )
+            affected = torch.zeros(
+                self.num_envs, device=self.device, dtype=torch.bool
+            )
+            affected[env_ids] = self._a2_hold_oracle_open_stabilization_active[
+                env_ids
+            ]
+            self._finish_a2_open_stabilization(affected)
         if cfg is not None and cfg["enabled"] and cfg["static_clamp_enabled"]:
             if (
                 not torch.is_tensor(env_ids)
@@ -7556,6 +9999,8 @@ class DoorPregrasp(
                 or torch.any(env_ids >= self.num_envs)
             ):
                 raise RuntimeError("A2 static clamp reset requires valid device-local env ids.")
+            if cfg["static_clamp_offset_probe_enabled"]:
+                self._finish_a2_offset_placement_before_reset(env_ids)
             affected = torch.zeros(
                 self.num_envs, device=self.device, dtype=torch.bool
             )

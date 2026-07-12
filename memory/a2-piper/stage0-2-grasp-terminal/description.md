@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-12 17:36 HKT
+last_updated: 2026-07-12 21:05 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -17,10 +17,11 @@ read_when:
 
 ## Purpose
 
-记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 training/default baseline 是 TCP `0.085`、gripper Kp/Kd `80/3`、`arm_j7/j8 effort_limit_sim=10/10`。Eval-only S0/S1/S2 证明 anti-backdrive 是 partial factor，但更高 gains 没有把 contact 保留到 step40，因此下一步仍是 centered bilateral reachability / inner geometry / closed aperture，不把 S1/S2 提升为 training/default config。
+记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 training/default baseline 是 TCP `0.085`、gripper Kp/Kd `80/3`、`arm_j7/j8 effort_limit_sim=10/10`。Full-stage B eval-only offset/preflight 只说明 matched diagnostic 在 moving-root capture 和 early contact contamination 处被阻断，不表示 stage0-2 grasp terminal 或 full door task PASS。下一步是 clean reacquisition / stabilize-before-capture，不改 default actuator/material/training config。
 
 ## Current Decision
 
+- 2026-07-12 21:05 HKT - Candidate `cff2b6474c97e0e48e85524a3390df246b9b82836d4db0c95be7fbdd16982791` 的 full-stage B eval-only source-local-Y `O-/O0/O+ = -3/0/+3mm` tooling 与 `ARM0_OPEN_STABILIZATION_PREFLIGHT` 已通过 static review。Formal O0 虽为 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`；root-relative target 每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap，故 moving floating root / arm catch-up deficit 是 primary blocker，body8-only contact `124/160` 是 secondary。Preflight 随后 `8/8 activated`、`0/8 READY`，以 `7 CONTACT_CONTAMINATED + 1 GATE_LOST` 结束，且无 env 到 action40；这不能证明 root quietness 不可达。后续先做 matched clean reacquisition / stabilize-before-capture，只有 same B ckpt1000 / seed0 / 8 env frozen protocol 达到 `8/8 READY` 才能 fresh O0，完成 fresh O0 full placement/clamp 后才能 O-/O+。Historical S1 不能代替 matched result。
 - 2026-07-12 17:36 HKT - Frozen candidate `f5d8ea69b28c40da8386a0b26c9c141c66478e40fba0c0b3f21d77775166a468` 的 exact-40 S0/S1/S2 static clamp 完成 `37 passed`、Wave 1 static PASS 及 runtime integrity PASS。三组均 `8/8 complete`、count `40`、effort `10/10`、restore `80/3`。Bilateral/stability 从 S0 `2/0` 增到 S1 `16/4` 再到 S2 `44/19 of 320`，`arm_j8` open-limit frames 从 `1/1` 降到 `0`，S2 `j8 qmin=-0.026426` 优于 S0/S1 `-0.035`；但 step40 any-contact 三组均 `0/8`，S2 `arm_j7` saturation 为 `41/320`。结论是 anti-backdrive 对 transient grasp 有贡献，但不是 sufficient fix，且 bottleneck 转移到 j7/centered reachability；geometry/aperture 仍 unresolved。
 - 2026-07-11 22:19 HKT - Full-stage eval-only hold-oracle 已将 stage0-2 grasp blocker 收敛到 exact geometry / reachability。G1/G2/G3 的 80-step `CENTER_CLOSE` 均 bilateral contact `0/80`、未进入 `DEPRESS`，无 slip/saturation，并以 center timeout / `IK_TRACKING_FAILURE` 结束。G1 TCP `0.085` 与 G3 TCP `0.105` 分别有 `1/3` frame 进入 base-relief branch，故 controller path 可达但不足以建立 bilateral grasp。Current baseline 为 TCP `0.085`、effort `10/10`；本轮未改 Kp/friction。
 - 2026-06-22 20:29 HKT - 用户确认从 `A2_Piper` 切出新分支 `quickTEST`，用于 stage0-2 grasp-terminal quick test。

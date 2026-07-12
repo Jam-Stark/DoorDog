@@ -147,9 +147,21 @@ def _load_no_sim_helpers():
         "a2_hold_static_clamp_step_masks",
         "a2_hold_static_clamp_terminal_partition",
         "a2_hold_apply_static_clamp_action",
+        "a2_hold_offset_fixed_world_target",
+        "a2_hold_validate_offset_axis_opening_dots",
+        "a2_hold_offset_placement_step_masks",
+        "a2_hold_offset_terminal_partition",
+        "a2_hold_apply_offset_placement_action",
+        "a2_hold_offset_endpoint_metrics",
+        "a2_hold_target_orientation_semantic",
         "a2_hold_update_base_relief_state",
         "a2_hold_update_phase_arm_sign_check",
         "a2_hold_validate_friction_override",
+        "a2_hold_quaternion_geodesic_rad",
+        "a2_hold_pose_motion_metrics",
+        "a2_hold_open_stabilization_action",
+        "a2_hold_open_stabilization_terminal_partition",
+        "a2_hold_validate_open_stabilization_runtime_invariants",
     }
     nodes = []
     for node in tree.body:
@@ -172,6 +184,7 @@ def _load_no_sim_helpers():
         "subtract_frame_transforms": _subtract_frame_transforms,
         "combine_frame_transforms": _combine_frame_transforms,
         "quat_apply_inverse": _quat_apply_inverse,
+        "quat_apply": _quat_apply,
         "yaw_quat": _yaw_quat,
     }
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(SOURCE_PATH), "exec"), namespace)
@@ -266,6 +279,21 @@ def _valid_oracle_config(enabled=True):
         "a2_hold_oracle_static_clamp_steps": 40,
         "a2_hold_oracle_static_clamp_stiffness": 80.0,
         "a2_hold_oracle_static_clamp_damping": 3.0,
+        "a2_hold_oracle_static_clamp_offset_probe_enabled": False,
+        "a2_hold_oracle_static_clamp_offset_m": 0.0,
+        "a2_hold_oracle_static_clamp_offset_placement_steps": 20,
+        "a2_hold_oracle_static_clamp_offset_position_tolerance_m": 0.0005,
+        "a2_hold_oracle_static_clamp_offset_orientation_tolerance_rad": 0.02,
+        "a2_hold_oracle_open_stabilization_preflight_enabled": False,
+        "a2_hold_oracle_open_stabilization_steps": 40,
+        "a2_hold_oracle_open_stabilization_quiet_window_steps": 5,
+        "a2_hold_oracle_open_stabilization_root_linear_speed_max_mps": 0.01,
+        "a2_hold_oracle_open_stabilization_root_angular_speed_max_radps": 0.02,
+        "a2_hold_oracle_open_stabilization_pose_per_call_translation_max_m": 0.0005,
+        "a2_hold_oracle_open_stabilization_pose_per_call_rotation_max_rad": 0.0005,
+        "a2_hold_oracle_open_stabilization_pose_window_translation_max_m": 0.001,
+        "a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad": 0.002,
+        "a2_hold_oracle_open_stabilization_contact_force_max_n": 1.0,
     }
 
 
@@ -1085,6 +1113,1057 @@ def test_static_clamp_parser_accepts_only_exact_40_step_s0_s1_s2():
             )
 
 
+def test_offset_fixed_target_identity_rotated_q_sign_and_nonaccumulation():
+    gate_pos = torch.tensor([[1.0, 2.0, 3.0], [0.0, 0.0, 0.0]])
+    half = math.pi / 4.0
+    quat = torch.tensor(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [math.cos(half), 0.0, 0.0, math.sin(half)],
+        ]
+    )
+    axis, target, target_quat = a2_hold_offset_fixed_world_target(
+        gate_pos, quat, 0.003
+    )
+    torch.testing.assert_close(axis[0], torch.tensor([0.0, 1.0, 0.0]))
+    torch.testing.assert_close(axis[1], torch.tensor([-1.0, 0.0, 0.0]), atol=1e-6, rtol=0.0)
+    torch.testing.assert_close(target, gate_pos + 0.003 * axis)
+    torch.testing.assert_close(target_quat, quat)
+
+    axis_neg_q, target_neg_q, target_quat_neg_q = a2_hold_offset_fixed_world_target(
+        gate_pos, -quat, 0.003
+    )
+    torch.testing.assert_close(axis_neg_q, axis)
+    torch.testing.assert_close(target_neg_q, target)
+    torch.testing.assert_close(target_quat_neg_q, -quat)
+    _, repeated_target, _ = a2_hold_offset_fixed_world_target(gate_pos, quat, 0.003)
+    torch.testing.assert_close(repeated_target, target)
+
+    _, minus_target, _ = a2_hold_offset_fixed_world_target(gate_pos, quat, -0.003)
+    torch.testing.assert_close(minus_target, gate_pos - 0.003 * axis)
+    _, zero_target, _ = a2_hold_offset_fixed_world_target(gate_pos, quat, 0.0)
+    torch.testing.assert_close(zero_target, gate_pos)
+
+
+def test_offset_opening_dot_validation_and_wrong_degenerate_rejection():
+    axis = torch.tensor([[0.0, 1.0, 0.0]])
+    opening = torch.tensor([[[0.0, -1.0, 0.0], [0.0, 1.0, 0.0]]])
+    dots = a2_hold_validate_offset_axis_opening_dots(axis, opening)
+    torch.testing.assert_close(dots, torch.tensor([[-1.0, 1.0]]))
+    for invalid in (
+        opening.flip(1),
+        torch.tensor([[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]]),
+        torch.zeros_like(opening),
+    ):
+        try:
+            a2_hold_validate_offset_axis_opening_dots(axis, invalid)
+        except ValueError as exc:
+            assert "opening" in str(exc) or "unit length" in str(exc)
+        else:
+            raise AssertionError("invalid offset/opening-axis relationship did not fail")
+
+
+def test_offset_placement_exact_20_then_check_no_action21_and_mixed_terminal():
+    active = torch.zeros(1, dtype=torch.bool)
+    count = torch.zeros(1, dtype=torch.long)
+    states = []
+    for call in range(21):
+        state = a2_hold_offset_placement_step_masks(
+            True,
+            torch.tensor([call == 0]),
+            torch.tensor([True]),
+            active,
+            count,
+            20,
+        )
+        states.append(state)
+        active = state["active"]
+        count = state["action_count"]
+    assert sum(state["override"].item() for state in states) == 20
+    assert [state["action_count"].item() for state in states[:20]] == list(
+        range(1, 21)
+    )
+    assert not states[20]["override"].item()
+    assert states[20]["endpoint_check"].item()
+    assert not states[20]["active"].item()
+
+    mixed = a2_hold_offset_placement_step_masks(
+        True,
+        torch.zeros(2, dtype=torch.bool),
+        torch.tensor([False, True]),
+        torch.ones(2, dtype=torch.bool),
+        torch.tensor([19, 20], dtype=torch.long),
+        20,
+    )
+    assert mixed["incomplete"].tolist() == [True, False]
+    assert mixed["endpoint_check"].tolist() == [False, True]
+    assert not mixed["override"].any()
+
+    terminal_after_action20 = a2_hold_offset_placement_step_masks(
+        True,
+        torch.tensor([False]),
+        torch.tensor([False]),
+        torch.tensor([True]),
+        torch.tensor([20], dtype=torch.long),
+        20,
+    )
+    assert terminal_after_action20["incomplete"].item()
+    assert not terminal_after_action20["endpoint_check"].item()
+    assert not terminal_after_action20["override"].item()
+
+    clamp_action1 = a2_hold_static_clamp_step_masks(
+        True,
+        torch.tensor([True]),
+        torch.tensor([True]),
+        torch.tensor([False]),
+        torch.tensor([0], dtype=torch.long),
+        40,
+    )
+    assert clamp_action1["entering"].item()
+    assert clamp_action1["override"].item()
+    assert clamp_action1["write_count"].item() == 1
+    terminal_partition = a2_hold_offset_terminal_partition(
+        torch.tensor([True, True]),
+        torch.tensor([19, 20], dtype=torch.long),
+        20,
+    )
+    assert terminal_partition["incomplete"].tolist() == [True, False]
+    assert terminal_partition["endpoint_check"].tolist() == [False, True]
+    try:
+        a2_hold_offset_terminal_partition(
+            torch.tensor([True]), torch.tensor([21], dtype=torch.long), 20
+        )
+    except ValueError as exc:
+        assert "exceeded" in str(exc)
+    else:
+        raise AssertionError("offset terminal count21 did not fail fast")
+
+
+def test_offset_terminal_finish_reset_helper_and_finalizer_mixed_19_20():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    finish_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_finish_a2_offset_placement"
+    )
+    reset_finish_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_finish_a2_offset_placement_before_reset"
+    )
+    finalizer_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "finalize_a2_eval_hold_oracle"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_offset_terminal_partition": a2_hold_offset_terminal_partition,
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, finish_node)), namespace)
+    exec(textwrap.dedent(ast.get_source_segment(source, reset_finish_node)), namespace)
+    exec(textwrap.dedent(ast.get_source_segment(source, finalizer_node)), namespace)
+
+    class Dummy:
+        _finish_a2_offset_placement = namespace["_finish_a2_offset_placement"]
+        _finish_a2_offset_placement_before_reset = namespace[
+            "_finish_a2_offset_placement_before_reset"
+        ]
+        finalize_a2_eval_hold_oracle = namespace["finalize_a2_eval_hold_oracle"]
+
+        def __init__(self):
+            self.num_envs = 3
+            self.device = "cpu"
+            self._a2_hold_oracle_cfg = {
+                "enabled": True,
+                "static_clamp_enabled": True,
+                "static_clamp_offset_probe_enabled": True,
+                "static_clamp_offset_placement_steps": 20,
+                "open_stabilization_preflight_enabled": False,
+            }
+            self._a2_hold_oracle_offset_placement_ever_activated = torch.ones(
+                3, dtype=torch.bool
+            )
+            self._a2_hold_oracle_static_clamp_gain_applied = torch.zeros(
+                3, dtype=torch.bool
+            )
+            self._a2_hold_oracle_static_clamp_active = torch.zeros(3, dtype=torch.bool)
+            self._a2_hold_oracle_offset_final_placement_action_count = torch.full(
+                (3,), -1, dtype=torch.long
+            )
+            self._a2_hold_oracle_offset_placement_action_count = torch.tensor(
+                [19, 20, 20], dtype=torch.long
+            )
+            self._a2_hold_oracle_offset_placement_active = torch.ones(
+                3, dtype=torch.bool
+            )
+            self._a2_hold_oracle_offset_endpoint_checked = torch.zeros(
+                3, dtype=torch.bool
+            )
+            self._a2_hold_oracle_offset_placement_validated = torch.zeros(
+                3, dtype=torch.bool
+            )
+            self._a2_hold_oracle_finalized = False
+            self.snapshot_masks = []
+            self.outcomes = []
+            self.static_finish_masks = []
+
+        def _snapshot_a2_offset_placement_state(self, mask):
+            self.snapshot_masks.append(mask.clone())
+            converged = torch.zeros_like(mask)
+            converged[1] = mask[1]
+            return {"converged": converged}
+
+        def _set_a2_hold_outcome(self, mask, outcome):
+            self.outcomes.append((mask.clone(), outcome))
+
+        def _finish_a2_static_clamp(self, mask):
+            self.static_finish_masks.append(mask.clone())
+
+    dummy = Dummy()
+    dummy._finish_a2_offset_placement_before_reset(torch.tensor([0, 1, 2]))
+    assert [mask.tolist() for mask in dummy.snapshot_masks] == [[False, True, True]]
+    assert dummy._a2_hold_oracle_offset_final_placement_action_count.tolist() == [19, 20, 20]
+    assert dummy._a2_hold_oracle_offset_placement_action_count.tolist() == [0, 0, 0]
+    assert not dummy._a2_hold_oracle_offset_placement_active.any()
+    assert dummy._a2_hold_oracle_offset_endpoint_checked.tolist() == [False, True, True]
+    assert dummy._a2_hold_oracle_offset_placement_validated.tolist() == [False, True, False]
+    outcome_masks = {name: mask.tolist() for mask, name in dummy.outcomes}
+    assert outcome_masks == {
+        "PLACEMENT_INCOMPLETE": [True, False, False],
+        "PLACEMENT_NOT_CONVERGED": [False, False, True],
+        "OFFSET_PLACEMENT_COMPLETE_EPISODE_ENDED": [False, True, False],
+    }
+    assert not dummy._a2_hold_oracle_static_clamp_gain_applied.any()
+
+    finalizer = Dummy()
+    finalizer.finalize_a2_eval_hold_oracle()
+    assert finalizer._a2_hold_oracle_finalized
+    assert finalizer._a2_hold_oracle_offset_endpoint_checked.tolist() == [False, True, True]
+    assert len(finalizer.static_finish_masks) == 1
+    assert torch.equal(
+        finalizer.static_finish_masks[0], torch.zeros(3, dtype=torch.bool)
+    )
+
+
+def test_offset_apply_handoff_exact20_then_clamp1_or_nonconverged_no_gain():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    apply_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_apply_a2_offset_probe_action"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_offset_placement_step_masks": a2_hold_offset_placement_step_masks,
+        "a2_hold_static_clamp_step_masks": a2_hold_static_clamp_step_masks,
+        "a2_hold_apply_offset_placement_action": a2_hold_apply_offset_placement_action,
+        "a2_hold_apply_static_clamp_action": a2_hold_apply_static_clamp_action,
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, apply_node)), namespace)
+
+    class Dummy:
+        _apply_a2_offset_probe_action = namespace["_apply_a2_offset_probe_action"]
+
+        def __init__(self, converged):
+            self.num_envs = 1
+            self._a2_hold_oracle_cfg = {
+                "static_clamp_offset_placement_steps": 20,
+                "static_clamp_steps": 40,
+            }
+            self._a2_hold_oracle_offset_placement_active = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_offset_placement_action_count = torch.zeros(
+                1, dtype=torch.long
+            )
+            self._a2_hold_oracle_offset_endpoint_checked = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_offset_final_placement_action_count = torch.full(
+                (1,), -1, dtype=torch.long
+            )
+            self._a2_hold_oracle_offset_placement_validated = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_static_clamp_active = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_static_clamp_write_count = torch.zeros(
+                1, dtype=torch.long
+            )
+            self._a2_hold_oracle_static_clamp_gain_applied = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_phase_step = torch.zeros(1, dtype=torch.long)
+            self._a2_hold_oracle_a_raw = torch.full((1, 6), 9.0)
+            self._a2_hold_oracle_offset_placement_branch = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_arm_dls_branch = torch.zeros(1, dtype=torch.bool)
+            self._a2_hold_oracle_base_relief_branch_applied = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_phase_sign_check_due = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_last_override_mask = torch.zeros(
+                1, dtype=torch.bool
+            )
+            self._a2_hold_oracle_post_override_action = None
+            self.endpoint_converged = converged
+            self.gains = (80.0, 3.0)
+            self.events = []
+            self.preclamp_snapshot = None
+            self.outcomes = []
+
+        def _finish_a2_offset_placement(self, mask):
+            self._a2_hold_oracle_offset_placement_active[mask] = False
+            self._a2_hold_oracle_offset_placement_action_count[mask] = 0
+
+        def _snapshot_a2_offset_placement_state(self, mask):
+            result = torch.zeros_like(mask)
+            if torch.any(mask):
+                self.events.append(("snapshot", self.gains))
+                self.preclamp_snapshot = {"gains": self.gains}
+                result[mask] = self.endpoint_converged
+            return {"converged": result}
+
+        def _set_a2_hold_outcome(self, mask, outcome):
+            if torch.any(mask):
+                self.outcomes.append(outcome)
+
+        def _apply_a2_static_clamp_gains(self, mask):
+            if torch.any(mask):
+                assert self.preclamp_snapshot == {"gains": (80.0, 3.0)}
+                self.events.append(("gains", (160.0, 6.0)))
+                self.gains = (160.0, 6.0)
+                self._a2_hold_oracle_static_clamp_gain_applied[mask] = True
+
+        def _finish_a2_static_clamp(self, mask):
+            assert not torch.any(mask)
+
+        def _compute_a2_offset_placement_arm_raw(self, mask):
+            assert self.gains == (80.0, 3.0)
+            result = torch.zeros(1, 6)
+            result[mask] = 0.25
+            self._a2_hold_oracle_a_raw[mask] = result[mask]
+            return result
+
+    policy = torch.arange(12, dtype=torch.float32).reshape(1, 12)
+    active = torch.ones(1, dtype=torch.bool)
+    passing = Dummy(True)
+    for index in range(20):
+        action, override = passing._apply_a2_offset_probe_action(
+            policy, active, torch.tensor([index == 0])
+        )
+        assert override.item()
+        torch.testing.assert_close(action[0, :5], torch.zeros(5))
+        torch.testing.assert_close(action[0, 5:11], torch.full((6,), 0.25))
+        torch.testing.assert_close(
+            passing._a2_hold_oracle_a_raw[0], action[0, 5:11]
+        )
+        assert action[0, 11].item() == 1.0
+        assert passing.gains == (80.0, 3.0)
+    assert passing._a2_hold_oracle_offset_placement_action_count.item() == 20
+    action, override = passing._apply_a2_offset_probe_action(
+        policy, active, torch.tensor([False])
+    )
+    assert override.item()
+    torch.testing.assert_close(action[0, :11], torch.zeros(11))
+    torch.testing.assert_close(
+        passing._a2_hold_oracle_a_raw[0], torch.zeros(6)
+    )
+    assert action[0, 11].item() == -1.0
+    assert passing.events == [
+        ("snapshot", (80.0, 3.0)),
+        ("gains", (160.0, 6.0)),
+    ]
+    assert passing._a2_hold_oracle_offset_final_placement_action_count.item() == 20
+    assert passing._a2_hold_oracle_offset_endpoint_checked.item()
+    assert passing._a2_hold_oracle_offset_placement_validated.item()
+    assert passing._a2_hold_oracle_static_clamp_write_count.item() == 1
+    for _ in range(39):
+        action, override = passing._apply_a2_offset_probe_action(
+            policy, active, torch.tensor([False])
+        )
+        assert override.item()
+        torch.testing.assert_close(action[0, 5:11], torch.zeros(6))
+        torch.testing.assert_close(
+            passing._a2_hold_oracle_a_raw[0], torch.zeros(6)
+        )
+    assert passing._a2_hold_oracle_static_clamp_write_count.item() == 40
+
+    failing = Dummy(False)
+    for index in range(20):
+        failing._apply_a2_offset_probe_action(
+            policy, active, torch.tensor([index == 0])
+        )
+    action, override = failing._apply_a2_offset_probe_action(
+        policy, active, torch.tensor([False])
+    )
+    assert not override.item()
+    torch.testing.assert_close(action, policy)
+    assert failing.events == [("snapshot", (80.0, 3.0))]
+    assert failing.gains == (80.0, 3.0)
+    assert failing.outcomes == ["PLACEMENT_NOT_CONVERGED"]
+    assert not failing._a2_hold_oracle_static_clamp_gain_applied.item()
+    assert failing._a2_hold_oracle_static_clamp_write_count.item() == 0
+    torch.testing.assert_close(failing._a2_hold_oracle_a_raw[0], torch.zeros(6))
+
+    terminal = Dummy(True)
+    for index in range(20):
+        terminal._apply_a2_offset_probe_action(
+            policy, active, torch.tensor([index == 0])
+        )
+    terminal._a2_hold_oracle_a_raw.fill_(7.0)
+    action, override = terminal._apply_a2_offset_probe_action(
+        policy, torch.tensor([False]), torch.tensor([False])
+    )
+    assert not override.item()
+    torch.testing.assert_close(action, policy)
+    torch.testing.assert_close(terminal._a2_hold_oracle_a_raw[0], torch.zeros(6))
+
+
+def test_offset_two_env_async_applied_arm_telemetry_matches_controlled_rows():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    apply_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_apply_a2_offset_probe_action"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_offset_placement_step_masks": a2_hold_offset_placement_step_masks,
+        "a2_hold_static_clamp_step_masks": a2_hold_static_clamp_step_masks,
+        "a2_hold_apply_offset_placement_action": a2_hold_apply_offset_placement_action,
+        "a2_hold_apply_static_clamp_action": a2_hold_apply_static_clamp_action,
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, apply_node)), namespace)
+
+    class Dummy:
+        _apply_a2_offset_probe_action = namespace["_apply_a2_offset_probe_action"]
+
+        def __init__(self):
+            self.num_envs = 2
+            self._a2_hold_oracle_cfg = {
+                "static_clamp_offset_placement_steps": 20,
+                "static_clamp_steps": 40,
+            }
+            self._a2_hold_oracle_a_raw = torch.full((2, 6), 9.0)
+            self._a2_hold_oracle_offset_placement_active = torch.tensor(
+                [False, True]
+            )
+            self._a2_hold_oracle_offset_placement_action_count = torch.tensor(
+                [0, 1], dtype=torch.long
+            )
+            self._a2_hold_oracle_offset_endpoint_checked = torch.zeros(
+                2, dtype=torch.bool
+            )
+            self._a2_hold_oracle_offset_final_placement_action_count = torch.full(
+                (2,), -1, dtype=torch.long
+            )
+            self._a2_hold_oracle_offset_placement_validated = torch.zeros(
+                2, dtype=torch.bool
+            )
+            self._a2_hold_oracle_static_clamp_active = torch.tensor([True, False])
+            self._a2_hold_oracle_static_clamp_write_count = torch.tensor(
+                [5, 0], dtype=torch.long
+            )
+            self._a2_hold_oracle_phase_step = torch.zeros(2, dtype=torch.long)
+            self._a2_hold_oracle_offset_placement_branch = torch.zeros(
+                2, dtype=torch.bool
+            )
+            self._a2_hold_oracle_arm_dls_branch = torch.zeros(2, dtype=torch.bool)
+            self._a2_hold_oracle_base_relief_branch_applied = torch.zeros(
+                2, dtype=torch.bool
+            )
+            self._a2_hold_oracle_phase_sign_check_due = torch.zeros(
+                2, dtype=torch.bool
+            )
+            self._a2_hold_oracle_last_override_mask = torch.zeros(
+                2, dtype=torch.bool
+            )
+            self._a2_hold_oracle_post_override_action = None
+
+        def _finish_a2_offset_placement(self, mask):
+            assert not torch.any(mask)
+
+        def _snapshot_a2_offset_placement_state(self, mask):
+            assert not torch.any(mask)
+            return {"converged": torch.zeros_like(mask)}
+
+        def _set_a2_hold_outcome(self, mask, outcome):
+            assert not torch.any(mask), outcome
+
+        def _apply_a2_static_clamp_gains(self, mask):
+            assert not torch.any(mask)
+
+        def _finish_a2_static_clamp(self, mask):
+            assert not torch.any(mask)
+
+        def _compute_a2_offset_placement_arm_raw(self, mask):
+            assert mask.tolist() == [False, True]
+            result = torch.zeros(2, 6)
+            result[mask] = 0.25
+            self._a2_hold_oracle_a_raw[mask] = result[mask]
+            return result
+
+    dummy = Dummy()
+    policy = torch.arange(24, dtype=torch.float32).reshape(2, 12)
+    action, override = dummy._apply_a2_offset_probe_action(
+        policy,
+        torch.ones(2, dtype=torch.bool),
+        torch.zeros(2, dtype=torch.bool),
+    )
+    assert override.tolist() == [True, True]
+    torch.testing.assert_close(action[0, 5:11], torch.zeros(6))
+    torch.testing.assert_close(dummy._a2_hold_oracle_a_raw[0], torch.zeros(6))
+    torch.testing.assert_close(action[1, 5:11], torch.full((6,), 0.25))
+    torch.testing.assert_close(
+        dummy._a2_hold_oracle_a_raw[1], action[1, 5:11]
+    )
+    torch.testing.assert_close(
+        action[override, 5:11], dummy._a2_hold_oracle_a_raw[override]
+    )
+
+
+def test_offset_static_clamp_live_refresh_moves_without_mutating_preclamp_snapshot():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    refresh_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_refresh_a2_offset_live_telemetry"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_offset_endpoint_metrics": a2_hold_offset_endpoint_metrics,
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, refresh_node)), namespace)
+
+    class Dummy:
+        _refresh_a2_offset_live_telemetry = namespace[
+            "_refresh_a2_offset_live_telemetry"
+        ]
+
+        def __init__(self):
+            self.source_pos = torch.tensor([[0.0, 0.003, 0.0]])
+            self.root_pos = torch.zeros(1, 3)
+            self.door_joint_pos = torch.zeros(1, 2)
+            self._a2_hold_oracle_cfg = {
+                "static_clamp_offset_m": 0.003,
+                "static_clamp_offset_position_tolerance_m": 0.0005,
+                "static_clamp_offset_orientation_tolerance_rad": 0.02,
+            }
+            self._a2_hold_oracle_offset_gate_source_pos_w = torch.zeros(1, 3)
+            self._a2_hold_oracle_offset_fixed_target_pos_w = torch.tensor(
+                [[0.0, 0.003, 0.0]]
+            )
+            self._a2_hold_oracle_offset_fixed_target_quat_w = torch.tensor(
+                [[1.0, 0.0, 0.0, 0.0]]
+            )
+            self._a2_hold_oracle_offset_source_local_y_axis_w = torch.tensor(
+                [[0.0, 1.0, 0.0]]
+            )
+            self._a2_hold_oracle_offset_achieved_signed_offset_m = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_signed_offset_error_m = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_orthogonal_residual_m = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_position_residual_m = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_orientation_residual_rad = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_root_start_xy_w = torch.zeros(1, 2)
+            self._a2_hold_oracle_offset_root_displacement_m = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_hinge_joint_start = torch.zeros(1)
+            self._a2_hold_oracle_offset_handle_joint_start = torch.zeros(1)
+            self._a2_hold_oracle_offset_hinge_joint_delta = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_handle_joint_delta = torch.full(
+                (1,), float("nan")
+            )
+            self._a2_hold_oracle_offset_preclamp_snapshot = [
+                {"position_residual_m": 0.0, "immutable": True}
+            ]
+
+        def _get_a2_hold_oracle_world_frames(self):
+            return {
+                "source_pos_w": self.source_pos.clone(),
+                "source_quat_w": torch.tensor([[1.0, 0.0, 0.0, 0.0]]),
+                "root_pos_w": self.root_pos.clone(),
+            }
+
+        def _get_door_joint_pos(self, _context, expected):
+            assert expected == 2
+            return self.door_joint_pos.clone()
+
+    dummy = Dummy()
+    immutable_before = json.dumps(dummy._a2_hold_oracle_offset_preclamp_snapshot)
+    clamp_refresh_mask = torch.tensor([True])
+    dummy._refresh_a2_offset_live_telemetry(clamp_refresh_mask)
+    assert dummy._a2_hold_oracle_offset_position_residual_m.item() == 0.0
+    dummy.source_pos[:] = torch.tensor([[0.001, 0.005, 0.0]])
+    dummy.root_pos[:, 0] = 0.1
+    dummy.door_joint_pos[:] = torch.tensor([[0.2, -0.1]])
+    dummy._refresh_a2_offset_live_telemetry(clamp_refresh_mask)
+    assert math.isclose(
+        dummy._a2_hold_oracle_offset_achieved_signed_offset_m.item(),
+        0.005,
+        abs_tol=1.0e-7,
+    )
+    assert dummy._a2_hold_oracle_offset_position_residual_m.item() > 0.002
+    assert math.isclose(
+        dummy._a2_hold_oracle_offset_orthogonal_residual_m.item(),
+        0.001,
+        abs_tol=1.0e-7,
+    )
+    assert math.isclose(
+        dummy._a2_hold_oracle_offset_root_displacement_m.item(),
+        0.1,
+        abs_tol=1.0e-7,
+    )
+    assert math.isclose(
+        dummy._a2_hold_oracle_offset_hinge_joint_delta.item(),
+        0.2,
+        abs_tol=1.0e-7,
+    )
+    assert math.isclose(
+        dummy._a2_hold_oracle_offset_handle_joint_delta.item(),
+        -0.1,
+        abs_tol=1.0e-7,
+    )
+    assert json.dumps(dummy._a2_hold_oracle_offset_preclamp_snapshot) == immutable_before
+
+    trace_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_get_a2_hold_oracle_trace_fields"
+    )
+    trace_source = ast.get_source_segment(source, trace_node)
+    assert "self._a2_hold_oracle_static_clamp_active" in trace_source
+    assert "self._a2_hold_oracle_static_clamp_gain_applied" in trace_source
+
+
+def test_offset_async_placement_masks_all_generic_telemetry_and_action_rows():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    compute_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_compute_a2_offset_placement_arm_raw"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_progress_aware_joint_limit_masks": (
+            a2_hold_progress_aware_joint_limit_masks
+        ),
+        "a2_hold_absolute_target_to_cumulative_action": (
+            a2_hold_absolute_target_to_cumulative_action
+        ),
+        "a2_hold_offset_endpoint_metrics": a2_hold_offset_endpoint_metrics,
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, compute_node)), namespace)
+
+    class Data:
+        pass
+
+    class Robot:
+        pass
+
+    class Scene:
+        pass
+
+    class Simulator:
+        pass
+
+    class Dummy:
+        _compute_a2_offset_placement_arm_raw = namespace[
+            "_compute_a2_offset_placement_arm_raw"
+        ]
+
+        def __init__(self):
+            self.num_envs = 2
+            self.device = "cpu"
+            self._a2_hold_oracle_cfg = {
+                "joint_limit_margin": 0.0001,
+                "soft_limit_progress_tolerance": 0.000001,
+                "raw_action_abs_max": 10.0,
+                "static_clamp_offset_m": 0.003,
+                "static_clamp_offset_position_tolerance_m": 0.0005,
+                "static_clamp_offset_orientation_tolerance_rad": 0.02,
+            }
+            self._a2_hold_oracle_joint_ids = list(range(6))
+            self._a2_hold_oracle_static_clamp_gain_applied = torch.tensor(
+                [True, False]
+            )
+            robot = Robot()
+            robot.data = Data()
+            robot.data.joint_pos_limits = torch.tensor(
+                [[[-2.0, 2.0]] * 6, [[-2.0, 2.0]] * 6]
+            )
+            robot.data.soft_joint_pos_limits = robot.data.joint_pos_limits.clone()
+            robot.data.joint_pos = torch.zeros(2, 6)
+            robot.data.default_joint_pos = torch.zeros(2, 6)
+            scene = Scene()
+            scene.articulations = {"robot": robot}
+            self.simulator = Simulator()
+            self.simulator.scene = scene
+            self._delta_actions = torch.zeros(2, 6)
+
+            float_specs = {
+                "_a2_hold_oracle_q_des": (2, 6),
+                "_a2_hold_oracle_d_des": (2, 6),
+                "_a2_hold_oracle_d_prev": (2, 6),
+                "_a2_hold_oracle_arm_candidate_action_raw": (2, 6),
+                "_a2_hold_oracle_a_raw": (2, 6),
+                "_a2_hold_oracle_target_pos_root": (2, 3),
+                "_a2_hold_oracle_target_quat_root": (2, 4),
+                "_a2_hold_oracle_bounded_command_pos_root": (2, 3),
+                "_a2_hold_oracle_bounded_command_quat_root": (2, 4),
+                "_a2_hold_oracle_bounded_position_step": (2,),
+                "_a2_hold_oracle_bounded_orientation_step": (2,),
+                "_a2_hold_oracle_position_residual": (2,),
+                "_a2_hold_oracle_orientation_residual": (2,),
+                "_a2_hold_oracle_singular_values": (2, 6),
+                "_a2_hold_oracle_jacobian_condition": (2,),
+                "_a2_hold_oracle_offset_achieved_signed_offset_m": (2,),
+                "_a2_hold_oracle_offset_signed_offset_error_m": (2,),
+                "_a2_hold_oracle_offset_orthogonal_residual_m": (2,),
+                "_a2_hold_oracle_offset_position_residual_m": (2,),
+                "_a2_hold_oracle_offset_orientation_residual_rad": (2,),
+                "_a2_hold_oracle_offset_root_displacement_m": (2,),
+                "_a2_hold_oracle_offset_hinge_joint_delta": (2,),
+                "_a2_hold_oracle_offset_handle_joint_delta": (2,),
+            }
+            for name, shape in float_specs.items():
+                setattr(self, name, torch.full(shape, 71.0))
+            for name in (
+                "_a2_hold_oracle_ik_valid",
+                "_a2_hold_oracle_limit_valid",
+                "_a2_hold_oracle_delta_ok",
+                "_a2_hold_oracle_raw_ok",
+            ):
+                setattr(self, name, torch.zeros(2, dtype=torch.bool))
+
+            self._a2_hold_oracle_offset_root_start_xy_w = torch.zeros(2, 2)
+            self._a2_hold_oracle_offset_gate_source_pos_w = torch.zeros(2, 3)
+            self._a2_hold_oracle_offset_fixed_target_pos_w = torch.tensor(
+                [[0.0, 0.003, 0.0], [0.0, 0.003, 0.0]]
+            )
+            self._a2_hold_oracle_offset_fixed_target_quat_w = torch.tensor(
+                [[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]]
+            )
+            self._a2_hold_oracle_offset_source_local_y_axis_w = torch.tensor(
+                [[0.0, 1.0, 0.0], [0.0, 1.0, 0.0]]
+            )
+            self._a2_hold_oracle_offset_hinge_joint_start = torch.zeros(2)
+            self._a2_hold_oracle_offset_handle_joint_start = torch.zeros(2)
+            self.audited_names = tuple(float_specs) + (
+                "_a2_hold_oracle_ik_valid",
+                "_a2_hold_oracle_limit_valid",
+                "_a2_hold_oracle_delta_ok",
+                "_a2_hold_oracle_raw_ok",
+            )
+
+        def _get_a2_static_clamp_gripper_state(self, env_ids):
+            assert env_ids.tolist() == [1]
+            return None, None, {
+                "stiffness": torch.full((1, 2), 80.0),
+                "damping": torch.full((1, 2), 3.0),
+                "effort_limit": torch.full((1, 2), 10.0),
+            }
+
+        def _compute_a2_hold_offset_joint_target(self, placement_mask):
+            assert placement_mask.tolist() == [False, True]
+            q_des = torch.tensor([[0.2] * 6, [0.3] * 6])
+            identity = torch.tensor(
+                [[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]]
+            )
+            return (
+                q_des,
+                torch.ones(2, dtype=torch.bool),
+                torch.tensor([[9.0] * 6, [1.0] * 6]),
+                torch.tensor([9.0, 1.0]),
+                torch.tensor([[9.0] * 3, [0.0, 0.003, 0.0]]),
+                identity,
+                torch.tensor([9.0, 0.003]),
+                torch.tensor([9.0, 0.0]),
+                torch.tensor([[9.0] * 3, [0.0, 0.002, 0.0]]),
+                identity,
+                torch.tensor([9.0, 0.002]),
+                torch.tensor([9.0, 0.0]),
+                torch.tensor([[9.0, 9.0], [0.0, 0.0]]),
+            )
+
+        def _get_a2_hold_oracle_world_frames(self):
+            return {
+                "source_pos_w": torch.tensor(
+                    [[9.0, 9.0, 9.0], [0.0, 0.003, 0.0]]
+                ),
+                "source_quat_w": torch.tensor(
+                    [[1.0, 0.0, 0.0, 0.0], [1.0, 0.0, 0.0, 0.0]]
+                ),
+            }
+
+        def _get_door_joint_pos(self, _context, expected):
+            assert expected == 2
+            return torch.tensor([[9.0, 9.0], [0.2, -0.1]])
+
+    dummy = Dummy()
+    env0_before = {
+        name: getattr(dummy, name)[0].clone() for name in dummy.audited_names
+    }
+    placement_mask = torch.tensor([False, True])
+    arm_raw = dummy._compute_a2_offset_placement_arm_raw(placement_mask)
+    for name, expected in env0_before.items():
+        assert torch.equal(getattr(dummy, name)[0], expected), name
+    assert torch.all(dummy._a2_hold_oracle_q_des[1] == 0.3)
+    assert dummy._a2_hold_oracle_ik_valid.tolist() == [False, True]
+    policy = torch.arange(24, dtype=torch.float32).reshape(2, 12)
+    action = a2_hold_apply_offset_placement_action(
+        policy, placement_mask, arm_raw
+    )
+    torch.testing.assert_close(action[0], policy[0])
+    torch.testing.assert_close(action[1, :5], torch.zeros(5))
+    torch.testing.assert_close(action[1, 5:11], arm_raw[1])
+    assert action[1, 11].item() == 1.0
+
+
+def test_offset_orientation_semantic_is_conditional_and_default_is_unchanged():
+    assert a2_hold_target_orientation_semantic(False) == (
+        "handle_orientation_composed_with_handoff_handle_to_gripper_relative_orientation"
+    )
+    assert a2_hold_target_orientation_semantic(True) == (
+        "captured gate source quaternion is fixed-world residual reference; placement uses "
+        "Cartesian DLS; static clamp uses accumulated joint-target hold with arm raw zero"
+    )
+
+
+def test_offset_placement_action_and_endpoint_metrics_o0_and_off_axis():
+    policy = torch.arange(24, dtype=torch.float32).reshape(2, 12)
+    arm = torch.full((2, 6), 0.25)
+    action = a2_hold_apply_offset_placement_action(
+        policy, torch.tensor([True, False]), arm
+    )
+    torch.testing.assert_close(action[0, :5], torch.zeros(5))
+    torch.testing.assert_close(action[0, 5:11], arm[0])
+    assert action[0, 11].item() == 1.0
+    torch.testing.assert_close(action[1], policy[1])
+
+    gate = torch.zeros(2, 3)
+    axis = torch.tensor([[0.0, 1.0, 0.0]]).repeat(2, 1)
+    target = torch.tensor([[0.0, 0.003, 0.0], [0.0, 0.0, 0.0]])
+    quat = torch.tensor([[1.0, 0.0, 0.0, 0.0]]).repeat(2, 1)
+    current = target.clone()
+    current_quat = quat.clone()
+    current_quat[0] *= -1.0
+    metrics_plus = a2_hold_offset_endpoint_metrics(
+        current[:1],
+        current_quat[:1],
+        gate[:1],
+        target[:1],
+        quat[:1],
+        axis[:1],
+        0.003,
+        0.0005,
+        0.02,
+    )
+    assert metrics_plus["converged"].item()
+    torch.testing.assert_close(
+        metrics_plus["achieved_signed_offset_m"], torch.tensor([0.003])
+    )
+    assert metrics_plus["orthogonal_residual_m"].item() == 0.0
+
+    metrics_zero = a2_hold_offset_endpoint_metrics(
+        current[1:], quat[1:], gate[1:], target[1:], quat[1:], axis[1:], 0.0, 0.0005, 0.02
+    )
+    assert metrics_zero["converged"].item()
+    off_axis = current[:1].clone()
+    off_axis[:, 0] = 0.001
+    failed = a2_hold_offset_endpoint_metrics(
+        off_axis, quat[:1], gate[:1], target[:1], quat[:1], axis[:1], 0.003, 0.0005, 0.02
+    )
+    assert not failed["converged"].item()
+    assert failed["orthogonal_residual_m"].item() > 0.0005
+
+
+def test_offset_parser_accepts_only_fresh_o_minus_o0_o_plus_contract():
+    for offset in (-0.003, 0.0, 0.003):
+        cfg = _valid_oracle_config()
+        cfg["a2_hold_oracle_static_clamp_enabled"] = True
+        cfg["a2_hold_oracle_static_clamp_stiffness"] = 160.0
+        cfg["a2_hold_oracle_static_clamp_damping"] = 6.0
+        cfg["a2_hold_oracle_static_clamp_offset_probe_enabled"] = True
+        cfg["a2_hold_oracle_static_clamp_offset_m"] = offset
+        parsed = parse_a2_hold_oracle_config(cfg)
+        assert parsed["static_clamp_offset_m"] == offset
+        assert parsed["static_clamp_offset_placement_steps"] == 20
+
+    invalid_updates = (
+        {"a2_hold_oracle_static_clamp_offset_m": 0.001},
+        {"a2_hold_oracle_static_clamp_offset_placement_steps": 19},
+        {"a2_hold_oracle_static_clamp_steps": 41},
+        {"a2_hold_oracle_static_clamp_stiffness": 80.0},
+        {"a2_hold_oracle_static_clamp_damping": 12.0},
+    )
+    for update in invalid_updates:
+        cfg = _valid_oracle_config()
+        cfg.update(
+            {
+                "a2_hold_oracle_static_clamp_enabled": True,
+                "a2_hold_oracle_static_clamp_stiffness": 160.0,
+                "a2_hold_oracle_static_clamp_damping": 6.0,
+                "a2_hold_oracle_static_clamp_offset_probe_enabled": True,
+            }
+        )
+        cfg.update(update)
+        try:
+            parse_a2_hold_oracle_config(cfg)
+        except RuntimeError as exc:
+            assert "offset probe" in str(exc) or "static clamp" in str(exc)
+        else:
+            raise AssertionError(f"invalid offset config parsed: {update}")
+
+    formal_protocol_deviations = (
+        {"a2_hold_oracle_static_clamp_offset_position_tolerance_m": 0.0006},
+        {"a2_hold_oracle_static_clamp_offset_orientation_tolerance_rad": 0.03},
+        {"a2_hold_oracle_max_position_step_m": 0.003},
+        {"a2_hold_oracle_max_orientation_step_rad": 0.03},
+        {"a2_hold_oracle_dls_lambda": 0.02},
+        {"a2_hold_oracle_jacobian_condition_max": 999999.0},
+        {"a2_hold_oracle_joint_limit_margin": 0.0002},
+        {"a2_hold_oracle_soft_limit_progress_tolerance": 0.000002},
+        {"a2_hold_oracle_raw_action_abs_max": 9.0},
+    )
+    for update in formal_protocol_deviations:
+        cfg = _valid_oracle_config()
+        cfg.update(
+            {
+                "a2_hold_oracle_static_clamp_enabled": True,
+                "a2_hold_oracle_static_clamp_stiffness": 160.0,
+                "a2_hold_oracle_static_clamp_damping": 6.0,
+                "a2_hold_oracle_static_clamp_offset_probe_enabled": True,
+            }
+        )
+        cfg.update(update)
+        try:
+            parse_a2_hold_oracle_config(cfg)
+        except RuntimeError as exc:
+            assert "exact formal protocol tuple" in str(exc)
+        else:
+            raise AssertionError(f"offset formal protocol deviation parsed: {update}")
+
+
+def test_offset_runtime_state_machine_reset_summary_and_no_relief_wiring():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    eval_yaml = (Path(__file__).parents[1] / "config/base_eval.yaml").read_text()
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    apply_method = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_apply_a2_offset_probe_action"
+    )
+    apply_source = ast.get_source_segment(source, apply_method)
+    assert apply_source.index("_snapshot_a2_offset_placement_state") < apply_source.index(
+        "_apply_a2_static_clamp_gains"
+    )
+    assert "a2_hold_apply_offset_placement_action" in apply_source
+    assert "a2_hold_base_relief" not in apply_source
+    assert "placement_override & static_state" in apply_source
+
+    reset_method = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_reset_buffers_callback"
+    )
+    reset_source = ast.get_source_segment(source, reset_method)
+    assert reset_source.index("_finish_a2_offset_placement") < reset_source.index(
+        "_finish_a2_static_clamp"
+    ) < reset_source.index("super()._reset_buffers_callback")
+    finalize_method = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "finalize_a2_eval_hold_oracle"
+    )
+    finalize_source = ast.get_source_segment(source, finalize_method)
+    assert finalize_source.index("_finish_a2_offset_placement") < finalize_source.index(
+        "_finish_a2_static_clamp"
+    )
+    for required in (
+        '"PLACEMENT_INCOMPLETE"',
+        '"PLACEMENT_NOT_CONVERGED"',
+        '"hold_oracle_offset_gate_source_pos_w"',
+        '"hold_oracle_offset_fixed_target_pos_w"',
+        '"hold_oracle_offset_opening_axis_dots_body7_body8"',
+        '"per_env_offset_preclamp_snapshot"',
+        "summary cannot retain PENDING",
+        "initial gripper Kp/Kd=80/3 and effort=10/10",
+        "A2 offset probe requires exact current TCP z=0.085",
+        "A2 offset probe requires friction override=null",
+        "_refresh_a2_offset_live_telemetry",
+    ):
+        assert required in source
+    for required in (
+        "a2_hold_oracle_static_clamp_offset_probe_enabled: false",
+        "a2_hold_oracle_static_clamp_offset_m: 0.0",
+        "a2_hold_oracle_static_clamp_offset_placement_steps: 20",
+        "a2_hold_oracle_static_clamp_offset_position_tolerance_m: 0.0005",
+        "a2_hold_oracle_static_clamp_offset_orientation_tolerance_rad: 0.02",
+    ):
+        assert required in eval_yaml
+
+
 def test_static_clamp_reset_finalize_order_and_durable_summary_wiring():
     source = SOURCE_PATH.read_text(encoding="utf-8")
     tree = ast.parse(source)
@@ -1517,6 +2596,279 @@ def test_depress_success_wins_at_timeout_boundary_and_push_timeout_is_causal():
     )
     assert no_progress.tolist() == [False, True, False]
     assert timeout.tolist() == [False, False, True]
+
+
+def test_open_stabilization_quaternion_pose_math_and_exact_action():
+    identity = torch.tensor([[[1.0, 0.0, 0.0, 0.0]], [[-1.0, 0.0, 0.0, 0.0]]])
+    zero_angle = a2_hold_quaternion_geodesic_rad(identity[0], identity[1])
+    torch.testing.assert_close(zero_angle, torch.zeros_like(zero_angle))
+    positions = torch.zeros(5, 1, 3)
+    positions[:, 0, 0] = torch.tensor([0.0, 0.0001, 0.0002, 0.0003, 0.0004])
+    quaternions = torch.zeros(5, 1, 4)
+    quaternions[:, :, 0] = 1.0
+    quaternions[1::2] *= -1.0
+    metrics = a2_hold_pose_motion_metrics(positions, quaternions)
+    torch.testing.assert_close(
+        metrics["per_call_translation_max"], torch.tensor([0.0001])
+    )
+    torch.testing.assert_close(metrics["window_translation"], torch.tensor([0.0004]))
+    torch.testing.assert_close(metrics["per_call_rotation_max"], torch.tensor([0.0]))
+    action = torch.arange(24, dtype=torch.float32).reshape(2, 12)
+    applied = a2_hold_open_stabilization_action(
+        action, torch.tensor([True, False])
+    )
+    torch.testing.assert_close(applied[0, :11], torch.zeros(11))
+    assert applied[0, 11].item() == 1.0
+    torch.testing.assert_close(applied[1], action[1])
+
+
+def test_open_stabilization_pose_window_includes_35_to_36_and_q_sign_is_invariant():
+    positions = torch.zeros(6, 1, 3)
+    positions[1:, 0, 0] = 0.0006
+    quaternions = torch.zeros(6, 1, 4)
+    quaternions[:, :, 0] = 1.0
+    quaternions[1::2] *= -1.0
+    metrics = a2_hold_pose_motion_metrics(positions, quaternions)
+    assert metrics["per_call_translation_max"].item() > 0.0005
+    assert not bool(
+        (metrics["per_call_translation_max"] <= 0.0005).item()
+        and (metrics["per_call_rotation_max"] <= 0.0005).item()
+        and (metrics["window_translation"] <= 0.001).item()
+        and (metrics["window_rotation"] <= 0.002).item()
+    )
+    torch.testing.assert_close(metrics["per_call_rotation_max"], torch.tensor([0.0]))
+
+
+def test_open_stabilization_runtime_invariants_fail_immediately_by_class():
+    captured = torch.zeros(2, 6)
+    accumulated = captured.clone()
+    post_delta = captured.clone()
+    stiffness = torch.full((2, 2), 80.0)
+    damping = torch.full((2, 2), 3.0)
+    effort = torch.full((2, 2), 10.0)
+    result = a2_hold_validate_open_stabilization_runtime_invariants(
+        captured, accumulated, post_delta, stiffness, damping, effort
+    )
+    assert all(torch.all(value).item() for value in result.values())
+    cases = (
+        ("accumulated arm target", {"accumulated": accumulated.clone()}),
+        ("post-delta arm target", {"post_delta": post_delta.clone()}),
+        ("Kp/Kd/effort", {"stiffness": stiffness.clone()}),
+    )
+    cases[0][1]["accumulated"][1, 0] = 0.1
+    cases[1][1]["post_delta"][1, 0] = 0.1
+    cases[2][1]["stiffness"][1, 0] = 81.0
+    for expected, override in cases:
+        args = {
+            "captured_arm_target": captured,
+            "accumulated_arm_target": accumulated,
+            "post_delta_arm_target": post_delta,
+            "stiffness": stiffness,
+            "damping": damping,
+            "effort_limit": effort,
+        }
+        key_map = {
+            "accumulated": "accumulated_arm_target",
+            "post_delta": "post_delta_arm_target",
+            "stiffness": "stiffness",
+        }
+        for key, value in override.items():
+            args[key_map[key]] = value
+        try:
+            a2_hold_validate_open_stabilization_runtime_invariants(**args)
+        except ValueError as exc:
+            assert expected in str(exc)
+        else:
+            raise AssertionError(f"{expected} mismatch did not fail immediately")
+
+
+def test_open_stabilization_terminal_priority_mixed_async_and_overrun():
+    affected = torch.tensor([True, True, True, True, False])
+    count = torch.tensor([0, 39, 40, 39, 40])
+    contact = torch.tensor([True, True, False, False, True])
+    gate = torch.tensor([False, True, False, True, False])
+    result = a2_hold_open_stabilization_terminal_partition(
+        affected, count, contact, gate, 40
+    )
+    assert result["contact_contaminated"].tolist() == [True, True, False, False, False]
+    assert result["gate_lost"].tolist() == [False, False, True, False, False]
+    assert result["endpoint"].tolist() == [False, False, False, False, False]
+    assert result["incomplete"].tolist() == [False, False, False, True, False]
+    endpoint = a2_hold_open_stabilization_terminal_partition(
+        torch.tensor([True]),
+        torch.tensor([40]),
+        torch.tensor([False]),
+        torch.tensor([True]),
+        40,
+    )
+    assert endpoint["endpoint"].item()
+    try:
+        a2_hold_open_stabilization_terminal_partition(
+            torch.tensor([True]),
+            torch.tensor([41]),
+            torch.tensor([False]),
+            torch.tensor([True]),
+            40,
+        )
+    except ValueError as exc:
+        assert "exceeded" in str(exc)
+    else:
+        raise AssertionError("action41 did not fail fast")
+
+
+def test_open_stabilization_parser_locked_tuple_and_mutual_exclusion():
+    cfg = _valid_oracle_config()
+    cfg["a2_hold_oracle_open_stabilization_preflight_enabled"] = True
+    parsed = parse_a2_hold_oracle_config(cfg)
+    assert parsed["open_stabilization_steps"] == 40
+    assert parsed["open_stabilization_quiet_window_steps"] == 5
+    for mutation in (
+        {"a2_hold_oracle_open_stabilization_steps": 41},
+        {"a2_hold_oracle_open_stabilization_quiet_window_steps": 4},
+        {"a2_hold_oracle_open_stabilization_contact_force_max_n": 1.1},
+        {"a2_hold_oracle_static_clamp_enabled": True},
+        {"a2_hold_oracle_static_clamp_offset_probe_enabled": True},
+    ):
+        invalid = dict(cfg)
+        invalid.update(mutation)
+        try:
+            parse_a2_hold_oracle_config(invalid)
+        except RuntimeError:
+            pass
+        else:
+            raise AssertionError(f"invalid stabilization tuple accepted: {mutation}")
+
+
+def test_open_stabilization_lifecycle_wiring_no_dls_gain_or_relief():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    methods = {
+        node.name: ast.get_source_segment(source, node)
+        for node in door.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    apply_source = methods["_apply_a2_open_stabilization_action"]
+    assert "a2_hold_open_stabilization_action" in apply_source
+    assert "_compute_a2_offset_placement_arm_raw" not in apply_source
+    assert "_apply_a2_static_clamp_gains" not in apply_source
+    assert "base_relief_command" not in apply_source
+    assert "action_count[override] += 1" in apply_source
+    trace_source = methods["_get_a2_hold_oracle_trace_fields"]
+    assert "_capture_a2_open_stabilization_post_action_samples" in trace_source
+    reset_source = methods["_reset_buffers_callback"]
+    assert reset_source.index("_finish_a2_open_stabilization") < reset_source.index(
+        "super()._reset_buffers_callback"
+    )
+    finalize_source = methods["finalize_a2_eval_hold_oracle"]
+    assert "_finish_a2_open_stabilization" in finalize_source
+    summary_source = methods["get_a2_hold_oracle_summary"]
+    assert "ARM0_OPEN_STABILIZATION_PREFLIGHT" in summary_source
+    preflight_return = summary_source.split(
+        '"preflight": "ARM0_OPEN_STABILIZATION_PREFLIGHT"', 1
+    )[1].split("return {", 1)[0]
+    assert "static_clamp_restored" not in preflight_return
+
+
+def test_open_stabilization_behavioral_quiet_window_rejects_only_35_to_36_spike():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door = next(
+        node for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    method = next(
+        node for node in door.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_evaluate_a2_open_stabilization_quiet_window"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_pose_motion_metrics": a2_hold_pose_motion_metrics,
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, method)), namespace)
+
+    class Dummy:
+        _evaluate_a2_open_stabilization_quiet_window = namespace[
+            "_evaluate_a2_open_stabilization_quiet_window"
+        ]
+
+        def __init__(self):
+            self.device = "cpu"
+            self._a2_hold_oracle_cfg = {
+                "open_stabilization_steps": 40,
+                "open_stabilization_quiet_window_steps": 5,
+                "open_stabilization_root_linear_speed_max_mps": 0.01,
+                "open_stabilization_root_angular_speed_max_radps": 0.02,
+                "open_stabilization_pose_per_call_translation_max_m": 0.0005,
+                "open_stabilization_pose_per_call_rotation_max_rad": 0.0005,
+                "open_stabilization_pose_window_translation_max_m": 0.001,
+                "open_stabilization_pose_window_rotation_max_rad": 0.002,
+                "open_stabilization_contact_force_max_n": 1.0,
+            }
+            self._a2_hold_oracle_open_stabilization_gate_root_pos_w = torch.zeros(1, 3)
+            self._a2_hold_oracle_open_stabilization_gate_root_quat_w = torch.tensor(
+                [[1.0, 0.0, 0.0, 0.0]]
+            )
+            samples = []
+            for action in range(1, 41):
+                position = [0.0, 0.0, 0.0]
+                if action >= 36:
+                    position[0] = 0.0006
+                quat = [1.0, 0.0, 0.0, 0.0]
+                if action % 2:
+                    quat[0] = -1.0
+                sample = {
+                    "action": action,
+                    "root_linear_speed_mps": 0.0,
+                    "root_angular_speed_radps": 0.0,
+                    "handle_filter_force_norm_body7_body8": [0.0, 0.0],
+                    "composite_gate": True,
+                }
+                for position_key, quaternion_key in (
+                    ("root_pos_w", "root_quat_w"),
+                    (
+                        "frozen_gate_source_pos_root",
+                        "frozen_gate_source_quat_root",
+                    ),
+                    ("source_pos_root", "source_quat_root"),
+                    ("handle_pos_w", "handle_quat_w"),
+                ):
+                    sample[position_key] = list(position)
+                    sample[quaternion_key] = list(quat)
+                samples.append(sample)
+            self._a2_hold_oracle_open_stabilization_samples = [samples]
+
+    result = Dummy()._evaluate_a2_open_stabilization_quiet_window(0)
+    assert result["quiet_window_actions"] == [36, 37, 38, 39, 40]
+    assert result["pose_window_actions"] == [35, 36, 37, 38, 39, 40]
+    assert result["pose_transition_actions"][0] == [35, 36]
+    assert not result["ready"]
+    assert not result["reason_booleans"]["pose_motion_ok"]
+    assert all(
+        metrics["per_call_rotation_max"] == 0.0
+        for metrics in result["pose_motion"].values()
+    )
+
+
+def test_open_stabilization_yaml_defaults_are_locked_and_default_off():
+    eval_yaml = (Path(__file__).parents[1] / "config/base_eval.yaml").read_text()
+    for exact in (
+        "a2_hold_oracle_open_stabilization_preflight_enabled: false",
+        "a2_hold_oracle_open_stabilization_steps: 40",
+        "a2_hold_oracle_open_stabilization_quiet_window_steps: 5",
+        "a2_hold_oracle_open_stabilization_root_linear_speed_max_mps: 0.01",
+        "a2_hold_oracle_open_stabilization_root_angular_speed_max_radps: 0.02",
+        "a2_hold_oracle_open_stabilization_pose_per_call_translation_max_m: 0.0005",
+        "a2_hold_oracle_open_stabilization_pose_per_call_rotation_max_rad: 0.0005",
+        "a2_hold_oracle_open_stabilization_pose_window_translation_max_m: 0.001",
+        "a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad: 0.002",
+        "a2_hold_oracle_open_stabilization_contact_force_max_n: 1.0",
+    ):
+        assert exact in eval_yaml
 
 
 def test_nullable_diagnostic_record_is_strict_json():

@@ -1,5 +1,17 @@
 # DONE
 
+- 2026-07-12 17:36 HKT - 同步 full-stage eval-only gripper anti-backdrive S0/S1/S2 diagnostic。Frozen candidate `f5d8ea69b28c40da8386a0b26c9c141c66478e40fba0c0b3f21d77775166a468` 为 `37 passed` 且 Wave 1 static PASS；probe default-off，固定 TCP `0.085`、effort `10/10`、default friction 与 40 个 POSE_HOLD actions，只比较 Kp/Kd `80/3`、`160/6`、`320/12`，未改 coupling、reward、training 或 default behavior。三组均 `8/8 STATIC_CLAMP_COMPLETE`、final action count `40`、applied effort `10/10`，并 exact restore 到 Kp/Kd `80/3`、effort `10/10`。
+
+  | run | Kp/Kd | bilateral /320 | stability /320 | single7 / single8 | open-limit `1e-4` j7 / j8 | saturation j7 / j8 | step40 any-contact /8 |
+  | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | S0 | `80/3` | 2 | 0 | 79 / 22 | 46 / 1 | 0 / 0 | 0 |
+  | S1 | `160/6` | 16 | 4 | 76 / 13 | 39 / 1 | 0 / 0 | 0 |
+  | S2 | `320/12` | 44 | 19 | 55 / 4 | 30 / 0 | 41 / 0 | 0 |
+
+  S1 的 `430.273N` normal-force spike 在同帧只有 `24.087N` 沿 opening axis 的投影，不能以 aggregate normal force 代替 anti-opening 有效分量。S2 `arm_j8 qmin=-0.026426` 优于 S0/S1 `-0.035`，且 transient bilateral/stability 随 gain 改善，故 anti-backdrive 是 partial factor；但 step40 全部无 contact，S2 bottleneck 转到 `arm_j7` saturation/limit。该结果不表示 stage0-2 grasp terminal 或 full door task runtime PASS，不把 S1/S2 提升为 training/default config；geometry / aperture / bilateral reachability 仍 unresolved。
+
+  Artifacts：S0 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712`；S1 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712`；S2 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712`。
+
 - 2026-07-11 22:19 HKT - 同步 full-stage eval-only deterministic hold-oracle exact diagnosis（partial completion）。Candidate `9513f6f95d266b185a1aa89eb10ca074195bb8101f86ba0ec58b6744392c6571` 的 no-sim targeted tests 为 `28 passed`；每组均产出 summary、runtime metadata、stage2/stage2.5 trace 及两份 metrics，共六个 artifact。
 
   80-step matrix：G1 TCP `0.085` 为 `ARM_DLS/BASE_RELIEF=79/1`、limit-valid `79/80`、position/orientation residual `0.016590→0.058500m` / `0.000000→0.019240rad`、body7/body8 max force `0.000/18.355N`；G2 TCP `0.09755` 为 `80/0`、`80/80`、`0.016615→0.429228m` / `0.000000→0.695775rad`、`0.165/22.694N`；G3 TCP `0.105` 为 `77/3`、`77/80`、`0.019397→0.432759m` / `0.000000→0.708920rad`、`0.000/29.222N`。三组均 bilateral `0/80`，未进入 `DEPRESS`，无 `CONTACT_SLIP` 或 PD saturation，delta/raw validity 为 `80/80`，最终 center timeout / `IK_TRACKING_FAILURE`。G1/G3 的 `1/3` 个 base-relief frame 证明 controller branch 可达，但未修复 convergence。

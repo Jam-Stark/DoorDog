@@ -79,6 +79,8 @@ A2_HOLD_OUTCOME_NAMES = (
     "PUSH_NO_PROGRESS",
     "PUSH_TIMEOUT",
     "RETAINED",
+    "STATIC_CLAMP_COMPLETE",
+    "STATIC_CLAMP_INCOMPLETE",
 )
 A2_HOLD_OUTCOME_TO_ID = {name: index for index, name in enumerate(A2_HOLD_OUTCOME_NAMES)}
 
@@ -122,6 +124,261 @@ def a2_hold_contact_sensor_detail_kwargs(enabled: bool, capacity):
         "track_friction_forces": True,
         "max_contact_data_count_per_prim": capacity,
     }
+
+
+def a2_hold_signed_gripper_opening_axes_from_jacobian(
+    jacobian: torch.Tensor,
+    body_ids: torch.Tensor,
+    articulation_joint_ids: torch.Tensor,
+    open_target: torch.Tensor,
+    close_target: torch.Tensor,
+    *,
+    floating_base_joint_column_offset: int = 6,
+    angular_tolerance: float = 1.0e-6,
+):
+    """Derive each finger's signed world opening axis from its own prismatic Jacobian column."""
+    if (
+        not torch.is_tensor(jacobian)
+        or jacobian.ndim != 4
+        or jacobian.shape[2] != 6
+        or not jacobian.is_floating_point()
+        or not torch.is_tensor(body_ids)
+        or tuple(body_ids.shape) != (2,)
+        or body_ids.dtype != torch.long
+        or not torch.is_tensor(articulation_joint_ids)
+        or tuple(articulation_joint_ids.shape) != (2,)
+        or articulation_joint_ids.dtype != torch.long
+        or not torch.is_tensor(open_target)
+        or tuple(open_target.shape) != (2,)
+        or not torch.is_tensor(close_target)
+        or tuple(close_target.shape) != (2,)
+    ):
+        raise ValueError("signed opening-axis inputs have incompatible shapes or dtypes.")
+    tensors = (body_ids, articulation_joint_ids, open_target, close_target)
+    if any(value.device != jacobian.device for value in tensors):
+        raise ValueError("signed opening-axis inputs must be on one common device.")
+    if (
+        open_target.dtype != jacobian.dtype
+        or close_target.dtype != jacobian.dtype
+        or not torch.all(torch.isfinite(jacobian))
+        or not torch.all(torch.isfinite(open_target))
+        or not torch.all(torch.isfinite(close_target))
+    ):
+        raise ValueError("signed opening-axis floating inputs must share a finite dtype.")
+    if (
+        isinstance(floating_base_joint_column_offset, bool)
+        or not isinstance(floating_base_joint_column_offset, int)
+        or floating_base_joint_column_offset != 6
+    ):
+        raise ValueError("signed opening-axis mapping requires floating-base column offset +6.")
+    if (
+        isinstance(angular_tolerance, bool)
+        or not isinstance(angular_tolerance, (int, float))
+        or not math.isfinite(float(angular_tolerance))
+        or angular_tolerance < 0.0
+    ):
+        raise ValueError("signed opening-axis angular tolerance must be finite and non-negative.")
+    joint_columns = articulation_joint_ids + floating_base_joint_column_offset
+    if (
+        torch.any(body_ids < 0)
+        or torch.any(body_ids >= jacobian.shape[1])
+        or torch.any(articulation_joint_ids < 0)
+        or torch.any(joint_columns >= jacobian.shape[3])
+    ):
+        raise ValueError("signed opening-axis body/joint mapping is outside Jacobian bounds.")
+    selected = torch.stack(
+        [
+            jacobian[:, int(body_ids[index].item()), :, int(joint_columns[index].item())]
+            for index in range(2)
+        ],
+        dim=1,
+    )
+    linear = selected[:, :, :3]
+    angular = selected[:, :, 3:]
+    linear_norm = torch.linalg.norm(linear, dim=-1)
+    angular_norm = torch.linalg.norm(angular, dim=-1)
+    if torch.any(linear_norm <= torch.finfo(jacobian.dtype).eps):
+        raise ValueError("signed opening-axis Jacobian linear column is degenerate.")
+    if torch.any(angular_norm > float(angular_tolerance)):
+        raise ValueError("signed opening-axis Jacobian column is not prismatic (angular component).")
+    opening_delta = open_target - close_target
+    if torch.any(opening_delta == 0.0):
+        raise ValueError("signed opening-axis open-close displacement must be non-zero.")
+    opening_sign = torch.sign(opening_delta)
+    expected_opening_sign = torch.tensor(
+        [1.0, -1.0], device=jacobian.device, dtype=jacobian.dtype
+    )
+    if not torch.equal(opening_sign, expected_opening_sign):
+        raise ValueError(
+            "signed opening-axis joint order requires arm_j7 positive and arm_j8 negative; "
+            f"got {opening_sign.detach().cpu().tolist()}."
+        )
+    return linear / linear_norm.unsqueeze(-1) * opening_sign.view(1, 2, 1)
+
+
+def a2_hold_project_finger_forces_along_opening_axes(
+    normal_force_on_handle_w: torch.Tensor,
+    friction_force_on_handle_w: torch.Tensor,
+    opening_axes_w: torch.Tensor,
+):
+    """Project force on each finger, not force on the handle, onto its signed opening axis."""
+    values = (normal_force_on_handle_w, friction_force_on_handle_w, opening_axes_w)
+    if (
+        any(not torch.is_tensor(value) or value.ndim != 3 for value in values)
+        or normal_force_on_handle_w.shape != friction_force_on_handle_w.shape
+        or normal_force_on_handle_w.shape != opening_axes_w.shape
+        or normal_force_on_handle_w.shape[1:] != (2, 3)
+        or not normal_force_on_handle_w.is_floating_point()
+        or any(value.dtype != normal_force_on_handle_w.dtype for value in values[1:])
+        or any(value.device != normal_force_on_handle_w.device for value in values[1:])
+        or not all(torch.all(torch.isfinite(value)) for value in values)
+    ):
+        raise ValueError("opening-force projection inputs must be finite same-device (N,2,3) tensors.")
+    axis_norm = torch.linalg.norm(opening_axes_w, dim=-1)
+    if not torch.allclose(axis_norm, torch.ones_like(axis_norm), atol=1.0e-5, rtol=0.0):
+        raise ValueError("opening-force projection axes must be unit length.")
+    finger_normal = -normal_force_on_handle_w
+    finger_friction = -friction_force_on_handle_w
+    finger_total = finger_normal + finger_friction
+    return {
+        "finger_normal_force_w": finger_normal,
+        "finger_friction_force_w": finger_friction,
+        "finger_total_force_w": finger_total,
+        "finger_normal_force_along_opening_axis": torch.sum(
+            finger_normal * opening_axes_w, dim=-1
+        ),
+        "finger_friction_force_along_opening_axis": torch.sum(
+            finger_friction * opening_axes_w, dim=-1
+        ),
+        "finger_total_force_along_opening_axis": torch.sum(
+            finger_total * opening_axes_w, dim=-1
+        ),
+    }
+
+
+def a2_hold_static_clamp_step_masks(
+    enabled: bool,
+    activate_mask: torch.Tensor,
+    first_episode_active_mask: torch.Tensor,
+    previous_active: torch.Tensor,
+    previous_write_count: torch.Tensor,
+    target_steps: int,
+):
+    """Advance static-clamp action writes; count==target completes before action 41."""
+    masks = (activate_mask, first_episode_active_mask, previous_active)
+    if (
+        not isinstance(enabled, bool)
+        or any(
+            not torch.is_tensor(mask)
+            or mask.shape != activate_mask.shape
+            or mask.dtype != torch.bool
+            or mask.device != activate_mask.device
+            for mask in masks
+        )
+        or not torch.is_tensor(previous_write_count)
+        or previous_write_count.shape != activate_mask.shape
+        or previous_write_count.dtype != torch.long
+        or previous_write_count.device != activate_mask.device
+        or torch.any(previous_write_count < 0)
+        or isinstance(target_steps, bool)
+        or not isinstance(target_steps, int)
+        or target_steps <= 0
+    ):
+        raise ValueError("static-clamp step-state inputs are invalid.")
+    if not enabled:
+        if torch.any(previous_active) or torch.any(previous_write_count != 0):
+            raise ValueError("disabled static-clamp state must remain inactive and zero.")
+        zero = torch.zeros_like(previous_active)
+        return {
+            "entering": zero,
+            "override": zero,
+            "complete": zero,
+            "incomplete": zero,
+            "active": previous_active,
+            "write_count": previous_write_count,
+        }
+    if torch.any((previous_write_count != 0) & ~previous_active):
+        raise ValueError("inactive static-clamp state cannot retain a live action count.")
+    eligible_to_finish = previous_active & (
+        (previous_write_count >= target_steps) | ~first_episode_active_mask
+    )
+    partition = a2_hold_static_clamp_terminal_partition(
+        eligible_to_finish, previous_write_count, target_steps
+    )
+    complete = partition["complete"]
+    incomplete = partition["incomplete"]
+    entering = activate_mask & first_episode_active_mask & ~previous_active
+    working = (previous_active | entering) & first_episode_active_mask
+    override = working & ~complete & ~incomplete
+    updated_count = previous_write_count.clone()
+    updated_count[entering] = 0
+    updated_count[override] += 1
+    updated_active = override.clone()
+    return {
+        "entering": entering,
+        "override": override,
+        "complete": complete,
+        "incomplete": incomplete,
+        "active": updated_active,
+        "write_count": updated_count,
+    }
+
+
+def a2_hold_static_clamp_terminal_partition(
+    affected_mask: torch.Tensor,
+    action_write_count: torch.Tensor,
+    target_steps: int,
+):
+    """Partition an ending static clamp by completed physics-action count."""
+    if (
+        not torch.is_tensor(affected_mask)
+        or affected_mask.ndim != 1
+        or affected_mask.dtype != torch.bool
+        or not torch.is_tensor(action_write_count)
+        or action_write_count.shape != affected_mask.shape
+        or action_write_count.dtype != torch.long
+        or action_write_count.device != affected_mask.device
+        or torch.any(action_write_count < 0)
+        or isinstance(target_steps, bool)
+        or not isinstance(target_steps, int)
+        or target_steps <= 0
+    ):
+        raise ValueError("static-clamp terminal partition inputs are invalid.")
+    exceeded = affected_mask & (action_write_count > target_steps)
+    if torch.any(exceeded):
+        raise ValueError(
+            "static-clamp action count exceeded its exact target: "
+            f"count={action_write_count[exceeded].detach().cpu().tolist()}, "
+            f"target={target_steps}."
+        )
+    return {
+        "complete": affected_mask & (action_write_count == target_steps),
+        "incomplete": affected_mask & (action_write_count < target_steps),
+    }
+
+
+def a2_hold_apply_static_clamp_action(
+    policy_action: torch.Tensor,
+    override_mask: torch.Tensor,
+):
+    if (
+        not torch.is_tensor(policy_action)
+        or policy_action.ndim != 2
+        or policy_action.shape[1] != 12
+        or not policy_action.is_floating_point()
+        or not torch.all(torch.isfinite(policy_action))
+        or not torch.is_tensor(override_mask)
+        or override_mask.shape != policy_action.shape[:1]
+        or override_mask.dtype != torch.bool
+        or override_mask.device != policy_action.device
+    ):
+        raise ValueError("static-clamp action inputs violate the canonical A2 action contract.")
+    if not torch.any(override_mask):
+        return policy_action
+    action = policy_action.clone()
+    action[override_mask, :11] = 0.0
+    action[override_mask, 11] = -1.0
+    return action
 
 
 def a2_hold_validate_friction_override(value):
@@ -4620,6 +4877,12 @@ class DoorPregrasp(
                 raise RuntimeError(f"eval.{key} must be a positive int; got {value!r}.")
             return value
 
+        def required_bool(key):
+            value = eval_config.get(key, None)
+            if not isinstance(value, bool):
+                raise RuntimeError(f"eval.{key} must be bool; got {value!r}.")
+            return value
+
         config = {
             "enabled": enabled,
             "center_timeout_steps": positive_int("a2_hold_oracle_center_timeout_steps"),
@@ -4676,6 +4939,18 @@ class DoorPregrasp(
             "base_relief_min_solvable_horizontal_error_m": positive_float(
                 "a2_hold_oracle_base_relief_min_solvable_horizontal_error_m"
             ),
+            "static_clamp_enabled": required_bool(
+                "a2_hold_oracle_static_clamp_enabled"
+            ),
+            "static_clamp_steps": positive_int(
+                "a2_hold_oracle_static_clamp_steps"
+            ),
+            "static_clamp_stiffness": positive_float(
+                "a2_hold_oracle_static_clamp_stiffness"
+            ),
+            "static_clamp_damping": positive_float(
+                "a2_hold_oracle_static_clamp_damping"
+            ),
         }
         if config["sign_smoke_steps"] >= config["depress_timeout_steps"]:
             raise RuntimeError("A2 hold depress sign-smoke window must be shorter than its timeout.")
@@ -4685,6 +4960,24 @@ class DoorPregrasp(
             raise RuntimeError(
                 "A2 hold base-relief sign window must be shorter than its timeout."
             )
+        if config["static_clamp_enabled"] and not config["enabled"]:
+            raise RuntimeError("A2 static clamp requires a2_hold_oracle_enabled=true.")
+        if config["static_clamp_enabled"]:
+            if config["static_clamp_steps"] != 40:
+                raise RuntimeError(
+                    "A2 static clamp requires exactly 40 action steps; "
+                    f"got {config['static_clamp_steps']}."
+                )
+            gain_pair = (
+                config["static_clamp_stiffness"],
+                config["static_clamp_damping"],
+            )
+            allowed_gain_pairs = ((80.0, 3.0), (160.0, 6.0), (320.0, 12.0))
+            if gain_pair not in allowed_gain_pairs:
+                raise RuntimeError(
+                    "A2 static clamp requires an exact approved (Kp,Kd) pair in "
+                    f"{allowed_gain_pairs}; got {gain_pair}."
+                )
         return config
 
     def init_a2_eval_hold_oracle(self, eval_config, *, diagnostic_enabled: bool) -> dict:
@@ -4694,6 +4987,8 @@ class DoorPregrasp(
         cfg["tcp_offset_z"] = self._get_a2_gripper_source_tcp_offset_z()
         if cfg["enabled"] and not diagnostic_enabled:
             raise RuntimeError("A2 hold oracle requires eval.a2_diagnostic_trace_enabled=true.")
+        if cfg["static_clamp_enabled"] and not self._get_a2_hold_contact_detail_enabled():
+            raise RuntimeError("A2 static clamp requires detailed hold diagnostics.")
         if (cfg["enabled"] or self._get_a2_hold_friction_override() is not None) and not self._get_a2_hold_contact_detail_enabled():
             raise RuntimeError(
                 "A2 hold oracle/material override requires env detailed contact diagnostics enabled."
@@ -4874,6 +5169,61 @@ class DoorPregrasp(
         self._a2_hold_oracle_limit_valid = torch.zeros(
             self.num_envs, device=self.device, dtype=torch.bool
         )
+        self._a2_hold_oracle_static_clamp_active = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_static_clamp_gain_applied = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_static_clamp_ever_activated = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_static_clamp_restored = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.bool
+        )
+        self._a2_hold_oracle_static_clamp_write_count = torch.zeros(
+            self.num_envs, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_static_clamp_final_write_count = torch.full(
+            (self.num_envs,), -1, device=self.device, dtype=torch.long
+        )
+        self._a2_hold_oracle_static_clamp_original_stiffness = torch.full(
+            (self.num_envs, 2), float("nan"), device=self.device
+        )
+        self._a2_hold_oracle_static_clamp_original_damping = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_original_effort_limit = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_requested_stiffness = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_requested_damping = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_applied_stiffness = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_applied_damping = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_applied_effort_limit = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_restored_stiffness = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_restored_damping = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_restored_effort_limit = torch.full_like(
+            self._a2_hold_oracle_static_clamp_original_stiffness, float("nan")
+        )
+        self._a2_hold_oracle_static_clamp_step40_snapshot = [
+            None for _ in range(self.num_envs)
+        ]
+        self._a2_hold_oracle_finalized = False
         self._a2_hold_oracle_post_override_action = None
         if not cfg["enabled"]:
             return dict(cfg)
@@ -4899,8 +5249,16 @@ class DoorPregrasp(
         )
         if joint_names != [f"arm_j{i}" for i in range(1, 7)]:
             raise RuntimeError(f"A2 hold oracle arm joint order mismatch: {joint_names}.")
+        gripper_joint_ids, gripper_joint_names = robot.find_joints(
+            ["arm_j7", "arm_j8"], preserve_order=True
+        )
+        if gripper_joint_names != ["arm_j7", "arm_j8"]:
+            raise RuntimeError(
+                f"A2 static clamp gripper joint order mismatch: {gripper_joint_names}."
+            )
         self._a2_hold_oracle_body_id = body_ids[0]
         self._a2_hold_oracle_joint_ids = joint_ids
+        self._a2_hold_oracle_gripper_joint_ids = gripper_joint_ids
         self._a2_hold_oracle_jacobian_body_id = body_ids[0]
         self._a2_hold_oracle_jacobian_joint_ids = [joint_id + 6 for joint_id in joint_ids]
         self._a2_hold_oracle_controller = DifferentialIKController(
@@ -4923,6 +5281,217 @@ class DoorPregrasp(
         )
         self._a2_hold_oracle_outcome[mask] = A2_HOLD_OUTCOME_TO_ID[outcome]
         self._a2_hold_oracle_phase[mask] = A2_HOLD_PHASE_DONE
+
+    def _get_a2_static_clamp_gripper_state(self, env_ids: torch.Tensor):
+        robot = self.simulator.scene.articulations["robot"]
+        joint_ids = torch.tensor(
+            self._a2_hold_oracle_gripper_joint_ids,
+            device=self.device,
+            dtype=torch.long,
+        )
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("A2 static clamp env ids must be valid device-local longs.")
+        index = (env_ids[:, None], joint_ids[None, :])
+        state = {
+            "stiffness": robot.data.joint_stiffness[index].clone(),
+            "damping": robot.data.joint_damping[index].clone(),
+            "effort_limit": robot.data.joint_effort_limits[index].clone(),
+        }
+        if any(
+            tuple(value.shape) != (env_ids.numel(), 2)
+            or not torch.all(torch.isfinite(value))
+            for value in state.values()
+        ):
+            raise RuntimeError("A2 static clamp gripper gain/effort state is invalid.")
+        return robot, joint_ids, state
+
+    def _apply_a2_static_clamp_gains(self, entering_mask: torch.Tensor) -> None:
+        env_ids = torch.nonzero(entering_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        if torch.any(self._a2_hold_oracle_static_clamp_gain_applied[env_ids]) or torch.any(
+            self._a2_hold_oracle_static_clamp_ever_activated[env_ids]
+        ):
+            raise RuntimeError("A2 static clamp gains may only be captured/applied once per env.")
+        if torch.any(self._a2_hold_oracle_static_clamp_final_write_count[env_ids] != -1):
+            raise RuntimeError("A2 static clamp final count must be unset before activation.")
+        robot, joint_ids, original = self._get_a2_static_clamp_gripper_state(env_ids)
+        expected_effort = torch.full_like(original["effort_limit"], 10.0)
+        if not torch.equal(original["effort_limit"], expected_effort):
+            raise RuntimeError(
+                "A2 static clamp requires exact unchanged gripper effort_limit=10N; "
+                f"got {original['effort_limit'].detach().cpu().tolist()}."
+            )
+        self._a2_hold_oracle_static_clamp_original_stiffness[env_ids] = original[
+            "stiffness"
+        ]
+        self._a2_hold_oracle_static_clamp_original_damping[env_ids] = original["damping"]
+        self._a2_hold_oracle_static_clamp_original_effort_limit[env_ids] = original[
+            "effort_limit"
+        ]
+        self._a2_hold_oracle_static_clamp_gain_applied[env_ids] = True
+        self._a2_hold_oracle_static_clamp_ever_activated[env_ids] = True
+        self._a2_hold_oracle_static_clamp_restored[env_ids] = False
+        target_stiffness = torch.full_like(
+            original["stiffness"], self._a2_hold_oracle_cfg["static_clamp_stiffness"]
+        )
+        target_damping = torch.full_like(
+            original["damping"], self._a2_hold_oracle_cfg["static_clamp_damping"]
+        )
+        self._a2_hold_oracle_static_clamp_requested_stiffness[env_ids] = (
+            target_stiffness
+        )
+        self._a2_hold_oracle_static_clamp_requested_damping[env_ids] = target_damping
+        robot.write_joint_stiffness_to_sim(
+            target_stiffness, joint_ids=joint_ids, env_ids=env_ids
+        )
+        robot.write_joint_damping_to_sim(
+            target_damping, joint_ids=joint_ids, env_ids=env_ids
+        )
+        _, _, written = self._get_a2_static_clamp_gripper_state(env_ids)
+        if (
+            not torch.equal(written["stiffness"], target_stiffness)
+            or not torch.equal(written["damping"], target_damping)
+            or not torch.equal(written["effort_limit"], original["effort_limit"])
+        ):
+            raise RuntimeError("A2 static clamp gain write or effort invariant verification failed.")
+        self._a2_hold_oracle_static_clamp_applied_stiffness[env_ids] = written[
+            "stiffness"
+        ]
+        self._a2_hold_oracle_static_clamp_applied_damping[env_ids] = written[
+            "damping"
+        ]
+        self._a2_hold_oracle_static_clamp_applied_effort_limit[env_ids] = written[
+            "effort_limit"
+        ]
+
+    def _restore_a2_static_clamp_gains(self, requested_mask: torch.Tensor) -> None:
+        if (
+            not torch.is_tensor(requested_mask)
+            or tuple(requested_mask.shape) != (self.num_envs,)
+            or requested_mask.dtype != torch.bool
+            or requested_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("A2 static clamp restore mask contract mismatch.")
+        restore_mask = requested_mask & self._a2_hold_oracle_static_clamp_gain_applied
+        env_ids = torch.nonzero(restore_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        original_stiffness = self._a2_hold_oracle_static_clamp_original_stiffness[
+            env_ids
+        ]
+        original_damping = self._a2_hold_oracle_static_clamp_original_damping[env_ids]
+        original_effort = self._a2_hold_oracle_static_clamp_original_effort_limit[
+            env_ids
+        ]
+        if not all(
+            torch.all(torch.isfinite(value))
+            for value in (original_stiffness, original_damping, original_effort)
+        ):
+            raise RuntimeError("A2 static clamp cannot restore a non-finite original snapshot.")
+        robot, joint_ids, current = self._get_a2_static_clamp_gripper_state(env_ids)
+        if not torch.equal(current["effort_limit"], original_effort):
+            raise RuntimeError("A2 static clamp effort limit changed before restore.")
+        robot.write_joint_stiffness_to_sim(
+            original_stiffness, joint_ids=joint_ids, env_ids=env_ids
+        )
+        robot.write_joint_damping_to_sim(
+            original_damping, joint_ids=joint_ids, env_ids=env_ids
+        )
+        _, _, restored = self._get_a2_static_clamp_gripper_state(env_ids)
+        if (
+            not torch.equal(restored["stiffness"], original_stiffness)
+            or not torch.equal(restored["damping"], original_damping)
+            or not torch.equal(restored["effort_limit"], original_effort)
+        ):
+            raise RuntimeError("A2 static clamp exact gain restore verification failed.")
+        self._a2_hold_oracle_static_clamp_restored_stiffness[env_ids] = restored[
+            "stiffness"
+        ]
+        self._a2_hold_oracle_static_clamp_restored_damping[env_ids] = restored[
+            "damping"
+        ]
+        self._a2_hold_oracle_static_clamp_restored_effort_limit[env_ids] = restored[
+            "effort_limit"
+        ]
+        self._a2_hold_oracle_static_clamp_gain_applied[env_ids] = False
+        self._a2_hold_oracle_static_clamp_active[env_ids] = False
+        self._a2_hold_oracle_static_clamp_restored[env_ids] = True
+        self._a2_hold_oracle_static_clamp_write_count[env_ids] = 0
+
+    def _snapshot_a2_static_clamp_result(self, snapshot_mask: torch.Tensor) -> None:
+        env_ids = torch.nonzero(snapshot_mask, as_tuple=False).flatten()
+        if env_ids.numel() == 0:
+            return
+        details = self._get_a2_hold_detailed_step_fields(env_ids)
+        if len(details) != env_ids.numel():
+            raise RuntimeError("A2 static clamp step-40 snapshot record count mismatch.")
+        for env_id, detail in zip(env_ids.tolist(), details, strict=True):
+            if self._a2_hold_oracle_static_clamp_step40_snapshot[env_id] is not None:
+                raise RuntimeError("A2 static clamp step-40 result cannot be captured twice.")
+            self._a2_hold_oracle_static_clamp_step40_snapshot[env_id] = detail
+
+    def _finish_a2_static_clamp(self, affected_mask: torch.Tensor) -> None:
+        cfg = self._a2_hold_oracle_cfg
+        if not cfg["enabled"] or not cfg["static_clamp_enabled"]:
+            raise RuntimeError("A2 static clamp finish requires the enabled static probe.")
+        if (
+            not torch.is_tensor(affected_mask)
+            or tuple(affected_mask.shape) != (self.num_envs,)
+            or affected_mask.dtype != torch.bool
+            or affected_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("A2 static clamp finish mask contract mismatch.")
+        if torch.any(affected_mask & ~self._a2_hold_oracle_static_clamp_gain_applied):
+            raise RuntimeError("A2 static clamp cannot finish without applied gains.")
+        if not torch.any(affected_mask):
+            return
+        try:
+            try:
+                partition = a2_hold_static_clamp_terminal_partition(
+                    affected_mask,
+                    self._a2_hold_oracle_static_clamp_write_count,
+                    cfg["static_clamp_steps"],
+                )
+            except ValueError as exc:
+                raise RuntimeError(
+                    f"A2 static clamp finish partition failed: {exc}"
+                ) from exc
+            self._a2_hold_oracle_static_clamp_final_write_count[affected_mask] = (
+                self._a2_hold_oracle_static_clamp_write_count[affected_mask]
+            )
+            self._set_a2_hold_outcome(
+                partition["complete"], "STATIC_CLAMP_COMPLETE"
+            )
+            self._set_a2_hold_outcome(
+                partition["incomplete"], "STATIC_CLAMP_INCOMPLETE"
+            )
+            self._snapshot_a2_static_clamp_result(partition["complete"])
+        finally:
+            self._restore_a2_static_clamp_gains(affected_mask)
+
+    def finalize_a2_eval_hold_oracle(self) -> None:
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg["enabled"]:
+            return
+        if self._a2_hold_oracle_finalized:
+            if torch.any(self._a2_hold_oracle_static_clamp_gain_applied) or torch.any(
+                self._a2_hold_oracle_static_clamp_active
+            ):
+                raise RuntimeError("Finalized A2 hold oracle retained active static clamp gains.")
+            return
+        if cfg["static_clamp_enabled"]:
+            self._finish_a2_static_clamp(
+                self._a2_hold_oracle_static_clamp_gain_applied.clone()
+            )
+        self._a2_hold_oracle_finalized = True
 
     def _clear_a2_hold_base_relief_state(self, clear_mask: torch.Tensor) -> None:
         cleared = a2_hold_clear_base_relief_state(
@@ -5188,6 +5757,34 @@ class DoorPregrasp(
 
         ended_without_gate = wait_mask & ~first_episode_active_mask
         self._set_a2_hold_outcome(ended_without_gate, "NO_GATE")
+        if cfg["static_clamp_enabled"]:
+            static_state = a2_hold_static_clamp_step_masks(
+                True,
+                activate,
+                first_episode_active_mask,
+                self._a2_hold_oracle_static_clamp_active,
+                self._a2_hold_oracle_static_clamp_write_count,
+                cfg["static_clamp_steps"],
+            )
+            self._apply_a2_static_clamp_gains(static_state["entering"])
+            self._a2_hold_oracle_static_clamp_active[:] = static_state["active"]
+            self._a2_hold_oracle_static_clamp_write_count[:] = static_state[
+                "write_count"
+            ]
+            self._a2_hold_oracle_phase_step[static_state["override"]] = static_state[
+                "write_count"
+            ][static_state["override"]]
+            finish_mask = static_state["complete"] | static_state["incomplete"]
+            self._finish_a2_static_clamp(finish_mask)
+            action = a2_hold_apply_static_clamp_action(
+                policy_action, static_state["override"]
+            )
+            self._a2_hold_oracle_arm_dls_branch.zero_()
+            self._a2_hold_oracle_base_relief_branch_applied.zero_()
+            self._a2_hold_oracle_phase_sign_check_due.zero_()
+            self._a2_hold_oracle_last_override_mask = static_state["override"].clone()
+            self._a2_hold_oracle_post_override_action = action
+            return action, self._a2_hold_oracle_last_override_mask
         active = (
             self._a2_hold_oracle_activated
             & first_episode_active_mask
@@ -5570,12 +6167,103 @@ class DoorPregrasp(
                         self._a2_hold_oracle_arm_candidate_action_raw[env_id]
                     ),
                     "hold_oracle_control_branch": (
-                        "ARM_DLS"
-                        if self._a2_hold_oracle_arm_dls_branch[env_id].item()
+                        "STATIC_CLAMP"
+                        if cfg["static_clamp_enabled"]
+                        and self._a2_hold_oracle_last_override_mask[env_id].item()
                         else (
-                            "BASE_RELIEF"
-                            if self._a2_hold_oracle_base_relief_branch_applied[env_id].item()
-                            else "NONE"
+                            "ARM_DLS"
+                            if self._a2_hold_oracle_arm_dls_branch[env_id].item()
+                            else (
+                                "BASE_RELIEF"
+                                if self._a2_hold_oracle_base_relief_branch_applied[
+                                    env_id
+                                ].item()
+                                else "NONE"
+                            )
+                        )
+                    ),
+                    "hold_oracle_static_clamp_enabled": cfg["static_clamp_enabled"],
+                    "hold_oracle_static_clamp_active": bool(
+                        self._a2_hold_oracle_static_clamp_active[env_id].item()
+                    ),
+                    "hold_oracle_static_clamp_gain_applied": bool(
+                        self._a2_hold_oracle_static_clamp_gain_applied[env_id].item()
+                    ),
+                    "hold_oracle_static_clamp_ever_activated": bool(
+                        self._a2_hold_oracle_static_clamp_ever_activated[env_id].item()
+                    ),
+                    "hold_oracle_static_clamp_restored": bool(
+                        self._a2_hold_oracle_static_clamp_restored[env_id].item()
+                    ),
+                    "hold_oracle_static_clamp_action_write_count": int(
+                        self._a2_hold_oracle_static_clamp_write_count[env_id].item()
+                    ),
+                    "hold_oracle_static_clamp_final_action_write_count": int(
+                        self._a2_hold_oracle_static_clamp_final_write_count[
+                            env_id
+                        ].item()
+                    ),
+                    "hold_oracle_static_clamp_original_stiffness": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_original_stiffness[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_original_damping": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_original_damping[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_original_effort_limit": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_original_effort_limit[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_requested_stiffness": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_requested_stiffness[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_requested_damping": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_requested_damping[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_applied_stiffness": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_applied_stiffness[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_applied_damping": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_applied_damping[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_applied_effort_limit": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_applied_effort_limit[
+                                env_id
+                            ]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_restored_stiffness": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_restored_stiffness[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_restored_damping": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_restored_damping[env_id]
+                        )
+                    ),
+                    "hold_oracle_static_clamp_restored_effort_limit": (
+                        a2_hold_nullable_tensor_list(
+                            self._a2_hold_oracle_static_clamp_restored_effort_limit[
+                                env_id
+                            ]
                         )
                     ),
                     "hold_oracle_arm_limit_valid": bool(
@@ -5673,6 +6361,92 @@ class DoorPregrasp(
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
         if cfg is None or not cfg["enabled"]:
             raise RuntimeError("A2 hold oracle summary requested while oracle is disabled.")
+        if cfg["static_clamp_enabled"]:
+            if not self._a2_hold_oracle_finalized:
+                raise RuntimeError("A2 static clamp summary requires finalized restore state.")
+            if torch.any(self._a2_hold_oracle_static_clamp_active) or torch.any(
+                self._a2_hold_oracle_static_clamp_gain_applied
+            ):
+                raise RuntimeError("A2 static clamp summary rejects active/unrestored gains.")
+            unrestored = (
+                self._a2_hold_oracle_static_clamp_ever_activated
+                & ~self._a2_hold_oracle_static_clamp_restored
+            )
+            if torch.any(unrestored):
+                raise RuntimeError("A2 static clamp summary rejects missing exact restore evidence.")
+            activated = self._a2_hold_oracle_static_clamp_ever_activated
+            final_count = self._a2_hold_oracle_static_clamp_final_write_count
+            if torch.any(activated & ((final_count < 0) | (final_count > cfg["static_clamp_steps"]))):
+                raise RuntimeError("A2 static clamp summary rejects invalid durable final counts.")
+            durable_float_fields = (
+                self._a2_hold_oracle_static_clamp_original_stiffness,
+                self._a2_hold_oracle_static_clamp_original_damping,
+                self._a2_hold_oracle_static_clamp_original_effort_limit,
+                self._a2_hold_oracle_static_clamp_requested_stiffness,
+                self._a2_hold_oracle_static_clamp_requested_damping,
+                self._a2_hold_oracle_static_clamp_applied_stiffness,
+                self._a2_hold_oracle_static_clamp_applied_damping,
+                self._a2_hold_oracle_static_clamp_applied_effort_limit,
+                self._a2_hold_oracle_static_clamp_restored_stiffness,
+                self._a2_hold_oracle_static_clamp_restored_damping,
+                self._a2_hold_oracle_static_clamp_restored_effort_limit,
+            )
+            if any(
+                not torch.all(torch.isfinite(field[activated]))
+                for field in durable_float_fields
+            ):
+                raise RuntimeError("A2 static clamp summary requires finite durable gain evidence.")
+            expected_effort = torch.full_like(
+                self._a2_hold_oracle_static_clamp_original_effort_limit[activated],
+                10.0,
+            )
+            expected_requested_stiffness = torch.full_like(
+                self._a2_hold_oracle_static_clamp_requested_stiffness[activated],
+                cfg["static_clamp_stiffness"],
+            )
+            expected_requested_damping = torch.full_like(
+                self._a2_hold_oracle_static_clamp_requested_damping[activated],
+                cfg["static_clamp_damping"],
+            )
+            if (
+                not torch.equal(
+                    self._a2_hold_oracle_static_clamp_requested_stiffness[activated],
+                    expected_requested_stiffness,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_requested_damping[activated],
+                    expected_requested_damping,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_applied_stiffness[activated],
+                    expected_requested_stiffness,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_applied_damping[activated],
+                    expected_requested_damping,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_original_effort_limit[activated],
+                    expected_effort,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_applied_effort_limit[activated],
+                    expected_effort,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_restored_effort_limit[activated],
+                    expected_effort,
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_restored_stiffness[activated],
+                    self._a2_hold_oracle_static_clamp_original_stiffness[activated],
+                )
+                or not torch.equal(
+                    self._a2_hold_oracle_static_clamp_restored_damping[activated],
+                    self._a2_hold_oracle_static_clamp_original_damping[activated],
+                )
+            ):
+                raise RuntimeError("A2 static clamp summary rejects gain/effort restore mismatch.")
         pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
         no_gate = pending & ~self._a2_hold_oracle_activated
         self._a2_hold_oracle_outcome[no_gate] = A2_HOLD_OUTCOME_TO_ID["NO_GATE"]
@@ -5742,6 +6516,63 @@ class DoorPregrasp(
             "base_relief_phase_timeout_semantic": (
                 "relief_steps_consume_current_phase_timeout"
             ),
+            "static_clamp_ever_activated_count": int(
+                self._a2_hold_oracle_static_clamp_ever_activated.sum().item()
+            ),
+            "per_env_static_clamp_ever_activated": (
+                self._a2_hold_oracle_static_clamp_ever_activated.detach().cpu().tolist()
+            ),
+            "per_env_static_clamp_restored": (
+                self._a2_hold_oracle_static_clamp_restored.detach().cpu().tolist()
+            ),
+            "per_env_static_clamp_final_action_write_count": (
+                self._a2_hold_oracle_static_clamp_final_write_count.detach()
+                .cpu()
+                .tolist()
+            ),
+            "per_env_static_clamp_original_stiffness": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_original_stiffness
+            ),
+            "per_env_static_clamp_original_damping": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_original_damping
+            ),
+            "per_env_static_clamp_original_effort_limit": (
+                a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_static_clamp_original_effort_limit
+                )
+            ),
+            "per_env_static_clamp_requested_stiffness": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_requested_stiffness
+            ),
+            "per_env_static_clamp_requested_damping": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_requested_damping
+            ),
+            "per_env_static_clamp_applied_stiffness": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_applied_stiffness
+            ),
+            "per_env_static_clamp_applied_damping": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_applied_damping
+            ),
+            "per_env_static_clamp_applied_effort_limit": (
+                a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_static_clamp_applied_effort_limit
+                )
+            ),
+            "per_env_static_clamp_restored_stiffness": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_restored_stiffness
+            ),
+            "per_env_static_clamp_restored_damping": a2_hold_nullable_tensor_list(
+                self._a2_hold_oracle_static_clamp_restored_damping
+            ),
+            "per_env_static_clamp_restored_effort_limit": (
+                a2_hold_nullable_tensor_list(
+                    self._a2_hold_oracle_static_clamp_restored_effort_limit
+                )
+            ),
+            "per_env_static_clamp_step40_snapshot": list(
+                self._a2_hold_oracle_static_clamp_step40_snapshot
+            ),
+            "static_clamp_finalize_called": self._a2_hold_oracle_finalized,
         }
 
     def _get_a2_hold_detailed_step_fields(self, env_ids: torch.Tensor):
@@ -5826,6 +6657,28 @@ class DoorPregrasp(
                 "A2 detailed hold mapped articulation joint order must be arm_j7,arm_j8; "
                 f"got ids={joint_ids.tolist()}, names={mapped_joint_names}."
             )
+        jacobian = robot.root_physx_view.get_jacobians()
+        body_ids_tensor = torch.tensor(
+            gripper_body_ids, device=self.device, dtype=torch.long
+        )
+        open_target = self._a2_gripper_open_target.to(
+            device=self.device, dtype=jacobian.dtype
+        )
+        close_target = self._a2_gripper_close_target.to(
+            device=self.device, dtype=jacobian.dtype
+        )
+        opening_axes_w = a2_hold_signed_gripper_opening_axes_from_jacobian(
+            jacobian,
+            body_ids_tensor,
+            joint_ids,
+            open_target,
+            close_target,
+        )
+        force_projection = a2_hold_project_finger_forces_along_opening_axes(
+            normal_force_w,
+            friction_w[:, 0],
+            opening_axes_w,
+        )
         q = robot_data.joint_pos[:, joint_ids]
         qdot = robot_data.joint_vel[:, joint_ids]
         qtarget = robot_data.joint_pos_target[:, joint_ids]
@@ -5855,6 +6708,55 @@ class DoorPregrasp(
                     ),
                     "handle_normal_force_direction_valid": normal_direction_valid[env_id].detach().cpu().tolist(),
                     "handle_friction_force_w_sum": friction_w[env_id, 0].detach().cpu().tolist(),
+                    "gripper_opening_axis_w_body7_body8": (
+                        opening_axes_w[env_id].detach().cpu().tolist()
+                    ),
+                    "finger_normal_force_w_body7_body8": (
+                        force_projection["finger_normal_force_w"][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "finger_friction_force_w_body7_body8": (
+                        force_projection["finger_friction_force_w"][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "finger_total_force_w_body7_body8": (
+                        force_projection["finger_total_force_w"][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "finger_normal_force_along_opening_axis_body7_body8": (
+                        force_projection[
+                            "finger_normal_force_along_opening_axis"
+                        ][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "finger_friction_force_along_opening_axis_body7_body8": (
+                        force_projection[
+                            "finger_friction_force_along_opening_axis"
+                        ][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "finger_total_force_along_opening_axis_body7_body8": (
+                        force_projection["finger_total_force_along_opening_axis"][
+                            env_id
+                        ]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "opening_force_projection_positive_semantic": (
+                        "positive_force_on_finger_drives_its_joint_toward_open_target; "
+                        "arm_j7_positive, arm_j8_negative"
+                    ),
                     "handle_contact_sensor_pos_w": sensor_pos_w[env_id, 0].detach().cpu().tolist(),
                     "handle_contact_sensor_quat_w": sensor_quat_w[env_id, 0].detach().cpu().tolist(),
                     "gripper_source_pos_w": source_pos_w[env_id].detach().cpu().tolist(),
@@ -5872,11 +6774,25 @@ class DoorPregrasp(
                     "pd_effort_estimate_unclipped": pd_unclipped[env_id].detach().cpu().tolist(),
                     "pd_effort_estimate_clipped": pd_clipped[env_id].detach().cpu().tolist(),
                     "pd_effort_estimated_saturation": pd_saturated[env_id].detach().cpu().tolist(),
+                    "runtime_gain_pd_effort_estimate_primary_unclipped": (
+                        pd_unclipped[env_id].detach().cpu().tolist()
+                    ),
+                    "runtime_gain_pd_effort_estimate_primary_clipped": (
+                        pd_clipped[env_id].detach().cpu().tolist()
+                    ),
+                    "runtime_gain_pd_effort_estimate_primary_saturation": (
+                        pd_saturated[env_id].detach().cpu().tolist()
+                    ),
                     "isaaclab_implicit_computed_effort_estimate": implicit_computed[env_id].detach().cpu().tolist(),
                     "isaaclab_implicit_applied_effort_estimate": implicit_applied[env_id].detach().cpu().tolist(),
                     "isaaclab_implicit_effort_estimate_crosscheck_error": (
                         implicit_computed[env_id] - pd_unclipped[env_id]
                     ).detach().cpu().tolist(),
+                    "isaaclab_implicit_effort_estimate_authority": (
+                        "NON_AUTHORITATIVE_AFTER_RUNTIME_GAIN_OVERRIDE"
+                        if self._a2_hold_oracle_static_clamp_gain_applied[env_id].item()
+                        else "ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE"
+                    ),
                 }
             )
         return records
@@ -5950,7 +6866,24 @@ class DoorPregrasp(
             "contact_pos_semantics": "average per sensor-body/filter pair",
             "normal_force_semantics": "summed normal contact force; direction is aggregate force direction, not raw geometric normal",
             "friction_force_semantics": "summed friction force per sensor-body/filter pair",
+            "signed_opening_axis_semantics": (
+                "runtime own-body Jacobian linear own-joint column with floating-base +6 "
+                "mapping, multiplied by sign(open_target-close_target); arm_j7 positive, "
+                "arm_j8 negative"
+            ),
+            "signed_force_projection_semantics": (
+                "ContactSensor normal/friction act on handle, so finger force is their "
+                "negative; positive projection drives that finger toward open target"
+            ),
+            "runtime_gain_pd_effort_estimate": (
+                "PRIMARY diagnostic estimate from runtime ArticulationData stiffness, "
+                "damping, position target, position and velocity"
+            ),
             "actual_implicit_drive_force": "UNAVAILABLE/INCONCLUSIVE; logged torque fields are IsaacLab implicit PD estimates",
+            "implicit_actuator_estimate_after_runtime_gain_override": (
+                "NON_AUTHORITATIVE because high-level gain writers update ArticulationData "
+                "and PhysX but do not update the ImplicitActuator model"
+            ),
             "gripper_source_tcp_offset_z": self._get_a2_gripper_source_tcp_offset_z(),
             "oracle_tcp_offset_label": "measured finger-collider longitudinal midpoint when z=0.09755",
             "sampled_handle_radius": handle_radii,
@@ -6609,6 +7542,28 @@ class DoorPregrasp(
         grasp_target_pos_w = self._compute_grasp_target()
         grasp_target_pos_w[:, 2] += 0.1
         return grasp_target_pos_w
+
+    @override
+    def _reset_buffers_callback(self, env_ids, target_buf=None):
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is not None and cfg["enabled"] and cfg["static_clamp_enabled"]:
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError("A2 static clamp reset requires valid device-local env ids.")
+            affected = torch.zeros(
+                self.num_envs, device=self.device, dtype=torch.bool
+            )
+            affected[env_ids] = self._a2_hold_oracle_static_clamp_gain_applied[
+                env_ids
+            ]
+            self._finish_a2_static_clamp(affected)
+        return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override
     def _reset_object_states_callback(self, env_ids):

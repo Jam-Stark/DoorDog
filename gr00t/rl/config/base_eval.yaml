@@ -73,6 +73,13 @@ algo:
       a2_hold_oracle_base_relief_timeout_steps: 60
       a2_hold_oracle_base_relief_max_displacement_m: 0.10
       a2_hold_oracle_base_relief_min_solvable_horizontal_error_m: 0.002
+      # Eval-only anti-backdrive probe. When enabled, the oracle snapshots the
+      # close-gate gripper gains, writes these static gains for exactly the
+      # configured number of physics actions, then restores the snapshot.
+      a2_hold_oracle_static_clamp_enabled: false
+      a2_hold_oracle_static_clamp_steps: 40
+      a2_hold_oracle_static_clamp_stiffness: 80.0
+      a2_hold_oracle_static_clamp_damping: 3.0
       
 
 eval_timestamp: ${now:%Y%m%d_%H%M%S}

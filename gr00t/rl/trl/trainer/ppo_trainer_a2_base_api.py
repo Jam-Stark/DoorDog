@@ -3,6 +3,7 @@
 
 
 from collections import deque
+from contextlib import contextmanager
 from copy import deepcopy
 import json
 import math
@@ -40,6 +41,20 @@ from gr00t.rl.trl.modules.homie_modules import (
 
 
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+
+
+@contextmanager
+def _a2_hold_oracle_finalize_guard(env, enabled):
+    if not isinstance(enabled, bool):
+        raise RuntimeError(f"A2 hold oracle finalize guard requires bool; got {enabled!r}.")
+    try:
+        yield
+    finally:
+        if enabled:
+            finalize = getattr(env, "finalize_a2_eval_hold_oracle", None)
+            if finalize is None:
+                raise RuntimeError("A2 hold oracle requires a finalizer for exact gain restore.")
+            finalize()
 
 
 def validate_checkpoint_load_mode(checkpoint_load_mode):
@@ -2742,7 +2757,9 @@ class TRLPPOTrainer(PPOTrainer):
             f"Starting evaluation with {'one episode per environment' if eval_num_envs_episodes else f'{max_episodes} total episodes'}"
         )
 
-        with torch.no_grad():
+        with _a2_hold_oracle_finalize_guard(
+            self.env, bool(a2_hold_oracle_config["enabled"])
+        ), torch.no_grad():
             with unwrap_model_for_generation(
                 self.model,
                 self.accelerator,

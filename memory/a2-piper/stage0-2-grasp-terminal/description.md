@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-11 22:19 HKT
+last_updated: 2026-07-12 17:36 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -17,10 +17,11 @@ read_when:
 
 ## Purpose
 
-记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 baseline 是 TCP `0.085`、`arm_j7/j8 effort_limit_sim=10/10`；hold-oracle exact diagnosis 尚未形成 bilateral contact，因此下一步是 inner geometry / aperture / reachability，而不是 Kp/friction tuning。
+记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 training/default baseline 是 TCP `0.085`、gripper Kp/Kd `80/3`、`arm_j7/j8 effort_limit_sim=10/10`。Eval-only S0/S1/S2 证明 anti-backdrive 是 partial factor，但更高 gains 没有把 contact 保留到 step40，因此下一步仍是 centered bilateral reachability / inner geometry / closed aperture，不把 S1/S2 提升为 training/default config。
 
 ## Current Decision
 
+- 2026-07-12 17:36 HKT - Frozen candidate `f5d8ea69b28c40da8386a0b26c9c141c66478e40fba0c0b3f21d77775166a468` 的 exact-40 S0/S1/S2 static clamp 完成 `37 passed`、Wave 1 static PASS 及 runtime integrity PASS。三组均 `8/8 complete`、count `40`、effort `10/10`、restore `80/3`。Bilateral/stability 从 S0 `2/0` 增到 S1 `16/4` 再到 S2 `44/19 of 320`，`arm_j8` open-limit frames 从 `1/1` 降到 `0`，S2 `j8 qmin=-0.026426` 优于 S0/S1 `-0.035`；但 step40 any-contact 三组均 `0/8`，S2 `arm_j7` saturation 为 `41/320`。结论是 anti-backdrive 对 transient grasp 有贡献，但不是 sufficient fix，且 bottleneck 转移到 j7/centered reachability；geometry/aperture 仍 unresolved。
 - 2026-07-11 22:19 HKT - Full-stage eval-only hold-oracle 已将 stage0-2 grasp blocker 收敛到 exact geometry / reachability。G1/G2/G3 的 80-step `CENTER_CLOSE` 均 bilateral contact `0/80`、未进入 `DEPRESS`，无 slip/saturation，并以 center timeout / `IK_TRACKING_FAILURE` 结束。G1 TCP `0.085` 与 G3 TCP `0.105` 分别有 `1/3` frame 进入 base-relief branch，故 controller path 可达但不足以建立 bilateral grasp。Current baseline 为 TCP `0.085`、effort `10/10`；本轮未改 Kp/friction。
 - 2026-06-22 20:29 HKT - 用户确认从 `A2_Piper` 切出新分支 `quickTEST`，用于 stage0-2 grasp-terminal quick test。
 - 2026-06-22 20:42 HKT - 已新增独立 config `gr00t/rl/config/exp/wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm.yaml`，入口为 `+exp=wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm`；默认 `door_open_a2_base_lstm.yaml` 未改动。
@@ -210,7 +211,7 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-11 22:19 HKT - 在同一坐标系中确认 `arm_body7/8` convexHull 与 `handle_inside` Capsule 的 exact inner contact surface、finger closing axis / closed aperture，并验证 current `grasp_target` / TCP `0.085` 的 bilateral reachability。Current effort baseline 为 `10/10`；不先改 Kp/friction 或单独放大 base relief。
+- 2026-07-12 17:36 HKT - S0/S1/S2 已完成，下一候选 factor 是 centered bilateral reachability：在同一坐标系中确认 `arm_body7/8` convexHull 与 `handle_inside` Capsule 的 exact inner contact surface、finger closing axis / closed aperture，并验证 current `grasp_target` / TCP `0.085` 的 bilateral reachability，优先考虑 bounded closing-axis offset probe。该候选尚未获得 implementation approval；不先改 friction/coupling/default gain。
 - 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
@@ -222,6 +223,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-12 17:36 HKT - 同步 candidate `f5d8ea69…` 的 exact-40 S0/S1/S2 anti-backdrive matrix：三组均 `8/8 complete`、count40、effort10 且 restore80/3；higher gains 增加 transient bilateral/stability 并抑制 j8 hard-open，但 step40 全部无 contact，S2 转为 j7 saturation/limit。不升级 S1/S2 到 training/default，geometry/aperture/reachability 仍 unresolved。
 - 2026-07-11 22:19 HKT - 同步 hold-oracle candidate `9513f6f9…` 的 `28 passed` 与 G1/G2/G3 80-step runtime matrix：三组均无 bilateral/depress/slip/saturation，G1/G3 实际进入 base relief 但仍不收敛；actual collider/material/default friction/drive availability 已记录。该 diagnosis 为 partial completion，未解决 exact inner geometry / aperture / reachability。
 - 2026-07-07 16:17 HKT - 同步 full-stage `base_v4` four-way 2k eval：`thr1p0_kd3_vel1` 是当前最可用候选，`thr0p8_kd5_vel0` 虽 complete 率最高但 force/raw 过激；terminal predicate 下一步应对齐 dense reward 的 `squeeze_window` 与 `over_force` 语义。
 - 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` completion A/B：history 3 让 16/16 stage2→3 但多为 single-contact / early stage3，threshold 0.8 只让 5/16 推进且更保守；stage0-2 terminal predicate 后续优先验证 threshold 0.8，history 3 暂不作为默认。该结论已被 2026-07-07 four-way A/B 更新：先修 completion force-window/no-overforce，再调 threshold。

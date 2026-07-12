@@ -142,6 +142,11 @@ def _load_no_sim_helpers():
         "a2_hold_push_timeout_masks",
         "a2_hold_rotate_jacobian_to_root",
         "a2_hold_summarize_outcomes",
+        "a2_hold_signed_gripper_opening_axes_from_jacobian",
+        "a2_hold_project_finger_forces_along_opening_axes",
+        "a2_hold_static_clamp_step_masks",
+        "a2_hold_static_clamp_terminal_partition",
+        "a2_hold_apply_static_clamp_action",
         "a2_hold_update_base_relief_state",
         "a2_hold_update_phase_arm_sign_check",
         "a2_hold_validate_friction_override",
@@ -257,6 +262,10 @@ def _valid_oracle_config(enabled=True):
         "a2_hold_oracle_base_relief_timeout_steps": 60,
         "a2_hold_oracle_base_relief_max_displacement_m": 0.10,
         "a2_hold_oracle_base_relief_min_solvable_horizontal_error_m": 0.002,
+        "a2_hold_oracle_static_clamp_enabled": False,
+        "a2_hold_oracle_static_clamp_steps": 40,
+        "a2_hold_oracle_static_clamp_stiffness": 80.0,
+        "a2_hold_oracle_static_clamp_damping": 3.0,
     }
 
 
@@ -758,6 +767,407 @@ def test_base_relief_config_and_trace_wiring():
     assert '"hold_oracle_base_relief_raw_command"' in source
     assert '"hold_oracle_base_relief_body_velocity_command"' in source
     assert '"hold_oracle_base_relief_phase_timeout_semantic"' in source
+
+
+def test_signed_gripper_opening_axes_and_force_on_finger_projection():
+    jacobian = torch.zeros(2, 2, 6, 10)
+    # arm_j7 and arm_j8 articulation ids 1/2 map to floating columns 7/8.
+    jacobian[:, 0, 1, 7] = 2.0
+    jacobian[:, 1, 1, 8] = 3.0
+    axes = a2_hold_signed_gripper_opening_axes_from_jacobian(
+        jacobian,
+        torch.tensor([0, 1]),
+        torch.tensor([1, 2]),
+        torch.tensor([0.035, -0.035]),
+        torch.tensor([0.0, 0.0]),
+    )
+    expected = torch.tensor([[[0.0, 1.0, 0.0], [0.0, -1.0, 0.0]]]).repeat(2, 1, 1)
+    torch.testing.assert_close(axes, expected)
+
+    # Sensor force acts on the handle. Negating it gives force on the finger.
+    normal_on_handle = torch.tensor(
+        [[[-0.0, -4.0, 0.0], [0.0, 5.0, 0.0]]] * 2
+    )
+    friction_on_handle = torch.tensor(
+        [[[0.0, -1.0, 0.0], [0.0, 2.0, 0.0]]] * 2
+    )
+    projection = a2_hold_project_finger_forces_along_opening_axes(
+        normal_on_handle, friction_on_handle, axes
+    )
+    torch.testing.assert_close(
+        projection["finger_normal_force_along_opening_axis"],
+        torch.tensor([[4.0, 5.0], [4.0, 5.0]]),
+    )
+    torch.testing.assert_close(
+        projection["finger_friction_force_along_opening_axis"],
+        torch.tensor([[1.0, 2.0], [1.0, 2.0]]),
+    )
+    torch.testing.assert_close(
+        projection["finger_total_force_along_opening_axis"],
+        torch.tensor([[5.0, 7.0], [5.0, 7.0]]),
+    )
+
+
+def test_signed_gripper_opening_axes_fail_fast_degenerate_angular_and_sign():
+    base = torch.zeros(1, 2, 6, 10)
+    body_ids = torch.tensor([0, 1])
+    joint_ids = torch.tensor([1, 2])
+    open_target = torch.tensor([0.035, -0.035])
+    close_target = torch.zeros(2)
+    for expected_message, mutation in (
+        ("degenerate", lambda value: value),
+        (
+            "not prismatic",
+            lambda value: value.index_put_((torch.tensor([0]), torch.tensor([0]), torch.tensor([0]), torch.tensor([7])), torch.tensor([1.0])).index_put_((torch.tensor([0]), torch.tensor([1]), torch.tensor([0]), torch.tensor([8])), torch.tensor([1.0])).index_put_((torch.tensor([0]), torch.tensor([1]), torch.tensor([3]), torch.tensor([8])), torch.tensor([0.01])),
+        ),
+    ):
+        jacobian = mutation(base.clone())
+        try:
+            a2_hold_signed_gripper_opening_axes_from_jacobian(
+                jacobian, body_ids, joint_ids, open_target, close_target
+            )
+        except ValueError as exc:
+            assert expected_message in str(exc)
+        else:
+            raise AssertionError(f"opening-axis {expected_message} input did not fail")
+
+    valid = base.clone()
+    valid[:, 0, 0, 7] = 1.0
+    valid[:, 1, 0, 8] = 1.0
+    try:
+        a2_hold_signed_gripper_opening_axes_from_jacobian(
+            valid, body_ids, joint_ids, torch.tensor([0.0, -0.035]), close_target
+        )
+    except ValueError as exc:
+        assert "non-zero" in str(exc)
+    else:
+        raise AssertionError("zero open-close displacement did not fail")
+    for reversed_target in (
+        torch.tensor([-0.035, -0.035]),
+        torch.tensor([0.035, 0.035]),
+        torch.tensor([-0.035, 0.035]),
+    ):
+        try:
+            a2_hold_signed_gripper_opening_axes_from_jacobian(
+                valid, body_ids, joint_ids, reversed_target, close_target
+            )
+        except ValueError as exc:
+            assert "arm_j7 positive and arm_j8 negative" in str(exc)
+        else:
+            raise AssertionError("reversed opening-axis signs did not fail")
+
+
+def test_static_clamp_exact_40_action_writes_and_41st_restore_boundary():
+    active = torch.zeros(1, dtype=torch.bool)
+    count = torch.zeros(1, dtype=torch.long)
+    first_active = torch.ones(1, dtype=torch.bool)
+    states = []
+    for call_index in range(41):
+        state = a2_hold_static_clamp_step_masks(
+            True,
+            torch.tensor([call_index == 0]),
+            first_active,
+            active,
+            count,
+            40,
+        )
+        states.append(state)
+        active = state["active"]
+        count = state["write_count"]
+    assert sum(state["override"].item() for state in states) == 40
+    assert states[0]["entering"].item()
+    assert states[39]["override"].item()
+    assert states[39]["write_count"].item() == 40
+    assert not states[40]["override"].item()
+    assert states[40]["complete"].item()
+    assert not states[40]["active"].item()
+    assert states[40]["write_count"].item() == 40
+
+    policy = torch.arange(24, dtype=torch.float32).reshape(2, 12)
+    overridden = a2_hold_apply_static_clamp_action(
+        policy, torch.tensor([True, False])
+    )
+    torch.testing.assert_close(overridden[0, :11], torch.zeros(11))
+    assert overridden[0, 11].item() == -1.0
+    torch.testing.assert_close(overridden[1], policy[1])
+    disabled = a2_hold_apply_static_clamp_action(
+        policy, torch.zeros(2, dtype=torch.bool)
+    )
+    assert disabled is policy
+
+
+def test_static_clamp_early_end_disabled_noop_and_config_fail_fast():
+    active = torch.tensor([True, False])
+    count = torch.tensor([7, 0], dtype=torch.long)
+    state = a2_hold_static_clamp_step_masks(
+        True,
+        torch.zeros(2, dtype=torch.bool),
+        torch.tensor([False, True]),
+        active,
+        count,
+        40,
+    )
+    assert state["incomplete"].tolist() == [True, False]
+    assert not state["override"].any()
+    assert state["write_count"].tolist() == [7, 0]
+
+    disabled = a2_hold_static_clamp_step_masks(
+        False,
+        torch.ones(2, dtype=torch.bool),
+        torch.ones(2, dtype=torch.bool),
+        torch.zeros(2, dtype=torch.bool),
+        torch.zeros(2, dtype=torch.long),
+        40,
+    )
+    assert not any(disabled[key].any() for key in ("entering", "override", "complete", "incomplete"))
+
+    configured = _valid_oracle_config()
+    configured["a2_hold_oracle_static_clamp_enabled"] = True
+    parsed = parse_a2_hold_oracle_config(configured)
+    assert parsed["static_clamp_enabled"] is True
+    assert parsed["static_clamp_steps"] == 40
+    assert parsed["static_clamp_stiffness"] == 80.0
+    assert parsed["static_clamp_damping"] == 3.0
+
+    bad = _valid_oracle_config(enabled=False)
+    bad["a2_hold_oracle_static_clamp_enabled"] = True
+    try:
+        parse_a2_hold_oracle_config(bad)
+    except RuntimeError as exc:
+        assert "requires a2_hold_oracle_enabled" in str(exc)
+    else:
+        raise AssertionError("static clamp without hold oracle did not fail")
+
+
+def test_static_clamp_terminal_partition_39_40_mixed_and_overrun_fail_fast():
+    affected = torch.tensor([True, True, False])
+    count = torch.tensor([39, 40, 40], dtype=torch.long)
+    partition = a2_hold_static_clamp_terminal_partition(affected, count, 40)
+    assert partition["complete"].tolist() == [False, True, False]
+    assert partition["incomplete"].tolist() == [True, False, False]
+
+    terminal_step40 = a2_hold_static_clamp_step_masks(
+        True,
+        torch.zeros(2, dtype=torch.bool),
+        torch.zeros(2, dtype=torch.bool),
+        torch.ones(2, dtype=torch.bool),
+        torch.tensor([39, 40], dtype=torch.long),
+        40,
+    )
+    assert terminal_step40["complete"].tolist() == [False, True]
+    assert terminal_step40["incomplete"].tolist() == [True, False]
+    assert not terminal_step40["override"].any()
+
+    try:
+        a2_hold_static_clamp_terminal_partition(
+            torch.tensor([True]), torch.tensor([41], dtype=torch.long), 40
+        )
+    except ValueError as exc:
+        assert "exceeded its exact target" in str(exc)
+    else:
+        raise AssertionError("static-clamp count > target did not fail")
+
+    try:
+        a2_hold_static_clamp_step_masks(
+            True,
+            torch.tensor([False]),
+            torch.tensor([True]),
+            torch.tensor([True]),
+            torch.tensor([41], dtype=torch.long),
+            40,
+        )
+    except ValueError as exc:
+        assert "exceeded its exact target" in str(exc)
+    else:
+        raise AssertionError("live active count41 attempted another override")
+
+
+def test_static_clamp_finish_overrun_restores_and_propagates_original_error():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    finish_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_finish_a2_static_clamp"
+    )
+    namespace = {
+        "torch": torch,
+        "a2_hold_static_clamp_terminal_partition": (
+            a2_hold_static_clamp_terminal_partition
+        ),
+    }
+    exec(textwrap.dedent(ast.get_source_segment(source, finish_node)), namespace)
+
+    class Dummy:
+        _finish_a2_static_clamp = namespace["_finish_a2_static_clamp"]
+
+        def __init__(self):
+            self.num_envs = 1
+            self.device = "cpu"
+            self._a2_hold_oracle_cfg = {
+                "enabled": True,
+                "static_clamp_enabled": True,
+                "static_clamp_steps": 40,
+            }
+            self._a2_hold_oracle_static_clamp_gain_applied = torch.tensor([True])
+            self._a2_hold_oracle_static_clamp_write_count = torch.tensor(
+                [41], dtype=torch.long
+            )
+            self._a2_hold_oracle_static_clamp_final_write_count = torch.tensor(
+                [-1], dtype=torch.long
+            )
+            self.restore_calls = 0
+            self.snapshot_calls = 0
+            self.outcome_calls = 0
+
+        def _restore_a2_static_clamp_gains(self, mask):
+            self.restore_calls += 1
+            self._a2_hold_oracle_static_clamp_gain_applied[mask] = False
+
+        def _snapshot_a2_static_clamp_result(self, mask):
+            self.snapshot_calls += 1
+
+        def _set_a2_hold_outcome(self, mask, outcome):
+            self.outcome_calls += 1
+
+    dummy = Dummy()
+    try:
+        dummy._finish_a2_static_clamp(torch.tensor([True]))
+    except RuntimeError as exc:
+        assert "finish partition failed" in str(exc)
+        assert isinstance(exc.__cause__, ValueError)
+        assert "exceeded its exact target" in str(exc.__cause__)
+    else:
+        raise AssertionError("finish count41 did not propagate its partition failure")
+    assert dummy.restore_calls == 1
+    assert not dummy._a2_hold_oracle_static_clamp_gain_applied.any()
+    assert dummy.snapshot_calls == 0
+    assert dummy.outcome_calls == 0
+    assert dummy._a2_hold_oracle_static_clamp_final_write_count.tolist() == [-1]
+
+
+def test_static_clamp_parser_accepts_only_exact_40_step_s0_s1_s2():
+    for stiffness, damping in ((80.0, 3.0), (160.0, 6.0), (320.0, 12.0)):
+        config = _valid_oracle_config()
+        config["a2_hold_oracle_static_clamp_enabled"] = True
+        config["a2_hold_oracle_static_clamp_stiffness"] = stiffness
+        config["a2_hold_oracle_static_clamp_damping"] = damping
+        parsed = parse_a2_hold_oracle_config(config)
+        assert (
+            parsed["static_clamp_steps"],
+            parsed["static_clamp_stiffness"],
+            parsed["static_clamp_damping"],
+        ) == (40, stiffness, damping)
+
+    invalid_cases = (
+        (41, 80.0, 3.0, "exactly 40"),
+        (40, 123.0, 7.0, "exact approved"),
+        (40, 160.0, 12.0, "exact approved"),
+    )
+    for steps, stiffness, damping, expected in invalid_cases:
+        config = _valid_oracle_config()
+        config["a2_hold_oracle_static_clamp_enabled"] = True
+        config["a2_hold_oracle_static_clamp_steps"] = steps
+        config["a2_hold_oracle_static_clamp_stiffness"] = stiffness
+        config["a2_hold_oracle_static_clamp_damping"] = damping
+        try:
+            parse_a2_hold_oracle_config(config)
+        except RuntimeError as exc:
+            assert expected in str(exc)
+        else:
+            raise AssertionError(
+                f"invalid static-clamp config {(steps, stiffness, damping)} parsed"
+            )
+
+
+def test_static_clamp_reset_finalize_order_and_durable_summary_wiring():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    reset_method = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_reset_buffers_callback"
+    )
+    reset_source = ast.get_source_segment(source, reset_method)
+    assert reset_source.index("self._finish_a2_static_clamp(affected)") < reset_source.index(
+        "super()._reset_buffers_callback(env_ids, target_buf)"
+    )
+    finish_method = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_finish_a2_static_clamp"
+    )
+    finish_source = ast.get_source_segment(source, finish_method)
+    assert finish_source.index("_snapshot_a2_static_clamp_result") < finish_source.index(
+        "_restore_a2_static_clamp_gains"
+    )
+    assert "finally:" in finish_source
+    assert "a2_hold_static_clamp_terminal_partition(" in finish_source
+    finalize_method = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "finalize_a2_eval_hold_oracle"
+    )
+    finalize_source = ast.get_source_segment(source, finalize_method)
+    assert "if self._a2_hold_oracle_finalized:" in finalize_source
+    assert "self._finish_a2_static_clamp(" in finalize_source
+    for durable_field in (
+        "per_env_static_clamp_final_action_write_count",
+        "per_env_static_clamp_requested_stiffness",
+        "per_env_static_clamp_requested_damping",
+        "per_env_static_clamp_applied_stiffness",
+        "per_env_static_clamp_applied_damping",
+        "per_env_static_clamp_applied_effort_limit",
+        "per_env_static_clamp_restored_stiffness",
+        "per_env_static_clamp_restored_damping",
+        "per_env_static_clamp_restored_effort_limit",
+    ):
+        assert f'"{durable_field}"' in source
+    assert "A2 static clamp summary rejects active/unrestored gains" in source
+    assert "A2 static clamp summary rejects gain/effort restore mismatch" in source
+
+
+def test_static_clamp_gain_restore_finally_and_trace_wiring():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    trainer = TRAINER_SOURCE_PATH.read_text(encoding="utf-8")
+    eval_yaml = (Path(__file__).parents[1] / "config/base_eval.yaml").read_text()
+    for expected in (
+        "a2_hold_oracle_static_clamp_enabled: false",
+        "a2_hold_oracle_static_clamp_steps: 40",
+        "a2_hold_oracle_static_clamp_stiffness: 80.0",
+        "a2_hold_oracle_static_clamp_damping: 3.0",
+    ):
+        assert expected in eval_yaml
+    for expected in (
+        "write_joint_stiffness_to_sim",
+        "write_joint_damping_to_sim",
+        "A2 static clamp requires exact unchanged gripper effort_limit=10N",
+        "A2 static clamp exact gain restore verification failed",
+        "STATIC_CLAMP_COMPLETE",
+        "STATIC_CLAMP_INCOMPLETE",
+        "_snapshot_a2_static_clamp_result",
+        "finalize_a2_eval_hold_oracle",
+        '"hold_oracle_static_clamp_action_write_count"',
+        '"finger_normal_force_along_opening_axis_body7_body8"',
+        '"finger_friction_force_along_opening_axis_body7_body8"',
+        '"finger_total_force_along_opening_axis_body7_body8"',
+        '"runtime_gain_pd_effort_estimate_primary_unclipped"',
+        "NON_AUTHORITATIVE_AFTER_RUNTIME_GAIN_OVERRIDE",
+    ):
+        assert expected in source
+    assert "@contextmanager\ndef _a2_hold_oracle_finalize_guard" in trainer
+    assert "finally:\n        if enabled:" in trainer
+    assert "with _a2_hold_oracle_finalize_guard(" in trainer
     assert '"relief_steps_consume_current_phase_timeout"' in source
     for outcome in (
         "BASE_RELIEF_WRONG_SIGN",

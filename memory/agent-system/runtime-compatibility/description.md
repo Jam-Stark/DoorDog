@@ -1,9 +1,9 @@
 ---
 name: codex-agent-runtime-compatibility
 scope: project-scoped config parsing, strict startup and runtime activation evidence
-status: bounded_runtime_behavior_and_full_tree_wls_pass_effective_metadata_inconclusive
-last_updated: 2026-07-11 05:11 HKT
-evidence_level: STATIC/STRICT PASS; TESTED CHILD RUNTIME BEHAVIOR PASS; FULL-TREE WRITE SAFETY PASS; EFFECTIVE METADATA INCONCLUSIVE
+status: app_selector_gate_pass_three_role_metadata_verified_remaining_runtime_breadth
+last_updated: 2026-07-13 01:05 HKT
+evidence_level: STATIC/STRICT PASS; APP SELECTOR CONTROLS PASS; THREE-ROLE EFFECTIVE METADATA PASS; FULL-TREE WRITE SAFETY PASS; FULL ROLE MATRIX INCOMPLETE
 owned_paths:
   - .codex/config.toml
   - .codex/agents/role-probe.toml
@@ -30,15 +30,19 @@ owned_paths:
 - 九个 non-Deep roles 的 bounded positive contract behavior PASS，direct child-to-peer FINDING 与 identical Main mirror PASS。Runtime surface 仍未 authoritative 暴露 effective role/model/effort/sandbox，因此这些字段保持 `UNKNOWN/INCONCLUSIVE`。
 - C1-C4 write-lease/interrupt behavior 在 approved R3 baseline 上 PASS；该轮排除了 externally-mutated ignored `logs_rl/`，所以当时 general full-tree write safety 仍为 INCONCLUSIVE。
 - P2-FULL-TREE-WLS-R1 在 training 结束且包含 `logs_rl/` 的 full tree 稳定后验证 C1 single、C2 disjoint simultaneous active、C3 strict same-path serialization 与 C4 running partial writer → interrupted terminal → Main partial audit → replacement 全部 PASS；zero out-of-lease change，exact cleanup 后 HEAD/worktree/index 与 same-encoding manifest 精确恢复，general full-tree write safety PASS。`runtime_qa` 仍仅取得 `STATIC_PASS`，IsaacLab runtime/training NOT_RUN。
+- 2026-07-13 fresh App task 加载 merged MultiAgentV2 config：`tool_namespace="agents"` 避开 GPT-5.6 reserved `collaboration.*` schema collision，`hide_spawn_agent_metadata=false` 暴露 `agent_type/model/reasoning_effort`。Unknown `agent_type` 与 explicit override + `fork_turns="all"` 均在 child creation 前 fail-fast；仅用 `task_name="role_probe"` 的 generic child 不含 `session_meta.agent_role` 并继承 Main Sol/xhigh。
+- Explicit selector + `fork_turns="none"` 的 distinguishing matrix 取得 authoritative `session_meta`/`turn_context`：`role_probe`=Terra/high、`scope_planner`=Sol/xhigh、`isaaclab_worker`=Luna/max，五个 scoped child 均 zero tool call 且 `task_complete`。Effective `danger-full-access/never` 来自 App parent live permission override，不证明 profile sandbox defaults。Selector gate PASS/UNBLOCKED，但九角色完整 contract matrix仍未完成。
+- Phase 2 raw evidence 由 Main 复核五份 rollout hash、App rejection log 与 Git zero-delta baseline；一个 inline evidence-logic review PASS。两个 child raw-reader 与后续 Goal/Code raw review 因 `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted` 为 INCONCLUSIVE；这些 lane 没有被记为 PASS，且均 zero write。
 
 ## Decisions
 
 - 不修改 global `~/.codex/config.toml`，不启用 silent fallback。
+- Project MultiAgentV2 固定 `tool_namespace="agents"`；custom profile override 使用 `fork_turns="none"`。Parent live sandbox/approval 与 profile defaults 分层记录。
 - User 已明确批准 direct registration/routing；effective child role/model/effort 未暴露时只限制 runtime metadata PASS claim，不撤销 registry。任何 explicit mismatch 必须 fail fast 调查。
 
 ## TODO Summary
 
-- 2026-07-11 05:11 HKT - 获取 authoritative effective role/model/effort/sandbox metadata；诊断并重测 true simultaneous three-reviewer concurrency；评估 hooks capability。保留 historical `bwrap` evidence 并在其他 lanes 复测；Deep 保持 dormant，等待 exact separate approval。
+- 2026-07-13 01:05 HKT - 完成九个 non-Deep roles 的 explicit-selector contract matrix与未覆盖 profile sandbox-default evaluation；诊断并重测 true simultaneous three-reviewer concurrency；评估 hooks capability。保留 `bwrap` child-runner caveat；Deep 保持 dormant，等待 exact separate approval。
 
 ## DONE Summary
 
@@ -47,3 +51,4 @@ owned_paths:
 - 2026-07-11 02:50 HKT - Phase 2 的 `.codex/config.toml`、十个 agent profiles 与 `role-contract-cases.toml` 共 12 个 TOML 通过 parse/matrix validation；本地 model catalog 确认 Sol/Terra/Luna effort matrix，fresh strict-config startup 返回 `STRICT_PRODUCTION_CATALOG_V1`。未执行 production role runtime case，effective metadata 仍为 INCONCLUSIVE。
 - 2026-07-11 04:40 HKT - Phase 2 R3 验证九个 non-Deep role bounded positive contract behavior、direct peer FINDING/Main mirror、tested child runner 与两份 identical child-owned snapshots、C1-C4 behavior PASS；历史 `bwrap` failure 在 tested lane 未复现。Candidate QA ceiling 为 `STATIC_PASS`，effective metadata 仍为 `UNKNOWN/INCONCLUSIVE`，排除 `logs_rl/` 后 general full-tree write safety 保持 INCONCLUSIVE，IsaacLab runtime/training NOT_RUN。`memory_curator` 已完成 exact 12-file atomic delta 与 self-validation；Main independent revalidation 仍是 closure gate。
 - 2026-07-11 05:11 HKT - P2-FULL-TREE-WLS-R1 在包含稳定 `logs_rl/` 的 full tree 上验证 C1 single、C2 disjoint simultaneous active、C3 strict same-path serialization、C4 partial interrupt/Main audit/replacement 全部 PASS；zero out-of-lease change，exact cleanup 后 HEAD/worktree/index 与 same-encoding manifest 精确恢复，general full-tree write safety PASS。Effective role/model/effort/sandbox 仍为 `UNKNOWN/INCONCLUSIVE`，true simultaneous three-reviewer wave、hooks 与 IsaacLab runtime/training 结论未改变；Main independent memory revalidation 仍是 closure gate。
+- 2026-07-13 01:05 HKT - Fresh App Phase 2 selector controls 与三角色 distinguishing matrix runtime PASS：merged `tool_namespace="agents"` + metadata config 生效，unknown role/full-history override 在 child creation 前 fail-fast，generic child 无 `agent_role`，explicit `role_probe/scope_planner/isaaclab_worker` 分别为 Terra/high、Sol/xhigh、Luna/max；parent override、zero tool、terminal、rollout hashes 与 Git zero-delta 已核对。Selector gate UNBLOCKED；九角色 matrix、profile sandbox defaults、reviewer concurrency、hooks 与 Deep 未扩大。

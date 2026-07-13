@@ -1,8 +1,17 @@
-# A2 + Piper 推门优化：Base v0 → Base v9 结果与经验（2026-07-13）
+# A2 + Piper 推门优化：Base v0 → Base v10 结果与经验（更新于 2026-07-14）
 
-> 状态：`base_v9` oracle、static clamp、O-/O0/O+、matched-clean 等诊断路线已经停止。本文件归档截至停止点的证据；下一项 active work 是另行制定并审批 `base_v10` RL 优化/重新训练方案，而不是继续扩展 `base_v9` 诊断。
+> 状态：`base_v10` A/B/C/D 已各自从随机初始化训练到 step1000，并完成 seed0、16 env、first-episode matched scalar/trace；四组均 `0/16 goal`，D 只是在稳定双面夹持上形成 bounded behavioral lead，仍没有推动门。必要的 D matched render 用于定性复核，不参与成功率统计。`base_v9` oracle、static clamp、O-/O0/O+、matched-clean 等诊断路线继续保持停止；下一项只提出 `base_v11` 最小 RL ablation，不在本报告中启动训练。
 
 ## 1. 结论先行
+
+- `base_v10_A/B/C/D` 的四个 `model_step_001000.pt` 均存在且 checkpoint archive integrity PASS；saved Hydra config/overrides 证明四组共同使用 `checkpoint=null`、`auto_load_latest=false`、seed0、命令字面值 `num_envs=4096`、2 ranks 与 1000 batches。四组是独立 scratch policies，不是 v9/v8 warm-start。
+- Matched first episodes 中四组都为 `0/16 goal`、`16/16 stage_overtime`，且没有任何 stage4 entry。A/C 最高只到 stage2；B/D 都 `16/16` 进入 stage3。四组 mean max hinge 分别只有 `0.000107 / 0.001156 / ~0 / 0.001073 rad`，相对 stage3→4 的 `0.25rad` threshold 都接近零。
+- B/D 的 stage3/4 hold 已不再是“持续单侧脱落”：B bilateral/contact-stability 为 `99.282% / 98.701%`，D 为 `100% / 99.147%`。但 B 的 `arm_j7` open-limit proximity 高达 `91.658%`，D 则 j7/j8 都为 `0%`，且 body7/body8 平均力更均衡。D 因而是本轮 hold-quality leader，不是 door-opening winner。
+- A→B、B→C、C→D 都出现了 stage-exposure 改变：A/C 没进入 stage3，B/D 进入。因此本轮只证明 B/D learned route 与 D 的 hold signal，不能把 A/B 当成 matched-stage retention 因果实验，不能用 B/C 判定 Kp160 是否降低 stage3 backdrive，也不能用 C/D 单独证明 base movement 的因果收益。
+- D 在约 `9.38s` 的 recorded stage3 control steps 中维持双面接触，却只有 `0.001073rad` mean max hinge。Saved config 与本次固定的 inspected eval source 允许 policy 在无 hinge motion 时持续获得 contact/stability reward，因此“hold-dominant local optimum”是与证据一致的机制推测，但尚未被 reward intervention 证实；training-time source snapshot equivalence 未被独立证明。
+- 下一轮最小建议是两组 scratch：D exact control 与 H+（只把 `rewards.reward_scales.push_door_hinge` 从 `6→12`）。若资源允许，再增加一个不与 H+ 累加的 S↓（只把 contact-stability scale `4→0.5`）。不增加 Kp/effort variant，不开始新的 v9 oracle/offset 诊断。
+
+以下历史 v9 stop 结论继续有效：
 
 - `base_v9_A/B/C/D` 四组都训练到 step1000 / `262,144,000` timesteps，logged values finite、无 runtime error，但 training goal metric 都是 0；matched scalar eval 的 16 个 first episodes 也全部 `0/16 goal`、`stage_overtime`。这一轮没有产生成功 policy。
 - Locked-base A/B 在同一 seed/config family 下明显强于 unlocked C/D。A 的 door hinge progress 最高，B 的 terminal hinge 接近且 rebound 更小；这只是 bounded ranking，不是 statistical winner，也不证明所有 base-follow 方案无效。
@@ -15,19 +24,23 @@
 
 ## 2. 当前基线与证据边界
 
-停止点使用的基线是：
+当前用于下一轮提案的 behavioral reference 是 `base_v10_D`；它保留了任务失败边界，不能称为 solved baseline：
 
 | 项目 | 当前值 |
 |---|---|
-| Policy | [`base_v9_B` ckpt1000](../logs_rl/a2_piper_full_stage_a2_base/base_v9_B-20260710_212247/model_step_001000.pt) |
+| Policy reference | [`base_v10_D` ckpt1000](../logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt) |
 | Training seed | `0` |
+| Initialization | `checkpoint=null`, `auto_load_latest=false` |
+| Stage3→4 threshold | `0.25rad` |
 | Piper TCP local-Z | `0.085m` |
-| Gripper Kp/Kd | `80/3` |
+| Gripper Kp/Kd | `160/6` |
 | Gripper effort limit | `10/10N` |
+| Stage3 base | unlocked |
+| Hold bundle | close `.1`, both `2`, opposite `1`, force-window `2`, stability `4`, over-force `-2` |
 | Explicit friction override | none (`null`) |
-| Formal v9 initialization | [`base_v8_A` ckpt1000](../logs_rl/a2_piper_full_stage_a2_base/base_v8_A_release_after_open-20260708_215459/model_step_001000.pt) actor-only `policy_only` warm-start |
+| Matched eval | seed0, 16 env, each env first episode, scalar/trace primary |
 
-`policy_only` 只 strict-load actor；critic、optimizer、scheduler、global step、env curriculum 与 staged snapshots 都是 fresh。普通 eval 会把 load mode normalize 为 `full` 以恢复 checkpoint/eval semantics，因此最终解释应看保存的 `.hydra/runtime_config.yaml`，不能只看请求时 overrides。
+历史 v9 的 `policy_only` 只 strict-load actor；critic、optimizer、scheduler、global step、env curriculum 与 staged snapshots 都是 fresh。普通 eval 会把 load mode normalize 为 `full` 以恢复 checkpoint/eval semantics，因此最终解释应看保存的 `.hydra/runtime_config.yaml`，不能只看请求时 overrides。主 worktree 的 full-stage v0–v9 原始训练目录当前缺失；[`_recovered_wandb_full_stage_v0_to_v8_20260713`](../logs_rl/_recovered_wandb_full_stage_v0_to_v8_20260713) 只包含恢复的 W&B config/summary/history，不含 checkpoint，不能伪装成原 run 或用于 policy eval。可用的 `base_v8_B` checkpoint 仍位于 sibling worktree `/home/baoquanc/workspace/DoorDog-A2_Piper_hold_handle/.../model_step_001000.pt`；v9 结论继续依赖现有 `logs_eval` 与本报告归档。
 
 本报告区分三类结论：
 
@@ -143,7 +156,7 @@ Static clamp artifacts：
 - 不把 threshold `.6`、violent Kd5 route 或 stage4 arm-default-pose shaping 恢复为默认。
 - 不从 C/D 失败推导“base mobility 无效”，也不把 A 的 single-seed lead 当作 winner。
 
-下一步另起 `base_v10` RL optimization/retraining plan：先明确 learnable behavior、最小 A/B factors、success/guardrail metrics 与训练预算，再取得用户 approval。该设计不属于本次归档范围。
+这个停止决定随后产生了已完成的 `base_v10` scratch A/B/C/D；结果见 Section 12。它不构成恢复 `base_v9` diagnostics 的理由。
 
 ## 8. 训练命令经验
 
@@ -259,5 +272,168 @@ Render 经验：
 - matched-clean resolved config：[`runtime_config.yaml`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/hydra/.hydra/runtime_config.yaml)
 - matched-clean result：[`a2_hold_oracle_summary.json`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_oracle_summary.json)
 - matched-clean runtime identity：[`a2_hold_diagnostic_runtime_metadata.json`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_diagnostic_runtime_metadata.json)
+- base_v10 A/B/C/D matched scalar/trace：Section 12.2 的四个 `logs_eval/base_v10_*_ckpt1000_matched_scalar_trace_16env_20260714` directory
+- base_v10 training provenance：Section 12.1 的四个 saved run config/overrides 与 W&B run id
+
+## 12. Base v10 Scratch A/B/C/D（2026-07-14 update）
+
+### 12.1 Training provenance 与唯一变量
+
+四组实际目录与 W&B run id：
+
+| Group | Run / W&B | 相对前一组的唯一配置变化 |
+|---|---|---|
+| A | [`base_v10_A_scratch_control-20260713_174440`](../logs_rl/a2_piper_full_stage_a2_base/base_v10_A_scratch_control-20260713_174440), `e6gzkfha` | scratch control；threshold `.25`；base locked；finger `80/3`；默认 hold scales |
+| B | [`base_v10_B_scratch_hold_reward-20260713_174446`](../logs_rl/a2_piper_full_stage_a2_base/base_v10_B_scratch_hold_reward-20260713_174446), `bq4qj8ik` | A + hold bundle `.1/2/1/2/4/-2` |
+| C | [`base_v10_C_scratch_hold_reward_kp160-20260713_174452`](../logs_rl/a2_piper_full_stage_a2_base/base_v10_C_scratch_hold_reward_kp160-20260713_174452), `4hjn6qv4` | B + finger Kp/Kd `160/6`；base 仍 locked |
+| D | [`base_v10_D_scratch_hold_reward_kp160_base-20260713_174459`](../logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459), `78mm9bbi` | C + `a2_stage3_base_unlocked=true` |
+
+四个 step1000 checkpoint 都通过 ZIP integrity check。Saved overrides/config 共同证明：`checkpoint=null`、`auto_load_latest=false`、seed0、命令字面值 `num_envs=4096`、`--num_processes 2`、1000 batches、`WANDB_MODE=online`、fixed reward-penalty scale、stage2 contact threshold `1.0`、stage3→4 threshold `.25`、PhysX velocity iterations `1`。失败且已清理的 `20260713_173141` setsid launcher 不属于上述实验。
+
+### 12.2 Matched eval 口径与 artifacts
+
+四组都用各自 saved training config 加载对应 step1000 checkpoint，并统一使用：module invocation、seed0、16 env、每 env first episode、forced close=false、hold oracle=false、render=false。每组 `metrics_eval.json` 都有 16 个 completed episodes，trace 只包含 episode index 0，`stage2_step_trace.json` 与 compatibility alias byte-identical：
+
+- [A scalar/trace](../logs_eval/base_v10_A_ckpt1000_matched_scalar_trace_16env_20260714)
+- [B scalar/trace](../logs_eval/base_v10_B_ckpt1000_matched_scalar_trace_16env_20260714)
+- [C scalar/trace](../logs_eval/base_v10_C_ckpt1000_matched_scalar_trace_16env_20260714)
+- [D scalar/trace](../logs_eval/base_v10_D_ckpt1000_matched_scalar_trace_16env_20260714)
+
+Hydra 另生成 timestamped provenance directory：A=`20260714_002808-*`、B=`002646-*`、C=`002655-*`、D=`002804-*`。这些目录已纳入只读 evidence accounting；它们不是另一轮 eval。
+
+四组 scalar eval 绑定同一输入 manifest `c58031dcf97032fe05e6eddc583a67f2b8f2aafd6fab37604bbfdfc06dbd5ef9`，checkpoint、saved config/overrides 与相关 eval/env/simulator source 在各 run 前后 hash 不变。该 manifest 证明本次 A/B/C/D eval 可比，不证明 2026-07-13 training 时的 uncommitted source 与当前 source 完全相同。
+
+指标定义：hinge max/terminal/rebound 是 16 个 first episodes 的 per-env 值再取 mean，其中 rebound=`max-terminal`；contact/joint fractions 是指定 stage 的 pooled trace frames；stage3 duration 是每 env 的 recorded unique control steps，按 50Hz 换算；TCP distance 是 source TCP 到 handle target 的 pooled mean。不同 stage exposure 的 pooled fractions 不能直接混成一个总分，所以这里用 audit tables，不构造 composite score。
+
+### 12.3 Task / door / stage 结果
+
+| Group | Goal / terminal | Max stage | Stage3 / Stage4 entry | Hinge max / terminal / rebound mean (rad) | Recorded stage3 duration | Stage3/4 base max / end XY displacement mean (m) |
+|---|---|---:|---:|---:|---:|---:|
+| A | `0/16`; `16/16 stage_overtime` | 2 | `0/16` / `0/16` | `.000107 / .000092 / .000015` | N/A | N/A |
+| B | `0/16`; `16/16 stage_overtime` | 3 | `16/16` / `0/16` | `.001156 / .000476 / .000680` | `409.1` steps ≈ `8.18s` | `.02579 / .01129` |
+| C | `0/16`; `16/16 stage_overtime` | 2 | `0/16` / `0/16` | `~0 / ~0 / 0` | N/A | N/A |
+| D | `0/16`; `16/16 stage_overtime` | 3 | `16/16` / `0/16` | `.001073 / .001028 / .000045` | `469.1` steps ≈ `9.38s` | `.02871 / .02215` |
+
+Paired env direction：A→B 的 max hinge `16/16` 增加且 stage3 entry `+16`；B→C 的 max hinge `16/16` 下降且 stage3 entry `-16`；C→D 的 max hinge `16/16` 增加且 stage3 entry `+16`。这些变化首先是 learned-route/stage-exposure 差异，不是纯 stage3 mechanism 的因果估计。B 与 D 的绝对 hinge 都比 `.25rad` threshold 小两个数量级以上。
+
+### 12.4 Stage3/4 hold quality（只比较实际进入 stage3 的 B/D）
+
+| Metric | B | D |
+|---|---:|---:|
+| Pooled stage3/4 frames | `6,545` | `7,505` |
+| Any / bilateral contact | `99.878% / 99.282%` | `100% / 100%` |
+| Contact stability | `98.701%` | `99.147%` |
+| Close-command / over-force | `100% / 0%` | `100% / 0%` |
+| Mean body7 / body8 force | `9.162 / 3.616N` | `3.911 / 3.746N` |
+| body8 force share | `28.30%` | `48.93%` |
+| j7 / j8 open-limit proximity | `91.658% / 2.796%` | `0% / 0%` |
+| Envs with j8 open-limit proximity | `7/16` | `0/16` |
+| Mean j7 / j8 position | `.03460 / -.02997m` | `.02335 / -.01974m` |
+| TCP-handle distance mean | `.01821m` | `.01040m` |
+| Arm soft-margin `<=0` | none observed | none observed |
+
+D 同时满足 bilateral、contact balance、close、stability、no-over-force 与 no-gripper-limit saturation；B 虽然 bilateral 很高，却把 j7 长时间推近 `+0.035m` open limit。D 因而是 hold behavior 的 bounded leader，但其 hinge 几乎不动，不能升级为 task baseline success。
+
+A/C 没进入 stage3；为了不把“没有 stage exposure”误写为 hold failure，单独记录其 stage2 diagnostics：
+
+| Metric in stage2 | A | C |
+|---|---:|---:|
+| Frames | `6,157` | `5,516` |
+| Any / bilateral contact | `93.422% / 8.608%` | `0% / 0%` |
+| Contact stability | `0%` | `0%` |
+| Close-command / over-force | `97.158% / 0%` | `0% / 0%` |
+| Mean body7 / body8 force | `.697 / 1.328N` | `0 / 0N` |
+| j7 / j8 open-limit proximity | `2.209% / .016%` | `99.783% / 0%` |
+| Mean j7 / j8 position | `.01127 / -.01336m` | `.03500 / -.03357m` |
+| TCP-handle distance mean | `.00764m` | `.26161m` |
+| Arm soft-margin `<=0` | j6, `7/16` envs | j3, `16/16` envs |
+
+C 是 open/no-contact policy basin，而不是“在同一 stage3 hold 下提高 stiffness”的结果。因此 B/C 不能回答 Kp160 是否降低 j8 backdrive；它只再次证明 actuator change 会改变 scratch RL basin。
+
+### 12.5 D matched render：定性复核与 artifact caveat
+
+[D matched render](../logs_eval/base_v10_D_ckpt1000_matched_render_16env_20260714) 使用同一 D checkpoint、seed0、16 env 与 first-episode contract。Render input manifest 为 `04257a1e58deffce300d6d8a545a2875b1f4d8e0935b5ad5c827eaa9550e4358`，运行前后 8 个输入 hash 不变；log 记录 `Finished evaluation` 且 process 自然终止，但 command runner 没有回传可核对的 numeric exit code，因此显式 `exit 0` 保持 unverified。
+
+- 产出 48 个 finalized、non-empty MP4，正好是 16 default + 16 handle-side + 16 handle-top；每个 env 只有 episode0000，全部 filename 为 `len553_reason-stage_overtime`，无 `.writing.mp4` 或 episode1。
+- `metrics_eval.json` 与 scalar direction 一致：16 episodes、全部 goal=false、max stage3、stage_overtime。
+- 抽查低/中/最高 hinge 的 env12/env0/env3 三视角时间序列：policy 接近后把两侧 jaw 长时间留在 handle 周围；arm/base 只有小幅姿态漂移，door/handle 没有可见持续转动。这只定性支持“stationary bilateral hold”，不产生新的 success 或因果结论。
+- Runtime QA 的严格 no-trace artifact check 为 FAIL：resolved flag 虽为 `a2_diagnostic_trace_enabled=false`，output root 仍出现两个各 `41,151,204` bytes 的 trace JSON；两者 SHA-256 都是 `c7f1e0235d6c619545aea1a4fe76cd0634bf03dfb241cd9d3d616fb35b31dbf3`。
+- Targeted source diagnosis PASS：当前 trainer 只用 `env._use_a2_base` 决定 base stage2–5 trace 是否写出；`a2_diagnostic_trace_enabled=false` 只关闭 expanded action/reward diagnostics，不关闭 52-field base trace。Trace capture 发生在 physics/reward 后，forced-close/oracle 又分别保持 false，因此这个 output-hygiene side effect 不修改 policy action。视频可保留为定性证据，但不能称为 trace-free，也不伪报整条 render QA PASS。
+
+### 12.6 Joint-limit / workspace 证据边界
+
+- 已证实的 terminal reason 只有 `stage_overtime`；四组都没有被日志归因为 joint-limit/workspace termination。
+- Saved config 关闭 `terminate_when_close_to_dof_pos_limit`。Trace 的 normalized soft-margin `<=0` 只能标记 proximity/violation signal，不能改写成 terminal cause。
+- A 的 j6 与 C 的 j3 proximity 是 workspace-pressure 线索；B/D 没观察到 arm soft-margin `<=0`。是否存在未记录的 kinematic bottleneck、以及它是否导致 policy 不推门，仍未证实。
+
+### 12.7 因果解释：已证实、推测、未证实
+
+| 结论等级 | 结论 |
+|---|---|
+| 已证实 | A/C 不进入 stage3；B/D 全部进入 stage3；四组都不进入 stage4且 task failure。 |
+| 已证实 | B 的 hold shaping 与 learned route 同时出现；B 的 stage3/4 bilateral/stability 很高，但 j7 saturation 严重。A 没有 matched stage3 exposure，因此 A/B 不能单独隔离“retention 是否改善”。 |
+| 已证实 | C 没有 contact/stage3 exposure；B/C 不能评价 stiffness 的 stage3 anti-backdrive 效果。 |
+| 已证实 | D 恢复 stage3 entry并形成最均衡的 bilateral hold；C/D 仍因 stage exposure 不同，不能单独证明 base movement 是改善原因。 |
+| 推测 | D 的强、无需 hinge motion 的 hold rewards 与既有 `push_door_hinge=6` 共同形成 stationary-hold local optimum。该机制与 runtime 一致，但必须通过 reward-scale intervention 才能验证。 |
+| 未证实 | 单 seed 的跨 seed generalization、base unlock 的独立因果收益、reward dominance 是唯一 root cause、任何 joint/workspace terminal failure，以及 training-time uncommitted source 与当前 eval source 的逐字 equivalence。 |
+
+### 12.8 下一轮最小 RL ablation（提案；未启动）
+
+最小批准范围是两组、每组重新 scratch：
+
+| Group | Base | 唯一变量 | 问题 |
+|---|---|---|---|
+| `base_v11_A_D_control` | exact saved D | none；显式保持 `push_door_hinge=6` | D direction 是否可复现 |
+| `base_v11_B_D_hinge12` | exact saved D | `push_door_hinge: 6→12` | 增强已有 progress incentive 是否能打破 stationary hold |
+
+若用户批准第三组，再增加 `base_v11_C_D_stability05`：相对 D 只把 `a2_stage3_stage4_contact_stability: 4→0.5`，不与 H+ 累加；`0.5` 是 direct reward-config default。它回答 history-based stability bonus 是否过强。不要增加 Kp/effort variant；D 已经是 `160/6` 且没有 gripper-limit saturation。
+
+共同 training contract 保持 v10：`checkpoint=null`、`auto_load_latest=false`、seed0、`num_envs=4096` 字面值、1000 batches、2 GPU / 2 processes、threshold `.25`、online W&B、fixed penalty scale、velocity iterations `1`。每组使用独立 foreground terminal、GPU pair、port 与约 10 秒 stagger；看到各自 `model_step_001000.pt` 后由用户在对应 terminal `Ctrl-C`。以下是 saved D overrides 重建的命令模板，不会在本次自动执行：
+
+```bash
+PYTHONPATH=$PWD \
+VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/nvidia_icd.json \
+CUDA_VISIBLE_DEVICES=<GPU_PAIR> \
+WANDB_MODE=online \
+HYDRA_FULL_ERROR=1 \
+/home/baoquanc/anaconda3/envs/isaaclab/bin/accelerate launch \
+  --multi_gpu \
+  --num_processes 2 \
+  --main_process_port <UNIQUE_PORT> \
+  gr00t/rl/train_agent_trl.py \
+  +exp=wbmanip/door_open_a2_base_lstm \
+  project_name=a2_piper_full_stage_a2_base \
+  experiment_name=<base_v11_A_D_control_OR_base_v11_B_D_hinge12> \
+  headless=True \
+  simulator.config.cameras.enable_cameras=false \
+  simulator.config.render_results=false \
+  num_envs=4096 \
+  seed=0 \
+  auto_load_latest=False \
+  checkpoint=null \
+  algo.trl.num_total_batches=1000 \
+  rewards.reward_penalty_curriculum=false \
+  rewards.reward_initial_penalty_scale=1.0 \
+  rewards.reward_min_penalty_scale=1.0 \
+  rewards.reward_max_penalty_scale=1.0 \
+  rewards.reward_penalty_degree=0.0 \
+  env.config.a2_stage2_contact_force_threshold=1.0 \
+  env.config.a2_stage3_to4_door_hinge_threshold=0.25 \
+  env.config.a2_stage3_base_unlocked=true \
+  robot.control.stiffness.arm_j7=160.0 \
+  robot.control.stiffness.arm_j8=160.0 \
+  robot.control.damping.arm_j7=6.0 \
+  robot.control.damping.arm_j8=6.0 \
+  rewards.reward_scales.a2_stage3_stage4_keep_close_command=0.1 \
+  rewards.reward_scales.a2_stage3_stage4_both_contact=2.0 \
+  rewards.reward_scales.a2_stage3_stage4_opposite_squeeze=1.0 \
+  rewards.reward_scales.a2_stage3_stage4_squeeze_force_window=2.0 \
+  rewards.reward_scales.a2_stage3_stage4_contact_stability=4.0 \
+  rewards.reward_scales.penalty_a2_stage3_stage4_over_force=-2.0 \
+  rewards.reward_scales.push_door_hinge=<6.0_FOR_CONTROL_OR_12.0_FOR_H+> \
+  simulator.config.sim.physx.num_velocity_iterations=1
+```
+
+Promotion gate：先复用本报告的 matched scalar/trace contract；primary 是 stage4 entry count 与 per-env hinge max/terminal/rebound，hold guardrail 是 stage3/4 bilateral/contact-stability `>=95%`、over-force `0%`、且不重新出现 j7/j8 open-limit saturation。至少一个 stage4 entry 才把 variant 标成 promising；sub-threshold hinge improvement 只能写成 directional evidence。单 seed 仍不产生 statistical winner；通过方向 gate 后再决定是否补 seeds。
 
 Raw traces 与长日志继续保留在原 run directory；本报告只保存可复用结论、口径与入口。

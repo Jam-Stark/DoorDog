@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-13 16:37 HKT
+last_updated: 2026-07-13 17:36 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -59,6 +59,7 @@ read_when:
 ## Evaluation and Command Contract
 
 - Formal v9 matched resource contract：每组 2 GPUs / 2 processes，每 rank `num_envs=2048`，每组 total env 4096；四组保持相同 seed、source checkpoint、batch budget 与 environment count。
+- `base_v10` launcher 必须使用四个独立前台 terminal，分别绑定 GPU `0,1` / `2,3` / `4,5` / `6,7`，使用不同 `main_process_port` 并间隔约 10 秒启动；每组自然写出 `model_step_001000.pt` 后在对应 terminal 手动 `Ctrl-C`。禁止用 `setsid`、单 shell 后台 `&` 或 detached wrapper 管理 IsaacSim：2026-07-13 的失败尝试中 `setsid` wrapper 先退出并显示 `Done`，实际 4 个 Accelerate parent + 8 个 rank 成为 orphan，且多组出现 Vulkan/GPU Foundation initialization failure。
 - Matched scalar/trace 使用 module invocation、step1000、16 env、每 env first episode；scalar/trace 是 primary evidence。
 - Render 保持相同 checkpoint/seed/env/episode contract，只用于解释 contact、detach、jam、doorframe event 与动作自然性，不参与 success-rate 统计。
 - 原始完整 shell command 未保留；human report 中的 train/eval/render blocks 明确是从 saved Hydra overrides/config 重建的模板。
@@ -73,8 +74,9 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-13 16:37 HKT - 下一项 active work 是提出 `base_v10` RL optimization/retraining plan：明确最小 A/B factors、learnable behavior、success/guardrail metrics、matched training/eval/render contract 与训练资源，然后在任何 code/config 或长训练前取得用户明确 approval。本 entry 不再把 `base_v9` oracle、O-/O0/O+、matched-clean 或其他 scripted diagnostic 作为默认下一步。
+- 2026-07-13 17:36 HKT - 执行已确定的 `base_v10` cumulative ablation：A=`base_v9_B` extra-training control，B=A+hold-reward rebalance，C=B+gripper Kp/Kd `160/6`，D=C+stage3 base unlocked；四组都从 `base_v9_B` ckpt1000 `policy_only` warm-start，固定 threshold `0.25`、seed0、1000 batches 与 4096 total env。只使用四 terminal foreground launch；训练完成后进入 matched scalar/trace + render comparison。
 
 ## DONE Summary
 
+- 2026-07-13 17:36 HKT - 归档并清理一次 launcher-only failure：删除四个 `20260713_173141` partial run 与对应 `/tmp` logs，终止 12 个 orphan processes；该启动未产出 checkpoint，不是 `base_v10` 实验结果。Durable gotcha 是 IsaacSim multi-group training 不使用 `setsid`/detached wrapper。
 - 2026-07-13 16:37 HKT - 建立独立 full-stage push-open-door optimization memory；归档 `base_v9` 四组 formal/matched 失败结论、j8/body8 backdrive、gain/friction evidence boundary、matched-clean scientific failure与停止诊断决定，并把详细 base_v0→v9 findings/commands route 到 human report。

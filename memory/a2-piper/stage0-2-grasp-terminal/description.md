@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-12 21:05 HKT
+last_updated: 2026-07-13 13:47 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -17,10 +17,11 @@ read_when:
 
 ## Purpose
 
-记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 training/default baseline 是 TCP `0.085`、gripper Kp/Kd `80/3`、`arm_j7/j8 effort_limit_sim=10/10`。Full-stage B eval-only offset/preflight 只说明 matched diagnostic 在 moving-root capture 和 early contact contamination 处被阻断，不表示 stage0-2 grasp terminal 或 full door task PASS。下一步是 clean reacquisition / stabilize-before-capture，不改 default actuator/material/training config。
+记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 training/default baseline 是 TCP `0.085`、gripper Kp/Kd `80/3`、`arm_j7/j8 effort_limit_sim=10/10`。Full-stage B default-off matched-clean tooling 已通过 no-sim/review 和 runtime artifact QA，但一轮 scientific readiness 为 `0/8 READY`、`8/8 RETREAT_JOINT_LIMIT`；controller-local safety abort 不等于 `grasp_target` physical unreachable。env2/3 base settling/residual 只作解释线索，不是唯一 proven cause；下一步仅为 separately-approved minimal decoupled release/base-settle/reacquire diagnostic，不改 default actuator/material/training config。
 
 ## Current Decision
 
+- 2026-07-13 13:47 HKT - Frozen candidate `afa0b3485bf85a6f53c4a356ee903f25cab513b4434a877ef99ffa4362011afa` 的 default-off matched-clean state machine 完成 `68 passed` no-sim 与 Wave 1（goal/code/IsaacLab）PASS；artifact/runtime QA PASS，但同一自然 finalized `base_v9_B model_step_001000` / current check `08a506a5...` / seed0 / 8-env run 的 scientific gate FAIL：`0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT`。TCP `0.085`、Kp/Kd `80/3`、effort `10`、default friction 保持；release counts `[1,0,64,58,0,0,0,1]`，六个 `j6` upper、env2/3 在64/58后 `j5` lower soft-limit abort。controller-local safety abort 不能建立 `grasp_target` physical unreachability；env2/3 base settling/residual 仅是解释，非唯一 proven cause。target-side `grasp_target` Z `+0.02` removal、TCP local-Z `0.105 -> 0.085`、source-local-Y `O-/O0/O+ = -3/0/+3mm` 仍是不同坐标事实；source-local offsets 未执行、未被 disproven。只在 separately-approved minimal decoupled revision 后继续；仍须 `8/8 READY` 才能 fresh O0，fresh O0 full placement/clamp 后才可 O-/O+。
 - 2026-07-12 21:05 HKT - Candidate `cff2b6474c97e0e48e85524a3390df246b9b82836d4db0c95be7fbdd16982791` 的 full-stage B eval-only source-local-Y `O-/O0/O+ = -3/0/+3mm` tooling 与 `ARM0_OPEN_STABILIZATION_PREFLIGHT` 已通过 static review。Formal O0 虽为 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`；root-relative target 每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap，故 moving floating root / arm catch-up deficit 是 primary blocker，body8-only contact `124/160` 是 secondary。Preflight 随后 `8/8 activated`、`0/8 READY`，以 `7 CONTACT_CONTAMINATED + 1 GATE_LOST` 结束，且无 env 到 action40；这不能证明 root quietness 不可达。后续先做 matched clean reacquisition / stabilize-before-capture，只有 same B ckpt1000 / seed0 / 8 env frozen protocol 达到 `8/8 READY` 才能 fresh O0，完成 fresh O0 full placement/clamp 后才能 O-/O+。Historical S1 不能代替 matched result。
 - 2026-07-12 17:36 HKT - Frozen candidate `f5d8ea69b28c40da8386a0b26c9c141c66478e40fba0c0b3f21d77775166a468` 的 exact-40 S0/S1/S2 static clamp 完成 `37 passed`、Wave 1 static PASS 及 runtime integrity PASS。三组均 `8/8 complete`、count `40`、effort `10/10`、restore `80/3`。Bilateral/stability 从 S0 `2/0` 增到 S1 `16/4` 再到 S2 `44/19 of 320`，`arm_j8` open-limit frames 从 `1/1` 降到 `0`，S2 `j8 qmin=-0.026426` 优于 S0/S1 `-0.035`；但 step40 any-contact 三组均 `0/8`，S2 `arm_j7` saturation 为 `41/320`。结论是 anti-backdrive 对 transient grasp 有贡献，但不是 sufficient fix，且 bottleneck 转移到 j7/centered reachability；geometry/aperture 仍 unresolved。
 - 2026-07-11 22:19 HKT - Full-stage eval-only hold-oracle 已将 stage0-2 grasp blocker 收敛到 exact geometry / reachability。G1/G2/G3 的 80-step `CENTER_CLOSE` 均 bilateral contact `0/80`、未进入 `DEPRESS`，无 slip/saturation，并以 center timeout / `IK_TRACKING_FAILURE` 结束。G1 TCP `0.085` 与 G3 TCP `0.105` 分别有 `1/3` frame 进入 base-relief branch，故 controller path 可达但不足以建立 bilateral grasp。Current baseline 为 TCP `0.085`、effort `10/10`；本轮未改 Kp/friction。
@@ -212,7 +213,7 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-12 17:36 HKT - S0/S1/S2 已完成，下一候选 factor 是 centered bilateral reachability：在同一坐标系中确认 `arm_body7/8` convexHull 与 `handle_inside` Capsule 的 exact inner contact surface、finger closing axis / closed aperture，并验证 current `grasp_target` / TCP `0.085` 的 bilateral reachability，优先考虑 bounded closing-axis offset probe。该候选尚未获得 implementation approval；不先改 friction/coupling/default gain。
+- 2026-07-13 13:47 HKT - Supersede 已完成 matched-clean implementation TODO：下一步仅执行 separately-approved minimal diagnostic revision，decouple release、base settling 与 pose reacquisition，并以 same frozen protocol 验证 readiness；是否保留 gate-time achieved orientation 是待审批 choice，不在此承诺。不得将 env2/3 settling/residual 当作唯一 cause，也不得从 controller-local soft-limit abort 断言 `grasp_target` unreachable；保留 target-side Z `+0.02` removal、TCP local-Z `0.105 -> 0.085` 与 source-local-Y `-3/0/+3mm` distinctions。只有 `8/8 READY` 才能 fresh O0；fresh O0 full placement/clamp 后才可 O-/O+，source-local offsets 未执行。
 - 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
@@ -224,6 +225,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-13 13:47 HKT - 同步 frozen candidate `afa0b348...` 的 default-off matched-clean milestone：`68 passed` no-sim、Wave 1 PASS，artifact/runtime QA PASS；一轮 natural finalized `base_v9_B model_step_001000` / current check `08a506a5...` / seed0 / 8-env 的 scientific gate FAIL，`0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT`。release `[1,0,64,58,0,0,0,1]`；六个 `j6` upper、env2/3 64/58 后 `j5` lower。该 controller-local safety result 不证明 physical reachability failure；未运行 O0/O-/O+/training，default friction、TCP `0.085`、Kp/Kd `80/3`、effort `10` 未改。
 - 2026-07-12 17:36 HKT - 同步 candidate `f5d8ea69…` 的 exact-40 S0/S1/S2 anti-backdrive matrix：三组均 `8/8 complete`、count40、effort10 且 restore80/3；higher gains 增加 transient bilateral/stability 并抑制 j8 hard-open，但 step40 全部无 contact，S2 转为 j7 saturation/limit。不升级 S1/S2 到 training/default，geometry/aperture/reachability 仍 unresolved。
 - 2026-07-11 22:19 HKT - 同步 hold-oracle candidate `9513f6f9…` 的 `28 passed` 与 G1/G2/G3 80-step runtime matrix：三组均无 bilateral/depress/slip/saturation，G1/G3 实际进入 base relief 但仍不收敛；actual collider/material/default friction/drive availability 已记录。该 diagnosis 为 partial completion，未解决 exact inner geometry / aperture / reachability。
 - 2026-07-07 16:17 HKT - 同步 full-stage `base_v4` four-way 2k eval：`thr1p0_kd3_vel1` 是当前最可用候选，`thr0p8_kd5_vel0` 虽 complete 率最高但 force/raw 过激；terminal predicate 下一步应对齐 dense reward 的 `squeeze_window` 与 `over_force` 语义。

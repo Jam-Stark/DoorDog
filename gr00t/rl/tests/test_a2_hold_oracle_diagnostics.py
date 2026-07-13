@@ -162,6 +162,10 @@ def _load_no_sim_helpers():
         "a2_hold_open_stabilization_action",
         "a2_hold_open_stabilization_terminal_partition",
         "a2_hold_validate_open_stabilization_runtime_invariants",
+        "a2_hold_matched_clean_release_action",
+        "a2_hold_matched_clean_release_qualification",
+        "a2_hold_matched_clean_release_step_masks",
+        "a2_hold_matched_clean_stabilization_terminal_partition",
     }
     nodes = []
     for node in tree.body:
@@ -294,6 +298,11 @@ def _valid_oracle_config(enabled=True):
         "a2_hold_oracle_open_stabilization_pose_window_translation_max_m": 0.001,
         "a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad": 0.002,
         "a2_hold_oracle_open_stabilization_contact_force_max_n": 1.0,
+        "a2_hold_oracle_matched_clean_reacquisition_preflight_enabled": False,
+        "a2_hold_oracle_matched_clean_retreat_timeout_steps": 80,
+        "a2_hold_oracle_matched_clean_release_qualification_steps": 5,
+        "a2_hold_oracle_matched_clean_pregrasp_position_tolerance_m": 0.005,
+        "a2_hold_oracle_matched_clean_pregrasp_orientation_tolerance_rad": 0.10,
     }
 
 
@@ -1976,13 +1985,57 @@ def test_offset_async_placement_masks_all_generic_telemetry_and_action_rows():
 
 
 def test_offset_orientation_semantic_is_conditional_and_default_is_unchanged():
-    assert a2_hold_target_orientation_semantic(False) == (
+    assert a2_hold_target_orientation_semantic(False, False) == (
         "handle_orientation_composed_with_handoff_handle_to_gripper_relative_orientation"
     )
-    assert a2_hold_target_orientation_semantic(True) == (
+    assert a2_hold_target_orientation_semantic(True, False) == (
         "captured gate source quaternion is fixed-world residual reference; placement uses "
         "Cartesian DLS; static clamp uses accumulated joint-target hold with arm raw zero"
     )
+
+
+def test_matched_clean_orientation_semantic_is_exact_and_modes_fail_fast():
+    assert a2_hold_target_orientation_semantic(False, True) == (
+        "RELEASE_RETREAT uses live OrderedTargetFrameTransformer pregrasp "
+        "target_quat_w[:,1,:]; CLEAN_STABILIZE uses captured accumulated joint-target "
+        "hold with arm raw zero"
+    )
+    for flags in ((1, False), (False, 1)):
+        try:
+            a2_hold_target_orientation_semantic(*flags)
+        except ValueError as exc:
+            assert "mode flags must be bool" in str(exc)
+        else:
+            raise AssertionError(f"non-bool orientation semantic flags parsed: {flags}")
+    try:
+        a2_hold_target_orientation_semantic(True, True)
+    except ValueError as exc:
+        assert "mutually exclusive" in str(exc)
+    else:
+        raise AssertionError("conflicting orientation semantic modes parsed")
+
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    trace_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "_get_a2_hold_oracle_trace_fields"
+    )
+    semantic_calls = [
+        node
+        for node in ast.walk(trace_node)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "a2_hold_target_orientation_semantic"
+    ]
+    assert len(semantic_calls) == 1
+    assert [ast.unparse(arg) for arg in semantic_calls[0].args] == [
+        "cfg['static_clamp_offset_probe_enabled']",
+        "cfg['matched_clean_reacquisition_preflight_enabled']",
+    ]
 
 
 def test_offset_placement_action_and_endpoint_metrics_o0_and_off_axis():
@@ -2925,3 +2978,876 @@ def test_legacy_a2_hold_config_migration_complete_present_partial_and_non_a2():
     )
     migrate(non_a2, "g1/config.yaml")
     assert len(non_a2.env.config) == 0
+
+
+def test_matched_clean_reacquisition_parser_default_tuple_and_mutual_exclusion():
+    config = _valid_oracle_config(enabled=False)
+    parsed = parse_a2_hold_oracle_config(config)
+    assert parsed["matched_clean_reacquisition_preflight_enabled"] is False
+
+    config = _valid_oracle_config(enabled=True)
+    config["a2_hold_oracle_matched_clean_reacquisition_preflight_enabled"] = True
+    parsed = parse_a2_hold_oracle_config(config)
+    assert parsed["matched_clean_retreat_timeout_steps"] == 80
+    assert parsed["matched_clean_release_qualification_steps"] == 5
+    assert parsed["matched_clean_pregrasp_position_tolerance_m"] == 0.005
+    assert parsed["matched_clean_pregrasp_orientation_tolerance_rad"] == 0.10
+
+    conflicts = (
+        {"a2_hold_oracle_static_clamp_enabled": True},
+        {
+            "a2_hold_oracle_static_clamp_enabled": True,
+            "a2_hold_oracle_static_clamp_offset_probe_enabled": True,
+            "a2_hold_oracle_static_clamp_stiffness": 160.0,
+            "a2_hold_oracle_static_clamp_damping": 6.0,
+        },
+        {"a2_hold_oracle_open_stabilization_preflight_enabled": True},
+    )
+    for conflict_values in conflicts:
+        conflict = dict(config)
+        conflict.update(conflict_values)
+        try:
+            parse_a2_hold_oracle_config(conflict)
+        except RuntimeError as exc:
+            assert "mutually exclusive" in str(exc) or "mutually exclusive" in str(exc)
+        else:
+            raise AssertionError(f"matched-clean conflict {conflict_values} did not fail")
+
+    disabled = _valid_oracle_config(enabled=False)
+    disabled["a2_hold_oracle_matched_clean_reacquisition_preflight_enabled"] = True
+    try:
+        parse_a2_hold_oracle_config(disabled)
+    except RuntimeError as exc:
+        assert "requires a2_hold_oracle_enabled" in str(exc)
+    else:
+        raise AssertionError("matched-clean preflight without hold oracle did not fail")
+
+    bad_timeout = dict(config)
+    bad_timeout["a2_hold_oracle_matched_clean_retreat_timeout_steps"] = 79
+    try:
+        parse_a2_hold_oracle_config(bad_timeout)
+    except RuntimeError as exc:
+        assert "retreat_timeout_steps" in str(exc)
+    else:
+        raise AssertionError("matched-clean timeout 79 did not fail")
+
+    inherited_exact = {
+        "a2_hold_oracle_open_stabilization_steps": 40,
+        "a2_hold_oracle_open_stabilization_quiet_window_steps": 5,
+        "a2_hold_oracle_open_stabilization_root_linear_speed_max_mps": 0.01,
+        "a2_hold_oracle_open_stabilization_root_angular_speed_max_radps": 0.02,
+        "a2_hold_oracle_open_stabilization_pose_per_call_translation_max_m": 0.0005,
+        "a2_hold_oracle_open_stabilization_pose_per_call_rotation_max_rad": 0.0005,
+        "a2_hold_oracle_open_stabilization_pose_window_translation_max_m": 0.001,
+        "a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad": 0.002,
+        "a2_hold_oracle_open_stabilization_contact_force_max_n": 1.0,
+    }
+    for key, exact in inherited_exact.items():
+        mutated = dict(config)
+        mutated[key] = exact + 1
+        try:
+            parse_a2_hold_oracle_config(mutated)
+        except RuntimeError as exc:
+            assert key.removeprefix("a2_hold_oracle_") in str(exc)
+        else:
+            raise AssertionError(f"matched-clean inherited tuple mutation {key} parsed")
+
+
+def test_matched_clean_release_action_qualification_and_rotated_pregrasp_wiring():
+    policy = torch.arange(24, dtype=torch.float32).reshape(2, 12)
+    arm_raw = torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5, 0.6], [-1.0] * 6])
+    applied = a2_hold_matched_clean_release_action(
+        policy, torch.tensor([True, False]), arm_raw
+    )
+    torch.testing.assert_close(applied[0, :5], torch.zeros(5))
+    torch.testing.assert_close(applied[0, 5:11], arm_raw[0])
+    assert applied[0, 11].item() == 1.0
+    torch.testing.assert_close(applied[1], policy[1])
+
+    qualified = a2_hold_matched_clean_release_qualification(
+        torch.tensor([0.005, 0.005]),
+        torch.tensor([0.10, 0.10]),
+        torch.tensor([[0.999, 0.999], [1.0, 0.0]]),
+        torch.tensor([0.095, 0.095]),
+    )
+    assert qualified.tolist() == [True, False]
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    assert "target_pos_w[:, 1, :]" in source
+    assert "target_quat_w[:, 1, :]" in source
+    assert "pregrasp_pos_w" in source
+    assert "A2 matched-clean live OrderedTargetFrameTransformer" in source
+    assert "target_frames[1]" not in source
+
+
+def test_matched_clean_release_async_contact_reset_and_action80_priority():
+    state = a2_hold_matched_clean_release_step_masks(
+        torch.tensor([True, True, True]),
+        torch.tensor([True, True, True]),
+        torch.tensor([80, 79, 79], dtype=torch.long),
+        torch.tensor([4, 4, 4], dtype=torch.long),
+        torch.tensor([False, True, False]),
+        torch.tensor([False, False, True]),
+        80,
+        5,
+    )
+    assert state["qualified_now"].tolist() == [False, True, False]
+    assert state["timeout"].tolist() == [True, False, False]
+    assert state["contact_reset"].tolist() == [False, False, True]
+    assert state["qualification_count"].tolist() == [0, 5, 0]
+    assert state["active"].tolist() == [False, False, True]
+
+    boundary = a2_hold_matched_clean_release_step_masks(
+        torch.tensor([True]),
+        torch.tensor([True]),
+        torch.tensor([80], dtype=torch.long),
+        torch.tensor([4], dtype=torch.long),
+        torch.tensor([True]),
+        torch.tensor([False]),
+        80,
+        5,
+    )
+    assert boundary["qualified_now"].item()
+    assert not boundary["timeout"].item()
+
+
+def test_matched_clean_stabilization_contact_priority_action40_and_action41_fail_fast():
+    partition = a2_hold_matched_clean_stabilization_terminal_partition(
+        torch.tensor([True, True, True, False]),
+        torch.tensor([40, 39, 40, 41], dtype=torch.long),
+        torch.tensor([True, False, False, False]),
+        40,
+    )
+    assert partition["contact_contaminated"].tolist() == [True, False, False, False]
+    assert partition["endpoint"].tolist() == [False, False, True, False]
+    assert partition["incomplete"].tolist() == [False, True, False, False]
+    try:
+        a2_hold_matched_clean_stabilization_terminal_partition(
+            torch.tensor([True]),
+            torch.tensor([41], dtype=torch.long),
+            torch.tensor([False]),
+            40,
+        )
+    except ValueError as exc:
+        assert "exceeded exact target" in str(exc)
+    else:
+        raise AssertionError("matched-clean action41 did not fail fast")
+
+    eval_yaml = (Path(__file__).parents[1] / "config/base_eval.yaml").read_text()
+    assert "a2_hold_oracle_matched_clean_reacquisition_preflight_enabled: false" in eval_yaml
+    assert "a2_hold_oracle_matched_clean_retreat_timeout_steps: 80" in eval_yaml
+    assert "a2_hold_oracle_matched_clean_release_qualification_steps: 5" in eval_yaml
+
+
+def test_matched_clean_method_handoff_skips_same_step_stabilize_and_next_action_is_one():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    method_nodes = {
+        node.name: node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name
+        in {
+            "_capture_a2_matched_clean_release_post_action_samples",
+            "_capture_a2_matched_clean_stabilize_post_action_samples",
+            "_apply_a2_matched_clean_reacquisition_action",
+        }
+    }
+    namespace = {
+        "torch": torch,
+        "a2_hold_matched_clean_release_qualification": a2_hold_matched_clean_release_qualification,
+        "a2_hold_matched_clean_release_step_masks": a2_hold_matched_clean_release_step_masks,
+        "a2_hold_matched_clean_release_action": a2_hold_matched_clean_release_action,
+        "A2_HOLD_PHASE_WAIT_GATE": A2_HOLD_PHASE_WAIT_GATE,
+        "A2_HOLD_PHASE_MATCHED_CLEAN_RELEASE_RETREAT": A2_HOLD_PHASE_MATCHED_CLEAN_RELEASE_RETREAT,
+        "A2_HOLD_PHASE_MATCHED_CLEAN_STABILIZE": A2_HOLD_PHASE_MATCHED_CLEAN_STABILIZE,
+        "A2_HOLD_PHASE_DONE": A2_HOLD_PHASE_DONE,
+        "A2_HOLD_OUTCOME_TO_ID": A2_HOLD_OUTCOME_TO_ID,
+    }
+    for node in method_nodes.values():
+        exec(textwrap.dedent(ast.get_source_segment(source, node)), namespace)
+
+    class Dummy:
+        _capture_a2_matched_clean_release_post_action_samples = namespace[
+            "_capture_a2_matched_clean_release_post_action_samples"
+        ]
+        _capture_a2_matched_clean_stabilize_post_action_samples = namespace[
+            "_capture_a2_matched_clean_stabilize_post_action_samples"
+        ]
+        _apply_a2_matched_clean_reacquisition_action = namespace[
+            "_apply_a2_matched_clean_reacquisition_action"
+        ]
+
+        def __init__(self):
+            self.num_envs = 1
+            self.device = torch.device("cpu")
+            self._a2_hold_oracle_cfg = {
+                "enabled": True,
+                "matched_clean_reacquisition_preflight_enabled": True,
+                "matched_clean_retreat_timeout_steps": 80,
+                "matched_clean_release_qualification_steps": 5,
+                "matched_clean_pregrasp_position_tolerance_m": 0.005,
+                "matched_clean_pregrasp_orientation_tolerance_rad": 0.10,
+            }
+            self._a2_hold_oracle_matched_clean_release_active = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_stabilize_active = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_stabilize_action_count = torch.tensor(
+                [0], dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_release_override_mask = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_stabilize_override_mask = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_action_count = torch.tensor([1], dtype=torch.long)
+            self._a2_hold_oracle_matched_clean_qualification_count = torch.tensor([0], dtype=torch.long)
+            self._a2_hold_oracle_matched_clean_release_contact_reset_count = torch.tensor([0], dtype=torch.long)
+            self._a2_hold_oracle_matched_clean_gate_lost_ever = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_samples = [[]]
+            self._a2_hold_oracle_matched_clean_quiet_samples = [[]]
+            self._a2_hold_oracle_matched_clean_captured_arm_target = torch.full((1, 6), float("nan"))
+            self._a2_hold_oracle_matched_clean_release_qualification_evidence = [None]
+            self._a2_hold_oracle_matched_clean_release_final_action_count = torch.tensor([-1], dtype=torch.long)
+            self._a2_hold_oracle_matched_clean_reason_timeout = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_reason_incomplete = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_result = [None]
+            self._a2_hold_oracle_matched_clean_ever_activated = torch.tensor([True])
+            self._a2_hold_oracle_activated = torch.tensor([True])
+            self._a2_hold_oracle_phase = torch.tensor(
+                [A2_HOLD_PHASE_MATCHED_CLEAN_RELEASE_RETREAT], dtype=torch.long
+            )
+            self._a2_hold_oracle_phase_step = torch.tensor([1], dtype=torch.long)
+            self._a2_hold_oracle_outcome = torch.tensor([A2_HOLD_OUTCOME_TO_ID["PENDING"]], dtype=torch.long)
+            self._a2_hold_oracle_last_override_mask = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_last_override_mask = torch.tensor([True])
+            self._a2_hold_oracle_a_raw = torch.zeros(1, 6)
+            self._a2_hold_oracle_arm_dls_branch = torch.tensor([True])
+            self._a2_hold_oracle_base_relief_branch_applied = torch.tensor([False])
+            self._a2_hold_oracle_phase_sign_check_due = torch.tensor([False])
+            self._a2_hold_oracle_post_override_action = torch.ones(1, 12)
+            self._a2_eval_post_delta_post_warp_env_action = torch.zeros(1, 12)
+            self._delta_actions = torch.arange(6, dtype=torch.float32).reshape(1, 6)
+
+            self._a2_hold_oracle_matched_clean_release_ik_invalid = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_joint_limit = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_action_invalid = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_override_mask = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_stabilize_override_mask = torch.tensor([False])
+
+        def _get_a2_matched_clean_reacquisition_pose_state(self):
+            return {
+                "frames": {},
+                "position_residual": torch.tensor([0.001]),
+                "orientation_residual": torch.tensor([0.01]),
+                "source_handle_distance": torch.tensor([0.10]),
+            }
+
+        def _get_a2_open_stabilization_contact_force_norm(self):
+            return torch.tensor([[0.2, 0.3]])
+
+        def _get_a2_open_stabilization_composite_gate(self):
+            return torch.tensor([True])
+
+        def _set_a2_hold_outcome(self, mask, outcome):
+            self._a2_hold_oracle_outcome[mask] = A2_HOLD_OUTCOME_TO_ID[outcome]
+            self._a2_hold_oracle_phase[mask] = A2_HOLD_PHASE_DONE
+
+        def _finish_a2_matched_clean_reacquisition(self, mask):
+            if torch.any(mask):
+                raise AssertionError("handoff test unexpectedly finished active state")
+
+        def _compute_a2_matched_clean_retreat_arm_raw(self, active):
+            return torch.zeros(1, 6), active.clone()
+
+    dummy = Dummy()
+    for action in range(1, 6):
+        dummy._a2_hold_oracle_matched_clean_release_action_count[:] = action
+        dummy._a2_hold_oracle_matched_clean_release_override_mask[:] = True
+        dummy._capture_a2_matched_clean_release_post_action_samples()
+    assert not dummy._a2_hold_oracle_matched_clean_release_active.item()
+    assert dummy._a2_hold_oracle_matched_clean_stabilize_active.item()
+    assert dummy._a2_hold_oracle_matched_clean_stabilize_action_count.item() == 0
+    dummy._capture_a2_matched_clean_stabilize_post_action_samples()
+    assert dummy._a2_hold_oracle_matched_clean_quiet_samples == [[]]
+
+    action, override = dummy._apply_a2_matched_clean_reacquisition_action(
+        torch.full((1, 12), 7.0),
+        torch.tensor([True]),
+        torch.tensor([False]),
+    )
+    assert override.tolist() == [True]
+    assert dummy._a2_hold_oracle_matched_clean_stabilize_action_count.item() == 1
+    torch.testing.assert_close(action[0, :11], torch.zeros(11))
+    assert action[0, 11].item() == 1.0
+    assert dummy._a2_hold_oracle_matched_clean_stabilize_override_mask.tolist() == [True]
+
+
+def test_matched_clean_invalid_retreat_is_done_and_result_populated():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    apply_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_apply_a2_matched_clean_reacquisition_action"
+    )
+    namespace = dict(globals())
+    exec(textwrap.dedent(ast.get_source_segment(source, apply_node)), namespace)
+
+    class Dummy:
+        _apply_a2_matched_clean_reacquisition_action = namespace[
+            "_apply_a2_matched_clean_reacquisition_action"
+        ]
+
+        def __init__(self):
+            self.num_envs = 1
+            self.device = torch.device("cpu")
+            self._a2_hold_oracle_cfg = {
+                "matched_clean_reacquisition_preflight_enabled": True,
+                "matched_clean_retreat_timeout_steps": 80,
+            }
+            self._a2_hold_oracle_phase = torch.tensor(
+                [A2_HOLD_PHASE_MATCHED_CLEAN_RELEASE_RETREAT], dtype=torch.long
+            )
+            self._a2_hold_oracle_phase_step = torch.tensor([4], dtype=torch.long)
+            self._a2_hold_oracle_outcome = torch.tensor(
+                [A2_HOLD_OUTCOME_TO_ID["PENDING"]], dtype=torch.long
+            )
+            self._a2_hold_oracle_activated = torch.tensor([True])
+            self._a2_hold_oracle_a_raw = torch.zeros(1, 6)
+            self._a2_hold_oracle_arm_dls_branch = torch.tensor([True])
+            self._a2_hold_oracle_base_relief_branch_applied = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_active = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_stabilize_active = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_stabilize_action_count = torch.tensor(
+                [0], dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_ever_activated = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_release_action_count = torch.tensor(
+                [4], dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_qualification_count = torch.tensor(
+                [0], dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_release_override_mask = torch.tensor([True])
+            self._a2_hold_oracle_matched_clean_stabilize_override_mask = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_ik_invalid = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_joint_limit = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_action_invalid = torch.tensor([False])
+            self._a2_hold_oracle_matched_clean_release_final_action_count = torch.tensor(
+                [-1], dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_result = [None]
+
+        def _compute_a2_matched_clean_retreat_arm_raw(self, active_mask):
+            self._a2_hold_oracle_matched_clean_release_ik_invalid[active_mask] = True
+            return torch.zeros(1, 6), torch.zeros(1, dtype=torch.bool)
+
+        def _finish_a2_matched_clean_reacquisition(self, mask):
+            if torch.any(mask):
+                raise AssertionError("invalid retreat should terminalize before finalization")
+
+        def _set_a2_hold_outcome(self, mask, outcome):
+            pending = mask & (
+                self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            )
+            self._a2_hold_oracle_outcome[pending] = A2_HOLD_OUTCOME_TO_ID[outcome]
+            self._a2_hold_oracle_phase[pending] = A2_HOLD_PHASE_DONE
+
+    dummy = Dummy()
+    action, override = dummy._apply_a2_matched_clean_reacquisition_action(
+        torch.full((1, 12), 3.0),
+        torch.tensor([True]),
+        torch.tensor([False]),
+    )
+    assert not override.item()
+    assert not dummy._a2_hold_oracle_matched_clean_release_active.item()
+    assert dummy._a2_hold_oracle_phase.item() == A2_HOLD_PHASE_DONE
+    assert (
+        dummy._a2_hold_oracle_outcome.item()
+        == A2_HOLD_OUTCOME_TO_ID["MATCHED_CLEAN_RETREAT_IK_INVALID"]
+    )
+    assert dummy._a2_hold_oracle_matched_clean_result[0] == {
+        "ready": False,
+        "outcome": "MATCHED_CLEAN_RETREAT_IK_INVALID",
+        "final_release_action_count": 4,
+    }
+    assert dummy._a2_hold_oracle_matched_clean_release_final_action_count.item() == 4
+    torch.testing.assert_close(action, torch.full((1, 12), 3.0))
+
+
+def test_matched_clean_dls_keeps_inactive_rows_at_current_pose_and_telemetry():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    compute_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_compute_a2_matched_clean_retreat_arm_raw"
+    )
+    namespace = dict(globals())
+    exec(textwrap.dedent(ast.get_source_segment(source, compute_node)), namespace)
+
+    class _View:
+        def __init__(self, jacobian):
+            self._jacobian = jacobian
+
+        def get_jacobians(self):
+            return self._jacobian
+
+    class _Robot:
+        def __init__(self, jacobian):
+            self.root_physx_view = _View(jacobian)
+
+            class _Data:
+                pass
+
+            self.data = _Data()
+            self.data.joint_pos = torch.zeros(2, 6)
+            self.data.joint_pos_limits = torch.tensor(
+                [[[-3.0, 3.0]] * 6, [[-3.0, 3.0]] * 6], dtype=torch.float32
+            )
+            self.data.soft_joint_pos_limits = self.data.joint_pos_limits.clone()
+            self.data.default_joint_pos = torch.zeros(2, 6)
+
+    class _Controller:
+        def __init__(self):
+            self.command = None
+
+        def set_command(self, command):
+            self.command = command.clone()
+
+        def compute(self, current_pos, current_quat, jacobian, joint_pos):
+            return joint_pos.clone()
+
+    class Dummy:
+        _compute_a2_matched_clean_retreat_arm_raw = namespace[
+            "_compute_a2_matched_clean_retreat_arm_raw"
+        ]
+
+        def __init__(self):
+            self.num_envs = 2
+            self.device = torch.device("cpu")
+            self._a2_hold_oracle_cfg = {
+                "jacobian_condition_max": 1.0e6,
+                "max_position_step_m": 0.002,
+                "max_orientation_step_rad": 0.02,
+                "dls_lambda": 0.01,
+                "joint_limit_margin": 1.0e-4,
+                "soft_limit_progress_tolerance": 1.0e-6,
+                "raw_action_abs_max": 10.0,
+            }
+            self._a2_hold_oracle_jacobian_body_id = 0
+            self._a2_hold_oracle_jacobian_joint_ids = list(range(6))
+            self._a2_hold_oracle_joint_ids = list(range(6))
+            self._delta_actions = torch.zeros(2, 6)
+            self._a2_hold_oracle_controller = _Controller()
+            identity_jacobian = torch.eye(6).expand(2, 1, 6, 6).clone()
+            robot = _Robot(identity_jacobian)
+            identity_quat = torch.zeros(2, 4)
+            identity_quat[:, 0] = 1.0
+            root_pos = torch.zeros(2, 3)
+            source_pos = torch.tensor([[0.0, 0.0, 0.0], [0.25, 0.0, 0.0]])
+            target_pos = torch.tensor([[0.1, 0.0, 0.0], [0.9, 0.0, 0.0]])
+            self._pose = {
+                "frames": {
+                    "robot": robot,
+                    "root_pos_w": root_pos,
+                    "root_quat_w": identity_quat,
+                    "body_pos_w": root_pos.clone(),
+                    "body_quat_w": identity_quat.clone(),
+                },
+                "source_pos_root": source_pos,
+                "source_quat_root": identity_quat.clone(),
+                "target_pos_root": target_pos,
+                "target_quat_root": identity_quat.clone(),
+                "position_residual": torch.tensor([0.1, 0.9]),
+                "orientation_residual": torch.zeros(2),
+            }
+            telemetry = {
+                "q_des": (2, 6),
+                "d_des": (2, 6),
+                "d_prev": (2, 6),
+                "a_raw": (2, 6),
+                "arm_candidate_action_raw": (2, 6),
+                "target_pos_root": (2, 3),
+                "target_quat_root": (2, 4),
+                "bounded_command_pos_root": (2, 3),
+                "bounded_command_quat_root": (2, 4),
+                "bounded_position_step": (2,),
+                "bounded_orientation_step": (2,),
+                "position_residual": (2,),
+                "orientation_residual": (2,),
+                "singular_values": (2, 6),
+                "jacobian_condition": (2,),
+            }
+            for name, shape in telemetry.items():
+                setattr(self, f"_a2_hold_oracle_{name}", torch.full(shape, 9.0))
+            for name in ("ik_valid", "limit_valid", "delta_ok", "raw_ok"):
+                setattr(self, f"_a2_hold_oracle_{name}", torch.tensor([False, True]))
+            for name in (
+                "matched_clean_release_ik_invalid",
+                "matched_clean_release_joint_limit",
+                "matched_clean_release_action_invalid",
+            ):
+                setattr(self, f"_a2_hold_oracle_{name}", torch.tensor([False, True]))
+            self._robot = robot
+
+        def _get_a2_matched_clean_reacquisition_pose_state(self):
+            return self._pose
+
+    dummy = Dummy()
+    active = torch.tensor([True, False])
+    arm_raw, active_valid = dummy._compute_a2_matched_clean_retreat_arm_raw(active)
+    assert active_valid.tolist() == [True, False]
+    assert dummy._a2_hold_oracle_controller.command[1, :3].tolist() == [0.25, 0.0, 0.0]
+    torch.testing.assert_close(
+        dummy._a2_hold_oracle_controller.command[0, 0], torch.tensor(0.002), rtol=1.0e-5, atol=1.0e-6
+    )
+    torch.testing.assert_close(arm_raw[1], torch.zeros(6))
+    for name in (
+        "q_des",
+        "d_des",
+        "d_prev",
+        "a_raw",
+        "arm_candidate_action_raw",
+        "target_pos_root",
+        "target_quat_root",
+        "bounded_command_pos_root",
+        "bounded_command_quat_root",
+        "bounded_position_step",
+        "bounded_orientation_step",
+        "position_residual",
+        "orientation_residual",
+        "singular_values",
+        "jacobian_condition",
+    ):
+        value = getattr(dummy, f"_a2_hold_oracle_{name}")
+        assert torch.all(value[1] == 9.0), name
+    for name in ("ik_valid", "limit_valid", "delta_ok", "raw_ok"):
+        value = getattr(dummy, f"_a2_hold_oracle_{name}")
+        assert value.tolist() == [True, True], name
+    for name in (
+        "matched_clean_release_ik_invalid",
+        "matched_clean_release_joint_limit",
+        "matched_clean_release_action_invalid",
+    ):
+        value = getattr(dummy, f"_a2_hold_oracle_{name}")
+        assert value.tolist() == [False, True], name
+
+
+def test_matched_clean_reset_finalize_and_summary_wiring_is_terminal_first():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    methods = {
+        node.name: ast.get_source_segment(source, node)
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name
+        in {
+            "_reset_buffers_callback",
+            "finalize_a2_eval_hold_oracle",
+            "get_a2_hold_oracle_summary",
+        }
+    }
+    reset_source = methods["_reset_buffers_callback"]
+    assert reset_source.index("_finish_a2_matched_clean_reacquisition(affected)") < reset_source.index(
+        "super()._reset_buffers_callback"
+    )
+    finalize_source = methods["finalize_a2_eval_hold_oracle"]
+    assert finalize_source.index(
+        "_finish_a2_matched_clean_reacquisition"
+    ) < finalize_source.index("self._a2_hold_oracle_finalized = True")
+    summary_source = methods["get_a2_hold_oracle_summary"]
+    for required in (
+        'cfg["matched_clean_reacquisition_preflight_enabled"]',
+        "summary requires finalized lifecycle state",
+        "summary rejects active preflight state",
+        '"per_env_result"',
+        '"per_env_release_samples"',
+        '"per_env_quiet_samples"',
+        '"per_env_actual_invariant_evidence"',
+        '"outcome_counts"',
+        '"finalize_called"',
+        "MATCHED_CLEAN_STABILIZE_CONTACT_CONTAMINATED>",
+        "gate_lost_is_telemetry_only",
+        "contact_terminal_priority",
+    ):
+        assert required in summary_source, required
+
+
+def test_matched_clean_stabilize_actual_method_selects_two_of_eight_targets():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    capture_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_capture_a2_matched_clean_stabilize_post_action_samples"
+    )
+    namespace = dict(globals())
+    exec(textwrap.dedent(ast.get_source_segment(source, capture_node)), namespace)
+
+    class _Node:
+        pass
+
+    class _Robot:
+        def __init__(self, default_target, actual_target):
+            self.data = _Node()
+            self.data.root_lin_vel_w = torch.zeros(8, 3)
+            self.data.root_ang_vel_w = torch.zeros(8, 3)
+            self.data.default_joint_pos = default_target
+            self.data.joint_pos_target = actual_target
+
+    class Dummy:
+        _capture_a2_matched_clean_stabilize_post_action_samples = namespace[
+            "_capture_a2_matched_clean_stabilize_post_action_samples"
+        ]
+
+        def __init__(self):
+            self.num_envs = 8
+            self.device = torch.device("cpu")
+            self._a2_hold_oracle_cfg = {}
+            active_ids = torch.tensor([2, 6], dtype=torch.long)
+            self._active_ids = active_ids
+            active = torch.zeros(8, dtype=torch.bool)
+            active[active_ids] = True
+            self._a2_hold_oracle_matched_clean_stabilize_active = active.clone()
+            self._a2_hold_oracle_matched_clean_stabilize_override_mask = active.clone()
+            self._a2_hold_oracle_matched_clean_stabilize_action_count = torch.zeros(
+                8, dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_stabilize_action_count[active_ids] = 1
+            captured = torch.full((8, 6), float("nan"))
+            captured[2] = torch.arange(6, dtype=torch.float32) + 0.25
+            captured[6] = torch.arange(6, dtype=torch.float32) + 1.25
+            self._a2_hold_oracle_matched_clean_captured_arm_target = captured
+            self._delta_actions = torch.full((8, 6), 77.0)
+            self._delta_actions[active_ids] = captured[active_ids]
+            self._a2_eval_post_delta_post_warp_env_action = torch.full((8, 12), 55.0)
+            self._a2_eval_post_delta_post_warp_env_action[active_ids, 5:11] = captured[
+                active_ids
+            ]
+            self._a2_hold_oracle_post_override_action = torch.zeros(8, 12)
+            self._a2_hold_oracle_joint_ids = list(range(6))
+            default_target = torch.arange(48, dtype=torch.float32).reshape(8, 6) / 10.0
+            actual_target = torch.full((8, 6), -123.0)
+            actual_target[active_ids] = default_target[active_ids] + 0.25 * captured[
+                active_ids
+            ]
+            self._expected_selected_target = actual_target[active_ids].clone()
+            self._actual_target_before = actual_target.clone()
+            identity_quat = torch.zeros(8, 4)
+            identity_quat[:, 0] = 1.0
+            root_pos = torch.zeros(8, 3)
+            source_pos = torch.arange(24, dtype=torch.float32).reshape(8, 3) / 100.0
+            pregrasp_pos = source_pos + 0.01
+            self._robot = _Robot(default_target, actual_target)
+            self._pose = {
+                "frames": {
+                    "robot": self._robot,
+                    "root_pos_w": root_pos,
+                    "root_quat_w": identity_quat,
+                    "source_pos_w": source_pos,
+                    "source_quat_w": identity_quat.clone(),
+                    "pregrasp_pos_w": pregrasp_pos,
+                    "pregrasp_quat_w": identity_quat.clone(),
+                    "handle_pos_w": source_pos + 0.02,
+                    "handle_quat_w": identity_quat.clone(),
+                },
+                "source_handle_distance": torch.full((8,), 0.10),
+            }
+            self.config = _Node()
+            self.config.robot = _Node()
+            self.config.robot.control = _Node()
+            self.config.robot.control.action_scale = 0.25
+            self._a2_hold_oracle_matched_clean_gate_lost_ever = torch.zeros(
+                8, dtype=torch.bool
+            )
+            self._a2_hold_oracle_matched_clean_quiet_samples = [
+                [] if index in active_ids.tolist() else [{"sentinel": index}]
+                for index in range(8)
+            ]
+            self._a2_hold_oracle_matched_clean_actual_invariant_evidence = [
+                [] if index in active_ids.tolist() else [{"sentinel": index}]
+                for index in range(8)
+            ]
+
+        def _get_a2_matched_clean_reacquisition_pose_state(self):
+            return self._pose
+
+        def _get_a2_open_stabilization_contact_force_norm(self):
+            return torch.zeros(8, 2)
+
+        def _get_a2_static_clamp_gripper_state(self, env_ids):
+            shape = (env_ids.numel(), 2)
+            return None, None, {
+                "stiffness": torch.full(shape, 80.0),
+                "damping": torch.full(shape, 3.0),
+                "effort_limit": torch.full(shape, 10.0),
+            }
+
+        def _get_a2_open_stabilization_composite_gate(self):
+            return torch.ones(8, dtype=torch.bool)
+
+        def _finish_a2_matched_clean_reacquisition(self, mask):
+            assert not torch.any(mask)
+
+    dummy = Dummy()
+    inactive_quiet_before = [
+        list(dummy._a2_hold_oracle_matched_clean_quiet_samples[index])
+        for index in range(8)
+        if index not in dummy._active_ids.tolist()
+    ]
+    dummy._capture_a2_matched_clean_stabilize_post_action_samples()
+    for local, env_id in enumerate(dummy._active_ids.tolist()):
+        record = dummy._a2_hold_oracle_matched_clean_quiet_samples[env_id][0]
+        torch.testing.assert_close(
+            torch.tensor(record["actual_arm_joint_pos_target"]),
+            dummy._expected_selected_target[local],
+        )
+        torch.testing.assert_close(
+            torch.tensor(record["expected_actual_arm_joint_pos_target"]),
+            dummy._expected_selected_target[local],
+        )
+        assert record["actual_arm_joint_target_invariant"] is True
+    inactive_quiet_after = [
+        dummy._a2_hold_oracle_matched_clean_quiet_samples[index]
+        for index in range(8)
+        if index not in dummy._active_ids.tolist()
+    ]
+    assert inactive_quiet_after == inactive_quiet_before
+    torch.testing.assert_close(
+        dummy._robot.data.joint_pos_target, dummy._actual_target_before
+    )
+
+
+def test_matched_clean_summary_only_maps_never_activated_pending_to_no_gate():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    summary_node = next(
+        node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef) and node.name == "get_a2_hold_oracle_summary"
+    )
+    namespace = dict(globals())
+    exec(textwrap.dedent(ast.get_source_segment(source, summary_node)), namespace)
+
+    class Dummy:
+        get_a2_hold_oracle_summary = namespace["get_a2_hold_oracle_summary"]
+
+        def __init__(self, ever_activated, outcomes):
+            self.num_envs = len(outcomes)
+            self._a2_hold_oracle_cfg = {
+                "enabled": True,
+                "matched_clean_reacquisition_preflight_enabled": True,
+                "matched_clean_retreat_timeout_steps": 80,
+                "matched_clean_release_qualification_steps": 5,
+                "matched_clean_pregrasp_position_tolerance_m": 0.005,
+                "matched_clean_pregrasp_orientation_tolerance_rad": 0.10,
+                "tcp_offset_z": 0.085,
+                "dls_lambda": 0.01,
+                "max_position_step_m": 0.002,
+                "max_orientation_step_rad": 0.02,
+            }
+            self._a2_hold_oracle_finalized = True
+            self._a2_hold_oracle_matched_clean_release_active = torch.zeros(
+                self.num_envs, dtype=torch.bool
+            )
+            self._a2_hold_oracle_matched_clean_stabilize_active = torch.zeros(
+                self.num_envs, dtype=torch.bool
+            )
+            self._a2_hold_oracle_outcome = torch.tensor(outcomes, dtype=torch.long)
+            self._a2_hold_oracle_matched_clean_ever_activated = torch.tensor(
+                ever_activated, dtype=torch.bool
+            )
+            self._a2_hold_oracle_matched_clean_gate_lost_ever = torch.zeros(
+                self.num_envs, dtype=torch.bool
+            )
+            self._a2_hold_oracle_matched_clean_release_final_action_count = torch.full(
+                (self.num_envs,), -1, dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_qualification_count = torch.zeros(
+                self.num_envs, dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_release_contact_reset_count = torch.zeros(
+                self.num_envs, dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_stabilize_final_action_count = torch.full(
+                (self.num_envs,), -1, dtype=torch.long
+            )
+            self._a2_hold_oracle_matched_clean_captured_arm_target = torch.full(
+                (self.num_envs, 6), float("nan")
+            )
+            self._a2_hold_oracle_matched_clean_release_qualification_evidence = [
+                None for _ in range(self.num_envs)
+            ]
+            self._a2_hold_oracle_matched_clean_samples = [
+                [] for _ in range(self.num_envs)
+            ]
+            self._a2_hold_oracle_matched_clean_quiet_samples = [
+                [] for _ in range(self.num_envs)
+            ]
+            self._a2_hold_oracle_matched_clean_result = [
+                None for _ in range(self.num_envs)
+            ]
+            self._a2_hold_oracle_matched_clean_actual_invariant_evidence = [
+                [] for _ in range(self.num_envs)
+            ]
+            for name in (
+                "reason_contact",
+                "reason_timeout",
+                "reason_incomplete",
+                "reason_ready",
+                "reason_not_settled",
+            ):
+                setattr(
+                    self,
+                    f"_a2_hold_oracle_matched_clean_{name}",
+                    torch.zeros(self.num_envs, dtype=torch.bool),
+                )
+
+        def _get_a2_hold_friction_override(self):
+            return None
+
+    valid = Dummy(
+        [False, True],
+        [
+            A2_HOLD_OUTCOME_TO_ID["PENDING"],
+            A2_HOLD_OUTCOME_TO_ID["MATCHED_CLEAN_READY"],
+        ],
+    )
+    summary = valid.get_a2_hold_oracle_summary()
+    assert summary["per_env_outcome"] == [
+        "MATCHED_CLEAN_NO_GATE",
+        "MATCHED_CLEAN_READY",
+    ]
+
+    inconsistent = Dummy(
+        [True],
+        [A2_HOLD_OUTCOME_TO_ID["PENDING"]],
+    )
+    try:
+        inconsistent.get_a2_hold_oracle_summary()
+    except RuntimeError as exc:
+        assert "activated or otherwise inconsistent" in str(exc)
+        assert "envs=[0]" in str(exc)
+    else:
+        raise AssertionError("activated inactive PENDING outcome did not fail fast")
+    assert inconsistent._a2_hold_oracle_outcome.item() == A2_HOLD_OUTCOME_TO_ID[
+        "PENDING"
+    ]

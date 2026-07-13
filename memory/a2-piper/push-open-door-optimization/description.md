@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-13 17:41 HKT
+last_updated: 2026-07-13 17:42 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -74,10 +74,11 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-13 17:41 HKT - 执行已确定的 `base_v10` fresh-training cumulative ablation：A=从随机初始化训练的 v9-B-config control，B=A+hold-reward rebalance，C=B+gripper Kp/Kd `160/6`，D=C+stage3 base unlocked。四组必须各自训练一个全新 policy，统一 `checkpoint=null`、`auto_load_latest=false`，actor/critic/optimizer/scheduler/global step 全部 fresh；固定 threshold `0.25`、seed0、1000 batches 与 4096 total env。只使用四 terminal foreground launch；训练完成后进入 matched scalar/trace + render comparison。
+- 2026-07-13 17:42 HKT - 执行已确定的 `base_v10` fresh-training cumulative ablation：A=从随机初始化训练的 v9-B-config control，B=A+hold-reward rebalance，C=B+gripper Kp/Kd `160/6`，D=C+stage3 base unlocked。四组必须各自训练一个全新 policy，统一 `checkpoint=null`、`auto_load_latest=false`，actor/critic/optimizer/scheduler/global step 全部 fresh；每组固定 `--num_processes 2`、命令字面值 `num_envs=4096`、`WANDB_MODE=online`、threshold `0.25`、seed0 与 1000 batches。只使用四 terminal foreground launch；训练完成后进入 matched scalar/trace + render comparison。
 
 ## DONE Summary
 
+- 2026-07-13 17:42 HKT - 用户提供历史 verified launch template，明确 v10 每组即使使用 2 processes 也保持 trainer override `num_envs=4096`，并沿用 `WANDB_MODE=online`、fixed reward penalty scale、stage2 contact threshold `1.0` 与 PhysX velocity iterations `1`；不得自行换算成 2048。
 - 2026-07-13 17:41 HKT - 用户明确版本语义：新 `base_v10` 必须是四个 random-init long-training policies，不允许从 v9/v8 checkpoint warm-start；该决定 supersede 17:36 HKT 的 `base_v9_B policy_only` 方案。
 - 2026-07-13 17:36 HKT - 归档并清理一次 launcher-only failure：删除四个 `20260713_173141` partial run 与对应 `/tmp` logs，终止 12 个 orphan processes；该启动未产出 checkpoint，不是 `base_v10` 实验结果。Durable gotcha 是 IsaacSim multi-group training 不使用 `setsid`/detached wrapper。
 - 2026-07-13 16:37 HKT - 建立独立 full-stage push-open-door optimization memory；归档 `base_v9` 四组 formal/matched 失败结论、j8/body8 backdrive、gain/friction evidence boundary、matched-clean scientific failure与停止诊断决定，并把详细 base_v0→v9 findings/commands route 到 human report。

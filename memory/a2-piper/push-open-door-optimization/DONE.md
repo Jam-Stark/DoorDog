@@ -1,5 +1,6 @@
 # DONE
 
+- 2026-07-13 17:42 HKT - 用户提供历史 verified training command，纠正 v10 resource/launch contract：每组 2 GPU / `--num_processes 2` 时仍传 `num_envs=4096`，并使用 `WANDB_MODE=online`、reward penalty curriculum disabled/fixed scale 1.0、stage2 contact threshold `1.0`、PhysX velocity iterations `1`。先前 `2048 env/rank` 说法不适用于本轮命令，已 superseded。
 - 2026-07-13 17:41 HKT - 用户纠正 `base_v10` initialization contract：新版本表示四组各自 random-init long training，而不是继续训练或 warm-start 旧 actor。正式 A/B/C/D 统一 `checkpoint=null`、`auto_load_latest=false`，actor/critic/optimizer/scheduler/global step 全部 fresh；17:36 HKT 的 `base_v9_B policy_only` 设想已 superseded，未形成有效 run。
 - 2026-07-13 17:36 HKT - 清理 `base_v10` launcher-only failure：`setsid` wrapper 立即显示 `Done`，但实际 4 个 Accelerate parent 与 8 个 rank orphaned，且 B/C/D 出现 Vulkan/GPU Foundation initialization failure；已精准终止 12 个进程，删除四个 `20260713_173141` partial run、四份 `/tmp` launcher logs 与 marker。没有 step1000 checkpoint，该事件不计入 experiment evidence。后续固定使用四个独立 foreground terminal、distinct ports、约 10 秒 stagger，并在各组 checkpoint 写完后分别 `Ctrl-C`。
 - 2026-07-13 16:37 HKT - 新建 `push-open-door-optimization` entry，从 `base_v9` 起接管 A2+Piper full-stage 推门/开门 RL optimization 的 current state 与 TODO；`reward-implementation-goal` 和 `stage0-2-grasp-terminal` 保留各自历史事实，不再拥有 full-stage `base_v9+` active experiment。

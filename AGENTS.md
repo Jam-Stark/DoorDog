@@ -36,22 +36,19 @@ IsaacLab code 还必须优先使用 IsaacLab high-level API。若能使用 high-
 
 ## 3. File-based memory
 
-### 3.1 PF1：所有任务必做
+### 3.1 PF1：按 route 读取最小 memory
 
-开始 implementation、debug、review 或文档更新前：
+- 不依赖 repository state、文件或历史 decision 的纯问答，可跳过 project memory。
+- `FAST_PATH` 的 repo task 只读取 root `MEMORY.md`、`memory/MEMORY.md`、目标 subsystem `MEMORY.md` 与直接命中的 `description.md`；只有修改 memory 或判断施工状态时才读对应 `TODO.md`/`DONE.md`。
+- `COMPLEX_PATH` 在开始 implementation、debug、review 或文档更新前，依次读取 root `MEMORY.md`、`memory/MEMORY.md`、目标 subsystem `MEMORY.md`、命中 entry 的 `description.md`，并按任务需要继续 `TODO.md`、`DONE.md` 与直接引用的 source/reference。
 
-1. 读取 root `MEMORY.md`。
-2. 读取 `memory/MEMORY.md`。
-3. 读取任务对应 subsystem 的 `MEMORY.md`，例如 `memory/a2-piper/MEMORY.md`。
-4. 对命中的 entry，先读 `description.md`；只有需要判断施工状态时再读 `TODO.md` 与 `DONE.md`；仅在 `description.md` 指向且任务需要时继续读 reference/source。
-
-开工更新必须列出实际读取路径，并说明它们如何影响 destination、scope 与 stopping condition。只读取最小必要 memory；memory 不是聊天历史。
+涉及 repository 读取或修改时，开工更新必须列出实际读取路径，并说明它们如何影响 destination、scope 与 stopping condition。只读取最小必要 memory；memory 不是聊天历史。
 
 ### 3.2 PF2：涉及 code/config 时必做
 
 在已路由的 memory 中检索本任务关键词与既有经验。命中后读取相关 `description.md` 的 decision/DONE summary，必要时读取 `DONE.md`，并将可复用的 success、failure、gotcha、test/debug command 放入 task 的 `MEMORY CONTEXT`。未命中也要明确报告。
 
-### 3.3 PF3：任何 `.py`、`.yaml` 或 config 改动必做
+### 3.3 PF3：IsaacLab/API-sensitive code/config 必做
 
 涉及 scene、object/camera/robot spawn、observation、reward、env config 或其他 IsaacLab API 时，必须在 plan 阶段核对：
 
@@ -61,26 +58,36 @@ IsaacLab code 还必须优先使用 IsaacLab high-level API。若能使用 high-
 
 Plan 和 implementation task 必须带入确认过的 API signature/usage。若确需 low-level USD API，必须说明 high-level API 不适用的具体原因；理由不足则 review FAIL。
 
-纯 memory/docs 更新与纯 typo 可豁免 PF2/PF3；任何 `.py`、`.yaml` 或行为 config 不豁免。
+纯 memory/docs、纯 typo、与 IsaacLab/API 无关的 localized simple code fix，以及 user 明确要求的 obvious tooling config tweak 可豁免 PF3。任何涉及 scene、spawn、observation、reward、env/training semantics 或其他 IsaacLab API 的 `.py`/`.yaml`/config 不豁免。涉及 code/config 的 fast path 仍必须完成 PF2 与 targeted parse/test/consistency validation。
 
 ### 3.4 Durable memory 与 live coordination 分离
 
 - Agent 的 `WORKING`、中途 finding、纠偏与即时进度走 message protocol，不写 project memory。
 - Memory 只保存可复用事实、已验证 decision、稳定 blocker、下一步 TODO、可复现 command 与 test/debug 经验。
-- 未经 review 的 implementation 不得记为 DONE；静态检查不能写成 runtime PASS。
+- 未满足适用 route 的 validation gate 不得记为 DONE：`FAST_PATH` 需要 Main targeted validation，`COMPLEX_PATH` 需要 required review。静态检查不能写成 runtime PASS。
 - Merge、rebase、cherry-pick、conflict resolution 或任何 code/config 改动后，必须交叉验证相关 memory 是否 stale。
 
 ## 4. Simple 与 complex routing
 
-### 4.1 Simple edit exception
+### 4.1 Main-only `FAST_PATH`
 
-满足全部条件时，Main agent 可直接处理：scope 明确、低风险、无 algorithm/API/architecture decision、通常为单文件 typo、prose、mechanical memory 或明显 config tweak。
+Main 在 task intake 自主判断 route。满足以下全部条件时使用 `FAST_PATH`：
 
-流程：PF1（按适用性补 PF2/PF3）→ 最小 edit → targeted validation → memory consistency → Main audit。若修改 product behavior、`.py`、`.yaml` 或行为 config，应先向 user 给出简短方案并取得明确 approval；不能用“单文件”规避 approval/review gate。
+- destination、scope、stopping condition 清楚且 bounded；风险低、local、可逆。
+- 工作是纯问答/read-only inspection、直接状态说明、无需施工的 straightforward diagnosis、typo/format/prose、少量文档、mechanical memory sync、localized simple implementation/bugfix，或 user 明确要求的 obvious bounded config tweak。
+- 不包含未解决的 algorithm/API/architecture decision；不触及 IsaacLab scene/spawn/observation/reward/env/training semantics、public API/schema、security/auth、persistent data migration、concurrency/distributed behavior，也不需要 GPU/IsaacSim/shared external resource。Code/config change 必须局部、预期结果明确，并有直接 targeted test。
+- 不需要多个 writer、跨 lease 协调、destructive Git、外部发布/消息或其他 material side effect。
+- Main 能用 targeted local check 给出与任务风险相称的 evidence。
+
+`FAST_PATH` 流程为：`ROUTE decision → minimal PF1 → Main direct work → targeted validation → memory consistency（如适用）→ Main diff/final audit → Main stage/commit（如有 repo 修改）`。
+
+`FAST_PATH` 禁止 spawn child，也不创建 delegated task contract、lease ledger、frozen `CANDIDATE_ID`、multi-lane review 或 `memory_curator`。Main 可直接完成 bounded code/docs/config change 或原子更新简单 memory，并自行验证。User 明确要求 change/build/fix 即授权该 exact bounded fast-path change；若 user 只要求 answer/diagnose/review，不得据此扩大为 implementation。Destructive/external action 或执行中出现 material scope expansion 仍需另行 approval。
+
+Main 必须在工作更新中用一句话记录 `ROUTE: FAST_PATH` 与理由。若任一条件不满足、风险/范围不确定，或执行中发现 scope 已扩大，立即停止新增修改、审计已有 diff，宣布 route upgrade，再按 `COMPLEX_PATH` 继续；不得为了省略 gate 将复杂任务拆成多个伪 simple task。
 
 ### 4.2 Complex task
 
-多文件、new feature、algorithm/reward/env config、training/eval workflow、architecture、难 debug 或 high-impact change 必须执行：
+不满足 `FAST_PATH` 的任务全部进入 `COMPLEX_PATH`。New feature、跨模块或高风险 product code/config、algorithm/reward/env config、training/eval workflow、未决 architecture、难 debug 或 high-impact change 必须执行：
 
 `Pre-flight → concurrent context discovery → scoped plan + PLAN_GATE → explicit user Approval → lease-bound implementation DAG → frozen candidate → parallel multi-lane review → targeted fix loop → runtime/memory-context review → memory curate → final audit → commit`
 
@@ -117,7 +124,7 @@ Agent output 至少包含：`STATUS`（PASS/FAIL/BLOCKED/INCONCLUSIVE）、summa
 
 ## 6. Shared filesystem、lease 与并发
 
-- 当前运行预算为 **4 total threads（Main + 最多 3 children）**。只对真正独立的 discovery、research、QA 或 review lane 并发。
+- Project config 的 capacity target 为 **6 total threads（Main + 最多 5 children）**；正常 planned wave 仍最多并发 3 children，额外 2 slots 仅作为 terminal delay、retry 或临时 QA/review headroom。Live task 必须服从实际暴露的更低上限；App restart + fresh-task 验证完成前，不得声称 effective 6-thread runtime PASS。
 - Main 为每个 writer 分配独占 `WRITE_SET`。同一 task revision 内，同一路径只能有一个 writer；两个 task 的 write set 有 overlap 时必须串行。
 - Writer 只能修改其 lease 内路径，不得修改 memory、`.codex`、`.git`、baseline/reference worktree 或无关文件，除非 task 明确授予对应 lease。
 - IsaacSim/IsaacLab runtime、GPU、port 与 output directory 也必须分配 resource lease；冲突资源串行。
@@ -150,7 +157,7 @@ Interrupt 不会 rollback shared filesystem。Writer 被中断或返回 aborted/
 
 ## 8. Frozen candidate 与 review gate
 
-所有 writer terminal 且 lease 已释放后，Main 才能 freeze candidate。Candidate identity 必须由 `BASE_SHA` 与 sorted changed-path/status/content hash manifest 得出，必须覆盖 tracked、deleted 与 untracked task files；任何 product/source/config 改动都会产生新 `CANDIDATE_ID`，旧 PASS 全部失效。
+本节只适用于 `COMPLEX_PATH`。所有 writer terminal 且 lease 已释放后，Main 才能 freeze candidate。Candidate identity 必须由 `BASE_SHA` 与 sorted changed-path/status/content hash manifest 得出，必须覆盖 tracked、deleted 与 untracked task files；任何 complex product/source/config 改动都会产生新 `CANDIDATE_ID`，旧 PASS 全部失效。
 
 任何 source/config change 至少需要相互独立的 lanes：
 
@@ -166,7 +173,9 @@ Reviewer 不直接修 code。Main 聚合 finding，给原 writer 或新获 lease
 
 ## 9. Memory single-writer gate
 
-只有 frozen product candidate 的全部 required review PASS 后，Main 才能授予一个 memory curator 独占 memory lease。Curator 只能写批准的 memory entry：
+本节的 `memory_curator` gate 只适用于 `COMPLEX_PATH` frozen product candidate。`FAST_PATH` 的 simple documentation/mechanical memory update 由 Main 直接原子完成并重读验证，不 spawn curator。
+
+Complex candidate 的全部 required review PASS 后，Main 才能授予一个 memory curator 独占 memory lease。Curator 只能写批准的 memory entry：
 
 - 从 `TODO.md` 移除或改写已完成 item。
 - 在 `DONE.md` 添加相同 timestamp 的完成记录。
@@ -179,7 +188,11 @@ Curator 完成后，Main 必须重新读取 actual `TODO.md`、`DONE.md`、`desc
 
 ## 10. Git ownership 与 closure
 
-只有 Main agent 可以 stage/commit，且必须在以下条件全部满足后进行：
+只有 Main agent 可以 stage/commit。
+
+`FAST_PATH` closure 要求：targeted validation PASS；如修改 memory，`description.md`/`TODO.md`/`DONE.md` 与 route 保持一致；Main 确认 task diff 仅包含批准路径且未覆盖 pre-existing dirty changes。Fast path 不要求不存在的 child/review/candidate evidence。
+
+`COMPLEX_PATH` 必须在以下条件全部满足后进行 stage/commit：
 
 - 所有 spawned agent 已进入 completed/failed/interrupted terminal state；没有 active writer 或 reviewer。
 - Required review 全 PASS，memory 已更新并由 Main revalidate。
@@ -200,9 +213,10 @@ Main 主动 commit，但默认 **不 push**；只有 user 明确要求才 push�
 
 ## 12. 不可违反的结论
 
+- Route：Main 自主判断；满足全部低风险条件的普通 task、localized simple fix、documentation 与 mechanical memory 走 Main-only `FAST_PATH`，否则走 `COMPLEX_PATH`。
 - Complex product write：先 Plan，再取得 explicit user Approval。
 - Shared filesystem：同一路径同一 revision 只有一个 writer。
 - Review：相互独立、同一 frozen candidate；FAIL/INCONCLUSIVE 不能过 gate。
-- Memory：review PASS 后单写者原子同步，Main 最终复核。
-- Git：Main-only，review/memory/terminal closure 后 commit，不 push。
+- Memory：Fast path 由 Main 原子同步并复核；complex path 在 review PASS 后由单一 curator 更新、Main 最终复核。
+- Git：Main-only，满足当前 route 的 validation/memory/terminal closure 后 commit，不 push。
 - Fail-fast：禁止 unnecessary fallback、silent downgrade 与虚假 PASS。

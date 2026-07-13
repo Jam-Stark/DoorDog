@@ -25,7 +25,7 @@
 
 1. `.codex/config.toml`、`role-probe.toml` 与九个 production TOML 可由 `python3 tomllib` 解析。
 2. Registry 恰好 10 个，registry name、`config_file`、profile `name` 与 truth table 完全一致。
-3. Main 为 Sol/xhigh；`max_threads=4`、`max_depth=1`、`interrupt_message=true`。
+3. Main 为 Sol/xhigh；configured capacity target `max_threads=6`、normal planned wave `max_children=3`、`max_depth=1`、`interrupt_message=true`。Static check 不得声称 effective 6-thread runtime PASS。
 4. 每个 profile 的 model/effort/sandbox 与 truth table 一致；只有 `deep_researcher` 使用 `ultra`。
 5. 九个 production prompt 包含 Main-only authority、shared filesystem、完整 task fields、memory read order、fail-fast/no-fallback、no Git/scope expansion、structured result 与 lease release。
 6. Deep prompt 与 contract 都要求 exact per-invocation approval；缺失 approval 为 BLOCKED，effective evidence 缺失为 INCONCLUSIVE。

@@ -2,6 +2,8 @@
 
 Review 的对象是 immutable candidate，不是移动中的 worktree。
 
+本 contract 只适用于 `COMPLEX_PATH` frozen candidate。Main-only `FAST_PATH` 不创建 candidate 或 multi-lane review；其 closure 使用 targeted validation、必要的 memory consistency 与 Main diff/final audit。
+
 ## Candidate Freeze
 
 Main 在所有 writer terminal 后：
@@ -84,7 +86,7 @@ Runtime QA 至少报告 exact command、environment、duration/steps、exit stat
 
 P0/P1 阻断 candidate。Targeted fix 返回原 implementer，Main 递增 revision，重新 freeze，并重跑所有 mandatory code/config lanes。同类 fix 连续失败两次后停止 shotgun modification，转入 architecture consultation；需要 deep research 时仍必须单独 user approval。
 
-Canonical memory update 晚于 review PASS。Memory-only patch 必须重跑 Memory Context 与 Main final audit。
+Canonical memory update 晚于 review PASS。Complex-path memory-only patch 必须重跑 Memory Context 与 Main final audit；fast-path mechanical memory 由 Main 原子更新并重读验证。
 
 ## Foundation Versus Runtime Activation
 

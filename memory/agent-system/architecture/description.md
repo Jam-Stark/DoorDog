@@ -2,7 +2,7 @@
 name: codex-agent-system-architecture
 scope: repository-wide Codex multi-agent foundation and authority model
 status: phase2_bounded_behavior_and_full_tree_wls_pass_general_runtime_inconclusive
-last_updated: 2026-07-13 15:21 HKT
+last_updated: 2026-07-13 16:15 HKT
 evidence_level: STATIC/STRICT PASS; BOUNDED RUNTIME BEHAVIOR PASS; FULL-TREE WRITE SAFETY PASS; GENERAL RUNTIME INCONCLUSIVE
 owned_paths:
   - AGENTS.md
@@ -20,7 +20,9 @@ owned_paths:
 ## Verified Decisions
 
 - Root `AGENTS.md` 是 repo-wide canonical policy；`.codex/AGENTS.md` 只自然作用于 `.codex` subtree。
-- `.codex/TEAM.md` 与 `.codex/contracts/` 定义 Main-only scope/approval/lease/Git authority、single-writer path lease、最多 Main + 3 children 的 independent lanes、frozen manifest candidate、multi-lane review、memory single-writer 与 commit gate。
+- `.codex/TEAM.md` 与 `.codex/contracts/` 定义 Main-only scope/approval/lease/Git authority、single-writer path lease、complex-path frozen manifest/review/memory gates，以及不 spawn 的 Main-only `FAST_PATH`。
+- Main 在 intake 自主选择 route：bounded、low-risk、local/reversible 的普通 read-only task、少量 documentation、mechanical memory、localized simple implementation/bugfix 与 user 明确要求的 obvious bounded config tweak 可走 `FAST_PATH`；IsaacLab semantics、API/schema/security/data/concurrency、跨模块或不确定任务必须升级到 `COMPLEX_PATH`，不得拆分规避 gate。
+- Project configured capacity target 已由 user 调整为 6 total threads（Main + 最多 5 children），但正常 planned wave 仍最多 3 children；额外 2 slots 只作 terminal/retry/QA headroom。配置 static consistency 可验证，fresh-task effective capacity 尚未 runtime 验证。
 - User 明确批准绕过旧 activation blocker，Phase 2 直接注册九个 production profiles 与 `role_probe`；registration 可用于 routing，但不证明 effective child role/model/effort。
 - Discovery/review 默认并发最多三个 children；多个 `isaaclab_worker` 只允许 provably disjoint `WRITE_SET` 与 resource lease，overlap 必须串行。
 - `deep_researcher` 已注册但 dormant-by-policy，每次 invocation 仍需 exact separate approval；hooks 尚未配置。
@@ -33,6 +35,7 @@ owned_paths:
 
 - 2026-07-11 05:11 HKT - 获取 authoritative effective role/model/effort/sandbox metadata；诊断并重测 true simultaneous three-reviewer concurrency；按 route 完成 hooks capability assessment。Deep 保持 dormant，只有 exact separate approval 后才可调用。
 - 2026-07-13 15:21 HKT - 为 two-strike abnormal-interrupt → Main takeover contract 增加 targeted runtime eval；在完成前仅声明 policy/static consistency PASS，runtime behavior 保持 `NOT_RUN`。
+- 2026-07-13 16:15 HKT - 在 App restart 后验证 fresh-task effective capacity 为 6 total threads，并观察 Main 对代表性 documentation、mechanical-memory 与 localized simple fix 的 `FAST_PATH` routing；在完成前只声明 static policy/config consistency PASS，runtime behavior 保持 `NOT_RUN`。
 
 ## DONE Summary
 
@@ -41,3 +44,4 @@ owned_paths:
 - 2026-07-11 04:40 HKT - Phase 2 R3 验证九个 non-Deep role 的 bounded positive contract behavior、direct peer FINDING/Main mirror、tested child snapshots 与 C1-C4 write-lease/interrupt behavior PASS；candidate `3e9f39a30b051631b8a1133cd9453271537d01b87a6b18b7000184c48292a98c` content review PASS、QA ceiling 为 `STATIC_PASS`。因 `logs_rl/` 被批准排除，general full-tree write safety 保持 INCONCLUSIVE；true simultaneous three-reviewer wave 亦为 INCONCLUSIVE，effective metadata UNKNOWN，IsaacLab runtime/training NOT_RUN。`memory_curator` 已完成 exact 12-file atomic delta 与 self-validation；Main independent revalidation 仍是 closure gate。
 - 2026-07-11 05:11 HKT - P2-FULL-TREE-WLS-R1 在包含稳定 `logs_rl/` 的 full tree 上完成 C1 single、C2 disjoint simultaneous active、C3 strict overlap serialization、C4 partial interrupt/Main audit/replacement；zero out-of-lease change，exact cleanup 后 HEAD/worktree/index 与 same-encoding manifest 精确恢复，general full-tree write safety PASS。Effective metadata、true simultaneous three-reviewer wave、hooks 与 IsaacLab runtime/training 结论未改变；Main independent memory revalidation 仍是 closure gate。
 - 2026-07-13 15:21 HKT - 将 two-strike abnormal-interrupt fallback 写入 root canonical policy、TEAM lifecycle semantics 与 message protocol：第一次同因异常中断经 audit 后只允许一次 retry，第二次仍中断且未交付则禁止第三次相同 child 启动并由 Main bounded takeover；静态一致性已验证，targeted runtime behavior `NOT_RUN`。
+- 2026-07-13 16:15 HKT - 新增 Main autonomous `FAST_PATH / COMPLEX_PATH` route gate：普通 read-only、少量 documentation、mechanical memory 与 localized low-risk simple fix 可由 Main 单独完成，免除 child/lease/candidate/multi-review/curator；复杂任务保持完整 pipeline。同步记录 configured 6-thread capacity target 与 planned 3-child wave 分离；static consistency PASS，fresh-task capacity/route runtime `NOT_RUN`。

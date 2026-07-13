@@ -2,7 +2,7 @@
 
 ## Status
 
-当前为 **Phase 2 registered production v1**：project config 直接注册九个 production roles 与 `role_probe`，`max_threads = 4`、`max_depth = 1`。Registration 是可用 routing，不是 effective child identity/model/effort evidence；runtime 不暴露的 metadata 保持 `UNKNOWN/INCONCLUSIVE`。
+当前为 **Phase 2 registered production v1**：project config 直接注册九个 production roles 与 `role_probe`，configured capacity target 为 6 total threads、正常 planned wave 最多 3 children，`max_depth = 1`。Fresh-task effective 6-thread capacity 尚未 runtime 验证；registration 是可用 routing，不是 effective child identity/model/effort evidence，runtime 不暴露的 metadata 保持 `UNKNOWN/INCONCLUSIVE`。
 
 Hooks 尚未配置，等待 capability eval 与 separate user approval。`deep_researcher` 已注册但 dormant-by-policy，每次 invocation 仍需 exact separate user approval。
 
@@ -19,13 +19,13 @@ Nested `.codex/AGENTS.md` 只维护 `.codex` subtree，不能覆盖 root policy�
 ## Hard Invariants
 
 1. Main 是唯一 scope、user approval、acceptance、lease、candidate、integration、memory authorization 与 Git authority。
-2. 四个 total threads 包含 Main；一个 wave 最多三个 children。Depth 1，child 不得 recursive fan-out。
+2. Configured budget 的六个 total threads 包含 Main；正常 planned wave 最多三个 children，额外两个 child slots 只作 headroom。Live task 服从实际暴露的更低上限；Depth 1，child 不得 recursive fan-out。
 3. Shared filesystem 上同一路径同一 revision 只有一个 writer；same-path/resource conflict 必须串行。
 4. Child 禁止 stage、commit、push、branch/reset/stash/merge/rebase、扩大 scope 或转移 lease。
-5. Review 只针对 frozen candidate；candidate content/status 变化使旧 verdict 失效。
+5. `COMPLEX_PATH` review 只针对 frozen candidate；candidate content/status 变化使旧 verdict 失效。`FAST_PATH` 不创建 candidate。
 6. `FAIL`、`BLOCKED`、`INCONCLUSIVE`、`NOT_RUN` 与缺失 evidence 都不是 PASS。
 7. Static catalog PASS 不证明 effective runtime identity/model/effort；不允许 silent downgrade 或 false model/runtime PASS。
-8. Canonical memory 在全部 required review PASS 后由单一 `memory_curator` 写入，Main 再验证。
+8. `FAST_PATH` simple memory 由 Main 原子写入并验证；`COMPLEX_PATH` canonical memory 在全部 required review PASS 后由单一 `memory_curator` 写入，Main 再验证。
 9. 普通 role ceiling 为 `max`；Deep 是唯一 Sol/Ultra exception，且逐次 approval。
 
 ## Registered Role Matrix
@@ -43,7 +43,21 @@ Nested `.codex/AGENTS.md` 只维护 `.codex` subtree，不能覆盖 root policy�
 | `runtime_qa` | Terra / high | workspace-write | 只写 leased evidence/output，绝不修改 candidate |
 | `memory_curator` | Terra / high | workspace-write | review PASS 后原子更新 approved memory entry |
 
-## Phase 2 State Machine and Waves
+## Route Gate
+
+Main 在 intake 自主选择：
+
+```text
+TASK_INTAKE
+  -> all FAST_PATH criteria satisfied -> MAIN_ONLY_FAST_PATH
+  -> any criterion failed/uncertain    -> COMPLEX_PATH
+```
+
+`FAST_PATH` 只覆盖 bounded、low-risk、local/reversible 的纯问答/read-only inspection、straightforward no-write diagnosis、typo/format/prose、少量 documentation、mechanical memory sync、localized simple implementation/bugfix，以及 user 明确要求的 obvious bounded config tweak。Code/config 必须局部、预期结果明确且有 targeted test；不得涉及未决 algorithm/architecture、IsaacLab scene/reward/env/training、public API/schema、security/auth、persistent data、concurrency/distributed semantics，也不得需要 multi-writer/resource coordination、destructive Git 或 external side effect。User 的 change/build/fix 请求只授权 exact bounded fast change；answer/diagnose/review 请求不自动授权 implementation。
+
+Fast path 由 Main 直接执行：minimal memory routing、targeted validation、必要的 memory atomic consistency、diff/final audit 与 Main-only commit；不 spawn、不建立 delegated task/lease/candidate、不运行 multi-lane review、不调用 `memory_curator`。Scope/risk 变大或判断不确定时必须升级到 complex path，不能拆分规避 gate。
+
+## Complex-Path State Machine and Waves
 
 ```text
 PREFLIGHT
@@ -95,13 +109,13 @@ Wave 1 全 PASS 后，最多并发：
 
 Runtime QA 的 `WRITE_SET` 只能包含 evidence/output paths，candidate 必须 before/after immutable。缺少 runtime/resource evidence返回 INCONCLUSIVE，不降级测试并伪报 PASS。
 
-### Memory and Closure
+### Complex Memory and Closure
 
 所有 required lane PASS 后，Main 授予 `memory_curator` 一个 atomic memory lease（description/TODO/DONE 与必要 route）。Curator 完成后 Main 重读 actual files、重建 manifest、运行 Memory Context/final audit，然后独占 stage/commit；默认不 push。
 
 ## Task, Lease, and Candidate Contract
 
-每个 task 必须使用 `contracts/task-contract.md`，包含 TASK_ID、REVISION、destination/stopping/acceptance、MEMORY_CONTEXT、BASE_SHA/dirty baseline、READ_SET/WRITE_SET/resource lease、dependencies、deliverable 与 VERIFY。
+每个 delegated `COMPLEX_PATH` task 必须使用 `contracts/task-contract.md`，包含 TASK_ID、REVISION、destination/stopping/acceptance、MEMORY_CONTEXT、BASE_SHA/dirty baseline、READ_SET/WRITE_SET/resource lease、dependencies、deliverable 与 VERIFY。Main-only `FAST_PATH` 不创建 dummy delegated contract。
 
 Main live ledger 至少跟踪：
 
@@ -134,6 +148,7 @@ Frozen candidate 使用 `contracts/review-contract.md` 的 canonical manifest：
 
 ## Known Unverified Limits
 
+- Configured capacity target 已改为 6 total threads；App restart + fresh-task occupancy evidence 完成前，effective runtime capacity 保持 `NOT_RUN`，当前旧 task snapshot 不据此升级。
 - Profiles 与 registry 已 static-validated，但 current runtime 可能不暴露 effective child role/model/effort；这些字段只能是 `UNKNOWN/INCONCLUSIVE`。
 - Child read-only command runner 曾受 `bwrap` loopback permission 阻断；不能把 command-runner behavior 当作已验证。
 - Parallel coordination、write lease collision、interrupt/partial-write 与 hook enforcement 需要对应 eval；未运行项保持 `NOT_RUN`。
@@ -146,4 +161,4 @@ Frozen candidate 使用 `contracts/review-contract.md` 的 canonical manifest：
 - `INCONCLUSIVE`：effective metadata、sandbox/tool execution 或 required evidence 不完整。
 - Requested profile、identity token 或 self-report 不得升级为 effective model/effort PASS。
 
-Main final 前确认：所有 agents terminal；无 active writer/overlapping lease/pending approval；required lanes绑定当前 candidate并 PASS；memory一致；Git index只含批准路径；未验证项明确保留 `INCONCLUSIVE/NOT_RUN`。
+Main final 前确认：`FAST_PATH` 已完成 targeted validation、必要的 memory consistency 与 exact diff audit；`COMPLEX_PATH` 的所有 agents terminal、无 active writer/overlapping lease/pending approval、required lanes 绑定当前 candidate 并 PASS。两条 route 都要求 Git index 只含批准路径，未验证项明确保留 `INCONCLUSIVE/NOT_RUN`。

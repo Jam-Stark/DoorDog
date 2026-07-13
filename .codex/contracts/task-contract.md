@@ -2,6 +2,10 @@
 
 每个 delegated task 必须由 Main 提供完整 contract。缺失 destination、stopping condition、write ownership 或 validation target 时，child 返回 `BLOCKED` 或 `SCOPE_REQUEST`，不得自行扩展。
 
+## Route Applicability
+
+本 contract 只适用于会 spawn child 的 `COMPLEX_PATH` delegated task。Main-only `FAST_PATH` 不创建 dummy task contract、lease ledger 或 candidate；若 fast path 执行中升级为 complex path，Main 先审计已有 diff，再从最新 baseline/revision 建立完整 contract。
+
 ## Required Envelope
 
 ```text

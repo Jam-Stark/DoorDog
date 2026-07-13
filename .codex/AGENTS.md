@@ -10,7 +10,7 @@
 2. `TEAM.md`：Phase 2 architecture、role routing、waves、leases、candidate 与 closure。
 3. 当前改动相关的 `contracts/*.md` 与 `evals/*.md`。
 
-发生冲突时 root `AGENTS.md` 优先；不得自行弱化 approval、fail-fast、memory、review 或 Main-only Git gate。
+发生冲突时 root `AGENTS.md` 优先；不得自行弱化 route consent、fail-fast、memory、risk-triggered review 或 Main-only Git gate，也不得增加 root 未要求的 ceremonial audit。
 
 ## Registered Catalog Maintenance
 
@@ -19,8 +19,9 @@ Phase 2 registry 必须保持 `.codex/config.toml`、`agents/<role>.toml`、`TEA
 - Main 是唯一 scope、approval、lease、candidate、memory authorization 与 Git authority。
 - Shared filesystem 同一路径同一 revision 只有一个 writer；same-path/resource conflict 串行。
 - Static profile、requested values 或 agent self-report 不证明 effective child role/model/effort。Runtime 未暴露时写 `UNKNOWN/INCONCLUSIVE`，不得 silent fallback。
-- Product code/config 继续执行 root 的 Plan → Approval → lease-bound implementation → frozen review → memory → Main commit gate。
-- Canonical memory 不是 live message bus，只能在 required review PASS 后由获授权 `memory_curator` 原子更新。
+- Product code/config 遵循 root 的三级 route：Fast/Standard 是默认，High 只有 user 同意 exact brief 后进入；Standard 可完整使用 ordinary roles，review/QA 按风险触发。
+- Candidate full manifest 由 Main 在 freeze/pre-commit 验证；role 只核对 assigned entries。Narrow fix 只重跑 impacted lanes，不重复审计同一 concern。
+- Canonical memory 不是 live message bus。Mechanical delta 可由 Main 原子更新；只有 non-mechanical durable delta 才在 route-triggered review PASS 后交给 `memory_curator`。
 
 ## Prohibitions
 

@@ -4,7 +4,11 @@
 
 ## Route Applicability
 
-本 contract 只适用于会 spawn child 的 `COMPLEX_PATH` delegated task。Main-only `FAST_PATH` 不创建 dummy task contract、lease ledger 或 candidate；若 fast path 执行中升级为 complex path，Main 先审计已有 diff，再从最新 baseline/revision 建立完整 contract。
+本 contract 只适用于会 spawn child 的 `STANDARD_PATH` / `HIGH_RISK_PATH` delegated task。Main-only `FAST_PATH` 不创建 dummy task contract、lease ledger 或 candidate；若 Fast 执行中升级，Main 先审计已有 diff，再从最新 baseline/revision 建立完整 contract。
+
+- `STANDARD_PATH`：`AUTHORIZATION_EVIDENCE` 可以引用 user 对 exact change/build/fix scope 的原始请求；无需额外 route approval。
+- `HIGH_RISK_PATH`：必须附 user 对 exact `HIGH_RISK_BRIEF` 的明确 consent evidence。
+- Deep invocation 不由本 contract 授权；Standard/High 都必须另走 `deep-research-contract.md` 的逐次 approval。
 
 ## Required Envelope
 
@@ -12,6 +16,8 @@
 TASK_ID:
 REVISION:
 ROLE:
+ROUTE: STANDARD_PATH | HIGH_RISK_PATH
+AUTHORIZATION_EVIDENCE:
 
 DESTINATION:
 STOPPING_CONDITION:
@@ -44,7 +50,8 @@ OUTPUT_CONTRACT:
 
 ## Contract Semantics
 
-- Main 独占 scope、approval、lease 与 acceptance criteria。
+- Main 独占 route、scope、approval、lease 与 acceptance criteria。
+- Child 必须核对 route 与 authorization evidence：Standard 接受 exact originating user request；High 缺少 exact brief consent 时返回 `BLOCKED`。
 - `READ_SET` 可与其他 reader 重叠；`WRITE_SET` 必须是 exclusive lease。
 - Child 只能写 `WRITE_SET`，不得 stage、commit、push、reset 或清理 pre-existing dirty paths。
 - 发现额外工作时发出 `SCOPE_REQUEST`；在 Main 回复前保持 blocked。

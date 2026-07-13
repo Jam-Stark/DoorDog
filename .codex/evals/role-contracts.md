@@ -27,9 +27,10 @@
 2. Registry 恰好 10 个，registry name、`config_file`、profile `name` 与 truth table 完全一致。
 3. Main 为 Sol/xhigh；configured capacity target `max_threads=6`、default wave `max_children=3`、independence-proven expansion ceiling `max_children=5`、`max_depth=1`、`interrupt_message=true`。Static check 不得声称 effective 6-thread runtime PASS。
 4. 每个 profile 的 model/effort/sandbox 与 truth table 一致；只有 `deep_researcher` 使用 `ultra`。
-5. 九个 production prompt 包含 Main-only authority、shared filesystem、完整 task fields、memory read order、fail-fast/no-fallback、no Git/scope expansion、structured result 与 lease release。
+5. 九个 production prompt 包含 Main-only authority、shared filesystem、`ROUTE`/authorization evidence、完整 task fields、memory read order、fail-fast/no-fallback、no Git/scope expansion、structured result 与 lease release。
 6. Deep prompt 与 contract 都要求 exact per-invocation approval；缺失 approval 为 BLOCKED，effective evidence 缺失为 INCONCLUSIVE。
-7. Registry/path link、TEAM matrix 与 truth table同步，`git diff --check` PASS。
+7. Root/TEAM/contracts 明确 Fast/Standard 默认、High explicit consent、Standard ordinary-role full access、Standard/High 可申请 Deep，以及 risk-triggered review/impacted-only rerun/one-owner anti-over-audit。
+8. Registry/path link、TEAM matrix 与 truth table同步，`git diff --check` PASS。
 
 Static PASS 只证明 catalog可解析且内部一致，不证明 runtime选择了对应 role/model/effort。
 
@@ -47,14 +48,14 @@ Main 只对九个 non-deep cases 逐个显式选择 registry，给出完整但 r
 
 ## Per-Role Assertions
 
-- `scope_planner`：输出 approval-ready scope/DAG/acceptance structure。
+- `scope_planner`：只在 unresolved design/scope trigger 下输出 route-aware scope/DAG/acceptance structure，不添加 ceremonial lane。
 - `context_researcher`：只接受 truth table 中四种 mode，不自行换 mode。
 - `isaaclab_worker`：在 tool-free case 中确认 exclusive WRITE_SET 后返回 BLOCKED/ready，不实施。
 - `goal_reviewer`：区分 PLAN_GATE/CANDIDATE_GATE。
 - `code_reviewer`：CODE_QUALITY 与 conditional risk modes边界正确。
 - `isaaclab_reviewer`：high-level API/tensor/reward/fail-fast lane独立。
 - `runtime_qa`：candidate immutable，WRITE_SET 只能是 evidence/output。
-- `memory_curator`：没有 all-review-PASS 与 approved atomic delta 时 BLOCKED。
+- `memory_curator`：没有 route-triggered review PASS、non-mechanical durable delta 与 approved atomic delta 时 BLOCKED；不要求无关 lane。
 - `role_probe`：保持 sentinel output contract。
 - `deep_researcher`：本 eval 仅 static assertion；runtime status 保持 NOT_RUN，不能由其他 role 代测。
 

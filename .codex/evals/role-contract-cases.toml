@@ -52,7 +52,7 @@ name = "isaaclab_worker"
 model = "gpt-5.6-luna"
 effort = "max"
 sandbox = "workspace-write"
-activation_policy = "approval_and_exclusive_lease"
+activation_policy = "standard_or_consented_high_and_exclusive_lease"
 modes = ["IMPLEMENT", "DEBUG", "WRITE_LEASE_SAFETY"]
 requires_per_invocation_approval = false
 
@@ -63,7 +63,7 @@ name = "goal_reviewer"
 model = "gpt-5.6-sol"
 effort = "max"
 sandbox = "read-only"
-activation_policy = "ordinary_routing"
+activation_policy = "triggered_goal_or_acceptance_risk"
 modes = ["PLAN_GATE", "CANDIDATE_GATE"]
 requires_per_invocation_approval = false
 
@@ -74,7 +74,7 @@ name = "code_reviewer"
 model = "gpt-5.6-sol"
 effort = "max"
 sandbox = "read-only"
-activation_policy = "ordinary_routing"
+activation_policy = "source_config_default_or_triggered_risk_mode"
 modes = ["CODE_QUALITY", "SECURITY", "PERFORMANCE", "DATA_COMPAT"]
 requires_per_invocation_approval = false
 
@@ -85,7 +85,7 @@ name = "isaaclab_reviewer"
 model = "gpt-5.6-sol"
 effort = "max"
 sandbox = "read-only"
-activation_policy = "ordinary_routing"
+activation_policy = "actual_isaaclab_semantics_change"
 modes = ["ISAACLAB_FAIL_FAST"]
 requires_per_invocation_approval = false
 
@@ -107,6 +107,6 @@ name = "memory_curator"
 model = "gpt-5.6-terra"
 effort = "high"
 sandbox = "workspace-write"
-activation_policy = "all_required_reviews_pass_and_atomic_memory_lease"
+activation_policy = "durable_delta_and_triggered_reviews_pass_and_atomic_memory_lease"
 modes = ["MEMORY_FINALIZE"]
 requires_per_invocation_approval = false

@@ -2,7 +2,7 @@
 
 Review 的对象是 immutable candidate，不是移动中的 worktree。
 
-本 contract 只适用于 `COMPLEX_PATH` frozen candidate。Main-only `FAST_PATH` 不创建 candidate 或 multi-lane review；其 closure 使用 targeted validation、必要的 memory consistency 与 Main diff/final audit。
+本 contract 只适用于 `STANDARD_PATH` / `HIGH_RISK_PATH` frozen candidate。Main-only `FAST_PATH` 不创建 candidate 或 multi-lane review；其 closure 使用 targeted validation、必要的 memory consistency 与一次 Main diff/final audit。
 
 ## Candidate Freeze
 
@@ -25,7 +25,7 @@ Main 在所有 writer terminal 后：
 5. Manifest 必须递归覆盖 approved `WRITE_SET` 与明确批准 task artifacts 中的所有路径，包括 tracked modification、tracked deletion、untracked file 与 ignored-but-explicit task file。存在的文件记录 exact content hash；deletion 记录明确 `DELETED` status/sentinel。
 6. 确认没有 out-of-scope changed path，并在 review 完成前禁止 writer 修改 candidate。
 
-任意 approved task path 的 status/content 改变都会生成新 `CANDIDATE_ID`，并使旧 code/config/runtime review verdict 全部失效。Ignored 或 untracked 不得因为普通 Git diff 看不到而从 candidate 排除。
+Main 在 freeze 与 pre-commit 各完整验证一次 manifest。任意 approved task path 的 status/content 改变都会生成新 `CANDIDATE_ID`；但旧 verdict 是否失效按 impact 分析决定。Ignored 或 untracked 不得因为普通 Git diff 看不到而从 candidate 排除。
 
 ## Required Review Result
 
@@ -40,23 +40,27 @@ UNVERIFIED_BEHAVIOR:
 RECOMMENDED_NEXT_ACTION:
 ```
 
-Reviewer 必须验证 canonical manifest 的路径全集、status、content hash 与当前 worktree 精确一致，重新核对 candidate hash，并确认没有 out-of-scope changed path。只复述 Main 提供的 candidate ID 不算验证。Manifest/ID 缺失、内容不匹配或无法覆盖 ignored/untracked explicit task file 时返回 `INCONCLUSIVE`。
+Reviewer 必须验证其 assigned concern 所需 paths、对应 manifest entries 与 Main 提供的 candidate identity，并确认自己审查的内容属于同一 frozen candidate。Reviewer 不重复计算全 manifest，也不承担 Main 的全局 out-of-scope audit。Assigned entry/ID 缺失、内容不匹配或 candidate 在 review 中变化时返回 `INCONCLUSIVE`。
 
-## Review Lanes
+## Route-aware Review Lanes
 
-复杂 IsaacLab/RL task 默认需要：
+`STANDARD_PATH` source/config candidate 默认只需要：
 
-1. Goal/Constraint
-2. Code Quality
-3. IsaacLab/Fail-fast
-4. Runtime QA
-5. Memory Context
+1. `code_reviewer:CODE_QUALITY`
+2. risk-proportionate targeted `runtime_qa`
 
-Dependency、network、auth、credential 或 external data surface 变化时增加 Security。高风险、多 writer、merge/conflict 或 repeated-fix task 可增加 Final Gate。
+以下 lane 仅按 trigger 增加：
+
+- Goal/Constraint：scope、acceptance、authorization 或 forbidden-action risk。
+- IsaacLab/Fail-fast：实际修改 IsaacLab/RL/reward/observation/action/scene/env/training semantics。
+- Security / Performance / Data Compatibility：对应 trust/resource/schema surface 改变。
+- Memory Context / `memory_curator`：存在 non-mechanical durable memory delta。
+
+`HIGH_RISK_PATH` 的 mandatory lanes 来自 user 已同意 `HIGH_RISK_BRIEF` 的 risk justification；High 不自动等于全部 lane。每个 concern 只有一个 reviewer owner，不用多个 lane 重复审同一问题。
 
 ## Verdict Rules
 
-- `PASS`：所有 mandatory lanes 对同一 candidate PASS。
+- `PASS`：当前 route 实际 triggered mandatory lanes 对同一 candidate PASS。
 - `FAIL`：任一 mandatory lane 发现 blocking defect。
 - `INCONCLUSIVE`：没有 confirmed blocking defect，但 evidence 不足、candidate mismatch 或 required validation 未完成。
 
@@ -84,9 +88,9 @@ Runtime QA 至少报告 exact command、environment、duration/steps、exit stat
 - `P2`：明确 maintainability/test gap，但不阻断当前行为。
 - `P3`：非阻断建议。
 
-P0/P1 阻断 candidate。Targeted fix 返回原 implementer，Main 递增 revision，重新 freeze，并重跑所有 mandatory code/config lanes。同类 fix 连续失败两次后停止 shotgun modification，转入 architecture consultation；需要 deep research 时仍必须单独 user approval。
+P0/P1 阻断 candidate。Targeted fix 返回获 lease implementer，Main 递增 revision并重新 freeze，只重跑受影响 lanes。只有 scope、public/API contract、runtime semantics、candidate topology 或 material dependency 改变时，才使所有相关 verdict 失效并 full rerun。同类 fix 连续失败两次后停止 shotgun modification，重新评估 route；若需升级 High 或调用 Deep，分别取得对应 user approval。
 
-Canonical memory update 晚于 review PASS。Complex-path memory-only patch 必须重跑 Memory Context 与 Main final audit；fast-path mechanical memory 由 Main 原子更新并重读验证。
+无 durable memory delta 时跳过 Memory Context 与 curator。Fast/Standard mechanical memory 由 Main 原子更新并重读验证；non-mechanical durable delta 才在 triggered review PASS 后进入单写者 memory update。
 
 ## Foundation Versus Runtime Activation
 

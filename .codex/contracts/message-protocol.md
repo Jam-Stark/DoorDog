@@ -49,7 +49,7 @@ ACTION_REQUESTED:
 - Attempt 1 terminal 后，Main 先记录 `TERMINAL_STATUS`、`FAILURE_SIGNATURE`、`PARTIAL_WRITE_AUDIT`、`CANDIDATE_INVALIDATION` 与 `LEASE_STATUS`，再决定唯一一次 retry。无论 retry 使用 `followup_task` 还是 same-role replacement spawn，都沿用同一 key，不能以新 thread/task name 清零。
 - Attempt 2 若以同一 failure signature 异常中断且仍未交付，Main 不再进行第三次 follow-up/spawn，发送或记录 `MAIN_TAKEOVER` envelope，并接管原批准 scope/lease 内的最小剩余工作。
 - `MAIN_TAKEOVER` 的 `EVIDENCE` 必须列出两次 attempt 的 terminal status、failure signature、partial-write audit 与 lease reclamation；`ACTION_REQUESTED` 写明 Main takeover 或因缺少 capability 而 `BLOCKED`。
-- Main takeover 不产生 scope/approval/lease expansion，也不改变 frozen candidate、review、runtime、memory 或 Git closure requirements。
+- Main takeover 不产生 route/scope/approval/lease expansion，也不绕过当前 route 实际触发的 candidate、review、runtime、memory 或 Git closure requirements。
 
 ## Peer-to-Peer Evidence Transfer
 

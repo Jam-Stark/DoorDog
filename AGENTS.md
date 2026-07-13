@@ -40,7 +40,8 @@ IsaacLab code 还必须优先使用 IsaacLab high-level API。若能使用 high-
 
 - 不依赖 repository state、文件或历史 decision 的纯问答，可跳过 project memory。
 - `FAST_PATH` 的 repo task 只读取 root `MEMORY.md`、`memory/MEMORY.md`、目标 subsystem `MEMORY.md` 与直接命中的 `description.md`；只有修改 memory 或判断施工状态时才读对应 `TODO.md`/`DONE.md`。
-- `COMPLEX_PATH` 在开始 implementation、debug、review 或文档更新前，依次读取 root `MEMORY.md`、`memory/MEMORY.md`、目标 subsystem `MEMORY.md`、命中 entry 的 `description.md`，并按任务需要继续 `TODO.md`、`DONE.md` 与直接引用的 source/reference。
+- `STANDARD_PATH` 读取与任务直接相关的 root/subsystem route 和命中 entry；只有施工状态、既有 decision 或 validation command 需要时才继续 `TODO.md`、`DONE.md` 与直接引用的 source/reference。
+- `HIGH_RISK_PATH` 在开始 implementation、debug 或 review 前完成完整但仍与 scope 相关的 memory routing；高风险不等于无差别读取整个 memory tree。
 
 涉及 repository 读取或修改时，开工更新必须列出实际读取路径，并说明它们如何影响 destination、scope 与 stopping condition。只读取最小必要 memory；memory 不是聊天历史。
 
@@ -64,12 +65,24 @@ Plan 和 implementation task 必须带入确认过的 API signature/usage。若�
 
 - Agent 的 `WORKING`、中途 finding、纠偏与即时进度走 message protocol，不写 project memory。
 - Memory 只保存可复用事实、已验证 decision、稳定 blocker、下一步 TODO、可复现 command 与 test/debug 经验。
-- 未满足适用 route 的 validation gate 不得记为 DONE：`FAST_PATH` 需要 Main targeted validation，`COMPLEX_PATH` 需要 required review。静态检查不能写成 runtime PASS。
+- 未满足适用 route 的 validation gate 不得记为 DONE：`FAST_PATH` 需要 Main targeted validation；`STANDARD_PATH` 只需要本次改动实际触发的 validation/review；`HIGH_RISK_PATH` 需要 user 已同意 brief 中的 risk-triggered gates。静态检查不能写成 runtime PASS。
 - Merge、rebase、cherry-pick、conflict resolution 或任何 code/config 改动后，必须交叉验证相关 memory 是否 stale。
 
-## 4. Simple 与 complex routing
+## 4. Risk-tiered routing
 
-### 4.1 Main-only `FAST_PATH`
+### 4.1 Route selection 与 anti-over-audit
+
+Main 在 intake 自主选择满足任务所需的**最低充分 route**。大多数任务应落在 `FAST_PATH` 或 `STANDARD_PATH`；`HIGH_RISK_PATH` 是少数例外，不能因为“可能更稳妥”而自动升级。
+
+所有 route 都遵守：
+
+- Validation/review 与实际 risk surface 成比例；不运行与改动无关的 lane，也不让多个 reviewer 重复负责同一 concern。
+- Main 只做一次必要的 final diff/audit；已有可靠 evidence 不为流程完整性重复生成。
+- Narrow targeted fix 只重跑受影响 lane。只有 scope、public/API contract、runtime semantics、candidate topology 或 material dependency 改变时才 full rerun。
+- Durable memory delta 不存在时，不运行 `MEMORY_CONTEXT_REVIEW` 或 `memory_curator`；mechanical memory 可由 Main 原子更新并复核。
+- Main 在 commentary 中记录 `ROUTE: <route>` 与一句理由。执行中风险改变时向上升级；不得把复杂任务拆成伪 simple task，也不得为了使用更多 agent 向上升级。
+
+### 4.2 Main-only `FAST_PATH`
 
 Main 在 task intake 自主判断 route。满足以下全部条件时使用 `FAST_PATH`：
 
@@ -83,32 +96,50 @@ Main 在 task intake 自主判断 route。满足以下全部条件时使用 `FAS
 
 `FAST_PATH` 禁止 spawn child，也不创建 delegated task contract、lease ledger、frozen `CANDIDATE_ID`、multi-lane review 或 `memory_curator`。Main 可直接完成 bounded code/docs/config change 或原子更新简单 memory，并自行验证。User 明确要求 change/build/fix 即授权该 exact bounded fast-path change；若 user 只要求 answer/diagnose/review，不得据此扩大为 implementation。Destructive/external action 或执行中出现 material scope expansion 仍需另行 approval。
 
-Main 必须在工作更新中用一句话记录 `ROUTE: FAST_PATH` 与理由。若任一条件不满足、风险/范围不确定，或执行中发现 scope 已扩大，立即停止新增修改、审计已有 diff，宣布 route upgrade，再按 `COMPLEX_PATH` 继续；不得为了省略 gate 将复杂任务拆成多个伪 simple task。
+`FAST_PATH` 不做重复审计：一次 targeted validation、一次 Main diff/final audit 即为默认上限。若任一条件不满足、风险/范围不确定，或执行中发现 scope 已扩大，立即停止新增修改、审计已有 diff，并升级到 `STANDARD_PATH`；若命中 high-risk trigger，再按 Section 4.4 请求 user 同意。
 
-### 4.2 Complex task
+### 4.3 Default `STANDARD_PATH`
 
-不满足 `FAST_PATH` 的任务全部进入 `COMPLEX_PATH`。New feature、跨模块或高风险 product code/config、algorithm/reward/env config、training/eval workflow、未决 architecture、难 debug 或 high-impact change 必须执行：
+不满足 `FAST_PATH`、且未获准进入 `HIGH_RISK_PATH` 的普通 product work 默认使用 `STANDARD_PATH`。它覆盖 acceptance 清楚的 bounded multi-file change、普通 feature/bugfix/debug、normal IsaacLab/API-sensitive work，以及需要 worker 或 targeted reviewer 的任务。
 
-`Pre-flight → concurrent context discovery → scoped plan + PLAN_GATE → explicit user Approval → lease-bound implementation DAG → frozen candidate → parallel multi-lane review → targeted fix loop → runtime/memory-context review → memory curate → final audit → commit`
+Standard 流程为：
 
-User approval 之前不得修改 product code/config，也不得启动 write-capable implementation agent。Approval 只覆盖展示给 user 的 scope；任何 material scope expansion 必须重新审批。
+`minimal context/discovery（按需 0–3；可证明独立时最多 5）→ concise Main plan → lease-bound worker(s) → lightweight candidate freeze → triggered review/QA → Main final audit → commit`
 
-复杂协作的完整 state machine、role routing 与 closure 规则见 `.codex/TEAM.md`；task、message、review、deep research 分别见 `.codex/contracts/`。这些文档只能细化，不能削弱本文件。
+- User 的 change/build/fix 请求是 exact approved scope 的实施授权；无需为了进入 Standard 再索要一次 route approval。Material scope expansion、destructive/external action 与 Deep invocation 仍需各自明确授权。
+- Main 可完整使用所有 ordinary registered subagents、adaptive concurrency 与 write/resource lease。Discovery 默认按需 0–3，不为凑 wave 强制 spawn；`scope_planner` 只在 design/scope 未决时使用，`goal_reviewer:PLAN_GATE` 只在 scope/acceptance risk 存在时使用。
+- Source/config candidate 默认只触发 `code_reviewer:CODE_QUALITY` 与风险相称的 targeted `runtime_qa`。`goal_reviewer:CANDIDATE_GATE` 仅在 scope/acceptance/authorization 有真实风险时触发；`isaaclab_reviewer` 仅在实际修改 IsaacLab/RL/reward/observation/action/scene/env/training semantics 时触发；Security/Performance/Data Compatibility 也只按对应 surface 触发。
+- Candidate manifest 由 Main 在 freeze 与 pre-commit 各计算一次。Reviewer 只核对自己负责的 paths、manifest entries 与 supplied candidate identity，不重复重建整个 repository manifest。
+- `memory_curator` 只在存在 non-mechanical durable memory delta 且 triggered review 已 PASS 时使用；mechanical memory 由 Main 直接更新、重读一次。
+- Narrow fix 后只重跑受影响 lane；未受影响 verdict 保持有效，除非发生 Section 4.1 所列 material change。
 
-### 4.3 Phase 2 role routing
+Standard 允许 Main 提交 `.codex/contracts/deep-research-contract.md` 的 exact brief，申请该次 Deep invocation；没有逐次 user approval 时 Deep 保持 dormant。申请 Deep 不自动升级为 High。
 
-复杂 task 使用以下明确 routing：
+### 4.4 Consent-gated `HIGH_RISK_PATH`
 
-1. Discovery wave 默认并发三个 `context_researcher` lane，分别执行 `REPO_DISCOVERY`、`ISAACLAB_DOCS`、`MEMORY_EXPERIENCE` 等互不重叠的 discovery；满足 Section 6 的 independence proof 时，Main 可自主细分 axis 并扩展到最多五个 active children。
-2. `scope_planner` 形成 scope、architecture、DAG、lease 与 acceptance plan；`goal_reviewer` 以 `PLAN_GATE` 独立审查。Main 汇总后向 user 请求 explicit approval。
-3. Approval 后，Main 派发一个或多个 `isaaclab_worker`。多个 writer 只允许在 `WRITE_SET` 与 GPU/IsaacSim/display/port/output 等 resource lease 可证明完全不重叠时并发；同路径或同资源冲突必须串行。
-4. 所有 writer terminal 且 lease 释放后，Main freeze candidate。Review Wave 1 并发 `goal_reviewer:CANDIDATE_GATE`、`code_reviewer:CODE_QUALITY`、`isaaclab_reviewer`。
-5. Wave 1 全 PASS 后，Review Wave 2 运行 `runtime_qa`、`context_researcher:MEMORY_CONTEXT_REVIEW`，并按风险增加 `code_reviewer:SECURITY|PERFORMANCE|DATA_COMPAT`。Default wave 为三个 children；多个 conditional risk lane 可证明彼此独立且绑定同一 frozen candidate 时，Main 可自主扩展到最多五个 active children。
-6. 所有 required lane PASS 后，Main 才能授权 `memory_curator` 原子更新批准的 memory entry；Main 重新验证后才 stage/commit。
+只有 truly high-blast-radius、难以回滚或代价显著的任务才候选 High，例如：large cross-subsystem architecture、security/auth boundary、persistent data migration、conflicting multi-writer/resource topology、repeated material failure、昂贵长时间 training/eval，或高影响且 acceptance/semantics 仍模糊的 change。普通 bounded IsaacLab change 保持 Standard，并按需触发 `isaaclab_reviewer`。
+
+Main **不得自主进入** `HIGH_RISK_PATH`。实施前必须向 user 提交一次 `HIGH_RISK_BRIEF`，说明：为什么 Standard 不足、批准 scope、预期 agents/leases、triggered review lanes、runtime/resource/cost 与 stopping condition，并取得 explicit consent。等待期间可在 Standard 权限内做 bounded read-only discovery/planning，但不得启动 High write/review wave。
+
+User 同意后执行批准 brief 对应的完整 multi-agent pipeline：`preflight → risk-targeted discovery/planning → implementation DAG → frozen candidate → approved review/runtime lanes → durable memory（如有）→ Main final audit/commit`。该 High consent 同时覆盖 brief 中的实施 pipeline，不再重复索要 generic implementation approval；material scope expansion 才重新审批。若 user 不同意，Main 应安全缩窄为 Standard，无法缩窄则报告 `BLOCKED`。
+
+High 也禁止过度审计：只运行 brief 中有 risk justification 的 lanes，每个 concern 一个 owner；manifest 仍只由 Main 在 freeze/pre-commit 计算；narrow fix 只重跑 impacted lanes；没有 durable memory delta 就跳过 memory lanes。
+
+### 4.5 Phase 2 role routing
+
+Standard/High delegated task 使用以下 routing：
+
+1. 按需使用 0–3 个互不重叠的 `context_researcher` lane；满足 Section 6 independence proof 时最多五个 active children。
+2. `scope_planner`、`goal_reviewer:PLAN_GATE` 与 High 的 expanded planning 只在各自 trigger 存在时使用。
+3. Main 派发一个或多个 `isaaclab_worker`；多个 writer 仍需 `WRITE_SET`、artifact 与所有 resource lease 完全不重叠。
+4. 所有 writer terminal 且 lease 释放后，Main freeze lightweight candidate，并只启动 Section 4.3 或获批 High brief 实际要求的 reviewer/QA lanes。
+5. Triggered lanes PASS 后，如存在 approved durable memory delta才调用 `memory_curator`；之后 Main 做一次 final audit 并 stage/commit。
 
 `deep_researcher` 已注册但 dormant-by-policy、never self-activate。每次 invocation 必须使用 `.codex/contracts/deep-research-contract.md` 的 exact approval brief 取得 separate user approval；缺少 effective Sol/Ultra/read-only evidence 时结果为 `INCONCLUSIVE`。
 
 ## 5. Delegation contract
+
+本节适用于会 spawn child 的 `STANDARD_PATH` 与 `HIGH_RISK_PATH`；`FAST_PATH` 不创建 dummy contract。
 
 每个 subagent assignment 必须是 self-contained executable task，并至少包含以下 exact sections：
 
@@ -153,30 +184,20 @@ Interrupt 不会 rollback shared filesystem。Writer 被中断或返回 aborted/
 - 只统计同一 `TASK_ID`、revision、bounded deliverable、`agent_type` 与 `failure_signature`（同一 root cause 的 normalized signature）的连续异常中断。异常中断指 child/runtime/tool 意外失败并未交付 required result；user/Main 主动取消、scope correction 或 approval blocker 不计入。
 - 第一次异常中断后，Main 必须先等待 child terminal、审计 partial writes/artifacts、invalidate candidate 并回收 lease；完成这些步骤后，同一 child task 最多重试一次。通过 `followup_task` 唤醒原 child 或 spawn 同 role replacement 都算这唯一一次 retry，不能靠更换 thread/task name 重置计数。
 - 第二次 attempt 仍因同一异常中断且未完成时，禁止第三次 follow-up/spawn 同一 child task。Main 记录两次 terminal/evidence 与 audit 结果，然后接管该 task 已批准 `WRITE_SET`/resource lease 内的最小剩余工作。
-- Main takeover 不得扩大 scope、revision、approval、`WRITE_SET` 或 resource lease，也不得绕过 frozen candidate、review、runtime、memory 与 Git gate。若 Main 缺少完成任务所需的 tool、permission、resource 或 specialist capability，必须报告 `BLOCKED` 并请求 user direction，不得 silent fallback。
+- Main takeover 不得扩大 scope、revision、approval、`WRITE_SET` 或 resource lease，也不得绕过当前 route 实际触发的 candidate、review、runtime、memory 与 Git gate。若 Main 缺少完成任务所需的 tool、permission、resource 或 specialist capability，必须报告 `BLOCKED` 并请求 user direction，不得 silent fallback。
 - 这是 lifecycle recovery，不是 product code 的容错或 silent downgrade；Section 2 的 fail-fast 规则保持不变。
 
-## 8. Frozen candidate 与 review gate
+## 8. Route-aware candidate 与 review gate
 
-本节只适用于 `COMPLEX_PATH`。所有 writer terminal 且 lease 已释放后，Main 才能 freeze candidate。Candidate identity 必须由 `BASE_SHA` 与 sorted changed-path/status/content hash manifest 得出，必须覆盖 tracked、deleted 与 untracked task files；任何 complex product/source/config 改动都会产生新 `CANDIDATE_ID`，旧 PASS 全部失效。
+`FAST_PATH` 不创建 candidate 或 reviewer lane。`STANDARD_PATH`/`HIGH_RISK_PATH` 的 writer 全部 terminal 且 lease 释放后，Main 才能 freeze candidate；manifest 覆盖批准 task files 中 tracked、deleted、untracked 与 ignored-explicit paths，并结合 `BASE_SHA` 生成 `CANDIDATE_ID`。
 
-任何 source/config change 至少需要相互独立的 lanes：
+Main 在 freeze 与 pre-commit 各验证一次 canonical manifest。Reviewer 只验证 assigned concern 所需的 candidate paths、manifest entries 与 supplied ID；不要求每个 lane重复计算全 manifest。所有 triggered lanes 绑定同一 candidate；`FAIL`、`BLOCKED` 或 `INCONCLUSIVE` 都不能通过对应 gate。
 
-1. `goal_reviewer:CANDIDATE_GATE`：需求、scope、acceptance、approval 与禁止项。
-2. `code_reviewer:CODE_QUALITY`：correctness、regression、type/API contract、fail-fast。
-3. `isaaclab_reviewer`：涉及 IsaacLab、RL、reward、scene/env/training 时强制，检查 high-level API、tensor shape/device、manager semantics、reward/termination routing 与 fallback。
-4. `runtime_qa`：targeted static/runtime test；不能运行时返回 INCONCLUSIVE，不得伪造 PASS。
-5. `context_researcher:MEMORY_CONTEXT_REVIEW`：candidate、完成声明与 proposed memory delta 一致性。
-
-Security、performance、data compatibility 等 lane 按改动触发。所有 required lane 必须读取同一 frozen `CANDIDATE_ID`。`FAIL`、`BLOCKED` 或 `INCONCLUSIVE` 都不等于 PASS，也不能 proceed to memory/commit。
-
-Reviewer 不直接修 code。Main 聚合 finding，给原 writer 或新获 lease 的 writer 派发最小 targeted fix；fix 后形成新 candidate，重新运行所有 required lanes。
+Standard source/config 默认 lanes 为 `code_reviewer:CODE_QUALITY` + targeted `runtime_qa`，其他 lane 按 Section 4.3 trigger。High 使用 user 已同意 brief 中的 risk-triggered lanes，不自动等于“所有 lane”。Reviewer 不修 code；Main 派发最小 targeted fix，形成新 candidate 后仅重跑 impacted lanes。Scope、API/runtime semantics、candidate topology 或 material dependency 改变时，旧相关 verdict 才全部失效并 full rerun。
 
 ## 9. Memory single-writer gate
 
-本节的 `memory_curator` gate 只适用于 `COMPLEX_PATH` frozen product candidate。`FAST_PATH` 的 simple documentation/mechanical memory update 由 Main 直接原子完成并重读验证，不 spawn curator。
-
-Complex candidate 的全部 required review PASS 后，Main 才能授予一个 memory curator 独占 memory lease。Curator 只能写批准的 memory entry：
+`FAST_PATH` 与 `STANDARD_PATH` 的 mechanical memory update 由 Main 直接原子完成并重读验证。只有 Standard/High 存在 non-mechanical durable memory delta，且该 route 实际 triggered review 已 PASS，Main 才能授予一个 `memory_curator` 独占 memory lease。Curator 只能写批准的 memory entry：
 
 - 从 `TODO.md` 移除或改写已完成 item。
 - 在 `DONE.md` 添加相同 timestamp 的完成记录。
@@ -193,10 +214,10 @@ Curator 完成后，Main 必须重新读取 actual `TODO.md`、`DONE.md`、`desc
 
 `FAST_PATH` closure 要求：targeted validation PASS；如修改 memory，`description.md`/`TODO.md`/`DONE.md` 与 route 保持一致；Main 确认 task diff 仅包含批准路径且未覆盖 pre-existing dirty changes。Fast path 不要求不存在的 child/review/candidate evidence。
 
-`COMPLEX_PATH` 必须在以下条件全部满足后进行 stage/commit：
+`STANDARD_PATH` / `HIGH_RISK_PATH` 必须在以下条件全部满足后进行 stage/commit：
 
 - 所有 spawned agent 已进入 completed/failed/interrupted terminal state；没有 active writer 或 reviewer。
-- Required review 全 PASS，memory 已更新并由 Main revalidate。
+- 当前 route 实际 triggered review 全 PASS；存在 durable memory delta 时 memory 已更新并由 Main revalidate。
 - `git status`、working diff 与 staged diff 只包含本任务批准路径；staged manifest 与 final candidate 一致。
 - Commit message 遵循 `git log --oneline -5` 的 repository style。
 
@@ -214,10 +235,10 @@ Main 主动 commit，但默认 **不 push**；只有 user 明确要求才 push�
 
 ## 12. 不可违反的结论
 
-- Route：Main 自主判断；满足全部低风险条件的普通 task、localized simple fix、documentation 与 mechanical memory 走 Main-only `FAST_PATH`，否则走 `COMPLEX_PATH`。
-- Complex product write：先 Plan，再取得 explicit user Approval。
+- Route：Main 选择最低充分 route；大多数 task 默认 `FAST_PATH` 或 `STANDARD_PATH`。只有提交 `HIGH_RISK_BRIEF` 并取得 user explicit consent 后才能进入 `HIGH_RISK_PATH`。
+- Standard：可完整使用 ordinary subagents 与 adaptive concurrency；user 的 exact change/build/fix request 即实施授权。Deep 仍需 exact per-invocation approval。
 - Shared filesystem：同一路径同一 revision 只有一个 writer。
-- Review：相互独立、同一 frozen candidate；FAIL/INCONCLUSIVE 不能过 gate。
-- Memory：Fast path 由 Main 原子同步并复核；complex path 在 review PASS 后由单一 curator 更新、Main 最终复核。
+- Review：按风险触发、一个 concern 一个 owner、同一 frozen candidate；窄修复只重跑 impacted lanes，FAIL/INCONCLUSIVE 不能过对应 gate。
+- Memory：无 durable delta 不启动 memory lane；mechanical update 由 Main 原子同步，non-mechanical delta 才按 route 使用单一 curator。
 - Git：Main-only，满足当前 route 的 validation/memory/terminal closure 后 commit，不 push。
 - Fail-fast：禁止 unnecessary fallback、silent downgrade 与虚假 PASS。

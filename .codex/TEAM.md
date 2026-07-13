@@ -118,6 +118,7 @@ Frozen candidate 使用 `contracts/review-contract.md` 的 canonical manifest：
 - Peer `FINDING`/`QUESTION` 可以直接发送，但影响 scope/candidate/verdict/lease 的 distilled finding 必须 mirror 给 Main。
 - `followup_task`：唤醒 idle/completed agent处理 bounded targeted follow-up，携带最新 revision/candidate。
 - `interrupt_agent`：停止 current turn；不等于 rollback。Main 等待 terminal 后审计完整 lease/partial writes，invalidate candidate，再决定 continuation/reassignment。
+- Two-strike abnormal-interrupt fallback：对相同 `TASK_ID` + revision + bounded deliverable + `agent_type` + normalized root-cause `failure_signature`，第一次异常中断完成 terminal/partial-write/lease audit 后最多重试一次；`followup_task` 与 same-role replacement spawn 都计入 retry，不能靠更换 thread/task name 重置。第二次同因异常中断且未交付时，不再第三次 follow-up/spawn，由 Main 接管原批准 scope/lease 内的最小剩余工作。Main 缺少必要 capability 时返回 `BLOCKED`，所有 candidate/review/runtime/memory/Git gate 保持不变。
 - Main 在 agents 运行时继续 non-overlapping work，不做高频 polling；final 前所有 spawned agents 必须 terminal 或明确 abandoned。
 
 完整 envelope 与 closure 见 `contracts/message-protocol.md`。

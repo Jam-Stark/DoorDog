@@ -26,6 +26,7 @@ ACTION_REQUESTED:
 - `REVIEW_ISSUE`：reviewer 针对当前 candidate 的具体 finding。
 - `HANDOFF`：bounded artifact、diff 或 evidence 已准备好。
 - `CLOSURE_READY`：agent 已提交 substantive result，可以进入 terminal state。
+- `MAIN_TAKEOVER`：同一 bounded child task 连续两次同因异常中断后，Main 记录 audit evidence 并接管最小剩余工作。
 
 ## Tool Semantics
 
@@ -40,6 +41,15 @@ ACTION_REQUESTED:
 ### `interrupt_agent`
 
 用于真正停止 current turn。Interrupt 不等于 rollback 或 clean state；Main 随后必须审计 agent 的整个 `WRITE_SET`、artifact 与 lease，再决定 follow-up、abandon 或 reassignment。
+
+## Two-Strike Main Takeover
+
+同一 `TASK_ID`、revision、bounded deliverable、`agent_type` 与 normalized root-cause `failure_signature` 构成一次 abnormal-interrupt key。只有 child/runtime/tool 意外失败且未返回 required result 才计数；user/Main 主动取消、scope correction 与 approval blocker 不计数。
+
+- Attempt 1 terminal 后，Main 先记录 `TERMINAL_STATUS`、`FAILURE_SIGNATURE`、`PARTIAL_WRITE_AUDIT`、`CANDIDATE_INVALIDATION` 与 `LEASE_STATUS`，再决定唯一一次 retry。无论 retry 使用 `followup_task` 还是 same-role replacement spawn，都沿用同一 key，不能以新 thread/task name 清零。
+- Attempt 2 若以同一 failure signature 异常中断且仍未交付，Main 不再进行第三次 follow-up/spawn，发送或记录 `MAIN_TAKEOVER` envelope，并接管原批准 scope/lease 内的最小剩余工作。
+- `MAIN_TAKEOVER` 的 `EVIDENCE` 必须列出两次 attempt 的 terminal status、failure signature、partial-write audit 与 lease reclamation；`ACTION_REQUESTED` 写明 Main takeover 或因缺少 capability 而 `BLOCKED`。
+- Main takeover 不产生 scope/approval/lease expansion，也不改变 frozen candidate、review、runtime、memory 或 Git closure requirements。
 
 ## Peer-to-Peer Evidence Transfer
 

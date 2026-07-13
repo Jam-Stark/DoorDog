@@ -20,7 +20,7 @@ Main agent 是 user 的需求主管与唯一 orchestrator，负责：
 - `git add`、`git commit`、branch/worktree mutation、merge、rebase、cherry-pick、stash、reset、push。
 - 宣布任务完成。
 
-Main agent 不直接 implement complex product code。简单修改可按 Section 4 直接完成；complex implementation 必须交给获准的 implementation agent。所有 agent 都在同一 shared filesystem 工作，绝不能把 subagent 当成隔离 worktree。
+Main agent 默认不直接 implement complex product code。简单修改可按 Section 4 直接完成；complex implementation 必须交给获准的 implementation agent。唯一受限例外是 Section 7 的 two-strike abnormal-interrupt fallback：同一 bounded task 的 child 连续两次因同一异常中断且未完成时，Main 可接管已批准 scope 内的最小剩余工作。所有 agent 都在同一 shared filesystem 工作，绝不能把 subagent 当成隔离 worktree。
 
 ## 2. Fail-fast 与 code 规范
 
@@ -139,6 +139,14 @@ Interrupt 不会 rollback shared filesystem。Writer 被中断或返回 aborted/
 2. 读取 `git status`/diff 与实际目标文件，检查 partial write 和 lease violation。
 3. 将 candidate 标为 invalid，选择 continue、targeted repair 或请求 user 授权清理。
 4. 不使用 destructive Git 丢弃可能属于 user/其他 agent 的改动。
+
+### 7.1 Two-strike abnormal-interrupt fallback
+
+- 只统计同一 `TASK_ID`、revision、bounded deliverable、`agent_type` 与 `failure_signature`（同一 root cause 的 normalized signature）的连续异常中断。异常中断指 child/runtime/tool 意外失败并未交付 required result；user/Main 主动取消、scope correction 或 approval blocker 不计入。
+- 第一次异常中断后，Main 必须先等待 child terminal、审计 partial writes/artifacts、invalidate candidate 并回收 lease；完成这些步骤后，同一 child task 最多重试一次。通过 `followup_task` 唤醒原 child 或 spawn 同 role replacement 都算这唯一一次 retry，不能靠更换 thread/task name 重置计数。
+- 第二次 attempt 仍因同一异常中断且未完成时，禁止第三次 follow-up/spawn 同一 child task。Main 记录两次 terminal/evidence 与 audit 结果，然后接管该 task 已批准 `WRITE_SET`/resource lease 内的最小剩余工作。
+- Main takeover 不得扩大 scope、revision、approval、`WRITE_SET` 或 resource lease，也不得绕过 frozen candidate、review、runtime、memory 与 Git gate。若 Main 缺少完成任务所需的 tool、permission、resource 或 specialist capability，必须报告 `BLOCKED` 并请求 user direction，不得 silent fallback。
+- 这是 lifecycle recovery，不是 product code 的容错或 silent downgrade；Section 2 的 fail-fast 规则保持不变。
 
 ## 8. Frozen candidate 与 review gate
 

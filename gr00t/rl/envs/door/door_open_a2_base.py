@@ -41,6 +41,19 @@ from gr00t.rl.envs.base_task.finger_primitive_base import FingerPrimitiveBase
 from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
 from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
+from gr00t.rl.envs.door.a2_door_direction import (
+    DOOR_MODE_PULL,
+    DOOR_MODE_PUSH,
+    a2_stage5_reward_gate,
+    expected_open_io_sign,
+    heading_error_rad,
+    horizontal_door_directions,
+    pregrasp_rotation_for_pull,
+    select_pull_stage4_target_root_pos,
+    signed_progress,
+    validate_door_mode,
+    validate_open_io_metadata,
+)
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
 
@@ -2228,7 +2241,11 @@ class DoorPregrasp(
     STAGE_THROUGH = 5
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
-    A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
+    A2_DOOR_MODE_CONFIG_KEY = "mode"
+    A2_PREGRASP_OFFSET_CONFIG_KEY = "a2_pregrasp_target_offset"
+    A2_PREGRASP_ROTATION_CONFIG_KEY = "a2_pregrasp_target_rotation"
+    A2_PULL_CLEARANCE_CONFIG_KEY = "a2_pull_stage4_clearance_distance"
+    A2_TARGET_ROOT_DISTANCE_CONFIG_KEY = "a2_target_root_through_distance"
     A2_STAGE0_STAGING_OFFSET_CONFIG_KEY = "a2_stage0_staging_x_offset"
     A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage3_to4_door_hinge_threshold"
@@ -2240,6 +2257,180 @@ class DoorPregrasp(
         "a2_hold_diagnostic_max_contact_data_count_per_prim"
     )
     A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY = "a2_hold_diagnostic_friction_override"
+
+    def _get_a2_door_mode(self) -> str:
+        task_config = getattr(self.config, "task", None)
+        mode = None
+        if task_config is not None and hasattr(task_config, "get"):
+            mode = task_config.get(self.A2_DOOR_MODE_CONFIG_KEY, None)
+        if mode is None:
+            raise RuntimeError(
+                "A2 door route requires explicit env.config.task.mode ('push' or 'pull')."
+            )
+        try:
+            return validate_door_mode(str(mode))
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
+
+    def _get_a2_pregrasp_target_offset(self) -> tuple[float, float, float]:
+        mode = self._get_a2_door_mode()
+        if self.A2_PREGRASP_OFFSET_CONFIG_KEY not in self.config:
+            raise RuntimeError(
+                "A2 door route requires env.config.a2_pregrasp_target_offset; "
+                f"mode={mode!r}."
+            )
+        value = self.config[self.A2_PREGRASP_OFFSET_CONFIG_KEY]
+        if not hasattr(value, "__len__") or len(value) != 3:
+            raise RuntimeError(
+                "A2 pregrasp target offset must contain exactly three finite values; "
+                f"got {value!r}."
+            )
+        offset = tuple(float(component) for component in value)
+        if not all(math.isfinite(component) for component in offset):
+            raise RuntimeError(
+                "A2 pregrasp target offset must contain finite values; "
+                f"got {offset!r}."
+            )
+        return offset
+
+    def _get_a2_pregrasp_target_rotation(self) -> tuple[float, float, float, float]:
+        mode = self._get_a2_door_mode()
+        if self.A2_PREGRASP_ROTATION_CONFIG_KEY not in self.config:
+            raise RuntimeError(
+                "A2 door route requires env.config.a2_pregrasp_target_rotation; "
+                f"mode={mode!r}."
+            )
+        value = self.config[self.A2_PREGRASP_ROTATION_CONFIG_KEY]
+        if not hasattr(value, "__len__") or len(value) != 4:
+            raise RuntimeError(
+                "A2 pregrasp target rotation must contain exactly four finite values; "
+                f"got {value!r}."
+            )
+        rotation = tuple(float(component) for component in value)
+        if not all(math.isfinite(component) for component in rotation):
+            raise RuntimeError(
+                "A2 pregrasp target rotation must contain finite values; "
+                f"got {rotation!r}."
+            )
+        norm = math.sqrt(sum(component * component for component in rotation))
+        if not math.isclose(norm, 1.0, abs_tol=1.0e-5, rel_tol=0.0):
+            raise RuntimeError(
+                "A2 pregrasp target rotation must be unit length; "
+                f"got norm={norm}."
+            )
+        if mode == DOOR_MODE_PULL:
+            push_rotation = torch.tensor(
+                (0.5, 0.5, 0.5, 0.5), dtype=torch.float32
+            )
+            expected_pull_rotation = pregrasp_rotation_for_pull(push_rotation).tolist()
+            if not all(
+                math.isclose(component, expected, abs_tol=1.0e-5, rel_tol=0.0)
+                for component, expected in zip(rotation, expected_pull_rotation)
+            ):
+                raise RuntimeError(
+                    "A2 pull pregrasp target rotation must equal q_z(pi) ⊗ q_push; "
+                    f"got {rotation!r}, expected {tuple(expected_pull_rotation)!r}."
+                )
+        return rotation
+
+    def _get_a2_pull_clearance_distance(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_PULL_CLEARANCE_CONFIG_KEY,
+            "A2 pull stage4 clearance",
+        )
+
+    def _get_a2_target_root_through_distance(self) -> float:
+        if self.A2_TARGET_ROOT_DISTANCE_CONFIG_KEY not in self.config:
+            raise RuntimeError(
+                "A2 through-door target requires explicit env.config."
+                f"{self.A2_TARGET_ROOT_DISTANCE_CONFIG_KEY}."
+            )
+        return self._get_required_positive_float_config(
+            self.A2_TARGET_ROOT_DISTANCE_CONFIG_KEY,
+            "A2 through-door target root distance",
+        )
+
+    def _get_a2_door_root_pose(self, context: str):
+        articulation = self.simulator.scene.articulations.get("door")
+        if articulation is None:
+            raise RuntimeError(f"{context} requires the high-level door articulation.")
+        data = articulation.data
+        root_pos_w = getattr(data, "root_pos_w", None)
+        root_quat_w = getattr(data, "root_quat_w", None)
+        runner_device = torch.device(self.device)
+        if (
+            root_pos_w is None
+            or root_quat_w is None
+            or tuple(root_pos_w.shape) != (self.num_envs, 3)
+            or tuple(root_quat_w.shape) != (self.num_envs, 4)
+            or root_pos_w.device != runner_device
+            or root_quat_w.device != runner_device
+            or root_pos_w.dtype != root_quat_w.dtype
+            or not torch.all(torch.isfinite(root_pos_w))
+            or not torch.all(torch.isfinite(root_quat_w))
+        ):
+            pos_shape = None if root_pos_w is None else tuple(root_pos_w.shape)
+            quat_shape = None if root_quat_w is None else tuple(root_quat_w.shape)
+            raise RuntimeError(
+                f"{context} requires door.data.root_pos_w ({self.num_envs}, 3) and "
+                f"root_quat_w ({self.num_envs}, 4); got {pos_shape}, {quat_shape}."
+            )
+        return root_pos_w, root_quat_w
+
+    def _get_a2_door_frame_directions(self, context: str):
+        root_pos_w, root_quat_w = self._get_a2_door_root_pose(context)
+        approach_sign = getattr(self, "approach_sign", None)
+        runner_device = torch.device(self.device)
+        if (
+            approach_sign is None
+            or tuple(approach_sign.shape) != (self.num_envs,)
+            or approach_sign.device != runner_device
+            or approach_sign.dtype != root_quat_w.dtype
+        ):
+            shape = None if approach_sign is None else tuple(approach_sign.shape)
+            raise RuntimeError(
+                f"{context} requires approach_sign shape ({self.num_envs},); got {shape}."
+            )
+        try:
+            approach_w, through_w, lateral_w = horizontal_door_directions(
+                root_quat_w, approach_sign
+            )
+        except ValueError as exc:
+            raise RuntimeError(f"{context}: {exc}") from exc
+        return root_pos_w, root_quat_w, approach_w, through_w, lateral_w
+
+    def _get_a2_stage0_target(self, context: str):
+        grasp_target = self._compute_grasp_target()
+        root_pos_w, _, approach_w, _, _ = self._get_a2_door_frame_directions(context)
+        stage0_target = grasp_target + approach_w * self._get_a2_stage0_staging_x_offset()
+        return stage0_target, root_pos_w, approach_w
+
+    def _get_a2_pull_clearance_mask(self, context: str):
+        door_root_pos_w, _, approach_w, _, _ = self._get_a2_door_frame_directions(context)
+        robot_root_pos_w = self.simulator.robot_root_states[:, :3]
+        progress = signed_progress(robot_root_pos_w, door_root_pos_w, approach_w)
+        return progress >= self._get_a2_pull_clearance_distance()
+
+    def _get_a2_pull_clearance_target_root_pos(self, context: str):
+        door_root_pos_w, _, approach_w, _, _ = self._get_a2_door_frame_directions(context)
+        target_world = (
+            door_root_pos_w + self._get_a2_pull_clearance_distance() * approach_w
+        ) - self.env_origins
+        configured_target = getattr(self, "target_root_pos", None)
+        if configured_target is None or configured_target.ndim != 2 or configured_target.shape[1] != 3:
+            shape = None if configured_target is None else tuple(configured_target.shape)
+            raise RuntimeError(
+                f"{context} requires target_root_pos shape (1 or {self.num_envs}, 3); got {shape}."
+            )
+        configured_height = (
+            configured_target[0, 2]
+            if configured_target.shape[0] == 1
+            else configured_target[:, 2]
+        )
+        if configured_height.ndim == 0:
+            configured_height = configured_height.repeat(self.num_envs)
+        target_world[:, 2] = configured_height
+        return target_world
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -2491,6 +2682,7 @@ class DoorPregrasp(
             self.door_handle_width[env_id] = door_metadata["doorHandleWidth"]
             self.door_weight[env_id] = door_metadata["doorWeight"]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+            self.door_open_io[env_id] = door_metadata["doorOpenIO"]
 
         # body indices
         self.left_palm_idx = self.simulator.body_names.index("left_hand_palm_link")
@@ -2599,8 +2791,10 @@ class DoorPregrasp(
             self.door_handle_width[env_id] = door_metadata["doorHandleWidth"]
             self.door_weight[env_id] = door_metadata["doorWeight"]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+            self.door_open_io[env_id] = door_metadata["doorOpenIO"]
 
     def _init_a2_door_pregrasp_state(self):
+        self._a2_door_mode = self._get_a2_door_mode()
         self._a2_stage3_to4_door_hinge_threshold = (
             self._get_required_positive_float_config(
                 self.A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY,
@@ -2608,6 +2802,23 @@ class DoorPregrasp(
             )
         )
         self._init_door_metadata()
+        try:
+            validate_open_io_metadata(self._a2_door_mode, self.door_open_io)
+        except ValueError as exc:
+            raise RuntimeError(str(exc)) from exc
+        expected_sign = expected_open_io_sign(self._a2_door_mode)
+        self.approach_sign = self.door_open_io.clone()
+        self.through_sign = -self.approach_sign
+        if not torch.allclose(
+            self.approach_sign,
+            torch.full_like(self.approach_sign, expected_sign),
+            atol=0.0,
+            rtol=0.0,
+        ):
+            raise RuntimeError(
+                "A2 approach_sign must be the validated doorOpenIO metadata sign; "
+                f"mode={self._a2_door_mode!r}, values={self.approach_sign.tolist()}."
+            )
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
         a2_gripper_body_names = ("arm_body7", "arm_body8")
         missing_gripper_bodies = [
@@ -2795,13 +3006,9 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
-        # A2: walk toward a staging position in front of handle (door normal -X),
-        # so base aligns with handle Y and stops at a comfortable arm reach distance.
+        # A2: walk toward the metadata-driven staging side of the handle.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
-        grasp_target_pos = self._compute_grasp_target().clone()
-        # staging target: configured distance from handle along -X (door normal, toward robot side)
-        stage0_target_pos = grasp_target_pos.clone()
-        stage0_target_pos[:, 0] -= self._get_a2_stage0_staging_x_offset()
+        stage0_target_pos, _, _ = self._get_a2_stage0_target("A2 walk_to_door")
         stage0_target_pos[:, 2] = current_root_pos[:, 2]
         target_direction = stage0_target_pos - current_root_pos
         target_dir = F.normalize(target_direction, dim=-1)
@@ -3815,10 +4022,33 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage([STAGE_SWING, STAGE_THROUGH])
     def _reward_target_root_distance(self):
-        target_direction = F.normalize(
-            self.target_root_pos - (self.simulator.robot_root_states[:, :3] - self.env_origins),
-            dim=-1,
-        )
+        if self._use_a2_base:
+            pull_stage4 = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            if (
+                self._get_a2_door_mode() == DOOR_MODE_PULL
+                and torch.any(self.stage_buf == self.STAGE_SWING)
+            ):
+                pull_stage4 = self.stage_buf == self.STAGE_SWING
+            through_target_root_pos = self._get_a2_target_root_pos_for_all_envs(
+                "A2 target_root_distance"
+            )
+            if torch.any(pull_stage4):
+                clearance_target_root_pos = self._get_a2_pull_clearance_target_root_pos(
+                    "A2 pull stage4 target_root_distance"
+                )
+                target_root_pos = select_pull_stage4_target_root_pos(
+                    self.stage_buf,
+                    self.STAGE_SWING,
+                    clearance_target_root_pos,
+                    through_target_root_pos,
+                )
+            else:
+                target_root_pos = through_target_root_pos
+        else:
+            target_root_pos = self.target_root_pos
+
+        root_pos_rel = self.simulator.robot_root_states[:, :3] - self.env_origins
+        target_direction = F.normalize(target_root_pos - root_pos_rel, dim=-1)
         root_vel = self.simulator._rigid_body_vel[:, self.root_idx, :]
         root_vel_along_target_direction = torch.sum(root_vel * target_direction, dim=-1)
         root_vel_target = self.config.get("target_root_vel", 0.3)
@@ -3827,15 +4057,15 @@ class DoorPregrasp(
         )
 
         root_pos_diff = torch.norm(
-            self.simulator.robot_root_states[:, :3] - self.env_origins - self.target_root_pos,
+            root_pos_rel - target_root_pos,
             dim=-1,
         )
         root_pos_reward = self._tracking_reward_util(
             root_pos_diff, std=0.2, target=0.0, scale=1.0, offset=0.0
         )
-        reward = (root_vel_reward + root_pos_reward).clamp(max=1.0)
-        reward[self.stage_buf == DoorPregrasp.STAGE_SWING] *= 0.5
-        return reward
+        target_reward = (root_vel_reward + root_pos_reward).clamp(max=1.0)
+        target_reward[self.stage_buf == DoorPregrasp.STAGE_SWING] *= 0.5
+        return target_reward
 
     @override
     def _reward_limits_dof_pos(self):
@@ -3890,11 +4120,19 @@ class DoorPregrasp(
         [STAGE_WALK_TO_DOOR, STAGE_PREGRASP, STAGE_GRASP]
     )
     def _reward_penalty_face_door(self):
-        # A2 stage0 pass: keep the G1 Doorman full root-to-door orientation penalty
-        # for the first reward smoke. Future option: switch to yaw-only heading
-        # error or add a desired heading offset if A2 needs a non-square stance.
+        # A2 uses the signed door-frame through heading.  A pull reset therefore
+        # faces -X (yaw≈pi) and is not penalized merely for its absolute yaw.
         # Stage5 (THROUGH) disabled: A2 穿门后自然转头看前方，不应继续惩罚 root-to-door
         # orientation deviation。G1 原版 stages [0,1,2,5] 含 stage5，A2 改为 [0,1,2]。
+        if self._use_a2_base:
+            _, _, _, through_w, _ = self._get_a2_door_frame_directions(
+                "A2 penalty_face_door"
+            )
+            robot_root_quat_w = xyzw_to_wxyz(self.simulator.robot_root_states[:, 3:7])
+            try:
+                return heading_error_rad(robot_root_quat_w, through_w)
+            except ValueError as exc:
+                raise RuntimeError(f"A2 penalty_face_door: {exc}") from exc
         return wrap_to_pi(
             axis_angle_from_quat(xyzw_to_wxyz(self.relative_door_rot_buf)).norm(dim=-1)
         )
@@ -3933,10 +4171,15 @@ class DoorPregrasp(
             "a2_stage1_stage2_base_forward_creep_scale",
             "penalty_a2_stage1_stage2_base_forward_creep",
         )
-        grasp_target = self._compute_grasp_target()
-        stage0_target_x = grasp_target[:, 0] - self._get_a2_stage0_staging_x_offset()
-        root_x = self.simulator.robot_root_states[:, 0]
-        reward = ((root_x - stage0_target_x - deadband) / scale).clamp(0.0, 1.0)
+        stage0_target, _, _ = self._get_a2_stage0_target(
+            "A2 stage1/2 base forward creep"
+        )
+        _, _, _, through_w, _ = self._get_a2_door_frame_directions(
+            "A2 stage1/2 base forward creep"
+        )
+        root_pos_w = self.simulator.robot_root_states[:, :3]
+        progress = signed_progress(root_pos_w, stage0_target, through_w)
+        reward = ((progress - deadband) / scale).clamp(0.0, 1.0)
         return reward
 
     def _reward_penalty_upright(self):
@@ -4117,9 +4360,27 @@ class DoorPregrasp(
                 f"{context} requires target_root_pos shape (1, 3) or "
                 f"({self.num_envs}, 3); got {shape}."
             )
-        if target_root_pos.shape[0] == 1:
-            return target_root_pos.repeat(self.num_envs, 1)
-        return target_root_pos
+        if not self._use_a2_base:
+            if target_root_pos.shape[0] == 1:
+                return target_root_pos.repeat(self.num_envs, 1)
+            return target_root_pos
+
+        door_root_pos_w, _, _, through_w, _ = self._get_a2_door_frame_directions(
+            f"{context} door-frame target"
+        )
+        through_distance = self._get_a2_target_root_through_distance()
+        target_world = door_root_pos_w + through_distance * through_w
+        target_world = target_world - self.env_origins
+        configured_height = target_root_pos[0, 2] if target_root_pos.shape[0] == 1 else target_root_pos[:, 2]
+        if configured_height.ndim == 0:
+            configured_height = configured_height.repeat(self.num_envs)
+        if configured_height.shape != (self.num_envs,):
+            raise RuntimeError(
+                f"{context} target_root_pos height must broadcast to ({self.num_envs},); "
+                f"got {tuple(configured_height.shape)}."
+            )
+        target_world[:, 2] = configured_height
+        return target_world
 
     def _get_a2_stage2_grasp_contact_history_length(self):
         history_length = self.config.get("stage2_grasp_contact_history_length", None)
@@ -4802,11 +5063,14 @@ class DoorPregrasp(
         door_frame_contact_force = self._get_door_frame_contact_force_per_env(
             "A2 route diagnostics"
         )
+        door_root_pos_w, _, _, through_w, _ = self._get_a2_door_frame_directions(
+            "A2 route diagnostics"
+        )
+        root_through_progress = signed_progress(root_states[:, :3], door_root_pos_w, through_w)
 
         self.log_dict["a2_door_hinge_joint_pos_mean"] = door_joint_pos[:, 0].mean()
         self.log_dict["a2_door_handle_joint_pos_mean"] = door_joint_pos[:, 1].mean()
-        self.log_dict["a2_root_x_mean"] = root_pos_rel[:, 0].mean()
-        self.log_dict["a2_root_y_mean"] = root_pos_rel[:, 1].mean()
+        self.log_dict["a2_root_through_progress_mean"] = root_through_progress.mean()
         self.log_dict["a2_root_yaw_mean"] = rpy[:, 2].mean()
         self.log_dict["a2_root_roll_mean"] = rpy[:, 0].mean()
         self.log_dict["a2_root_pitch_mean"] = rpy[:, 1].mean()
@@ -11507,20 +11771,28 @@ class DoorPregrasp(
 
             self.target_robot_root_states[env_ids] = self.base_init_state
             self.target_robot_root_states[env_ids, :3] += self.env_origins[env_ids]
-            self.target_robot_root_states[env_ids, 0:1] = (
-                torch_rand_float(-1.5, -0.6, (len(env_ids), 1), device=str(self.device))
-                + self.env_origins[env_ids, 0:1]
+            door_root_pos_w, _, approach_w, through_w, lateral_w = (
+                self._get_a2_door_frame_directions("A2 root reset")
             )
-            self.target_robot_root_states[env_ids, 1:2] = (
-                torch_rand_float(-0.5, 0.5, (len(env_ids), 1), device=str(self.device))
-                + self.env_origins[env_ids, 1:2]
+            distance = torch_rand_float(
+                0.6, 1.5, (len(env_ids), 1), device=str(self.device)
             )
+            lateral_offset = torch_rand_float(
+                -0.5, 0.5, (len(env_ids), 1), device=str(self.device)
+            )
+            reset_xy_w = (
+                door_root_pos_w[env_ids, :]
+                + distance * approach_w[env_ids]
+                + lateral_offset * lateral_w[env_ids]
+            )
+            self.target_robot_root_states[env_ids, :2] = reset_xy_w[:, :2]
             r, p, _ = euler_xyz_from_quat(self.target_robot_root_states[env_ids, 3:7])
             random_yaw = torch_rand_float(
                 -torch.pi / 4, torch.pi / 4, (len(env_ids), 1), device=str(self.device)
             )[:, 0]
+            desired_yaw = torch.atan2(through_w[env_ids, 1], through_w[env_ids, 0])
             self.target_robot_root_states[env_ids, 3:7] = quat_from_euler_xyz(
-                r, p, random_yaw
+                r, p, desired_yaw + random_yaw
             )
             self.target_robot_root_states[env_ids, 7:13] = 0.0
             return
@@ -11651,10 +11923,8 @@ class DoorPregrasp(
         return self._stage_0_to_1_advance_condition()
 
     def _stage_0_to_1_advance_condition(self):
-        # get close enough to the configured staging position in front of handle
-        grasp_target = self._compute_grasp_target()
-        stage0_target = grasp_target.clone()
-        stage0_target[:, 0] -= self._get_a2_stage0_staging_x_offset()
+        # get close enough to the metadata-driven staging position at the handle
+        stage0_target, _, _ = self._get_a2_stage0_target("A2 stage0->1 transition")
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = stage0_target[:, 2]
         cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
@@ -11804,19 +12074,46 @@ class DoorPregrasp(
 
     def _stage_4_to_5_advance_condition(self):
         # walk through the door and leave handle up
-        walked_through_door = (
-            self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]
-        ) > 0.0
+        if not self._use_a2_base:
+            walked_through_door = (
+                self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]
+            ) > 0.0
+            door_opened = self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 1.0472
+            handle_up = self.simulator.scene.articulations["door"].data.joint_pos[:, 1] < 0.2
+            return walked_through_door & handle_up & door_opened
+        door_root_pos_w, _, _, through_w, _ = self._get_a2_door_frame_directions(
+            "A2 stage4->5 transition"
+        )
+        root_pos_w = self.simulator.robot_root_states[:, :3]
+        through_progress = signed_progress(root_pos_w, door_root_pos_w, through_w)
+        if self._get_a2_door_mode() == DOOR_MODE_PULL:
+            walked_through_door = self._get_a2_pull_clearance_mask(
+                "A2 pull stage4 clearance transition"
+            )
+        else:
+            walked_through_door = through_progress > 0.0
         door_opened = self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 1.0472
         handle_up = self.simulator.scene.articulations["door"].data.joint_pos[:, 1] < 0.2
         return walked_through_door & handle_up & door_opened
 
     def _stage_5_reward_condition(self):
         # keep walking through the door
+        if self._use_a2_base:
+            door_opened = self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 1.0472
+            handle_up = self.simulator.scene.articulations["door"].data.joint_pos[:, 1] < 0.2
+            return a2_stage5_reward_gate(door_opened, handle_up)
         return self._stage_4_to_5_advance_condition()
 
     def _stage_5_to_complete_condition(self):
-        return (self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]) > 1.5
+        if not self._use_a2_base:
+            return (self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]) > 1.5
+        door_root_pos_w, _, _, through_w, _ = self._get_a2_door_frame_directions(
+            "A2 stage5 completion"
+        )
+        through_progress = signed_progress(
+            self.simulator.robot_root_states[:, :3], door_root_pos_w, through_w
+        )
+        return through_progress > 1.5
 
     @staticmethod
     def _a2_hold_collision_descendants(stage: Usd.Stage, parent_path: str):
@@ -11855,6 +12152,8 @@ class DoorPregrasp(
         )
 
         if self._use_a2_base:
+            pregrasp_offset = self._get_a2_pregrasp_target_offset()
+            pregrasp_rotation = self._get_a2_pregrasp_target_rotation()
             target_sub_prim = simulator.task_config.get(
                 "target_obj_transform_sub_prim_path", None
             )
@@ -11880,15 +12179,15 @@ class DoorPregrasp(
                             name="handle",
                             offset=OffsetCfg(
                                 pos=(0.0, 0.0, 0.0),
-                                rot=(0.5, 0.5, 0.5, 0.5),
+                                rot=pregrasp_rotation,
                             ),
                         ),
                         FrameTransformerCfg.FrameCfg(
                             prim_path=target_obj_transform_prim_path,
                             name="pregrasp",
                             offset=OffsetCfg(
-                                pos=self.A2_PREGRASP_OFFSET,
-                                rot=(0.5, 0.5, 0.5, 0.5),
+                                pos=pregrasp_offset,
+                                rot=pregrasp_rotation,
                             ),
                         ),
                     ],
@@ -11952,7 +12251,7 @@ class DoorPregrasp(
             sim_utils_vis.spawn_sphere(
                 prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_pregrasp_target",
                 cfg=vis_pregrasp_cfg,
-                translation=self.A2_PREGRASP_OFFSET,
+                translation=pregrasp_offset,
             )
             vis_stage0_cfg = sim_utils_vis.SphereCfg(
                 radius=_vis_radius,
@@ -11964,7 +12263,13 @@ class DoorPregrasp(
             sim_utils_vis.spawn_sphere(
                 prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_stage0_target",
                 cfg=vis_stage0_cfg,
-                translation=(-self._get_a2_stage0_staging_x_offset(), 0.0, 0.0),
+                translation=(
+                    -self._get_a2_stage0_staging_x_offset()
+                    if self._get_a2_door_mode() == DOOR_MODE_PUSH
+                    else self._get_a2_stage0_staging_x_offset(),
+                    0.0,
+                    0.0,
+                ),
             )
 
             # Handle coordinate axis visualizer: 3 cylinders (R=X, G=Y, B=Z) at grasp_target.

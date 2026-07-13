@@ -1,0 +1,21 @@
+# @package _global_
+
+defaults:
+  - door_open_a2_base
+  - _self_
+
+# Pull uses the exact A2 env/reward/observation implementation and only changes
+# explicit task-side semantics and artifact identity.
+env:
+  config:
+    task:
+      name: "door_pull"
+      mode: "pull"
+    a2_pregrasp_target_offset: [0.10, 0.0, 0.0]
+    # Canonical sign of q_z(pi) ⊗ q_push in WXYZ.
+    a2_pregrasp_target_rotation: [0.5, 0.5, -0.5, -0.5]
+    target_root_pos: [-2.0, 0.0, 0.5]
+    a2_pull_stage4_clearance_distance: 0.30
+    a2_target_root_through_distance: 2.0
+
+log_task_name: door_pull

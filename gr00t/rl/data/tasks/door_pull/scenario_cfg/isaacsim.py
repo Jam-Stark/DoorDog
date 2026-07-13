@@ -8,8 +8,6 @@ from gr00t.rl.data.tasks.door.scenario_cfg.factory import (
 )
 
 
-# Keep these names exported for existing static preview/smoke tools while the
-# actual task object is built by the shared push/pull scenario factory.
-door_spawner_cfg = build_door_spawner_cfg(["out"])
-TaskObjCfgDict = build_task_obj_cfg_dict(["out"])
+door_spawner_cfg = build_door_spawner_cfg(["in"])
+TaskObjCfgDict = build_task_obj_cfg_dict(["in"])
 multi_spawner_cfg = TaskObjCfgDict["door"].spawn

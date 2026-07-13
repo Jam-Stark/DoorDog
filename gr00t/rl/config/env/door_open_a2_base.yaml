@@ -50,6 +50,7 @@ env:
     task:
       type: "manipulation"
       name: "door"
+      mode: "push"
       objects: ["door"]
       target_obj: "door"
       thershold: 0.05
@@ -94,6 +95,13 @@ env:
 
     pregrasp_target_vel: 0.3
     target_root_vel: 0.3
+
+    # Direction contract for the fixed right-hinge/out push task.  The pull
+    # task overrides these values in door_pull_a2_base.yaml.
+    a2_pregrasp_target_offset: [-0.10, 0.0, 0.0]
+    a2_pregrasp_target_rotation: [0.5, 0.5, 0.5, 0.5]
+    a2_pull_stage4_clearance_distance: 0.30
+    a2_target_root_through_distance: 2.0
 
     a2_stage0_staging_x_offset: 0.70
     # A2 Piper virtual TCP. 0.09755 is the measured finger-collider longitudinal

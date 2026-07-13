@@ -2,7 +2,7 @@
 
 ## Status
 
-当前为 **Phase 2 registered production v1**：project config 直接注册九个 production roles 与 `role_probe`，configured capacity target 为 6 total threads、正常 planned wave 最多 3 children，`max_depth = 1`。Fresh-task effective 6-thread capacity 尚未 runtime 验证；registration 是可用 routing，不是 effective child identity/model/effort evidence，runtime 不暴露的 metadata 保持 `UNKNOWN/INCONCLUSIVE`。
+当前为 **Phase 2 registered production v1**：project config 直接注册九个 production roles 与 `role_probe`，configured capacity target 为 Main + 最多 5 active children；default wave 为 3，可证明相互独立时由 Main 自主扩展到 5，`max_depth = 1`。Fresh-task effective 6-thread capacity 尚未 runtime 验证；registration 是可用 routing，不是 effective child identity/model/effort evidence，runtime 不暴露的 metadata 保持 `UNKNOWN/INCONCLUSIVE`。
 
 Hooks 尚未配置，等待 capability eval 与 separate user approval。`deep_researcher` 已注册但 dormant-by-policy，每次 invocation 仍需 exact separate user approval。
 
@@ -19,7 +19,7 @@ Nested `.codex/AGENTS.md` 只维护 `.codex` subtree，不能覆盖 root policy�
 ## Hard Invariants
 
 1. Main 是唯一 scope、user approval、acceptance、lease、candidate、integration、memory authorization 与 Git authority。
-2. Configured budget 的六个 total threads 包含 Main；正常 planned wave 最多三个 children，额外两个 child slots 只作 headroom。Live task 服从实际暴露的更低上限；Depth 1，child 不得 recursive fan-out。
+2. Configured budget 的六个 total threads 包含 Main；default wave 为三个 children，满足 independence proof 时 Main 可自主扩展到最多五个 active children。Live task 服从实际暴露的更低上限；Depth 1，child 不得 recursive fan-out。
 3. Shared filesystem 上同一路径同一 revision 只有一个 writer；same-path/resource conflict 必须串行。
 4. Child 禁止 stage、commit、push、branch/reset/stash/merge/rebase、扩大 scope 或转移 lease。
 5. `COMPLEX_PATH` review 只针对 frozen candidate；candidate content/status 变化使旧 verdict 失效。`FAST_PATH` 不创建 candidate。
@@ -27,6 +27,17 @@ Nested `.codex/AGENTS.md` 只维护 `.codex` subtree，不能覆盖 root policy�
 7. Static catalog PASS 不证明 effective runtime identity/model/effort；不允许 silent downgrade 或 false model/runtime PASS。
 8. `FAST_PATH` simple memory 由 Main 原子写入并验证；`COMPLEX_PATH` canonical memory 在全部 required review PASS 后由单一 `memory_curator` 写入，Main 再验证。
 9. 普通 role ceiling 为 `max`；Deep 是唯一 Sol/Ultra exception，且逐次 approval。
+
+### Adaptive Wave Expansion
+
+Main 在 spawn 第四、第五个 concurrent child 前必须记录：
+
+1. 所有 sibling task 使用 frozen/既有 input，之间没有 `BLOCKED_BY`、result handoff 或 approval dependency。
+2. Read-only lanes 可以重叠 `READ_SET`；任何 writer 的 `WRITE_SET` 与 artifact/output path 必须两两 disjoint。
+3. GPU、IsaacSim、display、port、process、external service 与其他 resource lease 不冲突。
+4. Active-child count 包含尚未 terminal 的旧 child；总数不得超过 5，也不得超过 live task 实际暴露的更低上限。
+
+缺少任一 proof 时使用 default 3。Writer 不因 wave expansion 获得额外 authority；same-path 或 resource conflict 始终串行。
 
 ## Registered Role Matrix
 
@@ -77,7 +88,7 @@ PREFLIGHT
 
 ### Discovery and Planning
 
-- Main 可并发最多三个 `context_researcher`，每个使用不同 mode/axis，避免重复检索。
+- Main 默认并发三个 `context_researcher`；满足 Adaptive Wave Expansion proof 时，可把互不重叠的 mode/axis 细分为最多五个 active children，禁止重复检索充数。
 - `scope_planner` 综合 scope、architecture、DAG、leases 与 acceptance criteria。
 - `goal_reviewer:PLAN_GATE` 独立检查 plan；Main 修订后向 user 请求 explicit approval。
 - Deep 只作为 discovery 与 plan 之间的 approved branch；没有 exact per-call brief 不得启动。
@@ -85,7 +96,7 @@ PREFLIGHT
 ### Implementation
 
 - Main 为每个 `isaaclab_worker` 发 self-contained task contract 与 exclusive `WRITE_SET`/resource lease。
-- 默认 single writer。多个 worker 仅在 Main 能证明 `WRITE_SET`、artifact directory、GPU、IsaacSim/display/port/process 等全部 disjoint 时并发。
+- 默认 single writer。多个 worker 仅在 Main 能证明 `WRITE_SET`、artifact directory、GPU、IsaacSim/display/port/process 等全部 disjoint 时并发；即使 wave 扩展到五个 children，该规则也不放宽。
 - 任一 path/resource overlap 都建立 dependency edge 并串行；peer 不得互授 lease。
 - Write-safety runtime eval 当前 `NOT_RUN`，因此不得把一般 multi-writer safety 声称为 runtime PASS。
 
@@ -101,7 +112,7 @@ PREFLIGHT
 
 ### Review Wave 2
 
-Wave 1 全 PASS 后，最多并发：
+Wave 1 全 PASS 后，default wave 并发三个 children；若 conditional risk lanes 满足 Adaptive Wave Expansion proof，可自主扩展到最多五个 active children：
 
 1. `runtime_qa`
 2. `context_researcher:MEMORY_CONTEXT_REVIEW`

@@ -2,7 +2,7 @@
 
 ## Status and Scope
 
-`NOT_RUN`. 本 eval 只验证 Main + 3 的 tool-free/read-only coordination、message handoff 与 lifecycle；禁止 shell、file write、deep research、Git 或 external action。
+`NOT_RUN`. 本 eval 验证 default Main + 3 与 independence-proven expanded Main + 5 的 tool-free/read-only coordination、message handoff 与 lifecycle；禁止 shell、file write、deep research、Git 或 external action。
 
 ## Preconditions
 
@@ -36,6 +36,17 @@ Main 同时启动三个不同 axis：
 
 验证三个结果绑定相同 synthetic `CANDIDATE_ID`，互不代替。Main 对一个 completed/idle agent使用 `followup_task` 请求 bounded evidence clarification，必须携带最新 revision/candidate。
 
+## Wave C: Independence-Proven Expansion
+
+Main 先为五个 tool-free/read-only tasks 记录 expansion proof：所有 input 已固定、`BLOCKED_BY` 为空、没有 sibling result handoff、`WRITE_SET` 为空、resource lease 为 none。然后同时启动五个 non-Deep children，以不同 role/mode/axis 处理互不依赖的 synthetic deliverables。
+
+验证：
+
+- 五个 children 同时 active，Main 保持第六个 total thread并执行 non-overlapping orchestration。
+- Main 在 spawn 前而不是事后记录 independence proof；更换 task name 不能替代 proof。
+- 所有 children substantive completion 并 terminal 后，active count 回落；没有 hidden child 占用或第六个 child spawn。
+- 若移除任一 proof field，Main 保持 default 3，不尝试第四个 child。
+
 ## Interrupt Case
 
 在独立 read-only lane 中：
@@ -60,7 +71,7 @@ EFFECTIVE_METADATA:
 ```
 
 - PASS：所有 coordination/lifecycle行为与 no-write evidence完整。
-- FAIL：scope/authority转移、missing Main mirror、超过 Main+3、unexpected tool/write/deep、agent未 terminal。
+- FAIL：scope/authority转移、missing Main mirror、无 proof 扩展、超过 Main+5、unexpected tool/write/deep、agent未 terminal。
 - INCONCLUSIVE：surface不暴露必要 state/message evidence。Effective model/effort未暴露时字段保持 UNKNOWN，但不能因此虚报 metadata PASS。
 
 ## Stopping Condition

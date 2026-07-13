@@ -99,11 +99,11 @@ User approval 之前不得修改 product code/config，也不得启动 write-cap
 
 复杂 task 使用以下明确 routing：
 
-1. Main 最多并发三个 `context_researcher` lane，分别执行 `REPO_DISCOVERY`、`ISAACLAB_DOCS`、`MEMORY_EXPERIENCE` 等互不重叠的 discovery。
+1. Discovery wave 默认并发三个 `context_researcher` lane，分别执行 `REPO_DISCOVERY`、`ISAACLAB_DOCS`、`MEMORY_EXPERIENCE` 等互不重叠的 discovery；满足 Section 6 的 independence proof 时，Main 可自主细分 axis 并扩展到最多五个 active children。
 2. `scope_planner` 形成 scope、architecture、DAG、lease 与 acceptance plan；`goal_reviewer` 以 `PLAN_GATE` 独立审查。Main 汇总后向 user 请求 explicit approval。
 3. Approval 后，Main 派发一个或多个 `isaaclab_worker`。多个 writer 只允许在 `WRITE_SET` 与 GPU/IsaacSim/display/port/output 等 resource lease 可证明完全不重叠时并发；同路径或同资源冲突必须串行。
 4. 所有 writer terminal 且 lease 释放后，Main freeze candidate。Review Wave 1 并发 `goal_reviewer:CANDIDATE_GATE`、`code_reviewer:CODE_QUALITY`、`isaaclab_reviewer`。
-5. Wave 1 全 PASS 后，Review Wave 2 运行 `runtime_qa`、`context_researcher:MEMORY_CONTEXT_REVIEW`，并按风险增加 `code_reviewer:SECURITY|PERFORMANCE|DATA_COMPAT`。所有 required lane 必须绑定同一 candidate。
+5. Wave 1 全 PASS 后，Review Wave 2 运行 `runtime_qa`、`context_researcher:MEMORY_CONTEXT_REVIEW`，并按风险增加 `code_reviewer:SECURITY|PERFORMANCE|DATA_COMPAT`。Default wave 为三个 children；多个 conditional risk lane 可证明彼此独立且绑定同一 frozen candidate 时，Main 可自主扩展到最多五个 active children。
 6. 所有 required lane PASS 后，Main 才能授权 `memory_curator` 原子更新批准的 memory entry；Main 重新验证后才 stage/commit。
 
 `deep_researcher` 已注册但 dormant-by-policy、never self-activate。每次 invocation 必须使用 `.codex/contracts/deep-research-contract.md` 的 exact approval brief 取得 separate user approval；缺少 effective Sol/Ultra/read-only evidence 时结果为 `INCONCLUSIVE`。
@@ -124,7 +124,8 @@ Agent output 至少包含：`STATUS`（PASS/FAIL/BLOCKED/INCONCLUSIVE）、summa
 
 ## 6. Shared filesystem、lease 与并发
 
-- Project config 的 capacity target 为 **6 total threads（Main + 最多 5 children）**；正常 planned wave 仍最多并发 3 children，额外 2 slots 仅作为 terminal delay、retry 或临时 QA/review headroom。Live task 必须服从实际暴露的更低上限；App restart + fresh-task 验证完成前，不得声称 effective 6-thread runtime PASS。
+- Runtime capacity target：**6 total threads（Main + 最多 5 active children）**。Live task 必须服从实际暴露的更低上限；App restart + fresh-task 验证完成前，不得声称 effective 6-thread runtime PASS。
+- Default wave：3 children。Main 可自主扩展到最多 5 active children，但必须在 spawn 前记录 independence proof：所有 sibling task 可从 frozen/既有 input 独立完成、彼此无 dependency edge；writer 的 `WRITE_SET`/artifact output 完全 disjoint；GPU、IsaacSim、display、port、process 与其他 resource lease 无冲突；并计入尚未 terminal 的既有 child。任一条件无法证明时保持 default 3。
 - Main 为每个 writer 分配独占 `WRITE_SET`。同一 task revision 内，同一路径只能有一个 writer；两个 task 的 write set 有 overlap 时必须串行。
 - Writer 只能修改其 lease 内路径，不得修改 memory、`.codex`、`.git`、baseline/reference worktree 或无关文件，除非 task 明确授予对应 lease。
 - IsaacSim/IsaacLab runtime、GPU、port 与 output directory 也必须分配 resource lease；冲突资源串行。

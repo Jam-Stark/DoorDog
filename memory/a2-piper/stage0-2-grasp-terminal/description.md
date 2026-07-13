@@ -2,7 +2,7 @@
 name: stage0-2-grasp-terminal
 scope: quickTEST branch stage0-2-only Teacher PPO experiment where stage2 grasp completion is terminal success
 status: active
-last_updated: 2026-07-13 13:47 HKT
+last_updated: 2026-07-13 16:37 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/stage0-2-grasp-terminal/description.md
@@ -17,9 +17,11 @@ read_when:
 
 ## Purpose
 
-记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。当前 training/default baseline 是 TCP `0.085`、gripper Kp/Kd `80/3`、`arm_j7/j8 effort_limit_sim=10/10`。Full-stage B default-off matched-clean tooling 已通过 no-sim/review 和 runtime artifact QA，但一轮 scientific readiness 为 `0/8 READY`、`8/8 RETREAT_JOINT_LIMIT`；controller-local safety abort 不等于 `grasp_target` physical unreachable。env2/3 base settling/residual 只作解释线索，不是唯一 proven cause；下一步仅为 separately-approved minimal decoupled release/base-settle/reacquire diagnostic，不改 default actuator/material/training config。
+记录 `quickTEST` 分支的独立实验目标：先训练/验证 A2_Piper Teacher PPO 的 `stage0 -> stage1 -> stage2` 流程，只要求走到并成功握住 door handle；暂时屏蔽 `stage3` 及其后的 open/swing/through 任务。该 entry 不替代 full door-opening 主线。Full-stage `base_v9+` push/open-door optimization、matched eval 与下一步 training plan 已迁移到 [`push-open-door-optimization`](../push-open-door-optimization/description.md)；这里保留 stage0–2、`replay_v2/base_v0–v2` 和 grasp-terminal predicate 的历史与未完成项，不再安排 full-stage diagnostic。
 
-## Current Decision
+## Historical Decision Record（full-stage ownership migrated 2026-07-13）
+
+以下 full-stage v9 diagnostic 条目只作为 grasp/contact evidence provenance 保留；其中旧“下一步”已 supersede，active full-stage route 以 [`push-open-door-optimization`](../push-open-door-optimization/description.md) 为准。
 
 - 2026-07-13 13:47 HKT - Frozen candidate `afa0b3485bf85a6f53c4a356ee903f25cab513b4434a877ef99ffa4362011afa` 的 default-off matched-clean state machine 完成 `68 passed` no-sim 与 Wave 1（goal/code/IsaacLab）PASS；artifact/runtime QA PASS，但同一自然 finalized `base_v9_B model_step_001000` / current check `08a506a5...` / seed0 / 8-env run 的 scientific gate FAIL：`0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT`。TCP `0.085`、Kp/Kd `80/3`、effort `10`、default friction 保持；release counts `[1,0,64,58,0,0,0,1]`，六个 `j6` upper、env2/3 在64/58后 `j5` lower soft-limit abort。controller-local safety abort 不能建立 `grasp_target` physical unreachability；env2/3 base settling/residual 仅是解释，非唯一 proven cause。target-side `grasp_target` Z `+0.02` removal、TCP local-Z `0.105 -> 0.085`、source-local-Y `O-/O0/O+ = -3/0/+3mm` 仍是不同坐标事实；source-local offsets 未执行、未被 disproven。只在 separately-approved minimal decoupled revision 后继续；仍须 `8/8 READY` 才能 fresh O0，fresh O0 full placement/clamp 后才可 O-/O+。
 - 2026-07-12 21:05 HKT - Candidate `cff2b6474c97e0e48e85524a3390df246b9b82836d4db0c95be7fbdd16982791` 的 full-stage B eval-only source-local-Y `O-/O0/O+ = -3/0/+3mm` tooling 与 `ARM0_OPEN_STABILIZATION_PREFLIGHT` 已通过 static review。Formal O0 虽为 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`；root-relative target 每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap，故 moving floating root / arm catch-up deficit 是 primary blocker，body8-only contact `124/160` 是 secondary。Preflight 随后 `8/8 activated`、`0/8 READY`，以 `7 CONTACT_CONTAMINATED + 1 GATE_LOST` 结束，且无 env 到 action40；这不能证明 root quietness 不可达。后续先做 matched clean reacquisition / stabilize-before-capture，只有 same B ckpt1000 / seed0 / 8 env frozen protocol 达到 `8/8 READY` 才能 fresh O0，完成 fresh O0 full placement/clamp 后才能 O-/O+。Historical S1 不能代替 matched result。
@@ -167,7 +169,7 @@ read_when:
   - **新 stage0→1 advance**：`(root_pos - stage0_target).norm < 0.1`（base 到 staging pos < 10cm）。强制 base 实际到达 staging pos 才转换。
   - arm init joint state 也改了：j2 1.48→0.0, j3 -0.63→0.0, j4 -0.84→0.25, j5 0.0→0.5（yaml init_state + USD drive targetPosition + USD state:angular:physics:position 三者同步）。
 
-## Current Decision (continued)
+## Historical Decision Record (continued)
 
 - 2026-06-26 20:30 HKT - grasp_target moved to handle_inside capsule center (lever center), tracking axle_length/handle_length/door_handle_height randomization. Z +0.02 removed. Root cause: grasp_target was 4.5-6cm off the lever toward door panel (+Z 2cm above lever center). When gripper source reached grasp_target (hd→0), the lever was ~1cm in front of finger tips → contact=0, close grasps empty space.
 - 2026-06-26 22:00 HKT - 新增 multi-camera eval rendering：2 个 additional cameras（handle_top ego-view + handle_side depth-view）与既有 main eval camera 同时渲染。所有 camera 通过一次 sim.render() 输出，各自写入独立 mp4。Backward compatible：无 additional_cameras config 时仅有 main camera，行为与之前完全相同。
@@ -213,7 +215,7 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-13 13:47 HKT - Supersede 已完成 matched-clean implementation TODO：下一步仅执行 separately-approved minimal diagnostic revision，decouple release、base settling 与 pose reacquisition，并以 same frozen protocol 验证 readiness；是否保留 gate-time achieved orientation 是待审批 choice，不在此承诺。不得将 env2/3 settling/residual 当作唯一 cause，也不得从 controller-local soft-limit abort 断言 `grasp_target` unreachable；保留 target-side Z `+0.02` removal、TCP local-Z `0.105 -> 0.085` 与 source-local-Y `-3/0/+3mm` distinctions。只有 `8/8 READY` 才能 fresh O0；fresh O0 full placement/clamp 后才可 O-/O+，source-local offsets 未执行。
+- 2026-07-13 16:37 HKT - Full-stage matched-clean/O± diagnosis 与 `base_v9+` ownership 已迁移到 [`push-open-door-optimization`](../push-open-door-optimization/description.md) 并停止继续扩展。本 entry 不再要求 `8/8 READY`、fresh O0 或 O-/O+；仅保留 stage0–2 grasp-terminal、historical acquisition 与 predicate-specific TODO。
 - 2026-07-03 21:59 HKT - `base_v3` / full-stage 后续训练需验证 A2 Piper `arm_j1..j6` overspeed threshold `2.0 -> 3.0 rad/s` 后的效果：stage1/2 arm reach 是否不再过慢、`upper_dof_overspeed` 是否下降，同时确认没有回到 `base_v3_term1` 那种 violent fast-complete / orientation drift。
 - 2026-07-02 16:17 HKT - `0.50` staging 与 `0.80~1.35m` handle-height randomization trial 已暂停；当前先跑 `restrictPre-Grasp_v2` reproduction control config（stage0 offset `0.70`、handle height `0.85~0.95m`），再决定是否恢复该数据分布 trial。
 - 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已 static/review PASS；下一步 stage0-2 runtime/eval 需要确认 stage0 arm default pose 保持、stage0 action gate 不阻塞 stage1 reaching、stage0->1 transition cadence 正常。本轮未跑 PPO/IsaacSim smoke。
@@ -225,6 +227,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-07-13 16:37 HKT - 完成 stage0–2 memory ownership 收窄：保留 quickTEST、replay_v2/base_v0–v2、grasp acquisition 与 terminal predicate evidence；full-stage `base_v9+` current state/TODO 改由 `push-open-door-optimization` 管理，旧 matched-clean next-step 只作 historical provenance。
 - 2026-07-13 13:47 HKT - 同步 frozen candidate `afa0b348...` 的 default-off matched-clean milestone：`68 passed` no-sim、Wave 1 PASS，artifact/runtime QA PASS；一轮 natural finalized `base_v9_B model_step_001000` / current check `08a506a5...` / seed0 / 8-env 的 scientific gate FAIL，`0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT`。release `[1,0,64,58,0,0,0,1]`；六个 `j6` upper、env2/3 64/58 后 `j5` lower。该 controller-local safety result 不证明 physical reachability failure；未运行 O0/O-/O+/training，default friction、TCP `0.085`、Kp/Kd `80/3`、effort `10` 未改。
 - 2026-07-12 17:36 HKT - 同步 candidate `f5d8ea69…` 的 exact-40 S0/S1/S2 anti-backdrive matrix：三组均 `8/8 complete`、count40、effort10 且 restore80/3；higher gains 增加 transient bilateral/stability 并抑制 j8 hard-open，但 step40 全部无 contact，S2 转为 j7 saturation/limit。不升级 S1/S2 到 training/default，geometry/aperture/reachability 仍 unresolved。
 - 2026-07-11 22:19 HKT - 同步 hold-oracle candidate `9513f6f9…` 的 `28 passed` 与 G1/G2/G3 80-step runtime matrix：三组均无 bilateral/depress/slip/saturation，G1/G3 实际进入 base relief 但仍不收敛；actual collider/material/default friction/drive availability 已记录。该 diagnosis 为 partial completion，未解决 exact inner geometry / aperture / reachability。

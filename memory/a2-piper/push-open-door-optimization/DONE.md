@@ -1,0 +1,7 @@
+# DONE
+
+- 2026-07-13 16:37 HKT - 新建 `push-open-door-optimization` entry，从 `base_v9` 起接管 A2+Piper full-stage 推门/开门 RL optimization 的 current state 与 TODO；`reward-implementation-goal` 和 `stage0-2-grasp-terminal` 保留各自历史事实，不再拥有 full-stage `base_v9+` active experiment。
+- 2026-07-13 16:37 HKT - 归档 `base_v9_A/B/C/D` formal/matched 结果：四组均训练到 step1000 / `262,144,000` timesteps、training goal 0，matched first episodes 全部 `0/16 goal` / `stage_overtime`。A/B 只在 single-seed bounded ranking 下强于 C/D；A provisional hinge lead、B lower rebound，四组都没有 hold/task success。
+- 2026-07-13 16:37 HKT - 归档停止前的核心 finding：close command 约 `99%` 但 body8 单侧 dominance/contact stability 近零；j8 在 close target 下被顶到 `-0.035`，Kp80 的最大静态 P response 约 `2.8N/finger`，所以 effort cap 不是唯一解释；higher-gain clamp 没有保留 step40 contact；`friction_override=null` 不等于 zero friction。
+- 2026-07-13 16:37 HKT - 归档 matched-clean scientific stop：`0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT` 只证明 controller-local safety abort，不建立 physical reachability failure；用户决定停止 `base_v9` oracle/O±/matched-clean 扩展，下一阶段回到 separately-approved `base_v10` RL optimization/retraining plan。
+- 2026-07-13 16:37 HKT - 新增 human-facing 总报告 [`scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md`](../../../scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md)，集中保存 `replay_v2`、base_v0→v9 因果时间线、formal metrics、诊断边界、artifact map，以及从 saved Hydra config 重建的 train/eval/render 命令经验。

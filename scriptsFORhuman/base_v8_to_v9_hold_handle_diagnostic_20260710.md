@@ -1,5 +1,7 @@
 # Base v8 → Base v9 Hold-Handle Diagnostic（2026-07-10）
 
+> **Historical report / superseded next steps（2026-07-13）**：本文件保留 v8→v9 的 D0–D3、formal A–D 与 construction provenance。后续 oracle、static clamp、O0/preflight、matched-clean 诊断已经完成并停止；当前总结果、base_v0→v9 经验与训练/eval/render 命令转至 [`a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md`](a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md)。下文原 `Next Steps` 仅表示 2026-07-10 当时的历史计划，不再是 active TODO。
+
 ## Technical Summary
 
 结论先行：`base_v9` 的 B hold-handle route 四组 formal training 和 matched eval 已完成，但“全程握住门把手”仍未实现。四组 policy 约 99% 时间下发 close command，stage3/4 contact stability 却只有约 `0~0.107%`，接触继续由 `arm_body8` 单侧主导，且 `arm_j6` / arm workspace bottleneck 仍存在。这把下一步从 reward/base ablation 转向 read-only exact geometry diagnosis；在核对 finger/handle 的 collider、closing axis、closed aperture 与 bilateral reachability 前，不应进入 v10 code 或长训练。
@@ -126,7 +128,9 @@ D2 直接覆盖 gripper primitive，但 bilateral contact、stability 和 root m
 - 不因 C/D 较弱就宣布所有 base mobility 无效，也不把 A 的 single-seed scalar lead 写成 final/statistical winner。
 - 不把 scratch B ckpt1000 的 stage2 acquisition failure 与本轮 stage3/4 hold ablation 混为同一因素。
 
-## Next Steps
+## Historical Next Steps（superseded 2026-07-13）
+
+以下条目保留当时决策来源；当前不再继续扩展 `base_v9` geometry/oracle/O±/matched-clean 诊断。新的 active direction 是另行制定并审批 `base_v10` RL optimization/retraining plan。
 
 1. Read-only 核对 `piper_gripper_handle_frame_transformer` 的 source prim、source offset、target prim、target offset、`target_pos_source` / `source_quat_w` 语义，并把 `grasp_target` prim 的实际 pose 对到同一坐标系。
 2. Exact 检查 `arm_body7/8` finger collider 的 shape/extent/orientation、handle collider 与有效 contact surfaces；确认当前 handle 是否在两指可接触区域，而不是只在 `arm_body8` 外侧/末端相交。

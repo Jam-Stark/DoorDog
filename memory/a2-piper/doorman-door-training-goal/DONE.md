@@ -1,5 +1,6 @@
 # DONE
 
+- 2026-07-13 16:37 HKT - 新增 full-stage [`push-open-door-optimization`](../push-open-door-optimization/description.md) route，并明确 current v7/v9 baseline 为 TCP source local-Z `0.085`、gripper Kp/Kd `80/3`、effort `10/10`。下方 2026-07-07 的 `40/40` 记录只描述 base_v6 mixed TCP/effort trial 的当时状态，已被当前 baseline supersede，但历史事实不删除。
 - 2026-07-07 22:09 HKT - 同步 base_v6 current TCP/effort config 到长期 door-training memory：`gripper_handle_transform` source TCP offset 当前为 `(0,0,0.085)`，`arm_j7/j8 effort_limit_sim=40.0/40.0`。历史 `(0,0,0.105)` 记录仍作为 earlier observation/reward geometry baseline，但后续 full-stage training/eval 解读应以 `0.085` 为当前值。
 
 - 2026-06-12 16:59 HKT - 新建独立 memory entry，记录基于 Doorman 替换用户自有 robot 并适配 observation/action/reward 完成开门训练的长期目标。

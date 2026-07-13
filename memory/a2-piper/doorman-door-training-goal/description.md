@@ -2,7 +2,7 @@
 name: doorman-door-training-goal
 scope: A2_Piper long-term goal for Doorman-based robot replacement and door-opening training
 status: active
-last_updated: 2026-07-07 22:09 HKT
+last_updated: 2026-07-13 16:37 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/doorman-door-training-goal/description.md
@@ -50,6 +50,7 @@ read_when:
 
 ## Current State
 
+- 2026-07-13 16:37 HKT - Full-stage push/open-door RL optimization 从 `base_v9` 起由独立 [`push-open-door-optimization`](../push-open-door-optimization/description.md) entry 管理。当前 baseline 是 TCP source local-Z `0.085`、gripper Kp/Kd `80/3`、effort `10/10`；2026-07-07 的 base_v6 `40/40` 仍作为当时 mixed TCP/effort trial 的历史事实，不再表示 current default。`base_v9` diagnostics 已停止，下一步是另行审批 `base_v10` RL plan。
 - 2026-06-12 16:59 HKT - 已建立长期目标 memory；尚未在本 entry 中记录 robot/observation/action/reward 的具体实现状态或验证结果。
 - 2026-06-12 17:07 HKT - 用户已加入 A2_Piper robot URDF assets，路径为 `gr00t/rl/data/robots/A2_Piper/`，主 URDF 为 `a2_piper.urdf`，mesh 包含本体 leg/trunk STL 与 `meshes/piper/` arm/gripper STL。
 - 2026-06-12 18:02 HKT - 已完成 Door Scene Preview Robot Replacement milestone：新增 A2_Piper robot config、生成 `A2_Piper/a2_piper.usd`，新增 preview-only scene module 复用 Doorman door scenario source 且不走 DoorPregrasp/G1/HOMIE/finger primitive/sensor hardcode，入口支持 WebRTC 与 stage-0 root pose CLI 调参。
@@ -159,6 +160,7 @@ Implementation reminder:
 
 ## DONE Summary
 
+- 2026-07-13 16:37 HKT - 在长期 door-training goal 中注册 `push-open-door-optimization` active route，并把当前 baseline 更新为 v7/v9 的 TCP `0.085`、Kp/Kd `80/3`、effort `10/10`；base_v6 `40/40` 保留为 historical mixed-factor record。
 - 2026-07-07 22:09 HKT - 记录 base_v6 current TCP/effort config：A2 `gripper_handle_transform` source TCP offset `(0,0,0.085)`，`arm_j7/j8 effort_limit_sim=40.0/40.0`；历史 `0.105` geometry 仅作为 earlier baseline。
 - 2026-06-12 16:59 HKT - 新建独立 memory entry，记录基于 Doorman 替换用户自有 robot 并适配 observation/action/reward 完成开门训练的长期目标。
 - 2026-06-12 17:07 HKT - 记录用户已加入 A2_Piper robot URDF assets：`gr00t/rl/data/robots/A2_Piper/a2_piper.urdf` 与对应 `meshes/` STL assets。

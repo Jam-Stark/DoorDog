@@ -1,6 +1,6 @@
-# A2 + Piper 推门优化：Base v0 → Base v10 结果与经验（更新于 2026-07-14）
+# A2 + Piper 推门优化：Base v0 → Base v11 结果与经验（更新于 2026-07-14）
 
-> 状态：`base_v10` A/B/C/D 已各自从随机初始化训练到 step1000，并完成 seed0、16 env、first-episode matched scalar/trace；四组均 `0/16 goal`，D 只是在稳定双面夹持上形成 bounded behavioral lead，仍没有推动门。必要的 D matched render 用于定性复核，不参与成功率统计。`base_v9` oracle、static clamp、O-/O0/O+、matched-clean 等诊断路线继续保持停止；下一项只提出 `base_v11` 最小 RL ablation，不在本报告中启动训练。
+> 状态：`base_v11` A/B scratch 与 C full-state resume 已停止，但都没有达到计划的 global step2000：A/B 最后可评估 state 为 step1150，C 为 step1550。九个现存 checkpoint/state 已完成 seed0、16 env、first-episode matched scalar/trace；全部 `0/16 goal`、`0/16 stage4 entry`。A/B 始终停在 stage2，C 始终停在 stage3 stationary hold，没有突破。`base_v9` oracle、static clamp、O-/O0/O+、matched-clean 等诊断路线继续停止；下一项只提出一个在 stage3 exposure 下的最小 resume H+ ablation，本报告不启动训练。
 
 ## 1. 结论先行
 
@@ -9,7 +9,10 @@
 - B/D 的 stage3/4 hold 已不再是“持续单侧脱落”：B bilateral/contact-stability 为 `99.282% / 98.701%`，D 为 `100% / 99.147%`。但 B 的 `arm_j7` open-limit proximity 高达 `91.658%`，D 则 j7/j8 都为 `0%`，且 body7/body8 平均力更均衡。D 因而是本轮 hold-quality leader，不是 door-opening winner。
 - A→B、B→C、C→D 都出现了 stage-exposure 改变：A/C 没进入 stage3，B/D 进入。因此本轮只证明 B/D learned route 与 D 的 hold signal，不能把 A/B 当成 matched-stage retention 因果实验，不能用 B/C 判定 Kp160 是否降低 stage3 backdrive，也不能用 C/D 单独证明 base movement 的因果收益。
 - D 在约 `9.38s` 的 recorded stage3 control steps 中维持双面接触，却只有 `0.001073rad` mean max hinge。Saved config 与本次固定的 inspected eval source 允许 policy 在无 hinge motion 时持续获得 contact/stability reward，因此“hold-dominant local optimum”是与证据一致的机制推测，但尚未被 reward intervention 证实；training-time source snapshot equivalence 未被独立证明。
-- 下一轮最小建议是两组 scratch：D exact control 与 H+（只把 `rewards.reward_scales.push_door_hinge` 从 `6→12`）。若资源允许，再增加一个不与 H+ 累加的 S↓（只把 contact-stability scale `4→0.5`）。不增加 Kp/effort variant，不开始新的 v9 oracle/offset 诊断。
+- `base_v11` 没有产生突破：A/B 在 step500、1000、1150 都是 `16/16 max-stage2`；C 在 step1250、1500、1550 都是 `16/16 max-stage3`，其 mean max hinge 仅 `.001007/.001129/.001110rad`。三组九个 eval 全部 `0/16 goal`、`0/16 stage4 entry`、`16/16 stage_overtime`。
+- A/B 的 per-env hinge trace 在相同 checkpoint step 上完全相同且都没有 stage3 exposure；`push_door_hinge` 只在 stage3/4 生效，因此 scratch B 没有实际检验 hinge scale `6→12` 的 stage3 效果。C 延续了 D 的 bilateral/stability guardrail，但 step1250→1550 的绝对进展只有约 `1e-4rad`，不是 task breakthrough。
+- v11 A 的 saved config 与 v10_D 一致，但“exact control”只对 saved config 成立：当前关键 source 文件的 mtime 晚于 v10_D training process 启动、早于 v11 training，因此 v10→v11 training-source equality 未证实且存在 material temporal confound。不能把 A 未复现 D 单独归因于 scratch 随机性。
+- 下一轮最小建议：先冻结 exact current source，然后只做一个从同一 v10_D step1000 出发的 full-state H+ resume，唯一变量 `push_door_hinge: 6→12`，global target1500、save250；用现有 v11_C hinge6 step1250/1500 作 current-source control。若 source 再变化，则必须同时重跑 control/H+ 两臂。不增加 Kp/effort variant，也不恢复 v9 diagnostics。
 
 以下历史 v9 stop 结论继续有效：
 
@@ -377,7 +380,9 @@ C 是 open/no-contact policy basin，而不是“在同一 stage3 hold 下提高
 | 推测 | D 的强、无需 hinge motion 的 hold rewards 与既有 `push_door_hinge=6` 共同形成 stationary-hold local optimum。该机制与 runtime 一致，但必须通过 reward-scale intervention 才能验证。 |
 | 未证实 | 单 seed 的跨 seed generalization、base unlock 的独立因果收益、reward dominance 是唯一 root cause、任何 joint/workspace terminal failure，以及 training-time uncommitted source 与当前 eval source 的逐字 equivalence。 |
 
-### 12.8 下一轮最小 RL ablation（提案；未启动）
+### 12.8 base_v11 历史提案（已执行；由 Section 13 supersede）
+
+> 本节只保留当时的 proposal provenance，下面的旧命令不得复用。实际启动时 A/B 已更正为全局 `num_total_batches=2000`、`save_frequency=500`，并增加了从 v10_D step1000 full-state resume、全局目标 step2000、save250 的 C；实际 checkpoint/eval 与下一轮建议以 Section 13 为准。特别地，full-state resume 的 `num_total_batches` 是全局 iteration 上限，不是 remaining count。
 
 最小批准范围是两组、每组重新 scratch：
 
@@ -437,3 +442,125 @@ HYDRA_FULL_ERROR=1 \
 Promotion gate：先复用本报告的 matched scalar/trace contract；primary 是 stage4 entry count 与 per-env hinge max/terminal/rebound，hold guardrail 是 stage3/4 bilateral/contact-stability `>=95%`、over-force `0%`、且不重新出现 j7/j8 open-limit saturation。至少一个 stage4 entry 才把 variant 标成 promising；sub-threshold hinge improvement 只能写成 directional evidence。单 seed 仍不产生 statistical winner；通过方向 gate 后再决定是否补 seeds。
 
 Raw traces 与长日志继续保留在原 run directory；本报告只保存可复用结论、口径与入口。
+
+## 13. Base v11：incomplete-budget matched eval
+
+### 13.1 实际训练与 checkpoint 边界
+
+三组 saved contract 都把 `algo.trl.num_total_batches` 设为全局 step2000，但实际 artifact 在更早的 state 停止。九个现存 payload 都通过 ZIP integrity 与 CPU `torch.load`，并含 policy、value、optimizer、scheduler、environment 与 trainer state；它们是可用的 full-state checkpoint，但不能伪装成 step2000 结果。
+
+| Group | Initialization / 唯一设计变量 | Global cap / save | 可评估 state | W&B / log 最后 iteration | 缺失的计划 checkpoint |
+|---|---|---:|---|---:|---|
+| A `base_v11_A_D_control` | scratch；saved D config，hinge=`6` | `2000 / 500` | `500, 1000, last=1150` | `m3sd8noh` / `1174` | `1500, 2000` |
+| B `base_v11_B_D_hinge12` | scratch；相对 A 仅 hinge `6→12` | `2000 / 500` | `500, 1000, last=1150` | `9k5eko6c` / `1183` | `1500, 2000` |
+| C `base_v11_C_D_resume_step1000_to2000` | v10_D step1000 full-state resume；hinge=`6` | `2000 / 250` | `1250, 1500, last=1550` | `1mate3bs` / `1593` | `1750, 2000` |
+
+`last.pt` 的 persisted global step 低于 console 最后一行是正常的 save cadence 差异；本报告按 checkpoint 内 state 命名，不把 log iteration 当成可加载 checkpoint。现有 log 没有足以判定 normal completion、异常退出或人工停止原因的 terminal marker。因此本节只做 incomplete-budget bounded comparison；不能推断训练到 step2000 会保持同样结果。
+
+Full-state resume 的 durable contract 再次确认：`num_total_batches` 是恢复后的**全局 iteration 上限**。从 step1000 续到 step2000 必须传 `2000`；传 `1000` 会因 restored `global_step >= max_steps` 立即结束。
+
+### 13.2 Matched eval contract、artifact 与 source 边界
+
+九个 eval 都使用 `python -m gr00t.rl.eval_agent_trl`、各自 saved config、seed0、16 env、每 env first episode；camera/render/video/trajectory、forced-close、hold oracle 都关闭，scalar/trace diagnostics 打开。每次都是 `16/16` first episodes、JSON parse PASS、trace aliases byte-identical、process exit0。有效 artifact：
+
+- A：[step500](../logs_eval/base_v11_A_ckpt0500_matched_scalar_trace_16env_seed0_20260714)、[step1000](../logs_eval/base_v11_A_ckpt1000_matched_scalar_trace_16env_seed0_20260714)、[staged step1150](../logs_eval/base_v11_A_last_step1150_staged_matched_scalar_trace_16env_seed0_20260714)
+- B：[step500](../logs_eval/base_v11_B_ckpt0500_matched_scalar_trace_16env_seed0_20260714)、[step1000](../logs_eval/base_v11_B_ckpt1000_matched_scalar_trace_16env_seed0_20260714)、[staged step1150](../logs_eval/base_v11_B_last_step1150_staged_matched_scalar_trace_16env_seed0_20260714)
+- C：[step1250](../logs_eval/base_v11_C_ckpt1250_matched_scalar_trace_16env_seed0_20260714)、[step1500](../logs_eval/base_v11_C_ckpt1500_matched_scalar_trace_16env_seed0_20260714)、[staged step1550](../logs_eval/base_v11_C_last_step1550_staged_matched_scalar_trace_16env_seed0_20260714)
+
+Evaluator 会在 checkpoint 邻近目录创建 `exported/`，并按 loaded global step 写一个 checkpoint clone。为避免修改 frozen training directories，三个 `last.pt` 先复制到 `logs_eval/_eval_inputs/`，再从 staging eval；曾直接运行产生的 A step1150 与中断的 C step1550 artifact 已排除，不进入任何结论。原训练目录中的 task-created clone/exported 已清理并复核 hash。
+
+本轮不新增 render：A/B 没有 stage3/contact/hinge event；C 的 scalar/trace 与 v10_D 已 render 的 stationary bilateral hold 同方向，且没有 stage4、新 terminal 或明显 hinge excursion。C step1550 的单个 handle-reward transient 没有伴随 hinge/stage 改变。重复视频不会改变 primary evidence。
+
+当前 eval-source manifest 为 `6d5730616d91530e59c9f5f0ce7d4de6ac3e5b12fd085e62126656434bda71ef`。v10 报告只保留 aggregate manifest ID，缺少 member hashes 与构造算法，因此 current eval source 与 v10 eval source的 byte equality/mismatch 都未证实。更重要的是，v10_D training process 约在 `2026-07-13 17:45 HKT` 启动，而当前五个关键 source 文件 mtime 为当日 `19:02–20:56`，均晚于 v10_D 启动、早于 v11 启动：
+
+| Source | Current mtime (HKT) | Current SHA-256（前 12 位） |
+|---|---|---|
+| `legged_robot_base.py` | `19:02:43` | `ce42c48e4a6e` |
+| `eval_agent_trl.py` | `19:34:10` | `7f0edb3c1ecc` |
+| `door_open_a2_base.py` | `19:45:05` | `e07e9867d3d8` |
+| `inference_helpers.py` | `19:50:33` | `1e1299c12444` |
+| `isaacsim.py` | `20:56:19` | `6070c65233f7` |
+
+已证实的是 current file state 晚于 v10_D launch；“v10_D 已加载的 training source 与 v11 相同”未证实，并存在 material temporal confound。尤其当前 `door_open_a2_base.py` 的 dirty diff 改变了 A2 non-finger DOF observation ordering；它在 v11 时已存在，但是否导致 scratch route 分叉没有 intervention 证据。故 A 是 exact saved-config control，不是已证明的 exact source control，也不能把未复现 D 单独归因为随机初始化。
+
+### 13.3 Task、door 与 stage 结果
+
+下表 hinge 为 16 个 first episodes 的 `mean(per-env max) / mean(terminal) / mean(rebound)`；dominant-stage duration 是 mean unique control steps，按 50Hz 换算。所有行都是 `0/16 goal`、`16/16 stage_overtime`、`0/16 stage4 entry`。
+
+| Policy state | Max stage / stage3 entry | Hinge max / terminal / rebound (rad) | Dominant-stage duration |
+|---|---:|---:|---:|
+| v10_D step1000 reference | `3 / 16/16` | `.00107280 / .00102779 / .00004501` | stage3 `469.1` steps ≈ `9.38s` |
+| v11_A step500 | `2 / 0/16` | `.000000151 / .000000151 / 0` | stage2 `369.2` steps ≈ `7.38s` |
+| v11_A step1000 | `2 / 0/16` | `.000000151 / .000000151 / 0` | stage2 `374.1` steps ≈ `7.48s` |
+| v11_A step1150 | `2 / 0/16` | `.000000151 / .000000151 / 0` | stage2 `374.6` steps ≈ `7.49s` |
+| v11_B step500 | `2 / 0/16` | `.000000151 / .000000151 / 0` | stage2 `370.4` steps ≈ `7.41s` |
+| v11_B step1000 | `2 / 0/16` | `.000000151 / .000000151 / 0` | stage2 `373.8` steps ≈ `7.48s` |
+| v11_B step1150 | `2 / 0/16` | `.000000151 / .000000151 / 0` | stage2 `373.6` steps ≈ `7.47s` |
+| v11_C step1250 | `3 / 16/16` | `.00100665 / .00095421 / .00005244` | stage3 `473.6` steps ≈ `9.47s` |
+| v11_C step1500 | `3 / 16/16` | `.00112864 / .00103027 / .00009837` | stage3 `476.4` steps ≈ `9.53s` |
+| v11_C step1550 | `3 / 16/16` | `.00111019 / .00103435 / .00007584` | stage3 `475.6` steps ≈ `9.51s` |
+
+A/B 在三个 aligned states 的 per-env hinge values 完全相同；由于两组都不进入 stage3，而 `push_door_hinge` 只在 stage3/4 生效，B 的 hinge12 intervention 没有获得 stage exposure，不能据此判断 H+ 有效或无效。A/B 的真实差别只表现为各自学到的 stage2 open/no-contact basin 细节。
+
+C 相对 v10_D 的 mean max hinge 差为：step1250 `-.00006615rad`（9/16 env 更高）、step1500 `+.00005584rad`（11/16）、step1550 `+.00003739rad`（12/16）。C step1500 相对 step1250 为 `+.00012199rad`（13/16），step1550 相对 step1250 为 `+.00010354rad`（12/16）。方向上有轻微增量，但绝对量只有约 `1e-4rad`，仅占 `.25rad` stage4 threshold 的约 `0.04%`；C step1550 的 mean max hinge 也只有 threshold 的 `0.44%`。这不是 breakthrough。
+
+### 13.4 Hold、contact、joint 与 workspace guardrails
+
+只有 C 与 v10_D 有 stage3 exposure；其 stage3/4 pooled guardrails 如表。Force share=`body8/(body7+body8)`：
+
+| State | Frames | Bilateral / stability | Close / over-force | body7 / body8 force; body8 share | TCP-handle | Base max / end XY |
+|---|---:|---:|---:|---:|---:|---:|
+| v10_D step1000 | `7,505` | `100% / 99.147%` | `100% / 0%` | `3.911 / 3.746N; 48.93%` | `.01040m` | `.02871 / .02215m` |
+| v11_C step1250 | `7,577` | `100% / 99.155%` | `100% / 0%` | `4.007 / 3.788N; 48.59%` | `.01278m` | `.02779 / .02119m` |
+| v11_C step1500 | `7,622` | `100% / 99.160%` | `100% / 0%` | `3.743 / 3.889N; 50.96%` | `.01149m` | `.02980 / .02206m` |
+| v11_C step1550 | `7,610` | `100% / 99.159%` | `100% / 0%` | `3.797 / 3.831N; 50.22%` | `.01060m` | `.02860 / .02145m` |
+
+C 确实保持了 bilateral/contact balance、close、stability、no-over-force 与 base-follow displacement；问题不是 retention 再次崩溃，而是这些稳定信号没有转化为 hinge motion。A/B 无 stage3 samples，不能把 N/A 写成 `0% hold`。
+
+| Latest state | Stage exposure | Mean j7 / j8 pos | j7 / j8 open-limit proximity | TCP-handle | Arm soft-margin `<=0` |
+|---|---|---:|---:|---:|---|
+| v11_A step1150 | stage2 only | `.03500 / -.03361m` | `99.650% / 0%` | `.29550m` | j3 `11/16`；j5 `16/16` envs |
+| v11_B step1150 | stage2 only | `.03500 / -.03356m` | `99.498% / .033%` | `.26232m` | j5 `16/16` envs |
+| v11_C step1550 | stage3 | `.02254 / -.02055m` | `0% / 0%` | `.01060m` | j6 `3/16` envs |
+| v10_D step1000 | stage3 | `.02335 / -.01974m` | `0% / 0%` | `.01040m` | none observed |
+
+A/B 的主要 guardrail failure 是 j7 长期贴近 `+0.035m` open limit 和 TCP 远离 handle，不是用户特别关注的 j8 `-0.035m` saturation；B 只有极少 j8 proximity frames。C/D 的 j7/j8 都不饱和。所有 policy 的 formal terminal reason 仍只有 `stage_overtime`；soft-margin 是 workspace-pressure signal，不是 joint-limit termination。
+
+### 13.5 实际 reward magnitude
+
+以下是有 stage3 exposure 的 per-trace-frame scaled reward mean；hold bundle 是 keep-close、both-contact、opposite-squeeze、force-window、stability 与 over-force/open-command 项之和：
+
+| State | Hold bundle | Hinge reward | Handle reward | Hold / abs(hinge) |
+|---|---:|---:|---:|---:|
+| v10_D step1000 | `.181317` | `.00009556` | `-.012182` | `1,898×` |
+| v11_C step1250 | `.181324` | `.00006929` | `-.012903` | `2,617×` |
+| v11_C step1500 | `.181328` | `.00007216` | `-.013025` | `2,513×` |
+| v11_C step1550 | `.181327` | `.00007086` | `-.013191` | `2,559×` |
+
+典型 hold components 约为 keep-close `.002`、both `.04`、opposite `.02`、force-window `.04`、stability `.0793`，open-command 与 over-force 为 0。已证实的是当前轨迹下存在约三数量级的 realized reward-magnitude imbalance；这不等于已证实 hold reward 在因果上“压制” hinge。把 hinge scale `6→12` 若沿用同一轨迹只会先把很小的 hinge 项翻倍，但 policy 更新后行为是否改变仍需 stage3-exposed intervention。
+
+### 13.6 已证实、推测与未证实
+
+| 等级 | 结论 |
+|---|---|
+| 已证实 | 九个可用 state 全部 `0/16 goal`、`0/16 stage4`；A/B 始终 stage2，C 始终 stage3。计划 step2000 checkpoint 均不存在，因此这不是 full-budget verdict。 |
+| 已证实 | B 的 hinge12 reward 没有 stage3 exposure，A/B 不构成有效 H+ test；C 保留 D 的高质量 bilateral hold，但 hinge 仍约 `.0011rad`。 |
+| 已证实 | C/D 的 j7/j8 limit、over-force 与 contact stability guardrails 良好；A/B 则落入 TCP 远离 handle、j7 open-limit 的 stage2 basin。 |
+| 已证实 | 当前文件 mtime 晚于 v10_D training launch、早于 v11；因此 A 只证明 saved-config reproduction 失败，不能证明 exact-source reproduction 失败。 |
+| 推测 | C/D 是 hold-dominant stationary local optimum；realized reward magnitude 与此一致，但尚无 reward intervention 的因果证明。 |
+| 推测 | v10→v11 source-state 差异可能参与 scratch route 分叉；当前 A2 observation-order dirty diff 是 plausible confound，不是已定位 root cause。 |
+| 未证实 | H+ 在 stage3 exposure 下是否提升 hinge、任何 run 到 step2000 的行为、多 seed statistical winner、训练提前停止的具体原因、v10 与 current source 的 byte equality。 |
+
+### 13.7 下一轮最小 RL ablation 建议（未启动）
+
+先冻结并记录 exact current training source/hash；不要再做 scratch A/B。最小信息增益方案只新增一条：
+
+| Proposed group | Start | 唯一变量 | Budget / checkpoints | Matched control |
+|---|---|---|---|---|
+| `base_v12_A_D_resume_hinge12` | v10_D `model_step_001000.pt`, `checkpoint_load_mode=full` | `push_door_hinge: 6→12`；其余 reward、Kp/Kd160/6、base unlock 全不变 | global target `1500`，save `250`；eval `1250/1500` | 现有 v11_C hinge6 `1250/1500` |
+
+这组终于在同一 v10_D stage3 policy state 上直接测试 H+，并复用 v11_C 作为 current-source control。只有在 launch 前 source 与 v11_C 不再一致时，现有 C 才失去 matched-control 资格；此时应重跑 hinge6/H+ 两臂，而不是宣称单臂因果结果。
+
+预注册 gate：primary 仍是 stage4 entry 与 per-env hinge max/terminal。任一 checkpoint 出现 stage4 entry 即视为 promising；若未进 stage4，则仅当 mean hinge max 至少 `.005rad` 且相对 matched C 在 `>=12/16` env 同向改善，才保留为工程方向信号。Guardrails 要求 bilateral/contact-stability `>=95%`、over-force `0%`、j7/j8 open-limit proximity `0%`。`.005rad` 是约为当前值 5× 的 early-stop engineering threshold，不是统计显著性阈值。到 step1500 仍平坦就停止，不继续烧到2000。
+
+若该 stage3-exposed H+ 仍平坦，下一轮才考虑一个 non-cumulative hold-reduction resume，例如只把 contact-stability `4→0.5`，或设计随 hinge progress 衰减/一次性化的 hold reward；后者涉及 reward semantics/code，必须先单独提出方案并获批。当前不启动训练、不修改 Python/YAML/config，也不恢复 base_v9 diagnostics。

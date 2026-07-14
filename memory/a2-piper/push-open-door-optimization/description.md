@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-14 01:11 HKT
+last_updated: 2026-07-14 22:02 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -10,7 +10,7 @@ owned_paths:
   - memory/a2-piper/push-open-door-optimization/DONE.md
 read_when:
   - 开始设计、训练、eval、render 或复盘 base_v9 之后的 A2+Piper full-stage 推门 policy 时
-  - 需要确认当前 baseline、历史 ablation 教训、matched eval 口径或下一版 base_v11 approval gate 时
+  - 需要确认当前 baseline、历史 ablation 教训、matched eval 口径或下一版 base_v12 approval gate 时
 ---
 
 # Push-Open-Door Optimization
@@ -19,16 +19,22 @@ read_when:
 
 本 entry 从 `base_v9` 起独立负责 A2+Piper full-stage 推门/开门 RL optimization 的当前状态、训练/eval/render 口径与下一步 TODO。Reward function 的构建历史继续保留在 [`reward-implementation-goal`](../reward-implementation-goal/description.md)，stage0–2-only quick test 继续保留在 [`stage0-2-grasp-terminal`](../stage0-2-grasp-terminal/description.md)；两者都不再拥有 full-stage `base_v9+` 的 active experiment TODO。
 
-完整的 `replay_v2`、`base_v0→v10` 因果时间线、诊断 findings、artifact map 与可复现命令见 [`scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md`](../../../scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md)。Memory 只保存可复用结论，不复制 raw trace 或长日志。
+完整的 `replay_v2`、`base_v0→v11` 因果时间线、诊断 findings、artifact map 与可复现命令见 [`scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md`](../../../scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md)。Memory 只保存可复用结论，不复制 raw trace 或长日志。
 
 ## Current State
 
+- `base_v11` A/B/C 都在计划 global step2000 前停止；可用 full-state checkpoint 为 A/B `500/1000/last=1150`、C `1250/1500/last=1550`。九个 payload 的 ZIP integrity 与 CPU load 都 PASS，但训练停止原因及训练到 step2000 的行为均未证实，故仅构成 incomplete-budget comparison。
+- Matched module scalar/trace eval（seed0、16 env、per-env first episode）在九个可用 state 全部为 `0/16 goal`、`0/16 stage4 entry`、`stage_overtime`；A/B 均 max-stage2，C 均 max-stage3。它是 single-seed/incomplete-budget evidence，不产生 full-budget 或 statistical winner。
+- A/B 三个 aligned per-env hinge 完全相同，且两组均无 stage3 exposure；`push_door_hinge=12` 只在 stage3/4 gate 生效，所以 B 没有实际测试 exposure 下的 H+。C 最新 step1550 mean max hinge 约 `.001110rad`，保留 bilateral `100%`、stability `99.159%`、close `100%`、over-force `0%`、j7/j8 open-limit proximity `0%`；stable hold 不是 door progress。
+- C 的 realized hold bundle 约 `.1813`、hinge reward 约 `.00007`，支持当前轨迹存在 reward-magnitude imbalance 的观察；hold-dominant causality 仍是 inference，未经 reward intervention 证实。没有新增 render：无新的定性事件，scalar/trace 仍是 primary evidence。
+- 当前关键 source mtime 晚于 v10_D training launch、早于 v11；A 是 exact saved-config control，但不是已证明的 exact-source control。现有 observation-order diff 是 plausible confound，因果未证实；下一轮训练前必须 freeze/record exact source。
+- Durable resume gotcha：当前 trainer 中 `algo.trl.num_total_batches` 是全局 iteration 上限，不是 resume 后的 remaining iterations。Full-state checkpoint 会恢复 `state.global_step`，trainer 将 `state.max_steps` 设为 `num_total_batches`，`DefaultFlowCallback` 在 `global_step >= max_steps` 时终止。因此从 step1000 续训到 step2000 必须传 `num_total_batches=2000`；传 `1000` 会在 resume 后立即命中终止条件。不得只根据外层 `for range(...)` 误判为“额外训练 1000 batches”。
 - `base_v10_A/B/C/D` 是四个独立 scratch policy：saved config/overrides 与 checkpoint integrity 已证明 `checkpoint=null`、`auto_load_latest=false`、seed0、命令字面值 `num_envs=4096`、2 ranks、1000 batches；四个 `model_step_001000.pt` 均存在。训练时未能逐字冻结的 source equivalence 仍未证实。
 - Matched scalar/trace runtime PASS：四组均为 seed0、16 env、each-env first episode；全部 `0/16 goal`、`stage_overtime`，没有 stage4。A/C 只到 stage2；B/D 全部到 stage3。
 - D 是当前 behavioral reference，不是 task winner：stage3/4 pooled bilateral contact `100%`、contact stability `99.147%`、j7/j8 open-limit proximity `0%/0%`，但 hinge max mean 仅 `.001073rad`，远低于 `.25rad` stage3→4 threshold。单 seed 不能给出统计 winner。
 - A→B、B→C、C→D 的比较都被 learned route/stage exposure 限制：B/D 的 high-quality hold 不可由 A/C 的无 stage3 exposure 单独隔离；C 是 open/no-contact basin，workspace signal 为 j3 dominant/argmin bottleneck（不是 only-j3 root cause）。D 的 stationary bilateral hold 与 strong hold reward / low progress motion 一致，但 reward dominance 仍是待 intervention 验证的推测。
 - D matched render 有 48 个有效 MP4，定性显示 stationary bilateral hold、没有可见持续 door rotation。strict no-trace output QA 为 FAIL：即使 diagnostic flag=false 仍写出 base trace；source diagnosis 证明这是 unconditional base trace output，发生在 physics/reward 后且不改 policy action。render 的 numeric exit code unverified，不能把整条 render QA 写为 PASS。
-- `base_v9` oracle、static clamp、O± 与 matched-clean 诊断继续停止；下一步仅为尚未授权/未执行的 `base_v11` minimal RL ablation proposal。
+- `base_v9` oracle、static clamp、O± 与 matched-clean 诊断继续停止；当前只保留 approval-gated `base_v12_A_D_resume_hinge12` proposal，不得自动启动训练。
 
 ## Current Baseline
 
@@ -61,8 +67,9 @@ read_when:
 ## Evaluation and Command Contract
 
 - Formal v9 matched resource contract：每组 2 GPUs / 2 processes，每 rank `num_envs=2048`，每组 total env 4096；四组保持相同 seed、source checkpoint、batch budget 与 environment count。
-- 若 `base_v11` 获批，沿用 v10 的 scratch/resource contract：独立 foreground terminal、GPU pair、distinct port、约 10 秒 stagger；每组自然写出 `model_step_001000.pt` 后由用户 `Ctrl-C`。禁止 `setsid`、单 shell `&` 或 detached wrapper 管理 IsaacSim；2026-07-13 的 setsid 尝试曾产生 orphan parent/rank 与 Vulkan/GPU Foundation initialization failure。
-- Matched scalar/trace 使用 module invocation、step1000、16 env、每 env first episode；scalar/trace 是 primary evidence。
+- 旧 `base_v11` launch 沿用 v10 resource contract：独立 foreground terminal、GPU pair、distinct port、约 10 秒 stagger。禁止 `setsid`、单 shell `&` 或 detached wrapper 管理 IsaacSim；2026-07-13 的 setsid 尝试曾产生 orphan parent/rank 与 Vulkan/GPU Foundation initialization failure。
+- Resume command 的 `num_total_batches` 必须写全局 target step：从 restored step1000 到 step2000 传 `2000`，不是传 remaining count `1000`；此 global-cap gotcha 继续适用于任何 future full-state resume。
+- `base_v11` matched scalar/trace 使用 module invocation、seed0、16 env、每 env first episode；scalar/trace 是 primary evidence。比较 hinge max/terminal 与 stage4 entry，bilateral/stability、over-force、j7/j8 limit 作为 guardrail。
 - Render 保持相同 checkpoint/seed/env/episode contract，只用于解释 contact、detach、jam、doorframe event 与动作自然性，不参与 success-rate 统计。
 - 原始完整 shell command 未保留；human report 中的 train/eval/render blocks 明确是从 saved Hydra overrides/config 重建的模板。
 - Sibling worktree eval 使用 `python -m gr00t.rl.eval_agent_trl`，避免 direct-script invocation 命中另一 worktree 的 editable-install source。
@@ -76,10 +83,12 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-14 01:11 HKT - 等待用户单独批准 `base_v11` 最小 scratch pair：A=exact saved D control（保持 `push_door_hinge=6`），B=A 的唯一变量 `push_door_hinge: 6→12`；共同沿用 v10 的 fresh/resource contract。可选第三组仅在另行批准后加入：relative D、non-cumulative `a2_stage3_stage4_contact_stability: 4→0.5`；不得与 H+ 累加。当前未启动训练，也不恢复 base_v9 diagnostics。
+- 2026-07-14 22:02 HKT - 仅在批准后运行一条 `base_v12_A_D_resume_hinge12`：从 v10_D step1000 full-state resume，唯一变量 `push_door_hinge: 6→12`，global target1500/save250；matched eval step1250/1500 对照现有 v11_C hinge6 current-source control。若 source 改变，必须重跑 matched control/H+ pair；不得启动、改 code/config 或恢复 base_v9 diagnostics。
 
 ## DONE Summary
 
+- 2026-07-14 22:02 HKT - `base_v11` incomplete-budget matched eval 完成：九个 usable state 全为 `0/16 goal`、`0/16 stage4`、`stage_overtime`；A/B 仅 stage2、C 仅 stage3。A/B 无 stage3 exposure，不能评价 hinge12 H+；C 的 stable bilateral hold 没有转化为 hinge breakthrough，当前结果不是 full-budget/statistical winner。
+- 2026-07-14 22:02 HKT - 确认 v11 的 source temporal confound 与 reward-evidence boundary：A 仅是 exact saved-config control，observation-order diff 是 plausible confound；hold/hinge realized magnitude imbalance 不构成 hold-dominant causality。下一步为 approval-gated v12 stage3-exposed H+ resume，不启动训练。
 - 2026-07-14 01:11 HKT - 完成 `base_v10` scratch A/B/C/D provenance、matched scalar/trace 与 D qualitative render 复盘；四组都未完成任务，当前仅形成 D stable-hold behavioral reference 与 approval-gated `base_v11` H+ proposal。详细 metrics、artifact 与命令见 human report。
 
 - 2026-07-13 17:42 HKT - 用户提供历史 verified launch template，明确 v10 每组即使使用 2 processes 也保持 trainer override `num_envs=4096`，并沿用 `WANDB_MODE=online`、fixed reward penalty scale、stage2 contact threshold `1.0` 与 PhysX velocity iterations `1`；不得自行换算成 2048。

@@ -1,106 +1,88 @@
-# G1 Doorman Stage2 Reward / Completion A2 Adaptation Checklist
+# A2+Piper Stage2 Grasp Reward 与 Completion
 
-本文给 human 快速看懂：A2+Piper 进入 `STAGE_GRASP = 2` 以后，到底哪些 reward 已经有第一版，哪些只是 carrier，哪些还是 placeholder，以及下一步应该先实现什么。
+> 最后更新：2026-07-14 22:33 HKT —— 已同步当前 A2 code/YAML。
 
-一句话结论：A2 的 stage2 grasp completion 已有 static implementation，包含 5-step contact history gate 防止瞬时 spike 误触发。`_stage_2_to_complete_condition()` 基于最近 H=5 步 Piper gripper 双侧 handle contact history、source local `+Y` squeeze 与 opposite-sign squeeze 判断是否抓住 handle；`_stage_2_to_3_advance_condition()` 仍保留 completion OR door-open bypass。stage2 还新增了 `a2_stage2_close_command` 和 `a2_stage2_close_progress` 两个 close shaping rewards。
+`STAGE_GRASP = 2` 只负责把 Piper 两指稳定地夹住 handle。开门、hinge
+progress 和 swing 不属于 stage2 的 completion。以下是当前 source/config 的
+静态说明，不是 runtime 成功声明。
 
-## 优先级清单
+## 读表口径
 
-- DONE 2026-06-17 21:21 HKT: A2 `_stage_2_to_complete_condition()` 已实现，不再返回 all false。
-- DONE 2026-06-25 20:30 HKT: `_stage_2_to_complete_condition()` 从瞬时 contact 改为 5-step contact history gate（`stage2_grasp_contact_history_length: 5`），要求最近 H 个 contact history samples 全部满足双侧 contact/squeeze/opposite-sign，防止 open-gripper collision spike 误触发 stage2→3 advance。
-- DONE 2026-06-25 20:30 HKT: 新增 `a2_stage2_close_command`（scale `1.0`，stage [2]）与 `a2_stage2_close_progress`（scale `0.5`，stage [2]）stage2 close shaping rewards，gate 为 stage2 + handle distance `<0.015m` + opening/approach alignment `>=0.9`。
-- DONE 2026-06-25 20:30 HKT: `pregrasp_gripper_dof_pos_l1` 改为 stage-aware target：stage0 close / stage1 open / stage2-gate-outside open / stage2-gate-inside return 0 / stage5 close。
-- DONE 2026-06-17 22:34 HKT: Main + Ava + independent reviewer 三方确认 stage2 `static PASS`。
-- DONE 2026-06-17 22:11 HKT: `grasp_target_distance` 已启用为 A2 PASS reward metric。
-- P1: stage2 completion static implementation 完成后，先 smoke stage2 dwell / completion route / bypass ratio。
+`reward_door_open_a2_base.yaml` 是 baseline。表中 scale 是 YAML 原始 scale，
+尚未乘 `dt`；运行时 scale 为 `0.0` 的 key 会先被移除，非零 key 会准备并乘
+`dt`，但 `termination` 会从普通 reward-function list 中显式跳过，在普通 loop
+和 positive clipping 后单独加入。全局注册/非零 scale 不代表 raw reward 每一步都非零。
+`reward_penalty_curriculum=false`，因此当前不会乘 penalty curriculum
+scale；resolved experiment overrides 可能不同。`PASS (static)` 不等于训练或
+接触效果已验证。
 
-## Source of Truth
+## 16 个 registered-global / conditional-global reward
 
-- Origin env: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/envs/door/door_open_homie.py`
-- Origin reward config: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/config/rewards/wbmanip/reward_door_open_homie.yaml`
-- Current A2 env: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/envs/door/door_open_a2_base.py`
-- Current A2 reward config: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml`
-- Stage1 checklist: `/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/g1_doorman_stage1_reward_adaptation.md`
-- Transition checklist: `/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/g1_doorman_transition_correctness_a2_adaptation.md`
+| reward term | YAML scale（pre-dt） | 注册/当前计算 | 当前作用（大白话） |
+|---|---:|---|---|
+| `penalty_dof_acc` | `-1.0e-5` | 注册全局、非零；raw 随 arm 加速度变化 | 抓握时手臂不要突然猛加速。 |
+| `penalty_dof_vel` | `-1.0e-3` | 注册全局、非零；raw 随 arm 速度变化 | 抓握时手臂不要高速甩动。 |
+| `penalty_delta_action_rate` | `-0.01` | 注册全局、非零；只看 6D arm delta | 让手臂 action 连续，不要抖。 |
+| `termination` | `-1000.0` | 注册全局、普通 reward loop 跳过，后置单独加入；raw=`reset_buf & ~time_out_buf` | raw 为真才罚：例如 StagedTaskBase 的 stage overtime 会设 reset、但不设 `time_out_buf`；普通 episode timeout 和 delayed completion 的 reset 有 `time_out_buf`，不收这项罚分。 |
+| `limits_dof_pos` | `-5.0` | 注册全局、非零；A2 arm 位置 limit | 防止抓握时 `arm_j1..j6` 顶限位。 |
+| `limits_gripper_primitive_action` | `-1.0` | 注册全局、raw primitive 超界才非零 | gripper raw command 越界要付代价。 |
+| `stage` | `+1.0` | 注册全局、非零；`accumulate_stage_reward=false` | 当前 stage2 base-still 条件满足时给流程分，不是 grasp completion。 |
+| `complete` | `+4.0` | 注册全局、最终完成后的 conditional signal | 最后完成后奖励；不会因为抓住 handle 就直接 final complete。 |
+| `success_save_time` | `+0.5` | 注册全局、`reset_buf & time_out_buf` 条件式 | 完成/timeout reset 且 flags 同时为真时奖励省下的总时间；不是 stage2→3。 |
+| `ref_dof_legs` | `+0.25` | 注册全局、非零；随 gait phase | 给四腿参考姿态，让抓握时脚步稳定。 |
+| `penalty_door_frame_contact` | `-1.0` | 注册全局、接触力条件式 | 身体撞门框要罚。 |
+| `penalty_door_panel_contact` | `-0.1` | 注册全局、接触力条件式 | 身体撞门板要罚。 |
+| `penalty_base_command_limit` | `-1.0` | 注册全局、raw/clipped command 差异条件式 | base command 超限时罚。 |
+| `penalty_undesired_contact` | `-0.2` | 注册全局、A2 非期望 body 接触条件式 | 腿、躯干、非 gripper arm 不要乱碰；gripper links 排除。 |
+| `penalty_dof_overspeed` | `-0.1` | 注册全局、arm `>3 rad/s` 才非零 | 抓握时 arm 超过 **3 rad/s** 要罚；`arm_j7/j8` 不在此项。 |
+| `orientation_control` | `-5.0` | 注册全局、physical pitch/roll command 条件式 | 让机身保持平稳，别为夹把手而侧翻。 |
 
-## 状态词约定
+## Stage2 current reward inventory
 
-| 状态 | 含义 |
-|---|---|
-| `PASS carrier` | stage framework、base stillness、door hinge 等载体可用；不代表 grasp 语义完成。 |
-| `PASS baseline` | 第一版可以保留训练，但后续要 smoke 看量级和副作用。 |
-| `PASS reward metric` | reward 侧 metric 已实现；可以喂给 policy 或作为 completion 设计参考，但不等于 transition 完成。 |
-| `PASS disabled` | 已确认当前 A2 不应启用或暂时保持 `0.0`。 |
-| `TODO / placeholder` | A2 仍是 zeros/all false/G1-only 语义，不能当成完成。 |
-| `TODO design` | 有可用数据源，但 threshold、组合方式、是否需要 temporal stability 还要先审。 |
+| reward term | YAML scale（pre-dt） | 当前 stage gate / function branch | 当前作用（大白话） | 静态状态 |
+|---|---:|---|---|---|
+| `pregrasp_gripper_dof_pos_l1` | `+0.5` | `effective_in_stage([0,1,2,5])`；stage2 **close gate 外** track open，gate 内返回 0 | 还没对准把手时保持张开；一旦进 close gate 就让 close 专项接管。 | PASS (static) |
+| `gripper_handle_orientation` | `+3.0` | `effective_in_stage([1,2,3,4])`；stage2 active | 继续把 gripper opening/approach 方向对准 handle。 | PASS (static) |
+| `grasp_target_distance` | `+3.0`，A2 std=`0.05` | `effective_in_stage([2,3,4])`；A2 用 handle `target_pos_source[:,0,:]` 距离，stage4 branch 显式归零 | 把 Piper TCP/source 拉到 handle 中心；不是 G1 palm 距离。 | PASS (static) |
+| `grasp` | `+0.2` | `effective_in_stage([1,2,3,4])`；stage2 用 source local `+Y` 两侧接触 shaping | 接触要像夹住，而不是侧撞；两侧 force 越合理越有利。 | PASS (static) |
+| `a2_stage2_close_command` | `+1.0` | `effective_in_stage(2)` 且 close gate；raw primitive 越 close reward 越高 | 对准后明确要求 gripper 发 close command。 | PASS (static) |
+| `penalty_a2_stage2_open_command_in_close_gate` | `-0.4` | `effective_in_stage(2)` 且 close gate；gate 内 open raw 才受罚 | 已经对准却继续张开会掉分。 | PASS (static) |
+| `a2_stage2_close_progress` | `+0.5` | `effective_in_stage(2)` 且 close gate；按 actual DOF close progress | 不只发口令，还要让两指真的收拢。 | PASS (static) |
+| `a2_stage2_handle_center_y` | `+6.0`，std=`0.015` | `effective_in_stage(2)` 全程 active | 把 handle 的 source-local Y 偏差压到中心，避免只碰一边。 | PASS (static) |
+| `a2_stage2_handle_approach_xz` | `+3.0`，std=`0.05` | `effective_in_stage(2)` 全程 active | 同时把 handle 的 X/Z approach 偏差压小。 | PASS (static) |
+| `a2_stage2_both_contact` | `+1.0` | `effective_in_stage(2)`；两侧 force norm `>1.0` 才给 | 鼓励 `arm_body7` 和 `arm_body8` 都碰到 handle。 | PASS (static) |
+| `a2_stage2_opposite_squeeze` | `+1.0` | `effective_in_stage(2)`；两侧 local-Y force sign 相反 | 鼓励两指从相反方向夹，而不是同向顶。 | PASS (static) |
+| `a2_stage2_squeeze_force_window` | `+1.0` | `effective_in_stage(2)`；每侧 local-Y force magnitude 在 `0.5..20.0` | 鼓励有用但不过大的夹持力。 | PASS (static) |
+| `a2_stage2_contact_stability` | `+1.0` | `effective_in_stage(2)`；历史窗口满后检查连续双侧接触 | 鼓励接触持续，不要只闪一帧。 | PASS (static) |
+| `penalty_a2_stage2_over_force` | `-1.0` | `effective_in_stage(2)`；force 超过 `40.0` 阈值才罚 | 防止用暴力挤压伪装成 grasp。 | PASS (static) |
+| `penalty_a2_stage1_stage2_base_forward_creep` | `-1.5` | `effective_in_stage([1,2])`；deadband=`0.05`、normalizer=`0.10` | 不让 base 在 close 阶段继续向门蹭。 | PASS (static) |
+| `penalty_not_standing_still` | `-15.0` | `effective_in_stage([1,2,3])`；stage2 base command norm | 抓握时 base 尽量稳住。 | PASS (static) |
+| `penalty_face_door` | `-1.0` | `effective_in_stage([0,1,2])`；stage2 active | 保持身体朝门，减少 TCP 偏航。 | PASS (static) |
+| `grasp_finger_dof_pos_l1` | `0.0` | YAML placeholder；A2 branch 返回 zeros，绑定前移除 | 当前 binary gripper 不追 fully-closed finger target。 | PASS disabled |
+| `penalty_a2_stage2_single_finger_contact` | `0.0` | YAML placeholder；函数可算 single-contact mask 但不绑定 | 单指接触只保留 diagnostics，不直接扣 reward。 | PASS disabled |
+| `penalty_unused_dof_deviation_l1` | `0.0` | YAML placeholder；one-arm Piper 不适用 | 没有另一只 arm 可约束，当前不产生 reward。 | PASS disabled |
 
-## Stage2 Boundary Facts
+### Close gate 的精确静态定义
 
-| 项目 | G1/HOMIE 原始语义 | 当前 A2 状态 | A2适配状态 | 开发/检查建议 |
-|---|---|---|---|---|
-| Stage name | `STAGE_GRASP = 2`，含义是“已经到 pregrasp，现在要真正抓住 handle” | stage index 沿用 | PASS carrier | 不要把 stage2 当成开门阶段；stage2 首要目标是 grasp completion。 |
-| Reward condition | `_stage_2_reward_condition()` 只要求 base command norm `<=0.1` | A2 同样只看 `get_physical_homie_commands()[:, :3]` norm `<=0.1` | PASS carrier | 这个条件只表示抓的时候 base 不要乱动，不检查 gripper 是否抓住。 |
-| Completion | G1 `_stage_2_to_complete_condition()`：选中的手，handle contact force norm `>1` 的 hand links 数量 `>=4` | A2 path 已改为双侧 Piper gripper handle contact + **5-step contact history gate**：`forces_w_history` shape `(num_envs, H, 2, 3)`，force 旋到 source frame；要求最近 H=5 步全部满足两侧 force norm `>1.0`、两侧 `abs(Y)>0.5`、两侧 `Y` sign opposite；且 `actual_time_in_stage_buf >= H-1` 且 `stage_buf == STAGE_GRASP` | PASS static implementation | contact history gate 防止瞬时 spike 误触发；smoke 看 H=5 是否合适。 |
-| Advance to stage3 | G1 `_stage_2_to_3_advance_condition()` = completion OR door hinge `>0.174533` | A2 保持 completion OR door-open bypass；completion 不再 all false | PASS static routing; smoke TODO | 保留 OR bypass，但 smoke 要统计 bypass ratio，防止 policy 绕过 grasp。 |
-| Stage3 reward condition dependency | `_stage_3_reward_condition()` 会复用 `_stage_2_to_3_advance_condition()` 并要求 base still | A2 已有 stage2 completion 主通路，但 stage3/open runtime correctness 尚未 smoke | TODO dependent smoke | stage3/open 仍不要直接标 PASS；先看 stage2 completion route 是否稳定。 |
+`_get_a2_stage2_close_reward_gate()` 只在 `stage_buf==2` 且同时满足：
 
-## Stage2 Reward Term Mapping
+- handle target 在 Piper source frame 中 `abs(Y) < 0.022`、`abs(Z) < 0.015`、
+  `abs(X) < 0.020`；
+- `opening_alignment >= 0.9` 且 `approach_alignment >= 0.9`。
 
-| Reward term | G1 scale / stage | G1 大白话 | 当前 A2 状态 | A2适配状态 | 开发/检查建议 |
-|---|---:|---|---|---|---|
-| `stage` | `+1.0`, all stages | 当前 stage 条件满足时给 flow reward | A2 沿用 `StagedTaskBase` | PASS carrier | stage reward 不是 grasp success；它只奖励“还在这个 stage 的基本条件 OK”。 |
-| `grasp_finger_dof_pos_l1` | `+3.0`, stages `[2,3,4]` | G1 finger close grasp pose tracking | A2 scale `0.0`, A2 path zeros | PASS disabled | binary gripper primitive; continuous aperture后再做. |
-| `grasp_target_distance` | `+3.0`, stages `[2,3,4]` | G1 让选中的 palm 继续贴近 `grasp_target`，std `0.1` | A2 scale `3.0`，函数 A2 path 读取 `piper_gripper_handle_frame_transformer.data.target_pos_source[:, 0, :]`，fail-fast 校验 exact shape `(num_envs, 2, 3)`，返回 `std=0.1` tracking reward | PASS reward metric | 用 Piper TCP/source 到 handle target 的 relative distance 替代 G1 palm distance；不要用 G1 palm/body index。 |
-| `grasp` | `+0.2`, stages `[1,2,3,4]` | G1 用手和 handle 的 contact force 做抓握 shaping；stage1 反过来惩罚早碰 | A2 已实现 handle-specific contact sensor：`/door_handle` 对 `arm_body7` / `arm_body8`，source local `+Y` 两侧夹持 reward，stage1 惩罚 premature contact；stage2 completion 复用同一 contact source + 5-step history gate | PASS reward metric + completion input | completion 没有直接拿 reward scalar 过关；history gate 防止 spike。 |
-| `a2_stage2_close_command` | A2 新增 `+1.0`, stage `[2]` | A2-specific，无 G1 对应项 | A2: stage2 + handle distance `<0.015m` + opening/approach alignment `>=0.9` 时，奖励 gripper close command | PASS reward metric | 引导 stage2 gripper 在接近 handle 时开始闭合。 |
-| `a2_stage2_close_progress` | A2 新增 `+0.5`, stage `[2]` | A2-specific，无 G1 对应项 | A2: 同 gate，奖励 gripper actual close progress | PASS reward metric | 引导 stage2 gripper 实际闭合进度。 |
-| `pregrasp_gripper_dof_pos_l1` | G1 `+1.5`, stages `[0,1,5]` | G1 finger pregrasp shaping | A2 scale `0.5`，stages `[0,1,2,5]`；stage2-gate-outside track open target，stage2-gate-inside return 0 交给 `a2_stage2_close_*` | PASS baseline | stage2 gate 内 gripper shaping 由 `a2_stage2_close_*` 接管。 |
-| `gripper_handle_orientation` | G1 `hand_handle_orientation: +3.0`, stages `[1,2,3,4]` | 抓住后也要保持手和 handle 方向合理 | A2 已实现 source local `+Y` opening axis、`+Z` approach axis 的 orientation reward，offset 动态跟随 handle | PASS reward metric | stage2 继续保持 orientation 约束。 |
-| `penalty_not_standing_still` | `-15.0`, stages `[1,2,3]` | 抓/开时 base 不要乱走 | A2 同 carrier | PASS baseline | 可能会压制 stage2 细小 base 调整；smoke 看是否过强。 |
-| `penalty_unused_dof_deviation_l1` | `-1.0`, stages `[1,2,3,4]` | G1 双臂任务里，没用的另一只手不要乱动 | A2 scale `0.0` | PASS disabled | Piper 是 one-arm，不启用。 |
-| `penalty_face_door` | `-1.0`, stages `[0,1,2]` | 机器人身体保持面对门 | A2 当前保留 baseline | PASS baseline | stage5 已移除（从 `[0,1,2,5]` 改为 `[0,1,2]`）。 |
-| Door frame/panel contact penalties | `-0.1`, always-on | 撞门框/门板要罚 | A2 已有 door contact sensors | PASS baseline | 确认 expected gripper-handle contact 不会被 undesired/door panel contact 误罚。 |
-| `push_door_handle` / `push_door_hinge` / `push_door_force` | open stage 起作用 | 真正拧把手/推门的 reward | `push_door_handle`、`push_door_hinge` 保留；A2 `push_door_force` scale 当前 `0.0` | Not stage2 | 这些先不要塞进 stage2 completion。stage2 只判断抓稳，stage3/open 再讨论开门力和门铰链进展。 |
+因此 `pregrasp_gripper_dof_pos_l1` 在 gate 外仍鼓励 open，在 gate 内为零；
+`a2_stage2_close_command`、open-command penalty 和 close-progress 共用这个 gate。
 
-## Stage2 Completion Design Checklist
+## Stage2 completion 与 Stage2→3（和 reward 分开）
 
-| 设计输入 | 当前可用 source | 为什么需要 | A2适配状态 | 第一版建议 |
-|---|---|---|---|---|
-| 双侧 handle contact | `a2_gripper_handle_contact_sensor.data.force_matrix_w`，shape 应为 `(num_envs, 1, 2, 3)`，两侧分别来自 `arm_body7` / `arm_body8` | Piper gripper 抓住 handle，至少应该两侧都有接触，而不是单边撞上去 | PASS static implementation | 第一版要求两侧 world force norm 都 `>1.0`。 |
-| 接触方向 | `_reward_grasp()` 已把 world force 旋到 Piper TCP/source frame，当前奖励 local `+Y` squeeze axis，惩罚 X/Z off-axis | 防止把侧撞、顶撞、刮擦也当成 grasp | PASS static implementation | completion 复用同样 frame transform，要求两侧 source local `abs(Y)>0.5`，且两侧 `Y` force signs opposite；没有使用 world sign check。 |
-| Gripper actual DOF / aperture | `_a2_gripper_dof_indices`，`_a2_gripper_open_target`，`_a2_gripper_close_target`，`simulator.dof_pos` | 只看 contact 可能误判；aperture 太开/太闭都可能不是好 grasp | TODO design | 不要求 fully closed。第一版可以要求 actual DOF 在 open/close span 合理范围内，后续 continuous aperture primitive 再做更细。 |
-| TCP / handle relative pose | `piper_gripper_handle_frame_transformer` target `handle` / `pregrasp` relative source pose | 确认 gripper 不是在很奇怪的位置碰到 handle | TODO design | 可考虑 TCP 到 handle/pregrasp 的小范围窗口；先确认 target index 和坐标语义，保持 fail-fast。 |
-| Orientation hold | `_get_a2_gripper_handle_orientation_metrics()` 或新 helper | 抓住时 gripper opening axis 应继续对 handle 合理 | TODO design | 可以复用 stage1 orientation 思路，但不要默认同一 threshold；stage2 可能需要 handle-frame 而不是 pregrasp-frame metric。 |
-| Door-open bypass | `door.data.joint_pos[:, 0] > 0.174533` | 如果门已经被打开一点，不要卡死在 stage2 | PASS carrier | 保留 OR bypass，但 runtime smoke 必须记录 bypass ratio。 |
-| Temporal stability | 可能需要 consecutive-step counter 或利用 stage dwell observations | 防止一帧 contact spike 就过关 | TODO design | 第一版可以先做 instantaneous boolean；如果 smoke 发现误触发，再加短窗口稳定性。不要先加复杂状态机。 |
-
-## 不要做的事
-
-| 不要做 | 原因 |
-|---|---|
-| 不要把 G1 `>=4 hand links` 直接改成 Piper `>=4` | Piper 只有两侧 gripper contact body，计数语义完全不同。 |
-| 不要用 G1 left/right hand、finger DOF、palm indices fallback | A2 是 one-arm Piper，缺 source 应该 fail-fast。 |
-| 不要把 gripper fully closed 当成 grasp success | handle 在中间时，强追 fully closed target 可能制造过大接触力和抖动。 |
-| 不要让 door-open bypass 成为主通路 | 这会让 policy 学会没抓稳也进入 open stage。 |
-| 不要先改 stage3/open 来掩盖 stage2 all-false | stage3 依赖 stage2 advance；先修 grasp completion。 |
-| 不要为了 reward config 对齐 G1 强开 `grasp_finger_dof_pos_l1` | 该 term 需要 continuous aperture primitive 后再做 aperture/contact-aware 设计，尤其要避开 G1 finger fully-closed 假设。`grasp_target_distance` 已有 A2-specific Piper TCP/source-to-handle implementation。 |
-
-## 建议施工顺序
-
-| 顺序 | 工作 | 验收标准 |
-|---:|---|---|
-| 1 | 先让 user 审核 stage2 completion 条件列表 | DONE 2026-06-17 21:21 HKT：第一版只纳入双侧 contact、source local `Y` squeeze magnitude、opposite-sign squeeze。 |
-| 2 | 只实现 `_stage_2_to_complete_condition()` | DONE 2026-06-17 21:21 HKT：A2 path 不再 all false；`_stage_2_to_3_advance_condition()` 仍是 completion OR door-open bypass；未改 stage3/open。 |
-| 3 | Bounded smoke | TODO：记录 stage2 dwell time、completion route、door-open bypass ratio、two-side contact force magnitude、off-axis force、gripper aperture、reset/overtime。 |
-| 4 | 复核 stage2 reward placeholders | DONE 2026-06-17 22:11 HKT：`grasp_target_distance` 已按 Piper TCP/source 到 handle target distance 落地；`grasp_finger_dof_pos_l1` 继续 disabled/deferred，等 continuous aperture primitive 后再设计。 |
-| 5 | 再进入 stage3/open reward | TODO after smoke：再讨论 `push_door_handle`、`push_door_hinge`、`push_door_force` 和 opening progress。 |
-
-## Human 验收建议
-
-| 验收项 | 当前状态 | 看什么 |
+| 事件 | 当前 source 条件 | 说明 |
 |---|---|---|
-| Static source review | PASS 2026-06-17 21:21 HKT | `_stage_2_to_complete_condition()` A2 path 不再 `torch.zeros(...)` all false，使用 `both_contact & sufficient_squeeze & opposite_squeeze`。 |
-| Contact source review | PASS source | 确认 `a2_gripper_handle_contact_sensor` 只看 `/door_handle` 对 `arm_body7` / `arm_body8`，不混 global contact。 |
-| Fail-fast review | PASS requirement | 缺 sensor、shape 不对、target order 不对时直接 raise，不返回 zeros。 |
-| Stage routing review | PASS static 2026-06-17 21:21 HKT | `_stage_2_to_3_advance_condition()` 保持 `completion | door_open_bypass`；runtime 是否主走 completion 仍需 smoke。 |
-| Runtime smoke | TODO | 看 stage2 是否正常停留并完成，是否频繁靠 door-open bypass 跳过，是否出现 contact spike 误判。 |
+| Stage2 reward condition | `_stage_2_reward_condition()`：physical base command `norm[:3] <=0.1` | 只限制 base 不乱走，不等于已经 grasp。 |
+| Stage2 completion base gate | `stage_buf==STAGE_GRASP`，`actual_time_in_stage_buf >= H-1`，当前 `H=5` | 至少在 stage2 实际停留到第 5 个 history sample（dwell `>=4`）。 |
+| Stage2 completion contact history | 最近 **5 个连续 sample** 每一个都同时满足：两侧 contact force norm `>1.0`、两侧 `abs(local-Y)>0.5`、两侧 local-Y sign opposite | 这是 `both_contact & sufficient_squeeze & opposite_squeeze` 的全 history AND；一帧 spike 不能过关。 |
+| Optional close gate | `a2_stage2_completion_close_gate_required=false`（当前默认） | 默认 completion **不要求** close gate；只有显式 override 为 true 时，才额外要求当前 close gate、raw primitive `<-0.2`、两指最小 close progress `>=0.45`。 |
+| Stage2→3 | A2 `_stage_2_to_3_advance_condition()` **只返回 strict completion** | 不再使用 door-open OR bypass。`_get_a2_door_open_bypass_mask()` 只写 diagnostics，不能推进 stage。 |
+
+`complete` / `success_save_time` 仍是最终任务信号；stage2 grasp completion
+不是 final complete。当前 source/config 的 gate 已静态核对，接触力效果、stage2
+dwell 分布和训练成功率需要另行 runtime 验证。

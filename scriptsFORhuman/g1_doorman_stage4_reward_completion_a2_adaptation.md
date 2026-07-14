@@ -1,101 +1,81 @@
-# G1 Doorman Stage4 Reward / Completion A2 Adaptation Checklist
+# A2+Piper Stage4 Swing Reward 与 Stage4→5 Gate
 
-本文给 human 快速看懂：A2+Piper 进入 `STAGE_SWING = 4` 以后，原版 G1 到底在奖励什么、stage4 怎么进入 stage5、当前 A2 哪些可以先保留、哪些必须重新设计。
+> 最后更新：2026-07-14 22:33 HKT —— 已同步当前 A2 code/YAML。
 
-一句话结论：stage4/swing 的主目标是门已经打开（hinge > 10°）后，松开 handle（让 handle 回弹关闭）、推门穿过门框。G1 的 stage4 reward 大部分是 robot-agnostic 的 door-joint progress + root locomotion，可作为 A2 baseline；`target_root_pos` z 已从 G1 的 0.72 调整为 A2 的 0.5（匹配 trunk 高度）；`penalty_standing_still` 的 std=0.05 是否匹配 A2 四足走动需要 smoke 验证。
+`STAGE_SWING = 4` 是门已开始打开后，停止继续下压 handle、让 handle joint
+回弹并带着 robot 穿过门的阶段；这不等于打开 gripper。这里必须区分“当前 frame 的 stage reward 条件”和
+“曾经达到过 hinge 阈值”：当前 source 每一帧重新检查 hinge，**不是历史
+latch**。
 
-## 优先级清单
+## 读表口径
 
-- DONE 2026-06-29: stage3 reward completion / A2 adaptation 已确认 `static PASS`，`push_door_handle` / `push_door_hinge` joint index 和方向静态验证通过，`push_door_force` 保持 disabled。
-- DONE 2026-06-29: `target_root_pos` z 从 G1 的 `0.72` 调整为 A2 的 `0.5`（匹配 trunk 高度），消除 `target_root_distance` 的恒定 offset。
-- DONE 2026-06-29: `penalty_standing_still` / `grasp` / `grasp_target_distance` / `gripper_handle_orientation` 确认沿用，不需要改 code。
-- P1: bounded smoke 仍要统计 stage3→4 route、stage4 dwell、handle 回弹、hinge 持续 progress、root locomotion、door-open bypass ratio。
+基准为 `reward_door_open_a2_base.yaml`；表中都是 YAML scale（pre-`dt`）。
+reward binding 会删除 zero scale，再准备 nonzero key 并乘 `dt`；但
+`termination` 会从普通 reward-function list 中显式跳过，在普通 loop 和
+positive clipping 后单独加入。全局注册/非零 scale 不代表 raw reward 每一步都非零。
+当前 `reward_penalty_curriculum=false`，不乘 penalty curriculum；resolved
+experiment override 可能不同。`PASS (static)` 仅表示静态 source/config 事实，
+不表示 swing runtime 已成功。
 
-## Source of Truth
+## 16 个 registered-global / conditional-global reward
 
-- Origin env: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/envs/door/door_open_homie.py`
-- Origin reward config: `/home/baoquanc/workspace/GR00T-VisualSim2Real/gr00t/rl/config/rewards/wbmanip/reward_door_open_homie.yaml`
-- Current A2 env: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/envs/door/door_open_a2_base.py`
-- Current A2 reward config: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml`
-- A2 env config: `/home/baoquanc/workspace/DoorDog-A2_Piper/gr00t/rl/config/env/door_open_a2_base.yaml`
-- Stage3 checklist: `/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/g1_doorman_stage3_reward_completion_a2_adaptation.md`
+| reward term | YAML scale（pre-dt） | 注册/当前计算 | 当前作用（大白话） |
+|---|---:|---|---|
+| `penalty_dof_acc` | `-1.0e-5` | 注册全局、非零；raw 随 arm 加速度变化 | 穿门时手臂不要猛加速。 |
+| `penalty_dof_vel` | `-1.0e-3` | 注册全局、非零；raw 随 arm 速度变化 | 手臂不要高速甩动。 |
+| `penalty_delta_action_rate` | `-0.01` | 注册全局、非零；6D arm delta | 减少手臂动作抖动。 |
+| `termination` | `-1000.0` | 注册全局、普通 reward loop 跳过，后置单独加入；raw=`reset_buf & ~time_out_buf` | raw 为真才罚：例如 StagedTaskBase 的 stage overtime 会设 reset、但不设 `time_out_buf`；普通 episode timeout 和 delayed completion 的 reset 有 `time_out_buf`，不收这项罚分。 |
+| `limits_dof_pos` | `-5.0` | 注册全局、非零；A2 arm 位置 limit | 防止 arm 关节顶软限位。 |
+| `limits_gripper_primitive_action` | `-1.0` | 注册全局、raw primitive 超界才非零 | 防止 gripper command 越界。 |
+| `stage` | `+1.0` | 注册全局、非零；只看当前 stage4 condition | 当前 frame hinge 条件成立才给流程分。 |
+| `complete` | `+4.0` | 注册全局、最终完成后的 conditional signal | 只有 stage5 final complete 才给完成分。 |
+| `success_save_time` | `+0.5` | 注册全局、`reset_buf & time_out_buf` 条件式 | 完成/timeout reset 且 flags 同时真时奖励省时；不是 stage4→5。 |
+| `ref_dof_legs` | `+0.25` | 注册全局、非零；A2 gait reference | 给穿门行走保持参考步态。 |
+| `penalty_door_frame_contact` | `-1.0` | 注册全局、接触力条件式 | 撞门框要明显扣分。 |
+| `penalty_door_panel_contact` | `-0.1` | 注册全局、接触力条件式 | 撞门板要小幅扣分。 |
+| `penalty_base_command_limit` | `-1.0` | 注册全局、raw/clipped command 差异条件式 | base command 超限要罚。 |
+| `penalty_undesired_contact` | `-0.2` | 注册全局、A2 非期望 body 接触条件式 | 腿、躯干、非 gripper arm 不要撞环境。 |
+| `penalty_dof_overspeed` | `-0.1` | 注册全局、arm `>3 rad/s` 才非零 | arm 超 **3 rad/s** 要罚；gripper DOF 排除。 |
+| `orientation_control` | `-5.0` | 注册全局、physical pitch/roll command 条件式 | 穿门时保持机身别侧翻。 |
 
-## 状态词约定
+## Stage4 current reward inventory
 
-| 状态 | 含义 |
-|---|---|
-| `PASS carrier` | stage/routing 条件可沿用，但不代表 swing 行为已经 smoke 通过。 |
-| `PASS baseline` | 第一版可以保留训练，后续看 reward magnitude、方向和副作用。 |
-| `PASS reward metric` | reward 侧 metric 已有 A2 实现，可继续作为 shaping。 |
-| `PASS disabled` | 当前 A2 明确不启用，或者启用会引入错误语义。 |
-| `TODO design` | 需要单独设计 A2/Piper 语义，不能直接照搬 G1。 |
-| `TODO smoke` | 静态代码可以先过，但 runtime 需要验证。 |
+| reward term | YAML scale（pre-dt） | 当前 stage gate / function branch | 当前作用（大白话） | 静态状态 |
+|---|---:|---|---|---|
+| `dont_push_door_handle` | `+3.0` | `effective_in_stage([4,5])`；handle joint pos/vel 回弹方向 | 奖励停止继续下压 handle，并让 handle joint 回到回弹方向；它不等于打开 gripper。 | PASS (static) |
+| `push_door_hinge` | `+6.0` | `effective_in_stage([3,4])`；hinge joint pos/vel | 即使 gripper 继续保持 close/contact，门 hinge 仍继续打开时给 progress；停止继续下压 handle 只让 handle joint 回弹。 | PASS (static) |
+| `target_root_distance` | `+12.0` | `effective_in_stage([4,5])`；stage4 source 最后乘 **0.5** | 带着 base 朝 `[2.0,0.0,0.5]` 走；stage4 只给半权重，避免压过同时存在的夹紧与 handle-return shaping。 | PASS (static) |
+| `penalty_standing_still` | `-1.0` | `effective_in_stage(4)`；base command norm tracking | 惩罚 stage4 站着不走，促使开始穿门。 | PASS (static) |
+| `grasp` | `+0.2` | `effective_in_stage([1,2,3,4])`；A2 handle contact shaping | 刚进 swing 时仍保留夹持信号，避免过早掉手。 | PASS (static) |
+| `grasp_target_distance` | `+3.0`，A2 std=`0.05` | `effective_in_stage([2,3,4])`，但 A2 **stage4 分支显式返回 zero** | 旧的强 TCP→handle 距离 shaping 在 stage4 不再施加；不要把 YAML `+3` 写成实际 stage4 reward。 | PASS (static, zero branch) |
+| `a2_stage4_grasp_target_distance_mild` | `+1.0` | `effective_in_stage(4)`；A2 TCP→handle distance 的 mild replacement | 只留一个较轻的距离牵引，帮助 handle-return 初期别让 TCP 瞬间离 handle 太远。 | PASS (static) |
+| `gripper_handle_orientation` | `+3.0` | `effective_in_stage([1,2,3,4])`；stage4 active | handle joint 回弹前仍保持夹爪方向不过分偏离 handle。 | PASS (static) |
+| `penalty_base_roll_pitch_l2` | `-2.0` | `effective_in_stage([0,1,4,5])`；stage4 active | 开始走时仍压住机身 roll/pitch。 | PASS (static) |
+| `a2_stage3_stage4_keep_close_command` | `+0.5` | `effective_in_stage([3,4])`；raw close command | handle joint 尚未回弹时仍鼓励先保持夹紧。 | PASS (static) |
+| `penalty_a2_stage3_stage4_open_command` | `-1.0` | `effective_in_stage([3,4])`；raw open command | 防止还没稳住门就突然张开。 | PASS (static) |
+| `a2_stage3_stage4_both_contact` | `+0.5` | `effective_in_stage([3,4])`；both-contact mask | 鼓励两侧接触继续存在。 | PASS (static) |
+| `a2_stage3_stage4_opposite_squeeze` | `+0.5` | `effective_in_stage([3,4])`；opposite-squeeze mask | 鼓励两指保持相向夹持。 | PASS (static) |
+| `a2_stage3_stage4_squeeze_force_window` | `+0.5` | `effective_in_stage([3,4])`；squeeze force window | 鼓励适中的夹持力。 | PASS (static) |
+| `a2_stage3_stage4_contact_stability` | `+0.5` | `effective_in_stage([3,4])`；连续接触历史 | 防止接触一闪就掉。 | PASS (static) |
+| `penalty_a2_stage3_stage4_over_force` | `-1.0` | `effective_in_stage([3,4])`；over-force mask | 暴力夹门/撞门会扣分。 | PASS (static) |
+| `penalty_unused_dof_deviation_l1` | `0.0` | YAML placeholder，binding 前删除 | Piper 没有 unused arm。 | PASS disabled |
+| `grasp_finger_dof_pos_l1` | `0.0` | YAML placeholder，A2 branch zeros | 不追 fully-closed finger pose。 | PASS disabled |
+| `penalty_a2_stage4_arm_default_pose_l1` | `0.0` | `effective_in_stage(4)` 但 zero scale，binding 前删除 | 不把 arm 拉回 default pose，避免和开门/穿门动作冲突。 | PASS disabled |
 
-## Stage4 Boundary Facts
+另外，`push_door_handle=+6.0` 只在 stage3；`penalty_face_door=-1.0`
+只在 `[0,1,2]`；`penalty_not_standing_still=-15.0` 只在 `[1,2,3]`；
+`push_door_force=0.0` 在 A2 disabled。它们不是当前 stage4 active terms。
 
-| 项目 | G1/HOMIE 原始语义 | 当前 A2 状态 | A2适配状态 | 开发/检查建议 |
-|---|---|---|---|---|
-| Stage name | `STAGE_SWING = 4`，门已打开，开始松 handle、推门穿过 | stage index 沿用 | PASS carrier | stage4 不是"继续开门"，而是"门开了之后穿过去"。 |
-| Stage4 reward condition | `_stage_4_reward_condition()` = `_stage_3_to_4_advance_condition()`（hinge > 0.174533） | A2 同 G1 | PASS carrier | stage4 只要求门打开过一次就持续给 stage reward，不要求保持开门。 |
-| Stage4 advance | `_stage_4_to_5_advance_condition()` 要求 `walked_through_door` (root_x > 0.0) & `door_opened` (hinge > 1.0472=60°) & `handle_up` (handle < 0.2) | A2 当前同 G1 | PASS baseline / verify root_x | `walked_through_door` 用 `robot_root_states[:, 0] - env_origins[:, 0] > 0.0`，假设 door 在 x=0 处、robot 要穿到 x>0。A2 root 是 `trunk` body，z 高度不同但 x 语义相同。第一版保留；smoke 看是否过早/过晚进入 through。 |
-| `target_root_pos` | G1 config `[2.0, 0.0, 0.72]`——door 前方 2m、z=0.72（G1 pelvis 高度） | A2 config `[2.0, 0.0, 0.5]`——z 已改为 A2 trunk 高度 | DONE | z 从 0.72 改为 0.5，消除 `target_root_distance` 的恒定 0.22m offset。 |
-| `handle_up` 条件 | stage4→5 要求 `joint_pos[:, 1] < 0.2`（handle 回弹到接近 0） | A2 同 G1 | PASS baseline | handle joint lower=0、drive target=-15，弹簧会自动回弹。policy 需要在 swing 阶段松开 handle 让它回弹。door-joint progress，robot-agnostic。 |
+## Stage4 condition 与 Stage4→5（和 reward 分开）
 
-## Stage4 Reward Term Mapping
-
-仅列出在 stage4 (`STAGE_SWING = 4`) 生效的 reward terms。
-
-| Reward term | G1 scale / stage | G1 大白话 | 当前 A2 状态 | A2适配状态 | 开发/检查建议 |
-|---|---:|---|---|---|---|
-| `stage` | `+1.0`, all stages | 当前 stage condition 满足时给 flow reward | A2 沿用 `StagedTaskBase` | PASS carrier | 只说明 stage4 条件成立（门曾打开过），不代表 robot 正在穿门。 |
-| `dont_push_door_handle` | `+3.0`, stages `[4,5]` | 奖励 handle 回弹（vel 取负、pos 从 45° 回到 0），即松开 handle 让它关闭 | A2 scale `3.0`，函数与 G1 完全一致 | PASS baseline | door-joint progress，robot-agnostic。stage4 应该松 handle 让弹簧回弹，这个 reward 引导 policy 不要继续压 handle。 |
-| `push_door_hinge` | `+6.0`, stages `[3,4]` | 继续奖励 hinge 速度和开门角度 | A2 scale `6.0`，与 G1 完全一致 | PASS baseline | stage4 门还在继续开，hinge reward 仍有效。stage5 不再给（effective_in_stage 是 [3,4]）。 |
-| `target_root_distance` | `+12.0`, stages `[4,5]` | 奖励 robot root 朝 `target_root_pos` 方向移动 + 接近目标位置 | A2 scale `12.0`，函数与 G1 完全一致，`target_root_pos` z 已改为 0.5 | PASS baseline | stage4 时 `reward *= 0.5`（line 1210），stage5 时 full reward。root_vel target=0.3 m/s。 |
-| `penalty_standing_still` | `-1.0`, stage `[4]` | stage4 开始走动，惩罚 base command norm 太小（不走） | A2 scale `-1.0`，函数与 G1 完全一致 | PASS baseline / smoke | G1 人形用 HOMIE locomotion 走门；A2 四足用 A2_Base locomotion。`std=0.05` 的 tracking 可能对 A2 太严或太松。smoke 看 A2 是否敢走。 |
-| `grasp` | `+0.2`, stages `[1,2,3,4]` | stage4 仍保持 gripper-handle contact（还没松手） | A2 已有 handle-specific contact sensor 实现 | PASS reward metric | stage4 初期仍需保持抓握，直到 `dont_push_door_handle` 引导松开。smoke 看 contact spike。 |
-| `grasp_target_distance` | `+3.0`, stages `[2,3,4]` | stage4 仍保持 TCP 接近 handle | A2 已有 Piper TCP→handle distance 实现 | PASS reward metric | stage4 初期仍有效，引导 TCP 不离 handle 太远直到松开。 |
-| `gripper_handle_orientation` | `+3.0`, stages `[1,2,3,4]` | stage4 仍保持 gripper-handle 方向合理 | A2 已启用 scale `3.0`，offset 动态跟随 handle | PASS reward metric | 已确认 offset 在 handle local frame，handle 转动时动态跟随。stage4 handle 回弹时 orientation 约束也跟着变。 |
-| `penalty_unused_dof_deviation_l1` | `-1.0`, stages `[1,2,3,4]` | G1 未使用的另一只手不要乱动 | A2 scale `0.0` | PASS disabled | Piper 是 one-arm，不启用。 |
-| `grasp_finger_dof_pos_l1` | `+3.0`, stages `[2,3,4]` | G1 手指保持 close grasp pose | A2 scale `0.0` | PASS disabled | binary gripper primitive 不适合。 |
-| Door frame/panel contact penalties | `-0.1`, always-on | 穿门时撞门框/门板要罚 | A2 已有 sensors 和 scale | PASS baseline | stage4 穿门时最容易碰门框，smoke 要看 false positive。 |
-
-## Stage4 Swing Design Checklist
-
-| 设计输入 | 当前可用 source | 为什么需要 | A2适配状态 | 第一版建议 |
-|---|---|---|---|---|
-| Handle 回弹 progress | `door.data.joint_pos[:, 1]`, `door.data.joint_vel[:, 1]` | stage4 要松 handle 让它回弹，G1 `dont_push_door_handle` 直接奖励这个 | PASS baseline | 保留 scale `3.0`，door-joint progress robot-agnostic。 |
-| Hinge 持续 progress | `door.data.joint_pos[:, 0]`, `door.data.joint_vel[:, 0]` | stage4 门还在继续开 | PASS baseline | `push_door_hinge` stages [3,4] 继续有效。 |
-| Root locomotion | `robot_root_states[:, :3]`, `target_root_pos`, `_rigid_body_vel[:, root_idx, :]` | stage4 要开始走向门后方 | DONE | `target_root_pos` z 已从 0.72 改为 0.5（匹配 A2 trunk 高度）。 |
-| Base 走动鼓励 | `get_physical_homie_commands()[:, :3]` | stage4 要走动，不能站着不动 | PASS baseline / smoke | `penalty_standing_still` std=0.05，A2 四足走动时 base command 量级可能不同。 |
-| Grasp 释放 timing | `grasp` reward stages [1,2,3,4] + `dont_push_door_handle` | stage4 初期保持抓握，后期松开 | PASS reward metric | 第一版不改；如果 smoke 发现 policy 过早松手或过晚松手，再调 grasp scale 或 dont_push_door_handle scale 的比例。 |
-| Door contact safety | door frame/panel contact sensors | 穿门时撞门框 | PASS baseline / smoke | 统计 frame/panel penalty frequency。 |
-| Walk-through 阈值 | `robot_root_states[:, 0] - env_origins[:, 0] > 0.0` | stage4→5 要求 robot root x 越过门平面 | PASS baseline / verify | A2 trunk body 的 x 位置语义与 G1 pelvis 相同（都是 root）。第一版保留 x>0.0 阈值。 |
-
-## 不要做的事
-
-| 不要做 | 原因 |
-|---|---|
-| 不要在 stage4 继续启用 `push_door_handle` | stage4 应该松 handle，不应继续压。`push_door_handle` 的 `effective_in_stage` 只含 [3]。 |
-| 不要把 `target_root_pos` 的 x 改成门后方很远的位置 | G1 用 [2.0, 0.0, ...]，x=2.0 是 door 前方 2m 处。stage4 是走向目标位置，不是瞬移。 |
-| 不要因为 `penalty_standing_still` 看起来 robot-agnostic 就直接标 runtime PASS | A2 四足走动的 base command 量级和 G1 HOMIE 不同，std=0.05 的 tracking 可能不匹配。 |
-| 不要在 stage4 重新设计 grasp 释放逻辑 | `dont_push_door_handle` + handle 弹簧回弹已经引导松开。如果效果不好，调 scale 比例而不是加新 logic。 |
-
-## 建议施工顺序
-
-| 顺序 | 工作 | 验收标准 |
-|---:|---|---|
-| 1 | user 审核本 stage4/swing checklist | 明确哪些 term 先 PASS baseline，哪些进入 TODO design。 |
-| 2 | 静态确认 `dont_push_door_handle` 的方向 | handle 回弹 = handle joint_pos 从 45° 回到 0，reward 的 `0.785398 - joint_pos` 确实奖励回弹方向。DONE：与 G1 完全一致，door-joint progress。 |
-| 3 | `target_root_pos` z 调整 | DONE：z 从 0.72 改为 0.5，匹配 A2 trunk 高度。 |
-| 4 | 确认 `penalty_standing_still` std=0.05 是否匹配 A2 | A2 四足走动 base command 量级需 smoke 确认。 |
-| 5 | bounded smoke | 记录 stage3→4 route、stage4 dwell、handle 回弹 timing、hinge 持续 progress、root locomotion、door contact penalties、reset/overtime。 |
-| 6 | 再进入 stage5/through | stage4 swing progress 稳定后，确认 stage4→5 advance 和 stage5 complete。 |
-
-## Human 验收建议
-
-| 验收项 | 当前状态 | 看什么 |
+| 事件 | 当前 source 条件 | 说明 |
 |---|---|---|
-| Static source review | DONE | `dont_push_door_handle` / `target_root_distance` / `penalty_standing_still` 只依赖 door articulation + root state，可作为 A2 baseline。`grasp` / `grasp_target_distance` / `gripper_handle_orientation` 沿用已有 A2 实现。 |
-| `target_root_pos` z review | DONE | z 已从 0.72 改为 0.5，匹配 A2 trunk 高度。 |
-| Stage routing review | PASS static from stage3 | `_stage_3_to_4_advance_condition()` 不改；stage4 reward condition 复用它。stage4→5 advance 的 `walked_through_door` + `handle_up` + `door_opened` 保留。 |
-| Runtime smoke | TODO | stage4 是否真的松 handle 回弹、推门 hinge、开始走向 target_root_pos，而不是卡在 stage4 不动。`penalty_standing_still` std=0.05 是否匹配 A2 四足走动。 |
+| Stage3→4 | stage2 strict completion 后，stage3 hinge `joint_pos[:,0] > a2_stage3_to4_door_hinge_threshold` | 默认阈值 `0.174533 rad`，可由 env config override。 |
+| Stage4 reward condition | `_stage_4_reward_condition()` **每个 frame 直接调用** `_stage_3_to_4_advance_condition()` | hinge 角低于阈值的 frame 不满足 stage reward；没有“曾经超过阈值就永久 latch”的逻辑。 |
+| Stage4→5 | root x（减 env origin）`>0.0`，hinge `>1.0472 rad`（60°），handle joint ` <0.2` | 三个条件同时满足才进入 `STAGE_THROUGH=5`；需要走过门、门足够开、handle joint 已回弹；这不是 gripper open gate。 |
+| Stage5 final complete | stage5 root x `>1.5` | 这是 final task condition，另见 stage5 文档；不是 stage4 reward。 |
+
+`target_root_pos=[2.0,0.0,0.5]` 是当前 config 静态值，stage4
+`target_root_distance` 的 ×0.5 是 source branch；是否能在保持 gripper close/contact 的同时停止继续下压 handle、让 handle joint 回弹并穿门，
+仍需 runtime 验证。frame/panel contact 是两个独立 global penalty，scale
+分别 **`-1.0`** 与 **`-0.1`**，不能合写成一个门碰撞项。

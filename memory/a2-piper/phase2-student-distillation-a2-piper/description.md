@@ -1,166 +1,71 @@
 ---
 name: phase2-student-distillation-a2-piper
-scope: Full A2+Piper adaptation plan for Doorman Phase2 Student Distillation / DAgger vision policy
-status: planned
-last_updated: 2026-07-08 15:11 HKT
+scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
+status: TRAINING_PASS
+last_updated: 2026-07-15 17:17 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/TODO.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/DONE.md
 read_when:
-  - 开始设计、实现、review 或 debug A2+Piper Phase2 Student Distillation / DAgger vision route 前
-  - 需要判断 origin G1/HOMIE student route 哪些部分可复用、哪些必须 A2-specific 替换前
-  - 需要给 code worker / reviewer 派发 A2 student trainer、vision observation、camera 或 teacher-student action contract 任务前
+  - 开始实现、review、debug 或运行 DoorDog-A2_Piper-only Student Distillation route 前
+  - 需要恢复 sealed Teacher triplet、Student checkpoint、DAgger、eval 或 ONNX/export validation 前
 ---
 
-# A2+Piper Phase2 Student Distillation Plan
+# A2+Piper Phase2 Student Distillation
 
-## Purpose
+## Status and Accepted Scope
 
-记录完整的 A2+Piper adaptation 版本，而不是 minimum viable skeleton。目标是把 Doorman paper 中 Phase2 `Student Distillation` / DAgger vision policy 从 G1/HOMIE route 完整替换为 A2+Piper route，使 student policy 能从 A2 Teacher PPO checkpoint 蒸馏，并通过 RGB vision + A2 proprioception 输出 A2 high-level door policy action。
+Status at 2026-07-15 17:17 HKT: `TRAINING_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`。
 
-本 entry 只记录未来实现参考、scope boundary、target architecture、施工顺序和验收条件。当前尚未实现 A2 student route。
+Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
-## Current Source Facts
+## Implemented Training Contract
 
-- Origin G1/HOMIE student route exists, but is not A2-compatible:
-  - Experiment config: `gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml`
-  - Algorithm config: `gr00t/rl/config/algo/dagger_vision_distributed.yaml`
-  - Observation config: `gr00t/rl/config/obs/wbmanip/door_open_homie_dagger.yaml`
-  - Trainer config: `gr00t/rl/config/trainer/trl_distill_obj_pred_homie_api.yaml`
-  - Trainer/source: `gr00t/rl/trl/trainer/distill_trainer.py`, `distill_trainer_obj_pred.py`, `distill_trainer_obj_pred_homie_api.py`
-  - Vision actor: `gr00t/rl/trl/modules/vision_actor_critic_modules_obj_pred_recurrent.py`
-- Current A2 route is Teacher PPO / A2_Base only:
-  - Experiment config: `gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml`
-  - Stage0-2 variant: `gr00t/rl/config/exp/wbmanip/door_open_a2_base_stage0_2_grasp_terminal_lstm.yaml`
-  - Observation config: `gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml`
-  - Trainer config: `gr00t/rl/config/trainer/trl_a2_base_api.yaml`
-  - Trainer/source: `gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py`
-- Current A2 Teacher high-level contract:
-  - Policy output: `12D = 5D a2_base_command_raw [x, y, yaw, pitch, roll] + 6D Piper arm_j1..j6 + 1D gripper primitive`
-  - Trainer rollout action: `24D = 12D high-level + 12D frozen A2_Base leg action`
-  - Env final simulator command: `20D = 12D legs + 6D Piper arm + 2D gripper joints`
-  - Teacher actor/critic obs are currently `133D/138D`, with A2-specific `hand_force -> 6D arm_body7/8 force`, `hand_handle_transform -> gripper_handle_transform 18D`, `a2_base_command_raw`, `a2_base_command`, `delta_actions` as 6D Piper arm raw delta only.
-- Current A2 student/vision status:
-  - `scriptsFORhuman/g1_doorman_policy_stack_a2_adaptation_map.md` marks `Student DAgger/vision policy` as `TODO`.
-  - Origin `teacher_actor_path` points to a G1/HOMIE checkpoint and must not be reused for A2.
-  - Origin camera route assumes `d435_link`; A2_Piper URDF/config currently does not expose a `d435_link`.
-  - A2 `door_open_a2_base.py::_get_obs_dof_pos_non_finger()` and `_get_obs_dof_vel_non_finger()` still use G1-style `[:, :-14]` slicing and are not acceptable as final A2 student proprioception terms.
-  - A2 `_get_obs_target_obj_pos()` currently reads `head_target_frame_transformer`; this is not a validated A2 student object-prediction source.
+- Student deployable contract：`81D proprio + RGB(248832D) -> 12D high-level action`；Teacher actor `133D -> 12D`，optional critic `138D`；frozen A2_Base `1620D -> 12D` leg action。
+- rollout contract：`12D Student/Teacher high-level + 12D A2_Base legs = 24D`，再由既有 A2 env action chain 映射为 `20D` simulator command。BC loss 只比较 learned 的 12D high-level action；不复用 HOMIE/G1 trainer、checkpoint、camera link 或 fallback。
+- Object prediction 保持 explicitly disabled，直到存在经过验证的 A2 target/frame；checkpoint strict loader behavior 只有 static test evidence。
 
-## Full Target Architecture
+## One-update TRAINING_PASS Evidence
 
-The final A2+Piper Phase2 route should include all of the following, not just a smoke-only subset:
+在 GPU0 的精确 one-update command 为：
 
-1. **A2 Teacher checkpoint dependency**
-   - `teacher_actor_path` points to a trained A2 Teacher PPO checkpoint generated from the A2 route.
-   - Teacher actor load must fail-fast if checkpoint action dim, obs dim, running mean/std state, recurrent architecture or config sidecar does not match the active A2 Teacher contract.
-   - Teacher inference uses A2 `teacher_obs` and outputs only the 12D high-level action. Frozen A2_Base leg actions are derived separately, not learned by the student.
+```bash
+CUDA_VISIBLE_DEVICES=0 HYDRA_FULL_ERROR=1 WANDB_MODE=disabled /home/baoquanc/anaconda3/envs/isaaclab/bin/accelerate launch --num_processes 1 gr00t/rl/train_agent_trl.py +exp=wbmanip/door_open_a2_base_dagger-lstm num_envs=4 algo.config.num_steps_per_env=1 algo.config.num_mini_batches=1 algo.trl.num_total_batches=1 algo.trl.per_device_train_batch_size=4 callbacks.model_save.save_frequency=1 use_wandb=false experiment_dir=logs_rl/a2_piper_student_distillation_one_update teacher_actor_path=logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt teacher_config_path=logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml teacher_manifest_path=logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json
+```
 
-2. **A2 student experiment/config route**
-   - Add an A2-specific experiment config such as `gr00t/rl/config/exp/wbmanip/door_open_a2_base_dagger-lstm.yaml`.
-   - Defaults must use A2 env/robot/reward/obs/trainer routes:
-     - `/env: door_open_a2_base`
-     - `/robot: A2_Piper/a2_piper`
-     - `/rewards: wbmanip/reward_door_open_a2_base`
-     - `/obs: wbmanip/door_open_a2_base_dagger`
-     - `/trainer: trl_distill_obj_pred_a2_base_api`
-   - Preserve student training features from origin where still valid: DAgger BC loss, teacher rollout ratio/curriculum, ResNet18 + LSTM, optional object prediction, camera/domain randomization, save/eval/export workflow.
+- Runtime started `2026-07-15 17:08:07 HKT`; live dimensions were actor `81`, RGB `248832`, Teacher `133`, critic `138`, A2_Base `1620`; frozen A2_Base was used for low-level leg actions.
+- Iteration `1` completed with `4` total timesteps. GPU0 pre/post process memory was `1 MiB`; frozen candidate hashes remained unchanged.
+- Student artifact is `logs_rl/a2_piper_student_distillation_one_update/model_step_000001.pt`: SHA256 `5ce4d36843b20afde0c4abc61d17641978f7cac078f441cec8786edeb9a67ccc`, size `155631363` bytes, mtime `2026-07-15 17:09:28 HKT`.
+- The saved live-model checkpoint has `142` finite policy tensors, `optimizer_state_dict.state` with `78` entries, and serialized `state.global_step=1`.
 
-3. **A2 distillation trainer**
-   - Add A2-specific trainer source, e.g. `gr00t/rl/trl/trainer/distill_trainer_obj_pred_a2_base_api.py`.
-   - Do not inherit or call HOMIE-specific trainer logic for final A2 route.
-   - Reuse the frozen A2_Base loading and `_a2_base_actions()` semantics from `ppo_trainer_a2_base_api.py`.
-   - During rollout:
-     - Student emits 12D high-level action.
-     - Frozen A2_Base consumes `a2_base_obs` plus high-level base command and produces 12D leg action.
-     - Env receives 24D rollout action.
-   - During BC loss:
-     - Compare only student 12D high-level action against teacher 12D high-level action.
-     - Do not include frozen A2_Base leg action in learnable BC loss.
-   - Preserve recurrent hidden-state reset behavior for both teacher and student.
-   - Keep fail-fast checks for obs/action leading shape, recurrent padding/unsplit layout, A2_Base obs dim, A2_Base action dim, checkpoint keys and config drift.
+## Lifecycle and Strict-load Boundaries
 
-4. **A2 student observation contract**
-   - Add `gr00t/rl/config/obs/wbmanip/door_open_a2_base_dagger.yaml`.
-   - `teacher_obs` must match A2 Teacher actor input contract exactly in term order, dim, scale, noise policy and history semantics.
-   - `actor_obs` must be redesigned as A2 student proprioception + compact task state, not copied from G1 `door_open_homie_dagger.yaml`.
-   - Student `actor_obs` should include A2-specific equivalents for:
-     - base orientation/angular velocity cues,
-     - A2 leg/arm/gripper proprioception using name-based A2 DOF groups,
-     - previous high-level/student action or A2 parity action surface as appropriate,
-     - processed `a2_base_command`,
-     - stage/complete terms only if they are intended to be available to the deployed student.
-   - Remove or replace G1-only terms:
-     - `dof_pos_non_finger`,
-     - `dof_vel_non_finger`,
-     - `b_homie_commands`,
-     - HOMIE lower-body observation names,
-     - G1 finger/hand-specific assumptions.
-   - Keep `a2_base_obs: 1620D` available for frozen A2_Base inference in the trainer; do not blindly feed it into student actor unless explicitly designed.
+The stable checkpoint save occurred before Kit became silent for `207s`. At `17:12:55 HKT`, the sole authorized cleanup sent `TERM` only to exact PGID `3724660`; it exited within `5s`, with no `SIGKILL`. Runner exit `143` is attributable to this cleanup and does not negate `TRAINING_PASS`.
 
-5. **Vision/camera route**
-   - Enable `vision_obs: rgb_image` through IsaacLab `TiledCameraCfg`.
-   - Replace origin `camera_attached_link: d435_link` with a validated A2 body or a new explicit camera mount link.
-   - If adding a camera mount, use IsaacLab high-level scene/sensor config where possible; avoid low-level USD edits unless there is no high-level API route.
-   - Validate camera extrinsics against the A2+Piper task: door/handle/pregrasp region should be visible during approach, grasp and open stages.
-   - Fail-fast when camera link/body is missing, camera output shape is wrong, or RGB data is not available.
-   - Keep image augmentation/domain randomization only after base camera rendering is verified.
+Independent full-architecture strict reconstruction is `PARTIAL/NOT_RUN`: saved unresolved `${hydra:...}` fails outside Hydra with `UnsupportedInterpolationType: hydra`. The checkpoint was emitted by the live model and the policy tensors, optimizer state, and training state were sealed; candidate strict-loader behavior remains statically tested. Do not promote this to an independent architecture reload PASS.
 
-6. **Object prediction auxiliary target**
-   - If keeping `obj_pred_loss`, define an A2-specific `gt_obj_pos` target source.
-   - Do not reuse `head_target_frame_transformer` / `head_link` without validation.
-   - Prefer target semantics aligned with A2 task: handle/grasp target or pregrasp target in a clearly documented source frame.
-   - If object prediction is not part of the final design, explicitly disable it and document the reason; do not leave stale G1 target config active.
+## Historical Failure Facts and Deferred Work
 
-7. **Network architecture**
-   - Student actor can initially preserve origin `VisionRecurrentActorObjPred` / ResNet18 + LSTM structure if dimensions are adapted.
-   - Output dim must be A2 high-level 12D.
-   - Running mean/std, recurrent hidden dim/layers and MLP hidden dims should be aligned with A2 Teacher route unless there is a documented reason to diverge.
-   - Any architecture change must update checkpoint loading, eval, export and memory.
+R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
 
-8. **Evaluation/export route**
-   - `eval_agent_trl.py` must be able to load the A2 student checkpoint and restore the A2 student config sidecar.
-   - Eval rollout must compose 12D student high-level + 12D frozen A2_Base action into the expected 24D env action.
-   - Video/eval diagnostics should support student camera route and still report stage/reward/completion metrics.
-   - ONNX/export path, if used, must export the A2 student policy semantics rather than HOMIE-specific command/action assumptions.
-
-9. **Training/eval validation gates**
-   - Hydra compose for A2 student config.
-   - Static obs/action dim check: teacher obs, student actor obs, vision obs, `gt_obj_pos`, A2_Base obs, 12D student action, 24D rollout action.
-   - Teacher checkpoint load smoke with A2 checkpoint.
-   - Camera reset/render smoke with `num_envs=1`.
-   - One-step trainer rollout smoke verifying teacher action, student action, A2_Base leg action and env action composition.
-   - Short DAgger train smoke with cameras on.
-   - Student eval smoke from produced checkpoint.
-   - Only after these pass should full-scale Phase2 training be treated as ready.
-
-## Design Guardrails
-
-- Full A2 adaptation means replacing G1/HOMIE assumptions, not wrapping them with fallback compatibility.
-- Follow fail-fast style: missing camera link, obs key mismatch, dim drift, teacher checkpoint mismatch, target frame mismatch and A2_Base metadata mismatch should raise immediately.
-- Do not add fallback to G1/HOMIE checkpoint, `d435_link`, `head_link`, G1 finger slicing or HOMIE lower-body models.
-- Use structured configs and name-based A2 DOF/body groups; avoid positional slicing unless the slice is explicitly derived from validated A2 config.
-- Any IsaacLab scene/sensor implementation should use IsaacLab high-level APIs first. If low-level USD is required, document why in code review and memory.
+G1 compatibility/regression, R16 lifecycle perfection, final camera pose/mount and transform-root-cause investigation, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for this completed scope. They must be separately approved and validated before any future claim about those outcomes.
 
 ## TODO Summary
 
-- 2026-07-08 15:11 HKT - Implement the full A2+Piper Phase2 Student Distillation route: A2 teacher checkpoint dependency, A2 student experiment/obs/trainer configs, A2 distill trainer using frozen A2_Base, A2-specific student proprioception, validated A2 camera route, optional A2 object prediction target, eval/export support and staged validation gates.
+- 2026-07-15 17:17 HKT - Current accepted one-update A2+Piper Student Distillation goal is complete at `TRAINING_PASS`; optional future tuning/validation is non-blocking and requires separate scope/approval.
 
 ## DONE Summary
 
-- 2026-07-08 15:11 HKT - Created the independent planning memory entry for full A2+Piper Phase2 Student Distillation adaptation.
+- 2026-07-13 22:28 HKT - Static A2+Piper Phase2 Student Distillation framework completed and statically reviewed; runtime/training remained INCONCLUSIVE at that time.
+- 2026-07-14 23:21 HKT - Immutable non-`last.pt` Teacher checkpoint/config/manifest triplet sealed and identity-validated; this alone did not claim Teacher runtime load.
+- 2026-07-14/15 HKT - R13/R14/R15 camera/lifecycle attempts recorded `FAIL_TIMEOUT` / `FAIL_FINAL_SEAL` / `FAIL_EVIDENCE_SERIALIZATION`; these are preserved historical lifecycle facts, not training success.
+- 2026-07-15 17:17 HKT - `TRAINING_PASS`: one real GPU0 Student Distillation update completed and sealed as `model_step_000001.pt`; lifecycle cleanup and independent strict reconstruction limitations are explicitly bounded above.
 
 ## Recommended Next Files To Read
 
-- `memory/a2-piper/worktree-routing/description.md`
-- `memory/a2-piper/doorman-door-training-goal/description.md`
-- `scriptsFORhuman/g1_doorman_policy_stack_a2_adaptation_map.md`
-- `gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml`
-- `gr00t/rl/config/obs/wbmanip/door_open_homie_dagger.yaml`
-- `gr00t/rl/config/exp/wbmanip/door_open_a2_base_lstm.yaml`
-- `gr00t/rl/config/obs/wbmanip/door_open_a2_base.yaml`
-- `gr00t/rl/trl/trainer/distill_trainer.py`
-- `gr00t/rl/trl/trainer/distill_trainer_obj_pred_homie_api.py`
-- `gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py`
+- `memory/a2-piper/phase2-student-distillation-a2-piper/TODO.md`
+- `gr00t/rl/scripts/README.md`
+- `gr00t/rl/config/exp/wbmanip/door_open_a2_base_dagger-lstm.yaml`
+- `gr00t/rl/scripts/validate_a2_teacher_checkpoint.py`

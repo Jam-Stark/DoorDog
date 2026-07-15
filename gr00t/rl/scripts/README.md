@@ -114,3 +114,29 @@ bash gr00t/rl/scripts/generate_1000_doors.sh /my/path    # custom output dir
 | `mixed_walls/` | 100 | both | both | yes | yes |
 | `mixed_no_latch/` | 100 | both | both | no | no |
 | `wide_handle_range/` | 100 | both | both | yes | no |
+# A2+Piper Student Distillation
+
+* Teacher artifact validator: `validate_a2_teacher_checkpoint.py`
+* Import-safe static camera contract validator: `smoke_a2_student_camera.py` (runtime QA uses a separate approved entrypoint)
+
+For the first approved one-update GPU smoke, launch the A2 route with a fresh
+dedicated `experiment_dir`. This uses four environments, one rollout step,
+one minibatch, one total batch, and saves `model_step_000001.pt`:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 HYDRA_FULL_ERROR=1 \
+/home/baoquanc/anaconda3/envs/isaaclab/bin/accelerate launch --num_processes 1 \
+gr00t/rl/train_agent_trl.py \
++exp=wbmanip/door_open_a2_base_dagger-lstm \
+num_envs=4 \
+algo.config.num_steps_per_env=1 \
+algo.config.num_mini_batches=1 \
+algo.trl.num_total_batches=1 \
+algo.trl.per_device_train_batch_size=4 \
+callbacks.model_save.save_frequency=1 \
+use_wandb=false \
+experiment_dir=logs_rl/a2_piper_student_distillation_one_update \
+teacher_actor_path=logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt \
+teacher_config_path=logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml \
+teacher_manifest_path=logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json
+```

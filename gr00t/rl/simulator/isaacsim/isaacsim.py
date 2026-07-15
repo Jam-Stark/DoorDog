@@ -3,6 +3,8 @@
 
 
 import asyncio
+from collections.abc import Sequence
+import math
 import os
 from typing import Optional
 
@@ -143,6 +145,66 @@ elif DEFAULT_ISAACSIM_VERSION == "4.2":
 
 else:
     raise ValueError(f"Unsupported IsaacSim version: {DEFAULT_ISAACSIM_VERSION}")
+
+
+def _camera_numeric_sequence(value, length, field_name):
+    """Validate a structured numeric sequence, including OmegaConf ListConfig."""
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise ValueError(f"{field_name} must be an explicit numeric sequence; got {value!r}")
+    values = tuple(value)
+    if len(values) != length:
+        raise ValueError(f"{field_name} must contain exactly {length} values; got {value!r}")
+    if any(isinstance(item, bool) for item in values):
+        raise ValueError(f"{field_name} must contain numeric values; got {value!r}")
+    try:
+        converted = tuple(float(item) for item in values)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{field_name} must contain numeric values; got {value!r}") from exc
+    if not all(math.isfinite(item) for item in converted):
+        raise ValueError(f"{field_name} must contain finite values; got {value!r}")
+    return converted
+
+
+def parse_camera_clipping_range(value):
+    """Parse a structured clipping range without executing configuration text."""
+    near, far = _camera_numeric_sequence(value, 2, "camera_clipping_range")
+    if not math.isfinite(near) or not math.isfinite(far) or near <= 0.0 or far <= near:
+        raise ValueError(
+            "camera_clipping_range requires finite 0 < near < far; "
+            f"got {(near, far)!r}"
+        )
+    return near, far
+
+
+def parse_camera_pose(pos, rot_wxyz):
+    """Validate explicit camera position and normalized world-frame quaternion."""
+    position = _camera_numeric_sequence(pos, 3, "camera_pos")
+    rotation = _camera_numeric_sequence(rot_wxyz, 4, "camera_rot_wxyz")
+    norm = math.sqrt(sum(component * component for component in rotation))
+    if not math.isclose(norm, 1.0, rel_tol=1.0e-4, abs_tol=1.0e-4):
+        raise ValueError(
+            "camera_rot_wxyz must be normalized; "
+            f"got norm={norm!r} values={rotation!r}"
+        )
+    return position, rotation
+
+
+def validate_camera_rgb_output(rgb, expected_shape, camera_name="ego_camera"):
+    """Fail fast on missing, stale, malformed, or zero RGB sensor output."""
+    if rgb is None or not torch.is_tensor(rgb):
+        raise RuntimeError(f"{camera_name} RGB output is unavailable: {type(rgb).__name__}")
+    if tuple(rgb.shape) != tuple(expected_shape):
+        raise RuntimeError(
+            f"{camera_name} RGB output must be NHWC shape {tuple(expected_shape)}; "
+            f"got {tuple(rgb.shape)}"
+        )
+    if rgb.dtype != torch.uint8:
+        raise RuntimeError(
+            f"{camera_name} RGB output must be raw torch.uint8 NHWC data; got {rgb.dtype}"
+        )
+    if torch.any(torch.all(rgb == 0, dim=(-1, -2, -3))):
+        raise RuntimeError(f"{camera_name} RGB output contains an all-zero/uninitialized frame")
+    return rgb
 
 
 def list_mdl_files_recursive(folder_path, mdl_files):
@@ -1557,27 +1619,64 @@ class IsaacSim(BaseSimulator):
         if hasattr(self.simulator_config, "cameras") and getattr(
             self.simulator_config.cameras, "enable_cameras", False
         ):
-            camera_pos_offset = torch.tensor(
-                self.config.simulator.config.cameras.camera_pos_offset, device=self.sim_device
+            cameras_cfg = self.simulator_config.cameras
+            parent = cameras_cfg.get("camera_parent", None)
+            suffix = cameras_cfg.get("camera_prim_suffix", None)
+            convention = cameras_cfg.get("camera_convention", None)
+            if not isinstance(parent, str) or not parent:
+                raise ValueError(
+                    "Enabled cameras require a non-empty cameras.camera_parent body name"
+                )
+            if not isinstance(suffix, str) or not suffix:
+                raise ValueError(
+                    "Enabled cameras require a non-empty cameras.camera_prim_suffix"
+                )
+            if "camera_yaw_only" in cameras_cfg:
+                raise ValueError("camera_yaw_only is unsupported; provide full camera_rot_wxyz")
+            if convention != "world":
+                raise ValueError(
+                    "A2 camera convention must be explicit and currently supported value is 'world'; "
+                    f"got {convention!r}"
+                )
+            camera_pos, camera_rot = parse_camera_pose(
+                cameras_cfg.get("camera_pos", None), cameras_cfg.get("camera_rot_wxyz", None)
             )
-            camera_rot_offset = torch.tensor(
-                self.config.simulator.config.cameras.camera_rot_offset, device=self.sim_device
+            camera_pos_tensor = torch.tensor(camera_pos, device=self.sim_device, dtype=torch.float32)
+            camera_rot_tensor = torch.tensor(camera_rot, device=self.sim_device, dtype=torch.float32)
+            clipping_range = parse_camera_clipping_range(cameras_cfg.camera_clipping_range)
+            camera_resolution = _camera_numeric_sequence(
+                cameras_cfg.camera_resolutions, 2, "camera_resolutions"
             )
+            if any(value <= 0.0 or not value.is_integer() for value in camera_resolution):
+                raise ValueError(
+                    "camera_resolutions must contain positive integers; "
+                    f"got {camera_resolution!r}"
+                )
+            update_period_value = cameras_cfg.get("camera_update_period", 0.0)
+            if isinstance(update_period_value, bool):
+                raise ValueError("cameras.camera_update_period must be numeric, not bool")
+            update_period = float(update_period_value)
+            if not math.isfinite(update_period) or update_period < 0.0:
+                raise ValueError(
+                    "cameras.camera_update_period must be finite and non-negative; "
+                    f"got {update_period!r}"
+                )
             ego_camera_config = TiledCameraCfg(
-                prim_path=f"/World/envs/env_.*/Robot/{self.simulator_config.cameras.camera_attached_link}/ego_camera",
+                prim_path=f"/World/envs/env_.*/Robot/{parent}/{suffix}",
                 offset=TiledCameraCfg.OffsetCfg(
-                    pos=camera_pos_offset, rot=camera_rot_offset, convention="world"
+                    pos=camera_pos_tensor, rot=camera_rot_tensor, convention=convention
                 ),
                 data_types=camera_types,
                 spawn=sim_utils.PinholeCameraCfg(
-                    focal_length=self.simulator_config.cameras.camera_focal_length,
-                    focus_distance=self.simulator_config.cameras.camera_focus_distance,
-                    horizontal_aperture=self.simulator_config.cameras.camera_horizontal_aperture,
-                    vertical_aperture=self.simulator_config.cameras.camera_vertical_aperture,
-                    clipping_range=eval(self.simulator_config.cameras.camera_clipping_range),
+                    focal_length=float(cameras_cfg.camera_focal_length),
+                    focus_distance=float(cameras_cfg.camera_focus_distance),
+                    horizontal_aperture=float(cameras_cfg.camera_horizontal_aperture),
+                    vertical_aperture=float(cameras_cfg.camera_vertical_aperture),
+                    clipping_range=clipping_range,
                 ),
-                width=self.simulator_config.cameras.camera_resolutions[1],
-                height=self.simulator_config.cameras.camera_resolutions[0],
+                width=int(camera_resolution[1]),
+                height=int(camera_resolution[0]),
+                update_period=update_period,
                 debug_vis=True,
             )
 
@@ -1801,11 +1900,20 @@ class IsaacSim(BaseSimulator):
             hasattr(self.simulator_config, "cameras")
             and self.simulator_config.cameras.enable_cameras
         ):
-            self.camera_body_id = self._robot.find_bodies(
-                self.simulator_config.cameras.camera_attached_link, preserve_order=True
-            )[0]
+            camera_parent = self.simulator_config.cameras.get("camera_parent", None)
+            if not isinstance(camera_parent, str) or not camera_parent:
+                raise ValueError("Enabled cameras require cameras.camera_parent before asset load")
+            camera_body_ids, camera_body_names = self._robot.find_bodies(
+                camera_parent, preserve_order=True
+            )
+            if len(camera_body_ids) != 1 or list(camera_body_names) != [camera_parent]:
+                raise RuntimeError(
+                    "Camera parent must resolve to exactly one configured body; "
+                    f"parent={camera_parent!r}, ids={camera_body_ids}, names={camera_body_names}"
+                )
+            self.camera_body_id = camera_body_ids[0]
             logger.info(
-                f"Camera attached link: {self.simulator_config.cameras.camera_attached_link}, Camera body id: {self.camera_body_id}"
+                f"Camera parent: {camera_parent}, Camera body id: {self.camera_body_id}"
             )
 
         # import ipdb; ipdb.set_trace()
@@ -1941,44 +2049,29 @@ class IsaacSim(BaseSimulator):
             raise ValueError("Height scanner not found in the scene.")
 
     def get_rgb_image(self):
-        # import ipdb; ipdb.set_trace()
-        if self.ego_camera is not None:
-            # Get RGB image from the ego camera
-            # The image is typically in shape [batch_size, height, width, channels]
-            rgb_image = self.scene.sensors["ego_camera"].data.output["rgb"]
+        if self.ego_camera is None:
+            raise RuntimeError("RGB requested but the ego camera sensor is disabled")
+        sensor = self.scene.sensors.get("ego_camera")
+        if sensor is None or sensor is not self.ego_camera:
+            raise RuntimeError("RGB requested but ego_camera is missing from the scene sensors")
+        output = getattr(sensor.data, "output", None)
+        if output is None or "rgb" not in output:
+            raise RuntimeError("ego_camera has no RGB output; enable camera_types.rgb")
+        cameras_cfg = self.simulator_config.cameras
+        resolutions = list(cameras_cfg.camera_resolutions)
+        if len(resolutions) != 2:
+            raise RuntimeError(f"camera_resolutions must be [height,width], got {resolutions!r}")
+        expected_shape = (self.num_envs, int(resolutions[0]), int(resolutions[1]), 3)
+        rgb_image = validate_camera_rgb_output(output["rgb"], expected_shape)
+        rgb_image = rgb_image.float() / 255.0
 
-            # Convert to float tensor if it's not already
-            if rgb_image.dtype != torch.float:
-                rgb_image = rgb_image.float()
-
-            # If values are in 0-255 range, normalize to 0-1
-            if rgb_image.max() > 1.0:
-                rgb_image = rgb_image / 255.0
-
-            if hasattr(self.simulator_config.cameras, "image_mean") and hasattr(
-                self.simulator_config.cameras, "image_std"
-            ):
-                image_mean = torch.tensor(
-                    self.simulator_config.cameras.image_mean, device=self.sim_device
-                )
-                image_std = torch.tensor(
-                    self.simulator_config.cameras.image_std, device=self.sim_device
-                )
-                rgb_image = (rgb_image - image_mean) / image_std
-
-            return rgb_image
-        else:
-            # Return empty tensor if camera is not available
-            camera_resolution = (
-                self.simulator_config.cameras.camera_resolutions
-                if hasattr(self.simulator_config, "cameras")
-                else [0, 0]
-            )
-            return torch.zeros(
-                (self.scene.cfg.num_envs, camera_resolution[0], camera_resolution[1], 3),
-                device=self.sim_device,
-                dtype=torch.float,
-            )
+        if hasattr(cameras_cfg, "image_mean") and hasattr(cameras_cfg, "image_std"):
+            image_mean = torch.tensor(cameras_cfg.image_mean, device=self.sim_device)
+            image_std = torch.tensor(cameras_cfg.image_std, device=self.sim_device)
+            if tuple(image_mean.shape) != (3,) or tuple(image_std.shape) != (3,):
+                raise RuntimeError("camera image_mean/image_std must each have 3 values")
+            rgb_image = (rgb_image - image_mean) / image_std
+        return rgb_image
 
     def get_depth_image(self):
         if self.ego_camera is not None:

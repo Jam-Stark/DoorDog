@@ -859,21 +859,16 @@ class TRLPPOTrainer(PPOTrainer):
         args.is_main_process = accelerator.is_main_process
         args.local_batch_size = self.env.config.num_envs
         args.batch_size = int(args.local_batch_size * args.world_size)
-        try:
-            args.mini_batch_size = exact_div(
-                args.batch_size,
-                args.num_mini_batches,
-                "`batch_size` must be a multiple of `num_mini_batches`",
-            )
-            args.local_mini_batch_size = exact_div(
-                args.local_batch_size,
-                args.num_mini_batches,
-                "`local_batch_size` must be a multiple of `num_mini_batches`",
-            )
-        except Exception as e:
-            print(f"Error: {e}")
-            args.mini_batch_size = 1
-            args.local_mini_batch_size = 1
+        args.mini_batch_size = exact_div(
+            args.batch_size,
+            args.num_mini_batches,
+            "`batch_size` must be a multiple of `num_mini_batches`",
+        )
+        args.local_mini_batch_size = exact_div(
+            args.local_batch_size,
+            args.num_mini_batches,
+            "`local_batch_size` must be a multiple of `num_mini_batches`",
+        )
 
         if args.per_device_train_batch_size is None:
             args.per_device_train_batch_size = (

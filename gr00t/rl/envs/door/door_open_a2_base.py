@@ -11354,10 +11354,43 @@ class DoorPregrasp(
     def _get_obs_door_dof_pos(self):
         return self.simulator.get_task_dof_pos("door")[:, :2]
 
+    def _get_a2_student_dof_indices(self):
+        """Resolve the deployable A2 DOF order from names and validate it."""
+        configured = tuple(self.config.robot.dof_names)
+        actual = tuple(self.simulator.dof_names)
+        if len(configured) != 20 or len(set(configured)) != 20:
+            raise RuntimeError(
+                "A2 student DOF contract requires 20 unique configured names; "
+                f"got {configured!r}"
+            )
+        if len(actual) != len(configured) or set(actual) != set(configured):
+            raise RuntimeError(
+                "A2 simulator DOF names do not match the configured student order: "
+                f"configured={configured!r}, actual={actual!r}"
+            )
+        indices = [actual.index(name) for name in configured]
+        if tuple(actual[index] for index in indices) != configured:
+            raise RuntimeError("A2 simulator DOF name resolution changed the configured order")
+        return torch.tensor(indices, device=self.device, dtype=torch.long)
+
+    def _get_obs_a2_student_dof_pos(self):
+        indices = self._get_a2_student_dof_indices()
+        return self.simulator.dof_pos.index_select(1, indices) - self.default_dof_pos.index_select(
+            1, indices
+        )
+
+    def _get_obs_a2_student_dof_vel(self):
+        indices = self._get_a2_student_dof_indices()
+        return self.simulator.dof_vel.index_select(1, indices)
+
     def _get_obs_dof_pos_non_finger(self):
+        if self._use_a2_base:
+            return self._get_obs_a2_student_dof_pos()
         return self.simulator.dof_pos[:, :-14]
 
     def _get_obs_dof_vel_non_finger(self):
+        if self._use_a2_base:
+            return self._get_obs_a2_student_dof_vel()
         return self.simulator.dof_vel[:, :-14]
 
     def _get_obs_target_obj_pos(self):

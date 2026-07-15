@@ -2406,8 +2406,22 @@ class LeggedRobotBase(BaseTask):
             torch.Tensor: Flattened RGB image tensor of shape [batch_size, width*height*3]
         """
         if hasattr(self.simulator, "ego_camera") and self.simulator.ego_camera is not None:
-            # Get RGB image from simulator - shape is typically [batch_size, height, width, 3]
+            # Get RGB image from simulator - shape is [batch_size, height, width, 3].
+            # The simulator owns strict sensor/dtype/zero-frame checks; do not
+            # fabricate an image when a vision sensor is missing.
             rgb_image = self.simulator.get_rgb_image()
+            expected_shape = (
+                self.num_envs,
+                int(self.config.simulator.config.cameras.camera_resolutions[0]),
+                int(self.config.simulator.config.cameras.camera_resolutions[1]),
+                3,
+            )
+            if tuple(rgb_image.shape) != expected_shape:
+                raise RuntimeError(
+                    f"RGB observation shape mismatch: expected {expected_shape}, got {tuple(rgb_image.shape)}"
+                )
+            if not torch.all(torch.isfinite(rgb_image)):
+                raise RuntimeError("RGB observation contains non-finite values")
             # ----------- Image Augmentation (see domain_rand.image_augmentation) -----------
 
             rgb_image = self._image_augmentation(rgb_image)
@@ -2465,15 +2479,10 @@ class LeggedRobotBase(BaseTask):
 
             return rgb_image
         else:
-            # Return zero tensor if camera is not enabled
-            camera_resolution = self.config.simulator.config.cameras.camera_resolutions
-            # Shape needs to be [batch_size, width*height*3]
-            zero_image = torch.zeros(
-                (self.num_envs, camera_resolution[0] * camera_resolution[1] * 3),
-                device=self.device,
-                dtype=torch.float,
+            raise RuntimeError(
+                "RGB observation requested but simulator ego_camera is unavailable; "
+                "vision routes must enable a validated sensor"
             )
-            return zero_image
 
     def _get_obs_rgb_image_history(self):
         """Get RGB image history from the history handler.

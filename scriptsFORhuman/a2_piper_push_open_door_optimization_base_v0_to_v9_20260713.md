@@ -56,9 +56,9 @@
 | 版本 | 主要变量 | Runtime 结果 | 可复用经验 / 教训 |
 |---|---|---|---|
 | `replay_v2` | stage0–2 control；staging `0.70`；handle height `0.85–0.95m` | 能进入 close gate 并出现 grasp-like 视觉行为，但 both-force/history predicate 不满足 | 视觉上“夹住”不能替代 formal bilateral grasp 指标 |
-| [`base_v0`](../logs_eval/20260702_211128-logs_eval/base_v0) | gripper effort `10→30` 单变量 | retrained policy 进入 open-primitive/no-contact basin；reward 约从 `102–105` 降到 `71–82` | effort cap 增大不是 sufficient fix，也可能改变 RL credit/local optimum |
-| [`base_v1`](../logs_eval/20260703_092635-logs_eval/base_v1) | arm-only Kp/Kd；effort 回到 `10` | 保留 replay_v2 的 close behavior/reward，但仍没有 formal bilateral success | base_v0 分叉不是普通 retrain 必然漂移；arm gain 路线较稳定但不完整 |
-| [`base_v2`](../logs_eval/20260703_144741-logs_eval/base_v2) | gripper Kp/Kd `40/1→80/3`，effort `10` | 再次学出 open primitive、contact/squeeze 为 0 | 不应继续把纯 actuator sweep 当第一优先级 |
+| [`base_v0`](../logs_eval/base_v0/base_v0) | gripper effort `10→30` 单变量 | retrained policy 进入 open-primitive/no-contact basin；reward 约从 `102–105` 降到 `71–82` | effort cap 增大不是 sufficient fix，也可能改变 RL credit/local optimum |
+| [`base_v1`](../logs_eval/base_v1/base_v1) | arm-only Kp/Kd；effort 回到 `10` | 保留 replay_v2 的 close behavior/reward，但仍没有 formal bilateral success | base_v0 分叉不是普通 retrain 必然漂移；arm gain 路线较稳定但不完整 |
+| [`base_v2`](../logs_eval/base_v2/base_v2) | gripper Kp/Kd `40/1→80/3`，effort `10` | 再次学出 open primitive、contact/squeeze 为 0 | 不应继续把纯 actuator sweep 当第一优先级 |
 | full-stage `base_v3` | dense bilateral/squeeze/contact-stability shaping | reach/close 明显改善，但 `arm_body8` dominance，formal `0/150`；history-3 又会过早放行 stage3 | “route unblocked”不等于 grasp solved；eval 必须核对 checkpoint 中的 `termination_level` 与 `reward_penalty_scale` |
 | full-stage `base_v4` | threshold/Kd/velocity-iteration 2×2 | `thr0.8/Kd5/vel0` 可得到 `16/16` completion，但走的是 `250N+` violent route；另一路较温和但仍未解决 grasp | hard predicate 必须与 `squeeze_window`、`over_force` dense semantics 对齐；高 completion 可能是假成功 |
 | `base_v5` | historical full-stage baseline | 可用 eval 仍是 body8 单指接触 | 不能按文件名猜 run provenance；曾有“v6 render”经 mtime/saved config 核对其实属于 v5 |
@@ -83,10 +83,10 @@
 
 Matched scalar/trace artifacts：
 
-- [A scalar/trace](../logs_eval/base_v9_A_ckpt1000_matched_scalar_trace_16env_20260711)
-- [B scalar/trace](../logs_eval/base_v9_B_ckpt1000_matched_scalar_trace_16env_20260711)
-- [C scalar/trace](../logs_eval/base_v9_C_ckpt1000_matched_scalar_trace_16env_20260711)
-- [D scalar/trace](../logs_eval/base_v9_D_ckpt1000_matched_scalar_trace_16env_20260711)
+- [A scalar/trace](../logs_eval/base_v9/base_v9_A_ckpt1000_matched_scalar_trace_16env_20260711)
+- [B scalar/trace](../logs_eval/base_v9/base_v9_B_ckpt1000_matched_scalar_trace_16env_20260711)
+- [C scalar/trace](../logs_eval/base_v9/base_v9_C_ckpt1000_matched_scalar_trace_16env_20260711)
+- [D scalar/trace](../logs_eval/base_v9/base_v9_D_ckpt1000_matched_scalar_trace_16env_20260711)
 
 解释边界：A 是 single-seed provisional hinge leader；B terminal hinge 仅略低且 rebound 更小，是 lower-rebound runner-up。A/B 的 base 在 config 中本来就是 locked。C/D 较弱只说明本轮 `a2_stage3_base_unlocked` reward/gate 语义没有学出改善，不能推广成“robot base 不应移动”。
 
@@ -124,13 +124,13 @@ Implicit PD 在静态位置误差下先产生 `Kp × error`。当前 Kp80 与最
 | G1/G2/G3 TCP hold oracle | 三组都没有形成 bilateral center-close，也未进入有效 depress；最终为 convergence/IK tracking failure | scripted controller 没有提供可用的 hold-follow oracle | 不能比较三个 TCP 的真实抓持优劣，也不能证明 policy geometry root cause |
 | Static clamp S0/S1/S2 | Kp/Kd `80/3`,`160/6`,`320/12`；bilateral frames `2/16/44 of 320`，stability `0/4/19`；step40 全部 `0/8 any-contact`；S2 出现 j7 saturation | higher gain 是 anti-backdrive 的 partial factor | 不能把 S1/S2 升级为 training/default config |
 | O0 placement / stabilization preflight | O0 `8/8 PLACEMENT_NOT_CONVERGED`；preflight 未得到 READY | floating-root relative-target/catch-up 与 contact contamination 让该诊断 protocol 无法建立 clean initial state | 没有执行有效 O0 clamp，因此 O-/O+ 没有可比较性 |
-| Matched-clean reacquisition | [`0/8 READY`, `8/8 RETREAT_JOINT_LIMIT`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_oracle_summary.json)；release action counts `[1,0,64,58,0,0,0,1]` | controller-local safety abort；六个 env 为 j6 upper，env2/3 在 64/58 actions 后为 j5 lower | 不证明 physical reachability failure，不证明 grasp target/offset 错误，不支持继续 O-/O0/O+ |
+| Matched-clean reacquisition | [`0/8 READY`, `8/8 RETREAT_JOINT_LIMIT`](../logs_eval/base_v9/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_oracle_summary.json)；release action counts `[1,0,64,58,0,0,0,1]` | controller-local safety abort；六个 env 为 j6 upper，env2/3 在 64/58 actions 后为 j5 lower | 不证明 physical reachability failure，不证明 grasp target/offset 错误，不支持继续 O-/O0/O+ |
 
 Static clamp artifacts：
 
-- [S0 Kp/Kd 80/3](../logs_eval/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712/a2_hold_oracle_summary.json)
-- [S1 Kp/Kd 160/6](../logs_eval/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712/a2_hold_oracle_summary.json)
-- [S2 Kp/Kd 320/12](../logs_eval/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712/a2_hold_oracle_summary.json)
+- [S0 Kp/Kd 80/3](../logs_eval/base_v9/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712/a2_hold_oracle_summary.json)
+- [S1 Kp/Kd 160/6](../logs_eval/base_v9/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712/a2_hold_oracle_summary.json)
+- [S2 Kp/Kd 320/12](../logs_eval/base_v9/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712/a2_hold_oracle_summary.json)
 
 这一系列测试没有建立一个可信、可复用的 scripted grasp oracle。继续在同一 checkpoint 上增加 controller state、offset 或 placement preflight，已经不能有效回答 RL policy 应如何改进，因此在这里停止。
 
@@ -224,7 +224,7 @@ HYDRA_FULL_ERROR=1 \
   ++algo.config.eval.save_videos=false \
   ++algo.config.eval.save_trajectories=false \
   ++eval_name=<MATCHED_SCALAR_NAME> \
-  ++eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/<MATCHED_SCALAR_NAME>
+  ++eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_vN/<MATCHED_SCALAR_NAME>
 ```
 
 `eval_num_envs_episodes=true` 的口径是每个 env 的 first episode；跨 config 比较时必须保持 seed、env count、episode contract 与 checkpoint step 一致。请求 overrides 之外还要核对输出目录中的 `.hydra/runtime_config.yaml`，因为 eval 会做 saved-config migration 和 load-mode normalization。
@@ -254,8 +254,8 @@ HYDRA_FULL_ERROR=1 \
   ++algo.config.eval.save_videos=false \
   ++algo.config.eval.save_trajectories=false \
   ++eval_name=<MATCHED_RENDER_NAME> \
-  ++eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/<MATCHED_RENDER_NAME> \
-  ++env.config.save_rendering_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/<MATCHED_RENDER_NAME>/renderings
+  ++eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_vN/<MATCHED_RENDER_NAME> \
+  ++env.config.save_rendering_dir=/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_vN/<MATCHED_RENDER_NAME>/renderings
 ```
 
 Render 经验：
@@ -269,13 +269,13 @@ Render 经验：
 
 - v8→v9 historical design/formal report：[`base_v8_to_v9_hold_handle_diagnostic_20260710.md`](base_v8_to_v9_hold_handle_diagnostic_20260710.md)
 - v9 B training overrides：[`overrides.yaml`](../logs_rl/a2_piper_full_stage_a2_base/base_v9_B-20260710_212247/.hydra/.hydra/overrides.yaml)
-- v9 B matched scalar overrides：[`overrides.yaml`](../logs_eval/base_v9_B_ckpt1000_matched_scalar_trace_16env_20260711/hydra/.hydra/overrides.yaml)
-- v9 B matched render overrides：[`overrides.yaml`](../logs_eval/base_v9_B_ckpt1000_matched_render16_20260711/hydra/.hydra/overrides.yaml)
-- matched-clean requested overrides：[`overrides.yaml`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/hydra/.hydra/overrides.yaml)
-- matched-clean resolved config：[`runtime_config.yaml`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/hydra/.hydra/runtime_config.yaml)
-- matched-clean result：[`a2_hold_oracle_summary.json`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_oracle_summary.json)
-- matched-clean runtime identity：[`a2_hold_diagnostic_runtime_metadata.json`](../logs_eval/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_diagnostic_runtime_metadata.json)
-- base_v10 A/B/C/D matched scalar/trace：Section 12.2 的四个 `logs_eval/base_v10_*_ckpt1000_matched_scalar_trace_16env_20260714` directory
+- v9 B matched scalar overrides：[`overrides.yaml`](../logs_eval/base_v9/base_v9_B_ckpt1000_matched_scalar_trace_16env_20260711/hydra/.hydra/overrides.yaml)
+- v9 B matched render overrides：[`overrides.yaml`](../logs_eval/base_v9/base_v9_B_ckpt1000_matched_render16_20260711/hydra/.hydra/overrides.yaml)
+- matched-clean requested overrides：[`overrides.yaml`](../logs_eval/base_v9/base_v9_B_matched_clean_preflight_8env_20260713/hydra/.hydra/overrides.yaml)
+- matched-clean resolved config：[`runtime_config.yaml`](../logs_eval/base_v9/base_v9_B_matched_clean_preflight_8env_20260713/hydra/.hydra/runtime_config.yaml)
+- matched-clean result：[`a2_hold_oracle_summary.json`](../logs_eval/base_v9/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_oracle_summary.json)
+- matched-clean runtime identity：[`a2_hold_diagnostic_runtime_metadata.json`](../logs_eval/base_v9/base_v9_B_matched_clean_preflight_8env_20260713/a2_hold_diagnostic_runtime_metadata.json)
+- base_v10 A/B/C/D matched scalar/trace：Section 12.2 的四个 `logs_eval/base_v10/base_v10_*_ckpt1000_matched_scalar_trace_16env_20260714` directory
 - base_v10 training provenance：Section 12.1 的四个 saved run config/overrides 与 W&B run id
 
 ## 12. Base v10 Scratch A/B/C/D（2026-07-14 update）
@@ -297,10 +297,10 @@ Render 经验：
 
 四组都用各自 saved training config 加载对应 step1000 checkpoint，并统一使用：module invocation、seed0、16 env、每 env first episode、forced close=false、hold oracle=false、render=false。每组 `metrics_eval.json` 都有 16 个 completed episodes，trace 只包含 episode index 0，`stage2_step_trace.json` 与 compatibility alias byte-identical：
 
-- [A scalar/trace](../logs_eval/base_v10_A_ckpt1000_matched_scalar_trace_16env_20260714)
-- [B scalar/trace](../logs_eval/base_v10_B_ckpt1000_matched_scalar_trace_16env_20260714)
-- [C scalar/trace](../logs_eval/base_v10_C_ckpt1000_matched_scalar_trace_16env_20260714)
-- [D scalar/trace](../logs_eval/base_v10_D_ckpt1000_matched_scalar_trace_16env_20260714)
+- [A scalar/trace](../logs_eval/base_v10/base_v10_A_ckpt1000_matched_scalar_trace_16env_20260714)
+- [B scalar/trace](../logs_eval/base_v10/base_v10_B_ckpt1000_matched_scalar_trace_16env_20260714)
+- [C scalar/trace](../logs_eval/base_v10/base_v10_C_ckpt1000_matched_scalar_trace_16env_20260714)
+- [D scalar/trace](../logs_eval/base_v10/base_v10_D_ckpt1000_matched_scalar_trace_16env_20260714)
 
 Hydra 另生成 timestamped provenance directory：A=`20260714_002808-*`、B=`002646-*`、C=`002655-*`、D=`002804-*`。这些目录已纳入只读 evidence accounting；它们不是另一轮 eval。
 
@@ -355,7 +355,7 @@ C 是 open/no-contact policy basin，而不是“在同一 stage3 hold 下提高
 
 ### 12.5 D matched render：定性复核与 artifact caveat
 
-[D matched render](../logs_eval/base_v10_D_ckpt1000_matched_render_16env_20260714) 使用同一 D checkpoint、seed0、16 env 与 first-episode contract。Render input manifest 为 `04257a1e58deffce300d6d8a545a2875b1f4d8e0935b5ad5c827eaa9550e4358`，运行前后 8 个输入 hash 不变；log 记录 `Finished evaluation` 且 process 自然终止，但 command runner 没有回传可核对的 numeric exit code，因此显式 `exit 0` 保持 unverified。
+[D matched render](../logs_eval/base_v10/base_v10_D_ckpt1000_matched_render_16env_20260714) 使用同一 D checkpoint、seed0、16 env 与 first-episode contract。Render input manifest 为 `04257a1e58deffce300d6d8a545a2875b1f4d8e0935b5ad5c827eaa9550e4358`，运行前后 8 个输入 hash 不变；log 记录 `Finished evaluation` 且 process 自然终止，但 command runner 没有回传可核对的 numeric exit code，因此显式 `exit 0` 保持 unverified。
 
 - 产出 48 个 finalized、non-empty MP4，正好是 16 default + 16 handle-side + 16 handle-top；每个 env 只有 episode0000，全部 filename 为 `len553_reason-stage_overtime`，无 `.writing.mp4` 或 episode1。
 - `metrics_eval.json` 与 scalar direction 一致：16 episodes、全部 goal=false、max stage3、stage_overtime。
@@ -463,9 +463,9 @@ Full-state resume 的 durable contract 再次确认：`num_total_batches` 是恢
 
 九个 eval 都使用 `python -m gr00t.rl.eval_agent_trl`、各自 saved config、seed0、16 env、每 env first episode；camera/render/video/trajectory、forced-close、hold oracle 都关闭，scalar/trace diagnostics 打开。每次都是 `16/16` first episodes、JSON parse PASS、trace aliases byte-identical、process exit0。有效 artifact：
 
-- A：[step500](../logs_eval/base_v11_A_ckpt0500_matched_scalar_trace_16env_seed0_20260714)、[step1000](../logs_eval/base_v11_A_ckpt1000_matched_scalar_trace_16env_seed0_20260714)、[staged step1150](../logs_eval/base_v11_A_last_step1150_staged_matched_scalar_trace_16env_seed0_20260714)
-- B：[step500](../logs_eval/base_v11_B_ckpt0500_matched_scalar_trace_16env_seed0_20260714)、[step1000](../logs_eval/base_v11_B_ckpt1000_matched_scalar_trace_16env_seed0_20260714)、[staged step1150](../logs_eval/base_v11_B_last_step1150_staged_matched_scalar_trace_16env_seed0_20260714)
-- C：[step1250](../logs_eval/base_v11_C_ckpt1250_matched_scalar_trace_16env_seed0_20260714)、[step1500](../logs_eval/base_v11_C_ckpt1500_matched_scalar_trace_16env_seed0_20260714)、[staged step1550](../logs_eval/base_v11_C_last_step1550_staged_matched_scalar_trace_16env_seed0_20260714)
+- A：[step500](../logs_eval/base_v11/base_v11_A_ckpt0500_matched_scalar_trace_16env_seed0_20260714)、[step1000](../logs_eval/base_v11/base_v11_A_ckpt1000_matched_scalar_trace_16env_seed0_20260714)、[staged step1150](../logs_eval/base_v11/base_v11_A_last_step1150_staged_matched_scalar_trace_16env_seed0_20260714)
+- B：[step500](../logs_eval/base_v11/base_v11_B_ckpt0500_matched_scalar_trace_16env_seed0_20260714)、[step1000](../logs_eval/base_v11/base_v11_B_ckpt1000_matched_scalar_trace_16env_seed0_20260714)、[staged step1150](../logs_eval/base_v11/base_v11_B_last_step1150_staged_matched_scalar_trace_16env_seed0_20260714)
+- C：[step1250](../logs_eval/base_v11/base_v11_C_ckpt1250_matched_scalar_trace_16env_seed0_20260714)、[step1500](../logs_eval/base_v11/base_v11_C_ckpt1500_matched_scalar_trace_16env_seed0_20260714)、[staged step1550](../logs_eval/base_v11/base_v11_C_last_step1550_staged_matched_scalar_trace_16env_seed0_20260714)
 
 Evaluator 会在 checkpoint 邻近目录创建 `exported/`，并按 loaded global step 写一个 checkpoint clone。为避免修改 frozen training directories，三个 `last.pt` 先复制到 `logs_eval/_eval_inputs/`，再从 staging eval；曾直接运行产生的 A step1150 与中断的 C step1550 artifact 已排除，不进入任何结论。原训练目录中的 task-created clone/exported 已清理并复核 hash。
 
@@ -551,16 +551,42 @@ A/B 的主要 guardrail failure 是 j7 长期贴近 `+0.035m` open limit 和 TCP
 | 推测 | v10→v11 source-state 差异可能参与 scratch route 分叉；当前 A2 observation-order dirty diff 是 plausible confound，不是已定位 root cause。 |
 | 未证实 | H+ 在 stage3 exposure 下是否提升 hinge、任何 run 到 step2000 的行为、多 seed statistical winner、训练提前停止的具体原因、v10 与 current source 的 byte equality。 |
 
-### 13.7 下一轮最小 RL ablation 建议（未启动）
+### 13.7 下一轮最小 RL ablation 建议（已 superseded；执行证据见 Section 14）
 
-先冻结并记录 exact current training source/hash；不要再做 scratch A/B。最小信息增益方案只新增一条：
+本节旧的 H+ resume proposal 已被 `base_v11_repair_r1` A/B training/eval 执行证据 supersede；它不再是 active recommendation。后续判断只引用 Section 14 的 matched evidence，不复用本节旧 proposal 的版本命名或 gate。
 
-| Proposed group | Start | 唯一变量 | Budget / checkpoints | Matched control |
-|---|---|---|---|---|
-| `base_v12_A_D_resume_hinge12` | v10_D `model_step_001000.pt`, `checkpoint_load_mode=full` | `push_door_hinge: 6→12`；其余 reward、Kp/Kd160/6、base unlock 全不变 | global target `1500`，save `250`；eval `1250/1500` | 现有 v11_C hinge6 `1250/1500` |
+## 14. `base_v11_repair_r1` A/B 训练/eval 与 logs_eval 布局（2026-07-15）
 
-这组终于在同一 v10_D stage3 policy state 上直接测试 H+，并复用 v11_C 作为 current-source control。只有在 launch 前 source 与 v11_C 不再一致时，现有 C 才失去 matched-control 资格；此时应重跑 hinge6/H+ 两臂，而不是宣称单臂因果结果。
+### 14.1 训练口径
 
-预注册 gate：primary 仍是 stage4 entry 与 per-env hinge max/terminal。任一 checkpoint 出现 stage4 entry 即视为 promising；若未进 stage4，则仅当 mean hinge max 至少 `.005rad` 且相对 matched C 在 `>=12/16` env 同向改善，才保留为工程方向信号。Guardrails 要求 bilateral/contact-stability `>=95%`、over-force `0%`、j7/j8 open-limit proximity `0%`。`.005rad` 是约为当前值 5× 的 early-stop engineering threshold，不是统计显著性阈值。到 step1500 仍平坦就停止，不继续烧到2000。
+两组都从同一个 v11_C staged step1550 policy-only source 启动：[`base_v11_C_last_step1550/model_step_001550.pt`](../logs_eval/_eval_inputs/base_v11_C_last_step1550/model_step_001550.pt)。保存配置与启动日志显示 `checkpoint_load_mode=policy_only`、`num_total_batches=500`、`save_frequency=125`、seed0、literal `num_envs=4096`。A/B 唯一的语义差异是 `push_door_handle: 6→0`；两组都保持 `push_door_hinge=6`。
 
-若该 stage3-exposed H+ 仍平坦，下一轮才考虑一个 non-cumulative hold-reduction resume，例如只把 contact-stability `4→0.5`，或设计随 hinge progress 衰减/一次性化的 hold reward；后者涉及 reward semantics/code，必须先单独提出方案并获批。当前不启动训练、不修改 Python/YAML/config，也不恢复 base_v9 diagnostics。
+- A：[保存配置](../logs_rl/a2_piper_full_stage_a2_base/base_v11_repair_r1_A_handle6_control-20260715_161304/config.yaml)，`push_door_handle=6`
+- B：[保存配置](../logs_rl/a2_piper_full_stage_a2_base/base_v11_repair_r1_B_handle0-20260715_161312/config.yaml)，`push_door_handle=0`
+
+### 14.2 Matched eval 结果
+
+八个 eval 均为 seed0、16 env、每 env first episode；每个都已证实为 `0/16 goal`、`0/16 stage4 entry`、terminal `stage_overtime`。下表的 primary/guardrail 数值来自 16 个 first episodes；`stage3 env 数` 是进入 stage3 的 env 数。
+
+| 组别 / step | 精确 scalar/trace artifact | Stage3 env 数 | Hinge max / terminal mean (rad) | Handle max mean | Bilateral / stability | TCP-handle mean (m) | j8 open-limit proximity |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A125 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_A_handle6_ckpt125_matched_scalar_trace_holdterms_16env_seed0_20260715) | 12/16 | `.001405 / .001393` | `.07378` | `54.40% / 41.11%` | `.04734` | `38.01%` |
+| A250 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_A_handle6_ckpt250_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.001638 / .000410` | `.02287` | `96.94% / 93.96%` | `.04740` | `1.86%` |
+| A375 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_A_handle6_ckpt375_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.001256 / .000916` | `.07294` | `100% / 99.15%` | `.02615` | `4.77%` |
+| A500 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_A_handle6_ckpt500_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.002081 / .001540` | `.50734` | `99.80% / 98.73%` | `.02959` | `60.52%` |
+| B125 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_B_handle0_ckpt125_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.001311 / .001255` | `.000391` | `100% / 99.15%` | `.02756` | `0%` |
+| B250 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_B_handle0_ckpt250_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.001149 / .001038` | `.001736` | `100% / 99.15%` | `.00992` | `0%` |
+| B375 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_B_handle0_ckpt375_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.000963 / .000908` | `.000299` | `100% / 99.15%` | `.00841` | `0%` |
+| B500 | [holdterms](../logs_eval/base_v11/base_v11_repair_r1_B_handle0_ckpt500_matched_scalar_trace_holdterms_16env_seed0_20260715) | 16/16 | `.001226 / .001067` | `.000444` | `100% / 99.16%` | `.00839` | `0%` |
+
+### 14.3 证据解释与停止边界
+
+- **已证实：** 上述八个 eval 的结果、A/B 唯一的语义配置差异，以及两组都使用 hinge6；A500 的 mean max hinge 仅为 `.25rad` stage4 threshold 的 `0.832%`。B250/B375 是干净的 stable-hold 诊断锚点，不是 task-progress candidate。
+- **推测：** A handle6 motion 与 guardrail regression 同时出现：A500 的 handle max 最大，但也出现 j8/base/workspace/doorframe regression。B handle0 保留 bilateral/stability hold 与平坦的 j8 guardrail，但 hinge 仍平坦且没有 task progress。这些只是 co-occurrence，不是因果归因。
+- **未证实：** 没有 statistical winner，没有 checkpoint 可 promotion，也没有建立 causal root cause。Single-seed evidence 不支持 cross-seed/generalization 结论。
+
+### 14.4 logs_eval 布局约定
+
+**未来产物约定：** `logs_eval/base_vN/<eval-run>/` 是单个 eval 的完整 result folder，直接包含 `.hydra/`、`eval.log`、`eval_agent_trl.log`、metrics/traces/diagnostics，以及可选的 `renderings/`。`base_eval.yaml` 现已让 `eval_log_dir` 与 rendering default 跟随 `eval_output_dir`；base-specific A2 命令必须把 `eval_output_dir` 设为 grouped path，并让 `eval_name` 保持 leaf label，不需要另写 `hydra.run.dir` override。对应 config validation 仅为 static/no-sim evidence：`3 passed` 加 resolved compose；它不构成新的 runtime eval 声明。
+
+**历史迁移约定：** 48 个旧 top-level Hydra directory 已按 whole-tree 迁移。其中 36 个 exact-paired directory 位于对应 canonical result 的 `.hydra_provenance/<old-top-dir>`；12 个 versioned/unpaired directory 位于 `base_vN/_unpaired_hydra/<old-top-dir>`。`_eval_inputs` 与 `replay_v2` 继续保留在 `logs_eval/` top-level；迁移后 top-level 共 14 个 entry。`.hydra_provenance` 只是 historical archive，不是 future layout。

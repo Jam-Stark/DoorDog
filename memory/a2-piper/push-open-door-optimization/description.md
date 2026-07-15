@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-14 22:02 HKT
+last_updated: 2026-07-15 20:56 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -10,7 +10,7 @@ owned_paths:
   - memory/a2-piper/push-open-door-optimization/DONE.md
 read_when:
   - 开始设计、训练、eval、render 或复盘 base_v9 之后的 A2+Piper full-stage 推门 policy 时
-  - 需要确认当前 baseline、历史 ablation 教训、matched eval 口径或下一版 base_v12 approval gate 时
+  - 需要确认当前 baseline、历史 ablation 教训、matched eval 口径、`base_v11_repair_r2` approval gate 或 `logs_eval` co-location contract 时
 ---
 
 # Push-Open-Door Optimization
@@ -34,7 +34,9 @@ read_when:
 - D 是当前 behavioral reference，不是 task winner：stage3/4 pooled bilateral contact `100%`、contact stability `99.147%`、j7/j8 open-limit proximity `0%/0%`，但 hinge max mean 仅 `.001073rad`，远低于 `.25rad` stage3→4 threshold。单 seed 不能给出统计 winner。
 - A→B、B→C、C→D 的比较都被 learned route/stage exposure 限制：B/D 的 high-quality hold 不可由 A/C 的无 stage3 exposure 单独隔离；C 是 open/no-contact basin，workspace signal 为 j3 dominant/argmin bottleneck（不是 only-j3 root cause）。D 的 stationary bilateral hold 与 strong hold reward / low progress motion 一致，但 reward dominance 仍是待 intervention 验证的推测。
 - D matched render 有 48 个有效 MP4，定性显示 stationary bilateral hold、没有可见持续 door rotation。strict no-trace output QA 为 FAIL：即使 diagnostic flag=false 仍写出 base trace；source diagnosis 证明这是 unconditional base trace output，发生在 physics/reward 后且不改 policy action。render 的 numeric exit code unverified，不能把整条 render QA 写为 PASS。
-- `base_v9` oracle、static clamp、O± 与 matched-clean 诊断继续停止；当前只保留 approval-gated `base_v12_A_D_resume_hinge12` proposal，不得自动启动训练。
+- `base_v9` oracle、static clamp、O± 与 matched-clean 诊断继续停止。`base_v11_repair_r1` A/B 都从 staged v11_C step1550 policy-only 启动，seed0、literal `num_envs=4096`、500 batches/save125；唯一语义 A/B 差异是 `push_door_handle: 6→0`，两组 hinge 均为6。
+- repair_r1 的 step125/250/375/500 共八个 matched eval（seed0、16 env、per-env first episode）均为 `0/16 goal`、`0 stage4`、`stage_overtime`。A500 mean max hinge `.002081rad`，仅为 `.25rad` threshold 的 `.832%`，并与 j8/base/workspace/doorframe regression co-occur；B 保留 stable hold/j8 guardrail，但 hinge flat。没有 promotable checkpoint、statistical winner 或 causal root cause。
+- 下一步仅为 approval-gated `base_v11_repair_r2`、stage3-exposed single-variable intervention，沿用 primary/guardrail contract；具体变量尚未批准，不得自动训练或改 config。
 
 ## Current Baseline
 
@@ -73,6 +75,8 @@ read_when:
 - Render 保持相同 checkpoint/seed/env/episode contract，只用于解释 contact、detach、jam、doorframe event 与动作自然性，不参与 success-rate 统计。
 - 原始完整 shell command 未保留；human report 中的 train/eval/render blocks 明确是从 saved Hydra overrides/config 重建的模板。
 - Sibling worktree eval 使用 `python -m gr00t.rl.eval_agent_trl`，避免 direct-script invocation 命中另一 worktree 的 editable-install source。
+- Future base-specific A2 eval 必须把完整 result folder 写到 `logs_eval/base_vN/<eval-run>/`：folder 直接包含 `.hydra/`、eval logs、metrics/traces/diagnostics 与可选 `renderings/`。`eval_output_dir` 是 canonical path，`eval_name` 仅为 leaf label；`base_eval.yaml` 的 `eval_log_dir` alias 与 rendering default 都跟随 `eval_output_dir`。该 config/no-sim contract 已 static PASS，实际新 eval runtime 仍未验证。
+- Historical `logs_eval` migration：首批129个 version-named eval dirs 已归入 `base_v0..base_v11`；另有48个旧 top-level Hydra dirs whole-tree 迁移，36个 exact-paired 到 canonical result 的 `.hydra_provenance/<old-top-dir>`，12个 versioned/unpaired 到 `base_vN/_unpaired_hydra/<old-top-dir>`。`_eval_inputs` 与 `replay_v2` 保留 top-level，迁移后 top-level 共14项；无 symlink/collision，但未收集 content hash，故仅有 layout/static evidence。
 
 ## Evidence Boundaries
 
@@ -83,12 +87,14 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-14 22:02 HKT - 仅在批准后运行一条 `base_v12_A_D_resume_hinge12`：从 v10_D step1000 full-state resume，唯一变量 `push_door_hinge: 6→12`，global target1500/save250；matched eval step1250/1500 对照现有 v11_C hinge6 current-source control。若 source 改变，必须重跑 matched control/H+ pair；不得启动、改 code/config 或恢复 base_v9 diagnostics。
+- 2026-07-15 20:56 HKT - 仅在明确 approval 后设计并执行 `base_v11_repair_r2` 的 stage3-exposed single-variable intervention；具体变量尚未批准，不能自动选择或改 training/config。沿用 repair_r1 的 matched primary（goal、stage4 entry、hinge）与 guardrail（bilateral/stability、over-force、j7/j8/base/workspace/doorframe）contract；必须先 freeze/record exact source 与批准变量，再定义 budget、checkpoint/eval schedule 和停止阈值。不得仅为更晚 step 延长 repair_r1 A/B，也不得恢复 `base_v9` diagnostics。
 
 ## DONE Summary
 
+- 2026-07-15 20:56 HKT - `base_v11_repair_r1` A/B matched eval 完成：均从 staged v11_C step1550 policy-only 启动、seed0、literal `num_envs=4096`、500 batches/save125，唯一语义差异为 `push_door_handle: 6→0`（hinge均为6）。八个 step125/250/375/500 eval 均 `0/16 goal`、`0 stage4`、`stage_overtime`；A500 hinge 仅 `.002081rad`（`.25rad` threshold 的 `.832%`）且与 guardrail regression co-occur，B stable hold/j8 guardrail 但 hinge flat。因此没有 checkpoint promotion、statistical winner 或 causal root cause。
+- 2026-07-15 20:56 HKT - 完成 historical `logs_eval` grouping/migration，并确立 future base-specific eval co-location：`eval_output_dir` 为 canonical grouped path、`eval_name` 为 leaf；config tests `3 passed` 与 resolved compose PASS。迁移无 symlink/collision，但未收集 content hash；新 eval runtime 未验证，以上不构成 runtime eval PASS。
 - 2026-07-14 22:02 HKT - `base_v11` incomplete-budget matched eval 完成：九个 usable state 全为 `0/16 goal`、`0/16 stage4`、`stage_overtime`；A/B 仅 stage2、C 仅 stage3。A/B 无 stage3 exposure，不能评价 hinge12 H+；C 的 stable bilateral hold 没有转化为 hinge breakthrough，当前结果不是 full-budget/statistical winner。
-- 2026-07-14 22:02 HKT - 确认 v11 的 source temporal confound 与 reward-evidence boundary：A 仅是 exact saved-config control，observation-order diff 是 plausible confound；hold/hinge realized magnitude imbalance 不构成 hold-dominant causality。下一步为 approval-gated v12 stage3-exposed H+ resume，不启动训练。
+- 2026-07-14 22:02 HKT - 确认 v11 的 source temporal confound 与 reward-evidence boundary：A 仅是 exact saved-config control，observation-order diff 是 plausible confound；hold/hinge realized magnitude imbalance 不构成 hold-dominant causality。旧的 stage3-exposed H+ resume 方向已由 repair_r1 执行证据 supersede，不启动训练。
 - 2026-07-14 01:11 HKT - 完成 `base_v10` scratch A/B/C/D provenance、matched scalar/trace 与 D qualitative render 复盘；四组都未完成任务，当前仅形成 D stable-hold behavioral reference 与 approval-gated `base_v11` H+ proposal。详细 metrics、artifact 与命令见 human report。
 
 - 2026-07-13 17:42 HKT - 用户提供历史 verified launch template，明确 v10 每组即使使用 2 processes 也保持 trainer override `num_envs=4096`，并沿用 `WANDB_MODE=online`、fixed reward penalty scale、stage2 contact threshold `1.0` 与 PhysX velocity iterations `1`；不得自行换算成 2048。

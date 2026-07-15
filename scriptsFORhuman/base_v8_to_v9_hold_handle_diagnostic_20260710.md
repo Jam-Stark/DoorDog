@@ -49,10 +49,10 @@ Scalar/trace primary 统一使用 step1000、16 env、每 env 的 first episode�
 |---|---|
 | Policy | [`base_v8 A` ckpt1000](../logs_rl/a2_piper_full_stage_a2_base/base_v8_A_release_after_open-20260708_215459/model_step_001000.pt)，三组完全相同、frozen |
 | Sampling | D0/D1/D2 各 8 env，单 seed，每 env 1 episode，no-render |
-| D0 | [A' threshold diagnostic](../logs_eval/base_v8_A_ckpt1000_D0_diag_Aprime_8env_20260710)：threshold `0.174533`，forced-close off |
-| D1 | [A training-threshold diagnostic](../logs_eval/base_v8_A_ckpt1000_D1_diag_AtrainThreshold_8env_20260710)：threshold `0.6`，forced-close off |
-| D2 | [Forced-close intervention](../logs_eval/base_v8_A_ckpt1000_D2_diag_forcedClose_8env_20260710)：threshold `0.174533`，stage3/4 gripper primitive 强制 `-1.0` |
-| D3 | [Default-off regression](../logs_eval/base_v8_A_ckpt1000_D3_defaultOffRegression_2env_20260710)：2 env，diagnostics/forced-close 均 off |
+| D0 | [A' threshold diagnostic](../logs_eval/base_v8/base_v8_A_ckpt1000_D0_diag_Aprime_8env_20260710)：threshold `0.174533`，forced-close off |
+| D1 | [A training-threshold diagnostic](../logs_eval/base_v8/base_v8_A_ckpt1000_D1_diag_AtrainThreshold_8env_20260710)：threshold `0.6`，forced-close off |
+| D2 | [Forced-close intervention](../logs_eval/base_v8/base_v8_A_ckpt1000_D2_diag_forcedClose_8env_20260710)：threshold `0.174533`，stage3/4 gripper primitive 强制 `-1.0` |
+| D3 | [Default-off regression](../logs_eval/base_v8/base_v8_A_ckpt1000_D3_defaultOffRegression_2env_20260710)：2 env，diagnostics/forced-close 均 off |
 
 指标口径：`hinge max/end` 是先取每个 env 的 episode 最大值/terminal 值再跨 env 求 mean；`base physical linear command` 是 action routing 后的 base linear command norm，不等同于 measured root velocity；`normalized arm margin` 是 joint 到 soft limit 的最小归一化余量，小于 0 表示越界；`bilateral/stability` 使用当前 handle-contact force 与 history predicate；`TCP slip` 指 TCP/source 相对 handle target 的距离恶化。
 

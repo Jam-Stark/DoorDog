@@ -4,9 +4,9 @@
 - 2026-07-13 13:47 HKT - 完成 frozen candidate `afa0b348...` 的 default-off matched-clean diagnostic infrastructure 与一轮自然 finalized runtime 归档：`68 passed` no-sim、Wave 1 PASS，artifact/runtime QA PASS；scientific gate 为 FAIL，`0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT`。identity 为 `base_v9_B model_step_001000`、current check `08a506a5...`、seed0、8 env、TCP `0.085`、Kp/Kd `80/3`、effort `10`、default friction；release counts `[1,0,64,58,0,0,0,1]`，六个 `j6` upper 与 env2/3 在64/58后的 `j5` lower。controller-local abort 不证明 `grasp_target` physical unreachable；未执行 O0/O-/O+/training，source-local offsets 未被 disproven。
 - 2026-07-12 21:05 HKT - 完成 full-stage B hold-route 的 closing-axis offset tooling、formal O0 diagnosis 与 arm-zero/open stabilization preflight。Candidate `cff2b6474c97e0e48e85524a3390df246b9b82836d4db0c95be7fbdd16982791` 的 goal/code/IsaacLab review 均 PASS；tooling 为 eval-only/default-off，定义 source-local-Y `O-/O0/O+ = -3/0/+3mm`，不改 training/default behavior。该 offset 与两项 historical `2cm` 事实不同：一是 target-side `grasp_target Z+0.02` 已移除以回到 lever center，二是 TCP source local-Z 从 `0.105` 改为 `0.085`。
 
-  Formal O0 artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_offset_O0_0mm_kp160_kd6_8env_20260712` 在 same B ckpt1000 / seed0 / 8 env 下完成 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`，因此 Kp/Kd `160/6` 的 exact-40 clamp 未启动。Position/orientation residual 为 `0.02185–0.16114m` / `0.05656–0.33784rad`，root displacement 为 `0.02250–0.05960m`，placement contact 为 body8-only `124/160`、bilateral `0/160`。Fixed world target 在 moving-root frame 中每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap；primary blocker 是 floating-root relative-target / arm catch-up deficit，body8 collision 是 secondary。Actual placement gain/effort 为 `80/3/10`。
+  Formal O0 artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_offset_O0_0mm_kp160_kd6_8env_20260712` 在 same B ckpt1000 / seed0 / 8 env 下完成 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`，因此 Kp/Kd `160/6` 的 exact-40 clamp 未启动。Position/orientation residual 为 `0.02185–0.16114m` / `0.05656–0.33784rad`，root displacement 为 `0.02250–0.05960m`，placement contact 为 body8-only `124/160`、bilateral `0/160`。Fixed world target 在 moving-root frame 中每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap；primary blocker 是 floating-root relative-target / arm catch-up deficit，body8 collision 是 secondary。Actual placement gain/effort 为 `80/3/10`。
 
-  Preflight artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_arm0_open_stabilization_preflight_8env_20260712` 为 `8/8 activated`、`0/8 READY`，结果 `7 CONTACT_CONTAMINATED + 1 GATE_LOST`，final action counts 为 `[0,0,3,3,0,0,0,5]`。其中5 env 在 action0 已 contaminated，env2 action3 contact，env7 action5 产生 body7 约 `42.42N` contact，env3 action3 gate lost；无 env 进入 action40 quiet-window，所以该 run 既不是 `NOT_SETTLED`，也不能证明 root quietness 不可达。11个 controlled actions 的 accumulated/post-delta arm target 与 actual Kp/Kd/effort `80/3/10` invariants 均 exact。该结果禁止 fresh O0/O-/O+，直到 matched clean reacquisition / stabilize-before-capture 在同一 frozen protocol 下达到 `8/8 READY`。
+  Preflight artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_arm0_open_stabilization_preflight_8env_20260712` 为 `8/8 activated`、`0/8 READY`，结果 `7 CONTACT_CONTAMINATED + 1 GATE_LOST`，final action counts 为 `[0,0,3,3,0,0,0,5]`。其中5 env 在 action0 已 contaminated，env2 action3 contact，env7 action5 产生 body7 约 `42.42N` contact，env3 action3 gate lost；无 env 进入 action40 quiet-window，所以该 run 既不是 `NOT_SETTLED`，也不能证明 root quietness 不可达。11个 controlled actions 的 accumulated/post-delta arm target 与 actual Kp/Kd/effort `80/3/10` invariants 均 exact。该结果禁止 fresh O0/O-/O+，直到 matched clean reacquisition / stabilize-before-capture 在同一 frozen protocol 下达到 `8/8 READY`。
 
 - 2026-07-12 17:36 HKT - 完成 `base_v9 B` eval-only gripper anti-backdrive S0/S1/S2 diagnostic。Frozen candidate `f5d8ea69b28c40da8386a0b26c9c141c66478e40fba0c0b3f21d77775166a468` 为 `37 passed` 且 Wave 1 static PASS；probe default-off，严格使用 TCP `0.085`、effort `10/10`、default friction 与 40 个 POSE_HOLD actions，只比较 Kp/Kd `80/3`、`160/6`、`320/12`，未改 friction、coupling、reward、training 或 default behavior。三组 runtime 均 `8/8 STATIC_CLAMP_COMPLETE`、final action count `40`、applied effort `10/10`，并 exact restore 到 Kp/Kd `80/3`、effort `10/10`。
 
@@ -18,7 +18,7 @@
 
   S1 出现 `430.273N` normal-force spike，但同帧沿 finger opening axis 的投影只有 `24.087N`，不能把 aggregate normal spike 等同于撬开 joint 的有效分量。S2 的 `arm_j8 qmin=-0.026426` 优于 S0/S1 的 `-0.035`，且 bilateral/stability 随 gain 上升，证明 anti-backdrive 是 partial factor；但三组 step40 都没有保留 contact，S2 还把 bottleneck 转移到 `arm_j7` saturation/limit。因此不把 S1/S2 提升为 training/default config，geometry / aperture / bilateral reachability 仍 unresolved。
 
-  Artifacts：S0 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712`；S1 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712`；S2 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712`。
+  Artifacts：S0 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712`；S1 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712`；S2 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712`。
 
 - 2026-07-11 22:19 HKT - 完成 eval-only deterministic hold-oracle exact diagnosis 的 candidate review 与 runtime matrix（partial completion）。Candidate 为 `9513f6f95d266b185a1aa89eb10ca074195bb8101f86ba0ec58b6744392c6571`，no-sim targeted tests 为 `28 passed`；每组 runtime 均产出 `a2_hold_oracle_summary.json`、`a2_hold_diagnostic_runtime_metadata.json`、`stage2_step_trace.json`、`stage2_5_step_trace.json`、`metrics_eval.json`、`eval_to_log_metrics.json` 六个 artifact。
 
@@ -56,7 +56,7 @@
 
   (1) Diagnostic implementation 覆盖 7 个既有 source/config 文件：stage3→4 hinge threshold 参数化为 env config single source of truth，并为 legacy A2 checkpoint 做显式 migration；新增 opt-in expanded A2 eval trace、reward-term decomposition、arm soft-limit margin、base physical command/root motion、TCP-handle slip、per-body contact 与 door progress diagnostics；新增 eval-only forced-close intervention，默认 `enabled=false`、value `-1.0`。修正后的 trace 保证 first-episode isolation，并在 control action 生效后的正确 timing 采样。未添加 silent fallback；static/config tests 与 Oracle review PASS。
 
-  (2) 三个 causal run 使用同一个 `base_v8 A` ckpt1000、8 env、每 env 1 episode、no-render，输出分别为 `logs_eval/base_v8_A_ckpt1000_D0_diag_Aprime_8env_20260710`、`logs_eval/base_v8_A_ckpt1000_D1_diag_AtrainThreshold_8env_20260710`、`logs_eval/base_v8_A_ckpt1000_D2_diag_forcedClose_8env_20260710`。D0/D2 的 threshold 为 `0.174533`，D1 为 `0.6`；只有 D2 对 stage3/4 gripper primitive 强制 `-1.0`。这些是 frozen A policy 的 intervention，不等同于重新训练后的 B policy。
+  (2) 三个 causal run 使用同一个 `base_v8 A` ckpt1000、8 env、每 env 1 episode、no-render，输出分别为 `logs_eval/base_v8/base_v8_A_ckpt1000_D0_diag_Aprime_8env_20260710`、`logs_eval/base_v8/base_v8_A_ckpt1000_D1_diag_AtrainThreshold_8env_20260710`、`logs_eval/base_v8/base_v8_A_ckpt1000_D2_diag_forcedClose_8env_20260710`。D0/D2 的 threshold 为 `0.174533`，D1 为 `0.6`；只有 D2 对 stage3/4 gripper primitive 强制 `-1.0`。这些是 frozen A policy 的 intervention，不等同于重新训练后的 B policy。
 
   (3) D0 8/8 进入 stage4，hinge mean max/end 为 `0.1872/0.1282 rad`；stage3/stage4 base physical linear command 约 `0.0026/0.0060 m/s`，root 仅 millimeter-level motion。stage4 的 1616/1616 frames 都是 `arm_body8`-only single contact，无 bilateral contact/stability；close target 已下发但 `arm_j8` 仍在 open stop。stage3 即使只有单侧接触，当前 diagnostic reward 仍约 `+0.336/step`。该 run 说明 early stage transition 把 frozen A policy 切到未训练的 stage4 distribution，handle retention 与 hinge progress 随后回弹。
 
@@ -64,7 +64,7 @@
 
   (5) D2 相对 D0 的 bilateral-contact ratio 仍精确为 `0.137%`，stability 与 stage4 bilateral contact 都为 0；hinge mean max/end 只增加 `0.0147/0.0187 rad`，root motion 不变，TCP distance/slip 反而更差，且 2 env 在脱离 handle 后仍收到空 close command。因而“只强制 close”不足以形成握持，首轮 `base_v9` 不应把 forced-close、Kp/effort 或 keep-close scale 作为主变量。
 
-  (6) Default-off regression `logs_eval/base_v8_A_ckpt1000_D3_defaultOffRegression_2env_20260710` 在 diagnostics/forced-close 均关闭时 2/2 正常结束并到达 max stage4，且不生成 `a2_eval_diagnostic_metadata.json`，验证 opt-in runtime path 未污染普通 eval。
+  (6) Default-off regression `logs_eval/base_v8/base_v8_A_ckpt1000_D3_defaultOffRegression_2env_20260710` 在 diagnostics/forced-close 均关闭时 2/2 正常结束并到达 max stage4，且不生成 `a2_eval_diagnostic_metadata.json`，验证 opt-in runtime path 未污染普通 eval。
 
   (7) 基于上述证据，待 user 审批的首轮 `base_v9` 方案是 threshold `{0.174533, 0.25}` × stage3 base `{locked current, unlocked}`。四组共享 B hold bundle、同一 A ckpt1000 policy-only initialization，并重置 optimizer/curriculum/snapshots、对齐 seeds；workspace-margin shaping 保留到第二轮 single-variable ablation。详细分析见 `scriptsFORhuman/base_v8_to_v9_hold_handle_diagnostic_20260710.md`。
 
@@ -86,7 +86,7 @@
 
 - 2026-07-09 12:33 HKT - 完成 `base_v8 A'` release-after-open route 修正。
 
-  (1) 基于 `logs_eval/base_v8_A_release_after_open_ckpt1000` 诊断：A2 stage3 能正确下压 handle，但因 stage3->4 threshold `0.6` 且 stage3 仍有 base stillness / `penalty_not_standing_still` 语义，policy 只用 arm 推门，hinge 卡在约 `0.25~0.28 rad`，未进入 stage4。
+  (1) 基于 `logs_eval/base_v8/base_v8_A_release_after_open_ckpt1000` 诊断：A2 stage3 能正确下压 handle，但因 stage3->4 threshold `0.6` 且 stage3 仍有 base stillness / `penalty_not_standing_still` 语义，policy 只用 arm 推门，hinge 卡在约 `0.25~0.28 rad`，未进入 stage4。
 
   (2) A2 stage3->4 threshold 回退到 legacy `0.174533`，恢复“handle/hinge 刚开始打开后进入 stage4，由 stage4 through/root reward 接管”的原始 stage semantics。
 
@@ -108,7 +108,7 @@
 
 - 2026-07-08 20:20 HKT - 完成 full-stage `base_v7` TCP/effort A/B 1000-step train/eval 结果归档，并将 A config 写回默认配置。
 
-  (1) A config: `TCP=0.085`、`arm_j7/j8 effort_limit_sim=10.0/10.0`、`arm_j7/j8 Kp/Kd=80/3`、`num_velocity_iterations=1`、`reward_penalty_curriculum=false` 且 reward penalty scale 固定 1。Eval `logs_eval/base_v7_A_tcp085_effort10_ckpt1000` 为 2/2 complete，`episode_max_stage_reached=[5,5]`，episode length `525/528`，training log iteration 1000 `Env/average_goal_reached=0.7470`。
+  (1) A config: `TCP=0.085`、`arm_j7/j8 effort_limit_sim=10.0/10.0`、`arm_j7/j8 Kp/Kd=80/3`、`num_velocity_iterations=1`、`reward_penalty_curriculum=false` 且 reward penalty scale 固定 1。Eval `logs_eval/base_v7/base_v7_A_tcp085_effort10_ckpt1000` 为 2/2 complete，`episode_max_stage_reached=[5,5]`，episode length `525/528`，training log iteration 1000 `Env/average_goal_reached=0.7470`。
 
   (2) B config: `TCP=0.105`、`arm_j7/j8 effort_limit_sim=40.0/40.0`、其余关键 override 与 A 对齐。Eval `logs_eval/base_v7_B_tcp105_effort40_ckpt1000` 为 0/2 success，`episode_max_stage_reached=[4,4]`，episode length `654/654`，terminal reason `stage_overtime`，training log iteration 1000 `Env/average_goal_reached=0.0000`。
 
@@ -120,11 +120,11 @@
 
 - 2026-07-08 14:20 HKT - 完成 `base_v6_40_effort_08TCP_offset` ckpt1000 eval log diagnosis。
 
-  (1) User-provided path `logs_eval/full_stage_base_v5_no_reward_penalty_scale_last_render_eval2` 不是 base_v6 evidence：该 eval mtime 为 2026-07-07 21:43，早于 base_v6 train dir `base_v6_40_effort_08TCP_offset-20260707_221058`，且 matching saved config `base_v5_no_reward_penalty_scale-20260707_184832/config.yaml` 中 `arm_j7/j8 effort_limit_sim=10.0/10.0`。
+  (1) User-provided path `logs_eval/base_v5/full_stage_base_v5_no_reward_penalty_scale_last_render_eval2` 不是 base_v6 evidence：该 eval mtime 为 2026-07-07 21:43，早于 base_v6 train dir `base_v6_40_effort_08TCP_offset-20260707_221058`，且 matching saved config `base_v5_no_reward_penalty_scale-20260707_184832/config.yaml` 中 `arm_j7/j8 effort_limit_sim=10.0/10.0`。
 
   (2) 该 base_v5 eval 确实复现视频观察到的 unstable tip / single-finger contact：`episode_max_stage_reached=[2,2]`，env0 stage2 trace `arm_body8` force max `18.44N`、`>1N` 332/349 frames，`arm_body7` max `0.79N` 且 `>1N` 0 frames；env1 `arm_body8` max `88.32N`、`arm_body7` max `2.33N`，但 `both_contact` 仅 2 frames、`contact_stability=0`，仍是 single `arm_body8` dominant / no stable bilateral grasp。
 
-  (3) 真正 base_v6 eval path 是 `logs_eval/base_v6_40_effort_08TCP_offset_ckpt1000`，输出 mtime 2026-07-08 14:10。结果 `episode_max_stage_reached=[1,1]`、terminal `stage_buf=1`、`stage2_step_trace.json` 为空；terminal diagnostics `contact_force_arm_body7_8_norm=[0,0]`、`squeeze_y=[0,0]`。因此本次不能判断 40N effort 对 stage2 contact force 是否改善。
+  (3) 真正 base_v6 eval path 是 `logs_eval/base_v6/base_v6_40_effort_08TCP_offset_ckpt1000`，输出 mtime 2026-07-08 14:10。结果 `episode_max_stage_reached=[1,1]`、terminal `stage_buf=1`、`stage2_step_trace.json` 为空；terminal diagnostics `contact_force_arm_body7_8_norm=[0,0]`、`squeeze_y=[0,0]`。因此本次不能判断 40N effort 对 stage2 contact force 是否改善。
 
   (4) base_v6 卡 stage1 的直接日志原因是 pregrasp distance 未达 strict threshold：terminal `target_pos_source_pregrasp_distance=0.166/0.152m`，而 stage1→2 需要 `<0.1m`；orientation 已好（opening/approach alignment 约 `0.996/0.98`），gripper raw 仍 open (`0.72/0.70`)。下一步如果继续 base_v6，应先让 later checkpoint 或 targeted eval 进入 stage2，再比较 `arm_body7` contact、both-contact/contact-stability/squeeze-window 与 over-force。
 
@@ -140,7 +140,7 @@
 
 - 2026-07-07 16:17 HKT - 完成 full-stage `base_v4` 2k four-way no-render eval analysis。
 
-  (1) Runs: `logs_eval/base_v4_thr0p8_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr0p8_kd5_vel0_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr1p0_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4_thr1p0_kd5_vel0_ckpt2000_tolog_norender`。
+  (1) Runs: `logs_eval/base_v4/base_v4_thr0p8_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4/base_v4_thr0p8_kd5_vel0_ckpt2000_tolog_norender`、`logs_eval/base_v4/base_v4_thr1p0_kd3_vel1_ckpt2000_tolog_norender`、`logs_eval/base_v4/base_v4_thr1p0_kd5_vel0_ckpt2000_tolog_norender`。
 
   (2) `threshold=0.8,Kd=3,velocity_iter=1` 与 `threshold=1.0,Kd=5,velocity_iter=0` 均 0/16 success，episode 全部 stage2 overtime，trace contact/squeeze/over-force/signflip 全为 0；说明这两组没有学到有效 handle contact。
 
@@ -154,15 +154,15 @@
 
   (1) Shared setup: checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`，均使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=16`、`render_results=false`、`dump_to_log_metrics=true`，因此是 one episode per env。
 
-  (2) `stage2_grasp_contact_history_length=3` 输出 `logs_eval/full_stage_base_v3_ckpt1000_hist3_tolog`：0/16 success，16/16 max/terminal at stage3，全部 `stage_overtime`；`a2_stage2_grasp_complete_frac` / `a2_stage2_to3_advance_frac` 16 个 step 非零，`a2_stage2_door_open_bypass_frac=0`；terminal 15/16 single-contact、1/16 both-contact/contact-stability，mean reward 64.46。结论：history 3 能打开 stage2→3，但对当前 policy 过于宽松，容易让 stage3 在 durable grasp 前启动。
+  (2) `stage2_grasp_contact_history_length=3` 输出 `logs_eval/base_v3/full_stage_base_v3_ckpt1000_hist3_tolog`：0/16 success，16/16 max/terminal at stage3，全部 `stage_overtime`；`a2_stage2_grasp_complete_frac` / `a2_stage2_to3_advance_frac` 16 个 step 非零，`a2_stage2_door_open_bypass_frac=0`；terminal 15/16 single-contact、1/16 both-contact/contact-stability，mean reward 64.46。结论：history 3 能打开 stage2→3，但对当前 policy 过于宽松，容易让 stage3 在 durable grasp 前启动。
 
-  (3) `a2_stage2_contact_force_threshold=0.8` 输出 `logs_eval/full_stage_base_v3_ckpt1000_thr0p8_tolog`：0/16 success，5/16 max/terminal at stage3、11/16 at stage2，全部 `stage_overtime`；`a2_stage2_grasp_complete_frac` / `a2_stage2_to3_advance_frac` 5 个 step 非零，`a2_stage2_door_open_bypass_frac=0`；terminal 7/16 both-contact/squeeze-window、1/16 contact-stability，mean reward 103.19。结论：threshold 0.8 更保守，更像下一步 render 验证 / potential default config 候选。
+  (3) `a2_stage2_contact_force_threshold=0.8` 输出 `logs_eval/base_v3/full_stage_base_v3_ckpt1000_thr0p8_tolog`：0/16 success，5/16 max/terminal at stage3、11/16 at stage2，全部 `stage_overtime`；`a2_stage2_grasp_complete_frac` / `a2_stage2_to3_advance_frac` 5 个 step 非零，`a2_stage2_door_open_bypass_frac=0`；terminal 7/16 both-contact/squeeze-window、1/16 contact-stability，mean reward 103.19。结论：threshold 0.8 更保守，更像下一步 render 验证 / potential default config 候选。
 
   (4) 两组都没有 full-stage success，符合预期：old checkpoint 几乎没学过 stage3/open after strict completion unblock。该 A/B 只判断 route unlocking 与假推进风险，不代表 door-opening behavior 已解决。
 
 - 2026-07-06 20:35 HKT - 完成 full-stage `base_v3` ckpt1000 no-render scalar/trace eval 诊断记录。
 
-  (1) Eval path: `logs_eval/full_stage_base_v3_ckpt1000_tolog_norender`，checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`。本次因 override path 走默认 `150 total episodes`，不是原计划 one-episode-per-env。
+  (1) Eval path: `logs_eval/base_v3/full_stage_base_v3_ckpt1000_tolog_norender`，checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v3-20260706_155252/model_step_001000.pt`。本次因 override path 走默认 `150 total episodes`，不是原计划 one-episode-per-env。
 
   (2) Result: 0/150 success，144/150 terminal/max at stage2，`a2_stage2_to3_advance_frac` 只有 3 个 env-step 非零；`termination_level≈1.0`、`reward_penalty_scale≈1.0`，不是 curriculum-state blocker。
 
@@ -181,7 +181,7 @@
   (4) Eval-only legacy checkpoint config migration 已显式处理旧 `a2_stage2_single_finger_contact_force_threshold` key；validation 为 `py_compile eval_agent_trl.py + door_open_a2_base.py` PASS、`git diff --check` PASS、conda `isaaclab` no-sim migration sanity PASS。Plain Python Hydra compose 因缺少 `hydra` module 不可用；review PASS。
 
 - 2026-07-04 21:56 HKT - 完成 Full-stage False-Success Route Fix。
-- 2026-07-04 22:26 HKT - 完成旧 full-stage `ckpt6000` strict-route 短 eval：命令使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=2`、`render_results=false`，输出在 `logs_eval/full_stage_base_v0_ckpt6000_strict_route_eval1`。结果 `episode_goal_reached=[true,true]`、`episode_max_stage_reached=[5,5]`、terminal reason 均为 `complete`；stage2 trace 有短暂 negative gripper primitive、both-contact 与 opposite-squeeze spike，说明 strict route 没有把该旧 policy 挡在 stage2。现有 eval runner 未导出 `infos["to_log"]`，因此本次没有精确 `a2_stage*_bypass_blocked_frac` scalar。
+- 2026-07-04 22:26 HKT - 完成旧 full-stage `ckpt6000` strict-route 短 eval：命令使用 `++algo.config.eval.eval_num_envs_episodes=true`、`num_envs=2`、`render_results=false`，输出在 `logs_eval/base_v0/full_stage_base_v0_ckpt6000_strict_route_eval1`。结果 `episode_goal_reached=[true,true]`、`episode_max_stage_reached=[5,5]`、terminal reason 均为 `complete`；stage2 trace 有短暂 negative gripper primitive、both-contact 与 opposite-squeeze spike，说明 strict route 没有把该旧 policy 挡在 stage2。现有 eval runner 未导出 `infos["to_log"]`，因此本次没有精确 `a2_stage*_bypass_blocked_frac` scalar。
 
   (1) A2 `stage1 -> stage2` 现在只由 true pregrasp readiness 推进，door-open bypass 不再推进 A2 stage1；non-A2/G1 path 保持旧 `door_opened` bypass semantics。
 
@@ -193,13 +193,13 @@
 
   (5) 未改 reward scales、`reward_penalty_reward_names`、termination curriculum、actuator config、YAML 或 continuous aperture primitive。Oracle-style review PASS；IsaacSim/PPO smoke 尚未运行，runtime/eval 验证保留在 TODO。
 
-- 2026-07-04 22:34 HKT - 完成 eval `to_log` scalar dump 与旧 full-stage `ckpt6000` 复验：输出 `logs_eval/full_stage_base_v0_ckpt6000_strict_route_tolog/eval_to_log_metrics.json`。精确 scalar 显示 `a2_stage1_to2_bypass_blocked_frac=0`、`a2_stage2_to3_bypass_blocked_frac=0`；stage1→2 仅由 true pregrasp 在 step 113/116 推进；stage2→3 由 `a2_stage2_grasp_complete_frac` 在 step 147/148 非零推进；door-open bypass 首次出现 step 193，晚于 stage2→3。结论：strict route 生效，剩余问题是 stage2 grasp completion predicate 可被短暂 close/contact/squeeze spike 触发。
+- 2026-07-04 22:34 HKT - 完成 eval `to_log` scalar dump 与旧 full-stage `ckpt6000` 复验：输出 `logs_eval/base_v0/full_stage_base_v0_ckpt6000_strict_route_tolog/eval_to_log_metrics.json`。精确 scalar 显示 `a2_stage1_to2_bypass_blocked_frac=0`、`a2_stage2_to3_bypass_blocked_frac=0`；stage1→2 仅由 true pregrasp 在 step 113/116 推进；stage2→3 由 `a2_stage2_grasp_complete_frac` 在 step 147/148 非零推进；door-open bypass 首次出现 step 193，晚于 stage2→3。结论：strict route 生效，剩余问题是 stage2 grasp completion predicate 可被短暂 close/contact/squeeze spike 触发。
 
-- 2026-07-05 18:38 HKT - 完成旧 full-stage `ckpt6000` tightened-completion route eval。用户 render run `logs_eval/full_stage_base_v0_ckpt6000_tightened` 显示 2 env episode0000 均 `len452_reason-stage_overtime`；补充 no-render scalar run `logs_eval/full_stage_base_v0_ckpt6000_tightened_tolog` 使用同 policy 的 `model_step_006000_full_tightened.pt`（`policy_state_dict` 与原 `model_step_006000.pt` 完全一致）生成 `eval_to_log_metrics.json`。结果：`episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`；`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`a2_stage2_close_gate_frac=0`、`a2_stage2_completion_close_gate_frac=0`，同时旧 policy 仍有 close command/contact/squeeze 信号（如 `a2_stage2_gripper_close_command_frac`、`a2_stage2_both_contact_frac`、`a2_stage2_sufficient_squeeze_frac` 非零）。结论：tightened completion 生效，旧 contact/squeeze spike route 被 close_gate/progress gate 挡在 stage2。
+- 2026-07-05 18:38 HKT - 完成旧 full-stage `ckpt6000` tightened-completion route eval。用户 render run `logs_eval/base_v0/full_stage_base_v0_ckpt6000_tightened` 显示 2 env episode0000 均 `len452_reason-stage_overtime`；补充 no-render scalar run `logs_eval/base_v0/full_stage_base_v0_ckpt6000_tightened_tolog` 使用同 policy 的 `model_step_006000_full_tightened.pt`（`policy_state_dict` 与原 `model_step_006000.pt` 完全一致）生成 `eval_to_log_metrics.json`。结果：`episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`；`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`a2_stage2_close_gate_frac=0`、`a2_stage2_completion_close_gate_frac=0`，同时旧 policy 仍有 close command/contact/squeeze 信号（如 `a2_stage2_gripper_close_command_frac`、`a2_stage2_both_contact_frac`、`a2_stage2_sufficient_squeeze_frac` 非零）。结论：tightened completion 生效，旧 contact/squeeze spike route 被 close_gate/progress gate 挡在 stage2。
 
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
 
-  (1) 基于 `logs_eval/base_v3_term2` 诊断：`termination_level=0.1` / `reward_penalty_scale≈0.2` 下 eval 两条 env 均 formal complete，但 arm reach 明显慢，旧 `upper_dof_overspeed` hard threshold 等效为 `2 rad/s`。
+  (1) 基于 `logs_eval/base_v3/base_v3_term2` 诊断：`termination_level=0.1` / `reward_penalty_scale≈0.2` 下 eval 两条 env 均 formal complete，但 arm reach 明显慢，旧 `upper_dof_overspeed` hard threshold 等效为 `2 rad/s`。
 
   (2) `penalty_dof_overspeed` threshold 从 `2.0 rad/s` 改为 `3.0 rad/s`，只覆盖 Piper `arm_j1..j6`，继续排除 gripper `arm_j7/j8`。
 
@@ -227,7 +227,7 @@
 
   (5) Validation/review: py_compile PASS，`git diff --check` PASS，full A2 targeted Hydra compose PASS，stage0-2 targeted Hydra compose PASS，no-sim formula sanity PASS，Oracle-style review PASS。PPO smoke 未跑。
 
-- 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录。
+- 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2/base_v2` gripper Kp/Kd ablation runtime 记录。
 
   (1) Saved config 相对 `base_v1` 只差 `arm_j7/j8 Kp/Kd 40/1 -> 80/3` 与 run path；`arm_j7/j8 effort_limit_sim` 仍为 `10.0/10.0`。
 
@@ -247,7 +247,7 @@
 
   (4) Validation: YAML sanity PASS，`git diff --check` PASS，read-only Oracle-style review PASS。未跑 PPO/IsaacSim smoke。
 
-- 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1` arm Kp/Kd ablation runtime 记录。
+- 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1/base_v1` arm Kp/Kd ablation runtime 记录。
 
   (1) Saved config 相对 `replay_v2` 只差 arm_j1-j6 Kp/Kd 与 run path；`arm_j7/j8 effort_limit_sim` 已回到 `10.0/10.0`。
 
@@ -267,7 +267,7 @@
 
   (4) Validation: YAML sanity PASS，`git diff --check` PASS，read-only Oracle-style review PASS；当前 shell 缺少 `hydra` module，未跑 Hydra compose。未跑 PPO/IsaacSim smoke。
 
-- 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0` effort-only ablation 诊断。
+- 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0/base_v0` effort-only ablation 诊断。
 
   (1) Saved training config 与 `replay_v2` 递归 diff 仅有 experiment/output path 和 `robot.dof_effort_limit_list[18/19] 10.0 -> 30.0`。
 
@@ -428,13 +428,13 @@
 - 2026-06-30 14:05 HKT - `penalty_upper_body_non_gripper_deviation_l1` scale 从 `-1.0` 改为 `-5.0`。Reason: FacePos70 eval videos 显示 stage0（walk to door）中 robot arm 漂移，-1.0 相对 walk_to_door（+5.0）太弱，无法抑制 arm drift。-5.0 使 arm 抑制成为有意义的 counterweight。Oracle review PASS with caveat。该项后来被 2026-06-30 19:31 的 `default_dof_pos` target + stage0 action gate root-cause fix supersede；`-5.0` 只保留为 historical shaping mitigation。改动文件：`gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml` line 24。
 
 - 2026-07-04 22:56 HKT - 完成 A2 stage2 completion predicate 收紧 (reversible experiment)。`_get_a2_stage2_grasp_completion_masks()` 在 `a2_stage2_completion_close_gate_required: true` 时 AND 三个新 gate：close_gate（复用 `_get_a2_stage2_close_reward_gate()`）、stable_close（raw primitive < `a2_stage2_completion_gripper_close_command_threshold: -0.2`）、close_progress_min（`_get_a2_stage2_gripper_close_progress_min() >= 0.45`，min per-finger `(open_target - dof_pos).abs()/span` clamped [0,1]）。Flag false 时 completion 回退到旧 history/contact/squeeze 行为。新增 4 个 diagnostics：`a2_stage2_completion_close_gate_frac` / `a2_stage2_gripper_stable_close_frac` / `a2_stage2_gripper_close_command_frac` / `a2_stage2_gripper_close_progress_frac`。改动文件：`gr00t/rl/envs/door/door_open_a2_base.py`、`gr00t/rl/config/env/door_open_a2_base.yaml`。py_compile / git diff --check / Hydra compose / no-sim predicate check PASS。Oracle review PASS。
-- 2026-07-05 18:38 HKT - 完成 tightened-completion 旧 `ckpt6000` scalar eval：`logs_eval/full_stage_base_v0_ckpt6000_tightened_tolog` 显示 2/2 `stage_overtime` at stage2，`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`，旧 contact/squeeze spike 不再推进 stage2→3。
+- 2026-07-05 18:38 HKT - 完成 tightened-completion 旧 `ckpt6000` scalar eval：`logs_eval/base_v0/full_stage_base_v0_ckpt6000_tightened_tolog` 显示 2/2 `stage_overtime` at stage2，`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`，旧 contact/squeeze spike 不再推进 stage2→3。
 
-- 2026-07-05 19:00 HKT - 完成 `base_v3` tightened-completion 对照 eval：使用 `logs_rl/a2_piper_stage0_2_grasp_terminal_a2_base/base_v3-20260703_154907/model_step_001000.pt`，只打开 `a2_stage2_completion_close_gate_required=true`、close command threshold `-0.2` 与 close progress min `0.45`，输出 `logs_eval/base_v3_tightened_tolog`。结果 2/2 未 complete，terminal reason 均为 `upper_dof_overspeed`；trace 仍有强 contact/squeeze（env0 `both>1N=60/234`、env1 `both>1N=81/181`，max min-squeeze 约 `3.4/19.7`），但 tightened completion 未触发。结论：`base_v3` 已证明 `arm_j7/j8 Kp/Kd=80/3` 本身可以产生 grasp/contact；当前 tightened completion 会拒绝该类真实 contact/squeeze grasp，不应把 full-stage `base_v1` 的 stage2 failure 主要归因于 gripper gain。
+- 2026-07-05 19:00 HKT - 完成 `base_v3` tightened-completion 对照 eval：使用 `logs_rl/a2_piper_stage0_2_grasp_terminal_a2_base/base_v3-20260703_154907/model_step_001000.pt`，只打开 `a2_stage2_completion_close_gate_required=true`、close command threshold `-0.2` 与 close progress min `0.45`，输出 `logs_eval/base_v3/base_v3_tightened_tolog`。结果 2/2 未 complete，terminal reason 均为 `upper_dof_overspeed`；trace 仍有强 contact/squeeze（env0 `both>1N=60/234`、env1 `both>1N=81/181`，max min-squeeze 约 `3.4/19.7`），但 tightened completion 未触发。结论：`base_v3` 已证明 `arm_j7/j8 Kp/Kd=80/3` 本身可以产生 grasp/contact；当前 tightened completion 会拒绝该类真实 contact/squeeze grasp，不应把 full-stage `base_v1` 的 stage2 failure 主要归因于 gripper gain。
 
 - 2026-07-05 19:14 HKT - 完成 A2 stage2 completion A/B rollback config：`gr00t/rl/config/env/door_open_a2_base.yaml` 默认 `a2_stage2_completion_close_gate_required: false`。本次只恢复 base contact-history completion path 作为 short full-stage train 对照，保留 strict A2 stage1/2 route、tightened gates 的 manual override path、diagnostics、reward scales、termination curriculum 与 actuator config 不变。
 
-- 2026-07-05 21:34 HKT - 完成 rollback short full-stage 600 checkpoint scalar eval：命令使用 `logs_rl/a2_piper_full_stage_a2_base/base_v1_lose_close_gate-20260705_192136/last.pt`、2 env、no rendering、`dump_to_log_metrics=true`，输出 `logs_eval/full_stage_base_v1_lose_close_gate_ckpt600_tolog`。结果 `episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`；`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`a2_stage2_negative_gripper_primitive_frac=0`、`both_contact/sufficient_squeeze/opposite_squeeze=0`。Trace 显示 close gate 大量触发（env0 `305/332`、env1 `265/325`），但 handle contact force/squeeze 全程 0，terminal primitive 仍 positive/open。
+- 2026-07-05 21:34 HKT - 完成 rollback short full-stage 600 checkpoint scalar eval：命令使用 `logs_rl/a2_piper_full_stage_a2_base/base_v1_lose_close_gate-20260705_192136/last.pt`、2 env、no rendering、`dump_to_log_metrics=true`，输出 `logs_eval/base_v1/full_stage_base_v1_lose_close_gate_ckpt600_tolog`。结果 `episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`；`a2_stage2_grasp_complete_frac=0`、`a2_stage2_to3_advance_frac=0`、`a2_stage2_negative_gripper_primitive_frac=0`、`both_contact/sufficient_squeeze/opposite_squeeze=0`。Trace 显示 close gate 大量触发（env0 `305/332`、env1 `265/325`），但 handle contact force/squeeze 全程 0，terminal primitive 仍 positive/open。
 
 - 2026-07-05 22:04 HKT - 完成 full-stage base creep penalty 增强 config ablation。
 
@@ -446,7 +446,7 @@
 
 - 2026-07-06 14:20 HKT - 完成 `base_v2` 1000-step render/scalar eval 与 workflow preference 记录。
 
-  (1) Eval checkpoint：`logs_rl/a2_piper_full_stage_a2_base/base_v2-20260705_221205/last.pt`（loaded step 1000）。Outputs：`logs_eval/full_stage_base_v2_ckpt1000_render`（2 env × default/handle_top/handle_side videos）与 `logs_eval/full_stage_base_v2_ckpt1000_tolog`；render metrics 与 scalar-only metrics 一致。
+  (1) Eval checkpoint：`logs_rl/a2_piper_full_stage_a2_base/base_v2-20260705_221205/last.pt`（loaded step 1000）。Outputs：`logs_eval/base_v2/full_stage_base_v2_ckpt1000_render`（2 env × default/handle_top/handle_side videos）与 `logs_eval/base_v2/full_stage_base_v2_ckpt1000_tolog`；render metrics 与 scalar-only metrics 一致。
 
   (2) Result：`episode_goal_reached=[False, False]`、`episode_max_stage_reached=[2,2]`、terminal reason 均为 `stage_overtime`、rewards `97.66/95.23`。Curriculum sanity：`termination_level≈1.0001`、`reward_penalty_scale≈1.0001`，`penalty_a2_stage1_stage2_base_forward_creep=-1.5` 生效且仍不在 `reward_penalty_reward_names`。
 

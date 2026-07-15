@@ -107,7 +107,11 @@ algo:
 eval_timestamp: ${now:%Y%m%d_%H%M%S}
 eval_name: TEST
 eval_base_dir: logs_eval
-eval_log_dir: ${eval_base_dir}/${eval_timestamp}-${eval_name}
+eval_output_dir: ${eval_base_dir}/${eval_timestamp}-${eval_name}
+eval_log_dir: ${eval_output_dir}
+env:
+  config:
+    save_rendering_dir: ${eval_output_dir}/renderings
 hydra:
   run:
     dir: ${eval_log_dir}

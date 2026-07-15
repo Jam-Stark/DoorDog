@@ -2,9 +2,9 @@
 
 - 2026-07-13 16:37 HKT - 完成 stage0–2 memory ownership 收窄：保留 quickTEST、replay_v2/base_v0–v2、grasp acquisition 与 terminal predicate 历史；full-stage `base_v9+` current optimization/TODO 已迁移到 `memory/a2-piper/push-open-door-optimization/`，旧 matched-clean/O± next-step 不再 active。
 - 2026-07-13 13:47 HKT - 完成 frozen candidate `afa0b348...` 的 default-off matched-clean diagnostic infrastructure 与自然 finalized runtime 归档：`68 passed` no-sim、Wave 1 PASS，artifact/runtime QA PASS；scientific gate FAIL 为 `0/8 READY`、`8/8 MATCHED_CLEAN_RETREAT_JOINT_LIMIT`。identity 为 `base_v9_B model_step_001000`、current check `08a506a5...`、seed0、8 env、TCP `0.085`、Kp/Kd `80/3`、effort `10`、default friction；release counts `[1,0,64,58,0,0,0,1]`，六个 `j6` upper 与 env2/3 64/58 后 `j5` lower。controller-local safety abort 不建立 `grasp_target` physical unreachable；O0/O-/O+/training 未执行，source-local offsets 未被 disproven。
-- 2026-07-12 21:05 HKT - 同步 full-stage B hold-route 的 eval-only closing-axis offset 与 stabilization-preflight diagnosis。Candidate `cff2b6474c97e0e48e85524a3390df246b9b82836d4db0c95be7fbdd16982791` 的 goal/code/IsaacLab review 均 PASS；source-local-Y `O-/O0/O+ = -3/0/+3mm` tooling default-off，不改 stage0-2 或 full-task training behavior。Formal O0 artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_offset_O0_0mm_kp160_kd6_8env_20260712` 完成 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`；position/orientation residual `0.02185–0.16114m` / `0.05656–0.33784rad`，root displacement `0.02250–0.05960m`，body8-only `124/160`、bilateral `0/160`。Fixed target 在 moving-root frame 每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap，故 floating-root relative-target / catch-up deficit 为 primary blocker，body8 collision 为 secondary；Kp/Kd `160/6` clamp 未启动，actual placement gain/effort 为 `80/3/10`。
+- 2026-07-12 21:05 HKT - 同步 full-stage B hold-route 的 eval-only closing-axis offset 与 stabilization-preflight diagnosis。Candidate `cff2b6474c97e0e48e85524a3390df246b9b82836d4db0c95be7fbdd16982791` 的 goal/code/IsaacLab review 均 PASS；source-local-Y `O-/O0/O+ = -3/0/+3mm` tooling default-off，不改 stage0-2 或 full-task training behavior。Formal O0 artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_offset_O0_0mm_kp160_kd6_8env_20260712` 完成 `8/8` exact-20 placement，但全部 `PLACEMENT_NOT_CONVERGED`；position/orientation residual `0.02185–0.16114m` / `0.05656–0.33784rad`，root displacement `0.02250–0.05960m`，body8-only `124/160`、bilateral `0/160`。Fixed target 在 moving-root frame 每 call 移动 mean `11.33mm`、max `20.74mm`，超过 DLS `2mm/action` cap，故 floating-root relative-target / catch-up deficit 为 primary blocker，body8 collision 为 secondary；Kp/Kd `160/6` clamp 未启动，actual placement gain/effort 为 `80/3/10`。
 
-  Preflight artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_arm0_open_stabilization_preflight_8env_20260712` 为 `8/8 activated`、`0/8 READY = 7 CONTACT_CONTAMINATED + 1 GATE_LOST`，final action counts `[0,0,3,3,0,0,0,5]`。5 env 在 action0 已 contaminated，env2 action3 contact，env7 action5 body7 contact 约 `42.42N`，env3 action3 gate lost；无 env 到 action40，因此不能称为 `NOT_SETTLED` 或证明 root quietness 不可达。11个 controlled actions 的 arm-target 与 actual Kp/Kd/effort `80/3/10` invariants exact。这些 full-stage eval-only 结果不代表 stage0-2 grasp terminal 或 full door task runtime PASS。两项 historical `2cm` 事实继续分开记录：target-side `grasp_target Z+0.02` 已移除回到 lever center；TCP source local-Z 已从 `0.105` 改为 `0.085`。
+  Preflight artifact `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_arm0_open_stabilization_preflight_8env_20260712` 为 `8/8 activated`、`0/8 READY = 7 CONTACT_CONTAMINATED + 1 GATE_LOST`，final action counts `[0,0,3,3,0,0,0,5]`。5 env 在 action0 已 contaminated，env2 action3 contact，env7 action5 body7 contact 约 `42.42N`，env3 action3 gate lost；无 env 到 action40，因此不能称为 `NOT_SETTLED` 或证明 root quietness 不可达。11个 controlled actions 的 arm-target 与 actual Kp/Kd/effort `80/3/10` invariants exact。这些 full-stage eval-only 结果不代表 stage0-2 grasp terminal 或 full door task runtime PASS。两项 historical `2cm` 事实继续分开记录：target-side `grasp_target Z+0.02` 已移除回到 lever center；TCP source local-Z 已从 `0.105` 改为 `0.085`。
 
 - 2026-07-12 17:36 HKT - 同步 full-stage eval-only gripper anti-backdrive S0/S1/S2 diagnostic。Frozen candidate `f5d8ea69b28c40da8386a0b26c9c141c66478e40fba0c0b3f21d77775166a468` 为 `37 passed` 且 Wave 1 static PASS；probe default-off，固定 TCP `0.085`、effort `10/10`、default friction 与 40 个 POSE_HOLD actions，只比较 Kp/Kd `80/3`、`160/6`、`320/12`，未改 coupling、reward、training 或 default behavior。三组均 `8/8 STATIC_CLAMP_COMPLETE`、final action count `40`、applied effort `10/10`，并 exact restore 到 Kp/Kd `80/3`、effort `10/10`。
 
@@ -16,7 +16,7 @@
 
   S1 的 `430.273N` normal-force spike 在同帧只有 `24.087N` 沿 opening axis 的投影，不能以 aggregate normal force 代替 anti-opening 有效分量。S2 `arm_j8 qmin=-0.026426` 优于 S0/S1 `-0.035`，且 transient bilateral/stability 随 gain 改善，故 anti-backdrive 是 partial factor；但 step40 全部无 contact，S2 bottleneck 转到 `arm_j7` saturation/limit。该结果不表示 stage0-2 grasp terminal 或 full door task runtime PASS，不把 S1/S2 提升为 training/default config；geometry / aperture / bilateral reachability 仍 unresolved。
 
-  Artifacts：S0 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712`；S1 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712`；S2 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712`。
+  Artifacts：S0 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_static_clamp_S0_kp80_kd3_8env_20260712`；S1 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_static_clamp_S1_kp160_kd6_8env_20260712`；S2 `/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v9/base_v9_B_static_clamp_S2_kp320_kd12_8env_20260712`。
 
 - 2026-07-11 22:19 HKT - 同步 full-stage eval-only deterministic hold-oracle exact diagnosis（partial completion）。Candidate `9513f6f95d266b185a1aa89eb10ca074195bb8101f86ba0ec58b6744392c6571` 的 no-sim targeted tests 为 `28 passed`；每组均产出 summary、runtime metadata、stage2/stage2.5 trace 及两份 metrics，共六个 artifact。
 
@@ -38,15 +38,15 @@
 
 - 2026-07-06 21:00 HKT - 同步 full-stage `base_v3` ckpt1000 no-render completion A/B 对 stage0-2 terminal semantics 的影响。
 
-  (1) `stage2_grasp_contact_history_length=3`：`logs_eval/full_stage_base_v3_ckpt1000_hist3_tolog`，16/16 进入 stage3 但 0/16 success，全部 stage3 overtime；terminal 多为 single-contact，说明该 history 对 terminal success 语义偏宽。
+  (1) `stage2_grasp_contact_history_length=3`：`logs_eval/base_v3/full_stage_base_v3_ckpt1000_hist3_tolog`，16/16 进入 stage3 但 0/16 success，全部 stage3 overtime；terminal 多为 single-contact，说明该 history 对 terminal success 语义偏宽。
 
-  (2) `a2_stage2_contact_force_threshold=0.8`：`logs_eval/full_stage_base_v3_ckpt1000_thr0p8_tolog`，5/16 进入 stage3、11/16 留在 stage2，0/16 success；terminal both-contact/squeeze-window 比 history 3 更好，且 door-open bypass 为 0。
+  (2) `a2_stage2_contact_force_threshold=0.8`：`logs_eval/base_v3/full_stage_base_v3_ckpt1000_thr0p8_tolog`，5/16 进入 stage3、11/16 留在 stage2，0/16 success；terminal both-contact/squeeze-window 比 history 3 更好，且 door-open bypass 为 0。
 
   (3) Stage0-2 若复用当前 full-stage grasp completion 作为 terminal success，下一步应优先 render/short-run 验证 threshold 0.8，而不是直接放宽 history 到 3。
 
 - 2026-07-06 20:35 HKT - 同步 full-stage `base_v3` ckpt1000 no-render eval 对 stage0-2 grasp terminal 方向的影响。
 
-  (1) Eval path: `logs_eval/full_stage_base_v3_ckpt1000_tolog_norender`。0/150 success；stage2→3 真实 advance 仅 3 env-step。
+  (1) Eval path: `logs_eval/base_v3/full_stage_base_v3_ckpt1000_tolog_norender`。0/150 success；stage2→3 真实 advance 仅 3 env-step。
 
   (2) Close-stage behavior 已改善：policy 能正确使用 arm reach、进入 close gate、持续 negative close primitive，target offset 与 raw sign flip 不再是主 blocker。
 
@@ -62,7 +62,7 @@
 
 - 2026-07-03 21:59 HKT - 完成 A2 Piper arm overspeed threshold adaptation。
 
-  (1) `logs_eval/base_v3_term2` runtime 结论：resume 到 `termination_level=0.1` 后两条 env 均 formal complete，但 stage1/2 arm reach 明显变慢；此时旧 hard termination floor 等效为 `2 rad/s`，低于 A2 Piper `arm_j1..j5` robot yaml velocity limit `5 rad/s` 和 `arm_j6` limit `3 rad/s`。
+  (1) `logs_eval/base_v3/base_v3_term2` runtime 结论：resume 到 `termination_level=0.1` 后两条 env 均 formal complete，但 stage1/2 arm reach 明显变慢；此时旧 hard termination floor 等效为 `2 rad/s`，低于 A2 Piper `arm_j1..j5` robot yaml velocity limit `5 rad/s` 和 `arm_j6` limit `3 rad/s`。
 
   (2) `gr00t/rl/envs/door/door_open_a2_base.py::_reward_penalty_dof_overspeed()` 的 threshold 从 `2.0 rad/s` 改为 `3.0 rad/s`，仍只覆盖 `_upper_non_gripper_dof_idx`（Piper `arm_j1..j6`），继续排除 gripper `arm_j7/j8`。
 
@@ -72,9 +72,9 @@
 
   (1) A2 stage0-2 checkpoint 会保存 `env_state_dict.termination_level` 与 `env_state_dict.reward_penalty_scale`，eval/resume 会恢复这些 env-state curriculum values。
 
-  (2) `base_v3` final checkpoint 的 `termination_level≈0.25` 将 A2 `upper_dof_overspeed` threshold 从 `20 rad/s` 收紧到约 `5 rad/s`，解释原 `logs_eval/base_v3` 在 `stage1` 约 4s 以 `upper_dof_overspeed` early termination。
+  (2) `base_v3` final checkpoint 的 `termination_level≈0.25` 将 A2 `upper_dof_overspeed` threshold 从 `20 rad/s` 收紧到约 `5 rad/s`，解释原 `logs_eval/base_v3/base_v3` 在 `stage1` 约 4s 以 `upper_dof_overspeed` early termination。
 
-  (3) 临时复制同一 actor checkpoint 并只把 `termination_level` 改回 `1.0` 后，`logs_eval/base_v3_term1` 两条 env 均进入 `STAGE_GRASP` 并以 `complete` terminal，说明原 4s 终止主要来自 saved strict termination curriculum state，而不是 actor 完全不会 grasp。
+  (3) 临时复制同一 actor checkpoint 并只把 `termination_level` 改回 `1.0` 后，`logs_eval/base_v3/base_v3_term1` 两条 env 均进入 `STAGE_GRASP` 并以 `complete` terminal，说明原 4s 终止主要来自 saved strict termination curriculum state，而不是 actor 完全不会 grasp。
 
   (4) 同一 checkpoint 的 `reward_penalty_scale≈0.25` 会缩小 `reward_penalty_reward_names` 内 positive shaping terms 的训练/episode reward 贡献，例如 `gripper_handle_orientation`、`grasp_target_distance`、`a2_stage2_handle_center_y/approach_xz`、`a2_stage2_close_command/progress`。后续解读 base_v3 resume 曲线时必须同时看这两个 env-state values。
 
@@ -98,7 +98,7 @@
 
   (5) Validation/review: py_compile PASS，`git diff --check` PASS，full A2 targeted Hydra compose PASS，stage0-2 targeted Hydra compose PASS，no-sim formula sanity PASS，Oracle-style review PASS。PPO smoke 未跑。
 
-- 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2` gripper Kp/Kd ablation runtime 记录。
+- 2026-07-03 15:13 HKT - 完成 `logs_eval/base_v2/base_v2` gripper Kp/Kd ablation runtime 记录。
 
   (1) Saved config 相对 `base_v1` 只差 `arm_j7/j8 Kp/Kd 40/1 -> 80/3` 与 run path；`arm_j7/j8 effort_limit_sim` 仍为 `10.0/10.0`。
 
@@ -118,7 +118,7 @@
 
   (4) Validation: YAML sanity PASS，`git diff --check` PASS，read-only Oracle-style review PASS。未跑 PPO/IsaacSim smoke。
 
-- 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1` arm Kp/Kd ablation runtime 记录。
+- 2026-07-03 09:40 HKT - 完成 `logs_eval/base_v1/base_v1` arm Kp/Kd ablation runtime 记录。
 
   (1) Saved config 相对 `replay_v2` 只差 arm_j1-j6 Kp/Kd 与 run path；`arm_j7/j8 effort_limit_sim` 已回到 `10.0/10.0`。
 
@@ -138,7 +138,7 @@
 
   (4) Validation: YAML sanity PASS，`git diff --check` PASS，read-only Oracle-style review PASS；当前 shell 缺少 `hydra` module，未跑 Hydra compose。未跑 PPO/IsaacSim smoke。
 
-- 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0` effort-only ablation 诊断。
+- 2026-07-02 21:23 HKT - 完成 `logs_eval/base_v0/base_v0` effort-only ablation 诊断。
 
   (1) Saved training config 与 `replay_v2` 递归 diff 仅有 experiment/output path 和 `robot.dof_effort_limit_list[18/19] 10.0 -> 30.0`。
 

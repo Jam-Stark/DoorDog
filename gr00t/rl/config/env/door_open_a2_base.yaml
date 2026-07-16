@@ -111,6 +111,17 @@ env:
     # physics_history preserves the legacy all-physics-frame gate for ablations.
     a2_grasp_gate_mode: control_streak
     a2_grasp_streak_control_steps: 5
+    # v13 door semantics. A/B select the stage3->4 grasp requirement explicitly.
+    a2_stage3_to4_requires_grasp_streak: false
+    # 0.6rad is the v13 provisional unlatch normalization; telemetry monitors
+    # whether the policy farms the 0.785398rad handle hard limit.
+    a2_stage3_unlatch_handle_position_norm: 0.6
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
+    a2_stage3_stage4_coasting_velocity_threshold: 0.1
+    a2_stage3_handle_hard_limit_position: 0.785398
+    a2_stage3_handle_hard_limit_tolerance: 0.005
     stage2_close_gate_y_tol: 0.022
     stage2_close_gate_z_tol: 0.015
     stage2_close_gate_x_tol: 0.02

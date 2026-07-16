@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-16 21:09 HKT
+last_updated: 2026-07-16 22:39 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -10,7 +10,7 @@ owned_paths:
   - memory/a2-piper/push-open-door-optimization/DONE.md
 read_when:
   - 开始设计、训练、eval、render 或复盘 base_v9 之后的 A2+Piper full-stage 推门 policy 时
-  - 需要确认当前 `v13_pre` gate patch、`base_v12` 终局、v13 run 顺序、matched eval 口径或 `logs_eval` co-location contract 时
+  - 需要确认当前 `v13_A`/`v13_B` training-ready config、`v13_pre` gate evidence、matched eval 口径或 `logs_eval` co-location contract 时
 ---
 
 # Push-Open-Door Optimization
@@ -23,6 +23,9 @@ read_when:
 
 ## Current State
 
+- `v13_A` main 与 `v13_B` gate-only 已按 plan 实施为独立 ablation config。正式 4-rank contract 为每 rank `num_envs=1024`，故每组 global rollout batch 为 `4096`；A global cap `3000`、B `1500`、save every `250`，都从 v12_C step3000 `policy_only` warm-start。A 启用 Kp/Kd `800/25`、PhysX velocity iterations `2`、stage3 base unlock、`push_door_handle=0`、grasp-gated unlatch/hold-and-drive `3/8` 与 grasp-conditioned stage3→4；B 保持 v12_C 的 `80/3`、velocity iterations `1`、base locked、handle reward `6`，新 reward 为零且不启用 M6。
+- M5/M6/M9 source 已完成：新增 grasp-gated `unlatch_hold`/`hold_and_drive` reward、A2-only explicit stage3→4 grasp switch、per-stage stability 分子/分母、hold-and-drive/unlatch/coasting、handle p50/p95/hard-limit 与 hinge-velocity telemetry。`eval_to_log_metrics.json` 自动继承全部 `log_dict`；新增 `scriptsFORhuman/a2_piper_v13_gate_zero_warning.py`，按输入 checkpoint 顺序对 gate metric 连续 exact-zero 打显式 WARNING，并支持 fail-on-warning。
+- v13_A/B validation 为 78 个 targeted tests、Python compile、Hydra compose、diff check、reward/config/API static review PASS。4-rank concurrent smoke 使用 A GPU0–3/port29513、B GPU4–7/port29514，各 `64 env/rank × 50 batches`；两组都完成 iteration50、写出 `model_step_000050.pt` 与 `last.pt`，step50 checkpoint CPU load PASS，runtime telemetry 无 NaN/shape/config failure。Kit 在 trainer 完成后停于 shutdown hang，checkpoint 落盘后由 Ctrl-C 释放，因此 smoke training/checkpoint PASS，但不把 launcher numeric exit 写成 clean-exit PASS。正式 A/B training 尚未启动。
 - `base_v12` A/B/C/D 已完成训练与 matched eval，不再是“尚未启动”的 config anchor。四组 matched 终局均 `0/16 goal`、无 stage4；A step3000 仅 2/16 进入 stage3，C step3000 保持最佳 stage2 grasp 但旧 gate 下 0/16 stage3，B/D step2750 均停在 stage2 open-command/no-contact basin。single-seed 2×2 受 learned basin/stage exposure 支配，不能给出稳定 factorial causality 或 winner。
 - v12_C step3000 的旧 gate 直接证据：stage2 current-frame both contact `92.0%`、opposite/sufficient squeeze 各约 `93.1%`，但 5 个连续 physics-frame all-history stability/completion 恰为 `0`。ContactSensor history 在 200Hz physics loop 更新，而 policy control 为 50Hz；旧 5-frame window 仅约 25ms 且跨 action boundary，故 gate 时间尺度是结构性 blocker。
 - `v13_pre` 已实施 M1：required config `a2_grasp_gate_mode` 支持显式 `control_streak|physics_history`，`a2_grasp_streak_control_steps=5`；control mode 每个 control step 取 sensor latest frame `[:,0]`，stage2 squeeze 与 stage3/4 bilateral streak 只更新一次，reset/stage switch 清零，completion/stability getters 无副作用。未知 mode、缺失/非法 K、shape/dtype/device 或 duplicate full update 直接 fail-fast；legacy physics-history path 只用于历史复现/消融。
@@ -52,22 +55,23 @@ read_when:
 | Policy reference | `logs_rl/a2_piper_full_stage_a2_base/base_v12_C_v10A_scratch_stability1-20260716_004404/model_step_003000.pt` |
 | Training seed | `0` |
 | TCP source local-Z | `0.085m` |
-| Gripper Kp/Kd | `80/3` for v13_pre/v13_B; v13_A proposes `800/25` |
+| Gripper Kp/Kd | v13_A `800/25`; v13_B/v13_pre `80/3` |
 | Gripper effort limit | `10/10N` |
 | Grasp gate | `control_streak`, K=`5` control steps; `physics_history` is explicit legacy ablation |
-| Stage3 base | locked in v13_pre/v13_B; v13_A proposes unlocked |
+| Stage3 base | v13_A unlocked; v13_B/v13_pre locked |
 | Stage3→4 threshold | `.25rad` |
-| v13_pre reward | exact v12_C reward, including `push_door_handle=6` and stage3/4 stability `1` |
+| v13 reward | A: handle `0`, unlatch/hold-drive `3/8`, stability `.5`; B/pre: v12_C handle `6`, new terms `0`, stability `1` |
 | Explicit friction override | none (`null`) |
+| Formal v13 resource | 4 ranks per group, `1024 env/rank`, global rollout batch `4096`; A/B use distinct GPU sets and ports |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
 当前 v13 warm-start policy reference 是 v12_C step3000；它已由 M10 证明可在 control-step gate 下稳定进入 stage3，但仍没有压 handle 或推门。所有训练/eval 解释以保存的 resolved runtime config 为准。
 
 ## Current Experiment
 
-`v13_pre` 是当前已完成 experiment：只实施 M1，并对 v12_C step3000 运行 matched eval；没有新 training、没有 M2–M9 behavior claim。最终 r2 artifact 已通过 `16/16 stage3 entry` gate，故 root-cause A 的 stopping condition 达成。
+`v13_A` main 与 `v13_B` gate-only 现在是 training-ready experiment pair；code/config/tests 与 4-rank concurrent smoke 已完成，正式 long training 尚未启动。A/B 都使用 v12_C step3000 policy-only warm-start与 control-step K=5 gate；A 承担 M2/M3/M5/M6 的组合干预，B 是只分离 M1 的 v12_C behavior control。
 
-下一 run 顺序是 v13_A main 后 v13_B gate-only；两者尚未创建 config、smoke 或启动。v13_A 才负责验证 Kp/Kd `800/25`、stage3 base unlock、policy-only warm-start、grasp-gated unlatch/hold-and-drive reward 与 stage3→4 grasp condition；v13_B 保持 v12_C 的 Kp80/base locked/reward，只分离 M1。M7/M8/v13_C/v13_D 仍按 plan 条件触发，不因 pre PASS 自动进入。
+下一步是在两个独立 foreground terminal 启动 A 与 B：A GPU0–3/port29513，约 10 秒后 B GPU4–7/port29514，之后并行训练；A 到 global step3000，B 到1500。首要监控 iter250/500/1000 的 stage2→3、stage3/4 stability、hold-and-drive、handle hard-limit、coasting 与 over-force；训练后执行 matched seed0/16-env/first-episode eval。M7/M8/v13_C/v13_D 仍按 plan 条件触发，不因 training-ready 自动进入。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -82,6 +86,7 @@ read_when:
 
 ## Evaluation and Command Contract
 
+- `v13_A`/`v13_B` 的 user-approved formal topology 为每组4 GPUs / 4 processes、每 rank `num_envs=1024`，即每组 global rollout batch `4096`。该资源合同显式 supersede plan 附录里的2-rank/4096-env 示例与先前错误的4-rank/2048-env换算。A/B 使用独立 foreground terminal 与 distinct port，约 10 秒 stagger 后保持并行；禁止 detached wrapper、`setsid` 或单 shell `&`。
 - Formal v9 matched resource contract：每组 2 GPUs / 2 processes，每 rank `num_envs=2048`，每组 total env 4096；四组保持相同 seed、source checkpoint、batch budget 与 environment count。
 - 旧 `base_v11` launch 沿用 v10 resource contract：独立 foreground terminal、GPU pair、distinct port、约 10 秒 stagger。禁止 `setsid`、单 shell `&` 或 detached wrapper 管理 IsaacSim；2026-07-13 的 setsid 尝试曾产生 orphan parent/rank 与 Vulkan/GPU Foundation initialization failure。
 - `base_v12` superseded the old repair_r2 proposal：四组 current-source scratch launch 使用 literal `num_envs=4096` per rank、2 ranks（global rollout batch8192）、global cap3000/save250、committed exact source freeze 与四个独立 foreground terminals/distinct ports；后续训练与 matched eval 已完成，终局见 Current State。
@@ -102,10 +107,11 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-16 21:09 HKT - `v13_pre` 已通过；下一步是尚未实施/启动的 v13_A main 与 v13_B gate-only。M7/M8/v13_C/v13_D 保持 conditional，不得写成 current DONE。
+- 2026-07-16 22:39 HKT - 用户纠正 v13_A/B 正式资源合同为4 ranks × 1024 env/rank（global batch4096）；配置、测试与命令已同步。下一步是启动正式 long training、监控 milestone 并做 matched eval；`UNLATCH_NORM=0.6rad` 仍是 provisional，若 A hinge/hold-and-drive 持续近零再触发 latch-angle/friction 标定。M7/M8/v13_C/v13_D 保持 conditional。
 
 ## DONE Summary
 
+- 2026-07-16 22:39 HKT - v13_A/B code/config/M5/M6/M9 与 4-rank concurrent smoke PASS；正式资源合同经用户纠正为1024 env/rank（global4096）：78 tests、compile、Hydra/static/diff checks PASS；A/B 各 `64 env/rank × 50` 完成并产出可 CPU load 的 step50/last checkpoint。正式 training 尚未启动，Kit post-checkpoint shutdown hang 由 Ctrl-C 释放，不声明 clean launcher exit。
 - 2026-07-16 21:09 HKT - `v13_pre` M1 + M10 runtime PASS：control-step streak gate/config/telemetry 已实现，72 tests/compile/compose/diff checks PASS；v12_C step3000 matched r2 为 16/16 stage3 entry，首过 stage2 control-step `16/20.5/27`，stage3 bilateral/stability `99.815%/98.692%`，hinge 仍近零。根因 A 已证实，M2–M9/v13_A 尚未完成。
 - 2026-07-16 00:29 HKT - 完成 `base_v12` A/B/C/D current-source v10_A-style scratch factorial configuration/static evidence sync：A `80/3+.5`、B `160/6+.5`、C `80/3+1.0`、D `160/6+1.0`；四组均 checkpoint null、planned 2 ranks、literal `num_envs=4096` per rank、global cap3000/save250。strict YAML/resolved compose/factorial/mapping、CODE_QUALITY、IsaacLab static/no-sim semantics 与 NO_SIM_QA PASS。`base_v12` 不是 v9 reproduction（v9 是 v8_A policy-only warm-start，historical source byte equivalence 未证实）；未启动 training/eval/IsaacSim/runtime，故没有 behavior、resource feasibility、checkpoint I/O 或 winner evidence。
 - 2026-07-15 21:18 HKT - 新增 default render resource contract：从 matched eval env 中随机选2个 env，每个 env 只生成 default、handle-side、handle-top 3个 camera video，总计6个；16-env scalar/trace 继续作为 primary evidence，除非用户明确要求，不再默认16-env全量 render。

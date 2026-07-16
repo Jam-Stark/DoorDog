@@ -53,6 +53,9 @@ rewards:
       push_door_handle: 6.0
       push_door_hinge: 6.0
       push_door_force: 0.0
+      # v13_A enables these explicitly; zero defaults preserve prior runs.
+      a2_stage3_unlatch_hold: 0.0
+      a2_stage3_stage4_hold_and_drive: 0.0
       a2_stage3_stage4_keep_close_command: 0.5
       penalty_a2_stage3_stage4_open_command: -1.0
       a2_stage3_stage4_both_contact: 0.5
@@ -150,6 +153,8 @@ rewards:
       "dont_push_door_handle",
       "push_door_hinge",
       "push_door_force",
+      "a2_stage3_unlatch_hold",
+      "a2_stage3_stage4_hold_and_drive",
       "a2_stage3_stage4_keep_close_command",
       "a2_stage3_stage4_both_contact",
       "a2_stage3_stage4_opposite_squeeze",

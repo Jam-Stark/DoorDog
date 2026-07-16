@@ -120,7 +120,11 @@ def _load_no_sim_helpers():
     tree = ast.parse(source)
     helper_names = {
         "a2_hold_absolute_target_to_cumulative_action",
+        "a2_grasp_gated_door_reward_components",
+        "a2_masked_boolean_fraction",
+        "a2_masked_float_quantile",
         "a2_masked_grasp_streak_quantile",
+        "a2_stage3_to4_advance_mask",
         "a2_update_grasp_control_streak",
         "a2_hold_bound_pose_command_step",
         "a2_hold_action_with_exact_disabled_equivalence",
@@ -298,6 +302,171 @@ def test_a2_grasp_gate_defaults_and_update_ownership():
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
         }
         assert "_update_a2_grasp_control_streaks" not in called_attributes
+
+
+def test_a2_v13_grasp_gated_rewards_and_stage_gate():
+    streak = torch.tensor([4, 5, 6, 5], dtype=torch.long)
+    handle_pos = torch.tensor([0.6, 0.3, 0.6, 0.8])
+    hinge_pos = torch.tensor([0.0, 0.0, 0.2, 0.0])
+    hinge_vel = torch.tensor([-0.1, 0.05, 0.2, 0.1])
+
+    components = a2_grasp_gated_door_reward_components(
+        streak=streak,
+        required_streak_steps=5,
+        handle_pos=handle_pos,
+        hinge_pos=hinge_pos,
+        hinge_vel=hinge_vel,
+        unlatch_handle_position_norm=0.6,
+        unlatch_near_closed_hinge_threshold=0.1,
+        hold_and_drive_velocity_norm=0.1,
+    )
+
+    assert torch.equal(
+        components["hold_streak_ok"],
+        torch.tensor([False, True, True, True]),
+    )
+    torch.testing.assert_close(
+        components["unlatch_hold"],
+        torch.tensor([0.0, 0.5, 0.0, 1.0]),
+    )
+    torch.testing.assert_close(
+        components["hold_and_drive"],
+        torch.tensor([0.0, 0.5, 1.0, 1.0]),
+    )
+
+    door_opened = torch.tensor([True, True, False, True])
+    hold_ok = components["hold_streak_ok"]
+    assert torch.equal(
+        a2_stage3_to4_advance_mask(door_opened, hold_ok, True),
+        torch.tensor([False, True, False, True]),
+    )
+    assert torch.equal(
+        a2_stage3_to4_advance_mask(door_opened, hold_ok, False),
+        door_opened,
+    )
+
+
+def test_a2_v13_masked_telemetry_helpers():
+    active = torch.tensor([False, True, True, False])
+    values = torch.tensor([10.0, 0.2, 0.8, 20.0])
+    condition = torch.tensor([True, True, False, True])
+
+    assert a2_masked_float_quantile(values, active, 0.5).item() == 0.5
+    assert a2_masked_boolean_fraction(condition, active).item() == 0.5
+    assert (
+        a2_masked_boolean_fraction(condition, torch.zeros_like(active)).item()
+        == 0.0
+    )
+
+    with pytest.raises(ValueError, match="finite 1D floating"):
+        a2_masked_float_quantile(
+            torch.tensor([0.0, float("nan")]),
+            torch.tensor([True, True]),
+            0.5,
+        )
+
+
+def test_a2_v13_ablation_configs_preserve_the_four_rank_contract():
+    config_root = Path(__file__).parents[1] / "config"
+    env_defaults = OmegaConf.load(config_root / "env/door_open_a2_base.yaml").env.config
+    reward_defaults = OmegaConf.load(
+        config_root / "rewards/wbmanip/reward_door_open_a2_base.yaml"
+    ).rewards
+    a_cfg = OmegaConf.load(
+        config_root / "ablation/wbmanip/base_v13_A_main.yaml"
+    )
+    b_cfg = OmegaConf.load(
+        config_root / "ablation/wbmanip/base_v13_B_gate_only.yaml"
+    )
+
+    assert env_defaults.a2_stage3_to4_requires_grasp_streak is False
+    assert env_defaults.a2_stage3_unlatch_handle_position_norm == 0.6
+    assert reward_defaults.reward_scales.a2_stage3_unlatch_hold == 0.0
+    assert reward_defaults.reward_scales.a2_stage3_stage4_hold_and_drive == 0.0
+    assert "a2_stage3_unlatch_hold" in reward_defaults.reward_penalty_reward_names
+    assert (
+        "a2_stage3_stage4_hold_and_drive"
+        in reward_defaults.reward_penalty_reward_names
+    )
+
+    checkpoint = (
+        "logs_rl/a2_piper_full_stage_a2_base/"
+        "base_v12_C_v10A_scratch_stability1-20260716_004404/"
+        "model_step_003000.pt"
+    )
+    for cfg in (a_cfg, b_cfg):
+        assert cfg.checkpoint == checkpoint
+        assert cfg.checkpoint_load_mode == "policy_only"
+        assert cfg.auto_load_latest is False
+        assert cfg.seed == 0
+        assert cfg.num_envs == 1024
+        assert cfg.num_envs * 4 == 4096
+        assert cfg.callbacks.model_save.save_frequency == 250
+        assert cfg.env.config.a2_grasp_gate_mode == "control_streak"
+        assert cfg.env.config.a2_grasp_streak_control_steps == 5
+        assert cfg.env.config.a2_stage3_to4_door_hinge_threshold == 0.25
+
+    assert a_cfg.algo.trl.num_total_batches == 3000
+    assert a_cfg.env.config.a2_stage2_squeeze_force_min == 2.0
+    assert a_cfg.env.config.a2_stage3_base_unlocked is True
+    assert a_cfg.env.config.a2_stage3_to4_requires_grasp_streak is True
+    assert a_cfg.rewards.reward_scales.push_door_handle == 0.0
+    assert a_cfg.rewards.reward_scales.a2_stage3_unlatch_hold == 3.0
+    assert a_cfg.rewards.reward_scales.a2_stage3_stage4_hold_and_drive == 8.0
+    assert a_cfg.robot.control.stiffness.arm_j7 == 800.0
+    assert a_cfg.robot.control.damping.arm_j8 == 25.0
+    assert a_cfg.simulator.config.sim.physx.num_velocity_iterations == 2
+
+    assert b_cfg.algo.trl.num_total_batches == 1500
+    assert b_cfg.env.config.a2_stage2_squeeze_force_min == 0.5
+    assert b_cfg.env.config.a2_stage3_base_unlocked is False
+    assert b_cfg.env.config.a2_stage3_to4_requires_grasp_streak is False
+    assert b_cfg.rewards.reward_scales.push_door_handle == 6.0
+    assert b_cfg.rewards.reward_scales.a2_stage3_unlatch_hold == 0.0
+    assert b_cfg.rewards.reward_scales.a2_stage3_stage4_hold_and_drive == 0.0
+    assert b_cfg.rewards.reward_scales.a2_stage3_stage4_contact_stability == 1.0
+    assert b_cfg.robot.control.stiffness.arm_j7 == 80.0
+    assert b_cfg.robot.control.damping.arm_j8 == 3.0
+    assert b_cfg.simulator.config.sim.physx.num_velocity_iterations == 1
+
+
+def test_a2_v13_source_owns_reward_gate_and_m9_telemetry():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    methods = {
+        node.name: node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    assert "_reward_a2_stage3_unlatch_hold" in methods
+    assert "_reward_a2_stage3_stage4_hold_and_drive" in methods
+
+    stage_gate_calls = {
+        node.func.id
+        for node in ast.walk(methods["_stage_3_to_4_advance_condition"])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    assert "a2_stage3_to4_advance_mask" in stage_gate_calls
+
+    required_telemetry = {
+        "a2_stage3_contact_stability_numerator_frac",
+        "a2_stage3_contact_stability_denominator_frac",
+        "a2_stage4_contact_stability_numerator_frac",
+        "a2_stage4_contact_stability_denominator_frac",
+        "a2_stage3_hold_and_drive_frac",
+        "a2_stage3_unlatch_hold_issued_frac",
+        "a2_stage3_handle_joint_pos_p50",
+        "a2_stage3_handle_joint_pos_p95",
+        "a2_stage3_handle_hard_limit_frac",
+        "a2_stage3_stage4_coasting_frac",
+        "a2_stage3_stage4_hinge_velocity_p95",
+    }
+    assert all(f'"{name}"' in source for name in required_telemetry)
 
 
 def _load_eval_migration():

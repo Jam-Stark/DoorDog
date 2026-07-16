@@ -178,6 +178,139 @@ def a2_masked_grasp_streak_quantile(
     return torch.quantile(active_streak, float(quantile))
 
 
+def a2_masked_float_quantile(
+    values: torch.Tensor,
+    active_mask: torch.Tensor,
+    quantile: float,
+) -> torch.Tensor:
+    """Compute a stage-scoped floating-point quantile."""
+    if (
+        not torch.is_tensor(values)
+        or values.ndim != 1
+        or not values.is_floating_point()
+        or not torch.all(torch.isfinite(values))
+        or not torch.is_tensor(active_mask)
+        or active_mask.shape != values.shape
+        or active_mask.dtype != torch.bool
+        or active_mask.device != values.device
+        or isinstance(quantile, bool)
+        or not isinstance(quantile, (int, float))
+        or not math.isfinite(float(quantile))
+        or not 0.0 <= float(quantile) <= 1.0
+    ):
+        raise ValueError(
+            "A2 masked quantile requires finite 1D floating values, matching bool "
+            "active mask, and finite quantile in [0, 1]."
+        )
+    active_values = values[active_mask]
+    if active_values.numel() == 0:
+        return torch.zeros((), dtype=values.dtype, device=values.device)
+    return torch.quantile(active_values, float(quantile))
+
+
+def a2_masked_boolean_fraction(
+    condition: torch.Tensor,
+    active_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Return the conditional fraction of active environments satisfying a mask."""
+    if (
+        not torch.is_tensor(condition)
+        or condition.ndim != 1
+        or condition.dtype != torch.bool
+        or not torch.is_tensor(active_mask)
+        or active_mask.shape != condition.shape
+        or active_mask.dtype != torch.bool
+        or active_mask.device != condition.device
+    ):
+        raise ValueError(
+            "A2 masked fraction requires matching 1D bool condition and active mask."
+        )
+    active_count = active_mask.float().sum()
+    return (condition & active_mask).float().sum() / active_count.clamp_min(1.0)
+
+
+def a2_grasp_gated_door_reward_components(
+    streak: torch.Tensor,
+    required_streak_steps: int,
+    handle_pos: torch.Tensor,
+    hinge_pos: torch.Tensor,
+    hinge_vel: torch.Tensor,
+    unlatch_handle_position_norm: float,
+    unlatch_near_closed_hinge_threshold: float,
+    hold_and_drive_velocity_norm: float,
+) -> dict[str, torch.Tensor]:
+    """Compute grasp-gated unlatch and hold-and-drive reward components."""
+    floating_values = (handle_pos, hinge_pos, hinge_vel)
+    if (
+        not torch.is_tensor(streak)
+        or streak.ndim != 1
+        or streak.dtype != torch.long
+        or torch.any(streak < 0)
+        or isinstance(required_streak_steps, bool)
+        or not isinstance(required_streak_steps, int)
+        or required_streak_steps <= 0
+        or any(
+            not torch.is_tensor(value)
+            or value.shape != streak.shape
+            or not value.is_floating_point()
+            or value.device != streak.device
+            or not torch.all(torch.isfinite(value))
+            for value in floating_values
+        )
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+            for value in (
+                unlatch_handle_position_norm,
+                unlatch_near_closed_hinge_threshold,
+                hold_and_drive_velocity_norm,
+            )
+        )
+    ):
+        raise ValueError(
+            "A2 grasp-gated door rewards require a non-negative long streak, "
+            "positive scalar thresholds, and matching finite floating door tensors."
+        )
+
+    hold_streak_ok = streak >= required_streak_steps
+    unlatch_press = (
+        handle_pos / float(unlatch_handle_position_norm)
+    ).clamp(0.0, 1.0)
+    near_closed = hinge_pos < float(unlatch_near_closed_hinge_threshold)
+    drive = (hinge_vel / float(hold_and_drive_velocity_norm)).clamp(0.0, 1.0)
+    hold_float = hold_streak_ok.float()
+    return {
+        "hold_streak_ok": hold_streak_ok,
+        "unlatch_press": unlatch_press,
+        "unlatch_hold": hold_float * unlatch_press * near_closed.float(),
+        "hold_and_drive": hold_float * drive,
+    }
+
+
+def a2_stage3_to4_advance_mask(
+    door_opened: torch.Tensor,
+    hold_streak_ok: torch.Tensor,
+    requires_grasp_streak: bool,
+) -> torch.Tensor:
+    """Apply the explicit v13 grasp requirement to the stage3->4 transition."""
+    if (
+        not torch.is_tensor(door_opened)
+        or door_opened.ndim != 1
+        or door_opened.dtype != torch.bool
+        or not torch.is_tensor(hold_streak_ok)
+        or hold_streak_ok.shape != door_opened.shape
+        or hold_streak_ok.dtype != torch.bool
+        or hold_streak_ok.device != door_opened.device
+        or not isinstance(requires_grasp_streak, bool)
+    ):
+        raise ValueError(
+            "A2 stage3->4 gate requires matching 1D bool door/hold masks and a bool mode."
+        )
+    return door_opened & hold_streak_ok if requires_grasp_streak else door_opened
+
+
 def a2_hold_quaternion_geodesic_rad(quat_a: torch.Tensor, quat_b: torch.Tensor):
     """Return the sign-invariant geodesic angle between unit WXYZ quaternions."""
     if (
@@ -2301,6 +2434,30 @@ class DoorPregrasp(
     A2_GRASP_STREAK_CONTROL_STEPS_CONFIG_KEY = "a2_grasp_streak_control_steps"
     A2_GRASP_GATE_MODE_CONTROL_STREAK = "control_streak"
     A2_GRASP_GATE_MODE_PHYSICS_HISTORY = "physics_history"
+    A2_STAGE3_TO4_REQUIRES_GRASP_STREAK_CONFIG_KEY = (
+        "a2_stage3_to4_requires_grasp_streak"
+    )
+    A2_STAGE3_UNLATCH_HANDLE_POSITION_NORM_CONFIG_KEY = (
+        "a2_stage3_unlatch_handle_position_norm"
+    )
+    A2_STAGE3_UNLATCH_NEAR_CLOSED_HINGE_THRESHOLD_CONFIG_KEY = (
+        "a2_stage3_unlatch_near_closed_hinge_threshold"
+    )
+    A2_STAGE3_STAGE4_HOLD_AND_DRIVE_VELOCITY_NORM_CONFIG_KEY = (
+        "a2_stage3_stage4_hold_and_drive_velocity_norm"
+    )
+    A2_STAGE3_STAGE4_HOLD_AND_DRIVE_VELOCITY_THRESHOLD_CONFIG_KEY = (
+        "a2_stage3_stage4_hold_and_drive_velocity_threshold"
+    )
+    A2_STAGE3_STAGE4_COASTING_VELOCITY_THRESHOLD_CONFIG_KEY = (
+        "a2_stage3_stage4_coasting_velocity_threshold"
+    )
+    A2_STAGE3_HANDLE_HARD_LIMIT_POSITION_CONFIG_KEY = (
+        "a2_stage3_handle_hard_limit_position"
+    )
+    A2_STAGE3_HANDLE_HARD_LIMIT_TOLERANCE_CONFIG_KEY = (
+        "a2_stage3_handle_hard_limit_tolerance"
+    )
     A2_HOLD_CONTACT_DETAIL_CONFIG_KEY = "a2_hold_diagnostic_contact_detail_enabled"
     A2_HOLD_CONTACT_CAPACITY_CONFIG_KEY = (
         "a2_hold_diagnostic_max_contact_data_count_per_prim"
@@ -2371,6 +2528,84 @@ class DoorPregrasp(
                 f"env.config.{key} must be a positive int; got {value!r}."
             )
         return value
+
+    def _get_a2_stage3_to4_requires_grasp_streak(self) -> bool:
+        key = self.A2_STAGE3_TO4_REQUIRES_GRASP_STREAK_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 stage3->4 grasp gate requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
+
+    def _get_a2_stage3_unlatch_handle_position_norm(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_UNLATCH_HANDLE_POSITION_NORM_CONFIG_KEY,
+            "A2 stage3 unlatch reward",
+        )
+
+    def _get_a2_stage3_unlatch_near_closed_hinge_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_UNLATCH_NEAR_CLOSED_HINGE_THRESHOLD_CONFIG_KEY,
+            "A2 stage3 unlatch near-closed gate",
+        )
+
+    def _get_a2_stage3_stage4_hold_and_drive_velocity_norm(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_STAGE4_HOLD_AND_DRIVE_VELOCITY_NORM_CONFIG_KEY,
+            "A2 stage3/4 hold-and-drive reward",
+        )
+
+    def _get_a2_stage3_stage4_hold_and_drive_velocity_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_STAGE4_HOLD_AND_DRIVE_VELOCITY_THRESHOLD_CONFIG_KEY,
+            "A2 stage3/4 hold-and-drive telemetry",
+        )
+
+    def _get_a2_stage3_stage4_coasting_velocity_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_STAGE4_COASTING_VELOCITY_THRESHOLD_CONFIG_KEY,
+            "A2 stage3/4 coasting telemetry",
+        )
+
+    def _get_a2_stage3_handle_hard_limit_position(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_HANDLE_HARD_LIMIT_POSITION_CONFIG_KEY,
+            "A2 stage3 handle-limit telemetry",
+        )
+
+    def _get_a2_stage3_handle_hard_limit_tolerance(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE3_HANDLE_HARD_LIMIT_TOLERANCE_CONFIG_KEY,
+            "A2 stage3 handle-limit telemetry",
+        )
+
+    def _validate_a2_v13_door_semantics_config(self):
+        unlatch_norm = self._get_a2_stage3_unlatch_handle_position_norm()
+        handle_limit = self._get_a2_stage3_handle_hard_limit_position()
+        handle_limit_tolerance = self._get_a2_stage3_handle_hard_limit_tolerance()
+        drive_norm = self._get_a2_stage3_stage4_hold_and_drive_velocity_norm()
+        drive_threshold = (
+            self._get_a2_stage3_stage4_hold_and_drive_velocity_threshold()
+        )
+        self._get_a2_stage3_to4_requires_grasp_streak()
+        self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
+        self._get_a2_stage3_stage4_coasting_velocity_threshold()
+        if unlatch_norm >= handle_limit:
+            raise RuntimeError(
+                "A2 unlatch reward normalization must be below the handle hard limit; "
+                f"got norm={unlatch_norm}, limit={handle_limit}."
+            )
+        if handle_limit_tolerance >= handle_limit:
+            raise RuntimeError(
+                "A2 handle-limit telemetry tolerance must be below the hard limit; "
+                f"got tolerance={handle_limit_tolerance}, limit={handle_limit}."
+            )
+        if drive_threshold >= drive_norm:
+            raise RuntimeError(
+                "A2 hold-and-drive telemetry threshold must be below reward saturation; "
+                f"got threshold={drive_threshold}, norm={drive_norm}."
+            )
 
     def _get_a2_grasp_control_streak_buffer(
         self, attribute_name: str, context: str
@@ -2717,6 +2952,7 @@ class DoorPregrasp(
     def _init_a2_door_pregrasp_state(self):
         self._get_a2_grasp_gate_mode()
         self._get_a2_grasp_streak_control_steps()
+        self._validate_a2_v13_door_semantics_config()
         self._a2_stage3_to4_door_hinge_threshold = (
             self._get_required_positive_float_config(
                 self.A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY,
@@ -4039,6 +4275,22 @@ class DoorPregrasp(
         )
         return (handle_vel_reward + handle_pos_reward).clamp(max=1.0, min=-1.0)
 
+    @StagedTaskBase.effective_in_stage(STAGE_OPEN)
+    def _reward_a2_stage3_unlatch_hold(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "A2 stage3 unlatch-hold reward is only defined for A2 Piper."
+            )
+        return self._get_a2_grasp_gated_door_reward_components()["unlatch_hold"]
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_a2_stage3_stage4_hold_and_drive(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "A2 hold-and-drive reward is only defined for A2 Piper."
+            )
+        return self._get_a2_grasp_gated_door_reward_components()["hold_and_drive"]
+
     @StagedTaskBase.effective_in_stage([STAGE_SWING, STAGE_THROUGH])
     def _reward_dont_push_door_handle(self):
         handle_vel_reward = -1.0 * self.simulator.scene.articulations["door"].data.joint_vel[:, 1]
@@ -4330,6 +4582,58 @@ class DoorPregrasp(
                 f"({self.num_envs}, >={min_joints}); got {shape}."
             )
         return joint_pos
+
+    def _get_door_joint_vel(self, context, min_joints):
+        joint_vel = self.simulator.scene.articulations["door"].data.joint_vel
+        if (
+            joint_vel is None
+            or not torch.is_tensor(joint_vel)
+            or joint_vel.ndim != 2
+            or joint_vel.shape[0] != self.num_envs
+            or joint_vel.shape[1] < min_joints
+            or not torch.all(torch.isfinite(joint_vel))
+        ):
+            shape = None if joint_vel is None else tuple(joint_vel.shape)
+            raise RuntimeError(
+                f"{context} requires finite door joint_vel shape "
+                f"({self.num_envs}, >={min_joints}); got {shape}."
+            )
+        return joint_vel
+
+    def _get_a2_hold_streak_ok_mask(self) -> torch.Tensor:
+        streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage3_stage4_both_contact_streak",
+            "A2 grasp-gated door semantics",
+        )
+        return streak >= self._get_a2_grasp_streak_control_steps()
+
+    def _get_a2_grasp_gated_door_reward_components(self):
+        door_joint_pos = self._get_door_joint_pos(
+            "A2 grasp-gated door rewards", 2
+        )
+        door_joint_vel = self._get_door_joint_vel(
+            "A2 grasp-gated door rewards", 2
+        )
+        streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage3_stage4_both_contact_streak",
+            "A2 grasp-gated door rewards",
+        )
+        return a2_grasp_gated_door_reward_components(
+            streak=streak,
+            required_streak_steps=self._get_a2_grasp_streak_control_steps(),
+            handle_pos=door_joint_pos[:, 1],
+            hinge_pos=door_joint_pos[:, 0],
+            hinge_vel=door_joint_vel[:, 0],
+            unlatch_handle_position_norm=(
+                self._get_a2_stage3_unlatch_handle_position_norm()
+            ),
+            unlatch_near_closed_hinge_threshold=(
+                self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
+            ),
+            hold_and_drive_velocity_norm=(
+                self._get_a2_stage3_stage4_hold_and_drive_velocity_norm()
+            ),
+        )
 
     def _get_door_frame_contact_force_per_env(self, context):
         sensor = self.simulator.scene.sensors["door_frame_unwanted_contact_sensor"]
@@ -4849,6 +5153,43 @@ class DoorPregrasp(
         stage3_stage4_over_force = (
             stage3_stage4_active & stage3_stage4_contact_masks["over_force"]
         )
+        stage3_contact_stability = stage3_active & stage3_stage4_contact_stability
+        stage4_contact_stability = stage4_active & stage3_stage4_contact_stability
+        stage3_single_contact_arm_body8 = (
+            stage3_active & stage3_stage4_contact_masks["single_contact_arm_body8"]
+        )
+
+        door_joint_pos = self._get_door_joint_pos("A2 route diagnostics", 2)
+        door_joint_vel = self._get_door_joint_vel("A2 route diagnostics", 2)
+        handle_pos = door_joint_pos[:, 1]
+        hinge_vel = door_joint_vel[:, 0]
+        v13_reward_components = self._get_a2_grasp_gated_door_reward_components()
+        hold_and_drive_event = (
+            stage3_stage4_active
+            & v13_reward_components["hold_streak_ok"]
+            & (
+                hinge_vel
+                > self._get_a2_stage3_stage4_hold_and_drive_velocity_threshold()
+            )
+        )
+        unlatch_hold_issued = stage3_active & (
+            v13_reward_components["unlatch_hold"] > 0.0
+        )
+        coasting = (
+            stage3_stage4_active
+            & (
+                hinge_vel
+                > self._get_a2_stage3_stage4_coasting_velocity_threshold()
+            )
+            & ~stage3_stage4_both_contact
+        )
+        handle_hard_limit = stage3_active & (
+            handle_pos
+            >= (
+                self._get_a2_stage3_handle_hard_limit_position()
+                - self._get_a2_stage3_handle_hard_limit_tolerance()
+            )
+        )
 
         single_contact_duration = getattr(
             self, "_a2_stage2_single_contact_duration", None
@@ -5035,6 +5376,23 @@ class DoorPregrasp(
             "a2_stage3_stage4_contact_stability_frac": stage3_stage4_contact_stability,
             "a2_stage3_stage4_streak_ge_K_frac": stage3_stage4_streak_ge_k,
             "a2_stage3_stage4_over_force_frac": stage3_stage4_over_force,
+            "a2_stage3_contact_stability_numerator_frac": stage3_contact_stability,
+            "a2_stage3_contact_stability_denominator_frac": stage3_active,
+            "a2_stage4_contact_stability_numerator_frac": stage4_contact_stability,
+            "a2_stage4_contact_stability_denominator_frac": stage4_active,
+            "a2_stage3_single_contact_arm_body8_frac": (
+                stage3_single_contact_arm_body8
+            ),
+            "a2_stage3_hold_and_drive_numerator_frac": (
+                stage3_active & hold_and_drive_event
+            ),
+            "a2_stage3_hold_and_drive_denominator_frac": stage3_active,
+            "a2_stage3_unlatch_hold_issued_numerator_frac": unlatch_hold_issued,
+            "a2_stage3_unlatch_hold_issued_denominator_frac": stage3_active,
+            "a2_stage3_stage4_coasting_numerator_frac": coasting,
+            "a2_stage3_stage4_coasting_denominator_frac": stage3_stage4_active,
+            "a2_stage3_handle_hard_limit_numerator_frac": handle_hard_limit,
+            "a2_stage3_handle_hard_limit_denominator_frac": stage3_active,
         }
         for name, mask in diagnostics.items():
             self.log_dict[name] = mask.float().mean()
@@ -5069,6 +5427,44 @@ class DoorPregrasp(
                 0.9,
             )
         )
+        self.log_dict["a2_stage3_contact_stability_conditional_frac"] = (
+            a2_masked_boolean_fraction(stage3_contact_stability, stage3_active)
+        )
+        self.log_dict["a2_stage4_contact_stability_conditional_frac"] = (
+            a2_masked_boolean_fraction(stage4_contact_stability, stage4_active)
+        )
+        self.log_dict["a2_stage3_hold_and_drive_frac"] = (
+            a2_masked_boolean_fraction(hold_and_drive_event, stage3_active)
+        )
+        self.log_dict["a2_stage3_stage4_hold_and_drive_frac"] = (
+            a2_masked_boolean_fraction(hold_and_drive_event, stage3_stage4_active)
+        )
+        self.log_dict["a2_stage3_unlatch_hold_issued_frac"] = (
+            a2_masked_boolean_fraction(unlatch_hold_issued, stage3_active)
+        )
+        self.log_dict["a2_stage3_stage4_coasting_frac"] = (
+            a2_masked_boolean_fraction(coasting, stage3_stage4_active)
+        )
+        self.log_dict["a2_stage3_handle_hard_limit_frac"] = (
+            a2_masked_boolean_fraction(handle_hard_limit, stage3_active)
+        )
+        self.log_dict["a2_stage3_handle_joint_pos_p50"] = a2_masked_float_quantile(
+            handle_pos,
+            stage3_active,
+            0.5,
+        )
+        self.log_dict["a2_stage3_handle_joint_pos_p95"] = a2_masked_float_quantile(
+            handle_pos,
+            stage3_active,
+            0.95,
+        )
+        self.log_dict["a2_stage3_stage4_hinge_velocity_p95"] = (
+            a2_masked_float_quantile(
+                hinge_vel,
+                stage3_stage4_active,
+                0.95,
+            )
+        )
         self.log_dict["a2_stage2_target_offset_x_abs_mean"] = (
             target_offset[:, 0].abs() * stage2_active_float
         ).mean()
@@ -5082,7 +5478,6 @@ class DoorPregrasp(
             torch.linalg.norm(target_offset, dim=-1) * stage2_active_float
         ).mean()
 
-        door_joint_pos = self._get_door_joint_pos("A2 route diagnostics", 2)
         root_states = getattr(self.simulator, "robot_root_states", None)
         if (
             root_states is None
@@ -12193,7 +12588,15 @@ class DoorPregrasp(
             self._get_door_joint_pos("stage3 to stage4 advance", 1)[:, 0]
             > threshold
         )
-        return door_opened
+        if not self._use_a2_base:
+            return door_opened
+        return a2_stage3_to4_advance_mask(
+            door_opened=door_opened,
+            hold_streak_ok=self._get_a2_hold_streak_ok_mask(),
+            requires_grasp_streak=(
+                self._get_a2_stage3_to4_requires_grasp_streak()
+            ),
+        )
 
     def _stage_4_reward_condition(self):
         # keep grasping the door handle

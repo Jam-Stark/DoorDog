@@ -7,6 +7,7 @@ import textwrap
 
 import torch
 import numpy as np
+import pytest
 from omegaconf import OmegaConf
 
 
@@ -119,6 +120,8 @@ def _load_no_sim_helpers():
     tree = ast.parse(source)
     helper_names = {
         "a2_hold_absolute_target_to_cumulative_action",
+        "a2_masked_grasp_streak_quantile",
+        "a2_update_grasp_control_streak",
         "a2_hold_bound_pose_command_step",
         "a2_hold_action_with_exact_disabled_equivalence",
         "a2_hold_aggregate_normal_force_direction",
@@ -204,6 +207,97 @@ def _load_no_sim_helpers():
 
 
 globals().update(_load_no_sim_helpers())
+
+
+def test_a2_grasp_control_streak_updates_once_per_control_sample():
+    streak = torch.tensor([0, 2, 4, 7], dtype=torch.long)
+    condition = torch.tensor([True, True, False, True], dtype=torch.bool)
+    reset_mask = torch.tensor([False, True, False, False], dtype=torch.bool)
+
+    updated = a2_update_grasp_control_streak(streak, condition, reset_mask)
+
+    assert torch.equal(updated, torch.tensor([1, 0, 0, 8], dtype=torch.long))
+    assert torch.equal(streak, torch.tensor([0, 2, 4, 7], dtype=torch.long))
+
+
+def test_a2_grasp_control_streak_rejects_invalid_state():
+    with pytest.raises(ValueError, match="non-negative long streak"):
+        a2_update_grasp_control_streak(
+            torch.tensor([0, -1], dtype=torch.long),
+            torch.tensor([True, True], dtype=torch.bool),
+            torch.tensor([False, False], dtype=torch.bool),
+        )
+
+    with pytest.raises(ValueError, match="matching bool"):
+        a2_update_grasp_control_streak(
+            torch.tensor([0, 1], dtype=torch.long),
+            torch.tensor([1, 1], dtype=torch.long),
+            torch.tensor([False, False], dtype=torch.bool),
+        )
+
+
+def test_a2_masked_grasp_streak_quantile_is_stage_scoped():
+    streak = torch.tensor([0, 3, 5, 9], dtype=torch.long)
+    active_mask = torch.tensor([False, True, True, False], dtype=torch.bool)
+
+    assert a2_masked_grasp_streak_quantile(streak, active_mask, 0.5).item() == 4.0
+    assert (
+        a2_masked_grasp_streak_quantile(
+            streak,
+            torch.zeros_like(active_mask),
+            0.9,
+        ).item()
+        == 0.0
+    )
+
+    with pytest.raises(ValueError, match=r"quantile in \[0, 1\]"):
+        a2_masked_grasp_streak_quantile(streak, active_mask, 1.1)
+
+
+def test_a2_grasp_gate_defaults_and_update_ownership():
+    env_config = OmegaConf.load(
+        Path(__file__).parents[1] / "config/env/door_open_a2_base.yaml"
+    ).env.config
+    assert env_config.a2_grasp_gate_mode == "control_streak"
+    assert env_config.a2_grasp_streak_control_steps == 5
+
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    door_class = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "DoorPregrasp"
+    )
+    methods = {
+        node.name: node
+        for node in door_class.body
+        if isinstance(node, ast.FunctionDef)
+    }
+    callback_calls = {
+        node.func.attr
+        for node in ast.walk(methods["_pre_compute_observations_callback"])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+    assert "_update_a2_grasp_control_streaks" in callback_calls
+
+    update_calls = [
+        node.func.id
+        for node in ast.walk(methods["_update_a2_grasp_control_streaks"])
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    ]
+    assert update_calls.count("a2_update_grasp_control_streak") == 2
+
+    for method_name in (
+        "_get_a2_stage2_grasp_completion_masks",
+        "_get_a2_stage2_contact_stability_mask",
+        "_get_a2_stage3_stage4_contact_stability_mask",
+    ):
+        called_attributes = {
+            node.func.attr
+            for node in ast.walk(methods[method_name])
+            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+        }
+        assert "_update_a2_grasp_control_streaks" not in called_attributes
 
 
 def _load_eval_migration():

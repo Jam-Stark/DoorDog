@@ -107,6 +107,10 @@ env:
     a2_stage1_stage2_base_forward_creep_deadband: 0.05
     a2_stage1_stage2_base_forward_creep_scale: 0.10
     stage2_grasp_contact_history_length: 5
+    # control_streak samples the latest sensor frame once per 50 Hz control step.
+    # physics_history preserves the legacy all-physics-frame gate for ablations.
+    a2_grasp_gate_mode: control_streak
+    a2_grasp_streak_control_steps: 5
     stage2_close_gate_y_tol: 0.022
     stage2_close_gate_z_tol: 0.015
     stage2_close_gate_x_tol: 0.02

@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-16 00:29 HKT
+last_updated: 2026-07-16 21:09 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -10,7 +10,7 @@ owned_paths:
   - memory/a2-piper/push-open-door-optimization/DONE.md
 read_when:
   - 开始设计、训练、eval、render 或复盘 base_v9 之后的 A2+Piper full-stage 推门 policy 时
-  - 需要确认当前 `base_v12` scratch factorial、历史 ablation 教训、matched eval 口径、stage-exposure/promotion gate 或 `logs_eval` co-location contract 时
+  - 需要确认当前 `v13_pre` gate patch、`base_v12` 终局、v13 run 顺序、matched eval 口径或 `logs_eval` co-location contract 时
 ---
 
 # Push-Open-Door Optimization
@@ -23,6 +23,11 @@ read_when:
 
 ## Current State
 
+- `base_v12` A/B/C/D 已完成训练与 matched eval，不再是“尚未启动”的 config anchor。四组 matched 终局均 `0/16 goal`、无 stage4；A step3000 仅 2/16 进入 stage3，C step3000 保持最佳 stage2 grasp 但旧 gate 下 0/16 stage3，B/D step2750 均停在 stage2 open-command/no-contact basin。single-seed 2×2 受 learned basin/stage exposure 支配，不能给出稳定 factorial causality 或 winner。
+- v12_C step3000 的旧 gate 直接证据：stage2 current-frame both contact `92.0%`、opposite/sufficient squeeze 各约 `93.1%`，但 5 个连续 physics-frame all-history stability/completion 恰为 `0`。ContactSensor history 在 200Hz physics loop 更新，而 policy control 为 50Hz；旧 5-frame window 仅约 25ms 且跨 action boundary，故 gate 时间尺度是结构性 blocker。
+- `v13_pre` 已实施 M1：required config `a2_grasp_gate_mode` 支持显式 `control_streak|physics_history`，`a2_grasp_streak_control_steps=5`；control mode 每个 control step 取 sensor latest frame `[:,0]`，stage2 squeeze 与 stage3/4 bilateral streak 只更新一次，reset/stage switch 清零，completion/stability getters 无副作用。未知 mode、缺失/非法 K、shape/dtype/device 或 duplicate full update 直接 fail-fast；legacy physics-history path 只用于历史复现/消融。
+- M10 最终 matched runtime artifact 为 `logs_eval/base_v13/base_v13_pre_gatepatch_C3000_matched_scalar_trace_16env_seed0_20260716_r2/`：v12_C step3000、seed0、16 env、per-env first episode，且相对 v12_C 原 eval 只新增 `control_streak/K=5`。结果 `16/16 stage3 entry`、`0/16 stage4`、`0/16 goal`；stage2 首过 control-step min/median/max `16/20.5/27`，达到 plan `>=14/16` gate。stage3 pooled bilateral `99.815%`、control-streak stability `98.692%`，但 hinge max mean 仅 `.000918rad`，支持“根因 A 已解除、B/C 仍待 v13_A”的分离结论。
+- `v13_pre` validation：72 个 targeted no-sim tests、Python compile、YAML parse、Hydra compose、diff check、matched runtime 与 artifact/config consistency PASS。Black/Ruff 在当前 env 未安装，保持 NOT_RUN；IsaacSim 启动有 `CUDA_VISIBLE_DEVICES`/GLFW enumeration warnings，但 scene/checkpoint/16 episodes 均成功且进程 exit0，不升级为 blocker。
 - `base_v11` A/B/C 都在计划 global step2000 前停止；可用 full-state checkpoint 为 A/B `500/1000/last=1150`、C `1250/1500/last=1550`。九个 payload 的 ZIP integrity 与 CPU load 都 PASS，但训练停止原因及训练到 step2000 的行为均未证实，故仅构成 incomplete-budget comparison。
 - Matched module scalar/trace eval（seed0、16 env、per-env first episode）在九个可用 state 全部为 `0/16 goal`、`0/16 stage4 entry`、`stage_overtime`；A/B 均 max-stage2，C 均 max-stage3。它是 single-seed/incomplete-budget evidence，不产生 full-budget 或 statistical winner。
 - A/B 三个 aligned per-env hinge 完全相同，且两组均无 stage3 exposure；`push_door_hinge=12` 只在 stage3/4 gate 生效，所以 B 没有实际测试 exposure 下的 H+。C 最新 step1550 mean max hinge 约 `.001110rad`，保留 bilateral `100%`、stability `99.159%`、close `100%`、over-force `0%`、j7/j8 open-limit proximity `0%`；stable hold 不是 door progress。
@@ -36,35 +41,33 @@ read_when:
 - D matched render 有 48 个有效 MP4，定性显示 stationary bilateral hold、没有可见持续 door rotation。strict no-trace output QA 为 FAIL：即使 diagnostic flag=false 仍写出 base trace；source diagnosis 证明这是 unconditional base trace output，发生在 physics/reward 后且不改 policy action。render 的 numeric exit code unverified，不能把整条 render QA 写为 PASS。
 - `base_v9` oracle、static clamp、O± 与 matched-clean 诊断继续停止。`base_v11_repair_r1` A/B 都从 staged v11_C step1550 policy-only 启动，seed0、literal `num_envs=4096`、500 batches/save125；唯一语义 A/B 差异是 `push_door_handle: 6→0`，两组 hinge 均为6。
 - repair_r1 的 step125/250/375/500 共八个 matched eval（seed0、16 env、per-env first episode）均为 `0/16 goal`、`0 stage4`、`stage_overtime`。A500 mean max hinge `.002081rad`，仅为 `.25rad` threshold 的 `.832%`，并与 j8/base/workspace/doorframe regression co-occur；B 保留 stable hold/j8 guardrail，但 hinge flat。没有 promotable checkpoint、statistical winner 或 causal root cause。
-- `base_v12` 已有四个 current-source、v10_A-style scratch factorial YAML（A/B/C/D），但它们不是 historical `base_v9` reproduction：v9 使用 v8_A policy-only warm-start，且 historical source byte equivalence 未证实。四组均 `checkpoint=null`、`auto_load_latest=false`、seed0；`checkpoint_load_mode=full` 因 checkpoint 为 null 而 inactive。
-- v12 的 approved literal launch contract 是每 rank `num_envs=4096`、planned 2 ranks、global rollout batch8192、`num_total_batches=3000`、save250；不得除成2048。common config 还包括 threshold `.25`、stage3 base locked、effort default `10/10`、handle/hinge `6/6`、fixed penalty scale、cameras/render false、PhysX velocity iterations1。
-- Matrix：A=`80/3 + stability .5`，B=`160/6 + .5`，C=`80/3 + 1.0`，D=`160/6 + 1.0`。H 只改 `a2_stage3_stage4_contact_stability` `.5→1.0`，是 proposed mild factor，尚未证明有效。
-- 四 YAML 的 strict YAML、resolved compose、factorial/mapping checks 以及 CODE_QUALITY、IsaacLab static/no-sim semantics、NO_SIM_QA 都 PASS；没有实际 IsaacSim、training、eval 或 runtime。behavior、resource feasibility、能否到 step3000 和 checkpoint I/O 仍 unverified。
+- `base_v12` 四个 current-source、v10_A-style scratch factorial run（A/B/C/D）均为 `checkpoint=null`、`auto_load_latest=false`、seed0；它们不是 historical `base_v9` reproduction，因为 v9 使用 v8_A policy-only warm-start，且 historical source byte equivalence 未证实。
+- v12 的实际 launch contract 保持每 rank literal `num_envs=4096`、2 ranks、global rollout batch8192、global cap3000/save250，不得除成2048。common config 包括 threshold `.25`、stage3 base locked、effort `10/10`、handle/hinge `6/6`、fixed penalty scale、cameras/render false、PhysX velocity iterations1。
+- Matrix：A=`80/3 + stability .5`，B=`160/6 + .5`，C=`80/3 + 1.0`，D=`160/6 + 1.0`。四组 static/config checks 均 PASS，训练与 matched eval 终局见本节首条；由于 learned basin/stage exposure 不同，H 的 `.5→1.0` 与 gain 的 `80/3→160/6` 都没有形成稳定 factorial causality。
 
 ## Current Baseline
 
 | Item | Value |
 |---|---|
-| Policy reference | `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` |
+| Policy reference | `logs_rl/a2_piper_full_stage_a2_base/base_v12_C_v10A_scratch_stability1-20260716_004404/model_step_003000.pt` |
 | Training seed | `0` |
 | TCP source local-Z | `0.085m` |
-| Gripper Kp/Kd | `160/6` |
+| Gripper Kp/Kd | `80/3` for v13_pre/v13_B; v13_A proposes `800/25` |
 | Gripper effort limit | `10/10N` |
-| Stage3 base | unlocked |
+| Grasp gate | `control_streak`, K=`5` control steps; `physics_history` is explicit legacy ablation |
+| Stage3 base | locked in v13_pre/v13_B; v13_A proposes unlocked |
 | Stage3→4 threshold | `.25rad` |
-| Hold bundle | close `.1`, both `2`, opposite `1`, force-window `2`, stability `4`, over-force `-2` |
+| v13_pre reward | exact v12_C reward, including `push_door_handle=6` and stage3/4 stability `1` |
 | Explicit friction override | none (`null`) |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
-当前 D 仅是 stable-hold behavioral reference；它没有完成推门。所有训练/eval 解释以保存的 resolved runtime config 为准。
+当前 v13 warm-start policy reference 是 v12_C step3000；它已由 M10 证明可在 control-step gate 下稳定进入 stage3，但仍没有压 handle 或推门。所有训练/eval 解释以保存的 resolved runtime config 为准。
 
 ## Current Experiment
 
-`base_v12` 是当前 configuration anchor，不是已运行 experiment：从 committed exact source 以四个独立 foreground terminals、distinct ports 启动 A/B/C/D，禁止 detached launcher。正常达到 global cap3000 时，expected numbered full-state checkpoints 为 `250/500/750/1000/1250/1500/1750/2000/2250/2500/2750/3000`；`last.pt` overwrite cadence 仅为 convenience。
+`v13_pre` 是当前已完成 experiment：只实施 M1，并对 v12_C step3000 运行 matched eval；没有新 training、没有 M2–M9 behavior claim。最终 r2 artifact 已通过 `16/16 stage3 entry` gate，故 root-cause A 的 stopping condition 达成。
 
-不要因为某 arm 在 step250/500 尚未 stage3 而 selectively stop；仅 invalid config、non-scratch load、NaN/non-finite、checkpoint failure 或 source drift 触发 fail-fast early stop。aligned matched eval 至少覆盖 final step3000；建议先解释 `250/500/750/1000`，再在 cost permits 时每500/major later checkpoint 至3000。primary contract 仍为 seed0、16 env、per-env first episode scalar/trace，且尚未执行。
-
-若 C/D 没有 stage3 exposure，H 未被 delivered，不能称 H ineffective；K×H hold interaction 只在 comparable stage3 exposure 下可解释。single seed 只能作 directional screening。promotion 必须同时有至少一次 stage4 entry、bilateral/stability `>=95%`、over-force `0`、且无 j7/j8 open-limit saturation；否则不得 claim winner 或 seed promotion。
+下一 run 顺序是 v13_A main 后 v13_B gate-only；两者尚未创建 config、smoke 或启动。v13_A 才负责验证 Kp/Kd `800/25`、stage3 base unlock、policy-only warm-start、grasp-gated unlatch/hold-and-drive reward 与 stage3→4 grasp condition；v13_B 保持 v12_C 的 Kp80/base locked/reward，只分离 M1。M7/M8/v13_C/v13_D 仍按 plan 条件触发，不因 pre PASS 自动进入。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -81,13 +84,13 @@ read_when:
 
 - Formal v9 matched resource contract：每组 2 GPUs / 2 processes，每 rank `num_envs=2048`，每组 total env 4096；四组保持相同 seed、source checkpoint、batch budget 与 environment count。
 - 旧 `base_v11` launch 沿用 v10 resource contract：独立 foreground terminal、GPU pair、distinct port、约 10 秒 stagger。禁止 `setsid`、单 shell `&` 或 detached wrapper 管理 IsaacSim；2026-07-13 的 setsid 尝试曾产生 orphan parent/rank 与 Vulkan/GPU Foundation initialization failure。
-- `base_v12` supersedes the old repair_r2 proposal: current-source scratch launch uses literal `num_envs=4096` per rank with planned2 ranks (global rollout batch8192), global cap3000/save250, committed exact source freeze, and four independent foreground terminals/distinct ports. No v12 train/eval is launched by this memory update.
+- `base_v12` superseded the old repair_r2 proposal：四组 current-source scratch launch 使用 literal `num_envs=4096` per rank、2 ranks（global rollout batch8192）、global cap3000/save250、committed exact source freeze 与四个独立 foreground terminals/distinct ports；后续训练与 matched eval 已完成，终局见 Current State。
 - Resume command 的 `num_total_batches` 必须写全局 target step：从 restored step1000 到 step2000 传 `2000`，不是传 remaining count `1000`；此 global-cap gotcha 继续适用于任何 future full-state resume。
 - `base_v11` matched scalar/trace 使用 module invocation、seed0、16 env、每 env first episode；scalar/trace 是 primary evidence。比较 hinge max/terminal 与 stage4 entry，bilateral/stability、over-force、j7/j8 limit 作为 guardrail。
 - Render 保持相同 checkpoint/seed/episode semantics，只用于解释 contact、detach、jam、doorframe event 与动作自然性，不参与 success-rate 统计。默认从 matched eval env 中随机选取2个 env，只渲染这2个 env；每个 env 生成 default、handle-side、handle-top 3个 camera video，总计 `2 env × 3 camera = 6 videos`。除非用户明确要求，不再默认对16个 env 做全量 render；2-env qualitative subsample 不能替代16-env scalar/trace primary evidence。
 - 原始完整 shell command 未保留；human report 中的 train/eval/render blocks 明确是从 saved Hydra overrides/config 重建的模板。
 - Sibling worktree eval 使用 `python -m gr00t.rl.eval_agent_trl`，避免 direct-script invocation 命中另一 worktree 的 editable-install source。
-- Future base-specific A2 eval 必须把完整 result folder 写到 `logs_eval/base_vN/<eval-run>/`：folder 直接包含 `.hydra/`、eval logs、metrics/traces/diagnostics 与可选 `renderings/`。`eval_output_dir` 是 canonical path，`eval_name` 仅为 leaf label；`base_eval.yaml` 的 `eval_log_dir` alias 与 rendering default 都跟随 `eval_output_dir`。该 config/no-sim contract 已 static PASS，实际新 eval runtime 仍未验证。
+- Future base-specific A2 eval 必须把完整 result folder 写到 `logs_eval/base_vN/<eval-run>/`：folder 直接包含 `.hydra/`、eval logs、metrics/traces/diagnostics 与可选 `renderings/`。`eval_output_dir` 是 canonical path，`eval_name` 仅为 leaf label；`base_eval.yaml` 的 `eval_log_dir` alias 与 rendering default 都跟随 `eval_output_dir`。该 co-location contract 已由 v13_pre scalar/trace runtime 验证；新 eval 的 rendering path 仍保持未验证。
 - Historical `logs_eval` migration：首批129个 version-named eval dirs 已归入 `base_v0..base_v11`；另有48个旧 top-level Hydra dirs whole-tree 迁移，36个 exact-paired 到 canonical result 的 `.hydra_provenance/<old-top-dir>`，12个 versioned/unpaired 到 `base_vN/_unpaired_hydra/<old-top-dir>`。`_eval_inputs` 与 `replay_v2` 保留 top-level，迁移后 top-level 共14项；无 symlink/collision，但未收集 content hash，故仅有 layout/static evidence。
 
 ## Evidence Boundaries
@@ -99,10 +102,11 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-16 00:29 HKT - 执行 user-approved `base_v12` A/B/C/D current-source v10_A-style scratch factorial：freeze committed exact source 后，以 four independent foreground terminals/distinct ports 训练到 global cap3000/save250；training 尚未开始。然后按 seed0、16-env、per-env first-episode scalar/trace 做 aligned matched eval（至少 final3000；建议250/500/750/1000 后每500/major later checkpoint）。不因250/500无stage3而单独停 arm；只对 invalid config、non-scratch load、NaN/non-finite、checkpoint failure 或 source drift fail-fast。无 comparable stage3 exposure 不解释 H/K×H；仅满足 stage4 entry、bilateral/stability>=95%、over-force0、无j7/j8 open-limit saturation 才可 winner/seed promotion。
+- 2026-07-16 21:09 HKT - `v13_pre` 已通过；下一步是尚未实施/启动的 v13_A main 与 v13_B gate-only。M7/M8/v13_C/v13_D 保持 conditional，不得写成 current DONE。
 
 ## DONE Summary
 
+- 2026-07-16 21:09 HKT - `v13_pre` M1 + M10 runtime PASS：control-step streak gate/config/telemetry 已实现，72 tests/compile/compose/diff checks PASS；v12_C step3000 matched r2 为 16/16 stage3 entry，首过 stage2 control-step `16/20.5/27`，stage3 bilateral/stability `99.815%/98.692%`，hinge 仍近零。根因 A 已证实，M2–M9/v13_A 尚未完成。
 - 2026-07-16 00:29 HKT - 完成 `base_v12` A/B/C/D current-source v10_A-style scratch factorial configuration/static evidence sync：A `80/3+.5`、B `160/6+.5`、C `80/3+1.0`、D `160/6+1.0`；四组均 checkpoint null、planned 2 ranks、literal `num_envs=4096` per rank、global cap3000/save250。strict YAML/resolved compose/factorial/mapping、CODE_QUALITY、IsaacLab static/no-sim semantics 与 NO_SIM_QA PASS。`base_v12` 不是 v9 reproduction（v9 是 v8_A policy-only warm-start，historical source byte equivalence 未证实）；未启动 training/eval/IsaacSim/runtime，故没有 behavior、resource feasibility、checkpoint I/O 或 winner evidence。
 - 2026-07-15 21:18 HKT - 新增 default render resource contract：从 matched eval env 中随机选2个 env，每个 env 只生成 default、handle-side、handle-top 3个 camera video，总计6个；16-env scalar/trace 继续作为 primary evidence，除非用户明确要求，不再默认16-env全量 render。
 - 2026-07-15 20:56 HKT - `base_v11_repair_r1` A/B matched eval 完成：均从 staged v11_C step1550 policy-only 启动、seed0、literal `num_envs=4096`、500 batches/save125，唯一语义差异为 `push_door_handle: 6→0`（hinge均为6）。八个 step125/250/375/500 eval 均 `0/16 goal`、`0 stage4`、`stage_overtime`；A500 hinge 仅 `.002081rad`（`.25rad` threshold 的 `.832%`）且与 guardrail regression co-occur，B stable hold/j8 guardrail 但 hinge flat。因此没有 checkpoint promotion、statistical winner 或 causal root cause。

@@ -116,6 +116,68 @@ A2_HOLD_OUTCOME_NAMES = (
 A2_HOLD_OUTCOME_TO_ID = {name: index for index, name in enumerate(A2_HOLD_OUTCOME_NAMES)}
 
 
+def a2_update_grasp_control_streak(
+    streak: torch.Tensor,
+    condition: torch.Tensor,
+    reset_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Advance one control-step streak update with explicit reset semantics."""
+    if (
+        not torch.is_tensor(streak)
+        or streak.ndim != 1
+        or streak.dtype != torch.long
+        or not torch.is_tensor(condition)
+        or condition.shape != streak.shape
+        or condition.dtype != torch.bool
+        or condition.device != streak.device
+        or not torch.is_tensor(reset_mask)
+        or reset_mask.shape != streak.shape
+        or reset_mask.dtype != torch.bool
+        or reset_mask.device != streak.device
+        or torch.any(streak < 0)
+    ):
+        raise ValueError(
+            "A2 grasp control streak requires a non-negative long streak and "
+            "matching bool condition/reset tensors."
+        )
+    zeros = torch.zeros_like(streak)
+    return torch.where(
+        reset_mask,
+        zeros,
+        torch.where(condition, streak + 1, zeros),
+    )
+
+
+def a2_masked_grasp_streak_quantile(
+    streak: torch.Tensor,
+    active_mask: torch.Tensor,
+    quantile: float,
+) -> torch.Tensor:
+    """Compute a stage-scoped streak quantile, returning zero when the stage is inactive."""
+    if (
+        not torch.is_tensor(streak)
+        or streak.ndim != 1
+        or streak.dtype != torch.long
+        or torch.any(streak < 0)
+        or not torch.is_tensor(active_mask)
+        or active_mask.shape != streak.shape
+        or active_mask.dtype != torch.bool
+        or active_mask.device != streak.device
+        or isinstance(quantile, bool)
+        or not isinstance(quantile, (int, float))
+        or not math.isfinite(float(quantile))
+        or not 0.0 <= float(quantile) <= 1.0
+    ):
+        raise ValueError(
+            "A2 grasp streak quantile requires a non-negative long streak, matching "
+            "bool active mask, and finite quantile in [0, 1]."
+        )
+    active_streak = streak[active_mask].float()
+    if active_streak.numel() == 0:
+        return torch.zeros((), dtype=torch.float32, device=streak.device)
+    return torch.quantile(active_streak, float(quantile))
+
+
 def a2_hold_quaternion_geodesic_rad(quat_a: torch.Tensor, quat_b: torch.Tensor):
     """Return the sign-invariant geodesic angle between unit WXYZ quaternions."""
     if (
@@ -2235,6 +2297,10 @@ class DoorPregrasp(
     )
     A2_STAGE3_BASE_UNLOCKED_CONFIG_KEY = "a2_stage3_base_unlocked"
     A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY = "a2_gripper_source_tcp_offset_z"
+    A2_GRASP_GATE_MODE_CONFIG_KEY = "a2_grasp_gate_mode"
+    A2_GRASP_STREAK_CONTROL_STEPS_CONFIG_KEY = "a2_grasp_streak_control_steps"
+    A2_GRASP_GATE_MODE_CONTROL_STREAK = "control_streak"
+    A2_GRASP_GATE_MODE_PHYSICS_HISTORY = "physics_history"
     A2_HOLD_CONTACT_DETAIL_CONFIG_KEY = "a2_hold_diagnostic_contact_detail_enabled"
     A2_HOLD_CONTACT_CAPACITY_CONFIG_KEY = (
         "a2_hold_diagnostic_max_contact_data_count_per_prim"
@@ -2279,6 +2345,54 @@ class DoorPregrasp(
             self.A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY,
             "A2 Piper gripper source TCP",
         )
+
+    def _get_a2_grasp_gate_mode(self) -> str:
+        key = self.A2_GRASP_GATE_MODE_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 grasp gate requires env.config.{key}.")
+        value = self.config[key]
+        allowed = (
+            self.A2_GRASP_GATE_MODE_CONTROL_STREAK,
+            self.A2_GRASP_GATE_MODE_PHYSICS_HISTORY,
+        )
+        if not isinstance(value, str) or value not in allowed:
+            raise RuntimeError(
+                f"env.config.{key} must be one of {allowed}; got {value!r}."
+            )
+        return value
+
+    def _get_a2_grasp_streak_control_steps(self) -> int:
+        key = self.A2_GRASP_STREAK_CONTROL_STEPS_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 grasp control streak requires env.config.{key}.")
+        value = self.config[key]
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise RuntimeError(
+                f"env.config.{key} must be a positive int; got {value!r}."
+            )
+        return value
+
+    def _get_a2_grasp_control_streak_buffer(
+        self, attribute_name: str, context: str
+    ) -> torch.Tensor:
+        streak = getattr(self, attribute_name, None)
+        if (
+            streak is None
+            or not torch.is_tensor(streak)
+            or tuple(streak.shape) != (self.num_envs,)
+            or streak.dtype != torch.long
+            or streak.device != torch.device(self.device)
+            or torch.any(streak < 0)
+        ):
+            shape = None if not torch.is_tensor(streak) else tuple(streak.shape)
+            dtype = None if not torch.is_tensor(streak) else streak.dtype
+            device = None if not torch.is_tensor(streak) else streak.device
+            raise RuntimeError(
+                f"{context} requires {attribute_name} non-negative long tensor shape "
+                f"({self.num_envs},) on {self.device}; got "
+                f"shape={shape}, dtype={dtype}, device={device}."
+            )
+        return streak
 
     def _get_a2_hold_contact_detail_enabled(self) -> bool:
         value = self.config.get(self.A2_HOLD_CONTACT_DETAIL_CONFIG_KEY, None)
@@ -2601,6 +2715,8 @@ class DoorPregrasp(
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
 
     def _init_a2_door_pregrasp_state(self):
+        self._get_a2_grasp_gate_mode()
+        self._get_a2_grasp_streak_control_steps()
         self._a2_stage3_to4_door_hinge_threshold = (
             self._get_required_positive_float_config(
                 self.A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY,
@@ -2758,6 +2874,14 @@ class DoorPregrasp(
 
     def _init_buffers(self):
         super()._init_buffers()
+        if self._use_a2_base:
+            self._a2_stage2_squeeze_streak = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_stage3_stage4_both_contact_streak = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_grasp_streak_last_full_update_step = -1
         self.relative_door_pos_buf = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False
         )
@@ -2777,6 +2901,8 @@ class DoorPregrasp(
 
     def _pre_compute_observations_callback(self, env_ids=None):
         super()._pre_compute_observations_callback(env_ids)
+        if self._use_a2_base:
+            self._update_a2_grasp_control_streaks(env_ids)
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
         current_root_pos = self.simulator.robot_root_states[env_ids, :3].clone()
@@ -2792,6 +2918,125 @@ class DoorPregrasp(
         )
         self.relative_door_pos_buf[env_ids] = relative_door_pos
         self.relative_door_rot_buf[env_ids] = wxyz_to_xyzw(relative_door_rot)
+
+    def _update_a2_grasp_control_streaks(self, env_ids=None):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "A2 grasp control streaks are only defined for A2 Piper configs."
+            )
+
+        stage_buf = getattr(self, "stage_buf", None)
+        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+        just_resetted_buf = getattr(self, "just_resetted_buf", None)
+        for field_name, field_value, field_dtype in (
+            ("stage_buf", stage_buf, torch.long),
+            ("actual_time_in_stage_buf", actual_time_in_stage_buf, torch.long),
+            ("just_resetted_buf", just_resetted_buf, torch.bool),
+        ):
+            if (
+                field_value is None
+                or not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != field_dtype
+                or field_value.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                dtype = None if not torch.is_tensor(field_value) else field_value.dtype
+                device = None if not torch.is_tensor(field_value) else field_value.device
+                raise RuntimeError(
+                    f"A2 grasp control streak update requires {field_name} "
+                    f"{field_dtype} tensor shape ({self.num_envs},) on {self.device}; "
+                    f"got shape={shape}, dtype={dtype}, device={device}."
+                )
+
+        stage2_streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage2_squeeze_streak",
+            "A2 stage2 squeeze streak update",
+        )
+        stage3_stage4_streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage3_stage4_both_contact_streak",
+            "A2 stage3/4 both-contact streak update",
+        )
+
+        if env_ids is not None:
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "A2 grasp control streak partial callback requires valid long env_ids "
+                    f"on {self.device}; got {env_ids!r}."
+                )
+            reset_mask = just_resetted_buf[env_ids] | (
+                actual_time_in_stage_buf[env_ids] == 0
+            )
+            if not torch.all(reset_mask):
+                raise RuntimeError(
+                    "A2 grasp control streak partial callback is only valid for reset "
+                    "or stage-switch envs; refusing a duplicate control-step increment."
+                )
+            stage2_streak[env_ids] = 0
+            stage3_stage4_streak[env_ids] = 0
+            return
+
+        common_step_counter = getattr(self, "common_step_counter", None)
+        if isinstance(common_step_counter, bool) or not isinstance(
+            common_step_counter, int
+        ):
+            raise RuntimeError(
+                "A2 grasp control streak update requires integer common_step_counter; "
+                f"got {common_step_counter!r}."
+            )
+        last_update_step = getattr(
+            self, "_a2_grasp_streak_last_full_update_step", None
+        )
+        if isinstance(last_update_step, bool) or not isinstance(last_update_step, int):
+            raise RuntimeError(
+                "A2 grasp control streak update requires integer "
+                "_a2_grasp_streak_last_full_update_step; "
+                f"got {last_update_step!r}."
+            )
+        if common_step_counter <= last_update_step:
+            raise RuntimeError(
+                "A2 grasp control streak full update must run exactly once per control "
+                f"step; current={common_step_counter}, last={last_update_step}."
+            )
+
+        history_masks = self._get_a2_stage2_contact_squeeze_masks(
+            self._get_a2_gripper_handle_contact_force_history(),
+            "A2 grasp control streak update",
+        )
+        stage2_squeeze_current = (
+            history_masks["both_contact"][:, 0]
+            & history_masks["sufficient_squeeze"][:, 0]
+            & history_masks["opposite_squeeze"][:, 0]
+        )
+        stage3_stage4_both_contact_current = history_masks["both_contact"][:, 0]
+        reset_mask = just_resetted_buf | (actual_time_in_stage_buf == 0)
+        stage2_condition = (
+            (stage_buf == self.STAGE_GRASP) & stage2_squeeze_current
+        )
+        stage3_stage4_condition = (
+            ((stage_buf == self.STAGE_OPEN) | (stage_buf == self.STAGE_SWING))
+            & stage3_stage4_both_contact_current
+        )
+        self._a2_stage2_squeeze_streak[:] = a2_update_grasp_control_streak(
+            stage2_streak,
+            stage2_condition,
+            reset_mask,
+        )
+        self._a2_stage3_stage4_both_contact_streak[:] = (
+            a2_update_grasp_control_streak(
+                stage3_stage4_streak,
+                stage3_stage4_condition,
+                reset_mask,
+            )
+        )
+        self._a2_grasp_streak_last_full_update_step = common_step_counter
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
@@ -4249,6 +4494,16 @@ class DoorPregrasp(
         }
 
     def _get_a2_stage2_contact_stability_mask(self):
+        gate_mode = self._get_a2_grasp_gate_mode()
+        if gate_mode == self.A2_GRASP_GATE_MODE_CONTROL_STREAK:
+            streak = self._get_a2_grasp_control_streak_buffer(
+                "_a2_stage2_squeeze_streak",
+                "A2 stage2 contact stability",
+            )
+            return (self.stage_buf == self.STAGE_GRASP) & (
+                streak >= self._get_a2_grasp_streak_control_steps()
+            )
+
         history_length = self._get_a2_stage2_grasp_contact_history_length()
         masks = self._get_a2_stage2_contact_squeeze_masks(
             self._get_a2_gripper_handle_contact_force_history(),
@@ -4287,6 +4542,19 @@ class DoorPregrasp(
         )
 
     def _get_a2_stage3_stage4_contact_stability_mask(self):
+        gate_mode = self._get_a2_grasp_gate_mode()
+        if gate_mode == self.A2_GRASP_GATE_MODE_CONTROL_STREAK:
+            streak = self._get_a2_grasp_control_streak_buffer(
+                "_a2_stage3_stage4_both_contact_streak",
+                "A2 stage3/4 contact stability",
+            )
+            stage3_stage4 = (self.stage_buf == self.STAGE_OPEN) | (
+                self.stage_buf == self.STAGE_SWING
+            )
+            return stage3_stage4 & (
+                streak >= self._get_a2_grasp_streak_control_steps()
+            )
+
         history_length = self._get_a2_stage2_grasp_contact_history_length()
         masks = self._get_a2_stage2_contact_squeeze_masks(
             self._get_a2_gripper_handle_contact_force_history(),
@@ -4394,30 +4662,40 @@ class DoorPregrasp(
         both_contact = masks["both_contact"]
         sufficient_squeeze = masks["sufficient_squeeze"]
         opposite_squeeze = masks["opposite_squeeze"]
-        all_history_squeezed = torch.all(
-            both_contact & sufficient_squeeze & opposite_squeeze, dim=-1
-        )
-        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
-        if (
-            actual_time_in_stage_buf is None
-            or not torch.is_tensor(actual_time_in_stage_buf)
-            or tuple(actual_time_in_stage_buf.shape) != (self.num_envs,)
-        ):
-            shape = (
-                None
-                if actual_time_in_stage_buf is None
-                else tuple(actual_time_in_stage_buf.shape)
+        gate_mode = self._get_a2_grasp_gate_mode()
+        if gate_mode == self.A2_GRASP_GATE_MODE_CONTROL_STREAK:
+            streak = self._get_a2_grasp_control_streak_buffer(
+                "_a2_stage2_squeeze_streak",
+                "A2 stage2 completion",
             )
-            raise RuntimeError(
-                "A2 stage2 completion requires actual_time_in_stage_buf shape "
-                f"({self.num_envs},); got {shape}."
+            base_completion = (self.stage_buf == self.STAGE_GRASP) & (
+                streak >= self._get_a2_grasp_streak_control_steps()
             )
-        history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
-        base_completion = (
-            (self.stage_buf == self.STAGE_GRASP)
-            & history_window_in_stage
-            & all_history_squeezed
-        )
+        else:
+            all_history_squeezed = torch.all(
+                both_contact & sufficient_squeeze & opposite_squeeze, dim=-1
+            )
+            actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+            if (
+                actual_time_in_stage_buf is None
+                or not torch.is_tensor(actual_time_in_stage_buf)
+                or tuple(actual_time_in_stage_buf.shape) != (self.num_envs,)
+            ):
+                shape = (
+                    None
+                    if actual_time_in_stage_buf is None
+                    else tuple(actual_time_in_stage_buf.shape)
+                )
+                raise RuntimeError(
+                    "A2 stage2 completion requires actual_time_in_stage_buf shape "
+                    f"({self.num_envs},); got {shape}."
+                )
+            history_window_in_stage = actual_time_in_stage_buf >= history_length - 1
+            base_completion = (
+                (self.stage_buf == self.STAGE_GRASP)
+                & history_window_in_stage
+                & all_history_squeezed
+            )
 
         close_gate_required = self._get_a2_stage2_completion_close_gate_required()
         close_command_threshold = self._get_a2_stage2_completion_close_command_threshold()
@@ -4551,6 +4829,23 @@ class DoorPregrasp(
             stage3_stage4_active & stage3_stage4_contact_masks["squeeze_window"]
         )
         stage3_stage4_contact_stability = self._get_a2_stage3_stage4_contact_stability_mask()
+        grasp_streak_control_steps = self._get_a2_grasp_streak_control_steps()
+        stage2_squeeze_streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage2_squeeze_streak",
+            "A2 route diagnostics stage2 squeeze streak",
+        )
+        stage3_stage4_both_contact_streak = (
+            self._get_a2_grasp_control_streak_buffer(
+                "_a2_stage3_stage4_both_contact_streak",
+                "A2 route diagnostics stage3/4 both-contact streak",
+            )
+        )
+        stage2_streak_ge_k = stage2_active & (
+            stage2_squeeze_streak >= grasp_streak_control_steps
+        )
+        stage3_stage4_streak_ge_k = stage3_stage4_active & (
+            stage3_stage4_both_contact_streak >= grasp_streak_control_steps
+        )
         stage3_stage4_over_force = (
             stage3_stage4_active & stage3_stage4_contact_masks["over_force"]
         )
@@ -4725,6 +5020,7 @@ class DoorPregrasp(
             "a2_stage2_single_contact_arm_body8_frac": stage2_single_contact_arm_body8,
             "a2_stage2_squeeze_window_frac": stage2_squeeze_window,
             "a2_stage2_contact_stability_frac": stage2_contact_stability,
+            "a2_stage2_streak_ge_K_frac": stage2_streak_ge_k,
             "a2_stage2_over_force_frac": stage2_over_force,
             "a2_stage2_gripper_raw_sign_flip_frac": raw_sign_flip,
             "a2_stage3_active_frac": stage3_active,
@@ -4737,12 +5033,41 @@ class DoorPregrasp(
             "a2_stage3_stage4_opposite_squeeze_frac": stage3_stage4_opposite_squeeze,
             "a2_stage3_stage4_squeeze_window_frac": stage3_stage4_squeeze_window,
             "a2_stage3_stage4_contact_stability_frac": stage3_stage4_contact_stability,
+            "a2_stage3_stage4_streak_ge_K_frac": stage3_stage4_streak_ge_k,
             "a2_stage3_stage4_over_force_frac": stage3_stage4_over_force,
         }
         for name, mask in diagnostics.items():
             self.log_dict[name] = mask.float().mean()
         self.log_dict["a2_stage2_single_contact_duration_mean"] = (
             self._a2_stage2_single_contact_duration.float().mean()
+        )
+        self.log_dict["a2_stage2_squeeze_streak_p50"] = (
+            a2_masked_grasp_streak_quantile(
+                stage2_squeeze_streak,
+                stage2_active,
+                0.5,
+            )
+        )
+        self.log_dict["a2_stage2_squeeze_streak_p90"] = (
+            a2_masked_grasp_streak_quantile(
+                stage2_squeeze_streak,
+                stage2_active,
+                0.9,
+            )
+        )
+        self.log_dict["a2_stage3_stage4_both_contact_streak_p50"] = (
+            a2_masked_grasp_streak_quantile(
+                stage3_stage4_both_contact_streak,
+                stage3_stage4_active,
+                0.5,
+            )
+        )
+        self.log_dict["a2_stage3_stage4_both_contact_streak_p90"] = (
+            a2_masked_grasp_streak_quantile(
+                stage3_stage4_both_contact_streak,
+                stage3_stage4_active,
+                0.9,
+            )
         )
         self.log_dict["a2_stage2_target_offset_x_abs_mean"] = (
             target_offset[:, 0].abs() * stage2_active_float
@@ -5009,7 +5334,20 @@ class DoorPregrasp(
         contact_masks = self._get_a2_stage2_contact_squeeze_masks(
             handle_contact_force_w, "A2 terminal diagnostics stage2 contact state"
         )
-        contact_stability = self._get_a2_stage2_contact_stability_mask()
+        stage2_contact_stability = self._get_a2_stage2_contact_stability_mask()
+        stage3_stage4_contact_stability = (
+            self._get_a2_stage3_stage4_contact_stability_mask()
+        )
+        contact_stability = (
+            ((self.stage_buf == self.STAGE_GRASP) & stage2_contact_stability)
+            | (
+                (
+                    (self.stage_buf == self.STAGE_OPEN)
+                    | (self.stage_buf == self.STAGE_SWING)
+                )
+                & stage3_stage4_contact_stability
+            )
+        )
         gripper_raw_sign_flip = getattr(self, "_a2_stage2_last_gripper_raw_sign_flip", None)
         if (
             gripper_raw_sign_flip is None
@@ -5137,6 +5475,22 @@ class DoorPregrasp(
             contact_masks["over_force"][env_ids].detach().cpu().tolist()
         )
         selected_contact_stability = contact_stability[env_ids].detach().cpu().tolist()
+        stage2_squeeze_streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage2_squeeze_streak",
+            "A2 terminal diagnostics stage2 squeeze streak",
+        )
+        stage3_stage4_both_contact_streak = (
+            self._get_a2_grasp_control_streak_buffer(
+                "_a2_stage3_stage4_both_contact_streak",
+                "A2 terminal diagnostics stage3/4 both-contact streak",
+            )
+        )
+        selected_stage2_squeeze_streak = (
+            stage2_squeeze_streak[env_ids].detach().cpu().tolist()
+        )
+        selected_stage3_stage4_both_contact_streak = (
+            stage3_stage4_both_contact_streak[env_ids].detach().cpu().tolist()
+        )
         selected_gripper_raw_sign_flip = (
             gripper_raw_sign_flip[env_ids].detach().cpu().tolist()
         )
@@ -5307,6 +5661,16 @@ class DoorPregrasp(
                     "both_contact": bool(selected_both_contact[idx]),
                     "squeeze_window": bool(selected_squeeze_window[idx]),
                     "contact_stability": bool(selected_contact_stability[idx]),
+                    "a2_grasp_gate_mode": self._get_a2_grasp_gate_mode(),
+                    "a2_grasp_streak_control_steps": (
+                        self._get_a2_grasp_streak_control_steps()
+                    ),
+                    "a2_stage2_squeeze_streak": int(
+                        selected_stage2_squeeze_streak[idx]
+                    ),
+                    "a2_stage3_stage4_both_contact_streak": int(
+                        selected_stage3_stage4_both_contact_streak[idx]
+                    ),
                     "over_force": bool(selected_over_force[idx]),
                     "arm_j7_j8_pos": selected_arm_j7_j8_pos[idx],
                     "arm_j7_j8_close_target": close_target_list,

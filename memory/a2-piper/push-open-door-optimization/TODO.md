@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-17 15:39 HKT - A/B formal training与endpoint eval已完成，A 2-env×3-camera render/抽帧目视也已完成；两env持续带把手开门、无明显detach或拍门飞走，但均以别扭姿态停在门口并stage4 overtime。下一步做bounded `v13.1` diagnosis：解释A的12/16 stage4与4/16 stage5为何均未goal，核对stage4→5 predicate、`dont_push_door_handle`、`target_root_distance`、base/doorframe event与终点姿态；同时定位j8 open-limit `14.151%`与stage3 handle hard-limit `27.416%`。M7/M8/v13_C/v13_D仍保持conditional。
+- 2026-07-17 20:05 HKT - 启动`base_v13_1_main` formal training：A3000 `policy_only` warm-start、4 ranks × `1024 env/rank`、global batch `4096`、`2000` batches、save every`250`。每250 batch监控release ratio、stage4/5 activity、hold/hinge income、grasp/redline telemetry；对checkpoint执行matched 16-env scalar/trace eval，必要时执行2-env×3-camera render。formal policy-quality结论只能来自后续formal training/eval；r3 `4×64×50` smoke不是该证据，Kit natural exit仍unverified。`v13_1_noM13`与其他后续ablation保持conditional。

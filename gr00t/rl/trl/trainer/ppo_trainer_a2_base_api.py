@@ -88,6 +88,387 @@ def _load_a2_base_metadata(metadata_path):
     return contract
 
 
+_A2_EVAL_OPTIONAL_RATIO_SPECS = {
+    "a2_stage3_contact_stability_conditional_frac": (
+        "a2_stage3_contact_stability_numerator_frac",
+        "a2_stage3_contact_stability_denominator_frac"
+    ),
+    "a2_stage4_contact_stability_conditional_frac": (
+        "a2_stage4_contact_stability_numerator_frac",
+        "a2_stage4_contact_stability_denominator_frac"
+    ),
+    "a2_stage3_hold_and_drive_frac": (
+        "a2_stage3_hold_and_drive_numerator_frac",
+        "a2_stage3_hold_and_drive_denominator_frac",
+    ),
+    "a2_stage3_stage4_hold_and_drive_frac": (
+        "a2_stage3_stage4_hold_and_drive_numerator_frac",
+        "a2_stage3_stage4_hold_and_drive_denominator_frac",
+    ),
+    "a2_stage3_unlatch_hold_issued_frac": (
+        "a2_stage3_unlatch_hold_issued_numerator_frac",
+        "a2_stage3_unlatch_hold_issued_denominator_frac"
+    ),
+    "a2_stage3_stage4_coasting_frac": (
+        "a2_stage3_stage4_coasting_numerator_frac",
+        "a2_stage3_stage4_coasting_denominator_frac"
+    ),
+    "a2_stage3_handle_hard_limit_frac": (
+        "a2_stage3_handle_hard_limit_numerator_frac",
+        "a2_stage3_handle_hard_limit_denominator_frac"
+    ),
+    "a2_stage4_release_gate_frac": (
+        "a2_stage4_release_gate_numerator_frac",
+        "a2_stage4_release_gate_denominator_frac",
+    ),
+}
+
+
+_A2_GLOBAL_ENV_QUANTILE_SPECS = {
+    "a2_stage5_forward_velocity": (
+        "_a2_stage5_forward_velocity_samples",
+        "_a2_stage5_forward_velocity_sample_mask",
+        "a2_stage5_forward_velocity_p50",
+        "a2_stage5_forward_velocity_p95",
+    ),
+    "a2_stage45_doorframe_contact_force": (
+        "_a2_stage45_doorframe_contact_force_samples",
+        "_a2_stage45_doorframe_contact_force_sample_mask",
+        "a2_stage45_doorframe_contact_force_p50",
+        "a2_stage45_doorframe_contact_force_p95",
+    ),
+}
+_A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
+
+
+def _prepare_a2_env_metrics_for_aggregation(step_env_metrics, accelerator, device):
+    """Prepare A2 telemetry for rank-global metering and eval logging."""
+    if not isinstance(step_env_metrics, dict):
+        raise TypeError(
+            "A2 step environment metrics must be a shallow dict; "
+            f"got {type(step_env_metrics).__name__}."
+        )
+    if not isinstance(device, torch.device):
+        raise TypeError(f"A2 metric aggregation device must be torch.device; got {device!r}.")
+    gather = getattr(accelerator, "gather", None)
+    if not callable(gather):
+        raise TypeError("A2 metric aggregation requires accelerator.gather().")
+
+    prepared = dict(step_env_metrics)
+    count_key = _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY
+    if count_key in prepared:
+        count = prepared[count_key]
+        if (
+            not torch.is_tensor(count)
+            or count.ndim != 0
+            or not count.is_floating_point()
+            or not bool(torch.all(torch.isfinite(count)))
+            or bool(torch.any(count < 0.0))
+            or count.device != device
+        ):
+            raise ValueError(
+                "A2 root-X crossing count requires a finite non-negative floating "
+                f"scalar on {device}; got {count!r}."
+            )
+        gathered_count = gather(count)
+        if (
+            not torch.is_tensor(gathered_count)
+            or gathered_count.dtype != count.dtype
+            or gathered_count.device != device
+        ):
+            raise RuntimeError(
+                "A2 root-X crossing count gather must preserve floating dtype and device; "
+                f"got {gathered_count!r}."
+            )
+        global_count = gathered_count.sum()
+        if (
+            global_count.ndim != 0
+            or not global_count.is_floating_point()
+            or not bool(torch.all(torch.isfinite(global_count)))
+            or bool(global_count < 0.0)
+        ):
+            raise RuntimeError("A2 gathered root-X crossing count is invalid.")
+        prepared[count_key] = global_count
+
+    active_ratio_specs = []
+    for ratio_key, (numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+        ratio_keys = (ratio_key, numerator_key, denominator_key)
+        present = tuple(key in prepared for key in ratio_keys)
+        if not any(present):
+            continue
+        if not all(present):
+            raise ValueError(
+                "A2 conditional ratio telemetry requires complete public, numerator, "
+                f"and denominator fields for {ratio_key!r}."
+            )
+
+        ratio = prepared[ratio_key]
+        numerator = prepared[numerator_key]
+        denominator = prepared[denominator_key]
+        values = (ratio, numerator, denominator)
+        if (
+            not all(torch.is_tensor(value) for value in values)
+            or not all(value.ndim == 0 for value in values)
+            or not all(value.is_floating_point() for value in values)
+            or not all(value.device == device for value in values)
+            or len({value.dtype for value in values}) != 1
+            or not all(bool(torch.all(torch.isfinite(value))) for value in values)
+            or bool(numerator < 0.0)
+            or bool(numerator > denominator)
+            or bool(denominator < 0.0)
+        ):
+            raise ValueError(
+                "A2 conditional ratio telemetry requires finite floating scalar "
+                f"tensors on {device} with 0 <= numerator <= denominator; got "
+                f"ratio={ratio!r}, numerator={numerator!r}, denominator={denominator!r}."
+            )
+        active_ratio_specs.append((ratio_key, numerator_key, denominator_key))
+
+    if active_ratio_specs:
+        packed_values = []
+        for _ratio_key, numerator_key, denominator_key in active_ratio_specs:
+            packed_values.extend((prepared[numerator_key], prepared[denominator_key]))
+        packed = torch.stack(packed_values)
+        packed_width = packed.numel()
+        gathered_ratios = gather(packed)
+        if (
+            not torch.is_tensor(gathered_ratios)
+            or gathered_ratios.dtype != packed.dtype
+            or gathered_ratios.device != device
+            or gathered_ratios.ndim == 0
+            or gathered_ratios.numel() == 0
+            or gathered_ratios.numel() % packed_width != 0
+            or (
+                gathered_ratios.ndim > 1
+                and gathered_ratios.shape[-1] != packed_width
+            )
+        ):
+            raise RuntimeError(
+                "A2 conditional ratio gather must preserve dtype/device and expose "
+                f"a packed width of {packed_width}; got {gathered_ratios!r}."
+            )
+        gathered_ratios = gathered_ratios.reshape(-1, packed_width)
+        if not bool(torch.all(torch.isfinite(gathered_ratios))):
+            raise RuntimeError("A2 gathered conditional ratio telemetry must be finite.")
+        global_ratios = gathered_ratios.sum(dim=0)
+        for index, (_ratio_key, numerator_key, denominator_key) in enumerate(
+            active_ratio_specs
+        ):
+            numerator = global_ratios[2 * index]
+            denominator = global_ratios[2 * index + 1]
+            if (
+                not bool(torch.all(torch.isfinite(numerator)))
+                or not bool(torch.all(torch.isfinite(denominator)))
+                or bool(numerator < 0.0)
+                or bool(numerator > denominator)
+                or bool(denominator < 0.0)
+            ):
+                raise RuntimeError(
+                    "A2 gathered conditional ratio telemetry must satisfy "
+                    f"0 <= numerator <= denominator; got numerator={numerator!r}, "
+                    f"denominator={denominator!r}."
+                )
+            prepared[numerator_key] = numerator
+            prepared[denominator_key] = denominator
+            del prepared[_ratio_key]
+    for (
+        _metric_name,
+        (samples_key, mask_key, p50_key, p95_key),
+    ) in _A2_GLOBAL_ENV_QUANTILE_SPECS.items():
+        quantile_keys = (samples_key, mask_key, p50_key, p95_key)
+        if not any(key in prepared for key in quantile_keys):
+            continue
+        if samples_key not in prepared or mask_key not in prepared:
+            raise ValueError(
+                f"A2 quantile telemetry requires both {samples_key!r} and {mask_key!r}."
+            )
+        samples = prepared[samples_key]
+        sample_mask = prepared[mask_key]
+        if (
+            not torch.is_tensor(samples)
+            or samples.ndim != 1
+            or samples.numel() == 0
+            or not samples.is_floating_point()
+            or not bool(torch.all(torch.isfinite(samples)))
+            or samples.device != device
+            or not torch.is_tensor(sample_mask)
+            or sample_mask.ndim != 1
+            or sample_mask.shape != samples.shape
+            or sample_mask.dtype != torch.bool
+            or sample_mask.device != device
+        ):
+            raise ValueError(
+                "A2 quantile telemetry requires non-empty finite floating samples and "
+                f"a same-shape bool mask on {device}; got samples={samples!r}, "
+                f"mask={sample_mask!r}."
+            )
+
+        gathered_samples = gather(samples)
+        gathered_mask = gather(sample_mask)
+        if (
+            not torch.is_tensor(gathered_samples)
+            or gathered_samples.dtype != samples.dtype
+            or gathered_samples.device != device
+            or not torch.is_tensor(gathered_mask)
+            or gathered_mask.dtype != torch.bool
+            or gathered_mask.device != device
+        ):
+            raise RuntimeError(
+                "A2 quantile gather must preserve sample/mask dtype and device."
+            )
+        global_samples = gathered_samples.reshape(-1)
+        global_mask = gathered_mask.reshape(-1)
+        if global_samples.shape != global_mask.shape or global_samples.numel() == 0:
+            raise RuntimeError(
+                "A2 gathered quantile samples and mask must be non-empty and same-shape."
+            )
+        if not bool(torch.all(torch.isfinite(global_samples))):
+            raise RuntimeError("A2 gathered quantile samples must be finite.")
+        active_samples = global_samples[global_mask]
+        if active_samples.numel() == 0:
+            p50 = torch.zeros((), dtype=samples.dtype, device=device)
+            p95 = torch.zeros((), dtype=samples.dtype, device=device)
+        else:
+            p50 = torch.quantile(active_samples, 0.50)
+            p95 = torch.quantile(active_samples, 0.95)
+        prepared[p50_key] = p50
+        prepared[p95_key] = p95
+        del prepared[samples_key]
+        del prepared[mask_key]
+
+    return prepared
+
+
+def _finalize_a2_conditional_ratios(metrics):
+    """Reconstruct finalized conditional ratios after temporal metering."""
+    if not isinstance(metrics, dict):
+        raise TypeError(
+            "A2 conditional ratio finalization requires a dict; "
+            f"got {type(metrics).__name__}."
+        )
+
+    finalized = dict(metrics)
+    for ratio_key, (numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+        ratio_keys = (ratio_key, numerator_key, denominator_key)
+        present = tuple(key in finalized for key in ratio_keys)
+        if not any(present):
+            continue
+        if ratio_key in finalized:
+            raise ValueError(
+                f"A2 conditional ratio {ratio_key!r} must be absent before finalization."
+            )
+        if numerator_key not in finalized or denominator_key not in finalized:
+            raise ValueError(
+                "A2 conditional ratio finalization requires complete numerator and "
+                f"denominator fields for {ratio_key!r}."
+            )
+
+        numerator = finalized[numerator_key]
+        denominator = finalized[denominator_key]
+        if (
+            not torch.is_tensor(numerator)
+            or not torch.is_tensor(denominator)
+            or numerator.ndim != 0
+            or denominator.ndim != 0
+            or not numerator.is_floating_point()
+            or not denominator.is_floating_point()
+            or numerator.dtype != denominator.dtype
+            or numerator.device != denominator.device
+            or not bool(torch.all(torch.isfinite(numerator)))
+            or not bool(torch.all(torch.isfinite(denominator)))
+            or bool(numerator < 0.0)
+            or bool(numerator > denominator)
+            or bool(denominator < 0.0)
+        ):
+            raise ValueError(
+                "A2 conditional ratio finalization requires finite floating scalar "
+                "numerator/denominator tensors with 0 <= numerator <= denominator; "
+                f"got numerator={numerator!r}, denominator={denominator!r}."
+            )
+
+        ratio = torch.where(
+            denominator > 0.0,
+            numerator / denominator,
+            torch.zeros_like(denominator),
+        )
+        if not bool(torch.all(torch.isfinite(ratio))):
+            raise RuntimeError(
+                f"A2 finalized conditional ratio {ratio_key!r} must be finite."
+            )
+        finalized[ratio_key] = ratio
+
+    return finalized
+
+
+def _normalize_a2_eval_optional_ratios(records):
+    """Convert undefined eval-only ratios to JSON null while retaining raw fields."""
+    if not isinstance(records, list):
+        raise TypeError(
+            "A2 eval optional-ratio records must be a list; "
+            f"got {type(records).__name__}."
+        )
+
+    for record_index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise TypeError(
+                "A2 eval optional-ratio records must contain dictionaries; "
+                f"record {record_index} is {type(record).__name__}."
+            )
+        for ratio_key, (_numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+            if ratio_key not in record:
+                continue
+            if denominator_key not in record:
+                raise ValueError(
+                    f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                    f"requires explicit denominator {denominator_key!r}; missing."
+                )
+
+            denominator = record[denominator_key]
+            if isinstance(denominator, torch.Tensor):
+                if (
+                    denominator.ndim != 0
+                    or denominator.dtype == torch.bool
+                    or denominator.is_complex()
+                ):
+                    raise ValueError(
+                        f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                        f"requires a finite non-negative scalar denominator "
+                        f"{denominator_key!r}; got tensor shape={tuple(denominator.shape)}, "
+                        f"dtype={denominator.dtype}."
+                    )
+                denominator = denominator.detach().cpu().item()
+            elif isinstance(denominator, np.ndarray):
+                if denominator.ndim != 0:
+                    raise ValueError(
+                        f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                        f"requires a finite non-negative scalar denominator "
+                        f"{denominator_key!r}; got array shape={denominator.shape}."
+                    )
+                denominator = denominator.item()
+            elif isinstance(denominator, np.generic):
+                denominator = denominator.item()
+
+            if isinstance(denominator, (bool, np.bool_)) or not isinstance(
+                denominator, (int, float, np.integer, np.floating)
+            ):
+                raise ValueError(
+                    f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                    f"requires a finite non-negative scalar numeric denominator "
+                    f"{denominator_key!r}; got {type(denominator).__name__}."
+                )
+            denominator_value = float(denominator)
+            if not math.isfinite(denominator_value) or denominator_value < 0.0:
+                raise ValueError(
+                    f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                    f"requires a finite non-negative scalar denominator "
+                    f"{denominator_key!r}; got {denominator!r}."
+                )
+            if denominator_value == 0.0:
+                record[ratio_key] = None
+
+    return records
+
+
 def _validate_optional_a2_config_value(config, key, metadata_value):
     if key in config and config.get(key) != metadata_value:
         raise ValueError(
@@ -1593,7 +1974,10 @@ class TRLPPOTrainer(PPOTrainer):
         self.policy_model.reset(dones)
         if self.value_model is not None:
             self.value_model.reset(dones)
-        self.episode_env_tensors.add(infos["to_log"])
+        prepared_env_metrics = _prepare_a2_env_metrics_for_aggregation(
+            infos["to_log"], self.accelerator, self.accelerator.device
+        )
+        self.episode_env_tensors.add(prepared_env_metrics)
 
     def _register_stats_buffer(self):
         args = self.args
@@ -2313,7 +2697,25 @@ class TRLPPOTrainer(PPOTrainer):
                 )
                 metrics["lr"] = self.lr_scheduler.get_last_lr()[0]
                 metrics["episode"] = self.state.episode
-                env_log_dict = self.episode_env_tensors.mean_and_clear()
+                env_log_dict_local = self.episode_env_tensors.mean_and_clear()
+                env_log_dict_local = _finalize_a2_conditional_ratios(env_log_dict_local)
+                # Synchronize every environment metric across ranks before logging.
+                env_log_dict = {
+                    k: (
+                        self.accelerator.gather_for_metrics(
+                            torch.tensor(v, dtype=torch.float32).to(device)
+                        )
+                        .mean()
+                        .item()
+                        if not isinstance(v, (int, float))
+                        else self.accelerator.gather_for_metrics(
+                            torch.tensor(v, dtype=torch.float32).to(device)
+                        )
+                        .mean()
+                        .item()
+                    )
+                    for k, v in env_log_dict_local.items()
+                }
 
                 ep_infos = process_ep_infos(self.ep_infos, device)
                 self.state.tot_timesteps += (
@@ -2917,7 +3319,11 @@ class TRLPPOTrainer(PPOTrainer):
                             "episode_length_buf": self.cur_episode_length.clone(),
                             "dones": dones.clone(),
                         }
-                        to_log_record.update(infos["to_log"])
+                        prepared_env_metrics = _prepare_a2_env_metrics_for_aggregation(
+                            infos["to_log"], self.accelerator, device
+                        )
+                        prepared_env_metrics = _finalize_a2_conditional_ratios(prepared_env_metrics)
+                        to_log_record.update(prepared_env_metrics)
                         eval_to_log_records.append(to_log_record)
 
                     self.cur_reward_sum += rewards
@@ -2992,6 +3398,8 @@ class TRLPPOTrainer(PPOTrainer):
         if dump_eval_to_log_metrics:
             to_log_metrics_path = os.path.join(eval_output_dir, "eval_to_log_metrics.json")
             to_log_metrics_tmp_path = f"{to_log_metrics_path}.tmp"
+            # Eval-only conversion; training keeps raw finite tensor metrics in its meter.
+            _normalize_a2_eval_optional_ratios(eval_to_log_records)
             safe_to_log_metrics = _make_json_safe(
                 eval_to_log_records, path="eval_to_log_metrics"
             )

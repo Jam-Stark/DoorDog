@@ -139,6 +139,8 @@ env:
     # matching A2 door-open bypass diagnostics. Override to 0.6 for D1.
     a2_stage3_to4_door_hinge_threshold: 0.174533
     a2_stage3_base_unlocked: false
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

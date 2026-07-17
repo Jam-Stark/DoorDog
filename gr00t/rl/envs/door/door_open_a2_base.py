@@ -311,6 +311,168 @@ def a2_stage3_to4_advance_mask(
     return door_opened & hold_streak_ok if requires_grasp_streak else door_opened
 
 
+def a2_stage34_hold_income_mask(
+    stage_buf: torch.Tensor,
+    release_gate: torch.Tensor,
+    stage_open: int,
+    stage_swing: int,
+) -> torch.Tensor:
+    """Return the stage3/4 hold-income mask with an episode-latched release gate."""
+    if (
+        not torch.is_tensor(stage_buf)
+        or stage_buf.ndim != 1
+        or stage_buf.dtype != torch.long
+        or not torch.is_tensor(release_gate)
+        or release_gate.shape != stage_buf.shape
+        or release_gate.dtype != torch.bool
+        or release_gate.device != stage_buf.device
+        or isinstance(stage_open, bool)
+        or not isinstance(stage_open, int)
+        or isinstance(stage_swing, bool)
+        or not isinstance(stage_swing, int)
+        or stage_open == stage_swing
+    ):
+        raise ValueError(
+            "A2 stage3/4 hold-income mask requires a long stage vector, a matching "
+            "bool release-gate vector, and distinct integer stage values."
+        )
+    return (stage_buf == stage_open) | ((stage_buf == stage_swing) & ~release_gate)
+
+def a2_update_stage4_release_and_root_latches(
+    release_gate: torch.Tensor,
+    root_x_ever_crossed: torch.Tensor,
+    stage_buf: torch.Tensor,
+    hinge_pos: torch.Tensor,
+    root_x: torch.Tensor,
+    release_hinge_threshold: float,
+    stage_swing: int,
+    update_mask: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """OR-latch stage4 release and current-episode root-X crossing state."""
+    if (
+        not torch.is_tensor(release_gate)
+        or release_gate.ndim != 1
+        or release_gate.dtype != torch.bool
+        or not torch.is_tensor(root_x_ever_crossed)
+        or root_x_ever_crossed.shape != release_gate.shape
+        or root_x_ever_crossed.dtype != torch.bool
+        or root_x_ever_crossed.device != release_gate.device
+        or not torch.is_tensor(stage_buf)
+        or stage_buf.shape != release_gate.shape
+        or stage_buf.dtype != torch.long
+        or stage_buf.device != release_gate.device
+        or not torch.is_tensor(hinge_pos)
+        or hinge_pos.shape != release_gate.shape
+        or not hinge_pos.is_floating_point()
+        or hinge_pos.device != release_gate.device
+        or not torch.is_tensor(root_x)
+        or root_x.shape != release_gate.shape
+        or not root_x.is_floating_point()
+        or root_x.dtype != hinge_pos.dtype
+        or root_x.device != release_gate.device
+        or not torch.all(torch.isfinite(hinge_pos))
+        or not torch.all(torch.isfinite(root_x))
+        or isinstance(release_hinge_threshold, bool)
+        or not isinstance(release_hinge_threshold, (int, float))
+        or not math.isfinite(float(release_hinge_threshold))
+        or float(release_hinge_threshold) <= 0.0
+        or isinstance(stage_swing, bool)
+        or not isinstance(stage_swing, int)
+    ):
+        raise ValueError("A2 route latches require matching device-local vectors and a finite positive threshold.")
+    if update_mask is None:
+        update_mask = torch.ones_like(release_gate)
+    elif (
+        not torch.is_tensor(update_mask)
+        or update_mask.shape != release_gate.shape
+        or update_mask.dtype != torch.bool
+        or update_mask.device != release_gate.device
+    ):
+        raise ValueError("A2 route latch update_mask must be a matching device-local bool vector.")
+    release_candidate = update_mask & (stage_buf == stage_swing) & (
+        hinge_pos >= float(release_hinge_threshold)
+    )
+    root_crossing_candidate = update_mask & (root_x > 0.0)
+    return (
+        release_gate | release_candidate,
+        root_x_ever_crossed | root_crossing_candidate,
+    )
+
+def a2_apply_stage4_target_root_distance_scale(
+    reward: torch.Tensor,
+    stage_buf: torch.Tensor,
+    release_gate: torch.Tensor,
+    stage_swing: int,
+) -> torch.Tensor:
+    """Apply the unreleased-stage4 half scale while leaving stage5 unchanged."""
+    if (
+        not torch.is_tensor(reward)
+        or reward.ndim != 1
+        or not reward.is_floating_point()
+        or not torch.all(torch.isfinite(reward))
+        or not torch.is_tensor(stage_buf)
+        or stage_buf.shape != reward.shape
+        or stage_buf.dtype != torch.long
+        or stage_buf.device != reward.device
+        or not torch.is_tensor(release_gate)
+        or release_gate.shape != reward.shape
+        or release_gate.dtype != torch.bool
+        or release_gate.device != reward.device
+        or isinstance(stage_swing, bool)
+        or not isinstance(stage_swing, int)
+    ):
+        raise ValueError("A2 target-root-distance scaling requires matching finite reward, long stage, and bool release-gate vectors.")
+    scaled_reward = reward.clone()
+    unreleased_stage4 = (stage_buf == stage_swing) & ~release_gate
+    scaled_reward[unreleased_stage4] *= 0.5
+    return scaled_reward
+
+def a2_apply_stage45_doorframe_contact_scale(
+    contact_force: torch.Tensor,
+    stage_buf: torch.Tensor,
+    stage_swing: int,
+    stage_through: int,
+    scale: float,
+) -> torch.Tensor:
+    """Scale only stage4/5 door-frame contact force for A2."""
+    if (
+        not torch.is_tensor(contact_force)
+        or contact_force.ndim != 1
+        or not contact_force.is_floating_point()
+        or not torch.all(torch.isfinite(contact_force))
+        or not torch.is_tensor(stage_buf)
+        or stage_buf.shape != contact_force.shape
+        or stage_buf.dtype != torch.long
+        or stage_buf.device != contact_force.device
+        or isinstance(stage_swing, bool)
+        or not isinstance(stage_swing, int)
+        or isinstance(stage_through, bool)
+        or not isinstance(stage_through, int)
+        or stage_swing == stage_through
+        or isinstance(scale, bool)
+        or not isinstance(scale, (int, float))
+        or not math.isfinite(float(scale))
+        or not 0.0 <= float(scale) <= 1.0
+    ):
+        raise ValueError("A2 stage4/5 door-frame scaling requires matching finite contact/stage vectors, distinct integer stages, and scale in [0, 1].")
+    stage45 = (stage_buf == stage_swing) | (stage_buf == stage_through)
+    multiplier = torch.where(
+        stage45,
+        contact_force.new_tensor(float(scale)),
+        torch.ones_like(contact_force),
+    )
+    return contact_force * multiplier
+
+def a2_root_x_first_crossing_env_count(root_x_ever_crossed: torch.Tensor) -> torch.Tensor:
+    """Count environments that crossed root-X zero during the current episode."""
+    if (
+        not torch.is_tensor(root_x_ever_crossed)
+        or root_x_ever_crossed.ndim != 1
+        or root_x_ever_crossed.dtype != torch.bool
+    ):
+        raise ValueError("A2 root-X crossing count requires a 1D bool latch vector.")
+    return root_x_ever_crossed.sum(dtype=torch.float32)
+
 def a2_hold_quaternion_geodesic_rad(quat_a: torch.Tensor, quat_b: torch.Tensor):
     """Return the sign-invariant geodesic angle between unit WXYZ quaternions."""
     if (
@@ -2429,6 +2591,12 @@ class DoorPregrasp(
         "a2_stage3_to4_door_hinge_threshold"
     )
     A2_STAGE3_BASE_UNLOCKED_CONFIG_KEY = "a2_stage3_base_unlocked"
+    A2_STAGE4_RELEASE_HINGE_THRESHOLD_CONFIG_KEY = (
+        "a2_stage4_release_hinge_threshold"
+    )
+    A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY = (
+        "a2_stage45_door_frame_contact_scale"
+    )
     A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY = "a2_gripper_source_tcp_offset_z"
     A2_GRASP_GATE_MODE_CONFIG_KEY = "a2_grasp_gate_mode"
     A2_GRASP_STREAK_CONTROL_STEPS_CONFIG_KEY = "a2_grasp_streak_control_steps"
@@ -2580,6 +2748,24 @@ class DoorPregrasp(
             "A2 stage3 handle-limit telemetry",
         )
 
+    def _get_a2_stage4_release_hinge_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE4_RELEASE_HINGE_THRESHOLD_CONFIG_KEY,
+            "A2 stage4 release gate",
+        )
+
+    def _get_a2_stage45_door_frame_contact_scale(self) -> float:
+        value = self._get_required_finite_float_config(
+            self.A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY,
+            "A2 stage4/5 door-frame contact penalty",
+        )
+        if not 0.0 <= value <= 1.0:
+            raise RuntimeError(
+                "A2 stage4/5 door-frame contact penalty scale must be finite in [0.0, 1.0]; "
+                f"got {value}."
+            )
+        return value
+
     def _validate_a2_v13_door_semantics_config(self):
         unlatch_norm = self._get_a2_stage3_unlatch_handle_position_norm()
         handle_limit = self._get_a2_stage3_handle_hard_limit_position()
@@ -2591,6 +2777,8 @@ class DoorPregrasp(
         self._get_a2_stage3_to4_requires_grasp_streak()
         self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
         self._get_a2_stage3_stage4_coasting_velocity_threshold()
+        self._get_a2_stage4_release_hinge_threshold()
+        self._get_a2_stage45_door_frame_contact_scale()
         if unlatch_norm >= handle_limit:
             raise RuntimeError(
                 "A2 unlatch reward normalization must be below the handle hard limit; "
@@ -3118,8 +3306,14 @@ class DoorPregrasp(
                 self.num_envs, dtype=torch.long, device=self.device
             )
             self._a2_grasp_streak_last_full_update_step = -1
+            self._a2_stage4_release_gate = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_root_x_ever_crossed = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
         self.relative_door_pos_buf = torch.zeros(
-            self.num_envs, 3, device=self.device, requires_grad=False
+            self.num_envs, 3, device=self.device, requires_grad=False,
         )
         self.relative_door_rot_buf = torch.zeros(
             self.num_envs, 4, device=self.device, requires_grad=False
@@ -3139,6 +3333,7 @@ class DoorPregrasp(
         super()._pre_compute_observations_callback(env_ids)
         if self._use_a2_base:
             self._update_a2_grasp_control_streaks(env_ids)
+            self._update_a2_stage4_release_and_root_latches(env_ids)
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
         current_root_pos = self.simulator.robot_root_states[env_ids, :3].clone()
@@ -3273,6 +3468,87 @@ class DoorPregrasp(
             )
         )
         self._a2_grasp_streak_last_full_update_step = common_step_counter
+
+    def _update_a2_stage4_release_and_root_latches(self, env_ids=None):
+        if not self._use_a2_base:
+            raise RuntimeError("A2 route latches are only defined for A2 Piper configs.")
+        release_gate = getattr(self, "_a2_stage4_release_gate", None)
+        root_x_ever_crossed = getattr(self, "_a2_root_x_ever_crossed", None)
+        stage_buf = getattr(self, "stage_buf", None)
+        for field_name, field_value, expected_dtype in (
+            ("_a2_stage4_release_gate", release_gate, torch.bool),
+            ("_a2_root_x_ever_crossed", root_x_ever_crossed, torch.bool),
+            ("stage_buf", stage_buf, torch.long),
+        ):
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != expected_dtype
+                or field_value.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                dtype = None if not torch.is_tensor(field_value) else field_value.dtype
+                device = None if not torch.is_tensor(field_value) else field_value.device
+                raise RuntimeError(
+                    f"A2 route latch update requires {field_name} shape ({self.num_envs},), "
+                    f"dtype={expected_dtype}, device={self.device}; got shape={shape}, "
+                    f"dtype={dtype}, device={device}."
+                )
+        if env_ids is None:
+            update_mask = None
+        else:
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "A2 route latch partial callback requires valid device-local long env_ids."
+                )
+            update_mask = torch.zeros_like(release_gate)
+            update_mask[env_ids] = True
+        root_states = getattr(self.simulator, "robot_root_states", None)
+        env_origins = getattr(self, "env_origins", None)
+        if (
+            not torch.is_tensor(root_states)
+            or root_states.ndim != 2
+            or root_states.shape[0] != self.num_envs
+            or root_states.shape[1] < 3
+            or not root_states.is_floating_point()
+            or root_states.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(root_states) else tuple(root_states.shape)
+            raise RuntimeError(
+                f"A2 route latch update requires robot_root_states shape ({self.num_envs}, >=3) "
+                f"on {self.device}; got {shape}."
+            )
+        if (
+            not torch.is_tensor(env_origins)
+            or tuple(env_origins.shape) != (self.num_envs, 3)
+            or not env_origins.is_floating_point()
+            or env_origins.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(env_origins) else tuple(env_origins.shape)
+            raise RuntimeError(
+                f"A2 route latch update requires env_origins shape ({self.num_envs}, 3) "
+                f"on {self.device}; got {shape}."
+            )
+        door_joint_pos = self._get_door_joint_pos("A2 route latch update", 1)
+        updated_gate, updated_crossed = a2_update_stage4_release_and_root_latches(
+            release_gate,
+            root_x_ever_crossed,
+            stage_buf,
+            door_joint_pos[:, 0],
+            root_states[:, 0] - env_origins[:, 0],
+            self._get_a2_stage4_release_hinge_threshold(),
+            self.STAGE_SWING,
+            update_mask,
+        )
+        release_gate[:] = updated_gate
+        root_x_ever_crossed[:] = updated_crossed
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
@@ -3767,9 +4043,10 @@ class DoorPregrasp(
             raise RuntimeError(
                 "a2_stage4_grasp_target_distance_mild is only defined for A2 Piper configs."
             )
-        return self._get_a2_grasp_target_distance_reward(
+        reward = self._get_a2_grasp_target_distance_reward(
             "A2 stage4 mild grasp_target_distance"
         )
+        return reward * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage(STAGE_GRASP)
     def _reward_a2_stage2_close_command(self):
@@ -4086,7 +4363,8 @@ class DoorPregrasp(
         primitive = self._get_a2_gripper_primitive_raw_column(
             "a2_stage3_stage4_keep_close_command"
         )
-        return ((-primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        reward = ((-primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        return reward * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
     def _reward_penalty_a2_stage3_stage4_open_command(self):
@@ -4097,7 +4375,8 @@ class DoorPregrasp(
         primitive = self._get_a2_gripper_primitive_raw_column(
             "penalty_a2_stage3_stage4_open_command"
         )
-        return ((primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        reward = ((primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        return reward * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
     def _reward_a2_stage3_stage4_both_contact(self):
@@ -4108,7 +4387,7 @@ class DoorPregrasp(
         masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
             "a2_stage3_stage4_both_contact"
         )
-        return masks["both_contact"].float()
+        return masks["both_contact"].float() * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
     def _reward_a2_stage3_stage4_opposite_squeeze(self):
@@ -4119,7 +4398,7 @@ class DoorPregrasp(
         masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
             "a2_stage3_stage4_opposite_squeeze"
         )
-        return (masks["both_contact"] & masks["opposite_squeeze"]).float()
+        return (masks["both_contact"] & masks["opposite_squeeze"]).float() * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
     def _reward_a2_stage3_stage4_squeeze_force_window(self):
@@ -4130,7 +4409,7 @@ class DoorPregrasp(
         masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
             "a2_stage3_stage4_squeeze_force_window"
         )
-        return masks["squeeze_window"].float()
+        return masks["squeeze_window"].float() * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
     def _reward_a2_stage3_stage4_contact_stability(self):
@@ -4138,7 +4417,7 @@ class DoorPregrasp(
             raise RuntimeError(
                 "a2_stage3_stage4_contact_stability is only defined for A2 Piper configs."
             )
-        return self._get_a2_stage3_stage4_contact_stability_mask().float()
+        return self._get_a2_stage3_stage4_contact_stability_mask().float() * self._get_a2_stage34_hold_income_mask().float()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
     def _reward_penalty_a2_stage3_stage4_over_force(self):
@@ -4308,6 +4587,8 @@ class DoorPregrasp(
             .clamp(min=0.0, max=1.5708)
             / 1.5708
         )
+        if self._use_a2_base:
+            hinge_pos_reward = hinge_pos_reward * self._get_a2_stage34_hold_income_mask().float()
         return (hinge_vel_reward + hinge_pos_reward).clamp(max=1.0, min=-1.0)
 
     @StagedTaskBase.effective_in_stage([STAGE_SWING, STAGE_THROUGH])
@@ -4331,7 +4612,12 @@ class DoorPregrasp(
             root_pos_diff, std=0.2, target=0.0, scale=1.0, offset=0.0
         )
         reward = (root_vel_reward + root_pos_reward).clamp(max=1.0)
-        reward[self.stage_buf == DoorPregrasp.STAGE_SWING] *= 0.5
+        if self._use_a2_base:
+            reward = a2_apply_stage4_target_root_distance_scale(
+                reward, self.stage_buf, self._a2_stage4_release_gate, DoorPregrasp.STAGE_SWING
+            )
+        else:
+            reward[self.stage_buf == DoorPregrasp.STAGE_SWING] *= 0.5
         return reward
 
     @override
@@ -4370,7 +4656,16 @@ class DoorPregrasp(
         door_frame_unwanted_contact_forces = self.simulator.scene.sensors[
             "door_frame_unwanted_contact_sensor"
         ].data.net_forces_w
-        return door_frame_unwanted_contact_forces.norm(dim=-1).sum(dim=-1)
+        contact_force = door_frame_unwanted_contact_forces.norm(dim=-1).sum(dim=-1)
+        if self._use_a2_base:
+            return a2_apply_stage45_doorframe_contact_scale(
+                contact_force,
+                self.stage_buf,
+                self.STAGE_SWING,
+                self.STAGE_THROUGH,
+                self._get_a2_stage45_door_frame_contact_scale(),
+            )
+        return contact_force
 
     def _reward_penalty_door_panel_contact(self):
         # A2 global PASS: A2 scene callback creates the same door panel contact sensor
@@ -4606,6 +4901,15 @@ class DoorPregrasp(
             "A2 grasp-gated door semantics",
         )
         return streak >= self._get_a2_grasp_streak_control_steps()
+
+    def _get_a2_stage34_hold_income_mask(self) -> torch.Tensor:
+        if not self._use_a2_base:
+            raise RuntimeError("A2 stage3/4 hold-income mask is only defined for A2 Piper configs.")
+        stage_buf = getattr(self, "stage_buf", None)
+        release_gate = getattr(self, "_a2_stage4_release_gate", None)
+        return a2_stage34_hold_income_mask(
+            stage_buf, release_gate, self.STAGE_OPEN, self.STAGE_SWING
+        )
 
     def _get_a2_grasp_gated_door_reward_components(self):
         door_joint_pos = self._get_door_joint_pos(
@@ -5112,6 +5416,7 @@ class DoorPregrasp(
         stage3_active = stage_buf == self.STAGE_OPEN
         stage4_active = stage_buf == self.STAGE_SWING
         stage5_active = stage_buf == self.STAGE_THROUGH
+        stage4_release_gate = stage4_active & ~self._get_a2_stage34_hold_income_mask()
         stage3_stage4_active = stage3_active | stage4_active
         stage3_stage4_primitive = self._get_a2_gripper_primitive_raw_column(
             "A2 stage3/4 route diagnostics"
@@ -5366,6 +5671,8 @@ class DoorPregrasp(
             "a2_stage2_gripper_raw_sign_flip_frac": raw_sign_flip,
             "a2_stage3_active_frac": stage3_active,
             "a2_stage4_active_frac": stage4_active,
+            "a2_stage4_release_gate_numerator_frac": stage4_release_gate,
+            "a2_stage4_release_gate_denominator_frac": stage4_active,
             "a2_stage5_active_frac": stage5_active,
             "a2_stage3_stage4_raw_close_frac": stage3_stage4_raw_close,
             "a2_stage3_stage4_raw_open_frac": stage3_stage4_raw_open,
@@ -5387,6 +5694,8 @@ class DoorPregrasp(
                 stage3_active & hold_and_drive_event
             ),
             "a2_stage3_hold_and_drive_denominator_frac": stage3_active,
+            "a2_stage3_stage4_hold_and_drive_numerator_frac": hold_and_drive_event,
+            "a2_stage3_stage4_hold_and_drive_denominator_frac": stage3_stage4_active,
             "a2_stage3_unlatch_hold_issued_numerator_frac": unlatch_hold_issued,
             "a2_stage3_unlatch_hold_issued_denominator_frac": stage3_active,
             "a2_stage3_stage4_coasting_numerator_frac": coasting,
@@ -5396,6 +5705,9 @@ class DoorPregrasp(
         }
         for name, mask in diagnostics.items():
             self.log_dict[name] = mask.float().mean()
+        self.log_dict["a2_stage4_release_gate_frac"] = (
+            a2_masked_boolean_fraction(stage4_release_gate, stage4_active)
+        )
         self.log_dict["a2_stage2_single_contact_duration_mean"] = (
             self._a2_stage2_single_contact_duration.float().mean()
         )
@@ -5484,12 +5796,14 @@ class DoorPregrasp(
             or not torch.is_tensor(root_states)
             or root_states.ndim != 2
             or root_states.shape[0] != self.num_envs
-            or root_states.shape[1] < 7
+            or root_states.shape[1] < 10
+            or not root_states.is_floating_point()
+            or root_states.device != torch.device(self.device)
         ):
             shape = None if root_states is None else tuple(root_states.shape)
             raise RuntimeError(
                 "A2 route diagnostics require simulator.robot_root_states shape "
-                f"({self.num_envs}, >=7); got {shape}."
+                f"({self.num_envs}, >=10) floating tensor on {self.device}; got {shape}."
             )
         env_origins = getattr(self, "env_origins", None)
         if (
@@ -5535,6 +5849,28 @@ class DoorPregrasp(
         self.log_dict["a2_doorframe_contact_frac"] = (
             door_frame_contact_force > 1.0
         ).float().mean()
+
+        self.log_dict["a2_root_x_first_crossing_env_count"] = (
+            a2_root_x_first_crossing_env_count(self._a2_root_x_ever_crossed)
+        )
+        self.log_dict["_a2_stage5_forward_velocity_samples"] = root_states[:, 7]
+        self.log_dict["_a2_stage5_forward_velocity_sample_mask"] = stage5_active
+        self.log_dict["_a2_stage45_doorframe_contact_force_samples"] = (
+            door_frame_contact_force
+        )
+        self.log_dict["_a2_stage45_doorframe_contact_force_sample_mask"] = (
+            stage4_active | stage5_active
+        )
+        self.log_dict["a2_stage5_forward_velocity_p50"] = a2_masked_float_quantile(
+            root_states[:, 7],
+            stage5_active,
+            0.5,
+        )
+        self.log_dict["a2_stage45_doorframe_contact_force_p95"] = a2_masked_float_quantile(
+            door_frame_contact_force,
+            stage4_active | stage5_active,
+            0.95,
+        )
 
     def _get_a2_axes_from_quat(self, quat, context):
         expected_shape = (self.num_envs, 4)
@@ -12278,6 +12614,9 @@ class DoorPregrasp(
                 env_ids
             ]
             self._finish_a2_static_clamp(affected)
+        if self._use_a2_base:
+            self._a2_stage4_release_gate[env_ids] = False
+            self._a2_root_x_ever_crossed[env_ids] = False
         return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override

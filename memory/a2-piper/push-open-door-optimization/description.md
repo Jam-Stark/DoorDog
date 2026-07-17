@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-16 22:39 HKT
+last_updated: 2026-07-17 15:39 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -10,7 +10,7 @@ owned_paths:
   - memory/a2-piper/push-open-door-optimization/DONE.md
 read_when:
   - 开始设计、训练、eval、render 或复盘 base_v9 之后的 A2+Piper full-stage 推门 policy 时
-  - 需要确认当前 `v13_A`/`v13_B` training-ready config、`v13_pre` gate evidence、matched eval 口径或 `logs_eval` co-location contract 时
+  - 需要确认当前 `v13_A`/`v13_B` endpoint result、`v13_pre` gate evidence、matched eval/render 口径或 `logs_eval` co-location contract 时
 ---
 
 # Push-Open-Door Optimization
@@ -23,9 +23,14 @@ read_when:
 
 ## Current State
 
+- 正式4-rank训练已完成：A run 为 `logs_rl/a2_piper_full_stage_a2_base/base_v13_A_main-20260716_225345/`、endpoint `model_step_003000.pt`；B run 为 `logs_rl/a2_piper_full_stage_a2_base/base_v13_B_gate_only-20260716_225413/`、endpoint `model_step_001500.pt`。两者 checkpoint ZIP/CPU load、finite policy tensor 与 saved-config identity PASS；A/B endpoint SHA-256 分别为 `d576ca4b...057a36`、`f201eb9c...ada5`。
+- Endpoint matched scalar/trace 使用 seed0、16 env、每 env first episode。A artifact 为 `logs_eval/base_v13/base_v13_A_ckpt3000_matched_scalar_trace_16env_seed0_20260717_r2/`：`0/16 goal`、`16/16 stage3`、`16/16 stage4`、`4/16 stage5`，其余12个停在stage4，全部 `stage_overtime`；terminal hinge p50/p95 为 `1.276/1.631rad`，16/16 都超过 `.4rad`。B artifact 为 `logs_eval/base_v13/base_v13_B_ckpt1500_matched_scalar_trace_16env_seed0_20260717/`：`0/16 goal`、`0/16 stage3`、全部停在stage2；per-env stage2 squeeze-streak max仅 `3–4`，未达到 K=5。
+- A 达到 plan 的 intermediate-success behavior，但不是全 guardrail PASS：stage3/4 positive-motion bilateral `99.949%`、over-force `0.181%`、stage3 body8 single-contact `0.069%`、hinge velocity p95 `.21149rad/s`、coasting `0.045%`、j7 open-limit `1.258%` 均过线；j8 open-limit `14.151%` 超过 `<10%` 阈值，stage3 handle hard-limit 为 `27.416%`。因此它证明门运动/持续双侧夹持已突破，不构成 final goal、全 guardrail 或单seed因果 winner。
+- A endpoint qualitative render 为 `logs_eval/base_v13/base_v13_A_ckpt3000_render_2env_3cam_seed0_20260717_r2/`：2 env × default/handle_top/handle_side 共6个 MP4，均 `1280×720@20fps`、655 frames/32.75s、首尾帧可解码且无 `.writing.mp4`；两 env 都为 stage4 overtime/len654，与16-env scalar 的 env0/1 episode outcome一致。Render只作定性证据；hinge终值不要求与 non-render rollout bitwise相同。
+- stage2/3/4/terminal sampled-frame目视复核显示两env均随门持续运动、夹爪保持围绕handle，无明显“单次拍门后脱手/门自由飞走”；终点机器人仍以别扭姿态停在门口并卡stage4，故当前定性bottleneck已从unlatch/hold转到stage4 completion/through-door target。该结论受2-env qualitative subsample限制。
 - `v13_A` main 与 `v13_B` gate-only 已按 plan 实施为独立 ablation config。正式 4-rank contract 为每 rank `num_envs=1024`，故每组 global rollout batch 为 `4096`；A global cap `3000`、B `1500`、save every `250`，都从 v12_C step3000 `policy_only` warm-start。A 启用 Kp/Kd `800/25`、PhysX velocity iterations `2`、stage3 base unlock、`push_door_handle=0`、grasp-gated unlatch/hold-and-drive `3/8` 与 grasp-conditioned stage3→4；B 保持 v12_C 的 `80/3`、velocity iterations `1`、base locked、handle reward `6`，新 reward 为零且不启用 M6。
 - M5/M6/M9 source 已完成：新增 grasp-gated `unlatch_hold`/`hold_and_drive` reward、A2-only explicit stage3→4 grasp switch、per-stage stability 分子/分母、hold-and-drive/unlatch/coasting、handle p50/p95/hard-limit 与 hinge-velocity telemetry。`eval_to_log_metrics.json` 自动继承全部 `log_dict`；新增 `scriptsFORhuman/a2_piper_v13_gate_zero_warning.py`，按输入 checkpoint 顺序对 gate metric 连续 exact-zero 打显式 WARNING，并支持 fail-on-warning。
-- v13_A/B validation 为 78 个 targeted tests、Python compile、Hydra compose、diff check、reward/config/API static review PASS。4-rank concurrent smoke 使用 A GPU0–3/port29513、B GPU4–7/port29514，各 `64 env/rank × 50 batches`；两组都完成 iteration50、写出 `model_step_000050.pt` 与 `last.pt`，step50 checkpoint CPU load PASS，runtime telemetry 无 NaN/shape/config failure。Kit 在 trainer 完成后停于 shutdown hang，checkpoint 落盘后由 Ctrl-C 释放，因此 smoke training/checkpoint PASS，但不把 launcher numeric exit 写成 clean-exit PASS。正式 A/B training 尚未启动。
+- v13_A/B validation 为 78 个 targeted tests、Python compile、Hydra compose、diff check、reward/config/API static review PASS。4-rank concurrent smoke 使用 A GPU0–3/port29513、B GPU4–7/port29514，各 `64 env/rank × 50 batches`；两组都完成 iteration50、写出 `model_step_000050.pt` 与 `last.pt`，step50 checkpoint CPU load PASS，runtime telemetry 无 NaN/shape/config failure。Kit 在 trainer 完成后停于 shutdown hang，checkpoint落盘后由Ctrl-C释放，因此只对 smoke training/checkpoint声明PASS；正式 run 与 endpoint evidence见本节首四条。
 - `base_v12` A/B/C/D 已完成训练与 matched eval，不再是“尚未启动”的 config anchor。四组 matched 终局均 `0/16 goal`、无 stage4；A step3000 仅 2/16 进入 stage3，C step3000 保持最佳 stage2 grasp 但旧 gate 下 0/16 stage3，B/D step2750 均停在 stage2 open-command/no-contact basin。single-seed 2×2 受 learned basin/stage exposure 支配，不能给出稳定 factorial causality 或 winner。
 - v12_C step3000 的旧 gate 直接证据：stage2 current-frame both contact `92.0%`、opposite/sufficient squeeze 各约 `93.1%`，但 5 个连续 physics-frame all-history stability/completion 恰为 `0`。ContactSensor history 在 200Hz physics loop 更新，而 policy control 为 50Hz；旧 5-frame window 仅约 25ms 且跨 action boundary，故 gate 时间尺度是结构性 blocker。
 - `v13_pre` 已实施 M1：required config `a2_grasp_gate_mode` 支持显式 `control_streak|physics_history`，`a2_grasp_streak_control_steps=5`；control mode 每个 control step 取 sensor latest frame `[:,0]`，stage2 squeeze 与 stage3/4 bilateral streak 只更新一次，reset/stage switch 清零，completion/stability getters 无副作用。未知 mode、缺失/非法 K、shape/dtype/device 或 duplicate full update 直接 fail-fast；legacy physics-history path 只用于历史复现/消融。
@@ -52,7 +57,8 @@ read_when:
 
 | Item | Value |
 |---|---|
-| Policy reference | `logs_rl/a2_piper_full_stage_a2_base/base_v12_C_v10A_scratch_stability1-20260716_004404/model_step_003000.pt` |
+| Current policy candidate | `logs_rl/a2_piper_full_stage_a2_base/base_v13_A_main-20260716_225345/model_step_003000.pt` |
+| Warm-start reference | `logs_rl/a2_piper_full_stage_a2_base/base_v12_C_v10A_scratch_stability1-20260716_004404/model_step_003000.pt` |
 | Training seed | `0` |
 | TCP source local-Z | `0.085m` |
 | Gripper Kp/Kd | v13_A `800/25`; v13_B/v13_pre `80/3` |
@@ -65,13 +71,13 @@ read_when:
 | Formal v13 resource | 4 ranks per group, `1024 env/rank`, global rollout batch `4096`; A/B use distinct GPU sets and ports |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
-当前 v13 warm-start policy reference 是 v12_C step3000；它已由 M10 证明可在 control-step gate 下稳定进入 stage3，但仍没有压 handle 或推门。所有训练/eval 解释以保存的 resolved runtime config 为准。
+当前 behavior candidate 是 v13_A step3000；v12_C step3000 仍仅是 A/B 的共同 warm-start reference。所有训练/eval解释以保存的resolved runtime config为准，A的single-seed组合干预不能拆成M2/M3/M5/M6单因果结论。
 
 ## Current Experiment
 
-`v13_A` main 与 `v13_B` gate-only 现在是 training-ready experiment pair；code/config/tests 与 4-rank concurrent smoke 已完成，正式 long training 尚未启动。A/B 都使用 v12_C step3000 policy-only warm-start与 control-step K=5 gate；A 承担 M2/M3/M5/M6 的组合干预，B 是只分离 M1 的 v12_C behavior control。
+`v13_A` main 与 `v13_B` gate-only formal training、endpoint matched eval 与A qualitative render都已完成。A是首个在该线路中实现 `16/16 stage4`、持续双侧夹持和显著hinge rotation的candidate，但仍 `0/16 goal`、仅 `4/16 stage5`，并违反j8 open-limit guardrail；B则在K=5前保持3–4步streak、`0/16 stage3`。
 
-下一步是在两个独立 foreground terminal 启动 A 与 B：A GPU0–3/port29513，约 10 秒后 B GPU4–7/port29514，之后并行训练；A 到 global step3000，B 到1500。首要监控 iter250/500/1000 的 stage2→3、stage3/4 stability、hold-and-drive、handle hard-limit、coasting 与 over-force；训练后执行 matched seed0/16-env/first-episode eval。M7/M8/v13_C/v13_D 仍按 plan 条件触发，不因 training-ready 自动进入。
+下一步按plan进入bounded `v13.1` diagnosis：render与trace已排除明显detach/拍门飞走，优先解释A的stage4→5/goal failure，联合检查transition predicate、`dont_push_door_handle`、`target_root_distance`、base/doorframe event与终点姿态；同时定位j8 backdrive与stage3 handle hard-limit。M7/M8/v13_C/v13_D不因A取得door-motion breakthrough自动启动，仍需新的明确实验问题与matched contract。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -92,10 +98,11 @@ read_when:
 - `base_v12` superseded the old repair_r2 proposal：四组 current-source scratch launch 使用 literal `num_envs=4096` per rank、2 ranks（global rollout batch8192）、global cap3000/save250、committed exact source freeze 与四个独立 foreground terminals/distinct ports；后续训练与 matched eval 已完成，终局见 Current State。
 - Resume command 的 `num_total_batches` 必须写全局 target step：从 restored step1000 到 step2000 传 `2000`，不是传 remaining count `1000`；此 global-cap gotcha 继续适用于任何 future full-state resume。
 - `base_v11` matched scalar/trace 使用 module invocation、seed0、16 env、每 env first episode；scalar/trace 是 primary evidence。比较 hinge max/terminal 与 stage4 entry，bilateral/stability、over-force、j7/j8 limit 作为 guardrail。
+- 2-env render 必须显式覆盖 `++algo.config.num_mini_batches=2`；保存训练配置的默认值4会在trainer初始化时因 `batch_size=2` 不能整除而fail-fast。`v13_A` 的 `push_door_handle=0`，eval diagnostic reward list也必须显式移除该inactive term并加入active `a2_stage3_unlatch_hold`/`a2_stage3_stage4_hold_and_drive`，不得绕过active-reward validation。
 - Render 保持相同 checkpoint/seed/episode semantics，只用于解释 contact、detach、jam、doorframe event 与动作自然性，不参与 success-rate 统计。默认从 matched eval env 中随机选取2个 env，只渲染这2个 env；每个 env 生成 default、handle-side、handle-top 3个 camera video，总计 `2 env × 3 camera = 6 videos`。除非用户明确要求，不再默认对16个 env 做全量 render；2-env qualitative subsample 不能替代16-env scalar/trace primary evidence。
 - 原始完整 shell command 未保留；human report 中的 train/eval/render blocks 明确是从 saved Hydra overrides/config 重建的模板。
 - Sibling worktree eval 使用 `python -m gr00t.rl.eval_agent_trl`，避免 direct-script invocation 命中另一 worktree 的 editable-install source。
-- Future base-specific A2 eval 必须把完整 result folder 写到 `logs_eval/base_vN/<eval-run>/`：folder 直接包含 `.hydra/`、eval logs、metrics/traces/diagnostics 与可选 `renderings/`。`eval_output_dir` 是 canonical path，`eval_name` 仅为 leaf label；`base_eval.yaml` 的 `eval_log_dir` alias 与 rendering default 都跟随 `eval_output_dir`。该 co-location contract 已由 v13_pre scalar/trace runtime 验证；新 eval 的 rendering path 仍保持未验证。
+- Future base-specific A2 eval 必须把完整 result folder 写到 `logs_eval/base_vN/<eval-run>/`：folder 直接包含 `.hydra/`、eval logs、metrics/traces/diagnostics 与可选 `renderings/`。`eval_output_dir` 是 canonical path，`eval_name` 仅为 leaf label；`base_eval.yaml` 的 `eval_log_dir` alias 与 rendering default 都跟随 `eval_output_dir`。该 co-location contract 已由 v13_pre/v13 endpoint scalar/trace 与A 2-env render runtime验证。现有base trace仍会在 `a2_diagnostic_trace_enabled=false` 时写出，不得据此误报strict no-trace PASS。
 - Historical `logs_eval` migration：首批129个 version-named eval dirs 已归入 `base_v0..base_v11`；另有48个旧 top-level Hydra dirs whole-tree 迁移，36个 exact-paired 到 canonical result 的 `.hydra_provenance/<old-top-dir>`，12个 versioned/unpaired 到 `base_vN/_unpaired_hydra/<old-top-dir>`。`_eval_inputs` 与 `replay_v2` 保留 top-level，迁移后 top-level 共14项；无 symlink/collision，但未收集 content hash，故仅有 layout/static evidence。
 
 ## Evidence Boundaries
@@ -107,10 +114,12 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-16 22:39 HKT - 用户纠正 v13_A/B 正式资源合同为4 ranks × 1024 env/rank（global batch4096）；配置、测试与命令已同步。下一步是启动正式 long training、监控 milestone 并做 matched eval；`UNLATCH_NORM=0.6rad` 仍是 provisional，若 A hinge/hold-and-drive 持续近零再触发 latch-angle/friction 标定。M7/M8/v13_C/v13_D 保持 conditional。
+- 2026-07-17 15:39 HKT - A/B formal training、endpoint matched eval与A 2-env×3-camera render/目视抽查已完成；未见明显拍门脱手，失败已转移到stage4 completion/through-door target。下一步检查stage4→5 predicate、target_root_distance/base/doorframe/终点姿态，并定位j8 open-limit 14.151%与handle hard-limit 27.416%；不自动启动v13_C/D。
 
 ## DONE Summary
 
+- 2026-07-17 15:39 HKT - A render sampled-frame目视复核：两env都持续带把手开门，无明显detach或拍门飞走；终点仍在门口以别扭姿态卡stage4。定性结果与positive-motion bilateral 99.949%/coasting .045%一致，但2-env render不替代16-env scalar/trace。
+- 2026-07-17 15:18 HKT - v13 endpoint runtime完成：A step3000为0/16 goal、16/16 stage4、4/16 stage5，门运动与hold主指标通过但j8 open-limit超10%；B step1500为0/16 stage3，K=5 streak max仅3–4。A render成功产出6个可解码720p/20fps视频；2-env eval需把num_mini_batches从4覆盖为2，A diagnostic reward list需排除inactive push_door_handle。
 - 2026-07-16 22:39 HKT - v13_A/B code/config/M5/M6/M9 与 4-rank concurrent smoke PASS；正式资源合同经用户纠正为1024 env/rank（global4096）：78 tests、compile、Hydra/static/diff checks PASS；A/B 各 `64 env/rank × 50` 完成并产出可 CPU load 的 step50/last checkpoint。正式 training 尚未启动，Kit post-checkpoint shutdown hang 由 Ctrl-C 释放，不声明 clean launcher exit。
 - 2026-07-16 21:09 HKT - `v13_pre` M1 + M10 runtime PASS：control-step streak gate/config/telemetry 已实现，72 tests/compile/compose/diff checks PASS；v12_C step3000 matched r2 为 16/16 stage3 entry，首过 stage2 control-step `16/20.5/27`，stage3 bilateral/stability `99.815%/98.692%`，hinge 仍近零。根因 A 已证实，M2–M9/v13_A 尚未完成。
 - 2026-07-16 00:29 HKT - 完成 `base_v12` A/B/C/D current-source v10_A-style scratch factorial configuration/static evidence sync：A `80/3+.5`、B `160/6+.5`、C `80/3+1.0`、D `160/6+1.0`；四组均 checkpoint null、planned 2 ranks、literal `num_envs=4096` per rank、global cap3000/save250。strict YAML/resolved compose/factorial/mapping、CODE_QUALITY、IsaacLab static/no-sim semantics 与 NO_SIM_QA PASS。`base_v12` 不是 v9 reproduction（v9 是 v8_A policy-only warm-start，historical source byte equivalence 未证实）；未启动 training/eval/IsaacSim/runtime，故没有 behavior、resource feasibility、checkpoint I/O 或 winner evidence。

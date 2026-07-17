@@ -1,3 +1,3 @@
 # TODO
 
-- 2026-07-16 22:39 HKT - `v13_A` main 与 `v13_B` gate-only 已完成 code/config/review 及 4-rank concurrent smoke；下一步在两个独立 foreground terminal 按 GPU0–3/port29513 与 GPU4–7/port29514 启动正式训练，每 rank `num_envs=1024`（每组 global batch4096），A 到 global step3000、B 到1500。约10秒 stagger 后并行，监控 iter250/500/1000 的 stage2→3、stage3/4 stability、hold-and-drive、handle hard-limit、coasting 与 over-force，随后做 matched seed0/16-env/first-episode eval。`UNLATCH_NORM=0.6rad` 与 friction/latch physical calibration 仅在 A hinge/hold-and-drive 持续近零时触发；M7/M8/v13_C/v13_D 仍保持 conditional。
+- 2026-07-17 15:39 HKT - A/B formal training与endpoint eval已完成，A 2-env×3-camera render/抽帧目视也已完成；两env持续带把手开门、无明显detach或拍门飞走，但均以别扭姿态停在门口并stage4 overtime。下一步做bounded `v13.1` diagnosis：解释A的12/16 stage4与4/16 stage5为何均未goal，核对stage4→5 predicate、`dont_push_door_handle`、`target_root_distance`、base/doorframe event与终点姿态；同时定位j8 open-limit `14.151%`与stage3 handle hard-limit `27.416%`。M7/M8/v13_C/v13_D仍保持conditional。

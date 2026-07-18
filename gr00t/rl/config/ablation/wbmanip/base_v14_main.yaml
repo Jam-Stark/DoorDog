@@ -1,0 +1,80 @@
+# @package _global_
+
+# v14 round 1: wider door spring/handle-force and handle-height randomization,
+# staging band, live release gate, and policy-only warm-start from v13.1 step3000.
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v13_1_main-20260717_202500/model_step_003000.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 1024
+headless: true
+
+algo:
+  trl:
+    num_total_batches: 3000
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_stage2_contact_force_threshold: 1.0
+    a2_stage2_squeeze_force_min: 2.0
+    a2_stage2_squeeze_force_max: 20.0
+    a2_stage2_over_force_threshold: 40.0
+    a2_grasp_gate_mode: control_streak
+    a2_grasp_streak_control_steps: 5
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_to4_requires_grasp_streak: true
+    a2_stage3_base_unlocked: true
+    a2_stage3_unlatch_handle_position_norm: 0.6
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
+    a2_stage3_stage4_coasting_velocity_threshold: 0.1
+    a2_stage3_handle_hard_limit_position: 0.785398
+    a2_stage3_handle_hard_limit_tolerance: 0.005
+    a2_stage4_release_hinge_threshold: 1.04
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_stage0_staging_x_min: 0.55
+    a2_stage0_staging_x_max: 0.60
+    a2_stage0_staging_y_tol: 0.15
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_initial_penalty_scale: 1.0
+  reward_min_penalty_scale: 1.0
+  reward_max_penalty_scale: 1.0
+  reward_penalty_degree: 0.0
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 6.0
+    push_door_force: 0.0
+    a2_stage3_unlatch_hold: 3.0
+    a2_stage3_stage4_hold_and_drive: 8.0
+    a2_stage3_stage4_keep_close_command: 0.5
+    penalty_a2_stage3_stage4_open_command: -1.0
+    a2_stage3_stage4_both_contact: 0.5
+    a2_stage3_stage4_opposite_squeeze: 0.5
+    a2_stage3_stage4_squeeze_force_window: 0.5
+    a2_stage3_stage4_contact_stability: 0.5
+    penalty_a2_stage3_stage4_over_force: -1.0
+
+robot:
+  control:
+    stiffness:
+      arm_j7: 800.0
+      arm_j8: 800.0
+    damping:
+      arm_j7: 25.0
+      arm_j8: 25.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2

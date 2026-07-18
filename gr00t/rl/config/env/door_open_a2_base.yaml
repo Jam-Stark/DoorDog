@@ -95,7 +95,9 @@ env:
     pregrasp_target_vel: 0.3
     target_root_vel: 0.3
 
-    a2_stage0_staging_x_offset: 0.70
+    a2_stage0_staging_x_min: 0.55
+    a2_stage0_staging_x_max: 0.60
+    a2_stage0_staging_y_tol: 0.15
     # A2 Piper virtual TCP. 0.09755 is the measured finger-collider longitudinal
     # midpoint; the current policy/training default remains 0.085.
     a2_gripper_source_tcp_offset_z: 0.085

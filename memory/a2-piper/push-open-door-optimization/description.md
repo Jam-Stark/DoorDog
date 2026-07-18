@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-18 22:13 HKT
+last_updated: 2026-07-19 07:07 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -24,6 +24,10 @@ read_when:
 ## Current State
 
 - 2026-07-18 22:13 HKT - `base_v13_1_main-20260717_202500` resolved run 为seed0、4 ranks × `1024 env/rank`、global batch `4096`、global cap `3000`、save250；该saved override supersede plan中的2000-batch预期。endpoint `model_step_003000.pt` state为global/max `3000/3000`，SHA-256 `e836427e...167945`。
+- 2026-07-19 07:07 HKT - `base_v14_main`已完成training-ready implementation：warm-start为`base_v13_1_main` step3000 `policy_only`；Option A保持`12D actor / 5D [vx, vy, yaw, pitch, roll]`，无spring observation；4 ranks×1024 env/rank、global batch4096、3000 batches、save250。
+- 2026-07-19 07:07 HKT - M16为right/out、hinge `[2.5,7.0]`、handle `[1.0,3.0]`、final handle height `[0.80,1.05]`；M17 stage0 x `[0.55,0.60]`、`|dy|<0.15`；M19 release latch `1.04 < 1.0472` stage4→5；M20 strict telemetry/three-seed bucket report/high cap`1.05`。
+- 2026-07-19 07:07 HKT - M18 runtime PASS：`scriptsFORhuman/a2_piper_v14_reachability_20260719/`有7×10×3=`210` exact cells、12 feasible；严格规则`tcp_error<0.03`、无self-collision、joint margin`>0.1`。选择x `[0.55,0.60]`、cap1.05，1.10无feasible；high handles1.00/1.05仅diagnostic root height0.75（`>=0.70`）feasible。root height是static diagnostic placement，不是action/command dimension；M18 door collisions disabled且仅final static contact evidence，不证明dynamic policy reachability或hardware certainty。
+- 2026-07-19 07:07 HKT - initial focused `45 passed`、post-review impacted `31 passed`、py_compile/Hydra compose/diff PASS；strict outcome types、M20 cap1.05、exact raw-grid coordinates三项fail-fast修复后CODE_QUALITY、IsaacLab semantics、runtime QA PASS。v14 formal training/smoke/eval/checkpoint runtime/policy quality均NOT RUN。
 - 2026-07-18 22:13 HKT - endpoint matched artifact `logs_eval/base_v13_1/base_v13_1_main_ckpt3000_matched_scalar_trace_16env_seed0_20260718_r3/` exit0：seed0、16 env、per-env first episode，`16/16 goal`、`16/16 stage5`、`16/16 complete`；length min/mean/max `388/455.0625/502`，reward min/mean/max `103.3703/112.3147/119.3493`。forced-close/oracle均关闭，scalar/trace/diagnostic metadata完整。
 - 2026-07-18 22:13 HKT - 2-env render artifact `logs_eval/base_v13_1/base_v13_1_main_ckpt3000_render_2env_3cam_seed0_20260718/` exit0：env0 len502、env1 len497，均goal/stage5/complete；default/handle_top/handle_side共6个MP4，无`.writing.mp4`，OpenCV逐帧解码PASS，均`1280×720@20fps`，env0/env1分别503/498帧。
 - 2026-07-18 22:13 HKT - eval首次暴露single-process `accelerator.device=cuda` 与telemetry tensor `cuda:0`的strict comparison mismatch；`_canonicalize_a2_metric_device`仅将indexless CUDA解析为`torch.cuda.current_device()`，保留explicit index/CPU与全部shape/dtype/finite/exact-device fail-fast。13个targeted tests、py_compile、CODE_QUALITY及matched GPU eval runtime PASS。
@@ -65,9 +69,9 @@ read_when:
 
 | Item | Value |
 |---|---|
-| Current policy candidate | `base_v13_1_main` step3000；warm-start为v13_A step3000 policy-only |
-| Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v13_1_main.yaml` |
-| Warm-start reference | v13_A step3000 `policy_only`；其warm-start为v12_C step3000 |
+| Current behavior / warm-start reference | `base_v13_1_main` step3000 `policy_only` |
+| Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v14_main.yaml` |
+| v14 warm-start | v13.1 step3000 `policy_only`; Option A `12D actor / 5D base command`，无spring observation |
 | Training seed | `0` |
 | TCP source local-Z | `0.085m` |
 | Gripper Kp/Kd | v13_A `800/25`; v13_B/v13_pre `80/3` |
@@ -80,13 +84,13 @@ read_when:
 | Formal v13.1 resource | saved runtime为4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；已完成 |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
-当前formal behavior candidate是`base_v13_1_main` step3000；其warm-start为v13_A step3000。所有训练/eval解释以保存的resolved runtime config为准，single-seed结果不能拆成单因素因果结论。
+当前training-ready config是`base_v14_main`；formal behavior/warm-start reference仍是`base_v13_1_main` step3000。v14尚无training/smoke/eval/checkpoint runtime或policy-quality evidence；所有训练/eval解释以保存的resolved runtime config为准，single-seed结果不能拆成单因素因果结论。
 
 ## Current Experiment
 
-`base_v13_1_main` formal run、endpoint matched scalar/trace eval与2-env×3-camera render均已完成。saved runtime实际训练到step3000；matched eval为16/16 goal/stage5/complete，render env0/1 outcome一致且6个视频逐帧可解码。
+`base_v14_main`是当前training-ready experiment；M16–M20与M18 static reachability boundary已验证到批准范围。v14 formal training、smoke、matched eval、checkpoint runtime、policy quality与launcher natural exit均NOT RUN。
 
-eval/render进程均natural exit0；formal training launcher natural-exit状态未在本轮重新核验。下一步只做formal telemetry/trace/render的objective review并决定promotion或是否需要`v13_1_noM13`等ablation，任何新训练不自动启动。
+`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。下一步由用户启动formal `v14_main`，按iter500/1000/2000执行matched eval，并在endpoint完成canonical+seed1/2 bucket report与render；v14 training natural exit、checkpoint runtime与policy quality在实际run前均未验证。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -123,7 +127,7 @@ eval/render进程均natural exit0；formal training launcher natural-exit状态�
 
 ## TODO Summary
 
-- 2026-07-18 22:13 HKT - 基于step3000 matched scalar/trace与2-env render做objective review，决定是否promotion或提出`v13_1_noM13`等后续ablation；不自动启动新训练。formal training launcher natural-exit状态仍未在本轮重新核验。
+- 2026-07-19 07:07 HKT - 用户启动formal `v14_main`；在500/1000/2000执行matched eval，并在endpoint完成canonical+seed1/2 bucket report/render。formal training natural exit、checkpoint runtime与v14 policy quality在实际run前均未验证。
 
 ## DONE Summary
 
@@ -147,3 +151,5 @@ eval/render进程均natural exit0；formal training launcher natural-exit状态�
 - 2026-07-13 17:41 HKT - 用户明确版本语义：新 `base_v10` 必须是四个 random-init long-training policies，不允许从 v9/v8 checkpoint warm-start；该决定 supersede 17:36 HKT 的 `base_v9_B policy_only` 方案。
 - 2026-07-13 17:36 HKT - 归档并清理一次 launcher-only failure：删除四个 `20260713_173141` partial run 与对应 `/tmp` logs，终止 12 个 orphan processes；该启动未产出 checkpoint，不是 `base_v10` 实验结果。Durable gotcha 是 IsaacSim multi-group training 不使用 `setsid`/detached wrapper。
 - 2026-07-13 16:37 HKT - 建立独立 full-stage push-open-door optimization memory；归档 `base_v9` 四组 formal/matched 失败结论、j8/body8 backdrive、gain/friction evidence boundary、matched-clean scientific failure与停止诊断决定，并把详细 base_v0→v9 findings/commands route 到 human report。
+- 2026-07-19 07:07 HKT - `base_v14_main` training-ready implementation/M16–M20完成：保持v13.1 step3000 `policy_only`与Option A `12D actor / 5D base command`，4×1024/global4096/3000/save250；M19 `1.04 < 1.0472`，M20 strict telemetry/three-seed buckets/high cap1.05。
+- 2026-07-19 07:07 HKT - M18 runtime PASS：artifact有210 exact cells/12 feasible、x `[0.55,0.60]`、cap1.05、1.10无feasible；static diagnostic evidence（door collisions disabled）不证明dynamic policy/hardware。45+31 tests、py_compile/Hydra compose/diff、CODE_QUALITY/IsaacLab/runtime QA PASS；v14 training/smoke/eval/policy quality NOT RUN。

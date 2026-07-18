@@ -3,6 +3,7 @@
 
 
 import os
+from numbers import Real
 from typing import Literal, Optional
 
 import isaaclab.sim as sim_utils
@@ -38,6 +39,22 @@ from gr00t.rl.isaac_utils.playground.utils.usd_utils import (
 )
 
 
+def _sample_uniform_range(value: tuple[float, float], field_name: str) -> float:
+    """Sample a finite, strictly ordered numeric range."""
+    if not isinstance(value, tuple) or len(value) != 2:
+        raise TypeError(f"{field_name} must be a 2-item tuple")
+    if any(isinstance(bound, bool) or not isinstance(bound, Real) for bound in value):
+        raise TypeError(f"{field_name} bounds must be real numbers")
+
+    low = float(value[0])
+    high = float(value[1])
+    if not np.isfinite(low) or not np.isfinite(high) or low >= high:
+        raise ValueError(
+            f"{field_name} must be finite and strictly ordered (low < high): {value!r}"
+        )
+    return float(np.random.uniform(low, high))
+
+
 @configclass
 class DoorSpawnerCfg(sim_utils.RigidObjectSpawnerCfg):
     articulation_props: sim_utils.ArticulationRootPropertiesCfg = None
@@ -48,6 +65,8 @@ class DoorSpawnerCfg(sim_utils.RigidObjectSpawnerCfg):
     door_open_lr: list[Literal["left", "right"]] = ["left", "right"]
     door_open_io: list[Literal["in", "out"]] = ["in", "out"]
     door_weight: tuple[float, float] = (80.0, 120.0)
+    hinge_drive_max_force_range: tuple[float, float] = (2.5, 4.5)
+    handle_drive_max_force_range: tuple[float, float] = (1.0, 2.0)
     add_walls: bool = False
     wall_minimum_clearance_fblr: tuple[float, float, float, float] = (3.0, 3.0, 1.0, 1.0)
     wall_maximum_clearance_fblr: tuple[float, float, float, float] = (10.0, 10.0, 10.0, 10.0)
@@ -479,7 +498,10 @@ def spawn_door(
     hinge_drive = UsdPhysics.DriveAPI.Apply(hinge_joint.GetPrim(), "angular")
     hinge_drive.GetTargetPositionAttr().Set(-10.0)
     hinge_drive.GetMaxForceAttr().Set(
-        np.random.uniform(2.5, 4.5)
+        _sample_uniform_range(
+            cfg.hinge_drive_max_force_range,
+            "hinge_drive_max_force_range",
+        )
         if cfg.rand_hinge_drive_max_force is None
         else cfg.rand_hinge_drive_max_force
     )
@@ -506,7 +528,10 @@ def spawn_door(
     handle_drive = UsdPhysics.DriveAPI.Apply(handle_joint.GetPrim(), "angular")
     handle_drive.GetTargetPositionAttr().Set(-15.0)
     handle_drive.GetMaxForceAttr().Set(
-        np.random.uniform(1.0, 2.0)
+        _sample_uniform_range(
+            cfg.handle_drive_max_force_range,
+            "handle_drive_max_force_range",
+        )
         if cfg.rand_handle_drive_max_force is None
         else cfg.rand_handle_drive_max_force
     )
@@ -921,6 +946,9 @@ def spawn_door(
             (0, 0, 0),
             (1.0, 1.0, 1.0),
         )
+
+    if cfg.collision_props is not None:
+        schemas.modify_collision_properties(root_prim_path, cfg.collision_props)
 
     # encode some metadata
     metadata_key = "customData"

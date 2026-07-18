@@ -137,6 +137,30 @@ _A2_GLOBAL_ENV_QUANTILE_SPECS = {
         "a2_stage45_doorframe_contact_force_p50",
         "a2_stage45_doorframe_contact_force_p95",
     ),
+    "a2_hinge_at_crossing": (
+        "_a2_hinge_at_crossing_samples",
+        "_a2_hinge_at_crossing_sample_mask",
+        "a2_hinge_at_crossing_p50",
+        "a2_hinge_at_crossing_p95",
+    ),
+    "a2_stage0_to1_staging_standoff": (
+        "_a2_stage0_to1_staging_standoff_samples",
+        "_a2_stage0_to1_staging_standoff_sample_mask",
+        "a2_stage0_to1_staging_standoff_p50",
+        "a2_stage0_to1_staging_standoff_p95",
+    ),
+    "a2_stage0_actual_root_height": (
+        "_a2_stage0_actual_root_height_samples",
+        "_a2_stage0_actual_root_height_sample_mask",
+        "a2_stage0_actual_root_height_p50",
+        "a2_stage0_actual_root_height_p95",
+    ),
+    "a2_stage1_actual_root_height": (
+        "_a2_stage1_actual_root_height_samples",
+        "_a2_stage1_actual_root_height_sample_mask",
+        "a2_stage1_actual_root_height_p50",
+        "a2_stage1_actual_root_height_p95",
+    ),
 }
 _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
 
@@ -199,7 +223,13 @@ def _prepare_a2_env_metrics_for_aggregation(step_env_metrics, accelerator, devic
         prepared[count_key] = global_count
 
     active_ratio_specs = []
-    for ratio_key, (numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+    for ratio_key, (numerator_key, denominator_key) in {
+        **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+        "a2_crossing_while_holding_frac": (
+            "a2_crossing_while_holding_numerator_frac",
+            "a2_crossing_while_holding_denominator_frac",
+        ),
+    }.items():
         ratio_keys = (ratio_key, numerator_key, denominator_key)
         present = tuple(key in prepared for key in ratio_keys)
         if not any(present):
@@ -356,7 +386,13 @@ def _finalize_a2_conditional_ratios(metrics):
         )
 
     finalized = dict(metrics)
-    for ratio_key, (numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+    for ratio_key, (numerator_key, denominator_key) in {
+        **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+        "a2_crossing_while_holding_frac": (
+            "a2_crossing_while_holding_numerator_frac",
+            "a2_crossing_while_holding_denominator_frac",
+        ),
+    }.items():
         ratio_keys = (ratio_key, numerator_key, denominator_key)
         present = tuple(key in finalized for key in ratio_keys)
         if not any(present):
@@ -408,6 +444,124 @@ def _finalize_a2_conditional_ratios(metrics):
     return finalized
 
 
+def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs):
+    """Build one strict v14 bucket-report record per first-episode environment."""
+    if (
+        not isinstance(eval_dict, dict)
+        or isinstance(seed, bool)
+        or not isinstance(seed, int)
+        or isinstance(expected_num_envs, bool)
+        or not isinstance(expected_num_envs, int)
+        or expected_num_envs <= 0
+    ):
+        raise ValueError(
+            "A2 v14 eval records require a summary dict, integer seed, and "
+            "positive expected_num_envs."
+        )
+    diagnostics = eval_dict.get("episode_terminal_diagnostics")
+    goal_reached = eval_dict.get("episode_goal_reached")
+    max_stage = eval_dict.get("episode_max_stage_reached")
+    for field_name, field_value in (
+        ("episode_terminal_diagnostics", diagnostics),
+        ("episode_goal_reached", goal_reached),
+        ("episode_max_stage_reached", max_stage),
+    ):
+        if not isinstance(field_value, list) or len(field_value) != expected_num_envs:
+            raise ValueError(
+                f"A2 v14 eval summary requires {field_name} list length "
+                f"{expected_num_envs}; got "
+                f"{None if not isinstance(field_value, list) else len(field_value)}."
+            )
+
+    metadata_fields = (
+        "door_hinge_drive_max_force",
+        "door_handle_drive_max_force",
+        "door_handle_height",
+    )
+    telemetry_fields = (
+        "crossing_while_holding",
+        "hinge_at_crossing",
+        "stage0_to1_staging_standoff",
+        "stage0_actual_root_height",
+        "stage1_actual_root_height",
+    )
+    records = []
+    seen_env_ids = set()
+    for index, diagnostic in enumerate(diagnostics):
+        if not isinstance(diagnostic, dict):
+            raise ValueError(
+                f"A2 v14 terminal diagnostic {index} must be a dict."
+            )
+        required = (
+            "env_id",
+            "stage_buf",
+            *metadata_fields,
+            *telemetry_fields,
+        )
+        missing = [field_name for field_name in required if field_name not in diagnostic]
+        if missing:
+            raise ValueError(
+                f"A2 v14 terminal diagnostic {index} is missing {missing}."
+            )
+        env_id = diagnostic["env_id"]
+        if (
+            isinstance(env_id, bool)
+            or not isinstance(env_id, int)
+            or env_id < 0
+            or env_id >= expected_num_envs
+            or env_id in seen_env_ids
+        ):
+            raise ValueError(
+                f"A2 v14 terminal diagnostic has invalid/duplicate env_id={env_id!r}."
+            )
+        seen_env_ids.add(env_id)
+        goal_value = goal_reached[index]
+        if not isinstance(goal_value, bool):
+            raise ValueError(
+                f"A2 v14 episode_goal_reached[{index}] must be bool; "
+                f"got {goal_value!r}."
+            )
+        max_stage_value = max_stage[index]
+        final_stage_value = diagnostic["stage_buf"]
+        for field_name, stage_value in (
+            ("episode_max_stage_reached", max_stage_value),
+            ("stage_buf", final_stage_value),
+        ):
+            if (
+                isinstance(stage_value, bool)
+                or not isinstance(stage_value, int)
+                or not 0 <= stage_value <= 5
+            ):
+                raise ValueError(
+                    f"A2 v14 {field_name}[{index}] must be an integer in [0,5]; "
+                    f"got {stage_value!r}."
+                )
+        if final_stage_value > max_stage_value:
+            raise ValueError(
+                f"A2 v14 stage_buf[{index}]={final_stage_value} cannot exceed "
+                f"episode_max_stage_reached[{index}]={max_stage_value}."
+            )
+        record = {
+            "seed": seed,
+            "env_id": env_id,
+            "goal_reached": goal_value,
+            "max_stage": max_stage_value,
+            "final_stage": final_stage_value,
+        }
+        for field_name in (*metadata_fields, *telemetry_fields):
+            record[field_name] = diagnostic[field_name]
+        records.append(record)
+
+    expected_ids = set(range(expected_num_envs))
+    if seen_env_ids != expected_ids:
+        raise ValueError(
+            "A2 v14 eval records require exactly one record for each env id; "
+            f"missing={sorted(expected_ids - seen_env_ids)}, "
+            f"extra={sorted(seen_env_ids - expected_ids)}."
+        )
+    return sorted(records, key=lambda record: record["env_id"])
+
+
 def _normalize_a2_eval_optional_ratios(records):
     """Convert undefined eval-only ratios to JSON null while retaining raw fields."""
     if not isinstance(records, list):
@@ -422,7 +576,13 @@ def _normalize_a2_eval_optional_ratios(records):
                 "A2 eval optional-ratio records must contain dictionaries; "
                 f"record {record_index} is {type(record).__name__}."
             )
-        for ratio_key, (_numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+        for ratio_key, (_numerator_key, denominator_key) in {
+            **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+            "a2_crossing_while_holding_frac": (
+                "a2_crossing_while_holding_numerator_frac",
+                "a2_crossing_while_holding_denominator_frac",
+            ),
+        }.items():
             if ratio_key not in record:
                 continue
             if denominator_key not in record:
@@ -3415,6 +3575,32 @@ class TRLPPOTrainer(PPOTrainer):
                 json.dump(safe_to_log_metrics, f, indent=4, allow_nan=False)
             os.replace(to_log_metrics_tmp_path, to_log_metrics_path)
             logger.info(f"Saved eval to_log metrics to {to_log_metrics_path}")
+
+        if a2_stage2_trace_enabled and eval_num_envs_episodes:
+            if self.accelerator.num_processes != 1:
+                raise RuntimeError(
+                    "A2 v14 per-env eval records require single-process matched eval."
+                )
+            v14_eval_records = _build_a2_v14_eval_records(
+                eval_dict,
+                int(self.args.seed),
+                self.env.num_envs,
+            )
+            v14_records_path = os.path.join(
+                eval_output_dir,
+                "a2_v14_per_env_records.json",
+            )
+            v14_records_tmp_path = f"{v14_records_path}.tmp"
+            safe_v14_records = _make_json_safe(
+                v14_eval_records,
+                path="a2_v14_per_env_records",
+            )
+            with open(v14_records_tmp_path, "w") as f:
+                json.dump(safe_v14_records, f, indent=4, allow_nan=False)
+            os.replace(v14_records_tmp_path, v14_records_path)
+            logger.info(
+                f"Saved A2 v14 per-env records to {v14_records_path}"
+            )
 
         if a2_eval_diagnostics["diagnostic_enabled"]:
             get_action_layout = getattr(

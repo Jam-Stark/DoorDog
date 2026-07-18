@@ -473,6 +473,99 @@ def a2_root_x_first_crossing_env_count(root_x_ever_crossed: torch.Tensor) -> tor
         raise ValueError("A2 root-X crossing count requires a 1D bool latch vector.")
     return root_x_ever_crossed.sum(dtype=torch.float32)
 
+
+def a2_validate_stage0_staging_band(
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+) -> tuple[float, float, float]:
+    """Validate and normalize the A2 stage0 staging-band contract."""
+    values = (x_min, x_max, y_tol)
+    if any(
+        isinstance(value, bool) or not isinstance(value, (int, float))
+        for value in values
+    ):
+        raise ValueError("A2 stage0 staging band requires three numeric values.")
+    x_min, x_max, y_tol = (float(value) for value in values)
+    if not all(math.isfinite(value) for value in (x_min, x_max, y_tol)):
+        raise ValueError("A2 stage0 staging band values must be finite.")
+    if x_min <= 0.0 or x_max < x_min or y_tol <= 0.0:
+        raise ValueError(
+            "A2 stage0 staging band requires 0 < x_min <= x_max and y_tol > 0."
+        )
+    return x_min, x_max, y_tol
+
+
+def _validate_a2_stage0_staging_tensors(
+    root_pos: torch.Tensor,
+    grasp_target: torch.Tensor,
+) -> None:
+    if (
+        not torch.is_tensor(root_pos)
+        or not torch.is_tensor(grasp_target)
+        or root_pos.ndim != 2
+        or tuple(root_pos.shape) != tuple(grasp_target.shape)
+        or root_pos.shape[1] != 3
+        or not root_pos.is_floating_point()
+        or grasp_target.dtype != root_pos.dtype
+        or grasp_target.device != root_pos.device
+        or not torch.all(torch.isfinite(root_pos))
+        or not torch.all(torch.isfinite(grasp_target))
+    ):
+        raise ValueError(
+            "A2 stage0 staging geometry requires matching finite floating (N, 3) "
+            "root and grasp tensors."
+        )
+
+
+def a2_stage0_staging_band_mask(
+    root_pos: torch.Tensor,
+    grasp_target: torch.Tensor,
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+) -> torch.Tensor:
+    """Return membership in the handle-relative stage0 staging band."""
+    _validate_a2_stage0_staging_tensors(root_pos, grasp_target)
+    x_min, x_max, y_tol = a2_validate_stage0_staging_band(
+        x_min,
+        x_max,
+        y_tol,
+    )
+    dx = grasp_target[:, 0] - root_pos[:, 0]
+    dy = root_pos[:, 1] - grasp_target[:, 1]
+    return (dx >= x_min) & (dx <= x_max) & (dy.abs() < y_tol)
+
+
+def a2_stage0_nearest_staging_target(
+    root_pos: torch.Tensor,
+    grasp_target: torch.Tensor,
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+) -> torch.Tensor:
+    """Return the nearest point in the stage0 band for each root pose."""
+    _validate_a2_stage0_staging_tensors(root_pos, grasp_target)
+    x_min, x_max, y_tol = a2_validate_stage0_staging_band(
+        x_min,
+        x_max,
+        y_tol,
+    )
+    dx = grasp_target[:, 0] - root_pos[:, 0]
+    dy = grasp_target[:, 1] - root_pos[:, 1]
+    target = grasp_target.clone()
+    target[:, 0] = grasp_target[:, 0] - dx.clamp(x_min, x_max)
+    y_boundary = torch.full_like(dy, y_tol)
+    interior_y_boundary = torch.nextafter(y_boundary, torch.zeros_like(y_boundary))
+    clamped_dy = torch.maximum(
+        torch.minimum(dy, interior_y_boundary),
+        -interior_y_boundary,
+    )
+    target[:, 1] = grasp_target[:, 1] - clamped_dy
+    target[:, 2] = root_pos[:, 2]
+    return target
+
+
 def a2_hold_quaternion_geodesic_rad(quat_a: torch.Tensor, quat_b: torch.Tensor):
     """Return the sign-invariant geodesic angle between unit WXYZ quaternions."""
     if (
@@ -2586,7 +2679,9 @@ class DoorPregrasp(
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
-    A2_STAGE0_STAGING_OFFSET_CONFIG_KEY = "a2_stage0_staging_x_offset"
+    A2_STAGE0_STAGING_X_MIN_CONFIG_KEY = "a2_stage0_staging_x_min"
+    A2_STAGE0_STAGING_X_MAX_CONFIG_KEY = "a2_stage0_staging_x_max"
+    A2_STAGE0_STAGING_Y_TOL_CONFIG_KEY = "a2_stage0_staging_y_tol"
     A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage3_to4_door_hinge_threshold"
     )
@@ -2921,10 +3016,20 @@ class DoorPregrasp(
             "A2 stage2 over-force threshold",
         )
 
-    def _get_a2_stage0_staging_x_offset(self) -> float:
-        return self._get_required_positive_float_config(
-            self.A2_STAGE0_STAGING_OFFSET_CONFIG_KEY,
-            "A2 stage0 staging target",
+    def _get_a2_stage0_staging_band(self) -> tuple[float, float, float]:
+        return a2_validate_stage0_staging_band(
+            self._get_required_positive_float_config(
+                self.A2_STAGE0_STAGING_X_MIN_CONFIG_KEY,
+                "A2 stage0 staging band minimum standoff",
+            ),
+            self._get_required_positive_float_config(
+                self.A2_STAGE0_STAGING_X_MAX_CONFIG_KEY,
+                "A2 stage0 staging band maximum standoff",
+            ),
+            self._get_required_positive_float_config(
+                self.A2_STAGE0_STAGING_Y_TOL_CONFIG_KEY,
+                "A2 stage0 staging band lateral tolerance",
+            ),
         )
 
     def _get_a2_stage3_to4_door_hinge_threshold(self) -> float:
@@ -3123,6 +3228,12 @@ class DoorPregrasp(
         )
         self.door_handle_width = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_weight = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_hinge_drive_max_force = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self.door_handle_drive_max_force = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
         self.door_open_lr = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_open_io = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
 
@@ -3135,7 +3246,30 @@ class DoorPregrasp(
             self.door_handle_height[env_id] = door_metadata["doorHandleHeight"]
             self.door_handle_width[env_id] = door_metadata["doorHandleWidth"]
             self.door_weight[env_id] = door_metadata["doorWeight"]
+            self.door_hinge_drive_max_force[env_id] = door_metadata[
+                "hingeDriveMaxForce"
+            ]
+            self.door_handle_drive_max_force[env_id] = door_metadata[
+                "handleDriveMaxForce"
+            ]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+
+        for field_name in (
+            "door_handle_height",
+            "door_hinge_drive_max_force",
+            "door_handle_drive_max_force",
+        ):
+            field_value = getattr(self, field_name)
+            if (
+                tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != torch.float32
+                or field_value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(field_value))
+            ):
+                raise RuntimeError(
+                    f"A2 door metadata requires {field_name} finite float32 tensor "
+                    f"shape ({self.num_envs},) on {self.device}."
+                )
 
     def _init_a2_door_pregrasp_state(self):
         self._get_a2_grasp_gate_mode()
@@ -3312,6 +3446,40 @@ class DoorPregrasp(
             self._a2_root_x_ever_crossed = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            self._a2_crossing_event_valid = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_crossing_while_holding = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_hinge_at_crossing = torch.full(
+                (self.num_envs,),
+                float("nan"),
+                dtype=torch.float32,
+                device=self.device,
+            )
+            self._a2_stage0_to1_staging_valid = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_stage0_to1_staging_standoff = torch.full(
+                (self.num_envs,),
+                float("nan"),
+                dtype=torch.float32,
+                device=self.device,
+            )
+            self._a2_stage0_root_height_sum = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_stage0_root_height_count = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_stage1_root_height_sum = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_stage1_root_height_count = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_v14_root_height_last_update_step = -1
         self.relative_door_pos_buf = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False,
         )
@@ -3334,6 +3502,8 @@ class DoorPregrasp(
         if self._use_a2_base:
             self._update_a2_grasp_control_streaks(env_ids)
             self._update_a2_stage4_release_and_root_latches(env_ids)
+            if env_ids is None:
+                self._update_a2_v14_root_height_telemetry()
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
         current_root_pos = self.simulator.robot_root_states[env_ids, :3].clone()
@@ -3469,15 +3639,256 @@ class DoorPregrasp(
         )
         self._a2_grasp_streak_last_full_update_step = common_step_counter
 
+    def _update_a2_v14_root_height_telemetry(self):
+        stage_buf = getattr(self, "stage_buf", None)
+        root_states = getattr(self.simulator, "robot_root_states", None)
+        env_origins = getattr(self, "env_origins", None)
+        common_step_counter = getattr(self, "common_step_counter", None)
+        if (
+            not torch.is_tensor(stage_buf)
+            or tuple(stage_buf.shape) != (self.num_envs,)
+            or stage_buf.dtype != torch.long
+            or stage_buf.device != torch.device(self.device)
+            or not torch.is_tensor(root_states)
+            or root_states.ndim != 2
+            or root_states.shape[0] != self.num_envs
+            or root_states.shape[1] < 3
+            or not root_states.is_floating_point()
+            or root_states.device != torch.device(self.device)
+            or not torch.is_tensor(env_origins)
+            or tuple(env_origins.shape) != (self.num_envs, 3)
+            or env_origins.dtype != root_states.dtype
+            or env_origins.device != root_states.device
+            or not torch.all(torch.isfinite(root_states[:, :3]))
+            or not torch.all(torch.isfinite(env_origins))
+            or isinstance(common_step_counter, bool)
+            or not isinstance(common_step_counter, int)
+        ):
+            raise RuntimeError(
+                "A2 v14 root-height telemetry requires finite device-local stage/root "
+                "state and an integer common_step_counter."
+            )
+        last_step = self._a2_v14_root_height_last_update_step
+        if common_step_counter < last_step:
+            raise RuntimeError(
+                "A2 v14 root-height telemetry common_step_counter moved backwards."
+            )
+        if common_step_counter == last_step:
+            return
+
+        root_height = root_states[:, 2] - env_origins[:, 2]
+        stage0 = stage_buf == self.STAGE_WALK_TO_DOOR
+        stage1 = stage_buf == self.STAGE_PREGRASP
+        self._a2_stage0_root_height_sum += torch.where(
+            stage0,
+            root_height,
+            torch.zeros_like(root_height),
+        )
+        self._a2_stage0_root_height_count += stage0.long()
+        self._a2_stage1_root_height_sum += torch.where(
+            stage1,
+            root_height,
+            torch.zeros_like(root_height),
+        )
+        self._a2_stage1_root_height_count += stage1.long()
+        self._a2_v14_root_height_last_update_step = common_step_counter
+
+    def _record_a2_stage0_to1_staging_standoff(
+        self,
+        advance_mask: torch.Tensor,
+        grasp_target: torch.Tensor,
+        root_pos: torch.Tensor,
+    ) -> None:
+        valid = self._a2_stage0_to1_staging_valid
+        standoff_buffer = self._a2_stage0_to1_staging_standoff
+        if (
+            not torch.is_tensor(advance_mask)
+            or tuple(advance_mask.shape) != (self.num_envs,)
+            or advance_mask.dtype != torch.bool
+            or advance_mask.device != torch.device(self.device)
+            or not torch.is_tensor(valid)
+            or tuple(valid.shape) != (self.num_envs,)
+            or valid.dtype != torch.bool
+            or valid.device != advance_mask.device
+            or not torch.is_tensor(standoff_buffer)
+            or tuple(standoff_buffer.shape) != (self.num_envs,)
+            or not standoff_buffer.is_floating_point()
+            or standoff_buffer.device != advance_mask.device
+        ):
+            raise RuntimeError(
+                "A2 v14 staging telemetry requires matching device-local buffers."
+            )
+        _validate_a2_stage0_staging_tensors(root_pos, grasp_target)
+        standoff = grasp_target[:, 0] - root_pos[:, 0]
+        if not torch.all(torch.isfinite(standoff)):
+            raise RuntimeError("A2 v14 staging standoff must be finite.")
+        first_advance = advance_mask & ~valid
+        standoff_buffer[first_advance] = standoff[first_advance]
+        valid[first_advance] = True
+
+    def _get_a2_v14_telemetry_fields(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        crossing_valid = self._a2_crossing_event_valid
+        crossing_while_holding = self._a2_crossing_while_holding
+        hinge_at_crossing = self._a2_hinge_at_crossing
+        staging_valid = self._a2_stage0_to1_staging_valid
+        staging_standoff = self._a2_stage0_to1_staging_standoff
+        stage0_sum = self._a2_stage0_root_height_sum
+        stage0_count = self._a2_stage0_root_height_count
+        stage1_sum = self._a2_stage1_root_height_sum
+        stage1_count = self._a2_stage1_root_height_count
+
+        float_fields = {
+            "door_hinge_drive_max_force": self.door_hinge_drive_max_force,
+            "door_handle_drive_max_force": self.door_handle_drive_max_force,
+            "door_handle_height": self.door_handle_height,
+            "_a2_hinge_at_crossing": hinge_at_crossing,
+            "_a2_stage0_to1_staging_standoff": staging_standoff,
+            "_a2_stage0_root_height_sum": stage0_sum,
+            "_a2_stage1_root_height_sum": stage1_sum,
+        }
+        bool_fields = {
+            "_a2_crossing_event_valid": crossing_valid,
+            "_a2_crossing_while_holding": crossing_while_holding,
+            "_a2_stage0_to1_staging_valid": staging_valid,
+        }
+        long_fields = {
+            "_a2_stage0_root_height_count": stage0_count,
+            "_a2_stage1_root_height_count": stage1_count,
+        }
+        for field_name, field_value in float_fields.items():
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or not field_value.is_floating_point()
+                or field_value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    f"A2 v14 telemetry requires {field_name} floating tensor "
+                    f"shape ({self.num_envs},) on {self.device}."
+                )
+        for field_name, field_value in bool_fields.items():
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != torch.bool
+                or field_value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    f"A2 v14 telemetry requires {field_name} bool tensor "
+                    f"shape ({self.num_envs},) on {self.device}."
+                )
+        for field_name, field_value in long_fields.items():
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or field_value.dtype != torch.long
+                or field_value.device != torch.device(self.device)
+                or torch.any(field_value < 0)
+            ):
+                raise RuntimeError(
+                    f"A2 v14 telemetry requires {field_name} non-negative long "
+                    f"tensor shape ({self.num_envs},) on {self.device}."
+                )
+        if (
+            not torch.all(torch.isfinite(self.door_hinge_drive_max_force))
+            or not torch.all(torch.isfinite(self.door_handle_drive_max_force))
+            or not torch.all(torch.isfinite(self.door_handle_height))
+            or not torch.all(torch.isfinite(hinge_at_crossing[crossing_valid]))
+            or not torch.all(torch.isfinite(staging_standoff[staging_valid]))
+            or not torch.all(torch.isfinite(stage0_sum))
+            or not torch.all(torch.isfinite(stage1_sum))
+        ):
+            raise RuntimeError("A2 v14 telemetry contains non-finite recorded values.")
+
+        selected = {
+            name: value[env_ids].detach().cpu().tolist()
+            for name, value in {
+                **float_fields,
+                **bool_fields,
+                **long_fields,
+            }.items()
+        }
+        records = []
+        for index in range(env_ids.numel()):
+            crossing_is_valid = bool(
+                selected["_a2_crossing_event_valid"][index]
+            )
+            staging_is_valid = bool(
+                selected["_a2_stage0_to1_staging_valid"][index]
+            )
+            stage0_samples = int(
+                selected["_a2_stage0_root_height_count"][index]
+            )
+            stage1_samples = int(
+                selected["_a2_stage1_root_height_count"][index]
+            )
+            records.append(
+                {
+                    "door_hinge_drive_max_force": float(
+                        selected["door_hinge_drive_max_force"][index]
+                    ),
+                    "door_handle_drive_max_force": float(
+                        selected["door_handle_drive_max_force"][index]
+                    ),
+                    "door_handle_height": float(
+                        selected["door_handle_height"][index]
+                    ),
+                    "crossing_while_holding": (
+                        bool(selected["_a2_crossing_while_holding"][index])
+                        if crossing_is_valid
+                        else None
+                    ),
+                    "hinge_at_crossing": (
+                        float(selected["_a2_hinge_at_crossing"][index])
+                        if crossing_is_valid
+                        else None
+                    ),
+                    "stage0_to1_staging_standoff": (
+                        float(
+                            selected[
+                                "_a2_stage0_to1_staging_standoff"
+                            ][index]
+                        )
+                        if staging_is_valid
+                        else None
+                    ),
+                    "stage0_actual_root_height": (
+                        float(
+                            selected["_a2_stage0_root_height_sum"][index]
+                            / stage0_samples
+                        )
+                        if stage0_samples > 0
+                        else None
+                    ),
+                    "stage1_actual_root_height": (
+                        float(
+                            selected["_a2_stage1_root_height_sum"][index]
+                            / stage1_samples
+                        )
+                        if stage1_samples > 0
+                        else None
+                    ),
+                }
+            )
+        return records
+
     def _update_a2_stage4_release_and_root_latches(self, env_ids=None):
         if not self._use_a2_base:
             raise RuntimeError("A2 route latches are only defined for A2 Piper configs.")
         release_gate = getattr(self, "_a2_stage4_release_gate", None)
         root_x_ever_crossed = getattr(self, "_a2_root_x_ever_crossed", None)
+        crossing_event_valid = getattr(self, "_a2_crossing_event_valid", None)
+        crossing_while_holding = getattr(
+            self, "_a2_crossing_while_holding", None
+        )
+        hinge_at_crossing = getattr(self, "_a2_hinge_at_crossing", None)
         stage_buf = getattr(self, "stage_buf", None)
         for field_name, field_value, expected_dtype in (
             ("_a2_stage4_release_gate", release_gate, torch.bool),
             ("_a2_root_x_ever_crossed", root_x_ever_crossed, torch.bool),
+            ("_a2_crossing_event_valid", crossing_event_valid, torch.bool),
+            ("_a2_crossing_while_holding", crossing_while_holding, torch.bool),
             ("stage_buf", stage_buf, torch.long),
         ):
             if (
@@ -3494,6 +3905,19 @@ class DoorPregrasp(
                     f"dtype={expected_dtype}, device={self.device}; got shape={shape}, "
                     f"dtype={dtype}, device={device}."
                 )
+        if (
+            not torch.is_tensor(hinge_at_crossing)
+            or tuple(hinge_at_crossing.shape) != (self.num_envs,)
+            or not hinge_at_crossing.is_floating_point()
+            or hinge_at_crossing.device != torch.device(self.device)
+            or not torch.all(
+                torch.isfinite(hinge_at_crossing[crossing_event_valid])
+            )
+        ):
+            raise RuntimeError(
+                "A2 crossing telemetry requires a finite hinge value for every "
+                "recorded crossing."
+            )
         if env_ids is None:
             update_mask = None
         else:
@@ -3537,12 +3961,40 @@ class DoorPregrasp(
                 f"on {self.device}; got {shape}."
             )
         door_joint_pos = self._get_door_joint_pos("A2 route latch update", 1)
+        root_x = root_states[:, 0] - env_origins[:, 0]
+        effective_update_mask = (
+            torch.ones_like(root_x_ever_crossed)
+            if update_mask is None
+            else update_mask
+        )
+        first_crossing = (
+            effective_update_mask & ~root_x_ever_crossed & (root_x > 0.0)
+        )
+        if torch.any(first_crossing):
+            contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+                "A2 root-X crossing telemetry"
+            )
+            both_contact = contact_masks["both_contact"]
+            if (
+                not torch.is_tensor(both_contact)
+                or tuple(both_contact.shape) != (self.num_envs,)
+                or both_contact.dtype != torch.bool
+                or both_contact.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    "A2 root-X crossing telemetry requires a device-local "
+                    "both-contact mask."
+                )
+            crossing_while_holding[first_crossing] = both_contact[first_crossing]
+            hinge_at_crossing[first_crossing] = door_joint_pos[first_crossing, 0]
+            crossing_event_valid[first_crossing] = True
+
         updated_gate, updated_crossed = a2_update_stage4_release_and_root_latches(
             release_gate,
             root_x_ever_crossed,
             stage_buf,
             door_joint_pos[:, 0],
-            root_states[:, 0] - env_origins[:, 0],
+            root_x,
             self._get_a2_stage4_release_hinge_threshold(),
             self.STAGE_SWING,
             update_mask,
@@ -3552,16 +4004,31 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
-        # A2: walk toward a staging position in front of handle (door normal -X),
-        # so base aligns with handle Y and stops at a comfortable arm reach distance.
+        # Track the nearest point in the handle-relative staging band. Inside the
+        # band the target equals the root pose, so this reward has no standoff bias.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
         grasp_target_pos = self._compute_grasp_target().clone()
-        # staging target: configured distance from handle along -X (door normal, toward robot side)
-        stage0_target_pos = grasp_target_pos.clone()
-        stage0_target_pos[:, 0] -= self._get_a2_stage0_staging_x_offset()
-        stage0_target_pos[:, 2] = current_root_pos[:, 2]
+        x_min, x_max, y_tol = self._get_a2_stage0_staging_band()
+        stage0_target_pos = a2_stage0_nearest_staging_target(
+            current_root_pos,
+            grasp_target_pos,
+            x_min,
+            x_max,
+            y_tol,
+        )
         target_direction = stage0_target_pos - current_root_pos
-        target_dir = F.normalize(target_direction, dim=-1)
+        target_distance = torch.linalg.norm(target_direction, dim=-1, keepdim=True)
+        nonzero_distance = target_distance > 0.0
+        divisor = torch.where(
+            nonzero_distance,
+            target_distance,
+            torch.ones_like(target_distance),
+        )
+        target_dir = torch.where(
+            nonzero_distance,
+            target_direction / divisor,
+            torch.zeros_like(target_direction),
+        )
         current_root_vel = self.simulator.robot_root_states[:, 7:10].clone()
 
         target_vel = self.config.get("target_root_vel", 0.3) * target_dir
@@ -4726,9 +5193,12 @@ class DoorPregrasp(
             "penalty_a2_stage1_stage2_base_forward_creep",
         )
         grasp_target = self._compute_grasp_target()
-        stage0_target_x = grasp_target[:, 0] - self._get_a2_stage0_staging_x_offset()
+        x_min, _x_max, _y_tol = self._get_a2_stage0_staging_band()
+        stage0_near_boundary_x = grasp_target[:, 0] - x_min
         root_x = self.simulator.robot_root_states[:, 0]
-        reward = ((root_x - stage0_target_x - deadband) / scale).clamp(0.0, 1.0)
+        reward = (
+            (root_x - stage0_near_boundary_x - deadband) / scale
+        ).clamp(0.0, 1.0)
         return reward
 
     def _reward_penalty_upright(self):
@@ -5353,6 +5823,7 @@ class DoorPregrasp(
                 f"({self.num_envs},); got {shape}."
             )
 
+        stage0_active = stage_buf == self.STAGE_WALK_TO_DOOR
         stage1_active = stage_buf == self.STAGE_PREGRASP
         stage1_pregrasp_ready = self._get_a2_stage1_pregrasp_ready_mask()
         door_open_bypass = self._get_a2_door_open_bypass_mask()
@@ -5850,8 +6321,113 @@ class DoorPregrasp(
             door_frame_contact_force > 1.0
         ).float().mean()
 
+        crossing_valid = self._a2_crossing_event_valid
+        crossing_while_holding = self._a2_crossing_while_holding
+        hinge_at_crossing = torch.where(
+            crossing_valid,
+            self._a2_hinge_at_crossing,
+            torch.zeros_like(self._a2_hinge_at_crossing),
+        )
+        staging_valid = self._a2_stage0_to1_staging_valid
+        staging_standoff = torch.where(
+            staging_valid,
+            self._a2_stage0_to1_staging_standoff,
+            torch.zeros_like(self._a2_stage0_to1_staging_standoff),
+        )
+        if (
+            not torch.all(torch.isfinite(hinge_at_crossing))
+            or not torch.all(torch.isfinite(staging_standoff))
+        ):
+            raise RuntimeError(
+                "A2 v14 route diagnostics require finite masked event samples."
+            )
+
         self.log_dict["a2_root_x_first_crossing_env_count"] = (
             a2_root_x_first_crossing_env_count(self._a2_root_x_ever_crossed)
+        )
+        self.log_dict["a2_crossing_while_holding_numerator_frac"] = (
+            crossing_valid & crossing_while_holding
+        ).float().mean()
+        self.log_dict["a2_crossing_while_holding_denominator_frac"] = (
+            crossing_valid.float().mean()
+        )
+        self.log_dict["a2_crossing_while_holding_frac"] = (
+            a2_masked_boolean_fraction(
+                crossing_while_holding,
+                crossing_valid,
+            )
+        )
+        self.log_dict["_a2_hinge_at_crossing_samples"] = hinge_at_crossing
+        self.log_dict["_a2_hinge_at_crossing_sample_mask"] = crossing_valid
+        self.log_dict["a2_hinge_at_crossing_p50"] = a2_masked_float_quantile(
+            hinge_at_crossing,
+            crossing_valid,
+            0.5,
+        )
+        self.log_dict["a2_hinge_at_crossing_p95"] = a2_masked_float_quantile(
+            hinge_at_crossing,
+            crossing_valid,
+            0.95,
+        )
+        self.log_dict["_a2_stage0_to1_staging_standoff_samples"] = (
+            staging_standoff
+        )
+        self.log_dict["_a2_stage0_to1_staging_standoff_sample_mask"] = (
+            staging_valid
+        )
+        self.log_dict["a2_stage0_to1_staging_standoff_p50"] = (
+            a2_masked_float_quantile(
+                staging_standoff,
+                staging_valid,
+                0.5,
+            )
+        )
+        self.log_dict["a2_stage0_to1_staging_standoff_p95"] = (
+            a2_masked_float_quantile(
+                staging_standoff,
+                staging_valid,
+                0.95,
+            )
+        )
+        self.log_dict["_a2_stage0_actual_root_height_samples"] = (
+            root_pos_rel[:, 2]
+        )
+        self.log_dict["_a2_stage0_actual_root_height_sample_mask"] = (
+            stage0_active
+        )
+        self.log_dict["a2_stage0_actual_root_height_p50"] = (
+            a2_masked_float_quantile(
+                root_pos_rel[:, 2],
+                stage0_active,
+                0.5,
+            )
+        )
+        self.log_dict["a2_stage0_actual_root_height_p95"] = (
+            a2_masked_float_quantile(
+                root_pos_rel[:, 2],
+                stage0_active,
+                0.95,
+            )
+        )
+        self.log_dict["_a2_stage1_actual_root_height_samples"] = (
+            root_pos_rel[:, 2]
+        )
+        self.log_dict["_a2_stage1_actual_root_height_sample_mask"] = (
+            stage1_active
+        )
+        self.log_dict["a2_stage1_actual_root_height_p50"] = (
+            a2_masked_float_quantile(
+                root_pos_rel[:, 2],
+                stage1_active,
+                0.5,
+            )
+        )
+        self.log_dict["a2_stage1_actual_root_height_p95"] = (
+            a2_masked_float_quantile(
+                root_pos_rel[:, 2],
+                stage1_active,
+                0.95,
+            )
         )
         self.log_dict["_a2_stage5_forward_velocity_samples"] = root_states[:, 7]
         self.log_dict["_a2_stage5_forward_velocity_sample_mask"] = stage5_active
@@ -6170,6 +6746,7 @@ class DoorPregrasp(
             source_quat_w, "A2 terminal diagnostics gripper source orientation"
         )
         terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
+        v14_telemetry_fields = self._get_a2_v14_telemetry_fields(env_ids)
 
         selected_stage_buf = self.stage_buf[env_ids].detach().cpu().tolist()
         selected_time_in_stage_buf = self.time_in_stage_buf[env_ids].detach().cpu().tolist()
@@ -6361,6 +6938,7 @@ class DoorPregrasp(
             diagnostics.append(
                 {
                     "env_id": int(env_id),
+                    **v14_telemetry_fields[idx],
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
@@ -12617,6 +13195,15 @@ class DoorPregrasp(
         if self._use_a2_base:
             self._a2_stage4_release_gate[env_ids] = False
             self._a2_root_x_ever_crossed[env_ids] = False
+            self._a2_crossing_event_valid[env_ids] = False
+            self._a2_crossing_while_holding[env_ids] = False
+            self._a2_hinge_at_crossing[env_ids] = float("nan")
+            self._a2_stage0_to1_staging_valid[env_ids] = False
+            self._a2_stage0_to1_staging_standoff[env_ids] = float("nan")
+            self._a2_stage0_root_height_sum[env_ids] = 0.0
+            self._a2_stage0_root_height_count[env_ids] = 0
+            self._a2_stage1_root_height_sum[env_ids] = 0.0
+            self._a2_stage1_root_height_count[env_ids] = 0
         return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override
@@ -12782,13 +13369,17 @@ class DoorPregrasp(
         return self._stage_0_to_1_advance_condition()
 
     def _stage_0_to_1_advance_condition(self):
-        # get close enough to the configured staging position in front of handle
+        # Enter stage1 anywhere inside the handle-relative staging band.
         grasp_target = self._compute_grasp_target()
-        stage0_target = grasp_target.clone()
-        stage0_target[:, 0] -= self._get_a2_stage0_staging_x_offset()
-        root_pos = self.simulator.robot_root_states[:, :3].clone()
-        root_pos[:, 2] = stage0_target[:, 2]
-        cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
+        root_pos = self.simulator.robot_root_states[:, :3]
+        x_min, x_max, y_tol = self._get_a2_stage0_staging_band()
+        cond = a2_stage0_staging_band_mask(
+            root_pos,
+            grasp_target,
+            x_min,
+            x_max,
+            y_tol,
+        )
 
         # keep A2 arm body DOF / Piper arm_j1..j6 at robot default; gripper arm_j7/8 are excluded.
         if self._use_a2_base:
@@ -12808,6 +13399,12 @@ class DoorPregrasp(
             .values
         )
         cond &= max_deviation < arm_max_deviation
+        if self._use_a2_base:
+            self._record_a2_stage0_to1_staging_standoff(
+                cond,
+                grasp_target,
+                root_pos,
+            )
         return cond
 
     def _stage_1_reward_condition(self):
@@ -13100,10 +13697,24 @@ class DoorPregrasp(
                 mass_props=None,
                 rigid_props=None,
             )
+            stage0_x_min, stage0_x_max, _stage0_y_tol = (
+                self._get_a2_stage0_staging_band()
+            )
             sim_utils_vis.spawn_sphere(
-                prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_stage0_target",
+                prim_path=(
+                    f"/World/envs/env_.*/{target_obj}/grasp_target/"
+                    "vis_stage0_near_boundary"
+                ),
                 cfg=vis_stage0_cfg,
-                translation=(-self._get_a2_stage0_staging_x_offset(), 0.0, 0.0),
+                translation=(-stage0_x_min, 0.0, 0.0),
+            )
+            sim_utils_vis.spawn_sphere(
+                prim_path=(
+                    f"/World/envs/env_.*/{target_obj}/grasp_target/"
+                    "vis_stage0_far_boundary"
+                ),
+                cfg=vis_stage0_cfg,
+                translation=(-stage0_x_max, 0.0, 0.0),
             )
 
             # Handle coordinate axis visualizer: 3 cylinders (R=X, G=Y, B=Z) at grasp_target.

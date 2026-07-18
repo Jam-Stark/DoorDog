@@ -141,6 +141,15 @@ _A2_GLOBAL_ENV_QUANTILE_SPECS = {
 _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
 
 
+def _canonicalize_a2_metric_device(device):
+    """Resolve an indexless CUDA device before strict telemetry validation."""
+    if not isinstance(device, torch.device):
+        raise TypeError(f"A2 metric aggregation device must be torch.device; got {device!r}.")
+    if device.type == "cuda" and device.index is None:
+        return torch.device("cuda", torch.cuda.current_device())
+    return device
+
+
 def _prepare_a2_env_metrics_for_aggregation(step_env_metrics, accelerator, device):
     """Prepare A2 telemetry for rank-global metering and eval logging."""
     if not isinstance(step_env_metrics, dict):
@@ -148,8 +157,7 @@ def _prepare_a2_env_metrics_for_aggregation(step_env_metrics, accelerator, devic
             "A2 step environment metrics must be a shallow dict; "
             f"got {type(step_env_metrics).__name__}."
         )
-    if not isinstance(device, torch.device):
-        raise TypeError(f"A2 metric aggregation device must be torch.device; got {device!r}.")
+    device = _canonicalize_a2_metric_device(device)
     gather = getattr(accelerator, "gather", None)
     if not callable(gather):
         raise TypeError("A2 metric aggregation requires accelerator.gather().")

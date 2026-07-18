@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-17 20:05 HKT
+last_updated: 2026-07-18 22:13 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -10,7 +10,7 @@ owned_paths:
   - memory/a2-piper/push-open-door-optimization/DONE.md
 read_when:
   - 开始设计、训练、eval、render 或复盘 base_v9 之后的 A2+Piper full-stage 推门 policy 时
-  - 需要确认 `v13` endpoint diagnosis、`base_v13_1_main` training-ready contract、每250 batch monitoring、matched eval/render 口径或 `logs_eval` co-location contract 时
+  - 需要确认 `v13` endpoint diagnosis、`base_v13_1_main` formal endpoint、matched eval/render 口径或 `logs_eval` co-location contract 时
 ---
 
 # Push-Open-Door Optimization
@@ -23,6 +23,10 @@ read_when:
 
 ## Current State
 
+- 2026-07-18 22:13 HKT - `base_v13_1_main-20260717_202500` resolved run 为seed0、4 ranks × `1024 env/rank`、global batch `4096`、global cap `3000`、save250；该saved override supersede plan中的2000-batch预期。endpoint `model_step_003000.pt` state为global/max `3000/3000`，SHA-256 `e836427e...167945`。
+- 2026-07-18 22:13 HKT - endpoint matched artifact `logs_eval/base_v13_1/base_v13_1_main_ckpt3000_matched_scalar_trace_16env_seed0_20260718_r3/` exit0：seed0、16 env、per-env first episode，`16/16 goal`、`16/16 stage5`、`16/16 complete`；length min/mean/max `388/455.0625/502`，reward min/mean/max `103.3703/112.3147/119.3493`。forced-close/oracle均关闭，scalar/trace/diagnostic metadata完整。
+- 2026-07-18 22:13 HKT - 2-env render artifact `logs_eval/base_v13_1/base_v13_1_main_ckpt3000_render_2env_3cam_seed0_20260718/` exit0：env0 len502、env1 len497，均goal/stage5/complete；default/handle_top/handle_side共6个MP4，无`.writing.mp4`，OpenCV逐帧解码PASS，均`1280×720@20fps`，env0/env1分别503/498帧。
+- 2026-07-18 22:13 HKT - eval首次暴露single-process `accelerator.device=cuda` 与telemetry tensor `cuda:0`的strict comparison mismatch；`_canonicalize_a2_metric_device`仅将indexless CUDA解析为`torch.cuda.current_device()`，保留explicit index/CPU与全部shape/dtype/finite/exact-device fail-fast。13个targeted tests、py_compile、CODE_QUALITY及matched GPU eval runtime PASS。
 - 2026-07-17 20:05 HKT - `base_v13_1_main` 已完成 training-ready implementation，formal training/eval/render 尚未启动：A3000 `policy_only` warm-start、4 ranks × `1024 env/rank`、global batch `4096`、`2000` batches、save every `250`、Kp/Kd `800/25`、velocity iterations `2`。M11 为hinge `>=1.2rad` per-env release latch/reset；latch后suppress hold×5、open-command penalty、grasp-mild、hinge-pos，保留hinge-velocity。M12 released target-root `0.5→1.0`；M13 stage4/5 frame penalty `.2`、panel不变；M14为rank-global/sample-weighted ratios、global count、quantiles、eval zero denominator→`null`。
 - 2026-07-17 20:05 HKT - compile、targeted `20/20`、related suite `101/101`、CODE_QUALITY、IsaacLab/fail-fast static PASS；r3为A3000 `policy_only`、4×`64 env/rank`×`50` batches，release ratio与stage4/5非零、step50/last CPU-load与237 finite tensors PASS。Kit checkpoint后hang由Ctrl-C释放，故natural exit未验证；r3不构成formal policy-quality evidence。
 - 2026-07-17 20:05 HKT - `v13_A` final diagnosis：A3000 `0/16 goal`、`16/16 stage4`、`4/16 stage5`、hinge p50 `1.28rad`、positive-motion bilateral `99.949%`、coasting `.045%`；2-env render无明显detach/free-flying door，j8 `14.151%`仍为guardrail fail。trap1：12个stage4的`root_x_max=-0.001..-0.054m`、仅差1–5cm、仍holding且income约`12/step`；trap2：4个stage5前向`0.043–0.085m/s`、frame force max`41–197N`（三次主要spike`123–197N`），x=1.5m前overtime。`v13_pre` 16/16 stage3确认control-streak runtime；Kp80 B仅streak3–4只支持exact warm-start/single-seed下low force margin不可训练，不是普遍单因素因果。
@@ -61,7 +65,7 @@ read_when:
 
 | Item | Value |
 |---|---|
-| Current policy candidate | v13_A step3000；也是v13.1的policy-only warm-start behavior candidate |
+| Current policy candidate | `base_v13_1_main` step3000；warm-start为v13_A step3000 policy-only |
 | Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v13_1_main.yaml` |
 | Warm-start reference | v13_A step3000 `policy_only`；其warm-start为v12_C step3000 |
 | Training seed | `0` |
@@ -73,16 +77,16 @@ read_when:
 | Stage3→4 threshold | `.25rad` |
 | v13 reward | A: handle `0`, unlatch/hold-drive `3/8`, stability `.5`; B/pre: v12_C handle `6`, new terms `0`, stability `1` |
 | Explicit friction override | none (`null`) |
-| Formal v13.1 resource | 4 ranks × `1024 env/rank`, global batch `4096`, `2000` batches/save250；formal launch未开始 |
+| Formal v13.1 resource | saved runtime为4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；已完成 |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
-当前 behavior candidate 是 v13_A step3000；v12_C step3000 仍仅是 A/B 的共同 warm-start reference。所有训练/eval解释以保存的resolved runtime config为准，A的single-seed组合干预不能拆成M2/M3/M5/M6单因果结论。
+当前formal behavior candidate是`base_v13_1_main` step3000；其warm-start为v13_A step3000。所有训练/eval解释以保存的resolved runtime config为准，single-seed结果不能拆成单因素因果结论。
 
 ## Current Experiment
 
-`v13` diagnosis已完成，`base_v13_1_main` 是当前formal experiment：M11–M14及validation/r3 smoke已PASS，正式4-rank × `1024 env/rank`、`2000`-batch training尚未启动；不存在v13.1 formal policy-quality、matched eval或render结论。
+`base_v13_1_main` formal run、endpoint matched scalar/trace eval与2-env×3-camera render均已完成。saved runtime实际训练到step3000；matched eval为16/16 goal/stage5/complete，render env0/1 outcome一致且6个视频逐帧可解码。
 
-formal launch后每`250` batch监控release ratio、stage4/5 activity、hold/hinge income与grasp/redline telemetry；对checkpoint执行matched scalar/trace eval，必要时做2-env×3-camera render。Kit natural exit仍unverified；`v13_1_noM13`及其他ablation不自动启动。
+eval/render进程均natural exit0；formal training launcher natural-exit状态未在本轮重新核验。下一步只做formal telemetry/trace/render的objective review并决定promotion或是否需要`v13_1_noM13`等ablation，任何新训练不自动启动。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -119,10 +123,13 @@ formal launch后每`250` batch监控release ratio、stage4/5 activity、hold/hin
 
 ## TODO Summary
 
-- 2026-07-17 20:05 HKT - 启动`base_v13_1_main` formal 4-rank × `1024 env/rank`、`2000`-batch training（save every `250`）；每250 batch审计release ratio、stage4/5 activity、hold/hinge income、grasp/redline telemetry，并用matched scalar/trace eval跟进checkpoint，必要时做2-env×3-camera render。r3 smoke不是formal policy-quality evidence；Kit natural exit未验证。
+- 2026-07-18 22:13 HKT - 基于step3000 matched scalar/trace与2-env render做objective review，决定是否promotion或提出`v13_1_noM13`等后续ablation；不自动启动新训练。formal training launcher natural-exit状态仍未在本轮重新核验。
 
 ## DONE Summary
 
+- 2026-07-18 22:13 HKT - `base_v13_1_main` formal saved runtime完成到step3000；endpoint checkpoint SHA-256 `e836427e...167945`，resolved topology为4×1024、global batch4096、save250。
+- 2026-07-18 22:13 HKT - step3000 matched eval exit0：16/16 goal、stage5、complete；完整scalar/trace/diagnostic artifacts位于`logs_eval/base_v13_1/..._r3/`。
+- 2026-07-18 22:13 HKT - env0/1 render exit0并产出6个可逐帧解码的720p/20fps视频；indexless CUDA telemetry device mismatch已做最小fail-fast修复并通过13 tests、CODE_QUALITY与GPU runtime。
 - 2026-07-17 20:05 HKT - `v13` final diagnosis、trap1/trap2、stage-boundary reward-rent audit与`base_v13_1_main` M11–M14/config/20/20+101/101/static/r3 smoke已同步；formal training/eval/render未启动，Kit natural exit未验证。
 - 2026-07-17 15:39 HKT - A render sampled-frame目视复核：两env都持续带把手开门，无明显detach或拍门飞走；终点仍在门口以别扭姿态卡stage4。定性结果与positive-motion bilateral 99.949%/coasting .045%一致，但2-env render不替代16-env scalar/trace。
 - 2026-07-17 15:18 HKT - v13 endpoint runtime完成：A step3000为0/16 goal、16/16 stage4、4/16 stage5，门运动与hold主指标通过但j8 open-limit超10%；B step1500为0/16 stage3，K=5 streak max仅3–4。A render成功产出6个可解码720p/20fps视频；2-env eval需把num_mini_batches从4覆盖为2，A diagnostic reward list需排除inactive push_door_handle。

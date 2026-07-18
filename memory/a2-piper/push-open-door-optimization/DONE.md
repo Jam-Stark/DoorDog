@@ -1,5 +1,8 @@
 # DONE
 
+- 2026-07-18 22:13 HKT - 完成`base_v13_1_main-20260717_202500` formal endpoint provenance：saved runtime为seed0、4 ranks×1024 env/rank、global batch4096、global cap3000/save250；`model_step_003000.pt` state为3000/3000，SHA-256 `e836427e...167945`。saved override supersede原plan的2000-batch预期。
+- 2026-07-18 22:13 HKT - 完成step3000 matched scalar/trace eval：`logs_eval/base_v13_1/base_v13_1_main_ckpt3000_matched_scalar_trace_16env_seed0_20260718_r3/` exit0，16/16 goal、stage5、complete；length min/mean/max `388/455.0625/502`，reward `103.3703/112.3147/119.3493`，forced-close/oracle关闭，diagnostic artifacts完整。
+- 2026-07-18 22:13 HKT - 完成env0/1三相机render：`logs_eval/base_v13_1/base_v13_1_main_ckpt3000_render_2env_3cam_seed0_20260718/` exit0，env0 len502、env1 len497，均goal/stage5/complete；6个MP4均1280×720@20fps并逐帧解码PASS，无`.writing.mp4`。同时修复indexless `cuda` vs `cuda:0` telemetry strict-device mismatch；13 tests、py_compile、CODE_QUALITY及GPU eval runtime PASS。
 - 2026-07-17 20:05 HKT - 归档`v13_A` final facts：A3000 matched endpoint为`0/16 goal`、`16/16 stage4`、`4/16 stage5`；hinge p50 `1.28rad`、positive-motion bilateral `99.949%`、coasting `.045%`。2-env qualitative render未见明显detach/free-flying door；j8 `14.151%`仍是guardrail fail，不能称full success。
 - 2026-07-17 20:05 HKT - 量化trap1/trap2：12个stage4 `root_x_max=-0.001..-0.054m`、仅差1–5cm却仍holding/income约`12/step`；4个stage5速度`0.043–0.085m/s`、frame force max`41–197N`，三次主要spike`123–197N`，x=1.5m前overtime。v13_pre 16/16 stage3确认gate runtime；Kp80 B streak3–4仅支持exact warm-start/single-seed的有界结论，不是普遍因果。
 - 2026-07-17 20:05 HKT - 形成stage-boundary reward-rent audit：v11 stationary hold与v13_A door-hold同形；每项新stage/reward须审计stationary income相对transition action，并验证gate后旧收入归零。

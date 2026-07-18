@@ -104,6 +104,7 @@ def _load_metric_helper():
         "_A2_EVAL_OPTIONAL_RATIO_SPECS",
         "_A2_GLOBAL_ENV_QUANTILE_SPECS",
         "_A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY",
+        "_canonicalize_a2_metric_device",
         "_prepare_a2_env_metrics_for_aggregation",
         "_finalize_a2_conditional_ratios",
     )
@@ -124,10 +125,34 @@ def _load_metric_helper():
     return (
         namespace["_prepare_a2_env_metrics_for_aggregation"],
         namespace["_finalize_a2_conditional_ratios"],
+        namespace["_canonicalize_a2_metric_device"],
     )
 
 
-PREPARE_METRICS, FINALIZE_RATIOS = _load_metric_helper()
+PREPARE_METRICS, FINALIZE_RATIOS, CANONICALIZE_METRIC_DEVICE = _load_metric_helper()
+
+
+def test_metric_device_canonicalization_resolves_only_indexless_cuda(monkeypatch):
+    current_device_calls = []
+
+    def current_device():
+        current_device_calls.append(True)
+        return 3
+
+    monkeypatch.setattr(torch.cuda, "current_device", current_device)
+
+    assert CANONICALIZE_METRIC_DEVICE(torch.device("cuda")) == torch.device("cuda:3")
+    assert current_device_calls == [True]
+
+    explicit_cuda = torch.device("cuda:2")
+    cpu = torch.device("cpu")
+    assert CANONICALIZE_METRIC_DEVICE(explicit_cuda) is explicit_cuda
+    assert CANONICALIZE_METRIC_DEVICE(cpu) is cpu
+    assert current_device_calls == [True]
+
+    with pytest.raises(TypeError, match="torch.device"):
+        CANONICALIZE_METRIC_DEVICE("cuda")
+
 
 def test_optional_ratio_mapping_is_exact_and_zero_is_json_null_with_raw_fields_retained():
     assert TRAINER_RATIO_MAPPING == OPTIONAL_RATIO_SPECS

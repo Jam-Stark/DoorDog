@@ -70,6 +70,13 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def _validate_eval_seed(seed):
+    """Require the eval seed to be an actual integer rather than a bool or coercion."""
+    if isinstance(seed, bool) or not isinstance(seed, int):
+        raise TypeError(f"Evaluation config seed must be an integer, got {seed!r}")
+    return int(seed)
+
+
 def _validate_checkpoint_load_mode(checkpoint_load_mode, context):
     if not isinstance(checkpoint_load_mode, str) or checkpoint_load_mode not in (
         _CHECKPOINT_LOAD_MODES
@@ -79,7 +86,6 @@ def _validate_checkpoint_load_mode(checkpoint_load_mode, context):
             f"{sorted(_CHECKPOINT_LOAD_MODES)}; got {checkpoint_load_mode!r}."
         )
     return checkpoint_load_mode
-
 
 def _normalize_eval_checkpoint_load_mode(config):
     requested_mode = _validate_checkpoint_load_mode(
@@ -329,6 +335,7 @@ def main(override_config: OmegaConf):
             config = override_config
 
     _normalize_eval_checkpoint_load_mode(config)
+    config.seed = _validate_eval_seed(config.seed)
 
     # Resume wandb run if meta.yaml exists
     meta_path = Path(config.experiment_dir) / "meta.yaml"
@@ -421,6 +428,7 @@ def main(override_config: OmegaConf):
     config.algo.trl.output_dir = str(Path(config.experiment_dir))
     parser = HfArgumentParser((ScriptArguments, PPOConfig, ModelConfig))
     script_args, training_args, model_args = parser.parse_dict(config.algo.trl)
+    training_args.seed = int(config.seed)
     if "eval_output_dir" in config:
         training_args.eval_output_dir = config.eval_output_dir
 

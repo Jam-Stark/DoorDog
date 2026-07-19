@@ -3,15 +3,179 @@
 
 
 import logging
+import math
+from collections.abc import Sequence
+from numbers import Real
 
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
 import isaaclab.sim as sim_utils
+import numpy as np
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 
 from gr00t.rl.isaac_utils.playground.env_rand.door import DoorSpawnerCfg, spawn_door
 
+
+def _build_eval_door_handle_height_grid(
+    bounds: Sequence[Real], num_envs: int, door_handle_tblr: Sequence[Real]
+) -> tuple[float, ...]:
+    """Validate eval handle-height bounds and return an inclusive env-ordered grid."""
+    if isinstance(bounds, (str, bytes)) or not isinstance(bounds, Sequence):
+        raise TypeError(
+            "a2_eval_door_handle_height_linspace must be a two-bound numeric sequence"
+        )
+    if len(bounds) != 2:
+        raise ValueError(
+            "a2_eval_door_handle_height_linspace must contain exactly two bounds"
+        )
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int):
+        raise TypeError(f"num_envs must be an integer, got {num_envs!r}")
+    if num_envs < 2:
+        raise ValueError(f"num_envs must be >= 2 for an endpoint grid, got {num_envs}")
+    if any(isinstance(bound, bool) or not isinstance(bound, Real) for bound in bounds):
+        raise TypeError(
+            "a2_eval_door_handle_height_linspace bounds must be real numbers"
+        )
+
+    low, high = (float(bound) for bound in bounds)
+    if not math.isfinite(low) or not math.isfinite(high):
+        raise ValueError(
+            "a2_eval_door_handle_height_linspace bounds must be finite"
+        )
+    if low >= high:
+        raise ValueError(
+            "a2_eval_door_handle_height_linspace requires low < high"
+        )
+
+    if (
+        isinstance(door_handle_tblr, (str, bytes))
+        or not isinstance(door_handle_tblr, Sequence)
+        or len(door_handle_tblr) != 4
+    ):
+        raise ValueError(
+            "door_handle_tblr must contain four values, "
+            f"got {door_handle_tblr!r}"
+        )
+    if any(
+        isinstance(bound, bool) or not isinstance(bound, Real)
+        for bound in door_handle_tblr[:2]
+    ):
+        raise TypeError("door_handle_tblr height bounds must be real numbers")
+    upper, lower = (float(bound) for bound in door_handle_tblr[:2])
+    if not math.isfinite(upper) or not math.isfinite(lower) or lower >= upper:
+        raise ValueError(
+            "door_handle_tblr height bounds are invalid: "
+            f"{door_handle_tblr!r}"
+        )
+    if low < lower or high > upper:
+        raise ValueError(
+            "a2_eval_door_handle_height_linspace must stay within "
+            f"door_handle_tblr height bounds [{lower}, {upper}], got [{low}, {high}]"
+        )
+
+    grid = tuple(float(value) for value in np.linspace(low, high, num_envs))
+    if (
+        len(grid) != num_envs
+        or grid[0] != low
+        or grid[-1] != high
+        or any(grid[index] >= grid[index + 1] for index in range(len(grid) - 1))
+    ):
+        raise ValueError(
+            "a2_eval_door_handle_height_linspace produced an invalid count/order grid"
+        )
+    return grid
+
+
+def _validate_eval_door_handle_height_task_obj_cfg(
+    task_obj_cfg_dict: dict, expected_heights: Sequence[Real]
+) -> dict:
+    """Validate the ordered multi-asset task config produced for deterministic eval."""
+    if not isinstance(task_obj_cfg_dict, dict):
+        raise TypeError(
+            f"eval task-object configuration must be a dict, got {type(task_obj_cfg_dict).__name__}"
+        )
+    if "door" not in task_obj_cfg_dict:
+        raise ValueError("eval task-object configuration must contain the 'door' object")
+
+    door_cfg = task_obj_cfg_dict["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("eval door spawn configuration must be MultiAssetSpawnerCfg")
+    if spawn_cfg.random_choice is not False:
+        raise ValueError("eval door MultiAssetSpawnerCfg.random_choice must be False")
+    if not isinstance(spawn_cfg.assets_cfg, list):
+        raise TypeError("eval door assets_cfg must be a list")
+    if len(spawn_cfg.assets_cfg) != len(expected_heights):
+        raise ValueError(
+            "eval door grid count mismatch: "
+            f"expected {len(expected_heights)}, got {len(spawn_cfg.assets_cfg)}"
+        )
+
+    actual_heights = []
+    for index, asset_cfg in enumerate(spawn_cfg.assets_cfg):
+        if not isinstance(asset_cfg, DoorSpawnerCfg):
+            raise TypeError(
+                f"eval door assets_cfg[{index}] must be DoorSpawnerCfg, "
+                f"got {type(asset_cfg).__name__}"
+            )
+        height = asset_cfg.rand_door_handle_height
+        if isinstance(height, bool) or not isinstance(height, Real):
+            raise TypeError(
+                f"eval door assets_cfg[{index}].rand_door_handle_height must be real"
+            )
+        height = float(height)
+        if not math.isfinite(height):
+            raise ValueError(
+                f"eval door assets_cfg[{index}].rand_door_handle_height must be finite"
+            )
+        actual_heights.append(height)
+
+    expected = tuple(float(height) for height in expected_heights)
+    if tuple(actual_heights) != expected:
+        raise ValueError(
+            "eval door grid order/value mismatch: "
+            f"expected {expected!r}, got {tuple(actual_heights)!r}"
+        )
+    return task_obj_cfg_dict
+
+
+def get_TaskObjCfgDict_for_eval_door_handle_height_linspace(
+    num_envs: int, bounds: Sequence[Real]
+) -> dict:
+    """Return an ordered per-environment door config for an explicit eval height grid."""
+    if not isinstance(TaskObjCfgDict, dict):
+        raise TypeError(
+            f"TaskObjCfgDict must be a dict, got {type(TaskObjCfgDict).__name__}"
+        )
+    if "door" not in TaskObjCfgDict:
+        raise ValueError("TaskObjCfgDict must contain the 'door' object")
+
+    door_cfg = TaskObjCfgDict["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("base door spawn configuration must be MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("base door MultiAssetSpawnerCfg.assets_cfg must be non-empty")
+
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("base door assets_cfg[0] must be DoorSpawnerCfg")
+    heights = _build_eval_door_handle_height_grid(
+        bounds, num_envs, base_door_cfg.door_handle_tblr
+    )
+    variants = [
+        base_door_cfg.replace(rand_door_handle_height=height) for height in heights
+    ]
+    if len(variants) != num_envs:
+        raise ValueError(
+            f"eval door variant count mismatch: expected {num_envs}, got {len(variants)}"
+        )
+
+    ordered_spawn_cfg = spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    result = dict(TaskObjCfgDict)
+    result["door"] = door_cfg.replace(spawn=ordered_spawn_cfg)
+    return _validate_eval_door_handle_height_task_obj_cfg(result, heights)
 door_spawner_cfg = DoorSpawnerCfg(
     func=spawn_door,
     articulation_props=sim_utils.ArticulationRootPropertiesCfg(

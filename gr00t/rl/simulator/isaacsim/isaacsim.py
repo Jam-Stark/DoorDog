@@ -189,6 +189,26 @@ def parse_camera_pose(pos, rot_wxyz):
     return position, rotation
 
 
+def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
+    """Select the unchanged task config or the explicit eval-only grid hook."""
+    eval_key = "a2_eval_door_handle_height_linspace"
+    if eval_key not in env_config:
+        return task_module.TaskObjCfgDict
+
+    hook_name = "get_TaskObjCfgDict_for_eval_door_handle_height_linspace"
+    hook = getattr(task_module, hook_name, None)
+    if not callable(hook):
+        raise TypeError(f"task module must expose callable {hook_name!r} for eval grid")
+
+    task_obj_cfg_dict = hook(num_envs, env_config[eval_key])
+    if not isinstance(task_obj_cfg_dict, dict):
+        raise TypeError(
+            "eval task-object configuration hook must return a dict, "
+            f"got {type(task_obj_cfg_dict).__name__}"
+        )
+    return task_obj_cfg_dict
+
+
 def validate_camera_rgb_output(rgb, expected_shape, camera_name="ego_camera"):
     """Fail fast on missing, stale, malformed, or zero RGB sensor output."""
     if rgb is None or not torch.is_tensor(rgb):
@@ -1423,7 +1443,9 @@ class IsaacSim(BaseSimulator):
                         f"  {class_name}: {count} environments ({count/len(self.object_class_names)*100:.1f}%)"
                     )
             else:
-                TaskObjCfgDict = task_module.TaskObjCfgDict
+                TaskObjCfgDict = _get_task_obj_cfg_dict_for_door_eval(
+                    task_module, self.env_config, self.num_envs
+                )
 
             # import ipdb; ipdb.set_trace()
             for name, obj_cfg in TaskObjCfgDict.items():

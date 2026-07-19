@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-19 16:36 HKT
+last_updated: 2026-07-20 02:57 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -23,6 +23,9 @@ read_when:
 
 ## Current State
 
+- 2026-07-20 02:57 HKT - eval-only deterministic handle-height grid已实现：默认缺少`a2_eval_door_handle_height_linspace`，保持training path不变；存在时通过high-level `MultiAssetSpawnerCfg(random_choice=false)`按顺序生成`.800000,.816667,...,1.050000` exact inclusive linspace，runtime seed写入TRL `training_args`及per-env provenance。focused `14 passed`、py_compile/diff PASS；16-env runtime验证exact grid与seed0。此项不声明training semantic change。
+- 2026-07-20 02:57 HKT - height-stratified/matched endpoint比较：step2000 artifact `logs_eval/base_v14/base_v14_main_ckpt2000_matched_scalar_trace_16env_seed0_heightgrid_20260720_r2/`与step3000 artifact `logs_eval/base_v14/base_v14_main_ckpt3000_matched_scalar_trace_16env_seed0_heightgrid_20260720_r2/`使用相同per-env hinge force、handle force与height。step2000为goal/crossing `16/16`、bilateral `95.947605%`、over-force `0%`、coasting `4.011461%`、fd hinge p95 `.491563`、j8 `26.156365%`、stage3 hard-limit `13.417431%`、reward mean `105.4946`、length mean `468.5625`；top hinge tertile `5/5` goal/crossing、bilateral `97.026%`、coasting `2.974%`，三个height bucket均`100%` goal/crossing。step3000为goal `16/16`、crossing `14/16`、bilateral `94.710327%`、over-force `.293871%`、coasting `5.289673%`、hinge p95 `.548683`、j8 `27.959698%`、hard-limit `30.264817%`、reward mean `108.7532`、length mean `489.3125`。两者goal相同而step2000的crossing/bilateral/coasting/hinge velocity/j8/hard-limit更好，故选择step2000 render；其通过goal`>=12`、crossing`>=14`、bilateral`>=90`、coasting`<=9.567`、hinge p95`<=.5133`，但j8 `26.156%`高于25% observation line、低于plan `>30%` reopen trigger，仍为observation，不称all guardrails PASS。
+- 2026-07-20 02:57 HKT - final strong-spring render artifact `logs_eval/base_v14/base_v14_main_ckpt2000_render_2env_3cam_seed2_heightbounds_strongspring_20260720/`：seed2，env0 height`.80`/hinge`6.62415695`、env1 height`1.05`/hinge`5.39499426`，均goal/stage5/complete/crossing-holding。default/handle_top/handle_side共6个MP4，无`.writing`；Main OpenCV full-frame decode PASS，均`1280×720@20fps`，env0每camera504帧、env1每camera516帧。未进行sampled-frame subjective visual review。
 - 2026-07-19 16:36 HKT - formal run `logs_rl/a2_piper_full_stage_a2_base/base_v14_main-20260719_103629/`已产出step1000 checkpoint；seed0、16 env、each-env first episode matched eval artifact为`logs_eval/base_v14/base_v14_main_ckpt1000_matched_scalar_trace_16env_seed0_20260719/`，进程natural exit0，`16/16 goal`、`16/16 stage5`、`16/16 complete`，length min/mean/max `367/451.3125/510`、reward `84.3535/96.5526/108.3112`。top hinge-force tertile为`5/5 goal`，三个handle-height bucket均100% goal。
 - 2026-07-19 16:36 HKT - matched trace guardrails仍阻止early-final：crossing holding `6/16 < 14/16`，stage3/4 positive-motion bilateral `88.183% < 90%`；finite-difference coasting `11.775%`与hinge velocity p95 `.5469rad/s`均劣于v13.1 endpoint的`9.567%`/`.5133rad/s`。j8 open-limit `15.614% < 25%`、stage3 handle hard-limit `5.444%`有改善。step1000保留为strong midpoint/fallback，继续到step2000再做matched eval。
 - 2026-07-19 16:36 HKT - eval runtime config与scene log均为seed0，但`a2_v14_per_env_records.json`中16条record的`seed`字段均误写为TRL `TrainingArguments.seed=42`。本次scalar/trace outcome与randomization metadata仍是seed0 rollout evidence；formal M20 seed0/1/2 bucket report的seed identity不成立，endpoint supplementary eval前必须修复并验证exporter provenance。
@@ -72,7 +75,7 @@ read_when:
 
 | Item | Value |
 |---|---|
-| Current behavior / warm-start reference | `base_v13_1_main` step3000 `policy_only` |
+| Current behavior / warm-start reference | selected v14 step2000 height-stratified endpoint/render checkpoint；`base_v13_1_main` step3000保留为`policy_only` warm-start reference |
 | Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v14_main.yaml` |
 | v14 warm-start | v13.1 step3000 `policy_only`; Option A `12D actor / 5D base command`，无spring observation |
 | Training seed | `0` |
@@ -87,13 +90,13 @@ read_when:
 | Formal v13.1 resource | saved runtime为4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；已完成 |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
-当前formal experiment是`base_v14_main-20260719_103629`；formal behavior/warm-start reference仍是`base_v13_1_main` step3000。v14 step1000已有seed0 matched policy-quality evidence，但未满足early-final guardrails，也没有seed1/2 supplementary或render；所有训练/eval解释以保存的resolved runtime config为准，single-seed结果不能拆成单因素因果结论。
+当前formal experiment是`base_v14_main-20260719_103629`；v14 step2000为已选height-stratified endpoint/render checkpoint，`base_v13_1_main` step3000仍仅作`policy_only` warm-start reference。exact saved runtime config是训练/eval解释的source of truth；height-stratified/matched endpoint不是未变的historical canonical random-seed0 protocol，且single-seed结果不能拆成单因素因果结论。
 
 ## Current Experiment
 
-`base_v14_main-20260719_103629`是当前formal experiment；M16–M20与M18 static reachability boundary已验证到批准范围。step1000 matched eval已完成并证明16/16 task completion，但crossing/bilateral/coasting/hinge-velocity guardrails未过，故不early-final promote；继续训练并在step2000复评。formal training launcher natural exit、endpoint seed1/2 M20 report与render仍NOT RUN。
+`base_v14_main-20260719_103629`是当前formal experiment；M16–M20与M18 static reachability boundary已验证到批准范围。selected v14 step2000 height-stratified/matched endpoint通过main endpoint gates，且final strong-spring seed2 2-env render已完成；j8仍作future observation，不能写成all guardrails PASS。formal random seed1/seed2 16-env supplementary与combined 48-door M20 bucket report仍NOT RUN；formal training launcher natural-exit仍未验证。
 
-`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。v14 formal training正在继续，下一次mandatory checkpoint为step2000 matched eval；endpoint前须修复M20 per-env seed provenance，再完成canonical+seed1/2 bucket report与render。v14 formal training launcher natural exit仍未验证。
+`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。v14 seed exporter bug已修复并由runtime exact-grid/provenance验证；无需强制额外implementation。后续只需formal seed1/2 supplementary、combined M20 report与launcher natural-exit核验。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -130,10 +133,13 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-19 07:07 HKT - 用户启动formal `v14_main`；在500/1000/2000执行matched eval，并在endpoint完成canonical+seed1/2 bucket report/render。formal training natural exit、checkpoint runtime与v14 policy quality在实际run前均未验证。
+- 2026-07-20 02:57 HKT - formal random seed1与seed2各16-env supplementary eval及combined 48-door M20 bucket report仍NOT RUN；formal training launcher natural-exit仍未验证。继续monitor j8 open-limit，当前`26.156365%`为observation且低于`>30%` reopen trigger，不强制额外implementation。
 
 ## DONE Summary
 
+- 2026-07-20 02:57 HKT - 完成eval-only deterministic height grid与runtime seed provenance修复验证：默认不影响training path；16-env seed0 exact grid、focused14、py_compile/diff PASS。
+- 2026-07-20 02:57 HKT - 完成v14 step2000/step3000 height-stratified matched endpoint比较并选step2000作render checkpoint；其main endpoint gates PASS，j8 observation保留，不称all guardrails PASS。
+- 2026-07-20 02:57 HKT - 完成seed2 strong-spring 2-env×3-camera render；6个MP4无`.writing`且OpenCV full-frame decode PASS，未作subjective sampled-frame review。
 - 2026-07-18 22:13 HKT - `base_v13_1_main` formal saved runtime完成到step3000；endpoint checkpoint SHA-256 `e836427e...167945`，resolved topology为4×1024、global batch4096、save250。
 - 2026-07-18 22:13 HKT - step3000 matched eval exit0：16/16 goal、stage5、complete；完整scalar/trace/diagnostic artifacts位于`logs_eval/base_v13_1/..._r3/`。
 - 2026-07-18 22:13 HKT - env0/1 render exit0并产出6个可逐帧解码的720p/20fps视频；indexless CUDA telemetry device mismatch已做最小fail-fast修复并通过13 tests、CODE_QUALITY与GPU runtime。

@@ -6,7 +6,7 @@
 
 - [worktree-routing/description.md](worktree-routing/description.md): A2_Piper active implementation worktree 与 doorman baseline/reference worktree 的使用约定。
 - [doorman-door-training-goal/description.md](doorman-door-training-goal/description.md): 长期目标：基于 Doorman door-opening workflow 替换为用户自己的 robot，并设计/适配 observation、action、reward、env config、training/eval workflow 以完成开门任务训练。
-- [push-open-door-optimization/description.md](push-open-door-optimization/description.md): 2026-07-19 07:07 HKT — `base_v14_main`是当前training-ready config：保持v13.1 step3000 `policy_only` warm-start与Option A `12D actor / 5D base command`。M18选定x `0.55–0.60m`、handle cap `1.05m`；v14 formal training/smoke/eval/policy quality均NOT RUN。v13.1 step3000继续是behavior/warm-start reference。
+- [push-open-door-optimization/description.md](push-open-door-optimization/description.md): 2026-07-19 16:36 HKT — `base_v14_main-20260719_103629`已运行；step1000 seed0/16-env matched eval为16/16 complete，但early-final guardrails未过（crossing holding 6/16、bilateral 88.18%、coasting 11.77%、hinge velocity p95 0.547rad/s），继续训练至step2000。M20 per-env记录把runtime seed0误标为42，seed1/2 endpoint前须修复。
 - [reward-implementation-goal/description.md](reward-implementation-goal/description.md): A2+Piper Doorman reward implementation 近期目标与工程约束，stage0-5 reward code work + transition conditions 已 static PASS，剩余全部是 runtime/smoke 验证项。
 - [quicktest-merge/description.md](quicktest-merge/description.md): 记录 2026-06-25 从 quickTEST branch 合并回 A2_Piper 主线的内容清单、A/B/C 分类与 6-stage 影响边界。
 - [stage0-2-grasp-terminal/description.md](stage0-2-grasp-terminal/description.md): `quickTEST` 分支的 stage0-2-only Teacher PPO quick test，记录 stage2 grasp completion 作为 terminal success 的实验目标、config 边界与验证 TODO。

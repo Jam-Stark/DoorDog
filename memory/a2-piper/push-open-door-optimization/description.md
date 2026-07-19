@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-19 07:07 HKT
+last_updated: 2026-07-19 16:36 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -23,11 +23,14 @@ read_when:
 
 ## Current State
 
+- 2026-07-19 16:36 HKT - formal run `logs_rl/a2_piper_full_stage_a2_base/base_v14_main-20260719_103629/`已产出step1000 checkpoint；seed0、16 env、each-env first episode matched eval artifact为`logs_eval/base_v14/base_v14_main_ckpt1000_matched_scalar_trace_16env_seed0_20260719/`，进程natural exit0，`16/16 goal`、`16/16 stage5`、`16/16 complete`，length min/mean/max `367/451.3125/510`、reward `84.3535/96.5526/108.3112`。top hinge-force tertile为`5/5 goal`，三个handle-height bucket均100% goal。
+- 2026-07-19 16:36 HKT - matched trace guardrails仍阻止early-final：crossing holding `6/16 < 14/16`，stage3/4 positive-motion bilateral `88.183% < 90%`；finite-difference coasting `11.775%`与hinge velocity p95 `.5469rad/s`均劣于v13.1 endpoint的`9.567%`/`.5133rad/s`。j8 open-limit `15.614% < 25%`、stage3 handle hard-limit `5.444%`有改善。step1000保留为strong midpoint/fallback，继续到step2000再做matched eval。
+- 2026-07-19 16:36 HKT - eval runtime config与scene log均为seed0，但`a2_v14_per_env_records.json`中16条record的`seed`字段均误写为TRL `TrainingArguments.seed=42`。本次scalar/trace outcome与randomization metadata仍是seed0 rollout evidence；formal M20 seed0/1/2 bucket report的seed identity不成立，endpoint supplementary eval前必须修复并验证exporter provenance。
 - 2026-07-18 22:13 HKT - `base_v13_1_main-20260717_202500` resolved run 为seed0、4 ranks × `1024 env/rank`、global batch `4096`、global cap `3000`、save250；该saved override supersede plan中的2000-batch预期。endpoint `model_step_003000.pt` state为global/max `3000/3000`，SHA-256 `e836427e...167945`。
 - 2026-07-19 07:07 HKT - `base_v14_main`已完成training-ready implementation：warm-start为`base_v13_1_main` step3000 `policy_only`；Option A保持`12D actor / 5D [vx, vy, yaw, pitch, roll]`，无spring observation；4 ranks×1024 env/rank、global batch4096、3000 batches、save250。
 - 2026-07-19 07:07 HKT - M16为right/out、hinge `[2.5,7.0]`、handle `[1.0,3.0]`、final handle height `[0.80,1.05]`；M17 stage0 x `[0.55,0.60]`、`|dy|<0.15`；M19 release latch `1.04 < 1.0472` stage4→5；M20 strict telemetry/three-seed bucket report/high cap`1.05`。
 - 2026-07-19 07:07 HKT - M18 runtime PASS：`scriptsFORhuman/a2_piper_v14_reachability_20260719/`有7×10×3=`210` exact cells、12 feasible；严格规则`tcp_error<0.03`、无self-collision、joint margin`>0.1`。选择x `[0.55,0.60]`、cap1.05，1.10无feasible；high handles1.00/1.05仅diagnostic root height0.75（`>=0.70`）feasible。root height是static diagnostic placement，不是action/command dimension；M18 door collisions disabled且仅final static contact evidence，不证明dynamic policy reachability或hardware certainty。
-- 2026-07-19 07:07 HKT - initial focused `45 passed`、post-review impacted `31 passed`、py_compile/Hydra compose/diff PASS；strict outcome types、M20 cap1.05、exact raw-grid coordinates三项fail-fast修复后CODE_QUALITY、IsaacLab semantics、runtime QA PASS。v14 formal training/smoke/eval/checkpoint runtime/policy quality均NOT RUN。
+- 2026-07-19 07:07 HKT - initial focused `45 passed`、post-review impacted `31 passed`、py_compile/Hydra compose/diff PASS；strict outcome types、M20 cap1.05、exact raw-grid coordinates三项fail-fast修复后CODE_QUALITY、IsaacLab semantics、runtime QA PASS。当时v14 formal training/smoke/eval/checkpoint runtime/policy quality均NOT RUN；该状态已由2026-07-19 16:36 step1000 evidence部分supersede。
 - 2026-07-18 22:13 HKT - endpoint matched artifact `logs_eval/base_v13_1/base_v13_1_main_ckpt3000_matched_scalar_trace_16env_seed0_20260718_r3/` exit0：seed0、16 env、per-env first episode，`16/16 goal`、`16/16 stage5`、`16/16 complete`；length min/mean/max `388/455.0625/502`，reward min/mean/max `103.3703/112.3147/119.3493`。forced-close/oracle均关闭，scalar/trace/diagnostic metadata完整。
 - 2026-07-18 22:13 HKT - 2-env render artifact `logs_eval/base_v13_1/base_v13_1_main_ckpt3000_render_2env_3cam_seed0_20260718/` exit0：env0 len502、env1 len497，均goal/stage5/complete；default/handle_top/handle_side共6个MP4，无`.writing.mp4`，OpenCV逐帧解码PASS，均`1280×720@20fps`，env0/env1分别503/498帧。
 - 2026-07-18 22:13 HKT - eval首次暴露single-process `accelerator.device=cuda` 与telemetry tensor `cuda:0`的strict comparison mismatch；`_canonicalize_a2_metric_device`仅将indexless CUDA解析为`torch.cuda.current_device()`，保留explicit index/CPU与全部shape/dtype/finite/exact-device fail-fast。13个targeted tests、py_compile、CODE_QUALITY及matched GPU eval runtime PASS。
@@ -84,13 +87,13 @@ read_when:
 | Formal v13.1 resource | saved runtime为4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；已完成 |
 | Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
 
-当前training-ready config是`base_v14_main`；formal behavior/warm-start reference仍是`base_v13_1_main` step3000。v14尚无training/smoke/eval/checkpoint runtime或policy-quality evidence；所有训练/eval解释以保存的resolved runtime config为准，single-seed结果不能拆成单因素因果结论。
+当前formal experiment是`base_v14_main-20260719_103629`；formal behavior/warm-start reference仍是`base_v13_1_main` step3000。v14 step1000已有seed0 matched policy-quality evidence，但未满足early-final guardrails，也没有seed1/2 supplementary或render；所有训练/eval解释以保存的resolved runtime config为准，single-seed结果不能拆成单因素因果结论。
 
 ## Current Experiment
 
-`base_v14_main`是当前training-ready experiment；M16–M20与M18 static reachability boundary已验证到批准范围。v14 formal training、smoke、matched eval、checkpoint runtime、policy quality与launcher natural exit均NOT RUN。
+`base_v14_main-20260719_103629`是当前formal experiment；M16–M20与M18 static reachability boundary已验证到批准范围。step1000 matched eval已完成并证明16/16 task completion，但crossing/bilateral/coasting/hinge-velocity guardrails未过，故不early-final promote；继续训练并在step2000复评。formal training launcher natural exit、endpoint seed1/2 M20 report与render仍NOT RUN。
 
-`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。下一步由用户启动formal `v14_main`，按iter500/1000/2000执行matched eval，并在endpoint完成canonical+seed1/2 bucket report与render；v14 training natural exit、checkpoint runtime与policy quality在实际run前均未验证。
+`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。v14 formal training正在继续，下一次mandatory checkpoint为step2000 matched eval；endpoint前须修复M20 per-env seed provenance，再完成canonical+seed1/2 bucket report与render。v14 formal training launcher natural exit仍未验证。
 
 ## Inherited Base v0→v8 Lessons
 

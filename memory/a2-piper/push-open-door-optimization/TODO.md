@@ -1,4 +1,5 @@
 # TODO
 
-- 2026-07-20 02:57 HKT - formal random seed1与seed2各16-env supplementary eval仍NOT RUN；随后合并三次各16-door evidence，完成combined 48-door M20 bucket report。height-stratified/matched endpoint不是unchanged historical canonical random-seed0 protocol，不得把supplementary或multi-seed statistical proof写为已完成。
-- 2026-07-20 02:57 HKT - formal training launcher natural-exit仍未验证。seed exporter bug已修复并runtime验证，无需强制额外implementation；未来继续monitor j8 open-limit，step2000的`26.156365%`高于25% observation line、低于`>30%` reopen trigger。
+- 2026-07-21 00:21 HKT - formal `base_v15_main` 3000-batch training NOT RUN；50-batch smoke仅证明mechanics/shutdown，不能替代formal training或policy quality。
+- 2026-07-21 00:21 HKT - formal v15 matched eval iter500/1000/2000、v15 seed1/2，以及endpoint combined 48-door M27 report均NOT RUN；继续保持seed0 canonical与supplementary/statistical-proof边界。
+- 2026-07-21 00:21 HKT - high-water默认关闭，仅当heavy-bucket stage3→4 stall criterion成立时才开启。M23 scripted 108-cell grid仍NOT RUN，但当前policy decision下不阻塞。

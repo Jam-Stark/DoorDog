@@ -115,6 +115,8 @@ env:
     a2_grasp_streak_control_steps: 5
     # v13 door semantics. A/B select the stage3->4 grasp requirement explicitly.
     a2_stage3_to4_requires_grasp_streak: false
+    # M26 emergency high-water switch; default preserves the current gate.
+    a2_stage3_to4_streak_highwater: false
     # 0.6rad is the v13 provisional unlatch normalization; telemetry monitors
     # whether the policy farms the 0.785398rad handle hard limit.
     a2_stage3_unlatch_handle_position_norm: 0.6
@@ -143,6 +145,8 @@ env:
     a2_stage3_base_unlocked: false
     a2_stage4_release_hinge_threshold: 1.2
     a2_stage45_door_frame_contact_scale: 0.2
+    # Generic panel contact remains priced in stages 0-2 and is scaled here in stages 3-5.
+    a2_stage35_door_panel_contact_scale: 1.0
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

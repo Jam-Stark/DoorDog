@@ -10,6 +10,7 @@ import isaaclab.sim as sim_utils
 import omni.usd
 import torch
 import torch.nn.functional as F
+from loguru import logger
 from isaacsim.core.simulation_manager import SimulationManager
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
 from isaaclab.controllers import DifferentialIKController, DifferentialIKControllerCfg
@@ -309,6 +310,49 @@ def a2_stage3_to4_advance_mask(
             "A2 stage3->4 gate requires matching 1D bool door/hold masks and a bool mode."
         )
     return door_opened & hold_streak_ok if requires_grasp_streak else door_opened
+
+
+def a2_stage3_to4_hold_streak_mask(
+    current_streak_ok: torch.Tensor,
+    stage3_highwater: torch.Tensor,
+    requires_grasp_streak: bool,
+    highwater_enabled: bool,
+) -> torch.Tensor:
+    """Return the stage3->4 grasp gate with an explicit high-water ablation.
+
+    The default (``highwater_enabled=False``) is byte-for-byte equivalent to the
+    current streak gate.  The emergency ablation only ORs the stage3 latch when
+    the existing grasp requirement is enabled; it never changes the gate when
+    ``requires_grasp_streak`` is false.
+    """
+    for name, value in (
+        ("current_streak_ok", current_streak_ok),
+        ("stage3_highwater", stage3_highwater),
+    ):
+        if (
+            not torch.is_tensor(value)
+            or value.ndim != 1
+            or value.dtype != torch.bool
+        ):
+            raise ValueError(
+                f"{name} must be a one-dimensional bool tensor; got "
+                f"{None if not torch.is_tensor(value) else (tuple(value.shape), value.dtype)}."
+            )
+    if current_streak_ok.shape != stage3_highwater.shape:
+        raise ValueError(
+            "stage3 high-water gate tensors must have matching shapes; "
+            f"got {tuple(current_streak_ok.shape)} and {tuple(stage3_highwater.shape)}."
+        )
+    if current_streak_ok.device != stage3_highwater.device:
+        raise ValueError(
+            "stage3 high-water gate tensors must share a device; "
+            f"got {current_streak_ok.device} and {stage3_highwater.device}."
+        )
+    if not isinstance(requires_grasp_streak, bool) or not isinstance(highwater_enabled, bool):
+        raise ValueError("stage3 high-water gate flags must be bool values.")
+    if not requires_grasp_streak:
+        return torch.ones_like(current_streak_ok)
+    return current_streak_ok | (stage3_highwater if highwater_enabled else torch.zeros_like(stage3_highwater))
 
 
 def a2_stage34_hold_income_mask(
@@ -2678,6 +2722,39 @@ class DoorPregrasp(
     STAGE_THROUGH = 5
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
+    A2_DOOR_BODY_PANEL_CONTACT_SENSOR = "a2_door_body_panel_contact_sensor"
+    A2_DOOR_ARM_PANEL_CONTACT_SENSOR = "a2_door_arm_panel_contact_sensor"
+    A2_DOOR_BODY_PANEL_FILTER_NAMES = (
+        "trunk",
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+    )
+    A2_DOOR_ARM_PANEL_FILTER_NAMES = (
+        "arm_body0",
+        "arm_body1",
+        "arm_body2",
+        "arm_body3",
+        "arm_body4",
+        "arm_body5",
+        "arm_body6",
+        "arm_body6_to_gripper",
+        "arm_body7",
+        "arm_body8",
+    )
+    A2_PENALIZED_CONTACT_BODY_NAMES = (
+        *A2_DOOR_BODY_PANEL_FILTER_NAMES,
+        *A2_DOOR_ARM_PANEL_FILTER_NAMES[:7],
+    )
     A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
     A2_STAGE0_STAGING_X_MIN_CONFIG_KEY = "a2_stage0_staging_x_min"
     A2_STAGE0_STAGING_X_MAX_CONFIG_KEY = "a2_stage0_staging_x_max"
@@ -2692,6 +2769,9 @@ class DoorPregrasp(
     A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY = (
         "a2_stage45_door_frame_contact_scale"
     )
+    A2_STAGE35_DOOR_PANEL_CONTACT_SCALE_CONFIG_KEY = (
+        "a2_stage35_door_panel_contact_scale"
+    )
     A2_GRIPPER_SOURCE_TCP_OFFSET_Z_CONFIG_KEY = "a2_gripper_source_tcp_offset_z"
     A2_GRASP_GATE_MODE_CONFIG_KEY = "a2_grasp_gate_mode"
     A2_GRASP_STREAK_CONTROL_STEPS_CONFIG_KEY = "a2_grasp_streak_control_steps"
@@ -2699,6 +2779,9 @@ class DoorPregrasp(
     A2_GRASP_GATE_MODE_PHYSICS_HISTORY = "physics_history"
     A2_STAGE3_TO4_REQUIRES_GRASP_STREAK_CONFIG_KEY = (
         "a2_stage3_to4_requires_grasp_streak"
+    )
+    A2_STAGE3_TO4_STREAK_HIGHWATER_CONFIG_KEY = (
+        "a2_stage3_to4_streak_highwater"
     )
     A2_STAGE3_UNLATCH_HANDLE_POSITION_NORM_CONFIG_KEY = (
         "a2_stage3_unlatch_handle_position_norm"
@@ -2834,6 +2917,15 @@ class DoorPregrasp(
             raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
         return value
 
+    def _get_a2_stage3_to4_streak_highwater(self) -> bool:
+        key = self.A2_STAGE3_TO4_STREAK_HIGHWATER_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 stage3->4 high-water gate requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
+
     def _get_a2_stage3_unlatch_handle_position_norm(self) -> float:
         return self._get_required_positive_float_config(
             self.A2_STAGE3_UNLATCH_HANDLE_POSITION_NORM_CONFIG_KEY,
@@ -2894,6 +2986,18 @@ class DoorPregrasp(
             )
         return value
 
+    def _get_a2_stage35_door_panel_contact_scale(self) -> float:
+        value = self._get_required_finite_float_config(
+            self.A2_STAGE35_DOOR_PANEL_CONTACT_SCALE_CONFIG_KEY,
+            "A2 stage3-5 door-panel contact penalty",
+        )
+        if not 0.0 <= value <= 1.0:
+            raise RuntimeError(
+                "A2 stage3-5 door-panel contact penalty scale must be finite in [0.0, 1.0]; "
+                f"got {value}."
+            )
+        return value
+
     def _validate_a2_v13_door_semantics_config(self):
         unlatch_norm = self._get_a2_stage3_unlatch_handle_position_norm()
         handle_limit = self._get_a2_stage3_handle_hard_limit_position()
@@ -2903,10 +3007,12 @@ class DoorPregrasp(
             self._get_a2_stage3_stage4_hold_and_drive_velocity_threshold()
         )
         self._get_a2_stage3_to4_requires_grasp_streak()
+        self._get_a2_stage3_to4_streak_highwater()
         self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
         self._get_a2_stage3_stage4_coasting_velocity_threshold()
         self._get_a2_stage4_release_hinge_threshold()
         self._get_a2_stage45_door_frame_contact_scale()
+        self._get_a2_stage35_door_panel_contact_scale()
         if unlatch_norm >= handle_limit:
             raise RuntimeError(
                 "A2 unlatch reward normalization must be below the handle hard limit; "
@@ -3310,6 +3416,14 @@ class DoorPregrasp(
                     f"A2 door metadata requires {field_name} finite float32 tensor "
                     f"shape ({self.num_envs},) on {self.device}."
                 )
+        logger.info(
+            "A2 runtime evidence: door metadata validated num_envs={} "
+            "hinge_drive_max_force_min={} hinge_drive_max_force_max={} device={}",
+            self.num_envs,
+            self.door_hinge_drive_max_force.min().item(),
+            self.door_hinge_drive_max_force.max().item(),
+            self.door_hinge_drive_max_force.device,
+        )
 
     def _init_a2_door_pregrasp_state(self):
         self._get_a2_grasp_gate_mode()
@@ -3473,11 +3587,15 @@ class DoorPregrasp(
     def _init_buffers(self):
         super()._init_buffers()
         if self._use_a2_base:
+            self._a2_runtime_evidence_sensor_keys_logged = set()
             self._a2_stage2_squeeze_streak = torch.zeros(
                 self.num_envs, dtype=torch.long, device=self.device
             )
             self._a2_stage3_stage4_both_contact_streak = torch.zeros(
                 self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_stage3_grasp_streak_highwater = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
             )
             self._a2_grasp_streak_last_full_update_step = -1
             self._a2_stage4_release_gate = torch.zeros(
@@ -3598,6 +3716,22 @@ class DoorPregrasp(
             "_a2_stage3_stage4_both_contact_streak",
             "A2 stage3/4 both-contact streak update",
         )
+        stage3_highwater = getattr(self, "_a2_stage3_grasp_streak_highwater", None)
+        if (
+            stage3_highwater is None
+            or not torch.is_tensor(stage3_highwater)
+            or tuple(stage3_highwater.shape) != (self.num_envs,)
+            or stage3_highwater.dtype != torch.bool
+            or stage3_highwater.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(stage3_highwater) else tuple(stage3_highwater.shape)
+            dtype = None if not torch.is_tensor(stage3_highwater) else stage3_highwater.dtype
+            device = None if not torch.is_tensor(stage3_highwater) else stage3_highwater.device
+            raise RuntimeError(
+                "A2 stage3 high-water streak requires bool tensor shape "
+                f"({self.num_envs},) on {self.device}; got shape={shape}, "
+                f"dtype={dtype}, device={device}."
+            )
 
         if env_ids is not None:
             if (
@@ -3622,6 +3756,7 @@ class DoorPregrasp(
                 )
             stage2_streak[env_ids] = 0
             stage3_stage4_streak[env_ids] = 0
+            stage3_highwater[env_ids] = False
             return
 
         common_step_counter = getattr(self, "common_step_counter", None)
@@ -3670,13 +3805,20 @@ class DoorPregrasp(
             stage2_condition,
             reset_mask,
         )
-        self._a2_stage3_stage4_both_contact_streak[:] = (
-            a2_update_grasp_control_streak(
-                stage3_stage4_streak,
-                stage3_stage4_condition,
-                reset_mask,
+        self._a2_stage3_stage4_both_contact_streak[:] = a2_update_grasp_control_streak(
+            stage3_stage4_streak,
+            stage3_stage4_condition,
+            reset_mask,
+        )
+        stage3_highwater[reset_mask] = False
+        stage3_reached_k = (
+            (stage_buf == self.STAGE_OPEN)
+            & (
+                self._a2_stage3_stage4_both_contact_streak
+                >= self._get_a2_grasp_streak_control_steps()
             )
         )
+        stage3_highwater |= stage3_reached_k
         self._a2_grasp_streak_last_full_update_step = common_step_counter
 
     def _update_a2_v14_root_height_telemetry(self):
@@ -5180,7 +5322,23 @@ class DoorPregrasp(
         door_panel_unwanted_contact_forces = self.simulator.scene.sensors[
             "door_panel_unwanted_contact_sensor"
         ].data.net_forces_w
-        return door_panel_unwanted_contact_forces.norm(dim=-1).sum(dim=-1)
+        contact_force = door_panel_unwanted_contact_forces.norm(dim=-1).sum(dim=-1)
+        if self._use_a2_base:
+            stage35 = (self.stage_buf >= self.STAGE_OPEN) & (
+                self.stage_buf <= self.STAGE_THROUGH
+            )
+            scale = self._get_a2_stage35_door_panel_contact_scale()
+            return torch.where(stage35, contact_force * scale, contact_force)
+        return contact_force
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING, STAGE_THROUGH])
+    def _reward_penalty_a2_door_body_contact(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_door_body_contact is only defined for A2 Piper configs."
+            )
+        _per_filter_force, body_total = self._get_a2_door_body_panel_contact_forces()
+        return (body_total / 20.0).clamp(0.0, 1.0)
 
     def _reward_penalty_upper_body_dof_vel(self):
         return torch.sum(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx] ** 2, dim=-1)
@@ -5281,12 +5439,42 @@ class DoorPregrasp(
     def _reward_penalty_undesired_contact(self):
         # A2 global PASS: uses A2-specific penalize_contacts_on body set with
         # exact leg/base + non-gripper arm links, excluding gripper links.
-        undesired_contact = torch.sum(
-            torch.norm(self.simulator.contact_forces[:, self.penalised_contact_indices, :], dim=-1)
-            > 1,
-            dim=1,
-            dtype=torch.float,
-        )
+        if self._use_a2_base:
+            expected_names = self.A2_PENALIZED_CONTACT_BODY_NAMES
+            actual_names = tuple(self.config.robot.penalize_contacts_on)
+            if actual_names != expected_names:
+                raise RuntimeError(
+                    "A2 undesired-contact dedup requires penalize_contacts_on order "
+                    f"{expected_names}; got {actual_names}."
+                )
+            global_mask = (
+                self.simulator.contact_forces[:, self.penalised_contact_indices, :]
+                .norm(dim=-1)
+                > 1.0
+            )
+            body_force_per_filter, _body_total = self._get_a2_door_body_panel_contact_forces()
+            arm_force_per_filter, _arm_total = self._get_a2_door_arm_panel_contact_forces()
+            panel_mask = torch.cat(
+                (body_force_per_filter > 1.0, arm_force_per_filter[:, :7] > 1.0),
+                dim=1,
+            )
+            if tuple(global_mask.shape) != tuple(panel_mask.shape):
+                raise RuntimeError(
+                    "A2 undesired-contact dedup requires global and panel masks "
+                    f"to align; got {tuple(global_mask.shape)} and {tuple(panel_mask.shape)}."
+                )
+            # Binary exclusion is intentional: if one body touches the panel and
+            # another object in the same step, this also excludes that object's
+            # contact.  Vector subtraction is not used because its source/sign
+            # alignment is not established for this sensor pair.
+            undesired_contact = (global_mask & ~panel_mask).sum(dim=1, dtype=torch.float)
+        else:
+            undesired_contact = torch.sum(
+                torch.norm(self.simulator.contact_forces[:, self.penalised_contact_indices, :], dim=-1)
+                > 1,
+                dim=1,
+                dtype=torch.float,
+            )
         return undesired_contact
 
     def _reward_penalty_dof_overspeed(self):
@@ -5371,6 +5559,85 @@ class DoorPregrasp(
                 f"{expected_shape}; got {shape}."
             )
         return force_matrix_w[:, 0, :, :]
+
+    def _get_a2_door_panel_contact_force_components(
+        self, sensor_key: str, filter_names: tuple[str, ...], context: str
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        if not isinstance(sensor_key, str) or not sensor_key:
+            raise RuntimeError(f"{context} requires a non-empty sensor key.")
+        try:
+            sensor = self.simulator.scene.sensors[sensor_key]
+        except (AttributeError, KeyError) as exc:
+            raise RuntimeError(f"{context} requires scene sensor {sensor_key!r}.") from exc
+
+        cfg = getattr(sensor, "cfg", None)
+        actual_filter_paths = getattr(cfg, "filter_prim_paths_expr", None)
+        expected_filter_paths = tuple(
+            f"/World/envs/env_.*/Robot/{body_name}" for body_name in filter_names
+        )
+        if actual_filter_paths is None or tuple(actual_filter_paths) != expected_filter_paths:
+            raise RuntimeError(
+                f"{context} sensor {sensor_key!r} filter order must be "
+                f"{expected_filter_paths}; got {actual_filter_paths!r}."
+            )
+
+        force_matrix_w = getattr(getattr(sensor, "data", None), "force_matrix_w", None)
+        expected_shape = (self.num_envs, 1, len(filter_names), 3)
+        if (
+            force_matrix_w is None
+            or not torch.is_tensor(force_matrix_w)
+            or tuple(force_matrix_w.shape) != expected_shape
+            or not force_matrix_w.is_floating_point()
+            or force_matrix_w.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(force_matrix_w))
+        ):
+            shape = None if not torch.is_tensor(force_matrix_w) else tuple(force_matrix_w.shape)
+            dtype = None if not torch.is_tensor(force_matrix_w) else force_matrix_w.dtype
+            device = None if not torch.is_tensor(force_matrix_w) else force_matrix_w.device
+            raise RuntimeError(
+                f"{context} sensor {sensor_key!r} requires finite floating "
+                f"force_matrix_w shape {expected_shape} on {self.device}; got "
+                f"shape={shape}, dtype={dtype}, device={device}."
+            )
+        per_filter_force = force_matrix_w[:, 0, :, :].norm(dim=-1)
+        total_force = per_filter_force.sum(dim=-1)
+        if not torch.all(torch.isfinite(total_force)) or torch.any(total_force < 0.0):
+            raise RuntimeError(f"{context} sensor {sensor_key!r} produced invalid force norms.")
+        logged_sensor_keys = getattr(
+            self, "_a2_runtime_evidence_sensor_keys_logged", None
+        )
+        if not isinstance(logged_sensor_keys, set) or any(
+            not isinstance(key, str) for key in logged_sensor_keys
+        ):
+            raise RuntimeError(
+                "A2 runtime evidence requires _a2_runtime_evidence_sensor_keys_logged "
+                "to be an initialized set of sensor keys."
+            )
+        if sensor_key not in logged_sensor_keys:
+            logger.info(
+                "A2 runtime evidence: filtered sensor key={} force_matrix_w_shape={} "
+                "dtype={} device={}",
+                sensor_key,
+                tuple(force_matrix_w.shape),
+                force_matrix_w.dtype,
+                force_matrix_w.device,
+            )
+            logged_sensor_keys.add(sensor_key)
+        return per_filter_force, total_force
+
+    def _get_a2_door_body_panel_contact_forces(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return self._get_a2_door_panel_contact_force_components(
+            self.A2_DOOR_BODY_PANEL_CONTACT_SENSOR,
+            self.A2_DOOR_BODY_PANEL_FILTER_NAMES,
+            "A2 door-body panel contact",
+        )
+
+    def _get_a2_door_arm_panel_contact_forces(self) -> tuple[torch.Tensor, torch.Tensor]:
+        return self._get_a2_door_panel_contact_force_components(
+            self.A2_DOOR_ARM_PANEL_CONTACT_SENSOR,
+            self.A2_DOOR_ARM_PANEL_FILTER_NAMES,
+            "A2 door-arm panel contact",
+        )
 
     def _get_door_joint_pos(self, context, min_joints):
         joint_pos = self.simulator.scene.articulations["door"].data.joint_pos
@@ -5974,6 +6241,48 @@ class DoorPregrasp(
         stage3_single_contact_arm_body8 = (
             stage3_active & stage3_stage4_contact_masks["single_contact_arm_body8"]
         )
+
+        # M27 body/arm panel-contact telemetry is scoped to stage3-5 control
+        # steps.  Each filtered force is a world-frame normal-force norm and is
+        # summed per filter without cancellation.
+        body_panel_force_per_filter, body_panel_force_total = (
+            self._get_a2_door_body_panel_contact_forces()
+        )
+        arm_panel_force_per_filter, arm_panel_force_total = (
+            self._get_a2_door_arm_panel_contact_forces()
+        )
+        stage35_active = stage3_active | stage4_active | stage5_active
+        body_panel_contact = stage35_active & (body_panel_force_total > 1.0)
+        body_panel_contact_positive = body_panel_contact
+        body_panel_share_numerator = torch.sum(
+            body_panel_force_total[stage35_active]
+        )
+        arm_panel_share_numerator = torch.sum(
+            arm_panel_force_total[stage35_active]
+        )
+        panel_share_denominator = body_panel_share_numerator + arm_panel_share_numerator
+        panel_share_valid = panel_share_denominator > 0.0
+        self.log_dict["a2_stage35_door_body_contact_numerator"] = body_panel_contact.float().sum()
+        self.log_dict["a2_stage35_door_body_contact_denominator"] = stage35_active.float().sum()
+        self.log_dict["a2_stage35_door_body_contact_usage_frac"] = a2_masked_boolean_fraction(
+            body_panel_contact, stage35_active
+        )
+        self.log_dict["a2_stage35_door_body_force_all_sample_p50"] = a2_masked_float_quantile(
+            body_panel_force_total, stage35_active, 0.5
+        )
+        self.log_dict["a2_stage35_door_body_force_all_sample_p95"] = a2_masked_float_quantile(
+            body_panel_force_total, stage35_active, 0.95
+        )
+        self.log_dict["a2_stage35_door_body_force_contact_positive_p50"] = a2_masked_float_quantile(
+            body_panel_force_total, body_panel_contact_positive, 0.5
+        )
+        self.log_dict["a2_stage35_door_body_force_contact_positive_p95"] = a2_masked_float_quantile(
+            body_panel_force_total, body_panel_contact_positive, 0.95
+        )
+        self.log_dict["a2_stage35_door_body_force_pooled_numerator"] = body_panel_share_numerator
+        self.log_dict["a2_stage35_door_arm_force_pooled_numerator"] = arm_panel_share_numerator
+        self.log_dict["a2_stage35_door_panel_force_pooled_denominator"] = panel_share_denominator
+        self.log_dict["a2_stage35_door_panel_force_share_valid"] = panel_share_valid.float()
 
         door_joint_pos = self._get_door_joint_pos("A2 route diagnostics", 2)
         door_joint_vel = self._get_door_joint_vel("A2 route diagnostics", 2)
@@ -6673,6 +6982,13 @@ class DoorPregrasp(
             )
         handle_contact_force_norm = torch.linalg.norm(handle_contact_force_w, dim=-1)
 
+        door_body_panel_force_per_filter, door_body_panel_force_total = (
+            self._get_a2_door_body_panel_contact_forces()
+        )
+        door_arm_panel_force_per_filter, door_arm_panel_force_total = (
+            self._get_a2_door_arm_panel_contact_forces()
+        )
+
         source_quat = source_quat_w[:, None, :].expand(-1, 2, -1).reshape(-1, 4)
         handle_contact_force_source = quat_apply(
             quat_inv(source_quat), handle_contact_force_w.reshape(-1, 3)
@@ -6802,6 +7118,18 @@ class DoorPregrasp(
         )
         selected_handle_contact_force_norm = (
             handle_contact_force_norm[env_ids].detach().cpu().tolist()
+        )
+        selected_door_body_panel_force_per_filter = (
+            door_body_panel_force_per_filter[env_ids].detach().cpu().tolist()
+        )
+        selected_door_body_panel_force_total = (
+            door_body_panel_force_total[env_ids].detach().cpu().tolist()
+        )
+        selected_door_arm_panel_force_per_filter = (
+            door_arm_panel_force_per_filter[env_ids].detach().cpu().tolist()
+        )
+        selected_door_arm_panel_force_total = (
+            door_arm_panel_force_total[env_ids].detach().cpu().tolist()
         )
         selected_squeeze_y = squeeze_y[env_ids].detach().cpu().tolist()
         selected_single_contact = (
@@ -6972,6 +7300,21 @@ class DoorPregrasp(
             stage3_stage4_gripper_raw_sign_flip[env_ids].detach().cpu().tolist()
         )
         close_target_list = close_target.detach().cpu().tolist()
+        open_target = getattr(self, "_a2_gripper_open_target", None)
+        if (
+            open_target is None
+            or not torch.is_tensor(open_target)
+            or tuple(open_target.shape) != (2,)
+            or not open_target.is_floating_point()
+            or open_target.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(open_target))
+        ):
+            shape = None if not torch.is_tensor(open_target) else tuple(open_target.shape)
+            raise RuntimeError(
+                "A2 terminal diagnostics requires finite _a2_gripper_open_target "
+                f"shape (2,) on {self.device}; got {shape}."
+            )
+        open_target_list = open_target.detach().cpu().tolist()
 
         diagnostics = []
         for idx, env_id in enumerate(env_ids.tolist()):
@@ -7023,6 +7366,7 @@ class DoorPregrasp(
                     "over_force": bool(selected_over_force[idx]),
                     "arm_j7_j8_pos": selected_arm_j7_j8_pos[idx],
                     "arm_j7_j8_close_target": close_target_list,
+                    "arm_j7_j8_open_target": open_target_list,
                     "arm_j7_j8_close_error": selected_arm_j7_j8_close_error[idx],
                     "gripper_primitive_raw": selected_gripper_primitive_raw[idx],
                     "gripper_raw_sign_flip": bool(selected_gripper_raw_sign_flip[idx]),
@@ -7071,6 +7415,14 @@ class DoorPregrasp(
                     "target_pos_source_pregrasp": selected_target_pos_source_pregrasp[
                         idx
                     ],
+                    "door_body_panel_normal_force_per_filter": selected_door_body_panel_force_per_filter[idx],
+                    "door_body_panel_normal_force_total": float(
+                        selected_door_body_panel_force_total[idx]
+                    ),
+                    "door_arm_panel_normal_force_per_filter": selected_door_arm_panel_force_per_filter[idx],
+                    "door_arm_panel_normal_force_total": float(
+                        selected_door_arm_panel_force_total[idx]
+                    ),
                 }
             )
         return diagnostics
@@ -13233,6 +13585,7 @@ class DoorPregrasp(
             ]
             self._finish_a2_static_clamp(affected)
         if self._use_a2_base:
+            self._a2_stage3_grasp_streak_highwater[env_ids] = False
             self._a2_stage4_release_gate[env_ids] = False
             self._a2_root_x_ever_crossed[env_ids] = False
             self._a2_crossing_event_valid[env_ids] = False
@@ -13440,6 +13793,20 @@ class DoorPregrasp(
         )
         cond &= max_deviation < arm_max_deviation
         if self._use_a2_base:
+            base_command = self.get_physical_homie_commands()
+            if (
+                not torch.is_tensor(base_command)
+                or tuple(base_command.shape) != (self.num_envs, 5)
+                or not torch.all(torch.isfinite(base_command))
+                or base_command.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(base_command) else tuple(base_command.shape)
+                raise RuntimeError(
+                    "A2 stage0->1 base-still gate requires finite physical homie "
+                    f"commands shape ({self.num_envs}, 5) on {self.device}; got {shape}."
+                )
+            cond &= torch.norm(base_command[:, :3], dim=1) <= 0.1
+        if self._use_a2_base:
             self._record_a2_stage0_to1_staging_standoff(
                 cond,
                 grasp_target,
@@ -13566,12 +13933,16 @@ class DoorPregrasp(
         )
         if not self._use_a2_base:
             return door_opened
+        hold_streak_ok = a2_stage3_to4_hold_streak_mask(
+            current_streak_ok=self._get_a2_hold_streak_ok_mask(),
+            stage3_highwater=self._a2_stage3_grasp_streak_highwater,
+            requires_grasp_streak=self._get_a2_stage3_to4_requires_grasp_streak(),
+            highwater_enabled=self._get_a2_stage3_to4_streak_highwater(),
+        )
         return a2_stage3_to4_advance_mask(
             door_opened=door_opened,
-            hold_streak_ok=self._get_a2_hold_streak_ok_mask(),
-            requires_grasp_streak=(
-                self._get_a2_stage3_to4_requires_grasp_streak()
-            ),
+            hold_streak_ok=hold_streak_ok,
+            requires_grasp_streak=True,
         )
 
     def _stage_4_reward_condition(self):
@@ -13719,6 +14090,32 @@ class DoorPregrasp(
             )
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_CONTACT_SENSOR] = ContactSensor(
                 a2_gripper_handle_contact_sensor_config
+            )
+            body_panel_filter_paths = [
+                f"/World/envs/env_.*/Robot/{body_name}"
+                for body_name in self.A2_DOOR_BODY_PANEL_FILTER_NAMES
+            ]
+            arm_panel_filter_paths = [
+                f"/World/envs/env_.*/Robot/{body_name}"
+                for body_name in self.A2_DOOR_ARM_PANEL_FILTER_NAMES
+            ]
+            body_panel_contact_sensor_config = ContactSensorCfg(
+                prim_path=f"/World/envs/env_.*/{target_obj}/door_panel",
+                filter_prim_paths_expr=body_panel_filter_paths,
+                history_length=0,
+                update_period=0.0,
+            )
+            arm_panel_contact_sensor_config = ContactSensorCfg(
+                prim_path=f"/World/envs/env_.*/{target_obj}/door_panel",
+                filter_prim_paths_expr=arm_panel_filter_paths,
+                history_length=0,
+                update_period=0.0,
+            )
+            simulator.scene.sensors[self.A2_DOOR_BODY_PANEL_CONTACT_SENSOR] = ContactSensor(
+                body_panel_contact_sensor_config
+            )
+            simulator.scene.sensors[self.A2_DOOR_ARM_PANEL_CONTACT_SENSOR] = ContactSensor(
+                arm_panel_contact_sensor_config
             )
             self._get_a2_hold_friction_override()
 

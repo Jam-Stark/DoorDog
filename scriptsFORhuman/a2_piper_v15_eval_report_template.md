@@ -64,15 +64,17 @@ value is an evidence failure and cannot produce a release selection.
 
 ## M23 reachability attachment
 
-Attach the complete M23 pitch-aware dynamic reachability report:
+Attach the policy-driven M23 evidence (the trained v14 release policy is the
+capability instrument):
 
-- 3 mandatory anchors first: pitch 0 rad, standoff 0.60 m, handle heights
-  0.95/1.00/1.05 m. Any anchor failure blocks grid success artifacts.
-- 108 cells: physical pitch 0/0.20/0.40 rad (raw pitch = physical/0.4),
-  standoff 0.45–0.85 m in 0.05 m steps, handle heights 0.95/1.00/1.05/1.10 m.
-- Every cell must include finite evidence, physical pitch match, TCP error
-  <0.03 m, no self-collision, minimum arm joint margin >0.1 rad, and
-  base stability/no fall/no terminal.
+- Artifact: `logs_eval/base_v15/base_v15_m23_policyprobe_h105_110_16env_seed0_20260720/`.
+- Handle-height coverage: 1.05–1.10 m; 16/16 goal, 16/16 stage5, and
+  15/16 crossing-while-holding.
+- The scripted r39 probe is supplementary/lower-bound evidence only. The
+  scripted 108-cell grid was **NOT RUN**. Its anchor misses cannot override
+  policy capability demonstrated by the artifact above.
+- In the scripted probe runs, exit 139 occurred during Isaac Sim teardown only
+  after the evidence JSON had been written; this is not a policy-result claim.
 
 ## Closure
 

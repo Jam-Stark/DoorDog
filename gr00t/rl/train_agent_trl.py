@@ -61,6 +61,15 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def _close_simulation_app_after_training(simulation_app) -> None:
+    """Close Isaac Sim immediately after a successful trainer run.
+
+    ``SimulationApp.close(skip_cleanup=True)`` is the high-level Isaac Sim
+    shutdown path for runtimes where the full cleanup path can hang.
+    """
+    simulation_app.close(skip_cleanup=True)
+
+
 def _validate_training_checkpoint_load_config(config):
     checkpoint_load_mode = config.checkpoint_load_mode
     if not isinstance(checkpoint_load_mode, str) or checkpoint_load_mode not in (
@@ -508,7 +517,7 @@ def main(config: OmegaConf):
     trainer.train()
 
     if simulator_type == "IsaacSim":
-        simulation_app.close()
+        _close_simulation_app_after_training(simulation_app)
 
 
 if __name__ == "__main__":

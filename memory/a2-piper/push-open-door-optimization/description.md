@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-20 02:57 HKT
+last_updated: 2026-07-21 00:21 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -23,6 +23,9 @@ read_when:
 
 ## Current State
 
+- 2026-07-21 00:21 HKT - v14 M20 supplementary debt已关闭：从v14 step2000 `policy_only` checkpoint完成seed1/2各16-env height-grid eval（seed/env为1/2、env0–15；inclusive height `[.80,1.05]`、hinge `[2.5,7]`且finite）。seed1 natural exit0、`16/16` goal/stage5/crossing-holding；seed2 natural exit0、`16/16` goal/stage5、`15/16` crossing-holding。combined strict `logs_eval/base_v14/base_v14_step2000_m20_three_seed_48door_20260720/` JSON/CSV/MD为48 records、seeds0/1/2各16、`48/48` goal/stage5、schema PASS。seed0仍canonical；此supplementary report不是statistical proof。
+- 2026-07-21 00:21 HKT - v15 M23–M27 implementation与evidence：M23 v14 release policy在1.05–1.10m 16点inclusive grid得到`16/16` goal/stage5、`15/16` crossing-holding，放行1.10m；scripted r39只作supplementary lower bound，108-cell grid NOT RUN，evidence JSON后IsaacSim teardown exit139不作成功退出。M24 stage0推进已加base-still（base command norm`<=.1`）后才记录standoff；band为`[.50,.80]`/`|y|<.15`。M25–M27采用body13/arm10 high-level filtered ContactSensors、world-frame filtered normal force为per-filter vector norm之和、feet排除；generic panel stage3–5 scale0、body price `clamp(sum/20)` scale `-.3`，door-panel body+arm0–6 undesired contact去重。二元filter限制仍在：同body的panel+other contact也会被排除，未声明未证实的vector subtraction。hinge为`[2.5,12]`；high-water default false、仅stage3 latch、reset/stage-switch clear；reporter key为`(seed, env_id)`、stage2记录high-handle pitch+roll、j8在stage3–5、zero share为null。
+- 2026-07-21 00:21 HKT - v15 validation/runtime boundary：focused `43 passed`、trainer/contract `52 passed`、py_compile、real Hydra compose、diff-check，以及CODE_QUALITY/IsaacLab semantics在candidate `37b74e558709cebc3f9902caf10f0e226636f23bbfa2b8a9f454deb6616dc023` PASS，均为static/review evidence而非policy runtime。初次smoke完成batch50/checkpoint但shutdown hang、natural-exit FAIL；以Isaac Sim5.1 high-level `SimulationApp.close(skip_cleanup=True)`修复后，`logs_rl/a2_piper_full_stage_a2_base/base_v15_smoke_20260720-20260721_000610/`在64×50 natural exit0，完成3200 episodes/204800 timesteps/681.03s，hinge `2.610649824142456..11.939538955688477`，body `(64,1,13,3)`/arm `(64,1,10,3)` float32 cuda0，final stage3/4/5 `.0962/.1504/.2812`；step50+last为global/max50，267 finite tensors，W&B/high-water均false。此smoke只证明mechanics/shutdown，不证明policy quality。
 - 2026-07-20 02:57 HKT - eval-only deterministic handle-height grid已实现：默认缺少`a2_eval_door_handle_height_linspace`，保持training path不变；存在时通过high-level `MultiAssetSpawnerCfg(random_choice=false)`按顺序生成`.800000,.816667,...,1.050000` exact inclusive linspace，runtime seed写入TRL `training_args`及per-env provenance。focused `14 passed`、py_compile/diff PASS；16-env runtime验证exact grid与seed0。此项不声明training semantic change。
 - 2026-07-20 02:57 HKT - height-stratified/matched endpoint比较：step2000 artifact `logs_eval/base_v14/base_v14_main_ckpt2000_matched_scalar_trace_16env_seed0_heightgrid_20260720_r2/`与step3000 artifact `logs_eval/base_v14/base_v14_main_ckpt3000_matched_scalar_trace_16env_seed0_heightgrid_20260720_r2/`使用相同per-env hinge force、handle force与height。step2000为goal/crossing `16/16`、bilateral `95.947605%`、over-force `0%`、coasting `4.011461%`、fd hinge p95 `.491563`、j8 `26.156365%`、stage3 hard-limit `13.417431%`、reward mean `105.4946`、length mean `468.5625`；top hinge tertile `5/5` goal/crossing、bilateral `97.026%`、coasting `2.974%`，三个height bucket均`100%` goal/crossing。step3000为goal `16/16`、crossing `14/16`、bilateral `94.710327%`、over-force `.293871%`、coasting `5.289673%`、hinge p95 `.548683`、j8 `27.959698%`、hard-limit `30.264817%`、reward mean `108.7532`、length mean `489.3125`。两者goal相同而step2000的crossing/bilateral/coasting/hinge velocity/j8/hard-limit更好，故选择step2000 render；其通过goal`>=12`、crossing`>=14`、bilateral`>=90`、coasting`<=9.567`、hinge p95`<=.5133`，但j8 `26.156%`高于25% observation line、低于plan `>30%` reopen trigger，仍为observation，不称all guardrails PASS。
 - 2026-07-20 02:57 HKT - final strong-spring render artifact `logs_eval/base_v14/base_v14_main_ckpt2000_render_2env_3cam_seed2_heightbounds_strongspring_20260720/`：seed2，env0 height`.80`/hinge`6.62415695`、env1 height`1.05`/hinge`5.39499426`，均goal/stage5/complete/crossing-holding。default/handle_top/handle_side共6个MP4，无`.writing`；Main OpenCV full-frame decode PASS，均`1280×720@20fps`，env0每camera504帧、env1每camera516帧。未进行sampled-frame subjective visual review。
@@ -75,28 +78,28 @@ read_when:
 
 | Item | Value |
 |---|---|
-| Current behavior / warm-start reference | selected v14 step2000 height-stratified endpoint/render checkpoint；`base_v13_1_main` step3000保留为`policy_only` warm-start reference |
-| Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v14_main.yaml` |
-| v14 warm-start | v13.1 step3000 `policy_only`; Option A `12D actor / 5D base command`，无spring observation |
-| Training seed | `0` |
+| Current behavior / warm-start reference | `base_v15_main`从selected v14 step2000 `policy_only` warm-start；v14 step2000是historical selected endpoint/render checkpoint，`base_v13_1_main` step3000仅为更早historical reference |
+| Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v15_main.yaml` |
+| v15 warm-start | selected v14 step2000 `policy_only`; Option A `12D actor / 5D base command`，无spring observation |
+| Planned training seed | `0` |
 | TCP source local-Z | `0.085m` |
-| Gripper Kp/Kd | v13_A `800/25`; v13_B/v13_pre `80/3` |
+| v15 gripper Kp/Kd | `800/25` |
 | Gripper effort limit | `10/10N` |
 | Grasp gate | `control_streak`, K=`5` control steps; `physics_history` is explicit legacy ablation |
-| Stage3 base | v13_A unlocked; v13_B/v13_pre locked |
+| v15 Stage3 base | unlocked |
 | Stage3→4 threshold | `.25rad` |
-| v13 reward | A: handle `0`, unlatch/hold-drive `3/8`, stability `.5`; B/pre: v12_C handle `6`, new terms `0`, stability `1` |
+| v15 reward | handle `0`、hinge `6`、unlatch/hold-drive `3/8`、body price `-.3`、generic panel stage3–5 scale `0` |
 | Explicit friction override | none (`null`) |
-| Formal v13.1 resource | saved runtime为4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；已完成 |
-| Matched eval | seed0、16 env、each-env first episode；scalar/trace primary |
+| Formal v15 resource | planned 4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；NOT RUN |
+| Matched v15 eval | planned seed0、16 env、each-env first episode；scalar/trace primary；NOT RUN |
 
-当前formal experiment是`base_v14_main-20260719_103629`；v14 step2000为已选height-stratified endpoint/render checkpoint，`base_v13_1_main` step3000仍仅作`policy_only` warm-start reference。exact saved runtime config是训练/eval解释的source of truth；height-stratified/matched endpoint不是未变的historical canonical random-seed0 protocol，且single-seed结果不能拆成单因素因果结论。
+当前training-ready baseline是`base_v15_main`；它从selected v14 step2000 `policy_only` warm-start，保持Option A `12D actor / 5D base command`且无spring observation。formal v15 4×1024/global4096/3000/save250 training与seed0、16-env、each-env-first-episode matched eval均NOT RUN。v14 step2000及`base_v13_1_main` step3000只保留为historical evidence/reference；exact saved runtime config仍是训练/eval解释的source of truth，single-seed结果不能拆成单因素因果结论。
 
 ## Current Experiment
 
-`base_v14_main-20260719_103629`是当前formal experiment；M16–M20与M18 static reachability boundary已验证到批准范围。selected v14 step2000 height-stratified/matched endpoint通过main endpoint gates，且final strong-spring seed2 2-env render已完成；j8仍作future observation，不能写成all guardrails PASS。formal random seed1/seed2 16-env supplementary与combined 48-door M20 bucket report仍NOT RUN；formal training launcher natural-exit仍未验证。
+`base_v14_main-20260719_103629`是已完成的formal v14 experiment；M16–M20、M18 static reachability boundary、step2000 selected endpoint/render，以及M20 seed1/2 supplementary和combined 48-door report均已验证到批准范围。seed0仍为canonical；supplementary multi-seed evidence不构成statistical proof。v14 formal launcher natural-exit仍未在本轮重新核验。
 
-`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。v14 seed exporter bug已修复并由runtime exact-grid/provenance验证；无需强制额外implementation。后续只需formal seed1/2 supplementary、combined M20 report与launcher natural-exit核验。
+当前training-ready candidate是`base_v15_main`：M23 policy-driven release与M24–M27 implementation/runtime smoke已完成，formal 3000-batch training、matched iter500/1000/2000 eval、v15 seed1/2及endpoint combined 48-door M27 report均未启动。high-water只在heavy-bucket stage3→4 stall criterion触发时才开启。`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -133,10 +136,12 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-20 02:57 HKT - formal random seed1与seed2各16-env supplementary eval及combined 48-door M20 bucket report仍NOT RUN；formal training launcher natural-exit仍未验证。继续monitor j8 open-limit，当前`26.156365%`为observation且低于`>30%` reopen trigger，不强制额外implementation。
+- 2026-07-21 00:21 HKT - formal `base_v15_main` 3000-batch training、matched iter500/1000/2000 eval、v15 seed1/2与endpoint combined 48-door M27 report均NOT RUN；不得用M23 policy probe或50-batch smoke替代policy-quality evidence。high-water仅在heavy-bucket stage3→4 stall criterion成立时开启；M23 108-cell scripted grid仍NOT RUN但按当前决策不阻塞。
 
 ## DONE Summary
 
+- 2026-07-21 00:21 HKT - 完成v14 M20 supplementary seed1/2 eval与combined strict 48-door report：三seed各16 records、总计48/48 goal/stage5，seed1为16/16 crossing-holding、seed2为15/16；seed0 canonical，report不构成statistical proof。
+- 2026-07-21 00:21 HKT - 完成v15 M23 1.10m policy-driven release、M24–M27 implementation/review与post-fix 64×50 smoke natural exit0；static/review与mechanics/shutdown runtime PASS不外推为formal training或policy-quality PASS。
 - 2026-07-20 02:57 HKT - 完成eval-only deterministic height grid与runtime seed provenance修复验证：默认不影响training path；16-env seed0 exact grid、focused14、py_compile/diff PASS。
 - 2026-07-20 02:57 HKT - 完成v14 step2000/step3000 height-stratified matched endpoint比较并选step2000作render checkpoint；其main endpoint gates PASS，j8 observation保留，不称all guardrails PASS。
 - 2026-07-20 02:57 HKT - 完成seed2 strong-spring 2-env×3-camera render；6个MP4无`.writing`且OpenCV full-frame decode PASS，未作subjective sampled-frame review。

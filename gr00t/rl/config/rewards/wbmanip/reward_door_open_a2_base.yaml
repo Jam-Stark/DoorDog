@@ -63,6 +63,7 @@ rewards:
       a2_stage3_stage4_squeeze_force_window: 0.5
       a2_stage3_stage4_contact_stability: 0.5
       penalty_a2_stage3_stage4_over_force: -1.0
+      penalty_a2_door_body_contact: 0.0
 
       # swing
       dont_push_door_handle: 3.0

@@ -107,8 +107,8 @@ def test_v14_scenario_is_fixed_right_out_with_explicit_ranges():
     source = SCENARIO_SOURCE.read_text(encoding="utf-8")
     assert 'door_open_lr=["right"]' in source
     assert 'door_open_io=["out"]' in source
-    assert "door_handle_tblr=(1.05, 0.80, 0.08, 0.15)" in source
-    assert "hinge_drive_max_force_range=(2.5, 7.0)" in source
+    assert "door_handle_tblr=(1.10, 0.80, 0.08, 0.15)" in source
+    assert "hinge_drive_max_force_range=(2.5, 12.0)" in source
     assert "handle_drive_max_force_range=(1.0, 3.0)" in source
 
 

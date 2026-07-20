@@ -1,0 +1,74 @@
+{
+  "csv_evidence_path": "a2_piper_v14_reachability_map.csv",
+  "feasibility_rule": {
+    "min_joint_limit_margin_strict_greater_than_rad": 0.1,
+    "missing_or_nonfinite_evidence": "infeasible",
+    "self_collision": "false",
+    "tcp_error_strict_less_than_m": 0.03
+  },
+  "feasible_cell_count": 2,
+  "grid": {
+    "cells": 30,
+    "handle_heights_m": [
+      1.05
+    ],
+    "root_heights_m": [
+      0.55,
+      0.65,
+      0.75
+    ],
+    "standoffs_m": [
+      0.4,
+      0.45,
+      0.5,
+      0.55,
+      0.6,
+      0.65,
+      0.7,
+      0.75,
+      0.8,
+      0.85
+    ],
+    "static_door_geometry": {
+      "axle_length_m": 0.195,
+      "collision_enabled_for_m18": false,
+      "door_height_m": 2.05,
+      "door_weight_kg": 100.0,
+      "door_width_m": 0.95,
+      "handle_drive_max_force": 2.0,
+      "handle_length_m": 0.125,
+      "handle_radius_m": 0.013,
+      "handle_width_m": 0.115,
+      "hinge_drive_max_force": 4.75,
+      "hinge_drive_stiffness": 5.5,
+      "hook_length_m": 0.05,
+      "spawn_hook": false
+    }
+  },
+  "handle_height_any_feasible": {
+    "1.05": true
+  },
+  "infeasible_cell_count": 28,
+  "option_a": {
+    "actor_action_dimensions_unchanged": "12D actor / 5D [vx, vy, yaw, pitch, roll]",
+    "root_height_semantics": "static diagnostic placement; not an action or command dimension"
+  },
+  "schema": "a2_piper_v14_reachability_summary_v1",
+  "selection": {
+    "highest_feasible_handle_cap_m": 1.05,
+    "maximal_continuous_standoff_band_m": {
+      "count": 2,
+      "end": 0.6,
+      "start": 0.55,
+      "values": [
+        0.55,
+        0.6
+      ]
+    },
+    "one_point_ten_m_allowed": false,
+    "retained_handle_heights_m": [
+      1.05
+    ],
+    "tie_rule": "Choose the highest handle-height cap with a non-empty band; within that cap choose the longest continuous standoff band; ties choose the lowest band start."
+  }
+}

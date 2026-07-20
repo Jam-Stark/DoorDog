@@ -2726,6 +2726,39 @@ class DoorPregrasp(
         "a2_hold_diagnostic_max_contact_data_count_per_prim"
     )
     A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY = "a2_hold_diagnostic_friction_override"
+    A2_M23_SELF_COLLISION_CONTACT_SENSORS_CONFIG_KEY = (
+        "a2_m23_self_collision_contact_sensors_enabled"
+    )
+    A2_M23_SELF_COLLISION_SENSOR_KEY_PREFIX = "a2_m23_self_collision_"
+    A2_M23_SELF_COLLISION_BODY_NAMES = (
+        "FL_hip",
+        "FL_thigh",
+        "FL_calf",
+        "FL_foot",
+        "RL_hip",
+        "RL_thigh",
+        "RL_calf",
+        "RL_foot",
+        "FR_hip",
+        "FR_thigh",
+        "FR_calf",
+        "FR_foot",
+        "RR_hip",
+        "RR_thigh",
+        "RR_calf",
+        "RR_foot",
+        "arm_body0",
+        "trunk",
+        "arm_body1",
+        "arm_body2",
+        "arm_body3",
+        "arm_body4",
+        "arm_body5",
+        "arm_body6",
+        "arm_body6_to_gripper",
+        "arm_body7",
+        "arm_body8",
+    )
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -2937,6 +2970,13 @@ class DoorPregrasp(
             raise RuntimeError(
                 f"env.config.{self.A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY}: {exc}"
             ) from exc
+
+    def _get_a2_m23_self_collision_contact_sensors_enabled(self) -> bool:
+        key = self.A2_M23_SELF_COLLISION_CONTACT_SENSORS_CONFIG_KEY
+        value = self.config.get(key, False)
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
 
     def _get_a2_stage2_completion_close_gate_required(self) -> bool:
         key = "a2_stage2_completion_close_gate_required"
@@ -13572,6 +13612,25 @@ class DoorPregrasp(
             )
         return paths
 
+    def _create_a2_m23_self_collision_contact_sensors(self, simulator) -> None:
+        for body_name in self.A2_M23_SELF_COLLISION_BODY_NAMES:
+            sensor_key = f"{self.A2_M23_SELF_COLLISION_SENSOR_KEY_PREFIX}{body_name}"
+            if sensor_key in simulator.scene.sensors:
+                raise RuntimeError(f"M23 self-collision sensor key already exists: {sensor_key}")
+            source_path = f"/World/envs/env_.*/Robot/{body_name}"
+            filter_paths = [
+                f"/World/envs/env_.*/Robot/{other_body_name}"
+                for other_body_name in self.A2_M23_SELF_COLLISION_BODY_NAMES
+                if other_body_name != body_name
+            ]
+            simulator.scene.sensors[sensor_key] = ContactSensor(
+                ContactSensorCfg(
+                    prim_path=source_path,
+                    filter_prim_paths_expr=filter_paths,
+                    force_threshold=1.0,
+                )
+            )
+
     def scene_creation_callback(self, simulator):
         target_obj = simulator.task_config.get("target_obj", None)
         if target_obj is None:
@@ -13589,6 +13648,8 @@ class DoorPregrasp(
         simulator.scene.sensors["door_panel_unwanted_contact_sensor"] = ContactSensor(
             door_panel_unwanted_contact_sensor_config
         )
+        if self._get_a2_m23_self_collision_contact_sensors_enabled():
+            self._create_a2_m23_self_collision_contact_sensors(simulator)
 
         if self._use_a2_base:
             target_sub_prim = simulator.task_config.get(

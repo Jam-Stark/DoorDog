@@ -1,0 +1,1317 @@
+"""Pure M23 dynamic reachability protocol tests; no SimulationApp is started."""
+from __future__ import annotations
+
+import ast
+import importlib.util
+import json
+import re
+import sys
+from dataclasses import asdict
+from pathlib import Path
+from types import ModuleType, SimpleNamespace
+
+import pytest
+
+
+ROOT = Path(__file__).resolve().parents[3]
+SCRIPT_PATH = ROOT / "gr00t/rl/scripts/a2_piper_v15_dynamic_reachability.py"
+SPEC = importlib.util.spec_from_file_location("a2_piper_v15_dynamic_reachability", SCRIPT_PATH)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = MODULE
+SPEC.loader.exec_module(MODULE)
+
+
+def _evidence(spec, *, anchor=None, feasible=True, **overrides):
+    anchor = spec.anchor if anchor is None else anchor
+    values = {
+        "pitch_physical_rad_requested": spec.pitch_physical_rad,
+        "pitch_raw_requested": spec.pitch_raw,
+        "pitch_physical_rad_observed": spec.pitch_physical_rad,
+        "roll_physical_rad_requested": spec.roll_physical_rad,
+        "roll_raw_requested": spec.roll_raw,
+        "roll_physical_rad_observed": spec.roll_physical_rad,
+        "standoff_m_requested": spec.standoff_m,
+        "standoff_m_observed": spec.standoff_m,
+        "handle_height_m_requested": spec.handle_height_m,
+        "handle_height_m_observed": spec.handle_height_m,
+        "tcp_error_m": 0.01 if feasible else 0.04,
+        "self_collision": False,
+        "self_collision_evidence": "max_off_diagonal_contact_force=0N",
+        "min_arm_joint_margin_rad": 0.20 if feasible else 0.09,
+        "base_stable": True,
+        "base_height_m": 0.55,
+        "terminal": False,
+        "terminated": False,
+        "command_converged": True,
+        "finite_evidence": True,
+        "anchor": anchor,
+    }
+    values.update(overrides)
+    return MODULE.ProbeEvidence(**values)
+
+
+def _quat_apply_inverse_reference(quat, vec):
+    """Batched reference matching IsaacLab quat_apply_inverse's verified formula."""
+
+    xyz = quat[:, 1:]
+    t = xyz.cross(vec, dim=-1) * 2.0
+    return vec - quat[:, 0:1] * t + xyz.cross(t, dim=-1)
+
+
+def test_standoff_command_transforms_world_x_into_live_body_x():
+    import torch
+
+    quat_apply_inverse = _quat_apply_inverse_reference
+
+    target_x = torch.tensor([2.0, 2.0], dtype=torch.float32)
+    current_x = torch.tensor([1.0, 1.0], dtype=torch.float32)
+    requested_standoff = torch.tensor([0.50, 0.25], dtype=torch.float32)
+    root_quat_w = torch.tensor(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=torch.float32,
+    )
+
+    body_vx = MODULE._runtime_body_frame_standoff_velocity(
+        target_x,
+        current_x,
+        requested_standoff,
+        root_quat_w,
+        torch,
+        quat_apply_inverse,
+    )
+
+    torch.testing.assert_close(body_vx, torch.tensor([0.50, -0.75]))
+
+
+@pytest.mark.parametrize(
+    "bad_input",
+    (
+        "shape",
+        "nonfinite",
+        "dtype",
+    ),
+)
+def test_standoff_command_fails_fast_on_invalid_frame_inputs(bad_input):
+    import torch
+
+    quat_apply_inverse = _quat_apply_inverse_reference
+
+    target_x = torch.tensor([2.0, 2.0], dtype=torch.float32)
+    current_x = torch.tensor([1.0, 1.0], dtype=torch.float32)
+    requested_standoff = torch.tensor([0.50, 0.25], dtype=torch.float32)
+    root_quat_w = torch.tensor(
+        [
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ],
+        dtype=torch.float32,
+    )
+    if bad_input == "shape":
+        current_x = current_x[:, None]
+    elif bad_input == "nonfinite":
+        target_x[1] = float("nan")
+    else:
+        requested_standoff = requested_standoff.to(torch.float64)
+
+    with pytest.raises(RuntimeError, match="M23 standoff command"):
+        MODULE._runtime_body_frame_standoff_velocity(
+            target_x,
+            current_x,
+            requested_standoff,
+            root_quat_w,
+            torch,
+            quat_apply_inverse,
+        )
+
+
+def test_resolved_a2_vx_standing_threshold_route_is_finite_positive():
+    import torch
+
+    env = SimpleNamespace(
+        _a2_gait_standing_command_thresholds=torch.tensor([0.1, 0.1, 0.2])
+    )
+    threshold = MODULE._runtime_a2_vx_standing_threshold(env, torch)
+    assert threshold.item() == pytest.approx(0.1)
+
+
+@pytest.mark.parametrize(
+    "bad_threshold",
+    (
+        "shape",
+        "zero",
+        "nonfinite",
+        "at_speed_cap",
+    ),
+)
+def test_resolved_a2_vx_standing_threshold_rejects_invalid_route(bad_threshold):
+    import torch
+
+    if bad_threshold == "shape":
+        thresholds = torch.tensor([0.1, 0.1])
+    elif bad_threshold == "zero":
+        thresholds = torch.tensor([0.0, 0.1, 0.2])
+    elif bad_threshold == "nonfinite":
+        thresholds = torch.tensor([float("nan"), 0.1, 0.2])
+    else:
+        thresholds = torch.tensor([MODULE.M23_BASE_VX_MAX_MPS, 0.1, 0.2])
+    env = SimpleNamespace(_a2_gait_standing_command_thresholds=thresholds)
+
+    with pytest.raises(RuntimeError, match="M23 A2"):
+        MODULE._runtime_a2_vx_standing_threshold(env, torch)
+
+
+def test_standoff_velocity_zero_inside_band_and_exceeds_standing_threshold_outside():
+    import torch
+
+    body_error = torch.tensor([0.01, 0.02, -0.02, 0.50])
+    world_error = torch.tensor([0.01, 0.02, -0.03, 0.50])
+    result = MODULE._runtime_standoff_velocity(
+        body_error,
+        world_error,
+        torch.tensor(0.1),
+        torch,
+    )
+
+    assert result[0].item() == 0.0
+    assert result[1].item() > 0.1
+    assert result[2].item() < -0.1
+    assert result[3].item() == pytest.approx(0.30)
+    assert bool(torch.all(torch.abs(result[1:]) <= MODULE.M23_BASE_VX_MAX_MPS))
+
+
+@pytest.mark.parametrize(
+    "bad_input",
+    (
+        "body_shape",
+        "world_nonfinite",
+        "threshold_shape",
+        "threshold_nonfinite",
+    ),
+)
+def test_standoff_velocity_rejects_invalid_tensors_or_threshold(bad_input):
+    import torch
+
+    body_error = torch.tensor([0.02, -0.02])
+    world_error = torch.tensor([0.03, -0.03])
+    threshold = torch.tensor(0.1)
+    if bad_input == "body_shape":
+        body_error = body_error[:, None]
+    elif bad_input == "world_nonfinite":
+        world_error[0] = float("inf")
+    elif bad_input == "threshold_shape":
+        threshold = threshold.reshape(1)
+    else:
+        threshold = torch.tensor(float("nan"))
+
+    with pytest.raises(RuntimeError, match="M23"):
+        MODULE._runtime_standoff_velocity(
+            body_error,
+            world_error,
+            threshold,
+            torch,
+        )
+
+
+def test_base_settle_latches_on_tenth_coherent_pregrasp_sample_and_never_unlatches():
+    import torch
+
+    settled = torch.tensor([False])
+    steps = torch.tensor([0], dtype=torch.long)
+    active = torch.tensor([True])
+    coherent = torch.tensor([True])
+    stage = torch.tensor([2], dtype=torch.long)
+    for expected in range(1, MODULE.COMMAND_CONVERGENCE_STEPS):
+        settled, steps = MODULE._runtime_update_base_settled(
+            settled, steps, active, coherent, coherent, stage, 2, torch
+        )
+        assert settled.tolist() == [False]
+        assert steps.tolist() == [expected]
+    settled, steps = MODULE._runtime_update_base_settled(
+        settled, steps, active, coherent, coherent, stage, 2, torch
+    )
+    assert settled.tolist() == [True]
+    assert steps.tolist() == [MODULE.COMMAND_CONVERGENCE_STEPS]
+    settled, steps = MODULE._runtime_update_base_settled(
+        settled,
+        steps,
+        active,
+        torch.tensor([False]),
+        torch.tensor([False]),
+        torch.tensor([0], dtype=torch.long),
+        2,
+        torch,
+    )
+    assert settled.tolist() == [True]
+    assert steps.tolist() == [MODULE.COMMAND_CONVERGENCE_STEPS]
+
+
+@pytest.mark.parametrize("broken_gate", ("stage", "standoff", "stability"))
+def test_base_settle_resets_pre_latch_count_when_any_gate_breaks(broken_gate):
+    import torch
+
+    settled = torch.tensor([False])
+    steps = torch.tensor([7], dtype=torch.long)
+    strict_standoff = torch.tensor([broken_gate != "standoff"])
+    base_stable = torch.tensor([broken_gate != "stability"])
+    stage = torch.tensor([1 if broken_gate == "stage" else 2], dtype=torch.long)
+    settled, steps = MODULE._runtime_update_base_settled(
+        settled,
+        steps,
+        torch.tensor([True]),
+        strict_standoff,
+        base_stable,
+        stage,
+        2,
+        torch,
+    )
+    assert settled.tolist() == [False]
+    assert steps.tolist() == [0]
+
+
+@pytest.mark.parametrize("bad_stage", ("shape", "dtype"))
+def test_live_stage_buf_fails_fast_on_wrong_contract(bad_stage):
+    import torch
+
+    stage = torch.tensor([2, 2], dtype=torch.long)
+    if bad_stage == "shape":
+        stage = stage[:, None]
+    else:
+        stage = stage.to(torch.float32)
+    env = SimpleNamespace(stage_buf=stage, num_envs=2, device="cpu")
+    with pytest.raises(RuntimeError, match="M23 DoorPregrasp stage_buf"):
+        MODULE._runtime_stage_buf(env, torch)
+
+
+def test_exact_m23_grid_and_pitch_conversion():
+    assert MODULE.PITCH_PHYSICAL_RAD == (0.0, 0.2, 0.4)
+    assert MODULE.PITCH_RAW == (0.0, 0.5, 1.0)
+    assert MODULE.STANDOFFS_M == (0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85)
+    assert MODULE.HANDLE_HEIGHTS_M == (0.95, 1.0, 1.05, 1.1)
+    assert len(MODULE.build_probe_grid()) == 108
+    assert len(MODULE.build_anchor_specs()) == 3
+    assert MODULE.ANCHOR_STANDOFFS_M == (0.5973835, 0.5981750, 0.5718842)
+    assert [(cell.handle_height_m, cell.standoff_m) for cell in MODULE.build_anchor_specs()] == list(zip(MODULE.ANCHOR_HANDLE_HEIGHTS_M, MODULE.ANCHOR_STANDOFFS_M, strict=True))
+    assert MODULE.COMMAND_CONVERGENCE_STEPS == 1
+    assert MODULE.HANDLE_HEIGHT_TOLERANCE_M == 5.0e-5
+    assert all(not cell.anchor for cell in MODULE.build_probe_grid())
+    assert all(cell.anchor for cell in MODULE.build_anchor_specs())
+    assert MODULE.pitch_raw_from_physical(0.2) == 0.5
+
+
+@pytest.mark.parametrize("num_envs", (3, 27))
+def test_probe_config_resolves_one_mini_batch_without_mutating_source(tmp_path, num_envs):
+    from omegaconf import OmegaConf
+
+    run_dir = tmp_path / "saved_run"
+    run_dir.mkdir()
+    checkpoint = run_dir / "model_step_002000.pt"
+    checkpoint.write_text("placeholder", encoding="utf-8")
+    config_path = run_dir / "config.yaml"
+    config_path.write_text(
+        """
+num_envs: 4096
+algo:
+  trl:
+    num_mini_batches: ${algo.config.num_mini_batches}
+  config:
+    num_mini_batches: 4
+    use_a2_base: true
+    base_command_dim: 5
+    manipulation_action_dim: 7
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_base.DoorPregrasp
+  config:
+    env_spacing: 20.0
+    reset_on_complete: true
+    reset_on_overtime: true
+    a2_stage0_staging_x_min: 0.55
+    a2_stage0_staging_x_max: 0.60
+    a2_stage0_staging_y_tol: 0.15
+simulator:
+  config:
+    scene:
+      num_envs: 4096
+    render_results: true
+    cameras:
+      enable_cameras: true
+""",
+        encoding="utf-8",
+    )
+
+    config = MODULE._runtime_config_for_batch(checkpoint, num_envs, (0.95, 1.10), "grid", 0.60)
+
+    assert config.num_envs == num_envs
+    assert config.simulator.config.scene.num_envs == num_envs
+    assert config.env.config.a2_m23_self_collision_contact_sensors_enabled is True
+    assert config.env.config.reset_on_complete is False
+    assert config.env.config.reset_on_overtime is False
+    anchor_config = MODULE._runtime_config_for_batch(checkpoint, num_envs, (0.95, 1.10), "anchors")
+    assert anchor_config.env.config.reset_on_complete is False
+    assert anchor_config.env.config.reset_on_overtime is False
+    assert float(anchor_config.env.config.a2_stage0_staging_x_min) == 0.55
+    assert float(anchor_config.env.config.a2_stage0_staging_x_max) == 0.60
+    assert float(anchor_config.env.config.a2_stage0_staging_y_tol) == 0.15
+    assert int(config.algo.config.num_mini_batches) == 1
+    assert int(config.algo.trl.num_mini_batches) == 1
+    source = OmegaConf.load(config_path)
+    assert int(source.algo.config.num_mini_batches) == 4
+    assert int(source.algo.trl.num_mini_batches) == 4
+    assert source.env.config.reset_on_complete is True
+    assert source.env.config.reset_on_overtime is True
+
+
+def test_pre_step_terminated_evidence_is_frozen_before_reset_state_can_overwrite():
+    import torch
+
+    spec = MODULE.build_anchor_specs()[0]
+    pre_step = _evidence(
+        spec,
+        standoff_m_observed=0.60,
+        tcp_error_m=0.01,
+        command_converged=False,
+    )
+    post_reset = _evidence(
+        spec,
+        standoff_m_observed=0.0,
+        tcp_error_m=0.50,
+        base_height_m=0.0,
+        base_stable=False,
+        command_converged=False,
+    )
+    frozen = [None]
+    MODULE._freeze_pre_step_evidence(
+        frozen,
+        (pre_step,),
+        torch.tensor([True]),
+        torch,
+        terminated=True,
+        command_converged=False,
+    )
+
+    merged = MODULE._merge_frozen_evidence(frozen, (post_reset,))
+    assert merged[0].standoff_m_observed == 0.60
+    assert merged[0].tcp_error_m == 0.01
+    assert merged[0].base_height_m == 0.55
+    assert merged[0].terminated is True
+    assert merged[0].command_converged is False
+    assert merged[0].feasible is False
+    assert "env_terminated_or_timeout" in merged[0].failure_reason
+
+
+def test_pre_step_convergence_freezes_coherent_state_before_next_action():
+    import torch
+
+    spec = MODULE.build_anchor_specs()[0]
+    pre_step = _evidence(
+        spec,
+        standoff_m_observed=0.60,
+        tcp_error_m=0.01,
+        command_converged=False,
+    )
+    post_step = _evidence(
+        spec,
+        standoff_m_observed=0.90,
+        tcp_error_m=0.50,
+        command_converged=False,
+    )
+    frozen = [None]
+    MODULE._freeze_pre_step_evidence(
+        frozen,
+        (pre_step,),
+        torch.tensor([True]),
+        torch,
+        terminated=False,
+        command_converged=True,
+    )
+
+    merged = MODULE._merge_frozen_evidence(frozen, (post_step,))
+    assert merged[0].standoff_m_observed == 0.60
+    assert merged[0].tcp_error_m == 0.01
+    assert merged[0].terminated is False
+    assert merged[0].command_converged is True
+    assert merged[0].feasible is True
+
+
+def test_grid_dik_invalid_row_freezes_once_while_sibling_continues():
+    import torch
+
+    specs = MODULE.build_probe_grid()[:2]
+    first = tuple(_evidence(spec, feasible=True) for spec in specs)
+    frozen = [None, None]
+    MODULE._freeze_pre_step_evidence(
+        frozen,
+        first,
+        torch.tensor([True, False]),
+        torch,
+        terminated=False,
+        command_converged=False,
+    )
+    assert frozen[0].tcp_error_m == first[0].tcp_error_m
+    assert frozen[0].standoff_m_observed == first[0].standoff_m_observed
+    assert frozen[0].feasible is False
+    assert frozen[0].terminated is False
+    assert frozen[0].command_converged is False
+    assert frozen[1] is None
+    frozen_first = frozen[0]
+
+    later = (
+        _evidence(specs[0], feasible=False),
+        _evidence(specs[1], feasible=True, standoff_m_observed=specs[1].standoff_m + 0.01),
+    )
+    merged = MODULE._merge_frozen_evidence(frozen, later)
+    assert merged[0] == frozen_first
+    assert merged[1] == later[1]
+
+    MODULE._freeze_pre_step_evidence(
+        frozen,
+        later,
+        torch.tensor([True, False]),
+        torch,
+        terminated=False,
+        command_converged=False,
+    )
+    assert frozen[0] == frozen_first
+
+
+def test_anchor_gate_aborts_before_grid_on_any_failure(capsys):
+    anchors = MODULE.build_anchor_specs()
+    # Feasibility miss: reported (not raised), decision recorded on the evidence.
+    evidence = [_evidence(spec) for spec in anchors]
+    evidence[1] = _evidence(anchors[1], feasible=False)
+    checked = MODULE.validate_anchor_evidence(evidence)
+    assert [row.feasible for row in checked] == [True, False, True]
+    captured = capsys.readouterr()
+    assert "anchor feasibility miss" in captured.err
+    # Contract violation (wrong requested cell) still aborts.
+    wrong_cell = MODULE.ProbeSpec(
+        pitch_physical_rad=anchors[1].pitch_physical_rad,
+        pitch_raw=anchors[1].pitch_raw,
+        standoff_m=anchors[1].standoff_m + 0.05,
+        handle_height_m=anchors[1].handle_height_m,
+        anchor=True,
+        roll_physical_rad=anchors[1].roll_physical_rad,
+        roll_raw=anchors[1].roll_raw,
+    )
+    broken = [_evidence(spec) for spec in anchors]
+    broken[1] = _evidence(wrong_cell)
+    with pytest.raises(RuntimeError, match="anchor contract violated"):
+        MODULE.validate_anchor_evidence(broken)
+    # Requested-roll drift is also a contract violation.
+    drifted = [_evidence(spec) for spec in anchors]
+    drifted[2] = _evidence(anchors[2], roll_physical_rad_requested=0.0, roll_raw_requested=0.0)
+    with pytest.raises(RuntimeError, match="requested_roll_mismatch"):
+        MODULE.validate_anchor_evidence(drifted)
+
+
+def test_anchor_failure_diagnostic_contains_compact_full_evidence(monkeypatch, capsys):
+    anchors = MODULE.build_anchor_specs()
+    evidence = [
+        _evidence(anchors[0]),
+        _evidence(
+            anchors[1],
+            tcp_error_m=0.04,
+            self_collision=True,
+            self_collision_evidence="max_off_diagonal_contact_force=1.25N",
+        ),
+        _evidence(
+            anchors[2],
+            base_stable=False,
+            terminal=True,
+            terminated=True,
+            command_converged=False,
+        ),
+    ]
+
+    def fail_grid():
+        raise AssertionError("anchor gate must not build the grid")
+
+    monkeypatch.setattr(MODULE, "build_probe_grid", fail_grid)
+    checked = MODULE.validate_anchor_evidence(evidence)
+    assert [row.feasible for row in checked] == [True, False, False]
+    message = capsys.readouterr().err
+
+    assert message.count("evidence=") == 2
+    for field in (
+        "pitch_physical_rad_requested",
+        "pitch_raw_requested",
+        "pitch_physical_rad_observed",
+        "roll_physical_rad_requested",
+        "roll_raw_requested",
+        "roll_physical_rad_observed",
+        "standoff_m_requested",
+        "standoff_m_observed",
+        "handle_height_m_requested",
+        "handle_height_m_observed",
+        "tcp_error_m",
+        "self_collision",
+        "self_collision_evidence",
+        "min_arm_joint_margin_rad",
+        "base_stable",
+        "base_height_m",
+        "terminal",
+        "terminated",
+        "command_converged",
+        "finite_evidence",
+        "anchor",
+        "feasible",
+        "failure_reason",
+    ):
+        assert message.count(f'"{field}"') == 2
+    assert '"tcp_error_m":0.04' in message
+    assert "max_off_diagonal_contact_force=1.25N" in message
+    assert "self_collision_detected" in message
+    assert '"base_stable":false' in message
+    assert "base_unstable_or_fallen" in message
+    assert "env_terminated_or_timeout" in message
+    assert len(message) < MODULE.CHILD_DIAGNOSTIC_MAX_CHARS
+
+
+def test_strict_cell_gate_requires_all_live_evidence():
+    good = _evidence(MODULE.build_probe_grid()[0])
+    assert MODULE.assess_probe_evidence(good) == (True, ())
+    bad_pitch = MODULE.ProbeEvidence(
+        **{
+            **good.__dict__,
+            "pitch_physical_rad_observed": 0.21,
+        }
+    )
+    assert MODULE.assess_probe_evidence(bad_pitch)[0] is False
+    missing = MODULE.ProbeEvidence(
+        **{
+            **good.__dict__,
+            "tcp_error_m": None,
+            "finite_evidence": False,
+        }
+    )
+    feasible, reasons = MODULE.assess_probe_evidence(missing)
+    assert feasible is False
+    assert "missing_or_nonfinite:tcp_error_m" in reasons
+    assert "finite_evidence_false" in reasons
+
+
+def test_strict_standoff_and_convergence_gates():
+    spec = MODULE.build_probe_grid()[0]
+    good = _evidence(spec)
+    boundary = _evidence(spec, standoff_m_observed=spec.standoff_m + 0.02)
+    feasible, reasons = MODULE.assess_probe_evidence(boundary)
+    assert feasible is False
+    assert "standoff_not_within_strict_tolerance" in reasons
+
+    timeout = _evidence(spec, command_converged=False)
+    feasible, reasons = MODULE.assess_probe_evidence(timeout)
+    assert feasible is False
+    assert "command_converged_false" in reasons
+
+    terminated = _evidence(spec, terminated=True)
+    feasible, reasons = MODULE.assess_probe_evidence(terminated)
+    assert feasible is False
+    assert "env_terminated_or_timeout" in reasons
+
+    missing = MODULE.ProbeEvidence(**{**good.__dict__, "command_converged": None})
+    feasible, reasons = MODULE.assess_probe_evidence(missing)
+    assert feasible is False
+    assert "missing_or_invalid:command_converged" in reasons
+
+
+def test_canonical_reorder_rejects_duplicate_missing_and_unexpected():
+    cells = MODULE.build_probe_grid()
+    height_batched = tuple(
+        _evidence(spec)
+        for height in MODULE.HANDLE_HEIGHTS_M
+        for spec in cells
+        if spec.handle_height_m == height
+    )
+    ordered = MODULE.canonicalize_grid_evidence(height_batched)
+    assert tuple(
+        (row.pitch_physical_rad_requested, row.standoff_m_requested, row.handle_height_m_requested)
+        for row in ordered
+    ) == tuple((spec.pitch_physical_rad, spec.standoff_m, spec.handle_height_m) for spec in cells)
+
+    duplicate = list(height_batched)
+    duplicate[-1] = duplicate[0]
+    with pytest.raises(ValueError, match="duplicate cell key"):
+        MODULE.canonicalize_grid_evidence(duplicate)
+
+    with pytest.raises(ValueError, match="missing canonical cells"):
+        MODULE.canonicalize_grid_evidence(height_batched[:-1])
+
+    unexpected = list(height_batched)
+    unexpected[0] = MODULE.ProbeEvidence(
+        **{**unexpected[0].__dict__, "standoff_m_requested": 0.851}
+    )
+    with pytest.raises(ValueError, match="outside the exact canonical grid"):
+        MODULE.canonicalize_grid_evidence(unexpected)
+
+
+def test_m24_height_cap_rule_uses_any_feasible_110_in_approved_band():
+    anchors = tuple(_evidence(spec) for spec in MODULE.build_anchor_specs())
+    cells = MODULE.build_probe_grid()
+    approved = tuple(
+        _evidence(
+            spec,
+            feasible=(
+                spec.handle_height_m != MODULE.M24_HEIGHT_CAP_ALLOWED_M
+                or (spec.pitch_physical_rad == 0.0 and spec.standoff_m == 0.50)
+            ),
+        )
+        for spec in cells
+    )
+    summary = MODULE.summarize_probe(anchors, approved)
+    assert summary["one_point_ten_m_allowed"] is True
+    assert summary["selected_handle_height_cap_m"] == 1.10
+    assert summary["m24_height_decision"]["approved_standoff_indices"] == list(
+        MODULE.M24_APPROVED_STANDOFF_INDICES
+    )
+
+    outside_band = tuple(
+        _evidence(
+            spec,
+            feasible=(
+                spec.handle_height_m != MODULE.M24_HEIGHT_CAP_ALLOWED_M
+                or (spec.pitch_physical_rad == 0.0 and spec.standoff_m == 0.45)
+            ),
+        )
+        for spec in cells
+    )
+    summary = MODULE.summarize_probe(anchors, outside_band)
+    assert summary["one_point_ten_m_allowed"] is False
+    assert summary["selected_handle_height_cap_m"] == 1.05
+
+    none_at_110 = tuple(
+        _evidence(spec, feasible=spec.handle_height_m != MODULE.M24_HEIGHT_CAP_ALLOWED_M)
+        for spec in cells
+    )
+    summary = MODULE.summarize_probe(anchors, none_at_110)
+    assert summary["one_point_ten_m_allowed"] is False
+    assert summary["selected_handle_height_cap_m"] == 1.05
+
+
+def test_complete_summary_and_atomic_three_file_outputs(tmp_path):
+    anchors = tuple(_evidence(spec) for spec in MODULE.build_anchor_specs())
+    cells = tuple(_evidence(spec) for spec in MODULE.build_probe_grid())
+    summary = MODULE.summarize_probe(anchors, cells)
+    assert summary["cell_evidence_count"] == 108
+    assert summary["feasible_cell_count"] == 108
+    assert summary["grid"]["cells"] == 108
+    assert summary["summary_band_cap"]["highest_all_pitch_handle_cap_m"] == 1.1
+    assert summary["one_point_ten_m_allowed"] is True
+    assert summary["selected_handle_height_cap_m"] == 1.1
+    output_dir = tmp_path / "m23_report"
+    csv_path, json_path, md_path = MODULE.write_probe_outputs(output_dir, anchors, cells)
+    assert csv_path.is_file() and json_path.is_file() and md_path.is_file()
+    payload = json.loads(json_path.read_text(encoding="utf-8"))
+    assert payload["anchors"]["all_pass"] is True
+    assert payload["cell_evidence_count"] == 108
+    assert "pitch_physical_rad_requested" in csv_path.read_text(encoding="utf-8")
+    assert "raw pitch is physical pitch / 0.4" in md_path.read_text(encoding="utf-8").lower()
+
+
+def _fake_m23_self_collision_sensors(num_envs=2):
+    import torch
+
+    sensors = {}
+    for body_name in MODULE.M23_SELF_COLLISION_BODY_NAMES:
+        sensor_key = f"{MODULE.M23_SELF_COLLISION_SENSOR_KEY_PREFIX}{body_name}"
+        filter_paths = tuple(
+            f"/World/envs/env_.*/Robot/{other_body_name}"
+            for other_body_name in MODULE.M23_SELF_COLLISION_BODY_NAMES
+            if other_body_name != body_name
+        )
+        sensors[sensor_key] = SimpleNamespace(
+            num_bodies=1,
+            body_names=[body_name],
+            cfg=SimpleNamespace(
+                prim_path=f"/World/envs/env_.*/Robot/{body_name}",
+                filter_prim_paths_expr=list(filter_paths),
+            ),
+            data=SimpleNamespace(
+                force_matrix_w=torch.zeros(
+                    num_envs,
+                    1,
+                    MODULE.M23_SELF_COLLISION_FILTER_COUNT,
+                    3,
+                    dtype=torch.float32,
+                )
+            ),
+        )
+    return sensors, torch
+
+
+def test_self_collision_contact_sensors_require_exact_order_shape_and_force_gate():
+    sensors, torch_module = _fake_m23_self_collision_sensors()
+    sensors["a2_m23_self_collision_trunk"].data.force_matrix_w[1, 0, 3, 0] = 1.5
+
+    collision, max_force, source_index, filter_index = MODULE._runtime_self_collision(
+        sensors, 2, torch_module, "cpu"
+    )
+
+    assert collision.tolist() == [False, True]
+    assert max_force.tolist() == [0.0, 1.5]
+    assert source_index.tolist() == [
+        0, MODULE.M23_SELF_COLLISION_BODY_NAMES.index("trunk")
+    ]
+    assert filter_index.tolist() == [0, 3]
+
+    extra = dict(sensors)
+    extra["a2_m23_self_collision_extra"] = sensors[next(iter(sensors))]
+    with pytest.raises(RuntimeError, match="key/order mismatch"):
+        MODULE._runtime_self_collision(extra, 2, torch_module, "cpu")
+
+    malformed = dict(sensors)
+    malformed["a2_m23_self_collision_trunk"].data.force_matrix_w = torch_module.zeros(2, 1, 26, 2)
+    with pytest.raises(RuntimeError, match="force_matrix_w must be floating shape"):
+        MODULE._runtime_self_collision(malformed, 2, torch_module, "cpu")
+
+
+def test_m23_self_collision_body_order_matches_urdf_and_environment_source():
+    urdf_path = ROOT / "gr00t/rl/data/robots/A2_Piper/a2_piper.urdf"
+    urdf_names = tuple(re.findall(r'<link name="([^"]+)">', urdf_path.read_text(encoding="utf-8")))
+    assert urdf_names == MODULE.M23_SELF_COLLISION_BODY_NAMES
+
+    env_path = ROOT / "gr00t/rl/envs/door/door_open_a2_base.py"
+    env_source = env_path.read_text(encoding="utf-8")
+    tree = ast.parse(env_source)
+    env_names = None
+    for node in ast.walk(tree):
+        targets = []
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        if any(isinstance(target, ast.Name) and target.id == "A2_M23_SELF_COLLISION_BODY_NAMES" for target in targets):
+            env_names = tuple(ast.literal_eval(node.value))
+            break
+    assert env_names == MODULE.M23_SELF_COLLISION_BODY_NAMES
+    assert "a2_m23_self_collision_contact_sensors_enabled" in env_source
+    assert "ContactSensorCfg" in env_source
+    assert "filter_prim_paths_expr=filter_paths" in env_source
+    assert 'self.config.get(key, False)' in env_source
+
+
+def test_child_failure_capture_is_bounded_and_identifies_batch(monkeypatch):
+    calls = []
+    output = "\n".join(f"diagnostic-{index:03d}" for index in range(240)) + "\nTraceback: final failure"
+
+    def fake_run(command, **kwargs):
+        calls.append((command, kwargs))
+        return SimpleNamespace(returncode=17, stdout=output)
+
+    monkeypatch.setattr(MODULE.subprocess, "run", fake_run)
+    with pytest.raises(RuntimeError) as raised:
+        MODULE._run_child_batch(["child", "--batch", "grid"], "grid height 1.10")
+    message = str(raised.value)
+    assert "grid height 1.10 batch failed with exit code 17" in message
+    assert "diagnostic-239" in message
+    assert "Traceback: final failure" in message
+    assert "diagnostic-000" not in message
+    assert len(message) <= MODULE.CHILD_DIAGNOSTIC_MAX_CHARS + 256
+    kwargs = calls[0][1]
+    assert kwargs["stdout"] is MODULE.subprocess.PIPE
+    assert kwargs["stderr"] is MODULE.subprocess.STDOUT
+    assert kwargs["text"] is True
+    assert kwargs["encoding"] == "utf-8"
+    assert kwargs["errors"] == "replace"
+    assert kwargs["check"] is False
+
+
+def test_child_success_capture_is_silent(monkeypatch, capsys):
+    calls = []
+
+    def fake_run(command, **kwargs):
+        calls.append(kwargs)
+        return SimpleNamespace(returncode=0, stdout="noisy child output")
+
+    monkeypatch.setattr(MODULE.subprocess, "run", fake_run)
+    result = MODULE._run_child_batch(["child", "--batch", "anchors"], "anchor")
+    assert result.returncode == 0
+    assert capsys.readouterr().out == ""
+    assert calls[0]["stdout"] is MODULE.subprocess.PIPE
+    assert calls[0]["stderr"] is MODULE.subprocess.STDOUT
+
+
+def test_exit_zero_child_without_evidence_fails_and_cleans_staging(monkeypatch, tmp_path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_text("placeholder", encoding="utf-8")
+    output_dir = tmp_path / "m23_runtime"
+    args = SimpleNamespace(
+        checkpoint=checkpoint,
+        output_dir=output_dir,
+        device="cpu",
+        max_control_steps=1,
+        output_stem="runtime_report",
+    )
+    monkeypatch.setattr(
+        MODULE,
+        "_run_child_batch",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout=""),
+    )
+    with pytest.raises(RuntimeError, match="runtime batch did not produce evidence JSON"):
+        MODULE._run_parent_batches(args)
+    _, runtime_staging, _, _ = MODULE._runtime_paths(output_dir)
+    assert not output_dir.exists()
+    assert not runtime_staging.exists()
+
+
+def test_child_launcher_uses_canonical_applauncher_without_m23_args(monkeypatch):
+    instances = []
+
+    class FakeSimulationApp:
+        pass
+
+    class FakeAppLauncher:
+        def __init__(self, launcher_args):
+            self.launcher_args = launcher_args
+            self.app = FakeSimulationApp()
+            instances.append(self)
+
+    fake_isaaclab = ModuleType("isaaclab")
+    fake_isaaclab_app = ModuleType("isaaclab.app")
+    fake_isaaclab_app.AppLauncher = FakeAppLauncher
+    fake_isaaclab.app = fake_isaaclab_app
+    monkeypatch.setitem(sys.modules, "isaaclab", fake_isaaclab)
+    monkeypatch.setitem(sys.modules, "isaaclab.app", fake_isaaclab_app)
+
+    launcher, simulation_app = MODULE._launch_child_app("cpu")
+
+    assert instances and launcher is instances[0]
+    assert simulation_app is launcher.app
+    assert launcher.launcher_args == {
+        "headless": True,
+        "device": "cpu",
+        "fast_shutdown": False,
+    }
+    assert not {"checkpoint", "batch", "batch_output"}.intersection(launcher.launcher_args)
+
+
+def test_child_main_fail_fast_skips_simulation_app_close(monkeypatch, tmp_path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_text("placeholder", encoding="utf-8")
+    batch_output = tmp_path / "anchors.json"
+    instances = []
+    launch_devices = []
+
+    class FakeSimulationApp:
+        def __init__(self):
+            self.closed = False
+            instances.append(self)
+
+        def close(self):
+            self.closed = True
+
+    simulation_app = FakeSimulationApp()
+
+    def fake_launch(device):
+        launch_devices.append(device)
+        return SimpleNamespace(), simulation_app
+
+    def fail_batch(*args, **kwargs):
+        raise RuntimeError("child batch exception")
+
+    class ChildExit(RuntimeError):
+        pass
+
+    def fail_fast():
+        raise ChildExit("child fail-fast")
+
+    monkeypatch.setattr(MODULE, "_launch_child_app", fake_launch)
+    monkeypatch.setattr(MODULE, "_run_batch", fail_batch)
+    monkeypatch.setattr(MODULE, "_child_fail_fast", fail_fast)
+    with pytest.raises(ChildExit, match="child fail-fast"):
+        MODULE.main(
+            [
+                "--checkpoint",
+                str(checkpoint),
+                "--batch",
+                "anchors",
+                "--batch-output",
+                str(batch_output),
+            ]
+        )
+    assert launch_devices == ["cuda:0"]
+    assert instances and instances[0].closed is False
+
+
+def test_child_fail_fast_emits_original_traceback_and_nonzero_exit(monkeypatch, capsys):
+    class ChildExit(RuntimeError):
+        pass
+
+    def fake_exit(code):
+        assert code == 1
+        raise ChildExit(code)
+
+    monkeypatch.setattr(MODULE.os, "_exit", fake_exit)
+    try:
+        raise RuntimeError("original child error")
+    except RuntimeError:
+        with pytest.raises(ChildExit):
+            MODULE._child_fail_fast()
+    captured = capsys.readouterr()
+    assert "Traceback (most recent call last)" in captured.err
+    assert "RuntimeError: original child error" in captured.err
+
+
+def test_child_main_validates_batch_evidence_before_normal_close(monkeypatch, tmp_path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_text("placeholder", encoding="utf-8")
+    batch_output = tmp_path / "anchors.json"
+    instances = []
+    launch_devices = []
+
+    class FakeSimulationApp:
+        def __init__(self):
+            self.closed = False
+            instances.append(self)
+
+        def close(self):
+            self.closed = True
+
+    simulation_app = FakeSimulationApp()
+
+    def fake_launch(device):
+        launch_devices.append(device)
+        return SimpleNamespace(), simulation_app
+
+    def success_batch(_checkpoint, batch, output, _device, _max_control_steps, _height, _standoff=None, _roll=0.0):
+        assert batch == "anchors"
+        payload = {
+            "batch": batch,
+            "evidence": [
+                asdict(row) for row in (_evidence(spec) for spec in MODULE.build_anchor_specs())
+            ],
+        }
+        output.write_text(json.dumps(payload) + "\n", encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(MODULE, "_launch_child_app", fake_launch)
+    monkeypatch.setattr(MODULE, "_run_batch", success_batch)
+    result = MODULE.main(
+        [
+            "--checkpoint",
+            str(checkpoint),
+            "--batch",
+            "anchors",
+            "--batch-output",
+            str(batch_output),
+        ]
+    )
+    assert result == 0
+    assert launch_devices == ["cuda:0"]
+    assert batch_output.is_file()
+    assert instances and instances[0].closed is True
+
+
+def test_runtime_orchestration_uses_exact_paths_and_atomic_cleanup(monkeypatch, tmp_path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_text("placeholder", encoding="utf-8")
+    output_dir = tmp_path / "m23_runtime"
+    args = SimpleNamespace(
+        checkpoint=checkpoint,
+        output_dir=output_dir,
+        device="cpu",
+        max_control_steps=1,
+        output_stem="runtime_report",
+    )
+    anchors = tuple(_evidence(spec) for spec in MODULE.build_anchor_specs())
+    cells = MODULE.build_probe_grid()
+    parsed_paths = []
+
+    def fake_parse(path):
+        parsed_paths.append(Path(path))
+        if Path(path).name == "anchors.json":
+            return anchors
+        stem = Path(path).stem
+        parts = stem.split("_")
+        height = float(parts[2])
+        standoff = float(parts[4])
+        return tuple(
+            _evidence(spec)
+            for spec in cells
+            if spec.handle_height_m == height and spec.standoff_m == standoff
+        )
+
+    batch_paths = []
+
+    def fake_run(command, cwd, check, **kwargs):
+        batch_paths.append(Path(command[command.index("--batch-output") + 1]))
+        return SimpleNamespace(returncode=0, stdout="child success is intentionally silent")
+
+    monkeypatch.setattr(MODULE, "_parse_batch_evidence", fake_parse)
+    monkeypatch.setattr(MODULE.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        MODULE.tempfile,
+        "mkdtemp",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("random runtime staging used")),
+    )
+    replace_calls = []
+    real_replace = MODULE.os.replace
+
+    def record_replace(source, destination):
+        replace_calls.append((Path(source), Path(destination)))
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(MODULE.os, "replace", record_replace)
+    assert MODULE._run_parent_batches(args) == 0
+
+    final_dir, runtime_staging, publish_dir, publish_write_staging = MODULE._runtime_paths(output_dir)
+    assert final_dir == output_dir.resolve()
+    assert batch_paths == [
+        runtime_staging / "anchors.json",
+        *(
+            runtime_staging / f"grid_height_{height:.2f}_standoff_{standoff:.2f}.json"
+            for height in MODULE.HANDLE_HEIGHTS_M
+            for standoff in MODULE.STANDOFFS_M
+        ),
+    ]
+    assert parsed_paths == batch_paths
+    assert replace_calls[-1] == (publish_dir, final_dir)
+    assert final_dir.is_dir()
+    assert (final_dir / "runtime_report.csv").is_file()
+    assert (final_dir / "runtime_report.json").is_file()
+    assert (final_dir / "runtime_report.md").is_file()
+    assert not runtime_staging.exists()
+    assert not publish_write_staging.exists()
+
+
+def test_runtime_orchestration_refuses_stale_paths_and_cleans_failed_run(monkeypatch, tmp_path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_text("placeholder", encoding="utf-8")
+    output_dir = tmp_path / "m23_runtime"
+    args = SimpleNamespace(
+        checkpoint=checkpoint,
+        output_dir=output_dir,
+        device="cpu",
+        max_control_steps=1,
+        output_stem="runtime_report",
+    )
+    _, runtime_staging, _, _ = MODULE._runtime_paths(output_dir)
+    calls = []
+
+    def fail_run(command, cwd, check, **kwargs):
+        calls.append(command)
+        return SimpleNamespace(returncode=1, stdout="Traceback (most recent call last):\nRuntimeError: child failed")
+
+    monkeypatch.setattr(MODULE.subprocess, "run", fail_run)
+    output_dir.mkdir()
+    with pytest.raises(FileExistsError, match="final output directory already exists"):
+        MODULE._run_parent_batches(args)
+    assert calls == []
+    output_dir.rmdir()
+
+    runtime_staging.mkdir()
+    with pytest.raises(FileExistsError, match="runtime staging directory already exists"):
+        MODULE._run_parent_batches(args)
+    assert calls == []
+    runtime_staging.rmdir()
+
+    with pytest.raises(RuntimeError, match="anchor batch failed"):
+        MODULE._run_parent_batches(args)
+    assert not output_dir.exists()
+    assert not runtime_staging.exists()
+
+
+def test_dik_invalid_diagnostics_are_bounded_and_deterministic():
+    import torch
+
+    current_q = torch.zeros((1, 6), dtype=torch.float64)
+    current_q[0, 1] = 0.6
+    q_des = current_q.clone()
+    q_des[0, 1] = 0.8
+    hard_limits = torch.tensor([[[-1.0, 1.0]] * 6], dtype=torch.float64)
+    soft_limits = torch.tensor([[[-0.5, 0.5]] * 6], dtype=torch.float64)
+    args = (
+        [0],
+        torch.tensor([True]),
+        torch.tensor([True]),
+        torch.tensor([False]),
+        torch.tensor([True]),
+        torch.tensor([True]),
+        current_q,
+        q_des,
+        hard_limits,
+        soft_limits,
+        list(range(6, 12)),
+        [f"arm_j{index}" for index in range(1, 7)],
+        (MODULE.build_anchor_specs()[2],),
+        "anchors",
+        7,
+        torch,
+    )
+
+    first = MODULE._runtime_format_dik_invalid_diagnostics(*args)
+    second = MODULE._runtime_format_dik_invalid_diagnostics(*args)
+    assert first == second
+    payload = json.loads(first)
+    assert payload["batch"] == "anchors"
+    assert payload["control_step"] == 7
+    failure = payload["failures"][0]
+    target = failure["target"]
+    assert target["anchor"] is True
+    assert target["handle_height_m"] == pytest.approx(1.05)
+    assert target["standoff_m"] == pytest.approx(0.5718842)
+    assert target["pitch_physical_rad"] == pytest.approx(0.0)
+    predicates = failure["predicates"]
+    assert predicates["ik_valid"] is True
+    assert predicates["hard_valid"] is True
+    assert predicates["soft_progress_valid"] is False
+    assert predicates["delta_ok"] is True
+    assert predicates["raw_ok"] is True
+    assert len(failure["joint_diagnostics"]) == 6
+    assert len(failure["joint_failures"]) == 1
+    joint = failure["joint_failures"][0]
+    assert (joint["arm_joint_index"], joint["arm_joint_name"]) == (7, "arm_j2")
+    assert joint["q_current"] == pytest.approx(0.6)
+    assert joint["q_des"] == pytest.approx(0.8)
+    assert joint["hard_limits"] == pytest.approx([-1.0, 1.0])
+    assert joint["soft_limits"] == pytest.approx([-0.5, 0.5])
+    assert joint["hard_predicate_bounds"] == pytest.approx([-0.9999, 0.9999])
+    assert joint["soft_predicate_bounds"] == pytest.approx([-0.4999, 0.4999])
+    assert joint["soft_progress_direction"] == "above_soft_not_farther_above"
+    assert joint["current_inside_soft"] is False
+    assert joint["desired_inside_soft"] is False
+    assert joint["moves_not_farther_below"] is True
+    assert joint["moves_not_farther_above"] is False
+
+
+def test_deterministic_dik_controller_command_contract():
+    source = SCRIPT_PATH.read_text(encoding="utf-8")
+    assert "if batch != \"anchors\":" not in source
+    assert "DifferentialIKControllerCfg" in source
+    assert "command_type=\"pose\"" in source
+    assert "ik_method=\"dls\"" in source
+    assert "arm_raw, arm_valid = _runtime_compute_dik_arm_raw" in source
+    assert "_runtime_format_dik_invalid_diagnostics" in source
+    assert '"joint_diagnostics"' in source
+    assert '"soft_progress_direction"' in source
+    assert '"control_step"' in source
+    assert '"hard_predicate_bounds"' in source
+    assert "fail_on_invalid=False" in source
+    assert "fail_on_invalid=(batch == \"anchors\")" not in source
+    # Projected DLS: incremental IK targets are clamped into the soft-limit box
+    # (search hygiene); feasibility is decided only by final-state gates.
+    assert "q_des = torch_module.clamp(q_des, soft_limits[..., 0], soft_limits[..., 1])" in source
+    assert "valid = ik_valid & delta_ok & raw_ok" in source
+    assert "valid = ik_valid & limit_valid" not in source
+    assert "high[:, 5:11] = arm_raw" in source
+    assert "high[:, 4] = torch_module.tensor([spec.roll_raw for spec in specs]" in source
+    assert "policy.act_inference" not in source
+
+def test_probe_eval_initialization_uses_trainer_order_and_disabled_defaults(monkeypatch):
+    calls = []
+
+    class FakeEnv:
+        _a2_eval_diagnostic_trace_enabled = False
+
+        def init_eval_metrics_tracking(self, device):
+            calls.append(("metrics", device))
+
+        def init_a2_eval_stage2_step_trace(self, *, diagnostic_enabled, diagnostic_reward_terms):
+            calls.append(("trace", diagnostic_enabled, diagnostic_reward_terms))
+
+        def init_a2_eval_hold_oracle(self, eval_config, *, diagnostic_enabled):
+            calls.append(("oracle", eval_config, diagnostic_enabled))
+            return {"enabled": False}
+
+    canonical = {
+        "a2_diagnostic_trace_enabled": False,
+        "a2_forced_gripper_close_enabled": False,
+        "a2_hold_oracle_enabled": False,
+        "a2_hold_oracle_center_timeout_steps": 80,
+    }
+    monkeypatch.setattr(MODULE, "_load_canonical_eval_config", lambda: canonical)
+    result = MODULE._initialize_probe_eval_state(FakeEnv(), "cpu")
+
+    assert result == {"enabled": False}
+    assert [call[0] for call in calls] == ["metrics", "trace", "oracle"]
+    assert calls[1] == ("trace", False, ())
+    assert calls[2][1] is canonical
+    assert calls[2][2] is False
+
+
+def test_probe_eval_initialization_rejects_non_default_off_canonical_flag(monkeypatch):
+    class FakeEnv:
+        _a2_eval_diagnostic_trace_enabled = False
+
+        def init_eval_metrics_tracking(self, device):
+            pass
+
+        def init_a2_eval_stage2_step_trace(self, *, diagnostic_enabled, diagnostic_reward_terms):
+            pass
+
+        def init_a2_eval_hold_oracle(self, eval_config, *, diagnostic_enabled):
+            raise AssertionError("oracle must not run when canonical defaults are invalid")
+
+    monkeypatch.setattr(
+        MODULE,
+        "_load_canonical_eval_config",
+        lambda: {
+            "a2_diagnostic_trace_enabled": True,
+            "a2_forced_gripper_close_enabled": False,
+            "a2_hold_oracle_enabled": False,
+        },
+    )
+    with pytest.raises(RuntimeError, match="default-off flag"):
+        MODULE._initialize_probe_eval_state(FakeEnv(), "cpu")
+
+
+def test_source_contract_uses_real_stack_and_forbids_static_placement_bypass():
+    source = SCRIPT_PATH.read_text(encoding="utf-8")
+    for forbidden in (
+        "write_root_pose_to_sim",
+        "write_root_velocity_to_sim",
+        "set_actor_root_state_tensor",
+        "set_task_root_state_tensor",
+        "ROOT_HEIGHTS_M",
+        "from pxr",
+        "UsdGeom",
+        "stage.DefinePrim",
+        "omni.usd",
+        "from isaacsim import SimulationApp",
+        "get_contact_force_matrix",
+        "policy.act_inference",
+        "policy.init_rollout",
+        "policy.reset",
+        "prev_env_dones",
+        "(q_des - q_default) / 0.25",
+    ):
+        assert forbidden not in source
+    for required in (
+        "DoorPregrasp",
+        "TRLPPOTrainer",
+        "a2_base_model",
+        "get_physical_base_command",
+        "AppLauncher",
+        "from isaaclab.app import AppLauncher",
+        "DifferentialIKController",
+        "DifferentialIKControllerCfg",
+        "command_type=\"pose\"",
+        "ik_method=\"dls\"",
+        "jacobian_columns = [joint_id + 6 for joint_id in arm_joint_ids]",
+        "a2_hold_rotate_jacobian_to_root",
+        "a2_hold_apply_source_offset_to_jacobian",
+        "a2_hold_bound_pose_command_step",
+        "a2_hold_progress_aware_joint_limit_masks",
+        "a2_hold_absolute_target_to_cumulative_action",
+        "trainer.unwrapped_model._a2_base_actions(obs, high)",
+        "base_settled = torch_module.zeros_like(active)",
+        "base_settle_steps = torch_module.zeros_like(stable_steps)",
+        "DoorPregrasp.STAGE_PREGRASP",
+        "arm_active = active & base_settled",
+        "high[:, 1:3] = 0.0",
+        "high[:, 11] = 1.0",
+        "ANCHOR_STANDOFFS_M = (0.5973835, 0.5981750, 0.5718842)",
+        "for height, standoff in zip(ANCHOR_HANDLE_HEIGHTS_M, ANCHOR_STANDOFFS_M, strict=True)",
+        "HANDLE_HEIGHT_TOLERANCE_M = 5.0e-5",
+        "COMMAND_CONVERGENCE_STEPS = 1",
+        "config.env.config.reset_on_overtime = False",
+        "--batch-standoff",
+        "base_eval.yaml",
+        "_load_canonical_eval_config",
+        "init_eval_metrics_tracking",
+        "init_a2_eval_stage2_step_trace",
+        "init_a2_eval_hold_oracle",
+    ):
+        assert required in source

@@ -1,0 +1,17 @@
+--- gr00t/rl/scripts/a2_piper_v15_dynamic_reachability.py
++++ gr00t/rl/scripts/a2_piper_v15_dynamic_reachability.py
+@@ -1718,8 +1723,12 @@
+                     "arm_joint_index": int(joint_id),
+                     "arm_joint_name": str(arm_joint_names[joint_offset]),
+                     "q_current": current_value,
+-                    "q_des": float(q_des[env_id, joint_offset].item()),
++                    "q_des": desired_value,
+                     "hard_limits": [float(value) for value in hard_limits[env_id, joint_offset].tolist()],
+                     "hard_predicate_bounds": [float(hard_lower[env_id, joint_offset].item()), float(hard_upper[env_id, joint_offset].item())],
+                     "soft_limits": [float(value) for value in soft_limits[env_id, joint_offset].tolist()],
+-                    "soft_predicate_bounds": [float(soft_lower[env_id, joint_offset].item()), float(soft_upper[env_id, joint_offset].item())],
++                    "soft_predicate_bounds": [soft_lower_value, soft_upper_value],
++                    "current_inside_soft": bool(current_inside_soft[env_id, joint_offset].item()),
++                    "desired_inside_soft": bool(desired_inside_soft[env_id, joint_offset].item()),
++                    "moves_not_farther_below": bool(moves_not_farther_below[env_id, joint_offset].item()),
++                    "moves_not_farther_above": bool(moves_not_farther_above[env_id, joint_offset].item()),

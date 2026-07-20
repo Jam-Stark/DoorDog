@@ -1,0 +1,2115 @@
+"""Pitch-aware dynamic reachability probe for A2_Piper base v15 (M23).
+
+The pure grid/evidence/report functions intentionally import no IsaacLab, Isaac
+Sim, Hydra, or Torch modules.  Runtime imports are delayed until the explicit
+``--batch`` path so ``--help`` and focused tests remain CPU-only.
+
+M23 is a dynamic command-space probe, not a placement map.  The robot starts at
+the DoorPregrasp/A2_Base environment's configured initial state and is moved by
+the explicit 12-D high-level command route (base 5 + arm 6 + gripper primitive 1).
+The base legs remain controlled by the frozen A2_Base policy, while the six arm
+commands come from a deterministic DifferentialIKController DLS target.  Pitch is
+represented in the physical command space and converted to the raw action by
+``physical / 0.4``.  No learned high-level policy action or per-cell body placement is used.
+"""
+
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+from contextlib import contextmanager
+import math
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+import traceback
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Any, Iterable, Sequence
+
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CHECKPOINT = (
+    REPO_ROOT
+    / "logs_rl/a2_piper_full_stage_a2_base/base_v14_main-20260719_103629/model_step_002000.pt"
+)
+DEFAULT_OUTPUT_STEM = "a2_piper_v15_dynamic_reachability"
+
+PITCH_PHYSICAL_RAD = (0.0, 0.20, 0.40)
+PITCH_RAW = tuple(round(value / 0.40, 10) for value in PITCH_PHYSICAL_RAD)
+STANDOFFS_M = tuple(round(0.45 + 0.05 * index, 2) for index in range(9))
+HANDLE_HEIGHTS_M = (0.95, 1.00, 1.05, 1.10)
+ANCHOR_STANDOFFS_M = (0.5973835, 0.5981750, 0.5718842)
+ANCHOR_HANDLE_HEIGHTS_M = (0.95, 1.00, 1.05)
+EXPECTED_GRID_CELLS = len(PITCH_PHYSICAL_RAD) * len(STANDOFFS_M) * len(HANDLE_HEIGHTS_M)
+EXPECTED_ANCHORS = len(ANCHOR_HANDLE_HEIGHTS_M)
+PITCH_SCALE_RAD = 0.40
+PITCH_TOLERANCE_RAD = 1.0e-4
+HANDLE_HEIGHT_TOLERANCE_M = 5.0e-5
+STANDOFF_COMMAND_TOLERANCE_M = 0.02
+TCP_ERROR_TOLERANCE_M = 0.03
+JOINT_MARGIN_THRESHOLD_RAD = 0.10
+DIK_JOINT_LIMIT_MARGIN_RAD = 1.0e-4
+DIK_SOFT_PROGRESS_TOLERANCE = 1.0e-6
+DIK_JACOBIAN_CONDITION_MAX = 1.0e6
+DIK_DIAGNOSTIC_MAX_ENV_RECORDS = 16
+ARM_RAW_ACTION_ABS_MAX = 10.0
+DELTA_ACTION_CLIP = 15.0
+COMMAND_CONVERGENCE_STEPS = 1
+M24_APPROVED_STANDOFF_MIN_M = 0.50
+M24_APPROVED_STANDOFF_MAX_M = 0.80
+M24_APPROVED_STANDOFF_INDICES = tuple(
+    index
+    for index, value in enumerate(STANDOFFS_M)
+    if M24_APPROVED_STANDOFF_MIN_M <= value <= M24_APPROVED_STANDOFF_MAX_M
+)
+M24_APPROVED_STANDOFFS_M = tuple(STANDOFFS_M[index] for index in M24_APPROVED_STANDOFF_INDICES)
+M24_HEIGHT_CAP_ALLOWED_M = 1.10
+M24_HEIGHT_CAP_FALLBACK_M = 1.05
+BASE_HEIGHT_MIN_M = 0.30
+BASE_TILT_MAX_RAD = 0.90
+BASE_LINEAR_SPEED_MAX_MPS = 1.50
+BASE_ANGULAR_SPEED_MAX_RADPS = 2.50
+M23_BASE_VX_MAX_MPS = 0.30
+M23_STANDOFF_VELOCITY_GAIN = 2.0
+M23_SELF_COLLISION_SENSOR_KEY_PREFIX = "a2_m23_self_collision_"
+M23_SELF_COLLISION_BODY_NAMES = (
+    "FL_hip",
+    "FL_thigh",
+    "FL_calf",
+    "FL_foot",
+    "RL_hip",
+    "RL_thigh",
+    "RL_calf",
+    "RL_foot",
+    "FR_hip",
+    "FR_thigh",
+    "FR_calf",
+    "FR_foot",
+    "RR_hip",
+    "RR_thigh",
+    "RR_calf",
+    "RR_foot",
+    "arm_body0",
+    "trunk",
+    "arm_body1",
+    "arm_body2",
+    "arm_body3",
+    "arm_body4",
+    "arm_body5",
+    "arm_body6",
+    "arm_body6_to_gripper",
+    "arm_body7",
+    "arm_body8",
+)
+M23_SELF_COLLISION_FILTER_COUNT = len(M23_SELF_COLLISION_BODY_NAMES) - 1
+M23_SELF_COLLISION_FORCE_THRESHOLD_N = 1.0
+# The repository's deterministic height hook requires distinct endpoints.  The
+# runtime uses this sub-micron interval for a repeated-height batch and verifies
+# the live target against the requested height with HANDLE_HEIGHT_TOLERANCE_M.
+REPEATED_HEIGHT_INTERVAL_M = 1.0e-9
+
+CELL_CSV_FIELDNAMES = (
+    "pitch_physical_rad_requested",
+    "pitch_raw_requested",
+    "pitch_physical_rad_observed",
+    "standoff_m_requested",
+    "standoff_m_observed",
+    "handle_height_m_requested",
+    "handle_height_m_observed",
+    "tcp_error_m",
+    "self_collision",
+    "self_collision_evidence",
+    "min_arm_joint_margin_rad",
+    "base_stable",
+    "base_height_m",
+    "terminal",
+    "terminated",
+    "command_converged",
+    "finite_evidence",
+    "anchor",
+    "feasible",
+    "failure_reason",
+)
+
+
+@dataclass(frozen=True)
+class ProbeSpec:
+    """One requested dynamic command-space probe cell."""
+
+    pitch_physical_rad: float
+    pitch_raw: float
+    standoff_m: float
+    handle_height_m: float
+    anchor: bool = False
+
+
+@dataclass(frozen=True)
+class ProbeEvidence:
+    """Strict live evidence captured for one requested cell."""
+
+    pitch_physical_rad_requested: float
+    pitch_raw_requested: float
+    pitch_physical_rad_observed: float | None
+    standoff_m_requested: float
+    standoff_m_observed: float | None
+    handle_height_m_requested: float
+    handle_height_m_observed: float | None
+    tcp_error_m: float | None
+    self_collision: bool | None
+    self_collision_evidence: str | None
+    min_arm_joint_margin_rad: float | None
+    base_stable: bool | None
+    base_height_m: float | None
+    terminal: bool | None
+    finite_evidence: bool
+    anchor: bool
+    terminated: bool | None = None
+    command_converged: bool | None = None
+    feasible: bool = False
+    failure_reason: str = ""
+
+
+def _is_finite_number(value: Any) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def pitch_raw_from_physical(pitch_physical_rad: float) -> float:
+    """Convert physical pitch to the A2 raw command without clipping."""
+
+    if not _is_finite_number(pitch_physical_rad):
+        raise ValueError(f"physical pitch must be finite, got {pitch_physical_rad!r}")
+    physical = float(pitch_physical_rad)
+    raw = physical / PITCH_SCALE_RAD
+    if not math.isfinite(raw):
+        raise ValueError(f"physical pitch conversion produced non-finite raw value: {physical}")
+    return raw
+
+
+def build_anchor_specs() -> tuple[ProbeSpec, ...]:
+    """Return the mandatory pitch-zero v14 step-2000 staging anchors in height order."""
+
+    return tuple(
+        ProbeSpec(
+            pitch_physical_rad=0.0,
+            pitch_raw=pitch_raw_from_physical(0.0),
+            standoff_m=standoff,
+            handle_height_m=height,
+            anchor=True,
+        )
+        for height, standoff in zip(ANCHOR_HANDLE_HEIGHTS_M, ANCHOR_STANDOFFS_M, strict=True)
+    )
+
+
+def build_probe_grid() -> tuple[ProbeSpec, ...]:
+    """Return the exact 3 x 9 x 4 = 108 M23 cells in deterministic order."""
+
+    return tuple(
+        ProbeSpec(
+            pitch_physical_rad=pitch,
+            pitch_raw=pitch_raw_from_physical(pitch),
+            standoff_m=standoff,
+            handle_height_m=height,
+        )
+        for pitch in PITCH_PHYSICAL_RAD
+        for standoff in STANDOFFS_M
+        for height in HANDLE_HEIGHTS_M
+    )
+
+
+def _canonical_axis_index(value: Any, axis_name: str, canonical_values: Sequence[float]) -> int:
+    """Return an exact grid-axis index; reject near-but-not-equal values."""
+
+    if not _is_finite_number(value):
+        raise ValueError(f"M23 {axis_name} must be finite, got {value!r}")
+    candidate = float(value)
+    for index, canonical in enumerate(canonical_values):
+        if candidate == float(canonical):
+            return index
+    raise ValueError(
+        f"M23 {axis_name} is outside the exact canonical grid: {candidate!r}; "
+        f"expected one of {tuple(canonical_values)!r}"
+    )
+
+
+def _canonical_grid_key(
+    pitch_physical_rad: Any,
+    standoff_m: Any,
+    handle_height_m: Any,
+) -> tuple[int, int, int]:
+    """Canonical integer key for a requested grid cell, with no tolerance sorting."""
+
+    return (
+        _canonical_axis_index(pitch_physical_rad, "physical pitch", PITCH_PHYSICAL_RAD),
+        _canonical_axis_index(standoff_m, "standoff", STANDOFFS_M),
+        _canonical_axis_index(handle_height_m, "handle height", HANDLE_HEIGHTS_M),
+    )
+
+
+def canonicalize_grid_evidence(evidence: Sequence[ProbeEvidence]) -> tuple[ProbeEvidence, ...]:
+    """Reorder height-batched evidence into the exact canonical M23 grid order."""
+
+    expected_specs = build_probe_grid()
+    expected_keys = tuple(
+        _canonical_grid_key(spec.pitch_physical_rad, spec.standoff_m, spec.handle_height_m)
+        for spec in expected_specs
+    )
+    expected_by_key = dict(zip(expected_keys, expected_specs, strict=True))
+    by_key: dict[tuple[int, int, int], ProbeEvidence] = {}
+    for row in evidence:
+        key = _canonical_grid_key(
+            row.pitch_physical_rad_requested,
+            row.standoff_m_requested,
+            row.handle_height_m_requested,
+        )
+        if key in by_key:
+            raise ValueError(f"M23 grid evidence duplicate cell key: {key}")
+        if key not in expected_by_key:
+            raise ValueError(f"M23 grid evidence unexpected cell key: {key}")
+        by_key[key] = row
+    missing = tuple(key for key in expected_keys if key not in by_key)
+    if missing:
+        raise ValueError(f"M23 grid evidence missing canonical cells: {missing}")
+    ordered = tuple(by_key[key] for key in expected_keys)
+    validate_grid_specs(
+        tuple(
+            ProbeSpec(
+                row.pitch_physical_rad_requested,
+                row.pitch_raw_requested,
+                row.standoff_m_requested,
+                row.handle_height_m_requested,
+                row.anchor,
+            )
+            for row in ordered
+        )
+    )
+    return ordered
+
+
+def validate_grid_specs(specs: Sequence[ProbeSpec]) -> None:
+    expected = build_probe_grid()
+    actual_keys = [
+        (
+            float(spec.pitch_physical_rad),
+            float(spec.pitch_raw),
+            float(spec.standoff_m),
+            float(spec.handle_height_m),
+            bool(spec.anchor),
+        )
+        for spec in specs
+    ]
+    expected_keys = [
+        (
+            float(spec.pitch_physical_rad),
+            float(spec.pitch_raw),
+            float(spec.standoff_m),
+            float(spec.handle_height_m),
+            bool(spec.anchor),
+        )
+        for spec in expected
+    ]
+    if actual_keys != expected_keys:
+        raise ValueError(
+            "M23 dynamic probe grid mismatch: "
+            f"expected {len(expected_keys)} ordered cells, got {len(actual_keys)}"
+        )
+
+
+def _evidence_key(evidence: ProbeEvidence) -> tuple[float, float, float, float]:
+    return (
+        float(evidence.pitch_physical_rad_requested),
+        float(evidence.standoff_m_requested),
+        float(evidence.handle_height_m_requested),
+        float(evidence.pitch_raw_requested),
+    )
+
+
+def assess_probe_evidence(
+    evidence: ProbeEvidence,
+    *,
+    pitch_tolerance_rad: float = PITCH_TOLERANCE_RAD,
+    handle_height_tolerance_m: float = HANDLE_HEIGHT_TOLERANCE_M,
+    tcp_error_tolerance_m: float = TCP_ERROR_TOLERANCE_M,
+    joint_margin_threshold_rad: float = JOINT_MARGIN_THRESHOLD_RAD,
+) -> tuple[bool, tuple[str, ...]]:
+    """Apply the strict M23 gate; absent/non-finite evidence is infeasible."""
+
+    for name, value in (
+        ("pitch_physical_rad_requested", evidence.pitch_physical_rad_requested),
+        ("pitch_raw_requested", evidence.pitch_raw_requested),
+        ("standoff_m_requested", evidence.standoff_m_requested),
+        ("handle_height_m_requested", evidence.handle_height_m_requested),
+    ):
+        if not _is_finite_number(value):
+            reasons = [f"missing_or_nonfinite:{name}"]
+            return False, tuple(reasons)
+    if not _is_finite_number(pitch_tolerance_rad) or float(pitch_tolerance_rad) <= 0.0:
+        raise ValueError("pitch_tolerance_rad must be finite and positive")
+    if not _is_finite_number(handle_height_tolerance_m) or float(handle_height_tolerance_m) <= 0.0:
+        raise ValueError("handle_height_tolerance_m must be finite and positive")
+    if not _is_finite_number(tcp_error_tolerance_m) or float(tcp_error_tolerance_m) <= 0.0:
+        raise ValueError("tcp_error_tolerance_m must be finite and positive")
+    if not _is_finite_number(joint_margin_threshold_rad):
+        raise ValueError("joint_margin_threshold_rad must be finite")
+
+    reasons: list[str] = []
+    for name, value in (
+        ("pitch_physical_rad_observed", evidence.pitch_physical_rad_observed),
+        ("standoff_m_observed", evidence.standoff_m_observed),
+        ("handle_height_m_observed", evidence.handle_height_m_observed),
+        ("tcp_error_m", evidence.tcp_error_m),
+        ("min_arm_joint_margin_rad", evidence.min_arm_joint_margin_rad),
+        ("base_height_m", evidence.base_height_m),
+    ):
+        if not _is_finite_number(value):
+            reasons.append(f"missing_or_nonfinite:{name}")
+    if not isinstance(evidence.self_collision, bool):
+        reasons.append("missing_or_invalid:self_collision")
+    if not isinstance(evidence.base_stable, bool):
+        reasons.append("missing_or_invalid:base_stable")
+    if not isinstance(evidence.terminal, bool):
+        reasons.append("missing_or_invalid:terminal")
+    if not isinstance(evidence.terminated, bool):
+        reasons.append("missing_or_invalid:terminated")
+    if not isinstance(evidence.command_converged, bool):
+        reasons.append("missing_or_invalid:command_converged")
+    if not isinstance(evidence.self_collision_evidence, str) or not evidence.self_collision_evidence.strip():
+        reasons.append("missing_or_invalid:self_collision_evidence")
+    if not isinstance(evidence.finite_evidence, bool) or not evidence.finite_evidence:
+        reasons.append("finite_evidence_false")
+
+    expected_raw = pitch_raw_from_physical(float(evidence.pitch_physical_rad_requested))
+    if abs(float(evidence.pitch_raw_requested) - expected_raw) > 1.0e-9:
+        reasons.append("pitch_raw_conversion_mismatch")
+    if not reasons:
+        if abs(float(evidence.pitch_physical_rad_observed) - float(evidence.pitch_physical_rad_requested)) > float(
+            pitch_tolerance_rad
+        ):
+            reasons.append("pitch_physical_command_mismatch")
+        if abs(float(evidence.handle_height_m_observed) - float(evidence.handle_height_m_requested)) > float(
+            handle_height_tolerance_m
+        ):
+            reasons.append("handle_height_mismatch")
+        if abs(float(evidence.standoff_m_observed) - float(evidence.standoff_m_requested)) >= STANDOFF_COMMAND_TOLERANCE_M:
+            reasons.append("standoff_not_within_strict_tolerance")
+        if float(evidence.tcp_error_m) >= float(tcp_error_tolerance_m):
+            reasons.append("tcp_error_not_below_tolerance")
+        if evidence.self_collision:
+            reasons.append("self_collision_detected")
+        if float(evidence.min_arm_joint_margin_rad) <= float(joint_margin_threshold_rad):
+            reasons.append("joint_margin_not_above_threshold")
+        if not evidence.base_stable:
+            reasons.append("base_unstable_or_fallen")
+        if evidence.terminal:
+            reasons.append("terminal_or_reset")
+        if evidence.terminated:
+            reasons.append("env_terminated_or_timeout")
+        if not evidence.command_converged:
+            reasons.append("command_converged_false")
+    return not reasons, tuple(reasons)
+
+
+def _with_decision(evidence: ProbeEvidence) -> ProbeEvidence:
+    feasible, reasons = assess_probe_evidence(evidence)
+    return ProbeEvidence(
+        **{
+            **asdict(evidence),
+            "feasible": feasible,
+            "failure_reason": ";".join(reasons),
+        }
+    )
+
+
+def _compact_probe_evidence(evidence: ProbeEvidence) -> str:
+    """Serialize one complete evidence row deterministically for bounded diagnostics."""
+
+    return json.dumps(asdict(evidence), separators=(",", ":"), sort_keys=False)
+
+
+def validate_anchor_evidence(
+    anchor_evidence: Sequence[ProbeEvidence],
+) -> tuple[ProbeEvidence, ...]:
+    """Require all three sanity anchors before any grid evidence is accepted."""
+
+    expected = build_anchor_specs()
+    if len(anchor_evidence) != len(expected):
+        raise RuntimeError(
+            f"M23 anchor gate requires exactly {len(expected)} cells; got {len(anchor_evidence)}"
+        )
+    checked: list[ProbeEvidence] = []
+    failures: list[str] = []
+    for spec, raw in zip(expected, anchor_evidence):
+        contract_reasons: list[str] = []
+        if not raw.anchor:
+            contract_reasons.append("anchor_flag_false")
+        if _evidence_key(raw) != (
+            spec.pitch_physical_rad,
+            spec.standoff_m,
+            spec.handle_height_m,
+            spec.pitch_raw,
+        ):
+            contract_reasons.append("requested_cell_mismatch")
+        decision = _with_decision(raw)
+        checked.append(decision)
+        decision_reasons = tuple(
+            reason for reason in decision.failure_reason.split(";") if reason
+        )
+        reasons = tuple(contract_reasons) + decision_reasons
+        if reasons:
+            failures.append(
+                f"{spec.handle_height_m}:reasons={';'.join(reasons)};"
+                f"evidence={_compact_probe_evidence(decision)}"
+            )
+    if failures:
+        raise RuntimeError(
+            "M23 anchor gate failed; aborting before grid and forbidding success outputs: "
+            + " | ".join(failures)
+        )
+    return tuple(checked)
+
+
+def _continuous_runs(values: Sequence[float], allowed: Sequence[bool]) -> list[tuple[float, float, tuple[float, ...]]]:
+    if len(values) != len(allowed):
+        raise ValueError("run values and masks must have equal lengths")
+    runs: list[tuple[float, float, tuple[float, ...]]] = []
+    start: int | None = None
+    for index, permitted in enumerate(tuple(allowed) + (False,)):
+        if permitted and start is None:
+            start = index
+        if not permitted and start is not None:
+            run = tuple(float(value) for value in values[start:index])
+            runs.append((run[0], run[-1], run))
+            start = None
+    return runs
+
+
+def _select_summary_band(cells: Sequence[ProbeEvidence]) -> dict[str, Any]:
+    by_key = {
+        (
+            cell.pitch_physical_rad_requested,
+            cell.standoff_m_requested,
+            cell.handle_height_m_requested,
+        ): cell.feasible
+        for cell in cells
+    }
+    selected_cap: float | None = None
+    selected_band: tuple[float, float, tuple[float, ...]] | None = None
+    for cap in HANDLE_HEIGHTS_M:
+        allowed = [
+            all(
+                by_key[(pitch, standoff, height)]
+                for pitch in PITCH_PHYSICAL_RAD
+                for height in HANDLE_HEIGHTS_M
+                if height <= cap + 1.0e-9
+            )
+            for standoff in STANDOFFS_M
+        ]
+        runs = _continuous_runs(STANDOFFS_M, allowed)
+        if not runs:
+            continue
+        best = sorted(runs, key=lambda run: (-len(run[2]), run[0], run[1]))[0]
+        selected_cap = cap
+        selected_band = best
+    if selected_band is None:
+        selected_band_json = {"start": None, "end": None, "values": [], "count": 0}
+    else:
+        selected_band_json = {
+            "start": selected_band[0],
+            "end": selected_band[1],
+            "values": list(selected_band[2]),
+            "count": len(selected_band[2]),
+        }
+    per_pitch = {}
+    for pitch in PITCH_PHYSICAL_RAD:
+        per_pitch[str(pitch)] = {
+            "feasible_cells": sum(
+                by_key[(pitch, standoff, height)]
+                for standoff in STANDOFFS_M
+                for height in HANDLE_HEIGHTS_M
+            ),
+            "total_cells": len(STANDOFFS_M) * len(HANDLE_HEIGHTS_M),
+        }
+    per_height = {}
+    for height in HANDLE_HEIGHTS_M:
+        per_height[str(height)] = {
+            "feasible_cells": sum(
+                by_key[(pitch, standoff, height)]
+                for pitch in PITCH_PHYSICAL_RAD
+                for standoff in STANDOFFS_M
+            ),
+            "total_cells": len(PITCH_PHYSICAL_RAD),
+        }
+    return {
+        "highest_all_pitch_handle_cap_m": selected_cap,
+        "maximal_all_pitch_standoff_band_m": selected_band_json,
+        "per_pitch": per_pitch,
+        "per_handle_height": per_height,
+    }
+
+
+def _select_m24_height_cap(cells: Sequence[ProbeEvidence]) -> dict[str, Any]:
+    """Apply the M24 cap rule using exact canonical standoff indices."""
+
+    by_key: dict[tuple[int, int, int], ProbeEvidence] = {}
+    for cell in cells:
+        key = _canonical_grid_key(
+            cell.pitch_physical_rad_requested,
+            cell.standoff_m_requested,
+            cell.handle_height_m_requested,
+        )
+        if key in by_key:
+            raise ValueError(f"M24 height decision received duplicate grid cell: {key}")
+        by_key[key] = cell
+    expected_keys = {
+        _canonical_grid_key(spec.pitch_physical_rad, spec.standoff_m, spec.handle_height_m)
+        for spec in build_probe_grid()
+    }
+    if set(by_key) != expected_keys:
+        raise ValueError("M24 height decision requires exactly the canonical 108-cell grid")
+    candidate_height_index = _canonical_axis_index(
+        M24_HEIGHT_CAP_ALLOWED_M, "M24 candidate handle height", HANDLE_HEIGHTS_M
+    )
+    one_point_ten_m_allowed = any(
+        by_key[(pitch_index, standoff_index, candidate_height_index)].feasible
+        for pitch_index in range(len(PITCH_PHYSICAL_RAD))
+        for standoff_index in M24_APPROVED_STANDOFF_INDICES
+    )
+    selected_handle_height_cap_m = (
+        M24_HEIGHT_CAP_ALLOWED_M if one_point_ten_m_allowed else M24_HEIGHT_CAP_FALLBACK_M
+    )
+    return {
+        "one_point_ten_m_allowed": one_point_ten_m_allowed,
+        "selected_handle_height_cap_m": selected_handle_height_cap_m,
+        "approved_standoff_m": list(M24_APPROVED_STANDOFFS_M),
+        "approved_standoff_indices": list(M24_APPROVED_STANDOFF_INDICES),
+        "rule": "1.10 m iff any strictly feasible 1.10 m cell is in inclusive standoff grid [0.50,0.80] m; otherwise 1.05 m",
+    }
+
+
+def summarize_probe(
+    anchor_evidence: Sequence[ProbeEvidence],
+    grid_evidence: Sequence[ProbeEvidence],
+) -> dict[str, Any]:
+    checked_anchors = validate_anchor_evidence(anchor_evidence)
+    validate_grid_specs(tuple(
+        ProbeSpec(
+            cell.pitch_physical_rad_requested,
+            cell.pitch_raw_requested,
+            cell.standoff_m_requested,
+            cell.handle_height_m_requested,
+            cell.anchor,
+        )
+        for cell in grid_evidence
+    ))
+    checked_grid = tuple(_with_decision(cell) for cell in grid_evidence)
+    if any(cell.anchor for cell in checked_grid):
+        raise ValueError("M23 grid evidence must not contain anchor rows")
+    keys = [
+        (
+            cell.pitch_physical_rad_requested,
+            cell.standoff_m_requested,
+            cell.handle_height_m_requested,
+        )
+        for cell in checked_grid
+    ]
+    if len(set(keys)) != EXPECTED_GRID_CELLS:
+        raise ValueError("M23 grid evidence contains duplicate or missing requested cells")
+    m24_height_decision = _select_m24_height_cap(checked_grid)
+    return {
+        "schema": "a2_piper_v15_dynamic_reachability_v1",
+        "runtime_status": "runtime evidence supplied by explicit IsaacLab run",
+        "one_point_ten_m_allowed": m24_height_decision["one_point_ten_m_allowed"],
+        "selected_handle_height_cap_m": m24_height_decision["selected_handle_height_cap_m"],
+        "m24_height_decision": m24_height_decision,
+        "grid": {
+            "pitch_physical_rad": list(PITCH_PHYSICAL_RAD),
+            "pitch_raw": list(PITCH_RAW),
+            "pitch_conversion": "raw_pitch = physical_pitch / 0.4",
+            "standoffs_m": list(STANDOFFS_M),
+            "handle_heights_m": list(HANDLE_HEIGHTS_M),
+            "cells": EXPECTED_GRID_CELLS,
+        },
+        "anchors": {
+            "required": EXPECTED_ANCHORS,
+            "pitch_physical_rad": 0.0,
+            "standoffs_m": list(ANCHOR_STANDOFFS_M),
+            "handle_heights_m": list(ANCHOR_HANDLE_HEIGHTS_M),
+            "all_pass": True,
+            "success_artifacts_blocked_until_pass": True,
+        },
+        "feasibility_rule": {
+            "pitch_command_match_strict_abs_rad": PITCH_TOLERANCE_RAD,
+            "standoff_command_match_strict_less_than_m": STANDOFF_COMMAND_TOLERANCE_M,
+            "tcp_error_strict_less_than_m": TCP_ERROR_TOLERANCE_M,
+            "self_collision": "false",
+            "min_arm_joint_margin_strict_greater_than_rad": JOINT_MARGIN_THRESHOLD_RAD,
+            "base_stable": "true; no fall and no terminal/reset",
+            "terminated": "false; done/timeout disqualifies convergence",
+            "command_converged": "true; TCP + standoff + base stable for 1 step",
+            "finite_evidence": "true",
+            "missing_or_nonfinite_evidence": "infeasible/fail-fast",
+        },
+        "anchor_evidence": [asdict(cell) for cell in checked_anchors],
+        "feasible_cell_count": sum(cell.feasible for cell in checked_grid),
+        "infeasible_cell_count": sum(not cell.feasible for cell in checked_grid),
+        "summary_band_cap": _select_summary_band(checked_grid),
+        "cell_evidence_count": len(checked_grid),
+    }
+
+
+def _csv_row(cell: ProbeEvidence) -> dict[str, Any]:
+    return {name: asdict(cell)[name] for name in CELL_CSV_FIELDNAMES}
+
+
+def _render_markdown(
+    summary: dict[str, Any],
+    *,
+    csv_name: str,
+    json_name: str,
+    md_name: str,
+) -> str:
+    band = summary["summary_band_cap"]["maximal_all_pitch_standoff_band_m"]
+    diagnostic_cap = summary["summary_band_cap"]["highest_all_pitch_handle_cap_m"]
+    m24_cap = summary["selected_handle_height_cap_m"]
+    one_point_ten_allowed = summary["one_point_ten_m_allowed"]
+    lines = [
+        "# A2_Piper v15 M23 pitch-aware dynamic reachability probe",
+        "",
+        "This report is valid only after the three pitch=0 v14 step-2000 staging anchors pass.",
+        "The runtime uses the DoorPregrasp/A2_Base route with a frozen A2_Base policy.",
+        "",
+        f"- Cell CSV: `{csv_name}`",
+        f"- Summary JSON: `{json_name}`",
+        f"- Report: `{md_name}`",
+        f"- Grid cells: `{summary['cell_evidence_count']}` / `{EXPECTED_GRID_CELLS}`",
+        f"- Feasible cells: `{summary['feasible_cell_count']}`",
+        f"- Infeasible cells: `{summary['infeasible_cell_count']}`",
+        f"- M24 selected handle-height cap: `{m24_cap}` m (1.10 m allowed: `{one_point_ten_allowed}`)",
+        f"- Highest all-pitch handle cap (diagnostic only): `{diagnostic_cap}` m",
+        f"- Maximal all-pitch standoff band (diagnostic only): `{band['start']}`–`{band['end']}` m ({band['count']} points)",
+        "",
+        "## Exact command grid",
+        "",
+        "| Physical pitch (rad) | Raw pitch | Standoff (m) | Handle height (m) |",
+        "| ---: | ---: | ---: | ---: |",
+    ]
+    lines.extend(
+        f"| `{pitch}` | `{pitch_raw_from_physical(pitch)}` | `{STANDOFFS_M[0]}`–`{STANDOFFS_M[-1]}` | `{HANDLE_HEIGHTS_M[0]}`–`{HANDLE_HEIGHTS_M[-1]}` |"
+        for pitch in PITCH_PHYSICAL_RAD
+    )
+    lines.extend(
+        [
+            "",
+            "Raw pitch is physical pitch / 0.4; no height or body-pose command is part of this grid.",
+            "",
+            "## Mandatory anchors",
+            "",
+            "| Pitch (rad) | Standoff (m) | Handle height (m) | Result |",
+            "| ---: | ---: | ---: | :---: |",
+        ]
+    )
+    lines.extend(
+        f"| `0.0` | `{standoff}` | `{height}` | PASS |"
+        for height, standoff in zip(ANCHOR_HANDLE_HEIGHTS_M, ANCHOR_STANDOFFS_M, strict=True)
+    )
+    lines.extend(
+        [
+            "",
+            "Any anchor failure aborts nonzero before the 108-cell grid and prevents all success artifacts.",
+            "",
+            "## Strict cell gate",
+            "",
+            "`finite_evidence`, `base_stable`, and `command_converged` must be true; command convergence requires 1 stable TCP + standoff + base step; observed physical pitch must match the request; observed standoff must be within strict `< 0.02 m`; TCP error must be `< 0.03 m`; self-collision must be false; minimum arm joint margin must be `> 0.1 rad`; terminal/reset/done/timeout is infeasible.",
+            "The all-pitch continuous band is descriptive only; the M24 release cap is 1.10 m iff any strictly feasible 1.10 m cell lies in the inclusive canonical standoff band 0.50–0.80 m, otherwise 1.05 m.",
+            "",
+            "## Provenance",
+            "",
+            "Runtime execution is intentionally not implied by source tests. This report is emitted only by a complete explicit IsaacLab run.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+@contextmanager
+def _output_staging_dir(output_dir: Path, staging_dir: Path | None):
+    """Yield deterministic or isolated output staging and always clean failures."""
+
+    if staging_dir is None:
+        with tempfile.TemporaryDirectory(prefix=f".{output_dir.name}.", dir=output_dir.parent) as name:
+            yield Path(name)
+        return
+    staging = Path(staging_dir)
+    if staging.exists():
+        raise FileExistsError(f"M23 output staging already exists: {staging}")
+    staging.parent.mkdir(parents=True, exist_ok=True)
+    staging.mkdir()
+    try:
+        yield staging
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+
+
+def _runtime_paths(output_dir: Path) -> tuple[Path, Path, Path, Path]:
+    """Return the exact leaseable final, runtime, publish, and write-staging paths."""
+
+    final_dir = Path(output_dir).expanduser().resolve()
+    if not final_dir.name:
+        raise ValueError(f"M23 output directory must have a concrete name: {output_dir!r}")
+    runtime_staging_dir = final_dir.parent / f".{final_dir.name}.runtime-staging"
+    publish_dir = runtime_staging_dir / "publish"
+    publish_write_staging_dir = runtime_staging_dir / "publish-write-staging"
+    return final_dir, runtime_staging_dir, publish_dir, publish_write_staging_dir
+
+
+def write_probe_outputs(
+    output_dir: Path,
+    anchor_evidence: Sequence[ProbeEvidence],
+    grid_evidence: Sequence[ProbeEvidence],
+    *,
+    output_stem: str = DEFAULT_OUTPUT_STEM,
+    staging_dir: Path | None = None,
+) -> tuple[Path, Path, Path]:
+    """Atomically publish CSV/JSON/MD only after complete validated evidence."""
+
+    summary = summarize_probe(anchor_evidence, grid_evidence)
+    output_dir = Path(output_dir)
+    if output_dir.exists():
+        raise FileExistsError(
+            f"M23 output directory already exists; refusing partial/stale success publication: {output_dir}"
+        )
+    parent = output_dir.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    csv_name = f"{output_stem}.csv"
+    json_name = f"{output_stem}.json"
+    md_name = f"{output_stem}.md"
+    csv_path = output_dir / csv_name
+    json_path = output_dir / json_name
+    markdown_path = output_dir / md_name
+
+    csv_lines: list[str] = []
+    with _output_staging_dir(output_dir, staging_dir) as staging:
+        staged_csv = staging / csv_name
+        staged_json = staging / json_name
+        staged_md = staging / md_name
+        with staged_csv.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.DictWriter(handle, fieldnames=CELL_CSV_FIELDNAMES, lineterminator="\n")
+            writer.writeheader()
+            for cell in grid_evidence:
+                writer.writerow(_csv_row(_with_decision(cell)))
+            csv_lines = staged_csv.read_text(encoding="utf-8").splitlines()
+        summary["csv_evidence_path"] = csv_name
+        summary["report_path"] = md_name
+        staged_json.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        staged_md.write_text(
+            _render_markdown(summary, csv_name=csv_name, json_name=json_name, md_name=md_name),
+            encoding="utf-8",
+        )
+        os.replace(staging, output_dir)
+    return csv_path, json_path, markdown_path
+
+
+def _parse_batch_evidence(path: Path) -> tuple[ProbeEvidence, ...]:
+    if not path.is_file():
+        raise RuntimeError(f"M23 runtime batch did not produce evidence JSON: {path}")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rows = payload.get("evidence")
+    if not isinstance(rows, list):
+        raise RuntimeError(f"M23 runtime batch evidence JSON has no list: {path}")
+    return tuple(ProbeEvidence(**row) for row in rows)
+
+
+def _build_batch_command(args: argparse.Namespace, batch: str, batch_output: Path, height: float | None, standoff: float | None = None) -> list[str]:
+    command = [
+        sys.executable,
+        str(Path(__file__).resolve()),
+        "--checkpoint",
+        str(args.checkpoint),
+        "--device",
+        str(args.device),
+        "--batch",
+        batch,
+        "--batch-output",
+        str(batch_output),
+        "--max-control-steps",
+        str(args.max_control_steps),
+    ]
+    if height is not None:
+        command.extend(["--batch-height", f"{height:.12f}"])
+    if standoff is not None:
+        command.extend(["--batch-standoff", f"{standoff:.12f}"])
+    return command
+
+
+CHILD_DIAGNOSTIC_TAIL_LINES = 120
+CHILD_DIAGNOSTIC_MAX_CHARS = 12000
+
+
+def _diagnostic_tail(output: Any) -> str:
+    """Return a bounded child diagnostic tail without replaying full stdout."""
+
+    if output is None:
+        text = ""
+    elif isinstance(output, bytes):
+        text = output.decode("utf-8", errors="replace")
+    elif isinstance(output, str):
+        text = output
+    else:
+        text = str(output)
+    lines = text.splitlines()
+    tail = "\n".join(lines[-CHILD_DIAGNOSTIC_TAIL_LINES:])
+    if len(tail) > CHILD_DIAGNOSTIC_MAX_CHARS:
+        tail = tail[-CHILD_DIAGNOSTIC_MAX_CHARS:]
+    return tail or "<no child diagnostics>"
+
+
+def _run_child_batch(command: Sequence[str], batch_identity: str):
+    """Run one child quietly and retain only a bounded failure diagnostic tail."""
+
+    result = subprocess.run(
+        list(command),
+        cwd=str(REPO_ROOT),
+        check=False,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"M23 {batch_identity} batch failed with exit code {result.returncode}; "
+            f"diagnostic tail (last {CHILD_DIAGNOSTIC_TAIL_LINES} lines, "
+            f"max {CHILD_DIAGNOSTIC_MAX_CHARS} chars):\n{_diagnostic_tail(result.stdout)}"
+        )
+    return result
+
+
+def _child_fail_fast() -> None:
+    """Emit the original child traceback, then exit before Kit teardown can mask it."""
+
+    traceback.print_exc(file=sys.stderr)
+    sys.stderr.flush()
+    sys.stdout.flush()
+    os._exit(1)
+
+
+def _validate_child_batch_output(batch: str, batch_output: Path) -> None:
+    """Require the child JSON to exist and contain the complete batch before close."""
+
+    rows = _parse_batch_evidence(batch_output)
+    expected_count = EXPECTED_ANCHORS if batch == "anchors" else len(PITCH_PHYSICAL_RAD)
+    if len(rows) != expected_count:
+        raise RuntimeError(
+            f"M23 child {batch} batch evidence count mismatch: expected {expected_count}, got {len(rows)}"
+        )
+
+
+def _run_parent_batches(args: argparse.Namespace) -> int:
+    """Run isolated SimulationApp batches, publishing only after all pass gates."""
+
+    output_dir, staging_root, publish_dir, publish_write_staging_dir = _runtime_paths(
+        Path(args.output_dir)
+    )
+    if output_dir.exists():
+        raise FileExistsError(f"M23 final output directory already exists: {output_dir}")
+    if staging_root.exists():
+        raise FileExistsError(f"M23 runtime staging directory already exists: {staging_root}")
+    checkpoint = Path(args.checkpoint).expanduser().resolve()
+    if not checkpoint.is_file():
+        raise FileNotFoundError(f"M23 requires an existing v14 release checkpoint: {checkpoint}")
+    staging_root.mkdir(parents=True, exist_ok=False)
+    try:
+        anchor_json = staging_root / "anchors.json"
+        _run_child_batch(
+            _build_batch_command(args, "anchors", anchor_json, None),
+            "anchor",
+        )
+        anchors = _parse_batch_evidence(anchor_json)
+        checked_anchors = validate_anchor_evidence(anchors)
+
+        grid_rows: list[ProbeEvidence] = []
+        for height in HANDLE_HEIGHTS_M:
+            for standoff in STANDOFFS_M:
+                batch_json = staging_root / f"grid_height_{height:.2f}_standoff_{standoff:.2f}.json"
+                _run_child_batch(
+                    _build_batch_command(args, "grid", batch_json, height, standoff),
+                    f"grid height {height:.2f} standoff {standoff:.2f}",
+                )
+                rows = _parse_batch_evidence(batch_json)
+                if len(rows) != len(PITCH_PHYSICAL_RAD):
+                    raise RuntimeError(
+                        f"M23 grid child must emit exactly {len(PITCH_PHYSICAL_RAD)} pitch rows; got {len(rows)}"
+                    )
+                grid_rows.extend(rows)
+        if len(grid_rows) != EXPECTED_GRID_CELLS:
+            raise RuntimeError(
+                f"M23 grid parent collected {len(grid_rows)} rows; expected {EXPECTED_GRID_CELLS}"
+            )
+        ordered_grid_rows = canonicalize_grid_evidence(tuple(grid_rows))
+        write_probe_outputs(
+            publish_dir,
+            checked_anchors,
+            ordered_grid_rows,
+            output_stem=args.output_stem,
+            staging_dir=publish_write_staging_dir,
+        )
+        if not publish_dir.is_dir():
+            raise RuntimeError(f"M23 publish staging directory missing after validated write: {publish_dir}")
+        os.replace(publish_dir, output_dir)
+        return 0
+    finally:
+        if staging_root.exists():
+            shutil.rmtree(staging_root)
+
+
+def _runtime_config_for_batch(checkpoint: Path, num_envs: int, bounds: tuple[float, float], batch: str, standoff: float | None = None):
+    """Load saved config with deterministic eval-only height and M23 band overrides."""
+
+    if batch not in ("anchors", "grid"):
+        raise ValueError(f"M23 runtime config requires batch='anchors' or 'grid', got {batch!r}")
+    if batch == "grid":
+        if standoff is None or standoff not in STANDOFFS_M:
+            raise ValueError(f"M23 grid runtime config requires one exact standoff, got {standoff!r}")
+    elif standoff is not None:
+        raise ValueError("M23 anchor runtime config does not accept a standoff override")
+
+    from omegaconf import OmegaConf
+
+    config_path = checkpoint.parent / "config.yaml"
+    if not config_path.is_file():
+        config_path = checkpoint.parent.parent / "config.yaml"
+    if not config_path.is_file():
+        raise FileNotFoundError(f"M23 checkpoint-adjacent config.yaml not found for {checkpoint}")
+    config = OmegaConf.load(config_path)
+    config.checkpoint = str(checkpoint)
+    config.num_envs = int(num_envs)
+    config.algo.config.num_mini_batches = 1
+    if int(config.algo.trl.num_mini_batches) != 1:
+        raise RuntimeError("M23 probe requires resolved algo.trl.num_mini_batches=1")
+    config.env.config.a2_m23_self_collision_contact_sensors_enabled = True
+    if batch == "anchors":
+        if (
+            config.env.config.a2_stage0_staging_x_min != 0.55
+            or config.env.config.a2_stage0_staging_x_max != 0.60
+        ):
+            raise RuntimeError(
+                "M23 anchors require saved staging x=[0.55,0.60]"
+            )
+    config.env.config.reset_on_overtime = False
+    config.env.config.reset_on_complete = False
+    if (
+        not isinstance(config.env.config.reset_on_overtime, bool)
+        or config.env.config.reset_on_overtime
+        or not isinstance(config.env.config.reset_on_complete, bool)
+        or config.env.config.reset_on_complete
+    ):
+        raise RuntimeError(
+            "M23 bounded probe requires reset_on_overtime=false and reset_on_complete=false"
+        )
+    config.headless = True
+    config.env.config.env_spacing = max(float(config.env.config.get("env_spacing", 20.0)), 3.0)
+    config.env.config.a2_eval_door_handle_height_linspace = list(bounds)
+    if batch == "grid":
+        config.env.config.a2_stage0_staging_x_min = float(standoff - STANDOFF_COMMAND_TOLERANCE_M)
+        config.env.config.a2_stage0_staging_x_max = float(standoff + STANDOFF_COMMAND_TOLERANCE_M)
+        config.env.config.a2_stage0_staging_y_tol = 0.15
+    config.simulator.config.scene.num_envs = int(num_envs)
+    config.simulator.config.render_results = False
+    config.simulator.config.cameras.enable_cameras = False
+    if str(config.env.get("_target_", "")) != "gr00t.rl.envs.door.door_open_a2_base.DoorPregrasp":
+        raise RuntimeError("M23 requires the real DoorPregrasp environment target")
+    if not bool(config.algo.config.get("use_a2_base", False)):
+        raise RuntimeError("M23 requires algo.config.use_a2_base=true")
+    layout = {
+        "base": 5,
+        "arm": 6,
+        "gripper": 1,
+        "high_level": 12,
+    }
+    if int(config.algo.config.get("base_command_dim", 5)) != layout["base"]:
+        raise RuntimeError("M23 requires the 5-D A2 base command contract")
+    if int(config.algo.config.get("manipulation_action_dim", 7)) != layout["arm"] + layout["gripper"]:
+        raise RuntimeError("M23 requires the 6-D arm + 1-D gripper high-level contract")
+    return config
+
+
+def _build_trainer_runtime(checkpoint: Path, num_envs: int, bounds: tuple[float, float], device: str, batch: str, standoff: float | None = None):
+    """Build the saved DoorPregrasp and frozen A2_Base trainer route."""
+
+    from hydra.utils import instantiate
+    from omegaconf import OmegaConf
+
+    from gr00t.rl.eval_agent_trl import (
+        migrate_legacy_a2_stage2_grasp_reward_config,
+        migrate_legacy_a2_hold_diagnostic_env_config,
+        migrate_legacy_a2_stage3_base_unlocked_config,
+        migrate_legacy_a2_stage3_to4_threshold_config,
+        process_output_dim_in_config,
+    )
+    from gr00t.rl.trl.trainer.ppo_trainer_a2_base_api import TRLPPOTrainer
+    from gr00t.rl.trl.utils.common import custom_instantiate
+    from gr00t.rl.utils.helpers import pre_process_config
+
+    config = _runtime_config_for_batch(checkpoint, num_envs, bounds, batch, standoff)
+    migrate_legacy_a2_stage2_grasp_reward_config(config, str(checkpoint.parent / "config.yaml"))
+    migrate_legacy_a2_stage3_to4_threshold_config(config, str(checkpoint.parent / "config.yaml"))
+    migrate_legacy_a2_stage3_base_unlocked_config(config, str(checkpoint.parent / "config.yaml"))
+    migrate_legacy_a2_hold_diagnostic_env_config(config, str(checkpoint.parent / "config.yaml"))
+    pre_process_config(config)
+    env = instantiate(config=config.env, device=device)
+
+    import torch
+    from accelerate import Accelerator
+    from transformers import HfArgumentParser
+    from trl import ModelConfig, PPOConfig, ScriptArguments
+
+    process_output_dim_in_config(config)
+    module_dim_dict = getattr(config.algo.config, "module_dim", {})
+    policy = instantiate(
+        config.algo.config.actor,
+        env_config=env.config,
+        algo_config=config.algo.config,
+        module_dim_dict=module_dim_dict,
+        _recursive_=False,
+    ).to(device)
+    value_model = instantiate(
+        config.algo.config.critic,
+        env_config=env.config,
+        algo_config=config.algo.config,
+        module_dim_dict=module_dim_dict,
+        _recursive_=False,
+    ).to(device)
+    parser = HfArgumentParser((ScriptArguments, PPOConfig, ModelConfig))
+    script_args, training_args, model_args = parser.parse_dict(config.algo.trl)
+    training_args.seed = int(config.get("seed", 0))
+    accelerator = Accelerator()
+    trainer = custom_instantiate(
+        config.trainer,
+        args=training_args,
+        config=config.algo.config,
+        env=env,
+        model=policy,
+        ref_model=None,
+        use_ref_model=False,
+        value_model=value_model,
+        train_dataset=None,
+        eval_dataset=None,
+        callbacks=[],
+        checkpoint=str(checkpoint),
+        local_seed=int(config.get("seed", 0)),
+        accelerator=accelerator,
+        checkpoint_load_mode="full",
+    )
+    if not getattr(trainer, "use_a2_base", False) or trainer.unwrapped_model.a2_base_model is None:
+        raise RuntimeError("M23 trainer did not expose the frozen A2_Base policy route")
+    if trainer.env is not env or not hasattr(trainer.env, "get_a2_high_level_action_layout"):
+        raise RuntimeError("M23 trainer/environment route identity is inconsistent")
+    if trainer.env.get_a2_high_level_action_layout() != {
+        "dim": 12,
+        "base_start": 0,
+        "base_end": 5,
+        "arm_start": 5,
+        "arm_end": 11,
+        "gripper_index": 11,
+    }:
+        raise RuntimeError("M23 environment high-level action layout is not [base5,arm6,gripper1]")
+    trainer.unwrapped_model.policy.eval_mode()
+    trainer.unwrapped_model.a2_base_model.eval()
+    for parameter in trainer.unwrapped_model.a2_base_model.parameters():
+        if parameter.requires_grad:
+            raise RuntimeError("M23 A2_Base policy must be frozen")
+    return trainer, env, torch
+
+
+def _runtime_self_collision(scene_sensors, num_envs: int, torch_module, expected_device):
+    """Read strict one-body-to-26-body ContactSensor force matrices."""
+
+    expected_keys = tuple(
+        f"{M23_SELF_COLLISION_SENSOR_KEY_PREFIX}{body_name}"
+        for body_name in M23_SELF_COLLISION_BODY_NAMES
+    )
+    actual_keys = tuple(
+        key for key in scene_sensors.keys() if key.startswith(M23_SELF_COLLISION_SENSOR_KEY_PREFIX)
+    )
+    if actual_keys != expected_keys:
+        raise RuntimeError(
+            "M23 self-collision ContactSensor key/order mismatch: "
+            f"expected {expected_keys}, got {actual_keys}"
+        )
+    expected_device = torch_module.device(str(expected_device))
+    per_sensor_max_forces = []
+    per_sensor_max_filter_indices = []
+    for sensor_key, body_name in zip(expected_keys, M23_SELF_COLLISION_BODY_NAMES, strict=True):
+        sensor = scene_sensors.get(sensor_key)
+        if sensor is None:
+            raise RuntimeError(f"M23 missing self-collision ContactSensor: {sensor_key}")
+        if getattr(sensor, "num_bodies", None) != 1:
+            raise RuntimeError(f"M23 {sensor_key} must resolve exactly one sensor body")
+        if tuple(sensor.body_names) != (body_name,):
+            raise RuntimeError(
+                f"M23 {sensor_key} body order mismatch: expected {(body_name,)}, got {sensor.body_names}"
+            )
+        cfg = getattr(sensor, "cfg", None)
+        expected_source_path = f"/World/envs/env_.*/Robot/{body_name}"
+        expected_filter_paths = tuple(
+            f"/World/envs/env_.*/Robot/{other_body_name}"
+            for other_body_name in M23_SELF_COLLISION_BODY_NAMES
+            if other_body_name != body_name
+        )
+        if getattr(cfg, "prim_path", None) != expected_source_path:
+            raise RuntimeError(
+                f"M23 {sensor_key} source path mismatch: expected {expected_source_path}"
+            )
+        if tuple(getattr(cfg, "filter_prim_paths_expr", ())) != expected_filter_paths:
+            raise RuntimeError(
+                f"M23 {sensor_key} filter order/count mismatch: expected {expected_filter_paths}"
+            )
+        matrix = getattr(getattr(sensor, "data", None), "force_matrix_w", None)
+        expected_shape = (num_envs, 1, M23_SELF_COLLISION_FILTER_COUNT, 3)
+        if (
+            not torch_module.is_tensor(matrix)
+            or tuple(matrix.shape) != expected_shape
+            or not torch_module.is_floating_point(matrix)
+        ):
+            shape = None if not torch_module.is_tensor(matrix) else tuple(matrix.shape)
+            dtype = None if not torch_module.is_tensor(matrix) else matrix.dtype
+            raise RuntimeError(
+                f"M23 {sensor_key} force_matrix_w must be floating shape {expected_shape}; "
+                f"got shape={shape}, dtype={dtype}"
+            )
+        if matrix.device != expected_device:
+            raise RuntimeError(
+                f"M23 {sensor_key} force_matrix_w device mismatch: "
+                f"expected {expected_device}, got {matrix.device}"
+            )
+        if not bool(torch_module.all(torch_module.isfinite(matrix)).item()):
+            raise RuntimeError(f"M23 {sensor_key} force_matrix_w contains non-finite evidence")
+        pair_force = torch_module.linalg.norm(matrix[:, 0, :, :], dim=-1)
+        sensor_max_force, sensor_max_filter_index = pair_force.max(dim=1)
+        per_sensor_max_forces.append(sensor_max_force)
+        per_sensor_max_filter_indices.append(sensor_max_filter_index)
+    force_by_source = torch_module.stack(per_sensor_max_forces, dim=1)
+    filter_by_source = torch_module.stack(per_sensor_max_filter_indices, dim=1)
+    max_force, max_source_index = force_by_source.max(dim=1)
+    max_filter_index = filter_by_source.gather(1, max_source_index.unsqueeze(-1)).squeeze(-1)
+    if not bool(torch_module.all(torch_module.isfinite(max_force)).item()):
+        raise RuntimeError("M23 self-collision force evidence is non-finite")
+    collision = max_force >= M23_SELF_COLLISION_FORCE_THRESHOLD_N
+    return collision, max_force, max_source_index, max_filter_index
+
+
+def _runtime_body_frame_standoff_velocity(
+    target_x,
+    current_x,
+    requested_standoff,
+    root_quat_w,
+    torch_module,
+    quat_apply_inverse,
+):
+    """Convert the desired world-X root displacement into body-frame vx."""
+
+    values = (target_x, current_x, requested_standoff)
+    if any(not torch_module.is_tensor(value) for value in values):
+        raise RuntimeError(
+            "M23 standoff command inputs must be tensors for target/current/requested x"
+        )
+    if any(value.ndim != 1 for value in values):
+        raise RuntimeError("M23 standoff command x inputs must have shape (N,)")
+    if tuple(current_x.shape) != tuple(target_x.shape) or tuple(requested_standoff.shape) != tuple(target_x.shape):
+        raise RuntimeError("M23 standoff command x inputs must share shape (N,)")
+    num_envs = target_x.shape[0]
+    if not torch_module.is_tensor(root_quat_w):
+        raise RuntimeError("M23 standoff command root_quat_w must be a tensor")
+    if tuple(root_quat_w.shape) != (num_envs, 4):
+        raise RuntimeError("M23 standoff command root_quat_w must have shape (N,4)")
+    if any(not torch_module.is_floating_point(value) for value in values) or not torch_module.is_floating_point(
+        root_quat_w
+    ):
+        raise RuntimeError("M23 standoff command frame inputs must be floating point tensors")
+    if any(value.dtype != target_x.dtype or value.device != target_x.device for value in values) or (
+        root_quat_w.dtype != target_x.dtype or root_quat_w.device != target_x.device
+    ):
+        raise RuntimeError("M23 standoff command frame inputs must share dtype and device")
+    if not bool(
+        torch_module.all(
+            torch_module.isfinite(target_x)
+            & torch_module.isfinite(current_x)
+            & torch_module.isfinite(requested_standoff)
+            & torch_module.all(torch_module.isfinite(root_quat_w), dim=-1)
+        ).item()
+    ):
+        raise RuntimeError("M23 standoff command frame inputs must be finite")
+
+    desired_root_x = target_x - requested_standoff
+    world_displacement = torch_module.zeros(
+        (num_envs, 3), device=target_x.device, dtype=target_x.dtype
+    )
+    world_displacement[:, 0] = desired_root_x - current_x
+    body_displacement = quat_apply_inverse(root_quat_w, world_displacement)
+    if (
+        not torch_module.is_tensor(body_displacement)
+        or tuple(body_displacement.shape) != (num_envs, 3)
+        or body_displacement.dtype != target_x.dtype
+        or body_displacement.device != target_x.device
+        or not bool(torch_module.all(torch_module.isfinite(body_displacement)).item())
+    ):
+        raise RuntimeError("M23 standoff command body displacement must be finite shape (N,3) on input dtype/device")
+    return body_displacement[:, 0]
+
+
+def _runtime_a2_vx_standing_threshold(env, torch_module):
+    """Resolve the instantiated A2_Base physical vx standing threshold."""
+
+    thresholds = getattr(env, "_a2_gait_standing_command_thresholds", None)
+    if (
+        not torch_module.is_tensor(thresholds)
+        or tuple(thresholds.shape) != (3,)
+        or not torch_module.is_floating_point(thresholds)
+    ):
+        shape = None if not torch_module.is_tensor(thresholds) else tuple(thresholds.shape)
+        raise RuntimeError(
+            "M23 A2 gait standing thresholds must be floating shape (3,), "
+            f"got shape={shape}"
+        )
+    if not bool(torch_module.all(torch_module.isfinite(thresholds)).item()) or not bool(
+        torch_module.all(thresholds > 0.0).item()
+    ):
+        raise RuntimeError("M23 A2 gait standing thresholds must be finite and positive")
+    if not bool((thresholds[0] < M23_BASE_VX_MAX_MPS).item()):
+        raise RuntimeError("M23 A2 vx standing threshold must be below the probe speed cap")
+    return thresholds[0]
+
+
+def _runtime_standoff_velocity(
+    body_standoff_error_x,
+    standoff_error_w,
+    standing_vx_threshold,
+    torch_module,
+):
+    """Command body vx while guaranteeing A2 locomotion outside the strict band."""
+
+    values = (body_standoff_error_x, standoff_error_w)
+    if any(not torch_module.is_tensor(value) for value in values):
+        raise RuntimeError("M23 standoff velocity errors must be tensors")
+    if any(value.ndim != 1 for value in values) or tuple(body_standoff_error_x.shape) != tuple(
+        standoff_error_w.shape
+    ):
+        raise RuntimeError("M23 standoff velocity errors must share shape (N,)")
+    if (
+        not torch_module.is_tensor(standing_vx_threshold)
+        or standing_vx_threshold.ndim != 0
+        or not torch_module.is_floating_point(standing_vx_threshold)
+    ):
+        raise RuntimeError("M23 A2 vx standing threshold must be a floating scalar tensor")
+    if any(not torch_module.is_floating_point(value) for value in values):
+        raise RuntimeError("M23 standoff velocity errors must be floating point tensors")
+    if any(
+        value.dtype != body_standoff_error_x.dtype
+        or value.device != body_standoff_error_x.device
+        for value in values
+    ) or (
+        standing_vx_threshold.dtype != body_standoff_error_x.dtype
+        or standing_vx_threshold.device != body_standoff_error_x.device
+    ):
+        raise RuntimeError("M23 standoff velocity inputs must share dtype and device")
+    if not bool(
+        torch_module.all(
+            torch_module.isfinite(body_standoff_error_x)
+            & torch_module.isfinite(standoff_error_w)
+        ).item()
+    ) or not bool(torch_module.isfinite(standing_vx_threshold).item()):
+        raise RuntimeError("M23 standoff velocity inputs must be finite")
+    if not bool((standing_vx_threshold < M23_BASE_VX_MAX_MPS).item()):
+        raise RuntimeError("M23 A2 vx standing threshold must be below the probe speed cap")
+
+    outside_tolerance = torch_module.abs(standoff_error_w) >= STANDOFF_COMMAND_TOLERANCE_M
+    raw_velocity = body_standoff_error_x * M23_STANDOFF_VELOCITY_GAIN
+    if bool(torch_module.any(outside_tolerance & (raw_velocity == 0.0)).item()):
+        raise RuntimeError("M23 standoff error outside tolerance has no body-x movement direction")
+    clamped_velocity = torch_module.clamp(
+        raw_velocity, min=-M23_BASE_VX_MAX_MPS, max=M23_BASE_VX_MAX_MPS
+    )
+    minimum_magnitude = standing_vx_threshold + torch_module.finfo(raw_velocity.dtype).eps
+    minimum_magnitude = torch_module.minimum(
+        minimum_magnitude,
+        torch_module.full_like(minimum_magnitude, M23_BASE_VX_MAX_MPS),
+    )
+    commanded_magnitude = torch_module.maximum(
+        torch_module.abs(clamped_velocity), minimum_magnitude
+    )
+    commanded_velocity = torch_module.where(
+        outside_tolerance,
+        torch_module.sign(clamped_velocity) * commanded_magnitude,
+        torch_module.zeros_like(clamped_velocity),
+    )
+    if not bool(torch_module.all(torch_module.isfinite(commanded_velocity)).item()):
+        raise RuntimeError("M23 standoff velocity output is non-finite")
+    outside_values = torch_module.abs(commanded_velocity[outside_tolerance])
+    if outside_values.numel() > 0 and not bool(
+        torch_module.all(outside_values > standing_vx_threshold).item()
+    ):
+        raise RuntimeError("M23 standoff velocity must exceed the A2 standing threshold outside tolerance")
+    return commanded_velocity
+def _runtime_stage_buf(env, torch_module):
+    """Resolve the live DoorPregrasp stage tensor without a fallback."""
+
+    stage_buf = getattr(env, "stage_buf", None)
+    expected_device = torch_module.device(str(env.device))
+    if (
+        not torch_module.is_tensor(stage_buf)
+        or tuple(stage_buf.shape) != (env.num_envs,)
+        or stage_buf.dtype != torch_module.long
+        or stage_buf.device != expected_device
+    ):
+        shape = None if not torch_module.is_tensor(stage_buf) else tuple(stage_buf.shape)
+        dtype = None if not torch_module.is_tensor(stage_buf) else stage_buf.dtype
+        device = None if not torch_module.is_tensor(stage_buf) else stage_buf.device
+        raise RuntimeError(
+            "M23 DoorPregrasp stage_buf must be int64 shape (N,) on env.device; "
+            f"got shape={shape}, dtype={dtype}, device={device}"
+        )
+    return stage_buf
+
+
+def _runtime_update_base_settled(
+    base_settled,
+    base_settle_steps,
+    active,
+    strict_standoff,
+    base_stable,
+    stage_buf,
+    stage_pregrasp,
+    torch_module,
+):
+    """Latch phase A only after ten coherent DoorPregrasp-ready samples."""
+
+    bool_masks = (base_settled, active, strict_standoff, base_stable)
+    if any(not torch_module.is_tensor(mask) or mask.ndim != 1 for mask in bool_masks):
+        raise RuntimeError("M23 base-settle masks must be tensors with shape (N,)")
+    shape = tuple(base_settled.shape)
+    if any(tuple(mask.shape) != shape or mask.dtype != torch_module.bool for mask in bool_masks):
+        raise RuntimeError("M23 base-settle masks must be bool tensors sharing shape (N,)")
+    if (
+        not torch_module.is_tensor(base_settle_steps)
+        or tuple(base_settle_steps.shape) != shape
+        or base_settle_steps.dtype != torch_module.long
+        or not torch_module.is_tensor(stage_buf)
+        or tuple(stage_buf.shape) != shape
+        or stage_buf.dtype != torch_module.long
+    ):
+        raise RuntimeError("M23 base-settle counters and stage_buf must be int64 tensors sharing shape (N,)")
+    device = base_settled.device
+    if any(mask.device != device for mask in bool_masks) or base_settle_steps.device != device or stage_buf.device != device:
+        raise RuntimeError("M23 base-settle tensors must share one device")
+    if bool(torch_module.any(base_settle_steps < 0).item()):
+        raise RuntimeError("M23 base-settle counter must be nonnegative")
+    if isinstance(stage_pregrasp, bool) or not isinstance(stage_pregrasp, int) or stage_pregrasp < 0:
+        raise RuntimeError("M23 DoorPregrasp STAGE_PREGRASP must be a nonnegative integer")
+
+    coherent = strict_standoff & base_stable & (stage_buf >= stage_pregrasp)
+    settling = active & ~base_settled
+    next_steps = torch_module.where(
+        settling & coherent,
+        base_settle_steps + 1,
+        torch_module.where(
+            settling,
+            torch_module.zeros_like(base_settle_steps),
+            base_settle_steps,
+        ),
+    )
+    next_settled = base_settled | (
+        settling & (next_steps >= COMMAND_CONVERGENCE_STEPS)
+    )
+    return next_settled, next_steps
+
+
+def _runtime_base_stability(env, torch_module):
+    states = getattr(env.simulator, "robot_root_states", None)
+    gravity = getattr(env, "projected_gravity", None)
+    if not torch_module.is_tensor(states) or tuple(states.shape) != (env.num_envs, 13):
+        raise RuntimeError("M23 base stability requires finite robot state shape (N,13)")
+    if not torch_module.is_tensor(gravity) or tuple(gravity.shape) != (env.num_envs, 3):
+        raise RuntimeError("M23 base stability requires projected_gravity shape (N,3)")
+    if not bool(torch_module.all(torch_module.isfinite(states)).item()) or not bool(
+        torch_module.all(torch_module.isfinite(gravity)).item()
+    ):
+        raise RuntimeError("M23 base stability evidence is non-finite")
+    tilt = torch_module.acos(torch_module.clamp(-gravity[:, 2], -1.0, 1.0))
+    stable = (
+        (states[:, 2] > BASE_HEIGHT_MIN_M)
+        & (tilt < BASE_TILT_MAX_RAD)
+        & (torch_module.linalg.norm(states[:, 7:10], dim=-1) < BASE_LINEAR_SPEED_MAX_MPS)
+        & (torch_module.linalg.norm(states[:, 10:13], dim=-1) < BASE_ANGULAR_SPEED_MAX_RADPS)
+    )
+    return stable, states[:, 2], tilt
+
+
+def _runtime_cell_evidence(
+    env,
+    specs: Sequence[ProbeSpec],
+    terminated_mask,
+    command_converged_mask,
+    torch_module,
+) -> tuple[ProbeEvidence, ...]:
+    if tuple(terminated_mask.shape) != (env.num_envs,) or tuple(command_converged_mask.shape) != (env.num_envs,):
+        raise RuntimeError("M23 convergence evidence masks must have shape (N,)")
+    sensor = env.simulator.scene.sensors.get("piper_gripper_handle_frame_transformer")
+    if sensor is None:
+        raise RuntimeError("M23 requires DoorPregrasp live gripper/pregrasp frame transformer")
+    data = sensor.data
+    target_pos = getattr(data, "target_pos_w", None)
+    source_pos = getattr(data, "source_pos_w", None)
+    if not torch_module.is_tensor(target_pos) or tuple(target_pos.shape) != (env.num_envs, 2, 3):
+        raise RuntimeError("M23 live target frame must have shape (N,2,3)")
+    if not torch_module.is_tensor(source_pos) or tuple(source_pos.shape) != (env.num_envs, 3):
+        raise RuntimeError("M23 live TCP frame must have shape (N,3)")
+    if not bool(torch_module.all(torch_module.isfinite(target_pos)).item()) or not bool(
+        torch_module.all(torch_module.isfinite(source_pos)).item()
+    ):
+        raise RuntimeError("M23 live frame evidence is non-finite")
+    origins = env.env_origins
+    if tuple(origins.shape) != (env.num_envs, 3) or not bool(torch_module.all(torch_module.isfinite(origins)).item()):
+        raise RuntimeError("M23 environment origins are not finite shape (N,3)")
+    tcp_error = torch_module.linalg.norm(source_pos - target_pos[:, 1, :], dim=-1)
+    observed_height = target_pos[:, 0, 2] - origins[:, 2]
+    root_states = env.simulator.robot_root_states
+    observed_standoff = target_pos[:, 0, 0] - root_states[:, 0]
+    base_commands = env.get_physical_base_command()
+    if tuple(base_commands.shape) != (env.num_envs, 5) or not bool(torch_module.all(torch_module.isfinite(base_commands)).item()):
+        raise RuntimeError("M23 physical A2 base command evidence must be finite shape (N,5)")
+    collision, max_force, max_source_index, max_filter_index = _runtime_self_collision(
+        env.simulator.scene.sensors,
+        env.num_envs,
+        torch_module,
+        env.device,
+    )
+    stable, base_height, tilt = _runtime_base_stability(env, torch_module)
+    finite = torch_module.isfinite(tcp_error) & torch_module.isfinite(observed_height) & torch_module.isfinite(observed_standoff)
+    rows: list[ProbeEvidence] = []
+    robot = env.simulator.scene.articulations["robot"]
+    arm_ids, arm_names = robot.find_joints([f"arm_j{index}" for index in range(1, 7)], preserve_order=True)
+    if arm_names != [f"arm_j{index}" for index in range(1, 7)]:
+        raise RuntimeError(f"M23 arm joint order mismatch: {arm_names}")
+    q = robot.data.joint_pos[:, arm_ids]
+    limits = robot.data.soft_joint_pos_limits[:, arm_ids]
+    if tuple(limits.shape) != (env.num_envs, 6, 2) or not bool(torch_module.all(torch_module.isfinite(q)).item()) or not bool(torch_module.all(torch_module.isfinite(limits)).item()):
+        raise RuntimeError("M23 arm joint-limit evidence must be finite shape (N,6,2)")
+    margins = torch_module.minimum(q - limits[..., 0], limits[..., 1] - q).min(dim=-1).values
+    terminal_tensor = env.reset_buf != 0
+    for index, spec in enumerate(specs):
+        source_name = M23_SELF_COLLISION_BODY_NAMES[int(max_source_index[index].item())]
+        filter_names = tuple(
+            body_name
+            for body_name in M23_SELF_COLLISION_BODY_NAMES
+            if body_name != source_name
+        )
+        filter_name = filter_names[int(max_filter_index[index].item())]
+        evidence = ProbeEvidence(
+            pitch_physical_rad_requested=spec.pitch_physical_rad,
+            pitch_raw_requested=spec.pitch_raw,
+            pitch_physical_rad_observed=float(base_commands[index, 3].item()),
+            standoff_m_requested=spec.standoff_m,
+            standoff_m_observed=float(observed_standoff[index].item()),
+            handle_height_m_requested=spec.handle_height_m,
+            handle_height_m_observed=float(observed_height[index].item()),
+            tcp_error_m=float(tcp_error[index].item()),
+            self_collision=bool(collision[index].item()),
+            self_collision_evidence=(
+                f"max_filtered_robot_pair_force={float(max_force[index].item()):.9g}N;"
+                f"source={source_name};filter={filter_name}"
+            ),
+            min_arm_joint_margin_rad=float(margins[index].item()),
+            base_stable=bool(stable[index].item()),
+            base_height_m=float(base_height[index].item()),
+            terminal=bool(terminal_tensor[index].item()),
+            finite_evidence=bool(finite[index].item()),
+            anchor=spec.anchor,
+            terminated=bool(terminated_mask[index].item()),
+            command_converged=bool(command_converged_mask[index].item())
+            and not bool(terminated_mask[index].item()),
+        )
+        rows.append(_with_decision(evidence))
+    return tuple(rows)
+
+
+def _freeze_pre_step_evidence(
+    frozen_evidence: list[ProbeEvidence | None],
+    pre_step_evidence: Sequence[ProbeEvidence],
+    freeze_mask,
+    torch_module,
+    *,
+    terminated: bool,
+    command_converged: bool,
+) -> None:
+    """Freeze one coherent pre-step row before a reset can overwrite live state."""
+
+    if len(frozen_evidence) != len(pre_step_evidence):
+        raise RuntimeError("M23 frozen/pre-step evidence lengths must match")
+    if (
+        not torch_module.is_tensor(freeze_mask)
+        or tuple(freeze_mask.shape) != (len(pre_step_evidence),)
+        or freeze_mask.dtype != torch_module.bool
+    ):
+        raise RuntimeError("M23 evidence freeze mask must be bool shape (N,)")
+    if not isinstance(terminated, bool) or not isinstance(command_converged, bool):
+        raise RuntimeError("M23 evidence freeze flags must be bool")
+    for index in torch_module.where(freeze_mask)[0].tolist():
+        if frozen_evidence[index] is not None:
+            continue
+        row = asdict(pre_step_evidence[index])
+        row["terminated"] = terminated
+        row["command_converged"] = command_converged
+        row["feasible"] = False
+        row["failure_reason"] = ""
+        frozen_evidence[index] = _with_decision(ProbeEvidence(**row))
+
+
+def _merge_frozen_evidence(
+    frozen_evidence: Sequence[ProbeEvidence | None],
+    live_evidence: Sequence[ProbeEvidence],
+) -> tuple[ProbeEvidence, ...]:
+    """Keep frozen pre-reset rows and fill only cells still live."""
+
+    if len(frozen_evidence) != len(live_evidence):
+        raise RuntimeError("M23 frozen/live evidence lengths must match")
+    merged = tuple(
+        frozen if frozen is not None else live
+        for frozen, live in zip(frozen_evidence, live_evidence, strict=True)
+    )
+    if any(row is None for row in merged):
+        raise RuntimeError("M23 evidence merge left an unfrozen cell")
+    return tuple(row for row in merged if row is not None)
+
+
+def _load_canonical_eval_config() -> dict[str, Any]:
+    """Load the canonical Hydra eval defaults without duplicating oracle fields."""
+
+    from omegaconf import OmegaConf
+
+    config_path = REPO_ROOT / "gr00t/rl/config/base_eval.yaml"
+    if not config_path.is_file():
+        raise FileNotFoundError(f"M23 canonical eval config not found: {config_path}")
+    base_eval = OmegaConf.load(config_path)
+    eval_config = base_eval.get("algo", {}).get("config", {}).get("eval", None)
+    if eval_config is None:
+        raise RuntimeError(f"M23 canonical eval config has no algo.config.eval: {config_path}")
+    canonical = OmegaConf.to_container(eval_config, resolve=True)
+    if not isinstance(canonical, dict):
+        raise RuntimeError("M23 canonical eval config must resolve to a mapping")
+    for key in (
+        "a2_diagnostic_trace_enabled",
+        "a2_forced_gripper_close_enabled",
+        "a2_hold_oracle_enabled",
+    ):
+        if canonical.get(key) is not False:
+            raise RuntimeError(
+                f"M23 probe requires canonical eval default-off flag {key}=false; "
+                f"got {canonical.get(key)!r}"
+            )
+    return canonical
+
+
+def _initialize_probe_eval_state(env, device):
+    """Initialize the canonical eval-only environment state in trainer order."""
+
+    init_metrics = getattr(env, "init_eval_metrics_tracking", None)
+    init_trace = getattr(env, "init_a2_eval_stage2_step_trace", None)
+    init_oracle = getattr(env, "init_a2_eval_hold_oracle", None)
+    if not callable(init_metrics):
+        raise RuntimeError("M23 eval initialization requires env.init_eval_metrics_tracking()")
+    if not callable(init_trace):
+        raise RuntimeError("M23 eval initialization requires env.init_a2_eval_stage2_step_trace()")
+    if not callable(init_oracle):
+        raise RuntimeError("M23 eval initialization requires env.init_a2_eval_hold_oracle()")
+
+    init_metrics(device)
+    init_trace(diagnostic_enabled=False, diagnostic_reward_terms=())
+    canonical_eval_config = _load_canonical_eval_config()
+    for key in (
+        "a2_diagnostic_trace_enabled",
+        "a2_forced_gripper_close_enabled",
+        "a2_hold_oracle_enabled",
+    ):
+        if canonical_eval_config.get(key) is not False:
+            raise RuntimeError(
+                f"M23 probe requires canonical eval default-off flag {key}=false; "
+                f"got {canonical_eval_config.get(key)!r}"
+            )
+    oracle_config = init_oracle(
+        canonical_eval_config,
+        diagnostic_enabled=False,
+    )
+    if not isinstance(oracle_config, dict) or oracle_config.get("enabled") is not False:
+        raise RuntimeError(
+            "M23 probe requires the canonical hold oracle to remain disabled; "
+            f"got {oracle_config!r}"
+        )
+    if getattr(env, "_a2_eval_diagnostic_trace_enabled", False) is not False:
+        raise RuntimeError("M23 probe requires eval diagnostics to remain disabled")
+    return oracle_config
+
+
+def _runtime_format_dik_invalid_diagnostics(
+    invalid_env_ids,
+    ik_valid,
+    hard_valid,
+    soft_progress_valid,
+    delta_ok,
+    raw_ok,
+    current_q,
+    q_des,
+    hard_limits,
+    soft_limits,
+    arm_joint_ids,
+    arm_joint_names,
+    specs,
+    batch,
+    control_step,
+    torch_module,
+):
+    """Serialize bounded deterministic per-joint DLS/limit diagnostics."""
+    hard_lower = hard_limits[..., 0] + DIK_JOINT_LIMIT_MARGIN_RAD
+    hard_upper = hard_limits[..., 1] - DIK_JOINT_LIMIT_MARGIN_RAD
+    soft_lower = soft_limits[..., 0] + DIK_JOINT_LIMIT_MARGIN_RAD
+    soft_upper = soft_limits[..., 1] - DIK_JOINT_LIMIT_MARGIN_RAD
+    hard_joint_valid = (q_des > hard_lower) & (q_des < hard_upper)
+    current_inside_soft = (current_q >= soft_lower) & (current_q <= soft_upper)
+    desired_inside_soft = (q_des >= soft_lower) & (q_des <= soft_upper)
+    current_below_soft = current_q < soft_lower
+    current_above_soft = current_q > soft_upper
+    moves_not_farther_below = q_des >= current_q - DIK_SOFT_PROGRESS_TOLERANCE
+    moves_not_farther_above = q_des <= current_q + DIK_SOFT_PROGRESS_TOLERANCE
+    soft_joint_valid = torch_module.where(
+        current_inside_soft,
+        desired_inside_soft,
+        torch_module.where(
+            current_below_soft,
+            moves_not_farther_below & (q_des <= soft_upper),
+            moves_not_farther_above & (q_des >= soft_lower),
+        ),
+    )
+    all_ids = [int(env_id) for env_id in invalid_env_ids]
+    selected_ids = all_ids[:DIK_DIAGNOSTIC_MAX_ENV_RECORDS]
+    failures = []
+    for env_id in selected_ids:
+        joint_failures = []
+        for joint_offset, joint_id in enumerate(arm_joint_ids):
+            hard_ok = bool(hard_joint_valid[env_id, joint_offset].item())
+            soft_ok = bool(soft_joint_valid[env_id, joint_offset].item())
+            if hard_ok and soft_ok:
+                continue
+            current_value = float(current_q[env_id, joint_offset].item())
+            if current_value < float(soft_lower[env_id, joint_offset].item()):
+                direction = "below_soft_not_farther_below"
+            elif current_value > float(soft_upper[env_id, joint_offset].item()):
+                direction = "above_soft_not_farther_above"
+            else:
+                direction = "inside_soft_desired_inside_soft"
+            joint_failures.append(
+                {
+                    "arm_joint_index": int(joint_id),
+                    "arm_joint_name": str(arm_joint_names[joint_offset]),
+                    "q_current": current_value,
+                    "q_des": float(q_des[env_id, joint_offset].item()),
+                    "hard_limits": [float(value) for value in hard_limits[env_id, joint_offset].tolist()],
+                    "hard_predicate_bounds": [float(hard_lower[env_id, joint_offset].item()), float(hard_upper[env_id, joint_offset].item())],
+                    "soft_limits": [float(value) for value in soft_limits[env_id, joint_offset].tolist()],
+                    "soft_predicate_bounds": [float(soft_lower[env_id, joint_offset].item()), float(soft_upper[env_id, joint_offset].item())],
+                    "hard_valid": hard_ok,
+                    "soft_progress_valid": soft_ok,
+                    "soft_progress_direction": direction,
+                }
+            )
+        spec = specs[env_id]
+        failures.append(
+            {
+                "env_id": env_id,
+                "target": {
+                    "anchor": bool(spec.anchor),
+                    "handle_height_m": float(spec.handle_height_m),
+                    "pitch_physical_rad": float(spec.pitch_physical_rad),
+                    "pitch_raw": float(spec.pitch_raw),
+                    "standoff_m": float(spec.standoff_m),
+                },
+                "predicates": {
+                    "ik_valid": bool(ik_valid[env_id].item()),
+                    "hard_valid": bool(hard_valid[env_id].item()),
+                    "soft_progress_valid": bool(soft_progress_valid[env_id].item()),
+                    "delta_ok": bool(delta_ok[env_id].item()),
+                    "raw_ok": bool(raw_ok[env_id].item()),
+                },
+                "joint_failures": joint_failures,
+            }
+        )
+    payload = {"batch": str(batch), "control_step": int(control_step), "failures": failures}
+    if len(all_ids) > len(selected_ids):
+        payload["omitted_env_ids"] = all_ids[len(selected_ids):]
+    return json.dumps(payload, separators=(",", ":"), sort_keys=True)
+def _runtime_compute_dik_arm_raw(env, robot, controller, source_pos_w, source_quat_w, target_pos_w, target_quat_w, root_pos_w, root_quat_w, arm_active, arm_joint_ids, arm_joint_names, jacobian_columns, body_id, torch_module, fail_on_invalid, *, specs, batch, control_step):
+    """Compute one deterministic root-frame DLS arm command for active rows."""
+    from isaaclab.utils.math import subtract_frame_transforms
+    from gr00t.rl.envs.door.door_open_a2_base import (
+        a2_hold_absolute_target_to_cumulative_action,
+        a2_hold_apply_source_offset_to_jacobian,
+        a2_hold_bound_pose_command_step,
+        a2_hold_progress_aware_joint_limit_masks,
+        a2_hold_rotate_jacobian_to_root,
+    )
+    expected_device = torch_module.device(str(env.device))
+    expected_num_envs = env.num_envs
+    if (tuple(arm_active.shape) != (expected_num_envs,) or arm_active.dtype != torch_module.bool or arm_active.device != expected_device):
+        raise RuntimeError("M23 DIK arm_active must be bool shape (N,) on env.device")
+    source_pos_root, source_quat_root = subtract_frame_transforms(root_pos_w, root_quat_w, source_pos_w, source_quat_w)
+    target_pos_root, target_quat_root = subtract_frame_transforms(root_pos_w, root_quat_w, target_pos_w, target_quat_w)
+    body_pos_root, _ = subtract_frame_transforms(root_pos_w, root_quat_w, robot.data.body_pos_w[:, body_id], robot.data.body_quat_w[:, body_id])
+    jacobian_w = robot.root_physx_view.get_jacobians()[:, body_id, :, jacobian_columns]
+    expected_shape = (expected_num_envs, 6, 6)
+    if (tuple(jacobian_w.shape) != expected_shape or not jacobian_w.is_floating_point() or jacobian_w.device != expected_device or not bool(torch_module.all(torch_module.isfinite(jacobian_w)).item())):
+        raise RuntimeError(f"M23 DIK raw Jacobian must be finite floating shape {expected_shape} on {expected_device}; got {tuple(jacobian_w.shape)}, {jacobian_w.dtype}, {jacobian_w.device}")
+    jacobian_root = a2_hold_rotate_jacobian_to_root(jacobian_w, root_quat_w)
+    jacobian_root = a2_hold_apply_source_offset_to_jacobian(jacobian_root, source_pos_root - body_pos_root)
+    if not bool(torch_module.all(torch_module.isfinite(jacobian_root)).item()):
+        raise RuntimeError("M23 DIK root-frame TCP-offset Jacobian is non-finite")
+    singular_values = torch_module.linalg.svdvals(jacobian_root)
+    condition = singular_values[:, 0] / singular_values[:, -1]
+    ik_valid = torch_module.isfinite(condition) & (condition <= DIK_JACOBIAN_CONDITION_MAX)
+    target_pos = torch_module.where(arm_active[:, None], target_pos_root, source_pos_root)
+    target_quat = torch_module.where(arm_active[:, None], target_quat_root, source_quat_root)
+    bounded_pos, bounded_quat, _, _, _ = a2_hold_bound_pose_command_step(source_pos_root, source_quat_root, target_pos, target_quat, 0.002, 0.02)
+    controller.set_command(torch_module.cat((bounded_pos, bounded_quat), dim=-1))
+    arm_joint_pos = robot.data.joint_pos[:, arm_joint_ids]
+    q_des = controller.compute(source_pos_root, source_quat_root, jacobian_root, arm_joint_pos)
+    if (tuple(q_des.shape) != (expected_num_envs, 6) or q_des.device != expected_device or q_des.dtype != arm_joint_pos.dtype or not bool(torch_module.all(torch_module.isfinite(q_des)).item())):
+        raise RuntimeError("M23 DIK q_des must be finite shape (N,6) on env.device")
+    hard_limits = robot.data.joint_pos_limits[:, arm_joint_ids]
+    soft_limits = robot.data.soft_joint_pos_limits[:, arm_joint_ids]
+    if (tuple(hard_limits.shape) != (expected_num_envs, 6, 2) or tuple(soft_limits.shape) != (expected_num_envs, 6, 2) or hard_limits.device != expected_device or soft_limits.device != expected_device or not bool(torch_module.all(torch_module.isfinite(hard_limits)).item()) or not bool(torch_module.all(torch_module.isfinite(soft_limits)).item())):
+        raise RuntimeError("M23 DIK hard/soft joint limits must be finite shape (N,6,2)")
+    limit_valid, hard_valid, soft_progress_valid = a2_hold_progress_aware_joint_limit_masks(arm_joint_pos, q_des, hard_limits, soft_limits, DIK_JOINT_LIMIT_MARGIN_RAD, DIK_JOINT_LIMIT_MARGIN_RAD, DIK_SOFT_PROGRESS_TOLERANCE)
+    q_default = robot.data.default_joint_pos[:, arm_joint_ids]
+    if q_default.shape[0] == 1:
+        q_default = q_default.repeat(expected_num_envs, 1)
+    delta_state = getattr(env, "_delta_actions", None)
+    if (tuple(q_default.shape) != (expected_num_envs, 6) or q_default.device != expected_device or q_default.dtype != arm_joint_pos.dtype or not bool(torch_module.all(torch_module.isfinite(q_default)).item()) or not torch_module.is_tensor(delta_state) or tuple(delta_state.shape) != (expected_num_envs, 6) or delta_state.device != expected_device or delta_state.dtype != arm_joint_pos.dtype or not bool(torch_module.all(torch_module.isfinite(delta_state)).item())):
+        raise RuntimeError("M23 DIK q_default and _delta_actions must be finite shape (N,6) on env.device")
+    action_scale = float(env.config.robot.control.action_scale)
+    delta_scale = float(env.config.delta_action_scale)
+    delta_clip = float(env.config.delta_action_clip)
+    if action_scale != 0.25 or delta_scale != 0.3 or delta_clip != DELTA_ACTION_CLIP:
+        raise RuntimeError(f"M23 DIK cumulative semantics require scales .25/.3/15; got {action_scale}/{delta_scale}/{delta_clip}")
+    d_des, raw_action = a2_hold_absolute_target_to_cumulative_action(q_des, q_default, delta_state.clone(), robot_action_scale=action_scale, delta_action_scale=delta_scale)
+    delta_ok = torch_module.all(torch_module.abs(d_des) <= delta_clip, dim=-1)
+    raw_ok = torch_module.all(torch_module.abs(raw_action) <= ARM_RAW_ACTION_ABS_MAX, dim=-1)
+    valid = ik_valid & limit_valid & delta_ok & raw_ok
+    invalid = arm_active & ~valid
+    if fail_on_invalid and bool(torch_module.any(invalid).item()):
+        ids = torch_module.nonzero(invalid, as_tuple=False).flatten().detach().cpu().tolist()
+        raise RuntimeError(f"M23 DIK/limit/cumulative validation failed for active envs {ids}; ik={ik_valid[invalid].detach().cpu().tolist()}, hard={hard_valid[invalid].detach().cpu().tolist()}, soft_progress={soft_progress_valid[invalid].detach().cpu().tolist()}, delta={delta_ok[invalid].detach().cpu().tolist()}, raw={raw_ok[invalid].detach().cpu().tolist()}")
+    return torch_module.where(arm_active[:, None], raw_action, torch_module.zeros_like(raw_action)), valid
+
+def _run_batch(checkpoint: Path, batch: str, batch_output: Path, device: str, max_control_steps: int, height: float | None, standoff: float | None = None) -> int:
+    if batch not in ("anchors", "grid"):
+        raise ValueError(f"Unsupported M23 internal batch {batch!r}")
+    if batch == "anchors":
+        specs = build_anchor_specs()
+        bounds = (ANCHOR_HANDLE_HEIGHTS_M[0], ANCHOR_HANDLE_HEIGHTS_M[-1])
+    else:
+        if standoff is None or standoff not in STANDOFFS_M:
+            raise ValueError(f"M23 grid batch requires one exact standoff, got {standoff!r}")
+        if height is None or height not in HANDLE_HEIGHTS_M:
+            raise ValueError(f"M23 grid batch requires one exact handle height, got {height!r}")
+        specs = tuple(
+            ProbeSpec(pitch, pitch_raw_from_physical(pitch), standoff, height)
+            for pitch in PITCH_PHYSICAL_RAD
+        )
+        bounds = (height, height + REPEATED_HEIGHT_INTERVAL_M)
+    trainer, env, torch_module = _build_trainer_runtime(checkpoint, len(specs), bounds, device, batch, standoff)
+    try:
+        set_is_evaluating = getattr(env, "set_is_evaluating", None)
+        if not callable(set_is_evaluating):
+            raise RuntimeError("M23 DoorPregrasp runtime must expose set_is_evaluating()")
+        set_is_evaluating()
+        obs = env.reset_all()
+        _initialize_probe_eval_state(env, device)
+        obs = {key: value.to(device) for key, value in obs.items()}
+        from isaaclab.controllers import DifferentialIKController, DifferentialIKControllerCfg
+        from isaaclab.utils.math import quat_apply_inverse
+        from gr00t.rl.envs.door.door_open_a2_base import DoorPregrasp
+
+        robot = env.simulator.scene.articulations["robot"]
+        if getattr(robot, "is_fixed_base", None) is not False:
+            raise RuntimeError("M23 deterministic DIK requires a floating-base robot")
+        body_ids, body_names = robot.find_bodies("arm_body6_to_gripper", preserve_order=True)
+        if len(body_ids) != 1 or body_names != ["arm_body6_to_gripper"]:
+            raise RuntimeError(f"M23 DIK requires exactly one arm_body6_to_gripper; got {body_ids}, {body_names}")
+        arm_joint_ids, arm_joint_names = robot.find_joints([f"arm_j{i}" for i in range(1, 7)], preserve_order=True)
+        if arm_joint_names != [f"arm_j{i}" for i in range(1, 7)]:
+            raise RuntimeError(f"M23 DIK arm joint order mismatch: {arm_joint_names}")
+        jacobian_columns = [joint_id + 6 for joint_id in arm_joint_ids]
+        if len(jacobian_columns) != 6 or len(set(jacobian_columns)) != 6:
+            raise RuntimeError(f"M23 DIK Jacobian columns must be six floating-base offsets; got {jacobian_columns}")
+        controller = DifferentialIKController(
+            DifferentialIKControllerCfg(command_type="pose", use_relative_mode=False, ik_method="dls", ik_params={"lambda_val": 0.01}),
+            num_envs=len(specs),
+            device=device,
+        )
+        active = torch_module.ones(len(specs), dtype=torch_module.bool, device=device)
+        terminated_mask = torch_module.zeros_like(active, dtype=torch_module.bool)
+        command_converged_mask = torch_module.zeros_like(active, dtype=torch_module.bool)
+        stable_steps = torch_module.zeros(len(specs), dtype=torch_module.long, device=device)
+        base_settled = torch_module.zeros_like(active)
+        base_settle_steps = torch_module.zeros_like(stable_steps)
+        standing_vx_threshold = _runtime_a2_vx_standing_threshold(env, torch_module)
+        frozen_evidence: list[ProbeEvidence | None] = [None] * len(specs)
+        latest_pre_step_evidence: tuple[ProbeEvidence, ...] | None = None
+        for _step in range(max_control_steps):
+            frames = env.simulator.scene.sensors["piper_gripper_handle_frame_transformer"].data
+            if tuple(getattr(frames, "target_frame_names", ())) != ("handle", "pregrasp"):
+                raise RuntimeError("M23 frame transformer target order must be handle,pregrasp")
+            source_pos_w = frames.source_pos_w
+            source_quat_w = frames.source_quat_w
+            target_pos_w = frames.target_pos_w[:, 1, :]
+            target_quat_w = frames.target_quat_w[:, 1, :]
+            root_pos_w = robot.data.root_pos_w
+            root_quat_w = robot.data.root_quat_w
+            frame_tensors = (
+                source_pos_w,
+                source_quat_w,
+                target_pos_w,
+                target_quat_w,
+                root_pos_w,
+                root_quat_w,
+            )
+            expected_shapes = (
+                (len(specs), 3),
+                (len(specs), 4),
+                (len(specs), 3),
+                (len(specs), 4),
+                (len(specs), 3),
+                (len(specs), 4),
+            )
+            if any(
+                not torch_module.is_tensor(value)
+                or tuple(value.shape) != shape
+                or not torch_module.is_floating_point(value)
+                for value, shape in zip(frame_tensors, expected_shapes, strict=True)
+            ):
+                raise RuntimeError("M23 live root/source/pregrasp frames have invalid shape or dtype")
+            if any(
+                value.dtype != source_pos_w.dtype or value.device != source_pos_w.device
+                for value in frame_tensors
+            ) or not bool(
+                torch_module.all(
+                    torch_module.isfinite(
+                        torch_module.cat(tuple(value.reshape(-1) for value in frame_tensors))
+                    )
+                ).item()
+            ):
+                raise RuntimeError("M23 live root/source/pregrasp frames must be finite on one dtype/device")
+            quaternion_norms = torch_module.stack(
+                tuple(
+                    torch_module.linalg.norm(value, dim=-1)
+                    for value in (source_quat_w, target_quat_w, root_quat_w)
+                ),
+                dim=-1,
+            )
+            if not bool(
+                torch_module.all(
+                    torch_module.abs(quaternion_norms - 1.0) <= 1.0e-3
+                ).item()
+            ):
+                raise RuntimeError("M23 live root/source/pregrasp quaternions must be unit quaternions")
+            target_x = frames.target_pos_w[:, 0, 0]
+            requested_standoff = torch_module.tensor(
+                [spec.standoff_m for spec in specs], device=device, dtype=target_x.dtype
+            )
+            pre_step_evidence = _runtime_cell_evidence(
+                env, specs, terminated_mask, command_converged_mask, torch_module
+            )
+            latest_pre_step_evidence = pre_step_evidence
+            live = torch_module.linalg.norm(source_pos_w - target_pos_w, dim=-1) < TCP_ERROR_TOLERANCE_M
+            current_standoff = (
+                torch_module.abs(
+                    (frames.target_pos_w[:, 0, 0] - root_pos_w[:, 0]) - requested_standoff
+                )
+                < STANDOFF_COMMAND_TOLERANCE_M
+            )
+            stable, _, _ = _runtime_base_stability(env, torch_module)
+            stage_buf = _runtime_stage_buf(env, torch_module)
+            base_settled, base_settle_steps = _runtime_update_base_settled(
+                base_settled,
+                base_settle_steps,
+                active,
+                current_standoff,
+                stable,
+                stage_buf,
+                DoorPregrasp.STAGE_PREGRASP,
+                torch_module,
+            )
+            stable_steps = torch_module.where(
+                active & live & current_standoff & stable,
+                stable_steps + 1,
+                torch_module.zeros_like(stable_steps),
+            )
+            converged_now = active & (stable_steps >= COMMAND_CONVERGENCE_STEPS)
+            command_converged_mask |= converged_now
+            _freeze_pre_step_evidence(
+                frozen_evidence,
+                pre_step_evidence,
+                converged_now,
+                torch_module,
+                terminated=False,
+                command_converged=True,
+            )
+            active &= ~converged_now
+            if not bool(torch_module.any(active).item()):
+                break
+
+            current_x = root_pos_w[:, 0]
+            standoff_error_w = (target_x - current_x) - requested_standoff
+            body_standoff_error_x = _runtime_body_frame_standoff_velocity(
+                target_x, current_x, requested_standoff, root_quat_w, torch_module, quat_apply_inverse
+            )
+            physical_vx = _runtime_standoff_velocity(body_standoff_error_x, standoff_error_w, standing_vx_threshold, torch_module)
+            raw_vx = physical_vx / float(trainer.unwrapped_model.a2_base_command_scale)
+            arm_active = active & base_settled
+            arm_raw, arm_valid = _runtime_compute_dik_arm_raw(
+                env, robot, controller, source_pos_w, source_quat_w, target_pos_w, target_quat_w,
+                root_pos_w, root_quat_w, arm_active, arm_joint_ids, jacobian_columns, body_ids[0],
+                torch_module, fail_on_invalid=(batch == "anchors"), specs=specs, batch=batch, control_step=_step
+            )
+            invalid_arm = arm_active & ~arm_valid
+            if batch == "grid":
+                _freeze_pre_step_evidence(
+                    frozen_evidence,
+                    pre_step_evidence,
+                    invalid_arm,
+                    torch_module,
+                    terminated=False,
+                    command_converged=False,
+                )
+            active &= ~invalid_arm
+            if not bool(torch_module.any(active).item()):
+                break
+            high = torch_module.zeros((len(specs), 12), device=device, dtype=target_x.dtype)
+            high[:, 0] = torch_module.where(active, raw_vx, torch_module.zeros_like(raw_vx))
+            high[:, 1:3] = 0.0
+            high[:, 3] = torch_module.tensor([spec.pitch_raw for spec in specs], device=device, dtype=high.dtype)
+            high[:, 4] = 0.0
+            high[:, 5:11] = arm_raw
+            high[:, 11] = 1.0
+            leg = trainer.unwrapped_model._a2_base_actions(obs, high)
+            if tuple(leg.shape) != (len(specs), 12) or not bool(torch_module.all(torch_module.isfinite(leg)).item()):
+                raise RuntimeError("M23 frozen A2_Base action must be finite shape (N,12)")
+            full_action = torch_module.cat((high, leg), dim=-1)
+            active_before_step = active.clone()
+            next_obs, _, dones, step_info = env.step({"actions": full_action})
+            done_now = dones.to(device).bool()
+            if not isinstance(step_info, dict) or "time_outs" not in step_info:
+                raise RuntimeError("M23 env step must expose time_outs for termination evidence")
+            time_outs = step_info["time_outs"]
+            if not torch_module.is_tensor(time_outs) or tuple(time_outs.shape) != (len(specs),):
+                shape = None if not torch_module.is_tensor(time_outs) else tuple(time_outs.shape)
+                raise RuntimeError(f"M23 time_outs evidence must have shape (N,), got {shape}")
+            terminated_now = active_before_step & (done_now | time_outs.to(device).bool())
+            _freeze_pre_step_evidence(
+                frozen_evidence,
+                pre_step_evidence,
+                terminated_now,
+                torch_module,
+                terminated=True,
+                command_converged=False,
+            )
+            terminated_mask |= terminated_now
+            active &= ~terminated_now
+            obs = {key: value.to(device) for key, value in next_obs.items()}
+        if latest_pre_step_evidence is None:
+            raise RuntimeError("M23 probe produced no coherent pre-step evidence")
+        evidence = _merge_frozen_evidence(frozen_evidence, latest_pre_step_evidence)
+        if batch == "anchors":
+            validate_anchor_evidence(evidence)
+        payload = {"batch": batch, "evidence": [asdict(row) for row in evidence]}
+        batch_output.parent.mkdir(parents=True, exist_ok=True)
+        batch_output.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return 0
+    finally:
+        close = getattr(env.simulator, "clear_instance", None)
+        if callable(close):
+            close()
+
+
+def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run the A2_Piper v15 M23 pitch-aware dynamic reachability probe.")
+    parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
+    parser.add_argument("--output-dir", type=Path, default=None)
+    parser.add_argument("--output-stem", default=DEFAULT_OUTPUT_STEM)
+    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--max-control-steps", type=int, default=1000)
+    parser.add_argument("--batch", choices=("anchors", "grid"), default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--batch-output", type=Path, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--batch-height", type=float, default=None, help=argparse.SUPPRESS)
+    parser.add_argument("--batch-standoff", type=float, default=None, help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    if args.max_control_steps <= 0:
+        raise ValueError("--max-control-steps must be positive")
+    if args.batch is None and args.output_dir is None:
+        raise ValueError("--output-dir is required for the parent M23 probe")
+    if args.batch is not None and args.batch_output is None:
+        raise ValueError("--batch-output is required for an internal M23 batch")
+    if args.batch == "grid" and (args.batch_height is None or args.batch_standoff is None):
+        raise ValueError("grid batches require --batch-height and --batch-standoff")
+    if args.batch == "anchors" and (args.batch_height is not None or args.batch_standoff is not None):
+        raise ValueError("anchors batches do not accept --batch-height or --batch-standoff")
+    return args
+
+
+def _launch_child_app(device: str):
+    """Launch the child with the canonical IsaacLab experience and settings."""
+
+    from isaaclab.app import AppLauncher
+
+    launcher_args = {
+        "headless": True,
+        "device": str(device),
+        "fast_shutdown": False,
+    }
+    app_launcher = AppLauncher(launcher_args)
+    return app_launcher, app_launcher.app
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parse_args(argv)
+    if args.batch is not None:
+        try:
+            _app_launcher, simulation_app = _launch_child_app(args.device)
+            batch_output = Path(args.batch_output).expanduser().resolve()
+            result = _run_batch(
+                Path(args.checkpoint).expanduser().resolve(),
+                args.batch,
+                batch_output,
+                args.device,
+                args.max_control_steps,
+                args.batch_height,
+                args.batch_standoff,
+            )
+            if result != 0:
+                raise RuntimeError(f"M23 child {args.batch} batch returned nonzero status {result}")
+            _validate_child_batch_output(args.batch, batch_output)
+        except BaseException:
+            _child_fail_fast()
+        simulation_app.close()
+        return result
+    return _run_parent_batches(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

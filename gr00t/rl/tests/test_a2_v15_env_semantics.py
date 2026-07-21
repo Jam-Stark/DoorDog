@@ -214,12 +214,36 @@ def test_filtered_sensor_runtime_evidence_logs_each_sensor_once():
     assert messages[1][1][2:] == (torch.float32, torch.device("cpu"))
 
 
-def test_body_penalty_is_sum_of_filter_norms_over_twenty_and_clamped():
-    source = _class_method_source("_reward_penalty_a2_door_body_contact")
-    assert "body_total / 20.0" in source
-    assert ".clamp(0.0, 1.0)" in source
-    body_total = torch.tensor([0.0, 10.0, 30.0])
-    torch.testing.assert_close((body_total / 20.0).clamp(0.0, 1.0), torch.tensor([0.0, 0.5, 1.0]))
+def test_body_penalty_dispatch_preserves_v15_linear_and_v16_quadratic_modes():
+    helper = _load_helper("a2_door_body_contact_penalty_component")
+    body_total = torch.tensor([0.0, 10.0, 20.0, 40.0, 80.0])
+    torch.testing.assert_close(
+        helper(body_total, "linear_v15"),
+        torch.tensor([0.0, 0.5, 1.0, 1.0, 1.0]),
+    )
+    torch.testing.assert_close(
+        helper(body_total, "quadratic_v16"),
+        torch.tensor([0.0, 0.0625, 0.25, 1.0, 1.0]),
+    )
+    with pytest.raises(ValueError):
+        helper(body_total, "quadratic")
+
+
+def test_posture_command_l1_clamps_raw_to_unit_domain():
+    source = _class_method_source("_reward_penalty_a2_posture_command_l1")
+    assert "raw_base_command[:, 3:5].clamp(-1.0, 1.0)" in source
+    raw = torch.tensor(
+        [
+            [0.0, 0.0, 0.0, 0.4, -0.4],
+            [0.0, 0.0, 0.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0, 2.0, -3.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
+    )
+    torch.testing.assert_close(
+        torch.abs(raw[:, 3:5].clamp(-1.0, 1.0)).sum(dim=-1),
+        torch.tensor([0.8, 2.0, 2.0, 0.0]),
+    )
 
 
 def test_generic_panel_scale_and_binary_dedup_limitation_are_explicit():

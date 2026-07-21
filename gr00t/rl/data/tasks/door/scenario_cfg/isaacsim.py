@@ -87,6 +87,53 @@ def _build_eval_door_handle_height_grid(
     return grid
 
 
+def _validate_door_weight_range(value: Sequence[Real]) -> tuple[float, float]:
+    """Validate an explicit per-version door-weight range before spawning."""
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise TypeError(
+            "a2_door_weight_range must be a two-bound numeric sequence"
+        )
+    if len(value) != 2:
+        raise ValueError("a2_door_weight_range must contain exactly two bounds")
+    if any(isinstance(bound, bool) or not isinstance(bound, Real) for bound in value):
+        raise TypeError("a2_door_weight_range bounds must be real numbers")
+    low, high = (float(bound) for bound in value)
+    if not math.isfinite(low) or not math.isfinite(high):
+        raise ValueError("a2_door_weight_range bounds must be finite")
+    if low <= 0.0 or high <= 0.0 or low >= high:
+        raise ValueError(
+            "a2_door_weight_range requires positive bounds with low < high"
+        )
+    return low, high
+
+
+def _apply_door_weight_range(
+    task_obj_cfg_dict: dict, door_weight_range: Sequence[Real]
+) -> dict:
+    """Apply a validated mass range through high-level immutable config replacement."""
+    weight_range = _validate_door_weight_range(door_weight_range)
+    if not isinstance(task_obj_cfg_dict, dict) or "door" not in task_obj_cfg_dict:
+        raise ValueError("task-object configuration must contain the 'door' object")
+    door_cfg = task_obj_cfg_dict["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("door spawn configuration must be MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("door MultiAssetSpawnerCfg.assets_cfg must be non-empty")
+    variants = []
+    for index, asset_cfg in enumerate(spawn_cfg.assets_cfg):
+        if not isinstance(asset_cfg, DoorSpawnerCfg):
+            raise TypeError(
+                f"door assets_cfg[{index}] must be DoorSpawnerCfg, "
+                f"got {type(asset_cfg).__name__}"
+            )
+        variants.append(asset_cfg.replace(door_weight=weight_range))
+    ordered_spawn_cfg = spawn_cfg.replace(assets_cfg=variants)
+    result = dict(task_obj_cfg_dict)
+    result["door"] = door_cfg.replace(spawn=ordered_spawn_cfg)
+    return result
+
+
 def _validate_eval_door_handle_height_task_obj_cfg(
     task_obj_cfg_dict: dict, expected_heights: Sequence[Real]
 ) -> dict:
@@ -141,17 +188,21 @@ def _validate_eval_door_handle_height_task_obj_cfg(
 
 
 def get_TaskObjCfgDict_for_eval_door_handle_height_linspace(
-    num_envs: int, bounds: Sequence[Real]
+    num_envs: int,
+    bounds: Sequence[Real],
+    task_obj_cfg_dict: dict | None = None,
 ) -> dict:
     """Return an ordered per-environment door config for an explicit eval height grid."""
-    if not isinstance(TaskObjCfgDict, dict):
+    base_task_obj_cfg_dict = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base_task_obj_cfg_dict, dict):
         raise TypeError(
-            f"TaskObjCfgDict must be a dict, got {type(TaskObjCfgDict).__name__}"
+            "TaskObjCfgDict must be a dict, "
+            f"got {type(base_task_obj_cfg_dict).__name__}"
         )
-    if "door" not in TaskObjCfgDict:
+    if "door" not in base_task_obj_cfg_dict:
         raise ValueError("TaskObjCfgDict must contain the 'door' object")
 
-    door_cfg = TaskObjCfgDict["door"]
+    door_cfg = base_task_obj_cfg_dict["door"]
     spawn_cfg = door_cfg.spawn
     if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
         raise TypeError("base door spawn configuration must be MultiAssetSpawnerCfg")
@@ -173,9 +224,25 @@ def get_TaskObjCfgDict_for_eval_door_handle_height_linspace(
         )
 
     ordered_spawn_cfg = spawn_cfg.replace(assets_cfg=variants, random_choice=False)
-    result = dict(TaskObjCfgDict)
+    result = dict(base_task_obj_cfg_dict)
     result["door"] = door_cfg.replace(spawn=ordered_spawn_cfg)
     return _validate_eval_door_handle_height_task_obj_cfg(result, heights)
+
+
+def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
+    """Compose explicit version selectors with the deterministic eval height hook."""
+    if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
+        raise TypeError("env_config must be a mapping-like configuration")
+    result = TaskObjCfgDict
+    if "a2_door_weight_range" in env_config:
+        result = _apply_door_weight_range(result, env_config["a2_door_weight_range"])
+    if "a2_eval_door_handle_height_linspace" in env_config:
+        result = get_TaskObjCfgDict_for_eval_door_handle_height_linspace(
+            num_envs,
+            env_config["a2_eval_door_handle_height_linspace"],
+            task_obj_cfg_dict=result,
+        )
+    return result
 door_spawner_cfg = DoorSpawnerCfg(
     func=spawn_door,
     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -190,6 +257,7 @@ door_spawner_cfg = DoorSpawnerCfg(
     door_open_lr=["right"],
     door_open_io=["out"],
     door_handle_tblr=(1.10, 0.80, 0.08, 0.15),
+    door_weight=(80.0, 120.0),
     hinge_drive_max_force_range=(2.5, 12.0),
     handle_drive_max_force_range=(1.0, 3.0),
     randomize_material=True,

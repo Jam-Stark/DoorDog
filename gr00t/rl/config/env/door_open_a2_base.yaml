@@ -122,6 +122,10 @@ env:
     a2_stage3_unlatch_handle_position_norm: 0.6
     a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
     a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
+    # Corridor delivery is an explicit v16-only selector; historical paths stay at 0.1.
+    a2_corridor_enabled: false
+    a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor: 0.1
+    a2_door_body_contact_penalty_mode: linear_v15
     a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
     a2_stage3_stage4_coasting_velocity_threshold: 0.1
     a2_stage3_handle_hard_limit_position: 0.785398

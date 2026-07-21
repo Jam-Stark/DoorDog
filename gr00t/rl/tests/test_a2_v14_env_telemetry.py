@@ -181,8 +181,13 @@ def test_v14_per_env_record_builder_requires_complete_unique_first_episodes():
             "door_hinge_drive_max_force": 4.0,
             "door_handle_drive_max_force": 2.0,
             "door_handle_height": 0.95,
+            "door_weight": 120.0,
             "crossing_while_holding": True,
             "hinge_at_crossing": 1.1,
+            "hinge_at_release": 1.2,
+            "root_x_at_release": 0.4,
+            "post_release_body_contact": False,
+            "post_release_body_force_max": 0.0,
             "stage0_to1_staging_standoff": 0.6,
             "stage0_actual_root_height": 0.57,
             "stage1_actual_root_height": 0.61,
@@ -198,6 +203,11 @@ def test_v14_per_env_record_builder_requires_complete_unique_first_episodes():
     assert records[0]["seed"] == 2
     assert records[0]["goal_reached"] is True
     assert records[0]["stage0_actual_root_height"] == 0.57
+    assert records[0]["door_weight"] == 120.0
+    assert records[0]["hinge_at_release"] == 1.2
+    assert records[0]["root_x_at_release"] == 0.4
+    assert records[0]["post_release_body_contact"] is False
+    assert records[0]["post_release_body_force_max"] == 0.0
 
     invalid_goal = dict(summary)
     invalid_goal["episode_goal_reached"] = ["false", False]

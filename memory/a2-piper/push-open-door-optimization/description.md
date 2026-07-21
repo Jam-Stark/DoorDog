@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-21 16:27 HKT
+last_updated: 2026-07-21 22:56 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -22,6 +22,9 @@ read_when:
 完整的 `replay_v2`、`base_v0→v11` 因果时间线、诊断 findings、artifact map 与可复现命令见 [`scriptsFORhuman/v0_to_v11/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md`](../../../scriptsFORhuman/v0_to_v11/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md)。Memory 只保存可复用结论，不复制 raw trace 或长日志。
 
 ## Current State
+
+- 2026-07-21 22:56 HKT - base_v16 M29–M32 delivery candidate `a10d69b84523ae9745ca11dc2c5e3114aa088e426b9612b5ae87c8bb7cf160a6`通过CODE_QUALITY、IsaacLab static semantics与CPU/no-sim QA；formal training NOT RUN。M29为raw pitch/roll clamp `[-1,1]` 后L1、全stage、权重`-0.15`；M30通过required mode selector隔离历史`linear_v15=clamp(F/20)`与v16 `quadratic_v16=square(clamp(F/40))`（权重`-2.0`）；M31通过required bool selector隔离历史corridor关闭/速度norm`0.1`与v16 corridor OR-latch、norm`0.4`、door-wide reward、pre-crossing scoped redlines及release/post-release telemetry；M32保留shared scenario历史`80–120kg`，仅`base_v16_main`经high-level task-object hook显式选择`80–160kg`，并可与ordered handle-height grid组合。schema-v2 `scriptsFORhuman/v16/a2_piper_v16_bucket_report.py`严格输出M32 mass buckets与完整M33 metrics：`|pitch/roll|>0.1`、crossing分母固定pooled48/canonical16、trace/result `door_weight` exact match，partial/missing/camelCase/nonfinite evidence fail-fast。验证为targeted `50 passed`、11-file in-memory compile、v14/v15/v16+A/B real Hydra compose、strict reporter CLI与v15 step2500 SHA-256 `3b55e3e2fdfabfaa1ea5cdc8933a6488c5b712634a48ab1c6d6e73f14d4a2de5` PASS。两份既有64-env×50配置目录保留resolved config、setup logs与step50-named checkpoints，但没有独立terminal exit/status或exact finished marker；因此smoke natural exit、实现修复后的live runtime、mass histogram、formal policy quality及real 48-record M33均UNVERIFIED/NOT RUN，不沿用原会话的更强PASS措辞。M19 release gate语义与`root_x>0` crossing兼容口径保持不变。
+- 2026-07-21 21:25 HKT - v16 立论定量事实（v15 ckpt2500 × 3 seed × 48 门诊断）:pitch/roll 双指令 ~80% 帧钉 +0.4 限幅（低桶 79.0%/高桶 81.4%，与把手高度无关→免费动作经济学）;40/48 env 松手后 body 接触、力 p50/p90 37.5/451N;release gate hinge p10/50/90=1.07/1.13/1.25、hinge_max 1.75/2.14/2.62（身体扛出）；松手 root_x p50 0.38 已达运动学天花板（arm 前置+把手弧线随开角远离，上限 ~0.3–0.5)——"更晚松手"无空间、"送门更开再松手"有空间。设计规则沉淀：行为约束必须分相表述，v13 反甩门规则全程一刀切误伤松手段的定向猛推（期望行为）,v16 起红线 pre-crossing scoped;M29 是 force-feasible 主线"最小 base 干预 tie-breaker"的第一实例，v15 的 80% 饱和即天然 baseline 对照。
 
 - 2026-07-21 16:27 HKT - formal `base_v15_main-20260721_003001`已完成seed0、4×1024 env/rank、3000-batch training；`model_step_003000.pt`为global/max `3000/3000`、267 tensors finite、SHA-256 `a6785cf68f3f7138a38bea63f60c70ddd007fa5a369ddf093856fd5debd626c3`。training log到ETA0并保存endpoint，但launcher shell exit code未独立记录，故不称natural exit。plan-required canonical midpoint eval均完成而strict status非全PASS：step500 natural exit0为14/16、light6/7且light-no-worse FAIL（env0/1 stage0，无stage2 trace）；step1000 natural exit0为15/16、中4/5/heavy-stage4 4/4且numeric gates达标（env0 stage1，无stage2 trace）；step2000 log为Finished但exit未独立捕获、15/16、heavy3/4达到至少半数（env11 stage0、standoff null、无stage2 trace）。heavy在step1000/2000均非stage3→4全卡，j8约12.17%/10.79%未钉死，M26 high-water保持false。
 - 2026-07-21 16:27 HKT - release按红线选择step2500而非末点step3000：step2500 SHA-256 `3b55e3e2fdfabfaa1ea5cdc8933a6488c5b712634a48ab1c6d6e73f14d4a2de5`，两者canonical均16/16 goal/complete/crossing；step2500 bilateral `99.923940%` vs `99.007009%`、coasting `0` vs `.973520%`、hinge p95 `.300512` vs `.307862`、over-force `.076060%` vs `.428349%`，尽管reward mean由`221.259940→223.957834`上升亦不覆盖红线退化。它是本轮首个strict all-env/topology candidate。
@@ -83,8 +86,8 @@ read_when:
 | Item | Value |
 |---|---|
 | Current behavior / warm-start reference | `base_v15_main`从selected v14 step2000 `policy_only` warm-start；v14 step2000是historical selected endpoint/render checkpoint，`base_v13_1_main` step3000仅为更早historical reference |
-| Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v15_main.yaml` |
-| v15 warm-start | selected v14 step2000 `policy_only`; Option A `12D actor / 5D base command`，无spring observation |
+| Current training-ready config | `gr00t/rl/config/ablation/wbmanip/base_v16_main.yaml`（uncommitted，待用户复核后启动） |
+| v16 warm-start | selected v15 step2500 `policy_only`（SHA-256 `3b55e3e2...4a2de5`）；Option A `12D actor / 5D base command`，无spring observation |
 | Planned training seed | `0` |
 | TCP source local-Z | `0.085m` |
 | v15 gripper Kp/Kd | `800/25` |
@@ -100,6 +103,8 @@ read_when:
 v15 round 2的selected release是`base_v15_main` step2500；它从v14 step2000 `policy_only` warm-start，保持Option A `12D actor / 5D base command`且无spring observation。formal training与planned midpoint/endpoint eval已完成；exact saved runtime config仍是训练/eval解释的source of truth，canonical seed0与supplementary seed1/2均不能拆成单因素因果或statistical proof。
 
 ## Current Experiment
+
+`base_v16_main` 已完成 training-ready implementation（M29–M32，见 Current State 首条）并通过两轮 64×50 smoke；formal v16_main（4 ranks×1024 env/rank、global batch4096、2500 batches、save250）尚未启动，等待用户对 uncommitted candidate 的复核与启动指令。判读口径以 `scriptsFORhuman/a2_piper_base_v16_optimization_plan_20260721.md` §2-M33 为准；endpoint 报告用 `scriptsFORhuman/v16/a2_piper_v16_bucket_report.py`（mass 三桶）。
 
 `base_v14_main-20260719_103629`是已完成的formal v14 experiment；M16–M20、M18 static reachability boundary、step2000 selected endpoint/render，以及M20 seed1/2 supplementary和combined 48-door report均已验证到批准范围。seed0仍为canonical；supplementary multi-seed evidence不构成statistical proof。v14 formal launcher natural-exit仍未在本轮重新核验。
 

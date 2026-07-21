@@ -113,6 +113,10 @@ _A2_EVAL_OPTIONAL_RATIO_SPECS = {
         "a2_stage3_stage4_coasting_numerator_frac",
         "a2_stage3_stage4_coasting_denominator_frac"
     ),
+    "a2_stage3_stage4_over_force_frac": (
+        "a2_stage3_stage4_over_force_numerator_frac",
+        "a2_stage3_stage4_over_force_denominator_frac",
+    ),
     "a2_stage3_handle_hard_limit_frac": (
         "a2_stage3_handle_hard_limit_numerator_frac",
         "a2_stage3_handle_hard_limit_denominator_frac"
@@ -142,6 +146,30 @@ _A2_GLOBAL_ENV_QUANTILE_SPECS = {
         "_a2_hinge_at_crossing_sample_mask",
         "a2_hinge_at_crossing_p50",
         "a2_hinge_at_crossing_p95",
+    ),
+    "a2_stage3_stage4_hinge_velocity": (
+        "_a2_stage3_stage4_hinge_velocity_samples",
+        "_a2_stage3_stage4_hinge_velocity_sample_mask",
+        "a2_stage3_stage4_hinge_velocity_p50",
+        "a2_stage3_stage4_hinge_velocity_p95",
+    ),
+    "a2_hinge_at_release": (
+        "_a2_hinge_at_release_samples",
+        "_a2_hinge_at_release_sample_mask",
+        "a2_hinge_at_release_p50",
+        "a2_hinge_at_release_p95",
+    ),
+    "a2_root_x_at_release": (
+        "_a2_root_x_at_release_samples",
+        "_a2_root_x_at_release_sample_mask",
+        "a2_root_x_at_release_p50",
+        "a2_root_x_at_release_p95",
+    ),
+    "a2_post_release_body_force_max": (
+        "_a2_post_release_body_force_max_samples",
+        "_a2_post_release_body_force_max_sample_mask",
+        "a2_post_release_body_force_max_p50",
+        "a2_post_release_body_force_max_p95",
     ),
     "a2_stage0_to1_staging_standoff": (
         "_a2_stage0_to1_staging_standoff_samples",
@@ -477,10 +505,15 @@ def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs):
         "door_hinge_drive_max_force",
         "door_handle_drive_max_force",
         "door_handle_height",
+        "door_weight",
     )
     telemetry_fields = (
         "crossing_while_holding",
         "hinge_at_crossing",
+        "hinge_at_release",
+        "root_x_at_release",
+        "post_release_body_contact",
+        "post_release_body_force_max",
         "stage0_to1_staging_standoff",
         "stage0_actual_root_height",
         "stage1_actual_root_height",

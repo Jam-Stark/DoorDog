@@ -56,6 +56,7 @@ rewards:
       # v13_A enables these explicitly; zero defaults preserve prior runs.
       a2_stage3_unlatch_hold: 0.0
       a2_stage3_stage4_hold_and_drive: 0.0
+      a2_corridor_door_wide: 0.0
       a2_stage3_stage4_keep_close_command: 0.5
       penalty_a2_stage3_stage4_open_command: -1.0
       a2_stage3_stage4_both_contact: 0.5
@@ -64,6 +65,7 @@ rewards:
       a2_stage3_stage4_contact_stability: 0.5
       penalty_a2_stage3_stage4_over_force: -1.0
       penalty_a2_door_body_contact: 0.0
+      penalty_a2_posture_command_l1: 0.0
 
       # swing
       dont_push_door_handle: 3.0

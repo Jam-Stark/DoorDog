@@ -190,8 +190,23 @@ def parse_camera_pose(pos, rot_wxyz):
 
 
 def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
-    """Select the unchanged task config or the explicit eval-only grid hook."""
+    """Select version selectors and compose them with the explicit eval height hook."""
     eval_key = "a2_eval_door_handle_height_linspace"
+    weight_key = "a2_door_weight_range"
+    if weight_key in env_config:
+        hook_name = "get_TaskObjCfgDict_for_door_config"
+        hook = getattr(task_module, hook_name, None)
+        if not callable(hook):
+            raise TypeError(
+                f"task module must expose callable {hook_name!r} for door selectors"
+            )
+        task_obj_cfg_dict = hook(num_envs, env_config)
+        if not isinstance(task_obj_cfg_dict, dict):
+            raise TypeError(
+                "door selector task-object configuration hook must return a dict, "
+                f"got {type(task_obj_cfg_dict).__name__}"
+            )
+        return task_obj_cfg_dict
     if eval_key not in env_config:
         return task_module.TaskObjCfgDict
 

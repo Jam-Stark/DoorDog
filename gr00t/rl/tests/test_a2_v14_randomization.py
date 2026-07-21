@@ -108,6 +108,7 @@ def test_v14_scenario_is_fixed_right_out_with_explicit_ranges():
     assert 'door_open_lr=["right"]' in source
     assert 'door_open_io=["out"]' in source
     assert "door_handle_tblr=(1.10, 0.80, 0.08, 0.15)" in source
+    assert "door_weight=(80.0, 120.0)" in source
     assert "hinge_drive_max_force_range=(2.5, 12.0)" in source
     assert "handle_drive_max_force_range=(1.0, 3.0)" in source
 
@@ -275,15 +276,18 @@ def test_eval_hook_builds_ordered_high_level_variants_and_validates_shape():
     original_spawn = _FakeMultiAssetSpawnerCfg([base] * 4, random_choice=False)
     task = {"door": _FakeDoorCfg(original_spawn)}
     helpers["TaskObjCfgDict"] = task
+    supplied_sentinel = object()
+    supplied_task = {"door": task["door"], "sentinel": supplied_sentinel}
     build_config = helpers["get_TaskObjCfgDict_for_eval_door_handle_height_linspace"]
-    result = build_config(16, [0.80, 1.05])
+    result = build_config(16, [0.80, 1.05], task_obj_cfg_dict=supplied_task)
     ordered_spawn = result["door"].spawn
     heights = [asset.rand_door_handle_height for asset in ordered_spawn.assets_cfg]
     assert len(ordered_spawn.assets_cfg) == 16
     np.testing.assert_array_equal(heights, np.linspace(0.80, 1.05, 16))
     assert ordered_spawn.random_choice is False
     assert all(isinstance(asset, _FakeDoorSpawnerCfg) for asset in ordered_spawn.assets_cfg)
-    assert result is not task
+    assert result is not supplied_task
+    assert result["sentinel"] is supplied_sentinel
     assert original_spawn.assets_cfg[0].rand_door_handle_height is None
 
     validate = helpers["_validate_eval_door_handle_height_task_obj_cfg"]

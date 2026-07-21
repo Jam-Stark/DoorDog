@@ -3,7 +3,7 @@
 日期:2026-07-17(HKT)
 作者:base_v13 结果诊断 session(Claude)
 交接对象:实施 session(负责 code/config 修改、训练启动、memory 记录)
-前置文档:`scriptsFORhuman/a2_piper_base_v13_optimization_plan_20260716.md`(v13 设计与 M1–M10;本文延续其编号,新增 M11–M15)
+前置文档:`scriptsFORhuman/v13/a2_piper_base_v13_optimization_plan_20260716.md`(v13 设计与 M1–M10;本文延续其编号,新增 M11–M15)
 用户已批准本方案(2026-07-17)。
 
 ---
@@ -184,7 +184,7 @@ a2_stage45_door_frame_contact_scale: 0.2   # stage0-3 维持全额(防 v12_D 式
 # (hold bundle, grasp_mild, open-command penalty, hinge pos-term), restores full
 # target_root_distance in stage4, softens door-frame contact penalty in stage4/5.
 # Warm-start from v13_A step3000. Evidence & design:
-# scriptsFORhuman/a2_piper_base_v13_1_optimization_plan_20260717.md
+# scriptsFORhuman/v13_1/a2_piper_base_v13_1_optimization_plan_20260717.md
 
 checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v13_A_main-20260716_225345/model_step_003000.pt
 checkpoint_load_mode: policy_only

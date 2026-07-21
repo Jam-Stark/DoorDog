@@ -3,7 +3,7 @@
 日期:2026-07-20(HKT)
 作者:base_v14 结果诊断 session(Claude)
 交接对象:实施 session(负责 code/config 修改、M18v2 探针、训练启动、memory 记录)
-前置文档:`a2_piper_base_v13_optimization_plan_20260716.md`(M1–M10)、`a2_piper_base_v13_1_optimization_plan_20260717.md`(M11–M15)、`a2_piper_base_v14_randomization_plan_20260718.md`(M16–M21);本文延续编号 **M22–M28**。
+前置文档:`scriptsFORhuman/v13/a2_piper_base_v13_optimization_plan_20260716.md`(M1–M10)、`scriptsFORhuman/v13_1/a2_piper_base_v13_1_optimization_plan_20260717.md`(M11–M15)、`scriptsFORhuman/v14/a2_piper_base_v14_randomization_plan_20260718.md`(M16–M21);本文延续编号 **M22–M28**。
 用户已批准(2026-07-20):round 2 范围 = 本文全部;**门重量轴不加宽**(理由见 §1.5,决策树留保险分支);door_open_lr 左右镜像移至 round 3;in/out 拉门与 mass 冲击轴留 future。
 
 ---
@@ -81,7 +81,7 @@ v14 已在 0.80–1.05m 高度网格 × 2.5–7.0 N·m 弹簧上 16/16 goal(step
 - **方法改动**:不再静态摆放 root 于不可指令的高度;用真实 homie 栈(底层策略维持站姿)下发 **pitch 指令 {0, +0.2, +0.4 rad}** × 标距 {0.45–0.85, 步长 0.05} × handle 高度 {0.95, 1.00, 1.05, 1.10},arm 驱动至 pregrasp 后判定(判据不变:TCP 误差<0.03m、无自碰、关节限位余量>0.1 rad,新增:base 未失稳/未跌落)。
 - **sanity 锚定(必做)**:0.95/1.00/1.05m 在 v14 实测可行的站距上必须判可行,否则探针本身失真,先修探针。
 - **产出**:band 与 1.10 放行判定。若 1.10 在 pitch=0.4 下仍不可行 → 高度封顶 1.05 并记录"含 pitch 的臂展天花板"(硬件事实)。
-- 产物 co-locate `scriptsFORhuman/a2_piper_v15_reachability_<date>/`,格式同 v14(CSV+JSON+MD)。
+- 产物 co-locate `scriptsFORhuman/v15/a2_piper_v15_reachability_<date>/`,格式同 v14(CSV+JSON+MD)。
 
 ### M24|staging band 放宽 + 高度重试【必做】
 
@@ -195,7 +195,7 @@ hinge_drive_max_force_range=(2.5, 12.0)   # scenario_cfg;handle 1–3 N·m、mas
 # v15 round-2: door-body contact economics (priced body-panel contact, arm exempt)
 # + strong-spring body-assist (hinge 2.5-12 N*m, code-side) + staging band widen
 # [0.50,0.80] + handle height retry 1.10 (gated on M23 probe). Warm-start v14 step2000.
-# Evidence & design: scriptsFORhuman/a2_piper_base_v15_optimization_plan_20260720.md
+# Evidence & design: scriptsFORhuman/v15/a2_piper_base_v15_optimization_plan_20260720.md
 
 checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v14_main-20260719_103629/model_step_002000.pt
 checkpoint_load_mode: policy_only

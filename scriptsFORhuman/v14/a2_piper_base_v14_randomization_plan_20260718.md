@@ -3,7 +3,7 @@
 日期:2026-07-18(HKT)
 作者:base_v13.1 结果诊断 session(Claude)
 交接对象:实施 session(负责 code/config 修改、可达性图、训练启动、memory 记录)
-前置文档:`a2_piper_base_v13_optimization_plan_20260716.md`(M1–M10)、`a2_piper_base_v13_1_optimization_plan_20260717.md`(M11–M15);本文延续编号 **M16–M21**。
+前置文档:`scriptsFORhuman/v13/a2_piper_base_v13_optimization_plan_20260716.md`(M1–M10)、`scriptsFORhuman/v13_1/a2_piper_base_v13_1_optimization_plan_20260717.md`(M11–M15);本文延续编号 **M16–M21**。
 用户已批准(2026-07-18):round 1 范围 + handle 高度 0.80–1.10m + "staging 点改带 + 可达性图先行"的站位设计。
 
 ---
@@ -121,7 +121,7 @@ handle 高度 {0.80, 0.85, ..., 1.10} × 标距 {0.40, 0.45, ..., 0.85} × body 
 ```
 
 **产出与决策规则**:
-- CSV + 汇总表存 `scriptsFORhuman/`(或 eval 产物目录),记 memory;
+- CSV + 汇总表存 `scriptsFORhuman/v14/`(或 eval 产物目录),记 memory;
 - `[x_min, x_max]` = 在**全部目标高度**上(允许选最优 body height)可行的最大连续标距带,回填 M17 config;
 - **1.10m 放行判定**:若 1.10 在任何(标距×body height)组合下不可行 → round 1 高度封顶到最高可行值,并在 memory 里记录"臂展天花板"(这是硬件事实,不是训练失败);
 - 记录高 handle 是否必须 body height ≥0.7(决定 §3.1 是否盯 height 指令使用率)。
@@ -213,7 +213,7 @@ checkpoint:`logs_rl/a2_piper_full_stage_a2_base/base_v13_1_main-20260717_202500/
 # v14 round-1 door randomization: rebound dynamics (hinge 2.5-7.0 N*m, handle 1-3 N*m,
 # code-side in scenario_cfg/door.py) + handle height 0.80-1.10m + stage0 staging band
 # (learned stance) + M11 dead-zone fix. Warm-start from v13_1_main step3000.
-# Evidence & design: scriptsFORhuman/a2_piper_base_v14_randomization_plan_20260718.md
+# Evidence & design: scriptsFORhuman/v14/a2_piper_base_v14_randomization_plan_20260718.md
 
 checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v13_1_main-20260717_202500/model_step_003000.pt
 checkpoint_load_mode: policy_only

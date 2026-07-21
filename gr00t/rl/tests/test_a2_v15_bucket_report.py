@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scriptsFORhuman.a2_piper_v15_bucket_report import (
+from scriptsFORhuman.v15.a2_piper_v15_bucket_report import (
     build_report,
     height_bucket,
     hinge_bucket,

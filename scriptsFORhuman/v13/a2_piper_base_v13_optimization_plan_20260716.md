@@ -3,7 +3,7 @@
 日期:2026-07-16(HKT)
 作者:base_v12 结果探索 session(Claude)
 交接对象:实施 session(负责 code/config 修改、训练启动、memory 记录)
-读者前提:已读过 `scriptsFORhuman/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md` 或熟悉 v8–v12 历史。
+读者前提:已读过 `scriptsFORhuman/v0_to_v11/a2_piper_push_open_door_optimization_base_v0_to_v9_20260713.md` 或熟悉 v8–v12 历史。
 
 ---
 
@@ -337,7 +337,7 @@ door_opened & (self._a2_stage3_stage4_both_contact_streak >= K)
 
 ## 附录 A|诊断数据(T1–T4,均已跑)
 
-> 生成脚本:`scriptsFORhuman/a2_piper_base_v13_diagnostics_20260716.py`(用法:`python3 <脚本> all`,T2 需追加 trace 路径参数;逻辑=按 first_episode 分 env、以 control-step current-frame 重建 squeeze 三条件与 streak)。
+> 生成脚本:`scriptsFORhuman/v13/a2_piper_base_v13_diagnostics_20260716.py`(用法:`python3 <脚本> all`,T2 需追加 trace 路径参数;逻辑=按 first_episode 分 env、以 control-step current-frame 重建 squeeze 三条件与 streak)。
 
 ### T1|v12_A step3000 stage3 timeline(已跑)
 
@@ -408,7 +408,7 @@ K=8: 16/16 通过,首过步 min/med/max = 18/23/31
 
 # v13_A main line: debounced gate + saturated-effort fingers + stage3 base unlock
 # + policy_only warm-start from v12_C step3000 + grasp-gated unlatch/drive rewards.
-# Evidence & design: scriptsFORhuman/a2_piper_base_v13_optimization_plan_20260716.md
+# Evidence & design: scriptsFORhuman/v13/a2_piper_base_v13_optimization_plan_20260716.md
 
 checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v12_C_v10A_scratch_stability1-20260716_004404/model_step_003000.pt
 checkpoint_load_mode: policy_only   # 验证 loader 接受的字符串

@@ -1,7 +1,7 @@
 # A2+Piper base_v15 终点评估与 release 交付报告
 
 日期：2026-07-21 HKT
-依据：`a2_piper_base_v15_optimization_plan_20260720.md`、`a2_piper_v15_m23_conclusion.md`
+依据：`a2_piper_base_v15_optimization_plan_20260720.md`、`a2_piper_v15_reachability_20260720/a2_piper_v15_m23_conclusion.md`
 结论：**release 选择 step2500，不选择训练末点 step3000；M26 high-water 保持 `false`。**
 
 ## 1. 训练与 checkpoint provenance

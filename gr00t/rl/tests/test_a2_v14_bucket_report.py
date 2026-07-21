@@ -12,7 +12,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[3]
-SCRIPT_PATH = ROOT / "scriptsFORhuman/a2_piper_v14_bucket_report.py"
+SCRIPT_PATH = ROOT / "scriptsFORhuman/v14/a2_piper_v14_bucket_report.py"
 SPEC = importlib.util.spec_from_file_location("a2_piper_v14_bucket_report", SCRIPT_PATH)
 assert SPEC is not None and SPEC.loader is not None
 MODULE = importlib.util.module_from_spec(SPEC)

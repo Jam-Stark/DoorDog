@@ -35,6 +35,37 @@ A2_ROLLOUT_ACTION_DIM = 24
 A2_TEACHER_OBS_DIM = 133
 A2_CRITIC_OBS_DIM = 138
 A2_BASE_OBS_DIM = 1620
+_A2_TEACHER_IDENTITY_EMITTED = False
+_A2_ACTION_CHAIN_EMITTED = False
+
+
+def _emit_teacher_identity(checkpoint_path):
+    global _A2_TEACHER_IDENTITY_EMITTED
+    if _A2_TEACHER_IDENTITY_EMITTED:
+        return
+    checkpoint = Path(checkpoint_path).resolve(strict=True)
+    print(
+        "[A2_TEACHER_IDENTITY] "
+        f"checkpoint={checkpoint} obs_dim={A2_TEACHER_OBS_DIM} action_dim={A2_STUDENT_ACTION_DIM}",
+        flush=True,
+    )
+    _A2_TEACHER_IDENTITY_EMITTED = True
+
+
+def _emit_action_chain_identity(teacher_rollout_ratio):
+    global _A2_ACTION_CHAIN_EMITTED
+    if _A2_ACTION_CHAIN_EMITTED:
+        return
+    if not isinstance(teacher_rollout_ratio, (int, float)) or not np.isfinite(teacher_rollout_ratio):
+        raise ValueError(f"A2 action-chain teacher rollout ratio must be finite; got {teacher_rollout_ratio!r}")
+    print(
+        "[A2_ACTION_CHAIN] "
+        f"high_level_dim={A2_STUDENT_ACTION_DIM} "
+        f"a2_base_dim={A2_BASE_ACTION_DIM} rollout_dim={A2_ROLLOUT_ACTION_DIM} "
+        f"teacher_rollout_ratio={teacher_rollout_ratio:.12g}",
+        flush=True,
+    )
+    _A2_ACTION_CHAIN_EMITTED = True
 
 
 def _validate_floating_tensor(name, value, last_dim):
@@ -65,6 +96,55 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
 
     _tag_names = ["trl", "a2_piper_distill"]
 
+    def __init__(
+        self,
+        args,
+        config,
+        env,
+        model,
+        ref_model=None,
+        reward_model=None,
+        processing_class=None,
+        value_model=None,
+        data_collator=None,
+        train_dataset=None,
+        eval_dataset=None,
+        log_dir=None,
+        optimizers=(None, None),
+        callbacks=None,
+        peft_config=None,
+        use_ref_model=False,
+        checkpoint=None,
+        local_seed=None,
+        schedule_dict=None,
+        accelerator=None,
+        a2_gpu_identity=None,
+    ) -> None:
+        self._a2_rgb_frame_validated = False
+        self.a2_gpu_identity = a2_gpu_identity
+        super().__init__(
+            args=args,
+            config=config,
+            env=env,
+            model=model,
+            ref_model=ref_model,
+            reward_model=reward_model,
+            processing_class=processing_class,
+            value_model=value_model,
+            data_collator=data_collator,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            log_dir=log_dir,
+            optimizers=optimizers,
+            callbacks=callbacks,
+            peft_config=peft_config,
+            use_ref_model=use_ref_model,
+            checkpoint=checkpoint,
+            local_seed=local_seed,
+            schedule_dict=schedule_dict,
+            accelerator=accelerator,
+        )
+
     def load_teacher_actor(self):
         artifact = self.config.get("teacher_artifact", None)
         if artifact is None:
@@ -89,6 +169,7 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         state_dict = loaded[state_key]
         self.ref_model.load_state_dict(state_dict, strict=True)
         self.ref_model.eval()
+        _emit_teacher_identity(checkpoint_path)
         self.teacher_manifest = manifest
 
     def load_checkpoint(self, checkpoint_path):
@@ -336,6 +417,31 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
             )
         if not torch.is_floating_point(vision) or not torch.all(torch.isfinite(vision)):
             raise ValueError("vision_obs must be a finite floating tensor")
+        if not self._a2_rgb_frame_validated:
+            flattened_pixels = vision.flatten(start_dim=1)
+            per_env_min = flattened_pixels.amin(dim=1)
+            per_env_max = flattened_pixels.amax(dim=1)
+            invalid_environments = per_env_max <= per_env_min
+            if bool(invalid_environments.any().item()):
+                invalid_count = int(invalid_environments.sum().item())
+                first_invalid_index = int(
+                    torch.nonzero(invalid_environments, as_tuple=False)[0].item()
+                )
+                raise ValueError(
+                    "A2 Student first RGB frame contains constant/uninitialized RGB; "
+                    f"invalid_count={invalid_count} "
+                    f"first_invalid_environment_index={first_invalid_index}"
+                )
+            global_min = per_env_min.amin().item()
+            global_max = per_env_max.amax().item()
+            print(
+                "[A2_RGB_FRAME] "
+                f"shape={tuple(vision.shape)} dtype={vision.dtype} device={vision.device} "
+                "finite=true per_env_nonconstant=true "
+                f"global_min={global_min:.12g} global_max={global_max:.12g}",
+                flush=True,
+            )
+            self._a2_rgb_frame_validated = True
 
     def _teacher_actions(self, obs_dict):
         actions = self.ref_model.act_inference(obs_dict=deepcopy(obs_dict))
@@ -388,10 +494,10 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
             raise ValueError("Student and Teacher high-level action shapes differ")
         selected_high = high_level_actions
         selected_mean = high_level_mean
+        ratio = float(self.config.get("ratio_teacher_rollout", 1.0))
+        if not 0.0 <= ratio <= 1.0:
+            raise ValueError(f"ratio_teacher_rollout must be within [0,1], got {ratio}")
         if self.config.get("enforce_teacher_rollout", False):
-            ratio = float(self.config.get("ratio_teacher_rollout", 1.0))
-            if not 0.0 <= ratio <= 1.0:
-                raise ValueError(f"ratio_teacher_rollout must be within [0,1], got {ratio}")
             count = int(selected_high.shape[0] * ratio)
             selected_high = selected_high.clone()
             selected_mean = selected_mean.clone()
@@ -401,6 +507,7 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         if not torch.is_tensor(leg_actions) or leg_actions.device != obs_dict["actor_obs"].device:
             raise ValueError("A2_Base leg actions must be a tensor on the observation device")
         actions = compose_a2_rollout_action(selected_high, leg_actions)
+        _emit_action_chain_identity(ratio)
         action_mean = compose_a2_rollout_action(selected_mean, leg_actions)
         action_sigma = compose_a2_rollout_action(high_level_sigma, torch.zeros_like(leg_actions))
         result = {

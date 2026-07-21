@@ -43,6 +43,60 @@ from gr00t.rl.trl.modules.homie_modules import (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def _validate_a2_single_gpu_binding(accelerator, model, identity) -> None:
+    """Fail fast on the post-prepare single-visible CUDA0 contract."""
+    from accelerate.state import DistributedType
+
+    expected_device = torch.device("cuda:0")
+    if int(identity["world_size"]) != 1:
+        raise RuntimeError("A2 single-visible trainer requires world_size=1")
+    if accelerator.num_processes != 1 or accelerator.process_index != 0:
+        raise RuntimeError(
+            "A2 single-visible trainer requires one Accelerator process at rank 0; "
+            f"got world_size={accelerator.num_processes} rank={accelerator.process_index}"
+        )
+    state = getattr(accelerator, "state", None)
+    if state is None or state.distributed_type is not DistributedType.NO or state.backend is not None:
+        raise RuntimeError(
+            "A2 single-visible trainer requires DistributedType.NO with backend=None"
+        )
+    if torch.device(accelerator.device) != expected_device:
+        raise RuntimeError(
+            "A2 single-visible trainer Accelerator device mismatch; "
+            f"expected={expected_device} actual={accelerator.device}"
+        )
+    if torch.cuda.current_device() != 0:
+        raise RuntimeError(
+            "A2 single-visible trainer current logical CUDA device mismatch; "
+            f"expected=0 actual={torch.cuda.current_device()}"
+        )
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        raise RuntimeError("A2 single-visible trainer must not initialize torch.distributed")
+    model_type = type(model).__name__
+    if model_type == "DistributedDataParallel" or getattr(model, "device_ids", None) is not None:
+        raise RuntimeError("A2 single-visible trainer rejects distributed model wrappers")
+    for name, parameter in model.named_parameters():
+        if parameter.device != expected_device:
+            raise RuntimeError(
+                "A2 single-visible trainer parameter device mismatch; "
+                f"name={name!r} expected={expected_device} actual={parameter.device}"
+            )
+    print(
+        "[A2_SINGLE_CUDA_BINDING] "
+        f"mode={identity['mode']} CVD=0 host_gpu_index={identity['host_gpu_index']} "
+        f"logical_gpu_index={identity['logical_gpu_index']} UUID={identity['pinned_uuid']} "
+        "world_size=1 distributed_type=NO model_wrapper=none",
+        flush=True,
+    )
+
+
+def _seed_a2_local_generators(seed: int) -> int:
+    """Seed CPU's default generator and only the selected current CUDA device."""
+    torch.default_generator.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    return seed
+
+
 @contextmanager
 def _a2_hold_oracle_finalize_guard(env, enabled):
     if not isinstance(enabled, bool):
@@ -1116,7 +1170,9 @@ class TRLPPOTrainer(PPOTrainer):
         local_seed=None,
         schedule_dict=None,
         accelerator=None,
+        a2_gpu_identity=None,
     ) -> None:
+        self.a2_gpu_identity = a2_gpu_identity
         self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
@@ -1540,13 +1596,21 @@ class TRLPPOTrainer(PPOTrainer):
             self.dataloader = None
         # sync random states for DataLoader(shuffle=True) before `accelerator.prepare`
         # see https://gist.github.com/vwxyzjn/2581bff1e48e185e0b85b6dfe1def79c
-        torch.manual_seed(args.seed)
+        if self.a2_gpu_identity is None:
+            torch.manual_seed(args.seed)
+        else:
+            _seed_a2_local_generators(args.seed)
 
         self.model, self.optimizer, self.dataloader = accelerator.prepare(
             self.model, self.optimizer, self.dataloader
         )
+        if self.a2_gpu_identity is not None:
+            _validate_a2_single_gpu_binding(accelerator, self.model, self.a2_gpu_identity)
         self.unwrapped_model = unwrap_model(self.model)
-        torch.manual_seed(self.local_seed)  # reset the local seed again
+        if self.a2_gpu_identity is None:
+            torch.manual_seed(self.local_seed)  # reset the local seed again
+        else:
+            _seed_a2_local_generators(self.local_seed)
 
         if self.eval_dataset is not None:
             self.eval_dataloader = DataLoader(

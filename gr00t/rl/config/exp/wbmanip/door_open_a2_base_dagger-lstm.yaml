@@ -106,7 +106,7 @@ algo:
     gamma: 0.9966
     lam: 0.983
     desired_kl: 0.005
-    init_at_random_ep_len: True
+    init_at_random_ep_len: False
 
     module_dim:
       # Recurrent modules overwrite these predeclared substitution slots with

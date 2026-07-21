@@ -25,6 +25,10 @@ HINGE_BUCKETS = ((2.5, 5.5, "[2.5,5.5)"), (5.5, 8.5, "[5.5,8.5)"), (8.5, 12.0, "
 HEIGHT_BUCKETS = ((0.80, 0.95, "[0.80,0.95)"), (0.95, 1.10, "[0.95,1.10]"))
 BODY_FILTER_COUNT = 13
 ARM_FILTER_COUNT = 10
+# float32(1.10) serializes as 1.100000023841858.  Keep this
+# representational allowance explicit and narrow; it is only applied to the
+# inclusive final height edge and is not a general range clamp.
+HEIGHT_FINAL_UPPER_TOLERANCE = 1.0e-7
 
 
 def _finite(value: Any) -> bool:
@@ -130,7 +134,7 @@ def normalize_result(raw: Mapping[str, Any], *, expected_seed: int) -> EvalRecor
     height = raw.get("door_handle_height")
     if not _finite(hinge) or not 2.5 <= float(hinge) <= 12.0:
         raise ValueError(f"door_hinge_drive_max_force must be finite in [2.5,12.0]; got {hinge!r}.")
-    if not _finite(height) or not 0.80 <= float(height) <= 1.10:
+    if not _finite(height) or not 0.80 <= float(height) <= 1.10 + HEIGHT_FINAL_UPPER_TOLERANCE:
         raise ValueError(f"door_handle_height must be finite in [0.80,1.10]; got {height!r}.")
     goal = raw.get("goal_reached")
     if not isinstance(goal, bool):
@@ -210,9 +214,19 @@ def load_trace(path: Path, *, expected_seed: int, result_records: Sequence[EvalR
     return selected
 
 
-def _bucket(value: float, rules: Sequence[tuple[float, float, str]], *, final_upper: bool) -> str:
+def _bucket(
+    value: float,
+    rules: Sequence[tuple[float, float, str]],
+    *,
+    final_upper: bool,
+    final_upper_tolerance: float = 0.0,
+) -> str:
     for index, (lower, upper, label) in enumerate(rules):
-        if lower <= value < upper or (final_upper and index == len(rules) - 1 and lower <= value <= upper):
+        if lower <= value < upper or (
+            final_upper
+            and index == len(rules) - 1
+            and lower <= value <= upper + final_upper_tolerance
+        ):
             return label
     raise ValueError(f"value {value} does not belong to a report bucket.")
 
@@ -222,7 +236,12 @@ def hinge_bucket(value: float) -> str:
 
 
 def height_bucket(value: float) -> str:
-    return _bucket(value, HEIGHT_BUCKETS, final_upper=True)
+    return _bucket(
+        value,
+        HEIGHT_BUCKETS,
+        final_upper=True,
+        final_upper_tolerance=HEIGHT_FINAL_UPPER_TOLERANCE,
+    )
 
 
 def _stats(values: Sequence[float]) -> dict[str, Any]:

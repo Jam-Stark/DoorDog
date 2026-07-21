@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-21 00:21 HKT
+last_updated: 2026-07-21 16:27 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -23,6 +23,10 @@ read_when:
 
 ## Current State
 
+- 2026-07-21 16:27 HKT - formal `base_v15_main-20260721_003001`已完成seed0、4×1024 env/rank、3000-batch training；`model_step_003000.pt`为global/max `3000/3000`、267 tensors finite、SHA-256 `a6785cf68f3f7138a38bea63f60c70ddd007fa5a369ddf093856fd5debd626c3`。training log到ETA0并保存endpoint，但launcher shell exit code未独立记录，故不称natural exit。plan-required canonical midpoint eval均完成而strict status非全PASS：step500 natural exit0为14/16、light6/7且light-no-worse FAIL（env0/1 stage0，无stage2 trace）；step1000 natural exit0为15/16、中4/5/heavy-stage4 4/4且numeric gates达标（env0 stage1，无stage2 trace）；step2000 log为Finished但exit未独立捕获、15/16、heavy3/4达到至少半数（env11 stage0、standoff null、无stage2 trace）。heavy在step1000/2000均非stage3→4全卡，j8约12.17%/10.79%未钉死，M26 high-water保持false。
+- 2026-07-21 16:27 HKT - release按红线选择step2500而非末点step3000：step2500 SHA-256 `3b55e3e2fdfabfaa1ea5cdc8933a6488c5b712634a48ab1c6d6e73f14d4a2de5`，两者canonical均16/16 goal/complete/crossing；step2500 bilateral `99.923940%` vs `99.007009%`、coasting `0` vs `.973520%`、hinge p95 `.300512` vs `.307862`、over-force `.076060%` vs `.428349%`，尽管reward mean由`221.259940→223.957834`上升亦不覆盖红线退化。它是本轮首个strict all-env/topology candidate。
+- 2026-07-21 16:27 HKT - selected-release strict M27 artifact `logs_eval/base_v15/base_v15_main_ckpt2500_m27_three_seed_48door_20260721/` reporter natural exit0、schema PASS：47/48 goal/stage5，canonical seed0 16/16，supplementary seed1 15/16、seed2 16/16，不构成statistical proof；heavy18/18、high-height23/24。light/heavy body usage `1.209%/2.096%`仅directional而非统计/因果结论；light j8 `11.444%<=25`、heavy standoff p50 `.7104m`；high-height pitch `49.616%`、roll `100%`。pooled arm-body0..8 panel force为0不含gripper-handle force，不能写成“arm no effort”。
+- 2026-07-21 16:27 HKT - endpoint step3000 seed0/1均natural exit0且16/16；seed2 process natural exit0但14/16（stage0 `upper_dof_overspeed`、stage2 overtime，env2缺stage2 trace），故endpoint strict 48-door report按topology fail-fast未生成；不rerun/cherry-pick/schema relaxation。selected step2500 render：seed2 strong hinge`11.206553/8.611655`、height`.80/1.10`，及seed0 light hinge`5.929052/4.948398`，均2/2 complete/crossing、6个`1280×720@20fps`视频full decode、无`.writing`、natural exit0；视频只作qualitative support。M27 reporter修复float32 `1.100000023841858`的final-height `1e-7` tolerance，raw保留且`1.1001`/hinge`12.0001`仍fail-fast；targeted8、CODE_QUALITY与strict 48-door runtime PASS。
 - 2026-07-21 00:21 HKT - v14 M20 supplementary debt已关闭：从v14 step2000 `policy_only` checkpoint完成seed1/2各16-env height-grid eval（seed/env为1/2、env0–15；inclusive height `[.80,1.05]`、hinge `[2.5,7]`且finite）。seed1 natural exit0、`16/16` goal/stage5/crossing-holding；seed2 natural exit0、`16/16` goal/stage5、`15/16` crossing-holding。combined strict `logs_eval/base_v14/base_v14_step2000_m20_three_seed_48door_20260720/` JSON/CSV/MD为48 records、seeds0/1/2各16、`48/48` goal/stage5、schema PASS。seed0仍canonical；此supplementary report不是statistical proof。
 - 2026-07-21 00:21 HKT - v15 M23–M27 implementation与evidence：M23 v14 release policy在1.05–1.10m 16点inclusive grid得到`16/16` goal/stage5、`15/16` crossing-holding，放行1.10m；scripted r39只作supplementary lower bound，108-cell grid NOT RUN，evidence JSON后IsaacSim teardown exit139不作成功退出。M24 stage0推进已加base-still（base command norm`<=.1`）后才记录standoff；band为`[.50,.80]`/`|y|<.15`。M25–M27采用body13/arm10 high-level filtered ContactSensors、world-frame filtered normal force为per-filter vector norm之和、feet排除；generic panel stage3–5 scale0、body price `clamp(sum/20)` scale `-.3`，door-panel body+arm0–6 undesired contact去重。二元filter限制仍在：同body的panel+other contact也会被排除，未声明未证实的vector subtraction。hinge为`[2.5,12]`；high-water default false、仅stage3 latch、reset/stage-switch clear；reporter key为`(seed, env_id)`、stage2记录high-handle pitch+roll、j8在stage3–5、zero share为null。
 - 2026-07-21 00:21 HKT - v15 validation/runtime boundary：focused `43 passed`、trainer/contract `52 passed`、py_compile、real Hydra compose、diff-check，以及CODE_QUALITY/IsaacLab semantics在candidate `37b74e558709cebc3f9902caf10f0e226636f23bbfa2b8a9f454deb6616dc023` PASS，均为static/review evidence而非policy runtime。初次smoke完成batch50/checkpoint但shutdown hang、natural-exit FAIL；以Isaac Sim5.1 high-level `SimulationApp.close(skip_cleanup=True)`修复后，`logs_rl/a2_piper_full_stage_a2_base/base_v15_smoke_20260720-20260721_000610/`在64×50 natural exit0，完成3200 episodes/204800 timesteps/681.03s，hinge `2.610649824142456..11.939538955688477`，body `(64,1,13,3)`/arm `(64,1,10,3)` float32 cuda0，final stage3/4/5 `.0962/.1504/.2812`；step50+last为global/max50，267 finite tensors，W&B/high-water均false。此smoke只证明mechanics/shutdown，不证明policy quality。
@@ -90,16 +94,16 @@ read_when:
 | Stage3→4 threshold | `.25rad` |
 | v15 reward | handle `0`、hinge `6`、unlatch/hold-drive `3/8`、body price `-.3`、generic panel stage3–5 scale `0` |
 | Explicit friction override | none (`null`) |
-| Formal v15 resource | planned 4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；NOT RUN |
-| Matched v15 eval | planned seed0、16 env、each-env first episode；scalar/trace primary；NOT RUN |
+| Formal v15 resource | completed seed0、4 ranks × `1024 env/rank`、global batch `4096`、`3000` batches/save250；endpoint global/max3000，launcher exit未独立记录 |
+| Matched v15 eval | completed canonical seed0、16 env、each-env first episode；scalar/trace primary；midpoint strict artifacts并非全PASS，step2500为selected release |
 
-当前training-ready baseline是`base_v15_main`；它从selected v14 step2000 `policy_only` warm-start，保持Option A `12D actor / 5D base command`且无spring observation。formal v15 4×1024/global4096/3000/save250 training与seed0、16-env、each-env-first-episode matched eval均NOT RUN。v14 step2000及`base_v13_1_main` step3000只保留为historical evidence/reference；exact saved runtime config仍是训练/eval解释的source of truth，single-seed结果不能拆成单因素因果结论。
+v15 round 2的selected release是`base_v15_main` step2500；它从v14 step2000 `policy_only` warm-start，保持Option A `12D actor / 5D base command`且无spring observation。formal training与planned midpoint/endpoint eval已完成；exact saved runtime config仍是训练/eval解释的source of truth，canonical seed0与supplementary seed1/2均不能拆成单因素因果或statistical proof。
 
 ## Current Experiment
 
 `base_v14_main-20260719_103629`是已完成的formal v14 experiment；M16–M20、M18 static reachability boundary、step2000 selected endpoint/render，以及M20 seed1/2 supplementary和combined 48-door report均已验证到批准范围。seed0仍为canonical；supplementary multi-seed evidence不构成statistical proof。v14 formal launcher natural-exit仍未在本轮重新核验。
 
-当前training-ready candidate是`base_v15_main`：M23 policy-driven release与M24–M27 implementation/runtime smoke已完成，formal 3000-batch training、matched iter500/1000/2000 eval、v15 seed1/2及endpoint combined 48-door M27 report均未启动。high-water只在heavy-bucket stage3→4 stall criterion触发时才开启。`base_v13_1_main` eval/render进程均natural exit0；其formal training launcher natural-exit状态未在本轮重新核验。
+v15 round 2已完成并固定selected release为step2500：canonical all-env/topology与M27 selected-release report均有runtime evidence，但47/48 aggregate及supplementary seed1 failure不构成three-seed statistical proof；step3000 seed2 topology failure使endpoint 48-door report未生成。high-water仍只在heavy-bucket stage3→4 stall criterion触发时开启，当前保持false。下一scope是`door_open_lr`左右镜像，先做left-workspace GUI/smoke后再决定训练；mass冲击轴、`door_open_io` in/out与student distillation保持separate future scope。
 
 ## Inherited Base v0→v8 Lessons
 
@@ -136,10 +140,12 @@ read_when:
 
 ## TODO Summary
 
-- 2026-07-21 00:21 HKT - formal `base_v15_main` 3000-batch training、matched iter500/1000/2000 eval、v15 seed1/2与endpoint combined 48-door M27 report均NOT RUN；不得用M23 policy probe或50-batch smoke替代policy-quality evidence。high-water仅在heavy-bucket stage3→4 stall criterion成立时开启；M23 108-cell scripted grid仍NOT RUN但按当前决策不阻塞。
+- 2026-07-21 16:27 HKT - round 3候选为`door_open_lr`左右镜像；先完成left-workspace GUI/static preview与short smoke，再决定是否另立training scope。M23 scripted108-cell grid仍NOT RUN但为nonblocking lower-bound；mass冲击轴、`door_open_io` in/out与student distillation保持独立future scope。
 
 ## DONE Summary
 
+- 2026-07-21 16:27 HKT - 完成formal v15 seed0 4×1024×3000 run及step500/1000/2000/2500/3000 eval；midpoint strict topology有明确FAIL，step2500凭canonical16/16与更优redline选为release，step3000 seed2 regression使endpoint strict 48-door report不生成。
+- 2026-07-21 16:27 HKT - 完成step2500 strict M27 48-door report（47/48，seed1/2 supplementary）与strong/light 2-env×3-camera render；float32 final-height reporter tolerance最小修复后targeted8、CODE_QUALITY、strict reporter runtime PASS。视频仅qualitative，multi-seed非statistical proof。
 - 2026-07-21 00:21 HKT - 完成v14 M20 supplementary seed1/2 eval与combined strict 48-door report：三seed各16 records、总计48/48 goal/stage5，seed1为16/16 crossing-holding、seed2为15/16；seed0 canonical，report不构成statistical proof。
 - 2026-07-21 00:21 HKT - 完成v15 M23 1.10m policy-driven release、M24–M27 implementation/review与post-fix 64×50 smoke natural exit0；static/review与mechanics/shutdown runtime PASS不外推为formal training或policy-quality PASS。
 - 2026-07-20 02:57 HKT - 完成eval-only deterministic height grid与runtime seed provenance修复验证：默认不影响training path；16-env seed0 exact grid、focused14、py_compile/diff PASS。

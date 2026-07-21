@@ -13,6 +13,7 @@ from scriptsFORhuman.a2_piper_v15_bucket_report import (
     hinge_bucket,
     load_result,
     load_trace,
+    normalize_result,
     normalize_trace,
     write_outputs,
 )
@@ -96,6 +97,38 @@ def test_bucket_boundaries_are_fixed_and_inclusive_only_at_upper_final_edge():
         hinge_bucket(12.0001)
     with pytest.raises(ValueError):
         height_bucket(1.1001)
+
+
+def test_float32_height_endpoint_is_accepted_and_preserved(tmp_path):
+    float32_height = 1.100000023841858
+
+    def use_float32_height(_seed, results, traces):
+        for row in results:
+            row["door_handle_height"] = float32_height
+        for row in traces:
+            row["door_handle_height"] = float32_height
+
+    paths = _write_inputs(tmp_path, mutate=use_float32_height)
+    result_sets = {
+        seed: load_result(paths[seed][0], expected_seed=seed) for seed in range(3)
+    }
+    assert all(
+        record.handle_height == float32_height
+        for records in result_sets.values()
+        for record in records
+    )
+    assert height_bucket(float32_height) == "[0.95,1.10]"
+    with pytest.raises(ValueError):
+        normalize_result(_result(0, 0, height=1.1001), expected_seed=0)
+
+    trace_sets = {
+        seed: load_trace(
+            paths[seed][1], expected_seed=seed, result_records=result_sets[seed]
+        )
+        for seed in range(3)
+    }
+    report = build_report(result_sets, trace_sets)
+    assert report["by_bucket"]["[0.95,1.10]"]["n"] == 48
 
 
 def test_explicit_seed_env_topology_and_trace_filtering(tmp_path):

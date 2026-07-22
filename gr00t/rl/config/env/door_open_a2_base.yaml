@@ -126,6 +126,10 @@ env:
     a2_corridor_enabled: false
     a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor: 0.1
     a2_door_body_contact_penalty_mode: linear_v15
+    a2_stage5_hold_income_continuity_enabled: false
+    a2_door_body_contact_event_force_threshold: 5.0
+    a2_door_body_contact_event_peak_force_norm: 200.0
+    a2_door_body_contact_event_component_cap: 2.0
     a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
     a2_stage3_stage4_coasting_velocity_threshold: 0.1
     a2_stage3_handle_hard_limit_position: 0.785398
@@ -148,6 +152,7 @@ env:
     a2_stage3_to4_door_hinge_threshold: 0.174533
     a2_stage3_base_unlocked: false
     a2_stage4_release_hinge_threshold: 1.2
+    a2_stage4_to5_door_hinge_threshold: 1.0472
     a2_stage45_door_frame_contact_scale: 0.2
     # Generic panel contact remains priced in stages 0-2 and is scaled here in stages 3-5.
     a2_stage35_door_panel_contact_scale: 1.0

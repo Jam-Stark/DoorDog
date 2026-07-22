@@ -443,6 +443,49 @@ def a2_update_stage4_release_and_root_latches(
     )
 
 
+def a2_update_stage4_release_and_root_latches_through_stage5(
+    release_gate: torch.Tensor,
+    root_x_ever_crossed: torch.Tensor,
+    stage_buf: torch.Tensor,
+    hinge_pos: torch.Tensor,
+    root_x: torch.Tensor,
+    release_hinge_threshold: float,
+    stage_swing: int,
+    stage_through: int,
+    stage5_continuity_enabled: bool,
+    update_mask: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Extend the historical stage4 release latch into stage5 when selected."""
+    if (
+        isinstance(stage_through, bool)
+        or not isinstance(stage_through, int)
+        or stage_through == stage_swing
+        or not isinstance(stage5_continuity_enabled, bool)
+    ):
+        raise ValueError(
+            "A2 stage5 release continuity requires distinct integer stages and a bool selector."
+        )
+    updated_gate, updated_crossed = a2_update_stage4_release_and_root_latches(
+        release_gate,
+        root_x_ever_crossed,
+        stage_buf,
+        hinge_pos,
+        root_x,
+        release_hinge_threshold,
+        stage_swing,
+        update_mask,
+    )
+    if not stage5_continuity_enabled:
+        return updated_gate, updated_crossed
+    effective_update_mask = (
+        torch.ones_like(release_gate) if update_mask is None else update_mask
+    )
+    stage5_release = effective_update_mask & (stage_buf == stage_through) & (
+        hinge_pos >= float(release_hinge_threshold)
+    )
+    return updated_gate | stage5_release, updated_crossed
+
+
 def a2_corridor_hold_and_drive_component(
     hold_streak_ok: torch.Tensor,
     hinge_vel: torch.Tensor,
@@ -561,6 +604,196 @@ def a2_door_body_contact_penalty_component(
         "A2 body contact penalty mode must be exactly 'linear_v15' or 'quadratic_v16'; "
         f"got {mode!r}."
     )
+
+
+def a2_scope_door_body_contact_force(
+    stage_buf: torch.Tensor,
+    body_total: torch.Tensor,
+    stage_open: int,
+    stage_swing: int,
+) -> torch.Tensor:
+    """Exclude pre-opening and post-swing contact from event-state accumulation."""
+    if (
+        not torch.is_tensor(stage_buf)
+        or stage_buf.ndim != 1
+        or stage_buf.dtype != torch.long
+        or not torch.is_tensor(body_total)
+        or body_total.shape != stage_buf.shape
+        or not body_total.is_floating_point()
+        or body_total.device != stage_buf.device
+        or not torch.all(torch.isfinite(body_total))
+        or torch.any(body_total < 0.0)
+        or isinstance(stage_open, bool)
+        or not isinstance(stage_open, int)
+        or isinstance(stage_swing, bool)
+        or not isinstance(stage_swing, int)
+        or stage_open == stage_swing
+    ):
+        raise ValueError(
+            "A2 body-contact event scoping requires a long stage vector, a matching "
+            "finite non-negative force vector, and distinct opening-stage values."
+        )
+    opening_stage = (stage_buf == stage_open) | (stage_buf == stage_swing)
+    return torch.where(opening_stage, body_total, torch.zeros_like(body_total))
+
+
+def a2_update_door_body_contact_event(
+    active: torch.Tensor,
+    peak_force: torch.Tensor,
+    body_total: torch.Tensor,
+    force_threshold: float,
+    peak_force_norm: float,
+    component_cap: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Advance one body-contact event and emit its normalized peak once at exit."""
+    if (
+        not torch.is_tensor(active)
+        or active.ndim != 1
+        or active.dtype != torch.bool
+        or not torch.is_tensor(peak_force)
+        or peak_force.shape != active.shape
+        or not peak_force.is_floating_point()
+        or peak_force.device != active.device
+        or not torch.is_tensor(body_total)
+        or body_total.shape != active.shape
+        or not body_total.is_floating_point()
+        or body_total.dtype != peak_force.dtype
+        or body_total.device != active.device
+        or not torch.all(torch.isfinite(peak_force))
+        or not torch.all(torch.isfinite(body_total))
+        or torch.any(peak_force < 0.0)
+        or torch.any(body_total < 0.0)
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+            for value in (force_threshold, peak_force_norm, component_cap)
+        )
+    ):
+        raise ValueError(
+            "A2 body-contact event requires matching finite non-negative vectors "
+            "and finite positive threshold, norm, and cap."
+        )
+    contact_now = body_total >= float(force_threshold)
+    ended = active & ~contact_now
+    emitted = torch.where(
+        ended,
+        (peak_force / float(peak_force_norm)).clamp(0.0, float(component_cap)),
+        torch.zeros_like(peak_force),
+    )
+    next_peak = torch.where(
+        contact_now,
+        torch.where(active, torch.maximum(peak_force, body_total), body_total),
+        torch.zeros_like(peak_force),
+    )
+    return contact_now, next_peak, emitted
+
+
+def a2_finalize_door_body_contact_event(
+    active: torch.Tensor,
+    peak_force: torch.Tensor,
+    finalize_mask: torch.Tensor,
+    peak_force_norm: float,
+    component_cap: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Finalize active events selected by a reset or stage-boundary mask."""
+    if (
+        not torch.is_tensor(active)
+        or active.ndim != 1
+        or active.dtype != torch.bool
+        or not torch.is_tensor(peak_force)
+        or peak_force.shape != active.shape
+        or not peak_force.is_floating_point()
+        or peak_force.device != active.device
+        or not torch.all(torch.isfinite(peak_force))
+        or torch.any(peak_force < 0.0)
+        or not torch.is_tensor(finalize_mask)
+        or finalize_mask.shape != active.shape
+        or finalize_mask.dtype != torch.bool
+        or finalize_mask.device != active.device
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+            for value in (peak_force_norm, component_cap)
+        )
+    ):
+        raise ValueError(
+            "A2 body-contact event finalization requires matching device-local state "
+            "and finite positive norm and cap."
+        )
+    finalized = active & finalize_mask
+    emitted = torch.where(
+        finalized,
+        (peak_force / float(peak_force_norm)).clamp(0.0, float(component_cap)),
+        torch.zeros_like(peak_force),
+    )
+    next_active = active & ~finalize_mask
+    next_peak = torch.where(next_active, peak_force, torch.zeros_like(peak_force))
+    return next_active, next_peak, emitted
+
+
+def a2_corridor_clean_passage_component(
+    corridor_latched: torch.Tensor,
+    body_total: torch.Tensor,
+    force_threshold: float,
+) -> torch.Tensor:
+    """Pay corridor passage only when no priced body-panel contact is active."""
+    if (
+        not torch.is_tensor(corridor_latched)
+        or corridor_latched.ndim != 1
+        or corridor_latched.dtype != torch.bool
+        or not torch.is_tensor(body_total)
+        or body_total.shape != corridor_latched.shape
+        or not body_total.is_floating_point()
+        or body_total.device != corridor_latched.device
+        or not torch.all(torch.isfinite(body_total))
+        or torch.any(body_total < 0.0)
+        or isinstance(force_threshold, bool)
+        or not isinstance(force_threshold, (int, float))
+        or not math.isfinite(float(force_threshold))
+        or float(force_threshold) <= 0.0
+    ):
+        raise ValueError(
+            "A2 clean passage requires a bool corridor mask, finite non-negative "
+            "body force, and a finite positive threshold."
+        )
+    return corridor_latched.float() * (body_total < float(force_threshold)).float()
+
+
+def a2_update_stage5_hold_continuation(
+    continuation: torch.Tensor,
+    stage_buf: torch.Tensor,
+    both_contact: torch.Tensor,
+    stage_through: int,
+    enabled: bool,
+) -> torch.Tensor:
+    """Keep the stage5 hold latch only while bilateral contact remains continuous."""
+    if (
+        not torch.is_tensor(continuation)
+        or continuation.ndim != 1
+        or continuation.dtype != torch.bool
+        or not torch.is_tensor(stage_buf)
+        or stage_buf.shape != continuation.shape
+        or stage_buf.dtype != torch.long
+        or stage_buf.device != continuation.device
+        or not torch.is_tensor(both_contact)
+        or both_contact.shape != continuation.shape
+        or both_contact.dtype != torch.bool
+        or both_contact.device != continuation.device
+        or isinstance(stage_through, bool)
+        or not isinstance(stage_through, int)
+        or not isinstance(enabled, bool)
+    ):
+        raise ValueError(
+            "A2 stage5 hold continuation requires matching device-local masks, "
+            "an integer stage, and a bool selector."
+        )
+    if not enabled:
+        return torch.zeros_like(continuation)
+    return continuation & (stage_buf == stage_through) & both_contact
 
 
 def a2_apply_stage4_target_root_distance_scale(
@@ -2887,6 +3120,21 @@ class DoorPregrasp(
     A2_STAGE4_RELEASE_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage4_release_hinge_threshold"
     )
+    A2_STAGE4_TO5_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
+        "a2_stage4_to5_door_hinge_threshold"
+    )
+    A2_STAGE5_HOLD_INCOME_CONTINUITY_ENABLED_CONFIG_KEY = (
+        "a2_stage5_hold_income_continuity_enabled"
+    )
+    A2_DOOR_BODY_CONTACT_EVENT_FORCE_THRESHOLD_CONFIG_KEY = (
+        "a2_door_body_contact_event_force_threshold"
+    )
+    A2_DOOR_BODY_CONTACT_EVENT_PEAK_FORCE_NORM_CONFIG_KEY = (
+        "a2_door_body_contact_event_peak_force_norm"
+    )
+    A2_DOOR_BODY_CONTACT_EVENT_COMPONENT_CAP_CONFIG_KEY = (
+        "a2_door_body_contact_event_component_cap"
+    )
     A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY = (
         "a2_stage45_door_frame_contact_scale"
     )
@@ -3086,11 +3334,37 @@ class DoorPregrasp(
         if key not in self.config:
             raise RuntimeError(f"A2 body contact penalty requires env.config.{key}.")
         value = self.config[key]
-        if value not in ("linear_v15", "quadratic_v16"):
+        allowed = ("linear_v15", "quadratic_v16", "event_v17")
+        if not isinstance(value, str) or value not in allowed:
             raise RuntimeError(
-                f"env.config.{key} must be exactly 'linear_v15' or 'quadratic_v16'; got {value!r}."
+                f"env.config.{key} must be one of {allowed}; got {value!r}."
             )
         return value
+
+    def _get_a2_stage5_hold_income_continuity_enabled(self) -> bool:
+        key = self.A2_STAGE5_HOLD_INCOME_CONTINUITY_ENABLED_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 stage5 hold continuity requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
+
+    def _get_a2_door_body_contact_event_config(self) -> tuple[float, float, float]:
+        return (
+            self._get_required_positive_float_config(
+                self.A2_DOOR_BODY_CONTACT_EVENT_FORCE_THRESHOLD_CONFIG_KEY,
+                "A2 v17 body-contact event threshold",
+            ),
+            self._get_required_positive_float_config(
+                self.A2_DOOR_BODY_CONTACT_EVENT_PEAK_FORCE_NORM_CONFIG_KEY,
+                "A2 v17 body-contact event peak normalization",
+            ),
+            self._get_required_positive_float_config(
+                self.A2_DOOR_BODY_CONTACT_EVENT_COMPONENT_CAP_CONFIG_KEY,
+                "A2 v17 body-contact event component cap",
+            ),
+        )
 
     def _get_a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor(self) -> float:
         return self._get_required_positive_float_config(
@@ -3128,6 +3402,12 @@ class DoorPregrasp(
             "A2 stage4 release gate",
         )
 
+    def _get_a2_stage4_to5_door_hinge_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_STAGE4_TO5_DOOR_HINGE_THRESHOLD_CONFIG_KEY,
+            "A2 stage4 to stage5 door-hinge gate",
+        )
+
     def _get_a2_stage45_door_frame_contact_scale(self) -> float:
         value = self._get_required_finite_float_config(
             self.A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY,
@@ -3161,14 +3441,18 @@ class DoorPregrasp(
             self._get_a2_stage3_stage4_hold_and_drive_velocity_threshold()
         )
         corridor_enabled = self._get_a2_corridor_enabled()
-        self._get_a2_door_body_contact_penalty_mode()
+        body_contact_mode = self._get_a2_door_body_contact_penalty_mode()
+        stage5_continuity = self._get_a2_stage5_hold_income_continuity_enabled()
         self._get_a2_stage3_to4_requires_grasp_streak()
         self._get_a2_stage3_to4_streak_highwater()
         self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
         self._get_a2_stage3_stage4_coasting_velocity_threshold()
-        self._get_a2_stage4_release_hinge_threshold()
+        release_threshold = self._get_a2_stage4_release_hinge_threshold()
+        advance_threshold = self._get_a2_stage4_to5_door_hinge_threshold()
         self._get_a2_stage45_door_frame_contact_scale()
         self._get_a2_stage35_door_panel_contact_scale()
+        if body_contact_mode == "event_v17":
+            self._get_a2_door_body_contact_event_config()
         if unlatch_norm >= handle_limit:
             raise RuntimeError(
                 "A2 unlatch reward normalization must be below the handle hard limit; "
@@ -3196,6 +3480,16 @@ class DoorPregrasp(
             raise RuntimeError(
                 "A2 disabled corridor must retain the historical hold-and-drive norm; "
                 f"got corridor={corridor_drive_norm}, historical={drive_norm}."
+            )
+        if stage5_continuity and not corridor_enabled:
+            raise RuntimeError(
+                "A2 stage5 hold-income continuity requires the corridor selector enabled."
+            )
+        if stage5_continuity and release_threshold < advance_threshold:
+            raise RuntimeError(
+                "A2 stage5 hold-income continuity requires release threshold >= "
+                "stage4->5 threshold; got "
+                f"release={release_threshold}, advance={advance_threshold}."
             )
 
     def _get_a2_grasp_control_streak_buffer(
@@ -3776,6 +4070,21 @@ class DoorPregrasp(
             self._a2_corridor_latched = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            self._a2_stage5_hold_continuation = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_door_body_contact_event_active = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_door_body_contact_event_peak = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_door_body_contact_event_pending = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_door_body_contact_event_emitted = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
             self._a2_release_event_valid = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
@@ -3846,6 +4155,8 @@ class DoorPregrasp(
         super()._pre_compute_observations_callback(env_ids)
         if self._use_a2_base:
             self._update_a2_grasp_control_streaks(env_ids)
+            self._update_a2_stage5_hold_continuation(env_ids)
+            self._update_a2_door_body_contact_event(env_ids)
             self._update_a2_stage4_release_and_root_latches(env_ids)
             if env_ids is None:
                 self._update_a2_v14_root_height_telemetry()
@@ -3864,6 +4175,201 @@ class DoorPregrasp(
         )
         self.relative_door_pos_buf[env_ids] = relative_door_pos
         self.relative_door_rot_buf[env_ids] = wxyz_to_xyzw(relative_door_rot)
+
+    def _get_a2_door_body_contact_event_buffers(
+        self, context: str
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        active = getattr(self, "_a2_door_body_contact_event_active", None)
+        peak = getattr(self, "_a2_door_body_contact_event_peak", None)
+        pending = getattr(self, "_a2_door_body_contact_event_pending", None)
+        emitted = getattr(self, "_a2_door_body_contact_event_emitted", None)
+        if (
+            not torch.is_tensor(active)
+            or tuple(active.shape) != (self.num_envs,)
+            or active.dtype != torch.bool
+            or active.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                f"{context} requires a device-local bool event-active buffer."
+            )
+        for name, value in (
+            ("peak", peak),
+            ("pending", pending),
+            ("emitted", emitted),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or not value.is_floating_point()
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+                or torch.any(value < 0.0)
+            ):
+                raise RuntimeError(
+                    f"{context} requires finite non-negative device-local event {name}."
+                )
+        if peak.dtype != pending.dtype or peak.dtype != emitted.dtype:
+            raise RuntimeError(f"{context} requires matching event floating dtypes.")
+        return active, peak, pending, emitted
+
+    def _update_a2_door_body_contact_event(self, env_ids=None) -> None:
+        if self._get_a2_door_body_contact_penalty_mode() != "event_v17":
+            return
+        if env_ids is not None:
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "A2 body-contact event partial update requires valid device-local env ids."
+                )
+            return
+        active, peak, pending, emitted = self._get_a2_door_body_contact_event_buffers(
+            "A2 body-contact event update"
+        )
+        _per_filter, body_total = self._get_a2_door_body_panel_contact_forces()
+        if body_total.dtype != peak.dtype:
+            raise RuntimeError(
+                "A2 body-contact event force and state buffers must share a dtype."
+            )
+        body_total = a2_scope_door_body_contact_force(
+            self.stage_buf,
+            body_total,
+            self.STAGE_OPEN,
+            self.STAGE_SWING,
+        )
+        force_threshold, peak_force_norm, component_cap = (
+            self._get_a2_door_body_contact_event_config()
+        )
+        emitted.copy_(pending)
+        pending.zero_()
+        next_active, next_peak, ended_component = a2_update_door_body_contact_event(
+            active,
+            peak,
+            body_total,
+            force_threshold,
+            peak_force_norm,
+            component_cap,
+        )
+        active.copy_(next_active)
+        peak.copy_(next_peak)
+        emitted.add_(ended_component)
+
+    def _finalize_a2_door_body_contact_event(self, env_ids: torch.Tensor) -> None:
+        if self._get_a2_door_body_contact_penalty_mode() != "event_v17":
+            return
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError(
+                "A2 body-contact event stage finalization requires valid device-local env ids."
+            )
+        active, peak, pending, _emitted = self._get_a2_door_body_contact_event_buffers(
+            "A2 body-contact event stage finalization"
+        )
+        finalize_mask = torch.zeros_like(active)
+        finalize_mask[env_ids] = True
+        _force_threshold, peak_force_norm, component_cap = (
+            self._get_a2_door_body_contact_event_config()
+        )
+        next_active, next_peak, finalized_component = (
+            a2_finalize_door_body_contact_event(
+                active,
+                peak,
+                finalize_mask,
+                peak_force_norm,
+                component_cap,
+            )
+        )
+        active.copy_(next_active)
+        peak.copy_(next_peak)
+        pending.add_(finalized_component)
+
+    def _get_a2_stage5_hold_continuation(self) -> torch.Tensor:
+        continuation = getattr(self, "_a2_stage5_hold_continuation", None)
+        if (
+            not torch.is_tensor(continuation)
+            or tuple(continuation.shape) != (self.num_envs,)
+            or continuation.dtype != torch.bool
+            or continuation.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "A2 stage5 hold continuation requires a device-local bool buffer."
+            )
+        return continuation
+
+    def _update_a2_stage5_hold_continuation(self, env_ids=None) -> None:
+        continuation = self._get_a2_stage5_hold_continuation()
+        if env_ids is not None:
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "A2 stage5 hold partial update requires valid device-local env ids."
+                )
+            return
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "A2 stage5 hold continuation"
+        )
+        continuation.copy_(
+            a2_update_stage5_hold_continuation(
+                continuation,
+                self.stage_buf,
+                contact_masks["both_contact"],
+                self.STAGE_THROUGH,
+                self._get_a2_stage5_hold_income_continuity_enabled(),
+            )
+        )
+
+    def _get_a2_door_income_hold_mask(self) -> torch.Tensor:
+        historical_hold = self._get_a2_hold_streak_ok_mask()
+        stage_buf = getattr(self, "stage_buf", None)
+        if (
+            not torch.is_tensor(stage_buf)
+            or tuple(stage_buf.shape) != (self.num_envs,)
+            or stage_buf.dtype != torch.long
+            or stage_buf.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "A2 door-income hold mask requires a device-local long stage buffer."
+            )
+        mask = historical_hold.clone()
+        stage5 = stage_buf == self.STAGE_THROUGH
+        if self._get_a2_stage5_hold_income_continuity_enabled():
+            continuation = self._get_a2_stage5_hold_continuation()
+            mask[stage5] = continuation[stage5]
+        else:
+            mask[stage5] = False
+        return mask
+
+    def _stage_3_to_4_advance_callback(self, env_ids: torch.Tensor) -> None:
+        if self._use_a2_base:
+            self._finalize_a2_door_body_contact_event(env_ids)
+
+    def _stage_4_to_5_advance_callback(self, env_ids: torch.Tensor) -> None:
+        if not self._use_a2_base:
+            return
+        self._finalize_a2_door_body_contact_event(env_ids)
+        continuation = self._get_a2_stage5_hold_continuation()
+        if self._get_a2_stage5_hold_income_continuity_enabled():
+            hold_ok = self._get_a2_hold_streak_ok_mask()
+            continuation[env_ids] = hold_ok[env_ids]
+        else:
+            continuation[env_ids] = False
 
     def _update_a2_grasp_control_streaks(self, env_ids=None):
         if not self._use_a2_base:
@@ -4426,15 +4932,19 @@ class DoorPregrasp(
             hinge_at_crossing[first_crossing] = door_joint_pos[first_crossing, 0]
             crossing_event_valid[first_crossing] = True
 
-        updated_gate, updated_crossed = a2_update_stage4_release_and_root_latches(
-            release_gate,
-            root_x_ever_crossed,
-            stage_buf,
-            door_joint_pos[:, 0],
-            root_x,
-            self._get_a2_stage4_release_hinge_threshold(),
-            self.STAGE_SWING,
-            update_mask,
+        updated_gate, updated_crossed = (
+            a2_update_stage4_release_and_root_latches_through_stage5(
+                release_gate,
+                root_x_ever_crossed,
+                stage_buf,
+                door_joint_pos[:, 0],
+                root_x,
+                self._get_a2_stage4_release_hinge_threshold(),
+                self.STAGE_SWING,
+                self.STAGE_THROUGH,
+                self._get_a2_stage5_hold_income_continuity_enabled(),
+                update_mask,
+            )
         )
         updated_corridor = a2_update_corridor_latch(
             corridor_latched,
@@ -5493,7 +6003,7 @@ class DoorPregrasp(
             )
         return self._get_a2_grasp_gated_door_reward_components()["unlatch_hold"]
 
-    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING, STAGE_THROUGH])
     def _reward_a2_stage3_stage4_hold_and_drive(self):
         if not self._use_a2_base:
             raise RuntimeError(
@@ -5527,7 +6037,26 @@ class DoorPregrasp(
             )
         root_x = root_states[:, 0] - env_origins[:, 0]
         wide = (door_joint_pos[:, 0] / 1.5).clamp(0.0, 1.0)
-        return wide * self._get_a2_corridor_mask().float() * (root_x < 0.8).float()
+        reward = wide * self._get_a2_corridor_mask().float() * (root_x < 0.8).float()
+        if self._get_a2_stage5_hold_income_continuity_enabled():
+            reward *= self._get_a2_door_income_hold_mask().float()
+        return reward
+
+    @StagedTaskBase.effective_in_stage([STAGE_SWING, STAGE_THROUGH])
+    def _reward_a2_corridor_clean_passage(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_corridor_clean_passage is only defined for A2 Piper configs."
+            )
+        _per_filter_force, body_total = (
+            self._get_a2_door_body_panel_contact_forces()
+        )
+        force_threshold, _peak_force_norm, _component_cap = (
+            self._get_a2_door_body_contact_event_config()
+        )
+        return a2_corridor_clean_passage_component(
+            self._get_a2_corridor_mask(), body_total, force_threshold
+        )
 
     @StagedTaskBase.effective_in_stage([STAGE_SWING, STAGE_THROUGH])
     def _reward_dont_push_door_handle(self):
@@ -5646,10 +6175,48 @@ class DoorPregrasp(
         if not self._use_a2_base:
             raise RuntimeError(
                 "penalty_a2_door_body_contact is only defined for A2 Piper configs."
-        )
+            )
+        penalty_mode = self._get_a2_door_body_contact_penalty_mode()
+        if penalty_mode == "event_v17":
+            active, peak, _pending, emitted = (
+                self._get_a2_door_body_contact_event_buffers(
+                    "A2 body-contact event reward"
+                )
+            )
+            terminal_state = getattr(self, "reset_buf", None)
+            if (
+                not torch.is_tensor(terminal_state)
+                or tuple(terminal_state.shape) != (self.num_envs,)
+                or terminal_state.dtype != torch.long
+                or terminal_state.device != torch.device(self.device)
+                or torch.any((terminal_state != 0) & (terminal_state != 1))
+            ):
+                raise RuntimeError(
+                    "A2 body-contact event reward requires a device-local long "
+                    "reset buffer containing only 0/1 values."
+                )
+            terminal_mask = terminal_state.bool()
+            _force_threshold, peak_force_norm, component_cap = (
+                self._get_a2_door_body_contact_event_config()
+            )
+            _next_active, _next_peak, terminal_component = (
+                a2_finalize_door_body_contact_event(
+                    active, peak, terminal_mask, peak_force_norm, component_cap
+                )
+            )
+            if (
+                isinstance(self.dt, bool)
+                or not isinstance(self.dt, (int, float))
+                or not math.isfinite(float(self.dt))
+                or float(self.dt) <= 0.0
+            ):
+                raise RuntimeError(
+                    f"A2 body-contact event reward requires positive finite dt; got {self.dt!r}."
+                )
+            return (emitted + terminal_component) / float(self.dt)
         _per_filter_force, body_total = self._get_a2_door_body_panel_contact_forces()
         return a2_door_body_contact_penalty_component(
-            body_total, self._get_a2_door_body_contact_penalty_mode()
+            body_total, penalty_mode
         )
 
     def _reward_penalty_a2_posture_command_l1(self):
@@ -6064,7 +6631,7 @@ class DoorPregrasp(
             ),
         )
         components["hold_and_drive"] = a2_corridor_hold_and_drive_component(
-            components["hold_streak_ok"],
+            self._get_a2_door_income_hold_mask(),
             door_joint_vel[:, 0],
             self._get_a2_corridor_mask(),
             self._get_a2_stage3_stage4_hold_and_drive_velocity_norm(),
@@ -7255,6 +7822,59 @@ class DoorPregrasp(
             "z": axes[2],
         }
 
+    def _get_a2_reward_episode_sums_for_diagnostics(self, env_ids):
+        control_dt = getattr(self, "dt", None)
+        if (
+            isinstance(control_dt, bool)
+            or not isinstance(control_dt, (int, float))
+            or not math.isfinite(float(control_dt))
+            or float(control_dt) <= 0.0
+        ):
+            raise RuntimeError(
+                "A2 diagnostics requires positive finite control dt; "
+                f"got {control_dt!r}."
+            )
+        reward_scales = getattr(self, "reward_scales", None)
+        episode_sums = getattr(self, "episode_sums", None)
+        if (
+            reward_scales is None
+            or not hasattr(reward_scales, "keys")
+            or not isinstance(episode_sums, dict)
+        ):
+            raise RuntimeError(
+                "A2 diagnostics requires reward scales and an episode-sum dict."
+            )
+        reward_names = tuple(reward_scales.keys())
+        if (
+            not reward_names
+            or any(not isinstance(name, str) or not name for name in reward_names)
+            or len(set(reward_names)) != len(reward_names)
+        ):
+            raise RuntimeError(
+                f"A2 diagnostics requires unique reward names; got {reward_names}."
+            )
+        if set(episode_sums) != set(reward_names):
+            raise RuntimeError(
+                "A2 diagnostics reward episode-sum keys must exactly match active "
+                f"reward scales; sums={tuple(episode_sums)}, scales={reward_names}."
+            )
+        selected_episode_sums = {}
+        for name in reward_names:
+            values = episode_sums[name]
+            if (
+                not torch.is_tensor(values)
+                or tuple(values.shape) != (self.num_envs,)
+                or not values.is_floating_point()
+                or values.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(values))
+            ):
+                raise RuntimeError(
+                    "A2 diagnostics requires finite device-local episode sums "
+                    f"shape ({self.num_envs},) for reward {name!r}."
+                )
+            selected_episode_sums[name] = values[env_ids].detach().cpu().tolist()
+        return float(control_dt), selected_episode_sums
+
     def _get_a2_terminal_diagnostics(self, env_ids):
         env_ids = self._normalize_render_env_ids(env_ids)
         if not self._use_a2_base:
@@ -7511,6 +8131,9 @@ class DoorPregrasp(
         )
         terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
         v14_telemetry_fields = self._get_a2_v14_telemetry_fields(env_ids)
+        control_dt, selected_reward_episode_sums = (
+            self._get_a2_reward_episode_sums_for_diagnostics(env_ids)
+        )
 
         selected_stage_buf = self.stage_buf[env_ids].detach().cpu().tolist()
         selected_time_in_stage_buf = self.time_in_stage_buf[env_ids].detach().cpu().tolist()
@@ -7749,6 +8372,11 @@ class DoorPregrasp(
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
+                    "control_dt": control_dt,
+                    "reward_episode_sums": {
+                        name: float(values[idx])
+                        for name, values in selected_reward_episode_sums.items()
+                    },
                     "terminal_reasons": terminal_reasons[idx],
                     "door_hinge_joint_pos": float(selected_door_hinge_joint_pos[idx]),
                     "door_hinge_joint_vel": float(selected_door_hinge_joint_vel[idx]),
@@ -14012,6 +14640,11 @@ class DoorPregrasp(
             self._finish_a2_static_clamp(affected)
         if self._use_a2_base:
             self._a2_stage3_grasp_streak_highwater[env_ids] = False
+            self._a2_stage5_hold_continuation[env_ids] = False
+            self._a2_door_body_contact_event_active[env_ids] = False
+            self._a2_door_body_contact_event_peak[env_ids] = 0.0
+            self._a2_door_body_contact_event_pending[env_ids] = 0.0
+            self._a2_door_body_contact_event_emitted[env_ids] = 0.0
             self._a2_stage4_release_gate[env_ids] = False
             self._a2_root_x_ever_crossed[env_ids] = False
             self._a2_corridor_latched[env_ids] = False
@@ -14386,8 +15019,16 @@ class DoorPregrasp(
         walked_through_door = (
             self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]
         ) > 0.0
-        door_opened = self.simulator.scene.articulations["door"].data.joint_pos[:, 0] > 1.0472
-        handle_up = self.simulator.scene.articulations["door"].data.joint_pos[:, 1] < 0.2
+        door_joint_pos = self._get_door_joint_pos(
+            "stage4 to stage5 advance", 2
+        )
+        hinge_threshold = (
+            self._get_a2_stage4_to5_door_hinge_threshold()
+            if self._use_a2_base
+            else 1.0472
+        )
+        door_opened = door_joint_pos[:, 0] > hinge_threshold
+        handle_up = door_joint_pos[:, 1] < 0.2
         return walked_through_door & handle_up & door_opened
 
     def _stage_5_reward_condition(self):

@@ -57,6 +57,7 @@ rewards:
       a2_stage3_unlatch_hold: 0.0
       a2_stage3_stage4_hold_and_drive: 0.0
       a2_corridor_door_wide: 0.0
+      a2_corridor_clean_passage: 0.0
       a2_stage3_stage4_keep_close_command: 0.5
       penalty_a2_stage3_stage4_open_command: -1.0
       a2_stage3_stage4_both_contact: 0.5

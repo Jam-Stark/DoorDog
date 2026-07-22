@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-22 HKT
 
-Status: `RESEARCH_BRIEF / READ_ONLY_INPUT`。本文记录当前仓库事实、已知风险、云端调研问题与交付格式；它不是最终 camera 选型，也不授权修改仿真、训练或机器人资产。
+Status: `RESEARCH_BRIEF / CLOUD_REPORT_INTAKE / CONFIG_NOT_IMPLEMENTED`。本文记录当前仓库事实、云端调研结论、已采纳的设计约束与后续验证入口；它不是最终采购 BOM，也不表示 camera 配置、仿真资产或 Student observation 已经修改。
 
 ## 1. Destination 与停止条件
 
@@ -19,7 +19,7 @@ Status: `RESEARCH_BRIEF / READ_ONLY_INPUT`。本文记录当前仓库事实、�
 
 1. 核清当前 Camera/robot/task contract；
 2. 形成有来源的狗+臂平台、paper、project 与传感器对照表；
-3. 给出一个明确的推荐方案，以及一套最小单 camera、推荐双 camera、可选三 camera 方案；
+3. 给出明确的第一阶段单 camera 推荐，以及触发 wrist/双 camera 升级的证据门槛；三 camera 仅在第三视角具有独立价值时保留；
 4. 每套方案给出数量、安装 parent/link、位置、朝向、FoV/分辨率/帧率、型号候选、遮挡与集成代价；
 5. 明确哪些结论来自 source，哪些是推断，哪些仍需物理测量或仿真 sweep；
 6. 给出先验证 transform、再做 pose sweep、最后改 observation/model 的执行顺序。
@@ -37,6 +37,38 @@ Status: `RESEARCH_BRIEF / READ_ONLY_INPUT`。本文记录当前仓库事实、�
 | Local IsaacLab source pin | `/home/baoquanc/workspace/IsaacLab` at `c22775241e28f465fe345fa1a482ad6d29d712b0` |
 
 云端调研应优先使用 pinned commit 生成永久链接，再用 target branch 检查后续变动。`logs_rl/` 与 `logs_eval/` 被 Git ignore；远程仓库能看到 config、source 和 memory 结论，但看不到本地 checkpoint、MP4 与大体积 runtime artifacts。不得把“远程看不到 artifact”误写成“artifact 不存在”。
+
+### 2.1 Cloud report 归档与 intake decision
+
+Cloud Pro 返回的原始报告已按原文归档为 [`scriptsFORhuman/research_inputs/a2_piper_camera_cloud_pro_report_20260722.md`](research_inputs/a2_piper_camera_cloud_pro_report_20260722.md)，source SHA-256 为 `7432bded48ea950e74633d8460ab8aede84b4f3227bcf2145859f632cf276e8c`。归档文件是 research input，不是本仓库已经验证的 runtime 事实；本 brief 才记录当前采纳、修正和延后的决定。
+
+| Report item | Intake decision |
+|---|---|
+| 单个 trunk RGB/RGB-D overview camera，保持现有单 RGB Student contract | **采纳为第一阶段架构**。Student 仍只消费一个 `384×216` RGB stream；depth 只允许记录/诊断，不得静默进入 policy input。 |
+| Orbbec Gemini 335L | **采纳为 preferred prototype / sim-target candidate**，按下表的官方规格建立后续 camera config；尚不是最终采购或实机 bring-up PASS。 |
+| trunk 高位右偏安装、右偏 yaw/crop | **否决为 nominal design**。它会把当前 `right/out` 训练资产的偶然 handedness 固化到硬件；未来仿真与实机都必须覆盖 left/right-opening doors。 |
+| trunk 中心线安装 + left/right mirror-paired sweep | **采纳**。默认 `Y=0`、yaw `0°`，如测试偏置，必须同时测试符号相反的 lateral/yaw pair。 |
+| Gemini 305 wrist camera | **保留为第二阶段 upgrade candidate**。只有单 camera 在 left/right 镜像场景的近距 handle/gripper visibility gate 明确失败，才启动多视角 observation/model 设计。 |
+| R14 transform probe | **保持 blocking prerequisite**。transform chain 未数值闭合前，不把任何 pose seed 写成 final pose。 |
+| `j8 open-limit <10%` 作为 camera hard gate | **不采纳**。`v13_A` Teacher 本身为 `14.151%`，该项只能作为 inherited Teacher guardrail/non-regression diagnostic，不能单独否决 camera。 |
+| 单个 16-env batch 的百分比提升阈值 | **不采纳为最终统计门槛**。后续行为对比必须使用预先声明的 multi-seed/episode matrix，并报告 paired counts 与不确定性。 |
+
+### 2.2 已批准的 hardware target specs
+
+以下是后续 camera config 与实机候选筛选的 source-backed target，不是端到端实测吞吐、延迟或深度质量保证。
+
+| Field | Gemini 335L preferred trunk candidate | Gemini 305 optional wrist candidate |
+|---|---|---|
+| RGB | up to `1280×800 @ 60 fps` | up to `1280×800 @ 60 fps` |
+| RGB FoV | `94° H × 68° V` | `94° H × 68° V` |
+| Shutter | global-shutter sensors | global-shutter stereo color |
+| Depth | up to `1280×800 @ 30 fps`; `0.17–20 m+`, optimal `0.25–6 m` | up to `1280×800 @ 30 fps`; `0.04–1 m+`, ideal `0.07–0.5 m` |
+| Mass / size | `133 g`; `124×29×27 mm` | `68 g`; `42×42×23 mm` |
+| Power / ingress | average `<3 W`; `IP65` | average `<2 W`; `IP54` |
+| Integration-relevant features | USB 3 Type-C, IMU, trigger, multi-device synchronization | hardware/software trigger; compact wrist-oriented form factor |
+| Official source | [Orbbec Gemini 335L](https://www.orbbec.com/products/stereo-vision-camera/gemini-335l/) | [Orbbec Gemini 305](https://www.orbbec.com/gemini-305/) |
+
+For the approved one-camera target, the acquisition path is `1280×800 @ 60 fps` RGB capture, calibrated/undistorted **centered** `1280×720` crop, then resize to `384×216` for the current Student. No handle-side-biased crop is allowed. The native `94°×68°` RGB FoV does not remain unchanged after a 16:9 crop; exact effective intrinsics/FoV must be calculated from the calibrated cropped stream. Capture rate, transport rate, inference rate and 50 Hz control rate remain separate quantities and require runtime measurement.
 
 ## 3. 当前 Student perception contract
 
@@ -148,8 +180,8 @@ The names “A2” and “Piper” do not by themselves prove the exact commerci
 | Door root target | `[2.0,0.0,0.5]` |
 | Door width/height range | `0.8–1.1 m / 1.9–2.2 m` |
 | Handle height range | `0.85–0.95 m` in the current scenario |
-| Door opening side/direction | right / out in the current scenario |
-| Current staging band | X `0.55–0.60 m`, Y tolerance `0.15 m` |
+| Door opening side/direction | fixed `right / out` in the current source scenario; first future handedness extension is mirrored `left / out` |
+| Current stage0 staging offset | `0.70 m` behind the handle-relative grasp target along X |
 | Grasp target prim | `door/grasp_target` |
 | Contact target | `door/door_handle` |
 | Virtual Piper TCP offset | local Z `0.085 m` |
@@ -163,6 +195,18 @@ Camera coverage must be evaluated across the complete sequence, not only at rese
 4. handle retention while the door rotates;
 5. door frame, opening corridor and body/arm collision context while the base moves;
 6. A2 pitch/roll/yaw and locomotion vibration.
+
+### 4.3 Left/right symmetry contract
+
+The current `right/out` asset is a source baseline, not a camera-mount requirement. Future `door_open_lr=["left","right"]` randomization mirrors the hinge/handle side, and real deployments must encounter both handednesses. Camera design therefore obeys these constraints:
+
+- Nominal physical mount lies on the trunk sagittal centerline (`Y=0`) with zero nominal yaw. A fixed right- or left-offset mount is not accepted merely because it performs well on the current one-sided asset.
+- The first documentation-level search seed is parent `trunk`, optical-frame position `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0.0,-0.052335956,0.0] wxyz`, convention `world`. This is an **unimplemented pose-search seed**, not a final transform.
+- The preferred frame chain is `trunk -> mechanical_mount -> calibrated_optical_frame -> sensor(identity)`. `sensor(identity)` is valid only after the measured housing-to-optical correction is represented by `calibrated_optical_frame`.
+- Pose sweeps start from the centerline seed. Optional lateral/yaw ablations must be mirror pairs: `(+Y,+yaw)` and `(-Y,-yaw)` with identical X/Z/pitch, evaluated on identical mirrored state sets.
+- First symmetry validation covers current `right/out` and mirrored `left/out`. `in/out` push/pull is a separate task-semantics expansion and is not silently included in this camera brief.
+- Cropping, augmentation, visibility masks and score regions must also be left/right symmetric. No fixed crop may privilege the handle side in the current right-only asset.
+- A recommendation cannot be frozen while either handedness systematically loses handle/gripper visibility or behavior. Report per-handedness results and the paired gap rather than hiding it in an aggregate mean.
 
 ## 5. Known camera evidence and unresolved blockers
 
@@ -280,7 +324,7 @@ Every recommended onboard camera must include:
 - mechanical bracket and cable constraints;
 - calibration procedure.
 
-The report should propose a pose-search envelope, not only one magic pose. A useful sweep should vary forward/up/lateral offset, pitch and optionally yaw, then score multiple robot/door states. Include at least reset, staging, pregrasp, close, unlatch, wide-open and doorway-traversal states.
+The report should propose a pose-search envelope, not only one magic pose. A useful sweep should vary forward/up/lateral offset, pitch and optionally yaw, then score multiple robot/door states. The nominal pose must be centerline/symmetric; every non-zero lateral/yaw candidate must have a mirror-paired counterpart. Include at least reset, staging, pregrasp, close, unlatch, wide-open and doorway-traversal states for both `right/out` and mirrored `left/out`.
 
 ## 7. Recommended decision criteria
 
@@ -295,6 +339,7 @@ A recommendation fails if any of the following is unresolved:
 - proposed mass/mount/cable/power is not physically feasible;
 - hardware stream cannot meet the chosen control/inference latency budget;
 - the proposal silently changes one-camera Student input into multi-camera input without stating model/training cost.
+- the nominal mount, crop or validation set is biased to the current right-opening asset and has no mirrored left-opening evidence.
 
 ### 7.2 Ranking dimensions
 
@@ -338,8 +383,10 @@ Read these paths at the pinned commit:
 | `v13_A` config | `gr00t/rl/config/ablation/wbmanip/base_v13_A_main.yaml` |
 | `v13_A` behavior/eval evidence | `memory/a2-piper/push-open-door-optimization/description.md` and `DONE.md` |
 | Student camera R13–R15 evidence | `memory/a2-piper/phase2-student-distillation-a2-piper/description.md`, `TODO.md`, `DONE.md` |
+| Door handedness/randomization baseline | `memory/a2-piper/door-asset-randomization-baseline/description.md` |
 | Historical multi-camera eval facts | `memory/a2-piper/stage0-2-grasp-terminal/description.md` |
 | G1→A2 design map | `scriptsFORhuman/g1_doorman_policy_stack_a2_adaptation_map.md` |
+| Archived Cloud Pro research input | `scriptsFORhuman/research_inputs/a2_piper_camera_cloud_pro_report_20260722.md` |
 
 Important artifact boundary:
 
@@ -402,18 +449,21 @@ Use the following prompt verbatim or attach this brief and use the shortened fir
 > - `gr00t/rl/config/ablation/wbmanip/base_v13_A_main.yaml`
 > - `memory/a2-piper/push-open-door-optimization/description.md`
 > - `memory/a2-piper/phase2-student-distillation-a2-piper/description.md`, `TODO.md`, `DONE.md`
+> - `memory/a2-piper/door-asset-randomization-baseline/description.md`
 > - `memory/a2-piper/stage0-2-grasp-terminal/description.md`
 > - `scriptsFORhuman/g1_doorman_policy_stack_a2_adaptation_map.md`
 >
 > Repo baseline to verify, not blindly repeat: current deployable Student uses one programmatically spawned trunk camera at local position `[0.25,0,0.14] m` and quaternion `[0.315631686,0.134503192,-0.390177116,-0.854428083] wxyz`, convention `world`, RGB-only `384×216`, about `69.4°×42.5°` FoV, clipping `0.1–20 m`. The Student contract is `81D proprio + RGB -> 12D`. The three `main/handle_top/handle_side` cameras are external eval views, not onboard Student inputs. The A2+Piper robot has 20 DoF; Piper is fixed to `trunk` at `[0.145,0,0.154] m`, so arm/camera self-occlusion is critical.
 >
+> Current decision to respect: the first-stage preferred candidate is one trunk-mounted Orbbec Gemini 335L, using source capability `1280×800@60 fps` RGB and a calibrated centered 16:9 crop/resize to the existing `384×216` Student input. Its nominal mount must be trunk-centerline `Y=0`, yaw `0°`; `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0,-0.052335956,0] wxyz` is only an unimplemented search seed. Gemini 305 is an optional wrist-camera upgrade only if the one-camera mirrored visibility gate fails.
+>
 > Treat the current transform as unresolved. R14 found a `0.859750361 m` mismatch between `CameraData.pos_w` and the expected trunk+offset transform. Check the exact IsaacLab API and note that current `CameraCfg` defaults `update_latest_camera_pose=false`; this is a hypothesis, not a proven root cause. Recommend no pose tuning until a same-step parent/sensor transform probe resolves it.
 >
 > Then search primary sources for existing quadruped/dog + arm platforms, papers and projects. For each, capture platform/arm, task, camera count, onboard vs wrist/external placement, parent frame, pose/angle, model, modality, FoV, resolution, fps, minimum depth, shutter, synchronization and how vision is used. Use official docs, repo calibration/URDF/launch files and papers before videos. Never infer exact parameters from a photo; use `UNKNOWN`.
 >
-> Compare at least four architectures: (1) one trunk/head RGB or RGB-D camera, (2) trunk overview + wrist close-range camera, (3) two complementary fixed onboard cameras, and (4) three cameras only if the third has demonstrated value. Candidate sensor search seeds may include RealSense D405/D435i/D455, OAK-D, ZED Mini/2i and Orbbec Gemini, but do not recommend by brand familiarity. Compare near-field handle depth, FoV, shutter/motion blur, vibration, active-IR interference, synchronization, mass, size, power, heat, cabling, bandwidth, driver maturity, availability and Isaac Sim/ROS integration.
+> Compare at least four architectures: (1) one trunk/head RGB or RGB-D camera, (2) trunk overview + wrist close-range camera, (3) two complementary fixed onboard cameras, and (4) three cameras only if the third has demonstrated value. Treat Gemini 335L as the selected first-stage target and Gemini 305 as the optional wrist candidate; evaluate RealSense D405/D435i/D455, OAK-D and ZED Mini/2i only as alternatives or evidence that could reverse the choice. Compare near-field handle depth, FoV, shutter/motion blur, vibration, active-IR interference, synchronization, mass, size, power, heat, cabling, bandwidth, driver maturity, availability and Isaac Sim/ROS integration.
 >
-> Analyze visibility at reset/approach, staging, pregrasp, finger close, unlatch, wide-open and doorway traversal. Cover the current door range: width `0.8–1.1 m`, height `1.9–2.2 m`, handle height `0.85–0.95 m`, right/out opening. Account for 50 Hz high-level control, A2 pitch/roll/gait vibration, Piper sweep and door swing.
+> Analyze visibility at reset/approach, staging, pregrasp, finger close, unlatch, wide-open and doorway traversal. Cover the current door range: width `0.8–1.1 m`, height `1.9–2.2 m`, handle height `0.85–0.95 m`. The source scenario is fixed `right/out`, but the camera design and validation matrix must include mirrored `left/out`; do not bias the physical mount, yaw or crop to the current handle side. Account for 50 Hz high-level control, A2 pitch/roll/gait vibration, Piper sweep and door swing.
 >
 > Give a concrete recommendation, not only a survey. Provide:
 >

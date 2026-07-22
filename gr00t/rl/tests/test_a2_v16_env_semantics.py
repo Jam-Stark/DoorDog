@@ -25,16 +25,24 @@ V16_CONFIG = ROOT / "gr00t/rl/config/ablation/wbmanip/base_v16_main.yaml"
 
 
 class _FakeDoorSpawnerCfg:
-    def __init__(self, door_handle_tblr, rand_door_handle_height=None, door_weight=(80.0, 120.0)):
+    def __init__(
+        self,
+        door_handle_tblr,
+        rand_door_handle_height=None,
+        door_weight=(80.0, 120.0),
+        rand_door_weight=None,
+    ):
         self.door_handle_tblr = door_handle_tblr
         self.rand_door_handle_height = rand_door_handle_height
         self.door_weight = door_weight
+        self.rand_door_weight = rand_door_weight
 
     def replace(self, **kwargs):
         return _FakeDoorSpawnerCfg(
             kwargs.get("door_handle_tblr", self.door_handle_tblr),
             kwargs.get("rand_door_handle_height", self.rand_door_handle_height),
             kwargs.get("door_weight", self.door_weight),
+            kwargs.get("rand_door_weight", self.rand_door_weight),
         )
 
 
@@ -69,7 +77,16 @@ def _env_helpers():
 
 def _scenario_helpers():
     tree = ast.parse(SCENARIO_SOURCE.read_text(encoding="utf-8"))
-    names = {"_build_eval_door_handle_height_grid", "_validate_eval_door_handle_height_task_obj_cfg", "_validate_door_weight_range", "_apply_door_weight_range", "get_TaskObjCfgDict_for_eval_door_handle_height_linspace", "get_TaskObjCfgDict_for_door_config"}
+    names = {
+        "_build_eval_door_handle_height_grid",
+        "_validate_eval_door_handle_height_task_obj_cfg",
+        "_validate_door_weight_range",
+        "_validate_eval_door_handle_height_weight_pairs",
+        "_apply_door_weight_range",
+        "get_TaskObjCfgDict_for_eval_door_handle_height_linspace",
+        "get_TaskObjCfgDict_for_eval_door_handle_height_weight_pairs",
+        "get_TaskObjCfgDict_for_door_config",
+    }
     nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name in names]
     namespace = {"DoorSpawnerCfg": _FakeDoorSpawnerCfg, "Real": Real, "Sequence": Sequence, "math": math, "np": np, "sim_utils": SimpleNamespace(MultiAssetSpawnerCfg=_FakeMultiAssetSpawnerCfg)}
     exec(compile(ast.Module(body=nodes, type_ignores=[]), str(SCENARIO_SOURCE), "exec"), namespace)
@@ -140,6 +157,75 @@ def test_mass_override_composes_with_height_grid_and_rejects_invalid_ranges():
             helpers["_validate_door_weight_range"](invalid)
 
 
+def test_explicit_height_weight_pairs_are_ordered_high_level_and_fail_fast():
+    helpers = _scenario_helpers()
+    base = _FakeDoorSpawnerCfg((1.10, 0.80, 0.08, 0.15))
+    task = {"door": _FakeDoorCfg(_FakeMultiAssetSpawnerCfg([base] * 4, False))}
+    helpers["TaskObjCfgDict"] = task
+    pairs = [[0.80, 80.0], [0.80, 160.0], [1.10, 80.0], [1.10, 160.0]]
+    result = helpers["get_TaskObjCfgDict_for_door_config"](
+        4,
+        {
+            "a2_door_weight_range": [80.0, 160.0],
+            "a2_eval_door_handle_height_weight_pairs": pairs,
+        },
+    )
+    assets = result["door"].spawn.assets_cfg
+    assert result["door"].spawn.random_choice is False
+    assert [
+        (asset.rand_door_handle_height, asset.rand_door_weight) for asset in assets
+    ] == [tuple(pair) for pair in pairs]
+    assert all(asset.door_weight == (80.0, 160.0) for asset in assets)
+    assert task["door"].spawn.assets_cfg[0].door_weight == (80.0, 120.0)
+    assert task["door"].spawn.assets_cfg[0].rand_door_handle_height is None
+    assert task["door"].spawn.assets_cfg[0].rand_door_weight is None
+
+    invalid_pairs = (
+        None,
+        "0.80,80.0",
+        pairs[:3],
+        [[0.80], *pairs[1:]],
+        [[True, 80.0], *pairs[1:]],
+        [[0.80, True], *pairs[1:]],
+        [[float("nan"), 80.0], *pairs[1:]],
+        [[0.80, float("inf")], *pairs[1:]],
+        [[0.79, 80.0], *pairs[1:]],
+        [[1.11, 80.0], *pairs[1:]],
+        [[0.80, 79.0], *pairs[1:]],
+        [[0.80, 161.0], *pairs[1:]],
+    )
+    for invalid in invalid_pairs:
+        with pytest.raises((TypeError, ValueError)):
+            helpers["get_TaskObjCfgDict_for_door_config"](
+                4,
+                {
+                    "a2_door_weight_range": [80.0, 160.0],
+                    "a2_eval_door_handle_height_weight_pairs": invalid,
+                },
+            )
+    with pytest.raises(ValueError, match="mutually exclusive"):
+        helpers["get_TaskObjCfgDict_for_door_config"](
+            4,
+            {
+                "a2_door_weight_range": [80.0, 160.0],
+                "a2_eval_door_handle_height_linspace": [0.80, 1.10],
+                "a2_eval_door_handle_height_weight_pairs": pairs,
+            },
+        )
+    with pytest.raises(ValueError, match="weight must stay within"):
+        helpers["get_TaskObjCfgDict_for_door_config"](
+            4,
+            {"a2_eval_door_handle_height_weight_pairs": pairs},
+        )
+    for invalid_num_envs in (True, 0, -1, 4.0):
+        with pytest.raises((TypeError, ValueError)):
+            helpers["get_TaskObjCfgDict_for_eval_door_handle_height_weight_pairs"](
+                invalid_num_envs,
+                pairs,
+                task_obj_cfg_dict=task,
+            )
+
+
 def test_latched_trace_fields_and_reset_source_are_explicit():
     source = ENV_SOURCE.read_text(encoding="utf-8")
     assert '"door_hinge_joint_vel"' in source
@@ -158,3 +244,11 @@ def test_simulator_routes_mass_selector_hook():
     cfg = {"a2_door_weight_range": [80.0, 160.0]}
     assert namespace["_get_task_obj_cfg_dict_for_door_eval"](module, cfg, 16) is expected
     assert calls == [(16, cfg)]
+    pair_cfg = {
+        "a2_eval_door_handle_height_weight_pairs": [
+            [0.80, 80.0],
+            [0.80, 120.0],
+        ]
+    }
+    assert namespace["_get_task_obj_cfg_dict_for_door_eval"](module, pair_cfg, 2) is expected
+    assert calls[-1] == (2, pair_cfg)

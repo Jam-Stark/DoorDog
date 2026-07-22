@@ -107,6 +107,96 @@ def _validate_door_weight_range(value: Sequence[Real]) -> tuple[float, float]:
     return low, high
 
 
+def _validate_eval_door_handle_height_weight_pairs(
+    pairs: Sequence[Sequence[Real]],
+    num_envs: int,
+    door_handle_tblr: Sequence[Real],
+    door_weight_range: Sequence[Real],
+) -> tuple[tuple[float, float], ...]:
+    """Validate one explicit handle-height and door-weight pair per eval env."""
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int):
+        raise TypeError(f"num_envs must be an integer, got {num_envs!r}")
+    if num_envs < 1:
+        raise ValueError(f"num_envs must be positive, got {num_envs}")
+    if isinstance(pairs, (str, bytes)) or not isinstance(pairs, Sequence):
+        raise TypeError(
+            "a2_eval_door_handle_height_weight_pairs must be a sequence of pairs"
+        )
+    if len(pairs) != num_envs:
+        raise ValueError(
+            "a2_eval_door_handle_height_weight_pairs must contain exactly one "
+            f"pair per environment: expected {num_envs}, got {len(pairs)}"
+        )
+
+    if (
+        isinstance(door_handle_tblr, (str, bytes))
+        or not isinstance(door_handle_tblr, Sequence)
+        or len(door_handle_tblr) != 4
+    ):
+        raise ValueError(
+            "door_handle_tblr must contain four values, "
+            f"got {door_handle_tblr!r}"
+        )
+    if any(
+        isinstance(bound, bool) or not isinstance(bound, Real)
+        for bound in door_handle_tblr[:2]
+    ):
+        raise TypeError("door_handle_tblr height bounds must be real numbers")
+    height_upper, height_lower = (
+        float(bound) for bound in door_handle_tblr[:2]
+    )
+    if (
+        not math.isfinite(height_upper)
+        or not math.isfinite(height_lower)
+        or height_lower >= height_upper
+    ):
+        raise ValueError(
+            "door_handle_tblr height bounds are invalid: "
+            f"{door_handle_tblr!r}"
+        )
+    weight_lower, weight_upper = _validate_door_weight_range(door_weight_range)
+
+    validated = []
+    for index, pair in enumerate(pairs):
+        if isinstance(pair, (str, bytes)) or not isinstance(pair, Sequence):
+            raise TypeError(
+                "a2_eval_door_handle_height_weight_pairs"
+                f"[{index}] must be a two-value sequence"
+            )
+        if len(pair) != 2:
+            raise ValueError(
+                "a2_eval_door_handle_height_weight_pairs"
+                f"[{index}] must contain exactly two values"
+            )
+        if any(
+            isinstance(value, bool) or not isinstance(value, Real) for value in pair
+        ):
+            raise TypeError(
+                "a2_eval_door_handle_height_weight_pairs"
+                f"[{index}] values must be real numbers"
+            )
+        height, weight = (float(value) for value in pair)
+        if not math.isfinite(height) or not math.isfinite(weight):
+            raise ValueError(
+                "a2_eval_door_handle_height_weight_pairs"
+                f"[{index}] values must be finite"
+            )
+        if not height_lower <= height <= height_upper:
+            raise ValueError(
+                "a2_eval_door_handle_height_weight_pairs"
+                f"[{index}] height must stay within [{height_lower}, {height_upper}], "
+                f"got {height}"
+            )
+        if not weight_lower <= weight <= weight_upper:
+            raise ValueError(
+                "a2_eval_door_handle_height_weight_pairs"
+                f"[{index}] weight must stay within [{weight_lower}, {weight_upper}], "
+                f"got {weight}"
+            )
+        validated.append((height, weight))
+    return tuple(validated)
+
+
 def _apply_door_weight_range(
     task_obj_cfg_dict: dict, door_weight_range: Sequence[Real]
 ) -> dict:
@@ -229,17 +319,76 @@ def get_TaskObjCfgDict_for_eval_door_handle_height_linspace(
     return _validate_eval_door_handle_height_task_obj_cfg(result, heights)
 
 
+def get_TaskObjCfgDict_for_eval_door_handle_height_weight_pairs(
+    num_envs: int,
+    pairs: Sequence[Sequence[Real]],
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Return ordered deterministic door configs for explicit eval extrema pairs."""
+    base_task_obj_cfg_dict = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base_task_obj_cfg_dict, dict):
+        raise TypeError(
+            "TaskObjCfgDict must be a dict, "
+            f"got {type(base_task_obj_cfg_dict).__name__}"
+        )
+    if "door" not in base_task_obj_cfg_dict:
+        raise ValueError("TaskObjCfgDict must contain the 'door' object")
+
+    door_cfg = base_task_obj_cfg_dict["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("base door spawn configuration must be MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("base door MultiAssetSpawnerCfg.assets_cfg must be non-empty")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("base door assets_cfg[0] must be DoorSpawnerCfg")
+
+    validated_pairs = _validate_eval_door_handle_height_weight_pairs(
+        pairs,
+        num_envs,
+        base_door_cfg.door_handle_tblr,
+        base_door_cfg.door_weight,
+    )
+    variants = [
+        base_door_cfg.replace(
+            rand_door_handle_height=height,
+            rand_door_weight=weight,
+        )
+        for height, weight in validated_pairs
+    ]
+    ordered_spawn_cfg = spawn_cfg.replace(
+        assets_cfg=variants,
+        random_choice=False,
+    )
+    result = dict(base_task_obj_cfg_dict)
+    result["door"] = door_cfg.replace(spawn=ordered_spawn_cfg)
+    return result
+
+
 def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    height_grid_key = "a2_eval_door_handle_height_linspace"
+    height_weight_pairs_key = "a2_eval_door_handle_height_weight_pairs"
+    if height_grid_key in env_config and height_weight_pairs_key in env_config:
+        raise ValueError(
+            f"{height_grid_key} and {height_weight_pairs_key} are mutually exclusive"
+        )
     result = TaskObjCfgDict
     if "a2_door_weight_range" in env_config:
         result = _apply_door_weight_range(result, env_config["a2_door_weight_range"])
-    if "a2_eval_door_handle_height_linspace" in env_config:
+    if height_weight_pairs_key in env_config:
+        result = get_TaskObjCfgDict_for_eval_door_handle_height_weight_pairs(
+            num_envs,
+            env_config[height_weight_pairs_key],
+            task_obj_cfg_dict=result,
+        )
+    elif height_grid_key in env_config:
         result = get_TaskObjCfgDict_for_eval_door_handle_height_linspace(
             num_envs,
-            env_config["a2_eval_door_handle_height_linspace"],
+            env_config[height_grid_key],
             task_obj_cfg_dict=result,
         )
     return result

@@ -118,6 +118,28 @@ bash gr00t/rl/scripts/generate_1000_doors.sh /my/path    # custom output dir
 
 * Teacher artifact validator: `validate_a2_teacher_checkpoint.py`
 * Import-safe static camera contract validator: `smoke_a2_student_camera.py` (runtime QA uses a separate approved entrypoint)
+* Same-step R14 camera transform probe: `probe_a2_student_camera_transform.py`
+
+Run the R14 probe on one visible GPU. It launches exactly one A2 door environment,
+advances two physics steps after reset, and compares the same-step trunk body tensor,
+trunk prim, configured camera offset, camera prim, cached `CameraData`, and a temporary
+`update_latest_camera_pose=True` refresh. The camera setting is restored before evidence
+is sealed, and the JSON is written before `SimulationApp.close()`:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 \
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python \
+gr00t/rl/scripts/probe_a2_student_camera_transform.py \
+--device cuda:0 \
+--output /tmp/a2_student_camera_transform_probe.json
+```
+
+The output path must not already exist. `PASS` means the live transform chain closes
+within the declared tolerances and the default `CameraData` pose is proven to be the
+stale initialization pose; a non-reproduced stale gap is `INCONCLUSIVE`, not PASS.
+In the currently pinned Kit, `SimulationApp.close()` may not return after the sealed
+marker. R16 remains open; if cleanup is required, terminate only the exact probe PID
+after `[R14_EVIDENCE_SEALED]`, never another Isaac Sim process.
 
 For the first approved one-update GPU smoke, launch the A2 route with a fresh
 dedicated `experiment_dir`. This uses four environments, one rollout step,

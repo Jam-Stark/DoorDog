@@ -2,7 +2,7 @@
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
 status: TRAINING_PASS
-last_updated: 2026-07-15 17:17 HKT
+last_updated: 2026-07-22 15:36 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-15 17:17 HKT: `TRAINING_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`。
+Status at 2026-07-22 15:36 HKT: `TRAINING_PASS`，且 R14 camera transform root cause 已由 same-step GPU probe 数值关闭。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
@@ -46,15 +46,27 @@ The stable checkpoint save occurred before Kit became silent for `207s`. At `17:
 
 Independent full-architecture strict reconstruction is `PARTIAL/NOT_RUN`: saved unresolved `${hydra:...}` fails outside Hydra with `UnsupportedInterpolationType: hydra`. The checkpoint was emitted by the live model and the policy tensors, optimizer state, and training state were sealed; candidate strict-loader behavior remains statically tested. Do not promote this to an independent architecture reload PASS.
 
+## R14 Camera Transform Resolution
+
+2026-07-22 的专用 `probe_a2_student_camera_transform.py` 在物理 GPU1（`CUDA_VISIBLE_DEVICES=1`，logical `cuda:0`）对一个 env reset 后的同一 physics step 同时采集 `robot.data` trunk、reset 前已初始化的 trunk `XformPrimView`、`TiledCamera` 自身已初始化的 camera `XformPrimView`、configured local offset、cached `CameraData` 与临时 `update_latest_camera_pose=True` 的强制刷新。sealed evidence `/tmp/a2_student_camera_transform_probe_r14_20260722_v3.json` SHA256 为 `d9e32ddaad4037f448cba8fdcdc03f2a69cb1d1ad5f10cb77bc3903ddd60d384`。
+
+- `robot.data` trunk 对 live trunk prim position error `0.0m`、orientation error `9.1292371e-08rad`。
+- camera local pose 对 configured `[0.25,0,0.14]` / world-convention quaternion 的 position error `0.0m`、orientation error `8.1713388e-08rad`。
+- live camera prim 对 trunk+configured-offset expected transform 的 position error `0.0m`、orientation error `2.0803985e-07rad`。
+- 默认 cached `CameraData` 对 live camera prim position error `0.8946629167m`；同一 physics step 内临时开启 pose update 并 `camera.update(dt=0, force_recompute=True)` 后，position error `0.0m`、orientation error `1.3485386e-07rad`，sensor frame 只增加一帧且 physics step counter 不变；flag 随后恢复为 `false`。
+
+因此 R14 root cause 是 IsaacLab `CameraCfg.update_latest_camera_pose=false` 下 `CameraData` 保留初始化 pose，不是 camera parent、configured offset 或 quaternion convention 错误。诊断必须复用 `TiledCamera` 自身已经初始化的 camera `XformPrimView`；为同一 camera path 新建第二个 view 会触发一次 authored USD→Fabric sync 并污染 live diagnostic。该结论不决定最终 camera pose/mount，也不授权修改 Student observation 或 camera config。evidence 在 `SimulationApp.close()` 前 seal；close 仍未返回，之后只 TERM exact probe PID，故 R16 lifecycle 仍未通过。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
 
-G1 compatibility/regression, R16 lifecycle perfection, final camera pose/mount and transform-root-cause investigation, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for this completed scope. They must be separately approved and validated before any future claim about those outcomes.
+G1 compatibility/regression, R16 lifecycle perfection, final camera pose/mount, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for this completed scope. They must be separately approved and validated before any future claim about those outcomes.
 
 ## TODO Summary
 
 - 2026-07-15 17:17 HKT - Current accepted one-update A2+Piper Student Distillation goal is complete at `TRAINING_PASS`; optional future tuning/validation is non-blocking and requires separate scope/approval.
+- 2026-07-22 15:36 HKT - R14 transform root cause is closed; final camera pose/mount remains separately deferred.
 
 ## DONE Summary
 
@@ -62,6 +74,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final camera pose/mount a
 - 2026-07-14 23:21 HKT - Immutable non-`last.pt` Teacher checkpoint/config/manifest triplet sealed and identity-validated; this alone did not claim Teacher runtime load.
 - 2026-07-14/15 HKT - R13/R14/R15 camera/lifecycle attempts recorded `FAIL_TIMEOUT` / `FAIL_FINAL_SEAL` / `FAIL_EVIDENCE_SERIALIZATION`; these are preserved historical lifecycle facts, not training success.
 - 2026-07-15 17:17 HKT - `TRAINING_PASS`: one real GPU0 Student Distillation update completed and sealed as `model_step_000001.pt`; lifecycle cleanup and independent strict reconstruction limitations are explicitly bounded above.
+- 2026-07-22 15:36 HKT - `R14_STALE_INITIALIZATION_POSE_CONFIRMED`: same-step GPU probe closed parent/local-offset/live-camera transforms and isolated the large mismatch to default cached `CameraData`; camera config was unchanged and R16 remains open.
 
 ## Recommended Next Files To Read
 

@@ -2,20 +2,20 @@
 
 Last updated: 2026-07-22 HKT
 
-Status: `CLOUD_REPORT_ARCHIVED / R14_RESOLVED / SINGLE_CAMERA_POSE_SWEEP_COMPLETE / PHYSICAL_MOUNT_DEFERRED`。本文记录当前仓库事实、云端调研结论、已采纳的设计约束与后续验证入口；它不是最终采购 BOM，也不表示 Student observation 已经修改或实物 camera mount 已经冻结。
+Status: `CLOUD_REPORT_ARCHIVED / R14_RESOLVED / V16B_STAGE1_5_SWEEP_COMPLETE / NEXT_SEARCH_CENTER_X_NEAR_028 / PHYSICAL_MOUNT_DEFERRED`。本文记录当前仓库事实、云端调研结论、已采纳的设计约束与后续验证入口；它不是最终采购 BOM，也不表示 Student observation 已经修改或实物 camera mount 已经冻结。
 
 ## 1. Destination 与停止条件
 
-本调研服务于 A2 四足底盘 + Piper 单臂的视觉 Student distillation。目标不是笼统寻找“最好的相机”，而是给出一套能支持 Student 模仿 `base_v13_A` 已观察到的开门行为、且具有实机可落地性的 camera 方案。
+本调研服务于 A2 四足底盘 + Piper 单臂的视觉 Student distillation。最初目标是覆盖 `base_v13_A` 的 intermediate opening behavior；现在主线已有能执行完整推门序列的 `base_v16_B` checkpoint，因此当前 camera 评测 driver 和可见性目标已经扩展到完整 stage1–5。`v13_A` 仍是本蒸馏分支的历史 provenance，不再是当前 pose ranking 的唯一行为上界。
 
 准确的行为目标是：
 
 - 从门前接近并对准 handle；
 - 观察 Piper gripper 与 handle 的相对关系，完成接近、闭合和持续双侧夹持；
 - 在 A2 姿态变化、Piper 运动和门扇转动时继续保留关键视觉线索；
-- 模仿 `v13_A` 的 intermediate opening behavior：持续夹持并推动门，而不是虚报完整穿门成功。
+- 在 stage5 穿门阶段继续观察 opening corridor、门框、门扇和相关碰撞上下文，而不只优化 grasp/open 阶段。
 
-`v13_A` 的现有 seed0 evidence 是 `0/16 goal`、`16/16 stage4`、`4/16 stage5`，hinge terminal p50 约 `1.276 rad`。它证明门运动和持续双侧夹持有明显突破，但不是 full-success policy，也不是统计意义上的最终 winner。因此 camera 调研的 stopping condition 是：
+历史 `v13_A` seed0 evidence 是 `0/16 goal`、`16/16 stage4`、`4/16 stage5`，hinge terminal p50 约 `1.276 rad`。当前正式 camera sweep 使用 `base_v16_B`；本次 16-env seed0 rollout 为 `15/16 goal`，其中 env0 在 stage0 overtime、其余 env 到达 stage5。单次 rollout 仍不是统计意义上的最终 winner。因此 camera 调研的 stopping condition 是：
 
 1. 核清当前 Camera/robot/task contract；
 2. 形成有来源的狗+臂平台、paper、project 与传感器对照表；
@@ -31,12 +31,14 @@ Status: `CLOUD_REPORT_ARCHIVED / R14_RESOLVED / SINGLE_CAMERA_POSE_SWEEP_COMPLET
 | Remote repository | https://github.com/Jam-Stark/DoorDog |
 | Target branch | `codex/a2-v13-student-distillation-20260717_2103` |
 | Remote branch URL | https://github.com/Jam-Stark/DoorDog/tree/codex/a2-v13-student-distillation-20260717_2103 |
-| Pinned source commit | `843795013329d9478634c6d87db9756210a311ba` |
-| Pinned source URL | https://github.com/Jam-Stark/DoorDog/tree/843795013329d9478634c6d87db9756210a311ba |
+| Cloud-report research pin | `843795013329d9478634c6d87db9756210a311ba` |
+| Cloud-report pinned URL | https://github.com/Jam-Stark/DoorDog/tree/843795013329d9478634c6d87db9756210a311ba |
+| V16 camera-sweep overlay base | `ca67daa76549f8983f6b04c9e1fe5f9734619a80` in the dedicated worktree |
+| V16 Teacher runtime pin | `815b367f5de2a52b26a4b872d0457af8817d01bd` in `/home/baoquanc/workspace/DoorDog-A2_Piper` |
 | Dedicated local worktree | `/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103` |
 | Local IsaacLab source pin | `/home/baoquanc/workspace/IsaacLab` at `c22775241e28f465fe345fa1a482ad6d29d712b0` |
 
-云端调研应优先使用 pinned commit 生成永久链接，再用 target branch 检查后续变动。`logs_rl/` 与 `logs_eval/` 被 Git ignore；远程仓库能看到 config、source 和 memory 结论，但看不到本地 checkpoint、MP4 与大体积 runtime artifacts。不得把“远程看不到 artifact”误写成“artifact 不存在”。
+云端调研应优先使用 cloud-report research pin 生成永久链接，再用 target branch 检查后续变动。`logs_rl/` 与 `logs_eval/` 被 Git ignore；远程仓库能看到 config、source 和 memory 结论，但看不到本地 checkpoint、MP4 与大体积 runtime artifacts。不得把“远程看不到 artifact”误写成“artifact 不存在”。
 
 ### 2.1 Cloud report 归档与 intake decision
 
@@ -203,14 +205,14 @@ Camera coverage must be evaluated across the complete sequence, not only at rese
 The current `right/out` asset is a source baseline, not a camera-mount requirement. Future `door_open_lr=["left","right"]` randomization mirrors the hinge/handle side, and real deployments must encounter both handednesses. Camera design therefore obeys these constraints:
 
 - Nominal physical mount lies on the trunk sagittal centerline (`Y=0`) with zero nominal yaw. A fixed right- or left-offset mount is not accepted merely because it performs well on the current one-sided asset.
-- The first documentation-level search seed was parent `trunk`, optical-frame position `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0.0,-0.052335956,0.0] wxyz`, convention `world`. It has now been evaluated and ranked fourth; it remains a search baseline, not a final transform.
+- The first documentation-level search seed was parent `trunk`, optical-frame position `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0.0,-0.052335956,0.0] wxyz`, convention `world`. It ranked fourth in the historical `v13_A` stage1–4 sweep and third in the `v16_B` stage1–5 sweep; it remains a search baseline, not a final transform.
 - The preferred frame chain is `trunk -> mechanical_mount -> calibrated_optical_frame -> sensor(identity)`. `sensor(identity)` is valid only after the measured housing-to-optical correction is represented by `calibrated_optical_frame`.
 - Pose sweeps start from the centerline seed. Optional lateral/yaw ablations must be mirror pairs: `(+Y,+yaw)` and `(-Y,-yaw)` with identical X/Z/pitch, evaluated on identical mirrored state sets.
 - First symmetry validation covers current `right/out` and mirrored `left/out`. `in/out` push/pull is a separate task-semantics expansion and is not silently included in this camera brief.
 - Cropping, augmentation, visibility masks and score regions must also be left/right symmetric. No fixed crop may privilege the handle side in the current right-only asset.
 - A recommendation cannot be frozen while either handedness systematically loses handle/gripper visibility or behavior. Report per-handedness results and the paired gap rather than hiding it in an aggregate mean.
 
-## 5. Known camera evidence and resolved pose-sweep result
+## 5. Known camera evidence and pose-sweep results
 
 ### 5.1 What is known
 
@@ -222,18 +224,36 @@ The current `right/out` asset is a source baseline, not a camera-mount requireme
 
 The dedicated same-step GPU probe closed R14. The live camera prim matched the verified trunk plus configured local offset with `0.0 m` position error and `2.0803985e-07 rad` orientation error. Default cached `CameraData` differed from the live prim by `0.8946629167 m`; temporarily enabling `update_latest_camera_pose` and forcing one sensor update reduced the live error to `0.0 m` and `1.3485386e-07 rad` without advancing the physics counter. The root cause is stale initialization pose in default `CameraData`, not the parent, local offset, or quaternion convention. Diagnostics must reuse the `TiledCamera`'s initialized view; creating a second same-path view can perturb Fabric/USD state.
 
-### 5.3 2026-07-22 Gemini 335L single-camera pose sweep
+### 5.3 Historical `base_v13_A` stage1–4 Gemini 335L sweep
 
-The eval-only sweep reused the sealed `base_v13_A` Teacher checkpoint `model_step_003000.pt` with SHA-256 `d576ca4bc6f596e45a8d744ca766164b374f8aba4409b06bcd7c460d6b057a36`; no training ran. It evaluated one legacy control plus seven centerline candidates in one 16-env seed0 rollout. For every sample it reused the existing `TiledCamera`, set and read back each local pose, rendered all candidates without advancing physics, and required both RGB/segmentation diversity and exact runtime intrinsics. The sealed local summary is `/tmp/a2_camera_pose_sweep_16env_seed0_20260722/camera_pose_sweep_summary.json`.
+The first eval-only sweep reused the sealed `base_v13_A` Teacher checkpoint `model_step_003000.pt` with SHA-256 `d576ca4bc6f596e45a8d744ca766164b374f8aba4409b06bcd7c460d6b057a36`; no training ran. It evaluated one legacy control plus seven centerline candidates in one 16-env seed0 rollout. For every sample it reused the existing `TiledCamera`, set and read back each local pose, rendered all candidates without advancing physics, and required both RGB/segmentation diversity and exact runtime intrinsics. The sealed local summary is `/tmp/a2_camera_pose_sweep_16env_seed0_20260722/camera_pose_sweep_summary.json`.
 
-The diagnostic ranking recommended `z_low_020`:
+That historical stage1–4 ranking selected `z_low_020`: local pose on `trunk` `[0.320,0.000,0.200] m`, RPY `[0,-6,0]°`, quaternion `[0.9986295348,0,-0.0523359562,0] wxyz`, score `0.9230179028`. Its handle, handle-plus-both-fingers, door-panel, and centered-handle rates were `0.9697357204/0.8729752771/0.9799658994/0.8738277920`. The remaining search order was `x_far_036`, `x_near_028`, `center_seed`, `pitch_up_12`, `pitch_level_00`, `z_high_030`, then the zero-scoring legacy control.
 
-- local pose on `trunk`: position `[0.320,0.000,0.200] m`, RPY `[0,-6,0]°`, quaternion `[0.9986295348,0,-0.0523359562,0] wxyz`;
-- stage1-4 weighted score `0.9230179028`;
-- handle visible `0.9697357204`, handle plus both fingers visible `0.8729752771`, door panel visible `0.9799658994`, handle centered `0.8738277920`;
-- search ranking after it was `x_far_036`, `x_near_028`, original `center_seed`, `pitch_up_12`, `pitch_level_00`, `z_high_030`; the legacy pose control scored zero under this diagnostic.
+This was only a historical right/out search result. The full-task stage1–5 evidence below supersedes it for choosing the next search center; it was never a frozen simulation camera or physical mount.
 
-This recommendation is only the current **right/out simulation search default**. It does not freeze the physical bracket, validate mirrored `left/out`, replace measured intrinsics/extrinsics, or prove vibration, exposure, latency, depth, cable, thermal, and mechanical clearance behavior. Production camera config and Student observation remain unchanged.
+### 5.4 `base_v16_B` stage1–5 sweep with per-candidate videos
+
+The final eval-only run used mainline checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v16_B_m29_m32_mass80_160-20260721_230405/model_step_002000.pt` (SHA-256 `5628a25ee53395ddc581d2da184c32635e109ff3691e54a823ad054236475e3f`) and adjacent config (SHA-256 `3c8aead9025b66a7f6f2ac3afc81bedc9cdafa1d12bd08fd43058eff8b4fd144`). The clean mainline runtime was pinned to commit `815b367f5de2a52b26a4b872d0457af8817d01bd`; only the dedicated camera-sweep overlay came from this worktree. No trainer ran and `training_performed=false` is sealed.
+
+The 16-env seed0 rollout completed 16 episodes: `15/16` reached the goal, env0 ended by stage0 overtime, and env1–15 reached stage5. Exact ranking stages were `[1,2,3,4,5]`, with matched samples per candidate of `298/238/397/876/839`. Pose readback, render diversity, runtime intrinsics (`0 px` maximum error), and unchanged physics counter all passed. The sealed summary is `logs_eval/a2_camera_pose_sweep_v16B_ckpt2000_stage1_5_16env_seed0_env1_20260722_2325/camera_pose_sweep_summary.json`.
+
+| Rank | Candidate | Stage1–5 score |
+|---:|---|---:|
+| 1 | `x_near_028` | `0.5614803625` |
+| 2 | `pitch_up_12` | `0.5484327795` |
+| 3 | `center_seed` | `0.5324395770` |
+| 4 | `z_high_030` | `0.5177492447` |
+| 5 | `x_far_036` | `0.4969788520` |
+| 6 | `pitch_level_00` | `0.4939388218` |
+| 7 | `z_low_020` | `0.4914086103` |
+| 8 | `legacy_pose_control` | `0.0` |
+
+The numerical winner `x_near_028` is on `trunk` at `[0.280,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.9986295348,0,-0.0523359562,0] wxyz`. Its aggregate ranked handle, handle-plus-both-fingers, door-panel, and centered-handle rates are `0.6367069486/0.4339123867/0.7265861027/0.5185045317`.
+
+All eight candidates wrote independent `384×216`, 10 fps MP4s from env1, 224 frames each. The selected trajectory covers stage0–5 with frame counts `32/18/18/26/64/66`; sealing requires every ranked stage to be present. Every MP4 was decoded end-to-end with ffmpeg. Manual contact sheets at frames 58/120/180 cover stage2/stage4/stage5 and are stored under the run's `manual_qa/` directory.
+
+Numerical and manual evidence agree on a major limitation: all seven centerline search poses lose most useful task geometry in stage5. For `x_near_028`, stage5 handle visibility is `0.0953516091`, handle-plus-both-fingers `0.0500595948`, door panel `0.1370679380`, centered handle `0.061978546` and handle-pixel p50 `0`. Manual stage5 frames are dominated by floor/wall rather than the opening corridor. Therefore `x_near_028` is only the **next search center**. No candidate in this grid is accepted as the final simulation camera or physical mount; production camera config and Student observation remain unchanged. The next sweep must explicitly improve stage5 corridor/door-frame coverage and later repeat on mirrored `left/out` before any mount decision.
 
 ## 6. Cloud research questions
 
@@ -367,6 +387,9 @@ Read these paths at the pinned commit:
 | Camera creation/output/eval cameras | `gr00t/rl/simulator/isaacsim/isaacsim.py` |
 | RGB observation preprocessing | `gr00t/rl/envs/legged_base_task/legged_robot_base.py` |
 | Static camera contract checker | `gr00t/rl/scripts/smoke_a2_student_camera.py` |
+| Gemini 335L pose/intrinsics config | `gr00t/rl/config/camera_pose_sweep/gemini_335l_centerline.yaml` |
+| Pose sweep wrapper/runtime overlay | `gr00t/rl/scripts/sweep_a2_student_camera_pose.py`, `run_a2_camera_pose_eval.py` |
+| Pose sweep scoring/runtime adapter | `gr00t/rl/utils/a2_camera_pose_sweep.py`, `gr00t/rl/envs/door/door_open_a2_camera_pose_sweep.py` |
 | Distillation trainer | `gr00t/rl/trl/trainer/distill_trainer_a2_base_api.py` |
 | Vision policy | `gr00t/rl/trl/modules/vision_actor_critic_modules_recurrent.py` |
 | Distillation contract tests | `gr00t/rl/tests/test_a2_student_distillation_contract.py` |
@@ -389,8 +412,9 @@ Read these paths at the pinned commit:
 Important artifact boundary:
 
 - `base_v13_A` endpoint checkpoint is local at `logs_rl/a2_piper_full_stage_a2_base/base_v13_A_main-20260716_225345/model_step_003000.pt`, but `logs_rl/` is ignored and the checkpoint is not in GitHub.
-- Current Student experiment keeps Teacher artifact fields as required placeholders. The historical one-update distillation proof used a sealed `base_v10_D` Teacher artifact, not `base_v13_A`.
-- Choosing a camera does not itself switch the Teacher artifact. A later distillation run targeting `v13_A` still needs a separately sealed checkpoint/config/manifest triplet.
+- The current full-task camera driver is local in the mainline worktree at `logs_rl/a2_piper_full_stage_a2_base/base_v16_B_m29_m32_mass80_160-20260721_230405/model_step_002000.pt`; its adjacent resolved config and all `logs_eval/` videos are also ignored and not remotely visible.
+- Current Student experiment keeps Teacher artifact fields as required placeholders. The historical one-update distillation proof used a sealed `base_v10_D` Teacher artifact, not `base_v13_A` or `base_v16_B`.
+- Choosing or evaluating a camera does not itself switch the Student distillation Teacher artifact. Any later distillation run targeting a new Teacher still needs a separately sealed checkpoint/config/manifest triplet.
 
 ## 9. Required cloud deliverable
 
@@ -411,9 +435,9 @@ Return one Markdown report with:
 
 The cloud session is read-only. It must not edit the repository, open a PR, change camera config, or claim runtime validation.
 
-## 10. Copy-paste prompt for the cloud session
+## 10. Historical copy-paste prompt used for the cloud session
 
-Use the following prompt verbatim or attach this brief and use the shortened first paragraph:
+The following prompt is preserved verbatim as research provenance. Its `v13_A` behavior target, `z_low_020` recommendation and commit pin describe the original cloud-session intake; the later `v16_B` stage1–5 evidence and `x_near_028` next-search decision in Section 5.4 supersede those parts for current camera work.
 
 > 你是一个只读的 robotics/camera research agent。请为 A2 四足底盘 + Piper 单臂的 door-opening vision Student 做 camera 方案调研。不要修改仓库、不要开 PR、不要运行昂贵训练。最终输出一份中文 Markdown 研究报告，并对每个关键事实给出 primary source URL 或 pinned GitHub permalink。
 >

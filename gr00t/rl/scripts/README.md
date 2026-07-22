@@ -142,14 +142,17 @@ marker. R16 remains open; if cleanup is required, terminate only the exact probe
 after `[R14_EVIDENCE_SEALED]`, never another Isaac Sim process.
 
 Run the diagnostic-only Gemini 335L single-camera pose sweep with a fresh output
-directory. This is eval-only: it copies and SHA-verifies the sealed `base_v13_A`
-Teacher input, never launches a trainer, and refuses an existing output directory:
+directory. The default allowlisted profile is the full-task `base_v16_B` checkpoint.
+It copies and SHA-verifies checkpoint/config inputs, runs the pinned clean mainline
+runtime through the dedicated worktree overlay, never launches a trainer, and refuses
+an existing output directory:
 
 ```bash
 /home/baoquanc/anaconda3/envs/isaaclab/bin/python \
 gr00t/rl/scripts/sweep_a2_student_camera_pose.py \
---gpu 0 --num-envs 16 \
---output-dir /tmp/a2_camera_pose_sweep_16env_seed0_20260722
+--teacher base_v16_B --gpu 0 --num-envs 16 \
+--output-dir \
+logs_eval/a2_camera_pose_sweep_v16B_ckpt2000_stage1_5_16env_seed0_env1_20260722_2325
 ```
 
 The sweep uses one existing `TiledCamera` and the centered Gemini 335L nominal
@@ -159,13 +162,21 @@ horizontal FoV with `fx=fy=179.0428965384`; the spec-derived cropped value is
 `fy=177.9073162215`, so this is a documented `+1.1355803169 px` approximation,
 not physical calibration. Every candidate is set/read back in the camera's local
 OpenGL frame, rendered at the same physics step, and checked for image diversity.
+Every candidate writes its own MP4 from one selected environment; sealing requires
+equal positive frame counts and video coverage of every ranked stage 1--5.
 
-The sealed 16-env seed0 run recommended `z_low_020`: local position
-`[0.32,0.0,0.20] m`, RPY `[0,-6,0] deg`, quaternion
-`[0.9986295348,0,-0.0523359562,0] wxyz`. Its stage1-4 diagnostic score was
-`0.9230179028`; this is the current right/out simulation search default, not a
-frozen physical mount. Mirrored left/right validation and calibrated hardware
-intrinsics remain required before a real mount decision.
+The sealed 16-env seed0 `base_v16_B` run completed 16 episodes (`15/16` reached the
+goal) and ranked `x_near_028` first across stages 1--5: local position
+`[0.28,0.0,0.25] m`, RPY `[0,-6,0] deg`, quaternion
+`[0.9986295348,0,-0.0523359562,0] wxyz`, score `0.5614803625`. Its ranked handle,
+handle-plus-both-fingers, door-panel, and centered-handle rates were respectively
+`0.6367069486`, `0.4339123867`, `0.7265861027`, and `0.5185045317`. All eight
+candidate videos contain 224 frames from env 1 and cover stages 1--5. Manual review
+also found that every candidate loses most task geometry in stage 5; even
+`x_near_028` has only `0.0953516091` handle visibility and `0.1370679380` door-panel
+visibility there. It is therefore only the next pose-search center, not an accepted
+simulation default or physical mount. Mirrored left/right validation and calibrated
+hardware intrinsics remain required.
 
 For the first approved one-update GPU smoke, launch the A2 route with a fresh
 dedicated `experiment_dir`. This uses four environments, one rollout step,

@@ -30,13 +30,19 @@ simulator:
 env:
   _target_: gr00t.rl.envs.door.door_open_a2_camera_pose_sweep.DoorPregraspCameraPoseSweep
   config:
-    # The sealed base_v13_A Teacher config predates this fail-fast v13 parameter.
-    # Keep the current canonical value explicit for reproducible legacy eval.
+    # Keep these canonical stage parameters explicit across sealed Teacher profiles;
+    # the camera sweep must not inherit ambiguous checkpoint-era defaults.
     a2_stage4_release_hinge_threshold: 1.2
     a2_stage45_door_frame_contact_scale: 0.2
     a2_camera_pose_sweep:
       enabled: true
       sample_interval_control_steps: 5
+      ranking_stage_indices: [1, 2, 3, 4, 5]
+      video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_dir: ${eval_output_dir}/camera_pose_videos
       minimum_visible_pixels:
         handle: 8
         finger7: 4

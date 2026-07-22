@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import math
+import os
+from pathlib import Path
 
+import imageio.v2 as imageio
 import torch
 from omegaconf import OmegaConf
 
@@ -18,7 +21,34 @@ from gr00t.rl.utils.a2_camera_pose_sweep import (
 
 
 class DoorPregraspCameraPoseSweep(DoorPregrasp):
-    """Keep the v13 teacher rollout unchanged while sweeping one camera in-place."""
+    """Keep the Teacher rollout unchanged while sweeping one camera in-place."""
+
+    def __init__(self, config, device):
+        requested_raw_ids = config.simulator.config.cameras.get(
+            "colorize_instance_id_segmentation", None
+        )
+        if requested_raw_ids is not False:
+            raise RuntimeError(
+                "camera pose sweep requires explicit "
+                "cameras.colorize_instance_id_segmentation=false"
+            )
+
+        from isaaclab.sensors.camera import TiledCameraCfg
+
+        original_init = TiledCameraCfg.__init__
+
+        def init_with_raw_instance_ids(camera_cfg, *args, **kwargs):
+            supplied = kwargs.get("colorize_instance_id_segmentation", requested_raw_ids)
+            if supplied is not False:
+                raise RuntimeError("TiledCameraCfg raw instance-ID adapter received true")
+            kwargs["colorize_instance_id_segmentation"] = False
+            original_init(camera_cfg, *args, **kwargs)
+
+        TiledCameraCfg.__init__ = init_with_raw_instance_ids
+        try:
+            super().__init__(config, device)
+        finally:
+            TiledCameraCfg.__init__ = original_init
 
     def init_a2_eval_stage2_step_trace(
         self,
@@ -38,6 +68,8 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
         expected_keys = {
             "enabled",
             "sample_interval_control_steps",
+            "ranking_stage_indices",
+            "video",
             "minimum_visible_pixels",
             "target_path_tokens",
             "nominal_intrinsics",
@@ -58,6 +90,32 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             raise RuntimeError(
                 "a2_camera_pose_sweep.sample_interval_control_steps must be a positive int"
             )
+        ranking_stage_indices = cfg["ranking_stage_indices"]
+        if ranking_stage_indices != [1, 2, 3, 4, 5]:
+            raise RuntimeError("this sweep requires exact ranking_stage_indices=[1,2,3,4,5]")
+        video_cfg = cfg["video"]
+        expected_video_keys = {"enabled", "env_id", "fps", "output_dir"}
+        if not isinstance(video_cfg, dict) or set(video_cfg) != expected_video_keys:
+            keys = None if not isinstance(video_cfg, dict) else sorted(video_cfg)
+            raise RuntimeError(
+                "camera sweep video config schema mismatch; "
+                f"expected={sorted(expected_video_keys)}, got={keys}"
+            )
+        if video_cfg["enabled"] is not True:
+            raise RuntimeError("camera sweep requires one video for every candidate")
+        video_env_id = video_cfg["env_id"]
+        if (
+            isinstance(video_env_id, bool)
+            or not isinstance(video_env_id, int)
+            or not 0 <= video_env_id < self.num_envs
+        ):
+            raise RuntimeError(f"camera sweep video env_id is invalid: {video_env_id!r}")
+        video_fps = video_cfg["fps"]
+        if isinstance(video_fps, bool) or not isinstance(video_fps, int) or video_fps < 1:
+            raise RuntimeError(f"camera sweep video fps must be a positive int: {video_fps!r}")
+        if not isinstance(video_cfg["output_dir"], str) or not video_cfg["output_dir"]:
+            raise RuntimeError("camera sweep video output_dir must be a non-empty string")
+
         minimum_visible_pixels = cfg["minimum_visible_pixels"]
         if not isinstance(minimum_visible_pixels, dict) or set(minimum_visible_pixels) != set(
             TARGET_NAMES
@@ -98,6 +156,15 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
                 "camera pose sweep requires outputs "
                 f"{sorted(required_outputs)}; got {sorted(output)}"
             )
+        rgb = output["rgb"]
+        expected_rgb_shape = (self.num_envs, camera.cfg.height, camera.cfg.width, 3)
+        if tuple(rgb.shape) != expected_rgb_shape or rgb.dtype != torch.uint8:
+            raise RuntimeError(
+                "camera RGB shape/dtype mismatch; "
+                f"expected={expected_rgb_shape}/torch.uint8, "
+                f"got={tuple(rgb.shape)}/{rgb.dtype}"
+            )
+
         expected_shape = (self.num_envs, camera.cfg.height, camera.cfg.width, 1)
         segmentation = output["instance_id_segmentation_fast"]
         if tuple(segmentation.shape) != expected_shape or segmentation.dtype != torch.int32:
@@ -139,6 +206,7 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
         self._a2_camera_sweep_camera = camera
         self._a2_camera_sweep_camera_view = camera_view
         self._a2_camera_sweep_sample_interval = sample_interval
+        self._a2_camera_sweep_ranking_stage_indices = ranking_stage_indices
         self._a2_camera_sweep_minimum_visible_pixels = minimum_visible_pixels
         self._a2_camera_sweep_target_path_tokens = target_path_tokens
         self._a2_camera_sweep_intrinsic_error_px = intrinsic_error_px
@@ -157,6 +225,25 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             for candidate in candidates
         }
         self._a2_camera_sweep_sample_events = 0
+        self._a2_camera_sweep_video_env_id = video_env_id
+        self._a2_camera_sweep_video_fps = video_fps
+        self._a2_camera_sweep_video_output_dir = Path(video_cfg["output_dir"]).resolve()
+        if self._a2_camera_sweep_video_output_dir.exists():
+            raise FileExistsError(
+                "refusing to reuse camera candidate video directory: "
+                f"{self._a2_camera_sweep_video_output_dir}"
+            )
+        self._a2_camera_sweep_video_output_dir.mkdir(parents=True, exist_ok=False)
+        self._a2_camera_sweep_video_writers = {}
+        self._a2_camera_sweep_video_temporary_paths = {}
+        self._a2_camera_sweep_video_final_paths = {}
+        self._a2_camera_sweep_video_frame_counts = {
+            candidate["name"]: 0 for candidate in candidates
+        }
+        self._a2_camera_sweep_video_stage_frame_counts = {
+            STAGE_NAMES[stage_index]: 0 for stage_index in range(6)
+        }
+        self._a2_camera_sweep_videos_sealed = False
         self._a2_camera_sweep_pose_diversity_validated = False
 
     @staticmethod
@@ -171,6 +258,83 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             "handle_centered_frames": 0,
             "handle_visible_pixels": [],
         }
+
+    def _append_a2_camera_candidate_video_frame(self, candidate_name: str):
+        camera = self._a2_camera_sweep_camera
+        rgb = camera.data.output["rgb"]
+        expected_shape = (self.num_envs, camera.cfg.height, camera.cfg.width, 3)
+        if tuple(rgb.shape) != expected_shape or rgb.dtype != torch.uint8:
+            raise RuntimeError(
+                f"candidate video RGB drift: {tuple(rgb.shape)}/{rgb.dtype}"
+            )
+        frame = rgb[self._a2_camera_sweep_video_env_id].detach().contiguous().cpu().numpy()
+        writer = self._a2_camera_sweep_video_writers.get(candidate_name)
+        if writer is None:
+            temporary_path = (
+                self._a2_camera_sweep_video_output_dir
+                / f"{candidate_name}_env{self._a2_camera_sweep_video_env_id:04d}.writing.mp4"
+            )
+            final_path = (
+                self._a2_camera_sweep_video_output_dir
+                / f"{candidate_name}_env{self._a2_camera_sweep_video_env_id:04d}.mp4"
+            )
+            if temporary_path.exists() or final_path.exists():
+                raise FileExistsError(
+                    f"refusing to overwrite candidate video: {candidate_name}"
+                )
+            writer = imageio.get_writer(
+                str(temporary_path),
+                fps=self._a2_camera_sweep_video_fps,
+                codec="libx264",
+                macro_block_size=2,
+            )
+            self._a2_camera_sweep_video_writers[candidate_name] = writer
+            self._a2_camera_sweep_video_temporary_paths[candidate_name] = temporary_path
+            self._a2_camera_sweep_video_final_paths[candidate_name] = final_path
+        writer.append_data(frame)
+        self._a2_camera_sweep_video_frame_counts[candidate_name] += 1
+
+    def _seal_a2_camera_candidate_videos(self) -> dict[str, str]:
+        if self._a2_camera_sweep_videos_sealed:
+            raise RuntimeError("camera candidate videos were already sealed")
+        candidate_names = [
+            candidate["name"]
+            for candidate in self._a2_camera_sweep_candidates
+        ]
+        if set(self._a2_camera_sweep_video_writers) != set(candidate_names):
+            raise RuntimeError("not every camera candidate opened a video writer")
+        frame_counts = [
+            self._a2_camera_sweep_video_frame_counts[name] for name in candidate_names
+        ]
+        if len(set(frame_counts)) != 1 or frame_counts[0] < 1:
+            raise RuntimeError(
+                f"candidate videos require equal positive frame counts: {frame_counts}"
+            )
+        missing_video_stages = [
+            STAGE_NAMES[stage_index]
+            for stage_index in self._a2_camera_sweep_ranking_stage_indices
+            if self._a2_camera_sweep_video_stage_frame_counts[STAGE_NAMES[stage_index]] < 1
+        ]
+        if missing_video_stages:
+            raise RuntimeError(
+                f"candidate videos have no sampled frames for stages: {missing_video_stages}"
+            )
+        sealed = {}
+        for candidate_name in candidate_names:
+            writer = self._a2_camera_sweep_video_writers.pop(candidate_name)
+            writer.close()
+            temporary_path = self._a2_camera_sweep_video_temporary_paths[candidate_name]
+            final_path = self._a2_camera_sweep_video_final_paths[candidate_name]
+            if not temporary_path.is_file():
+                raise FileNotFoundError(f"candidate video was not written: {temporary_path}")
+            os.replace(temporary_path, final_path)
+            if not final_path.is_file() or final_path.stat().st_size <= 0:
+                raise RuntimeError(f"sealed candidate video is empty: {final_path}")
+            sealed[candidate_name] = str(final_path)
+        if any(path.exists() for path in self._a2_camera_sweep_video_temporary_paths.values()):
+            raise RuntimeError("candidate video .writing files remain after seal")
+        self._a2_camera_sweep_videos_sealed = True
+        return sealed
 
     def _capture_a2_eval_stage2_step_trace(self):
         super()._capture_a2_eval_stage2_step_trace()
@@ -211,6 +375,16 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             configured_quat, origin="world", target="opengl"
         )
         first_render_by_candidate = {}
+        video_env_active = bool(
+            active[self._a2_camera_sweep_video_env_id].detach().cpu().item()
+        )
+        video_stage_index = None
+        if video_env_active:
+            video_stage_index = int(
+                self.stage_buf[self._a2_camera_sweep_video_env_id].detach().cpu().item()
+            )
+            if video_stage_index not in range(6):
+                raise RuntimeError(f"video env stage index drift: {video_stage_index}")
 
         try:
             for candidate in self._a2_camera_sweep_candidates:
@@ -240,6 +414,10 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
                     context=f"candidate {candidate['name']}",
                 )
                 self._accumulate_a2_camera_candidate(candidate["name"], active)
+                if video_env_active:
+                    self._append_a2_camera_candidate_video_frame(
+                        candidate["name"]
+                    )
                 if self._a2_camera_sweep_sample_events == 0:
                     first_render_by_candidate[candidate["name"]] = (
                         camera.data.output["rgb"].clone(),
@@ -282,6 +460,9 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
                     "the control and every search pose"
                 )
             self._a2_camera_sweep_pose_diversity_validated = True
+        if video_stage_index is not None:
+            video_stage_name = STAGE_NAMES[video_stage_index]
+            self._a2_camera_sweep_video_stage_frame_counts[video_stage_name] += 1
         self._a2_camera_sweep_sample_events += 1
 
     @staticmethod
@@ -436,13 +617,19 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
                 f"matched sweep candidates have unequal sample counts: {sorted(all_sample_counts)}"
             )
 
-        ranking = rank_camera_candidates(candidate_summaries)
+        ranking = rank_camera_candidates(
+            candidate_summaries,
+            ranking_stage_indices=self._a2_camera_sweep_ranking_stage_indices,
+        )
+        candidate_videos = self._seal_a2_camera_candidate_videos()
+        recommended_video = candidate_videos[ranking["recommended_candidate"]]
         summary["a2_camera_pose_sweep"] = {
             "status": "SWEEP_COMPLETE",
             "architecture": (
                 "one trunk camera; one sensor prim repositioned between same-step renders"
             ),
-            "policy_driver": "base_v13_A teacher checkpoint; camera is diagnostic-only",
+            "policy_driver": "sealed Teacher checkpoint; camera is diagnostic-only",
+            "ranking_stage_indices": self._a2_camera_sweep_ranking_stage_indices,
             "training_performed": False,
             "num_envs": self.num_envs,
             "sample_events": self._a2_camera_sweep_sample_events,
@@ -455,6 +642,17 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             "minimum_visible_pixels": self._a2_camera_sweep_minimum_visible_pixels,
             "candidates": candidate_summaries,
             "recommendation": ranking,
+            "candidate_videos": candidate_videos,
+            "recommended_candidate_video": recommended_video,
+            "candidate_video_metadata": {
+                "env_id": self._a2_camera_sweep_video_env_id,
+                "fps": self._a2_camera_sweep_video_fps,
+                "frame_counts": self._a2_camera_sweep_video_frame_counts,
+                "stage_frame_counts": self._a2_camera_sweep_video_stage_frame_counts,
+                "sampling": (
+                    "stage change or every configured control-step interval; not wall-clock"
+                ),
+            },
             "boundaries": [
                 "nominal FoV-derived intrinsics are not a physical-camera calibration",
                 (

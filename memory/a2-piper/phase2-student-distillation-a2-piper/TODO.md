@@ -1,12 +1,12 @@
 # TODO
 
-Status at 2026-07-22 21:35 HKT: `TRAINING_PASS; R14 resolved; right/out Gemini 335L simulation pose sweep complete; current accepted A2+Piper-only one-update Student Distillation goal complete`.
+Status at 2026-07-22 23:41 HKT: `TRAINING_PASS; R14 resolved; base_v16_B Gemini 335L stage1–5 sweep plus eight videos complete; current accepted A2+Piper-only one-update Student Distillation goal complete`.
 
 There is no blocker for the completed goal. The following are explicitly deferred, non-blocking future work and must not be read as completed or implied by `TRAINING_PASS`:
 
 - Optional user-directed G1 compatibility/regression work; it is outside the A2+Piper-only scope.
 - R16 lifecycle/harness perfection and independent full-architecture strict reconstruction outside Hydra.
-- Final physical camera pose/mount decision and mirrored `left/out` validation; R14 and the bounded `right/out` pose sweep are complete, with `z_low_020` retained only as the current simulation search default.
+- Wider `right/out` pose search focused on stage5 corridor/door-frame coverage, followed by final physical camera pose/mount and mirrored `left/out` validation. The bounded `base_v16_B` stage1–5 sweep is complete, but all candidates lose stage5 visibility; `x_near_028` is only the next-search center, not an accepted default.
 - Visual/material randomization, multi-seed camera validation, larger-scale or multi-seed training.
 - Student-only eval, recurrent ONNX/export, policy-quality assessment, and open-door success evaluation.
 

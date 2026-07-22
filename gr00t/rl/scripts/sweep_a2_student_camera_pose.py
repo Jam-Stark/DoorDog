@@ -10,36 +10,84 @@ import os
 import shutil
 import subprocess
 import sys
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
-
-from gr00t.rl.utils.a2_camera_pose_sweep import derive_center_crop_intrinsics
-
-
-DEFAULT_CHECKPOINT = Path(
-    "logs_rl/a2_piper_student_distillation_v13_A_teacher-20260717_2103/"
-    "model_step_003000.pt"
-)
-DEFAULT_CHECKPOINT_SHA256 = (
-    "d576ca4bc6f596e45a8d744ca766164b374f8aba4409b06bcd7c460d6b057a36"
-)
 DEFAULT_ISAACLAB_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
+MAINLINE_RUNTIME_REPOSITORY = Path("/home/baoquanc/workspace/DoorDog-A2_Piper")
+
+
+@dataclass(frozen=True)
+class TeacherProfile:
+    name: str
+    checkpoint: Path
+    checkpoint_sha256: str
+    config_sha256: str
+    runtime_repository: Path
+    expected_runtime_commit: str | None
+
+
+TEACHER_PROFILES = {
+    "base_v13_A": TeacherProfile(
+        name="base_v13_A",
+        checkpoint=(
+            REPOSITORY_ROOT
+            / "logs_rl/a2_piper_student_distillation_v13_A_teacher-20260717_2103/"
+            "model_step_003000.pt"
+        ),
+        checkpoint_sha256=(
+            "d576ca4bc6f596e45a8d744ca766164b374f8aba4409b06bcd7c460d6b057a36"
+        ),
+        config_sha256=(
+            "5cc3a10e3271f4faedaaff3a085344245eb6aa78b3ff29e707e050aa95b0471d"
+        ),
+        runtime_repository=REPOSITORY_ROOT,
+        expected_runtime_commit=None,
+    ),
+    "base_v16_B": TeacherProfile(
+        name="base_v16_B",
+        checkpoint=(
+            MAINLINE_RUNTIME_REPOSITORY
+            / "logs_rl/a2_piper_full_stage_a2_base/"
+            "base_v16_B_m29_m32_mass80_160-20260721_230405/"
+            "model_step_002000.pt"
+        ),
+        checkpoint_sha256=(
+            "5628a25ee53395ddc581d2da184c32635e109ff3691e54a823ad054236475e3f"
+        ),
+        config_sha256=(
+            "3c8aead9025b66a7f6f2ac3afc81bedc9cdafa1d12bd08fd43058eff8b4fd144"
+        ),
+        runtime_repository=MAINLINE_RUNTIME_REPOSITORY,
+        expected_runtime_commit="815b367f5de2a52b26a4b872d0457af8817d01bd",
+    ),
+}
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Drive a base_v13_A teacher eval while one diagnostic camera is moved "
+            "Drive a sealed A2 Teacher eval while one diagnostic camera is moved "
             "through matched same-step Gemini 335L pose candidates. No training occurs."
         )
     )
-    parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
+    parser.add_argument(
+        "--teacher",
+        choices=tuple(TEACHER_PROFILES),
+        default="base_v16_B",
+    )
+    parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        help="Optional relocation of the selected sealed Teacher artifact.",
+    )
     parser.add_argument("--python", type=Path, default=DEFAULT_ISAACLAB_PYTHON)
-    parser.add_argument("--gpu", type=int, choices=(0, 1), default=1)
+    parser.add_argument("--gpu", type=int, choices=(0, 1), default=0)
     parser.add_argument("--num-envs", type=int, default=16)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true")
@@ -47,6 +95,8 @@ def parse_args() -> argparse.Namespace:
 
 
 def nominal_gemini_335l_crop_intrinsics() -> dict[str, object]:
+    from gr00t.rl.utils.a2_camera_pose_sweep import derive_center_crop_intrinsics
+
     return derive_center_crop_intrinsics(
         native_width=1280,
         native_height=800,
@@ -65,27 +115,39 @@ def build_eval_command(
     checkpoint: Path,
     num_envs: int,
     output_dir: Path,
+    runtime_repository: Path,
+    overlay_repository: Path,
 ) -> list[str]:
     if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs < 2:
         raise ValueError(
             "num_envs must be an int >= 2 so eval does not trigger the unrelated "
             f"single-env ONNX export; got {num_envs!r}"
         )
+    bootstrap = overlay_repository / "gr00t/rl/scripts/run_a2_camera_pose_eval.py"
+    overlay_config_root = overlay_repository / "gr00t/rl/config"
     return [
         str(python_path),
-        "gr00t/rl/eval_agent_trl.py",
+        str(bootstrap),
+        "--runtime-repository",
+        str(runtime_repository),
+        "--overlay-repository",
+        str(overlay_repository),
+        "--",
         f"checkpoint={checkpoint}",
         "+camera_pose_sweep=gemini_335l_centerline",
         f"+num_envs={num_envs}",
         "+headless=true",
         "+use_wandb=false",
         "+multi_gpu=false",
+        "++seed=0",
         "++algo.config.num_mini_batches=1",
+        "++algo.config.eval.save_videos=false",
         "simulator.config.render_results=false",
         "env.config.save_rendering_dir=null",
         f"eval_output_dir={output_dir}",
         f"eval_log_dir={output_dir}",
         f"hydra.run.dir={output_dir / '.hydra'}",
+        f"hydra.searchpath=[file://{overlay_config_root}]",
     ]
 
 
@@ -97,65 +159,185 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def verify_base_v13_a_checkpoint(
+def verify_teacher_artifacts(
+    *,
+    profile: TeacherProfile,
     checkpoint: Path,
-    expected_sha256: str = DEFAULT_CHECKPOINT_SHA256,
-) -> str:
-    actual_sha256 = sha256_file(checkpoint)
-    if actual_sha256 != expected_sha256:
+) -> dict[str, str]:
+    if not checkpoint.is_file():
+        raise FileNotFoundError(f"{profile.name} checkpoint not found: {checkpoint}")
+    config_path = checkpoint.parent / "config.yaml"
+    if not config_path.is_file():
+        raise FileNotFoundError(f"checkpoint-adjacent config not found: {config_path}")
+    checkpoint_sha256 = sha256_file(checkpoint)
+    config_sha256 = sha256_file(config_path)
+    if checkpoint_sha256 != profile.checkpoint_sha256:
         raise RuntimeError(
-            "checkpoint is not the sealed base_v13_A Teacher; "
-            f"expected_sha256={expected_sha256}, actual_sha256={actual_sha256}"
+            f"checkpoint is not the sealed {profile.name} Teacher; "
+            f"expected_sha256={profile.checkpoint_sha256}, "
+            f"actual_sha256={checkpoint_sha256}"
         )
-    return actual_sha256
+    if config_sha256 != profile.config_sha256:
+        raise RuntimeError(
+            f"checkpoint-adjacent config is not the sealed {profile.name} config; "
+            f"expected_sha256={profile.config_sha256}, actual_sha256={config_sha256}"
+        )
+    return {
+        "checkpoint_sha256": checkpoint_sha256,
+        "config_path": str(config_path),
+        "config_sha256": config_sha256,
+    }
+
+
+def _git_output(repository: Path, *args: str) -> str:
+    completed = subprocess.run(
+        ["git", "-C", str(repository), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return completed.stdout.strip()
+
+
+def verify_runtime_repository(profile: TeacherProfile) -> str:
+    repository = profile.runtime_repository.resolve()
+    required_paths = (
+        repository / "gr00t/rl/eval_agent_trl.py",
+        repository / "gr00t/rl/envs/door/door_open_a2_base.py",
+    )
+    for required_path in required_paths:
+        if not required_path.is_file():
+            raise FileNotFoundError(f"Teacher runtime source not found: {required_path}")
+    commit = _git_output(repository, "rev-parse", "HEAD")
+    if profile.expected_runtime_commit is not None and commit != profile.expected_runtime_commit:
+        raise RuntimeError(
+            f"{profile.name} runtime commit mismatch; "
+            f"expected={profile.expected_runtime_commit}, actual={commit}"
+        )
+    dirty_runtime_source = _git_output(repository, "status", "--short", "--", "gr00t")
+    if dirty_runtime_source:
+        raise RuntimeError(
+            f"{profile.name} runtime gr00t source is dirty:\n{dirty_runtime_source}"
+        )
+    return commit
 
 
 def prepare_writable_eval_input(
     *,
     output_dir: Path,
     checkpoint: Path,
-) -> Path:
+    profile: TeacherProfile,
+) -> tuple[Path, Path]:
     config_path = checkpoint.parent / "config.yaml"
-    if not config_path.is_file():
-        raise FileNotFoundError(f"checkpoint-adjacent config not found: {config_path}")
-
     output_dir.mkdir(parents=True, exist_ok=False)
     input_dir = output_dir / "_eval_input"
     input_dir.mkdir()
     runtime_checkpoint = input_dir / checkpoint.name
+    runtime_config = input_dir / "config.yaml"
     shutil.copyfile(checkpoint, runtime_checkpoint)
-    shutil.copyfile(config_path, input_dir / "config.yaml")
-    if sha256_file(runtime_checkpoint) != sha256_file(checkpoint):
+    shutil.copyfile(config_path, runtime_config)
+    if sha256_file(runtime_checkpoint) != profile.checkpoint_sha256:
         raise RuntimeError("writable eval checkpoint copy failed SHA-256 verification")
-    return runtime_checkpoint
+    if sha256_file(runtime_config) != profile.config_sha256:
+        raise RuntimeError("writable eval config copy failed SHA-256 verification")
+    return runtime_checkpoint, runtime_config
+
+
+def _validate_candidate_videos(output_dir: Path, sweep: dict[str, object]) -> None:
+    candidates = sweep.get("candidates")
+    videos = sweep.get("candidate_videos")
+    metadata = sweep.get("candidate_video_metadata")
+    if not isinstance(candidates, list) or not candidates:
+        raise RuntimeError("completed sweep has no camera candidates")
+    candidate_names = {candidate["name"] for candidate in candidates}
+    if not isinstance(videos, dict) or set(videos) != candidate_names:
+        raise RuntimeError("candidate video set does not exactly match camera candidates")
+    if not isinstance(metadata, dict):
+        raise RuntimeError("completed sweep has no candidate video metadata")
+    frame_counts = metadata.get("frame_counts")
+    if not isinstance(frame_counts, dict) or set(frame_counts) != candidate_names:
+        raise RuntimeError("candidate video frame-count set does not match candidates")
+    unique_frame_counts = {int(value) for value in frame_counts.values()}
+    if len(unique_frame_counts) != 1 or next(iter(unique_frame_counts)) <= 0:
+        raise RuntimeError(f"candidate videos have invalid frame counts: {frame_counts}")
+    stage_frame_counts = metadata.get("stage_frame_counts")
+    required_video_stages = (
+        "stage1_pregrasp",
+        "stage2_grasp",
+        "stage3_open",
+        "stage4_swing",
+        "stage5_through",
+    )
+    if not isinstance(stage_frame_counts, dict) or any(
+        int(stage_frame_counts.get(stage_name, 0)) < 1
+        for stage_name in required_video_stages
+    ):
+        raise RuntimeError(
+            f"candidate video trajectory does not cover stages 1-5: {stage_frame_counts}"
+        )
+    for name, raw_path in videos.items():
+        video_path = Path(raw_path).resolve()
+        if not video_path.is_relative_to(output_dir):
+            raise RuntimeError(f"candidate video escaped eval output: {name}={video_path}")
+        if not video_path.is_file() or video_path.stat().st_size <= 0:
+            raise RuntimeError(f"candidate video is missing or empty: {name}={video_path}")
+    writing_files = list(output_dir.rglob("*.writing.mp4"))
+    if writing_files:
+        raise RuntimeError(f"unsealed candidate video files remain: {writing_files}")
+    recommendation = sweep.get("recommendation")
+    if not isinstance(recommendation, dict):
+        raise RuntimeError("completed sweep has no recommendation")
+    recommended_name = recommendation.get("recommended_candidate")
+    if sweep.get("recommended_candidate_video") != videos.get(recommended_name):
+        raise RuntimeError("recommended candidate video does not match ranking")
 
 
 def seal_summary(
     *,
     output_dir: Path,
     command: list[str],
+    profile: TeacherProfile,
     checkpoint: Path,
-    metrics: dict[str, object],
+    artifact_identity: dict[str, str],
     runtime_checkpoint: Path,
+    runtime_config: Path,
+    runtime_commit: str,
+    metrics: dict[str, object],
 ) -> Path:
     sweep = metrics.get("a2_camera_pose_sweep")
     if not isinstance(sweep, dict) or sweep.get("status") != "SWEEP_COMPLETE":
         raise RuntimeError("metrics_eval.json has no completed camera pose sweep")
     if sweep.get("training_performed") is not False:
         raise RuntimeError("camera pose sweep must explicitly report training_performed=false")
-    checkpoint_sha256 = sha256_file(checkpoint)
-    runtime_checkpoint_sha256 = sha256_file(runtime_checkpoint)
-    if runtime_checkpoint_sha256 != checkpoint_sha256:
+    if sweep.get("ranking_stage_indices") != [1, 2, 3, 4, 5]:
+        raise RuntimeError("camera pose sweep did not rank exact stages 1-5")
+    recommendation = sweep.get("recommendation")
+    if not isinstance(recommendation, dict) or recommendation.get(
+        "ranking_stage_indices"
+    ) != [1, 2, 3, 4, 5]:
+        raise RuntimeError("camera pose recommendation did not use exact stages 1-5")
+    _validate_candidate_videos(output_dir, sweep)
+    if sha256_file(runtime_checkpoint) != profile.checkpoint_sha256:
         raise RuntimeError("runtime checkpoint SHA-256 differs from sealed source")
+    if sha256_file(runtime_config) != profile.config_sha256:
+        raise RuntimeError("runtime config SHA-256 differs from sealed source")
     summary = {
-        "schema_version": 1,
+        "schema_version": 2,
         "sealed_at_hkt": datetime.now().astimezone().isoformat(timespec="seconds"),
         "status": "SWEEP_COMPLETE",
         "training_performed": False,
+        "teacher_profile": profile.name,
         "checkpoint": str(checkpoint),
-        "checkpoint_sha256": checkpoint_sha256,
+        "checkpoint_sha256": artifact_identity["checkpoint_sha256"],
+        "checkpoint_config": artifact_identity["config_path"],
+        "checkpoint_config_sha256": artifact_identity["config_sha256"],
         "runtime_checkpoint": str(runtime_checkpoint),
-        "runtime_checkpoint_sha256": runtime_checkpoint_sha256,
+        "runtime_checkpoint_sha256": sha256_file(runtime_checkpoint),
+        "runtime_config": str(runtime_config),
+        "runtime_config_sha256": sha256_file(runtime_config),
+        "runtime_repository": str(profile.runtime_repository.resolve()),
+        "runtime_commit": runtime_commit,
+        "overlay_repository": str(REPOSITORY_ROOT),
         "command": command,
         "spec_derived_intrinsics": nominal_gemini_335l_crop_intrinsics(),
         "sweep": sweep,
@@ -172,20 +354,26 @@ def seal_summary(
     temporary_path.replace(summary_path)
     return summary_path
 
-    verify_base_v13_a_checkpoint(checkpoint)
 
 def main() -> int:
     args = parse_args()
-    repository_root = REPOSITORY_ROOT
+    profile = TEACHER_PROFILES[args.teacher]
     checkpoint = (
-        (repository_root / args.checkpoint).resolve()
-        if not args.checkpoint.is_absolute()
-        else args.checkpoint
+        profile.checkpoint.resolve()
+        if args.checkpoint is None
+        else (
+            (REPOSITORY_ROOT / args.checkpoint).resolve()
+            if not args.checkpoint.is_absolute()
+            else args.checkpoint.resolve()
+        )
     )
     output_dir = args.output_dir.resolve()
     python_path = args.python.resolve()
-    if not checkpoint.is_file():
-        raise FileNotFoundError(f"base_v13_A checkpoint not found: {checkpoint}")
+    artifact_identity = verify_teacher_artifacts(
+        profile=profile,
+        checkpoint=checkpoint,
+    )
+    runtime_commit = verify_runtime_repository(profile)
     if not python_path.is_file():
         raise FileNotFoundError(f"IsaacLab Python not found: {python_path}")
     if output_dir.exists():
@@ -196,14 +384,29 @@ def main() -> int:
         checkpoint=runtime_checkpoint,
         num_envs=args.num_envs,
         output_dir=output_dir,
+        runtime_repository=profile.runtime_repository.resolve(),
+        overlay_repository=REPOSITORY_ROOT,
     )
     if args.dry_run:
-        print(json.dumps({"cuda_visible_devices": args.gpu, "command": command}, indent=2))
+        print(
+            json.dumps(
+                {
+                    "teacher_profile": profile.name,
+                    "checkpoint_sha256": artifact_identity["checkpoint_sha256"],
+                    "runtime_commit": runtime_commit,
+                    "cuda_visible_devices": args.gpu,
+                    "command": command,
+                },
+                indent=2,
+            )
+        )
         return 0
 
     environment = os.environ.copy()
-    prepared_checkpoint = prepare_writable_eval_input(
-        output_dir=output_dir, checkpoint=checkpoint
+    prepared_checkpoint, runtime_config = prepare_writable_eval_input(
+        output_dir=output_dir,
+        checkpoint=checkpoint,
+        profile=profile,
     )
     if prepared_checkpoint != runtime_checkpoint:
         raise RuntimeError("prepared eval checkpoint path mismatch")
@@ -211,15 +414,17 @@ def main() -> int:
     environment["HYDRA_FULL_ERROR"] = "1"
     environment["PYTHONUNBUFFERED"] = "1"
     existing_pythonpath = environment.get("PYTHONPATH")
-    environment["PYTHONPATH"] = str(repository_root)
+    environment["PYTHONPATH"] = str(profile.runtime_repository.resolve())
     if existing_pythonpath:
         environment["PYTHONPATH"] += os.pathsep + existing_pythonpath
-    completed = subprocess.run(command, cwd=repository_root, env=environment, check=False)
+    completed = subprocess.run(command, cwd=REPOSITORY_ROOT, env=environment, check=False)
     if completed.returncode != 0:
         raise RuntimeError(
             f"camera pose sweep eval failed with exit code {completed.returncode}; "
             f"partial output remains at {output_dir}"
         )
+    if verify_runtime_repository(profile) != runtime_commit:
+        raise RuntimeError("Teacher runtime repository changed during camera pose eval")
     metrics_path = output_dir / "metrics_eval.json"
     if not metrics_path.is_file():
         raise FileNotFoundError(f"camera pose sweep did not produce {metrics_path}")
@@ -228,9 +433,13 @@ def main() -> int:
     summary_path = seal_summary(
         output_dir=output_dir,
         command=command,
+        profile=profile,
         checkpoint=checkpoint,
-        metrics=metrics,
+        artifact_identity=artifact_identity,
         runtime_checkpoint=runtime_checkpoint,
+        runtime_config=runtime_config,
+        runtime_commit=runtime_commit,
+        metrics=metrics,
     )
     print(f"[CAMERA_POSE_SWEEP_SEALED] {summary_path}", flush=True)
     return 0

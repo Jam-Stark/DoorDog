@@ -193,20 +193,50 @@ def instance_target_ids_by_env(
 
 def rank_camera_candidates(
     candidate_summaries: Sequence[Mapping[str, object]],
+    *,
+    ranking_stage_indices: Sequence[int] = (1, 2, 3, 4),
 ) -> dict[str, object]:
     """Rank diagnostics without promoting them to a behavior or hardware hard gate."""
     if not candidate_summaries:
         raise ValueError("candidate_summaries must not be empty")
+    if (
+        not isinstance(ranking_stage_indices, Sequence)
+        or isinstance(ranking_stage_indices, (str, bytes))
+        or not ranking_stage_indices
+    ):
+        raise ValueError("ranking_stage_indices must be a non-empty sequence")
+    normalized_stage_indices = []
+    for stage_index in ranking_stage_indices:
+        if isinstance(stage_index, bool) or not isinstance(stage_index, int):
+            raise ValueError("ranking_stage_indices values must be ints")
+        if stage_index not in range(1, 6) or stage_index in normalized_stage_indices:
+            raise ValueError(
+                "ranking_stage_indices must contain unique stage indices in [1, 5]"
+            )
+        normalized_stage_indices.append(stage_index)
+    stage_label = "stage" + "-".join(str(index) for index in normalized_stage_indices)
     ranked = []
     for candidate in candidate_summaries:
         name = candidate.get("name")
         stages = candidate.get("stages")
         if not isinstance(name, str) or not isinstance(stages, Mapping):
             raise ValueError("each candidate summary requires name and stages")
-        critical = [stages[STAGE_NAMES[index]] for index in (1, 2, 3, 4)]
+        critical = [stages[STAGE_NAMES[index]] for index in normalized_stage_indices]
+        missing_stage_indices = [
+            stage_index
+            for stage_index, stage in zip(normalized_stage_indices, critical, strict=True)
+            if int(stage["sampled_frames"]) <= 0
+        ]
+        if missing_stage_indices:
+            raise ValueError(
+                f"candidate {name} has no samples for ranking stages "
+                f"{missing_stage_indices}"
+            )
         sampled = sum(int(stage["sampled_frames"]) for stage in critical)
         if sampled <= 0:
-            raise ValueError(f"candidate {name} has no stage1-4 samples")
+            raise ValueError(
+                f"candidate {name} has no samples for ranking stages {normalized_stage_indices}"
+            )
 
         def rate(key: str) -> float:
             return sum(int(stage[key]) for stage in critical) / sampled
@@ -220,33 +250,35 @@ def rank_camera_candidates(
             {
                 "name": name,
                 "score": score,
-                "stage1_4_handle_visible_rate": handle_rate,
-                "stage1_4_handle_and_both_fingers_visible_rate": trio_rate,
-                "stage1_4_door_panel_visible_rate": panel_rate,
-                "stage1_4_handle_centered_rate": centered_rate,
+                "ranked_handle_visible_rate": handle_rate,
+                "ranked_handle_and_both_fingers_visible_rate": trio_rate,
+                "ranked_door_panel_visible_rate": panel_rate,
+                "ranked_handle_centered_rate": centered_rate,
             }
         )
     ranked.sort(key=lambda item: (-item["score"], item["name"]))
     diagnostic_vectors = {
         (
             item["score"],
-            item["stage1_4_handle_visible_rate"],
-            item["stage1_4_handle_and_both_fingers_visible_rate"],
-            item["stage1_4_door_panel_visible_rate"],
-            item["stage1_4_handle_centered_rate"],
+            item["ranked_handle_visible_rate"],
+            item["ranked_handle_and_both_fingers_visible_rate"],
+            item["ranked_door_panel_visible_rate"],
+            item["ranked_handle_centered_rate"],
         )
         for item in ranked
     }
     if len(ranked) > 1 and len(diagnostic_vectors) == 1:
         raise ValueError(
-            "all camera candidates have identical stage1-4 diagnostic metrics; "
-            "refusing an arbitrary recommendation"
+            "all camera candidates have identical diagnostic metrics for "
+            f"{stage_label}; refusing an arbitrary recommendation"
         )
     return {
         "recommended_candidate": ranked[0]["name"],
+        "ranking_stage_indices": normalized_stage_indices,
+        "ranking_stage_label": stage_label,
         "ranking": ranked,
         "score_contract": (
-            "diagnostic-only weighted stage1-4 visibility: handle 0.35, "
+            f"diagnostic-only weighted {stage_label} visibility: handle 0.35, "
             "handle+both fingers 0.35, door panel 0.15, centered handle 0.15"
         ),
     }

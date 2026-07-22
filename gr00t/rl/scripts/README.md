@@ -141,6 +141,32 @@ In the currently pinned Kit, `SimulationApp.close()` may not return after the se
 marker. R16 remains open; if cleanup is required, terminate only the exact probe PID
 after `[R14_EVIDENCE_SEALED]`, never another Isaac Sim process.
 
+Run the diagnostic-only Gemini 335L single-camera pose sweep with a fresh output
+directory. This is eval-only: it copies and SHA-verifies the sealed `base_v13_A`
+Teacher input, never launches a trainer, and refuses an existing output directory:
+
+```bash
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python \
+gr00t/rl/scripts/sweep_a2_student_camera_pose.py \
+--gpu 0 --num-envs 16 \
+--output-dir /tmp/a2_camera_pose_sweep_16env_seed0_20260722
+```
+
+The sweep uses one existing `TiledCamera` and the centered Gemini 335L nominal
+`1280x800 -> 1280x720 -> 384x216` RGB intrinsics. Because the pinned IsaacLab
+projection assumes square pixels, simulation preserves the nominal `94 deg`
+horizontal FoV with `fx=fy=179.0428965384`; the spec-derived cropped value is
+`fy=177.9073162215`, so this is a documented `+1.1355803169 px` approximation,
+not physical calibration. Every candidate is set/read back in the camera's local
+OpenGL frame, rendered at the same physics step, and checked for image diversity.
+
+The sealed 16-env seed0 run recommended `z_low_020`: local position
+`[0.32,0.0,0.20] m`, RPY `[0,-6,0] deg`, quaternion
+`[0.9986295348,0,-0.0523359562,0] wxyz`. Its stage1-4 diagnostic score was
+`0.9230179028`; this is the current right/out simulation search default, not a
+frozen physical mount. Mirrored left/right validation and calibrated hardware
+intrinsics remain required before a real mount decision.
+
 For the first approved one-update GPU smoke, launch the A2 route with a fresh
 dedicated `experiment_dir`. This uses four environments, one rollout step,
 one minibatch, one total batch, and saves `model_step_000001.pt`:

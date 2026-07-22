@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-22 HKT
 
-Status: `RESEARCH_BRIEF / CLOUD_REPORT_INTAKE / CONFIG_NOT_IMPLEMENTED`。本文记录当前仓库事实、云端调研结论、已采纳的设计约束与后续验证入口；它不是最终采购 BOM，也不表示 camera 配置、仿真资产或 Student observation 已经修改。
+Status: `CLOUD_REPORT_ARCHIVED / R14_RESOLVED / SINGLE_CAMERA_POSE_SWEEP_COMPLETE / PHYSICAL_MOUNT_DEFERRED`。本文记录当前仓库事实、云端调研结论、已采纳的设计约束与后续验证入口；它不是最终采购 BOM，也不表示 Student observation 已经修改或实物 camera mount 已经冻结。
 
 ## 1. Destination 与停止条件
 
@@ -49,7 +49,7 @@ Cloud Pro 返回的原始报告已按原文归档为 [`scriptsFORhuman/research_
 | trunk 高位右偏安装、右偏 yaw/crop | **否决为 nominal design**。它会把当前 `right/out` 训练资产的偶然 handedness 固化到硬件；未来仿真与实机都必须覆盖 left/right-opening doors。 |
 | trunk 中心线安装 + left/right mirror-paired sweep | **采纳**。默认 `Y=0`、yaw `0°`，如测试偏置，必须同时测试符号相反的 lateral/yaw pair。 |
 | Gemini 305 wrist camera | **保留为第二阶段 upgrade candidate**。只有单 camera 在 left/right 镜像场景的近距 handle/gripper visibility gate 明确失败，才启动多视角 observation/model 设计。 |
-| R14 transform probe | **保持 blocking prerequisite**。transform chain 未数值闭合前，不把任何 pose seed 写成 final pose。 |
+| R14 transform probe | **已完成并解除 pose-sweep blocker**。same-step probe 证明 configured local pose 和 live camera prim 数值闭合；旧 mismatch 来自 `update_latest_camera_pose=false` 时的 stale initialization `CameraData`。该结论不等于 final mount。 |
 | `j8 open-limit <10%` 作为 camera hard gate | **不采纳**。`v13_A` Teacher 本身为 `14.151%`，该项只能作为 inherited Teacher guardrail/non-regression diagnostic，不能单独否决 camera。 |
 | 单个 16-env batch 的百分比提升阈值 | **不采纳为最终统计门槛**。后续行为对比必须使用预先声明的 multi-seed/episode matrix，并报告 paired counts 与不确定性。 |
 
@@ -69,6 +69,8 @@ Cloud Pro 返回的原始报告已按原文归档为 [`scriptsFORhuman/research_
 | Official source | [Orbbec Gemini 335L](https://www.orbbec.com/products/stereo-vision-camera/gemini-335l/) | [Orbbec Gemini 305](https://www.orbbec.com/gemini-305/) |
 
 For the approved one-camera target, the acquisition path is `1280×800 @ 60 fps` RGB capture, calibrated/undistorted **centered** `1280×720` crop, then resize to `384×216` for the current Student. No handle-side-biased crop is allowed. The native `94°×68°` RGB FoV does not remain unchanged after a 16:9 crop; exact effective intrinsics/FoV must be calculated from the calibrated cropped stream. Capture rate, transport rate, inference rate and 50 Hz control rate remain separate quantities and require runtime measurement.
+
+Using the nominal vendor FoV rather than a physical calibration, the native pinhole values are `fx=596.8096551281`, `fy=593.0243874051`, `cx=640`, `cy=400`. The centered `1280×720` crop keeps `fx/fy`, moves `cy` to `360`, and the `384×216` resize yields spec-derived `[fx,fy,cx,cy]=[179.0428965384,177.9073162215,192,108]`, effective FoV `94° H × 62.5203301934° V`. The pinned IsaacLab projection assumes square pixels, so the sweep uses `[179.0428965384,179.0428965384,192,108]`, preserving horizontal FoV and producing `62.1973813521° V`; the `fy` difference is `+1.1355803169 px`. Both sets are nominal/spec-derived, not a substitute for calibrated 335L intrinsics.
 
 ## 3. 当前 Student perception contract
 
@@ -201,14 +203,14 @@ Camera coverage must be evaluated across the complete sequence, not only at rese
 The current `right/out` asset is a source baseline, not a camera-mount requirement. Future `door_open_lr=["left","right"]` randomization mirrors the hinge/handle side, and real deployments must encounter both handednesses. Camera design therefore obeys these constraints:
 
 - Nominal physical mount lies on the trunk sagittal centerline (`Y=0`) with zero nominal yaw. A fixed right- or left-offset mount is not accepted merely because it performs well on the current one-sided asset.
-- The first documentation-level search seed is parent `trunk`, optical-frame position `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0.0,-0.052335956,0.0] wxyz`, convention `world`. This is an **unimplemented pose-search seed**, not a final transform.
+- The first documentation-level search seed was parent `trunk`, optical-frame position `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0.0,-0.052335956,0.0] wxyz`, convention `world`. It has now been evaluated and ranked fourth; it remains a search baseline, not a final transform.
 - The preferred frame chain is `trunk -> mechanical_mount -> calibrated_optical_frame -> sensor(identity)`. `sensor(identity)` is valid only after the measured housing-to-optical correction is represented by `calibrated_optical_frame`.
 - Pose sweeps start from the centerline seed. Optional lateral/yaw ablations must be mirror pairs: `(+Y,+yaw)` and `(-Y,-yaw)` with identical X/Z/pitch, evaluated on identical mirrored state sets.
 - First symmetry validation covers current `right/out` and mirrored `left/out`. `in/out` push/pull is a separate task-semantics expansion and is not silently included in this camera brief.
 - Cropping, augmentation, visibility masks and score regions must also be left/right symmetric. No fixed crop may privilege the handle side in the current right-only asset.
 - A recommendation cannot be frozen while either handedness systematically loses handle/gripper visibility or behavior. Report per-handedness results and the paired gap rather than hiding it in an aggregate mean.
 
-## 5. Known camera evidence and unresolved blockers
+## 5. Known camera evidence and resolved pose-sweep result
 
 ### 5.1 What is known
 
@@ -216,26 +218,22 @@ The current `right/out` asset is a source baseline, not a camera-mount requireme
 - The visual result was only `PASS_PROVISIONAL`: tilted, side-biased, close and partially self-occluded. It was not a final mount, not multi-seed evidence and not physical-hardware validation.
 - `v13_A` qualitative eval used the external three-camera diagnostic setup. Those videos support behavior interpretation only and do not validate an onboard camera choice.
 
-### 5.2 Transform blocker
+### 5.2 R14 transform resolution
 
-R14 recorded a numerical inconsistency:
+The dedicated same-step GPU probe closed R14. The live camera prim matched the verified trunk plus configured local offset with `0.0 m` position error and `2.0803985e-07 rad` orientation error. Default cached `CameraData` differed from the live prim by `0.8946629167 m`; temporarily enabling `update_latest_camera_pose` and forcing one sensor update reduced the live error to `0.0 m` and `1.3485386e-07 rad` without advancing the physics counter. The root cause is stale initialization pose in default `CameraData`, not the parent, local offset, or quaternion convention. Diagnostics must reuse the `TiledCamera`'s initialized view; creating a second same-path view can perturb Fabric/USD state.
 
-- `CameraData.pos_w` versus `trunk_pos + R(trunk_quat) * [0.25,0,0.14]` error norm: `0.859750361 m`;
-- measured camera-to-trunk distance: `1.104684372 m`;
-- configured offset norm: `0.286530976 m`;
-- measured forward-axis up component corresponded to about `0.94°` upward, not the previously assumed large upward pitch.
+### 5.3 2026-07-22 Gemini 335L single-camera pose sweep
 
-The mechanism remains `INCONCLUSIVE`. Candidate explanations include stale `CameraData.pos_w` because `update_latest_camera_pose` is false, Fabric/USD synchronization behavior, a same-named authored camera prim, or comparing different frames/times. Before any pose recommendation is implemented, run one targeted high-level probe that records, at the same simulation step:
+The eval-only sweep reused the sealed `base_v13_A` Teacher checkpoint `model_step_003000.pt` with SHA-256 `d576ca4bc6f596e45a8d744ca766164b374f8aba4409b06bcd7c460d6b057a36`; no training ran. It evaluated one legacy control plus seven centerline candidates in one 16-env seed0 rollout. For every sample it reused the existing `TiledCamera`, set and read back each local pose, rendered all candidates without advancing physics, and required both RGB/segmentation diversity and exact runtime intrinsics. The sealed local summary is `/tmp/a2_camera_pose_sweep_16env_seed0_20260722/camera_pose_sweep_summary.json`.
 
-1. `robot.data` trunk position/quaternion;
-2. `XformPrimView('/World/envs/env_.*/Robot/trunk')` world transform;
-3. the configured offset transformed from the verified parent pose;
-4. camera prim world transform from `XformPrimView`;
-5. `CameraData.pos_w` and all available quaternion conventions;
-6. `update_latest_camera_pose` effective value;
-7. whether `/Robot/trunk/ego_camera` existed before `TiledCamera` construction.
+The diagnostic ranking recommended `z_low_020`:
 
-Do not tune quaternions against an unverified transform chain.
+- local pose on `trunk`: position `[0.320,0.000,0.200] m`, RPY `[0,-6,0]°`, quaternion `[0.9986295348,0,-0.0523359562,0] wxyz`;
+- stage1-4 weighted score `0.9230179028`;
+- handle visible `0.9697357204`, handle plus both fingers visible `0.8729752771`, door panel visible `0.9799658994`, handle centered `0.8738277920`;
+- search ranking after it was `x_far_036`, `x_near_028`, original `center_seed`, `pitch_up_12`, `pitch_level_00`, `z_high_030`; the legacy pose control scored zero under this diagnostic.
+
+This recommendation is only the current **right/out simulation search default**. It does not freeze the physical bracket, validate mirrored `left/out`, replace measured intrinsics/extrinsics, or prove vibration, exposure, latency, depth, cable, thermal, and mechanical clearance behavior. Production camera config and Student observation remain unchanged.
 
 ## 6. Cloud research questions
 
@@ -455,9 +453,9 @@ Use the following prompt verbatim or attach this brief and use the shortened fir
 >
 > Repo baseline to verify, not blindly repeat: current deployable Student uses one programmatically spawned trunk camera at local position `[0.25,0,0.14] m` and quaternion `[0.315631686,0.134503192,-0.390177116,-0.854428083] wxyz`, convention `world`, RGB-only `384×216`, about `69.4°×42.5°` FoV, clipping `0.1–20 m`. The Student contract is `81D proprio + RGB -> 12D`. The three `main/handle_top/handle_side` cameras are external eval views, not onboard Student inputs. The A2+Piper robot has 20 DoF; Piper is fixed to `trunk` at `[0.145,0,0.154] m`, so arm/camera self-occlusion is critical.
 >
-> Current decision to respect: the first-stage preferred candidate is one trunk-mounted Orbbec Gemini 335L, using source capability `1280×800@60 fps` RGB and a calibrated centered 16:9 crop/resize to the existing `384×216` Student input. Its nominal mount must be trunk-centerline `Y=0`, yaw `0°`; `[0.320,0.000,0.250] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0,-0.052335956,0] wxyz` is only an unimplemented search seed. Gemini 305 is an optional wrist-camera upgrade only if the one-camera mirrored visibility gate fails.
+> Current decision to respect: the first-stage preferred candidate is one trunk-mounted Orbbec Gemini 335L, using source capability `1280×800@60 fps` RGB and a calibrated centered 16:9 crop/resize to the existing `384×216` Student input. Its nominal mount must be trunk-centerline `Y=0`, yaw `0°`. A local right/out-only simulation sweep now recommends `[0.320,0.000,0.200] m`, RPY `[0,-6,0]°`, quaternion `[0.998629535,0,-0.052335956,0] wxyz` as the next simulation default; it is not a frozen physical mount and still requires mirrored left/right validation. Gemini 305 is an optional wrist-camera upgrade only if the one-camera mirrored visibility gate fails.
 >
-> Treat the current transform as unresolved. R14 found a `0.859750361 m` mismatch between `CameraData.pos_w` and the expected trunk+offset transform. Check the exact IsaacLab API and note that current `CameraCfg` defaults `update_latest_camera_pose=false`; this is a hypothesis, not a proven root cause. Recommend no pose tuning until a same-step parent/sensor transform probe resolves it.
+> Treat R14 as resolved by the later same-step GPU probe: the configured local pose and live camera prim close numerically, while default `CameraData` is a stale initialization pose because `update_latest_camera_pose=false`. Do not reopen R14 or tune against cached `CameraData` without contradictory evidence. The later right/out pose sweep is diagnostic evidence, not physical/mirrored validation.
 >
 > Then search primary sources for existing quadruped/dog + arm platforms, papers and projects. For each, capture platform/arm, task, camera count, onboard vs wrist/external placement, parent frame, pose/angle, model, modality, FoV, resolution, fps, minimum depth, shutter, synchronization and how vision is used. Use official docs, repo calibration/URDF/launch files and papers before videos. Never infer exact parameters from a photo; use `UNKNOWN`.
 >

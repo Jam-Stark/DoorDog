@@ -1661,6 +1661,14 @@ class IsaacSim(BaseSimulator):
                     "cameras.camera_update_period must be finite and non-negative; "
                     f"got {update_period!r}"
                 )
+            colorize_instance_ids = cameras_cfg.get(
+                "colorize_instance_id_segmentation", True
+            )
+            if type(colorize_instance_ids) is not bool:
+                raise TypeError(
+                    "cameras.colorize_instance_id_segmentation must be bool; "
+                    f"got {colorize_instance_ids!r}"
+                )
             ego_camera_config = TiledCameraCfg(
                 prim_path=f"/World/envs/env_.*/Robot/{parent}/{suffix}",
                 offset=TiledCameraCfg.OffsetCfg(
@@ -1677,6 +1685,7 @@ class IsaacSim(BaseSimulator):
                 width=int(camera_resolution[1]),
                 height=int(camera_resolution[0]),
                 update_period=update_period,
+                colorize_instance_id_segmentation=colorize_instance_ids,
                 debug_vis=True,
             )
 

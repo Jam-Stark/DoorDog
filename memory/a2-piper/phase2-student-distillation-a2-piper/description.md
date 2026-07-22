@@ -1,8 +1,8 @@
 ---
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
-status: TRAINING_PASS
-last_updated: 2026-07-22 15:36 HKT
+status: TRAINING_PASS / R14_RESOLVED / 335L_POSE_SWEEP_COMPLETE
+last_updated: 2026-07-22 21:35 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-22 15:36 HKT: `TRAINING_PASS`，且 R14 camera transform root cause 已由 same-step GPU probe 数值关闭。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`。
+Status at 2026-07-22 21:35 HKT: `TRAINING_PASS / R14_RESOLVED / 335L_POSE_SWEEP_COMPLETE`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`；后续单 camera pose sweep 只做 Teacher eval diagnostic，没有训练。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
@@ -57,16 +57,25 @@ Independent full-architecture strict reconstruction is `PARTIAL/NOT_RUN`: saved 
 
 因此 R14 root cause 是 IsaacLab `CameraCfg.update_latest_camera_pose=false` 下 `CameraData` 保留初始化 pose，不是 camera parent、configured offset 或 quaternion convention 错误。诊断必须复用 `TiledCamera` 自身已经初始化的 camera `XformPrimView`；为同一 camera path 新建第二个 view 会触发一次 authored USD→Fabric sync 并污染 live diagnostic。该结论不决定最终 camera pose/mount，也不授权修改 Student observation 或 camera config。evidence 在 `SimulationApp.close()` 前 seal；close 仍未返回，之后只 TERM exact probe PID，故 R16 lifecycle 仍未通过。
 
+## Gemini 335L Single-camera Pose Sweep
+
+2026-07-22 在 GPU0 完成 eval-only、16-env、seed0 的 centered Gemini 335L pose sweep；没有调用 trainer。source Teacher 为 `logs_rl/a2_piper_student_distillation_v13_A_teacher-20260717_2103/model_step_003000.pt`，SHA256 `d576ca4bc6f596e45a8d744ca766164b374f8aba4409b06bcd7c460d6b057a36`；wrapper 将 checkpoint/config 复制到 fresh output 的 `_eval_input` 后再次验证相同 hash，避免 eval 写 sealed source。sealed summary 为 `/tmp/a2_camera_pose_sweep_16env_seed0_20260722/camera_pose_sweep_summary.json`，共 `248` sample events。
+
+- Intrinsics 由 Gemini 335L nominal `94°H×68°V`、centered `1280×800 -> 1280×720 -> 384×216` 推导。spec 值 `[fx,fy,cx,cy]=[179.0428965384,177.9073162215,192,108]`；pinned IsaacLab square-pixel projection 使用 `[179.0428965384,179.0428965384,192,108]`，`fy` 差 `+1.1355803169 px`，不是 physical calibration。
+- sweep 复用一个现有 `TiledCamera` 和其 view；candidate local pose 以 OpenGL convention 用 `set_local_poses/get_local_poses` 闭合。每个 candidate 都在同一 physics step `sim.render()` + `camera.update(dt=0, force_recompute=True)`；physics counter 未前进，RGB/raw instance segmentation 对 control 与 search 不全同，runtime intrinsic error 为 `0`。
+- stage1-4 diagnostic score 以 handle `0.35`、handle+both fingers `0.35`、door panel `0.15`、handle centered `0.15` 加权。推荐 `z_low_020`：trunk local position `[0.32,0,0.20]m`，RPY `[0,-6,0]°`，quaternion `[0.9986295348,0,-0.0523359562,0] wxyz`，score `0.9230179028`；四项 rate 为 `0.9697357204/0.8729752771/0.9799658994/0.8738277920`。原 `[0.32,0,0.25]` center seed 排第四；legacy control score `0`。
+- 该结果只把 `z_low_020` 设为当前 right/out simulation search default，不冻结 physical mount，不证明 mirrored left/out、calibrated intrinsics/extrinsics、vibration/exposure/latency/depth、cable/thermal/mechanical clearance，也不修改 production Student camera config/observation。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
 
-G1 compatibility/regression, R16 lifecycle perfection, final camera pose/mount, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for this completed scope. They must be separately approved and validated before any future claim about those outcomes.
+G1 compatibility/regression, R16 lifecycle perfection, final physical camera mount and mirrored left/right validation, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for this completed scope. The right/out simulation pose search is complete but does not close those items. They must be separately approved and validated before any future claim about those outcomes.
 
 ## TODO Summary
 
 - 2026-07-15 17:17 HKT - Current accepted one-update A2+Piper Student Distillation goal is complete at `TRAINING_PASS`; optional future tuning/validation is non-blocking and requires separate scope/approval.
-- 2026-07-22 15:36 HKT - R14 transform root cause is closed; final camera pose/mount remains separately deferred.
+- 2026-07-22 21:35 HKT - R14 transform root cause and the bounded right/out 335L simulation pose sweep are complete; final physical mount plus mirrored left/right validation remain separately deferred.
 
 ## DONE Summary
 
@@ -75,6 +84,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final camera pose/mount, 
 - 2026-07-14/15 HKT - R13/R14/R15 camera/lifecycle attempts recorded `FAIL_TIMEOUT` / `FAIL_FINAL_SEAL` / `FAIL_EVIDENCE_SERIALIZATION`; these are preserved historical lifecycle facts, not training success.
 - 2026-07-15 17:17 HKT - `TRAINING_PASS`: one real GPU0 Student Distillation update completed and sealed as `model_step_000001.pt`; lifecycle cleanup and independent strict reconstruction limitations are explicitly bounded above.
 - 2026-07-22 15:36 HKT - `R14_STALE_INITIALIZATION_POSE_CONFIRMED`: same-step GPU probe closed parent/local-offset/live-camera transforms and isolated the large mismatch to default cached `CameraData`; camera config was unchanged and R16 remains open.
+- 2026-07-22 21:35 HKT - `335L_POSE_SWEEP_COMPLETE`: eval-only 16-env seed0 sweep used crop-derived nominal intrinsics and the sealed `base_v13_A` Teacher; same-step pose/readback/render/intrinsics/physics gates passed and `z_low_020` ranked first. This is a right/out simulation default, not physical mount or mirrored validation.
 
 ## Recommended Next Files To Read
 

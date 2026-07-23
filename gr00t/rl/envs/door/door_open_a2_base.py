@@ -3185,6 +3185,7 @@ class DoorPregrasp(
         "a2_hold_diagnostic_max_contact_data_count_per_prim"
     )
     A2_HOLD_FRICTION_OVERRIDE_CONFIG_KEY = "a2_hold_diagnostic_friction_override"
+    A2_M39_GRIPPER_MATERIAL_CONFIG_KEY = "a2_m39_gripper_material_enabled"
     A2_M23_SELF_COLLISION_CONTACT_SENSORS_CONFIG_KEY = (
         "a2_m23_self_collision_contact_sensors_enabled"
     )
@@ -3519,6 +3520,13 @@ class DoorPregrasp(
         if not isinstance(value, bool):
             raise RuntimeError(
                 f"env.config.{self.A2_HOLD_CONTACT_DETAIL_CONFIG_KEY} must be bool; got {value!r}."
+            )
+        return value
+    def _get_a2_m39_gripper_material_enabled(self) -> bool:
+        value = self.config.get(self.A2_M39_GRIPPER_MATERIAL_CONFIG_KEY, False)
+        if not isinstance(value, bool):
+            raise RuntimeError(
+                f"env.config.{self.A2_M39_GRIPPER_MATERIAL_CONFIG_KEY} must be bool; got {value!r}."
             )
         return value
 
@@ -3892,6 +3900,9 @@ class DoorPregrasp(
         self._get_a2_grasp_gate_mode()
         self._get_a2_grasp_streak_control_steps()
         self._validate_a2_v13_door_semantics_config()
+        if self._get_a2_m39_gripper_material_enabled():
+            if getattr(self.simulator, "_m39_material_runtime_metadata", None) is None:
+                raise RuntimeError("M39 gripper material runtime evidence is unavailable.")
         self._a2_stage3_to4_door_hinge_threshold = (
             self._get_required_positive_float_config(
                 self.A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY,
@@ -8093,7 +8104,11 @@ class DoorPregrasp(
                 f"({self.num_envs}, 1); got {shape}."
             )
 
-        for field_name in ("stage_buf", "time_in_stage_buf", "episode_length_buf"):
+        for field_name in (
+            "stage_buf",
+            "actual_time_in_stage_buf",
+            "episode_length_buf",
+        ):
             field_value = getattr(self, field_name, None)
             if (
                 field_value is None
@@ -8105,6 +8120,19 @@ class DoorPregrasp(
                     f"A2 terminal diagnostics requires {field_name} shape "
                     f"({self.num_envs},); got {shape}."
                 )
+        actual_time_in_stage_buf = self.actual_time_in_stage_buf
+        if (
+            actual_time_in_stage_buf.dtype != torch.long
+            or actual_time_in_stage_buf.device != torch.device(self.device)
+            or torch.any(actual_time_in_stage_buf < 0)
+        ):
+            raise RuntimeError(
+                "A2 terminal diagnostics requires non-negative "
+                "actual_time_in_stage_buf torch.long values on "
+                f"{self.device}; got dtype={actual_time_in_stage_buf.dtype}, "
+                f"device={actual_time_in_stage_buf.device}, "
+                f"min={int(actual_time_in_stage_buf.min().item())}."
+            )
 
         target_pos_source_handle_distance = torch.linalg.norm(
             target_pos_source[:, 0, :], dim=-1
@@ -8136,7 +8164,9 @@ class DoorPregrasp(
         )
 
         selected_stage_buf = self.stage_buf[env_ids].detach().cpu().tolist()
-        selected_time_in_stage_buf = self.time_in_stage_buf[env_ids].detach().cpu().tolist()
+        selected_time_in_stage_buf = (
+            actual_time_in_stage_buf[env_ids].detach().cpu().tolist()
+        )
         selected_episode_length_buf = self.episode_length_buf[env_ids].detach().cpu().tolist()
         selected_contact_force_arm_body7_8_w = (
             contact_force_arm_body7_8_w[env_ids].detach().cpu().tolist()
@@ -13841,7 +13871,14 @@ class DoorPregrasp(
                         "physics_material": self._a2_hold_read_material_binding(stage, prim),
                     }
                 )
-        return {
+        m39_metadata = None
+        if self._get_a2_m39_gripper_material_enabled():
+            m39_metadata = getattr(self.simulator, "_m39_material_runtime_metadata", None)
+            if not isinstance(m39_metadata, dict):
+                raise RuntimeError("M39 gripper material runtime evidence is unavailable.")
+            if m39_metadata.get("schema") != "a2_m39_gripper_material_v1":
+                raise RuntimeError("M39 gripper material runtime evidence schema is invalid.")
+        metadata = {
             "contact_sensor_body": "door_handle",
             "contact_filter_pair_order": ["arm_body7", "arm_body8"],
             "contact_pos_semantics": "average per sensor-body/filter pair",
@@ -13883,6 +13920,9 @@ class DoorPregrasp(
             ),
         }
 
+        if m39_metadata is not None:
+            metadata["m39_gripper_material"] = m39_metadata
+        return metadata
     def _get_a2_eval_diagnostic_step_fields(self, env_ids: torch.Tensor):
         if not self._a2_eval_diagnostic_trace_enabled:
             raise RuntimeError(

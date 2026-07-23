@@ -1,6 +1,6 @@
 # TODO
 
-- 2026-07-23 00:54 HKT - 启动formal v17 G1–G6 six-group training；每组必须独立保存formal launcher的exact exit status与finished marker。v16 B2000继续只是task-success best、non-promotable/non-release，历史v16 formal launcher natural exit仍UNVERIFIED；endpoint eval/render的exit0不得反推training launcher exit。
-- 2026-07-23 00:54 HKT - 对每个v17 group在500/1000/1500/2000执行behavior与reward-decomposition midpoint audit，而非只看goal；审计hinge@release、post-release body contact/force、low/high-handle posture usage、crossing scoped red-lines、stage4 dwell/overtime与M34/M35 payout。
-- 2026-07-23 00:54 HKT - 在candidate selection后执行真实3-seed×16 M38 reporting；continuous metrics的exact duration只有在`step_index`和`episode_length_buf` unique、ordered、contiguous且terminal-consistent时才可推断。policy quality、long-run与multiprocess run仍UNVERIFIED。
+- 2026-07-24 06:41 HKT - formal `base_v18_main-20260724_063738`当前仅STARTED/RUNNING；继续观察其exact terminal status、finished/exit marker与checkpoint provenance，不得把当前process/GPU健康状态写成training完成、natural exit或policy-quality PASS。
+- 2026-07-24 06:41 HKT - 在step500/1000/1500/2000执行v18 canonical behavior与reward-decomposition midpoint audits，而非只看goal；覆盖P1 stage3/stages4–5 slip reduction target、hinge@release、post-release body contact/force、low/high-handle posture usage、crossing scoped red-lines、stage4 dwell/overtime及M39/M41 evidence completeness。
+- 2026-07-24 06:41 HKT - endpoint后执行canonical、3-seed×16/48-door strict report与qualitative renders；M41 goal rows必须non-null crossing/release evidence，non-goal event-conditioned groups必须explicit all-null。以P1 baseline评估slip reduction，并作reward carry/decomposition judgement；任何continuation/retrain contingency保留为endpoint evidence后的pending decision。
 - 2026-07-22 16:02 HKT - 远期项继续以`scriptsFORhuman/a2_piper_longterm_TODO.md`为准：左右镜像、真实Piper限位、in/out与student保持separate future scope；M23 scripted 108-cell grid仍NOT RUN。

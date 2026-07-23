@@ -24,6 +24,12 @@ algo:
 
       # A2 eval-only causal diagnostics. The expanded step trace is opt-in;
       # forced close is additionally gated on the expanded trace for auditability.
+      # Eval-only P2 posture discriminator. `none` preserves historical behavior;
+      # `pitch_zero` and `roll_zero` clamp only the selected base command channel.
+      a2_eval_p2_posture_axis: none
+      # M41 strict exporter: require complete terminal rows and contiguous stage2 trace
+      # coverage before any success artifact is written.
+      a2_eval_m41_strict_telemetry: false
       a2_diagnostic_trace_enabled: false
       a2_diagnostic_reward_terms:
         - gripper_handle_orientation

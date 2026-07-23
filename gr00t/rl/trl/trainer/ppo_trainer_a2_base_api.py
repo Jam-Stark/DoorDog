@@ -191,6 +191,81 @@ _A2_GLOBAL_ENV_QUANTILE_SPECS = {
     ),
 }
 _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
+_A2_EVAL_P2_POSTURE_AXIS_KEY = "a2_eval_p2_posture_axis"
+_A2_EVAL_M41_STRICT_TELEMETRY_KEY = "a2_eval_m41_strict_telemetry"
+_A2_EVAL_P2_POSTURE_AXES = frozenset(("none", "pitch_zero", "roll_zero"))
+
+
+def _read_a2_eval_p2_posture_axis(eval_config):
+    """Parse the eval-only P2 posture discriminator selector."""
+    value = eval_config.get(_A2_EVAL_P2_POSTURE_AXIS_KEY, "none")
+    if value is None:
+        return "none"
+    if isinstance(value, bool) or not isinstance(value, str):
+        raise RuntimeError(
+            f"eval.{_A2_EVAL_P2_POSTURE_AXIS_KEY} must be absent/None or one of "
+            f"{sorted(_A2_EVAL_P2_POSTURE_AXES)}; got {value!r}."
+        )
+    if value not in _A2_EVAL_P2_POSTURE_AXES:
+        raise RuntimeError(
+            f"eval.{_A2_EVAL_P2_POSTURE_AXIS_KEY} must be one of "
+            f"{sorted(_A2_EVAL_P2_POSTURE_AXES)}; got {value!r}."
+        )
+    return value
+
+
+def _apply_a2_eval_p2_posture_axis(action_mean, action_layout, posture_axis):
+    """Apply the eval-only P2 pitch/roll zero clamp to high-level base actions."""
+    if posture_axis not in _A2_EVAL_P2_POSTURE_AXES:
+        raise RuntimeError(
+            "A2 P2 posture selector must be one of "
+            f"{sorted(_A2_EVAL_P2_POSTURE_AXES)}; got {posture_axis!r}."
+        )
+    if (
+        not isinstance(action_layout, dict)
+        or not isinstance(action_layout.get("dim"), int)
+        or isinstance(action_layout.get("dim"), bool)
+        or action_layout["dim"] <= 0
+    ):
+        raise RuntimeError(
+            "A2 P2 posture selector requires a canonical action layout with a positive dim."
+        )
+    expected_dim = action_layout["dim"]
+    if (
+        not torch.is_tensor(action_mean)
+        or action_mean.ndim != 2
+        or action_mean.shape[1] != expected_dim
+        or not torch.is_floating_point(action_mean)
+        or not torch.all(torch.isfinite(action_mean))
+    ):
+        shape = None if not torch.is_tensor(action_mean) else tuple(action_mean.shape)
+        dtype = None if not torch.is_tensor(action_mean) else action_mean.dtype
+        raise RuntimeError(
+            "A2 P2 posture selector requires finite floating action_mean shape "
+            f"(num_envs, {expected_dim}); got shape={shape}, dtype={dtype}."
+        )
+    if posture_axis == "none":
+        return action_mean
+
+    base_start = action_layout.get("base_start")
+    base_end = action_layout.get("base_end")
+    if (
+        isinstance(base_start, bool)
+        or not isinstance(base_start, int)
+        or isinstance(base_end, bool)
+        or not isinstance(base_end, int)
+        or base_start < 0
+        or base_end - base_start != 5
+        or base_end > expected_dim
+    ):
+        raise RuntimeError(
+            "A2 P2 posture selector requires a canonical five-dimensional base action "
+            f"slice; got base_start={base_start!r}, base_end={base_end!r}, dim={expected_dim}."
+        )
+    selected_index = base_start + (3 if posture_axis == "pitch_zero" else 4)
+    applied = action_mean.clone()
+    applied[:, selected_index] = 0.0
+    return applied
 
 
 def _canonicalize_a2_metric_device(device):
@@ -472,7 +547,7 @@ def _finalize_a2_conditional_ratios(metrics):
     return finalized
 
 
-def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs):
+def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs, *, include_m38_fields=False):
     """Build one strict v14 bucket-report record per first-episode environment."""
     if (
         not isinstance(eval_dict, dict)
@@ -525,11 +600,18 @@ def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs):
             raise ValueError(
                 f"A2 v14 terminal diagnostic {index} must be a dict."
             )
+        m38_fields = (
+            "episode_length_buf",
+            "control_dt",
+            "root_pos_rel",
+            "reward_episode_sums",
+        )
         required = (
             "env_id",
             "stage_buf",
             *metadata_fields,
             *telemetry_fields,
+            *(m38_fields if include_m38_fields else ()),
         )
         missing = [field_name for field_name in required if field_name not in diagnostic]
         if missing:
@@ -583,6 +665,14 @@ def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs):
         }
         for field_name in (*metadata_fields, *telemetry_fields):
             record[field_name] = diagnostic[field_name]
+        if include_m38_fields:
+            for field_name in (
+                "episode_length_buf",
+                "control_dt",
+                "root_pos_rel",
+                "reward_episode_sums",
+            ):
+                record[field_name] = diagnostic[field_name]
         records.append(record)
 
     expected_ids = set(range(expected_num_envs))
@@ -594,6 +684,331 @@ def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs):
         )
     return sorted(records, key=lambda record: record["env_id"])
 
+
+_A2_M41_RESULT_REQUIRED_FLOAT_FIELDS = (
+    "door_hinge_drive_max_force",
+    "door_handle_drive_max_force",
+    "door_handle_height",
+    "door_weight",
+    "hinge_at_crossing",
+    "hinge_at_release",
+    "root_x_at_release",
+    "post_release_body_force_max",
+    "stage0_to1_staging_standoff",
+    "stage0_actual_root_height",
+    "stage1_actual_root_height",
+)
+_A2_M41_RESULT_REQUIRED_BOOL_FIELDS = (
+    "crossing_while_holding",
+    "post_release_body_contact",
+)
+_A2_M41_TRACE_REQUIRED_FIELDS = (
+    "env_id",
+    "episode_index",
+    "first_episode_active",
+    "stage_buf",
+    "step_index",
+    "episode_length_buf",
+    "control_dt",
+    "target_pos_source_handle",
+    "both_contact",
+    "terminal_reasons",
+    "door_hinge_drive_max_force",
+    "door_handle_height",
+    "door_weight",
+    "door_body_panel_normal_force_per_filter",
+    "door_body_panel_normal_force_total",
+    "door_arm_panel_normal_force_per_filter",
+    "door_arm_panel_normal_force_total",
+    "physical_base_command",
+    "arm_j7_j8_pos",
+    "arm_j7_j8_open_target",
+    "over_force",
+    "door_hinge_joint_vel",
+    "root_x_ever_crossed",
+    "root_pos_rel",
+    "reward_episode_sums",
+)
+
+
+def _a2_m41_finite_scalar(value, field_name, *, positive=False, nonnegative=False):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise RuntimeError(f"A2 M41 {field_name} must be a finite number; got {value!r}.")
+    value = float(value)
+    if not math.isfinite(value):
+        raise RuntimeError(f"A2 M41 {field_name} must be finite; got {value!r}.")
+    if positive and value <= 0.0:
+        raise RuntimeError(f"A2 M41 {field_name} must be positive; got {value!r}.")
+    if nonnegative and value < 0.0:
+        raise RuntimeError(f"A2 M41 {field_name} must be non-negative; got {value!r}.")
+    return value
+
+
+def _a2_m41_finite_vector(value, field_name, length):
+    if not isinstance(value, (list, tuple)) or len(value) != length:
+        raise RuntimeError(
+            f"A2 M41 {field_name} must contain exactly {length} finite values; got {value!r}."
+        )
+    return tuple(_a2_m41_finite_scalar(component, f"{field_name}[{index}]") for index, component in enumerate(value))
+
+
+def _a2_m41_reward_sums(value, field_name):
+    if not isinstance(value, dict) or not value:
+        raise RuntimeError(f"A2 M41 {field_name} must be a non-empty mapping.")
+    if any(not isinstance(name, str) or not name for name in value):
+        raise RuntimeError(f"A2 M41 {field_name} keys must be non-empty strings.")
+    for name, component in value.items():
+        _a2_m41_finite_scalar(component, f"{field_name}.{name}")
+    return tuple(sorted(value))
+
+
+def _validate_a2_m41_result_records(eval_dict, expected_num_envs):
+    if not isinstance(eval_dict, dict):
+        raise RuntimeError("A2 M41 strict telemetry requires an eval summary dict.")
+    if (
+        isinstance(expected_num_envs, bool)
+        or not isinstance(expected_num_envs, int)
+        or expected_num_envs <= 0
+    ):
+        raise RuntimeError(
+            f"A2 M41 strict telemetry requires positive expected_num_envs; got {expected_num_envs!r}."
+        )
+    diagnostics = eval_dict.get("episode_terminal_diagnostics")
+    goals = eval_dict.get("episode_goal_reached")
+    max_stages = eval_dict.get("episode_max_stage_reached")
+    for field_name, values in (
+        ("episode_terminal_diagnostics", diagnostics),
+        ("episode_goal_reached", goals),
+        ("episode_max_stage_reached", max_stages),
+    ):
+        if not isinstance(values, list) or len(values) != expected_num_envs:
+            raise RuntimeError(
+                f"A2 M41 strict telemetry requires {field_name} list length "
+                f"{expected_num_envs}; got {None if not isinstance(values, list) else len(values)}."
+            )
+
+    result_by_env = {}
+    for index, diagnostic in enumerate(diagnostics):
+        if not isinstance(diagnostic, dict):
+            raise RuntimeError(f"A2 M41 terminal row {index} must be a mapping.")
+        required = (
+            "env_id",
+            "stage_buf",
+            "time_in_stage_buf",
+            "episode_length_buf",
+            "control_dt",
+            "terminal_reasons",
+            *_A2_M41_RESULT_REQUIRED_FLOAT_FIELDS,
+            *_A2_M41_RESULT_REQUIRED_BOOL_FIELDS,
+            "root_pos_rel",
+            "reward_episode_sums",
+        )
+        missing = [name for name in required if name not in diagnostic]
+        if missing:
+            raise RuntimeError(f"A2 M41 terminal row {index} is missing {missing}.")
+        env_id = diagnostic["env_id"]
+        if (
+            isinstance(env_id, bool)
+            or not isinstance(env_id, int)
+            or not 0 <= env_id < expected_num_envs
+            or env_id in result_by_env
+        ):
+            raise RuntimeError(f"A2 M41 terminal row {index} has invalid/ambiguous env_id={env_id!r}.")
+        stage = diagnostic["stage_buf"]
+        max_stage = max_stages[index]
+        if (
+            isinstance(stage, bool)
+            or not isinstance(stage, int)
+            or not 0 <= stage <= 5
+            or isinstance(max_stage, bool)
+            or not isinstance(max_stage, int)
+            or not 0 <= max_stage <= 5
+            or stage > max_stage
+        ):
+            raise RuntimeError(
+                f"A2 M41 terminal row {index} requires integer stage_buf/max_stage in [0,5] "
+                f"with stage_buf <= max_stage; got {stage!r}/{max_stage!r}."
+            )
+        if not isinstance(goals[index], bool):
+            raise RuntimeError(f"A2 M41 episode_goal_reached[{index}] must be bool; got {goals[index]!r}.")
+        time_in_stage = diagnostic["time_in_stage_buf"]
+        episode_length = diagnostic["episode_length_buf"]
+        for field_name, value in (("time_in_stage_buf", time_in_stage), ("episode_length_buf", episode_length)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise RuntimeError(f"A2 M41 terminal row {index} {field_name} must be a non-negative int; got {value!r}.")
+        if episode_length <= 0:
+            raise RuntimeError(f"A2 M41 terminal row {index} episode_length_buf must be positive; got {episode_length!r}.")
+        _a2_m41_finite_scalar(diagnostic["control_dt"], f"terminal row {index} control_dt", positive=True)
+        terminal_reasons = diagnostic["terminal_reasons"]
+        if not isinstance(terminal_reasons, str) or not terminal_reasons:
+            raise RuntimeError(f"A2 M41 terminal row {index} terminal_reasons must be a non-empty string; got {terminal_reasons!r}.")
+        _a2_m41_finite_vector(diagnostic["root_pos_rel"], f"terminal row {index} root_pos_rel", 3)
+        reward_keys = _a2_m41_reward_sums(diagnostic["reward_episode_sums"], f"terminal row {index} reward_episode_sums")
+        event_float_fields = frozenset(
+            (
+                "hinge_at_crossing",
+                "hinge_at_release",
+                "root_x_at_release",
+                "post_release_body_force_max",
+            )
+        )
+        for field_name in _A2_M41_RESULT_REQUIRED_FLOAT_FIELDS:
+            if field_name in event_float_fields:
+                continue
+            _a2_m41_finite_scalar(diagnostic[field_name], f"terminal row {index} {field_name}")
+
+        crossing_group = (
+            diagnostic["crossing_while_holding"],
+            diagnostic["hinge_at_crossing"],
+        )
+        release_group = (
+            diagnostic["hinge_at_release"],
+            diagnostic["root_x_at_release"],
+            diagnostic["post_release_body_contact"],
+            diagnostic["post_release_body_force_max"],
+        )
+        if any(value is None for value in crossing_group) != all(value is None for value in crossing_group):
+            raise RuntimeError(
+                f"A2 M41 terminal row {index} crossing telemetry fields must be all null or all non-null."
+            )
+        if any(value is None for value in release_group) != all(value is None for value in release_group):
+            raise RuntimeError(
+                f"A2 M41 terminal row {index} release telemetry fields must be all null or all non-null."
+            )
+        if crossing_group[0] is not None:
+            if not isinstance(crossing_group[0], bool):
+                raise RuntimeError(f"A2 M41 terminal row {index} crossing_while_holding must be bool.")
+            _a2_m41_finite_scalar(crossing_group[1], f"terminal row {index} hinge_at_crossing")
+        if release_group[0] is not None:
+            _a2_m41_finite_scalar(release_group[0], f"terminal row {index} hinge_at_release")
+            _a2_m41_finite_scalar(release_group[1], f"terminal row {index} root_x_at_release")
+            if not isinstance(release_group[2], bool):
+                raise RuntimeError(f"A2 M41 terminal row {index} post_release_body_contact must be bool.")
+            _a2_m41_finite_scalar(release_group[3], f"terminal row {index} post_release_body_force_max", nonnegative=True)
+        if goals[index] and (crossing_group[0] is None or release_group[0] is None):
+            raise RuntimeError(
+                f"A2 M41 terminal row {index} goal_reached=true requires non-null crossing and release telemetry."
+            )
+        result_by_env[env_id] = {
+            "episode_length_buf": episode_length,
+            "control_dt": float(diagnostic["control_dt"]),
+            "door_hinge_drive_max_force": float(diagnostic["door_hinge_drive_max_force"]),
+            "door_handle_height": float(diagnostic["door_handle_height"]),
+            "door_weight": float(diagnostic["door_weight"]),
+            "reward_keys": reward_keys,
+        }
+
+    expected_ids = set(range(expected_num_envs))
+    if set(result_by_env) != expected_ids:
+        raise RuntimeError(
+            "A2 M41 strict telemetry requires exactly one terminal row per env; "
+            f"missing={sorted(expected_ids - set(result_by_env))}, "
+            f"extra={sorted(set(result_by_env) - expected_ids)}."
+        )
+    return result_by_env
+
+
+def _validate_a2_m41_stage2_trace(trace_records, result_by_env, expected_num_envs):
+    if not isinstance(trace_records, list) or not trace_records:
+        raise RuntimeError("A2 M41 strict telemetry requires a non-empty stage2 trace list.")
+    rows_by_env = {env_id: [] for env_id in range(expected_num_envs)}
+    previous_by_env = {}
+    seen_steps_by_env = {env_id: set() for env_id in range(expected_num_envs)}
+    for row_index, row in enumerate(trace_records):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} must be a mapping.")
+        missing = [name for name in _A2_M41_TRACE_REQUIRED_FIELDS if name not in row]
+        if missing:
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} is missing {missing}.")
+        env_id = row["env_id"]
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in rows_by_env:
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} has invalid env_id={env_id!r}.")
+        if row["episode_index"] != 0 or not isinstance(row["episode_index"], int) or isinstance(row["episode_index"], bool):
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} requires episode_index=0; got {row['episode_index']!r}.")
+        if row["first_episode_active"] is not True:
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} requires first_episode_active=true.")
+        stage = row["stage_buf"]
+        if isinstance(stage, bool) or not isinstance(stage, int) or stage not in (2, 3, 4, 5):
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} has invalid stage_buf={stage!r}.")
+        step_index = row["step_index"]
+        episode_length = row["episode_length_buf"]
+        if isinstance(step_index, bool) or not isinstance(step_index, int) or step_index < 0:
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} step_index must be non-negative int; got {step_index!r}.")
+        if isinstance(episode_length, bool) or not isinstance(episode_length, int) or episode_length <= 0:
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} episode_length_buf must be positive int; got {episode_length!r}.")
+        if step_index in seen_steps_by_env[env_id]:
+            raise RuntimeError(f"A2 M41 stage2 trace env{env_id} has duplicate step_index={step_index}.")
+        seen_steps_by_env[env_id].add(step_index)
+        previous = previous_by_env.get(env_id)
+        if previous is not None:
+            if step_index != previous["step_index"] + 1:
+                raise RuntimeError(
+                    f"A2 M41 stage2 trace env{env_id} step_index must be unique, ordered, and contiguous; "
+                    f"got adjacent values ({previous['step_index']}, {step_index})."
+                )
+            if episode_length != previous["episode_length_buf"] + 1:
+                raise RuntimeError(
+                    f"A2 M41 stage2 trace env{env_id} episode_length_buf must be unique, ordered, and contiguous; "
+                    f"got adjacent values ({previous['episode_length_buf']}, {episode_length})."
+                )
+        elif stage != 2:
+            raise RuntimeError(f"A2 M41 stage2 trace env{env_id} must start at stage_buf=2; got {stage}.")
+        if not isinstance(row["terminal_reasons"], str) or not row["terminal_reasons"]:
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} terminal_reasons must be a non-empty string.")
+        _a2_m41_finite_scalar(row["control_dt"], f"stage2 trace row {row_index} control_dt", positive=True)
+        _a2_m41_finite_vector(row["target_pos_source_handle"], f"stage2 trace row {row_index} target_pos_source_handle", 3)
+        if not isinstance(row["both_contact"], bool) or not isinstance(row["over_force"], bool) or not isinstance(row["root_x_ever_crossed"], bool):
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} contact/force/crossing fields must be bool.")
+        _a2_m41_finite_vector(row["root_pos_rel"], f"stage2 trace row {row_index} root_pos_rel", 3)
+        reward_keys = _a2_m41_reward_sums(row["reward_episode_sums"], f"stage2 trace row {row_index} reward_episode_sums")
+        if reward_keys != result_by_env[env_id]["reward_keys"]:
+            raise RuntimeError(f"A2 M41 stage2 trace env{env_id} reward keys must exactly match terminal row.")
+        for field_name in ("door_hinge_drive_max_force", "door_handle_height", "door_weight"):
+            value = _a2_m41_finite_scalar(row[field_name], f"stage2 trace row {row_index} {field_name}")
+            if value != result_by_env[env_id][field_name]:
+                raise RuntimeError(f"A2 M41 stage2 trace env{env_id} {field_name} must exactly match terminal row.")
+        if float(row["control_dt"]) != result_by_env[env_id]["control_dt"]:
+            raise RuntimeError(f"A2 M41 stage2 trace env{env_id} control_dt must exactly match terminal row.")
+        for field_name, length in (("physical_base_command", 5), ("arm_j7_j8_pos", 2), ("arm_j7_j8_open_target", 2)):
+            _a2_m41_finite_vector(row[field_name], f"stage2 trace row {row_index} {field_name}", length)
+        for field_name in ("door_body_panel_normal_force_per_filter", "door_arm_panel_normal_force_per_filter"):
+            vector = _a2_m41_finite_vector(row[field_name], f"stage2 trace row {row_index} {field_name}", 13 if field_name.startswith("door_body") else 10)
+            if any(value < 0.0 for value in vector):
+                raise RuntimeError(f"A2 M41 stage2 trace row {row_index} {field_name} must be non-negative.")
+        body_total = _a2_m41_finite_scalar(row["door_body_panel_normal_force_total"], f"stage2 trace row {row_index} door_body_panel_normal_force_total", nonnegative=True)
+        arm_total = _a2_m41_finite_scalar(row["door_arm_panel_normal_force_total"], f"stage2 trace row {row_index} door_arm_panel_normal_force_total", nonnegative=True)
+        if not math.isclose(body_total, sum(_a2_m41_finite_vector(row["door_body_panel_normal_force_per_filter"], "body force", 13)), rel_tol=1e-5, abs_tol=1e-6):
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} body force total disagrees with per-filter sum.")
+        if not math.isclose(arm_total, sum(_a2_m41_finite_vector(row["door_arm_panel_normal_force_per_filter"], "arm force", 10)), rel_tol=1e-5, abs_tol=1e-6):
+            raise RuntimeError(f"A2 M41 stage2 trace row {row_index} arm force total disagrees with per-filter sum.")
+        _a2_m41_finite_scalar(row["door_hinge_joint_vel"], f"stage2 trace row {row_index} door_hinge_joint_vel")
+        rows_by_env[env_id].append(row)
+        previous_by_env[env_id] = row
+
+    expected_ids = set(range(expected_num_envs))
+    missing = [env_id for env_id, rows in rows_by_env.items() if not rows]
+    if missing:
+        raise RuntimeError(f"A2 M41 strict telemetry requires stage2 trace rows for every env; missing {missing}.")
+    for env_id, rows in rows_by_env.items():
+        if not any(row["stage_buf"] == 2 for row in rows):
+            raise RuntimeError(f"A2 M41 stage2 trace env{env_id} is missing stage2 coverage.")
+        final = rows[-1]
+        if final["terminal_reasons"] == "unknown_reset":
+            raise RuntimeError(f"A2 M41 stage2 trace env{env_id} is missing terminal evidence at its final row.")
+        if final["episode_length_buf"] != result_by_env[env_id]["episode_length_buf"]:
+            raise RuntimeError(
+                f"A2 M41 stage2 trace env{env_id} terminal episode_length_buf must match terminal row "
+                f"{result_by_env[env_id]['episode_length_buf']}; got {final['episode_length_buf']}."
+            )
+    if set(rows_by_env) != expected_ids:
+        raise RuntimeError("A2 M41 stage2 trace environment coverage is ambiguous.")
+    return rows_by_env
+
+
+def _validate_a2_m41_eval_telemetry(eval_dict, trace_records, expected_num_envs):
+    result_by_env = _validate_a2_m41_result_records(eval_dict, expected_num_envs)
+    _validate_a2_m41_stage2_trace(trace_records, result_by_env, expected_num_envs)
+    return None
 
 def _normalize_a2_eval_optional_ratios(records):
     """Convert undefined eval-only ratios to JSON null while retaining raw fields."""
@@ -708,6 +1123,13 @@ def _make_json_safe(value, path="root"):
 
 
 def _read_a2_eval_diagnostic_config(eval_config):
+    p2_posture_axis = _read_a2_eval_p2_posture_axis(eval_config)
+    strict_m41_telemetry = eval_config.get(_A2_EVAL_M41_STRICT_TELEMETRY_KEY, False)
+    if not isinstance(strict_m41_telemetry, bool):
+        raise RuntimeError(
+            f"eval.{_A2_EVAL_M41_STRICT_TELEMETRY_KEY} must be bool; "
+            f"got {strict_m41_telemetry!r}."
+        )
     diagnostic_enabled = eval_config.get("a2_diagnostic_trace_enabled", False)
     forced_close_enabled = eval_config.get("a2_forced_gripper_close_enabled", False)
     for key, value in (
@@ -787,6 +1209,8 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "forced_close_enabled": forced_close_enabled,
         "forced_close_value": forced_close_value,
         "forced_close_stages": forced_close_stages,
+        "p2_posture_axis": p2_posture_axis,
+        "strict_m41_telemetry": strict_m41_telemetry,
     }
 
 
@@ -3431,9 +3855,14 @@ class TRLPPOTrainer(PPOTrainer):
                             ],
                             forced_close_stage_ids=forced_close_stage_ids,
                         )
-                        post_forced_override_pre_env_action = action_mean
+                        p2_posture_axis_action = _apply_a2_eval_p2_posture_axis(
+                            action_mean,
+                            action_layout,
+                            a2_eval_diagnostics["p2_posture_axis"],
+                        )
+                        post_forced_override_pre_env_action = p2_posture_axis_action
                         if a2_eval_diagnostics["forced_close_enabled"]:
-                            post_forced_override_pre_env_action = action_mean.clone()
+                            post_forced_override_pre_env_action = p2_posture_axis_action.clone()
                             post_forced_override_pre_env_action[
                                 forced_close_mask,
                                 action_layout["gripper_index"],
@@ -3593,6 +4022,59 @@ class TRLPPOTrainer(PPOTrainer):
         import os
 
         eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
+        strict_m41_telemetry = a2_eval_diagnostics["strict_m41_telemetry"]
+        strict_stage2_trace_records = None
+        strict_safe_stage2_trace = None
+        strict_v14_eval_records = None
+        strict_safe_v14_records = None
+        strict_safe_to_log_metrics = None
+        strict_safe_eval_dict = None
+        if strict_m41_telemetry:
+            if not eval_num_envs_episodes:
+                raise RuntimeError(
+                    "eval.a2_eval_m41_strict_telemetry=true requires "
+                    "eval_num_envs_episodes=true for unambiguous first-episode rows."
+                )
+            if not a2_stage2_trace_enabled or not a2_eval_diagnostics["diagnostic_enabled"]:
+                raise RuntimeError(
+                    "eval.a2_eval_m41_strict_telemetry=true requires an A2 diagnostic "
+                    "stage2 trace (a2_diagnostic_trace_enabled=true)."
+                )
+            if self.accelerator.num_processes != 1:
+                raise RuntimeError(
+                    "A2 M41 strict telemetry requires single-process matched eval."
+                )
+            get_stage2_trace = getattr(
+                self.env, "get_a2_eval_stage2_step_trace_records", None
+            )
+            if get_stage2_trace is None:
+                raise RuntimeError(
+                    "A2 M41 strict telemetry requires "
+                    "env.get_a2_eval_stage2_step_trace_records()."
+                )
+            strict_stage2_trace_records = get_stage2_trace()
+            strict_v14_eval_records = _build_a2_v14_eval_records(
+                eval_dict,
+                int(self.args.seed),
+                self.env.num_envs,
+                include_m38_fields=True,
+            )
+            _validate_a2_m41_eval_telemetry(
+                eval_dict, strict_stage2_trace_records, self.env.num_envs
+            )
+            strict_safe_stage2_trace = _make_json_safe(
+                strict_stage2_trace_records, path="stage2_step_trace"
+            )
+            strict_safe_v14_records = _make_json_safe(
+                strict_v14_eval_records, path="a2_v14_per_env_records"
+            )
+            strict_safe_eval_dict = _make_json_safe(eval_dict)
+            if dump_eval_to_log_metrics:
+                _normalize_a2_eval_optional_ratios(eval_to_log_records)
+                strict_safe_to_log_metrics = _make_json_safe(
+                    eval_to_log_records, path="eval_to_log_metrics"
+                )
+
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
 
@@ -3600,10 +4082,13 @@ class TRLPPOTrainer(PPOTrainer):
             to_log_metrics_path = os.path.join(eval_output_dir, "eval_to_log_metrics.json")
             to_log_metrics_tmp_path = f"{to_log_metrics_path}.tmp"
             # Eval-only conversion; training keeps raw finite tensor metrics in its meter.
-            _normalize_a2_eval_optional_ratios(eval_to_log_records)
-            safe_to_log_metrics = _make_json_safe(
-                eval_to_log_records, path="eval_to_log_metrics"
-            )
+            if strict_safe_to_log_metrics is None:
+                _normalize_a2_eval_optional_ratios(eval_to_log_records)
+                safe_to_log_metrics = _make_json_safe(
+                    eval_to_log_records, path="eval_to_log_metrics"
+                )
+            else:
+                safe_to_log_metrics = strict_safe_to_log_metrics
             with open(to_log_metrics_tmp_path, "w") as f:
                 json.dump(safe_to_log_metrics, f, indent=4, allow_nan=False)
             os.replace(to_log_metrics_tmp_path, to_log_metrics_path)
@@ -3614,17 +4099,18 @@ class TRLPPOTrainer(PPOTrainer):
                 raise RuntimeError(
                     "A2 v14 per-env eval records require single-process matched eval."
                 )
-            v14_eval_records = _build_a2_v14_eval_records(
+            v14_eval_records = strict_v14_eval_records or _build_a2_v14_eval_records(
                 eval_dict,
                 int(self.args.seed),
                 self.env.num_envs,
+                include_m38_fields=strict_m41_telemetry,
             )
             v14_records_path = os.path.join(
                 eval_output_dir,
                 "a2_v14_per_env_records.json",
             )
             v14_records_tmp_path = f"{v14_records_path}.tmp"
-            safe_v14_records = _make_json_safe(
+            safe_v14_records = strict_safe_v14_records or _make_json_safe(
                 v14_eval_records,
                 path="a2_v14_per_env_records",
             )
@@ -3658,6 +4144,8 @@ class TRLPPOTrainer(PPOTrainer):
                 ],
                 "forced_gripper_close_stages": list(forced_close_stage_ids),
                 "forced_gripper_close_applied_counts": forced_close_applied_counts,
+                "p2_posture_axis": a2_eval_diagnostics["p2_posture_axis"],
+                "m41_strict_telemetry": a2_eval_diagnostics["strict_m41_telemetry"],
                 "canonical_high_level_action_layout": get_action_layout(),
                 "stage3_to4_door_hinge_threshold": get_hinge_threshold(),
                 "trace_timing": {
@@ -3737,7 +4225,7 @@ class TRLPPOTrainer(PPOTrainer):
                     "A2 eval stage2 step trace requires "
                     "env.get_a2_eval_stage2_step_trace_records()."
                 )
-            safe_stage2_trace = _make_json_safe(
+            safe_stage2_trace = strict_safe_stage2_trace or _make_json_safe(
                 get_stage2_trace(), path="stage2_step_trace"
             )
             for trace_filename in ("stage2_5_step_trace.json", "stage2_step_trace.json"):
@@ -3750,7 +4238,7 @@ class TRLPPOTrainer(PPOTrainer):
 
         metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
         metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"
-        safe_eval_dict = _make_json_safe(eval_dict)
+        safe_eval_dict = strict_safe_eval_dict or _make_json_safe(eval_dict)
         with open(metrics_eval_tmp_path, "w") as f:
             json.dump(safe_eval_dict, f, indent=4, allow_nan=False)
         os.replace(metrics_eval_tmp_path, metrics_eval_path)

@@ -106,6 +106,8 @@ env:
     a2_hold_diagnostic_max_contact_data_count_per_prim: 8
     a2_hold_diagnostic_friction_override: null
     a2_stage0_arm_default_max_deviation: 0.10
+    # M39 is an explicit probe selector; shared defaults keep historical friction.
+    a2_m39_gripper_material_enabled: false
     a2_stage1_stage2_base_forward_creep_deadband: 0.05
     a2_stage1_stage2_base_forward_creep_scale: 0.10
     stage2_grasp_contact_history_length: 5

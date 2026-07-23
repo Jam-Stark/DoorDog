@@ -4,6 +4,7 @@
 
 import asyncio
 from collections.abc import Sequence
+from hashlib import sha256
 import math
 import os
 from typing import Optional
@@ -262,11 +263,16 @@ def list_mdl_files_recursive(folder_path, mdl_files):
 
 
 class IsaacSim(BaseSimulator):
+    A2_M39_GRIPPER_MATERIAL_CONFIG_KEY = "a2_m39_gripper_material_enabled"
+    A2_M39_GRIPPER_MATERIAL_SCHEMA = "a2_m39_gripper_material_v1"
+    A2_M39_GRIPPER_BODY_NAMES = ("arm_body7", "arm_body8")
+    A2_M39_HANDLE_BODY_NAME = "door_handle"
+    A2_M39_EXPECTED_POST_MATERIAL = (1.1, 0.9, 0.0)
+
     @staticmethod
     def _get_a2_piper_control_key_for_dof(dof_name):
         if dof_name.startswith("arm_j"):
             return dof_name
-
         if dof_name.endswith("_joint"):
             split_name = dof_name.split("_")
             if len(split_name) != 3:
@@ -309,7 +315,282 @@ class IsaacSim(BaseSimulator):
                 f"{len(values)} values for {len(dof_names)} DOFs"
             )
         return {dof_name: float(values[i]) for i, dof_name in enumerate(dof_names)}
-
+    @staticmethod
+    def _m39_material_summary(materials: torch.Tensor) -> dict:
+        """Summarize a complete PhysX material slice without fabricating values."""
+        if (not torch.is_tensor(materials) or materials.ndim != 3 or materials.shape[-1] != 3
+                or materials.numel() == 0 or not materials.is_floating_point()
+                or not torch.all(torch.isfinite(materials))):
+            shape = None if not torch.is_tensor(materials) else tuple(materials.shape)
+            dtype = None if not torch.is_tensor(materials) else str(materials.dtype)
+            raise RuntimeError(
+                "M39 material evidence requires a non-empty finite floating tensor "
+                f"with trailing shape 3; got shape={shape}, dtype={dtype}."
+            )
+        cpu_materials = materials.detach().to(device="cpu").contiguous()
+        unique = torch.unique(cpu_materials.reshape(-1, 3), dim=0, sorted=True)
+        return {
+            "shape": [int(value) for value in cpu_materials.shape],
+            "min": [float(value) for value in cpu_materials.amin(dim=(0, 1)).tolist()],
+            "max": [float(value) for value in cpu_materials.amax(dim=(0, 1)).tolist()],
+            "unique": [[float(value) for value in row.tolist()] for row in unique],
+            "sha256": sha256(cpu_materials.numpy().tobytes()).hexdigest(),
+        }
+    @staticmethod
+    def _m39_asset_material_slices(asset, body_names, asset_name, num_envs, require_exact_body_view=False):
+        """Read exact body-shape material slices through IsaacLab PhysX views."""
+        root_view = getattr(asset, "root_physx_view", None)
+        if root_view is None or not hasattr(root_view, "get_material_properties"):
+            raise RuntimeError(
+                f"M39 material evidence requires {asset_name}.root_physx_view with "
+                "get_material_properties()."
+            )
+        link_paths_by_env = getattr(root_view, "link_paths", None)
+        if not link_paths_by_env or not link_paths_by_env[0]:
+            raise RuntimeError(f"M39 {asset_name} material evidence has no link paths.")
+        link_paths = [str(path) for path in link_paths_by_env[0]]
+        if require_exact_body_view:
+            if len(body_names) != 1 or body_names[0] != "door_handle":
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view evidence requires the "
+                    "door_handle target."
+                )
+            body_name = body_names[0]
+            matches = [index for index, path in enumerate(link_paths)
+                       if path.rstrip("/").endswith(f"/{body_name}")]
+            if len(matches) != 1:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view evidence requires exactly one "
+                    f"body path for {body_name!r}; got {[link_paths[index] for index in matches]}."
+                )
+            body_path = link_paths[matches[0]]
+            env_marker = "/env_0/"
+            if env_marker not in body_path:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view target must resolve an env_0 path; "
+                    f"got {body_path!r}."
+                )
+            env_root, relative_body_path = body_path.split(env_marker, 1)
+            if not relative_body_path:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view target has an empty env-relative path."
+                )
+            expected_paths = tuple(
+                f"{env_root}/env_{env_id}/{relative_body_path}" for env_id in range(num_envs)
+            )
+            target_path = f"{env_root}/env_*/{relative_body_path}"
+            physics_sim_view = getattr(asset, "_physics_sim_view", None)
+            if physics_sim_view is None or not hasattr(physics_sim_view, "create_rigid_body_view"):
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view evidence requires the IsaacLab physics "
+                    "simulation view body-shape contract."
+                )
+            target_view = physics_sim_view.create_rigid_body_view(target_path)
+            try:
+                view_count = int(target_view.count)
+                shape_count = int(target_view.max_shapes)
+            except (AttributeError, TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view must expose integer count and max_shapes."
+                ) from exc
+            actual_paths = [str(path) for path in target_view.prim_paths]
+            if view_count != num_envs:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view count must equal num_envs={num_envs}; "
+                    f"got {view_count}."
+                )
+            if len(actual_paths) != view_count or len(set(actual_paths)) != view_count:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view prim_paths must contain one concrete path "
+                    f"per view; count={view_count}, paths={actual_paths}."
+                )
+            if set(actual_paths) != set(expected_paths):
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view prim paths do not match the expected env set; "
+                    f"expected={list(expected_paths)}, actual={actual_paths}."
+                )
+            if shape_count <= 0:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view target {body_name!r} has no collision shapes."
+                )
+            exact_materials = target_view.get_material_properties()
+            if (not torch.is_tensor(exact_materials)
+                    or tuple(exact_materials.shape) != (num_envs, shape_count, 3)
+                    or not exact_materials.is_floating_point()
+                    or not torch.all(torch.isfinite(exact_materials))):
+                shape = None if not torch.is_tensor(exact_materials) else tuple(exact_materials.shape)
+                dtype = None if not torch.is_tensor(exact_materials) else str(exact_materials.dtype)
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view material tensor must have finite floating "
+                    f"shape ({num_envs}, {shape_count}, 3); got shape={shape}, dtype={dtype}."
+                )
+            prim_paths_sha256 = sha256("\n".join(sorted(actual_paths)).encode("utf-8")).hexdigest()
+            return {body_name: {
+                "body_path": body_path,
+                "target_path": body_path,
+                "target_body": body_name,
+                "scope": "exact_target_rigid_body_view_all_envs",
+                "evidence_scope": "exact_target_rigid_body_view_all_envs",
+                "view_count": view_count,
+                "shape_count": shape_count,
+                "prim_paths_sha256": prim_paths_sha256,
+                "materials": exact_materials.detach().clone(),
+            }}
+        physics_sim_view = getattr(asset, "_physics_sim_view", None)
+        materials = root_view.get_material_properties()
+        if (not torch.is_tensor(materials) or materials.ndim != 3
+                or materials.shape[0] != num_envs or materials.shape[-1] != 3):
+            shape = None if not torch.is_tensor(materials) else tuple(materials.shape)
+            raise RuntimeError(
+                f"M39 {asset_name} material properties must have shape "
+                f"({num_envs}, max_shapes, 3); got {shape}."
+            )
+        if physics_sim_view is None or not hasattr(physics_sim_view, "create_rigid_body_view"):
+            raise RuntimeError(
+                f"M39 {asset_name} material evidence requires the IsaacLab physics "
+                "simulation view body-shape contract."
+            )
+        shape_counts = []
+        for path in link_paths:
+            body_view = physics_sim_view.create_rigid_body_view(path)
+            shape_count = int(getattr(body_view, "max_shapes", 0))
+            shape_counts.append(shape_count)
+        if sum(shape_counts) != int(materials.shape[1]):
+            raise RuntimeError(
+                f"M39 {asset_name} body-shape mapping mismatch: "
+                f"sum(shape_counts)={sum(shape_counts)} vs material columns={materials.shape[1]}."
+            )
+        slices = {}
+        for body_name in body_names:
+            matches = [index for index, path in enumerate(link_paths)
+                       if path.rstrip("/").endswith(f"/{body_name}")]
+            if len(matches) != 1:
+                raise RuntimeError(
+                    f"M39 {asset_name} material evidence requires exactly one body path "
+                    f"for {body_name!r}; got {[link_paths[index] for index in matches]}."
+                )
+            body_index = matches[0]
+            shape_count = shape_counts[body_index]
+            if shape_count <= 0:
+                raise RuntimeError(
+                    f"M39 {asset_name} target body {body_name!r} at path "
+                    f"{link_paths[body_index]!r} has no collision shapes."
+                )
+            start = sum(shape_counts[:body_index])
+            end = start + shape_count
+            body_materials = materials[:, start:end, :].detach().clone()
+            if not torch.all(torch.isfinite(body_materials)):
+                raise RuntimeError(
+                    f"M39 {asset_name} material evidence for {body_name!r} is non-finite."
+                )
+            slices[body_name] = {
+                "body_path": link_paths[body_index],
+                "shape_count": shape_count,
+                "materials": body_materials,
+            }
+        return slices
+    def _capture_m39_material_evidence(self, pre_slices, post_slices):
+        """Validate and serialize M39 pre/post material evidence."""
+        expected = torch.tensor(
+            self.A2_M39_EXPECTED_POST_MATERIAL,
+            dtype=pre_slices["robot"]["arm_body7"]["materials"].dtype,
+        )
+        finger_records = {}
+        for body_name in self.A2_M39_GRIPPER_BODY_NAMES:
+            pre = pre_slices["robot"][body_name]
+            post = post_slices["robot"][body_name]
+            post_materials = post["materials"]
+            expected_post = expected.to(device=post_materials.device).reshape(1, 1, 3)
+            if not torch.equal(post_materials, expected_post.expand_as(post_materials)):
+                raise RuntimeError(
+                    f"M39 {body_name} post material values must be exactly "
+                    f"{self.A2_M39_EXPECTED_POST_MATERIAL}; got "
+                    f"{torch.unique(post_materials.reshape(-1, 3), dim=0).tolist()}."
+                )
+            finger_records[body_name] = {
+                "body_path": post["body_path"],
+                "shape_count": post["shape_count"],
+                "pre": self._m39_material_summary(pre["materials"]),
+                "post": self._m39_material_summary(post_materials),
+            }
+        pre_handle = pre_slices["door"][self.A2_M39_HANDLE_BODY_NAME]
+        post_handle = post_slices["door"][self.A2_M39_HANDLE_BODY_NAME]
+        expected_scope = "exact_target_rigid_body_view_all_envs"
+        expected_fields = (
+            "body_path",
+            "target_path",
+            "target_body",
+            "scope",
+            "evidence_scope",
+            "view_count",
+            "shape_count",
+            "prim_paths_sha256",
+            "materials",
+        )
+        for label, record in (("pre", pre_handle), ("post", post_handle)):
+            if any(field not in record for field in expected_fields):
+                raise RuntimeError(f"M39 handle {label} evidence is missing an exact-view field.")
+            if (record["scope"] != expected_scope
+                    or record["evidence_scope"] != expected_scope
+                    or record["target_body"] != self.A2_M39_HANDLE_BODY_NAME
+                    or record["target_path"] != record["body_path"]
+                    or not record["body_path"].rstrip("/").endswith("/door_handle")):
+                raise RuntimeError(
+                    f"M39 handle {label} evidence must be the exact all-env door_handle "
+                    "RigidBodyView scope and target."
+                )
+            materials = record["materials"]
+            if (not torch.is_tensor(materials)
+                    or tuple(materials.shape) != (record["view_count"], record["shape_count"], 3)
+                    or record["view_count"] <= 0
+                    or record["shape_count"] <= 0
+                    or not materials.is_floating_point()
+                    or not torch.all(torch.isfinite(materials))):
+                raise RuntimeError(f"M39 handle {label} evidence material shape/value contract failed.")
+        stable_fields = (
+            "body_path",
+            "target_path",
+            "target_body",
+            "scope",
+            "evidence_scope",
+            "view_count",
+            "shape_count",
+            "prim_paths_sha256",
+        )
+        if any(pre_handle[field] != post_handle[field] for field in stable_fields):
+            raise RuntimeError("M39 handle evidence scope/target/count/shape/hash changed.")
+        if not torch.equal(pre_handle["materials"], post_handle["materials"]):
+            raise RuntimeError("M39 handle material changed while randomizing finger pads.")
+        return {
+            "schema": self.A2_M39_GRIPPER_MATERIAL_SCHEMA,
+            "selector_enabled": True,
+            "event_term": {
+                "function": "isaaclab.envs.mdp.events.randomize_rigid_body_material",
+                "mode": "startup",
+                "asset": "robot",
+                "target_bodies": list(self.A2_M39_GRIPPER_BODY_NAMES),
+                "static_friction_range": [1.1, 1.1],
+                "dynamic_friction_range": [0.9, 0.9],
+                "restitution_range": [0.0, 0.0],
+                "num_buckets": 1,
+                "make_consistent": True,
+            },
+            "finger_bodies": finger_records,
+            "handle": {
+                "body_path": post_handle["body_path"],
+                "target_path": post_handle["target_path"],
+                "target_body": post_handle["target_body"],
+                "scope": post_handle["evidence_scope"],
+                "evidence_scope": post_handle["evidence_scope"],
+                "view_count": post_handle["view_count"],
+                "shape_count": post_handle["shape_count"],
+                "prim_paths_sha256": post_handle["prim_paths_sha256"],
+                "pre": self._m39_material_summary(pre_handle["materials"]),
+                "post": self._m39_material_summary(post_handle["materials"]),
+                "unchanged": True,
+            },
+            "all_envs": True,
+        }
     def __init__(self, config, device, **kwargs):
         super().__init__(config, device)
 
@@ -439,6 +720,57 @@ class IsaacSim(BaseSimulator):
 
         self.event_types = set()
         self.events_cfg = EventCfg()
+        m39_enabled = self.env_config.get(
+            self.A2_M39_GRIPPER_MATERIAL_CONFIG_KEY, False
+        )
+        if not isinstance(m39_enabled, bool):
+            raise ValueError(
+                f"env.config.{self.A2_M39_GRIPPER_MATERIAL_CONFIG_KEY} must be bool; "
+                f"got {m39_enabled!r}."
+            )
+        if m39_enabled and self.domain_rand_config.get("randomize_friction", False):
+            raise RuntimeError(
+                "M39 gripper material randomization cannot coexist with "
+                "domain_rand.randomize_friction because the generic event would "
+                "overwrite the finger material."
+            )
+        self._m39_material_runtime_metadata = None
+        m39_pre_slices = None
+        if m39_enabled:
+            if "robot" not in self.scene.articulations:
+                raise RuntimeError("M39 material evidence requires scene.articulations['robot'].")
+            if "door" not in self.scene.articulations:
+                raise RuntimeError("M39 material evidence requires scene.articulations['door'].")
+            m39_pre_slices = {
+                "robot": self._m39_asset_material_slices(
+                    self.scene.articulations["robot"],
+                    self.A2_M39_GRIPPER_BODY_NAMES,
+                    "robot",
+                    self.num_envs,
+                ),
+                "door": self._m39_asset_material_slices(
+                    self.scene.articulations["door"],
+                    (self.A2_M39_HANDLE_BODY_NAME,),
+                    "door",
+                    self.num_envs,
+                    require_exact_body_view=True,
+                ),
+            }
+            self.events_cfg.m39_gripper_material = EventTerm(
+                func=mdp.randomize_rigid_body_material,
+                mode="startup",
+                params={
+                    "asset_cfg": SceneEntityCfg(
+                        "robot", body_names=["arm_body7", "arm_body8"]
+                    ),
+                    "static_friction_range": (1.1, 1.1),
+                    "dynamic_friction_range": (0.9, 0.9),
+                    "restitution_range": (0.0, 0.0),
+                    "num_buckets": 1,
+                    "make_consistent": True,
+                },
+            )
+            self.event_types.add("startup")
         if self.domain_rand_config.get("randomize_link_mass", False):
             self.events_cfg.scale_body_mass = EventTerm(
                 func=mdp.randomize_rigid_body_mass,
@@ -764,6 +1096,25 @@ class IsaacSim(BaseSimulator):
 
         if "startup" in self.event_manager.available_modes:
             self.event_manager.apply(mode="startup")
+        if m39_enabled:
+            m39_post_slices = {
+                "robot": self._m39_asset_material_slices(
+                    self.scene.articulations["robot"],
+                    self.A2_M39_GRIPPER_BODY_NAMES,
+                    "robot",
+                    self.num_envs,
+                ),
+                "door": self._m39_asset_material_slices(
+                    self.scene.articulations["door"],
+                    (self.A2_M39_HANDLE_BODY_NAME,),
+                    "door",
+                    self.num_envs,
+                    require_exact_body_view=True,
+                ),
+            }
+            self._m39_material_runtime_metadata = self._capture_m39_material_evidence(
+                m39_pre_slices, m39_post_slices
+            )
 
         # -- event manager used for randomization
         # if self.cfg.events:

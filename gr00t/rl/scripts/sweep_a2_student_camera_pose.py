@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the matched Gemini 335L single-camera pose sweep without training."""
+"""Run a sealed A2 camera visibility evaluation without training."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ import os
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from pathlib import Path
 
@@ -20,6 +20,10 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 DEFAULT_ISAACLAB_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 MAINLINE_RUNTIME_REPOSITORY = Path("/home/baoquanc/workspace/DoorDog-A2_Piper")
+CAMERA_CONFIGS = (
+    "gemini_335l_centerline",
+    "d435i_portrait_a2_head",
+)
 
 
 @dataclass(frozen=True)
@@ -72,8 +76,8 @@ TEACHER_PROFILES = {
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Drive a sealed A2 Teacher eval while one diagnostic camera is moved "
-            "through matched same-step Gemini 335L pose candidates. No training occurs."
+            "Drive a sealed A2 Teacher eval with an approved diagnostic camera "
+            "configuration. No training occurs."
         )
     )
     parser.add_argument(
@@ -85,6 +89,19 @@ def parse_args() -> argparse.Namespace:
         "--checkpoint",
         type=Path,
         help="Optional relocation of the selected sealed Teacher artifact.",
+    )
+    parser.add_argument(
+        "--camera-config",
+        choices=CAMERA_CONFIGS,
+        default="gemini_335l_centerline",
+    )
+    parser.add_argument(
+        "--runtime-repository",
+        type=Path,
+        help=(
+            "Optional relocation of the selected Teacher runtime. The checked-out "
+            "commit and clean-source gates remain mandatory."
+        ),
     )
     parser.add_argument("--python", type=Path, default=DEFAULT_ISAACLAB_PYTHON)
     parser.add_argument("--gpu", type=int, choices=(0, 1), default=0)
@@ -117,11 +134,16 @@ def build_eval_command(
     output_dir: Path,
     runtime_repository: Path,
     overlay_repository: Path,
+    camera_config: str = "gemini_335l_centerline",
 ) -> list[str]:
     if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs < 2:
         raise ValueError(
             "num_envs must be an int >= 2 so eval does not trigger the unrelated "
             f"single-env ONNX export; got {num_envs!r}"
+        )
+    if camera_config not in CAMERA_CONFIGS:
+        raise ValueError(
+            f"unsupported camera config {camera_config!r}; expected one of {CAMERA_CONFIGS}"
         )
     bootstrap = overlay_repository / "gr00t/rl/scripts/run_a2_camera_pose_eval.py"
     overlay_config_root = overlay_repository / "gr00t/rl/config"
@@ -134,7 +156,7 @@ def build_eval_command(
         str(overlay_repository),
         "--",
         f"checkpoint={checkpoint}",
-        "+camera_pose_sweep=gemini_335l_centerline",
+        f"+camera_pose_sweep={camera_config}",
         f"+num_envs={num_envs}",
         "+headless=true",
         "+use_wandb=false",
@@ -303,6 +325,7 @@ def seal_summary(
     runtime_config: Path,
     runtime_commit: str,
     metrics: dict[str, object],
+    camera_config: str,
 ) -> Path:
     sweep = metrics.get("a2_camera_pose_sweep")
     if not isinstance(sweep, dict) or sweep.get("status") != "SWEEP_COMPLETE":
@@ -317,16 +340,92 @@ def seal_summary(
     ) != [1, 2, 3, 4, 5]:
         raise RuntimeError("camera pose recommendation did not use exact stages 1-5")
     _validate_candidate_videos(output_dir, sweep)
+    scheme_c = None
+    if camera_config == "d435i_portrait_a2_head":
+        scheme_c = metrics.get("a2_camera_scheme_c")
+        if not isinstance(scheme_c, dict) or scheme_c.get("status") != "SCHEME_C_COMPLETE":
+            raise RuntimeError("metrics_eval.json has no completed scheme C summary")
+        if scheme_c.get("training_performed") is not False:
+            raise RuntimeError("scheme C must explicitly report training_performed=false")
+        if scheme_c.get("view_order") != [
+            "d435i_portrait_up12",
+            "a2_head_context",
+        ]:
+            raise RuntimeError("scheme C view order drifted")
+        if scheme_c.get("head_extrinsic_status") != (
+            "provisional_not_cad_or_calibrated"
+        ):
+            raise RuntimeError("scheme C A2 Head extrinsic boundary drifted")
+        if scheme_c.get("physics_advanced_between_views") is not False:
+            raise RuntimeError("scheme C must prove no physics advance between views")
+        intrinsic_error = scheme_c.get("runtime_intrinsic_max_error_px")
+        if (
+            isinstance(intrinsic_error, bool)
+            or not isinstance(intrinsic_error, (int, float))
+            or float(intrinsic_error) > 1.0e-4
+        ):
+            raise RuntimeError(
+                f"scheme C runtime intrinsic error is invalid: {intrinsic_error!r}"
+            )
+        combined_visibility = scheme_c.get("combined_visibility")
+        stages = (
+            None
+            if not isinstance(combined_visibility, dict)
+            else combined_visibility.get("stages")
+        )
+        required_stage_names = tuple(
+            f"stage{index}_{suffix}"
+            for index, suffix in (
+                (1, "pregrasp"),
+                (2, "grasp"),
+                (3, "open"),
+                (4, "swing"),
+                (5, "through"),
+            )
+        )
+        if not isinstance(stages, dict) or any(
+            not isinstance(stages.get(stage_name), dict)
+            or int(stages[stage_name].get("sampled_frames", 0)) < 1
+            for stage_name in required_stage_names
+        ):
+            raise RuntimeError(
+                f"scheme C combined visibility does not cover stages 1-5: {stages}"
+            )
+        combined_metadata = scheme_c.get("combined_video_metadata")
+        if (
+            not isinstance(combined_metadata, dict)
+            or int(combined_metadata.get("frame_count", 0)) < 1
+        ):
+            raise RuntimeError("scheme C combined video has no frames")
+        stage_frame_counts = combined_metadata.get("stage_frame_counts")
+        if not isinstance(stage_frame_counts, dict) or any(
+            int(stage_frame_counts.get(stage_name, 0)) < 1
+            for stage_name in required_stage_names
+        ):
+            raise RuntimeError(
+                "scheme C combined video trajectory does not cover stages 1-5"
+            )
+        combined_path = Path(str(scheme_c.get("combined_video", ""))).resolve()
+        if not combined_path.is_relative_to(output_dir):
+            raise RuntimeError(f"scheme C combined video escaped eval output: {combined_path}")
+        if not combined_path.is_file() or combined_path.stat().st_size <= 0:
+            raise RuntimeError(f"scheme C combined video is missing or empty: {combined_path}")
+        writing_files = list(output_dir.rglob("*.writing.mp4"))
+        if writing_files:
+            raise RuntimeError(f"unsealed scheme C video files remain: {writing_files}")
+    elif camera_config != "gemini_335l_centerline":
+        raise RuntimeError(f"unsupported camera config at seal time: {camera_config}")
     if sha256_file(runtime_checkpoint) != profile.checkpoint_sha256:
         raise RuntimeError("runtime checkpoint SHA-256 differs from sealed source")
     if sha256_file(runtime_config) != profile.config_sha256:
         raise RuntimeError("runtime config SHA-256 differs from sealed source")
     summary = {
-        "schema_version": 2,
+        "schema_version": 3,
         "sealed_at_hkt": datetime.now().astimezone().isoformat(timespec="seconds"),
         "status": "SWEEP_COMPLETE",
         "training_performed": False,
         "teacher_profile": profile.name,
+        "camera_config": camera_config,
         "checkpoint": str(checkpoint),
         "checkpoint_sha256": artifact_identity["checkpoint_sha256"],
         "checkpoint_config": artifact_identity["config_path"],
@@ -339,9 +438,12 @@ def seal_summary(
         "runtime_commit": runtime_commit,
         "overlay_repository": str(REPOSITORY_ROOT),
         "command": command,
-        "spec_derived_intrinsics": nominal_gemini_335l_crop_intrinsics(),
         "sweep": sweep,
     }
+    if camera_config == "gemini_335l_centerline":
+        summary["spec_derived_intrinsics"] = nominal_gemini_335l_crop_intrinsics()
+    else:
+        summary["scheme_c"] = scheme_c
     serialized = json.dumps(summary, indent=2, sort_keys=True, allow_nan=False) + "\n"
     summary_path = output_dir / "camera_pose_sweep_summary.json"
     if summary_path.exists():
@@ -358,6 +460,11 @@ def seal_summary(
 def main() -> int:
     args = parse_args()
     profile = TEACHER_PROFILES[args.teacher]
+    if args.runtime_repository is not None:
+        profile = replace(
+            profile,
+            runtime_repository=args.runtime_repository.resolve(),
+        )
     checkpoint = (
         profile.checkpoint.resolve()
         if args.checkpoint is None
@@ -386,12 +493,14 @@ def main() -> int:
         output_dir=output_dir,
         runtime_repository=profile.runtime_repository.resolve(),
         overlay_repository=REPOSITORY_ROOT,
+        camera_config=args.camera_config,
     )
     if args.dry_run:
         print(
             json.dumps(
                 {
                     "teacher_profile": profile.name,
+                    "camera_config": args.camera_config,
                     "checkpoint_sha256": artifact_identity["checkpoint_sha256"],
                     "runtime_commit": runtime_commit,
                     "cuda_visible_devices": args.gpu,
@@ -440,6 +549,7 @@ def main() -> int:
         runtime_config=runtime_config,
         runtime_commit=runtime_commit,
         metrics=metrics,
+        camera_config=args.camera_config,
     )
     print(f"[CAMERA_POSE_SWEEP_SEALED] {summary_path}", flush=True)
     return 0

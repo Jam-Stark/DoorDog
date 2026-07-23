@@ -259,15 +259,30 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             "handle_visible_pixels": [],
         }
 
-    def _append_a2_camera_candidate_video_frame(self, candidate_name: str):
-        camera = self._a2_camera_sweep_camera
+    def _a2_camera_for_candidate(self, candidate_name: str):
+        candidate_names = {candidate["name"] for candidate in self._a2_camera_sweep_candidates}
+        if candidate_name not in candidate_names:
+            raise KeyError(f"unknown camera candidate: {candidate_name}")
+        return self._a2_camera_sweep_camera
+
+    def _a2_video_frame_for_candidate(self, candidate_name: str) -> torch.Tensor:
+        camera = self._a2_camera_for_candidate(candidate_name)
         rgb = camera.data.output["rgb"]
         expected_shape = (self.num_envs, camera.cfg.height, camera.cfg.width, 3)
         if tuple(rgb.shape) != expected_shape or rgb.dtype != torch.uint8:
             raise RuntimeError(
                 f"candidate video RGB drift: {tuple(rgb.shape)}/{rgb.dtype}"
             )
-        frame = rgb[self._a2_camera_sweep_video_env_id].detach().contiguous().cpu().numpy()
+        return rgb[self._a2_camera_sweep_video_env_id]
+
+    def _append_a2_camera_candidate_video_frame(self, candidate_name: str):
+        frame = (
+            self._a2_video_frame_for_candidate(candidate_name)
+            .detach()
+            .contiguous()
+            .cpu()
+            .numpy()
+        )
         writer = self._a2_camera_sweep_video_writers.get(candidate_name)
         if writer is None:
             temporary_path = (
@@ -488,11 +503,15 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
                 f"quaternion_alignment_error={orientation_error}"
             )
 
-    def _accumulate_a2_camera_candidate(self, candidate_name: str, active: torch.Tensor):
-        camera = self._a2_camera_sweep_camera
+    def _a2_camera_visibility_metrics(self, camera) -> dict[str, object]:
         segmentation = camera.data.output["instance_id_segmentation_fast"]
-        if tuple(segmentation.shape) != (self.num_envs, camera.cfg.height, camera.cfg.width, 1):
-            raise RuntimeError(f"instance segmentation shape drift: {tuple(segmentation.shape)}")
+        expected_shape = (self.num_envs, camera.cfg.height, camera.cfg.width, 1)
+        if tuple(segmentation.shape) != expected_shape or segmentation.dtype != torch.int32:
+            raise RuntimeError(
+                "instance segmentation shape/dtype drift; "
+                f"expected={expected_shape}/torch.int32, "
+                f"got={tuple(segmentation.shape)}/{segmentation.dtype}"
+            )
         segmentation = segmentation[..., 0]
         info = camera.data.info.get("instance_id_segmentation_fast")
         if not isinstance(info, dict):
@@ -532,14 +551,29 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
             & (centroid_y >= 0.1 * camera.cfg.height)
             & (centroid_y < 0.9 * camera.cfg.height)
         )
-        trio_visible = visible["handle"] & visible["finger7"] & visible["finger8"]
+        return {
+            "pixel_counts": pixel_counts,
+            "visible": visible,
+            "handle_centered": handle_centered,
+            "trio_visible": visible["handle"] & visible["finger7"] & visible["finger8"],
+        }
 
+    def _accumulate_a2_camera_stats(
+        self,
+        stats_by_stage: dict[str, dict[str, object]],
+        metrics: dict[str, object],
+        active: torch.Tensor,
+    ) -> None:
+        visible = metrics["visible"]
+        pixel_counts = metrics["pixel_counts"]
+        handle_centered = metrics["handle_centered"]
+        trio_visible = metrics["trio_visible"]
         for stage_index in STAGE_NAMES:
             stage_mask = active if stage_index == 6 else active & (self.stage_buf == stage_index)
             count = int(stage_mask.sum().detach().cpu().item())
             if count == 0:
                 continue
-            stats = self._a2_camera_sweep_stats[candidate_name][STAGE_NAMES[stage_index]]
+            stats = stats_by_stage[STAGE_NAMES[stage_index]]
             stats["sampled_frames"] += count
             stats["handle_visible_frames"] += self._masked_count(visible["handle"], stage_mask)
             stats["finger7_visible_frames"] += self._masked_count(visible["finger7"], stage_mask)
@@ -555,6 +589,13 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
                 int(value)
                 for value in pixel_counts["handle"][stage_mask].detach().cpu().tolist()
             )
+
+    def _accumulate_a2_camera_candidate(self, candidate_name: str, active: torch.Tensor):
+        camera = self._a2_camera_for_candidate(candidate_name)
+        metrics = self._a2_camera_visibility_metrics(camera)
+        self._accumulate_a2_camera_stats(
+            self._a2_camera_sweep_stats[candidate_name], metrics, active
+        )
 
     @staticmethod
     def _masked_count(value: torch.Tensor, mask: torch.Tensor) -> int:
@@ -676,3 +717,589 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
         ordered = sorted(values)
         index = int(round((len(ordered) - 1) * probability))
         return ordered[index]
+
+
+class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
+    """Evaluate a fixed portrait D435i and provisional A2 Head camera together."""
+
+    D435I_VIEW = "d435i_portrait_up12"
+    HEAD_VIEW = "a2_head_context"
+    UNION_VIEW = "scheme_c_union"
+
+    @staticmethod
+    def _parse_a2_camera_scheme_c_config(config) -> dict[str, object]:
+        raw_cfg = config.get("a2_camera_scheme_c", None)
+        cfg = OmegaConf.to_container(raw_cfg, resolve=True)
+        expected_keys = {
+            "enabled",
+            "architecture",
+            "view_order",
+            "combined_video",
+            "d435i_mount",
+            "head_camera",
+        }
+        if not isinstance(cfg, dict) or set(cfg) != expected_keys:
+            keys = None if not isinstance(cfg, dict) else sorted(cfg)
+            raise RuntimeError(
+                "a2_camera_scheme_c config schema mismatch; "
+                f"expected={sorted(expected_keys)}, got={keys}"
+            )
+        if cfg["enabled"] is not True:
+            raise RuntimeError("DoorPregraspCameraSchemeC requires enabled=true")
+        if cfg["view_order"] != [
+            DoorPregraspCameraSchemeC.D435I_VIEW,
+            DoorPregraspCameraSchemeC.HEAD_VIEW,
+        ]:
+            raise RuntimeError(
+                "scheme C view_order must be exact D435i then A2 Head order"
+            )
+        combined = cfg["combined_video"]
+        combined_keys = {"enabled", "env_id", "fps", "output_path"}
+        if not isinstance(combined, dict) or set(combined) != combined_keys:
+            raise RuntimeError("scheme C combined_video schema mismatch")
+        if combined["enabled"] is not True:
+            raise RuntimeError("scheme C requires the combined render video")
+        for key in ("env_id", "fps"):
+            value = combined[key]
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise RuntimeError(f"scheme C combined_video.{key} is invalid: {value!r}")
+        if combined["fps"] < 1:
+            raise RuntimeError("scheme C combined video fps must be positive")
+        if not isinstance(combined["output_path"], str) or not combined["output_path"]:
+            raise RuntimeError("scheme C combined video output_path must be non-empty")
+
+        d435i_mount = cfg["d435i_mount"]
+        d435i_keys = {
+            "parent",
+            "physical_housing_orientation",
+            "software_uprighted_optical_frame",
+            "position_m",
+            "effective_optical_rpy_deg",
+            "mechanical_clearance_status",
+            "lateral_symmetry_contract",
+        }
+        if not isinstance(d435i_mount, dict) or set(d435i_mount) != d435i_keys:
+            raise RuntimeError("scheme C d435i_mount schema mismatch")
+        if (
+            d435i_mount["parent"] != "trunk"
+            or d435i_mount["physical_housing_orientation"] != "portrait_90_deg"
+            or d435i_mount["software_uprighted_optical_frame"] is not True
+            or d435i_mount["mechanical_clearance_status"] != "unverified"
+            or d435i_mount["lateral_symmetry_contract"] != "centerline_y0_yaw0"
+            or d435i_mount["position_m"] != [0.28, 0.0, 0.25]
+            or d435i_mount["effective_optical_rpy_deg"] != [0.0, -12.0, 0.0]
+        ):
+            raise RuntimeError("scheme C D435i mount/symmetry boundary drift")
+
+        head = cfg["head_camera"]
+        head_keys = {
+            "sensor_name",
+            "parent",
+            "prim_suffix",
+            "extrinsic_status",
+            "position_m",
+            "rotation_wxyz",
+            "rpy_deg",
+            "width",
+            "height",
+            "focal_length",
+            "focus_distance",
+            "horizontal_aperture",
+            "vertical_aperture",
+            "clipping_range",
+            "update_period",
+            "nominal_intrinsics",
+        }
+        if not isinstance(head, dict) or set(head) != head_keys:
+            raise RuntimeError("scheme C head_camera schema mismatch")
+        if (
+            head["sensor_name"] != DoorPregraspCameraSchemeC.HEAD_VIEW
+            or head["parent"] != "trunk"
+            or head["prim_suffix"] != "a2_head_context_camera"
+            or head["extrinsic_status"] != "provisional_not_cad_or_calibrated"
+            or head["position_m"] != [0.32, 0.0, 0.25]
+            or head["rotation_wxyz"]
+            != [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+            or head["rpy_deg"] != [0.0, -12.0, 0.0]
+        ):
+            raise RuntimeError("scheme C A2 Head identity/extrinsic boundary drift")
+        for key, length in (
+            ("position_m", 3),
+            ("rotation_wxyz", 4),
+            ("rpy_deg", 3),
+            ("clipping_range", 2),
+        ):
+            value = head[key]
+            if (
+                not isinstance(value, list)
+                or len(value) != length
+                or any(
+                    isinstance(item, bool)
+                    or not isinstance(item, (int, float))
+                    or not math.isfinite(float(item))
+                    for item in value
+                )
+            ):
+                raise RuntimeError(f"scheme C head_camera.{key} is invalid: {value!r}")
+        for key in ("width", "height"):
+            value = head[key]
+            if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+                raise RuntimeError(f"scheme C head_camera.{key} must be a positive int")
+        for key in (
+            "focal_length",
+            "focus_distance",
+            "horizontal_aperture",
+            "vertical_aperture",
+        ):
+            value = head[key]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                or float(value) <= 0.0
+            ):
+                raise RuntimeError(f"scheme C head_camera.{key} must be finite and positive")
+        update_period = head["update_period"]
+        if (
+            isinstance(update_period, bool)
+            or not isinstance(update_period, (int, float))
+            or not math.isfinite(float(update_period))
+            or float(update_period) < 0.0
+        ):
+            raise RuntimeError("scheme C head_camera.update_period is invalid")
+        nominal = head["nominal_intrinsics"]
+        nominal_keys = {
+            "source",
+            "native_resolution",
+            "native_fov_deg",
+            "diagnostic_resolution",
+            "sim_fx_fy_cx_cy",
+            "sim_effective_fov_deg",
+        }
+        if not isinstance(nominal, dict) or set(nominal) != nominal_keys:
+            raise RuntimeError("scheme C head nominal_intrinsics schema mismatch")
+        return cfg
+
+    def scene_creation_callback(self, simulator):
+        super().scene_creation_callback(simulator)
+        cfg = self._parse_a2_camera_scheme_c_config(self.config)
+        head = cfg["head_camera"]
+
+        from isaaclab import sim as sim_utils
+        from isaaclab.sensors.camera import TiledCamera, TiledCameraCfg
+
+        sensor_name = head["sensor_name"]
+        if sensor_name in simulator.scene.sensors:
+            raise RuntimeError(f"scheme C head sensor already exists: {sensor_name}")
+        head_cfg = TiledCameraCfg(
+            prim_path=(
+                f"/World/envs/env_.*/Robot/{head['parent']}/{head['prim_suffix']}"
+            ),
+            offset=TiledCameraCfg.OffsetCfg(
+                pos=tuple(float(value) for value in head["position_m"]),
+                rot=tuple(float(value) for value in head["rotation_wxyz"]),
+                convention="world",
+            ),
+            data_types=["rgb", "instance_id_segmentation_fast"],
+            spawn=sim_utils.PinholeCameraCfg(
+                focal_length=float(head["focal_length"]),
+                focus_distance=float(head["focus_distance"]),
+                horizontal_aperture=float(head["horizontal_aperture"]),
+                vertical_aperture=float(head["vertical_aperture"]),
+                clipping_range=tuple(float(value) for value in head["clipping_range"]),
+            ),
+            width=int(head["width"]),
+            height=int(head["height"]),
+            update_period=float(head["update_period"]),
+            colorize_instance_id_segmentation=False,
+            debug_vis=True,
+        )
+        head_camera = TiledCamera(head_cfg)
+        simulator.scene.sensors[sensor_name] = head_camera
+        simulator.a2_head_context_camera = head_camera
+        self._a2_scheme_c_cfg = cfg
+
+    def init_a2_eval_stage2_step_trace(
+        self,
+        diagnostic_enabled: bool = False,
+        diagnostic_reward_terms=(),
+    ):
+        super().init_a2_eval_stage2_step_trace(
+            diagnostic_enabled=diagnostic_enabled,
+            diagnostic_reward_terms=diagnostic_reward_terms,
+        )
+        cfg = getattr(self, "_a2_scheme_c_cfg", None)
+        if not isinstance(cfg, dict):
+            raise RuntimeError("scheme C scene callback did not seal its config")
+        candidate_names = [
+            candidate["name"] for candidate in self._a2_camera_sweep_candidates
+        ]
+        if candidate_names != cfg["view_order"]:
+            raise RuntimeError(
+                f"scheme C candidates/view_order mismatch: {candidate_names}"
+            )
+        head_camera = self.simulator.scene.sensors.get(self.HEAD_VIEW)
+        if head_camera is None or head_camera is not getattr(
+            self.simulator, "a2_head_context_camera", None
+        ):
+            raise RuntimeError("scheme C A2 Head camera is missing from scene sensors")
+        head = cfg["head_camera"]
+        head_rgb = head_camera.data.output.get("rgb")
+        head_segmentation = head_camera.data.output.get(
+            "instance_id_segmentation_fast"
+        )
+        if not torch.is_tensor(head_rgb) or not torch.is_tensor(head_segmentation):
+            raise RuntimeError(
+                "scheme C A2 Head camera did not initialize RGB and raw instance outputs"
+            )
+        expected_rgb_shape = (
+            self.num_envs,
+            int(head["height"]),
+            int(head["width"]),
+            3,
+        )
+        expected_segmentation_shape = (*expected_rgb_shape[:-1], 1)
+        if tuple(head_rgb.shape) != expected_rgb_shape or head_rgb.dtype != torch.uint8:
+            raise RuntimeError(
+                "scheme C A2 Head RGB shape/dtype mismatch; "
+                f"got={tuple(head_rgb.shape)}/{head_rgb.dtype}"
+            )
+        if (
+            tuple(head_segmentation.shape) != expected_segmentation_shape
+            or head_segmentation.dtype != torch.int32
+        ):
+            raise RuntimeError(
+                "scheme C A2 Head segmentation shape/dtype mismatch; "
+                f"got={tuple(head_segmentation.shape)}/{head_segmentation.dtype}"
+            )
+        expected_head_intrinsics = head_camera.data.intrinsic_matrices.new_tensor(
+            head["nominal_intrinsics"]["sim_fx_fy_cx_cy"]
+        )
+        observed_head_intrinsics = head_camera.data.intrinsic_matrices[0]
+        intrinsic_vector = torch.stack(
+            [
+                observed_head_intrinsics[0, 0],
+                observed_head_intrinsics[1, 1],
+                observed_head_intrinsics[0, 2],
+                observed_head_intrinsics[1, 2],
+            ]
+        )
+        head_intrinsic_error_px = float(
+            torch.max(torch.abs(intrinsic_vector - expected_head_intrinsics))
+            .detach()
+            .cpu()
+            .item()
+        )
+        if head_intrinsic_error_px > 1.0e-4:
+            raise RuntimeError(
+                "scheme C A2 Head runtime intrinsics mismatch; "
+                f"max_error_px={head_intrinsic_error_px}"
+            )
+        self._a2_scheme_c_head_intrinsic_error_px = head_intrinsic_error_px
+        self._a2_scheme_c_cameras = {
+            self.D435I_VIEW: self._a2_camera_sweep_camera,
+            self.HEAD_VIEW: head_camera,
+        }
+        self._a2_scheme_c_union_stats = {
+            STAGE_NAMES[index]: self._new_camera_sweep_stage_stats()
+            for index in STAGE_NAMES
+        }
+        combined = cfg["combined_video"]
+        if combined["env_id"] != self._a2_camera_sweep_video_env_id:
+            raise RuntimeError("scheme C combined and per-view video env ids must match")
+        if combined["fps"] != self._a2_camera_sweep_video_fps:
+            raise RuntimeError("scheme C combined and per-view video fps must match")
+        final_path = Path(combined["output_path"]).resolve()
+        temporary_path = final_path.with_name(
+            f"{final_path.stem}.writing{final_path.suffix}"
+        )
+        if final_path.exists() or temporary_path.exists():
+            raise FileExistsError(
+                f"refusing to overwrite scheme C combined video: {final_path}"
+            )
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+        self._a2_scheme_c_combined_final_path = final_path
+        self._a2_scheme_c_combined_temporary_path = temporary_path
+        self._a2_scheme_c_combined_writer = None
+        self._a2_scheme_c_combined_frame_count = 0
+        self._a2_scheme_c_combined_video_sealed = False
+
+    def _a2_camera_for_candidate(self, candidate_name: str):
+        cameras = getattr(self, "_a2_scheme_c_cameras", None)
+        if not isinstance(cameras, dict) or candidate_name not in cameras:
+            raise KeyError(f"scheme C camera mapping is unavailable: {candidate_name}")
+        return cameras[candidate_name]
+
+    @staticmethod
+    def _fit_a2_scheme_c_panel(frame: torch.Tensor) -> torch.Tensor:
+        import torch.nn.functional as functional
+
+        if frame.ndim != 3 or frame.shape[-1] != 3 or frame.dtype != torch.uint8:
+            raise RuntimeError(
+                f"scheme C panel frame must be uint8 HWC RGB; got {frame.shape}/{frame.dtype}"
+            )
+        target_height = 216
+        target_width = 384
+        source_height, source_width = int(frame.shape[0]), int(frame.shape[1])
+        scale = min(target_height / source_height, target_width / source_width)
+        resized_height = max(1, int(round(source_height * scale)))
+        resized_width = max(1, int(round(source_width * scale)))
+        resized = functional.interpolate(
+            frame.permute(2, 0, 1).unsqueeze(0).float(),
+            size=(resized_height, resized_width),
+            mode="bilinear",
+            align_corners=False,
+        )[0].round().clamp(0, 255).to(torch.uint8).permute(1, 2, 0)
+        panel = torch.zeros(
+            (target_height, target_width, 3),
+            dtype=torch.uint8,
+            device=frame.device,
+        )
+        top = (target_height - resized_height) // 2
+        left = (target_width - resized_width) // 2
+        panel[top : top + resized_height, left : left + resized_width] = resized
+        return panel
+
+    def _append_a2_scheme_c_combined_frame(self) -> None:
+        d435i_frame = self._a2_video_frame_for_candidate(self.D435I_VIEW)
+        head_frame = self._a2_video_frame_for_candidate(self.HEAD_VIEW)
+        combined = torch.cat(
+            [
+                self._fit_a2_scheme_c_panel(d435i_frame),
+                self._fit_a2_scheme_c_panel(head_frame),
+            ],
+            dim=1,
+        )
+        if tuple(combined.shape) != (216, 768, 3):
+            raise RuntimeError(f"scheme C combined frame shape drift: {combined.shape}")
+        writer = self._a2_scheme_c_combined_writer
+        if writer is None:
+            writer = imageio.get_writer(
+                str(self._a2_scheme_c_combined_temporary_path),
+                fps=self._a2_camera_sweep_video_fps,
+                codec="libx264",
+                macro_block_size=2,
+            )
+            self._a2_scheme_c_combined_writer = writer
+        writer.append_data(combined.detach().contiguous().cpu().numpy())
+        self._a2_scheme_c_combined_frame_count += 1
+
+    def _capture_a2_camera_pose_sweep_sample(self, active: torch.Tensor):
+        from isaaclab.utils.math import convert_camera_frame_orientation_convention
+
+        simulator = self.simulator
+        physics_step_before = int(simulator._sim_step_counter)
+        video_env_active = bool(
+            active[self._a2_camera_sweep_video_env_id].detach().cpu().item()
+        )
+        video_stage_index = None
+        if video_env_active:
+            video_stage_index = int(
+                self.stage_buf[self._a2_camera_sweep_video_env_id]
+                .detach()
+                .cpu()
+                .item()
+            )
+            if video_stage_index not in range(6):
+                raise RuntimeError(f"scheme C video env stage drift: {video_stage_index}")
+
+        frame_before = {
+            name: camera.frame.clone()
+            for name, camera in self._a2_scheme_c_cameras.items()
+        }
+        simulator.sim.render()
+        metrics_by_view = {}
+        first_rgb = {}
+        candidate_by_name = {
+            candidate["name"]: candidate
+            for candidate in self._a2_camera_sweep_candidates
+        }
+        for name in self._a2_scheme_c_cfg["view_order"]:
+            camera = self._a2_scheme_c_cameras[name]
+            camera.update(dt=0.0, force_recompute=True)
+            if not torch.equal(camera.frame, frame_before[name] + 1):
+                raise RuntimeError(
+                    f"scheme C {name} render must advance exactly one sensor frame"
+                )
+            if int(simulator._sim_step_counter) != physics_step_before:
+                raise RuntimeError("scheme C camera update advanced physics")
+            candidate = candidate_by_name[name]
+            expected_pos = camera.data.intrinsic_matrices.new_tensor(
+                candidate["position_m"]
+            ).reshape(1, 3).expand(self.num_envs, -1)
+            expected_quat = camera.data.intrinsic_matrices.new_tensor(
+                candidate["rotation_wxyz"]
+            ).reshape(1, 4).expand(self.num_envs, -1)
+            expected_quat_opengl = convert_camera_frame_orientation_convention(
+                expected_quat, origin="world", target="opengl"
+            )
+            observed_pos, observed_quat_opengl = camera._view.get_local_poses()
+            self._assert_a2_camera_pose(
+                observed_pos,
+                observed_quat_opengl,
+                expected_pos,
+                expected_quat_opengl,
+                context=f"scheme C {name}",
+            )
+            metrics = self._a2_camera_visibility_metrics(camera)
+            metrics_by_view[name] = metrics
+            self._accumulate_a2_camera_stats(
+                self._a2_camera_sweep_stats[name], metrics, active
+            )
+            if video_env_active:
+                self._append_a2_camera_candidate_video_frame(name)
+            if self._a2_camera_sweep_sample_events == 0:
+                first_rgb[name] = camera.data.output["rgb"].clone()
+
+        d435i_metrics = metrics_by_view[self.D435I_VIEW]
+        head_metrics = metrics_by_view[self.HEAD_VIEW]
+        union_visible = {
+            target: d435i_metrics["visible"][target] | head_metrics["visible"][target]
+            for target in TARGET_NAMES
+        }
+        union_metrics = {
+            "visible": union_visible,
+            "pixel_counts": {
+                target: torch.maximum(
+                    d435i_metrics["pixel_counts"][target],
+                    head_metrics["pixel_counts"][target],
+                )
+                for target in TARGET_NAMES
+            },
+            "handle_centered": (
+                d435i_metrics["handle_centered"] | head_metrics["handle_centered"]
+            ),
+            "trio_visible": (
+                d435i_metrics["trio_visible"] | head_metrics["trio_visible"]
+            ),
+        }
+        self._accumulate_a2_camera_stats(
+            self._a2_scheme_c_union_stats, union_metrics, active
+        )
+        if video_env_active:
+            self._append_a2_scheme_c_combined_frame()
+        if self._a2_camera_sweep_sample_events == 0:
+            d435i_rgb = first_rgb[self.D435I_VIEW]
+            head_rgb = first_rgb[self.HEAD_VIEW]
+            if d435i_rgb.shape == head_rgb.shape and torch.equal(d435i_rgb, head_rgb):
+                raise RuntimeError("scheme C D435i and A2 Head rendered identical RGB")
+            self._a2_camera_sweep_pose_diversity_validated = True
+        if video_stage_index is not None:
+            self._a2_camera_sweep_video_stage_frame_counts[
+                STAGE_NAMES[video_stage_index]
+            ] += 1
+        self._a2_camera_sweep_sample_events += 1
+        if int(simulator._sim_step_counter) != physics_step_before:
+            raise RuntimeError("scheme C same-step capture changed physics counter")
+
+    def _seal_a2_scheme_c_combined_video(self) -> str:
+        if self._a2_scheme_c_combined_video_sealed:
+            raise RuntimeError("scheme C combined video was already sealed")
+        if self._a2_scheme_c_combined_writer is None:
+            raise RuntimeError("scheme C combined video writer was never opened")
+        individual_counts = set(self._a2_camera_sweep_video_frame_counts.values())
+        if individual_counts != {self._a2_scheme_c_combined_frame_count}:
+            raise RuntimeError(
+                "scheme C combined/per-view frame counts differ; "
+                f"combined={self._a2_scheme_c_combined_frame_count}, "
+                f"per_view={self._a2_camera_sweep_video_frame_counts}"
+            )
+        self._a2_scheme_c_combined_writer.close()
+        self._a2_scheme_c_combined_writer = None
+        if not self._a2_scheme_c_combined_temporary_path.is_file():
+            raise FileNotFoundError("scheme C combined temporary video is missing")
+        os.replace(
+            self._a2_scheme_c_combined_temporary_path,
+            self._a2_scheme_c_combined_final_path,
+        )
+        if (
+            not self._a2_scheme_c_combined_final_path.is_file()
+            or self._a2_scheme_c_combined_final_path.stat().st_size <= 0
+        ):
+            raise RuntimeError("scheme C combined video is empty")
+        self._a2_scheme_c_combined_video_sealed = True
+        return str(self._a2_scheme_c_combined_final_path)
+
+    def _summarize_a2_scheme_c_union(self) -> dict[str, object]:
+        stages = {}
+        for stage_name, raw_stats in self._a2_scheme_c_union_stats.items():
+            stats = dict(raw_stats)
+            pixels = stats.pop("handle_visible_pixels")
+            sampled = stats["sampled_frames"]
+            if len(pixels) != sampled:
+                raise RuntimeError(
+                    f"scheme C union {stage_name} pixel/sample mismatch"
+                )
+            for key, value in tuple(stats.items()):
+                if key != "sampled_frames":
+                    stats[key.replace("_frames", "_rate")] = (
+                        None if sampled == 0 else value / sampled
+                    )
+            stats["handle_visible_pixels_p05"] = self._integer_quantile(
+                pixels, 0.05
+            )
+            stats["handle_visible_pixels_p50"] = self._integer_quantile(
+                pixels, 0.50
+            )
+            stages[stage_name] = stats
+        return {"name": self.UNION_VIEW, "stages": stages}
+
+    def get_eval_metrics_summary(self):
+        summary = super().get_eval_metrics_summary()
+        sweep = summary.get("a2_camera_pose_sweep")
+        if not isinstance(sweep, dict) or sweep.get("status") != "SWEEP_COMPLETE":
+            raise RuntimeError("scheme C requires a completed per-view sweep summary")
+        combined_video = self._seal_a2_scheme_c_combined_video()
+        union = self._summarize_a2_scheme_c_union()
+        union_ranking = rank_camera_candidates(
+            [union],
+            ranking_stage_indices=self._a2_camera_sweep_ranking_stage_indices,
+        )
+        per_view = {candidate["name"]: candidate for candidate in sweep["candidates"]}
+        if set(per_view) != {self.D435I_VIEW, self.HEAD_VIEW}:
+            raise RuntimeError(f"scheme C per-view summary mismatch: {sorted(per_view)}")
+        sweep["architecture"] = (
+            "two fixed trunk-attached TiledCamera sensors rendered at one physics step"
+        )
+        sweep["policy_driver"] = (
+            "sealed Teacher checkpoint; both cameras are diagnostic-only"
+        )
+        summary["a2_camera_scheme_c"] = {
+            "status": "SCHEME_C_COMPLETE",
+            "training_performed": False,
+            "architecture": self._a2_scheme_c_cfg["architecture"],
+            "view_order": self._a2_scheme_c_cfg["view_order"],
+            "d435i_mount": self._a2_scheme_c_cfg["d435i_mount"],
+            "head_camera": self._a2_scheme_c_cfg["head_camera"],
+            "head_extrinsic_status": "provisional_not_cad_or_calibrated",
+            "per_view": per_view,
+            "combined_visibility": union,
+            "combined_visibility_ranking": union_ranking,
+            "combined_video": combined_video,
+            "combined_video_metadata": {
+                "env_id": self._a2_camera_sweep_video_env_id,
+                "fps": self._a2_camera_sweep_video_fps,
+                "frame_count": self._a2_scheme_c_combined_frame_count,
+                "layout": (
+                    "left 384x216 pillarboxed portrait D435i; "
+                    "right 384x216 letterboxed A2 Head"
+                ),
+                "stage_frame_counts": self._a2_camera_sweep_video_stage_frame_counts,
+            },
+            "runtime_intrinsic_max_error_px": max(
+                self._a2_camera_sweep_intrinsic_error_px,
+                self._a2_scheme_c_head_intrinsic_error_px,
+            ),
+            "physics_advanced_between_views": False,
+            "conservative_trio_contract": (
+                "handle plus both fingers must be visible in at least one single view"
+            ),
+            "boundaries": [
+                "A2 Head optical extrinsic is provisional, not CAD or calibrated",
+                "A2 Head wide optics are represented by a diagnostic pinhole approximation",
+                "D435i RGB distortion, rolling shutter, latency, and exposure are not simulated",
+                "right/out rollout does not validate mirrored left/out",
+                "production Student observation and model are unchanged",
+            ],
+        }
+        return summary

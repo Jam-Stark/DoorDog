@@ -26,6 +26,10 @@ LAZY_OVERLAY_MODULES = (
     ),
 )
 OVERLAY_MODULES = EAGER_OVERLAY_MODULES + LAZY_OVERLAY_MODULES
+CAMERA_CONFIGS = (
+    "gemini_335l_centerline",
+    "d435i_portrait_a2_head",
+)
 
 
 def parse_args() -> tuple[argparse.Namespace, list[str]]:
@@ -80,9 +84,25 @@ def main() -> int:
     runtime_repository = args.runtime_repository.resolve()
     overlay_repository = args.overlay_repository.resolve()
     eval_entrypoint = runtime_repository / "gr00t/rl/eval_agent_trl.py"
+    camera_config_overrides = [
+        token.removeprefix("+camera_pose_sweep=")
+        for token in hydra_args
+        if token.startswith("+camera_pose_sweep=")
+    ]
+    if len(camera_config_overrides) != 1:
+        raise ValueError(
+            "camera pose bootstrap requires exactly one +camera_pose_sweep override"
+        )
+    camera_config = camera_config_overrides[0]
+    if camera_config not in CAMERA_CONFIGS:
+        raise ValueError(
+            f"unsupported camera pose config {camera_config!r}; "
+            f"expected one of {CAMERA_CONFIGS}"
+        )
     overlay_config = (
         overlay_repository
-        / "gr00t/rl/config/camera_pose_sweep/gemini_335l_centerline.yaml"
+        / "gr00t/rl/config/camera_pose_sweep"
+        / f"{camera_config}.yaml"
     )
     for required_path in (eval_entrypoint, overlay_config):
         if not required_path.is_file():

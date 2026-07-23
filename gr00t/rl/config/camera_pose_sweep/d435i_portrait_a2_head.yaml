@@ -1,0 +1,122 @@
+# @package _global_
+
+# Eval-only Scheme C prototype: one portrait/upward D435i manipulation view plus
+# one provisional A2 Head wide-context view. Neither view changes Student input.
+simulator:
+  config:
+    cameras:
+      enable_cameras: true
+      camera_parent: trunk
+      camera_prim_suffix: d435i_portrait_camera
+      camera_pos: [0.28, 0.0, 0.25]
+      camera_rot_wxyz: [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+      camera_convention: world
+      camera_focal_length: 1.0
+      camera_focus_distance: 0.5
+      camera_horizontal_aperture: 0.7731910784268148
+      camera_vertical_aperture: 1.3745619172032262
+      camera_clipping_range: [0.1, 20.0]
+      camera_update_period: 0.0
+      colorize_instance_id_segmentation: false
+      camera_types:
+        - rgb: true
+        - instance_id_segmentation_fast: true
+      camera_resolutions: [384, 216]
+      eval_camera_resolutions: [384, 216]
+      image_mean: [0.485, 0.456, 0.406]
+      image_std: [0.229, 0.224, 0.225]
+    render_results: false
+
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_camera_pose_sweep.DoorPregraspCameraSchemeC
+  config:
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_camera_pose_sweep:
+      enabled: true
+      sample_interval_control_steps: 5
+      ranking_stage_indices: [1, 2, 3, 4, 5]
+      video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_dir: ${eval_output_dir}/camera_scheme_c_views
+      minimum_visible_pixels:
+        handle: 8
+        finger7: 4
+        finger8: 4
+        door_panel: 64
+      target_path_tokens:
+        handle: /door/door_handle
+        finger7: /Robot/arm_body7
+        finger8: /Robot/arm_body8
+        door_panel: /door/door_panel
+      nominal_intrinsics:
+        source: Intel RealSense D435i nominal RGB FoV; portrait housing with software-uprighted optical frame; not calibrated hardware
+        isaaclab_projection: preserve portrait vertical FoV with centered square pixels
+        native_resolution: [1080, 1920]
+        native_fov_deg: [42.0, 69.0]
+        policy_resolution: [384, 216]
+        physical_housing_rotation_deg: 90.0
+        effective_optical_rpy_deg: [0.0, -12.0, 0.0]
+        sim_policy_fx_fy_cx_cy: [279.36173350510944, 279.36173350510944, 108.0, 192.0]
+        sim_effective_fov_deg: [69.0, 42.27255895009058]
+      candidates:
+        - name: d435i_portrait_up12
+          role: control
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+          rpy_deg: [0.0, -12.0, 0.0]
+        - name: a2_head_context
+          role: search
+          position_m: [0.32, 0.0, 0.25]
+          rotation_wxyz: [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+          rpy_deg: [0.0, -12.0, 0.0]
+    a2_camera_scheme_c:
+      enabled: true
+      architecture: centerline portrait D435i manipulation view plus provisional A2 Head context view
+      view_order: [d435i_portrait_up12, a2_head_context]
+      combined_video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_path: ${eval_output_dir}/scheme_c_d435i_portrait_plus_a2_head_env0001.mp4
+      d435i_mount:
+        parent: trunk
+        physical_housing_orientation: portrait_90_deg
+        software_uprighted_optical_frame: true
+        position_m: [0.28, 0.0, 0.25]
+        effective_optical_rpy_deg: [0.0, -12.0, 0.0]
+        mechanical_clearance_status: unverified
+        lateral_symmetry_contract: centerline_y0_yaw0
+      head_camera:
+        sensor_name: a2_head_context
+        parent: trunk
+        prim_suffix: a2_head_context_camera
+        extrinsic_status: provisional_not_cad_or_calibrated
+        position_m: [0.32, 0.0, 0.25]
+        rotation_wxyz: [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+        rpy_deg: [0.0, -12.0, 0.0]
+        width: 384
+        height: 136
+        focal_length: 1.0
+        focus_distance: 0.5
+        horizontal_aperture: 4.492073547808433
+        vertical_aperture: 1.59094271484882
+        clipping_range: [0.1, 20.0]
+        update_period: 0.0
+        nominal_intrinsics:
+          source: A2 published Head FoV target; provisional pinhole approximation
+          native_resolution: [1448, 2568]
+          native_fov_deg: [77.0, 132.0]
+          diagnostic_resolution: [136, 384]
+          sim_fx_fy_cx_cy: [85.48390757923893, 85.48390757923893, 192.0, 68.0]
+          sim_effective_fov_deg: [77.0024873497374, 132.0]
+
+algo:
+  config:
+    eval:
+      eval_num_envs_episodes: true
+      num_eval_episodes: 16
+      save_videos: false
+      save_trajectories: false

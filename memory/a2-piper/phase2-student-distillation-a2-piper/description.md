@@ -1,8 +1,8 @@
 ---
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
-status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE
-last_updated: 2026-07-22 23:41 HKT
+status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL
+last_updated: 2026-07-23 18:06 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-22 23:41 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`；后续单 camera pose sweep 只做 Teacher eval diagnostic，没有训练。
+Status at 2026-07-23 18:06 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`；后续 camera sweep 和 Scheme C 双视角验证只做 Teacher eval diagnostic，没有训练。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
@@ -76,17 +76,45 @@ Independent full-architecture strict reconstruction is `PARTIAL/NOT_RUN`: saved 
 - 所有候选在 stage5 都出现严重视野坍塌。`x_near_028` 的 stage5 handle/trio/panel/centered rate 为 `0.0953516091/0.0500595948/0.1370679380/0.061978546`，handle pixel p50 为 `0`；人工帧主要是 floor/wall。因此它只作为下一轮 pose-search center，不接受为 final simulation camera 或 physical mount，不修改 production Student camera/observation。
 - sealed summary: `logs_eval/a2_camera_pose_sweep_v16B_ckpt2000_stage1_5_16env_seed0_env1_20260722_2325/camera_pose_sweep_summary.json`。下一步是围绕 stage5 corridor/door-frame coverage 扩展 pose grid，之后再做 mirrored `left/out` 和 calibrated hardware validation。
 
+## Scheme C: Portrait D435i + Provisional A2 Head
+
+2026-07-23 在 GPU0 用同一 `base_v16_B` checkpoint 和 clean pinned runtime commit
+`815b367f5de2a52b26a4b872d0457af8817d01bd` 完成 eval-only 16-env Scheme C 验证；没有
+trainer，`training_performed=false`。云报告原始修改版按 SHA-256
+`c179d59edecb9adb82dc00d0fa45c22018b3430bf384c46c5125a5ceabac52d0` 原样归档，但其
+`front-right cheek` 与“向中轴内转 5–15°”建议明确作废：两路 optical frame 都执行
+`y=0,yaw=0` 的左右镜像对称 contract。
+
+- D435i 使用 portrait `216×384`、trunk local `[0.28,0,0.25]m`、pitch `-12°` 和
+  software-uprighted FoV `42.2725589501°H×69°V`；A2 Head diagnostic 使用
+  `384×136`、`[0.32,0,0.25]m`、pitch `-12°`、`132°H×77.0024873497°V`。Head
+  extrinsic 是 provisional trunk frame，不是 CAD/实机标定。
+- 两个 high-level `TiledCamera` 在同一次 `sim.render()` 后分别
+  `update(dt=0, force_recompute=True)`；runtime intrinsics 误差 `0px`，sensor frame
+  各增加一次且 physics counter 不变。16 episodes 全部完成，checkpoint 保持
+  `15/16 goal`。
+- conservative union 的 stage1–5 handle rate 为
+  `84.56%/85.71%/99.75%/99.89%/10.25%`，trio rate 为
+  `1.01%/12.18%/74.31%/95.66%/3.22%`。三份 env1 MP4 共 `224` 帧、覆盖
+  stage1–5，并全部 end-to-end decode；人工 QA 确认 stage3–4 改善，但 stage5
+  handle 已在固定朝前相机身后。
+- sealed evidence:
+  `logs_eval/a2_piper_camera_scheme_c_v16_formal-20260723/camera_pose_sweep_summary.json`。
+  结论是 `SCHEME_C_IMPLEMENTED / RUNTIME_PASS / VISIBILITY_PARTIAL`，不是 full-task
+  camera hard-gate PASS，也不证明 mirrored left/out 或 physical mount。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
 
-G1 compatibility/regression, R16 lifecycle perfection, final physical camera mount and mirrored left/right validation, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for the completed training scope. The bounded v16 stage1–5 sweep is complete, but its stage5 visibility collapse leaves the wider right/out pose search open. These items must be separately approved and validated before any future claim about those outcomes.
+G1 compatibility/regression, R16 lifecycle perfection, final physical camera mount and mirrored left/right validation, randomization, multi-seed validation, Student eval, ONNX/export, policy quality, and open-door success are deferred and non-gates for the completed training scope. The bounded v16 stage1–5 sweep and Scheme C prototype are complete, but both confirm that fixed forward trunk views lose the handle after passage. A full-task design still needs a distinct stage5-aware viewpoint or an explicit observation requirement that stops needing the handle after release. These items must be separately approved and validated before any future claim about those outcomes.
 
 ## TODO Summary
 
 - 2026-07-15 17:17 HKT - Current accepted one-update A2+Piper Student Distillation goal is complete at `TRAINING_PASS`; optional future tuning/validation is non-blocking and requires separate scope/approval.
 - 2026-07-22 21:35 HKT - R14 transform root cause and the historical `base_v13_A` stage1–4 sweep are complete.
 - 2026-07-22 23:41 HKT - `base_v16_B` stage1–5 sweep and all eight candidate videos are complete; `x_near_028` is only the next search center because stage5 visibility collapses, while final right/out pose, physical mount and mirrored left/right remain deferred.
+- 2026-07-23 18:06 HKT - Symmetric Scheme C portrait D435i + provisional A2 Head eval is complete; runtime/synchronization/video gates passed, stage3–4 visibility improved, but stage5 remains a documented visibility failure and final hardware/mirrored validation stays deferred.
 
 ## DONE Summary
 
@@ -97,6 +125,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-22 15:36 HKT - `R14_STALE_INITIALIZATION_POSE_CONFIRMED`: same-step GPU probe closed parent/local-offset/live-camera transforms and isolated the large mismatch to default cached `CameraData`; camera config was unchanged and R16 remains open.
 - 2026-07-22 21:35 HKT - `335L_POSE_SWEEP_COMPLETE`: eval-only 16-env seed0 stage1–4 sweep used crop-derived nominal intrinsics and the sealed `base_v13_A` Teacher; same-step pose/readback/render/intrinsics/physics gates passed and `z_low_020` ranked first. This is preserved as historical evidence, not a current default or physical mount.
 - 2026-07-22 23:41 HKT - `V16B_335L_STAGE1_5_SWEEP_COMPLETE`: clean pinned mainline `base_v16_B` eval completed 16 episodes with `15/16 goal`; exact stage1–5 ranking selected `x_near_028`, all eight candidate MP4s covered stages1–5 and decoded fully, and manual QA exposed universal stage5 visibility collapse. `x_near_028` is only the next-search center; no candidate was accepted as final simulation or physical camera.
+- 2026-07-23 18:06 HKT - `SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL`: centered `y=0,yaw=0` portrait D435i + provisional A2 Head high-level sensors passed same-render/intrinsic/pose/no-physics-advance gates; formal 16-env videos decoded and showed strong stage3–4 union visibility but only `10.25%/3.22%` stage5 union handle/trio visibility. Cloud right-offset/inward-yaw advice is rejected; no full-task camera or physical mount claim.
 
 ## Recommended Next Files To Read
 

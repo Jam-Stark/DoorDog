@@ -22,6 +22,7 @@ from gr00t.rl.utils.a2_camera_pose_sweep import (
 
 ROOT = Path(__file__).resolve().parents[3]
 SWEEP_CONFIG = ROOT / "gr00t/rl/config/camera_pose_sweep/gemini_335l_centerline.yaml"
+SCHEME_C_CONFIG = ROOT / "gr00t/rl/config/camera_pose_sweep/d435i_portrait_a2_head.yaml"
 SWEEP_ENV = ROOT / "gr00t/rl/envs/door/door_open_a2_camera_pose_sweep.py"
 SWEEP_ENTRYPOINT = ROOT / "gr00t/rl/scripts/sweep_a2_student_camera_pose.py"
 SWEEP_RUNNER = ROOT / "gr00t/rl/scripts/run_a2_camera_pose_eval.py"
@@ -85,6 +86,66 @@ def test_centerline_config_has_one_control_and_seven_unbiased_search_candidates(
         {"rgb": True},
         {"instance_id_segmentation_fast": True},
     ]
+
+
+def test_scheme_c_config_seals_portrait_d435i_and_provisional_head_geometry():
+    config = yaml.safe_load(SCHEME_C_CONFIG.read_text())
+    assert config["env"]["_target_"].endswith(".DoorPregraspCameraSchemeC")
+    cameras = config["simulator"]["config"]["cameras"]
+    assert cameras["camera_parent"] == "trunk"
+    assert cameras["camera_prim_suffix"] == "d435i_portrait_camera"
+    assert cameras["camera_pos"] == [0.28, 0.0, 0.25]
+    assert cameras["camera_resolutions"] == [384, 216]
+    assert cameras["camera_rot_wxyz"] == pytest.approx(
+        [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+    )
+    assert cameras["camera_horizontal_aperture"] == pytest.approx(
+        0.7731910784268148
+    )
+    assert cameras["camera_vertical_aperture"] == pytest.approx(
+        1.3745619172032262
+    )
+
+    env_config = config["env"]["config"]
+    sweep = env_config["a2_camera_pose_sweep"]
+    assert [candidate["name"] for candidate in sweep["candidates"]] == [
+        "d435i_portrait_up12",
+        "a2_head_context",
+    ]
+    assert sweep["ranking_stage_indices"] == [1, 2, 3, 4, 5]
+    assert sweep["video"]["env_id"] == 1
+    assert sweep["video"]["fps"] == 10
+    scheme = env_config["a2_camera_scheme_c"]
+    assert scheme["view_order"] == ["d435i_portrait_up12", "a2_head_context"]
+    assert scheme["d435i_mount"] == {
+        "parent": "trunk",
+        "physical_housing_orientation": "portrait_90_deg",
+        "software_uprighted_optical_frame": True,
+        "position_m": [0.28, 0.0, 0.25],
+        "effective_optical_rpy_deg": [0.0, -12.0, 0.0],
+        "mechanical_clearance_status": "unverified",
+        "lateral_symmetry_contract": "centerline_y0_yaw0",
+    }
+    head = scheme["head_camera"]
+    assert head["extrinsic_status"] == "provisional_not_cad_or_calibrated"
+    assert [head["height"], head["width"]] == [136, 384]
+    assert head["position_m"] == [0.32, 0.0, 0.25]
+    assert head["rotation_wxyz"] == pytest.approx(
+        [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+    )
+    assert head["rpy_deg"] == [0.0, -12.0, 0.0]
+    assert head["nominal_intrinsics"]["sim_fx_fy_cx_cy"] == pytest.approx(
+        [85.48390757923893, 85.48390757923893, 192.0, 68.0]
+    )
+    assert scheme["combined_video"] == {
+        "enabled": True,
+        "env_id": 1,
+        "fps": 10,
+        "output_path": (
+            "${eval_output_dir}/"
+            "scheme_c_d435i_portrait_plus_a2_head_env0001.mp4"
+        ),
+    }
 
 
 def test_raw_instance_mapping_is_split_by_environment_and_target():
@@ -226,6 +287,30 @@ def test_eval_command_uses_runtime_overlay_and_never_training_entrypoint(tmp_pat
     assert "hydra.searchpath=[file:///overlay/gr00t/rl/config]" in command
 
 
+def test_eval_command_selects_scheme_c_without_changing_teacher_or_training(tmp_path):
+    command = build_eval_command(
+        python_path=Path("/isaac/python"),
+        checkpoint=Path("/checkpoint.pt"),
+        num_envs=16,
+        output_dir=tmp_path / "scheme_c",
+        runtime_repository=Path("/runtime"),
+        overlay_repository=Path("/overlay"),
+        camera_config="d435i_portrait_a2_head",
+    )
+    assert "+camera_pose_sweep=d435i_portrait_a2_head" in command
+    assert not any("train_agent" in token for token in command)
+    with pytest.raises(ValueError, match="unsupported camera config"):
+        build_eval_command(
+            python_path=Path("/isaac/python"),
+            checkpoint=Path("/checkpoint.pt"),
+            num_envs=16,
+            output_dir=tmp_path / "bad",
+            runtime_repository=Path("/runtime"),
+            overlay_repository=Path("/overlay"),
+            camera_config="unreviewed_camera",
+        )
+
+
 def test_eval_command_rejects_single_env_onnx_side_effect(tmp_path):
     with pytest.raises(ValueError, match="ONNX export"):
         build_eval_command(
@@ -275,6 +360,9 @@ def test_runtime_overlay_bootstrap_loads_only_camera_modules_from_worktree():
     assert "a2_camera_pose_sweep" in source
     assert "door_open_a2_camera_pose_sweep" in source
     assert "runpy.run_path(str(eval_entrypoint), run_name=\"__main__\")" in source
+    assert '"d435i_portrait_a2_head"' in source
+    assert "camera pose bootstrap requires exactly one" in source
+    assert 'f"{camera_config}.yaml"' in source
 
 
 def test_runtime_source_reuses_one_camera_and_guards_same_physics_step():
@@ -291,6 +379,23 @@ def test_runtime_source_reuses_one_camera_and_guards_same_physics_step():
     assert "camera_view.get_local_poses" in source
     assert "camera_view.get_world_poses" not in source
     assert "XformPrimView(" not in source
+
+
+def test_scheme_c_runtime_uses_two_fixed_sensors_one_render_and_three_videos():
+    source = SWEEP_ENV.read_text()
+    assert "class DoorPregraspCameraSchemeC" in source
+    assert "head_camera = TiledCamera(head_cfg)" in source
+    assert "simulator.scene.sensors[sensor_name] = head_camera" in source
+    scheme_source = source[source.index("class DoorPregraspCameraSchemeC") :]
+    assert scheme_source.count("simulator.sim.render()") == 1
+    assert "camera.update(dt=0.0, force_recompute=True)" in scheme_source
+    assert "scheme C camera update advanced physics" in scheme_source
+    assert "_append_a2_scheme_c_combined_frame" in scheme_source
+    assert "left 384x216 pillarboxed portrait D435i" in scheme_source
+    assert "right 384x216 letterboxed A2 Head" in scheme_source
+    assert "SCHEME_C_COMPLETE" in scheme_source
+    assert "provisional_not_cad_or_calibrated" in scheme_source
+    assert "production Student observation and model are unchanged" in scheme_source
 
 
 def test_runtime_source_writes_and_seals_one_video_per_candidate():

@@ -23,7 +23,29 @@ MAINLINE_RUNTIME_REPOSITORY = Path("/home/baoquanc/workspace/DoorDog-A2_Piper")
 CAMERA_CONFIGS = (
     "gemini_335l_centerline",
     "d435i_portrait_a2_head",
+    "d435i_landscape_up45_a2_head",
+    "d435i_landscape_up60_a2_head",
 )
+CAMERA_RANKING_STAGES = {
+    "gemini_335l_centerline": [1, 2, 3, 4, 5],
+    "d435i_portrait_a2_head": [1, 2, 3, 4, 5],
+    "d435i_landscape_up45_a2_head": [1, 2, 3, 4, 5],
+    "d435i_landscape_up60_a2_head": [1, 2, 3, 4, 5],
+}
+SCHEME_C_CONFIGS = {
+    "d435i_portrait_a2_head": (
+        "C",
+        ["d435i_portrait_up12", "a2_head_context"],
+    ),
+    "d435i_landscape_up45_a2_head": (
+        "C-A",
+        ["d435i_landscape_up45", "a2_head_context"],
+    ),
+    "d435i_landscape_up60_a2_head": (
+        "C-B",
+        ["d435i_landscape_up60", "a2_head_context"],
+    ),
+}
 
 
 @dataclass(frozen=True)
@@ -265,7 +287,11 @@ def prepare_writable_eval_input(
     return runtime_checkpoint, runtime_config
 
 
-def _validate_candidate_videos(output_dir: Path, sweep: dict[str, object]) -> None:
+def _validate_candidate_videos(
+    output_dir: Path,
+    sweep: dict[str, object],
+    ranking_stage_indices: list[int],
+) -> None:
     candidates = sweep.get("candidates")
     videos = sweep.get("candidate_videos")
     metadata = sweep.get("candidate_video_metadata")
@@ -283,19 +309,22 @@ def _validate_candidate_videos(output_dir: Path, sweep: dict[str, object]) -> No
     if len(unique_frame_counts) != 1 or next(iter(unique_frame_counts)) <= 0:
         raise RuntimeError(f"candidate videos have invalid frame counts: {frame_counts}")
     stage_frame_counts = metadata.get("stage_frame_counts")
-    required_video_stages = (
-        "stage1_pregrasp",
-        "stage2_grasp",
-        "stage3_open",
-        "stage4_swing",
-        "stage5_through",
-    )
+    stage_names = {
+        0: "stage0_approach",
+        1: "stage1_pregrasp",
+        2: "stage2_grasp",
+        3: "stage3_open",
+        4: "stage4_swing",
+        5: "stage5_through",
+    }
+    required_video_stages = [stage_names[index] for index in ranking_stage_indices]
     if not isinstance(stage_frame_counts, dict) or any(
         int(stage_frame_counts.get(stage_name, 0)) < 1
         for stage_name in required_video_stages
     ):
         raise RuntimeError(
-            f"candidate video trajectory does not cover stages 1-5: {stage_frame_counts}"
+            "candidate video trajectory does not cover exact ranking stages "
+            f"{ranking_stage_indices}: {stage_frame_counts}"
         )
     for name, raw_path in videos.items():
         video_path = Path(raw_path).resolve()
@@ -332,25 +361,33 @@ def seal_summary(
         raise RuntimeError("metrics_eval.json has no completed camera pose sweep")
     if sweep.get("training_performed") is not False:
         raise RuntimeError("camera pose sweep must explicitly report training_performed=false")
-    if sweep.get("ranking_stage_indices") != [1, 2, 3, 4, 5]:
-        raise RuntimeError("camera pose sweep did not rank exact stages 1-5")
+    expected_ranking_stages = CAMERA_RANKING_STAGES[camera_config]
+    if sweep.get("ranking_stage_indices") != expected_ranking_stages:
+        raise RuntimeError(
+            "camera pose sweep did not rank exact configured stages; "
+            f"expected={expected_ranking_stages}"
+        )
     recommendation = sweep.get("recommendation")
     if not isinstance(recommendation, dict) or recommendation.get(
         "ranking_stage_indices"
-    ) != [1, 2, 3, 4, 5]:
-        raise RuntimeError("camera pose recommendation did not use exact stages 1-5")
-    _validate_candidate_videos(output_dir, sweep)
+    ) != expected_ranking_stages:
+        raise RuntimeError("camera pose recommendation used the wrong ranking stages")
+    _validate_candidate_videos(output_dir, sweep, expected_ranking_stages)
     scheme_c = None
-    if camera_config == "d435i_portrait_a2_head":
+    if camera_config in SCHEME_C_CONFIGS:
+        expected_ablation_id, expected_view_order = SCHEME_C_CONFIGS[camera_config]
         scheme_c = metrics.get("a2_camera_scheme_c")
         if not isinstance(scheme_c, dict) or scheme_c.get("status") != "SCHEME_C_COMPLETE":
             raise RuntimeError("metrics_eval.json has no completed scheme C summary")
         if scheme_c.get("training_performed") is not False:
             raise RuntimeError("scheme C must explicitly report training_performed=false")
-        if scheme_c.get("view_order") != [
-            "d435i_portrait_up12",
-            "a2_head_context",
-        ]:
+        if scheme_c.get("ablation_id") != expected_ablation_id:
+            raise RuntimeError(
+                "scheme C ablation identity drifted; "
+                f"expected={expected_ablation_id!r}, "
+                f"got={scheme_c.get('ablation_id')!r}"
+            )
+        if scheme_c.get("view_order") != expected_view_order:
             raise RuntimeError("scheme C view order drifted")
         if scheme_c.get("head_extrinsic_status") != (
             "provisional_not_cad_or_calibrated"

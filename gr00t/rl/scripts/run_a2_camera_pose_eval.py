@@ -29,6 +29,8 @@ OVERLAY_MODULES = EAGER_OVERLAY_MODULES + LAZY_OVERLAY_MODULES
 CAMERA_CONFIGS = (
     "gemini_335l_centerline",
     "d435i_portrait_a2_head",
+    "d435i_landscape_up45_a2_head",
+    "d435i_landscape_up60_a2_head",
 )
 
 

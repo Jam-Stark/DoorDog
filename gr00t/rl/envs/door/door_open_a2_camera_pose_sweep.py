@@ -197,7 +197,7 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
         )
         if not math.isfinite(intrinsic_error_px) or intrinsic_error_px > 0.05:
             raise RuntimeError(
-                "runtime camera intrinsics do not match the 335L crop target; "
+                "runtime camera intrinsics do not match the configured target; "
                 f"max_error_px={intrinsic_error_px}"
             )
 
@@ -720,18 +720,33 @@ class DoorPregraspCameraPoseSweep(DoorPregrasp):
 
 
 class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
-    """Evaluate a fixed portrait D435i and provisional A2 Head camera together."""
+    """Evaluate one fixed D435i variant and provisional A2 Head camera together."""
 
+    SCHEME_VARIANT = "C"
     D435I_VIEW = "d435i_portrait_up12"
     HEAD_VIEW = "a2_head_context"
     UNION_VIEW = "scheme_c_union"
+    D435I_HOUSING_ORIENTATION = "portrait_90_deg"
+    D435I_SOFTWARE_UPRIGHTED = True
+    D435I_POSITION_M = [0.28, 0.0, 0.25]
+    D435I_ROTATION_WXYZ = [
+        0.9945218953682733,
+        0.0,
+        -0.10452846326765347,
+        0.0,
+    ]
+    D435I_RPY_DEG = [0.0, -12.0, 0.0]
+    D435I_WIDTH = 216
+    D435I_HEIGHT = 384
+    D435I_PANEL_DESCRIPTION = "pillarboxed portrait D435i"
 
-    @staticmethod
-    def _parse_a2_camera_scheme_c_config(config) -> dict[str, object]:
+    @classmethod
+    def _parse_a2_camera_scheme_c_config(cls, config) -> dict[str, object]:
         raw_cfg = config.get("a2_camera_scheme_c", None)
         cfg = OmegaConf.to_container(raw_cfg, resolve=True)
         expected_keys = {
             "enabled",
+            "ablation_id",
             "architecture",
             "view_order",
             "combined_video",
@@ -746,10 +761,12 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
             )
         if cfg["enabled"] is not True:
             raise RuntimeError("DoorPregraspCameraSchemeC requires enabled=true")
-        if cfg["view_order"] != [
-            DoorPregraspCameraSchemeC.D435I_VIEW,
-            DoorPregraspCameraSchemeC.HEAD_VIEW,
-        ]:
+        if cfg["ablation_id"] != cls.SCHEME_VARIANT:
+            raise RuntimeError(
+                "scheme C ablation identity drift; "
+                f"expected={cls.SCHEME_VARIANT!r}, got={cfg['ablation_id']!r}"
+            )
+        if cfg["view_order"] != [cls.D435I_VIEW, cls.HEAD_VIEW]:
             raise RuntimeError(
                 "scheme C view_order must be exact D435i then A2 Head order"
             )
@@ -782,12 +799,14 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
             raise RuntimeError("scheme C d435i_mount schema mismatch")
         if (
             d435i_mount["parent"] != "trunk"
-            or d435i_mount["physical_housing_orientation"] != "portrait_90_deg"
-            or d435i_mount["software_uprighted_optical_frame"] is not True
+            or d435i_mount["physical_housing_orientation"]
+            != cls.D435I_HOUSING_ORIENTATION
+            or d435i_mount["software_uprighted_optical_frame"]
+            is not cls.D435I_SOFTWARE_UPRIGHTED
             or d435i_mount["mechanical_clearance_status"] != "unverified"
             or d435i_mount["lateral_symmetry_contract"] != "centerline_y0_yaw0"
-            or d435i_mount["position_m"] != [0.28, 0.0, 0.25]
-            or d435i_mount["effective_optical_rpy_deg"] != [0.0, -12.0, 0.0]
+            or d435i_mount["position_m"] != cls.D435I_POSITION_M
+            or d435i_mount["effective_optical_rpy_deg"] != cls.D435I_RPY_DEG
         ):
             raise RuntimeError("scheme C D435i mount/symmetry boundary drift")
 
@@ -813,7 +832,7 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
         if not isinstance(head, dict) or set(head) != head_keys:
             raise RuntimeError("scheme C head_camera schema mismatch")
         if (
-            head["sensor_name"] != DoorPregraspCameraSchemeC.HEAD_VIEW
+            head["sensor_name"] != cls.HEAD_VIEW
             or head["parent"] != "trunk"
             or head["prim_suffix"] != "a2_head_context_camera"
             or head["extrinsic_status"] != "provisional_not_cad_or_calibrated"
@@ -938,12 +957,32 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
             raise RuntimeError(
                 f"scheme C candidates/view_order mismatch: {candidate_names}"
             )
+        candidate_by_name = {
+            candidate["name"]: candidate
+            for candidate in self._a2_camera_sweep_candidates
+        }
+        d435i_candidate = candidate_by_name[self.D435I_VIEW]
+        if (
+            d435i_candidate["position_m"] != self.D435I_POSITION_M
+            or d435i_candidate["rotation_wxyz"] != self.D435I_ROTATION_WXYZ
+            or d435i_candidate["rpy_deg"] != self.D435I_RPY_DEG
+            or self._a2_camera_sweep_camera.cfg.width != self.D435I_WIDTH
+            or self._a2_camera_sweep_camera.cfg.height != self.D435I_HEIGHT
+        ):
+            raise RuntimeError("scheme C D435i candidate/resolution boundary drift")
+        head = cfg["head_camera"]
+        head_candidate = candidate_by_name[self.HEAD_VIEW]
+        if (
+            head_candidate["position_m"] != head["position_m"]
+            or head_candidate["rotation_wxyz"] != head["rotation_wxyz"]
+            or head_candidate["rpy_deg"] != head["rpy_deg"]
+        ):
+            raise RuntimeError("scheme C A2 Head candidate/extrinsic boundary drift")
         head_camera = self.simulator.scene.sensors.get(self.HEAD_VIEW)
         if head_camera is None or head_camera is not getattr(
             self.simulator, "a2_head_context_camera", None
         ):
             raise RuntimeError("scheme C A2 Head camera is missing from scene sensors")
-        head = cfg["head_camera"]
         head_rgb = head_camera.data.output.get("rgb")
         head_segmentation = head_camera.data.output.get(
             "instance_id_segmentation_fast"
@@ -1266,6 +1305,7 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
         )
         summary["a2_camera_scheme_c"] = {
             "status": "SCHEME_C_COMPLETE",
+            "ablation_id": self.SCHEME_VARIANT,
             "training_performed": False,
             "architecture": self._a2_scheme_c_cfg["architecture"],
             "view_order": self._a2_scheme_c_cfg["view_order"],
@@ -1281,7 +1321,7 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
                 "fps": self._a2_camera_sweep_video_fps,
                 "frame_count": self._a2_scheme_c_combined_frame_count,
                 "layout": (
-                    "left 384x216 pillarboxed portrait D435i; "
+                    f"left 384x216 {self.D435I_PANEL_DESCRIPTION}; "
                     "right 384x216 letterboxed A2 Head"
                 ),
                 "stage_frame_counts": self._a2_camera_sweep_video_stage_frame_counts,
@@ -1303,3 +1343,43 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
             ],
         }
         return summary
+
+
+class DoorPregraspCameraSchemeCA(DoorPregraspCameraSchemeC):
+    """C-A ablation: landscape D435i at a 45-degree upward pitch."""
+
+    SCHEME_VARIANT = "C-A"
+    D435I_VIEW = "d435i_landscape_up45"
+    D435I_HOUSING_ORIENTATION = "landscape_0_deg"
+    D435I_SOFTWARE_UPRIGHTED = False
+    D435I_POSITION_M = [0.28, 0.0, 0.25]
+    D435I_ROTATION_WXYZ = [
+        0.9238795325112867,
+        0.0,
+        -0.3826834323650898,
+        0.0,
+    ]
+    D435I_RPY_DEG = [0.0, -45.0, 0.0]
+    D435I_WIDTH = 384
+    D435I_HEIGHT = 216
+    D435I_PANEL_DESCRIPTION = "landscape D435i"
+
+
+class DoorPregraspCameraSchemeCB(DoorPregraspCameraSchemeC):
+    """C-B ablation: landscape D435i at a 60-degree upward pitch."""
+
+    SCHEME_VARIANT = "C-B"
+    D435I_VIEW = "d435i_landscape_up60"
+    D435I_HOUSING_ORIENTATION = "landscape_0_deg"
+    D435I_SOFTWARE_UPRIGHTED = False
+    D435I_POSITION_M = [0.28, 0.0, 0.25]
+    D435I_ROTATION_WXYZ = [
+        0.8660254037844386,
+        0.0,
+        -0.5,
+        0.0,
+    ]
+    D435I_RPY_DEG = [0.0, -60.0, 0.0]
+    D435I_WIDTH = 384
+    D435I_HEIGHT = 216
+    D435I_PANEL_DESCRIPTION = "landscape D435i"

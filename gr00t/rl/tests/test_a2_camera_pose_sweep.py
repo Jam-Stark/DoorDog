@@ -208,7 +208,7 @@ def test_scheme_c_b_config_seals_landscape_up60_and_unchanged_head():
     assert config["env"]["_target_"].endswith(".DoorPregraspCameraSchemeCB")
     cameras = config["simulator"]["config"]["cameras"]
     assert cameras["camera_resolutions"] == [216, 384]
-    assert cameras["camera_pos"] == [0.28, 0.0, 0.25]
+    assert cameras["camera_pos"] == [0.26, 0.0, 0.215]
     assert cameras["camera_rot_wxyz"] == pytest.approx(
         [0.8660254037844386, 0.0, -0.5, 0.0]
     )
@@ -223,10 +223,37 @@ def test_scheme_c_b_config_seals_landscape_up60_and_unchanged_head():
     scheme = env_config["a2_camera_scheme_c"]
     assert scheme["ablation_id"] == "C-B"
     assert scheme["view_order"] == ["d435i_landscape_up60", "a2_head_context"]
-    assert scheme["d435i_mount"]["position_m"] == [0.28, 0.0, 0.25]
+    assert scheme["d435i_mount"]["position_m"] == [0.26, 0.0, 0.215]
     assert scheme["d435i_mount"]["effective_optical_rpy_deg"] == [0.0, -60.0, 0.0]
     assert scheme["d435i_mount"]["lateral_symmetry_contract"] == "centerline_y0_yaw0"
-    assert scheme["head_camera"] == original["env"]["config"]["a2_camera_scheme_c"]["head_camera"]
+    head = scheme["head_camera"]
+    original_head = original["env"]["config"]["a2_camera_scheme_c"]["head_camera"]
+    unchanged_head_keys = (
+        "sensor_name",
+        "parent",
+        "prim_suffix",
+        "extrinsic_status",
+        "position_m",
+        "rotation_wxyz",
+        "rpy_deg",
+        "width",
+        "height",
+        "focal_length",
+        "focus_distance",
+        "horizontal_aperture",
+        "vertical_aperture",
+        "clipping_range",
+        "update_period",
+    )
+    assert all(head[key] == original_head[key] for key in unchanged_head_keys)
+    assert head["role"] == "fixed_oem_context"
+    assert head["optimize_pose"] is False
+    assert head["oem_extrinsic_status"] == "measured_required"
+    assert head["simulation_extrinsic_role"] == "historical_provisional_diagnostic_only"
+    assert "historical provisional" in head["nominal_intrinsics"]["source"]
+    assert head["nominal_intrinsics"]["sim_fx_fy_cx_cy"] == original_head[
+        "nominal_intrinsics"
+    ]["sim_fx_fy_cx_cy"]
     assert scheme["combined_video"]["output_path"].endswith(
         "scheme_c_b_d435i_landscape_up60_plus_a2_head_env0001.mp4"
     )

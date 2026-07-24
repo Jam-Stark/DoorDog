@@ -1,6 +1,6 @@
 # A2+Piper Camera 方案 C-B：Landscape D435i Up60 + A2 Head
 
-Last updated: 2026-07-24 15:45 HKT
+Last updated: 2026-07-24 20:13 HKT
 
 Status: `RUNTIME_SMOKE_PASS / EVAL_ONLY / ONE_ENV_VIDEO / NO_TRAINING`
 
@@ -9,13 +9,16 @@ Status: `RUNTIME_SMOKE_PASS / EVAL_ONLY / ONE_ENV_VIDEO / NO_TRAINING`
 C-B 是方案 C 的单变量 camera ablation：
 
 - D435i 从 portrait 改为 landscape；
-- D435i optical center 保持在 trunk 中轴 `[0.28, 0.0, 0.25] m`；
+- D435i optical center 按 low-profile 修订为 trunk 中轴
+  `[0.260, 0.0, 0.215] m`；
 - D435i 光轴上仰从 C-A 的 `45 deg` 增加到 `60 deg`；
-- A2 Head context camera 的位置、姿态、FoV 和 provisional 状态保持不变；
+- A2 Head 作为物理固定的 OEM context camera，不参与 pose optimization；仿真继续复用
+  历史 provisional 外参，直至取得实机测量值；
 - 两路 camera 继续执行 `y=0, yaw=0` 的左右对称 contract；
 - 只做 sealed Teacher eval 和视频诊断，不修改 Student observation/model，不训练。
 
-实现提交为 `384518a3a6efc807b8f4ecdd3c2dae25fff14485`，主要变更：
+C-B 基础实现来自提交 `384518a3a6efc807b8f4ecdd3c2dae25fff14485`；本次直接覆盖
+同一 C-B identity/config，没有新增平行方案。基础实现包括：
 
 - 新增 `d435i_landscape_up45_a2_head.yaml` 和
   `d435i_landscape_up60_a2_head.yaml`；
@@ -35,7 +38,7 @@ C-B 是方案 C 的单变量 camera ablation：
 |---|---|
 | Parent | `trunk` |
 | Prim suffix | `d435i_landscape_camera` |
-| Optical center | `[0.28, 0.0, 0.25] m` |
+| Optical center | `[0.260, 0.0, 0.215] m` |
 | Effective optical RPY | `[0, -60, 0] deg` |
 | Quaternion | `[0.8660254037844386, 0, -0.5, 0] wxyz` |
 | Symmetry | `y=0`, `yaw=0` |
@@ -50,7 +53,8 @@ C-B 是方案 C 的单变量 camera ablation：
 
 ### 2.2 A2 Head context
 
-A2 Head 沿用方案 C：
+A2 Head 的物理 OEM 安装不因本 ablation 改变。当前仓库仍没有它的 CAD/实机标定
+extrinsic，因此以下仿真 pose 只作为历史诊断值，不是新的安装建议：
 
 | Field | Value |
 |---|---|
@@ -60,6 +64,9 @@ A2 Head 沿用方案 C：
 | Diagnostic output | `384x136` |
 | Sim effective FoV | `132 deg H x 77.0024873497 deg V` |
 | Extrinsic status | `provisional_not_cad_or_calibrated` |
+| Role | `fixed_oem_context` |
+| Optimize pose | `false` |
+| OEM extrinsic | `measured_required` |
 
 ## 3. Runtime 与视频合同
 
@@ -93,36 +100,37 @@ env1 视频覆盖 stage0-5，帧数为 `20/10/12/19/53/43`，合计 157 帧。
 ### 4.1 Combined video
 
 Path:
-`logs_eval/a2_piper_camera_scheme_c_b_up60_v16_env1-20260723/scheme_c_b_d435i_landscape_up60_plus_a2_head_env0001.mp4`
+`logs_eval/a2_piper_camera_scheme_c_b_lowprofile_v16_env1-20260724/scheme_c_b_d435i_landscape_up60_plus_a2_head_env0001.mp4`
 
 - `768x216 @ 10 fps`;
 - 157/157 frames decoded；
-- size `336399` bytes；
+- size `343244` bytes；
 - SHA-256:
-  `0fc26356823fc168adb0efbd92de4ea29ed5aa8a47ed424fc52f2c4f12cab626`。
+  `c02bccd372ad36c17382388e2fd0934236d251884dbf58f43c3ec3781eafbb62`。
 
 ### 4.2 Separate views
 
 - D435i:
   `camera_scheme_c_b_views/d435i_landscape_up60_env0001.mp4`,
   SHA-256
-  `fe3420ca84eb1b1f2f29ceb2fc8eeb416f76466ec84c7f631ed7e4cea0a9a226`；
+  `717ef3be764c712755a1ef51056e884225e6fa2e5ad59fdd177c204e752f42da`；
 - A2 Head:
   `camera_scheme_c_b_views/a2_head_context_env0001.mp4`,
   SHA-256
-  `41926b8687172348ead9c950efc813ad0af68f89d326330135632be79fea2e1a`。
+  `5d1581694f1bec5b622c4c7c1a30efa9428f87a4061c32abb103b2b6573461d8`。
 
 Sealed summary:
-`logs_eval/a2_piper_camera_scheme_c_b_up60_v16_env1-20260723/camera_pose_sweep_summary.json`。
+`logs_eval/a2_piper_camera_scheme_c_b_lowprofile_v16_env1-20260724/camera_pose_sweep_summary.json`。
+
+旧目录 `logs_eval/a2_piper_camera_scheme_c_b_up60_v16_env1-20260723/` 只保留为
+`[0.28,0,0.25] m` 历史证据，不再代表当前 C-B 配置。
 
 ## 5. Validation
 
-- exact staged-index tests: `22 passed`;
-- broader working-candidate tests before selective staging: `24 passed`;
+- focused C-B tests: `4 passed, 20 deselected`;
+- full camera-pose test file: `24 passed`;
 - Python compile: PASS；
 - staged `git diff --check`: PASS；
-- CODE_QUALITY review: PASS；
-- IsaacLab/API/fail-fast review: PASS；
 - MP4 end-to-end OpenCV decode: PASS。
 
 ## 6. Evidence boundary
@@ -136,6 +144,7 @@ Sealed summary:
 - Student 双 camera 输入或 policy quality；
 - 最终 camera mount 已冻结。
 
-stage5 handle + both fingers 的 union visibility 在该 smoke 中为 `8/86`
-（`9.30%`）；这是诊断事实，不影响本次“交付一个 env render 视频”的完成状态，也不能被
-表述为 full-task camera hard-gate PASS。
+stage5 handle + both fingers 的 union visibility 在旧 smoke 中为 `8/86`（`9.30%`）；
+当前 low-profile smoke 的 C-B union stage5 handle+both-fingers 为 `9/86`（`10.47%`）。
+这些诊断事实不影响本次“交付一个 env render 视频”的完成状态，也不能被表述为
+full-task camera hard-gate PASS。

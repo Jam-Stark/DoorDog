@@ -739,6 +739,7 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
     D435I_WIDTH = 216
     D435I_HEIGHT = 384
     D435I_PANEL_DESCRIPTION = "pillarboxed portrait D435i"
+    HEAD_CAMERA_REQUIRED_METADATA = {}
 
     @classmethod
     def _parse_a2_camera_scheme_c_config(cls, config) -> dict[str, object]:
@@ -828,7 +829,7 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
             "clipping_range",
             "update_period",
             "nominal_intrinsics",
-        }
+        } | set(cls.HEAD_CAMERA_REQUIRED_METADATA)
         if not isinstance(head, dict) or set(head) != head_keys:
             raise RuntimeError("scheme C head_camera schema mismatch")
         if (
@@ -842,6 +843,12 @@ class DoorPregraspCameraSchemeC(DoorPregraspCameraPoseSweep):
             or head["rpy_deg"] != [0.0, -12.0, 0.0]
         ):
             raise RuntimeError("scheme C A2 Head identity/extrinsic boundary drift")
+        for key, expected_value in cls.HEAD_CAMERA_REQUIRED_METADATA.items():
+            if head[key] != expected_value:
+                raise RuntimeError(
+                    "scheme C A2 Head semantic metadata drift; "
+                    f"{key} expected={expected_value!r}, got={head[key]!r}"
+                )
         for key, length in (
             ("position_m", 3),
             ("rotation_wxyz", 4),
@@ -1372,7 +1379,7 @@ class DoorPregraspCameraSchemeCB(DoorPregraspCameraSchemeC):
     D435I_VIEW = "d435i_landscape_up60"
     D435I_HOUSING_ORIENTATION = "landscape_0_deg"
     D435I_SOFTWARE_UPRIGHTED = False
-    D435I_POSITION_M = [0.28, 0.0, 0.25]
+    D435I_POSITION_M = [0.26, 0.0, 0.215]
     D435I_ROTATION_WXYZ = [
         0.8660254037844386,
         0.0,
@@ -1383,3 +1390,9 @@ class DoorPregraspCameraSchemeCB(DoorPregraspCameraSchemeC):
     D435I_WIDTH = 384
     D435I_HEIGHT = 216
     D435I_PANEL_DESCRIPTION = "landscape D435i"
+    HEAD_CAMERA_REQUIRED_METADATA = {
+        "role": "fixed_oem_context",
+        "optimize_pose": False,
+        "oem_extrinsic_status": "measured_required",
+        "simulation_extrinsic_role": "historical_provisional_diagnostic_only",
+    }

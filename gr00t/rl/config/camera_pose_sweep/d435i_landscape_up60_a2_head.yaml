@@ -8,7 +8,7 @@ simulator:
       enable_cameras: true
       camera_parent: trunk
       camera_prim_suffix: d435i_landscape_camera
-      camera_pos: [0.28, 0.0, 0.25]
+      camera_pos: [0.26, 0.0, 0.215]
       camera_rot_wxyz: [0.8660254037844386, 0.0, -0.5, 0.0]
       camera_convention: world
       camera_focal_length: 1.0
@@ -64,7 +64,7 @@ env:
       candidates:
         - name: d435i_landscape_up60
           role: control
-          position_m: [0.28, 0.0, 0.25]
+          position_m: [0.26, 0.0, 0.215]
           rotation_wxyz: [0.8660254037844386, 0.0, -0.5, 0.0]
           rpy_deg: [0.0, -60.0, 0.0]
         - name: a2_head_context
@@ -75,7 +75,7 @@ env:
     a2_camera_scheme_c:
       enabled: true
       ablation_id: C-B
-      architecture: centerline landscape D435i up60 manipulation view plus provisional A2 Head context view
+      architecture: low-profile centerline landscape D435i up60 manipulation view plus historical provisional A2 Head context view
       view_order: [d435i_landscape_up60, a2_head_context]
       combined_video:
         enabled: true
@@ -86,7 +86,7 @@ env:
         parent: trunk
         physical_housing_orientation: landscape_0_deg
         software_uprighted_optical_frame: false
-        position_m: [0.28, 0.0, 0.25]
+        position_m: [0.26, 0.0, 0.215]
         effective_optical_rpy_deg: [0.0, -60.0, 0.0]
         mechanical_clearance_status: unverified
         lateral_symmetry_contract: centerline_y0_yaw0
@@ -94,7 +94,11 @@ env:
         sensor_name: a2_head_context
         parent: trunk
         prim_suffix: a2_head_context_camera
+        role: fixed_oem_context
+        optimize_pose: false
         extrinsic_status: provisional_not_cad_or_calibrated
+        oem_extrinsic_status: measured_required
+        simulation_extrinsic_role: historical_provisional_diagnostic_only
         position_m: [0.32, 0.0, 0.25]
         rotation_wxyz: [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
         rpy_deg: [0.0, -12.0, 0.0]
@@ -107,7 +111,7 @@ env:
         clipping_range: [0.1, 20.0]
         update_period: 0.0
         nominal_intrinsics:
-          source: A2 published Head FoV target; provisional pinhole approximation
+          source: A2 published Head FoV target; historical provisional pinhole approximation, not OEM extrinsic
           native_resolution: [1448, 2568]
           native_fov_deg: [77.0, 132.0]
           diagnostic_resolution: [136, 384]

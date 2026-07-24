@@ -1,8 +1,8 @@
 ---
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
-status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_RUNTIME_SMOKE_PASS
-last_updated: 2026-07-23 20:48 HKT
+status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS
+last_updated: 2026-07-24 20:13 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-23 20:48 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_RUNTIME_SMOKE_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`；后续 camera sweep 和 Scheme C 双视角验证只做 Teacher eval diagnostic，没有训练。
+Status at 2026-07-24 20:13 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`；后续 camera sweep 和 Scheme C 双视角验证只做 Teacher eval diagnostic，没有训练。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
@@ -111,6 +111,27 @@ trainer，`training_performed=false`。云报告原始修改版按 SHA-256
 - combined env1 MP4 为 `768×216@10fps`、`157` 帧，SHA256 `0fc26356823fc168adb0efbd92de4ea29ed5aa8a47ed424fc52f2c4f12cab626`；D435i 与 Head 单路视频也均 `157/157` 帧 end-to-end decode PASS。sealed summary 位于 `logs_eval/a2_piper_camera_scheme_c_b_up60_v16_env1-20260723/camera_pose_sweep_summary.json`。
 - 结论仅为 `SCHEME_C_B_RUNTIME_SMOKE_PASS`：没有 16-env formal、training、mirrored left/out、physical mount/CAD/calibration 或真实 D435i latency/exposure 结论。A2 Head extrinsic 仍为 provisional；stage5 conservative-union handle+both-fingers 仅 `8/86`（`9.30%`），不升级为 camera hard-gate PASS。
 
+### Superseding low-profile C-B revision
+
+2026-07-24 20:13 HKT 按修订后的 C-B 定义直接覆盖同一 config identity：D435i 改为
+trunk local `[0.260,0,0.215]m`，保持 landscape `384×216`、`y=0,yaw=0`、pitch
+`-60°` 和 wxyz `[0.8660254037844386,0,-0.5,0]`。A2 Head 被固定为
+`fixed_oem_context / optimize_pose=false`；其 `[0.32,0,0.25]m / -12°` 只保留为
+历史 provisional 仿真外参，实机 OEM extrinsic 仍必须测量。
+
+- GPU0 eval-only 2-env runtime 自然退出 `0`，2/2 env 均 `goal=true / max_stage=5`；
+  Teacher/checkpoint/runtime identity 未变，`training_performed=false`。
+- env1 combined/D435i/Head 三段视频均为 `157` 帧并 end-to-end decode PASS；combined
+  `768×216@10fps` SHA256 为
+  `c02bccd372ad36c17382388e2fd0934236d251884dbf58f43c3ec3781eafbb62`。
+- same-render gates 为 `physics_advanced_between_views=false`、pose/readback 与 render
+  diversity PASS、runtime intrinsic error `0px`。sealed summary 位于
+  `logs_eval/a2_piper_camera_scheme_c_b_lowprofile_v16_env1-20260724/camera_pose_sweep_summary.json`。
+- 结论为 `SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS`，只取代当前 C-B config/render
+  identity，不抹除旧 `[0.28,0,0.25]m` provenance。mechanical/CAD clearance、
+  mirrored left/out、A2 Head OEM extrinsic、real-camera calibration/latency/exposure
+  仍未验证。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
@@ -125,6 +146,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-23 18:06 HKT - Symmetric Scheme C portrait D435i + provisional A2 Head eval is complete; runtime/synchronization/video gates passed, stage3–4 visibility improved, but stage5 remains a documented visibility failure and final hardware/mirrored validation stays deferred.
 
 - 2026-07-23 20:48 HKT - C-B landscape D435i up60 + provisional A2 Head 的 2-env runtime smoke 与 env1 三路视频已完成；该证据不关闭 final physical mount、mirrored left/out 或 stage5-aware view TODO。
+- 2026-07-24 20:13 HKT - 当前 C-B 已由 low-profile `[0.260,0,0.215]m` revision 与新 env1 三路视频取代；A2 Head 仍为固定 OEM context role，但仿真外参只属 historical provisional，physical clearance 和 OEM extrinsic 继续开放。
 ## DONE Summary
 
 - 2026-07-13 22:28 HKT - Static A2+Piper Phase2 Student Distillation framework completed and statically reviewed; runtime/training remained INCONCLUSIVE at that time.
@@ -137,6 +159,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-23 18:06 HKT - `SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL`: centered `y=0,yaw=0` portrait D435i + provisional A2 Head high-level sensors passed same-render/intrinsic/pose/no-physics-advance gates; formal 16-env videos decoded and showed strong stage3–4 union visibility but only `10.25%/3.22%` stage5 union handle/trio visibility. Cloud right-offset/inward-yaw advice is rejected; no full-task camera or physical mount claim.
 
 - 2026-07-23 20:48 HKT - `SCHEME_C_B_RUNTIME_SMOKE_PASS`: centered landscape D435i up60 + unchanged provisional A2 Head 通过 eval-only same-render/intrinsics/video decode 门；2/2 Teacher episodes complete，combined env1 为 157 帧，但没有 16-env formal 或 physical-camera claim。
+- 2026-07-24 20:13 HKT - `SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS`: 同一 C-B config 直接改为 D435i `[0.260,0,0.215]m`，保留 `y=0/yaw=0/pitch=-60°`；2/2 Teacher episodes complete，三段 env1 MP4 各 157 帧并完整解码，未训练。A2 Head OEM extrinsic 与 mechanical clearance 未验证。
 
 ## Recommended Next Files To Read
 

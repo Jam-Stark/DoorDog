@@ -2,10 +2,11 @@
 name: codex-agent-system-architecture
 scope: repository-wide Codex multi-agent foundation and authority model
 status: phase2_bounded_behavior_and_full_tree_wls_pass_general_runtime_inconclusive
-last_updated: 2026-07-13 17:23 HKT
+last_updated: 2026-07-21 23:10 HKT
 evidence_level: STATIC/STRICT PASS; BOUNDED RUNTIME BEHAVIOR PASS; FULL-TREE WRITE SAFETY PASS; GENERAL RUNTIME INCONCLUSIVE
 owned_paths:
   - AGENTS.md
+  - .omo/AGENTS.md
   - .codex/TEAM.md
   - .codex/contracts/
   - .codex/agents/
@@ -31,6 +32,7 @@ owned_paths:
 - P2-FULL-TREE-WLS-R1 在 training 结束且 full tree（包含 `logs_rl/`）稳定后验证 C1 single writer、C2 disjoint simultaneous active writers、C3 strict same-path serialization 与 C4 running partial writer → interrupted terminal → Main partial audit → replacement 全部 PASS；无 out-of-lease change，cleanup 后 HEAD/worktree/index 与 same-encoding full-tree manifest 精确恢复。该 evidence 将 general full-tree write safety 提升为 PASS，但不提升其他 runtime metadata 或 IsaacLab runtime/training 结论。
 - Two-strike abnormal-interrupt fallback 已成为 Main lifecycle recovery contract：同一 bounded child task 第一次同因异常中断并完成 terminal/partial-write/lease audit 后最多重试一次；第二次仍同因中断且未交付时，不启动第三个相同 child task，由 Main 接管原批准 scope/lease 内的最小剩余工作。该 fallback 不扩大 authority、不绕过 closure gate；Main 缺少必要 capability 时返回 `BLOCKED`。
 - Frozen candidate `3e9f39a30b051631b8a1133cd9453271537d01b87a6b18b7000184c48292a98c` 的 Goal/Code/IsaacLab content review 均 PASS，`runtime_qa` 仅为 `STATIC_PASS`。真正 simultaneous three-reviewer wave 因第三 lane 出现 unexplained `agent thread limit reached` 而为 INCONCLUSIVE；IsaacLab runtime/training NOT_RUN。
+- 2026-07-21 23:10 HKT - 新增 dual-runtime routing：root `AGENTS.md` §0 按 runtime 自识别分流——Codex CLI 走 §1–12 + `.codex/TEAM.md`，opencode/omo 走 `.omo/AGENTS.md`；root §2/§3/§12 保持唯一规范源。`.omo/AGENTS.md` 为 omo canonical pipeline：保留 omo 目标式委托 + 自主执行者（deep/hephaestus），护栏收敛为 6 条（fail-fast、memory 门、证据纪律、多 writer WRITE_SET+lead 文件系统审计、review 节制、lead-only Git），IsaacLab 工作指引含 local source `/home/baoquanc/workspace/IsaacLab` 与 Context7（IsaacLab ID `/websites/isaac-sim_github_io_isaaclab_main`）触发，角色为触发速查表而非工位。设计依据为 base_v16 全程实测：lead 过载 ~60%、worker 自报两次失真均被 lead 审计兜住。STATIC PASS only；omo pipeline 的 runtime 行为（角色触发命中率、护栏执行、review 节制）尚未 eval，保持 NOT_RUN。
 
 ## TODO Summary
 

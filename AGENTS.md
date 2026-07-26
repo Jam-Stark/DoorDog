@@ -4,6 +4,15 @@
 
 `.codex/AGENTS.md` 只会由 Codex 在其 discovery scope 内自然作用于 `.codex` subtree，不能替代 root policy。复杂任务必须由本文件显式 route 到 `.codex/TEAM.md` 与 `.codex/contracts/`。Phase 2 已直接注册九个 production roles 与 `role_probe`；registration 可用于 routing，但不证明 effective child role/model/effort。Runtime 未暴露的 metadata 必须保持 `UNKNOWN/INCONCLUSIVE`，不得 silent downgrade 或虚报 model/runtime PASS。
 
+## 0. Runtime Routing
+
+本 repo 同时服务 Codex CLI 与 opencode/omo 两类 runtime。agent 先自识别，再选 pipeline：
+
+- **Codex CLI**（可识别 `.codex/` profile 体系）→ 按本文件 §1–12 + `.codex/TEAM.md` 执行。
+- **opencode/omo**（具备 `task()`、`team_*`、`skill` 工具的 runtime）→ 立即读取并遵循 `.omo/AGENTS.md`；本文件的 §2（fail-fast）、§3（file-based memory）、§12（不可违反的结论）继续全效生效，其余条款以 `.omo/AGENTS.md` 的 omo 原生实现为准。
+
+§2/§3/§12 是唯一规范源，任何 pipeline 不得复制、弱化或与之竞争。
+
 ## 1. Main agent 职责与边界
 
 Main agent 是 user 的需求主管与唯一 orchestrator，负责：

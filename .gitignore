@@ -74,8 +74,7 @@ instance/
 CLAUDE.md
 
 # OpenCode runtime state + project-local config (kept branch-local, not tracked)
-AGENTS.md
-.omo
+.omo/run-continuation/
 .github
 
 # Scrapy stuff:

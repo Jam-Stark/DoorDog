@@ -49,6 +49,7 @@ def _result(seed: int, env_id: int) -> dict:
         "post_release_body_force_max": float(20 + env_id),
         "episode_length_buf": 3,
         "control_dt": 0.02,
+        "reward_episode_sums_unit": "episode-sum",
         "root_pos_rel": [2.0 + 0.1 * env_id, 0.0, 0.5],
         "reward_episode_sums": {
             "penalty_a2_posture_command_l1": -0.5,
@@ -85,6 +86,7 @@ def _trace(seed: int, env_id: int, stage: int, step: int) -> dict:
         "episode_length_buf": step,
         "control_dt": 0.02,
         "root_pos_rel": [0.1 * step, 0.0, 0.5],
+        "reward_episode_sums_unit": "episode-sum",
         "reward_episode_sums": {
             "penalty_a2_posture_command_l1": -0.1 * step,
             "penalty_a2_door_body_contact": 0.0,
@@ -140,7 +142,9 @@ def test_report_adds_exact_continuous_mass_bucket_metrics(tmp_path):
     assert pooled["opening_phase_duration_seconds"]["mean"] == pytest.approx(0.04)
     assert pooled["episode_length_steps"]["n"] == 48
     assert pooled["delta_root_x_post_release"]["min"] == pytest.approx(1.6)
+    assert pooled["reward_episode_sums_unit"] == "episode-sum"
     assert pooled["reward_episode_sums"]["penalty_a2_posture_command_l1"]["mean"] == -0.5
+    assert report["m38"]["by_mass_bucket"]["[80,110)"]["reward_episode_sums_unit"] == "episode-sum"
     assert report["m38"]["by_mass_bucket"]["[80,110)"]["record_count"] == 15
     assert report["m38"]["by_mass_bucket"]["[110,135)"]["record_count"] == 15
     assert report["m38"]["by_mass_bucket"]["[135,160]"]["record_count"] == 18
@@ -225,3 +229,14 @@ def test_group_is_required_and_nonempty():
     module = _reporter()
     with pytest.raises(SystemExit):
         module.parse_args([])
+
+def test_reward_episode_sum_unit_legacy_absent_is_accepted_and_wrong_is_rejected():
+    module = _reporter()
+    raw = _result(0, 0)
+    raw.pop("reward_episode_sums_unit")
+    normalized = module.normalize_result(raw, expected_seed=0)
+    assert normalized.reward_episode_sums["complete"] == 4.0
+    raw = _result(0, 0)
+    raw["reward_episode_sums_unit"] = "/20s"
+    with pytest.raises(module.V17ReportError, match="episode-sum"):
+        module.normalize_result(raw, expected_seed=0)

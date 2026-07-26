@@ -113,6 +113,13 @@ def _reward_sums(raw: Mapping[str, Any]) -> dict[str, float]:
     name = "reward_episode_sums"
     if name not in raw:
         raise V17ReportError(f"record is missing required field {name!r}.")
+    if (
+        "reward_episode_sums_unit" in raw
+        and raw["reward_episode_sums_unit"] != "episode-sum"
+    ):
+        raise V17ReportError(
+            "reward_episode_sums_unit must be exactly 'episode-sum' when present."
+        )
     value = raw[name]
     if not isinstance(value, Mapping) or not value:
         raise V17ReportError("reward_episode_sums must be a non-empty mapping.")
@@ -306,6 +313,7 @@ def _continuous_summary(
         "delta_root_x_post_release": V16._stats(
             [record.root_pos_rel[0] - record.root_x_at_release for record in released]
         ),
+        "reward_episode_sums_unit": "episode-sum",
         "reward_episode_sums": {
             name: V16._stats([record.reward_episode_sums[name] for record in records])
             for name in reward_names

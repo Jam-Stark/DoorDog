@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21,base_v16 计划落成时(源:v14/v15 plan 的 round3/future 段 + v15 诊断新增)。
+创建:2026-07-21;最近更新:2026-07-22(v17 计划落成时)。
 
 ---
 
@@ -9,15 +9,16 @@
 
 | 条目 | 排期 | 出处 |
 |---|---|---|
-| 姿态经济正则(force-feasible 主线第一实例) | **v16 M29** | v15 诊断:pitch/roll 80% 钉限幅 |
-| 穿行送门 + 非线性 body 计价 + 甩门红线分相化 | **v16 M30/M31** | v15 诊断:松手后 40/48 被门撞、451N |
-| 门重轴 80–160 kg(冲击/回摆动量) | **v16 M32** | v15 plan §1.5 保险分支 + round3 原定 mass 轴 |
+| v18 ckpt1500 重裁定(3-seed)→ v18 release 翻案与 v19 warm-start | **v19 P0.1** | v18 endpoint=2500 为漂移点;midpoint 1000/1500 均 16/16 |
+| M22 checkpoint 选点机械化(runner 自动裁定全部 ckpt) | **v19 P0.2** | v14/v18 两次跳过协议 |
+| carry 公平重测:release 阈值 1.40→1.60 + wide-norm 1.8(收益覆盖 carry 区)+ overspeed 修复 + posture 税减至 -0.3 | **v19 M42–M44**(7 组 ablation,1 GPU×4096 env/组) | v18 四大发现:自建收益断崖(第 4 例)、corridor slip=运动学让位、j7/j8 高刚度超速、P2 判定 pitch 为功能性 |
+| posture economy 目标退役(P2:pitch-clamp goal 2/16 → 功能性) | **v19 M44 落地** | 最小干预研究移至 arm-limit 轮 |
 
 ## B. 下一批候选(v17)
 
 | 条目 | 前置/触发 | 出处与要点 |
 |---|---|---|
-| **真实 Piper effort/velocity 限位改造** | v16 收敛后单独一轮(动执行器,影响全局,不与行为塑形混跑) | v15 诊断:sim 手臂 effort ~100N 级是"超人",这是"重门不重"的根因,也是 force-feasible 研究的实验底座前置。改造后重跑弹簧/mass 分桶,确认 arm 饱和成为真实现象 |
+| **真实 Piper 限位改造(arm 关节侧,方向:调弱到真实规格)** | v18 候选(gripper 侧已在 v17 M36 先行) | v15 诊断:sim 手臂 effort ~100N 级"超人"是 force-feasible 底座前置;改造后重跑弹簧/mass 分桶确认 arm 饱和为真 |
 | **door_open_lr 左右镜像** | 行为塑形轮(v16)结束后 | v14/v15 plan round3 原定;memory `door-asset-randomization-baseline` 已预分析 plumbing(handle-relative 可镜像);先 GUI/smoke 验左侧 workspace |
 | 弹簧上限 >12 N·m | **仅在真实限位改造之后**(否则死轴) | v15 plan §1.5;v15 实测 12 N·m 内 arm-through-handle 全覆盖 |
 
@@ -54,3 +55,6 @@
 - [x] 2026-07-20:M18 静态可达性图路线否决——能力探针必须匹配可指令自由度,策略本体是最高保真仪器(见 m23_conclusion.md §3)。
 - [x] 2026-07-21:"重门 body-assist 涌现"假说否决(推门=形封闭,12 N·m 内 arm 全覆盖;过线前 body 接触 0/10066)——force-feasible 机制改走 C 表路线。
 - [x] 2026-07-21:round2(弹簧/高度/站位带)完成于 v15,47/48;round1(回弹动力学+站位自学)完成于 v14。
+- [x] 2026-07-22:mass 轴 80–160 完成于 v16(全桶 100% goal,B ckpt2000 为 release);v16 三项行为 shaping 全败并诊断同根(定标未按实测决算 + stage 边界收益断层),重做于 v17 M34/M35。
+- [x] 2026-07-22:设计规则第三例沉淀——"stage 边界收益断层":凡跨 stage 的行为目标,其收益项作用域必须覆盖边界两侧,否则策略在边界处理性弃行为(v13 门挡房租、v15 gate 死区、v16 送门无薪同族)。
+- [x] 2026-07-24:**push-wide-then-release 于 v17 解决**——6-cell factorial 干净归因:制度(阈值 1.35/1.25)与计价(事件制)均必要、合用充分且可复制(G6);release=G5 ckpt2500,48/48 全桶,松手后接触 47/48→1/48。M36 gain probe PASS(15/16 零样本)→ v18 采纳。posture 经济第二次失败(λ×10 付 12% 收入仍 98-100% 使用)→ 价格弹性假说否决,转 P2 判别探针;scratch 重训仅在"习惯性"判定后立项。

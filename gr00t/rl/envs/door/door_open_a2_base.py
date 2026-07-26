@@ -46,6 +46,55 @@ from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_
 from gr00t.rl.utils.torch_utils import torch_rand_float
 
 
+A2_ARM_DOF_OVERSPEED_HARD_FLOOR = 3.0
+
+
+def a2_arm_dof_overspeed_raw_penalty(
+    arm_dof_vel: torch.Tensor,
+    *,
+    soft_margin_enabled: bool,
+    soft_margin_width: float,
+) -> torch.Tensor:
+    """Return the raw A2 arm overspeed penalty before reward scaling."""
+    if (
+        not torch.is_tensor(arm_dof_vel)
+        or arm_dof_vel.ndim != 2
+        or arm_dof_vel.shape[1] != 6
+        or not arm_dof_vel.is_floating_point()
+        or not isinstance(soft_margin_enabled, bool)
+    ):
+        raise ValueError(
+            "A2 arm overspeed penalty requires a floating-point velocity matrix "
+            "with shape (num_envs, 6) and a bool soft-margin selector."
+        )
+    if (
+        isinstance(soft_margin_width, bool)
+        or not isinstance(soft_margin_width, (int, float))
+        or not math.isfinite(float(soft_margin_width))
+        or not 0.0 < float(soft_margin_width) < A2_ARM_DOF_OVERSPEED_HARD_FLOOR
+    ):
+        raise ValueError(
+            "A2 arm overspeed soft-margin width must be finite and satisfy "
+            f"0 < width < {A2_ARM_DOF_OVERSPEED_HARD_FLOOR}; "
+            f"got {soft_margin_width!r}."
+        )
+    width = float(soft_margin_width)
+    if not soft_margin_enabled:
+        return (
+            torch.maximum(
+                torch.abs(arm_dof_vel) - A2_ARM_DOF_OVERSPEED_HARD_FLOOR,
+                torch.zeros_like(arm_dof_vel),
+            )
+            ** 2
+        ).sum(dim=-1)
+    return torch.square(
+        torch.relu(
+            (torch.abs(arm_dof_vel) - (A2_ARM_DOF_OVERSPEED_HARD_FLOOR - width))
+            / width
+        )
+    ).sum(dim=-1)
+
+
 A2_HOLD_PHASE_WAIT_GATE = 0
 A2_HOLD_PHASE_CENTER_CLOSE = 1
 A2_HOLD_PHASE_DEPRESS = 2
@@ -3162,6 +3211,15 @@ class DoorPregrasp(
         "a2_stage3_stage4_hold_and_drive_velocity_norm"
     )
     A2_CORRIDOR_ENABLED_CONFIG_KEY = "a2_corridor_enabled"
+    A2_CORRIDOR_DOOR_WIDE_HINGE_NORM_CONFIG_KEY = (
+        "a2_corridor_door_wide_hinge_norm"
+    )
+    A2_ARM_DOF_OVERSPEED_SOFT_MARGIN_ENABLED_CONFIG_KEY = (
+        "a2_arm_dof_overspeed_soft_margin_enabled"
+    )
+    A2_ARM_DOF_OVERSPEED_SOFT_MARGIN_WIDTH_CONFIG_KEY = (
+        "a2_arm_dof_overspeed_soft_margin_width"
+    )
     A2_DOOR_BODY_CONTACT_PENALTY_MODE_CONFIG_KEY = (
         "a2_door_body_contact_penalty_mode"
     )
@@ -3330,6 +3388,33 @@ class DoorPregrasp(
             raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
         return value
 
+    def _get_a2_corridor_door_wide_hinge_norm(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_CORRIDOR_DOOR_WIDE_HINGE_NORM_CONFIG_KEY,
+            "A2 corridor door-wide reward",
+        )
+
+    def _get_a2_arm_dof_overspeed_soft_margin_enabled(self) -> bool:
+        key = self.A2_ARM_DOF_OVERSPEED_SOFT_MARGIN_ENABLED_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 arm overspeed requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
+
+    def _get_a2_arm_dof_overspeed_soft_margin_width(self) -> float:
+        width = self._get_required_positive_float_config(
+            self.A2_ARM_DOF_OVERSPEED_SOFT_MARGIN_WIDTH_CONFIG_KEY,
+            "A2 arm overspeed soft-margin penalty",
+        )
+        if width >= A2_ARM_DOF_OVERSPEED_HARD_FLOOR:
+            raise RuntimeError(
+                "A2 arm overspeed soft-margin width must be below the shared hard "
+                f"floor {A2_ARM_DOF_OVERSPEED_HARD_FLOOR}; got {width}."
+            )
+        return width
+
     def _get_a2_door_body_contact_penalty_mode(self) -> str:
         key = self.A2_DOOR_BODY_CONTACT_PENALTY_MODE_CONFIG_KEY
         if key not in self.config:
@@ -3441,6 +3526,9 @@ class DoorPregrasp(
         drive_threshold = (
             self._get_a2_stage3_stage4_hold_and_drive_velocity_threshold()
         )
+        self._get_a2_corridor_door_wide_hinge_norm()
+        self._get_a2_arm_dof_overspeed_soft_margin_enabled()
+        self._get_a2_arm_dof_overspeed_soft_margin_width()
         corridor_enabled = self._get_a2_corridor_enabled()
         body_contact_mode = self._get_a2_door_body_contact_penalty_mode()
         stage5_continuity = self._get_a2_stage5_hold_income_continuity_enabled()
@@ -6047,7 +6135,9 @@ class DoorPregrasp(
                 "A2 corridor door-wide reward requires finite device-local root state and origins."
             )
         root_x = root_states[:, 0] - env_origins[:, 0]
-        wide = (door_joint_pos[:, 0] / 1.5).clamp(0.0, 1.0)
+        wide = (
+            door_joint_pos[:, 0] / self._get_a2_corridor_door_wide_hinge_norm()
+        ).clamp(0.0, 1.0)
         reward = wide * self._get_a2_corridor_mask().float() * (root_x < 0.8).float()
         if self._get_a2_stage5_hold_income_continuity_enabled():
             reward *= self._get_a2_door_income_hold_mask().float()
@@ -6387,12 +6477,18 @@ class DoorPregrasp(
         return undesired_contact
 
     def _reward_penalty_dof_overspeed(self):
-        # A2 global PASS: use A2 arm body DOF / Piper arm_j1..j6 safety,
-        # excluding arm_j7/arm_j8 gripper DOFs.
+        arm_dof_vel = self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]
+        if self._use_a2_base:
+            return a2_arm_dof_overspeed_raw_penalty(
+                arm_dof_vel,
+                soft_margin_enabled=self._get_a2_arm_dof_overspeed_soft_margin_enabled(),
+                soft_margin_width=self._get_a2_arm_dof_overspeed_soft_margin_width(),
+            )
+        # Preserve the pre-R2 non-A2 legacy formula for arbitrary arm widths.
         return (
             torch.maximum(
-                torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]) - 3.0,
-                torch.zeros_like(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]),
+                torch.abs(arm_dof_vel) - A2_ARM_DOF_OVERSPEED_HARD_FLOOR,
+                torch.zeros_like(arm_dof_vel),
             )
             ** 2
         ).sum(dim=-1)
@@ -8403,6 +8499,7 @@ class DoorPregrasp(
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
                     "control_dt": control_dt,
+                    "reward_episode_sums_unit": "episode-sum",
                     "reward_episode_sums": {
                         name: float(values[idx])
                         for name, values in selected_reward_episode_sums.items()
@@ -14838,9 +14935,13 @@ class DoorPregrasp(
         self.reset_buf |= door_distance
 
         # A2 arm body DOF / Piper arm_j1..j6 overspeed termination; gripper excluded.
-        upper_dof_overspeed_threshold = torch.clamp(self.termination_level * 20.0, min=3.0)
+        upper_dof_overspeed_threshold = torch.clamp(
+            self.termination_level * 20.0,
+            min=A2_ARM_DOF_OVERSPEED_HARD_FLOOR,
+        )
+        overspeed_dof_vel = self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]
         dof_overspeed = torch.any(
-            torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx])
+            torch.abs(overspeed_dof_vel)
             > upper_dof_overspeed_threshold,
             dim=-1,
         )

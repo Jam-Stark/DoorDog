@@ -213,6 +213,21 @@ def test_m41_goal_all_null_event_groups_fail(tmp_path):
         validate(summary, _valid_trace(), 2)
 
 
+def test_m41_goal_with_crossing_and_no_release_event_passes():
+    helpers = _load_helpers()
+    validate = helpers["_validate_a2_m41_eval_telemetry"]
+    summary = _valid_summary()
+    terminal = summary["episode_terminal_diagnostics"][0]
+    for field_name in (
+        "hinge_at_release",
+        "root_x_at_release",
+        "post_release_body_contact",
+        "post_release_body_force_max",
+    ):
+        terminal[field_name] = None
+    validate(summary, _valid_trace(), 2)
+
+
 def test_m41_non_goal_all_null_event_groups_pass(tmp_path):
     helpers = _load_helpers()
     validate = helpers["_validate_a2_m41_eval_telemetry"]

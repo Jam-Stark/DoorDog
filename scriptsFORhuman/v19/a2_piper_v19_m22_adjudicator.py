@@ -2,9 +2,10 @@
 
 The adjudicator consumes a queue manifest and explicit evidence rows.  A
 missing evidence row is a hard failure; an explicitly ``STRICT_INVALID`` row
-is retained in the report and excluded from selection.  Valid candidates must
-pass every redline and one candidate must strictly Pareto-dominate all other
-passing candidates.  No scalar reward, filename, or step tie-break is used.
+is retained in the report and excluded from selection. Valid candidates must
+pass every redline. The endpoint is selected by a fixed lexicographic redline
+vector; an exact full-vector tie fails fast. No scalar reward, filename, or
+checkpoint-step tie-break is used.
 """
 
 from __future__ import annotations
@@ -448,23 +449,42 @@ def _dominates(left: Mapping[str, float], right: Mapping[str, float]) -> bool:
     return all(comparisons) and any(strict)
 
 
-def select_unique_pareto_dominator(candidates: Sequence[Mapping[str, Any]]) -> Mapping[str, Any]:
+M22_LEXICOGRAPHIC_MAXIMIZE = (
+    "goal_rate",
+    "complete_rate",
+    "crossing_rate",
+    "bilateral_rate",
+)
+M22_LEXICOGRAPHIC_MINIMIZE = (
+    "coasting_rate",
+    "over_force_rate",
+    "hinge_velocity_p95",
+)
+
+
+def _mechanical_rank(metrics: Mapping[str, float]) -> tuple[float, ...]:
+    return tuple(metrics[key] for key in M22_LEXICOGRAPHIC_MAXIMIZE) + tuple(
+        -metrics[key] for key in M22_LEXICOGRAPHIC_MINIMIZE
+    )
+
+
+def select_unique_mechanical_candidate(
+    candidates: Sequence[Mapping[str, Any]],
+) -> Mapping[str, Any]:
     if not candidates:
         raise M22AdjudicationError("no strict-valid candidate passes every M22 redline")
-    dominators = [
+    best_rank = max(_mechanical_rank(candidate["metrics"]) for candidate in candidates)
+    selected = [
         candidate
         for candidate in candidates
-        if all(
-            candidate is other or _dominates(candidate["metrics"], other["metrics"])
-            for other in candidates
-        )
+        if _mechanical_rank(candidate["metrics"]) == best_rank
     ]
-    if len(dominators) != 1:
+    if len(selected) != 1:
         raise M22AdjudicationError(
-            "M22 selection is ambiguous: expected one unique Pareto-dominator, "
-            f"found {len(dominators)}"
+            "M22 selection is ambiguous: the complete lexicographic redline vector "
+            f"is tied for {len(selected)} candidates"
         )
-    return dominators[0]
+    return selected[0]
 
 
 def adjudicate(manifest: Mapping[str, Any], evidence: Any) -> dict[str, Any]:
@@ -521,7 +541,7 @@ def adjudicate(manifest: Mapping[str, Any], evidence: Any) -> dict[str, Any]:
         row.get("evaluation_seed") != 0 for row in rows
     ):
         raise M22AdjudicationError("canonical16 adjudication requires a common evaluation_seed=0")
-    selected = select_unique_pareto_dominator(passing)
+    selected = select_unique_mechanical_candidate(passing)
     return {
         "schema": SCHEMA,
         "status": "PASS",
@@ -529,6 +549,13 @@ def adjudicate(manifest: Mapping[str, Any], evidence: Any) -> dict[str, Any]:
         "strict_invalid_count": sum(row["strict_status"] == "STRICT_INVALID" for row in rows),
         "rows": rows,
         "passing_candidates": [row["candidate"]["candidate_id"] for row in passing],
+        "selection_policy": {
+            "method": "fixed_lexicographic_redline_vector",
+            "maximize": list(M22_LEXICOGRAPHIC_MAXIMIZE),
+            "minimize": list(M22_LEXICOGRAPHIC_MINIMIZE),
+            "exact_vector_tie": "FAIL",
+            "forbidden_tie_breaks": ["scalar_reward", "filename", "checkpoint_step"],
+        },
         "selected_checkpoint": selected["candidate"],
         "selected_metrics": selected["metrics"],
     }

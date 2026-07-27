@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-27 01:32 HKT
+last_updated: 2026-07-28 06:43 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -23,7 +23,8 @@ read_when:
 
 ## Current State
 
-- 2026-07-27 01:32 HKT - base_v19 P0、implementation、strict M22 replay、7-group concurrent smoke 与 formal admission 已完成；formal tmux `base_v19_formal_20260727_0115` 正在 physical cuda0–6 各以4096 env训练，GPU7按 workload/capacity 预留给M22。独立单进程组的 durable launch contract 是不设 `CUDA_VISIBLE_DEVICES`、设置 `ACCELERATE_TORCH_DEVICE=cuda:N`；eval 另须 `--device cuda:N`。这只证明启动/资源/短程 runtime，不证明正式训练完成、checkpoint 质量、收敛、winner 或 release。
+- 2026-07-28 06:43 HKT - base_v19正式训练、机械M22、pooled48、render与final analysis已关闭。G1–G7各1×4096 env、2500 batches在physical cuda0–6自然exit0，七个W&B run经API均为`finished`。70个saved checkpoints完成M22，30个因M41错误的“goal必须同时有release”约束重跑修复、40个复用、15个真实strict-invalid保留；pooled48机械端点为G1/2/3/4/5/6/7 step `500/2000/750/500/2250/1250/1750`。七组canonical/pooled goal与crossing均`16/16`/`48/48`、overspeed均`0/48`、post-release contact/force均过线；held p50分别为`1.278727/1.433608/1.231407/1.383997/1.267120/1.373938/1.311416rad`，carry G1/G2/G6均未达`1.45`，G7 p50/p95=`1.311416/1.391261rad`低于`1.5`，故按预注册规则选择G3 no-carry fallback。opening slip仅G2 `2.908447cm`通过3cm，G6为`3.052764cm`，其余失败；所有组full judgement FAIL，48-door不构成statistical proof。final artifact为`logs_eval/base_v19/_v19_final_analysis_20260728/a2_piper_v19_final_analysis.{json,md}`。
+- 2026-07-28 06:43 HKT - G3/G7 render共9个MP4均full decode、exact `1280×720@20fps`、camera topology与checkpoint/Hydra binding PASS；行为门要求每个winner env `arm_j1 held-phase last-first delta>0.3rad`，实测G3 env0/env1与G7分别为`-0.252518/-0.067453/-0.215838`，故render behavior gate FAIL。M41 durable修正是goal只要求crossing，release telemetry继续保持独立all-null/all-non-null group；同step全量reset允许零streak初始化，非reset duplicate callback仍fail-fast。v19是第四次author-inflicted income-cliff lesson：每个behavior target必须与reward income schedule逐项审计，不能只核transition；posture campaign以functional verdict关闭并转为observability-only，corridor slip不再单独充当success gate，opening slip保留formal guardrail。
 - 2026-07-24 20:32 HKT - v18 formal/eval scope关闭。`base_v18_main-20260724_063738` natural exit0，trainer global/max=`2500/2500`、10,240,000 episodes、655,360,000 timesteps；endpoint `model_step_002500.pt` SHA-256=`64b303398eba8ed8a668756d4ac3d4bda7130cdcaf6fe117c156ca4fe5464a09`。step500/2000因M41 required telemetry null strict-invalid；step1000/1500 strict-valid且均16/16 goal，但两者corridor slip p95=`11.667/12.462cm`未过P1 half-baseline gate；step1500 held≥1.5=`4/16`只是一过性信号。endpoint seeds0/1/2 exact exit0与M41 strict PASS，48-door goal canonical/pooled=`13/16`/`40/48`、crossing-held=`41/48`，均低于`15/16`/`46/48` gate；opening slip p95=`2.3688cm`/baseline ratio`.2834` PASS，corridor slip p95=`13.5051cm`/ratio`.9657` FAIL；release p50=`1.40443rad`、post-release contact/force=`0/40`/`0N`、pre-crossing bilateral/coasting/over-force=`99.9853%/0/0`与j8 open-limit=`7/17795` PASS。endpoint held≥1.5=`0/44`、corridor-wide mean=`4.2682<4.3712` v17、hold-and-drive=`30.0552<34.2181`，不支持sustained arm-carry；不触发1000-iter continuation，v18 non-promotable，v17 G5 step2500保持release reference。strict report/decision为`logs_eval/base_v18/base_v18_main_ckpt2500_endpoint_48door_report_20260724/`；seed0 plan-scenario render exit0，high-handle1.10m/160kg/hinge11.49 strong-spring完成，low-handle.80m/80kg到stage4后`upper_dof_overspeed`；15 MP4均1280×720@20fps可读、无`.writing`，其中首回合9段有446/661/677帧，6段post-reset辅助文件仅1帧且不用于行为解释。所有v18 tmux/process已自然退出，用户原有tmux `0/1`未触碰。
 - 2026-07-24 06:41 HKT - 完成v18 P1/P2/M39/M41 preflight、strict admission与formal startup evidence sync。P1以48条既有G5 records的`logs_eval/base_v18/a2_piper_v18_G5_slip_baseline_20260724.{json,csv,md}`为baseline：opening stage3 p50/p95为`3.747387975/8.357295557 cm`，corridor stages4/5 p50/p95为`11.075977306/13.984239569 cm`。P2 zero-intervention runtime provenance：pitch-zero `...P2_pitch0...main_takeover...` goal `2/16`、roll-zero `...P2_roll0...main_takeover...` goal `9/16`，说明pitch/roll对low-handle policy behavior为functional；本轮选择的main penalty是token drift guard `penalty_a2_posture_command_l1=-0.3`，不是已退役的`<30%` posture target。M39 exact `1.2/1.0` r7与independent r8均因env1/env2 `upper_dof_overspeed` admission FAIL `14/16`，不得写成success；narrowed approximate-hardware `1.1/0.9/0` r9 runtime PASS artifact为`logs_eval/base_v18/base_v18_M39_combined_G5_ckpt2500_seed0_16env_height080_110_friction110_090_r9_20260724`：goal `16/16`、bilateral `3064/3069=0.9983708048`、over-force `6/3069=0.0019550342`、sign flips `0/4480`，finger readback两body为`[1.100000023841858,0.8999999761581421,0]` shape `[16,1,3]`，handle exact all-env view `[16,5,3]`未变且pre/post hash同为`358ab51f...d0932`。M41 strict exporter/report contract仅允许complete typed groups，或non-goal rows显式all-null event-conditioned groups；goal rows必须有non-null crossing/release evidence；r9 strict artifact/report runtime PASS，不推断endpoint/midpoint behavior。formal `base_v18_main_20260724_063201`已launch且仍RUNNING：`logs_rl/launchers/base_v18_main_20260724_063201/launcher.log`与run `logs_rl/a2_piper_full_stage_a2_base/base_v18_main-20260724_063738`，local W&B offline、port29618、Accelerate 4 processes seeds0–3、1024 env/rank、CUDA0–3；四rank均验证1024 env且GPU约6.0–6.6GB/非零util，无traceback/OOM/NCCL/exit marker。config为G5 ckpt2500 `policy_only`、`auto=false`、batches2500/save250、M39 true、gains45/Kp1300/Kd32、squeeze30/overforce55、posture `-0.3`。focused static suite `68 PASS`、CODE_QUALITY/IsaacLab reviews与r9 runtime QA PASS各自只代表对应static/review/runtime surface；training midpoint/endpoint quality仍UNVERIFIED。
 - 2026-07-23 00:54 HKT - `base_v17` M34/M35/M38与G1–G6六组配置已完成implementation/preflight：M34以collision event peak pricing替代逐步body-contact计价；M35令stage5 holding期间保持`hold_and_drive`/`corridor_door_wide`收入、配置化stage4→5 hinge threshold与release threshold；M38 strict reporter加入连续telemetry。frozen revision2 candidate `f8a7baac0b02074108f8e8a09933666843db4d161120aa84104a29927fb99a68`通过CODE_QUALITY、IsaacLab semantics与runtime QA，`61 targeted tests`、py_compile/diff-check PASS。G1 16-env one-batch smoke自然结束exit0，完成1024 timesteps/16 episodes，durable run dir为`logs_rl/a2_piper_full_stage_a2_base/base_v17_G1_smoke_scopefix_20260722-20260723_004929`；这只证明bounded runtime smoke，不证明policy quality、long-run/multiprocess或formal six-group training。durable gotcha：reward decorator scope决定payout，不应充当mutable event state；stage-scoped event state须独立mask/clear。没有`step_index`与`episode_length_buf`同时unique、ordered、contiguous且terminal-consistent时，不能由row count推断exact duration。历史v16 formal launcher natural exit仍UNVERIFIED。
@@ -90,22 +91,22 @@ read_when:
 
 | Item | Value |
 |---|---|
-| Current behavior / warm-start reference | v17 G5 selected step2500 `policy_only`；checkpoint SHA-256 `d7d72335928aabd9cb375551b78c8666dcd2c28eee5fce62fa268ee5adfdd256` |
-| Current config | `gr00t/rl/config/ablation/wbmanip/base_v18_main.yaml` |
-| Formal run | `base_v18_main-20260724_063738`，seed0，4 ranks × `1024 env/rank`，global batch4096，2500 batches/save250 |
-| Launcher | tmux `base_v18_main_20260724_063201`；port29618；local W&B offline；session自然退出 |
-| Runtime state | TERMINAL exit0；global/max=`2500/2500`；endpoint SHA-256=`64b30339...5464a09`；无残留v18 process |
+| Current behavior / selected fallback | v19 G3 step750 `policy_only`，SHA-256 `a7fc7091e2e59c656b23dd9dbfbd03327ec95dee11459313222de21e8cf92ca2`；按预注册no-carry fallback选中，但full judgement FAIL |
+| Current config | `gr00t/rl/config/ablation/wbmanip/base_v19_G3_no_carry_control.yaml` |
+| Formal runs | `base_v19_G1..G7*-20260727_012027`；各seed0、1 rank × `4096 env/rank`、2500 batches/save250 |
+| Launcher | tmux `base_v19_formal_20260727_0115`；physical cuda0–6；七组session均自然退出，W&B均finished |
+| Runtime state | 7/7 TERMINAL exit0；各global/max=`2500/2500`；无残留v19 train/eval/render process |
 | M39 accepted friction | per-shape dynamic/static/restitution=`1.1/0.9/0`；r9 strict admission goal16/16、bilateral `.9983708048`、over-force `.0019550342`、sign flips0/4480 |
 | Gripper command | effort limit `45/45N`、Kp/Kd `1300/32`、squeeze/over-force `30/55N` |
 | Posture shaping | `penalty_a2_posture_command_l1=-0.3` token drift guard；retired `<30%` target不再使用 |
 | P1 slip baseline | opening stage3 p50/p95 `3.747387975/8.357295557cm`；corridor stages4/5 p50/p95 `11.075977306/13.984239569cm` |
-| Evidence boundary | training terminal、checkpoint、midpoint/endpoint strict report与render QA均有各自evidence；48-door仍非statistical proof，v18 policy gates明确FAIL |
+| Evidence boundary | training terminal、W&B、70-checkpoint M22、pooled48、selected endpoint与render QA均有各自evidence；48-door仍非statistical proof，v19 full judgement与render behavior gate明确FAIL |
 
-v18沿用v17 G5 step2500作warm-start；exact saved runtime config仍是训练解释的source of truth。formal run与M40/M41 eval已结束，v18不替代v17 release。
+v19以v18 re-adjudicated step1500作warm-start；exact saved runtime config仍是训练解释的source of truth。G3是预注册fallback release artifact，不等于numeric/full-gate PASS。
 
 ## Current Experiment
 
-formal `base_v18_main-20260724_063738`及plan-required midpoint、endpoint和render均已结束。机器可读final judgement在`logs_eval/base_v18/base_v18_main_ckpt2500_endpoint_48door_report_20260724/a2_piper_v18_endpoint_analysis.json`；v18因goal/crossing-held/corridor-slip/carry gates FAIL关闭，不继续训练。
+base_v19七组formal、全checkpoint M22、pooled48 selected endpoint、G3/G7 render及plan-required final analysis均已结束。机器可读final judgement在`logs_eval/base_v19/_v19_final_analysis_20260728/a2_piper_v19_final_analysis.json`；机械release按预注册规则选择G3，七组numeric/full judgement与render behavior gate均为FAIL。
 
 后续新scope回到plan约定的arm-limit realism/`force_feasible`边界，且须单独设计/授权；左右镜像、真实Piper限位、`door_open_io` in/out与student distillation继续保持separate future scope。
 
@@ -129,6 +130,8 @@ formal `base_v18_main-20260724_063738`及plan-required midpoint、endpoint和ren
 - Resume command 的 `num_total_batches` 必须写全局 target step：从 restored step1000 到 step2000 传 `2000`，不是传 remaining count `1000`；此 global-cap gotcha 继续适用于任何 future full-state resume。
 - `base_v11` matched scalar/trace 使用 module invocation、seed0、16 env、每 env first episode；scalar/trace 是 primary evidence。比较 hinge max/terminal 与 stage4 entry，bilateral/stability、over-force、j7/j8 limit 作为 guardrail。
 - 2-env render 必须显式覆盖 `++algo.config.num_mini_batches=2`；保存训练配置的默认值4会在trainer初始化时因 `batch_size=2` 不能整除而fail-fast。`v13_A` 的 `push_door_handle=0`，eval diagnostic reward list也必须显式移除该inactive term并加入active `a2_stage3_unlatch_hold`/`a2_stage3_stage4_hold_and_drive`，不得绕过active-reward validation。
+- v19 non-render训练/M22单进程保持不设`CUDA_VISIBLE_DEVICES`并用physical `cuda:N`；UsdRT render是不同合同，必须设置`CUDA_VISIBLE_DEVICES=N`并在进程内使用logical `cuda:0`，否则非zero physical device会被renderer拒绝。
+- 1-env deterministic render不能使用low==high的linspace；必须通过high-level `a2_eval_door_handle_height_weight_pairs=[[height,weight]]`提供唯一ordered pair。door-opening streak precompute在同一个common step只允许全env reset初始化重复并写零streak；任何非reset duplicate或step regression继续fail-fast。
 - Render 保持相同 checkpoint/seed/episode semantics，只用于解释 contact、detach、jam、doorframe event 与动作自然性，不参与 success-rate 统计。默认从 matched eval env 中随机选取2个 env，只渲染这2个 env；每个 env 生成 default、handle-side、handle-top 3个 camera video，总计 `2 env × 3 camera = 6 videos`。除非用户明确要求，不再默认对16个 env 做全量 render；2-env qualitative subsample 不能替代16-env scalar/trace primary evidence。
 - 原始完整 shell command 未保留；human report 中的 train/eval/render blocks 明确是从 saved Hydra overrides/config 重建的模板。
 - Sibling worktree eval 使用 `python -m gr00t.rl.eval_agent_trl`，避免 direct-script invocation 命中另一 worktree 的 editable-install source。
@@ -144,10 +147,11 @@ formal `base_v18_main-20260724_063738`及plan-required midpoint、endpoint和ren
 
 ## TODO Summary
 
-- 2026-07-24 20:32 HKT - v18 formal/eval已关闭且不续训；下一新scope是需单独批准的arm-limit realism/`force_feasible`边界。左右镜像、真实Piper限位、in/out、student与M23 scripted 108-cell grid继续作为separate future scope。
+- 2026-07-28 06:43 HKT - v19 formal/eval/render已关闭；机械release选择G3 no-carry fallback但full judgement FAIL。下一新scope仍是需单独批准且NOT STARTED的arm-limit realism/`force_feasible`边界；左右镜像、真实Piper限位、in/out、student与M23 scripted 108-cell grid继续作为separate future scope。
 
 ## DONE Summary
 
+- 2026-07-28 06:43 HKT - 完成v19七组1×4096×2500 formal natural-exit与W&B sync、70-checkpoint M22、pooled48 selected endpoints、G3/G7 9-video render QA及final analysis。七组goal/crossing均48/48、overspeed0；carry cells held p50与G7 plateau未过线，opening slip仅G2通过，故按预注册规则选择G3 fallback而七组full judgement及render behavior gate均FAIL。M41 goal/release contract、logical render device mapping、1-env high-level pair与all-env reset streak初始化的fail-fast修复已由targeted tests及runtime artifacts验证。
 - 2026-07-24 20:32 HKT - 完成v18 formal natural-exit/checkpoint provenance、四个midpoint strict audits、3-seed×16/48-door endpoint、P1 slip/carry decomposition与plan scenarios render。v18 goal/crossing-held/corridor-slip/carry gates FAIL，non-promotable且不触发continuation；v17 G5 step2500保持release。
 - 2026-07-24 06:41 HKT - 完成v18 P1/P2/M39/M41 implementation/preflight与strict admission；M39 exact `1.2/1.0` r7/r8 FAIL后，narrowed `1.1/0.9/0` r9以goal16/16、bilateral/over-force/sign-flip gates PASS。focused68、CODE_QUALITY/IsaacLab reviews与independent runtime QA PASS；formal seed0 4×1024 training已在独立tmux载入CUDA0–3并保持RUNNING，midpoint/endpoint与training completion仍UNVERIFIED。
 - 2026-07-23 00:54 HKT - v17 M34 collision event pricing、M35 stage5 hold-income continuity/configurable thresholds/release-through-stage5、M38 strict reporter telemetry及G1–G6 configs已实现；revision2 candidate通过三条triggered review/QA lanes，61 targeted tests、py_compile/diff-check及G1 16-env one-batch natural-exit smoke PASS。该smoke不外推为formal training或policy-quality PASS。

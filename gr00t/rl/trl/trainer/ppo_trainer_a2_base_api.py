@@ -885,9 +885,13 @@ def _validate_a2_m41_result_records(eval_dict, expected_num_envs):
             if not isinstance(release_group[2], bool):
                 raise RuntimeError(f"A2 M41 terminal row {index} post_release_body_contact must be bool.")
             _a2_m41_finite_scalar(release_group[3], f"terminal row {index} post_release_body_force_max", nonnegative=True)
-        if goals[index] and (crossing_group[0] is None or release_group[0] is None):
+        # A completed stage-5 route guarantees a root-X crossing, but it does not
+        # guarantee a release event: stage4->5 may advance at a lower hinge angle
+        # than the configured release-income threshold. Keep release telemetry
+        # explicitly nullable while requiring the crossing event for every goal.
+        if goals[index] and crossing_group[0] is None:
             raise RuntimeError(
-                f"A2 M41 terminal row {index} goal_reached=true requires non-null crossing and release telemetry."
+                f"A2 M41 terminal row {index} goal_reached=true requires non-null crossing telemetry."
             )
         result_by_env[env_id] = {
             "episode_length_buf": episode_length,

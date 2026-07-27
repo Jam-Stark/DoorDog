@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Mapping
 
 import pytest
@@ -15,6 +17,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[3]
 QUEUE_SOURCE = ROOT / "scriptsFORhuman/v19/a2_piper_v19_m22_queue.py"
 ADJ_SOURCE = ROOT / "scriptsFORhuman/v19/a2_piper_v19_m22_adjudicator.py"
+EVIDENCE_SOURCE = ROOT / "scriptsFORhuman/v19/a2_piper_v19_m22_evidence.py"
+RECOVERY_SOURCE = ROOT / "scriptsFORhuman/v19/a2_piper_v19_m22_pooled_recovery.py"
+EVAL_SOURCE = ROOT / "gr00t/rl/eval_agent_trl.py"
 P0_TERMS = (
     "gripper_handle_orientation",
     "grasp_target_distance",
@@ -179,21 +184,27 @@ def _config_path(artifact: Path) -> Path:
     return artifact / ".hydra" / "config.yaml"
 
 
-def test_queue_discovers_numeric_steps_and_emits_canonical16_command(tmp_path):
+def test_queue_discovers_numeric_steps_and_emits_canonical16_command(monkeypatch, tmp_path):
     queue = _load(QUEUE_SOURCE, "v19_queue_test")
     (tmp_path / "model_step_001500.pt").write_bytes(b"1500")
     (tmp_path / "model_step_000250.pt").write_bytes(b"250")
     (tmp_path / "last.pt").write_bytes(b"alias")
     rows = queue.discover_checkpoints(tmp_path)
     assert [row["step"] for row in rows] == [250, 1500]
+    monkeypatch.setattr(queue.sys, "executable", "/usr/bin/python3")
     command = queue.build_eval_command(rows[-1], tmp_path / "eval", seed=0, gpu="7")
-    assert command["argv"][0:3] == [sys.executable, "-m", "gr00t.rl.eval_agent_trl"]
+    assert command["argv"][0:3] == [
+        str(queue.ISAACLAB_PYTHON),
+        "-m",
+        "gr00t.rl.eval_agent_trl",
+    ]
+    assert command["argv"][0] != queue.sys.executable
     assert "++num_envs=16" in command["argv"]
     assert "++algo.config.eval.num_eval_episodes=16" in command["argv"]
     assert not any("num_envs=48" in arg or "num_eval_episodes=48" in arg for arg in command["argv"])
     assert "++checkpoint_load_mode=full" in command["argv"]
     assert "++algo.config.eval.a2_eval_p2_posture_axis=none" in command["argv"]
-    assert command["argv"][3:5] == ["--device", "cuda:7"]
+    assert "--device" not in command["argv"]
     assert "CUDA_VISIBLE_DEVICES" not in command["env"]
     assert command["env"] == {
         "ACCELERATE_TORCH_DEVICE": "cuda:7",
@@ -201,6 +212,28 @@ def test_queue_discovers_numeric_steps_and_emits_canonical16_command(tmp_path):
     }
     with pytest.raises(queue.M22QueueError, match="canonical16"):
         queue.build_eval_command(rows[-1], tmp_path / "pooled", topology="pooled48")
+
+
+def test_eval_app_launcher_uses_exact_explicit_accelerate_device(monkeypatch):
+    tree = ast.parse(EVAL_SOURCE.read_text(encoding="utf-8"))
+    helper = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.FunctionDef)
+        and node.name == "_align_app_launcher_device_with_accelerate"
+    )
+    namespace = {"os": __import__("os")}
+    exec(compile(ast.Module(body=[helper], type_ignores=[]), str(EVAL_SOURCE), "exec"), namespace)
+    align = namespace["_align_app_launcher_device_with_accelerate"]
+
+    args_cli = SimpleNamespace(device="cuda:0")
+    monkeypatch.delenv("ACCELERATE_TORCH_DEVICE", raising=False)
+    align(args_cli)
+    assert args_cli.device == "cuda:0"
+
+    monkeypatch.setenv("ACCELERATE_TORCH_DEVICE", "cuda:7")
+    align(args_cli)
+    assert args_cli.device == "cuda:7"
 
 
 @pytest.mark.parametrize("gpu", ["", "-1", "+1", "01", "7.0", 7, True])
@@ -482,9 +515,135 @@ def test_adjudicator_wrong_checkpoint_binding_fails_fast(tmp_path):
         adj.adjudicate(manifest, rows)
 
 
-def test_adjudicator_ambiguous_pareto_front_fails_fast(tmp_path):
-    adj = _load(ADJ_SOURCE, "v19_adjudicator_ambiguous_test")
+def test_adjudicator_tradeoff_uses_fixed_redline_lexicographic_order(tmp_path):
+    adj = _load(ADJ_SOURCE, "v19_adjudicator_tradeoff_test")
     manifest, artifacts = _manifest(tmp_path)
     rows = [_evidence(candidate, artifacts[candidate["candidate_id"]]) for candidate in manifest["candidates"]]
-    with pytest.raises(adj.M22AdjudicationError, match="ambiguous"):
-        adj.adjudicate(manifest, rows)
+    rows[0]["bilateral_rate"] = 0.999
+    rows[0]["coasting_rate"] = 0.01
+    rows[0]["hinge_velocity_p95"] = 2.5
+    rows[1]["bilateral_rate"] = 0.998
+    rows[1]["coasting_rate"] = 0.0
+    rows[1]["hinge_velocity_p95"] = 0.1
+    rows[2]["goal"] = {"count": 15, "total": 16}
+    report = adj.adjudicate(manifest, rows)
+    assert report["selected_checkpoint"]["candidate_id"] == rows[0]["candidate_id"]
+    assert report["selection_policy"] == {
+        "method": "fixed_lexicographic_redline_vector",
+        "maximize": ["goal_rate", "complete_rate", "crossing_rate", "bilateral_rate"],
+        "minimize": ["coasting_rate", "over_force_rate", "hinge_velocity_p95"],
+        "exact_vector_tie": "FAIL",
+        "forbidden_tie_breaks": ["scalar_reward", "filename", "checkpoint_step"],
+    }
+
+
+def test_m22_evidence_aggregates_exact_three_seed_topology(monkeypatch, tmp_path):
+    evidence = _load(EVIDENCE_SOURCE, "v19_m22_evidence_pooled_metrics_test")
+
+    def components(_artifact_path, seed):
+        records = [
+            SimpleNamespace(
+                goal_reached=not (seed == 2 and env_id == 15),
+                crossing_while_holding=not (seed == 1 and env_id == 14),
+            )
+            for env_id in range(16)
+        ]
+        traces = {
+            env_id: [
+                SimpleNamespace(
+                    stage=3,
+                    root_x_ever_crossed=False,
+                    both_contact=not (seed == 1 and env_id == 0),
+                    door_hinge_joint_vel=0.2 if env_id == 0 else 0.05,
+                    over_force=seed == 2 and env_id == 1,
+                )
+            ]
+            for env_id in range(16)
+        }
+        reasons = ["complete"] * 16
+        if seed == 2:
+            reasons[-1] = "timeout"
+        return records, traces, reasons
+
+    monkeypatch.setattr(evidence, "_artifact_components", components)
+    metrics = evidence._metrics_for_valid_artifacts(
+        {seed: tmp_path / f"seed{seed}" for seed in (0, 1, 2)}
+    )
+    assert metrics["goal"] == {"count": 47, "total": 48}
+    assert metrics["complete"] == {"count": 47, "total": 48}
+    assert metrics["crossing_while_holding"] == {"count": 47, "total": 48}
+    assert metrics["bilateral"] == pytest.approx(47 / 48)
+    assert metrics["coasting"] == pytest.approx(1 / 48)
+    assert metrics["over_force"] == pytest.approx(1 / 48)
+
+
+def test_m22_pooled_evidence_binds_exact_sources(monkeypatch, tmp_path):
+    evidence = _load(EVIDENCE_SOURCE, "v19_m22_evidence_pooled_sources_test")
+    manifest, _ = _manifest(tmp_path / "checkpoints")
+    source_rows = []
+    for candidate in manifest["candidates"]:
+        source_artifacts = {}
+        for seed in (0, 1, 2):
+            artifact = _artifact(
+                tmp_path / "sources",
+                candidate,
+                seed=seed,
+                name=f"{candidate['candidate_id']}_seed{seed}",
+            )
+            (artifact / "eval_exit_code.txt").write_text("0\n", encoding="utf-8")
+            source_artifacts[f"seed{seed}"] = str(artifact)
+        source_rows.append(
+            {
+                "candidate_id": candidate["candidate_id"],
+                "checkpoint_path": candidate["path"],
+                "checkpoint_sha256": candidate["sha256"],
+                "source_artifacts": source_artifacts,
+            }
+        )
+    monkeypatch.setattr(
+        evidence,
+        "_metrics_for_valid_artifacts",
+        lambda _artifacts: {
+            "goal": {"count": 48, "total": 48},
+            "complete": {"count": 48, "total": 48},
+            "crossing_while_holding": {"count": 48, "total": 48},
+            "bilateral": 1.0,
+            "coasting": 0.0,
+            "over_force": 0.0,
+            "hinge_velocity_p95": 0.2,
+        },
+    )
+    output = tmp_path / "pooled_evidence.json"
+    report = evidence.build_pooled_evidence(
+        manifest,
+        {"schema": "a2_piper_v19_m22_pooled_sources_v1", "rows": source_rows},
+        output,
+    )
+    assert len(report["rows"]) == 3
+    for row in report["rows"]:
+        assert row["strict_status"] == "STRICT_VALID"
+        assert row["evaluation_topology"] == "pooled48"
+        assert row["evaluation_seeds"] == [0, 1, 2]
+        assert len(row["source_artifacts"]) == 3
+        assert row["artifact"] == str(output.resolve())
+
+
+def test_pooled_recovery_only_escalates_multiple_canonical_redline_passes(tmp_path):
+    adj = _load(ADJ_SOURCE, "v19_adjudicator_recovery_front_test")
+    recovery = _load(RECOVERY_SOURCE, "v19_m22_recovery_front_test")
+    manifest, artifacts = _manifest(tmp_path)
+    rows = [
+        _evidence(candidate, artifacts[candidate["candidate_id"]], goal=16)
+        for candidate in manifest["candidates"]
+    ]
+    rows[2]["bilateral_rate"] = 0.991
+    rows[2]["coasting_rate"] = 0.019
+    rows[2]["hinge_velocity_p95"] = 3.0
+    frontier = recovery._canonical_frontier_candidates(adj, manifest, rows)
+    assert [candidate["step"] for candidate in frontier] == [1000, 1500]
+
+    rows[1]["goal"] = {"count": 14, "total": 16}
+    rows[1]["complete"] = {"count": 14, "total": 16}
+    rows[1]["crossing_while_holding"] = {"count": 14, "total": 16}
+    with pytest.raises(recovery.M22PooledRecoveryError, match="frontier=1"):
+        recovery._canonical_frontier_candidates(adj, manifest, rows)

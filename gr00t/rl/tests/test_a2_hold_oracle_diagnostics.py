@@ -291,6 +291,11 @@ def test_a2_grasp_gate_defaults_and_update_ownership():
     ]
     assert update_calls.count("a2_update_grasp_control_streak") == 2
 
+    update_source = ast.unparse(methods["_update_a2_grasp_control_streaks"])
+    assert "reset_mask = just_resetted_buf | (actual_time_in_stage_buf == 0)" in update_source
+    assert "common_step_counter < last_update_step" in update_source
+    assert "not torch.all(reset_mask)" in update_source
+
     for method_name in (
         "_get_a2_stage2_grasp_completion_masks",
         "_get_a2_stage2_contact_stability_mask",

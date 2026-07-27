@@ -422,16 +422,24 @@ def test_ratio_helper_is_eval_only_and_training_env_metrics_are_cross_rank_gathe
         and isinstance(node.func, ast.Name)
         and node.func.id == "_normalize_a2_eval_optional_ratios"
     ]
-    safe_lines = [
+    safe_to_log_lines = [
         node.lineno
         for node in ast.walk(eval_node)
-        if isinstance(node, ast.Call)
-        and isinstance(node.func, ast.Name)
-        and node.func.id == "_make_json_safe"
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(target, ast.Name)
+            and target.id in {"strict_safe_to_log_metrics", "safe_to_log_metrics"}
+            for target in node.targets
+        )
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+        and node.value.func.id == "_make_json_safe"
     ]
-    assert len(helper_lines) == 1
-    assert helper_lines[0] > merge_line
-    assert safe_lines and helper_lines[0] < min(safe_lines)
+    assert len(helper_lines) == 2
+    assert len(safe_to_log_lines) == 2
+    assert min(helper_lines) > merge_line
+    assert sorted(helper_lines)[0] < sorted(safe_to_log_lines)[0]
+    assert sorted(helper_lines)[1] < sorted(safe_to_log_lines)[1]
 
 
 class _FakeAccelerator:

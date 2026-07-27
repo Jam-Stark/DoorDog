@@ -267,6 +267,12 @@ def process_output_dim_in_config(config):
             adapt_backbone_output_dim(config.algo.config.teacher_actor.backbone, "teacher_actor")
 
 
+def _align_app_launcher_device_with_accelerate(args_cli):
+    """Use the exact explicit Accelerate device for IsaacLab AppLauncher."""
+    if "ACCELERATE_TORCH_DEVICE" in os.environ:
+        args_cli.device = os.environ["ACCELERATE_TORCH_DEVICE"]
+
+
 @hydra.main(config_path="config", config_name="base_eval")
 def main(override_config: OmegaConf):
     # --- Logging setup ---
@@ -377,6 +383,7 @@ def main(override_config: OmegaConf):
             or config.simulator.config.get("render_results", False)
         )
         args_cli.headless = config.headless
+        _align_app_launcher_device_with_accelerate(args_cli)
 
         # Copy headless rendering kit file if needed
         dest_path = Path(isaaclab.__file__).resolve().parent.parent.parent.parent / "apps"

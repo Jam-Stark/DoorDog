@@ -8,6 +8,7 @@ import pytest
 SCRIPT_PATH = (
     Path(__file__).parents[3]
     / "scriptsFORhuman"
+    / "v13"
     / "a2_piper_v13_gate_zero_warning.py"
 )
 SPEC = importlib.util.spec_from_file_location("a2_piper_v13_gate_zero_warning", SCRIPT_PATH)

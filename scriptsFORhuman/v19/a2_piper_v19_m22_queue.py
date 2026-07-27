@@ -19,6 +19,7 @@ from typing import Any, Mapping, Sequence
 import yaml
 
 
+ISAACLAB_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 SCHEMA = "a2_piper_v19_m22_candidate_manifest_v1"
 QUEUE_SCHEMA = "a2_piper_v19_m22_queue_v1"
 CHECKPOINT_RE = re.compile(r"^model_step_(?P<step>[0-9]+)\.pt$")
@@ -358,7 +359,15 @@ def build_eval_command(
     gpu: str | None = None,
     topology: str = CANONICAL_TOPOLOGY,
 ) -> dict[str, Any]:
-    """Build the exact canonical16 strict M41 one-GPU module invocation."""
+    """Build the exact canonical16 strict M41 one-GPU module invocation.
+
+    eval_agent_trl is a Hydra entrypoint. Its nested AppLauncher parser is
+    created only after Hydra has consumed the process arguments, so a leading
+    --device argument is rejected before AppLauncher can see it. The exact
+    ACCELERATE_TORCH_DEVICE value is also passed to AppLauncher by the eval
+    entrypoint, keeping simulation and policy on the same physical GPU without
+    a CUDA visibility mask.
+    """
     if topology != CANONICAL_TOPOLOGY:
         raise M22QueueError("queue evaluation_topology must be canonical16")
     checkpoint_path = (
@@ -369,13 +378,13 @@ def build_eval_command(
         raise M22QueueError(f"seed must be a non-negative int; got {seed!r}")
     gpu = _validate_gpu(gpu)
     diagnostic_terms = "[" + ",".join(P0_DIAGNOSTIC_REWARD_TERMS) + "]"
+    if not ISAACLAB_PYTHON.is_file():
+        raise M22QueueError(f"IsaacLab Python does not exist: {ISAACLAB_PYTHON}")
     argv = [
-        sys.executable,
+        str(ISAACLAB_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
     ]
-    if gpu is not None:
-        argv.extend(["--device", f"cuda:{gpu}"])
     argv.extend(
         [
         f"+checkpoint={checkpoint_path}",

@@ -4568,10 +4568,17 @@ class DoorPregrasp(
                 "_a2_grasp_streak_last_full_update_step; "
                 f"got {last_update_step!r}."
             )
-        if common_step_counter <= last_update_step:
+        reset_mask = just_resetted_buf | (actual_time_in_stage_buf == 0)
+        if common_step_counter < last_update_step:
             raise RuntimeError(
-                "A2 grasp control streak full update must run exactly once per control "
-                f"step; current={common_step_counter}, last={last_update_step}."
+                "A2 grasp control streak full update step counter regressed; "
+                f"current={common_step_counter}, last={last_update_step}."
+            )
+        if common_step_counter == last_update_step and not torch.all(reset_mask):
+            raise RuntimeError(
+                "A2 grasp control streak full update may repeat within a control step "
+                "only for an all-environment reset; "
+                f"current={common_step_counter}, last={last_update_step}."
             )
 
         history_masks = self._get_a2_stage2_contact_squeeze_masks(
@@ -4584,7 +4591,6 @@ class DoorPregrasp(
             & history_masks["opposite_squeeze"][:, 0]
         )
         stage3_stage4_both_contact_current = history_masks["both_contact"][:, 0]
-        reset_mask = just_resetted_buf | (actual_time_in_stage_buf == 0)
         stage2_condition = (
             (stage_buf == self.STAGE_GRASP) & stage2_squeeze_current
         )

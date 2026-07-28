@@ -29,7 +29,7 @@ FILES = {
     "G6": "base_v19_G6_full_replicate.yaml",
     "G7": "base_v19_G7_ceiling_probe.yaml",
 }
-CKPT_ROOT = "logs_rl/a2_piper_full_stage_a2_base/base_v18_main-20260724_063738/model_step_"
+CKPT_ROOT = "logs_rl/a2_piper_full_stage_a2_base/base_v18/base_v18_main-20260724_063738/model_step_"
 
 
 def _load(group: str) -> dict:

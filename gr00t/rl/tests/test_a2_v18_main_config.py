@@ -17,7 +17,8 @@ MAIN_CONFIG = ABLATION_DIR / "base_v18_main.yaml"
 DOOR_ENV_SOURCE = ROOT / "gr00t/rl/envs/door/door_open_a2_base.py"
 G5_CHECKPOINT = (
     "logs_rl/a2_piper_full_stage_a2_base/"
-    "base_v17_G5_full_m34_m35_hinge125-20260723_011415/model_step_002500.pt"
+    "base_v17/base_v17_G5_full_m34_m35_hinge125-20260723_011415/"
+    "model_step_002500.pt"
 )
 M39_EFFORT_LIMITS = [
     120.0,

@@ -2,7 +2,7 @@
 
 # v18 main: G5 release policy with the M39 gripper-realism capability package.
 # num_envs is per rank; the formal launcher supplies four processes (4096 global).
-checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v17_G5_full_m34_m35_hinge125-20260723_011415/model_step_002500.pt
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v17/base_v17_G5_full_m34_m35_hinge125-20260723_011415/model_step_002500.pt
 checkpoint_load_mode: policy_only
 auto_load_latest: false
 seed: 0

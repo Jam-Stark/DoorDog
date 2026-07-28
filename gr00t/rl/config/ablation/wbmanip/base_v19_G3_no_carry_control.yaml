@@ -2,7 +2,7 @@
 
 # v19 G3: no-carry control (release 1.40, norm 1.5) with F2 fix.
 # Formal topology: one process / one GPU / 4096 envs per group.
-checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v18_main-20260724_063738/model_step_001500.pt
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v18/base_v18_main-20260724_063738/model_step_001500.pt
 checkpoint_load_mode: policy_only
 auto_load_latest: false
 seed: 0

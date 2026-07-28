@@ -47,7 +47,11 @@ def _validate_a2_single_gpu_binding(accelerator, model, identity) -> None:
     """Fail fast on the post-prepare single-visible CUDA0 contract."""
     from accelerate.state import DistributedType
 
-    expected_device = torch.device("cuda:0")
+    host_gpu_index = int(identity["host_gpu_index"])
+    logical_gpu_index = int(identity["logical_gpu_index"])
+    if logical_gpu_index != 0:
+        raise RuntimeError("A2 single-visible trainer requires logical_gpu_index=0")
+    expected_device = torch.device("cuda", logical_gpu_index)
     if int(identity["world_size"]) != 1:
         raise RuntimeError("A2 single-visible trainer requires world_size=1")
     if accelerator.num_processes != 1 or accelerator.process_index != 0:
@@ -83,7 +87,7 @@ def _validate_a2_single_gpu_binding(accelerator, model, identity) -> None:
             )
     print(
         "[A2_SINGLE_CUDA_BINDING] "
-        f"mode={identity['mode']} CVD=0 host_gpu_index={identity['host_gpu_index']} "
+        f"mode={identity['mode']} CVD={host_gpu_index} host_gpu_index={host_gpu_index} "
         f"logical_gpu_index={identity['logical_gpu_index']} UUID={identity['pinned_uuid']} "
         "world_size=1 distributed_type=NO model_wrapper=none",
         flush=True,

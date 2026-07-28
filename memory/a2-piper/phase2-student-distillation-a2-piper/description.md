@@ -1,8 +1,8 @@
 ---
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
-status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS
-last_updated: 2026-07-28 20:58 HKT
+status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS / V16_CB_GPU7_CAPACITY_STABILITY_PASS
+last_updated: 2026-07-28 23:06 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-28 20:58 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。原 one-update evidence 与本次 C-B v16 one-update 均为真实训练完成，不是仅 `STATIC PASS`；camera sweep 和 Scheme C 双视角验证仍只作 Teacher eval diagnostic，没有训练。
+Status at 2026-07-28 23:06 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS / V16_CB_GPU7_CAPACITY_STABILITY_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为真实 Student Distillation update 与 bounded capacity/stability pilot，并产生新的 Student checkpoint。原 one-update、C-B v16 one-update 与本次 GPU7 10-batch pilot 都是真实训练完成，不是仅 `STATIC PASS`；camera sweep 和 Scheme C 双视角验证仍只作 Teacher eval diagnostic，没有训练。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
@@ -141,6 +141,15 @@ trunk local `[0.260,0,0.215]m`，保持 landscape `384×216`、`y=0,yaw=0`、pit
 - `logs_rl/a2_piper_student_distillation_v16_B_cb_smoke-20260728_1912_retry3/model_step_000001.pt` SHA256 `6fef5cd92210999b55d1d2130889870672334f69520fd4249ca35963f31ac288`，size `155659963` bytes，含 `142` finite policy tensors、optimizer state `78`、`global_step=1`；candidate、Teacher 与 pinned runtime hashes post-run 未变。
 - `TRAINING_COMPLETION` 在 checkpoint 后 PASS；`simulation_app_close_start` 为 `20:52:08 HKT`。没有 `close_complete`：等待超过 `180s` 后仅向 owned PGID `1155351` 发送一次 `TERM`，无 `SIGKILL`，随后 process group 不存在且 GPU0 released。此 lifecycle separation 不削弱 checkpoint training result，也不构成 natural Kit shutdown PASS。
 
+## GPU7 32-env Capacity/Stability Pilot
+
+2026-07-28 23:06 HKT，GPU binding contract 升级为 `single-visible-logical-cuda0-v3`：`CUDA_VISIBLE_DEVICES` 与 `A2_EXPECTED_HOST_GPU_INDEX` 必须精确一致，expected UUID 必须同时匹配 host `nvidia-smi` 与进程内 Torch logical `cuda:0`；IsaacLab high-level `AppLauncher` 将 renderer `activeGpu` 绑定到 physical host GPU，同时把 CUDA/PhysX 保持在 logical GPU `0`。missing/mismatched schema、UUID、world size、logical index 或 Kit setting 均 fail fast，不存在 software fallback。Teacher deterministic recurrent rollout 的 `clear_rollout()` 同时修正为把 `distribution` 重置为 `None`，保留稳定成员 invariant；retry3 在 batch 2 暴露的第二次清理 `AttributeError` 由此关闭。完整 C-B + Student contract 为 `132 passed`，Python compile 与 scoped diff check PASS。
+
+- retry4 使用 physical GPU7 UUID `GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d` / logical `cuda:0`、pinned v16 runtime `815b367f5de2a52b26a4b872d0457af8817d01bd`、`num_envs=32`、`num_steps_per_env=8`、`num_mini_batches=4`、`num_total_batches=10`、per-device batch `8`、save frequency `10`。Kit marker 为 `activeGpu=7` / `physics/cudaDevice=0`，GPU0 未承载 workload；Teacher `133→12`、C-B policy RGB `(32,216,768,3)`、Student/A2_Base/rollout `12/12/24` markers PASS，无 PhysX software fallback 或 UsdRT nonzero-CUDA error。
+- 10/10 iterations 完成，`2560` timesteps、`320` episodes，trainer total time `40.34s`。checkpoint `logs_rl/a2_piper_student_distillation_v16_B_cb_capacity_gpu7_32env_10batch-20260728_222446-retry4_bound_physical7_logical0_lifecycle/model_step_000010.pt` SHA256 `b8f681a18a28394e4b3d03281f8d2cb8c9874a5f40fbbeb0c0173f1aedf9786b`，size `155663227` bytes；CPU load 得到 `global_step=max_steps=10`、episode `320`，递归检查 `543` tensors / `513` floating tensors 全 finite（policy/value/optimizer tensors `142/19/234`）。
+- 1-second telemetry 共 `345` samples/GPU，覆盖 startup、training 与 stuck close；GPU7 peak 为 `18241 MiB`、`100%` utilization、`255.87W`、`64°C`，GPU0 peak 仅 `2 MiB`。这证明 1× A6000 48GB 对该 pilot 有约 `30.2 GiB` nominal VRAM headroom，但不是更大 env count 的容量保证。
+- 训练完成与 checkpoint 保存 PASS；natural Kit shutdown 未 PASS。`[A2_LIFECYCLE] simulation_app_close_start` 后超过 `180s` 无 close-complete，GPU7 仍约 `8.2 GiB/60–70%`；只 TERM exact owned training PID `1216700` 与 telemetry PID，未用 SIGKILL，随后 GPU0/GPU7 均回到 `1 MiB/0%`。该 lifecycle issue 继续作为独立 R16 TODO，不否定 10-batch training/capacity evidence，也不得宣称 clean process exit。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
@@ -157,6 +166,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-23 20:48 HKT - C-B landscape D435i up60 + provisional A2 Head 的 2-env runtime smoke 与 env1 三路视频已完成；该证据不关闭 final physical mount、mirrored left/out 或 stage5-aware view TODO。
 - 2026-07-24 20:13 HKT - 当前 C-B 已由 low-profile `[0.260,0,0.215]m` revision 与新 env1 三路视频取代；A2 Head 仍为固定 OEM context role，但仿真外参只属 historical provisional，physical clearance 和 OEM extrinsic 继续开放。
 - 2026-07-28 20:58 HKT - `V16_CB_STUDENT_ONE_UPDATE_PASS`: C-B v16 telemetry compatibility 与一次 GPU0 retry3 Student update 已完成并产生 `global_step=1` checkpoint；自然 Kit close 未 PASS 不阻塞 training completion，formal/long training 仍未运行。
+- 2026-07-28 23:06 HKT - `V16_CB_GPU7_CAPACITY_STABILITY_PASS`: physical GPU7 / logical `cuda:0` binding、recurrent Teacher repeated cleanup 与 32-env/10-batch pilot 已通过；checkpoint `global_step=10` 可加载且 finite，GPU7 peak `18241 MiB`，GPU0 peak `2 MiB`。Natural Kit close 仍未 PASS，正式 longer-scale/multi-seed training 仍未运行。
 ## DONE Summary
 
 - 2026-07-13 22:28 HKT - Static A2+Piper Phase2 Student Distillation framework completed and statically reviewed; runtime/training remained INCONCLUSIVE at that time.
@@ -171,6 +181,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-23 20:48 HKT - `SCHEME_C_B_RUNTIME_SMOKE_PASS`: centered landscape D435i up60 + unchanged provisional A2 Head 通过 eval-only same-render/intrinsics/video decode 门；2/2 Teacher episodes complete，combined env1 为 157 帧，但没有 16-env formal 或 physical-camera claim。
 - 2026-07-24 20:13 HKT - `SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS`: 同一 C-B config 直接改为 D435i `[0.260,0,0.215]m`，保留 `y=0/yaw=0/pitch=-60°`；2/2 Teacher episodes complete，三段 env1 MP4 各 157 帧并完整解码，未训练。A2 Head OEM extrinsic 与 mechanical clearance 未验证。
 - 2026-07-28 20:58 HKT - `V16_CB_STUDENT_ONE_UPDATE_PASS`: frozen candidate `5b3f496b10271890a8fa0557ef984577f9f2d5afe368bbdb9cd63b51a2259173` 完成 C-B v16 Student one-update。C-B D435i/Head 固定为 `[0.26,0,0.215]m` + up60 `384×216` / `[0.32,0,0.25]m` + `384×136`，`y=0/yaw=0`、Head `40/40` letterbox 与 NHWC `(N,216,768,3)`/vision dim `497664` contract 一致；v16 telemetry schema 消费、unknown Bool/Int fail-fast 与无 `TensorAverageMeter` fallback 已由 static gates 覆盖（new `4 passed`、affected `7 passed`、full `129 passed`、diff/CODE_QUALITY/ISAACLAB_FAIL_FAST PASS）。唯一 GPU0 retry3 launch 于 `20:50:09 HKT` 产生一次 required-marker set，Teacher `133→12`、Student/A2_Base/rollout `12/12/24`，iteration `1` / `4` timesteps；`model_step_000001.pt` SHA256 `6fef5cd92210999b55d1d2130889870672334f69520fd4249ca35963f31ac288`、`155659963` bytes、`142` finite policy tensors、optimizer state `78`、`global_step=1`。checkpoint 后 `TRAINING_COMPLETION PASS`；`simulation_app_close_start` 后无 `close_complete`，超过 `180s` 才对 owned PGID `1155351` 一次 TERM、无 SIGKILL，PGID 消失且 GPU0 released；故自然 Kit shutdown 未 PASS，但不否定 training completion。candidate/Teacher/pinned-runtime identity post-run 未变；formal/long training、physical camera、policy quality 与 multi-seed 均未声称。
+- 2026-07-28 23:06 HKT - `V16_CB_GPU7_CAPACITY_STABILITY_PASS`: binding v3 将 physical renderer GPU7 映射到 process-local logical `cuda:0`/PhysX GPU0，并由 host/Torch UUID、Accelerate、AppLauncher/Carbonite markers fail-fast 验证；recurrent Teacher deterministic inference 的 repeated rollout cleanup 已修复。full contract `132 passed`。retry4 以 `32 env × 8 steps × 10 batches` 完成 `2560` timesteps / `320` episodes，trainer total `40.34s`；checkpoint `model_step_000010.pt` SHA256 `b8f681a18a28394e4b3d03281f8d2cb8c9874a5f40fbbeb0c0173f1aedf9786b`、`155663227` bytes、`global_step=10`，递归 tensor finite PASS。GPU7 peak `18241 MiB/100%/255.87W/64°C`，GPU0 peak `2 MiB`。checkpoint 后 Kit close 超过 `180s` 未返回，exact PID TERM 后 GPU released；因此 training/capacity PASS，但 natural Kit shutdown 仍未 PASS。
 
 ## Recommended Next Files To Read
 

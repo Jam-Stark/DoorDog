@@ -46,8 +46,7 @@ from pathlib import Path
 from collections.abc import Mapping
 
 
-_A2_GPU_BINDING_MODE = "single-visible-cuda0-v2"
-_A2_GPU_UUID = "GPU-f593e489-014b-eed5-4331-b01447615b6e"
+_A2_GPU_BINDING_MODE = "single-visible-logical-cuda0-v3"
 _A2_GPU_BINDING_ENV = "A2_GPU_BINDING_MODE"
 _A2_EXPECTED_ENV = (
     "A2_EXPECTED_WORLD_SIZE",
@@ -111,7 +110,7 @@ def _validate_a2_gpu_binding(env: Mapping[str, str] | None = None):
         return None
     if values.get(_A2_GPU_BINDING_ENV) != _A2_GPU_BINDING_MODE:
         raise RuntimeError(
-            "A2 GPU binding requires A2_GPU_BINDING_MODE='single-visible-cuda0-v2'; "
+            f"A2 GPU binding requires A2_GPU_BINDING_MODE={_A2_GPU_BINDING_MODE!r}; "
             f"got {values.get(_A2_GPU_BINDING_ENV)!r}"
         )
     required = (_A2_GPU_BINDING_ENV,) + _A2_EXPECTED_ENV
@@ -120,11 +119,6 @@ def _validate_a2_gpu_binding(env: Mapping[str, str] | None = None):
         raise RuntimeError(
             "A2 single-visible GPU binding requires the complete schema; "
             f"missing={missing}"
-        )
-    if values.get("CUDA_VISIBLE_DEVICES") != "0":
-        raise RuntimeError(
-            "A2 single-visible GPU binding requires CUDA_VISIBLE_DEVICES=0; "
-            f"got {values.get('CUDA_VISIBLE_DEVICES')!r}"
         )
     if values.get("CUDA_DEVICE_ORDER") != "PCI_BUS_ID":
         raise RuntimeError(
@@ -158,20 +152,24 @@ def _validate_a2_gpu_binding(env: Mapping[str, str] | None = None):
             "A2 single-visible GPU binding requires A2_EXPECTED_WORLD_SIZE=1; "
             f"got {expected_world_size}"
         )
-    if host_gpu_index != 0:
+    if values.get("CUDA_VISIBLE_DEVICES") != str(host_gpu_index):
         raise RuntimeError(
-            "A2 single-visible GPU binding requires A2_EXPECTED_HOST_GPU_INDEX=0; "
-            f"got {host_gpu_index}"
+            "A2 single-visible GPU binding requires CUDA_VISIBLE_DEVICES to equal "
+            "A2_EXPECTED_HOST_GPU_INDEX exactly; "
+            f"visible={values.get('CUDA_VISIBLE_DEVICES')!r} host={host_gpu_index}"
         )
     if logical_gpu_index != 0:
         raise RuntimeError(
             "A2 single-visible GPU binding requires A2_EXPECTED_LOGICAL_GPU_INDEX=0; "
             f"got {logical_gpu_index}"
         )
-    if expected_uuid != _A2_GPU_UUID:
+    if re.fullmatch(
+        r"GPU-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+        expected_uuid,
+    ) is None:
         raise RuntimeError(
-            "A2 single-visible GPU binding UUID is not the pinned host GPU0 UUID; "
-            f"expected={_A2_GPU_UUID!r} actual={expected_uuid!r}"
+            "A2 single-visible GPU binding requires a canonical A2_EXPECTED_GPU_UUID; "
+            f"got {expected_uuid!r}"
         )
     identity = {
         "mode": _A2_GPU_BINDING_MODE,
@@ -184,7 +182,7 @@ def _validate_a2_gpu_binding(env: Mapping[str, str] | None = None):
     }
     print(
         "[A2_GPU_BINDING_ENV] "
-        f"mode={_A2_GPU_BINDING_MODE} CVD=0 host_gpu_index={host_gpu_index} "
+        f"mode={_A2_GPU_BINDING_MODE} CVD={host_gpu_index} host_gpu_index={host_gpu_index} "
         f"logical_gpu_index={logical_gpu_index} pinned_uuid={expected_uuid} world_size=1",
         flush=True,
     )
@@ -267,9 +265,9 @@ def _prepare_a2_torch_device(identity: Mapping[str, object]):
     host_gpu_index = int(identity["host_gpu_index"])
     logical_gpu_index = int(identity["logical_gpu_index"])
     expected_uuid = str(identity["pinned_uuid"])
-    if host_gpu_index != 0 or logical_gpu_index != 0:
+    if logical_gpu_index != 0:
         raise RuntimeError(
-            "A2 single-visible binding requires host_gpu_index=0 and logical_gpu_index=0; "
+            "A2 single-visible binding requires logical_gpu_index=0; "
             f"got host={host_gpu_index} logical={logical_gpu_index}"
         )
     device_count = torch.cuda.device_count()
@@ -300,7 +298,7 @@ def _prepare_a2_torch_device(identity: Mapping[str, object]):
     os.environ["ACCELERATE_BYPASS_DEVICE_MAP"] = "true"
     print(
         "[A2_GPU_BINDING_TORCH] "
-        f"mode={identity['mode']} CVD=0 host_gpu_index={host_gpu_index} "
+        f"mode={identity['mode']} CVD={host_gpu_index} host_gpu_index={host_gpu_index} "
         f"logical_gpu_index={logical_gpu_index} pinned_uuid={expected_uuid} "
         "world_size=1 ACCELERATE_TORCH_DEVICE=cuda:0 "
         "ACCELERATE_BYPASS_DEVICE_MAP=true",
@@ -356,7 +354,8 @@ def _a2_wait_for_everyone(accelerator, identity) -> None:
     if not _A2_GPU_BINDING_BARRIER_EMITTED:
         print(
             "[A2_GPU_BINDING_BARRIER] "
-            f"mode={identity['mode']} CVD=0 host_gpu_index={identity['host_gpu_index']} "
+            f"mode={identity['mode']} CVD={identity['host_gpu_index']} "
+            f"host_gpu_index={identity['host_gpu_index']} "
             f"logical_gpu_index={identity['logical_gpu_index']} "
             f"pinned_uuid={identity['pinned_uuid']} world_size=1 kind=validated-noop",
             flush=True,
@@ -365,7 +364,7 @@ def _a2_wait_for_everyone(accelerator, identity) -> None:
 
 
 def _validate_a2_ppo_config(training_args, identity: Mapping[str, object]) -> None:
-    """Validate standard Transformers/Accelerate PPOConfig after CVD0 binding."""
+    """Validate standard Transformers/Accelerate PPOConfig after logical CUDA0 binding."""
     import torch
     from accelerate.state import DistributedType
     from transformers.training_args import ParallelMode
@@ -426,7 +425,8 @@ def _validate_a2_ppo_config(training_args, identity: Mapping[str, object]) -> No
     training_args.world_size = 1
     print(
         "[A2_PPO_CONFIG_BINDING] "
-        f"mode={identity['mode']} CVD=0 host_gpu_index={identity['host_gpu_index']} "
+        f"mode={identity['mode']} CVD={identity['host_gpu_index']} "
+        f"host_gpu_index={identity['host_gpu_index']} "
         f"logical_gpu_index={identity['logical_gpu_index']} UUID={identity['pinned_uuid']} "
         "world_size=1 distributed_type=NO backend=None parallel_mode=NOT_PARALLEL",
         flush=True,
@@ -464,7 +464,8 @@ def _validate_a2_accelerator_binding(accelerator, identity: Mapping[str, object]
         raise RuntimeError("A2 single-visible Accelerator must not initialize torch.distributed")
     print(
         "[A2_ACCELERATOR_BINDING] "
-        f"mode={identity['mode']} CVD=0 host_gpu_index={identity['host_gpu_index']} "
+        f"mode={identity['mode']} CVD={identity['host_gpu_index']} "
+        f"host_gpu_index={identity['host_gpu_index']} "
         f"logical_gpu_index={identity['logical_gpu_index']} UUID={identity['pinned_uuid']} "
         "world_size=1 distributed_type=NO",
         flush=True,
@@ -523,12 +524,44 @@ def _read_a2_carbonite_settings(settings) -> dict[str, object]:
     return values
 
 
+def _make_a2_bound_app_launcher_type(app_launcher_type, identity: Mapping[str, object]):
+    """Bind Kit rendering to the host GPU while CUDA/PhysX stay on logical cuda:0."""
+    host_gpu_index = int(identity["host_gpu_index"])
+    logical_gpu_index = int(identity["logical_gpu_index"])
+    if logical_gpu_index != 0:
+        raise RuntimeError(
+            "A2 AppLauncher binding requires logical_gpu_index=0; "
+            f"got {logical_gpu_index}"
+        )
+
+    class _A2BoundAppLauncher(app_launcher_type):
+        def _resolve_device_settings(self, launcher_args):
+            super()._resolve_device_settings(launcher_args)
+            if self.device_id != logical_gpu_index:
+                raise RuntimeError(
+                    "A2 AppLauncher resolved an unexpected logical device; "
+                    f"expected={logical_gpu_index} actual={self.device_id}"
+                )
+            launcher_args["active_gpu"] = host_gpu_index
+            launcher_args["physics_gpu"] = logical_gpu_index
+            print(
+                "[A2_GPU_BINDING_APP_CONFIG] "
+                f"CVD={host_gpu_index} host_renderer_gpu={host_gpu_index} "
+                f"logical_cuda_gpu={logical_gpu_index} physics_cuda_gpu={logical_gpu_index}",
+                flush=True,
+            )
+
+    return _A2BoundAppLauncher
+
+
 def _validate_a2_app_launcher_binding(app_launcher, accelerator, identity: Mapping[str, object]) -> None:
     import carb
 
-    if int(identity["host_gpu_index"]) != 0 or int(identity["logical_gpu_index"]) != 0:
-        raise RuntimeError("A2 single-visible AppLauncher identity must be host/logical 0/0")
-    if app_launcher.device_id != 0:
+    host_gpu_index = int(identity["host_gpu_index"])
+    logical_gpu_index = int(identity["logical_gpu_index"])
+    if logical_gpu_index != 0:
+        raise RuntimeError("A2 single-visible AppLauncher logical identity must be 0")
+    if app_launcher.device_id != logical_gpu_index:
         raise RuntimeError(
             "A2 single-visible AppLauncher device must be cuda:0; "
             f"got {app_launcher.device_id}"
@@ -546,10 +579,12 @@ def _validate_a2_app_launcher_binding(app_launcher, accelerator, identity: Mappi
     multi_gpu_enabled = setting_values["/renderer/multiGpu/enabled"]
     multi_gpu_auto = setting_values["/renderer/multiGpu/autoEnable"]
     max_gpu_count = setting_values["/renderer/multiGpu/maxGpuCount"]
-    if active_gpu != 0 or physics_gpu != 0:
+    if active_gpu != host_gpu_index or physics_gpu != logical_gpu_index:
         raise RuntimeError(
-            "A2 single-visible Kit GPU settings must be active/physics 0; "
-            f"got active={active_gpu} physics={physics_gpu}"
+            "A2 single-visible Kit GPU settings must bind the physical renderer and "
+            "logical CUDA physics devices exactly; "
+            f"expected_active={host_gpu_index} actual_active={active_gpu} "
+            f"expected_physics={logical_gpu_index} actual_physics={physics_gpu}"
         )
     if multi_gpu_enabled or multi_gpu_auto or max_gpu_count != 1:
         raise RuntimeError(
@@ -560,10 +595,11 @@ def _validate_a2_app_launcher_binding(app_launcher, accelerator, identity: Mappi
     if not _A2_KIT_BINDING_EMITTED:
         print(
             "[A2_GPU_BINDING_KIT] "
-            f"mode={identity['mode']} CVD=0 host_gpu_index={identity['host_gpu_index']} "
+            f"mode={identity['mode']} CVD={host_gpu_index} host_gpu_index={host_gpu_index} "
             f"logical_gpu_index={identity['logical_gpu_index']} UUID={identity['pinned_uuid']} "
             "world_size=1 renderer_multi_gpu_enabled=false renderer_multi_gpu_autoEnable=false "
-            "renderer_multi_gpu_maxGpuCount=1 kit_active_gpu=0 kit_physics_gpu=0",
+            f"renderer_multi_gpu_maxGpuCount=1 kit_active_gpu={host_gpu_index} "
+            f"kit_physics_gpu={logical_gpu_index}",
             flush=True,
         )
         _A2_KIT_BINDING_EMITTED = True
@@ -928,6 +964,11 @@ def main(config: OmegaConf):
         parser = argparse.ArgumentParser(description="Train an RL agent with TRL.")
         AppLauncher.add_app_launcher_args(parser)
         patch_app_launcher_toolbar_hiding(AppLauncher)
+        app_launcher_type = AppLauncher
+        if A2_GPU_BINDING is not None:
+            app_launcher_type = _make_a2_bound_app_launcher_type(
+                AppLauncher, A2_GPU_BINDING
+            )
 
         args_cli, hydra_args = parser.parse_known_args()
         sys.argv = [sys.argv[0]] + hydra_args
@@ -952,7 +993,7 @@ def main(config: OmegaConf):
         if args_cli.enable_cameras and args_cli.headless:
             args_cli.experience = str(_headless_rendering_experience_path())
 
-        app_launcher = AppLauncher(args_cli)
+        app_launcher = app_launcher_type(args_cli)
         simulation_app = app_launcher.app
         if A2_GPU_BINDING is not None:
             _validate_a2_app_launcher_binding(app_launcher, accelerator, A2_GPU_BINDING)

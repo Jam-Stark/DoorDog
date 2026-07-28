@@ -265,7 +265,7 @@ class Actor(nn.Module):
         self.obs_dict_buffer = TensorDict()
         self.dones_buffer = None
         self.steps = 0
-        del self.distribution
+        self.distribution = None
 
     def eval_mode(self):
         self.is_eval_mode = True

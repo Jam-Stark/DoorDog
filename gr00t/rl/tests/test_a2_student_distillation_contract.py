@@ -42,6 +42,7 @@ from gr00t.rl.scripts.validate_a2_teacher_checkpoint import (
 from gr00t.rl.trl.callbacks.model_save_callback import ModelSaveCallback
 from gr00t.rl.trl.trainer.distill_trainer_a2_base_api import compose_a2_rollout_action
 import gr00t.rl.trl.trainer.distill_trainer_a2_base_api as distill_module
+from gr00t.rl.trl.modules.actor_critic_modules_recurrent import RecurrentActor
 from gr00t.rl.trl.modules.memory import Memory
 from gr00t.rl.trl.modules.vision_actor_critic_modules_recurrent import VisionRecurrentActor
 import gr00t.rl.train_agent_trl as train_module
@@ -648,6 +649,24 @@ def test_a2_teacher_rollout_dispatch_is_singular(monkeypatch):
     assert [entry[0] for entry in calls] == ["teacher_init", "ppo_rollout", "teacher_clear"]
 
 
+def test_recurrent_teacher_rollout_cleanup_can_repeat_after_deterministic_inference():
+    actor = RecurrentActor.__new__(RecurrentActor)
+    torch.nn.Module.__init__(actor)
+    actor.distribution = None
+    actor.obs_dict_buffer = {"teacher_obs": torch.ones(1, 1)}
+    actor.dones_buffer = torch.ones(1, 1, dtype=torch.bool)
+    actor.steps = 8
+    actor.memory = SimpleNamespace(detach_hidden_states=lambda: None)
+
+    actor.clear_rollout()
+    actor.clear_rollout()
+
+    assert actor.distribution is None
+    assert len(actor.obs_dict_buffer) == 0
+    assert actor.dones_buffer is None
+    assert actor.steps == 0
+
+
 def test_recurrent_vision_forward_uses_batched_memory_shape_and_valid_padding_only():
     actor = VisionRecurrentActor.__new__(VisionRecurrentActor)
     torch.nn.Module.__init__(actor)
@@ -1101,15 +1120,19 @@ def test_candidate_local_kit_dependency_closure_and_native_parse():
     assert '"isaaclab.python.headless" = {}' in primary_text
 
 
+_TEST_GPU0_UUID = "GPU-f593e489-014b-eed5-4331-b01447615b6e"
+_TEST_GPU7_UUID = "GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d"
+
+
 def _single_visible_env(**overrides):
     env = {
-        "A2_GPU_BINDING_MODE": "single-visible-cuda0-v2",
-        "CUDA_VISIBLE_DEVICES": "0",
+        "A2_GPU_BINDING_MODE": "single-visible-logical-cuda0-v3",
+        "CUDA_VISIBLE_DEVICES": "7",
         "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
         "A2_EXPECTED_WORLD_SIZE": "1",
-        "A2_EXPECTED_HOST_GPU_INDEX": "0",
+        "A2_EXPECTED_HOST_GPU_INDEX": "7",
         "A2_EXPECTED_LOGICAL_GPU_INDEX": "0",
-        "A2_EXPECTED_GPU_UUID": train_module._A2_GPU_UUID,
+        "A2_EXPECTED_GPU_UUID": _TEST_GPU7_UUID,
     }
     env.update(overrides)
     return env
@@ -1121,9 +1144,9 @@ def _a2_identity():
         "world_size": 1,
         "rank": 0,
         "local_rank": 0,
-        "host_gpu_index": 0,
+        "host_gpu_index": 7,
         "logical_gpu_index": 0,
-        "pinned_uuid": train_module._A2_GPU_UUID,
+        "pinned_uuid": _TEST_GPU7_UUID,
     }
 
 
@@ -1132,10 +1155,23 @@ def test_a2_single_visible_binding_maps_exact_identity_and_marker(capsys):
     assert identity == _a2_identity()
     output = capsys.readouterr().out
     assert "[A2_GPU_BINDING_ENV]" in output
-    assert "mode=single-visible-cuda0-v2" in output
-    assert "CVD=0 host_gpu_index=0 logical_gpu_index=0" in output
-    assert f"pinned_uuid={train_module._A2_GPU_UUID}" in output
+    assert "mode=single-visible-logical-cuda0-v3" in output
+    assert "CVD=7 host_gpu_index=7 logical_gpu_index=0" in output
+    assert f"pinned_uuid={_TEST_GPU7_UUID}" in output
     assert "world_size=1" in output
+
+
+def test_a2_single_visible_binding_still_accepts_physical_gpu0():
+    identity = train_module._validate_a2_gpu_binding(
+        _single_visible_env(
+            CUDA_VISIBLE_DEVICES="0",
+            A2_EXPECTED_HOST_GPU_INDEX="0",
+            A2_EXPECTED_GPU_UUID=_TEST_GPU0_UUID,
+        )
+    )
+    assert identity["host_gpu_index"] == 0
+    assert identity["logical_gpu_index"] == 0
+    assert identity["pinned_uuid"] == _TEST_GPU0_UUID
 
 
 def test_a2_binding_absence_preserves_generic_route():
@@ -1145,7 +1181,7 @@ def test_a2_binding_absence_preserves_generic_route():
 @pytest.mark.parametrize(
     ("field", "value"),
     [
-        ("A2_GPU_BINDING_MODE", "host-physical-v1"),
+        ("A2_GPU_BINDING_MODE", "single-visible-cuda0-v2"),
         ("CUDA_VISIBLE_DEVICES", ""),
         ("CUDA_VISIBLE_DEVICES", "1"),
         ("CUDA_DEVICE_ORDER", "FASTEST_FIRST"),
@@ -1211,10 +1247,10 @@ def test_a2_gpu_binding_nvidia_smi_parser_is_strict_and_non_shell(monkeypatch):
 
     def fake_run(*args, **kwargs):
         calls.append((args, kwargs))
-        return SimpleNamespace(stdout=f"0, {train_module._A2_GPU_UUID}\n", stderr="")
+        return SimpleNamespace(stdout=f"7, {_TEST_GPU7_UUID}\n", stderr="")
 
     monkeypatch.setattr(train_module.subprocess, "run", fake_run)
-    assert train_module._query_nvidia_smi_gpu_uuids() == {0: train_module._A2_GPU_UUID}
+    assert train_module._query_nvidia_smi_gpu_uuids() == {7: _TEST_GPU7_UUID}
     assert calls[0][0][0] == [
         "/usr/bin/nvidia-smi",
         "--query-gpu=index,uuid",
@@ -1231,20 +1267,23 @@ def test_a2_gpu_binding_nvidia_smi_parser_is_strict_and_non_shell(monkeypatch):
 
 
 def test_a2_gpu_binding_nvidia_smi_rejects_host_uuid_mismatch(monkeypatch):
-    monkeypatch.setattr(train_module, "_query_nvidia_smi_gpu_uuids", lambda: {0: "GPU-wrong"})
+    monkeypatch.setattr(train_module, "_query_nvidia_smi_gpu_uuids", lambda: {7: "GPU-wrong"})
     with pytest.raises(RuntimeError, match="UUID mismatch"):
         train_module._validate_a2_nvidia_smi_uuid(_a2_identity())
 
 
 def test_a2_gpu_binding_accelerator_app_launcher_and_order_contracts():
     source = Path(train_module.__file__).read_text(encoding="utf-8")
-    assert 'A2_GPU_BINDING_MODE = "single-visible-cuda0-v2"' in source
+    assert 'A2_GPU_BINDING_MODE = "single-visible-logical-cuda0-v3"' in source
     assert '"CUDA_VISIBLE_DEVICES"' in source
     assert "A2_EXPECTED_HOST_GPU_INDEX" in source
     assert "A2_EXPECTED_LOGICAL_GPU_INDEX" in source
     assert "args_cli.multi_gpu = False" in source
     assert "args_cli.distributed = False" in source
     assert 'args_cli.device = "cuda:0"' in source
+    assert "_make_a2_bound_app_launcher_type" in source
+    assert 'launcher_args["active_gpu"] = host_gpu_index' in source
+    assert 'launcher_args["physics_gpu"] = logical_gpu_index' in source
     assert "app_launcher.device_id" in source
     assert '("/renderer/activeGpu", int, "get_as_int")' in source
     assert '("/physics/cudaDevice", int, "get_as_int")' in source
@@ -1289,7 +1328,7 @@ def _fake_carbonite(raw_values, typed_values=None):
 
 def _valid_carbonite_values():
     return {
-        "/renderer/activeGpu": 0,
+        "/renderer/activeGpu": 7,
         "/physics/cudaDevice": 0,
         "/renderer/multiGpu/enabled": False,
         "/renderer/multiGpu/autoEnable": False,
@@ -1362,6 +1401,27 @@ def test_a2_kit_binding_reads_typed_values_only_after_presence_and_emits_marker_
     assert len(settings.typed_calls) == len(_valid_carbonite_values()) * 2
 
 
+def test_a2_bound_app_launcher_splits_physical_renderer_from_logical_physics(capsys):
+    class FakeAppLauncher:
+        def _resolve_device_settings(self, launcher_args):
+            self.device_id = 0
+            launcher_args["active_gpu"] = 0
+            launcher_args["physics_gpu"] = 0
+
+    bound_type = train_module._make_a2_bound_app_launcher_type(
+        FakeAppLauncher, _a2_identity()
+    )
+    launcher = bound_type()
+    launcher_args = {}
+    launcher._resolve_device_settings(launcher_args)
+    assert launcher.device_id == 0
+    assert launcher_args["active_gpu"] == 7
+    assert launcher_args["physics_gpu"] == 0
+    output = capsys.readouterr().out
+    assert "host_renderer_gpu=7" in output
+    assert "logical_cuda_gpu=0 physics_cuda_gpu=0" in output
+
+
 def test_a2_gpu_binding_validation_order_precedes_imports_and_standard_parser():
     source = Path(train_module.__file__).read_text(encoding="utf-8")
     binding = source.index("_validate_a2_nvidia_smi_uuid(A2_GPU_BINDING)")
@@ -1399,7 +1459,7 @@ def test_a2_gpu_binding_seed_scope_and_post_prepare_contracts():
 def test_a2_cuda_uuid_normalizer_uses_bytes_payload_not_string(monkeypatch):
     import uuid
 
-    expected = train_module._A2_GPU_UUID
+    expected = _TEST_GPU7_UUID
 
     class FakeCUuuid:
         bytes = list(uuid.UUID(expected.removeprefix("GPU-")).bytes)
@@ -1447,7 +1507,7 @@ def test_a2_prepare_torch_device_compares_canonical_uuid_and_emits_marker(monkey
     assert train_module._prepare_a2_torch_device(_a2_identity()) == torch.device("cuda", 0)
     assert calls == [0]
     output = capsys.readouterr().out
-    assert "CVD=0 host_gpu_index=0 logical_gpu_index=0" in output
+    assert "CVD=7 host_gpu_index=7 logical_gpu_index=0" in output
     assert f"pinned_uuid={expected}" in output
 
 

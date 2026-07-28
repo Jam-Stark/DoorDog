@@ -167,6 +167,10 @@ _A2_EVAL_OPTIONAL_RATIO_SPECS = {
         "a2_stage3_stage4_coasting_numerator_frac",
         "a2_stage3_stage4_coasting_denominator_frac"
     ),
+    "a2_stage3_stage4_over_force_frac": (
+        "a2_stage3_stage4_over_force_numerator_frac",
+        "a2_stage3_stage4_over_force_denominator_frac",
+    ),
     "a2_stage3_handle_hard_limit_frac": (
         "a2_stage3_handle_hard_limit_numerator_frac",
         "a2_stage3_handle_hard_limit_denominator_frac"
@@ -190,6 +194,54 @@ _A2_GLOBAL_ENV_QUANTILE_SPECS = {
         "_a2_stage45_doorframe_contact_force_sample_mask",
         "a2_stage45_doorframe_contact_force_p50",
         "a2_stage45_doorframe_contact_force_p95",
+    ),
+    "a2_hinge_at_crossing": (
+        "_a2_hinge_at_crossing_samples",
+        "_a2_hinge_at_crossing_sample_mask",
+        "a2_hinge_at_crossing_p50",
+        "a2_hinge_at_crossing_p95",
+    ),
+    "a2_stage3_stage4_hinge_velocity": (
+        "_a2_stage3_stage4_hinge_velocity_samples",
+        "_a2_stage3_stage4_hinge_velocity_sample_mask",
+        "a2_stage3_stage4_hinge_velocity_p50",
+        "a2_stage3_stage4_hinge_velocity_p95",
+    ),
+    "a2_hinge_at_release": (
+        "_a2_hinge_at_release_samples",
+        "_a2_hinge_at_release_sample_mask",
+        "a2_hinge_at_release_p50",
+        "a2_hinge_at_release_p95",
+    ),
+    "a2_root_x_at_release": (
+        "_a2_root_x_at_release_samples",
+        "_a2_root_x_at_release_sample_mask",
+        "a2_root_x_at_release_p50",
+        "a2_root_x_at_release_p95",
+    ),
+    "a2_post_release_body_force_max": (
+        "_a2_post_release_body_force_max_samples",
+        "_a2_post_release_body_force_max_sample_mask",
+        "a2_post_release_body_force_max_p50",
+        "a2_post_release_body_force_max_p95",
+    ),
+    "a2_stage0_to1_staging_standoff": (
+        "_a2_stage0_to1_staging_standoff_samples",
+        "_a2_stage0_to1_staging_standoff_sample_mask",
+        "a2_stage0_to1_staging_standoff_p50",
+        "a2_stage0_to1_staging_standoff_p95",
+    ),
+    "a2_stage0_actual_root_height": (
+        "_a2_stage0_actual_root_height_samples",
+        "_a2_stage0_actual_root_height_sample_mask",
+        "a2_stage0_actual_root_height_p50",
+        "a2_stage0_actual_root_height_p95",
+    ),
+    "a2_stage1_actual_root_height": (
+        "_a2_stage1_actual_root_height_samples",
+        "_a2_stage1_actual_root_height_sample_mask",
+        "a2_stage1_actual_root_height_p50",
+        "a2_stage1_actual_root_height_p95",
     ),
 }
 _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
@@ -245,7 +297,13 @@ def _prepare_a2_env_metrics_for_aggregation(step_env_metrics, accelerator, devic
         prepared[count_key] = global_count
 
     active_ratio_specs = []
-    for ratio_key, (numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+    for ratio_key, (numerator_key, denominator_key) in {
+        **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+        "a2_crossing_while_holding_frac": (
+            "a2_crossing_while_holding_numerator_frac",
+            "a2_crossing_while_holding_denominator_frac",
+        ),
+    }.items():
         ratio_keys = (ratio_key, numerator_key, denominator_key)
         present = tuple(key in prepared for key in ratio_keys)
         if not any(present):
@@ -402,7 +460,13 @@ def _finalize_a2_conditional_ratios(metrics):
         )
 
     finalized = dict(metrics)
-    for ratio_key, (numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+    for ratio_key, (numerator_key, denominator_key) in {
+        **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+        "a2_crossing_while_holding_frac": (
+            "a2_crossing_while_holding_numerator_frac",
+            "a2_crossing_while_holding_denominator_frac",
+        ),
+    }.items():
         ratio_keys = (ratio_key, numerator_key, denominator_key)
         present = tuple(key in finalized for key in ratio_keys)
         if not any(present):

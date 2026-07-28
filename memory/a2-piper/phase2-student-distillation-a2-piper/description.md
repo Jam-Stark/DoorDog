@@ -1,8 +1,8 @@
 ---
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
-status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS
-last_updated: 2026-07-24 20:13 HKT
+status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS
+last_updated: 2026-07-28 20:58 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,13 +17,13 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-24 20:13 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。该训练目标已经完成，不是仅 `STATIC PASS`；后续 camera sweep 和 Scheme C 双视角验证只做 Teacher eval diagnostic，没有训练。
+Status at 2026-07-28 20:58 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为一次真实的 Student Distillation update 并产生新的 Student checkpoint。原 one-update evidence 与本次 C-B v16 one-update 均为真实训练完成，不是仅 `STATIC PASS`；camera sweep 和 Scheme C 双视角验证仍只作 Teacher eval diagnostic，没有训练。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
 ## Implemented Training Contract
 
-- Student deployable contract：`81D proprio + RGB(248832D) -> 12D high-level action`；Teacher actor `133D -> 12D`，optional critic `138D`；frozen A2_Base `1620D -> 12D` leg action。
+- Student deployable contract：legacy 单路为 `81D proprio + RGB(248832D) -> 12D high-level action`，current C-B 为 `81D proprio + RGB(497664D) -> 12D high-level action`；Teacher actor `133D -> 12D`，optional critic `138D`；frozen A2_Base `1620D -> 12D` leg action。
 - rollout contract：`12D Student/Teacher high-level + 12D A2_Base legs = 24D`，再由既有 A2 env action chain 映射为 `20D` simulator command。BC loss 只比较 learned 的 12D high-level action；不复用 HOMIE/G1 trainer、checkpoint、camera link 或 fallback。
 - Object prediction 保持 explicitly disabled，直到存在经过验证的 A2 target/frame；checkpoint strict loader behavior 只有 static test evidence。
 
@@ -132,6 +132,15 @@ trunk local `[0.260,0,0.215]m`，保持 landscape `384×216`、`y=0,yaw=0`、pit
   mirrored left/out、A2 Head OEM extrinsic、real-camera calibration/latency/exposure
   仍未验证。
 
+## C-B v16 Student One-update
+
+2026-07-28 20:58 HKT，frozen product candidate `5b3f496b10271890a8fa0557ef984577f9f2d5afe368bbdb9cd63b51a2259173` 在基线 `d9077fb4bcc8c68134f74cd68b860751f5603dbb` 完成 `V16_CB_STUDENT_ONE_UPDATE_PASS`。C-B contract 固定为 D435i `[0.26,0,0.215]m`、wxyz `[0.8660254037844386,0,-0.5,0]`、`384×216`，Head `[0.32,0,0.25]m`、wxyz `[0.9945218953682733,0,-0.10452846326765347,0]`、`384×136`，均保持 `y=0/yaw=0`；Head `40/40` letterbox，policy NHWC `(N,216,768,3)` / vision dim `497664`。
+
+- v16 telemetry consumer 在 temporal meter 前消费 over-force optional ratio、crossing prepare/finalize 与八个 quantile sample/mask schemas；unknown Bool/Int 不被 coercion，且没有 `TensorAverageMeter` fallback。focused new `4 passed`、affected existing `7 passed`、full C-B + Student contract `129 passed`、diff check、CODE_QUALITY 与 ISAACLAB_FAIL_FAST static/no-sim 均 PASS。
+- 一次 GPU0 retry3 launch 于 `20:50:09 HKT` 启动；required markers 各一次，Teacher `133→12`、Student/A2_Base/rollout `12/12/24`，iteration `1` 完成 `4` timesteps。pinned runtime `815b367f5de2a52b26a4b872d0457af8817d01bd` clean；Teacher checkpoint/config/manifest SHA256 分别为 `5628a25ee53395ddc581d2da184c32635e109ff3691e54a823ad054236475e3f`、`3c8aead9025b66a7f6f2ac3afc81bedc9cdafa1d12bd08fd43058eff8b4fd144`、`79157f10bff40a4c2f66f64a928dee442d856d505e967d6fb45a6539ecc877a1`。
+- `logs_rl/a2_piper_student_distillation_v16_B_cb_smoke-20260728_1912_retry3/model_step_000001.pt` SHA256 `6fef5cd92210999b55d1d2130889870672334f69520fd4249ca35963f31ac288`，size `155659963` bytes，含 `142` finite policy tensors、optimizer state `78`、`global_step=1`；candidate、Teacher 与 pinned runtime hashes post-run 未变。
+- `TRAINING_COMPLETION` 在 checkpoint 后 PASS；`simulation_app_close_start` 为 `20:52:08 HKT`。没有 `close_complete`：等待超过 `180s` 后仅向 owned PGID `1155351` 发送一次 `TERM`，无 `SIGKILL`，随后 process group 不存在且 GPU0 released。此 lifecycle separation 不削弱 checkpoint training result，也不构成 natural Kit shutdown PASS。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
@@ -147,6 +156,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 
 - 2026-07-23 20:48 HKT - C-B landscape D435i up60 + provisional A2 Head 的 2-env runtime smoke 与 env1 三路视频已完成；该证据不关闭 final physical mount、mirrored left/out 或 stage5-aware view TODO。
 - 2026-07-24 20:13 HKT - 当前 C-B 已由 low-profile `[0.260,0,0.215]m` revision 与新 env1 三路视频取代；A2 Head 仍为固定 OEM context role，但仿真外参只属 historical provisional，physical clearance 和 OEM extrinsic 继续开放。
+- 2026-07-28 20:58 HKT - `V16_CB_STUDENT_ONE_UPDATE_PASS`: C-B v16 telemetry compatibility 与一次 GPU0 retry3 Student update 已完成并产生 `global_step=1` checkpoint；自然 Kit close 未 PASS 不阻塞 training completion，formal/long training 仍未运行。
 ## DONE Summary
 
 - 2026-07-13 22:28 HKT - Static A2+Piper Phase2 Student Distillation framework completed and statically reviewed; runtime/training remained INCONCLUSIVE at that time.
@@ -160,6 +170,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 
 - 2026-07-23 20:48 HKT - `SCHEME_C_B_RUNTIME_SMOKE_PASS`: centered landscape D435i up60 + unchanged provisional A2 Head 通过 eval-only same-render/intrinsics/video decode 门；2/2 Teacher episodes complete，combined env1 为 157 帧，但没有 16-env formal 或 physical-camera claim。
 - 2026-07-24 20:13 HKT - `SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS`: 同一 C-B config 直接改为 D435i `[0.260,0,0.215]m`，保留 `y=0/yaw=0/pitch=-60°`；2/2 Teacher episodes complete，三段 env1 MP4 各 157 帧并完整解码，未训练。A2 Head OEM extrinsic 与 mechanical clearance 未验证。
+- 2026-07-28 20:58 HKT - `V16_CB_STUDENT_ONE_UPDATE_PASS`: frozen candidate `5b3f496b10271890a8fa0557ef984577f9f2d5afe368bbdb9cd63b51a2259173` 完成 C-B v16 Student one-update。C-B D435i/Head 固定为 `[0.26,0,0.215]m` + up60 `384×216` / `[0.32,0,0.25]m` + `384×136`，`y=0/yaw=0`、Head `40/40` letterbox 与 NHWC `(N,216,768,3)`/vision dim `497664` contract 一致；v16 telemetry schema 消费、unknown Bool/Int fail-fast 与无 `TensorAverageMeter` fallback 已由 static gates 覆盖（new `4 passed`、affected `7 passed`、full `129 passed`、diff/CODE_QUALITY/ISAACLAB_FAIL_FAST PASS）。唯一 GPU0 retry3 launch 于 `20:50:09 HKT` 产生一次 required-marker set，Teacher `133→12`、Student/A2_Base/rollout `12/12/24`，iteration `1` / `4` timesteps；`model_step_000001.pt` SHA256 `6fef5cd92210999b55d1d2130889870672334f69520fd4249ca35963f31ac288`、`155659963` bytes、`142` finite policy tensors、optimizer state `78`、`global_step=1`。checkpoint 后 `TRAINING_COMPLETION PASS`；`simulation_app_close_start` 后无 `close_complete`，超过 `180s` 才对 owned PGID `1155351` 一次 TERM、无 SIGKILL，PGID 消失且 GPU0 released；故自然 Kit shutdown 未 PASS，但不否定 training completion。candidate/Teacher/pinned-runtime identity post-run 未变；formal/long training、physical camera、policy quality 与 multi-seed 均未声称。
 
 ## Recommended Next Files To Read
 

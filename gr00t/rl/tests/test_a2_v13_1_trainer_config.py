@@ -28,6 +28,9 @@ OPTIONAL_RATIO_DENOMINATORS = {
     "a2_stage3_stage4_coasting_frac": (
         "a2_stage3_stage4_coasting_denominator_frac"
     ),
+    "a2_stage3_stage4_over_force_frac": (
+        "a2_stage3_stage4_over_force_denominator_frac"
+    ),
     "a2_stage3_handle_hard_limit_frac": (
         "a2_stage3_handle_hard_limit_denominator_frac"
     ),
@@ -47,6 +50,9 @@ OPTIONAL_RATIO_NUMERATORS = {
     ),
     "a2_stage3_stage4_coasting_frac": (
         "a2_stage3_stage4_coasting_numerator_frac"
+    ),
+    "a2_stage3_stage4_over_force_frac": (
+        "a2_stage3_stage4_over_force_numerator_frac"
     ),
     "a2_stage3_handle_hard_limit_frac": (
         "a2_stage3_handle_hard_limit_numerator_frac"

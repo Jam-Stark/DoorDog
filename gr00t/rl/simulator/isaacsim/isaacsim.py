@@ -3,11 +3,12 @@
 
 
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 import math
 import os
 from typing import Optional
 
+from gr00t.rl.utils.a2_policy_camera import compose_horizontal_letterboxed_rgb
 from pxr import Sdf, UsdGeom
 
 try:
@@ -1652,6 +1653,50 @@ class IsaacSim(BaseSimulator):
                     "camera_resolutions must contain positive integers; "
                     f"got {camera_resolution!r}"
                 )
+            primary_camera_resolution = camera_resolution
+            policy_multiview = cameras_cfg.get("policy_multiview", None)
+            policy_secondary_cfg = None
+            if policy_multiview is not None:
+                if not isinstance(policy_multiview, Mapping):
+                    raise TypeError("cameras.policy_multiview must be a mapping")
+                if policy_multiview.get("enabled") is not True:
+                    raise ValueError("cameras.policy_multiview.enabled must be exactly true")
+                if policy_multiview.get("architecture_id") != "C-B":
+                    raise ValueError("cameras.policy_multiview.architecture_id must be 'C-B'")
+                if (
+                    policy_multiview.get("layout")
+                    != "horizontal_primary_then_letterboxed_secondary"
+                ):
+                    raise ValueError(
+                        "cameras.policy_multiview.layout must be "
+                        "'horizontal_primary_then_letterboxed_secondary'"
+                    )
+                primary_camera_resolution = _camera_numeric_sequence(
+                    policy_multiview.get("primary_resolution", None),
+                    2,
+                    "policy_multiview.primary_resolution",
+                )
+                if any(
+                    value <= 0.0 or not value.is_integer()
+                    for value in primary_camera_resolution
+                ):
+                    raise ValueError(
+                        "policy_multiview.primary_resolution must contain positive integers"
+                    )
+                output_resolution = _camera_numeric_sequence(
+                    policy_multiview.get("output_resolution", None),
+                    2,
+                    "policy_multiview.output_resolution",
+                )
+                if output_resolution != camera_resolution:
+                    raise ValueError(
+                        "policy_multiview.output_resolution must equal cameras.camera_resolutions"
+                    )
+                policy_secondary_cfg = policy_multiview.get("secondary", None)
+                if not isinstance(policy_secondary_cfg, Mapping):
+                    raise TypeError("policy_multiview.secondary must be a mapping")
+                if set(camera_types) != {"rgb"}:
+                    raise ValueError("C-B policy multiview supports exactly raw RGB camera data")
             update_period_value = cameras_cfg.get("camera_update_period", 0.0)
             if isinstance(update_period_value, bool):
                 raise ValueError("cameras.camera_update_period must be numeric, not bool")
@@ -1682,8 +1727,8 @@ class IsaacSim(BaseSimulator):
                     vertical_aperture=float(cameras_cfg.camera_vertical_aperture),
                     clipping_range=clipping_range,
                 ),
-                width=int(camera_resolution[1]),
-                height=int(camera_resolution[0]),
+                width=int(primary_camera_resolution[1]),
+                height=int(primary_camera_resolution[0]),
                 update_period=update_period,
                 colorize_instance_id_segmentation=colorize_instance_ids,
                 debug_vis=True,
@@ -1691,8 +1736,107 @@ class IsaacSim(BaseSimulator):
 
             self.ego_camera = TiledCamera(ego_camera_config)
             self.scene.sensors["ego_camera"] = self.ego_camera
+            self.policy_secondary_camera = None
+            self._policy_multiview = None
+            self._a2_policy_multiview_validated = False
+            if policy_secondary_cfg is not None:
+                secondary_name = policy_secondary_cfg.get("sensor_name", None)
+                secondary_parent = policy_secondary_cfg.get("parent", None)
+                secondary_suffix = policy_secondary_cfg.get("prim_suffix", None)
+                secondary_convention = policy_secondary_cfg.get("convention", None)
+                if secondary_name != "a2_head_context":
+                    raise ValueError(
+                        "policy_multiview.secondary.sensor_name must be 'a2_head_context'"
+                    )
+                if secondary_parent != "trunk" or secondary_convention != "world":
+                    raise ValueError(
+                        "C-B secondary camera requires parent='trunk' and convention='world'"
+                    )
+                if not isinstance(secondary_suffix, str) or not secondary_suffix:
+                    raise ValueError("policy_multiview.secondary.prim_suffix must be non-empty")
+                secondary_pos, secondary_rot = parse_camera_pose(
+                    policy_secondary_cfg.get("position_m", None),
+                    policy_secondary_cfg.get("rotation_wxyz", None),
+                )
+                secondary_resolution = _camera_numeric_sequence(
+                    policy_secondary_cfg.get("resolution", None),
+                    2,
+                    "policy_multiview.secondary.resolution",
+                )
+                if any(
+                    value <= 0.0 or not value.is_integer()
+                    for value in secondary_resolution
+                ):
+                    raise ValueError(
+                        "policy_multiview.secondary.resolution must contain positive integers"
+                    )
+                if (
+                    int(camera_resolution[0]) != int(primary_camera_resolution[0])
+                    or int(camera_resolution[1])
+                    != int(primary_camera_resolution[1]) + int(secondary_resolution[1])
+                    or int(secondary_resolution[0]) > int(camera_resolution[0])
+                ):
+                    raise ValueError(
+                        "C-B output must horizontally join primary RGB and a vertically "
+                        "letterboxed secondary RGB"
+                    )
+                secondary_update_period = policy_secondary_cfg.get("update_period", None)
+                if isinstance(secondary_update_period, bool) or not isinstance(
+                    secondary_update_period, (int, float)
+                ):
+                    raise TypeError("policy_multiview.secondary.update_period must be numeric")
+                secondary_update_period = float(secondary_update_period)
+                if (
+                    not math.isfinite(secondary_update_period)
+                    or secondary_update_period != update_period
+                ):
+                    raise ValueError(
+                        "C-B primary and secondary camera update_period values must match exactly"
+                    )
+                secondary_config = TiledCameraCfg(
+                    prim_path=(
+                        f"/World/envs/env_.*/Robot/{secondary_parent}/{secondary_suffix}"
+                    ),
+                    offset=TiledCameraCfg.OffsetCfg(
+                        pos=secondary_pos,
+                        rot=secondary_rot,
+                        convention=secondary_convention,
+                    ),
+                    data_types=["rgb"],
+                    spawn=sim_utils.PinholeCameraCfg(
+                        focal_length=float(policy_secondary_cfg["focal_length"]),
+                        focus_distance=float(policy_secondary_cfg["focus_distance"]),
+                        horizontal_aperture=float(
+                            policy_secondary_cfg["horizontal_aperture"]
+                        ),
+                        vertical_aperture=float(policy_secondary_cfg["vertical_aperture"]),
+                        clipping_range=parse_camera_clipping_range(
+                            policy_secondary_cfg["clipping_range"]
+                        ),
+                    ),
+                    width=int(secondary_resolution[1]),
+                    height=int(secondary_resolution[0]),
+                    update_period=secondary_update_period,
+                    debug_vis=True,
+                )
+                self.policy_secondary_camera = TiledCamera(secondary_config)
+                self.scene.sensors[secondary_name] = self.policy_secondary_camera
+                self._policy_multiview = {
+                    "architecture_id": "C-B",
+                    "primary_resolution": tuple(
+                        int(value) for value in primary_camera_resolution
+                    ),
+                    "secondary_resolution": tuple(
+                        int(value) for value in secondary_resolution
+                    ),
+                    "output_resolution": tuple(int(value) for value in camera_resolution),
+                    "secondary_name": secondary_name,
+                }
         else:
             self.ego_camera = None
+            self.policy_secondary_camera = None
+            self._policy_multiview = None
+            self._a2_policy_multiview_validated = False
 
         if self.scene_creation_callback is not None:
             self.scene_creation_callback(self)
@@ -2070,6 +2214,50 @@ class IsaacSim(BaseSimulator):
         resolutions = list(cameras_cfg.camera_resolutions)
         if len(resolutions) != 2:
             raise RuntimeError(f"camera_resolutions must be [height,width], got {resolutions!r}")
+        if self._policy_multiview is not None:
+            secondary_name = self._policy_multiview["secondary_name"]
+            secondary = self.scene.sensors.get(secondary_name)
+            if secondary is None or secondary is not self.policy_secondary_camera:
+                raise RuntimeError(
+                    f"C-B policy camera {secondary_name!r} is missing from scene sensors"
+                )
+            secondary_output = getattr(secondary.data, "output", None)
+            if secondary_output is None or "rgb" not in secondary_output:
+                raise RuntimeError(f"C-B policy camera {secondary_name!r} has no RGB output")
+            primary_resolution = self._policy_multiview["primary_resolution"]
+            secondary_resolution = self._policy_multiview["secondary_resolution"]
+            primary_rgb = validate_camera_rgb_output(
+                output["rgb"],
+                (self.num_envs, *primary_resolution, 3),
+                "ego_camera",
+            )
+            secondary_rgb = validate_camera_rgb_output(
+                secondary_output["rgb"],
+                (self.num_envs, *secondary_resolution, 3),
+                secondary_name,
+            )
+            rgb_image = compose_horizontal_letterboxed_rgb(
+                primary_rgb,
+                secondary_rgb,
+                primary_resolution=primary_resolution,
+                secondary_resolution=secondary_resolution,
+                output_resolution=self._policy_multiview["output_resolution"],
+                image_mean=cameras_cfg.image_mean,
+                image_std=cameras_cfg.image_std,
+            )
+            if not self._a2_policy_multiview_validated:
+                print(
+                    "[A2_C_B_POLICY_RGB] "
+                    f"primary_shape={tuple(primary_rgb.shape)} "
+                    f"secondary_shape={tuple(secondary_rgb.shape)} "
+                    f"output_shape={tuple(rgb_image.shape)} "
+                    "layout=horizontal_primary_then_letterboxed_secondary "
+                    "shared_scene_update=true policy_input=true",
+                    flush=True,
+                )
+                self._a2_policy_multiview_validated = True
+            return rgb_image
+
         expected_shape = (self.num_envs, int(resolutions[0]), int(resolutions[1]), 3)
         rgb_image = validate_camera_rgb_output(output["rgb"], expected_shape)
         rgb_image = rgb_image.float() / 255.0

@@ -5,7 +5,7 @@
 **Repository / branch:** `Jam-Stark/DoorDog`, `A2_Piper`
 **Reference format:** `scriptsFORhuman/a2_piper_base_v19_optimization_plan_20260725.md`
 **Numbering:** **P0–P2 (pre-run gates), M45–M49 (implementation, training, and evaluation)**
-**Formal resource contract:** **7 training groups in parallel, 1 physical GPU per group, 4096 environments per group; GPU 7 reserved for evaluation**
+**Formal resource contract:** **7 training groups in parallel on physical GPUs 0–6, 1 physical GPU per group, 4096 environments per group; physical GPU 7 is unavailable, so evaluation waits for a training GPU to be released**
 **Proposed repo path:** `scriptsFORhuman/a2_piper_base_v20_optimization_plan_20260728.md`
 
 **Warm-start checkpoint**
@@ -201,12 +201,12 @@ The A factor is a weak tie-breaker applied only when the door is progressing und
 
 The arm is still simulation-superhuman relative to the planned force-feasibility study. Changing limits in v20 would simultaneously alter physical capability, base-assist necessity, and the route under study. That would destroy attribution.
 
-### D7 — Use all eight GPUs deliberately
+### D7 — Use the seven available physical GPUs deliberately
 
 - physical GPUs 0–6: seven one-process training groups, 4096 env each;
-- physical GPU 7: strict canonical checkpoint evaluation, pooled endpoints, matched comparisons, and render queue;
+- physical GPU 7 is unavailable and may not host training, evaluation, rendering, or any other v20 task;
 - no multi-process group in this round;
-- no training job may spill onto GPU 7.
+- strict canonical evaluation, pooled endpoints, matched comparisons, and rendering wait until a physical GPU in 0–6 is released, or until all seven training groups finish.
 
 ### D8 — No post-hoc fallback
 
@@ -350,6 +350,16 @@ Every new reporter must label reward units explicitly as `episode-sum`, `/20s`, 
 ## 5. P1 — Live-grasp handle-arc feasibility and threshold freeze
 
 The send threshold must be physically feasible under the current simulated arm and gripper. A disconnected static reachability map is not sufficient.
+
+### P1.0 Operational amendment — one bounded transactional repair
+
+`P1_TX1_TRANSACTIONAL_REFERENCE` is the only authorized P1 code revision. It may make persistent arc-reference commitment transactional, synchronize the arm cumulative target to physical joint state on F1 relief, remove the unreachable settle path, and add transaction telemetry. It may not change gains, lead, timeout, joint margin, root bounds, DLS lambda, gripper physics, geometry, scientific thresholds, or the selection matrix.
+
+After static admission, run exactly one mandatory `F1 / 0.90 rad / seed0 / 4-env` smoke on one idle physical GPU in 0–6. Any failure among the four environments closes C2 as `P1_PHYSICAL_BLOCKER`; no second control revision, parameter tuning, or G1–G7 launch is authorized. Only a 4/4 strict-valid smoke may proceed to the mandatory fixed `F1 / 0.90 rad / seeds0–2 / 16 env each` pooled48 gate, which still requires at least `46/48`.
+
+P1 resource mapping is: first smoke on GPU0 or another single idle GPU0–6; pooled seeds0–2 on GPU0–2 or another fixed non-conflicting subset of GPU0–6; optional higher-angle cells, if authorized after the 0.90 pooled gate passes, run in fixed waves on GPU0–6. Physical GPU7 is unavailable.
+
+P1 remains **BLOCKED / NOT PASS** until these runtime gates produce strict-valid artifacts. A P1 pooled PASS enters P2 and does not itself authorize formal training.
 
 ### P1.1 Probe setup
 
@@ -880,7 +890,7 @@ All groups keep the same stage machine thresholds, gripper package, F2 fix, stag
 | **G6** | 5 | 0 | ✓ | ✓ | ✓ | `base_v20_G6_full.yaml` | Full v20 method. |
 | **G7** | 6 | 1 | ✓ | ✓ | ✓ | `base_v20_G7_full_seed1.yaml` | Independent-seed full-method replication / basin robustness. |
 
-Physical GPU 7 is reserved for evaluation and may not host a training group.
+Physical GPU7 is unavailable. During seven-group training, evaluation waits until one of GPUs0–6 is released or until all training groups finish.
 
 ### 11.3 Shared formal settings
 
@@ -1021,7 +1031,7 @@ GPU3 -> G4
 GPU4 -> G5
 GPU5 -> G6
 GPU6 -> G7
-GPU7 -> M22/eval/render queue only
+GPU7 -> unavailable; no v20 task may use it
 ```
 
 Each group is one process and sees one physical GPU. Do not convert the contract into 4×1024 or a multi-process group.
@@ -1101,7 +1111,7 @@ A checkpoint existing on disk is not sufficient evidence of natural completion.
 
 ### 15.1 Evaluation queue
 
-GPU7 continuously evaluates newly produced checkpoints in round-robin order. Required total: 70 canonical16 evaluations.
+The evaluation queue may start only after one physical GPU in 0–6 is released, or after all seven training groups finish. Physical GPU7 is unavailable. Once a legal evaluation GPU is available, evaluate newly produced checkpoints in round-robin order. Required total: 70 canonical16 evaluations.
 
 Priority:
 
@@ -1384,7 +1394,7 @@ Use the F1 relief bounds and state the claim as **arm-led send with minimal boun
 
 ### C2 — P1 fails even at 0.90 rad
 
-Stop. Do not train a policy against an unverified target. Open a separate geometry/control investigation.
+Stop. Do not train a policy against an unverified target. Under the one authorized `P1_TX1_TRANSACTIONAL_REFERENCE` amendment, any failure in the mandatory 4-env smoke closes C2 as `P1_PHYSICAL_BLOCKER`; no second control revision is authorized. Open a separately approved geometry/control investigation only as a new scope.
 
 ### C3 — I cells collapse in P2.2
 
@@ -1516,7 +1526,7 @@ One eval/result directory is an indivisible evidence unit containing Hydra confi
 ### Formal training
 
 14. [ ] Launch G1–G7 on physical GPUs0–6, one process and 4096 env each.
-15. [ ] Reserve physical GPU7 for evaluation only.
+15. [ ] Keep physical GPU7 unused; queue evaluation until a physical GPU in 0–6 is released or all seven training groups finish.
 16. [ ] Verify startup binding, env count, checkpoint, factors, W&B, and memory.
 17. [ ] Evaluate every saved checkpoint on canonical16.
 18. [ ] Produce mandatory midpoint reviews at 500/1000/1500/2000.

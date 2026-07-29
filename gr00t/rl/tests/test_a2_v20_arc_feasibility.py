@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
 import math
 from pathlib import Path
 
@@ -92,8 +93,7 @@ def _geometry_helpers():
         "a2_v20_mask_stage_overtime_for_arc_probe",
         "a2_v20_arc_probe_activation_mask",
         "a2_v20_update_stable_handoff_streak",
-        "a2_v20_arm_settled_handoff_mask",
-        "a2_v20_apply_arc_probe_settle_action",
+        "a2_v20_commit_arc_probe_transaction",
         "a2_v20_f1_relief_command",
         "a2_v20_update_f1_hold_target",
         "a2_v20_arc_probe_target_pose",
@@ -141,6 +141,14 @@ def _samples(*, root_translation=0.0, root_yaw=0.0, root_x=-0.1):
             "root_x_door": root_x,
             "door_body_force_n": 0.0,
             "arm_speed_max_radps": 1.0,
+            "branch": "ARM_DLS",
+            "reference_hinge_before_rad": 0.0,
+            "proposed_reference_hinge_rad": 0.1,
+            "reference_hinge_after_rad": 0.1,
+            "reference_commit_applied": True,
+            "relief_arm_target_synced": False,
+            "proposed_lead_step_rad": 0.1,
+            "applied_lead_step_rad": 0.1,
         }
         for _ in range(12)
     ]
@@ -297,74 +305,231 @@ def test_stable_handoff_streak_requires_exactly_five_qualifying_steps_and_resets
         fn(torch.zeros(1, dtype=torch.long), torch.ones(1, dtype=torch.bool), 0)
 
 
-def test_arm_settled_handoff_requires_velocity_and_residual_envelopes():
-    fn = _geometry_helpers()["a2_v20_arm_settled_handoff_mask"]
-    arm_speed = torch.tensor([0.049, 0.050, 0.051, 0.050, 0.050])
-    residual = torch.tensor([0.0009, 0.0010, 0.0009, 0.0011, 0.0010])
-    settled = fn(arm_speed, residual, 0.001, 0.02)
-    torch.testing.assert_close(
-        settled,
-        torch.tensor([True, True, False, False, True]),
+def _transaction_inputs(n=4):
+    reference = torch.arange(n, dtype=torch.float32) * 0.1
+    proposed = reference + 0.05
+    current = torch.arange(n * 6, dtype=torch.float32).reshape(n, 6) * 0.01
+    default = torch.full((n, 6), -0.1)
+    cumulative = torch.full((n, 6), 7.0)
+    return reference, proposed, current, default, cumulative
+
+
+def test_arc_probe_proposal_is_pure_and_does_not_modify_reference():
+    fn = _geometry_helpers()["a2_v20_arc_probe_target_pose"]
+    identity = torch.tensor([[1.0, 0.0, 0.0, 0.0]])
+    reference = torch.tensor([0.30])
+    before = reference.clone()
+    fn(
+        torch.zeros(1, 3),
+        identity,
+        torch.tensor([[1.02, -0.5, 0.0]]),
+        identity,
+        torch.zeros(1, 3),
+        identity,
+        torch.tensor([1.0]),
+        torch.tensor([1.0]),
+        torch.tensor([0.02]),
+        reference,
+        torch.tensor([True]),
+        0.9,
+        0.1,
     )
-    assert settled.dtype == torch.bool
+    assert torch.equal(reference, before)
+    source = ENV_SOURCE.read_text(encoding="utf-8")
+    start = source.index("def _compute_a2_v20_arc_probe_joint_target(")
+    end = source.index("def _apply_a2_v20_arc_probe_action(", start)
+    compute_source = source[start:end]
+    assert "next_reference_hinge" in compute_source
+    assert (
+        "self._a2_v20_arc_probe_reference_hinge[advance_mask]"
+        not in compute_source
+    )
 
-    with pytest.raises(ValueError, match="one-dimensional floating vectors"):
-        fn(arm_speed[:, None], residual, 0.001, 0.02)
-    with pytest.raises(ValueError, match="one-dimensional floating vectors"):
-        fn(arm_speed.to(torch.long), residual, 0.001, 0.02)
-    with pytest.raises(ValueError, match="share dtype and device"):
-        fn(arm_speed, residual.double(), 0.001, 0.02)
-    with pytest.raises(ValueError, match="finite values"):
-        fn(torch.tensor([float("nan")]), torch.tensor([0.0]), 0.001, 0.02)
-    with pytest.raises(ValueError, match="non-negative magnitudes"):
-        fn(torch.tensor([-0.001]), torch.tensor([0.0]), 0.001, 0.02)
-    with pytest.raises(ValueError, match="share dtype and device"):
+
+def test_transaction_commits_reference_only_for_arm_branch():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs()
+    result = fn(
+        reference,
+        proposed,
+        current,
+        default,
+        cumulative,
+        torch.tensor([True, False, False, True]),
+        torch.zeros(4, dtype=torch.bool),
+    )
+    torch.testing.assert_close(
+        result["reference_after"],
+        torch.tensor([0.05, 0.10, 0.20, 0.35]),
+    )
+    assert torch.equal(result["cumulative_target_after"], cumulative)
+
+
+def test_transaction_relief_freezes_reference():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs()
+    result = fn(
+        reference,
+        proposed,
+        current,
+        default,
+        cumulative,
+        torch.zeros(4, dtype=torch.bool),
+        torch.tensor([False, True, True, False]),
+    )
+    assert torch.equal(result["reference_after"], reference)
+
+
+def test_transaction_relief_syncs_cumulative_target_to_physical_pose():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs()
+    relief = torch.tensor([False, True, True, False])
+    result = fn(
+        reference,
+        proposed,
+        current,
+        default,
+        cumulative,
+        torch.zeros(4, dtype=torch.bool),
+        relief,
+    )
+    expected = cumulative.clone()
+    expected[relief] = (current[relief] - default[relief]) / 0.25
+    torch.testing.assert_close(result["cumulative_target_after"], expected)
+
+
+def test_transaction_two_consecutive_relief_steps_follow_each_physical_pose():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs(1)
+    relief = torch.tensor([True])
+    first = fn(
+        reference,
+        proposed,
+        current,
+        default,
+        cumulative,
+        torch.tensor([False]),
+        relief,
+    )
+    current_second = current + 0.03
+    second = fn(
+        first["reference_after"],
+        proposed,
+        current_second,
+        default,
+        first["cumulative_target_after"],
+        torch.tensor([False]),
+        relief,
+    )
+    assert torch.equal(first["reference_after"], reference)
+    assert torch.equal(second["reference_after"], reference)
+    torch.testing.assert_close(
+        first["cumulative_target_after"], (current - default) / 0.25
+    )
+    torch.testing.assert_close(
+        second["cumulative_target_after"], (current_second - default) / 0.25
+    )
+
+
+def test_transaction_relief_to_arm_commits_only_on_recovered_arm_step():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs(1)
+    relief = fn(
+        reference,
+        proposed,
+        current,
+        default,
+        cumulative,
+        torch.tensor([False]),
+        torch.tensor([True]),
+    )
+    assert torch.equal(relief["reference_after"], reference)
+    recovered = fn(
+        relief["reference_after"],
+        proposed,
+        current,
+        default,
+        relief["cumulative_target_after"],
+        torch.tensor([True]),
+        torch.tensor([False]),
+    )
+    assert torch.equal(recovered["reference_after"], proposed)
+    assert torch.equal(
+        recovered["cumulative_target_after"],
+        relief["cumulative_target_after"],
+    )
+
+
+def test_transaction_invalid_no_override_changes_no_state():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs()
+    result = fn(
+        reference,
+        proposed,
+        current,
+        default,
+        cumulative,
+        torch.zeros(4, dtype=torch.bool),
+        torch.zeros(4, dtype=torch.bool),
+    )
+    assert torch.equal(result["reference_after"], reference)
+    assert torch.equal(result["cumulative_target_after"], cumulative)
+
+
+def test_transaction_mixed_arm_relief_invalid_and_inactive_rows():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs()
+    arm = torch.tensor([True, False, False, False])
+    relief = torch.tensor([False, True, False, False])
+    result = fn(reference, proposed, current, default, cumulative, arm, relief)
+    expected_reference = reference.clone()
+    expected_reference[arm] = proposed[arm]
+    expected_cumulative = cumulative.clone()
+    expected_cumulative[relief] = (current[relief] - default[relief]) / 0.25
+    assert torch.equal(result["reference_after"], expected_reference)
+    assert torch.equal(result["cumulative_target_after"], expected_cumulative)
+
+
+def test_transaction_rejects_overlapping_arm_and_relief_masks():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs(1)
+    with pytest.raises(ValueError, match="must be disjoint"):
         fn(
-            arm_speed,
-            torch.empty_like(residual, device="meta"),
-            0.001,
-            0.02,
+            reference,
+            proposed,
+            current,
+            default,
+            cumulative,
+            torch.tensor([True]),
+            torch.tensor([True]),
         )
-    with pytest.raises(ValueError, match="joint_target_step_max_rad"):
-        fn(arm_speed, residual, 0.0, 0.02)
-    with pytest.raises(ValueError, match="joint_target_step_max_rad"):
-        fn(arm_speed, residual, float("nan"), 0.02)
-    with pytest.raises(ValueError, match="joint_target_step_max_rad"):
-        fn(arm_speed, residual, True, 0.02)
-    with pytest.raises(ValueError, match="control_dt_s"):
-        fn(arm_speed, residual, 0.001, 0.0)
-    with pytest.raises(ValueError, match="control_dt_s"):
-        fn(arm_speed, residual, 0.001, float("nan"))
-    with pytest.raises(ValueError, match="control_dt_s"):
-        fn(arm_speed, residual, 0.001, False)
 
 
-def test_arc_probe_settle_action_freezes_base_and_arm_preserves_gripper_and_inactive_rows():
-    fn = _geometry_helpers()["a2_v20_apply_arc_probe_settle_action"]
-    action = torch.arange(36.0).reshape(3, 12)
-    settle_mask = torch.tensor([True, False, True])
-    result = fn(action, settle_mask)
-    expected = action.clone()
-    expected[settle_mask, :11] = 0.0
-    torch.testing.assert_close(result, expected)
-    assert torch.equal(result[settle_mask, 11], action[settle_mask, 11])
-    assert torch.equal(result[1], action[1])
-    assert torch.equal(fn(action, torch.zeros(3, dtype=torch.bool)), action)
-
-    with pytest.raises(ValueError, match=r"shape \(N,12\)"):
-        fn(action[:, :11], settle_mask)
-    with pytest.raises(ValueError, match=r"shape \(N,\)"):
-        fn(action, settle_mask[:2])
-    with pytest.raises(ValueError, match="bool vector"):
-        fn(action, settle_mask.to(torch.int32))
-    with pytest.raises(ValueError, match="bool vector"):
-        fn(action, torch.empty_like(settle_mask, device="meta"))
-    with pytest.raises(ValueError, match=r"shape \(N,12\)"):
-        fn(action.to(torch.long), settle_mask)
-    non_finite = action.clone()
-    non_finite[0, 0] = float("nan")
-    with pytest.raises(ValueError, match="finite policy values"):
-        fn(non_finite, settle_mask)
+def test_transaction_fail_fast_shape_dtype_device_finite_and_monotonicity():
+    fn = _geometry_helpers()["a2_v20_commit_arc_probe_transaction"]
+    reference, proposed, current, default, cumulative = _transaction_inputs(1)
+    arm = torch.tensor([True])
+    relief = torch.tensor([False])
+    with pytest.raises(ValueError, match="shape"):
+        fn(reference, proposed, current[:, :5], default, cumulative, arm, relief)
+    with pytest.raises(ValueError, match="dtype"):
+        fn(reference, proposed.double(), current, default, cumulative, arm, relief)
+    with pytest.raises(ValueError, match="device"):
+        fn(
+            reference,
+            torch.empty_like(proposed, device="meta"),
+            current,
+            default,
+            cumulative,
+            arm,
+            relief,
+        )
+    nonfinite = proposed.clone()
+    nonfinite[0] = float("nan")
+    with pytest.raises(ValueError, match="finite"):
+        fn(reference, nonfinite, current, default, cumulative, arm, relief)
+    with pytest.raises(ValueError, match="nondecreasing"):
+        fn(reference, reference - 0.01, current, default, cumulative, arm, relief)
 
 
 def test_f1_relief_yaw_sign_clamp_scale_and_solvability_masks():
@@ -903,101 +1068,85 @@ def test_arc_probe_reference_buffers_use_finite_identity_with_explicit_validity(
     assert "_a2_v20_arc_probe_reference_hinge = torch.zeros" in initialization
 
 
-def test_arc_probe_handoff_latches_post_physics_stable_stage3_grasp():
+def test_arc_probe_handoff_is_unique_and_dead_settle_state_is_absent():
     source = ENV_SOURCE.read_text(encoding="utf-8")
     trainer_source = TRAINER_SOURCE.read_text(encoding="utf-8")
     hook_start = source.index("def update_a2_eval_hold_oracle_after_step(")
-    hook_end = source.index("def apply_a2_eval_hold_oracle_action_override(", hook_start)
+    hook_end = source.index(
+        "def apply_a2_eval_hold_oracle_action_override(", hook_start
+    )
     hook_source = source[hook_start:hook_end]
-    assert "self.stage_buf == self.STAGE_OPEN" in hook_source
-    assert "self._get_a2_hold_streak_ok_mask()" in hook_source
-    assert "_a2_v20_arc_probe_bilateral_gate()" in hook_source
-    assert "settle_eligible = (" in hook_source
-    assert "settle_candidate = (" in hook_source
-    assert "self._a2_v20_arc_probe_settle_active.zero_()" in hook_source
-    assert "self._a2_v20_arc_probe_settle_target_synced.zero_()" in hook_source
-    assert "settle_candidate\n            & stable_root" in hook_source
-    assert "root_speed <= cfg[\"v20_arc_probe_handoff_root_speed_max_mps\"]" in hook_source
-    assert "root_yaw_rate <= cfg[\"v20_arc_probe_handoff_root_yaw_rate_max_radps\"]" in hook_source
-    assert "& stable_root" in hook_source
-    assert "a2_v20_arm_settled_handoff_mask(" in hook_source
-    assert "robot.data.joint_pos_target" in hook_source
-    assert "robot.data.joint_pos" in hook_source
-    assert "self._a2_hold_oracle_joint_ids" in hook_source
-    assert 'cfg["v20_arc_probe_joint_target_step_max_rad"]' in hook_source
-    assert "self.dt" in hook_source
-    assert "& arm_settled" not in hook_source
-    assert "first_episode_active_mask & ~done_mask" in hook_source
-    assert "self._a2_v20_arc_probe_handoff_ready |= handoff" in hook_source
-    assert 'terminal_reason_bufs["upper_dof_overspeed"]' in hook_source
-    assert '"ARC_PROBE_OVERSPEED"' in hook_source
+    for required in (
+        "self.stage_buf == self.STAGE_OPEN",
+        "self._get_a2_hold_streak_ok_mask()",
+        "_a2_v20_arc_probe_bilateral_gate()",
+        "handoff_eligible = (",
+        "handoff_candidate = (",
+        "handoff_candidate\n            & stable_root",
+        'root_speed <= cfg["v20_arc_probe_handoff_root_speed_max_mps"]',
+        'root_yaw_rate <= cfg["v20_arc_probe_handoff_root_yaw_rate_max_radps"]',
+        "first_episode_active_mask & ~done_mask",
+        "self._a2_v20_arc_probe_handoff_ready |= handoff",
+        'terminal_reason_bufs["upper_dof_overspeed"]',
+        '"ARC_PROBE_OVERSPEED"',
+    ):
+        assert required in hook_source
+
     step_index = trainer_source.index("obs_dict, rewards, dones, infos = self.env.step")
     hook_call_index = trainer_source.index("update_hold_oracle_after_step(")
-    reset_index = trainer_source.index("self.env.reset_eval_episode_tracking", step_index)
+    reset_index = trainer_source.index(
+        "self.env.reset_eval_episode_tracking", step_index
+    )
     assert step_index < hook_call_index < reset_index
+
     apply_start = source.index("def apply_a2_eval_hold_oracle_action_override(")
     apply_end = source.index("def _get_a2_hold_oracle_trace_fields(", apply_start)
     apply_source = source[apply_start:apply_end]
     assert "self._a2_v20_arc_probe_handoff_ready" in apply_source
     assert "_get_a2_stage2_grasp_completion_masks()" not in apply_source
+
     arc_start = source.index("def _apply_a2_v20_arc_probe_action(")
     arc_end = source.index("def _compute_a2_hold_oracle_joint_target(", arc_start)
     arc_source = source[arc_start:arc_end]
-    assert "_a2_v20_arc_probe_bilateral_gate()" in arc_source
-    assert "a2_v20_apply_arc_probe_settle_action(" in arc_source
-    assert "settle_mask = torch.zeros_like(activate)" in arc_source
-    assert "settle and capture masks must be disjoint" in arc_source
-    assert "settle and active masks must be disjoint" in arc_source
-    assert (
-        "settle_sync_mask = (\n                settle_mask "
-        "& ~self._a2_v20_arc_probe_settle_target_synced"
-        in arc_source
+    for required in (
+        "self._capture_a2_v20_arc_probe_gate(activate)",
+        "reference_before = self._a2_v20_arc_probe_reference_hinge.clone()",
+        "self._compute_a2_v20_arc_probe_joint_target(active, active)",
+        "a2_v20_commit_arc_probe_transaction(",
+        'transaction["reference_after"]',
+        'transaction["cumulative_target_after"]',
+        '"ARM_DLS"',
+        '"BASE_RELIEF"',
+        '"INVALID_NO_OVERRIDE"',
+        '"reference_commit_applied"',
+        '"relief_arm_target_synced"',
+        '"applied_lead_step_rad"',
+        "return action, combined_override_mask",
+    ):
+        assert required in arc_source
+    assert arc_source.index("reference_before =") < arc_source.index(
+        "self._compute_a2_v20_arc_probe_joint_target(active, active)"
     )
-    assert "synchronized_settle_target = a2_v20_sync_arc_probe_cumulative_target(" in arc_source
-    assert (
-        "self._delta_actions[settle_sync_mask] = synchronized_settle_target[settle_sync_mask]"
-        in arc_source
+    assert arc_source.index("a2_v20_commit_arc_probe_transaction(") > arc_source.index(
+        "arm_mask = active & ik_valid & limit_valid & delta_ok & raw_ok & pending"
     )
-    assert "self._a2_v20_arc_probe_settle_target_synced[settle_sync_mask] = True" in arc_source
-    assert "self._capture_a2_v20_arc_probe_gate(settle_sync_mask)" in arc_source
-    assert "settle_target_data = self._compute_a2_v20_arc_probe_joint_target(" in arc_source
-    assert "torch.zeros_like(settle_mask)" in arc_source
-    assert "action[settle_arm_mask, 5:11] = settle_a_raw[settle_arm_mask]" in arc_source
-    assert "self._capture_a2_v20_arc_probe_gate(activate)" in arc_source
-    assert "self._compute_a2_v20_arc_probe_joint_target(active, active)" in arc_source
-    assert "self._a2_v20_arc_probe_settle_target_synced[activate] = False" in arc_source
-    assert "self._a2_v20_arc_probe_settle_action_count[settle_mask] += 1" in arc_source
-    assert "self._delta_actions[active] = d_prev[active]" in arc_source
-    assert "self._delta_actions[:] = d_prev" not in arc_source
-    assert "combined_override_mask = override_mask | settle_mask" in arc_source
-    assert "return action, combined_override_mask" in arc_source
-    assert "a2_v20_sync_arc_probe_cumulative_target(" in arc_source
-    assert arc_source.index(
-        "self._delta_actions[settle_sync_mask] = synchronized_settle_target[settle_sync_mask]"
-    ) < arc_source.index("a2_v20_apply_arc_probe_settle_action(")
+    for forbidden in (
+        "settle_mask = torch.zeros_like(activate)",
+        "ARC_PROBE_SETTLE",
+        "_a2_v20_arc_probe_settle_",
+        "a2_v20_apply_arc_probe_settle_action",
+        "a2_v20_arm_settled_handoff_mask",
+    ):
+        assert forbidden not in source
+    assert '"schema": "a2_piper_v20_arc_probe_runtime_v2_transactional"' in source
+    assert '"implementation_contract": "P1_TX1_TRANSACTIONAL_REFERENCE"' in source
     assert '"CONTACT_SLIP"' not in arc_source
     assert "v20_arc_probe_terminal_window_count" in arc_source
-    assert 'if cfg["v20_arc_probe_mode"] == "F0"' in arc_source
     assert "_apply_a2_v20_f0_planar_root_clamp(active, frame_data)" in arc_source
     assert "probe_base_raw = torch.zeros_like(root_hold_raw)" in arc_source
     assert 'root_hold_raw * cfg["v20_arc_probe_f1_root_hold_scale"]' in arc_source
     assert "action[arm_mask, :5] = probe_base_raw[arm_mask]" in arc_source
     assert "self._a2_hold_oracle_phase_step[override_mask] += 1" in arc_source
-
-    init_start = source.index("self._a2_v20_arc_probe_handoff_streak =")
-    init_end = source.index("self._a2_v20_arc_probe_f1_hold_target_se2 =", init_start)
-    init_source = source[init_start:init_end]
-    assert "self._a2_v20_arc_probe_settle_active = torch.zeros" in init_source
-    assert "self._a2_v20_arc_probe_settle_action_count = torch.zeros" in init_source
-    reset_start = source.index("self._a2_v20_arc_probe_handoff_streak[env_ids] = 0")
-    reset_end = source.index("self._a2_v20_arc_probe_command_sequence[env_ids] = 0", reset_start)
-    reset_source = source[reset_start:reset_end]
-    assert "self._a2_v20_arc_probe_settle_active[env_ids] = False" in reset_source
-    assert "self._a2_v20_arc_probe_settle_action_count[env_ids] = 0" in reset_source
-    assert '"v20_arc_probe_settle_active":' in source
-    assert '"v20_arc_probe_settle_action_count":' in source
-    assert '"per_env_settle_active":' in source
-    assert '"per_env_settle_action_count":' in source
 
 
 def test_arc_probe_defaults_use_low_speed_closed_loop_protocol():
@@ -1069,11 +1218,104 @@ def test_selection_rejects_incomplete_grid():
         module.select_threshold(_rows(module)[:-1])
 
 
-def test_runtime_gpu_contract_excludes_reserved_gpu7():
+def test_runtime_schema_v1_artifact_is_rejected(tmp_path):
+    module = _load_script()
+    artifact = tmp_path / "a2_hold_oracle_summary.json"
+    artifact.write_text(
+        json.dumps({"schema": "a2_piper_v20_arc_probe_runtime_v1"}),
+        encoding="utf-8",
+    )
+    with pytest.raises(module.ArcFeasibilityError, match="wrong runtime summary schema"):
+        module.load_runtime_artifact(
+            artifact,
+            mode="F1",
+            angle=0.9,
+            seed=0,
+            expected_num_envs=4,
+        )
+
+
+def test_transaction_audit_rejects_branch_flag_or_applied_lead_mismatch():
+    module = _load_script()
+    samples = _samples()
+    samples[0]["reference_commit_applied"] = False
+    with pytest.raises(module.ArcFeasibilityError, match="flags disagree"):
+        module.assess_episode(
+            mode="F1",
+            target_hinge_rad=0.9,
+            seed=0,
+            env_id=0,
+            outcome="ARC_PROBE_REACHED",
+            samples=samples,
+            runtime={"capture_valid": True},
+        )
+    samples = _samples()
+    samples[0]["applied_lead_step_rad"] = 0.0
+    with pytest.raises(module.ArcFeasibilityError, match="applied lead"):
+        module.assess_episode(
+            mode="F1",
+            target_hinge_rad=0.9,
+            seed=0,
+            env_id=0,
+            outcome="ARC_PROBE_REACHED",
+            samples=samples,
+            runtime={"capture_valid": True},
+        )
+
+
+def test_smoke_cli_is_fixed_to_f1_090_seed0_four_envs():
+    module = _load_script()
+    args = module.parse_args(["--output-dir", "unused", "--smoke-f1-090"])
+    assert args.smoke_f1_090 is True
+    assert args.run is False
+    assert args.pooled_f1_090 is False
+    command = module.build_eval_command(
+        Path("checkpoint.pt"),
+        Path("output"),
+        mode="F1",
+        angle=0.9,
+        seed=0,
+        gpu="0",
+        num_envs=4,
+    )
+    assert "++num_envs=4" in command
+    assert "++algo.config.eval.num_eval_episodes=4" in command
+    assert "++algo.config.eval.a2_v20_arc_probe_mode=F1" in command
+    assert "++algo.config.eval.a2_v20_arc_probe_target_hinge_rad=0.9" in command
+    assert "++seed=0" in command
+    script_source = SCRIPT.read_text(encoding="utf-8")
+    assert 'jobs = [("F1", 0.9, 0)]' in script_source
+    assert "num_envs = 4" in script_source
+    with pytest.raises(SystemExit):
+        module.parse_args(
+            [
+                "--output-dir",
+                "unused",
+                "--smoke-f1-090",
+                "--pooled-f1-090",
+            ]
+        )
+
+
+def test_runtime_gpu_contract_excludes_unavailable_gpu7():
     module = _load_script()
     assert module.ALLOWED_GPUS == ("0", "1", "2", "3", "4", "5", "6")
-    assert module.parse_args(["--output-dir", "unused"]).gpus == "0,1,2,3,4,5,6"
-    with pytest.raises(module.ArcFeasibilityError, match="invalid P1 eval command identity"):
+    assert module._parse_gpus(None, default="0") == ("0",)
+    with pytest.raises(
+        module.ArcFeasibilityError,
+        match="GPU7 is unavailable; only physical GPU0-6 are legal",
+    ):
         module.build_eval_command(
-            Path("checkpoint.pt"), Path("output"), mode="F1", angle=0.9, seed=0, gpu="7"
+            Path("checkpoint.pt"),
+            Path("output"),
+            mode="F1",
+            angle=0.9,
+            seed=0,
+            gpu="7",
+            num_envs=4,
         )
+    with pytest.raises(
+        module.ArcFeasibilityError,
+        match="GPU7 is unavailable; only physical GPU0-6 are legal",
+    ):
+        module._parse_gpus("0,7", default="0")

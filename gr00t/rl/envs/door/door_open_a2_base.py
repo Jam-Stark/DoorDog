@@ -695,103 +695,90 @@ def a2_v20_bound_joint_position_target_step(
     return torch.where(active_mask[:, None], bounded, current_target)
 
 
-def a2_v20_arm_settled_handoff_mask(
-    arm_speed_max_radps: torch.Tensor,
-    target_minus_actual_max_abs_rad: torch.Tensor,
-    joint_target_step_max_rad: float,
-    control_dt_s: float,
-) -> torch.Tensor:
-    """Return environments whose arm dynamics fit the probe handoff envelope."""
-    vectors = (
-        ("arm_speed_max_radps", arm_speed_max_radps),
-        ("target_minus_actual_max_abs_rad", target_minus_actual_max_abs_rad),
-    )
-    if any(
-        not torch.is_tensor(value)
-        or value.ndim != 1
-        or not value.is_floating_point()
-        for _, value in vectors
+def a2_v20_commit_arc_probe_transaction(
+    reference_before: torch.Tensor,
+    proposed_reference: torch.Tensor,
+    current_q: torch.Tensor,
+    default_q: torch.Tensor,
+    cumulative_target_before: torch.Tensor,
+    arm_mask: torch.Tensor,
+    relief_mask: torch.Tensor,
+) -> dict[str, torch.Tensor]:
+    """Commit arc reference and relief target updates as one branch transaction."""
+    if (
+        not torch.is_tensor(reference_before)
+        or reference_before.ndim != 1
+        or not reference_before.is_floating_point()
     ):
-        raise ValueError(
-            "v20 arm-settled handoff requires one-dimensional floating vectors."
-        )
-    expected_shape = tuple(arm_speed_max_radps.shape)
-    expected_dtype = arm_speed_max_radps.dtype
-    expected_device = arm_speed_max_radps.device
-    for name, value in vectors[1:]:
-        if tuple(value.shape) != expected_shape:
-            raise ValueError(
-                "v20 arm-settled handoff vectors must share shape "
-                f"{expected_shape}; {name} has shape {tuple(value.shape)}."
-            )
-        if value.dtype != expected_dtype or value.device != expected_device:
-            raise ValueError(
-                "v20 arm-settled handoff vectors must share dtype and device "
-                f"{expected_dtype}/{expected_device}; {name} is "
-                f"{value.dtype}/{value.device}."
-            )
-    if any(
-        value.numel() and not torch.all(torch.isfinite(value))
-        for _, value in vectors
-    ):
-        raise ValueError("v20 arm-settled handoff vectors require finite values.")
-    if any(
-        value.numel() and torch.any(value < 0.0)
-        for _, value in vectors
-    ):
-        raise ValueError(
-            "v20 arm-settled handoff vectors require non-negative magnitudes."
-        )
-    for value, name in (
-        (joint_target_step_max_rad, "joint_target_step_max_rad"),
-        (control_dt_s, "control_dt_s"),
+        raise ValueError("v20 transaction reference_before requires a floating vector.")
+    n = reference_before.shape[0]
+    expected_joint_shape = (n, 6)
+    for value, shape, name in (
+        (proposed_reference, (n,), "proposed_reference"),
+        (current_q, expected_joint_shape, "current_q"),
+        (default_q, expected_joint_shape, "default_q"),
+        (cumulative_target_before, expected_joint_shape, "cumulative_target_before"),
     ):
         if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(float(value))
-            or float(value) <= 0.0
+            not torch.is_tensor(value)
+            or tuple(value.shape) != shape
+            or not value.is_floating_point()
+            or value.dtype != reference_before.dtype
+            or value.device != reference_before.device
         ):
             raise ValueError(
-                f"v20 arm-settled handoff {name} must be finite and positive; "
-                f"got {value!r}."
+                f"v20 transaction {name} requires floating shape {shape}, "
+                f"dtype={reference_before.dtype}, device={reference_before.device}."
             )
-    velocity_limit_radps = float(joint_target_step_max_rad) / float(control_dt_s)
-    return (arm_speed_max_radps <= velocity_limit_radps) & (
-        target_minus_actual_max_abs_rad <= float(joint_target_step_max_rad)
+    for value, name in ((arm_mask, "arm_mask"), (relief_mask, "relief_mask")):
+        if (
+            not torch.is_tensor(value)
+            or tuple(value.shape) != (n,)
+            or value.dtype != torch.bool
+            or value.device != reference_before.device
+        ):
+            raise ValueError(
+                f"v20 transaction {name} requires a device-local bool vector of shape ({n},)."
+            )
+    floating_values = (
+        reference_before,
+        proposed_reference,
+        current_q,
+        default_q,
+        cumulative_target_before,
     )
+    if any(not torch.all(torch.isfinite(value)) for value in floating_values):
+        raise ValueError("v20 transaction inputs must be finite.")
+    if torch.any(arm_mask & relief_mask):
+        raise ValueError("v20 transaction arm_mask and relief_mask must be disjoint.")
+    if torch.any(proposed_reference < reference_before):
+        raise ValueError("v20 transaction proposed_reference must be nondecreasing.")
 
-
-def a2_v20_apply_arc_probe_settle_action(
-    policy_action: torch.Tensor,
-    settle_mask: torch.Tensor,
-) -> torch.Tensor:
-    """Freeze base and arm commands while preserving each policy gripper action."""
-    if (
-        not torch.is_tensor(policy_action)
-        or policy_action.ndim != 2
-        or tuple(policy_action.shape[1:]) != (12,)
-        or not policy_action.is_floating_point()
+    reference_after = torch.where(
+        arm_mask,
+        proposed_reference,
+        reference_before,
+    )
+    physical_cumulative_target = (current_q - default_q) / 0.25
+    cumulative_target_after = torch.where(
+        relief_mask[:, None],
+        physical_cumulative_target,
+        cumulative_target_before,
+    )
+    if not torch.equal(reference_after[~arm_mask], reference_before[~arm_mask]):
+        raise RuntimeError("v20 transaction modified reference outside ARM_DLS.")
+    if not torch.equal(
+        cumulative_target_after[~relief_mask],
+        cumulative_target_before[~relief_mask],
     ):
-        raise ValueError(
-            "v20 arc-probe settle action requires a floating tensor with shape (N,12)."
+        raise RuntimeError(
+            "v20 transaction modified cumulative target outside BASE_RELIEF."
         )
-    if (
-        not torch.is_tensor(settle_mask)
-        or settle_mask.shape != (policy_action.shape[0],)
-        or settle_mask.dtype != torch.bool
-        or settle_mask.device != policy_action.device
-    ):
-        raise ValueError(
-            "v20 arc-probe settle mask requires a device-local bool vector of shape (N,)."
-        )
-    if not torch.all(torch.isfinite(policy_action)):
-        raise ValueError("v20 arc-probe settle action requires finite policy values.")
-    if not torch.any(settle_mask):
-        return policy_action
-    result = policy_action.clone()
-    result[settle_mask, :11] = 0.0
-    return result
+    return {
+        "reference_after": reference_after,
+        "cumulative_target_after": cumulative_target_after,
+        "physical_cumulative_target": physical_cumulative_target,
+    }
 
 
 def a2_v20_arc_probe_arm_joint_tracking_residual(
@@ -12079,15 +12066,6 @@ class DoorPregrasp(
         self._a2_v20_arc_probe_handoff_streak = torch.zeros(
             self.num_envs, dtype=torch.long, device=self.device
         )
-        self._a2_v20_arc_probe_settle_active = torch.zeros(
-            self.num_envs, dtype=torch.bool, device=self.device
-        )
-        self._a2_v20_arc_probe_settle_target_synced = torch.zeros(
-            self.num_envs, dtype=torch.bool, device=self.device
-        )
-        self._a2_v20_arc_probe_settle_action_count = torch.zeros(
-            self.num_envs, dtype=torch.long, device=self.device
-        )
         self._a2_v20_arc_probe_f1_hold_target_se2 = torch.zeros(
             self.num_envs, 3, device=self.device
         )
@@ -14351,9 +14329,6 @@ class DoorPregrasp(
             self._a2_hold_oracle_cfg["v20_arc_probe_lead_rad"],
             )
         )
-        self._a2_v20_arc_probe_reference_hinge[advance_mask] = (
-            next_reference_hinge[advance_mask]
-        )
         source_pos_root, source_quat_root = subtract_frame_transforms(
             frames["root_pos_w"], frames["root_quat_w"], piper_frames["source_pos_w"], piper_frames["source_quat_w"]
         )
@@ -14420,6 +14395,7 @@ class DoorPregrasp(
             frames["root_pos_w"][:, :2],
             frames["root_quat_w"],
             lead_step,
+            next_reference_hinge,
             bounded_delta,
             jacobian_root,
             q_pre,
@@ -14436,121 +14412,26 @@ class DoorPregrasp(
         activate: torch.Tensor,
     ):
         cfg = self._a2_hold_oracle_cfg
-        wait_mask = self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE
-        settle_mask = torch.zeros_like(activate)
-        if torch.any(settle_mask & activate):
-            raise RuntimeError("A2 v20 arc-probe settle and capture masks must be disjoint.")
         action = policy_action
-        if torch.any(settle_mask):
-            robot = self.simulator.scene.articulations["robot"]
-            settle_sync_mask = (
-                settle_mask & ~self._a2_v20_arc_probe_settle_target_synced
-            )
-            joint_ids = self._a2_hold_oracle_joint_ids
-            current_q = robot.data.joint_pos[:, joint_ids]
-            q_default = robot.data.default_joint_pos[:, joint_ids]
-            if q_default.shape[0] == 1:
-                q_default = q_default.repeat(self.num_envs, 1)
-            self._capture_a2_v20_arc_probe_gate(settle_sync_mask)
-            synchronized_settle_target = a2_v20_sync_arc_probe_cumulative_target(
-                current_q,
-                q_default,
-                self._delta_actions,
-                settle_sync_mask,
-            )
-            self._delta_actions[settle_sync_mask] = synchronized_settle_target[settle_sync_mask]
-            self._a2_v20_arc_probe_settle_target_synced[settle_sync_mask] = True
-            if torch.any(
-                settle_mask & ~self._a2_v20_arc_probe_settle_target_synced
-            ):
-                raise RuntimeError(
-                    "A2 v20 arc-probe DLS settle requires a captured reference."
-                )
-            settle_target_data = self._compute_a2_v20_arc_probe_joint_target(
-                settle_mask,
-                torch.zeros_like(settle_mask),
-            )
-            settle_q_des = settle_target_data[0]
-            settle_ik_valid = settle_target_data[1]
-            settle_current_target = current_q.clone()
-            settle_q_des = a2_v20_bound_joint_position_target_step(
-                settle_current_target,
-                settle_q_des,
-                settle_mask,
-                cfg["v20_arc_probe_joint_target_step_max_rad"],
-            )
-            hard_limits = robot.data.joint_pos_limits[:, joint_ids]
-            soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
-            settle_limit_valid, _, _ = a2_hold_progress_aware_joint_limit_masks(
-                current_q,
-                settle_q_des,
-                hard_limits,
-                soft_limits,
-                cfg["joint_limit_margin"],
-                cfg["joint_limit_margin"],
-                cfg["soft_limit_progress_tolerance"],
-            )
-            settle_d_des, settle_a_raw = a2_hold_absolute_target_to_cumulative_action(
-                settle_q_des,
-                q_default,
-                self._delta_actions,
-            )
-            settle_delta_ok = torch.all(
-                torch.abs(settle_d_des) <= 15.0,
-                dim=-1,
-            )
-            settle_raw_ok = torch.all(
-                torch.abs(settle_a_raw) <= cfg["raw_action_abs_max"],
-                dim=-1,
-            )
-            self._set_a2_hold_outcome(
-                settle_mask & ~settle_ik_valid,
-                "IK_INVALID",
-            )
-            self._set_a2_hold_outcome(
-                settle_mask & settle_ik_valid & ~settle_limit_valid,
-                "JOINT_LIMIT",
-            )
-            self._set_a2_hold_outcome(
-                settle_mask & (~settle_delta_ok | ~settle_raw_ok),
-                "IK_INVALID",
-            )
-            settle_pending = (
-                self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
-            )
-            settle_arm_mask = (
-                settle_mask
-                & settle_ik_valid
-                & settle_limit_valid
-                & settle_delta_ok
-                & settle_raw_ok
-                & settle_pending
-            )
-            action = a2_v20_apply_arc_probe_settle_action(action, settle_mask)
-            action[settle_arm_mask, 5:11] = settle_a_raw[settle_arm_mask]
-            self._a2_v20_arc_probe_settle_action_count[settle_mask] += 1
+        empty_override = torch.zeros_like(activate)
         if torch.any(activate):
             self._capture_a2_v20_arc_probe_gate(activate)
             self._a2_hold_oracle_phase[activate] = A2_HOLD_PHASE_FOLLOW_PUSH
             self._a2_hold_oracle_phase_step[activate] = 0
-        self._a2_v20_arc_probe_settle_active[activate] = False
-        self._a2_v20_arc_probe_settle_target_synced[activate] = False
         active = (
             self._a2_hold_oracle_activated
             & first_episode_active_mask
             & self._a2_v20_arc_probe_capture_valid
             & (self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
         )
-        if torch.any(active & settle_mask):
-            raise RuntimeError("A2 v20 arc-probe settle and active masks must be disjoint.")
         if torch.any(active):
             action = a2_hold_action_with_exact_disabled_equivalence(action, active)
         if not torch.any(active):
             self._a2_v20_arc_probe_f1_relief_pending.zero_()
             self._a2_v20_arc_probe_f1_target_update_applied.zero_()
-            self._a2_hold_oracle_last_override_mask = settle_mask.clone()
+            self._a2_hold_oracle_last_override_mask = empty_override.clone()
             self._a2_hold_oracle_post_override_action = action
-            return action, settle_mask
+            return action, empty_override
 
         self._a2_v20_arc_probe_command_sequence[active] += 1
         bilateral, contact_masks = self._a2_v20_arc_probe_bilateral_gate()
@@ -14652,15 +14533,17 @@ class DoorPregrasp(
         active &= self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
         if not torch.any(active):
             self._a2_v20_arc_probe_f1_relief_pending.zero_()
-            self._a2_hold_oracle_last_override_mask = settle_mask.clone()
+            self._a2_hold_oracle_last_override_mask = empty_override.clone()
             self._a2_hold_oracle_post_override_action = action
-            return action, settle_mask
+            return action, empty_override
+        reference_before = self._a2_v20_arc_probe_reference_hinge.clone()
         (
             q_des, ik_valid, singular_values, condition, target_pos_root,
             target_quat_root, pos_error, orientation_error, command_pos,
             command_quat, bounded_position_step, bounded_orientation_step,
-            horizontal_error_w, root_xy_w, root_quat_w, lead_step, bounded_delta,
-            jacobian_root, q_pre, source_pos_root, source_quat_root,
+            horizontal_error_w, root_xy_w, root_quat_w, lead_step,
+            proposed_reference_hinge, bounded_delta, jacobian_root, q_pre,
+            source_pos_root, source_quat_root,
             current_handle_to_tcp_pos, current_handle_to_tcp_quat,
         ) = self._compute_a2_v20_arc_probe_joint_target(active, active)
         robot = self.simulator.scene.articulations["robot"]
@@ -14800,6 +14683,17 @@ class DoorPregrasp(
         pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
         arm_mask = active & ik_valid & limit_valid & delta_ok & raw_ok & pending
         relief_mask &= pending
+        transaction = a2_v20_commit_arc_probe_transaction(
+            reference_before,
+            proposed_reference_hinge,
+            current_q,
+            q_default,
+            self._delta_actions,
+            arm_mask,
+            relief_mask,
+        )
+        self._a2_v20_arc_probe_reference_hinge[:] = transaction["reference_after"]
+        self._delta_actions[:] = transaction["cumulative_target_after"]
         if cfg["v20_arc_probe_mode"] == "F0":
             probe_base_raw = torch.zeros_like(root_hold_raw)
         else:
@@ -14814,9 +14708,7 @@ class DoorPregrasp(
             action, arm_mask, relief_mask, a_raw, relief_raw,
             (0, 5), (5, 11), 11,
         )
-        if torch.any(override_mask & settle_mask):
-            raise RuntimeError("A2 v20 arc-probe settle and active masks must be disjoint.")
-        combined_override_mask = override_mask | settle_mask
+        combined_override_mask = override_mask
         action[arm_mask, :5] = probe_base_raw[arm_mask]
         executed_q_target = torch.where(
             arm_mask[:, None], q_des, robot.data.joint_pos_target[:, joint_ids]
@@ -14925,7 +14817,26 @@ class DoorPregrasp(
                     "door_body_force_n": float(body_force[env_id].item()),
                     "arm_speed_max_radps": float(max_arm_speed[env_id].item()),
                     "lead_step_rad": float(lead_step[env_id].item()),
-                    "branch": "arm_dls" if bool(arm_mask[env_id].item()) else "base_relief",
+                    "reference_hinge_before_rad": float(reference_before[env_id].item()),
+                    "proposed_reference_hinge_rad": float(proposed_reference_hinge[env_id].item()),
+                    "reference_hinge_after_rad": float(transaction["reference_after"][env_id].item()),
+                    "reference_commit_applied": bool(arm_mask[env_id].item()),
+                    "relief_arm_target_synced": bool(relief_mask[env_id].item()),
+                    "proposed_lead_step_rad": float(lead_step[env_id].item()),
+                    "applied_lead_step_rad": (
+                        float(lead_step[env_id].item())
+                        if bool(arm_mask[env_id].item())
+                        else 0.0
+                    ),
+                    "branch": (
+                        "ARM_DLS"
+                        if bool(arm_mask[env_id].item())
+                        else (
+                            "BASE_RELIEF"
+                            if bool(relief_mask[env_id].item())
+                            else "INVALID_NO_OVERRIDE"
+                        )
+                    ),
                 }
             )
         self._a2_hold_oracle_last_override_mask = combined_override_mask.clone()
@@ -15424,24 +15335,6 @@ class DoorPregrasp(
             dim=-1,
         ).values
         robot = self.simulator.scene.articulations["robot"]
-        arm_joint_target = robot.data.joint_pos_target[
-            :, self._a2_hold_oracle_joint_ids
-        ]
-        arm_joint_pos = robot.data.joint_pos[:, self._a2_hold_oracle_joint_ids]
-        arm_joint_tracking_residual = a2_v20_arc_probe_arm_joint_tracking_residual(
-            [robot.joint_names[joint_id] for joint_id in self._a2_hold_oracle_joint_ids],
-            arm_joint_target,
-            arm_joint_pos,
-        )
-        target_minus_actual_max_abs_rad = torch.max(
-            torch.abs(arm_joint_tracking_residual), dim=-1
-        ).values
-        arm_settled = a2_v20_arm_settled_handoff_mask(
-            post_step_arm_speed,
-            target_minus_actual_max_abs_rad,
-            cfg["v20_arc_probe_joint_target_step_max_rad"],
-            self.dt,
-        )
         self._a2_v20_arc_probe_max_arm_speed = torch.where(
             probe_pending,
             torch.maximum(
@@ -15457,18 +15350,16 @@ class DoorPregrasp(
             "ARC_PROBE_OVERSPEED",
         )
         bilateral_contact_valid, _ = self._a2_v20_arc_probe_bilateral_gate()
-        settle_eligible = (
+        handoff_eligible = (
             (self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE)
             & (first_episode_active_mask & ~done_mask)
             & (self.stage_buf == self.STAGE_OPEN)
         )
-        settle_candidate = (
-            settle_eligible
+        handoff_candidate = (
+            handoff_eligible
             & self._get_a2_hold_streak_ok_mask()
             & bilateral_contact_valid
         )
-        self._a2_v20_arc_probe_settle_active.zero_()
-        self._a2_v20_arc_probe_settle_target_synced.zero_()
         root_speed = torch.linalg.norm(robot.data.root_lin_vel_w[:, :2], dim=-1)
         root_yaw_rate = torch.abs(robot.data.root_ang_vel_w[:, 2])
         stable_root = (
@@ -15477,7 +15368,7 @@ class DoorPregrasp(
             root_yaw_rate <= cfg["v20_arc_probe_handoff_root_yaw_rate_max_radps"]
         )
         qualifying = (
-            settle_candidate
+            handoff_candidate
             & stable_root
         )
         updated_streak, handoff = a2_v20_update_stable_handoff_streak(
@@ -15960,11 +15851,6 @@ class DoorPregrasp(
                 and self._a2_hold_oracle_last_override_mask[env_id].item()
             ):
                 control_branch = "STATIC_CLAMP"
-            elif (
-                cfg.get("v20_arc_probe_enabled", False)
-                and self._a2_v20_arc_probe_settle_active[env_id].item()
-            ):
-                control_branch = "ARC_PROBE_SETTLE"
             elif self._a2_hold_oracle_arm_dls_branch[env_id].item():
                 control_branch = "ARM_DLS"
             elif self._a2_hold_oracle_base_relief_branch_applied[env_id].item():
@@ -15987,12 +15873,6 @@ class DoorPregrasp(
                     ),
                     "v20_arc_probe_handoff_streak_steps": int(
                         self._a2_v20_arc_probe_handoff_streak[env_id].item()
-                    ),
-                    "v20_arc_probe_settle_active": bool(
-                        self._a2_v20_arc_probe_settle_active[env_id].item()
-                    ),
-                    "v20_arc_probe_settle_action_count": int(
-                        self._a2_v20_arc_probe_settle_action_count[env_id].item()
                     ),
                     "v20_arc_probe_f1_yaw_residual_rad": float(
                         self._a2_v20_arc_probe_f1_yaw_residual[env_id].item()
@@ -16480,7 +16360,8 @@ class DoorPregrasp(
                 for value in self._a2_hold_oracle_outcome.detach().cpu().tolist()
             ]
             return {
-                "schema": "a2_piper_v20_arc_probe_runtime_v1",
+                "schema": "a2_piper_v20_arc_probe_runtime_v2_transactional",
+                "implementation_contract": "P1_TX1_TRANSACTIONAL_REFERENCE",
                 "config": dict(cfg),
                 "state_machine": "WAIT_GATE->CAPTURE_HANDLE_TO_TCP->FOLLOW_LIVE_CIRCULAR_ARC->STOP",
                 "target_pose_semantic": (
@@ -16496,12 +16377,6 @@ class DoorPregrasp(
                 .cpu()
                 .tolist(),
                 "per_env_handoff_streak_steps": self._a2_v20_arc_probe_handoff_streak.detach()
-                .cpu()
-                .tolist(),
-                "per_env_settle_active": self._a2_v20_arc_probe_settle_active.detach()
-                .cpu()
-                .tolist(),
-                "per_env_settle_action_count": self._a2_v20_arc_probe_settle_action_count.detach()
                 .cpu()
                 .tolist(),
                 "per_env_f1_hold_target_se2": a2_hold_nullable_tensor_list(
@@ -18247,9 +18122,6 @@ class DoorPregrasp(
             if cfg is not None and cfg.get("v20_arc_probe_enabled", False):
                 self._a2_v20_arc_probe_handoff_streak[env_ids] = 0
                 self._a2_v20_arc_probe_handoff_ready[env_ids] = False
-                self._a2_v20_arc_probe_settle_active[env_ids] = False
-                self._a2_v20_arc_probe_settle_target_synced[env_ids] = False
-                self._a2_v20_arc_probe_settle_action_count[env_ids] = 0
                 self._a2_v20_arc_probe_command_sequence[env_ids] = 0
                 self._a2_v20_arc_probe_f1_hold_target_se2[env_ids] = 0.0
                 self._a2_v20_arc_probe_f1_relief_pending[env_ids] = False

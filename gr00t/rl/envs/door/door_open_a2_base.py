@@ -49,6 +49,1124 @@ from gr00t.rl.utils.torch_utils import torch_rand_float
 A2_ARM_DOF_OVERSPEED_HARD_FLOOR = 3.0
 
 
+A2_V20_CORRIDOR_LATCH_LEGACY = "legacy_root_or_hinge"
+A2_V20_CORRIDOR_LATCH_SEND_READY = "send_ready_v20"
+A2_V20_PRE_SEND_CROSSING_MODES = frozenset(("disabled", "penalty", "terminal"))
+A2_V20_STABLE_HANDOFF_STREAK_STEPS = 5
+
+
+def _a2_v20_validate_vector(
+    value: torch.Tensor,
+    *,
+    shape: tuple[int, ...],
+    dtype: torch.dtype | None = None,
+    floating: bool = False,
+    name: str,
+) -> None:
+    if not torch.is_tensor(value) or tuple(value.shape) != shape:
+        actual = None if not torch.is_tensor(value) else tuple(value.shape)
+        raise ValueError(f"{name} requires tensor shape {shape}; got {actual}.")
+    if dtype is not None and value.dtype != dtype:
+        raise ValueError(f"{name} requires dtype {dtype}; got {value.dtype}.")
+    if floating and not value.is_floating_point():
+        raise ValueError(f"{name} requires a floating-point tensor; got {value.dtype}.")
+    if value.numel() and (floating or value.dtype != torch.bool) and not torch.all(
+        torch.isfinite(value)
+    ):
+        raise ValueError(f"{name} requires finite values.")
+
+
+def a2_v20_mask_stage_overtime_for_arc_probe(
+    reset_after_super: torch.Tensor,
+    stage_overtime_reason: torch.Tensor,
+    other_terminal_reason: torch.Tensor,
+    probe_pending_mask: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Suppress only stage overtime while an active v20 arc probe is pending."""
+    reset_vector = ("reset_after_super", reset_after_super)
+    bool_vectors = (
+        ("stage_overtime_reason", stage_overtime_reason),
+        ("other_terminal_reason", other_terminal_reason),
+        ("probe_pending_mask", probe_pending_mask),
+    )
+    if any(
+        not torch.is_tensor(value)
+        or value.ndim != 1
+        or value.dtype != torch.long
+        for _, value in (reset_vector,)
+    ):
+        raise ValueError(
+            "v20 stage-overtime reset vectors require one-dimensional torch.long "
+            "tensors."
+        )
+    if any(
+        not torch.is_tensor(value)
+        or value.ndim != 1
+        or value.dtype != torch.bool
+        for _, value in bool_vectors
+    ):
+        raise ValueError(
+            "v20 stage-overtime reason and pending vectors require "
+            "one-dimensional bool tensors."
+        )
+    expected_shape = tuple(reset_after_super.shape)
+    expected_device = reset_after_super.device
+    for name, value in (reset_vector,) + bool_vectors:
+        if tuple(value.shape) != expected_shape:
+            raise ValueError(
+                "v20 stage-overtime mask vectors must share shape "
+                f"{expected_shape}; {name} has shape {tuple(value.shape)}."
+            )
+        if value.device != expected_device:
+            raise ValueError(
+                "v20 stage-overtime mask vectors must share device "
+                f"{expected_device}; {name} is on {value.device}."
+            )
+    if any(
+        value.numel()
+        and not torch.all((value == 0) | (value == 1))
+        for _, value in (reset_vector,)
+    ):
+        raise ValueError(
+            "v20 stage-overtime reset vectors require binary torch.long values."
+        )
+    suppressed = stage_overtime_reason & probe_pending_mask
+    reset_after_bool = reset_after_super != 0
+    reset_introduced_solely_by_stage_overtime = (
+        suppressed
+        & ~other_terminal_reason
+        & reset_after_bool
+    )
+    updated_reset_bool = reset_after_bool & ~(
+        reset_introduced_solely_by_stage_overtime
+    )
+    updated_stage_overtime_reason = stage_overtime_reason & ~suppressed
+    updated_reset = updated_reset_bool.to(dtype=torch.long)
+    return updated_reset, updated_stage_overtime_reason, suppressed
+
+
+def a2_v20_update_send_ready(
+    send_ready: torch.Tensor,
+    valid_hold_streak: torch.Tensor,
+    hinge_position: torch.Tensor,
+    theta_send: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Advance the monotonic v20 send latch and identify first-send events."""
+    if not torch.is_tensor(send_ready) or send_ready.ndim != 1:
+        raise ValueError("v20 send_ready requires a one-dimensional bool tensor.")
+    _a2_v20_validate_vector(send_ready, shape=tuple(send_ready.shape), dtype=torch.bool, name="v20 send_ready")
+    _a2_v20_validate_vector(valid_hold_streak, shape=tuple(send_ready.shape), dtype=torch.bool, name="v20 valid_hold_streak")
+    _a2_v20_validate_vector(hinge_position, shape=tuple(send_ready.shape), floating=True, name="v20 hinge_position")
+    if valid_hold_streak.device != send_ready.device or hinge_position.device != send_ready.device:
+        raise ValueError("v20 send latch tensors must share a device.")
+    if isinstance(theta_send, bool) or not isinstance(theta_send, (int, float)) or not math.isfinite(float(theta_send)) or float(theta_send) <= 0.0:
+        raise ValueError(f"v20 theta_send must be finite and > 0; got {theta_send!r}.")
+    candidate = valid_hold_streak & (hinge_position >= float(theta_send))
+    first_send = candidate & ~send_ready
+    return send_ready | candidate, first_send
+
+
+def a2_v20_pre_send_root_crossing(
+    opening_phase: torch.Tensor,
+    send_ready: torch.Tensor,
+    root_x_rel: torch.Tensor,
+    root_x_margin: float,
+) -> torch.Tensor:
+    """Return the physical root crossing event before the send latch."""
+    if not torch.is_tensor(opening_phase) or opening_phase.ndim != 1 or opening_phase.dtype != torch.bool:
+        raise ValueError("v20 opening_phase requires a one-dimensional bool tensor.")
+    _a2_v20_validate_vector(send_ready, shape=tuple(opening_phase.shape), dtype=torch.bool, name="v20 send_ready")
+    _a2_v20_validate_vector(root_x_rel, shape=tuple(opening_phase.shape), floating=True, name="v20 root_x_rel")
+    if send_ready.device != opening_phase.device or root_x_rel.device != opening_phase.device:
+        raise ValueError("v20 crossing tensors must share a device.")
+    if isinstance(root_x_margin, bool) or not isinstance(root_x_margin, (int, float)) or not math.isfinite(float(root_x_margin)) or float(root_x_margin) < 0.0:
+        raise ValueError(f"v20 root crossing margin must be finite and >= 0; got {root_x_margin!r}.")
+    return opening_phase & ~send_ready & (root_x_rel > float(root_x_margin))
+
+
+def a2_v20_stage4_target_root_scale(
+    hinge_position: torch.Tensor,
+    theta_send: float,
+    ramp_width_rad: float,
+    *,
+    enabled: bool,
+    send_ready: torch.Tensor,
+) -> torch.Tensor:
+    """Return the v20 stage4 target-root scale from the shared send latch.
+
+    Enabled economics is exactly zero before the send latch and follows the
+    continuous hinge ramp after it.  The disabled legacy path remains the
+    historical constant 0.5 scale.
+    """
+    if not torch.is_tensor(hinge_position) or hinge_position.ndim != 1 or not hinge_position.is_floating_point():
+        raise ValueError("v20 hinge_position requires a one-dimensional floating tensor.")
+    _a2_v20_validate_vector(hinge_position, shape=tuple(hinge_position.shape), floating=True, name="v20 hinge_position")
+    _a2_v20_validate_vector(send_ready, shape=tuple(hinge_position.shape), dtype=torch.bool, name="v20 send_ready")
+    if send_ready.device != hinge_position.device:
+        raise ValueError("v20 stage4 ramp tensors must share a device.")
+    if not isinstance(enabled, bool):
+        raise ValueError("v20 target-root scale enabled selector must be bool.")
+    if isinstance(theta_send, bool) or not isinstance(theta_send, (int, float)) or not math.isfinite(float(theta_send)) or float(theta_send) <= 0.0 or isinstance(ramp_width_rad, bool) or not isinstance(ramp_width_rad, (int, float)) or not math.isfinite(float(ramp_width_rad)) or float(ramp_width_rad) <= 0.0:
+        raise ValueError("v20 target-root ramp requires finite positive threshold and width.")
+    if not enabled:
+        return torch.full_like(hinge_position, 0.5)
+    ramp = 0.5 * ((hinge_position - float(theta_send)) / float(ramp_width_rad)).clamp(0.0, 1.0)
+    return torch.where(send_ready, ramp, torch.zeros_like(ramp))
+
+
+def a2_v20_update_corridor_latch(
+    corridor_latched: torch.Tensor,
+    root_x_ever_crossed: torch.Tensor,
+    send_ready: torch.Tensor,
+    stage_buf: torch.Tensor,
+    hinge_position: torch.Tensor,
+    stage_swing: int,
+    corridor_enabled: bool,
+    mode: str,
+    update_mask: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Versioned corridor latch; v20 mode cannot be activated by root crossing."""
+    if not isinstance(mode, str) or mode not in (A2_V20_CORRIDOR_LATCH_LEGACY, A2_V20_CORRIDOR_LATCH_SEND_READY):
+        raise ValueError(f"v20 corridor latch mode must be one of {A2_V20_CORRIDOR_LATCH_LEGACY!r}, {A2_V20_CORRIDOR_LATCH_SEND_READY!r}; got {mode!r}.")
+    if not isinstance(corridor_enabled, bool):
+        raise ValueError("v20 corridor_enabled selector must be bool.")
+    if not torch.is_tensor(corridor_latched) or corridor_latched.ndim != 1:
+        raise ValueError("v20 corridor_latched requires a one-dimensional bool tensor.")
+    _a2_v20_validate_vector(corridor_latched, shape=tuple(corridor_latched.shape), dtype=torch.bool, name="v20 corridor_latched")
+    _a2_v20_validate_vector(root_x_ever_crossed, shape=tuple(corridor_latched.shape), dtype=torch.bool, name="v20 root_x_ever_crossed")
+    _a2_v20_validate_vector(send_ready, shape=tuple(corridor_latched.shape), dtype=torch.bool, name="v20 send_ready")
+    _a2_v20_validate_vector(stage_buf, shape=tuple(corridor_latched.shape), dtype=torch.long, name="v20 stage_buf")
+    _a2_v20_validate_vector(hinge_position, shape=tuple(corridor_latched.shape), floating=True, name="v20 hinge_position")
+    if any(value.device != corridor_latched.device for value in (root_x_ever_crossed, send_ready, stage_buf, hinge_position)):
+        raise ValueError("v20 corridor latch tensors must share a device.")
+    if isinstance(stage_swing, bool) or not isinstance(stage_swing, int):
+        raise ValueError("v20 stage_swing must be an int.")
+    if update_mask is None:
+        update_mask = torch.ones_like(corridor_latched)
+    else:
+        _a2_v20_validate_vector(update_mask, shape=tuple(corridor_latched.shape), dtype=torch.bool, name="v20 corridor update_mask")
+        if update_mask.device != corridor_latched.device:
+            raise ValueError("v20 corridor update_mask must share a device.")
+    if not corridor_enabled:
+        return torch.zeros_like(corridor_latched)
+    candidate = send_ready if mode == A2_V20_CORRIDOR_LATCH_SEND_READY else root_x_ever_crossed | ((stage_buf >= stage_swing) & (hinge_position >= 1.0))
+    return corridor_latched | (update_mask & candidate)
+
+
+def a2_v20_handle_opening_tangent(
+    source_pos_w: torch.Tensor,
+    source_quat_w: torch.Tensor,
+    grasp_target_pos_source: torch.Tensor,
+    door_width: torch.Tensor,
+    door_open_lr: torch.Tensor,
+) -> torch.Tensor:
+    """Compute the positive-hinge handle tangent in world coordinates."""
+    if not torch.is_tensor(source_pos_w) or source_pos_w.ndim != 2 or source_pos_w.shape[1] != 3:
+        raise ValueError("v20 source_pos_w requires shape (N, 3).")
+    n = source_pos_w.shape[0]
+    for value, shape, name in ((source_quat_w, (n, 4), "v20 source_quat_w"), (grasp_target_pos_source, (n, 3), "v20 grasp_target_pos_source"), (door_width, (n,), "v20 door_width"), (door_open_lr, (n,), "v20 door_open_lr")):
+        _a2_v20_validate_vector(value, shape=shape, floating=True, name=name)
+        if value.device != source_pos_w.device or value.dtype != source_pos_w.dtype:
+            raise ValueError("v20 tangent inputs must share dtype and device.")
+    if not torch.all(torch.isfinite(source_pos_w)):
+        raise ValueError("v20 source_pos_w requires finite values.")
+    if torch.any(torch.abs(door_open_lr) != 1.0):
+        raise ValueError("v20 door_open_lr must be exactly +/-1.")
+    if torch.any(door_width <= 0.0):
+        raise ValueError("v20 door_width must be strictly positive.")
+    grasp_target_pos_w = source_pos_w + quat_apply(source_quat_w, grasp_target_pos_source)
+    hinge_local = torch.stack((torch.full_like(door_width, 0.02), -0.5 * door_width * door_open_lr, torch.zeros_like(door_width)), dim=-1)
+    hinge_pos_w = source_pos_w + quat_apply(source_quat_w, hinge_local)
+    axis_w = (-door_open_lr)[:, None] * quat_apply(source_quat_w, torch.tensor([0.0, 0.0, 1.0], device=source_pos_w.device, dtype=source_pos_w.dtype).expand(n, -1))
+    tangent_w = torch.cross(axis_w, grasp_target_pos_w - hinge_pos_w, dim=-1)
+    tangent_norm = torch.linalg.norm(tangent_w, dim=-1, keepdim=True)
+    if torch.any(tangent_norm <= torch.finfo(source_pos_w.dtype).eps):
+        raise ValueError("v20 hinge-to-handle radial vector is degenerate.")
+    tangent_w = tangent_w / tangent_norm
+    if not torch.all(torch.isfinite(tangent_w)):
+        raise ValueError("v20 opening tangent is non-finite.")
+    return tangent_w
+
+
+def a2_v20_arc_probe_target_pose(
+    door_source_pos_w: torch.Tensor,
+    door_source_quat_w: torch.Tensor,
+    handle_pos_source: torch.Tensor,
+    handle_quat_source: torch.Tensor,
+    handle_to_tcp_pos: torch.Tensor,
+    handle_to_tcp_quat: torch.Tensor,
+    door_width: torch.Tensor,
+    door_open_lr: torch.Tensor,
+    hinge_position: torch.Tensor,
+    reference_hinge_position: torch.Tensor,
+    advance_mask: torch.Tensor,
+    target_hinge_rad: float,
+    lead_rad: float,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return a monotonically advancing TCP target on the live handle arc."""
+    if not torch.is_tensor(door_source_pos_w) or door_source_pos_w.ndim != 2 or door_source_pos_w.shape[1] != 3:
+        raise ValueError("v20 arc probe door_source_pos_w requires shape (N,3).")
+    n = door_source_pos_w.shape[0]
+    values = (
+        (door_source_quat_w, (n, 4), "door_source_quat_w"),
+        (handle_pos_source, (n, 3), "handle_pos_source"),
+        (handle_quat_source, (n, 4), "handle_quat_source"),
+        (handle_to_tcp_pos, (n, 3), "handle_to_tcp_pos"),
+        (handle_to_tcp_quat, (n, 4), "handle_to_tcp_quat"),
+        (door_width, (n,), "door_width"),
+        (door_open_lr, (n,), "door_open_lr"),
+        (hinge_position, (n,), "hinge_position"),
+        (reference_hinge_position, (n,), "reference_hinge_position"),
+        (advance_mask, (n,), "advance_mask"),
+    )
+    for value, shape, name in values:
+        _a2_v20_validate_vector(
+            value,
+            shape=shape,
+            dtype=torch.bool if name == "advance_mask" else None,
+            floating=name != "advance_mask",
+            name=f"v20 arc probe {name}",
+        )
+        if value.device != door_source_pos_w.device:
+            raise ValueError("v20 arc probe tensors must share dtype and device.")
+        if name != "advance_mask" and value.dtype != door_source_pos_w.dtype:
+            raise ValueError("v20 arc probe tensors must share dtype and device.")
+    if not torch.all(torch.isfinite(door_source_pos_w)):
+        raise ValueError("v20 arc probe tensors must be finite.")
+    if torch.any(torch.abs(door_open_lr) != 1.0) or torch.any(door_width <= 0.0):
+        raise ValueError("v20 arc probe requires positive door widths and door_open_lr exactly +/-1.")
+    for value, name in ((target_hinge_rad, "target_hinge_rad"), (lead_rad, "lead_rad")):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0.0:
+            raise ValueError(f"v20 arc probe {name} must be finite and positive.")
+    if float(target_hinge_rad) not in (0.9, 1.0, 1.1, 1.2):
+        raise ValueError("v20 arc probe target_hinge_rad must be one of 0.9/1.0/1.1/1.2.")
+    candidate_reference_hinge = torch.maximum(
+        reference_hinge_position, hinge_position
+    ).clamp(max=float(target_hinge_rad))
+    next_reference_hinge = torch.where(
+        advance_mask,
+        candidate_reference_hinge,
+        reference_hinge_position,
+    )
+    remaining_reference = (
+        float(target_hinge_rad) - next_reference_hinge
+    ).clamp(min=0.0)
+    command_delta = torch.where(
+        advance_mask,
+        torch.minimum(
+            remaining_reference,
+            torch.full_like(remaining_reference, float(lead_rad)),
+        ),
+        torch.zeros_like(remaining_reference),
+    )
+    signed_step = -door_open_lr * command_delta
+    zero = torch.zeros_like(signed_step)
+    delta_quat_source = quat_from_euler_xyz(zero, zero, signed_step)
+    hinge_local = torch.stack(
+        (
+            torch.full_like(door_width, 0.02),
+            -0.5 * door_width * door_open_lr,
+            torch.zeros_like(door_width),
+        ),
+        dim=-1,
+    )
+    target_handle_pos_source = hinge_local + quat_apply(
+        delta_quat_source, handle_pos_source - hinge_local
+    )
+    target_handle_quat_source = quat_mul(delta_quat_source, handle_quat_source)
+    target_handle_pos_w, target_handle_quat_w = combine_frame_transforms(
+        door_source_pos_w,
+        door_source_quat_w,
+        target_handle_pos_source,
+        target_handle_quat_source,
+    )
+    target_tcp_pos_w, target_tcp_quat_w = combine_frame_transforms(
+        target_handle_pos_w,
+        target_handle_quat_w,
+        handle_to_tcp_pos,
+        handle_to_tcp_quat,
+    )
+    if not torch.all(torch.isfinite(target_tcp_pos_w)) or not torch.all(torch.isfinite(target_tcp_quat_w)):
+        raise ValueError("v20 arc probe target pose is non-finite.")
+    return target_tcp_pos_w, target_tcp_quat_w, command_delta, next_reference_hinge
+
+
+def a2_v20_arc_probe_activation_mask(
+    wait_mask: torch.Tensor,
+    first_episode_active_mask: torch.Tensor,
+    stage2_grasp_completion: torch.Tensor,
+) -> torch.Tensor:
+    """Select the canonical stage-2 completion handoff for the v20 arc probe."""
+    if not torch.is_tensor(wait_mask) or wait_mask.ndim != 1 or wait_mask.dtype != torch.bool:
+        raise ValueError("v20 arc activation wait_mask requires a bool vector.")
+    n = wait_mask.shape[0]
+    for value, name in (
+        (first_episode_active_mask, "first_episode_active_mask"),
+        (stage2_grasp_completion, "stage2_grasp_completion"),
+    ):
+        if (
+            not torch.is_tensor(value)
+            or tuple(value.shape) != (n,)
+            or value.dtype != torch.bool
+            or value.device != wait_mask.device
+        ):
+            raise ValueError(
+                f"v20 arc activation {name} requires shape ({n},), "
+                f"dtype={torch.bool}, device={wait_mask.device}."
+            )
+    return (
+        wait_mask
+        & first_episode_active_mask
+        & stage2_grasp_completion
+    )
+
+
+def a2_v20_update_stable_handoff_streak(
+    streak: torch.Tensor,
+    qualifying: torch.Tensor,
+    required_steps: int = 5,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Advance the post-physics handoff streak and emit its one-shot capture edge."""
+    if (
+        not torch.is_tensor(streak)
+        or streak.ndim != 1
+        or streak.dtype != torch.long
+        or not torch.is_tensor(qualifying)
+        or qualifying.shape != streak.shape
+        or qualifying.dtype != torch.bool
+        or qualifying.device != streak.device
+    ):
+        raise ValueError(
+            "v20 stable handoff streak requires aligned 1D long/bool tensors."
+        )
+    if torch.any(streak < 0):
+        raise ValueError("v20 stable handoff streak cannot contain negative values.")
+    if (
+        isinstance(required_steps, bool)
+        or not isinstance(required_steps, int)
+        or required_steps <= 0
+    ):
+        raise ValueError("v20 stable handoff required_steps must be a positive int.")
+    capped = torch.minimum(
+        streak + qualifying.to(dtype=torch.long),
+        torch.full_like(streak, required_steps),
+    )
+    updated = torch.where(qualifying, capped, torch.zeros_like(streak))
+    capture = qualifying & (updated >= required_steps) & (streak < required_steps)
+    return updated, capture
+
+
+def a2_v20_f1_relief_command(
+    horizontal_error_w: torch.Tensor,
+    bounded_delta: torch.Tensor,
+    root_quat_w: torch.Tensor,
+    candidate_mask: torch.Tensor,
+    physical_speed_mps: float,
+    base_command_scale: float,
+    min_residual_m: float = 0.002,
+    min_yaw_residual_rad: float = 0.002,
+    yaw_gain: float = 5.0,
+    yaw_speed_max_radps: float = 0.10,
+) -> dict[str, torch.Tensor]:
+    """Build bounded F1 relief from the live arc IK residuals.
+
+    Translation uses the world-frame horizontal error from the arc target
+    computation.  Yaw uses the bounded IK delta's final (z-axis) component;
+    the immutable capture/hold pose is not used as residual truth.
+    """
+    if (
+        not torch.is_tensor(horizontal_error_w)
+        or horizontal_error_w.ndim != 2
+        or horizontal_error_w.shape[1] != 2
+        or not horizontal_error_w.is_floating_point()
+    ):
+        raise ValueError("v20 F1 relief horizontal_error_w requires floating shape (N,2).")
+    n = horizontal_error_w.shape[0]
+    for value, shape, name in (
+        (bounded_delta, (n, 6), "bounded_delta"),
+        (root_quat_w, (n, 4), "root_quat_w"),
+        (candidate_mask, (n,), "candidate_mask"),
+    ):
+        _a2_v20_validate_vector(
+            value,
+            shape=shape,
+            dtype=torch.bool if name == "candidate_mask" else None,
+            floating=name != "candidate_mask",
+            name=f"v20 F1 relief {name}",
+        )
+        if value.device != horizontal_error_w.device:
+            raise ValueError("v20 F1 relief inputs must share one device.")
+        if name != "candidate_mask" and value.dtype != horizontal_error_w.dtype:
+            raise ValueError("v20 F1 relief floating inputs must share one dtype.")
+    if not torch.all(torch.isfinite(horizontal_error_w)) or not torch.all(torch.isfinite(bounded_delta)):
+        raise ValueError("v20 F1 relief IK residuals are non-finite.")
+    for name, value in (
+        ("physical_speed_mps", physical_speed_mps),
+        ("base_command_scale", base_command_scale),
+        ("min_residual_m", min_residual_m),
+        ("min_yaw_residual_rad", min_yaw_residual_rad),
+        ("yaw_gain", yaw_gain),
+        ("yaw_speed_max_radps", yaw_speed_max_radps),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+        ):
+            raise ValueError(f"v20 F1 relief {name} must be finite and positive.")
+    horizontal_residual = torch.linalg.norm(horizontal_error_w, dim=-1)
+    yaw_residual = bounded_delta[:, 5]
+    horizontal_solvable = horizontal_residual >= float(min_residual_m)
+    yaw_solvable = torch.abs(yaw_residual) >= float(min_yaw_residual_rad)
+    solvable = candidate_mask & (horizontal_solvable | yaw_solvable)
+    commanded_body_velocity = torch.zeros(
+        n, 2, device=horizontal_error_w.device, dtype=horizontal_error_w.dtype
+    )
+    raw_command = torch.zeros(
+        n, 5, device=horizontal_error_w.device, dtype=horizontal_error_w.dtype
+    )
+    translation_mask = candidate_mask & horizontal_solvable
+    if torch.any(translation_mask):
+        velocity_world = torch.zeros(
+            n, 3, device=horizontal_error_w.device, dtype=horizontal_error_w.dtype
+        )
+        velocity_world[translation_mask, :2] = (
+            horizontal_error_w[translation_mask]
+            / horizontal_residual[translation_mask, None]
+            * float(physical_speed_mps)
+        )
+        velocity_body = quat_apply_inverse(yaw_quat(root_quat_w), velocity_world)
+        commanded_body_velocity[translation_mask] = velocity_body[translation_mask, :2]
+        raw_command[translation_mask, :2] = (
+            velocity_body[translation_mask, :2] / float(base_command_scale)
+        )
+    physical_yaw_command = torch.where(
+        candidate_mask & yaw_solvable,
+        torch.clamp(
+            float(yaw_gain) * yaw_residual,
+            min=-float(yaw_speed_max_radps),
+            max=float(yaw_speed_max_radps),
+        ),
+        torch.zeros_like(yaw_residual),
+    )
+    raw_yaw_command = physical_yaw_command / float(base_command_scale)
+    raw_command[:, 2] = raw_yaw_command
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (
+            horizontal_residual,
+            yaw_residual,
+            commanded_body_velocity,
+            physical_yaw_command,
+            raw_command,
+        )
+    ):
+        raise RuntimeError("v20 F1 relief command produced non-finite telemetry or action.")
+    return {
+        "horizontal_residual_m": horizontal_residual,
+        "yaw_residual_rad": yaw_residual,
+        "horizontal_solvable": horizontal_solvable,
+        "yaw_solvable": yaw_solvable,
+        "solvable": solvable,
+        "commanded_body_velocity": commanded_body_velocity,
+        "physical_yaw_command_radps": physical_yaw_command,
+        "raw_yaw_command": raw_yaw_command,
+        "raw_command": raw_command,
+    }
+
+
+def a2_v20_update_f1_hold_target(
+    hold_target_root_se2: torch.Tensor,
+    immutable_capture_root_se2: torch.Tensor,
+    current_root_se2: torch.Tensor,
+    relief_pending: torch.Tensor,
+    outcome_pending: torch.Tensor,
+    root_translation_from_capture_m: torch.Tensor,
+    root_yaw_from_capture_rad: torch.Tensor,
+    translation_bound_m: float,
+    yaw_bound_rad: float,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Latch a legal next-call F1 relief pose without mutating immutable capture."""
+    if (
+        not torch.is_tensor(hold_target_root_se2)
+        or hold_target_root_se2.ndim != 2
+        or hold_target_root_se2.shape[1] != 3
+        or not hold_target_root_se2.is_floating_point()
+    ):
+        raise ValueError("v20 F1 hold target requires floating shape (N,3).")
+    n = hold_target_root_se2.shape[0]
+    values = (
+        (immutable_capture_root_se2, (n, 3), "immutable_capture_root_se2"),
+        (current_root_se2, (n, 3), "current_root_se2"),
+        (relief_pending, (n,), "relief_pending"),
+        (outcome_pending, (n,), "outcome_pending"),
+        (root_translation_from_capture_m, (n,), "root_translation_from_capture_m"),
+        (root_yaw_from_capture_rad, (n,), "root_yaw_from_capture_rad"),
+    )
+    for value, shape, name in values:
+        _a2_v20_validate_vector(
+            value,
+            shape=shape,
+            dtype=torch.bool if name in ("relief_pending", "outcome_pending") else None,
+            floating=name not in ("relief_pending", "outcome_pending"),
+            name=f"v20 F1 hold target {name}",
+        )
+        if value.device != hold_target_root_se2.device:
+            raise ValueError("v20 F1 hold target inputs must share one device.")
+        if name not in ("relief_pending", "outcome_pending") and value.dtype != hold_target_root_se2.dtype:
+            raise ValueError("v20 F1 hold target floating inputs must share one dtype.")
+    if not torch.all(torch.isfinite(hold_target_root_se2)):
+        raise ValueError("v20 F1 hold target contains non-finite values.")
+    for name, value in (
+        ("translation_bound_m", translation_bound_m),
+        ("yaw_bound_rad", yaw_bound_rad),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+        ):
+            raise ValueError(f"v20 F1 hold target {name} must be finite and positive.")
+    if not torch.all(torch.isfinite(current_root_se2)):
+        raise ValueError("v20 F1 hold target current_root_se2 is non-finite.")
+    update = (
+        relief_pending
+        & outcome_pending
+        & (current_root_se2[:, 0] <= 0.0)
+        & (root_translation_from_capture_m < float(translation_bound_m))
+        & (root_yaw_from_capture_rad < float(yaw_bound_rad))
+    )
+    updated = torch.where(update[:, None], current_root_se2, hold_target_root_se2)
+    if not torch.all(torch.isfinite(updated)):
+        raise RuntimeError("v20 F1 hold target update produced non-finite state.")
+    return updated, update
+
+
+def a2_v20_bound_joint_position_target_step(
+    current_target: torch.Tensor,
+    desired_target: torch.Tensor,
+    active_mask: torch.Tensor,
+    max_step_rad: float,
+) -> torch.Tensor:
+    """Slew-limit the probe joint target from the currently applied target."""
+    if (
+        not torch.is_tensor(current_target)
+        or current_target.ndim != 2
+        or not current_target.is_floating_point()
+        or not torch.is_tensor(desired_target)
+        or desired_target.shape != current_target.shape
+        or desired_target.dtype != current_target.dtype
+        or desired_target.device != current_target.device
+        or not torch.is_tensor(active_mask)
+        or active_mask.shape != (current_target.shape[0],)
+        or active_mask.dtype != torch.bool
+        or active_mask.device != current_target.device
+        or not torch.all(torch.isfinite(current_target))
+        or not torch.all(torch.isfinite(desired_target))
+    ):
+        raise ValueError("v20 joint-target slew inputs require finite aligned tensors and a device-local bool mask.")
+    if (
+        isinstance(max_step_rad, bool)
+        or not isinstance(max_step_rad, (int, float))
+        or not math.isfinite(float(max_step_rad))
+        or float(max_step_rad) <= 0.0
+    ):
+        raise ValueError("v20 joint-target max_step_rad must be finite and positive.")
+    delta = desired_target - current_target
+    max_abs_delta = torch.max(torch.abs(delta), dim=-1, keepdim=True).values
+    over_limit = max_abs_delta > float(max_step_rad)
+    safe_max_abs_delta = torch.where(
+        over_limit,
+        max_abs_delta,
+        torch.ones_like(max_abs_delta),
+    )
+    scale = torch.where(
+        over_limit,
+        torch.full_like(max_abs_delta, float(max_step_rad)) / safe_max_abs_delta,
+        torch.ones_like(max_abs_delta),
+    )
+    bounded = torch.where(
+        over_limit,
+        current_target + delta * scale,
+        desired_target,
+    )
+    return torch.where(active_mask[:, None], bounded, current_target)
+
+
+def a2_v20_arm_settled_handoff_mask(
+    arm_speed_max_radps: torch.Tensor,
+    target_minus_actual_max_abs_rad: torch.Tensor,
+    joint_target_step_max_rad: float,
+    control_dt_s: float,
+) -> torch.Tensor:
+    """Return environments whose arm dynamics fit the probe handoff envelope."""
+    vectors = (
+        ("arm_speed_max_radps", arm_speed_max_radps),
+        ("target_minus_actual_max_abs_rad", target_minus_actual_max_abs_rad),
+    )
+    if any(
+        not torch.is_tensor(value)
+        or value.ndim != 1
+        or not value.is_floating_point()
+        for _, value in vectors
+    ):
+        raise ValueError(
+            "v20 arm-settled handoff requires one-dimensional floating vectors."
+        )
+    expected_shape = tuple(arm_speed_max_radps.shape)
+    expected_dtype = arm_speed_max_radps.dtype
+    expected_device = arm_speed_max_radps.device
+    for name, value in vectors[1:]:
+        if tuple(value.shape) != expected_shape:
+            raise ValueError(
+                "v20 arm-settled handoff vectors must share shape "
+                f"{expected_shape}; {name} has shape {tuple(value.shape)}."
+            )
+        if value.dtype != expected_dtype or value.device != expected_device:
+            raise ValueError(
+                "v20 arm-settled handoff vectors must share dtype and device "
+                f"{expected_dtype}/{expected_device}; {name} is "
+                f"{value.dtype}/{value.device}."
+            )
+    if any(
+        value.numel() and not torch.all(torch.isfinite(value))
+        for _, value in vectors
+    ):
+        raise ValueError("v20 arm-settled handoff vectors require finite values.")
+    if any(
+        value.numel() and torch.any(value < 0.0)
+        for _, value in vectors
+    ):
+        raise ValueError(
+            "v20 arm-settled handoff vectors require non-negative magnitudes."
+        )
+    for value, name in (
+        (joint_target_step_max_rad, "joint_target_step_max_rad"),
+        (control_dt_s, "control_dt_s"),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+        ):
+            raise ValueError(
+                f"v20 arm-settled handoff {name} must be finite and positive; "
+                f"got {value!r}."
+            )
+    velocity_limit_radps = float(joint_target_step_max_rad) / float(control_dt_s)
+    return (arm_speed_max_radps <= velocity_limit_radps) & (
+        target_minus_actual_max_abs_rad <= float(joint_target_step_max_rad)
+    )
+
+
+def a2_v20_apply_arc_probe_settle_action(
+    policy_action: torch.Tensor,
+    settle_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Freeze base and arm commands while preserving each policy gripper action."""
+    if (
+        not torch.is_tensor(policy_action)
+        or policy_action.ndim != 2
+        or tuple(policy_action.shape[1:]) != (12,)
+        or not policy_action.is_floating_point()
+    ):
+        raise ValueError(
+            "v20 arc-probe settle action requires a floating tensor with shape (N,12)."
+        )
+    if (
+        not torch.is_tensor(settle_mask)
+        or settle_mask.shape != (policy_action.shape[0],)
+        or settle_mask.dtype != torch.bool
+        or settle_mask.device != policy_action.device
+    ):
+        raise ValueError(
+            "v20 arc-probe settle mask requires a device-local bool vector of shape (N,)."
+        )
+    if not torch.all(torch.isfinite(policy_action)):
+        raise ValueError("v20 arc-probe settle action requires finite policy values.")
+    if not torch.any(settle_mask):
+        return policy_action
+    result = policy_action.clone()
+    result[settle_mask, :11] = 0.0
+    return result
+
+
+def a2_v20_arc_probe_arm_joint_tracking_residual(
+    joint_names,
+    joint_pos_target: torch.Tensor,
+    joint_pos: torch.Tensor,
+) -> torch.Tensor:
+    """Return post-physics arm_j1..j6 target-minus-actual tracking residual."""
+    expected_joint_names = tuple(f"arm_j{index}" for index in range(1, 7))
+    if not isinstance(joint_names, (list, tuple)) or tuple(joint_names) != expected_joint_names:
+        raise ValueError(
+            "v20 arc probe tracking residual requires arm_j1..arm_j6 order; "
+            f"got {joint_names!r}."
+        )
+    if (
+        not torch.is_tensor(joint_pos_target)
+        or joint_pos_target.ndim != 2
+        or joint_pos_target.shape[1] != 6
+    ):
+        raise ValueError("v20 arc probe tracking residual target requires shape (N,6).")
+    _a2_v20_validate_vector(
+        joint_pos_target,
+        shape=tuple(joint_pos_target.shape),
+        floating=True,
+        name="v20 arc probe arm joint position target",
+    )
+    _a2_v20_validate_vector(
+        joint_pos,
+        shape=tuple(joint_pos_target.shape),
+        floating=True,
+        name="v20 arc probe arm joint position",
+    )
+    if joint_pos.dtype != joint_pos_target.dtype or joint_pos.device != joint_pos_target.device:
+        raise ValueError(
+            "v20 arc probe tracking residual target and actual must share dtype/device."
+        )
+    residual = joint_pos_target - joint_pos
+    if not torch.all(torch.isfinite(residual)):
+        raise RuntimeError("v20 arc probe tracking residual produced non-finite values.")
+    return residual
+
+
+def a2_v20_arc_probe_dls_realization_telemetry(
+    joint_names,
+    jacobian_root: torch.Tensor,
+    q_pre: torch.Tensor,
+    q_raw_dls: torch.Tensor,
+    q_executed: torch.Tensor,
+    source_pos_root: torch.Tensor,
+    source_quat_root: torch.Tensor,
+    bounded_cartesian_delta_root: torch.Tensor,
+    current_handle_to_tcp_pos: torch.Tensor,
+    current_handle_to_tcp_quat: torch.Tensor,
+) -> dict[str, torch.Tensor]:
+    """Validate and predict the Cartesian realization of one arc-probe command.
+
+    The returned twists use the exact root-frame [linear_xyz, angular_xyz]
+    ordering consumed by the DLS Jacobian. This pure helper only validates
+    telemetry tensors and computes diagnostics; it cannot alter behavior.
+    """
+    expected_joint_names = tuple(f"arm_j{index}" for index in range(1, 7))
+    if not isinstance(joint_names, (list, tuple)) or tuple(joint_names) != expected_joint_names:
+        raise ValueError(
+            "v20 arc probe DLS realization requires arm_j1..arm_j6 order; "
+            f"got {joint_names!r}."
+        )
+    if (
+        not torch.is_tensor(jacobian_root)
+        or jacobian_root.ndim != 3
+        or tuple(jacobian_root.shape[1:]) != (6, 6)
+        or not jacobian_root.is_floating_point()
+    ):
+        shape = None if not torch.is_tensor(jacobian_root) else tuple(jacobian_root.shape)
+        raise ValueError(
+            "v20 arc probe DLS realization Jacobian requires floating shape (N,6,6); "
+            f"got {shape}."
+        )
+    n = jacobian_root.shape[0]
+    floating_values = (
+        (q_pre, (n, 6), "q_pre"),
+        (q_raw_dls, (n, 6), "q_raw_dls"),
+        (q_executed, (n, 6), "q_executed"),
+        (source_pos_root, (n, 3), "source_pos_root"),
+        (source_quat_root, (n, 4), "source_quat_root"),
+        (bounded_cartesian_delta_root, (n, 6), "bounded_cartesian_delta_root"),
+        (current_handle_to_tcp_pos, (n, 3), "current_handle_to_tcp_pos"),
+        (current_handle_to_tcp_quat, (n, 4), "current_handle_to_tcp_quat"),
+    )
+    for value, shape, name in floating_values:
+        _a2_v20_validate_vector(
+            value,
+            shape=shape,
+            floating=True,
+            name=f"v20 arc probe DLS realization {name}",
+        )
+        if value.device != jacobian_root.device or value.dtype != jacobian_root.dtype:
+            raise ValueError(
+                "v20 arc probe DLS realization tensors must share dtype and device; "
+                f"{name} has dtype={value.dtype}, device={value.device}, "
+                f"Jacobian has dtype={jacobian_root.dtype}, device={jacobian_root.device}."
+            )
+    _a2_v20_validate_vector(
+        jacobian_root,
+        shape=tuple(jacobian_root.shape),
+        floating=True,
+        name="v20 arc probe DLS realization Jacobian",
+    )
+    eps = torch.finfo(jacobian_root.dtype).eps
+    for value, name in (
+        (source_quat_root, "source_quat_root"),
+        (current_handle_to_tcp_quat, "current_handle_to_tcp_quat"),
+    ):
+        if torch.any(torch.linalg.norm(value, dim=-1) <= eps):
+            raise ValueError(
+                "v20 arc probe DLS realization requires non-degenerate "
+                f"{name} quaternions."
+            )
+    raw_joint_delta = q_raw_dls - q_pre
+    executed_joint_delta = q_executed - q_pre
+    raw_predicted_twist_root = torch.bmm(
+        jacobian_root, raw_joint_delta.unsqueeze(-1)
+    ).squeeze(-1)
+    executed_predicted_twist_root = torch.bmm(
+        jacobian_root, executed_joint_delta.unsqueeze(-1)
+    ).squeeze(-1)
+    if not torch.all(
+        torch.isfinite(
+            torch.cat(
+                (
+                    raw_joint_delta,
+                    executed_joint_delta,
+                    raw_predicted_twist_root,
+                    executed_predicted_twist_root,
+                ),
+                dim=-1,
+            )
+        )
+    ):
+        raise RuntimeError("v20 arc probe DLS realization telemetry is non-finite.")
+    return {
+        "q_pre": q_pre,
+        "q_raw_dls": q_raw_dls,
+        "q_executed": q_executed,
+        "source_pos_root": source_pos_root,
+        "source_quat_root": source_quat_root,
+        "bounded_cartesian_delta_root": bounded_cartesian_delta_root,
+        "current_handle_to_tcp_pos": current_handle_to_tcp_pos,
+        "current_handle_to_tcp_quat": current_handle_to_tcp_quat,
+        "raw_joint_delta": raw_joint_delta,
+        "executed_joint_delta": executed_joint_delta,
+        "raw_predicted_twist_root": raw_predicted_twist_root,
+        "executed_predicted_twist_root": executed_predicted_twist_root,
+    }
+
+
+def a2_v20_sync_arc_probe_cumulative_target(
+    current_q: torch.Tensor,
+    default_q: torch.Tensor,
+    previous_delta_target: torch.Tensor,
+    handoff_mask: torch.Tensor,
+) -> torch.Tensor:
+    """Synchronize the one-shot probe handoff to the physically realized arm pose."""
+    if (
+        not torch.is_tensor(current_q)
+        or current_q.ndim != 2
+        or not current_q.is_floating_point()
+        or not torch.is_tensor(default_q)
+        or default_q.shape != current_q.shape
+        or default_q.dtype != current_q.dtype
+        or default_q.device != current_q.device
+        or not torch.is_tensor(previous_delta_target)
+        or previous_delta_target.shape != current_q.shape
+        or previous_delta_target.dtype != current_q.dtype
+        or previous_delta_target.device != current_q.device
+        or not torch.is_tensor(handoff_mask)
+        or handoff_mask.shape != (current_q.shape[0],)
+        or handoff_mask.dtype != torch.bool
+        or handoff_mask.device != current_q.device
+        or not torch.all(torch.isfinite(current_q))
+        or not torch.all(torch.isfinite(default_q))
+        or not torch.all(torch.isfinite(previous_delta_target))
+    ):
+        raise ValueError(
+            "v20 arc handoff sync requires finite aligned joint tensors and a device-local bool mask."
+        )
+    synchronized = (current_q - default_q) / 0.25
+    return torch.where(handoff_mask[:, None], synchronized, previous_delta_target)
+
+
+def a2_v20_taskspace_arm_carry(
+    root_link_pos_w: torch.Tensor,
+    root_link_vel_w: torch.Tensor,
+    root_link_ang_vel_w: torch.Tensor,
+    tcp_pos_w: torch.Tensor,
+    tcp_velocity_w: torch.Tensor,
+    opening_tangent_w: torch.Tensor,
+    *,
+    activity_floor_mps: float,
+) -> dict[str, torch.Tensor]:
+    """Decompose TCP tangent motion into rigid-base and arm-relative parts."""
+    if not torch.is_tensor(root_link_pos_w) or root_link_pos_w.ndim != 2 or root_link_pos_w.shape[1] != 3:
+        raise ValueError("v20 root_link_pos_w requires shape (N, 3).")
+    n = root_link_pos_w.shape[0]
+    for value, shape, name in ((root_link_vel_w, (n, 3), "v20 root_link_vel_w"), (root_link_ang_vel_w, (n, 3), "v20 root_link_ang_vel_w"), (tcp_pos_w, (n, 3), "v20 tcp_pos_w"), (tcp_velocity_w, (n, 3), "v20 tcp_velocity_w"), (opening_tangent_w, (n, 3), "v20 opening_tangent_w")):
+        _a2_v20_validate_vector(value, shape=shape, floating=True, name=name)
+        if value.device != root_link_pos_w.device or value.dtype != root_link_pos_w.dtype:
+            raise ValueError("v20 task-space inputs must share dtype and device.")
+    if isinstance(activity_floor_mps, bool) or not isinstance(activity_floor_mps, (int, float)) or not math.isfinite(float(activity_floor_mps)) or float(activity_floor_mps) <= 0.0:
+        raise ValueError("v20 task-space activity floor must be finite and > 0.")
+    v_base_at_tcp = root_link_vel_w + torch.cross(root_link_ang_vel_w, tcp_pos_w - root_link_pos_w, dim=-1)
+    v_arm = tcp_velocity_w - v_base_at_tcp
+    base_tangent = torch.sum(v_base_at_tcp * opening_tangent_w, dim=-1)
+    arm_tangent = torch.sum(v_arm * opening_tangent_w, dim=-1)
+    positive_base = torch.relu(base_tangent)
+    positive_arm = torch.relu(arm_tangent)
+    positive_total = positive_base + positive_arm
+    active = positive_total > float(activity_floor_mps)
+    share = torch.where(active, positive_arm / positive_total, torch.zeros_like(positive_total))
+    return {"v_base_at_tcp": v_base_at_tcp, "v_arm": v_arm, "positive_base_tangent": positive_base, "positive_arm_tangent": positive_arm, "positive_total_tangent": positive_total, "active": active, "arm_tangent_share": share}
+
+
+def a2_v20_handle_to_tcp_transform(
+    handle_pos_w: torch.Tensor,
+    handle_quat_w: torch.Tensor,
+    tcp_pos_w: torch.Tensor,
+    tcp_quat_w: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return the canonical ``T_HANDLE_TCP`` from validated world poses.
+
+    IsaacLab's FrameTransformer reports ``target_*_source`` as ``T_TCP_HANDLE``
+    when the Piper TCP is the source and the handle is target 0.  M47/P1 state
+    is intentionally kept in the opposite, handle-to-TCP direction so capture,
+    live tracking, slip, and target composition share one transform contract.
+    """
+    if (
+        not torch.is_tensor(handle_pos_w)
+        or handle_pos_w.ndim != 2
+        or handle_pos_w.shape[1] != 3
+        or not handle_pos_w.is_floating_point()
+    ):
+        raise ValueError("v20 handle world position requires floating shape (N, 3).")
+    n = handle_pos_w.shape[0]
+    for value, shape, name in (
+        (handle_quat_w, (n, 4), "handle_quat_w"),
+        (tcp_pos_w, (n, 3), "tcp_pos_w"),
+        (tcp_quat_w, (n, 4), "tcp_quat_w"),
+    ):
+        _a2_v20_validate_vector(value, shape=shape, floating=True, name=f"v20 {name}")
+        if value.device != handle_pos_w.device or value.dtype != handle_pos_w.dtype:
+            raise ValueError("v20 handle-to-TCP world poses must share dtype and device.")
+    if not torch.all(torch.isfinite(handle_pos_w)):
+        raise ValueError("v20 handle world position contains non-finite values.")
+    handle_quat_norm = torch.linalg.norm(handle_quat_w, dim=-1, keepdim=True)
+    tcp_quat_norm = torch.linalg.norm(tcp_quat_w, dim=-1, keepdim=True)
+    eps = torch.finfo(handle_pos_w.dtype).eps
+    if torch.any(handle_quat_norm <= eps) or torch.any(tcp_quat_norm <= eps):
+        raise ValueError("v20 handle/TCP world quaternion must be non-degenerate.")
+    handle_quat_unit = handle_quat_w / handle_quat_norm
+    tcp_quat_unit = tcp_quat_w / tcp_quat_norm
+    handle_to_tcp_pos, handle_to_tcp_quat = subtract_frame_transforms(
+        handle_pos_w,
+        handle_quat_unit,
+        tcp_pos_w,
+        tcp_quat_unit,
+    )
+    if not torch.all(torch.isfinite(handle_to_tcp_pos)) or not torch.all(
+        torch.isfinite(handle_to_tcp_quat)
+    ):
+        raise ValueError("v20 handle-to-TCP transform is non-finite.")
+    return handle_to_tcp_pos, handle_to_tcp_quat
+
+
+def a2_v20_handle_local_slip_metrics(
+    captured_handle_to_tcp_pos: torch.Tensor,
+    captured_handle_to_tcp_quat: torch.Tensor,
+    current_handle_to_tcp_pos: torch.Tensor,
+    current_handle_to_tcp_quat: torch.Tensor,
+    valid_reference: torch.Tensor,
+) -> dict[str, torch.Tensor]:
+    """Split capture/current ``T_HANDLE_TCP`` translation and orientation.
+
+    Both positions are TCP positions expressed in the corresponding handle
+    frame.  The contract deliberately subtracts these handle-local coordinates
+    directly; no moving-TCP frame subtraction is valid here.
+    """
+    if (
+        not torch.is_tensor(captured_handle_to_tcp_pos)
+        or captured_handle_to_tcp_pos.ndim != 2
+        or captured_handle_to_tcp_pos.shape[1] != 3
+        or not captured_handle_to_tcp_pos.is_floating_point()
+    ):
+        raise ValueError("v20 captured T_HANDLE_TCP position requires floating shape (N, 3).")
+    n = captured_handle_to_tcp_pos.shape[0]
+    for value, shape, name in (
+        (captured_handle_to_tcp_quat, (n, 4), "captured_handle_to_tcp_quat"),
+        (current_handle_to_tcp_pos, (n, 3), "current_handle_to_tcp_pos"),
+        (current_handle_to_tcp_quat, (n, 4), "current_handle_to_tcp_quat"),
+        (valid_reference, (n,), "valid_reference"),
+    ):
+        _a2_v20_validate_vector(
+            value,
+            shape=shape,
+            dtype=torch.bool if name == "valid_reference" else None,
+            floating=name != "valid_reference",
+            name=f"v20 {name}",
+        )
+        if value.device != captured_handle_to_tcp_pos.device:
+            raise ValueError("v20 handle-local slip tensors must share a device.")
+        if name != "valid_reference" and value.dtype != captured_handle_to_tcp_pos.dtype:
+            raise ValueError("v20 handle-local slip floating tensors must share dtype.")
+    if not torch.all(torch.isfinite(captured_handle_to_tcp_pos)):
+        raise ValueError("v20 captured T_HANDLE_TCP position contains non-finite values.")
+    quat_norms = (
+        torch.linalg.norm(captured_handle_to_tcp_quat, dim=-1, keepdim=True),
+        torch.linalg.norm(current_handle_to_tcp_quat, dim=-1, keepdim=True),
+    )
+    if any(torch.any(norm <= torch.finfo(captured_handle_to_tcp_pos.dtype).eps) for norm in quat_norms):
+        raise ValueError("v20 captured/current T_HANDLE_TCP quaternion must be non-degenerate.")
+    captured_quat_unit = captured_handle_to_tcp_quat / quat_norms[0]
+    current_quat_unit = current_handle_to_tcp_quat / quat_norms[1]
+    delta_handle = current_handle_to_tcp_pos - captured_handle_to_tcp_pos
+    along = torch.abs(delta_handle[:, 1])
+    orthogonal = torch.linalg.norm(delta_handle[:, (0, 2)], dim=-1)
+    total = torch.linalg.norm(delta_handle, dim=-1)
+    quat_delta = quat_mul(quat_inv(captured_quat_unit), current_quat_unit)
+    orientation_error = 2.0 * torch.acos(
+        torch.clamp(torch.abs(quat_delta[:, 0]), 0.0, 1.0)
+    )
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (along, orthogonal, total, orientation_error)
+    ):
+        raise ValueError("v20 handle-local slip metrics are non-finite.")
+    return {
+        "along_handle_slip_m": along,
+        "orthogonal_arc_residual_m": orthogonal,
+        "total_position_error_m": total,
+        "orientation_error_rad": orientation_error,
+        "valid": valid_reference,
+    }
+
+
+def a2_v20_arc_tracking_quality(
+    captured_rel_pos: torch.Tensor,
+    captured_rel_quat: torch.Tensor,
+    current_rel_pos: torch.Tensor,
+    current_rel_quat: torch.Tensor,
+    valid_reference: torch.Tensor,
+    *,
+    position_tolerance_m: float,
+    orientation_tolerance_rad: float,
+) -> dict[str, torch.Tensor]:
+    """Evaluate handle-to-TCP relative-pose tracking against a captured pose."""
+    if not torch.is_tensor(captured_rel_pos) or captured_rel_pos.ndim != 2 or captured_rel_pos.shape[1] != 3:
+        raise ValueError("v20 captured_rel_pos requires shape (N, 3).")
+    n = captured_rel_pos.shape[0]
+    for value, shape, name in ((captured_rel_quat, (n, 4), "v20 captured_rel_quat"), (current_rel_pos, (n, 3), "v20 current_rel_pos"), (current_rel_quat, (n, 4), "v20 current_rel_quat"), (valid_reference, (n,), "v20 valid_reference")):
+        _a2_v20_validate_vector(value, shape=shape, dtype=torch.bool if name == "v20 valid_reference" else None, floating=name != "v20 valid_reference", name=name)
+        if value.device != captured_rel_pos.device:
+            raise ValueError("v20 arc tracking inputs must share a device.")
+        if name != "v20 valid_reference" and value.dtype != captured_rel_pos.dtype:
+            raise ValueError("v20 arc tracking floating inputs must share dtype.")
+    for value, name in ((position_tolerance_m, "position_tolerance_m"), (orientation_tolerance_rad, "orientation_tolerance_rad")):
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0.0:
+            raise ValueError(f"v20 {name} must be finite and > 0.")
+    position_error = torch.linalg.norm(current_rel_pos - captured_rel_pos, dim=-1)
+    q_ref = captured_rel_quat / torch.linalg.norm(captured_rel_quat, dim=-1, keepdim=True)
+    q_cur = current_rel_quat / torch.linalg.norm(current_rel_quat, dim=-1, keepdim=True)
+    q_delta = quat_mul(quat_inv(q_ref), q_cur)
+    orientation_error = 2.0 * torch.acos(torch.clamp(torch.abs(q_delta[:, 0]), 0.0, 1.0))
+    quality = ((1.0 - position_error / float(position_tolerance_m)).clamp(0.0, 1.0) * (1.0 - orientation_error / float(orientation_tolerance_rad)).clamp(0.0, 1.0))
+    quality = torch.where(valid_reference, quality, torch.zeros_like(quality))
+    return {"position_error_m": position_error, "orientation_error_rad": orientation_error, "quality": quality, "valid": valid_reference}
+
+
 def a2_arm_dof_overspeed_raw_penalty(
     arm_dof_vel: torch.Tensor,
     *,
@@ -162,6 +1280,12 @@ A2_HOLD_OUTCOME_NAMES = (
     "MATCHED_CLEAN_STABILIZE_INCOMPLETE",
     "MATCHED_CLEAN_READY",
     "MATCHED_CLEAN_NOT_SETTLED",
+    "ARC_PROBE_REACHED",
+    "ARC_PROBE_TIMEOUT",
+    "ARC_PROBE_ROOT_BOUND",
+    "ARC_PROBE_ROOT_CROSSING",
+    "ARC_PROBE_BODY_COLLISION",
+    "ARC_PROBE_OVERSPEED",
 )
 A2_HOLD_OUTCOME_TO_ID = {name: index for index, name in enumerate(A2_HOLD_OUTCOME_NAMES)}
 
@@ -2542,6 +3666,166 @@ def a2_hold_base_relief_command(
     )
 
 
+def a2_v20_fixed_planar_root_state(
+    root_pos_w: torch.Tensor,
+    root_quat_w: torch.Tensor,
+    root_lin_vel_w: torch.Tensor,
+    root_ang_vel_w: torch.Tensor,
+    source_pos_w: torch.Tensor,
+    source_quat_w: torch.Tensor,
+    capture_root_se2: torch.Tensor,
+    active_mask: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return root pose/velocity with active planar state fixed in the source frame."""
+    n = root_pos_w.shape[0] if torch.is_tensor(root_pos_w) and root_pos_w.ndim == 2 else -1
+    expected_shapes = (
+        (root_pos_w, (n, 3), "root_pos_w"),
+        (root_quat_w, (n, 4), "root_quat_w"),
+        (root_lin_vel_w, (n, 3), "root_lin_vel_w"),
+        (root_ang_vel_w, (n, 3), "root_ang_vel_w"),
+        (source_pos_w, (n, 3), "source_pos_w"),
+        (source_quat_w, (n, 4), "source_quat_w"),
+        (capture_root_se2, (n, 3), "capture_root_se2"),
+    )
+    if n < 0:
+        raise ValueError("v20 fixed-planar root state requires rank-2 root_pos_w.")
+    for value, shape, name in expected_shapes:
+        _a2_v20_validate_vector(value, shape=shape, floating=True, name=name)
+    _a2_v20_validate_vector(active_mask, shape=(n,), dtype=torch.bool, name="active_mask")
+    values = tuple(value for value, _, _ in expected_shapes)
+    if (
+        any(value.dtype != root_pos_w.dtype for value in values[1:])
+        or any(value.device != root_pos_w.device for value in values[1:])
+        or active_mask.device != root_pos_w.device
+    ):
+        raise ValueError("v20 fixed-planar root inputs must share one dtype/device.")
+
+    root_pos_source, root_quat_source = subtract_frame_transforms(
+        source_pos_w, source_quat_w, root_pos_w, root_quat_w
+    )
+    roll, pitch, yaw = euler_xyz_from_quat(root_quat_source)
+    target_pos_source = root_pos_source.clone()
+    target_pos_source[active_mask, :2] = capture_root_se2[active_mask, :2]
+    target_yaw = yaw.clone()
+    target_yaw[active_mask] = capture_root_se2[active_mask, 2]
+    target_quat_source = quat_from_euler_xyz(roll, pitch, target_yaw)
+    target_pos_w, target_quat_w = combine_frame_transforms(
+        source_pos_w, source_quat_w, target_pos_source, target_quat_source
+    )
+
+    target_lin_vel_source = quat_apply_inverse(source_quat_w, root_lin_vel_w)
+    target_ang_vel_source = quat_apply_inverse(source_quat_w, root_ang_vel_w)
+    target_lin_vel_source[active_mask, :2] = 0.0
+    target_ang_vel_source[active_mask, 2] = 0.0
+    target_lin_vel_w = quat_apply(source_quat_w, target_lin_vel_source)
+    target_ang_vel_w = quat_apply(source_quat_w, target_ang_vel_source)
+    target_pose_w = torch.cat((target_pos_w, target_quat_w), dim=-1)
+    target_velocity_w = torch.cat((target_lin_vel_w, target_ang_vel_w), dim=-1)
+    if not torch.all(torch.isfinite(target_pose_w)) or not torch.all(
+        torch.isfinite(target_velocity_w)
+    ):
+        raise RuntimeError("v20 fixed-planar root state produced non-finite output.")
+    return target_pose_w, target_velocity_w
+
+
+def a2_v20_root_hold_raw_command(
+    current_root_se2: torch.Tensor,
+    capture_root_se2: torch.Tensor,
+    source_quat_w: torch.Tensor,
+    root_quat_w: torch.Tensor,
+    root_lin_vel_w: torch.Tensor,
+    root_ang_vel_w: torch.Tensor,
+    active_mask: torch.Tensor,
+    base_command_scale: float,
+    translation_gain: float,
+    translation_damping_gain: float,
+    translation_speed_max_mps: float,
+    yaw_gain: float,
+    yaw_damping_gain: float,
+    yaw_speed_max_radps: float,
+) -> torch.Tensor:
+    """Return a body-frame raw base command that holds the captured door-frame SE(2)."""
+    n = current_root_se2.shape[0] if torch.is_tensor(current_root_se2) else -1
+    if (
+        n < 0
+        or tuple(current_root_se2.shape) != (n, 3)
+        or not torch.is_tensor(capture_root_se2)
+        or tuple(capture_root_se2.shape) != (n, 3)
+        or not torch.is_tensor(source_quat_w)
+        or tuple(source_quat_w.shape) != (n, 4)
+        or not torch.is_tensor(root_quat_w)
+        or tuple(root_quat_w.shape) != (n, 4)
+        or not torch.is_tensor(root_lin_vel_w)
+        or tuple(root_lin_vel_w.shape) != (n, 3)
+        or not torch.is_tensor(root_ang_vel_w)
+        or tuple(root_ang_vel_w.shape) != (n, 3)
+        or not torch.is_tensor(active_mask)
+        or tuple(active_mask.shape) != (n,)
+        or active_mask.dtype != torch.bool
+    ):
+        raise ValueError("v20 root-hold inputs have incompatible shapes or mask dtype.")
+    values = (
+        current_root_se2,
+        capture_root_se2,
+        source_quat_w,
+        root_quat_w,
+        root_lin_vel_w,
+        root_ang_vel_w,
+    )
+    if (
+        not current_root_se2.is_floating_point()
+        or any(value.dtype != current_root_se2.dtype for value in values[1:])
+        or any(value.device != current_root_se2.device for value in values[1:])
+        or active_mask.device != current_root_se2.device
+        or not all(torch.all(torch.isfinite(value)) for value in values)
+    ):
+        raise ValueError("v20 root-hold pose inputs must be finite with one dtype/device.")
+    for name, value in (
+        ("base_command_scale", base_command_scale),
+        ("translation_gain", translation_gain),
+        ("translation_damping_gain", translation_damping_gain),
+        ("translation_speed_max_mps", translation_speed_max_mps),
+        ("yaw_gain", yaw_gain),
+        ("yaw_damping_gain", yaw_damping_gain),
+        ("yaw_speed_max_radps", yaw_speed_max_radps),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+        ):
+            raise ValueError(f"{name} must be a finite positive float.")
+    error_source = capture_root_se2[:, :2] - current_root_se2[:, :2]
+    root_lin_vel_source = quat_apply_inverse(yaw_quat(source_quat_w), root_lin_vel_w)
+    desired_speed_source = (
+        error_source * float(translation_gain)
+        - root_lin_vel_source[:, :2] * float(translation_damping_gain)
+    )
+    speed_norm = torch.linalg.norm(desired_speed_source, dim=-1)
+    scale = torch.minimum(
+        torch.ones_like(speed_norm),
+        float(translation_speed_max_mps) / speed_norm.clamp_min(torch.finfo(speed_norm.dtype).eps),
+    )
+    desired_velocity_source = torch.zeros(n, 3, device=current_root_se2.device, dtype=current_root_se2.dtype)
+    desired_velocity_source[:, :2] = desired_speed_source * scale.unsqueeze(-1)
+    desired_velocity_w = quat_apply(yaw_quat(source_quat_w), desired_velocity_source)
+    desired_velocity_body = quat_apply_inverse(yaw_quat(root_quat_w), desired_velocity_w)
+    yaw_error = wrap_to_pi(capture_root_se2[:, 2] - current_root_se2[:, 2])
+    root_ang_vel_source = quat_apply_inverse(yaw_quat(source_quat_w), root_ang_vel_w)
+    yaw_speed = torch.clamp(
+        yaw_error * float(yaw_gain)
+        - root_ang_vel_source[:, 2] * float(yaw_damping_gain),
+        min=-float(yaw_speed_max_radps),
+        max=float(yaw_speed_max_radps),
+    )
+    command = torch.zeros(n, 5, device=current_root_se2.device, dtype=current_root_se2.dtype)
+    command[:, :2] = desired_velocity_body[:, :2] / float(base_command_scale)
+    command[:, 2] = yaw_speed / float(base_command_scale)
+    command[~active_mask] = 0.0
+    return command
+
+
 def a2_hold_update_base_relief_state(
     relief_mask: torch.Tensor,
     previous_active: torch.Tensor,
@@ -3247,6 +4531,38 @@ class DoorPregrasp(
     A2_M23_SELF_COLLISION_CONTACT_SENSORS_CONFIG_KEY = (
         "a2_m23_self_collision_contact_sensors_enabled"
     )
+    A2_V20_FRAME_TRANSFORMER = "a2_v20_door_root_frame_transformer"
+    A2_V20_SEND_LATCH_ENABLED_CONFIG_KEY = "a2_v20_send_latch_enabled"
+    A2_V20_SEND_HINGE_THRESHOLD_CONFIG_KEY = "a2_v20_send_hinge_threshold"
+    A2_V20_SEND_HINGE_TOLERANCE_CONFIG_KEY = "a2_v20_send_hinge_tolerance"
+    A2_V20_PRE_SEND_ROOT_X_MARGIN_CONFIG_KEY = "a2_v20_pre_send_root_x_margin"
+    A2_V20_PRE_SEND_CROSSING_MODE_CONFIG_KEY = "a2_v20_pre_send_crossing_mode"
+    A2_V20_PRE_SEND_CROSSING_PENALTY_COMPONENT_CONFIG_KEY = (
+        "a2_v20_pre_send_crossing_penalty_component"
+    )
+    A2_V20_TELEMETRY_ENABLED_CONFIG_KEY = "a2_v20_telemetry_enabled"
+    A2_V20_TRAVERSAL_ECONOMICS_ENABLED_CONFIG_KEY = (
+        "a2_v20_traversal_economics_enabled"
+    )
+    A2_V20_TARGET_ROOT_PRE_SEND_SCALE_CONFIG_KEY = (
+        "a2_v20_target_root_pre_send_scale"
+    )
+    A2_V20_TARGET_ROOT_POST_SEND_STAGE4_SCALE_CONFIG_KEY = (
+        "a2_v20_target_root_post_send_stage4_scale"
+    )
+    A2_V20_TARGET_ROOT_RAMP_WIDTH_CONFIG_KEY = "a2_v20_target_root_ramp_width_rad"
+    A2_CORRIDOR_LATCH_MODE_CONFIG_KEY = "a2_corridor_latch_mode"
+    A2_V20_ARM_TIE_ENABLED_CONFIG_KEY = "a2_v20_arm_tie_enabled"
+    A2_V20_ARM_TANGENT_CARRY_SCALE_CONFIG_KEY = "a2_v20_arm_tangent_carry_scale"
+    A2_V20_HANDLE_ARC_TRACKING_SCALE_CONFIG_KEY = "a2_v20_handle_arc_tracking_scale"
+    A2_V20_TASKSPACE_ACTIVITY_FLOOR_CONFIG_KEY = "a2_v20_taskspace_activity_floor_mps"
+    A2_V20_ARC_POSITION_TOLERANCE_CONFIG_KEY = "a2_v20_arc_position_tolerance_m"
+    A2_V20_ARC_ORIENTATION_TOLERANCE_CONFIG_KEY = (
+        "a2_v20_arc_orientation_tolerance_rad"
+    )
+    A2_V20_FORMAL_VALUES_FROZEN_CONFIG_KEY = "a2_v20_formal_values_frozen"
+    A2_V20_FORMAL_LAUNCH_CONFIG_KEY = "a2_v20_formal_launch"
+    A2_V20_CALIBRATION_LABEL_CONFIG_KEY = "a2_v20_calibration_label"
     A2_M23_SELF_COLLISION_SENSOR_KEY_PREFIX = "a2_m23_self_collision_"
     A2_M23_SELF_COLLISION_BODY_NAMES = (
         "FL_hip",
@@ -3494,6 +4810,161 @@ class DoorPregrasp(
             "A2 stage4 to stage5 door-hinge gate",
         )
 
+    def _get_a2_v20_bool_config(self, key: str, context: str) -> bool:
+        if key not in self.config:
+            raise RuntimeError(f"{context} requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
+
+    def _get_a2_v20_send_latch_enabled(self) -> bool:
+        return self._get_a2_v20_bool_config(
+            self.A2_V20_SEND_LATCH_ENABLED_CONFIG_KEY,
+            "A2 v20 send institution",
+        )
+
+    def _get_a2_v20_telemetry_enabled(self) -> bool:
+        return self._get_a2_v20_bool_config(
+            self.A2_V20_TELEMETRY_ENABLED_CONFIG_KEY,
+            "A2 v20 telemetry",
+        )
+
+    def _get_a2_v20_traversal_economics_enabled(self) -> bool:
+        return self._get_a2_v20_bool_config(
+            self.A2_V20_TRAVERSAL_ECONOMICS_ENABLED_CONFIG_KEY,
+            "A2 v20 traversal economics",
+        )
+
+    def _get_a2_v20_arm_tie_enabled(self) -> bool:
+        return self._get_a2_v20_bool_config(
+            self.A2_V20_ARM_TIE_ENABLED_CONFIG_KEY,
+            "A2 v20 arm task-space tie-breaker",
+        )
+
+    def _get_a2_v20_send_hinge_threshold(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_V20_SEND_HINGE_THRESHOLD_CONFIG_KEY,
+            "A2 v20 send hinge threshold",
+        )
+
+    def _get_a2_v20_send_hinge_tolerance(self) -> float:
+        value = self._get_required_finite_float_config(
+            self.A2_V20_SEND_HINGE_TOLERANCE_CONFIG_KEY,
+            "A2 v20 send hinge tolerance",
+        )
+        if value < 0.0:
+            raise RuntimeError(
+                f"env.config.{self.A2_V20_SEND_HINGE_TOLERANCE_CONFIG_KEY} must be >= 0; got {value}."
+            )
+        return value
+
+    def _get_a2_v20_pre_send_root_x_margin(self) -> float:
+        value = self._get_required_finite_float_config(
+            self.A2_V20_PRE_SEND_ROOT_X_MARGIN_CONFIG_KEY,
+            "A2 v20 pre-send root crossing margin",
+        )
+        if value < 0.0:
+            raise RuntimeError(
+                f"env.config.{self.A2_V20_PRE_SEND_ROOT_X_MARGIN_CONFIG_KEY} must be >= 0; got {value}."
+            )
+        return value
+
+    def _get_a2_v20_pre_send_crossing_mode(self) -> str:
+        key = self.A2_V20_PRE_SEND_CROSSING_MODE_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 v20 pre-send crossing requires env.config.{key}.")
+        value = self.config[key]
+        if not isinstance(value, str) or value not in A2_V20_PRE_SEND_CROSSING_MODES:
+            raise RuntimeError(
+                f"env.config.{key} must be one of {sorted(A2_V20_PRE_SEND_CROSSING_MODES)}; got {value!r}."
+            )
+        return value
+
+    def _get_a2_v20_pre_send_crossing_penalty_component(self) -> float:
+        return self._get_required_finite_float_config(
+            self.A2_V20_PRE_SEND_CROSSING_PENALTY_COMPONENT_CONFIG_KEY,
+            "A2 v20 pre-send crossing penalty",
+        )
+
+    def _get_a2_v20_target_root_pre_send_scale(self) -> float:
+        value = self._get_required_finite_float_config(
+            self.A2_V20_TARGET_ROOT_PRE_SEND_SCALE_CONFIG_KEY,
+            "A2 v20 target-root pre-send scale",
+        )
+        if value < 0.0:
+            raise RuntimeError(f"env.config.{self.A2_V20_TARGET_ROOT_PRE_SEND_SCALE_CONFIG_KEY} must be >= 0; got {value}.")
+        return value
+
+    def _get_a2_v20_target_root_post_send_stage4_scale(self) -> float:
+        value = self._get_required_finite_float_config(
+            self.A2_V20_TARGET_ROOT_POST_SEND_STAGE4_SCALE_CONFIG_KEY,
+            "A2 v20 target-root post-send stage4 scale",
+        )
+        if value < 0.0:
+            raise RuntimeError(f"env.config.{self.A2_V20_TARGET_ROOT_POST_SEND_STAGE4_SCALE_CONFIG_KEY} must be >= 0; got {value}.")
+        return value
+
+    def _get_a2_v20_target_root_ramp_width(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_V20_TARGET_ROOT_RAMP_WIDTH_CONFIG_KEY,
+            "A2 v20 target-root stage4 ramp",
+        )
+
+    def _get_a2_v20_corridor_latch_mode(self) -> str:
+        key = self.A2_CORRIDOR_LATCH_MODE_CONFIG_KEY
+        if key not in self.config:
+            raise RuntimeError(f"A2 corridor latch requires env.config.{key}.")
+        value = self.config[key]
+        if value not in (A2_V20_CORRIDOR_LATCH_LEGACY, A2_V20_CORRIDOR_LATCH_SEND_READY):
+            raise RuntimeError(
+                f"env.config.{key} must be one of "
+                f"{A2_V20_CORRIDOR_LATCH_LEGACY!r}, {A2_V20_CORRIDOR_LATCH_SEND_READY!r}; got {value!r}."
+            )
+        return value
+
+    def _get_a2_v20_arm_tangent_carry_scale(self) -> float:
+        return self._get_required_finite_float_config(
+            self.A2_V20_ARM_TANGENT_CARRY_SCALE_CONFIG_KEY,
+            "A2 v20 arm tangent carry reward",
+        )
+
+    def _get_a2_v20_handle_arc_tracking_scale(self) -> float:
+        return self._get_required_finite_float_config(
+            self.A2_V20_HANDLE_ARC_TRACKING_SCALE_CONFIG_KEY,
+            "A2 v20 handle arc tracking reward",
+        )
+
+    def _get_a2_v20_taskspace_activity_floor(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_V20_TASKSPACE_ACTIVITY_FLOOR_CONFIG_KEY,
+            "A2 v20 task-space activity floor",
+        )
+
+    def _get_a2_v20_arc_position_tolerance(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_V20_ARC_POSITION_TOLERANCE_CONFIG_KEY,
+            "A2 v20 handle arc position tolerance",
+        )
+
+    def _get_a2_v20_arc_orientation_tolerance(self) -> float:
+        return self._get_required_positive_float_config(
+            self.A2_V20_ARC_ORIENTATION_TOLERANCE_CONFIG_KEY,
+            "A2 v20 handle arc orientation tolerance",
+        )
+
+    def _get_a2_v20_formal_values_frozen(self) -> bool:
+        return self._get_a2_v20_bool_config(
+            self.A2_V20_FORMAL_VALUES_FROZEN_CONFIG_KEY,
+            "A2 v20 formal-values admission",
+        )
+
+    def _get_a2_v20_formal_launch(self) -> bool:
+        return self._get_a2_v20_bool_config(
+            self.A2_V20_FORMAL_LAUNCH_CONFIG_KEY,
+            "A2 v20 formal launch admission",
+        )
+
     def _get_a2_stage45_door_frame_contact_scale(self) -> float:
         value = self._get_required_finite_float_config(
             self.A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY,
@@ -3579,6 +5050,82 @@ class DoorPregrasp(
                 "A2 stage5 hold-income continuity requires release threshold >= "
                 "stage4->5 threshold; got "
                 f"release={release_threshold}, advance={advance_threshold}."
+            )
+
+    def _validate_a2_v20_config(self) -> None:
+        """Validate v20 selectors without changing any legacy defaults."""
+        send_latch = self._get_a2_v20_send_latch_enabled()
+        telemetry = self._get_a2_v20_telemetry_enabled()
+        economics = self._get_a2_v20_traversal_economics_enabled()
+        arm_tie = self._get_a2_v20_arm_tie_enabled()
+        theta_send = self._get_a2_v20_send_hinge_threshold()
+        theta_tolerance = self._get_a2_v20_send_hinge_tolerance()
+        if theta_tolerance >= theta_send:
+            raise RuntimeError(
+                "A2 v20 send hinge tolerance must be smaller than the send threshold; "
+                f"got tolerance={theta_tolerance}, threshold={theta_send}."
+            )
+        self._get_a2_v20_pre_send_root_x_margin()
+        crossing_mode = self._get_a2_v20_pre_send_crossing_mode()
+        penalty_component = self._get_a2_v20_pre_send_crossing_penalty_component()
+        if penalty_component < 0.0:
+            raise RuntimeError(
+                "A2 v20 pre-send crossing penalty component must be non-negative; "
+                f"got {penalty_component}."
+            )
+        pre_send_scale = self._get_a2_v20_target_root_pre_send_scale()
+        post_send_scale = self._get_a2_v20_target_root_post_send_stage4_scale()
+        ramp_width = self._get_a2_v20_target_root_ramp_width()
+        corridor_mode = self._get_a2_v20_corridor_latch_mode()
+        carry_scale = self._get_a2_v20_arm_tangent_carry_scale()
+        arc_scale = self._get_a2_v20_handle_arc_tracking_scale()
+        self._get_a2_v20_taskspace_activity_floor()
+        self._get_a2_v20_arc_position_tolerance()
+        self._get_a2_v20_arc_orientation_tolerance()
+        values_frozen = self._get_a2_v20_formal_values_frozen()
+        formal_launch = self._get_a2_v20_formal_launch()
+        calibration_label = self.config.get(self.A2_V20_CALIBRATION_LABEL_CONFIG_KEY, None)
+        if not isinstance(calibration_label, str) or not calibration_label:
+            raise RuntimeError(
+                f"env.config.{self.A2_V20_CALIBRATION_LABEL_CONFIG_KEY} must be a non-empty string."
+            )
+        if not values_frozen and calibration_label != "non_formal_calibration_only":
+            raise RuntimeError(
+                "A2 v20 unfrozen values require calibration_label='non_formal_calibration_only'."
+            )
+        if formal_launch and not values_frozen and (send_latch or economics or arm_tie):
+            raise RuntimeError(
+                "A2 v20 formal launch is blocked until P1/P0.4 values are explicitly frozen; "
+                f"{self.A2_V20_FORMAL_VALUES_FROZEN_CONFIG_KEY}=false."
+            )
+        if not (send_latch or economics or arm_tie or telemetry):
+            if crossing_mode != "disabled":
+                raise RuntimeError(
+                    "A2 v20 pre-send crossing mode must be disabled when all v20 selectors and telemetry are disabled."
+                )
+            if corridor_mode != A2_V20_CORRIDOR_LATCH_LEGACY:
+                raise RuntimeError(
+                    "A2 v20 corridor latch must remain legacy when all v20 selectors and telemetry are disabled."
+                )
+            if pre_send_scale != 0.0 or post_send_scale != 0.5 or ramp_width != 0.20:
+                raise RuntimeError(
+                    "A2 v20 disabled path requires exact legacy target-root scale defaults."
+                )
+        if send_latch and crossing_mode == "disabled":
+            raise RuntimeError(
+                "A2 v20 send institution requires pre-send crossing mode penalty or terminal."
+            )
+        if economics and corridor_mode != A2_V20_CORRIDOR_LATCH_SEND_READY:
+            raise RuntimeError(
+                "A2 v20 traversal economics requires corridor_latch_mode='send_ready_v20'."
+            )
+        if economics and (pre_send_scale != 0.0 or post_send_scale != 0.5):
+            raise RuntimeError(
+                "A2 v20 traversal economics requires pre-send scale 0.0 and post-send stage4 scale 0.5."
+            )
+        if arm_tie and (carry_scale <= 0.0 or arc_scale <= 0.0):
+            raise RuntimeError(
+                "A2 v20 arm tie requires strictly positive frozen carry and arc scales."
             )
 
     def _get_a2_grasp_control_streak_buffer(
@@ -3988,6 +5535,15 @@ class DoorPregrasp(
         self._get_a2_grasp_gate_mode()
         self._get_a2_grasp_streak_control_steps()
         self._validate_a2_v13_door_semantics_config()
+        self._validate_a2_v20_config()
+        if "pre_send_root_crossing" not in self._terminal_reason_names:
+            self._terminal_reason_names = (
+                *self._terminal_reason_names,
+                "pre_send_root_crossing",
+            )
+            self._terminal_reason_bufs["pre_send_root_crossing"] = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
         if self._get_a2_m39_gripper_material_enabled():
             if getattr(self.simulator, "_m39_material_runtime_metadata", None) is None:
                 raise RuntimeError("M39 gripper material runtime evidence is unavailable.")
@@ -4053,6 +5609,7 @@ class DoorPregrasp(
             self._load_delta_actions_buffer,
             dtype=torch.float32,
         )
+        self._register_a2_v20_staged_reset_buffers()
 
         self.resting_dof_pos = torch.tensor([self.config.resting_dof_pos], device=self.device)
         self.target_root_pos = torch.tensor(self.config.target_root_pos, device=self.device)[
@@ -4079,6 +5636,63 @@ class DoorPregrasp(
         self._a2_stage3_stage4_last_gripper_raw_sign_flip = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+
+    def _register_a2_v20_staged_reset_buffers(self) -> None:
+        """Register all v20 event/reference state that affects reward or termination."""
+        if not self.enable_staged_reset:
+            return
+        specs = (
+            ("a2_v20_send_ready", (self.num_envs,), torch.bool),
+            ("a2_v20_first_send_ready_step", (self.num_envs,), torch.long),
+            ("a2_v20_first_root_crossing_step", (self.num_envs,), torch.long),
+            ("a2_v20_hinge_at_first_root_crossing", (self.num_envs,), torch.float32),
+            ("a2_v20_root_x_at_first_crossing", (self.num_envs,), torch.float32),
+            ("a2_v20_root_entry_pos_se2", (self.num_envs, 3), torch.float32),
+            ("a2_v20_root_entry_valid", (self.num_envs,), torch.bool),
+            ("a2_v20_max_pre_send_displacement_se2", (self.num_envs, 3), torch.float32),
+            ("a2_v20_handle_tcp_capture_pos", (self.num_envs, 3), torch.float32),
+            ("a2_v20_handle_tcp_capture_quat", (self.num_envs, 4), torch.float32),
+            ("a2_v20_handle_tcp_capture_valid", (self.num_envs,), torch.bool),
+            ("a2_v20_prev_tcp_pos_w", (self.num_envs, 3), torch.float32),
+            ("a2_v20_prev_tcp_valid", (self.num_envs,), torch.bool),
+            ("a2_v20_pre_send_crossing_seen", (self.num_envs,), torch.bool),
+            ("a2_v20_first_pre_send_crossing_step", (self.num_envs,), torch.long),
+            ("a2_v20_pre_send_crossing_event", (self.num_envs,), torch.bool),
+            ("a2_v20_stage4_target_root_ramp", (self.num_envs,), torch.float32),
+        )
+        for name, shape, dtype in specs:
+            if shape[0] != self.num_envs:
+                raise RuntimeError(
+                    f"A2 v20 staged-reset spec {name} must include the env axis; got {shape}."
+                )
+            self._register_buffer_to_track(
+                name,
+                shape,
+                lambda env_ids, name=name: self._store_a2_v20_named_buffer(name, env_ids),
+                lambda env_ids, data, name=name: self._load_a2_v20_named_buffer(name, env_ids, data),
+                dtype=dtype,
+            )
+
+    def _store_a2_v20_named_buffer(self, name: str, env_ids: torch.Tensor) -> torch.Tensor:
+        value = getattr(self, f"_{name}", None)
+        if not torch.is_tensor(value):
+            raise RuntimeError(f"A2 v20 staged-reset store requires tensor _{name}.")
+        return value[env_ids]
+
+    def _load_a2_v20_named_buffer(
+        self, name: str, env_ids: torch.Tensor, data: torch.Tensor
+    ) -> None:
+        value = getattr(self, f"_{name}", None)
+        if not torch.is_tensor(value):
+            raise RuntimeError(f"A2 v20 staged-reset load requires tensor _{name}.")
+        if data.shape != value[env_ids].shape or data.dtype != value.dtype or data.device != value.device:
+            raise RuntimeError(
+                f"A2 v20 staged-reset load for _{name} has incompatible state: "
+                f"data_shape={tuple(data.shape)}, expected={tuple(value[env_ids].shape)}, "
+                f"data_dtype={data.dtype}, expected_dtype={value.dtype}, "
+                f"data_device={data.device}, expected_device={value.device}."
+            )
+        value[env_ids] = data
 
     def _get_a2_arm_default_dof_pos(self, env_ids=None):
         if not self._use_a2_base:
@@ -4233,6 +5847,88 @@ class DoorPregrasp(
                 self.num_envs, dtype=torch.long, device=self.device
             )
             self._a2_v14_root_height_last_update_step = -1
+            self._a2_v20_send_ready = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_first_send_ready_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_v20_first_root_crossing_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_v20_hinge_at_first_root_crossing = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_root_x_at_first_crossing = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_root_entry_pos_se2 = torch.full(
+                (self.num_envs, 3), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_root_entry_valid = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_max_pre_send_displacement_se2 = torch.zeros(
+                (self.num_envs, 3), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_handle_tcp_capture_pos = torch.zeros(
+                (self.num_envs, 3), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_handle_tcp_capture_quat = torch.zeros(
+                (self.num_envs, 4), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_handle_tcp_capture_quat[:, 0] = 1.0
+            self._a2_v20_handle_tcp_capture_valid = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_prev_tcp_pos_w = torch.full(
+                (self.num_envs, 3), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_prev_tcp_valid = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_pre_send_crossing_seen = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_first_pre_send_crossing_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_v20_pre_send_crossing_event = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_stage4_target_root_ramp = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_arm_tangent_share = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_arm_tangent_share_active = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_arc_tracking_quality = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_arc_position_error_m = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_arc_orientation_error_rad = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_along_handle_slip_m = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_orthogonal_arc_residual_m = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_handle_slip_valid = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_taskspace_active = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_v20_root_x_rel = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
         self.relative_door_pos_buf = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False,
         )
@@ -4256,6 +5952,7 @@ class DoorPregrasp(
             self._update_a2_grasp_control_streaks(env_ids)
             self._update_a2_stage5_hold_continuation(env_ids)
             self._update_a2_door_body_contact_event(env_ids)
+            self._update_a2_v20_state(env_ids)
             self._update_a2_stage4_release_and_root_latches(env_ids)
             if env_ids is None:
                 self._update_a2_v14_root_height_telemetry()
@@ -4406,6 +6103,274 @@ class DoorPregrasp(
             )
         return continuation
 
+    def _get_a2_v20_send_ready_buffer(self, context: str) -> torch.Tensor:
+        send_ready = getattr(self, "_a2_v20_send_ready", None)
+        if (
+            not torch.is_tensor(send_ready)
+            or tuple(send_ready.shape) != (self.num_envs,)
+            or send_ready.dtype != torch.bool
+            or send_ready.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(send_ready) else tuple(send_ready.shape)
+            dtype = None if not torch.is_tensor(send_ready) else send_ready.dtype
+            device = None if not torch.is_tensor(send_ready) else send_ready.device
+            raise RuntimeError(
+                f"{context} requires _a2_v20_send_ready bool shape "
+                f"({self.num_envs},) on {self.device}; got shape={shape}, dtype={dtype}, device={device}."
+            )
+        return send_ready
+
+    def _get_a2_v20_frame_data(self, context: str) -> dict[str, torch.Tensor | int]:
+        sensor = self.simulator.scene.sensors.get(self.A2_V20_FRAME_TRANSFORMER)
+        if sensor is None:
+            raise RuntimeError(
+                f"{context} requires scene sensor {self.A2_V20_FRAME_TRANSFORMER!r}."
+            )
+        data = getattr(sensor, "data", None)
+        source_pos_w = getattr(data, "source_pos_w", None)
+        source_quat_w = getattr(data, "source_quat_w", None)
+        target_pos_source = getattr(data, "target_pos_source", None)
+        target_quat_source = getattr(data, "target_quat_source", None)
+        if (
+            not torch.is_tensor(source_pos_w)
+            or tuple(source_pos_w.shape) != (self.num_envs, 3)
+            or not source_pos_w.is_floating_point()
+            or source_pos_w.device != torch.device(self.device)
+            or not torch.is_tensor(source_quat_w)
+            or tuple(source_quat_w.shape) != (self.num_envs, 4)
+            or source_quat_w.dtype != source_pos_w.dtype
+            or source_quat_w.device != source_pos_w.device
+            or not torch.is_tensor(target_pos_source)
+            or target_pos_source.ndim != 3
+            or tuple(target_pos_source.shape[:2]) != (self.num_envs, 2)
+            or target_pos_source.shape[2] != 3
+            or target_pos_source.dtype != source_pos_w.dtype
+            or target_pos_source.device != source_pos_w.device
+            or not torch.is_tensor(target_quat_source)
+            or target_quat_source.ndim != 3
+            or tuple(target_quat_source.shape[:2]) != (self.num_envs, 2)
+            or target_quat_source.shape[2] != 4
+            or target_quat_source.dtype != source_pos_w.dtype
+            or target_quat_source.device != source_pos_w.device
+        ):
+            raise RuntimeError(
+                f"{context} requires finite FrameTransformer source/target tensors with "
+                f"source ({self.num_envs},3)/({self.num_envs},4) and targets ({self.num_envs},2,3)/({self.num_envs},2,4)."
+            )
+        if not all(
+            torch.all(torch.isfinite(value))
+            for value in (source_pos_w, source_quat_w, target_pos_source, target_quat_source)
+        ):
+            raise RuntimeError(f"{context} FrameTransformer tensors contain non-finite values.")
+        target_names = list(getattr(data, "target_frame_names", ()))
+        if target_names.count("robot_root") != 1 or target_names.count("grasp_target") != 1:
+            raise RuntimeError(
+                f"{context} requires exactly one robot_root and grasp_target target frame; got {target_names!r}."
+            )
+        return {
+            "source_pos_w": source_pos_w,
+            "source_quat_w": source_quat_w,
+            "target_pos_source": target_pos_source,
+            "target_quat_source": target_quat_source,
+            "robot_root_idx": target_names.index("robot_root"),
+            "grasp_target_idx": target_names.index("grasp_target"),
+        }
+
+    def _a2_v20_current_root_se2(self, frame_data: dict[str, torch.Tensor | int]) -> torch.Tensor:
+        root_idx = int(frame_data["robot_root_idx"])
+        root_pos_source = frame_data["target_pos_source"][:, root_idx, :]
+        root_quat_source = frame_data["target_quat_source"][:, root_idx, :]
+        root_yaw = euler_xyz_from_quat(root_quat_source)[2]
+        return torch.cat((root_pos_source[:, :2], root_yaw[:, None]), dim=-1)
+
+    def _apply_a2_v20_f0_planar_root_clamp(
+        self,
+        active_mask: torch.Tensor,
+        frame_data: dict[str, torch.Tensor | int],
+    ) -> torch.Tensor:
+        """Apply the F0 fixed-planar-root protocol through IsaacLab state writers."""
+        root_se2 = self._a2_v20_current_root_se2(frame_data)
+        if self._a2_hold_oracle_cfg["v20_arc_probe_mode"] != "F0":
+            return root_se2
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        target_pose_w, target_velocity_w = a2_v20_fixed_planar_root_state(
+            data.root_pos_w,
+            data.root_quat_w,
+            data.root_lin_vel_w,
+            data.root_ang_vel_w,
+            frame_data["source_pos_w"],
+            frame_data["source_quat_w"],
+            self._a2_v20_arc_probe_root_capture_se2,
+            active_mask,
+        )
+        env_ids = torch.nonzero(active_mask, as_tuple=False).flatten()
+        robot.write_root_pose_to_sim(target_pose_w[active_mask], env_ids=env_ids)
+        robot.write_root_velocity_to_sim(target_velocity_w[active_mask], env_ids=env_ids)
+        written_pose_w = torch.cat((data.root_pos_w, data.root_quat_w), dim=-1)
+        written_velocity_w = torch.cat((data.root_lin_vel_w, data.root_ang_vel_w), dim=-1)
+        if not torch.equal(written_pose_w[active_mask], target_pose_w[active_mask]) or not torch.equal(
+            written_velocity_w[active_mask], target_velocity_w[active_mask]
+        ):
+            raise RuntimeError("A2 v20 F0 planar root clamp did not update IsaacLab state buffers exactly.")
+        root_se2 = root_se2.clone()
+        root_se2[active_mask] = self._a2_v20_arc_probe_root_capture_se2[active_mask]
+        return root_se2
+
+    def _update_a2_v20_state(self, env_ids=None) -> None:
+        """Update v20 latches, references, and task-space telemetry after physics refresh."""
+        if not self._use_a2_base:
+            return
+        active = (
+            self._get_a2_v20_send_latch_enabled()
+            or self._get_a2_v20_traversal_economics_enabled()
+            or self._get_a2_v20_arm_tie_enabled()
+            or self._get_a2_v20_telemetry_enabled()
+        )
+        if not active:
+            return
+        if env_ids is not None:
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError("A2 v20 partial update requires valid device-local env_ids.")
+            return
+        frame_data = self._get_a2_v20_frame_data("A2 v20 state update")
+        piper_frame = self._get_a2_v20_piper_frame_data("A2 v20 state update")
+        source_pos_w = piper_frame["source_pos_w"]
+        source_quat_w = piper_frame["source_quat_w"]
+        handle_to_tcp_pos = piper_frame["handle_to_tcp_pos"]
+        handle_to_tcp_quat = piper_frame["handle_to_tcp_quat"]
+        root_idx = int(frame_data["robot_root_idx"])
+        door_target_pos_source = frame_data["target_pos_source"]
+        door_joint_pos = self._get_door_joint_pos("A2 v20 state update", 1)
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        opening_phase = (self.stage_buf >= self.STAGE_OPEN) & (self.stage_buf <= self.STAGE_SWING)
+        send_ready = self._get_a2_v20_send_ready_buffer("A2 v20 state update")
+        updated_send_ready, first_send = a2_v20_update_send_ready(
+            send_ready,
+            hold_ok & opening_phase,
+            door_joint_pos[:, 0],
+            self._get_a2_v20_send_hinge_threshold(),
+        )
+        send_ready[:] = updated_send_ready
+        step = self.episode_length_buf
+        self._a2_v20_first_send_ready_step[first_send] = step[first_send]
+        capture_mask = hold_ok & ~self._a2_v20_handle_tcp_capture_valid
+        self._a2_v20_handle_tcp_capture_pos[capture_mask] = handle_to_tcp_pos[capture_mask]
+        self._a2_v20_handle_tcp_capture_quat[capture_mask] = handle_to_tcp_quat[capture_mask]
+        self._a2_v20_handle_tcp_capture_valid |= hold_ok
+
+        root_x_rel = door_target_pos_source[:, root_idx, 0]
+        self._a2_v20_root_x_rel[:] = root_x_rel
+        first_crossing = (
+            (self._a2_v20_first_root_crossing_step < 0)
+            & opening_phase
+            & (root_x_rel > 0.0)
+        )
+        self._a2_v20_first_root_crossing_step[first_crossing] = step[first_crossing]
+        self._a2_v20_hinge_at_first_root_crossing[first_crossing] = door_joint_pos[first_crossing, 0]
+        self._a2_v20_root_x_at_first_crossing[first_crossing] = root_x_rel[first_crossing]
+        pre_send_event = a2_v20_pre_send_root_crossing(
+            opening_phase,
+            updated_send_ready,
+            root_x_rel,
+            self._get_a2_v20_pre_send_root_x_margin(),
+        ) & ~self._a2_v20_pre_send_crossing_seen
+        self._a2_v20_first_pre_send_crossing_step[pre_send_event] = step[pre_send_event]
+        self._a2_v20_pre_send_crossing_event[:] = pre_send_event
+        self._a2_v20_pre_send_crossing_seen |= pre_send_event
+
+        current_se2 = self._a2_v20_current_root_se2(frame_data)
+        if torch.any(self._a2_v20_root_entry_valid & ~torch.all(torch.isfinite(self._a2_v20_root_entry_pos_se2), dim=-1)):
+            raise RuntimeError("A2 v20 root-entry reference contains non-finite values.")
+        displacement = torch.abs(current_se2 - self._a2_v20_root_entry_pos_se2)
+        update_displacement = opening_phase & ~updated_send_ready & self._a2_v20_root_entry_valid
+        self._a2_v20_max_pre_send_displacement_se2[update_displacement] = torch.maximum(
+            self._a2_v20_max_pre_send_displacement_se2[update_displacement],
+            displacement[update_displacement],
+        )
+
+        tangent_w = a2_v20_handle_opening_tangent(
+            frame_data["source_pos_w"],
+            frame_data["source_quat_w"],
+            door_target_pos_source[:, int(frame_data["grasp_target_idx"]), :],
+            self.door_width,
+            self.door_open_lr,
+        )
+        root_link_pos_w = self.simulator._rigid_body_pos[:, self.root_idx, :]
+        root_link_vel_w = self.simulator._rigid_body_vel[:, self.root_idx, :]
+        root_link_ang_vel_w = self.simulator._rigid_body_ang_vel[:, self.root_idx, :]
+        if self.dt <= 0.0 or not math.isfinite(float(self.dt)):
+            raise RuntimeError(f"A2 v20 task-space finite difference requires positive finite dt; got {self.dt!r}.")
+        tcp_velocity_w = torch.where(
+            self._a2_v20_prev_tcp_valid[:, None],
+            (source_pos_w - self._a2_v20_prev_tcp_pos_w) / float(self.dt),
+            torch.zeros_like(source_pos_w),
+        )
+        taskspace = a2_v20_taskspace_arm_carry(
+            root_link_pos_w,
+            root_link_vel_w,
+            root_link_ang_vel_w,
+            source_pos_w,
+            tcp_velocity_w,
+            tangent_w,
+            activity_floor_mps=self._get_a2_v20_taskspace_activity_floor(),
+        )
+        self._a2_v20_arm_tangent_share[:] = taskspace["arm_tangent_share"]
+        self._a2_v20_taskspace_active[:] = taskspace["active"] & self._a2_v20_prev_tcp_valid
+        self._a2_v20_arm_tangent_share_active[:] = self._a2_v20_taskspace_active
+        arc = a2_v20_arc_tracking_quality(
+            self._a2_v20_handle_tcp_capture_pos,
+            self._a2_v20_handle_tcp_capture_quat,
+            handle_to_tcp_pos,
+            handle_to_tcp_quat,
+            self._a2_v20_handle_tcp_capture_valid,
+            position_tolerance_m=self._get_a2_v20_arc_position_tolerance(),
+            orientation_tolerance_rad=self._get_a2_v20_arc_orientation_tolerance(),
+        )
+        self._a2_v20_arc_tracking_quality[:] = arc["quality"]
+        self._a2_v20_arc_position_error_m[:] = arc["position_error_m"]
+        self._a2_v20_arc_orientation_error_rad[:] = arc["orientation_error_rad"]
+        slip = a2_v20_handle_local_slip_metrics(
+            self._a2_v20_handle_tcp_capture_pos,
+            self._a2_v20_handle_tcp_capture_quat,
+            handle_to_tcp_pos,
+            handle_to_tcp_quat,
+            self._a2_v20_handle_tcp_capture_valid,
+        )
+        slip_valid = slip["valid"] & self._a2_v20_taskspace_active
+        self._a2_v20_handle_slip_valid[:] = slip_valid
+        self._a2_v20_along_handle_slip_m[:] = torch.where(
+            slip_valid,
+            slip["along_handle_slip_m"],
+            torch.full_like(slip["along_handle_slip_m"], float("nan")),
+        )
+        self._a2_v20_orthogonal_arc_residual_m[:] = torch.where(
+            slip_valid,
+            slip["orthogonal_arc_residual_m"],
+            torch.full_like(slip["orthogonal_arc_residual_m"], float("nan")),
+        )
+        self._a2_v20_prev_tcp_pos_w[:] = source_pos_w
+        self._a2_v20_prev_tcp_valid[:] = True
+        send_progress = a2_v20_stage4_target_root_scale(
+            door_joint_pos[:, 0],
+            self._get_a2_v20_send_hinge_threshold(),
+            self._get_a2_v20_target_root_ramp_width(),
+            enabled=self._get_a2_v20_traversal_economics_enabled(),
+            send_ready=updated_send_ready,
+        )
+        self._a2_v20_stage4_target_root_ramp[:] = torch.where(
+            self.stage_buf == self.STAGE_SWING,
+            send_progress,
+            torch.zeros_like(send_progress),
+        )
+
     def _update_a2_stage5_hold_continuation(self, env_ids=None) -> None:
         continuation = self._get_a2_stage5_hold_continuation()
         if env_ids is not None:
@@ -4458,6 +6423,22 @@ class DoorPregrasp(
     def _stage_3_to_4_advance_callback(self, env_ids: torch.Tensor) -> None:
         if self._use_a2_base:
             self._finalize_a2_door_body_contact_event(env_ids)
+
+    def _stage_2_to_3_advance_callback(self, env_ids: torch.Tensor) -> None:
+        if not self._use_a2_base:
+            return
+        if not (
+            self._get_a2_v20_send_latch_enabled()
+            or self._get_a2_v20_traversal_economics_enabled()
+            or self._get_a2_v20_arm_tie_enabled()
+            or self._get_a2_v20_telemetry_enabled()
+        ):
+            return
+        frame_data = self._get_a2_v20_frame_data("A2 v20 opening-entry callback")
+        root_entry = self._a2_v20_current_root_se2(frame_data)
+        self._a2_v20_root_entry_pos_se2[env_ids] = root_entry[env_ids]
+        self._a2_v20_root_entry_valid[env_ids] = True
+        self._a2_v20_max_pre_send_displacement_se2[env_ids] = 0.0
 
     def _stage_4_to_5_advance_callback(self, env_ids: torch.Tensor) -> None:
         if not self._use_a2_base:
@@ -5051,13 +7032,15 @@ class DoorPregrasp(
                 update_mask,
             )
         )
-        updated_corridor = a2_update_corridor_latch(
+        updated_corridor = a2_v20_update_corridor_latch(
             corridor_latched,
             updated_crossed,
+            self._get_a2_v20_send_ready_buffer("A2 corridor latch update"),
             stage_buf,
             door_joint_pos[:, 0],
             self.STAGE_SWING,
             self._get_a2_corridor_enabled(),
+            self._get_a2_v20_corridor_latch_mode(),
             update_mask,
         )
         release_event = ~release_gate & updated_gate
@@ -6165,6 +8148,80 @@ class DoorPregrasp(
             self._get_a2_corridor_mask(), body_total, force_threshold
         )
 
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING])
+    def _reward_penalty_a2_v20_pre_send_crossing(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "penalty_a2_v20_pre_send_crossing is only defined for A2 Piper configs."
+            )
+        mode = self._get_a2_v20_pre_send_crossing_mode()
+        if mode != "penalty":
+            return torch.zeros(self.num_envs, device=self.device)
+        event = getattr(self, "_a2_v20_pre_send_crossing_event", None)
+        if (
+            not torch.is_tensor(event)
+            or tuple(event.shape) != (self.num_envs,)
+            or event.dtype != torch.bool
+            or event.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "A2 v20 crossing penalty requires a device-local bool event buffer."
+            )
+        return event.float() * self._get_a2_v20_pre_send_crossing_penalty_component()
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING, STAGE_THROUGH])
+    def _reward_a2_v20_arm_tangent_carry(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_v20_arm_tangent_carry is only defined for A2 Piper configs."
+            )
+        if not self._get_a2_v20_arm_tie_enabled():
+            return torch.zeros(self.num_envs, device=self.device)
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        door_joint_vel = self._get_door_joint_vel("A2 v20 arm tangent carry reward", 1)
+        valid_phase = (
+            (self.stage_buf >= self.STAGE_OPEN)
+            & (self.stage_buf <= self.STAGE_THROUGH)
+            & hold_ok
+            & ~self._a2_stage4_release_gate
+            & (door_joint_vel[:, 0] > 0.0)
+            & self._a2_v20_taskspace_active
+            & self._a2_v20_handle_tcp_capture_valid
+        )
+        positive_hinge_progress = door_joint_vel[:, 0].clamp(min=0.0, max=1.0)
+        return torch.where(
+            valid_phase,
+            positive_hinge_progress
+            * self._a2_v20_arm_tangent_share
+            * self._a2_v20_arc_tracking_quality,
+            torch.zeros(self.num_envs, device=self.device),
+        )
+
+    @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING, STAGE_THROUGH])
+    def _reward_a2_v20_handle_arc_tracking(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_v20_handle_arc_tracking is only defined for A2 Piper configs."
+            )
+        if not self._get_a2_v20_arm_tie_enabled():
+            return torch.zeros(self.num_envs, device=self.device)
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        door_joint_vel = self._get_door_joint_vel("A2 v20 handle arc reward", 1)
+        valid_phase = (
+            (self.stage_buf >= self.STAGE_OPEN)
+            & (self.stage_buf <= self.STAGE_THROUGH)
+            & hold_ok
+            & ~self._a2_stage4_release_gate
+            & (door_joint_vel[:, 0] > 0.0)
+            & self._a2_v20_taskspace_active
+            & self._a2_v20_handle_tcp_capture_valid
+        )
+        return torch.where(
+            valid_phase,
+            self._a2_v20_arc_tracking_quality,
+            torch.zeros(self.num_envs, device=self.device),
+        )
+
     @StagedTaskBase.effective_in_stage([STAGE_SWING, STAGE_THROUGH])
     def _reward_dont_push_door_handle(self):
         handle_vel_reward = -1.0 * self.simulator.scene.articulations["door"].data.joint_vel[:, 1]
@@ -6208,9 +8265,29 @@ class DoorPregrasp(
         )
         reward = (root_vel_reward + root_pos_reward).clamp(max=1.0)
         if self._use_a2_base:
-            reward = a2_apply_stage4_target_root_distance_scale(
-                reward, self.stage_buf, self._a2_stage4_release_gate, DoorPregrasp.STAGE_SWING
-            )
+            if self._get_a2_v20_traversal_economics_enabled():
+                hinge_position = self._get_door_joint_pos(
+                    "A2 v20 target-root reward", 1
+                )[:, 0]
+                ramp = a2_v20_stage4_target_root_scale(
+                    hinge_position,
+                    self._get_a2_v20_send_hinge_threshold(),
+                    self._get_a2_v20_target_root_ramp_width(),
+                    enabled=True,
+                    send_ready=self._get_a2_v20_send_ready_buffer(
+                        "A2 v20 target-root reward"
+                    ),
+                )
+                unreleased_stage4 = (self.stage_buf == self.STAGE_SWING) & ~self._a2_stage4_release_gate
+                reward = torch.where(
+                    unreleased_stage4,
+                    reward * ramp,
+                    reward,
+                )
+            else:
+                reward = a2_apply_stage4_target_root_distance_scale(
+                    reward, self.stage_buf, self._a2_stage4_release_gate, DoorPregrasp.STAGE_SWING
+                )
         else:
             reward[self.stage_buf == DoorPregrasp.STAGE_SWING] *= 0.5
         return reward
@@ -6546,6 +8623,65 @@ class DoorPregrasp(
                 f"got {list(target_names)}."
             )
         return transformer
+
+    def _get_a2_v20_piper_frame_data(self, context: str) -> dict[str, torch.Tensor]:
+        """Read the high-level Piper TCP/handle transformer for v20 geometry.
+
+        The dedicated door/root transformer is reserved for door geometry.  All
+        live TCP, handle, and handle-to-TCP quantities in v20 must come from
+        the Piper FrameTransformer source and its target index 0.  The sensor's
+        ``target_*_source`` is ``T_TCP_HANDLE``; M47/P1 use the canonical
+        ``T_HANDLE_TCP`` derived from the validated world poses below.
+        """
+        data = self._get_a2_gripper_handle_frame_transformer().data
+        values = {
+            "source_pos_w": getattr(data, "source_pos_w", None),
+            "source_quat_w": getattr(data, "source_quat_w", None),
+            "target_pos_w": getattr(data, "target_pos_w", None),
+            "target_quat_w": getattr(data, "target_quat_w", None),
+            "target_pos_source": getattr(data, "target_pos_source", None),
+            "target_quat_source": getattr(data, "target_quat_source", None),
+        }
+        expected = {
+            "source_pos_w": (self.num_envs, 3),
+            "source_quat_w": (self.num_envs, 4),
+            "target_pos_w": (self.num_envs, 2, 3),
+            "target_quat_w": (self.num_envs, 2, 4),
+            "target_pos_source": (self.num_envs, 2, 3),
+            "target_quat_source": (self.num_envs, 2, 4),
+        }
+        source_pos = values["source_pos_w"]
+        for name, value in values.items():
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != expected[name]
+                or not value.is_floating_point()
+                or value.device != torch.device(self.device)
+                or source_pos is None
+                or not torch.is_tensor(source_pos)
+                or value.dtype != source_pos.dtype
+                or not torch.all(torch.isfinite(value))
+            ):
+                shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                raise RuntimeError(
+                    f"{context} requires finite Piper FrameTransformer {name} "
+                    f"shape {expected[name]} on {self.device}; got {shape}."
+                )
+        target_names = list(getattr(data, "target_frame_names", ()))
+        if target_names != ["handle", "pregrasp"]:
+            raise RuntimeError(
+                f"{context} requires Piper target frame order ['handle', 'pregrasp']; "
+                f"got {target_names!r}."
+            )
+        handle_to_tcp_pos, handle_to_tcp_quat = a2_v20_handle_to_tcp_transform(
+            values["target_pos_w"][:, 0, :],
+            values["target_quat_w"][:, 0, :],
+            values["source_pos_w"],
+            values["source_quat_w"],
+        )
+        values["handle_to_tcp_pos"] = handle_to_tcp_pos
+        values["handle_to_tcp_quat"] = handle_to_tcp_quat
+        return values
 
     def _get_a2_gripper_handle_contact_forces(self):
         sensor_name = self.A2_GRIPPER_HANDLE_CONTACT_SENSOR
@@ -7884,6 +10020,76 @@ class DoorPregrasp(
             stage4_active | stage5_active,
             0.95,
         )
+        if (
+            self._get_a2_v20_send_latch_enabled()
+            or self._get_a2_v20_traversal_economics_enabled()
+            or self._get_a2_v20_arm_tie_enabled()
+            or self._get_a2_v20_telemetry_enabled()
+        ):
+            v20_send_ready = self._get_a2_v20_send_ready_buffer(
+                "A2 v20 route diagnostics"
+            )
+            v20_send_active = stage3_stage4_active | stage5_active
+            v20_crossing_valid = self._a2_v20_first_root_crossing_step >= 0
+            v20_pre_send_valid = self._a2_v20_first_pre_send_crossing_step >= 0
+            v20_carry_active = (
+                self._a2_v20_arm_tangent_share_active
+                & self._a2_v20_handle_tcp_capture_valid
+                & v20_send_active
+            )
+            self.log_dict["a2_v20_send_ready_numerator_frac"] = v20_send_ready.float()
+            self.log_dict["a2_v20_send_ready_denominator_frac"] = torch.ones_like(v20_send_ready, dtype=torch.float32)
+            self.log_dict["a2_v20_send_ready_frac"] = v20_send_ready.float().mean()
+            self.log_dict["a2_v20_pre_send_root_crossing_numerator_frac"] = v20_pre_send_valid.float()
+            self.log_dict["a2_v20_pre_send_root_crossing_denominator_frac"] = v20_send_active.float()
+            self.log_dict["a2_v20_pre_send_root_crossing_frac"] = a2_masked_boolean_fraction(
+                v20_pre_send_valid, v20_send_active
+            )
+            self.log_dict["_a2_v20_hinge_at_first_root_crossing_samples"] = torch.where(
+                v20_crossing_valid,
+                self._a2_v20_hinge_at_first_root_crossing,
+                torch.zeros_like(self._a2_v20_hinge_at_first_root_crossing),
+            )
+            self.log_dict["_a2_v20_hinge_at_first_root_crossing_sample_mask"] = v20_crossing_valid
+            self.log_dict["a2_v20_hinge_at_first_root_crossing_p50"] = a2_masked_float_quantile(
+                self.log_dict["_a2_v20_hinge_at_first_root_crossing_samples"],
+                v20_crossing_valid,
+                0.5,
+            )
+            self.log_dict["a2_v20_hinge_at_first_root_crossing_p95"] = a2_masked_float_quantile(
+                self.log_dict["_a2_v20_hinge_at_first_root_crossing_samples"],
+                v20_crossing_valid,
+                0.95,
+            )
+            self.log_dict["_a2_v20_arm_tangent_share_samples"] = torch.where(
+                self._a2_v20_arm_tangent_share_active,
+                self._a2_v20_arm_tangent_share,
+                torch.zeros_like(self._a2_v20_arm_tangent_share),
+            )
+            self.log_dict["_a2_v20_arm_tangent_share_sample_mask"] = self._a2_v20_arm_tangent_share_active
+            self.log_dict["a2_v20_arm_tangent_share_p50"] = a2_masked_float_quantile(
+                self.log_dict["_a2_v20_arm_tangent_share_samples"],
+                self._a2_v20_arm_tangent_share_active,
+                0.5,
+            )
+            self.log_dict["a2_v20_arm_tangent_share_p95"] = a2_masked_float_quantile(
+                self.log_dict["_a2_v20_arm_tangent_share_samples"],
+                self._a2_v20_arm_tangent_share_active,
+                0.95,
+            )
+            self.log_dict["_a2_v20_arc_tracking_quality_p50"] = a2_masked_float_quantile(
+                self._a2_v20_arc_tracking_quality,
+                v20_carry_active,
+                0.5,
+            )
+            self.log_dict["_a2_v20_arc_tracking_quality_p95"] = a2_masked_float_quantile(
+                self._a2_v20_arc_tracking_quality,
+                v20_carry_active,
+                0.95,
+            )
+            self.log_dict["a2_v20_reward_units_episode_sum"] = torch.ones(
+                (), device=self.device, dtype=torch.float32
+            )
 
     def _get_a2_axes_from_quat(self, quat, context):
         expected_shape = (self.num_envs, 4)
@@ -7987,6 +10193,93 @@ class DoorPregrasp(
                 )
             selected_episode_sums[name] = values[env_ids].detach().cpu().tolist()
         return float(control_dt), selected_episode_sums
+
+    def _get_a2_v20_diagnostic_fields(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        active = (
+            self._get_a2_v20_send_latch_enabled()
+            or self._get_a2_v20_traversal_economics_enabled()
+            or self._get_a2_v20_arm_tie_enabled()
+            or self._get_a2_v20_telemetry_enabled()
+        )
+        if not active:
+            return [{} for _ in env_ids.tolist()]
+        tensors = {
+            "send_ready": self._a2_v20_send_ready,
+            "first_send_ready_step": self._a2_v20_first_send_ready_step,
+            "pre_send_root_crossing": self._a2_v20_pre_send_crossing_seen,
+            "first_pre_send_crossing_step": self._a2_v20_first_pre_send_crossing_step,
+            "first_root_crossing_step": self._a2_v20_first_root_crossing_step,
+            "hinge_at_first_root_crossing": self._a2_v20_hinge_at_first_root_crossing,
+            "root_x_at_first_crossing": self._a2_v20_root_x_at_first_crossing,
+            "root_displacement_se2": self._a2_v20_max_pre_send_displacement_se2,
+            "carry_valid": self._a2_v20_taskspace_active & self._a2_v20_handle_tcp_capture_valid,
+            "arm_tangent_share": self._a2_v20_arm_tangent_share,
+            "arc_position_error_m": self._a2_v20_arc_position_error_m,
+            "arc_orientation_error_rad": self._a2_v20_arc_orientation_error_rad,
+            "arc_tracking_quality": self._a2_v20_arc_tracking_quality,
+            "handle_slip_valid": self._a2_v20_handle_slip_valid,
+            "along_handle_slip_m": self._a2_v20_along_handle_slip_m,
+            "orthogonal_arc_residual_m": self._a2_v20_orthogonal_arc_residual_m,
+        }
+        for name, value in tensors.items():
+            if not torch.is_tensor(value) or value.shape[0] != self.num_envs or value.device != torch.device(self.device):
+                raise RuntimeError(f"A2 v20 diagnostics requires device-local {name} with leading dimension num_envs.")
+        selected = {name: value[env_ids].detach().cpu() for name, value in tensors.items()}
+        records = []
+        for index in range(env_ids.numel()):
+            first_send = int(selected["first_send_ready_step"][index].item())
+            first_pre_send = int(selected["first_pre_send_crossing_step"][index].item())
+            first_crossing = int(selected["first_root_crossing_step"][index].item())
+            first_crossing_valid = first_crossing >= 0
+            carry_valid = bool(selected["carry_valid"][index].item())
+            records.append(
+                {
+                    "v20_send_ready": bool(selected["send_ready"][index].item()),
+                    "v20_first_send_ready_step": first_send if first_send >= 0 else None,
+                    "v20_pre_send_root_crossing": bool(selected["pre_send_root_crossing"][index].item()),
+                    "v20_first_pre_send_crossing_step": first_pre_send if first_pre_send >= 0 else None,
+                    "v20_first_root_crossing_step": first_crossing if first_crossing >= 0 else None,
+                    "v20_hinge_at_first_root_crossing": (
+                        float(selected["hinge_at_first_root_crossing"][index].item())
+                        if first_crossing_valid
+                        else None
+                    ),
+                    "v20_root_x_at_first_crossing": (
+                        float(selected["root_x_at_first_crossing"][index].item())
+                        if first_crossing_valid
+                        else None
+                    ),
+                    "v20_root_displacement_se2": selected["root_displacement_se2"][index].tolist(),
+                    "v20_carry_valid": carry_valid,
+                    "v20_arm_tangent_share": (
+                        float(selected["arm_tangent_share"][index].item()) if carry_valid else None
+                    ),
+                    "v20_handle_arc_position_error_m": (
+                        float(selected["arc_position_error_m"][index].item()) if carry_valid else None
+                    ),
+                    "v20_handle_arc_orientation_error_rad": (
+                        float(selected["arc_orientation_error_rad"][index].item()) if carry_valid else None
+                    ),
+                    "v20_arc_tracking_quality": (
+                        float(selected["arc_tracking_quality"][index].item()) if carry_valid else None
+                    ),
+                    "v20_handle_slip_valid": bool(
+                        selected["handle_slip_valid"][index].item()
+                    ),
+                    "v20_along_handle_slip_m": (
+                        float(selected["along_handle_slip_m"][index].item())
+                        if carry_valid and bool(selected["along_handle_slip_m"][index].isfinite())
+                        else None
+                    ),
+                    "v20_orthogonal_arc_residual_m": (
+                        float(selected["orthogonal_arc_residual_m"][index].item())
+                        if carry_valid and bool(selected["orthogonal_arc_residual_m"][index].isfinite())
+                        else None
+                    ),
+                }
+            )
+        return records
 
     def _get_a2_terminal_diagnostics(self, env_ids):
         env_ids = self._normalize_render_env_ids(env_ids)
@@ -8261,6 +10554,7 @@ class DoorPregrasp(
         )
         terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
         v14_telemetry_fields = self._get_a2_v14_telemetry_fields(env_ids)
+        v20_telemetry_fields = self._get_a2_v20_diagnostic_fields(env_ids)
         control_dt, selected_reward_episode_sums = (
             self._get_a2_reward_episode_sums_for_diagnostics(env_ids)
         )
@@ -8501,6 +10795,7 @@ class DoorPregrasp(
                 {
                     "env_id": int(env_id),
                     **v14_telemetry_fields[idx],
+                    **v20_telemetry_fields[idx],
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
@@ -8860,8 +11155,8 @@ class DoorPregrasp(
         if not isinstance(enabled, bool):
             raise RuntimeError(f"eval.a2_hold_oracle_enabled must be bool; got {enabled!r}.")
 
-        def positive_float(key):
-            value = eval_config.get(key, None)
+        def positive_float(key, default=None):
+            value = eval_config.get(key, default)
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise RuntimeError(f"eval.{key} must be a finite positive float; got {value!r}.")
             value = float(value)
@@ -8869,14 +11164,14 @@ class DoorPregrasp(
                 raise RuntimeError(f"eval.{key} must be a finite positive float; got {value!r}.")
             return value
 
-        def positive_int(key):
-            value = eval_config.get(key, None)
+        def positive_int(key, default=None):
+            value = eval_config.get(key, default)
             if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
                 raise RuntimeError(f"eval.{key} must be a positive int; got {value!r}.")
             return value
 
-        def finite_float(key):
-            value = eval_config.get(key, None)
+        def finite_float(key, default=None):
+            value = eval_config.get(key, default)
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise RuntimeError(f"eval.{key} must be a finite float; got {value!r}.")
             value = float(value)
@@ -8884,14 +11179,84 @@ class DoorPregrasp(
                 raise RuntimeError(f"eval.{key} must be a finite float; got {value!r}.")
             return value
 
-        def required_bool(key):
-            value = eval_config.get(key, None)
+        def required_bool(key, default=None):
+            value = eval_config.get(key, default)
             if not isinstance(value, bool):
                 raise RuntimeError(f"eval.{key} must be bool; got {value!r}.")
             return value
 
         config = {
             "enabled": enabled,
+            "v20_arc_probe_enabled": required_bool("a2_v20_arc_probe_enabled", False),
+            "v20_arc_probe_mode": eval_config.get("a2_v20_arc_probe_mode", "F0"),
+            "v20_arc_probe_target_hinge_rad": finite_float(
+                "a2_v20_arc_probe_target_hinge_rad", 0.9
+            ),
+            "v20_arc_probe_timeout_steps": positive_int(
+                "a2_v20_arc_probe_timeout_steps", 1200
+            ),
+            "v20_arc_probe_lead_rad": positive_float("a2_v20_arc_probe_lead_rad", 0.008),
+            "v20_arc_probe_max_orientation_step_rad": positive_float(
+                "a2_v20_arc_probe_max_orientation_step_rad", 0.02
+            ),
+            "v20_arc_probe_joint_target_step_max_rad": positive_float(
+                "a2_v20_arc_probe_joint_target_step_max_rad", 0.001
+            ),
+            "v20_arc_probe_terminal_window_steps": positive_int(
+                "a2_v20_arc_probe_terminal_window_steps", 10
+            ),
+            "v20_arc_probe_orientation_tolerance_rad": positive_float(
+                "a2_v20_arc_probe_orientation_tolerance_rad", 0.20
+            ),
+            "v20_arc_probe_relief_translation_max_m": positive_float(
+                "a2_v20_arc_probe_relief_translation_max_m", 0.10
+            ),
+            "v20_arc_probe_relief_yaw_max_rad": positive_float(
+                "a2_v20_arc_probe_relief_yaw_max_rad", 0.15
+            ),
+            "v20_arc_probe_handoff_root_speed_max_mps": positive_float(
+                "a2_v20_arc_probe_handoff_root_speed_max_mps", 0.20
+            ),
+            "v20_arc_probe_handoff_root_yaw_rate_max_radps": positive_float(
+                "a2_v20_arc_probe_handoff_root_yaw_rate_max_radps", 0.20
+            ),
+            "v20_arc_probe_handoff_streak_steps": positive_int(
+                "a2_v20_arc_probe_handoff_streak_steps",
+                5,
+            ),
+            "v20_arc_probe_relief_min_residual_m": positive_float(
+                "a2_v20_arc_probe_relief_min_residual_m", 0.002
+            ),
+            "v20_arc_probe_relief_min_yaw_residual_rad": positive_float(
+                "a2_v20_arc_probe_relief_min_yaw_residual_rad", 0.002
+            ),
+            "v20_arc_probe_relief_yaw_gain": positive_float(
+                "a2_v20_arc_probe_relief_yaw_gain", 5.0
+            ),
+            "v20_arc_probe_relief_yaw_speed_max_radps": positive_float(
+                "a2_v20_arc_probe_relief_yaw_speed_max_radps", 0.10
+            ),
+            "v20_arc_probe_root_hold_translation_gain": positive_float(
+                "a2_v20_arc_probe_root_hold_translation_gain", 10.0
+            ),
+            "v20_arc_probe_root_hold_translation_damping_gain": positive_float(
+                "a2_v20_arc_probe_root_hold_translation_damping_gain", 2.0
+            ),
+            "v20_arc_probe_root_hold_translation_speed_max_mps": positive_float(
+                "a2_v20_arc_probe_root_hold_translation_speed_max_mps", 0.50
+            ),
+            "v20_arc_probe_root_hold_yaw_gain": positive_float(
+                "a2_v20_arc_probe_root_hold_yaw_gain", 40.0
+            ),
+            "v20_arc_probe_root_hold_yaw_damping_gain": positive_float(
+                "a2_v20_arc_probe_root_hold_yaw_damping_gain", 2.0
+            ),
+            "v20_arc_probe_root_hold_yaw_speed_max_radps": positive_float(
+                "a2_v20_arc_probe_root_hold_yaw_speed_max_radps", 1.00
+            ),
+            "v20_arc_probe_f1_root_hold_scale": positive_float(
+                "a2_v20_arc_probe_f1_root_hold_scale", 1.00
+            ),
             "center_timeout_steps": positive_int("a2_hold_oracle_center_timeout_steps"),
             "center_position_tolerance_m": positive_float(
                 "a2_hold_oracle_center_position_tolerance_m"
@@ -9161,6 +11526,58 @@ class DoorPregrasp(
             if mismatched:
                 raise RuntimeError(
                     "A2 matched-clean reacquisition requires the exact approved protocol tuple; "
+                    f"mismatched={mismatched}."
+                )
+        if config["v20_arc_probe_enabled"]:
+            if not config["enabled"]:
+                raise RuntimeError("A2 v20 arc probe requires a2_hold_oracle_enabled=true.")
+            if config["v20_arc_probe_mode"] not in ("F0", "F1"):
+                raise RuntimeError("A2 v20 arc probe mode must be exactly F0 or F1.")
+            if config["v20_arc_probe_target_hinge_rad"] not in (0.9, 1.0, 1.1, 1.2):
+                raise RuntimeError(
+                    "A2 v20 arc probe target must be exactly one of 0.9/1.0/1.1/1.2 rad."
+                )
+            if any(
+                (
+                    config["static_clamp_enabled"],
+                    config["static_clamp_offset_probe_enabled"],
+                    config["open_stabilization_preflight_enabled"],
+                    config["matched_clean_reacquisition_preflight_enabled"],
+                )
+            ):
+                raise RuntimeError(
+                    "A2 v20 arc probe is mutually exclusive with all legacy diagnostic preflights."
+                )
+            exact = {
+                "v20_arc_probe_relief_translation_max_m": 0.10,
+                "v20_arc_probe_relief_yaw_max_rad": 0.15,
+                "v20_arc_probe_max_orientation_step_rad": 0.02,
+                "v20_arc_probe_joint_target_step_max_rad": 0.001,
+                "v20_arc_probe_root_hold_translation_damping_gain": 2.0,
+                "v20_arc_probe_root_hold_yaw_gain": 40.0,
+                "v20_arc_probe_root_hold_yaw_damping_gain": 2.0,
+                "v20_arc_probe_f1_root_hold_scale": 1.00,
+                "v20_arc_probe_handoff_streak_steps": A2_V20_STABLE_HANDOFF_STREAK_STEPS,
+                "v20_arc_probe_relief_min_residual_m": 0.002,
+                "v20_arc_probe_relief_min_yaw_residual_rad": 0.002,
+                "v20_arc_probe_relief_yaw_gain": 5.0,
+                "v20_arc_probe_relief_yaw_speed_max_radps": 0.10,
+                "max_position_step_m": 0.002,
+                "max_orientation_step_rad": 0.02,
+                "dls_lambda": 0.01,
+                "jacobian_condition_max": 1.0e6,
+                "joint_limit_margin": 1.0e-4,
+                "soft_limit_progress_tolerance": 1.0e-6,
+                "raw_action_abs_max": 10.0,
+            }
+            mismatched = {
+                key: (config[key], expected)
+                for key, expected in exact.items()
+                if config[key] != expected
+            }
+            if mismatched:
+                raise RuntimeError(
+                    "A2 v20 arc probe requires the preregistered protocol tuple; "
                     f"mismatched={mismatched}."
                 )
         return config
@@ -9646,6 +12063,86 @@ class DoorPregrasp(
         self._a2_hold_oracle_matched_clean_stabilize_override_mask = torch.zeros_like(
             self._a2_hold_oracle_matched_clean_release_active
         )
+        self._a2_v20_arc_probe_handle_to_tcp_pos = torch.zeros(
+            self.num_envs, 3, device=self.device
+        )
+        self._a2_v20_arc_probe_handle_to_tcp_quat = torch.zeros(
+            self.num_envs, 4, device=self.device
+        )
+        self._a2_v20_arc_probe_handle_to_tcp_quat[:, 0] = 1.0
+        self._a2_v20_arc_probe_capture_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_handoff_ready = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_handoff_streak = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v20_arc_probe_settle_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_settle_target_synced = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_settle_action_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_hold_target_se2 = torch.zeros(
+            self.num_envs, 3, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_relief_pending = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_target_update_applied = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_target_translation_delta = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_target_yaw_delta = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_yaw_residual = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_physical_yaw_command = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_f1_raw_yaw_command = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_root_capture_se2 = torch.zeros(
+            self.num_envs, 3, device=self.device
+        )
+        self._a2_v20_arc_probe_reference_hinge = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_root_translation_max = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_root_yaw_max = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_root_crossing = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_terminal_window_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v20_arc_probe_max_hinge = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_v20_arc_probe_max_body_force = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_max_arm_speed = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_v20_arc_probe_command_sequence = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v20_arc_probe_samples = [[] for _ in range(self.num_envs)]
         self._a2_hold_oracle_finalized = False
         self._a2_hold_oracle_post_override_action = None
         if not cfg["enabled"]:
@@ -11775,6 +14272,666 @@ class DoorPregrasp(
             "orientation_residual": orientation_residual,
         }
 
+    def _capture_a2_v20_arc_probe_gate(self, capture_mask: torch.Tensor) -> None:
+        if not torch.any(capture_mask):
+            return
+        if torch.any(self._a2_v20_arc_probe_capture_valid & capture_mask):
+            raise RuntimeError("A2 v20 arc probe settle reference cannot overwrite a formal capture.")
+        frames = self._get_a2_v20_piper_frame_data("A2 v20 arc probe capture")
+        relative_pos = frames["handle_to_tcp_pos"]
+        relative_quat = frames["handle_to_tcp_quat"]
+        frame_data = self._get_a2_v20_frame_data("A2 v20 arc probe capture")
+        root_se2 = self._a2_v20_current_root_se2(frame_data)
+        hinge_position = self._get_door_joint_pos(
+            "A2 v20 arc probe capture", 1
+        )[:, 0]
+        if not all(
+            torch.all(torch.isfinite(value))
+            for value in (relative_pos, relative_quat, root_se2, hinge_position)
+        ):
+            raise RuntimeError("A2 v20 arc probe capture produced non-finite state.")
+        self._a2_v20_arc_probe_handle_to_tcp_pos[capture_mask] = relative_pos[capture_mask]
+        self._a2_v20_arc_probe_handle_to_tcp_quat[capture_mask] = relative_quat[capture_mask]
+        self._a2_v20_arc_probe_root_capture_se2[capture_mask] = root_se2[capture_mask]
+        self._a2_v20_arc_probe_reference_hinge[capture_mask] = hinge_position[capture_mask]
+        self._a2_v20_arc_probe_f1_hold_target_se2[capture_mask] = root_se2[capture_mask]
+        self._a2_v20_arc_probe_f1_relief_pending[capture_mask] = False
+        self._a2_v20_arc_probe_f1_target_update_applied[capture_mask] = False
+        self._a2_v20_arc_probe_f1_target_translation_delta[capture_mask] = 0.0
+        self._a2_v20_arc_probe_f1_target_yaw_delta[capture_mask] = 0.0
+        self._a2_v20_arc_probe_f1_yaw_residual[capture_mask] = 0.0
+        self._a2_v20_arc_probe_f1_physical_yaw_command[capture_mask] = 0.0
+        self._a2_v20_arc_probe_f1_raw_yaw_command[capture_mask] = 0.0
+        self._a2_v20_arc_probe_capture_valid[capture_mask] = True
+
+    def _compute_a2_v20_arc_probe_joint_target(
+        self,
+        control_mask: torch.Tensor,
+        advance_mask: torch.Tensor,
+    ):
+        for mask, name in (
+            (control_mask, "control_mask"),
+            (advance_mask, "advance_mask"),
+        ):
+            if (
+                not torch.is_tensor(mask)
+                or tuple(mask.shape) != (self.num_envs,)
+                or mask.dtype != torch.bool
+                or mask.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    f"A2 v20 arc probe {name} requires a device-local bool vector."
+                )
+        if torch.any(advance_mask & ~control_mask):
+            raise RuntimeError("A2 v20 arc probe cannot advance outside its control mask.")
+        frames = self._get_a2_hold_oracle_world_frames()
+        piper_frames = self._get_a2_v20_piper_frame_data("A2 v20 arc probe target")
+        door_frame = self._get_a2_v20_frame_data("A2 v20 arc probe target")
+        handle_pos_source, handle_quat_source = subtract_frame_transforms(
+            door_frame["source_pos_w"],
+            door_frame["source_quat_w"],
+            piper_frames["target_pos_w"][:, 0, :],
+            piper_frames["target_quat_w"][:, 0, :],
+        )
+        hinge_position = self._get_door_joint_pos("A2 v20 arc probe target", 1)[:, 0]
+        target_pos_w, target_quat_w, lead_step, next_reference_hinge = (
+            a2_v20_arc_probe_target_pose(
+            door_frame["source_pos_w"],
+            door_frame["source_quat_w"],
+            handle_pos_source,
+            handle_quat_source,
+            self._a2_v20_arc_probe_handle_to_tcp_pos,
+            self._a2_v20_arc_probe_handle_to_tcp_quat,
+            self.door_width,
+            self.door_open_lr,
+            hinge_position,
+            self._a2_v20_arc_probe_reference_hinge,
+            advance_mask,
+            self._a2_hold_oracle_cfg["v20_arc_probe_target_hinge_rad"],
+            self._a2_hold_oracle_cfg["v20_arc_probe_lead_rad"],
+            )
+        )
+        self._a2_v20_arc_probe_reference_hinge[advance_mask] = (
+            next_reference_hinge[advance_mask]
+        )
+        source_pos_root, source_quat_root = subtract_frame_transforms(
+            frames["root_pos_w"], frames["root_quat_w"], piper_frames["source_pos_w"], piper_frames["source_quat_w"]
+        )
+        body_pos_root, _ = subtract_frame_transforms(
+            frames["root_pos_w"], frames["root_quat_w"], frames["body_pos_w"], frames["body_quat_w"]
+        )
+        target_pos_root, target_quat_root = subtract_frame_transforms(
+            frames["root_pos_w"], frames["root_quat_w"], target_pos_w, target_quat_w
+        )
+        jacobian = frames["robot"].root_physx_view.get_jacobians()[
+            :, self._a2_hold_oracle_jacobian_body_id, :, self._a2_hold_oracle_jacobian_joint_ids
+        ]
+        if tuple(jacobian.shape) != (self.num_envs, 6, 6) or not torch.all(torch.isfinite(jacobian)):
+            raise RuntimeError("A2 v20 arc probe requires finite Jacobian shape (N,6,6).")
+        jacobian_root = a2_hold_rotate_jacobian_to_root(jacobian, frames["root_quat_w"])
+        jacobian_root = a2_hold_apply_source_offset_to_jacobian(
+            jacobian_root, source_pos_root - body_pos_root
+        )
+        singular_values = torch.linalg.svdvals(jacobian_root)
+        condition = singular_values[:, 0] / singular_values[:, -1]
+        ik_valid = torch.isfinite(condition) & (
+            condition <= self._a2_hold_oracle_cfg["jacobian_condition_max"]
+        )
+        command_pos, command_quat, _, _, bounded_delta = a2_hold_bound_pose_command_step(
+            source_pos_root,
+            source_quat_root,
+            target_pos_root,
+            target_quat_root,
+            self._a2_hold_oracle_cfg["max_position_step_m"],
+            self._a2_hold_oracle_cfg["v20_arc_probe_max_orientation_step_rad"],
+        )
+        self._a2_hold_oracle_controller.set_command(torch.cat((command_pos, command_quat), dim=-1))
+        q_pre = frames["robot"].data.joint_pos[:, self._a2_hold_oracle_joint_ids].clone()
+        q_des = self._a2_hold_oracle_controller.compute(
+            source_pos_root, source_quat_root, jacobian_root, q_pre
+        )
+        if not torch.all(torch.isfinite(q_des)):
+            raise RuntimeError("A2 v20 arc probe DLS returned non-finite q_des.")
+        actual_rel_pos = piper_frames["handle_to_tcp_pos"]
+        actual_rel_quat = piper_frames["handle_to_tcp_quat"]
+        relative_position_error = torch.linalg.norm(
+            actual_rel_pos - self._a2_v20_arc_probe_handle_to_tcp_pos, dim=-1
+        )
+        relative_quat_error = quat_mul(
+            quat_inv(self._a2_v20_arc_probe_handle_to_tcp_quat), actual_rel_quat
+        )
+        relative_orientation_error = torch.linalg.norm(
+            axis_angle_from_quat(relative_quat_error), dim=-1
+        )
+        return (
+            q_des,
+            ik_valid,
+            singular_values,
+            condition,
+            target_pos_root,
+            target_quat_root,
+            relative_position_error,
+            relative_orientation_error,
+            command_pos,
+            command_quat,
+            torch.linalg.norm(bounded_delta[:, :3], dim=-1),
+            torch.linalg.norm(bounded_delta[:, 3:], dim=-1),
+            target_pos_w[:, :2] - piper_frames["source_pos_w"][:, :2],
+            frames["root_pos_w"][:, :2],
+            frames["root_quat_w"],
+            lead_step,
+            bounded_delta,
+            jacobian_root,
+            q_pre,
+            source_pos_root,
+            source_quat_root,
+            actual_rel_pos,
+            actual_rel_quat,
+        )
+
+    def _apply_a2_v20_arc_probe_action(
+        self,
+        policy_action: torch.Tensor,
+        first_episode_active_mask: torch.Tensor,
+        activate: torch.Tensor,
+    ):
+        cfg = self._a2_hold_oracle_cfg
+        wait_mask = self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE
+        settle_mask = torch.zeros_like(activate)
+        if torch.any(settle_mask & activate):
+            raise RuntimeError("A2 v20 arc-probe settle and capture masks must be disjoint.")
+        action = policy_action
+        if torch.any(settle_mask):
+            robot = self.simulator.scene.articulations["robot"]
+            settle_sync_mask = (
+                settle_mask & ~self._a2_v20_arc_probe_settle_target_synced
+            )
+            joint_ids = self._a2_hold_oracle_joint_ids
+            current_q = robot.data.joint_pos[:, joint_ids]
+            q_default = robot.data.default_joint_pos[:, joint_ids]
+            if q_default.shape[0] == 1:
+                q_default = q_default.repeat(self.num_envs, 1)
+            self._capture_a2_v20_arc_probe_gate(settle_sync_mask)
+            synchronized_settle_target = a2_v20_sync_arc_probe_cumulative_target(
+                current_q,
+                q_default,
+                self._delta_actions,
+                settle_sync_mask,
+            )
+            self._delta_actions[settle_sync_mask] = synchronized_settle_target[settle_sync_mask]
+            self._a2_v20_arc_probe_settle_target_synced[settle_sync_mask] = True
+            if torch.any(
+                settle_mask & ~self._a2_v20_arc_probe_settle_target_synced
+            ):
+                raise RuntimeError(
+                    "A2 v20 arc-probe DLS settle requires a captured reference."
+                )
+            settle_target_data = self._compute_a2_v20_arc_probe_joint_target(
+                settle_mask,
+                torch.zeros_like(settle_mask),
+            )
+            settle_q_des = settle_target_data[0]
+            settle_ik_valid = settle_target_data[1]
+            settle_current_target = current_q.clone()
+            settle_q_des = a2_v20_bound_joint_position_target_step(
+                settle_current_target,
+                settle_q_des,
+                settle_mask,
+                cfg["v20_arc_probe_joint_target_step_max_rad"],
+            )
+            hard_limits = robot.data.joint_pos_limits[:, joint_ids]
+            soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
+            settle_limit_valid, _, _ = a2_hold_progress_aware_joint_limit_masks(
+                current_q,
+                settle_q_des,
+                hard_limits,
+                soft_limits,
+                cfg["joint_limit_margin"],
+                cfg["joint_limit_margin"],
+                cfg["soft_limit_progress_tolerance"],
+            )
+            settle_d_des, settle_a_raw = a2_hold_absolute_target_to_cumulative_action(
+                settle_q_des,
+                q_default,
+                self._delta_actions,
+            )
+            settle_delta_ok = torch.all(
+                torch.abs(settle_d_des) <= 15.0,
+                dim=-1,
+            )
+            settle_raw_ok = torch.all(
+                torch.abs(settle_a_raw) <= cfg["raw_action_abs_max"],
+                dim=-1,
+            )
+            self._set_a2_hold_outcome(
+                settle_mask & ~settle_ik_valid,
+                "IK_INVALID",
+            )
+            self._set_a2_hold_outcome(
+                settle_mask & settle_ik_valid & ~settle_limit_valid,
+                "JOINT_LIMIT",
+            )
+            self._set_a2_hold_outcome(
+                settle_mask & (~settle_delta_ok | ~settle_raw_ok),
+                "IK_INVALID",
+            )
+            settle_pending = (
+                self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            )
+            settle_arm_mask = (
+                settle_mask
+                & settle_ik_valid
+                & settle_limit_valid
+                & settle_delta_ok
+                & settle_raw_ok
+                & settle_pending
+            )
+            action = a2_v20_apply_arc_probe_settle_action(action, settle_mask)
+            action[settle_arm_mask, 5:11] = settle_a_raw[settle_arm_mask]
+            self._a2_v20_arc_probe_settle_action_count[settle_mask] += 1
+        if torch.any(activate):
+            self._capture_a2_v20_arc_probe_gate(activate)
+            self._a2_hold_oracle_phase[activate] = A2_HOLD_PHASE_FOLLOW_PUSH
+            self._a2_hold_oracle_phase_step[activate] = 0
+        self._a2_v20_arc_probe_settle_active[activate] = False
+        self._a2_v20_arc_probe_settle_target_synced[activate] = False
+        active = (
+            self._a2_hold_oracle_activated
+            & first_episode_active_mask
+            & self._a2_v20_arc_probe_capture_valid
+            & (self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
+        )
+        if torch.any(active & settle_mask):
+            raise RuntimeError("A2 v20 arc-probe settle and active masks must be disjoint.")
+        if torch.any(active):
+            action = a2_hold_action_with_exact_disabled_equivalence(action, active)
+        if not torch.any(active):
+            self._a2_v20_arc_probe_f1_relief_pending.zero_()
+            self._a2_v20_arc_probe_f1_target_update_applied.zero_()
+            self._a2_hold_oracle_last_override_mask = settle_mask.clone()
+            self._a2_hold_oracle_post_override_action = action
+            return action, settle_mask
+
+        self._a2_v20_arc_probe_command_sequence[active] += 1
+        bilateral, contact_masks = self._a2_v20_arc_probe_bilateral_gate()
+        self._a2_hold_oracle_last_single_body7[active] = contact_masks[
+            "single_contact_arm_body7"
+        ][active]
+        self._a2_hold_oracle_last_single_body8[active] = contact_masks[
+            "single_contact_arm_body8"
+        ][active]
+        self._a2_hold_oracle_slip_steps[active] = torch.where(
+            bilateral[active],
+            torch.zeros_like(self._a2_hold_oracle_slip_steps[active]),
+            self._a2_hold_oracle_slip_steps[active] + 1,
+        )
+        door_joint_pos = self._get_door_joint_pos("A2 v20 arc probe", 1)[:, 0]
+        door_joint_vel = self._get_door_joint_vel("A2 v20 arc probe", 1)[:, 0]
+        self._a2_v20_arc_probe_max_hinge = torch.where(
+            torch.isnan(self._a2_v20_arc_probe_max_hinge),
+            door_joint_pos,
+            torch.maximum(self._a2_v20_arc_probe_max_hinge, door_joint_pos),
+        )
+        frame_data = self._get_a2_v20_frame_data("A2 v20 arc probe bounds")
+        if cfg["v20_arc_probe_mode"] == "F0":
+            root_se2 = self._apply_a2_v20_f0_planar_root_clamp(active, frame_data)
+        else:
+            root_se2 = self._a2_v20_current_root_se2(frame_data)
+        root_delta = root_se2 - self._a2_v20_arc_probe_root_capture_se2
+        root_translation = torch.linalg.norm(root_delta[:, :2], dim=-1)
+        root_yaw = torch.abs(wrap_to_pi(root_delta[:, 2]))
+        robot_data_for_hold = self.simulator.scene.articulations["robot"].data
+        self._a2_v20_arc_probe_root_translation_max = torch.maximum(
+            self._a2_v20_arc_probe_root_translation_max, root_translation
+        )
+        self._a2_v20_arc_probe_root_yaw_max = torch.maximum(
+            self._a2_v20_arc_probe_root_yaw_max, root_yaw
+        )
+        root_crossing = active & (root_se2[:, 0] > 0.0)
+        self._a2_v20_arc_probe_root_crossing |= root_crossing
+        self._set_a2_hold_outcome(root_crossing, "ARC_PROBE_ROOT_CROSSING")
+        translation_limit = (
+            0.02
+            if cfg["v20_arc_probe_mode"] == "F0"
+            else cfg["v20_arc_probe_relief_translation_max_m"]
+        )
+        yaw_limit = (
+            0.03
+            if cfg["v20_arc_probe_mode"] == "F0"
+            else cfg["v20_arc_probe_relief_yaw_max_rad"]
+        )
+        self._set_a2_hold_outcome(
+            active & ((root_translation > translation_limit) | (root_yaw > yaw_limit)),
+            "ARC_PROBE_ROOT_BOUND",
+        )
+        _, body_force = self._get_a2_door_body_panel_contact_forces()
+        self._a2_v20_arc_probe_max_body_force = torch.maximum(
+            self._a2_v20_arc_probe_max_body_force, body_force
+        )
+        body_threshold = self._get_a2_door_body_contact_event_config()[0]
+        self._set_a2_hold_outcome(
+            active & (body_force > body_threshold), "ARC_PROBE_BODY_COLLISION"
+        )
+        arm_velocity = torch.abs(
+            self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]
+        )
+        max_arm_speed = torch.max(arm_velocity, dim=-1).values
+        self._a2_v20_arc_probe_max_arm_speed = torch.maximum(
+            self._a2_v20_arc_probe_max_arm_speed, max_arm_speed
+        )
+        overspeed_threshold = torch.clamp(
+            self.termination_level * 20.0, min=A2_ARM_DOF_OVERSPEED_HARD_FLOOR
+        )
+        self._set_a2_hold_outcome(
+            active & torch.any(arm_velocity > overspeed_threshold, dim=-1),
+            "ARC_PROBE_OVERSPEED",
+        )
+        target_reached = active & (
+            door_joint_pos >= cfg["v20_arc_probe_target_hinge_rad"]
+        )
+        self._a2_v20_arc_probe_terminal_window_count[active] = torch.where(
+            target_reached[active] & bilateral[active],
+            self._a2_v20_arc_probe_terminal_window_count[active] + 1,
+            torch.zeros_like(self._a2_v20_arc_probe_terminal_window_count[active]),
+        )
+        probe_complete = active & (
+            self._a2_v20_arc_probe_terminal_window_count
+            >= cfg["v20_arc_probe_terminal_window_steps"]
+        )
+        self._set_a2_hold_outcome(
+            active & (self._a2_hold_oracle_phase_step >= cfg["v20_arc_probe_timeout_steps"]),
+            "ARC_PROBE_TIMEOUT",
+        )
+        self._set_a2_hold_outcome(probe_complete, "ARC_PROBE_REACHED")
+        self._a2_v20_arc_probe_f1_target_update_applied.zero_()
+        hold_target = (
+            self._a2_v20_arc_probe_root_capture_se2
+            if cfg["v20_arc_probe_mode"] == "F0"
+            else self._a2_v20_arc_probe_f1_hold_target_se2
+        )
+        active &= self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        if not torch.any(active):
+            self._a2_v20_arc_probe_f1_relief_pending.zero_()
+            self._a2_hold_oracle_last_override_mask = settle_mask.clone()
+            self._a2_hold_oracle_post_override_action = action
+            return action, settle_mask
+        (
+            q_des, ik_valid, singular_values, condition, target_pos_root,
+            target_quat_root, pos_error, orientation_error, command_pos,
+            command_quat, bounded_position_step, bounded_orientation_step,
+            horizontal_error_w, root_xy_w, root_quat_w, lead_step, bounded_delta,
+            jacobian_root, q_pre, source_pos_root, source_quat_root,
+            current_handle_to_tcp_pos, current_handle_to_tcp_quat,
+        ) = self._compute_a2_v20_arc_probe_joint_target(active, active)
+        robot = self.simulator.scene.articulations["robot"]
+        joint_ids = self._a2_hold_oracle_joint_ids
+        current_q = robot.data.joint_pos[:, joint_ids]
+        q_raw_dls = q_des.clone()
+        q_default = robot.data.default_joint_pos[:, joint_ids]
+        if q_default.shape[0] == 1:
+            q_default = q_default.repeat(self.num_envs, 1)
+        d_prev = a2_v20_sync_arc_probe_cumulative_target(
+            current_q,
+            q_default,
+            self._delta_actions,
+            activate,
+        )
+        self._delta_actions[active] = d_prev[active]
+        current_target = robot.data.joint_pos_target[:, joint_ids].clone()
+        current_target[active] = current_q[active]
+        q_des = a2_v20_bound_joint_position_target_step(
+            current_target,
+            q_des,
+            active,
+            cfg["v20_arc_probe_joint_target_step_max_rad"],
+        )
+        q_executed = q_des.clone()
+        dls_realization = a2_v20_arc_probe_dls_realization_telemetry(
+            [robot.joint_names[joint_id] for joint_id in joint_ids],
+            jacobian_root,
+            q_pre,
+            q_raw_dls,
+            q_executed,
+            source_pos_root,
+            source_quat_root,
+            bounded_delta,
+            current_handle_to_tcp_pos,
+            current_handle_to_tcp_quat,
+        )
+        hard_limits = robot.data.joint_pos_limits[:, joint_ids]
+        soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
+        limit_valid, _, _ = a2_hold_progress_aware_joint_limit_masks(
+            robot.data.joint_pos[:, joint_ids], q_des, hard_limits, soft_limits,
+            cfg["joint_limit_margin"], cfg["joint_limit_margin"],
+            cfg["soft_limit_progress_tolerance"],
+        )
+        d_des, a_raw = a2_hold_absolute_target_to_cumulative_action(q_des, q_default, d_prev)
+        delta_ok = torch.all(torch.abs(d_des) <= 15.0, dim=-1)
+        raw_ok = torch.all(torch.abs(a_raw) <= cfg["raw_action_abs_max"], dim=-1)
+        self._set_a2_hold_outcome(active & ~ik_valid, "IK_INVALID")
+        self._set_a2_hold_outcome(active & (~delta_ok | ~raw_ok), "IK_INVALID")
+        relief_candidate = active & ik_valid & ~limit_valid & delta_ok & raw_ok
+        relief_command = a2_v20_f1_relief_command(
+            horizontal_error_w,
+            bounded_delta,
+            robot_data_for_hold.root_quat_w,
+            relief_candidate if cfg["v20_arc_probe_mode"] == "F1" else torch.zeros_like(relief_candidate),
+            cfg["base_relief_speed_mps"],
+            self._a2_base_command_scale,
+            cfg["v20_arc_probe_relief_min_residual_m"],
+            cfg["v20_arc_probe_relief_min_yaw_residual_rad"],
+            cfg["v20_arc_probe_relief_yaw_gain"],
+            cfg["v20_arc_probe_relief_yaw_speed_max_radps"],
+        )
+        horizontal_residual = relief_command["horizontal_residual_m"]
+        relief_solvable = relief_command["solvable"]
+        relief_velocity = relief_command["commanded_body_velocity"]
+        relief_raw = relief_command["raw_command"]
+        self._a2_v20_arc_probe_f1_yaw_residual[:] = relief_command["yaw_residual_rad"]
+        self._a2_v20_arc_probe_f1_physical_yaw_command[:] = relief_command[
+            "physical_yaw_command_radps"
+        ]
+        self._a2_v20_arc_probe_f1_raw_yaw_command[:] = relief_command[
+            "raw_yaw_command"
+        ]
+        if cfg["v20_arc_probe_mode"] == "F0":
+            self._set_a2_hold_outcome(relief_candidate, "JOINT_LIMIT")
+            relief_mask = torch.zeros_like(active)
+            self._a2_v20_arc_probe_f1_yaw_residual.zero_()
+            self._a2_v20_arc_probe_f1_physical_yaw_command.zero_()
+            self._a2_v20_arc_probe_f1_raw_yaw_command.zero_()
+            relief_raw.zero_()
+        else:
+            self._set_a2_hold_outcome(relief_candidate & ~relief_solvable, "JOINT_LIMIT")
+            relief_mask = relief_candidate & relief_solvable
+        probe_outcome_pending = (
+            self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        )
+        if cfg["v20_arc_probe_mode"] == "F1":
+            updated_target, target_update = a2_v20_update_f1_hold_target(
+                self._a2_v20_arc_probe_f1_hold_target_se2,
+                self._a2_v20_arc_probe_root_capture_se2,
+                root_se2,
+                self._a2_v20_arc_probe_f1_relief_pending,
+                probe_outcome_pending,
+                root_translation,
+                root_yaw,
+                cfg["v20_arc_probe_relief_translation_max_m"],
+                cfg["v20_arc_probe_relief_yaw_max_rad"],
+            )
+            self._a2_v20_arc_probe_f1_hold_target_se2[:] = updated_target
+            self._a2_v20_arc_probe_f1_target_update_applied[:] = target_update
+        else:
+            self._a2_v20_arc_probe_f1_relief_pending.zero_()
+        target_delta = (
+            self._a2_v20_arc_probe_f1_hold_target_se2
+            - self._a2_v20_arc_probe_root_capture_se2
+        )
+        self._a2_v20_arc_probe_f1_target_translation_delta[:] = torch.linalg.norm(
+            target_delta[:, :2], dim=-1
+        )
+        self._a2_v20_arc_probe_f1_target_yaw_delta[:] = torch.abs(
+            wrap_to_pi(target_delta[:, 2])
+        )
+        # A pending relief is consumed exactly by this next call, regardless of
+        # whether the post-physics legality checks admitted the update.
+        self._a2_v20_arc_probe_f1_relief_pending.zero_()
+        hold_target = (
+            self._a2_v20_arc_probe_root_capture_se2
+            if cfg["v20_arc_probe_mode"] == "F0"
+            else self._a2_v20_arc_probe_f1_hold_target_se2
+        )
+        root_hold_raw = a2_v20_root_hold_raw_command(
+            root_se2,
+            hold_target,
+            frame_data["source_quat_w"],
+            robot_data_for_hold.root_quat_w,
+            robot_data_for_hold.root_lin_vel_w,
+            robot_data_for_hold.root_ang_vel_w,
+            active,
+            self._a2_base_command_scale,
+            cfg["v20_arc_probe_root_hold_translation_gain"],
+            cfg["v20_arc_probe_root_hold_translation_damping_gain"],
+            cfg["v20_arc_probe_root_hold_translation_speed_max_mps"],
+            cfg["v20_arc_probe_root_hold_yaw_gain"],
+            cfg["v20_arc_probe_root_hold_yaw_damping_gain"],
+            cfg["v20_arc_probe_root_hold_yaw_speed_max_radps"],
+        )
+        pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        arm_mask = active & ik_valid & limit_valid & delta_ok & raw_ok & pending
+        relief_mask &= pending
+        if cfg["v20_arc_probe_mode"] == "F0":
+            probe_base_raw = torch.zeros_like(root_hold_raw)
+        else:
+            probe_base_raw = (
+                root_hold_raw * cfg["v20_arc_probe_f1_root_hold_scale"]
+            )
+        relief_raw = relief_raw.clone()
+        if cfg["v20_arc_probe_mode"] == "F0":
+            # F0 is the strict fixed-planar-root control: yaw must be exactly zero.
+            relief_raw.zero_()
+        action, override_mask = a2_hold_apply_oracle_branch_actions(
+            action, arm_mask, relief_mask, a_raw, relief_raw,
+            (0, 5), (5, 11), 11,
+        )
+        if torch.any(override_mask & settle_mask):
+            raise RuntimeError("A2 v20 arc-probe settle and active masks must be disjoint.")
+        combined_override_mask = override_mask | settle_mask
+        action[arm_mask, :5] = probe_base_raw[arm_mask]
+        executed_q_target = torch.where(
+            arm_mask[:, None], q_des, robot.data.joint_pos_target[:, joint_ids]
+        )
+        executed_limit_valid, _, _ = a2_hold_progress_aware_joint_limit_masks(
+            robot.data.joint_pos[:, joint_ids],
+            executed_q_target,
+            hard_limits,
+            soft_limits,
+            cfg["joint_limit_margin"],
+            cfg["joint_limit_margin"],
+            cfg["soft_limit_progress_tolerance"],
+        )
+        self._a2_hold_oracle_q_des[:] = q_des
+        self._a2_hold_oracle_d_des[:] = d_des
+        self._a2_hold_oracle_d_prev[:] = d_prev
+        self._a2_hold_oracle_a_raw.zero_()
+        self._a2_hold_oracle_a_raw[arm_mask] = a_raw[arm_mask]
+        self._a2_hold_oracle_target_pos_root[:] = target_pos_root
+        self._a2_hold_oracle_target_quat_root[:] = target_quat_root
+        self._a2_hold_oracle_bounded_command_pos_root[:] = command_pos
+        self._a2_hold_oracle_bounded_command_quat_root[:] = command_quat
+        self._a2_hold_oracle_bounded_position_step[:] = bounded_position_step
+        self._a2_hold_oracle_bounded_orientation_step[:] = bounded_orientation_step
+        self._a2_hold_oracle_position_residual[:] = pos_error
+        self._a2_hold_oracle_orientation_residual[:] = orientation_error
+        self._a2_hold_oracle_singular_values[:] = singular_values
+        self._a2_hold_oracle_jacobian_condition[:] = condition
+        self._a2_hold_oracle_ik_valid[:] = ik_valid
+        self._a2_hold_oracle_limit_valid[:] = limit_valid
+        self._a2_hold_oracle_delta_ok[:] = delta_ok
+        self._a2_hold_oracle_raw_ok[:] = raw_ok
+        self._a2_hold_oracle_horizontal_residual[:] = horizontal_residual
+        self._a2_hold_oracle_base_relief_body_velocity_command[:] = relief_velocity
+        self._a2_hold_oracle_base_relief_raw_command[:] = relief_raw
+        self._a2_hold_oracle_arm_dls_branch[:] = arm_mask
+        self._a2_hold_oracle_base_relief_branch_applied[:] = relief_mask
+        self._a2_v20_arc_probe_f1_relief_pending[:] = (
+            relief_mask & (cfg["v20_arc_probe_mode"] == "F1")
+        )
+        self._a2_hold_oracle_phase_step[override_mask] += 1
+        joint_margin = torch.minimum(
+            robot.data.joint_pos[:, joint_ids] - hard_limits[..., 0],
+            hard_limits[..., 1] - robot.data.joint_pos[:, joint_ids],
+        ).amin(dim=-1)
+        arm_joint_tracking_residual = a2_v20_arc_probe_arm_joint_tracking_residual(
+            [robot.joint_names[joint_id] for joint_id in joint_ids],
+            robot.data.joint_pos_target[:, joint_ids],
+            robot.data.joint_pos[:, joint_ids],
+        )
+        for env_id in torch.nonzero(active, as_tuple=False).flatten().tolist():
+            self._a2_v20_arc_probe_samples[env_id].append(
+                {
+                    "step": int(self._a2_hold_oracle_phase_step[env_id].item()),
+                    "hinge_position_rad": float(door_joint_pos[env_id].item()),
+                    "v20_arc_probe_command_sequence": int(self._a2_v20_arc_probe_command_sequence[env_id].item()),
+                    "v20_arc_probe_arm_joint_order": [f"arm_j{index}" for index in range(1, 7)],
+                    "v20_arc_probe_raw_dls_q_des_rad": dls_realization["q_raw_dls"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_executed_q_des_rad": dls_realization["q_executed"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_pre_command_q_rad": dls_realization["q_pre"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_pre_command_source_pos_root_m": dls_realization["source_pos_root"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_pre_command_source_quat_root_wxyz": dls_realization["source_quat_root"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_bounded_cartesian_delta_root": dls_realization["bounded_cartesian_delta_root"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_jacobian_root_twist_order": "linear_xyz_angular_xyz",
+                    "v20_arc_probe_jacobian_predicted_twist_raw_root": dls_realization["raw_predicted_twist_root"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_jacobian_predicted_twist_executed_root": dls_realization["executed_predicted_twist_root"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_current_t_handle_tcp_pos": dls_realization["current_handle_to_tcp_pos"][env_id].detach().cpu().tolist(),
+                    "v20_arc_probe_current_t_handle_tcp_quat_wxyz": dls_realization["current_handle_to_tcp_quat"][env_id].detach().cpu().tolist(),
+                    "hinge_speed_radps": float(door_joint_vel[env_id].item()),
+                    "bilateral_contact": bool(bilateral[env_id].item()),
+                    "tcp_handle_position_error_m": float(pos_error[env_id].item()),
+                    "tcp_handle_orientation_error_rad": float(orientation_error[env_id].item()),
+                    "jacobian_condition": float(condition[env_id].item()),
+                    "joint_margin_rad": float(joint_margin[env_id].item()),
+                    "v20_arc_probe_arm_joint_tracking_residual_target_minus_actual_rad": (
+                        arm_joint_tracking_residual[env_id].detach().cpu().tolist()
+                    ),
+                    "joint_limit_valid": bool(executed_limit_valid[env_id].item()),
+                    "candidate_joint_target_valid": bool(limit_valid[env_id].item()),
+                    "delta_action_valid": bool(delta_ok[env_id].item()),
+                    "raw_action_valid": bool(raw_ok[env_id].item()),
+                    "root_translation_m": float(root_translation[env_id].item()),
+                    "root_yaw_rad": float(root_yaw[env_id].item()),
+                    "v20_arc_probe_handoff_streak_steps": int(
+                        self._a2_v20_arc_probe_handoff_streak[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_yaw_residual_rad": float(
+                        self._a2_v20_arc_probe_f1_yaw_residual[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_physical_yaw_command_radps": float(
+                        self._a2_v20_arc_probe_f1_physical_yaw_command[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_raw_yaw_command": float(
+                        self._a2_v20_arc_probe_f1_raw_yaw_command[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_capture_to_target_translation_delta_m": float(
+                        self._a2_v20_arc_probe_f1_target_translation_delta[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_capture_to_target_yaw_delta_rad": float(
+                        self._a2_v20_arc_probe_f1_target_yaw_delta[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_target_update_applied": bool(
+                        self._a2_v20_arc_probe_f1_target_update_applied[env_id].item()
+                    ),
+                    "root_x_door": float(root_se2[env_id, 0].item()),
+                    "door_body_force_n": float(body_force[env_id].item()),
+                    "arm_speed_max_radps": float(max_arm_speed[env_id].item()),
+                    "lead_step_rad": float(lead_step[env_id].item()),
+                    "branch": "arm_dls" if bool(arm_mask[env_id].item()) else "base_relief",
+                }
+            )
+        self._a2_hold_oracle_last_override_mask = combined_override_mask.clone()
+        self._a2_hold_oracle_post_override_action = action.detach().clone()
+        return action, combined_override_mask
+
     def _compute_a2_hold_oracle_joint_target(
         self, target_local_offset: torch.Tensor, active_mask: torch.Tensor
     ):
@@ -12213,6 +15370,124 @@ class DoorPregrasp(
         self._a2_hold_oracle_post_override_action = action
         return action, combined_override
 
+    def _a2_v20_arc_probe_bilateral_gate(self):
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "A2 v20 arc-probe bilateral gate"
+        )
+        bilateral = (
+            contact_masks["both_contact"]
+            & contact_masks["squeeze_window"]
+            & self._get_a2_stage3_stage4_contact_stability_mask()
+            & ~contact_masks["over_force"]
+        )
+        return bilateral, contact_masks
+
+    def update_a2_eval_hold_oracle_after_step(
+        self,
+        first_episode_active_mask: torch.Tensor,
+        done_mask: torch.Tensor,
+    ) -> None:
+        """Latch a stable live-grasp handoff after physics and before reset."""
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg["enabled"]:
+            raise RuntimeError(
+                "A2 hold-oracle post-step update requires an initialized enabled oracle."
+            )
+        for value, name in (
+            (first_episode_active_mask, "first_episode_active_mask"),
+            (done_mask, "done_mask"),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.dtype != torch.bool
+                or value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    f"A2 hold-oracle post-step {name} requires a device-local bool "
+                    f"vector of shape ({self.num_envs},)."
+                )
+        if not cfg.get("v20_arc_probe_enabled", False):
+            return
+        probe_pending = (
+            self._a2_hold_oracle_activated
+            & first_episode_active_mask
+            & (self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
+        )
+        terminal_reason_bufs = getattr(self, "_terminal_reason_bufs", None)
+        if not isinstance(terminal_reason_bufs, dict) or "upper_dof_overspeed" not in terminal_reason_bufs:
+            raise RuntimeError(
+                "A2 v20 arc-probe post-step update requires upper_dof_overspeed terminal telemetry."
+            )
+        post_step_arm_speed = torch.max(
+            torch.abs(self.simulator.dof_vel[:, self._upper_non_gripper_dof_idx]),
+            dim=-1,
+        ).values
+        robot = self.simulator.scene.articulations["robot"]
+        arm_joint_target = robot.data.joint_pos_target[
+            :, self._a2_hold_oracle_joint_ids
+        ]
+        arm_joint_pos = robot.data.joint_pos[:, self._a2_hold_oracle_joint_ids]
+        arm_joint_tracking_residual = a2_v20_arc_probe_arm_joint_tracking_residual(
+            [robot.joint_names[joint_id] for joint_id in self._a2_hold_oracle_joint_ids],
+            arm_joint_target,
+            arm_joint_pos,
+        )
+        target_minus_actual_max_abs_rad = torch.max(
+            torch.abs(arm_joint_tracking_residual), dim=-1
+        ).values
+        arm_settled = a2_v20_arm_settled_handoff_mask(
+            post_step_arm_speed,
+            target_minus_actual_max_abs_rad,
+            cfg["v20_arc_probe_joint_target_step_max_rad"],
+            self.dt,
+        )
+        self._a2_v20_arc_probe_max_arm_speed = torch.where(
+            probe_pending,
+            torch.maximum(
+                self._a2_v20_arc_probe_max_arm_speed,
+                post_step_arm_speed,
+            ),
+            self._a2_v20_arc_probe_max_arm_speed,
+        )
+        self._set_a2_hold_outcome(
+            probe_pending
+            & done_mask
+            & terminal_reason_bufs["upper_dof_overspeed"],
+            "ARC_PROBE_OVERSPEED",
+        )
+        bilateral_contact_valid, _ = self._a2_v20_arc_probe_bilateral_gate()
+        settle_eligible = (
+            (self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE)
+            & (first_episode_active_mask & ~done_mask)
+            & (self.stage_buf == self.STAGE_OPEN)
+        )
+        settle_candidate = (
+            settle_eligible
+            & self._get_a2_hold_streak_ok_mask()
+            & bilateral_contact_valid
+        )
+        self._a2_v20_arc_probe_settle_active.zero_()
+        self._a2_v20_arc_probe_settle_target_synced.zero_()
+        root_speed = torch.linalg.norm(robot.data.root_lin_vel_w[:, :2], dim=-1)
+        root_yaw_rate = torch.abs(robot.data.root_ang_vel_w[:, 2])
+        stable_root = (
+            root_speed <= cfg["v20_arc_probe_handoff_root_speed_max_mps"]
+        ) & (
+            root_yaw_rate <= cfg["v20_arc_probe_handoff_root_yaw_rate_max_radps"]
+        )
+        qualifying = (
+            settle_candidate
+            & stable_root
+        )
+        updated_streak, handoff = a2_v20_update_stable_handoff_streak(
+            self._a2_v20_arc_probe_handoff_streak,
+            qualifying,
+            cfg["v20_arc_probe_handoff_streak_steps"],
+        )
+        self._a2_v20_arc_probe_handoff_streak[:] = updated_streak
+        self._a2_v20_arc_probe_handoff_ready |= handoff
+
     def apply_a2_eval_hold_oracle_action_override(
         self, policy_action: torch.Tensor, first_episode_active_mask: torch.Tensor
     ):
@@ -12236,14 +15511,21 @@ class DoorPregrasp(
         ):
             raise RuntimeError("A2 hold oracle first-episode mask contract mismatch.")
 
-        close_gate = self._get_a2_stage2_close_reward_gate()
         wait_mask = self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE
-        activate = (
-            wait_mask
-            & first_episode_active_mask
-            & (self.stage_buf == self.STAGE_GRASP)
-            & close_gate
-        )
+        if cfg.get("v20_arc_probe_enabled", False):
+            activate = a2_v20_arc_probe_activation_mask(
+                wait_mask,
+                first_episode_active_mask,
+                self._a2_v20_arc_probe_handoff_ready,
+            )
+        else:
+            close_gate = self._get_a2_stage2_close_reward_gate()
+            activate = (
+                wait_mask
+                & first_episode_active_mask
+                & (self.stage_buf == self.STAGE_GRASP)
+                & close_gate
+            )
         if cfg["matched_clean_reacquisition_preflight_enabled"]:
             return self._apply_a2_matched_clean_reacquisition_action(
                 policy_action, first_episode_active_mask, activate
@@ -12275,6 +15557,10 @@ class DoorPregrasp(
 
         ended_without_gate = wait_mask & ~first_episode_active_mask
         self._set_a2_hold_outcome(ended_without_gate, "NO_GATE")
+        if cfg.get("v20_arc_probe_enabled", False):
+            return self._apply_a2_v20_arc_probe_action(
+                policy_action, first_episode_active_mask, activate
+            )
         if cfg["open_stabilization_preflight_enabled"]:
             return self._apply_a2_open_stabilization_action(
                 policy_action, first_episode_active_mask, activate
@@ -12674,6 +15960,11 @@ class DoorPregrasp(
                 and self._a2_hold_oracle_last_override_mask[env_id].item()
             ):
                 control_branch = "STATIC_CLAMP"
+            elif (
+                cfg.get("v20_arc_probe_enabled", False)
+                and self._a2_v20_arc_probe_settle_active[env_id].item()
+            ):
+                control_branch = "ARC_PROBE_SETTLE"
             elif self._a2_hold_oracle_arm_dls_branch[env_id].item():
                 control_branch = "ARM_DLS"
             elif self._a2_hold_oracle_base_relief_branch_applied[env_id].item():
@@ -12683,6 +15974,65 @@ class DoorPregrasp(
             records.append(
                 {
                     "hold_oracle_tcp_offset_z": cfg["tcp_offset_z"],
+                    "v20_arc_probe_enabled": cfg["v20_arc_probe_enabled"],
+                    "v20_arc_probe_mode": cfg["v20_arc_probe_mode"],
+                    "v20_arc_probe_target_hinge_rad": cfg[
+                        "v20_arc_probe_target_hinge_rad"
+                    ],
+                    "v20_arc_probe_capture_valid": bool(
+                        self._a2_v20_arc_probe_capture_valid[env_id].item()
+                    ),
+                    "v20_arc_probe_handoff_ready": bool(
+                        self._a2_v20_arc_probe_handoff_ready[env_id].item()
+                    ),
+                    "v20_arc_probe_handoff_streak_steps": int(
+                        self._a2_v20_arc_probe_handoff_streak[env_id].item()
+                    ),
+                    "v20_arc_probe_settle_active": bool(
+                        self._a2_v20_arc_probe_settle_active[env_id].item()
+                    ),
+                    "v20_arc_probe_settle_action_count": int(
+                        self._a2_v20_arc_probe_settle_action_count[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_yaw_residual_rad": float(
+                        self._a2_v20_arc_probe_f1_yaw_residual[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_physical_yaw_command_radps": float(
+                        self._a2_v20_arc_probe_f1_physical_yaw_command[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_raw_yaw_command": float(
+                        self._a2_v20_arc_probe_f1_raw_yaw_command[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_capture_to_target_translation_delta_m": float(
+                        self._a2_v20_arc_probe_f1_target_translation_delta[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_capture_to_target_yaw_delta_rad": float(
+                        self._a2_v20_arc_probe_f1_target_yaw_delta[env_id].item()
+                    ),
+                    "v20_arc_probe_f1_target_update_applied": bool(
+                        self._a2_v20_arc_probe_f1_target_update_applied[env_id].item()
+                    ),
+                    "v20_arc_probe_root_translation_max_m": float(
+                        self._a2_v20_arc_probe_root_translation_max[env_id].item()
+                    ),
+                    "v20_arc_probe_root_yaw_max_rad": float(
+                        self._a2_v20_arc_probe_root_yaw_max[env_id].item()
+                    ),
+                    "v20_arc_probe_root_crossing": bool(
+                        self._a2_v20_arc_probe_root_crossing[env_id].item()
+                    ),
+                    "v20_arc_probe_terminal_window_count": int(
+                        self._a2_v20_arc_probe_terminal_window_count[env_id].item()
+                    ),
+                    "v20_arc_probe_max_hinge_rad": a2_hold_nullable_tensor_list(
+                        self._a2_v20_arc_probe_max_hinge[env_id]
+                    ),
+                    "v20_arc_probe_max_body_force_n": float(
+                        self._a2_v20_arc_probe_max_body_force[env_id].item()
+                    ),
+                    "v20_arc_probe_max_arm_speed_radps": float(
+                        self._a2_v20_arc_probe_max_arm_speed[env_id].item()
+                    ),
                     "hold_oracle_tcp_offset_label": (
                         "measured finger-collider longitudinal midpoint"
                         if cfg["tcp_offset_z"] == 0.09755
@@ -13117,6 +16467,94 @@ class DoorPregrasp(
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
         if cfg is None or not cfg["enabled"]:
             raise RuntimeError("A2 hold oracle summary requested while oracle is disabled.")
+        if cfg.get("v20_arc_probe_enabled", False):
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            no_gate = pending & ~self._a2_hold_oracle_activated
+            self._a2_hold_oracle_outcome[no_gate] = A2_HOLD_OUTCOME_TO_ID["NO_GATE"]
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            self._a2_hold_oracle_outcome[pending] = A2_HOLD_OUTCOME_TO_ID[
+                "ARC_PROBE_TIMEOUT"
+            ]
+            names = [
+                A2_HOLD_OUTCOME_NAMES[int(value)]
+                for value in self._a2_hold_oracle_outcome.detach().cpu().tolist()
+            ]
+            return {
+                "schema": "a2_piper_v20_arc_probe_runtime_v1",
+                "config": dict(cfg),
+                "state_machine": "WAIT_GATE->CAPTURE_HANDLE_TO_TCP->FOLLOW_LIVE_CIRCULAR_ARC->STOP",
+                "target_pose_semantic": (
+                    "door-root FrameTransformer live handle pose; one-step positive-hinge "
+                    "circular arc; captured handle-to-TCP relative pose; Cartesian DLS"
+                ),
+                "per_env_outcome": names,
+                "outcome_counts": a2_hold_summarize_outcomes(names),
+                "per_env_capture_valid": self._a2_v20_arc_probe_capture_valid.detach()
+                .cpu()
+                .tolist(),
+                "per_env_handoff_ready": self._a2_v20_arc_probe_handoff_ready.detach()
+                .cpu()
+                .tolist(),
+                "per_env_handoff_streak_steps": self._a2_v20_arc_probe_handoff_streak.detach()
+                .cpu()
+                .tolist(),
+                "per_env_settle_active": self._a2_v20_arc_probe_settle_active.detach()
+                .cpu()
+                .tolist(),
+                "per_env_settle_action_count": self._a2_v20_arc_probe_settle_action_count.detach()
+                .cpu()
+                .tolist(),
+                "per_env_f1_hold_target_se2": a2_hold_nullable_tensor_list(
+                    self._a2_v20_arc_probe_f1_hold_target_se2
+                ),
+                "per_env_f1_capture_to_target_translation_delta_m": self._a2_v20_arc_probe_f1_target_translation_delta.detach()
+                .cpu()
+                .tolist(),
+                "per_env_f1_capture_to_target_yaw_delta_rad": self._a2_v20_arc_probe_f1_target_yaw_delta.detach()
+                .cpu()
+                .tolist(),
+                "per_env_f1_yaw_residual_rad": self._a2_v20_arc_probe_f1_yaw_residual.detach()
+                .cpu()
+                .tolist(),
+                "per_env_f1_physical_yaw_command_radps": self._a2_v20_arc_probe_f1_physical_yaw_command.detach()
+                .cpu()
+                .tolist(),
+                "per_env_f1_raw_yaw_command": self._a2_v20_arc_probe_f1_raw_yaw_command.detach()
+                .cpu()
+                .tolist(),
+                "per_env_f1_target_update_applied": self._a2_v20_arc_probe_f1_target_update_applied.detach()
+                .cpu()
+                .tolist(),
+                "per_env_root_capture_se2": a2_hold_nullable_tensor_list(
+                    self._a2_v20_arc_probe_root_capture_se2
+                ),
+                "per_env_root_translation_max_m": self._a2_v20_arc_probe_root_translation_max.detach()
+                .cpu()
+                .tolist(),
+                "per_env_root_yaw_max_rad": self._a2_v20_arc_probe_root_yaw_max.detach()
+                .cpu()
+                .tolist(),
+                "per_env_root_crossing": self._a2_v20_arc_probe_root_crossing.detach()
+                .cpu()
+                .tolist(),
+                "per_env_max_hinge_rad": a2_hold_nullable_tensor_list(
+                    self._a2_v20_arc_probe_max_hinge
+                ),
+                "per_env_max_body_force_n": self._a2_v20_arc_probe_max_body_force.detach()
+                .cpu()
+                .tolist(),
+                "per_env_max_arm_speed_radps": self._a2_v20_arc_probe_max_arm_speed.detach()
+                .cpu()
+                .tolist(),
+                "per_env_terminal_window_count": self._a2_v20_arc_probe_terminal_window_count.detach()
+                .cpu()
+                .tolist(),
+                "per_env_command_sequence": self._a2_v20_arc_probe_command_sequence.detach()
+                .cpu()
+                .tolist(),
+                "per_env_samples": list(self._a2_v20_arc_probe_samples),
+                "finalize_called": self._a2_hold_oracle_finalized,
+            }
         if cfg["matched_clean_reacquisition_preflight_enabled"]:
             if not self._a2_hold_oracle_finalized:
                 raise RuntimeError(
@@ -14805,6 +18243,49 @@ class DoorPregrasp(
             self._a2_stage0_root_height_count[env_ids] = 0
             self._a2_stage1_root_height_sum[env_ids] = 0.0
             self._a2_stage1_root_height_count[env_ids] = 0
+            self._a2_v20_send_ready[env_ids] = False
+            if cfg is not None and cfg.get("v20_arc_probe_enabled", False):
+                self._a2_v20_arc_probe_handoff_streak[env_ids] = 0
+                self._a2_v20_arc_probe_handoff_ready[env_ids] = False
+                self._a2_v20_arc_probe_settle_active[env_ids] = False
+                self._a2_v20_arc_probe_settle_target_synced[env_ids] = False
+                self._a2_v20_arc_probe_settle_action_count[env_ids] = 0
+                self._a2_v20_arc_probe_command_sequence[env_ids] = 0
+                self._a2_v20_arc_probe_f1_hold_target_se2[env_ids] = 0.0
+                self._a2_v20_arc_probe_f1_relief_pending[env_ids] = False
+                self._a2_v20_arc_probe_f1_target_update_applied[env_ids] = False
+                self._a2_v20_arc_probe_f1_target_translation_delta[env_ids] = 0.0
+                self._a2_v20_arc_probe_f1_target_yaw_delta[env_ids] = 0.0
+                self._a2_v20_arc_probe_f1_yaw_residual[env_ids] = 0.0
+                self._a2_v20_arc_probe_f1_physical_yaw_command[env_ids] = 0.0
+                self._a2_v20_arc_probe_f1_raw_yaw_command[env_ids] = 0.0
+            self._a2_v20_first_send_ready_step[env_ids] = -1
+            self._a2_v20_first_root_crossing_step[env_ids] = -1
+            self._a2_v20_hinge_at_first_root_crossing[env_ids] = float("nan")
+            self._a2_v20_root_x_at_first_crossing[env_ids] = float("nan")
+            self._a2_v20_root_entry_pos_se2[env_ids] = float("nan")
+            self._a2_v20_root_entry_valid[env_ids] = False
+            self._a2_v20_max_pre_send_displacement_se2[env_ids] = 0.0
+            self._a2_v20_handle_tcp_capture_pos[env_ids] = 0.0
+            self._a2_v20_handle_tcp_capture_quat[env_ids] = 0.0
+            self._a2_v20_handle_tcp_capture_quat[env_ids, 0] = 1.0
+            self._a2_v20_handle_tcp_capture_valid[env_ids] = False
+            self._a2_v20_prev_tcp_pos_w[env_ids] = float("nan")
+            self._a2_v20_prev_tcp_valid[env_ids] = False
+            self._a2_v20_pre_send_crossing_seen[env_ids] = False
+            self._a2_v20_first_pre_send_crossing_step[env_ids] = -1
+            self._a2_v20_pre_send_crossing_event[env_ids] = False
+            self._a2_v20_stage4_target_root_ramp[env_ids] = 0.0
+            self._a2_v20_arm_tangent_share[env_ids] = 0.0
+            self._a2_v20_arm_tangent_share_active[env_ids] = False
+            self._a2_v20_arc_tracking_quality[env_ids] = 0.0
+            self._a2_v20_arc_position_error_m[env_ids] = float("nan")
+            self._a2_v20_arc_orientation_error_rad[env_ids] = float("nan")
+            self._a2_v20_along_handle_slip_m[env_ids] = float("nan")
+            self._a2_v20_orthogonal_arc_residual_m[env_ids] = float("nan")
+            self._a2_v20_handle_slip_valid[env_ids] = False
+            self._a2_v20_taskspace_active[env_ids] = False
+            self._a2_v20_root_x_rel[env_ids] = 0.0
         return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override
@@ -14926,6 +18407,123 @@ class DoorPregrasp(
     @override
     def _check_termination(self):
         super()._check_termination()
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is not None and cfg["enabled"] and cfg["v20_arc_probe_enabled"]:
+            expected_shape = (self.num_envs,)
+            expected_device = torch.device(self.device)
+            terminal_reason_bufs = getattr(self, "_terminal_reason_bufs", None)
+            if (
+                not isinstance(terminal_reason_bufs, dict)
+                or "stage_overtime" not in terminal_reason_bufs
+            ):
+                raise RuntimeError(
+                    "A2 v20 arc-probe termination requires a stage_overtime "
+                    "terminal reason buffer."
+                )
+            stage_overtime_reason = terminal_reason_bufs["stage_overtime"]
+            if (
+                not torch.is_tensor(stage_overtime_reason)
+                or tuple(stage_overtime_reason.shape) != expected_shape
+                or stage_overtime_reason.dtype != torch.bool
+                or stage_overtime_reason.device != expected_device
+            ):
+                shape = (
+                    None
+                    if not torch.is_tensor(stage_overtime_reason)
+                    else tuple(stage_overtime_reason.shape)
+                )
+                dtype = (
+                    None
+                    if not torch.is_tensor(stage_overtime_reason)
+                    else stage_overtime_reason.dtype
+                )
+                device = (
+                    None
+                    if not torch.is_tensor(stage_overtime_reason)
+                    else stage_overtime_reason.device
+                )
+                raise RuntimeError(
+                    "A2 v20 arc-probe stage_overtime reason requires a device-local "
+                    f"bool tensor shape {expected_shape}; got shape={shape}, "
+                    f"dtype={dtype}, device={device}."
+                )
+            other_terminal_reason = torch.zeros_like(stage_overtime_reason)
+            for reason_name, reason_buf in terminal_reason_bufs.items():
+                if reason_name == "stage_overtime":
+                    continue
+                if (
+                    not torch.is_tensor(reason_buf)
+                    or tuple(reason_buf.shape) != expected_shape
+                    or reason_buf.dtype != torch.bool
+                    or reason_buf.device != expected_device
+                ):
+                    shape = None if not torch.is_tensor(reason_buf) else tuple(reason_buf.shape)
+                    dtype = None if not torch.is_tensor(reason_buf) else reason_buf.dtype
+                    device = None if not torch.is_tensor(reason_buf) else reason_buf.device
+                    raise RuntimeError(
+                        "A2 v20 arc-probe terminal reason buffers require device-local "
+                        f"bool tensors shape {expected_shape}; {reason_name!r} got "
+                        f"shape={shape}, dtype={dtype}, device={device}."
+                    )
+                other_terminal_reason |= reason_buf
+
+            probe_state = (
+                ("capture_valid", getattr(self, "_a2_v20_arc_probe_capture_valid", None)),
+                ("activated", getattr(self, "_a2_hold_oracle_activated", None)),
+                (
+                    "first_episode_active",
+                    getattr(self, "_a2_eval_first_episode_active_mask", None),
+                ),
+            )
+            for state_name, state in probe_state:
+                if (
+                    not torch.is_tensor(state)
+                    or tuple(state.shape) != expected_shape
+                    or state.dtype != torch.bool
+                    or state.device != expected_device
+                ):
+                    shape = None if not torch.is_tensor(state) else tuple(state.shape)
+                    dtype = None if not torch.is_tensor(state) else state.dtype
+                    device = None if not torch.is_tensor(state) else state.device
+                    raise RuntimeError(
+                        "A2 v20 arc-probe pending state requires device-local bool "
+                        f"{state_name} shape {expected_shape}; got shape={shape}, "
+                        f"dtype={dtype}, device={device}."
+                    )
+            outcome = getattr(self, "_a2_hold_oracle_outcome", None)
+            if (
+                not torch.is_tensor(outcome)
+                or tuple(outcome.shape) != expected_shape
+                or outcome.dtype != torch.long
+                or outcome.device != expected_device
+            ):
+                shape = None if not torch.is_tensor(outcome) else tuple(outcome.shape)
+                dtype = None if not torch.is_tensor(outcome) else outcome.dtype
+                device = None if not torch.is_tensor(outcome) else outcome.device
+                raise RuntimeError(
+                    "A2 v20 arc-probe outcome requires a device-local long tensor "
+                    f"shape {expected_shape}; got shape={shape}, dtype={dtype}, "
+                    f"device={device}."
+                )
+            capture_valid = probe_state[0][1]
+            activated = probe_state[1][1]
+            first_episode_active = probe_state[2][1]
+            probe_pending_mask = (
+                capture_valid
+                & activated
+                & first_episode_active
+                & (outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
+            )
+            updated_reset, updated_stage_overtime_reason, _ = (
+                a2_v20_mask_stage_overtime_for_arc_probe(
+                    self.reset_buf,
+                    stage_overtime_reason,
+                    other_terminal_reason,
+                    probe_pending_mask,
+                )
+            )
+            self.reset_buf[:] = updated_reset
+            stage_overtime_reason[:] = updated_stage_overtime_reason
         if self._use_a2_base:
             a2_config = self.config.get("a2_base", {})
             bad_orientation_limit_angle = float(
@@ -14935,6 +18533,22 @@ class DoorPregrasp(
             bad_orientation = tilt > bad_orientation_limit_angle
             self._mark_terminal_reason("bad_orientation", bad_orientation)
             self.reset_buf |= bad_orientation
+
+            crossing_mode = self._get_a2_v20_pre_send_crossing_mode()
+            if self._get_a2_v20_send_latch_enabled() and crossing_mode == "terminal":
+                pre_send_crossing = getattr(self, "_a2_v20_pre_send_crossing_event", None)
+                if (
+                    not torch.is_tensor(pre_send_crossing)
+                    or tuple(pre_send_crossing.shape) != (self.num_envs,)
+                    or pre_send_crossing.dtype != torch.bool
+                    or pre_send_crossing.device != torch.device(self.device)
+                ):
+                    raise RuntimeError(
+                        "A2 v20 terminal institution requires a device-local bool "
+                        "_a2_v20_pre_send_crossing_event buffer."
+                    )
+                self._mark_terminal_reason("pre_send_root_crossing", pre_send_crossing)
+                self.reset_buf |= pre_send_crossing
 
         door_distance = self.relative_door_pos_buf.norm(dim=-1) > 4.0
         self._mark_terminal_reason("door_distance", door_distance)
@@ -15252,6 +18866,22 @@ class DoorPregrasp(
                     "task.target_obj_transform_sub_prim_path='grasp_target'; "
                     f"got {target_sub_prim!r}."
                 )
+            v20_frame_transformer_config = FrameTransformerCfg(
+                prim_path="/World/envs/env_.*/door/root",
+                target_frames=[
+                    FrameTransformerCfg.FrameCfg(
+                        prim_path="/World/envs/env_.*/Robot/trunk",
+                        name="robot_root",
+                    ),
+                    FrameTransformerCfg.FrameCfg(
+                        prim_path="/World/envs/env_.*/door/grasp_target",
+                        name="grasp_target",
+                    ),
+                ],
+            )
+            simulator.scene.sensors[self.A2_V20_FRAME_TRANSFORMER] = FrameTransformer(
+                v20_frame_transformer_config
+            )
             target_obj_transform_prim_path = (
                 f"/World/envs/env_.*/{target_obj}/{target_sub_prim}"
             )

@@ -58,6 +58,11 @@ rewards:
       a2_stage3_stage4_hold_and_drive: 0.0
       a2_corridor_door_wide: 0.0
       a2_corridor_clean_passage: 0.0
+      # v20 selectors are explicit zero in the shared reward registry; only A/I
+      # ablation templates opt in with the P0-frozen scales.
+      penalty_a2_v20_pre_send_crossing: 0.0
+      a2_v20_arm_tangent_carry: 0.0
+      a2_v20_handle_arc_tracking: 0.0
       a2_stage3_stage4_keep_close_command: 0.5
       penalty_a2_stage3_stage4_open_command: -1.0
       a2_stage3_stage4_both_contact: 0.5

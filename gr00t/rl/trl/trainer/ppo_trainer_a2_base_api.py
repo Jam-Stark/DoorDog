@@ -5,16 +5,19 @@
 from collections import deque
 from contextlib import contextmanager
 from copy import deepcopy
+import hashlib
 import json
 import math
+import os
 from pathlib import Path
+import tempfile
 from typing import Dict, Optional
 
 import numpy as np
 import pandas as pd
 import torch
 import torchvision
-from omegaconf import ListConfig
+from omegaconf import ListConfig, OmegaConf
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
@@ -193,7 +196,502 @@ _A2_GLOBAL_ENV_QUANTILE_SPECS = {
 _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
 _A2_EVAL_P2_POSTURE_AXIS_KEY = "a2_eval_p2_posture_axis"
 _A2_EVAL_M41_STRICT_TELEMETRY_KEY = "a2_eval_m41_strict_telemetry"
+_A2_EVAL_V20_STRICT_TELEMETRY_KEY = "a2_eval_v20_strict_telemetry"
 _A2_EVAL_P2_POSTURE_AXES = frozenset(("none", "pitch_zero", "roll_zero"))
+
+
+_A2_V20_TYPED_TELEMETRY_GROUPS = {
+    "send": (
+        "send_ready",
+        "first_send_ready_step",
+        "pre_send_root_crossing",
+        "first_pre_send_crossing_step",
+        "hinge_at_first_root_crossing",
+        "root_x_at_first_crossing",
+        "root_displacement_se2",
+    ),
+    "crossing": (
+        "valid",
+        "crossing_while_holding",
+        "hinge_at_crossing",
+        "root_x_at_crossing",
+    ),
+    "release": (
+        "valid",
+        "hinge_at_release",
+        "root_x_at_release",
+        "post_release_body_contact",
+        "post_release_body_force_max",
+    ),
+    "carry": (
+        "valid_hold",
+        "arm_tangent_share",
+        "handle_arc_position_error_m",
+        "handle_arc_orientation_error_rad",
+        "arc_tracking_quality",
+        "along_handle_slip_m",
+        "orthogonal_arc_residual_m",
+    ),
+    "smoothness": (
+        "hinge_acceleration_p95",
+        "hinge_jerk_p95",
+        "arm_action_rate_p95",
+        "arm_action_jerk_p95",
+    ),
+}
+
+
+def _a2_v20_validate_typed_value(value, field_name, *, allow_na=True):
+    """Validate one strict v20 scalar or explicit typed N/A value."""
+    if allow_na and isinstance(value, dict) and value.get("status") == "N/A":
+        reason = value.get("reason")
+        denominator = value.get("denominator")
+        if not isinstance(reason, str) or not reason:
+            raise RuntimeError(f"A2 v20 {field_name} N/A requires a non-empty reason.")
+        if isinstance(denominator, bool) or not isinstance(denominator, (int, float)) or not math.isfinite(float(denominator)) or float(denominator) < 0.0:
+            raise RuntimeError(f"A2 v20 {field_name} N/A requires a finite non-negative denominator.")
+        if "value" in value and value["value"] is not None:
+            raise RuntimeError(f"A2 v20 {field_name} N/A value must be null.")
+        return None
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        if not math.isfinite(float(value)):
+            raise RuntimeError(f"A2 v20 {field_name} must be finite; got {value!r}.")
+        return value
+    if isinstance(value, (list, tuple)):
+        if not value:
+            raise RuntimeError(f"A2 v20 {field_name} must not be an empty vector.")
+        for index, component in enumerate(value):
+            _a2_v20_validate_typed_value(component, f"{field_name}[{index}]", allow_na=False)
+        return value
+    if value is None and allow_na:
+        raise RuntimeError(
+            f"A2 v20 {field_name} undefined values require explicit N/A reason and denominator; bare null is invalid."
+        )
+    raise RuntimeError(f"A2 v20 {field_name} has malformed value {value!r}.")
+
+
+def _a2_v20_validate_telemetry_group(group_name, group):
+    if not isinstance(group, dict):
+        raise RuntimeError(f"A2 v20 telemetry group {group_name!r} must be a mapping.")
+    expected = _A2_V20_TYPED_TELEMETRY_GROUPS[group_name]
+    missing = [field for field in expected if field not in group]
+    if missing:
+        raise RuntimeError(f"A2 v20 telemetry group {group_name!r} is missing {missing}.")
+    for field in expected:
+        _a2_v20_validate_typed_value(group[field], f"{group_name}.{field}")
+    return True
+
+
+def validate_a2_v20_telemetry_records(
+    records,
+    expected_num_envs: int,
+    *,
+    checkpoint_path: str,
+    checkpoint_sha256: str,
+    config_hash: str,
+    seed: int,
+    topology: dict,
+):
+    """Strictly validate typed v20 rows and provenance before export/selection."""
+    if isinstance(expected_num_envs, bool) or not isinstance(expected_num_envs, int) or expected_num_envs <= 0:
+        raise RuntimeError("A2 v20 expected_num_envs must be a positive int.")
+    if not isinstance(records, list) or len(records) != expected_num_envs:
+        raise RuntimeError(
+            f"A2 v20 strict telemetry requires exactly {expected_num_envs} rows; got {None if not isinstance(records, list) else len(records)}."
+        )
+    if not isinstance(checkpoint_path, str) or not checkpoint_path or not isinstance(checkpoint_sha256, str) or len(checkpoint_sha256) != 64 or not isinstance(config_hash, str) or not config_hash or isinstance(seed, bool) or not isinstance(seed, int) or not isinstance(topology, dict):
+        raise RuntimeError("A2 v20 strict telemetry provenance fields are malformed.")
+    seen = set()
+    for row_index, row in enumerate(records):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"A2 v20 telemetry row {row_index} must be a mapping.")
+        env_id = row.get("env_id")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < expected_num_envs or env_id in seen:
+            raise RuntimeError(f"A2 v20 telemetry row {row_index} has invalid/duplicate env_id={env_id!r}.")
+        seen.add(env_id)
+        if row.get("checkpoint_path") != checkpoint_path or row.get("checkpoint_sha256") != checkpoint_sha256 or row.get("config_hash") != config_hash or row.get("seed") != seed or row.get("topology") != topology:
+            raise RuntimeError(f"A2 v20 telemetry row {row_index} provenance does not bind to the requested checkpoint/config/seed/topology.")
+        groups = row.get("groups")
+        if not isinstance(groups, dict):
+            raise RuntimeError(f"A2 v20 telemetry row {row_index} requires a typed groups mapping.")
+        for group_name in _A2_V20_TYPED_TELEMETRY_GROUPS:
+            _a2_v20_validate_telemetry_group(group_name, groups.get(group_name))
+        for group_name, validity_field in (
+            ("crossing", "valid"),
+            ("release", "valid"),
+            ("carry", "valid_hold"),
+        ):
+            group = groups[group_name]
+            valid = group[validity_field]
+            if not isinstance(valid, bool):
+                raise RuntimeError(
+                    f"A2 v20 telemetry group {group_name!r} validity must be bool."
+                )
+            fields = [name for name in _A2_V20_TYPED_TELEMETRY_GROUPS[group_name] if name != validity_field]
+            na_fields = [
+                name
+                for name in fields
+                if isinstance(group[name], dict) and group[name].get("status") == "N/A"
+            ]
+            if valid and na_fields:
+                raise RuntimeError(
+                    f"A2 v20 valid {group_name} group contains typed N/A fields: {na_fields}."
+                )
+            if not valid and len(na_fields) != len(fields):
+                raise RuntimeError(
+                    f"A2 v20 invalid {group_name} group must mark every value N/A."
+                )
+        reward_units = row.get("reward_units")
+        if not isinstance(reward_units, dict) or not reward_units:
+            raise RuntimeError(f"A2 v20 telemetry row {row_index} requires non-empty reward_units.")
+        for reward_name, unit in reward_units.items():
+            if not isinstance(reward_name, str) or not reward_name or not isinstance(unit, str) or not unit:
+                raise RuntimeError(f"A2 v20 telemetry row {row_index} reward units are malformed.")
+        trace = row.get("trace_topology")
+        if (
+            not isinstance(trace, dict)
+            or trace.get("ordered_unique_contiguous") is not True
+            or trace.get("terminal_consistent") is not True
+            or trace.get("prefix_starts_at_one") is not True
+            or trace.get("sample_count_matches_episode_length") is not True
+        ):
+            raise RuntimeError(f"A2 v20 telemetry row {row_index} trace topology is not strict-valid.")
+    if seen != set(range(expected_num_envs)):
+        raise RuntimeError("A2 v20 telemetry rows must cover every env exactly once.")
+    return True
+
+
+def _a2_v20_typed_na(reason, denominator):
+    if not isinstance(reason, str) or not reason or isinstance(denominator, bool) or not isinstance(denominator, (int, float)) or not math.isfinite(float(denominator)) or denominator < 0:
+        raise RuntimeError("A2 v20 typed N/A requires reason and finite non-negative denominator.")
+    return {"status": "N/A", "reason": reason, "denominator": denominator, "value": None}
+
+
+def _a2_v20_publish_json_exclusive(path, payload):
+    """Publish one strict artifact without replacing an existing artifact."""
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if destination.exists():
+        raise RuntimeError(f"A2 v20 artifact already exists; refusing overwrite: {destination}")
+    fd, temporary = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".tmp", dir=str(destination.parent)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+            json.dump(payload, stream, indent=4, allow_nan=False)
+            stream.flush()
+            os.fsync(stream.fileno())
+        try:
+            os.link(temporary, destination)
+        except FileExistsError as exc:
+            raise RuntimeError(
+                f"A2 v20 artifact appeared during exclusive publication: {destination}"
+            ) from exc
+    finally:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+
+
+def _a2_v20_percentile(values, probability, reason):
+    finite = []
+    for value in values:
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise RuntimeError(f"A2 v20 percentile contains malformed value {value!r}.")
+        finite.append(float(value))
+    if not finite:
+        return _a2_v20_typed_na(reason, 0)
+    ordered = sorted(finite)
+    return ordered[max(0, math.ceil(float(probability) * len(ordered)) - 1)]
+
+
+def _build_a2_v20_strict_telemetry_records(
+    eval_dict,
+    trace_records,
+    expected_num_envs,
+    *,
+    checkpoint_path,
+    checkpoint_sha256,
+    config_hash,
+    seed,
+    topology,
+):
+    """Build one typed v20 evidence row per first-episode environment."""
+    diagnostics = eval_dict.get("episode_terminal_diagnostics") if isinstance(eval_dict, dict) else None
+    goals = eval_dict.get("episode_goal_reached") if isinstance(eval_dict, dict) else None
+    if not isinstance(diagnostics, list) or len(diagnostics) != expected_num_envs or not isinstance(goals, list) or len(goals) != expected_num_envs:
+        raise RuntimeError("A2 v20 strict exporter requires complete terminal diagnostics and goal flags.")
+    if not isinstance(trace_records, list) or not trace_records:
+        raise RuntimeError("A2 v20 strict exporter requires non-empty first-episode trace records.")
+    by_env = {env_id: [] for env_id in range(expected_num_envs)}
+    for row_index, row in enumerate(trace_records):
+        if not isinstance(row, dict):
+            raise RuntimeError(f"A2 v20 trace row {row_index} must be a mapping.")
+        env_id = row.get("env_id")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in by_env:
+            raise RuntimeError(f"A2 v20 trace row {row_index} has invalid env_id={env_id!r}.")
+        if row.get("episode_index") != 0 or row.get("first_episode_active") is not True:
+            raise RuntimeError("A2 v20 strict trace rejects non-first-episode rows.")
+        by_env[env_id].append(row)
+    diagnostic_by_env = {}
+    goal_by_env = {}
+    for diagnostic_index, diagnostic in enumerate(diagnostics):
+        if not isinstance(diagnostic, dict):
+            raise RuntimeError("A2 v20 terminal diagnostics must be mappings.")
+        env_id = diagnostic.get("env_id")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in by_env or env_id in diagnostic_by_env:
+            raise RuntimeError(f"A2 v20 terminal diagnostics has invalid/duplicate env_id={env_id!r}.")
+        diagnostic_by_env[env_id] = diagnostic
+        goal_value = goals[diagnostic_index]
+        if not isinstance(goal_value, bool):
+            raise RuntimeError(f"A2 v20 goal flag for env{env_id} must be bool.")
+        goal_by_env[env_id] = goal_value
+    records = []
+    for env_id in range(expected_num_envs):
+        trace = by_env[env_id]
+        if not trace:
+            raise RuntimeError(f"A2 v20 strict exporter has no trace rows for env{env_id}.")
+        steps = [row.get("step_index") for row in trace]
+        if any(isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in steps):
+            raise RuntimeError(f"A2 v20 env{env_id} step indices are malformed.")
+        ordered_unique = steps == sorted(set(steps)) and all(right == left + 1 for left, right in zip(steps, steps[1:]))
+        if not ordered_unique:
+            raise RuntimeError(f"A2 v20 env{env_id} trace is not ordered, unique, and contiguous.")
+        diagnostic = diagnostic_by_env[env_id]
+        terminal_reason = diagnostic.get("terminal_reasons")
+        episode_lengths = [row.get("episode_length_buf") for row in trace]
+        if any(
+            isinstance(value, bool) or not isinstance(value, int) or value <= 0
+            for value in episode_lengths
+        ):
+            raise RuntimeError(f"A2 v20 env{env_id} episode_length_buf values must be positive ints.")
+        lengths_contiguous = all(
+            right == left + 1 for left, right in zip(episode_lengths, episode_lengths[1:])
+        )
+        if not lengths_contiguous:
+            raise RuntimeError(
+                f"A2 v20 env{env_id} episode_length_buf must be ordered and contiguous."
+            )
+        if episode_lengths[0] != 1:
+            raise RuntimeError(
+                f"A2 v20 env{env_id} first episode_length_buf must equal 1; "
+                f"got {episode_lengths[0]}."
+            )
+        if (
+            not isinstance(terminal_reason, str)
+            or not terminal_reason
+            or trace[-1].get("terminal_reasons") != terminal_reason
+            or any(row.get("terminal_reasons") != "unknown_reset" for row in trace[:-1])
+        ):
+            raise RuntimeError(f"A2 v20 env{env_id} terminal trace is inconsistent.")
+        terminal_length = diagnostic.get("episode_length_buf")
+        if (
+            isinstance(terminal_length, bool)
+            or not isinstance(terminal_length, int)
+            or terminal_length <= 0
+            or episode_lengths[-1] != terminal_length
+            or len(episode_lengths) != terminal_length
+        ):
+            raise RuntimeError(
+                f"A2 v20 env{env_id} terminal episode_length_buf must equal both the "
+                "final trace length and sample count."
+            )
+        dt = diagnostic.get("control_dt")
+        if isinstance(dt, bool) or not isinstance(dt, (int, float)) or not math.isfinite(float(dt)) or float(dt) <= 0:
+            raise RuntimeError(f"A2 v20 env{env_id} control_dt must be finite and positive.")
+        dt = float(dt)
+        carry_rows = [row for row in trace if row.get("v20_carry_valid") is True]
+        carry_denominator = len(carry_rows)
+        def carry_value(field, probability, reason):
+            return _a2_v20_percentile([row[field] for row in carry_rows], probability, reason)
+        hinge_vel = [float(row["door_hinge_joint_vel"]) for row in trace]
+        hinge_accel = [abs(right - left) / dt for left, right in zip(hinge_vel, hinge_vel[1:])]
+        hinge_jerk = [abs(right - left) / dt for left, right in zip(hinge_accel, hinge_accel[1:])]
+        arm_actions = []
+        for row in trace:
+            action = row.get("post_delta_post_warp_env_action")
+            if not isinstance(action, list) or len(action) != 12:
+                raise RuntimeError(f"A2 v20 env{env_id} requires 12-D post-delta/post-warp actions.")
+            arm_actions.append(torch.tensor(action[5:11], dtype=torch.float64))
+        arm_rate = [float(torch.linalg.norm(right - left).item()) / dt for left, right in zip(arm_actions, arm_actions[1:])]
+        arm_jerk = [abs(right - left) / dt for left, right in zip(arm_rate, arm_rate[1:])]
+        crossing_rows = [row for row in trace if row.get("root_x_ever_crossed") is True]
+        crossing_index = trace.index(crossing_rows[0]) if crossing_rows else None
+        pre_crossing = trace[: crossing_index + 1] if crossing_index is not None else []
+        def fraction(rows, predicate, reason):
+            if not rows:
+                return _a2_v20_typed_na(reason, 0)
+            return sum(bool(predicate(row)) for row in rows) / len(rows)
+        held_hinge = [float(row["door_hinge_joint_pos"]) for row in trace if row.get("both_contact") is True]
+        positive_hinge_vel = [value for value in hinge_vel if value > 0.0]
+        reward_sums = diagnostic.get("reward_episode_sums")
+        if not isinstance(reward_sums, dict) or not reward_sums:
+            raise RuntimeError(f"A2 v20 env{env_id} requires non-empty episode reward sums.")
+        first_send = diagnostic.get("v20_first_send_ready_step")
+        first_pre = diagnostic.get("v20_first_pre_send_crossing_step")
+        first_crossing = diagnostic.get("v20_first_root_crossing_step")
+        if first_crossing is None:
+            crossing_valid = False
+        elif isinstance(first_crossing, bool) or not isinstance(first_crossing, int):
+            raise RuntimeError(f"A2 v20 env{env_id} first root crossing step is malformed.")
+        else:
+            crossing_valid = first_crossing >= 0
+        release_fields = tuple(
+            diagnostic.get(name)
+            for name in (
+                "hinge_at_release",
+                "root_x_at_release",
+                "post_release_body_contact",
+                "post_release_body_force_max",
+            )
+        )
+        release_present = [value is not None for value in release_fields]
+        if any(release_present) and not all(release_present):
+            raise RuntimeError(f"A2 v20 env{env_id} release fields must be all-present or all-absent.")
+        release_valid = all(release_present)
+        bilateral_stage3 = [
+            row
+            for row in trace
+            if row.get("stage_buf") == 3 and row.get("both_contact") is True
+        ]
+        opening_slip_deltas = []
+        for left, right in zip(bilateral_stage3, bilateral_stage3[1:]):
+            left_position = left.get("target_pos_source_handle")
+            right_position = right.get("target_pos_source_handle")
+            if (
+                not isinstance(left_position, list)
+                or len(left_position) < 2
+                or not isinstance(right_position, list)
+                or len(right_position) < 2
+            ):
+                raise RuntimeError(
+                    f"A2 v20 env{env_id} bilateral stage3 trace lacks target_pos_source_handle[1]."
+                )
+            delta = abs(float(right_position[1]) - float(left_position[1]))
+            if not math.isfinite(delta):
+                raise RuntimeError(f"A2 v20 env{env_id} opening slip contains a non-finite delta.")
+            opening_slip_deltas.append(delta)
+        opening_slip = (
+            sum(opening_slip_deltas)
+            if opening_slip_deltas
+            else _a2_v20_typed_na("fewer_than_two_bilateral_stage3_samples", 0)
+        )
+        groups = {
+            "send": {
+                "send_ready": diagnostic["v20_send_ready"],
+                "first_send_ready_step": first_send if first_send is not None else _a2_v20_typed_na("send_ready_not_reached", 0),
+                "pre_send_root_crossing": diagnostic["v20_pre_send_root_crossing"],
+                "first_pre_send_crossing_step": first_pre if first_pre is not None else _a2_v20_typed_na("no_pre_send_root_crossing", 0),
+                "hinge_at_first_root_crossing": diagnostic["v20_hinge_at_first_root_crossing"] if diagnostic["v20_hinge_at_first_root_crossing"] is not None else _a2_v20_typed_na("no_root_crossing", 0),
+                "root_x_at_first_crossing": diagnostic["v20_root_x_at_first_crossing"] if diagnostic["v20_root_x_at_first_crossing"] is not None else _a2_v20_typed_na("no_root_crossing", 0),
+                "root_displacement_se2": diagnostic["v20_root_displacement_se2"],
+            },
+            "crossing": {
+                "valid": crossing_valid,
+                "crossing_while_holding": (
+                    bool(crossing_rows[0].get("both_contact"))
+                    if crossing_valid and crossing_rows
+                    else _a2_v20_typed_na("no_root_crossing", 0)
+                ),
+                "hinge_at_crossing": (
+                    diagnostic["v20_hinge_at_first_root_crossing"]
+                    if crossing_valid
+                    else _a2_v20_typed_na("no_root_crossing", 0)
+                ),
+                "root_x_at_crossing": (
+                    diagnostic["v20_root_x_at_first_crossing"]
+                    if crossing_valid
+                    else _a2_v20_typed_na("no_root_crossing", 0)
+                ),
+            },
+            "release": {
+                "valid": release_valid,
+                "hinge_at_release": diagnostic["hinge_at_release"] if release_valid else _a2_v20_typed_na("no_release", 0),
+                "root_x_at_release": diagnostic["root_x_at_release"] if release_valid else _a2_v20_typed_na("no_release", 0),
+                "post_release_body_contact": diagnostic["post_release_body_contact"] if release_valid else _a2_v20_typed_na("no_release", 0),
+                "post_release_body_force_max": diagnostic["post_release_body_force_max"] if release_valid else _a2_v20_typed_na("no_release", 0),
+            },
+            "carry": {
+                "valid_hold": carry_denominator > 0,
+                "arm_tangent_share": carry_value("v20_arm_tangent_share", 0.50, "no_valid_hold_samples"),
+                "handle_arc_position_error_m": carry_value("v20_handle_arc_position_error_m", 0.95, "no_valid_hold_samples"),
+                "handle_arc_orientation_error_rad": carry_value("v20_handle_arc_orientation_error_rad", 0.95, "no_valid_hold_samples"),
+                "arc_tracking_quality": carry_value("v20_arc_tracking_quality", 0.50, "no_valid_hold_samples"),
+                "along_handle_slip_m": carry_value("v20_along_handle_slip_m", 0.95, "no_valid_hold_samples"),
+                "orthogonal_arc_residual_m": carry_value("v20_orthogonal_arc_residual_m", 0.95, "no_valid_hold_samples"),
+            },
+            "smoothness": {
+                "hinge_acceleration_p95": _a2_v20_percentile(hinge_accel, 0.95, "fewer_than_two_hinge_samples"),
+                "hinge_jerk_p95": _a2_v20_percentile(hinge_jerk, 0.95, "fewer_than_three_hinge_samples"),
+                "arm_action_rate_p95": _a2_v20_percentile(arm_rate, 0.95, "fewer_than_two_arm_action_samples"),
+                "arm_action_jerk_p95": _a2_v20_percentile(arm_jerk, 0.95, "fewer_than_three_arm_action_samples"),
+            },
+        }
+        records.append(
+            {
+                "env_id": env_id,
+                "checkpoint_path": checkpoint_path,
+                "checkpoint_sha256": checkpoint_sha256,
+                "config_hash": config_hash,
+                "seed": seed,
+                "topology": topology,
+                "goal_reached": goal_by_env[env_id],
+                "terminal_reason": terminal_reason,
+                "groups": groups,
+                "episode_metrics": {
+                    "pre_crossing_bilateral": fraction(pre_crossing, lambda row: row.get("both_contact") is True, "no_root_crossing"),
+                    "pre_crossing_coasting": fraction(pre_crossing, lambda row: abs(float(row["physical_base_command"][0])) <= 0.10, "no_root_crossing"),
+                    "pre_crossing_over_force": fraction(pre_crossing, lambda row: row.get("over_force") is True, "no_root_crossing"),
+                    "held_hinge": max(held_hinge) if held_hinge else _a2_v20_typed_na("no_bilateral_hold_samples", 0),
+                    "opening_slip_m": opening_slip,
+                    "positive_hinge_velocity_p95": _a2_v20_percentile(positive_hinge_vel, 0.95, "no_positive_hinge_velocity",  ),
+                    "task_time_s": float(diagnostic["episode_length_buf"]) * dt,
+                },
+                "reward_units": {name: "episode-sum" for name in sorted(reward_sums)},
+                "trace_topology": {
+                    "ordered_unique_contiguous": True,
+                    "terminal_consistent": True,
+                    "prefix_starts_at_one": episode_lengths[0] == 1,
+                    "sample_count_matches_episode_length": len(steps) == episode_lengths[-1],
+                    "first_step_index": steps[0],
+                    "last_step_index": steps[-1],
+                    "episode_length_first": episode_lengths[0],
+                    "episode_length_last": episode_lengths[-1],
+                    "sample_count": len(steps),
+                },
+            }
+        )
+    validate_a2_v20_telemetry_records(
+        records,
+        expected_num_envs,
+        checkpoint_path=checkpoint_path,
+        checkpoint_sha256=checkpoint_sha256,
+        config_hash=config_hash,
+        seed=seed,
+        topology=topology,
+    )
+    return records
+
+
+def _a2_v20_config_hash(config):
+    if OmegaConf.is_config(config):
+        value = OmegaConf.to_container(config, resolve=True)
+    elif isinstance(config, dict):
+        value = config
+    elif hasattr(config, "to_dict") and callable(config.to_dict):
+        value = config.to_dict()
+    else:
+        raise RuntimeError(
+            f"A2 v20 config hash requires OmegaConf/dict/to_dict config; got {type(config).__name__}."
+        )
+    try:
+        canonical = json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("A2 v20 config hash requires a finite JSON configuration.") from exc
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _read_a2_eval_p2_posture_axis(eval_config):
@@ -1134,6 +1632,11 @@ def _read_a2_eval_diagnostic_config(eval_config):
             f"eval.{_A2_EVAL_M41_STRICT_TELEMETRY_KEY} must be bool; "
             f"got {strict_m41_telemetry!r}."
         )
+    strict_v20_telemetry = eval_config.get(_A2_EVAL_V20_STRICT_TELEMETRY_KEY, False)
+    if not isinstance(strict_v20_telemetry, bool):
+        raise RuntimeError(
+            f"eval.{_A2_EVAL_V20_STRICT_TELEMETRY_KEY} must be bool; got {strict_v20_telemetry!r}."
+        )
     diagnostic_enabled = eval_config.get("a2_diagnostic_trace_enabled", False)
     forced_close_enabled = eval_config.get("a2_forced_gripper_close_enabled", False)
     for key, value in (
@@ -1215,6 +1718,7 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "forced_close_stages": forced_close_stages,
         "p2_posture_axis": p2_posture_axis,
         "strict_m41_telemetry": strict_m41_telemetry,
+        "strict_v20_telemetry": strict_v20_telemetry,
     }
 
 
@@ -1747,6 +2251,11 @@ class TRLPPOTrainer(PPOTrainer):
         accelerator=None,
     ) -> None:
         self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
+        self.checkpoint_path = (
+            None
+            if checkpoint is None
+            else str(Path(str(checkpoint)).expanduser().resolve())
+        )
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
                 "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
@@ -3942,6 +4451,19 @@ class TRLPPOTrainer(PPOTrainer):
 
                     rewards, dones = rewards.to(device), dones.to(device)
 
+                    if a2_hold_oracle_config["enabled"]:
+                        update_hold_oracle_after_step = getattr(
+                            self.env, "update_a2_eval_hold_oracle_after_step", None
+                        )
+                        if update_hold_oracle_after_step is None:
+                            raise RuntimeError(
+                                "A2 hold oracle requires env post-step update hook."
+                            )
+                        update_hold_oracle_after_step(
+                            first_episode_active_mask,
+                            (dones.reshape(-1) > 0),
+                        )
+
                     if dump_eval_to_log_metrics:
                         if "to_log" not in infos or not isinstance(infos["to_log"], dict):
                             raise RuntimeError(
@@ -4027,12 +4549,14 @@ class TRLPPOTrainer(PPOTrainer):
 
         eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
         strict_m41_telemetry = a2_eval_diagnostics["strict_m41_telemetry"]
+        strict_v20_telemetry = a2_eval_diagnostics["strict_v20_telemetry"]
         strict_stage2_trace_records = None
         strict_safe_stage2_trace = None
         strict_v14_eval_records = None
         strict_safe_v14_records = None
         strict_safe_to_log_metrics = None
         strict_safe_eval_dict = None
+        strict_v20_payload = None
         if strict_m41_telemetry:
             if not eval_num_envs_episodes:
                 raise RuntimeError(
@@ -4079,8 +4603,77 @@ class TRLPPOTrainer(PPOTrainer):
                     eval_to_log_records, path="eval_to_log_metrics"
                 )
 
+        if strict_v20_telemetry:
+            if not eval_num_envs_episodes:
+                raise RuntimeError(
+                    "eval.a2_eval_v20_strict_telemetry=true requires eval_num_envs_episodes=true."
+                )
+            if not a2_stage2_trace_enabled or not a2_eval_diagnostics["diagnostic_enabled"]:
+                raise RuntimeError(
+                    "A2 v20 strict telemetry requires an enabled A2 diagnostic stage2 trace."
+                )
+            if self.accelerator.num_processes != 1:
+                raise RuntimeError("A2 v20 strict telemetry requires single-process matched eval.")
+            if strict_stage2_trace_records is None:
+                get_stage2_trace = getattr(
+                    self.env, "get_a2_eval_stage2_step_trace_records", None
+                )
+                if get_stage2_trace is None:
+                    raise RuntimeError(
+                        "A2 v20 strict telemetry requires env.get_a2_eval_stage2_step_trace_records()."
+                    )
+                strict_stage2_trace_records = get_stage2_trace()
+            checkpoint_value = self.checkpoint_path
+            if checkpoint_value is None:
+                raise RuntimeError(
+                    "A2 v20 strict telemetry requires an explicit trainer checkpoint."
+                )
+            checkpoint_path = str(Path(str(checkpoint_value)).expanduser().resolve())
+            checkpoint_file = Path(checkpoint_path)
+            if not checkpoint_file.is_file():
+                raise RuntimeError(f"A2 v20 strict telemetry checkpoint is missing: {checkpoint_path}")
+            checkpoint_digest = hashlib.sha256()
+            with checkpoint_file.open("rb") as checkpoint_stream:
+                for chunk in iter(lambda: checkpoint_stream.read(1024 * 1024), b""):
+                    checkpoint_digest.update(chunk)
+            checkpoint_sha256 = checkpoint_digest.hexdigest()
+            config_hash = _a2_v20_config_hash(self.config)
+            topology = {
+                "name": "canonical16" if self.env.num_envs == 16 else f"matched{self.env.num_envs}",
+                "episode_count": self.env.num_envs,
+                "first_episode_only": True,
+                "single_process": True,
+            }
+            strict_v20_records = _build_a2_v20_strict_telemetry_records(
+                eval_dict,
+                strict_stage2_trace_records,
+                self.env.num_envs,
+                checkpoint_path=checkpoint_path,
+                checkpoint_sha256=checkpoint_sha256,
+                config_hash=config_hash,
+                seed=int(self.args.seed),
+                topology=topology,
+            )
+            strict_v20_payload = _make_json_safe(
+                {
+                    "schema": "a2_piper_v20_strict_telemetry_v1",
+                    "checkpoint_path": checkpoint_path,
+                    "checkpoint_sha256": checkpoint_sha256,
+                    "config_hash": config_hash,
+                    "seed": int(self.args.seed),
+                    "topology": topology,
+                    "records": strict_v20_records,
+                },
+                path="a2_v20_strict_telemetry",
+            )
+
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if strict_v20_payload is not None:
+            v20_path = os.path.join(eval_output_dir, "a2_v20_strict_telemetry.json")
+            _a2_v20_publish_json_exclusive(v20_path, strict_v20_payload)
+            logger.info(f"Saved A2 v20 strict telemetry to {v20_path}")
 
         if dump_eval_to_log_metrics:
             to_log_metrics_path = os.path.join(eval_output_dir, "eval_to_log_metrics.json")
@@ -4150,6 +4743,7 @@ class TRLPPOTrainer(PPOTrainer):
                 "forced_gripper_close_applied_counts": forced_close_applied_counts,
                 "p2_posture_axis": a2_eval_diagnostics["p2_posture_axis"],
                 "m41_strict_telemetry": a2_eval_diagnostics["strict_m41_telemetry"],
+                "v20_strict_telemetry": a2_eval_diagnostics["strict_v20_telemetry"],
                 "canonical_high_level_action_layout": get_action_layout(),
                 "stage3_to4_door_hinge_threshold": get_hinge_threshold(),
                 "trace_timing": {

@@ -361,6 +361,8 @@ P1 resource mapping is: first smoke on GPU0 or another single idle GPU0–6; poo
 
 P1 remains **BLOCKED / NOT PASS** until these runtime gates produce strict-valid artifacts. A P1 pooled PASS enters P2 and does not itself authorize formal training.
 
+**Execution closure — 2026-07-29:** candidate `365667110b2e64b335dcf3517361245331db604e` passed Stage 0 static admission (targeted P1 `39 passed`, all base_v20 CPU `98 passed`, Python compile, diff-check, and resolved Hydra compose). The one authorized F1/0.90/seed0/4-env smoke then produced 4/4 canonical capture but 0/4 `ARC_PROBE_REACHED`: two `ARC_PROBE_ROOT_BOUND` and two `ARC_PROBE_OVERSPEED`. Transaction audit passed for every emitted sample, root crossing was 0/4, and no runtime exception occurred. C2 is therefore closed as `P1_PHYSICAL_BLOCKER`: the current geometry/control interface failed the preregistered target after the single authorized state-transaction repair. This does not isolate pure geometry as the sole cause. Pooled48, P2, and G1–G7 are forbidden/not run.
+
 ### P1.1 Probe setup
 
 Reuse the existing eval-only DLS hold-oracle infrastructure and start from stable G2 grasp snapshots.

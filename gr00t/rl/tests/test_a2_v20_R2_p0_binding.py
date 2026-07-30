@@ -58,7 +58,16 @@ def test_changed_candidate_coverage_is_dynamic_and_exact() -> None:
     changed = set(lock["changed_candidates"])
     marked = {row["path"] for row in lock["sources"] if "changed_candidate" in row.get("roles", [])}
     assert changed == marked
-    assert len(changed) == 74
+    expected = {
+        path
+        for path in subprocess.check_output(
+            ["git", "diff", "--name-only", common.R1_BLOCKER_COMMIT, "HEAD"],
+            cwd=ROOT,
+            text=True,
+        ).splitlines()
+        if Path(path).suffix in {".py", ".yaml"}
+    }
+    assert changed == expected
     assert all(path.endswith((".py", ".yaml")) for path in changed)
 
 

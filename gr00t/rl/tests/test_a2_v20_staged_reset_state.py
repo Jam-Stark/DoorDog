@@ -156,7 +156,7 @@ def test_v20_actual_registry_uses_inherited_storage_and_mixed_env_callbacks():
     state._load_a2_v20_named_buffer = load_v20.__get__(state)
     register_v20(state)
     names = list(state.staged_reset_buf)
-    assert len(names) == len(set(names)) == 17
+    assert len(names) == len(set(names)) == 19
     assert state.staged_reset_buf["a2_v20_send_ready"]["data"].shape == (2, 3, 4)
     for name, dtype in (("a2_v20_snapshot_crossing_seen", torch.bool), ("a2_v20_snapshot_root_x_rel", torch.float32)):
         data = state.staged_reset_buf[name]["data"]

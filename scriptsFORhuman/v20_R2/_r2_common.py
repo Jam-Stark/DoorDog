@@ -24,7 +24,7 @@ from typing import Any
 SCIENTIFIC_PLAN_ID = "base_v20_R1_policy_behavior_v1"
 ADMISSION_PLAN_ID = "base_v20_R2_admission_execution_v1"
 R2_PLAN_PATH = "scriptsFORhuman/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md"
-R2_PLAN_SHA256 = "0faa8ff20f95208598abb61e685786ab5948794234d7aa947f048eef27606445"
+R2_PLAN_SHA256 = "e82ab57b2f40ba8f8e8c84e518dda0b4b5974a42b06e942e55a7a9e72a7e5371"
 R2_PLAN_LOCK_PATH = "scriptsFORhuman/v20_R2/a2_piper_base_v20_R2_plan_lock_20260730.json"
 R2_PLAN_LOCK_SHA256 = "01e43100c03f4049c4016b3909bfad6121bab52d2ca1e107ba9bccc91f5fa0ca"
 R1_PLAN_PATH = "scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md"

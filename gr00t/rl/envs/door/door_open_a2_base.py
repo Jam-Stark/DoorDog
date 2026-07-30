@@ -8162,7 +8162,9 @@ class DoorPregrasp(
         self._a2_v20_first_root_crossing_step[first_crossing] = step[first_crossing]
         self._a2_v20_hinge_at_first_root_crossing[first_crossing] = door_joint_pos[first_crossing, 0]
         self._a2_v20_root_x_at_first_crossing[first_crossing] = root_x_rel[first_crossing]
-        if self._get_a2_v20_r1_send_curriculum_enabled():
+        crossing_mode = self._get_a2_v20_pre_send_crossing_mode()
+        r1_send_curriculum_enabled = self._get_a2_v20_r1_send_curriculum_enabled()
+        if r1_send_curriculum_enabled:
             pre_send_event, crossing_raw, crossing_seen = a2_v20_r1_pre_send_crossing_penalty(
                 opening_phase,
                 updated_send_ready,
@@ -8174,7 +8176,7 @@ class DoorPregrasp(
                 base_component=self._get_a2_v20_r1_crossing_base_component(),
                 shortfall_gain=self._get_a2_v20_r1_crossing_shortfall_gain(),
                 control_dt=float(self.dt),
-                mode=self._get_a2_v20_pre_send_crossing_mode(),
+                mode=crossing_mode,
             )
             self._a2_v20_r1_crossing_penalty_raw[:] = crossing_raw
             self._a2_v20_pre_send_crossing_seen[:] = crossing_seen
@@ -8188,21 +8190,31 @@ class DoorPregrasp(
             self._a2_v20_r1_crossing_penalty_raw.zero_()
             self._a2_v20_pre_send_crossing_seen |= pre_send_event
         self._a2_v20_first_pre_send_crossing_step[pre_send_event] = step[pre_send_event]
-        hard_pending = getattr(self, "_a2_v20_r1_hard_crossing_pending", None)
-        if (
-            not torch.is_tensor(hard_pending)
-            or tuple(hard_pending.shape) != (self.num_envs,)
-            or hard_pending.dtype != torch.bool
-            or hard_pending.device != torch.device(self.device)
-        ):
-            raise RuntimeError(
-                "R1 crossing lifecycle requires a device-local bool hard-pending buffer."
-            )
-        self._a2_v20_pre_send_crossing_event[:] = a2_v20_r1_durable_crossing_event(
-            pre_send_event,
-            hard_pending,
-            mode=self._get_a2_v20_pre_send_crossing_mode(),
+        r1_crossing_mode_enabled = crossing_mode in A2_V20_R1_CROSSING_MODES
+        r1_crossing_lifecycle_enabled = (
+            r1_send_curriculum_enabled and r1_crossing_mode_enabled
         )
+        if r1_crossing_lifecycle_enabled:
+            hard_pending = getattr(self, "_a2_v20_r1_hard_crossing_pending", None)
+            if (
+                not torch.is_tensor(hard_pending)
+                or tuple(hard_pending.shape) != (self.num_envs,)
+                or hard_pending.dtype != torch.bool
+                or hard_pending.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    "R1 crossing lifecycle requires a device-local bool hard-pending buffer."
+                )
+            self._a2_v20_pre_send_crossing_event[:] = a2_v20_r1_durable_crossing_event(
+                pre_send_event,
+                hard_pending,
+                mode=crossing_mode,
+            )
+        else:
+            if r1_crossing_mode_enabled:
+                self._a2_v20_pre_send_crossing_event[:] = pre_send_event
+            else:
+                self._a2_v20_pre_send_crossing_event.zero_()
 
         current_se2 = self._a2_v20_current_root_se2(frame_data)
         if torch.any(self._a2_v20_root_entry_valid & ~torch.all(torch.isfinite(self._a2_v20_root_entry_pos_se2), dim=-1)):
@@ -8481,7 +8493,14 @@ class DoorPregrasp(
                     "or stage-switch envs; refusing a duplicate control-step increment."
                 )
             stage2_streak[env_ids] = 0
-            stage3_stage4_streak[env_ids] = 0
+            preserve_stage3_stage4_streak = torch.zeros_like(reset_mask)
+            if self.enable_staged_reset:
+                selected_stage = stage_buf[env_ids]
+                preserve_stage3_stage4_streak = just_resetted_buf[env_ids] & (
+                    (selected_stage == self.STAGE_OPEN)
+                    | (selected_stage == self.STAGE_SWING)
+                )
+            stage3_stage4_streak[env_ids[~preserve_stage3_stage4_streak]] = 0
             stage3_highwater[env_ids] = False
             return
 

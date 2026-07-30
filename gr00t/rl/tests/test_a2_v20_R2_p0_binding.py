@@ -49,7 +49,7 @@ def test_ignored_checkpoint_is_regular_exact_and_only_untracked_source(monkeypat
     assert row["path"] == source_freeze.R1_CHECKPOINT_PATH
     assert row["tracked"] is False
     assert row["size_bytes"] == source_freeze.CHECKPOINT_SIZE_BYTES
-    assert row["sha256"] == common.R1_CHECKPOINT_SHA256
+    assert row["sha256"] == common.sha256_file(common.resolve_repo_path(ROOT, common.R1_CHECKPOINT_PATH))
     assert sum(not bool(item["tracked"]) for item in rows) == 1
 
 
@@ -78,7 +78,7 @@ def test_p0_command_matrix_has_separate_full_focused_and_eight_hydra_commands() 
     assert len(names) == len(set(names))
     assert {"full_test_discovery", "full_pytest", "focused_pytest"} <= set(names)
     assert len([name for name in names if name.startswith("hydra_resolve_")]) == 8
-    expected_categories = {"rehash", "git", "hash", "compile", "diff", "test_discovery", "full_pytest", "focused_pytest", "hydra_resolve", "factor_matrix", "legacy_parity", "dimensions", "hidden_override", "staged_ownership", "m48_consumer", "device_environment", "output_root_utc"}
+    expected_categories = {"rehash", "git", "hash", "compile", "diff", "test_discovery", "full_pytest", "focused_pytest", "hydra_resolve", "factor_matrix", "reference_parity", "dimensions", "hidden_override", "staged_ownership", "m48_consumer", "device_environment", "output_root_utc"}
     assert {row["category"] for row in commands} == expected_categories
 
 

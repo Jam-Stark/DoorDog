@@ -21,7 +21,9 @@ from ._r2_common import (
     ADJUDICATOR_STATES,
     ADMISSION_PLAN_ID,
     PRODUCER_STATES,
+    R1_URDF_PATH,
     R2Error,
+    SCIENTIFIC_PLAN_ID,
     canonical_json,
     device_env,
     file_identity,
@@ -306,13 +308,33 @@ def eval_command(
     if group is not None:
         ensure_group(group)
     checkpoint = validate_regular_file(checkpoint, label="R2 evaluation checkpoint")
-    config = validate_regular_file(config, label="R2 evaluation config")
+    config_identity_payload = config_identity(config)
+    config = Path(str(config_identity_payload["path"]))
+    checkpoint_sha256 = artifact_hash(checkpoint)
+    config_sha256 = str(config_identity_payload["sha256"])
+    source_lock = _source_lock_provenance(repo_root, str(config_identity_payload["text"]))
+    provenance = {
+        "run_uuid": _eval_run_uuid(mode=mode, group=group, seed=seed),
+        "scientific_plan_id": SCIENTIFIC_PLAN_ID,
+        "admission_plan_id": ADMISSION_PLAN_ID,
+        **source_lock,
+        "checkpoint_path": str(checkpoint),
+        "checkpoint_sha256": checkpoint_sha256,
+        "checkpoint_step": _checkpoint_step(checkpoint),
+        "source_config_path": str(config),
+        "source_config_sha256": config_sha256,
+        "resolved_config_sha256": config_sha256,
+        "seed": seed,
+    }
     overrides = [
         f"+checkpoint={checkpoint}", f"+num_envs={num_envs}", f"+seed={seed}",
         "+headless=true", "+r2_evidence_enabled=true",
+        f"+r2_bound_config_path={config}",
+        f"+r2_bound_config_sha256={config_sha256}",
+        f"+r2_resolved_config_sha256={config_sha256}",
         f"+env.config.a2_v20_R2_trace_root={output_root / 'traces'}",
         f"+env.config.a2_v20_R2_record_set_staging_path={output_root / 'record_set.staging.jsonl'}",
-        f"+env.config.a2_v20_R2_provenance={{run_uuid:{mode}-seed{seed},scientific_plan_id:base_v20_R1_policy_behavior_v1,admission_plan_id:base_v20_R2_admission_execution_v1}}",
+        f"+env.config.a2_v20_R2_provenance={_hydra_mapping(provenance)}",
     ]
     if group is not None:
         overrides.append(f"+env.config.a2_v20_R2_group={group}")
@@ -320,9 +342,10 @@ def eval_command(
         module="gr00t.rl.eval_agent_trl", repo_root=repo_root, gpu=gpu,
         render=False, extra=overrides,
     )
+    argv.append(f"+r2_command_sha256={hash_command_env(argv, env)}")
     return argv, env, {**binding, "mode": mode, "group": group, "seed": seed,
-                       "num_envs": num_envs, "checkpoint_sha256": artifact_hash(checkpoint),
-                       "config_sha256": artifact_hash(config)}
+                       "num_envs": num_envs, "checkpoint_sha256": checkpoint_sha256,
+                       "config_sha256": config_sha256}
 
 
 def parent_sha(path: Path | str, *, schema: str | None = None,
@@ -353,6 +376,83 @@ def config_identity(path: Path | str) -> dict[str, Any]:
     if not all(key in text for key in required):
         raise R2Error(f"R2 config is missing dual identity fields: {target}")
     return {"path": str(target), "sha256": artifact_hash(target), "text": text}
+
+
+def _checkpoint_step(checkpoint: Path) -> int:
+    prefix = "model_step_"
+    suffix = ".pt"
+    name = checkpoint.name
+    if not name.startswith(prefix) or not name.endswith(suffix):
+        raise R2Error(f"R2 evaluation checkpoint name does not bind a model step: {checkpoint}")
+    step = name[len(prefix):-len(suffix)]
+    if not step.isdecimal():
+        raise R2Error(f"R2 evaluation checkpoint step is not decimal: {checkpoint}")
+    return int(step)
+
+
+def _source_lock_provenance(repo_root: Path | str, config_text: str) -> dict[str, str]:
+    source_lock = read_artifact(
+        root_path(repo_root, _source_lock_path_from_config(config_text)),
+        schema="a2_piper_base_v20_R2_source_lock_v1",
+        producer_state="SOURCE_FROZEN",
+    )
+    immutable = source_lock.get("immutable_inputs")
+    git = source_lock.get("git")
+    if not isinstance(immutable, Mapping):
+        raise R2Error("R2 source lock is missing immutable_inputs")
+    if not isinstance(git, Mapping) or not isinstance(git.get("commit"), str):
+        raise R2Error("R2 source lock is missing git.commit")
+    return {
+        "source_lock_sha256": artifact_hash(root_path(repo_root, _source_lock_path_from_config(config_text))),
+        "plan_sha256": _immutable_sha(immutable, "r2_plan"),
+        "r1_plan_sha256": _immutable_sha(immutable, "r1_plan"),
+        "b0_json_sha256": _immutable_sha(immutable, "b0_json"),
+        "b0_csv_sha256": _immutable_sha(immutable, "b0_csv"),
+        "urdf_path": _immutable_path(immutable, "urdf", R1_URDF_PATH),
+        "urdf_sha256": _immutable_sha(immutable, "urdf"),
+        "git_commit": git["commit"],
+    }
+
+
+def _source_lock_path_from_config(config_text: str) -> str:
+    matches = []
+    for line in config_text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("r2_source_lock_path:"):
+            matches.append(stripped.split(":", 1)[1].strip().strip("'\""))
+    if len(matches) != 1 or not matches[0]:
+        raise R2Error("R2 eval config must bind exactly one r2_source_lock_path")
+    return matches[0]
+
+
+def _immutable_sha(immutable: Mapping[str, Any], name: str) -> str:
+    value = immutable.get(f"{name}_sha256")
+    if not isinstance(value, str) or len(value) != 64:
+        raise R2Error(f"R2 source lock immutable {name}_sha256 is missing")
+    return value
+
+
+def _immutable_path(immutable: Mapping[str, Any], name: str, expected: str) -> str:
+    value = immutable.get(f"{name}_path")
+    if value != expected:
+        raise R2Error(f"R2 source lock immutable {name}_path mismatch")
+    return expected
+
+
+def _eval_run_uuid(*, mode: str, group: str | None, seed: int) -> str:
+    if mode == "b0":
+        return f"b0-B0-seed{seed}"
+    if mode in {"zero-shot", "pooled"}:
+        if group is None:
+            raise R2Error(f"{mode} evaluation requires a group-bound run UUID")
+        return f"{mode}-{group}-seed{seed}"
+    if mode == "holdout":
+        return f"holdout-seed{seed}"
+    return f"{mode}-seed{seed}"
+
+
+def _hydra_mapping(payload: Mapping[str, Any]) -> str:
+    return "{" + ",".join(f"{key}:{value}" for key, value in payload.items()) + "}"
 
 
 def ensure_group(group: str) -> str:

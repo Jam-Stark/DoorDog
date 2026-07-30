@@ -19,21 +19,15 @@ from typing import Any, Mapping
 from ._r2_common import (
     ADMISSION_PLAN_ID,
     B0_CSV_PATH,
-    B0_CSV_SHA256,
     B0_JSON_PATH,
-    B0_JSON_SHA256,
     R1_BLOCKER_COMMIT,
     R1_CHECKPOINT_PATH,
-    R1_CHECKPOINT_SHA256,
     R1_PLAN_PATH,
-    R1_PLAN_SHA256,
+    R1_URDF_GIT_BLOB_SHA1,
     R1_URDF_PATH,
-    R1_URDF_SHA256,
     R2Error,
     R2_PLAN_LOCK_PATH,
-    R2_PLAN_LOCK_SHA256,
     R2_PLAN_PATH,
-    R2_PLAN_SHA256,
     canonical_json,
     hash_command_env,
     resolve_repo_path,
@@ -50,7 +44,9 @@ R2_TEST_GLOB = "gr00t/rl/tests/test_a2_v20*.py"
 R2_CONFIG_ROOT = "gr00t/rl/config/ablation/wbmanip"
 CHECKPOINT_CONFIG_PATH = "logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/config.yaml"
 LEGACY_G2_CONFIG_PATH = "gr00t/rl/config/ablation/wbmanip/base_v19_G2_norm_control.yaml"
+G2_CONTINUATION_REFERENCE_CONFIG_PATH = "gr00t/rl/config/ablation/wbmanip/base_v20_R1_G1_g2_continuation.yaml"
 CHECKPOINT_SIZE_BYTES = 29_996_147
+HIDDEN_OVERRIDE_SCAN_PREFIXES = ("gr00t/rl/envs/", "gr00t/rl/agents/", "gr00t/rl/trl/")
 
 R2_CONFIG_PATHS = (
     "gr00t/rl/config/ablation/wbmanip/base_v20_R2_G1_g2_continuation.yaml",
@@ -63,6 +59,17 @@ R2_CONFIG_PATHS = (
     "gr00t/rl/config/ablation/wbmanip/base_v20_R2_P2_G4_learnability_pilot.yaml",
 )
 DIMENSIONS = {"observation": 1620, "actor_action": 12, "base_command": 5, "manipulation_action": 7}
+IMMUTABLE_INPUT_PATHS = (
+    ("r2_plan", R2_PLAN_PATH),
+    ("r2_plan_lock", R2_PLAN_LOCK_PATH),
+    ("r1_plan", R1_PLAN_PATH),
+    ("b0_json", B0_JSON_PATH),
+    ("b0_csv", B0_CSV_PATH),
+    ("checkpoint", R1_CHECKPOINT_PATH),
+    ("legacy_g2_config", LEGACY_G2_CONFIG_PATH),
+    ("g2_continuation_reference_config", G2_CONTINUATION_REFERENCE_CONFIG_PATH),
+    ("urdf", R1_URDF_PATH),
+)
 
 
 def _git_tracked(repo_root: Path, relative: str) -> bool:
@@ -91,6 +98,39 @@ def _source_entry(repo_root: Path, relative: str, kind: str, *, allow_untracked:
     if allow_untracked and size != CHECKPOINT_SIZE_BYTES:
         raise R2Error(f"R1 checkpoint size mismatch: expected {CHECKPOINT_SIZE_BYTES}, got {size}")
     return {"path": relative, "sha256": sha256_file(path), "size_bytes": size, "kind": kind, "tracked": tracked}
+
+
+def _immutable_input_identities(repo_root: Path) -> dict[str, Any]:
+    """Bind immutable input hashes to the tree being frozen, not stale constants."""
+
+    identities: dict[str, Any] = {}
+    for name, relative in IMMUTABLE_INPUT_PATHS:
+        path = resolve_repo_path(repo_root, relative, require_file=True)
+        identities[f"{name}_path"] = relative
+        identities[f"{name}_sha256"] = sha256_file(path)
+        identities[f"{name}_size_bytes"] = path.stat().st_size
+    if identities["checkpoint_size_bytes"] != CHECKPOINT_SIZE_BYTES:
+        raise R2Error(f"R1 checkpoint size mismatch: expected {CHECKPOINT_SIZE_BYTES}")
+    return identities
+
+
+def _validate_prefreeze_lint(repo_root: Path, ancestor: str) -> None:
+    """Run the R1-ancestor diff lint before a source lock can be emitted."""
+
+    try:
+        subprocess.check_output(["git", "diff", "--check", ancestor, "HEAD", "--"], cwd=repo_root, stderr=subprocess.STDOUT, text=True)
+    except subprocess.CalledProcessError as exc:
+        detail = exc.output.strip()
+        suffix = f": {detail}" if detail else ""
+        raise R2Error(f"pre-freeze diff-check failed{suffix}") from exc
+    except OSError as exc:
+        raise R2Error("cannot run pre-freeze diff-check") from exc
+
+
+def _hidden_override_scan_paths(paths: list[str]) -> list[str]:
+    """Limit hidden-action scanning to policy/env implementation source."""
+
+    return [path for path in paths if path.startswith(HIDDEN_OVERRIDE_SCAN_PREFIXES)]
 
 
 def _changed_candidate_paths(repo_root: Path, ancestor: str) -> list[str]:
@@ -203,6 +243,7 @@ def discover_sources(repo_root: Path) -> list[dict[str, Any]]:
         (B0_JSON_PATH, "immutable_input"),
         (B0_CSV_PATH, "immutable_input"),
         (LEGACY_G2_CONFIG_PATH, "immutable_input"),
+        (G2_CONTINUATION_REFERENCE_CONFIG_PATH, "immutable_input"),
         (R1_URDF_PATH, "urdf"),
     ):
         selected.append(_source_entry(root, relative, kind))
@@ -229,24 +270,6 @@ def discover_sources(repo_root: Path) -> list[dict[str, Any]]:
     return result
 
 
-def _immutable_expected(repo_root: Path) -> None:
-    checks = (
-        (R2_PLAN_PATH, R2_PLAN_SHA256, "R2 plan", None),
-        (R2_PLAN_LOCK_PATH, R2_PLAN_LOCK_SHA256, "R2 plan lock", None),
-        (R1_PLAN_PATH, R1_PLAN_SHA256, "R1 plan", None),
-        (B0_JSON_PATH, B0_JSON_SHA256, "B0 JSON", None),
-        (B0_CSV_PATH, B0_CSV_SHA256, "B0 CSV", None),
-        (R1_CHECKPOINT_PATH, R1_CHECKPOINT_SHA256, "R1 checkpoint", CHECKPOINT_SIZE_BYTES),
-        (R1_URDF_PATH, R1_URDF_SHA256, "R1 URDF", None),
-    )
-    for relative, expected, label, expected_size in checks:
-        path = resolve_repo_path(repo_root, relative, require_file=True)
-        if sha256_file(path) != expected:
-            raise R2Error(f"{label} SHA-256 mismatch")
-        if expected_size is not None and path.stat().st_size != expected_size:
-            raise R2Error(f"{label} size mismatch: expected {expected_size}")
-
-
 def _script(code: str, *args: str) -> list[str]:
     return [sys.executable, "-B", "-c", code, *args]
 
@@ -266,9 +289,21 @@ def build_command_templates(repo_root: Path, source_lock: Mapping[str, Any], *, 
     compile_code = "import pathlib,sys; [compile(pathlib.Path(p).read_text(encoding='utf-8'),p,'exec') for p in sys.argv[1:]]; print('PY_COMPILE_OK',len(sys.argv)-1)"
     discovery_code = "import json,sys; print(json.dumps(sorted(sys.argv[1:]),separators=(',',':')))"
     factor_code = "import json,re,sys; rows=[]\nfor p in sys.argv[1:]:\n t=open(p,encoding='utf-8').read(); f=lambda k: re.findall(r'^\\s*'+re.escape(k)+r':\\s*([^#\\s]+)\\s*$',t,re.M); rows.append({'path':p,'seed':int(f('seed')[0]),'num_envs':int(f('num_envs')[0]),'batches':int(f('num_total_batches')[0]),'send_curriculum':f('a2_v20_R1_send_curriculum_enabled')[0],'economics':f('a2_v20_traversal_economics_enabled')[0],'arm_tie':f('a2_v20_arm_tie_enabled')[0],'crossing_mode':f('a2_v20_pre_send_crossing_mode')[0]})\nprint(json.dumps(rows,sort_keys=True,separators=(',',':')))"
-    parity_code = "import pathlib,re,sys; t=pathlib.Path(sys.argv[1]).read_text(); g=lambda k: re.findall(r'^\\s*'+re.escape(k)+r':\\s*([^#\\s]+)\\s*$',t,re.M); exp={'a2_v20_send_latch_enabled':'false','a2_v20_traversal_economics_enabled':'false','a2_v20_arm_tie_enabled':'false','a2_v20_pre_send_crossing_mode':'disabled','a2_v20_target_root_pre_send_scale':'0.0','a2_v20_target_root_post_send_stage4_scale':'0.5'}; bad=[k for k,v in exp.items() if g(k)!=[v]]; assert not bad, ('V19_G2_DISABLED_PARITY_MISMATCH',bad); print('V19_G2_DISABLED_PARITY_OK')"
+    parity_code = (
+        "import pathlib,re,sys\n"
+        "target=pathlib.Path(sys.argv[1]).read_text(encoding='utf-8')\n"
+        "reference=pathlib.Path(sys.argv[2]).read_text(encoding='utf-8')\n"
+        "keys=('a2_v20_send_latch_enabled','a2_v20_send_hinge_threshold','a2_v20_pre_send_root_x_margin','a2_v20_send_hinge_tolerance','a2_v20_pre_send_crossing_mode','a2_v20_traversal_economics_enabled','a2_v20_target_root_pre_send_scale','a2_v20_target_root_post_send_stage4_scale','a2_v20_target_root_ramp_width_rad','a2_v20_arm_tie_enabled','a2_v20_arm_tangent_carry_scale','a2_v20_handle_arc_tracking_scale','a2_v20_R1_send_curriculum_enabled','a2_v20_R1_soft_phase_end_batch','a2_v20_R1_snapshot_guard_enabled','a2_v20_arm_tangent_carry','a2_v20_handle_arc_tracking','penalty_a2_v20_pre_send_crossing')\n"
+        "def g(text,k): return re.findall(r'^\\s*'+re.escape(k)+r':\\s*([^#\\s]+)\\s*$',text,re.M)\n"
+        "bad=[]\n"
+        "for k in keys:\n"
+        " tv=g(target,k); rv=g(reference,k)\n"
+        " if len(tv)!=1 or len(rv)!=1 or tv!=rv: bad.append((k,tv,rv))\n"
+        "if bad: raise SystemExit(('G2_CONTINUATION_REFERENCE_PARITY_MISMATCH',bad))\n"
+        "print('G2_CONTINUATION_REFERENCE_PARITY_OK')"
+    )
     dimensions_code = "import pathlib,re,sys; t=pathlib.Path(sys.argv[1]).read_text(); e={'obs_dim':'1620','action_dim':'12','base_command_dim':'5','manipulation_action_dim':'7'}; [(_ for _ in ()).throw(SystemExit(1)) if re.findall(r'^\\s*'+k+r':\\s*(\\d+)\\s*$',t,re.M)!=[v] else None for k,v in e.items()]; print('DIMENSIONS_OK')"
-    hidden_code = "import pathlib,sys; bad=('hidden_action_override','scripted_trajectory','damped_least_squares','privileged_hinge_override'); [(_ for _ in ()).throw(SystemExit('forbidden hidden action override')) if any(x in pathlib.Path(p).read_text(encoding='utf-8').lower() for x in bad) else None for p in sys.argv[1:]]; print('NO_HIDDEN_ACTION_OVERRIDE_OK')"
+    hidden_code = "import pathlib,sys; bad=('hidden_action_override','scripted_trajectory','damped_least_squares','privileged_hinge_override'); violations=[(p,x) for p in sys.argv[1:] for x in bad if x in pathlib.Path(p).read_text(encoding='utf-8').lower()]; assert not violations, ('forbidden hidden action override', violations); print('NO_HIDDEN_ACTION_OVERRIDE_OK',len(sys.argv)-1)"
     device_code = "from scriptsFORhuman.v20_R2._r2_common import validate_device_contract; validate_device_contract(gpu=3,render=False,argv=['python','device=cuda:3'],env={'ACCELERATE_TORCH_DEVICE':'cuda:3'},app_launcher_device='cuda:3',accelerator_device='cuda:3'); validate_device_contract(gpu=3,render=True,argv=['python','device=cuda:0'],env={'CUDA_VISIBLE_DEVICES':'3','ACCELERATE_TORCH_DEVICE':'cuda:0'},app_launcher_device='cuda:0',accelerator_device='cuda:0'); print('DEVICE_CONTRACT_OK')"
     output_code = "import datetime,re,sys; p=sys.argv[1].replace('\\\\','/'); assert p.endswith('/admission/revision0/p0') or p.endswith('/admission/revision1/p0'); assert re.fullmatch(r'\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z',datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')); print('OUTPUT_ROOT_UTC_OK')"
     commands: list[dict[str, Any]] = []
@@ -302,9 +337,9 @@ def build_command_templates(repo_root: Path, source_lock: Mapping[str, Any], *, 
     for row in _resolved_templates(root):
         add(row["name"], "hydra_resolve", list(row["argv_template"]), row["env"])
     add("factor_source_to_resolved", "factor_matrix", _script(factor_code, *[str(row["source_path"]) for row in source_lock.get("factor_bindings", [])]), {"PYTHONDONTWRITEBYTECODE": "1"})
-    add("v19_g2_disabled_parity", "legacy_parity", _script(parity_code, R2_CONFIG_PATHS[0]), {"PYTHONDONTWRITEBYTECODE": "1"})
+    add("g2_continuation_reference_parity", "reference_parity", _script(parity_code, R2_CONFIG_PATHS[0], G2_CONTINUATION_REFERENCE_CONFIG_PATH), {"PYTHONDONTWRITEBYTECODE": "1"})
     add("dimensions", "dimensions", _script(dimensions_code, CHECKPOINT_CONFIG_PATH), {"PYTHONDONTWRITEBYTECODE": "1"})
-    add("hidden_action_override", "hidden_override", _script(hidden_code, *[p for p in py_paths if not p.startswith("scriptsFORhuman/")]), {"PYTHONDONTWRITEBYTECODE": "1"})
+    add("hidden_action_override", "hidden_override", _script(hidden_code, *_hidden_override_scan_paths(py_paths)), {"PYTHONDONTWRITEBYTECODE": "1"})
     staged = [path for path in test_paths if "staged_reset" in Path(path).stem]
     add("staged_reset_ownership", "staged_ownership", [sys.executable, "-B", "-m", "pytest", "-q", "-p", "no:cacheprovider", *staged], {"PYTHONDONTWRITEBYTECODE": "1"})
     m48 = [path for path in test_paths if "evidence_record" in Path(path).stem or "endpoint_report" in Path(path).stem]
@@ -321,25 +356,27 @@ def build_source_lock(*, repo_root: Path, revision: int, required_branch: str, r
         raise R2Error("R2 source freeze requires branch A2_Piper and the exact R1 blocker ancestor")
     root = resolve_repo_path(repo_root, ".")
     identity = validate_clean_git(root, branch=required_branch, required_ancestor=required_ancestor)
-    _immutable_expected(root)
+    _validate_prefreeze_lint(root, required_ancestor)
+    immutable_inputs = _immutable_input_identities(root)
     sources = discover_sources(root)
     changed = _changed_candidate_paths(root, required_ancestor)
     dimensions = _dimensions(root)
     factors = _factor_bindings(root)
     resolved = _resolved_templates(root)
     checkpoint_config = resolve_repo_path(root, CHECKPOINT_CONFIG_PATH, require_file=True)
+    checkpoint_config_identity = {
+        "checkpoint_config_path": CHECKPOINT_CONFIG_PATH,
+        "checkpoint_config_sha256": sha256_file(checkpoint_config),
+        "checkpoint_config_size_bytes": checkpoint_config.stat().st_size,
+    }
     provisional = {
         "sources": sources,
         "factor_bindings": factors,
-        "immutable_inputs": {
-            "checkpoint_config_path": CHECKPOINT_CONFIG_PATH,
-            "checkpoint_config_sha256": sha256_file(checkpoint_config),
-            "checkpoint_config_size_bytes": checkpoint_config.stat().st_size,
-        },
+        "immutable_inputs": {**immutable_inputs, **checkpoint_config_identity},
     }
     commands = build_command_templates(root, provisional)
     urdf_blob = subprocess.check_output(["git", "hash-object", R1_URDF_PATH], cwd=root, text=True).strip()
-    if urdf_blob != "95c7698866962fa6e1b971b9ee534452775d8698":
+    if urdf_blob != R1_URDF_GIT_BLOB_SHA1:
         raise R2Error("runtime URDF Git blob mismatch")
     return {
         "schema": "a2_piper_base_v20_R2_source_lock_v1",
@@ -348,21 +385,7 @@ def build_source_lock(*, repo_root: Path, revision: int, required_branch: str, r
         "admission_plan_id": ADMISSION_PLAN_ID,
         "scientific_plan_id": "base_v20_R1_policy_behavior_v1",
         "git": {"commit": identity["commit"], "tree": identity["tree"], "branch": identity["branch"], "required_ancestor": required_ancestor},
-        "immutable_inputs": {
-            "r2_plan_sha256": R2_PLAN_SHA256,
-            "r2_plan_lock_sha256": R2_PLAN_LOCK_SHA256,
-            "r1_plan_sha256": R1_PLAN_SHA256,
-            "b0_json_sha256": B0_JSON_SHA256,
-            "b0_csv_sha256": B0_CSV_SHA256,
-            "checkpoint_sha256": R1_CHECKPOINT_SHA256,
-            "checkpoint_size_bytes": CHECKPOINT_SIZE_BYTES,
-            "checkpoint_config_path": CHECKPOINT_CONFIG_PATH,
-            "checkpoint_config_sha256": sha256_file(checkpoint_config),
-            "checkpoint_config_size_bytes": checkpoint_config.stat().st_size,
-            "legacy_g2_config_path": LEGACY_G2_CONFIG_PATH,
-            "urdf_sha256": R1_URDF_SHA256,
-            "urdf_git_blob_sha1": urdf_blob,
-        },
+        "immutable_inputs": {**immutable_inputs, **checkpoint_config_identity, "urdf_git_blob_sha1": urdf_blob},
         "sources": sources,
         "changed_candidates": changed,
         "resolved_configs": resolved,

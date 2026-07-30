@@ -33,6 +33,7 @@ import os
 import subprocess
 import shutil
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 import hydra
@@ -71,6 +72,51 @@ _A2_BASE_API_TRAINER_TARGET = (
     "gr00t.rl.trl.trainer.ppo_trainer_a2_base_api.TRLPPOTrainer"
 )
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+_R2_REQUIRED_PROVENANCE_FIELDS = frozenset(
+    {
+        "run_uuid",
+        "scientific_plan_id",
+        "admission_plan_id",
+        "source_lock_sha256",
+        "plan_sha256",
+        "r1_plan_sha256",
+        "b0_json_sha256",
+        "b0_csv_sha256",
+        "urdf_path",
+        "urdf_sha256",
+        "checkpoint_path",
+        "checkpoint_sha256",
+        "checkpoint_step",
+        "source_config_path",
+        "source_config_sha256",
+        "resolved_config_sha256",
+        "runtime_config_sha256",
+        "command_sha256",
+        "git_commit",
+        "seed",
+    }
+)
+_R2_RUNTIME_CONFIG_SHA_PLACEHOLDER = "0" * 64
+_R2_WORKFLOW_TOP_LEVEL_OVERRIDES = (
+    "checkpoint",
+    "num_envs",
+    "seed",
+    "headless",
+    "r2_evidence_enabled",
+    "r2_bound_config_path",
+    "r2_bound_config_sha256",
+    "r2_resolved_config_sha256",
+    "r2_command_sha256",
+    "r2_m22_entry_id",
+    "r2_selected_checkpoint_step",
+    "r2_forced",
+)
+_R2_WORKFLOW_ENV_OVERRIDES = (
+    "env.config.a2_v20_R2_trace_root",
+    "env.config.a2_v20_R2_record_set_staging_path",
+    "env.config.a2_v20_R2_provenance",
+    "env.config.a2_v20_R2_group",
+)
 
 
 def _validate_r2_runtime_bindings(config, *, require_formal_bundle=False):
@@ -130,8 +176,92 @@ def validate_r2_eval_config(config):
         raise ValueError("R2 evaluation config admission_plan_id mismatch")
     if not bool(config.get("r2_evidence_enabled", False)):
         raise ValueError("R2 evaluation requires r2_evidence_enabled=true")
-    _validate_r2_runtime_bindings(config)
+    _complete_r2_eval_provenance(config)
     return True
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _resolve_regular_file(value, *, label):
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{label} must be a non-empty path string")
+    path = Path(value)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    if path.is_symlink() or not path.is_file():
+        raise ValueError(f"{label} is not a regular file: {path}")
+    return path
+
+
+def _load_r2_bound_config(override_config):
+    bound_path = override_config.get("r2_bound_config_path", None)
+    if bound_path is None:
+        return None
+    config_path = _resolve_regular_file(bound_path, label="R2 bound config")
+    actual_sha = _sha256_file(config_path)
+    expected_sha = override_config.get("r2_bound_config_sha256", None)
+    if expected_sha not in (None, actual_sha):
+        raise ValueError("R2 bound config hash does not match the workflow command binding")
+    logger.info(f"Loading workflow-bound R2 config file from {config_path}")
+    return OmegaConf.load(config_path)
+
+
+def _apply_r2_workflow_overrides(config, override_config) -> None:
+    for key in _R2_WORKFLOW_TOP_LEVEL_OVERRIDES:
+        value = override_config.get(key, None)
+        if value is not None:
+            OmegaConf.update(config, key, value, force_add=True)
+    for key in _R2_WORKFLOW_ENV_OVERRIDES:
+        value = OmegaConf.select(override_config, key)
+        if value is not None:
+            OmegaConf.update(config, key, value, force_add=True)
+
+
+def _canonical_config_sha256(config) -> str:
+    payload = OmegaConf.to_container(config, resolve=True)
+    encoded = json.dumps(
+        payload,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _r2_provenance_container(config) -> dict:
+    provenance = OmegaConf.select(config, "env.config.a2_v20_R2_provenance")
+    payload = OmegaConf.to_container(provenance, resolve=True) if provenance is not None else None
+    if not isinstance(payload, Mapping):
+        raise ValueError("R2 evaluation requires env.config.a2_v20_R2_provenance from the workflow command")
+    return dict(payload)
+
+
+def _complete_r2_eval_provenance(config) -> None:
+    runtime_identity = _validate_r2_runtime_bindings(config)
+    provenance = _r2_provenance_container(config)
+    command_sha = config.get("r2_command_sha256", None)
+    if not isinstance(command_sha, str) or not command_sha:
+        raise ValueError("R2 evaluation requires r2_command_sha256 from the workflow command")
+    entry_id = config.get("r2_m22_entry_id", None)
+    if isinstance(entry_id, str) and entry_id:
+        provenance["run_uuid"] = f"m22-{entry_id}"
+    resolved_sha = config.get("r2_resolved_config_sha256", None)
+    if isinstance(resolved_sha, str) and resolved_sha:
+        provenance["resolved_config_sha256"] = resolved_sha
+    provenance["source_lock_sha256"] = runtime_identity["source_lock_sha256"]
+    provenance["git_commit"] = runtime_identity["git_commit"]
+    provenance["command_sha256"] = command_sha
+    provenance["runtime_config_sha256"] = _R2_RUNTIME_CONFIG_SHA_PLACEHOLDER
+    OmegaConf.update(config, "env.config.a2_v20_R2_source_lock_sha256", runtime_identity["source_lock_sha256"], force_add=True)
+    OmegaConf.update(config, "env.config.a2_v20_R2_provenance", provenance, force_add=True)
+    provenance["runtime_config_sha256"] = _canonical_config_sha256(config)
+    missing = sorted(_R2_REQUIRED_PROVENANCE_FIELDS - set(provenance))
+    if missing:
+        raise ValueError(f"R2 evaluation provenance is missing required fields: {missing}")
+    OmegaConf.update(config, "env.config.a2_v20_R2_provenance", provenance, force_add=True)
 
 
 def _validate_eval_seed(seed):
@@ -339,8 +469,6 @@ def _align_app_launcher_device_with_accelerate(args_cli):
 
 @hydra.main(config_path="config", config_name="base_eval")
 def main(override_config: OmegaConf):
-    if override_config.get("admission_plan_id", None) == "base_v20_R2_admission_execution_v1":
-        validate_r2_eval_config(override_config)
     # --- Logging setup ---
     hydra_log_path = os.path.join(HydraConfig.get().runtime.output_dir, "eval.log")
     logger.remove()
@@ -353,6 +481,7 @@ def main(override_config: OmegaConf):
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger().addHandler(HydraLoggerBridge())
     os.chdir(hydra.utils.get_original_cwd())
+    bound_r2_config = _load_r2_bound_config(override_config)
 
     # --- Load and merge training config from checkpoint directory ---
     if override_config.checkpoint is not None:
@@ -388,9 +517,17 @@ def main(override_config: OmegaConf):
             migrate_legacy_a2_stage3_to4_threshold_config(train_config, config_path)
             migrate_legacy_a2_stage3_base_unlocked_config(train_config, config_path)
             migrate_legacy_a2_hold_diagnostic_env_config(train_config, config_path)
-            config = OmegaConf.merge(train_config, override_config)
+            if bound_r2_config is not None:
+                config = OmegaConf.merge(train_config, override_config, bound_r2_config)
+                _apply_r2_workflow_overrides(config, override_config)
+            else:
+                config = OmegaConf.merge(train_config, override_config)
         else:
-            config = override_config
+            if bound_r2_config is not None:
+                config = OmegaConf.merge(override_config, bound_r2_config)
+                _apply_r2_workflow_overrides(config, override_config)
+            else:
+                config = override_config
         config.experiment_dir = checkpoint.parent
     else:
         if override_config.eval_overrides is not None:
@@ -405,9 +542,14 @@ def main(override_config: OmegaConf):
             config = OmegaConf.merge(config, eval_overrides)
         else:
             config = override_config
+        if bound_r2_config is not None:
+            config = OmegaConf.merge(config, bound_r2_config)
+            _apply_r2_workflow_overrides(config, override_config)
 
     _normalize_eval_checkpoint_load_mode(config)
     config.seed = _validate_eval_seed(config.seed)
+    if config.get("admission_plan_id", None) == "base_v20_R2_admission_execution_v1":
+        validate_r2_eval_config(config)
 
     # Resume wandb run if meta.yaml exists
     meta_path = Path(config.experiment_dir) / "meta.yaml"

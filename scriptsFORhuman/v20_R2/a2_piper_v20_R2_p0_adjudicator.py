@@ -159,8 +159,8 @@ def _validate_semantic_outputs(repo_root: Path, lock: Mapping[str, Any], receipt
     actual_factors = [{"source_path": row.get("path"), "seed": row.get("seed"), "num_envs": row.get("num_envs"), "batches": row.get("batches"), "send_curriculum": str(row.get("send_curriculum")).lower() == "true", "economics": str(row.get("economics")).lower() == "true", "arm_tie": str(row.get("arm_tie")).lower() == "true", "crossing_mode": row.get("crossing_mode")} for row in factors]
     if sorted(actual_factors, key=lambda row: row["source_path"]) != sorted(expected_factors, key=lambda row: row["source_path"]):
         raise R2Error("factor/source-to-resolved output differs from frozen factor matrix")
-    if stdout("v19_g2_disabled_parity").strip() != "V19_G2_DISABLED_PARITY_OK":
-        raise R2Error("v19 G2 disabled parity did not execute the expected check")
+    if stdout("g2_continuation_reference_parity").strip() != "G2_CONTINUATION_REFERENCE_PARITY_OK":
+        raise R2Error("G2 continuation reference parity did not execute the expected check")
     if stdout("dimensions").strip() != "DIMENSIONS_OK":
         raise R2Error("dimension parity command did not pass")
     for name in ("hidden_action_override", "staged_reset_ownership", "m48_consumer", "device_environment", "output_root_utc"):

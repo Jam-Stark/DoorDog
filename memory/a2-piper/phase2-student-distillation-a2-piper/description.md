@@ -1,8 +1,8 @@
 ---
 name: phase2-student-distillation-a2-piper
 scope: DoorDog-A2_Piper-only Phase2 Student Distillation / DAgger vision policy
-status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS / V16_CB_GPU7_CAPACITY_STABILITY_PASS / C_B2_SENSORS_RUNTIME_PASS_PANORAMA_VISUAL_FAIL
-last_updated: 2026-07-30 16:13 HKT
+status: TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS / V16_CB_GPU7_CAPACITY_STABILITY_PASS / C_B2_SENSORS_RUNTIME_PASS_PANORAMA_VISUAL_FAIL / C_B2_TOEIN20_RENDER_COMPLETE_PANORAMA_VISUAL_FAIL
+last_updated: 2026-07-30 17:34 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/phase2-student-distillation-a2-piper/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Status and Accepted Scope
 
-Status at 2026-07-30 16:13 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS / V16_CB_GPU7_CAPACITY_STABILITY_PASS / C_B2_SENSORS_RUNTIME_PASS_PANORAMA_VISUAL_FAIL`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为真实 Student Distillation update 与 bounded capacity/stability pilot，并产生新的 Student checkpoint。原 one-update、C-B v16 one-update 与 GPU7 10-batch pilot 都是真实训练完成，不是仅 `STATIC PASS`；camera sweep、Scheme C 与 C-B2 验证仍只作 Teacher eval diagnostic，没有训练或修改 production Student observation。C-B2 三相机 runtime/sync/video gates 通过，但当前 panorama 已被用户以重影、撕裂和空洞明确判定为视觉 FAIL。
+Status at 2026-07-30 17:34 HKT: `TRAINING_PASS / R14_RESOLVED / V16B_335L_STAGE1_5_SWEEP_COMPLETE / SCHEME_C_RUNTIME_PASS_VISIBILITY_PARTIAL / SCHEME_C_B_LOWPROFILE_RUNTIME_SMOKE_PASS / V16_CB_STUDENT_ONE_UPDATE_PASS / V16_CB_GPU7_CAPACITY_STABILITY_PASS / C_B2_SENSORS_RUNTIME_PASS_PANORAMA_VISUAL_FAIL / C_B2_TOEIN20_RENDER_COMPLETE_PANORAMA_VISUAL_FAIL`。DoorDog-A2_Piper 在本 entry 中只按 A2+Piper route 处理；final accepted training goal 已收窄为真实 Student Distillation update 与 bounded capacity/stability pilot，并产生新的 Student checkpoint。原 one-update、C-B v16 one-update 与 GPU7 10-batch pilot 都是真实训练完成，不是仅 `STATIC PASS`；camera sweep、Scheme C 与 C-B2 验证仍只作 Teacher eval diagnostic，没有训练或修改 production Student observation。C-B2 三相机 runtime/sync/video gates 通过，但原 ±15° 与独立 ±20° ablation 的 panorama 均因重影、撕裂和空洞保持视觉 FAIL。
 
 Frozen product candidate 为 `90164b26bece1623e6c4a2dfe32769a4af72c2ed5f2efc80857ba9e82d6691cf`；code-quality 与 IsaacLab semantics review 均 PASS，targeted static test 为 `25 passed`。Teacher immutable triplet 已 sealed：checkpoint `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/model_step_001000.pt` SHA256 `40939c4af4e9744dfbc9d21315adcb59d01fbad80c1a3e8b480277aa2d463523`；saved config `logs_rl/a2_piper_full_stage_a2_base/base_v10_D_scratch_hold_reward_kp160_base-20260713_174459/config.yaml` SHA256 `3ba6e8a35c2659807acbd43adeae1871bc02d033f4578690a5eb3e4b37bffa77`；manifest `logs_rl/a2_piper_student_distillation_runtime/base_v10_D_teacher-20260714_144359/teacher_manifest.json` SHA256 `c22f0648ca4225cc0d1f44159df0beea4300509eb7eaad0e7c1ff71cd384cadc`。
 
@@ -159,6 +159,15 @@ trunk local `[0.260,0,0.215]m`，保持 landscape `384×216`、`y=0,yaw=0`、pit
 - 左、右、OEM Head、panorama 与四段 process MP4 均为 `157` 帧、`10fps / 15.7s` 并 end-to-end decode PASS；process layout 为 `216×384 left | 216×384 right | 416×384 panorama | 384×384 letterboxed Head`，总尺寸 `1232×384`。panorama totals 为 valid input depth `9,869,736`、projected `9,743,472`、depth-fused output `6,328,805`、single-view fallback `12,989,567`、empty `5,761,436` pixels。
 - conservative three-view union 的 all-stage handle/trio/panel rate 为 `74.09%/64.78%/77.08%`；stage1–4 handle 为 `100%`，但 stage5 handle/trio 只有 `9.30%/9.30%`。三相机 verdict 是 runtime PASS / visibility PARTIAL；panorama verdict 是 `VISUAL_FAIL`，因为第三栏存在明显重影、撕裂和空洞。它不是 stage5 hard-gate、physical mount、CAD interference、mirrored left/out、真实双机同步/标定或 production Student input PASS。sealed evidence 为 `logs_eval/a2_piper_camera_scheme_c_b2_v16_teacher_gpu0-20260730_151827/camera_pose_sweep_summary.json`。
 
+### C-B2 TOEIN20 diagnostic ablation
+
+2026-07-30 17:34 HKT，新增独立 `C-B2-DUAL-PORTRAIT-OEM-TOEIN20`，保留原 C-B2 ±15° identity、位置、baseline、pitch、intrinsics、RGB-D 与 OEM Head contract，仅将左右 yaw 改为 `-20°/+20°`。左右 wxyz 分别为 `[0.852868532,-0.086824089,-0.492403877,-0.150383733]` / `[0.852868532,+0.086824089,-0.492403877,+0.150383733]`；光轴夹角 `40°`，理论 overlap `2.5°`，panorama 扩展为 `474×384 / 82.5°H×69.4°V`。
+
+- sealed `base_v16_B` GPU0 eval-only run 自然退出 `0`，2/2 episodes `goal_reached=true / final_stage=5 / complete`，`training_performed=false`；pair frame delta max `0`。
+- 左、右、OEM Head、panorama 与 process MP4 均为 `157` 帧、`10fps / 15.7s` 并 end-to-end decode PASS；process layout 为 `216×384 | 216×384 | 474×384 | 384×384`，总尺寸 `1290×384`。
+- panorama totals 为 valid input depth `9,770,648`、projected `9,597,643`、depth-fused `6,387,707`、fallback `14,449,088`、empty `7,739,717`。相较 ±15°，empty ratio 从 `22.97%` 升至 `27.08%`（`+4.11pp`），depth-fused ratio 从 `25.23%` 降至 `22.35%`。
+- all-stage union handle/trio/panel 为 `73.75%/65.12%/77.08%`。人工 midpoint/视频 QA 仍见明显重影、撕裂和空洞；因此 verdict 为 `C_B2_TOEIN20_RENDER_COMPLETE_PANORAMA_VISUAL_FAIL`，只作为 wider-view comparison，不是拼接优化或 Student input candidate。sealed evidence 为 `logs_eval/a2_piper_camera_scheme_c_b2_toein20_v16_teacher_gpu0-20260730_172528/camera_pose_sweep_summary.json`。
+
 ## Historical Failure Facts and Deferred Work
 
 R13 `FAIL_TIMEOUT`, R14 `FAIL_FINAL_SEAL`, and R15 `FAIL_EVIDENCE_SERIALIZATION` remain reusable lifecycle/evidence facts; none was a training PASS. R15 specifically exposed strict JSON serialization of `torch.__version__` as `torch.torch_version.TorchVersion`, before an `evidence.json` seal. They are superseded as blockers for the accepted one-update goal, not erased.
@@ -177,6 +186,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-28 20:58 HKT - `V16_CB_STUDENT_ONE_UPDATE_PASS`: C-B v16 telemetry compatibility 与一次 GPU0 retry3 Student update 已完成并产生 `global_step=1` checkpoint；自然 Kit close 未 PASS 不阻塞 training completion，formal/long training 仍未运行。
 - 2026-07-28 23:06 HKT - `V16_CB_GPU7_CAPACITY_STABILITY_PASS`: physical GPU7 / logical `cuda:0` binding、recurrent Teacher repeated cleanup 与 32-env/10-batch pilot 已通过；checkpoint `global_step=10` 可加载且 finite，GPU7 peak `18241 MiB`，GPU0 peak `2 MiB`。Natural Kit close 仍未 PASS，正式 longer-scale/multi-seed training 仍未运行。
 - 2026-07-30 16:13 HKT - `C_B2_SENSORS_RUNTIME_PASS_PANORAMA_VISUAL_FAIL`: 独立 C-B2 三相机 2-env eval 的 goal、same-render/frame-sync/intrinsics/sealing/decode gates 通过，但用户明确拒绝第三栏 panorama 的重影、撕裂和空洞；stage5 handle/trio 仍仅 `9.30%/9.30%`，panorama 重构、physical/CAD/calibration 与 Student input 未验证。
+- 2026-07-30 17:34 HKT - `C_B2_TOEIN20_RENDER_COMPLETE_PANORAMA_VISUAL_FAIL`: 独立 ±20° yaw ablation 与五段 157-frame v16 Teacher 视频已完成；82.5° panorama 的 empty ratio `27.08%`，较 ±15° 增加 `4.11pp`，重影/撕裂/空洞仍明显，故仅保留为 wider-view comparison。
 ## DONE Summary
 
 - 2026-07-13 22:28 HKT - Static A2+Piper Phase2 Student Distillation framework completed and statically reviewed; runtime/training remained INCONCLUSIVE at that time.
@@ -193,6 +203,7 @@ G1 compatibility/regression, R16 lifecycle perfection, final physical camera mou
 - 2026-07-28 20:58 HKT - `V16_CB_STUDENT_ONE_UPDATE_PASS`: frozen candidate `5b3f496b10271890a8fa0557ef984577f9f2d5afe368bbdb9cd63b51a2259173` 完成 C-B v16 Student one-update。C-B D435i/Head 固定为 `[0.26,0,0.215]m` + up60 `384×216` / `[0.32,0,0.25]m` + `384×136`，`y=0/yaw=0`、Head `40/40` letterbox 与 NHWC `(N,216,768,3)`/vision dim `497664` contract 一致；v16 telemetry schema 消费、unknown Bool/Int fail-fast 与无 `TensorAverageMeter` fallback 已由 static gates 覆盖（new `4 passed`、affected `7 passed`、full `129 passed`、diff/CODE_QUALITY/ISAACLAB_FAIL_FAST PASS）。唯一 GPU0 retry3 launch 于 `20:50:09 HKT` 产生一次 required-marker set，Teacher `133→12`、Student/A2_Base/rollout `12/12/24`，iteration `1` / `4` timesteps；`model_step_000001.pt` SHA256 `6fef5cd92210999b55d1d2130889870672334f69520fd4249ca35963f31ac288`、`155659963` bytes、`142` finite policy tensors、optimizer state `78`、`global_step=1`。checkpoint 后 `TRAINING_COMPLETION PASS`；`simulation_app_close_start` 后无 `close_complete`，超过 `180s` 才对 owned PGID `1155351` 一次 TERM、无 SIGKILL，PGID 消失且 GPU0 released；故自然 Kit shutdown 未 PASS，但不否定 training completion。candidate/Teacher/pinned-runtime identity post-run 未变；formal/long training、physical camera、policy quality 与 multi-seed 均未声称。
 - 2026-07-28 23:06 HKT - `V16_CB_GPU7_CAPACITY_STABILITY_PASS`: binding v3 将 physical renderer GPU7 映射到 process-local logical `cuda:0`/PhysX GPU0，并由 host/Torch UUID、Accelerate、AppLauncher/Carbonite markers fail-fast 验证；recurrent Teacher deterministic inference 的 repeated rollout cleanup 已修复。full contract `132 passed`。retry4 以 `32 env × 8 steps × 10 batches` 完成 `2560` timesteps / `320` episodes，trainer total `40.34s`；checkpoint `model_step_000010.pt` SHA256 `b8f681a18a28394e4b3d03281f8d2cb8c9874a5f40fbbeb0c0173f1aedf9786b`、`155663227` bytes、`global_step=10`，递归 tensor finite PASS。GPU7 peak `18241 MiB/100%/255.87W/64°C`，GPU0 peak `2 MiB`。checkpoint 后 Kit close 超过 `180s` 未返回，exact PID TERM 后 GPU released；因此 training/capacity PASS，但 natural Kit shutdown 仍未 PASS。
 - 2026-07-30 16:13 HKT - `C_B2_SENSORS_RUNTIME_PASS_PANORAMA_VISUAL_FAIL`: 保存独立 C-B2 方案并实现三路 high-level `TiledCamera`、双 RGB-D fixed-extrinsic cylindrical/Z-buffer panorama、single-view depth-hole fallback 与四段 process video。sealed v16 Teacher GPU0 eval 2/2 goal，三路各 `157` 帧、pair frame delta `0`、intrinsics error `0px`，五个 MP4 全部完整解码；all-stage handle/trio/panel `74.09%/64.78%/77.08%`，stage5 handle/trio `9.30%/9.30%`。这些 runtime gates 不推翻用户对 panorama 重影/撕裂/空洞的视觉 FAIL；未训练或改变 Student observation，panorama 重构、CAD/physical mount、real pair calibration/sync 与 mirrored left/out 仍开放。
+- 2026-07-30 17:34 HKT - `C_B2_TOEIN20_RENDER_COMPLETE_PANORAMA_VISUAL_FAIL`: 新增不覆盖 ±15° 的 ±20° toe-in config/class，v16 Teacher GPU0 eval 2/2 goal，五个 MP4 各 `157` 帧且完整解码；水平 FoV `82.5°`、理论 overlap `2.5°`，empty ratio `27.08%`，panorama 视觉 FAIL 维持。没有训练或修改 Student observation。
 
 ## Recommended Next Files To Read
 

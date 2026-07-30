@@ -27,6 +27,7 @@ CAMERA_CONFIGS = (
     "d435i_landscape_up60_a2_head",
     "d435i_landscape_stage0_3_pitch_sweep",
     "d435i_dual_portrait_up60_a2_head_oem",
+    "d435i_dual_portrait_up60_a2_head_oem_toein20",
 )
 CAMERA_RANKING_STAGES = {
     "gemini_335l_centerline": [1, 2, 3, 4, 5],
@@ -35,6 +36,7 @@ CAMERA_RANKING_STAGES = {
     "d435i_landscape_up60_a2_head": [1, 2, 3, 4, 5],
     "d435i_landscape_stage0_3_pitch_sweep": [0, 1, 2, 3],
     "d435i_dual_portrait_up60_a2_head_oem": [1, 2, 3, 4, 5],
+    "d435i_dual_portrait_up60_a2_head_oem_toein20": [1, 2, 3, 4, 5],
 }
 SCHEME_C_CONFIGS = {
     "d435i_portrait_a2_head": (
@@ -57,6 +59,14 @@ SCHEME_C_CONFIGS = {
             "a2_head_oem",
         ],
     ),
+    "d435i_dual_portrait_up60_a2_head_oem_toein20": (
+        "C-B2-DUAL-PORTRAIT-OEM-TOEIN20",
+        [
+            "d435i_left_portrait_up60_toein20",
+            "d435i_right_portrait_up60_toein20",
+            "a2_head_oem",
+        ],
+    ),
 }
 SCHEME_C_HEAD_EXTRINSIC_STATUS = {
     "d435i_portrait_a2_head": "provisional_not_cad_or_calibrated",
@@ -65,6 +75,13 @@ SCHEME_C_HEAD_EXTRINSIC_STATUS = {
     "d435i_dual_portrait_up60_a2_head_oem": (
         "official_unitree_a2_urdf_camera_link"
     ),
+    "d435i_dual_portrait_up60_a2_head_oem_toein20": (
+        "official_unitree_a2_urdf_camera_link"
+    ),
+}
+SCHEME_C_B2_PANORAMA_RESOLUTIONS = {
+    "d435i_dual_portrait_up60_a2_head_oem": [384, 416],
+    "d435i_dual_portrait_up60_a2_head_oem_toein20": [384, 474],
 }
 
 
@@ -466,7 +483,7 @@ def seal_summary(
             raise RuntimeError(f"scheme C combined video escaped eval output: {combined_path}")
         if not combined_path.is_file() or combined_path.stat().st_size <= 0:
             raise RuntimeError(f"scheme C combined video is missing or empty: {combined_path}")
-        if camera_config == "d435i_dual_portrait_up60_a2_head_oem":
+        if camera_config in SCHEME_C_B2_PANORAMA_RESOLUTIONS:
             panorama = scheme_c.get("panorama")
             if (
                 not isinstance(panorama, dict)
@@ -474,7 +491,8 @@ def seal_summary(
                 or panorama.get("stitch_mode") != "z_buffer_no_rgb_averaging"
                 or panorama.get("invalid_depth_fallback")
                 != "best_single_view_fixed_geometry"
-                or panorama.get("output_resolution") != [384, 416]
+                or panorama.get("output_resolution")
+                != SCHEME_C_B2_PANORAMA_RESOLUTIONS[camera_config]
             ):
                 raise RuntimeError("C-B2 panorama contract is missing or drifted")
             panorama_metadata = scheme_c.get("panorama_video_metadata")

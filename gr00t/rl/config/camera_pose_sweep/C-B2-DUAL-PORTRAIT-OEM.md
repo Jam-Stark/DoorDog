@@ -82,6 +82,31 @@ artifact. The next revision must diagnose the projection/extrinsic convention,
 depth representation, forward-warp sampling/Z-buffer behavior, occlusion seams,
 and hole policy, then pass explicit visual and quantitative seam-quality gates.
 
+## TOEIN20 diagnostic ablation
+
+`camera_pose_sweep=d435i_dual_portrait_up60_a2_head_oem_toein20` is an
+independent diagnostic ablation. It preserves both RGB optical centers, the
+`-60 deg` pitch, portrait orientation, baseline, intrinsics, depth contract,
+and OEM Head stream while changing the symmetric D435i yaw from `+/-15 deg` to
+`+/-20 deg`. Its quaternions are
+`[0.852868532,-0.086824089,-0.492403877,-0.150383733]` on the left and
+`[0.852868532,+0.086824089,-0.492403877,+0.150383733]` on the right.
+
+The optical-axis separation is therefore `40 deg`; approximate pair overlap
+drops from `12.5 deg` to `2.5 deg`, while the diagnostic cylindrical panorama
+expands from `72.5 deg / 416 px` to `82.5 deg / 474 px` horizontally. The
+original `+/-15 deg` C-B2 identity and its evidence remain unchanged.
+
+The sealed `base_v16_B` Teacher render on `2026-07-30` completed `2/2`
+episodes and all five `157`-frame MP4s decoded end to end. The pair frame delta
+was zero and no training occurred. However, the wider panorama remains
+visually rejected: ghosting, tearing, and holes are still material. Empty
+panorama pixels increased from `22.97%` at `+/-15 deg` to `27.08%` at
+`+/-20 deg`; depth-fused coverage fell from `25.23%` to `22.35%`. Treat this as
+a wider-view comparison render, not a panorama improvement or Student-input
+candidate. Evidence is
+`logs_eval/a2_piper_camera_scheme_c_b2_toein20_v16_teacher_gpu0-20260730_172528/camera_pose_sweep_summary.json`.
+
 ## Physical boundaries
 
 The nominal STEP point-cloud estimate suggests camera housings remain near the

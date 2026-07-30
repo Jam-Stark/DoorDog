@@ -37,6 +37,7 @@ CAMERA_CONFIGS = (
     "d435i_landscape_up60_a2_head",
     "d435i_landscape_stage0_3_pitch_sweep",
     "d435i_dual_portrait_up60_a2_head_oem",
+    "d435i_dual_portrait_up60_a2_head_oem_toein20",
 )
 
 

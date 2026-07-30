@@ -1475,6 +1475,9 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
     HEAD_ROTATION_WXYZ = [1.0, 0.0, 0.0, 0.0]
     HEAD_RPY_DEG = [0.0, 0.0, 0.0]
     D435I_INTRINSICS = [277.72153927108553, 277.72153927108553, 108.0, 192.0]
+    NOMINAL_OVERLAP_DEG = 12.5
+    PANORAMA_OUTPUT_RESOLUTION = [384, 416]
+    PANORAMA_HORIZONTAL_FOV_DEG = 72.5
 
     @classmethod
     def _parse_a2_camera_scheme_c_config(cls, config) -> dict[str, object]:
@@ -1565,7 +1568,7 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
             or pair["lateral_symmetry_contract"]
             != "left_y_plus_yaw_minus_right_y_minus_yaw_plus"
             or pair["nominal_baseline_m"] != 0.19
-            or pair["nominal_overlap_deg"] != 12.5
+            or pair["nominal_overlap_deg"] != cls.NOMINAL_OVERLAP_DEG
         ):
             raise RuntimeError("C-B2 D435i optical/mechanical identity drift")
         for key in (
@@ -1646,8 +1649,8 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
             or panorama["depth_source"] != "distance_to_image_plane"
             or panorama["minimum_depth_m"] != 0.28
             or panorama["maximum_depth_m"] != 20.0
-            or panorama["output_resolution"] != [384, 416]
-            or panorama["horizontal_fov_deg"] != 72.5
+            or panorama["output_resolution"] != cls.PANORAMA_OUTPUT_RESOLUTION
+            or panorama["horizontal_fov_deg"] != cls.PANORAMA_HORIZONTAL_FOV_DEG
             or panorama["vertical_fov_deg"] != 69.4
             or panorama["validity_mask_per_frame"] is not True
             or not isinstance(panorama["output_path"], str)
@@ -1958,7 +1961,10 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
             maximum_depth_m=float(panorama_cfg["maximum_depth_m"]),
         )
         panorama_frame = result["rgb"]
-        if tuple(panorama_frame.shape) != (384, 416, 3):
+        panorama_height, panorama_width = (
+            int(value) for value in panorama_cfg["output_resolution"]
+        )
+        if tuple(panorama_frame.shape) != (panorama_height, panorama_width, 3):
             raise RuntimeError(
                 f"C-B2 panorama frame shape drift: {panorama_frame.shape}"
             )
@@ -1988,13 +1994,14 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
                 panorama_frame,
                 self._fit_a2_scheme_c_b2_panel(
                     head_frame,
-                    target_height=384,
+                    target_height=panorama_height,
                     target_width=384,
                 ),
             ],
             dim=1,
         )
-        if tuple(combined.shape) != (384, 1232, 3):
+        combined_width = self.D435I_WIDTH * 2 + panorama_width + 384
+        if tuple(combined.shape) != (panorama_height, combined_width, 3):
             raise RuntimeError(f"C-B2 process frame shape drift: {combined.shape}")
         writer = self._a2_scheme_c_combined_writer
         if writer is None:
@@ -2009,9 +2016,11 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
         self._a2_scheme_c_combined_frame_count += 1
 
     def _a2_scheme_c_combined_layout(self) -> str:
+        panorama_height, panorama_width = self.PANORAMA_OUTPUT_RESOLUTION
         return (
             "left-to-right: raw left D435i 216x384; raw right D435i 216x384; "
-            "depth-aware cylindrical panorama 416x384; letterboxed OEM A2 Head 384x384"
+            f"depth-aware cylindrical panorama {panorama_width}x{panorama_height}; "
+            f"letterboxed OEM A2 Head 384x{panorama_height}"
         )
 
     def _seal_a2_scheme_c_b2_panorama_video(self) -> str:
@@ -2077,3 +2086,31 @@ class DoorPregraspCameraSchemeCBDualPortraitOEM(DoorPregraspCameraSchemeC):
             "production Student observation and model are unchanged",
         ]
         return summary
+
+
+class DoorPregraspCameraSchemeCBDualPortraitOEMToein20(
+    DoorPregraspCameraSchemeCBDualPortraitOEM
+):
+    """C-B2 TOEIN20: widen the symmetric portrait pair to yaw +/-20 degrees."""
+
+    SCHEME_VARIANT = "C-B2-DUAL-PORTRAIT-OEM-TOEIN20"
+    D435I_VIEW = "d435i_left_portrait_up60_toein20"
+    RIGHT_D435I_VIEW = "d435i_right_portrait_up60_toein20"
+    UNION_VIEW = "scheme_c_b2_toein20_union"
+    D435I_ROTATION_WXYZ = [
+        0.852868532,
+        -0.086824089,
+        -0.492403877,
+        -0.150383733,
+    ]
+    D435I_RPY_DEG = [0.0, -60.0, -20.0]
+    RIGHT_ROTATION_WXYZ = [
+        0.852868532,
+        0.086824089,
+        -0.492403877,
+        0.150383733,
+    ]
+    RIGHT_RPY_DEG = [0.0, -60.0, 20.0]
+    NOMINAL_OVERLAP_DEG = 2.5
+    PANORAMA_OUTPUT_RESOLUTION = [384, 474]
+    PANORAMA_HORIZONTAL_FOV_DEG = 82.5

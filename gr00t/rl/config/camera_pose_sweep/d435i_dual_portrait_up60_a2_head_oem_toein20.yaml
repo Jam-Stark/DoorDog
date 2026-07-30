@@ -1,0 +1,170 @@
+# @package _global_
+
+# Eval-only C-B2 TOEIN20: symmetric dual portrait D435i RGB-D views plus
+# the official Unitree A2 OEM Head context pose. This does not change Student input.
+simulator:
+  config:
+    cameras:
+      enable_cameras: true
+      camera_parent: trunk
+      camera_prim_suffix: d435i_left_portrait_camera
+      camera_pos: [0.215, 0.095, 0.165]
+      camera_rot_wxyz: [0.852868532, -0.086824089, -0.492403877, -0.150383733]
+      camera_convention: world
+      camera_focal_length: 1.0
+      camera_focus_distance: 0.5
+      camera_horizontal_aperture: 0.7777574637059793
+      camera_vertical_aperture: 1.3826799354772965
+      camera_clipping_range: [0.1, 20.0]
+      camera_update_period: 0.0
+      colorize_instance_id_segmentation: false
+      camera_types:
+        - rgb: true
+        - distance_to_image_plane: true
+        - instance_id_segmentation_fast: true
+      camera_resolutions: [384, 216]
+      eval_camera_resolutions: [384, 216]
+      image_mean: [0.485, 0.456, 0.406]
+      image_std: [0.229, 0.224, 0.225]
+    render_results: false
+
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_camera_pose_sweep.DoorPregraspCameraSchemeCBDualPortraitOEMToein20
+  config:
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_camera_pose_sweep:
+      enabled: true
+      sample_interval_control_steps: 5
+      ranking_stage_indices: [1, 2, 3, 4, 5]
+      video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_dir: ${eval_output_dir}/camera_scheme_c_b2_toein20_views
+      minimum_visible_pixels:
+        handle: 8
+        finger7: 4
+        finger8: 4
+        door_panel: 64
+      target_path_tokens:
+        handle: /door/door_handle
+        finger7: /Robot/arm_body7
+        finger8: /Robot/arm_body8
+        door_panel: /door/door_panel
+      nominal_intrinsics:
+        source: Intel RealSense D435i nominal RGB FoV 69.4H x 42.5V; portrait software-uprighted optical frame; not calibrated hardware
+        isaaclab_projection: preserve portrait horizontal RGB FoV with centered square pixels
+        native_resolution: [1080, 1920]
+        rgb_fov_h_deg: 69.4
+        rgb_fov_v_deg: 42.5
+        policy_resolution: [384, 216]
+        physical_housing_rotation_deg: 90.0
+        effective_optical_rpy_deg: [0.0, -60.0, -20.0]
+        sim_policy_fx_fy_cx_cy: [277.72153927108553, 277.72153927108553, 108.0, 192.0]
+        sim_effective_fov_hv_deg: [42.5, 69.31530939375226]
+      candidates:
+        - name: d435i_left_portrait_up60_toein20
+          role: control
+          position_m: [0.215, 0.095, 0.165]
+          rotation_wxyz: [0.852868532, -0.086824089, -0.492403877, -0.150383733]
+          rpy_deg: [0.0, -60.0, -20.0]
+        - name: d435i_right_portrait_up60_toein20
+          role: control
+          position_m: [0.215, -0.095, 0.165]
+          rotation_wxyz: [0.852868532, 0.086824089, -0.492403877, 0.150383733]
+          rpy_deg: [0.0, -60.0, 20.0]
+        - name: a2_head_oem
+          role: control
+          position_m: [0.3381, 0.0336, 0.0525]
+          rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+          rpy_deg: [0.0, 0.0, 0.0]
+    a2_camera_scheme_c:
+      enabled: true
+      ablation_id: C-B2-DUAL-PORTRAIT-OEM-TOEIN20
+      architecture: symmetric dual portrait D435i RGB-D TOEIN20 diagnostic panorama plus official Unitree A2 OEM Head context view
+      view_order: [d435i_left_portrait_up60_toein20, d435i_right_portrait_up60_toein20, a2_head_oem]
+      combined_video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_path: ${eval_output_dir}/scheme_c_b2_toein20_left_right_panorama_oem_head_env0001.mp4
+      d435i_pair:
+        parent: trunk
+        physical_housing_orientation: portrait_plus90_deg_identical_roll
+        software_uprighted_optical_frame: true
+        rgb_native_fov_hv_deg: [69.4, 42.5]
+        rgb_portrait_fov_hv_deg: [42.5, 69.4]
+        width: 216
+        height: 384
+        focal_length: 1.0
+        focus_distance: 0.5
+        horizontal_aperture: 0.7777574637059793
+        vertical_aperture: 1.3826799354772965
+        clipping_range: [0.1, 20.0]
+        update_period: 0.0
+        mechanical_clearance_status: step_point_cloud_estimate_only_cad_boolean_required
+        lateral_symmetry_contract: left_y_plus_yaw_minus_right_y_minus_yaw_plus
+        nominal_baseline_m: 0.19
+        nominal_overlap_deg: 2.5
+        left:
+          sensor_name: d435i_left_portrait_up60_toein20
+          prim_suffix: d435i_left_portrait_camera
+          position_m: [0.215, 0.095, 0.165]
+          rotation_wxyz: [0.852868532, -0.086824089, -0.492403877, -0.150383733]
+          rpy_deg: [0.0, -60.0, -20.0]
+        right:
+          sensor_name: d435i_right_portrait_up60_toein20
+          prim_suffix: d435i_right_portrait_camera
+          position_m: [0.215, -0.095, 0.165]
+          rotation_wxyz: [0.852868532, 0.086824089, -0.492403877, 0.150383733]
+          rpy_deg: [0.0, -60.0, 20.0]
+      panorama:
+        projection: cylindrical_depth_aware
+        stitch_mode: z_buffer_no_rgb_averaging
+        invalid_depth_fallback: best_single_view_fixed_geometry
+        depth_source: distance_to_image_plane
+        minimum_depth_m: 0.28
+        maximum_depth_m: 20.0
+        output_resolution: [384, 474]
+        horizontal_fov_deg: 82.5
+        vertical_fov_deg: 69.4
+        validity_mask_per_frame: true
+        virtual_camera:
+          position_m: [0.215, 0.0, 0.165]
+          rotation_wxyz: [0.8660254037844386, 0.0, -0.5, 0.0]
+          rpy_deg: [0.0, -60.0, 0.0]
+        output_path: ${eval_output_dir}/scheme_c_b2_toein20_depth_aware_panorama_env0001.mp4
+      head_camera:
+        sensor_name: a2_head_oem
+        parent: trunk
+        prim_suffix: a2_head_oem_camera
+        role: fixed_oem_context
+        optimize_pose: false
+        extrinsic_status: official_unitree_a2_urdf_camera_link
+        position_m: [0.3381, 0.0336, 0.0525]
+        rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+        rpy_deg: [0.0, 0.0, 0.0]
+        width: 384
+        height: 136
+        focal_length: 1.0
+        focus_distance: 0.5
+        horizontal_aperture: 4.492073547808433
+        vertical_aperture: 1.59094271484882
+        clipping_range: [0.1, 20.0]
+        update_period: 0.0
+        nominal_intrinsics:
+          source: Unitree A2 published Head FoV and official URDF camera_link extrinsic; pinhole simulation approximation
+          native_resolution: [1448, 2568]
+          native_fov_deg: [77.0, 132.0]
+          diagnostic_resolution: [136, 384]
+          sim_fx_fy_cx_cy: [85.48390757923893, 85.48390757923893, 192.0, 68.0]
+          sim_effective_fov_deg: [77.0024873497374, 132.0]
+
+algo:
+  config:
+    eval:
+      eval_num_envs_episodes: true
+      num_eval_episodes: 16
+      save_videos: false
+      save_trajectories: false

@@ -15,6 +15,11 @@ CONFIG = (
     / "gr00t/rl/config/camera_pose_sweep/"
     "d435i_dual_portrait_up60_a2_head_oem.yaml"
 )
+TOEIN20_CONFIG = (
+    ROOT
+    / "gr00t/rl/config/camera_pose_sweep/"
+    "d435i_dual_portrait_up60_a2_head_oem_toein20.yaml"
+)
 ENV_SOURCE = (
     ROOT / "gr00t/rl/envs/door/door_open_a2_camera_pose_sweep.py"
 )
@@ -98,6 +103,34 @@ def test_depth_aware_panorama_uses_z_buffer_without_color_averaging():
     assert colors <= {(0, 0, 0), (255, 0, 0), (0, 255, 0)}
 
 
+def test_c_b2_toein20_is_an_independent_symmetric_ablation():
+    original = yaml.safe_load(CONFIG.read_text())
+    config = yaml.safe_load(TOEIN20_CONFIG.read_text())
+    assert config["env"]["_target_"].endswith(
+        "DoorPregraspCameraSchemeCBDualPortraitOEMToein20"
+    )
+    cameras = config["simulator"]["config"]["cameras"]
+    assert cameras["camera_rot_wxyz"] == [
+        0.852868532,
+        -0.086824089,
+        -0.492403877,
+        -0.150383733,
+    ]
+    scheme = config["env"]["config"]["a2_camera_scheme_c"]
+    assert scheme["ablation_id"] == "C-B2-DUAL-PORTRAIT-OEM-TOEIN20"
+    pair = scheme["d435i_pair"]
+    assert pair["left"]["rpy_deg"] == [0.0, -60.0, -20.0]
+    assert pair["right"]["rpy_deg"] == [0.0, -60.0, 20.0]
+    assert pair["nominal_baseline_m"] == 0.19
+    assert pair["nominal_overlap_deg"] == 2.5
+    panorama = scheme["panorama"]
+    assert panorama["horizontal_fov_deg"] == 82.5
+    assert panorama["output_resolution"] == [384, 474]
+    original_scheme = original["env"]["config"]["a2_camera_scheme_c"]
+    assert original_scheme["d435i_pair"]["left"]["rpy_deg"] == [0.0, -60.0, -15.0]
+    assert original_scheme["panorama"]["output_resolution"] == [384, 416]
+
+
 def test_depth_holes_select_one_raw_view_instead_of_blending():
     result = depth_aware_cylindrical_panorama(
         **_panorama_inputs(float("inf"))
@@ -138,3 +171,20 @@ def test_c_b2_eval_command_and_overlay_are_allowlisted_without_training(tmp_path
     assert "simulator.sim.render()" not in c_b2_source
     assert '"distance_to_image_plane"' in c_b2_source
     assert "depth_aware_cylindrical_panorama" in c_b2_source
+
+    toein20_command = build_eval_command(
+        python_path=Path("/isaac/python"),
+        checkpoint=Path("/checkpoint.pt"),
+        num_envs=2,
+        output_dir=tmp_path / "c_b2_toein20",
+        runtime_repository=Path("/runtime"),
+        overlay_repository=Path("/overlay"),
+        camera_config="d435i_dual_portrait_up60_a2_head_oem_toein20",
+    )
+    assert (
+        "+camera_pose_sweep=d435i_dual_portrait_up60_a2_head_oem_toein20"
+        in toein20_command
+    )
+    assert not any("train_agent" in token for token in toein20_command)
+    assert '"d435i_dual_portrait_up60_a2_head_oem_toein20"' in runner_source
+    assert "class DoorPregraspCameraSchemeCBDualPortraitOEMToein20" in env_source

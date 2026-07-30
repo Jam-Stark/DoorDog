@@ -18,6 +18,10 @@ EAGER_OVERLAY_MODULES = (
         "gr00t.rl.utils.a2_camera_pose_sweep",
         "gr00t/rl/utils/a2_camera_pose_sweep.py",
     ),
+    (
+        "gr00t.rl.utils.a2_dual_portrait_panorama",
+        "gr00t/rl/utils/a2_dual_portrait_panorama.py",
+    ),
 )
 LAZY_OVERLAY_MODULES = (
     (
@@ -31,6 +35,8 @@ CAMERA_CONFIGS = (
     "d435i_portrait_a2_head",
     "d435i_landscape_up45_a2_head",
     "d435i_landscape_up60_a2_head",
+    "d435i_landscape_stage0_3_pitch_sweep",
+    "d435i_dual_portrait_up60_a2_head_oem",
 )
 
 

@@ -254,10 +254,6 @@ def test_scheme_c_b_config_seals_landscape_up60_and_unchanged_head():
     assert head["optimize_pose"] is False
     assert head["oem_extrinsic_status"] == "measured_required"
     assert head["simulation_extrinsic_role"] == "historical_provisional_diagnostic_only"
-    assert "historical provisional" in head["nominal_intrinsics"]["source"]
-    assert head["nominal_intrinsics"]["sim_fx_fy_cx_cy"] == original_head[
-        "nominal_intrinsics"
-    ]["sim_fx_fy_cx_cy"]
     assert scheme["combined_video"]["output_path"].endswith(
         "scheme_c_b_d435i_landscape_up60_plus_a2_head_env0001.mp4"
     )

@@ -209,9 +209,9 @@ def rank_camera_candidates(
     for stage_index in ranking_stage_indices:
         if isinstance(stage_index, bool) or not isinstance(stage_index, int):
             raise ValueError("ranking_stage_indices values must be ints")
-        if stage_index not in range(1, 6) or stage_index in normalized_stage_indices:
+        if stage_index not in range(0, 6) or stage_index in normalized_stage_indices:
             raise ValueError(
-                "ranking_stage_indices must contain unique stage indices in [1, 5]"
+                "ranking_stage_indices must contain unique stage indices in [0, 5]"
             )
         normalized_stage_indices.append(stage_index)
     stage_label = "stage" + "-".join(str(index) for index in normalized_stage_indices)
@@ -242,6 +242,7 @@ def rank_camera_candidates(
             return sum(int(stage[key]) for stage in critical) / sampled
 
         handle_rate = rate("handle_visible_frames")
+        edge_clear_rate = rate("handle_edge_clear_frames")
         trio_rate = rate("handle_and_both_fingers_visible_frames")
         panel_rate = rate("door_panel_visible_frames")
         centered_rate = rate("handle_centered_frames")
@@ -251,6 +252,7 @@ def rank_camera_candidates(
                 "name": name,
                 "score": score,
                 "ranked_handle_visible_rate": handle_rate,
+                "ranked_handle_edge_clear_rate": edge_clear_rate,
                 "ranked_handle_and_both_fingers_visible_rate": trio_rate,
                 "ranked_door_panel_visible_rate": panel_rate,
                 "ranked_handle_centered_rate": centered_rate,
@@ -261,6 +263,7 @@ def rank_camera_candidates(
         (
             item["score"],
             item["ranked_handle_visible_rate"],
+            item["ranked_handle_edge_clear_rate"],
             item["ranked_handle_and_both_fingers_visible_rate"],
             item["ranked_door_panel_visible_rate"],
             item["ranked_handle_centered_rate"],
@@ -279,7 +282,8 @@ def rank_camera_candidates(
         "ranking": ranked,
         "score_contract": (
             f"diagnostic-only weighted {stage_label} visibility: handle 0.35, "
-            "handle+both fingers 0.35, door panel 0.15, centered handle 0.15"
+            "handle+both fingers 0.35, door panel 0.15, centered handle 0.15; "
+            "handle edge-clear is reported separately as a hard-gate input"
         ),
     }
 

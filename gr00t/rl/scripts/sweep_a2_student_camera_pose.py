@@ -25,12 +25,16 @@ CAMERA_CONFIGS = (
     "d435i_portrait_a2_head",
     "d435i_landscape_up45_a2_head",
     "d435i_landscape_up60_a2_head",
+    "d435i_landscape_stage0_3_pitch_sweep",
+    "d435i_dual_portrait_up60_a2_head_oem",
 )
 CAMERA_RANKING_STAGES = {
     "gemini_335l_centerline": [1, 2, 3, 4, 5],
     "d435i_portrait_a2_head": [1, 2, 3, 4, 5],
     "d435i_landscape_up45_a2_head": [1, 2, 3, 4, 5],
     "d435i_landscape_up60_a2_head": [1, 2, 3, 4, 5],
+    "d435i_landscape_stage0_3_pitch_sweep": [0, 1, 2, 3],
+    "d435i_dual_portrait_up60_a2_head_oem": [1, 2, 3, 4, 5],
 }
 SCHEME_C_CONFIGS = {
     "d435i_portrait_a2_head": (
@@ -44,6 +48,22 @@ SCHEME_C_CONFIGS = {
     "d435i_landscape_up60_a2_head": (
         "C-B",
         ["d435i_landscape_up60", "a2_head_context"],
+    ),
+    "d435i_dual_portrait_up60_a2_head_oem": (
+        "C-B2-DUAL-PORTRAIT-OEM",
+        [
+            "d435i_left_portrait_up60_toein15",
+            "d435i_right_portrait_up60_toein15",
+            "a2_head_oem",
+        ],
+    ),
+}
+SCHEME_C_HEAD_EXTRINSIC_STATUS = {
+    "d435i_portrait_a2_head": "provisional_not_cad_or_calibrated",
+    "d435i_landscape_up45_a2_head": "provisional_not_cad_or_calibrated",
+    "d435i_landscape_up60_a2_head": "provisional_not_cad_or_calibrated",
+    "d435i_dual_portrait_up60_a2_head_oem": (
+        "official_unitree_a2_urdf_camera_link"
     ),
 }
 
@@ -389,9 +409,8 @@ def seal_summary(
             )
         if scheme_c.get("view_order") != expected_view_order:
             raise RuntimeError("scheme C view order drifted")
-        if scheme_c.get("head_extrinsic_status") != (
-            "provisional_not_cad_or_calibrated"
-        ):
+        expected_head_extrinsic = SCHEME_C_HEAD_EXTRINSIC_STATUS[camera_config]
+        if scheme_c.get("head_extrinsic_status") != expected_head_extrinsic:
             raise RuntimeError("scheme C A2 Head extrinsic boundary drifted")
         if scheme_c.get("physics_advanced_between_views") is not False:
             raise RuntimeError("scheme C must prove no physics advance between views")
@@ -447,6 +466,46 @@ def seal_summary(
             raise RuntimeError(f"scheme C combined video escaped eval output: {combined_path}")
         if not combined_path.is_file() or combined_path.stat().st_size <= 0:
             raise RuntimeError(f"scheme C combined video is missing or empty: {combined_path}")
+        if camera_config == "d435i_dual_portrait_up60_a2_head_oem":
+            panorama = scheme_c.get("panorama")
+            if (
+                not isinstance(panorama, dict)
+                or panorama.get("projection") != "cylindrical_depth_aware"
+                or panorama.get("stitch_mode") != "z_buffer_no_rgb_averaging"
+                or panorama.get("invalid_depth_fallback")
+                != "best_single_view_fixed_geometry"
+                or panorama.get("output_resolution") != [384, 416]
+            ):
+                raise RuntimeError("C-B2 panorama contract is missing or drifted")
+            panorama_metadata = scheme_c.get("panorama_video_metadata")
+            if (
+                not isinstance(panorama_metadata, dict)
+                or panorama_metadata.get("frame_count")
+                != combined_metadata.get("frame_count")
+                or panorama_metadata.get("pair_frame_delta_max") != 0
+            ):
+                raise RuntimeError("C-B2 panorama frame synchronization gate failed")
+            pixel_totals = panorama_metadata.get("pixel_totals")
+            if (
+                not isinstance(pixel_totals, dict)
+                or int(pixel_totals.get("valid_input_depth_pixels", 0)) < 1
+                or int(pixel_totals.get("depth_fused_output_pixels", 0)) < 1
+            ):
+                raise RuntimeError("C-B2 panorama did not consume and fuse valid depth")
+            panorama_path = Path(
+                str(scheme_c.get("panorama_video", ""))
+            ).resolve()
+            if not panorama_path.is_relative_to(output_dir):
+                raise RuntimeError(
+                    f"C-B2 panorama video escaped eval output: {panorama_path}"
+                )
+            if (
+                not panorama_path.is_file()
+                or panorama_path.stat().st_size <= 0
+            ):
+                raise RuntimeError(
+                    f"C-B2 panorama video is missing or empty: {panorama_path}"
+                )
         writing_files = list(output_dir.rglob("*.writing.mp4"))
         if writing_files:
             raise RuntimeError(f"unsealed scheme C video files remain: {writing_files}")

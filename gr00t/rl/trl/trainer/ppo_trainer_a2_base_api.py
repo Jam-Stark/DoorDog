@@ -9,6 +9,7 @@ import hashlib
 import json
 import math
 import os
+import subprocess
 from pathlib import Path
 import tempfile
 from typing import Dict, Optional
@@ -2310,7 +2311,7 @@ class TRLPPOTrainer(PPOTrainer):
                 self.load_policy_checkpoint(checkpoint)
 
     def write_r2_training_metric(self, row, output_path):
-        """Append one finite, source-bound training metric row and fsync it."""
+        """Append one finite, source-bound lightweight training metric row."""
         if not isinstance(row, dict) or row.get("status") is not None or row.get("verdict") is not None:
             raise ValueError("R2 training metrics are raw producer rows without adjudication fields")
         import json, math, os
@@ -2322,11 +2323,56 @@ class TRLPPOTrainer(PPOTrainer):
             elif isinstance(value, list):
                 for child in value: finite(child)
         finite(row)
+        if row.get("schema") != "a2_piper_base_v20_R2_training_metric_v1":
+            raise ValueError("R2 training metric schema identifier is required")
+        if not isinstance(row.get("source_lock_sha256"), str) or len(row["source_lock_sha256"]) != 64:
+            raise ValueError("R2 training metric requires a source-lock SHA-256")
         target = Path(output_path)
+        if target.is_symlink():
+            raise ValueError(f"R2 training metric output may not be a symlink: {target}")
         target.parent.mkdir(parents=True, exist_ok=True)
         payload = (json.dumps(row, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
         with target.open("ab") as handle:
             handle.write(payload); handle.flush(); os.fsync(handle.fileno())
+
+    def _write_r2_training_metric_if_enabled(self, metrics, batch_index):
+        """Write scalar-only JSONL telemetry; full M48 arrays remain eval-only."""
+        config = self.config
+        if not bool(OmegaConf.select(config, "r2_evidence_enabled", default=False)):
+            return
+        source_lock_path = OmegaConf.select(config, "r2_source_lock_path", default=None)
+        if not isinstance(source_lock_path, str) or not source_lock_path:
+            raise RuntimeError("R2 training metric emission requires r2_source_lock_path.")
+        source_path = Path(source_lock_path)
+        if not source_path.is_absolute():
+            source_path = Path.cwd() / source_path
+        if source_path.is_symlink() or not source_path.is_file():
+            raise RuntimeError(f"R2 training metric source lock is not a regular file: {source_path}")
+        source_sha = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        try:
+            commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise RuntimeError("R2 training metric cannot resolve current commit") from exc
+        scalar_metrics = {}
+        for key, value in dict(metrics).items():
+            if isinstance(value, bool):
+                scalar_metrics[str(key)] = value
+            elif isinstance(value, (int, float)):
+                if isinstance(value, float) and not math.isfinite(value):
+                    raise RuntimeError(f"R2 training metric {key!r} is non-finite")
+                scalar_metrics[str(key)] = value
+        output_path = OmegaConf.select(config, "r2_training_metrics_path", default=None)
+        if not isinstance(output_path, str) or not output_path:
+            output_path = str(Path(self.args.output_dir) / "r2_training_metrics.jsonl")
+        row = {
+            "schema": "a2_piper_base_v20_R2_training_metric_v1",
+            "producer_state": "PROCESS_COMPLETED",
+            "source_lock_sha256": source_sha,
+            "git_commit": commit,
+            "batch_index": int(batch_index),
+            "metrics": scalar_metrics,
+        }
+        self.write_r2_training_metric(row, output_path)
 
     def _init_trl(
         self,
@@ -3931,6 +3977,7 @@ class TRLPPOTrainer(PPOTrainer):
                 self.state.global_step += 1
 
                 self.log(metrics)
+                self._write_r2_training_metric_if_enabled(metrics, batch_idx)
                 self.ep_infos.clear()
 
             self.lr_scheduler.step()

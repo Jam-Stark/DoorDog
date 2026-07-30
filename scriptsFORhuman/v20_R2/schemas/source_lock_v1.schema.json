@@ -3,11 +3,13 @@
   "$id": "a2_piper_base_v20_R2_source_lock_v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema", "producer_state", "revision", "git", "sources", "commands"],
+  "required": ["schema", "producer_state", "revision", "admission_plan_id", "scientific_plan_id", "git", "immutable_inputs", "sources", "changed_candidates", "resolved_configs", "dimensions", "factor_bindings", "commands", "discovery"],
   "properties": {
     "schema": {"const": "a2_piper_base_v20_R2_source_lock_v1"},
-    "producer_state": {"enum": ["SOURCE_FROZEN"]},
+    "producer_state": {"const": "SOURCE_FROZEN"},
     "revision": {"type": "integer", "enum": [0, 1]},
+    "admission_plan_id": {"const": "base_v20_R2_admission_execution_v1"},
+    "scientific_plan_id": {"const": "base_v20_R1_policy_behavior_v1"},
     "git": {
       "type": "object", "additionalProperties": false,
       "required": ["commit", "tree", "branch", "required_ancestor"],
@@ -18,52 +20,111 @@
         "required_ancestor": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
       }
     },
+    "immutable_inputs": {
+      "type": "object", "additionalProperties": false,
+      "required": ["r2_plan_sha256", "r2_plan_lock_sha256", "r1_plan_sha256", "b0_json_sha256", "b0_csv_sha256", "checkpoint_sha256", "checkpoint_size_bytes", "checkpoint_config_path", "checkpoint_config_sha256", "checkpoint_config_size_bytes", "legacy_g2_config_path", "urdf_sha256", "urdf_git_blob_sha1"],
+      "properties": {
+        "r2_plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "r2_plan_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "r1_plan_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "b0_json_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "b0_csv_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "checkpoint_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "checkpoint_size_bytes": {"type": "integer", "minimum": 1},
+        "checkpoint_config_path": {"type": "string", "const": "logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/config.yaml"},
+        "checkpoint_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "checkpoint_config_size_bytes": {"type": "integer", "minimum": 1},
+        "legacy_g2_config_path": {"type": "string", "const": "gr00t/rl/config/ablation/wbmanip/base_v19_G2_norm_control.yaml"},
+        "urdf_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "urdf_git_blob_sha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
     "sources": {
       "type": "array", "minItems": 1,
       "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["path", "sha256", "kind"],
+        "required": ["path", "sha256", "size_bytes", "kind", "tracked"],
         "properties": {
           "path": {"type": "string", "minLength": 1},
           "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-          "kind": {"enum": ["source", "schema", "config", "test", "immutable_input", "checkpoint", "urdf"]}
+          "size_bytes": {"type": "integer", "minimum": 1},
+          "kind": {"enum": ["source", "schema", "config", "test", "immutable_input", "checkpoint", "urdf", "changed_source", "changed_config"]},
+          "tracked": {"type": "boolean"},
+          "roles": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
         }
       }
     },
-    "admission_plan_id": {"const": "base_v20_R2_admission_execution_v1"},
-    "scientific_plan_id": {"const": "base_v20_R1_policy_behavior_v1"},
-    "immutable_inputs": {
-      "type": "object", "additionalProperties": false,
-      "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
-    },
-    "discovery": {
-      "type": "object", "additionalProperties": false,
-      "properties": {
-        "r2_tests_glob": {"type": "string"},
-        "r2_config_root": {"type": "string"},
-        "test_count": {"type": "integer", "minimum": 0},
-        "config_count": {"type": "integer", "minimum": 0}
-      }
-    },
-    "commands": {
-      "type": "array",
+    "changed_candidates": {"type": "array", "items": {"type": "string", "pattern": "^.+\\.(py|yaml)$"}, "uniqueItems": true},
+    "resolved_configs": {
+      "type": "array", "minItems": 8, "maxItems": 8,
       "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["name", "argv", "env_sha256"],
+        "required": ["name", "group", "source_path", "source_sha256", "resolved_config_sha256", "argv_template", "env", "env_sha256"],
         "properties": {
-          "name": {"type": "string", "minLength": 1},
-          "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "name": {"type": "string", "pattern": "^hydra_resolve_(G[1-7]|P2)$"},
+          "group": {"type": "string", "enum": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "P2"]},
+          "source_path": {"type": "string", "pattern": "^gr00t/rl/config/ablation/wbmanip/base_v20_R2_.*\\.yaml$"},
+          "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "resolved_config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "argv_template": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
           "env_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
         }
       }
     },
     "dimensions": {
       "type": "object", "additionalProperties": false,
+      "required": ["observation", "actor_action", "base_command", "manipulation_action"],
       "properties": {
-        "observation": {"type": "integer", "minimum": 0},
-        "actor_action": {"type": "integer", "minimum": 0},
-        "base_command": {"type": "integer", "minimum": 0},
-        "manipulation_action": {"type": "integer", "minimum": 0}
+        "observation": {"const": 1620},
+        "actor_action": {"const": 12},
+        "base_command": {"const": 5},
+        "manipulation_action": {"const": 7}
+      }
+    },
+    "factor_bindings": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["group", "source_path", "source_sha256", "seed", "num_envs", "batches", "send_curriculum", "economics", "arm_tie", "crossing_mode"],
+        "properties": {
+          "group": {"type": "string", "enum": ["G1", "G2", "G3", "G4", "G5", "G6", "G7", "P2"]},
+          "source_path": {"type": "string"},
+          "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "seed": {"type": "integer"},
+          "num_envs": {"type": "integer", "minimum": 1},
+          "batches": {"type": "integer", "minimum": 1},
+          "send_curriculum": {"type": "boolean"},
+          "economics": {"type": "boolean"},
+          "arm_tie": {"type": "boolean"},
+          "crossing_mode": {"type": "string"}
+        }
+      }
+    },
+    "commands": {
+      "type": "array", "minItems": 20,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "category", "argv", "env", "env_sha256"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "category": {"type": "string", "minLength": 1},
+          "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
+          "env_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "discovery": {
+      "type": "object", "additionalProperties": false,
+      "required": ["r2_tests_glob", "r2_config_root", "test_count", "config_count", "changed_candidate_count", "resolved_config_count"],
+      "properties": {
+        "r2_tests_glob": {"const": "gr00t/rl/tests/test_a2_v20*.py"},
+        "r2_config_root": {"const": "gr00t/rl/config/ablation/wbmanip"},
+        "test_count": {"type": "integer", "minimum": 1},
+        "config_count": {"const": 8},
+        "changed_candidate_count": {"type": "integer", "minimum": 1},
+        "resolved_config_count": {"const": 8}
       }
     }
   }

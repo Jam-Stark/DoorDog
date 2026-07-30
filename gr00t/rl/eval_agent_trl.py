@@ -26,8 +26,11 @@ Usage:
     python groot/rl/eval_agent_trl.py +checkpoint=<path_to_checkpoint.pt> [+num_envs=1]
 """
 
+import hashlib
+import json
 import logging
 import os
+import subprocess
 import shutil
 import sys
 from pathlib import Path
@@ -70,6 +73,56 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def _validate_r2_runtime_bindings(config, *, require_formal_bundle=False):
+    """Revalidate workflow-owned source/formal bindings at the eval boundary."""
+    source_lock_path = config.get("r2_source_lock_path")
+    if not isinstance(source_lock_path, str) or not source_lock_path:
+        raise ValueError("R2 evaluation requires r2_source_lock_path from the active workflow.")
+    source_lock = Path(source_lock_path)
+    if not source_lock.is_absolute():
+        source_lock = Path.cwd() / source_lock
+    if source_lock.is_symlink() or not source_lock.is_file():
+        raise ValueError(f"R2 active source lock is not a regular file: {source_lock}")
+    try:
+        lock = json.loads(source_lock.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise ValueError("R2 active source lock is not valid JSON") from exc
+    if not isinstance(lock, dict) or lock.get("schema") != "a2_piper_base_v20_R2_source_lock_v1" or lock.get("producer_state") != "SOURCE_FROZEN":
+        raise ValueError("R2 evaluation requires a SOURCE_FROZEN active source lock.")
+    git = lock.get("git")
+    if not isinstance(git, dict) or not isinstance(git.get("commit"), str) or not isinstance(git.get("tree"), str):
+        raise ValueError("R2 source lock is missing commit/tree identity.")
+    try:
+        current_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+        current_tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], text=True).strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ValueError("R2 evaluation cannot resolve current git identity") from exc
+    if (git["commit"], git["tree"]) != (current_commit, current_tree):
+        raise ValueError("R2 active source lock does not match current commit/tree.")
+    lock_sha = hashlib.sha256(source_lock.read_bytes()).hexdigest()
+    env_config = config.get("env", {}).get("config", {})
+    declared_lock_sha = env_config.get("a2_v20_R2_source_lock_sha256")
+    if declared_lock_sha not in (None, lock_sha):
+        raise ValueError("R2 env source-lock hash does not match active source lock.")
+    real_flag = config.get("r2_real_execution", True)
+    if not isinstance(real_flag, bool) or not real_flag:
+        raise ValueError("R2 evaluation requires r2_real_execution=true.")
+    formal_path = config.get("r2_formal_bundle_path") or config.get("r2_admission_bundle_path")
+    declared_formal_sha = env_config.get("a2_v20_R2_admission_bundle_sha256")
+    if require_formal_bundle or declared_formal_sha not in (None, ""):
+        if not isinstance(formal_path, str) or not formal_path:
+            raise ValueError("R2 evaluation requires a formal/admission bundle path.")
+        bundle = Path(formal_path)
+        if not bundle.is_absolute():
+            bundle = Path.cwd() / bundle
+        if bundle.is_symlink() or not bundle.is_file():
+            raise ValueError(f"R2 formal/admission bundle is not a regular file: {bundle}")
+        bundle_sha = hashlib.sha256(bundle.read_bytes()).hexdigest()
+        if declared_formal_sha not in (None, "", bundle_sha):
+            raise ValueError("R2 formal/admission bundle hash mismatch.")
+    return {"source_lock_path": str(source_lock), "source_lock_sha256": lock_sha, "git_commit": current_commit, "git_tree": current_tree}
+
+
 def validate_r2_eval_config(config):
     if config.get("scientific_plan_id") != "base_v20_R1_policy_behavior_v1":
         raise ValueError("R2 evaluation config scientific_plan_id mismatch")
@@ -77,6 +130,7 @@ def validate_r2_eval_config(config):
         raise ValueError("R2 evaluation config admission_plan_id mismatch")
     if not bool(config.get("r2_evidence_enabled", False)):
         raise ValueError("R2 evaluation requires r2_evidence_enabled=true")
+    _validate_r2_runtime_bindings(config)
     return True
 
 

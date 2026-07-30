@@ -61,9 +61,20 @@ def test_workflow_dag_schema_and_postformal_counts_are_explicit() -> None:
     assert "LAUNCH_PLAN_COMPLETE" in training_schema["properties"]["producer_state"]["enum"]
     assert len(GROUPS) == 7 and len(M22_STEPS) == 10 and len(GROUPS) * len(M22_STEPS) == 70
     assert len(FORCED_CASES) == 17 and len(set(FORCED_CASES)) == 17
+    allowed_legacy_identity = {
+        "a2_piper_v20_R2_p0_adjudicator.py": ("base_v20_R1_policy_behavior_v1",),
+    }
+    legacy_context = {"__init__.py", "_r2_common.py", "_r2_workflow.py",
+                      "a2_piper_v20_R2_record_adjudicator.py", "a2_piper_v20_R2_source_freeze.py"}
     for path in R2_ROOT.glob("*.py"):
-        text = path.read_text(encoding="utf-8")
-        assert "v20_R1" not in text or path.name in {"__init__.py", "_r2_common.py", "_r2_workflow.py", "a2_piper_v20_R2_record_adjudicator.py", "a2_piper_v20_R2_source_freeze.py"}
+        original = path.read_text(encoding="utf-8")
+        text = original
+        for literal in allowed_legacy_identity.get(path.name, ()):
+            text = text.replace(literal, "")
+        assert "v20_R1" not in text or path.name in legacy_context
+        for marker in ("from scriptsFORhuman.v20_R1", "import scriptsFORhuman.v20_R1",
+                       "python -m scriptsFORhuman.v20_R1", "python3 -m scriptsFORhuman.v20_R1"):
+            assert marker not in original
 
 
 def test_forced_semantics_remains_high_level_and_cpu_only() -> None:

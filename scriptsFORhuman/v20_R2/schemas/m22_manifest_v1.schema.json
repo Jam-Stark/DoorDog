@@ -1,13 +1,114 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_m22_manifest_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "producer_state", "source_lock_sha256", "group", "rows"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "producer_state",
+    "source_lock_sha256",
+    "group",
+    "rows"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_m22_manifest_v1"},
-    "producer_state": {"enum": ["LAUNCH_PLAN_COMPLETE", "RECORD_SET_COMPLETE"]},
-    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "group": {"type": "string", "pattern": "^G[1-7]$"},
-    "rows": {"type": "array", "minItems": 70, "maxItems": 70, "items": {"type": "object", "additionalProperties": false, "required": ["group", "checkpoint_step", "checkpoint_path", "checkpoint_sha256", "record_set_path", "record_set_sha256"], "properties": {"group": {"type": "string", "pattern": "^G[1-7]$"}, "checkpoint_step": {"type": "integer", "minimum": 0}, "checkpoint_path": {"type": "string"}, "checkpoint_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "record_set_path": {"type": "string"}, "record_set_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_m22_manifest_v1"
+    },
+    "producer_state": {
+      "enum": [
+        "LAUNCH_PLAN_COMPLETE",
+        "RECORD_SET_COMPLETE"
+      ]
+    },
+    "source_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "group": {
+      "type": "string",
+      "pattern": "^G[1-7]$"
+    },
+    "rows": {
+      "type": "array",
+      "minItems": 70,
+      "maxItems": 70,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "entry_id",
+          "group",
+          "checkpoint_step",
+          "checkpoint_path",
+          "checkpoint_sha256",
+          "training_run_config_path",
+          "training_run_config_sha256",
+          "frozen_source_config_sha256",
+          "resolved_config_sha256",
+          "scientific_plan_id",
+          "admission_plan_id",
+          "formal_completion_sha256"
+        ],
+        "properties": {
+          "group": {
+            "type": "string",
+            "pattern": "^G[1-7]$"
+          },
+          "checkpoint_step": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "checkpoint_path": {
+            "type": "string"
+          },
+          "checkpoint_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "record_set_path": {
+            "type": "string"
+          },
+          "record_set_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "entry_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "training_run_config_path": {
+            "type": "string"
+          },
+          "training_run_config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "frozen_source_config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "resolved_config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "scientific_plan_id": {
+            "const": "base_v20_R1_policy_behavior_v1"
+          },
+          "admission_plan_id": {
+            "const": "base_v20_R2_admission_execution_v1"
+          },
+          "formal_completion_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "scientific_plan_id": {
+      "const": "base_v20_R1_policy_behavior_v1"
+    },
+    "admission_plan_id": {
+      "const": "base_v20_R2_admission_execution_v1"
+    }
   }
 }

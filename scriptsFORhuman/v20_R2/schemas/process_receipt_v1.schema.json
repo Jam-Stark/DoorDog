@@ -1,25 +1,189 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_process_receipt_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "producer_state", "name", "argv", "env", "pid", "started_at_utc", "ended_at_utc", "exit_code", "stdout_path", "stderr_path", "stdout_sha256", "stderr_sha256", "observed_commit"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "producer_state",
+    "name",
+    "argv",
+    "env",
+    "pid",
+    "started_at_utc",
+    "ended_at_utc",
+    "exit_code",
+    "stdout_path",
+    "stderr_path",
+    "stdout_sha256",
+    "stderr_sha256",
+    "command_sha256",
+    "observed_commit",
+    "observed_tree"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_process_receipt_v1"},
-    "producer_state": {"enum": ["PROCESS_STARTED", "PROCESS_COMPLETED"]},
-    "name": {"type": "string", "minLength": 1},
-    "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
-    "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
-    "pid": {"type": "integer", "minimum": 1},
-    "started_at_utc": {"type": "string", "format": "date-time"},
-    "ended_at_utc": {"type": "string", "format": "date-time"},
-    "exit_code": {"type": ["integer", "null"]},
-    "stdout_path": {"type": "string", "minLength": 1},
-    "stderr_path": {"type": "string", "minLength": 1},
-    "stdout_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "stderr_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "command_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "observed_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "physical_gpu": {"type": "integer", "minimum": 0, "maximum": 6},
-    "render": {"type": "boolean"}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_process_receipt_v1"
+    },
+    "producer_state": {
+      "const": "PROCESS_COMPLETED"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "argv": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "type": "string"
+        }
+      }
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "parent_pid": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "parent_identity": {
+      "$ref": "#/$defs/process_identity"
+    },
+    "child_identity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/process_identity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "started_at_utc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$"
+    },
+    "ended_at_utc": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?Z$"
+    },
+    "exit_code": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "stdout_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stderr_path": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stdout_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "stderr_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "command_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "observed_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "observed_tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "stdout_size": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stderr_size": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "env_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "active_source_lock_sha256": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parent_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.-]+$": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "physical_gpu": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 6
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "render": {
+      "type": "boolean"
+    },
+    "natural_exit": {
+      "type": "boolean"
+    }
+  },
+  "$defs": {
+    "process_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "pid",
+        "ppid"
+      ],
+      "properties": {
+        "pid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ppid": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    }
   }
 }

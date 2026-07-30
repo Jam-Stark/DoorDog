@@ -1,16 +1,109 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_endpoint_report_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "adjudicator_state", "source_lock_sha256", "record_set_sha256", "group", "record_count", "metrics"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "adjudicator_state",
+    "source_lock_sha256",
+    "record_set_sha256",
+    "group",
+    "record_count",
+    "metrics"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_endpoint_report_v1"},
-    "adjudicator_state": {"enum": ["STRICT_VALID", "STRICT_INVALID", "INCONCLUSIVE", "RUNTIME_PASS", "RUNTIME_SEMANTIC_PASS", "B0_RUNTIME_PASS", "FORCED_RUNTIME_SEMANTIC_PASS", "ZERO_SHOT7_RUNTIME_SEMANTIC_PASS", "R2_P1_RUNTIME_SEMANTIC_PASS", "POLICY_LEARNABILITY_PASS", "PILOT_POLICY_LEARNABILITY_PASS", "SMOKE_PASS", "POOLED7_PASS", "HOLDOUT64_PASS"]},
-    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "record_set_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "group": {"type": "string", "pattern": "^(G[1-7]|B0|FORCED)$"},
-    "record_count": {"type": "integer", "minimum": 0},
-    "metrics": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"oneOf": [{"type": ["number", "integer", "boolean", "string", "null"]}, {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"type": ["number", "integer", "boolean", "string", "null"]}}}]}}},
-    "invalid_reasons": {"type": "array", "items": {"type": "string"}}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_endpoint_report_v1"
+    },
+    "adjudicator_state": {
+      "enum": [
+        "STRICT_VALID",
+        "STRICT_INVALID",
+        "INCONCLUSIVE",
+        "RUNTIME_PASS",
+        "RUNTIME_SEMANTIC_PASS",
+        "B0_RUNTIME_PASS",
+        "FORCED_RUNTIME_SEMANTIC_PASS",
+        "ZERO_SHOT7_RUNTIME_SEMANTIC_PASS",
+        "R2_P1_RUNTIME_SEMANTIC_PASS",
+        "POLICY_LEARNABILITY_PASS",
+        "PILOT_POLICY_LEARNABILITY_PASS",
+        "SMOKE_PASS",
+        "POOLED7_PASS",
+        "HOLDOUT64_PASS"
+      ]
+    },
+    "source_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "record_set_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "group": {
+      "type": "string",
+      "pattern": "^(G[1-7]|B0|FORCED)$"
+    },
+    "record_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "$ref": "#/$defs/value"
+        }
+      }
+    },
+    "invalid_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "parents": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "value": {
+      "oneOf": [
+        {
+          "type": [
+            "number",
+            "integer",
+            "boolean",
+            "string",
+            "null"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9_.:-]+$": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        }
+      ]
+    }
   }
 }

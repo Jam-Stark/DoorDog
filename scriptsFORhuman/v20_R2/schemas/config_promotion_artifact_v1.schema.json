@@ -1,25 +1,95 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_config_promotion_artifact_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "producer_state", "source_lock_sha256", "configs"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "source_lock_sha256",
+    "configs"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_config_promotion_artifact_v1"},
-    "producer_state": {"enum": ["LAUNCH_PLAN_COMPLETE", "PROCESS_COMPLETED"]},
-    "adjudicator_state": {"enum": ["RUNTIME_PASS", "PROMOTION_PASS", "STRICT_INVALID", "INCONCLUSIVE"]},
-    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "bundle_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "parents": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}},
+    "schema": {
+      "const": "a2_piper_base_v20_R2_config_promotion_artifact_v1"
+    },
+    "producer_state": {
+      "enum": [
+        "LAUNCH_PLAN_COMPLETE",
+        "PROCESS_COMPLETED"
+      ]
+    },
+    "adjudicator_state": {
+      "enum": [
+        "PROMOTION_PASS",
+        "RUNTIME_PASS",
+        "STRICT_INVALID",
+        "INCONCLUSIVE"
+      ]
+    },
+    "source_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bundle_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "parents": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
     "configs": {
       "type": "array",
       "items": {
-        "type": "object", "additionalProperties": false,
-        "required": ["group", "source_sha256", "resolved_sha256"],
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "group",
+          "source_sha256",
+          "resolved_sha256"
+        ],
         "properties": {
-          "group": {"type": "string", "pattern": "^G[1-7]$"},
-          "source_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-          "resolved_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+          "group": {
+            "type": "string",
+            "pattern": "^G[1-7]$"
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "resolved_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "source_path": {
+            "type": "string"
+          },
+          "frozen_path": {
+            "type": "string"
+          },
+          "delta_keys": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "frozen_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
         }
+      }
+    },
+    "bundle_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
       }
     }
   }

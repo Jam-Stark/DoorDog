@@ -1,14 +1,211 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_formal_completion_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "adjudicator_state", "group", "attempt_sha256", "checkpoint_rows", "completion"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "adjudicator_state",
+    "group",
+    "attempt_sha256",
+    "checkpoint_rows",
+    "completion"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_formal_completion_v1"},
-    "adjudicator_state": {"enum": ["FORMAL_COMPLETION_PASS", "STRICT_INVALID", "INCONCLUSIVE"]},
-    "group": {"type": "string", "pattern": "^G[1-7]$"},
-    "attempt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "checkpoint_rows": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["step", "path", "sha256"], "properties": {"group": {"type": "string", "pattern": "^G[1-7]$"}, "step": {"type": "integer", "minimum": 0}, "path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}},
-    "completion": {"type": "object", "additionalProperties": false, "required": ["natural_exit", "target_batch", "observed_batch"], "properties": {"natural_exit": {"type": "boolean"}, "target_batch": {"type": "integer", "minimum": 0}, "observed_batch": {"type": "integer", "minimum": 0}, "traceback": {"type": "boolean"}}}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_formal_completion_v1"
+    },
+    "adjudicator_state": {
+      "enum": [
+        "FORMAL_COMPLETION_PASS",
+        "STRICT_INVALID",
+        "INCONCLUSIVE"
+      ]
+    },
+    "group": {
+      "type": "string",
+      "pattern": "^G[1-7]$"
+    },
+    "attempt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "checkpoint_rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "step",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "group": {
+            "type": "string",
+            "pattern": "^G[1-7]$"
+          },
+          "step": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "config_path": {
+            "type": "string"
+          },
+          "training_run_config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "resolved_config_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "completion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "natural_exit",
+        "target_batch",
+        "observed_batch"
+      ],
+      "properties": {
+        "natural_exit": {
+          "type": "boolean"
+        },
+        "target_batch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_batch": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "traceback": {
+          "type": "boolean"
+        },
+        "checkpoint_count_per_group": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "process_tree_closed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "source_lock_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "groups": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "group",
+          "seed",
+          "checkpoint_rows",
+          "metrics"
+        ],
+        "properties": {
+          "group": {
+            "type": "string",
+            "pattern": "^G[1-7]$"
+          },
+          "seed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "output_root": {
+            "type": "string"
+          },
+          "process_receipt_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "metrics": {
+            "type": "object",
+            "additionalProperties": false,
+            "patternProperties": {
+              "^[A-Za-z0-9_.:-]+$": {
+                "type": [
+                  "number",
+                  "integer",
+                  "boolean",
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "checkpoint_rows": {
+            "type": "array",
+            "minItems": 10,
+            "maxItems": 10,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "group",
+                "step",
+                "path",
+                "sha256"
+              ],
+              "properties": {
+                "group": {
+                  "type": "string",
+                  "pattern": "^G[1-7]$"
+                },
+                "step": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "path": {
+                  "type": "string"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "config_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "config_path": {
+                  "type": "string"
+                },
+                "training_run_config_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "resolved_config_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }

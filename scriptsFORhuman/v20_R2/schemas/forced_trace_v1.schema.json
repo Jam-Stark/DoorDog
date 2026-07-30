@@ -1,31 +1,191 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_forced_trace_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "producer_state"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "producer_state"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_forced_trace_v1"},
-    "producer_state": {"enum": ["COMMAND_PLANNED", "PROCESS_COMPLETED", "RECORD_SET_COMPLETE"]},
-    "case": {"enum": ["S_SOFT_PRE_SEND_CROSS", "S_HARD_PRE_SEND_CROSS", "SEND_VALID_HOLD", "SEND_NO_HOLD", "POST_SEND_CROSS", "E_ROOT_CROSS_NO_CORRIDOR", "E_SEND_ACTIVATES_CORRIDOR", "A_PURE_BASE", "A_PURE_ARM", "A_EQUAL_CONTRIBUTION", "A_CLOSING_HINGE", "A_INVALID_REFERENCE", "SNAPSHOT_SWING_CLEAN", "SNAPSHOT_SWING_CONTAMINATED", "SNAPSHOT_THROUGH_SENT", "SNAPSHOT_THROUGH_UNSENT", "STAGED_LOAD_DERIVATIVE_WARMUP"]},
-    "run_uuid": {"type": "string", "minLength": 1},
-    "env_id": {"type": "integer", "minimum": 0},
-    "step_index": {"type": "integer", "minimum": 0},
-    "stage": {"type": "integer", "minimum": 0},
-    "root_x_rel_m": {"type": "number"},
-    "hinge_position_rad": {"type": "number"},
-    "reward_components_scaled": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"type": "number"}}},
-    "terminal": {"type": "boolean"},
-    "terminal_reason": {"type": "string", "minLength": 1},
-    "send_ready": {"type": "boolean"},
-    "root_crossing_event": {"type": "boolean"},
-    "release_event": {"type": "boolean"},
-    "command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
-    "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
-    "physical_gpu": {"type": "integer", "minimum": 0, "maximum": 6},
-    "cases": {"type": "array", "items": {"type": "string"}, "minItems": 17, "maxItems": 17}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_forced_trace_v1"
+    },
+    "producer_state": {
+      "enum": [
+        "COMMAND_PLANNED",
+        "PROCESS_COMPLETED",
+        "RECORD_SET_COMPLETE"
+      ]
+    },
+    "case": {
+      "enum": [
+        "S_SOFT_PRE_SEND_CROSS",
+        "S_HARD_PRE_SEND_CROSS",
+        "SEND_VALID_HOLD",
+        "SEND_NO_HOLD",
+        "POST_SEND_CROSS",
+        "E_ROOT_CROSS_NO_CORRIDOR",
+        "E_SEND_ACTIVATES_CORRIDOR",
+        "A_PURE_BASE",
+        "A_PURE_ARM",
+        "A_EQUAL_CONTRIBUTION",
+        "A_CLOSING_HINGE",
+        "A_INVALID_REFERENCE",
+        "SNAPSHOT_SWING_CLEAN",
+        "SNAPSHOT_SWING_CONTAMINATED",
+        "SNAPSHOT_THROUGH_SENT",
+        "SNAPSHOT_THROUGH_UNSENT",
+        "STAGED_LOAD_DERIVATIVE_WARMUP"
+      ]
+    },
+    "run_uuid": {
+      "type": "string",
+      "minLength": 1
+    },
+    "env_id": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "step_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "stage": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "root_x_rel_m": {
+      "type": "number"
+    },
+    "hinge_position_rad": {
+      "type": "number"
+    },
+    "reward_components_scaled": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "type": "number"
+        }
+      }
+    },
+    "terminal": {
+      "type": "boolean"
+    },
+    "terminal_reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "send_ready": {
+      "type": "boolean"
+    },
+    "root_crossing_event": {
+      "type": "boolean"
+    },
+    "release_event": {
+      "type": "boolean"
+    },
+    "command": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z_][A-Za-z0-9_]*$": {
+          "type": "string"
+        }
+      }
+    },
+    "physical_gpu": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 6
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "patternProperties": {
+          "^[A-Za-z0-9_.:-]+$": {
+            "type": [
+              "number",
+              "integer",
+              "boolean",
+              "string",
+              "null",
+              "array",
+              "object"
+            ]
+          }
+        }
+      },
+      "minItems": 17,
+      "maxItems": 17
+    },
+    "case_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "process_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
   },
   "oneOf": [
-    {"required": ["case", "run_uuid", "env_id", "step_index", "stage", "root_x_rel_m", "hinge_position_rad", "reward_components_scaled", "terminal", "terminal_reason"], "properties": {"producer_state": {"enum": ["PROCESS_COMPLETED", "RECORD_SET_COMPLETE"]}}},
-    {"required": ["command", "env", "physical_gpu", "cases"], "properties": {"producer_state": {"const": "COMMAND_PLANNED"}}}
+    {
+      "required": [
+        "case",
+        "run_uuid",
+        "env_id",
+        "step_index",
+        "stage",
+        "root_x_rel_m",
+        "hinge_position_rad",
+        "reward_components_scaled",
+        "terminal",
+        "terminal_reason"
+      ],
+      "properties": {
+        "producer_state": {
+          "enum": [
+            "PROCESS_COMPLETED",
+            "RECORD_SET_COMPLETE"
+          ]
+        }
+      }
+    },
+    {
+      "required": [
+        "command",
+        "env",
+        "physical_gpu",
+        "cases"
+      ],
+      "properties": {
+        "producer_state": {
+          "const": "COMMAND_PLANNED"
+        }
+      }
+    },
+    {
+      "required": [
+        "run_uuid",
+        "cases",
+        "case_count",
+        "process_receipt_sha256"
+      ],
+      "properties": {
+        "producer_state": {
+          "const": "PROCESS_COMPLETED"
+        }
+      }
+    }
   ]
 }

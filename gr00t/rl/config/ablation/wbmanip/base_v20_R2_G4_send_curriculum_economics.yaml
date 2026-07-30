@@ -1,10 +1,12 @@
 # @package _global_
 # base_v20_R1 base_v20_R2_G4_send_curriculum_economics: explicit Appendix-D factor binding.
-
 scientific_plan_id: base_v20_R1_policy_behavior_v1
 admission_plan_id: base_v20_R2_admission_execution_v1
 r2_source_lock_path: logs_eval/base_v20_R2/locks/ACTIVE_SOURCE_LOCK.json
 r2_evidence_enabled: true
+r2_real_execution: true
+
+
 checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/model_step_002000.pt
 checkpoint_load_mode: policy_only
 auto_load_latest: false
@@ -23,7 +25,7 @@ schedule_dict:
     val_type: str
     seg_steps: [0, 500]
     seg_vals: [penalty, terminal]
-    trigger_func: "env@on_a2_v20_R2_crossing_mode_transition"
+    trigger_func: "env@on_a2_v20_R1_crossing_mode_transition"
 
 env:
   config:
@@ -84,17 +86,17 @@ env:
     a2_v20_handle_arc_tracking_scale: 0.0
     a2_v20_telemetry_enabled: true
     a2_v20_pre_send_crossing_penalty_component: 1.0
-    a2_v20_calibration_label: base_v20_R2_theta090_S500_A350_0850
-    a2_v20_R2_plan_id: base_v20_R2_policy_behavior_v1
-    a2_v20_R2_p1_status: P1_PHYSICAL_BLOCKER
-    a2_v20_R2_formal_values_frozen: true
-    a2_v20_R2_formal_launch: false
-    a2_v20_R2_plan_sha256: 6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c
-    a2_v20_R2_send_curriculum_enabled: true
-    a2_v20_R2_soft_phase_end_batch: 500
-    a2_v20_R2_snapshot_guard_enabled: true
-    a2_v20_R2_crossing_base_component: 1.0
-    a2_v20_R2_crossing_shortfall_gain: 1.0
+    a2_v20_calibration_label: base_v20_R1_theta090_S500_A350_0850
+    a2_v20_R1_plan_id: base_v20_R1_policy_behavior_v1
+    a2_v20_R1_p1_status: P1_PHYSICAL_BLOCKER
+    a2_v20_R1_formal_values_frozen: true
+    a2_v20_R1_formal_launch: false
+    a2_v20_R1_plan_sha256: 6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c
+    a2_v20_R1_send_curriculum_enabled: true
+    a2_v20_R1_soft_phase_end_batch: 500
+    a2_v20_R1_snapshot_guard_enabled: true
+    a2_v20_R1_crossing_base_component: 1.0
+    a2_v20_R1_crossing_shortfall_gain: 1.0
     a2_v20_formal_values_frozen: true
     a2_v20_formal_launch: false
 rewards:

@@ -1,23 +1,123 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_semantic_adjudication_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "adjudicator_state", "mode", "raw_sha256", "process_receipt_sha256", "expectations", "observed"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "adjudicator_state",
+    "mode",
+    "raw_sha256",
+    "process_receipt_sha256",
+    "expectations",
+    "observed"
+  ],
   "$defs": {
-    "value": {"oneOf": [
-      {"type": ["number", "integer", "boolean", "string", "null"]},
-      {"type": "array", "items": {"type": ["number", "integer", "boolean", "string", "null"]}},
-      {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"type": ["number", "integer", "boolean", "string", "null"]}}}
-    ]}
+    "value": {
+      "oneOf": [
+        {
+          "type": [
+            "number",
+            "integer",
+            "boolean",
+            "string",
+            "null"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/value"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9_.:-]+$": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        }
+      ]
+    }
   },
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_semantic_adjudication_v1"},
-    "adjudicator_state": {"enum": ["RUNTIME_SEMANTIC_PASS", "FORCED_RUNTIME_SEMANTIC_PASS", "ZERO_SHOT7_RUNTIME_SEMANTIC_PASS", "R2_P1_RUNTIME_SEMANTIC_PASS", "RENDER_QA_PASS", "STRICT_INVALID", "INCONCLUSIVE"]},
-    "mode": {"enum": ["forced", "zero_shot", "zero-shot", "b0", "aggregate", "render-review"]},
-    "raw_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "process_receipt_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "expectations": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"$ref": "#/$defs/value"}}},
-    "observed": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"$ref": "#/$defs/value"}}},
-    "recomputed": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"$ref": "#/$defs/value"}}}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_semantic_adjudication_v1"
+    },
+    "adjudicator_state": {
+      "enum": [
+        "RUNTIME_SEMANTIC_PASS",
+        "FORCED_RUNTIME_SEMANTIC_PASS",
+        "ZERO_SHOT7_RUNTIME_SEMANTIC_PASS",
+        "R2_P1_RUNTIME_SEMANTIC_PASS",
+        "RENDER_QA_PASS",
+        "STRICT_INVALID",
+        "INCONCLUSIVE"
+      ]
+    },
+    "mode": {
+      "enum": [
+        "forced",
+        "zero_shot",
+        "zero-shot",
+        "b0",
+        "aggregate",
+        "render-review"
+      ]
+    },
+    "raw_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "process_receipt_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "$ref": "#/$defs/value"
+        }
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "$ref": "#/$defs/value"
+        }
+      }
+    },
+    "recomputed": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "$ref": "#/$defs/value"
+        }
+      }
+    },
+    "source_lock_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "parents": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
   }
 }

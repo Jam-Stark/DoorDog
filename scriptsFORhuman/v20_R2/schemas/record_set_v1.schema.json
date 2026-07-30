@@ -9,6 +9,8 @@
     "run_uuid": {"type": "string", "minLength": 1},
     "records": {"type": "array", "items": {"$ref": "episode_record_v1.schema.json"}},
     "record_count": {"type": "integer", "minimum": 0},
-    "trace_paths": {"type": "array", "items": {"type": "string"}}
+    "record_ids": {"type": "array", "items": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "uniqueItems": true},
+    "trace_paths": {"type": "array", "items": {"type": "string"}},
+    "finalized_at_utc": {"type": "string", "format": "date-time"}
   }
 }

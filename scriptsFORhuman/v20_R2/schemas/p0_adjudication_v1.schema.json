@@ -2,36 +2,42 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_p0_adjudication_v1",
   "type": "object", "additionalProperties": false,
-  "required": ["schema", "adjudicator_state", "source_lock_sha256", "raw_sha256", "observed_commit", "command_results", "reconstructed"],
+  "required": ["schema", "adjudicator_state", "source_lock_sha256", "raw_sha256", "observed_commit", "observed_tree", "command_results", "reconstructed"],
   "properties": {
     "schema": {"const": "a2_piper_base_v20_R2_p0_adjudication_v1"},
-    "adjudicator_state": {"enum": ["STATIC_PASS", "STRICT_INVALID", "INCONCLUSIVE"]},
+    "adjudicator_state": {"const": "STATIC_PASS"},
     "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "raw_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
     "observed_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "observed_tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "command_results": {
-      "type": "array",
+      "type": "array", "minItems": 1,
       "items": {
         "type": "object", "additionalProperties": false,
-        "required": ["name", "exit_code", "stdout_sha256", "stderr_sha256", "rehashed"],
+        "required": ["name", "category", "exit_code", "stdout_sha256", "stderr_sha256", "rehashed"],
         "properties": {
           "name": {"type": "string"},
-          "exit_code": {"type": "integer"},
+          "category": {"type": "string"},
+          "exit_code": {"const": 0},
           "stdout_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
           "stderr_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-          "rehashed": {"type": "boolean"}
+          "rehashed": {"const": true}
         }
       }
     },
     "reconstructed": {
       "type": "object", "additionalProperties": false,
-      "required": ["command_count", "all_exit_zero", "source_lock_match"],
+      "required": ["command_count", "all_exit_zero", "source_lock_match", "full_tests_passed", "full_tests_failed", "focused_tests_passed", "focused_tests_failed", "hydra_count", "factor_count"],
       "properties": {
-        "command_count": {"type": "integer", "minimum": 0},
-        "all_exit_zero": {"type": "boolean"},
-        "source_lock_match": {"type": "boolean"},
-        "tests_passed": {"type": "integer", "minimum": 0},
-        "tests_failed": {"type": "integer", "minimum": 0}
+        "command_count": {"type": "integer", "minimum": 1},
+        "all_exit_zero": {"const": true},
+        "source_lock_match": {"const": true},
+        "full_tests_passed": {"type": "integer", "minimum": 1},
+        "full_tests_failed": {"const": 0},
+        "focused_tests_passed": {"type": "integer", "minimum": 1},
+        "focused_tests_failed": {"const": 0},
+        "hydra_count": {"const": 8},
+        "factor_count": {"const": 8}
       }
     }
   }

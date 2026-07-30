@@ -29,6 +29,8 @@ def test_p0_command_receipt_is_spawned_and_hashed(tmp_path: Path):
     assert receipt["producer_state"] == "PROCESS_COMPLETED"
     assert receipt["exit_code"] == 0
     assert receipt["pid"] > 0
+    assert receipt["observed_commit"]
+    assert receipt["observed_tree"]
     assert common.sha256_file(ROOT / receipt["stdout_path"]) if False else True
     assert (tmp_path / "echo.stdout.log").read_text(encoding="utf-8").strip() == "executed"
     assert receipt["stdout_sha256"] == common.sha256_file(tmp_path / "echo.stdout.log")
@@ -54,6 +56,18 @@ def test_source_freeze_rejects_untracked_owned_source(monkeypatch, tmp_path: Pat
     monkeypatch.setattr(source_freeze, "_git_tracked", lambda repo_root, relative: False)
     with pytest.raises(common.R2Error):
         source_freeze._source_entry(tmp_path, "owned.py", "source")
+
+
+def test_source_freeze_allows_only_the_exact_external_checkpoint(monkeypatch, tmp_path: Path):
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    monkeypatch.setattr(source_freeze, "R1_CHECKPOINT_PATH", "checkpoint.pt")
+    monkeypatch.setattr(source_freeze, "CHECKPOINT_SIZE_BYTES", checkpoint.stat().st_size)
+    monkeypatch.setattr(source_freeze, "_git_tracked", lambda repo_root, relative: False)
+    row = source_freeze._source_entry(tmp_path, "checkpoint.pt", "checkpoint", allow_untracked=True)
+    assert row["tracked"] is False
+    with pytest.raises(common.R2Error):
+        source_freeze._source_entry(tmp_path, "owned.py", "source", allow_untracked=True)
 
 
 def test_source_freeze_rejects_dirty_detached_or_wrong_ancestor(monkeypatch):

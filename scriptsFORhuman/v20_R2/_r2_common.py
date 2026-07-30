@@ -15,6 +15,7 @@ import os
 import re
 import stat
 import subprocess
+import time
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -289,6 +290,45 @@ def write_json_exclusive(path: Path | str, payload: Mapping[str, Any]) -> str:
     if not isinstance(payload, Mapping):
         raise R2Error("JSON marker payload must be an object")
     return write_bytes_exclusive(Path(path), canonical_json_bytes(payload))
+
+
+def utc_now() -> str:
+    """Return a strictly ordered, RFC3339 UTC timestamp."""
+
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+
+def file_identity(path: Path | str, *, label: str = "artifact") -> dict[str, Any]:
+    """Return a regular-file identity suitable for parent binding."""
+
+    target = validate_regular_file(path, label=label)
+    return {"path": str(target), "sha256": sha256_file(target), "size": target.stat().st_size}
+
+
+def process_identity(pid: int) -> dict[str, Any]:
+    """Read Linux process identity without treating a missing child as success."""
+
+    if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+        raise R2Error(f"process pid must be positive integer, got {pid!r}")
+    status_path = Path("/proc") / str(pid) / "status"
+    try:
+        status = status_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise R2Error(f"process {pid} is not observable") from exc
+    values: dict[str, str] = {}
+    for line in status.splitlines():
+        if ":" in line:
+            key, value = line.split(":", 1)
+            values[key] = value.strip()
+    try:
+        ppid = int(values["PPid"])
+    except (KeyError, ValueError) as exc:
+        raise R2Error(f"process {pid} has no valid parent identity") from exc
+    if ppid <= 0:
+        raise R2Error(f"process {pid} has invalid parent pid {ppid}")
+    return {"pid": pid, "ppid": ppid, "state": values.get("State", "")}
 
 
 # Explicit aliases keep all R2 producers on the same fail-fast primitive.

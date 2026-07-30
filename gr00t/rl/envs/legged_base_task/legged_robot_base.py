@@ -1185,7 +1185,10 @@ class LeggedRobotBase(BaseTask):
         self._update_counters_each_step()
         self.last_episode_length_buf = self.episode_length_buf.clone()
 
-        self._pre_compute_observations_callback()
+        # Mark this callback as the one post-physics sample for the control
+        # step. Reset/observation-only callbacks keep the default false and
+        # therefore cannot contribute evidence rows.
+        self._pre_compute_observations_callback(post_physics=True)
         self._update_tasks_callback()
         # compute observations, rewards, resets, ...
         self._check_termination()
@@ -1302,7 +1305,7 @@ class LeggedRobotBase(BaseTask):
     def _setup_simulator_control(self):
         pass
 
-    def _pre_compute_observations_callback(self, env_ids=None):
+    def _pre_compute_observations_callback(self, env_ids=None, *, post_physics=False):
         # prepare quantities
         self.base_quat[:] = self.simulator.base_quat[:]
         self.rpy[:] = get_euler_xyz_in_tensor(self.base_quat[:])

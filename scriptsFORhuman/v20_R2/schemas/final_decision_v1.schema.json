@@ -1,15 +1,87 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_final_decision_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "adjudicator_state", "source_lock_sha256", "release_freeze_sha256", "decision", "reason"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "adjudicator_state",
+    "source_lock_sha256",
+    "release_freeze_sha256",
+    "decision",
+    "reason"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_final_decision_v1"},
-    "adjudicator_state": {"enum": ["POLICY_PASS", "POLICY_FAIL", "NO_RELEASE", "STRICT_INVALID"]},
-    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "release_freeze_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "decision": {"enum": ["RELEASE", "NO_RELEASE"]},
-    "reason": {"type": "string", "minLength": 1},
-    "selected_group": {"type": ["string", "null"], "pattern": "^G[1-7]$"}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_final_decision_v1"
+    },
+    "adjudicator_state": {
+      "enum": [
+        "POLICY_PASS",
+        "POLICY_FAIL",
+        "NO_RELEASE",
+        "STRICT_INVALID"
+      ]
+    },
+    "source_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "release_freeze_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "decision": {
+      "enum": [
+        "RELEASE",
+        "NO_RELEASE"
+      ]
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    },
+    "selected_group": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^G[1-7]$"
+    },
+    "selected_checkpoint_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "failed_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^G[1-7]$": {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9_.:-]+$": {
+              "type": [
+                "number",
+                "integer",
+                "boolean",
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "parents": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[A-Za-z0-9_.:-]+$": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
   }
 }

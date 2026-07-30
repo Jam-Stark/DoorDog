@@ -1,15 +1,117 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "a2_piper_base_v20_R2_release_freeze_v1",
-  "type": "object", "additionalProperties": false,
-  "required": ["schema", "adjudicator_state", "source_lock_sha256", "selected_group", "selection_basis", "pooled_sha256"],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "adjudicator_state",
+    "source_lock_sha256",
+    "selected_group",
+    "selection_basis",
+    "pooled_sha256"
+  ],
   "properties": {
-    "schema": {"const": "a2_piper_base_v20_R2_release_freeze_v1"},
-    "adjudicator_state": {"enum": ["POLICY_PASS", "POLICY_FAIL", "NO_RELEASE", "STRICT_INVALID"]},
-    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "selected_group": {"type": ["string", "null"], "pattern": "^G[1-7]$"},
-    "selection_basis": {"enum": ["simplest_passing_group", "no_group_passed"]},
-    "pooled_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
-    "holdout_allowed": {"type": "boolean"}
+    "schema": {
+      "const": "a2_piper_base_v20_R2_release_freeze_v1"
+    },
+    "adjudicator_state": {
+      "enum": [
+        "POLICY_PASS",
+        "POLICY_FAIL",
+        "NO_RELEASE",
+        "STRICT_INVALID"
+      ]
+    },
+    "source_lock_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "selected_group": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^G[1-7]$"
+    },
+    "selection_basis": {
+      "enum": [
+        "simplest_passing_group",
+        "no_group_passed"
+      ]
+    },
+    "pooled_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "holdout_allowed": {
+      "type": "boolean"
+    },
+    "selected_checkpoint_step": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "selected_checkpoint_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "selected_config_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "selected_checkpoint_sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "eligible_groups": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^G[1-7]$"
+      }
+    },
+    "failed_gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^G[1-7]$": {
+          "$ref": "#/$defs/value"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "value": {
+      "oneOf": [
+        {
+          "type": [
+            "number",
+            "integer",
+            "boolean",
+            "string",
+            "null"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[A-Za-z0-9_.:-]+$": {
+              "$ref": "#/$defs/value"
+            }
+          }
+        }
+      ]
+    }
   }
 }

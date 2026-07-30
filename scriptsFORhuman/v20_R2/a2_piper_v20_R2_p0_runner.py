@@ -1,19 +1,17 @@
-"""Execute the CPU-only P0 command set and emit raw process receipts.
+"""Execute the CPU-only §10.5 P0 command matrix and retain raw receipts.
 
-This module is a producer.  It records what actually ran and deliberately has
-no ``status``, ``passed`` or verdict field.  The adjudicator is the only tool
-allowed to turn these receipts into ``STATIC_PASS``.
+This module is a producer.  It records real subprocess execution and never
+emits ``status``, ``passed`` or a verdict.  P0 adjudication is performed by
+the separate strict consumer.
 """
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
-import json
 import os
 import subprocess
 import sys
-import uuid
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -29,15 +27,20 @@ from ._r2_common import (
     validate_regular_file,
     write_json_exclusive,
 )
-from .a2_piper_v20_R2_source_freeze import discover_sources
+from .a2_piper_v20_R2_source_freeze import (
+    CHECKPOINT_SIZE_BYTES,
+    R1_CHECKPOINT_PATH,
+    build_command_templates,
+    discover_sources,
+)
 
 
 def _utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _source_lock_sha256(path: Path) -> str:
-    return sha256_file(validate_regular_file(path, label="source lock"))
+def _sha(path: Path) -> str:
+    return sha256_file(validate_regular_file(path, label="P0 file"))
 
 
 def _validate_source_lock(repo_root: Path, source_lock_path: Path) -> dict[str, Any]:
@@ -45,75 +48,65 @@ def _validate_source_lock(repo_root: Path, source_lock_path: Path) -> dict[str, 
     if not isinstance(payload, Mapping) or payload.get("schema") != "a2_piper_base_v20_R2_source_lock_v1":
         raise R2Error("P0 requires an R2 source lock")
     validate_raw_producer_payload(payload, producer_state="SOURCE_FROZEN")
-    if payload.get("git", {}).get("required_ancestor") != R1_BLOCKER_COMMIT:
+    git = payload.get("git")
+    if not isinstance(git, Mapping) or git.get("required_ancestor") != R1_BLOCKER_COMMIT:
         raise R2Error("source lock required ancestor is not the R1 blocker commit")
-    for row in payload.get("sources", []):
+    rows = payload.get("sources")
+    if not isinstance(rows, list) or not rows:
+        raise R2Error("source lock has no source rows")
+    seen: set[str] = set()
+    for row in rows:
         if not isinstance(row, Mapping):
             raise R2Error("source lock contains a malformed source row")
         relative = row.get("path")
         expected = row.get("sha256")
-        if not isinstance(relative, str) or not isinstance(expected, str):
-            raise R2Error("source lock source rows require path and SHA-256")
-        path = repo_root / relative
-        actual = sha256_file(path)
-        if actual != expected:
+        size = row.get("size_bytes")
+        if not isinstance(relative, str) or not isinstance(expected, str) or not isinstance(size, int):
+            raise R2Error("source rows require path, sha256 and size_bytes")
+        if relative in seen:
+            raise R2Error(f"duplicate source-lock path: {relative}")
+        seen.add(relative)
+        source = repo_root / relative
+        if _sha(source) != expected or source.stat().st_size != size:
             raise R2Error(f"source lock source changed: {relative}")
+        tracked = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", relative],
+            cwd=repo_root,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        ).returncode == 0
+        if relative == R1_CHECKPOINT_PATH:
+            if tracked or size != CHECKPOINT_SIZE_BYTES:
+                raise R2Error("checkpoint tracking/size contract changed")
+        elif not tracked:
+            raise R2Error(f"owned source is not tracked: {relative}")
+    changed = payload.get("changed_candidates")
+    if not isinstance(changed, list) or set(changed) != {str(row["path"]) for row in rows if "changed_candidate" in row.get("roles", [])}:
+        raise R2Error("source lock changed-candidate binding is incomplete")
+    immutable = payload.get("immutable_inputs")
+    if not isinstance(immutable, Mapping):
+        raise R2Error("source lock immutable input contract is missing")
+    config_path = immutable.get("checkpoint_config_path")
+    config_sha = immutable.get("checkpoint_config_sha256")
+    config_size = immutable.get("checkpoint_config_size_bytes")
+    if not isinstance(config_path, str) or not isinstance(config_sha, str) or not isinstance(config_size, int):
+        raise R2Error("checkpoint-adjacent config binding is incomplete")
+    config = repo_root / config_path
+    if _sha(config) != config_sha or config.stat().st_size != config_size:
+        raise R2Error("checkpoint-adjacent config changed after source freeze")
     return dict(payload)
 
 
-def build_expected_commands(repo_root: Path, source_lock: Mapping[str, Any]) -> list[dict[str, Any]]:
-    """Build a deterministic, CPU-only command list from the frozen lock."""
+def build_expected_commands(repo_root: Path, source_lock: Mapping[str, Any], *, output_root: Path | None = None, source_lock_path: Path | None = None) -> list[dict[str, Any]]:
+    """Reconstruct the exact §10.5 command list from the frozen lock."""
 
-    py_files = sorted(
-        row["path"] for row in source_lock.get("sources", []) if row.get("kind") == "source" and str(row["path"]).endswith(".py")
-    )
-    test_files = sorted(
-        row["path"] for row in source_lock.get("sources", []) if row.get("kind") == "test" and str(row["path"]).endswith(".py")
-    )
-    ancestor = str(source_lock["git"]["required_ancestor"])
-    # The checks are explicit commands rather than in-process claims.  The
-    # Python snippets are intentionally tiny and only inspect the frozen files.
-    hash_code = (
-        "import hashlib, pathlib, sys; "
-        "[(lambda p,e: (_ for _ in ()).throw(SystemExit(1)) if hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()!=e else None)(p,e) "
-        "for p,e in zip(sys.argv[1::2],sys.argv[2::2])]"
-    )
-    compile_code = (
-        "import pathlib,sys; "
-        "[compile(pathlib.Path(p).read_text(encoding='utf-8'),p,'exec') for p in sys.argv[1:]]"
-    )
-    hash_pairs: list[str] = []
-    for row in source_lock.get("sources", []):
-        hash_pairs.extend([str(row["path"]), str(row["sha256"])])
-    commands: list[dict[str, Any]] = [
-        {"name": "git_status", "argv": ["git", "status", "--porcelain=v1", "--untracked-files=all"], "env": {}},
-        {"name": "git_branch", "argv": ["git", "branch", "--show-current"], "env": {}},
-        {"name": "git_ancestor", "argv": ["git", "merge-base", "--is-ancestor", ancestor, "HEAD"], "env": {}},
-        {"name": "source_hashes", "argv": [sys.executable, "-B", "-c", hash_code, *hash_pairs], "env": {}},
-        {"name": "py_compile", "argv": [sys.executable, "-B", "-c", compile_code, *py_files], "env": {}},
-        {"name": "diff_check", "argv": ["git", "diff", "--check", ancestor, "HEAD", "--"], "env": {}},
-    ]
-    if test_files:
-        commands.append(
-            {"name": "focused_tests", "argv": [sys.executable, "-B", "-m", "pytest", "-q", "-p", "no:cacheprovider", *test_files], "env": {}}
-        )
-    # Exact command identity is carried in the receipt, not inferred from the
-    # command name later.
-    for command in commands:
-        command["env_sha256"] = hash_command_env(command["argv"], command["env"])
-    return commands
+    return build_command_templates(repo_root, source_lock, output_root=output_root, source_lock_path=source_lock_path)
 
 
-def execute_command(
-    *,
-    repo_root: Path,
-    output_root: Path,
-    name: str,
-    argv: Sequence[str],
-    env: Mapping[str, str],
-) -> dict[str, Any]:
+def execute_command(*, repo_root: Path, output_root: Path, name: str, argv: Sequence[str], env: Mapping[str, str]) -> dict[str, Any]:
     if not argv or not all(isinstance(item, str) for item in argv):
-        raise R2Error(f"{name}: argv must be non-empty string list")
+        raise R2Error(f"{name}: argv must be a non-empty string list")
     if any("BASE_V20_ALLOW_BLOCKED_R1_EXECUTION" in item for item in argv) or "BASE_V20_ALLOW_BLOCKED_R1_EXECUTION" in env:
         raise R2Error("R2 may not set the blocked-R1 execution opt-in")
     output_root.mkdir(parents=True, exist_ok=True)
@@ -124,21 +117,15 @@ def execute_command(
     selected_env = dict(sorted((str(key), str(value)) for key, value in env.items()))
     process_env = os.environ.copy()
     process_env.update(selected_env)
-    started_at = _utc_now()
-    with stdout_path.open("wb") as stdout, stderr_path.open("wb") as stderr:
+    started = _utc_now()
+    with stdout_path.open("xb") as stdout, stderr_path.open("xb") as stderr:
         try:
             process = subprocess.Popen(list(argv), cwd=repo_root, env=process_env, stdout=stdout, stderr=stderr)
         except OSError as exc:
             raise R2Error(f"failed to spawn P0 command {name}: {argv!r}") from exc
-        pid = process.pid
-        exit_code = process.wait()
-    ended_at = _utc_now()
-    try:
-        stdout_ref = str(stdout_path.relative_to(repo_root))
-        stderr_ref = str(stderr_path.relative_to(repo_root))
-    except ValueError:
-        stdout_ref = str(stdout_path)
-        stderr_ref = str(stderr_path)
+        pid = int(process.pid)
+        exit_code = int(process.wait())
+    ended = _utc_now()
     receipt = {
         "schema": "a2_piper_base_v20_R2_process_receipt_v1",
         "producer_state": "PROCESS_COMPLETED",
@@ -146,15 +133,16 @@ def execute_command(
         "argv": list(argv),
         "env": selected_env,
         "pid": pid,
-        "started_at_utc": started_at,
-        "ended_at_utc": ended_at,
+        "started_at_utc": started,
+        "ended_at_utc": ended,
         "exit_code": exit_code,
-        "stdout_path": stdout_ref,
-        "stderr_path": stderr_ref,
-        "stdout_sha256": sha256_file(stdout_path),
-        "stderr_sha256": sha256_file(stderr_path),
+        "stdout_path": str(stdout_path.relative_to(repo_root)) if stdout_path.is_relative_to(repo_root) else str(stdout_path),
+        "stderr_path": str(stderr_path.relative_to(repo_root)) if stderr_path.is_relative_to(repo_root) else str(stderr_path),
+        "stdout_sha256": _sha(stdout_path),
+        "stderr_sha256": _sha(stderr_path),
         "command_sha256": hash_command_env(argv, selected_env),
         "observed_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=repo_root, text=True).strip(),
+        "observed_tree": subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], cwd=repo_root, text=True).strip(),
     }
     validate_raw_producer_payload(receipt)
     return receipt
@@ -162,36 +150,33 @@ def execute_command(
 
 def run_p0(*, repo_root: Path, source_lock: Path, output_root: Path) -> dict[str, Any]:
     root = repo_root.resolve()
-    lock = source_lock if source_lock.is_absolute() else root / source_lock
-    lock_payload = _validate_source_lock(root, lock)
-    validate_clean_git(root, branch="A2_Piper", required_ancestor=str(lock_payload["git"]["required_ancestor"]))
-    output_root = output_root if output_root.is_absolute() else root / output_root
-    if output_root.exists():
-        raise R2Error(f"P0 output root already exists: {output_root}")
-    output_root.mkdir(parents=True)
-    receipts = []
-    for command in build_expected_commands(root, lock_payload):
-        receipts.append(
-            execute_command(
-                repo_root=root,
-                output_root=output_root,
-                name=command["name"],
-                argv=command["argv"],
-                env=command["env"],
-            )
-        )
+    lock_path = source_lock if source_lock.is_absolute() else root / source_lock
+    lock_path = validate_regular_file(lock_path, label="source lock")
+    lock = _validate_source_lock(root, lock_path)
+    identity = validate_clean_git(root, branch="A2_Piper", required_ancestor=str(lock["git"]["required_ancestor"]))
+    if identity["commit"] != lock["git"]["commit"] or identity["tree"] != lock["git"]["tree"]:
+        raise R2Error("current Git commit/tree differs from source lock")
+    output = output_root if output_root.is_absolute() else root / output_root
+    if output.exists():
+        raise R2Error(f"P0 output root already exists: {output}")
+    output.mkdir(parents=True)
+    commands = build_expected_commands(root, lock, output_root=output, source_lock_path=lock_path)
+    receipts = [execute_command(repo_root=root, output_root=output, name=cmd["name"], argv=cmd["argv"], env=cmd["env"]) for cmd in commands]
     payload = {
         "schema": "a2_piper_base_v20_R2_p0_raw_v1",
         "producer_state": "PROCESS_COMPLETED",
-        "source_lock_path": str(lock.relative_to(root)),
-        "source_lock_sha256": _source_lock_sha256(lock),
-        "observed_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip(),
+        "source_lock_path": str(lock_path.relative_to(root)) if lock_path.is_relative_to(root) else str(lock_path),
+        "source_lock_sha256": _sha(lock_path),
+        "observed_commit": identity["commit"],
+        "observed_tree": identity["tree"],
+        "output_root": str(output.relative_to(root)) if output.is_relative_to(root) else str(output),
         "commands": receipts,
-        "discovered_tests": sorted(row["path"] for row in lock_payload["sources"] if row["kind"] == "test"),
-        "focused_tests": sorted(row["path"] for row in lock_payload["sources"] if row["kind"] == "test" and "R2" in row["path"]),
+        "expected_command_names": [cmd["name"] for cmd in commands],
+        "discovered_tests": sorted(str(row["path"]) for row in lock["sources"] if row.get("kind") == "test"),
+        "focused_tests": sorted(str(row["path"]) for row in lock["sources"] if row.get("kind") == "test" and "_R2" in Path(str(row["path"])).stem),
     }
     validate_raw_producer_payload(payload, producer_state="PROCESS_COMPLETED")
-    write_json_exclusive(output_root / "p0_execution.json", payload)
+    write_json_exclusive(output / "p0_execution.json", payload)
     return payload
 
 

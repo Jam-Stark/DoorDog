@@ -349,23 +349,38 @@ def a2_v20_r2_event(observed: bool, step: int | None) -> dict[str, object]:
     return {"observed": observed, "step": step}
 
 
+_R2_METRIC_EMPTY_STATES = frozenset({
+    "NO_VALID_REFERENCE",
+    "NO_VALID_HOLD",
+    "NO_PRE_SEND_INTERVAL",
+    "NO_POSITIVE_HINGE",
+    "INSUFFICIENT_CONSECUTIVE_SAMPLES",
+    "NO_ACTIVE_TANGENT_SAMPLES",
+    "NO_POSITIVE_INCOME",
+    "NO_RELEASE",
+})
+
+
 def a2_v20_r2_metric(
     state: str,
     sample_count: int,
     value: float | None = None,
 ) -> dict[str, object]:
-    if not isinstance(state, str) or not state:
-        raise ValueError("R2 metric state must be a non-empty string.")
+    if not isinstance(state, str) or state not in _R2_METRIC_EMPTY_STATES | {"DEFINED"}:
+        raise ValueError(f"R2 metric state is outside the typed vocabulary: {state!r}.")
     if isinstance(sample_count, bool) or not isinstance(sample_count, int) or sample_count < 0:
         raise ValueError("R2 metric sample_count must be a non-negative integer.")
     if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))):
         raise ValueError("R2 metric value must be numeric or null.")
     if value is not None and not math.isfinite(float(value)):
         raise ValueError("R2 metric value must be finite.")
-    if state == "DEFINED" and value is None:
-        raise ValueError("DEFINED R2 metric requires a finite value.")
-    if state != "DEFINED" and value is not None:
-        raise ValueError("Non-defined R2 metric must use value=null.")
+    if state == "DEFINED":
+        if sample_count <= 0 or value is None:
+            raise ValueError("DEFINED R2 metric requires sample_count>0 and a finite value.")
+    elif sample_count != 0 or value is not None:
+        raise ValueError(
+            "Typed zero-denominator R2 metrics require sample_count=0 and value=null."
+        )
     return {"state": state, "sample_count": sample_count, "value": None if value is None else float(value)}
 
 
@@ -503,6 +518,97 @@ def a2_v20_r2_append_record_set_staging(path: str, record: Mapping[str, object])
         fcntl.flock(fd, fcntl.LOCK_UN)
     finally:
         os.close(fd)
+
+
+def a2_v20_r2_finalize_record_set(
+    staging_path: str,
+    output_path: str,
+    *,
+    expected_run_uuid: str | None = None,
+    expected_count: int | None = None,
+) -> dict[str, object]:
+    """Validate the append-only staging stream and create one immutable set.
+
+    Every episode must be complete and self-identifying before the final JSON
+    boundary is created.  The helper never overwrites an existing finalizer
+    output and never manufactures records for missing environments.
+    """
+    import json
+    import os
+    from pathlib import Path
+
+    if not isinstance(staging_path, str) or not staging_path:
+        raise ValueError("R2 record-set staging path is required.")
+    if not isinstance(output_path, str) or not output_path:
+        raise ValueError("R2 record-set output path is required.")
+    source = Path(staging_path)
+    if not source.is_file() or source.is_symlink():
+        raise ValueError(f"R2 record-set staging stream is not a regular file: {source}")
+    rows: list[dict[str, object]] = []
+    seen: set[str] = set()
+    run_uuid: str | None = None
+    for line_no, line in enumerate(source.read_text(encoding="utf-8").splitlines(), 1):
+        if not line.strip():
+            raise ValueError(f"R2 record-set staging line {line_no} is empty.")
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"R2 record-set staging line {line_no} is invalid JSON.") from exc
+        if not isinstance(row, Mapping) or row.get("schema") != _R2_RECORD_SCHEMA:
+            raise ValueError(f"R2 record-set staging line {line_no} is not an episode record.")
+        record_id = row.get("record_id")
+        if not isinstance(record_id, str) or record_id in seen:
+            raise ValueError(f"R2 record-set staging line {line_no} has a missing/duplicate record_id.")
+        without_id = dict(row)
+        del without_id["record_id"]
+        if a2_v20_r2_finalize_record_id(without_id) != record_id:
+            raise ValueError(f"R2 record-set staging line {line_no} has a non-canonical record_id.")
+        row_uuid = row.get("provenance", {}).get("run_uuid") if isinstance(row.get("provenance"), Mapping) else None
+        if not isinstance(row_uuid, str) or not row_uuid:
+            raise ValueError(f"R2 record-set staging line {line_no} has no provenance.run_uuid.")
+        if run_uuid is None:
+            run_uuid = row_uuid
+        elif run_uuid != row_uuid:
+            raise ValueError("R2 record-set staging contains multiple run UUIDs.")
+        seen.add(record_id)
+        rows.append(dict(row))
+    if not rows:
+        raise ValueError("R2 record-set staging stream is empty.")
+    if expected_run_uuid is not None and run_uuid != expected_run_uuid:
+        raise ValueError("R2 record-set staging run UUID does not match expected_run_uuid.")
+    if expected_count is not None:
+        if isinstance(expected_count, bool) or not isinstance(expected_count, int) or expected_count < 0:
+            raise ValueError("expected_count must be a non-negative integer.")
+        if len(rows) != expected_count:
+            raise ValueError(f"R2 record-set count mismatch: expected {expected_count}, got {len(rows)}.")
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": _R2_RECORD_SET_SCHEMA,
+        "producer_state": "RECORD_SET_COMPLETE",
+        "run_uuid": run_uuid,
+        "records": rows,
+        "record_count": len(rows),
+        "record_ids": sorted(seen),
+    }
+    encoded = a2_v20_r2_canonical_json_bytes(payload)
+    try:
+        fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o444)
+    except FileExistsError as exc:
+        raise ValueError(f"R2 final record-set output already exists: {output}") from exc
+    try:
+        with os.fdopen(fd, "wb") as handle:
+            handle.write(encoded)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except BaseException:
+        try:
+            if output.exists() and not output.is_symlink():
+                output.unlink()
+        except OSError:
+            pass
+        raise
+    return payload
 
 
 def a2_v20_r2_finalize_record_id(record_without_id: Mapping[str, object]) -> str:

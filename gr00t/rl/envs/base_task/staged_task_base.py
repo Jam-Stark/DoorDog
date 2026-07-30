@@ -196,11 +196,37 @@ class StagedTaskBase(LeggedRobotBase):
         # reset just_completed_task_buf
         self.just_completed_task_buf[:] = False
 
-        # take a snapshot of the buffered states
+        # take a snapshot of the buffered states.  Subclasses may reject an
+        # incompatible snapshot (for example, R1 soft-phase states that would
+        # violate the hard send institution).  The hook is shape/device checked
+        # here so malformed masks fail fast.
         if self.enable_staged_reset:
-            self._take_snapshot_of_buffered_states(advance_mask)
+            filtered_advance_mask = self._filter_staged_reset_snapshot_mask(advance_mask)
+            if (
+                not torch.is_tensor(filtered_advance_mask)
+                or tuple(filtered_advance_mask.shape) != (self.num_envs,)
+                or filtered_advance_mask.dtype != torch.bool
+                or filtered_advance_mask.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(filtered_advance_mask) else tuple(filtered_advance_mask.shape)
+                dtype = None if not torch.is_tensor(filtered_advance_mask) else filtered_advance_mask.dtype
+                device = None if not torch.is_tensor(filtered_advance_mask) else filtered_advance_mask.device
+                raise RuntimeError(
+                    "staged-reset snapshot mask must be a device-local bool vector "
+                    f"of shape ({self.num_envs},); got shape={shape}, dtype={dtype}, device={device}."
+                )
+            self._take_snapshot_of_buffered_states(filtered_advance_mask)
 
         return super()._post_compute_observations_callback()
+
+    def _filter_staged_reset_snapshot_mask(self, advance_mask: torch.Tensor) -> torch.Tensor:
+        """Return stage entries eligible for snapshot storage.
+
+        The default is intentionally a no-op so legacy environments preserve
+        their staged-reset behavior.  DoorPregrasp adds the R1 compatibility
+        guard.
+        """
+        return advance_mask
 
     @override
     def _check_termination(self):

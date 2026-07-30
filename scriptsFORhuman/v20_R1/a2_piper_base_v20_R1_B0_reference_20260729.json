@@ -1,0 +1,169 @@
+{
+  "checkpoint": {
+    "path": "logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/model_step_002000.pt",
+    "sha256": "b331c9a343c71dccf6cce31f71c1727a24298d72808c25763a0f702c369a866d"
+  },
+  "created_at": "2026-07-29",
+  "pooled48_frozen": {
+    "crossing_while_holding_count": 48,
+    "episodes": 48,
+    "goal_count": 48,
+    "held_hinge_rad": {
+      "max": 1.5811690092086792,
+      "min": 1.3483374118804932,
+      "n": 48,
+      "p50": 1.4336078763008118,
+      "p95": 1.5430807173252106
+    },
+    "hinge_at_first_root_crossing_rad": {
+      "max": 0.8773267269134521,
+      "min": 0.5750486254692078,
+      "p10": 0.6346503734588623,
+      "p50": 0.7189994752407074,
+      "p95": 0.8444905579090118
+    },
+    "opening_slip_cm": {
+      "max_cm": 4.331893473863602,
+      "min_cm": 1.409487845376134,
+      "n": 48,
+      "p50_cm": 2.193463291041553,
+      "p95_cm": 2.908446555957198
+    },
+    "overspeed_termination_count": 0,
+    "post_release_body_contact_count": 0,
+    "post_release_body_force_p95_n": 0.0,
+    "pre_crossing_bilateral_rate": 0.9966701113790332,
+    "pre_crossing_coasting_rate": 0.0028705936387644964,
+    "pre_crossing_hinge_velocity_radps": {
+      "max": 0.4179486930370331,
+      "mean": 0.198885238528841,
+      "median": 0.19870685040950775,
+      "min": -0.0044896104373037815,
+      "n": 8709,
+      "p50": 0.19870685040950775,
+      "p95": 0.32466224431991575
+    },
+    "pre_crossing_over_force_rate": 0.00045929498220231943,
+    "release_hinge_rad": {
+      "max": 1.61320960521698,
+      "min": 1.600290298461914,
+      "n": 48,
+      "p50": 1.6054893732070923,
+      "p95": 1.6115434408187865
+    },
+    "root_x_at_release_m": {
+      "max": 0.7761058807373047,
+      "mean": 0.5707685748736063,
+      "median": 0.5709242820739746,
+      "min": 0.38988304138183594,
+      "n": 48,
+      "p50": 0.5709242820739746,
+      "p95": 0.7298257350921631
+    },
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "task_time_s": {
+      "max": 14.58,
+      "min": 11.1,
+      "p50": 12.51,
+      "p95": 13.943999999999999
+    }
+  },
+  "schema": "a2_piper_base_v20_R1_B0_reference_v1",
+  "source_archives": {
+    "cloud_evidence": {
+      "path": "a2_piper_v17_v19_v20_cloud_evidence_20260728.zip",
+      "sha256": "0721239aebfbff00f0647c2f5f9a4857c8b59b042872276c33301d807b6bfcd8"
+    },
+    "m22_supplement": {
+      "path": "a2_piper_v19_m22_70checkpoint_metrics_g2_g3_20260728.zip",
+      "sha256": "b46399babd3fecb0afeb311aa2672fac421d892d20d8ea1c686bcb2884732c5e"
+    }
+  },
+  "source_files": {
+    "logs_eval/base_v19/G2_m22/base_v19_G2_m22_all_checkpoints_r3_20260727/model_step_002000/seed0/a2_v14_per_env_records.json": "56c152828cd2e57f43e8493097fb062ab1d8a8aef96dd37c0abd8ddf61159f70",
+    "logs_eval/base_v19/m22_shared/_v19_m22_pooled_recovery_r7_20260728/G2/model_step_002000/seed1/a2_v14_per_env_records.json": "388d5e4e4d019427e6b432b3f61c8a2772072f6b65569a89ee4c64373e12423b",
+    "logs_eval/base_v19/m22_shared/_v19_m22_pooled_recovery_r7_20260728/G2/model_step_002000/seed2/a2_v14_per_env_records.json": "10dd616a8b7a3fe723897f92033ca724ff98c24cde8d24387294f06bd805c6c9",
+    "logs_eval/base_v19/m22_shared/_v19_m22_pooled_recovery_r7_20260728/G2/selected_endpoint_48door/a2_piper_v17_bucket_report.json": "4c84ca1a6e283d91831baa4380b3e3b580f9707222a83db51ce89da722009d7c",
+    "logs_eval/base_v19/m22_shared/_v19_m22_pooled_recovery_r7_20260728/G2/selected_endpoint_48door/a2_piper_v19_endpoint_report.json": "9c32a9d208f91982cc1d18d4de15fc326f7d26d18ffe98768188974263ebd60b",
+    "logs_eval/base_v19/render/_v19_render_G2_step2000_20260728/winner_G2_2env_3cam_seed0/stage2_5_step_trace.json": "99fba6d134e9f7cb6d7f70d629107e17b67acb47804bb31913abec06563f29fc"
+  },
+  "taskspace_trace_diagnostic": {
+    "aggregation": "pre-crossing stage3/4, stage3/4 contact streak >=5, 50 Hz backward TCP finite difference; tangent recovered from the fitted positive-hinge handle circle; FK validated against gripper_source_quat_w",
+    "classification": "DIAGNOSTIC_ONLY_TWO_RENDER_EPISODES",
+    "combined_step_distribution": {
+      "arc_orientation_error_rad": {
+        "p50": 0.536377711460395,
+        "p95": 0.794003000293291
+      },
+      "arc_position_error_m": {
+        "p50": 0.03427766020190608,
+        "p95": 0.039380850712460315
+      },
+      "arm_tangent_share": {
+        "p10": 0.0,
+        "p50": 0.08933080780497209,
+        "p95": 1.0
+      }
+    },
+    "median_of_episode_arm_share_p50": 0.06770663738452641,
+    "per_env": [
+      {
+        "arc_orientation_error_rad": {
+          "p50": 0.6191798985134896,
+          "p95": 0.7990759685683919
+        },
+        "arc_position_error_m": {
+          "p50": 0.034706609815993134,
+          "p95": 0.04039848740060041
+        },
+        "arm_raw_action_jerk_p95_per_step2": 2.6279856632147713,
+        "arm_raw_action_rate_p95_per_step": 1.6984240213534534,
+        "arm_tangent_share": {
+          "p10": 0.0,
+          "p50": 0.1300136168168921,
+          "p95": 0.9952017887745609
+        },
+        "env_id": 0,
+        "hinge_acceleration_p95_radps2": 0.7797295600175856,
+        "hinge_jerk_p95_radps3": 21.754525601863836,
+        "scoped_steps": 163
+      },
+      {
+        "arc_orientation_error_rad": {
+          "p50": 0.4579499829911561,
+          "p95": 0.5741534508434725
+        },
+        "arc_position_error_m": {
+          "p50": 0.03258214373810614,
+          "p95": 0.03800103655463788
+        },
+        "arm_raw_action_jerk_p95_per_step2": 2.8311783160102233,
+        "arm_raw_action_rate_p95_per_step": 1.677311547775302,
+        "arm_tangent_share": {
+          "p10": 0.0,
+          "p50": 0.005399657952160716,
+          "p95": 1.0
+        },
+        "env_id": 1,
+        "hinge_acceleration_p95_radps2": 0.7032755762338635,
+        "hinge_jerk_p95_radps3": 17.20902323722838,
+        "scoped_steps": 141
+      }
+    ],
+    "worst_episode_p95": {
+      "arm_raw_action_jerk_per_step2": 2.8311783160102233,
+      "arm_raw_action_rate_per_step": 1.6984240213534534,
+      "hinge_acceleration_radps2": 0.7797295600175856,
+      "hinge_jerk_radps3": 21.754525601863836
+    }
+  },
+  "usage_contract": {
+    "no_posthoc_threshold_change": true,
+    "pooled48_frozen": "authoritative B0 for task/safety/crossing",
+    "taskspace_trace_diagnostic": "numeric prior and parity target only; formal R1 task-space B0 must be regenerated by a no-learning pooled48 v20 telemetry evaluation before pilot"
+  }
+}

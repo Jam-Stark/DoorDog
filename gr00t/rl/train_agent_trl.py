@@ -509,6 +509,7 @@ def main(config: OmegaConf):
         local_seed=config.seed,
         log_dir=experiment_save_dir,
         accelerator=accelerator,
+        schedule_dict=config.get("schedule_dict", None),
         _resolve=False,
         **checkpoint_load_kwargs,
     )

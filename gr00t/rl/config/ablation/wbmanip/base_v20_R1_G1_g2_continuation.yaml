@@ -1,0 +1,132 @@
+# @package _global_
+# base_v20_R1 base_v20_R1_G1_g2_continuation: explicit Appendix-D factor binding.
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/model_step_002000.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+headless: true
+algo:
+  trl:
+    num_total_batches: 2500
+callbacks:
+  model_save:
+    save_frequency: 250
+env:
+  config:
+    a2_m39_gripper_material_enabled: true
+    a2_door_weight_range: [80.0, 160.0]
+    a2_corridor_enabled: true
+    a2_corridor_door_wide_hinge_norm: 1.50
+    a2_arm_dof_overspeed_soft_margin_enabled: true
+    a2_arm_dof_overspeed_soft_margin_width: 0.5
+    a2_door_body_contact_penalty_mode: event_v17
+    a2_stage5_hold_income_continuity_enabled: true
+    a2_door_body_contact_event_force_threshold: 5.0
+    a2_door_body_contact_event_peak_force_norm: 200.0
+    a2_door_body_contact_event_component_cap: 2.0
+    a2_stage2_contact_force_threshold: 1.0
+    a2_stage2_squeeze_force_min: 2.0
+    a2_stage2_squeeze_force_max: 30.0
+    a2_stage2_over_force_threshold: 55.0
+    a2_grasp_gate_mode: control_streak
+    a2_grasp_streak_control_steps: 5
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_to4_requires_grasp_streak: true
+    a2_stage3_to4_streak_highwater: false
+    a2_stage3_base_unlocked: true
+    a2_stage3_unlatch_handle_position_norm: 0.6
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor: 0.4
+    a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
+    a2_stage3_stage4_coasting_velocity_threshold: 0.1
+    a2_stage3_handle_hard_limit_position: 0.785398
+    a2_stage3_handle_hard_limit_tolerance: 0.005
+    a2_stage4_release_hinge_threshold: 1.60
+    a2_stage4_to5_door_hinge_threshold: 1.25
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_stage35_door_panel_contact_scale: 0.0
+    a2_stage0_staging_x_min: 0.50
+    a2_stage0_staging_x_max: 0.80
+    a2_stage0_staging_y_tol: 0.15
+    a2_v20_send_latch_enabled: false
+    a2_v20_send_hinge_threshold: 0.90
+    a2_v20_pre_send_root_x_margin: 0.03
+    a2_v20_send_hinge_tolerance: 0.05
+    a2_v20_pre_send_crossing_mode: disabled
+    a2_v20_traversal_economics_enabled: false
+    a2_v20_target_root_pre_send_scale: 0.0
+    a2_v20_target_root_post_send_stage4_scale: 0.5
+    a2_v20_target_root_ramp_width_rad: 0.20
+    a2_corridor_latch_mode: legacy_root_or_hinge
+    a2_v20_arm_tie_enabled: false
+    a2_v20_arm_tangent_carry_scale: 0.0
+    a2_v20_handle_arc_tracking_scale: 0.0
+    a2_v20_telemetry_enabled: true
+    a2_v20_pre_send_crossing_penalty_component: 1.0
+    a2_v20_calibration_label: base_v20_R1_theta090_S500_A350_0850
+    a2_v20_R1_plan_id: base_v20_R1_policy_behavior_v1
+    a2_v20_R1_p1_status: P1_PHYSICAL_BLOCKER
+    a2_v20_R1_formal_values_frozen: true
+    a2_v20_R1_formal_launch: false
+    a2_v20_R1_plan_sha256: 6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c
+    a2_v20_R1_send_curriculum_enabled: false
+    a2_v20_R1_soft_phase_end_batch: 500
+    a2_v20_R1_snapshot_guard_enabled: false
+    a2_v20_R1_crossing_base_component: 1.0
+    a2_v20_R1_crossing_shortfall_gain: 1.0
+    a2_v20_formal_values_frozen: true
+    a2_v20_formal_launch: false
+rewards:
+  reward_penalty_curriculum: false
+  reward_initial_penalty_scale: 1.0
+  reward_min_penalty_scale: 1.0
+  reward_max_penalty_scale: 1.0
+  reward_penalty_degree: 0.0
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 6.0
+    push_door_force: 0.0
+    a2_stage3_unlatch_hold: 3.0
+    a2_stage3_stage4_hold_and_drive: 8.0
+    a2_corridor_clean_passage: 1.0
+    a2_stage3_stage4_keep_close_command: 0.5
+    penalty_a2_stage3_stage4_open_command: -1.0
+    a2_stage3_stage4_both_contact: 0.5
+    a2_stage3_stage4_opposite_squeeze: 0.5
+    a2_stage3_stage4_squeeze_force_window: 0.5
+    a2_stage3_stage4_contact_stability: 0.5
+    penalty_a2_stage3_stage4_over_force: -1.0
+    penalty_a2_door_body_contact: -3.0
+    penalty_a2_posture_command_l1: -0.3
+    a2_corridor_door_wide: 4.0
+    a2_v20_arm_tangent_carry: 0.0
+    a2_v20_handle_arc_tracking: 0.0
+    penalty_a2_v20_pre_send_crossing: 0.0
+
+robot:
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
+  ]
+  control:
+    stiffness:
+      arm_j7: 1300.0
+      arm_j8: 1300.0
+    damping:
+      arm_j7: 32.0
+      arm_j8: 32.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2

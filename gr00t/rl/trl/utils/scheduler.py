@@ -11,10 +11,38 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 
 def update_scheduled_params(obj, scheduler_dict, step, split_char="@"):
+    """Apply validated scheduled parameters and fire exact boundary callbacks.
+
+    R1 uses this generic scheduler with a segment [0, 500] string schedule;
+    no R1-specific scheduler branch is introduced.
+    """
+    if isinstance(step, bool) or not isinstance(step, int) or step < 0:
+        raise ValueError(f"scheduled parameter step must be a non-negative int; got {step!r}.")
+    if scheduler_dict is None:
+        return {}
+    if not hasattr(scheduler_dict, "items"):
+        raise TypeError("scheduler_dict must be a mapping.")
     scheduled_params_dict = {}
+    converters = {"float": float, "int": int, "str": str, "bool": bool}
     for target, cfg in scheduler_dict.items():
-        sch_type = cfg["type"]
+        if not isinstance(target, str) or not target:
+            raise ValueError(f"scheduled target must be a non-empty string; got {target!r}.")
+        if not hasattr(cfg, "get"):
+            raise TypeError(f"schedule entry {target!r} must be a mapping.")
+        sch_type = cfg.get("type")
+        if sch_type not in ("linear", "segment"):
+            raise ValueError(f"unsupported schedule type {sch_type!r} for {target!r}.")
         val_type = cfg.get("val_type", "float")
+        if val_type not in converters:
+            raise ValueError(f"unsupported schedule val_type {val_type!r} for {target!r}.")
+        seg_steps = list(cfg.get("seg_steps", ()))
+        seg_vals = list(cfg.get("seg_vals", ()))
+        if not seg_steps or len(seg_steps) != len(seg_vals):
+            raise ValueError(f"schedule {target!r} requires equally sized non-empty seg_steps/seg_vals.")
+        if any(isinstance(v, bool) or not isinstance(v, int) for v in seg_steps):
+            raise ValueError(f"schedule {target!r} seg_steps must be integer boundaries.")
+        if any(v < 0 for v in seg_steps) or any(a >= b for a, b in zip(seg_steps, seg_steps[1:])):
+            raise ValueError(f"schedule {target!r} seg_steps must be monotonic non-negative boundaries.")
         target_attr = target
         target_obj = obj
         if split_char in target:
@@ -25,30 +53,32 @@ def update_scheduled_params(obj, scheduler_dict, step, split_char="@"):
                 else:
                     target_obj = getattr(target_obj, x)
         if sch_type == "linear":
-            i = len(cfg["seg_vals"]) - 1
-            while step < cfg["seg_steps"][i]:
+            if len(seg_vals) < 2:
+                raise ValueError(f"linear schedule {target!r} requires at least two values.")
+            i = len(seg_vals) - 1
+            while i > 0 and step < seg_steps[i]:
                 i -= 1
-            if i == len(cfg["seg_vals"]) - 1:
-                val = cfg["seg_vals"][i]
+            if i == len(seg_vals) - 1:
+                val = seg_vals[i]
             else:
-                t = (step - cfg["seg_steps"][i]) / (cfg["seg_steps"][i + 1] - cfg["seg_steps"][i])
+                denominator = seg_steps[i + 1] - seg_steps[i]
+                if denominator <= 0:
+                    raise ValueError(f"linear schedule {target!r} has invalid segment width.")
+                t = (step - seg_steps[i]) / denominator
                 t = max(0.0, min(1.0, t))
-                val = (1.0 - t) * cfg["seg_vals"][i] + t * cfg["seg_vals"][i + 1]
-        elif sch_type == "segment":
-            i = len(cfg["seg_vals"]) - 1
-            while step < cfg["seg_steps"][i]:
+                val = (1.0 - t) * seg_vals[i] + t * seg_vals[i + 1]
+        else:
+            i = len(seg_vals) - 1
+            while i > 0 and step < seg_steps[i]:
                 i -= 1
-            val = cfg["seg_vals"][i]
+            val = seg_vals[i]
+        val = converters[val_type](val)
 
-        val = eval(val_type)(val)
-
-        if type(val) is DictConfig or type(val) is dict:
-            # Handle numeric indices for dict/config access
+        if isinstance(val, (DictConfig, dict)):
             if target_attr.lstrip("-").isdigit():
                 tmp_obj = target_obj[int(target_attr)]
             else:
                 tmp_obj = getattr(target_obj, target_attr)
-
             if cfg.get("overwrite_dict", False):
                 if target_attr.lstrip("-").isdigit():
                     target_obj[int(target_attr)] = val
@@ -56,28 +86,29 @@ def update_scheduled_params(obj, scheduler_dict, step, split_char="@"):
                     setattr(target_obj, target_attr, val)
             else:
                 for k, v in val.items():
-                    if type(tmp_obj) is dict:
+                    if isinstance(tmp_obj, dict):
                         tmp_obj[k] = v
                     else:
                         setattr(tmp_obj, k, v)
         else:
-            # Handle numeric indices for direct value assignment
             if target_attr.lstrip("-").isdigit():
                 target_obj[int(target_attr)] = val
             else:
                 setattr(target_obj, target_attr, val)
 
         scheduled_params_dict[target] = val
-
-        if "trigger_func" in cfg and step == cfg["seg_steps"][i]:
-            target_obj = obj
+        if "trigger_func" in cfg and step in seg_steps:
+            trigger_obj = obj
             target_func = cfg["trigger_func"]
-            print(f"Triggering function: {target_func}")
+            if not isinstance(target_func, str) or split_char not in target_func:
+                raise ValueError(f"schedule {target!r} trigger_func must be a dotted @ path.")
             target_obj_str, target_func = target_func.rsplit(split_char, 1)
             for x in target_obj_str.split(split_char):
-                target_obj = getattr(target_obj, x)
-            getattr(target_obj, target_func)()
-
+                trigger_obj = getattr(trigger_obj, x)
+            # Expose the exact boundary to callbacks without creating a
+            # special scheduler API.  The callback itself validates it.
+            setattr(trigger_obj, "_a2_v20_R1_schedule_step", step)
+            getattr(trigger_obj, target_func)()
     return scheduled_params_dict
 
 

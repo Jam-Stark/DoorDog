@@ -27,6 +27,8 @@ def test_v20_state_is_registered_and_partially_reset():
     ):
         assert f'("{name}"' in source
         assert f"self._{name}[env_ids]" in source
+    for name in ("a2_v20_snapshot_crossing_seen", "a2_v20_snapshot_root_x_rel"):
+        assert f'("{name}"' in source
 
 
 def test_v20_staged_reset_contract_has_exact_load_shape_checks():
@@ -64,6 +66,9 @@ def test_v20_registry_is_single_writer_and_partial_snapshot_load_preserves_mixed
     assert names
     assert len(names) == len(set(names))
     assert names.count("a2_v20_send_ready") == 1
+    specs = {row[0]: (row[1], row[2]) for row in registry.rows}
+    assert specs["a2_v20_snapshot_crossing_seen"] == ((4,), torch.bool)
+    assert specs["a2_v20_snapshot_root_x_rel"] == ((4,), torch.float32)
 
     class State:
         def __init__(self):
@@ -143,8 +148,13 @@ def test_v20_actual_registry_uses_inherited_storage_and_mixed_env_callbacks():
     state._load_a2_v20_named_buffer = load_v20.__get__(state)
     register_v20(state)
     names = list(state.staged_reset_buf)
-    assert len(names) == len(set(names)) == 17
+    assert len(names) == len(set(names)) == 19
     assert state.staged_reset_buf["a2_v20_send_ready"]["data"].shape == (2, 3, 4)
+    for name, dtype in (("a2_v20_snapshot_crossing_seen", torch.bool), ("a2_v20_snapshot_root_x_rel", torch.float32)):
+        data = state.staged_reset_buf[name]["data"]
+        assert data.shape == (2, 3, 4)
+        assert data.dtype is dtype
+        assert data.device == state.device
     assert state.staged_reset_buf["a2_v20_root_entry_pos_se2"]["data"].shape == (2, 3, 4, 3)
     assert state.staged_reset_buf["a2_v20_handle_tcp_capture_quat"]["data"].shape == (2, 3, 4, 4)
 
@@ -183,6 +193,23 @@ def test_v20_actual_registry_uses_inherited_storage_and_mixed_env_callbacks():
         assert torch.equal(value[selected_env_ids], original[name][selected_env_ids])
         untouched = torch.tensor([1, 3], dtype=torch.long)
         assert torch.equal(value[untouched], case["_mutated"][untouched])
+    assert torch.equal(
+        state._a2_v20_snapshot_crossing_seen[selected_env_ids],
+        original["a2_v20_snapshot_crossing_seen"][selected_env_ids],
+    )
+    assert torch.equal(
+        state._a2_v20_snapshot_root_x_rel[selected_env_ids],
+        original["a2_v20_snapshot_root_x_rel"][selected_env_ids],
+    )
+    untouched = torch.tensor([1, 3], dtype=torch.long)
+    assert torch.equal(
+        state._a2_v20_snapshot_crossing_seen[untouched],
+        state.staged_reset_buf["a2_v20_snapshot_crossing_seen"]["_mutated"][untouched],
+    )
+    assert torch.equal(
+        state._a2_v20_snapshot_root_x_rel[untouched],
+        state.staged_reset_buf["a2_v20_snapshot_root_x_rel"]["_mutated"][untouched],
+    )
 
     env_ids = torch.tensor([1, 3], dtype=torch.long)
     send_ready = state.staged_reset_buf["a2_v20_send_ready"]

@@ -1,0 +1,16 @@
+section,metric,value,unit,classification
+pooled48,hinge_at_crossing_p10,0.6346503734588623,rad,AUTHORITATIVE
+pooled48,hinge_at_crossing_p50,0.7189994752407074,rad,AUTHORITATIVE
+pooled48,hinge_at_crossing_p95,0.8444905579090118,rad,AUTHORITATIVE
+pooled48,held_hinge_p50,1.4336078763008118,rad,AUTHORITATIVE
+pooled48,held_hinge_p95,1.5430807173252106,rad,AUTHORITATIVE
+pooled48,opening_slip_p95,2.908446555957198,cm,AUTHORITATIVE
+pooled48,hinge_velocity_p95,0.32466224431991575,rad/s,AUTHORITATIVE
+pooled48,task_time_p50,12.51,s,AUTHORITATIVE
+trace2,arm_tangent_share_p50,0.08933080780497209,ratio,DIAGNOSTIC_ONLY
+trace2,arc_position_error_p95,0.039380850712460315,m,DIAGNOSTIC_ONLY
+trace2,arc_orientation_error_p95,0.794003000293291,rad,DIAGNOSTIC_ONLY
+trace2,hinge_acceleration_radps2,0.7797295600175856,see metric,DIAGNOSTIC_ONLY
+trace2,hinge_jerk_radps3,21.754525601863836,see metric,DIAGNOSTIC_ONLY
+trace2,arm_raw_action_rate_per_step,1.6984240213534534,see metric,DIAGNOSTIC_ONLY
+trace2,arm_raw_action_jerk_per_step2,2.8311783160102233,see metric,DIAGNOSTIC_ONLY

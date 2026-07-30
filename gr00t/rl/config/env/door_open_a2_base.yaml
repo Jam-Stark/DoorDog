@@ -185,6 +185,13 @@ env:
     a2_v20_formal_values_frozen: false
     a2_v20_formal_launch: false
     a2_v20_calibration_label: non_formal_calibration_only
+    # R1 policy curriculum selectors are disabled in shared/legacy configs.
+    a2_v20_R1_plan_id: disabled
+    a2_v20_R1_send_curriculum_enabled: false
+    a2_v20_R1_soft_phase_end_batch: 500
+    a2_v20_R1_snapshot_guard_enabled: false
+    a2_v20_R1_crossing_base_component: 1.0
+    a2_v20_R1_crossing_shortfall_gain: 1.0
     max_stage_time: [250, 100, 100, 100, 100, 200]
     award_remaining_time_on_advance: True
     accumulate_stage_reward: False

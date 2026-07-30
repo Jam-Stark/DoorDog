@@ -78,7 +78,20 @@ def test_executable_dag_contract_cpu(tmp_path: Path, monkeypatch: pytest.MonkeyP
     assert next(row["seed"] for row in formal_rows if row["group"] == "G7") == 1
 
     # M22 command reconstruction is an exact 7 x 10 set and carries one
-    # physical GPU per group without launching IsaacSim.
+    # physical GPU per group without launching IsaacSim. eval_command binds
+    # the active source lock for provenance; stub it (CPU contract test, no
+    # ACTIVE_SOURCE_LOCK artifact exists pre-adjudication) like the other
+    # module read_artifact stubs above.
+    monkeypatch.setattr(workflow, "_source_lock_provenance", lambda repo_root, config_text: {
+        "source_lock_sha256": "a" * 64,
+        "plan_sha256": "a" * 64,
+        "r1_plan_sha256": "a" * 64,
+        "b0_json_sha256": "a" * 64,
+        "b0_csv_sha256": "a" * 64,
+        "urdf_path": common.R1_URDF_PATH,
+        "urdf_sha256": "a" * 64,
+        "git_commit": "0" * 40,
+    })
     manifest = tmp_path / "M22_70ROW.json"
     manifest.write_text("{}", encoding="utf-8")
     m22_payload = {"source_lock_sha256": "b" * 64, "rows": []}

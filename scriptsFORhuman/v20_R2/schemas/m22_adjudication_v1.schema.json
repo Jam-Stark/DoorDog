@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_m22_adjudication_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "adjudicator_state", "manifest_sha256", "group", "row_count", "valid_rows"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_m22_adjudication_v1"},
+    "adjudicator_state": {"enum": ["M22_70ROW_PASS", "STRICT_VALID", "STRICT_INVALID", "INCONCLUSIVE"]},
+    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "group": {"type": "string", "pattern": "^G[1-7]$"},
+    "row_count": {"type": "integer", "minimum": 0},
+    "valid_rows": {"type": "integer", "minimum": 0},
+    "invalid_reasons": {"type": "array", "items": {"type": "string"}}
+  }
+}

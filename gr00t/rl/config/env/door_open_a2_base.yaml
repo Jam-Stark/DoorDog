@@ -184,6 +184,12 @@ env:
     a2_v20_arc_orientation_tolerance_rad: 0.20
     a2_v20_formal_values_frozen: false
     a2_v20_formal_launch: false
+    # R2 evidence is telemetry-only until an explicit R2 config enables it.
+    a2_v20_R2_evidence_enabled: false
+    a2_v20_R2_group: null
+    a2_v20_R2_seed: null
+    a2_v20_R2_admission_bundle_sha256: null
+    a2_v20_R2_source_lock_sha256: null
     a2_v20_calibration_label: non_formal_calibration_only
     # R1 policy curriculum selectors are disabled in shared/legacy configs.
     a2_v20_R1_plan_id: disabled

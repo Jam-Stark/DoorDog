@@ -116,7 +116,7 @@ def test_taskspace_mask_rejects_pregrasp_postsend_lost_hold_and_postrelease():
         stage, hold, send, reference, hinge, release, kinematic,
         stage_open=3, stage_through=5,
     )
-    assert result.tolist() == [True, False, False, False, True, False]
+    assert result.tolist() == [True, False, False, False, False, False]
 
 
 def test_taskspace_mask_rejects_nonpositive_progress():

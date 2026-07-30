@@ -42,6 +42,17 @@ from gr00t.rl.envs.base_task.a2_base import A2Base
 from gr00t.rl.envs.base_task.finger_primitive_base import FingerPrimitiveBase
 from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
 from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
+from gr00t.rl.envs.door.a2_v20_r2_evidence import (
+    a2_v20_r2_append_record_set_staging,
+    a2_v20_r2_distribution,
+    a2_v20_r2_event,
+    a2_v20_r2_finalize_record_id,
+    a2_v20_r2_metric,
+    a2_v20_r2_snapshot_admission_mask,
+    a2_v20_r2_taskspace_arm_carry,
+    a2_v20_r2_trace_jsonl_bytes,
+    a2_v20_r2_validate_trace_rows,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -530,7 +541,7 @@ def a2_v20_taskspace_valid_mask(
         raise ValueError("R1 task-space stage bounds must be ordered integers.")
     return (
         (stage_buf >= stage_open)
-        & (stage_buf <= stage_through)
+        & (stage_buf < stage_through)
         & hold_ok
         & ~send_ready
         & reference_valid
@@ -732,8 +743,15 @@ def a2_v20_handle_opening_tangent(
         _a2_v20_validate_vector(value, shape=shape, floating=True, name=name)
         if value.device != source_pos_w.device or value.dtype != source_pos_w.dtype:
             raise ValueError("v20 tangent inputs must share dtype and device.")
-    if not torch.all(torch.isfinite(source_pos_w)):
-        raise ValueError("v20 source_pos_w requires finite values.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (source_pos_w, source_quat_w, grasp_target_pos_source, door_width, door_open_lr)
+    ):
+        raise ValueError("v20 opening tangent inputs require finite values.")
+    source_quat_norm = torch.linalg.norm(source_quat_w, dim=-1, keepdim=True)
+    if torch.any(source_quat_norm <= torch.finfo(source_pos_w.dtype).eps):
+        raise ValueError("v20 source_quat_w must be non-degenerate.")
+    source_quat_w = source_quat_w / source_quat_norm
     if torch.any(torch.abs(door_open_lr) != 1.0):
         raise ValueError("v20 door_open_lr must be exactly +/-1.")
     if torch.any(door_width <= 0.0):
@@ -749,6 +767,8 @@ def a2_v20_handle_opening_tangent(
     tangent_w = tangent_w / tangent_norm
     if not torch.all(torch.isfinite(tangent_w)):
         raise ValueError("v20 opening tangent is non-finite.")
+    if torch.any(torch.abs(torch.linalg.norm(tangent_w, dim=-1) - 1.0) > 1.0e-5):
+        raise RuntimeError("v20 opening tangent must be unit length within 1e-5.")
     return tangent_w
 
 
@@ -1499,8 +1519,11 @@ def a2_v20_handle_to_tcp_transform(
         _a2_v20_validate_vector(value, shape=shape, floating=True, name=f"v20 {name}")
         if value.device != handle_pos_w.device or value.dtype != handle_pos_w.dtype:
             raise ValueError("v20 handle-to-TCP world poses must share dtype and device.")
-    if not torch.all(torch.isfinite(handle_pos_w)):
-        raise ValueError("v20 handle world position contains non-finite values.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (handle_pos_w, handle_quat_w, tcp_pos_w, tcp_quat_w)
+    ):
+        raise ValueError("v20 handle-to-TCP world poses require finite values.")
     handle_quat_norm = torch.linalg.norm(handle_quat_w, dim=-1, keepdim=True)
     tcp_quat_norm = torch.linalg.norm(tcp_quat_w, dim=-1, keepdim=True)
     eps = torch.finfo(handle_pos_w.dtype).eps
@@ -1559,8 +1582,16 @@ def a2_v20_handle_local_slip_metrics(
             raise ValueError("v20 handle-local slip tensors must share a device.")
         if name != "valid_reference" and value.dtype != captured_handle_to_tcp_pos.dtype:
             raise ValueError("v20 handle-local slip floating tensors must share dtype.")
-    if not torch.all(torch.isfinite(captured_handle_to_tcp_pos)):
-        raise ValueError("v20 captured T_HANDLE_TCP position contains non-finite values.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (
+            captured_handle_to_tcp_pos,
+            captured_handle_to_tcp_quat,
+            current_handle_to_tcp_pos,
+            current_handle_to_tcp_quat,
+        )
+    ):
+        raise ValueError("v20 handle-local slip inputs require finite values.")
     quat_norms = (
         torch.linalg.norm(captured_handle_to_tcp_quat, dim=-1, keepdim=True),
         torch.linalg.norm(current_handle_to_tcp_quat, dim=-1, keepdim=True),
@@ -1614,6 +1645,11 @@ def a2_v20_arc_tracking_quality(
     for value, name in ((position_tolerance_m, "position_tolerance_m"), (orientation_tolerance_rad, "orientation_tolerance_rad")):
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0.0:
             raise ValueError(f"v20 {name} must be finite and > 0.")
+    if not all(
+        torch.all(torch.isfinite(value))
+        for value in (captured_rel_pos, captured_rel_quat, current_rel_pos, current_rel_quat)
+    ):
+        raise ValueError("v20 arc tracking inputs require finite values.")
     position_error = torch.linalg.norm(current_rel_pos - captured_rel_pos, dim=-1)
     q_ref_norm = torch.linalg.norm(captured_rel_quat, dim=-1, keepdim=True)
     q_cur_norm = torch.linalg.norm(current_rel_quat, dim=-1, keepdim=True)
@@ -5876,6 +5912,18 @@ class DoorPregrasp(
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         self._a2_eval_diagnostic_trace_enabled = False
+        r2_enabled = config.get("a2_v20_R2_evidence_enabled", False)
+        if not isinstance(r2_enabled, bool):
+            raise ValueError(
+                "a2_v20_R2_evidence_enabled must be bool; "
+                f"got {r2_enabled!r}."
+            )
+        self._a2_v20_r2_evidence_enabled = r2_enabled
+        self._a2_v20_r2_provenance = config.get("a2_v20_R2_provenance")
+        self._a2_v20_r2_record_set_staging_path = config.get(
+            "a2_v20_R2_record_set_staging_path"
+        )
+        self._a2_v20_r2_trace_root = config.get("a2_v20_R2_trace_root")
         super().__init__(config, device)
 
         if self._use_a2_base:
@@ -6201,6 +6249,8 @@ class DoorPregrasp(
             return
         specs = (
             ("a2_v20_send_ready", (self.num_envs,), torch.bool),
+            ("a2_v20_pre_send_crossing_seen", (self.num_envs,), torch.bool),
+            ("a2_v20_first_pre_send_crossing_step", (self.num_envs,), torch.long),
             ("a2_v20_first_send_ready_step", (self.num_envs,), torch.long),
             ("a2_v20_first_root_crossing_step", (self.num_envs,), torch.long),
             ("a2_v20_hinge_at_first_root_crossing", (self.num_envs,), torch.float32),
@@ -6208,27 +6258,14 @@ class DoorPregrasp(
             ("a2_v20_root_entry_pos_se2", (self.num_envs, 3), torch.float32),
             ("a2_v20_root_entry_valid", (self.num_envs,), torch.bool),
             ("a2_v20_max_pre_send_displacement_se2", (self.num_envs, 3), torch.float32),
+            ("a2_v20_r2_max_pre_send_reconfiguration", (self.num_envs, 4), torch.float32),
+            ("a2_corridor_latched", (self.num_envs,), torch.bool),
             ("a2_v20_handle_tcp_capture_pos", (self.num_envs, 3), torch.float32),
             ("a2_v20_handle_tcp_capture_quat", (self.num_envs, 4), torch.float32),
             ("a2_v20_handle_tcp_capture_valid", (self.num_envs,), torch.bool),
-            ("a2_v20_prev_tcp_pos_w", (self.num_envs, 3), torch.float32),
-            ("a2_v20_prev_tcp_valid", (self.num_envs,), torch.bool),
-            ("a2_v20_pre_send_crossing_seen", (self.num_envs,), torch.bool),
-            ("a2_v20_first_pre_send_crossing_step", (self.num_envs,), torch.long),
-            ("a2_v20_pre_send_crossing_event", (self.num_envs,), torch.bool),
             ("a2_v20_snapshot_crossing_seen", (self.num_envs,), torch.bool),
             ("a2_v20_snapshot_root_x_rel", (self.num_envs,), torch.float32),
-            ("a2_v20_stage4_target_root_ramp", (self.num_envs,), torch.float32),
         )
-        if (
-            hasattr(self, "_get_a2_v20_r1_send_curriculum_enabled")
-            and self._get_a2_v20_r1_send_curriculum_enabled()
-        ):
-            specs += (
-                ("a2_v20_r1_crossing_penalty_raw", (self.num_envs,), torch.float32),
-                ("a2_v20_r1_rejected_snapshot_count", (self.num_envs,), torch.long),
-                ("a2_v20_r1_max_pre_send_reconfiguration", (self.num_envs, 4), torch.float32),
-            )
         for name, shape, dtype in specs:
             if shape[0] != self.num_envs:
                 raise RuntimeError(
@@ -6486,6 +6523,21 @@ class DoorPregrasp(
             self._a2_v20_r1_max_pre_send_reconfiguration = torch.zeros(
                 (self.num_envs, 4), dtype=torch.float32, device=self.device
             )
+            self._a2_v20_r2_max_pre_send_reconfiguration = (
+                self._a2_v20_r1_max_pre_send_reconfiguration
+            )
+            self._a2_v20_r2_snapshot_rejection_counts = torch.zeros(
+                14, dtype=torch.long, device=self.device
+            )
+            self._a2_v20_r2_hard_phase_audit_reason_counts = torch.zeros(
+                14, dtype=torch.long, device=self.device
+            )
+            self._a2_v20_r2_reset_origin_stage = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_v20_r2_reset_snapshot_index = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
             self._a2_v20_r1_curriculum_phase = "disabled"
             self._a2_v20_r1_schedule_last_step = -1
             self._a2_v20_r1_hard_phase_audit_ok = False
@@ -6519,6 +6571,16 @@ class DoorPregrasp(
             self._a2_v20_root_x_rel = torch.zeros(
                 self.num_envs, dtype=torch.float32, device=self.device
             )
+            self._a2_v20_positive_arm_tangent_mps = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_positive_base_tangent_mps = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_v20_positive_total_tangent_mps = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+        self._init_a2_v20_r2_evidence_buffers()
         self.relative_door_pos_buf = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False,
         )
@@ -6540,22 +6602,28 @@ class DoorPregrasp(
         filtered = super()._filter_staged_reset_snapshot_mask(advance_mask)
         if not self._use_a2_base or not self._get_a2_v20_r1_snapshot_guard_enabled():
             return filtered
-        send_ready = self._get_a2_v20_send_ready_buffer("R1 snapshot guard")
+        send_ready = self._get_a2_v20_send_ready_buffer("R2 snapshot admission")
         crossing_seen = getattr(self, "_a2_v20_pre_send_crossing_seen", None)
         root_x_rel = getattr(self, "_a2_v20_root_x_rel", None)
+        rejection_counts = getattr(self, "_a2_v20_r2_snapshot_rejection_counts", None)
         rejected_count = getattr(self, "_a2_v20_r1_rejected_snapshot_count", None)
         for value, name, dtype in (
             (crossing_seen, "crossing_seen", torch.bool),
             (root_x_rel, "root_x_rel", torch.float32),
+            (rejection_counts, "rejection_counts", torch.long),
             (rejected_count, "rejected_count", torch.long),
         ):
+            expected_shape = (14,) if name == "rejection_counts" else (self.num_envs,)
             if (
                 not torch.is_tensor(value)
-                or tuple(value.shape) != (self.num_envs,)
+                or tuple(value.shape) != expected_shape
                 or value.dtype != dtype
                 or value.device != torch.device(self.device)
             ):
-                raise RuntimeError(f"R1 snapshot guard requires {name} shape ({self.num_envs},) on {self.device}.")
+                raise RuntimeError(
+                    f"R2 snapshot admission requires {name} shape {expected_shape} "
+                    f"on {self.device}."
+                )
         candidate_stage = self.stage_buf
         if (
             not torch.is_tensor(candidate_stage)
@@ -6563,27 +6631,116 @@ class DoorPregrasp(
             or candidate_stage.dtype != torch.long
             or candidate_stage.device != torch.device(self.device)
         ):
-            raise RuntimeError(
-                "R1 snapshot guard requires a device-local long stage buffer."
-            )
-        stage4_incompatible = (
-            candidate_stage == self.STAGE_SWING
-        ) & (
-            crossing_seen
-            | (
-                ~send_ready
-                & (root_x_rel > self._get_a2_v20_pre_send_root_x_margin())
-            )
+            raise RuntimeError("R2 snapshot admission requires a device-local long stage buffer.")
+        admission = a2_v20_r2_snapshot_admission_mask(
+            candidate_stage,
+            filtered,
+            send_ready,
+            crossing_seen,
+            root_x_rel,
+            self._get_a2_v20_pre_send_root_x_margin(),
+            self.STAGE_SWING,
+            self.STAGE_THROUGH,
         )
-        stage5_incompatible = candidate_stage >= self.STAGE_THROUGH
-        incompatible = filtered & (stage4_incompatible | stage5_incompatible)
+        admit = admission["admit"]
+        reason_code = admission["reason_code"]
         self._a2_v20_snapshot_crossing_seen[:] = crossing_seen
         self._a2_v20_snapshot_root_x_rel[:] = root_x_rel
-        rejected_count[incompatible] += 1
-        return filtered & ~incompatible
+        populated_reasons = reason_code[filtered].to(torch.long)
+        if populated_reasons.numel() > 0:
+            rejection_counts += torch.bincount(
+                populated_reasons, minlength=14
+            ).to(dtype=rejection_counts.dtype)
+        rejected_count[filtered & ~admit] += 1
+        return filtered & admit
 
-    def _audit_a2_v20_r1_hard_phase_snapshots(self) -> None:
+    def _validate_loaded_staged_reset_sample(
+        self,
+        selected_env_ids: torch.Tensor,
+        selected_stages: torch.Tensor,
+        selected_sample_indices: torch.Tensor,
+    ) -> None:
+        super()._validate_loaded_staged_reset_sample(
+            selected_env_ids, selected_stages, selected_sample_indices
+        )
+        if not self._use_a2_base or not self._get_a2_v20_r1_snapshot_guard_enabled():
+            return
+        if (
+            not torch.is_tensor(selected_env_ids)
+            or selected_env_ids.ndim != 1
+            or selected_env_ids.dtype != torch.long
+            or selected_env_ids.device != torch.device(self.device)
+            or torch.any(selected_env_ids < 0)
+            or torch.any(selected_env_ids >= self.num_envs)
+        ):
+            raise RuntimeError(
+                "R2 staged-reset load requires device-local long selected_env_ids in range."
+            )
+        for value, name in (
+            (selected_stages, "selected_stages"),
+            (selected_sample_indices, "selected_sample_indices"),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or value.ndim != 1
+                or value.shape != selected_env_ids.shape
+                or value.dtype != torch.long
+                or value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    f"R2 staged-reset load requires {name} shape {tuple(selected_env_ids.shape)} "
+                    f"as a device-local long tensor."
+                )
+        if torch.any(selected_stages < 0) or torch.any(selected_stages >= self.num_stages):
+            raise RuntimeError("R2 staged-reset load selected an out-of-range stage.")
+        capacity = self.staged_reset_max_samples_per_stage
+        if torch.any(selected_sample_indices < 0) or torch.any(selected_sample_indices >= capacity):
+            raise RuntimeError("R2 staged-reset load selected an out-of-range snapshot index.")
+        candidate_stage = selected_stages
+        admission = a2_v20_r2_snapshot_admission_mask(
+            candidate_stage,
+            torch.ones_like(candidate_stage, dtype=torch.bool),
+            self._a2_v20_send_ready[selected_env_ids],
+            self._a2_v20_snapshot_crossing_seen[selected_env_ids],
+            self._a2_v20_snapshot_root_x_rel[selected_env_ids],
+            self._get_a2_v20_pre_send_root_x_margin(),
+            self.STAGE_SWING,
+            self.STAGE_THROUGH,
+        )
+        if torch.any(~admission["admit"]):
+            bad = torch.where(~admission["admit"])[0].tolist()
+            raise RuntimeError(
+                "R2 staged-reset load rejected incompatible restored samples at "
+                f"selected offsets {bad}; reason_codes="
+                f"{admission['reason_code'][~admission['admit']].tolist()}."
+            )
+
+        # Restore validation is the boundary between historical state and a new
+        # control step.  One-step events and finite-difference derivatives are
+        # explicitly cold; captured handle references remain untouched.
+        self._a2_v20_pre_send_crossing_event[selected_env_ids] = False
+        self._a2_v20_r1_crossing_penalty_raw[selected_env_ids] = 0.0
+        self._a2_v20_r1_hard_crossing_pending[selected_env_ids] = False
+        self._a2_v20_prev_tcp_pos_w[selected_env_ids] = 0.0
+        self._a2_v20_prev_tcp_valid[selected_env_ids] = False
+        self._a2_v20_positive_arm_tangent_mps[selected_env_ids] = 0.0
+        self._a2_v20_positive_base_tangent_mps[selected_env_ids] = 0.0
+        self._a2_v20_positive_total_tangent_mps[selected_env_ids] = 0.0
+        if self._a2_v20_r2_evidence_enabled:
+            self._r2_warmup_exclusions[selected_env_ids] += 1
+            self._r2_prev_hinge_velocity_valid[selected_env_ids] = False
+            self._r2_prev_hinge_accel_valid[selected_env_ids] = False
+            self._r2_prev_arm_raw_action_valid[selected_env_ids] = False
+            self._r2_prev_arm_action_rate_vector_valid[selected_env_ids] = False
+        self._a2_v20_taskspace_active[selected_env_ids] = False
+        self._a2_v20_arm_tangent_share[selected_env_ids] = 0.0
+        self._a2_v20_arm_tangent_share_active[selected_env_ids] = False
+        self._a2_v20_r2_reset_origin_stage[selected_env_ids] = selected_stages
+        self._a2_v20_r2_reset_snapshot_index[selected_env_ids] = selected_sample_indices
+
+    def _audit_a2_v20_r2_hard_phase_snapshots(self) -> None:
         if not self.enable_staged_reset:
+            self._a2_v20_r2_hard_phase_audit_ok = True
             self._a2_v20_r1_hard_phase_audit_ok = True
             return
         required_cases = {
@@ -6592,18 +6749,18 @@ class DoorPregrasp(
             "a2_v20_snapshot_root_x_rel": torch.float32,
         }
         cases = {}
+        expected_shape = (
+            self.num_stages,
+            self.staged_reset_max_samples_per_stage,
+            self.num_envs,
+        )
         for name, dtype in required_cases.items():
             case = self.staged_reset_buf.get(name)
             if case is None:
                 raise RuntimeError(
-                    f"R1 hard-phase audit requires the {name} staged-reset buffer."
+                    f"R2 hard-phase audit requires the {name} staged-reset buffer."
                 )
             data = case.get("data")
-            expected_shape = (
-                self.num_stages,
-                self.staged_reset_max_samples_per_stage,
-                self.num_envs,
-            )
             if (
                 not torch.is_tensor(data)
                 or tuple(data.shape) != expected_shape
@@ -6611,30 +6768,61 @@ class DoorPregrasp(
                 or data.device != torch.device(self.device)
             ):
                 raise RuntimeError(
-                    f"R1 hard-phase audit requires {name} shape {expected_shape}, "
+                    f"R2 hard-phase audit requires {name} shape {expected_shape}, "
                     f"dtype={dtype}, device={self.device}."
                 )
             cases[name] = data
         counts = self.staged_reset_num_samples
-        if not torch.is_tensor(counts) or tuple(counts.shape) != (self.num_stages, self.num_envs):
-            raise RuntimeError("R1 hard-phase audit requires staged-reset sample counts.")
+        if (
+            not torch.is_tensor(counts)
+            or tuple(counts.shape) != (self.num_stages, self.num_envs)
+            or counts.dtype != torch.long
+            or counts.device != torch.device(self.device)
+        ):
+            raise RuntimeError("R2 hard-phase audit requires device-local staged-reset sample counts.")
+        audit_counts = torch.zeros(14, dtype=torch.long, device=self.device)
         for stage in (self.STAGE_SWING, self.STAGE_THROUGH):
-            incompatible = a2_v20_r1_snapshot_compatibility_mask(
-                cases["a2_v20_send_ready"][stage],
-                cases["a2_v20_snapshot_crossing_seen"][stage],
-                cases["a2_v20_snapshot_root_x_rel"][stage],
-                counts[stage],
-                stage_index=stage,
-                stage_swing=self.STAGE_SWING,
-                root_x_margin=self._get_a2_v20_pre_send_root_x_margin(),
+            slot_ids = torch.arange(
+                self.staged_reset_max_samples_per_stage, device=self.device
+            )[:, None]
+            populated = slot_ids < counts[stage][None, :].clamp(
+                min=0, max=self.staged_reset_max_samples_per_stage
             )
+            if not torch.any(populated):
+                continue
+            flat = populated.reshape(-1)
+            candidate_stage = torch.full(
+                (flat.numel(),), stage, dtype=torch.long, device=self.device
+            )[flat]
+            admission = a2_v20_r2_snapshot_admission_mask(
+                candidate_stage,
+                torch.ones_like(candidate_stage, dtype=torch.bool),
+                cases["a2_v20_send_ready"][stage].reshape(-1)[flat],
+                cases["a2_v20_snapshot_crossing_seen"][stage].reshape(-1)[flat],
+                cases["a2_v20_snapshot_root_x_rel"][stage].reshape(-1)[flat],
+                self._get_a2_v20_pre_send_root_x_margin(),
+                self.STAGE_SWING,
+                self.STAGE_THROUGH,
+            )
+            reason_code = admission["reason_code"].to(torch.long)
+            audit_counts += torch.bincount(reason_code, minlength=14).to(
+                dtype=audit_counts.dtype
+            )
+            incompatible = ~admission["admit"]
             if torch.any(incompatible):
-                bad_envs = torch.where(incompatible)[0].tolist()
+                bad = torch.where(incompatible)[0].tolist()
                 raise RuntimeError(
-                    f"R1 hard-phase snapshot audit found incompatible populated "
-                    f"stage{stage} snapshots for envs {bad_envs}."
+                    f"R2 hard-phase snapshot audit found incompatible populated "
+                    f"stage{stage} slots at flattened indices {bad}; "
+                    f"reason_codes={reason_code[incompatible].tolist()}."
                 )
+        self._a2_v20_r2_hard_phase_audit_reason_counts[:] = audit_counts
+        self._a2_v20_r2_hard_phase_audit_ok = True
         self._a2_v20_r1_hard_phase_audit_ok = True
+
+    def _audit_a2_v20_r1_hard_phase_snapshots(self) -> None:
+        """Historical alias for callers that still use the R1 method name."""
+        self._audit_a2_v20_r2_hard_phase_snapshots()
 
     def on_a2_v20_R1_crossing_mode_transition(self) -> None:
         if not self._get_a2_v20_r1_send_curriculum_enabled():
@@ -6654,7 +6842,7 @@ class DoorPregrasp(
         else:
             if mode != "terminal" or last_step != 0:
                 raise RuntimeError("R1 batch500 transition requires monotonic terminal mode after penalty.")
-            self._audit_a2_v20_r1_hard_phase_snapshots()
+            self._audit_a2_v20_r2_hard_phase_snapshots()
             self._a2_v20_r1_curriculum_phase = "hard"
             opening_phase = (self.stage_buf >= self.STAGE_OPEN) & (self.stage_buf <= self.STAGE_SWING)
             active_hard_crossing = (
@@ -6674,6 +6862,818 @@ class DoorPregrasp(
             ]
         self._a2_v20_r1_schedule_last_step = step
 
+    def _init_a2_v20_r2_evidence_buffers(self) -> None:
+        """Initialize the M48 live evidence state without changing task semantics."""
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        max_episode_length = int(self.max_episode_length)
+        if max_episode_length <= 0:
+            raise RuntimeError(
+                "R2 evidence requires a positive integer max_episode_length; "
+                f"got {self.max_episode_length!r}."
+            )
+        self._r2_max_episode_length = max_episode_length
+        self._r2_pre_cross_step_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_bilateral_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_coasting_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_over_force_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_hinge_velocity_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_hinge_velocity_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_prev_hinge_velocity = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_prev_hinge_velocity_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._r2_hinge_accel_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_hinge_accel_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_prev_hinge_accel = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_prev_hinge_accel_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._r2_hinge_jerk_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_hinge_jerk_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_prev_arm_raw_action = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._r2_prev_arm_raw_action_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._r2_arm_action_rate_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_arm_action_rate_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_prev_arm_action_rate_vector = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._r2_prev_arm_action_rate_vector_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._r2_arm_action_jerk_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_arm_action_jerk_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_arm_share_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_arm_share_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_positive_arm_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_positive_arm_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_positive_base_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_positive_base_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_arc_position_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_arc_position_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_arc_orientation_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_arc_orientation_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_along_slip_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_along_slip_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_orthogonal_residual_samples = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.float32, device=self.device
+        )
+        self._r2_orthogonal_residual_mask = torch.zeros(
+            self.num_envs, max_episode_length, dtype=torch.bool, device=self.device
+        )
+        self._r2_positive_arm_integral = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_positive_base_integral = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_positive_total_income = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_positive_a_income = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_reward_component_sums = {
+            name: torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            for name in self.reward_scales
+        }
+        self._r2_reward_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_body_contact_force_max = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_held_hinge_max = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_opening_slip_max = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._r2_trace_rows = [[] for _ in range(self.num_envs)]
+        self._r2_trace_path_by_env = [None for _ in range(self.num_envs)]
+        self._r2_terminal_reason = [None for _ in range(self.num_envs)]
+        self._r2_terminal_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._r2_episode_ordinal = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_warmup_exclusions = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._r2_current_arm_raw_action = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._r2_current_arm_raw_action_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._r2_last_scaled_components = {}
+        self._r2_last_raw_components = {}
+        self._r2_finalized = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+
+    def _reset_a2_v20_r2_evidence_buffers(self, env_ids: torch.Tensor) -> None:
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("R2 evidence reset requires valid device-local env ids.")
+        self._r2_pre_cross_step_count[env_ids] = 0
+        self._r2_bilateral_count[env_ids] = 0
+        self._r2_coasting_count[env_ids] = 0
+        self._r2_over_force_count[env_ids] = 0
+        self._r2_prev_hinge_velocity[env_ids] = 0.0
+        self._r2_prev_hinge_velocity_valid[env_ids] = False
+        self._r2_prev_hinge_accel[env_ids] = 0.0
+        self._r2_prev_hinge_accel_valid[env_ids] = False
+        self._r2_prev_arm_raw_action[env_ids] = 0.0
+        self._r2_prev_arm_raw_action_valid[env_ids] = False
+        self._r2_prev_arm_action_rate_vector[env_ids] = 0.0
+        self._r2_prev_arm_action_rate_vector_valid[env_ids] = False
+        self._r2_positive_arm_integral[env_ids] = 0.0
+        self._r2_positive_base_integral[env_ids] = 0.0
+        self._r2_positive_total_income[env_ids] = 0.0
+        self._r2_positive_a_income[env_ids] = 0.0
+        self._r2_reward_steps[env_ids] = 0
+        self._r2_body_contact_force_max[env_ids] = 0.0
+        self._r2_held_hinge_max[env_ids] = 0.0
+        self._r2_opening_slip_max[env_ids] = 0.0
+        self._r2_terminal_step[env_ids] = -1
+        self._r2_finalized[env_ids] = False
+        self._r2_current_arm_raw_action[env_ids] = 0.0
+        self._r2_current_arm_raw_action_valid[env_ids] = False
+        self._r2_last_scaled_components = {}
+        self._r2_last_raw_components = {}
+        for env_id in env_ids.tolist():
+            self._r2_trace_rows[env_id] = []
+            self._r2_terminal_reason[env_id] = None
+            self._r2_trace_path_by_env[env_id] = None
+        for tensor_name in (
+            "_r2_hinge_velocity_samples",
+            "_r2_hinge_accel_samples",
+            "_r2_hinge_jerk_samples",
+            "_r2_arm_action_rate_samples",
+            "_r2_arm_action_jerk_samples",
+            "_r2_arm_share_samples",
+            "_r2_positive_arm_samples",
+            "_r2_positive_base_samples",
+            "_r2_arc_position_samples",
+            "_r2_arc_orientation_samples",
+            "_r2_along_slip_samples",
+            "_r2_orthogonal_residual_samples",
+        ):
+            getattr(self, tensor_name)[env_ids] = 0.0
+        for tensor_name in (
+            "_r2_hinge_velocity_mask",
+            "_r2_hinge_accel_mask",
+            "_r2_hinge_jerk_mask",
+            "_r2_arm_action_rate_mask",
+            "_r2_arm_action_jerk_mask",
+            "_r2_arm_share_mask",
+            "_r2_positive_arm_mask",
+            "_r2_positive_base_mask",
+            "_r2_arc_position_mask",
+            "_r2_arc_orientation_mask",
+            "_r2_along_slip_mask",
+            "_r2_orthogonal_residual_mask",
+        ):
+            getattr(self, tensor_name)[env_ids] = False
+        for name, values in self._r2_reward_component_sums.items():
+            values[env_ids] = 0.0
+
+    def _capture_a2_v20_r2_raw_action(self, raw_action: torch.Tensor) -> None:
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        layout = self.get_a2_high_level_action_layout()
+        expected_shape = (self.num_envs, layout["dim"])
+        if (
+            not torch.is_tensor(raw_action)
+            or tuple(raw_action.shape) != expected_shape
+            or not raw_action.is_floating_point()
+            or raw_action.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(raw_action))
+        ):
+            shape = None if not torch.is_tensor(raw_action) else tuple(raw_action.shape)
+            dtype = None if not torch.is_tensor(raw_action) else raw_action.dtype
+            device = None if not torch.is_tensor(raw_action) else raw_action.device
+            raise RuntimeError(
+                "R2 raw action capture requires finite floating device-local action "
+                f"shape {expected_shape}; got shape={shape}, dtype={dtype}, device={device}."
+            )
+        if layout.get("arm_start") != 5 or layout.get("arm_end") != 11:
+            raise RuntimeError(
+                "R2 raw arm action capture requires high-level arm slice [5:11]; "
+                f"layout={layout!r}."
+            )
+        self._r2_current_arm_raw_action[:] = raw_action[:, 5:11]
+        self._r2_current_arm_raw_action_valid[:] = True
+
+    def _ensure_a2_v20_r2_full_arrays(self) -> None:
+        # Full [N, max_episode_length] arrays are initialized eagerly for the
+        # enabled evaluator.  This method is retained as a fail-fast contract
+        # check for callers that expect the arrays to exist.
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        expected = (self.num_envs, self._r2_max_episode_length)
+        for name in (
+            "_r2_hinge_velocity_samples",
+            "_r2_hinge_accel_samples",
+            "_r2_hinge_jerk_samples",
+            "_r2_arm_action_rate_samples",
+            "_r2_arm_action_jerk_samples",
+            "_r2_arm_share_samples",
+            "_r2_positive_arm_samples",
+            "_r2_positive_base_samples",
+            "_r2_arc_position_samples",
+            "_r2_arc_orientation_samples",
+            "_r2_along_slip_samples",
+            "_r2_orthogonal_residual_samples",
+        ):
+            value = getattr(self, name, None)
+            if not torch.is_tensor(value) or tuple(value.shape) != expected:
+                raise RuntimeError(f"R2 full evidence array {name} has invalid shape.")
+
+    def _update_a2_v20_r2_evidence_accumulators(self) -> None:
+        """Update live R2 counters and derivative/sample accumulators once per control step."""
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        self._ensure_a2_v20_r2_full_arrays()
+        dt = float(self.dt)
+        if not math.isfinite(dt) or dt <= 0.0:
+            raise RuntimeError(f"R2 evidence requires positive finite control dt; got {self.dt!r}.")
+        step_index = self.episode_length_buf - 1
+        if (
+            not torch.is_tensor(step_index)
+            or step_index.shape != (self.num_envs,)
+            or step_index.dtype != torch.long
+            or torch.any(step_index < 0)
+            or torch.any(step_index >= self._r2_max_episode_length)
+        ):
+            raise RuntimeError("R2 evidence sample index is outside the episode array contract.")
+
+        opening = (self.stage_buf >= self.STAGE_OPEN) & (self.stage_buf <= self.STAGE_SWING)
+        send_ready = self._get_a2_v20_send_ready_buffer("R2 evidence accumulator")
+        root_crossed = self._a2_root_x_ever_crossed
+        pre_cross = opening & ~root_crossed & ~send_ready
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        release = self._a2_stage4_release_gate
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "R2 evidence accumulator"
+        )
+        both_contact = contact_masks["both_contact"]
+        over_force = contact_masks["over_force"]
+        for value, name in ((both_contact, "both_contact"), (over_force, "over_force")):
+            if (
+                not torch.is_tensor(value)
+                or value.shape != (self.num_envs,)
+                or value.dtype != torch.bool
+                or value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(f"R2 {name} contact mask has an invalid tensor contract.")
+        self._r2_pre_cross_step_count += pre_cross.to(torch.long)
+        self._r2_bilateral_count += (pre_cross & both_contact).to(torch.long)
+        self._r2_coasting_count += (pre_cross & ~hold_ok).to(torch.long)
+        self._r2_over_force_count += (pre_cross & over_force).to(torch.long)
+
+        hinge_vel = self._get_door_joint_vel("R2 evidence accumulator", 1)[:, 0]
+        hinge_pos = self._get_door_joint_pos("R2 evidence accumulator", 1)[:, 0]
+        valid_hinge = opening & hold_ok & ~release & torch.isfinite(hinge_vel)
+        if torch.any(valid_hinge & ~torch.isfinite(hinge_pos)):
+            raise RuntimeError("R2 hinge position is non-finite on a valid sample.")
+        env_index = torch.arange(self.num_envs, device=self.device)
+        self._r2_hinge_velocity_samples[env_index, step_index] = torch.where(
+            valid_hinge, hinge_vel, torch.zeros_like(hinge_vel)
+        )
+        self._r2_hinge_velocity_mask[env_index, step_index] = valid_hinge
+        accel_valid = valid_hinge & self._r2_prev_hinge_velocity_valid
+        accel = torch.where(
+            accel_valid, (hinge_vel - self._r2_prev_hinge_velocity) / dt, torch.zeros_like(hinge_vel)
+        )
+        self._r2_hinge_accel_samples[env_index, step_index] = accel
+        self._r2_hinge_accel_mask[env_index, step_index] = accel_valid
+        jerk_valid = accel_valid & self._r2_prev_hinge_accel_valid
+        jerk = torch.where(
+            jerk_valid, (accel - self._r2_prev_hinge_accel) / dt, torch.zeros_like(accel)
+        )
+        self._r2_hinge_jerk_samples[env_index, step_index] = jerk
+        self._r2_hinge_jerk_mask[env_index, step_index] = jerk_valid
+        self._r2_prev_hinge_velocity[:] = torch.where(
+            valid_hinge, hinge_vel, torch.zeros_like(hinge_vel)
+        )
+        self._r2_prev_hinge_velocity_valid[:] = valid_hinge
+        self._r2_prev_hinge_accel[:] = torch.where(
+            accel_valid, accel, torch.zeros_like(accel)
+        )
+        self._r2_prev_hinge_accel_valid[:] = accel_valid
+
+        action_valid = self._r2_current_arm_raw_action_valid
+        raw_action = self._r2_current_arm_raw_action
+        action_rate_valid = action_valid & self._r2_prev_arm_raw_action_valid
+        action_rate_vector = torch.where(
+            action_rate_valid[:, None],
+            (raw_action - self._r2_prev_arm_raw_action) / dt,
+            torch.zeros_like(raw_action),
+        )
+        action_rate = torch.linalg.norm(action_rate_vector, dim=-1)
+        self._r2_arm_action_rate_samples[env_index, step_index] = action_rate
+        self._r2_arm_action_rate_mask[env_index, step_index] = action_rate_valid
+        action_jerk_valid = action_rate_valid & self._r2_prev_arm_action_rate_vector_valid
+        action_jerk_vector = torch.where(
+            action_jerk_valid[:, None],
+            (action_rate_vector - self._r2_prev_arm_action_rate_vector) / dt,
+            torch.zeros_like(action_rate_vector),
+        )
+        self._r2_arm_action_jerk_samples[env_index, step_index] = torch.linalg.norm(
+            action_jerk_vector, dim=-1
+        )
+        self._r2_arm_action_jerk_mask[env_index, step_index] = action_jerk_valid
+        self._r2_prev_arm_raw_action[:] = torch.where(
+            action_valid[:, None], raw_action, torch.zeros_like(raw_action)
+        )
+        self._r2_prev_arm_raw_action_valid[:] = action_valid
+        self._r2_prev_arm_action_rate_vector[:] = torch.where(
+            action_rate_valid[:, None], action_rate_vector, torch.zeros_like(action_rate_vector)
+        )
+        self._r2_prev_arm_action_rate_vector_valid[:] = action_rate_valid
+
+        taskspace_valid = (
+            self._a2_v20_taskspace_active
+            & self._a2_v20_handle_tcp_capture_valid
+            & ~send_ready
+            & ~release
+        )
+        positive_arm = self._a2_v20_positive_arm_tangent_mps
+        positive_base = self._a2_v20_positive_base_tangent_mps
+        positive_total = self._a2_v20_positive_total_tangent_mps
+        for value, name in (
+            (positive_arm, "positive_arm"),
+            (positive_base, "positive_base"),
+            (positive_total, "positive_total"),
+        ):
+            if not torch.all(torch.isfinite(value)):
+                raise RuntimeError(f"R2 task-space {name} contains non-finite values.")
+        self._r2_arm_share_samples[env_index, step_index] = torch.where(
+            taskspace_valid, self._a2_v20_arm_tangent_share, torch.zeros_like(positive_arm)
+        )
+        self._r2_arm_share_mask[env_index, step_index] = taskspace_valid
+        self._r2_positive_arm_samples[env_index, step_index] = torch.where(
+            taskspace_valid, positive_arm, torch.zeros_like(positive_arm)
+        )
+        self._r2_positive_arm_mask[env_index, step_index] = taskspace_valid
+        self._r2_positive_base_samples[env_index, step_index] = torch.where(
+            taskspace_valid, positive_base, torch.zeros_like(positive_base)
+        )
+        self._r2_positive_base_mask[env_index, step_index] = taskspace_valid
+        self._r2_positive_arm_integral += torch.where(
+            taskspace_valid, positive_arm * dt, torch.zeros_like(positive_arm)
+        )
+        self._r2_positive_base_integral += torch.where(
+            taskspace_valid, positive_base * dt, torch.zeros_like(positive_base)
+        )
+
+        arc_valid = (
+            self._a2_v20_handle_slip_valid & hold_ok & ~send_ready & ~release
+        )
+        arc_position = self._a2_v20_arc_position_error_m
+        arc_orientation = self._a2_v20_arc_orientation_error_rad
+        along_slip = self._a2_v20_along_handle_slip_m
+        orthogonal = self._a2_v20_orthogonal_arc_residual_m
+        for value, name in (
+            (arc_position, "arc_position"),
+            (arc_orientation, "arc_orientation"),
+            (along_slip, "along_slip"),
+            (orthogonal, "orthogonal_residual"),
+        ):
+            if torch.any(arc_valid & ~torch.isfinite(value)):
+                raise RuntimeError(f"R2 {name} contains non-finite values on valid samples.")
+        for values, masks, source in (
+            (self._r2_arc_position_samples, self._r2_arc_position_mask, arc_position),
+            (self._r2_arc_orientation_samples, self._r2_arc_orientation_mask, arc_orientation),
+            (self._r2_along_slip_samples, self._r2_along_slip_mask, along_slip),
+            (self._r2_orthogonal_residual_samples, self._r2_orthogonal_residual_mask, orthogonal),
+        ):
+            values[env_index, step_index] = torch.where(arc_valid, source, torch.zeros_like(source))
+            masks[env_index, step_index] = arc_valid
+        opening_slip = torch.sqrt(torch.square(along_slip) + torch.square(orthogonal))
+        self._r2_opening_slip_max = torch.maximum(
+            self._r2_opening_slip_max,
+            torch.where(arc_valid, opening_slip, torch.zeros_like(opening_slip)),
+        )
+        held_hinge = opening & hold_ok & ~release & torch.isfinite(hinge_pos)
+        self._r2_held_hinge_max = torch.maximum(
+            self._r2_held_hinge_max,
+            torch.where(held_hinge, hinge_pos, torch.zeros_like(hinge_pos)),
+        )
+        _, body_force_total = self._get_a2_door_body_panel_contact_forces()
+        if (
+            not torch.is_tensor(body_force_total)
+            or body_force_total.shape != (self.num_envs,)
+            or body_force_total.device != torch.device(self.device)
+            or not torch.isfinite(body_force_total).all()
+        ):
+            raise RuntimeError("R2 body contact force source has an invalid tensor contract.")
+        self._r2_body_contact_force_max = torch.maximum(
+            self._r2_body_contact_force_max, body_force_total
+        )
+
+    def _r2_terminal_reason_for_env(self, env_id: int) -> str:
+        if not self.reset_buf[env_id].item():
+            return "NON_TERMINAL"
+        reason = self._terminal_reasons_for_env_ids(
+            torch.tensor([env_id], dtype=torch.long, device=self.device)
+        )[0]
+        if not isinstance(reason, str) or not reason:
+            raise RuntimeError(f"R2 terminal env {env_id} has no terminal reason.")
+        return reason
+
+    def _capture_a2_v20_r2_step_trace(self) -> None:
+        """Append one complete JSONL row for every live environment."""
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        frame_data = self._get_a2_v20_frame_data("R2 step trace")
+        root_se2 = self._a2_v20_current_root_se2(frame_data)
+        hinge_pos = self._get_door_joint_pos("R2 step trace", 1)[:, 0]
+        hinge_vel = self._get_door_joint_vel("R2 step trace", 1)[:, 0]
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks("R2 step trace")
+        send_ready = self._get_a2_v20_send_ready_buffer("R2 step trace")
+        step_index = self.episode_length_buf - 1
+        crossing_step = self._a2_v20_first_root_crossing_step
+        pre_cross_event = self._a2_v20_pre_send_crossing_event
+        release_event = self._a2_release_event_valid
+        run_uuid = self._r2_required_provenance()["run_uuid"]
+        for env_id in range(self.num_envs):
+            step = int(step_index[env_id].item())
+            rows = self._r2_trace_rows[env_id]
+            if step != len(rows):
+                raise RuntimeError(
+                    f"R2 trace step is non-contiguous for env {env_id}: expected {len(rows)}, got {step}."
+                )
+            if not bool(self._r2_current_arm_raw_action_valid[env_id].item()):
+                raise RuntimeError(f"R2 raw arm action is missing for env {env_id} step {step}.")
+            terminal = bool(self.reset_buf[env_id].item())
+            terminal_reason = self._r2_terminal_reason_for_env(env_id)
+            arc_valid = bool(self._a2_v20_handle_slip_valid[env_id].item())
+            taskspace_valid = bool(self._a2_v20_taskspace_active[env_id].item())
+            reward_components = {}
+            for name, value in self._r2_last_scaled_components.items():
+                reward_components[name] = float(value[env_id].item())
+            if set(reward_components) != set(self._r2_reward_component_sums):
+                raise RuntimeError("R2 step trace reward component keys are incomplete.")
+            row = {
+                "schema": "a2_piper_v20_R2_step_trace_v1",
+                "run_uuid": run_uuid,
+                "env_id": env_id,
+                "episode_ordinal": int(self._r2_episode_ordinal[env_id].item()),
+                "step_index": step,
+                "batch_index": int(self.common_step_counter),
+                "stage": int(self.stage_buf[env_id].item()),
+                "curriculum_phase": str(self._a2_v20_r1_curriculum_phase),
+                "root_se2": [float(item) for item in root_se2[env_id].detach().cpu().tolist()],
+                "door_hinge_position_rad": float(hinge_pos[env_id].item()),
+                "door_hinge_velocity_radps": float(hinge_vel[env_id].item()),
+                "hold_valid": bool(hold_ok[env_id].item()),
+                "bilateral": bool(contact_masks["both_contact"][env_id].item()),
+                "coasting": bool((~hold_ok[env_id]).item()),
+                "over_force": bool(contact_masks["over_force"][env_id].item()),
+                "send_ready": bool(send_ready[env_id].item()),
+                "pre_send_crossing_event": bool(pre_cross_event[env_id].item()),
+                "root_crossing_event": int(crossing_step[env_id].item()) == step,
+                "release_event": bool(release_event[env_id].item()),
+                "root_x_rel_m": float(self._a2_v20_root_x_rel[env_id].item()),
+                "arm_raw_action_6d": [
+                    float(item)
+                    for item in self._r2_current_arm_raw_action[env_id].detach().cpu().tolist()
+                ],
+                "taskspace_active": taskspace_valid,
+                "positive_arm_tangent_mps": (
+                    float(self._a2_v20_positive_arm_tangent_mps[env_id].item())
+                    if taskspace_valid
+                    else None
+                ),
+                "positive_base_tangent_mps": (
+                    float(self._a2_v20_positive_base_tangent_mps[env_id].item())
+                    if taskspace_valid
+                    else None
+                ),
+                "arm_tangent_share": (
+                    float(self._a2_v20_arm_tangent_share[env_id].item())
+                    if taskspace_valid
+                    else None
+                ),
+                "arc_position_error_m": (
+                    float(self._a2_v20_arc_position_error_m[env_id].item())
+                    if arc_valid
+                    else None
+                ),
+                "arc_orientation_error_rad": (
+                    float(self._a2_v20_arc_orientation_error_rad[env_id].item())
+                    if arc_valid
+                    else None
+                ),
+                "along_handle_slip_m": (
+                    float(self._a2_v20_along_handle_slip_m[env_id].item())
+                    if arc_valid
+                    else None
+                ),
+                "orthogonal_arc_residual_m": (
+                    float(self._a2_v20_orthogonal_arc_residual_m[env_id].item())
+                    if arc_valid
+                    else None
+                ),
+                "reward_components_scaled": reward_components,
+                "terminal": terminal,
+                "terminal_reason": terminal_reason,
+            }
+            rows.append(row)
+            if terminal:
+                self._r2_terminal_reason[env_id] = terminal_reason
+                self._r2_terminal_step[env_id] = step
+
+    def _r2_required_provenance(self, provenance=None) -> dict[str, object]:
+        source = self._a2_v20_r2_provenance if provenance is None else provenance
+        if not isinstance(source, Mapping):
+            raise RuntimeError("R2 finalization requires a provenance mapping.")
+        required = {
+            "run_uuid",
+            "scientific_plan_id",
+            "admission_plan_id",
+            "source_lock_sha256",
+            "plan_sha256",
+            "r1_plan_sha256",
+            "b0_json_sha256",
+            "b0_csv_sha256",
+            "urdf_path",
+            "urdf_sha256",
+            "checkpoint_path",
+            "checkpoint_sha256",
+            "checkpoint_step",
+            "source_config_path",
+            "source_config_sha256",
+            "resolved_config_sha256",
+            "runtime_config_sha256",
+            "command_sha256",
+            "git_commit",
+            "seed",
+        }
+        missing = sorted(required - set(source))
+        if missing:
+            raise RuntimeError(f"R2 provenance is missing required fields: {missing}.")
+        result = dict(source)
+        for name in required - {"checkpoint_step", "seed"}:
+            if not isinstance(result[name], str) or not result[name]:
+                raise RuntimeError(f"R2 provenance.{name} must be a non-empty string.")
+        if isinstance(result["checkpoint_step"], bool) or not isinstance(result["checkpoint_step"], int) or result["checkpoint_step"] < 0:
+            raise RuntimeError("R2 provenance.checkpoint_step must be a non-negative integer.")
+        if isinstance(result["seed"], bool) or not isinstance(result["seed"], int) or result["seed"] < 0:
+            raise RuntimeError("R2 provenance.seed must be a non-negative integer.")
+        if result["scientific_plan_id"] != "base_v20_R1_policy_behavior_v1":
+            raise RuntimeError("R2 provenance scientific_plan_id is not the approved R1 plan.")
+        if result["admission_plan_id"] != "base_v20_R2_admission_execution_v1":
+            raise RuntimeError("R2 provenance admission_plan_id is not the approved R2 plan.")
+        return result
+
+    @staticmethod
+    def _r2_trace_metric(values, mask, empty_state):
+        return a2_v20_r2_distribution(values, mask, empty_state=empty_state)
+
+    def finalize_a2_v20_r2_episode_record(
+        self,
+        env_id: int,
+        *,
+        provenance=None,
+        topology=None,
+        scenario=None,
+        factor=None,
+        phase=None,
+        trace_path=None,
+    ) -> dict[str, object]:
+        """Finalize and atomically stage one terminal R2 M48 episode record."""
+        if not self._a2_v20_r2_evidence_enabled:
+            raise RuntimeError("R2 record finalization requires evidence enabled.")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise ValueError(f"R2 finalizer env_id is invalid: {env_id!r}.")
+        rows = self._r2_trace_rows[env_id]
+        terminal_reason = self._r2_terminal_reason[env_id]
+        if terminal_reason is None or self._r2_terminal_step[env_id] < 0:
+            raise RuntimeError(f"R2 finalizer requires a terminal trace for env {env_id}.")
+        prov = self._r2_required_provenance(provenance)
+        prov["env_id"] = env_id
+        prov["episode_ordinal"] = int(self._r2_episode_ordinal[env_id].item())
+        if prov["episode_ordinal"] != 0:
+            raise RuntimeError("R2 finalizer admits only first episodes.")
+        if topology is None:
+            topology = prov.pop("topology", None)
+        if scenario is None:
+            scenario = prov.pop("scenario", None)
+        if factor is None:
+            factor = prov.pop("factor", None)
+        if phase is None:
+            phase = prov.pop("phase", None)
+        if not isinstance(topology, Mapping) or not isinstance(scenario, Mapping) or not isinstance(factor, Mapping) or not isinstance(phase, Mapping):
+            raise RuntimeError("R2 finalizer requires topology/scenario/factor/phase mappings.")
+        topology = dict(topology)
+        topology.setdefault("name", "canonical16")
+        topology.setdefault("environment_count", self.num_envs)
+        topology.setdefault("expected_episode_count", self.num_envs)
+        topology.setdefault("first_episode_only", True)
+        topology.setdefault("single_process", True)
+        topology.setdefault("render", False)
+        if topology.get("first_episode_only") is not True or topology.get("single_process") is not True:
+            raise RuntimeError("R2 topology must be first-episode and single-process.")
+        gpu = topology.get("physical_gpu")
+        if isinstance(gpu, bool) or not isinstance(gpu, int) or not 0 <= gpu <= 6:
+            raise RuntimeError("R2 topology physical_gpu must be an integer in [0, 6].")
+        if not isinstance(topology.get("name"), str) or topology["name"] not in ("canonical16", "pooled_seed16", "holdout_seed16", "forced1", "render1"):
+            raise RuntimeError("R2 topology.name is outside the approved schema vocabulary.")
+        for key in ("environment_count", "expected_episode_count"):
+            if isinstance(topology.get(key), bool) or not isinstance(topology.get(key), int) or topology[key] <= 0:
+                raise RuntimeError(f"R2 topology.{key} must be a positive integer.")
+        scenario = dict(scenario)
+        factor = dict(factor)
+        phase = dict(phase)
+        terminal_step = int(self._r2_terminal_step[env_id].item())
+        phase.setdefault("opening_start_step", None)
+        phase.setdefault("opening_start_batch", None)
+        phase.setdefault("terminal_step", terminal_step)
+        phase.setdefault("terminal_batch", int(self.common_step_counter))
+        phase.setdefault("max_stage", int(self.num_stages - 1))
+        phase.setdefault("stage_at_terminal", int(self.stage_buf[env_id].item()))
+        phase.setdefault("time_in_terminal_stage", float(self.actual_time_in_stage_buf[env_id].item() * self.dt))
+        phase.setdefault("reset_origin", "initial" if self._a2_v20_r2_reset_origin_stage[env_id] < 0 else "staged")
+        phase.setdefault("reset_stage", None if self._a2_v20_r2_reset_origin_stage[env_id] < 0 else int(self._a2_v20_r2_reset_origin_stage[env_id].item()))
+        phase.setdefault("reset_snapshot_index", None if self._a2_v20_r2_reset_snapshot_index[env_id] < 0 else int(self._a2_v20_r2_reset_snapshot_index[env_id].item()))
+        phase.setdefault("schedule_transition_observed", self._a2_v20_r1_schedule_last_step >= 0)
+        if trace_path is None:
+            trace_path = self._r2_trace_path_by_env[env_id]
+        if trace_path is None:
+            trace_root = self._a2_v20_r2_trace_root
+            if isinstance(trace_root, str) and trace_root:
+                from pathlib import Path
+                trace_path = str(Path(trace_root) / f"{prov['run_uuid']}_env{env_id}.jsonl")
+        if not isinstance(trace_path, str) or not trace_path:
+            raise RuntimeError("R2 finalizer requires an explicit trace path.")
+        trace_summary = a2_v20_r2_validate_trace_rows(
+            rows,
+            run_uuid=prov["run_uuid"],
+            env_id=env_id,
+            terminal_reason=terminal_reason,
+        )
+        from pathlib import Path
+        target = Path(trace_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = a2_v20_r2_trace_jsonl_bytes(rows)
+        try:
+            with target.open("xb") as handle:
+                handle.write(payload)
+                handle.flush()
+                import os
+                os.fsync(handle.fileno())
+        except FileExistsError as exc:
+            raise RuntimeError(f"R2 trace path already exists: {target}") from exc
+        self._r2_trace_path_by_env[env_id] = str(target)
+        import hashlib
+        trace_hash = hashlib.sha256(payload).hexdigest()
+        terminal_step = int(self._r2_terminal_step[env_id].item())
+        episode_steps = terminal_step + 1
+        first_send_step = int(self._a2_v20_first_send_ready_step[env_id].item())
+        first_crossing_step = int(self._a2_v20_first_root_crossing_step[env_id].item())
+        first_pre_send_step = int(self._a2_v20_first_pre_send_crossing_step[env_id].item())
+        release_observed = bool(self._a2_release_event_valid[env_id].item())
+        total_income = float(self._r2_positive_total_income[env_id].item())
+        a_income = float(self._r2_positive_a_income[env_id].item())
+        pre_cross_steps = int(self._r2_pre_cross_step_count[env_id].item())
+        snapshot_rejections = {str(index): int(value) for index, value in enumerate(self._a2_v20_r2_snapshot_rejection_counts.tolist())}
+        integral_total = float(self._r2_positive_arm_integral[env_id].item() + self._r2_positive_base_integral[env_id].item())
+        integral_state = "DEFINED" if integral_total > 0.0 else "NO_ACTIVE_TANGENT_SAMPLES"
+        integral_share = float(self._r2_positive_arm_integral[env_id].item() / integral_total) if integral_total > 0.0 else None
+        income_state = "DEFINED" if total_income > 0.0 else "NO_POSITIVE_INCOME"
+        def metric(values, mask, empty_state):
+            return self._r2_trace_metric(values[env_id], mask[env_id], empty_state)
+        record_without_id = {
+            "schema": "a2_piper_v20_R2_episode_record_v1", "provenance": prov, "topology": topology,
+            "scenario": scenario, "factor": factor, "phase": phase,
+            "task": {"goal": terminal_reason == "complete", "complete": terminal_reason == "complete", "terminal_reason": terminal_reason,
+                     "crossing_event": a2_v20_r2_event(first_crossing_step >= 0, first_crossing_step if first_crossing_step >= 0 else None),
+                     "crossing_while_holding": bool(self._a2_crossing_while_holding[env_id].item()),
+                     "release_event": a2_v20_r2_event(release_observed, terminal_step if release_observed else None), "task_time_s": episode_steps * float(self.dt)},
+            "safety": {
+                "upper_dof_overspeed": "upper_dof_overspeed" in terminal_reason.split("+"), "body_collision": bool(self._a2_post_release_body_contact[env_id].item()),
+                "door_body_contact": bool(self._a2_door_body_contact_event_emitted[env_id].item() > 0.0),
+                "body_contact_force_max_n": a2_v20_r2_metric("DEFINED", episode_steps, float(self._r2_body_contact_force_max[env_id].item())),
+                "post_release_body_contact": bool(self._a2_post_release_body_contact[env_id].item()) if release_observed else None,
+                "post_release_body_force_max_n": a2_v20_r2_metric("DEFINED", episode_steps, float(self._a2_post_release_body_force_max[env_id].item())) if release_observed else a2_v20_r2_metric("NO_RELEASE", 0, None),
+                "pre_cross_bilateral_rate": a2_v20_r2_metric("DEFINED", pre_cross_steps, float(self._r2_bilateral_count[env_id].item() / max(pre_cross_steps, 1))),
+                "pre_cross_coasting_rate": a2_v20_r2_metric("DEFINED", pre_cross_steps, float(self._r2_coasting_count[env_id].item() / max(pre_cross_steps, 1))),
+                "pre_cross_over_force_rate": a2_v20_r2_metric("DEFINED", pre_cross_steps, float(self._r2_over_force_count[env_id].item() / max(pre_cross_steps, 1))),
+            },
+            "send": {
+                "send_ready": bool(self._a2_v20_send_ready[env_id].item()),
+                "first_send_event": a2_v20_r2_event(first_send_step >= 0, first_send_step if first_send_step >= 0 else None),
+                "pre_send_crossing_event": a2_v20_r2_event(first_pre_send_step >= 0, first_pre_send_step if first_pre_send_step >= 0 else None),
+                "hinge_at_first_crossing_rad": a2_v20_r2_metric("DEFINED", 1, float(self._a2_v20_hinge_at_first_root_crossing[env_id].item())) if first_crossing_step >= 0 else a2_v20_r2_metric("NO_PRE_SEND_INTERVAL", 0, None),
+                "root_x_at_first_crossing_m": a2_v20_r2_metric("DEFINED", 1, float(self._a2_v20_root_x_at_first_crossing[env_id].item())) if first_crossing_step >= 0 else a2_v20_r2_metric("NO_PRE_SEND_INTERVAL", 0, None),
+                "send_before_crossing": (first_send_step >= 0 and first_crossing_step >= 0 and first_send_step < first_crossing_step) if first_crossing_step >= 0 else None,
+                "max_forward_displacement_m": a2_v20_r2_metric("DEFINED", episode_steps, float(self._a2_v20_max_pre_send_displacement_se2[env_id, 0].item())),
+                "max_lateral_displacement_m": a2_v20_r2_metric("DEFINED", episode_steps, float(self._a2_v20_max_pre_send_displacement_se2[env_id, 1].item())),
+                "max_planar_displacement_m": a2_v20_r2_metric("DEFINED", episode_steps, float(torch.linalg.norm(self._a2_v20_max_pre_send_displacement_se2[env_id, :2]).item())),
+                "max_abs_yaw_change_rad": a2_v20_r2_metric("DEFINED", episode_steps, float(self._a2_v20_max_pre_send_displacement_se2[env_id, 2].item())), "stage4_overtime": "stage_overtime" in terminal_reason.split("+")},
+            "task_space": {
+                "arm_tangent_share": metric(self._r2_arm_share_samples, self._r2_arm_share_mask, "NO_ACTIVE_TANGENT_SAMPLES"), "positive_arm_tangent_mps": metric(self._r2_positive_arm_samples, self._r2_positive_arm_mask, "NO_ACTIVE_TANGENT_SAMPLES"), "positive_base_tangent_mps": metric(self._r2_positive_base_samples, self._r2_positive_base_mask, "NO_ACTIVE_TANGENT_SAMPLES"),
+                "arc_position_error_m": metric(self._r2_arc_position_samples, self._r2_arc_position_mask, "NO_VALID_REFERENCE"), "arc_orientation_error_rad": metric(self._r2_arc_orientation_samples, self._r2_arc_orientation_mask, "NO_VALID_REFERENCE"), "along_handle_slip_m": metric(self._r2_along_slip_samples, self._r2_along_slip_mask, "NO_VALID_REFERENCE"), "orthogonal_arc_residual_m": metric(self._r2_orthogonal_residual_samples, self._r2_orthogonal_residual_mask, "NO_VALID_REFERENCE"),
+                "positive_arm_tangent_integral_m": a2_v20_r2_metric(integral_state, episode_steps, float(self._r2_positive_arm_integral[env_id].item()) if integral_share is not None else None), "positive_base_tangent_integral_m": a2_v20_r2_metric(integral_state, episode_steps, float(self._r2_positive_base_integral[env_id].item()) if integral_share is not None else None), "arm_integral_share": a2_v20_r2_metric(integral_state, episode_steps, integral_share)},
+            "smoothness": {"positive_hinge_velocity_radps": metric(self._r2_hinge_velocity_samples, self._r2_hinge_velocity_mask, "NO_VALID_HOLD"), "hinge_acceleration_radps2": metric(self._r2_hinge_accel_samples, self._r2_hinge_accel_mask, "INSUFFICIENT_CONSECUTIVE_SAMPLES"), "hinge_jerk_radps3": metric(self._r2_hinge_jerk_samples, self._r2_hinge_jerk_mask, "INSUFFICIENT_CONSECUTIVE_SAMPLES"), "arm_raw_action_rate_per_step": metric(self._r2_arm_action_rate_samples, self._r2_arm_action_rate_mask, "INSUFFICIENT_CONSECUTIVE_SAMPLES"), "arm_raw_action_jerk_per_step2": metric(self._r2_arm_action_jerk_samples, self._r2_arm_action_jerk_mask, "INSUFFICIENT_CONSECUTIVE_SAMPLES")},
+            "income": {"positive_total_income": a2_v20_r2_metric(income_state, episode_steps, total_income if total_income > 0.0 else None), "positive_a_income": a2_v20_r2_metric(income_state, episode_steps, a_income if total_income > 0.0 else None), "positive_a_income_ratio": a2_v20_r2_metric(income_state, episode_steps, a_income / total_income if total_income > 0.0 else None), "reward_component_sums": {name: a2_v20_r2_metric("DEFINED", episode_steps, float(values[env_id].item())) for name, values in self._r2_reward_component_sums.items()}},
+            "release": {"observed": release_observed, "hinge_at_release_rad": float(self._a2_hinge_at_release[env_id].item()) if release_observed else None, "root_x_at_release_m": float(self._a2_root_x_at_release[env_id].item()) if release_observed else None, "held_hinge_max_rad": float(self._r2_held_hinge_max[env_id].item()) if release_observed else None, "opening_slip_max_m": float(self._r2_opening_slip_max[env_id].item()) if release_observed else None, "post_release_body_contact": bool(self._a2_post_release_body_contact[env_id].item()) if release_observed else None, "post_release_body_force_max_n": float(self._a2_post_release_body_force_max[env_id].item()) if release_observed else None},
+            "trace": {"path": str(target), "sha256": trace_hash, **trace_summary},
+            "accumulator_audit": {"pre_cross_steps": pre_cross_steps, "valid_hold_steps": int(self._r2_bilateral_count[env_id].item()), "pre_send_steps": int(self._r2_hinge_velocity_mask[env_id].sum().item()), "active_tangent_steps": int(self._r2_arm_share_mask[env_id].sum().item()), "hinge_velocity_samples": int(self._r2_hinge_velocity_mask[env_id].sum().item()), "hinge_acceleration_samples": int(self._r2_hinge_accel_mask[env_id].sum().item()), "hinge_jerk_samples": int(self._r2_hinge_jerk_mask[env_id].sum().item()), "action_rate_samples": int(self._r2_arm_action_rate_mask[env_id].sum().item()), "action_jerk_samples": int(self._r2_arm_action_jerk_mask[env_id].sum().item()), "reward_steps": int(self._r2_reward_steps[env_id].item()), "snapshot_rejections_by_reason": snapshot_rejections, "post_load_derivative_warmup_exclusions": int(self._r2_warmup_exclusions[env_id].item())},
+        }
+        record = dict(record_without_id)
+        record = dict(record_without_id)
+        # exact canonical record boundary
+        record["record_id"] = a2_v20_r2_finalize_record_id(record_without_id)
+        staging = self._a2_v20_r2_record_set_staging_path
+        if not isinstance(staging, str) or not staging:
+            raise RuntimeError("R2 finalizer requires a record-set staging path.")
+        a2_v20_r2_append_record_set_staging(staging, record)
+        self._r2_finalized[env_id] = True
+        return record
+
+    def _finalize_a2_v20_r2_terminal_episodes(self, env_ids: torch.Tensor) -> None:
+        if not self._a2_v20_r2_evidence_enabled:
+            return
+        if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype != torch.long:
+            raise RuntimeError("R2 finalizer requires a one-dimensional long env id tensor.")
+        for env_id in env_ids.tolist():
+            self.finalize_a2_v20_r2_episode_record(int(env_id))
+
     def _pre_compute_observations_callback(self, env_ids=None):
         super()._pre_compute_observations_callback(env_ids)
         if self._use_a2_base:
@@ -6684,6 +7684,7 @@ class DoorPregrasp(
             self._update_a2_v20_state(env_ids)
             if env_ids is None:
                 self._update_a2_v14_root_height_telemetry()
+                self._update_a2_v20_r2_evidence_accumulators()
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
         current_root_pos = self.simulator.robot_root_states[env_ids, :3].clone()
@@ -6990,10 +7991,19 @@ class DoorPregrasp(
         send_ready[:] = updated_send_ready
         step = self.episode_length_buf
         self._a2_v20_first_send_ready_step[first_send] = step[first_send]
-        capture_mask = hold_ok & ~self._a2_v20_handle_tcp_capture_valid
+        finite_handle_transform = torch.all(
+            torch.isfinite(handle_to_tcp_pos), dim=-1
+        ) & torch.all(torch.isfinite(handle_to_tcp_quat), dim=-1)
+        capture_mask = (
+            opening_phase
+            & hold_ok
+            & ~self._a2_stage4_release_gate
+            & finite_handle_transform
+            & ~self._a2_v20_handle_tcp_capture_valid
+        )
         self._a2_v20_handle_tcp_capture_pos[capture_mask] = handle_to_tcp_pos[capture_mask]
         self._a2_v20_handle_tcp_capture_quat[capture_mask] = handle_to_tcp_quat[capture_mask]
-        self._a2_v20_handle_tcp_capture_valid |= hold_ok
+        self._a2_v20_handle_tcp_capture_valid |= capture_mask
 
         root_x_rel = door_target_pos_source[:, root_idx, 0]
         self._a2_v20_root_x_rel[:] = root_x_rel
@@ -7063,8 +8073,8 @@ class DoorPregrasp(
             displacement[update_displacement],
         )
         r1_reconfiguration = a2_v20_r1_root_reconfiguration(current_se2, reference_se2)
-        self._a2_v20_r1_max_pre_send_reconfiguration[update_displacement] = torch.maximum(
-            self._a2_v20_r1_max_pre_send_reconfiguration[update_displacement],
+        self._a2_v20_r2_max_pre_send_reconfiguration[update_displacement] = torch.maximum(
+            self._a2_v20_r2_max_pre_send_reconfiguration[update_displacement],
             r1_reconfiguration[update_displacement],
         )
 
@@ -7085,14 +8095,18 @@ class DoorPregrasp(
             (source_pos_w - self._a2_v20_prev_tcp_pos_w) / float(self.dt),
             torch.zeros_like(source_pos_w),
         )
-        taskspace = a2_v20_taskspace_arm_carry(
+        taskspace = a2_v20_r2_taskspace_arm_carry(
             root_link_pos_w,
             root_link_vel_w,
             root_link_ang_vel_w,
             source_pos_w,
             tcp_velocity_w,
             tangent_w,
-            activity_floor_mps=self._get_a2_v20_taskspace_activity_floor(),
+            self._a2_v20_handle_tcp_capture_valid,
+            hold_ok,
+            ~updated_send_ready,
+            door_joint_vel[:, 0] > 0.0,
+            self._get_a2_v20_taskspace_activity_floor(),
         )
         kinematic_active = taskspace["active"] & self._a2_v20_prev_tcp_valid
         taskspace_valid = a2_v20_taskspace_valid_mask(
@@ -7107,6 +8121,9 @@ class DoorPregrasp(
             stage_through=self.STAGE_THROUGH,
         )
         self._a2_v20_taskspace_active[:] = taskspace_valid
+        self._a2_v20_positive_arm_tangent_mps[:] = taskspace["positive_arm_tangent"]
+        self._a2_v20_positive_base_tangent_mps[:] = taskspace["positive_base_tangent"]
+        self._a2_v20_positive_total_tangent_mps[:] = taskspace["positive_total_tangent"]
         self._a2_v20_arm_tangent_share[:] = torch.where(
             taskspace_valid, taskspace["arm_tangent_share"], torch.zeros_like(taskspace["arm_tangent_share"])
         )
@@ -8967,6 +9984,53 @@ class DoorPregrasp(
         return event.float() * self._get_a2_v20_pre_send_crossing_penalty_component()
 
     @StagedTaskBase.effective_in_stage([STAGE_OPEN, STAGE_SWING, STAGE_THROUGH])
+    def _after_reward_components(self, raw_components, scaled_components):
+        """Accumulate exact reward components for R2 without changing reward semantics."""
+        if not self._a2_v20_r2_evidence_enabled:
+            return None
+        expected = tuple(self._r2_reward_component_sums)
+        if set(raw_components) != set(expected) or set(scaled_components) != set(expected):
+            raise RuntimeError(
+                "R2 reward hook requires exact reward-name coverage; "
+                f"expected={expected}, raw={tuple(raw_components)}, scaled={tuple(scaled_components)}."
+            )
+        total_positive = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        positive_a = torch.zeros_like(total_positive)
+        last_raw = {}
+        last_scaled = {}
+        for name in expected:
+            raw_value = raw_components[name]
+            scaled_value = scaled_components[name]
+            for value_name, value in (("raw", raw_value), ("scaled", scaled_value)):
+                if (
+                    not torch.is_tensor(value)
+                    or tuple(value.shape) != (self.num_envs,)
+                    or not value.is_floating_point()
+                    or value.device != torch.device(self.device)
+                    or not torch.all(torch.isfinite(value))
+                ):
+                    shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                    dtype = None if not torch.is_tensor(value) else value.dtype
+                    device = None if not torch.is_tensor(value) else value.device
+                    raise RuntimeError(
+                        f"R2 reward {value_name} component {name!r} requires finite "
+                        f"floating shape ({self.num_envs},) on {self.device}; "
+                        f"got shape={shape}, dtype={dtype}, device={device}."
+                    )
+            self._r2_reward_component_sums[name] += scaled_value
+            positive = torch.clamp_min(scaled_value, 0.0)
+            total_positive += positive
+            if name in ("a2_v20_arm_tangent_carry", "a2_v20_handle_arc_tracking"):
+                positive_a += positive
+            last_raw[name] = raw_value.detach().clone()
+            last_scaled[name] = scaled_value.detach().clone()
+        self._r2_reward_steps += 1
+        self._r2_positive_total_income += total_positive
+        self._r2_positive_a_income += positive_a
+        self._r2_last_raw_components = last_raw
+        self._r2_last_scaled_components = last_scaled
+        return None
+
     def _reward_a2_v20_arm_tangent_carry(self):
         if not self._use_a2_base:
             raise RuntimeError(
@@ -11911,6 +12975,7 @@ class DoorPregrasp(
     def _capture_a2_eval_post_delta_post_warp_env_action(
         self, post_delta_post_warp_env_action: torch.Tensor
     ) -> None:
+        self._capture_a2_v20_r2_raw_action(post_delta_post_warp_env_action)
         if not self._a2_eval_diagnostic_trace_enabled:
             return
         layout = self.get_a2_high_level_action_layout()
@@ -19302,6 +20367,7 @@ class DoorPregrasp(
             self._a2_v20_handle_slip_valid[env_ids] = False
             self._a2_v20_taskspace_active[env_ids] = False
             self._a2_v20_root_x_rel[env_ids] = 0.0
+        self._reset_a2_v20_r2_evidence_buffers(env_ids)
         return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_training_attempt_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "producer_state", "attempt_id", "group", "command", "env", "source_lock_sha256", "config_sha256"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_training_attempt_v1"},
+    "producer_state": {"enum": ["ATTEMPT_CONSUMED", "COMMAND_PLANNED", "PROCESS_COMPLETED", "LAUNCH_PLAN_COMPLETE"]},
+    "attempt_id": {"type": "string", "minLength": 1},
+    "group": {"type": "string", "pattern": "^G[1-7]$"},
+    "command": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "checkpoint_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "process_receipt_path": {"type": "string"},
+    "promotion_pass_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "groups": {"type": "array", "items": {"$ref": "#/$defs/command_row"}},
+    "seeds": {"type": "array", "items": {"$ref": "#/$defs/command_row"}}
+  },
+  "$defs": {
+    "command_row": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "group": {"type": "string", "pattern": "^G[1-7]$"},
+        "seed": {"type": "integer", "minimum": 0},
+        "physical_gpu": {"type": "integer", "minimum": 0, "maximum": 6},
+        "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
+        "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "release_freeze_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "m22_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "device": {"type": "object", "additionalProperties": false, "required": ["physical_gpu", "logical_device", "render", "visibility_mask"], "properties": {"physical_gpu": {"type": "integer", "minimum": 0, "maximum": 6}, "logical_device": {"type": "string"}, "render": {"type": "boolean"}, "visibility_mask": {"type": ["string", "null"]}}}
+      }
+    }
+  }
+}

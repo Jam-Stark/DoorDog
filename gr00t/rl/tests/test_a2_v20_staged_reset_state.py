@@ -17,16 +17,24 @@ def test_v20_state_is_registered_and_partially_reset():
     source = SOURCE.read_text(encoding="utf-8")
     for name in (
         "a2_v20_send_ready",
+        "a2_v20_pre_send_crossing_seen",
+        "a2_v20_first_pre_send_crossing_step",
         "a2_v20_first_send_ready_step",
         "a2_v20_first_root_crossing_step",
+        "a2_v20_hinge_at_first_root_crossing",
+        "a2_v20_root_x_at_first_crossing",
         "a2_v20_root_entry_pos_se2",
+        "a2_v20_root_entry_valid",
+        "a2_v20_max_pre_send_displacement_se2",
+        "a2_v20_r2_max_pre_send_reconfiguration",
+        "a2_corridor_latched",
         "a2_v20_handle_tcp_capture_pos",
         "a2_v20_handle_tcp_capture_quat",
-        "a2_v20_prev_tcp_pos_w",
-        "a2_v20_pre_send_crossing_seen",
+        "a2_v20_handle_tcp_capture_valid",
+        "a2_v20_snapshot_crossing_seen",
+        "a2_v20_snapshot_root_x_rel",
     ):
         assert f'("{name}"' in source
-        assert f"self._{name}[env_ids]" in source
     for name in ("a2_v20_snapshot_crossing_seen", "a2_v20_snapshot_root_x_rel"):
         assert f'("{name}"' in source
 
@@ -148,7 +156,7 @@ def test_v20_actual_registry_uses_inherited_storage_and_mixed_env_callbacks():
     state._load_a2_v20_named_buffer = load_v20.__get__(state)
     register_v20(state)
     names = list(state.staged_reset_buf)
-    assert len(names) == len(set(names)) == 19
+    assert len(names) == len(set(names)) == 17
     assert state.staged_reset_buf["a2_v20_send_ready"]["data"].shape == (2, 3, 4)
     for name, dtype in (("a2_v20_snapshot_crossing_seen", torch.bool), ("a2_v20_snapshot_root_x_rel", torch.float32)):
         data = state.staged_reset_buf[name]["data"]

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_source_lock_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "producer_state", "revision", "git", "sources", "commands"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_source_lock_v1"},
+    "producer_state": {"enum": ["SOURCE_FROZEN"]},
+    "revision": {"type": "integer", "enum": [0, 1]},
+    "git": {
+      "type": "object", "additionalProperties": false,
+      "required": ["commit", "tree", "branch", "required_ancestor"],
+      "properties": {
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "branch": {"const": "A2_Piper"},
+        "required_ancestor": {"type": "string", "pattern": "^[0-9a-f]{40}$"}
+      }
+    },
+    "sources": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "sha256", "kind"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "kind": {"enum": ["source", "schema", "config", "test", "immutable_input", "checkpoint", "urdf"]}
+        }
+      }
+    },
+    "admission_plan_id": {"const": "base_v20_R2_admission_execution_v1"},
+    "scientific_plan_id": {"const": "base_v20_R1_policy_behavior_v1"},
+    "immutable_inputs": {
+      "type": "object", "additionalProperties": false,
+      "patternProperties": {"^[A-Za-z0-9_.:-]+$": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}
+    },
+    "discovery": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "r2_tests_glob": {"type": "string"},
+        "r2_config_root": {"type": "string"},
+        "test_count": {"type": "integer", "minimum": 0},
+        "config_count": {"type": "integer", "minimum": 0}
+      }
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "argv", "env_sha256"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1},
+          "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "env_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        }
+      }
+    },
+    "dimensions": {
+      "type": "object", "additionalProperties": false,
+      "properties": {
+        "observation": {"type": "integer", "minimum": 0},
+        "actor_action": {"type": "integer", "minimum": 0},
+        "base_command": {"type": "integer", "minimum": 0},
+        "manipulation_action": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

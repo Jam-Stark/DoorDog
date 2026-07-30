@@ -264,7 +264,17 @@ def promote_configs(
     return result
 
 
+def _require_blocked_r1_cli_opt_in() -> None:
+    if "BASE_V20_ALLOW_BLOCKED_R1_EXECUTION" not in __import__("os").environ:
+        print(
+            "R1 execution is blocked by default; set BASE_V20_ALLOW_BLOCKED_R1_EXECUTION explicitly to run historical tooling",
+            file=__import__("sys").stderr,
+        )
+        raise SystemExit(2)
+
+
 if __name__ == "__main__":
+    _require_blocked_r1_cli_opt_in()
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[2])
     parser.add_argument("--output-dir", type=Path, required=True)

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_p0_raw_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "producer_state", "source_lock_path", "source_lock_sha256", "observed_commit", "commands"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_p0_raw_v1"},
+    "producer_state": {"enum": ["PROCESS_COMPLETED", "RECORD_SET_COMPLETE"]},
+    "source_lock_path": {"type": "string", "minLength": 1},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "observed_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "commands": {
+      "type": "array", "minItems": 1,
+      "items": {"$ref": "process_receipt_v1.schema.json"}
+    },
+    "discovered_tests": {"type": "array", "items": {"type": "string"}},
+    "focused_tests": {"type": "array", "items": {"type": "string"}},
+    "expected_command_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

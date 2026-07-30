@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_render_execution_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "producer_state", "run_uuid", "group", "physical_gpu", "logical_device", "config_sha256", "checkpoint_sha256", "videos", "process_receipt"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_render_execution_v1"},
+    "producer_state": {"enum": ["COMMAND_PLANNED", "PROCESS_STARTED", "PROCESS_COMPLETED"]},
+    "run_uuid": {"type": "string", "minLength": 1},
+    "group": {"type": "string", "pattern": "^G[1-7]$"},
+    "physical_gpu": {"type": "integer", "minimum": 0, "maximum": 6},
+    "logical_device": {"const": "cuda:0"},
+    "config_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "checkpoint_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "videos": {"type": "array", "items": {"type": "object", "additionalProperties": false, "required": ["path", "sha256", "frame_count", "width", "height", "fps"], "properties": {"path": {"type": "string"}, "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "frame_count": {"type": "integer", "minimum": 1}, "width": {"type": "integer", "minimum": 1}, "height": {"type": "integer", "minimum": 1}, "fps": {"type": "number", "exclusiveMinimum": 0}}}},
+    "process_receipt": {"oneOf": [{"$ref": "process_receipt_v1.schema.json"}, {"type": "object", "additionalProperties": false, "required": ["argv", "env", "release_freeze_sha256"], "properties": {"argv": {"type": "array", "items": {"type": "string"}, "minItems": 1}, "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}}, "release_freeze_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}]}
+  }
+}

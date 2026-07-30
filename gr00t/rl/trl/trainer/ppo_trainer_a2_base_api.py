@@ -46,6 +46,22 @@ from gr00t.rl.trl.modules.homie_modules import (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def validate_r2_batch_ownership(*, local_batch_size: int, world_size: int, num_total_batches: int) -> dict[str, int]:
+    """Validate R2 global batch ownership without coercing invalid values."""
+    values = (local_batch_size, world_size, num_total_batches)
+    if any(isinstance(value, bool) or not isinstance(value, int) or value <= 0 for value in values):
+        raise ValueError("R2 batch ownership requires positive integer dimensions")
+    return {"local_batch_size": local_batch_size, "world_size": world_size, "global_batch_size": local_batch_size * world_size, "num_total_batches": num_total_batches}
+
+
+def validate_r2_reward_component_coverage(raw_components, scaled_components) -> tuple[str, ...]:
+    if not isinstance(raw_components, dict) or not isinstance(scaled_components, dict):
+        raise ValueError("R2 reward hook requires raw and scaled component mappings")
+    if set(raw_components) != set(scaled_components):
+        raise ValueError("R2 reward hook requires exact raw/scaled reward-name coverage")
+    return tuple(sorted(raw_components))
+
+
 @contextmanager
 def _a2_hold_oracle_finalize_guard(env, enabled):
     if not isinstance(enabled, bool):
@@ -2292,6 +2308,25 @@ class TRLPPOTrainer(PPOTrainer):
                 self.load_checkpoint(checkpoint)
             else:
                 self.load_policy_checkpoint(checkpoint)
+
+    def write_r2_training_metric(self, row, output_path):
+        """Append one finite, source-bound training metric row and fsync it."""
+        if not isinstance(row, dict) or row.get("status") is not None or row.get("verdict") is not None:
+            raise ValueError("R2 training metrics are raw producer rows without adjudication fields")
+        import json, math, os
+        def finite(value):
+            if isinstance(value, float) and not math.isfinite(value):
+                raise ValueError("R2 training metric contains non-finite value")
+            if isinstance(value, dict):
+                for child in value.values(): finite(child)
+            elif isinstance(value, list):
+                for child in value: finite(child)
+        finite(row)
+        target = Path(output_path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = (json.dumps(row, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+        with target.open("ab") as handle:
+            handle.write(payload); handle.flush(); os.fsync(handle.fileno())
 
     def _init_trl(
         self,

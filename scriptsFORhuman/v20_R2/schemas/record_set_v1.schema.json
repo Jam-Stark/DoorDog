@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_record_set_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "producer_state", "run_uuid", "records", "record_count"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_record_set_v1"},
+    "producer_state": {"enum": ["RECORD_SET_COMPLETE"]},
+    "run_uuid": {"type": "string", "minLength": 1},
+    "records": {"type": "array", "items": {"$ref": "episode_record_v1.schema.json"}},
+    "record_count": {"type": "integer", "minimum": 0},
+    "trace_paths": {"type": "array", "items": {"type": "string"}}
+  }
+}

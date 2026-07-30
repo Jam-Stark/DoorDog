@@ -1197,6 +1197,12 @@ class LeggedRobotBase(BaseTask):
             capture_a2_step_trace()
         self._capture_terminal_diagnostics(env_ids)
         self._capture_terminal_render_results(env_ids)
+        capture_r2_trace = getattr(self, "_capture_a2_v20_r2_step_trace", None)
+        if capture_r2_trace is not None:
+            capture_r2_trace()
+        finalize_r2 = getattr(self, "_finalize_a2_v20_r2_terminal_episodes", None)
+        if finalize_r2 is not None:
+            finalize_r2(env_ids)
         self.reset_envs_idx(env_ids)
 
         # set envs
@@ -1583,6 +1589,10 @@ class LeggedRobotBase(BaseTask):
 
             self.history_handler.reset(env_ids)
 
+    def _after_reward_components(self, raw_components, scaled_components):
+        """Observe complete reward components without changing reward semantics."""
+        return None
+
     def _compute_reward(self):
         """Compute rewards
         Calls each reward function which had a non-zero scale (processed in self._prepare_reward_function())
@@ -1590,6 +1600,8 @@ class LeggedRobotBase(BaseTask):
         """
         self.rew_buf[:] = 0.0
         reward_dict = {}
+        raw_components = {}
+        scaled_components = {}
         begin_eval_reward_diagnostics = getattr(
             self, "_begin_eval_reward_term_diagnostics", None
         )
@@ -1628,6 +1640,8 @@ class LeggedRobotBase(BaseTask):
                 capture_eval_reward_diagnostics(name, raw_rew, rew)
             self.rew_buf += rew
             self.episode_sums[name] += rew
+            raw_components[name] = raw_rew
+            scaled_components[name] = rew
             reward_dict[name] = rew.mean().item() / self.dt
 
         if self.config.get("live_reward_analysis", False):
@@ -1638,9 +1652,14 @@ class LeggedRobotBase(BaseTask):
             self.rew_buf[:] = torch.clip(self.rew_buf[:], min=0.0)
         # add termination reward after clipping
         if "termination" in self.reward_scales:
-            rew = self._reward_termination() * self.reward_scales["termination"]
+            raw_rew = self._reward_termination()
+            rew = raw_rew * self.reward_scales["termination"]
             self.rew_buf += rew
             self.episode_sums["termination"] += rew
+            raw_components["termination"] = raw_rew
+            scaled_components["termination"] = rew
+
+        self._after_reward_components(raw_components, scaled_components)
 
         self.log_dict["average_episode_length"] = self.average_episode_length
         if self.use_reward_penalty_curriculum:

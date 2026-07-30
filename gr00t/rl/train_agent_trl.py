@@ -61,6 +61,20 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def validate_r2_training_config(config):
+    """Fail-fast dual-identity and evidence contract for R2 configs."""
+    if config.get("scientific_plan_id") != "base_v20_R1_policy_behavior_v1":
+        raise ValueError("R2 training config scientific_plan_id mismatch")
+    if config.get("admission_plan_id") != "base_v20_R2_admission_execution_v1":
+        raise ValueError("R2 training config admission_plan_id mismatch")
+    if not bool(config.get("r2_evidence_enabled", False)):
+        raise ValueError("R2 training requires r2_evidence_enabled=true")
+    env_config = config.get("env", {}).get("config", {})
+    if not bool(env_config.get("a2_v20_R2_evidence_enabled", False)):
+        raise ValueError("R2 training requires env.config.a2_v20_R2_evidence_enabled=true")
+    return True
+
+
 def _close_simulation_app_after_training(simulation_app) -> None:
     """Close Isaac Sim immediately after a successful trainer run.
 
@@ -239,6 +253,8 @@ def patch_app_launcher_toolbar_hiding(AppLauncher: type) -> None:
 
 @hydra.main(config_path="config", config_name="base", version_base="1.1")
 def main(config: OmegaConf):
+    if config.get("admission_plan_id", None) == "base_v20_R2_admission_execution_v1":
+        validate_r2_training_config(config)
     # Auto-calculate vision_feature_dim for history-based vision models
     auto_calculate_vision_feature_dim(config)
     checkpoint_load_mode, trainer_target = _validate_training_checkpoint_load_config(config)

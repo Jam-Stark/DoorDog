@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_m22_manifest_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "producer_state", "source_lock_sha256", "group", "rows"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_m22_manifest_v1"},
+    "producer_state": {"enum": ["LAUNCH_PLAN_COMPLETE", "RECORD_SET_COMPLETE"]},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "group": {"type": "string", "pattern": "^G[1-7]$"},
+    "rows": {"type": "array", "minItems": 70, "maxItems": 70, "items": {"type": "object", "additionalProperties": false, "required": ["group", "checkpoint_step", "checkpoint_path", "checkpoint_sha256", "record_set_path", "record_set_sha256"], "properties": {"group": {"type": "string", "pattern": "^G[1-7]$"}, "checkpoint_step": {"type": "integer", "minimum": 0}, "checkpoint_path": {"type": "string"}, "checkpoint_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "record_set_path": {"type": "string"}, "record_set_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}}
+  }
+}

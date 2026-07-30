@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_p0_adjudication_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "adjudicator_state", "source_lock_sha256", "raw_sha256", "observed_commit", "command_results", "reconstructed"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_p0_adjudication_v1"},
+    "adjudicator_state": {"enum": ["STATIC_PASS", "STRICT_INVALID", "INCONCLUSIVE"]},
+    "source_lock_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "raw_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "observed_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "command_results": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["name", "exit_code", "stdout_sha256", "stderr_sha256", "rehashed"],
+        "properties": {
+          "name": {"type": "string"},
+          "exit_code": {"type": "integer"},
+          "stdout_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "stderr_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "rehashed": {"type": "boolean"}
+        }
+      }
+    },
+    "reconstructed": {
+      "type": "object", "additionalProperties": false,
+      "required": ["command_count", "all_exit_zero", "source_lock_match"],
+      "properties": {
+        "command_count": {"type": "integer", "minimum": 0},
+        "all_exit_zero": {"type": "boolean"},
+        "source_lock_match": {"type": "boolean"},
+        "tests_passed": {"type": "integer", "minimum": 0},
+        "tests_failed": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

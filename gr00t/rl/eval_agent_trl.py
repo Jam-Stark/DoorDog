@@ -70,6 +70,16 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def validate_r2_eval_config(config):
+    if config.get("scientific_plan_id") != "base_v20_R1_policy_behavior_v1":
+        raise ValueError("R2 evaluation config scientific_plan_id mismatch")
+    if config.get("admission_plan_id") != "base_v20_R2_admission_execution_v1":
+        raise ValueError("R2 evaluation config admission_plan_id mismatch")
+    if not bool(config.get("r2_evidence_enabled", False)):
+        raise ValueError("R2 evaluation requires r2_evidence_enabled=true")
+    return True
+
+
 def _validate_eval_seed(seed):
     """Require the eval seed to be an actual integer rather than a bool or coercion."""
     if isinstance(seed, bool) or not isinstance(seed, int):
@@ -275,6 +285,8 @@ def _align_app_launcher_device_with_accelerate(args_cli):
 
 @hydra.main(config_path="config", config_name="base_eval")
 def main(override_config: OmegaConf):
+    if override_config.get("admission_plan_id", None) == "base_v20_R2_admission_execution_v1":
+        validate_r2_eval_config(override_config)
     # --- Logging setup ---
     hydra_log_path = os.path.join(HydraConfig.get().runtime.output_dir, "eval.log")
     logger.remove()

@@ -228,6 +228,20 @@ class StagedTaskBase(LeggedRobotBase):
         """
         return advance_mask
 
+    def _validate_loaded_staged_reset_sample(
+        self,
+        selected_env_ids: torch.Tensor,
+        selected_stages: torch.Tensor,
+        selected_sample_indices: torch.Tensor,
+    ) -> None:
+        """Validate and warm up a staged sample after every state writer ran.
+
+        Subclasses may use this hook to validate restored historical state and
+        clear one-step transients.  The base implementation intentionally does
+        nothing so legacy staged-reset tasks retain their existing behavior.
+        """
+        return None
+
     @override
     def _check_termination(self):
         super()._check_termination()
@@ -679,6 +693,12 @@ class StagedTaskBase(LeggedRobotBase):
             if root_states:
                 self.simulator.set_task_root_state_tensor(selected_env_ids, root_states)
                 self.simulator.set_task_dof_state_tensor(selected_env_ids, dof_states)
+
+            self._validate_loaded_staged_reset_sample(
+                selected_env_ids,
+                selected_stages,
+                selected_sample_indices,
+            )
 
         # fill extras
         # haoru: this part of the code must be periodically synced with LeggedRobotBase

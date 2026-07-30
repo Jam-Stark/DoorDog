@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "a2_piper_base_v20_R2_process_receipt_v1",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema", "producer_state", "name", "argv", "env", "pid", "started_at_utc", "ended_at_utc", "exit_code", "stdout_path", "stderr_path", "stdout_sha256", "stderr_sha256", "observed_commit"],
+  "properties": {
+    "schema": {"const": "a2_piper_base_v20_R2_process_receipt_v1"},
+    "producer_state": {"enum": ["PROCESS_STARTED", "PROCESS_COMPLETED"]},
+    "name": {"type": "string", "minLength": 1},
+    "argv": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "env": {"type": "object", "additionalProperties": false, "patternProperties": {"^[A-Za-z_][A-Za-z0-9_]*$": {"type": "string"}}},
+    "pid": {"type": "integer", "minimum": 1},
+    "started_at_utc": {"type": "string", "format": "date-time"},
+    "ended_at_utc": {"type": "string", "format": "date-time"},
+    "exit_code": {"type": ["integer", "null"]},
+    "stdout_path": {"type": "string", "minLength": 1},
+    "stderr_path": {"type": "string", "minLength": 1},
+    "stdout_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "stderr_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "command_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "observed_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "physical_gpu": {"type": "integer", "minimum": 0, "maximum": 6},
+    "render": {"type": "boolean"}
+  }
+}

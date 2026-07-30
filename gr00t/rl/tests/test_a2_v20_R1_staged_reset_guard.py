@@ -16,15 +16,15 @@ def test_base_hook_is_shape_checked_and_r1_guard_is_present():
     door = DOOR.read_text(encoding="utf-8")
     assert "def _filter_staged_reset_snapshot_mask" in staged
     assert "filtered_advance_mask" in staged
-    assert "R1 snapshot guard" in door
+    assert "R2 snapshot admission" in door
     assert "on_a2_v20_R1_crossing_mode_transition" in door
-    assert "_audit_a2_v20_r1_hard_phase_snapshots" in door
+    assert "_audit_a2_v20_r2_hard_phase_snapshots" in door
 
 
 def test_r1_guard_contract_uses_device_local_bool_mask():
     source = DOOR.read_text(encoding="utf-8")
-    assert "rejected_count[incompatible] += 1" in source
-    assert "return filtered & ~incompatible" in source
+    assert "rejected_count[filtered & ~admit] += 1" in source
+    assert "return filtered & admit" in source
     assert "torch.bool" in source
     assert "A2_V20_R1_SOFT_PHASE_END_BATCH" in source
 

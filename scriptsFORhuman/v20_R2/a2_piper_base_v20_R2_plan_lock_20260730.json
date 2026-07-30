@@ -1,0 +1,64 @@
+{
+  "admission_plan_id": "base_v20_R2_admission_execution_v1",
+  "branch": "A2_Piper",
+  "created_at_hkt": "2026-07-30",
+  "decision": "FIX_R1_ADMISSION",
+  "forbidden_physical_gpus": [
+    7
+  ],
+  "formal_training_ready": false,
+  "immutable_inputs": {
+    "b0_csv": {
+      "path": "scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_B0_reference_20260729.csv",
+      "sha256": "209b33a1fa9d79d60f715518cc2798f96b13d71aea8fb2aac0f520a516f4585a"
+    },
+    "b0_json": {
+      "path": "scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_B0_reference_20260729.json",
+      "sha256": "98654a976be8b6593e796d89291b4dc6ebdf530d078c625db7130d7a1622c826"
+    },
+    "blocker_zip_sha256": "f72f68992d4b407afac0cca154b712891bf78c9edd2affab5fa54b5a18e01fb5",
+    "checkpoint": {
+      "path": "logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/model_step_002000.pt",
+      "sha256": "b331c9a343c71dccf6cce31f71c1727a24298d72808c25763a0f702c369a866d"
+    },
+    "p1_closure_commit": "282ab4ad118b734535b61440397bfb9e67b10fe6",
+    "p1_code_commit": "365667110b2e64b335dcf3517361245331db604e",
+    "r1_plan": {
+      "path": "scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md",
+      "sha256": "6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c"
+    },
+    "runtime_urdf": {
+      "git_blob_sha1": "95c7698866962fa6e1b971b9ee534452775d8698",
+      "path": "gr00t/rl/data/robots/A2_Piper/a2_piper.urdf",
+      "sha256": "d02cdacdcd4aaf1480b52ba9a6a62f5e9bbd040036a796154dbff70d1391a1d5"
+    }
+  },
+  "legal_physical_gpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "maximum_frozen_static_candidates": 2,
+  "maximum_runtime_attempts": {
+    "b0": 1,
+    "forced_semantics": 1,
+    "formal_per_group": 1,
+    "pilot": 1,
+    "smoke_wave": 1,
+    "zero_shot_wave": 1
+  },
+  "r1_blocker_commit": "83cec1036a73c08565601df93aae40ee86856109",
+  "r2_plan": {
+    "repo_path": "scriptsFORhuman/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md",
+    "sha256": "0faa8ff20f95208598abb61e685786ab5948794234d7aa947f048eef27606445"
+  },
+  "rejected_revision4_candidate_id": "e719ea28fde644c870532e2bb698940abbb9d187ea413f9ac815d628a5e2417a",
+  "repository": "Jam-Stark/DoorDog",
+  "schema": "a2_piper_base_v20_R2_plan_lock_v1",
+  "scientific_gates_changed": false,
+  "scientific_plan_id": "base_v20_R1_policy_behavior_v1"
+}

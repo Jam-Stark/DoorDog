@@ -1,11 +1,11 @@
 # A2+Piper base_v20_R2 Admission and Execution Repair Plan
 
-**Date:** 2026-07-30 HKT  
-**Repository / branch:** `Jam-Stark/DoorDog`, `A2_Piper`  
-**R1 blocker commit:** `83cec1036a73c08565601df93aae40ee86856109`  
-**Rejected revision-4 candidate ID:** `e719ea28fde644c870532e2bb698940abbb9d187ea413f9ac815d628a5e2417a`  
-**Authoritative scientific plan:** `scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md`  
-**Authoritative R1 plan SHA-256:** `6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c`  
+**Date:** 2026-07-30 HKT
+**Repository / branch:** `Jam-Stark/DoorDog`, `A2_Piper`
+**R1 blocker commit:** `83cec1036a73c08565601df93aae40ee86856109`
+**Rejected revision-4 candidate ID:** `e719ea28fde644c870532e2bb698940abbb9d187ea413f9ac815d628a5e2417a`
+**Authoritative scientific plan:** `scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md`
+**Authoritative R1 plan SHA-256:** `6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c`
 **R2 role:** repair the implementation, evidence, admission, execution, and evaluation chain without changing the frozen R1 scientific claim or gates.
 
 ---
@@ -1329,8 +1329,8 @@ $PY -B -m scriptsFORhuman.v20_R2.a2_piper_v20_R2_p0_runner \
 
 ### 10.5 P0 raw producer
 
-Producer: `a2_piper_v20_R2_p0_runner.py`  
-Schema: `a2_piper_base_v20_R2_p0_raw_v1`  
+Producer: `a2_piper_v20_R2_p0_runner.py`
+Schema: `a2_piper_base_v20_R2_p0_raw_v1`
 Output: `p0_execution.json` plus one stdout/stderr pair per command.
 
 The runner executes, rather than merely lists:
@@ -1416,8 +1416,8 @@ $PY -B -m scriptsFORhuman.v20_R2.a2_piper_v20_R2_eval_runner b0 \
 
 The runner executes seeds `0,1,2`, `16` environments each, first episode only, no learning, S/E/A reward effects disabled, R2 evidence enabled. It uses the exact v19 G2 policy and runtime physics plus R2 telemetry-only code.
 
-Raw producer: `a2_piper_v20_R2_eval_runner.py`  
-Raw schema: `a2_piper_base_v20_R2_record_set_v1`  
+Raw producer: `a2_piper_v20_R2_eval_runner.py`
+Raw schema: `a2_piper_base_v20_R2_record_set_v1`
 Strict consumer: `a2_piper_v20_R2_record_adjudicator.py b0`.
 
 #### Consumer command

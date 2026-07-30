@@ -507,4 +507,3 @@ def require_adjudicator_state(payload: Mapping[str, Any], expected: str) -> None
 
 def ensure_no_raw_status_fields(payload: Mapping[str, Any]) -> None:
     validate_raw_producer_payload(payload)
-

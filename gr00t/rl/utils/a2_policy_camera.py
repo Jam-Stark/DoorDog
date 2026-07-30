@@ -102,3 +102,60 @@ def compose_horizontal_letterboxed_rgb(
             f"composed policy RGB must be finite NHWC {expected_shape}; got {tuple(output.shape)}"
         )
     return output
+
+def _normalize_rgb(rgb: torch.Tensor, image_mean: Sequence[float], image_std: Sequence[float], name: str) -> torch.Tensor:
+    mean = _normalization_vector(image_mean, f"{name}.image_mean", rgb.device)
+    std = _normalization_vector(image_std, f"{name}.image_std", rgb.device)
+    if bool(torch.any(std <= 0.0).item()):
+        raise ValueError(f"{name}.image_std must contain strictly positive values")
+    normalized = (rgb.float() / 255.0 - mean) / std
+    if not bool(torch.all(torch.isfinite(normalized)).item()):
+        raise RuntimeError(f"{name} RGB normalization produced non-finite values")
+    return normalized
+
+
+def compose_channel_stacked_dual_rgb(
+    left_rgb: torch.Tensor,
+    right_rgb: torch.Tensor,
+    *,
+    resolution: Sequence[int],
+    image_mean: Sequence[float],
+    image_std: Sequence[float],
+) -> torch.Tensor:
+    """Normalize two raw D435 RGB frames and stack channels left then right."""
+    height, width = _resolution(resolution, "resolution")
+    if not torch.is_tensor(left_rgb) or not torch.is_tensor(right_rgb):
+        raise TypeError("left_rgb and right_rgb must be torch tensors")
+    if left_rgb.device != right_rgb.device:
+        raise ValueError(
+            f"D435 RGB tensors must share one device: {left_rgb.device} vs {right_rgb.device}"
+        )
+    if left_rgb.ndim != 4 or right_rgb.ndim != 4 or left_rgb.shape[0] != right_rgb.shape[0]:
+        raise ValueError("left_rgb and right_rgb must be batched NHWC tensors with equal batch size")
+    batch_size = int(left_rgb.shape[0])
+    expected_shape = (batch_size, height, width, 3)
+    _raw_rgb("left D435 policy camera", left_rgb, expected_shape)
+    _raw_rgb("right D435 policy camera", right_rgb, expected_shape)
+    left = _normalize_rgb(left_rgb, image_mean, image_std, "left D435 policy camera")
+    right = _normalize_rgb(right_rgb, image_mean, image_std, "right D435 policy camera")
+    output = torch.cat((left, right), dim=-1)
+    expected_output = (batch_size, height, width, 6)
+    if tuple(output.shape) != expected_output:
+        raise RuntimeError(f"dual D435 output shape drifted: expected {expected_output}, got {tuple(output.shape)}")
+    return output
+
+
+def normalize_head_context_rgb(
+    head_rgb: torch.Tensor,
+    *,
+    resolution: Sequence[int],
+    image_mean: Sequence[float],
+    image_std: Sequence[float],
+) -> torch.Tensor:
+    """Normalize raw OEM A2 Head RGB without changing its geometry."""
+    height, width = _resolution(resolution, "head resolution")
+    if not torch.is_tensor(head_rgb):
+        raise TypeError("head_rgb must be a torch tensor")
+    batch_size = int(head_rgb.shape[0]) if head_rgb.ndim else 0
+    _raw_rgb("A2 Head context camera", head_rgb, (batch_size, height, width, 3))
+    return _normalize_rgb(head_rgb, image_mean, image_std, "A2 Head context camera")

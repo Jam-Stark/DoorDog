@@ -329,6 +329,35 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         self.teacher_action_dim = A2_STUDENT_ACTION_DIM
         self.a2_base_obs_dim = A2_BASE_OBS_DIM
         self.a2_base_action_dim = A2_BASE_ACTION_DIM
+        cameras_config = self.env.config.simulator.config.cameras
+        policy_multiview = cameras_config.get("policy_multiview", None)
+        architecture_id = (
+            policy_multiview.get("architecture_id", None)
+            if policy_multiview is not None
+            else None
+        )
+        self._a2_cb2h_enabled = architecture_id == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        if self._a2_cb2h_enabled:
+            if self.config.get("compute_dagger_bc_loss_w_imgaug", False):
+                raise ValueError("C-B2H Student does not support image-augmented DAgger loss")
+            if self.config.get("compute_imgaug_bc_loss", False):
+                raise ValueError("C-B2H Student does not support image-augmented BC loss")
+            self.camera_resolution = [384, 216, 6]
+            self.context_camera_resolution = [136, 384, 3]
+            self.camera_meta_resolution = [6]
+            expected_obs_dims = {
+                "vision_obs": int(np.prod(self.camera_resolution)),
+                "context_vision_obs": int(np.prod(self.context_camera_resolution)),
+                "camera_meta": 6,
+            }
+            for key, expected_dim in expected_obs_dims.items():
+                if key not in self.algo_obs_dim_dict:
+                    raise KeyError(f"C-B2H Student requires algo observation key {key!r}")
+                if int(self.algo_obs_dim_dict[key]) != expected_dim:
+                    raise ValueError(
+                        f"C-B2H {key} dimension mismatch: "
+                        f"config={self.algo_obs_dim_dict[key]}, expected={expected_dim}"
+                    )
         if self.config.get("student_action_dim", A2_STUDENT_ACTION_DIM) != A2_STUDENT_ACTION_DIM:
             raise ValueError("student_action_dim must be exactly 12")
         if self.config.get("rollout_action_dim", A2_ROLLOUT_ACTION_DIM) != A2_ROLLOUT_ACTION_DIM:
@@ -346,6 +375,23 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
                 if int(obs_dim) != expected_dim:
                     raise ValueError(f"vision_obs dim mismatch: config={obs_dim}, expected={expected_dim}")
                 self.storage.register_key(obs_key, shape=tuple(self.camera_resolution), dtype=torch.float)
+            elif obs_key == "context_vision_obs":
+                if not self._a2_cb2h_enabled:
+                    raise KeyError("context_vision_obs is only supported by the C-B2H Student")
+                expected_dim = int(np.prod(self.context_camera_resolution))
+                if int(obs_dim) != expected_dim:
+                    raise ValueError(
+                        f"context_vision_obs dim mismatch: config={obs_dim}, expected={expected_dim}"
+                    )
+                self.storage.register_key(
+                    obs_key, shape=tuple(self.context_camera_resolution), dtype=torch.float
+                )
+            elif obs_key == "camera_meta":
+                if not self._a2_cb2h_enabled:
+                    raise KeyError("camera_meta is only supported by the C-B2H Student")
+                if int(obs_dim) != 6:
+                    raise ValueError(f"camera_meta dim mismatch: config={obs_dim}, expected=6")
+                self.storage.register_key(obs_key, shape=(6,), dtype=torch.float)
             else:
                 self.storage.register_key(obs_key, shape=(int(obs_dim),), dtype=torch.float)
         self.storage.register_key("actions", shape=(A2_ROLLOUT_ACTION_DIM,), dtype=torch.float)
@@ -376,6 +422,8 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
 
     def _validate_rollout_obs(self, obs_dict, require_teacher=True):
         required = {"actor_obs", "vision_obs", "a2_base_obs"}
+        if getattr(self, "_a2_cb2h_enabled", False):
+            required.update({"context_vision_obs", "camera_meta"})
         if require_teacher:
             required.add("teacher_obs")
         missing = sorted(required.difference(obs_dict))
@@ -399,13 +447,20 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
             if obs_dict["critic_obs"].device != expected_device:
                 raise ValueError("critic_obs device must match actor_obs")
         vision = obs_dict["vision_obs"]
+        expected_batch = obs_dict["actor_obs"].shape[0]
         if (
             not torch.is_tensor(vision)
             or vision.ndim != 4
-            or vision.shape[-1] != 3
-            or vision.shape[0] != obs_dict["actor_obs"].shape[0]
+            or vision.shape[0] != expected_batch
         ):
-            raise ValueError(f"vision_obs must be NHWC [N,H,W,3]; got {getattr(vision, 'shape', None)}")
+            raise ValueError(
+                "vision_obs must be a batched NHWC tensor; "
+                f"got {getattr(vision, 'shape', None)}"
+            )
+        if not getattr(self, "_a2_cb2h_enabled", False) and vision.shape[-1] != 3:
+            raise ValueError(
+                f"vision_obs must be NHWC [N,H,W,3]; got {getattr(vision, 'shape', None)}"
+            )
         if vision.device != expected_device:
             raise ValueError(f"vision_obs device must match actor_obs: {vision.device} vs {expected_device}")
         expected_resolution = getattr(self, "camera_resolution", None)
@@ -417,6 +472,50 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
             )
         if not torch.is_floating_point(vision) or not torch.all(torch.isfinite(vision)):
             raise ValueError("vision_obs must be a finite floating tensor")
+        if getattr(self, "_a2_cb2h_enabled", False):
+            context = obs_dict["context_vision_obs"]
+            camera_meta = obs_dict["camera_meta"]
+            if (
+                not torch.is_tensor(context)
+                or context.ndim != 4
+                or tuple(context.shape[1:]) != tuple(self.context_camera_resolution)
+                or context.shape[0] != expected_batch
+            ):
+                raise ValueError(
+                    "context_vision_obs must match configured NHWC shape "
+                    f"[N,{','.join(str(x) for x in self.context_camera_resolution)}]; "
+                    f"got {getattr(context, 'shape', None)}"
+                )
+            if (
+                not torch.is_floating_point(context)
+                or not torch.all(torch.isfinite(context))
+                or context.device != expected_device
+            ):
+                raise ValueError(
+                    "context_vision_obs must be finite floating data on actor_obs device"
+                )
+            if (
+                not torch.is_tensor(camera_meta)
+                or camera_meta.ndim != 2
+                or tuple(camera_meta.shape[1:]) != (6,)
+                or camera_meta.shape[0] != expected_batch
+            ):
+                raise ValueError(
+                    f"camera_meta must match [N,6]; got {getattr(camera_meta, 'shape', None)}"
+                )
+            if (
+                not torch.is_floating_point(camera_meta)
+                or not torch.all(torch.isfinite(camera_meta))
+                or camera_meta.device != expected_device
+            ):
+                raise ValueError("camera_meta must be finite floating data on actor_obs device")
+            if bool(torch.any(camera_meta[:, :3] < 0.0).item()) or bool(
+                torch.any(camera_meta[:, :3] > 1.0).item()
+            ):
+                raise ValueError("camera_meta ages must be normalized to [0,1]")
+            flags = camera_meta[:, 3:]
+            if not torch.all((flags == 0.0) | (flags == 1.0)):
+                raise ValueError("camera_meta validity flags must be exactly 0 or 1")
         if not self._a2_rgb_frame_validated:
             flattened_pixels = vision.flatten(start_dim=1)
             per_env_min = flattened_pixels.amin(dim=1)
@@ -466,6 +565,9 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         self._validate_rollout_obs(obs_dict, require_teacher=True)
         teacher_actions = self._teacher_actions(obs_dict)
         actor_obs_dict = {"actor_obs": obs_dict["actor_obs"], "vision_obs": obs_dict["vision_obs"]}
+        if getattr(self, "_a2_cb2h_enabled", False):
+            actor_obs_dict["context_vision_obs"] = obs_dict["context_vision_obs"]
+            actor_obs_dict["camera_meta"] = obs_dict["camera_meta"]
         if cur_dones is None:
             dones = self.storage.query_key("dones").to(self.accelerator.device)[: self.storage.step + 1]
             episode_attnmask = compute_episode_attnmask(dones.squeeze(-1).transpose(0, 1))
@@ -520,6 +622,61 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         if actor_hidden_states is not None:
             result["hidden_states"] = (actor_hidden_states, None)
         return result
+
+    def _get_rollout_data(self, obs_keys):
+        rollout_data = super()._get_rollout_data(obs_keys)
+        if not getattr(self, "_a2_cb2h_enabled", False):
+            return rollout_data
+
+        device = self.accelerator.device
+        context_vision_obs = (
+            self.storage.context_vision_obs.transpose(0, 1).contiguous().to(device)
+        )
+        camera_meta = self.storage.camera_meta.transpose(0, 1).contiguous().to(device)
+        rollout_data["context_vision_obs"] = context_vision_obs
+        rollout_data["camera_meta"] = camera_meta
+
+        padded_obs_dict = rollout_data.get("padded_obs_dict")
+        if padded_obs_dict is not None:
+            from gr00t.rl.trl.utils.rl import split_and_pad_trajectories
+
+            dones = rollout_data["dones"]
+            dones_transposed = dones.transpose(0, 1)
+            trajectory_masks = rollout_data["trajectory_masks"]
+            for key, obs_tensor in (
+                ("context_vision_obs", context_vision_obs),
+                ("camera_meta", camera_meta),
+            ):
+                padded_obs, traj_masks = split_and_pad_trajectories(
+                    obs_tensor.transpose(0, 1), dones_transposed
+                )
+                candidate_masks = traj_masks.transpose(0, 1)
+                if not torch.equal(candidate_masks, trajectory_masks):
+                    raise RuntimeError(f"Trajectory mask drift while padding {key}")
+                padded_obs_dict[key] = padded_obs.transpose(0, 1)
+        return rollout_data
+
+    def _get_mb_rollout_data(self, rollout_data, micro_batch_inds):
+        mb_rollout_data = super()._get_mb_rollout_data(rollout_data, micro_batch_inds)
+        if not getattr(self, "_a2_cb2h_enabled", False):
+            return mb_rollout_data
+
+        mb_obs_dict = mb_rollout_data["mb_obs_dict"]
+        if "context_vision_obs" not in mb_obs_dict:
+            mb_obs_dict["context_vision_obs"] = rollout_data["context_vision_obs"][micro_batch_inds]
+        if "camera_meta" not in mb_obs_dict:
+            mb_obs_dict["camera_meta"] = rollout_data["camera_meta"][micro_batch_inds]
+        if set(("context_vision_obs", "camera_meta")).difference(mb_obs_dict):
+            raise RuntimeError("C-B2H minibatch dropped context observation keys")
+        return mb_rollout_data
+
+    def _forward_model(self, model, mb_rollout_data):
+        if getattr(self, "_a2_cb2h_enabled", False):
+            obs_dict = mb_rollout_data["mb_obs_dict"]
+            missing = {"context_vision_obs", "camera_meta"}.difference(obs_dict)
+            if missing:
+                raise KeyError(f"C-B2H forward is missing observation keys: {sorted(missing)}")
+        return super()._forward_model(model, mb_rollout_data)
 
     def _process_env_step(self, rewards, dones, infos):
         # Invoke only the A2 PPO student/value reset and bookkeeping path.  The

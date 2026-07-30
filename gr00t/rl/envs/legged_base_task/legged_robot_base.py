@@ -1158,16 +1158,24 @@ class LeggedRobotBase(BaseTask):
         ) / self.config.robot.control.action_scale
 
     def reset_all(self):
-        self.reset_envs_idx(torch.arange(self.num_envs, device=self.device))
+        all_env_ids = torch.arange(self.num_envs, device=self.device)
+        self.reset_envs_idx(all_env_ids)
         self.simulator.set_actor_root_state_tensor(
-            torch.arange(self.num_envs, device=self.device), self.target_robot_root_states
+            all_env_ids, self.target_robot_root_states
         )
         self.simulator.set_dof_state_tensor(
-            torch.arange(self.num_envs, device=self.device), self.target_robot_dof_state
+            all_env_ids, self.target_robot_dof_state
         )
         # self.simulator.set_task_root_state_tensor(torch.arange(self.num_envs, device=self.device), self.target_task_root_states)
         # self.simulator.set_task_visual_state_tensor(torch.arange(self.num_envs, device=self.device))
         self._refresh_sim_tensors()
+        policy_multiview = getattr(self.simulator, "_policy_multiview", None)
+        if (
+            isinstance(policy_multiview, dict)
+            and policy_multiview.get("architecture_id")
+            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            self.simulator.prime_c_b2h_camera_cache(all_env_ids)
 
         self._pre_compute_observations_callback()
         self._compute_observations()
@@ -1210,6 +1218,15 @@ class LeggedRobotBase(BaseTask):
             # self.simulator.set_task_root_state_tensor(refresh_env_ids, self.target_task_root_states)
             # self.simulator.set_task_visual_state_tensor(refresh_env_ids)
             self.need_to_refresh_envs[refresh_env_ids] = False
+
+        policy_multiview = getattr(self.simulator, "_policy_multiview", None)
+        if (
+            len(refresh_env_ids) > 0
+            and isinstance(policy_multiview, dict)
+            and policy_multiview.get("architecture_id")
+            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            self.simulator.prime_c_b2h_camera_cache(refresh_env_ids)
 
         # [Hardcoded] set world pose for the ego camera
         base_pos = self.simulator.robot_root_states[:, 0:3]
@@ -1492,6 +1509,13 @@ class LeggedRobotBase(BaseTask):
         self._reset_object_states_callback(env_ids)
         self._reset_past_obs_callback(env_ids)
         self._post_reset_callback(env_ids)
+        policy_multiview = getattr(self.simulator, "_policy_multiview", None)
+        if (
+            isinstance(policy_multiview, dict)
+            and policy_multiview.get("architecture_id")
+            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            self.simulator.invalidate_c_b2h_camera_cache(env_ids)
 
         # fill extras
         self.extras["episode"] = {}
@@ -2406,6 +2430,26 @@ class LeggedRobotBase(BaseTask):
             torch.Tensor: Flattened RGB image tensor of shape [batch_size, width*height*3]
         """
         if hasattr(self.simulator, "ego_camera") and self.simulator.ego_camera is not None:
+            cameras_cfg = self.config.simulator.config.cameras
+            policy_multiview = cameras_cfg.get("policy_multiview", None)
+            if (
+                policy_multiview is not None
+                and policy_multiview.get("architecture_id")
+                == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            ):
+                if self.config.domain_rand.image_augmentation.enabled:
+                    raise ValueError(
+                        "C-B2H tri-view observations require image augmentation to be disabled"
+                    )
+                rgb_image = self.simulator.get_rgb_image()
+                expected_shape = (self.num_envs, 384, 216, 6)
+                if tuple(rgb_image.shape) != expected_shape:
+                    raise RuntimeError(
+                        f"C-B2H vision_obs shape mismatch: expected {expected_shape}, got {tuple(rgb_image.shape)}"
+                    )
+                if rgb_image.dtype != torch.float32 or not torch.all(torch.isfinite(rgb_image)):
+                    raise RuntimeError("C-B2H vision_obs must be finite float32")
+                return rgb_image
             # Get RGB image from simulator - shape is [batch_size, height, width, 3].
             # The simulator owns strict sensor/dtype/zero-frame checks; do not
             # fabricate an image when a vision sensor is missing.
@@ -2483,6 +2527,52 @@ class LeggedRobotBase(BaseTask):
                 "RGB observation requested but simulator ego_camera is unavailable; "
                 "vision routes must enable a validated sensor"
             )
+
+    def _get_obs_context_rgb_image(self):
+        cameras_cfg = self.config.simulator.config.cameras
+        policy_multiview = cameras_cfg.get("policy_multiview", None)
+        if (
+            policy_multiview is None
+            or policy_multiview.get("architecture_id")
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            raise RuntimeError("context_rgb_image is only valid for the C-B2H tri-view branch")
+        if self.config.domain_rand.image_augmentation.enabled:
+            raise ValueError("C-B2H tri-view observations require image augmentation to be disabled")
+        context_image = self.simulator.get_context_vision_image()
+        expected_shape = (self.num_envs, 136, 384, 3)
+        if tuple(context_image.shape) != expected_shape:
+            raise RuntimeError(
+                f"C-B2H context_vision_obs shape mismatch: expected {expected_shape}, got {tuple(context_image.shape)}"
+            )
+        if context_image.dtype != torch.float32 or not torch.all(torch.isfinite(context_image)):
+            raise RuntimeError("C-B2H context_vision_obs must be finite float32")
+        return context_image
+
+    def _get_obs_camera_meta(self):
+        cameras_cfg = self.config.simulator.config.cameras
+        policy_multiview = cameras_cfg.get("policy_multiview", None)
+        if (
+            policy_multiview is None
+            or policy_multiview.get("architecture_id")
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            raise RuntimeError("camera_meta is only valid for the C-B2H tri-view branch")
+        if self.config.domain_rand.image_augmentation.enabled:
+            raise ValueError("C-B2H tri-view observations require image augmentation to be disabled")
+        camera_meta = self.simulator.get_camera_meta()
+        expected_shape = (self.num_envs, 6)
+        if tuple(camera_meta.shape) != expected_shape:
+            raise RuntimeError(
+                f"C-B2H camera_meta shape mismatch: expected {expected_shape}, got {tuple(camera_meta.shape)}"
+            )
+        if camera_meta.dtype != torch.float32 or not torch.all(torch.isfinite(camera_meta)):
+            raise RuntimeError("C-B2H camera_meta must be finite float32")
+        if bool((camera_meta[:, :3] < 0.0).any().item()) or bool((camera_meta[:, :3] > 1.0).any().item()):
+            raise RuntimeError("C-B2H camera_meta age values must be normalized to [0,1]")
+        if not bool(torch.all((camera_meta[:, 3:] == 0.0) | (camera_meta[:, 3:] == 1.0)).item()):
+            raise RuntimeError("C-B2H camera_meta validity values must be exactly 0 or 1")
+        return camera_meta
 
     def _get_obs_rgb_image_history(self):
         """Get RGB image history from the history handler.

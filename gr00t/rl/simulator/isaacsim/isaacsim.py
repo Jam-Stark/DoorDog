@@ -4,11 +4,16 @@
 
 import asyncio
 from collections.abc import Mapping, Sequence
+from hashlib import sha256
 import math
 import os
 from typing import Optional
 
-from gr00t.rl.utils.a2_policy_camera import compose_horizontal_letterboxed_rgb
+from gr00t.rl.utils.a2_policy_camera import (
+    compose_channel_stacked_dual_rgb,
+    compose_horizontal_letterboxed_rgb,
+    normalize_head_context_rgb,
+)
 from pxr import Sdf, UsdGeom
 
 try:
@@ -190,6 +195,42 @@ def parse_camera_pose(pos, rot_wxyz):
     return position, rotation
 
 
+def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
+    """Select version selectors and compose them with explicit eval door hooks."""
+    eval_key = "a2_eval_door_handle_height_linspace"
+    weight_key = "a2_door_weight_range"
+    pair_key = "a2_eval_door_handle_height_weight_pairs"
+    if weight_key in env_config or pair_key in env_config:
+        hook_name = "get_TaskObjCfgDict_for_door_config"
+        hook = getattr(task_module, hook_name, None)
+        if not callable(hook):
+            raise TypeError(
+                f"task module must expose callable {hook_name!r} for door selectors"
+            )
+        task_obj_cfg_dict = hook(num_envs, env_config)
+        if not isinstance(task_obj_cfg_dict, dict):
+            raise TypeError(
+                "door selector task-object configuration hook must return a dict, "
+                f"got {type(task_obj_cfg_dict).__name__}"
+            )
+        return task_obj_cfg_dict
+    if eval_key not in env_config:
+        return task_module.TaskObjCfgDict
+
+    hook_name = "get_TaskObjCfgDict_for_eval_door_handle_height_linspace"
+    hook = getattr(task_module, hook_name, None)
+    if not callable(hook):
+        raise TypeError(f"task module must expose callable {hook_name!r} for eval grid")
+
+    task_obj_cfg_dict = hook(num_envs, env_config[eval_key])
+    if not isinstance(task_obj_cfg_dict, dict):
+        raise TypeError(
+            "eval task-object configuration hook must return a dict, "
+            f"got {type(task_obj_cfg_dict).__name__}"
+        )
+    return task_obj_cfg_dict
+
+
 def validate_camera_rgb_output(rgb, expected_shape, camera_name="ego_camera"):
     """Fail fast on missing, stale, malformed, or zero RGB sensor output."""
     if rgb is None or not torch.is_tensor(rgb):
@@ -227,6 +268,12 @@ def list_mdl_files_recursive(folder_path, mdl_files):
 
 
 class IsaacSim(BaseSimulator):
+    A2_M39_GRIPPER_MATERIAL_CONFIG_KEY = "a2_m39_gripper_material_enabled"
+    A2_M39_GRIPPER_MATERIAL_SCHEMA = "a2_m39_gripper_material_v1"
+    A2_M39_GRIPPER_BODY_NAMES = ("arm_body7", "arm_body8")
+    A2_M39_HANDLE_BODY_NAME = "door_handle"
+    A2_M39_EXPECTED_POST_MATERIAL = (1.1, 0.9, 0.0)
+
     @staticmethod
     def _get_a2_piper_control_key_for_dof(dof_name):
         if dof_name.startswith("arm_j"):
@@ -274,6 +321,285 @@ class IsaacSim(BaseSimulator):
                 f"{len(values)} values for {len(dof_names)} DOFs"
             )
         return {dof_name: float(values[i]) for i, dof_name in enumerate(dof_names)}
+
+    @staticmethod
+    def _m39_material_summary(materials: torch.Tensor) -> dict:
+        """Summarize a complete PhysX material slice without fabricating values."""
+        if (not torch.is_tensor(materials) or materials.ndim != 3 or materials.shape[-1] != 3
+                or materials.numel() == 0 or not materials.is_floating_point()
+                or not torch.all(torch.isfinite(materials))):
+            shape = None if not torch.is_tensor(materials) else tuple(materials.shape)
+            dtype = None if not torch.is_tensor(materials) else str(materials.dtype)
+            raise RuntimeError(
+                "M39 material evidence requires a non-empty finite floating tensor "
+                f"with trailing shape 3; got shape={shape}, dtype={dtype}."
+            )
+        cpu_materials = materials.detach().to(device="cpu").contiguous()
+        unique = torch.unique(cpu_materials.reshape(-1, 3), dim=0, sorted=True)
+        return {
+            "shape": [int(value) for value in cpu_materials.shape],
+            "min": [float(value) for value in cpu_materials.amin(dim=(0, 1)).tolist()],
+            "max": [float(value) for value in cpu_materials.amax(dim=(0, 1)).tolist()],
+            "unique": [[float(value) for value in row.tolist()] for row in unique],
+            "sha256": sha256(cpu_materials.numpy().tobytes()).hexdigest(),
+        }
+
+    @staticmethod
+    def _m39_asset_material_slices(asset, body_names, asset_name, num_envs, require_exact_body_view=False):
+        """Read exact body-shape material slices through IsaacLab PhysX views."""
+        root_view = getattr(asset, "root_physx_view", None)
+        if root_view is None or not hasattr(root_view, "get_material_properties"):
+            raise RuntimeError(
+                f"M39 material evidence requires {asset_name}.root_physx_view with "
+                "get_material_properties()."
+            )
+        link_paths_by_env = getattr(root_view, "link_paths", None)
+        if not link_paths_by_env or not link_paths_by_env[0]:
+            raise RuntimeError(f"M39 {asset_name} material evidence has no link paths.")
+        link_paths = [str(path) for path in link_paths_by_env[0]]
+        if require_exact_body_view:
+            if len(body_names) != 1 or body_names[0] != "door_handle":
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view evidence requires the "
+                    "door_handle target."
+                )
+            body_name = body_names[0]
+            matches = [index for index, path in enumerate(link_paths)
+                       if path.rstrip("/").endswith(f"/{body_name}")]
+            if len(matches) != 1:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view evidence requires exactly one "
+                    f"body path for {body_name!r}; got {[link_paths[index] for index in matches]}."
+                )
+            body_path = link_paths[matches[0]]
+            env_marker = "/env_0/"
+            if env_marker not in body_path:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view target must resolve an env_0 path; "
+                    f"got {body_path!r}."
+                )
+            env_root, relative_body_path = body_path.split(env_marker, 1)
+            if not relative_body_path:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view target has an empty env-relative path."
+                )
+            expected_paths = tuple(
+                f"{env_root}/env_{env_id}/{relative_body_path}" for env_id in range(num_envs)
+            )
+            target_path = f"{env_root}/env_*/{relative_body_path}"
+            physics_sim_view = getattr(asset, "_physics_sim_view", None)
+            if physics_sim_view is None or not hasattr(physics_sim_view, "create_rigid_body_view"):
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view evidence requires the IsaacLab physics "
+                    "simulation view body-shape contract."
+                )
+            target_view = physics_sim_view.create_rigid_body_view(target_path)
+            try:
+                view_count = int(target_view.count)
+                shape_count = int(target_view.max_shapes)
+            except (AttributeError, TypeError, ValueError) as exc:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view must expose integer count and max_shapes."
+                ) from exc
+            actual_paths = [str(path) for path in target_view.prim_paths]
+            if view_count != num_envs:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view count must equal num_envs={num_envs}; "
+                    f"got {view_count}."
+                )
+            if len(actual_paths) != view_count or len(set(actual_paths)) != view_count:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view prim_paths must contain one concrete path "
+                    f"per view; count={view_count}, paths={actual_paths}."
+                )
+            if set(actual_paths) != set(expected_paths):
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view prim paths do not match the expected env set; "
+                    f"expected={list(expected_paths)}, actual={actual_paths}."
+                )
+            if shape_count <= 0:
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body view target {body_name!r} has no collision shapes."
+                )
+            exact_materials = target_view.get_material_properties()
+            if (not torch.is_tensor(exact_materials)
+                    or tuple(exact_materials.shape) != (num_envs, shape_count, 3)
+                    or not exact_materials.is_floating_point()
+                    or not torch.all(torch.isfinite(exact_materials))):
+                shape = None if not torch.is_tensor(exact_materials) else tuple(exact_materials.shape)
+                dtype = None if not torch.is_tensor(exact_materials) else str(exact_materials.dtype)
+                raise RuntimeError(
+                    f"M39 {asset_name} exact body-view material tensor must have finite floating "
+                    f"shape ({num_envs}, {shape_count}, 3); got shape={shape}, dtype={dtype}."
+                )
+            prim_paths_sha256 = sha256("\n".join(sorted(actual_paths)).encode("utf-8")).hexdigest()
+            return {body_name: {
+                "body_path": body_path,
+                "target_path": body_path,
+                "target_body": body_name,
+                "scope": "exact_target_rigid_body_view_all_envs",
+                "evidence_scope": "exact_target_rigid_body_view_all_envs",
+                "view_count": view_count,
+                "shape_count": shape_count,
+                "prim_paths_sha256": prim_paths_sha256,
+                "materials": exact_materials.detach().clone(),
+            }}
+        physics_sim_view = getattr(asset, "_physics_sim_view", None)
+        materials = root_view.get_material_properties()
+        if (not torch.is_tensor(materials) or materials.ndim != 3
+                or materials.shape[0] != num_envs or materials.shape[-1] != 3):
+            shape = None if not torch.is_tensor(materials) else tuple(materials.shape)
+            raise RuntimeError(
+                f"M39 {asset_name} material properties must have shape "
+                f"({num_envs}, max_shapes, 3); got {shape}."
+            )
+        if physics_sim_view is None or not hasattr(physics_sim_view, "create_rigid_body_view"):
+            raise RuntimeError(
+                f"M39 {asset_name} material evidence requires the IsaacLab physics "
+                "simulation view body-shape contract."
+            )
+        shape_counts = []
+        for path in link_paths:
+            body_view = physics_sim_view.create_rigid_body_view(path)
+            shape_count = int(getattr(body_view, "max_shapes", 0))
+            shape_counts.append(shape_count)
+        if sum(shape_counts) != int(materials.shape[1]):
+            raise RuntimeError(
+                f"M39 {asset_name} body-shape mapping mismatch: "
+                f"sum(shape_counts)={sum(shape_counts)} vs material columns={materials.shape[1]}."
+            )
+        slices = {}
+        for body_name in body_names:
+            matches = [index for index, path in enumerate(link_paths)
+                       if path.rstrip("/").endswith(f"/{body_name}")]
+            if len(matches) != 1:
+                raise RuntimeError(
+                    f"M39 {asset_name} material evidence requires exactly one body path "
+                    f"for {body_name!r}; got {[link_paths[index] for index in matches]}."
+                )
+            body_index = matches[0]
+            shape_count = shape_counts[body_index]
+            if shape_count <= 0:
+                raise RuntimeError(
+                    f"M39 {asset_name} target body {body_name!r} at path "
+                    f"{link_paths[body_index]!r} has no collision shapes."
+                )
+            start = sum(shape_counts[:body_index])
+            end = start + shape_count
+            body_materials = materials[:, start:end, :].detach().clone()
+            if not torch.all(torch.isfinite(body_materials)):
+                raise RuntimeError(
+                    f"M39 {asset_name} material evidence for {body_name!r} is non-finite."
+                )
+            slices[body_name] = {
+                "body_path": link_paths[body_index],
+                "shape_count": shape_count,
+                "materials": body_materials,
+            }
+        return slices
+
+    def _capture_m39_material_evidence(self, pre_slices, post_slices):
+        """Validate and serialize M39 pre/post material evidence."""
+        expected = torch.tensor(
+            self.A2_M39_EXPECTED_POST_MATERIAL,
+            dtype=pre_slices["robot"]["arm_body7"]["materials"].dtype,
+        )
+        finger_records = {}
+        for body_name in self.A2_M39_GRIPPER_BODY_NAMES:
+            pre = pre_slices["robot"][body_name]
+            post = post_slices["robot"][body_name]
+            post_materials = post["materials"]
+            expected_post = expected.to(device=post_materials.device).reshape(1, 1, 3)
+            if not torch.equal(post_materials, expected_post.expand_as(post_materials)):
+                raise RuntimeError(
+                    f"M39 {body_name} post material values must be exactly "
+                    f"{self.A2_M39_EXPECTED_POST_MATERIAL}; got "
+                    f"{torch.unique(post_materials.reshape(-1, 3), dim=0).tolist()}."
+                )
+            finger_records[body_name] = {
+                "body_path": post["body_path"],
+                "shape_count": post["shape_count"],
+                "pre": self._m39_material_summary(pre["materials"]),
+                "post": self._m39_material_summary(post_materials),
+            }
+        pre_handle = pre_slices["door"][self.A2_M39_HANDLE_BODY_NAME]
+        post_handle = post_slices["door"][self.A2_M39_HANDLE_BODY_NAME]
+        expected_scope = "exact_target_rigid_body_view_all_envs"
+        expected_fields = (
+            "body_path",
+            "target_path",
+            "target_body",
+            "scope",
+            "evidence_scope",
+            "view_count",
+            "shape_count",
+            "prim_paths_sha256",
+            "materials",
+        )
+        for label, record in (("pre", pre_handle), ("post", post_handle)):
+            if any(field not in record for field in expected_fields):
+                raise RuntimeError(f"M39 handle {label} evidence is missing an exact-view field.")
+            if (record["scope"] != expected_scope
+                    or record["evidence_scope"] != expected_scope
+                    or record["target_body"] != self.A2_M39_HANDLE_BODY_NAME
+                    or record["target_path"] != record["body_path"]
+                    or not record["body_path"].rstrip("/").endswith("/door_handle")):
+                raise RuntimeError(
+                    f"M39 handle {label} evidence must be the exact all-env door_handle "
+                    "RigidBodyView scope and target."
+                )
+            materials = record["materials"]
+            if (not torch.is_tensor(materials)
+                    or tuple(materials.shape) != (record["view_count"], record["shape_count"], 3)
+                    or record["view_count"] <= 0
+                    or record["shape_count"] <= 0
+                    or not materials.is_floating_point()
+                    or not torch.all(torch.isfinite(materials))):
+                raise RuntimeError(f"M39 handle {label} evidence material shape/value contract failed.")
+        stable_fields = (
+            "body_path",
+            "target_path",
+            "target_body",
+            "scope",
+            "evidence_scope",
+            "view_count",
+            "shape_count",
+            "prim_paths_sha256",
+        )
+        if any(pre_handle[field] != post_handle[field] for field in stable_fields):
+            raise RuntimeError("M39 handle evidence scope/target/count/shape/hash changed.")
+        if not torch.equal(pre_handle["materials"], post_handle["materials"]):
+            raise RuntimeError("M39 handle material changed while randomizing finger pads.")
+        return {
+            "schema": self.A2_M39_GRIPPER_MATERIAL_SCHEMA,
+            "selector_enabled": True,
+            "event_term": {
+                "function": "isaaclab.envs.mdp.events.randomize_rigid_body_material",
+                "mode": "startup",
+                "asset": "robot",
+                "target_bodies": list(self.A2_M39_GRIPPER_BODY_NAMES),
+                "static_friction_range": [1.1, 1.1],
+                "dynamic_friction_range": [0.9, 0.9],
+                "restitution_range": [0.0, 0.0],
+                "num_buckets": 1,
+                "make_consistent": True,
+            },
+            "finger_bodies": finger_records,
+            "handle": {
+                "body_path": post_handle["body_path"],
+                "target_path": post_handle["target_path"],
+                "target_body": post_handle["target_body"],
+                "scope": post_handle["evidence_scope"],
+                "evidence_scope": post_handle["evidence_scope"],
+                "view_count": post_handle["view_count"],
+                "shape_count": post_handle["shape_count"],
+                "prim_paths_sha256": post_handle["prim_paths_sha256"],
+                "pre": self._m39_material_summary(pre_handle["materials"]),
+                "post": self._m39_material_summary(post_handle["materials"]),
+                "unchanged": True,
+            },
+            "all_envs": True,
+        }
 
     def __init__(self, config, device, **kwargs):
         super().__init__(config, device)
@@ -404,6 +730,57 @@ class IsaacSim(BaseSimulator):
 
         self.event_types = set()
         self.events_cfg = EventCfg()
+        m39_enabled = self.env_config.get(
+            self.A2_M39_GRIPPER_MATERIAL_CONFIG_KEY, False
+        )
+        if not isinstance(m39_enabled, bool):
+            raise ValueError(
+                f"env.config.{self.A2_M39_GRIPPER_MATERIAL_CONFIG_KEY} must be bool; "
+                f"got {m39_enabled!r}."
+            )
+        if m39_enabled and self.domain_rand_config.get("randomize_friction", False):
+            raise RuntimeError(
+                "M39 gripper material randomization cannot coexist with "
+                "domain_rand.randomize_friction because the generic event would "
+                "overwrite the finger material."
+            )
+        self._m39_material_runtime_metadata = None
+        m39_pre_slices = None
+        if m39_enabled:
+            if "robot" not in self.scene.articulations:
+                raise RuntimeError("M39 material evidence requires scene.articulations['robot'].")
+            if "door" not in self.scene.articulations:
+                raise RuntimeError("M39 material evidence requires scene.articulations['door'].")
+            m39_pre_slices = {
+                "robot": self._m39_asset_material_slices(
+                    self.scene.articulations["robot"],
+                    self.A2_M39_GRIPPER_BODY_NAMES,
+                    "robot",
+                    self.num_envs,
+                ),
+                "door": self._m39_asset_material_slices(
+                    self.scene.articulations["door"],
+                    (self.A2_M39_HANDLE_BODY_NAME,),
+                    "door",
+                    self.num_envs,
+                    require_exact_body_view=True,
+                ),
+            }
+            self.events_cfg.m39_gripper_material = EventTerm(
+                func=mdp.randomize_rigid_body_material,
+                mode="startup",
+                params={
+                    "asset_cfg": SceneEntityCfg(
+                        "robot", body_names=["arm_body7", "arm_body8"]
+                    ),
+                    "static_friction_range": (1.1, 1.1),
+                    "dynamic_friction_range": (0.9, 0.9),
+                    "restitution_range": (0.0, 0.0),
+                    "num_buckets": 1,
+                    "make_consistent": True,
+                },
+            )
+            self.event_types.add("startup")
         if self.domain_rand_config.get("randomize_link_mass", False):
             self.events_cfg.scale_body_mass = EventTerm(
                 func=mdp.randomize_rigid_body_mass,
@@ -729,6 +1106,25 @@ class IsaacSim(BaseSimulator):
 
         if "startup" in self.event_manager.available_modes:
             self.event_manager.apply(mode="startup")
+        if m39_enabled:
+            m39_post_slices = {
+                "robot": self._m39_asset_material_slices(
+                    self.scene.articulations["robot"],
+                    self.A2_M39_GRIPPER_BODY_NAMES,
+                    "robot",
+                    self.num_envs,
+                ),
+                "door": self._m39_asset_material_slices(
+                    self.scene.articulations["door"],
+                    (self.A2_M39_HANDLE_BODY_NAME,),
+                    "door",
+                    self.num_envs,
+                    require_exact_body_view=True,
+                ),
+            }
+            self._m39_material_runtime_metadata = self._capture_m39_material_evidence(
+                m39_pre_slices, m39_post_slices
+            )
 
         # -- event manager used for randomization
         # if self.cfg.events:
@@ -1424,7 +1820,9 @@ class IsaacSim(BaseSimulator):
                         f"  {class_name}: {count} environments ({count/len(self.object_class_names)*100:.1f}%)"
                     )
             else:
-                TaskObjCfgDict = task_module.TaskObjCfgDict
+                TaskObjCfgDict = _get_task_obj_cfg_dict_for_door_eval(
+                    task_module, self.env_config, self.num_envs
+                )
 
             # import ipdb; ipdb.set_trace()
             for name, obj_cfg in TaskObjCfgDict.items():
@@ -1656,20 +2054,17 @@ class IsaacSim(BaseSimulator):
             primary_camera_resolution = camera_resolution
             policy_multiview = cameras_cfg.get("policy_multiview", None)
             policy_secondary_cfg = None
+            policy_architecture_id = None
             if policy_multiview is not None:
                 if not isinstance(policy_multiview, Mapping):
                     raise TypeError("cameras.policy_multiview must be a mapping")
                 if policy_multiview.get("enabled") is not True:
                     raise ValueError("cameras.policy_multiview.enabled must be exactly true")
-                if policy_multiview.get("architecture_id") != "C-B":
-                    raise ValueError("cameras.policy_multiview.architecture_id must be 'C-B'")
-                if (
-                    policy_multiview.get("layout")
-                    != "horizontal_primary_then_letterboxed_secondary"
-                ):
+                policy_architecture_id = policy_multiview.get("architecture_id")
+                if policy_architecture_id not in ("C-B", "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"):
                     raise ValueError(
-                        "cameras.policy_multiview.layout must be "
-                        "'horizontal_primary_then_letterboxed_secondary'"
+                        "cameras.policy_multiview.architecture_id must be 'C-B' or "
+                        "'C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19'"
                     )
                 primary_camera_resolution = _camera_numeric_sequence(
                     policy_multiview.get("primary_resolution", None),
@@ -1692,11 +2087,31 @@ class IsaacSim(BaseSimulator):
                     raise ValueError(
                         "policy_multiview.output_resolution must equal cameras.camera_resolutions"
                     )
-                policy_secondary_cfg = policy_multiview.get("secondary", None)
-                if not isinstance(policy_secondary_cfg, Mapping):
-                    raise TypeError("policy_multiview.secondary must be a mapping")
                 if set(camera_types) != {"rgb"}:
-                    raise ValueError("C-B policy multiview supports exactly raw RGB camera data")
+                    raise ValueError("policy multiview supports exactly raw RGB camera data")
+                if policy_architecture_id == "C-B":
+                    if policy_multiview.get("layout") != "horizontal_primary_then_letterboxed_secondary":
+                        raise ValueError(
+                            "cameras.policy_multiview.layout must be "
+                            "'horizontal_primary_then_letterboxed_secondary'"
+                        )
+                    policy_secondary_cfg = policy_multiview.get("secondary", None)
+                    if not isinstance(policy_secondary_cfg, Mapping):
+                        raise TypeError("policy_multiview.secondary must be a mapping")
+                else:
+                    if policy_multiview.get("layout") != "channel_stacked_raw_rgb":
+                        raise ValueError(
+                            "C-B2H policy_multiview.layout must be 'channel_stacked_raw_rgb'"
+                        )
+                    if tuple(int(value) for value in primary_camera_resolution) != (384, 216):
+                        raise ValueError("C-B2H left D435 resolution must be [384,216]")
+                    output_shape = tuple(policy_multiview.get("output_shape", ()))
+                    if output_shape != (384, 216, 6):
+                        raise ValueError("C-B2H vision_obs output_shape must be [384,216,6]")
+                    policy_secondary_cfg = policy_multiview.get("right", None)
+                    policy_context_cfg = policy_multiview.get("context", None)
+                    if not isinstance(policy_secondary_cfg, Mapping) or not isinstance(policy_context_cfg, Mapping):
+                        raise TypeError("C-B2H policy_multiview requires right and context mappings")
             update_period_value = cameras_cfg.get("camera_update_period", 0.0)
             if isinstance(update_period_value, bool):
                 raise ValueError("cameras.camera_update_period must be numeric, not bool")
@@ -1737,9 +2152,46 @@ class IsaacSim(BaseSimulator):
             self.ego_camera = TiledCamera(ego_camera_config)
             self.scene.sensors["ego_camera"] = self.ego_camera
             self.policy_secondary_camera = None
+            self.policy_context_camera = None
             self._policy_multiview = None
             self._a2_policy_multiview_validated = False
-            if policy_secondary_cfg is not None:
+            self._cb2h_vision_obs_cache = None
+            self._cb2h_context_vision_obs_cache = None
+            self._cb2h_camera_meta_cache = None
+            self._cb2h_elapsed_s = 0.0
+            self._cb2h_last_capture_s = {"left": None, "right": None, "head": None}
+            self._cb2h_last_frame_s = {
+                name: torch.full(
+                    (self.num_envs,),
+                    -1.0,
+                    device=self.sim_device,
+                    dtype=torch.float32,
+                )
+                for name in ("left", "right", "head")
+            }
+            self._cb2h_last_frame_id = {
+                name: torch.full(
+                    (self.num_envs,),
+                    -1,
+                    device=self.sim_device,
+                    dtype=torch.int64,
+                )
+                for name in ("left", "right", "head")
+            }
+            self._cb2h_ever_captured = {
+                name: torch.zeros(
+                    self.num_envs,
+                    device=self.sim_device,
+                    dtype=torch.bool,
+                )
+                for name in ("left", "right", "head")
+            }
+            self._cb2h_cache_valid = torch.zeros(
+                self.num_envs,
+                device=self.sim_device,
+                dtype=torch.bool,
+            )
+            if policy_secondary_cfg is not None and policy_architecture_id == "C-B":
                 secondary_name = policy_secondary_cfg.get("sensor_name", None)
                 secondary_parent = policy_secondary_cfg.get("parent", None)
                 secondary_suffix = policy_secondary_cfg.get("prim_suffix", None)
@@ -1832,9 +2284,86 @@ class IsaacSim(BaseSimulator):
                     "output_resolution": tuple(int(value) for value in camera_resolution),
                     "secondary_name": secondary_name,
                 }
+            elif policy_architecture_id == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19":
+                right_name = policy_secondary_cfg.get("sensor_name", None)
+                if right_name != "d435i_right_portrait_policy":
+                    raise ValueError("C-B2H right sensor_name must be d435i_right_portrait_policy")
+                if policy_secondary_cfg.get("parent") != "trunk" or policy_secondary_cfg.get("convention") != "world":
+                    raise ValueError("C-B2H right camera requires parent='trunk' and convention='world'")
+                right_pos, right_rot = parse_camera_pose(
+                    policy_secondary_cfg.get("position_m"), policy_secondary_cfg.get("rotation_wxyz")
+                )
+                right_resolution = _camera_numeric_sequence(policy_secondary_cfg.get("resolution"), 2, "C-B2H right resolution")
+                if tuple(int(value) for value in right_resolution) != (384, 216):
+                    raise ValueError("C-B2H right D435 resolution must be [384,216]")
+                right_period = float(policy_secondary_cfg.get("update_period"))
+                if not math.isclose(right_period, 1.0 / 30.0, rel_tol=0.0, abs_tol=1.0e-12):
+                    raise ValueError("C-B2H right D435 update_period must be exactly 1/30 s")
+                context_cfg = policy_context_cfg
+                if context_cfg.get("sensor_name") != "a2_head_oem_policy":
+                    raise ValueError("C-B2H context sensor_name must be a2_head_oem_policy")
+                if context_cfg.get("parent") != "trunk" or context_cfg.get("convention") != "world":
+                    raise ValueError("C-B2H context camera requires parent='trunk' and convention='world'")
+                context_pos, context_rot = parse_camera_pose(
+                    context_cfg.get("position_m"), context_cfg.get("rotation_wxyz")
+                )
+                context_resolution = _camera_numeric_sequence(context_cfg.get("resolution"), 2, "C-B2H context resolution")
+                if tuple(int(value) for value in context_resolution) != (136, 384):
+                    raise ValueError("C-B2H context resolution must be [136,384]")
+                context_period = float(context_cfg.get("update_period"))
+                if not math.isclose(context_period, 1.0 / 15.0, rel_tol=0.0, abs_tol=1.0e-12):
+                    raise ValueError("C-B2H context update_period must be exactly 1/15 s")
+                right_config = TiledCameraCfg(
+                    prim_path=f"/World/envs/env_.*/Robot/trunk/{policy_secondary_cfg['prim_suffix']}",
+                    offset=TiledCameraCfg.OffsetCfg(pos=right_pos, rot=right_rot, convention="world"),
+                    data_types=["rgb"],
+                    spawn=sim_utils.PinholeCameraCfg(
+                        focal_length=float(policy_secondary_cfg["focal_length"]),
+                        focus_distance=float(policy_secondary_cfg["focus_distance"]),
+                        horizontal_aperture=float(policy_secondary_cfg["horizontal_aperture"]),
+                        vertical_aperture=float(policy_secondary_cfg["vertical_aperture"]),
+                        clipping_range=parse_camera_clipping_range(policy_secondary_cfg["clipping_range"]),
+                    ),
+                    width=216,
+                    height=384,
+                    update_period=right_period,
+                    debug_vis=True,
+                )
+                context_config = TiledCameraCfg(
+                    prim_path=f"/World/envs/env_.*/Robot/trunk/{context_cfg['prim_suffix']}",
+                    offset=TiledCameraCfg.OffsetCfg(pos=context_pos, rot=context_rot, convention="world"),
+                    data_types=["rgb"],
+                    spawn=sim_utils.PinholeCameraCfg(
+                        focal_length=float(context_cfg["focal_length"]),
+                        focus_distance=float(context_cfg["focus_distance"]),
+                        horizontal_aperture=float(context_cfg["horizontal_aperture"]),
+                        vertical_aperture=float(context_cfg["vertical_aperture"]),
+                        clipping_range=parse_camera_clipping_range(context_cfg["clipping_range"]),
+                    ),
+                    width=384,
+                    height=136,
+                    update_period=context_period,
+                    debug_vis=True,
+                )
+                self.policy_secondary_camera = TiledCamera(right_config)
+                self.policy_context_camera = TiledCamera(context_config)
+                self.scene.sensors[right_name] = self.policy_secondary_camera
+                self.scene.sensors[context_cfg["sensor_name"]] = self.policy_context_camera
+                self._policy_multiview = {
+                    "architecture_id": "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                    "primary_resolution": (384, 216),
+                    "right_resolution": (384, 216),
+                    "context_resolution": (136, 384),
+                    "output_shape": (384, 216, 6),
+                    "right_name": right_name,
+                    "context_name": context_cfg["sensor_name"],
+                    "fast_period_s": 1.0 / 30.0,
+                    "context_period_s": 1.0 / 15.0,
+                }
         else:
             self.ego_camera = None
             self.policy_secondary_camera = None
+            self.policy_context_camera = None
             self._policy_multiview = None
             self._a2_policy_multiview_validated = False
 
@@ -2204,6 +2733,17 @@ class IsaacSim(BaseSimulator):
     def get_rgb_image(self):
         if self.ego_camera is None:
             raise RuntimeError("RGB requested but the ego camera sensor is disabled")
+        if (
+            self._policy_multiview is not None
+            and self._policy_multiview["architecture_id"]
+            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            if self._cb2h_vision_obs_cache is None:
+                raise RuntimeError(
+                    "C-B2H vision_obs requested before the first post-scene-update camera capture"
+                )
+            self._require_c_b2h_camera_cache_ready()
+            return self._cb2h_vision_obs_cache
         sensor = self.scene.sensors.get("ego_camera")
         if sensor is None or sensor is not self.ego_camera:
             raise RuntimeError("RGB requested but ego_camera is missing from the scene sensors")
@@ -2270,6 +2810,323 @@ class IsaacSim(BaseSimulator):
             rgb_image = (rgb_image - image_mean) / image_std
         return rgb_image
 
+    def _require_c_b2h_camera_cache_ready(self):
+        if not bool(torch.all(self._cb2h_cache_valid).item()):
+            invalid_envs = (~self._cb2h_cache_valid).nonzero(as_tuple=False).flatten().tolist()
+            raise RuntimeError(
+                "C-B2H camera cache is invalid for environments awaiting a post-reset prime: "
+                f"{invalid_envs}"
+            )
+
+    def invalidate_c_b2h_camera_cache(self, env_ids):
+        """Invalidate only reset environments until a fresh rendered capture is primed."""
+        if (
+            self._policy_multiview is None
+            or self._policy_multiview["architecture_id"]
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            return
+        if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype == torch.bool:
+            raise ValueError("C-B2H reset env_ids must be a one-dimensional integer tensor")
+        if env_ids.numel() == 0:
+            return
+        env_ids = env_ids.to(device=self.sim_device, dtype=torch.long)
+        if bool(torch.any((env_ids < 0) | (env_ids >= self.num_envs)).item()):
+            raise IndexError(f"C-B2H reset env_ids are outside [0,{self.num_envs})")
+        self._cb2h_cache_valid[env_ids] = False
+        for name in ("left", "right", "head"):
+            self._cb2h_ever_captured[name][env_ids] = False
+            self._cb2h_last_frame_id[name][env_ids] = -1
+            self._cb2h_last_frame_s[name][env_ids] = -1.0
+        if self._cb2h_vision_obs_cache is not None:
+            self._cb2h_vision_obs_cache[env_ids] = 0.0
+        if self._cb2h_context_vision_obs_cache is not None:
+            self._cb2h_context_vision_obs_cache[env_ids] = 0.0
+        if self._cb2h_camera_meta_cache is not None:
+            self._cb2h_camera_meta_cache[env_ids] = 0.0
+
+    def _refresh_c_b2h_camera_meta_cache(self, required_mask=None):
+        if (
+            self._policy_multiview is None
+            or self._policy_multiview["architecture_id"]
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            return
+        ages = []
+        validity = []
+        for name in ("left", "right", "head"):
+            captured = self._cb2h_ever_captured[name]
+            frame_time = self._cb2h_last_frame_s[name]
+            if bool(torch.any(captured & (frame_time < 0.0)).item()):
+                raise RuntimeError(f"C-B2H {name} frame timestamp is missing for a captured environment")
+            age = ((self._cb2h_elapsed_s - frame_time) / 0.1).clamp(0.0, 1.0)
+            ages.append(torch.where(captured, age, torch.zeros_like(age)))
+            validity.append(captured.to(dtype=torch.float32))
+        camera_meta_cache = torch.stack((*ages, *validity), dim=-1)
+        if required_mask is None or self._cb2h_camera_meta_cache is None:
+            self._cb2h_camera_meta_cache = camera_meta_cache
+            return
+        if tuple(self._cb2h_camera_meta_cache.shape) != tuple(camera_meta_cache.shape):
+            raise RuntimeError(
+                "C-B2H camera metadata cache shape changed during a target-only capture"
+            )
+        self._cb2h_camera_meta_cache[required_mask] = camera_meta_cache[required_mask]
+
+    def _capture_c_b2h_camera_cache(
+        self,
+        *,
+        force=False,
+        advance_time=True,
+        required_env_ids=None,
+    ):
+        """Capture tri-view RGB only after ``scene.update`` has completed."""
+        if (
+            self._policy_multiview is None
+            or self._policy_multiview["architecture_id"]
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            return
+
+        cameras_cfg = self.simulator_config.cameras
+        fast_period = self._policy_multiview["fast_period_s"]
+        context_period = self._policy_multiview["context_period_s"]
+        explicit_required_envs = required_env_ids is not None
+        if advance_time:
+            self._cb2h_elapsed_s += 1.0 / float(self.simulator_config.sim.fps)
+        elapsed = self._cb2h_elapsed_s
+
+        if required_env_ids is None:
+            required_mask = torch.ones(
+                self.num_envs, device=self.sim_device, dtype=torch.bool
+            )
+        else:
+            if (
+                not torch.is_tensor(required_env_ids)
+                or required_env_ids.ndim != 1
+                or required_env_ids.dtype == torch.bool
+            ):
+                raise ValueError(
+                    "C-B2H required_env_ids must be a one-dimensional integer tensor"
+                )
+            required_ids = required_env_ids.to(device=self.sim_device, dtype=torch.long)
+            if bool(torch.any((required_ids < 0) | (required_ids >= self.num_envs)).item()):
+                raise IndexError(f"C-B2H required_env_ids are outside [0,{self.num_envs})")
+            required_mask = torch.zeros(
+                self.num_envs, device=self.sim_device, dtype=torch.bool
+            )
+            required_mask[required_ids] = True
+        if not bool(required_mask.any().item()):
+            raise ValueError("C-B2H capture requires at least one environment")
+        full_capture = bool(torch.all(required_mask).item())
+        partial_capture = explicit_required_envs and not full_capture
+        if partial_capture:
+            if (
+                self._cb2h_vision_obs_cache is None
+                or self._cb2h_context_vision_obs_cache is None
+                or self._cb2h_camera_meta_cache is None
+            ):
+                raise RuntimeError(
+                    "C-B2H partial capture requires fully initialized camera caches"
+                )
+            non_target_mask = ~required_mask
+            if bool(torch.any(non_target_mask & ~self._cb2h_cache_valid).item()):
+                raise RuntimeError(
+                    "C-B2H partial capture requires valid non-target camera cache rows"
+                )
+            for name in ("left", "right", "head"):
+                captured = self._cb2h_ever_captured[name]
+                frame_id = self._cb2h_last_frame_id[name]
+                frame_s = self._cb2h_last_frame_s[name]
+                if bool(
+                    torch.any(
+                        non_target_mask
+                        & (~captured | (frame_id < 0) | (frame_s < 0.0))
+                    ).item()
+                ):
+                    raise RuntimeError(
+                        "C-B2H partial capture requires initialized non-target frame history"
+                    )
+        last_fast_capture = self._cb2h_last_capture_s["left"]
+        fast_due = (
+            not bool(torch.all(self._cb2h_ever_captured["left"]).item())
+            or last_fast_capture is None
+            or elapsed - last_fast_capture + 1.0e-12 >= fast_period
+        )
+        if not force and not fast_due:
+            self._refresh_c_b2h_camera_meta_cache(
+                required_mask=required_mask if partial_capture else None
+            )
+            return
+
+        def read_camera(sensor, name, expected_shape):
+            output = getattr(sensor.data, "output", None)
+            if output is None or "rgb" not in output:
+                raise RuntimeError(f"C-B2H {name} camera has no public RGB output")
+            rgb = validate_camera_rgb_output(
+                output["rgb"], (self.num_envs, *expected_shape, 3), name
+            )
+            frame = sensor.frame
+            if not torch.is_tensor(frame) or tuple(frame.shape) != (self.num_envs,):
+                raise RuntimeError(f"C-B2H {name} camera.frame must be [{self.num_envs}]")
+            if not bool(torch.all(frame > 0).item()):
+                raise RuntimeError(f"C-B2H {name} camera.frame is unavailable before first render")
+            frame = frame.to(device=self.sim_device, dtype=torch.int64)
+            previous = self._cb2h_last_frame_id[name]
+            captured = self._cb2h_ever_captured[name]
+            advanced = torch.where(captured, frame > previous, frame > 0)
+            if explicit_required_envs and bool(torch.any(required_mask & ~advanced).item()):
+                stale_envs = (required_mask & ~advanced).nonzero(as_tuple=False).flatten().tolist()
+                raise RuntimeError(
+                    f"C-B2H {name} camera.frame did not advance for required environments: "
+                    f"{stale_envs}"
+                )
+            if explicit_required_envs and partial_capture:
+                advanced_non_target = (~required_mask) & captured & (frame > previous)
+                if bool(torch.any(advanced_non_target).item()):
+                    advanced_envs = advanced_non_target.nonzero(as_tuple=False).flatten().tolist()
+                    raise RuntimeError(
+                        f"C-B2H {name} camera.frame advanced for non-target environments: "
+                        f"{advanced_envs}"
+                    )
+            return rgb.detach().clone(), frame.detach().clone(), advanced
+
+        left_rgb, left_frame, left_advanced = read_camera(
+            self.ego_camera, "left", (384, 216)
+        )
+        right_rgb, right_frame, right_advanced = read_camera(
+            self.policy_secondary_camera, "right", (384, 216)
+        )
+        if not bool(torch.equal(left_frame, right_frame)):
+            drift_envs = (left_frame != right_frame).nonzero(as_tuple=False).flatten().tolist()
+            raise RuntimeError(
+                "C-B2H left/right camera frames must be synchronized; "
+                f"drift_envs={drift_envs} left={left_frame.tolist()} right={right_frame.tolist()}"
+            )
+        if not bool(torch.equal(left_advanced, right_advanced)):
+            drift_envs = (left_advanced != right_advanced).nonzero(as_tuple=False).flatten().tolist()
+            raise RuntimeError(
+                "C-B2H left/right camera advance masks must be synchronized; "
+                f"drift_envs={drift_envs} left={left_advanced.tolist()} "
+                f"right={right_advanced.tolist()}"
+            )
+
+        vision_commit_mask = required_mask if explicit_required_envs else left_advanced
+        if (
+            not explicit_required_envs
+            and self._cb2h_vision_obs_cache is None
+            and bool(torch.any(~vision_commit_mask).item())
+        ):
+            raise RuntimeError(
+                "C-B2H initial normal capture requires synchronized fresh left/right rows"
+            )
+
+        def commit_frame(name, frame, advanced, commit_mask):
+            self._cb2h_last_frame_id[name] = torch.where(
+                commit_mask,
+                frame,
+                self._cb2h_last_frame_id[name],
+            )
+            self._cb2h_last_frame_s[name] = torch.where(
+                commit_mask & advanced,
+                torch.full_like(self._cb2h_last_frame_s[name], elapsed),
+                self._cb2h_last_frame_s[name],
+            )
+            self._cb2h_ever_captured[name] = torch.where(
+                commit_mask,
+                self._cb2h_ever_captured[name] | (frame > 0),
+                self._cb2h_ever_captured[name],
+            )
+
+        commit_frame("left", left_frame, left_advanced, vision_commit_mask)
+        commit_frame("right", right_frame, right_advanced, vision_commit_mask)
+        if bool(torch.any(vision_commit_mask).item()) and not partial_capture:
+            self._cb2h_last_capture_s["left"] = elapsed
+            self._cb2h_last_capture_s["right"] = elapsed
+
+        last_context_capture = self._cb2h_last_capture_s["head"]
+        context_due = (
+            not bool(torch.all(self._cb2h_ever_captured["head"]).item())
+            or last_context_capture is None
+            or elapsed - last_context_capture + 1.0e-12 >= context_period
+        )
+        head_commit_mask = torch.zeros_like(required_mask)
+        if force or context_due:
+            head_rgb, head_frame, head_advanced = read_camera(
+                self.policy_context_camera, "head", (136, 384)
+            )
+            if (
+                not explicit_required_envs
+                and self._cb2h_context_vision_obs_cache is None
+                and bool(torch.any(~head_advanced).item())
+            ):
+                raise RuntimeError(
+                    "C-B2H initial normal context capture requires fresh head rows"
+                )
+            head_commit_mask = required_mask if explicit_required_envs else head_advanced
+            commit_frame("head", head_frame, head_advanced, head_commit_mask)
+            context_vision_obs = normalize_head_context_rgb(
+                head_rgb,
+                resolution=(136, 384),
+                image_mean=cameras_cfg.image_mean,
+                image_std=cameras_cfg.image_std,
+            )
+            if self._cb2h_context_vision_obs_cache is None:
+                self._cb2h_context_vision_obs_cache = context_vision_obs
+            else:
+                self._cb2h_context_vision_obs_cache[head_commit_mask] = context_vision_obs[head_commit_mask]
+            if bool(torch.any(head_commit_mask).item()) and not partial_capture:
+                self._cb2h_last_capture_s["head"] = elapsed
+
+        vision_obs = compose_channel_stacked_dual_rgb(
+            left_rgb,
+            right_rgb,
+            resolution=(384, 216),
+            image_mean=cameras_cfg.image_mean,
+            image_std=cameras_cfg.image_std,
+        )
+        if self._cb2h_vision_obs_cache is None:
+            self._cb2h_vision_obs_cache = vision_obs
+        else:
+            self._cb2h_vision_obs_cache[vision_commit_mask] = vision_obs[vision_commit_mask]
+        cache_valid = (
+            self._cb2h_ever_captured["left"]
+            & self._cb2h_ever_captured["right"]
+            & self._cb2h_ever_captured["head"]
+        )
+        cache_commit_mask = vision_commit_mask | head_commit_mask
+        self._cb2h_cache_valid[cache_commit_mask] = cache_valid[cache_commit_mask]
+        self._refresh_c_b2h_camera_meta_cache(
+            required_mask=required_mask if partial_capture else None
+        )
+
+    def get_context_vision_image(self):
+        if (
+            self._policy_multiview is None
+            or self._policy_multiview["architecture_id"]
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            raise RuntimeError("C-B2H context vision requested outside the tri-view branch")
+        if self._cb2h_context_vision_obs_cache is None:
+            raise RuntimeError(
+                "C-B2H context_vision_obs requested before the first post-scene-update camera capture"
+            )
+        self._require_c_b2h_camera_cache_ready()
+        return self._cb2h_context_vision_obs_cache
+
+    def get_camera_meta(self):
+        if (
+            self._policy_multiview is None
+            or self._policy_multiview["architecture_id"]
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            raise RuntimeError("C-B2H camera_meta requested outside the tri-view branch")
+        if self._cb2h_camera_meta_cache is None:
+            raise RuntimeError(
+                "C-B2H camera_meta requested before the first post-scene-update camera capture"
+            )
+        self._require_c_b2h_camera_cache_ready()
+        return self._cb2h_camera_meta_cache
+
     def get_depth_image(self):
         if self.ego_camera is not None:
             # Get depth image from the ego camera
@@ -2296,6 +3153,31 @@ class IsaacSim(BaseSimulator):
                 device=self.sim_device,
                 dtype=torch.float,
             )
+
+    def prime_c_b2h_camera_cache(self, env_ids):
+        """Render and refresh reset environments before their next observation."""
+        if (
+            self._policy_multiview is None
+            or self._policy_multiview["architecture_id"]
+            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+        ):
+            return
+        if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype == torch.bool:
+            raise ValueError("C-B2H prime env_ids must be a one-dimensional integer tensor")
+        if env_ids.numel() == 0:
+            return
+        self.invalidate_c_b2h_camera_cache(env_ids)
+        self.ego_camera.reset(env_ids)
+        self.policy_secondary_camera.reset(env_ids)
+        self.policy_context_camera.reset(env_ids)
+        self.sim.render()
+        self.scene.update(dt=0.0)
+        self._capture_c_b2h_camera_cache(
+            force=True,
+            advance_time=False,
+            required_env_ids=env_ids,
+        )
+        self._require_c_b2h_camera_cache_ready()
 
     def compute_grad_norm(self):
         if hasattr(self.scene, "sensors") and "height_scanner" in self.scene.sensors:
@@ -2635,6 +3517,10 @@ class IsaacSim(BaseSimulator):
             self.sim.render()
         # update buffers at sim
         self.scene.update(dt=1.0 / self.simulator_config.sim.fps)
+        # C-B2H is the only branch that captures policy RGB.  The capture is
+        # deliberately after scene.update; observation getters only consume
+        # the resulting cache and never advance the simulation.
+        self._capture_c_b2h_camera_cache()
 
     def setup_viewer(self):
         self.viewer = self.viewport_camera_controller

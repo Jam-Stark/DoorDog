@@ -10,6 +10,7 @@ import pytest
 from hydra.core.override_parser.overrides_parser import OverridesParser
 
 from scriptsFORhuman.v20_R2 import _r2_common as common
+from scriptsFORhuman.v20_R2 import _r2_workflow as workflow
 from scriptsFORhuman.v20_R2._r2_workflow import (
     CONFIG_FILENAMES,
     GROUPS,
@@ -85,6 +86,47 @@ def test_m22_run_uuid_is_group_bound() -> None:
     assert _eval_run_uuid(mode="m22", group="G1", seed=0) == "m22-G1-seed0"
     with pytest.raises(common.R2Error, match="group-bound"):
         _eval_run_uuid(mode="m22", group=None, seed=0)
+
+
+def test_eval_command_binds_offline_first_episode_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkpoint = tmp_path / "model_step_002500.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    config = tmp_path / "base_v20_R2_G1_g2_continuation.yaml"
+    config.write_text(
+        "scientific_plan_id: base_v20_R1_policy_behavior_v1\n"
+        "admission_plan_id: base_v20_R2_admission_execution_v1\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        workflow,
+        "_source_lock_provenance",
+        lambda *_: {
+            "source_lock_sha256": "a" * 64,
+            "plan_sha256": "b" * 64,
+            "r1_plan_sha256": "c" * 64,
+            "b0_json_sha256": "d" * 64,
+            "b0_csv_sha256": "e" * 64,
+            "urdf_path": workflow.R1_URDF_PATH,
+            "urdf_sha256": "f" * 64,
+            "git_commit": "1" * 40,
+        },
+    )
+
+    argv, env, _ = workflow.eval_command(
+        repo_root=tmp_path, checkpoint=checkpoint, config=config, gpu=0, seed=0,
+        num_envs=16, output_root=tmp_path / "eval", mode="m22", group="G1",
+    )
+
+    assert "+algo.config.eval.eval_num_envs_episodes=true" in argv
+    assert env == {
+        "ACCELERATE_TORCH_DEVICE": "cuda:0",
+        "WANDB_MODE": "offline",
+    }
+    assert argv[-1] == (
+        f"+r2_command_sha256={workflow.hash_command_env(argv[:-1], env)}"
+    )
 
 
 def test_workflow_dag_schema_and_postformal_counts_are_explicit() -> None:

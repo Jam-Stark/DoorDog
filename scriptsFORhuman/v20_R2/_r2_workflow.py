@@ -348,6 +348,7 @@ def eval_command(
     overrides = [
         f"+checkpoint={checkpoint}", f"+num_envs={num_envs}", f"+seed={seed}",
         "+headless=true", "+r2_evidence_enabled=true",
+        "+algo.config.eval.eval_num_envs_episodes=true",
         f"+r2_bound_config_path={config}",
         f"+r2_bound_config_sha256={config_sha256}",
         f"+r2_resolved_config_sha256={config_sha256}",
@@ -361,6 +362,7 @@ def eval_command(
         module="gr00t.rl.eval_agent_trl", repo_root=repo_root, gpu=gpu,
         render=False, extra=overrides,
     )
+    env = {**env, "WANDB_MODE": "offline"}
     argv.append(f"+r2_command_sha256={hash_command_env(argv, env)}")
     return argv, env, {**binding, "mode": mode, "group": group, "seed": seed,
                        "num_envs": num_envs, "checkpoint_sha256": checkpoint_sha256,

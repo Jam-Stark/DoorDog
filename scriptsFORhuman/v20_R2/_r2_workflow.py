@@ -466,7 +466,7 @@ def _immutable_path(immutable: Mapping[str, Any], name: str, expected: str) -> s
 def _eval_run_uuid(*, mode: str, group: str | None, seed: int) -> str:
     if mode == "b0":
         return f"b0-B0-seed{seed}"
-    if mode in {"zero-shot", "pooled"}:
+    if mode in {"zero-shot", "pooled", "m22"}:
         if group is None:
             raise R2Error(f"{mode} evaluation requires a group-bound run UUID")
         return f"{mode}-{group}-seed{seed}"

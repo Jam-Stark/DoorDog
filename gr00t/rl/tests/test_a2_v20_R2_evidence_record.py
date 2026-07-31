@@ -178,7 +178,10 @@ def _actual_finalizer_record(
         obj.door_handle_drive_damping = torch.tensor([0.5])
         obj.door_handle_drive_stiffness = torch.tensor([50.0])
         obj.door_handle_drive_max_force = torch.tensor([20.0])
-        obj._r2_initial_root_pose_se2 = torch.tensor([[0.0, 0.0, 0.0]])
+        obj.target_robot_root_states = torch.tensor(
+            [[0.0, 0.0, 0.8, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
+        )
+        obj.env_origins = torch.zeros((1, 3))
     full_names = ("_r2_hinge_velocity_samples", "_r2_hinge_accel_samples", "_r2_hinge_jerk_samples", "_r2_arm_action_rate_samples", "_r2_arm_action_jerk_samples", "_r2_arm_share_samples", "_r2_positive_arm_samples", "_r2_positive_base_samples", "_r2_arc_position_samples", "_r2_arc_orientation_samples", "_r2_along_slip_samples", "_r2_orthogonal_residual_samples")
     mask_names = ("_r2_hinge_velocity_mask", "_r2_hinge_accel_mask", "_r2_hinge_jerk_mask", "_r2_arm_action_rate_mask", "_r2_arm_action_jerk_mask", "_r2_arm_share_mask", "_r2_positive_arm_mask", "_r2_positive_base_mask", "_r2_arc_position_mask", "_r2_arc_orientation_mask", "_r2_along_slip_mask", "_r2_orthogonal_residual_mask")
     for name in full_names:

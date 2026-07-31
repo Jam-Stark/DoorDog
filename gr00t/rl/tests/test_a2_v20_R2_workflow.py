@@ -14,6 +14,7 @@ from scriptsFORhuman.v20_R2._r2_workflow import (
     CONFIG_FILENAMES,
     GROUPS,
     M22_STEPS,
+    _eval_run_uuid,
     _hydra_mapping,
     r2_config_path,
     runtime_command,
@@ -78,6 +79,12 @@ def test_workflow_nested_hydra_provenance_round_trips() -> None:
         f"+provenance={encoded}"
     ).value()
     assert parsed == provenance
+
+
+def test_m22_run_uuid_is_group_bound() -> None:
+    assert _eval_run_uuid(mode="m22", group="G1", seed=0) == "m22-G1-seed0"
+    with pytest.raises(common.R2Error, match="group-bound"):
+        _eval_run_uuid(mode="m22", group=None, seed=0)
 
 
 def test_workflow_dag_schema_and_postformal_counts_are_explicit() -> None:

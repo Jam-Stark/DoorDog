@@ -7117,9 +7117,7 @@ class DoorPregrasp(
         self._r2_finalized = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
-        self._r2_initial_root_pose_se2 = torch.full(
-            (self.num_envs, 3), float("nan"), dtype=torch.float32, device=self.device
-        )
+
 
     def _reset_a2_v20_r2_evidence_buffers(self, env_ids: torch.Tensor) -> None:
         if not self._a2_v20_r2_evidence_enabled:
@@ -7156,7 +7154,7 @@ class DoorPregrasp(
         self._r2_opening_slip_max[env_ids] = 0.0
         self._r2_terminal_step[env_ids] = -1
         self._r2_finalized[env_ids] = False
-        self._r2_initial_root_pose_se2[env_ids] = float("nan")
+
         self._r2_current_arm_raw_action[env_ids] = 0.0
         self._r2_current_arm_raw_action_valid[env_ids] = False
         self._r2_last_scaled_components = {}
@@ -7690,20 +7688,37 @@ class DoorPregrasp(
             or float(door_open_lr[env_id].item()) not in (-1.0, 1.0)
         ):
             raise RuntimeError("R2 scenario door_open_lr must be a device-local -1/+1 tensor.")
-        initial_root_pose = self._r2_initial_root_pose_se2
+        target_root_states = self.target_robot_root_states
+        env_origins = self.env_origins
         if (
-            not torch.is_tensor(initial_root_pose)
-            or tuple(initial_root_pose.shape) != (self.num_envs, 3)
-            or not initial_root_pose.is_floating_point()
-            or initial_root_pose.device != torch.device(self.device)
-            or not torch.all(torch.isfinite(initial_root_pose[env_id]))
+            not torch.is_tensor(target_root_states)
+            or tuple(target_root_states.shape) != (self.num_envs, 13)
+            or not target_root_states.is_floating_point()
+            or target_root_states.device != torch.device(self.device)
+            or not torch.is_tensor(env_origins)
+            or tuple(env_origins.shape) != (self.num_envs, 3)
+            or env_origins.dtype != target_root_states.dtype
+            or env_origins.device != target_root_states.device
         ):
-            raise RuntimeError("R2 scenario requires a finite reset-time initial root SE(2) pose.")
+            raise RuntimeError(
+                "R2 scenario requires matching device-local reset target root states "
+                "and environment origins."
+            )
+        initial_root_state = target_root_states[env_id, :7]
+        if not torch.all(torch.isfinite(initial_root_state)):
+            raise RuntimeError("R2 scenario reset target root state contains non-finite values.")
+        qw, qx, qy, qz = initial_root_state[3:7].unbind()
+        initial_root_yaw = torch.atan2(
+            2.0 * (qw * qz + qx * qy),
+            1.0 - 2.0 * (qy.square() + qz.square()),
+        )
         scenario_without_id: dict[str, object] = {
             "door_open_lr": int(door_open_lr[env_id].item()),
             **values,
             "initial_root_pose_se2": [
-                float(value) for value in initial_root_pose[env_id].detach().cpu().tolist()
+                float((initial_root_state[0] - env_origins[env_id, 0]).item()),
+                float((initial_root_state[1] - env_origins[env_id, 1]).item()),
+                float(initial_root_yaw.item()),
             ],
         }
         import hashlib
@@ -20686,34 +20701,6 @@ class DoorPregrasp(
         self._reset_a2_v20_r2_evidence_buffers(env_ids)
         return super()._reset_buffers_callback(env_ids, target_buf)
 
-    @override
-    def _post_reset_callback(self, env_ids):
-        if self._use_a2_base and self._a2_v20_r2_evidence_enabled:
-            target_root_states = self.target_robot_root_states
-            env_origins = self.env_origins
-            if (
-                not torch.is_tensor(target_root_states)
-                or tuple(target_root_states.shape) != (self.num_envs, 13)
-                or not target_root_states.is_floating_point()
-                or target_root_states.device != torch.device(self.device)
-                or not torch.is_tensor(env_origins)
-                or tuple(env_origins.shape) != (self.num_envs, 3)
-                or env_origins.dtype != target_root_states.dtype
-                or env_origins.device != target_root_states.device
-            ):
-                raise RuntimeError(
-                    "R2 reset-time root provenance requires matching device-local "
-                    "target root state and environment-origin tensors."
-                )
-            root_pose = target_root_states[env_ids, :7]
-            if not torch.all(torch.isfinite(root_pose)):
-                raise RuntimeError("R2 reset-time root provenance contains non-finite values.")
-            _, _, root_yaw = euler_xyz_from_quat(root_pose[:, 3:7])
-            self._r2_initial_root_pose_se2[env_ids, :2] = (
-                root_pose[:, :2] - env_origins[env_ids, :2]
-            )
-            self._r2_initial_root_pose_se2[env_ids, 2] = root_yaw
-        return super()._post_reset_callback(env_ids)
 
     @override
     def _reset_object_states_callback(self, env_ids):

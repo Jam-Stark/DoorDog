@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
-from omegaconf import OmegaConf
+from hydra.core.override_parser.overrides_parser import OverridesParser
 
 from scriptsFORhuman.v20_R2 import _r2_common as common
 from scriptsFORhuman.v20_R2._r2_workflow import (
@@ -74,10 +74,9 @@ def test_workflow_nested_hydra_provenance_round_trips() -> None:
         },
     }
     encoded = _hydra_mapping(provenance)
-    parsed = OmegaConf.to_container(
-        OmegaConf.from_dotlist([f"provenance={encoded}"]).provenance,
-        resolve=True,
-    )
+    parsed = OverridesParser.create().parse_override(
+        f"+provenance={encoded}"
+    ).value()
     assert parsed == provenance
 
 

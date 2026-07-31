@@ -496,9 +496,15 @@ def _hydra_mapping(payload: Mapping[str, Any]) -> str:
         raise R2Error("Hydra provenance mappings must not be empty")
     entries = []
     for key, value in payload.items():
-        if not isinstance(key, str) or not key:
-            raise R2Error("Hydra provenance mapping keys must be non-empty strings")
-        entries.append(f"{json.dumps(key)}:{_hydra_value(value)}")
+        if (
+            not isinstance(key, str)
+            or not key
+            or not key.isascii()
+            or not (key[0].isalpha() or key[0] == "_")
+            or any(not (char.isalnum() or char == "_") for char in key)
+        ):
+            raise R2Error("Hydra provenance mapping keys must be ASCII identifiers")
+        entries.append(f"{key}:{_hydra_value(value)}")
     return "{" + ",".join(entries) + "}"
 
 

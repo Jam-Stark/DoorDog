@@ -214,8 +214,19 @@ def _actual_finalizer_record(
     obj._r2_over_force_count = torch.zeros(1, dtype=torch.long)
     obj._r2_finalized = torch.zeros(1, dtype=torch.bool)
     if runtime_context:
-        obj._finalize_a2_v20_r2_terminal_episodes(torch.tensor([0], dtype=torch.long))
-        record = json.loads((tmp_path / "actual-records.jsonl").read_text().splitlines()[0])
+        terminal_ids = torch.tensor([0], dtype=torch.long)
+        obj._finalize_a2_v20_r2_terminal_episodes(terminal_ids)
+        trace_rows = obj._r2_trace_rows[0]
+        trace_path = obj._r2_trace_path_by_env[0]
+        obj._reset_a2_v20_r2_evidence_buffers(terminal_ids)
+        assert obj._r2_finalized.tolist() == [True]
+        assert obj._r2_trace_rows[0] is trace_rows
+        assert obj._r2_trace_path_by_env[0] == trace_path
+        obj._capture_a2_v20_r2_step_trace()
+        obj._finalize_a2_v20_r2_terminal_episodes(terminal_ids)
+        staging_lines = (tmp_path / "actual-records.jsonl").read_text().splitlines()
+        assert len(staging_lines) == 1
+        record = json.loads(staging_lines[0])
     else:
         record = obj.finalize_a2_v20_r2_episode_record(0)
     staged = json.loads((tmp_path / "actual-records.jsonl").read_text().splitlines()[0])

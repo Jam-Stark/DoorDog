@@ -7131,6 +7131,12 @@ class DoorPregrasp(
             or torch.any(env_ids >= self.num_envs)
         ):
             raise RuntimeError("R2 evidence reset requires valid device-local env ids.")
+        # Formal R2 evidence is first-episode-only.  The environment resets
+        # terminal envs inside env.step(), before the eval trainer can latch
+        # their completion, so finalized envs must keep their evidence closed.
+        env_ids = env_ids[~self._r2_finalized[env_ids]]
+        if env_ids.numel() == 0:
+            return
         full_evidence = bool(getattr(self, "_a2_v20_r2_full_evidence_enabled", True))
         self._r2_pre_cross_step_count[env_ids] = 0
         self._r2_bilateral_count[env_ids] = 0
@@ -7153,8 +7159,6 @@ class DoorPregrasp(
         self._r2_held_hinge_max[env_ids] = 0.0
         self._r2_opening_slip_max[env_ids] = 0.0
         self._r2_terminal_step[env_ids] = -1
-        self._r2_finalized[env_ids] = False
-
         self._r2_current_arm_raw_action[env_ids] = 0.0
         self._r2_current_arm_raw_action_valid[env_ids] = False
         self._r2_last_scaled_components = {}
@@ -7491,6 +7495,8 @@ class DoorPregrasp(
             return
         if not bool(getattr(self, "_a2_v20_r2_full_evidence_enabled", True)):
             return
+        if bool(torch.all(self._r2_finalized).item()):
+            return
         frame_data = self._get_a2_v20_frame_data("R2 step trace")
         root_se2 = self._a2_v20_current_root_se2(frame_data)
         hinge_pos = self._get_door_joint_pos("R2 step trace", 1)[:, 0]
@@ -7504,6 +7510,8 @@ class DoorPregrasp(
         release_event = self._a2_release_event_valid
         run_uuid = self._r2_required_provenance()["run_uuid"]
         for env_id in range(self.num_envs):
+            if bool(self._r2_finalized[env_id].item()):
+                continue
             step = int(step_index[env_id].item())
             rows = self._r2_trace_rows[env_id]
             if step != len(rows):
@@ -7966,6 +7974,8 @@ class DoorPregrasp(
         if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype != torch.long:
             raise RuntimeError("R2 finalizer requires a one-dimensional long env id tensor.")
         for env_id in env_ids.tolist():
+            if bool(self._r2_finalized[env_id].item()):
+                continue
             self.finalize_a2_v20_r2_episode_record(
                 int(env_id),
                 scenario=self._r2_runtime_scenario(int(env_id)),

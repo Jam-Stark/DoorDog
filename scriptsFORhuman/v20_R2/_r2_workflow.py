@@ -17,6 +17,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping, Sequence
+from urllib.parse import urljoin
 
 from ._r2_common import (
     ADJUDICATOR_STATES,
@@ -107,6 +108,7 @@ def _schema_store() -> dict[str, Any]:
         schema_id = payload.get("$id")
         if isinstance(schema_id, str):
             store[schema_id] = payload
+            store[urljoin(path.as_uri(), schema_id)] = payload
     return store
 
 

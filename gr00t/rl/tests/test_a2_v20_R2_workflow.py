@@ -61,6 +61,20 @@ def test_workflow_device_config_and_group_ownership_contracts() -> None:
     assert set(CONFIG_FILENAMES) == set(GROUPS)
 
 
+def test_schema_store_registers_file_resolved_ids() -> None:
+    episode_schema = json.loads(
+        (SCHEMA_ROOT / "episode_record_v1.schema.json").read_text(encoding="utf-8")
+    )
+    resolved_id = (SCHEMA_ROOT / episode_schema["$id"]).as_uri()
+    assert workflow._schema_store()[resolved_id] == episode_schema
+
+
+def test_canonical_json_accepts_only_finite_floats() -> None:
+    assert common.canonical_json_bytes({"scale": 0.85}) == b'{"scale":0.85}'
+    with pytest.raises(common.R2Error, match="NaN or Infinity"):
+        common.canonical_json_bytes({"scale": float("nan")})
+
+
 def test_workflow_nested_hydra_provenance_round_trips() -> None:
     provenance = {
         "run_uuid": "m22-G1-seed16",

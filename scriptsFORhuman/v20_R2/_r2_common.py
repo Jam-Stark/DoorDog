@@ -91,8 +91,10 @@ def _finite(value: Any, *, path: str = "$", allow_bool: bool = True) -> None:
         if not allow_bool:
             raise R2Error(f"{path} must be a finite number, not bool")
         return
-    if isinstance(value, float) and not math.isfinite(value):
-        raise R2Error(f"{path} contains NaN or Infinity")
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise R2Error(f"{path} contains NaN or Infinity")
+        return
     if isinstance(value, (str, int)) or value is None:
         return
     if isinstance(value, Mapping):

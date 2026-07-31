@@ -2,7 +2,7 @@
 name: push-open-door-optimization
 scope: A2+Piper full-stage push-open-door RL optimization from base_v9 onward
 status: active
-last_updated: 2026-07-30 21:13 HKT
+last_updated: 2026-08-01 05:31 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/push-open-door-optimization/description.md
@@ -23,6 +23,7 @@ read_when:
 
 ## Current State
 
+- 2026-08-01 05:31 HKT - base_v20 R3 handoff推荐Route A已完成。修复链fe090a7→7a0835f→e9a8957→df90ab8→823f2b6→f8e3197后，最终P0 27/27 STATIC_PASS、G1 step2500 smoke 16-record STRICT_VALID。70/70 checkpoint canonical16均natural exit0/record-set STRICT_VALID；1120 episodes goal/crossing/held=1055/1097/1093。代表性G1-2500/G4-750/G6-2500/G7-2500 render全部natural exit0，共7 records/21个1280×720@20fps MP4，OpenCV full decode 13,203帧PASS。小topology render须append +algo.config.num_mini_batches=1；异常teardown可能忽略SIGINT/SIGTERM。eval GPU0–6、render GPU0–3、GPU7未用、W&B offline。Route B DAG/pooled48/holdout64/final-analysis未运行。
 - 2026-07-31 HKT - R3训练完成+eval路径部分修复，eval移交下一session。`ACTIVE_SOURCE_LOCK`已重新冻结到`d343b24`（含`f7190d7`运行时修复，与训练/评估源码一致；`815d2d8`旧lock归档`_stale_*`），P0在`d343b24` 27/27全过、签发新`P0_STATIC_PASS`+`ACTIVE_SOURCE_LOCK`。eval路径（`eval_agent_trl`+`_r2_workflow`）从未真跑，smoke eval（G1 step2500,16env,canonical16）暴露并修复3处runtime bug（`79a28f9`：`_source_lock_provenance`解包ACTIVE_SOURCE_LOCK、`eval_agent_trl._validate_r2_runtime_bindings`解包、`_canonical_config_sha256`加`default=str`），已过init+跑完episode。**未决bug（下一session入口）：`door_open_a2_base.py:7653` `finalize_a2_v20_r2_episode_record`要求topology/scenario/factor/phase四个mapping（`:7644-7652`从参数或provenance取），smoke eval手撸override未传→fail-fast；修法=workflow在eval_command/provenance注入这四个mapping（topology见`:7655-7664` setdefault，scenario/factor/phase需查`_r2_required_provenance`与canonical16/m22 provenance契约），属R2 evidence finalizer provenance契约缺口，非reward问题。**详细见`scriptsFORhuman/a2_piper_base_v20_R3_change_log_20260731.md` §10（含eval smoke可复用命令）。
 - 2026-07-31 HKT - R3正式训练完成：7组G1–G7各1×4096 env/2500 batches，独立tmux session、GPU0–6、wandb online，全部`exit 0`且产出`model_step_002500.pt`最终checkpoint，目录`logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G{1..7}-20260731_*`，launcher`logs_rl/launchers/base_v20_R3_formal_20260730/G{1..7}.{sh,launch.log,exit_code}`。R2/R3全部源码改动已提交至`f7190d7`；**详细溯源文档`scriptsFORhuman/a2_piper_base_v20_R3_change_log_20260731.md`**按「是否影响reward语义」分级（A级=crossing-mode守卫/staged-reset顺序/termination float，B级=R2 evidence telemetry，C级=admission/eval工具链），含git bisect/revert/hunk级回溯手册。注意：`ACTIVE_SOURCE_LOCK`冻结于`815d2d8`，不含`f7190d7`运行时修复，严格eval前需重新freeze使lock与训练源码一致。下一步：按v20 R2/R3方案eval。
 - 2026-07-31 00:45 HKT - R2 static admission PASS后，R3正式训练启动阶段连续暴露5个runtime bug（P0静态无法覆盖，只有真跑训练才触发）：(1)`_init_a2_v20_r2_evidence_buffers`引用`self.reward_scales`（__init__时未赋值）→改用`self.config.rewards.reward_scales`兜底；(2)`_after_reward_components`要求config reward_scales与env实际raw_components精确一致→改为expected跟随raw_components并动态扩展累积器；(3)`termination` raw component为bool(int64)，R2校验强制float32→放宽dtype校验（float才校验finite）+`_reward_termination()`返回`.float()`；(4)reset边界`episode_length_buf=0`→`step_index=-1`越界→clamp+step_mask屏蔽；(5)`average_meters.mean()`对bool tensor崩→bool转float。**Durable process lesson（用户指示）：改完任何env/reward/evidence代码后，必须先跑`num_envs=64 + num_total_batches=10`的smoke test（单组、单GPU、快速）确认无runtime错误，再铺全部7组正式训练；不要在未smoke的情况下直接铺7组。** wandb用online模式（用户可实时监控）。已清理36个崩溃训练残留目录+失败launcher日志。

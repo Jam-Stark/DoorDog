@@ -216,3 +216,11 @@ R3 eval 管线（`eval_agent_trl.py` + `_r2_workflow.py`，eval-pipeline 在 `14
 
 ### 10.3 eval smoke 验证过的路径（可复用）
 `workflow.eval_command(repo_root, checkpoint, config, gpu, seed, num_envs, output_root, mode="canonical16", group)` 能正确构建 eval argv（source lock 解包后 provenance 正确，含 `git_commit` 与 lock 一致）。`/tmp/smoke_eval_g1_run.py`（本 repo 外用）演示 build+run+读 record。eval 命令形如 `python -B -m gr00t.rl.eval_agent_trl +checkpoint=<ckpt> +num_envs=16 +seed=0 +headless=true +r2_evidence_enabled=true +r2_bound_config_path=<cfg> +r2_bound_config_sha256=<sha> +r2_resolved_config_sha256=<sha> +env.config.a2_v20_R2_trace_root=<out>/traces +env.config.a2_v20_R2_record_set_staging_path=<out>/record_set.staging.jsonl +env.config.a2_v20_R2_provenance={...} +env.config.a2_v20_R2_group=G1 +r2_command_sha256=<sha>`。
+
+## 11. Route A eval/render 完成（2026-08-01 05:31 HKT）
+
+- Eval evidence/runtime 修复提交为 fe090a7、7a0835f、e9a8957、df90ab8、823f2b6、f8e3197；属于 B/C 级 evidence/eval 工具链改动，不改变 PPO reward 科学取值。最终 P0 对 f8e3197 为 27/27 STATIC_PASS，G1 step2500 smoke 的 16-record set 为 runtime STRICT_VALID。
+- Route A artifact root 为 logs_eval/base_v20_R2/m22_r3_route_a_f8e3197_offline_20260801/。70/70 checkpoints 均 natural exit 0 且 record set STRICT_VALID；1120 episodes 的 goal/crossing/held-crossing 为 1055/1097/1093，group goal G1–G7 为 157/155/150/145/153/143/152（各 160）。
+- 代表性 render 为 G1-2500、G4-750、G6-2500、G7-2500。成功 root renders_retry2/ 含 4 个 natural exit-zero receipts、7 records、21 个 1280×720@20fps MP4；OpenCV full decode 共 13,203 帧 PASS。
+- Render durable gotcha：1/2/3-env topology 不能继承 num_mini_batches=4，否则 trainer 初始化 exact_div fail-fast；异常 teardown 可能忽略 SIGINT/SIGTERM。Hydra append +algo.config.num_mini_batches=1 后自然完成。
+- 资源边界：eval GPU0–6、render GPU0–3、GPU7 未使用；本轮全部 WANDB_MODE=offline。仅关闭推荐 Route A；pre-formal DAG marker、pooled48、holdout64、Route B final analysis 未运行。

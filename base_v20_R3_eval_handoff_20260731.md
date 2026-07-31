@@ -3,9 +3,18 @@
 **Date:** 2026-07-31 HKT
 **Branch:** `A2_Piper`（工作树干净，HEAD=`d620edc`）
 **交接目标：** 另一个 session 接续，按 **v20 R2/R3 方案对已完成 formal 训练的 7 组 checkpoint 做 eval**。
-**一句话状态：** R2 admission（P0）已通过、R3 正式训练（7 组 G1–G7 × 2500 batch）已全部 `exit 0` 完成、源码改动已提交并有溯源文档、source lock 已重冻结到与训练源码一致。**Eval 是唯一未完成的阶段**，当前卡在一个已定位的 R2 evidence finalizer bug 上。
+**一句话状态（2026-08-01 05:31 HKT 更新）：** 本 handoff 推荐 Route A 已完成：R2 evidence/eval 缺陷已修复，70/70 checkpoint canonical16 eval 与 4 个代表性 checkpoint render 已完成；Route B 的严格 DAG、pooled48、holdout64、final-analysis 未执行，也不由本结果隐含。
 
 ---
+
+## 2026-08-01 Route A 完成增补（最新状态）
+
+- Source/runtime 修复链：fe090a7、7a0835f、e9a8957、df90ab8、823f2b6、f8e3197。最终 source lock/P0 绑定 f8e3197，P0 为 27/27 STATIC_PASS；G1 step2500 smoke 产出 16-record STRICT_VALID record set。
+- 70-checkpoint Route A eval：logs_eval/base_v20_R2/m22_r3_route_a_f8e3197_offline_20260801/。70/70 process natural exit 0、70/70 record set STRICT_VALID，共 1120 episodes；goal 1055/1120、crossing 1097/1120、held-crossing 1093/1120。各组 goal G1–G7 为 157/155/150/145/153/143/152（各 160）。汇总见 ROUTE_A_METRICS.json/csv。
+- 代表性 checkpoint：G1 step2500（最强组 endpoint）、G4 step750（goal 11/16 而 crossing/held 16/16）、G6 step2500（full model，含 isolated upper-DOF overspeed 对照）、G7 step2500（full seed replicate endpoint）。
+- Render 成功产物在 renders_retry2/：4 个 process 全部 natural exit 0，7 条 first-episode record、21 个 1280×720@20fps MP4，OpenCV 全量解码 13,203 帧 PASS。执行与 QA 见 RENDER_EXECUTION.json、RENDER_MEDIA_QA.json。
+- Render gotcha：小 topology 继承 num_mini_batches=4 会在 trainer init fail-fast，Isaac Sim teardown 还可能忽略 SIGINT/SIGTERM 持续空转。retry2 以 Hydra append +algo.config.num_mini_batches=1 自然完成；失败尝试保留为独立 evidence，不当作成功 receipt。
+- 资源与边界：eval 使用 GPU0–6、render 使用 GPU0–3，GPU7 未使用；本轮全部 WANDB_MODE=offline。Route B DAG、pooled48、holdout64、final analysis 未运行，1120 episodes 的确定性 first-episode sweep不构成额外 statistical proof。
 
 ## 0. 你（下一 session）的第一步
 
@@ -20,7 +29,7 @@
 - **GPU 仅用物理 `cuda:0..6`；GPU7 绝对禁止**（任何 argv/env/config/receipt 出现 `cuda:7`/`GPU7` 即 fail-fast）。非 render 用 `ACCELERATE_TORCH_DEVICE=cuda:N` 且**不设** `CUDA_VISIBLE_DEVICES`；render 用 `CUDA_VISIBLE_DEVICES=N` + 逻辑 `cuda:0`。
 - **fail-fast**：不加多余 guard/fallback/silent catch/type suppression；invalid state 直接 raise。
 - **smoke-first（用户硬性要求）：** 改任何 env/reward/evidence/eval 代码后，先跑 `num_envs=64 + num_total_batches=10` 的单组单卡 smoke（或单 checkpoint 16env eval smoke）确认无 runtime 错误，再铺全量。
-- **wandb 用 online 模式**（用户实时监控）。
+- **wandb 用 offline 模式**（2026-08-01 用户最新指示，supersede 原 online 约束）。
 - Python：`/home/baoquanc/anaconda3/envs/isaaclab/bin/python`（`-B`）；`PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper`。
 
 ---
@@ -98,7 +107,7 @@ python -B -m gr00t.rl.eval_agent_trl \
 - 溯源文档：`scriptsFORhuman/a2_piper_base_v20_R3_change_log_20260731.md`（§10 eval 交接）
 - R2 计划：`scriptsFORhuman/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md`
 
-**Git 状态：** 工作树干净（HEAD=`d620edc`）。注意：repo 根有 3 个 LFS 指针 zip（`base_v20_P1_*`/`base_v20_R1_static_admission_blocker_handoff_*.zip`）在工作树显示 deleted——**与本任务无关，不要提交它们的删除**。
+**Git 状态（历史交接）：** 原交接记录 HEAD=d620edc。2026-08-01 按用户明确要求，3 个已跟踪 zip 的删除已随 7a0835f 提交，不再是待保留 dirty state。
 
 ---
 
@@ -107,7 +116,7 @@ python -B -m gr00t.rl.eval_agent_trl \
 1. finalizer bug 修复，单 checkpoint eval（G1 step2500, 16env）产出合法 record_set。
 2. 70 个 checkpoint（或至少 7 组 step2500）eval 完成，每组 goal/crossing/held 指标落盘。
 3. 按 smoke-first：每次代码改动后先 smoke 再铺全量。
-4. GPU0–6 only、GPU7 禁用、wandb online。
+4. GPU0–6 only、GPU7 禁用、wandb offline（用户最新约束）。
 5. 结果与改动同步进 memory +（如改源码）追加到 change_log §10。
 
 祝顺利。有溯源文档 §7 的 git 手册可助你定位任何回归。

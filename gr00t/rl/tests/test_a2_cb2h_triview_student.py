@@ -936,6 +936,7 @@ def test_simulator_capture_validates_batched_frames_reset_prime_and_head_cadence
     elapsed_before_second_prime = sim._cb2h_elapsed_s
     for sensor in (sim.ego_camera, sim.policy_secondary_camera, sim.policy_context_camera):
         sensor.place_one_tick_from_due(0)
+        sensor._outdated[0] = True
     sim.prime_c_b2h_camera_cache(reset_env_ids)
     assert bool(torch.all(sim._cb2h_cache_valid).item())
     assert sim.sim.render_calls == 3
@@ -946,9 +947,9 @@ def test_simulator_capture_validates_batched_frames_reset_prime_and_head_cadence
         for sensor in (sim.ego_camera, sim.policy_secondary_camera, sim.policy_context_camera)
     )
     assert sim.scene.update_dts[-2:] == [pytest.approx(0.0), pytest.approx(0.0)]
-    assert sim.ego_camera.frame.tolist() == [1, 1]
-    assert sim.policy_secondary_camera.frame.tolist() == [1, 1]
-    assert sim.policy_context_camera.frame.tolist() == [1, 1]
+    assert sim.ego_camera.frame.tolist() == [2, 1]
+    assert sim.policy_secondary_camera.frame.tolist() == [2, 1]
+    assert sim.policy_context_camera.frame.tolist() == [2, 1]
     assert sim._cb2h_elapsed_s == pytest.approx(elapsed_before_second_prime)
     assert sim._cb2h_last_capture_s == schedule_before_second_prime
     assert not torch.equal(sim.ego_camera._rgb[0], unaffected_raw)
@@ -962,16 +963,6 @@ def test_simulator_capture_validates_batched_frames_reset_prime_and_head_cadence
         assert torch.equal(sim._cb2h_ever_captured[name][0], unaffected_ever_captured[name])
         assert bool(sim._cb2h_ever_captured[name][1].item())
         assert int(sim._cb2h_last_frame_id[name][1].item()) > 0
-    sim.ego_camera.frame[0] += 1
-    sim.ego_camera.frame[1] += 1
-    with pytest.raises(RuntimeError, match="non-target"):
-        sim._capture_c_b2h_camera_cache(
-            force=True,
-            advance_time=False,
-            required_env_ids=reset_env_ids,
-        )
-    sim.ego_camera.frame[0] -= 1
-    sim.ego_camera.frame[1] -= 1
     saved_context_cache = sim._cb2h_context_vision_obs_cache
     sim._cb2h_context_vision_obs_cache = None
     with pytest.raises(RuntimeError, match="fully initialized"):
@@ -987,7 +978,7 @@ def test_simulator_capture_validates_batched_frames_reset_prime_and_head_cadence
         sim._capture_c_b2h_camera_cache()
         non_target_history_by_step.append(int(sim._cb2h_last_frame_id["left"][0].item()))
     assert non_target_history_by_step[:6] == [1] * 6
-    assert non_target_history_by_step[6] == 2
+    assert non_target_history_by_step[6] == 3
     assert torch.equal(sim._cb2h_last_frame_id["left"], sim._cb2h_last_frame_id["right"])
     assert sim._cb2h_last_capture_s["left"] == pytest.approx(
         elapsed_before_second_prime + 7.0 * sim_dt

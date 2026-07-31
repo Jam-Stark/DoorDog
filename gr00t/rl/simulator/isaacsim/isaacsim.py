@@ -2980,14 +2980,6 @@ class IsaacSim(BaseSimulator):
                     f"C-B2H {name} camera.frame did not advance for required environments: "
                     f"{stale_envs}"
                 )
-            if explicit_required_envs and partial_capture:
-                advanced_non_target = (~required_mask) & captured & (frame > previous)
-                if bool(torch.any(advanced_non_target).item()):
-                    advanced_envs = advanced_non_target.nonzero(as_tuple=False).flatten().tolist()
-                    raise RuntimeError(
-                        f"C-B2H {name} camera.frame advanced for non-target environments: "
-                        f"{advanced_envs}"
-                    )
             return rgb.detach().clone(), frame.detach().clone(), advanced
 
         left_rgb, left_frame, left_advanced = read_camera(

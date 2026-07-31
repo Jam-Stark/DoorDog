@@ -52,6 +52,8 @@ class TensorAverageMeter:
         if cat.numel() == 0:
             return 0
         else:
+            if cat.dtype == torch.bool:
+                cat = cat.float()
             return cat.mean()
 
     def clear(self):

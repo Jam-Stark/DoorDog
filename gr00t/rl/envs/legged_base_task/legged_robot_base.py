@@ -1992,7 +1992,7 @@ class LeggedRobotBase(BaseTask):
 
     def _reward_termination(self):
         # Terminal reward / penalty
-        return self.reset_buf * ~self.time_out_buf
+        return (self.reset_buf * ~self.time_out_buf).float()
 
     def _reward_penalty_torques(self):
         # Penalize torques

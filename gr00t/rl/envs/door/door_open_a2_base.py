@@ -7050,7 +7050,7 @@ class DoorPregrasp(
         )
         self._r2_reward_component_sums = {
             name: torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
-            for name in self.reward_scales
+            for name in (getattr(self, "reward_scales", None) or getattr(self.config.rewards, "reward_scales", None) or ())
         }
         self._r2_reward_steps = torch.zeros(
             self.num_envs, dtype=torch.long, device=self.device
@@ -7229,14 +7229,16 @@ class DoorPregrasp(
         if not math.isfinite(dt) or dt <= 0.0:
             raise RuntimeError(f"R2 evidence requires positive finite control dt; got {self.dt!r}.")
         step_index = self.episode_length_buf - 1
-        if (
-            not torch.is_tensor(step_index)
-            or step_index.shape != (self.num_envs,)
-            or step_index.dtype != torch.long
-            or torch.any(step_index < 0)
-            or torch.any(step_index >= self._r2_max_episode_length)
-        ):
+        valid_step = (
+            torch.is_tensor(step_index)
+            and step_index.shape == (self.num_envs,)
+            and step_index.dtype == torch.long
+        )
+        if not valid_step:
             raise RuntimeError("R2 evidence sample index is outside the episode array contract.")
+        # reset boundary: episode_length_buf==0 => step_index==-1; skip those envs
+        step_mask = (step_index >= 0) & (step_index < self._r2_max_episode_length)
+        step_index = torch.clamp(step_index, 0, self._r2_max_episode_length - 1)
 
         opening = (self.stage_buf >= self.STAGE_OPEN) & (self.stage_buf <= self.STAGE_SWING)
         send_ready = self._get_a2_v20_send_ready_buffer("R2 evidence accumulator")
@@ -7270,7 +7272,7 @@ class DoorPregrasp(
         # M48 smoothness is conditioned on the physically opening hinge; a
         # stationary or closing hinge is not a positive-progress sample.
         valid_hinge = (
-            opening & hold_ok & ~release & (hinge_vel > 0.0) & torch.isfinite(hinge_vel)
+            opening & hold_ok & ~release & (hinge_vel > 0.0) & torch.isfinite(hinge_vel) & step_mask
         )
         if torch.any(valid_hinge & ~torch.isfinite(hinge_pos)):
             raise RuntimeError("R2 hinge position is non-finite on a valid sample.")
@@ -10156,11 +10158,20 @@ class DoorPregrasp(
         """Accumulate exact reward components for R2 without changing reward semantics."""
         if not self._a2_v20_r2_evidence_enabled:
             return None
-        expected = tuple(self._r2_reward_component_sums)
-        if set(raw_components) != set(expected) or set(scaled_components) != set(expected):
+        # raw_components is the authoritative set of reward terms the env
+        # actually computed this step. Config reward_scales may list terms that
+        # are not active in this env, so expected must follow raw_components,
+        # not the config list. Expand the accumulator for any new names.
+        expected = tuple(raw_components)
+        for name in expected:
+            if name not in self._r2_reward_component_sums:
+                self._r2_reward_component_sums[name] = torch.zeros(
+                    self.num_envs, dtype=torch.float32, device=self.device
+                )
+        if set(scaled_components) != set(expected):
             raise RuntimeError(
                 "R2 reward hook requires exact reward-name coverage; "
-                f"expected={expected}, raw={tuple(raw_components)}, scaled={tuple(scaled_components)}."
+                f"expected={expected}, scaled={tuple(scaled_components)}."
             )
         total_positive = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         positive_a = torch.zeros_like(total_positive)
@@ -10169,13 +10180,15 @@ class DoorPregrasp(
         for name in expected:
             raw_value = raw_components[name]
             scaled_value = scaled_components[name]
+            if torch.is_tensor(scaled_value) and scaled_value.dtype == torch.bool:
+                scaled_value = scaled_value.float()
             for value_name, value in (("raw", raw_value), ("scaled", scaled_value)):
+                is_float = torch.is_tensor(value) and value.is_floating_point()
                 if (
                     not torch.is_tensor(value)
                     or tuple(value.shape) != (self.num_envs,)
-                    or not value.is_floating_point()
                     or value.device != torch.device(self.device)
-                    or not torch.all(torch.isfinite(value))
+                    or (is_float and not torch.all(torch.isfinite(value)))
                 ):
                     shape = None if not torch.is_tensor(value) else tuple(value.shape)
                     dtype = None if not torch.is_tensor(value) else value.dtype

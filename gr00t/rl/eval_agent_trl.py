@@ -133,6 +133,10 @@ def _validate_r2_runtime_bindings(config, *, require_formal_bundle=False):
         lock = json.loads(source_lock.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise ValueError("R2 active source lock is not valid JSON") from exc
+    # ACTIVE_SOURCE_LOCK.json wraps the frozen source lock under "source_lock";
+    # unwrap so the binding validates the actual SOURCE_FROZEN lock P0 adjudicated.
+    if isinstance(lock, dict) and lock.get("schema") == "a2_piper_base_v20_R2_active_source_lock_v1":
+        lock = lock.get("source_lock")
     if not isinstance(lock, dict) or lock.get("schema") != "a2_piper_base_v20_R2_source_lock_v1" or lock.get("producer_state") != "SOURCE_FROZEN":
         raise ValueError("R2 evaluation requires a SOURCE_FROZEN active source lock.")
     git = lock.get("git")
@@ -227,6 +231,7 @@ def _canonical_config_sha256(config) -> str:
         sort_keys=True,
         separators=(",", ":"),
         allow_nan=False,
+        default=str,
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 

@@ -391,11 +391,16 @@ def _checkpoint_step(checkpoint: Path) -> int:
 
 
 def _source_lock_provenance(repo_root: Path | str, config_text: str) -> dict[str, str]:
-    source_lock = read_artifact(
-        root_path(repo_root, _source_lock_path_from_config(config_text)),
-        schema="a2_piper_base_v20_R2_source_lock_v1",
-        producer_state="SOURCE_FROZEN",
-    )
+    _lock_path = root_path(repo_root, _source_lock_path_from_config(config_text))
+    source_lock = load_json(validate_regular_file(_lock_path, label="R2 active source lock"))
+    # ACTIVE_SOURCE_LOCK.json wraps the frozen source lock under "source_lock";
+    # unwrap so provenance binds the actual SOURCE_FROZEN lock P0 adjudicated.
+    if isinstance(source_lock, Mapping) and source_lock.get("schema") == "a2_piper_base_v20_R2_active_source_lock_v1":
+        source_lock = source_lock.get("source_lock")
+    if not isinstance(source_lock, Mapping) or source_lock.get("schema") != "a2_piper_base_v20_R2_source_lock_v1":
+        raise R2Error("R2 active source lock does not embed a valid source lock")
+    if source_lock.get("producer_state") != "SOURCE_FROZEN":
+        raise R2Error("R2 source lock is not SOURCE_FROZEN")
     immutable = source_lock.get("immutable_inputs")
     git = source_lock.get("git")
     if not isinstance(immutable, Mapping):

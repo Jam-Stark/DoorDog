@@ -44,6 +44,7 @@ from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
 from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
 from gr00t.rl.envs.door.a2_v20_r2_evidence import (
     a2_v20_r2_append_record_set_staging,
+    a2_v20_r2_canonical_json_bytes,
     a2_v20_r2_distribution,
     a2_v20_r2_event,
     a2_v20_r2_finalize_record_id,
@@ -4894,6 +4895,7 @@ class OrderedTargetFrameTransformer(FrameTransformer):
         self._data.target_quat_source = torch.zeros_like(self._data.target_quat_w)
 
 
+
 class DoorPregrasp(
     StagedTaskBase,
     DeltaActionBase,
@@ -6089,7 +6091,19 @@ class DoorPregrasp(
         self.door_hinge_drive_max_force = torch.zeros(
             self.num_envs, dtype=torch.float32, device=self.device
         )
+        self.door_hinge_drive_damping = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self.door_hinge_drive_stiffness = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
         self.door_handle_drive_max_force = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self.door_handle_drive_damping = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self.door_handle_drive_stiffness = torch.zeros(
             self.num_envs, dtype=torch.float32, device=self.device
         )
         self.door_open_lr = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
@@ -6107,15 +6121,31 @@ class DoorPregrasp(
             self.door_hinge_drive_max_force[env_id] = door_metadata[
                 "hingeDriveMaxForce"
             ]
+            self.door_hinge_drive_damping[env_id] = door_metadata[
+                "hingeDriveDamping"
+            ]
+            self.door_hinge_drive_stiffness[env_id] = door_metadata[
+                "hingeDriveStiffness"
+            ]
             self.door_handle_drive_max_force[env_id] = door_metadata[
                 "handleDriveMaxForce"
+            ]
+            self.door_handle_drive_damping[env_id] = door_metadata[
+                "handleDriveDamping"
+            ]
+            self.door_handle_drive_stiffness[env_id] = door_metadata[
+                "handleDriveStiffness"
             ]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
 
         for field_name in (
             "door_handle_height",
             "door_hinge_drive_max_force",
+            "door_hinge_drive_damping",
+            "door_hinge_drive_stiffness",
             "door_handle_drive_max_force",
+            "door_handle_drive_damping",
+            "door_handle_drive_stiffness",
         ):
             field_value = getattr(self, field_name)
             if (
@@ -7087,6 +7117,9 @@ class DoorPregrasp(
         self._r2_finalized = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+        self._r2_initial_root_pose_se2 = torch.full(
+            (self.num_envs, 3), float("nan"), dtype=torch.float32, device=self.device
+        )
 
     def _reset_a2_v20_r2_evidence_buffers(self, env_ids: torch.Tensor) -> None:
         if not self._a2_v20_r2_evidence_enabled:
@@ -7123,6 +7156,7 @@ class DoorPregrasp(
         self._r2_opening_slip_max[env_ids] = 0.0
         self._r2_terminal_step[env_ids] = -1
         self._r2_finalized[env_ids] = False
+        self._r2_initial_root_pose_se2[env_ids] = float("nan")
         self._r2_current_arm_raw_action[env_ids] = 0.0
         self._r2_current_arm_raw_action_valid[env_ids] = False
         self._r2_last_scaled_components = {}
@@ -7610,6 +7644,102 @@ class DoorPregrasp(
             raise RuntimeError("R2 provenance admission_plan_id is not the approved R2 plan.")
         return result
 
+    def _r2_runtime_scenario(self, env_id: int) -> dict[str, object]:
+        tensor_fields = {
+            "door_width_m": self.door_width,
+            "door_height_m": self.door_height,
+            "handle_height_m": self.door_handle_height,
+            "handle_edge_distance_m": self.door_handle_width,
+            "door_mass_kg": self.door_weight,
+            "hinge_damping": self.door_hinge_drive_damping,
+            "hinge_stiffness": self.door_hinge_drive_stiffness,
+            "hinge_max_force_nm": self.door_hinge_drive_max_force,
+            "handle_damping": self.door_handle_drive_damping,
+            "handle_stiffness": self.door_handle_drive_stiffness,
+            "handle_max_force_nm": self.door_handle_drive_max_force,
+        }
+        values: dict[str, float] = {}
+        for name, tensor in tensor_fields.items():
+            if (
+                not torch.is_tensor(tensor)
+                or tuple(tensor.shape) != (self.num_envs,)
+                or not tensor.is_floating_point()
+                or tensor.device != torch.device(self.device)
+                or not torch.isfinite(tensor[env_id])
+            ):
+                raise RuntimeError(
+                    f"R2 scenario requires {name} as a finite device-local tensor "
+                    f"shape ({self.num_envs},)."
+                )
+            values[name] = float(tensor[env_id].item())
+        for name in (
+            "door_width_m",
+            "door_height_m",
+            "handle_height_m",
+            "handle_edge_distance_m",
+            "door_mass_kg",
+        ):
+            if values[name] <= 0.0:
+                raise RuntimeError(f"R2 scenario {name} must be positive.")
+        door_open_lr = self.door_open_lr
+        if (
+            not torch.is_tensor(door_open_lr)
+            or tuple(door_open_lr.shape) != (self.num_envs,)
+            or not door_open_lr.is_floating_point()
+            or door_open_lr.device != torch.device(self.device)
+            or float(door_open_lr[env_id].item()) not in (-1.0, 1.0)
+        ):
+            raise RuntimeError("R2 scenario door_open_lr must be a device-local -1/+1 tensor.")
+        initial_root_pose = self._r2_initial_root_pose_se2
+        if (
+            not torch.is_tensor(initial_root_pose)
+            or tuple(initial_root_pose.shape) != (self.num_envs, 3)
+            or not initial_root_pose.is_floating_point()
+            or initial_root_pose.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(initial_root_pose[env_id]))
+        ):
+            raise RuntimeError("R2 scenario requires a finite reset-time initial root SE(2) pose.")
+        scenario_without_id: dict[str, object] = {
+            "door_open_lr": int(door_open_lr[env_id].item()),
+            **values,
+            "initial_root_pose_se2": [
+                float(value) for value in initial_root_pose[env_id].detach().cpu().tolist()
+            ],
+        }
+        import hashlib
+
+        scenario_id = hashlib.sha256(
+            a2_v20_r2_canonical_json_bytes(scenario_without_id)
+        ).hexdigest()
+        return {"scenario_id": scenario_id, **scenario_without_id}
+
+    def _r2_runtime_factor(self) -> dict[str, object]:
+        group = self.config.get("a2_v20_R2_group")
+        allowed_groups = {f"G{index}" for index in range(1, 8)} | {"B0", "FORCED"}
+        if group not in allowed_groups:
+            raise RuntimeError(f"R2 factor group is invalid: {group!r}.")
+        curriculum_phase = self._a2_v20_r1_curriculum_phase
+        if curriculum_phase not in {"disabled", "soft", "hard"}:
+            raise RuntimeError(f"R2 factor curriculum phase is invalid: {curriculum_phase!r}.")
+        factor = {
+            "group": group,
+            "send_curriculum": bool(self._get_a2_v20_r1_send_curriculum_enabled()),
+            "economics": bool(self._get_a2_v20_traversal_economics_enabled()),
+            "arm_tie": bool(self._get_a2_v20_arm_tie_enabled()),
+            "curriculum_phase": curriculum_phase,
+            "theta_send_rad": float(self._get_a2_v20_send_hinge_threshold()),
+            "root_x_margin_m": float(self._get_a2_v20_pre_send_root_x_margin()),
+            "arm_tangent_scale": float(self._get_a2_v20_arm_tangent_carry_scale()),
+            "arc_tracking_scale": float(self._get_a2_v20_handle_arc_tracking_scale()),
+        }
+        if factor["theta_send_rad"] != 0.9 or factor["root_x_margin_m"] != 0.03:
+            raise RuntimeError("R2 factor theta_send/root_x_margin differ from the frozen plan.")
+        if factor["arm_tangent_scale"] not in (0.0, 3.5):
+            raise RuntimeError("R2 factor arm_tangent_scale is outside the frozen plan.")
+        if factor["arc_tracking_scale"] not in (0.0, 0.85):
+            raise RuntimeError("R2 factor arc_tracking_scale is outside the frozen plan.")
+        return factor
+
     @staticmethod
     def _r2_trace_metric(values, mask, empty_state):
         return a2_v20_r2_distribution(values, mask, empty_state=empty_state)
@@ -7821,7 +7951,12 @@ class DoorPregrasp(
         if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype != torch.long:
             raise RuntimeError("R2 finalizer requires a one-dimensional long env id tensor.")
         for env_id in env_ids.tolist():
-            self.finalize_a2_v20_r2_episode_record(int(env_id))
+            self.finalize_a2_v20_r2_episode_record(
+                int(env_id),
+                scenario=self._r2_runtime_scenario(int(env_id)),
+                factor=self._r2_runtime_factor(),
+                phase={},
+            )
 
     def _pre_compute_observations_callback(self, env_ids=None, *, post_physics=False):
         super()._pre_compute_observations_callback(env_ids, post_physics=post_physics)
@@ -20550,6 +20685,35 @@ class DoorPregrasp(
             self._a2_v20_root_x_rel[env_ids] = 0.0
         self._reset_a2_v20_r2_evidence_buffers(env_ids)
         return super()._reset_buffers_callback(env_ids, target_buf)
+
+    @override
+    def _post_reset_callback(self, env_ids):
+        if self._use_a2_base and self._a2_v20_r2_evidence_enabled:
+            target_root_states = self.target_robot_root_states
+            env_origins = self.env_origins
+            if (
+                not torch.is_tensor(target_root_states)
+                or tuple(target_root_states.shape) != (self.num_envs, 13)
+                or not target_root_states.is_floating_point()
+                or target_root_states.device != torch.device(self.device)
+                or not torch.is_tensor(env_origins)
+                or tuple(env_origins.shape) != (self.num_envs, 3)
+                or env_origins.dtype != target_root_states.dtype
+                or env_origins.device != target_root_states.device
+            ):
+                raise RuntimeError(
+                    "R2 reset-time root provenance requires matching device-local "
+                    "target root state and environment-origin tensors."
+                )
+            root_pose = target_root_states[env_ids, :7]
+            if not torch.all(torch.isfinite(root_pose)):
+                raise RuntimeError("R2 reset-time root provenance contains non-finite values.")
+            _, _, root_yaw = euler_xyz_from_quat(root_pose[:, 3:7])
+            self._r2_initial_root_pose_se2[env_ids, :2] = (
+                root_pose[:, :2] - env_origins[env_ids, :2]
+            )
+            self._r2_initial_root_pose_se2[env_ids, 2] = root_yaw
+        return super()._post_reset_callback(env_ids)
 
     @override
     def _reset_object_states_callback(self, env_ids):

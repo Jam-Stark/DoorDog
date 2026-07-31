@@ -75,7 +75,9 @@ def record_set(tmp_path, records):
     path.write_bytes(a2_v20_r2_canonical_json_bytes({"schema": "a2_piper_base_v20_R2_record_set_v1", "producer_state": "RECORD_SET_COMPLETE", "run_uuid": run_uuid, "records": records, "record_count": len(records)}))
     return path
 
-def _actual_finalizer_record(tmp_path, run_uuid="actual-run", env_id=0):
+def _actual_finalizer_record(
+    tmp_path, run_uuid="actual-run", env_id=0, *, runtime_context=False
+):
     tmp_path.mkdir(parents=True, exist_ok=True)
     class _DummyMeta(type):
         def __getattr__(cls, name):
@@ -151,6 +153,32 @@ def _actual_finalizer_record(tmp_path, run_uuid="actual-run", env_id=0):
         "factor": {"group": "G1", "send_curriculum": False, "economics": True, "arm_tie": True, "curriculum_phase": "soft", "theta_send_rad": 0.9, "root_x_margin_m": 0.03, "arm_tangent_scale": 3.5, "arc_tracking_scale": 0.85},
         "phase": {"opening_start_step": 0, "opening_start_batch": 0, "terminal_step": 1, "terminal_batch": 2, "max_stage": 5, "stage_at_terminal": 3, "time_in_terminal_stage": 0.04, "reset_origin": "initial", "reset_stage": None, "reset_snapshot_index": None, "schedule_transition_observed": False},
     }
+    if runtime_context:
+        obj._a2_v20_r2_provenance.pop("scenario")
+        obj._a2_v20_r2_provenance.pop("factor")
+        obj._a2_v20_r2_provenance.pop("phase")
+        obj.config = {"a2_v20_R2_group": "G5"}
+        obj._a2_v20_r1_curriculum_phase = "soft"
+        obj._get_a2_v20_r1_send_curriculum_enabled = lambda: True
+        obj._get_a2_v20_traversal_economics_enabled = lambda: True
+        obj._get_a2_v20_arm_tie_enabled = lambda: True
+        obj._get_a2_v20_send_hinge_threshold = lambda: 0.9
+        obj._get_a2_v20_pre_send_root_x_margin = lambda: 0.03
+        obj._get_a2_v20_arm_tangent_carry_scale = lambda: 3.5
+        obj._get_a2_v20_handle_arc_tracking_scale = lambda: 0.85
+        obj.door_open_lr = torch.tensor([1.0])
+        obj.door_width = torch.tensor([0.9])
+        obj.door_height = torch.tensor([2.0])
+        obj.door_handle_height = torch.tensor([1.0])
+        obj.door_handle_width = torch.tensor([0.1])
+        obj.door_weight = torch.tensor([10.0])
+        obj.door_hinge_drive_damping = torch.tensor([50.0])
+        obj.door_hinge_drive_stiffness = torch.tensor([0.0])
+        obj.door_hinge_drive_max_force = torch.tensor([20.0])
+        obj.door_handle_drive_damping = torch.tensor([0.5])
+        obj.door_handle_drive_stiffness = torch.tensor([50.0])
+        obj.door_handle_drive_max_force = torch.tensor([20.0])
+        obj._r2_initial_root_pose_se2 = torch.tensor([[0.0, 0.0, 0.0]])
     full_names = ("_r2_hinge_velocity_samples", "_r2_hinge_accel_samples", "_r2_hinge_jerk_samples", "_r2_arm_action_rate_samples", "_r2_arm_action_jerk_samples", "_r2_arm_share_samples", "_r2_positive_arm_samples", "_r2_positive_base_samples", "_r2_arc_position_samples", "_r2_arc_orientation_samples", "_r2_along_slip_samples", "_r2_orthogonal_residual_samples")
     mask_names = ("_r2_hinge_velocity_mask", "_r2_hinge_accel_mask", "_r2_hinge_jerk_mask", "_r2_arm_action_rate_mask", "_r2_arm_action_jerk_mask", "_r2_arm_share_mask", "_r2_positive_arm_mask", "_r2_positive_base_mask", "_r2_arc_position_mask", "_r2_arc_orientation_mask", "_r2_along_slip_mask", "_r2_orthogonal_residual_mask")
     for name in full_names:
@@ -182,7 +210,11 @@ def _actual_finalizer_record(tmp_path, run_uuid="actual-run", env_id=0):
     obj._r2_coasting_count = torch.zeros(1, dtype=torch.long)
     obj._r2_over_force_count = torch.zeros(1, dtype=torch.long)
     obj._r2_finalized = torch.zeros(1, dtype=torch.bool)
-    record = obj.finalize_a2_v20_r2_episode_record(0)
+    if runtime_context:
+        obj._finalize_a2_v20_r2_terminal_episodes(torch.tensor([0], dtype=torch.long))
+        record = json.loads((tmp_path / "actual-records.jsonl").read_text().splitlines()[0])
+    else:
+        record = obj.finalize_a2_v20_r2_episode_record(0)
     staged = json.loads((tmp_path / "actual-records.jsonl").read_text().splitlines()[0])
     assert staged["record_id"] == record["record_id"]
     return record
@@ -217,6 +249,29 @@ def test_actual_finalizer_output_passes_real_adjudicator(tmp_path):
     changed["task"] = dict(rec["task"])
     changed["task"]["terminal_reason"] = "episode_timeout"
     assert rec["record_id"] != a2_v20_r2_finalize_record_id({k: v for k, v in changed.items() if k != "record_id"})
+
+
+def test_terminal_finalizer_derives_runtime_context(tmp_path):
+    rec = _actual_finalizer_record(tmp_path, runtime_context=True)
+    assert rec["scenario"]["door_open_lr"] == 1
+    scenario_without_id = {
+        key: value for key, value in rec["scenario"].items() if key != "scenario_id"
+    }
+    assert rec["scenario"]["scenario_id"] == hashlib.sha256(
+        a2_v20_r2_canonical_json_bytes(scenario_without_id)
+    ).hexdigest()
+    assert rec["factor"] == {
+        "group": "G5",
+        "send_curriculum": True,
+        "economics": True,
+        "arm_tie": True,
+        "curriculum_phase": "soft",
+        "theta_send_rad": 0.9,
+        "root_x_margin_m": 0.03,
+        "arm_tangent_scale": 3.5,
+        "arc_tracking_scale": 0.85,
+    }
+    assert adjudicate_record_set(record_set(tmp_path, [rec]))["adjudicator_state"] == "STRICT_VALID"
 
 
 def test_adjudicator_rejects_hash_duplicate_and_forbidden(tmp_path):

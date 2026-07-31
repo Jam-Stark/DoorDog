@@ -968,8 +968,11 @@ def spawn_door(
         "handleRadius": handle_radius,
         "spawnHook": spawn_hook,
         "hingeDriveMaxForce": hinge_drive.GetMaxForceAttr().Get(),
+        "hingeDriveDamping": hinge_drive.GetDampingAttr().Get(),
         "hingeDriveStiffness": hinge_drive.GetStiffnessAttr().Get(),
         "handleDriveMaxForce": handle_drive.GetMaxForceAttr().Get(),
+        "handleDriveDamping": handle_drive.GetDampingAttr().Get(),
+        "handleDriveStiffness": handle_drive.GetStiffnessAttr().Get(),
     }
     if cfg.add_walls:
         metadata_value["front"] = front

@@ -7,9 +7,17 @@ import json
 from pathlib import Path
 
 import pytest
+from omegaconf import OmegaConf
 
 from scriptsFORhuman.v20_R2 import _r2_common as common
-from scriptsFORhuman.v20_R2._r2_workflow import CONFIG_FILENAMES, GROUPS, M22_STEPS, r2_config_path, runtime_command
+from scriptsFORhuman.v20_R2._r2_workflow import (
+    CONFIG_FILENAMES,
+    GROUPS,
+    M22_STEPS,
+    _hydra_mapping,
+    r2_config_path,
+    runtime_command,
+)
 from scriptsFORhuman.v20_R2.a2_piper_v20_R2_forced_runner import build_forced_command
 from scriptsFORhuman.v20_R2.a2_piper_v20_R2_smoke_launcher import build_smoke_commands
 from gr00t.rl.envs.door.a2_v20_r2_forced_semantics import FORCED_CASES
@@ -49,6 +57,28 @@ def test_workflow_device_config_and_group_ownership_contracts() -> None:
         assert "admission_plan_id: base_v20_R2_admission_execution_v1" in text
         assert "a2_v20_R2_evidence_enabled: true" in text
     assert set(CONFIG_FILENAMES) == set(GROUPS)
+
+
+def test_workflow_nested_hydra_provenance_round_trips() -> None:
+    provenance = {
+        "run_uuid": "m22-G1-seed16",
+        "physical_path": "/tmp/a:path/checkpoint.pt",
+        "topology": {
+            "name": "canonical16",
+            "environment_count": 16,
+            "expected_episode_count": 16,
+            "first_episode_only": True,
+            "single_process": True,
+            "physical_gpu": 0,
+            "render": False,
+        },
+    }
+    encoded = _hydra_mapping(provenance)
+    parsed = OmegaConf.to_container(
+        OmegaConf.from_dotlist([f"provenance={encoded}"]).provenance,
+        resolve=True,
+    )
+    assert parsed == provenance
 
 
 def test_workflow_dag_schema_and_postformal_counts_are_explicit() -> None:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -313,6 +314,15 @@ def eval_command(
     checkpoint_sha256 = artifact_hash(checkpoint)
     config_sha256 = str(config_identity_payload["sha256"])
     source_lock = _source_lock_provenance(repo_root, str(config_identity_payload["text"]))
+    topology_names = {
+        "b0": "canonical16",
+        "zero-shot": "canonical16",
+        "canonical16": "canonical16",
+        "m22": "canonical16",
+        "forced": "forced1",
+        "pooled": "pooled_seed16",
+        "holdout": "holdout_seed16",
+    }
     provenance = {
         "run_uuid": _eval_run_uuid(mode=mode, group=group, seed=seed),
         "scientific_plan_id": SCIENTIFIC_PLAN_ID,
@@ -325,6 +335,15 @@ def eval_command(
         "source_config_sha256": config_sha256,
         "resolved_config_sha256": config_sha256,
         "seed": seed,
+        "topology": {
+            "name": topology_names[mode],
+            "environment_count": num_envs,
+            "expected_episode_count": num_envs,
+            "first_episode_only": True,
+            "single_process": True,
+            "physical_gpu": gpu,
+            "render": False,
+        },
     }
     overrides = [
         f"+checkpoint={checkpoint}", f"+num_envs={num_envs}", f"+seed={seed}",
@@ -456,8 +475,31 @@ def _eval_run_uuid(*, mode: str, group: str | None, seed: int) -> str:
     return f"{mode}-seed{seed}"
 
 
+def _hydra_value(value: Any) -> str:
+    if isinstance(value, Mapping):
+        return _hydra_mapping(value)
+    if isinstance(value, str):
+        return json.dumps(value)
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise R2Error("Hydra provenance values must be finite")
+        return repr(value)
+    raise R2Error(f"unsupported Hydra provenance value: {type(value).__name__}")
+
+
 def _hydra_mapping(payload: Mapping[str, Any]) -> str:
-    return "{" + ",".join(f"{key}:{value}" for key, value in payload.items()) + "}"
+    if not payload:
+        raise R2Error("Hydra provenance mappings must not be empty")
+    entries = []
+    for key, value in payload.items():
+        if not isinstance(key, str) or not key:
+            raise R2Error("Hydra provenance mapping keys must be non-empty strings")
+        entries.append(f"{json.dumps(key)}:{_hydra_value(value)}")
+    return "{" + ",".join(entries) + "}"
 
 
 def ensure_group(group: str) -> str:

@@ -143,6 +143,7 @@ else:  # disabled
 | `14e0668` | A+B+C | `door_open_a2_base.py`, `eval_agent_trl.py`, `_r2_workflow.py`, `_r2_common.py`, `source_freeze.py`, `p0_adjudicator.py`, p0_binding 测试 | **R3 rebuild**（crossing 守卫 + staged-reset + eval/provenance + immutable-hash + parity + hidden + lint） |
 | `815d2d8` | C | `test_a2_v20_R2_executable_dag.py` | 测试 stub provenance |
 | `f7190d7` | A(等价)+B+C | `door_open_a2_base.py`, `legged_robot_base.py`, `train_agent_trl.py`, `average_meters.py` | R3 运行时训练源码修复 |
+| `79a28f9` | C | `eval_agent_trl.py`, `_r2_workflow.py` | R3 eval 路径运行时修复（解包 ACTIVE_SOURCE_LOCK ×2 + `_canonical_config_sha256` default=str） |
 
 ---
 
@@ -189,12 +190,29 @@ git revert 53ee534   # 纯常量 rebind，可安全 revert
 ## 8. 当前产物状态（2026-07-31）
 
 - **正式训练：** 7 组 G1–G7 全部 `exit 0`、产出 `model_step_002500.pt`（2500 batch 最终 checkpoint），目录 `logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G{1..7}-20260731_*`；launcher `logs_rl/launchers/base_v20_R3_formal_20260730/G{1..7}.{sh,launch.log,exit_code}`；wandb online 可监控。
-- **Source lock：** `logs_eval/base_v20_R2/locks/R2_REVISION_1_SOURCE_FREEZE.json`（commit `815d2d8`，注意：**不含** `f7190d7` 的运行时源码修复——训练跑的是 `f7190d7` 之后的源码，见 §9）。
-- **P0：** `P0_STATIC_PASS.json` + `ACTIVE_SOURCE_LOCK.json` 已签发（`815d2d8`）。
+- **Source lock：** `logs_eval/base_v20_R2/locks/R2_REVISION_1_SOURCE_FREEZE.json`（commit `d343b24`，含 `f7190d7` 运行时修复，与训练/评估源码一致；`815d2d8` 旧 lock 已归档 `_stale_*`）。
+- **P0：** `P0_STATIC_PASS.json` + `ACTIVE_SOURCE_LOCK.json` 已签发（`d343b24`，P0 27/27 全过）。
 - **失败证据：** R2 各次失败 receipt 不可变保留于 `logs_eval/base_v20_R2/admission/_failed_*`、`locks/_failed_*`。
 
 ---
 
 ## 9. 重要一致性问题（source lock vs 训练源码）
 
-当前 `ACTIVE_SOURCE_LOCK` 冻结于 `815d2d8`，但 `f7190d7` 的运行时训练源码修复（reward_scales 兜底、reward coverage、termination float、evidence step_index、mean bool）**在其后提交，未包含在 lock 内**。正式训练实际跑的是 `f7190d7`（工作树）代码。这符合「以训练为先」的指示，但意味着 lock 与训练源码存在一个 commit 的偏差。若后续要严格 admission（B0/eval 绑定 lock），需用 `f7190d7` 重新 freeze 生成新 lock，使 lock 与训练源码一致。
+当前 `ACTIVE_SOURCE_LOCK` 冻结于 `815d2d8`，但 `f7190d7` 的运行时训练源码修复（reward_scales 兜底、reward coverage、termination float、evidence step_index、mean bool）**在其后提交，未包含在 lock 内**。正式训练实际跑的是 `f7190d7`（工作树）代码。这符合「以训练为先」的指示，但意味着 lock 与训练源码存在一个 commit 的偏差。若后续要严格 admission（B0/eval 绑定 lock），需用 `f7190d7` 重新 freeze 生成新 lock，使 lock 与训练源码一致。**[已解决]：2026-07-31 已用 `d343b24`（含 `f7190d7` + 改动文档 + memory）重新 freeze + 重跑 P0(27/27) + adjudicator，新 `ACTIVE_SOURCE_LOCK.json` 现绑定 `d343b24`，与训练/评估源码一致。**
+
+---
+
+## 10. Eval 路径运行时修复与未决问题（2026-07-31，`79a28f9`）
+
+R3 eval 管线（`eval_agent_trl.py` + `_r2_workflow.py`，eval-pipeline 在 `14e0668` 引入的 config-consumption/provenance 改造）**与训练一样从未真跑过**，smoke eval（G1 step2500, 16env, canonical16）暴露并已修 3 处 runtime bug；**仍有 1 处未决 bug 是下一 session 的入口**。
+
+### 10.1 已修（`79a28f9`）
+1. **`_source_lock_provenance` 解包 ACTIVE_SOURCE_LOCK**（`_r2_workflow.py:393`）：原用 `read_artifact(schema=source_lock_v1)` 直接读 `ACTIVE_SOURCE_LOCK.json`（包装器，schema=`active_source_lock_v1`）→ schema mismatch。改为 `load_json` + 若 schema==`active_source_lock_v1` 则解包到 `lock["source_lock"]`，再校验 `source_lock_v1 + SOURCE_FROZEN`。
+2. **`eval_agent_trl._validate_r2_runtime_bindings` 解包**（`eval_agent_trl.py:133`）：同 `train_agent_trl` 的解包（schema==`active_source_lock_v1` → `lock["source_lock"]`）。
+3. **`_canonical_config_sha256` 加 `default=str`**（`eval_agent_trl.py:228`）：composed config 含 `PosixPath` → `json.dumps` 崩。加 `default=str`（路径对象→字符串，确定性不变）。
+
+### 10.2 未决 bug（下一 session 入口）
+**`RuntimeError: R2 finalizer requires topology/scenario/factor/phase mappings.`**（`door_open_a2_base.py:7653` `finalize_a2_v20_r2_episode_record`）。eval 已过 init + 跑完 episode，但 R2 evidence 定稿器要求 `topology/scenario/factor/phase` 四个 mapping（`:7644-7652`：优先用参数，否则从 provenance pop）。smoke eval（canonical16、手撸 override）只传了基础 provenance，未传这四个 mapping → 定稿器 fail-fast。**修法方向：** 这四者应由 workflow 在 eval_command/provenance 里注入（topology 见 `:7655-7664` 的 setdefault：name=canonical16、environment_count、single_process、physical_gpu；scenario/factor/phase 需查 `_r2_required_provenance` 与 m22/canonical16 的 provenance 契约补齐），或在 m22_runner 的 canonical16/m22 路径里提供。这是 R2 evidence finalizer 的 provenance 契约缺口，不是 reward 问题。
+
+### 10.3 eval smoke 验证过的路径（可复用）
+`workflow.eval_command(repo_root, checkpoint, config, gpu, seed, num_envs, output_root, mode="canonical16", group)` 能正确构建 eval argv（source lock 解包后 provenance 正确，含 `git_commit` 与 lock 一致）。`/tmp/smoke_eval_g1_run.py`（本 repo 外用）演示 build+run+读 record。eval 命令形如 `python -B -m gr00t.rl.eval_agent_trl +checkpoint=<ckpt> +num_envs=16 +seed=0 +headless=true +r2_evidence_enabled=true +r2_bound_config_path=<cfg> +r2_bound_config_sha256=<sha> +r2_resolved_config_sha256=<sha> +env.config.a2_v20_R2_trace_root=<out>/traces +env.config.a2_v20_R2_record_set_staging_path=<out>/record_set.staging.jsonl +env.config.a2_v20_R2_provenance={...} +env.config.a2_v20_R2_group=G1 +r2_command_sha256=<sha>`。

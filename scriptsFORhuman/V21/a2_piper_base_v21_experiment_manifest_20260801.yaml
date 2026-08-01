@@ -1,0 +1,81 @@
+schema: a2_piper_base_v21_preregistered_experiment_manifest_v1
+plan_id: base_v21_theta_dose_arm_tie_v1
+execution_id: base_v21_execution_v1
+repository: Jam-Stark/DoorDog
+base_ref: A2_Piper
+base_commit: d4a0563850dee52be4f3a6fa79405c84e33ade30
+warm_start:
+  group: base_v20_R3_G4
+  step: 2500
+  load_mode: policy_only
+  sha256: f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d
+hardware:
+  legal_physical_gpus: [0, 1, 2, 3, 4, 5, 6]
+  forbidden_physical_gpus: [7]
+frozen_controls:
+  effort_limits: current_v20_G4
+  velocity_limits: current_v20_G4
+  kp_kd: current_v20_G4
+  stage_time: current_v20_G4
+  physics_randomization: current_v20_G4
+  send_curriculum: v20_G4_soft_0_499_hard_500_plus
+  traversal_economics: true
+  corridor_latch_mode: send_ready_v20
+cells:
+  G1: {theta_send_rad: 0.90, arm_tie: false, seed: 0, gpu: 0, enable_rule: always}
+  G2: {theta_send_rad: 1.10, arm_tie: false, seed: 0, gpu: 1, enable_rule: always}
+  G3: {theta_send_rad: 1.20, arm_tie: false, seed: 0, gpu: 2, enable_rule: always}
+  G4: {theta_send_rad: 1.25, arm_tie: false, seed: 0, gpu: 3, enable_rule: pilot_full_or_conditional}
+  G5: {theta_send_rad: 1.30, arm_tie: false, seed: 0, gpu: 4, enable_rule: pilot_full_only}
+  G6: {theta_send_rad: 1.25, arm_tie: false, seed: 1, gpu: 5, enable_rule: pilot_full_or_conditional}
+  G7: {theta_send_rad: 1.25, arm_tie: calibrated, seed: 0, gpu: 6, enable_rule: calibration_pass_and_pilot_rule}
+  G8_optional: {theta_send_rad: 1.25, arm_tie: calibrated, seed: 1, gpu: null, enable_rule: G7_material_effect_and_G6_viable}
+training:
+  pilot: {num_envs: 256, batches: 750, save_frequency: 250, theta_send_rad: 1.25, seed: 0}
+  smoke: {num_envs: 64, batches: 50, save_frequency: 25}
+  formal: {num_envs: 4096, batches: 2500, save_frequency: 250}
+adaptation:
+  decision_point: after_theta_probe_arm_calibration_and_pilot_before_formal
+  profiles: [STANDARD, RELAXED_1]
+  immutable_after_freeze: true
+  full_pass_cells: [G1, G2, G3, G4, G5, G6, G7_if_calibrated]
+  conditional_pass_cells: [G1, G2, G3, G4, G6, G7_only_if_explicitly_approved]
+  high_theta_stop_cells: [G1, G2, G3]
+route_b:
+  m22: {episodes_per_checkpoint: 16, first_episode_only: true}
+  pooled48: {seeds: [0, 1, 2], envs_per_seed: 16}
+  holdout64: {seeds: [3, 4, 5, 6], envs_per_seed: 16}
+  render: {episodes: 5, cameras: [main, handle_side, handle_top]}
+release_profiles:
+  STANDARD:
+    canonical_goal_min: 15
+    canonical_held_crossing_min: 15
+    pooled_goal_min: 45
+    pooled_held_crossing_min: 45
+    holdout_goal_min: 59
+    holdout_held_crossing_min: 59
+    absolute_crossing_p50_min_rad: 1.10
+    theta_p50_shortfall_max_rad: 0.10
+    theta_p10_shortfall_max_rad: 0.20
+    pooled_overtime_max: 4
+    holdout_overtime_max: 6
+  RELAXED_1:
+    canonical_goal_min: 14
+    canonical_held_crossing_min: 14
+    pooled_goal_min: 44
+    pooled_held_crossing_min: 44
+    holdout_goal_min: 58
+    holdout_held_crossing_min: 58
+    absolute_crossing_p50_min_rad: 1.10
+    theta_p50_shortfall_max_rad: 0.15
+    theta_p10_shortfall_max_rad: 0.25
+    pooled_overtime_max: 6
+    holdout_overtime_max: 8
+hard_gates:
+  strict_valid: true
+  fallback_eval_count: 0
+  finite_data: true
+  upper_dof_overspeed: 0
+  gpu7_used: false
+  hidden_action_override: false
+  post_freeze_intervention_change: false

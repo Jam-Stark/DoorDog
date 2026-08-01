@@ -4,7 +4,7 @@ Date: 2026-07-30 HKT
 
 ## Frozen inputs and candidate
 
-- Plan: `scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md`
+- Plan: `scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_optimization_plan_20260729.md`
 - Plan SHA256: `6827290631feea15497fe76cd64116c30a1343d5bd6c1cb83ba09c35bc247e3c`
 - Base Git SHA: `338cacfb6757d37eac7d82768b49514a6aa9ab34`
 - Final reviewed candidate ID: `e719ea28fde644c870532e2bb698940abbb9d187ea413f9ac815d628a5e2417a`

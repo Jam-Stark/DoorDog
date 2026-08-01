@@ -2,7 +2,7 @@
 
 Date: 2026-07-25, **updated 2026-08-01 (v20 incorporated)**. Author: diagnosis/planning session (Claude), covering base_v12 → base_v20.
 Audience: the successor **planner session** (Claude) taking over diagnosis, planning, and work-session handoffs.
-**Project decision structure**: a planner (a Claude session like this one, or a cloud pro model — both have produced adopted plans) writes the detailed next-round plan; **worker sessions** implement, train, and eval; the user arbitrates between planners. The cloud pro model authored v20 (its diagnosis is endorsed and canonized below); v12–v19 plans are in `scriptsFORhuman/a2_piper_base_v1*_optimization_plan_*.md`.
+**Project decision structure**: a planner (a Claude session like this one, or a cloud pro model — both have produced adopted plans) writes the detailed next-round plan; **worker sessions** implement, train, and eval; the user arbitrates between planners. The cloud pro model authored v20 (its diagnosis is endorsed and canonized below); versioned plans are indexed in `scriptsFORhuman/README.md` and stored under their corresponding `scriptsFORhuman/vX/` directories.
 Repo root: `/home/baoquanc/workspace/DoorDog-A2_Piper`. Plans/replies in **English** (user directive since v17); repo memory entries follow repo conventions (zh + EN technical terms, HKT timestamps).
 
 ---
@@ -80,7 +80,7 @@ Source of truth: `scriptsFORhuman/force_feasible/` (three design discussions). T
 
 ## 7. DOCUMENT SOURCES & SEARCH METHODS
 
-**Read order for a fresh session**: this handoff → `scriptsFORhuman/a2_piper_longterm_TODO.md` (living schedule + archived verdicts — sync it every round) → latest plan (`a2_piper_base_v19_optimization_plan_20260725.md`) → repo `MEMORY.md` → `memory/a2-piper/MEMORY.md` routing (esp. `push-open-door-optimization`, `door-asset-randomization-baseline`, `phase2-student-distillation`) → per-version plans `scriptsFORhuman/a2_piper_base_v1*..v19_*.md` (each has Findings + decision log) → `force_feasible/` for the thesis. Repo `AGENTS.md` governs memory-update etiquette (HKT timestamps, no origin-reference writes).
+**Read order for a fresh session**: this handoff → `scriptsFORhuman/a2_piper_longterm_TODO.md` (living schedule + archived verdicts — sync it every round) → latest execution plan (`scriptsFORhuman/v20_R2/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md`) → repo `MEMORY.md` → `memory/a2-piper/MEMORY.md` routing (esp. `push-open-door-optimization`, `door-asset-randomization-baseline`, `phase2-student-distillation`) → `scriptsFORhuman/README.md` and the per-version plans under `scriptsFORhuman/vX/` (each has Findings + decision log) → `force_feasible/` for the thesis. Repo `AGENTS.md` governs memory-update etiquette (HKT timestamps, no origin-reference writes).
 
 **Analysis recipes that keep paying off**:
 - *Trace forensics*: load `stage2_5_step_trace.json`, filter `first_episode_active`, group by `env_id`, sort by `step_index`; per-env stage timelines, release detection (last `both_contact` frame), crossing state (first `root_pos_rel[0]>0`), body/arm-panel force channels, per-height stance (pitch/roll/yaw at first stage2 frame). Heights map env_id → linspace over the grid.
@@ -98,3 +98,12 @@ Source of truth: `scriptsFORhuman/force_feasible/` (three design discussions). T
 - **Debts**: launcher natural-exit audit habit; per-round memory entries (worker sessions own them); keep `a2_piper_longterm_TODO.md` synced every round.
 
 *The one-sentence brief for your successor: v20 closed the crossing-moment readout at `PARTIAL_EFFECT` (G4 step2500, hinge_at_crossing p50 `1.0160 rad`, render `YES_5_OF_5`); the next queued round is the realistic Piper arm-limit prerequisite for the force-feasibility experiment.*
+
+## ADDENDUM (planner analysis, 2026-08-01) — why v20 stopped at 1.0 rad, and the rider for the next round
+
+The SEND_METRICS attribution is unusually clean and carries one diagnosis the summary verdict does not state:
+
+1. **Send curriculum is the single active ingredient.** G3 (send-only) +0.207; G2 (economics-only) +0.026 = inert; G4 (send+econ) +0.229 — economics adds ~0.02 on top; G5 arm-tie adds nothing (+0.187 < G3); G6/G7 replicate (seed delta −0.018). Unlike v17 (institution AND pricing both necessary), here the economics axis never bound because `target_root_distance` income was not the constraint the curriculum had to beat.
+2. **Every send-bearing cell pins at hinge_at_crossing p50 ≈ 1.00–1.02, p95 ≤ 1.08 — a shared wall, not a tuning spread.** That is the signature of the corridor latch's `hinge ≥ 1.0` OR-branch: once the door reaches 1.0, corridor wages unlock *without crossing*, so 1.0 is the next pay boundary and the crossing moment migrated to it. **Threshold-hugging, 5th instance of the income-topology family** (v13 doorstop, v15 gate dead-zone, v16 unpaid push, v18 carry-above-ceiling, v20 latch-branch pin). The behavior obeys the pay landscape exactly; to move it, move the boundary.
+3. **Rider for the arm-limit round** (recorded in TODO table A): unify θ_send — one config value driving the corridor-latch hinge branch, the send-curriculum target, and any crossing gate; set ≈1.25–1.30. Pre-registered prediction: crossing p50 chases θ_send up to the kinematic ceiling. Pre-registered risk: the 160 kg/11.5 N·m render case reached 1.0 pre-crossing but ended `stage_overtime` — **on the heavy tail the binding constraint is time, not force**; if overtime exceeds ~3/48 at θ_send=1.3, compensate with stage-time budget or post-crossing speed, not by lowering θ.
+4. **Release-claim hygiene**: G4@2500 is the best policy on Route-A evidence only (goal 15/16). A formal release claim requires the never-run Route B (pooled48/holdout64) — recorded as a conditional debt, not a blocker for the next round.

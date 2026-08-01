@@ -284,7 +284,7 @@ def build_manifest(
         raise R1Error("preflight requires --run-tests before emitting STATIC PASS")
     repo_root = repo_root.resolve()
     plan = _hash_path(
-        repo_root, "scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md"
+        repo_root, "scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_optimization_plan_20260729.md"
     )
     validate_exact_hash(repo_root / plan["path"], PLAN_SHA256, "R1 plan")
     urdf = _hash_path(repo_root, "gr00t/rl/data/robots/A2_Piper/a2_piper.urdf")

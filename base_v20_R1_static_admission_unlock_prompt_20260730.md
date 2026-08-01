@@ -1,6 +1,6 @@
 # Prompt for the v20/R1 plan author
 
-You are reviewing a failed implementation of `a2_piper_base_v20_R1_optimization_plan_20260729.md`.
+You are reviewing a failed implementation of `scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_optimization_plan_20260729.md`.
 
 Read all files in the supplied handoff ZIP, especially:
 

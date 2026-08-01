@@ -39,7 +39,7 @@ EXPECTED_CHECKPOINT_SHA256 = (
     "b331c9a343c71dccf6cce31f71c1727a24298d72808c25763a0f702c369a866d"
 )
 EXPECTED_PLAN_RELATIVE = Path(
-    "scriptsFORhuman/a2_piper_base_v20_optimization_plan_20260728.md"
+    "scriptsFORhuman/v20/a2_piper_base_v20_optimization_plan_20260728.md"
 )
 EXPECTED_VALID_STATUSES = {"STRICT_VALID", "STRICT_INVALID"}
 EXPECTED_GROUPS = tuple(f"G{index}" for index in range(1, 8))

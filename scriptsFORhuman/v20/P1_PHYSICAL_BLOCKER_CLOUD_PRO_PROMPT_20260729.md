@@ -1,7 +1,7 @@
 # Cloud Pro 决策 Prompt：解锁 base_v20 的 P1_PHYSICAL_BLOCKER
 
 你是 DoorDog `A2_Piper` 的独立方案决策者。请审阅随附证据包，并对
-`scriptsFORhuman/a2_piper_base_v20_optimization_plan_20260728.md` 作一次明确、
+`scriptsFORhuman/v20/a2_piper_base_v20_optimization_plan_20260728.md` 作一次明确、
 可执行且有停止条件的方案裁决。你的任务是修改 v20 方案，不是继续调参、
 替当前失败补写 PASS，也不是直接实现代码。
 
@@ -41,7 +41,7 @@ runtime summary SHA256        = 70e46893475e7e16d61161925f1eff7e9809d797f30e0b24
 ## 必须审阅的材料
 
 1. `scriptsFORhuman/v20/P1_HANDOFF_20260729.md`
-2. `scriptsFORhuman/a2_piper_base_v20_optimization_plan_20260728.md`
+2. `scriptsFORhuman/v20/a2_piper_base_v20_optimization_plan_20260728.md`
 3. `gr00t/rl/envs/door/door_open_a2_base.py`
 4. `scriptsFORhuman/v20/a2_piper_v20_arc_feasibility.py`
 5. `gr00t/rl/tests/test_a2_v20_arc_feasibility.py`

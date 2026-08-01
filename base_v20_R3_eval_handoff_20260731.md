@@ -109,7 +109,7 @@ python -B -m gr00t.rl.eval_agent_trl \
 - eval 输出规范：写 `logs_eval/base_v20_R2/<eval-run>/`（co-location）
 - 训练 config：`gr00t/rl/config/ablation/wbmanip/base_v20_R2_*.yaml`
 - 溯源文档：`scriptsFORhuman/a2_piper_base_v20_R3_change_log_20260731.md`（§10 eval 交接）
-- R2 计划：`scriptsFORhuman/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md`
+- R2 计划：`scriptsFORhuman/v20_R2/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md`
 
 **Git 状态（历史交接）：** 原交接记录 HEAD=d620edc。2026-08-01 按用户明确要求，3 个已跟踪 zip 的删除已随 7a0835f 提交，不再是待保留 dirty state。
 

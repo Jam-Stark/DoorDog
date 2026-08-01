@@ -23,9 +23,9 @@ from typing import Any
 
 SCIENTIFIC_PLAN_ID = "base_v20_R1_policy_behavior_v1"
 ADMISSION_PLAN_ID = "base_v20_R2_admission_execution_v1"
-R2_PLAN_PATH = "scriptsFORhuman/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md"
+R2_PLAN_PATH = "scriptsFORhuman/v20_R2/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md"
 R2_PLAN_LOCK_PATH = "scriptsFORhuman/v20_R2/a2_piper_base_v20_R2_plan_lock_20260730.json"
-R1_PLAN_PATH = "scriptsFORhuman/a2_piper_base_v20_R1_optimization_plan_20260729.md"
+R1_PLAN_PATH = "scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_optimization_plan_20260729.md"
 B0_JSON_PATH = "scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_B0_reference_20260729.json"
 B0_CSV_PATH = "scriptsFORhuman/v20_R1/a2_piper_base_v20_R1_B0_reference_20260729.csv"
 R1_BLOCKER_COMMIT = "83cec1036a73c08565601df93aae40ee86856109"

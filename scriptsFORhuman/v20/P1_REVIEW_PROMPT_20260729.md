@@ -2,7 +2,7 @@
 
 You are reviewing the current \`A2_Piper\` branch of the DoorDog repository and
 the preregistered plan
-\`scriptsFORhuman/a2_piper_base_v20_optimization_plan_20260728.md\`.
+\`scriptsFORhuman/v20/a2_piper_base_v20_optimization_plan_20260728.md\`.
 
 Your task is to make one explicit scientific/engineering decision:
 

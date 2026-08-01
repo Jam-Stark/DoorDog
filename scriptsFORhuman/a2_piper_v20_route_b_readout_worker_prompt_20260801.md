@@ -1,6 +1,6 @@
 # Worker Prompt — v20 Route-A Dependent-Variable Readout (zero-training round closure)
 
-Repo: `/home/baoquanc/workspace/DoorDog-A2_Piper`. Read first: `scriptsFORhuman/a2_piper_project_handoff_20260725.md` §8 and rules 11–12; `scriptsFORhuman/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md`; `base_v20_R3_eval_handoff_20260731.md`.
+Repo: `/home/baoquanc/workspace/DoorDog-A2_Piper`. Read first: `scriptsFORhuman/a2_piper_project_handoff_20260725.md` §8 and rules 11–12; `scriptsFORhuman/v20_R2/a2_piper_base_v20_R2_admission_and_execution_plan_20260730.md`; `base_v20_R3_eval_handoff_20260731.md`.
 
 ## Objective (one sentence)
 Compute and adjudicate the v20 round's **dependent variable** — door angle at the robot's crossing moment — across the existing 70-checkpoint Route-A corpus, and declare the round's verdict. **No training. No gate/threshold relaxation.** New evals only under the fallback in step 2.

@@ -45,6 +45,110 @@ from gr00t.rl.trl.modules.homie_modules import (
 
 
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+_V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
+_V21B_METRIC_SOURCES = {
+    "send_latch_fire_rate": "a2_v21B_send_latch_fire_rate",
+    "hinge_at_send_latch_rad": "a2_v21B_hinge_at_send_latch_rad",
+    "hinge_at_crossing_rad": "a2_v21B_hinge_at_crossing_rad",
+    "send_to_cross_steps": "a2_v21B_send_to_cross_steps",
+    "stage_overtime_rate": "a2_v21B_stage_overtime_rate",
+    "upper_dof_overspeed_rate": "a2_v21B_upper_dof_overspeed_rate",
+    "arm_clipped_utilization": "a2_v21B_arm_clipped_utilization",
+    "arm_clipped_utilization_valid_rate": "a2_v21B_arm_clipped_utilization_valid_rate",
+    "finite_data": "a2_v21B_finite_data",
+    "decomposition_sanity": "a2_v21B_decomposition_sanity",
+    "decomposition_sanity_valid_rate": "a2_v21B_decomposition_sanity_valid_rate",
+}
+_V21B_COVERAGE_METRICS = frozenset((
+    "arm_clipped_utilization_valid_rate",
+    "decomposition_sanity_valid_rate",
+))
+
+
+def _v21b_scalar(value, *, key: str):
+    """Extract one scalar trainer value without accepting synthetic fallbacks."""
+
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float, np.integer, np.floating)):
+        number = float(value)
+    elif isinstance(value, torch.Tensor) and value.numel() == 1:
+        number = float(value.detach().cpu().item())
+    else:
+        raise ValueError(f"v21-B metric {key!r} must be a scalar")
+    if not math.isfinite(number):
+        raise ValueError(f"v21-B metric {key!r} is non-finite")
+    return number
+
+
+def normalize_v21b_training_metrics(metrics) -> dict[str, float | bool]:
+    """Map exact trainer ``Env/a2_v21B_*`` keys to the v21-B row schema."""
+
+    if not isinstance(metrics, dict):
+        raise ValueError("v21-B training metrics must be a mapping")
+    normalized: dict[str, float | bool] = {}
+    for name, source in _V21B_METRIC_SOURCES.items():
+        source_key = f"Env/{source}"
+        if source_key not in metrics:
+            raise ValueError(f"v21-B training metric source key is missing: {source_key}")
+        normalized[name] = _v21b_scalar(metrics[source_key], key=source_key)
+    for name in _V21B_COVERAGE_METRICS:
+        coverage = normalized[name]
+        if isinstance(coverage, bool) or coverage != 1.0:
+            raise ValueError(f"v21-B training metric {name} must equal 1.0 for complete coverage")
+    return normalized
+
+
+def build_v21b_training_metric_row(
+    metrics,
+    *,
+    batch_index: int,
+    source_lock_sha256: str,
+    source_lock_file_sha256: str,
+    git_commit: str,
+    git_tree: str,
+    source_checkpoint_sha256: str | None = None,
+    checkpoint_path: str | None = None,
+    checkpoint_sha256: str | None = None,
+) -> dict[str, object]:
+    """Build one source/Git-bound v21-B raw training metric row."""
+
+    if isinstance(batch_index, bool) or not isinstance(batch_index, int) or batch_index <= 0:
+        raise ValueError("v21-B training metric batch_index must be a positive integer")
+    for name, value in (("source_lock_sha256", source_lock_sha256), ("source_lock_file_sha256", source_lock_file_sha256), ("git_commit", git_commit), ("git_tree", git_tree)):
+        expected_length = 40 if name in ("git_commit", "git_tree") else 64
+        if not isinstance(value, str) or len(value) != expected_length or any(char not in "0123456789abcdef" for char in value):
+            raise ValueError(f"v21-B training metric {name} has an invalid identity")
+    normalized = normalize_v21b_training_metrics(metrics)
+    row = {
+        "schema": "a2_piper_base_v21B_training_metric_v1",
+        "producer_state": "PROCESS_COMPLETED",
+        "scientific_plan_id": _V21B_PLAN_ID,
+        "source_lock_sha256": source_lock_sha256,
+        "source_lock_file_sha256": source_lock_file_sha256,
+        "git_commit": git_commit,
+        "git_tree": git_tree,
+        "batch_index": batch_index,
+        "metrics": normalized,
+        "metric_sources": dict(_V21B_METRIC_SOURCES),
+    }
+    if source_checkpoint_sha256 is not None:
+        if not isinstance(source_checkpoint_sha256, str) or len(source_checkpoint_sha256) != 64 or any(char not in "0123456789abcdef" for char in source_checkpoint_sha256):
+            raise ValueError("v21-B training metric source checkpoint identity is invalid")
+        row["source_checkpoint_sha256"] = source_checkpoint_sha256
+    if checkpoint_path is not None:
+        if not isinstance(checkpoint_path, str) or not checkpoint_path:
+            raise ValueError("v21-B training metric checkpoint path is invalid")
+        row["checkpoint_path"] = checkpoint_path
+    if checkpoint_sha256 is not None:
+        if not isinstance(checkpoint_sha256, str) or len(checkpoint_sha256) != 64 or any(char not in "0123456789abcdef" for char in checkpoint_sha256):
+            raise ValueError("v21-B training metric checkpoint identity is invalid")
+        row["checkpoint_sha256"] = checkpoint_sha256
+    if checkpoint_path is not None and checkpoint_sha256 is None:
+        raise ValueError("v21-B training metric checkpoint hash is required with checkpoint path")
+    if checkpoint_sha256 is not None and checkpoint_path is None:
+        raise ValueError("v21-B training metric checkpoint path is required with checkpoint hash")
+    return row
 
 
 def validate_r2_batch_ownership(*, local_batch_size: int, world_size: int, num_total_batches: int) -> dict[str, int]:
@@ -2273,6 +2377,7 @@ class TRLPPOTrainer(PPOTrainer):
             if checkpoint is None
             else str(Path(str(checkpoint)).expanduser().resolve())
         )
+        self._v21b_training_identity = None
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
                 "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
@@ -2335,10 +2440,172 @@ class TRLPPOTrainer(PPOTrainer):
         with target.open("ab") as handle:
             handle.write(payload); handle.flush(); os.fsync(handle.fileno())
 
+    def write_v21b_training_metric(self, row, output_path):
+        """Append one strict v21-B producer row without adjudication fields."""
+
+        if not isinstance(row, dict) or row.get("status") is not None or row.get("verdict") is not None:
+            raise ValueError("v21-B training metrics are raw producer rows without adjudication fields")
+        if row.get("schema") != "a2_piper_base_v21B_training_metric_v1" or row.get("producer_state") != "PROCESS_COMPLETED":
+            raise ValueError("v21-B training metric schema/state is invalid")
+        normalized = row.get("metrics")
+        if not isinstance(normalized, dict) or set(normalized) != set(_V21B_METRIC_SOURCES):
+            raise ValueError("v21-B training metric normalized coverage is incomplete")
+        for value in normalized.values():
+            if isinstance(value, bool):
+                continue
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(float(value)):
+                raise ValueError("v21-B training metric contains non-finite/non-scalar data")
+        target = Path(output_path)
+        if target.is_symlink():
+            raise ValueError(f"v21-B training metric output may not be a symlink: {target}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        payload = (json.dumps(row, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n").encode("utf-8")
+        with target.open("ab") as handle:
+            handle.write(payload); handle.flush(); os.fsync(handle.fileno())
+
+    @staticmethod
+    def _v21b_file_stat(path: Path, *, label: str) -> tuple[int, int, int, int]:
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError(f"v21-B {label} is not a regular file: {path}")
+        stat = path.stat()
+        return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+
+    @staticmethod
+    def _v21b_sha256_file(path: Path, *, label: str) -> str:
+        digest = hashlib.sha256()
+        try:
+            with path.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+        except OSError as exc:
+            raise RuntimeError(f"v21-B cannot hash {label}: {path}") from exc
+        return digest.hexdigest()
+
+    def _v21b_expected_config_identity(self, *paths: str) -> object:
+        for path in paths:
+            value = OmegaConf.select(self.config, path, default=None)
+            if value is not None:
+                return value
+        return None
+
+    def _get_v21b_training_identity(self) -> dict[str, object]:
+        """Resolve and cache source/checkpoint/Git identity for v21-B emission."""
+
+        source_lock_value = OmegaConf.select(self.config, "r2_source_lock_path", default=None)
+        if not isinstance(source_lock_value, str) or not source_lock_value:
+            raise RuntimeError("v21-B training metric emission requires r2_source_lock_path.")
+        source_path = Path(source_lock_value)
+        if not source_path.is_absolute():
+            source_path = Path.cwd() / source_path
+        source_path = source_path.absolute()
+
+        checkpoint_value = self.checkpoint_path
+        if not isinstance(checkpoint_value, str) or not checkpoint_value:
+            raise RuntimeError("v21-B training metric emission requires an explicit trainer checkpoint.")
+        checkpoint_path = Path(checkpoint_value).expanduser().absolute()
+
+        cached = getattr(self, "_v21b_training_identity", None)
+        if cached is not None:
+            if cached["source_lock_path"] != str(source_path):
+                raise RuntimeError("v21-B source-lock path changed after first metric emission")
+            if cached["checkpoint_path"] != str(checkpoint_path):
+                raise RuntimeError("v21-B checkpoint path changed after first metric emission")
+            if self._v21b_file_stat(source_path, label="source lock") != cached["source_lock_stat"]:
+                raise RuntimeError("v21-B source-lock file changed after first metric emission")
+            if self._v21b_file_stat(checkpoint_path, label="checkpoint") != cached["checkpoint_stat"]:
+                raise RuntimeError("v21-B checkpoint changed after first metric emission")
+            self._v21b_validate_config_identity(cached)
+            return cached
+
+        source_lock_stat = self._v21b_file_stat(source_path, label="source lock")
+        try:
+            source_lock = json.loads(source_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("v21-B training metric source lock is not valid JSON") from exc
+        if not isinstance(source_lock, dict) or source_lock.get("schema") != "a2_piper_base_v21B_source_lock_v1":
+            raise RuntimeError("v21-B training metric source lock schema is invalid")
+        from scriptsFORhuman.v21B.a2_piper_v21B_source_freeze import validate_source_lock
+
+        validate_source_lock(source_lock, Path.cwd(), require_current=True)
+        source_lock_sha256 = source_lock.get("source_lock_sha256")
+        source_checkpoint_sha256 = source_lock.get("source_checkpoint_sha256")
+        if (
+            not isinstance(source_lock_sha256, str)
+            or len(source_lock_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in source_lock_sha256)
+            or not isinstance(source_checkpoint_sha256, str)
+            or len(source_checkpoint_sha256) != 64
+            or any(char not in "0123456789abcdef" for char in source_checkpoint_sha256)
+        ):
+            raise RuntimeError("v21-B training metric source-lock identity is invalid")
+        source_lock_file_sha256 = self._v21b_sha256_file(source_path, label="source lock")
+        checkpoint_stat = self._v21b_file_stat(checkpoint_path, label="checkpoint")
+        checkpoint_sha256 = self._v21b_sha256_file(checkpoint_path, label="checkpoint")
+        if checkpoint_sha256 != source_checkpoint_sha256:
+            raise RuntimeError("v21-B checkpoint does not match source-lock checkpoint identity")
+        try:
+            git_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=Path.cwd(), text=True, stderr=subprocess.PIPE).strip()
+            git_tree = subprocess.check_output(["git", "rev-parse", "HEAD^{tree}"], cwd=Path.cwd(), text=True, stderr=subprocess.PIPE).strip()
+        except (OSError, subprocess.CalledProcessError) as exc:
+            raise RuntimeError("v21-B training metric cannot resolve current Git identity") from exc
+        for name, value, length in (("git commit", git_commit, 40), ("git tree", git_tree, 40)):
+            if len(value) != length or any(char not in "0123456789abcdef" for char in value):
+                raise RuntimeError(f"v21-B {name} identity is invalid")
+        identity = {
+            "source_lock_path": str(source_path),
+            "source_lock_stat": source_lock_stat,
+            "source_lock_sha256": source_lock_sha256,
+            "source_lock_file_sha256": source_lock_file_sha256,
+            "source_checkpoint_sha256": source_checkpoint_sha256,
+            "checkpoint_path": str(checkpoint_path),
+            "checkpoint_stat": checkpoint_stat,
+            "checkpoint_sha256": checkpoint_sha256,
+            "git_commit": git_commit,
+            "git_tree": git_tree,
+        }
+        self._v21b_validate_config_identity(identity)
+        self._v21b_training_identity = identity
+        return identity
+
+    def _v21b_validate_config_identity(self, identity: dict[str, object]) -> None:
+        expected_checkpoint = self._v21b_expected_config_identity(
+            "v21b_source_checkpoint_sha256",
+            "env.config.a2_v21B_source_checkpoint_sha256",
+        )
+        if expected_checkpoint is not None and expected_checkpoint != identity["source_checkpoint_sha256"]:
+            raise RuntimeError("v21-B configured source checkpoint identity mismatches source lock")
+        expected_source_lock = self._v21b_expected_config_identity(
+            "v21b_source_lock_sha256",
+            "env.config.a2_v21B_source_lock_sha256",
+        )
+        if expected_source_lock is not None and expected_source_lock != identity["source_lock_sha256"]:
+            raise RuntimeError("v21-B configured source-lock identity mismatches source lock")
+
+    def _write_v21b_training_metric_if_enabled(self, metrics, batch_index):
+        identity = self._get_v21b_training_identity()
+        row = build_v21b_training_metric_row(
+            metrics,
+            batch_index=batch_index,
+            source_lock_sha256=identity["source_lock_sha256"],
+            source_lock_file_sha256=identity["source_lock_file_sha256"],
+            git_commit=identity["git_commit"],
+            git_tree=identity["git_tree"],
+            source_checkpoint_sha256=identity["source_checkpoint_sha256"],
+            checkpoint_path=identity["checkpoint_path"],
+            checkpoint_sha256=identity["checkpoint_sha256"],
+        )
+        output_path = OmegaConf.select(self.config, "r2_training_metrics_path", default=None)
+        if not isinstance(output_path, str) or not output_path:
+            output_path = str(Path(self.args.output_dir) / "r2_training_metrics.jsonl")
+        self.write_v21b_training_metric(row, output_path)
+
     def _write_r2_training_metric_if_enabled(self, metrics, batch_index):
         """Write scalar-only JSONL telemetry; full M48 arrays remain eval-only."""
         config = self.config
         if not bool(OmegaConf.select(config, "r2_evidence_enabled", default=False)):
+            return
+        if OmegaConf.select(config, "scientific_plan_id", default=None) == _V21B_PLAN_ID:
+            self._write_v21b_training_metric_if_enabled(metrics, batch_index)
             return
         source_lock_path = OmegaConf.select(config, "r2_source_lock_path", default=None)
         if not isinstance(source_lock_path, str) or not source_lock_path:

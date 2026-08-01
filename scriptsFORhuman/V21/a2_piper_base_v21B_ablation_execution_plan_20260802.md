@@ -168,10 +168,32 @@ Fork **F1** covers the case where backward compatibility cannot be preserved: in
 
 v21 marks torque telemetry "preferred, non-blocking" — correct for a theta-only round. In v21-B the arm axis makes it the **primary instrument**: without it there is no way to claim a feasibility boundary exists, and DV2 is unmeasurable. It is therefore mandatory.
 
-Observability only. Source of truth is the torque **actually applied after clipping**, never an unclipped PD request. It must not alter torque limits, Kp/Kd, action scale, rewards or observations.
+Observability only: it must not alter torque limits, Kp/Kd, action scale, rewards or observations.
 
-Per-step fields: `arm_torque_applied_6d`, `arm_torque_utilization_6d` (= |applied| / limit per joint), `arm_torque_utilization_max`, `arm_torque_argmax_joint`.
-Per-episode: per-joint p50/p95/max utilization; fraction of valid frames ≥0.90 and ≥0.98; `first_joint_ge_0.98`; the same split by heavy/light bucket. `N/A` never `0` for empty denominators.
+**Provenance — ESTIMATE_ONLY (worker-raised plan conflict, adjudicated 2026-08-02).** The A2 arm joints are implicit actuators (`gr00t/rl/simulator/isaacsim/isaacsim_articulation_cfg.py:111`, `"arms": ImplicitActuatorCfg`). PhysX does not expose the true drive force for implicit actuators; IsaacLab's `computed_torque` / `applied_torque` (`door_open_a2_base.py:19334-19335`) are the actuator model's own PD estimate and clipped estimate. **P0-T therefore measures a clipped implicit-PD torque proxy and must never be reported as true PhysX drive torque.**
+
+Reuse the existing, already-reviewed repo pattern rather than new vocabulary — the gripper hold-oracle path at `door_open_a2_base.py:19331-19438` already implements it via `a2_hold_pd_effort_estimates(q, qdot, qtarget, kp, kd, limit) -> (unclipped, clipped, saturated)`, cross-checked against the IsaacLab estimates and stamped with an authority label. P0-T is the same functions applied to `arm_j1..arm_j6`, keeping one provenance vocabulary across the repo:
+
+```text
+arm_pd_effort_estimate_unclipped_6d
+arm_pd_effort_estimate_clipped_6d
+arm_pd_effort_estimated_saturation_6d
+isaaclab_implicit_computed_effort_estimate_6d
+isaaclab_implicit_applied_effort_estimate_6d
+isaaclab_implicit_effort_estimate_crosscheck_error_6d
+isaaclab_implicit_effort_estimate_authority  = ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE
+```
+
+**Record both clip states — they answer different questions.** v21 §0.4 (and the first draft of this section) declared the post-clip value the single source of truth. That is correct for DV2, where the limit is the treatment and saturation fraction is the readout, but **wrong for the census** of §4.1, which extrapolates candidate limits from a run at 100 N·m: the fraction that would saturate at limit *k* is `P(|unclipped| >= k)`, which post-clip data cannot supply. So:
+
+- **census (§4.1) → unclipped estimate**, plus an explicit right-censoring report (the fraction of frames already at/above 100 N·m; if that mass is non-trivial the extrapolation is biased and must be flagged rather than silently used);
+- **DV2 in formal cells → clipped estimate + saturation flag**, since there the limit is the manipulated variable.
+
+Derived per-episode: per-joint p50/p95/max utilization; fraction of valid frames ≥0.90 and ≥0.98; `first_joint_ge_0.98`; heavy/light bucket split. `N/A` never `0` for empty denominators.
+
+**Non-proxy corroboration (mandatory for DV2).** So that the boundary claim does not rest on an estimate alone, record joint tracking error — `joint_pos_target − joint_pos` and `joint_vel` per arm joint, all already read at `:19325-19330`. A saturated joint physically cannot track its target, so persistent tracking-error growth on the heavy bucket, coincident with estimated saturation, is a physically grounded corroboration that is independent of the torque model. `root_physx_view.get_link_incoming_joint_force()` is available in this repo (`isaacsim.py:709-716` shows `root_physx_view` access) but is **advisory-only and explicitly not required**: it returns link-space constraint force rather than drive torque, and projecting it onto the joint axis adds implementation risk for no additional adjudication power.
+
+**What the proxy does and does not limit.** The *treatment* is not a proxy: IsaacLab configures the PhysX drive's force limit from `effort_limit`, so lowering it genuinely constrains the physics whether or not we can read the resulting torque back. Only the *claim* tightens. Permitted: "the arm's commanded PD effort saturates its configured limit on the heavy bucket, corroborated by tracking-error growth." Not permitted: "we measured the true applied PhysX joint torque." No real-hardware force-feasibility claim is permitted from v21-B under any outcome.
 
 ## 3.3 P0-A — arm profile plumbing
 
@@ -193,16 +215,18 @@ Derived offline: `hinge_at_send_latch` (hinge at `v20_first_send_ready_step`), `
 
 Run the frozen warm-start checkpoint under full randomization with torque telemetry, canonical16 plus a **pre-registered heavy16 manifest** (`door_weight ≥ 140 kg` and `hinge_force ≥ 10 N·m`, balanced over handle heights). Generate the manifest once, write it to JSON, hash it, reuse it for every rung. No seed or scenario fishing.
 
-Report per joint and per bucket: peak and p95 applied torque, utilization against the current 100 N·m, and the implied utilization under each candidate limit in `{40, 30, 25, 20}` N·m.
+Report per joint and per bucket: peak and p95 **unclipped** PD effort estimate (§3.2 provenance applies — this is an implicit-PD proxy, not PhysX drive torque), utilization against the current 100 N·m, the right-censored mass at 100 N·m, and the implied utilization under each candidate limit in `{40, 30, 25, 20}` N·m.
 
-**Selection rule for `ARM_REALISTIC`, fixed before any result is inspected** — choose the **largest** candidate k such that
+**Selection rule for `ARM_REALISTIC`, fixed before any result is inspected** — choose the **largest** candidate k such that, computed on the unclipped estimate,
 
-- heavy bucket: fraction of episodes with peak utilization ≥ 1.0 is **≥ 0.30**, and
-- light bucket: fraction of episodes with peak utilization ≤ 0.85 is **≥ 0.80**.
+- heavy bucket: fraction of episodes with peak `|unclipped| / k` ≥ 1.0 is **≥ 0.30**, and
+- light bucket: fraction of episodes with peak `|unclipped| / k` ≤ 0.85 is **≥ 0.80**.
+
+If the right-censored mass at 100 N·m exceeds 5% of **raw valid heavy frames**, the extrapolation is biased upward and the census must report `CENSUS_RIGHT_CENSORED` rather than silently selecting k; fork F3 then applies. Raw rows are grouped by exact `(episode_id, scenario_id, topology, heavy_bucket)` only for episode-peak candidate selection; the right-censor denominator remains the raw valid heavy-frame count, so unequal episode lengths cannot change the stated frame fraction.
 
 This places the boundary *inside* the existing door distribution, which is what the force_feasible thesis requires — a limit that saturates on the heavy tail while leaving light doors comfortably feasible. It is deliberately measurement-driven rather than datasheet-driven: **if AgileX PiPER rated joint torques are supplied, they take precedence** and the census instead reports where that datasheet boundary lands relative to the door distribution (which may itself be the more interesting finding). Fingers stay at 45 N and velocity limits stay unchanged, so the axis is effort-only.
 
-Fork **F3** covers "no k separates the buckets".
+Fork **F3** covers either signed terminal status `CENSUS_RIGHT_CENSORED` or `BOUNDARY_NOT_SEPARABLE`. It skips zero-shot, pilot, and arm-tie dependencies and freezes `THETA_ONLY_FALLBACK_F3`; no numeric k or fabricated adaptation digest is permitted. Formal cells are all `ARM_V20` with six arm limits 100 N·m, arm-tie/DV4 disabled, and the exact theta ladder: `B1=0.90 seed0`, `B2=1.20 seed0`, `B3=1.05 seed0`, `B4=1.15 seed0`, `B5=1.25 seed1`, `B6=1.20 seed1`, `B7=1.25 seed0`.
 
 ## 4.2 P0-Z — zero-shot probe under the selected arm profile
 
@@ -236,7 +260,7 @@ v20's arm-tie earned under 1% of positive income and did not bind. Calibrate off
 
 Contrasts: theta = B2/B6 vs B1; arm = B3 vs B1; interaction = B4 vs B2 and B4 vs B3; seed replication = B5 vs B4 and B6 vs B2; arm-tie = B7 vs B4. One axis per contrast, replicates on both theta-high conditions (standing rule 8; basin lottery is real).
 
-**Common contract.** Warm start `logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt`, `policy_only`, sha256 `f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d` (**verified byte-for-byte on this host, 2026-08-02**). 4096 envs, 2500 batches, save250. 64-env × 50-batch smoke per cell before formal launch, checking decomposition sanity, no NaN, and that the new mechanisms are alive. GPU7 unused. Natural-exit audit recorded per cell (standing maintenance debt since v13.1).
+**Common contract.** Warm start `logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt`, `policy_only`, sha256 `f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d` (**verified byte-for-byte on this host, 2026-08-02**). Formal cells use 4096 envs, 2500 batches, save250. Before any formal launch, run exactly one B4 smoke with the signed materialized B4 config: 64 envs × 10 batches, save10, then perform the exact train/eval/launcher cleanup and write a cleanup PASS receipt. Only after smoke PASS plus cleanup PASS may formal launch proceed. GPU7 unused. At iteration 50, verify finite contiguous metrics and per-window liveness, detach attached tmux clients without stopping training, recheck liveness, and record `STARTUP_50_PASS`/`TRAINING_CONTINUES`; this is not formal completion. Natural-exit audit remains recorded per cell.
 
 ---
 
@@ -244,7 +268,7 @@ Contrasts: theta = B2/B6 vs B1; arm = B3 vs B1; interaction = B4 vs B2 and B4 vs
 
 **DV1 — theta tracking (B2, B6).** `hinge_at_crossing` p50 predicted in **[1.26, 1.38] rad**, from theta 1.20 plus measured overshoot p50 0.1160 (p05 0.0620, p95 0.1628). Labels: `THETA_TRACKING` inside the band; `THETA_PARTIAL_TRACKING` in [1.10, 1.26); `PRE_CROSSING_CEILING` below 1.10 while the latch angle itself tracks theta.
 
-**DV2 — boundary created (B3, B4, B5, B7).** Fraction of heavy-bucket valid frames with `arm_torque_utilization_max ≥ 0.98` predicted **≥ 0.30** in ARM_REALISTIC cells and **< 0.05** in ARM_V20 cells. Labels: `BOUNDARY_CREATED`, `BOUNDARY_ABSENT`, `BOUNDARY_SATURATED_EVERYWHERE` (the last means k was too aggressive and the light bucket saturates too).
+**DV2 — boundary created (B3, B4, B5, B7).** Fraction of heavy-bucket valid frames with clipped-estimate utilization `≥ 0.98` predicted **≥ 0.30** in ARM_REALISTIC cells and **< 0.05** in ARM_V20 cells. Labels: `BOUNDARY_CREATED`, `BOUNDARY_ABSENT`, `BOUNDARY_SATURATED_EVERYWHERE` (the last means k was too aggressive and the light bucket saturates too). **`BOUNDARY_CREATED` requires both** the estimated-saturation criterion **and** the non-proxy corroboration of §3.2 — a heavy-bucket joint tracking-error increase relative to the matched ARM_V20 cell. Estimated saturation alone, without tracking-error corroboration, is reported as `BOUNDARY_ESTIMATE_ONLY_UNCORROBORATED`.
 
 **DV3 — base intervention (B4 vs B2, B3 vs B1).** With a genuine boundary, does base involvement appear on the saturated bucket? Metrics: pre-send planar displacement, pre-send yaw, `arm_tangent_integral_share`, pre-crossing body/door contact. This is the **first direct measurement of the force_feasible dependent variable** in the project; v15 falsified "heavy-door body-assist emergence" under a superhuman arm (0/10066 pre-crossing body contacts at 12 N·m), and DV3 is the same question asked once the arm is no longer superhuman. A null result here is a publishable negative, not a round failure.
 
@@ -309,7 +333,7 @@ One bounded adaptation window, at the decision point after census + zero-shot + 
 |---|---|---|
 | F1 | guard extension cannot preserve v20 byte-compatibility | introduce theta as an independent key; v20 path untouched |
 | F2 | zero-shot at selected k gives canonical goal <3/16 **and** majority failing to reach stage 3 | step back one grid point, re-probe once; if still collapsed convert B3/B4/B5/B7 to a theta ladder {1.05, 1.15, 1.25, 1.25-seed1} and record `ARM_AXIS_DEFERRED_TO_V22` |
-| F3 | no k separates heavy from light buckets | report `BOUNDARY_NOT_SEPARABLE`, run the theta-only fallback matrix, escalate to the planner; do not invent a k outside the grid |
+| F3 | census status is exactly `CENSUS_RIGHT_CENSORED` or `BOUNDARY_NOT_SEPARABLE` | skip zero-shot/pilot/tie, freeze `THETA_ONLY_FALLBACK_F3`, and launch all cells as ARM_V20/100 with the exact ladder B1=.90 s0, B2=1.20 s0, B3=1.05 s0, B4=1.15 s0, B5=1.25 s1, B6=1.20 s1, B7=1.25 s0; no invented k |
 | F4 | B4 pilot send-latch fire rate <60% canonical | drop theta to 1.10 for all theta-high cells before freeze |
 | F5 | no cell satisfies STANDARD | a non-release result is a completed scientific outcome; report DV1–DV4 and stop |
 

@@ -192,6 +192,16 @@ def parse_camera_pose(pos, rot_wxyz):
 
 def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
     """Select version selectors and compose them with explicit eval door hooks."""
+    v21b_probe_key = "a2_v21B_signed_probe_scenarios_enabled"
+    if env_config.get(v21b_probe_key) is True:
+        hook_name = "get_TaskObjCfgDict_for_v21B_scenario_manifest"
+        hook = getattr(task_module, hook_name, None)
+        if not callable(hook):
+            raise TypeError(f"task module must expose callable {hook_name!r} for v21-B scenario manifests")
+        task_obj_cfg_dict = hook(num_envs, env_config)
+        if not isinstance(task_obj_cfg_dict, dict):
+            raise TypeError("v21-B scenario selector must return a dict")
+        return task_obj_cfg_dict
     eval_key = "a2_eval_door_handle_height_linspace"
     weight_key = "a2_door_weight_range"
     pair_key = "a2_eval_door_handle_height_weight_pairs"
@@ -1820,7 +1830,11 @@ class IsaacSim(BaseSimulator):
                     continue
                 obj_cfg = obj_cfg.replace(prim_path=f"/World/envs/env_.*/{name}")
                 if isinstance(obj_cfg.spawn, sim_utils.MultiAssetSpawnerCfg):
-                    obj_cfg.spawn.assets_cfg = obj_cfg.spawn.assets_cfg[: self.scene.cfg.num_envs]
+                    obj_cfg = obj_cfg.replace(
+                        spawn=obj_cfg.spawn.replace(
+                            assets_cfg=list(obj_cfg.spawn.assets_cfg[: self.scene.cfg.num_envs])
+                        )
+                    )
                 # import ipdb; ipdb.set_trace()
                 self._task[name] = obj_cfg.class_type(obj_cfg)
                 # import ipdb; ipdb.set_trace()

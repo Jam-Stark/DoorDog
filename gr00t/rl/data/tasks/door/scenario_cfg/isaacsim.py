@@ -3,9 +3,12 @@
 
 
 import logging
+import hashlib
+import json
 import math
 from collections.abc import Sequence
 from numbers import Real
+from pathlib import Path
 
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
@@ -15,6 +18,178 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 
 from gr00t.rl.isaac_utils.playground.env_rand.door import DoorSpawnerCfg, spawn_door
+
+
+_V21B_MANIFEST_SCHEMA = "a2_piper_base_v21B_heavy16_manifest_v1"
+_V21B_SIGNED_PROBE_FLAG = "a2_v21B_signed_probe_scenarios_enabled"
+
+
+def _v21b_scenario_digest(row: dict) -> str:
+    body = {
+        "scenario_id": row.get("scenario_id"),
+        "door_weight_kg": row.get("door_weight_kg"),
+        "hinge_force_nm": row.get("hinge_force_nm"),
+        "handle_height_m": row.get("handle_height_m"),
+        "source": row.get("source"),
+    }
+    return hashlib.sha256(
+        json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
+
+
+def _v21b_digest(value, label: str) -> str:
+    if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+        raise ValueError(f"v21-B {label} must be a lowercase sha256 digest")
+    return value
+
+
+def _v21b_manifest_payload(env_config) -> tuple[dict, Path]:
+    path_value = env_config.get("a2_v21B_scenario_manifest_path")
+    if not isinstance(path_value, (str, Path)) or not str(path_value):
+        raise ValueError("v21-B scenario selection requires a2_v21B_scenario_manifest_path")
+    path = Path(path_value)
+    if not path.is_file() or path.is_symlink():
+        raise ValueError(f"v21-B scenario manifest must be a regular non-symlink file: {path}")
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"v21-B scenario manifest is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict) or payload.get("schema") != _V21B_MANIFEST_SCHEMA or payload.get("status") != "STATIC_PASS":
+        raise ValueError("v21-B scenario manifest schema/status is invalid")
+    canonical = payload.get("canonical_manifest_rows")
+    heavy = payload.get("manifest_rows")
+    if not isinstance(canonical, list) or len(canonical) != 32 or not isinstance(heavy, list) or len(heavy) != 16:
+        raise ValueError("v21-B scenario manifest requires exactly 16 canonical/light and 16 heavy rows")
+    canonical_ids = [row.get("scenario_id") if isinstance(row, dict) else None for row in canonical]
+    heavy_ids = [row.get("scenario_id") if isinstance(row, dict) else None for row in heavy]
+    if any(not isinstance(item, str) or not item for item in canonical_ids + heavy_ids) or len(set(canonical_ids)) != 32 or len(set(heavy_ids)) != 16 or len(set(heavy_ids) - set(canonical_ids)):
+        raise ValueError("v21-B scenario manifest ids must be unique and heavy ids must be canonical ids")
+    if len(set(canonical_ids) - set(heavy_ids)) != 16:
+        raise ValueError("v21-B scenario manifest must contain exactly 16 light ids")
+    if hashlib.sha256(json.dumps(heavy, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest() != payload.get("manifest_sha256"):
+        raise ValueError("v21-B scenario manifest heavy hash is invalid")
+    if payload.get("heavy_manifest_sha256") != payload.get("manifest_sha256"):
+        raise ValueError("v21-B scenario manifest heavy hash alias is invalid")
+    if hashlib.sha256(json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest() != payload.get("canonical_manifest_sha256"):
+        raise ValueError("v21-B scenario manifest canonical hash is invalid")
+    row_hashes = set()
+    canonical_by_id = {row["scenario_id"]: row for row in canonical}
+    for row in canonical:
+        if not isinstance(row, dict) or any(key not in row for key in ("scenario_id", "door_weight_kg", "hinge_force_nm", "handle_height_m", "source", "scenario_sha256")):
+            raise ValueError("v21-B scenario manifest rows require immutable identity and scenario_sha256")
+        values = tuple(float(row[key]) for key in ("door_weight_kg", "hinge_force_nm", "handle_height_m"))
+        if any(not math.isfinite(value) or value <= 0.0 for value in values) or row["scenario_sha256"] != _v21b_scenario_digest(row):
+            raise ValueError(f"v21-B scenario row is invalid: {row.get('scenario_id')!r}")
+        row_hashes.add(row["scenario_sha256"])
+    if len(row_hashes) != 32:
+        raise ValueError("v21-B scenario row hashes must be unique")
+    for row in heavy:
+        if row.get("scenario_sha256") != canonical_by_id[row["scenario_id"]].get("scenario_sha256"):
+            raise ValueError("v21-B heavy row is not byte-bound to canonical row")
+        if float(row["door_weight_kg"]) < 140.0 and float(row["hinge_force_nm"]) < 10.0:
+            raise ValueError("v21-B heavy row fails the registered eligibility rule")
+    expected_hash = env_config.get("a2_v21B_scenario_manifest_sha256")
+    if expected_hash is None:
+        raise ValueError("v21-B scenario selection requires a2_v21B_scenario_manifest_sha256")
+    _v21b_digest(expected_hash, "scenario manifest hash")
+    if expected_hash != payload["manifest_sha256"]:
+        raise ValueError("v21-B scenario manifest hash disagrees with env.config")
+    expected_file_hash = env_config.get("a2_v21B_scenario_manifest_file_sha256")
+    _v21b_digest(expected_file_hash, "scenario manifest file hash")
+    actual_file_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+    if expected_file_hash != actual_file_hash:
+        raise ValueError("v21-B scenario manifest file hash disagrees with env.config")
+    expected_canonical_hash = env_config.get("a2_v21B_canonical_manifest_sha256")
+    _v21b_digest(expected_canonical_hash, "canonical manifest hash")
+    if expected_canonical_hash != payload.get("canonical_manifest_sha256"):
+        raise ValueError("v21-B canonical manifest hash disagrees with env.config")
+    expected_manifest_source_checkpoint = env_config.get("a2_v21B_scenario_manifest_source_checkpoint_sha256")
+    expected_manifest_source_lock = env_config.get("a2_v21B_scenario_manifest_source_lock_sha256")
+    expected_manifest_source_config = env_config.get("a2_v21B_scenario_manifest_source_config_sha256")
+    expected_materialization = env_config.get("a2_v21B_scenario_manifest_materialization_sha256")
+    for value, label in ((expected_manifest_source_checkpoint, "manifest source checkpoint hash"), (expected_manifest_source_lock, "manifest source lock hash"), (expected_manifest_source_config, "manifest source config hash"), (expected_materialization, "scenario manifest materialization hash")):
+        _v21b_digest(value, label)
+    for value, key in ((expected_manifest_source_checkpoint, "source_checkpoint_sha256"), (expected_manifest_source_lock, "source_lock_sha256"), (expected_manifest_source_config, "source_config_sha256"), (expected_materialization, "materialization_sha256")):
+        if value != payload.get(key):
+            raise ValueError(f"v21-B manifest {key} disagrees with env.config")
+    expected_json_hash = env_config.get("a2_v21B_scenario_manifest_json_sha256")
+    _v21b_digest(expected_json_hash, "scenario manifest JSON hash")
+    manifest_json = env_config.get("a2_v21B_scenario_manifest_json")
+    if not isinstance(manifest_json, str) or hashlib.sha256(manifest_json.encode("utf-8")).hexdigest() != expected_json_hash:
+        raise ValueError("v21-B scenario manifest JSON binding is invalid")
+    try:
+        declared_json = json.loads(manifest_json)
+    except json.JSONDecodeError as exc:
+        raise ValueError("v21-B scenario manifest JSON binding is not JSON") from exc
+    expected_json = {key: value for key, value in payload.items() if key not in {"path", "file_sha256"}}
+    if declared_json != expected_json:
+        raise ValueError("v21-B scenario manifest JSON does not match the consumed file")
+    return payload, path
+
+
+def _validate_v21b_ordered_task_cfg(task_obj_cfg_dict: dict, rows: Sequence[dict], topology: str) -> dict:
+    if not isinstance(task_obj_cfg_dict, dict) or "door" not in task_obj_cfg_dict:
+        raise ValueError("v21-B ordered task config must contain door")
+    spawn_cfg = task_obj_cfg_dict["door"].spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg) or spawn_cfg.random_choice is not False:
+        raise ValueError("v21-B ordered door config must use deterministic MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or len(spawn_cfg.assets_cfg) != 16:
+        raise ValueError(f"v21-B {topology} ordered config requires exactly 16 assets")
+    for index, (asset_cfg, row) in enumerate(zip(spawn_cfg.assets_cfg, rows)):
+        if not isinstance(asset_cfg, DoorSpawnerCfg):
+            raise TypeError(f"v21-B ordered asset {index} must be DoorSpawnerCfg")
+        expected = (float(row["handle_height_m"]), float(row["door_weight_kg"]), float(row["hinge_force_nm"]))
+        actual = (asset_cfg.rand_door_handle_height, asset_cfg.rand_door_weight, asset_cfg.rand_hinge_drive_max_force)
+        if any(value is None or not math.isclose(float(value), exp, rel_tol=1e-9, abs_tol=1e-9) for value, exp in zip(actual, expected)):
+            raise ValueError(f"v21-B {topology} ordered scenario value mismatch at env {index}")
+    return task_obj_cfg_dict
+
+
+def get_TaskObjCfgDict_for_v21B_scenario_manifest(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Select canonical16/light or heavy16 rows via immutable high-level cfg replacement."""
+
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != 16:
+        raise ValueError("v21-B canonical16/heavy16 scenario topology requires num_envs=16")
+    if env_config.get(_V21B_SIGNED_PROBE_FLAG) is not True:
+        raise ValueError("v21-B signed scenario selector requires a2_v21B_signed_probe_scenarios_enabled=true")
+    topology = env_config.get("a2_v21B_census_topology")
+    if topology not in ("canonical16", "heavy16"):
+        raise ValueError("v21-B scenario selector requires canonical16 or heavy16 topology")
+    manifest, _ = _v21b_manifest_payload(env_config)
+    heavy_ids = {row["scenario_id"] for row in manifest["manifest_rows"]}
+    rows = manifest["manifest_rows"] if topology == "heavy16" else [row for row in manifest["canonical_manifest_rows"] if row["scenario_id"] not in heavy_ids]
+    if len(rows) != num_envs:
+        raise ValueError(f"v21-B {topology} manifest row count mismatch: expected {num_envs}, got {len(rows)}")
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base, dict) or "door" not in base:
+        raise ValueError("v21-B scenario selector requires a door TaskObjCfgDict")
+    spawn_cfg = base["door"].spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg) or not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("v21-B scenario selector requires non-empty MultiAssetSpawnerCfg")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("v21-B scenario selector base asset must be DoorSpawnerCfg")
+    upper, lower = float(base_door_cfg.door_handle_tblr[0]), float(base_door_cfg.door_handle_tblr[1])
+    if not math.isfinite(upper) or not math.isfinite(lower) or lower >= upper:
+        raise ValueError("v21-B base DoorSpawnerCfg handle bounds are invalid")
+    variants = []
+    for row in rows:
+        height = float(row["handle_height_m"])
+        if not lower <= height <= upper:
+            raise ValueError(f"v21-B scenario {row['scenario_id']} handle height is outside DoorSpawnerCfg bounds")
+        weight = float(row["door_weight_kg"])
+        hinge = float(row["hinge_force_nm"])
+        if not all(math.isfinite(value) and value > 0.0 for value in (height, weight, hinge)):
+            raise ValueError(f"v21-B scenario {row['scenario_id']} values must be finite and positive")
+        variants.append(base_door_cfg.replace(rand_door_handle_height=height, rand_door_weight=weight, rand_hinge_drive_max_force=hinge))
+    ordered_spawn_cfg = spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    result = dict(base)
+    result["door"] = base["door"].replace(spawn=ordered_spawn_cfg)
+    return _validate_v21b_ordered_task_cfg(result, rows, topology)
 
 
 def _build_eval_door_handle_height_grid(
@@ -370,6 +545,8 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    if env_config.get(_V21B_SIGNED_PROBE_FLAG) is True:
+        return get_TaskObjCfgDict_for_v21B_scenario_manifest(num_envs, env_config)
     height_grid_key = "a2_eval_door_handle_height_linspace"
     height_weight_pairs_key = "a2_eval_door_handle_height_weight_pairs"
     if height_grid_key in env_config and height_weight_pairs_key in env_config:

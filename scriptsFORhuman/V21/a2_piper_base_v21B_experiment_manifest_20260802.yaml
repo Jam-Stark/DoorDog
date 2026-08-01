@@ -122,11 +122,40 @@ arm_profile_definitions:
     frozen: {fingers_j7_j8_nm: 45.0, dof_vel_limit_list: unchanged, kp_kd: unchanged}
     datasheet_override: if AgileX PiPER rated joint torques are supplied they take precedence; the census then only reports where the boundary falls in the door distribution
     selection_rule:
+      basis: arm_pd_effort_estimate_unclipped   # census extrapolates candidate limits; post-clip data is right-censored
       choose_largest_k_satisfying:
         - heavy_bucket_peak_utilization_ge_1.0_in_fraction_ge: 0.30
         - light_bucket_peak_utilization_le_0.85_in_fraction_ge: 0.80
       heavy_bucket: door_weight >= 140 kg OR hinge_force >= 10.0 N*m
+      right_censoring_guard: group raw rows by exact episode_id/scenario_id/topology/heavy_bucket only for one peak per episode; if fraction of raw valid heavy frames at/above 100 N*m exceeds 0.05 emit CENSUS_RIGHT_CENSORED and apply fork F3 instead of selecting k
+      provenance_required_per_frame: [door_weight_kg, hinge_force_nm, scenario_id, topology, episode_id, phase, authority, source_checkpoint_sha256, source_lock_sha256, source_config_sha256, materialization_sha256, materialized_config_sha256]
       immutable_after: freeze_before_any_formal_training
+
+# ---------------------------------------------------------------------------
+# Torque telemetry provenance. Adjudicated 2026-08-02 after a worker-raised
+# plan-level conflict. A2 arm joints are implicit actuators
+# (isaacsim_articulation_cfg.py:111); PhysX does not expose true implicit drive
+# force, so IsaacLab computed_torque/applied_torque (door_open_a2_base.py:19334-19335)
+# are the actuator model's own estimates.
+# ---------------------------------------------------------------------------
+torque_telemetry_provenance:
+  authority_label: ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE
+  quantity_measured: clipped_implicit_PD_torque_proxy
+  never_claim: true_physx_drive_torque
+  reuse_existing_repo_pattern:
+    anchor: gr00t/rl/envs/door/door_open_a2_base.py:19331-19438
+    helper: a2_hold_pd_effort_estimates(q, qdot, qtarget, kp, kd, limit) -> (unclipped, clipped, saturated)
+    rationale: gripper hold-oracle already implements and labels this; one provenance vocabulary repo-wide
+  clip_state_usage:
+    census_section_4_1: unclipped
+    DV2_formal_cells: clipped_plus_saturation_flag
+  non_proxy_corroboration:
+    required_for: DV2 BOUNDARY_CREATED
+    signal: arm joint tracking error (joint_pos_target - joint_pos, joint_vel), inputs already read at :19325-19330
+    rationale: a saturated joint cannot track its target; independent of the torque model
+    optional_advisory_only: root_physx_view.get_link_incoming_joint_force (link-space constraint force, not drive torque; not required)
+  treatment_is_not_a_proxy: IsaacLab configures the PhysX drive force limit from effort_limit, so lowering it constrains the physics regardless of readback fidelity; only the claim tightens, not the manipulation
+  real_hardware_force_claim_permitted: false
 
 frozen_controls:
   velocity_limits: v20_G4
@@ -152,7 +181,7 @@ out_of_scope:
   - gate/base-assist mechanism itself (v21-B creates its precondition, does not implement it)
 
 training:
-  smoke: {num_envs: 64, batches: 50, save_frequency: 25, per_cell: true}
+  smoke: {cell: B4, num_envs: 64, batches: 10, save_frequency: 10, one_cell_only: true, cleanup_before_formal: true}
   pilot: {num_envs: 256, batches: 750, save_frequency: 250, cell: B4, seed: 0, reason: highest_variance_cell}
   formal: {num_envs: 4096, batches: 2500, save_frequency: 250}
 
@@ -170,10 +199,12 @@ predictions:
       THETA_PARTIAL_TRACKING: p50 in [1.10, 1.26)
       PRE_CROSSING_CEILING: p50 < 1.10 while send latch angle tracks theta
   DV2_boundary_created:
-    metric: arm_torque_utilization_max
+    metric: arm_pd_effort_estimate_clipped_utilization_max
+    provenance: ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE
     cells: [B3, B4, B5, B7]
     predicted: fraction of heavy-bucket valid frames with utilization >= 0.98 is >= 0.30 in ARM_REALISTIC cells and < 0.05 in ARM_V20 cells
-    labels: [BOUNDARY_CREATED, BOUNDARY_ABSENT, BOUNDARY_SATURATED_EVERYWHERE]
+    corroboration_required: heavy-bucket joint tracking-error increase vs the matched ARM_V20 cell
+    labels: [BOUNDARY_CREATED, BOUNDARY_ESTIMATE_ONLY_UNCORROBORATED, BOUNDARY_ABSENT, BOUNDARY_SATURATED_EVERYWHERE]
   DV3_base_intervention:
     metric: [pre_send_planar_displacement_m, pre_send_yaw_rad, arm_tangent_integral_share, body_door_contact_pre_crossing]
     contrast: B4_vs_B2 and B3_vs_B1
@@ -252,8 +283,8 @@ forks:
     trigger: zero-shot probe at the census-selected ARM_REALISTIC yields canonical goal < 3/16 AND majority of episodes fail to reach stage 3
     response: step back one candidate-grid point and re-probe once; if still collapsed, convert B3/B4/B5/B7 to a theta ladder {1.05, 1.15, 1.25, 1.25-seed1} and record ARM_AXIS_DEFERRED_TO_V22
   F3_no_boundary_found:
-    trigger: census shows no k in the grid separates heavy from light buckets
-    response: report BOUNDARY_NOT_SEPARABLE, run the theta-only fallback matrix, and escalate to the planner; do not invent a k outside the grid
+    trigger: census status is exactly CENSUS_RIGHT_CENSORED or BOUNDARY_NOT_SEPARABLE
+    response: skip zero-shot/pilot/tie, freeze THETA_ONLY_FALLBACK_F3, launch ARM_V20/100 with exact ladder {B1: 0.90 seed0, B2: 1.20 seed0, B3: 1.05 seed0, B4: 1.15 seed0, B5: 1.25 seed1, B6: 1.20 seed1, B7: 1.25 seed0}, tie off/DV4 false, and do not invent k outside the grid
   F4_theta_1_20_infeasible:
     trigger: pilot at B4 shows send-latch fire rate < 60% on canonical
     response: drop formal theta to 1.10 for all theta-high cells before freeze; record the change in the adaptation window

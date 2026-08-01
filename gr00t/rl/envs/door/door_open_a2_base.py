@@ -3,8 +3,10 @@
 
 
 import math
+import json
 import re
 from collections import Counter
+from pathlib import Path
 
 import isaaclab.sim as sim_utils
 import omni.usd
@@ -55,6 +57,21 @@ from gr00t.rl.envs.door.a2_v20_r2_evidence import (
     a2_v20_r2_trace_jsonl_bytes,
     a2_v20_r2_validate_trace_rows,
 )
+from gr00t.rl.envs.door.a2_v21b_evidence import (
+    V21B_ARM_JOINT_NAMES,
+    V21B_AUTHORITY_LABEL,
+    V21B_STEP_SCHEMA,
+    a2_v21b_accumulate_arm_step,
+    a2_v21b_arm_tracking_error,
+    a2_v21b_build_census_frames_from_episode,
+    a2_v21b_build_terminal_record,
+    a2_v21b_build_step_evidence,
+    a2_v21b_export_census_frames,
+    a2_v21b_export_terminal_record,
+    a2_v21b_finalize_arm_episode,
+    a2_v21b_init_arm_episode_accumulator,
+    a2_v21b_reset_arm_episode_accumulator,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -77,6 +94,12 @@ A2_V20_R1_SEND_TOLERANCE_RAD = 0.05
 A2_V20_R1_ROOT_X_MARGIN_M = 0.03
 A2_V20_R1_CROSSING_BASE_COMPONENT = 1.0
 A2_V20_R1_CROSSING_SHORTFALL_GAIN = 1.0
+
+# v21-B is a sibling plan.  Its guard is deliberately keyed by plan id so the
+# v20 R1 branch below remains the compatibility contract for existing runs.
+A2_V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
+A2_V21B_THETA_SEND_MIN_RAD = 0.90
+A2_V21B_THETA_SEND_MAX_RAD = 1.30
 
 
 
@@ -5072,6 +5095,24 @@ class DoorPregrasp(
     A2_V20_R1_SNAPSHOT_GUARD_ENABLED_CONFIG_KEY = "a2_v20_R1_snapshot_guard_enabled"
     A2_V20_R1_CROSSING_BASE_COMPONENT_CONFIG_KEY = "a2_v20_R1_crossing_base_component"
     A2_V20_R1_CROSSING_SHORTFALL_GAIN_CONFIG_KEY = "a2_v20_R1_crossing_shortfall_gain"
+    A2_V21B_ARM_PROFILE_CONFIG_KEY = "a2_v21B_arm_profile"
+    A2_V21B_MATERIALIZATION_PHASE_CONFIG_KEY = "a2_v21B_materialization_phase"
+    A2_V21B_SOURCE_CHECKPOINT_SHA256_CONFIG_KEY = "a2_v21B_source_checkpoint_sha256"
+    A2_V21B_SOURCE_LOCK_SHA256_CONFIG_KEY = "a2_v21B_source_lock_sha256"
+    A2_V21B_SCENARIO_MANIFEST_PATH_CONFIG_KEY = "a2_v21B_scenario_manifest_path"
+    A2_V21B_SCENARIO_MANIFEST_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_sha256"
+    A2_V21B_SCENARIO_MANIFEST_FILE_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_file_sha256"
+    A2_V21B_SIGNED_PROBE_SCENARIOS_ENABLED_CONFIG_KEY = "a2_v21B_signed_probe_scenarios_enabled"
+    A2_V21B_SCENARIO_MANIFEST_CANONICAL_SHA256_CONFIG_KEY = "a2_v21B_canonical_manifest_sha256"
+    A2_V21B_SCENARIO_MANIFEST_SOURCE_CHECKPOINT_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_source_checkpoint_sha256"
+    A2_V21B_SCENARIO_MANIFEST_SOURCE_LOCK_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_source_lock_sha256"
+    A2_V21B_SCENARIO_MANIFEST_SOURCE_CONFIG_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_source_config_sha256"
+    A2_V21B_SCENARIO_MANIFEST_MATERIALIZATION_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_materialization_sha256"
+    A2_V21B_SCENARIO_MANIFEST_JSON_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_json_sha256"
+    A2_V21B_SCENARIO_TOPOLOGY_CONFIG_KEY = "a2_v21B_census_topology"
+    A2_V21B_RUN_UUID_CONFIG_KEY = "a2_v21B_run_uuid"
+    A2_V21B_ADAPTATION_SHA256_CONFIG_KEY = "a2_v21B_adaptation_bundle_sha256"
+    A2_V21B_TERMINAL_EXPORT_ROOT_CONFIG_KEY = "a2_v21B_terminal_export_root"
     A2_M23_SELF_COLLISION_SENSOR_KEY_PREFIX = "a2_m23_self_collision_"
     A2_M23_SELF_COLLISION_BODY_NAMES = (
         "FL_hip",
@@ -5483,6 +5524,71 @@ class DoorPregrasp(
             raise RuntimeError(f"env.config.{key} must be a non-empty string; got {value!r}.")
         return value
 
+    def _validate_a2_v21b_admission(self) -> None:
+        """Reject template/pre-census configs from ordinary trainer/eval admission."""
+
+        if self._get_a2_v20_r1_plan_id() != A2_V21B_PLAN_ID:
+            return
+        profile = self.config.get(self.A2_V21B_ARM_PROFILE_CONFIG_KEY)
+        phase = self.config.get(self.A2_V21B_MATERIALIZATION_PHASE_CONFIG_KEY)
+        source_sha = self.config.get(self.A2_V21B_SOURCE_CHECKPOINT_SHA256_CONFIG_KEY)
+        source_lock_sha = self.config.get(self.A2_V21B_SOURCE_LOCK_SHA256_CONFIG_KEY)
+        source_config_sha = self.config.get("a2_v21B_source_config_sha256")
+        materialization_sha = self.config.get("a2_v21B_materialization_sha256")
+        materialized_config_sha = self.config.get("a2_v21B_materialized_config_sha256")
+        adaptation_sha = self.config.get(self.A2_V21B_ADAPTATION_SHA256_CONFIG_KEY)
+        formal_launch = self._get_a2_v20_formal_launch()
+        if profile not in ("ARM_V20", "ARM_REALISTIC"):
+            raise RuntimeError("v21-B admission requires a named ARM_V20 or ARM_REALISTIC profile.")
+        if phase not in ("CENSUS_PRE_K", "POST_CENSUS", "FORMAL_PROMOTED"):
+            raise RuntimeError("v21-B admission rejects TEMPLATE_UNMATERIALIZED configs; use a signed phase-specific materialization.")
+        if any(not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value) for value in (source_sha, source_lock_sha, source_config_sha, materialization_sha, materialized_config_sha)):
+            raise RuntimeError("v21-B admission requires bound source/materialization/config digests.")
+        if profile == "ARM_REALISTIC" and phase not in ("POST_CENSUS", "FORMAL_PROMOTED"):
+            raise RuntimeError("ARM_REALISTIC is blocked before signed census adaptation materialization.")
+        if phase == "POST_CENSUS" and profile != "ARM_REALISTIC":
+            raise RuntimeError("POST_CENSUS v21-B terminal admission requires the selected ARM_REALISTIC profile.")
+        if phase == "POST_CENSUS" and adaptation_sha is not None:
+            raise RuntimeError("POST_CENSUS v21-B admission must not carry an adaptation digest.")
+        if phase == "CENSUS_PRE_K" and adaptation_sha is not None:
+            raise RuntimeError("CENSUS_PRE_K v21-B admission must not carry an adaptation digest.")
+        if formal_launch and phase != "FORMAL_PROMOTED":
+            raise RuntimeError("formal v21-B launch requires FORMAL_PROMOTED materialization.")
+        signed_probe = self.config.get(self.A2_V21B_SIGNED_PROBE_SCENARIOS_ENABLED_CONFIG_KEY, False)
+        if not isinstance(signed_probe, bool):
+            raise RuntimeError("v21-B signed probe scenario flag must be bool when provided.")
+        if signed_probe:
+            if self.num_envs != 16:
+                raise RuntimeError("v21-B signed probe scenarios require exactly num_envs=16.")
+            topology = self.config.get(self.A2_V21B_SCENARIO_TOPOLOGY_CONFIG_KEY)
+            if topology not in ("canonical16", "heavy16"):
+                raise RuntimeError("v21-B signed probe scenario topology must be canonical16 or heavy16.")
+            required_bindings = (
+                self.A2_V21B_SCENARIO_MANIFEST_PATH_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_FILE_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_CANONICAL_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_SOURCE_CHECKPOINT_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_SOURCE_LOCK_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_SOURCE_CONFIG_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_MATERIALIZATION_SHA256_CONFIG_KEY,
+                self.A2_V21B_SCENARIO_MANIFEST_JSON_SHA256_CONFIG_KEY,
+                "a2_v21B_scenario_manifest_json",
+                self.A2_V21B_RUN_UUID_CONFIG_KEY,
+            )
+            if any(key not in self.config for key in required_bindings):
+                raise RuntimeError("v21-B signed probe scenarios require every manifest/path/hash/run_uuid binding.")
+            manifest_path = self.config.get(self.A2_V21B_SCENARIO_MANIFEST_PATH_CONFIG_KEY)
+            run_uuid = self.config.get(self.A2_V21B_RUN_UUID_CONFIG_KEY)
+            if not isinstance(manifest_path, str) or not manifest_path or not isinstance(run_uuid, str) or not run_uuid:
+                raise RuntimeError("v21-B signed probe scenarios require manifest path and run_uuid.")
+        if phase == "FORMAL_PROMOTED":
+            if not isinstance(adaptation_sha, str) or len(adaptation_sha) != 64:
+                raise RuntimeError("FORMAL_PROMOTED v21-B admission requires the signed adaptation digest.")
+            export_root = self.config.get(self.A2_V21B_TERMINAL_EXPORT_ROOT_CONFIG_KEY)
+            if not isinstance(export_root, str) or not export_root:
+                raise RuntimeError("FORMAL_PROMOTED v21-B admission requires a versioned terminal export root.")
+
     def _get_a2_v20_r1_send_curriculum_enabled(self) -> bool:
         return self._get_a2_v20_bool_config(
             self.A2_V20_R1_SEND_CURRICULUM_ENABLED_CONFIG_KEY,
@@ -5532,11 +5638,39 @@ class DoorPregrasp(
         base_component = self._get_a2_v20_r1_crossing_base_component()
         shortfall_gain = self._get_a2_v20_r1_crossing_shortfall_gain()
         if not enabled:
-            if plan_id not in ("disabled", A2_V20_R1_PLAN_ID) or guard:
+            if plan_id not in ("disabled", A2_V20_R1_PLAN_ID, A2_V21B_PLAN_ID) or guard:
                 raise RuntimeError(
                     "Disabled R1 path requires plan_id='disabled' (shared defaults) or "
                     f"{A2_V20_R1_PLAN_ID!r} (explicit candidate header), with snapshot guard false."
                 )
+            return
+        if plan_id == A2_V21B_PLAN_ID:
+            if not guard or soft_end != A2_V20_R1_SOFT_PHASE_END_BATCH:
+                raise RuntimeError(
+                    "v21-B enabled path requires the exact 0/500 schedule and snapshot guard."
+                )
+            if (
+                base_component != A2_V20_R1_CROSSING_BASE_COMPONENT
+                or shortfall_gain != A2_V20_R1_CROSSING_SHORTFALL_GAIN
+            ):
+                raise RuntimeError("v21-B crossing component constants must remain exactly 1.0/1.0.")
+            theta_send = self._get_a2_v20_send_hinge_threshold()
+            if not A2_V21B_THETA_SEND_MIN_RAD <= theta_send <= A2_V21B_THETA_SEND_MAX_RAD:
+                raise RuntimeError(
+                    f"v21-B plan {A2_V21B_PLAN_ID!r} requires send threshold in "
+                    f"[{A2_V21B_THETA_SEND_MIN_RAD:.2f}, {A2_V21B_THETA_SEND_MAX_RAD:.2f}] rad; "
+                    f"got {theta_send!r}."
+                )
+            if self._get_a2_v20_send_hinge_tolerance() != A2_V20_R1_SEND_TOLERANCE_RAD:
+                raise RuntimeError("v21-B send tolerance must remain exactly 0.05 rad.")
+            if self._get_a2_v20_pre_send_root_x_margin() != A2_V20_R1_ROOT_X_MARGIN_M:
+                raise RuntimeError("v21-B root crossing margin must remain exactly 0.03 m.")
+            if self._get_a2_v20_pre_send_crossing_mode() not in A2_V20_R1_CROSSING_MODES:
+                raise RuntimeError("v21-B enabled path requires penalty or terminal crossing mode.")
+            if not self._get_a2_v20_send_latch_enabled():
+                raise RuntimeError("v21-B send curriculum requires the send latch.")
+            if self.dt <= 0.0 or not math.isfinite(float(self.dt)):
+                raise RuntimeError("v21-B curriculum requires positive finite control dt.")
             return
         if plan_id != A2_V20_R1_PLAN_ID:
             raise RuntimeError(f"R1 enabled path requires plan_id={A2_V20_R1_PLAN_ID!r}; got {plan_id!r}.")
@@ -5646,6 +5780,7 @@ class DoorPregrasp(
 
     def _validate_a2_v20_config(self) -> None:
         """Validate v20 selectors without changing any legacy defaults."""
+        self._validate_a2_v21b_admission()
         send_latch = self._get_a2_v20_send_latch_enabled()
         telemetry = self._get_a2_v20_telemetry_enabled()
         economics = self._get_a2_v20_traversal_economics_enabled()
@@ -6616,6 +6751,7 @@ class DoorPregrasp(
                 self.num_envs, dtype=torch.float32, device=self.device
             )
         self._init_a2_v20_r2_evidence_buffers()
+        self._init_a2_v21b_arm_evidence_buffers()
         self.relative_door_pos_buf = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False,
         )
@@ -6632,6 +6768,434 @@ class DoorPregrasp(
             self.num_envs, 3, device=self.device, requires_grad=False
         )
         self.door_root_state_buf[:, :3] += self.env_origins
+
+    def _init_a2_v21b_arm_evidence_buffers(self) -> None:
+        """Initialize v21-B arm estimate telemetry without changing control."""
+
+        self._a2_v21b_arm_evidence_enabled = self._get_a2_v20_r1_plan_id() == A2_V21B_PLAN_ID
+        if not self._a2_v21b_arm_evidence_enabled:
+            return
+        robot = self.simulator.scene.articulations["robot"]
+        joint_names = list(robot.joint_names)
+        if any(joint_names.count(name) != 1 for name in V21B_ARM_JOINT_NAMES):
+            raise RuntimeError(
+                "v21-B arm telemetry requires one exact arm_j1..arm_j6 articulation mapping; "
+                f"joint_names={joint_names!r}."
+            )
+        arm_ids = [joint_names.index(name) for name in V21B_ARM_JOINT_NAMES]
+        if len(set(arm_ids)) != 6:
+            raise RuntimeError("v21-B arm telemetry articulation ids are not unique.")
+        self._a2_v21b_arm_joint_ids = torch.tensor(arm_ids, dtype=torch.long, device=self.device)
+        self._a2_v21b_arm_evidence = a2_v21b_init_arm_episode_accumulator(
+            self.num_envs,
+            dtype=robot.data.joint_pos.dtype,
+            device=self.device,
+            max_episode_length=int(self.max_episode_length),
+        )
+        self._a2_v21b_arm_effort_limit_6d = robot.data.joint_effort_limits[:, self._a2_v21b_arm_joint_ids].detach().clone()
+        self._a2_v21b_arm_first_joint_ge_098 = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v21b_last_implicit_computed_effort_6d = torch.zeros_like(self._a2_v21b_arm_effort_limit_6d)
+        self._a2_v21b_last_implicit_applied_effort_6d = torch.zeros_like(self._a2_v21b_arm_effort_limit_6d)
+        self._a2_v21b_last_implicit_crosscheck_error_6d = torch.zeros_like(self._a2_v21b_arm_effort_limit_6d)
+        self._a2_v21b_hinge_at_send_latch = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_v21b_hinge_at_send_latch_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_last_clipped_utilization = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v21b_last_clipped_utilization_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_last_decomposition_sanity = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_last_decomposition_sanity_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_stage_overtime = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_upper_dof_overspeed = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_telemetry_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_send_ready = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_first_send_ready_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v21b_completed_first_root_crossing_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v21b_completed_hinge_at_send_latch = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_v21b_completed_hinge_at_send_latch_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_hinge_at_crossing = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_v21b_completed_hinge_at_crossing_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_clipped_utilization = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v21b_completed_clipped_utilization_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_decomposition_sanity = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_decomposition_sanity_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_stage_overtime = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v21b_completed_upper_dof_overspeed = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+
+    def _update_a2_v21b_arm_evidence_accumulators(self) -> None:
+        """Capture one post-physics arm_j1..arm_j6 estimate sample."""
+
+        if not getattr(self, "_a2_v21b_arm_evidence_enabled", False):
+            return
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        ids = self._a2_v21b_arm_joint_ids
+        fields = {
+            "joint_pos": data.joint_pos[:, ids],
+            "joint_vel": data.joint_vel[:, ids],
+            "joint_pos_target": data.joint_pos_target[:, ids],
+            "stiffness": data.joint_stiffness[:, ids],
+            "damping": data.joint_damping[:, ids],
+            "effort_limit": data.joint_effort_limits[:, ids],
+        }
+        for name, value in fields.items():
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs, 6)
+                or value.device != torch.device(self.device)
+                or not value.is_floating_point()
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(
+                    f"v21-B arm telemetry requires finite device-local {name} shape (N,6); "
+                    f"got shape={None if not torch.is_tensor(value) else tuple(value.shape)}."
+                )
+        implicit_fields = {
+            "implicit_computed_effort": data.computed_torque[:, ids],
+            "implicit_applied_effort": data.applied_torque[:, ids],
+        }
+        for name, value in implicit_fields.items():
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs, 6)
+                or value.device != torch.device(self.device)
+                or not value.is_floating_point()
+                or value.dtype != fields["joint_pos"].dtype
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(
+                    f"v21-B arm telemetry requires finite device-local {name} shape (N,6); "
+                    f"got shape={None if not torch.is_tensor(value) else tuple(value.shape)}."
+                )
+        pd_unclipped, pd_clipped, pd_saturated = a2_hold_pd_effort_estimates(
+            fields["joint_pos"],
+            fields["joint_vel"],
+            fields["joint_pos_target"],
+            fields["stiffness"],
+            fields["damping"],
+            fields["effort_limit"],
+        )
+        tracking = a2_v21b_arm_tracking_error(
+            fields["joint_pos_target"], fields["joint_pos"], fields["joint_vel"]
+        )
+        step_index = self.episode_length_buf - 1
+        if (
+            not torch.is_tensor(step_index)
+            or tuple(step_index.shape) != (self.num_envs,)
+            or step_index.dtype != torch.long
+        ):
+            raise RuntimeError("v21-B arm telemetry requires a long episode-length buffer.")
+        max_length = int(self.max_episode_length)
+        finalized = getattr(self, "_r2_finalized", None)
+        if (
+            not torch.is_tensor(finalized)
+            or tuple(finalized.shape) != (self.num_envs,)
+            or finalized.dtype != torch.bool
+            or finalized.device != torch.device(self.device)
+        ):
+            raise RuntimeError("v21-B arm telemetry requires the R2 finalized-environment mask.")
+        valid_mask = (step_index >= 0) & (step_index < max_length) & ~finalized
+        step = a2_v21b_build_step_evidence(
+            pd_estimates={
+                "arm_pd_effort_estimate_unclipped_6d": pd_unclipped,
+                "arm_pd_effort_estimate_clipped_6d": pd_clipped,
+                "arm_pd_effort_estimated_saturation_6d": pd_saturated,
+                "arm_joint_effort_limit_6d": fields["effort_limit"],
+            },
+            tracking=tracking,
+            valid_mask=valid_mask,
+            step_index=step_index,
+        )
+        a2_v21b_accumulate_arm_step(self._a2_v21b_arm_evidence, step)
+        self._a2_v21b_arm_effort_limit_6d = fields["effort_limit"].detach().clone()
+        self._a2_v21b_last_implicit_computed_effort_6d = implicit_fields["implicit_computed_effort"].detach().clone()
+        self._a2_v21b_last_implicit_applied_effort_6d = implicit_fields["implicit_applied_effort"].detach().clone()
+        self._a2_v21b_last_implicit_crosscheck_error_6d = (
+            implicit_fields["implicit_computed_effort"] - pd_unclipped
+        ).detach().clone()
+        utilization = torch.abs(pd_clipped) / fields["effort_limit"]
+        if not torch.all(torch.isfinite(utilization)):
+            raise RuntimeError("v21-B arm telemetry clipped utilization is non-finite.")
+        self._a2_v21b_last_clipped_utilization = utilization.mean(dim=-1).detach().clone()
+        self._a2_v21b_last_clipped_utilization_valid = valid_mask.detach().clone()
+        decomposition_sanity = (
+            torch.all(torch.isfinite(pd_unclipped), dim=-1)
+            & torch.all(torch.isfinite(pd_clipped), dim=-1)
+            & torch.all(torch.isfinite(pd_saturated), dim=-1)
+            & torch.all(pd_clipped == torch.clamp(pd_unclipped, -fields["effort_limit"], fields["effort_limit"]), dim=-1)
+            & torch.all(pd_saturated == (torch.abs(pd_unclipped) > fields["effort_limit"]), dim=-1)
+        )
+        self._a2_v21b_last_decomposition_sanity = decomposition_sanity.detach().clone()
+        self._a2_v21b_last_decomposition_sanity_valid = valid_mask.detach().clone()
+        crossing = valid_mask[:, None] & (utilization >= 0.98)
+        has_crossing = torch.any(crossing, dim=1)
+        first_joint = torch.argmax(crossing.to(torch.long), dim=1)
+        update = (self._a2_v21b_arm_first_joint_ge_098 < 0) & has_crossing
+        self._a2_v21b_arm_first_joint_ge_098[update] = first_joint[update]
+
+    def _capture_a2_v21b_completed_telemetry(self, env_ids: torch.Tensor) -> None:
+        """Snapshot terminal v21-B fields before reset clears episode buffers."""
+
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("v21-B terminal telemetry capture requires valid device-local env ids.")
+        crossing_valid = (
+            (self._a2_v20_first_root_crossing_step >= 0)
+            & torch.isfinite(self._a2_v20_hinge_at_first_root_crossing)
+        )
+        self._a2_v21b_completed_send_ready[env_ids] = self._a2_v20_send_ready[env_ids]
+        self._a2_v21b_completed_first_send_ready_step[env_ids] = self._a2_v20_first_send_ready_step[env_ids]
+        self._a2_v21b_completed_first_root_crossing_step[env_ids] = self._a2_v20_first_root_crossing_step[env_ids]
+        self._a2_v21b_completed_hinge_at_send_latch[env_ids] = self._a2_v21b_hinge_at_send_latch[env_ids]
+        self._a2_v21b_completed_hinge_at_send_latch_valid[env_ids] = self._a2_v21b_hinge_at_send_latch_valid[env_ids]
+        self._a2_v21b_completed_hinge_at_crossing[env_ids] = self._a2_v20_hinge_at_first_root_crossing[env_ids]
+        self._a2_v21b_completed_hinge_at_crossing_valid[env_ids] = crossing_valid[env_ids]
+        self._a2_v21b_completed_clipped_utilization[env_ids] = self._a2_v21b_last_clipped_utilization[env_ids]
+        self._a2_v21b_completed_clipped_utilization_valid[env_ids] = self._a2_v21b_last_clipped_utilization_valid[env_ids]
+        self._a2_v21b_completed_decomposition_sanity[env_ids] = self._a2_v21b_last_decomposition_sanity[env_ids]
+        self._a2_v21b_completed_decomposition_sanity_valid[env_ids] = self._a2_v21b_last_decomposition_sanity_valid[env_ids]
+        self._a2_v21b_completed_stage_overtime[env_ids] = self._a2_v21b_stage_overtime[env_ids]
+        self._a2_v21b_completed_upper_dof_overspeed[env_ids] = self._a2_v21b_upper_dof_overspeed[env_ids]
+        self._a2_v21b_completed_telemetry_valid[env_ids] = True
+
+    def _get_a2_v21b_effective_telemetry(self) -> dict[str, torch.Tensor]:
+        """Return current fields with terminal snapshots overlaid until logged."""
+
+        completed = self._a2_v21b_completed_telemetry_valid
+        crossing_valid = (
+            (self._a2_v20_first_root_crossing_step >= 0)
+            & torch.isfinite(self._a2_v20_hinge_at_first_root_crossing)
+        )
+        current = {
+            "send_ready": self._a2_v20_send_ready,
+            "first_send_ready_step": self._a2_v20_first_send_ready_step,
+            "first_root_crossing_step": self._a2_v20_first_root_crossing_step,
+            "hinge_at_send_latch": self._a2_v21b_hinge_at_send_latch,
+            "hinge_at_send_latch_valid": self._a2_v21b_hinge_at_send_latch_valid,
+            "hinge_at_crossing": self._a2_v20_hinge_at_first_root_crossing,
+            "hinge_at_crossing_valid": crossing_valid,
+            "clipped_utilization": self._a2_v21b_last_clipped_utilization,
+            "clipped_utilization_valid": self._a2_v21b_last_clipped_utilization_valid,
+            "decomposition_sanity": self._a2_v21b_last_decomposition_sanity,
+            "decomposition_sanity_valid": self._a2_v21b_last_decomposition_sanity_valid,
+            "stage_overtime": self._a2_v21b_stage_overtime,
+            "upper_dof_overspeed": self._a2_v21b_upper_dof_overspeed,
+        }
+        completed_values = {
+            "send_ready": self._a2_v21b_completed_send_ready,
+            "first_send_ready_step": self._a2_v21b_completed_first_send_ready_step,
+            "first_root_crossing_step": self._a2_v21b_completed_first_root_crossing_step,
+            "hinge_at_send_latch": self._a2_v21b_completed_hinge_at_send_latch,
+            "hinge_at_send_latch_valid": self._a2_v21b_completed_hinge_at_send_latch_valid,
+            "hinge_at_crossing": self._a2_v21b_completed_hinge_at_crossing,
+            "hinge_at_crossing_valid": self._a2_v21b_completed_hinge_at_crossing_valid,
+            "clipped_utilization": self._a2_v21b_completed_clipped_utilization,
+            "clipped_utilization_valid": self._a2_v21b_completed_clipped_utilization_valid,
+            "decomposition_sanity": self._a2_v21b_completed_decomposition_sanity,
+            "decomposition_sanity_valid": self._a2_v21b_completed_decomposition_sanity_valid,
+            "stage_overtime": self._a2_v21b_completed_stage_overtime,
+            "upper_dof_overspeed": self._a2_v21b_completed_upper_dof_overspeed,
+        }
+        return {
+            name: torch.where(completed, completed_values[name], current[name])
+            for name in current
+        }
+
+    def get_a2_v21b_arm_episode_evidence(self, env_id: int) -> dict[str, Any]:
+        """Return one finalized estimate-only arm record for an environment."""
+
+        if not getattr(self, "_a2_v21b_arm_evidence_enabled", False):
+            raise RuntimeError("v21-B arm telemetry is unavailable outside the v21-B plan.")
+        record = a2_v21b_finalize_arm_episode(
+            self._a2_v21b_arm_evidence,
+            env_id,
+            effort_limit_6d=self._a2_v21b_arm_effort_limit_6d,
+        )
+        record["first_joint_ge_0.98"] = (
+            V21B_ARM_JOINT_NAMES[int(self._a2_v21b_arm_first_joint_ge_098[env_id].item())]
+            if int(self._a2_v21b_arm_first_joint_ge_098[env_id].item()) >= 0
+            else {"status": "N/A", "reason": "no valid saturated arm frame", "denominator": int(record["valid_frame_count"])}
+        )
+        record["isaaclab_implicit_computed_effort_estimate_6d"] = self._a2_v21b_last_implicit_computed_effort_6d[env_id].detach().cpu().tolist()
+        record["isaaclab_implicit_applied_effort_estimate_6d"] = self._a2_v21b_last_implicit_applied_effort_6d[env_id].detach().cpu().tolist()
+        record["isaaclab_implicit_effort_estimate_crosscheck_error_6d"] = self._a2_v21b_last_implicit_crosscheck_error_6d[env_id].detach().cpu().tolist()
+        return record
+
+    def finalize_a2_v21b_episode_record(
+        self,
+        env_id: int,
+        *,
+        export_path: str | None = None,
+        provenance: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Export the v21-B terminal record before any staged reset occurs."""
+
+        if self._get_a2_v20_r1_plan_id() != A2_V21B_PLAN_ID:
+            raise RuntimeError("v21-B terminal export is only valid for the v21-B plan.")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise ValueError(f"v21-B terminal export env_id is invalid: {env_id!r}.")
+        if bool(getattr(self, "_r2_finalized", torch.zeros(self.num_envs, dtype=torch.bool, device=self.device))[env_id].item()):
+            raise RuntimeError(f"v21-B terminal export was already finalized for env {env_id}.")
+        source_sha = self.config.get("a2_v21B_source_checkpoint_sha256")
+        source_lock_sha = self.config.get("a2_v21B_source_lock_sha256")
+        source_config_sha = self.config.get("a2_v21B_source_config_sha256")
+        materialization_sha = self.config.get("a2_v21B_materialization_sha256")
+        materialized_config_sha = self.config.get("a2_v21B_materialized_config_sha256")
+        phase = self.config.get("a2_v21B_materialization_phase")
+        adaptation_sha = self.config.get("a2_v21B_adaptation_bundle_sha256")
+        cell = self.config.get("a2_v21B_cell")
+        group = self.config.get("a2_v20_R2_group")
+        seed = self.config.get("a2_v20_R2_seed")
+        signed_probe = self.config.get(self.A2_V21B_SIGNED_PROBE_SCENARIOS_ENABLED_CONFIG_KEY, False)
+        if not isinstance(signed_probe, bool):
+            raise RuntimeError("v21-B signed probe scenario flag must be bool when provided")
+        run_uuid = (provenance or {}).get("run_uuid") if isinstance(provenance, Mapping) else None
+        if run_uuid is None:
+            run_uuid = self.config.get(self.A2_V21B_RUN_UUID_CONFIG_KEY)
+        if not isinstance(run_uuid, str) or not run_uuid:
+            if signed_probe:
+                raise RuntimeError("signed v21-B terminal export requires a v21-B run_uuid provenance")
+            run_uuid = f"v21B-unbound-{cell}-seed{seed}"
+        if export_path is None:
+            export_root = self.config.get("a2_v21B_terminal_export_root")
+            if not isinstance(export_root, str) or not export_root:
+                raise RuntimeError("v21-B terminal export requires an explicit versioned export root.")
+            from pathlib import Path
+            export_path = str(Path(export_root) / f"{cell}_{run_uuid}_env{env_id}.json")
+        if phase == "CENSUS_PRE_K":
+            if not signed_probe:
+                raise RuntimeError("CENSUS_PRE_K terminal exports require signed probe scenario admission")
+            if self.config.get("a2_v21B_arm_profile") != "ARM_V20":
+                raise RuntimeError("CENSUS_PRE_K raw census export requires the ARM_V20 profile")
+            provenance_map = provenance if isinstance(provenance, Mapping) else {}
+            topology = provenance_map.get("topology", self.config.get("a2_v21B_census_topology"))
+            episode_id = provenance_map.get("episode_id", f"{run_uuid}:env{env_id}")
+            if topology not in ("canonical16", "heavy16") or not isinstance(episode_id, str) or not episode_id:
+                raise RuntimeError("CENSUS_PRE_K raw export requires canonical16/heavy16 topology and episode_id provenance")
+            runtime_scenario = self._a2_v21b_validate_runtime_scenario(env_id, topology=topology, scenario_id=provenance_map.get("scenario_id"))
+            scenario_id = runtime_scenario["scenario_id"]
+            if any(not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value) for value in (source_sha, source_lock_sha, source_config_sha, materialization_sha, materialized_config_sha)):
+                raise RuntimeError("CENSUS_PRE_K raw export requires source checkpoint/lock/config/materialization digests")
+            door_weight = provenance_map.get("door_weight_kg")
+            hinge_force = provenance_map.get("hinge_force_nm")
+            if isinstance(door_weight, bool) or not isinstance(door_weight, (int, float)) or not math.isfinite(float(door_weight)) or float(door_weight) <= 0.0 or isinstance(hinge_force, bool) or not isinstance(hinge_force, (int, float)) or not math.isfinite(float(hinge_force)) or float(hinge_force) <= 0.0:
+                raise RuntimeError("CENSUS_PRE_K raw export requires actual runtime door weight and hinge force")
+            if not math.isclose(float(door_weight), float(runtime_scenario["door_mass_kg"]), rel_tol=1.0e-6, abs_tol=1.0e-6) or not math.isclose(float(hinge_force), float(runtime_scenario["hinge_max_force_nm"]), rel_tol=1.0e-6, abs_tol=1.0e-6):
+                raise RuntimeError("CENSUS_PRE_K export provenance does not match actual runtime scenario")
+            frames = a2_v21b_build_census_frames_from_episode(
+                self._a2_v21b_arm_evidence,
+                env_id,
+                scenario_id=scenario_id,
+                topology=topology,
+                episode_id=episode_id,
+                source_checkpoint_sha256=source_sha,
+                source_lock_sha256=source_lock_sha,
+                source_config_sha256=source_config_sha,
+                materialization_sha256=materialization_sha,
+                materialized_config_sha256=materialized_config_sha,
+                door_weight_kg=float(door_weight),
+                hinge_force_nm=float(hinge_force),
+                phase=phase,
+            )
+            exported = a2_v21b_export_census_frames(export_path, frames)
+            self._r2_finalized[env_id] = True
+            return {"schema": "a2_piper_base_v21B_census_frame_export_v1", "phase": phase, "cell": cell, "source_checkpoint_sha256": source_sha, "source_lock_sha256": source_lock_sha, "source_config_sha256": source_config_sha, "materialization_sha256": materialization_sha, "materialized_config_sha256": materialized_config_sha, "authority": V21B_AUTHORITY_LABEL, **exported}
+        if phase == "POST_CENSUS":
+            adaptation_sha = None
+        elif phase != "FORMAL_PROMOTED" or not isinstance(adaptation_sha, str):
+            raise RuntimeError("FORMAL_PROMOTED terminal export requires the signed adaptation digest")
+        provenance_map = dict(provenance or {})
+        if signed_probe:
+            runtime_scenario = self._a2_v21b_validate_runtime_scenario(env_id, topology=provenance_map.get("topology"), scenario_id=provenance_map.get("scenario_id"))
+            provenance_map.update({"scenario_id": runtime_scenario["scenario_id"], "topology": runtime_scenario["topology"], "door_weight_kg": runtime_scenario["door_mass_kg"], "hinge_force_nm": runtime_scenario["hinge_max_force_nm"], "scenario_sha256": runtime_scenario["scenario_sha256"], "manifest_sha256": runtime_scenario["manifest_sha256"], "canonical_manifest_sha256": runtime_scenario["canonical_manifest_sha256"], "manifest_file_sha256": runtime_scenario["manifest_file_sha256"], "manifest_materialization_sha256": runtime_scenario["materialization_sha256"], "selected_k_nm": self.config.get("a2_v21B_arm_realistic_effort_limit_nm")})
+        else:
+            if phase != "FORMAL_PROMOTED":
+                raise RuntimeError("unbound v21-B terminal evidence is only valid for FORMAL_PROMOTED runtime")
+            runtime_scenario = self._r2_runtime_scenario(env_id)
+            topology = provenance_map.get("topology", "canonical16")
+            if topology not in ("canonical16", "heavy16"):
+                raise RuntimeError("unbound v21-B terminal provenance topology must be an execution label")
+            provenance_map.update({"scenario_id": runtime_scenario["scenario_id"], "topology": topology, "door_weight_kg": runtime_scenario["door_mass_kg"], "hinge_force_nm": runtime_scenario["hinge_max_force_nm"], "manifest_bound": False, "scenario_source": "runtime_actual_unbound"})
+            for key in ("manifest_sha256", "canonical_manifest_sha256", "manifest_file_sha256", "manifest_materialization_sha256", "scenario_sha256", "selected_k_nm"):
+                provenance_map.pop(key, None)
+        provenance_map["env_id"] = env_id
+        provenance_map["run_uuid"] = run_uuid
+        provenance_map.update({"materialization_phase": phase, "source_checkpoint_sha256": source_sha, "source_lock_sha256": source_lock_sha, "source_config_sha256": source_config_sha, "materialization_sha256": materialization_sha, "materialized_config_sha256": materialized_config_sha})
+        record = a2_v21b_build_terminal_record(
+            self.get_a2_v21b_arm_episode_evidence(env_id),
+            plan_id=A2_V21B_PLAN_ID,
+            cell=cell,
+            group=group,
+            seed=seed,
+            source_checkpoint_sha256=source_sha,
+            adaptation_bundle_sha256=adaptation_sha,
+            provenance=provenance_map,
+        )
+        terminal_reason = self._r2_terminal_reason[env_id]
+        trace_rows = self._r2_trace_rows[env_id]
+        if not isinstance(terminal_reason, str) or not terminal_reason or not isinstance(trace_rows, list) or not trace_rows:
+            raise RuntimeError("v21-B terminal task state requires actual terminal reason and trace rows")
+        stages = [row.get("stage") for row in trace_rows if isinstance(row, Mapping)]
+        if len(stages) != len(trace_rows) or any(isinstance(stage, bool) or not isinstance(stage, int) or stage < 0 or stage >= self.num_stages for stage in stages):
+            raise RuntimeError("v21-B terminal task state contains invalid actual stage samples")
+        record["task"] = {"goal": terminal_reason == "complete", "complete": terminal_reason == "complete", "terminal_reason": terminal_reason, "max_stage": max(stages), "env_id": env_id}
+        import hashlib
+        unsigned = dict(record)
+        unsigned.pop("record_id", None)
+        record["record_id"] = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+        a2_v21b_export_terminal_record(export_path, record)
+        self._r2_finalized[env_id] = True
+        return record
 
     def _filter_staged_reset_snapshot_mask(self, advance_mask: torch.Tensor) -> torch.Tensor:
         filtered = super()._filter_staged_reset_snapshot_mask(advance_mask)
@@ -7650,6 +8214,126 @@ class DoorPregrasp(
             raise RuntimeError("R2 provenance admission_plan_id is not the approved R2 plan.")
         return result
 
+    def _a2_v21b_validate_runtime_scenario(
+        self,
+        env_id: int,
+        *,
+        topology: str | None = None,
+        scenario_id: str | None = None,
+        runtime_scenario: Mapping[str, object] | None = None,
+    ) -> dict[str, object]:
+        """Bind actual runtime door tensors to the ordered signed scenario row."""
+
+        if self._get_a2_v20_r1_plan_id() != A2_V21B_PLAN_ID:
+            raise RuntimeError("v21-B runtime scenario validation requires the v21-B plan")
+        if self.config.get(self.A2_V21B_SIGNED_PROBE_SCENARIOS_ENABLED_CONFIG_KEY) is not True:
+            raise RuntimeError("v21-B runtime scenario manifest validation requires signed probe admission")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id < 0 or env_id >= 16 or self.num_envs != 16:
+            raise RuntimeError("v21-B scenario topology requires env_id in [0,15] and num_envs=16")
+        topology = self.config.get(self.A2_V21B_SCENARIO_TOPOLOGY_CONFIG_KEY) if topology is None else topology
+        if topology not in ("canonical16", "heavy16"):
+            raise RuntimeError("v21-B runtime scenario topology must be canonical16 or heavy16")
+        path_value = self.config.get(self.A2_V21B_SCENARIO_MANIFEST_PATH_CONFIG_KEY)
+        if not isinstance(path_value, str) or not path_value:
+            raise RuntimeError("v21-B runtime scenario manifest path is missing")
+        path = Path(path_value)
+        if not path.is_file() or path.is_symlink():
+            raise RuntimeError(f"v21-B runtime scenario manifest must be a regular file: {path}")
+        try:
+            manifest = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("v21-B runtime scenario manifest is not valid JSON") from exc
+        if not isinstance(manifest, dict) or manifest.get("schema") != "a2_piper_base_v21B_heavy16_manifest_v1" or manifest.get("status") != "STATIC_PASS":
+            raise RuntimeError("v21-B runtime scenario manifest schema/status is invalid")
+        canonical = manifest.get("canonical_manifest_rows")
+        heavy = manifest.get("manifest_rows")
+        if not isinstance(canonical, list) or len(canonical) != 32 or not isinstance(heavy, list) or len(heavy) != 16:
+            raise RuntimeError("v21-B runtime scenario manifest cardinality must be 32 canonical/16 heavy")
+        canonical_ids = [row.get("scenario_id") if isinstance(row, Mapping) else None for row in canonical]
+        heavy_ids_list = [row.get("scenario_id") if isinstance(row, Mapping) else None for row in heavy]
+        if any(not isinstance(value, str) or not value for value in canonical_ids + heavy_ids_list) or len(set(canonical_ids)) != 32 or len(set(heavy_ids_list)) != 16 or not set(heavy_ids_list) <= set(canonical_ids) or len(set(canonical_ids) - set(heavy_ids_list)) != 16:
+            raise RuntimeError("v21-B runtime scenario manifest ids/cardinality are invalid")
+        import hashlib
+        if hashlib.sha256(json.dumps(heavy, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest() != manifest.get("manifest_sha256") or hashlib.sha256(json.dumps(canonical, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest() != manifest.get("canonical_manifest_sha256"):
+            raise RuntimeError("v21-B runtime scenario manifest row hashes are invalid")
+        canonical_by_id = {row["scenario_id"]: row for row in canonical}
+        for row in canonical:
+            body = {key: row.get(key) for key in ("scenario_id", "door_weight_kg", "hinge_force_nm", "handle_height_m", "source")}
+            expected_row_hash = hashlib.sha256(json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
+            if row.get("scenario_sha256") != expected_row_hash:
+                raise RuntimeError("v21-B runtime scenario row identity hash is invalid")
+        for row in heavy:
+            if row.get("scenario_sha256") != canonical_by_id[row["scenario_id"]].get("scenario_sha256"):
+                raise RuntimeError("v21-B runtime heavy row is not byte-bound to canonical row")
+        heavy_ids = set(heavy_ids_list)
+        rows = heavy if topology == "heavy16" else [row for row in canonical if row.get("scenario_id") not in heavy_ids]
+        if len(rows) != 16:
+            raise RuntimeError("v21-B runtime scenario manifest topology row count is not 16")
+        manifest_sha = manifest.get("manifest_sha256")
+        if not isinstance(manifest_sha, str) or len(manifest_sha) != 64 or self.config.get(self.A2_V21B_SCENARIO_MANIFEST_SHA256_CONFIG_KEY) != manifest_sha:
+            raise RuntimeError("v21-B runtime scenario manifest hash is not bound to env.config")
+        for key in ("manifest_sha256", "canonical_manifest_sha256"):
+            value = manifest.get(key)
+            if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+                raise RuntimeError(f"v21-B runtime scenario {key} is invalid")
+        file_sha = hashlib.sha256(path.read_bytes()).hexdigest()
+        configured_file_sha = self.config.get(self.A2_V21B_SCENARIO_MANIFEST_FILE_SHA256_CONFIG_KEY)
+        if not isinstance(configured_file_sha, str) or configured_file_sha != file_sha:
+            raise RuntimeError("v21-B runtime scenario manifest file hash is not bound")
+        if self.config.get(self.A2_V21B_SCENARIO_MANIFEST_CANONICAL_SHA256_CONFIG_KEY) != manifest.get("canonical_manifest_sha256"):
+            raise RuntimeError("v21-B runtime scenario canonical manifest hash is not bound")
+        expected_manifest_bindings = (
+            (self.A2_V21B_SCENARIO_MANIFEST_SOURCE_CHECKPOINT_SHA256_CONFIG_KEY, "source_checkpoint_sha256"),
+            (self.A2_V21B_SCENARIO_MANIFEST_SOURCE_LOCK_SHA256_CONFIG_KEY, "source_lock_sha256"),
+            (self.A2_V21B_SCENARIO_MANIFEST_SOURCE_CONFIG_SHA256_CONFIG_KEY, "source_config_sha256"),
+            (self.A2_V21B_SCENARIO_MANIFEST_MATERIALIZATION_SHA256_CONFIG_KEY, "materialization_sha256"),
+        )
+        for config_key, manifest_key in expected_manifest_bindings:
+            if self.config.get(config_key) != manifest.get(manifest_key):
+                raise RuntimeError(f"v21-B runtime scenario {config_key} is not bound to the signed manifest")
+        manifest_json = self.config.get("a2_v21B_scenario_manifest_json")
+        manifest_json_sha = self.config.get(self.A2_V21B_SCENARIO_MANIFEST_JSON_SHA256_CONFIG_KEY)
+        if not isinstance(manifest_json, str) or not isinstance(manifest_json_sha, str) or hashlib.sha256(manifest_json.encode("utf-8")).hexdigest() != manifest_json_sha:
+            raise RuntimeError("v21-B runtime scenario manifest JSON binding is invalid")
+        try:
+            declared_manifest = json.loads(manifest_json)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError("v21-B runtime scenario manifest JSON binding is not JSON") from exc
+        if declared_manifest != {key: value for key, value in manifest.items() if key not in {"path", "file_sha256"}}:
+            raise RuntimeError("v21-B runtime scenario manifest JSON does not match consumed file")
+        runtime = dict(self._r2_runtime_scenario(env_id) if runtime_scenario is None else runtime_scenario)
+        expected = rows[env_id]
+        if not isinstance(expected, Mapping) or not isinstance(expected.get("scenario_id"), str):
+            raise RuntimeError("v21-B runtime scenario expected row is malformed")
+        if scenario_id is not None and scenario_id != expected["scenario_id"]:
+            raise RuntimeError("v21-B runtime scenario id disagrees with the signed manifest")
+        comparisons = (("handle_height_m", "handle_height_m"), ("door_mass_kg", "door_weight_kg"), ("hinge_max_force_nm", "hinge_force_nm"))
+        for runtime_key, manifest_key in comparisons:
+            actual = runtime.get(runtime_key)
+            expected_value = expected.get(manifest_key)
+            if isinstance(actual, bool) or not isinstance(actual, (int, float)) or isinstance(expected_value, bool) or not isinstance(expected_value, (int, float)) or not math.isfinite(float(actual)) or not math.isfinite(float(expected_value)) or not math.isclose(float(actual), float(expected_value), rel_tol=1.0e-6, abs_tol=1.0e-6):
+                raise RuntimeError(f"v21-B runtime scenario {runtime_key} does not match signed manifest row {expected['scenario_id']}")
+        runtime["runtime_scenario_hash"] = runtime.get("scenario_id")
+        runtime["scenario_id"] = expected["scenario_id"]
+        runtime["topology"] = topology
+        runtime["manifest_sha256"] = manifest_sha
+        runtime["canonical_manifest_sha256"] = manifest.get("canonical_manifest_sha256")
+        runtime["manifest_file_sha256"] = file_sha
+        runtime["scenario_sha256"] = expected.get("scenario_sha256")
+        runtime["source_checkpoint_sha256"] = manifest.get("source_checkpoint_sha256")
+        runtime["source_lock_sha256"] = manifest.get("source_lock_sha256")
+        runtime["source_config_sha256"] = manifest.get("source_config_sha256")
+        runtime["materialization_sha256"] = manifest.get("materialization_sha256")
+        runtime["materialized_config_sha256"] = manifest.get("materialized_config_sha256")
+        for config_key, manifest_key in (("a2_v21B_source_checkpoint_sha256", "source_checkpoint_sha256"), ("a2_v21B_source_lock_sha256", "source_lock_sha256")):
+            configured = self.config.get(config_key)
+            if configured is not None and configured != manifest.get(manifest_key):
+                raise RuntimeError(f"v21-B runtime scenario {config_key} is not bound to the signed manifest")
+        manifest_materialization = self.config.get("a2_v21B_scenario_manifest_materialization_sha256")
+        if manifest_materialization != manifest.get("materialization_sha256"):
+            raise RuntimeError("v21-B runtime scenario manifest materialization hash is not bound")
+        return runtime
+
     def _r2_runtime_scenario(self, env_id: int) -> dict[str, object]:
         tensor_fields = {
             "door_width_m": self.door_width,
@@ -7976,6 +8660,45 @@ class DoorPregrasp(
         for env_id in env_ids.tolist():
             if bool(self._r2_finalized[env_id].item()):
                 continue
+            plan_key = self.A2_V20_R1_PLAN_ID_CONFIG_KEY
+            plan_id = self.config[plan_key] if plan_key in self.config else None
+            signed_probe = self.config.get(self.A2_V21B_SIGNED_PROBE_SCENARIOS_ENABLED_CONFIG_KEY, False)
+            if plan_id == A2_V21B_PLAN_ID and signed_probe is True:
+                run_uuid = self.config.get(self.A2_V21B_RUN_UUID_CONFIG_KEY)
+                if not isinstance(run_uuid, str) or not run_uuid:
+                    raise RuntimeError("v21-B terminal finalization requires env.config.a2_v21B_run_uuid")
+                runtime_scenario = self._a2_v21b_validate_runtime_scenario(int(env_id))
+                self.finalize_a2_v21b_episode_record(
+                    int(env_id),
+                    provenance={
+                        "run_uuid": run_uuid,
+                        "scenario_id": runtime_scenario.get("scenario_id"),
+                        "topology": runtime_scenario.get("topology"),
+                        "episode_id": f"{run_uuid}:env{int(env_id)}",
+                        "door_weight_kg": runtime_scenario.get("door_mass_kg"),
+                        "hinge_force_nm": runtime_scenario.get("hinge_max_force_nm"),
+                        "source_lock_sha256": self.config.get("a2_v21B_source_lock_sha256"),
+                        "source_config_sha256": self.config.get("a2_v21B_source_config_sha256"),
+                        "materialization_sha256": self.config.get("a2_v21B_materialization_sha256"),
+                        "materialized_config_sha256": self.config.get("a2_v21B_materialized_config_sha256"),
+                    },
+                )
+                continue
+            if plan_id == A2_V21B_PLAN_ID and signed_probe is False:
+                runtime_scenario = self._r2_runtime_scenario(int(env_id))
+                self.finalize_a2_v21b_episode_record(
+                    int(env_id),
+                    provenance={
+                        "topology": "canonical16",
+                        "episode_id": f"v21B-unbound-env{int(env_id)}",
+                        "source_lock_sha256": self.config.get("a2_v21B_source_lock_sha256"),
+                        "source_config_sha256": self.config.get("a2_v21B_source_config_sha256"),
+                        "materialization_sha256": self.config.get("a2_v21B_materialization_sha256"),
+                        "materialized_config_sha256": self.config.get("a2_v21B_materialized_config_sha256"),
+                        "scenario_id": runtime_scenario.get("scenario_id"),
+                    },
+                )
+                continue
             self.finalize_a2_v20_r2_episode_record(
                 int(env_id),
                 scenario=self._r2_runtime_scenario(int(env_id)),
@@ -7994,6 +8717,7 @@ class DoorPregrasp(
             if env_ids is None and post_physics:
                 self._update_a2_v14_root_height_telemetry()
                 self._update_a2_v20_r2_evidence_accumulators()
+                self._update_a2_v21b_arm_evidence_accumulators()
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
         current_root_pos = self.simulator.robot_root_states[env_ids, :3].clone()
@@ -8300,6 +9024,9 @@ class DoorPregrasp(
         send_ready[:] = updated_send_ready
         step = self.episode_length_buf
         self._a2_v20_first_send_ready_step[first_send] = step[first_send]
+        if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
+            self._a2_v21b_hinge_at_send_latch[first_send] = door_joint_pos[first_send, 0]
+            self._a2_v21b_hinge_at_send_latch_valid[first_send] = True
         finite_handle_transform = torch.all(
             torch.isfinite(handle_to_tcp_pos), dim=-1
         ) & torch.all(torch.isfinite(handle_to_tcp_quat), dim=-1)
@@ -12269,6 +12996,75 @@ class DoorPregrasp(
             self.log_dict["a2_v20_reward_units_episode_sum"] = torch.ones(
                 (), device=self.device, dtype=torch.float32
             )
+        if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
+            telemetry = self._get_a2_v21b_effective_telemetry()
+            send_ready = telemetry["send_ready"]
+            first_send_ready_step = telemetry["first_send_ready_step"]
+            first_root_crossing_step = telemetry["first_root_crossing_step"]
+            send_valid = telemetry["hinge_at_send_latch_valid"]
+            crossing_valid = telemetry["hinge_at_crossing_valid"]
+            send_cross_valid = (
+                send_valid
+                & crossing_valid
+                & (first_send_ready_step >= 0)
+                & (first_root_crossing_step >= first_send_ready_step)
+            )
+            hinge_send_samples = torch.where(
+                send_valid,
+                telemetry["hinge_at_send_latch"],
+                torch.zeros_like(telemetry["hinge_at_send_latch"]),
+            )
+            hinge_cross_samples = torch.where(
+                crossing_valid,
+                telemetry["hinge_at_crossing"],
+                torch.zeros_like(telemetry["hinge_at_crossing"]),
+            )
+            latency_samples = torch.where(
+                send_cross_valid,
+                (first_root_crossing_step - first_send_ready_step).float(),
+                torch.zeros_like(first_root_crossing_step, dtype=torch.float32),
+            )
+            clipped_utilization_valid = telemetry["clipped_utilization_valid"]
+            clipped_utilization = torch.where(
+                clipped_utilization_valid,
+                telemetry["clipped_utilization"],
+                torch.zeros_like(telemetry["clipped_utilization"]),
+            )
+            decomposition_sanity_valid = telemetry["decomposition_sanity_valid"]
+            decomposition_sanity = torch.where(
+                decomposition_sanity_valid,
+                telemetry["decomposition_sanity"],
+                torch.ones_like(telemetry["decomposition_sanity"]),
+            )
+            finite_data = (
+                torch.all(torch.isfinite(hinge_send_samples))
+                & torch.all(torch.isfinite(hinge_cross_samples))
+                & torch.all(torch.isfinite(latency_samples))
+                & torch.all(torch.isfinite(clipped_utilization))
+                & torch.all(clipped_utilization_valid)
+                & torch.all(decomposition_sanity_valid)
+            )
+            self.log_dict["a2_v21B_send_latch_fire_rate"] = send_ready.float().mean()
+            self.log_dict["a2_v21B_hinge_at_send_latch_rad"] = a2_masked_float_quantile(
+                hinge_send_samples, send_valid, 0.5
+            )
+            self.log_dict["a2_v21B_hinge_at_crossing_rad"] = a2_masked_float_quantile(
+                hinge_cross_samples, crossing_valid, 0.5
+            )
+            self.log_dict["a2_v21B_send_to_cross_steps"] = a2_masked_float_quantile(
+                latency_samples, send_cross_valid, 0.5
+            )
+            self.log_dict["a2_v21B_hinge_at_send_latch_valid_rate"] = send_valid.float().mean()
+            self.log_dict["a2_v21B_hinge_at_crossing_valid_rate"] = crossing_valid.float().mean()
+            self.log_dict["a2_v21B_send_to_cross_valid_rate"] = send_cross_valid.float().mean()
+            self.log_dict["a2_v21B_stage_overtime_rate"] = telemetry["stage_overtime"].float().mean()
+            self.log_dict["a2_v21B_upper_dof_overspeed_rate"] = telemetry["upper_dof_overspeed"].float().mean()
+            self.log_dict["a2_v21B_arm_clipped_utilization"] = clipped_utilization.mean()
+            self.log_dict["a2_v21B_arm_clipped_utilization_valid_rate"] = clipped_utilization_valid.float().mean()
+            self.log_dict["a2_v21B_finite_data"] = finite_data.float()
+            self.log_dict["a2_v21B_decomposition_sanity"] = decomposition_sanity.float().mean()
+            self.log_dict["a2_v21B_decomposition_sanity_valid_rate"] = decomposition_sanity_valid.float().mean()
+            self._a2_v21b_completed_telemetry_valid[:] = False
 
     def _get_a2_axes_from_quat(self, quat, context):
         expected_shape = (self.num_envs, 4)
@@ -20709,6 +21505,20 @@ class DoorPregrasp(
             self._a2_v20_taskspace_active[env_ids] = False
             self._a2_v20_root_x_rel[env_ids] = 0.0
         self._reset_a2_v20_r2_evidence_buffers(env_ids)
+        if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
+            a2_v21b_reset_arm_episode_accumulator(self._a2_v21b_arm_evidence, env_ids)
+            self._a2_v21b_arm_first_joint_ge_098[env_ids] = -1
+            self._a2_v21b_last_implicit_computed_effort_6d[env_ids] = 0.0
+            self._a2_v21b_last_implicit_applied_effort_6d[env_ids] = 0.0
+            self._a2_v21b_last_implicit_crosscheck_error_6d[env_ids] = 0.0
+            self._a2_v21b_hinge_at_send_latch[env_ids] = float("nan")
+            self._a2_v21b_hinge_at_send_latch_valid[env_ids] = False
+            self._a2_v21b_last_clipped_utilization[env_ids] = 0.0
+            self._a2_v21b_last_clipped_utilization_valid[env_ids] = False
+            self._a2_v21b_last_decomposition_sanity[env_ids] = False
+            self._a2_v21b_last_decomposition_sanity_valid[env_ids] = False
+            self._a2_v21b_stage_overtime[env_ids] = False
+            self._a2_v21b_upper_dof_overspeed[env_ids] = False
         return super()._reset_buffers_callback(env_ids, target_buf)
 
 
@@ -21007,6 +21817,29 @@ class DoorPregrasp(
         upper_dof_overspeed = dof_overspeed & not_just_resetted
         self._mark_terminal_reason("upper_dof_overspeed", upper_dof_overspeed)
         self.reset_buf |= upper_dof_overspeed
+
+        if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
+            terminal_reason_bufs = getattr(self, "_terminal_reason_bufs", None)
+            if not isinstance(terminal_reason_bufs, dict):
+                raise RuntimeError("v21-B telemetry requires terminal reason buffers.")
+            stage_overtime_reason = terminal_reason_bufs["stage_overtime"]
+            upper_overspeed_reason = terminal_reason_bufs["upper_dof_overspeed"]
+            if (
+                not torch.is_tensor(stage_overtime_reason)
+                or not torch.is_tensor(upper_overspeed_reason)
+                or tuple(stage_overtime_reason.shape) != (self.num_envs,)
+                or tuple(upper_overspeed_reason.shape) != (self.num_envs,)
+                or stage_overtime_reason.dtype != torch.bool
+                or upper_overspeed_reason.dtype != torch.bool
+                or stage_overtime_reason.device != torch.device(self.device)
+                or upper_overspeed_reason.device != torch.device(self.device)
+            ):
+                raise RuntimeError("v21-B telemetry terminal reason buffers must be device-local bool vectors.")
+            self._a2_v21b_stage_overtime |= stage_overtime_reason
+            self._a2_v21b_upper_dof_overspeed |= upper_overspeed_reason
+            completed_env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
+            if completed_env_ids.numel() > 0:
+                self._capture_a2_v21b_completed_telemetry(completed_env_ids)
 
         # reset if the homie command is too large when grasping or opening the door
         # is_grasping_or_opening = (self.stage_buf == DoorPregrasp.STAGE_GRASP) | (self.stage_buf == DoorPregrasp.STAGE_OPEN)

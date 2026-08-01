@@ -248,7 +248,7 @@ def build_census_plan(
         f"--config-dir={config.parent}", f"--config-name={config.stem}",
         "checkpoint=logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt",
         "checkpoint_load_mode=policy_only", "auto_load_latest=false", "headless=true", "num_envs=16", "seed=0",
-        "+algo.config.eval.num_eval_episodes=16", "+algo.config.eval.eval_num_envs_episodes=true",
+        "algo.config.eval.num_eval_episodes=16", "+algo.config.eval.eval_num_envs_episodes=true",
         "env.config.a2_v21B_materialization_phase=CENSUS_PRE_K", "env.config.a2_v21B_formal_launch=false",
         "+env.config.a2_v21B_signed_probe_scenarios_enabled=true", "+env.config.a2_v21B_cell=B1",
         f"+env.config.a2_v21B_scenario_manifest_path={Path(manifest_path).absolute()}",

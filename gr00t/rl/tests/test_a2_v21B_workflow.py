@@ -42,6 +42,27 @@ PLAN = ROOT / "scriptsFORhuman/V21/a2_piper_base_v21B_ablation_execution_plan_20
 MANIFEST = ROOT / "scriptsFORhuman/V21/a2_piper_base_v21B_experiment_manifest_20260802.yaml"
 
 
+def _assert_eval_overrides_compose(materialized_config: Path, argv: list[str]) -> None:
+    """Compose the materialized eval config with the exact signed override forms."""
+
+    from hydra import compose, initialize_config_dir
+    from hydra.core.global_hydra import GlobalHydra
+
+    existing_key = next(token for token in argv if token.startswith("algo.config.eval.num_eval_episodes="))
+    absent_key = next(token for token in argv if token.startswith("+algo.config.eval.eval_num_envs_episodes="))
+    assert existing_key == "algo.config.eval.num_eval_episodes=16"
+    assert absent_key == "+algo.config.eval.eval_num_envs_episodes=true"
+    path = Path(materialized_config).resolve()
+    GlobalHydra.instance().clear()
+    try:
+        with initialize_config_dir(config_dir=str(path.parent), version_base=None):
+            resolved = compose(config_name=path.stem, overrides=[existing_key, absent_key])
+    finally:
+        GlobalHydra.instance().clear()
+    assert int(resolved.algo.config.eval.num_eval_episodes) == 16
+    assert bool(resolved.algo.config.eval.eval_num_envs_episodes) is True
+
+
 def _census_frame(*, scenario_id: str, topology: str, source_checkpoint_sha256: str, source_lock_sha256: str, source_config_sha256: str, materialization_sha256: str, materialized_config_sha256: str, door_weight_kg: float, hinge_force_nm: float, effort: float) -> dict:
     state = a2_v21b_init_arm_episode_accumulator(1, max_episode_length=1)
     value = torch.full((1, 6), effort)
@@ -316,6 +337,7 @@ def test_heavy16_is_deterministic_and_exact(tmp_path):
         materialized_config=Path(pre["configs"][0]["path"]),
     )
     git_identity = observed_git_identity(ROOT)
+    _assert_eval_overrides_compose(Path(pre["configs"][0]["path"]), census_plan["commands"][0]["argv"])
     assert census_plan["repo_commit"] == git_identity["commit"]
     assert census_plan["repo_tree"] == git_identity["tree"]
     unsigned = dict(census_plan)
@@ -426,6 +448,7 @@ def test_zero_shot_topology_key_binds_post_census_terminal_records(tmp_path):
         topology_token = next(token for token in row["argv"] if token.startswith("+env.config.a2_v21B_census_topology="))
         topology = topology_token.split("=", 1)[1]
         assert topology == row["topology"]
+        _assert_eval_overrides_compose(Path(post["configs"][0]["path"]), row["argv"])
         record = a2_v21b_build_terminal_record(
             evidence,
             plan_id="base_v21B_theta_arm_ablation_v1",

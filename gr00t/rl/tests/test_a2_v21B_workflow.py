@@ -25,7 +25,7 @@ from scriptsFORhuman.v21B._v21b_common import V21BError, canonical_json_bytes, w
 from scriptsFORhuman.v21B.a2_piper_v21B_adaptation import freeze_adaptation, materialize_v21b_configs
 from scriptsFORhuman.v21B.a2_piper_v21B_arm_tie_calibration import calibrate_arm_tie
 from scriptsFORhuman.v21B.a2_piper_v21B_formal_launcher import build_formal_launch_plan
-from scriptsFORhuman.v21B.a2_piper_v21B_heavy16_census import build_heavy16_manifest, run_torque_census
+from scriptsFORhuman.v21B.a2_piper_v21B_heavy16_census import build_census_plan, build_heavy16_manifest, run_torque_census
 from scriptsFORhuman.v21B.a2_piper_v21B_p0_admission import build_p0_admission
 from scriptsFORhuman.v21B.a2_piper_v21B_pilot import V21B_PILOT_METRIC_SOURCES, adjudicate_b4_pilot, build_b4_pilot_plan
 from scriptsFORhuman.v21B.a2_piper_v21B_smoke_adjudicator import adjudicate_b4_smoke
@@ -306,6 +306,21 @@ def test_heavy16_is_deterministic_and_exact(tmp_path):
     one = build_heavy16_manifest(scenarios, materialization=pre, materialized_config=Path(pre["configs"][0]["path"]))
     two = build_heavy16_manifest(list(reversed(scenarios)), materialization=pre, materialized_config=Path(pre["configs"][0]["path"]))
     assert one["manifest_sha256"] == two["manifest_sha256"]
+    manifest_path = tmp_path / "heavy16_manifest.json"
+    write_json(manifest_path, one)
+    census_plan = build_census_plan(
+        ROOT,
+        manifest_path=manifest_path,
+        output_root=tmp_path / "census_plan",
+        materialization=pre,
+        materialized_config=Path(pre["configs"][0]["path"]),
+    )
+    git_identity = observed_git_identity(ROOT)
+    assert census_plan["repo_commit"] == git_identity["commit"]
+    assert census_plan["repo_tree"] == git_identity["tree"]
+    unsigned = dict(census_plan)
+    unsigned.pop("plan_sha256", None)
+    assert census_plan["plan_sha256"] == hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest()
     with pytest.raises(V21BError):
         build_heavy16_manifest(scenarios[:15], materialization=pre, materialized_config=Path(pre["configs"][0]["path"]))
 

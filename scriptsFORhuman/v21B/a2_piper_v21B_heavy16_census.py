@@ -217,6 +217,7 @@ def build_census_plan(
 ) -> dict[str, Any]:
     """Create the signed CENSUS_PRE_K canonical16/heavy16 command pair."""
 
+    root = Path(repo_root).resolve()
     receipt = validate_materialized_config_receipt(materialization, materialized_config, cell="B1", phase="CENSUS_PRE_K")
     manifest = validate_heavy16_manifest(
         manifest_path,

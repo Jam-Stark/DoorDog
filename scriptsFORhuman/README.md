@@ -16,7 +16,7 @@
 - [v20/](v20/)：base v20 原始优化 plan、P1 preflight/evidence 与 report 工具。
 - [v20_R1/](v20_R1/)：base v20_R1 优化 plan、B0 reference、admission 与 runner 工具。
 - [v20_R2/](v20_R2/)：base v20_R2 admission/execution plan、workflow 工具与 schemas。
-- [V21/](V21/)：base v21 preregistered experiment manifest 与 implementation/training/Route-B execution plan。
+- [V21/](V21/)：base v21 preregistered experiment manifest 与 implementation/training/Route-B execution plan；并列收录 base v21-B（`*_v21B_*`）——基于 v21 的 sibling variant，θ 上限降至 1.20、acceptance 阈值按实测重定、新增 θ×arm-limit 2×2 ablation，v21 原件保持逐字节不变。
 
 v16 起的 optimization/admission plan 均归档在对应版本目录。为保持已签发 plan SHA、source lock 与历史 eval provenance 有效，移动后的 plan 正文及 `v20_R2/a2_piper_base_v20_R2_plan_lock_20260730.json` 保持逐字节不变；其中记录的原始 self/reference path 属于历史身份，不作为当前定位路径。跨版本 handoff、change log、活跃 worker prompt 与长期 TODO 保留在本目录顶层。
 

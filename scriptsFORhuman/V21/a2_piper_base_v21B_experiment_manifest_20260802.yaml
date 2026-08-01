@@ -1,0 +1,274 @@
+schema: a2_piper_base_v21B_preregistered_experiment_manifest_v1
+plan_id: base_v21B_theta_arm_ablation_v1
+execution_id: base_v21B_execution_v1
+derives_from:
+  plan_id: base_v21_theta_dose_arm_tie_v1
+  plan_path: scriptsFORhuman/V21/a2_piper_base_v21_implementation_training_execution_plan_20260801.md
+  manifest_path: scriptsFORhuman/V21/a2_piper_base_v21_experiment_manifest_20260801.yaml
+  relationship: sibling_variant_original_unmodified
+repository: Jam-Stark/DoorDog
+base_ref: A2_Piper
+base_commit: aa8ec0700e59be051e0b9e838f834aa2e9a426f4
+warm_start:
+  group: base_v20_R3_G4
+  step: 2500
+  path: logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt
+  load_mode: policy_only
+  sha256: f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d
+  sha256_verified_on_worker_host: true
+  verified_date: 2026-08-02
+hardware:
+  legal_physical_gpus: [0, 1, 2, 3, 4, 5, 6]
+  forbidden_physical_gpus: [7]
+  gpu7_forbidden_reason: occupied_by_unrelated_job_verified_12425MiB_86pct_20260802
+
+# ---------------------------------------------------------------------------
+# Measured baselines. Every number below was recomputed on the worker host from
+# v20 Route-A traces; the reconstruction reproduces SEND_METRICS to 4 decimals
+# (G4@2500 hinge_at_crossing p50/p95 = 1.0160/1.0628, held_hinge_max p50 = 1.2911).
+# These exist so that no v21-B threshold is set without a measured basis.
+# ---------------------------------------------------------------------------
+measured_baseline:
+  source: logs_eval/base_v20_R2/m22_r3_route_a_f8e3197_offline_20260801
+  theta_send_in_all_v20_cells_rad: 0.90
+  warm_start_G4_step2500_n16:
+    send_latch_fired: 16
+    crossings_before_send_latch: 0
+    send_to_cross_latency_steps_p50: 25.5
+    send_to_cross_latency_steps_p95: 63.2
+    overshoot_hinge_at_cross_minus_theta_p50_rad: 0.1160
+    overshoot_p05_rad: 0.0620
+    overshoot_p95_rad: 0.1628
+    held_hinge_max_p50_rad: 1.2911
+    held_hinge_max_p95_rad: 1.3617
+    stage_overtime: 0.0625
+    upper_dof_overspeed: 0.0
+    task_time_p50_s: 15.24
+    task_time_p95_s: 15.98
+    opening_slip_p95_m: 0.0094
+    pre_send_planar_p95_m: 0.6531
+    pre_send_yaw_p95_rad: 0.4870
+  mature_send_cells_G4_G6_G7_step1500_2500_n240:
+    upper_dof_overspeed_rate: 0.029
+    stage_overtime_rate: 0.004
+    held_hinge_max_p50_rad: 1.3400
+    held_hinge_max_p95_rad: 1.4777
+    task_time_p50_s: 13.50
+    task_time_p95_s: 15.83
+    opening_slip_p95_m: 0.0124
+    pre_send_planar_p95_m: 0.6748
+    pre_send_yaw_p95_rad: 0.5636
+  theta_reachability_held_hinge_max:
+    note: fraction of first episodes whose door ever reaches theta while bilaterally held
+    G4_step2500_n16: {1.00: 1.000, 1.10: 1.000, 1.20: 0.938, 1.25: 0.812, 1.30: 0.375, 1.40: 0.000}
+    mature_pool_n240: {1.00: 0.996, 1.10: 0.992, 1.20: 0.971, 1.25: 0.908, 1.30: 0.721, 1.40: 0.233}
+
+# ---------------------------------------------------------------------------
+# Corrections carried into v21-B
+# ---------------------------------------------------------------------------
+corrections:
+  - id: C1
+    target: scriptsFORhuman/a2_piper_project_handoff_20260725.md ADDENDUM para 2
+    claim_rejected: v20 crossing pinned at 1.0 because of the corridor latch legacy `hinge >= 1.0` OR-branch
+    evidence: G4/G6/G7 ran a2_corridor_latch_mode=send_ready_v20 where that branch is unreachable; G3/G5 ran legacy mode; both families pinned near 1.0; all seven cells used theta_send=0.90
+    replacement: hinge_at_crossing ~= theta_send + hinge travel accumulated between send latch and crossing (measured +0.1160 rad p50)
+    credit: base_v21 plan section 1.1 reached this independently and is adopted verbatim
+  - id: C2
+    target: handoff ADDENDUM para 3 and longterm TODO table A rider
+    claim_rejected: set unified theta_send ~= 1.25-1.30
+    evidence: at theta=1.30 only 37.5% (warm start) / 72.1% (mature pool) of episodes ever reach theta while held; the send latch cannot fire in the remainder
+    replacement: formal cells capped at theta_send = 1.20; 1.25 is a conditional stretch only
+  - id: C3
+    target: handoff ADDENDUM para 3 heavy-tail time risk
+    claim_qualified: heavy tail is time-limited rather than force-limited
+    evidence: in the mature pool the heavy bucket shows 0.0% stage_overtime vs 0.8% for the rest, and a SHORTER send-to-cross latency (13.5 vs 17.0 steps); the 4.0% vs 2.0% split appears only when immature checkpoints are pooled
+    replacement: retained as a monitored risk, not a pre-registered expectation
+
+# ---------------------------------------------------------------------------
+# Ablation matrix. 2x2 (theta x arm) + replicates on both theta=1.20 cells
+# + one arm-tie probe. One axis per contrast.
+# ---------------------------------------------------------------------------
+factors:
+  theta_send_rad: [0.90, 1.20]
+  arm_profile: [ARM_V20, ARM_REALISTIC]
+  arm_tie: [false, calibrated]
+cells:
+  B1: {theta_send_rad: 0.90, arm_profile: ARM_V20,        arm_tie: false,      seed: 0, gpu: 0, role: control_v20_replicate_and_pooled48_reference}
+  B2: {theta_send_rad: 1.20, arm_profile: ARM_V20,        arm_tie: false,      seed: 0, gpu: 1, role: theta_main_effect}
+  B3: {theta_send_rad: 0.90, arm_profile: ARM_REALISTIC,  arm_tie: false,      seed: 0, gpu: 2, role: arm_main_effect}
+  B4: {theta_send_rad: 1.20, arm_profile: ARM_REALISTIC,  arm_tie: false,      seed: 0, gpu: 3, role: interaction_thesis_cell}
+  B5: {theta_send_rad: 1.20, arm_profile: ARM_REALISTIC,  arm_tie: false,      seed: 1, gpu: 4, role: replicate_of_B4}
+  B6: {theta_send_rad: 1.20, arm_profile: ARM_V20,        arm_tie: false,      seed: 1, gpu: 5, role: replicate_of_B2}
+  B7: {theta_send_rad: 1.20, arm_profile: ARM_REALISTIC,  arm_tie: calibrated, seed: 0, gpu: 6, role: arm_tie_carry_lever}
+contrasts:
+  theta_main_effect: [B2_vs_B1, B6_vs_B1]
+  arm_main_effect: [B3_vs_B1]
+  interaction: [B4_vs_B2, B4_vs_B3, B5_vs_B2]
+  seed_replication: [B5_vs_B4, B6_vs_B2]
+  arm_tie_effect: [B7_vs_B4]
+
+# ---------------------------------------------------------------------------
+# ARM_REALISTIC is selected by measurement, not asserted. See plan section 4.
+# ---------------------------------------------------------------------------
+arm_profile_definitions:
+  ARM_V20:
+    dof_effort_limit_arm_j1_j6: [100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
+    dof_effort_limit_arm_j7_j8: [45.0, 45.0]
+    source: resolved v20 R3 G4 config.yaml (repo a2_piper.yaml default of 10.0 for j7/j8 is overridden per-ablation)
+  ARM_REALISTIC:
+    selection: P0_T_torque_census_then_P0_Z_zero_shot_probe
+    candidate_grid_nm: [40.0, 30.0, 25.0, 20.0]
+    applies_to: arm_j1..arm_j6
+    frozen: {fingers_j7_j8_nm: 45.0, dof_vel_limit_list: unchanged, kp_kd: unchanged}
+    datasheet_override: if AgileX PiPER rated joint torques are supplied they take precedence; the census then only reports where the boundary falls in the door distribution
+    selection_rule:
+      choose_largest_k_satisfying:
+        - heavy_bucket_peak_utilization_ge_1.0_in_fraction_ge: 0.30
+        - light_bucket_peak_utilization_le_0.85_in_fraction_ge: 0.80
+      heavy_bucket: door_weight >= 140 kg OR hinge_force >= 10.0 N*m
+      immutable_after: freeze_before_any_formal_training
+
+frozen_controls:
+  velocity_limits: v20_G4
+  kp_kd: v20_G4
+  finger_effort_nm: 45.0
+  stage_time: v20_G4
+  physics_randomization: v20_G4
+  send_curriculum: v20_G4_soft_0_499_hard_500_plus
+  send_tolerance_rad: 0.05
+  pre_send_root_x_margin_m: 0.03
+  pre_send_crossing_mode: penalty
+  pre_send_crossing_penalty_component: 1.0
+  crossing_shortfall_gain: 1.0
+  traversal_economics: true
+  corridor_latch_mode: send_ready_v20
+  reward_terms_other_than_arm_tie: v20_G4
+
+out_of_scope:
+  - arm velocity limit changes (confounds with effort; queued for v22)
+  - stage time budget changes
+  - spring/mass range changes
+  - pull doors, left/right mirror
+  - gate/base-assist mechanism itself (v21-B creates its precondition, does not implement it)
+
+training:
+  smoke: {num_envs: 64, batches: 50, save_frequency: 25, per_cell: true}
+  pilot: {num_envs: 256, batches: 750, save_frequency: 250, cell: B4, seed: 0, reason: highest_variance_cell}
+  formal: {num_envs: 4096, batches: 2500, save_frequency: 250}
+
+# ---------------------------------------------------------------------------
+# Pre-registered predictions. Rule 12: the round must measure its own DV.
+# ---------------------------------------------------------------------------
+predictions:
+  DV1_theta_tracking:
+    metric: hinge_at_crossing_p50_rad
+    cells: [B2, B6]
+    predicted_band_rad: [1.26, 1.38]
+    derivation: theta 1.20 + measured overshoot p50 0.1160 (p05 0.0620, p95 0.1628)
+    labels:
+      THETA_TRACKING: p50 within predicted band
+      THETA_PARTIAL_TRACKING: p50 in [1.10, 1.26)
+      PRE_CROSSING_CEILING: p50 < 1.10 while send latch angle tracks theta
+  DV2_boundary_created:
+    metric: arm_torque_utilization_max
+    cells: [B3, B4, B5, B7]
+    predicted: fraction of heavy-bucket valid frames with utilization >= 0.98 is >= 0.30 in ARM_REALISTIC cells and < 0.05 in ARM_V20 cells
+    labels: [BOUNDARY_CREATED, BOUNDARY_ABSENT, BOUNDARY_SATURATED_EVERYWHERE]
+  DV3_base_intervention:
+    metric: [pre_send_planar_displacement_m, pre_send_yaw_rad, arm_tangent_integral_share, body_door_contact_pre_crossing]
+    contrast: B4_vs_B2 and B3_vs_B1
+    predicted: with a real boundary the saturated heavy bucket shows increased base involvement relative to the matched ARM_V20 cell
+    note: first direct measurement of the force_feasible dependent variable; a null here is a publishable negative result, not a round failure
+  DV4_arm_tie_carry:
+    metric: held_hinge_max_p50_rad
+    contrast: B7_vs_B4
+    hypothesis: arm-tie raises carry even though v20 scored it inert on crossing
+    evidence: v20 best-checkpoint held_hinge_max for arm-tie cells G5/G6/G7 = 1.3179/1.3918/1.4453 vs non-arm-tie G1/G2/G3/G4 = 1.3184/1.2776/1.3040/1.2911
+    caveat: confounded by checkpoint step in v20; B7_vs_B4 is the clean test
+
+# ---------------------------------------------------------------------------
+# Acceptance. Control-referenced, because Route B has NEVER run in project
+# history: there is no pooled48/holdout64 precedent for this policy family.
+# B1 supplies the missing baseline inside this round.
+# ---------------------------------------------------------------------------
+acceptance:
+  doctrine: control_referenced_plus_measured_absolute_floors
+  hard_gates:
+    strict_valid: true
+    fallback_eval_count: 0
+    finite_data: true
+    gpu7_used: false
+    hidden_action_override: false
+    post_freeze_intervention_change: false
+    resolved_config_matches_declared_factors: true
+  integrity_note: upper_dof_overspeed is NOT a hard gate in v21-B; see rate caps below
+  release_profile_STANDARD:
+    canonical16: {goal_min: 15, held_crossing_min: 15}
+    pooled48:
+      goal_min: 46
+      held_crossing_min: 46
+      note: restores the north-star red-line that base_v21 had set to 45
+      stage_overtime_max: 6
+      upper_dof_overspeed_max: 3
+      opening_slip_p95_max_m: 0.035
+      pre_send_planar_p95_max_m: 0.90
+      pre_send_yaw_p95_max_rad: 0.70
+      task_time_p95_max_s: 19.0
+      held_hinge_p50_min_rad: report_only_plus_non_regression_vs_B1
+    holdout64:
+      goal_min: 61
+      held_crossing_min: 61
+      stage_overtime_max: 8
+      upper_dof_overspeed_max: 4
+    crossing:
+      absolute_p50_min_rad: 1.10
+      theta_p50_shortfall_max_rad: 0.10
+      theta_p10_shortfall_max_rad: 0.20
+    non_regression_vs_B1:
+      goal_rate_drop_max: 0.04
+      overspeed_rate_increase_max: 0.02
+      task_time_p95_increase_max_s: 3.0
+  threshold_justification:
+    upper_dof_overspeed_max:
+      measured_base_rate: 0.029
+      rationale: base_v21 set this to 0 as a hard gate; at the measured rate P(zero across 112 release episodes) = 3.6%, so a zero-tolerance gate blocks the round ~96% of the time. Overspeed is a pre-existing v18 stiff-finger defect that v21-B does not set out to fix.
+    held_hinge_p50:
+      measured: 1.2911 warm start / 1.3400 mature pool
+      rationale: base_v21 required >= 1.35 which no measured v20 cell pool satisfies at p50; demoted to report-only with non-regression
+    pre_send_yaw_p95:
+      measured: 0.5636
+      rationale: base_v21 required <= 0.55 which the mature pool already exceeds, and raising theta lengthens the pre-send phase by construction
+    pooled_goal_min:
+      rationale: raised 45 -> 46 to match the standing north-star red-line
+
+# ---------------------------------------------------------------------------
+# Pre-registered forks. No P0 failure may silently end the round.
+# ---------------------------------------------------------------------------
+forks:
+  F1_guard_extension_fails:
+    trigger: freeze-guard change cannot keep v20 configs byte-compatible
+    response: land theta as a new independent key rather than reusing a2_v20_send_hinge_threshold; v20 path untouched
+  F2_arm_axis_collapse:
+    trigger: zero-shot probe at the census-selected ARM_REALISTIC yields canonical goal < 3/16 AND majority of episodes fail to reach stage 3
+    response: step back one candidate-grid point and re-probe once; if still collapsed, convert B3/B4/B5/B7 to a theta ladder {1.05, 1.15, 1.25, 1.25-seed1} and record ARM_AXIS_DEFERRED_TO_V22
+  F3_no_boundary_found:
+    trigger: census shows no k in the grid separates heavy from light buckets
+    response: report BOUNDARY_NOT_SEPARABLE, run the theta-only fallback matrix, and escalate to the planner; do not invent a k outside the grid
+  F4_theta_1_20_infeasible:
+    trigger: pilot at B4 shows send-latch fire rate < 60% on canonical
+    response: drop formal theta to 1.10 for all theta-high cells before freeze; record the change in the adaptation window
+  F5_release_not_reached:
+    trigger: no cell satisfies STANDARD
+    response: a non-release result is a completed scientific outcome; report DV1-DV4 and stop. Route B release claim remains an open debt as it was after v20.
+
+adaptation:
+  decision_point: after_P0_T_census_P0_Z_zero_shot_and_B4_pilot_before_formal
+  window_count: 1
+  immutable_after_freeze: true
+
+route_b:
+  m22: {episodes_per_checkpoint: 16, first_episode_only: true}
+  pooled48: {seeds: [0, 1, 2], envs_per_seed: 16}
+  holdout64: {seeds: [3, 4, 5, 6], envs_per_seed: 16}
+  render: {episodes: 5, cameras: [main, handle_side, handle_top]}
+  heavy_bucket_manifest: generated_once_hashed_reused_no_seed_fishing

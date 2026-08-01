@@ -1,7 +1,8 @@
 # A2+Piper Door-Opening RL — Project Handoff (EN)
 
-Date: 2026-07-25 (HKT). Author: diagnosis/planning session (Claude), covering base_v12 → base_v19.
-Audience: the successor session taking over diagnosis, planning, and work-session handoffs.
+Date: 2026-07-25, **updated 2026-08-01 (v20 incorporated)**. Author: diagnosis/planning session (Claude), covering base_v12 → base_v20.
+Audience: the successor **planner session** (Claude) taking over diagnosis, planning, and work-session handoffs.
+**Project decision structure**: a planner (a Claude session like this one, or a cloud pro model — both have produced adopted plans) writes the detailed next-round plan; **worker sessions** implement, train, and eval; the user arbitrates between planners. The cloud pro model authored v20 (its diagnosis is endorsed and canonized below); v12–v19 plans are in `scriptsFORhuman/a2_piper_base_v1*_optimization_plan_*.md`.
 Repo root: `/home/baoquanc/workspace/DoorDog-A2_Piper`. Plans/replies in **English** (user directive since v17); repo memory entries follow repo conventions (zh + EN technical terms, HKT timestamps).
 
 ---
@@ -46,7 +47,8 @@ Source of truth: `scriptsFORhuman/force_feasible/` (three design discussions). T
 | v16 | Mass axis 80–160 (100% all buckets). All three behavior shapings failed **for one root**: magnitudes not calibrated against measured decomposition + stage-boundary income cliffs |
 | **v17** | 6-cell factorial cleanly proved: institution (raised stage4→5 hinge threshold) *and* event-relevant pricing both necessary, together sufficient & replicated. Push-wide-then-release solved: contact 47/48→1/48. Release G5 ckpt2500 |
 | v18 | Gripper realism (μ 1.1/0.9 + effort 45 N/Kp1300/Kd32 — real Piper grip is 40 N nominal): opening slip −3.5×; **but** endpoint-2500 drifted (midpoint 1500 was 16/16), new `upper_dof_overspeed` failure from stiff fingers, carry target sat above the author's own pay ceiling (null experiment), P2 verdict: pitch functional |
-| **v19 (current)** | Plan delivered (`a2_piper_base_v19_optimization_plan_20260725.md`): P0 gates (ckpt1500 re-adjudication → warm-start; M22 mechanization; overspeed DOF diagnosis) + 7-group × 4096-env matrix testing carry with the cliff moved to 1.60. Await work-session results |
+| **v19 (closed)** | 7-group matrix on carry (release ceiling 1.60, wide-norm 1.8, overspeed fix, posture tax already −0.3). **Outcome (70 ckpts, 55 strict-valid): carry did not appear** — hinge_at_crossing_p50 never exceeded 0.7869 rad (0/55 ≥0.9); root_x_at_release p50 drifted to 0.686 m. The raised pay ceiling was satisfied by **base-drag**: cross the plane at ~0.7–0.8 rad, keep holding, let the walking base drag the door open behind it |
+| **v20 (closed; cloud-pro-model authored — diagnosis endorsed)** | Root cause named correctly: **the behavioral requirement was stated at the wrong event.** All prior institutions bound door angle to stage labels or to release — never to *the robot's position at crossing*. R2/R3 trained 7 groups × 10 checkpoints; Route A produced 1120 strict-valid first-episode records/traces. The dependent-variable readout selected G4 step2500 under goal≥15/16: hinge_at_crossing p50/p95 `1.0160/1.0628 rad`, root_x_at_release p50/p95 `0.4717/0.6680 m`, held_hinge_max p50/p95 `1.2911/1.3617 rad`; delta vs v19 was `+0.2291 rad`, pre-registered label `PARTIAL_EFFECT`. Winner render QA was `YES_5_OF_5` across 5 episodes × 3 cameras. Route B (`formal_completion`/`pooled48`/`holdout64`/`final_analysis`) was not run. |
 
 ## 4. STANDING DESIGN RULES (each paid for with a failed round — cite them, enforce them)
 
@@ -60,6 +62,8 @@ Source of truth: `scriptsFORhuman/force_feasible/` (three design discussions). T
 8. **Factorial + replicate discipline**: one axis per cell, always a replicate cell (basin lottery is real: 3/4 scratch runs historically fell into wrong basins); 8×A6000 GPUs, 4096 envs fit ONE GPU (~13 GB) so up to 7 parallel groups + 1 eval GPU, warm-start `policy_only` from the previous release.
 9. **Zero-shot probe before actuator changes** (gains/friction/limits): evaluate the frozen policy under the new physics first (M36/M39 pattern); gain changes have flipped basins historically.
 10. **Verify, then trust**: never accept a delivery summary's interpretation — recompute from `metrics_eval.json` / traces; the *saved run* `config.yaml` (in `logs_rl/<run>/`) is the source of truth for what actually trained, not the ablation yaml.
+11. **State behavioral requirements at the correct EVENT** (v19/v20 lesson, cloud-model credit): stage-label thresholds and release thresholds do not constrain physical geometry at other moments — the user wanted door-wide-*at-crossing*, and three rounds constrained door-angle-at-release/at-stage-flip instead. Before institutionalizing any target, ask: *at which physical event does the user's sentence apply, and does my constraint bind at that event?*
+12. **A round's summary table must contain the round's own dependent variable** (v20 lesson): governance apparatus (locks/admissions/archives) is worth keeping, but it is not a substitute for measuring what the round set out to change. Reject any eval campaign whose aggregate omits the target metric.
 
 ## 5. TRAINING & EVAL CONVENTIONS
 
@@ -85,11 +89,12 @@ Source of truth: `scriptsFORhuman/force_feasible/` (three design discussions). T
 - *Counterfactual replay*: reconstruct alternative gates/metrics from existing traces before spending GPU (T4-style: predicted the debounced gate 16/16 before any run).
 - *Diagnostics scripts*: `scriptsFORhuman/a2_piper_base_v13_diagnostics_20260716.py` (streak/gate reconstruction), `scriptsFORhuman/v18/a2_piper_v18_slip_report.py`, per-version bucket reporters.
 
-## 8. CURRENT STATE & QUEUE
+## 8. CURRENT STATE & QUEUE (as of 2026-08-01)
 
-- **In flight**: v19 (plan delivered; P0.1 ckpt1500 re-adjudication decides the v18 verdict and the warm-start; 7-group matrix G1–G7; M43 overspeed fix variant pends the DOF diagnosis).
-- **Next after v19**: realistic Piper **arm** limits round (creates the force_feasible boundary) → gate/base-assist mechanism (the thesis experiment) → pull doors (second regime) → left/right mirror, mass-impact axis, distillation per TODO tables B–D.
-- **Open watch items**: A-variant stage0 null-standoff anomaly (v16), strict-trace null-telemetry exporter bug (recurred v17/v18 — M41/P0.2), j8 open-limit background ~11→0.04% after v18 gains (resolved, keep watching), posture usage now observability-only.
-- **Debts**: launcher natural-exit audit habit; keep pushing memory entries per round (work sessions own them).
+- **Closed**: v20 Route-A dependent-variable readout scanned 70/70 checkpoints, 1120/1120 records/traces and 740,908 trace rows; no fallback eval was needed. G4 step2500 won under goal≥15/16 with hinge_at_crossing p50 `1.0160 rad` versus v19 `0.7869 rad` (`+0.2291 rad`, `PARTIAL_EFFECT`). Five winner episodes × three cameras produced 15 fully decoded MP4 files; the pre-crossing visual question was `YES_5_OF_5`.
+- **Conditional institutional fallback**: not triggered, because v20 cells moved hinge_at_crossing into the pre-registered partial-effect band. The option remains recorded only for a future no-bind result.
+- **Next**: realistic Piper **arm** limits round (creates the force_feasible boundary) → gate/base-assist mechanism (the thesis experiment) → pull doors (second regime) → left/right mirror, mass-impact axis, distillation per TODO tables B–D.
+- **Open watch items**: v20 governance overhead vs measurement relevance (rule 12); strict-trace/null-telemetry exporter recurrences; posture usage observability-only (P2: functional); A-variant stage0 anomaly (v16).
+- **Debts**: launcher natural-exit audit habit; per-round memory entries (worker sessions own them); keep `a2_piper_longterm_TODO.md` synced every round.
 
-*The one-sentence brief for your successor: the robot already opens randomized latched doors 48/48 with a stable bilateral grasp and clean passage — everything from here is (a) making the remaining form ideal (arm-carry), and (b) building the honest physical regime in which the force-feasibility thesis can be demonstrated, without ever shaping the conclusion into existence.*
+*The one-sentence brief for your successor: v20 closed the crossing-moment readout at `PARTIAL_EFFECT` (G4 step2500, hinge_at_crossing p50 `1.0160 rad`, render `YES_5_OF_5`); the next queued round is the realistic Piper arm-limit prerequisite for the force-feasibility experiment.*

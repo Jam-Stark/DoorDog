@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-07-22(v17 计划落成时)。
+创建:2026-07-21;最近更新:2026-08-01(v20 因变量读出关闭)。
 
 ---
 
@@ -9,10 +9,7 @@
 
 | 条目 | 排期 | 出处 |
 |---|---|---|
-| v18 ckpt1500 重裁定(3-seed)→ v18 release 翻案与 v19 warm-start | **v19 P0.1** | v18 endpoint=2500 为漂移点;midpoint 1000/1500 均 16/16 |
-| M22 checkpoint 选点机械化(runner 自动裁定全部 ckpt) | **v19 P0.2** | v14/v18 两次跳过协议 |
-| carry 公平重测:release 阈值 1.40→1.60 + wide-norm 1.8(收益覆盖 carry 区)+ overspeed 修复 + posture 税减至 -0.3 | **v19 M42–M44**(7 组 ablation,1 GPU×4096 env/组) | v18 四大发现:自建收益断崖(第 4 例)、corridor slip=运动学让位、j7/j8 高刚度超速、P2 判定 pitch 为功能性 |
-| posture economy 目标退役(P2:pitch-clamp goal 2/16 → 功能性) | **v19 M44 落地** | 最小干预研究移至 arm-limit 轮 |
+| 真实 Piper arm 限位轮(force_feasible 边界前置) | **下一轮** | v20 已收口；不改变既定排期 |
 
 ## B. 下一批候选(v17)
 
@@ -51,6 +48,10 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-01:**v19 收口(负结果,高信息量)**——70 ckpt/55 valid 中 hinge_at_crossing_p50 上限 0.7869、0/55 ≥0.9;release ceiling 提高被"base-drag"满足(root_x@release p50 0.686)。云端 pro 模型诊断获背书并沉淀两条设计规则:**规则 11**(行为要求写在正确的物理事件上——三轮都约束了 at-release/at-stage-flip,用户要的是 at-crossing)、**规则 12**(round 汇总表必须含本 round 因变量)。
+- [x] 2026-08-01 19:06 HKT:**v20 Route-A 因变量读出关闭**——70/70 checkpoint、1120/1120 records/traces、740908 trace rows strict-valid，fallback eval 0。约束 goal≥15/16 下 winner 为 G4 step2500：hinge_at_crossing p50/p95=`1.0160/1.0628rad`、root_x_at_release p50/p95=`0.4717/0.6680m`、held_hinge_max p50/p95=`1.2911/1.3617rad`，相对 v19 `+0.2291rad`，预注册标签 `PARTIAL_EFFECT`。winner 5 episodes×3 cameras=15 MP4 full decode，crossing 前目视门已宽开 `YES_5_OF_5`；160kg/11.4905N·m case crossing 前 hinge=`0.9999rad`。因此“无 cell 移动”制度化 fallback 未触发；Route B strict DAG/pooled48/holdout64/final analysis 保持 NOT RUN。
+- [x] 2026-08-01:v20 R2/R3 完成训练(7 组×10 ckpt)与 Route A eval(1120 records,任务健康保持);其后因变量读出与 winner render 已由上一条关闭。
 
 - [x] 2026-07-20:M18 静态可达性图路线否决——能力探针必须匹配可指令自由度,策略本体是最高保真仪器(见 m23_conclusion.md §3)。
 - [x] 2026-07-21:"重门 body-assist 涌现"假说否决(推门=形封闭,12 N·m 内 arm 全覆盖;过线前 body 接触 0/10066)——force-feasible 机制改走 C 表路线。

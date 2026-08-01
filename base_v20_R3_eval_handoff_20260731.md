@@ -3,7 +3,7 @@
 **Date:** 2026-07-31 HKT
 **Branch:** `A2_Piper`（工作树干净，HEAD=`d620edc`）
 **交接目标：** 另一个 session 接续，按 **v20 R2/R3 方案对已完成 formal 训练的 7 组 checkpoint 做 eval**。
-**一句话状态（2026-08-01 05:31 HKT 更新）：** 本 handoff 推荐 Route A 已完成：R2 evidence/eval 缺陷已修复，70/70 checkpoint canonical16 eval 与 4 个代表性 checkpoint render 已完成；Route B 的严格 DAG、pooled48、holdout64、final-analysis 未执行，也不由本结果隐含。
+**一句话状态（2026-08-01 19:06 HKT 更新）：** Route A 与后续因变量读出已关闭：70/70 checkpoint canonical16 eval、G4 step2500 winner 判定及 5-episode×3-camera render 已完成；Route B 的严格 DAG、pooled48、holdout64、final-analysis 未执行，也不由本结果隐含。
 
 ---
 
@@ -11,6 +11,10 @@
 
 - Source/runtime 修复链：fe090a7、7a0835f、e9a8957、df90ab8、823f2b6、f8e3197。最终 source lock/P0 绑定 f8e3197，P0 为 27/27 STATIC_PASS；G1 step2500 smoke 产出 16-record STRICT_VALID record set。
 - 70-checkpoint Route A eval：logs_eval/base_v20_R2/m22_r3_route_a_f8e3197_offline_20260801/。70/70 process natural exit 0、70/70 record set STRICT_VALID，共 1120 episodes；goal 1055/1120、crossing 1097/1120、held-crossing 1093/1120。各组 goal G1–G7 为 157/155/150/145/153/143/152（各 160）。汇总见 ROUTE_A_METRICS.json/csv。
+- 因变量读出：70/70 checkpoints、1120/1120 records、1120/1120 raw traces、740908 trace rows strict-valid，fallback eval=0；输出为同目录 `SEND_METRICS.{json,csv,md}`。定义直接取 raw trace：首次 `root_x_rel_m>0` 的 hinge、最后 bilateral frame 的 root x、bilateral frames 的 hinge max。
+- 约束 goal≥15/16 下 winner 为 G4 step2500：goal 15/16、crossing-while-holding 16/16；hinge_at_crossing p50/p95=`1.016022/1.062799rad`，root_x_at_release p50/p95=`0.471717/0.6680m`，held_hinge_max p50/p95=`1.291084/1.3617rad`。相对 v19 `0.7869rad` 增加 `0.229122rad`，预注册裁定为 `PARTIAL_EFFECT`。
+- Winner render：`winner_render_G4_step002500_5env_3cam_20260801_retry5/` 在 physical GPU0、W&B offline 自然 exit0；5 条 first episode × main/handle_side/handle_top 共 15 个 MP4 全量解码。最后一个 crossing 前 frame 的 hinge 为 `0.9999–1.0534rad`，目视问题“base 进入门框前门是否已明显宽开”裁定 `YES_5_OF_5`；160kg/11.4905N·m case 的 pre-crossing hinge=`0.9999rad`。
+- Render receipt 边界：launch provenance 中 `b0_json_sha256` 为 65 characters，故生成的 strict render `record_set.json`/staging 已删除且未发布；render QA 仅使用受信 `a2_v14_per_env_records.json` 与 raw traces。失败尝试根目录和 3 个 episode0001 tail videos 已清理，最终目录仅保留 15 个 first-episode videos。
 - 代表性 checkpoint：G1 step2500（最强组 endpoint）、G4 step750（goal 11/16 而 crossing/held 16/16）、G6 step2500（full model，含 isolated upper-DOF overspeed 对照）、G7 step2500（full seed replicate endpoint）。
 - Render 成功产物在 renders_retry2/：4 个 process 全部 natural exit 0，7 条 first-episode record、21 个 1280×720@20fps MP4，OpenCV 全量解码 13,203 帧 PASS。执行与 QA 见 RENDER_EXECUTION.json、RENDER_MEDIA_QA.json。
 - Render gotcha：小 topology 继承 num_mini_batches=4 会在 trainer init fail-fast，Isaac Sim teardown 还可能忽略 SIGINT/SIGTERM 持续空转。retry2 以 Hydra append +algo.config.num_mini_batches=1 自然完成；失败尝试保留为独立 evidence，不当作成功 receipt。

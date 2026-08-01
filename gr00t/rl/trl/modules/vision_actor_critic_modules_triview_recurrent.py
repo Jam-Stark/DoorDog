@@ -354,6 +354,12 @@ class TriViewContextSharedEncoderVisionRecurrentActor(nn.Module):
         self.distribution = None
         self.memory.detach_hidden_states()
 
+    def eval_mode(self):
+        self.is_eval_mode = True
+
+    def train_mode(self):
+        self.is_eval_mode = False
+
     def reset(self, dones=None):
         self.memory.reset(dones)
 

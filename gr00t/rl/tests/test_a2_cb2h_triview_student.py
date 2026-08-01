@@ -618,6 +618,44 @@ def test_triview_actor_exposes_standard_normalized_action_interface(monkeypatch)
     assert actor.has_normalized_actions is False
 
 
+def test_triview_actor_exposes_standard_mode_interface_and_peer_consistency(monkeypatch):
+    actor, _ = _build_fake_actor(monkeypatch)
+    state_keys = set(actor.state_dict())
+    assert actor.is_eval_mode is False
+    actor.eval_mode()
+    assert actor.is_eval_mode is True
+    actor.train_mode()
+    assert actor.is_eval_mode is False
+    assert set(actor.state_dict()) == state_keys
+
+    def mode_method(source_path: Path, class_name: str, method_name: str):
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        class_node = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == class_name)
+        return next(
+            node
+            for node in class_node.body
+            if isinstance(node, ast.FunctionDef) and node.name == method_name
+        )
+
+    actor_method_path = ACTOR
+    peer_paths = (
+        (ROOT / "gr00t/rl/trl/modules/vision_actor_critic_modules.py", "VisionActor"),
+        (ROOT / "gr00t/rl/trl/modules/actor_critic_modules.py", "Actor"),
+    )
+    for method_name in ("eval_mode", "train_mode"):
+        actor_method = mode_method(
+            actor_method_path,
+            "TriViewContextSharedEncoderVisionRecurrentActor",
+            method_name,
+        )
+        assert [argument.arg for argument in actor_method.args.args] == ["self"]
+        for peer_path, peer_class in peer_paths:
+            peer_method = mode_method(peer_path, peer_class, method_name)
+            assert [ast.dump(statement) for statement in actor_method.body] == [
+                ast.dump(statement) for statement in peer_method.body
+            ]
+
+
 def _make_actor_obs(batch=1, sequence=None):
     shape = (batch,) if sequence is None else (batch, sequence)
     actor_obs = torch.ones((*shape, 81), dtype=torch.float32)

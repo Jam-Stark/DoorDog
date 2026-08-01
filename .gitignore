@@ -223,3 +223,6 @@ gr00t/logs_rl/
 obs_sweeping/*
 DINOv3_models/*
 data/door_assets/*
+
+# Local cloud-session handoff archives (eval/render evidence; never commit)
+/a2_piper_v20_cloud_delivery_*.zip

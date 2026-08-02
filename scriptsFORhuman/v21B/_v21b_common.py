@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import re
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -69,6 +70,24 @@ V21B_RESOLVED_ALLOWLIST = frozenset({
 
 class V21BError(ValueError):
     """Fail-fast v21-B contract violation."""
+
+
+def resolve_v21b_trace_run_uuid(
+    config: Mapping[str, Any],
+    *,
+    plan_id: str,
+    legacy_provenance: Callable[[], Mapping[str, Any]],
+) -> str:
+    """Resolve shared trace identity without fabricating v21-B R2 provenance."""
+
+    if not isinstance(config, Mapping):
+        raise V21BError("A2 trace run UUID resolution requires an env config mapping")
+    if plan_id == V21B_PLAN_ID:
+        run_uuid = config.get("a2_v21B_run_uuid")
+        if not isinstance(run_uuid, str) or not run_uuid:
+            raise V21BError("v21-B trace capture requires env.config.a2_v21B_run_uuid")
+        return run_uuid
+    return legacy_provenance()["run_uuid"]
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -173,6 +192,15 @@ def validate_v21b_config(config: dict[str, Any], *, cell: str | None = None, req
         raise V21BError(f"{actual_cell} env arm profile version is not bound to the factor")
     if env.get("a2_v20_R1_plan_id") != V21B_PLAN_ID:
         raise V21BError("v21-B env guard plan id is not bound")
+    if env.get("a2_v21B_evidence_enabled") is not True:
+        raise V21BError(f"{actual_cell} v21-B evidence must remain explicitly enabled")
+    if env.get("a2_v20_R2_evidence_enabled") is not True:
+        raise V21BError(
+            f"{actual_cell} shared v20 R2 trace evidence must remain explicitly enabled; "
+            "v21-B reuses the existing trace/finalization lifecycle"
+        )
+    if env.get("a2_v20_R2_formal_launch") is not False:
+        raise V21BError(f"{actual_cell} legacy v20 R2 formal launch must remain explicitly disabled")
     theta = env.get("a2_v20_send_hinge_threshold")
     if isinstance(theta, bool) or not isinstance(theta, (int, float)) or not math.isfinite(float(theta)) or not 0.90 <= float(theta) <= 1.30:
         raise V21BError(f"{actual_cell} theta is outside the closed v21-B interval")
@@ -357,5 +385,5 @@ __all__ = [
     "V21BError", "V21B_PLAN_ID", "V21B_EXECUTION_ID", "V21B_SCHEMA", "V21B_CELL_ORDER",
     "V21B_FORMAL_GPUS", "V21B_FORBIDDEN_GPU", "V21B_WARM_START_PATH", "V21B_WARM_START_SHA256", "V21B_EVAL_CONTRACT_PATH",
     "V21B_CONFIG_PATHS", "V21B_CELL_FACTORS", "V21B_F3_THETA_LADDER", "V21B_RESOLVED_ALLOWLIST", "canonical_json", "canonical_json_bytes", "sha256_file",
-    "read_yaml", "write_json", "validate_v21b_config", "config_for_cell", "validate_resolved_v21b_parity", "assert_resolved_v21b_parity", "parse_gpus", "require_digest",
+    "read_yaml", "write_json", "resolve_v21b_trace_run_uuid", "validate_v21b_config", "config_for_cell", "validate_resolved_v21b_parity", "assert_resolved_v21b_parity", "parse_gpus", "require_digest",
 ]

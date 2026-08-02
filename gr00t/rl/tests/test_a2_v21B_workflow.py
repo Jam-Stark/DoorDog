@@ -82,6 +82,10 @@ def _assert_full_hydra_argv_compose(
         assert bool(resolved.algo.config.eval.eval_num_envs_episodes) is True
     if expected_cell is not None:
         assert resolved.env.config.a2_v21B_cell == expected_cell
+    assert bool(resolved.env.config.a2_v21B_evidence_enabled) is True
+    assert bool(resolved.env.config.a2_v20_R2_evidence_enabled) is True
+    assert bool(resolved.env.config.a2_v20_R2_formal_launch) is False
+    assert bool(resolved.env.config.get("a2_v20_R2_full_evidence", False)) is False
     if expected_num_envs is not None:
         assert int(resolved.num_envs) == expected_num_envs
 
@@ -92,6 +96,10 @@ def _assert_materialized_eval_contract(materialized_config: Path) -> None:
     digest = sha256_file(ROOT / V21B_EVAL_CONTRACT_PATH)
     assert config["v21b_eval_contract_source_sha256"] == digest
     assert config["env"]["config"]["a2_v21B_eval_contract_source_sha256"] == digest
+    assert config["env"]["config"]["a2_v21B_evidence_enabled"] is True
+    assert config["env"]["config"]["a2_v20_R2_evidence_enabled"] is True
+    assert config["env"]["config"]["a2_v20_R2_formal_launch"] is False
+    assert config["env"]["config"].get("a2_v20_R2_full_evidence", False) is False
     eval_values = config["algo"]["config"]["eval"]
     required = {
         key
@@ -120,6 +128,14 @@ def _assert_materialized_eval_contract(materialized_config: Path) -> None:
         "a2_hold_oracle_matched_clean_reacquisition_preflight_enabled",
     ):
         assert eval_values[key] is False
+
+
+def _assert_v21b_run_uuid_override(argv: list[str], expected: str) -> None:
+    token = next(
+        (item for item in argv if item.startswith("+env.config.a2_v21B_run_uuid=")),
+        None,
+    )
+    assert token == f"+env.config.a2_v21B_run_uuid={expected}"
 
 
 def _census_frame(*, scenario_id: str, topology: str, source_checkpoint_sha256: str, source_lock_sha256: str, source_config_sha256: str, materialization_sha256: str, materialized_config_sha256: str, door_weight_kg: float, hinge_force_nm: float, effort: float) -> dict:
@@ -306,6 +322,8 @@ def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
     lock_hash = source_lock["source_lock_sha256"]
     zero_plan = build_zero_shot_plan(ROOT, arm_realistic_limit_nm=census["selection"], output_root=tmp_path / "zero", manifest_path=manifest_path, materialization=post, materialized_config=Path(post["configs"][0]["path"]))
     _assert_materialized_eval_contract(Path(post["configs"][0]["path"]))
+    for row in zero_plan["commands"]:
+        _assert_v21b_run_uuid_override(row["argv"], row["run_uuid"])
     manifest_rows = json.loads(manifest_path.read_text(encoding="utf-8"))
     zero_payloads = {}
     for topology in ("canonical16", "heavy16"):
@@ -315,6 +333,7 @@ def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
     zero = adjudicate_zero_shot(plan=zero_plan_bound, process_receipt_paths=zero_receipts, result_paths=zero_results, arm_realistic_limit_nm=census["selection"])
     pilot_plan = build_b4_pilot_plan(ROOT, arm_realistic_limit_nm=census["selection"], output_root=tmp_path / "pilot", materialization=post, materialized_config=Path(post["configs"][0]["path"]), source_lock_path=source_lock_path)
     _assert_full_hydra_argv_compose(Path(post["configs"][0]["path"]), pilot_plan["argv"], expected_cell="B4", expected_num_envs=256)
+    _assert_v21b_run_uuid_override(pilot_plan["argv"], pilot_plan["run_uuid"])
     pilot_plan_bound, pilot_receipt, pilot_result = _plan_with_harmless_pilot_process(pilot_plan, tmp_path=tmp_path, coverage=pilot_coverage)
     pilot = adjudicate_b4_pilot(plan=pilot_plan_bound, process_receipt_path=pilot_receipt, result_path=pilot_result)
     tie = calibrate_arm_tie(
@@ -401,6 +420,7 @@ def test_heavy16_is_deterministic_and_exact(tmp_path):
     )
     git_identity = observed_git_identity(ROOT)
     for row in census_plan["commands"]:
+        _assert_v21b_run_uuid_override(row["argv"], row["run_uuid"])
         _assert_full_hydra_argv_compose(
             Path(pre["configs"][0]["path"]),
             row["argv"],
@@ -523,6 +543,7 @@ def test_zero_shot_topology_key_binds_post_census_terminal_records(tmp_path):
         topology_token = next(token for token in row["argv"] if token.startswith("+env.config.a2_v21B_census_topology="))
         topology = topology_token.split("=", 1)[1]
         assert topology == row["topology"]
+        _assert_v21b_run_uuid_override(row["argv"], row["run_uuid"])
         _assert_full_hydra_argv_compose(Path(post["configs"][0]["path"]), row["argv"], expected_cell="B4", expected_num_envs=16)
         record = a2_v21b_build_terminal_record(
             evidence,

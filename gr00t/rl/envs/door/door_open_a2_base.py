@@ -75,6 +75,7 @@ from gr00t.rl.envs.door.a2_v21b_evidence import (
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
+from scriptsFORhuman.v21B._v21b_common import resolve_v21b_trace_run_uuid
 
 
 A2_ARM_DOF_OVERSPEED_HARD_FLOOR = 3.0
@@ -100,7 +101,6 @@ A2_V20_R1_CROSSING_SHORTFALL_GAIN = 1.0
 A2_V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
 A2_V21B_THETA_SEND_MIN_RAD = 0.90
 A2_V21B_THETA_SEND_MAX_RAD = 1.30
-
 
 
 A2_V20_R1_ENDPOINT_SCHEMA = "a2_piper_v20_R1_endpoint_record_v1"
@@ -5529,6 +5529,19 @@ class DoorPregrasp(
 
         if self._get_a2_v20_r1_plan_id() != A2_V21B_PLAN_ID:
             return
+        if self.config.get("a2_v21B_evidence_enabled") is not True:
+            raise RuntimeError(
+                "v21-B admission requires env.config.a2_v21B_evidence_enabled=true."
+            )
+        if self.config.get("a2_v20_R2_evidence_enabled") is not True:
+            raise RuntimeError(
+                "v21-B admission requires env.config.a2_v20_R2_evidence_enabled=true; "
+                "v21-B reuses the shared R2 trace/finalization lifecycle."
+            )
+        if self.config.get("a2_v20_R2_formal_launch") is not False:
+            raise RuntimeError(
+                "v21-B admission requires env.config.a2_v20_R2_formal_launch=false."
+            )
         profile = self.config.get(self.A2_V21B_ARM_PROFILE_CONFIG_KEY)
         phase = self.config.get(self.A2_V21B_MATERIALIZATION_PHASE_CONFIG_KEY)
         source_sha = self.config.get(self.A2_V21B_SOURCE_CHECKPOINT_SHA256_CONFIG_KEY)
@@ -8072,7 +8085,11 @@ class DoorPregrasp(
         crossing_step = self._a2_v20_first_root_crossing_step
         pre_cross_event = self._a2_v20_pre_send_crossing_event
         release_event = self._a2_release_event_valid
-        run_uuid = self._r2_required_provenance()["run_uuid"]
+        run_uuid = resolve_v21b_trace_run_uuid(
+            self.config,
+            plan_id=self._get_a2_v20_r1_plan_id(),
+            legacy_provenance=self._r2_required_provenance,
+        )
         for env_id in range(self.num_envs):
             if bool(self._r2_finalized[env_id].item()):
                 continue

@@ -31,9 +31,30 @@ def test_all_v21b_configs_are_factor_and_latch_bound():
         assert env["a2_v20_R1_plan_id"] == V21B_PLAN_ID
         assert env["a2_v21B_cell"] == cell
         assert env["a2_v21B_arm_profile"] == config["v21b_arm_profile"]
+        assert env["a2_v21B_evidence_enabled"] is True
+        assert env["a2_v20_R2_evidence_enabled"] is True
+        assert env["a2_v20_R2_formal_launch"] is False
         assert config["num_envs"] == 4096
         assert config["algo"]["trl"]["num_total_batches"] == 2500
         assert config["callbacks"]["model_save"]["save_frequency"] == 250
+
+
+def test_v21b_evidence_contract_rejects_missing_or_disabled_shared_r2_trace():
+    config = read_yaml(config_for_cell(ROOT, "B1"))
+    env = config["env"]["config"]
+    env.pop("a2_v21B_evidence_enabled")
+    with pytest.raises(V21BError, match="v21-B evidence"):
+        validate_v21b_config(config, cell="B1")
+
+    config = read_yaml(config_for_cell(ROOT, "B1"))
+    config["env"]["config"]["a2_v20_R2_evidence_enabled"] = False
+    with pytest.raises(V21BError, match="shared v20 R2 trace evidence"):
+        validate_v21b_config(config, cell="B1")
+
+    config = read_yaml(config_for_cell(ROOT, "B1"))
+    config["env"]["config"]["a2_v20_R2_formal_launch"] = True
+    with pytest.raises(V21BError, match="legacy v20 R2 formal launch"):
+        validate_v21b_config(config, cell="B1")
 
 
 def test_v21b_theta_closed_interval_and_v20_rejection():
@@ -92,6 +113,9 @@ def test_materialized_eval_contract_merges_only_missing_keys(tmp_path):
     assert eval_values["video_save_prob"] == 0.05
     assert config["v21b_eval_contract_source_sha256"] == sha256_file(ROOT / V21B_EVAL_CONTRACT_PATH)
     assert config["env"]["config"]["a2_v21B_eval_contract_source_sha256"] == config["v21b_eval_contract_source_sha256"]
+    assert config["env"]["config"]["a2_v21B_evidence_enabled"] is True
+    assert config["env"]["config"]["a2_v20_R2_evidence_enabled"] is True
+    assert config["env"]["config"]["a2_v20_R2_formal_launch"] is False
     for key, expected in base_eval.items():
         if key.startswith("a2_hold_oracle_") or key.startswith("a2_v20_arc_probe_") or key in {
             "a2_diagnostic_trace_enabled",

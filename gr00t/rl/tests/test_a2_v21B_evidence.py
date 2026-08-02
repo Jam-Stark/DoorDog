@@ -23,6 +23,11 @@ from gr00t.rl.envs.door.a2_v21b_evidence import (
     a2_v21b_init_arm_episode_accumulator,
     a2_v21b_reset_arm_episode_accumulator,
 )
+from scriptsFORhuman.v21B._v21b_common import (
+    V21BError,
+    V21B_PLAN_ID,
+    resolve_v21b_trace_run_uuid,
+)
 try:
     from gr00t.rl.envs.door.door_open_a2_base import DoorPregrasp
 except ModuleNotFoundError:
@@ -182,6 +187,35 @@ def test_census_raw_export_retains_real_frame_identity_and_provenance(tmp_path):
     assert receipt["frame_count"] == 1
     with pytest.raises(FileExistsError):
         a2_v21b_export_census_frames(tmp_path / "frames.json", frames)
+
+
+def test_shared_trace_run_uuid_is_plan_aware_and_fail_fast():
+    legacy_calls = []
+
+    def legacy_provenance():
+        legacy_calls.append(True)
+        raise AssertionError("v21-B trace resolution must not request legacy R2 provenance")
+
+    assert resolve_v21b_trace_run_uuid(
+        {"a2_v21B_run_uuid": "v21B-census-canonical16"},
+        plan_id=V21B_PLAN_ID,
+        legacy_provenance=legacy_provenance,
+    ) == "v21B-census-canonical16"
+    assert legacy_calls == []
+
+    assert resolve_v21b_trace_run_uuid(
+        {},
+        plan_id="base_v20_R1_policy_behavior_v1",
+        legacy_provenance=lambda: {"run_uuid": "v20-r2-run"},
+    ) == "v20-r2-run"
+
+    for invalid in (None, "", 1, True):
+        with pytest.raises(V21BError, match="a2_v21B_run_uuid"):
+            resolve_v21b_trace_run_uuid(
+                {"a2_v21B_run_uuid": invalid},
+                plan_id=V21B_PLAN_ID,
+                legacy_provenance=legacy_provenance,
+            )
 
 
 def test_terminal_telemetry_survives_reset_and_preserves_no_sample_validity():

@@ -525,6 +525,16 @@ def materialize_v21b_configs(
             config["v21b_arm_profile_selection_state"] = "CENSUS_SELECTED_UNPROMOTED"
             config["v21b_arm_profile_version"] = "ARM_REALISTIC_v1_SELECTED"
         env = config.setdefault("env", {}).setdefault("config", {})
+        if env.get("a2_v21B_evidence_enabled") is not True:
+            raise V21BError(f"{cell} materialization requires a2_v21B_evidence_enabled=true")
+        if env.get("a2_v20_R2_evidence_enabled") is not True:
+            raise V21BError(
+                f"{cell} materialization requires shared a2_v20_R2_evidence_enabled=true"
+            )
+        if env.get("a2_v20_R2_formal_launch") is not False:
+            raise V21BError(
+                f"{cell} materialization requires legacy a2_v20_R2_formal_launch=false"
+            )
         theta = float(V21B_F3_THETA_LADDER[cell]) if f3_fallback else (float(adaptation["decision"]["theta_high_rad"]) if phase == "FORMAL_PROMOTED" and cell in ("B2", "B4", "B5", "B6", "B7") else float(V21B_CELL_FACTORS[cell]["theta_send_rad"]))
         if phase == "FORMAL_PROMOTED" and cell in ("B2", "B4", "B5", "B6", "B7"):
             config["v21b_adapted_theta_high_rad"] = theta

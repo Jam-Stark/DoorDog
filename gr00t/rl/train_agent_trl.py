@@ -64,6 +64,17 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
+def _trainer_runtime_kwargs(*, trainer_target, workflow_config, checkpoint_load_mode):
+    """Build target-specific runtime kwargs without widening other trainers."""
+
+    if trainer_target != _A2_BASE_API_TRAINER_TARGET:
+        return {}
+    return {
+        "checkpoint_load_mode": checkpoint_load_mode,
+        "workflow_config": workflow_config,
+    }
+
+
 def _validate_r2_runtime_bindings(config, *, require_formal_bundle=False):
     """Revalidate workflow-owned source/formal bindings at the train boundary."""
     source_lock_path = config.get("r2_source_lock_path")
@@ -565,10 +576,6 @@ def main(config: OmegaConf):
         yaml.safe_dump(meta, open(meta_path, "w"))
         print("saved meta:", meta)
 
-    checkpoint_load_kwargs = {}
-    if trainer_target == _A2_BASE_API_TRAINER_TARGET:
-        checkpoint_load_kwargs["checkpoint_load_mode"] = checkpoint_load_mode
-
     trainer = custom_instantiate(
         config.trainer,
         args=training_args,
@@ -587,7 +594,11 @@ def main(config: OmegaConf):
         accelerator=accelerator,
         schedule_dict=config.get("schedule_dict", None),
         _resolve=False,
-        **checkpoint_load_kwargs,
+        **_trainer_runtime_kwargs(
+            trainer_target=trainer_target,
+            workflow_config=config,
+            checkpoint_load_mode=checkpoint_load_mode,
+        ),
     )
 
     # --- Training loop ---

@@ -433,9 +433,32 @@ def test_source_lock_covers_every_current_v21b_runtime_module(tmp_path):
         if path.is_file() and not path.is_symlink()
     }
     assert runtime_paths <= set(paths)
+    assert "gr00t/rl/train_agent_trl.py" in paths
     assert len(paths) == len(set(paths))
     assert paths.count(V21B_EVAL_CONTRACT_PATH) == 1
     validate_source_lock(source_lock, ROOT, require_current=True)
+
+    omitted = dict(source_lock)
+    omitted["source_paths"] = [
+        row for row in source_lock["source_paths"] if row["path"] != "gr00t/rl/train_agent_trl.py"
+    ]
+    omitted["source_lock_sha256"] = hashlib.sha256(
+        canonical_json_bytes(omitted["source_paths"])
+    ).hexdigest()
+    with pytest.raises(V21BError, match="train_agent_trl.py"):
+        validate_source_lock(omitted, ROOT, require_current=False)
+
+    stale = dict(source_lock)
+    stale["source_paths"] = [dict(row) for row in source_lock["source_paths"]]
+    entrypoint_row = next(
+        row for row in stale["source_paths"] if row["path"] == "gr00t/rl/train_agent_trl.py"
+    )
+    entrypoint_row["sha256"] = "0" * 64
+    stale["source_lock_sha256"] = hashlib.sha256(
+        canonical_json_bytes(stale["source_paths"])
+    ).hexdigest()
+    with pytest.raises(V21BError, match="train_agent_trl.py"):
+        validate_source_lock(stale, ROOT, require_current=True)
 
 
 @pytest.mark.parametrize("coverage", (0.0, 0.5))

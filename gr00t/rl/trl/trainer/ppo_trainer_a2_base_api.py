@@ -2404,6 +2404,7 @@ class TRLPPOTrainer(PPOTrainer):
         local_seed=None,
         schedule_dict=None,
         accelerator=None,
+        workflow_config=None,
     ) -> None:
         self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
         self.checkpoint_path = (
@@ -2411,6 +2412,7 @@ class TRLPPOTrainer(PPOTrainer):
             if checkpoint is None
             else str(Path(str(checkpoint)).expanduser().resolve())
         )
+        self.workflow_config = workflow_config
         self._v21b_training_identity = None
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
@@ -2536,7 +2538,9 @@ class TRLPPOTrainer(PPOTrainer):
 
         values: list[tuple[str, object]] = []
         for path in paths:
-            value = OmegaConf.select(self.config, path, default=_V21B_MISSING_CONFIG)
+            value = OmegaConf.select(
+                self._workflow_config_for_evidence(), path, default=_V21B_MISSING_CONFIG
+            )
             if value is _V21B_MISSING_CONFIG or (value is None and not allow_none):
                 raise RuntimeError(f"v21-B configured {label} identity is missing at {path}")
             values.append((path, value))
@@ -2545,10 +2549,29 @@ class TRLPPOTrainer(PPOTrainer):
             raise RuntimeError(f"v21-B configured {label} identities disagree")
         return first
 
+    def _workflow_config_for_evidence(self):
+        workflow_config = getattr(self, "workflow_config", None)
+        if workflow_config is None:
+            raise RuntimeError(
+                "R2 training metric emission requires explicit workflow_config."
+            )
+        return workflow_config
+
+    def _workflow_training_metrics_path(self) -> str:
+        output_path = OmegaConf.select(
+            self._workflow_config_for_evidence(), "r2_training_metrics_path", default=None
+        )
+        if not isinstance(output_path, str) or not output_path:
+            raise RuntimeError(
+                "R2 training metric emission requires r2_training_metrics_path."
+            )
+        return output_path
+
     def _get_v21b_training_identity(self) -> dict[str, object]:
         """Resolve and cache source/checkpoint/Git identity for v21-B emission."""
 
-        source_lock_value = OmegaConf.select(self.config, "r2_source_lock_path", default=None)
+        workflow_config = self._workflow_config_for_evidence()
+        source_lock_value = OmegaConf.select(workflow_config, "r2_source_lock_path", default=None)
         if not isinstance(source_lock_value, str) or not source_lock_value:
             raise RuntimeError("v21-B training metric emission requires r2_source_lock_path.")
         source_path = Path(source_lock_value)
@@ -2713,14 +2736,11 @@ class TRLPPOTrainer(PPOTrainer):
             checkpoint_path=identity["checkpoint_path"],
             checkpoint_sha256=identity["checkpoint_sha256"],
         )
-        output_path = OmegaConf.select(self.config, "r2_training_metrics_path", default=None)
-        if not isinstance(output_path, str) or not output_path:
-            output_path = str(Path(self.args.output_dir) / "r2_training_metrics.jsonl")
-        self.write_v21b_training_metric(row, output_path)
+        self.write_v21b_training_metric(row, self._workflow_training_metrics_path())
 
     def _write_r2_training_metric_if_enabled(self, metrics, batch_index):
         """Write scalar-only JSONL telemetry; full M48 arrays remain eval-only."""
-        config = self.config
+        config = self._workflow_config_for_evidence()
         if not bool(OmegaConf.select(config, "r2_evidence_enabled", default=False)):
             return
         if OmegaConf.select(config, "scientific_plan_id", default=None) == _V21B_PLAN_ID:
@@ -2747,9 +2767,7 @@ class TRLPPOTrainer(PPOTrainer):
                 if isinstance(value, float) and not math.isfinite(value):
                     raise RuntimeError(f"R2 training metric {key!r} is non-finite")
                 scalar_metrics[str(key)] = value
-        output_path = OmegaConf.select(config, "r2_training_metrics_path", default=None)
-        if not isinstance(output_path, str) or not output_path:
-            output_path = str(Path(self.args.output_dir) / "r2_training_metrics.jsonl")
+        output_path = self._workflow_training_metrics_path()
         row = {
             "schema": "a2_piper_base_v20_R2_training_metric_v1",
             "producer_state": "PROCESS_COMPLETED",

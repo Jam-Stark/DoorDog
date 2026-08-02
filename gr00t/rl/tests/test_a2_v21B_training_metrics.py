@@ -5,6 +5,10 @@ from __future__ import annotations
 import pytest
 from omegaconf import OmegaConf
 
+from gr00t.rl.train_agent_trl import (
+    _A2_BASE_API_TRAINER_TARGET,
+    _trainer_runtime_kwargs,
+)
 from gr00t.rl.trl.trainer.ppo_trainer_a2_base_api import (
     TRLPPOTrainer,
     build_v21b_training_metric_row,
@@ -124,7 +128,8 @@ def test_v21b_identity_is_hashed_once_and_config_or_path_mutation_fails(tmp_path
 
     monkeypatch.setattr(TRLPPOTrainer, "_v21b_sha256_file", staticmethod(counted_hash))
     trainer = object.__new__(TRLPPOTrainer)
-    trainer.config = OmegaConf.create({
+    trainer.config = OmegaConf.create({"unrelated_ppo_key": 1})
+    trainer.workflow_config = OmegaConf.create({
         "r2_source_lock_path": str(source_lock),
         "v21b_source_checkpoint_sha256": hashlib.sha256(b"checkpoint").hexdigest(),
         "v21b_source_lock_sha256": "b" * 64,
@@ -155,11 +160,121 @@ def test_v21b_identity_is_hashed_once_and_config_or_path_mutation_fails(tmp_path
     assert calls["validate"] == 1
     assert calls["hash"] == ["source lock", "checkpoint"]
 
-    trainer.config["env"]["config"]["a2_v21B_source_checkpoint_sha256"] = "c" * 64
+    trainer.workflow_config["env"]["config"]["a2_v21B_source_checkpoint_sha256"] = "c" * 64
     with pytest.raises(RuntimeError, match="configured source checkpoint"):
         trainer._get_v21b_training_identity()
 
-    trainer.config["env"]["config"]["a2_v21B_source_checkpoint_sha256"] = first["source_checkpoint_sha256"]
+    trainer.workflow_config["env"]["config"]["a2_v21B_source_checkpoint_sha256"] = first["source_checkpoint_sha256"]
     trainer.checkpoint_path = str(tmp_path / "other.pt")
     with pytest.raises(RuntimeError, match="checkpoint path changed"):
         trainer._get_v21b_training_identity()
+
+
+def test_v21b_emission_uses_root_workflow_config_at_trainer_boundary(tmp_path, monkeypatch):
+    import hashlib
+    import json
+
+    checkpoint = tmp_path / "checkpoint.pt"
+    checkpoint.write_bytes(b"checkpoint")
+    checkpoint_sha256 = hashlib.sha256(b"checkpoint").hexdigest()
+    source_lock = tmp_path / "source_lock.json"
+    source_lock.write_text(
+        json.dumps(
+            {
+                "schema": "a2_piper_base_v21B_source_lock_v1",
+                "source_lock_sha256": "b" * 64,
+                "source_checkpoint_sha256": checkpoint_sha256,
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "scriptsFORhuman.v21B.a2_piper_v21B_source_freeze.validate_source_lock",
+        lambda lock, repo_root, *, require_current: None,
+    )
+    output = tmp_path / "canonical" / "r2_training_metrics.jsonl"
+    workflow_config = OmegaConf.create(
+        {
+            "r2_evidence_enabled": True,
+            "r2_source_lock_path": str(source_lock),
+            "r2_training_metrics_path": str(output),
+            "scientific_plan_id": "base_v21B_theta_arm_ablation_v1",
+            "v21b_source_checkpoint_sha256": checkpoint_sha256,
+            "v21b_source_lock_sha256": "b" * 64,
+            "v21b_cell": "B4",
+            "v21b_materialized_from_config_sha256": _IDENTITY["source_config_sha256"],
+            "v21b_materialization_sha256": _IDENTITY["materialization_sha256"],
+            "v21b_materialized_config_sha256": _IDENTITY["materialized_config_sha256"],
+            "v21b_adaptation_bundle_sha256": _IDENTITY["adaptation_bundle_sha256"],
+            "v21b_materialization_phase": _IDENTITY["materialization_phase"],
+            "seed": 0,
+            "env": {
+                "config": {
+                    "a2_v21B_source_checkpoint_sha256": checkpoint_sha256,
+                    "a2_v21B_source_lock_sha256": "b" * 64,
+                    "a2_v21B_cell": "B4",
+                    "a2_v20_R2_seed": 0,
+                    "a2_v21B_source_config_sha256": _IDENTITY["source_config_sha256"],
+                    "a2_v21B_materialization_sha256": _IDENTITY["materialization_sha256"],
+                    "a2_v21B_materialized_config_sha256": _IDENTITY["materialized_config_sha256"],
+                    "a2_v21B_adaptation_bundle_sha256": _IDENTITY["adaptation_bundle_sha256"],
+                    "a2_v21B_materialization_phase": _IDENTITY["materialization_phase"],
+                }
+            },
+        }
+    )
+    trainer = object.__new__(TRLPPOTrainer)
+    trainer.config = OmegaConf.create({"num_steps_per_env": 1})
+    trainer.workflow_config = workflow_config
+    trainer.checkpoint_path = str(checkpoint)
+
+    trainer._write_r2_training_metric_if_enabled(_actual_metrics(), batch_index=1)
+
+    rows = output.read_text(encoding="utf-8").splitlines()
+    assert len(rows) == 1
+    row = json.loads(rows[0])
+    assert row["schema"] == "a2_piper_base_v21B_training_metric_v1"
+    assert row["cell"] == "B4"
+    assert row["batch_index"] == 1
+    assert row["metrics"] == normalize_v21b_training_metrics(_actual_metrics())
+    assert not trainer.config.get("r2_evidence_enabled", False)
+
+
+def test_missing_workflow_config_fails_at_metric_emission():
+    trainer = object.__new__(TRLPPOTrainer)
+    trainer.config = OmegaConf.create({"unrelated_ppo_key": 1})
+
+    with pytest.raises(RuntimeError, match="explicit workflow_config"):
+        trainer._write_r2_training_metric_if_enabled({}, batch_index=1)
+
+
+def test_disabled_root_workflow_config_skips_metric_emission(tmp_path):
+    trainer = object.__new__(TRLPPOTrainer)
+    trainer.config = OmegaConf.create({"unrelated_ppo_key": 1})
+    trainer.workflow_config = OmegaConf.create(
+        {
+            "r2_evidence_enabled": False,
+            "r2_training_metrics_path": str(tmp_path / "metrics.jsonl"),
+        }
+    )
+
+    trainer._write_r2_training_metric_if_enabled({}, batch_index=1)
+
+    assert not (tmp_path / "metrics.jsonl").exists()
+
+
+def test_a2_runtime_kwargs_bind_workflow_config_only_for_a2_trainer():
+    workflow_config = OmegaConf.create({"r2_evidence_enabled": True})
+    kwargs = _trainer_runtime_kwargs(
+        trainer_target=_A2_BASE_API_TRAINER_TARGET,
+        workflow_config=workflow_config,
+        checkpoint_load_mode="policy_only",
+    )
+    assert kwargs["workflow_config"] is workflow_config
+    assert kwargs["checkpoint_load_mode"] == "policy_only"
+
+    assert _trainer_runtime_kwargs(
+        trainer_target="gr00t.rl.trl.trainer.ppo_trainer.TRLPPOTrainer",
+        workflow_config=workflow_config,
+        checkpoint_load_mode="policy_only",
+    ) == {}

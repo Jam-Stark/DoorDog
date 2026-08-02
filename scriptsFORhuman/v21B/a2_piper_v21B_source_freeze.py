@@ -10,6 +10,9 @@ from ._v21b_common import V21B_CELL_ORDER, V21B_CONFIG_PATHS, V21B_EVAL_CONTRACT
 from .a2_piper_v21B_schemas import artifact_payload, schema, validate_artifact
 
 
+V21B_TRAIN_ENTRYPOINT_PATH = "gr00t/rl/train_agent_trl.py"
+
+
 def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, extra_paths: Iterable[Path] = ()) -> dict[str, object]:
     root = repo_root.resolve()
     extras = [
@@ -32,6 +35,7 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
         root / "gr00t/rl/envs/door/door_open_a2_base.py",
         root / "gr00t/rl/envs/door/a2_v21b_evidence.py",
         root / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py",
+        root / V21B_TRAIN_ENTRYPOINT_PATH,
         root / "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py",
         root / "gr00t/rl/simulator/isaacsim/isaacsim.py",
         root / "scriptsFORhuman/v21B/a2_piper_v21B_schemas.py",
@@ -63,7 +67,7 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
     expected_runtime_paths = {
         path.relative_to(root).as_posix() for path in runtime_paths
     }
-    missing_runtime = expected_runtime_paths - set(unique_paths)
+    missing_runtime = (expected_runtime_paths | {V21B_TRAIN_ENTRYPOINT_PATH}) - set(unique_paths)
     if missing_runtime:
         raise V21BError(
             "source lock omitted regular v21-B runtime modules: "
@@ -95,7 +99,7 @@ def validate_source_lock(lock: dict[str, object], repo_root: Path, *, require_cu
         for path in runtime_root.glob("*.py")
         if path.is_file() and not path.is_symlink()
     }
-    missing_runtime = expected_runtime - set(paths)
+    missing_runtime = (expected_runtime | {V21B_TRAIN_ENTRYPOINT_PATH}) - set(paths)
     if missing_runtime:
         raise V21BError(
             "source lock is missing current v21-B runtime modules: "
@@ -129,4 +133,9 @@ if __name__ == "__main__":
     raise SystemExit(main())
 
 
-__all__ = ["build_source_lock", "validate_source_lock", "main"]
+__all__ = [
+    "V21B_TRAIN_ENTRYPOINT_PATH",
+    "build_source_lock",
+    "validate_source_lock",
+    "main",
+]

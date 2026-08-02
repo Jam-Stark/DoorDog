@@ -250,7 +250,7 @@ def build_census_plan(
         "checkpoint_load_mode=policy_only", "auto_load_latest=false", "headless=true", "num_envs=16", "seed=0",
         "algo.config.eval.num_eval_episodes=16", "+algo.config.eval.eval_num_envs_episodes=true",
         "env.config.a2_v21B_materialization_phase=CENSUS_PRE_K", "env.config.a2_v21B_formal_launch=false",
-        "+env.config.a2_v21B_signed_probe_scenarios_enabled=true", "+env.config.a2_v21B_cell=B1",
+        "+env.config.a2_v21B_signed_probe_scenarios_enabled=true", "env.config.a2_v21B_cell=B1",
         f"+env.config.a2_v21B_scenario_manifest_path={Path(manifest_path).absolute()}",
         f"+env.config.a2_v21B_scenario_manifest_sha256={manifest['manifest_sha256']}",
         f"+env.config.a2_v21B_scenario_manifest_file_sha256={manifest['file_sha256']}",
@@ -273,7 +273,7 @@ def build_census_plan(
         result_path = output / topology / "census_frames.json"
         raw_root = output / topology / "terminal_exports"
         raw_paths = [raw_root / f"B1_{run_uuid}_env{env_id}.json" for env_id in range(16)]
-        argv = [*common, f"+env.config.a2_v21B_census_topology={topology}", f"+env.config.a2_v21B_run_uuid={run_uuid}", f"+env.config.a2_v21B_terminal_export_root={raw_root}", f"+env.config.a2_v21B_output_root={output / topology}"]
+        argv = [*common, f"+env.config.a2_v21B_census_topology={topology}", f"+env.config.a2_v21B_run_uuid={run_uuid}", f"env.config.a2_v21B_terminal_export_root={raw_root}", f"+env.config.a2_v21B_output_root={output / topology}"]
         env = {"CUDA_VISIBLE_DEVICES": "0", "WANDB_MODE": "offline"}
         parent_hashes = {"manifest": manifest["file_sha256"], "materialized_config": receipt["materialized_config_sha256"]}
         result_contract = {

@@ -80,7 +80,7 @@ def build_zero_shot_plan(
         "num_envs=16", "seed=0", "algo.config.eval.num_eval_episodes=16", "+algo.config.eval.eval_num_envs_episodes=true",
         "env.config.a2_v21B_materialization_phase=POST_CENSUS",
         "env.config.a2_v21B_formal_launch=false",
-        "+env.config.a2_v21B_signed_probe_scenarios_enabled=true", "+env.config.a2_v21B_cell=B4",
+        "+env.config.a2_v21B_signed_probe_scenarios_enabled=true", "env.config.a2_v21B_cell=B4",
         f"+env.config.a2_v21B_materialization_sha256={receipt['materialization_sha256']}",
         f"+env.config.a2_v21B_materialized_config_sha256={receipt['materialized_config_sha256']}",
         f"env.config.a2_v21B_source_checkpoint_sha256={materialization['source_checkpoint_sha256']}",
@@ -103,7 +103,7 @@ def build_zero_shot_plan(
         run_uuid = f"v21B-zero-shot-{topology}"
         raw_root = output / topology / "terminal_exports"
         raw_paths = [raw_root / f"B4_{run_uuid}_env{env_id}.json" for env_id in range(16)]
-        argv = [*common, f"+env.config.a2_v21B_census_topology={topology}", f"+env.config.a2_v21B_run_uuid={run_uuid}", f"+env.config.a2_v21B_terminal_export_root={raw_root}", f"+env.config.a2_v21B_output_root={output / topology}"]
+        argv = [*common, f"+env.config.a2_v21B_census_topology={topology}", f"+env.config.a2_v21B_run_uuid={run_uuid}", f"env.config.a2_v21B_terminal_export_root={raw_root}", f"+env.config.a2_v21B_output_root={output / topology}"]
         env = {"CUDA_VISIBLE_DEVICES": "0", "WANDB_MODE": "offline"}
         parent_hashes = {"manifest": manifest["file_sha256"], "materialized_config": receipt["materialized_config_sha256"]}
         result_contract = {

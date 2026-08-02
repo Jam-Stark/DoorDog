@@ -42,25 +42,48 @@ PLAN = ROOT / "scriptsFORhuman/V21/a2_piper_base_v21B_ablation_execution_plan_20
 MANIFEST = ROOT / "scriptsFORhuman/V21/a2_piper_base_v21B_experiment_manifest_20260802.yaml"
 
 
-def _assert_eval_overrides_compose(materialized_config: Path, argv: list[str]) -> None:
-    """Compose the materialized eval config with the exact signed override forms."""
+def _assert_full_hydra_argv_compose(
+    materialized_config: Path,
+    argv: list[str],
+    *,
+    expected_cell: str | None = None,
+    expected_num_envs: int | None = None,
+) -> None:
+    """Compose every Hydra token after the signed runtime module."""
 
     from hydra import compose, initialize_config_dir
     from hydra.core.global_hydra import GlobalHydra
 
-    existing_key = next(token for token in argv if token.startswith("algo.config.eval.num_eval_episodes="))
-    absent_key = next(token for token in argv if token.startswith("+algo.config.eval.eval_num_envs_episodes="))
-    assert existing_key == "algo.config.eval.num_eval_episodes=16"
-    assert absent_key == "+algo.config.eval.eval_num_envs_episodes=true"
+    module_index = argv.index("-m")
+    module = argv[module_index + 1]
+    assert module in ("gr00t.rl.eval_agent_trl", "gr00t.rl.train_agent_trl")
+    config_dir = next(token.split("=", 1)[1] for token in argv[module_index + 2 :] if token.startswith("--config-dir="))
+    config_name = next(token.split("=", 1)[1] for token in argv[module_index + 2 :] if token.startswith("--config-name="))
+    overrides = [token for token in argv[module_index + 2 :] if not token.startswith("--config-dir=") and not token.startswith("--config-name=")]
+    assert overrides
+    assert all(not token.startswith("++") for token in overrides)
     path = Path(materialized_config).resolve()
+    assert Path(config_dir).resolve() == path.parent
+    assert config_name == path.stem
+    existing_key = next((token for token in overrides if token.startswith("algo.config.eval.num_eval_episodes=")), None)
+    absent_key = next((token for token in overrides if token.startswith("+algo.config.eval.eval_num_envs_episodes=")), None)
+    if existing_key is not None:
+        assert existing_key == "algo.config.eval.num_eval_episodes=16"
+        assert not existing_key.startswith("+")
+        assert absent_key == "+algo.config.eval.eval_num_envs_episodes=true"
     GlobalHydra.instance().clear()
     try:
         with initialize_config_dir(config_dir=str(path.parent), version_base=None):
-            resolved = compose(config_name=path.stem, overrides=[existing_key, absent_key])
+            resolved = compose(config_name=path.stem, overrides=overrides)
     finally:
         GlobalHydra.instance().clear()
-    assert int(resolved.algo.config.eval.num_eval_episodes) == 16
-    assert bool(resolved.algo.config.eval.eval_num_envs_episodes) is True
+    if existing_key is not None:
+        assert int(resolved.algo.config.eval.num_eval_episodes) == 16
+        assert bool(resolved.algo.config.eval.eval_num_envs_episodes) is True
+    if expected_cell is not None:
+        assert resolved.env.config.a2_v21B_cell == expected_cell
+    if expected_num_envs is not None:
+        assert int(resolved.num_envs) == expected_num_envs
 
 
 def _census_frame(*, scenario_id: str, topology: str, source_checkpoint_sha256: str, source_lock_sha256: str, source_config_sha256: str, materialization_sha256: str, materialized_config_sha256: str, door_weight_kg: float, hinge_force_nm: float, effort: float) -> dict:
@@ -253,6 +276,7 @@ def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
     zero_plan_bound, zero_receipts, zero_results = _plan_with_harmless_process(zero_plan, tmp_path=tmp_path, prefix="zero", result_payloads=zero_payloads, result_names={"canonical16": "terminal_records.json", "heavy16": "terminal_records.json"})
     zero = adjudicate_zero_shot(plan=zero_plan_bound, process_receipt_paths=zero_receipts, result_paths=zero_results, arm_realistic_limit_nm=census["selection"])
     pilot_plan = build_b4_pilot_plan(ROOT, arm_realistic_limit_nm=census["selection"], output_root=tmp_path / "pilot", materialization=post, materialized_config=Path(post["configs"][0]["path"]), source_lock_path=source_lock_path)
+    _assert_full_hydra_argv_compose(Path(post["configs"][0]["path"]), pilot_plan["argv"], expected_cell="B4", expected_num_envs=256)
     pilot_plan_bound, pilot_receipt, pilot_result = _plan_with_harmless_pilot_process(pilot_plan, tmp_path=tmp_path, coverage=pilot_coverage)
     pilot = adjudicate_b4_pilot(plan=pilot_plan_bound, process_receipt_path=pilot_receipt, result_path=pilot_result)
     tie = calibrate_arm_tie(
@@ -337,7 +361,13 @@ def test_heavy16_is_deterministic_and_exact(tmp_path):
         materialized_config=Path(pre["configs"][0]["path"]),
     )
     git_identity = observed_git_identity(ROOT)
-    _assert_eval_overrides_compose(Path(pre["configs"][0]["path"]), census_plan["commands"][0]["argv"])
+    for row in census_plan["commands"]:
+        _assert_full_hydra_argv_compose(
+            Path(pre["configs"][0]["path"]),
+            row["argv"],
+            expected_cell="B1",
+            expected_num_envs=16,
+        )
     assert census_plan["repo_commit"] == git_identity["commit"]
     assert census_plan["repo_tree"] == git_identity["tree"]
     unsigned = dict(census_plan)
@@ -363,6 +393,7 @@ def test_signed_materialization_and_single_b4_smoke_contract(tmp_path):
     )
     materialized_b4 = Path(next(row["path"] for row in materialization["configs"] if row["cell"] == "B4"))
     smoke = build_b4_smoke_plan(tmp_path / "smoke_repo", adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=materialized_b4)
+    _assert_full_hydra_argv_compose(materialized_b4, smoke["command"], expected_cell="B4", expected_num_envs=64)
     assert smoke["cell"] == "B4"
     assert smoke["num_envs"] == 64 and smoke["batches"] == 10 and smoke["save_frequency"] == 10
     assert smoke["one_cell_only"] is True and smoke["wandb_mode"] == "online"
@@ -402,6 +433,8 @@ def test_formal_launch_cleanup_and_monitor_are_fail_fast(tmp_path):
     assert cleanup["status"] == "CLEANUP_PASS"
     configs = {row["cell"]: Path(row["path"]) for row in materialization["configs"]}
     formal = build_formal_launch_plan(ROOT, adaptation=adaptation, p0_admission=p0, smoke_pass=smoke_pass, cleanup_pass=cleanup, materialization=materialization, materialized_configs=configs)
+    for row in formal["rows"]:
+        _assert_full_hydra_argv_compose(Path(row["config"]), row["argv"], expected_cell=row["cell"], expected_num_envs=4096)
     assert formal["status"] == "FORMAL_PLAN_COMPLETE"
     assert all("--config-dir=" in " ".join(row["argv"]) for row in formal["rows"])
     monitor_plan = build_startup_monitor_plan(formal)
@@ -448,7 +481,7 @@ def test_zero_shot_topology_key_binds_post_census_terminal_records(tmp_path):
         topology_token = next(token for token in row["argv"] if token.startswith("+env.config.a2_v21B_census_topology="))
         topology = topology_token.split("=", 1)[1]
         assert topology == row["topology"]
-        _assert_eval_overrides_compose(Path(post["configs"][0]["path"]), row["argv"])
+        _assert_full_hydra_argv_compose(Path(post["configs"][0]["path"]), row["argv"], expected_cell="B4", expected_num_envs=16)
         record = a2_v21b_build_terminal_record(
             evidence,
             plan_id="base_v21B_theta_arm_ablation_v1",

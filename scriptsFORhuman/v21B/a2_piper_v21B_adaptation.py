@@ -11,11 +11,111 @@ from typing import Any, Mapping
 
 import yaml
 
-from ._v21b_common import V21B_CELL_FACTORS, V21B_CELL_ORDER, V21B_CONFIG_PATHS, V21B_F3_THETA_LADDER, V21B_PLAN_ID, V21BError, canonical_json_bytes, read_yaml, require_digest, sha256_file, validate_v21b_config
+from ._v21b_common import V21B_CELL_FACTORS, V21B_CELL_ORDER, V21B_CONFIG_PATHS, V21B_EVAL_CONTRACT_PATH, V21B_F3_THETA_LADDER, V21B_PLAN_ID, V21BError, canonical_json_bytes, read_yaml, require_digest, sha256_file, validate_v21b_config
 from .a2_piper_v21B_schemas import artifact_payload, schema, validate_artifact
+from .a2_piper_v21B_source_freeze import validate_source_lock
 
 
 ARM_TIE_PREREGISTERED_FALLBACK = 8
+V21B_EVAL_CONTRACT_DIAGNOSTIC_KEYS = frozenset(
+    {
+        "a2_diagnostic_trace_enabled",
+        "a2_diagnostic_reward_terms",
+        "a2_forced_gripper_close_enabled",
+        "a2_forced_gripper_close_value",
+        "a2_forced_gripper_close_stages",
+    }
+)
+V21B_EVAL_CONTRACT_DISABLED_FLAGS = frozenset(
+    {
+        "a2_hold_oracle_enabled",
+        "a2_v20_arc_probe_enabled",
+        "a2_forced_gripper_close_enabled",
+        "a2_hold_oracle_static_clamp_enabled",
+        "a2_hold_oracle_static_clamp_offset_probe_enabled",
+        "a2_hold_oracle_open_stabilization_preflight_enabled",
+        "a2_hold_oracle_matched_clean_reacquisition_preflight_enabled",
+        "a2_eval_m41_strict_telemetry",
+        "a2_eval_v20_strict_telemetry",
+        "a2_diagnostic_trace_enabled",
+    }
+)
+
+
+def _validate_eval_contract_mapping(value: Any, *, label: str) -> dict[str, Any]:
+    if not isinstance(value, Mapping):
+        raise V21BError(f"{label} must be a mapping")
+    result = dict(value)
+    if any(not isinstance(key, str) or not key for key in result):
+        raise V21BError(f"{label} keys must be non-empty strings")
+    if any(item is None for item in result.values()):
+        raise V21BError(f"{label} cannot contain null values")
+    for key, item in result.items():
+        if key.endswith("_steps"):
+            if isinstance(item, bool) or not isinstance(item, int) or item <= 0:
+                raise V21BError(f"{label}.{key} must be a positive int")
+        elif key.startswith("a2_hold_oracle_") and key not in V21B_EVAL_CONTRACT_DISABLED_FLAGS:
+            if isinstance(item, bool) or not isinstance(item, (int, float)) or not math.isfinite(float(item)):
+                raise V21BError(f"{label}.{key} must be a finite number")
+            if key != "a2_hold_oracle_static_clamp_offset_m" and float(item) <= 0.0:
+                raise V21BError(f"{label}.{key} must be positive")
+    for key in V21B_EVAL_CONTRACT_DISABLED_FLAGS:
+        if key in result and result[key] is not False:
+            raise V21BError(f"{label}.{key} must remain exactly false for v21-B runtime")
+    if "a2_diagnostic_reward_terms" in result:
+        terms = result["a2_diagnostic_reward_terms"]
+        if not isinstance(terms, list) or any(not isinstance(term, str) or not term for term in terms):
+            raise V21BError(f"{label}.a2_diagnostic_reward_terms must be a list of strings")
+    if "a2_forced_gripper_close_stages" in result:
+        stages = result["a2_forced_gripper_close_stages"]
+        if not isinstance(stages, list) or any(isinstance(stage, bool) or not isinstance(stage, int) for stage in stages):
+            raise V21BError(f"{label}.a2_forced_gripper_close_stages must be a list of ints")
+    if "a2_v20_arc_probe_mode" in result and result["a2_v20_arc_probe_mode"] not in ("F0", "F1"):
+        raise V21BError(f"{label}.a2_v20_arc_probe_mode must be exactly F0 or F1")
+    if "a2_eval_p2_posture_axis" in result and result["a2_eval_p2_posture_axis"] not in ("none", "pitch_zero", "roll_zero"):
+        raise V21BError(f"{label}.a2_eval_p2_posture_axis is unsupported")
+    return result
+
+
+def _load_source_locked_eval_contract(root: Path, source_lock: Mapping[str, Any]) -> tuple[dict[str, Any], str]:
+    validate_source_lock(dict(source_lock), root, require_current=True)
+    path = root / V21B_EVAL_CONTRACT_PATH
+    source_digest = sha256_file(path)
+    rows = source_lock.get("source_paths")
+    if not isinstance(rows, list):
+        raise V21BError("source lock lacks source_paths for eval contract")
+    row = next((item for item in rows if isinstance(item, Mapping) and item.get("path") == V21B_EVAL_CONTRACT_PATH), None)
+    if not isinstance(row, Mapping) or row.get("sha256") != source_digest:
+        raise V21BError("source lock does not bind the current base_eval.yaml digest")
+    source = read_yaml(path)
+    algo = source.get("algo")
+    if not isinstance(algo, Mapping) or not isinstance(algo.get("config"), Mapping):
+        raise V21BError("base_eval.yaml must contain algo.config mapping")
+    eval_contract = _validate_eval_contract_mapping(algo["config"].get("eval"), label="base_eval.yaml algo.config.eval")
+    required = [key for key in eval_contract if key.startswith("a2_hold_oracle_") or key.startswith("a2_v20_arc_probe_") or key in V21B_EVAL_CONTRACT_DIAGNOSTIC_KEYS]
+    if not required:
+        raise V21BError("base_eval.yaml eval contract lacks required A2 diagnostic/oracle keys")
+    return eval_contract, source_digest
+
+
+def _merge_eval_contract(config: dict[str, Any], eval_contract: Mapping[str, Any]) -> list[str]:
+    algo = config.get("algo")
+    if not isinstance(algo, Mapping) or not isinstance(algo.get("config"), Mapping):
+        raise V21BError("materialized config must contain algo.config mapping")
+    target_config = algo["config"]
+    target_eval = target_config.get("eval")
+    if not isinstance(target_eval, Mapping):
+        raise V21BError("materialized config must contain algo.config.eval mapping")
+    copied: list[str] = []
+    for key, value in eval_contract.items():
+        if key not in target_eval:
+            target_eval[key] = copy.deepcopy(value)
+            copied.append(key)
+    for key in eval_contract:
+        if key.startswith("a2_hold_oracle_") or key.startswith("a2_v20_arc_probe_") or key in V21B_EVAL_CONTRACT_DIAGNOSTIC_KEYS:
+            if target_eval.get(key) != eval_contract[key]:
+                raise V21BError(f"materialized eval contract key {key} conflicts with base_eval.yaml")
+    return copied
 
 
 def validate_preformal_bindings(
@@ -212,8 +312,40 @@ def validate_materialized_config_receipt(
     digest = sha256_file(path)
     if row.get("sha256") != digest:
         raise V21BError(f"{cell} materialized config hash is not bound to the receipt")
+    eval_contract_source_sha256 = require_digest(
+        materialization.get("v21b_eval_contract_source_sha256"),
+        name="materialized eval contract source",
+    )
+    repo_root = Path(__file__).resolve().parents[2]
+    eval_contract_path = repo_root / V21B_EVAL_CONTRACT_PATH
+    if sha256_file(eval_contract_path) != eval_contract_source_sha256:
+        raise V21BError("materialized eval contract source is stale")
+    eval_source = read_yaml(eval_contract_path)
+    eval_algo = eval_source.get("algo")
+    if not isinstance(eval_algo, Mapping) or not isinstance(eval_algo.get("config"), Mapping):
+        raise V21BError("base_eval.yaml must contain algo.config mapping")
+    eval_contract = _validate_eval_contract_mapping(eval_algo["config"].get("eval"), label="base_eval.yaml algo.config.eval")
     config = read_yaml(path)
     validate_v21b_config(config, cell=cell, require_launchable=phase == "FORMAL_PROMOTED")
+    if config.get("v21b_eval_contract_source_sha256") != eval_contract_source_sha256:
+        raise V21BError(f"{cell} config does not bind the eval contract source digest")
+    env_eval_digest = config.get("env", {}).get("config", {}).get("a2_v21B_eval_contract_source_sha256")
+    if env_eval_digest != eval_contract_source_sha256:
+        raise V21BError(f"{cell} env metadata does not bind the eval contract source digest")
+    eval_values = config.get("algo", {}).get("config", {}).get("eval")
+    if not isinstance(eval_values, Mapping):
+        raise V21BError(f"{cell} config lacks algo.config.eval mapping")
+    for key, expected in eval_contract.items():
+        if key.startswith("a2_hold_oracle_") or key.startswith("a2_v20_arc_probe_") or key in V21B_EVAL_CONTRACT_DIAGNOSTIC_KEYS:
+            if eval_values.get(key) != expected:
+                raise V21BError(f"{cell} config eval contract key {key} is not source-locked")
+    copied_keys = row.get("v21b_eval_contract_missing_keys")
+    if not isinstance(copied_keys, list) or any(key not in eval_contract for key in copied_keys):
+        raise V21BError(f"{cell} config row has invalid eval contract merge record")
+    if row.get("v21b_eval_contract_source_sha256") != eval_contract_source_sha256:
+        raise V21BError(f"{cell} config row does not bind the eval contract source digest")
+    if config.get("v21b_eval_contract_missing_keys") != list(copied_keys):
+        raise V21BError(f"{cell} config eval contract merge record is not receipt-bound")
     if config.get("v21b_materialization_phase") != phase or config.get("v21b_formal_launchable") is not (phase == "FORMAL_PROMOTED"):
         raise V21BError(f"{cell} config materialization phase/launchability is inconsistent")
     if row.get("phase") != phase or row.get("template_sha256") != config.get("v21b_materialized_from_config_sha256"):
@@ -235,6 +367,8 @@ def validate_materialized_config_receipt(
         "row": dict(row),
         "materialized_config_sha256": digest,
         "materialization_sha256": declared_receipt_hash,
+        "v21b_eval_contract_source_sha256": eval_contract_source_sha256,
+        "v21b_eval_contract_missing_keys": list(copied_keys),
         "effort_limit_vector_20": list(vector),
         "effort_limit_vector_6d": list(vector[12:18]),
         "source_config_sha256": config.get("v21b_materialized_from_config_sha256"),
@@ -305,6 +439,7 @@ def materialize_v21b_configs(
     output = output_root.resolve()
     validate_artifact(p0_admission, expected_schema=schema("p0_admission"))
     validate_artifact(source_lock, expected_schema=schema("source_lock"))
+    eval_contract, eval_contract_source_sha256 = _load_source_locked_eval_contract(root, source_lock)
     if p0_admission.get("source_checkpoint_sha256") != source_lock.get("source_checkpoint_sha256"):
         raise V21BError("phase materialization P0/source checkpoint hashes disagree")
     if phase not in ("CENSUS_PRE_K", "POST_CENSUS", "FORMAL_PROMOTED"):
@@ -364,6 +499,9 @@ def materialize_v21b_configs(
         # Compose the full base/experiment/ablation config so the resulting
         # standalone YAML can be passed with --config-dir/--config-name.
         config = copy.deepcopy(_compose_materialization_base(root, cell))
+        eval_contract_missing_keys = _merge_eval_contract(config, eval_contract)
+        config["v21b_eval_contract_source_sha256"] = eval_contract_source_sha256
+        config["v21b_eval_contract_missing_keys"] = list(eval_contract_missing_keys)
         realistic = config.get("v21b_arm_profile") == "ARM_REALISTIC"
         config["v21b_materialization_phase"] = phase
         config["v21b_materialized_from_config_sha256"] = sha256_file(template_path)
@@ -400,6 +538,7 @@ def materialize_v21b_configs(
         env["a2_v21B_arm_profile"] = config.get("v21b_arm_profile")
         env["a2_v21B_arm_profile_version"] = config.get("v21b_arm_profile_version")
         env["a2_v21B_formal_launch"] = phase == "FORMAL_PROMOTED"
+        env["a2_v21B_eval_contract_source_sha256"] = eval_contract_source_sha256
         env["a2_v20_formal_launch"] = phase == "FORMAL_PROMOTED"
         env["a2_v21B_terminal_export_root"] = str(output / "terminal_exports")
         if f3_fallback and phase == "FORMAL_PROMOTED":
@@ -435,8 +574,8 @@ def materialize_v21b_configs(
         if target.exists() or target.is_symlink():
             raise V21BError(f"refusing to overwrite materialized config: {target}")
         target.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
-        rows.append({"cell": cell, "path": str(target), "sha256": sha256_file(target), "template_sha256": config["v21b_materialized_from_config_sha256"], "effort_limit_vector": robot["dof_effort_limit_list"], "theta_send_rad": theta, "phase": phase, "selected_limit_nm": selected_limit if realistic and not f3_fallback else None, "f3_fallback": bool(f3_fallback), "f3_status": census.get("status") if f3_fallback and census is not None else None})
-    receipt = artifact_payload("materialization", status="MATERIALIZATION_PASS", phase=phase, configs=rows, source_checkpoint_sha256=source_hash, source_lock_sha256=source_lock_hash, adaptation_bundle_sha256=adaptation_hash, census_selection="N/A" if f3_fallback else selected_limit, census_status=census.get("status") if census is not None else None, f3_fallback=bool(f3_fallback), immutable_after_write=True)
+        rows.append({"cell": cell, "path": str(target), "sha256": sha256_file(target), "template_sha256": config["v21b_materialized_from_config_sha256"], "effort_limit_vector": robot["dof_effort_limit_list"], "theta_send_rad": theta, "phase": phase, "selected_limit_nm": selected_limit if realistic and not f3_fallback else None, "f3_fallback": bool(f3_fallback), "f3_status": census.get("status") if f3_fallback and census is not None else None, "v21b_eval_contract_source_sha256": eval_contract_source_sha256, "v21b_eval_contract_missing_keys": list(eval_contract_missing_keys)})
+    receipt = artifact_payload("materialization", status="MATERIALIZATION_PASS", phase=phase, configs=rows, source_checkpoint_sha256=source_hash, source_lock_sha256=source_lock_hash, adaptation_bundle_sha256=adaptation_hash, census_selection="N/A" if f3_fallback else selected_limit, census_status=census.get("status") if census is not None else None, f3_fallback=bool(f3_fallback), v21b_eval_contract_source_sha256=eval_contract_source_sha256, immutable_after_write=True)
     receipt["materialization_sha256"] = hashlib.sha256(canonical_json_bytes(receipt)).hexdigest()
     return validate_artifact(receipt, expected_schema=schema("materialization"))
 

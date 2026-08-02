@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Iterable
 
-from ._v21b_common import V21B_CELL_ORDER, V21B_CONFIG_PATHS, V21BError, V21B_WARM_START_PATH, V21B_WARM_START_SHA256, canonical_json_bytes, sha256_file
+from ._v21b_common import V21B_CELL_ORDER, V21B_CONFIG_PATHS, V21B_EVAL_CONTRACT_PATH, V21BError, V21B_WARM_START_PATH, V21B_WARM_START_SHA256, canonical_json_bytes, require_digest, sha256_file
 from .a2_piper_v21B_schemas import artifact_payload, schema, validate_artifact
 
 
@@ -28,6 +29,7 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
         root / "scriptsFORhuman/v21B/a2_piper_v21B_heavy16_census.py",
         root / "scriptsFORhuman/v21B/a2_piper_v21B_zero_shot.py",
         root / "scriptsFORhuman/v21B/a2_piper_v21B_pilot.py",
+        root / V21B_EVAL_CONTRACT_PATH,
         plan,
         manifest,
         root / V21B_WARM_START_PATH,
@@ -51,11 +53,28 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
 
 def validate_source_lock(lock: dict[str, object], repo_root: Path, *, require_current: bool = True) -> None:
     validate_artifact(lock, expected_schema=schema("source_lock"))
+    root = repo_root.resolve()
+    rows = lock.get("source_paths")
+    if not isinstance(rows, list):
+        raise V21BError("source lock source_paths must be a list")
+    if any(not isinstance(row, Mapping) or not isinstance(row.get("path"), str) or not isinstance(row.get("sha256"), str) for row in rows):
+        raise V21BError("source lock rows must contain path and sha256")
+    paths = [row["path"] for row in rows]
+    if len(paths) != len(set(paths)):
+        raise V21BError("source lock contains duplicate paths")
+    eval_rows = [row for row in rows if row["path"] == V21B_EVAL_CONTRACT_PATH]
+    if len(eval_rows) != 1:
+        raise V21BError(f"source lock must contain exactly one {V21B_EVAL_CONTRACT_PATH} row")
+    declared_lock_hash = require_digest(lock.get("source_lock_sha256"), name="source lock")
+    expected_lock_hash = __import__("hashlib").sha256(canonical_json_bytes(rows)).hexdigest()
+    if declared_lock_hash != expected_lock_hash:
+        raise V21BError("source lock digest does not bind its source rows")
     if not require_current:
         return
-    root = repo_root.resolve()
-    for row in lock["source_paths"]:
+    for row in rows:
         path = root / row["path"]
+        if not path.is_file() or path.is_symlink():
+            raise V21BError(f"source lock path is missing or not a regular file: {row['path']}")
         if sha256_file(path) != row["sha256"]:
             raise V21BError(f"source lock mismatch: {row['path']}")
 

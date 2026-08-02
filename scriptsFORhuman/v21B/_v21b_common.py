@@ -21,6 +21,7 @@ V21B_FORMAL_GPUS = (0, 1, 2, 3, 4, 5, 6)
 V21B_FORBIDDEN_GPU = 7
 V21B_WARM_START_PATH = "logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt"
 V21B_WARM_START_SHA256 = "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
+V21B_EVAL_CONTRACT_PATH = "gr00t/rl/config/base_eval.yaml"
 V21B_CONFIG_PATHS = {
     "B1": "gr00t/rl/config/ablation/wbmanip/base_v21B_B1_theta090_arm_v20.yaml",
     "B2": "gr00t/rl/config/ablation/wbmanip/base_v21B_B2_theta120_arm_v20.yaml",
@@ -354,7 +355,7 @@ def require_digest(value: str, *, name: str) -> str:
 
 __all__ = [
     "V21BError", "V21B_PLAN_ID", "V21B_EXECUTION_ID", "V21B_SCHEMA", "V21B_CELL_ORDER",
-    "V21B_FORMAL_GPUS", "V21B_FORBIDDEN_GPU", "V21B_WARM_START_PATH", "V21B_WARM_START_SHA256",
+    "V21B_FORMAL_GPUS", "V21B_FORBIDDEN_GPU", "V21B_WARM_START_PATH", "V21B_WARM_START_SHA256", "V21B_EVAL_CONTRACT_PATH",
     "V21B_CONFIG_PATHS", "V21B_CELL_FACTORS", "V21B_F3_THETA_LADDER", "V21B_RESOLVED_ALLOWLIST", "canonical_json", "canonical_json_bytes", "sha256_file",
     "read_yaml", "write_json", "validate_v21b_config", "config_for_cell", "validate_resolved_v21b_parity", "assert_resolved_v21b_parity", "parse_gpus", "require_digest",
 ]

@@ -21,7 +21,7 @@ from gr00t.rl.envs.door.a2_v21b_evidence import (
     a2_v21b_init_arm_episode_accumulator,
     a2_v21b_validate_terminal_record,
 )
-from scriptsFORhuman.v21B._v21b_common import V21BError, canonical_json_bytes, write_json
+from scriptsFORhuman.v21B._v21b_common import V21B_EVAL_CONTRACT_PATH, V21BError, canonical_json_bytes, read_yaml, sha256_file, write_json
 from scriptsFORhuman.v21B.a2_piper_v21B_adaptation import freeze_adaptation, materialize_v21b_configs
 from scriptsFORhuman.v21B.a2_piper_v21B_arm_tie_calibration import calibrate_arm_tie
 from scriptsFORhuman.v21B.a2_piper_v21B_formal_launcher import build_formal_launch_plan
@@ -84,6 +84,42 @@ def _assert_full_hydra_argv_compose(
         assert resolved.env.config.a2_v21B_cell == expected_cell
     if expected_num_envs is not None:
         assert int(resolved.num_envs) == expected_num_envs
+
+
+def _assert_materialized_eval_contract(materialized_config: Path) -> None:
+    source = read_yaml(ROOT / V21B_EVAL_CONTRACT_PATH)["algo"]["config"]["eval"]
+    config = read_yaml(materialized_config)
+    digest = sha256_file(ROOT / V21B_EVAL_CONTRACT_PATH)
+    assert config["v21b_eval_contract_source_sha256"] == digest
+    assert config["env"]["config"]["a2_v21B_eval_contract_source_sha256"] == digest
+    eval_values = config["algo"]["config"]["eval"]
+    required = {
+        key
+        for key in source
+        if key.startswith("a2_hold_oracle_")
+        or key.startswith("a2_v20_arc_probe_")
+        or key
+        in {
+            "a2_diagnostic_trace_enabled",
+            "a2_diagnostic_reward_terms",
+            "a2_forced_gripper_close_enabled",
+            "a2_forced_gripper_close_value",
+            "a2_forced_gripper_close_stages",
+        }
+    }
+    assert required
+    for key in required:
+        assert eval_values[key] == source[key]
+    for key in (
+        "a2_hold_oracle_enabled",
+        "a2_v20_arc_probe_enabled",
+        "a2_forced_gripper_close_enabled",
+        "a2_hold_oracle_static_clamp_enabled",
+        "a2_hold_oracle_static_clamp_offset_probe_enabled",
+        "a2_hold_oracle_open_stabilization_preflight_enabled",
+        "a2_hold_oracle_matched_clean_reacquisition_preflight_enabled",
+    ):
+        assert eval_values[key] is False
 
 
 def _census_frame(*, scenario_id: str, topology: str, source_checkpoint_sha256: str, source_lock_sha256: str, source_config_sha256: str, materialization_sha256: str, materialized_config_sha256: str, door_weight_kg: float, hinge_force_nm: float, effort: float) -> dict:
@@ -245,6 +281,7 @@ def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
     write_json(source_lock_path, source_lock)
     p0 = build_p0_admission(ROOT, source_lock=source_lock)
     pre = materialize_v21b_configs(ROOT, phase="CENSUS_PRE_K", p0_admission=p0, source_lock=source_lock, census=None, output_root=tmp_path / "pre")
+    _assert_materialized_eval_contract(Path(pre["configs"][0]["path"]))
     scenarios = [
         {"scenario_id": f"h{i:02d}", "door_weight_kg": 140.0 + i, "hinge_force_nm": 10.0, "handle_height_m": 0.80 + 0.01 * i}
         for i in range(16)
@@ -268,6 +305,7 @@ def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
     source_hash = source_lock["source_checkpoint_sha256"]
     lock_hash = source_lock["source_lock_sha256"]
     zero_plan = build_zero_shot_plan(ROOT, arm_realistic_limit_nm=census["selection"], output_root=tmp_path / "zero", manifest_path=manifest_path, materialization=post, materialized_config=Path(post["configs"][0]["path"]))
+    _assert_materialized_eval_contract(Path(post["configs"][0]["path"]))
     manifest_rows = json.loads(manifest_path.read_text(encoding="utf-8"))
     zero_payloads = {}
     for topology in ("canonical16", "heavy16"):
@@ -348,6 +386,7 @@ def test_heavy16_is_deterministic_and_exact(tmp_path):
     source_lock = build_source_lock(ROOT, plan_path=PLAN, manifest_path=MANIFEST)
     p0 = build_p0_admission(ROOT, source_lock=source_lock)
     pre = materialize_v21b_configs(ROOT, phase="CENSUS_PRE_K", p0_admission=p0, source_lock=source_lock, census=None, output_root=tmp_path / "pre")
+    _assert_materialized_eval_contract(Path(pre["configs"][0]["path"]))
     one = build_heavy16_manifest(scenarios, materialization=pre, materialized_config=Path(pre["configs"][0]["path"]))
     two = build_heavy16_manifest(list(reversed(scenarios)), materialization=pre, materialized_config=Path(pre["configs"][0]["path"]))
     assert one["manifest_sha256"] == two["manifest_sha256"]
@@ -392,6 +431,7 @@ def test_signed_materialization_and_single_b4_smoke_contract(tmp_path):
         output_root=tmp_path / "materialized",
     )
     materialized_b4 = Path(next(row["path"] for row in materialization["configs"] if row["cell"] == "B4"))
+    _assert_materialized_eval_contract(materialized_b4)
     smoke = build_b4_smoke_plan(tmp_path / "smoke_repo", adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=materialized_b4)
     _assert_full_hydra_argv_compose(materialized_b4, smoke["command"], expected_cell="B4", expected_num_envs=64)
     assert smoke["cell"] == "B4"
@@ -432,6 +472,8 @@ def test_formal_launch_cleanup_and_monitor_are_fail_fast(tmp_path):
     cleanup = cleanup_targets(cleanup_manifest, confirm_exact=True, receipt_path=tmp_path / "cleanup.json")
     assert cleanup["status"] == "CLEANUP_PASS"
     configs = {row["cell"]: Path(row["path"]) for row in materialization["configs"]}
+    for config in configs.values():
+        _assert_materialized_eval_contract(config)
     formal = build_formal_launch_plan(ROOT, adaptation=adaptation, p0_admission=p0, smoke_pass=smoke_pass, cleanup_pass=cleanup, materialization=materialization, materialized_configs=configs)
     for row in formal["rows"]:
         _assert_full_hydra_argv_compose(Path(row["config"]), row["argv"], expected_cell=row["cell"], expected_num_envs=4096)

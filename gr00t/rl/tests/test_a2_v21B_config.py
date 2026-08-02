@@ -2,16 +2,23 @@
 
 from __future__ import annotations
 
+import copy
+import hashlib
 from pathlib import Path
 
 import pytest
 from hydra.core.override_parser.overrides_parser import OverridesParser
 
-from scriptsFORhuman.v21B._v21b_common import V21B_CELL_ORDER, V21B_PLAN_ID, V21BError, config_for_cell, hydra_string_value, read_yaml, validate_resolved_v21b_parity, validate_v21b_config
+from scriptsFORhuman.v21B._v21b_common import V21B_CELL_ORDER, V21B_EVAL_CONTRACT_PATH, V21B_PLAN_ID, V21BError, canonical_json_bytes, config_for_cell, hydra_string_value, read_yaml, sha256_file, validate_resolved_v21b_parity, validate_v21b_config
+from scriptsFORhuman.v21B.a2_piper_v21B_adaptation import materialize_v21b_configs
 from scriptsFORhuman.v21B.a2_piper_v21B_p0_admission import validate_guard_values
+from scriptsFORhuman.v21B.a2_piper_v21B_p0_admission import build_p0_admission
+from scriptsFORhuman.v21B.a2_piper_v21B_source_freeze import build_source_lock, validate_source_lock
 
 
 ROOT = Path(__file__).resolve().parents[3]
+PLAN = ROOT / "scriptsFORhuman/V21/a2_piper_base_v21B_ablation_execution_plan_20260802.md"
+MANIFEST = ROOT / "scriptsFORhuman/V21/a2_piper_base_v21B_experiment_manifest_20260802.yaml"
 
 
 def test_all_v21b_configs_are_factor_and_latch_bound():
@@ -52,6 +59,50 @@ def test_resolved_hydra_parity_is_allowlist_bound():
     resolved = validate_resolved_v21b_parity(ROOT)
     assert set(resolved) == set(V21B_CELL_ORDER)
     assert resolved["B4"]["env"]["config"]["a2_v21B_cell"] == "B4"
+
+
+def test_source_lock_binds_current_base_eval_contract_and_rejects_missing_row():
+    lock = build_source_lock(ROOT, plan_path=PLAN, manifest_path=MANIFEST)
+    eval_row = next(row for row in lock["source_paths"] if row["path"] == V21B_EVAL_CONTRACT_PATH)
+    assert eval_row["sha256"] == sha256_file(ROOT / V21B_EVAL_CONTRACT_PATH)
+    validate_source_lock(lock, ROOT, require_current=True)
+
+    missing = copy.deepcopy(lock)
+    missing["source_paths"] = [row for row in missing["source_paths"] if row["path"] != V21B_EVAL_CONTRACT_PATH]
+    missing["source_lock_sha256"] = hashlib.sha256(canonical_json_bytes(missing["source_paths"])).hexdigest()
+    with pytest.raises(V21BError, match="base_eval.yaml"):
+        validate_source_lock(missing, ROOT, require_current=True)
+
+
+def test_materialized_eval_contract_merges_only_missing_keys(tmp_path):
+    source_lock = build_source_lock(ROOT, plan_path=PLAN, manifest_path=MANIFEST)
+    p0 = build_p0_admission(ROOT, source_lock=source_lock)
+    receipt = materialize_v21b_configs(
+        ROOT,
+        phase="CENSUS_PRE_K",
+        p0_admission=p0,
+        source_lock=source_lock,
+        output_root=tmp_path / "pre",
+    )
+    config = read_yaml(Path(receipt["configs"][0]["path"]))
+    base_eval = read_yaml(ROOT / V21B_EVAL_CONTRACT_PATH)["algo"]["config"]["eval"]
+    eval_values = config["algo"]["config"]["eval"]
+    assert eval_values["num_eval_episodes"] == 200
+    assert eval_values["save_videos"] is False
+    assert eval_values["video_save_prob"] == 0.05
+    assert config["v21b_eval_contract_source_sha256"] == sha256_file(ROOT / V21B_EVAL_CONTRACT_PATH)
+    assert config["env"]["config"]["a2_v21B_eval_contract_source_sha256"] == config["v21b_eval_contract_source_sha256"]
+    for key, expected in base_eval.items():
+        if key.startswith("a2_hold_oracle_") or key.startswith("a2_v20_arc_probe_") or key in {
+            "a2_diagnostic_trace_enabled",
+            "a2_diagnostic_reward_terms",
+            "a2_forced_gripper_close_enabled",
+            "a2_forced_gripper_close_value",
+            "a2_forced_gripper_close_stages",
+        }:
+            assert eval_values[key] == expected
+    assert eval_values["a2_hold_oracle_enabled"] is False
+    assert receipt["v21b_eval_contract_source_sha256"] == config["v21b_eval_contract_source_sha256"]
 
 
 def test_signed_probe_selector_is_explicit_and_ordinary_launches_are_unbound():

@@ -6964,17 +6964,25 @@ class DoorPregrasp(
             step_index=step_index,
         )
         a2_v21b_accumulate_arm_step(self._a2_v21b_arm_evidence, step)
-        self._a2_v21b_arm_effort_limit_6d = fields["effort_limit"].detach().clone()
-        self._a2_v21b_last_implicit_computed_effort_6d = implicit_fields["implicit_computed_effort"].detach().clone()
-        self._a2_v21b_last_implicit_applied_effort_6d = implicit_fields["implicit_applied_effort"].detach().clone()
-        self._a2_v21b_last_implicit_crosscheck_error_6d = (
-            implicit_fields["implicit_computed_effort"] - pd_unclipped
-        ).detach().clone()
+        self._a2_v21b_arm_effort_limit_6d[valid_mask] = fields["effort_limit"][valid_mask].detach()
+        self._a2_v21b_last_implicit_computed_effort_6d[valid_mask] = implicit_fields[
+            "implicit_computed_effort"
+        ][valid_mask].detach()
+        self._a2_v21b_last_implicit_applied_effort_6d[valid_mask] = implicit_fields[
+            "implicit_applied_effort"
+        ][valid_mask].detach()
+        crosscheck_error = implicit_fields["implicit_computed_effort"] - pd_unclipped
+        self._a2_v21b_last_implicit_crosscheck_error_6d[valid_mask] = crosscheck_error[
+            valid_mask
+        ].detach()
         utilization = torch.abs(pd_clipped) / fields["effort_limit"]
         if not torch.all(torch.isfinite(utilization)):
             raise RuntimeError("v21-B arm telemetry clipped utilization is non-finite.")
-        self._a2_v21b_last_clipped_utilization = utilization.mean(dim=-1).detach().clone()
-        self._a2_v21b_last_clipped_utilization_valid = valid_mask.detach().clone()
+        clipped_utilization = utilization.mean(dim=-1)
+        self._a2_v21b_last_clipped_utilization[valid_mask] = clipped_utilization[
+            valid_mask
+        ].detach()
+        self._a2_v21b_last_clipped_utilization_valid[valid_mask] = True
         decomposition_sanity = (
             torch.all(torch.isfinite(pd_unclipped), dim=-1)
             & torch.all(torch.isfinite(pd_clipped), dim=-1)
@@ -6982,8 +6990,10 @@ class DoorPregrasp(
             & torch.all(pd_clipped == torch.clamp(pd_unclipped, -fields["effort_limit"], fields["effort_limit"]), dim=-1)
             & torch.all(pd_saturated == (torch.abs(pd_unclipped) > fields["effort_limit"]), dim=-1)
         )
-        self._a2_v21b_last_decomposition_sanity = decomposition_sanity.detach().clone()
-        self._a2_v21b_last_decomposition_sanity_valid = valid_mask.detach().clone()
+        self._a2_v21b_last_decomposition_sanity[valid_mask] = decomposition_sanity[
+            valid_mask
+        ].detach()
+        self._a2_v21b_last_decomposition_sanity_valid[valid_mask] = True
         crossing = valid_mask[:, None] & (utilization >= 0.98)
         has_crossing = torch.any(crossing, dim=1)
         first_joint = torch.argmax(crossing.to(torch.long), dim=1)
@@ -7079,9 +7089,34 @@ class DoorPregrasp(
             if int(self._a2_v21b_arm_first_joint_ge_098[env_id].item()) >= 0
             else {"status": "N/A", "reason": "no valid saturated arm frame", "denominator": int(record["valid_frame_count"])}
         )
-        record["isaaclab_implicit_computed_effort_estimate_6d"] = self._a2_v21b_last_implicit_computed_effort_6d[env_id].detach().cpu().tolist()
-        record["isaaclab_implicit_applied_effort_estimate_6d"] = self._a2_v21b_last_implicit_applied_effort_6d[env_id].detach().cpu().tolist()
-        record["isaaclab_implicit_effort_estimate_crosscheck_error_6d"] = self._a2_v21b_last_implicit_crosscheck_error_6d[env_id].detach().cpu().tolist()
+        valid_frame_count = record["valid_frame_count"]
+        if isinstance(valid_frame_count, bool) or not isinstance(valid_frame_count, int) or valid_frame_count < 0:
+            raise RuntimeError("v21-B arm episode evidence returned an invalid valid_frame_count")
+        implicit_field_names = (
+            "isaaclab_implicit_computed_effort_estimate_6d",
+            "isaaclab_implicit_applied_effort_estimate_6d",
+            "isaaclab_implicit_effort_estimate_crosscheck_error_6d",
+        )
+        if valid_frame_count == 0:
+            no_valid_telemetry = {
+                "status": "N/A",
+                "reason": "no valid arm telemetry frames",
+                "denominator": 0,
+            }
+            for field_name in implicit_field_names:
+                record[field_name] = dict(no_valid_telemetry)
+        else:
+            implicit_values = {
+                implicit_field_names[0]: self._a2_v21b_last_implicit_computed_effort_6d[env_id],
+                implicit_field_names[1]: self._a2_v21b_last_implicit_applied_effort_6d[env_id],
+                implicit_field_names[2]: self._a2_v21b_last_implicit_crosscheck_error_6d[env_id],
+            }
+            for field_name, value in implicit_values.items():
+                if tuple(value.shape) != (6,) or not torch.all(torch.isfinite(value)):
+                    raise RuntimeError(
+                        f"v21-B arm episode evidence {field_name} is not a finite six-joint vector"
+                    )
+                record[field_name] = value.detach().cpu().tolist()
         return record
 
     def finalize_a2_v21b_episode_record(

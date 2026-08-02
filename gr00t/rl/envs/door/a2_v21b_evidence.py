@@ -727,15 +727,68 @@ def a2_v21b_adjudicate_dv2(
     }
 
 
-def a2_v21b_validate_evidence_record(record: Mapping[str, Any]) -> None:
-    """Reject v20 artifacts, missing provenance, and torque claims."""
+def a2_v21b_validate_evidence_record(
+    record: Mapping[str, Any],
+    *,
+    require_implicit_effort_estimates: bool = False,
+) -> None:
+    """Reject malformed v21-B evidence and unsupported torque claims.
+
+    Base accumulator finalizer records may omit live implicit-effort snapshots;
+    enriched terminal records opt into their strict three-field contract.
+    """
 
     if not isinstance(record, Mapping) or record.get("schema") != V21B_EVIDENCE_SCHEMA:
         raise ValueError(f"v21-B arm evidence requires schema {V21B_EVIDENCE_SCHEMA!r}.")
+    if not isinstance(require_implicit_effort_estimates, bool):
+        raise ValueError("v21-B evidence implicit-effort strict selector must be boolean.")
     if tuple(record.get("joint_names", ())) != V21B_ARM_JOINT_NAMES:
         raise ValueError("v21-B arm evidence requires exact arm_j1..arm_j6 joint order.")
     if record.get("isaaclab_implicit_effort_estimate_authority") != V21B_AUTHORITY_LABEL and record.get("authority") != V21B_AUTHORITY_LABEL:
         raise ValueError("v21-B arm evidence requires the exact estimate-only authority label.")
+    valid_frame_count = record.get("valid_frame_count")
+    if isinstance(valid_frame_count, bool) or not isinstance(valid_frame_count, int) or valid_frame_count < 0:
+        raise ValueError("v21-B arm evidence valid_frame_count must be a non-negative integer.")
+    implicit_field_names = (
+        "isaaclab_implicit_computed_effort_estimate_6d",
+        "isaaclab_implicit_applied_effort_estimate_6d",
+        "isaaclab_implicit_effort_estimate_crosscheck_error_6d",
+    )
+    present_implicit_fields = tuple(field_name for field_name in implicit_field_names if field_name in record)
+    if present_implicit_fields and len(present_implicit_fields) != len(implicit_field_names):
+        raise ValueError("v21-B arm evidence requires all three implicit effort estimate fields together.")
+    if require_implicit_effort_estimates and len(present_implicit_fields) != len(implicit_field_names):
+        raise ValueError("v21-B terminal evidence requires all three implicit effort estimate fields.")
+    if present_implicit_fields:
+        for field_name in implicit_field_names:
+            value = record[field_name]
+            if valid_frame_count == 0:
+                denominator = value.get("denominator") if isinstance(value, Mapping) else None
+                if (
+                    not isinstance(value, Mapping)
+                    or set(value) != {"status", "reason", "denominator"}
+                    or value.get("status") != "N/A"
+                    or value.get("reason") != "no valid arm telemetry frames"
+                    or isinstance(denominator, bool)
+                    or not isinstance(denominator, int)
+                    or denominator != 0
+                ):
+                    raise ValueError(
+                        f"v21-B arm evidence {field_name} must be typed N/A when valid_frame_count is zero."
+                    )
+            elif (
+                not isinstance(value, list)
+                or len(value) != 6
+                or any(
+                    isinstance(component, bool)
+                    or not isinstance(component, (int, float))
+                    or not math.isfinite(float(component))
+                    for component in value
+                )
+            ):
+                raise ValueError(
+                    f"v21-B arm evidence {field_name} must be a finite numeric six-joint vector."
+                )
     forbidden = ("true_physx_torque", "actual_physx_drive_torque", "incoming_joint_force")
     if any(key in record for key in forbidden):
         raise ValueError("v21-B evidence cannot claim true PhysX torque or implement incoming-joint force.")
@@ -754,7 +807,7 @@ def a2_v21b_build_terminal_record(
 ) -> dict[str, Any]:
     """Build the versioned v21-B terminal export consumed before reset."""
 
-    a2_v21b_validate_evidence_record(evidence)
+    a2_v21b_validate_evidence_record(evidence, require_implicit_effort_estimates=True)
     if plan_id != "base_v21B_theta_arm_ablation_v1":
         raise ValueError("v21-B terminal record requires the v21-B plan id.")
     if cell not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"}:
@@ -818,7 +871,7 @@ def a2_v21b_validate_terminal_record(record: Mapping[str, Any]) -> None:
     evidence = record.get("evidence")
     if not isinstance(evidence, Mapping):
         raise ValueError("v21-B terminal record evidence is missing.")
-    a2_v21b_validate_evidence_record(evidence)
+    a2_v21b_validate_evidence_record(evidence, require_implicit_effort_estimates=True)
     phase = record.get("materialization_phase")
     if phase not in ("POST_CENSUS", "FORMAL_PROMOTED"):
         raise ValueError("v21-B terminal record materialization phase is invalid")

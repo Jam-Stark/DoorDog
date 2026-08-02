@@ -164,7 +164,7 @@ def _census_frame(*, scenario_id: str, topology: str, source_checkpoint_sha256: 
 
 
 def _terminal_probe_record(*, row: dict, topology: str, env_id: int, plan: dict, goal: bool = True, max_stage: int = 3) -> dict:
-    evidence = {"schema": V21B_EVIDENCE_SCHEMA, "joint_names": list(V21B_ARM_JOINT_NAMES), "authority": V21B_AUTHORITY_LABEL}
+    evidence = _empty_arm_evidence()
     record = a2_v21b_build_terminal_record(
         evidence,
         plan_id="base_v21B_theta_arm_ablation_v1",
@@ -197,6 +197,19 @@ def _terminal_probe_record(*, row: dict, topology: str, env_id: int, plan: dict,
     record["record_id"] = hashlib.sha256(canonical_json_bytes(unsigned)).hexdigest()
     a2_v21b_validate_terminal_record(record)
     return record
+
+
+def _empty_arm_evidence() -> dict:
+    no_valid = {"status": "N/A", "reason": "no valid arm telemetry frames", "denominator": 0}
+    return {
+        "schema": V21B_EVIDENCE_SCHEMA,
+        "joint_names": list(V21B_ARM_JOINT_NAMES),
+        "authority": V21B_AUTHORITY_LABEL,
+        "valid_frame_count": 0,
+        "isaaclab_implicit_computed_effort_estimate_6d": dict(no_valid),
+        "isaaclab_implicit_applied_effort_estimate_6d": dict(no_valid),
+        "isaaclab_implicit_effort_estimate_crosscheck_error_6d": dict(no_valid),
+    }
 
 
 def _plan_with_harmless_process(plan: dict, *, tmp_path: Path, prefix: str, result_payloads: dict[str, dict], result_names: dict[str, str]) -> tuple[dict, dict[str, Path], dict[str, Path]]:
@@ -754,7 +767,7 @@ def test_zero_shot_topology_key_binds_post_census_terminal_records(tmp_path):
         source_lock_sha256=source_lock["source_lock_sha256"],
         source_config_sha256=p0["config_sha256_by_cell"]["B4"],
     )
-    evidence = {"schema": V21B_EVIDENCE_SCHEMA, "joint_names": list(V21B_ARM_JOINT_NAMES), "authority": V21B_AUTHORITY_LABEL}
+    evidence = _empty_arm_evidence()
     for row in plan["commands"]:
         topology_token = next(token for token in row["argv"] if token.startswith("+env.config.a2_v21B_census_topology="))
         topology = topology_token.split("=", 1)[1]

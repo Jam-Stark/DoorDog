@@ -31,10 +31,10 @@ from scriptsFORhuman.v21B.a2_piper_v21B_pilot import V21B_PILOT_METRIC_SOURCES, 
 from scriptsFORhuman.v21B.a2_piper_v21B_smoke_adjudicator import adjudicate_b4_smoke
 from scriptsFORhuman.v21B.a2_piper_v21B_smoke_cleanup import build_smoke_cleanup_manifest, cleanup_targets
 from scriptsFORhuman.v21B.a2_piper_v21B_smoke_launcher import build_b4_smoke_plan
-from scriptsFORhuman.v21B.a2_piper_v21B_source_freeze import build_source_lock
-from scriptsFORhuman.v21B.a2_piper_v21B_startup_monitor import build_startup_monitor_plan, monitor_iteration50
+from scriptsFORhuman.v21B.a2_piper_v21B_source_freeze import build_source_lock, validate_source_lock
+from scriptsFORhuman.v21B.a2_piper_v21B_startup_monitor import build_startup_monitor_plan, load_formal_metrics_prefix, monitor_iteration50
 from scriptsFORhuman.v21B.a2_piper_v21B_zero_shot import adjudicate_zero_shot, build_zero_shot_plan
-from scriptsFORhuman.v21B.a2_piper_v21B_probe_runner import _collect_pilot_result, hash_command_env, observed_git_identity, read_process_receipt, run_process_once
+from scriptsFORhuman.v21B.a2_piper_v21B_probe_runner import _collect_pilot_result, _collect_smoke_result, hash_command_env, observed_git_identity, read_process_receipt, run_process_once
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -48,6 +48,7 @@ def _assert_full_hydra_argv_compose(
     *,
     expected_cell: str | None = None,
     expected_num_envs: int | None = None,
+    expected_full_evidence: bool = False,
 ) -> None:
     """Compose every Hydra token after the signed runtime module."""
 
@@ -85,7 +86,7 @@ def _assert_full_hydra_argv_compose(
     assert bool(resolved.env.config.a2_v21B_evidence_enabled) is True
     assert bool(resolved.env.config.a2_v20_R2_evidence_enabled) is True
     assert bool(resolved.env.config.a2_v20_R2_formal_launch) is False
-    assert bool(resolved.env.config.get("a2_v20_R2_full_evidence", False)) is False
+    assert bool(resolved.env.config.get("a2_v20_R2_full_evidence", False)) is expected_full_evidence
     if expected_num_envs is not None:
         assert int(resolved.num_envs) == expected_num_envs
 
@@ -273,7 +274,7 @@ def _plan_with_harmless_pilot_process(plan: dict, *, tmp_path: Path, coverage: f
     input_path = (tmp_path / "pilot_raw_input.json").absolute()
     metrics_rows = []
     for i in range(1, 751):
-        metrics_rows.append({"schema": "a2_piper_base_v21B_training_metric_v1", "producer_state": "PROCESS_COMPLETED", "scientific_plan_id": "base_v21B_theta_arm_ablation_v1", "source_lock_sha256": plan["source_lock_sha256"], "source_lock_file_sha256": plan["source_lock_file_sha256"], "git_commit": plan["repo_commit"], "git_tree": plan["repo_tree"], "batch_index": i, "metrics": {"send_latch_fire_rate": 0.5, "hinge_at_send_latch_rad": 0.1, "hinge_at_crossing_rad": 0.2, "send_to_cross_steps": 1.0, "stage_overtime_rate": 0.0, "upper_dof_overspeed_rate": 0.0, "arm_clipped_utilization": 0.1, "arm_clipped_utilization_valid_rate": coverage, "finite_data": True, "decomposition_sanity": True, "decomposition_sanity_valid_rate": coverage}, "metric_sources": dict(V21B_PILOT_METRIC_SOURCES)})
+        metrics_rows.append({"schema": "a2_piper_base_v21B_training_metric_v1", "producer_state": "PROCESS_COMPLETED", "scientific_plan_id": "base_v21B_theta_arm_ablation_v1", "cell": plan["cell"], "seed": plan["seed"], "materialization_phase": plan["materialization_phase"], "source_config_sha256": plan["source_config_sha256"], "materialization_sha256": plan["materialization_sha256"], "materialized_config_sha256": plan["materialized_config_sha256"], "adaptation_bundle_sha256": plan["adaptation_bundle_sha256"], "source_lock_sha256": plan["source_lock_sha256"], "source_lock_file_sha256": plan["source_lock_file_sha256"], "git_commit": plan["repo_commit"], "git_tree": plan["repo_tree"], "batch_index": i, "metrics": {"send_latch_fire_rate": 0.5, "hinge_at_send_latch_rad": 0.1, "hinge_at_crossing_rad": 0.2, "send_to_cross_steps": 1.0, "stage_overtime_rate": 0.0, "upper_dof_overspeed_rate": 0.0, "arm_clipped_utilization": 0.1, "arm_clipped_utilization_valid_rate": coverage, "finite_data": True, "decomposition_sanity": True, "decomposition_sanity_valid_rate": coverage}, "metric_sources": dict(V21B_PILOT_METRIC_SOURCES)})
     input_path.write_text(json.dumps({"metrics": metrics_rows, "checkpoints": {str(step): contents.decode("utf-8") for step, contents in checkpoint_contents.items()}}, sort_keys=True), encoding="utf-8")
     script = (
         "from pathlib import Path; import json; "
@@ -289,6 +290,83 @@ def _plan_with_harmless_pilot_process(plan: dict, *, tmp_path: Path, coverage: f
     bound["plan_sha256"] = hashlib.sha256(canonical_json_bytes(bound)).hexdigest()
     process_root = tmp_path / "pilot_process"
     run_process_once(argv=bound["argv"], repo_root=ROOT, output_root=process_root, env={}, name="pilot", expected_result_paths=[result_path], parents={"source_lock": source_lock_path, "materialized_config": Path(plan["materialized_config_path"]).absolute()}, parent_hashes=bound["parent_hashes"], source_bindings=bound["source_bindings"], plan_sha256=bound["plan_sha256"], physical_gpu=bound.get("gpu"), result_contract=contract)
+    return bound, process_root / "process_receipt.json", result_path
+
+
+def _plan_with_harmless_smoke_process(plan: dict, *, tmp_path: Path) -> tuple[dict, Path, Path]:
+    """Emit scalar-only unit-test producer files; the real runner still performs admission."""
+    contract = dict(plan["result_contract"])
+    plan = dict(plan)
+    plan["result_contract"] = contract
+    plan["result_paths"] = [contract["aggregate_path"]]
+    metrics_path = Path(contract["raw_metrics_path"]).absolute()
+    checkpoint_path = Path(contract["checkpoint_path"]).absolute()
+    result_path = Path(contract["aggregate_path"]).absolute()
+    metrics = {
+        "send_latch_fire_rate": 0.5,
+        "hinge_at_send_latch_rad": 0.1,
+        "hinge_at_crossing_rad": 0.2,
+        "send_to_cross_steps": 1.0,
+        "stage_overtime_rate": 0.0,
+        "upper_dof_overspeed_rate": 0.0,
+        "arm_clipped_utilization": 0.1,
+        "arm_clipped_utilization_valid_rate": 1.0,
+        "finite_data": True,
+        "decomposition_sanity": True,
+        "decomposition_sanity_valid_rate": 1.0,
+    }
+    metric_sources = {key: f"a2_v21B_{key}" for key in metrics}
+    rows = []
+    for batch_index in range(1, 11):
+        rows.append({
+            "schema": "a2_piper_base_v21B_training_metric_v1",
+            "producer_state": "PROCESS_COMPLETED",
+            "scientific_plan_id": "base_v21B_theta_arm_ablation_v1",
+            "cell": contract["cell"],
+            "seed": contract["seed"],
+            "materialization_phase": contract["materialization_phase"],
+            "source_config_sha256": contract["source_config_sha256"],
+            "materialization_sha256": contract["materialization_sha256"],
+            "materialized_config_sha256": contract["materialized_config_sha256"],
+            "adaptation_bundle_sha256": contract["adaptation_bundle_sha256"],
+            "source_lock_sha256": contract["source_lock_sha256"],
+            "source_lock_file_sha256": contract["source_lock_file_sha256"],
+            "source_checkpoint_sha256": contract["source_checkpoint_sha256"],
+            "git_commit": contract["repo_commit"],
+            "git_tree": contract["repo_tree"],
+            "batch_index": batch_index,
+            "metrics": metrics,
+            "metric_sources": metric_sources,
+        })
+    source = tmp_path / "smoke_input.json"
+    source.write_text(json.dumps({"metrics": rows}, sort_keys=True), encoding="utf-8")
+    script = (
+        "from pathlib import Path; import json; "
+        f"d=json.loads(Path({str(source)!r}).read_text(encoding='utf-8')); "
+        f"p=Path({str(metrics_path)!r}); p.parent.mkdir(parents=True, exist_ok=True); p.write_text(''.join(json.dumps(x, sort_keys=True)+'\\n' for x in d['metrics']), encoding='utf-8'); "
+        f"p=Path({str(checkpoint_path)!r}); p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(b'smoke-step10')"
+    )
+    bound = dict(plan)
+    bound["argv"] = [sys.executable, "-c", script]
+    bound["command"] = bound["argv"]
+    bound["command_sha256"] = hash_command_env(bound["argv"], {})
+    process_root = Path(plan["process_root"]).absolute()
+    bound.pop("plan_sha256", None)
+    bound["plan_sha256"] = hashlib.sha256(canonical_json_bytes(bound)).hexdigest()
+    run_process_once(
+        argv=bound["argv"],
+        repo_root=ROOT,
+        output_root=process_root,
+        env={},
+        name="smoke",
+        expected_result_paths=[result_path],
+        parents={"source_lock": Path(contract["source_lock_path"]), "materialized_config": Path(bound["materialized_config_path"])},
+        parent_hashes=bound["parent_hashes"],
+        source_bindings=bound["source_bindings"],
+        plan_sha256=bound["plan_sha256"],
+        physical_gpu=bound["physical_gpu"],
+        result_contract=contract,
+    )
     return bound, process_root / "process_receipt.json", result_path
 
 def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
@@ -346,6 +424,20 @@ def _signed_artifacts(tmp_path: Path, *, pilot_coverage: float = 1.0):
     return source_lock, p0, census, zero, pilot, tie, adaptation
 
 
+def test_source_lock_covers_every_current_v21b_runtime_module(tmp_path):
+    source_lock = build_source_lock(ROOT, plan_path=PLAN, manifest_path=MANIFEST)
+    paths = [row["path"] for row in source_lock["source_paths"]]
+    runtime_paths = {
+        path.relative_to(ROOT).as_posix()
+        for path in (ROOT / "scriptsFORhuman/v21B").glob("*.py")
+        if path.is_file() and not path.is_symlink()
+    }
+    assert runtime_paths <= set(paths)
+    assert len(paths) == len(set(paths))
+    assert paths.count(V21B_EVAL_CONTRACT_PATH) == 1
+    validate_source_lock(source_lock, ROOT, require_current=True)
+
+
 @pytest.mark.parametrize("coverage", (0.0, 0.5))
 def test_pilot_rejects_no_sample_or_partial_arm_telemetry_coverage(tmp_path, coverage):
     with pytest.raises(V21BError, match="coverage"):
@@ -377,8 +469,16 @@ def test_probe_aggregation_rejects_invalid_coverage_before_pilot_artifact(tmp_pa
         "schema": "a2_piper_base_v21B_training_metric_v1",
         "producer_state": "PROCESS_COMPLETED",
         "scientific_plan_id": "base_v21B_theta_arm_ablation_v1",
+        "cell": "B4",
+        "seed": 0,
+        "source_config_sha256": "b" * 64,
+        "materialization_sha256": "c" * 64,
+        "materialized_config_sha256": "d" * 64,
+        "adaptation_bundle_sha256": "e" * 64,
+        "materialization_phase": "FORMAL_PROMOTED",
         "source_lock_sha256": "a" * 64,
         "source_lock_file_sha256": hashlib.sha256(source_lock_path.read_bytes()).hexdigest(),
+        "source_checkpoint_sha256": "f" * 64,
         "git_commit": git_identity["commit"],
         "git_tree": git_identity["tree"],
         "batch_index": 1,
@@ -391,6 +491,14 @@ def test_probe_aggregation_rejects_invalid_coverage_before_pilot_artifact(tmp_pa
         "source_lock_path": str(source_lock_path),
         "source_lock_sha256": "a" * 64,
         "source_lock_file_sha256": hashlib.sha256(source_lock_path.read_bytes()).hexdigest(),
+        "source_config_sha256": "b" * 64,
+        "materialization_sha256": "c" * 64,
+        "materialized_config_sha256": "d" * 64,
+        "adaptation_bundle_sha256": "e" * 64,
+        "materialization_phase": "FORMAL_PROMOTED",
+        "source_checkpoint_sha256": "f" * 64,
+        "cell": "B4",
+        "seed": 0,
         "repo_commit": row["git_commit"],
         "repo_tree": row["git_tree"],
         "aggregate_path": str(tmp_path / "pilot_result.json"),
@@ -452,19 +560,28 @@ def test_signed_materialization_and_single_b4_smoke_contract(tmp_path):
     )
     materialized_b4 = Path(next(row["path"] for row in materialization["configs"] if row["cell"] == "B4"))
     _assert_materialized_eval_contract(materialized_b4)
-    smoke = build_b4_smoke_plan(tmp_path / "smoke_repo", adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=materialized_b4)
-    _assert_full_hydra_argv_compose(materialized_b4, smoke["command"], expected_cell="B4", expected_num_envs=64)
+    smoke = build_b4_smoke_plan(ROOT, adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=materialized_b4, source_lock_path=tmp_path / "source_lock.json", artifact_root=tmp_path / "smoke_repo")
+    _assert_full_hydra_argv_compose(materialized_b4, smoke["command"], expected_cell="B4", expected_num_envs=64, expected_full_evidence=False)
+    assert not any("a2_v20_R2_full_evidence" in token or "run_uuid" in token or "terminal_export" in token for token in smoke["command"])
     assert smoke["cell"] == "B4"
     assert smoke["num_envs"] == 64 and smoke["batches"] == 10 and smoke["save_frequency"] == 10
     assert smoke["one_cell_only"] is True and smoke["wandb_mode"] == "online"
+    assert "terminal_path" not in smoke["result_contract"] and "run_uuid" not in smoke["result_contract"]
     assert "--config-dir=" in " ".join(smoke["command"])
     assert "/home/baoquanc/anaconda3/envs/isaaclab/bin/python" in smoke["command"]
-    assert f"PYTHONPATH={tmp_path / 'smoke_repo'}" in smoke["command"]
+    assert f"PYTHONPATH={ROOT}" in smoke["command"]
+    nongpu3 = dict(smoke, physical_gpu=4)
+    nongpu3.pop("plan_sha256", None)
+    nongpu3["plan_sha256"] = hashlib.sha256(canonical_json_bytes(nongpu3)).hexdigest()
+    with pytest.raises(V21BError, match="GPU3"):
+        adjudicate_b4_smoke(nongpu3, {"cell": "B4"})
     with pytest.raises(V21BError):
-        build_b4_smoke_plan(ROOT, adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=ROOT / "gr00t/rl/config/ablation/wbmanip/base_v21B_B4_theta120_arm_realistic.yaml")
+        build_b4_smoke_plan(ROOT, adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=ROOT / "gr00t/rl/config/ablation/wbmanip/base_v21B_B4_theta120_arm_realistic.yaml", source_lock_path=tmp_path / "source_lock.json")
 
 
 def test_formal_launch_cleanup_and_monitor_are_fail_fast(tmp_path):
+    production_roots = [ROOT / "logs_rl/a2_piper_full_stage_a2_base_smoke/base_v21B/B4", ROOT / "logs_eval/base_v21B/smoke/B4", ROOT / "logs_rl/launchers/base_v21B_smoke/B4"]
+    production_state_before = [(path.exists(), path.is_symlink()) for path in production_roots]
     source_lock, p0, census, zero, pilot, tie, adaptation = _signed_artifacts(tmp_path)
     materialization = materialize_v21b_configs(
         ROOT,
@@ -479,33 +596,109 @@ def test_formal_launch_cleanup_and_monitor_are_fail_fast(tmp_path):
         output_root=tmp_path / "materialized",
     )
     b4_config = Path(next(row["path"] for row in materialization["configs"] if row["cell"] == "B4"))
-    smoke_root = tmp_path / "smoke_repo"
-    smoke = build_b4_smoke_plan(smoke_root, adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=b4_config)
-    evidence = {"schema": V21B_EVIDENCE_SCHEMA, "joint_names": list(V21B_ARM_JOINT_NAMES), "authority": V21B_AUTHORITY_LABEL}
-    telemetry = a2_v21b_build_terminal_record(evidence, plan_id="base_v21B_theta_arm_ablation_v1", cell="B4", group="B4", seed=0, source_checkpoint_sha256=source_lock["source_checkpoint_sha256"], adaptation_bundle_sha256=hashlib.sha256(canonical_json_bytes(adaptation)).hexdigest(), provenance={"materialization_phase": "FORMAL_PROMOTED", "scenario_id": "s", "topology": "canonical16", "episode_id": "e", "source_checkpoint_sha256": source_lock["source_checkpoint_sha256"], "source_lock_sha256": materialization["source_lock_sha256"], "source_config_sha256": next(row for row in materialization["configs"] if row["cell"] == "B4")["template_sha256"], "materialization_sha256": materialization["materialization_sha256"], "materialized_config_sha256": next(row for row in materialization["configs"] if row["cell"] == "B4")["sha256"]})
-    smoke_pass = adjudicate_b4_smoke(smoke, {"cell": "B4", "exit_code": 0, "process_natural_exit": True, "completed_batches": 10, "batch_indices": list(range(1, 11)), "finite_data": True, "decomposition_sanity": True, "checkpoint_path": str(tmp_path / "smoke.pt"), "checkpoint_sha256": "a" * 64, "telemetry": telemetry, "plan_sha256": smoke["plan_sha256"], "command_sha256": smoke["command_sha256"], "materialization_sha256": smoke["materialization_sha256"], "materialized_config_sha256": smoke["materialized_config_sha256"], "source_checkpoint_sha256": smoke["source_checkpoint_sha256"], "source_lock_sha256": smoke["source_lock_sha256"], "source_config_sha256": smoke["source_config_sha256"]})
-    roots = [smoke_root / "logs_rl/a2_piper_full_stage_a2_base_smoke/base_v21B/B4", smoke_root / "logs_eval/base_v21B/smoke/B4", smoke_root / "logs_rl/launchers/base_v21B_smoke/B4"]
+    smoke = build_b4_smoke_plan(ROOT, adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=b4_config, source_lock_path=tmp_path / "source_lock.json", artifact_root=tmp_path / "smoke_repo")
+    smoke, smoke_receipt, smoke_result = _plan_with_harmless_smoke_process(smoke, tmp_path=tmp_path)
+    smoke_pass = adjudicate_b4_smoke(smoke, json.loads(smoke_result.read_text(encoding="utf-8")))
+    roots = [Path(smoke["training_root"]), Path(smoke["eval_root"]), Path(smoke["launcher_root"])]
     for root in roots:
         root.mkdir(parents=True, exist_ok=True)
         (root / "marker").write_text("smoke", encoding="utf-8")
-    cleanup_manifest = build_smoke_cleanup_manifest(smoke_root, plan=smoke, smoke_pass=smoke_pass, targets=roots)
-    cleanup = cleanup_targets(cleanup_manifest, confirm_exact=True, receipt_path=tmp_path / "cleanup.json")
+    with pytest.raises(V21BError, match="repo_root"):
+        build_smoke_cleanup_manifest(ROOT, plan=smoke, smoke_pass=smoke_pass, targets=roots)
+    cleanup_manifest = build_smoke_cleanup_manifest(Path(smoke["artifact_root"]), plan=smoke, smoke_pass=smoke_pass, targets=roots)
+    arbitrary_roots = [tmp_path / "arbitrary_cleanup" / name for name in ("training", "eval", "launcher")]
+    for root in arbitrary_roots:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "marker").write_text("arbitrary", encoding="utf-8")
+    bad_cleanup = dict(cleanup_manifest, targets=[str(root) for root in arbitrary_roots], exact_roots=[str(root) for root in arbitrary_roots])
+    before_markers = {(root / "marker").read_text(encoding="utf-8") for root in [*roots, *arbitrary_roots]}
+    with pytest.raises(V21BError, match="canonical signed"):
+        cleanup_targets(bad_cleanup, plan=smoke, smoke_pass=smoke_pass, confirm_exact=True, receipt_path=tmp_path / "bad_cleanup.json")
+    assert before_markers == {(root / "marker").read_text(encoding="utf-8") for root in [*roots, *arbitrary_roots]}
+    cleanup = cleanup_targets(cleanup_manifest, plan=smoke, smoke_pass=smoke_pass, confirm_exact=True, receipt_path=tmp_path / "cleanup.json")
     assert cleanup["status"] == "CLEANUP_PASS"
     configs = {row["cell"]: Path(row["path"]) for row in materialization["configs"]}
     for config in configs.values():
         _assert_materialized_eval_contract(config)
-    formal = build_formal_launch_plan(ROOT, adaptation=adaptation, p0_admission=p0, smoke_pass=smoke_pass, cleanup_pass=cleanup, materialization=materialization, materialized_configs=configs)
+    with pytest.raises(V21BError, match="cleanup receipt"):
+        build_formal_launch_plan(ROOT, adaptation=adaptation, p0_admission=p0, smoke_pass=smoke_pass, cleanup_pass=dict(cleanup, smoke_pass_sha256="0" * 64), materialization=materialization, source_lock_path=tmp_path / "source_lock.json", materialized_configs=configs)
+    with pytest.raises(V21BError, match="smoke adjudication"):
+        build_formal_launch_plan(ROOT, adaptation=adaptation, p0_admission=p0, smoke_pass=dict(smoke_pass, materialization_sha256="0" * 64), cleanup_pass=cleanup, materialization=materialization, source_lock_path=tmp_path / "source_lock.json", materialized_configs=configs)
+    formal = build_formal_launch_plan(ROOT, adaptation=adaptation, p0_admission=p0, smoke_pass=smoke_pass, cleanup_pass=cleanup, materialization=materialization, source_lock_path=tmp_path / "source_lock.json", materialized_configs=configs)
+    formal = dict(formal)
+    formal["rows"] = [dict(row, training_metrics_path=str(tmp_path / "formal_metrics" / row["cell"] / "r2_training_metrics.jsonl")) for row in formal["rows"]]
     for row in formal["rows"]:
         _assert_full_hydra_argv_compose(Path(row["config"]), row["argv"], expected_cell=row["cell"], expected_num_envs=4096)
     assert formal["status"] == "FORMAL_PLAN_COMPLETE"
     assert all("--config-dir=" in " ".join(row["argv"]) for row in formal["rows"])
     monitor_plan = build_startup_monitor_plan(formal)
-    metrics = {cell: [{"iteration": i, "metrics": {"loss": 1.0}} for i in range(51)] for cell in ("B1", "B2", "B3", "B4", "B5", "B6", "B7")}
+    metrics = {}
+    for cell, row in ((item["cell"], item) for item in formal["rows"]):
+        rows = []
+        for batch_index in range(1, 61):
+                rows.append({"schema": "a2_piper_base_v21B_training_metric_v1", "producer_state": "PROCESS_COMPLETED", "scientific_plan_id": "base_v21B_theta_arm_ablation_v1", "cell": row["cell"], "seed": row["seed"], "materialization_phase": row["materialization_phase"], "source_config_sha256": row["source_config_sha256"], "materialization_sha256": row["materialization_sha256"], "materialized_config_sha256": row["materialized_config_sha256"], "adaptation_bundle_sha256": row["adaptation_bundle_sha256"], "source_lock_sha256": row["source_lock_sha256"], "source_lock_file_sha256": row["source_lock_file_sha256"], "source_checkpoint_sha256": row["source_checkpoint_sha256"], "git_commit": row["repo_commit"], "git_tree": row["repo_tree"], "batch_index": batch_index, "metrics": {"send_latch_fire_rate": 0.5, "hinge_at_send_latch_rad": 0.1, "hinge_at_crossing_rad": 0.2, "send_to_cross_steps": 1.0, "stage_overtime_rate": 0.0, "upper_dof_overspeed_rate": 0.0, "arm_clipped_utilization": 0.1, "arm_clipped_utilization_valid_rate": 1.0, "finite_data": True, "decomposition_sanity": True, "decomposition_sanity_valid_rate": 1.0}, "metric_sources": {key: f"a2_v21B_{key}" for key in ("send_latch_fire_rate", "hinge_at_send_latch_rad", "hinge_at_crossing_rad", "send_to_cross_steps", "stage_overtime_rate", "upper_dof_overspeed_rate", "arm_clipped_utilization", "arm_clipped_utilization_valid_rate", "finite_data", "decomposition_sanity", "decomposition_sanity_valid_rate")}})
+        Path(row["training_metrics_path"]).parent.mkdir(parents=True, exist_ok=True)
+        Path(row["training_metrics_path"]).write_text("".join(json.dumps(item, sort_keys=True) + "\n" for item in rows), encoding="utf-8")
+        metrics[cell] = rows
     liveness = {cell: {"session_exists": True, "pane_dead": False, "process_alive": True, "session_attached": 0} for cell in metrics}
-    startup = monitor_iteration50(metrics, formal_plan=formal, liveness_by_cell=liveness, session_state={"session_exists": True, "session_attached": 0})
+    before_metrics = {cell: Path(row["training_metrics_path"]).read_bytes() for cell, row in ((row["cell"], row) for row in formal["rows"])}
+    loaded_prefix = load_formal_metrics_prefix(formal)
+    assert all(len(entries) == 50 for entries in loaded_prefix.values())
+    assert before_metrics == {cell: Path(row["training_metrics_path"]).read_bytes() for cell, row in ((row["cell"], row) for row in formal["rows"])}
+    startup = monitor_iteration50(loaded_prefix, formal_plan=formal, liveness_by_cell=liveness, session_state={"session_exists": True, "session_attached": 0})
     assert monitor_plan["detach_only"] is True and startup["status"] == "STARTUP_50_PASS" and startup["training_continues"] is True
+    assert production_state_before == [(path.exists(), path.is_symlink()) for path in production_roots]
+    swapped = {cell: list(entries) for cell, entries in loaded_prefix.items()}
+    swapped["B2"][0] = dict(swapped["B2"][0], cell="B1")
     with pytest.raises(V21BError):
-        monitor_iteration50({**metrics, "B7": metrics["B7"][:-1]}, formal_plan=formal, liveness_by_cell=liveness, session_state={"session_exists": True, "session_attached": 0})
+        monitor_iteration50(swapped, formal_plan=formal, liveness_by_cell=liveness, session_state={"session_exists": True, "session_attached": 0})
+    with pytest.raises(V21BError):
+        monitor_iteration50({**loaded_prefix, "B7": loaded_prefix["B7"][:-1]}, formal_plan=formal, liveness_by_cell=liveness, session_state={"session_exists": True, "session_attached": 0})
+
+
+def test_smoke_collector_rejects_tamper_missing_and_nonfinite_outputs(tmp_path):
+    source_lock, p0, census, zero, pilot, tie, adaptation = _signed_artifacts(tmp_path)
+    materialization = materialize_v21b_configs(ROOT, phase="FORMAL_PROMOTED", p0_admission=p0, source_lock=source_lock, census=census, zero_shot=zero, pilot=pilot, arm_tie=tie, adaptation=adaptation, output_root=tmp_path / "materialized")
+    b4_config = Path(next(row["path"] for row in materialization["configs"] if row["cell"] == "B4"))
+    smoke = build_b4_smoke_plan(ROOT, adaptation=adaptation, p0_admission=p0, materialization=materialization, materialized_config=b4_config, source_lock_path=tmp_path / "source_lock.json", artifact_root=tmp_path / "smoke_repo")
+    smoke, _, _ = _plan_with_harmless_smoke_process(smoke, tmp_path=tmp_path)
+    contract = smoke["result_contract"]
+    metrics_path = Path(contract["raw_metrics_path"])
+    original_metrics = metrics_path.read_text(encoding="utf-8")
+    rows = [json.loads(line) for line in original_metrics.splitlines()]
+    rows[1]["batch_index"] = 99
+    metrics_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises(V21BError, match="contiguous"):
+        _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
+    rows[1]["batch_index"] = 2
+    rows[0]["metrics"]["hinge_at_crossing_rad"] = float("nan")
+    metrics_path.write_text("".join(json.dumps(row, sort_keys=True, allow_nan=True) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises(V21BError, match="non-finite"):
+        _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
+    metrics_path.write_text(original_metrics, encoding="utf-8")
+    rows = [json.loads(line) for line in original_metrics.splitlines()]
+    rows[0].pop("materialization_phase")
+    metrics_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises(V21BError, match="schema/source"):
+        _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
+    rows[0]["materialization_phase"] = "POST_CENSUS"
+    metrics_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises(V21BError, match="schema/source"):
+        _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
+    metrics_path.write_text(original_metrics, encoding="utf-8")
+    aggregate = _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
+    assert aggregate["materialization_phase"] == contract["materialization_phase"] == "FORMAL_PROMOTED"
+    checkpoint_path = Path(contract["checkpoint_path"])
+    checkpoint_bytes = checkpoint_path.read_bytes()
+    checkpoint_path.unlink()
+    with pytest.raises(V21BError, match="checkpoint"):
+        _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
+    checkpoint_path.write_bytes(checkpoint_bytes)
+    rows = [json.loads(line) for line in original_metrics.splitlines()]
+    rows[0]["materialization_sha256"] = "0" * 64
+    metrics_path.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises(V21BError, match="schema/source"):
+        _collect_smoke_result(contract, plan_sha256=smoke["plan_sha256"])
 
 
 def test_probe_plans_reject_raw_b4_template(tmp_path):

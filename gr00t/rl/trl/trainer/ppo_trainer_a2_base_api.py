@@ -63,6 +63,8 @@ _V21B_COVERAGE_METRICS = frozenset((
     "arm_clipped_utilization_valid_rate",
     "decomposition_sanity_valid_rate",
 ))
+_V21B_MATERIALIZATION_PHASES = frozenset(("POST_CENSUS", "FORMAL_PROMOTED"))
+_V21B_MISSING_CONFIG = object()
 
 
 def _v21b_scalar(value, *, key: str):
@@ -103,6 +105,13 @@ def build_v21b_training_metric_row(
     metrics,
     *,
     batch_index: int,
+    cell: str,
+    seed: int,
+    source_config_sha256: str,
+    materialization_sha256: str,
+    materialized_config_sha256: str,
+    materialization_phase: str,
+    adaptation_bundle_sha256: str | None,
     source_lock_sha256: str,
     source_lock_file_sha256: str,
     git_commit: str,
@@ -115,6 +124,24 @@ def build_v21b_training_metric_row(
 
     if isinstance(batch_index, bool) or not isinstance(batch_index, int) or batch_index <= 0:
         raise ValueError("v21-B training metric batch_index must be a positive integer")
+    if not isinstance(cell, str) or cell not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"}:
+        raise ValueError("v21-B training metric cell must be one of B1-B7")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed not in (0, 1):
+        raise ValueError("v21-B training metric seed must be 0 or 1")
+    if materialization_phase not in _V21B_MATERIALIZATION_PHASES:
+        raise ValueError("v21-B training metric materialization_phase is invalid")
+    if materialization_phase == "POST_CENSUS":
+        if adaptation_bundle_sha256 is not None:
+            raise ValueError("POST_CENSUS v21-B training metric adaptation identity must be null")
+    elif not isinstance(adaptation_bundle_sha256, str) or len(adaptation_bundle_sha256) != 64 or any(char not in "0123456789abcdef" for char in adaptation_bundle_sha256):
+        raise ValueError("FORMAL_PROMOTED v21-B training metric adaptation identity must be a lowercase sha256 digest")
+    for name, value in (
+        ("source_config_sha256", source_config_sha256),
+        ("materialization_sha256", materialization_sha256),
+        ("materialized_config_sha256", materialized_config_sha256),
+    ):
+        if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+            raise ValueError(f"v21-B training metric {name} has an invalid identity")
     for name, value in (("source_lock_sha256", source_lock_sha256), ("source_lock_file_sha256", source_lock_file_sha256), ("git_commit", git_commit), ("git_tree", git_tree)):
         expected_length = 40 if name in ("git_commit", "git_tree") else 64
         if not isinstance(value, str) or len(value) != expected_length or any(char not in "0123456789abcdef" for char in value):
@@ -124,6 +151,13 @@ def build_v21b_training_metric_row(
         "schema": "a2_piper_base_v21B_training_metric_v1",
         "producer_state": "PROCESS_COMPLETED",
         "scientific_plan_id": _V21B_PLAN_ID,
+        "cell": cell,
+        "seed": seed,
+        "source_config_sha256": source_config_sha256,
+        "materialization_sha256": materialization_sha256,
+        "materialized_config_sha256": materialized_config_sha256,
+        "materialization_phase": materialization_phase,
+        "adaptation_bundle_sha256": adaptation_bundle_sha256,
         "source_lock_sha256": source_lock_sha256,
         "source_lock_file_sha256": source_lock_file_sha256,
         "git_commit": git_commit,
@@ -2447,6 +2481,22 @@ class TRLPPOTrainer(PPOTrainer):
             raise ValueError("v21-B training metrics are raw producer rows without adjudication fields")
         if row.get("schema") != "a2_piper_base_v21B_training_metric_v1" or row.get("producer_state") != "PROCESS_COMPLETED":
             raise ValueError("v21-B training metric schema/state is invalid")
+        if row.get("cell") not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"}:
+            raise ValueError("v21-B training metric cell identity is invalid")
+        if isinstance(row.get("seed"), bool) or row.get("seed") not in (0, 1):
+            raise ValueError("v21-B training metric seed identity is invalid")
+        phase = row.get("materialization_phase")
+        adaptation = row.get("adaptation_bundle_sha256")
+        if phase not in _V21B_MATERIALIZATION_PHASES:
+            raise ValueError("v21-B training metric materialization phase identity is invalid")
+        if phase == "POST_CENSUS" and adaptation is not None:
+            raise ValueError("POST_CENSUS v21-B training metric adaptation identity must be null")
+        if phase == "FORMAL_PROMOTED" and (not isinstance(adaptation, str) or len(adaptation) != 64 or any(char not in "0123456789abcdef" for char in adaptation)):
+            raise ValueError("FORMAL_PROMOTED v21-B training metric adaptation identity is invalid")
+        for key in ("source_config_sha256", "materialization_sha256", "materialized_config_sha256"):
+            value = row.get(key)
+            if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+                raise ValueError(f"v21-B training metric {key} identity is invalid")
         normalized = row.get("metrics")
         if not isinstance(normalized, dict) or set(normalized) != set(_V21B_METRIC_SOURCES):
             raise ValueError("v21-B training metric normalized coverage is incomplete")
@@ -2481,12 +2531,19 @@ class TRLPPOTrainer(PPOTrainer):
             raise RuntimeError(f"v21-B cannot hash {label}: {path}") from exc
         return digest.hexdigest()
 
-    def _v21b_expected_config_identity(self, *paths: str) -> object:
+    def _v21b_required_config_identity(self, *paths: str, label: str, allow_none: bool = False) -> object:
+        """Read one identity from every resolved config location and require agreement."""
+
+        values: list[tuple[str, object]] = []
         for path in paths:
-            value = OmegaConf.select(self.config, path, default=None)
-            if value is not None:
-                return value
-        return None
+            value = OmegaConf.select(self.config, path, default=_V21B_MISSING_CONFIG)
+            if value is _V21B_MISSING_CONFIG or (value is None and not allow_none):
+                raise RuntimeError(f"v21-B configured {label} identity is missing at {path}")
+            values.append((path, value))
+        first = values[0][1]
+        if any(value != first for _, value in values[1:]):
+            raise RuntimeError(f"v21-B configured {label} identities disagree")
+        return first
 
     def _get_v21b_training_identity(self) -> dict[str, object]:
         """Resolve and cache source/checkpoint/Git identity for v21-B emission."""
@@ -2568,24 +2625,86 @@ class TRLPPOTrainer(PPOTrainer):
         return identity
 
     def _v21b_validate_config_identity(self, identity: dict[str, object]) -> None:
-        expected_checkpoint = self._v21b_expected_config_identity(
+        expected_checkpoint = self._v21b_required_config_identity(
             "v21b_source_checkpoint_sha256",
             "env.config.a2_v21B_source_checkpoint_sha256",
+            label="source checkpoint",
         )
-        if expected_checkpoint is not None and expected_checkpoint != identity["source_checkpoint_sha256"]:
+        if expected_checkpoint != identity["source_checkpoint_sha256"]:
             raise RuntimeError("v21-B configured source checkpoint identity mismatches source lock")
-        expected_source_lock = self._v21b_expected_config_identity(
+        expected_source_lock = self._v21b_required_config_identity(
             "v21b_source_lock_sha256",
             "env.config.a2_v21B_source_lock_sha256",
+            label="source lock",
         )
-        if expected_source_lock is not None and expected_source_lock != identity["source_lock_sha256"]:
+        if expected_source_lock != identity["source_lock_sha256"]:
             raise RuntimeError("v21-B configured source-lock identity mismatches source lock")
+        expected_cell = self._v21b_required_config_identity(
+            "v21b_cell", "env.config.a2_v21B_cell", label="cell"
+        )
+        expected_seed = self._v21b_required_config_identity(
+            "seed", "env.config.a2_v20_R2_seed", label="seed"
+        )
+        expected_phase = self._v21b_required_config_identity(
+            "v21b_materialization_phase", "env.config.a2_v21B_materialization_phase", label="materialization phase"
+        )
+        if expected_phase not in _V21B_MATERIALIZATION_PHASES:
+            raise RuntimeError("v21-B configured materialization phase identity is invalid")
+        if expected_cell not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"}:
+            raise RuntimeError("v21-B configured cell identity is invalid")
+        if isinstance(expected_seed, bool) or not isinstance(expected_seed, int) or expected_seed not in (0, 1):
+            raise RuntimeError("v21-B configured seed identity is invalid")
+        for label, paths, identity_key in (
+            (
+                "source config",
+                ("v21b_materialized_from_config_sha256", "env.config.a2_v21B_source_config_sha256"),
+                "source_config_sha256",
+            ),
+            (
+                "materialization",
+                ("v21b_materialization_sha256", "env.config.a2_v21B_materialization_sha256"),
+                "materialization_sha256",
+            ),
+            (
+                "materialized config",
+                ("v21b_materialized_config_sha256", "env.config.a2_v21B_materialized_config_sha256"),
+                "materialized_config_sha256",
+            ),
+        ):
+            expected = self._v21b_required_config_identity(*paths, label=label)
+            if not isinstance(expected, str) or len(expected) != 64 or any(char not in "0123456789abcdef" for char in expected):
+                raise RuntimeError(f"v21-B configured {label} identity is invalid")
+            if identity_key in identity and expected != identity[identity_key]:
+                raise RuntimeError(f"v21-B configured {label} identity mismatches signed materialization")
+            identity[identity_key] = expected
+        expected_adaptation = self._v21b_required_config_identity(
+            "v21b_adaptation_bundle_sha256", "env.config.a2_v21B_adaptation_bundle_sha256",
+            label="adaptation bundle", allow_none=True,
+        )
+        if expected_phase == "POST_CENSUS":
+            if expected_adaptation is not None:
+                raise RuntimeError("POST_CENSUS configured adaptation identity must be null")
+        elif not isinstance(expected_adaptation, str) or len(expected_adaptation) != 64 or any(char not in "0123456789abcdef" for char in expected_adaptation):
+            raise RuntimeError("FORMAL_PROMOTED configured adaptation identity must be a lowercase sha256 digest")
+        if "adaptation_bundle_sha256" in identity and expected_adaptation != identity["adaptation_bundle_sha256"]:
+            raise RuntimeError("v21-B configured adaptation bundle identity mismatches signed materialization")
+        identity["adaptation_bundle_sha256"] = expected_adaptation
+        identity["materialization_phase"] = expected_phase
+        identity["cell"] = expected_cell
+        identity["seed"] = expected_seed
 
     def _write_v21b_training_metric_if_enabled(self, metrics, batch_index):
         identity = self._get_v21b_training_identity()
         row = build_v21b_training_metric_row(
             metrics,
             batch_index=batch_index,
+            cell=identity["cell"],
+            seed=identity["seed"],
+            source_config_sha256=identity["source_config_sha256"],
+            materialization_sha256=identity["materialization_sha256"],
+            materialized_config_sha256=identity["materialized_config_sha256"],
+            materialization_phase=identity["materialization_phase"],
+            adaptation_bundle_sha256=identity["adaptation_bundle_sha256"],
             source_lock_sha256=identity["source_lock_sha256"],
             source_lock_file_sha256=identity["source_lock_file_sha256"],
             git_commit=identity["git_commit"],

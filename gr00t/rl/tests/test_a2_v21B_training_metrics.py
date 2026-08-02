@@ -28,6 +28,17 @@ def _actual_metrics() -> dict[str, float]:
     }
 
 
+_IDENTITY = {
+    "cell": "B4",
+    "seed": 0,
+    "source_config_sha256": "e" * 64,
+    "materialization_sha256": "f" * 64,
+    "materialized_config_sha256": "1" * 64,
+    "materialization_phase": "FORMAL_PROMOTED",
+    "adaptation_bundle_sha256": "2" * 64,
+}
+
+
 def test_v21b_producer_maps_exact_env_keys_to_normalized_row():
     metrics = _actual_metrics()
     normalized = normalize_v21b_training_metrics(metrics)
@@ -36,6 +47,7 @@ def test_v21b_producer_maps_exact_env_keys_to_normalized_row():
     row = build_v21b_training_metric_row(
         metrics,
         batch_index=7,
+        **_IDENTITY,
         source_lock_sha256="a" * 64,
         source_lock_file_sha256="b" * 64,
         git_commit="c" * 40,
@@ -55,6 +67,7 @@ def test_v21b_producer_rejects_synthetic_or_missing_sources():
         build_v21b_training_metric_row(
             {"send_latch_fire_rate": 1.0},
             batch_index=1,
+            **_IDENTITY,
             source_lock_sha256="a" * 64,
             source_lock_file_sha256="b" * 64,
             git_commit="c" * 40,
@@ -113,7 +126,26 @@ def test_v21b_identity_is_hashed_once_and_config_or_path_mutation_fails(tmp_path
     trainer = object.__new__(TRLPPOTrainer)
     trainer.config = OmegaConf.create({
         "r2_source_lock_path": str(source_lock),
-        "env": {"config": {"a2_v21B_source_checkpoint_sha256": hashlib.sha256(b"checkpoint").hexdigest()}},
+        "v21b_source_checkpoint_sha256": hashlib.sha256(b"checkpoint").hexdigest(),
+        "v21b_source_lock_sha256": "b" * 64,
+        "v21b_cell": "B4",
+        "v21b_materialized_from_config_sha256": _IDENTITY["source_config_sha256"],
+        "v21b_materialization_sha256": _IDENTITY["materialization_sha256"],
+        "v21b_materialized_config_sha256": _IDENTITY["materialized_config_sha256"],
+        "v21b_adaptation_bundle_sha256": _IDENTITY["adaptation_bundle_sha256"],
+        "v21b_materialization_phase": _IDENTITY["materialization_phase"],
+        "seed": 0,
+        "env": {"config": {
+            "a2_v21B_source_checkpoint_sha256": hashlib.sha256(b"checkpoint").hexdigest(),
+            "a2_v21B_source_lock_sha256": "b" * 64,
+            "a2_v21B_cell": "B4",
+            "a2_v20_R2_seed": 0,
+            "a2_v21B_source_config_sha256": _IDENTITY["source_config_sha256"],
+            "a2_v21B_materialization_sha256": _IDENTITY["materialization_sha256"],
+            "a2_v21B_materialized_config_sha256": _IDENTITY["materialized_config_sha256"],
+            "a2_v21B_adaptation_bundle_sha256": _IDENTITY["adaptation_bundle_sha256"],
+            "a2_v21B_materialization_phase": _IDENTITY["materialization_phase"],
+        }},
     })
     trainer.checkpoint_path = str(checkpoint)
 

@@ -18,6 +18,16 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
     ]
     plan = (root / plan_path if not plan_path.is_absolute() else plan_path).resolve()
     manifest = (root / manifest_path if not manifest_path.is_absolute() else manifest_path).resolve()
+    # Keep the explicitly named scientific/runtime inputs first for review
+    # readability, then include every regular v21-B Python runtime module.
+    # The latter is intentionally derived from the tree rather than a hand
+    # maintained allow-list: a new launcher/monitor/collector must be locked
+    # before it can participate in a run.
+    runtime_root = root / "scriptsFORhuman/v21B"
+    runtime_paths = [
+        path for path in sorted(runtime_root.glob("*.py"))
+        if path.is_file() and not path.is_symlink()
+    ]
     paths = [
         root / "gr00t/rl/envs/door/door_open_a2_base.py",
         root / "gr00t/rl/envs/door/a2_v21b_evidence.py",
@@ -35,8 +45,13 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
         root / V21B_WARM_START_PATH,
         *(root / path for path in V21B_CONFIG_PATHS.values()),
         *extras,
+        *runtime_paths,
     ]
-    rows = []
+    # Core entries overlap the runtime glob (schemas/probe runner and the
+    # probe modules), so deduplicate by repository-relative path before
+    # hashing.  Duplicate rows would make the lock ambiguous and are rejected
+    # by the validator as well.
+    unique_paths: dict[str, Path] = {}
     for path in paths:
         if not path.is_file() or path.is_symlink():
             raise V21BError(f"source lock path must be a regular file: {path}")
@@ -44,8 +59,20 @@ def build_source_lock(repo_root: Path, *, plan_path: Path, manifest_path: Path, 
             relative = path.relative_to(root).as_posix()
         except ValueError as exc:
             raise V21BError(f"source lock path escapes repository: {path}") from exc
-        rows.append({"path": relative, "sha256": sha256_file(path)})
-    rows.sort(key=lambda row: row["path"])
+        unique_paths[relative] = path
+    expected_runtime_paths = {
+        path.relative_to(root).as_posix() for path in runtime_paths
+    }
+    missing_runtime = expected_runtime_paths - set(unique_paths)
+    if missing_runtime:
+        raise V21BError(
+            "source lock omitted regular v21-B runtime modules: "
+            + ", ".join(sorted(missing_runtime))
+        )
+    rows = [
+        {"path": relative, "sha256": sha256_file(path)}
+        for relative, path in sorted(unique_paths.items())
+    ]
     payload = artifact_payload("source_lock", status="STATIC_PASS", source_paths=rows, immutable_after_freeze=True, cells=list(V21B_CELL_ORDER), schema_namespace="a2_piper_base_v21B_", v20_artifacts_rejected=True, source_checkpoint_sha256=V21B_WARM_START_SHA256)
     payload["source_lock_sha256"] = __import__("hashlib").sha256(canonical_json_bytes(rows)).hexdigest()
     return validate_artifact(payload, expected_schema=schema("source_lock"))
@@ -62,6 +89,18 @@ def validate_source_lock(lock: dict[str, object], repo_root: Path, *, require_cu
     paths = [row["path"] for row in rows]
     if len(paths) != len(set(paths)):
         raise V21BError("source lock contains duplicate paths")
+    runtime_root = root / "scriptsFORhuman/v21B"
+    expected_runtime = {
+        path.relative_to(root).as_posix()
+        for path in runtime_root.glob("*.py")
+        if path.is_file() and not path.is_symlink()
+    }
+    missing_runtime = expected_runtime - set(paths)
+    if missing_runtime:
+        raise V21BError(
+            "source lock is missing current v21-B runtime modules: "
+            + ", ".join(sorted(missing_runtime))
+        )
     eval_rows = [row for row in rows if row["path"] == V21B_EVAL_CONTRACT_PATH]
     if len(eval_rows) != 1:
         raise V21BError(f"source lock must contain exactly one {V21B_EVAL_CONTRACT_PATH} row")

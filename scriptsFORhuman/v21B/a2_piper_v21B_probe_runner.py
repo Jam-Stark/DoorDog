@@ -121,6 +121,12 @@ def _contract_output_paths(contract: Mapping[str, Any]) -> tuple[Path, ...]:
         if not isinstance(raw_metrics_path, str) or not isinstance(checkpoint_paths, list):
             raise V21BError("v21-B pilot result contract raw outputs are incomplete")
         return (Path(raw_metrics_path).absolute(), *(Path(item).absolute() for item in checkpoint_paths))
+    if kind == "smoke_evidence":
+        raw_metrics_path = contract.get("raw_metrics_path")
+        checkpoint_path = contract.get("checkpoint_path")
+        if not all(isinstance(item, str) and item for item in (raw_metrics_path, checkpoint_path)):
+            raise V21BError("v21-B smoke result contract raw outputs are incomplete")
+        return tuple(Path(item).absolute() for item in (raw_metrics_path, checkpoint_path))
     raise V21BError(f"unsupported v21-B result contract kind: {kind!r}")
 
 
@@ -172,6 +178,16 @@ def _digest_string(value: Any, *, label: str) -> str:
     if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
         raise V21BError(f"{label} must be a lowercase sha256 digest")
     return value
+
+
+def _validate_materialization_identity(phase: Any, adaptation: Any, *, label: str) -> None:
+    if phase not in ("POST_CENSUS", "FORMAL_PROMOTED"):
+        raise V21BError(f"{label} materialization phase is invalid")
+    if phase == "POST_CENSUS":
+        if adaptation is not None:
+            raise V21BError(f"{label} POST_CENSUS adaptation identity must be null")
+    elif not isinstance(adaptation, str) or len(adaptation) != 64 or any(char not in "0123456789abcdef" for char in adaptation):
+        raise V21BError(f"{label} FORMAL_PROMOTED adaptation identity must be a lowercase sha256 digest")
 
 
 def _read_json(path: Path, *, label: str) -> Any:
@@ -358,6 +374,15 @@ def _collect_zero_result(contract: Mapping[str, Any], *, plan_sha256: str | None
 
 
 def _collect_pilot_result(contract: Mapping[str, Any], *, plan_sha256: str | None) -> dict[str, Any]:
+    required_contract = (
+        "raw_metrics_path", "source_lock_path", "source_lock_sha256", "source_lock_file_sha256",
+        "source_config_sha256", "materialization_sha256", "materialized_config_sha256",
+        "adaptation_bundle_sha256", "materialization_phase", "source_checkpoint_sha256", "cell", "seed",
+        "repo_commit", "repo_tree",
+    )
+    if any(key not in contract for key in required_contract) or contract.get("cell") != "B4" or contract.get("seed") != 0:
+        raise V21BError("pilot result contract is missing exact cell/seed/materialization identity")
+    _validate_materialization_identity(contract.get("materialization_phase"), contract.get("adaptation_bundle_sha256"), label="pilot result contract")
     raw_path = _regular_file(Path(contract.get("raw_metrics_path", "")).absolute(), label="pilot raw metrics")
     source_lock_path = _regular_file(Path(contract.get("source_lock_path", "")).absolute(), label="pilot source lock")
     expected_source_lock = contract.get("source_lock_sha256")
@@ -383,7 +408,7 @@ def _collect_pilot_result(contract: Mapping[str, Any], *, plan_sha256: str | Non
             row = json.loads(line)
         except json.JSONDecodeError as exc:
             raise V21BError(f"pilot raw metrics line {line_number} is invalid JSON") from exc
-        if not isinstance(row, Mapping) or row.get("schema") != "a2_piper_base_v21B_training_metric_v1" or row.get("producer_state") != "PROCESS_COMPLETED" or row.get("scientific_plan_id") != "base_v21B_theta_arm_ablation_v1" or row.get("source_lock_sha256") != expected_source_lock or row.get("source_lock_file_sha256") != expected_source_lock_file or row.get("git_commit") != expected_commit or row.get("git_tree") != expected_tree:
+        if not isinstance(row, Mapping) or row.get("schema") != "a2_piper_base_v21B_training_metric_v1" or row.get("producer_state") != "PROCESS_COMPLETED" or row.get("scientific_plan_id") != "base_v21B_theta_arm_ablation_v1" or row.get("cell") != contract.get("cell") or row.get("seed") != contract.get("seed") or row.get("materialization_phase") != contract.get("materialization_phase") or row.get("source_config_sha256") != contract.get("source_config_sha256") or row.get("materialization_sha256") != contract.get("materialization_sha256") or row.get("materialized_config_sha256") != contract.get("materialized_config_sha256") or row.get("adaptation_bundle_sha256") != contract.get("adaptation_bundle_sha256") or row.get("source_lock_sha256") != expected_source_lock or row.get("source_lock_file_sha256") != expected_source_lock_file or row.get("git_commit") != expected_commit or row.get("git_tree") != expected_tree:
             raise V21BError("pilot raw metric schema/source-lock binding is invalid")
         if row.get("batch_index") != line_number or not isinstance(row.get("metrics"), Mapping) or not isinstance(row.get("metric_sources"), Mapping) or dict(row["metric_sources"]) != expected_sources or set(row["metrics"]) != set(required_metrics):
             raise V21BError("pilot raw metrics must contain contiguous batch indices")
@@ -426,6 +451,8 @@ def _collect_pilot_result(contract: Mapping[str, Any], *, plan_sha256: str | Non
         "plan_sha256": plan_sha256,
         "result_path": str(Path(contract["aggregate_path"]).absolute()),
         "arm_realistic_limit_nm": contract.get("arm_realistic_limit_nm"),
+        "cell": contract.get("cell"),
+        "seed": contract.get("seed"),
         "materialization_phase": contract.get("materialization_phase"),
         "materialization_sha256": contract.get("materialization_sha256"),
         "materialized_config_sha256": contract.get("materialized_config_sha256"),
@@ -433,6 +460,8 @@ def _collect_pilot_result(contract: Mapping[str, Any], *, plan_sha256: str | Non
         "source_lock_sha256": contract.get("source_lock_sha256"),
         "source_lock_file_sha256": contract.get("source_lock_file_sha256"),
         "source_config_sha256": contract.get("source_config_sha256"),
+        "materialization_phase": contract.get("materialization_phase"),
+        "adaptation_bundle_sha256": contract.get("adaptation_bundle_sha256"),
         "source_lock_path": str(source_lock_path),
         "raw_metrics_path": str(raw_path),
         "repo_commit": expected_commit,
@@ -447,6 +476,169 @@ def _collect_pilot_result(contract: Mapping[str, Any], *, plan_sha256: str | Non
     return aggregate
 
 
+_SMOKE_METRIC_KEYS = (
+    "send_latch_fire_rate", "hinge_at_send_latch_rad", "hinge_at_crossing_rad",
+    "send_to_cross_steps", "stage_overtime_rate", "upper_dof_overspeed_rate",
+    "arm_clipped_utilization", "arm_clipped_utilization_valid_rate", "finite_data",
+    "decomposition_sanity", "decomposition_sanity_valid_rate",
+)
+_SMOKE_METRIC_SOURCES = {name: f"a2_v21B_{name}" for name in _SMOKE_METRIC_KEYS}
+_SMOKE_COVERAGE_KEYS = frozenset(("arm_clipped_utilization_valid_rate", "decomposition_sanity_valid_rate"))
+
+
+def _validate_smoke_metric_row(
+    row: Mapping[str, Any],
+    *,
+    batch_index: int,
+    contract: Mapping[str, Any],
+) -> dict[str, Any]:
+    expected = {
+        "schema": "a2_piper_base_v21B_training_metric_v1",
+        "producer_state": "PROCESS_COMPLETED",
+        "scientific_plan_id": "base_v21B_theta_arm_ablation_v1",
+        "cell": contract.get("cell"),
+        "seed": contract.get("seed"),
+        "materialization_phase": contract.get("materialization_phase"),
+        "source_config_sha256": contract.get("source_config_sha256"),
+        "materialization_sha256": contract.get("materialization_sha256"),
+        "materialized_config_sha256": contract.get("materialized_config_sha256"),
+        "adaptation_bundle_sha256": contract.get("adaptation_bundle_sha256"),
+        "source_lock_sha256": contract.get("source_lock_sha256"),
+        "source_lock_file_sha256": contract.get("source_lock_file_sha256"),
+        "git_commit": contract.get("repo_commit"),
+        "git_tree": contract.get("repo_tree"),
+        "source_checkpoint_sha256": contract.get("source_checkpoint_sha256"),
+    }
+    if not isinstance(row, Mapping) or any(row.get(key) != value for key, value in expected.items()):
+        raise V21BError("smoke training metric schema/source/Git binding is invalid")
+    if row.get("cell") not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"} or isinstance(row.get("seed"), bool) or row.get("seed") not in (0, 1):
+        raise V21BError("smoke training metric cell/seed identity is invalid")
+    if row.get("batch_index") != batch_index:
+        raise V21BError("smoke training metrics must contain contiguous batch indices 1..10")
+    metrics = row.get("metrics")
+    sources = row.get("metric_sources")
+    if not isinstance(metrics, Mapping) or set(metrics) != set(_SMOKE_METRIC_KEYS) or not isinstance(sources, Mapping) or dict(sources) != _SMOKE_METRIC_SOURCES:
+        raise V21BError("smoke training metric normalized coverage/source map is incomplete")
+
+    def finite(value: Any, *, label: str) -> None:
+        if isinstance(value, float) and not math.isfinite(value):
+            raise V21BError(f"smoke training metric {label} is non-finite")
+        if isinstance(value, Mapping):
+            for key, child in value.items():
+                finite(child, label=f"{label}.{key}")
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                finite(child, label=f"{label}[{index}]")
+
+    finite(metrics, label=f"batch{batch_index}")
+    for key, value in metrics.items():
+        if isinstance(value, bool):
+            if key not in ("finite_data", "decomposition_sanity") or value is not True:
+                raise V21BError("smoke training boolean sanity metrics must be true")
+        elif isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(float(value)):
+            if key in ("finite_data", "decomposition_sanity") and float(value) != 1.0:
+                raise V21BError("smoke training numeric sanity metrics must equal one")
+        else:
+            raise V21BError("smoke training metric values must be finite scalars")
+    for key in _SMOKE_COVERAGE_KEYS:
+        if isinstance(metrics.get(key), bool) or metrics.get(key) != 1.0:
+            raise V21BError(f"smoke training coverage metric {key} must equal one")
+    for key in ("send_latch_fire_rate", "stage_overtime_rate", "upper_dof_overspeed_rate", "arm_clipped_utilization"):
+        value = metrics[key]
+        if isinstance(value, bool) or not 0.0 <= float(value) <= 1.0:
+            raise V21BError(f"smoke training metric {key} must be in [0,1]")
+    return dict(row)
+
+
+def _collect_smoke_result(contract: Mapping[str, Any], *, plan_sha256: str | None) -> dict[str, Any]:
+    """Admit the one producer-owned B4 smoke evidence bundle.
+
+    This collector only consumes files emitted by the child process.  It does
+    not synthesize rows or infer completion from stdout/W&B state.
+    """
+
+    required = (
+        "aggregate_path", "raw_metrics_path", "checkpoint_path",
+        "source_lock_path", "source_lock_sha256", "source_lock_file_sha256",
+        "source_checkpoint_sha256", "source_bindings", "materialization_phase",
+        "adaptation_bundle_sha256", "materialization_sha256", "materialized_config_sha256",
+        "source_config_sha256", "repo_commit", "repo_tree", "cell", "seed", "artifact_root",
+    )
+    if any(key not in contract for key in required):
+        raise V21BError("smoke result contract is missing an evidence binding")
+    if any(key in contract for key in ("terminal_path", "terminal_record", "terminal_record_path", "run_uuid", "full_evidence", "terminal_export_root")):
+        raise V21BError("smoke result contract must be scalar-only without terminal/full-trace identity")
+    if contract.get("cell") != "B4" or isinstance(contract.get("seed"), bool) or contract.get("seed") != 0 or contract.get("materialization_phase") != "FORMAL_PROMOTED" or contract.get("batch_count") != 10 or contract.get("checkpoint_step") != 10:
+        raise V21BError("smoke result contract cell/seed/phase is invalid")
+    _validate_materialization_identity(contract.get("materialization_phase"), contract.get("adaptation_bundle_sha256"), label="smoke result contract")
+    source_lock_path = _regular_file(Path(contract["source_lock_path"]).absolute(), label="smoke source lock")
+    source_lock = _read_json(source_lock_path, label="smoke source lock")
+    if not isinstance(source_lock, Mapping) or source_lock.get("schema") != "a2_piper_base_v21B_source_lock_v1" or source_lock.get("source_lock_sha256") != contract["source_lock_sha256"] or sha256_file(source_lock_path) != contract["source_lock_file_sha256"]:
+        raise V21BError("smoke source-lock artifact digest disagrees with the signed contract")
+    from .a2_piper_v21B_source_freeze import validate_source_lock
+
+    repo_root = Path(contract.get("repo_root", Path.cwd())).absolute()
+    validate_source_lock(dict(source_lock), repo_root, require_current=True)
+    if contract.get("repo_commit") != _git_value(repo_root, "HEAD") or contract.get("repo_tree") != _git_value(repo_root, "HEAD^{tree}"):
+        raise V21BError("smoke result contract Git identity is stale")
+    source_bindings = contract.get("source_bindings")
+    required_bindings = {
+        "source_checkpoint_sha256": contract["source_checkpoint_sha256"],
+        "source_lock_sha256": contract["source_lock_sha256"],
+        "source_config_sha256": contract["source_config_sha256"],
+        "materialization_sha256": contract["materialization_sha256"],
+        "materialized_config_sha256": contract["materialized_config_sha256"],
+    }
+    if not isinstance(source_bindings, Mapping) or dict(source_bindings) != required_bindings:
+        raise V21BError("smoke source bindings are incomplete")
+    raw_path = _regular_file(Path(contract["raw_metrics_path"]).absolute(), label="smoke training metrics")
+    rows: list[dict[str, Any]] = []
+    for line_number, line in enumerate(raw_path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            raise V21BError("smoke training metrics JSONL contains an empty line")
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise V21BError(f"smoke training metrics line {line_number} is invalid JSON") from exc
+        rows.append(_validate_smoke_metric_row(row, batch_index=line_number, contract=contract))
+    if len(rows) != 10:
+        raise V21BError("smoke training metrics require exactly contiguous batches 1..10")
+    checkpoint = _regular_file(Path(contract["checkpoint_path"]).absolute(), label="smoke step10 checkpoint")
+    if checkpoint.name != "model_step_000010.pt":
+        raise V21BError("smoke checkpoint must be model_step_000010.pt")
+    checkpoint_identity = _identity(checkpoint, label="smoke step10 checkpoint")
+    return {
+        "schema": "a2_piper_base_v21B_smoke_result_v1",
+        "producer_state": "AGGREGATED_AFTER_CHILD_EXIT",
+        "plan_sha256": plan_sha256,
+        "result_path": str(Path(contract["aggregate_path"]).absolute()),
+        "cell": "B4",
+        "seed": 0,
+        "completed_batches": 10,
+        "batch_indices": list(range(1, 11)),
+        "training_metrics_path": str(raw_path),
+        "raw_metrics_path": str(raw_path),
+        "training_metrics_file_sha256": sha256_file(raw_path),
+        "training_metrics": rows,
+        "checkpoint": checkpoint_identity,
+        "checkpoint_path": checkpoint_identity["path"],
+        "checkpoint_sha256": checkpoint_identity["sha256"],
+        "materialization_phase": contract["materialization_phase"],
+        "adaptation_bundle_sha256": contract["adaptation_bundle_sha256"],
+        "source_bindings": dict(source_bindings),
+        "source_checkpoint_sha256": contract["source_checkpoint_sha256"],
+        "source_lock_path": str(source_lock_path),
+        "source_lock_sha256": contract["source_lock_sha256"],
+        "source_lock_file_sha256": contract["source_lock_file_sha256"],
+        "source_config_sha256": contract["source_config_sha256"],
+        "materialization_sha256": contract["materialization_sha256"],
+        "materialized_config_sha256": contract["materialized_config_sha256"],
+        "repo_root": str(repo_root),
+        "repo_commit": contract["repo_commit"],
+        "repo_tree": contract["repo_tree"],
+    }
+
+
 def _collect_result_contract(contract: Mapping[str, Any], *, plan_sha256: str | None) -> dict[str, Any]:
     if not isinstance(contract, Mapping):
         raise V21BError("v21-B result_contract must be a mapping")
@@ -457,6 +649,8 @@ def _collect_result_contract(contract: Mapping[str, Any], *, plan_sha256: str | 
         return _collect_zero_result(contract, plan_sha256=plan_sha256)
     if kind == "pilot_metrics":
         return _collect_pilot_result(contract, plan_sha256=plan_sha256)
+    if kind == "smoke_evidence":
+        return _collect_smoke_result(contract, plan_sha256=plan_sha256)
     raise V21BError(f"unsupported v21-B result_contract kind: {kind!r}")
 
 
@@ -529,9 +723,9 @@ def run_process_once(
         raw_paths = result_contract.get("raw_paths", [])
         if isinstance(raw_paths, list) and any(Path(item).exists() or Path(item).is_symlink() for item in raw_paths):
             raise V21BError("v21-B raw producer output paths must not exist before the one-shot child")
-        for key in ("raw_metrics_path", "source_lock_path"):
-            if key in result_contract and (Path(result_contract[key]).exists() or Path(result_contract[key]).is_symlink()) and key == "raw_metrics_path":
-                raise V21BError(f"v21-B {key} must not exist before the one-shot child")
+        for raw_path in _contract_output_paths(result_contract):
+            if raw_path.exists() or raw_path.is_symlink():
+                raise V21BError(f"v21-B raw producer output path must not exist before the one-shot child: {raw_path}")
 
     marker_path = output_root / "ATTEMPT_CONSUMED.json"
     marker = {
@@ -630,6 +824,11 @@ def run_process_once(
             try:
                     if result_contract is not None:
                         aggregate = _collect_result_contract(result_contract, plan_sha256=plan_sha256)
+                        if result_contract.get("kind") == "smoke_evidence":
+                            aggregate["process_exit_code"] = returncode
+                            aggregate["process_natural_exit"] = returncode == 0
+                            aggregate["process_receipt_path"] = str((output_root / "process_receipt.json").absolute())
+                            aggregate["process_pid"] = child_pid
                         aggregate_path = Path(result_contract["aggregate_path"]).absolute()
                         _write_json_exclusive_atomic(aggregate_path, aggregate)
                     receipt["result_identities"] = _result_identities(result_paths)

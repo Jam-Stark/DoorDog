@@ -1,8 +1,8 @@
 ---
 name: worktree-routing
-scope: A2_Piper active implementation worktree and doorman reference worktree routing
+scope: A2_Piper active implementation worktrees and doorman reference worktree routing
 status: active
-last_updated: 2026-06-12 18:49 HKT
+last_updated: 2026-08-03 14:31 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/worktree-routing/description.md
@@ -16,17 +16,22 @@ read_when:
 
 ## Purpose
 
-记录 A2_Piper 的 workspace routing 与 branch/worktree 使用约定，避免把实现改动写到 doorman baseline/reference worktree。
+记录 A2_Piper 的 workspace routing 与 branch/worktree 使用约定，避免把主线、pull-v0 与 doorman baseline/reference 的改动写入错误 worktree。
 
 Workspace facts:
 
-- Active implementation worktree: `/home/baoquanc/workspace/DoorDog-A2_Piper`
-- Active implementation branch: `A2_Piper`
-- Remote target: `origin/A2_Piper` under `https://github.com/Jam-Stark/DoorDog.git`
+- Mainline implementation worktree: `/home/baoquanc/workspace/DoorDog-A2_Piper`
+- Mainline implementation branch: `A2_Piper`
+- Pull-v0 implementation worktree: `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`
+- Pull-v0 implementation branch: `codex/a2-piper-pull-v0-20260803`
+- Pull-v0 base SHA: `4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09`
+- Pull-v0 purpose: 按 `scriptsFORhuman/pull_task/a2_piper_pull_v0_worker_execution_split_20260803.md` 实施 pull-door v0；pull-v0 code、config、evidence 与 task memory 只写入该 worktree/branch。
+- Remote targets: `origin/A2_Piper` 与 `origin/codex/a2-piper-pull-v0-20260803` under `https://github.com/Jam-Stark/DoorDog.git`
+- Retired pull worktree `/home/baoquanc/workspace/DoorDog-A2_Piper_pull` 已移除；旧 branch `codex/a2-piper-pull-door` 的 tip 由 tag `archive/pull-door-v10-static-20260714` 保留。
 - Doorman baseline/reference worktree: `/home/baoquanc/workspace/GR00T-VisualSim2Real`
 - `/home/baoquanc/workspace/GR00T-VisualSim2Real` 平时只读参考，不在那里改代码。
-- A2_Piper 的 robot asset/config、env config、reward function、training/eval workflow、experiment progress 与相关 memory 更新，都应在 `/home/baoquanc/workspace/DoorDog-A2_Piper` 中完成。
-- 当 AI 需要参照原 doorman code 时，应读取 `/home/baoquanc/workspace/GR00T-VisualSim2Real` 的对应 source/config，再在 `/home/baoquanc/workspace/DoorDog-A2_Piper` 中实施变更。
+- 主线 A2_Piper 的 robot asset/config、env config、reward function、training/eval workflow、experiment progress 与相关 memory 更新，应在 `/home/baoquanc/workspace/DoorDog-A2_Piper` 中完成；pull-v0 scope 的对应改动例外地只在 `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0` 中完成。
+- 当 AI 需要参照原 doorman code 时，应读取 `/home/baoquanc/workspace/GR00T-VisualSim2Real` 的对应 source/config，再按任务 scope 在 mainline 或 pull-v0 implementation worktree 中实施变更。
 
 ## Subagent Background Notes
 
@@ -46,6 +51,7 @@ Workspace facts:
 ## Source Paths
 
 - A2_Piper worktree: `/home/baoquanc/workspace/DoorDog-A2_Piper`
+- pull-v0 worktree: `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`
 - doorman baseline/reference worktree: `/home/baoquanc/workspace/GR00T-VisualSim2Real`
 - IsaacLab source checkout: `/home/baoquanc/workspace/IsaacLab`
 - primary IsaacLab Python: `/home/baoquanc/anaconda3/envs/isaaclab/bin/python`
@@ -61,6 +67,7 @@ Workspace facts:
 
 - 2026-06-12 16:54 HKT - 初始化 A2_Piper worktree routing entry，明确 `/home/baoquanc/workspace/DoorDog-A2_Piper` 用于实现，`/home/baoquanc/workspace/GR00T-VisualSim2Real` 作为 doorman baseline/reference worktree 且默认只读。
 - 2026-06-12 18:49 HKT - 补充 A2_Piper subagent background notes：派发任务时告知 IsaacLab official docs 可用 Context7 `/websites/isaac-sim_github_io_isaaclab_main` 查询、local source 在 `/home/baoquanc/workspace/IsaacLab`、IsaacSim runtime 优先使用 `/home/baoquanc/anaconda3/envs/isaaclab/bin/python`、当前 shell 无 `rg` 需用 `find` + `grep`。
+- 2026-08-03 14:31 HKT - 归档并移除旧 pull worktree/branch，新增 pull-v0 worktree `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`、branch `codex/a2-piper-pull-v0-20260803` 与 base `4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09` 的 routing 约定。
 
 ## Recommended Next Files To Read
 

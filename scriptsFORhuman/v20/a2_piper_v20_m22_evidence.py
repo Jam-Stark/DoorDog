@@ -17,6 +17,7 @@ MANIFEST_SCHEMA = "a2_piper_v20_m22_candidate_manifest_v1"
 QUEUE_SCHEMA = "a2_piper_v20_m22_queue_v1"
 TELEMETRY_FILENAME = "a2_v20_strict_telemetry.json"
 EXIT_FILENAME = "eval_exit_code.txt"
+TRACE_TOPOLOGY_SCHEMA = "a2_piper_v20_trace_topology_v2"
 TYPED_GROUPS = {
     "send": (
         "send_ready",
@@ -166,10 +167,13 @@ def _validate_record(
     trace = row.get("trace_topology")
     if (
         not isinstance(trace, Mapping)
+        or trace.get("schema") != TRACE_TOPOLOGY_SCHEMA
+        or trace.get("mode") not in {"full_episode", "stage_window"}
+        or trace.get("first_episode_identity") is not True
         or trace.get("ordered_unique_contiguous") is not True
         or trace.get("terminal_consistent") is not True
-        or trace.get("prefix_starts_at_one") is not True
-        or trace.get("sample_count_matches_episode_length") is not True
+        or trace.get("episode_length_buf_equals_step_index_plus_one") is not True
+        or trace.get("captured_span_matches_trace_count") is not True
     ):
         raise V20EvidenceError(f"env{env_id} trace topology is invalid")
 

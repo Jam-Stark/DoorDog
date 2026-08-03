@@ -395,6 +395,10 @@ _A2_V20_TYPED_TELEMETRY_GROUPS = {
     ),
 }
 
+# Stage-window captures may begin after simulator step zero.  The absolute
+# episode-length counter is still required to equal ``step_index + 1``.
+_A2_V20_TRACE_TOPOLOGY_SCHEMA = "a2_piper_v20_trace_topology_v2"
+
 
 def _a2_v20_validate_typed_value(value, field_name, *, allow_na=True):
     """Validate one strict v20 scalar or explicit typed N/A value."""
@@ -507,10 +511,13 @@ def validate_a2_v20_telemetry_records(
         trace = row.get("trace_topology")
         if (
             not isinstance(trace, dict)
+            or trace.get("schema") != _A2_V20_TRACE_TOPOLOGY_SCHEMA
+            or trace.get("mode") not in {"full_episode", "stage_window"}
             or trace.get("ordered_unique_contiguous") is not True
             or trace.get("terminal_consistent") is not True
-            or trace.get("prefix_starts_at_one") is not True
-            or trace.get("sample_count_matches_episode_length") is not True
+            or trace.get("first_episode_identity") is not True
+            or trace.get("episode_length_buf_equals_step_index_plus_one") is not True
+            or trace.get("captured_span_matches_trace_count") is not True
         ):
             raise RuntimeError(f"A2 v20 telemetry row {row_index} trace topology is not strict-valid.")
     if seen != set(range(expected_num_envs)):
@@ -588,7 +595,13 @@ def _build_a2_v20_strict_telemetry_records(
         env_id = row.get("env_id")
         if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in by_env:
             raise RuntimeError(f"A2 v20 trace row {row_index} has invalid env_id={env_id!r}.")
-        if row.get("episode_index") != 0 or row.get("first_episode_active") is not True:
+        episode_index = row.get("episode_index")
+        if (
+            isinstance(episode_index, bool)
+            or not isinstance(episode_index, int)
+            or episode_index != 0
+            or row.get("first_episode_active") is not True
+        ):
             raise RuntimeError("A2 v20 strict trace rejects non-first-episode rows.")
         by_env[env_id].append(row)
     diagnostic_by_env = {}
@@ -630,10 +643,9 @@ def _build_a2_v20_strict_telemetry_records(
             raise RuntimeError(
                 f"A2 v20 env{env_id} episode_length_buf must be ordered and contiguous."
             )
-        if episode_lengths[0] != 1:
+        if any(length != step + 1 for step, length in zip(steps, episode_lengths)):
             raise RuntimeError(
-                f"A2 v20 env{env_id} first episode_length_buf must equal 1; "
-                f"got {episode_lengths[0]}."
+                f"A2 v20 env{env_id} episode_length_buf must equal step_index + 1 for every captured row."
             )
         if (
             not isinstance(terminal_reason, str)
@@ -648,11 +660,10 @@ def _build_a2_v20_strict_telemetry_records(
             or not isinstance(terminal_length, int)
             or terminal_length <= 0
             or episode_lengths[-1] != terminal_length
-            or len(episode_lengths) != terminal_length
+            or len(steps) != steps[-1] - steps[0] + 1
         ):
             raise RuntimeError(
-                f"A2 v20 env{env_id} terminal episode_length_buf must equal both the "
-                "final trace length and sample count."
+                f"A2 v20 env{env_id} terminal episode_length_buf/span consistency is invalid."
             )
         dt = diagnostic.get("control_dt")
         if isinstance(dt, bool) or not isinstance(dt, (int, float)) or not math.isfinite(float(dt)) or float(dt) <= 0:
@@ -807,10 +818,13 @@ def _build_a2_v20_strict_telemetry_records(
                 },
                 "reward_units": {name: "episode-sum" for name in sorted(reward_sums)},
                 "trace_topology": {
+                    "schema": _A2_V20_TRACE_TOPOLOGY_SCHEMA,
+                    "mode": "full_episode" if steps[0] == 0 else "stage_window",
+                    "first_episode_identity": True,
                     "ordered_unique_contiguous": True,
                     "terminal_consistent": True,
-                    "prefix_starts_at_one": episode_lengths[0] == 1,
-                    "sample_count_matches_episode_length": len(steps) == episode_lengths[-1],
+                    "episode_length_buf_equals_step_index_plus_one": True,
+                    "captured_span_matches_trace_count": len(steps) == steps[-1] - steps[0] + 1,
                     "first_step_index": steps[0],
                     "last_step_index": steps[-1],
                     "episode_length_first": episode_lengths[0],

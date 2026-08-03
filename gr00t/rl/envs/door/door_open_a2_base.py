@@ -64,9 +64,11 @@ from gr00t.rl.envs.door.a2_v21b_evidence import (
     a2_v21b_accumulate_arm_step,
     a2_v21b_arm_tracking_error,
     a2_v21b_build_census_frames_from_episode,
+    a2_v21b_build_task_record,
     a2_v21b_build_terminal_record,
     a2_v21b_build_step_evidence,
     a2_v21b_export_census_frames,
+    a2_v21b_export_episode_bundle,
     a2_v21b_export_terminal_record,
     a2_v21b_finalize_arm_episode,
     a2_v21b_init_arm_episode_accumulator,
@@ -5110,6 +5112,7 @@ class DoorPregrasp(
     A2_V21B_SCENARIO_MANIFEST_MATERIALIZATION_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_materialization_sha256"
     A2_V21B_SCENARIO_MANIFEST_JSON_SHA256_CONFIG_KEY = "a2_v21B_scenario_manifest_json_sha256"
     A2_V21B_SCENARIO_TOPOLOGY_CONFIG_KEY = "a2_v21B_census_topology"
+    A2_V21B_EVIDENCE_AGGREGATION_TOPOLOGY_CONFIG_KEY = "a2_v21B_evidence_aggregation_topology"
     A2_V21B_RUN_UUID_CONFIG_KEY = "a2_v21B_run_uuid"
     A2_V21B_ADAPTATION_SHA256_CONFIG_KEY = "a2_v21B_adaptation_bundle_sha256"
     A2_V21B_TERMINAL_EXPORT_ROOT_CONFIG_KEY = "a2_v21B_terminal_export_root"
@@ -5549,6 +5552,33 @@ class DoorPregrasp(
         source_config_sha = self.config.get("a2_v21B_source_config_sha256")
         materialization_sha = self.config.get("a2_v21B_materialization_sha256")
         materialized_config_sha = self.config.get("a2_v21B_materialized_config_sha256")
+        source_checkpoint_path = self.config.get(
+            "a2_v21B_source_checkpoint_path",
+            self.config.get("checkpoint"),
+        )
+        evaluated_checkpoint_path = self.config.get("a2_v21B_evaluated_checkpoint_path")
+        evaluated_checkpoint_sha = self.config.get("a2_v21B_evaluated_checkpoint_sha256")
+        evaluation_command_sha = self.config.get("a2_v21B_evaluation_command_sha256")
+        evaluated_binding = {
+            "a2_v21B_evaluated_checkpoint_path": evaluated_checkpoint_path,
+            "a2_v21B_evaluated_checkpoint_sha256": evaluated_checkpoint_sha,
+            "a2_v21B_evaluation_command_sha256": evaluation_command_sha,
+        }
+        evaluated_present = [value is not None for value in evaluated_binding.values()]
+        if any(evaluated_present) and not all(evaluated_present):
+            raise RuntimeError(
+                "v21-B evaluated postformal binding is partial; path, checkpoint sha256, and command sha256 are required together."
+            )
+        postformal_evaluated = all(evaluated_present)
+        if postformal_evaluated:
+            if not isinstance(evaluated_checkpoint_path, str) or not evaluated_checkpoint_path:
+                raise RuntimeError("v21-B evaluated postformal binding requires a non-empty checkpoint path")
+            for value, name in (
+                (evaluated_checkpoint_sha, "a2_v21B_evaluated_checkpoint_sha256"),
+                (evaluation_command_sha, "a2_v21B_evaluation_command_sha256"),
+            ):
+                if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+                    raise RuntimeError(f"v21-B evaluated postformal binding requires a lowercase SHA-256 {name}")
         adaptation_sha = self.config.get(self.A2_V21B_ADAPTATION_SHA256_CONFIG_KEY)
         formal_launch = self._get_a2_v20_formal_launch()
         if profile not in ("ARM_V20", "ARM_REALISTIC"):
@@ -5576,6 +5606,20 @@ class DoorPregrasp(
             topology = self.config.get(self.A2_V21B_SCENARIO_TOPOLOGY_CONFIG_KEY)
             if topology not in ("canonical16", "heavy16"):
                 raise RuntimeError("v21-B signed probe scenario topology must be canonical16 or heavy16.")
+            aggregation_topology = self.config.get(self.A2_V21B_EVIDENCE_AGGREGATION_TOPOLOGY_CONFIG_KEY)
+            if postformal_evaluated and aggregation_topology not in ("canonical16", "pooled_seed16", "holdout_seed16", "render1"):
+                raise RuntimeError("postformal v21-B signed probe evidence aggregation topology must be canonical16, pooled_seed16, holdout_seed16, or render1.")
+            if not postformal_evaluated and aggregation_topology is not None and aggregation_topology not in ("canonical16", "pooled_seed16", "holdout_seed16", "render1"):
+                raise RuntimeError("v21-B signed probe evidence aggregation topology is invalid when provided.")
+            if aggregation_topology == "render1":
+                selected_render_env = self.config.get("a2_v21B_render_env_id")
+                if isinstance(selected_render_env, bool) or not isinstance(selected_render_env, int) or not 0 <= selected_render_env < 16:
+                    raise RuntimeError("signed render1 admission requires env.config.a2_v21B_render_env_id in 0..15")
+            if postformal_evaluated:
+                for binding_key in ("a2_v21B_queue_row_id", "a2_v21B_evaluation_root"):
+                    binding_value = self.config.get(binding_key)
+                    if not isinstance(binding_value, str) or not binding_value:
+                        raise RuntimeError(f"signed postformal admission requires env.config.{binding_key}")
             required_bindings = (
                 self.A2_V21B_SCENARIO_MANIFEST_PATH_CONFIG_KEY,
                 self.A2_V21B_SCENARIO_MANIFEST_SHA256_CONFIG_KEY,
@@ -6059,6 +6103,37 @@ class DoorPregrasp(
                 f"({self.num_envs}, 1); got {shape}."
             )
         return gripper_primitive_raw.squeeze(-1)
+
+    def _a2_v21b_render_selected_env_ids(self, env_ids):
+        aggregation_topology = self.config.get(self.A2_V21B_EVIDENCE_AGGREGATION_TOPOLOGY_CONFIG_KEY)
+        if aggregation_topology != "render1":
+            return self._normalize_render_env_ids(env_ids)
+        selected_env_id = self.config.get("a2_v21B_render_env_id")
+        if isinstance(selected_env_id, bool) or not isinstance(selected_env_id, int) or not 0 <= selected_env_id < self.num_envs:
+            raise RuntimeError("render1 requires env.config.a2_v21B_render_env_id within the live environment range")
+        if env_ids is None:
+            return torch.tensor([selected_env_id], dtype=torch.long, device=self.device)
+        normalized = self._normalize_render_env_ids(env_ids)
+        return normalized[normalized == selected_env_id]
+
+    def render_results(self, env_ids=None, frame_type="step"):
+        selected = self._a2_v21b_render_selected_env_ids(env_ids)
+        if selected.numel() == 0:
+            return
+        return super().render_results(env_ids=selected, frame_type=frame_type)
+
+    def close_render_results_for_envs(self, env_ids, episode_lengths=None, terminal_reasons=None):
+        aggregation_topology = self.config.get(self.A2_V21B_EVIDENCE_AGGREGATION_TOPOLOGY_CONFIG_KEY)
+        if aggregation_topology != "render1":
+            return super().close_render_results_for_envs(env_ids, episode_lengths=episode_lengths, terminal_reasons=terminal_reasons)
+        normalized = self._normalize_render_env_ids(env_ids)
+        selected = self._a2_v21b_render_selected_env_ids(normalized)
+        if selected.numel() == 0:
+            return
+        selected_positions = [index for index, value in enumerate(normalized.tolist()) if value == int(selected[0].item())]
+        selected_lengths = None if episode_lengths is None else [episode_lengths[index] for index in selected_positions]
+        selected_reasons = None if terminal_reasons is None else [terminal_reasons[index] for index in selected_positions]
+        return super().close_render_results_for_envs(selected, episode_lengths=selected_lengths, terminal_reasons=selected_reasons)
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -7135,6 +7210,13 @@ class DoorPregrasp(
         if bool(getattr(self, "_r2_finalized", torch.zeros(self.num_envs, dtype=torch.bool, device=self.device))[env_id].item()):
             raise RuntimeError(f"v21-B terminal export was already finalized for env {env_id}.")
         source_sha = self.config.get("a2_v21B_source_checkpoint_sha256")
+        source_checkpoint_path = self.config.get(
+            "a2_v21B_source_checkpoint_path",
+            self.config.get("checkpoint"),
+        )
+        evaluated_checkpoint_path = self.config.get("a2_v21B_evaluated_checkpoint_path")
+        evaluated_checkpoint_sha = self.config.get("a2_v21B_evaluated_checkpoint_sha256")
+        evaluation_command_sha = self.config.get("a2_v21B_evaluation_command_sha256")
         source_lock_sha = self.config.get("a2_v21B_source_lock_sha256")
         source_config_sha = self.config.get("a2_v21B_source_config_sha256")
         materialization_sha = self.config.get("a2_v21B_materialization_sha256")
@@ -7166,7 +7248,7 @@ class DoorPregrasp(
             if self.config.get("a2_v21B_arm_profile") != "ARM_V20":
                 raise RuntimeError("CENSUS_PRE_K raw census export requires the ARM_V20 profile")
             provenance_map = provenance if isinstance(provenance, Mapping) else {}
-            topology = provenance_map.get("topology", self.config.get("a2_v21B_census_topology"))
+            topology = provenance_map.get("runtime_scenario_topology", provenance_map.get("topology", self.config.get("a2_v21B_census_topology")))
             episode_id = provenance_map.get("episode_id", f"{run_uuid}:env{env_id}")
             if topology not in ("canonical16", "heavy16") or not isinstance(episode_id, str) or not episode_id:
                 raise RuntimeError("CENSUS_PRE_K raw export requires canonical16/heavy16 topology and episode_id provenance")
@@ -7204,21 +7286,46 @@ class DoorPregrasp(
             raise RuntimeError("FORMAL_PROMOTED terminal export requires the signed adaptation digest")
         provenance_map = dict(provenance or {})
         if signed_probe:
-            runtime_scenario = self._a2_v21b_validate_runtime_scenario(env_id, topology=provenance_map.get("topology"), scenario_id=provenance_map.get("scenario_id"))
-            provenance_map.update({"scenario_id": runtime_scenario["scenario_id"], "topology": runtime_scenario["topology"], "door_weight_kg": runtime_scenario["door_mass_kg"], "hinge_force_nm": runtime_scenario["hinge_max_force_nm"], "scenario_sha256": runtime_scenario["scenario_sha256"], "manifest_sha256": runtime_scenario["manifest_sha256"], "canonical_manifest_sha256": runtime_scenario["canonical_manifest_sha256"], "manifest_file_sha256": runtime_scenario["manifest_file_sha256"], "manifest_materialization_sha256": runtime_scenario["materialization_sha256"], "selected_k_nm": self.config.get("a2_v21B_arm_realistic_effort_limit_nm")})
+            runtime_topology = provenance_map.get("runtime_scenario_topology", provenance_map.get("topology", self.config.get(self.A2_V21B_SCENARIO_TOPOLOGY_CONFIG_KEY)))
+            aggregation_topology = provenance_map.get("evidence_aggregation_topology", self.config.get(self.A2_V21B_EVIDENCE_AGGREGATION_TOPOLOGY_CONFIG_KEY))
+            if aggregation_topology not in ("canonical16", "pooled_seed16", "holdout_seed16", "render1"):
+                raise RuntimeError("signed v21-B terminal export requires a declared evidence aggregation topology")
+            runtime_scenario = self._a2_v21b_validate_runtime_scenario(env_id, topology=runtime_topology, scenario_id=provenance_map.get("scenario_id"))
+            provenance_map.update({"scenario_id": runtime_scenario["scenario_id"], "runtime_scenario_topology": runtime_scenario["topology"], "evidence_aggregation_topology": aggregation_topology, "topology": aggregation_topology, "door_weight_kg": runtime_scenario["door_mass_kg"], "hinge_force_nm": runtime_scenario["hinge_max_force_nm"], "scenario_sha256": runtime_scenario["scenario_sha256"], "manifest_sha256": runtime_scenario["manifest_sha256"], "canonical_manifest_sha256": runtime_scenario["canonical_manifest_sha256"], "manifest_file_sha256": runtime_scenario["manifest_file_sha256"], "manifest_materialization_sha256": runtime_scenario["materialization_sha256"], "selected_k_nm": self.config.get("a2_v21B_arm_realistic_effort_limit_nm")})
         else:
             if phase != "FORMAL_PROMOTED":
                 raise RuntimeError("unbound v21-B terminal evidence is only valid for FORMAL_PROMOTED runtime")
             runtime_scenario = self._r2_runtime_scenario(env_id)
-            topology = provenance_map.get("topology", "canonical16")
+            topology = provenance_map.get("runtime_scenario_topology", provenance_map.get("topology", "canonical16"))
             if topology not in ("canonical16", "heavy16"):
                 raise RuntimeError("unbound v21-B terminal provenance topology must be an execution label")
-            provenance_map.update({"scenario_id": runtime_scenario["scenario_id"], "topology": topology, "door_weight_kg": runtime_scenario["door_mass_kg"], "hinge_force_nm": runtime_scenario["hinge_max_force_nm"], "manifest_bound": False, "scenario_source": "runtime_actual_unbound"})
+            aggregation_topology = provenance_map.get("evidence_aggregation_topology", "canonical16")
+            if aggregation_topology not in ("canonical16", "pooled_seed16", "holdout_seed16", "render1"):
+                raise RuntimeError("unbound v21-B terminal provenance aggregation topology is invalid")
+            provenance_map.update({"scenario_id": runtime_scenario["scenario_id"], "runtime_scenario_topology": topology, "evidence_aggregation_topology": aggregation_topology, "topology": aggregation_topology, "door_weight_kg": runtime_scenario["door_mass_kg"], "hinge_force_nm": runtime_scenario["hinge_max_force_nm"], "manifest_bound": False, "scenario_source": "runtime_actual_unbound"})
             for key in ("manifest_sha256", "canonical_manifest_sha256", "manifest_file_sha256", "manifest_materialization_sha256", "scenario_sha256", "selected_k_nm"):
                 provenance_map.pop(key, None)
         provenance_map["env_id"] = env_id
         provenance_map["run_uuid"] = run_uuid
-        provenance_map.update({"materialization_phase": phase, "source_checkpoint_sha256": source_sha, "source_lock_sha256": source_lock_sha, "source_config_sha256": source_config_sha, "materialization_sha256": materialization_sha, "materialized_config_sha256": materialized_config_sha})
+        if signed_probe:
+            queue_row_id = provenance_map.get("queue_row_id", self.config.get("a2_v21B_queue_row_id"))
+            evaluation_root = provenance_map.get("evaluation_root", self.config.get("a2_v21B_evaluation_root"))
+            if not isinstance(queue_row_id, str) or not queue_row_id or not isinstance(evaluation_root, str) or not evaluation_root:
+                raise RuntimeError("signed v21-B terminal export requires exact queue_row_id and evaluation_root bindings")
+            provenance_map["queue_row_id"] = queue_row_id
+            provenance_map["evaluation_root"] = evaluation_root
+        provenance_map.update({
+            "cell": cell,
+            "group": group,
+            "seed": seed,
+            "materialization_phase": phase,
+            "source_checkpoint_sha256": source_sha,
+            "source_lock_sha256": source_lock_sha,
+            "source_config_sha256": source_config_sha,
+            "materialization_sha256": materialization_sha,
+            "materialized_config_sha256": materialized_config_sha,
+            "adaptation_bundle_sha256": adaptation_sha,
+        })
         record = a2_v21b_build_terminal_record(
             self.get_a2_v21b_arm_episode_evidence(env_id),
             plan_id=A2_V21B_PLAN_ID,
@@ -7228,6 +7335,10 @@ class DoorPregrasp(
             source_checkpoint_sha256=source_sha,
             adaptation_bundle_sha256=adaptation_sha,
             provenance=provenance_map,
+            source_checkpoint_path=source_checkpoint_path if signed_probe else None,
+            evaluated_checkpoint_path=evaluated_checkpoint_path if signed_probe else None,
+            evaluated_checkpoint_sha256=evaluated_checkpoint_sha if signed_probe else None,
+            evaluation_command_sha256=evaluation_command_sha if signed_probe else None,
         )
         terminal_reason = self._r2_terminal_reason[env_id]
         trace_rows = self._r2_trace_rows[env_id]
@@ -7236,12 +7347,127 @@ class DoorPregrasp(
         stages = [row.get("stage") for row in trace_rows if isinstance(row, Mapping)]
         if len(stages) != len(trace_rows) or any(isinstance(stage, bool) or not isinstance(stage, int) or stage < 0 or stage >= self.num_stages for stage in stages):
             raise RuntimeError("v21-B terminal task state contains invalid actual stage samples")
-        record["task"] = {"goal": terminal_reason == "complete", "complete": terminal_reason == "complete", "terminal_reason": terminal_reason, "max_stage": max(stages), "env_id": env_id}
+        held_crossing = getattr(self, "_a2_crossing_while_holding", None)
+        if (
+            not torch.is_tensor(held_crossing)
+            or tuple(held_crossing.shape) != (self.num_envs,)
+            or held_crossing.dtype != torch.bool
+            or held_crossing.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "v21-B signed task finalization requires crossing_while_holding "
+                f"as bool tensor shape ({self.num_envs},) on {self.device}; "
+                f"got {None if not torch.is_tensor(held_crossing) else (tuple(held_crossing.shape), held_crossing.dtype, held_crossing.device)}"
+            )
+        held_crossing_value = bool(held_crossing[env_id].item())
+        task_payload = {
+            "goal": terminal_reason == "complete",
+            "complete": terminal_reason == "complete",
+            "terminal_reason": terminal_reason,
+            "max_stage": max(stages),
+            "env_id": env_id,
+        }
+        task_payload["held_crossing"] = held_crossing_value
+
+        # Route-B consumes the task record rather than the arm estimate record.
+        # Keep every scalar tied to the live endpoint buffers and preserve typed
+        # N/A when a terminal episode has no valid crossing/release denominator.
+        effective_telemetry = self._get_a2_v21b_effective_telemetry()
+
+        def _metric_or_na(value: torch.Tensor, valid: torch.Tensor, *, reason: str) -> object:
+            if not bool(valid[env_id].item()):
+                return {"status": "N/A", "reason": reason, "denominator": 0}
+            scalar = float(value[env_id].item())
+            if not math.isfinite(scalar):
+                raise RuntimeError(f"v21-B task metric is non-finite for env {env_id}: {reason}")
+            return scalar
+
+        crossing_valid = effective_telemetry["hinge_at_crossing_valid"]
+        release_valid = self._a2_release_event_valid
+        opening_slip = (
+            float(self._r2_opening_slip_max[env_id].item())
+            if bool(release_valid[env_id].item())
+            else {"status": "N/A", "reason": "NO_RELEASE_EVENT", "denominator": 0}
+        )
+        task_payload.update({
+            "hinge_at_crossing_rad": _metric_or_na(
+                effective_telemetry["hinge_at_crossing"],
+                crossing_valid,
+                reason="NO_ROOT_CROSSING",
+            ),
+            "opening_slip_max_m": opening_slip,
+            "pre_send_planar_p95_m": float(
+                torch.linalg.norm(self._a2_v20_max_pre_send_displacement_se2[env_id, :2]).item()
+            ),
+            "pre_send_yaw_p95_rad": float(self._a2_v20_max_pre_send_displacement_se2[env_id, 2].item()),
+            "task_time_p95_s": float((int(self._r2_terminal_step[env_id].item()) + 1) * self.dt),
+            "stage_overtime": bool(effective_telemetry["stage_overtime"][env_id].item()),
+            "upper_dof_overspeed": bool(effective_telemetry["upper_dof_overspeed"][env_id].item()),
+        })
+        for metric_name in (
+            "pre_send_planar_p95_m",
+            "pre_send_yaw_p95_rad",
+            "task_time_p95_s",
+        ):
+            if not math.isfinite(float(task_payload[metric_name])):
+                raise RuntimeError(f"v21-B task metric {metric_name} is non-finite for env {env_id}")
+        if isinstance(opening_slip, float) and not math.isfinite(opening_slip):
+            raise RuntimeError(f"v21-B task opening slip is non-finite for env {env_id}")
+        record["task"] = task_payload
         import hashlib
+        trace_root = Path(export_path).parent / "task_traces"
+        task_record_root = Path(export_path).parent / "task_records"
+        trace_path = trace_root / f"{cell}_{run_uuid}_env{env_id}.jsonl"
+        task_record_path = task_record_root / f"{cell}_{run_uuid}_env{env_id}.json"
+        if signed_probe:
+            if not isinstance(evaluated_checkpoint_path, str) or not evaluated_checkpoint_path:
+                raise RuntimeError("v21-B evaluated terminal export requires evaluated checkpoint path")
+            if not isinstance(evaluated_checkpoint_sha, str) or len(evaluated_checkpoint_sha) != 64:
+                raise RuntimeError("v21-B evaluated terminal export requires evaluated checkpoint sha256")
+            if not isinstance(evaluation_command_sha, str) or len(evaluation_command_sha) != 64:
+                raise RuntimeError("v21-B evaluated terminal export requires evaluation command sha256")
+            task_record = a2_v21b_build_task_record(
+                trace_rows,
+                run_uuid=run_uuid,
+                env_id=env_id,
+                terminal_reason=terminal_reason,
+                topology=str(provenance_map["evidence_aggregation_topology"]),
+                seed=int(seed),
+                source_checkpoint_path=str(source_checkpoint_path),
+                source_checkpoint_sha256=source_sha,
+                evaluated_checkpoint_path=evaluated_checkpoint_path,
+                evaluated_checkpoint_sha256=evaluated_checkpoint_sha,
+                evaluation_command_sha256=evaluation_command_sha,
+                trace_path=str(trace_path),
+                task=task_payload,
+                provenance=provenance_map,
+                runtime_scenario_topology=str(provenance_map["runtime_scenario_topology"]),
+                evidence_aggregation_topology=str(provenance_map["evidence_aggregation_topology"]),
+                queue_row_id=provenance_map.get("queue_row_id"),
+                evaluation_root=provenance_map.get("evaluation_root"),
+            )
+            record["task_record"] = {
+                "schema": task_record["schema"],
+                "path": str(task_record_path),
+                "record_id": task_record["record_id"],
+                "trace_path": str(trace_path),
+                "trace_sha256": task_record["trace"]["sha256"],
+                "arm_record_path": str(Path(export_path).expanduser().resolve()),
+            }
         unsigned = dict(record)
         unsigned.pop("record_id", None)
         record["record_id"] = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")).hexdigest()
-        a2_v21b_export_terminal_record(export_path, record)
+        if signed_probe:
+            a2_v21b_export_episode_bundle(
+                trace_path=trace_path,
+                task_record_path=task_record_path,
+                arm_record_path=export_path,
+                rows=trace_rows,
+                task_record=task_record,
+                arm_record=record,
+            )
+        else:
+            a2_v21b_export_terminal_record(export_path, record)
         self._r2_finalized[env_id] = True
         return record
 
@@ -7690,10 +7916,12 @@ class DoorPregrasp(
         self._r2_positive_a_income = torch.zeros(
             self.num_envs, dtype=torch.float32, device=self.device
         )
-        self._r2_reward_component_sums = {
-            name: torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
-            for name in (getattr(self, "reward_scales", None) or getattr(self.config.rewards, "reward_scales", None) or ())
-        }
+        # Reward preparation may not have run yet, and config reward scales can
+        # include inactive zero-scale terms.  Defer the telemetry registry to
+        # the first authoritative raw-component hook instead of guessing from
+        # either source.
+        self._r2_reward_component_sums = {}
+        self._r2_reward_component_registry_initialized = False
         self._r2_reward_steps = torch.zeros(
             self.num_envs, dtype=torch.long, device=self.device
         )
@@ -7773,8 +8001,6 @@ class DoorPregrasp(
         self._r2_terminal_step[env_ids] = -1
         self._r2_current_arm_raw_action[env_ids] = 0.0
         self._r2_current_arm_raw_action_valid[env_ids] = False
-        self._r2_last_scaled_components = {}
-        self._r2_last_raw_components = {}
         for env_id in env_ids.tolist():
             self._r2_trace_rows[env_id] = []
             self._r2_terminal_reason[env_id] = None
@@ -7811,8 +8037,13 @@ class DoorPregrasp(
                 "_r2_orthogonal_residual_mask",
             ):
                 getattr(self, tensor_name)[env_ids] = False
-        for name, values in self._r2_reward_component_sums.items():
-            values[env_ids] = 0.0
+        for component_store in (
+            self._r2_reward_component_sums,
+            self._r2_last_raw_components,
+            self._r2_last_scaled_components,
+        ):
+            for name, values in component_store.items():
+                values[env_ids] = 0.0
 
     def _capture_a2_v20_r2_raw_action(self, raw_action: torch.Tensor) -> None:
         if not self._a2_v20_r2_evidence_enabled:
@@ -11100,50 +11331,57 @@ class DoorPregrasp(
         # raw_components is the authoritative set of reward terms the env
         # actually computed this step. Config reward_scales may list terms that
         # are not active in this env, so expected must follow raw_components,
-        # not the config list. Expand the accumulator for any new names.
+        # not the config list.
         expected = tuple(raw_components)
-        for name in expected:
-            if name not in self._r2_reward_component_sums:
-                self._r2_reward_component_sums[name] = torch.zeros(
-                    self.num_envs, dtype=torch.float32, device=self.device
-                )
         if set(scaled_components) != set(expected):
             raise RuntimeError(
                 "R2 reward hook requires exact reward-name coverage; "
                 f"expected={expected}, scaled={tuple(scaled_components)}."
             )
+        if self._r2_reward_component_registry_initialized and set(self._r2_reward_component_sums) != set(expected):
+            raise RuntimeError(
+                "R2 reward component key registry drifted after initialization; "
+                f"registered={tuple(self._r2_reward_component_sums)}, current={expected}."
+            )
         total_positive = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         positive_a = torch.zeros_like(total_positive)
         last_raw = {}
         last_scaled = {}
+        validated_components = []
         for name in expected:
             raw_value = raw_components[name]
             scaled_value = scaled_components[name]
-            if torch.is_tensor(scaled_value) and scaled_value.dtype == torch.bool:
-                scaled_value = scaled_value.float()
             for value_name, value in (("raw", raw_value), ("scaled", scaled_value)):
-                is_float = torch.is_tensor(value) and value.is_floating_point()
                 if (
                     not torch.is_tensor(value)
                     or tuple(value.shape) != (self.num_envs,)
                     or value.device != torch.device(self.device)
-                    or (is_float and not torch.all(torch.isfinite(value)))
+                    or value.dtype != torch.float32
+                    or not bool(torch.all(torch.isfinite(value)).item())
                 ):
                     shape = None if not torch.is_tensor(value) else tuple(value.shape)
                     dtype = None if not torch.is_tensor(value) else value.dtype
                     device = None if not torch.is_tensor(value) else value.device
                     raise RuntimeError(
-                        f"R2 reward {value_name} component {name!r} requires finite "
-                        f"floating shape ({self.num_envs},) on {self.device}; "
+                        f"R2 reward {value_name} component {name!r} requires a finite "
+                        f"float32 tensor with shape ({self.num_envs},) on {self.device}; "
                         f"got shape={shape}, dtype={dtype}, device={device}."
                     )
-            self._r2_reward_component_sums[name] += scaled_value
+            validated_components.append((name, raw_value, scaled_value))
             positive = torch.clamp_min(scaled_value, 0.0)
             total_positive += positive
             if name in ("a2_v20_arm_tangent_carry", "a2_v20_handle_arc_tracking"):
                 positive_a += positive
             last_raw[name] = raw_value.detach().clone()
             last_scaled[name] = scaled_value.detach().clone()
+        if not self._r2_reward_component_registry_initialized:
+            self._r2_reward_component_sums = {
+                name: torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+                for name in expected
+            }
+            self._r2_reward_component_registry_initialized = True
+        for name, _raw_value, scaled_value in validated_components:
+            self._r2_reward_component_sums[name] += scaled_value
         self._r2_reward_steps += 1
         self._r2_positive_total_income += total_positive
         self._r2_positive_a_income += positive_a

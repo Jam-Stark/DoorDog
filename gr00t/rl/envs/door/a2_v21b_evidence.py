@@ -22,6 +22,8 @@ import torch
 V21B_EVIDENCE_SCHEMA = "a2_piper_base_v21B_arm_evidence_v1"
 V21B_STEP_SCHEMA = "a2_piper_base_v21B_arm_step_evidence_v1"
 V21B_TERMINAL_RECORD_SCHEMA = "a2_piper_base_v21B_terminal_arm_record_v1"
+V21B_TASK_TRACE_SCHEMA = "a2_piper_base_v21B_task_strict_trace_v1"
+V21B_TASK_RECORD_SCHEMA = "a2_piper_base_v21B_task_record_v1"
 V21B_AUTHORITY_LABEL = "ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE"
 V21B_CENSUS_RIGHT_CENSORED = "CENSUS_RIGHT_CENSORED"
 V21B_BOUNDARY_CREATED = "BOUNDARY_CREATED"
@@ -30,6 +32,8 @@ V21B_BOUNDARY_SATURATED_EVERYWHERE = "BOUNDARY_SATURATED_EVERYWHERE"
 V21B_BOUNDARY_ESTIMATE_ONLY_UNCORROBORATED = "BOUNDARY_ESTIMATE_ONLY_UNCORROBORATED"
 V21B_ARM_JOINT_NAMES = ("arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6")
 V21B_CANDIDATE_LIMITS_NM = (40.0, 30.0, 25.0, 20.0)
+V21B_EVAL_TOPOLOGIES = ("canonical16", "pooled_seed16", "holdout_seed16", "render1")
+V21B_EVAL_SEEDS = frozenset(range(7))
 
 
 def _require_digest(value: Any, *, name: str) -> str:
@@ -804,6 +808,10 @@ def a2_v21b_build_terminal_record(
     source_checkpoint_sha256: str,
     adaptation_bundle_sha256: str | None,
     provenance: Mapping[str, Any] | None = None,
+    source_checkpoint_path: str | None = None,
+    evaluated_checkpoint_path: str | None = None,
+    evaluated_checkpoint_sha256: str | None = None,
+    evaluation_command_sha256: str | None = None,
 ) -> dict[str, Any]:
     """Build the versioned v21-B terminal export consumed before reset."""
 
@@ -814,8 +822,8 @@ def a2_v21b_build_terminal_record(
         raise ValueError("v21-B terminal record cell must be one of B1-B7.")
     if not isinstance(group, str) or not group:
         raise ValueError("v21-B terminal record group is required.")
-    if isinstance(seed, bool) or not isinstance(seed, int) or seed not in (0, 1):
-        raise ValueError("v21-B terminal record seed must be an integer.")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed not in range(7):
+        raise ValueError("v21-B terminal record seed must be an integer in 0..6.")
     _require_digest(source_checkpoint_sha256, name="v21-B terminal record source checkpoint")
     if not isinstance(provenance, Mapping):
         raise ValueError("v21-B terminal record requires phase-correct provenance")
@@ -831,8 +839,30 @@ def a2_v21b_build_terminal_record(
         _require_digest(adaptation_bundle_sha256, name="v21-B terminal record adaptation bundle")
     if not isinstance(provenance.get("scenario_id"), str) or not provenance["scenario_id"]:
         raise ValueError("v21-B terminal provenance requires scenario_id")
-    if provenance.get("topology") not in ("canonical16", "heavy16"):
-        raise ValueError("v21-B terminal provenance requires canonical16/heavy16 topology")
+    if provenance.get("topology") not in (
+        "canonical16",
+        "heavy16",
+        "pooled_seed16",
+        "holdout_seed16",
+        "render1",
+    ):
+        raise ValueError("v21-B terminal provenance requires a registered evaluation topology")
+    runtime_topology = provenance.get("runtime_scenario_topology", provenance.get("topology"))
+    aggregation_topology = provenance.get("evidence_aggregation_topology")
+    legacy_unbound_topology = (
+        phase == "POST_CENSUS"
+        and "runtime_scenario_topology" not in provenance
+        and "evidence_aggregation_topology" not in provenance
+        and provenance.get("topology") in ("canonical16", "heavy16")
+    )
+    if runtime_topology not in ("canonical16", "heavy16"):
+        raise ValueError("v21-B terminal provenance runtime scenario topology is invalid")
+    if not legacy_unbound_topology:
+        if aggregation_topology not in V21B_EVAL_TOPOLOGIES or aggregation_topology != provenance.get("topology"):
+            raise ValueError("v21-B terminal provenance evidence aggregation topology is invalid")
+    if not legacy_unbound_topology and (aggregation_topology != "canonical16" or "queue_row_id" in provenance or "evaluation_root" in provenance):
+        if not isinstance(provenance.get("queue_row_id"), str) or not provenance["queue_row_id"] or not isinstance(provenance.get("evaluation_root"), str) or not provenance["evaluation_root"]:
+            raise ValueError("v21-B terminal provenance requires queue_row_id and evaluation_root")
     if not isinstance(provenance.get("episode_id"), str) or not provenance["episode_id"]:
         raise ValueError("v21-B terminal provenance requires episode_id")
     body = {
@@ -847,6 +877,25 @@ def a2_v21b_build_terminal_record(
         "authority": V21B_AUTHORITY_LABEL,
         "evidence": dict(evidence),
     }
+    optional_identity = {
+        "source_checkpoint_path": source_checkpoint_path,
+        "evaluated_checkpoint_path": evaluated_checkpoint_path,
+        "evaluated_checkpoint_sha256": evaluated_checkpoint_sha256,
+        "evaluation_command_sha256": evaluation_command_sha256,
+    }
+    supplied_identity = {key: value for key, value in optional_identity.items() if value is not None}
+    if supplied_identity:
+        if set(supplied_identity) != set(optional_identity):
+            raise ValueError(
+                "v21-B terminal checkpoint identity requires source/evaluated paths, hashes, and command hash together"
+            )
+        if not isinstance(source_checkpoint_path, str) or not source_checkpoint_path:
+            raise ValueError("v21-B terminal source_checkpoint_path is required")
+        if not isinstance(evaluated_checkpoint_path, str) or not evaluated_checkpoint_path:
+            raise ValueError("v21-B terminal evaluated_checkpoint_path is required")
+        _require_digest(evaluated_checkpoint_sha256, name="v21-B terminal evaluated checkpoint")
+        _require_digest(evaluation_command_sha256, name="v21-B terminal evaluation command")
+        body.update(supplied_identity)
     if provenance is not None:
         if not isinstance(provenance, Mapping):
             raise ValueError("v21-B terminal provenance must be a mapping.")
@@ -865,9 +914,24 @@ def a2_v21b_validate_terminal_record(record: Mapping[str, Any]) -> None:
         raise ValueError("v21-B terminal record schema is invalid.")
     if record.get("authority") != V21B_AUTHORITY_LABEL:
         raise ValueError("v21-B terminal record authority is invalid.")
-    if record.get("plan_id") != "base_v21B_theta_arm_ablation_v1" or record.get("cell") not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"} or record.get("group") != record.get("cell") or isinstance(record.get("seed"), bool) or record.get("seed") not in (0, 1):
+    if record.get("plan_id") != "base_v21B_theta_arm_ablation_v1" or record.get("cell") not in {"B1", "B2", "B3", "B4", "B5", "B6", "B7"} or record.get("group") != record.get("cell") or isinstance(record.get("seed"), bool) or record.get("seed") not in range(7):
         raise ValueError("v21-B terminal record plan/cell/group/seed binding is invalid")
     _require_digest(record.get("source_checkpoint_sha256"), name="v21-B terminal source checkpoint")
+    optional_identity = (
+        "source_checkpoint_path",
+        "evaluated_checkpoint_path",
+        "evaluated_checkpoint_sha256",
+        "evaluation_command_sha256",
+    )
+    present_identity = tuple(key for key in optional_identity if key in record)
+    if present_identity and len(present_identity) != len(optional_identity):
+        raise ValueError("v21-B terminal checkpoint identity fields must be complete")
+    if present_identity:
+        for key in ("source_checkpoint_path", "evaluated_checkpoint_path"):
+            if not isinstance(record.get(key), str) or not record[key]:
+                raise ValueError(f"v21-B terminal {key} is invalid")
+        _require_digest(record.get("evaluated_checkpoint_sha256"), name="v21-B terminal evaluated checkpoint")
+        _require_digest(record.get("evaluation_command_sha256"), name="v21-B terminal evaluation command")
     evidence = record.get("evidence")
     if not isinstance(evidence, Mapping):
         raise ValueError("v21-B terminal record evidence is missing.")
@@ -886,10 +950,34 @@ def a2_v21b_validate_terminal_record(record: Mapping[str, Any]) -> None:
         raise ValueError("v21-B terminal provenance phase is not bound")
     if provenance.get("source_checkpoint_sha256") not in (None, record.get("source_checkpoint_sha256")):
         raise ValueError("v21-B terminal provenance source checkpoint is not bound")
-    if not isinstance(provenance.get("scenario_id"), str) or not provenance["scenario_id"] or provenance.get("topology") not in ("canonical16", "heavy16") or not isinstance(provenance.get("episode_id"), str) or not provenance["episode_id"]:
+    if not isinstance(provenance.get("scenario_id"), str) or not provenance["scenario_id"] or provenance.get("topology") not in ("canonical16", "heavy16", "pooled_seed16", "holdout_seed16", "render1") or not isinstance(provenance.get("episode_id"), str) or not provenance["episode_id"]:
         raise ValueError("v21-B terminal provenance identity is incomplete")
+    runtime_topology = provenance.get("runtime_scenario_topology", provenance.get("topology"))
+    aggregation_topology = provenance.get("evidence_aggregation_topology")
+    legacy_unbound_topology = (
+        provenance.get("materialization_phase") == "POST_CENSUS"
+        and "runtime_scenario_topology" not in provenance
+        and "evidence_aggregation_topology" not in provenance
+        and provenance.get("topology") in ("canonical16", "heavy16")
+    )
+    if runtime_topology not in ("canonical16", "heavy16"):
+        raise ValueError("v21-B terminal provenance topology separation is invalid")
+    if not legacy_unbound_topology and (aggregation_topology != provenance.get("topology") or aggregation_topology not in V21B_EVAL_TOPOLOGIES):
+        raise ValueError("v21-B terminal provenance topology separation is invalid")
+    if not legacy_unbound_topology and (aggregation_topology != "canonical16" or "queue_row_id" in provenance or "evaluation_root" in provenance):
+        if not isinstance(provenance.get("queue_row_id"), str) or not provenance["queue_row_id"] or not isinstance(provenance.get("evaluation_root"), str) or not provenance["evaluation_root"]:
+            raise ValueError("v21-B terminal provenance queue identity is incomplete")
     for key in ("source_lock_sha256", "source_config_sha256", "materialization_sha256", "materialized_config_sha256"):
         _require_digest(provenance.get(key), name=f"v21-B terminal provenance {key}")
+    task_meta = record.get("task_record")
+    if task_meta is not None:
+        if not isinstance(task_meta, Mapping) or task_meta.get("schema") != V21B_TASK_RECORD_SCHEMA:
+            raise ValueError("v21-B terminal task_record metadata schema is invalid")
+        for key in ("path", "record_id", "trace_path", "trace_sha256", "arm_record_path"):
+            if not isinstance(task_meta.get(key), str) or not task_meta[key]:
+                raise ValueError(f"v21-B terminal task_record metadata {key} is required")
+        _require_digest(task_meta.get("record_id"), name="v21-B terminal task_record record_id")
+        _require_digest(task_meta.get("trace_sha256"), name="v21-B terminal task_record trace_sha256")
     record_id = record.get("record_id")
     if not isinstance(record_id, str) or len(record_id) != 64:
         raise ValueError("v21-B terminal record id is missing.")
@@ -917,14 +1005,437 @@ def a2_v21b_export_terminal_record(path: str | Path, record: Mapping[str, Any]) 
     return dict(record)
 
 
+def _require_optional_checkpoint_identity(
+    payload: Mapping[str, Any],
+    *,
+    path_key: str,
+    sha_key: str,
+) -> None:
+    present = path_key in payload or sha_key in payload
+    if not present:
+        return
+    path = payload.get(path_key)
+    digest = payload.get(sha_key)
+    if not isinstance(path, str) or not path:
+        raise ValueError(f"{path_key} must be a non-empty path string")
+    _require_digest(digest, name=sha_key)
+
+
+def a2_v21b_validate_task_trace_rows(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    run_uuid: str,
+    env_id: int,
+    terminal_reason: str,
+) -> dict[str, Any]:
+    """Validate the rich first-episode task trace used by v21-B.
+
+    The task trace intentionally reuses the already-reviewed v20 R2 row
+    schema.  Reuse keeps the task-space/reward telemetry complete while the
+    v21-B arm record remains a separate, estimate-only contract.
+    """
+
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("v21-B task trace must contain at least one row")
+    if not isinstance(run_uuid, str) or not run_uuid:
+        raise ValueError("v21-B task trace run_uuid is required")
+    if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id < 0:
+        raise ValueError("v21-B task trace env_id must be a non-negative integer")
+    if not isinstance(terminal_reason, str) or not terminal_reason:
+        raise ValueError("v21-B task trace terminal_reason is required")
+    try:
+        from gr00t.rl.envs.door.a2_v20_r2_evidence import a2_v20_r2_validate_trace_rows
+
+        summary = a2_v20_r2_validate_trace_rows(
+            [dict(row) for row in rows],
+            run_uuid=run_uuid,
+            env_id=env_id,
+            terminal_reason=terminal_reason,
+        )
+    except (ImportError, ValueError) as exc:
+        raise ValueError(f"v21-B strict task trace is invalid: {exc}") from exc
+    return {
+        "schema": V21B_TASK_TRACE_SCHEMA,
+        "row_count": summary["row_count"],
+        "first_step": summary["first_step"],
+        "last_step": summary["last_step"],
+        "terminal_row_index": summary["terminal_row_index"],
+        "first_episode_only": True,
+        "run_uuid": run_uuid,
+        "env_id": env_id,
+    }
+
+
+def a2_v21b_task_trace_jsonl_bytes(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    run_uuid: str,
+    env_id: int,
+    terminal_reason: str,
+) -> bytes:
+    """Return canonical JSONL bytes after strict task-trace validation."""
+
+    a2_v21b_validate_task_trace_rows(
+        rows,
+        run_uuid=run_uuid,
+        env_id=env_id,
+        terminal_reason=terminal_reason,
+    )
+    lines = [
+        json.dumps(dict(row), ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+        for row in rows
+    ]
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def a2_v21b_build_task_record(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    run_uuid: str,
+    env_id: int,
+    terminal_reason: str,
+    topology: str,
+    seed: int,
+    source_checkpoint_path: str,
+    source_checkpoint_sha256: str,
+    evaluated_checkpoint_path: str,
+    evaluated_checkpoint_sha256: str,
+    evaluation_command_sha256: str,
+    trace_path: str,
+    task: Mapping[str, Any],
+    provenance: Mapping[str, Any] | None = None,
+    runtime_scenario_topology: str | None = None,
+    evidence_aggregation_topology: str | None = None,
+    queue_row_id: str | None = None,
+    evaluation_root: str | None = None,
+) -> dict[str, Any]:
+    """Build one strict task record bound to warm-start and evaluated IDs."""
+
+    summary = a2_v21b_validate_task_trace_rows(
+        rows,
+        run_uuid=run_uuid,
+        env_id=env_id,
+        terminal_reason=terminal_reason,
+    )
+    if topology not in V21B_EVAL_TOPOLOGIES:
+        raise ValueError(f"v21-B task topology is unsupported: {topology!r}")
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed not in V21B_EVAL_SEEDS:
+        raise ValueError("v21-B task seed must be an integer in 0..6")
+    for value, name in (
+        (source_checkpoint_sha256, "source_checkpoint_sha256"),
+        (evaluated_checkpoint_sha256, "evaluated_checkpoint_sha256"),
+        (evaluation_command_sha256, "evaluation_command_sha256"),
+    ):
+        _require_digest(value, name=name)
+    for value, name in (
+        (source_checkpoint_path, "source_checkpoint_path"),
+        (evaluated_checkpoint_path, "evaluated_checkpoint_path"),
+        (trace_path, "trace_path"),
+    ):
+        if not isinstance(value, str) or not value:
+            raise ValueError(f"{name} must be a non-empty path string")
+    if not isinstance(task, Mapping):
+        raise ValueError("v21-B task record task payload is required")
+    task_body = dict(task)
+    if "goal" not in task_body or not isinstance(task_body["goal"], bool):
+        raise ValueError("v21-B task record task.goal must be bool")
+    if "held_crossing" not in task_body or not isinstance(task_body["held_crossing"], bool):
+        raise ValueError("v21-B task record task.held_crossing must be bool")
+    trace_bytes = a2_v21b_task_trace_jsonl_bytes(
+        rows,
+        run_uuid=run_uuid,
+        env_id=env_id,
+        terminal_reason=terminal_reason,
+    )
+    aggregation_topology = evidence_aggregation_topology or topology
+    if aggregation_topology not in V21B_EVAL_TOPOLOGIES:
+        raise ValueError(f"v21-B evidence aggregation topology is unsupported: {aggregation_topology!r}")
+    runtime_topology = runtime_scenario_topology or ("canonical16" if topology != "heavy16" else "heavy16")
+    if runtime_topology not in ("canonical16", "heavy16"):
+        raise ValueError(f"v21-B runtime scenario topology is unsupported: {runtime_topology!r}")
+    if queue_row_id is not None and (not isinstance(queue_row_id, str) or not queue_row_id):
+        raise ValueError("v21-B queue_row_id must be a non-empty string")
+    if evaluation_root is not None and (not isinstance(evaluation_root, str) or not evaluation_root):
+        raise ValueError("v21-B evaluation_root must be a non-empty string")
+    body: dict[str, Any] = {
+        "schema": V21B_TASK_RECORD_SCHEMA,
+        "run_uuid": run_uuid,
+        "env_id": env_id,
+        "episode_ordinal": 0,
+        "topology": aggregation_topology,
+        "runtime_scenario_topology": runtime_topology,
+        "evidence_aggregation_topology": aggregation_topology,
+        "seed": seed,
+        "first_episode_only": True,
+        "source_checkpoint_path": source_checkpoint_path,
+        "source_checkpoint_sha256": source_checkpoint_sha256,
+        "evaluated_checkpoint_path": evaluated_checkpoint_path,
+        "evaluated_checkpoint_sha256": evaluated_checkpoint_sha256,
+        "evaluation_command_sha256": evaluation_command_sha256,
+        "terminal_reason": terminal_reason,
+        "task": task_body,
+        "trace": {
+            **summary,
+            "path": trace_path,
+            "sha256": hashlib.sha256(trace_bytes).hexdigest(),
+        },
+    }
+    if provenance is not None:
+        if not isinstance(provenance, Mapping):
+            raise ValueError("v21-B task record provenance must be a mapping")
+        provenance_body = dict(provenance)
+        provenance_body.setdefault("run_uuid", run_uuid)
+        provenance_body.setdefault("env_id", env_id)
+        provenance_body.setdefault("topology", aggregation_topology)
+        provenance_body.setdefault("runtime_scenario_topology", runtime_topology)
+        provenance_body.setdefault("evidence_aggregation_topology", aggregation_topology)
+        provenance_body.setdefault("seed", seed)
+        if queue_row_id is not None:
+            provenance_body.setdefault("queue_row_id", queue_row_id)
+        if evaluation_root is not None:
+            provenance_body.setdefault("evaluation_root", evaluation_root)
+        body["provenance"] = provenance_body
+    if queue_row_id is not None:
+        body["queue_row_id"] = queue_row_id
+    if evaluation_root is not None:
+        body["evaluation_root"] = evaluation_root
+    body["record_id"] = hashlib.sha256(
+        json.dumps(body, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
+    a2_v21b_validate_task_record(body)
+    return body
+
+
+def a2_v21b_validate_task_record(record: Mapping[str, Any]) -> None:
+    """Validate a task record and its dual checkpoint lineage."""
+
+    if not isinstance(record, Mapping) or record.get("schema") != V21B_TASK_RECORD_SCHEMA:
+        raise ValueError("v21-B task record schema is invalid")
+    if not isinstance(record.get("run_uuid"), str) or not record["run_uuid"]:
+        raise ValueError("v21-B task record run_uuid is required")
+    env_id = record.get("env_id")
+    if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id < 0:
+        raise ValueError("v21-B task record env_id is invalid")
+    if record.get("episode_ordinal") != 0 or record.get("first_episode_only") is not True:
+        raise ValueError("v21-B task record must bind first episode only")
+    if record.get("topology") not in V21B_EVAL_TOPOLOGIES:
+        raise ValueError("v21-B task record topology is invalid")
+    aggregation_topology = record.get("evidence_aggregation_topology", record.get("topology"))
+    if aggregation_topology != record.get("topology") or aggregation_topology not in V21B_EVAL_TOPOLOGIES:
+        raise ValueError("v21-B task record aggregation topology is not bound")
+    runtime_topology = record.get("runtime_scenario_topology", "canonical16")
+    if runtime_topology not in ("canonical16", "heavy16"):
+        raise ValueError("v21-B task record runtime scenario topology is invalid")
+    if isinstance(record.get("seed"), bool) or record.get("seed") not in V21B_EVAL_SEEDS:
+        raise ValueError("v21-B task record seed is invalid")
+    for key in ("source_checkpoint_path", "evaluated_checkpoint_path"):
+        if not isinstance(record.get(key), str) or not record[key]:
+            raise ValueError(f"v21-B task record {key} is required")
+    for key in (
+        "source_checkpoint_sha256",
+        "evaluated_checkpoint_sha256",
+        "evaluation_command_sha256",
+    ):
+        _require_digest(record.get(key), name=f"v21-B task record {key}")
+    terminal_reason = record.get("terminal_reason")
+    if not isinstance(terminal_reason, str) or not terminal_reason:
+        raise ValueError("v21-B task record terminal_reason is required")
+    task = record.get("task")
+    if not isinstance(task, Mapping) or not isinstance(task.get("goal"), bool) or not isinstance(task.get("held_crossing"), bool):
+        raise ValueError("v21-B task record task.goal and task.held_crossing are required booleans")
+    provenance = record.get("provenance")
+    if provenance is not None:
+        if not isinstance(provenance, Mapping):
+            raise ValueError("v21-B task record provenance must be a mapping")
+        if provenance.get("run_uuid") not in (None, record["run_uuid"]) or provenance.get("env_id") not in (None, env_id) or provenance.get("topology") not in (None, record["topology"]) or provenance.get("seed") not in (None, record["seed"]):
+            raise ValueError("v21-B task record provenance invocation binding is invalid")
+        if provenance.get("runtime_scenario_topology") not in (None, runtime_topology):
+            raise ValueError("v21-B task record provenance runtime topology is not bound")
+        if provenance.get("evidence_aggregation_topology") not in (None, aggregation_topology):
+            raise ValueError("v21-B task record provenance aggregation topology is not bound")
+        if "queue_row_id" in record and provenance.get("queue_row_id") not in (None, record["queue_row_id"]):
+            raise ValueError("v21-B task record queue row binding is invalid")
+        if "evaluation_root" in record and provenance.get("evaluation_root") not in (None, record["evaluation_root"]):
+            raise ValueError("v21-B task record evaluation root binding is invalid")
+        if record.get("topology") != "canonical16" or "queue_row_id" in record or "evaluation_root" in record:
+            if not isinstance(record.get("queue_row_id"), str) or not record["queue_row_id"] or provenance.get("queue_row_id") != record["queue_row_id"]:
+                raise ValueError("v21-B postformal task record queue_row_id binding is required")
+            if not isinstance(record.get("evaluation_root"), str) or not record["evaluation_root"] or provenance.get("evaluation_root") != record["evaluation_root"]:
+                raise ValueError("v21-B postformal task record evaluation_root binding is required")
+    trace = record.get("trace")
+    if not isinstance(trace, Mapping):
+        raise ValueError("v21-B task record trace is required")
+    if trace.get("schema") != V21B_TASK_TRACE_SCHEMA or trace.get("run_uuid") != record["run_uuid"] or trace.get("env_id") != env_id or trace.get("first_episode_only") is not True:
+        raise ValueError("v21-B task record trace identity is not bound")
+    if not isinstance(trace.get("path"), str) or not trace["path"]:
+        raise ValueError("v21-B task record trace path is required")
+    _require_digest(trace.get("sha256"), name="v21-B task record trace sha256")
+    record_id = record.get("record_id")
+    if not isinstance(record_id, str) or len(record_id) != 64:
+        raise ValueError("v21-B task record record_id is missing")
+    unsigned = dict(record)
+    unsigned.pop("record_id", None)
+    expected = hashlib.sha256(
+        json.dumps(unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+    ).hexdigest()
+    if record_id != expected:
+        raise ValueError("v21-B task record record_id does not bind its payload")
+
+
+def a2_v21b_export_task_record(path: str | Path, record: Mapping[str, Any]) -> dict[str, Any]:
+    """Write one task record with no-overwrite semantics."""
+
+    a2_v21b_validate_task_record(record)
+    target = Path(path)
+    if target.exists() or target.is_symlink():
+        raise FileExistsError(f"v21-B task record path already exists: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    payload = json.dumps(record, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n"
+    with target.open("xb") as handle:
+        handle.write(payload)
+        handle.flush()
+    return dict(record)
+
+
+def a2_v21b_export_episode_bundle(
+    *,
+    trace_path: str | Path,
+    task_record_path: str | Path,
+    arm_record_path: str | Path,
+    rows: Sequence[Mapping[str, Any]],
+    task_record: Mapping[str, Any],
+    arm_record: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Persist trace + task record + arm record as one guarded lifecycle.
+
+    All three payloads are validated before the first write.  Existing paths
+    are rejected; callers therefore cannot silently overwrite or double-
+    finalize an episode after a reset.
+    """
+
+    a2_v21b_validate_task_record(task_record)
+    a2_v21b_validate_terminal_record(arm_record)
+    trace = task_record.get("trace")
+    if not isinstance(trace, Mapping):
+        raise ValueError("episode bundle task record trace is missing")
+    trace_bytes = a2_v21b_task_trace_jsonl_bytes(
+        rows,
+        run_uuid=task_record["run_uuid"],
+        env_id=task_record["env_id"],
+        terminal_reason=task_record["terminal_reason"],
+    )
+    if hashlib.sha256(trace_bytes).hexdigest() != trace.get("sha256"):
+        raise ValueError("episode bundle task trace hash does not match task record")
+    paths = [Path(trace_path), Path(task_record_path), Path(arm_record_path)]
+    if len(set(paths)) != 3:
+        raise ValueError("episode bundle paths must be distinct")
+    arm_provenance = arm_record.get("provenance")
+    if not isinstance(arm_provenance, Mapping):
+        raise ValueError("v21-B episode bundle arm provenance is required")
+    for key in ("run_uuid", "env_id", "topology", "seed"):
+        if arm_provenance.get(key) not in (None, task_record.get(key)):
+            raise ValueError(f"v21-B episode bundle arm {key} is not cross-bound")
+    if arm_record.get("run_uuid") not in (None, task_record.get("run_uuid")) or arm_provenance.get("env_id") not in (None, task_record.get("env_id")):
+        raise ValueError("v21-B episode bundle task/arm invocation identity is not cross-bound")
+    if arm_record.get("source_checkpoint_path") != task_record.get("source_checkpoint_path") or arm_record.get("source_checkpoint_sha256") != task_record.get("source_checkpoint_sha256") or arm_record.get("evaluated_checkpoint_path") != task_record.get("evaluated_checkpoint_path") or arm_record.get("evaluated_checkpoint_sha256") != task_record.get("evaluated_checkpoint_sha256") or arm_record.get("evaluation_command_sha256") != task_record.get("evaluation_command_sha256"):
+        raise ValueError("v21-B episode bundle task/arm checkpoint or command identity is not cross-bound")
+    task_provenance = task_record.get("provenance")
+    if not isinstance(task_provenance, Mapping):
+        raise ValueError("v21-B episode bundle task provenance is required")
+    for key in ("source_lock_sha256", "source_config_sha256", "materialization_sha256", "materialized_config_sha256", "adaptation_bundle_sha256"):
+        if arm_provenance.get(key) != task_provenance.get(key):
+            raise ValueError(f"v21-B episode bundle {key} is not cross-bound")
+    task_meta = arm_record.get("task_record")
+    if not isinstance(task_meta, Mapping) or (
+        task_meta.get("record_id") != task_record.get("record_id")
+        or task_meta.get("trace_path") != task_record.get("trace", {}).get("path")
+        or task_meta.get("trace_sha256") != task_record.get("trace", {}).get("sha256")
+        or not isinstance(task_meta.get("path"), str)
+        or Path(task_meta.get("path")).expanduser().resolve() != Path(task_record_path).expanduser().resolve()
+        or not isinstance(task_meta.get("arm_record_path"), str)
+        or Path(task_meta.get("arm_record_path")).expanduser().resolve() != Path(arm_record_path).expanduser().resolve()
+    ):
+        raise ValueError("v21-B episode bundle task_record metadata is not cross-bound")
+    trace_record_path = Path(trace.get("path")).expanduser().resolve()
+    if trace_record_path != Path(trace_path).expanduser().resolve():
+        raise ValueError("v21-B episode bundle trace path does not equal task-record trace.path")
+    if Path(task_meta.get("path")).expanduser().resolve() != Path(task_record_path).expanduser().resolve():
+        raise ValueError("v21-B episode bundle task metadata path does not equal task_record_path")
+    payloads = {
+        paths[0]: trace_bytes,
+        paths[1]: json.dumps(task_record, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n",
+        paths[2]: json.dumps(arm_record, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n",
+    }
+    marker = paths[0].parent / f".{task_record['run_uuid']}_env{task_record['env_id']}.bundle.complete.json"
+    marker_payload = {
+        "schema": "a2_piper_base_v21B_episode_bundle_complete_v1",
+        "run_uuid": task_record["run_uuid"],
+        "env_id": task_record["env_id"],
+        "topology": task_record["topology"],
+        "seed": task_record["seed"],
+        "trace_path": str(paths[0]),
+        "task_record_path": str(paths[1]),
+        "arm_record_path": str(paths[2]),
+        "trace_sha256": hashlib.sha256(payloads[paths[0]]).hexdigest(),
+        "task_record_sha256": hashlib.sha256(payloads[paths[1]]).hexdigest(),
+        "arm_record_sha256": hashlib.sha256(payloads[paths[2]]).hexdigest(),
+        "task_record_id": task_record["record_id"],
+        "arm_record_id": arm_record["record_id"],
+    }
+    marker_bytes = json.dumps(marker_payload, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8") + b"\n"
+    if marker.exists() or marker.is_symlink():
+        if marker.is_symlink() or marker.read_bytes() != marker_bytes or any(not path.is_file() or path.read_bytes() != payloads[path] for path in paths):
+            raise FileExistsError("v21-B episode bundle completion marker is inconsistent")
+        return {
+            "trace_path": str(paths[0]), "task_record_path": str(paths[1]), "arm_record_path": str(paths[2]),
+            "trace_sha256": marker_payload["trace_sha256"], "task_record_id": task_record["record_id"], "arm_record_id": arm_record["record_id"],
+        }
+    for path, payload in payloads.items():
+        if path.exists() or path.is_symlink():
+            if path.is_symlink() or path.read_bytes() != payload:
+                raise FileExistsError(f"v21-B episode bundle artifact differs: {path}")
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    for path, payload in payloads.items():
+        if path.exists():
+            continue
+        temp = path.with_name(f".{path.name}.part")
+        if temp.exists() or temp.is_symlink():
+            if temp.is_symlink() or temp.read_bytes() != payload:
+                raise FileExistsError(f"v21-B episode bundle partial artifact differs: {temp}")
+        else:
+            with temp.open("xb") as handle:
+                handle.write(payload)
+                handle.flush()
+        if not path.exists():
+            temp.replace(path)
+    if marker.exists() or marker.is_symlink():
+        if marker.is_symlink() or marker.read_bytes() != marker_bytes:
+            raise FileExistsError("v21-B episode bundle completion marker differs")
+    else:
+        with marker.open("xb") as handle:
+            handle.write(marker_bytes)
+            handle.flush()
+    return {
+        "trace_path": str(paths[0]),
+        "task_record_path": str(paths[1]),
+        "arm_record_path": str(paths[2]),
+        "trace_sha256": hashlib.sha256(trace_bytes).hexdigest(),
+        "task_record_id": task_record["record_id"],
+        "arm_record_id": arm_record["record_id"],
+    }
+
+
 __all__ = [
-    "V21B_EVIDENCE_SCHEMA", "V21B_STEP_SCHEMA", "V21B_TERMINAL_RECORD_SCHEMA", "V21B_AUTHORITY_LABEL", "V21B_CENSUS_RIGHT_CENSORED",
+    "V21B_EVIDENCE_SCHEMA", "V21B_STEP_SCHEMA", "V21B_TERMINAL_RECORD_SCHEMA", "V21B_TASK_TRACE_SCHEMA", "V21B_TASK_RECORD_SCHEMA", "V21B_AUTHORITY_LABEL", "V21B_CENSUS_RIGHT_CENSORED",
     "V21B_BOUNDARY_CREATED", "V21B_BOUNDARY_ABSENT", "V21B_BOUNDARY_SATURATED_EVERYWHERE",
-    "V21B_BOUNDARY_ESTIMATE_ONLY_UNCORROBORATED", "V21B_ARM_JOINT_NAMES", "V21B_CANDIDATE_LIMITS_NM",
+    "V21B_BOUNDARY_ESTIMATE_ONLY_UNCORROBORATED", "V21B_ARM_JOINT_NAMES", "V21B_CANDIDATE_LIMITS_NM", "V21B_EVAL_TOPOLOGIES", "V21B_EVAL_SEEDS",
     "a2_v21b_arm_pd_effort_estimates", "a2_v21b_arm_tracking_error", "a2_v21b_build_step_evidence",
     "a2_v21b_init_arm_episode_accumulator", "a2_v21b_reset_arm_episode_accumulator",
     "a2_v21b_accumulate_arm_step", "a2_v21b_finalize_arm_episode", "a2_v21b_census_from_unclipped",
     "a2_v21b_build_census_frames_from_episode", "a2_v21b_export_census_frames",
     "a2_v21b_adjudicate_dv2", "a2_v21b_validate_evidence_record", "a2_v21b_build_terminal_record",
-    "a2_v21b_validate_terminal_record", "a2_v21b_export_terminal_record",
+    "a2_v21b_validate_terminal_record", "a2_v21b_export_terminal_record", "a2_v21b_validate_task_trace_rows",
+    "a2_v21b_task_trace_jsonl_bytes", "a2_v21b_build_task_record", "a2_v21b_validate_task_record",
+    "a2_v21b_export_task_record", "a2_v21b_export_episode_bundle",
 ]

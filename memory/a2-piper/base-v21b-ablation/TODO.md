@@ -1,4 +1,3 @@
 # TODO
 
-- 2026-08-02 15:19 HKT - 监测 B1–B7 至 iteration 2500 的 natural exit，逐组核验 save250 与 final checkpoint，以及可解析时的 W&B final state/URLs；保持 `base_v21B_formal_v1` detached，不得杀掉当前训练。
-- 2026-08-02 15:19 HKT - 获得完整训练 evidence 后执行 plan 的 DV analyses/adjudication。`STARTUP_50_PASS` 不可替代 `TRAINING_PASS` 或正式训练完成。
+- 2026-08-04 03:36 HKT - 本 approved base_v21B scope 无剩余 execution item。任何 successor experiment 必须单独定义并批准；不得 silent repair/extrapolate B3 evidence，亦不得绕过 F5 创建 release freeze、holdout64 或 render。

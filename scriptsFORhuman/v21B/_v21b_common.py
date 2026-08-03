@@ -20,6 +20,14 @@ V21B_ARTIFACT_SCHEMA_PREFIX = "a2_piper_base_v21B_"
 V21B_CELL_ORDER = ("B1", "B2", "B3", "B4", "B5", "B6", "B7")
 V21B_FORMAL_GPUS = (0, 1, 2, 3, 4, 5, 6)
 V21B_FORBIDDEN_GPU = 7
+V21B_FORMAL_ITERATIONS = 2500
+V21B_FORMAL_CHECKPOINT_STEPS = tuple(range(250, V21B_FORMAL_ITERATIONS + 1, 250))
+V21B_ROUTE_A_TOPOLOGY = "canonical16"
+V21B_ROUTE_B_POOLED_SEEDS = (0, 1, 2)
+V21B_ROUTE_B_HOLDOUT_SEEDS = (3, 4, 5, 6)
+V21B_ROUTE_B_ENVS_PER_SEED = 16
+V21B_ROUTE_B_RENDER_CASES = 5
+V21B_ROUTE_B_RENDER_CAMERAS = ("main", "handle_side", "handle_top")
 V21B_WARM_START_PATH = "logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt"
 V21B_WARM_START_SHA256 = "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
 V21B_EVAL_CONTRACT_PATH = "gr00t/rl/config/base_eval.yaml"
@@ -127,6 +135,18 @@ def hydra_string_value(value: str) -> str:
 
 def sha256_bytes(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def command_sha256(argv: list[str] | tuple[str, ...], env: Mapping[str, str] | None = None) -> str:
+    """Hash the exact argv/environment identity used by an evaluation row."""
+
+    if not isinstance(argv, (list, tuple)) or not argv or any(not isinstance(item, str) or not item for item in argv):
+        raise V21BError("command argv must be a non-empty sequence of non-empty strings")
+    if env is None:
+        env = {}
+    if not isinstance(env, Mapping) or any(not isinstance(key, str) or not key or not isinstance(value, str) for key, value in env.items()):
+        raise V21BError("command environment must map non-empty strings to strings")
+    return sha256_bytes(canonical_json_bytes({"argv": list(argv), "env": dict(sorted(env.items()))}))
 
 
 def sha256_file(path: Path) -> str:
@@ -383,7 +403,7 @@ def require_digest(value: str, *, name: str) -> str:
 
 __all__ = [
     "V21BError", "V21B_PLAN_ID", "V21B_EXECUTION_ID", "V21B_SCHEMA", "V21B_CELL_ORDER",
-    "V21B_FORMAL_GPUS", "V21B_FORBIDDEN_GPU", "V21B_WARM_START_PATH", "V21B_WARM_START_SHA256", "V21B_EVAL_CONTRACT_PATH",
-    "V21B_CONFIG_PATHS", "V21B_CELL_FACTORS", "V21B_F3_THETA_LADDER", "V21B_RESOLVED_ALLOWLIST", "canonical_json", "canonical_json_bytes", "sha256_file",
+    "V21B_FORMAL_GPUS", "V21B_FORBIDDEN_GPU", "V21B_FORMAL_ITERATIONS", "V21B_FORMAL_CHECKPOINT_STEPS", "V21B_ROUTE_A_TOPOLOGY", "V21B_ROUTE_B_POOLED_SEEDS", "V21B_ROUTE_B_HOLDOUT_SEEDS", "V21B_ROUTE_B_ENVS_PER_SEED", "V21B_ROUTE_B_RENDER_CASES", "V21B_ROUTE_B_RENDER_CAMERAS", "V21B_WARM_START_PATH", "V21B_WARM_START_SHA256", "V21B_EVAL_CONTRACT_PATH",
+    "V21B_CONFIG_PATHS", "V21B_CELL_FACTORS", "V21B_F3_THETA_LADDER", "V21B_RESOLVED_ALLOWLIST", "canonical_json", "canonical_json_bytes", "sha256_file", "command_sha256",
     "read_yaml", "write_json", "resolve_v21b_trace_run_uuid", "validate_v21b_config", "config_for_cell", "validate_resolved_v21b_parity", "assert_resolved_v21b_parity", "parse_gpus", "require_digest",
 ]

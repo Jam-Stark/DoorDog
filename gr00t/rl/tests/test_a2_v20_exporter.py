@@ -17,6 +17,7 @@ SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
 def _helpers():
     tree = ast.parse(SOURCE.read_text(encoding="utf-8"))
     wanted = {
+        "_A2_V20_TRACE_TOPOLOGY_SCHEMA",
         "_A2_V20_TYPED_TELEMETRY_GROUPS",
         "_a2_v20_validate_typed_value",
         "_a2_v20_validate_telemetry_group",
@@ -36,12 +37,12 @@ def _helpers():
     return namespace
 
 
-def _diagnostic(env_id=0):
+def _diagnostic(env_id=0, *, episode_length=13):
     return {
         "env_id": env_id,
         "terminal_reasons": "goal_reached",
         "control_dt": 0.02,
-        "episode_length_buf": 3,
+        "episode_length_buf": episode_length,
         "reward_episode_sums": {"stage_reward": 10.0},
         "v20_send_ready": True,
         "v20_first_send_ready_step": 80,
@@ -66,7 +67,7 @@ def _trace(step, *, terminal="unknown_reset", env_id=0):
         "episode_index": 0,
         "first_episode_active": True,
         "step_index": step,
-        "episode_length_buf": step - 9,
+        "episode_length_buf": step + 1,
         "terminal_reasons": terminal,
         "door_hinge_joint_vel": 0.1 * (step + 1),
         "door_hinge_joint_pos": 1.0 + 0.01 * step,
@@ -109,8 +110,11 @@ def test_builder_emits_complete_typed_groups_metrics_and_units():
     assert row["episode_metrics"]["pre_crossing_bilateral"] == 1.0
     assert row["reward_units"] == {"stage_reward": "episode-sum"}
     assert row["trace_topology"]["ordered_unique_contiguous"] is True
-    assert row["trace_topology"]["prefix_starts_at_one"] is True
-    assert row["trace_topology"]["sample_count_matches_episode_length"] is True
+    assert row["trace_topology"]["schema"] == "a2_piper_v20_trace_topology_v2"
+    assert row["trace_topology"]["mode"] == "stage_window"
+    assert row["trace_topology"]["first_episode_identity"] is True
+    assert row["trace_topology"]["episode_length_buf_equals_step_index_plus_one"] is True
+    assert row["trace_topology"]["captured_span_matches_trace_count"] is True
     assert row["groups"]["carry"]["along_handle_slip_m"] == pytest.approx(0.004)
     assert row["groups"]["carry"]["orthogonal_arc_residual_m"] == pytest.approx(0.003)
 
@@ -136,25 +140,73 @@ def test_builder_rejects_noncontiguous_or_terminal_inconsistent_trace():
         )
 
 
-def test_builder_rejects_non_one_prefix_and_shortened_trace_sample_count():
+def test_builder_accepts_late_stage_window_and_rejects_contract_mismatches():
     fn = _helpers()["_build_a2_v20_strict_telemetry_records"]
     topology = {"name": "canonical16", "episode_count": 1}
-    non_one_prefix = [_trace(10), _trace(11, terminal="goal_reached")]
-    non_one_prefix[0]["episode_length_buf"] = 2
-    non_one_prefix[1]["episode_length_buf"] = 3
-    with pytest.raises(RuntimeError, match="first episode_length_buf must equal 1"):
+    late = [_trace(97), _trace(98), _trace(99, terminal="goal_reached")]
+    rows = fn(
+        {"episode_terminal_diagnostics": [_diagnostic(episode_length=100)], "episode_goal_reached": [True]},
+        late,
+        1,
+        checkpoint_path="/tmp/model.pt", checkpoint_sha256="a" * 64,
+        config_hash="b", seed=0, topology=topology,
+    )
+    assert rows[0]["trace_topology"]["first_step_index"] == 97
+    assert rows[0]["trace_topology"]["episode_length_first"] == 98
+
+    mismatched_length = [_trace(97), _trace(98), _trace(99, terminal="goal_reached")]
+    mismatched_length[1]["episode_length_buf"] += 1
+    with pytest.raises(RuntimeError, match=r"must equal step_index \+ 1|ordered and contiguous"):
         fn(
-            {"episode_terminal_diagnostics": [{**_diagnostic(), "episode_length_buf": 3}], "episode_goal_reached": [True]},
-            non_one_prefix,
+            {"episode_terminal_diagnostics": [_diagnostic(episode_length=100)], "episode_goal_reached": [True]},
+            mismatched_length,
             1,
             checkpoint_path="/tmp/model.pt", checkpoint_sha256="a" * 64,
             config_hash="b", seed=0, topology=topology,
         )
-    shortened = [_trace(10), _trace(11, terminal="goal_reached")]
-    with pytest.raises(RuntimeError, match="terminal episode_length_buf must equal both"):
+
+    noncontiguous = [_trace(97), _trace(99, terminal="goal_reached")]
+    with pytest.raises(RuntimeError, match="not ordered"):
         fn(
-            {"episode_terminal_diagnostics": [{**_diagnostic(), "episode_length_buf": 3}], "episode_goal_reached": [True]},
-            shortened,
+            {"episode_terminal_diagnostics": [_diagnostic(episode_length=100)], "episode_goal_reached": [True]},
+            noncontiguous,
+            1,
+            checkpoint_path="/tmp/model.pt", checkpoint_sha256="a" * 64,
+            config_hash="b", seed=0, topology=topology,
+        )
+
+    terminal_mismatch = [_trace(97), _trace(98), _trace(99, terminal="goal_reached")]
+    with pytest.raises(RuntimeError, match="terminal episode_length_buf/span consistency"):
+        fn(
+            {"episode_terminal_diagnostics": [_diagnostic(episode_length=101)], "episode_goal_reached": [True]},
+            terminal_mismatch,
+            1,
+            checkpoint_path="/tmp/model.pt", checkpoint_sha256="a" * 64,
+            config_hash="b", seed=0, topology=topology,
+        )
+
+    non_first = [_trace(97), _trace(98), _trace(99, terminal="goal_reached")]
+    non_first[0]["episode_index"] = 1
+    with pytest.raises(RuntimeError, match="non-first-episode"):
+        fn(
+            {"episode_terminal_diagnostics": [_diagnostic(episode_length=100)], "episode_goal_reached": [True]},
+            non_first,
+            1,
+            checkpoint_path="/tmp/model.pt", checkpoint_sha256="a" * 64,
+            config_hash="b", seed=0, topology=topology,
+        )
+
+
+@pytest.mark.parametrize("bad_episode_index", [False, 0.0])
+def test_builder_rejects_non_integer_zero_episode_index(bad_episode_index):
+    fn = _helpers()["_build_a2_v20_strict_telemetry_records"]
+    topology = {"name": "canonical16", "episode_count": 1}
+    trace = [_trace(97), _trace(98), _trace(99, terminal="goal_reached")]
+    trace[0]["episode_index"] = bad_episode_index
+    with pytest.raises(RuntimeError, match="non-first-episode"):
+        fn(
+            {"episode_terminal_diagnostics": [_diagnostic(episode_length=100)], "episode_goal_reached": [True]},
+            trace,
             1,
             checkpoint_path="/tmp/model.pt", checkpoint_sha256="a" * 64,
             config_hash="b", seed=0, topology=topology,

@@ -169,10 +169,13 @@ def _typed_row(env_id: int, checkpoint: Path, digest: str) -> dict:
         },
         "reward_units": {"total": "episode-sum"},
         "trace_topology": {
+            "schema": "a2_piper_v20_trace_topology_v2",
+            "mode": "stage_window",
+            "first_episode_identity": True,
             "ordered_unique_contiguous": True,
             "terminal_consistent": True,
-            "prefix_starts_at_one": True,
-            "sample_count_matches_episode_length": True,
+            "episode_length_buf_equals_step_index_plus_one": True,
+            "captured_span_matches_trace_count": True,
         },
     }
 
@@ -246,13 +249,13 @@ def test_typed_evidence_preserves_invalid_and_aggregates(tmp_path: Path) -> None
         )
 
 
-def test_typed_evidence_rejects_missing_or_false_trace_prefix_contract(tmp_path: Path) -> None:
+def test_typed_evidence_rejects_missing_or_false_trace_topology_contract(tmp_path: Path) -> None:
     checkpoint = tmp_path / "model_step_000250.pt"
     checkpoint.write_bytes(b"checkpoint")
     digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
     artifact = tmp_path / "artifact"
     artifact.mkdir()
-    for field, value in (("prefix_starts_at_one", None), ("sample_count_matches_episode_length", False)):
+    for field, value in (("schema", None), ("captured_span_matches_trace_count", False)):
         records = [_typed_row(env_id, checkpoint, digest) for env_id in range(16)]
         if value is None:
             for record in records:

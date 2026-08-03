@@ -75,10 +75,8 @@ def record_set(tmp_path, records):
     path.write_bytes(a2_v20_r2_canonical_json_bytes({"schema": "a2_piper_base_v20_R2_record_set_v1", "producer_state": "RECORD_SET_COMPLETE", "run_uuid": run_uuid, "records": records, "record_count": len(records)}))
     return path
 
-def _actual_finalizer_record(
-    tmp_path, run_uuid="actual-run", env_id=0, *, runtime_context=False
-):
-    tmp_path.mkdir(parents=True, exist_ok=True)
+
+def _load_door_pregrasp_class():
     class _DummyMeta(type):
         def __getattr__(cls, name):
             return cls
@@ -118,10 +116,76 @@ def _actual_finalizer_record(
     try:
         from gr00t.rl.envs.door.door_open_a2_base import DoorPregrasp
     except Exception as exc:
-        raise AssertionError(f"actual Door class import blocker under primary interpreter: {type(exc).__name__}: {exc}") from exc
+        raise AssertionError(f"Door class import blocker under primary interpreter: {type(exc).__name__}: {exc}") from exc
     finally:
         sys.meta_path.remove(finder)
+    return DoorPregrasp
 
+
+class _R2ConfigProbe(dict):
+    def __init__(self):
+        super().__init__(a2_v20_R2_full_evidence=False)
+        self.rewards = types.SimpleNamespace(reward_scales={"push_door_handle": 0.0, "inactive": 0.0})
+
+
+def _r2_reward_probe():
+    door_pregrasp = _load_door_pregrasp_class()
+    obj = door_pregrasp.__new__(door_pregrasp)
+    obj._a2_v20_r2_evidence_enabled = True
+    obj._a2_v20_r2_full_evidence_enabled = False
+    obj.max_episode_length = 4
+    obj.num_envs = 2
+    obj.device = torch.device("cpu")
+    obj.config = _R2ConfigProbe()
+    obj._init_a2_v20_r2_evidence_buffers()
+    return obj
+
+
+def _active_reward_components():
+    raw = {
+        "active_a": torch.tensor([1.0, 2.0]),
+        "active_b": torch.tensor([3.0, 4.0]),
+    }
+    scaled = {
+        "active_a": torch.tensor([0.5, 1.0]),
+        "active_b": torch.tensor([-1.0, 2.0]),
+    }
+    return raw, scaled
+
+
+def _snapshot_r2_reward_state(obj):
+    return {
+        "registry_initialized": obj._r2_reward_component_registry_initialized,
+        "registry": {name: values.clone() for name, values in obj._r2_reward_component_sums.items()},
+        "reward_steps": obj._r2_reward_steps.clone(),
+        "positive_total_income": obj._r2_positive_total_income.clone(),
+        "positive_a_income": obj._r2_positive_a_income.clone(),
+        "last_raw": {name: values.clone() for name, values in obj._r2_last_raw_components.items()},
+        "last_scaled": {name: values.clone() for name, values in obj._r2_last_scaled_components.items()},
+    }
+
+
+def _assert_r2_reward_state_unchanged(obj, snapshot):
+    assert obj._r2_reward_component_registry_initialized is snapshot["registry_initialized"]
+    assert set(obj._r2_reward_component_sums) == set(snapshot["registry"])
+    for name, values in snapshot["registry"].items():
+        assert torch.equal(obj._r2_reward_component_sums[name], values)
+    assert torch.equal(obj._r2_reward_steps, snapshot["reward_steps"])
+    assert torch.equal(obj._r2_positive_total_income, snapshot["positive_total_income"])
+    assert torch.equal(obj._r2_positive_a_income, snapshot["positive_a_income"])
+    for store_name in ("last_raw", "last_scaled"):
+        store = getattr(obj, f"_r2_{store_name}_components")
+        expected = snapshot[store_name]
+        assert set(store) == set(expected)
+        for name, values in expected.items():
+            assert torch.equal(store[name], values)
+
+
+def _actual_finalizer_record(
+    tmp_path, run_uuid="actual-run", env_id=0, *, runtime_context=False
+):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    DoorPregrasp = _load_door_pregrasp_class()
     obj = DoorPregrasp.__new__(DoorPregrasp)
     device = torch.device("cpu")
     obj._a2_v20_r2_evidence_enabled = True
@@ -232,6 +296,103 @@ def _actual_finalizer_record(
     staged = json.loads((tmp_path / "actual-records.jsonl").read_text().splitlines()[0])
     assert staged["record_id"] == record["record_id"]
     return record
+
+
+def test_r2_reward_registry_defers_to_first_active_hook():
+    obj = _r2_reward_probe()
+    assert obj._r2_reward_component_sums == {}
+    assert obj._r2_reward_component_registry_initialized is False
+    raw, scaled = _active_reward_components()
+    obj._after_reward_components(raw, scaled)
+    expected = {"active_a", "active_b"}
+    assert set(obj._r2_reward_component_sums) == expected
+    assert set(obj._r2_last_raw_components) == expected
+    assert set(obj._r2_last_scaled_components) == expected
+    assert set(obj._r2_last_scaled_components) == set(obj._r2_reward_component_sums)
+    assert torch.equal(obj._r2_reward_component_sums["active_a"], scaled["active_a"])
+    assert torch.equal(obj._r2_reward_component_sums["active_b"], scaled["active_b"])
+
+
+@pytest.mark.parametrize("drift", ("missing", "extra"))
+def test_r2_reward_registry_rejects_later_raw_key_drift(drift):
+    obj = _r2_reward_probe()
+    raw, scaled = _active_reward_components()
+    obj._after_reward_components(raw, scaled)
+    snapshot = _snapshot_r2_reward_state(obj)
+    if drift == "missing":
+        raw = {"active_a": raw["active_a"]}
+        scaled = {"active_a": scaled["active_a"]}
+    else:
+        raw = dict(raw)
+        scaled = dict(scaled)
+        raw["active_c"] = torch.ones(2)
+        scaled["active_c"] = torch.ones(2)
+    with pytest.raises(RuntimeError, match="key registry drifted"):
+        obj._after_reward_components(raw, scaled)
+    _assert_r2_reward_state_unchanged(obj, snapshot)
+
+
+def test_r2_reward_hook_rejects_scaled_key_mismatch():
+    obj = _r2_reward_probe()
+    raw, scaled = _active_reward_components()
+    snapshot = _snapshot_r2_reward_state(obj)
+    scaled = {"active_a": scaled["active_a"]}
+    with pytest.raises(RuntimeError, match="exact reward-name coverage"):
+        obj._after_reward_components(raw, scaled)
+    _assert_r2_reward_state_unchanged(obj, snapshot)
+
+
+@pytest.mark.parametrize(
+    "label,target,replacement",
+    (
+        ("raw_bool", "raw", torch.tensor([True, False], dtype=torch.bool)),
+        ("raw_int", "raw", torch.tensor([1, 2], dtype=torch.int64)),
+        ("raw_float64", "raw", torch.tensor([1.0, 2.0], dtype=torch.float64)),
+        ("scaled_bool", "scaled", torch.tensor([True, False], dtype=torch.bool)),
+        ("scaled_int", "scaled", torch.tensor([1, 2], dtype=torch.int64)),
+        ("scaled_float64", "scaled", torch.tensor([1.0, 2.0], dtype=torch.float64)),
+        ("raw_nan", "raw", torch.tensor([float("nan"), 2.0], dtype=torch.float32)),
+        ("scaled_inf", "scaled", torch.tensor([1.0, float("inf")], dtype=torch.float32)),
+        ("raw_wrong_shape", "raw", torch.ones(1, dtype=torch.float32)),
+        ("scaled_wrong_shape", "scaled", torch.ones(2, 1, dtype=torch.float32)),
+    ),
+)
+def test_r2_reward_hook_rejects_invalid_values_atomically(label, target, replacement):
+    obj = _r2_reward_probe()
+    raw, scaled = _active_reward_components()
+    obj._after_reward_components(raw, scaled)
+    snapshot = _snapshot_r2_reward_state(obj)
+    if target == "raw":
+        raw = dict(raw)
+        raw["active_a"] = replacement
+    else:
+        scaled = dict(scaled)
+        scaled["active_a"] = replacement
+    with pytest.raises(RuntimeError, match=f"R2 reward {target} component 'active_a'") as exc_info:
+        obj._after_reward_components(raw, scaled)
+    message = str(exc_info.value)
+    assert "finite float32 tensor" in message
+    assert f"shape={tuple(replacement.shape)}" in message
+    assert f"dtype={replacement.dtype}" in message
+    assert "device=cpu" in message
+    _assert_r2_reward_state_unchanged(obj, snapshot)
+
+
+def test_r2_reward_registry_survives_subset_reset():
+    obj = _r2_reward_probe()
+    raw, scaled = _active_reward_components()
+    obj._after_reward_components(raw, scaled)
+    sums_before = {name: values.clone() for name, values in obj._r2_reward_component_sums.items()}
+    obj._reset_a2_v20_r2_evidence_buffers(torch.tensor([1], dtype=torch.long))
+    assert set(obj._r2_reward_component_sums) == {"active_a", "active_b"}
+    assert set(obj._r2_last_raw_components) == {"active_a", "active_b"}
+    assert set(obj._r2_last_scaled_components) == {"active_a", "active_b"}
+    for name, values in obj._r2_reward_component_sums.items():
+        assert values[0].item() == sums_before[name][0].item()
+        assert values[1].item() == 0.0
+    for component_store in (obj._r2_last_raw_components, obj._r2_last_scaled_components):
+        for values in component_store.values():
+            assert values[1].item() == 0.0
 
 def test_trace_contiguous_terminal_last():
     rows = [row("run", 0, 0), row("run", 0, 1, True)]

@@ -22,6 +22,8 @@ v16 起的 optimization/admission plan 均归档在对应版本目录。为保�
 
 ## 专题
 
+- [pull_task/](pull_task/)：拉门（pull-door，`door_open_io="in"`）任务规划文档——云端方案原文（`a2_piper_pull_v0_tensile_feasibility_v1`，PASS 采纳）、本地独立分析、含三条 binding amendments 与双 worker 执行分层的落地文档（执行入口，冲突时为准）。见目录内 README。
+
 - [Reward/](Reward/)：G1 Doorman stage0–5 reward/completion adaptation 与 staged transition correctness 文档。
 - [gripper_zone/](gripper_zone/)：A2+PiPER gripper comfort-zone 说明与配图。
 

@@ -1,0 +1,60 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt18_prelaunch_infra_receipt_v1",
+  "generated_at_hkt": "2026-08-04 19:33:17 HKT",
+  "attempt": 18,
+  "status": "INFRA_PRELAUNCH_RUNNER_VALIDATION",
+  "runtime_validation": "INVALIDATED_BEFORE_LAUNCH",
+  "scientific_verdict_consumed": false,
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "first_simulation_step_boundary_crossed": false,
+  "scientific_attempt_started": false,
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15_RECEIPT.json",
+    "sha256": "3b850232429e4cdaee96281ad16ba2216f34df5baeb5262312f8bba831f841a0",
+    "repair_revision": "R15"
+  },
+  "error": {
+    "stage": "RUNNER_PREPARE_REENTRY",
+    "type": "RuntimeError",
+    "message": "R15 no-runtime scope was violated by Attempt18 artifact: scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+    "signature": "RuntimeError: R15 no-runtime scope was violated by Attempt18 artifact: scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+    "command": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v0/run_p1_push_anchor.py --attempt 18 --repair-receipt scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15_RECEIPT.json --repair-receipt-sha256 3b850232429e4cdaee96281ad16ba2216f34df5baeb5262312f8bba831f841a0",
+    "process_started": false,
+    "isaacsim_started": false,
+    "first_simulation_step_boundary_crossed": false,
+    "scientific_attempt_started": false,
+    "scientific_verdict_consumed": false
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+      "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+    },
+    "initial_launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_LAUNCH_OCCUPANCY.json",
+      "sha256": "17f91b53a878c25677a96cd5f03a9c3329c5f32424faf6c4f56bab91f141c6ef"
+    },
+    "input_config": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/input/config.yaml",
+      "sha256": "c9e2bd493a2d20a89fc8f7414b18225f14aeb902d37b6c638a1a72fc77d1ee89"
+    },
+    "checkpoint": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/input/model_step_002500.pt",
+      "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
+    }
+  },
+  "scope": {
+    "plan_immutable": true,
+    "initial_launch_occupancy_immutable": true,
+    "process_started": false,
+    "scientific_runtime_started": false,
+    "fixture_changed": false,
+    "thresholds_or_timeouts_changed": false,
+    "gpu_selection_changed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "unverified_claims": [
+    "No IsaacSim, GPU, first-step, physics, or scientific runtime result is asserted.",
+    "The preserved plan and initial occupancy are prelaunch evidence only."
+  ]
+}

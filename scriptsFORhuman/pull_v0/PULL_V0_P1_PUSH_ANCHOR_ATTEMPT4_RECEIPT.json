@@ -1,0 +1,72 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v4",
+  "generated_at_hkt": "2026-08-03 23:54:56 HKT",
+  "attempt": 4,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "ACQUISITION_CONTROL_CIRCULARITY_AND_TELEMETRY_INCOMPLETE",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r2": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R2_RECEIPT.json",
+      "sha256": "9899b5bbb93455cea82c80bee6a2c58e00b7ad692c1302dfe7aedc553b5f5263"
+    },
+    "revision": "R2",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT4_PLAN.json",
+      "sha256": "c0d80066c2845ff06096cefb5329a88111ec5ca6c1179f7dc7e1d16f8d103b39"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/process_receipt.json",
+      "sha256": "4c59984eeff0cc88e1375deeaaa59be7defee60c7538e990776bbb7d2c890423"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/stdout_stderr.log",
+      "sha256": "cb09e38992764994fe0b1a9386338510b748d77e22a22ffabb6ada464a3812f8"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/eval/a2_hold_oracle_summary.json",
+      "sha256": "c5906546c8717ecb6bee476c2feaa721a31ce9544cc75d086233ff3909c74a95"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/eval/metrics_eval.json",
+      "sha256": "0edb4ea7c807270e862ce605579f809e61506fe34d59f9f361decd28b0c1a738"
+    }
+  },
+  "observed": {
+    "running_max_filtered_body_panel_contact_n": 3817.004150390625,
+    "terminal_body_panel_contact_n": 0.0,
+    "terminal_stage": 0,
+    "terminal_reason": "stage_overtime",
+    "stage0_trace": "N/A; attempt4 predates R3 base push-anchor trace export."
+  },
+  "causality": {
+    "classification": "INCONCLUSIVE",
+    "reason": "The running-max filtered body-panel contact is non-zero while the terminal diagnostic force is zero; immutable attempt4 has no base push-anchor per-step trace to establish ordering or causality."
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": "N/A",
+    "latch_release": "N/A",
+    "hinge_progress_min_rad": "N/A",
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": false,
+    "observed_running_max_body_force_n": 3817.004150390625,
+    "observed_terminal_body_force_n": 0.0,
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "validated immutable attempt4 summary fields only",
+    "metrics": "validated immutable attempt4 terminal stage/reason and zero terminal force",
+    "base_push_anchor_trace": "N/A; absent from immutable attempt4",
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "threshold_mode": "report_only",
+  "unverified_claims": [
+    "No pull-mechanism verdict is consumed from attempt4.",
+    "Contact causality is INCONCLUSIVE without the R3 base push-anchor trace.",
+    "No attempt5 runtime outcome is asserted by this receipt."
+  ]
+}

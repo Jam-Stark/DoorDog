@@ -1,0 +1,2303 @@
+{
+  "schema_version": "a2_piper_pull_telemetry_v1",
+  "proof_scope": "P0-E deterministic schema harness",
+  "evidence_boundary": {
+    "static_schema_harness": "PASS",
+    "IsaacSim_runtime": "NOT_RUN",
+    "policy_behavior": "NOT_RUN"
+  },
+  "harness_input": "Synthetic finite values exercise every terminal reason registered by the pull smoke harness; they are not runtime measurements.",
+  "control_step_units": {
+    "door_open_io_sign": "unitless",
+    "door_open_lr_sign": "unitless",
+    "active_handle_face_x_sign": "unitless",
+    "travel_dir_x": "unitless",
+    "stage": "integer",
+    "event_state": "enum",
+    "root_x_rel_door_m": "m",
+    "signed_crossing_progress_m": "m",
+    "root_velocity_toward_door_mps": "m/s",
+    "root_velocity_yield_outward_mps": "m/s",
+    "root_velocity_final_travel_mps": "m/s",
+    "root_yaw_error_rad": "rad",
+    "handle_position_rad": "rad",
+    "handle_velocity_radps": "rad/s",
+    "latch_position_m": "m",
+    "hinge_position_rad": "rad",
+    "hinge_velocity_radps": "rad/s",
+    "target_tcp_position_error_m": "m",
+    "target_tcp_orientation_error_rad": "rad",
+    "bilateral_handle_contact": "bool",
+    "hook_contact": "bool_or_N/A",
+    "handle_local_slip_xyz_mps": "m/s",
+    "gripper_handle_separation_m": "m",
+    "finger_pd_effort_estimate_N": "N",
+    "finger_effort_utilization_estimate": "ratio",
+    "arm_pd_effort_utilization_estimate": "ratio",
+    "panel_contact_force_by_body_N": "N",
+    "frame_contact_force_by_body_N": "N",
+    "minimum_panel_robot_clearance_m": "m_or_N/A",
+    "reward_component_raw": "per_control_step"
+  },
+  "episode_units": {
+    "first_event_step": "control_step_or_N/A",
+    "first_event_time_s": "s_or_N/A",
+    "proof_hold_duration_s": "s_or_N/A",
+    "proof_retreat_displacement_m": "m_or_N/A",
+    "max_tensile_retreat_before_loss_m": "m_or_N/A",
+    "hinge_at_first_positive_progress_rad": "rad_or_N/A",
+    "hinge_at_first_grip_loss_rad": "rad_or_N/A",
+    "held_hinge_max_rad": "rad_or_N/A",
+    "hinge_at_release_or_hold_decision_rad": "rad_or_N/A",
+    "root_outward_excursion_before_clear_m": "m_or_N/A",
+    "first_path_reversal_step": "control_step_or_N/A",
+    "release_to_whole_body_clear_s": "s_or_N/A",
+    "hinge_reclosure_after_release_rad": "rad_or_N/A",
+    "body_panel_contact_steps_per_20s": "count",
+    "body_panel_contact_impulse_Ns": "N*s",
+    "crossing_while_valid_capture": "bool",
+    "whole_body_clear": "bool",
+    "terminal_reason": "enum"
+  },
+  "implicit_actuator_provenance": "ESTIMATE_ONLY",
+  "terminal_reason_coverage": [
+    "complete",
+    "stage_overtime",
+    "episode_timeout",
+    "low_height",
+    "bad_orientation",
+    "door_distance",
+    "upper_dof_overspeed",
+    "unknown_reset"
+  ],
+  "control_step_records": [
+    {
+      "terminal_reason": "complete",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 10,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 1,
+        "event_state": "E1_OUTSIDE_FACE_PREGRASP",
+        "root_x_rel_door_m": 0.8,
+        "signed_crossing_progress_m": -0.8,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 20,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 2,
+        "event_state": "E2_TENSILE_CAPTURE",
+        "root_x_rel_door_m": 0.6,
+        "signed_crossing_progress_m": -0.6,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.05,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 30,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 3,
+        "event_state": "E3_LATCH_RELEASE",
+        "root_x_rel_door_m": 0.4,
+        "signed_crossing_progress_m": -0.4,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.1,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.001,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 40,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 4,
+        "event_state": "E4_POSITIVE_HINGE_RETAINED",
+        "root_x_rel_door_m": 0.19999999999999996,
+        "signed_crossing_progress_m": -0.19999999999999996,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.15000000000000002,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.002,
+        "hinge_position_rad": 0.05,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 50,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 5,
+        "event_state": "E5_CLEARANCE_DECISION",
+        "root_x_rel_door_m": 0.0,
+        "signed_crossing_progress_m": -0.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.2,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.003,
+        "hinge_position_rad": 0.1,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 60,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 5,
+        "event_state": "E6_PATH_REVERSAL_ENTRY",
+        "root_x_rel_door_m": -0.19999999999999996,
+        "signed_crossing_progress_m": 0.19999999999999996,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.25,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.004,
+        "hinge_position_rad": 0.15000000000000002,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "complete",
+      "control_step": 70,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 5,
+        "event_state": "E7_WHOLE_BODY_CLEAR",
+        "root_x_rel_door_m": -0.40000000000000013,
+        "signed_crossing_progress_m": 0.40000000000000013,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.30000000000000004,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.005,
+        "hinge_position_rad": 0.2,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "stage_overtime",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "stage_overtime",
+      "control_step": 10,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 1,
+        "event_state": "E1_OUTSIDE_FACE_PREGRASP",
+        "root_x_rel_door_m": 0.8,
+        "signed_crossing_progress_m": -0.8,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "stage_overtime",
+      "control_step": 20,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 2,
+        "event_state": "E2_TENSILE_CAPTURE",
+        "root_x_rel_door_m": 0.6,
+        "signed_crossing_progress_m": -0.6,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.05,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "stage_overtime",
+      "control_step": 30,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 3,
+        "event_state": "E3_LATCH_RELEASE",
+        "root_x_rel_door_m": 0.4,
+        "signed_crossing_progress_m": -0.4,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.1,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.001,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "episode_timeout",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "episode_timeout",
+      "control_step": 10,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 1,
+        "event_state": "E1_OUTSIDE_FACE_PREGRASP",
+        "root_x_rel_door_m": 0.8,
+        "signed_crossing_progress_m": -0.8,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "episode_timeout",
+      "control_step": 20,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 2,
+        "event_state": "E2_TENSILE_CAPTURE",
+        "root_x_rel_door_m": 0.6,
+        "signed_crossing_progress_m": -0.6,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.05,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "low_height",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "low_height",
+      "control_step": 10,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 1,
+        "event_state": "E1_OUTSIDE_FACE_PREGRASP",
+        "root_x_rel_door_m": 0.8,
+        "signed_crossing_progress_m": -0.8,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "bad_orientation",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "PRE_E0",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "door_distance",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "upper_dof_overspeed",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "upper_dof_overspeed",
+      "control_step": 10,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 1,
+        "event_state": "E1_OUTSIDE_FACE_PREGRASP",
+        "root_x_rel_door_m": 0.8,
+        "signed_crossing_progress_m": -0.8,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "upper_dof_overspeed",
+      "control_step": 20,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 2,
+        "event_state": "E2_TENSILE_CAPTURE",
+        "root_x_rel_door_m": 0.6,
+        "signed_crossing_progress_m": -0.6,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.05,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "upper_dof_overspeed",
+      "control_step": 30,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 3,
+        "event_state": "E3_LATCH_RELEASE",
+        "root_x_rel_door_m": 0.4,
+        "signed_crossing_progress_m": -0.4,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.1,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.001,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "upper_dof_overspeed",
+      "control_step": 40,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 4,
+        "event_state": "E4_POSITIVE_HINGE_RETAINED",
+        "root_x_rel_door_m": 0.19999999999999996,
+        "signed_crossing_progress_m": -0.19999999999999996,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.15000000000000002,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.002,
+        "hinge_position_rad": 0.05,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": true,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    },
+    {
+      "terminal_reason": "unknown_reset",
+      "control_step": 0,
+      "record": {
+        "door_open_io_sign": 1,
+        "door_open_lr_sign": -1,
+        "active_handle_face_x_sign": 1,
+        "travel_dir_x": -1,
+        "stage": 0,
+        "event_state": "E0_RESET_VALID",
+        "root_x_rel_door_m": 1.0,
+        "signed_crossing_progress_m": -1.0,
+        "root_velocity_toward_door_mps": 0.1,
+        "root_velocity_yield_outward_mps": -0.1,
+        "root_velocity_final_travel_mps": 0.1,
+        "root_yaw_error_rad": 0.02,
+        "handle_position_rad": 0.0,
+        "handle_velocity_radps": 0.1,
+        "latch_position_m": 0.0,
+        "hinge_position_rad": 0.0,
+        "hinge_velocity_radps": 0.02,
+        "target_tcp_position_error_m": 0.01,
+        "target_tcp_orientation_error_rad": 0.03,
+        "bilateral_handle_contact": false,
+        "hook_contact": "N/A",
+        "handle_local_slip_xyz_mps": [
+          0.001,
+          -0.002,
+          0.0
+        ],
+        "gripper_handle_separation_m": 0.02,
+        "finger_pd_effort_estimate_N": {
+          "value": [
+            12.0,
+            12.5
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "finger_effort_utilization_estimate": {
+          "value": [
+            0.267,
+            0.278
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "arm_pd_effort_utilization_estimate": {
+          "value": [
+            0.1,
+            0.12,
+            0.15,
+            0.2,
+            0.18,
+            0.14
+          ],
+          "provenance": "ESTIMATE_ONLY"
+        },
+        "panel_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "frame_contact_force_by_body_N": {
+          "pelvis": 0.0,
+          "arm_body7": 0.0,
+          "arm_body8": 0.0
+        },
+        "minimum_panel_robot_clearance_m": "N/A",
+        "reward_component_raw": {
+          "pull_door_handle": 0.1,
+          "pull_door_hinge": 0.05
+        }
+      }
+    }
+  ],
+  "episode_records": [
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": true,
+        "E2_TENSILE_CAPTURE": true,
+        "E3_LATCH_RELEASE": true,
+        "E4_POSITIVE_HINGE_RETAINED": true,
+        "E5_CLEARANCE_DECISION": true,
+        "E6_PATH_REVERSAL_ENTRY": true,
+        "E7_WHOLE_BODY_CLEAR": true
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": 10,
+        "E2_TENSILE_CAPTURE": 20,
+        "E3_LATCH_RELEASE": 30,
+        "E4_POSITIVE_HINGE_RETAINED": 40,
+        "E5_CLEARANCE_DECISION": 50,
+        "E6_PATH_REVERSAL_ENTRY": 60,
+        "E7_WHOLE_BODY_CLEAR": 70
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": 0.2,
+        "E2_TENSILE_CAPTURE": 0.4,
+        "E3_LATCH_RELEASE": 0.6000000000000001,
+        "E4_POSITIVE_HINGE_RETAINED": 0.8,
+        "E5_CLEARANCE_DECISION": 1.0,
+        "E6_PATH_REVERSAL_ENTRY": 1.2000000000000002,
+        "E7_WHOLE_BODY_CLEAR": 1.4000000000000001
+      },
+      "proof_hold_duration_s": 0.2,
+      "proof_retreat_displacement_m": 0.01,
+      "max_tensile_retreat_before_loss_m": 0.02,
+      "hinge_at_first_positive_progress_rad": 0.01,
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": 0.2,
+      "hinge_at_release_or_hold_decision_rad": 0.2,
+      "root_outward_excursion_before_clear_m": 0.1,
+      "first_path_reversal_step": 60,
+      "release_to_whole_body_clear_s": 0.4,
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": true,
+      "whole_body_clear": true,
+      "terminal_reason": "complete"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": true,
+        "E2_TENSILE_CAPTURE": true,
+        "E3_LATCH_RELEASE": true,
+        "E4_POSITIVE_HINGE_RETAINED": false,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": 10,
+        "E2_TENSILE_CAPTURE": 20,
+        "E3_LATCH_RELEASE": 30,
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": 0.2,
+        "E2_TENSILE_CAPTURE": 0.4,
+        "E3_LATCH_RELEASE": 0.6000000000000001,
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": 0.2,
+      "proof_retreat_displacement_m": 0.01,
+      "max_tensile_retreat_before_loss_m": 0.02,
+      "hinge_at_first_positive_progress_rad": "N/A",
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": "N/A",
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "stage_overtime"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": true,
+        "E2_TENSILE_CAPTURE": true,
+        "E3_LATCH_RELEASE": false,
+        "E4_POSITIVE_HINGE_RETAINED": false,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": 10,
+        "E2_TENSILE_CAPTURE": 20,
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": 0.2,
+        "E2_TENSILE_CAPTURE": 0.4,
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": 0.2,
+      "proof_retreat_displacement_m": 0.01,
+      "max_tensile_retreat_before_loss_m": 0.02,
+      "hinge_at_first_positive_progress_rad": "N/A",
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": "N/A",
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "episode_timeout"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": true,
+        "E2_TENSILE_CAPTURE": false,
+        "E3_LATCH_RELEASE": false,
+        "E4_POSITIVE_HINGE_RETAINED": false,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": 10,
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": 0.2,
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": "N/A",
+      "proof_retreat_displacement_m": "N/A",
+      "max_tensile_retreat_before_loss_m": "N/A",
+      "hinge_at_first_positive_progress_rad": "N/A",
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": "N/A",
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "low_height"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": false,
+        "E1_OUTSIDE_FACE_PREGRASP": false,
+        "E2_TENSILE_CAPTURE": false,
+        "E3_LATCH_RELEASE": false,
+        "E4_POSITIVE_HINGE_RETAINED": false,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": "N/A",
+        "E1_OUTSIDE_FACE_PREGRASP": "N/A",
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": "N/A",
+        "E1_OUTSIDE_FACE_PREGRASP": "N/A",
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": "N/A",
+      "proof_retreat_displacement_m": "N/A",
+      "max_tensile_retreat_before_loss_m": "N/A",
+      "hinge_at_first_positive_progress_rad": "N/A",
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": "N/A",
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "bad_orientation"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": false,
+        "E2_TENSILE_CAPTURE": false,
+        "E3_LATCH_RELEASE": false,
+        "E4_POSITIVE_HINGE_RETAINED": false,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": "N/A",
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": "N/A",
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": "N/A",
+      "proof_retreat_displacement_m": "N/A",
+      "max_tensile_retreat_before_loss_m": "N/A",
+      "hinge_at_first_positive_progress_rad": "N/A",
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": "N/A",
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "door_distance"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": true,
+        "E2_TENSILE_CAPTURE": true,
+        "E3_LATCH_RELEASE": true,
+        "E4_POSITIVE_HINGE_RETAINED": true,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": 10,
+        "E2_TENSILE_CAPTURE": 20,
+        "E3_LATCH_RELEASE": 30,
+        "E4_POSITIVE_HINGE_RETAINED": 40,
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": 0.2,
+        "E2_TENSILE_CAPTURE": 0.4,
+        "E3_LATCH_RELEASE": 0.6000000000000001,
+        "E4_POSITIVE_HINGE_RETAINED": 0.8,
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": 0.2,
+      "proof_retreat_displacement_m": 0.01,
+      "max_tensile_retreat_before_loss_m": 0.02,
+      "hinge_at_first_positive_progress_rad": 0.01,
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": 0.2,
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "upper_dof_overspeed"
+    },
+    {
+      "event_reached": {
+        "E0_RESET_VALID": true,
+        "E1_OUTSIDE_FACE_PREGRASP": false,
+        "E2_TENSILE_CAPTURE": false,
+        "E3_LATCH_RELEASE": false,
+        "E4_POSITIVE_HINGE_RETAINED": false,
+        "E5_CLEARANCE_DECISION": false,
+        "E6_PATH_REVERSAL_ENTRY": false,
+        "E7_WHOLE_BODY_CLEAR": false
+      },
+      "first_event_step": {
+        "E0_RESET_VALID": 0,
+        "E1_OUTSIDE_FACE_PREGRASP": "N/A",
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "first_event_time_s": {
+        "E0_RESET_VALID": 0.0,
+        "E1_OUTSIDE_FACE_PREGRASP": "N/A",
+        "E2_TENSILE_CAPTURE": "N/A",
+        "E3_LATCH_RELEASE": "N/A",
+        "E4_POSITIVE_HINGE_RETAINED": "N/A",
+        "E5_CLEARANCE_DECISION": "N/A",
+        "E6_PATH_REVERSAL_ENTRY": "N/A",
+        "E7_WHOLE_BODY_CLEAR": "N/A"
+      },
+      "proof_hold_duration_s": "N/A",
+      "proof_retreat_displacement_m": "N/A",
+      "max_tensile_retreat_before_loss_m": "N/A",
+      "hinge_at_first_positive_progress_rad": "N/A",
+      "hinge_at_first_grip_loss_rad": "N/A",
+      "held_hinge_max_rad": "N/A",
+      "hinge_at_release_or_hold_decision_rad": "N/A",
+      "root_outward_excursion_before_clear_m": "N/A",
+      "first_path_reversal_step": "N/A",
+      "release_to_whole_body_clear_s": "N/A",
+      "hinge_reclosure_after_release_rad": "N/A",
+      "body_panel_contact_steps_per_20s": 0,
+      "body_panel_contact_impulse_Ns": 0.0,
+      "crossing_while_valid_capture": false,
+      "whole_body_clear": false,
+      "terminal_reason": "unknown_reset"
+    }
+  ],
+  "event_funnel_example": {
+    "P(E1)": 0.625,
+    "P(E2 | E1)": 0.8,
+    "P(E3 | E2)": 0.75,
+    "P(E4 | E3)": 0.6666666666666666,
+    "P(E5 | E4)": 0.5,
+    "P(E7 | E5)": 1.0
+  },
+  "validation": {
+    "schema_completeness": "PASS",
+    "finite_numeric_fields": "PASS",
+    "unit_registry": "PASS",
+    "N/A_handling": "PASS",
+    "event_ordering": "PASS",
+    "impossible_event_rejection": "PASS_BY_UNIT_TEST",
+    "estimate_only_stamps": "PASS"
+  }
+}

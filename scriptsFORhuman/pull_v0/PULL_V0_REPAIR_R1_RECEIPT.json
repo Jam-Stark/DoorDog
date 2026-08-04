@@ -1,0 +1,124 @@
+{
+  "authorized_reason": {
+    "admission_control_flow": "A: resolve anchor NO_GATE by binding scripted acquisition to first-episode activity without requiring stage_buf==STAGE_GRASP; preserve stage-0 predicates as telemetry.",
+    "measured_terminal_evidence": "Validator: require measured articulation clearance before E5, exact E7 whole-body completion, complete terminal episode records, and keep target-root reward inactive before E5.",
+    "physical_proof_and_transitions": "B: apply the tensile proof design to the shared world +X consumer, reset proof on contact loss or non-monotone retreat, and gate E2/E3/E4 transitions on contiguous evidence."
+  },
+  "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+  "downstream_gates": {
+    "anchor_attempts_authorized_after_receipt": true,
+    "p2": "NOT_STARTED",
+    "pull_side_p1": "NOT_STARTED",
+    "push_anchor_runtime": "PENDING_PARENT_RUNTIME_LEASE",
+    "runner_requires_this_receipt": true
+  },
+  "file_hashes": {
+    "gr00t/rl/config/ablation/wbmanip/pull_v0_p1_push_anchor.yaml": {
+      "post_sha256": "7de8e2d42a6d24ee9b495ef1576566eb084f9b202d234b5386dc14b8966feb64",
+      "pre_sha256": "78229fdc61681251e3c040aa82d3c210d067eadced8d1d5368d819c704f3b749"
+    },
+    "gr00t/rl/config/base_eval.yaml": {
+      "post_sha256": "2a2b1806514512c8c25051c2a3f92deb8820944ff6a47644830925f2eb917db3",
+      "pre_sha256": "29d97abbebdfcf1b99cb98f46129094f849f202a95b98e19a26878b8759d5641"
+    },
+    "gr00t/rl/config/env/door_open_a2_pull.yaml": {
+      "post_sha256": "311da18a8a0cbf7cd3f48886a45683e98dc0d5504928af3880a1027234b3dd46",
+      "pre_sha256": "fce4cf3ed94e6b5210b8a67076a5416e11d8aac6497aca504932817d8a5d2bdd"
+    },
+    "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_pull.yaml": {
+      "post_sha256": "cfc1ecdff69d4514b054ea6596ab1e97fb030ed59f5f1b099916771a61339d98",
+      "pre_sha256": "36a31a37fab82be504bc38f149f447189da22463290b0f759af890fef1803a4a"
+    },
+    "gr00t/rl/envs/door/a2_pull_direction.py": {
+      "post_sha256": "d30b884ed0ac92694a5c492d4cc692fd234cb62840cc616ad553b3743ac23238",
+      "pre_sha256": "b73ee811ff5b1a6512c181bf79f3ebc673e8f6911cd792076ba595381c361b0d"
+    },
+    "gr00t/rl/envs/door/a2_pull_telemetry.py": {
+      "post_sha256": "2d401049e522cfaade596944a79bef489506cc2a51f637f004fe28414d7228f5",
+      "pre_sha256": "8cbe23229cd4f9826a0c3c155e0dfc5e0d0c3907179d780638d6ad3f5260378d"
+    },
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "post_sha256": "9edebef01670eb8a6bf0588e0e1e53f9efd867fc0f64c42fb93db28794c6c9b8",
+      "pre_sha256": "08a2118bdbe459d252a19decae0d99eb9e7a73b9d05f68cdd1f49bc8a8af2559"
+    },
+    "gr00t/rl/envs/door/door_open_a2_pull.py": {
+      "post_sha256": "78844673eab6d4a599640a964f66e6b1fd2376704a2ae670d62845b87bbbfda2",
+      "pre_sha256": "fb55aa214872d8b5439370ce2173ebc95b799946c71072b0e45fe8e5d0bba7e6"
+    },
+    "gr00t/rl/tests/test_a2_pull_direction_contract.py": {
+      "post_sha256": "c9ebe71ba1701f52737c61cc50e0ed529971daa17baf887c236a665936cc8138",
+      "pre_sha256": "94c249ef28c66761569f2d2b852c22fb29401265b2837da82f92445dea43de7d"
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "post_sha256": "afe43119335d1ca109b45fe959d0e2a02ff9fff7946f2476b6d6ca362900e662",
+      "pre_sha256": "433a8221f64c6158ab1edf08661e29f654ef086f635a5ce68cbf711c518ef067"
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "post_sha256": "fdfcf62fa639c641612c6fe00b1b243747e170e5eeac2c8dd4cc9a833af8d7df",
+      "pre_sha256": "321a36d94931ceb834a6cb3f528118b8fef41802bcc5289f88813f0eee7eb4d0"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "post_sha256": "1a9ded727bd16b4fa6c1e728acbb17a83f21fa25145afc23a809cb12d94c2273",
+      "pre_sha256": "6210b3e73a63f027dde65f57edababd4b1a3f7a3768e99f89859f0bde4109e89"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r1_receipt.py": {
+      "post_sha256": "73e0ecd27bbc6ff834d8c8d518375b6d9da6adfa51f6b4661bc6419bccb2e258",
+      "pre_sha256": "N/A"
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "post_sha256": "085907d1cef4398acabe77f914d81b2deefc73b07b30c8e431a62be397a74a17",
+      "pre_sha256": "ff0f0986407a14beedbbcd820865de6917b34fff07d5481b2cfdf009e4f0cedc"
+    }
+  },
+  "generated_at_hkt": "2026-08-03 22:52:25 HKT",
+  "receipt_self_hash": "N/A_SELF_REFERENTIAL",
+  "repair_revision": "R1",
+  "root_cause": {
+    "conclusion": "ANCHOR_ADMISSION_CONTROL_FLOW",
+    "physical_stage0_predicate_cause": "INCONCLUSIVE_BEFORE_R1_TELEMETRY",
+    "runtime_mechanics_verdict": "UNVERIFIED"
+  },
+  "schema_version": "pull_v0_repair_r1_receipt_v1",
+  "scope": {
+    "destination": "DoorDog-A2_Piper_pull_v0 pull-v0 Repair R1",
+    "effort_provenance": "ESTIMATE_ONLY",
+    "route": "STANDARD_PATH",
+    "stopping_condition": "Static contracts, config composition, and CPU tests pass; runtime remains unrun.",
+    "threshold_mode": "report_only"
+  },
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "status": "STATIC_VALIDATION_PASS_RUNTIME_UNVERIFIED",
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime outcome is asserted by this receipt.",
+    "No physical stage-0 predicate cause is asserted before R1 telemetry exists."
+  ],
+  "validation": {
+    "commands": [
+      "python -m py_compile gr00t/rl/envs/door/a2_pull_direction.py gr00t/rl/envs/door/a2_pull_telemetry.py gr00t/rl/envs/door/door_open_a2_pull.py gr00t/rl/envs/door/door_open_a2_base.py scriptsFORhuman/pull_v0/build_pull_v0_repair_r1_receipt.py",
+      "python -m pytest -q gr00t/rl/tests/test_a2_pull_direction_contract.py gr00t/rl/tests/test_a2_pull_geometry_proof.py gr00t/rl/tests/test_a2_pull_namespace.py gr00t/rl/tests/test_a2_pull_telemetry.py gr00t/rl/tests/test_a2_pull_v0_freeze_guard.py",
+      "git diff --check"
+    ],
+    "diff_check_result": "PASS",
+    "full_pull_test_gate": {
+      "passed": 51,
+      "result": "PASS",
+      "test_files": [
+        "test_a2_pull_direction_contract.py",
+        "test_a2_pull_geometry_proof.py",
+        "test_a2_pull_namespace.py",
+        "test_a2_pull_telemetry.py",
+        "test_a2_pull_v0_freeze_guard.py"
+      ],
+      "warnings": 2
+    },
+    "negative_reached_event_step_time_checked": true,
+    "py_compile_result": "PASS",
+    "review_lanes": [
+      "code_reviewer",
+      "isaaclab_reviewer",
+      "runtime_qa_pending_parent_approval"
+    ],
+    "runtime_result": "INCONCLUSIVE_NOT_RUN_BY_WORKER",
+    "static_result": "PASS"
+  }
+}

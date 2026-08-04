@@ -1,0 +1,177 @@
+{
+  "schema_version": "pull_v0_p0c_architecture_smoke_v1",
+  "generated_at_hkt": "2026-08-03 16:01 HKT",
+  "status": "PASS",
+  "threshold_mode": "report_only",
+  "source_freeze": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_SOURCE_FREEZE.json",
+    "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+    "frozen_checkpoint": {
+      "source_path_read_only": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt",
+      "size_bytes": 30108155,
+      "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+      "expected_sha256_match": true
+    }
+  },
+  "cells": {
+    "out": {
+      "status": "PASS",
+      "direction": {
+        "a2_pull_door_open_io": "out",
+        "a2_pull_door_open_lr": "right",
+        "a2_pull_robot_initial_side_x_sign": -1.0,
+        "a2_pull_active_handle_face_x_sign": -1.0,
+        "a2_pull_travel_dir_x": 1.0,
+        "a2_pull_target_frame_version": "grasp_target_active_face_out_inherited_v20"
+      },
+      "resolved_config": {
+        "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/out_resolved/config.yaml",
+        "sha256": "fbc5882644e6286d69a580a022ab73edeaa20391a89813b7b464b044b7b22adc"
+      },
+      "runtime_log": {
+        "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/out_resolved/.hydra/train.log",
+        "sha256": "ccc3539c2c4521deea1bf892fc35db553aee7d81fd3548bfecb6482cee312778"
+      },
+      "saved_checkpoint": {
+        "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/out_resolved/model_step_000001.pt",
+        "sha256": "77ce6ced3bd270abc99321d7a41a7233828d6782be9895860ddde8d1da189330",
+        "size_bytes": 29519283
+      },
+      "runtime_contract": {
+        "environment_device": "cuda:4",
+        "num_envs": 1,
+        "optimizer_batches": 1,
+        "steps_per_environment": 64,
+        "reset": "PASS",
+        "observation_assembly": "PASS",
+        "reward_computation": "PASS",
+        "termination_computation": "PASS",
+        "checkpoint_save": "PASS",
+        "policy_performance": "N/A"
+      },
+      "actuator_and_material_profile": {
+        "finger_effort_n": [
+          45.0,
+          45.0
+        ],
+        "finger_stiffness": [
+          1300.0,
+          1300.0
+        ],
+        "finger_damping": [
+          32.0,
+          32.0
+        ],
+        "finger_effort_provenance": "ESTIMATE_ONLY",
+        "gripper_material_profile": "RESOLVED_V20_G4",
+        "hook_selector": "STOCHASTIC_BASELINE"
+      },
+      "behavior_selectors": {
+        "v20_send_latch": "disabled",
+        "v20_crossing": "disabled",
+        "v20_traversal_economics": "disabled",
+        "v20_arm_tie": "disabled",
+        "corridor": "disabled"
+      }
+    },
+    "in": {
+      "status": "PASS",
+      "direction": {
+        "a2_pull_door_open_io": "in",
+        "a2_pull_door_open_lr": "right",
+        "a2_pull_robot_initial_side_x_sign": 1.0,
+        "a2_pull_active_handle_face_x_sign": 1.0,
+        "a2_pull_travel_dir_x": -1.0,
+        "a2_pull_target_frame_version": "grasp_target_active_face_io_z_pre_v1"
+      },
+      "resolved_config": {
+        "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/in_telemetry/config.yaml",
+        "sha256": "7a694d5cd26c874c2d6169a6f239e781c97b4dcf2884201eac48f2e1b7bdaad5"
+      },
+      "runtime_log": {
+        "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/in_telemetry/.hydra/train.log",
+        "sha256": "f4763a61724050d9c73c792811e931bef8a880f6bff958bf55d0b2568b51abb0"
+      },
+      "saved_checkpoint": {
+        "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/in_telemetry/model_step_000001.pt",
+        "sha256": "65f991236d0539e89eaf81f299d7737d965e5606dc61fd668b7623f769867fd9",
+        "size_bytes": 29519283
+      },
+      "runtime_contract": {
+        "environment_device": "cuda:4",
+        "num_envs": 1,
+        "optimizer_batches": 1,
+        "steps_per_environment": 64,
+        "reset": "PASS",
+        "observation_assembly": "PASS",
+        "reward_computation": "PASS",
+        "termination_computation": "PASS",
+        "checkpoint_save": "PASS",
+        "policy_performance": "N/A"
+      },
+      "actuator_and_material_profile": {
+        "finger_effort_n": [
+          45.0,
+          45.0
+        ],
+        "finger_stiffness": [
+          1300.0,
+          1300.0
+        ],
+        "finger_damping": [
+          32.0,
+          32.0
+        ],
+        "finger_effort_provenance": "ESTIMATE_ONLY",
+        "gripper_material_profile": "RESOLVED_V20_G4",
+        "hook_selector": "STOCHASTIC_BASELINE"
+      },
+      "behavior_selectors": {
+        "v20_send_latch": "disabled",
+        "v20_crossing": "disabled",
+        "v20_traversal_economics": "disabled",
+        "v20_arm_tie": "disabled",
+        "corridor": "disabled"
+      }
+    }
+  },
+  "repair_history": [
+    {
+      "attempts": [
+        "in",
+        "in_retry1"
+      ],
+      "status": "FAIL_BEFORE_ROLLOUT",
+      "failure": "one environment could not be partitioned into the inherited four minibatches",
+      "bounded_repair": "set num_learning_epochs=1 and num_mini_batches=1 in both P0-C ablations",
+      "scientific_semantics_changed": false,
+      "artifacts_preserved_under": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c"
+    },
+    {
+      "attempt": "out_resolved",
+      "status": "PASS",
+      "reason": "rerun after adding explicit P0-D direction and target-frame evidence metadata",
+      "scientific_semantics_changed": false
+    }
+  ],
+  "gpu_resource_evidence": {
+    "authorized_physical_devices": [
+      4,
+      5,
+      6
+    ],
+    "compute_device_used": 4,
+    "gpu5_used": false,
+    "gpu6_used": false,
+    "gpu7_compute_used": false,
+    "isaacsim_adapter_note": "IsaacSim Vulkan diagnostics enumerate all adapters; only GPU4 is marked active. A pre-scene torch diagnostic reported index 7 with 0 MB reserved and 0 MB allocated. Environment tensors and filtered sensor tensors are explicitly on cuda:4."
+  },
+  "evidence_boundary": {
+    "static_config_contract": "PASS",
+    "isaacsim_reset_observation_reward_termination": "PASS",
+    "live_pull_telemetry_schema_first_step": "PASS",
+    "policy_performance": "NOT_EVALUATED",
+    "p0f_zero_shot": "NOT_RUN",
+    "claim": "This receipt admits the two-direction architecture only. It is not a pull-capability, zero-shot, or policy-quality verdict."
+  }
+}

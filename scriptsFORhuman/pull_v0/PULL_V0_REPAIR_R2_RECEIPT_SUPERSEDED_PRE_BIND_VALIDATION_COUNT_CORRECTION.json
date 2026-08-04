@@ -1,0 +1,106 @@
+{
+  "authorized_reason": "Attempt 3 reached the push-anchor callsite before probe admission and passed the environment device string into a helper whose explicit contract requires torch.device. R2 fixes that consumer callsite without weakening the helper contract.",
+  "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+  "change_reasons": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": "Pass the actual handle quaternion tensor device into the strict proof-offset helper; do not pass the environment device string.",
+    "gr00t/rl/tests/test_a2_pull_direction_contract.py": "Add a production-consumer AST regression that rejects a string device callsite.",
+    "gr00t/rl/tests/test_a2_pull_namespace.py": "Cover the preserved attempt-3 contract failure receipt and R2-era evidence bindings.",
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT3_RECEIPT.json": "Preserve the exact application contract TypeError as an immutable non-scientific failure.",
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": "Record attempt-3 pre-probe contract failure receipts and validate R1/R2 artifact chains.",
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r2_receipt.py": "Add the immutable English R2 parent/trigger/source-hash receipt builder.",
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": "Keep attempt 3 on immutable R1 binding and require canonical explicit R2 binding for attempt 4+."
+  },
+  "downstream_gates": {
+    "attempt3": "IMMUTABLE_APPLICATION_CONTRACT_ERROR_BEFORE_PROBE",
+    "attempt4": "AUTHORIZED_ONLY_WITH_EXPLICIT_REPAIR_R2_BINDING",
+    "p2": "NOT_STARTED",
+    "pull_side_p1": "NOT_STARTED"
+  },
+  "file_hashes": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "post_sha256": "d22a5fd76b38693009f60f39db8e6f4b9e0a1f0f1ccd938379ca2ad5ab8f6206",
+      "pre_sha256": "9edebef01670eb8a6bf0588e0e1e53f9efd867fc0f64c42fb93db28794c6c9b8"
+    },
+    "gr00t/rl/tests/test_a2_pull_direction_contract.py": {
+      "post_sha256": "1630eb4fa277e112dbddedc9d1b269fb63b1bbfb1384bf99db2aa750dc6bf43e",
+      "pre_sha256": "c9ebe71ba1701f52737c61cc50e0ed529971daa17baf887c236a665936cc8138"
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "post_sha256": "8dcdacdc57c19c29ccca54c13148e431d1d985850e062e97f83027e25c870940",
+      "pre_sha256": "47a3e9ff4ecb9ba454ee6ad26d5cf16d9a64f08106f919c4269f9f988518d75c"
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT3_RECEIPT.json": {
+      "post_sha256": "aa499f0fc6ba36d5b9b9dd17758c829a5d6ea05574f5a7e118510af5d4d88335",
+      "pre_sha256": "N/A"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "post_sha256": "af6743598677a150c1014e6eea207762e30242e77e4dd01e13819173a1e888f3",
+      "pre_sha256": "73042edc767bfd4be2114ac45937a42dc3721fd16fba99c7457543235b82f57e"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r2_receipt.py": {
+      "post_sha256": "deb6665be6db7a6038c927bfbdc87cf57466d1c8636f71e6273bbcb7fd2a8f9d",
+      "pre_sha256": "N/A"
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "post_sha256": "8d902e07b12fee3418af175ec092935e731c475ef0c24d53ee73fc46cb9be2d6",
+      "pre_sha256": "634cb0c15de654ea66c7d89e9d9482d045eff177196ec39d178fb042d2f663e6"
+    }
+  },
+  "generated_at_hkt": "2026-08-03 23:22:08 HKT",
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R1_RECEIPT.json",
+    "repair_revision": "R1",
+    "sha256": "14b15df80229fbd7e01fded10c8a1675f58317cabb727e6d12f0931ab82f8335"
+  },
+  "receipt_self_hash": "N/A_SELF_REFERENTIAL",
+  "repair_revision": "R2",
+  "root_cause": {
+    "conclusion": "TENSOR_DEVICE_CALLSITE_CONTRACT",
+    "failure_signature": "TypeError: device must be torch.device; got str.",
+    "runtime_mechanics_verdict": "UNVERIFIED",
+    "scientific_verdict_consumed": false,
+    "stage": "APPLICATION_CONTRACT_ERROR_BEFORE_PROBE"
+  },
+  "schema_version": "pull_v0_repair_r2_receipt_v1",
+  "scope": {
+    "destination": "DoorDog-A2_Piper_pull_v0 pull-v0 Repair R2",
+    "effort_provenance": "ESTIMATE_ONLY",
+    "route": "STANDARD_PATH",
+    "stopping_condition": "Fix the tensor-device consumer contract, preserve attempt 3 as a pre-probe failure, and leave subsequent runtime unverified until a new leased attempt is run.",
+    "threshold_mode": "report_only"
+  },
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "status": "STATIC_VALIDATION_PASS_RUNTIME_UNVERIFIED",
+  "trigger": {
+    "attempt": 3,
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT3_RECEIPT.json",
+      "sha256": "aa499f0fc6ba36d5b9b9dd17758c829a5d6ea05574f5a7e118510af5d4d88335"
+    },
+    "preserved_result": "APPLICATION_CONTRACT_ERROR_BEFORE_PROBE",
+    "root_cause": "TENSOR_DEVICE_CALLSITE_CONTRACT"
+  },
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime outcome is asserted by this receipt.",
+    "No pull-mechanism verdict was consumed from attempt 3.",
+    "A future attempt 4 must produce fresh runtime artifacts before any probe verdict is assessed."
+  ],
+  "validation": {
+    "attempt3_receipt_result": "PASS",
+    "attempt3_receipt_sha256": "aa499f0fc6ba36d5b9b9dd17758c829a5d6ea05574f5a7e118510af5d4d88335",
+    "commands": [
+      "python -m py_compile gr00t/rl/envs/door/door_open_a2_base.py gr00t/rl/tests/test_a2_pull_direction_contract.py gr00t/rl/tests/test_a2_pull_namespace.py scriptsFORhuman/pull_v0/run_p1_push_anchor.py scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py scriptsFORhuman/pull_v0/build_pull_v0_repair_r2_receipt.py",
+      "python -m pytest -q gr00t/rl/tests/test_a2_pull_direction_contract.py gr00t/rl/tests/test_a2_pull_geometry_proof.py gr00t/rl/tests/test_a2_pull_namespace.py gr00t/rl/tests/test_a2_pull_telemetry.py gr00t/rl/tests/test_a2_pull_v0_freeze_guard.py",
+      "PYTHONPATH=. python scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py --attempt 3",
+      "git diff --check"
+    ],
+    "full_pull_test_gate": {
+      "passed": 56,
+      "result": "PASS",
+      "warnings": 2
+    },
+    "py_compile_result": "PASS",
+    "runtime_result": "INCONCLUSIVE_NOT_RUN_BY_WORKER",
+    "static_result": "PASS"
+  }
+}

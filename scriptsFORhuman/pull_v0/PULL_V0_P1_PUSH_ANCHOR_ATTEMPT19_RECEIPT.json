@@ -1,0 +1,67 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v19",
+  "generated_at_hkt": "2026-08-04 22:19:50 HKT",
+  "attempt": 19,
+  "status": "PROBE_INVALID",
+  "probe_validity": "PROBE_INVALID",
+  "runtime_validation": "INVALIDATED_AT_CAPTURE_ADMISSION",
+  "anchor_verdict": "NOT_ASSESSED",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "scientific_verdict_consumed": false,
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_PLAN.json",
+      "sha256": "cf23ee03ec0c40e77582ec724d8c6d8855cebcd40791edb7c8d11e75d9800748"
+    },
+    "launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_LAUNCH_OCCUPANCY.json",
+      "sha256": "035303242c307856a54bb3eabe09c391d75cca936f9a437946af4f938e2d08b8"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19/stdout_stderr.log",
+      "sha256": "2614844d86965bf648874d06360100e4997f8ecc49bf6d1a730dc7f0272bcbdc",
+      "total_lines": 621,
+      "terminal_line_number": 621,
+      "terminal_line": "Starting evaluation with one episode per environment"
+    },
+    "capture_failure": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_CAPTURE_FAILURE.json",
+      "sha256": "6fab55d01f9e0763167121c48fb54a16e5e4cf4c0eb970bed1a40c837f0b70bc"
+    },
+    "process_receipt": null,
+    "summary": null,
+    "metrics": null,
+    "steady_state_footprint": null
+  },
+  "runtime_failure": {
+    "root_cause_code": "ATTEMPT19_NONSELECTED_GPU_COMPUTE_APP_ADMISSION_FAILURE",
+    "exact_message": "RuntimeError: Attempt19 nonselected GPU0 compute-apps contains the Attempt19 PID.",
+    "observation_timestamp_hkt": "2026-08-04 22:19:50 HKT",
+    "first_simulation_step_boundary_crossed": true,
+    "scientific_attempt_started": true,
+    "evidence_admission_passed": false,
+    "scientific_verdict_consumed": false
+  },
+  "termination": {
+    "runner_pid": 2219008,
+    "eval_pid": 2219040,
+    "runner_fully_reaped": true,
+    "eval_fully_reaped": true,
+    "parent_termination": "KeyboardInterrupt before process_receipt.json was written",
+    "stop_signal_timestamp_hkt": null,
+    "stop_signal_timestamp_status": "NOT_RECORDED"
+  },
+  "required_telemetry": {
+    "process_receipt": "N/A: absent after capture-admission failure",
+    "summary": "N/A: absent after capture-admission failure",
+    "metrics": "N/A: absent after capture-admission failure",
+    "steady_state_footprint": "N/A: absent after capture-admission failure",
+    "capture_failure": "recorded in the immutable capture-failure artifact"
+  },
+  "classification_note": "Reaching the evaluation boundary does not convert a failed evidence-admission attempt into an anchor or scientific verdict.",
+  "unverified_claims": [
+    "No anchor verdict is asserted.",
+    "No pull-mechanism verdict is asserted.",
+    "No scientific verdict is asserted."
+  ]
+}

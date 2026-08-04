@@ -1,0 +1,62 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt9_response_telemetry_v1",
+  "generated_at_hkt": "2026-08-04 00:00:00 HKT",
+  "attempt": 9,
+  "status": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+  "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+  "mechanism_verdict": "NOT_ASSESSED",
+  "threshold_mode": "report_only",
+  "response_summary": {
+    "schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+    "status": "CAPTURED",
+    "threshold_mode": "report_only",
+    "response_count": 120,
+    "anti_alignment_count": 33,
+    "max_observed_world_xy_speed_mps": 0.12505048411309042,
+    "max_observed_world_xy_displacement_m": 0.0022715072255321245,
+    "min_progress_velocity_cosine": -0.9727419018745422,
+    "min_progress_displacement_cosine": -0.9925251603126526
+  },
+  "first_response_identity": {
+    "episode_generation": 0,
+    "trace_row_index": 3,
+    "control_step": 3,
+    "response_control_step": 4
+  },
+  "terminal_response_identity": {
+    "episode_generation": 0,
+    "trace_row_index": 122,
+    "control_step": 122,
+    "response_control_step": 123
+  },
+  "artifacts": {
+    "attempt9_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RECEIPT.json",
+      "sha256": "286fa3b832911ce3530b17696049b0a5e9d5584bf78e5199d1506c208b043624"
+    },
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_PLAN.json",
+      "sha256": "460dd1fcbb0e51d080db730bbf0f020f5ec56d5d76468f8f48bfe322039cc2a8"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/process_receipt.json",
+      "sha256": "830246b8cd9cec9d5ac0adb7eaaec92e43bae0d664ef7dcd3caf3aa6c577c12f"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/stdout_stderr.log",
+      "sha256": "6aa8ffe29f219d62ae82faac4dfb17034a012cc09f5203b26d9a3ddd148f16a7"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/eval/a2_hold_oracle_summary.json",
+      "sha256": "cdd72c25960b68377a49285c2a3342468e3cc191b9b431d17779310eeb2903b1"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/eval/metrics_eval.json",
+      "sha256": "5f89f0d2bfbd99853e823273277d297b21ba48af424ec15405f2f8470cebe178"
+    },
+    "repair_r7": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R7_RECEIPT.json",
+      "sha256": "a5f576c06718b145e992bd4927384efae9e7b8714f6f8b87836914da6c702b5f"
+    }
+  }
+}

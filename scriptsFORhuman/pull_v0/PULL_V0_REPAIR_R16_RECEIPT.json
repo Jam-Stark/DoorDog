@@ -1,0 +1,317 @@
+{
+  "schema_version": "pull_v0_repair_r16_receipt_v1",
+  "generated_at_hkt": "2026-08-04 22:13:17 HKT",
+  "repair_revision": "R16",
+  "revision_detail": "R16.4",
+  "status": "APPROVED_FOR_ATTEMPT19_PREPARATION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "scientific_verdict_consumed": false,
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "ATTEMPT18_CONTACT_SENSOR_CAPACITY_OVERFLOW",
+    "conclusion": "Attempt18 retry1 crossed the first simulation step with detailed contact telemetry enabled, but the shared max_contact_data_count_per_prim=8 buffer overflowed before summary/metrics finalization. The failure is a contact-buffer capacity defect, not a pull-mechanism verdict.",
+    "source_signature": "Incomplete contact data is reported in GpuRigidContactView::getContactData because there are more contact data points than specified maxContactDataCount = 8.",
+    "secondary_signatures": [
+      "CUDA error: device-side assert triggered",
+      "Exception: Failed to get friction data from backend"
+    ],
+    "physical_plant_cause": "INCONCLUSIVE_NO_PROOF_SAMPLES"
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RECEIPT.json",
+    "sha256": "329e86b831016ddab68b8a03ac91e65a97ed60700685f9e4b6700b08affb140a",
+    "repair_revision": "ATTEMPT18_RUNTIME"
+  },
+  "trigger": {
+    "attempt": 18,
+    "root_cause": "ATTEMPT18_CONTACT_SENSOR_CAPACITY_OVERFLOW",
+    "attempt18_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RECEIPT.json",
+      "sha256": "329e86b831016ddab68b8a03ac91e65a97ed60700685f9e4b6700b08affb140a"
+    },
+    "runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+        "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/process_receipt.json",
+        "sha256": "641f99ba8ddda16f6114807b72ae9cc87234bae3dc8c0d7f9a6baf911562a94f"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/stdout_stderr.log",
+        "sha256": "b49d6ed10e8c2665dd4c498692d011e00fb41c64fee72187b24f040679612cb1"
+      },
+      "launch_occupancy": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY.json",
+        "sha256": "f2b93c71c02600c362a8e8e8eb9a3bcc52fe320f1681726ae933a8b415a0bcb1"
+      },
+      "steady_state_footprint": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_STEADY_STATE_FOOTPRINT.json",
+        "sha256": "a02d5a64683807dcdb1ce33b47f567ac9120a9640235806f7c1273ccaeaf614a"
+      }
+    },
+    "exact_failure_signatures": [
+      "Incomplete contact data is reported in GpuRigidContactView::getContactData because there are more contact data points than specified maxContactDataCount = 8.",
+      "CUDA error: device-side assert triggered",
+      "Exception: Failed to get friction data from backend"
+    ]
+  },
+  "scope": {
+    "attempt18_parent_immutable": true,
+    "attempt18_scientific_verdict_consumed": false,
+    "attempt19_prepared": false,
+    "attempt19_runtime_executed": false,
+    "attempt19_artifacts_created": false,
+    "fixture_changed": false,
+    "thresholds_or_timeouts_changed": false,
+    "p1_p2_gates_changed": false,
+    "pull_verdict": "NOT_ASSESSED",
+    "gpu_lease_changed": false,
+    "shared_default_capacity_changed": false
+  },
+  "source_repair": {
+    "config_key": "a2_hold_diagnostic_max_contact_data_count_per_prim",
+    "anchor_only_detailed_contact_capacity": 64,
+    "shared_default_detailed_contact_capacity": 8,
+    "num_envs": 1,
+    "sensor_body": "door_handle",
+    "sensor_body_collision_shape_count": 5,
+    "filter_bodies": [
+      "arm_body7",
+      "arm_body8"
+    ],
+    "filter_collision_shape_counts": {
+      "arm_body7": 1,
+      "arm_body8": 1
+    },
+    "observed_total_collision_shape_count": 7,
+    "candidate_sensor_filter_shape_pair_count": 10,
+    "track_pose": true,
+    "track_contact_points": true,
+    "track_friction_forces": true,
+    "threshold_or_gate": false,
+    "low_level_usd_api": false
+  },
+  "r16_4_evidence_derivation": {
+    "reason": "The installed NVIDIA 580.173.02 driver reports inactive graphics PMON metrics as '-' and active Vulkan+compute contexts as C+G; R16.4 makes those states explicit and binds compute attribution to the PMON and compute-app sources together.",
+    "diff": [
+      "Preserve PMON '-' SM/memory metrics as null with explicit NOT_REPORTED state/source; never rewrite them to zero.",
+      "Accept PMON context types C, G, and C+G while rejecting unknown/partial rows and invalid FB memory or command fields.",
+      "Require selected GPU2 compute attribution from PMON C/C+G plus positive FB and an exact GPU2 compute-app PID match; do not require instantaneous SM activity.",
+      "Require every nonselected same-PID context to be inactive G, absent from compute-apps on that device, and within the 1024 MiB FB limit.",
+      "Permit only explicitly recorded inactive G OTHER_TENANT contexts on authorized alternate GPU3; compute/C+G on GPU3 blocks."
+    ],
+    "runtime_scope": "PREPARATION_ONLY",
+    "runtime_validation": "NOT_RUN",
+    "scientific_verdict_consumed": false,
+    "installed_driver": "NVIDIA 580.173.02",
+    "observed_rows": {
+      "gpu3": {
+        "pid": 2198197,
+        "type": "G",
+        "sm": "-",
+        "mem": "-",
+        "fb_mib": 4
+      },
+      "gpu4": {
+        "pid": 2198197,
+        "type": "C+G",
+        "sm": 11,
+        "mem": 5,
+        "fb_mib": 5050
+      }
+    }
+  },
+  "attempt19_preparation_contract": {
+    "attempt": 19,
+    "detailed_contact_capacity": 64,
+    "shared_default_detailed_contact_capacity": 8,
+    "config_key": "a2_hold_diagnostic_max_contact_data_count_per_prim",
+    "launch_occupancy_path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_LAUNCH_OCCUPANCY.json",
+    "steady_state_footprint_path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_STEADY_STATE_FOOTPRINT.json",
+    "launch_occupancy_schema": "pull_v0_p1_attempt19_launch_occupancy_v1",
+    "steady_state_footprint_schema": "pull_v0_p1_attempt19_steady_state_footprint_v1",
+    "capture_tool": "scriptsFORhuman/pull_v0/capture_p1_anchor_gpu_evidence.py",
+    "selected_compute_physical_device": 2,
+    "authorized_compute_physical_devices": [
+      2,
+      3
+    ],
+    "unauthorized_compute_physical_devices": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      7
+    ],
+    "first_simulation_step_boundary_required": true,
+    "evidence_derivation_revision": "R16.4",
+    "runtime_log_contract": {
+      "ansi_stripping_required": true,
+      "app_launcher_line": "[INFO][AppLauncher]: Using device: cuda:2",
+      "environment_device_suffix": "Environment device    : cuda:2",
+      "kit_vulkan_tables_after_app_launcher": "every complete table must contain known rows 0-7 with active physical devices exactly [2]",
+      "first_simulation_step_boundary": "Starting evaluation with one episode per environment",
+      "source_lines_and_tables_persisted": true,
+      "validator_independent_derivation": true
+    },
+    "pmon_contract": {
+      "query": [
+        "nvidia-smi",
+        "pmon",
+        "-i",
+        "0,1,2,3,4,5,6,7",
+        "-c",
+        "1",
+        "-s",
+        "um"
+      ],
+      "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um",
+      "source_authoritative_for_attempt_pid": true,
+      "required_fields": [
+        "gpu",
+        "pid",
+        "type",
+        "sm",
+        "mem",
+        "fb",
+        "command"
+      ],
+      "accepted_types": [
+        "C",
+        "G",
+        "C+G"
+      ],
+      "not_reported_metric_policy": "Preserve '-' as null with explicit NOT_REPORTED state; never coerce to numeric zero.",
+      "compute_cross_source": "Selected GPU2 PID must appear in query-compute-apps on GPU2; nonselected same PID must be absent on that device.",
+      "inactive_same_pid_context": {
+        "type": "G",
+        "sm_percent": "0 when reported; NOT_REPORTED otherwise",
+        "memory_percent": "0 when reported; NOT_REPORTED otherwise",
+        "fb_memory_mib_at_most": 1024
+      },
+      "non_leased_other_pids": "OTHER_TENANT",
+      "authorized_gpu3_alternate": "Only explicit inactive G OTHER_TENANT contexts absent from GPU3 compute-apps are allowed.",
+      "device_total_utilization_is_not_attempt_attribution": true
+    },
+    "process_identity_contract": {
+      "runner_pid_required": true,
+      "eval_pid_required_and_live_at_capture": true,
+      "direct_child_or_verified_descendant": true,
+      "module": "gr00t.rl.eval_agent_trl",
+      "output_namespace": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19",
+      "eval_output_dir": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19/eval",
+      "closure_uses_static_identity_without_live_probe": true
+    },
+    "lifecycle_contract": {
+      "launch_capture_strictly_before_process_started_at": true,
+      "steady_capture_within_process_started_finished_window": true,
+      "finished_at_not_before_started_at": true
+    },
+    "runtime_validation": "NOT_RUN",
+    "scientific_verdict_consumed": false,
+    "preparation_only": true
+  },
+  "historical_attempt2_no_gate": {
+    "anchor_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_RECEIPT.json",
+      "sha256": "0441648a81c28f180a6ec0a0ed4176b1f4b3f0fc0fd43dea12bc09712429ed63"
+    },
+    "attempt2_plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT2_PLAN.json",
+      "sha256": "a0ad82cd7ce216d75a7ecae2b288d8c97f1dc75f592ef9ad2db4871ee8f43f7c"
+    },
+    "attempt2_process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/process_receipt.json",
+      "sha256": "1bc49d13dc23826dd6fcf25827010f4bf131efbf24ea60c0edc578ab90072c68"
+    },
+    "attempt2_summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/eval/a2_hold_oracle_summary.json",
+      "sha256": "edf5819a2189589b4aa5910026eaa40c90845d5afd1feba2aadadc376ea96bf7"
+    },
+    "attempt2_metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/eval/metrics_eval.json",
+      "sha256": "552b2480360236dc1a4a13d8ac523cf27952951625d8c4353faf957a4d1c6764"
+    },
+    "result": "NO_GATE",
+    "proof_samples": 0,
+    "max_stage": 0,
+    "terminal_reason": "stage_overtime",
+    "causal_answer": "Scripted acquisition depended on stage_buf == STAGE_GRASP while the first episode remained at stage0; the proof command never acquired or gated, so no pull-mechanism samples were obtained.",
+    "original_finding": "transition inherited push/root-only semantics",
+    "physical_plant_cause": "INCONCLUSIVE_NO_PROOF_SAMPLES"
+  },
+  "original_six_repair_policy": {
+    "unchanged": true,
+    "new_design": false,
+    "p1_p2_changes": false,
+    "note": "R16 records the historical NO_GATE causal answer separately and adds only the contact-buffer capacity repair; it does not replace the original six repair findings or introduce a new P1/P2 design."
+  },
+  "changed_files": {
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "hash_binding": "EXCLUDED_TO_AVOID_R16_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "hash_binding": "EXCLUDED_TO_AVOID_R16_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r16_receipt.py": {
+      "hash_binding": "EXCLUDED_TO_AVOID_R16_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/capture_p1_anchor_gpu_evidence.py": {
+      "resource_evidence": "R16.4 installed-driver PMON states, cross-source PID attribution, GPU3 alternate tenant allowance, process identity, and lifecycle-bound Attempt19 capture"
+    },
+    "gr00t/rl/config/ablation/wbmanip/pull_v0_p1_push_anchor.yaml": {
+      "contact_capacity": 64
+    },
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "contact_sensor_helper": "existing high-level detail kwargs reused; source not changed by R16"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "NOT_RUN",
+    "runtime_not_run_reason": "R16 authorizes Attempt19 preparation only; no Attempt19 plan, output, IsaacSim, GPU, or scientific runtime was created or executed."
+  },
+  "acceptance": {
+    "attempt18_receipt_exact_and_probe_invalid": true,
+    "attempt18_first_step_boundary_recorded": true,
+    "attempt18_contact_capacity_overflow_recorded": true,
+    "attempt18_scientific_verdict_consumed": false,
+    "attempt18_pull_mechanism_not_assessed": true,
+    "attempt2_no_gate_causal_answer_separate": true,
+    "anchor_only_capacity_64": true,
+    "shared_default_capacity_8": true,
+    "detailed_contact_telemetry_preserved": true,
+    "attempt19_preparation_only": true,
+    "attempt19_resource_evidence_contract_bound": true,
+    "attempt19_r16_4_log_evidence_derived": true,
+    "attempt19_r16_4_pmon_context_evidence_required": true,
+    "attempt19_r16_4_cross_source_pid_bound": true,
+    "attempt19_r16_4_gpu3_alternate_inactive_tenant_bound": true,
+    "attempt19_r16_4_process_identity_bound": true,
+    "attempt19_r16_4_lifecycle_order_bound": true,
+    "original_six_repair_policy_unchanged": true,
+    "runtime_pass_asserted": false
+  },
+  "evidence_summary": {
+    "attempt18_process_returncode": -9,
+    "attempt18_summary_present": false,
+    "attempt18_metrics_present": false,
+    "attempt18_sigterm_timestamp": null,
+    "attempt18_sigterm_timestamp_status": "NOT_RECORDED",
+    "attempt18_sigkill_timestamp": "2026-08-04 20:14:10 HKT",
+    "attempt18_runner_reaped_at": "2026-08-04 20:14:13 HKT",
+    "configured_capacity": 8,
+    "required_capacity": 64,
+    "historical_attempt2_result": "NO_GATE",
+    "historical_attempt2_proof_samples": 0
+  },
+  "unverified_claims": [
+    "No Attempt19 runtime result or scientific verdict is asserted.",
+    "R16.4 changes installed-driver PMON evidence derivation and closure binding only; no product mechanics, fixture, threshold, timeout, or P1/P2 gate is changed.",
+    "The physical plant cause remains INCONCLUSIVE because Attempt2 never acquired or gated the proof and Attempt18 produced no summary/metrics samples.",
+    "The exact SIGTERM send timestamp was not recorded; no timestamp is fabricated."
+  ]
+}

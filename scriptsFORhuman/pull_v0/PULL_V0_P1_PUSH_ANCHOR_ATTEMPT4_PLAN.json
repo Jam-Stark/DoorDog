@@ -1,0 +1,182 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_plan_v1",
+  "generated_at_hkt": "2026-08-03 23:27:06 HKT",
+  "status": "READY",
+  "attempt": 4,
+  "implementation_repair_used": true,
+  "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+  "repair_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R2_RECEIPT.json",
+    "sha256": "9899b5bbb93455cea82c80bee6a2c58e00b7ad692c1302dfe7aedc553b5f5263",
+    "revision": "R2",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+    "parent_receipt_sha256": "14b15df80229fbd7e01fded10c8a1675f58317cabb727e6d12f0931ab82f8335"
+  },
+  "checkpoint": {
+    "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/input/model_step_002500.pt",
+    "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+    "source_path_read_only": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt"
+  },
+  "resolved_config": {
+    "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/input/config.yaml",
+    "sha256": "e4619dd6e00aefafe5dc561ed1c3646c5f3e8a19cab256e054b686e09819267f",
+    "source_path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/out_resolved/config.yaml"
+  },
+  "fixture": {
+    "door_width_m": 0.95,
+    "door_height_m": 2.05,
+    "handle_height_m": 0.95,
+    "handle_edge_offset_m": 0.115,
+    "door_mass_kg": 120.0,
+    "hinge_max_force_nm": 7.25,
+    "hinge_stiffness_nm_per_rad": 5.5,
+    "hinge_damping_nms_per_rad": 50.0,
+    "handle_max_force_nm": 2.0,
+    "handle_stiffness_nm_per_rad": 50.0,
+    "handle_damping_nms_per_rad": 0.5,
+    "axle_length_m": 0.195,
+    "handle_length_m": 0.125,
+    "hook_length_m": 0.05,
+    "handle_radius_m": 0.013,
+    "hook_present": true
+  },
+  "mass_range_authority": {
+    "path": "scriptsFORhuman/pull_v0/source_freeze/v20_G4_resolved_config.yaml",
+    "resolved_range_kg": [
+      80.0,
+      160.0
+    ],
+    "selected_midpoint_kg": 120.0,
+    "repo_default_range_kg": [
+      80.0,
+      120.0
+    ],
+    "repo_default_not_used_reason": "Amendment 2 binds P1 to the resolved v20 G4 range, not the repo default."
+  },
+  "actuator_profile": {
+    "finger_effort_n": [
+      45.0,
+      45.0
+    ],
+    "finger_stiffness": [
+      1300.0,
+      1300.0
+    ],
+    "finger_damping": [
+      32.0,
+      32.0
+    ],
+    "provenance": "ESTIMATE_ONLY"
+  },
+  "script_contract": {
+    "sequence": [
+      "reset_signed_outside_face",
+      "scripted_acquisition_without_stage2_gate",
+      "stage0_predicates_reported_separately",
+      "center_and_close",
+      "contiguous_world_positive_x_proof",
+      "handle_rotation",
+      "measured_clearance_decision",
+      "live_circular_arc_with_base_yield",
+      "whole_body_clear_completion"
+    ],
+    "commandable_dofs_only": true,
+    "admission_stage2_grasp_gate": false,
+    "reset_target_contract": {
+      "approach_side_x_sign": -1,
+      "initial_yaw_rad": 0.0,
+      "target_orientation_wxyz": [
+        0.5,
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "stage0_predicate_fields": [
+      "staging_band",
+      "arm_default",
+      "base_still"
+    ],
+    "stage1_stage2_residual_fields": [
+      "target_tcp_position_error_m",
+      "target_tcp_orientation_error_rad",
+      "bilateral_handle_contact"
+    ],
+    "proof_world_direction": "+X",
+    "proof_offset_m": 0.006,
+    "proof_ramp_steps": 30,
+    "proof_hold_steps": 10
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": true,
+    "latch_release": true,
+    "hinge_progress_min_rad": 0.25,
+    "body_panel_contact_allowed": false,
+    "measured_clearance_required_before_e5": true,
+    "whole_body_mask_required_for_completion": true
+  },
+  "threshold_mode": "report_only",
+  "gpu_resource_lease": {
+    "authorized_physical_devices": [
+      4,
+      5,
+      6
+    ],
+    "selected_physical_device": 4,
+    "gpu7_compute_authorized": false
+  },
+  "argv": [
+    "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+    "-B",
+    "-m",
+    "gr00t.rl.eval_agent_trl",
+    "checkpoint=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/input/model_step_002500.pt",
+    "checkpoint_load_mode=full",
+    "+auto_load_latest=false",
+    "+num_envs=1",
+    "+seed=0",
+    "+headless=true",
+    "+use_wandb=false",
+    "algo.config.eval.num_eval_episodes=1",
+    "+algo.config.eval.eval_num_envs_episodes=true",
+    "+algo.config.eval.dump_to_log_metrics=true",
+    "algo.config.eval.save_goal_reached_only=false",
+    "algo.config.eval.save_trajectories=false",
+    "algo.config.eval.save_videos=false",
+    "algo.config.eval.num_save_episodes=1",
+    "algo.config.eval.a2_diagnostic_trace_enabled=true",
+    "algo.config.eval.a2_diagnostic_reward_terms=[penalty_dof_overspeed,penalty_door_panel_contact]",
+    "algo.config.eval.a2_forced_gripper_close_enabled=false",
+    "algo.config.eval.a2_hold_oracle_enabled=true",
+    "algo.config.eval.a2_pull_p1_probe_enabled=true",
+    "algo.config.eval.a2_pull_p1_probe_mode=push_anchor",
+    "algo.config.eval.a2_pull_p1_anchor_acquisition_enabled=true",
+    "algo.config.eval.a2_pull_p1_proof_offset_m=0.006",
+    "algo.config.eval.a2_pull_p1_proof_ramp_steps=30",
+    "algo.config.eval.a2_pull_p1_proof_hold_steps=10",
+    "algo.config.eval.a2_pull_p1_body_contact_threshold_n=1.0",
+    "algo.config.eval.a2_v20_arc_probe_enabled=false",
+    "algo.config.eval.a2_v20_arc_probe_mode=F1",
+    "algo.config.eval.a2_v20_arc_probe_target_hinge_rad=0.25",
+    "algo.config.eval.a2_v20_arc_probe_terminal_window_steps=10",
+    "algo.config.eval.a2_v20_arc_probe_timeout_steps=600",
+    "algo.config.eval.a2_eval_v20_strict_telemetry=false",
+    "+simulator.config.render_results=false",
+    "+simulator.config.cameras.enable_cameras=false",
+    "eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/eval",
+    "eval_log_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/hydra",
+    "env.config.save_rendering_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/renderings",
+    "+device=cuda:4",
+    "hydra.run.dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/hydra"
+  ],
+  "env": {
+    "ACCELERATE_TORCH_DEVICE": "cuda:4",
+    "WANDB_MODE": "offline",
+    "HYDRA_FULL_ERROR": "1",
+    "PYTHONUNBUFFERED": "1",
+    "PYTHONPATH": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+    "CUDA_VISIBLE_DEVICES": "UNSET"
+  },
+  "command_sha256": "65428f8cbc140d7f8fe8c524fb2a6ce6ceff701d387b9c3a5ae98743d37edfc1",
+  "plan_sha256": "1bca601ae653d16f56fe91f99c01a8892721290e8ca7aeb13237184defa86b39"
+}

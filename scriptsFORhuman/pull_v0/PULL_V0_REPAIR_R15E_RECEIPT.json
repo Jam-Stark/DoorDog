@@ -1,0 +1,94 @@
+{
+  "schema_version": "pull_v0_repair_r15e_receipt_v1",
+  "generated_at_hkt": "2026-08-04 19:33:17 HKT",
+  "repair_revision": "R15E",
+  "status": "APPROVED_FOR_ATTEMPT18_RETRY1_PREPARATION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "scientific_verdict_consumed": false,
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "ATTEMPT18_PRELAUNCH_RUNNER_PLAN_REENTRY_CONTRADICTION",
+    "conclusion": "The required prepare-only command creates the immutable Attempt18 plan, while the exact run path re-entered preparation and rejected that plan under R15 no-runtime validation before any subprocess or IsaacSim launch.",
+    "error_signature": "RuntimeError: R15 no-runtime scope was violated by Attempt18 artifact: scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json"
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15_RECEIPT.json",
+    "sha256": "3b850232429e4cdaee96281ad16ba2216f34df5baeb5262312f8bba831f841a0",
+    "repair_revision": "R15"
+  },
+  "trigger": {
+    "attempt": 18,
+    "root_cause": "ATTEMPT18_PRELAUNCH_RUNNER_PLAN_REENTRY_CONTRADICTION",
+    "prelaunch_infra_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PRELAUNCH_INFRA1_RECEIPT.json",
+      "sha256": "932b6349a339892ea1590d427140820f66884ba357666f35a1bc76f89421e5cf"
+    },
+    "preserved_plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+      "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+    },
+    "preserved_initial_launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_LAUNCH_OCCUPANCY.json",
+      "sha256": "17f91b53a878c25677a96cd5f03a9c3329c5f32424faf6c4f56bab91f141c6ef"
+    },
+    "exact_error_signature": "RuntimeError: R15 no-runtime scope was violated by Attempt18 artifact: scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json"
+  },
+  "scope": {
+    "r15_parent_immutable": true,
+    "prelaunch_infra_immutable": true,
+    "attempt18_scientific_plan_immutable": true,
+    "retry1_prepared": false,
+    "retry1_runtime_executed": false,
+    "process_started": false,
+    "first_simulation_step_boundary_crossed": false,
+    "scientific_attempt_consumed": false,
+    "fixture_changed": false,
+    "thresholds_or_timeouts_changed": false,
+    "gpu_selection_changed": false,
+    "product_mechanics_changed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "source_repair": {
+    "bounded_change": "Allow run() to reuse an existing Attempt18 plan only after full semantic identity and plan_sha256 validation; preserve prepare-only no-artifact admission and reject existing scientific/retry artifacts.",
+    "runner_reentry_only": true,
+    "scientific_command_unchanged": true,
+    "fixture_direction_thresholds_and_gpu_lease_unchanged": true,
+    "low_level_usd_api": false
+  },
+  "preserved_artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+      "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+    },
+    "initial_launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_LAUNCH_OCCUPANCY.json",
+      "sha256": "17f91b53a878c25677a96cd5f03a9c3329c5f32424faf6c4f56bab91f141c6ef"
+    },
+    "input_config": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/input/config.yaml",
+      "sha256": "c9e2bd493a2d20a89fc8f7414b18225f14aeb902d37b6c638a1a72fc77d1ee89"
+    },
+    "checkpoint": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/input/model_step_002500.pt",
+      "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
+    }
+  },
+  "retry1_paths": {
+    "launch_occupancy": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY.json",
+    "steady_state_footprint": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_STEADY_STATE_FOOTPRINT.json"
+  },
+  "acceptance": {
+    "exact_error_bound": true,
+    "no_process_started": true,
+    "no_first_simulation_step": true,
+    "no_scientific_verdict": true,
+    "r15_ancestry_bound": true,
+    "preserved_plan_bound": true,
+    "preserved_initial_occupancy_bound": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "R15E does not assert a runtime, GPU, IsaacSim, physics, anchor, or pull-mechanism result.",
+    "Retry1 occupancy and steady-state footprint are intentionally absent until a future authorized runtime."
+  ]
+}

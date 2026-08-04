@@ -1,0 +1,53 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt12_preparation_invalidation_v1",
+  "generated_at_hkt": "2026-08-04 03:59:40 HKT",
+  "status": "SUPERSEDED_INVALID",
+  "attempt": 12,
+  "preparation_validity": "PREPARATION_INVALID",
+  "probe_validity": "NOT_RUN",
+  "runtime_validation": "NOT_RUN",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "root_cause": {
+    "code": "ATTEMPT12_PREPARATION_REPAIR_RECEIPT_PATH_MISMATCH",
+    "conclusion": "The immutable Attempt12 preparation plan serialized the Repair R9 path while binding the Repair R10 receipt hash and revision. The plan is invalid and cannot be reused; the Attempt12 inputs remain preserved byte-identically for audit."
+  },
+  "plan": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT12_PLAN.json",
+    "sha256": "2e4231c6f6a7862d094d5182857c37b9381b557b6760636c508e3fd87c648dbc",
+    "plan_sha256": "435bc01e7ad08001390463911d0e450d43ced7110c855f3e3ea69b20006ebe93",
+    "attempt": 12,
+    "status": "READY",
+    "repair_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R9_RECEIPT.json",
+      "sha256": "745f0106ba3503f8f2c729ef21576c19dae5e4a477c39c0b547ae6c5f8926301",
+      "revision": "R10"
+    },
+    "path_revision_mismatch": true
+  },
+  "preserved_inputs": {
+    "config": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt12/input/config.yaml",
+      "sha256": "c9e2bd493a2d20a89fc8f7414b18225f14aeb902d37b6c638a1a72fc77d1ee89",
+      "byte_identical_preserved": true
+    },
+    "checkpoint": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt12/input/model_step_002500.pt",
+      "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+      "byte_identical_preserved": true
+    }
+  },
+  "absence_of_runtime_artifacts": {
+    "process_receipt_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt12/process_receipt.json",
+    "process_receipt": false,
+    "log_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt12/stdout_stderr.log",
+    "log": false,
+    "summary_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt12/eval/a2_hold_oracle_summary.json",
+    "summary": false,
+    "metrics_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt12/eval/metrics_eval.json",
+    "metrics": false
+  },
+  "attempt13_prepared": false,
+  "attempt13_runtime_executed": false,
+  "scientific_verdict": "NOT_ASSESSED",
+  "canonical_use": "Preserve this invalidation and the flawed Attempt12 plan and inputs for audit only. Do not prepare or run Attempt12; Attempt13 must be prepared only from the canonical R11 receipt."
+}

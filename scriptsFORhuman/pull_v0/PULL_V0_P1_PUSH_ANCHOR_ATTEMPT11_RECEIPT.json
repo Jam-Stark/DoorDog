@@ -1,0 +1,134 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v11",
+  "generated_at_hkt": "2026-08-04 03:37:27 HKT",
+  "attempt": 11,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME_PREEMPTED_LOCAL_WATCHDOG",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r9": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R9_RECEIPT.json",
+      "sha256": "3bed2ab4b7e4e21e3d0c05d07b36afa49d7e5a597c8c4efb41178e35f4d6cd69"
+    },
+    "revision": "R9",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT11_PLAN.json",
+      "sha256": "78be473a11f3b304c49ad34e0d82cc1a7c1edb0c147675fe7f15056fdb47fa81"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/process_receipt.json",
+      "sha256": "2c55d7ac5412e331be36e12c75a4834415a0236077d8d1b2ca34f7af295c9b9a"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/stdout_stderr.log",
+      "sha256": "81d2d7f8298fdbc20a2856e36af2f8774497b10097dd263fd726a52b8cd34fef"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/eval/a2_hold_oracle_summary.json",
+      "sha256": "28f52faedb360307add4b14df0a3d902510683482f39de7a972400c800436031"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/eval/metrics_eval.json",
+      "sha256": "991070babb9e4ffe744f8a5f0a21dc56b067c1efeb386283b237b46687b587b4"
+    }
+  },
+  "observed": {
+    "raw_summary_outcome": "ARC_PROBE_TIMEOUT",
+    "classified_outcome": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME",
+    "trace_step_count": 250,
+    "stage0_response_rows": 247,
+    "response_count": 247,
+    "anti_alignment_count": 0,
+    "residual_initial_m": 0.9215447306632996,
+    "residual_terminal_m": 0.005086362361907959,
+    "residual_monotonic_nonincreasing": true,
+    "local_stage0_timeout_observed": false,
+    "terminal_reason": "stage_overtime"
+  },
+  "host_stage_timer": {
+    "actual_device_local_stage_timer_steps": 250,
+    "configured_host_stage_budget_steps": 250,
+    "reset_qualification_steps": 3,
+    "local_stage0_watchdog_steps": 360,
+    "host_budget_less_than_reset_plus_local_watchdog": true,
+    "terminal_reason": "stage_overtime",
+    "classification_basis": "terminal stage-0 host stage_overtime at the configured host-stage budget; local stage0 predicate remained untimed_out"
+  },
+  "command_to_plant_response": {
+    "schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+    "status": "CAPTURED",
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+    "threshold_mode": "report_only",
+    "response_count": 247,
+    "first_response_identity": {
+      "episode_generation": 0,
+      "trace_row_index": 3,
+      "control_step": 3,
+      "response_control_step": 4
+    },
+    "terminal_response_identity": {
+      "episode_generation": 0,
+      "trace_row_index": 249,
+      "control_step": 249,
+      "response_control_step": 250
+    },
+    "aggregates": {
+      "anti_alignment_count": 0,
+      "max_observed_world_xy_speed_mps": 0.31976188812036066,
+      "max_observed_world_xy_displacement_m": 0.006179168743751097,
+      "min_progress_velocity_cosine": 0.2509129047393799,
+      "min_progress_displacement_cosine": 0.18579743802547455
+    },
+    "admission_field_present": true
+  },
+  "stage0_timeout_boundary": {
+    "blocker": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME_PREEMPTED_LOCAL_WATCHDOG",
+    "local_watchdog_timeout_observed": false,
+    "host_stage_overtime_observed": true,
+    "response_metrics_report_only": true,
+    "signed_target_and_band_unchanged": true
+  },
+  "reset_boundary": {
+    "qualification_window_steps": 3,
+    "window_complete": true,
+    "transient_observed": true,
+    "result": "CLEARED",
+    "staging_started_during_window": false,
+    "dls_started_during_window": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": false,
+    "latch_release": true,
+    "hinge_progress_min_rad": 0.25,
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": false,
+    "observed_max_body_force_n": 0.0,
+    "pass": false
+  },
+  "quaternion_contract_closure": {
+    "source": "canonical ArticulationData.root_quat_w WXYZ",
+    "response_rows": 247,
+    "anti_alignment_count": 0,
+    "residual_monotonic_nonincreasing": true,
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY"
+  },
+  "required_telemetry": {
+    "summary": "validated immutable Attempt11 summary with raw ARC label",
+    "metrics": "validated immutable base-owned push_anchor_admission stage-overtime terminal",
+    "host_stage_timer": "measured from terminal stage-0 stage_overtime boundary",
+    "local_stage0_watchdog": "report-only; not reached",
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "Attempt11 is probe-invalid because host stage overtime terminated stage0 before the local watchdog horizon.",
+    "No Attempt12 runtime or pull-mechanism PASS is asserted."
+  ]
+}

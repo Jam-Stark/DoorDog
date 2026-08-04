@@ -1,0 +1,119 @@
+{
+  "schema_version": "pull_v0_p1_attempt18_steady_state_footprint_v1",
+  "captured_at_hkt": "2026-08-04 20:07:04 HKT",
+  "attempt": 18,
+  "phase": "EVALUATION_STEPPING",
+  "status": "PASS",
+  "plan": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+    "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f",
+    "plan_sha256": "2c9f1efa53423f6abf0a12c41040cfc0c75ed1fb23ce07c05e8c470f093e6d72"
+  },
+  "process": {
+    "pid": 2131271,
+    "name": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python"
+  },
+  "selected_compute_physical_device": 2,
+  "authorized_compute_physical_devices": [
+    2,
+    3
+  ],
+  "unauthorized_compute_physical_devices": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7
+  ],
+  "per_device": [
+    {
+      "index": 0,
+      "uuid": "GPU-f593e489-014b-eed5-4331-b01447615b6e",
+      "leased": false,
+      "total_memory_used_mib": 180,
+      "attempt_process_memory_mib": 168,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION"
+    },
+    {
+      "index": 1,
+      "uuid": "GPU-2c5d7dc8-847b-6d4a-e3cd-e1139ef56787",
+      "leased": false,
+      "total_memory_used_mib": 148,
+      "attempt_process_memory_mib": 136,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION"
+    },
+    {
+      "index": 2,
+      "uuid": "GPU-7bb5efaa-24d3-ea73-c1ee-9b3341a708be",
+      "leased": true,
+      "total_memory_used_mib": 3175,
+      "attempt_process_memory_mib": 3115,
+      "utilization_gpu_percent": 1,
+      "context_classification": "AUTHORIZED_COMPUTE",
+      "selected": true
+    },
+    {
+      "index": 3,
+      "uuid": "GPU-ffc02ac2-e15e-00e3-f842-6f501cb0b6e5",
+      "leased": true,
+      "total_memory_used_mib": 161,
+      "attempt_process_memory_mib": 140,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION",
+      "selected": false
+    },
+    {
+      "index": 4,
+      "uuid": "GPU-20093912-98d6-3c89-9517-3ac344e38fc3",
+      "leased": false,
+      "total_memory_used_mib": 148,
+      "attempt_process_memory_mib": 136,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION"
+    },
+    {
+      "index": 5,
+      "uuid": "GPU-b126539d-3319-a583-f61d-55879b327ddb",
+      "leased": false,
+      "total_memory_used_mib": 148,
+      "attempt_process_memory_mib": 136,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION"
+    },
+    {
+      "index": 6,
+      "uuid": "GPU-4ac67b5e-dc39-3565-d84b-1e7ce20127fa",
+      "leased": false,
+      "total_memory_used_mib": 148,
+      "attempt_process_memory_mib": 136,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION"
+    },
+    {
+      "index": 7,
+      "uuid": "GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d",
+      "leased": false,
+      "total_memory_used_mib": 148,
+      "attempt_process_memory_mib": 136,
+      "utilization_gpu_percent": 0,
+      "context_classification": "AUTHORIZED_INACTIVE_VULKAN_ENUMERATION"
+    }
+  ],
+  "max_non_leased_attempt_process_memory_mib": 168,
+  "non_leased_stop_threshold_mib": 1024,
+  "non_leased_threshold_pass": true,
+  "non_leased_observed_utilization_gpu_percent": 0,
+  "kit_active_physical_devices": [
+    2
+  ],
+  "app_launcher_device": "cuda:2",
+  "environment_device": "cuda:2",
+  "cuda_visible_devices": "UNSET",
+  "container_isolation_used": false,
+  "first_simulation_step_boundary_crossed": true,
+  "first_simulation_step_evidence": "Attempt18 retry1 stdout_stderr.log records AppLauncher device cuda:2 at line 12, IsaacSim environment device cuda:2 at line 136, evaluation start at line 621, and a subsequent env.step PhysX contact CUDA error; the captured Attempt18 PID remained attributed to GPU2 while non-leased devices stayed at 0% utilization.",
+  "scientific_attempt_started": true
+}

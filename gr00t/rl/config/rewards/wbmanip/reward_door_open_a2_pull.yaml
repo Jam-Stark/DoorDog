@@ -1,0 +1,17 @@
+# @package _global_
+
+defaults:
+  - /rewards/wbmanip/reward_door_open_a2_base
+
+rewards:
+  reward_scales:
+    # Pull-v0 methods gate handle/hinge income on contiguous E2 capture through
+    # measured E5 clearance; these scales remain report-only task selectors.
+    push_door_handle: 0.0
+    push_door_hinge: 0.0
+    push_door_force: 0.0
+    pull_door_handle: 6.0
+    pull_door_hinge: 6.0
+    penalty_a2_v20_pre_send_crossing: 0.0
+    a2_v20_arm_tangent_carry: 0.0
+    a2_v20_handle_arc_tracking: 0.0

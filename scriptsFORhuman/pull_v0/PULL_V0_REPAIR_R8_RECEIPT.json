@@ -1,0 +1,159 @@
+{
+  "schema_version": "pull_v0_repair_r8_receipt_v1",
+  "generated_at_hkt": "2026-08-04 02:40:56 HKT",
+  "repair_revision": "R8",
+  "status": "APPROVED_FOR_ATTEMPT10_PREPARATION_ONLY",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "STAGE0_ROOT_QUATERNION_SOURCE_MISMATCH",
+    "conclusion": "P1 stage0 command and trace yaw must consume the canonical IsaacLab ArticulationData.root_quat_w WXYZ tensor; robot_root_states[:, 3:7] is a legacy XYZW slice and cannot be passed to WXYZ yaw/euler math.",
+    "canonical_source": "self.simulator.scene.articulations[\"robot\"].data.root_quat_w",
+    "canonical_order": "WXYZ",
+    "legacy_source_forbidden": "self.simulator.robot_root_states[:, 3:7]",
+    "signed_target_and_band_unchanged": true,
+    "stage0_timeout_unchanged": true
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R7_RECEIPT.json",
+    "sha256": "a5f576c06718b145e992bd4927384efae9e7b8714f6f8b87836914da6c702b5f",
+    "repair_revision": "R7"
+  },
+  "trigger": {
+    "attempt": 9,
+    "root_cause": "ATTEMPT9_QUATERNION_SOURCE_AND_RECEIPT_NORMALIZATION",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RECEIPT.json",
+      "sha256": "286fa3b832911ce3530b17696049b0a5e9d5584bf78e5199d1506c208b043624"
+    },
+    "invalidation_manifest": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_INVALIDATION.json",
+      "sha256": "ad21ae10c7f443fea640f195dfa5806eedfbb7374a740785c0b80d546d5eda1a"
+    },
+    "normalized_response_telemetry": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RESPONSE_TELEMETRY.json",
+      "sha256": "653a599a83e386251ee1a7dc98d51b93e3a474123569565ff311b1d99af9e937"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_PLAN.json",
+        "sha256": "460dd1fcbb0e51d080db730bbf0f020f5ec56d5d76468f8f48bfe322039cc2a8"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/process_receipt.json",
+        "sha256": "830246b8cd9cec9d5ac0adb7eaaec92e43bae0d664ef7dcd3caf3aa6c577c12f"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/stdout_stderr.log",
+        "sha256": "6aa8ffe29f219d62ae82faac4dfb17034a012cc09f5203b26d9a3ddd148f16a7"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/eval/a2_hold_oracle_summary.json",
+        "sha256": "cdd72c25960b68377a49285c2a3342468e3cc191b9b431d17779310eeb2903b1"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/eval/metrics_eval.json",
+        "sha256": "5f89f0d2bfbd99853e823273277d297b21ba48af424ec15405f2f8470cebe178"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Replace only the P1 stage0/trace quaternion source with canonical WXYZ ArticulationData telemetry and normalize the immutable Attempt9 response evidence; preserve signed geometry, command scaling, timeout, stage ordering, and mechanism semantics.",
+    "attempt9_immutable": true,
+    "attempt10_prepared": false,
+    "gpu_or_isaacsim_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "implementation_contract": {
+    "stage0_root_position_source": "existing simulator.robot_root_states[:, :3] root position retained",
+    "stage0_root_quaternion_source": "self.simulator.scene.articulations[\"robot\"].data.root_quat_w",
+    "quaternion_order": "WXYZ",
+    "strict_contract": "shape (num_envs, 4), floating, root-state dtype/device, finite",
+    "trace_rpy_source": "the same validated stage0_root_quat_w tensor",
+    "target_band_direction_scale_timeout_unchanged": true,
+    "attempt9_response_schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+    "attempt9_response_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+    "threshold_mode": "report_only"
+  },
+  "changed_files": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "pre_sha256": "3c096ab037f065c27b4d240f884b8b982fe27d148d1acfddd789cb39869988ef",
+      "post_sha256": "c7a20d8d24cdd4fc0a37e1464eacd0a1f32ea4937923c08c762da1b212ec9153",
+      "reason": "Use canonical IsaacLab ArticulationData.root_quat_w (WXYZ) for stage0 admission and trace yaw while retaining root position and signed target geometry."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": "828f8f196551306957bf3688bd719e6381c4d94800302ff1354f1a1a3e495d77",
+      "post_sha256": "7e989666869a63fc8b011ade95ccdbb8b7a092dc8e38b6aaa6bb7b5bf0931206",
+      "reason": "Guard the stage0 canonical quaternion callsite and R8 ancestry/invalidation contracts."
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "pre_sha256": "e07d11a97d417607ba8c6c5e0c1f72ca7ec2c77a714eccb330bc2404004cf156",
+      "post_sha256": "ef6e559b85e6b604cd0facd078e9aee4e82bf560f383df4fe6a8c5fd09de2d53",
+      "reason": "Verify yaw-zero and yaw-pi body/world stage0 command reprojection semantics."
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Normalize validated R7+ response identities and aggregates in later timeout receipts.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R8_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Bind Attempt10+ preparation to the exact R8 receipt and the immutable Attempt9 invalidation/telemetry chain.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R8_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r8_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "17683260f16bb66bf3aed4a462d529f157415b26b9bdf83d561204675fdb8af7",
+      "reason": "Build the immutable R8 canonical-root-quaternion repair receipt."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_INVALIDATION.json": {
+      "pre_sha256": null,
+      "post_sha256": "ad21ae10c7f443fea640f195dfa5806eedfbb7374a740785c0b80d546d5eda1a",
+      "reason": "Preserve the flawed Attempt9 receipt byte-identically as superseded invalid evidence."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RESPONSE_TELEMETRY.json": {
+      "pre_sha256": null,
+      "post_sha256": "653a599a83e386251ee1a7dc98d51b93e3a474123569565ff311b1d99af9e937",
+      "reason": "Preserve normalized validated Attempt9 response aggregates and boundary identities."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R8_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Immutable R8 receipt output; its own post-hash is intentionally not self-bound.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R8_RECEIPT_SHA_SELF_CYCLE"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "stage0 yaw-zero/yaw-pi consumer tests and structural source test",
+      "strict R7+ 120-row response-schema validator",
+      "Attempt10 runner SHA/ancestry fail-fast tests",
+      "receipt/hash assertions",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R8 is CPU/static preparation only; no Attempt10 preparation or IsaacSim/GPU runtime was authorized."
+  },
+  "acceptance": {
+    "canonical_articulation_root_quat_w_stage0_callsite": true,
+    "canonical_articulation_root_quat_w_trace_rpy": true,
+    "legacy_robot_root_states_quaternion_slice_forbidden": true,
+    "yaw_zero_world_xy_reprojection": true,
+    "yaw_pi_world_xy_reprojection": true,
+    "signed_target_band_direction_scale_timeout_unchanged": true,
+    "attempt9_receipt_byte_identical_and_superseded": true,
+    "attempt9_normalized_response_identity_and_aggregates_preserved": true,
+    "r7_parent_and_attempt9_full_ancestry_bound": true,
+    "attempt10_runner_exact_r8_sha_and_ancestry": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime PASS is asserted for R8.",
+    "No Attempt10 preparation or runtime was executed.",
+    "No pull-mechanism verdict is asserted."
+  ]
+}

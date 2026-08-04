@@ -117,6 +117,12 @@ _R2_WORKFLOW_ENV_OVERRIDES = (
     "env.config.a2_v20_R2_provenance",
     "env.config.a2_v20_R2_group",
 )
+_PULL_V0_RENDERER_SINGLE_GPU_CONFIG_KEY = "a2_pull_v0_renderer_single_gpu"
+_PULL_V0_RENDERER_SINGLE_GPU_KIT_ARGS = (
+    "--/renderer/multiGpu/enabled=False "
+    "--/renderer/multiGpu/autoEnable=False "
+    "--/renderer/multiGpu/maxGpuCount=1"
+)
 
 
 def _validate_r2_runtime_bindings(config, *, require_formal_bundle=False):
@@ -472,6 +478,31 @@ def _align_app_launcher_device_with_accelerate(args_cli):
         args_cli.device = os.environ["ACCELERATE_TORCH_DEVICE"]
 
 
+def _configure_pull_v0_renderer_single_gpu(args_cli, config_value=None):
+    """Apply the pull-v0 renderer contract through the AppLauncher Namespace.
+
+    Hydra owns the process argv before this entrypoint parses AppLauncher options,
+    so pull-v0 carries this opt-in as a typed Hydra boolean.  Absent/false leaves
+    the launcher Namespace untouched for every other workflow.
+    """
+    if config_value is None:
+        return
+    if type(config_value) is not bool:
+        raise TypeError(
+            f"{_PULL_V0_RENDERER_SINGLE_GPU_CONFIG_KEY} must be a boolean; "
+            f"got {type(config_value).__name__}."
+        )
+    if config_value is False:
+        return
+    existing_kit_args = getattr(args_cli, "kit_args", "")
+    if existing_kit_args not in (None, ""):
+        raise ValueError(
+            "Pull-v0 single-GPU transport refuses to overwrite preexisting AppLauncher kit_args."
+        )
+    args_cli.multi_gpu = False
+    args_cli.kit_args = _PULL_V0_RENDERER_SINGLE_GPU_KIT_ARGS
+
+
 @hydra.main(config_path="config", config_name="base_eval")
 def main(override_config: OmegaConf):
     # --- Logging setup ---
@@ -597,6 +628,10 @@ def main(override_config: OmegaConf):
         )
         args_cli.headless = config.headless
         _align_app_launcher_device_with_accelerate(args_cli)
+        _configure_pull_v0_renderer_single_gpu(
+            args_cli,
+            config.get(_PULL_V0_RENDERER_SINGLE_GPU_CONFIG_KEY, None),
+        )
 
         # Copy headless rendering kit file if needed
         dest_path = Path(isaaclab.__file__).resolve().parent.parent.parent.parent / "apps"

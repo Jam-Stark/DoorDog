@@ -1,0 +1,81 @@
+{
+  "schema_version": "pull_v0_p1_central_fixture_receipt_v1",
+  "generated_at_hkt": "2026-08-03 17:14:41 HKT",
+  "status": "PASS",
+  "threshold_mode": "report_only",
+  "fixture": {
+    "door_width_m": 0.95,
+    "door_height_m": 2.05,
+    "handle_height_m": 0.95,
+    "handle_edge_offset_m": 0.115,
+    "door_mass_kg": 120.0,
+    "hinge_max_force_nm": 7.25,
+    "hinge_stiffness_nm_per_rad": 5.5,
+    "hinge_damping_nms_per_rad": 50.0,
+    "handle_max_force_nm": 2.0,
+    "handle_stiffness_nm_per_rad": 50.0,
+    "handle_damping_nms_per_rad": 0.5,
+    "axle_length_m": 0.195,
+    "handle_length_m": 0.125,
+    "hook_length_m": 0.05,
+    "handle_radius_m": 0.013,
+    "hook_present": true
+  },
+  "mass_range_authority": {
+    "resolved_config": {
+      "path": "scriptsFORhuman/pull_v0/source_freeze/v20_G4_resolved_config.yaml",
+      "sha256": "76f50e4bd4e4af69d0e404687de4b904a55a50a6bab72f244048352701a29ec2"
+    },
+    "resolved_a2_door_weight_range_kg": [
+      80.0,
+      160.0
+    ],
+    "selected_midpoint_kg": 120.0,
+    "repo_default_range_kg": [
+      80.0,
+      120.0
+    ],
+    "repo_default_used": false,
+    "reason": "Worker 2 Amendment 2 binds P1 to the resolved v20 G4 range; the repo-default range is not the runtime authority."
+  },
+  "runtime_confirmation": {
+    "artifact": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/eval/metrics_eval.json",
+      "sha256": "552b2480360236dc1a4a13d8ac523cf27952951625d8c4353faf957a4d1c6764"
+    },
+    "door_scenario": {
+      "door_width_m": 0.949999988079071,
+      "door_height_m": 2.049999952316284,
+      "handle_height_m": 0.949999988079071,
+      "handle_edge_offset_m": 0.11500000208616257,
+      "door_mass_kg": 120.0,
+      "hinge_max_force_nm": 7.25,
+      "hinge_damping_nms_per_rad": 50.0,
+      "hinge_stiffness_nm_per_rad": 5.5,
+      "handle_max_force_nm": 2.0,
+      "handle_damping_nms_per_rad": 0.5,
+      "handle_stiffness_nm_per_rad": 50.0,
+      "door_open_lr_sign": -1.0
+    },
+    "direction": {
+      "a2_pull_direction_contract_version": "a2_piper_pull_direction_v1",
+      "a2_pull_target_frame_version": "grasp_target_active_face_out_inherited_v20",
+      "a2_pull_door_open_io": "out",
+      "a2_pull_door_open_lr": "right",
+      "a2_pull_robot_initial_side_x_sign": -1.0,
+      "a2_pull_active_handle_face_x_sign": -1.0,
+      "a2_pull_travel_dir_x": 1.0
+    },
+    "physical_gpu": 4
+  },
+  "static_only_fields": {
+    "fields": [
+      "axle_length_m",
+      "handle_length_m",
+      "hook_length_m",
+      "handle_radius_m",
+      "hook_present"
+    ],
+    "source_contract": "DoorSpawnerCfg deterministic rand_* replacement; these fields are not exported as runtime tensors by current terminal diagnostics."
+  }
+}

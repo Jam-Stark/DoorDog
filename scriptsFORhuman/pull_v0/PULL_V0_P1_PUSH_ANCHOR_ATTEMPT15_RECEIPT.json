@@ -1,0 +1,97 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v15",
+  "generated_at_hkt": "2026-08-04 04:50:00 HKT",
+  "attempt": 15,
+  "status": "PROBE_INVALID",
+  "probe_validity": "PROBE_INVALID",
+  "runtime_validation": "INVALIDATED_BEFORE_APPLAUNCHER",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "application_success": false,
+  "natural_exit": false,
+  "returncode": 2,
+  "scientific_verdict_consumed": false,
+  "repair_r13": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R13_RECEIPT.json",
+      "sha256": "afc3466fc270f9f5166a29a06c34fc6e39c853d0441a52d4539cd0cff0304c32"
+    },
+    "revision": "R13",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "evidence": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT15_PLAN.json",
+      "sha256": "254a6937153960ceff5f5c71299ec7106349e544a7b252e31b107123da091bbc",
+      "plan_sha256": "30568bef98d7dc1a54691c39640231e84a2e862fdefe6e382ca899275a53cceb"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt15/process_receipt.json",
+      "sha256": "130460dddc02fc0f2f199b4a573ecafad49554513dce5fe4ee69e68fa152133b"
+    },
+    "stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt15/stdout_stderr.log",
+      "sha256": "91579492644ccba3239d89d43a0524bb1846edd152ace05d57bd9612f5e862bc"
+    },
+    "summary": null,
+    "metrics": null
+  },
+  "application_contract_error": {
+    "stage": "BEFORE_APPLAUNCHER",
+    "exception_type": "HydraArgumentParserError",
+    "root_cause": "ATTEMPT15_HYDRA_KIT_ARGS_TRANSPORT_FAILURE",
+    "transport": "Raw AppLauncher --kit_args tokens were placed in Hydra-owned argv.",
+    "unrecognized_arguments": [
+      "--kit_args",
+      "--/renderer/multiGpu/enabled=False --/renderer/multiGpu/autoEnable=False --/renderer/multiGpu/maxGpuCount=1"
+    ],
+    "message": "error: unrecognized arguments: --kit_args --/renderer/multiGpu/enabled=False --/renderer/multiGpu/autoEnable=False --/renderer/multiGpu/maxGpuCount=1",
+    "summary_present": false,
+    "metrics_present": false
+  },
+  "gpu_resource_observation": {
+    "applauncher_started": false,
+    "isaacsim_started": false,
+    "gpu_process_opened": false,
+    "gpu_context_opened": false,
+    "cuda_visible_devices": "UNSET",
+    "selected_physical_gpu": 4,
+    "authorized_physical_gpus": [
+      4,
+      5,
+      6
+    ],
+    "gpu_memory_mib_by_index": {
+      "0": 1,
+      "1": 1,
+      "2": 1,
+      "3": 1,
+      "4": 1,
+      "5": 1,
+      "6": 1,
+      "7": 1
+    },
+    "gpu7_compute_authorized": false
+  },
+  "canonical_outputs": {
+    "process_receipt_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt15/process_receipt.json",
+    "process_receipt_present": true,
+    "summary_verdict_consumed": false,
+    "metrics_verdict_consumed": false,
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "preserved_application_state": {
+    "plan_status": "READY",
+    "plan_sha256": "30568bef98d7dc1a54691c39640231e84a2e862fdefe6e382ca899275a53cceb",
+    "plan_repair_receipt_path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R13_RECEIPT.json",
+    "plan_repair_receipt_sha256": "afc3466fc270f9f5166a29a06c34fc6e39c853d0441a52d4539cd0cff0304c32",
+    "process_plan_sha256": "30568bef98d7dc1a54691c39640231e84a2e862fdefe6e382ca899275a53cceb",
+    "process_repair_receipt_sha256": "afc3466fc270f9f5166a29a06c34fc6e39c853d0441a52d4539cd0cff0304c32",
+    "summary_path": null,
+    "metrics_path": null
+  },
+  "unverified_claims": [
+    "No IsaacSim, AppLauncher, GPU, physics, or pull-mechanism runtime outcome is asserted beyond the captured Hydra argument-transport failure.",
+    "No probe validity or pull-mechanism verdict is asserted because Hydra rejected the raw AppLauncher tokens before AppLauncher construction.",
+    "No scientific verdict is consumed from the Attempt15 process, plan, or stdout artifacts."
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "schema_version": "pull_v0_repair_r15_receipt_v1",
+  "generated_at_hkt": "2026-08-04 18:08:32 HKT",
+  "repair_revision": "R15",
+  "status": "APPROVED_FOR_ATTEMPT18_PREPARATION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "CENTER_CLOSE_HANDOFF_OUTSIDE_RELIEF_BUDGET",
+    "conclusion": "Attempt17 admitted CENTER_CLOSE from PULL_P1_ACQUIRE on stage_buf>=PREGRASP without checking the remaining center horizontal target error against the existing 0.1 m base-relief displacement budget. The repair defers that phase transition until the measured error fits the existing budget; while pending, it routes the existing high-level base-relief command and watchdog, suppresses arm DLS, and prevents the stale stage0 override from replacing the handoff command.",
+    "trigger_step": 252,
+    "dls_position_residual_m": 0.36839473247528076,
+    "existing_base_relief_max_displacement_m": 0.1
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_GPU_LEASE_AMENDMENT_RECEIPT.json",
+    "sha256": "1a80804a1062e9878f73c35c89e360e7eaf95c2fa50a6dcf2a9cac85a259e292",
+    "repair_revision": "A4_A6"
+  },
+  "trigger": {
+    "attempt": 17,
+    "root_cause": "CENTER_CLOSE_HANDOFF_OUTSIDE_RELIEF_BUDGET",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_RECEIPT.json",
+      "sha256": "5c51dd2d51b2913acc12a9a379ece4fca151d798a4c79570f784e31588ef1cad"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_PLAN.json",
+        "sha256": "0412470f7d5ff293cba5974787105d8891418c81402957bdd09baaf09f9d7dd7"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/process_receipt.json",
+        "sha256": "ef85a52d634858c645673488ad9a88124c0056260c6d569bbd3b0e135cc69d44"
+      },
+      "stdout": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/stdout_stderr.log",
+        "sha256": "7eee0b7f94482b56d984e3e4d8afc39137fa660d751ca13d1a0a388b63cd9e84"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/eval/a2_hold_oracle_summary.json",
+        "sha256": "015bf37371fc40e3cd341e4ed3b75560203f264985e903a58a7f3fd373ad6924"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/eval/metrics_eval.json",
+        "sha256": "29378a9723caea42b7107380509272efc4388005112620df613ca0cc875b3218"
+      },
+      "kit_log": {
+        "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_172845.log",
+        "sha256": "47e996ea931fe6e706d69483e38aa5bcfc6bf02220ad63fec4a1ca59fd430b5c"
+      },
+      "launch_occupancy": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_LAUNCH_OCCUPANCY.json",
+        "sha256": "51248f40d24d1893b2d01b50a7a1c8ecb8f7764ac1865bf1e5e78975ece8e1db"
+      },
+      "steady_state_footprint": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_STEADY_STATE_FOOTPRINT.json",
+        "sha256": "63b1bc5ca98d6973f741f631530cd9d725544bc2fa37be238c859bafcddb1359"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Use the existing base_relief_max_displacement_m as the center handoff reachability bound; preserve fixture, direction, funnel, final target, thresholds, timeouts, GPU2/[2,3] lease, and all existing P1/P2 gates.",
+    "attempt17_parent_immutable": true,
+    "attempt17_scientific_verdict_consumed": true,
+    "attempt18_prepared": false,
+    "attempt18_runtime_executed": false,
+    "attempt18_artifacts_created": false,
+    "product_mechanics_changed": true,
+    "fixture_changed": false,
+    "thresholds_or_timeouts_changed": false,
+    "p1_p2_gates_changed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "source_repair": {
+    "reachability_helper": "a2_pull_p1_center_handoff_reachable_mask",
+    "existing_budget_config_key": "a2_hold_oracle_base_relief_max_displacement_m",
+    "pending_command": "a2_hold_base_relief_command(horizontal_error_w, root_quat_w, acquisition_handoff_pending, ...)",
+    "arm_dls_pending_handoff": false,
+    "stage0_override_pending_handoff": false,
+    "new_threshold_or_gate": false,
+    "low_level_usd_api": false
+  },
+  "changed_files": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "sha256": "4efc1a752a44b91422f502b6125e5b5d747a0fac656ff6e390718b1687c13858"
+    },
+    "gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py": {
+      "sha256": "aa96d974e9ceb3c30c4ced19476354f54f34f575da277477cfcb8326ae5b4478"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r15_receipt.py": {
+      "sha256": "b5737287cd5d95277c393ffdaa36ad8c3763106385b16097c25eeb12a91cfd71"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "hash_binding": "EXCLUDED_TO_AVOID_R15_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "hash_binding": "EXCLUDED_TO_AVOID_R15_RECEIPT_SHA_SELF_CYCLE"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "python -m pytest -q gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py",
+      "python -m py_compile gr00t/rl/envs/door/door_open_a2_base.py gr00t/rl/tests/test_a2_hold_oracle_diagnostics.py",
+      "git diff --check",
+      "Attempt17 compact evidence hash/ancestry validation"
+    ],
+    "runtime_not_run_reason": "R15 authorizes Attempt18 preparation only; no Attempt18 plan, output, IsaacSim, GPU, or scientific runtime was executed."
+  },
+  "acceptance": {
+    "attempt17_ancestry_exact": true,
+    "attempt17_plan_process_summary_metrics_exact": true,
+    "attempt17_launch_occupancy_exact": true,
+    "attempt17_steady_state_footprint_exact": true,
+    "named_finding_distinct_from_original_six": true,
+    "handoff_gate_uses_existing_0p1_budget": true,
+    "pending_handoff_base_command_is_high_level": true,
+    "pending_handoff_arm_dls_suppressed": true,
+    "pending_handoff_stage0_override_suppressed": true,
+    "gpu2_authorized_devices_2_3_preserved": true,
+    "attempt18_not_prepared_or_run": true,
+    "runtime_pass_asserted": false
+  },
+  "evidence_summary": {
+    "attempt17_outcome": [
+      "BASE_RELIEF_DISPLACEMENT_LIMIT"
+    ],
+    "handoff_trace_step": 252,
+    "handoff_phase": [
+      "PULL_P1_ACQUIRE",
+      "CENTER_CLOSE"
+    ],
+    "terminal_trace_step": 309,
+    "terminal_phase": [
+      "CENTER_CLOSE",
+      "DONE"
+    ],
+    "dls_position_residual_m": 0.36839473247528076,
+    "root_xy_displacement_m": 0.2202882625795233,
+    "base_relief_max_displacement_m": 0.1,
+    "host_stage_timer": {
+      "actual_time_in_stage_steps": 359,
+      "max_stage_time_steps": 100,
+      "overtime_observed": true,
+      "source": "device_local_actual_time_in_stage_buf"
+    }
+  },
+  "unverified_claims": [
+    "The R15 repair has not been run in IsaacSim; Attempt18 runtime is unverified.",
+    "The Attempt17 trace does not contain a separate center_horizontal_target_residual_m field."
+  ]
+}

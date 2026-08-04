@@ -82,6 +82,24 @@ algo:
       a2_v20_arc_probe_root_hold_yaw_damping_gain: 2.0
       a2_v20_arc_probe_root_hold_yaw_speed_max_radps: 1.00
       a2_v20_arc_probe_f1_root_hold_scale: 1.00
+      # Pull-v0 P1 mechanics probe. This pull-plan-only branch inserts a
+      # monotone proof-load phase before handle rotation and circular-arc follow.
+      a2_pull_p1_probe_enabled: false
+      a2_pull_p1_probe_mode: push_anchor
+      a2_pull_p1_anchor_acquisition_enabled: false
+      a2_pull_p1_proof_offset_m: 0.006
+      a2_pull_p1_proof_ramp_steps: 30
+      a2_pull_p1_proof_hold_steps: 10
+      a2_pull_p1_body_contact_threshold_n: 1.0
+      # Bounded high-level admission control for the push-anchor stage-0 band.
+      a2_pull_p1_stage0_staging_speed_mps: 0.15
+      a2_pull_p1_stage0_settle_steps: 5
+      a2_pull_p1_stage0_timeout_steps: 120
+      # Reset-boundary contact admission runs before any signed staging/DLS command.
+      a2_pull_p1_reset_contact_qualification_steps: 3
+      a2_pull_p1_reset_contact_qualification_streak_steps: 2
+      a2_pull_p1_reset_upright_tolerance_rad: 0.35
+      a2_pull_p1_reset_gripper_action: -1.0
       a2_hold_oracle_center_timeout_steps: 80
       a2_hold_oracle_center_position_tolerance_m: 0.005
       a2_hold_oracle_center_orientation_tolerance_rad: 0.10

@@ -72,6 +72,16 @@ from gr00t.rl.envs.door.a2_v21b_evidence import (
     a2_v21b_init_arm_episode_accumulator,
     a2_v21b_reset_arm_episode_accumulator,
 )
+from gr00t.rl.envs.door.a2_pull_v0_guard import (
+    A2_PULL_V0_PLAN_ID,
+    validate_a2_pull_v0_guard,
+)
+from gr00t.rl.envs.door.a2_pull_direction import (
+    A2DoorDirection,
+    a2_pull_proof_world_offset_x,
+    a2_signed_stage0_nearest_staging_target,
+    a2_signed_stage0_staging_band_mask,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -1745,6 +1755,8 @@ A2_HOLD_PHASE_FOLLOW_PUSH = 3
 A2_HOLD_PHASE_DONE = 4
 A2_HOLD_PHASE_MATCHED_CLEAN_RELEASE_RETREAT = 5
 A2_HOLD_PHASE_MATCHED_CLEAN_STABILIZE = 6
+A2_HOLD_PHASE_PULL_P1_PROOF = 7
+A2_HOLD_PHASE_PULL_P1_ACQUIRE = 8
 A2_HOLD_PHASE_NAMES = {
     A2_HOLD_PHASE_WAIT_GATE: "WAIT_GATE",
     A2_HOLD_PHASE_CENTER_CLOSE: "CENTER_CLOSE",
@@ -1753,6 +1765,8 @@ A2_HOLD_PHASE_NAMES = {
     A2_HOLD_PHASE_DONE: "DONE",
     A2_HOLD_PHASE_MATCHED_CLEAN_RELEASE_RETREAT: "RELEASE_RETREAT",
     A2_HOLD_PHASE_MATCHED_CLEAN_STABILIZE: "CLEAN_STABILIZE",
+    A2_HOLD_PHASE_PULL_P1_PROOF: "PULL_P1_PROOF",
+    A2_HOLD_PHASE_PULL_P1_ACQUIRE: "PULL_P1_ACQUIRE",
 }
 A2_HOLD_TARGET_ORIENTATION_SEMANTIC = (
     "handle_orientation_composed_with_handoff_handle_to_gripper_relative_orientation"
@@ -1811,6 +1825,13 @@ A2_HOLD_OUTCOME_NAMES = (
     "ARC_PROBE_ROOT_CROSSING",
     "ARC_PROBE_BODY_COLLISION",
     "ARC_PROBE_OVERSPEED",
+    "PULL_P1_PROOF_CONTACT_LOSS",
+    "PULL_P1_PROOF_TIMEOUT",
+    "PULL_P1_BODY_COLLISION",
+    "PULL_P1_LATCH_NOT_RELEASED",
+    "PULL_P1_STAGE0_TIMEOUT",
+    "PULL_P1_RESET_STATE_INVALID",
+    "PULL_P1_STAGE0_HOST_STAGE_OVERTIME",
 )
 A2_HOLD_OUTCOME_TO_ID = {name: index for index, name in enumerate(A2_HOLD_OUTCOME_NAMES)}
 
@@ -4191,6 +4212,323 @@ def a2_hold_base_relief_command(
     )
 
 
+def a2_pull_p1_stage0_command_response_metrics(
+    raw_base_action: torch.Tensor,
+    physical_base_command: torch.Tensor,
+    root_yaw_w: torch.Tensor,
+    observed_world_xy_velocity: torch.Tensor,
+    observed_world_xy_displacement: torch.Tensor,
+    *,
+    base_command_scale: float,
+    body_pitch_roll_scale: float,
+    progress_epsilon_mps: float = 1.0e-8,
+) -> dict[str, torch.Tensor]:
+    """Reconstruct report-only stage-0 command-to-plant response metrics.
+
+    The high-level A2 action remains the source of the raw command and the
+    A2Base command buffer remains the source of the physical command.  This
+    helper only projects the physical planar command into world XY using the
+    observed root yaw and compares that desired direction with observed root
+    motion.  No metric returned here participates in stage admission,
+    timeout, or termination predicates.
+    """
+    tensors = (
+        raw_base_action,
+        physical_base_command,
+        root_yaw_w,
+        observed_world_xy_velocity,
+        observed_world_xy_displacement,
+    )
+    if (
+        not all(torch.is_tensor(value) for value in tensors)
+        or raw_base_action.ndim != 2
+        or tuple(raw_base_action.shape[1:]) != (5,)
+        or physical_base_command.shape != raw_base_action.shape
+        or root_yaw_w.shape != (raw_base_action.shape[0],)
+        or observed_world_xy_velocity.shape != (raw_base_action.shape[0], 2)
+        or observed_world_xy_displacement.shape != (raw_base_action.shape[0], 2)
+    ):
+        raise ValueError(
+            "stage0 command-response inputs require raw/physical (N,5), yaw (N,), "
+            "and observed world XY tensors (N,2)."
+        )
+    if not raw_base_action.is_floating_point() or any(
+        value.dtype != raw_base_action.dtype for value in tensors[1:]
+    ):
+        raise ValueError("stage0 command-response inputs must share one floating dtype.")
+    if any(value.device != raw_base_action.device for value in tensors[1:]):
+        raise ValueError("stage0 command-response inputs must share one device.")
+    if not all(torch.all(torch.isfinite(value)) for value in tensors):
+        raise ValueError("stage0 command-response inputs must be finite.")
+    for name, value in (
+        ("base_command_scale", base_command_scale),
+        ("body_pitch_roll_scale", body_pitch_roll_scale),
+        ("progress_epsilon_mps", progress_epsilon_mps),
+    ):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+        ):
+            raise ValueError(f"{name} must be a finite positive float.")
+
+    expected_scaled_body_command = torch.cat(
+        (
+            raw_base_action[:, :3] * float(base_command_scale),
+            raw_base_action[:, 3:5] * float(body_pitch_roll_scale),
+        ),
+        dim=-1,
+    )
+    yaw_cos = torch.cos(root_yaw_w)
+    yaw_sin = torch.sin(root_yaw_w)
+    physical_xy = physical_base_command[:, :2]
+    desired_world_xy_velocity = torch.stack(
+        (
+            yaw_cos * physical_xy[:, 0] - yaw_sin * physical_xy[:, 1],
+            yaw_sin * physical_xy[:, 0] + yaw_cos * physical_xy[:, 1],
+        ),
+        dim=-1,
+    )
+
+    def _progress_metrics(
+        desired: torch.Tensor, observed: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        dot = torch.sum(desired * observed, dim=-1)
+        denominator = torch.linalg.norm(desired, dim=-1) * torch.linalg.norm(observed, dim=-1)
+        defined = denominator > float(progress_epsilon_mps)
+        cosine = torch.where(
+            defined,
+            dot / denominator.clamp_min(float(progress_epsilon_mps)),
+            torch.zeros_like(dot),
+        )
+        if not all(torch.all(torch.isfinite(value)) for value in (dot, cosine)):
+            raise RuntimeError("stage0 command-response progress metrics became non-finite.")
+        return dot, cosine, defined
+
+    velocity_dot, velocity_cosine, velocity_defined = _progress_metrics(
+        desired_world_xy_velocity, observed_world_xy_velocity
+    )
+    displacement_dot, displacement_cosine, displacement_defined = _progress_metrics(
+        desired_world_xy_velocity, observed_world_xy_displacement
+    )
+    return {
+        "expected_scaled_body_command": expected_scaled_body_command,
+        "desired_world_xy_velocity": desired_world_xy_velocity,
+        "progress_velocity_dot": velocity_dot,
+        "progress_velocity_cosine": velocity_cosine,
+        "progress_velocity_defined": velocity_defined,
+        "progress_displacement_dot": displacement_dot,
+        "progress_displacement_cosine": displacement_cosine,
+        "progress_displacement_defined": displacement_defined,
+    }
+
+
+def a2_pull_p1_stage0_base_command(
+    root_pos_w: torch.Tensor,
+    root_quat_w: torch.Tensor,
+    grasp_target_w: torch.Tensor,
+    active_mask: torch.Tensor,
+    *,
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+    direction: A2DoorDirection,
+    physical_speed_mps: float,
+    base_command_scale: float,
+):
+    """Map signed stage-0 admission geometry to a high-level base command.
+
+    The signed staging helpers own the out/in convention.  The base command is
+    then routed through the same body-frame velocity mapping used by the oracle
+    relief branch; no root state or USD pose is written here.
+    """
+    if (
+        not torch.is_tensor(root_quat_w)
+        or root_quat_w.ndim != 2
+        or root_quat_w.shape != (root_pos_w.shape[0], 4)
+        or root_quat_w.dtype != root_pos_w.dtype
+        or root_quat_w.device != root_pos_w.device
+        or not torch.all(torch.isfinite(root_quat_w))
+    ):
+        raise ValueError("stage0 base admission requires finite matching root quaternions.")
+    if (
+        not torch.is_tensor(active_mask)
+        or active_mask.shape != (root_pos_w.shape[0],)
+        or active_mask.dtype != torch.bool
+        or active_mask.device != root_pos_w.device
+    ):
+        raise ValueError("stage0 base admission requires a device-local bool active mask.")
+    in_band = a2_signed_stage0_staging_band_mask(
+        root_pos_w,
+        grasp_target_w,
+        x_min,
+        x_max,
+        y_tol,
+        direction,
+    )
+    target_w = a2_signed_stage0_nearest_staging_target(
+        root_pos_w,
+        grasp_target_w,
+        x_min,
+        x_max,
+        y_tol,
+        direction,
+    )
+    horizontal_error_w = target_w[:, :2] - root_pos_w[:, :2]
+    residual_m, solvable, body_velocity, raw_command = a2_hold_base_relief_command(
+        horizontal_error_w,
+        root_quat_w,
+        active_mask & ~in_band,
+        physical_speed_mps,
+        base_command_scale,
+        1.0e-6,
+    )
+    if not torch.all(torch.isfinite(raw_command)):
+        raise RuntimeError("stage0 base admission produced a non-finite high-level action.")
+    return {
+        "staging_band": in_band,
+        "target_w": target_w,
+        "horizontal_residual_m": residual_m,
+        "horizontal_solvable": solvable,
+        "body_velocity": body_velocity,
+        "raw_command": raw_command,
+    }
+
+
+def a2_pull_p1_reset_contact_qualification_step(
+    contact_total_n: torch.Tensor,
+    prior_contact_streak: torch.Tensor,
+    prior_window_step: torch.Tensor,
+    state_valid: torch.Tensor,
+    active_mask: torch.Tensor,
+    *,
+    contact_threshold_n: float,
+    qualification_streak_steps: int,
+    qualification_window_steps: int,
+) -> dict[str, torch.Tensor]:
+    """Advance one reset-boundary contact qualification sample.
+
+    A single qualifying sample is intentionally not a hard collision.  The hard
+    contact mask becomes true only after the configured consecutive-sample streak;
+    a valid cleared window admits the next call to signed staging.
+    """
+    if not torch.is_tensor(contact_total_n) or contact_total_n.ndim != 1:
+        raise ValueError("reset contact qualification requires a rank-1 force vector.")
+    expected = contact_total_n.shape
+    for value, name, dtype in (
+        (prior_contact_streak, "prior_contact_streak", torch.long),
+        (prior_window_step, "prior_window_step", torch.long),
+        (state_valid, "state_valid", torch.bool),
+        (active_mask, "active_mask", torch.bool),
+    ):
+        if (
+            not torch.is_tensor(value)
+            or value.shape != expected
+            or value.dtype != dtype
+            or value.device != contact_total_n.device
+        ):
+            raise ValueError(
+                f"reset contact qualification {name} must be {dtype} shape {tuple(expected)} "
+                "on the force-vector device."
+            )
+    if (
+        not torch.all(torch.isfinite(contact_total_n))
+        or isinstance(contact_threshold_n, bool)
+        or not isinstance(contact_threshold_n, (int, float))
+        or not math.isfinite(float(contact_threshold_n))
+        or float(contact_threshold_n) <= 0.0
+        or isinstance(qualification_streak_steps, bool)
+        or not isinstance(qualification_streak_steps, int)
+        or qualification_streak_steps <= 0
+        or isinstance(qualification_window_steps, bool)
+        or not isinstance(qualification_window_steps, int)
+        or qualification_window_steps <= 0
+        or qualification_streak_steps > qualification_window_steps
+    ):
+        raise ValueError("reset contact qualification thresholds/window are invalid.")
+    qualifying = active_mask & (
+        contact_total_n > float(contact_threshold_n)
+    )
+    updated_streak = torch.where(
+        qualifying,
+        prior_contact_streak + 1,
+        torch.zeros_like(prior_contact_streak),
+    )
+    updated_window_step = prior_window_step + active_mask.long()
+    persistent = qualifying & (
+        updated_streak >= int(qualification_streak_steps)
+    )
+    invalid = active_mask & ~state_valid
+    completed = active_mask & ~persistent & ~invalid & (
+        updated_window_step >= int(qualification_window_steps)
+    )
+    return {
+        "qualifying": qualifying,
+        "updated_streak": updated_streak,
+        "updated_window_step": updated_window_step,
+        "persistent": persistent,
+        "invalid": invalid,
+        "completed": completed,
+    }
+
+
+def a2_pull_p1_generic_relief_active_mask(
+    active: torch.Tensor,
+    pull_p1_acquisition: bool,
+    acquisition_wait: torch.Tensor,
+) -> torch.Tensor:
+    """Exclude explicit P1 acquisition-wait from generic DLS/base relief."""
+    if (
+        not torch.is_tensor(active)
+        or active.ndim != 1
+        or active.dtype != torch.bool
+        or not torch.is_tensor(acquisition_wait)
+        or acquisition_wait.shape != active.shape
+        or acquisition_wait.dtype != torch.bool
+        or acquisition_wait.device != active.device
+        or not isinstance(pull_p1_acquisition, bool)
+    ):
+        raise ValueError(
+            "P1 generic relief masking requires matching device-local bool masks "
+            "and a bool acquisition mode."
+    )
+    return active & ~(acquisition_wait if pull_p1_acquisition else torch.zeros_like(active))
+
+
+def a2_pull_p1_center_handoff_reachable_mask(
+    horizontal_error_w: torch.Tensor,
+    candidate_mask: torch.Tensor,
+    max_displacement_m: float,
+) -> torch.Tensor:
+    """Admit center handoff only when its remaining horizontal error fits the relief budget."""
+    if (
+        not torch.is_tensor(horizontal_error_w)
+        or horizontal_error_w.ndim != 2
+        or horizontal_error_w.shape[1] != 2
+        or not torch.is_tensor(candidate_mask)
+        or candidate_mask.shape != (horizontal_error_w.shape[0],)
+        or candidate_mask.dtype != torch.bool
+        or candidate_mask.device != horizontal_error_w.device
+    ):
+        raise ValueError(
+            "center handoff reachability requires a (N,2) error and device-local bool mask."
+        )
+    if not horizontal_error_w.is_floating_point() or not torch.all(
+        torch.isfinite(horizontal_error_w)
+    ):
+        raise ValueError("center handoff horizontal error must be finite and floating-point.")
+    if (
+        isinstance(max_displacement_m, bool)
+        or not isinstance(max_displacement_m, (int, float))
+        or not math.isfinite(float(max_displacement_m))
+        or float(max_displacement_m) <= 0.0
+    ):
+        raise ValueError("center handoff relief budget must be a finite positive float.")
+    residual_m = torch.linalg.norm(horizontal_error_w, dim=-1)
+    return candidate_mask & (residual_m <= float(max_displacement_m))
+
+
 def a2_v20_fixed_planar_root_state(
     root_pos_w: torch.Tensor,
     root_quat_w: torch.Tensor,
@@ -5183,6 +5521,11 @@ class DoorPregrasp(
             "A2 Piper gripper source TCP",
         )
 
+    def _get_a2_grasp_target_orientation_wxyz(self) -> tuple[float, float, float, float]:
+        """Return the legacy push target orientation used by the high-level transformer."""
+
+        return (0.5, 0.5, 0.5, 0.5)
+
     def _get_a2_grasp_gate_mode(self) -> str:
         key = self.A2_GRASP_GATE_MODE_CONFIG_KEY
         if key not in self.config:
@@ -5650,6 +5993,29 @@ class DoorPregrasp(
         soft_end = self._get_a2_v20_r1_soft_phase_end_batch()
         base_component = self._get_a2_v20_r1_crossing_base_component()
         shortfall_gain = self._get_a2_v20_r1_crossing_shortfall_gain()
+        if plan_id == A2_PULL_V0_PLAN_ID:
+            finger_joint_names = ("arm_j7", "arm_j8")
+            actual_dof_names = tuple(self.simulator.dof_names)
+            if any(actual_dof_names.count(name) != 1 for name in finger_joint_names):
+                raise RuntimeError(
+                    "Pull-v0 construction requires exactly one arm_j7 and arm_j8 joint; "
+                    f"got {actual_dof_names!r}."
+                )
+            finger_joint_ids = [actual_dof_names.index(name) for name in finger_joint_names]
+            robot_data = self.simulator.scene.articulations["robot"].data
+            validate_a2_pull_v0_guard(
+                self.config,
+                actual_finger_effort_n=robot_data.joint_effort_limits[
+                    :, finger_joint_ids
+                ].detach().cpu().tolist(),
+                actual_finger_stiffness=robot_data.joint_stiffness[
+                    :, finger_joint_ids
+                ].detach().cpu().tolist(),
+                actual_finger_damping=robot_data.joint_damping[
+                    :, finger_joint_ids
+                ].detach().cpu().tolist(),
+            )
+            return
         if not enabled:
             if plan_id not in ("disabled", A2_V20_R1_PLAN_ID, A2_V21B_PLAN_ID) or guard:
                 raise RuntimeError(
@@ -6063,6 +6429,13 @@ class DoorPregrasp(
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         self._a2_eval_diagnostic_trace_enabled = False
+        # A2 execution can be used without the optional hold-oracle probe.  An
+        # explicit disabled contract keeps the direct base callback a no-op in
+        # that mode without dynamic attribute fallbacks.
+        self._a2_hold_oracle_cfg = {
+            "enabled": False,
+            "pull_p1_probe_enabled": False,
+        }
         r2_enabled = config.get("a2_v20_R2_evidence_enabled", False)
         if not isinstance(r2_enabled, bool):
             raise ValueError(
@@ -6287,13 +6660,18 @@ class DoorPregrasp(
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
 
         for field_name in (
+            "door_width",
+            "door_height",
             "door_handle_height",
+            "door_handle_width",
+            "door_weight",
             "door_hinge_drive_max_force",
             "door_hinge_drive_damping",
             "door_hinge_drive_stiffness",
             "door_handle_drive_max_force",
             "door_handle_drive_damping",
             "door_handle_drive_stiffness",
+            "door_open_lr",
         ):
             field_value = getattr(self, field_name)
             if (
@@ -8760,6 +9138,18 @@ class DoorPregrasp(
 
     def _pre_compute_observations_callback(self, env_ids=None, *, post_physics=False):
         super()._pre_compute_observations_callback(env_ids, post_physics=post_physics)
+        if (
+            post_physics
+            and self._use_a2_base
+            and self._a2_hold_oracle_cfg["enabled"]
+            and self._a2_hold_oracle_cfg.get("pull_p1_probe_enabled", False)
+        ):
+            completion_env_ids = (
+                torch.arange(self.num_envs, device=self.device)
+                if env_ids is None
+                else env_ids
+            )
+            self._complete_a2_pull_p1_stage0_command_response(completion_env_ids)
         if self._use_a2_base:
             self._update_a2_grasp_control_streaks(env_ids)
             self._update_a2_stage5_hold_continuation(env_ids)
@@ -9784,6 +10174,11 @@ class DoorPregrasp(
             )
         return records
 
+    def _get_a2_route_crossing_coordinate(self, root_x: torch.Tensor) -> torch.Tensor:
+        """Return the coordinate whose positive half-space means doorway crossing."""
+
+        return root_x
+
     def _update_a2_stage4_release_and_root_latches(self, env_ids=None):
         if not self._use_a2_base:
             raise RuntimeError("A2 route latches are only defined for A2 Piper configs.")
@@ -9904,13 +10299,24 @@ class DoorPregrasp(
             )
         door_joint_pos = self._get_door_joint_pos("A2 route latch update", 1)
         root_x = root_states[:, 0] - env_origins[:, 0]
+        crossing_coordinate = self._get_a2_route_crossing_coordinate(root_x)
+        if (
+            not torch.is_tensor(crossing_coordinate)
+            or crossing_coordinate.shape != root_x.shape
+            or crossing_coordinate.dtype != root_x.dtype
+            or crossing_coordinate.device != root_x.device
+            or not torch.all(torch.isfinite(crossing_coordinate))
+        ):
+            raise RuntimeError(
+                "A2 route crossing coordinate must preserve the finite root-X tensor contract."
+            )
         effective_update_mask = (
             torch.ones_like(root_x_ever_crossed)
             if update_mask is None
             else update_mask
         )
         first_crossing = (
-            effective_update_mask & ~root_x_ever_crossed & (root_x > 0.0)
+            effective_update_mask & ~root_x_ever_crossed & (crossing_coordinate > 0.0)
         )
         if torch.any(first_crossing):
             contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
@@ -9937,7 +10343,7 @@ class DoorPregrasp(
                 root_x_ever_crossed,
                 stage_buf,
                 door_joint_pos[:, 0],
-                root_x,
+                crossing_coordinate,
                 self._get_a2_stage4_release_hinge_threshold(),
                 self.STAGE_SWING,
                 self.STAGE_THROUGH,
@@ -13331,6 +13737,452 @@ class DoorPregrasp(
             )
         return records
 
+    def _step_a2_pull_p1_reset_contact_qualification(
+        self,
+        qualification_mask: torch.Tensor,
+        *,
+        cfg: dict,
+        layout: dict,
+        policy_action: torch.Tensor,
+        stage_before: torch.Tensor,
+        phase_before: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
+        """Run the bounded zero-command reset-boundary admission window.
+
+        This window owns no staging or DLS writes.  Every sample is recorded before
+        the persistent-contact/state-invalid outcome masks are applied by the caller.
+        """
+        if (
+            not torch.is_tensor(qualification_mask)
+            or qualification_mask.shape != (self.num_envs,)
+            or qualification_mask.dtype != torch.bool
+            or qualification_mask.device != policy_action.device
+        ):
+            raise RuntimeError("Pull P1 reset qualification mask contract mismatch.")
+        empty = torch.zeros_like(qualification_mask)
+        if not torch.any(qualification_mask):
+            return {
+                "persistent": empty,
+                "invalid": empty,
+                "completed": empty,
+                "action": policy_action,
+            }
+
+        root_states = getattr(self.simulator, "robot_root_states", None)
+        if (
+            not torch.is_tensor(root_states)
+            or tuple(root_states.shape) != (self.num_envs, 13)
+            or root_states.device != policy_action.device
+            or not torch.all(torch.isfinite(root_states))
+        ):
+            shape = None if root_states is None else tuple(root_states.shape)
+            raise RuntimeError(
+                "Pull P1 reset contact qualification requires finite robot_root_states "
+                f"shape ({self.num_envs}, 13); got {shape}."
+            )
+        contact_per_filter, contact_total = self._get_a2_door_body_panel_contact_forces()
+        expected_filter_shape = (
+            self.num_envs,
+            len(self.A2_DOOR_BODY_PANEL_FILTER_NAMES),
+        )
+        if (
+            tuple(contact_per_filter.shape) != expected_filter_shape
+            or tuple(contact_total.shape) != (self.num_envs,)
+            or contact_per_filter.device != policy_action.device
+            or contact_total.device != policy_action.device
+            or not torch.all(torch.isfinite(contact_per_filter))
+            or not torch.all(torch.isfinite(contact_total))
+        ):
+            raise RuntimeError(
+                "Pull P1 reset contact qualification received an invalid contact "
+                f"schema; per_filter={tuple(contact_per_filter.shape)}, "
+                f"total={tuple(contact_total.shape)}."
+            )
+        door_joint_pos = self._get_door_joint_pos(
+            "Pull P1 reset contact qualification", 3
+        )
+        if (
+            door_joint_pos.device != policy_action.device
+            or not torch.all(torch.isfinite(door_joint_pos))
+        ):
+            raise RuntimeError(
+                "Pull P1 reset contact qualification requires finite device-local door joints."
+            )
+        gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
+        if (
+            tuple(gripper_pos.shape) != (self.num_envs, 2)
+            or gripper_pos.device != policy_action.device
+            or not torch.all(torch.isfinite(gripper_pos))
+        ):
+            raise RuntimeError(
+                "Pull P1 reset contact qualification requires finite gripper joints shape "
+                f"({self.num_envs}, 2); got {tuple(gripper_pos.shape)}."
+            )
+        roll, pitch, yaw = euler_xyz_from_quat(root_states[:, 3:7])
+        if not all(torch.all(torch.isfinite(value)) for value in (roll, pitch, yaw)):
+            raise RuntimeError("Pull P1 reset contact qualification produced non-finite root Euler state.")
+        upright = (
+            torch.abs(roll) <= cfg["pull_p1_reset_upright_tolerance_rad"]
+        ) & (
+            torch.abs(pitch) <= cfg["pull_p1_reset_upright_tolerance_rad"]
+        )
+        state_valid = upright & torch.all(torch.isfinite(door_joint_pos[:, :3]), dim=-1)
+
+        self._a2_pull_p1_current_body_force_per_filter[:] = contact_per_filter
+        self._a2_pull_p1_current_body_force_total[:] = contact_total
+        previous_max_total = self._a2_pull_p1_body_force_max_total.clone()
+        self._a2_pull_p1_body_force_max_per_filter = torch.maximum(
+            self._a2_pull_p1_body_force_max_per_filter, contact_per_filter
+        )
+        self._a2_pull_p1_body_force_max_total = torch.maximum(
+            self._a2_pull_p1_body_force_max_total, contact_total
+        )
+        step_before = self._a2_pull_p1_reset_qualification_step.clone()
+        qualification_state = a2_pull_p1_reset_contact_qualification_step(
+            contact_total,
+            self._a2_pull_p1_reset_contact_streak,
+            self._a2_pull_p1_reset_qualification_step,
+            state_valid,
+            qualification_mask,
+            contact_threshold_n=cfg["pull_p1_body_contact_threshold_n"],
+            qualification_streak_steps=cfg[
+                "pull_p1_reset_contact_qualification_streak_steps"
+            ],
+            qualification_window_steps=cfg[
+                "pull_p1_reset_contact_qualification_steps"
+            ],
+        )
+        qualifying_contact = qualification_state["qualifying"]
+        updated_streak = qualification_state["updated_streak"]
+        self._a2_pull_p1_reset_contact_streak[:] = updated_streak
+        self._a2_pull_p1_reset_qualification_step[:] = qualification_state[
+            "updated_window_step"
+        ]
+        self._a2_pull_p1_reset_qualification_state_valid[qualification_mask] = state_valid[
+            qualification_mask
+        ]
+        self._a2_pull_p1_reset_transient_observed |= qualification_mask & (
+            contact_total > 0.0
+        )
+        phase_name = A2_HOLD_PHASE_NAMES[int(A2_HOLD_PHASE_PULL_P1_ACQUIRE)]
+        first_contact = (
+            qualification_mask
+            & (self._a2_pull_p1_first_contact_step < 0)
+            & (contact_total > 0.0)
+        )
+        new_max = qualification_mask & (contact_total > previous_max_total)
+        for env_id in torch.nonzero(first_contact, as_tuple=False).flatten().tolist():
+            filter_id = int(torch.argmax(contact_per_filter[env_id]).item())
+            self._a2_pull_p1_first_contact_step[env_id] = int(
+                self.episode_length_buf[env_id].item()
+            )
+            self._a2_pull_p1_first_contact_filter[env_id] = (
+                self.A2_DOOR_BODY_PANEL_FILTER_NAMES[filter_id]
+            )
+            self._a2_pull_p1_first_contact_phase[env_id] = phase_name
+        for env_id in torch.nonzero(new_max, as_tuple=False).flatten().tolist():
+            filter_id = int(torch.argmax(contact_per_filter[env_id]).item())
+            self._a2_pull_p1_max_contact_step[env_id] = int(
+                self.episode_length_buf[env_id].item()
+            )
+            self._a2_pull_p1_max_contact_phase[env_id] = phase_name
+            self._a2_pull_p1_max_contact_filter[env_id] = (
+                self.A2_DOOR_BODY_PANEL_FILTER_NAMES[filter_id]
+            )
+
+        action = policy_action.clone()
+        action[qualification_mask] = 0.0
+        action[qualification_mask, layout["gripper_index"]] = cfg[
+            "pull_p1_reset_gripper_action"
+        ]
+        trace_mask = qualification_mask
+        for env_id in torch.nonzero(trace_mask, as_tuple=False).flatten().tolist():
+            if len(self._a2_pull_p1_trace_records[env_id]) >= int(self.max_episode_length):
+                raise RuntimeError("Pull P1 reset contact qualification trace exceeded episode budget.")
+            record = {
+                "schema": "a2_piper_pull_v0_push_anchor_admission_step_v1",
+                "step": int(self.episode_length_buf[env_id].item()),
+                "episode_generation": int(
+                    self._a2_pull_p1_episode_generation[env_id].item()
+                ),
+                "phase_before": A2_HOLD_PHASE_NAMES[int(phase_before[env_id].item())],
+                "phase_after": phase_name,
+                "stage_before": int(stage_before[env_id].item()),
+                "stage_after": int(self.stage_buf[env_id].item()),
+                "activation_step": int(self._a2_pull_p1_stage0_activation_step[env_id].item()),
+                "qualification": {
+                    "window_step": int(step_before[env_id].item()),
+                    "window_steps": int(cfg["pull_p1_reset_contact_qualification_steps"]),
+                    "contact_qualifying": bool(qualifying_contact[env_id].item()),
+                    "contact_streak": int(updated_streak[env_id].item()),
+                    "state_valid": bool(state_valid[env_id].item()),
+                    "upright": bool(upright[env_id].item()),
+                    "staging_started": False,
+                    "dls_started": False,
+                },
+                "root_pos_w": root_states[env_id, :3].detach().cpu().tolist(),
+                "root_lin_vel_w": root_states[env_id, 7:10].detach().cpu().tolist(),
+                "root_ang_vel_w": root_states[env_id, 10:13].detach().cpu().tolist(),
+                "root_roll_pitch_yaw": [
+                    float(roll[env_id].item()),
+                    float(pitch[env_id].item()),
+                    float(yaw[env_id].item()),
+                ],
+                "door_hinge_handle_latch": door_joint_pos[env_id, :3].detach().cpu().tolist(),
+                "gripper_action": float(action[env_id, layout["gripper_index"]].item()),
+                "gripper_joints": gripper_pos[env_id].detach().cpu().tolist(),
+                "base_applied_action": action[
+                    env_id, layout["base_start"] : layout["base_end"]
+                ].detach().cpu().tolist(),
+                "dls_finally_applied": False,
+                "final_action": action[env_id].detach().cpu().tolist(),
+                "body_panel_contact_per_filter_n": contact_per_filter[env_id]
+                .detach()
+                .cpu()
+                .tolist(),
+                "body_panel_contact_total_n": float(contact_total[env_id].item()),
+                "first_contact_step": int(self._a2_pull_p1_first_contact_step[env_id].item()),
+                "first_contact_phase": self._a2_pull_p1_first_contact_phase[env_id],
+                "first_contact_filter": self._a2_pull_p1_first_contact_filter[env_id],
+                "max_contact_step": int(self._a2_pull_p1_max_contact_step[env_id].item()),
+                "max_contact_total_n": float(self._a2_pull_p1_body_force_max_total[env_id].item()),
+                "max_contact_phase": self._a2_pull_p1_max_contact_phase[env_id],
+                "max_contact_filter": self._a2_pull_p1_max_contact_filter[env_id],
+                "terminal_snapshot": self._a2_pull_p1_terminal_snapshots[env_id],
+            }
+            self._a2_pull_p1_reset_qualification_records[env_id].append(record)
+            self._a2_pull_p1_trace_records[env_id].append(record)
+
+        persistent = qualification_state["persistent"]
+        invalid = qualification_state["invalid"]
+        completed = qualification_state["completed"]
+        self._a2_pull_p1_reset_qualification_completed[completed] = True
+        for env_id in torch.nonzero(qualification_mask, as_tuple=False).flatten().tolist():
+            if bool(invalid[env_id].item()):
+                self._a2_pull_p1_reset_qualification_result[env_id] = "INVALID_STATE"
+            elif bool(persistent[env_id].item()):
+                self._a2_pull_p1_reset_qualification_result[env_id] = "PERSISTENT_CONTACT"
+            elif bool(completed[env_id].item()):
+                self._a2_pull_p1_reset_qualification_result[env_id] = "CLEARED"
+            else:
+                self._a2_pull_p1_reset_qualification_result[env_id] = "IN_PROGRESS"
+        return {
+            "persistent": persistent,
+            "invalid": invalid,
+            "completed": completed,
+            "action": action,
+        }
+
+    def _get_a2_pull_p1_reset_qualification_state(self, env_id: int) -> dict:
+        """Return terminal reset qualification, preferring a latched pre-reset record."""
+        if not isinstance(env_id, int) or env_id < 0 or env_id >= self.num_envs:
+            raise RuntimeError(f"Pull P1 reset qualification env id is invalid: {env_id!r}.")
+        live_has_evidence = bool(
+            self._a2_pull_p1_reset_qualification_records[env_id]
+        ) or int(self._a2_pull_p1_reset_qualification_step[env_id].item()) > 0
+        if (
+            not live_has_evidence
+            and bool(self._a2_pull_p1_terminal_reset_qualification_latched[env_id].item())
+        ):
+            latched = self._a2_pull_p1_terminal_reset_qualification_state[env_id]
+            if not isinstance(latched, dict):
+                raise RuntimeError(
+                    "Pull P1 terminal reset qualification latch is missing its state record."
+                )
+            return dict(latched)
+        return {
+            "window_steps": int(
+                self._a2_hold_oracle_cfg["pull_p1_reset_contact_qualification_steps"]
+            ),
+            "window_step_count": int(
+                self._a2_pull_p1_reset_qualification_step[env_id].item()
+            ),
+            "contact_threshold_n": float(
+                self._a2_hold_oracle_cfg["pull_p1_body_contact_threshold_n"]
+            ),
+            "qualifying_streak_steps": int(
+                self._a2_hold_oracle_cfg[
+                    "pull_p1_reset_contact_qualification_streak_steps"
+                ]
+            ),
+            "contact_streak": int(
+                self._a2_pull_p1_reset_contact_streak[env_id].item()
+            ),
+            "window_complete": bool(
+                self._a2_pull_p1_reset_qualification_completed[env_id].item()
+            ),
+            "reset_transient_observed": bool(
+                self._a2_pull_p1_reset_transient_observed[env_id].item()
+            ),
+            "state_valid": bool(
+                self._a2_pull_p1_reset_qualification_state_valid[env_id].item()
+            ),
+            "result": self._a2_pull_p1_reset_qualification_result[env_id],
+            "samples": list(self._a2_pull_p1_reset_qualification_records[env_id]),
+        }
+
+    def _latch_a2_pull_p1_reset_qualification_before_reset(
+        self, env_ids: torch.Tensor
+    ) -> None:
+        """Preserve terminal reset qualification before reset buffers are cleared."""
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError(
+                "Pull P1 terminal reset qualification requires valid device-local env ids."
+            )
+        cfg = self._a2_hold_oracle_cfg
+        for env_id in env_ids.tolist():
+            has_evidence = bool(
+                self._a2_pull_p1_reset_qualification_records[env_id]
+            ) or int(self._a2_pull_p1_reset_qualification_step[env_id].item()) > 0
+            if not has_evidence:
+                continue
+            self._a2_pull_p1_terminal_reset_qualification_state[env_id] = {
+                "window_steps": int(
+                    cfg["pull_p1_reset_contact_qualification_steps"]
+                ),
+                "window_step_count": int(
+                    self._a2_pull_p1_reset_qualification_step[env_id].item()
+                ),
+                "contact_threshold_n": float(
+                    cfg["pull_p1_body_contact_threshold_n"]
+                ),
+                "qualifying_streak_steps": int(
+                    cfg["pull_p1_reset_contact_qualification_streak_steps"]
+                ),
+                "contact_streak": int(
+                    self._a2_pull_p1_reset_contact_streak[env_id].item()
+                ),
+                "window_complete": bool(
+                    self._a2_pull_p1_reset_qualification_completed[env_id].item()
+                ),
+                "reset_transient_observed": bool(
+                    self._a2_pull_p1_reset_transient_observed[env_id].item()
+                ),
+                "state_valid": bool(
+                    self._a2_pull_p1_reset_qualification_state_valid[env_id].item()
+                ),
+                "result": self._a2_pull_p1_reset_qualification_result[env_id],
+                "samples": list(
+                    self._a2_pull_p1_reset_qualification_records[env_id]
+                ),
+            }
+            self._a2_pull_p1_terminal_reset_qualification_latched[env_id] = True
+
+    def _get_a2_push_anchor_admission_terminal_record(self, env_id: int) -> dict:
+        """Export base-owned push-anchor admission telemetry without E0-E7 fields."""
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg.get("pull_p1_probe_enabled", False):
+            return {
+                "schema": "a2_piper_pull_v0_push_anchor_admission_terminal_v1",
+                "enabled": False,
+                "pull_only_events": "N/A (push_anchor_admission)",
+            }
+        if not isinstance(env_id, int) or env_id < 0 or env_id >= self.num_envs:
+            raise RuntimeError(f"push-anchor terminal env id is invalid: {env_id!r}.")
+        outcome_id = int(self._a2_hold_oracle_outcome[env_id].item())
+        terminal_per_filter_live, terminal_total_live = (
+            self._get_a2_door_body_panel_contact_forces()
+        )
+        if (
+            tuple(terminal_per_filter_live.shape)
+            != (self.num_envs, len(self.A2_DOOR_BODY_PANEL_FILTER_NAMES))
+            or tuple(terminal_total_live.shape) != (self.num_envs,)
+            or not torch.all(torch.isfinite(terminal_per_filter_live))
+            or not torch.all(torch.isfinite(terminal_total_live))
+        ):
+            raise RuntimeError(
+                "Push-anchor terminal contact snapshot has an invalid current sensor schema."
+            )
+        self._a2_pull_p1_current_body_force_per_filter[:] = terminal_per_filter_live
+        self._a2_pull_p1_current_body_force_total[:] = terminal_total_live
+        terminal_current_per_filter = terminal_per_filter_live[env_id].detach().cpu().tolist()
+        terminal_current_total = float(terminal_total_live[env_id].item())
+        terminal_stage_time = int(self.actual_time_in_stage_buf[env_id].item())
+        terminal_stage_budget = int(
+            self.max_stage_time[self.stage_buf[env_id]].item()
+        )
+        terminal_host_stage_overtime = terminal_stage_time >= terminal_stage_budget
+        reset_qualification = self._get_a2_pull_p1_reset_qualification_state(env_id)
+        terminal_snapshot = {
+            "stage": int(self.stage_buf[env_id].item()),
+            "phase": A2_HOLD_PHASE_NAMES[
+                int(self._a2_hold_oracle_phase[env_id].item())
+            ],
+            "outcome": A2_HOLD_OUTCOME_NAMES[outcome_id],
+            "episode_step": int(self.episode_length_buf[env_id].item()),
+            "host_stage_time_elapsed_steps": terminal_stage_time,
+            "host_stage_time_budget_steps": terminal_stage_budget,
+            "host_stage_overtime_observed": terminal_host_stage_overtime,
+            "terminal_body_panel_contact_total_n": terminal_current_total,
+            "terminal_body_panel_contact_total_current_n": terminal_current_total,
+            "terminal_body_panel_contact_per_filter_n": terminal_current_per_filter,
+        }
+        self._a2_pull_p1_terminal_snapshots[env_id] = terminal_snapshot
+        return {
+            "schema": "a2_piper_pull_v0_push_anchor_admission_terminal_v1",
+            "enabled": True,
+            "ownership": "base_push_anchor_admission",
+            "pull_only_events": "N/A (push_anchor_admission)",
+            "trace_step_count": len(self._a2_pull_p1_trace_records[env_id]),
+            "trace_budget_steps": int(self.max_episode_length),
+            "trace": list(self._a2_pull_p1_trace_records[env_id]),
+            "stage0_command_response": self._get_a2_pull_p1_stage0_command_response_summary(
+                env_id
+            ),
+            "stage0_predicates": {
+                "staging_band": bool(
+                    self._a2_pull_p1_stage0_staging_band[env_id].item()
+                ),
+                "settle_count": int(self._a2_pull_p1_stage0_settle_count[env_id].item()),
+                "timed_out": bool(self._a2_pull_p1_stage0_timed_out[env_id].item()),
+            },
+            "host_stage_timer": {
+                "actual_time_in_stage_steps": terminal_stage_time,
+                "max_stage_time_steps": terminal_stage_budget,
+                "overtime_observed": terminal_host_stage_overtime,
+                "source": "device_local_actual_time_in_stage_buf",
+            },
+            "reset_contact_qualification": reset_qualification,
+            "scripted_activation": {
+                "first_control_step": int(
+                    self._a2_pull_p1_stage0_activation_step[env_id].item()
+                ),
+                "admission_gate": "first_episode_active_only_for_push_anchor",
+                "stage2_grasp_gate_required": False,
+            },
+            "dls_candidate_mask": bool(
+                self._a2_pull_p1_dls_candidate_mask[env_id].item()
+            ),
+            "dls_finally_applied": bool(
+                self._a2_pull_p1_dls_finally_applied[env_id].item()
+            ),
+            "body_panel_contact_per_filter_max_n": self._a2_pull_p1_body_force_max_per_filter[
+                env_id
+            ]
+            .detach()
+            .cpu()
+            .tolist(),
+            "body_panel_contact_total_max_n": float(
+                self._a2_pull_p1_body_force_max_total[env_id].item()
+            ),
+            "body_panel_contact_per_filter_current_n": terminal_current_per_filter,
+            "body_panel_contact_total_current_n": terminal_current_total,
+            "first_contact_step": int(self._a2_pull_p1_first_contact_step[env_id].item()),
+            "first_contact_phase": self._a2_pull_p1_first_contact_phase[env_id],
+            "first_contact_filter": self._a2_pull_p1_first_contact_filter[env_id],
+            "max_contact_step": int(self._a2_pull_p1_max_contact_step[env_id].item()),
+            "max_contact_phase": self._a2_pull_p1_max_contact_phase[env_id],
+            "max_contact_filter": self._a2_pull_p1_max_contact_filter[env_id],
+            "terminal_snapshot": terminal_snapshot,
+        }
+
     def _get_a2_terminal_diagnostics(self, env_ids):
         env_ids = self._normalize_render_env_ids(env_ids)
         if not self._use_a2_base:
@@ -13727,6 +14579,67 @@ class DoorPregrasp(
         selected_door_hinge_joint_pos = door_joint_pos[env_ids, 0].detach().cpu().tolist()
         selected_door_handle_joint_pos = door_joint_pos[env_ids, 1].detach().cpu().tolist()
         selected_door_hinge_joint_vel = door_joint_vel[env_ids, 0].detach().cpu().tolist()
+        scenario_tensor_names = (
+            "door_width",
+            "door_height",
+            "door_handle_height",
+            "door_handle_width",
+            "door_weight",
+            "door_hinge_drive_max_force",
+            "door_hinge_drive_damping",
+            "door_hinge_drive_stiffness",
+            "door_handle_drive_max_force",
+            "door_handle_drive_damping",
+            "door_handle_drive_stiffness",
+            "door_open_lr",
+        )
+        selected_scenario_values = {}
+        for field_name in scenario_tensor_names:
+            field_value = getattr(self, field_name, None)
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != (self.num_envs,)
+                or not field_value.is_floating_point()
+                or field_value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(field_value))
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                dtype = None if not torch.is_tensor(field_value) else field_value.dtype
+                device = None if not torch.is_tensor(field_value) else field_value.device
+                raise RuntimeError(
+                    "A2 terminal diagnostics requires finite floating scenario tensor "
+                    f"{field_name} shape ({self.num_envs},) on {self.device}; "
+                    f"got shape={shape}, dtype={dtype}, device={device}."
+                )
+            selected_scenario_values[field_name] = (
+                field_value[env_ids].detach().cpu().tolist()
+            )
+
+        pull_direction_version = self.config.get(
+            "a2_pull_direction_contract_version", None
+        )
+        pull_direction_metadata = None
+        if pull_direction_version is not None:
+            direction_keys = (
+                "a2_pull_direction_contract_version",
+                "a2_pull_target_frame_version",
+                "a2_pull_door_open_io",
+                "a2_pull_door_open_lr",
+                "a2_pull_robot_initial_side_x_sign",
+                "a2_pull_active_handle_face_x_sign",
+                "a2_pull_travel_dir_x",
+            )
+            pull_direction_metadata = {
+                key: self.config.get(key, None) for key in direction_keys
+            }
+            missing_direction_keys = [
+                key for key, value in pull_direction_metadata.items() if value is None
+            ]
+            if missing_direction_keys:
+                raise RuntimeError(
+                    "A2 pull eval diagnostics requires complete direction metadata; "
+                    f"missing {missing_direction_keys}."
+                )
         root_x_ever_crossed = getattr(self, "_a2_root_x_ever_crossed", None)
         if (
             not torch.is_tensor(root_x_ever_crossed)
@@ -13846,6 +14759,9 @@ class DoorPregrasp(
                     "env_id": int(env_id),
                     **v14_telemetry_fields[idx],
                     **v20_telemetry_fields[idx],
+                    "push_anchor_admission": self._get_a2_push_anchor_admission_terminal_record(
+                        int(env_id)
+                    ),
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
@@ -13859,6 +14775,39 @@ class DoorPregrasp(
                     "door_hinge_joint_pos": float(selected_door_hinge_joint_pos[idx]),
                     "door_hinge_joint_vel": float(selected_door_hinge_joint_vel[idx]),
                     "door_handle_joint_pos": float(selected_door_handle_joint_pos[idx]),
+                    "door_scenario": {
+                        "door_width_m": float(selected_scenario_values["door_width"][idx]),
+                        "door_height_m": float(selected_scenario_values["door_height"][idx]),
+                        "handle_height_m": float(
+                            selected_scenario_values["door_handle_height"][idx]
+                        ),
+                        "handle_edge_offset_m": float(
+                            selected_scenario_values["door_handle_width"][idx]
+                        ),
+                        "door_mass_kg": float(selected_scenario_values["door_weight"][idx]),
+                        "hinge_max_force_nm": float(
+                            selected_scenario_values["door_hinge_drive_max_force"][idx]
+                        ),
+                        "hinge_damping_nms_per_rad": float(
+                            selected_scenario_values["door_hinge_drive_damping"][idx]
+                        ),
+                        "hinge_stiffness_nm_per_rad": float(
+                            selected_scenario_values["door_hinge_drive_stiffness"][idx]
+                        ),
+                        "handle_max_force_nm": float(
+                            selected_scenario_values["door_handle_drive_max_force"][idx]
+                        ),
+                        "handle_damping_nms_per_rad": float(
+                            selected_scenario_values["door_handle_drive_damping"][idx]
+                        ),
+                        "handle_stiffness_nm_per_rad": float(
+                            selected_scenario_values["door_handle_drive_stiffness"][idx]
+                        ),
+                        "door_open_lr_sign": float(
+                            selected_scenario_values["door_open_lr"][idx]
+                        ),
+                    },
+                    "pull_evidence_direction": pull_direction_metadata,
                     "root_x_ever_crossed": bool(selected_root_x_ever_crossed[idx]),
                     "root_pos_rel": selected_root_pos_rel[idx],
                     "root_roll": float(selected_root_rpy[idx][0]),
@@ -14308,6 +15257,48 @@ class DoorPregrasp(
             "v20_arc_probe_f1_root_hold_scale": positive_float(
                 "a2_v20_arc_probe_f1_root_hold_scale", 1.00
             ),
+            "pull_p1_probe_enabled": required_bool(
+                "a2_pull_p1_probe_enabled", False
+            ),
+            "pull_p1_anchor_acquisition_enabled": required_bool(
+                "a2_pull_p1_anchor_acquisition_enabled", False
+            ),
+            "pull_p1_probe_mode": eval_config.get(
+                "a2_pull_p1_probe_mode", "push_anchor"
+            ),
+            "pull_p1_proof_offset_m": positive_float(
+                "a2_pull_p1_proof_offset_m", 0.006
+            ),
+            "pull_p1_proof_ramp_steps": positive_int(
+                "a2_pull_p1_proof_ramp_steps", 30
+            ),
+            "pull_p1_proof_hold_steps": positive_int(
+                "a2_pull_p1_proof_hold_steps", 10
+            ),
+            "pull_p1_body_contact_threshold_n": positive_float(
+                "a2_pull_p1_body_contact_threshold_n", 1.0
+            ),
+            "pull_p1_stage0_staging_speed_mps": positive_float(
+                "a2_pull_p1_stage0_staging_speed_mps", 0.15
+            ),
+            "pull_p1_stage0_settle_steps": positive_int(
+                "a2_pull_p1_stage0_settle_steps", 5
+            ),
+            "pull_p1_stage0_timeout_steps": positive_int(
+                "a2_pull_p1_stage0_timeout_steps", 120
+            ),
+            "pull_p1_reset_contact_qualification_steps": positive_int(
+                "a2_pull_p1_reset_contact_qualification_steps", 3
+            ),
+            "pull_p1_reset_contact_qualification_streak_steps": positive_int(
+                "a2_pull_p1_reset_contact_qualification_streak_steps", 2
+            ),
+            "pull_p1_reset_upright_tolerance_rad": positive_float(
+                "a2_pull_p1_reset_upright_tolerance_rad", 0.35
+            ),
+            "pull_p1_reset_gripper_action": finite_float(
+                "a2_pull_p1_reset_gripper_action", -1.0
+            ),
             "center_timeout_steps": positive_int("a2_hold_oracle_center_timeout_steps"),
             "center_position_tolerance_m": positive_float(
                 "a2_hold_oracle_center_position_tolerance_m"
@@ -14443,6 +15434,59 @@ class DoorPregrasp(
             raise RuntimeError(
                 "A2 hold base-relief sign window must be shorter than its timeout."
             )
+        if config["pull_p1_probe_enabled"]:
+            if not config["pull_p1_anchor_acquisition_enabled"]:
+                raise RuntimeError(
+                    "Pull P1 probe requires explicit scripted anchor acquisition."
+                )
+            if not config["enabled"] or config["v20_arc_probe_enabled"]:
+                raise RuntimeError(
+                    "Pull P1 probe requires hold oracle enabled and legacy v20 arc probe disabled."
+                )
+            if config["pull_p1_probe_mode"] not in ("push_anchor", "pull_cell"):
+                raise RuntimeError(
+                    "Pull P1 probe mode must be push_anchor or pull_cell."
+                )
+            exact_pull_p1 = {
+                "pull_p1_proof_offset_m": 0.006,
+                "pull_p1_proof_ramp_steps": 30,
+                "pull_p1_proof_hold_steps": 10,
+                "pull_p1_body_contact_threshold_n": 1.0,
+                "v20_arc_probe_mode": "F1",
+                "v20_arc_probe_target_hinge_rad": 0.25,
+                "v20_arc_probe_terminal_window_steps": 10,
+            }
+            mismatched = {
+                key: (config[key], expected)
+                for key, expected in exact_pull_p1.items()
+                if config[key] != expected
+            }
+            if mismatched:
+                raise RuntimeError(
+                    "Pull P1 probe requires the preregistered proof/arc tuple; "
+                    f"mismatched={mismatched}."
+                )
+            if any(
+                (
+                    config["static_clamp_enabled"],
+                    config["static_clamp_offset_probe_enabled"],
+                    config["open_stabilization_preflight_enabled"],
+                    config["matched_clean_reacquisition_preflight_enabled"],
+                )
+            ):
+                raise RuntimeError(
+                    "Pull P1 probe is mutually exclusive with legacy diagnostic preflights."
+                )
+            if config["pull_p1_stage0_settle_steps"] >= config["pull_p1_stage0_timeout_steps"]:
+                raise RuntimeError(
+                    "Pull P1 stage0 settle window must be shorter than its timeout."
+                )
+            if config["pull_p1_reset_contact_qualification_streak_steps"] > config[
+                "pull_p1_reset_contact_qualification_steps"
+            ]:
+                raise RuntimeError(
+                    "Pull P1 reset contact qualification streak must fit within its window."
+                )
         if config["static_clamp_enabled"] and not config["enabled"]:
             raise RuntimeError("A2 static clamp requires a2_hold_oracle_enabled=true.")
         if config["static_clamp_enabled"]:
@@ -14638,6 +15682,40 @@ class DoorPregrasp(
             raise RuntimeError("A2 hold oracle can only initialize in an evaluating A2 env.")
         cfg = self._parse_a2_hold_oracle_config(eval_config)
         cfg["tcp_offset_z"] = self._get_a2_gripper_source_tcp_offset_z()
+        if cfg["pull_p1_probe_enabled"]:
+            expected_io = (
+                "out" if cfg["pull_p1_probe_mode"] == "push_anchor" else "in"
+            )
+            if self.num_envs != 1:
+                raise RuntimeError("Pull P1 central probe requires exactly one environment.")
+            if self.config.get("a2_pull_p1_central_fixture_enabled", False) is not True:
+                raise RuntimeError("Pull P1 probe requires the amended central fixture selector.")
+            if self.config.get("a2_pull_door_open_io") != expected_io:
+                raise RuntimeError(
+                    f"Pull P1 {cfg['pull_p1_probe_mode']} requires door_open_io={expected_io}."
+                )
+            if self.config.get("a2_door_weight_range") != [80.0, 160.0]:
+                raise RuntimeError(
+                    "Pull P1 fixture requires resolved v20 G4 weight authority [80,160]."
+                )
+            expected_stage_time = (400, 100, 100, 100, 100, 200)
+            actual_stage_time = tuple(self.max_stage_time.detach().cpu().tolist())
+            if actual_stage_time != expected_stage_time:
+                raise RuntimeError(
+                    "Pull P1 push-anchor requires max_stage_time exactly "
+                    f"{expected_stage_time!r}; got {actual_stage_time!r}."
+                )
+            reset_qualification_steps = cfg["pull_p1_reset_contact_qualification_steps"]
+            local_stage0_timeout_steps = cfg["pull_p1_stage0_timeout_steps"]
+            if self.max_stage_time[0].item() <= (
+                reset_qualification_steps + local_stage0_timeout_steps
+            ):
+                raise RuntimeError(
+                    "Pull P1 push-anchor host stage budget must exceed reset qualification "
+                    "plus local stage0 watchdog: "
+                    f"{int(self.max_stage_time[0].item())} <= "
+                    f"{reset_qualification_steps} + {local_stage0_timeout_steps}."
+                )
         if cfg["enabled"] and not diagnostic_enabled:
             raise RuntimeError("A2 hold oracle requires eval.a2_diagnostic_trace_enabled=true.")
         if cfg["static_clamp_enabled"] and not self._get_a2_hold_contact_detail_enabled():
@@ -15185,6 +16263,135 @@ class DoorPregrasp(
             self.num_envs, dtype=torch.long, device=self.device
         )
         self._a2_v20_arc_probe_samples = [[] for _ in range(self.num_envs)]
+        self._a2_pull_p1_proof_completed = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_proof_bilateral_streak = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_latch_released_ever = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_max_body_force = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_pull_p1_max_handle_rad = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_pull_p1_proof_samples = [[] for _ in range(self.num_envs)]
+        self._a2_pull_p1_stage0_settle_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_stage0_timed_out = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_stage0_staging_band = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_stage0_target_w = torch.full(
+            (self.num_envs, 3), float("nan"), device=self.device
+        )
+        self._a2_pull_p1_stage0_horizontal_residual_m = torch.full(
+            (self.num_envs,), float("nan"), device=self.device
+        )
+        self._a2_pull_p1_stage0_body_velocity = torch.zeros(
+            self.num_envs, 2, device=self.device
+        )
+        self._a2_pull_p1_stage0_base_action_raw = torch.zeros(
+            self.num_envs, 5, device=self.device
+        )
+        self._a2_pull_p1_stage0_stage_before = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_stage0_stage_after = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_stage0_activation_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_reset_qualification_step = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_reset_contact_streak = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_reset_qualification_completed = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_reset_transient_observed = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_reset_qualification_state_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_reset_qualification_result = [
+            "NOT_STARTED" for _ in range(self.num_envs)
+        ]
+        self._a2_pull_p1_reset_qualification_records = [
+            [] for _ in range(self.num_envs)
+        ]
+        self._a2_pull_p1_terminal_reset_qualification_latched = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_terminal_reset_qualification_state = [
+            None for _ in range(self.num_envs)
+        ]
+        self._a2_pull_p1_dls_candidate_mask = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_dls_finally_applied = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_p1_body_force_max_per_filter = torch.zeros(
+            self.num_envs, len(self.A2_DOOR_BODY_PANEL_FILTER_NAMES), device=self.device
+        )
+        self._a2_pull_p1_body_force_max_total = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_pull_p1_current_body_force_per_filter = torch.zeros(
+            self.num_envs, len(self.A2_DOOR_BODY_PANEL_FILTER_NAMES), device=self.device
+        )
+        self._a2_pull_p1_current_body_force_total = torch.zeros(
+            self.num_envs, device=self.device
+        )
+        self._a2_pull_p1_max_contact_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_max_contact_phase = [None for _ in range(self.num_envs)]
+        self._a2_pull_p1_max_contact_filter = [None for _ in range(self.num_envs)]
+        self._a2_pull_p1_first_contact_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_first_contact_filter = [None for _ in range(self.num_envs)]
+        self._a2_pull_p1_first_contact_phase = [None for _ in range(self.num_envs)]
+        self._a2_pull_p1_trace_records = [[] for _ in range(self.num_envs)]
+        self._a2_pull_p1_terminal_snapshots = [None for _ in range(self.num_envs)]
+        # Preserve the device-local staged-task timer across the automatic reset
+        # that follows a terminal step.  Pull-P1 summary finalization runs after
+        # that reset, but host-stage overtime classification must still use the
+        # timer value observed at the terminal boundary.
+        self._a2_pull_p1_terminal_stage_time_latched = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_terminal_stage_budget_latched = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_terminal_stage_time_latched_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        # R7 command/response lifecycle state.  A response is first captured
+        # at the exact A2 executor call, completed after the next physics
+        # refresh, and then preserved across reset for terminal export.
+        self._a2_pull_p1_episode_generation = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_p1_pending_response = [None for _ in range(self.num_envs)]
+        self._a2_pull_p1_completed_response_latch = [
+            [] for _ in range(self.num_envs)
+        ]
+        self._a2_pull_p1_terminal_response_latch = [
+            None for _ in range(self.num_envs)
+        ]
         self._a2_hold_oracle_finalized = False
         self._a2_hold_oracle_post_override_action = None
         if not cfg["enabled"]:
@@ -15233,6 +16440,21 @@ class DoorPregrasp(
             num_envs=self.num_envs,
             device=self.device,
         )
+        if cfg["pull_p1_probe_enabled"]:
+            env_ids = torch.arange(self.num_envs, device=self.device, dtype=torch.long)
+            _, _, gripper_state = self._get_a2_static_clamp_gripper_state(env_ids)
+            expected_effort = torch.full_like(gripper_state["effort_limit"], 45.0)
+            expected_stiffness = torch.full_like(gripper_state["stiffness"], 1300.0)
+            expected_damping = torch.full_like(gripper_state["damping"], 32.0)
+            if (
+                not torch.equal(gripper_state["effort_limit"], expected_effort)
+                or not torch.equal(gripper_state["stiffness"], expected_stiffness)
+                or not torch.equal(gripper_state["damping"], expected_damping)
+            ):
+                raise RuntimeError(
+                    "Pull P1 push anchor requires exact v20 G4 finger profile "
+                    "effort/Kp/Kd=45/1300/32."
+                )
         return dict(cfg)
 
     def _set_a2_hold_outcome(self, mask: torch.Tensor, outcome: str) -> None:
@@ -17554,6 +18776,11 @@ class DoorPregrasp(
             self._a2_v20_arc_probe_max_body_force, body_force
         )
         body_threshold = self._get_a2_door_body_contact_event_config()[0]
+        if cfg["pull_p1_probe_enabled"]:
+            body_threshold = cfg["pull_p1_body_contact_threshold_n"]
+            self._a2_pull_p1_max_body_force = torch.maximum(
+                self._a2_pull_p1_max_body_force, body_force
+            )
         self._set_a2_hold_outcome(
             active & (body_force > body_threshold), "ARC_PROBE_BODY_COLLISION"
         )
@@ -17574,8 +18801,22 @@ class DoorPregrasp(
         target_reached = active & (
             door_joint_pos >= cfg["v20_arc_probe_target_hinge_rad"]
         )
+        if cfg["pull_p1_probe_enabled"]:
+            pull_p1_door_joint_pos = self._get_door_joint_pos(
+                "Pull P1 arc probe", 3
+            )
+            self._a2_pull_p1_latch_released_ever |= pull_p1_door_joint_pos[:, 2] > 0.0
+            self._a2_pull_p1_max_handle_rad = torch.maximum(
+                self._a2_pull_p1_max_handle_rad, pull_p1_door_joint_pos[:, 1]
+            )
         self._a2_v20_arc_probe_terminal_window_count[active] = torch.where(
-            target_reached[active] & bilateral[active],
+            target_reached[active]
+            & bilateral[active]
+            & (
+                self._a2_pull_p1_latch_released_ever[active]
+                if cfg["pull_p1_probe_enabled"]
+                else torch.ones_like(bilateral[active])
+            ),
             self._a2_v20_arc_probe_terminal_window_count[active] + 1,
             torch.zeros_like(self._a2_v20_arc_probe_terminal_window_count[active]),
         )
@@ -18466,8 +19707,19 @@ class DoorPregrasp(
         ):
             raise RuntimeError("A2 hold oracle first-episode mask contract mismatch.")
 
+        stage_before = self.stage_buf.detach().clone()
+        phase_before = self._a2_hold_oracle_phase.detach().clone()
+
         wait_mask = self._a2_hold_oracle_phase == A2_HOLD_PHASE_WAIT_GATE
-        if cfg.get("v20_arc_probe_enabled", False):
+        pull_p1_acquisition = (
+            cfg["pull_p1_probe_enabled"]
+            and cfg["pull_p1_anchor_acquisition_enabled"]
+        )
+        if pull_p1_acquisition:
+            # P1 admission is deliberately independent of stage_buf and the
+            # legacy close-reward gate; stage-0 predicates are recorded separately.
+            activate = wait_mask & first_episode_active_mask
+        elif cfg.get("v20_arc_probe_enabled", False):
             activate = a2_v20_arc_probe_activation_mask(
                 wait_mask,
                 first_episode_active_mask,
@@ -18486,6 +19738,10 @@ class DoorPregrasp(
                 policy_action, first_episode_active_mask, activate
             )
         if torch.any(activate):
+            if pull_p1_acquisition:
+                for env_id in torch.nonzero(activate, as_tuple=False).flatten().tolist():
+                    self._a2_pull_p1_terminal_reset_qualification_latched[env_id] = False
+                    self._a2_pull_p1_terminal_reset_qualification_state[env_id] = None
             handoff_frames = self._get_a2_hold_oracle_world_frames()
             (
                 updated_relative_quat,
@@ -18504,6 +19760,15 @@ class DoorPregrasp(
             if cfg["static_clamp_offset_probe_enabled"]:
                 self._capture_a2_offset_gate(activate)
         self._a2_hold_oracle_phase[activate] = A2_HOLD_PHASE_CENTER_CLOSE
+        if pull_p1_acquisition:
+            self._a2_hold_oracle_phase[activate] = A2_HOLD_PHASE_PULL_P1_ACQUIRE
+            if hasattr(self, "_a2_pull_first_scripted_activation_step"):
+                first_activation = activate & (
+                    self._a2_pull_first_scripted_activation_step < 0
+                )
+                self._a2_pull_first_scripted_activation_step[first_activation] = (
+                    self.episode_length_buf[first_activation].to(dtype=torch.long)
+                )
         self._a2_hold_oracle_phase_step[activate] = 0
         self._a2_hold_oracle_activated[activate] = True
         self._a2_hold_oracle_phase_arm_dls_count[activate] = 0
@@ -18552,20 +19817,193 @@ class DoorPregrasp(
             self._a2_hold_oracle_last_override_mask = static_state["override"].clone()
             self._a2_hold_oracle_post_override_action = action
             return action, self._a2_hold_oracle_last_override_mask
+        if cfg["pull_p1_probe_enabled"]:
+            pull_p1_arc = (
+                self._a2_hold_oracle_activated
+                & first_episode_active_mask
+                & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_FOLLOW_PUSH)
+                & self._a2_v20_arc_probe_capture_valid
+                & (
+                    self._a2_hold_oracle_outcome
+                    == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+                )
+            )
+            if torch.any(pull_p1_arc):
+                return self._apply_a2_v20_arc_probe_action(
+                    policy_action,
+                    first_episode_active_mask,
+                    torch.zeros_like(pull_p1_arc),
+                )
         active = (
             self._a2_hold_oracle_activated
             & first_episode_active_mask
             & (self._a2_hold_oracle_phase != A2_HOLD_PHASE_DONE)
             & (self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
         )
+        acquisition_wait = active & (
+            self._a2_hold_oracle_phase == A2_HOLD_PHASE_PULL_P1_ACQUIRE
+        )
+        reset_qualification_mask = (
+            pull_p1_acquisition
+            & acquisition_wait
+            & ~self._a2_pull_p1_reset_qualification_completed
+        )
+        reset_qualification = {
+            "persistent": torch.zeros_like(active),
+            "invalid": torch.zeros_like(active),
+            "completed": torch.zeros_like(active),
+            "action": policy_action,
+        }
+        if torch.any(reset_qualification_mask):
+            reset_qualification = self._step_a2_pull_p1_reset_contact_qualification(
+                reset_qualification_mask,
+                cfg=cfg,
+                layout=layout,
+                policy_action=policy_action,
+                stage_before=stage_before,
+                phase_before=phase_before,
+            )
+            # Record the sample first; only then classify a persistent contact or
+            # invalid upright/door state as a hard admission outcome.
+            self._set_a2_hold_outcome(
+                reset_qualification["invalid"], "PULL_P1_RESET_STATE_INVALID"
+            )
+            self._set_a2_hold_outcome(
+                reset_qualification["persistent"], "PULL_P1_BODY_COLLISION"
+            )
+        # The qualification window consumes this control call.  The first signed
+        # staging command is therefore emitted only on a later call after the
+        # window completes with a cleared, valid reset state.
+        active = active & ~reset_qualification_mask
+        acquisition_wait = acquisition_wait & active
+        stage0_admission = None
+        stage0_timeout = torch.zeros_like(acquisition_wait)
+        stage0_settled = torch.zeros_like(acquisition_wait)
+        stage0_arm_default = torch.zeros_like(acquisition_wait)
+        stage0_root_quat_w = None
+        if pull_p1_acquisition and torch.any(active):
+            root_states = getattr(self.simulator, "robot_root_states", None)
+            if (
+                not torch.is_tensor(root_states)
+                or tuple(root_states.shape) != (self.num_envs, 13)
+                or root_states.device != policy_action.device
+                or not torch.all(torch.isfinite(root_states))
+            ):
+                shape = None if root_states is None else tuple(root_states.shape)
+                raise RuntimeError(
+                    "Pull P1 stage0 admission requires finite robot_root_states "
+                    f"shape ({self.num_envs}, 13); got {shape}."
+                )
+            stage0_root_quat_w = (
+                self.simulator.scene.articulations["robot"].data.root_quat_w
+            )
+            if (
+                not torch.is_tensor(stage0_root_quat_w)
+                or tuple(stage0_root_quat_w.shape) != (self.num_envs, 4)
+                or not stage0_root_quat_w.is_floating_point()
+                or stage0_root_quat_w.dtype != root_states.dtype
+                or stage0_root_quat_w.device != root_states.device
+                or not torch.all(torch.isfinite(stage0_root_quat_w))
+            ):
+                shape = (
+                    None
+                    if not torch.is_tensor(stage0_root_quat_w)
+                    else tuple(stage0_root_quat_w.shape)
+                )
+                raise RuntimeError(
+                    "Pull P1 stage0 admission requires finite canonical root_quat_w "
+                    f"shape ({self.num_envs}, 4); got {shape}."
+                )
+            grasp_target = self._compute_grasp_target()
+            if (
+                not torch.is_tensor(grasp_target)
+                or tuple(grasp_target.shape) != (self.num_envs, 3)
+                or grasp_target.device != root_states.device
+                or grasp_target.dtype != root_states.dtype
+                or not torch.all(torch.isfinite(grasp_target))
+            ):
+                shape = None if grasp_target is None else tuple(grasp_target.shape)
+                raise RuntimeError(
+                    "Pull P1 stage0 admission requires finite grasp target shape "
+                    f"({self.num_envs}, 3); got {shape}."
+                )
+            direction = getattr(self, "_pull_direction", None)
+            if direction is None:
+                direction = A2DoorDirection(
+                    self.config["a2_pull_door_open_io"],
+                    self.config["a2_pull_door_open_lr"],
+                )
+            x_min, x_max, y_tol = self._get_a2_stage0_staging_band()
+            stage0_admission = a2_pull_p1_stage0_base_command(
+                root_states[:, :3],
+                stage0_root_quat_w,
+                grasp_target,
+                acquisition_wait,
+                x_min=x_min,
+                x_max=x_max,
+                y_tol=y_tol,
+                direction=direction,
+                physical_speed_mps=cfg["pull_p1_stage0_staging_speed_mps"],
+                base_command_scale=self._a2_base_command_scale,
+            )
+            self._a2_pull_p1_stage0_staging_band[:] = stage0_admission["staging_band"]
+            self._a2_pull_p1_stage0_target_w[:] = stage0_admission["target_w"]
+            self._a2_pull_p1_stage0_horizontal_residual_m[:] = stage0_admission[
+                "horizontal_residual_m"
+            ]
+            self._a2_pull_p1_stage0_body_velocity[:] = stage0_admission["body_velocity"]
+            self._a2_pull_p1_stage0_base_action_raw[:] = stage0_admission["raw_command"]
+            root_speed = torch.linalg.norm(root_states[:, 7:9], dim=-1)
+            stage0_still = root_speed <= 0.1
+            arm_default_target = self._get_a2_arm_default_dof_pos()
+            if tuple(arm_default_target.shape) != (self.num_envs, 6):
+                raise RuntimeError(
+                    "Pull P1 stage0 admission requires six arm default joints; "
+                    f"got {tuple(arm_default_target.shape)}."
+                )
+            arm_default_deviation = torch.abs(
+                self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
+                - arm_default_target
+            ).amax(dim=-1)
+            arm_default_tolerance = self._get_required_positive_float_config(
+                "a2_stage0_arm_default_max_deviation",
+                "pull stage0 admission",
+            )
+            stage0_arm_default = arm_default_deviation < arm_default_tolerance
+            stage0_settled = (
+                acquisition_wait
+                & stage0_admission["staging_band"]
+                & stage0_still
+                & stage0_arm_default
+            )
+            self._a2_pull_p1_stage0_settle_count[:] = torch.where(
+                stage0_settled,
+                self._a2_pull_p1_stage0_settle_count + 1,
+                torch.zeros_like(self._a2_pull_p1_stage0_settle_count),
+            )
+            stage0_timeout = acquisition_wait & (
+                self._a2_hold_oracle_phase_step
+                >= cfg["pull_p1_stage0_timeout_steps"]
+            )
+            self._a2_pull_p1_stage0_timed_out |= stage0_timeout
+            self._set_a2_hold_outcome(stage0_timeout, "PULL_P1_STAGE0_TIMEOUT")
+            self._a2_pull_p1_stage0_activation_step[acquisition_wait] = torch.where(
+                self._a2_pull_p1_stage0_activation_step[acquisition_wait] < 0,
+                self.episode_length_buf[acquisition_wait].to(dtype=torch.long),
+                self._a2_pull_p1_stage0_activation_step[acquisition_wait],
+            )
         action = a2_hold_action_with_exact_disabled_equivalence(policy_action, active)
+        if torch.any(reset_qualification_mask):
+            action[reset_qualification_mask] = reset_qualification["action"][
+                reset_qualification_mask
+            ]
         if not torch.any(active):
             self._clear_a2_hold_base_relief_state(torch.ones_like(active))
             self._a2_hold_oracle_arm_dls_branch.zero_()
             self._a2_hold_oracle_phase_sign_check_due.zero_()
-            self._a2_hold_oracle_last_override_mask = active
+            self._a2_hold_oracle_last_override_mask = reset_qualification_mask.clone()
             self._a2_hold_oracle_post_override_action = action
-            return action, active
+            return action, self._a2_hold_oracle_last_override_mask
 
         bilateral_gate, contact_masks = self._a2_hold_bilateral_gate()
         self._a2_hold_oracle_last_single_body7[active] = contact_masks[
@@ -18597,16 +20035,155 @@ class DoorPregrasp(
             )
         )
         door_joint_pos = self._get_door_joint_pos("A2 hold oracle", 2)
+        pull_p1_body_force_per_filter = None
+        pull_p1_body_force = None
+        pull_p1_body_collision_pending = torch.zeros_like(active)
+        if cfg["pull_p1_probe_enabled"]:
+            pull_p1_joint_pos = self._get_door_joint_pos("Pull P1 probe", 3)
+            pull_p1_body_force_per_filter, pull_p1_body_force = (
+                self._get_a2_door_body_panel_contact_forces()
+            )
+            self._a2_pull_p1_current_body_force_per_filter[:] = pull_p1_body_force_per_filter
+            self._a2_pull_p1_current_body_force_total[:] = pull_p1_body_force
+            self._a2_pull_p1_max_body_force = torch.maximum(
+                self._a2_pull_p1_max_body_force, pull_p1_body_force
+            )
+            previous_max_total = self._a2_pull_p1_body_force_max_total.clone()
+            self._a2_pull_p1_body_force_max_per_filter = torch.maximum(
+                self._a2_pull_p1_body_force_max_per_filter,
+                pull_p1_body_force_per_filter,
+            )
+            self._a2_pull_p1_body_force_max_total = torch.maximum(
+                self._a2_pull_p1_body_force_max_total,
+                pull_p1_body_force,
+            )
+            new_max = active & (pull_p1_body_force > previous_max_total)
+            for env_id in torch.nonzero(new_max, as_tuple=False).flatten().tolist():
+                filter_id = int(torch.argmax(pull_p1_body_force_per_filter[env_id]).item())
+                self._a2_pull_p1_max_contact_step[env_id] = int(
+                    self.episode_length_buf[env_id].item()
+                )
+                self._a2_pull_p1_max_contact_phase[env_id] = A2_HOLD_PHASE_NAMES[
+                    int(self._a2_hold_oracle_phase[env_id].item())
+                ]
+                self._a2_pull_p1_max_contact_filter[env_id] = (
+                    self.A2_DOOR_BODY_PANEL_FILTER_NAMES[filter_id]
+                )
+            first_contact = (
+                active
+                & (self._a2_pull_p1_first_contact_step < 0)
+                & (pull_p1_body_force > 0.0)
+            )
+            for env_id in torch.nonzero(first_contact, as_tuple=False).flatten().tolist():
+                filter_id = int(torch.argmax(pull_p1_body_force_per_filter[env_id]).item())
+                self._a2_pull_p1_first_contact_step[env_id] = int(
+                    self.episode_length_buf[env_id].item()
+                )
+                self._a2_pull_p1_first_contact_filter[env_id] = (
+                    self.A2_DOOR_BODY_PANEL_FILTER_NAMES[filter_id]
+                )
+                self._a2_pull_p1_first_contact_phase[env_id] = A2_HOLD_PHASE_NAMES[
+                    int(self._a2_hold_oracle_phase[env_id].item())
+                ]
+            self._a2_pull_p1_max_handle_rad = torch.maximum(
+                self._a2_pull_p1_max_handle_rad, pull_p1_joint_pos[:, 1]
+            )
+            self._a2_pull_p1_latch_released_ever |= pull_p1_joint_pos[:, 2] > 0.0
+            pull_p1_body_collision_pending = active & (
+                pull_p1_body_force > cfg["pull_p1_body_contact_threshold_n"]
+            )
         self._a2_hold_oracle_phase[center_ready] = A2_HOLD_PHASE_DEPRESS
         self._a2_hold_oracle_phase_step[center_ready] = 0
         self._a2_hold_oracle_phase_arm_dls_count[center_ready] = 0
         self._a2_hold_oracle_phase_sign_checked[center_ready] = False
         self._a2_hold_oracle_phase_sign_check_due[center_ready] = False
         self._a2_hold_oracle_handle_start[center_ready] = door_joint_pos[center_ready, 1]
+        if cfg["pull_p1_probe_enabled"]:
+            self._a2_hold_oracle_phase[center_ready] = A2_HOLD_PHASE_PULL_P1_PROOF
+            self._a2_hold_oracle_phase_step[center_ready] = 0
+            self._a2_pull_p1_proof_bilateral_streak[center_ready] = 0
         self._set_a2_hold_outcome(tracking_failure, "IK_TRACKING_FAILURE")
         self._set_a2_hold_outcome(wedge, "UNILATERAL_WEDGE")
         self._set_a2_hold_outcome(center_no_bilateral, "CENTER_NO_BILATERAL")
 
+        proof = active & (
+            self._a2_hold_oracle_phase == A2_HOLD_PHASE_PULL_P1_PROOF
+        )
+        if cfg["pull_p1_probe_enabled"]:
+            for env_id in torch.nonzero(proof, as_tuple=False).flatten().tolist():
+                self._a2_pull_p1_proof_samples[env_id].append(
+                    {
+                        "step": int(
+                            self._a2_hold_oracle_phase_step[env_id].item()
+                        ),
+                        "commanded_offset_m": min(
+                            cfg["pull_p1_proof_offset_m"],
+                            cfg["pull_p1_proof_offset_m"]
+                            * float(self._a2_hold_oracle_phase_step[env_id].item())
+                            / float(cfg["pull_p1_proof_ramp_steps"]),
+                        ),
+                        "bilateral_contact": bool(bilateral_gate[env_id].item()),
+                        "hinge_position_rad": float(
+                            pull_p1_joint_pos[env_id, 0].item()
+                        ),
+                        "handle_position_rad": float(
+                            pull_p1_joint_pos[env_id, 1].item()
+                        ),
+                        "latch_position_m": float(
+                            pull_p1_joint_pos[env_id, 2].item()
+                        ),
+                        "door_body_force_n": float(
+                            pull_p1_body_force[env_id].item()
+                        ),
+                    }
+                )
+            self._a2_pull_p1_proof_bilateral_streak[proof] = torch.where(
+                bilateral_gate[proof],
+                self._a2_pull_p1_proof_bilateral_streak[proof] + 1,
+                torch.zeros_like(self._a2_pull_p1_proof_bilateral_streak[proof]),
+            )
+            self._a2_hold_oracle_slip_steps[proof] = torch.where(
+                bilateral_gate[proof],
+                torch.zeros_like(self._a2_hold_oracle_slip_steps[proof]),
+                self._a2_hold_oracle_slip_steps[proof] + 1,
+            )
+            proof_lost = proof & (
+                self._a2_hold_oracle_slip_steps
+                >= cfg["contact_slip_grace_steps"]
+            )
+            self._set_a2_hold_outcome(
+                proof_lost, "PULL_P1_PROOF_CONTACT_LOSS"
+            )
+            proof_target_step = (
+                cfg["pull_p1_proof_ramp_steps"]
+                + cfg["pull_p1_proof_hold_steps"]
+            )
+            proof_done = (
+                proof
+                & (self._a2_hold_oracle_phase_step >= proof_target_step)
+                & (
+                    self._a2_pull_p1_proof_bilateral_streak
+                    >= cfg["pull_p1_proof_hold_steps"]
+                )
+            )
+            self._a2_pull_p1_proof_completed[proof_done] = True
+            self._a2_hold_oracle_phase[proof_done] = A2_HOLD_PHASE_DEPRESS
+            self._a2_hold_oracle_phase_step[proof_done] = 0
+            self._a2_hold_oracle_phase_arm_dls_count[proof_done] = 0
+            self._a2_hold_oracle_phase_sign_checked[proof_done] = False
+            self._a2_hold_oracle_phase_sign_check_due[proof_done] = False
+            self._a2_hold_oracle_handle_start[proof_done] = door_joint_pos[
+                proof_done, 1
+            ]
+            proof_timeout = (
+                proof
+                & ~proof_done
+                & (
+                    self._a2_hold_oracle_phase_step
+                    >= proof_target_step + cfg["pull_p1_proof_hold_steps"]
+                )
+            )
+            self._set_a2_hold_outcome(proof_timeout, "PULL_P1_PROOF_TIMEOUT")
         depress = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_DEPRESS)
         depress_delta = door_joint_pos[:, 1] - self._a2_hold_oracle_handle_start
         self._a2_hold_oracle_slip_steps[depress] = torch.where(
@@ -18632,6 +20209,8 @@ class DoorPregrasp(
         self._a2_hold_oracle_phase_sign_checked[depress_done] = False
         self._a2_hold_oracle_phase_sign_check_due[depress_done] = False
         self._a2_hold_oracle_hinge_start[depress_done] = door_joint_pos[depress_done, 0]
+        if cfg["pull_p1_probe_enabled"] and torch.any(depress_done):
+            self._capture_a2_v20_arc_probe_gate(depress_done)
         depress_timeout = a2_hold_depress_timeout_mask(
             depress,
             depress_reached_target,
@@ -18685,9 +20264,41 @@ class DoorPregrasp(
         ).clamp(max=1.0)
         depress = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_DEPRESS)
         push = active & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_FOLLOW_PUSH)
+        proof = active & (
+            self._a2_hold_oracle_phase == A2_HOLD_PHASE_PULL_P1_PROOF
+        )
+        if cfg["pull_p1_probe_enabled"]:
+            proof_fraction = (
+                self._a2_hold_oracle_phase_step.to(torch.float)
+                / float(cfg["pull_p1_proof_ramp_steps"])
+            ).clamp(max=1.0)
+            handle_frames = self._get_a2_hold_oracle_world_frames()
+            proof_world_offset = a2_pull_proof_world_offset_x(
+                cfg["pull_p1_proof_offset_m"],
+                batch_size=self.num_envs,
+                device=handle_frames["handle_quat_w"].device,
+                dtype=handle_frames["handle_quat_w"].dtype,
+            )
+            proof_world_offset = proof_world_offset * proof_fraction[:, None]
+            proof_local_offset = quat_apply_inverse(
+                handle_frames["handle_quat_w"], proof_world_offset
+            )
+            full_world_offset = a2_pull_proof_world_offset_x(
+                cfg["pull_p1_proof_offset_m"],
+                batch_size=self.num_envs,
+                device=handle_frames["handle_quat_w"].device,
+                dtype=handle_frames["handle_quat_w"].dtype,
+            )
+            full_local_offset = quat_apply_inverse(
+                handle_frames["handle_quat_w"], full_world_offset
+            )
+            local_offset[proof] = proof_local_offset[proof]
+            local_offset[depress] = full_local_offset[depress]
         local_offset[depress, 1] = -cfg["depress_offset_m"] * phase_fraction[depress]
         local_offset[push, 1] = -cfg["depress_offset_m"]
         local_offset[push, 2] = cfg["push_offset_m"] * phase_fraction[push]
+        if cfg["pull_p1_probe_enabled"]:
+            local_offset[push] = full_local_offset[push]
         (
             q_des,
             ik_valid,
@@ -18705,6 +20316,23 @@ class DoorPregrasp(
             root_xy_w,
             root_quat_w,
         ) = self._compute_a2_hold_oracle_joint_target(local_offset, active)
+        center_handoff_candidate = (
+            pull_p1_acquisition
+            & active
+            & (self._a2_hold_oracle_phase == A2_HOLD_PHASE_PULL_P1_ACQUIRE)
+            & (self.stage_buf >= self.STAGE_PREGRASP)
+        )
+        acquisition_stage1_ready = a2_pull_p1_center_handoff_reachable_mask(
+            horizontal_error_w,
+            center_handoff_candidate,
+            cfg["base_relief_max_displacement_m"],
+        )
+        self._a2_hold_oracle_phase[acquisition_stage1_ready] = A2_HOLD_PHASE_CENTER_CLOSE
+        self._a2_hold_oracle_phase_step[acquisition_stage1_ready] = 0
+        acquisition_handoff_pending = center_handoff_candidate & ~acquisition_stage1_ready
+        acquisition_wait = (
+            acquisition_wait & active & ~acquisition_stage1_ready
+        )
         robot = self.simulator.scene.articulations["robot"]
         joint_ids = self._a2_hold_oracle_joint_ids
         hard_limits = robot.data.joint_pos_limits[:, joint_ids]
@@ -18733,7 +20361,12 @@ class DoorPregrasp(
             raise RuntimeError("A2 hold oracle cumulative conversion returned non-finite values.")
         delta_ok = torch.all(torch.abs(d_des) <= 15.0, dim=-1)
         raw_ok = torch.all(torch.abs(a_raw) <= cfg["raw_action_abs_max"], dim=-1)
-        relief_candidate = active & ik_valid & ~limit_valid
+        generic_relief_active = a2_pull_p1_generic_relief_active_mask(
+            active,
+            pull_p1_acquisition,
+            acquisition_wait,
+        )
+        relief_candidate = generic_relief_active & ik_valid & ~limit_valid
         (
             horizontal_residual,
             horizontal_solvable,
@@ -18748,18 +20381,47 @@ class DoorPregrasp(
             cfg["base_relief_min_solvable_horizontal_error_m"],
         )
         (
+            handoff_horizontal_residual,
+            _handoff_horizontal_solvable,
+            handoff_body_velocity,
+            handoff_base_raw,
+        ) = a2_hold_base_relief_command(
+            horizontal_error_w,
+            root_quat_w,
+            acquisition_handoff_pending,
+            cfg["base_relief_speed_mps"],
+            self._a2_base_command_scale,
+            cfg["base_relief_min_solvable_horizontal_error_m"],
+        )
+        (
             arm_dls_mask,
             relief_mask,
             ik_invalid_mask,
             joint_limit_mask,
             action_invalid_mask,
         ) = a2_hold_base_relief_branch_masks(
-            active,
+            generic_relief_active,
             ik_valid,
             limit_valid,
             delta_ok,
             raw_ok,
             horizontal_solvable,
+        )
+        relief_mask = relief_mask | acquisition_handoff_pending
+        horizontal_residual = torch.where(
+            acquisition_handoff_pending,
+            handoff_horizontal_residual,
+            horizontal_residual,
+        )
+        relief_body_velocity = torch.where(
+            acquisition_handoff_pending.unsqueeze(-1),
+            handoff_body_velocity,
+            relief_body_velocity,
+        )
+        relief_base_raw = torch.where(
+            acquisition_handoff_pending.unsqueeze(-1),
+            handoff_base_raw,
+            relief_base_raw,
         )
         relief_state = a2_hold_update_base_relief_state(
             relief_mask,
@@ -18834,8 +20496,27 @@ class DoorPregrasp(
             (layout["arm_start"], layout["arm_end"]),
             layout["gripper_index"],
         )
+        dls_candidate_mask = arm_dls_mask.detach().clone()
+        dls_finally_applied = arm_dls_mask.detach().clone()
+        if pull_p1_acquisition:
+            if stage0_admission is None:
+                raise RuntimeError("Pull P1 stage0 admission state was not computed.")
+            stage0_wait = acquisition_wait & ~acquisition_handoff_pending & ~stage0_timeout
+            stage0_expired = acquisition_wait & ~acquisition_handoff_pending & stage0_timeout
+            action[stage0_wait, layout["base_start"] : layout["base_end"]] = (
+                stage0_admission["raw_command"][stage0_wait].to(dtype=action.dtype)
+            )
+            action[stage0_wait, layout["arm_start"] : layout["arm_end"]] = 0.0
+            action[stage0_wait, layout["gripper_index"]] = -1.0
+            action[stage0_expired, layout["base_start"] : layout["base_end"]] = 0.0
+            action[stage0_expired, layout["arm_start"] : layout["arm_end"]] = 0.0
+            action[stage0_expired, layout["gripper_index"]] = -1.0
+            dls_finally_applied = dls_finally_applied & ~acquisition_wait
+            override_mask = override_mask | acquisition_wait
+        self._a2_pull_p1_dls_candidate_mask[:] = dls_candidate_mask
+        self._a2_pull_p1_dls_finally_applied[:] = dls_finally_applied
         applied_arm_raw = torch.zeros_like(a_raw)
-        applied_arm_raw[arm_dls_mask] = a_raw[arm_dls_mask]
+        applied_arm_raw[dls_finally_applied] = a_raw[dls_finally_applied]
         applied_base_raw = torch.zeros_like(relief_base_raw)
         applied_base_raw[relief_mask] = relief_base_raw[relief_mask]
         applied_body_velocity = torch.zeros_like(relief_body_velocity)
@@ -18862,12 +20543,437 @@ class DoorPregrasp(
         self._a2_hold_oracle_horizontal_residual[:] = horizontal_residual
         self._a2_hold_oracle_base_relief_body_velocity_command[:] = applied_body_velocity
         self._a2_hold_oracle_base_relief_raw_command[:] = applied_base_raw
-        self._a2_hold_oracle_arm_dls_branch[:] = arm_dls_mask
+        self._a2_hold_oracle_arm_dls_branch[:] = dls_finally_applied
         self._a2_hold_oracle_base_relief_branch_applied[:] = relief_mask
         self._a2_hold_oracle_phase_step[override_mask] += 1
+        self._a2_pull_p1_stage0_stage_before[:] = stage_before
+        self._a2_pull_p1_stage0_stage_after[:] = self.stage_buf.detach()
+        override_mask = override_mask | reset_qualification_mask
+        if pull_p1_acquisition:
+            trace_mask = active & first_episode_active_mask
+            if stage0_root_quat_w is None:
+                raise RuntimeError("Pull P1 stage0 trace requires canonical root_quat_w.")
+            if pull_p1_body_force_per_filter is None or pull_p1_body_force is None:
+                raise RuntimeError("Pull P1 stage0 trace requires body-panel force telemetry.")
+            gripper_indices = self._a2_gripper_dof_indices
+            gripper_pos = self.simulator.dof_pos[:, gripper_indices]
+            stage_after = self.stage_buf.detach()
+            for env_id in torch.nonzero(trace_mask, as_tuple=False).flatten().tolist():
+                trace = self._a2_pull_p1_trace_records[env_id]
+                if len(trace) >= int(self.max_episode_length):
+                    raise RuntimeError("Pull P1 stage0 trace exceeded episode budget.")
+                roll, pitch, yaw = euler_xyz_from_quat(
+                    stage0_root_quat_w[env_id : env_id + 1]
+                )
+                trace.append(
+                    {
+                        "schema": "a2_piper_pull_v0_push_anchor_admission_step_v1",
+                        "step": int(self.episode_length_buf[env_id].item()),
+                        "episode_generation": int(
+                            self._a2_pull_p1_episode_generation[env_id].item()
+                        ),
+                        "phase_before": A2_HOLD_PHASE_NAMES[int(phase_before[env_id].item())],
+                        "phase_after": A2_HOLD_PHASE_NAMES[
+                            int(self._a2_hold_oracle_phase[env_id].item())
+                        ],
+                        "stage_before": int(stage_before[env_id].item()),
+                        "stage_after": int(stage_after[env_id].item()),
+                        "activation_step": int(
+                            self._a2_pull_p1_stage0_activation_step[env_id].item()
+                        ),
+                        "stage0_predicates": {
+                            "staging_band": bool(
+                                self._a2_pull_p1_stage0_staging_band[env_id].item()
+                            ),
+                            "arm_default": bool(stage0_arm_default[env_id].item()),
+                            "base_still": bool(
+                                stage0_still[env_id].item()
+                            ),
+                            "settled": bool(stage0_settled[env_id].item()),
+                            "timeout": bool(stage0_timeout[env_id].item()),
+                        },
+                        "root_pos_w": root_states[env_id, :3].detach().cpu().tolist(),
+                        "root_lin_vel_w": root_states[env_id, 7:10].detach().cpu().tolist(),
+                        "root_roll_pitch_yaw": [
+                            float(roll[0].item()),
+                            float(pitch[0].item()),
+                            float(yaw[0].item()),
+                        ],
+                        "target_residuals": {
+                            "stage0_horizontal_m": float(
+                                self._a2_pull_p1_stage0_horizontal_residual_m[env_id].item()
+                            ),
+                            "dls_position_m": float(
+                                self._a2_hold_oracle_position_residual[env_id].item()
+                            ),
+                            "dls_orientation_rad": float(
+                                self._a2_hold_oracle_orientation_residual[env_id].item()
+                            ),
+                        },
+                        "gripper_action": float(
+                            action[env_id, layout["gripper_index"]].item()
+                        ),
+                        "gripper_joints": gripper_pos[env_id].detach().cpu().tolist(),
+                        "dls_candidate_action": a_raw[env_id].detach().cpu().tolist(),
+                        "dls_candidate_mask": bool(dls_candidate_mask[env_id].item()),
+                        "dls_applied_action": applied_arm_raw[env_id].detach().cpu().tolist(),
+                        "dls_finally_applied": bool(dls_finally_applied[env_id].item()),
+                        "base_candidate_action": stage0_admission["raw_command"][
+                            env_id
+                        ].detach().cpu().tolist(),
+                        "base_applied_action": action[
+                            env_id, layout["base_start"] : layout["base_end"]
+                        ].detach().cpu().tolist(),
+                        "final_action": action[env_id].detach().cpu().tolist(),
+                        "body_panel_contact_per_filter_n": pull_p1_body_force_per_filter[
+                            env_id
+                        ].detach().cpu().tolist(),
+                        "body_panel_contact_total_n": float(
+                            pull_p1_body_force[env_id].item()
+                        ),
+                        "first_contact_step": int(
+                            self._a2_pull_p1_first_contact_step[env_id].item()
+                        ),
+                        "first_contact_phase": self._a2_pull_p1_first_contact_phase[env_id],
+                        "first_contact_filter": self._a2_pull_p1_first_contact_filter[env_id],
+                        "max_contact_step": int(
+                            self._a2_pull_p1_max_contact_step[env_id].item()
+                        ),
+                        "max_contact_total_n": float(
+                            self._a2_pull_p1_body_force_max_total[env_id].item()
+                        ),
+                        "max_contact_phase": self._a2_pull_p1_max_contact_phase[env_id],
+                        "max_contact_filter": self._a2_pull_p1_max_contact_filter[env_id],
+                        "terminal_snapshot": self._a2_pull_p1_terminal_snapshots[env_id],
+                    }
+                )
+        # Body-panel hard failure is classified only after the current action and
+        # trace row have been captured, so a step-0 contact sample is never lost.
+        self._set_a2_hold_outcome(
+            pull_p1_body_collision_pending, "PULL_P1_BODY_COLLISION"
+        )
         self._a2_hold_oracle_last_override_mask = override_mask.detach().clone()
         self._a2_hold_oracle_post_override_action = action.detach().clone()
         return action, override_mask
+
+    def _a2_base_pre_physics_command_callback(
+        self,
+        raw_base_action: torch.Tensor,
+        physical_base_command: torch.Tensor,
+        lower_body_action: torch.Tensor,
+    ) -> None:
+        """Latch exact stage-0 executor tensors before physics mutates the plant."""
+        A2Base._a2_base_pre_physics_command_callback(
+            self, raw_base_action, physical_base_command, lower_body_action
+        )
+        if lower_body_action.shape[1] != 12:
+            raise RuntimeError(
+                "Pull P1 stage0 response requires the canonical 12-leg command array; "
+                f"got {lower_body_action.shape[1]} legs."
+            )
+        cfg = self._a2_hold_oracle_cfg
+        if not cfg["enabled"] or not cfg.get("pull_p1_probe_enabled", False):
+            return
+        robot_data = self.simulator.scene.articulations["robot"].data
+        root_pos_w = robot_data.root_pos_w
+        root_quat_w = robot_data.root_quat_w
+        root_lin_vel_w = robot_data.root_lin_vel_w
+        for name, value, shape in (
+            ("root_pos_w", root_pos_w, (self.num_envs, 3)),
+            ("root_quat_w", root_quat_w, (self.num_envs, 4)),
+            ("root_lin_vel_w", root_lin_vel_w, (self.num_envs, 3)),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != shape
+                or value.dtype != raw_base_action.dtype
+                or value.device != raw_base_action.device
+                or not torch.all(torch.isfinite(value))
+            ):
+                actual_shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                raise RuntimeError(
+                    f"Pull P1 pre-physics response requires finite {name} shape {shape}; "
+                    f"got {actual_shape}."
+                )
+        for env_id in range(self.num_envs):
+            trace = self._a2_pull_p1_trace_records[env_id]
+            if not trace:
+                continue
+            row_index = len(trace) - 1
+            row = trace[row_index]
+            if not isinstance(row, dict):
+                raise RuntimeError("Pull P1 stage0 trace rows must be mappings.")
+            if "stage0_predicates" not in row:
+                continue
+            control_step = int(self.episode_length_buf[env_id].item())
+            if row.get("step") != control_step:
+                continue
+            generation = int(self._a2_pull_p1_episode_generation[env_id].item())
+            if row.get("episode_generation") != generation:
+                raise RuntimeError(
+                    "Pull P1 pre-physics response trace generation does not match the active episode."
+                )
+            if self._a2_pull_p1_pending_response[env_id] is not None:
+                raise RuntimeError(
+                    "Pull P1 stage0 command response pending latch already exists for this environment."
+                )
+            trace_raw = torch.as_tensor(
+                row.get("base_applied_action"),
+                dtype=raw_base_action.dtype,
+                device=raw_base_action.device,
+            )
+            final_action = torch.as_tensor(
+                row.get("final_action"),
+                dtype=raw_base_action.dtype,
+                device=raw_base_action.device,
+            )
+            if tuple(trace_raw.shape) != (5,) or tuple(final_action.shape) != (12,):
+                raise RuntimeError(
+                    "Pull P1 pre-physics response trace action shapes must be (5,) and (12,)."
+                )
+            if not torch.equal(trace_raw, raw_base_action[env_id]):
+                raise RuntimeError(
+                    "Pull P1 pre-physics raw command does not equal trace base_applied_action."
+                )
+            if not torch.equal(final_action[:5], raw_base_action[env_id]):
+                raise RuntimeError(
+                    "Pull P1 pre-physics raw command does not equal final-action base slice."
+                )
+            self._a2_pull_p1_pending_response[env_id] = {
+                "episode_generation": generation,
+                "trace_row_index": row_index,
+                "control_step": control_step,
+                "raw_base_action": raw_base_action[env_id].detach().clone(),
+                "physical_base_command": physical_base_command[env_id].detach().clone(),
+                "lower_body_action": lower_body_action[env_id].detach().clone(),
+                "pre_root_pos_w": root_pos_w[env_id].detach().clone(),
+                "pre_root_quat_w": root_quat_w[env_id].detach().clone(),
+                "pre_root_lin_vel_w": root_lin_vel_w[env_id].detach().clone(),
+            }
+
+    def _complete_a2_pull_p1_stage0_command_response(self, env_ids: torch.Tensor) -> None:
+        """Complete pending responses from the next refreshed post-physics root state."""
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError(
+                "Pull P1 post-physics response completion requires valid device-local env ids."
+            )
+        robot_data = self.simulator.scene.articulations["robot"].data
+        root_pos_w = robot_data.root_pos_w
+        root_quat_w = robot_data.root_quat_w
+        root_lin_vel_w = robot_data.root_lin_vel_w
+        for name, value, shape in (
+            ("root_pos_w", root_pos_w, (self.num_envs, 3)),
+            ("root_quat_w", root_quat_w, (self.num_envs, 4)),
+            ("root_lin_vel_w", root_lin_vel_w, (self.num_envs, 3)),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != shape
+                or not value.is_floating_point()
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+            ):
+                actual_shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                raise RuntimeError(
+                    f"Pull P1 post-physics response requires finite {name} shape {shape}; "
+                    f"got {actual_shape}."
+                )
+        roll, pitch, yaw = euler_xyz_from_quat(root_quat_w)
+        if not all(torch.all(torch.isfinite(value)) for value in (roll, pitch, yaw)):
+            raise RuntimeError("Pull P1 post-physics response root Euler state is non-finite.")
+        for env_id in env_ids.tolist():
+            pending = self._a2_pull_p1_pending_response[env_id]
+            if pending is None:
+                continue
+            generation = int(self._a2_pull_p1_episode_generation[env_id].item())
+            if pending["episode_generation"] != generation:
+                raise RuntimeError("Pull P1 pending response belongs to a stale episode generation.")
+            expected_post_step = pending["control_step"] + 1
+            actual_post_step = int(self.episode_length_buf[env_id].item())
+            if actual_post_step != expected_post_step:
+                raise RuntimeError(
+                    "Pull P1 pending response must complete at the next post-physics control step; "
+                    f"expected {expected_post_step}, got {actual_post_step}."
+                )
+            trace = self._a2_pull_p1_trace_records[env_id]
+            row_index = pending["trace_row_index"]
+            if row_index < 0 or row_index >= len(trace):
+                raise RuntimeError("Pull P1 pending response trace row index is out of range.")
+            row = trace[row_index]
+            if not isinstance(row, dict) or "stage0_predicates" not in row:
+                raise RuntimeError("Pull P1 pending response trace row is not a stage0 row.")
+            if row.get("episode_generation") != generation or row.get("step") != pending["control_step"]:
+                raise RuntimeError("Pull P1 pending response trace identity changed before completion.")
+            if "stage0_command_response" in row:
+                raise RuntimeError("Pull P1 stage0 response was already attached before completion.")
+            for name, value, shape in (
+                ("raw_base_action", pending["raw_base_action"], (5,)),
+                ("physical_base_command", pending["physical_base_command"], (5,)),
+                ("lower_body_action", pending["lower_body_action"], (12,)),
+                ("pre_root_pos_w", pending["pre_root_pos_w"], (3,)),
+                ("pre_root_quat_w", pending["pre_root_quat_w"], (4,)),
+                ("pre_root_lin_vel_w", pending["pre_root_lin_vel_w"], (3,)),
+            ):
+                if (
+                    not torch.is_tensor(value)
+                    or tuple(value.shape) != shape
+                    or not value.is_floating_point()
+                    or value.device != torch.device(self.device)
+                    or not torch.all(torch.isfinite(value))
+                ):
+                    actual_shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                    raise RuntimeError(
+                        f"Pull P1 pending {name} must be finite shape {shape} on {self.device}; "
+                        f"got {actual_shape}."
+                    )
+            raw = pending["raw_base_action"].unsqueeze(0)
+            physical = pending["physical_base_command"].unsqueeze(0)
+            post_yaw = yaw[env_id : env_id + 1]
+            post_velocity = root_lin_vel_w[env_id : env_id + 1, :2]
+            displacement = (
+                root_pos_w[env_id, :2] - pending["pre_root_pos_w"][:2]
+            ).unsqueeze(0)
+            metrics = a2_pull_p1_stage0_command_response_metrics(
+                raw,
+                physical,
+                post_yaw,
+                post_velocity,
+                displacement,
+                base_command_scale=self._a2_base_command_scale,
+                body_pitch_roll_scale=self._a2_body_pitch_roll_scale,
+            )
+            response = {
+                "schema": "a2_piper_pull_v0_stage0_command_response_v2",
+                "threshold_mode": "report_only",
+                "episode_generation": generation,
+                "trace_row_index": row_index,
+                "control_step": pending["control_step"],
+                "response_control_step": actual_post_step,
+                "base_command_scale": float(self._a2_base_command_scale),
+                "body_pitch_roll_scale": float(self._a2_body_pitch_roll_scale),
+                "high_level_base_action_raw": pending["raw_base_action"].cpu().tolist(),
+                "base_action_raw_trace": list(row["base_applied_action"]),
+                "expected_scaled_body_command": metrics["expected_scaled_body_command"][0].cpu().tolist(),
+                "physical_base_command": pending["physical_base_command"].cpu().tolist(),
+                "physical_command_clipped": bool(
+                    not torch.equal(
+                        pending["physical_base_command"],
+                        metrics["expected_scaled_body_command"][0],
+                    )
+                ),
+                "desired_world_xy_velocity": metrics["desired_world_xy_velocity"][0].cpu().tolist(),
+                "downstream_lower_body_command": pending["lower_body_action"].cpu().tolist(),
+                "downstream_lower_body_command_source": "A2Base._get_a2_dog_actions",
+                "pre_executor_root_pos_w": pending["pre_root_pos_w"].cpu().tolist(),
+                "pre_executor_root_quat_w": pending["pre_root_quat_w"].cpu().tolist(),
+                "pre_executor_root_lin_vel_w": pending["pre_root_lin_vel_w"].cpu().tolist(),
+                "observed_root_pos_w_post_executor": root_pos_w[env_id].cpu().tolist(),
+                "observed_world_xy_velocity": root_lin_vel_w[env_id, :2].cpu().tolist(),
+                "observed_world_xy_displacement": displacement[0].cpu().tolist(),
+                "observed_root_roll_rad": float(roll[env_id].item()),
+                "observed_root_pitch_rad": float(pitch[env_id].item()),
+                "observed_root_height_m": float(root_pos_w[env_id, 2].item()),
+                "progress_velocity_dot": float(metrics["progress_velocity_dot"][0].item()),
+                "progress_velocity_cosine": float(metrics["progress_velocity_cosine"][0].item()),
+                "progress_velocity_defined": bool(metrics["progress_velocity_defined"][0].item()),
+                "progress_displacement_dot": float(metrics["progress_displacement_dot"][0].item()),
+                "progress_displacement_cosine": float(metrics["progress_displacement_cosine"][0].item()),
+                "progress_displacement_defined": bool(metrics["progress_displacement_defined"][0].item()),
+                "report_only_anti_alignment": bool(
+                    metrics["progress_velocity_defined"][0].item()
+                    and metrics["progress_velocity_cosine"][0].item() < 0.0
+                ),
+            }
+            row["stage0_command_response"] = response
+            self._a2_pull_p1_completed_response_latch[env_id].append(response)
+            self._a2_pull_p1_pending_response[env_id] = None
+
+    def _a2_pull_p1_response_summary_from_responses(self, responses: list[dict]) -> dict:
+        if not responses:
+            return {
+                "schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+                "status": "UNAVAILABLE",
+                "threshold_mode": "report_only",
+                "reason": "no_stage0_command_issued",
+                "response_count": 0,
+            }
+        for response in responses:
+            if (
+                not isinstance(response, dict)
+                or response.get("schema") != "a2_piper_pull_v0_stage0_command_response_v2"
+            ):
+                raise RuntimeError("Pull P1 completed response schema is invalid.")
+        velocity_cosines = [
+            float(response["progress_velocity_cosine"])
+            for response in responses
+            if response["progress_velocity_defined"]
+        ]
+        displacement_cosines = [
+            float(response["progress_displacement_cosine"])
+            for response in responses
+            if response["progress_displacement_defined"]
+        ]
+        observed_speeds = [
+            math.sqrt(sum(float(value) ** 2 for value in response["observed_world_xy_velocity"]))
+            for response in responses
+        ]
+        displacement_norms = [
+            math.sqrt(sum(float(value) ** 2 for value in response["observed_world_xy_displacement"]))
+            for response in responses
+        ]
+        return {
+            "schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+            "status": "CAPTURED",
+            "threshold_mode": "report_only",
+            "response_count": len(responses),
+            "responses": list(responses),
+            "first_response": responses[0],
+            "last_response": responses[-1],
+            "anti_alignment_count": sum(
+                bool(response["report_only_anti_alignment"]) for response in responses
+            ),
+            "max_observed_world_xy_speed_mps": max(observed_speeds),
+            "max_observed_world_xy_displacement_m": max(displacement_norms),
+            "min_progress_velocity_cosine": min(velocity_cosines) if velocity_cosines else None,
+            "min_progress_displacement_cosine": min(displacement_cosines)
+            if displacement_cosines
+            else None,
+            "terminal_response": responses[-1],
+        }
+
+    def _get_a2_pull_p1_stage0_command_response_summary(self, env_id: int) -> dict:
+        """Return the current or terminal latched stage-0 response summary."""
+        if not isinstance(env_id, int) or env_id < 0 or env_id >= self.num_envs:
+            raise RuntimeError(f"Pull P1 response summary env id is invalid: {env_id!r}.")
+        issued = sum(
+            isinstance(row, dict) and "stage0_predicates" in row
+            for row in self._a2_pull_p1_trace_records[env_id]
+        )
+        completed = self._a2_pull_p1_completed_response_latch[env_id]
+        if completed:
+            if len(completed) != issued:
+                raise RuntimeError(
+                    "Pull P1 completed response latch count does not match issued stage0 rows: "
+                    f"issued={issued}, completed={len(completed)}."
+                )
+            return self._a2_pull_p1_response_summary_from_responses(completed)
+        terminal = self._a2_pull_p1_terminal_response_latch[env_id]
+        if terminal is not None:
+            if not isinstance(terminal, dict) or "summary" not in terminal:
+                raise RuntimeError("Pull P1 terminal response latch is malformed.")
+            return dict(terminal["summary"])
+        if issued:
+            raise RuntimeError(
+                "Pull P1 stage0 rows exist without a completed command-response latch."
+            )
+        return self._a2_pull_p1_response_summary_from_responses([])
 
     def _get_a2_hold_oracle_trace_fields(self, env_ids: torch.Tensor):
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
@@ -18893,6 +20999,7 @@ class DoorPregrasp(
         for env_id in env_ids.tolist():
             outcome_id = int(self._a2_hold_oracle_outcome[env_id].item())
             phase_id = int(self._a2_hold_oracle_phase[env_id].item())
+            reset_qualification = self._get_a2_pull_p1_reset_qualification_state(env_id)
             if (
                 cfg["matched_clean_reacquisition_preflight_enabled"]
                 and self._a2_hold_oracle_matched_clean_release_override_mask[env_id].item()
@@ -18915,6 +21022,8 @@ class DoorPregrasp(
                 and self._a2_hold_oracle_last_override_mask[env_id].item()
             ):
                 control_branch = "STATIC_CLAMP"
+            elif phase_id == A2_HOLD_PHASE_PULL_P1_ACQUIRE:
+                control_branch = "PULL_P1_ACQUIRE"
             elif self._a2_hold_oracle_arm_dls_branch[env_id].item():
                 control_branch = "ARM_DLS"
             elif self._a2_hold_oracle_base_relief_branch_applied[env_id].item():
@@ -19027,6 +21136,12 @@ class DoorPregrasp(
                     ),
                     "hold_oracle_arm_candidate_action_raw": a2_hold_nullable_tensor_list(
                         self._a2_hold_oracle_arm_candidate_action_raw[env_id]
+                    ),
+                    "pull_p1_dls_candidate_mask": bool(
+                        self._a2_pull_p1_dls_candidate_mask[env_id].item()
+                    ),
+                    "pull_p1_dls_finally_applied": bool(
+                        self._a2_pull_p1_dls_finally_applied[env_id].item()
                     ),
                     "hold_oracle_control_branch": control_branch,
                     "hold_oracle_open_stabilization_enabled": cfg[
@@ -19360,6 +21475,30 @@ class DoorPregrasp(
                         .cpu()
                         .tolist()
                     ),
+                    "pull_p1_stage0_staging_band": bool(
+                        self._a2_pull_p1_stage0_staging_band[env_id].item()
+                    ),
+                    "pull_p1_stage0_base_action_raw": self._a2_pull_p1_stage0_base_action_raw[
+                        env_id
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "pull_p1_stage0_settle_count": int(
+                        self._a2_pull_p1_stage0_settle_count[env_id].item()
+                    ),
+                    "pull_p1_reset_contact_qualification_complete": bool(
+                        reset_qualification["window_complete"]
+                    ),
+                    "pull_p1_reset_transient_observed": bool(
+                        reset_qualification["reset_transient_observed"]
+                    ),
+                    "pull_p1_reset_contact_qualification_streak": int(
+                        reset_qualification["contact_streak"]
+                    ),
+                    "pull_p1_reset_contact_qualification_result": (
+                        reset_qualification["result"]
+                    ),
                     "hold_oracle_base_relief_phase_timeout_semantic": (
                         "relief_steps_consume_current_phase_timeout"
                     ),
@@ -19411,6 +21550,139 @@ class DoorPregrasp(
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
         if cfg is None or not cfg["enabled"]:
             raise RuntimeError("A2 hold oracle summary requested while oracle is disabled.")
+        if cfg.get("pull_p1_probe_enabled", False):
+            reset_states = [
+                self._get_a2_pull_p1_reset_qualification_state(index)
+                for index in range(self.num_envs)
+            ]
+            reset_complete = [
+                bool(state["window_complete"]) for state in reset_states
+            ]
+            reset_transient = [
+                bool(state["reset_transient_observed"]) for state in reset_states
+            ]
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            no_gate = pending & ~self._a2_hold_oracle_activated
+            self._a2_hold_oracle_outcome[no_gate] = A2_HOLD_OUTCOME_TO_ID["NO_GATE"]
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            host_stage_time = self.actual_time_in_stage_buf
+            host_stage_budget = self.max_stage_time[self.stage_buf]
+            latched_stage_time = self._a2_pull_p1_terminal_stage_time_latched
+            latched_stage_budget = self._a2_pull_p1_terminal_stage_budget_latched
+            latched_stage_time_valid = (
+                self._a2_pull_p1_terminal_stage_time_latched_valid
+            )
+            host_stage_time = torch.where(
+                latched_stage_time_valid, latched_stage_time, host_stage_time
+            )
+            host_stage_budget = torch.where(
+                latched_stage_time_valid, latched_stage_budget, host_stage_budget
+            )
+            host_stage_overtime = pending & (
+                self._a2_hold_oracle_phase == A2_HOLD_PHASE_PULL_P1_ACQUIRE
+            ) & (host_stage_time >= host_stage_budget)
+            self._a2_hold_oracle_outcome[host_stage_overtime] = A2_HOLD_OUTCOME_TO_ID[
+                "PULL_P1_STAGE0_HOST_STAGE_OVERTIME"
+            ]
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            proof_pending = pending & (
+                self._a2_hold_oracle_phase == A2_HOLD_PHASE_PULL_P1_PROOF
+            )
+            self._a2_hold_oracle_outcome[proof_pending] = A2_HOLD_OUTCOME_TO_ID[
+                "PULL_P1_PROOF_TIMEOUT"
+            ]
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            latch_pending = pending & ~self._a2_pull_p1_latch_released_ever
+            self._a2_hold_oracle_outcome[latch_pending] = A2_HOLD_OUTCOME_TO_ID[
+                "PULL_P1_LATCH_NOT_RELEASED"
+            ]
+            pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            self._a2_hold_oracle_outcome[pending] = A2_HOLD_OUTCOME_TO_ID[
+                "ARC_PROBE_TIMEOUT"
+            ]
+            outcomes = [
+                A2_HOLD_OUTCOME_NAMES[int(value)]
+                for value in self._a2_hold_oracle_outcome.detach().cpu().tolist()
+            ]
+            max_hinge = a2_hold_nullable_tensor_list(
+                self._a2_v20_arc_probe_max_hinge
+            )
+            per_env_pass = [
+                outcome == "ARC_PROBE_REACHED"
+                and reset_complete[index]
+                and bool(self._a2_pull_p1_proof_completed[index].item())
+                and bool(self._a2_pull_p1_latch_released_ever[index].item())
+                and float(self._a2_pull_p1_max_body_force[index].item())
+                <= cfg["pull_p1_body_contact_threshold_n"]
+                and max_hinge[index] is not None
+                and float(max_hinge[index]) >= cfg["v20_arc_probe_target_hinge_rad"]
+                and int(self._a2_v20_arc_probe_terminal_window_count[index].item())
+                >= cfg["v20_arc_probe_terminal_window_steps"]
+                for index, outcome in enumerate(outcomes)
+            ]
+            return {
+                "schema": "a2_piper_pull_v0_p1_scripted_probe_runtime_v1",
+                "probe_mode": cfg["pull_p1_probe_mode"],
+                "status": "PASS" if all(per_env_pass) else "FAIL",
+                "threshold_mode": "report_only",
+                "command_contract": {
+                    "commandable_dofs_only": True,
+                    "arm": "DifferentialIKController Cartesian DLS to arm_j1..arm_j6",
+                    "gripper": "high-level gripper primitive under resolved actuator profile",
+                    "base": "bounded high-level planar velocity commands",
+                    "low_level_usd_runtime_writes": False,
+                },
+                "acquisition_contract": {
+                    "enabled": cfg["pull_p1_anchor_acquisition_enabled"],
+                    "admission_gate": "first_episode_active_only_for_push_anchor",
+                    "stage2_grasp_gate_required": False,
+                    "stage0_predicates_reported_separately": True,
+                    "proof_world_direction": "+X",
+                },
+                "state_machine": (
+                    "RESET_SIGNED_OUTSIDE_FACE->P1_ACQUIRE_NO_STAGE2_GATE->CENTER_CLOSE->"
+                    "CONTIGUOUS_WORLD_POSITIVE_X_PROOF->HANDLE_ROTATION->"
+                    "MEASURED_CLEARANCE_DECISION->LIVE_CIRCULAR_ARC_BASE_YIELD->"
+                    "WHOLE_BODY_CLEAR->STOP"
+                ),
+                "config": dict(cfg),
+                "per_env_outcome": outcomes,
+                "per_env_pass": per_env_pass,
+                "per_env_proof_completed": self._a2_pull_p1_proof_completed.detach()
+                .cpu()
+                .tolist(),
+                "per_env_latch_released": self._a2_pull_p1_latch_released_ever.detach()
+                .cpu()
+                .tolist(),
+                "per_env_max_handle_rad": self._a2_pull_p1_max_handle_rad.detach()
+                .cpu()
+                .tolist(),
+                "per_env_max_hinge_rad": max_hinge,
+                "per_env_terminal_bilateral_streak": self._a2_v20_arc_probe_terminal_window_count.detach()
+                .cpu()
+                .tolist(),
+                "per_env_max_body_force_n": self._a2_pull_p1_max_body_force.detach()
+                .cpu()
+                .tolist(),
+                "per_env_reset_contact_qualification_complete": reset_complete,
+                "per_env_reset_transient_observed": reset_transient,
+                "per_env_host_stage_time_elapsed_steps": host_stage_time.detach()
+                .cpu()
+                .tolist(),
+                "per_env_host_stage_time_budget_steps": host_stage_budget.detach()
+                .cpu()
+                .tolist(),
+                "per_env_host_stage_overtime_observed": host_stage_overtime.detach()
+                .cpu()
+                .tolist(),
+                "per_env_stage0_command_response": [
+                    self._get_a2_pull_p1_stage0_command_response_summary(index)
+                    for index in range(self.num_envs)
+                ],
+                "per_env_proof_samples": list(self._a2_pull_p1_proof_samples),
+                "per_env_arc_samples": list(self._a2_v20_arc_probe_samples),
+                "finalize_called": self._a2_hold_oracle_finalized,
+            }
         if cfg.get("v20_arc_probe_enabled", False):
             pending = self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
             no_gate = pending & ~self._a2_hold_oracle_activated
@@ -21423,9 +23695,61 @@ class DoorPregrasp(
         affected[env_ids] = self._a2_hold_oracle_offset_placement_active[env_ids]
         self._finish_a2_offset_placement(affected)
 
+    def _latch_a2_pull_p1_stage0_response_before_reset(self, env_ids: torch.Tensor) -> None:
+        """Preserve the completed response mapping before clearing an episode."""
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError(
+                "Pull P1 terminal response latch requires valid device-local env ids."
+            )
+        for env_id in env_ids.tolist():
+            if self._a2_pull_p1_pending_response[env_id] is not None:
+                raise RuntimeError(
+                    "Pull P1 reset cannot clear an environment with a pending command response."
+                )
+            issued = sum(
+                isinstance(row, dict) and "stage0_predicates" in row
+                for row in self._a2_pull_p1_trace_records[env_id]
+            )
+            completed = self._a2_pull_p1_completed_response_latch[env_id]
+            if issued != len(completed):
+                raise RuntimeError(
+                    "Pull P1 reset response latch count does not match issued stage0 rows: "
+                    f"issued={issued}, completed={len(completed)}."
+                )
+            summary = self._a2_pull_p1_response_summary_from_responses(completed)
+            self._a2_pull_p1_terminal_response_latch[env_id] = {
+                "episode_generation": int(
+                    self._a2_pull_p1_episode_generation[env_id].item()
+                ),
+                "summary": summary,
+            }
+            self._a2_pull_p1_episode_generation[env_id] += 1
+            self._a2_pull_p1_completed_response_latch[env_id].clear()
+
     @override
     def _reset_buffers_callback(self, env_ids, target_buf=None):
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if (
+            cfg is not None
+            and cfg["enabled"]
+            and cfg.get("pull_p1_probe_enabled", False)
+        ):
+            self._a2_pull_p1_terminal_stage_time_latched[env_ids] = (
+                self.actual_time_in_stage_buf[env_ids]
+            )
+            self._a2_pull_p1_terminal_stage_budget_latched[env_ids] = self.max_stage_time[
+                self.stage_buf[env_ids]
+            ]
+            self._a2_pull_p1_terminal_stage_time_latched_valid[env_ids] = True
+            self._latch_a2_pull_p1_stage0_response_before_reset(env_ids)
+            self._latch_a2_pull_p1_reset_qualification_before_reset(env_ids)
         if (
             cfg is not None
             and cfg["enabled"]
@@ -21512,6 +23836,39 @@ class DoorPregrasp(
             self._a2_stage0_root_height_count[env_ids] = 0
             self._a2_stage1_root_height_sum[env_ids] = 0.0
             self._a2_stage1_root_height_count[env_ids] = 0
+            if cfg is not None and cfg.get("pull_p1_probe_enabled", False):
+                self._a2_pull_p1_stage0_settle_count[env_ids] = 0
+                self._a2_pull_p1_stage0_timed_out[env_ids] = False
+                self._a2_pull_p1_stage0_staging_band[env_ids] = False
+                self._a2_pull_p1_stage0_target_w[env_ids] = float("nan")
+                self._a2_pull_p1_stage0_horizontal_residual_m[env_ids] = float("nan")
+                self._a2_pull_p1_stage0_body_velocity[env_ids] = 0.0
+                self._a2_pull_p1_stage0_base_action_raw[env_ids] = 0.0
+                self._a2_pull_p1_stage0_stage_before[env_ids] = -1
+                self._a2_pull_p1_stage0_stage_after[env_ids] = -1
+                self._a2_pull_p1_stage0_activation_step[env_ids] = -1
+                self._a2_pull_p1_reset_qualification_step[env_ids] = 0
+                self._a2_pull_p1_reset_contact_streak[env_ids] = 0
+                self._a2_pull_p1_reset_qualification_completed[env_ids] = False
+                self._a2_pull_p1_reset_transient_observed[env_ids] = False
+                self._a2_pull_p1_reset_qualification_state_valid[env_ids] = False
+                self._a2_pull_p1_dls_candidate_mask[env_ids] = False
+                self._a2_pull_p1_dls_finally_applied[env_ids] = False
+                self._a2_pull_p1_body_force_max_per_filter[env_ids] = 0.0
+                self._a2_pull_p1_body_force_max_total[env_ids] = 0.0
+                self._a2_pull_p1_current_body_force_per_filter[env_ids] = 0.0
+                self._a2_pull_p1_current_body_force_total[env_ids] = 0.0
+                self._a2_pull_p1_max_contact_step[env_ids] = -1
+                self._a2_pull_p1_first_contact_step[env_ids] = -1
+                for env_id in env_ids.tolist():
+                    self._a2_pull_p1_max_contact_phase[env_id] = None
+                    self._a2_pull_p1_max_contact_filter[env_id] = None
+                    self._a2_pull_p1_first_contact_filter[env_id] = None
+                    self._a2_pull_p1_first_contact_phase[env_id] = None
+                    self._a2_pull_p1_reset_qualification_result[env_id] = "NOT_STARTED"
+                    self._a2_pull_p1_reset_qualification_records[env_id].clear()
+                    self._a2_pull_p1_trace_records[env_id].clear()
+                    self._a2_pull_p1_terminal_snapshots[env_id] = None
             self._a2_v20_send_ready[env_ids] = False
             if cfg is not None and cfg.get("v20_arc_probe_enabled", False):
                 self._a2_v20_arc_probe_handoff_streak[env_ids] = 0
@@ -22220,7 +24577,7 @@ class DoorPregrasp(
                             name="handle",
                             offset=OffsetCfg(
                                 pos=(0.0, 0.0, 0.0),
-                                rot=(0.5, 0.5, 0.5, 0.5),
+                                rot=self._get_a2_grasp_target_orientation_wxyz(),
                             ),
                         ),
                         FrameTransformerCfg.FrameCfg(
@@ -22228,7 +24585,7 @@ class DoorPregrasp(
                             name="pregrasp",
                             offset=OffsetCfg(
                                 pos=self.A2_PREGRASP_OFFSET,
-                                rot=(0.5, 0.5, 0.5, 0.5),
+                                rot=self._get_a2_grasp_target_orientation_wxyz(),
                             ),
                         ),
                     ],

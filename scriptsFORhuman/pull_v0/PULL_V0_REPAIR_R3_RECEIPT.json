@@ -1,0 +1,160 @@
+{
+  "schema_version": "pull_v0_repair_r3_receipt_v1",
+  "generated_at_hkt": "2026-08-03 23:57:27 HKT",
+  "repair_revision": "R3",
+  "status": "STATIC_VALIDATION_PASS_RUNTIME_UNVERIFIED",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+  "scope": {
+    "destination": "DoorDog-A2_Piper_pull_v0 pull-v0 Repair R3",
+    "route": "STANDARD_PATH",
+    "threshold_mode": "report_only",
+    "effort_provenance": "ESTIMATE_ONLY",
+    "stopping_condition": "Repair stage-0 push-anchor admission circularity, preserve immutable attempt4, and leave attempt5 runtime unverified until separately authorized and run."
+  },
+  "authorized_reason": "Attempt4 remained at stage0 because acquisition computed DLS but then zeroed base, arm, and gripper actions while waiting for stage_buf >= STAGE_PREGRASP. The same attempt lacked base-owned per-step anchor telemetry, so the running-max contact and terminal-zero contact cannot establish causality.",
+  "root_cause": {
+    "conclusion": "ACQUISITION_CONTROL_CIRCULARITY_AND_TELEMETRY_INCOMPLETE",
+    "stage": "P1_ACQUIRE_STAGE0",
+    "mechanics": "Stage0 admission waited on STAGE_PREGRASP while the acquisition override discarded all movement and the computed DLS candidate.",
+    "telemetry": "Base push-anchor admission had no bounded first-episode trace or anchor-specific terminal export; pull-only E0-E7 records cannot substitute for it.",
+    "runtime_mechanics_verdict": "UNVERIFIED",
+    "scientific_verdict_consumed": false
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R2_RECEIPT.json",
+    "sha256": "9899b5bbb93455cea82c80bee6a2c58e00b7ad692c1302dfe7aedc553b5f5263",
+    "repair_revision": "R2"
+  },
+  "trigger": {
+    "attempt": 4,
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT4_RECEIPT.json",
+      "sha256": "fba43435fb15a40dfb4be4cd4fe3c0ba5cc688a8137b5da89bb420d8f709b90e"
+    },
+    "root_cause": "ACQUISITION_CONTROL_CIRCULARITY_AND_TELEMETRY_INCOMPLETE",
+    "preserved_result": "BLOCKED_PROBE_INVALID",
+    "observed_running_max_filtered_body_panel_contact_n": 3817.004150390625,
+    "observed_terminal_body_panel_contact_n": 0.0,
+    "causality": "INCONCLUSIVE",
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "file_hashes": {
+    "gr00t/rl/config/base_eval.yaml": {
+      "pre_sha256": "2a2b1806514512c8c25051c2a3f92deb8820944ff6a47644830925f2eb917db3",
+      "post_sha256": "8bf3a69f00fe534b3a845a2d9d9ecc43621c2e1cb44d0042b0d3f069560fa72c",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "gr00t/rl/config/ablation/wbmanip/pull_v0_p1_push_anchor.yaml": {
+      "pre_sha256": "7de8e2d42a6d24ee9b495ef1576566eb084f9b202d234b5386dc14b8966feb64",
+      "post_sha256": "60bf3c860cfcd0106edc7f51796c9786e4cde956fb7909378c229a60ae69faa5",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "pre_sha256": "d22a5fd76b38693009f60f39db8e6f4b9e0a1f0f1ccd938379ca2ad5ab8f6206",
+      "post_sha256": "b1031beb30f63999434d214f0792d61585b70fa4d84f0378cbe936f47f4d5871",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "gr00t/rl/envs/door/door_open_a2_pull.py": {
+      "pre_sha256": "78844673eab6d4a599640a964f66e6b1fd2376704a2ae670d62845b87bbbfda2",
+      "post_sha256": "78844673eab6d4a599640a964f66e6b1fd2376704a2ae670d62845b87bbbfda2",
+      "changed": false,
+      "reason": "R3 verified no duplicate pull-subclass terminal writer was required"
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": "3d2694b21f7b0b246bece6ce46c5660b4ffaf6a6d4a5fcf3df42543df3fa1018",
+      "post_sha256": "98a2bf5d5dfe15265e57219fd707882ca41a59ab2d40e5bd53cc07cb618cac1f",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "pre_sha256": "fdfcf62fa639c641612c6fe00b1b243747e170e5eeac2c8dd4cc9a833af8d7df",
+      "post_sha256": "f268a257bf21ad32bc7514ea7e096d9c122e809a8ce7eb2586e17d79248bd346",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": "d034f63754ec0d5ba94ecc60136981f90a86322ae071fb41d7c29c655af88cda",
+      "post_sha256": "0187dca9f111373759d37627104b8db40d86d90794e6008b7af5966146817aa8",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": "af6743598677a150c1014e6eea207762e30242e77e4dd01e13819173a1e888f3",
+      "post_sha256": "907b946992c5b3fb2fcc141cb48cb7c27afcdfba2a1de35a5e65e7acb656c33b",
+      "changed": true,
+      "reason": "R3 admission repair or regression/receipt binding update"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r3_receipt.py": {
+      "pre_sha256": "N/A_NEW_FILE",
+      "post_sha256": "71f219237e6ba0aa741b7c39b0bf434c2056bc98c4678924db6eae31c1a33522",
+      "reason": "Immutable R3 receipt-chain builder"
+    }
+  },
+  "immutable_artifacts": {
+    "parent_r2_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R2_RECEIPT.json",
+      "sha256": "9899b5bbb93455cea82c80bee6a2c58e00b7ad692c1302dfe7aedc553b5f5263"
+    },
+    "attempt4_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT4_RECEIPT.json",
+      "sha256": "fba43435fb15a40dfb4be4cd4fe3c0ba5cc688a8137b5da89bb420d8f709b90e"
+    },
+    "attempt4_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT4_PLAN.json",
+        "sha256": "c0d80066c2845ff06096cefb5329a88111ec5ca6c1179f7dc7e1d16f8d103b39"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/process_receipt.json",
+        "sha256": "4c59984eeff0cc88e1375deeaaa59be7defee60c7538e990776bbb7d2c890423"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/stdout_stderr.log",
+        "sha256": "cb09e38992764994fe0b1a9386338510b748d77e22a22ffabb6ada464a3812f8"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/eval/a2_hold_oracle_summary.json",
+        "sha256": "c5906546c8717ecb6bee476c2feaa721a31ce9544cc75d086233ff3909c74a95"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt4/eval/metrics_eval.json",
+        "sha256": "0edb4ea7c807270e862ce605579f809e61506fe34d59f9f361decd28b0c1a738"
+      }
+    }
+  },
+  "implementation_reasons": {
+    "stage0_control": "Use signed staging-band membership/nearest target and existing high-level body velocity mapping; outside-band actions move toward the band, inside-band actions settle to zero without writing stage_buf.",
+    "dls_contract": "Preserve the computed DLS candidate and report a distinct final-applied mask; stage0 waiting rows are the only rows whose arm action is withheld.",
+    "telemetry_contract": "Base-owned first-episode traces are bounded by episode budget and include stage transitions, root state, residuals, candidate/applied actions, and contact maxima."
+  },
+  "validation": {
+    "commands": [
+      "python -m py_compile gr00t/rl/envs/door/door_open_a2_base.py gr00t/rl/envs/door/door_open_a2_pull.py gr00t/rl/tests/test_a2_pull_namespace.py gr00t/rl/tests/test_a2_pull_telemetry.py scriptsFORhuman/pull_v0/run_p1_push_anchor.py scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py scriptsFORhuman/pull_v0/build_pull_v0_repair_r3_receipt.py",
+      "PYTHONPATH=. python -m pytest -q gr00t/rl/tests/test_a2_pull_direction_contract.py gr00t/rl/tests/test_a2_pull_geometry_proof.py gr00t/rl/tests/test_a2_pull_namespace.py gr00t/rl/tests/test_a2_pull_telemetry.py gr00t/rl/tests/test_a2_pull_v0_freeze_guard.py",
+      "git diff --check",
+      "receipt-chain parser/hash assertions"
+    ],
+    "full_pull_test_gate": {
+      "passed": 60,
+      "warnings": 2,
+      "result": "PASS"
+    },
+    "py_compile_result": "PASS",
+    "receipt_chain_result": "PASS",
+    "static_result": "PASS",
+    "runtime_result": "INCONCLUSIVE_NOT_RUN_BY_WORKER",
+    "runtime_unverified_reason": "R3 worker is CPU/static-only and did not run IsaacSim/GPU or prepare attempt5."
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "receipt_self_hash": "N/A_SELF_REFERENTIAL",
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime outcome is asserted by R3.",
+    "No attempt5 output is prepared or consumed.",
+    "No pull-mechanism verdict is inferred from immutable attempt4."
+  ]
+}

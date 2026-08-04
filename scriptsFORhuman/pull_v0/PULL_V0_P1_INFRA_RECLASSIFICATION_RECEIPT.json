@@ -1,0 +1,62 @@
+{
+  "schema_version": "pull_v0_p1_infra_reclassification_receipt_v1",
+  "generated_at_hkt": "2026-08-04 06:20:00 HKT",
+  "status": "INFRASTRUCTURE_RECLASSIFICATION_COMPLETE",
+  "scientific_verdict_consumed": false,
+  "authority": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pull_task/a2_piper_pull_v0_gpu_lease_amendment_20260804.md",
+    "sha256": "84e94561bac1eb39b49d27e67c9f5b192844f7b9f5e203961495beea683dfc49",
+    "amendment": 6
+  },
+  "immutable_artifacts": {
+    "attempt15_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT15_RECEIPT.json",
+      "sha256": "01c952a4402a887275ff53f02f26ea4a88f3f6c79ed0fc4388f4d32cbde763b0"
+    },
+    "attempt16_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_RECEIPT.json",
+      "sha256": "2cfbd95e10dc57e16cf2f566925593c41680f3592539676c013c4931a22c06c5"
+    },
+    "attempt16_plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_PLAN.json",
+      "sha256": "7371fef9948e72a9900da45074daba9d5848556ebc9dac91eb9eba44fdaf55e9"
+    },
+    "attempt16_stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt16/stdout_stderr.log",
+      "sha256": "f490a2540c700304de21598a95e7c6f787dccf0a6a8338cb3536838aff321e0d"
+    }
+  },
+  "mapping": [
+    {
+      "infra_id": "INFRA_001_HYDRA_KIT_ARGS_TRANSPORT",
+      "original_attempt": 15,
+      "receipt_path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT15_RECEIPT.json",
+      "receipt_sha256": "01c952a4402a887275ff53f02f26ea4a88f3f6c79ed0fc4388f4d32cbde763b0",
+      "failure_boundary": "BEFORE_FIRST_SIMULATION_STEP",
+      "scientific_verdict_consumed": false,
+      "anchor_attempt_consumed": false,
+      "root_cause": "ATTEMPT15_HYDRA_KIT_ARGS_TRANSPORT_FAILURE"
+    },
+    {
+      "infra_id": "INFRA_002_VULKAN_ENUMERATION_AUTHORIZATION",
+      "original_attempt": 16,
+      "receipt_path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_RECEIPT.json",
+      "receipt_sha256": "2cfbd95e10dc57e16cf2f566925593c41680f3592539676c013c4931a22c06c5",
+      "failure_boundary": "BEFORE_FIRST_SIMULATION_STEP",
+      "scientific_verdict_consumed": false,
+      "anchor_attempt_consumed": false,
+      "root_cause": "BARE_METAL_VULKAN_DEVICE_VISIBILITY_EXCEEDS_GPU_LEASE"
+    }
+  ],
+  "retry_accounting": {
+    "attempt15_reclassified_as_infrastructure": true,
+    "attempt16_reclassified_as_infrastructure": true,
+    "old_receipts_preserved_unchanged": true,
+    "next_scientific_anchor_attempt": 17,
+    "first_simulation_step_is_anchor_boundary": true
+  },
+  "unverified_claims": [
+    "This mapping does not assert an anchor or physics verdict for either old attempt.",
+    "Attempt17 remains unprepared and unrun in this task."
+  ]
+}

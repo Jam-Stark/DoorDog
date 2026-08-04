@@ -22,6 +22,22 @@ from gr00t.rl.isaac_utils.playground.env_rand.door import DoorSpawnerCfg, spawn_
 
 _V21B_MANIFEST_SCHEMA = "a2_piper_base_v21B_heavy16_manifest_v1"
 _V21B_SIGNED_PROBE_FLAG = "a2_v21B_signed_probe_scenarios_enabled"
+_PULL_P1_CENTRAL_FIXTURE_FLAG = "a2_pull_p1_central_fixture_enabled"
+_PULL_P1_CENTRAL_FIXTURE = {
+    "rand_door_width": 0.95,
+    "rand_door_height": 2.05,
+    "rand_door_handle_height": 0.95,
+    "rand_door_handle_width": 0.115,
+    "rand_door_weight": 120.0,
+    "rand_axle_length": 0.195,
+    "rand_handle_length": 0.125,
+    "rand_hook_length": 0.050,
+    "rand_handle_radius": 0.013,
+    "rand_spawn_hook": True,
+    "rand_hinge_drive_max_force": 7.25,
+    "rand_hinge_drive_stiffness": 5.5,
+    "rand_handle_drive_max_force": 2.0,
+}
 
 
 def _v21b_scenario_digest(row: dict) -> str:
@@ -280,6 +296,64 @@ def _validate_door_weight_range(value: Sequence[Real]) -> tuple[float, float]:
             "a2_door_weight_range requires positive bounds with low < high"
         )
     return low, high
+
+
+def _apply_door_open_io(base_task_obj_cfg_dict: dict, door_open_io: str) -> dict:
+    """Return a deterministic IO-selected door spawner without mutating shared push assets."""
+
+    if door_open_io not in ("in", "out"):
+        raise ValueError(f"a2_pull_door_open_io must be 'in' or 'out'; got {door_open_io!r}")
+    door_cfg = base_task_obj_cfg_dict.get("door")
+    if not isinstance(door_cfg, ArticulationCfg):
+        raise TypeError("base task-object door config must be ArticulationCfg")
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("base door spawn config must be MultiAssetSpawnerCfg")
+    variants = []
+    for asset_cfg in spawn_cfg.assets_cfg:
+        if not isinstance(asset_cfg, DoorSpawnerCfg):
+            raise TypeError("base door assets must be DoorSpawnerCfg")
+        variants.append(
+            asset_cfg.replace(
+                door_open_io=[door_open_io],
+                rand_door_open_io=door_open_io,
+            )
+        )
+    result = dict(base_task_obj_cfg_dict)
+    result["door"] = door_cfg.replace(
+        spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    )
+    return result
+
+
+def _apply_pull_p1_central_fixture(
+    base_task_obj_cfg_dict: dict,
+    *,
+    num_envs: int,
+) -> dict:
+    """Materialize the amended P1 central fixture through high-level cfg replacement."""
+
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != 1:
+        raise ValueError("pull P1 central fixture requires exactly one environment")
+    door_cfg = base_task_obj_cfg_dict.get("door")
+    if not isinstance(door_cfg, ArticulationCfg):
+        raise TypeError("pull P1 central fixture requires an ArticulationCfg door")
+    spawn_cfg = door_cfg.spawn
+    if (
+        not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg)
+        or not isinstance(spawn_cfg.assets_cfg, list)
+        or not spawn_cfg.assets_cfg
+    ):
+        raise TypeError("pull P1 central fixture requires non-empty MultiAssetSpawnerCfg assets")
+    base_asset = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_asset, DoorSpawnerCfg):
+        raise TypeError("pull P1 central fixture base asset must be DoorSpawnerCfg")
+    central_asset = base_asset.replace(**_PULL_P1_CENTRAL_FIXTURE)
+    result = dict(base_task_obj_cfg_dict)
+    result["door"] = door_cfg.replace(
+        spawn=spawn_cfg.replace(assets_cfg=[central_asset], random_choice=False)
+    )
+    return result
 
 
 def _validate_eval_door_handle_height_weight_pairs(
@@ -554,8 +628,15 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
             f"{height_grid_key} and {height_weight_pairs_key} are mutually exclusive"
         )
     result = TaskObjCfgDict
+    if "a2_pull_door_open_io" in env_config:
+        result = _apply_door_open_io(result, env_config["a2_pull_door_open_io"])
     if "a2_door_weight_range" in env_config:
         result = _apply_door_weight_range(result, env_config["a2_door_weight_range"])
+    central_fixture = env_config.get(_PULL_P1_CENTRAL_FIXTURE_FLAG, False)
+    if not isinstance(central_fixture, bool):
+        raise TypeError(f"{_PULL_P1_CENTRAL_FIXTURE_FLAG} must be bool")
+    if central_fixture:
+        result = _apply_pull_p1_central_fixture(result, num_envs=num_envs)
     if height_weight_pairs_key in env_config:
         result = get_TaskObjCfgDict_for_eval_door_handle_height_weight_pairs(
             num_envs,

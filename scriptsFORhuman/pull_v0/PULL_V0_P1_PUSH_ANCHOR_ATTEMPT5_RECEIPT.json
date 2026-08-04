@@ -1,0 +1,81 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v5",
+  "generated_at_hkt": "2026-08-04 00:18:20 HKT",
+  "attempt": 5,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "RESET_BOUNDARY_CONTACT_UNQUALIFIED_BEFORE_STAGING",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r3": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R3_RECEIPT.json",
+      "sha256": "49ca2e32a81f2635afc3303f40e5cf50c0b581f991b2fbe564f36090e72ebf25"
+    },
+    "revision": "R3",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT5_PLAN.json",
+      "sha256": "b5769c0fc11920630f95953dbd77d99ed5693e156179f667bb78691ea28983ba"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/process_receipt.json",
+      "sha256": "0f8366b3bf730ebc38d2ee1d01f4c02ee32ae3684a5bf5b882ddf5651507ca47"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/stdout_stderr.log",
+      "sha256": "a6d1ae634693e1c195e5fca4d38b1b6a82721dd37c7aadea3cb16ec5ad35282f"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/eval/a2_hold_oracle_summary.json",
+      "sha256": "7599f907bf5ff38a545ec539623c23bb57aec8486b457329ce19d2265b89f726"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/eval/metrics_eval.json",
+      "sha256": "1e5688f8baf22e759306a88783ea4d6382ebc480290f3eae735bcb0563914148"
+    }
+  },
+  "observed": {
+    "running_max_body_panel_contact_n": 3817.004150390625,
+    "terminal_live_body_panel_contact_n": 0.0,
+    "terminal_live_diagnostic_body_panel_contact_n": 0.0,
+    "attempt5_terminal_snapshot_body_panel_contact_n": 3817.004150390625,
+    "first_contact_step": 0,
+    "first_contact_filter": "trunk",
+    "first_contact_phase": "PULL_P1_ACQUIRE",
+    "qualification_persistence": "INCONCLUSIVE",
+    "causality": "INCONCLUSIVE"
+  },
+  "reset_boundary": {
+    "blocker": "RESET_BOUNDARY_CONTACT_UNQUALIFIED_BEFORE_STAGING",
+    "qualification_window": "N/A; attempt5 predates R4 reset qualification window",
+    "persistence": "INCONCLUSIVE",
+    "causality": "INCONCLUSIVE",
+    "staging_started": false,
+    "dls_started": false,
+    "trace_sample_before_classification": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": "N/A",
+    "latch_release": "N/A",
+    "hinge_progress_min_rad": "N/A",
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": "N/A",
+    "observed_max_body_force_n": "N/A",
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "validated actual runtime summary schema",
+    "metrics": "validated actual push_anchor_admission terminal schema",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "legacy_pull_v0_namespace": "not required for base-owned admission"
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "Contact persistence and command causality are INCONCLUSIVE because attempt5 had no reset-boundary qualification window.",
+    "No runtime outcome beyond the immutable attempt5 artifacts is asserted."
+  ]
+}

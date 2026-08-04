@@ -1,0 +1,92 @@
+# @package _global_
+# Pull-v0 P0-C mirrored out anchor: isolated one-env architecture smoke only.
+
+checkpoint: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 1
+headless: true
+
+algo:
+  trl:
+    num_total_batches: 1
+  config:
+    num_learning_epochs: 1
+    num_mini_batches: 1
+
+callbacks:
+  model_save:
+    save_frequency: 1
+
+env:
+  config:
+    # Explicit P0-D evidence metadata for this mirrored out cell.
+    a2_pull_direction_contract_version: a2_piper_pull_direction_v1
+    a2_pull_target_frame_version: grasp_target_active_face_out_inherited_v20
+    a2_pull_door_open_io: out
+    a2_pull_door_open_lr: right
+    a2_pull_robot_initial_side_x_sign: -1.0
+    a2_pull_robot_initial_yaw_rad: 0.0
+    a2_pull_active_handle_face_x_sign: -1.0
+    a2_pull_travel_dir_x: 1.0
+    a2_pull_threshold_mode: report_only
+    a2_pull_effort_provenance: ESTIMATE_ONLY
+    a2_pull_hook_profile: STOCHASTIC_BASELINE
+    a2_pull_friction_profile: RESOLVED_V20_G4
+    a2_pull_finger_profile: V20_G4_45N_KP1300_KD32
+    a2_door_weight_range: [80.0, 160.0]
+    a2_m39_gripper_material_enabled: true
+    a2_corridor_enabled: false
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_to4_requires_grasp_streak: true
+    a2_stage4_release_hinge_threshold: 1.60
+    a2_stage4_to5_door_hinge_threshold: 1.25
+    a2_v20_R1_plan_id: disabled
+    a2_v20_R1_send_curriculum_enabled: false
+    a2_v20_R1_snapshot_guard_enabled: false
+    a2_v20_send_latch_enabled: false
+    a2_v20_pre_send_crossing_mode: disabled
+    a2_v20_telemetry_enabled: false
+    a2_v20_traversal_economics_enabled: false
+    a2_corridor_latch_mode: legacy_root_or_hinge
+    a2_v20_arm_tie_enabled: false
+    a2_v20_arm_tangent_carry_scale: 0.0
+    a2_v20_handle_arc_tracking_scale: 0.0
+    a2_v20_R2_evidence_enabled: false
+    a2_v20_formal_launch: false
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 6.0
+    push_door_force: 0.0
+    penalty_a2_v20_pre_send_crossing: 0.0
+    a2_v20_arm_tangent_carry: 0.0
+    a2_v20_handle_arc_tracking: 0.0
+
+robot:
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
+  ]
+  control:
+    stiffness:
+      arm_j7: 1300.0
+      arm_j8: 1300.0
+    damping:
+      arm_j7: 32.0
+      arm_j8: 32.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2

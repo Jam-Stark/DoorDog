@@ -162,6 +162,7 @@ def _load_no_sim_helpers():
         "a2_hold_offset_endpoint_metrics",
         "a2_hold_target_orientation_semantic",
         "a2_hold_update_base_relief_state",
+        "a2_pull_p1_center_handoff_reachable_mask",
         "a2_hold_update_phase_arm_sign_check",
         "a2_hold_validate_friction_override",
         "a2_hold_quaternion_geodesic_rad",
@@ -846,6 +847,50 @@ def test_base_relief_world_to_yaw_body_speed_backmap_and_zero_rejection():
     torch.testing.assert_close(raw[0], torch.tensor([0.36, 0.48, 0.0, 0.0, 0.0]), atol=1e-6, rtol=0.0)
     torch.testing.assert_close(raw[1], torch.tensor([0.0, -0.6, 0.0, 0.0, 0.0]), atol=1e-6, rtol=0.0)
     torch.testing.assert_close(raw[2], torch.zeros(5))
+
+
+def test_pull_p1_center_handoff_respects_existing_relief_budget_and_commands_pending_error():
+    horizontal_error_w = torch.tensor(
+        [[0.08, 0.0], [0.10, 0.0], [0.100001, 0.0], [0.3683947325, 0.0]]
+    )
+    candidate = torch.ones(4, dtype=torch.bool)
+    reachable = a2_pull_p1_center_handoff_reachable_mask(
+        horizontal_error_w, candidate, 0.10
+    )
+    assert reachable.tolist() == [True, True, False, False]
+
+    pending = ~reachable
+    residual, solvable, body_velocity, raw = a2_hold_base_relief_command(
+        horizontal_error_w,
+        torch.tensor([[1.0, 0.0, 0.0, 0.0]]).repeat(4, 1),
+        pending,
+        0.15,
+        0.25,
+        0.002,
+    )
+    torch.testing.assert_close(residual, torch.tensor([0.08, 0.10, 0.100001, 0.3683947325]))
+    assert solvable.tolist() == [True, True, True, True]
+    assert torch.equal(raw[:2], torch.zeros(2, 5))
+    assert raw[2, 0] > 0.0 and raw[3, 0] > 0.0
+    assert torch.all(body_velocity[2:, 0] > 0.0)
+
+
+def test_pull_p1_center_handoff_transition_defers_stage0_override_and_arm_dls():
+    source = SOURCE_PATH.read_text(encoding="utf-8")
+    method_start = source.index("def apply_a2_eval_hold_oracle_action_override")
+    target_compute = source.index(
+        ") = self._compute_a2_hold_oracle_joint_target(local_offset, active)",
+        method_start,
+    )
+    handoff_gate = source.index(
+        "a2_pull_p1_center_handoff_reachable_mask(", method_start
+    )
+    assert handoff_gate > target_compute
+    assert "self._a2_hold_oracle_phase[acquisition_stage1_ready] = A2_HOLD_PHASE_CENTER_CLOSE" in source[handoff_gate:]
+    assert "acquisition_handoff_pending = center_handoff_candidate & ~acquisition_stage1_ready" in source
+    assert "relief_mask = relief_mask | acquisition_handoff_pending" in source
+    assert "stage0_wait = acquisition_wait & ~acquisition_handoff_pending & ~stage0_timeout" in source
+    assert "dls_finally_applied = dls_finally_applied & ~acquisition_wait" in source
 
 
 def test_base_relief_branch_masks_and_exact_action_chain():
@@ -2857,12 +2902,22 @@ def test_fixed_oracle_offset_signs_are_negative_y_positive_z():
 
 def test_disabled_contact_sensor_equivalence_and_detailed_capacity():
     assert a2_hold_contact_sensor_detail_kwargs(False, None) == {}
-    assert a2_hold_contact_sensor_detail_kwargs(True, 8) == {
+    expected = {
         "track_pose": True,
         "track_contact_points": True,
         "track_friction_forces": True,
+    }
+    assert a2_hold_contact_sensor_detail_kwargs(True, 8) == {
+        **expected,
         "max_contact_data_count_per_prim": 8,
     }
+    assert a2_hold_contact_sensor_detail_kwargs(True, 64) == {
+        **expected,
+        "max_contact_data_count_per_prim": 64,
+    }
+    for invalid in (0, -1, 1.5, True):
+        with pytest.raises((TypeError, ValueError)):
+            a2_hold_contact_sensor_detail_kwargs(True, invalid)
 
 
 def test_non_identity_gripper_task_to_articulation_mapping():

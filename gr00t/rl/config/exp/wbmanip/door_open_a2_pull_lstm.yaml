@@ -1,0 +1,9 @@
+# @package _global_
+
+defaults:
+  - /exp/wbmanip/door_open_a2_base_lstm
+  - override /env: door_open_a2_pull
+  - override /rewards: wbmanip/reward_door_open_a2_pull
+
+experiment_name: door_open_a2_pull_lstm
+project_name: a2_piper_full_stage_a2_pull

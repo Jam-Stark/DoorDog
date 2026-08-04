@@ -1,0 +1,102 @@
+{
+  "schema_version": "pull_v0_p0g_canonical_smoke_v1",
+  "generated_at_hkt": "2026-08-03 16:49:48 HKT",
+  "status": "PASS",
+  "threshold_mode": "report_only",
+  "training": {
+    "plan_path": "scriptsFORhuman/pull_v0/PULL_V0_P0G_CANONICAL_SMOKE_PLAN_R2.json",
+    "plan_sha256": "c42511b7169187628f623c50e63adf92b858c9f99156a9dd2f8939452cc00960",
+    "process_receipt_path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0g/canonical_64x50/process_receipt.json",
+    "process_receipt_sha256": "87df7edff69f09cdbc4509f6db713db8bcdba60a7c146da90bb5e033a03a1f10",
+    "resolved_config_path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0g/canonical_64x50/config.yaml",
+    "resolved_config_sha256": "a6886ac7ee90f956b653fe7d6f77a578b0636ce74fdc7ba41158acd827170aa1",
+    "topology": {
+      "num_envs": 64,
+      "training_iterations": 50,
+      "save_frequency": 25,
+      "num_learning_epochs": 5,
+      "num_mini_batches": 4,
+      "checkpoint_load_mode": "policy_only",
+      "auto_load_latest": false,
+      "finger_effort_n": [
+        45.0,
+        45.0
+      ],
+      "finger_stiffness": [
+        1300.0,
+        1300.0
+      ],
+      "finger_damping": [
+        32.0,
+        32.0
+      ],
+      "threshold_mode": "report_only",
+      "effort_provenance": "ESTIMATE_ONLY"
+    },
+    "natural_exit": "PASS",
+    "runtime_device": "cuda:4"
+  },
+  "checkpoints": {
+    "step_25": {
+      "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0g/canonical_64x50/model_step_000025.pt",
+      "sha256": "b9ba83ee815e93b4a6caa2a028e6d7643d8ae656128401b0a9927a628f8673fc",
+      "size_bytes": 29528499
+    },
+    "step_50": {
+      "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0g/canonical_64x50/model_step_000050.pt",
+      "sha256": "4d41c2e470c8b2e6b34a63dea22fc44f67383219b6c3e252620044120c7da032",
+      "size_bytes": 29528499,
+      "trainer_global_step": 50,
+      "finite_policy_value_optimizer": "PASS",
+      "finite_tensor_count": 138,
+      "finite_element_count": 7356172
+    }
+  },
+  "checkpoint_reload": {
+    "plan_path": "scriptsFORhuman/pull_v0/PULL_V0_P0G_RELOAD_PLAN_R2.json",
+    "plan_sha256": "4b06dd26df2aab4755711749f0ba5b1b90535a4692baa4604e7cc85b229e39d3",
+    "process_receipt_path": "logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload/process_receipt.json",
+    "process_receipt_sha256": "e8982db24547765fba4e9411f5e6b8e2470c230383cae50b114345bb4b7262d1",
+    "metrics_path": "logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload/eval/metrics_eval.json",
+    "metrics_sha256": "17e4947cc6d4cbf7020d851d4219a1f1044f75a4172e744005783413c89c8da9",
+    "natural_exit": "PASS",
+    "completed_first_episodes": 4,
+    "runtime_device": "cuda:4",
+    "performance_threshold": "N/A"
+  },
+  "attempt_history": [
+    {
+      "artifact": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0g/canonical_64x50_hydra_fail",
+      "status": "FAIL_BEFORE_SIMULATION",
+      "failure": "Hydra required +device for a key absent from the composed training config.",
+      "bounded_repair": "Use +device=cuda:4 and freeze the R2 plan; training semantics are unchanged."
+    },
+    {
+      "artifact": "logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload_one_env_fail",
+      "status": "FAIL_BEFORE_CHECKPOINT_LOAD",
+      "failure": "One eval environment could not be divided by the inherited four minibatches.",
+      "bounded_repair": "Use four eval environments and four first episodes; retain num_mini_batches=4."
+    }
+  ],
+  "gpu_resource_evidence": {
+    "authorized_physical_devices": [
+      4,
+      5,
+      6
+    ],
+    "compute_device_used": 4,
+    "gpu5_used": false,
+    "gpu6_used": false,
+    "gpu7_compute_used": false,
+    "isaacsim_adapter_note": "IsaacSim may enumerate system Vulkan adapters; training and reload logs identify CUDA device index 4 and environment/sensor tensors as cuda:4."
+  },
+  "evidence_boundary": {
+    "isaacsim_runtime": "PASS",
+    "gradient_and_optimizer_finiteness": "PASS",
+    "checkpoint_save": "PASS",
+    "checkpoint_reload": "PASS",
+    "pull_performance": "NOT_EVALUATED_NO_THRESHOLD",
+    "p1_mechanism_landscape": "NOT_RUN",
+    "p2_initialization_decision": "NOT_RUN"
+  }
+}

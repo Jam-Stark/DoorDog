@@ -611,6 +611,15 @@ class A2Base(LeggedRobotBase):
         self._last_a2_leg_actions[:] = leg_actions
         self._last_a2_arm_actions[:] = arm_actions
 
+        # This is the single command/response handoff point for A2 evaluators.
+        # The callback receives the exact tensors assembled for this executor
+        # invocation, before any physics step can mutate the plant state.
+        self._a2_base_pre_physics_command_callback(
+            raw_base_action,
+            scaled_base_command,
+            leg_actions,
+        )
+
         self._pre_physics_step(final_actions)
         self._physics_step()
         self._post_physics_step()
@@ -618,6 +627,64 @@ class A2Base(LeggedRobotBase):
         self._last_homie_commands[:] = self._homie_commands
 
         return self.obs_buf_dict, self.rew_buf, self.reset_buf, self.extras
+
+    def _a2_base_pre_physics_command_callback(
+        self,
+        raw_base_action: torch.Tensor,
+        physical_base_command: torch.Tensor,
+        lower_body_action: torch.Tensor,
+    ) -> None:
+        """Validate the A2 executor handoff and preserve the default no-op contract.
+
+        Door evaluators override this method to latch a command response.  The
+        direct call in ``_step_a2_base`` intentionally has no dynamic fallback:
+        every A2 environment inherits this explicit contract, while non-A2
+        environments never enter that path.
+        """
+        expected_raw_shape = (self.num_envs, self.A2_BASE_COMMAND_ACTION_DIM)
+        if (
+            not torch.is_tensor(raw_base_action)
+            or tuple(raw_base_action.shape) != expected_raw_shape
+            or not raw_base_action.is_floating_point()
+            or raw_base_action.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(raw_base_action))
+        ):
+            shape = None if not torch.is_tensor(raw_base_action) else tuple(raw_base_action.shape)
+            raise RuntimeError(
+                "A2 pre-physics callback requires finite raw base action shape "
+                f"{expected_raw_shape} on {self.device}; got {shape}."
+            )
+        if (
+            not torch.is_tensor(physical_base_command)
+            or tuple(physical_base_command.shape) != expected_raw_shape
+            or not physical_base_command.is_floating_point()
+            or physical_base_command.dtype != raw_base_action.dtype
+            or physical_base_command.device != raw_base_action.device
+            or not torch.all(torch.isfinite(physical_base_command))
+        ):
+            shape = (
+                None
+                if not torch.is_tensor(physical_base_command)
+                else tuple(physical_base_command.shape)
+            )
+            raise RuntimeError(
+                "A2 pre-physics callback requires finite physical base command "
+                f"shape {expected_raw_shape} with raw-action dtype/device; got {shape}."
+            )
+        expected_lower_shape = (self.num_envs, self._a2_leg_action_dim)
+        if (
+            not torch.is_tensor(lower_body_action)
+            or tuple(lower_body_action.shape) != expected_lower_shape
+            or not lower_body_action.is_floating_point()
+            or lower_body_action.dtype != raw_base_action.dtype
+            or lower_body_action.device != raw_base_action.device
+            or not torch.all(torch.isfinite(lower_body_action))
+        ):
+            shape = None if not torch.is_tensor(lower_body_action) else tuple(lower_body_action.shape)
+            raise RuntimeError(
+                "A2 pre-physics callback requires finite lower-body action shape "
+                f"{expected_lower_shape} with raw-action dtype/device; got {shape}."
+            )
 
     @override
     def _action_backmap(self):

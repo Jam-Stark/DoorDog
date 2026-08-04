@@ -1,0 +1,131 @@
+{
+  "schema_version": "pull_v0_repair_r5_receipt_v1",
+  "generated_at_hkt": "2026-08-04 00:53:54 HKT",
+  "repair_revision": "R5",
+  "status": "APPROVED_FOR_ATTEMPT7_PREPARATION_ONLY",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "GENERIC_BASE_RELIEF_WATCHDOG_CROSS_TALK",
+    "conclusion": "Attempt6 completed reset qualification and emitted signed stage0 commands, but the generic DLS/base-relief watchdog remained active during explicit P1 acquisition-wait and produced BASE_RELIEF_TIMEOUT before stage0 admission could finish.",
+    "attempt6_summary_outcome": "BASE_RELIEF_TIMEOUT",
+    "attempt6_trace_step_count": 67,
+    "generic_relief_timeout_steps": 60,
+    "stage0_timeout_observed": false,
+    "reset_qualification_complete": true,
+    "reset_transient_observed": true
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R4_RECEIPT.json",
+    "sha256": "0c1debd42bbee1d9007190b2e3768670c23981a903df5ba9c5b6512d22b904aa",
+    "repair_revision": "R4"
+  },
+  "trigger": {
+    "attempt": 6,
+    "root_cause": "GENERIC_BASE_RELIEF_WATCHDOG_CROSS_TALK",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT6_RECEIPT.json",
+      "sha256": "d358c53345ad95bad7086e005a8325ade3f46444c2a580379db771e699e81a34"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT6_PLAN.json",
+        "sha256": "9344a1b4807830b835055b54ccb307bcb271402991cdfec005179c17f1b954e7"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/process_receipt.json",
+        "sha256": "9a7a279c37b760beb0a01e526be354eb0a90bf88d03a8adcbb194d52d77dd6e4"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/eval/a2_hold_oracle_summary.json",
+        "sha256": "bfc3359123c53bcaab7577d92697bf4e61540e7d4501bbd5f45f2fc69cfe65d0"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/eval/metrics_eval.json",
+        "sha256": "039e5dff055d96a0a408d09db4f8ad8e6aaf6ea7cb6c5bf902dda363661ee64f"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/stdout_stderr.log",
+        "sha256": "5344ff72c8d17ea87e22f39ee88b7c1ed95cebc76664a4d13d84940ea9352421"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Mask generic relief only during explicit P1 acquisition-wait, preserve stage0 timeout/non-P1 relief, latch reset qualification across reset, and repair receipt ancestry.",
+    "attempt6_immutable": true,
+    "attempt7_prepared": false,
+    "gpu_or_isaacsim_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "implementation_contract": {
+    "p1_generic_relief_mask": "active & ~(pull_p1_acquisition & acquisition_wait)",
+    "stage0_timeout_semantics": "unchanged and independent",
+    "non_p1_generic_relief_semantics": "active mask unchanged",
+    "reset_qualification_persistence": "latch terminal evidence before reset buffer clear and consume it in terminal/summary exports",
+    "receipt_binding": "Attempt7+ requires explicit exact R5 receipt SHA and R5->Attempt6->R4 ancestry",
+    "report_only_thresholds": true,
+    "effort_provenance": "ESTIMATE_ONLY"
+  },
+  "changed_files": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "pre_sha256": "810b58e8528bd1d2598a89640dd6f347fc46e831c184eafdd9b7196d8802afba",
+      "post_sha256": "0901ce5920afd35c3794b38850cb6850a6013e1cf899136f63220fd04cda44ef",
+      "reason": "Mask generic DLS/base-relief state and outcomes during explicit P1 acquisition-wait while preserving stage0 timeout and non-P1 relief semantics; latch reset qualification before buffer clearing."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": "5e2308f398a6fdd655c6df0c3fb9ec5c6a0ac060f1e199ac31dc6a01e030877b",
+      "post_sha256": "44ebf1a6d0fc8f8cb93eedf2c833f2829954c5c2e501d13345e4d3811503bc36",
+      "reason": "Guard actual Attempt6 receipt schema and fail-fast R5 runner ancestry/SHA bindings."
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "pre_sha256": "141b227cf6ce38d3bc3fc59603d7981c2c950b478496fb904a06f3873d4fc56f",
+      "post_sha256": "837d50dc551e9392015dc10cfd9019b2d0b74b2ef4427e1ba6fa7b8768ec4b5b",
+      "reason": "Guard long acquisition-wait relief masking and reset qualification latch agreement across terminal and summary telemetry."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": "84034bd39fdef0146035004d92fb3686449fedab358a7f1b9770643ba5bec042",
+      "post_sha256": "9e84c41d735331c659a81d290bac3ae83c9dd275707af2919c683102d6015c0b",
+      "reason": "Keep Attempt6 bound to canonical R4 and require explicit exact R5 receipt SHA plus R5/Attempt6/R4 ancestry for Attempt7+."
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": "b35c56765de73cb117d5970489dfc735f2eacf3e631241e52a97707cc4bc38f2",
+      "post_sha256": "2d2035a2f111b20670816c7ba18a0b8565671c433683a647fcd633109d192732",
+      "reason": "Classify immutable Attempt6 from the actual base-owned push_anchor_admission schema as probe-invalid generic-relief watchdog cross-talk."
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r5_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "3dc0bb82e87f0852b1f994a1010a04062229c345c0457154429a972c96fa9f4c",
+      "reason": "Record the immutable R5 chain, exact hashes, blocker, and static/runtime validation boundary."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT6_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "d358c53345ad95bad7086e005a8325ade3f46444c2a580379db771e699e81a34",
+      "reason": "Immutable Attempt6 receipt preserving the actual-schema generic-relief watchdog cross-talk blocker."
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "receipt parser/hash assertions",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R5 contract forbids preparing/running Attempt7; the repair requires a separately authorized runtime assessment."
+  },
+  "acceptance": {
+    "acquisition_wait_cannot_emit_generic_base_relief_timeout": true,
+    "stage0_timeout_remains_independent": true,
+    "non_p1_generic_relief_unchanged": true,
+    "reset_summary_terminal_latch_agree": true,
+    "actual_attempt6_schema_receipt": true,
+    "r5_sha_and_ancestry_fail_fast": true,
+    "attempt6_immutable": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime PASS is asserted for R5.",
+    "The generic relief mask and reset latch are statically covered; runtime behavior awaits a separately authorized follow-up.",
+    "No pull-mechanism verdict is asserted."
+  ]
+}

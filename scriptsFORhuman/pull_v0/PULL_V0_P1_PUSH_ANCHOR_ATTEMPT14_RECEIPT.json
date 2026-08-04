@@ -1,0 +1,91 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v14",
+  "generated_at_hkt": "2026-08-04 04:31:00 HKT",
+  "attempt": 14,
+  "status": "PROBE_INVALID",
+  "probe_validity": "PROBE_INVALID",
+  "runtime_validation": "INVALIDATED_BY_RESOURCE_STOP",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "scientific_verdict_consumed": false,
+  "repair_r12": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R12_RECEIPT.json",
+      "sha256": "676e0df6a8b3a9dca35ce53c41726df6ec64db57e6652f4b25e1b01131c833bb"
+    },
+    "revision": "R12",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "evidence": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_PLAN.json",
+      "sha256": "fce7011380089e4f8647dfccf5ed4a4c75b149001c0acc6b7dfbf8de02f4f3c4",
+      "plan_sha256": "0e24e0c0d74b40791cb4b0d510426078202a62989d518a100ec9889c89d3f75d"
+    },
+    "stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/stdout_stderr.log",
+      "sha256": "ccc370f82c7dc2043b97d063788a2a5cf43e2c8755a3cc7388911ccd6172bbab"
+    },
+    "kit_log": {
+      "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_041952.log",
+      "sha256": "0085e219a74f2c9f36fe32e65a38cc64fab039b656535af7f80209e44554511b"
+    },
+    "interrupted_trace_tmp": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/eval/stage2_5_step_trace.json.tmp",
+      "bytes": 1784450644,
+      "sha256": null,
+      "interpretation": "Ignored as incomplete temporary data; not hashed or consumed as scientific evidence."
+    }
+  },
+  "resource_stop": {
+    "triggered": true,
+    "stop_condition": "Physical GPU lease violation: renderer opened compute contexts on unauthorized GPUs.",
+    "main_action": "SIGINT_SENT_BY_MAIN",
+    "child_pid": 1711000,
+    "child_state": "DEFUNCT_AFTER_SIGINT",
+    "selected_physical_gpu": 4,
+    "authorized_physical_gpus": [4, 5, 6],
+    "observed_gpu_indices": [0, 1, 2, 3, 4, 5, 6, 7],
+    "unauthorized_gpu_indices": [0, 1, 2, 3, 7],
+    "gpu7_compute_authorized": false,
+    "contexts_remaining_after_stop": false
+  },
+  "observed_launcher": {
+    "app_launcher_device": "cuda:4",
+    "physics_cuda_device": 4,
+    "renderer_active_gpu": 4,
+    "renderer_multi_gpu_enabled": true,
+    "renderer_multi_gpu_auto_enable": true,
+    "renderer_multi_gpu_max_gpu_count": null,
+    "kit_command_flags": [
+      "--/renderer/multiGpu/enabled=True",
+      "--/renderer/activeGpu=4",
+      "--/physics/cudaDevice=4"
+    ],
+    "plan_renderer_single_gpu_contract_present": false,
+    "plan_cuda_visible_devices": "UNSET"
+  },
+  "canonical_outputs": {
+    "process_receipt_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/process_receipt.json",
+    "process_receipt_present": false,
+    "summary_verdict_consumed": false,
+    "metrics_verdict_consumed": false,
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "ignored_partial_outputs": [
+    {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/eval/a2_hold_oracle_summary.json",
+      "sha256": "015bf37371fc40e3cd341e4ed3b75560203f264985e903a58a7f3fd373ad6924",
+      "reason": "Partial output after resource stop; not a canonical process-backed scientific verdict."
+    },
+    {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/eval/eval_to_log_metrics.json",
+      "sha256": "2d32c411ccd130ce74c8e33a1c30c5ed657ebf63e6459b08cd93e826694dc2aa",
+      "reason": "Partial output after resource stop; not consumed as scientific evidence."
+    }
+  ],
+  "unverified_claims": [
+    "No IsaacSim or GPU scientific PASS is asserted for Attempt14.",
+    "The incomplete temporary trace is not interpreted as a probe result.",
+    "No pull-mechanism verdict is asserted because the resource stop invalidated the run before canonical closure."
+  ]
+}

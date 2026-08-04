@@ -140,6 +140,23 @@ def parse_args() -> argparse.Namespace:
         default=500,
         help="Sim steps between preview resets. Set <=0 to disable periodic resets.",
     )
+    parser.add_argument(
+        "--pull-geometry-overlay",
+        action="store_true",
+        help="Render the deterministic paired out/in target, pregrasp, and TCP frame proof.",
+    )
+    parser.add_argument(
+        "--preview-frame-path",
+        type=Path,
+        default=None,
+        help="Save the paired pull geometry camera grid to this PNG path.",
+    )
+    parser.add_argument(
+        "--runtime-receipt-path",
+        type=Path,
+        default=None,
+        help="Write the paired pull geometry runtime JSON receipt to this path.",
+    )
     AppLauncher = import_app_launcher()
     if AppLauncher is None:
         add_fallback_app_launcher_args(parser)
@@ -166,6 +183,18 @@ def normalize_placement_preview_args(args_cli: argparse.Namespace) -> None:
             f"overriding --num-envs {args_cli.num_envs} -> 4."
         )
         args_cli.num_envs = 4
+
+    if args_cli.pull_geometry_overlay:
+        if args_cli.placement_preview != "none":
+            raise ValueError("--pull-geometry-overlay cannot be combined with placement-corner preview.")
+        if args_cli.preview_frame_path is None or args_cli.runtime_receipt_path is None:
+            raise ValueError(
+                "--pull-geometry-overlay requires --preview-frame-path and --runtime-receipt-path."
+            )
+        args_cli.num_envs = 2
+        args_cli.enable_cameras = True
+        if args_cli.max_steps < 8:
+            raise ValueError("--pull-geometry-overlay requires --max-steps >= 8.")
 
 
 def validate_preview_cuda_device(args_cli: argparse.Namespace) -> None:
@@ -407,6 +436,7 @@ def main() -> int:
             root_z=args_cli.root_z,
             root_yaw=args_cli.root_yaw,
             enable_camera=enable_camera,
+            enable_pull_geometry_overlay=args_cli.pull_geometry_overlay,
         )
         print(
             "[INFO]: Preview pose "
@@ -426,6 +456,8 @@ def main() -> int:
                 f"yaw=[{min(yaws)}, {max(yaws)}] "
                 f"corner_yaws={args_cli.placement_corner_yaws}"
             )
+        if args_cli.pull_geometry_overlay:
+            robot_root_poses = [(-0.9, 0.0, 0.55, 0.0), (0.9, 0.0, 0.55, 3.141592653589793)]
         run_zero_action_hold(
             sim,
             scene,
@@ -433,6 +465,8 @@ def main() -> int:
             max_steps=args_cli.max_steps,
             reset_interval=args_cli.reset_interval,
             robot_root_poses=robot_root_poses,
+            preview_frame_path=args_cli.preview_frame_path,
+            runtime_receipt_path=args_cli.runtime_receipt_path,
         )
     except BaseException as exc:
         run_error = exc

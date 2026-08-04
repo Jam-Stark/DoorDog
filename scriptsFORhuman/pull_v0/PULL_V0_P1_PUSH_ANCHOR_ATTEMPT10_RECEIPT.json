@@ -1,0 +1,145 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v10",
+  "generated_at_hkt": "2026-08-04 03:10:14 HKT",
+  "attempt": 10,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "STAGE0_TIMEOUT_BELOW_KINEMATIC_CAPACITY",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r8": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R8_RECEIPT.json",
+      "sha256": "00e7abbc6612f7a841cb0a809c7053ba343dab1e7d14f94d092510a82f11b76b"
+    },
+    "revision": "R8",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT10_PLAN.json",
+      "sha256": "98bad3d8b617811e9db459be434f754d90bbafe1bc388035d84e0f219d12ae11"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/process_receipt.json",
+      "sha256": "91094b6010c2a19545f6c5e31e66f2a8acdb61042fb714e0e61a5d2e3551ba88"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/stdout_stderr.log",
+      "sha256": "dc5a0171a6cb2c4d59265761665fd314a9cc5fe918bc5074567f461de4a907ee"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/eval/a2_hold_oracle_summary.json",
+      "sha256": "b2c2904a18c4f5ffc675ee1da37e237a9265f7abc13e080417ffcee5123be06e"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/eval/metrics_eval.json",
+      "sha256": "74f160458bf51cfd28e4fd15275b6cfd64f8a6987b12d6d031e0d5fadca2b3cb"
+    }
+  },
+  "observed": {
+    "summary_outcome": "PULL_P1_STAGE0_TIMEOUT",
+    "trace_step_count": 123,
+    "stage0_rows": 120,
+    "stage0_timeout_predicate_observed": true,
+    "stage0_terminal_predicates": {
+      "staging_band": false,
+      "settle_count": 0,
+      "timed_out": true
+    },
+    "reset_contact_qualification_complete": true,
+    "reset_transient_observed": true,
+    "terminal_body_panel_contact_current_n": 0.0,
+    "body_panel_contact_max_n": 3817.004150390625
+  },
+  "command_to_plant_response": {
+    "schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+    "status": "CAPTURED",
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+    "threshold_mode": "report_only",
+    "response_count": 120,
+    "first_response_identity": {
+      "episode_generation": 0,
+      "trace_row_index": 3,
+      "control_step": 3,
+      "response_control_step": 4
+    },
+    "terminal_response_identity": {
+      "episode_generation": 0,
+      "trace_row_index": 122,
+      "control_step": 122,
+      "response_control_step": 123
+    },
+    "aggregates": {
+      "anti_alignment_count": 0,
+      "max_observed_world_xy_speed_mps": 0.31976188812036066,
+      "max_observed_world_xy_displacement_m": 0.006179168743751097,
+      "min_progress_velocity_cosine": 0.2509129047393799,
+      "min_progress_displacement_cosine": 0.18579743802547455
+    },
+    "admission_field_present": true
+  },
+  "stage0_timeout_boundary": {
+    "blocker": "STAGE0_TIMEOUT_BELOW_KINEMATIC_CAPACITY",
+    "mechanism": "The signed stage0 command timed out because the configured admission watchdog was below the measured staging-distance kinematic lower bound; response metrics remain report-only and do not alter admission.",
+    "signed_target_and_band_unchanged": true,
+    "stage0_timeout_is_sole_hard_stop": true,
+    "response_metrics_report_only": true
+  },
+  "budget_analysis": {
+    "initial_stage0_horizontal_m": 0.9215447306632996,
+    "terminal_stage0_horizontal_m": 0.5063455700874329,
+    "residual_monotonic_nonincreasing": true,
+    "residual_increase_count": 0,
+    "physical_speed_mps": 0.15,
+    "control_dt_s": 0.02,
+    "distance_per_control_step_m": 0.003,
+    "kinematic_lower_bound_steps": 308,
+    "settle_steps": 5,
+    "minimum_steps_including_settle": 313,
+    "configured_timeout_steps": 120,
+    "timeout_shortfall_vs_kinematic_lower_bound_steps": 188,
+    "r9_timeout_steps": 360,
+    "r9_nominal_horizon_s": 7.2,
+    "r9_nominal_travel_m": 1.08,
+    "budget_role": "P1_STAGE0_ADMISSION_WATCHDOG_ONLY",
+    "mechanism_threshold": false
+  },
+  "quaternion_contract_closure": {
+    "source": "canonical ArticulationData.root_quat_w WXYZ",
+    "response_rows": 120,
+    "anti_alignment_count": 0,
+    "residual_monotonic_nonincreasing": true,
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY"
+  },
+  "reset_boundary": {
+    "qualification_window_steps": 3,
+    "window_complete": true,
+    "transient_observed": true,
+    "result": "CLEARED",
+    "staging_started_during_window": false,
+    "dls_started_during_window": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": false,
+    "latch_release": true,
+    "hinge_progress_min_rad": 0.25,
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": false,
+    "observed_max_body_force_n": 0.0,
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "validated actual runtime summary schema",
+    "metrics": "validated actual base-owned push_anchor_admission terminal schema",
+    "stage0_command_response": "validated actual executor/post-physics response telemetry",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "legacy_pull_v0_namespace": "not required for base-owned admission"
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "Attempt10 is probe-invalid because timeout capacity was below the measured staging-distance lower bound; no pull-mechanism verdict is asserted."
+  ]
+}

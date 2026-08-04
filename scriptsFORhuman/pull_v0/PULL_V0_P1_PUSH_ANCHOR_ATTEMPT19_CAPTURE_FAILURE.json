@@ -1,0 +1,189 @@
+{
+  "schema_version": "pull_v0_p1_attempt19_capture_failure_v1",
+  "generated_at_hkt": "2026-08-04 22:19:50 HKT",
+  "attempt": 19,
+  "status": "PROBE_INVALID",
+  "probe_validity": "PROBE_INVALID",
+  "anchor_verdict": "NOT_ASSESSED",
+  "pull_verdict": "NOT_ASSESSED",
+  "scientific_verdict_consumed": false,
+  "failure": {
+    "observation_timestamp_hkt": "2026-08-04 22:19:50 HKT",
+    "exact_message": "RuntimeError: Attempt19 nonselected GPU0 compute-apps contains the Attempt19 PID.",
+    "classification": "EVIDENCE_ADMISSION_FAILURE"
+  },
+  "immutable_evidence": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_PLAN.json",
+      "sha256": "cf23ee03ec0c40e77582ec724d8c6d8855cebcd40791edb7c8d11e75d9800748"
+    },
+    "launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_LAUNCH_OCCUPANCY.json",
+      "sha256": "035303242c307856a54bb3eabe09c391d75cca936f9a437946af4f938e2d08b8"
+    },
+    "runtime_stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19/stdout_stderr.log",
+      "sha256": "2614844d86965bf648874d06360100e4997f8ecc49bf6d1a730dc7f0272bcbdc",
+      "total_lines": 621,
+      "terminal_line_number": 621,
+      "terminal_line": "Starting evaluation with one episode per environment",
+      "ends_at_boundary": true
+    }
+  },
+  "process_lifecycle": {
+    "runner_pid": 2219008,
+    "eval_pid": 2219040,
+    "runner_stopped": true,
+    "eval_stopped": true,
+    "runner_fully_reaped": true,
+    "eval_fully_reaped": true,
+    "parent_termination": "KeyboardInterrupt before process_receipt.json was written",
+    "stop_signal_timestamp_hkt": null,
+    "stop_signal_timestamp_status": "NOT_RECORDED"
+  },
+  "capture_failure_footprint": {
+    "observation": "The compute-app query listed eval PID 2219040 on every physical GPU.",
+    "per_device": [
+      {
+        "physical_device": 0,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C",
+        "framebuffer_memory_mib": 168,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      },
+      {
+        "physical_device": 1,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C",
+        "framebuffer_memory_mib": 136,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      },
+      {
+        "physical_device": 2,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C+G",
+        "framebuffer_memory_mib": 3083,
+        "sm_utilization_percent": 16,
+        "sm_utilization_status": "REPORTED",
+        "memory_utilization_percent": 0,
+        "memory_utilization_status": "REPORTED",
+        "device_utilization_percent": 17
+      },
+      {
+        "physical_device": 3,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C+G",
+        "framebuffer_memory_mib": 140,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      },
+      {
+        "physical_device": 4,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C",
+        "framebuffer_memory_mib": 136,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      },
+      {
+        "physical_device": 5,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C",
+        "framebuffer_memory_mib": 136,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      },
+      {
+        "physical_device": 6,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C",
+        "framebuffer_memory_mib": 136,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      },
+      {
+        "physical_device": 7,
+        "attempt_eval_pid": 2219040,
+        "compute_app_present": true,
+        "process_type": "C",
+        "framebuffer_memory_mib": 136,
+        "sm_utilization_percent": null,
+        "sm_utilization_status": "NOT_REPORTED",
+        "memory_utilization_percent": null,
+        "memory_utilization_status": "NOT_REPORTED",
+        "device_utilization_percent": 0
+      }
+    ],
+    "interpretation": "Known Isaac/driver behavior created low-memory enumeration contexts on every visible GPU; selected GPU2 alone performed compute.",
+    "selected_compute_physical_device": 2,
+    "authorized_compute_physical_devices": [
+      2,
+      3
+    ]
+  },
+  "absent_artifacts": {
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19/process_receipt.json",
+      "present": false,
+      "value": null,
+      "status": "N/A"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19/eval/a2_hold_oracle_summary.json",
+      "present": false,
+      "value": null,
+      "status": "N/A"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt19/eval/metrics_eval.json",
+      "present": false,
+      "value": null,
+      "status": "N/A"
+    },
+    "steady_state_footprint": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_STEADY_STATE_FOOTPRINT.json",
+      "present": false,
+      "value": null,
+      "status": "N/A"
+    },
+    "canonical_receipt_at_capture_failure_time": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_RECEIPT.json",
+      "present": false,
+      "value": null,
+      "status": "N/A"
+    }
+  },
+  "classification_note": "Reaching the evaluation boundary does not convert a failed evidence-admission attempt into an anchor or scientific verdict.",
+  "unverified_claims": [
+    "No process receipt, summary, metrics, or steady-state footprint exists for Attempt19.",
+    "No anchor, pull-mechanism, or scientific outcome is asserted.",
+    "The stop-signal timestamp was not recorded and is represented as null."
+  ]
+}

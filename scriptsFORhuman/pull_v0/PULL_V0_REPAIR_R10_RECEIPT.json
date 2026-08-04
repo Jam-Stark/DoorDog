@@ -1,0 +1,182 @@
+{
+  "schema_version": "pull_v0_repair_r10_receipt_v1",
+  "generated_at_hkt": "2026-08-04 03:50:26 HKT",
+  "repair_revision": "R10",
+  "status": "APPROVED_FOR_ATTEMPT12_PREPARATION_ONLY",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME_PREEMPTED_LOCAL_WATCHDOG",
+    "conclusion": "Immutable Attempt11 preserved 247 aligned stage0 responses and a monotonic signed horizontal residual, but the host stage-0 budget of 250 steps terminated the stage before the local 360-step watchdog could fire.",
+    "raw_summary_outcome": "ARC_PROBE_TIMEOUT",
+    "classified_outcome": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME",
+    "host_stage_timer_steps": 250,
+    "host_stage_budget_steps": 250,
+    "reset_qualification_steps": 3,
+    "local_stage0_watchdog_steps": 360,
+    "host_budget_less_than_reset_plus_local_watchdog": true,
+    "signed_target_and_band_unchanged": true
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R9_RECEIPT.json",
+    "sha256": "3bed2ab4b7e4e21e3d0c05d07b36afa49d7e5a597c8c4efb41178e35f4d6cd69",
+    "repair_revision": "R9"
+  },
+  "trigger": {
+    "attempt": 11,
+    "root_cause": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME_PREEMPTED_LOCAL_WATCHDOG",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT11_RECEIPT.json",
+      "sha256": "4e37e1c20667ba4d4c9c69ce848725dd1fbe5eda3954dff0f942cc7dbf3f595b"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT11_PLAN.json",
+        "sha256": "78be473a11f3b304c49ad34e0d82cc1a7c1edb0c147675fe7f15056fdb47fa81"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/process_receipt.json",
+        "sha256": "2c55d7ac5412e331be36e12c75a4834415a0236077d8d1b2ca34f7af295c9b9a"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/stdout_stderr.log",
+        "sha256": "81d2d7f8298fdbc20a2856e36af2f8774497b10097dd263fd726a52b8cd34fef"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/eval/a2_hold_oracle_summary.json",
+        "sha256": "28f52faedb360307add4b14df0a3d902510683482f39de7a972400c800436031"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt11/eval/metrics_eval.json",
+        "sha256": "991070babb9e4ffe744f8a5f0a21dc56b067c1efeb386283b237b46687b587b4"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Append one pull-only host-stage-overtime outcome; raise only the pull-anchor max_stage_time list to [400,100,100,100,100,200]; preserve the global 120-second episode horizon, local 360-step watchdog, reset qualification, settle/speed, signed target/band, and mechanism semantics.",
+    "r9_parent_immutable": true,
+    "attempt11_immutable": true,
+    "attempt12_prepared": false,
+    "attempt12_runtime_executed": false,
+    "gpu_or_isaacsim_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "host_stage_time_contract": {
+    "pull_anchor_max_stage_time_steps": [
+      400,
+      100,
+      100,
+      100,
+      100,
+      200
+    ],
+    "global_max_episode_length_s": 120,
+    "reset_qualification_steps": 3,
+    "local_stage0_timeout_steps": 360,
+    "relation": "400 > 3 + 360",
+    "fail_fast_on_invalid_relation": true,
+    "shared_default_configs_unchanged": true
+  },
+  "attempt11_evidence": {
+    "status": "BLOCKED",
+    "probe_validity": "PROBE_INVALID",
+    "raw_summary_outcome": "ARC_PROBE_TIMEOUT",
+    "classified_outcome": "PULL_P1_STAGE0_HOST_STAGE_OVERTIME",
+    "terminal_reason": "stage_overtime",
+    "terminal_stage": 0,
+    "terminal_host_stage_timer_steps": 250,
+    "local_stage0_timeout_observed": false,
+    "response_count": 247,
+    "anti_alignment_count": 0,
+    "residual_initial_m": 0.9215447306632996,
+    "residual_terminal_m": 0.005086362361907959,
+    "residual_monotonic_nonincreasing": true,
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "quaternion_contract_closure": {
+    "source": "canonical ArticulationData.root_quat_w WXYZ",
+    "response_rows": 247,
+    "anti_alignment_count": 0,
+    "residual_monotonic_nonincreasing": true,
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY"
+  },
+  "changed_files": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "pre_sha256": null,
+      "post_sha256": "09aca52996ded8c36c16527bcda18d87ac45132fa3d137883b2360ec0e936a68",
+      "reason": "Append the pull-only host-stage-overtime outcome and classify it from latched device-local stage timing."
+    },
+    "gr00t/rl/config/ablation/wbmanip/pull_v0_p1_push_anchor.yaml": {
+      "pre_sha256": null,
+      "post_sha256": "f64bf6c9d69a9ed4f6784f108633e9306a52853c2b54369620adb6b89c486565",
+      "reason": "Raise only the pull-anchor host stage-0 budget to 400 while preserving the global episode horizon."
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r10_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "0605d63662c0b26ba99e62854264ffaf2768e74c4ec0611c0e3c682805a25228",
+      "reason": "Build and validate the immutable R10 repair receipt."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": null,
+      "post_sha256": "c94b5faf3577b6c88f1e9a299ca8db5c06aca61b49689e936cf3ded4cb56d4bf",
+      "reason": "Guard exact R9 ancestry, Attempt11 host-overtime evidence, and exact Attempt12 R10 binding."
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "pre_sha256": null,
+      "post_sha256": "e3dc7c138e1c5582af1fcf540c1e101dd82675132708749dea1531379cad094f",
+      "reason": "Guard appended outcome IDs and pending/acquire/host-overtime classification semantics."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT11_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "4e37e1c20667ba4d4c9c69ce848725dd1fbe5eda3954dff0f942cc7dbf3f595b",
+      "reason": "Canonical Attempt11 PROBE_INVALID receipt with measured host-stage-overtime classification."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "R10 binding and host-stage contract; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R10_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Attempt11/R10 receipt routing; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R10_RECEIPT_SHA_SELF_CYCLE"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "Attempt11 exact R9 ancestry, raw hashes, response and timer evidence",
+      "Attempt12 runner exact R10 ancestry and immutable Attempt11 artifact assertions",
+      "anchor-only 400 host budget relation and global 120-second preservation",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R10 authorizes Attempt12 preparation only; no Attempt12 preparation, IsaacSim, GPU, or pull-mechanism runtime was executed."
+  },
+  "acceptance": {
+    "r9_parent_exact": true,
+    "attempt11_receipt_exact": true,
+    "attempt11_raw_arc_label_preserved": true,
+    "attempt11_host_stage_overtime_classified": true,
+    "attempt11_response_rows_247": true,
+    "attempt11_zero_anti_alignment": true,
+    "attempt11_residual_monotonic_nonincreasing": true,
+    "attempt11_local_watchdog_not_reached": true,
+    "pull_anchor_max_stage_time_400": true,
+    "global_max_episode_length_120": true,
+    "host_budget_relation_fail_fast": true,
+    "shared_default_configs_unchanged": true,
+    "attempt12_runner_exact_r10_binding": true,
+    "attempt12_not_prepared_or_run": true,
+    "pull_mechanism_verdict_not_assessed": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime PASS is asserted for R10.",
+    "No Attempt12 preparation or runtime was executed.",
+    "No pull-mechanism verdict is asserted; all response and timer evidence is admission/watchdog-only."
+  ]
+}

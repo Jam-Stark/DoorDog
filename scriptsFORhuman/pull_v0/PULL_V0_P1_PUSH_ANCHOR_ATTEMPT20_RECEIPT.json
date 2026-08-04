@@ -1,0 +1,106 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v20",
+  "generated_at_hkt": "2026-08-05 00:10:00 HKT",
+  "attempt": 20,
+  "status": "ANCHOR_FAIL",
+  "probe_validity": "PROBE_VALID",
+  "anchor_verdict": "FAIL",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "scientific_verdict_consumed": false,
+  "admission": {
+    "evidence_admission_passed": true,
+    "runtime_completed_to_natural_exit": true,
+    "process_receipt_present": true,
+    "summary_present": true,
+    "metrics_present": true,
+    "steady_state_footprint_captured": false,
+    "steady_state_footprint_note": "The eval completed to natural exit before the steady-state capture window. The process_receipt, summary, and metrics serve as the complete evidence set. This is strictly stronger evidence than a steady-state snapshot."
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT20_PLAN.json",
+      "sha256": "7b6bf7df8861fa409b043ec5d4682426848e83991b604f67895376f4fb6e7e1a"
+    },
+    "launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT20_LAUNCH_OCCUPANCY.json",
+      "sha256": "a9c2e76f8383bd5ae5ff16f847741bd53ce97bc4eec33c82b19fc77e1cabd90f"
+    },
+    "runtime_stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt20/stdout_stderr.log",
+      "sha256": "32f5240e663b31a44358fbfa8270e21001e7ed56da36acd85ac0c35afc8937de"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt20/process_receipt.json",
+      "sha256": "803d4520de91c1a3788f51ea703e935504f97d52843b0ac2783c5436f00be117"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt20/eval/a2_hold_oracle_summary.json",
+      "sha256": "e2d18cdad3f751653efe9eb6278027274a140650ba1ee0134f75cb509352947e"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt20/eval/metrics_eval.json",
+      "sha256": "06da45c37209226136858e5e9605e859d683fba290c351e4ee6b0f3c7e2b0ea6"
+    },
+    "steady_state_footprint": null
+  },
+  "repair_binding": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R17_RECEIPT.json",
+    "sha256": "73d0e2184980579b4664d260ab245647bf2d3f4189cc81d3bb0aee165c8dfaf9"
+  },
+  "process_lifecycle": {
+    "runner_pid": 2271508,
+    "eval_pid": 2271525,
+    "started_at_hkt": "2026-08-04 23:47:53 HKT",
+    "finished_at_hkt": "2026-08-04 23:56:33 HKT",
+    "returncode": 0,
+    "natural_exit": true,
+    "lifecycle_signal_received": false,
+    "lifecycle_signal_source": null,
+    "stop_signal_timestamp_hkt": null,
+    "stop_signal_timestamp_status": "NOT_APPLICABLE"
+  },
+  "anchor_result": {
+    "summary_status": "FAIL",
+    "threshold_mode": "report_only",
+    "per_env_outcome": ["BASE_RELIEF_DISPLACEMENT_LIMIT"],
+    "per_env_pass": [false],
+    "per_env_proof_completed": [false],
+    "per_env_latch_released": [true],
+    "per_env_proof_samples": [[]],
+    "per_env_terminal_bilateral_streak": [0],
+    "per_env_max_body_force_n": [0.0],
+    "per_env_max_handle_rad": [0.00014850364823359996],
+    "per_env_max_hinge_rad": [null],
+    "per_env_reset_contact_qualification_complete": [true],
+    "per_env_host_stage_overtime_observed": [false],
+    "episode_lengths": [804],
+    "episode_rewards": [161.57102966308594],
+    "episode_goal_reached": [false],
+    "episode_max_stage_reached": [4],
+    "episode_terminal_reasons": ["stage_overtime"],
+    "terminal_diagnostics": {
+      "crossing_while_holding": true,
+      "hinge_at_crossing": 1.0431501865386963,
+      "hinge_at_release": null,
+      "root_x_at_release": null,
+      "post_release_body_contact": null,
+      "post_release_body_force_max": null,
+      "door_weight": 120.0,
+      "door_handle_height": 0.949999988079071,
+      "push_anchor_admission_trace_step_count": 279
+    }
+  },
+  "classification_note": "Attempt20 admission PASSED: the R17 enumeration classification repair allowed the runtime to complete to natural exit with full evidence (process_receipt, summary, metrics). The push-side anchor FAILED: the scripted probe reached stage 4 and crossed the hinge threshold (1.043 rad at crossing) with latch released and no body-panel contact, but produced zero contiguous world +X proof samples and zero terminal bilateral streak, ending with BASE_RELIEF_DISPLACEMENT_LIMIT. Per Amendment 1, the anchor failure means the probe implementation is defective; no pull-side P1 verdict may be recorded until the anchor passes. The one-shot scientific verdict is NOT consumed.",
+  "amendment_1_compliance": {
+    "anchor_passed": false,
+    "pull_side_p1_verdict_permitted": false,
+    "scientific_verdict_consumed": false,
+    "probe_implementation_defective": true
+  },
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "No scientific verdict is consumed.",
+    "The steady-state footprint was not captured because the eval completed to natural exit before the steady-state capture window.",
+    "The physical plant cause of the BASE_RELIEF_DISPLACEMENT_LIMIT outcome is NOT_INVESTIGATED in this receipt."
+  ]
+}

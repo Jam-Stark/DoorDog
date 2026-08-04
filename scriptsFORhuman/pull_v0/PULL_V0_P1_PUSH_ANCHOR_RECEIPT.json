@@ -1,0 +1,73 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_receipt_v1",
+  "generated_at_hkt": "2026-08-03 17:14:41 HKT",
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "threshold_mode": "report_only",
+  "hard_gate": {
+    "stable_bilateral_capture": false,
+    "latch_release": false,
+    "hinge_progress_min_rad": 0.25,
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact": false,
+    "pass": false
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "INITIAL_IMPLEMENTATION",
+      "result": "APPLICATION_CONFIG_ERROR_BEFORE_PROBE",
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT1_PLAN.json",
+        "sha256": "393f7fc1b3a74b5e5dcb6fca967a0f761b8a302722113eb458e7c944986f30a5"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt1/process_receipt.json",
+        "sha256": "5f1035fdff4604134409d34cf40b722db68e859367b561011ef4a75d4ca10551"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt1/stdout_stderr.log",
+        "sha256": "508d6779e4c32955cd76218adbba29f9fdede666fbb65903db3ec10f24f7e353"
+      },
+      "finding": "The requested diagnostic reward set included an inactive term; no anchor summary was produced and no mechanics verdict exists."
+    },
+    {
+      "attempt": 2,
+      "kind": "SINGLE_IMPLEMENTATION_REPAIR",
+      "result": "NO_GATE",
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT2_PLAN.json",
+        "sha256": "a0ad82cd7ce216d75a7ecae2b288d8c97f1dc75f592ef9ad2db4871ee8f43f7c"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/process_receipt.json",
+        "sha256": "1bc49d13dc23826dd6fcf25827010f4bf131efbf24ea60c0edc578ab90072c68"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/eval/a2_hold_oracle_summary.json",
+        "sha256": "edf5819a2189589b4aa5910026eaa40c90845d5afd1feba2aadadc376ea96bf7"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt2/eval/metrics_eval.json",
+        "sha256": "552b2480360236dc1a4a13d8ac523cf27952951625d8c4353faf957a4d1c6764"
+      },
+      "finding": {
+        "completed_first_episodes": 1,
+        "max_stage": 0,
+        "terminal_reason": "stage_overtime",
+        "proof_samples": 0,
+        "arc_samples": 0,
+        "terminal_target_pos_source_handle_distance_m": 0.46280089020729065,
+        "terminal_target_pos_source_pregrasp_distance_m": 0.37507086992263794
+      }
+    }
+  ],
+  "stop_condition": "Worker 2 section 4.3: stop after the push-side anchor cannot pass following one implementation repair.",
+  "downstream_state": {
+    "pull_side_p1_verdicts_recorded": false,
+    "p1_mechanism_matrix_started": false,
+    "p2_started": false,
+    "next_action_requires_user_direction": true
+  },
+  "interpretation": "NO_GATE is a probe-design/admission blocker. It is not evidence that the pull mechanism is infeasible."
+}

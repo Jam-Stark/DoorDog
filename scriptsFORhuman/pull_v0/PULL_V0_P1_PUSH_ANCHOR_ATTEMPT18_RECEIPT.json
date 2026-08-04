@@ -1,0 +1,135 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v18",
+  "generated_at_hkt": "2026-08-04 20:37:04 HKT",
+  "attempt": 18,
+  "status": "PROBE_INVALID",
+  "probe_validity": "PROBE_INVALID",
+  "runtime_validation": "INVALIDATED_AFTER_FIRST_SIMULATION_STEP",
+  "scientific_verdict_consumed": false,
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r15": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15_RECEIPT.json",
+      "sha256": "3b850232429e4cdaee96281ad16ba2216f34df5baeb5262312f8bba831f841a0"
+    },
+    "revision": "R15",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "repair_r15e": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15E_RECEIPT.json",
+      "sha256": "bd384df10e61a0bacd79fdbe0bcdab9172f308ba71c3a6e1b5dac1c92b3e0360"
+    },
+    "revision": "R15E"
+  },
+  "repair_r15f": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15F_RECEIPT.json",
+      "sha256": "77fda56deb58e5720711fae654da05301cab306162a8fd6b436e23bac00299e3"
+    },
+    "revision": "R15F"
+  },
+  "prelaunch_infra": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PRELAUNCH_INFRA1_RECEIPT.json",
+      "sha256": "932b6349a339892ea1590d427140820f66884ba357666f35a1bc76f89421e5cf"
+    },
+    "status": "INFRA_PRELAUNCH_RUNNER_VALIDATION"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+      "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/process_receipt.json",
+      "sha256": "641f99ba8ddda16f6114807b72ae9cc87234bae3dc8c0d7f9a6baf911562a94f"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt18/stdout_stderr.log",
+      "sha256": "b49d6ed10e8c2665dd4c498692d011e00fb41c64fee72187b24f040679612cb1"
+    },
+    "initial_launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_LAUNCH_OCCUPANCY.json",
+      "sha256": "17f91b53a878c25677a96cd5f03a9c3329c5f32424faf6c4f56bab91f141c6ef"
+    },
+    "launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY.json",
+      "sha256": "f2b93c71c02600c362a8e8e8eb9a3bcc52fe320f1681726ae933a8b415a0bcb1"
+    },
+    "steady_state_footprint": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_STEADY_STATE_FOOTPRINT.json",
+      "sha256": "a02d5a64683807dcdb1ce33b47f567ac9120a9640235806f7c1273ccaeaf614a"
+    },
+    "summary": null,
+    "metrics": null
+  },
+  "runtime_failure": {
+    "boundary": "AFTER_FIRST_SIMULATION_STEP_BEFORE_SUMMARY_METRICS",
+    "root_cause_code": "CONTACT_SENSOR_CAPACITY_OVERFLOW",
+    "configured_max_contact_data_count_per_prim": 8,
+    "required_anchor_only_detailed_contact_capacity": 64,
+    "source_message": "Incomplete contact data is reported in GpuRigidContactView::getContactData because there are more contact data points than specified maxContactDataCount = 8.",
+    "exact_signatures": [
+      "Incomplete contact data is reported in GpuRigidContactView::getContactData because there are more contact data points than specified maxContactDataCount = 8.",
+      "CUDA error: device-side assert triggered",
+      "Exception: Failed to get friction data from backend"
+    ],
+    "process_returncode": -9,
+    "natural_exit": false,
+    "application_success": false,
+    "first_simulation_step_boundary_crossed": true,
+    "scientific_attempt_started": true,
+    "summary_present": false,
+    "metrics_present": false,
+    "scientific_verdict_consumed": false
+  },
+  "termination": {
+    "sigterm": {
+      "sent": true,
+      "timestamp_hkt": null,
+      "timestamp_status": "NOT_RECORDED",
+      "disposition": "IGNORED_FOR_60S"
+    },
+    "sigkill": {
+      "sent": true,
+      "timestamp_hkt": "2026-08-04 20:14:10 HKT",
+      "disposition": "CHILD_REAPED"
+    },
+    "runner_reaped_at_hkt": "2026-08-04 20:14:13 HKT",
+    "sigterm_timestamp_not_fabricated": true
+  },
+  "runtime_evidence": {
+    "first_simulation_step_boundary_crossed": true,
+    "scientific_attempt_started": true,
+    "selected_compute_physical_device": 2,
+    "authorized_compute_physical_devices": [
+      2,
+      3
+    ],
+    "non_leased_compute_observed": false,
+    "tenant_devices_at_launch": []
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": "N/A",
+    "latch_release": "N/A",
+    "hinge_progress_min_rad": "N/A",
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": "N/A",
+    "observed_max_body_force_n": "N/A",
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "absent after runtime failure; not consumed",
+    "metrics": "absent after runtime failure; not consumed",
+    "launch_occupancy": "validated exact Attempt18 retry1 per-run launch occupancy",
+    "steady_state_footprint": "validated exact Attempt18 first-step boundary and GPU footprint evidence",
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "threshold_mode": "report_only",
+  "unverified_claims": [
+    "No scientific anchor verdict is asserted because contact-buffer overflow aborted the first-step runtime before summary/metrics finalization.",
+    "No pull-mechanism verdict is asserted.",
+    "The exact SIGTERM send timestamp was not recorded and is represented as null; no timestamp is fabricated."
+  ]
+}

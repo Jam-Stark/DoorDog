@@ -17,6 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-05 00:20 HKT — pull-door v0 round R17 repair (evidence/runner tooling) STATIC PASS + Attempt20 ADMISSION PASS / ANCHOR FAIL (BASE_RELIEF_DISPLACEMENT_LIMIT, zero proof samples, scientific_verdict_consumed false)。Anchor FAIL blocks P1 pull matrix until anchor passes.
 
 ## Update Rules
 

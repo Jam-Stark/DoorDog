@@ -1,0 +1,160 @@
+{
+  "schema_version": "pull_v0_p0f_zero_shot_plan_v1",
+  "generated_at_hkt": "2026-08-03 16:11:35 HKT",
+  "status": "READY",
+  "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+  "warm_checkpoint_sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+  "actuator_profile": {
+    "finger_effort_n": [
+      45.0,
+      45.0
+    ],
+    "finger_stiffness": [
+      1300.0,
+      1300.0
+    ],
+    "finger_damping": [
+      32.0,
+      32.0
+    ],
+    "effort_provenance": "ESTIMATE_ONLY",
+    "gripper_material": "RESOLVED_V20_G4"
+  },
+  "pairing_contract": {
+    "same_seed": true,
+    "same_num_envs": true,
+    "same_frozen_policy": true,
+    "same_actuator_and_material_profile": true,
+    "only_direction_contract_differs": true,
+    "runtime_scenario_rows_must_match_by_env_id": true
+  },
+  "gpu_resource_lease": {
+    "authorized_physical_devices": [
+      4,
+      5,
+      6
+    ],
+    "selected_physical_device": 4,
+    "gpu7_compute_authorized": false
+  },
+  "cells": {
+    "out": {
+      "direction": "out",
+      "seed": 0,
+      "num_envs": 16,
+      "episodes": 16,
+      "first_episode_only": true,
+      "checkpoint_input": {
+        "path": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/out/input/model_step_002500.pt",
+        "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+        "source_path_read_only": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt",
+        "source_sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
+      },
+      "config_input": {
+        "path": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/out/input/config.yaml",
+        "sha256": "fbc5882644e6286d69a580a022ab73edeaa20391a89813b7b464b044b7b22adc",
+        "source_path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/out_resolved/config.yaml"
+      },
+      "artifact_root": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime",
+      "eval_output": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime/eval",
+      "hydra_output": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime/hydra",
+      "argv": [
+        "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+        "-B",
+        "-m",
+        "gr00t.rl.eval_agent_trl",
+        "checkpoint=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/out/input/model_step_002500.pt",
+        "checkpoint_load_mode=full",
+        "+auto_load_latest=false",
+        "+num_envs=16",
+        "+seed=0",
+        "+headless=true",
+        "algo.config.eval.num_eval_episodes=16",
+        "+algo.config.eval.eval_num_envs_episodes=true",
+        "+algo.config.eval.dump_to_log_metrics=true",
+        "algo.config.eval.save_goal_reached_only=false",
+        "algo.config.eval.save_trajectories=false",
+        "algo.config.eval.save_videos=false",
+        "algo.config.eval.num_save_episodes=16",
+        "+simulator.config.render_results=false",
+        "+simulator.config.cameras.enable_cameras=false",
+        "eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime/eval",
+        "eval_log_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime/hydra",
+        "env.config.save_rendering_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime/renderings",
+        "+device=cuda:4",
+        "hydra.run.dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/out_runtime/hydra"
+      ],
+      "env": {
+        "ACCELERATE_TORCH_DEVICE": "cuda:4",
+        "WANDB_MODE": "offline",
+        "HYDRA_FULL_ERROR": "1",
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONPATH": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+        "CUDA_VISIBLE_DEVICES": "UNSET"
+      },
+      "command_sha256": "1391b38f151d5eea2d36b8c6e121db914368d64354372cc43cbf14a38784857f",
+      "threshold_mode": "report_only",
+      "policy_update": false
+    },
+    "in": {
+      "direction": "in",
+      "seed": 0,
+      "num_envs": 16,
+      "episodes": 16,
+      "first_episode_only": true,
+      "checkpoint_input": {
+        "path": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/input/model_step_002500.pt",
+        "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+        "source_path_read_only": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt",
+        "source_sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
+      },
+      "config_input": {
+        "path": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/input/config.yaml",
+        "sha256": "7a694d5cd26c874c2d6169a6f239e781c97b4dcf2884201eac48f2e1b7bdaad5",
+        "source_path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0c/in_telemetry/config.yaml"
+      },
+      "artifact_root": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/in",
+      "eval_output": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/eval",
+      "hydra_output": "logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/hydra",
+      "argv": [
+        "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+        "-B",
+        "-m",
+        "gr00t.rl.eval_agent_trl",
+        "checkpoint=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/input/model_step_002500.pt",
+        "checkpoint_load_mode=full",
+        "+auto_load_latest=false",
+        "+num_envs=16",
+        "+seed=0",
+        "+headless=true",
+        "algo.config.eval.num_eval_episodes=16",
+        "+algo.config.eval.eval_num_envs_episodes=true",
+        "+algo.config.eval.dump_to_log_metrics=true",
+        "algo.config.eval.save_goal_reached_only=false",
+        "algo.config.eval.save_trajectories=false",
+        "algo.config.eval.save_videos=false",
+        "algo.config.eval.num_save_episodes=16",
+        "+simulator.config.render_results=false",
+        "+simulator.config.cameras.enable_cameras=false",
+        "eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/eval",
+        "eval_log_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/hydra",
+        "env.config.save_rendering_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/renderings",
+        "+device=cuda:4",
+        "hydra.run.dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0f_zero_shot/in/hydra"
+      ],
+      "env": {
+        "ACCELERATE_TORCH_DEVICE": "cuda:4",
+        "WANDB_MODE": "offline",
+        "HYDRA_FULL_ERROR": "1",
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONPATH": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+        "CUDA_VISIBLE_DEVICES": "UNSET"
+      },
+      "command_sha256": "a126d7ddb868f10d7492fd9665c655dacd1c1364004348868446bb8345240173",
+      "threshold_mode": "report_only",
+      "policy_update": false
+    }
+  },
+  "interpretation": "Report-only behavioral fingerprint; this plan cannot choose W versus S.",
+  "plan_sha256": "9b303c44f6f176ad704cfc50d458e718c29982ab73bb9e02fd8b592fd701f029"
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v3",
+  "generated_at_hkt": "2026-08-03 23:19:47 HKT",
+  "attempt": 3,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "APPLICATION_CONTRACT_ERROR_BEFORE_PROBE",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r1": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R1_RECEIPT.json",
+      "sha256": "14b15df80229fbd7e01fded10c8a1675f58317cabb727e6d12f0931ab82f8335"
+    },
+    "revision": "R1",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT3_PLAN.json",
+      "sha256": "64881440bfb7c17382392ce47d7890e8bcdf9f423b8f1aacee902c437dc5b7a3"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt3/process_receipt.json",
+      "sha256": "f52c285406a984717dc083aaa7311b425f21e8c4975d88e7dde38047c4c55bc0"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt3/stdout_stderr.log",
+      "sha256": "3d04d45d4fc6dddd25ce4c87ec39e5c4367c462b7803f91312f004a4b2f1b177"
+    },
+    "summary": null,
+    "metrics": null
+  },
+  "application_contract_error": {
+    "stage": "BEFORE_PROBE",
+    "exception_type": "TypeError",
+    "signature": "TypeError: device must be torch.device; got str.",
+    "device_contract": "a2_pull_proof_world_offset_x requires torch.device, but the consumer passed str.",
+    "summary_present": false,
+    "metrics_present": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": "N/A",
+    "latch_release": "N/A",
+    "hinge_progress_min_rad": "N/A",
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": "N/A",
+    "observed_max_body_force_n": "N/A",
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "N/A; application failed before probe summary generation.",
+    "metrics": "N/A; application failed before terminal metrics generation.",
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "threshold_mode": "report_only",
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime outcome is asserted beyond the captured application error.",
+    "No pull-mechanism verdict is asserted because the probe never started."
+  ]
+}

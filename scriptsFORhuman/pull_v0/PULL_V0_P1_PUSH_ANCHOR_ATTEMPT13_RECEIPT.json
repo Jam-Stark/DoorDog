@@ -1,0 +1,60 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v13",
+  "generated_at_hkt": "2026-08-04 04:11:21 HKT",
+  "attempt": 13,
+  "status": "APPLICATION_CONFIG_ERROR_BEFORE_PROBE",
+  "probe_validity": "NOT_RUN",
+  "runtime_validation": "NOT_RUN",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "application_success": false,
+  "natural_exit": false,
+  "returncode": 1,
+  "repair_r11": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R11_RECEIPT.json",
+      "sha256": "4c50d52e25658e296b3101b283bb2eb57e7d9f5747dedb8a8b76a22783e563a4"
+    },
+    "revision": "R11",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_PLAN.json",
+      "sha256": "25c106d21b399add34a182a031804ee6bc4e7aef884af457d10225dedd73e353"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/process_receipt.json",
+      "sha256": "fc23b6f83adad04f4ede47397fcff3856abaceccd99b861aaeb6efa49b472b7e"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/stdout_stderr.log",
+      "sha256": "c7012546d0bd515a60d58ee4d554ef998cc361716408961ad84a3d0c37c782c6"
+    },
+    "summary": null,
+    "metrics": null
+  },
+  "application_contract_error": {
+    "stage": "BEFORE_PROBE",
+    "exception_type": "ConfigCompositionException",
+    "root_cause": "ATTEMPT13_HYDRA_STRUCT_CONFIG_MISSING_PLUS_OVERRIDE",
+    "attempted_override": "env.config.max_stage_time=[400,100,100,100,100,200]",
+    "missing_plus_override": "+env.config.max_stage_time=[400,100,100,100,100,200]",
+    "message": "Could not override 'env.config.max_stage_time'. To append to your config use +env.config.max_stage_time=[400,100,100,100,100,200]",
+    "summary_present": false,
+    "metrics_present": false
+  },
+  "preserved_application_state": {
+    "plan_status": "READY",
+    "plan_sha256": "3aa964ac867e122b787518058da8ff9665315ea31b6fab9156010e5478ae4a5b",
+    "plan_repair_receipt_path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R11_RECEIPT.json",
+    "plan_repair_receipt_sha256": "4c50d52e25658e296b3101b283bb2eb57e7d9f5747dedb8a8b76a22783e563a4",
+    "process_plan_sha256": "3aa964ac867e122b787518058da8ff9665315ea31b6fab9156010e5478ae4a5b",
+    "process_repair_receipt_sha256": "4c50d52e25658e296b3101b283bb2eb57e7d9f5747dedb8a8b76a22783e563a4",
+    "summary_path": null,
+    "metrics_path": null
+  },
+  "unverified_claims": [
+    "No IsaacSim or GPU runtime outcome is asserted beyond the captured application configuration error.",
+    "No probe validity or pull-mechanism verdict is asserted because Hydra composition failed before probe startup."
+  ]
+}

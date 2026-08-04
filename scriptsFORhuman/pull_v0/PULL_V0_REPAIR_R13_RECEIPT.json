@@ -1,0 +1,206 @@
+{
+  "schema_version": "pull_v0_repair_r13_receipt_v1",
+  "generated_at_hkt": "2026-08-04 04:44:56 HKT",
+  "repair_revision": "R13",
+  "status": "APPROVED_FOR_ATTEMPT15_PREPARATION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "ATTEMPT14_RENDERER_MULTIGPU_RESOURCE_LEASE_VIOLATION",
+    "conclusion": "Immutable Attempt14 was invalidated after Isaac Sim's renderer opened compute contexts on GPUs outside the authorized physical lease [4, 5, 6], including unauthorized GPU7. AppLauncher selected cuda:4 for physics and active GPU4, but its default renderer multi-GPU settings remained enabled/auto-enabled with no max GPU count. The bounded repair is to serialize explicit single-GPU Kit arguments while preserving device cuda:4, the physical GPU lease, and all pull-v0 product thresholds and timeouts.",
+    "resource_stop_condition": "Physical GPU lease violation: renderer opened compute contexts on unauthorized GPUs.",
+    "unauthorized_gpu_indices": [
+      0,
+      1,
+      2,
+      3,
+      7
+    ],
+    "gpu7_compute_authorized": false,
+    "observed_launcher_multi_gpu": {
+      "enabled": true,
+      "auto_enable": true,
+      "max_gpu_count": null
+    }
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R12_RECEIPT.json",
+    "sha256": "676e0df6a8b3a9dca35ce53c41726df6ec64db57e6652f4b25e1b01131c833bb",
+    "repair_revision": "R12"
+  },
+  "trigger": {
+    "attempt": 14,
+    "root_cause": "ATTEMPT14_RENDERER_MULTIGPU_RESOURCE_LEASE_VIOLATION",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_RECEIPT.json",
+      "sha256": "60c007cf6267e42b66605217880adc24e638da744142e85e362a313ba4778638"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_PLAN.json",
+        "sha256": "fce7011380089e4f8647dfccf5ed4a4c75b149001c0acc6b7dfbf8de02f4f3c4"
+      },
+      "stdout": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/stdout_stderr.log",
+        "sha256": "ccc370f82c7dc2043b97d063788a2a5cf43e2c8755a3cc7388911ccd6172bbab"
+      },
+      "kit_log": {
+        "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_041952.log",
+        "sha256": "0085e219a74f2c9f36fe32e65a38cc64fab039b656535af7f80209e44554511b"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Correct only AppLauncher Kit argument serialization so renderer multi-GPU is disabled, auto-enable is disabled, and maxGpuCount is one; preserve cuda:4, the authorized physical GPU lease, pull-v0 product mechanics, thresholds, and timeout budgets; authorize Attempt15 preparation only.",
+    "r12_parent_immutable": true,
+    "attempt14_plan_immutable": true,
+    "attempt14_resource_stop_preserved": true,
+    "attempt14_prepared": true,
+    "attempt14_runtime_executed": true,
+    "attempt14_probe_validity": "PROBE_INVALID",
+    "attempt15_prepared": false,
+    "attempt15_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED",
+    "product_mechanics_changed": false,
+    "thresholds_or_timeouts_changed": false
+  },
+  "attempt14_evidence": {
+    "status": "PROBE_INVALID",
+    "probe_validity": "PROBE_INVALID",
+    "runtime_validation": "INVALIDATED_BY_RESOURCE_STOP",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "scientific_verdict_consumed": false,
+    "resource_stop": {
+      "triggered": true,
+      "stop_condition": "Physical GPU lease violation: renderer opened compute contexts on unauthorized GPUs.",
+      "main_action": "SIGINT_SENT_BY_MAIN",
+      "child_pid": 1711000,
+      "child_state": "DEFUNCT_AFTER_SIGINT",
+      "selected_physical_gpu": 4,
+      "authorized_physical_gpus": [
+        4,
+        5,
+        6
+      ],
+      "observed_gpu_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "unauthorized_gpu_indices": [
+        0,
+        1,
+        2,
+        3,
+        7
+      ],
+      "gpu7_compute_authorized": false,
+      "contexts_remaining_after_stop": false
+    },
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_PLAN.json",
+      "sha256": "fce7011380089e4f8647dfccf5ed4a4c75b149001c0acc6b7dfbf8de02f4f3c4"
+    },
+    "stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/stdout_stderr.log",
+      "sha256": "ccc370f82c7dc2043b97d063788a2a5cf43e2c8755a3cc7388911ccd6172bbab"
+    },
+    "kit_log": {
+      "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_041952.log",
+      "sha256": "0085e219a74f2c9f36fe32e65a38cc64fab039b656535af7f80209e44554511b"
+    },
+    "interrupted_trace_tmp": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt14/eval/stage2_5_step_trace.json.tmp",
+      "bytes": 1784450644,
+      "sha256": null,
+      "interpretation": "Ignored as incomplete temporary data; not hashed or consumed as scientific evidence."
+    },
+    "canonical_process_receipt_present": false,
+    "partial_outputs_consumed": false
+  },
+  "renderer_single_gpu_contract": {
+    "kit_args": "--/renderer/multiGpu/enabled=False --/renderer/multiGpu/autoEnable=False --/renderer/multiGpu/maxGpuCount=1",
+    "renderer_multi_gpu_enabled": false,
+    "renderer_multi_gpu_auto_enable": false,
+    "renderer_multi_gpu_max_gpu_count": 1,
+    "active_gpu_index": 4,
+    "physics_cuda_device": 4,
+    "tensor_device": "cuda:4",
+    "cuda_visible_devices": "UNSET",
+    "physical_gpu_lease": [
+      4,
+      5,
+      6
+    ],
+    "gpu7_compute_authorized": false
+  },
+  "changed_files": {
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "60c007cf6267e42b66605217880adc24e638da744142e85e362a313ba4778638",
+      "reason": "Record the immutable Attempt14 renderer multi-GPU resource-stop invalidation."
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r13_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "2699d9556a1600c40f19e9d1264a89125f3b6a6a4c7e20557e87c600faebda6b",
+      "reason": "Build and validate the immutable R13 repair receipt."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": null,
+      "post_sha256": "4447465c4554ffcd2f451a9ff2522e2f9e9a60970cb33bc5adf3674cd31b721d",
+      "reason": "Guard exact Attempt14 invalidation evidence, R13 ancestry, and single-GPU Kit argv."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Serialize the R13 single-GPU Kit arguments and bind Attempt15; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R13_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Validate R13 ancestry and Attempt14 resource-stop evidence; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R13_RECEIPT_SHA_SELF_CYCLE"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "Attempt14 exact invalidation evidence and R13 ancestry checks",
+      "single-GPU Kit argv serialization check",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R13 authorizes Attempt15 preparation only; no Attempt15 preparation, IsaacSim, GPU, or pull-mechanism runtime was executed."
+  },
+  "acceptance": {
+    "r12_parent_exact": true,
+    "attempt14_receipt_exact": true,
+    "attempt14_plan_stdout_kit_log_exact": true,
+    "attempt14_resource_stop_exact": true,
+    "attempt14_gpu7_unauthorized": true,
+    "attempt14_probe_invalid": true,
+    "attempt14_pull_verdict_not_assessed": true,
+    "interrupted_trace_size_only": true,
+    "single_gpu_kit_args_exact": true,
+    "cuda4_device_preserved": true,
+    "product_mechanics_unchanged": true,
+    "thresholds_and_timeouts_unchanged": true,
+    "attempt15_runner_exact_r13_binding": true,
+    "attempt15_not_prepared_or_run": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No IsaacSim or GPU runtime PASS is asserted for R13.",
+    "No Attempt15 preparation or runtime was executed.",
+    "No pull-mechanism verdict is asserted because Attempt14 was invalidated by the resource stop.",
+    "The interrupted temporary trace is size-only evidence and is not interpreted scientifically."
+  ]
+}

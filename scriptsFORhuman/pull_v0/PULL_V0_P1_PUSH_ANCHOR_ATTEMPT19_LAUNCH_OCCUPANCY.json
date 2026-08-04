@@ -1,0 +1,283 @@
+{
+  "schema_version": "pull_v0_p1_attempt19_launch_occupancy_v1",
+  "captured_at_hkt": "2026-08-04 22:18:25 HKT",
+  "attempt": 19,
+  "phase": "IMMEDIATELY_BEFORE_LAUNCH",
+  "status": "PASS",
+  "plan": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_PLAN.json",
+    "sha256": "cf23ee03ec0c40e77582ec724d8c6d8855cebcd40791edb7c8d11e75d9800748",
+    "plan_sha256": "0a95c1e3f3e022947f281c5cff7e2697a687e4d3e86e475543686a97bc99f91e"
+  },
+  "selected_compute_physical_device": 2,
+  "authorized_compute_physical_devices": [
+    2,
+    3
+  ],
+  "unauthorized_compute_physical_devices": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7
+  ],
+  "per_device": [
+    {
+      "index": 0,
+      "uuid": "GPU-f593e489-014b-eed5-4331-b01447615b6e",
+      "memory_used_mib": 2.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 0,
+          "pid": null,
+          "type": null,
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_APPLICABLE",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_APPLICABLE",
+          "fb_memory_mib": null,
+          "fb_memory_mib_state": "NOT_APPLICABLE",
+          "command": null,
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": false,
+      "context_classification": "IDLE"
+    },
+    {
+      "index": 1,
+      "uuid": "GPU-2c5d7dc8-847b-6d4a-e3cd-e1139ef56787",
+      "memory_used_mib": 2.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 1,
+          "pid": null,
+          "type": null,
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_APPLICABLE",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_APPLICABLE",
+          "fb_memory_mib": null,
+          "fb_memory_mib_state": "NOT_APPLICABLE",
+          "command": null,
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": false,
+      "context_classification": "IDLE"
+    },
+    {
+      "index": 2,
+      "uuid": "GPU-7bb5efaa-24d3-ea73-c1ee-9b3341a708be",
+      "memory_used_mib": 2.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 2,
+          "pid": null,
+          "type": null,
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_APPLICABLE",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_APPLICABLE",
+          "fb_memory_mib": null,
+          "fb_memory_mib_state": "NOT_APPLICABLE",
+          "command": null,
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": true,
+      "context_classification": "LEASE_IDLE"
+    },
+    {
+      "index": 3,
+      "uuid": "GPU-ffc02ac2-e15e-00e3-f842-6f501cb0b6e5",
+      "memory_used_mib": 15.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 3,
+          "pid": 2198197,
+          "type": "G",
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_REPORTED",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_REPORTED",
+          "fb_memory_mib": 4.0,
+          "fb_memory_mib_state": "REPORTED",
+          "command": "python",
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": true,
+      "context_classification": "OTHER_TENANT_INACTIVE_VULKAN_ENUMERATION"
+    },
+    {
+      "index": 4,
+      "uuid": "GPU-20093912-98d6-3c89-9517-3ac344e38fc3",
+      "memory_used_mib": 5088.0,
+      "utilization_gpu_percent": 11.0,
+      "compute_processes": [
+        {
+          "pid": 2198197,
+          "name": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+          "memory_used_mib": 5050.0
+        }
+      ],
+      "pmon_processes": [
+        {
+          "gpu_index": 4,
+          "pid": 2198197,
+          "type": "C+G",
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_REPORTED",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_REPORTED",
+          "fb_memory_mib": 5050.0,
+          "fb_memory_mib_state": "REPORTED",
+          "command": "python",
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": false,
+      "context_classification": "OTHER_TENANT"
+    },
+    {
+      "index": 5,
+      "uuid": "GPU-b126539d-3319-a583-f61d-55879b327ddb",
+      "memory_used_mib": 2.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 5,
+          "pid": null,
+          "type": null,
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_APPLICABLE",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_APPLICABLE",
+          "fb_memory_mib": null,
+          "fb_memory_mib_state": "NOT_APPLICABLE",
+          "command": null,
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": false,
+      "context_classification": "IDLE"
+    },
+    {
+      "index": 6,
+      "uuid": "GPU-4ac67b5e-dc39-3565-d84b-1e7ce20127fa",
+      "memory_used_mib": 2.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 6,
+          "pid": null,
+          "type": null,
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_APPLICABLE",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_APPLICABLE",
+          "fb_memory_mib": null,
+          "fb_memory_mib_state": "NOT_APPLICABLE",
+          "command": null,
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": false,
+      "context_classification": "IDLE"
+    },
+    {
+      "index": 7,
+      "uuid": "GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d",
+      "memory_used_mib": 2.0,
+      "utilization_gpu_percent": 0.0,
+      "compute_processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 7,
+          "pid": null,
+          "type": null,
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_APPLICABLE",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_APPLICABLE",
+          "fb_memory_mib": null,
+          "fb_memory_mib_state": "NOT_APPLICABLE",
+          "command": null,
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ],
+      "leased": false,
+      "context_classification": "IDLE"
+    }
+  ],
+  "non_leased_tenant_occupancy_at_launch": [
+    {
+      "device_index": 4,
+      "attribution": "OTHER_TENANT",
+      "utilization_gpu_percent": 11.0,
+      "processes": [
+        {
+          "pid": 2198197,
+          "name": "/home/baoquanc/anaconda3/envs/isaaclab/bin/python",
+          "memory_used_mib": 5050.0
+        }
+      ],
+      "pmon_processes": [
+        {
+          "gpu_index": 4,
+          "pid": 2198197,
+          "type": "C+G",
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_REPORTED",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_REPORTED",
+          "fb_memory_mib": 5050.0,
+          "fb_memory_mib_state": "REPORTED",
+          "command": "python",
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ]
+    }
+  ],
+  "authorized_alternate_tenant_occupancy_at_launch": [
+    {
+      "device_index": 3,
+      "attribution": "OTHER_TENANT",
+      "utilization_gpu_percent": 0.0,
+      "processes": [],
+      "pmon_processes": [
+        {
+          "gpu_index": 3,
+          "pid": 2198197,
+          "type": "G",
+          "sm_util_percent": null,
+          "sm_util_percent_state": "NOT_REPORTED",
+          "memory_util_percent": null,
+          "memory_util_percent_state": "NOT_REPORTED",
+          "fb_memory_mib": 4.0,
+          "fb_memory_mib_state": "REPORTED",
+          "command": "python",
+          "source": "nvidia-smi pmon -i 0,1,2,3,4,5,6,7 -c 1 -s um"
+        }
+      ]
+    }
+  ],
+  "cuda_visible_devices": "UNSET",
+  "incidental_vulkan_enumeration_contexts_authorized": true,
+  "container_isolation_used": false,
+  "runtime_started": false,
+  "scientific_attempt_started": false,
+  "observation": "CPU-side nvidia-smi inventory captured immediately before the exact Attempt19 launch."
+}

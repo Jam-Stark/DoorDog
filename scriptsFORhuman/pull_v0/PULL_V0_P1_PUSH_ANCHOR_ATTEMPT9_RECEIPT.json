@@ -1,0 +1,95 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v9",
+  "generated_at_hkt": "2026-08-04 02:17:30 HKT",
+  "attempt": 9,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "PULL_P1_STAGE0_TIMEOUT_WITH_RESPONSE_CAPTURED",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r7": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R7_RECEIPT.json",
+      "sha256": "a5f576c06718b145e992bd4927384efae9e7b8714f6f8b87836914da6c702b5f"
+    },
+    "revision": "R7",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_PLAN.json",
+      "sha256": "460dd1fcbb0e51d080db730bbf0f020f5ec56d5d76468f8f48bfe322039cc2a8"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/process_receipt.json",
+      "sha256": "830246b8cd9cec9d5ac0adb7eaaec92e43bae0d664ef7dcd3caf3aa6c577c12f"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/stdout_stderr.log",
+      "sha256": "6aa8ffe29f219d62ae82faac4dfb17034a012cc09f5203b26d9a3ddd148f16a7"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/eval/a2_hold_oracle_summary.json",
+      "sha256": "cdd72c25960b68377a49285c2a3342468e3cc191b9b431d17779310eeb2903b1"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt9/eval/metrics_eval.json",
+      "sha256": "5f89f0d2bfbd99853e823273277d297b21ba48af424ec15405f2f8470cebe178"
+    }
+  },
+  "observed": {
+    "summary_outcome": "PULL_P1_STAGE0_TIMEOUT",
+    "trace_step_count": 123,
+    "stage0_rows": 120,
+    "stage0_timeout_predicate_observed": false,
+    "reset_contact_qualification_complete": true,
+    "reset_transient_observed": true,
+    "terminal_body_panel_contact_current_n": 0.0,
+    "body_panel_contact_max_n": 3817.004150390625
+  },
+  "command_to_plant_response": {
+    "status": "CAPTURED",
+    "schema": "a2_piper_pull_v0_stage0_command_response_summary_v2",
+    "reason": null,
+    "threshold_mode": "report_only",
+    "admission_field_present": true
+  },
+  "stage0_timeout_boundary": {
+    "blocker": "PULL_P1_STAGE0_TIMEOUT_WITH_RESPONSE_CAPTURED",
+    "mechanism": "The signed stage0 command timed out after causal post-executor response telemetry was captured; response metrics remain report-only and do not alter admission.",
+    "signed_target_and_band_unchanged": true,
+    "stage0_timeout_is_sole_hard_stop": true,
+    "response_metrics_report_only": true
+  },
+  "reset_boundary": {
+    "qualification_window_steps": 3,
+    "window_complete": true,
+    "transient_observed": true,
+    "result": "CLEARED",
+    "staging_started_during_window": false,
+    "dls_started_during_window": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": false,
+    "latch_release": true,
+    "hinge_progress_min_rad": 0.25,
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": false,
+    "observed_max_body_force_n": 0.0,
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "validated actual runtime summary schema",
+    "metrics": "validated actual base-owned push_anchor_admission terminal schema",
+    "stage0_command_response": "report-only; captured from exact executor/post-physics latch",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "legacy_pull_v0_namespace": "not required for base-owned admission"
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "runtime_validation": "UNVERIFIED",
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "The stage0 timeout remains a probe blocker; no pull-mechanism verdict is asserted.",
+    "The response latch is static-only until a separately authorized runtime validates it."
+  ]
+}

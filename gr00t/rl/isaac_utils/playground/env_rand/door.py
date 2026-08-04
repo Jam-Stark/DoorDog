@@ -588,12 +588,14 @@ def spawn_door(
         latch_mimic_joint.GetOffsetAttr().Set(0.0)
         _update_joint_transform(stage, latch_joint_prim_path, panel_prim_path, latch_link_prim_path)
 
-    # adjust grasp target
+    # Place the single task target on the active IO handle face.  Hinge,
+    # handle, latch, and panel mechanics remain independent of door_open_io.
+    grasp_target_face_x = door_open_io * axle_length / 2
     set_prim_transform(
         stage,
         grasp_target_prim_path,
         (
-            -axle_length / 2,
+            grasp_target_face_x,
             (half_door_width - door_handle_width - handle_length / 2) * door_open_lr,
             door_handle_height,
         ),
@@ -605,7 +607,7 @@ def spawn_door(
     grasp_target_joint.CreateBody0Rel().SetTargets([grasp_target_prim_path])
     grasp_target_joint.CreateBody1Rel().SetTargets([handle_prim_path])
     grasp_target_joint.CreateLocalPos1Attr().Set(
-        Gf.Vec3f(-axle_length / 2, -handle_length / 2 * door_open_lr, 0.0)
+        Gf.Vec3f(grasp_target_face_x, -handle_length / 2 * door_open_lr, 0.0)
     )
     # _update_joint_transform(stage, grasp_target_joint_prim_path, grasp_target_prim_path, handle_prim_path)
 

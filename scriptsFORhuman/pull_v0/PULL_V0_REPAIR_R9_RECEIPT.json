@@ -1,0 +1,162 @@
+{
+  "schema_version": "pull_v0_repair_r9_receipt_v1",
+  "generated_at_hkt": "2026-08-04 03:14:13 HKT",
+  "repair_revision": "R9",
+  "status": "APPROVED_FOR_ATTEMPT11_PREPARATION_ONLY",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "STAGE0_TIMEOUT_BELOW_KINEMATIC_CAPACITY",
+    "conclusion": "Immutable Attempt10 reached the signed stage0 timeout with 120 response rows, zero anti-alignment, and monotonically decreasing horizontal residual, but the 120-step watchdog was below the measured staging-distance capacity.",
+    "initial_stage0_horizontal_m": 0.9215447306632996,
+    "physical_speed_mps": 0.15,
+    "control_dt_s": 0.02,
+    "distance_per_control_step_m": 0.003,
+    "kinematic_lower_bound_steps": 308,
+    "settle_steps": 5,
+    "minimum_steps_including_settle": 313,
+    "attempt10_timeout_steps": 120,
+    "timeout_shortfall_vs_kinematic_lower_bound_steps": 188,
+    "r9_timeout_steps": 360,
+    "r9_nominal_horizon_s": 7.2,
+    "r9_nominal_travel_m": 1.08,
+    "budget_role": "P1_STAGE0_ADMISSION_WATCHDOG_ONLY",
+    "mechanism_threshold": false,
+    "signed_target_and_band_unchanged": true
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R8_RECEIPT.json",
+    "sha256": "00e7abbc6612f7a841cb0a809c7053ba343dab1e7d14f94d092510a82f11b76b",
+    "repair_revision": "R8"
+  },
+  "trigger": {
+    "attempt": 10,
+    "root_cause": "STAGE0_TIMEOUT_BELOW_KINEMATIC_CAPACITY",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT10_RECEIPT.json",
+      "sha256": "725300a992e5e842b4335d62e8ee71bbcf4b3bcd414a5087ba6dca38ecdaaaf6"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT10_PLAN.json",
+        "sha256": "98bad3d8b617811e9db459be434f754d90bbafe1bc388035d84e0f219d12ae11"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/process_receipt.json",
+        "sha256": "91094b6010c2a19545f6c5e31e66f2a8acdb61042fb714e0e61a5d2e3551ba88"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/stdout_stderr.log",
+        "sha256": "dc5a0171a6cb2c4d59265761665fd314a9cc5fe918bc5074567f461de4a907ee"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/eval/a2_hold_oracle_summary.json",
+        "sha256": "b2c2904a18c4f5ffc675ee1da37e237a9265f7abc13e080417ffcee5123be06e"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt10/eval/metrics_eval.json",
+        "sha256": "74f160458bf51cfd28e4fd15275b6cfd64f8a6987b12d6d031e0d5fadca2b3cb"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Raise only the P1 pull-anchor stage0 admission watchdog to 360 steps; preserve the signed target, staging band, staging speed, settle count, stage ordering, and mechanism semantics.",
+    "attempt9_r7_immutable": true,
+    "attempt10_r8_immutable": true,
+    "attempt11_prepared": false,
+    "attempt11_runtime_executed": false,
+    "gpu_or_isaacsim_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "quaternion_contract_closure": {
+    "source": "canonical ArticulationData.root_quat_w WXYZ",
+    "response_rows": 120,
+    "anti_alignment_count": 0,
+    "initial_stage0_horizontal_m": 0.9215447306632996,
+    "terminal_stage0_horizontal_m": 0.5063455700874329,
+    "residual_monotonic_nonincreasing": true,
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY"
+  },
+  "attempt10_evidence": {
+    "status": "BLOCKED",
+    "probe_validity": "PROBE_INVALID",
+    "stage0_timeout_predicates": {
+      "staging_band": false,
+      "settle_count": 0,
+      "timed_out": true
+    },
+    "response_count": 120,
+    "anti_alignment_count": 0,
+    "residual_increase_count": 0,
+    "response_metrics_report_only": true
+  },
+  "changed_files": {
+    "gr00t/rl/config/ablation/wbmanip/pull_v0_p1_push_anchor.yaml": {
+      "pre_sha256": null,
+      "post_sha256": "51c9a41f5a11116c49f76acaadaf753e286d316b50e55be186c70491855a8bed",
+      "reason": "Raise only the pull-anchor stage0 admission watchdog from 120 to 360 steps."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Bind exact Attempt10/R8 and Attempt11/R9 ancestry and use the 360-step stage0 watchdog.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R9_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Classify immutable Attempt10 timeout capacity and retain canonical WXYZ response closure.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R9_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r9_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "27a492ee3eed4dad8d0d277f69bfa8187feefd00f650ee96bf8e4bae712de802",
+      "reason": "Build and validate the immutable R9 repair receipt."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": null,
+      "post_sha256": "29c141856f9b07d47fcd840986420e151d873042971471c86a87fe870ce6b23c",
+      "reason": "Guard R7/R8/R9 receipt ancestry and the 360-step timeout binding."
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "pre_sha256": null,
+      "post_sha256": "e94ce587d3db2f90ad9484b08c71f7104f3dca2f023d6d73f3768cc9c7525bd4",
+      "reason": "Guard the Attempt10 residual-budget and response telemetry contract."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT10_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "725300a992e5e842b4335d62e8ee71bbcf4b3bcd414a5087ba6dca38ecdaaaf6",
+      "reason": "Immutable Attempt10 canonical receipt; included by exact artifact hash."
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "Attempt9 R7 and Attempt10 R8 exact receipt/hash assertions",
+      "Attempt11 runner exact R9 ancestry and immutable Attempt10 artifact assertions",
+      "360-step timeout confined to pull-anchor config and runner",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R9 authorizes preparation only; no Attempt11 preparation, IsaacSim, GPU, or pull-mechanism runtime was executed."
+  },
+  "acceptance": {
+    "attempt9_r7_receipt_unchanged": true,
+    "attempt10_exact_r8_parent_binding": true,
+    "attempt10_response_rows_120": true,
+    "attempt10_zero_anti_alignment": true,
+    "attempt10_residual_monotonic_nonincreasing": true,
+    "attempt10_timeout_below_kinematic_bound_explicit": true,
+    "r9_timeout_360_only_pull_anchor_watchdog": true,
+    "attempt11_runner_exact_r9_sha_and_full_attempt10_ancestry": true,
+    "attempt11_not_prepared_or_run": true,
+    "pull_mechanism_verdict_not_assessed": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime PASS is asserted for R9.",
+    "No Attempt11 preparation or runtime was executed.",
+    "No pull-mechanism verdict is asserted; the timeout analysis is admission/watchdog-only."
+  ]
+}

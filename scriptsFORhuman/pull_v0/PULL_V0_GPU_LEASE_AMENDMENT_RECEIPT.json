@@ -1,0 +1,211 @@
+{
+  "schema_version": "pull_v0_gpu_lease_amendment_receipt_v1",
+  "generated_at_hkt": "2026-08-04 17:24:32 HKT",
+  "amendment_revision": "A4_A6",
+  "repair_revision": "A4_A6",
+  "status": "APPROVED_FOR_ATTEMPT17_PREPARATION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "authority": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pull_task/a2_piper_pull_v0_gpu_lease_amendment_20260804.md",
+    "sha256": "84e94561bac1eb39b49d27e67c9f5b192844f7b9f5e203961495beea683dfc49"
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R14_RECEIPT.json",
+    "sha256": "bedc40a3693db21981498573e5afd14e8ed736ca84eca5261dfacd9715b59d24",
+    "repair_revision": "R14"
+  },
+  "amendments": {
+    "amendment4_compute_authorized_physical_devices": [
+      2,
+      3
+    ],
+    "amendment4_selected_physical_device": 2,
+    "amendment4_revoked_physical_devices": [
+      4,
+      5,
+      6
+    ],
+    "amendment5_incidental_vulkan_enumeration_authorized_on_visible_devices": true,
+    "amendment5_no_compute_on_non_leased_devices": true,
+    "amendment5_container_isolation_authorized": false,
+    "amendment5_container_isolation_required": false,
+    "amendment6_attempt15_infra_id": "INFRA_001_HYDRA_KIT_ARGS_TRANSPORT",
+    "amendment6_attempt16_infra_id": "INFRA_002_VULKAN_ENUMERATION_AUTHORIZATION",
+    "amendment6_next_scientific_attempt": 17
+  },
+  "trigger": {
+    "attempt16": {
+      "receipt": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_RECEIPT.json",
+        "sha256": "2cfbd95e10dc57e16cf2f566925593c41680f3592539676c013c4931a22c06c5"
+      },
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_PLAN.json",
+        "sha256": "7371fef9948e72a9900da45074daba9d5848556ebc9dac91eb9eba44fdaf55e9"
+      },
+      "stdout": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt16/stdout_stderr.log",
+        "sha256": "f490a2540c700304de21598a95e7c6f787dccf0a6a8338cb3536838aff321e0d"
+      },
+      "kit_log": {
+        "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_050202.log",
+        "sha256": "e3e1d25bae608e323122651f288b1528d7187f9d806779b581f8086d8ed25618"
+      }
+    },
+    "one_time_vulkan_footprint_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_VULKAN_ENUMERATION_CONTEXT_RECEIPT.json",
+      "sha256": "7d2fbc98a07355f989bc450e39b7ba85fe8deb29ecee32852605f07e6c7bd383"
+    },
+    "infra_reclassification_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_INFRA_RECLASSIFICATION_RECEIPT.json",
+      "sha256": "b3b31ff57e63e87c7712db862fb56f523229b579df7195370eee5e650ebe8b43"
+    }
+  },
+  "scope": {
+    "r14_parent_immutable": true,
+    "attempt15_and_16_receipts_preserved": true,
+    "attempt15_and_16_anchor_attempts_consumed": false,
+    "attempt17_prepared": false,
+    "attempt17_runtime_executed": false,
+    "product_mechanics_changed": false,
+    "fixture_changed": false,
+    "thresholds_or_timeouts_changed": false,
+    "p1_p2_gates_changed": false
+  },
+  "attempt17_preparation_contract": {
+    "authorized_compute_physical_devices": [
+      2,
+      3
+    ],
+    "selected_physical_device": 2,
+    "unauthorized_compute_physical_devices": [
+      0,
+      1,
+      4,
+      5,
+      6,
+      7
+    ],
+    "cuda_device": "cuda:2",
+    "cuda_visible_devices": "UNSET",
+    "renderer_multi_gpu_enabled": false,
+    "renderer_multi_gpu_auto_enable": false,
+    "renderer_multi_gpu_max_gpu_count": 1,
+    "kit_args": "--/renderer/multiGpu/enabled=False --/renderer/multiGpu/autoEnable=False --/renderer/multiGpu/maxGpuCount=1",
+    "hydra_override": "+a2_pull_v0_renderer_single_gpu=true",
+    "transport": "Hydra boolean -> args_cli.multi_gpu/kit_args",
+    "incidental_vulkan_contexts_authorized_on_all_visible_devices": true,
+    "no_compute_on_non_leased_devices": true,
+    "container_isolation_authorized": false,
+    "container_isolation_required": false,
+    "per_run_launch_occupancy_receipt_required": true,
+    "steady_state_footprint_receipt_required": true,
+    "infrastructure_to_anchor_transition": "first_simulation_step",
+    "anchor_verdict_required_after_transition": true
+  },
+  "evidence": {
+    "authority": {
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pull_task/a2_piper_pull_v0_gpu_lease_amendment_20260804.md",
+      "sha256": "84e94561bac1eb39b49d27e67c9f5b192844f7b9f5e203961495beea683dfc49"
+    },
+    "r14_parent": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R14_RECEIPT.json",
+      "sha256": "bedc40a3693db21981498573e5afd14e8ed736ca84eca5261dfacd9715b59d24"
+    },
+    "attempt16_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_RECEIPT.json",
+      "sha256": "2cfbd95e10dc57e16cf2f566925593c41680f3592539676c013c4931a22c06c5"
+    },
+    "attempt16_plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_PLAN.json",
+      "sha256": "7371fef9948e72a9900da45074daba9d5848556ebc9dac91eb9eba44fdaf55e9"
+    },
+    "attempt16_stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt16/stdout_stderr.log",
+      "sha256": "f490a2540c700304de21598a95e7c6f787dccf0a6a8338cb3536838aff321e0d"
+    },
+    "attempt16_kit_log": {
+      "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_050202.log",
+      "sha256": "e3e1d25bae608e323122651f288b1528d7187f9d806779b581f8086d8ed25618"
+    },
+    "vulkan_footprint_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_VULKAN_ENUMERATION_CONTEXT_RECEIPT.json",
+      "sha256": "7d2fbc98a07355f989bc450e39b7ba85fe8deb29ecee32852605f07e6c7bd383"
+    },
+    "infra_reclassification_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_INFRA_RECLASSIFICATION_RECEIPT.json",
+      "sha256": "b3b31ff57e63e87c7712db862fb56f523229b579df7195370eee5e650ebe8b43"
+    },
+    "max_non_leased_delta_mib": 167,
+    "non_leased_stop_threshold_mib": 1024,
+    "supporting_v21_inference_mib": 145,
+    "supporting_v21_inference_role": "CORROBORATING_CONTEXT_ONLY_NOT_PROOF"
+  },
+  "changed_files": {
+    "scriptsFORhuman/pull_v0/PULL_V0_VULKAN_ENUMERATION_CONTEXT_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "7d2fbc98a07355f989bc450e39b7ba85fe8deb29ecee32852605f07e6c7bd383",
+      "reason": "Record the one-time Attempt16 per-device Vulkan enumeration footprint."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_INFRA_RECLASSIFICATION_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "b3b31ff57e63e87c7712db862fb56f523229b579df7195370eee5e650ebe8b43",
+      "reason": "Map Attempts15/16 to immutable INFRA sequence entries under Amendment 6."
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_gpu_lease_amendment_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "fa0fcf097e9e56fa4e9c8028c1729d68b052561de52399eb8857cf55a7250323",
+      "reason": "Build and validate the A4/A6 amendment preparation receipt."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": null,
+      "post_sha256": "ab2abc3744d99f3381fa578bd64f32c48f0fb9bdc9aac4ae35ad51024c69644f",
+      "reason": "Guard the A4/A6 receipt chain, GPU2 lease, and Attempt17 preparation contract."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Rebind future Attempt17 preparation to the amended GPU2/3 lease; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_AMENDMENT_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Validate the amended Attempt17 receipt ancestry; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_AMENDMENT_RECEIPT_SHA_SELF_CYCLE"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "A4/A6 authority, receipt, footprint, and infrastructure mapping hash checks",
+      "Attempt17 GPU2/Hydra argv and no-plan/no-runtime checks",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "This amendment authorizes Attempt17 preparation only; no Attempt17 plan, IsaacSim, GPU, or anchor runtime was executed."
+  },
+  "acceptance": {
+    "authority_sha_exact": true,
+    "r14_parent_exact": true,
+    "attempt15_infra_mapping_exact": true,
+    "attempt16_infra_mapping_exact": true,
+    "vulkan_footprint_exact": true,
+    "max_non_leased_delta_below_1gib": true,
+    "gpu2_selected": true,
+    "gpu2_gpu3_compute_lease_exact": true,
+    "gpu4_gpu5_gpu6_lease_revoked": true,
+    "hydra_boolean_transport_preserved": true,
+    "single_renderer_contract_preserved": true,
+    "attempt17_preparation_only": true,
+    "attempt17_not_prepared_or_run": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No Attempt17 anchor, physics, GPU, or IsaacSim runtime verdict is asserted.",
+    "No reviewer, memory, staging, commit, P1 matrix, or P2 gate is cleared by this amendment."
+  ]
+}

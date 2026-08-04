@@ -1,0 +1,98 @@
+{
+  "attempt": 18,
+  "authorized_compute_physical_devices": [
+    2,
+    3
+  ],
+  "captured_at_hkt": "2026-08-04 19:11:30 HKT",
+  "container_isolation_used": false,
+  "cuda_visible_devices": "UNSET",
+  "incidental_vulkan_enumeration_contexts_authorized": true,
+  "non_leased_tenant_occupancy_at_launch": [],
+  "observation": "Captured immediately before the exact Attempt18 launch; GPU2 selected and GPU3 retained as an unused authorized alternate.",
+  "per_device": [
+    {
+      "compute_processes": [],
+      "index": 0,
+      "leased": false,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-f593e489-014b-eed5-4331-b01447615b6e"
+    },
+    {
+      "compute_processes": [],
+      "index": 1,
+      "leased": false,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-2c5d7dc8-847b-6d4a-e3cd-e1139ef56787"
+    },
+    {
+      "compute_processes": [],
+      "index": 2,
+      "leased": true,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-7bb5efaa-24d3-ea73-c1ee-9b3341a708be"
+    },
+    {
+      "compute_processes": [],
+      "index": 3,
+      "leased": true,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-ffc02ac2-e15e-00e3-f842-6f501cb0b6e5"
+    },
+    {
+      "compute_processes": [],
+      "index": 4,
+      "leased": false,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-20093912-98d6-3c89-9517-3ac344e38fc3"
+    },
+    {
+      "compute_processes": [],
+      "index": 5,
+      "leased": false,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-b126539d-3319-a583-f61d-55879b327ddb"
+    },
+    {
+      "compute_processes": [],
+      "index": 6,
+      "leased": false,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-4ac67b5e-dc39-3565-d84b-1e7ce20127fa"
+    },
+    {
+      "compute_processes": [],
+      "index": 7,
+      "leased": false,
+      "memory_used_mib": 1.0,
+      "utilization_gpu_percent": 0.0,
+      "uuid": "GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d"
+    }
+  ],
+  "phase": "IMMEDIATELY_BEFORE_LAUNCH",
+  "plan": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+    "plan_sha256": "2c9f1efa53423f6abf0a12c41040cfc0c75ed1fb23ce07c05e8c470f093e6d72",
+    "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+  },
+  "runtime_started": false,
+  "schema_version": "pull_v0_p1_attempt18_launch_occupancy_v1",
+  "scientific_attempt_started": false,
+  "selected_compute_physical_device": 2,
+  "status": "PASS",
+  "unauthorized_compute_physical_devices": [
+    0,
+    1,
+    4,
+    5,
+    6,
+    7
+  ]
+}

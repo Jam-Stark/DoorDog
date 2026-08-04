@@ -1,0 +1,97 @@
+{
+  "schema_version": "pull_v0_repair_r15f_receipt_v1",
+  "generated_at_hkt": "2026-08-04 19:49:00 HKT",
+  "repair_revision": "R15F",
+  "status": "APPROVED_FOR_ATTEMPT18_RETRY1_LAUNCH_ADMISSION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "scientific_verdict_consumed": false,
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY_ADMISSION_CONTRADICTION",
+    "conclusion": "Amendment 5 makes a fresh retry1 launch-occupancy receipt mandatory immediately before launch. R15E allowed the existing plan to re-enter, but runner admission still classified the required retry1 occupancy as a pre-existing scientific artifact and blocked before subprocess launch."
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15E_RECEIPT.json",
+    "sha256": "bd384df10e61a0bacd79fdbe0bcdab9172f308ba71c3a6e1b5dac1c92b3e0360",
+    "repair_revision": "R15E"
+  },
+  "trigger": {
+    "attempt": 18,
+    "root_cause": "ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY_ADMISSION_CONTRADICTION",
+    "r15e_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15E_RECEIPT.json",
+      "sha256": "bd384df10e61a0bacd79fdbe0bcdab9172f308ba71c3a6e1b5dac1c92b3e0360"
+    },
+    "required_retry1_launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY.json",
+      "schema_version": "pull_v0_p1_attempt18_launch_occupancy_v1",
+      "phase": "IMMEDIATELY_BEFORE_LAUNCH",
+      "selected_compute_physical_device": 2,
+      "authorized_compute_physical_devices": [
+        2,
+        3
+      ],
+      "cuda_visible_devices": "UNSET",
+      "container_isolation_used": false
+    },
+    "exact_source_fix": "Remove retry1 launch occupancy from R15 no-runtime scientific-artifact rejection; validate the canonical occupancy after exact plan re-entry and before subprocess.run."
+  },
+  "scope": {
+    "r15e_parent_immutable": true,
+    "prelaunch_infra_immutable": true,
+    "attempt18_plan_immutable": true,
+    "retry1_launch_occupancy_required_before_subprocess": true,
+    "retry1_runtime_executed": false,
+    "first_simulation_step_boundary_crossed": false,
+    "scientific_attempt_consumed": false,
+    "process_started": false,
+    "fixture_changed": false,
+    "thresholds_or_timeouts_changed": false,
+    "gpu_selection_changed": false,
+    "product_mechanics_changed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "source_repair": {
+    "bounded_change": "Allow only the canonical retry1 launch occupancy as a pre-subprocess admission artifact and validate its plan, GPU lease, runtime boundary, device coverage, and tenant attribution.",
+    "runner_admission_only": true,
+    "scientific_command_unchanged": true,
+    "fixture_direction_thresholds_and_gpu_lease_unchanged": true,
+    "no_other_process_probe": true,
+    "low_level_usd_api": false
+  },
+  "preserved_artifacts": {
+    "r15e": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R15E_RECEIPT.json",
+      "sha256": "bd384df10e61a0bacd79fdbe0bcdab9172f308ba71c3a6e1b5dac1c92b3e0360"
+    },
+    "prelaunch_infra": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PRELAUNCH_INFRA1_RECEIPT.json",
+      "sha256": "932b6349a339892ea1590d427140820f66884ba357666f35a1bc76f89421e5cf"
+    },
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+      "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+    },
+    "initial_launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_LAUNCH_OCCUPANCY.json",
+      "sha256": "17f91b53a878c25677a96cd5f03a9c3329c5f32424faf6c4f56bab91f141c6ef"
+    }
+  },
+  "retry1_paths": {
+    "launch_occupancy": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY.json",
+    "steady_state_footprint": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_STEADY_STATE_FOOTPRINT.json"
+  },
+  "acceptance": {
+    "canonical_retry1_occupancy_required": true,
+    "exact_plan_file_and_identity_required": true,
+    "gpu2_authorized_2_3_required": true,
+    "complete_devices_0_to_7_required": true,
+    "explicit_other_tenant_attribution_required": true,
+    "steady_process_log_summary_metrics_receipt_forbidden_before_launch": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "R15F does not assert GPU, IsaacSim, physics, anchor, pull-mechanism, or scientific runtime results.",
+    "Retry1 launch occupancy is intentionally absent until a future authorized runtime admission."
+  ]
+}

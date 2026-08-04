@@ -1,0 +1,163 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v16",
+  "generated_at_hkt": "2026-08-04 05:05:09 HKT",
+  "attempt": 16,
+  "status": "PROBE_INVALID",
+  "probe_validity": "PROBE_INVALID",
+  "runtime_validation": "INVALIDATED_BY_GPU_RESOURCE_TOPOLOGY",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "scientific_verdict_consumed": false,
+  "repair_r14": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R14_RECEIPT.json",
+      "sha256": "bedc40a3693db21981498573e5afd14e8ed736ca84eca5261dfacd9715b59d24"
+    },
+    "revision": "R14",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "evidence": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_PLAN.json",
+      "sha256": "7371fef9948e72a9900da45074daba9d5848556ebc9dac91eb9eba44fdaf55e9",
+      "plan_sha256": "3941c89a86bfb3115317d83fbd6c65d383f6893e4e6aed749cfed2c054f452ea"
+    },
+    "stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt16/stdout_stderr.log",
+      "sha256": "f490a2540c700304de21598a95e7c6f787dccf0a6a8338cb3536838aff321e0d"
+    },
+    "kit_log": {
+      "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_050202.log",
+      "sha256": "e3e1d25bae608e323122651f288b1528d7187f9d806779b581f8086d8ed25618"
+    }
+  },
+  "effective_launcher_contract": {
+    "app_launcher_device": "cuda:4",
+    "physics_cuda_device": 4,
+    "renderer_active_gpu": 4,
+    "renderer_multi_gpu_enabled": false,
+    "renderer_multi_gpu_auto_enable": false,
+    "renderer_multi_gpu_max_gpu_count": 1,
+    "kit_command_flags": [
+      "--/renderer/multiGpu/enabled=False",
+      "--/renderer/activeGpu=4",
+      "--/physics/cudaDevice=4",
+      "--/renderer/multiGpu/autoEnable=False",
+      "--/renderer/multiGpu/maxGpuCount=1"
+    ],
+    "kit_gpu_table_active_indices": [
+      4
+    ],
+    "renderer_selection_result": "PASS"
+  },
+  "resource_stop": {
+    "triggered": true,
+    "stop_condition": "The IsaacSim process opened GPU contexts outside the user-authorized physical GPU lease [4, 5, 6].",
+    "main_action": "SIGINT_SENT_BY_MAIN",
+    "child_pid": 1737953,
+    "child_state": "TERMINATED_AFTER_SIGINT",
+    "selected_physical_gpu": 4,
+    "authorized_physical_gpus": [
+      4,
+      5,
+      6
+    ],
+    "observed_process_contexts": [
+      {
+        "gpu_index": 0,
+        "gpu_uuid": "GPU-f593e489-014b-eed5-4331-b01447615b6e",
+        "used_memory_mib": 168,
+        "authorized": false
+      },
+      {
+        "gpu_index": 1,
+        "gpu_uuid": "GPU-2c5d7dc8-847b-6d4a-e3cd-e1139ef56787",
+        "used_memory_mib": 136,
+        "authorized": false
+      },
+      {
+        "gpu_index": 2,
+        "gpu_uuid": "GPU-7bb5efaa-24d3-ea73-c1ee-9b3341a708be",
+        "used_memory_mib": 136,
+        "authorized": false
+      },
+      {
+        "gpu_index": 3,
+        "gpu_uuid": "GPU-ffc02ac2-e15e-00e3-f842-6f501cb0b6e5",
+        "used_memory_mib": 140,
+        "authorized": false
+      },
+      {
+        "gpu_index": 4,
+        "gpu_uuid": "GPU-20093912-98d6-3c89-9517-3ac344e38fc3",
+        "used_memory_mib": 329,
+        "authorized": true
+      },
+      {
+        "gpu_index": 5,
+        "gpu_uuid": "GPU-b126539d-3319-a583-f61d-55879b327ddb",
+        "used_memory_mib": 136,
+        "authorized": true
+      },
+      {
+        "gpu_index": 6,
+        "gpu_uuid": "GPU-4ac67b5e-dc39-3565-d84b-1e7ce20127fa",
+        "used_memory_mib": 136,
+        "authorized": true
+      },
+      {
+        "gpu_index": 7,
+        "gpu_uuid": "GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d",
+        "used_memory_mib": 136,
+        "authorized": false
+      }
+    ],
+    "unauthorized_gpu_indices": [
+      0,
+      1,
+      2,
+      3,
+      7
+    ],
+    "gpu7_compute_authorized": false,
+    "contexts_remaining_after_stop": false
+  },
+  "root_cause": {
+    "code": "BARE_METAL_VULKAN_DEVICE_VISIBILITY_EXCEEDS_GPU_LEASE",
+    "conclusion": "R14 correctly disabled renderer multi-GPU and selected only physical GPU4 as Active, but the bare-metal IsaacSim/Kit process still created process contexts on all eight attached GPUs. This violates the GPU4-6 lease even though inactive GPUs were not selected for rendering.",
+    "code_only_repair_status": "EXHAUSTED_WITHIN_CURRENT_AUTHORIZATION",
+    "external_requirement": "Provide process-level Vulkan device isolation, such as a container or scheduler allocation that exposes only authorized GPUs, or explicitly authorize the observed inactive-device contexts before another IsaacSim launch."
+  },
+  "official_contracts": [
+    {
+      "source": "Omniverse Kit Linux Troubleshooting Q9",
+      "url": "https://docs.omniverse.nvidia.com/kit/docs/kit-manual/109.0.6/guide/linux_troubleshooting.html",
+      "contract": "CUDA_VISIBLE_DEVICES cannot select or hide Vulkan devices; renderer/activeGpu selects the active Vulkan GPU."
+    },
+    {
+      "source": "Isaac Sim Setup Tips",
+      "url": "https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/install_faq.html",
+      "contract": "renderer/activeGpu selects the desired physical GPU and renderer/multiGpu settings control renderer multi-GPU allocation."
+    }
+  ],
+  "canonical_outputs": {
+    "process_receipt_path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt16/process_receipt.json",
+    "process_receipt_present": false,
+    "summary_present": false,
+    "metrics_present": false,
+    "summary_verdict_consumed": false,
+    "metrics_verdict_consumed": false,
+    "pull_mechanism_verdict": "NOT_ASSESSED"
+  },
+  "gate_state": {
+    "push_anchor": "BLOCKED_BY_GPU_RESOURCE_TOPOLOGY",
+    "p1_pull_matrix": "LOCKED",
+    "p2": "LOCKED",
+    "attempt17_authorized": false,
+    "next_scientific_attempt": "N/A"
+  },
+  "unverified_claims": [
+    "No IsaacSim, GPU, physics, anchor, or pull-mechanism PASS is asserted for Attempt16.",
+    "No scientific metric or mechanism verdict was consumed.",
+    "No claim is made that a further code-only CUDA visibility change would isolate Vulkan device contexts."
+  ]
+}

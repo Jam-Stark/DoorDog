@@ -1,0 +1,87 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v17",
+  "generated_at_hkt": "2026-08-04 18:08:27 HKT",
+  "attempt": 17,
+  "status": "ANCHOR_FAIL_PHYSICS",
+  "probe_validity": "PROBE_VALID",
+  "runtime_validation": "VALIDATED_ACTUAL_RUNTIME",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "scientific_verdict_consumed": true,
+  "repair_a4_a6": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_GPU_LEASE_AMENDMENT_RECEIPT.json",
+      "sha256": "1a80804a1062e9878f73c35c89e360e7eaf95c2fa50a6dcf2a9cac85a259e292"
+    },
+    "revision": "A4_A6",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "ancestry": {
+    "r14_parent": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R14_RECEIPT.json",
+      "sha256": "bedc40a3693db21981498573e5afd14e8ed736ca84eca5261dfacd9715b59d24"
+    },
+    "attempt17_plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_PLAN.json",
+      "sha256": "0412470f7d5ff293cba5974787105d8891418c81402957bdd09baaf09f9d7dd7"
+    }
+  },
+  "evidence": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_PLAN.json",
+      "sha256": "0412470f7d5ff293cba5974787105d8891418c81402957bdd09baaf09f9d7dd7"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/process_receipt.json",
+      "sha256": "ef85a52d634858c645673488ad9a88124c0056260c6d569bbd3b0e135cc69d44"
+    },
+    "stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/stdout_stderr.log",
+      "sha256": "7eee0b7f94482b56d984e3e4d8afc39137fa660d751ca13d1a0a388b63cd9e84"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/eval/a2_hold_oracle_summary.json",
+      "sha256": "015bf37371fc40e3cd341e4ed3b75560203f264985e903a58a7f3fd373ad6924"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt17/eval/metrics_eval.json",
+      "sha256": "29378a9723caea42b7107380509272efc4388005112620df613ca0cc875b3218"
+    },
+    "kit_log": {
+      "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_172845.log",
+      "sha256": "47e996ea931fe6e706d69483e38aa5bcfc6bf02220ad63fec4a1ca59fd430b5c"
+    },
+    "launch_occupancy": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_LAUNCH_OCCUPANCY.json",
+      "sha256": "51248f40d24d1893b2d01b50a7a1c8ecb8f7764ac1865bf1e5e78975ece8e1db"
+    },
+    "steady_state_footprint": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_STEADY_STATE_FOOTPRINT.json",
+      "sha256": "63b1bc5ca98d6973f741f631530cd9d725544bc2fa37be238c859bafcddb1359"
+    }
+  },
+  "outcome": {
+    "verdict": "ANCHOR_FAIL_PHYSICS",
+    "outcome_code": "BASE_RELIEF_DISPLACEMENT_LIMIT",
+    "terminal_reason": "stage_overtime",
+    "named_finding": "CENTER_CLOSE_HANDOFF_OUTSIDE_RELIEF_BUDGET",
+    "first_simulation_step_crossed": true,
+    "dls_position_residual_m_at_handoff": 0.36839473247528076,
+    "center_horizontal_target_residual_m": "NOT_RECORDED_IN_ATTEMPT17_TRACE",
+    "root_xy_displacement_handoff_to_terminal_m": 0.2202882625795233,
+    "base_relief_max_displacement_m": 0.1
+  },
+  "gate_state": {
+    "stable_bilateral_capture": false,
+    "latch_release": true,
+    "proof_samples": 0,
+    "arc_samples": 0,
+    "body_panel_contact_max_n": 0.0,
+    "host_stage_time_steps": 359,
+    "host_stage_budget_steps": 100,
+    "scientific_verdict_consumed": true
+  },
+  "unverified_claims": [
+    "No post-repair runtime result is asserted by this receipt.",
+    "Attempt17 did not record a separately named center horizontal target residual; 0.3683947325 m is the DLS position residual."
+  ]
+}

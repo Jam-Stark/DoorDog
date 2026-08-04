@@ -1,0 +1,120 @@
+{
+  "api_contracts": {
+    "contact_sensor_contract": "one door-panel sensor body filtered against explicit robot bodies",
+    "frame_transformer_contract": "rigid source/targets; OffsetCfg quaternion order is wxyz",
+    "local_isaaclab_commit": "c22775241e28f465fe345fa1a482ad6d29d712b0",
+    "low_level_usd_added": false,
+    "official_docs": [
+      "https://isaac-sim.github.io/IsaacLab/main/source/overview/core-concepts/sensors/frame_transformer.html",
+      "https://isaac-sim.github.io/IsaacLab/main/_modules/isaaclab/sensors/frame_transformer/frame_transformer_cfg.html",
+      "https://isaac-sim.github.io/IsaacLab/main/_modules/isaaclab/sensors/contact_sensor/contact_sensor_cfg.html"
+    ]
+  },
+  "assertions": {
+    "hinge_handle_latch_mechanics_equivalent": "PASS",
+    "no_initial_robot_panel_contact": "PASS",
+    "positive_hinge_moves_both_panels_toward_positive_world_x": "PASS",
+    "pull_final_target_is_negative_x": "PASS",
+    "pull_robot_starts_positive_x_yaw_pi": "PASS",
+    "target_face_x_sign_equals_io_sign": "PASS",
+    "target_is_fixed_to_handle": "PASS",
+    "target_pregrasp_tcp_axes_rendered": "PASS"
+  },
+  "evidence_boundary": {
+    "isaacsim_runtime": "PASS",
+    "policy_or_training": "NOT_RUN",
+    "static": "PASS"
+  },
+  "generated_at": "2026-08-03 15:16 HKT",
+  "orientation_decision": {
+    "mirrored_error_delta_rad": {
+      "handle_inherited": 1.716908574104309,
+      "handle_io_z_post": 1.3284536600112915,
+      "handle_io_z_pre": 4.9591064453125e-05
+    },
+    "out_inherited_tcp_error_rad": 1.1197022199630737,
+    "pull_candidate_tcp_error_rad": {
+      "handle_inherited": 2.836610794067383,
+      "handle_io_z_post": 2.4481558799743652,
+      "handle_io_z_pre": 1.1197518110275269
+    },
+    "selected_pull_orientation": "io_z_pre",
+    "selected_pull_target_quaternion_wxyz": [
+      -0.5,
+      -0.5,
+      0.5,
+      0.5
+    ]
+  },
+  "paired_fixture": {
+    "axle_length_m": 0.195,
+    "directions": {
+      "in": {
+        "active_handle_face_x_m": 0.0975,
+        "active_handle_face_x_sign": 1,
+        "approach_side_x": 1,
+        "door_open_lr": "right",
+        "final_target_x_m": -2.0,
+        "io_sign": 1,
+        "pregrasp_x_from_handle_m": 0.1,
+        "robot_root_x_m": 0.9,
+        "robot_root_yaw_rad": 3.141592653589793,
+        "travel_dir_x": -1
+      },
+      "out": {
+        "active_handle_face_x_m": -0.0975,
+        "active_handle_face_x_sign": -1,
+        "approach_side_x": -1,
+        "door_open_lr": "right",
+        "final_target_x_m": 2.0,
+        "io_sign": -1,
+        "pregrasp_x_from_handle_m": -0.1,
+        "robot_root_x_m": -0.9,
+        "robot_root_yaw_rad": 0.0,
+        "travel_dir_x": 1
+      }
+    },
+    "fixture_mass_kg": 120.0,
+    "hook_present": false,
+    "identical_dimensions": true,
+    "only_directional_asset_delta": "rand_door_open_io and active grasp_target pose"
+  },
+  "plan_id": "a2_piper_pull_v0_tensile_feasibility_v1",
+  "reproduce": {
+    "receipt": "python3 scriptsFORhuman/pull_v0/build_geometry_proof.py",
+    "runtime": "CUDA_VISIBLE_DEVICES=4 ENABLE_CAMERAS=1 HEADLESS=1 /home/baoquanc/anaconda3/envs/isaaclab/bin/python gr00t/rl/scripts/preview_a2_piper_door_scene.py --pull-geometry-overlay --headless --device cuda:0 --max-steps 10 --reset-interval 0 --preview-frame-path scriptsFORhuman/pull_v0/geometry_overlay/paired_target_tcp_candidates.png --runtime-receipt-path scriptsFORhuman/pull_v0/PULL_V0_GEOMETRY_RUNTIME.json"
+  },
+  "route": "STANDARD_PATH",
+  "runtime_evidence": {
+    "gpu_allocation": "physical GPU4 exposed as logical cuda:0",
+    "max_panel_robot_contact_force_N": 0.0,
+    "overlay_render": "scriptsFORhuman/pull_v0/geometry_overlay/paired_target_tcp_candidates.png",
+    "overlay_render_sha256": "2754d6aff62e76da58afb2eedb220deff0db882c10d9ad470f10fc4925a565bb",
+    "positive_hinge_probe": {
+      "both_move_positive_world_x": true,
+      "commanded_position_rad": 0.1,
+      "handle_target_delta_x_m": [
+        0.07781684398651123,
+        0.07684016227722168
+      ],
+      "handle_target_x_after_m": [
+        1.4803168773651123,
+        -1.3256598711013794
+      ],
+      "handle_target_x_before_m": [
+        1.402500033378601,
+        -1.402500033378601
+      ]
+    },
+    "runtime_receipt": "scriptsFORhuman/pull_v0/PULL_V0_GEOMETRY_RUNTIME.json",
+    "runtime_receipt_sha256": "d3036105a08fa61078be7c79d42c98d895954e7f38bed1604aae5b3587b2011d"
+  },
+  "schema": "a2_piper_pull_v0_geometry_proof_v1",
+  "source_contracts": {
+    "door_source_sha256": "be1551be3af25450f29b1f22098bced02cb4ac8893736c8519f67b0789f0abf6",
+    "hinge_handle_latch_mechanics_sha256": "3e170bbe9477aa9c84e9627e8d8c9f9525c4e8644deca046fb045b14284fded0",
+    "preview_source_sha256": "323f2ad048b29c9efa3b2d71e4f4aa08cdb3ccdfd42ccb394fc2d6f963aa41db"
+  },
+  "status": "PASS",
+  "threshold_mode": "report_only"
+}

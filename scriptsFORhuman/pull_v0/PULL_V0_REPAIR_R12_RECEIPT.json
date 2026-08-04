@@ -1,0 +1,160 @@
+{
+  "schema_version": "pull_v0_repair_r12_receipt_v1",
+  "generated_at_hkt": "2026-08-04 04:16:19 HKT",
+  "repair_revision": "R12",
+  "status": "APPROVED_FOR_ATTEMPT14_PREPARATION_ONLY",
+  "runtime_validation": "NOT_RUN",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "ATTEMPT13_HYDRA_STRUCT_CONFIG_MISSING_PLUS_OVERRIDE",
+    "conclusion": "Immutable Attempt13 failed during Hydra composition before probe startup because the struct config rejected env.config.max_stage_time without the append prefix. The materialized config and host-stage contract remained unchanged; the runner must use the exact +env.config.max_stage_time override for Attempt14 preparation.",
+    "exception_type": "ConfigCompositionException",
+    "attempted_override": "env.config.max_stage_time=[400,100,100,100,100,200]",
+    "missing_plus_override": "+env.config.max_stage_time=[400,100,100,100,100,200]"
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R11_RECEIPT.json",
+    "sha256": "4c50d52e25658e296b3101b283bb2eb57e7d9f5747dedb8a8b76a22783e563a4",
+    "repair_revision": "R11"
+  },
+  "trigger": {
+    "attempt": 13,
+    "root_cause": "ATTEMPT13_HYDRA_STRUCT_CONFIG_MISSING_PLUS_OVERRIDE",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_RECEIPT.json",
+      "sha256": "f85e1d177b5e3422ed99f4de250187ad9e7186f7034d9b79e1d1cd339b779cd5"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_PLAN.json",
+        "sha256": "25c106d21b399add34a182a031804ee6bc4e7aef884af457d10225dedd73e353"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/process_receipt.json",
+        "sha256": "fc23b6f83adad04f4ede47397fcff3856abaceccd99b861aaeb6efa49b472b7e"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/stdout_stderr.log",
+        "sha256": "c7012546d0bd515a60d58ee4d554ef998cc361716408961ad84a3d0c37c782c6"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "Correct only the Hydra argv serialization to append env.config.max_stage_time, preserve the materialized config and host-stage values, and authorize Attempt14 preparation only.",
+    "r11_parent_immutable": true,
+    "attempt13_plan_immutable": true,
+    "attempt13_application_error_preserved": true,
+    "attempt13_prepared": true,
+    "attempt13_runtime_executed": false,
+    "attempt13_probe_started": false,
+    "attempt14_prepared": false,
+    "attempt14_runtime_executed": false,
+    "gpu_or_isaacsim_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "attempt13_evidence": {
+    "status": "APPLICATION_CONFIG_ERROR_BEFORE_PROBE",
+    "probe_validity": "NOT_RUN",
+    "runtime_validation": "NOT_RUN",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "application_success": false,
+    "natural_exit": false,
+    "returncode": 1,
+    "exception_type": "ConfigCompositionException",
+    "root_cause": "ATTEMPT13_HYDRA_STRUCT_CONFIG_MISSING_PLUS_OVERRIDE",
+    "attempted_override": "env.config.max_stage_time=[400,100,100,100,100,200]",
+    "missing_plus_override": "+env.config.max_stage_time=[400,100,100,100,100,200]",
+    "summary_present": false,
+    "metrics_present": false,
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_PLAN.json",
+      "sha256": "25c106d21b399add34a182a031804ee6bc4e7aef884af457d10225dedd73e353"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/process_receipt.json",
+      "sha256": "fc23b6f83adad04f4ede47397fcff3856abaceccd99b861aaeb6efa49b472b7e"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/stdout_stderr.log",
+      "sha256": "c7012546d0bd515a60d58ee4d554ef998cc361716408961ad84a3d0c37c782c6"
+    },
+    "config": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/input/config.yaml",
+      "sha256": "c9e2bd493a2d20a89fc8f7414b18225f14aeb902d37b6c638a1a72fc77d1ee89"
+    },
+    "checkpoint": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt13/input/model_step_002500.pt",
+      "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d"
+    },
+    "host_stage_time_steps": [
+      400,
+      100,
+      100,
+      100,
+      100,
+      200
+    ]
+  },
+  "changed_files": {
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "f85e1d177b5e3422ed99f4de250187ad9e7186f7034d9b79e1d1cd339b779cd5",
+      "reason": "Record the immutable Attempt13 application-config failure before probe startup."
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r12_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "483462cf2d83da577d57eaa3e827a366d7d9d590948a3f689bb9d399d19cfec5",
+      "reason": "Build and validate the immutable R12 repair receipt."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": null,
+      "post_sha256": "500f37b1fcdd0c94aefdebf008565d2b948df0bddd91b755f49cf2b365119929",
+      "reason": "Guard exact Attempt13 missing-plus evidence, R12 ancestry, and append-form argv."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Use the Hydra append-form max_stage_time override and bind Attempt14 to R12; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R12_RECEIPT_SHA_SELF_CYCLE"
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": null,
+      "post_sha256": null,
+      "reason": "Validate Attempt14 R12 ancestry and immutable Attempt13 application evidence; excluded to avoid receipt hash self-cycle.",
+      "hash_binding": "EXCLUDED_TO_AVOID_R12_RECEIPT_SHA_SELF_CYCLE"
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "Attempt13 exact plan/process/log/error and no-summary/no-metrics checks",
+      "Attempt14 runner and builder exact R12 ancestry checks",
+      "append-form max_stage_time argv check",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R12 authorizes Attempt14 preparation only; no Attempt14 preparation, IsaacSim, GPU, or pull-mechanism runtime was executed."
+  },
+  "acceptance": {
+    "r11_parent_exact": true,
+    "attempt13_receipt_exact": true,
+    "attempt13_plan_process_log_exact": true,
+    "attempt13_application_success_false": true,
+    "attempt13_natural_exit_false": true,
+    "attempt13_config_composition_exception": true,
+    "attempt13_missing_plus_root_cause_exact": true,
+    "attempt13_probe_not_run": true,
+    "attempt13_pull_verdict_not_assessed": true,
+    "append_form_override_required": true,
+    "attempt14_runner_exact_r12_binding": true,
+    "attempt14_not_prepared_or_run": true,
+    "runtime_pass_asserted": false
+  },
+  "unverified_claims": [
+    "No IsaacSim or GPU runtime PASS is asserted for R12.",
+    "No Attempt14 preparation or runtime was executed.",
+    "No pull-mechanism verdict is asserted because Attempt13 failed before probe startup."
+  ]
+}

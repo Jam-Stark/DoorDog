@@ -1,0 +1,54 @@
+# @package _global_
+
+defaults:
+  - door_open_a2_base
+
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_pull.DoorOpenA2Pull
+  config:
+    a2_v20_R1_plan_id: a2_piper_pull_v0_tensile_feasibility_v1
+    a2_pull_direction_contract_version: a2_piper_pull_direction_v1
+    a2_pull_target_frame_version: grasp_target_active_face_io_z_pre_v1
+    a2_pull_target_orientation_wxyz: [-0.5, -0.5, 0.5, 0.5]
+    a2_pull_door_open_io: in
+    a2_pull_door_open_lr: right
+    a2_pull_robot_initial_side_x_sign: 1.0
+    a2_pull_robot_initial_yaw_rad: 3.141592653589793
+    a2_pull_active_handle_face_x_sign: 1.0
+    a2_pull_travel_dir_x: -1.0
+    a2_pull_threshold_mode: report_only
+    a2_pull_effort_provenance: ESTIMATE_ONLY
+    a2_pull_add_walls: false
+    a2_pull_hook_profile: STOCHASTIC_BASELINE
+    a2_pull_friction_profile: RESOLVED_V20_G4
+    a2_pull_finger_profile: V20_G4_45N_KP1300_KD32
+    # Report-only contiguous tensile proof thresholds; they do not certify performance.
+    a2_pull_control_proof_min_duration_s: 0.20
+    a2_pull_control_proof_min_retreat_m: 0.002
+    a2_pull_control_proof_monotone_tolerance_m: 0.0005
+    a2_pull_control_proof_min_streak_steps: 5
+    a2_pull_control_clearance_min_m: 0.02
+
+    a2_door_weight_range: [80.0, 160.0]
+    a2_m39_gripper_material_enabled: true
+    a2_stage0_staging_x_min: 0.50
+    a2_stage0_staging_x_max: 0.80
+    a2_stage0_staging_y_tol: 0.15
+    a2_stage3_base_unlocked: true
+    a2_corridor_enabled: false
+    target_root_pos: [-2.0, 0.0, 0.5]
+
+    a2_v20_R1_send_curriculum_enabled: false
+    a2_v20_R1_snapshot_guard_enabled: false
+    a2_v20_send_latch_enabled: false
+    a2_v20_pre_send_crossing_mode: disabled
+    a2_v20_telemetry_enabled: false
+    a2_v20_traversal_economics_enabled: false
+    a2_corridor_latch_mode: legacy_root_or_hinge
+    a2_v20_arm_tie_enabled: false
+    a2_v20_arm_tangent_carry_scale: 0.0
+    a2_v20_handle_arc_tracking_scale: 0.0
+    a2_v20_R2_evidence_enabled: false
+    a2_v20_formal_launch: false
+
+    max_stage_time: [250, 100, 100, 100, 100, 200]

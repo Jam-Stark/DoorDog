@@ -1,0 +1,139 @@
+{
+  "schema_version": "pull_v0_repair_r4_receipt_v1",
+  "generated_at_hkt": "2026-08-04 00:28:08 HKT",
+  "repair_revision": "R4",
+  "status": "APPROVED_FOR_ATTEMPT6_PREPARATION_ONLY",
+  "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f",
+  "root_cause": {
+    "code": "RESET_BOUNDARY_CONTACT_UNQUALIFIED_BEFORE_STAGING",
+    "conclusion": "Attempt5 classified a reset-boundary contact sample as commanded body collision before any reset contact qualification window, so persistence and command causality were not established.",
+    "attempt5_running_max_body_contact_n": 3817.004150390625,
+    "attempt5_terminal_live_body_contact_n": 0.0,
+    "attempt5_first_contact_step": 0,
+    "attempt5_first_contact_filter": "trunk"
+  },
+  "parent_receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R3_RECEIPT.json",
+    "sha256": "49ca2e32a81f2635afc3303f40e5cf50c0b581f991b2fbe564f36090e72ebf25",
+    "repair_revision": "R3"
+  },
+  "trigger": {
+    "attempt": 5,
+    "root_cause": "RESET_BOUNDARY_CONTACT_UNQUALIFIED_BEFORE_STAGING",
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT5_RECEIPT.json",
+      "sha256": "64283e4aebe60bfd6ad4a61ec3fcda6dc7936cdb21e86d2f39a974bcc07211ce"
+    },
+    "immutable_runtime_artifacts": {
+      "plan": {
+        "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT5_PLAN.json",
+        "sha256": "b5769c0fc11920630f95953dbd77d99ed5693e156179f667bb78691ea28983ba"
+      },
+      "process_receipt": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/process_receipt.json",
+        "sha256": "0f8366b3bf730ebc38d2ee1d01f4c02ee32ae3684a5bf5b882ddf5651507ca47"
+      },
+      "summary": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/eval/a2_hold_oracle_summary.json",
+        "sha256": "7599f907bf5ff38a545ec539623c23bb57aec8486b457329ce19d2265b89f726"
+      },
+      "metrics": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/eval/metrics_eval.json",
+        "sha256": "1e5688f8baf22e759306a88783ea4d6382ebc480290f3eae735bcb0563914148"
+      },
+      "log": {
+        "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt5/stdout_stderr.log",
+        "sha256": "a6d1ae634693e1c195e5fca4d38b1b6a82721dd37c7aadea3cb16ec5ad35282f"
+      }
+    }
+  },
+  "scope": {
+    "authorized": "reset-boundary contact qualification and actual-schema receipt-chain repair only",
+    "attempt5_immutable": true,
+    "attempt6_runtime_prepared": false,
+    "gpu_or_isaacsim_runtime_executed": false,
+    "pull_verdict": "NOT_ASSESSED"
+  },
+  "implementation_contract": {
+    "qualification_window": "bounded zero-command high-level base/arm hold with configured gripper state",
+    "qualification_contact_threshold_n": 1.0,
+    "qualification_persistence": "consecutive samples above the existing 1 N threshold",
+    "post_qualification_body_contact": "immediate hard failure during commanded staging/DLS/proof",
+    "trace_order": "record sample and final action before applying outcome classification",
+    "terminal_force_semantics": "terminal current contact is distinct from running maximum",
+    "report_only_thresholds": true,
+    "effort_provenance": "ESTIMATE_ONLY"
+  },
+  "changed_files": {
+    "gr00t/rl/config/base_eval.yaml": {
+      "pre_sha256": "8bf3a69f00fe534b3a845a2d9d9ecc43621c2e1cb44d0042b0d3f069560fa72c",
+      "post_sha256": "e43ffcba068906264a94c3f4aea674c373f1df1249315290052f4bee5097b290",
+      "reason": "Expose the bounded reset qualification window and fail-fast upright/gripper contract."
+    },
+    "gr00t/rl/config/ablation/wbmanip/pull_v0_p1_push_anchor.yaml": {
+      "pre_sha256": "60bf3c860cfcd0106edc7f51796c9786e4cde956fb7909378c229a60ae69faa5",
+      "post_sha256": "6c52c2214db7663090d88161f0d0700f7336d926566447e530372c97e3498e74",
+      "reason": "Bind the P1 push-anchor fixture to the same reset qualification parameters."
+    },
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "pre_sha256": "b1031beb30f63999434d214f0792d61585b70fa4d84f0378cbe936f47f4d5871",
+      "post_sha256": "810b58e8528bd1d2598a89640dd6f347fc46e831c184eafdd9b7196d8802afba",
+      "reason": "Qualify reset-boundary contact with zero base/arm commands before signed staging; defer commanded body collision classification until trace capture and export current-vs-max terminal telemetry."
+    },
+    "gr00t/rl/tests/test_a2_pull_namespace.py": {
+      "pre_sha256": "98a2bf5d5dfe15265e57219fd707882ca41a59ab2d40e5bd53cc07cb618cac1f",
+      "post_sha256": "5e2308f398a6fdd655c6df0c3fb9ec5c6a0ac060f1e199ac31dc6a01e030877b",
+      "reason": "Guard the reset qualification namespace, no-staging preflight, and actual base admission schema."
+    },
+    "gr00t/rl/tests/test_a2_pull_telemetry.py": {
+      "pre_sha256": "f268a257bf21ad32bc7514ea7e096d9c122e809a8ce7eb2586e17d79248bd346",
+      "post_sha256": "141b227cf6ce38d3bc3fc59603d7981c2c950b478496fb904a06f3873d4fc56f",
+      "reason": "Guard transient/persistent contact qualification and trace-before-failure telemetry contracts."
+    },
+    "scriptsFORhuman/pull_v0/run_p1_push_anchor.py": {
+      "pre_sha256": "0187dca9f111373759d37627104b8db40d86d90794e6008b7af5966146817aa8",
+      "post_sha256": "84034bd39fdef0146035004d92fb3686449fedab358a7f1b9770643ba5bec042",
+      "reason": "Keep attempt5 R3-bound and require canonical R4 parent/attempt5 bindings plus an explicit receipt SHA256 for attempt6+."
+    },
+    "scriptsFORhuman/pull_v0/build_p1_anchor_stop_receipts.py": {
+      "pre_sha256": "907b946992c5b3fb2fcc141cb48cb7c27afcdfba2a1de35a5e65e7acb656c33b",
+      "post_sha256": "b35c56765de73cb117d5970489dfc735f2eacf3e631241e52a97707cc4bc38f2",
+      "reason": "Consume the actual push_anchor_admission terminal schema for immutable attempt5 and validate R4 chain bindings."
+    },
+    "scriptsFORhuman/pull_v0/build_pull_v0_repair_r4_receipt.py": {
+      "pre_sha256": null,
+      "post_sha256": "f9163dddd9ee7269e83c5df0fcbe7cebbd1caf7b89ece26312f98a2c3c36d3b1",
+      "reason": "Record the immutable R4 repair chain, exact hashes, and static/runtime validation boundary."
+    },
+    "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT5_RECEIPT.json": {
+      "pre_sha256": null,
+      "post_sha256": "64283e4aebe60bfd6ad4a61ec3fcda6dc7936cdb21e86d2f39a974bcc07211ce",
+      "reason": "Immutable attempt5 receipt preserving the R3-bound actual-schema reset-boundary blocker."
+    }
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "UNVERIFIED",
+    "commands": [
+      "py_compile leased Python files",
+      "pytest exact five-file pull gate",
+      "receipt parser/hash assertions",
+      "git diff --check"
+    ],
+    "runtime_not_run_reason": "R4 contract explicitly forbids preparing/running attempt6 in this task."
+  },
+  "acceptance": {
+    "step0_transient_not_hard_collision": true,
+    "persistent_qualifying_contact_hard_fails": true,
+    "no_staging_or_dls_before_qualification": true,
+    "cleared_transient_advances_only_to_staging": true,
+    "trace_before_failure": true,
+    "terminal_current_vs_max_separate": true,
+    "actual_schema_builder": true,
+    "incomplete_gate_cannot_pass": true
+  },
+  "unverified_claims": [
+    "No IsaacSim/GPU runtime PASS is asserted for R4 or attempt6.",
+    "The R4 reset qualification semantics are statically covered; runtime persistence/clearance behavior remains unverified until an authorized attempt6 run."
+  ]
+}

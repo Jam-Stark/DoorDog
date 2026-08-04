@@ -1,0 +1,91 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v6",
+  "generated_at_hkt": "2026-08-04 00:51:49 HKT",
+  "attempt": 6,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "GENERIC_BASE_RELIEF_WATCHDOG_CROSS_TALK",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r4": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R4_RECEIPT.json",
+      "sha256": "0c1debd42bbee1d9007190b2e3768670c23981a903df5ba9c5b6512d22b904aa"
+    },
+    "revision": "R4",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT6_PLAN.json",
+      "sha256": "9344a1b4807830b835055b54ccb307bcb271402991cdfec005179c17f1b954e7"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/process_receipt.json",
+      "sha256": "9a7a279c37b760beb0a01e526be354eb0a90bf88d03a8adcbb194d52d77dd6e4"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/stdout_stderr.log",
+      "sha256": "5344ff72c8d17ea87e22f39ee88b7c1ed95cebc76664a4d13d84940ea9352421"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/eval/a2_hold_oracle_summary.json",
+      "sha256": "bfc3359123c53bcaab7577d92697bf4e61540e7d4501bbd5f45f2fc69cfe65d0"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt6/eval/metrics_eval.json",
+      "sha256": "039e5dff055d96a0a408d09db4f8ad8e6aaf6ea7cb6c5bf902dda363661ee64f"
+    }
+  },
+  "observed": {
+    "summary_outcome": "BASE_RELIEF_TIMEOUT",
+    "trace_step_count": 67,
+    "generic_relief_timeout_steps": 60,
+    "stage0_timeout_observed": false,
+    "dls_finally_applied": false,
+    "reset_contact_qualification_complete": true,
+    "reset_transient_observed": true,
+    "terminal_body_panel_contact_current_n": 0.0,
+    "body_panel_contact_max_n": 3817.004150390625,
+    "max_contact_phase": "PULL_P1_ACQUIRE",
+    "max_contact_step": 0
+  },
+  "watchdog_cross_talk": {
+    "blocker": "GENERIC_BASE_RELIEF_WATCHDOG_CROSS_TALK",
+    "mechanism": "The generic DLS/base-relief state advanced during explicit P1 acquisition-wait after reset clearance and produced BASE_RELIEF_TIMEOUT before stage0 admission could finish.",
+    "qualification_trace_preserved": true,
+    "stage0_timeout_independent": true,
+    "non_p1_generic_relief_semantics": "UNVERIFIED_STATIC_CONTRACT_ONLY"
+  },
+  "reset_boundary": {
+    "qualification_window_steps": 3,
+    "window_complete": true,
+    "transient_observed": true,
+    "result": "CLEARED",
+    "staging_started_during_window": false,
+    "dls_started_during_window": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": false,
+    "latch_release": true,
+    "hinge_progress_min_rad": 0.25,
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": false,
+    "observed_max_body_force_n": "N/A; reset transient only",
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "validated actual runtime summary schema",
+    "metrics": "validated actual base-owned push_anchor_admission terminal schema",
+    "reset_contact_qualification": "validated terminal pre-reset latch and trace samples",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "legacy_pull_v0_namespace": "not required for base-owned admission"
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "runtime_validation": "NOT_ASSESSED",
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "Attempt6 is probe-invalid because generic base-relief watchdog cross-talk precluded stage0 admission assessment.",
+    "No runtime PASS is asserted for the R5 repair; an authorized follow-up runtime is required before assessing it."
+  ]
+}

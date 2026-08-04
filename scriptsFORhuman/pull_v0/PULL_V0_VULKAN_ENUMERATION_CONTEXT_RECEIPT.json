@@ -1,0 +1,109 @@
+{
+  "schema_version": "pull_v0_vulkan_enumeration_context_receipt_v1",
+  "generated_at_hkt": "2026-08-04 06:20:00 HKT",
+  "status": "MEASURED_INFRASTRUCTURE_CONTEXT",
+  "scientific_verdict_consumed": false,
+  "authority": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/pull_task/a2_piper_pull_v0_gpu_lease_amendment_20260804.md",
+    "sha256": "84e94561bac1eb39b49d27e67c9f5b192844f7b9f5e203961495beea683dfc49",
+    "amendments": [
+      4,
+      5,
+      6
+    ]
+  },
+  "attempt16_evidence": {
+    "attempt": 16,
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_PLAN.json",
+      "sha256": "7371fef9948e72a9900da45074daba9d5848556ebc9dac91eb9eba44fdaf55e9",
+      "plan_sha256": "3941c89a86bfb3115317d83fbd6c65d383f6893e4e6aed749cfed2c054f452ea"
+    },
+    "stdout": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt16/stdout_stderr.log",
+      "sha256": "f490a2540c700304de21598a95e7c6f787dccf0a6a8338cb3536838aff321e0d"
+    },
+    "kit_log": {
+      "path": "/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/isaacsim/kit/logs/Kit/Isaac-Sim/5.1/kit_20260804_050202.log",
+      "sha256": "e3e1d25bae608e323122651f288b1528d7187f9d806779b581f8086d8ed25618"
+    },
+    "steady_state_snapshot_time_s": 18.499,
+    "prelaunch_baseline_mib_by_physical_index": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "total_mib_by_physical_index": [
+      168,
+      136,
+      136,
+      140,
+      236,
+      136,
+      136,
+      136
+    ],
+    "created_delta_mib_by_physical_index": [
+      167,
+      135,
+      135,
+      139,
+      235,
+      135,
+      135,
+      135
+    ],
+    "utilization_percent_by_physical_index": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "historical_leased_device_by_physical_index": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ],
+    "kit_active_by_physical_index": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "interpretation": {
+    "max_non_leased_delta_mib": 167,
+    "non_leased_stop_threshold_mib": 1024,
+    "max_non_leased_delta_below_one_gib": true,
+    "all_non_leased_utilization_zero_percent": true,
+    "conclusion": "Attempt16's non-leased Vulkan enumeration contexts are MiB-scale and show zero compute utilization, corroborating Amendment 5's incidental-context authorization.",
+    "supporting_v21_inference": {
+      "context": "Historical v21-B GPU7 observation was approximately 1018 MiB while seven cells ran.",
+      "per_process_inference_mib": 145,
+      "role": "CORROBORATING_CONTEXT_ONLY_NOT_PROOF"
+    },
+    "not_a_scientific_verdict": true
+  },
+  "unverified_claims": [
+    "This receipt does not assert an anchor, physics, pull, or training verdict.",
+    "The v21-B 145 MiB inference is not used as Attempt16 per-process proof; the measured footprint above is the evidence."
+  ]
+}

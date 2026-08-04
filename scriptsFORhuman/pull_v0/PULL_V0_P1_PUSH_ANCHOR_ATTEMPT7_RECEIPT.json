@@ -1,0 +1,95 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_receipt_v7",
+  "generated_at_hkt": "2026-08-04 01:27:15 HKT",
+  "attempt": 7,
+  "status": "BLOCKED",
+  "probe_validity": "PROBE_INVALID",
+  "admission_blocker": "STAGE0_COMMAND_TO_PLANT_RESPONSE_UNRESOLVED",
+  "pull_mechanism_verdict": "NOT_ASSESSED",
+  "repair_r5": {
+    "artifact": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_REPAIR_R5_RECEIPT.json",
+      "sha256": "fa66f0c204e5969529db7eba56a1949c4d897ad3d578ad3d477abd16200762ef"
+    },
+    "revision": "R5",
+    "stale_candidate_id": "244a7569ff6f4ab06c2d7349cb5ca08c12f228c3b72d6df10a72727f8d872c7f"
+  },
+  "artifacts": {
+    "plan": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT7_PLAN.json",
+      "sha256": "c7874901396979aae5ddd622f598203554bf798c387a61dff511ca900b8fc2dd"
+    },
+    "process_receipt": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt7/process_receipt.json",
+      "sha256": "063b3a3b55871a59b005d1a977cf31a441dec8a6fd8f690055c9d66477a0bfe8"
+    },
+    "log": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt7/stdout_stderr.log",
+      "sha256": "0e56a0a3ff1770c8d444c3a4fa4a9310b75122b47a8b5be9d2bb868cd9d03417"
+    },
+    "summary": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt7/eval/a2_hold_oracle_summary.json",
+      "sha256": "f62c04772875ea343e417a2a686d5416808bf2f6bd53d8fbad5632098e71de45"
+    },
+    "metrics": {
+      "path": "logs_eval/a2_piper_pull_v0/p1_push_anchor/attempt7/eval/metrics_eval.json",
+      "sha256": "c159cf4184a82bfbf700b8aba2097edb4d6e109f3367227ca4fcce07798f747e"
+    }
+  },
+  "observed": {
+    "summary_outcome": "PULL_P1_STAGE0_TIMEOUT",
+    "trace_step_count": 123,
+    "stage0_rows": 120,
+    "stage0_timeout_predicate_observed": false,
+    "reset_contact_qualification_complete": true,
+    "reset_transient_observed": true,
+    "terminal_body_panel_contact_current_n": 0.0,
+    "body_panel_contact_max_n": 3817.004150390625
+  },
+  "command_to_plant_response": {
+    "status": "UNAVAILABLE",
+    "schema": null,
+    "reason": "Attempt7 immutable artifacts predate R6 response telemetry.",
+    "threshold_mode": "report_only",
+    "admission_field_present": false
+  },
+  "stage0_timeout_boundary": {
+    "blocker": "STAGE0_COMMAND_TO_PLANT_RESPONSE_UNRESOLVED",
+    "mechanism": "Attempt7 preserved the signed stage0 command and timeout outcome, but its immutable trace has no post-executor physical command/downstream lower-body response fields; command-to-plant causality therefore remains unresolved.",
+    "signed_target_and_band_unchanged": true,
+    "stage0_timeout_is_sole_hard_stop": true,
+    "response_metrics_report_only": true
+  },
+  "reset_boundary": {
+    "qualification_window_steps": 3,
+    "window_complete": true,
+    "transient_observed": true,
+    "result": "CLEARED",
+    "staging_started_during_window": false,
+    "dls_started_during_window": false
+  },
+  "hard_gate": {
+    "stable_bilateral_capture": false,
+    "latch_release": true,
+    "hinge_progress_min_rad": 0.25,
+    "observed_max_hinge_rad": "N/A",
+    "body_panel_contact_allowed": false,
+    "observed_max_body_force_n": 0.0,
+    "pass": false
+  },
+  "required_telemetry": {
+    "summary": "validated actual runtime summary schema",
+    "metrics": "validated actual base-owned push_anchor_admission terminal schema",
+    "stage0_command_response": "report-only; unavailable in immutable Attempt7 artifacts",
+    "pull_mechanism_verdict": "NOT_ASSESSED",
+    "legacy_pull_v0_namespace": "not required for base-owned admission"
+  },
+  "threshold_mode": "report_only",
+  "effort_provenance": "ESTIMATE_ONLY",
+  "runtime_validation": "UNVERIFIED",
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted.",
+    "Attempt7 is probe-invalid because stage0 timed out before signed admission and the immutable trace lacks post-executor response telemetry.",
+    "R6 static telemetry instrumentation is not a runtime PASS; a separately authorized Attempt8 runtime is required."
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "schema": "a2_piper_pull_v0_source_freeze_v1",
+  "created_at_hkt": "2026-08-03 14:44 HKT",
+  "plan_id": "a2_piper_pull_v0_tensile_feasibility_v1",
+  "worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
+  "branch": "codex/a2-piper-pull-v0-20260803",
+  "base_commit": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
+  "base_tree": "1bcb6b2878af39d28d42e225bbf813ec2bfeac38",
+  "preflight_git_status_short": "",
+  "source_blobs": {
+    "gr00t/rl/envs/door/door_open_a2_base.py": "5a500880e2d41caff65f30491d6102e102c1c9a1",
+    "gr00t/rl/isaac_utils/playground/env_rand/door.py": "145a9c6a697772978fb114b21885be92bd88fb0b",
+    "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py": "c4fb24f8e0ca5ba74c237708c2c601dad4cadf3d",
+    "gr00t/rl/config/env/door_open_a2_base.yaml": "6245fb9de04eff6af7fb0a06686ef92f55ff60f7",
+    "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_base.yaml": "c8066fd1445a95ec00fd7e6f54acbe4167c915f6"
+  },
+  "warm_checkpoint": {
+    "source_path_read_only": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/model_step_002500.pt",
+    "size_bytes": 30108155,
+    "sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
+    "expected_sha256_match": true
+  },
+  "resolved_v20_g4_config": {
+    "source_path_read_only": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v20_R3_G4-20260731_004712/config.yaml",
+    "source_sha256": "76f50e4bd4e4af69d0e404687de4b904a55a50a6bab72f244048352701a29ec2",
+    "archived_copy": "scriptsFORhuman/pull_v0/source_freeze/v20_G4_resolved_config.yaml",
+    "archived_copy_sha256": "76f50e4bd4e4af69d0e404687de4b904a55a50a6bab72f244048352701a29ec2",
+    "archived_copy_mode": "0444",
+    "resolved_facts": {
+      "a2_door_weight_range_kg": [80.0, 160.0],
+      "p1_central_fixture_mass_kg": 120.0,
+      "finger_effort_limit_n_each": [45.0, 45.0],
+      "finger_stiffness_each": [1300.0, 1300.0],
+      "finger_damping_each": [32.0, 32.0],
+      "gripper_material_selector_enabled": true,
+      "stage_3_to_4_hinge_threshold_rad": 0.25,
+      "v20_send_hinge_threshold_rad": 0.9,
+      "final_target_root_pos_m": [2.0, 0.0, 0.5]
+    }
+  },
+  "isaaclab_contract_source": {
+    "local_checkout": "/home/baoquanc/workspace/IsaacLab",
+    "commit": "c22775241e28f465fe345fa1a482ad6d29d712b0",
+    "scope": [
+      "SpawnerCfg.func and MultiAssetSpawnerCfg",
+      "FrameTransformerCfg and OffsetCfg",
+      "ContactSensorCfg filtering"
+    ]
+  },
+  "evidence_boundary": {
+    "source_freeze": "STATIC_PASS",
+    "isaacsim_runtime": "NOT_RUN",
+    "policy_behavior": "NOT_RUN"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_invalidation_v1",
+  "status": "SUPERSEDED_INVALID",
+  "attempt": 8,
+  "receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT8_RECEIPT.json",
+    "sha256": "dab0732f722bd8444b357b721acbc9c14d8b6725d81096bcfaeb039b9e8e0722"
+  },
+  "reasons": [
+    {
+      "code": "STALE_TERMINAL_RESPONSE_ROW",
+      "evidence": "The terminal admission contains one response without generation, trace-row, control-step, and next-post-physics identity, while the immutable trace contains 120 issued stage0 rows."
+    },
+    {
+      "code": "SUMMARY_TERMINAL_STATUS_MISMATCH",
+      "evidence": "The rollout summary reports stage0_command_response status UNAVAILABLE with response_count 0, while terminal admission reports CAPTURED with response_count 1."
+    },
+    {
+      "code": "EXECUTOR_ACTION_MISMATCH",
+      "evidence": "The terminal response high_level_base_action_raw differs from the terminal trace row base_applied_action; the response was reconstructed from mutable post-terminal buffers rather than the executor invocation."
+    },
+    {
+      "code": "HARD_CODED_OTHER_ATTEMPT_WORDING",
+      "evidence": "The receipt labels immutable evidence as pre-response telemetry from another attempt and carries a null response reason; this cannot be accepted as a generic R7+ telemetry contract."
+    }
+  ],
+  "canonical_use": "Never use this receipt as a runtime-valid or canonical Attempt8 result. Preserve the receipt bytes and hash for audit only; R7+ receipts must bind this invalidation manifest explicitly."
+}

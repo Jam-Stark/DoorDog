@@ -1,0 +1,30 @@
+{
+  "schema_version": "pull_v0_p1_push_anchor_attempt_invalidation_v2",
+  "generated_at_hkt": "2026-08-04 00:00:00 HKT",
+  "status": "SUPERSEDED_INVALID",
+  "attempt": 9,
+  "receipt": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RECEIPT.json",
+    "sha256": "286fa3b832911ce3530b17696049b0a5e9d5584bf78e5199d1506c208b043624"
+  },
+  "reasons": [
+    {
+      "code": "NULL_NORMALIZED_RESPONSE",
+      "evidence": "The immutable Attempt9 command_to_plant_response.reason is null instead of a normalized response payload that preserves the validated 120-row runtime telemetry."
+    },
+    {
+      "code": "STATIC_ONLY_RUNTIME_WORDING_AFTER_VALIDATED_RUNTIME",
+      "evidence": "The immutable Attempt9 receipt labels runtime_validation UNVERIFIED and calls the captured response latch static-only even though the exact executor/post-physics response schema is CAPTURED and validated."
+    },
+    {
+      "code": "DROPPED_RUNTIME_IDENTITY_AND_AGGREGATE_EVIDENCE",
+      "evidence": "The immutable Attempt9 receipt drops first/terminal response identities and the validated response_count, anti-alignment, speed, displacement, and progress-cosine aggregates."
+    }
+  ],
+  "replacement": {
+    "normalized_response_telemetry_path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RESPONSE_TELEMETRY.json",
+    "runtime_validation": "VALIDATED_ACTUAL_R7_PLUS_RESPONSE_TELEMETRY",
+    "mechanism_verdict": "NOT_ASSESSED",
+    "attempt9_receipt_immutable": true
+  }
+}

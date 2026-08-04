@@ -1,5 +1,5 @@
 {
-  "schema_version": "a2_piper_pull_telemetry_v1",
+  "schema_version": "a2_piper_pull_telemetry_v2",
   "proof_scope": "P0-E deterministic schema harness",
   "evidence_boundary": {
     "static_schema_harness": "PASS",
@@ -59,6 +59,15 @@
     "whole_body_clear": "bool",
     "terminal_reason": "enum"
   },
+  "episode_stratification_units": {
+    "spawn_hook": "bool",
+    "hinge_drive_max_force_nm": "N*m"
+  },
+  "hinge_force_bucket_threshold_nm": 7.25,
+  "hinge_force_bucket_labels": [
+    "hingeDriveMaxForceNm<=7.25Nm",
+    "hingeDriveMaxForceNm>7.25Nm"
+  ],
   "implicit_actuator_provenance": "ESTIMATE_ONLY",
   "terminal_reason_coverage": [
     "complete",
@@ -1944,7 +1953,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": true,
       "whole_body_clear": true,
-      "terminal_reason": "complete"
+      "terminal_reason": "complete",
+      "spawn_hook": true,
+      "hinge_drive_max_force_nm": 7.25
     },
     {
       "event_reached": {
@@ -1992,7 +2003,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "stage_overtime"
+      "terminal_reason": "stage_overtime",
+      "spawn_hook": false,
+      "hinge_drive_max_force_nm": 7.25
     },
     {
       "event_reached": {
@@ -2040,7 +2053,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "episode_timeout"
+      "terminal_reason": "episode_timeout",
+      "spawn_hook": true,
+      "hinge_drive_max_force_nm": 7.5
     },
     {
       "event_reached": {
@@ -2088,7 +2103,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "low_height"
+      "terminal_reason": "low_height",
+      "spawn_hook": false,
+      "hinge_drive_max_force_nm": 7.5
     },
     {
       "event_reached": {
@@ -2136,7 +2153,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "bad_orientation"
+      "terminal_reason": "bad_orientation",
+      "spawn_hook": true,
+      "hinge_drive_max_force_nm": 7.25
     },
     {
       "event_reached": {
@@ -2184,7 +2203,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "door_distance"
+      "terminal_reason": "door_distance",
+      "spawn_hook": false,
+      "hinge_drive_max_force_nm": 7.25
     },
     {
       "event_reached": {
@@ -2232,7 +2253,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "upper_dof_overspeed"
+      "terminal_reason": "upper_dof_overspeed",
+      "spawn_hook": true,
+      "hinge_drive_max_force_nm": 7.5
     },
     {
       "event_reached": {
@@ -2280,7 +2303,9 @@
       "body_panel_contact_impulse_Ns": 0.0,
       "crossing_while_valid_capture": false,
       "whole_body_clear": false,
-      "terminal_reason": "unknown_reset"
+      "terminal_reason": "unknown_reset",
+      "spawn_hook": false,
+      "hinge_drive_max_force_nm": 7.5
     }
   ],
   "event_funnel_example": {
@@ -2289,7 +2314,35 @@
     "P(E3 | E2)": 0.75,
     "P(E4 | E3)": 0.6666666666666666,
     "P(E5 | E4)": 0.5,
-    "P(E7 | E5)": 1.0
+    "P(E7 | E5)": 1.0,
+    "spawnHook=True.count": 4.0,
+    "spawnHook=True.P(E1)": 0.75,
+    "spawnHook=True.P(E2 | E1)": 1.0,
+    "spawnHook=True.P(E3 | E2)": 0.6666666666666666,
+    "spawnHook=True.P(E4 | E3)": 1.0,
+    "spawnHook=True.P(E5 | E4)": 0.5,
+    "spawnHook=True.P(E7 | E5)": 1.0,
+    "spawnHook=False.count": 4.0,
+    "spawnHook=False.P(E1)": 0.5,
+    "spawnHook=False.P(E2 | E1)": 0.5,
+    "spawnHook=False.P(E3 | E2)": 1.0,
+    "spawnHook=False.P(E4 | E3)": 0.0,
+    "spawnHook=False.P(E5 | E4)": "N/A",
+    "spawnHook=False.P(E7 | E5)": "N/A",
+    "hingeDriveMaxForceNm<=7.25Nm.count": 4.0,
+    "hingeDriveMaxForceNm<=7.25Nm.P(E1)": 0.5,
+    "hingeDriveMaxForceNm<=7.25Nm.P(E2 | E1)": 1.0,
+    "hingeDriveMaxForceNm<=7.25Nm.P(E3 | E2)": 1.0,
+    "hingeDriveMaxForceNm<=7.25Nm.P(E4 | E3)": 0.5,
+    "hingeDriveMaxForceNm<=7.25Nm.P(E5 | E4)": 1.0,
+    "hingeDriveMaxForceNm<=7.25Nm.P(E7 | E5)": 1.0,
+    "hingeDriveMaxForceNm>7.25Nm.count": 4.0,
+    "hingeDriveMaxForceNm>7.25Nm.P(E1)": 0.75,
+    "hingeDriveMaxForceNm>7.25Nm.P(E2 | E1)": 0.6666666666666666,
+    "hingeDriveMaxForceNm>7.25Nm.P(E3 | E2)": 0.5,
+    "hingeDriveMaxForceNm>7.25Nm.P(E4 | E3)": 1.0,
+    "hingeDriveMaxForceNm>7.25Nm.P(E5 | E4)": 0.0,
+    "hingeDriveMaxForceNm>7.25Nm.P(E7 | E5)": "N/A"
   },
   "validation": {
     "schema_completeness": "PASS",
@@ -2298,6 +2351,9 @@
     "N/A_handling": "PASS",
     "event_ordering": "PASS",
     "impossible_event_rejection": "PASS_BY_UNIT_TEST",
-    "estimate_only_stamps": "PASS"
+    "estimate_only_stamps": "PASS",
+    "mandatory_spawn_hook": "PASS",
+    "mandatory_hinge_drive_max_force_nm": "PASS",
+    "hinge_force_bucket_stratification": "PASS"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "pull_v0_p0g_canonical_smoke_plan_v1",
-  "generated_at_hkt": "2026-08-03 16:29:06 HKT",
+  "generated_at_hkt": "2026-08-05 02:40:53 HKT",
   "status": "READY",
   "base_sha": "4aec9fe76043c3bb85d8bcdd1c2cd9210086dc09",
   "warm_checkpoint_sha256": "f000f13e817309f7b73e33c5c4d95076397debb992713e5613dce567bfda806d",
@@ -14,11 +14,10 @@
   },
   "gpu_resource_lease": {
     "authorized_physical_devices": [
-      4,
-      5,
-      6
+      2,
+      3
     ],
-    "selected_physical_device": 4,
+    "selected_physical_device": 2,
     "gpu7_compute_authorized": false
   },
   "training": {
@@ -55,17 +54,17 @@
       "project_name=a2_piper_full_stage_a2_pull",
       "experiment_name=pull_v0_p0g_canonical_64x50",
       "experiment_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_full_stage_a2_pull/pull_v0_p0g/canonical_64x50",
-      "+device=cuda:4"
+      "+device=cuda:2"
     ],
     "env": {
-      "ACCELERATE_TORCH_DEVICE": "cuda:4",
+      "ACCELERATE_TORCH_DEVICE": "cuda:2",
       "WANDB_MODE": "offline",
       "HYDRA_FULL_ERROR": "1",
       "PYTHONUNBUFFERED": "1",
       "PYTHONPATH": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
       "CUDA_VISIBLE_DEVICES": "UNSET"
     },
-    "command_sha256": "eb2810640d4b9b4163de0ffd1c0ac434af29b7e904d3fc9021ee647bb1a38917"
+    "command_sha256": "7cd0a18ce1d32f3cafeb04926351d1a2f50e8522b5220dda8bc8e82f0dc77eda"
   },
   "reload": {
     "artifact_root": "logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload",
@@ -95,18 +94,18 @@
       "eval_output_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload/eval",
       "eval_log_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload/hydra",
       "env.config.save_rendering_dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload/renderings",
-      "+device=cuda:4",
+      "+device=cuda:2",
       "hydra.run.dir=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload/hydra"
     ],
     "env": {
-      "ACCELERATE_TORCH_DEVICE": "cuda:4",
+      "ACCELERATE_TORCH_DEVICE": "cuda:2",
       "WANDB_MODE": "offline",
       "HYDRA_FULL_ERROR": "1",
       "PYTHONUNBUFFERED": "1",
       "PYTHONPATH": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0",
       "CUDA_VISIBLE_DEVICES": "UNSET"
     },
-    "command_sha256": "7273e7a57c2310d8e1e77ae9c27cb9f172e593800a9b2f9e311da7d43186b891"
+    "command_sha256": "c77b4e038c523cbfef786dba9094f59682487e5a30ae432cfce1e43d0f0717f2"
   },
   "acceptance": {
     "natural_training_exit": true,
@@ -116,5 +115,5 @@
     "artifact_namespace_is_pull_only": true,
     "performance_threshold": "N/A"
   },
-  "plan_sha256": "c42511b7169187628f623c50e63adf92b858c9f99156a9dd2f8939452cc00960"
+  "plan_sha256": "2e9d0907a947d8c64cb0086c5689827be008ecfb574fd7de83b9b0d7aa78f0c0"
 }

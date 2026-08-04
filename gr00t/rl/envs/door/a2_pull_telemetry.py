@@ -10,9 +10,14 @@ from typing import Any, Mapping, Sequence
 import torch
 
 
-A2_PULL_TELEMETRY_SCHEMA_VERSION = "a2_piper_pull_telemetry_v1"
+A2_PULL_TELEMETRY_SCHEMA_VERSION = "a2_piper_pull_telemetry_v2"
 A2_PULL_NA = "N/A"
 A2_PULL_ESTIMATE_ONLY = "ESTIMATE_ONLY"
+A2_PULL_HINGE_DRIVE_FORCE_BUCKET_THRESHOLD_NM = 7.25
+A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS = (
+    "hingeDriveMaxForceNm<=7.25Nm",
+    "hingeDriveMaxForceNm>7.25Nm",
+)
 
 
 class A2PullEvent(IntEnum):
@@ -90,6 +95,10 @@ A2_PULL_EPISODE_UNITS = {
     "whole_body_clear": "bool",
     "terminal_reason": "enum",
 }
+A2_PULL_EPISODE_STRATIFICATION_UNITS = {
+    "spawn_hook": "bool",
+    "hinge_drive_max_force_nm": "N*m",
+}
 
 
 def _is_finite_real(value: Any) -> bool:
@@ -142,6 +151,16 @@ def _require_estimate_envelope(value: Any, field_name: str) -> None:
             f"{field_name} provenance must be {A2_PULL_ESTIMATE_ONLY!r}."
         )
     _require_finite_tree(value["value"], f"{field_name}.value")
+
+
+def a2_pull_hinge_drive_force_bucket(hinge_drive_max_force_nm: Any) -> str:
+    """Return the canonical pull-v0 hinge-drive-force stratum label."""
+
+    if not _is_finite_real(hinge_drive_max_force_nm) or float(hinge_drive_max_force_nm) <= 0.0:
+        raise ValueError("hinge_drive_max_force_nm must be finite and positive.")
+    if float(hinge_drive_max_force_nm) <= A2_PULL_HINGE_DRIVE_FORCE_BUCKET_THRESHOLD_NM:
+        return A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS[0]
+    return A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS[1]
 
 
 def validate_a2_pull_control_step(record: Mapping[str, Any]) -> None:
@@ -212,8 +231,15 @@ def validate_a2_pull_control_step(record: Mapping[str, Any]) -> None:
 def validate_a2_pull_episode(record: Mapping[str, Any]) -> None:
     """Validate an episode summary, including event contiguity and ordering."""
 
-    expected = {**A2_PULL_EPISODE_UNITS, "event_reached": "bool_by_event"}
+    expected = {
+        **A2_PULL_EPISODE_UNITS,
+        **A2_PULL_EPISODE_STRATIFICATION_UNITS,
+        "event_reached": "bool_by_event",
+    }
     _require_exact_fields(record, expected, "pull episode record")
+    if not isinstance(record["spawn_hook"], bool):
+        raise ValueError("spawn_hook must be bool.")
+    a2_pull_hinge_drive_force_bucket(record["hinge_drive_max_force_nm"])
     reached = record["event_reached"]
     first_steps = record["first_event_step"]
     first_times = record["first_event_time_s"]
@@ -355,17 +381,7 @@ def a2_pull_event_state_names(reached: torch.Tensor) -> list[str]:
     return [A2_PULL_PRE_E0 if count == 0 else A2_PULL_EVENT_NAMES[count - 1] for count in event_counts]
 
 
-def a2_pull_event_funnel(episodes: Sequence[Mapping[str, Any]]) -> dict[str, float | str]:
-    """Return event-funnel ratios with explicit N/A conditional denominators."""
-
-    if not isinstance(episodes, Sequence) or isinstance(episodes, (str, bytes)) or not episodes:
-        raise ValueError("event funnel requires at least one episode record.")
-    for episode in episodes:
-        validate_a2_pull_episode(episode)
-    counts = {
-        name: sum(bool(episode["event_reached"][name]) for episode in episodes)
-        for name in A2_PULL_EVENT_NAMES
-    }
+def _a2_pull_event_funnel_ratios(episodes: Sequence[Mapping[str, Any]]) -> dict[str, float | str]:
     pairs = (
         ("P(E2 | E1)", A2_PULL_EVENT_NAMES[2], A2_PULL_EVENT_NAMES[1]),
         ("P(E3 | E2)", A2_PULL_EVENT_NAMES[3], A2_PULL_EVENT_NAMES[2]),
@@ -373,14 +389,44 @@ def a2_pull_event_funnel(episodes: Sequence[Mapping[str, Any]]) -> dict[str, flo
         ("P(E5 | E4)", A2_PULL_EVENT_NAMES[5], A2_PULL_EVENT_NAMES[4]),
         ("P(E7 | E5)", A2_PULL_EVENT_NAMES[7], A2_PULL_EVENT_NAMES[5]),
     )
+    if not episodes:
+        return {"P(E1)": A2_PULL_NA, **{label: A2_PULL_NA for label, _numerator, _denominator in pairs}}
+    counts = {
+        name: sum(bool(episode["event_reached"][name]) for episode in episodes)
+        for name in A2_PULL_EVENT_NAMES
+    }
     funnel: dict[str, float | str] = {
         "P(E1)": counts[A2_PULL_EVENT_NAMES[1]] / len(episodes)
     }
     for label, numerator_name, denominator_name in pairs:
         denominator = counts[denominator_name]
-        funnel[label] = (
-            A2_PULL_NA if denominator == 0 else counts[numerator_name] / denominator
-        )
+        funnel[label] = A2_PULL_NA if denominator == 0 else counts[numerator_name] / denominator
+    return funnel
+
+
+def a2_pull_event_funnel(episodes: Sequence[Mapping[str, Any]]) -> dict[str, float | str]:
+    """Return event-funnel ratios with explicit N/A conditional denominators."""
+
+    if not isinstance(episodes, Sequence) or isinstance(episodes, (str, bytes)) or not episodes:
+        raise ValueError("event funnel requires at least one episode record.")
+    for episode in episodes:
+        validate_a2_pull_episode(episode)
+    funnel = _a2_pull_event_funnel_ratios(episodes)
+    for spawn_hook in (True, False):
+        subset = [episode for episode in episodes if episode["spawn_hook"] is spawn_hook]
+        prefix = f"spawnHook={spawn_hook}"
+        funnel[f"{prefix}.count"] = float(len(subset))
+        for label, value in _a2_pull_event_funnel_ratios(subset).items():
+            funnel[f"{prefix}.{label}"] = value
+    for bucket_label in A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS:
+        subset = [
+            episode
+            for episode in episodes
+            if a2_pull_hinge_drive_force_bucket(episode["hinge_drive_max_force_nm"]) == bucket_label
+        ]
+        funnel[f"{bucket_label}.count"] = float(len(subset))
+        for label, value in _a2_pull_event_funnel_ratios(subset).items():
+            funnel[f"{bucket_label}.{label}"] = value
     return funnel
 
 
@@ -388,14 +434,18 @@ __all__ = [
     "A2PullEvent",
     "A2_PULL_CONTROL_STEP_UNITS",
     "A2_PULL_EPISODE_UNITS",
+    "A2_PULL_EPISODE_STRATIFICATION_UNITS",
     "A2_PULL_ESTIMATE_ONLY",
     "A2_PULL_ESTIMATE_ONLY_FIELDS",
     "A2_PULL_EVENT_NAMES",
+    "A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS",
+    "A2_PULL_HINGE_DRIVE_FORCE_BUCKET_THRESHOLD_NM",
     "A2_PULL_NA",
     "A2_PULL_PRE_E0",
     "A2_PULL_TELEMETRY_SCHEMA_VERSION",
     "a2_pull_event_funnel",
     "a2_pull_event_state_names",
+    "a2_pull_hinge_drive_force_bucket",
     "advance_a2_pull_events",
     "validate_a2_pull_control_step",
     "validate_a2_pull_episode",

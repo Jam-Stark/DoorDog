@@ -6503,17 +6503,22 @@ class DoorPregrasp(
         self.door_weight = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_open_lr = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_open_io = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_spawn_hook = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
 
         for env_id in range(self.num_envs):
             door_prim_path = f"/World/envs/env_{env_id}/door"
             door_prim = stage.GetPrimAtPath(door_prim_path)
             door_metadata = door_prim.GetPrim().GetMetadata("customData")
+            spawn_hook = door_metadata["spawnHook"]
+            if not isinstance(spawn_hook, bool):
+                raise RuntimeError("A2 door metadata field spawnHook must be bool.")
             self.door_width[env_id] = door_metadata["doorWidth"]
             self.door_height[env_id] = door_metadata["doorHeight"]
             self.door_handle_height[env_id] = door_metadata["doorHandleHeight"]
             self.door_handle_width[env_id] = door_metadata["doorHandleWidth"]
             self.door_weight[env_id] = door_metadata["doorWeight"]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+            self.door_spawn_hook[env_id] = spawn_hook
 
         # body indices
         self.left_palm_idx = self.simulator.body_names.index("left_hand_palm_link")
@@ -6629,11 +6634,15 @@ class DoorPregrasp(
         )
         self.door_open_lr = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_open_io = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        self.door_spawn_hook = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
 
         for env_id in range(self.num_envs):
             door_prim_path = f"/World/envs/env_{env_id}/door"
             door_prim = stage.GetPrimAtPath(door_prim_path)
             door_metadata = door_prim.GetPrim().GetMetadata("customData")
+            spawn_hook = door_metadata["spawnHook"]
+            if not isinstance(spawn_hook, bool):
+                raise RuntimeError("A2 door metadata field spawnHook must be bool.")
             self.door_width[env_id] = door_metadata["doorWidth"]
             self.door_height[env_id] = door_metadata["doorHeight"]
             self.door_handle_height[env_id] = door_metadata["doorHandleHeight"]
@@ -6658,6 +6667,7 @@ class DoorPregrasp(
                 "handleDriveStiffness"
             ]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+            self.door_spawn_hook[env_id] = spawn_hook
 
         for field_name in (
             "door_width",
@@ -6684,12 +6694,24 @@ class DoorPregrasp(
                     f"A2 door metadata requires {field_name} finite float32 tensor "
                     f"shape ({self.num_envs},) on {self.device}."
                 )
+        if (
+            not torch.is_tensor(self.door_spawn_hook)
+            or tuple(self.door_spawn_hook.shape) != (self.num_envs,)
+            or self.door_spawn_hook.dtype != torch.bool
+            or self.door_spawn_hook.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                f"A2 door metadata requires door_spawn_hook bool tensor "
+                f"shape ({self.num_envs},) on {self.device}."
+            )
         logger.info(
             "A2 runtime evidence: door metadata validated num_envs={} "
-            "hinge_drive_max_force_min={} hinge_drive_max_force_max={} device={}",
+            "hinge_drive_max_force_min={} hinge_drive_max_force_max={} "
+            "door_spawn_hook_true_count={} device={}",
             self.num_envs,
             self.door_hinge_drive_max_force.min().item(),
             self.door_hinge_drive_max_force.max().item(),
+            int(self.door_spawn_hook.sum().item()),
             self.door_hinge_drive_max_force.device,
         )
 

@@ -114,6 +114,8 @@ def _episode(max_event: int, terminal_reason: str = "episode_timeout") -> dict:
         "crossing_while_valid_capture": reached_e6,
         "whole_body_clear": reached_e7,
         "terminal_reason": terminal_reason,
+        "spawn_hook": True,
+        "hinge_drive_max_force_nm": 7.25,
     }
 
 

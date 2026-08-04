@@ -2,7 +2,7 @@
 name: pull-open-door-task
 scope: A2+Piper pull-door v0 round (pull-side P1 scripted probe + push-side anchor)
 status: active
-last_updated: 2026-08-05 00:20 HKT
+last_updated: 2026-08-05 02:30 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md

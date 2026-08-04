@@ -27,7 +27,7 @@ TRAIN_ROOT = (
 )
 RELOAD_ROOT = ROOT / "logs_eval/a2_piper_pull_v0/p0g_checkpoint_reload"
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-PHYSICAL_GPU = 4
+PHYSICAL_GPU = 2  # physical GPU2; CUDA_VISIBLE_DEVICES unset, +device=cuda:2
 CHECKPOINT = TRAIN_ROOT / "model_step_000050.pt"
 
 
@@ -188,7 +188,7 @@ def prepare() -> dict:
             "single_process": True,
         },
         "gpu_resource_lease": {
-            "authorized_physical_devices": [4, 5, 6],
+            "authorized_physical_devices": [2, 3],
             "selected_physical_device": PHYSICAL_GPU,
             "gpu7_compute_authorized": False,
         },

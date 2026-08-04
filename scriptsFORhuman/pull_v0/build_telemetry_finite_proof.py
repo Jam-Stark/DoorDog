@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import sys
 from pathlib import Path
@@ -13,26 +14,37 @@ sys.path.insert(0, str(REPO_ROOT))
 from gr00t.rl.envs.door.a2_pull_telemetry import (
     A2_PULL_CONTROL_STEP_UNITS,
     A2_PULL_EPISODE_UNITS,
+    A2_PULL_EPISODE_STRATIFICATION_UNITS,
     A2_PULL_ESTIMATE_ONLY,
     A2_PULL_EVENT_NAMES,
+    A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS,
+    A2_PULL_HINGE_DRIVE_FORCE_BUCKET_THRESHOLD_NM,
     A2_PULL_NA,
     A2_PULL_PRE_E0,
     A2_PULL_TELEMETRY_SCHEMA_VERSION,
     a2_pull_event_funnel,
+    a2_pull_hinge_drive_force_bucket,
     validate_a2_pull_control_step,
     validate_a2_pull_episode,
 )
 
 
-TERMINAL_REASON_MAX_EVENT = {
-    "complete": 7,
-    "stage_overtime": 3,
-    "episode_timeout": 2,
-    "low_height": 1,
-    "bad_orientation": -1,
-    "door_distance": 0,
-    "upper_dof_overspeed": 4,
-    "unknown_reset": 0,
+@dataclass(frozen=True, slots=True)
+class TerminalReasonSpec:
+    max_event: int
+    spawn_hook: bool
+    hinge_drive_max_force_nm: float
+
+
+TERMINAL_REASON_SPECS = {
+    "complete": TerminalReasonSpec(7, True, 7.25),
+    "stage_overtime": TerminalReasonSpec(3, False, 7.25),
+    "episode_timeout": TerminalReasonSpec(2, True, 7.50),
+    "low_height": TerminalReasonSpec(1, False, 7.50),
+    "bad_orientation": TerminalReasonSpec(-1, True, 7.25),
+    "door_distance": TerminalReasonSpec(0, False, 7.25),
+    "upper_dof_overspeed": TerminalReasonSpec(4, True, 7.50),
+    "unknown_reset": TerminalReasonSpec(0, False, 7.50),
 }
 
 
@@ -92,24 +104,24 @@ def _control_step(step: int, event_index: int) -> dict:
     }
 
 
-def _episode(max_event: int, terminal_reason: str) -> dict:
+def _episode(terminal_reason: str, spec: TerminalReasonSpec) -> dict:
     reached = {
-        event_name: event_index <= max_event
+        event_name: event_index <= spec.max_event
         for event_index, event_name in enumerate(A2_PULL_EVENT_NAMES)
     }
     steps = {
-        event_name: event_index * 10 if event_index <= max_event else A2_PULL_NA
+        event_name: event_index * 10 if event_index <= spec.max_event else A2_PULL_NA
         for event_index, event_name in enumerate(A2_PULL_EVENT_NAMES)
     }
     times = {
-        event_name: event_index * 0.2 if event_index <= max_event else A2_PULL_NA
+        event_name: event_index * 0.2 if event_index <= spec.max_event else A2_PULL_NA
         for event_index, event_name in enumerate(A2_PULL_EVENT_NAMES)
     }
-    e2 = max_event >= 2
-    e4 = max_event >= 4
-    e5 = max_event >= 5
-    e6 = max_event >= 6
-    e7 = max_event >= 7
+    e2 = spec.max_event >= 2
+    e4 = spec.max_event >= 4
+    e5 = spec.max_event >= 5
+    e6 = spec.max_event >= 6
+    e7 = spec.max_event >= 7
     return {
         "event_reached": reached,
         "first_event_step": steps,
@@ -130,17 +142,29 @@ def _episode(max_event: int, terminal_reason: str) -> dict:
         "crossing_while_valid_capture": e6,
         "whole_body_clear": e7,
         "terminal_reason": terminal_reason,
+        "spawn_hook": spec.spawn_hook,
+        "hinge_drive_max_force_nm": spec.hinge_drive_max_force_nm,
     }
+
+
+def _validate_episode_stratification_fields(episode: dict) -> None:
+    missing = set(A2_PULL_EPISODE_STRATIFICATION_UNITS).difference(episode)
+    if missing:
+        raise ValueError(f"episode is missing mandatory stratification fields: {sorted(missing)}")
+    if not isinstance(episode["spawn_hook"], bool):
+        raise ValueError("spawn_hook must be bool.")
+    a2_pull_hinge_drive_force_bucket(episode["hinge_drive_max_force_nm"])
 
 
 def main() -> None:
     episodes = []
     control_steps = []
-    for terminal_reason, max_event in TERMINAL_REASON_MAX_EVENT.items():
-        episode = _episode(max_event, terminal_reason)
+    for terminal_reason, spec in TERMINAL_REASON_SPECS.items():
+        episode = _episode(terminal_reason, spec)
+        _validate_episode_stratification_fields(episode)
         validate_a2_pull_episode(episode)
         episodes.append(episode)
-        for event_index in range(-1 if max_event < 0 else 0, max_event + 1):
+        for event_index in range(-1 if spec.max_event < 0 else 0, spec.max_event + 1):
             record = _control_step(max(event_index, 0) * 10, event_index)
             validate_a2_pull_control_step(record)
             control_steps.append(
@@ -161,8 +185,11 @@ def main() -> None:
         "harness_input": "Synthetic finite values exercise every terminal reason registered by the pull smoke harness; they are not runtime measurements.",
         "control_step_units": A2_PULL_CONTROL_STEP_UNITS,
         "episode_units": A2_PULL_EPISODE_UNITS,
+        "episode_stratification_units": A2_PULL_EPISODE_STRATIFICATION_UNITS,
+        "hinge_force_bucket_threshold_nm": A2_PULL_HINGE_DRIVE_FORCE_BUCKET_THRESHOLD_NM,
+        "hinge_force_bucket_labels": A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS,
         "implicit_actuator_provenance": A2_PULL_ESTIMATE_ONLY,
-        "terminal_reason_coverage": list(TERMINAL_REASON_MAX_EVENT),
+        "terminal_reason_coverage": list(TERMINAL_REASON_SPECS),
         "control_step_records": control_steps,
         "episode_records": episodes,
         "event_funnel_example": a2_pull_event_funnel(episodes),
@@ -174,6 +201,9 @@ def main() -> None:
             "event_ordering": "PASS",
             "impossible_event_rejection": "PASS_BY_UNIT_TEST",
             "estimate_only_stamps": "PASS",
+            "mandatory_spawn_hook": "PASS",
+            "mandatory_hinge_drive_max_force_nm": "PASS",
+            "hinge_force_bucket_stratification": "PASS",
         },
     }
     output_path = Path(__file__).with_name("PULL_V0_TELEMETRY_FINITE_PROOF.json")

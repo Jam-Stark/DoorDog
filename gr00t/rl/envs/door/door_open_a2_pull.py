@@ -838,6 +838,8 @@ class DoorOpenA2Pull(DoorPregrasp):
                 ),
                 "whole_body_clear": reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name],
                 "terminal_reason": terminal_reason,
+                "spawn_hook": bool(self.door_spawn_hook[env_id].item()),
+                "hinge_drive_max_force_nm": float(self.door_hinge_drive_max_force[env_id].item()),
             }
             validate_a2_pull_episode(record)
             records.append(record)

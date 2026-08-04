@@ -1,0 +1,299 @@
+{
+  "schema_version": "pull_v0_p1_anchor_retirement_v1",
+  "generated_at_hkt": "2026-08-05 00:43:44 HKT",
+  "status": "CLOSED_RETIRED",
+  "authorization": {
+    "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_ANCHOR_RETIREMENT_AUTHORIZATION.md",
+    "sha256": "cf0f02d7079a067c0e60f35166a2f20a6bc821de30a2a11ae48bc9e28681d5aa",
+    "authority": "arbiter, 2026-08-05 HKT",
+    "amendments": [
+      7,
+      8,
+      9
+    ]
+  },
+  "amendment_7": {
+    "retired_amendment_1": {
+      "subject": "push-side known-good anchor",
+      "scope": "entirety"
+    },
+    "retired_amendment_2_fixture_specification": {
+      "subject": "120 kg P1 fixture specification",
+      "retained_principle": "Bind distributions to the RESOLVED v20 G4 config, never repository defaults.",
+      "relocated_to": "Amendment 9"
+    },
+    "p1_scripted_mechanism_probe": {
+      "previous_gate_role": "BLOCKING",
+      "current_role": "OPTIONAL_DIAGNOSTIC",
+      "reconsideration_condition": "Only if the P2 event funnel is ambiguous."
+    }
+  },
+  "terminal_state": {
+    "attempt": 20,
+    "attempt_receipt": {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT20_RECEIPT.json",
+      "sha256": "b1b2fa0df807328c46cf479aefd00066ecd09566364347521f6ae247fd3c797e"
+    },
+    "status": "ANCHOR_FAIL",
+    "anchor_verdict": "FAIL",
+    "terminal_outcome": "BASE_RELIEF_DISPLACEMENT_LIMIT",
+    "proof_sample_count": 0,
+    "episode_length": 804,
+    "episode_max_stage_reached": 4,
+    "episode_terminal_reason": "stage_overtime",
+    "episode_goal_reached": false,
+    "crossing_while_holding": true,
+    "hinge_at_crossing_rad": 1.0431501865386963,
+    "latch_released": true,
+    "max_body_force_n": 0.0,
+    "scientific_verdict_consumed": false,
+    "pull_mechanism_verdict": "NOT_ASSERTED_OR_CONSUMED",
+    "statement": "No pull mechanism verdict was ever asserted or consumed by the retired P1 anchor apparatus."
+  },
+  "receipt_chain_immutability": {
+    "preservation_required": true,
+    "delete_or_rewrite_permitted": false,
+    "hash_bound_artifact_count": 55,
+    "statement": "Retirement changes gate status only. It does not waive receipt-chain immutability."
+  },
+  "retired_artifacts": [
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_FIXTURE_RECEIPT.json",
+      "sha256": "00e92d9d5694138ef90388ae2619f73c14743f238255e37c975809d2c9921487"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_INFRA_RECLASSIFICATION_RECEIPT.json",
+      "sha256": "b3b31ff57e63e87c7712db862fb56f523229b579df7195370eee5e650ebe8b43"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT10_PLAN.json",
+      "sha256": "98bad3d8b617811e9db459be434f754d90bbafe1bc388035d84e0f219d12ae11"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT10_RECEIPT.json",
+      "sha256": "725300a992e5e842b4335d62e8ee71bbcf4b3bcd414a5087ba6dca38ecdaaaf6"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT11_PLAN.json",
+      "sha256": "78be473a11f3b304c49ad34e0d82cc1a7c1edb0c147675fe7f15056fdb47fa81"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT11_RECEIPT.json",
+      "sha256": "4e37e1c20667ba4d4c9c69ce848725dd1fbe5eda3954dff0f942cc7dbf3f595b"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT12_PLAN.json",
+      "sha256": "2e4231c6f6a7862d094d5182857c37b9381b557b6760636c508e3fd87c648dbc"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT12_PREPARATION_INVALIDATION.json",
+      "sha256": "0d82c848cab382f873a01f67eb88669efae4d4669fb67bbac42161532d280d78"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_PLAN.json",
+      "sha256": "25c106d21b399add34a182a031804ee6bc4e7aef884af457d10225dedd73e353"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT13_RECEIPT.json",
+      "sha256": "f85e1d177b5e3422ed99f4de250187ad9e7186f7034d9b79e1d1cd339b779cd5"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_PLAN.json",
+      "sha256": "fce7011380089e4f8647dfccf5ed4a4c75b149001c0acc6b7dfbf8de02f4f3c4"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT14_RECEIPT.json",
+      "sha256": "60c007cf6267e42b66605217880adc24e638da744142e85e362a313ba4778638"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT15_PLAN.json",
+      "sha256": "254a6937153960ceff5f5c71299ec7106349e544a7b252e31b107123da091bbc"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT15_RECEIPT.json",
+      "sha256": "01c952a4402a887275ff53f02f26ea4a88f3f6c79ed0fc4388f4d32cbde763b0"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_PLAN.json",
+      "sha256": "7371fef9948e72a9900da45074daba9d5848556ebc9dac91eb9eba44fdaf55e9"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT16_RECEIPT.json",
+      "sha256": "2cfbd95e10dc57e16cf2f566925593c41680f3592539676c013c4931a22c06c5"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_LAUNCH_OCCUPANCY.json",
+      "sha256": "51248f40d24d1893b2d01b50a7a1c8ecb8f7764ac1865bf1e5e78975ece8e1db"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_PLAN.json",
+      "sha256": "0412470f7d5ff293cba5974787105d8891418c81402957bdd09baaf09f9d7dd7"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_RECEIPT.json",
+      "sha256": "5c51dd2d51b2913acc12a9a379ece4fca151d798a4c79570f784e31588ef1cad"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT17_STEADY_STATE_FOOTPRINT.json",
+      "sha256": "63b1bc5ca98d6973f741f631530cd9d725544bc2fa37be238c859bafcddb1359"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_LAUNCH_OCCUPANCY.json",
+      "sha256": "17f91b53a878c25677a96cd5f03a9c3329c5f32424faf6c4f56bab91f141c6ef"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PLAN.json",
+      "sha256": "58c806cecfef15b876d21358f25742460669cd6e4c14e2c1d6c7ebd43678001f"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_PRELAUNCH_INFRA1_RECEIPT.json",
+      "sha256": "932b6349a339892ea1590d427140820f66884ba357666f35a1bc76f89421e5cf"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RECEIPT.json",
+      "sha256": "329e86b831016ddab68b8a03ac91e65a97ed60700685f9e4b6700b08affb140a"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_LAUNCH_OCCUPANCY.json",
+      "sha256": "f2b93c71c02600c362a8e8e8eb9a3bcc52fe320f1681726ae933a8b415a0bcb1"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT18_RETRY1_STEADY_STATE_FOOTPRINT.json",
+      "sha256": "a02d5a64683807dcdb1ce33b47f567ac9120a9640235806f7c1273ccaeaf614a"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_CAPTURE_FAILURE.json",
+      "sha256": "6fab55d01f9e0763167121c48fb54a16e5e4cf4c0eb970bed1a40c837f0b70bc"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_LAUNCH_OCCUPANCY.json",
+      "sha256": "035303242c307856a54bb3eabe09c391d75cca936f9a437946af4f938e2d08b8"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_PLAN.json",
+      "sha256": "cf23ee03ec0c40e77582ec724d8c6d8855cebcd40791edb7c8d11e75d9800748"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT19_RECEIPT.json",
+      "sha256": "4f92eba02f157158803f3df7b031e865bdefccc6a5d9ea969e1cf43eaaa536cd"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT1_PLAN.json",
+      "sha256": "393f7fc1b3a74b5e5dcb6fca967a0f761b8a302722113eb458e7c944986f30a5"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT20_LAUNCH_OCCUPANCY.json",
+      "sha256": "a9c2e76f8383bd5ae5ff16f847741bd53ce97bc4eec33c82b19fc77e1cabd90f"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT20_PLAN.json",
+      "sha256": "7b6bf7df8861fa409b043ec5d4682426848e83991b604f67895376f4fb6e7e1a"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT20_RECEIPT.json",
+      "sha256": "b1b2fa0df807328c46cf479aefd00066ecd09566364347521f6ae247fd3c797e"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT2_PLAN.json",
+      "sha256": "a0ad82cd7ce216d75a7ecae2b288d8c97f1dc75f592ef9ad2db4871ee8f43f7c"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT3_PLAN.json",
+      "sha256": "64881440bfb7c17382392ce47d7890e8bcdf9f423b8f1aacee902c437dc5b7a3"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT3_RECEIPT.json",
+      "sha256": "aa499f0fc6ba36d5b9b9dd17758c829a5d6ea05574f5a7e118510af5d4d88335"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT4_PLAN.json",
+      "sha256": "c0d80066c2845ff06096cefb5329a88111ec5ca6c1179f7dc7e1d16f8d103b39"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT4_RECEIPT.json",
+      "sha256": "fba43435fb15a40dfb4be4cd4fe3c0ba5cc688a8137b5da89bb420d8f709b90e"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT5_PLAN.json",
+      "sha256": "b5769c0fc11920630f95953dbd77d99ed5693e156179f667bb78691ea28983ba"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT5_RECEIPT.json",
+      "sha256": "64283e4aebe60bfd6ad4a61ec3fcda6dc7936cdb21e86d2f39a974bcc07211ce"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT6_PLAN.json",
+      "sha256": "9344a1b4807830b835055b54ccb307bcb271402991cdfec005179c17f1b954e7"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT6_RECEIPT.json",
+      "sha256": "d358c53345ad95bad7086e005a8325ade3f46444c2a580379db771e699e81a34"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT7_PLAN.json",
+      "sha256": "c7874901396979aae5ddd622f598203554bf798c387a61dff511ca900b8fc2dd"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT7_RECEIPT.json",
+      "sha256": "26256715bbf9d3885f87079e98b42c0a4a275a2a27eced1393cb33e0862f2989"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT8_INVALIDATION.json",
+      "sha256": "dc43421bc12af85a18bbeb6398b1242daf4f293982894a5e17f0d01ec1535fd4"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT8_PLAN.json",
+      "sha256": "e3b20d5fb10e2b76c71af215a9be3cd99c4516dc7f03accc1ccb7734f4254813"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT8_RECEIPT.json",
+      "sha256": "dab0732f722bd8444b357b721acbc9c14d8b6725d81096bcfaeb039b9e8e0722"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_INVALIDATION.json",
+      "sha256": "ad21ae10c7f443fea640f195dfa5806eedfbb7374a740785c0b80d546d5eda1a"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_PLAN.json",
+      "sha256": "460dd1fcbb0e51d080db730bbf0f020f5ec56d5d76468f8f48bfe322039cc2a8"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RECEIPT.json",
+      "sha256": "286fa3b832911ce3530b17696049b0a5e9d5584bf78e5199d1506c208b043624"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_ATTEMPT9_RESPONSE_TELEMETRY.json",
+      "sha256": "653a599a83e386251ee1a7dc98d51b93e3a474123569565ff311b1d99af9e937"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_P1_PUSH_ANCHOR_RECEIPT.json",
+      "sha256": "0441648a81c28f180a6ec0a0ed4176b1f4b3f0fc0fd43dea12bc09712429ed63"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_VULKAN_ENUMERATION_CONTEXT_RECEIPT.json",
+      "sha256": "7d2fbc98a07355f989bc450e39b7ba85fe8deb29ecee32852605f07e6c7bd383"
+    },
+    {
+      "path": "scriptsFORhuman/pull_v0/PULL_V0_GPU_LEASE_AMENDMENT_RECEIPT.json",
+      "sha256": "1a80804a1062e9878f73c35c89e360e7eaf95c2fa50a6dcf2a9cac85a259e292"
+    }
+  ],
+  "declaration": {
+    "pull_mechanism_verdict": "No pull-mechanism verdict was ever asserted or consumed.",
+    "scientific_verdict": "The one-shot scientific verdict is NOT consumed.",
+    "anchor_gate": "The retired anchor no longer gates P1.",
+    "p1_status": "OPTIONAL_DIAGNOSTIC"
+  },
+  "validation": {
+    "static": "PASS",
+    "runtime": "NOT_RUN",
+    "runtime_not_run_reason": "This closing receipt records an authorization and immutable artifact hashes; it neither requests nor asserts a simulator, GPU, or pull-mechanism runtime."
+  },
+  "unverified_claims": [
+    "No pull-mechanism verdict is asserted by this closing receipt.",
+    "No scientific verdict is consumed by this closing receipt.",
+    "Anchor artifacts are preserved and are not deleted by this closing receipt.",
+    "The physical plant cause of Attempt20 BASE_RELIEF_DISPLACEMENT_LIMIT remains NOT_INVESTIGATED by this retirement receipt.",
+    "No new P1 probe or P2 runtime result is asserted by this retirement receipt."
+  ]
+}

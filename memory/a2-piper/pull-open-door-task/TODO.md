@@ -1,5 +1,4 @@
 # Pull-Open-Door Task TODO
 
-- 2026-08-05 00:20 HKT - Anchor FAIL `BASE_RELIEF_DISPLACEMENT_LIMIT` 需新 scope 调查（base relief 参数 / probe stage 4 行为 / 物理 fixture）。非 R17 问题（R17 是 evidence/runner tooling）。
-- 2026-08-05 00:20 HKT - Anchor PASS 后才可 freeze candidate → code_reviewer → isaaclab_reviewer → unlock P1 pull matrix。
-- 2026-08-05 00:20 HKT - P2 locked until P1 + explicit GPU allocation。
+- 2026-08-05 02:30 HKT - P2 execution: 6 cells W/S x seed {0,1,2}, 256 env, 750 batches, GPU2+GPU3 only. DV event-funnel conditional probabilities stratified by spawnHook AND hinge_drive_max_force. Curriculum selectors disabled. Amendment 6 accounting (infra failures unlimited retry).
+- 2026-08-05 02:30 HKT - P2 requires GPU2+GPU3 — verify both free before launch. Sequence 6 cells on 2 GPUs.

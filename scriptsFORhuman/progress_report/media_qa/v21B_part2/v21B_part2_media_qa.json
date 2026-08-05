@@ -1,0 +1,4858 @@
+{
+  "schema": "a2_piper_v21b_part2_media_qa_v1",
+  "generated_at_utc": "2026-08-05T20:02:08.979359+00:00",
+  "candidate_id": "399d62334700c0c7c1e3df2f16557bcfd14ca6d69e32a774286dc15793737108",
+  "matrix": {
+    "path": "scriptsFORhuman/progress_report/a2_piper_v19_v21_render_matrix_20260806.json",
+    "sha256": "eff869d458caf06e9bb40419506e261f03d327479e093bf59d879d53c5382ce3"
+  },
+  "validation_level": "MEDIA_FULL_DECODE",
+  "scope": {
+    "case_ids": [
+      "v21B_B5_step0750",
+      "v21B_B6_step0750",
+      "v21B_B6_step2500"
+    ],
+    "surface_env_id": 2,
+    "surface_scenario_id": "l02",
+    "purpose": "REPORT_ONLY_SCIENTIFIC_ILLUSTRATION_NOT_RELEASE"
+  },
+  "cases": [
+    {
+      "case_id": "v21B_B5_step0750",
+      "matrix_identity": {
+        "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750",
+        "checkpoint": "logs_rl/a2_piper_full_stage_a2_base/base_v21B/formal/B5/model_step_000750.pt",
+        "checkpoint_sha256": "0b9ce26bb320cfa344dcdfbbbbcffa948192473d89305e17788d1528d61aec94",
+        "expected_primary_videos": 48,
+        "surface_env_id": 2,
+        "surface_scenario_id": "l02",
+        "report_role": "report_only_illustration",
+        "purpose": "REPORT_ONLY_SCIENTIFIC_ILLUSTRATION_NOT_RELEASE"
+      },
+      "receipt": {
+        "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/process_receipt.json",
+        "sha256": "c3fef6f65bf7058c16afcdda2352b1eadbc70c3c442172fcdbb4bd30b01d557f",
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true
+      },
+      "inventory": {
+        "finalized_mp4_count": 48,
+        "primary_count": 48,
+        "auxiliary_count": 0,
+        "writing_count": 0,
+        "primary_set_complete": true,
+        "all_finalized_decode_pass": true
+      },
+      "selected_env0002_episode0000": {
+        "main": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_len612_reason-complete.mp4",
+        "handle_top": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_top_len612_reason-complete.mp4",
+        "handle_side": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_side_len612_reason-complete.mp4"
+      },
+      "contact_sheet": {
+        "case_id": "v21B_B5_step0750",
+        "env_id": 2,
+        "scenario_id": "l02",
+        "episode": 0,
+        "time_fractions": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "cameras": {
+          "main": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_len612_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              153,
+              306,
+              459,
+              612
+            ],
+            "frame_count": 613,
+            "fps": 20.0
+          },
+          "handle_top": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_top_len612_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              153,
+              306,
+              459,
+              612
+            ],
+            "frame_count": 613,
+            "fps": 20.0
+          },
+          "handle_side": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_side_len612_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              153,
+              306,
+              459,
+              612
+            ],
+            "frame_count": 613,
+            "fps": 20.0
+          }
+        },
+        "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_B5_step0750_env0002_l02_contact_3x5.png",
+        "sha256": "c256f58e19ba4c28eee8e8c03d4a74a60b4b8e85fef60a4c6632390cb14e12c8",
+        "size_bytes": 858370
+      },
+      "videos": [
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0000_episode0000_handle_side_len567_reason-complete.mp4",
+          "sha256": "bb33c9ac069b819937343ba5d0530cd606f2996c96844efede3d19d388c5642e",
+          "size_bytes": 2946362,
+          "reported_frame_count": 568,
+          "decoded_frame_count": 568,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d9c36362b1652e78c2ee5f9befb606fbe2807e202889c377b7a6dc2849322ea8",
+            "middle": "6d6e6b9a481921bb30cdead41115532460183402a070dce36a8b9c8135e334e1",
+            "last": "c3163503b84935e68a619d7f2e42c5cbb3f14e0c8750f175b487094cec889ff6"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0000_episode0000_handle_top_len567_reason-complete.mp4",
+          "sha256": "1d1d1fcc420fff6894e8b476fa023c320cc263e87a2dc5e44f9a482565ad1744",
+          "size_bytes": 4579810,
+          "reported_frame_count": 568,
+          "decoded_frame_count": 568,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "39ba7c0812123a4b6e48b6fbc1c6c5b0ee2d1a7717b7c685739deafed0c5a853",
+            "middle": "9c6f71153ac209a96be9611d47c20905fdafbbfaf8d0d93a606ec641fdc5012c",
+            "last": "68ef865a14245f9140aed94e84a1fba40a19ea53d569be31d28acdd4748190ec"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0000_episode0000_len567_reason-complete.mp4",
+          "sha256": "bd775412a10c980b90e73a0ac00afa79fd3f258c1f2fc9cbb8464b8a25a5ab8b",
+          "size_bytes": 1432582,
+          "reported_frame_count": 568,
+          "decoded_frame_count": 568,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b0d3edfd37ba3bc7ef04a2ade4fcd4c15f61873b033e1230a0363654fb551136",
+            "middle": "ba4b45fc12e3dfe7c3d6380184dec0e795dd5663a3d9d87bcf0a491308d8c4ea",
+            "last": "21b108077ba46e1147647ddbd2ac3e2bade92854ecfeae5a763d8aa6236bc578"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0001_episode0000_handle_side_len616_reason-complete.mp4",
+          "sha256": "ebe2e591e9b4ba8af0dc52700cd6c81042feb80be81ea3c34896d9f81fbada9c",
+          "size_bytes": 1282621,
+          "reported_frame_count": 617,
+          "decoded_frame_count": 617,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "e32b2f13ccbffb321462feb39e8b1cf88affb74a8326615440d095709566f294",
+            "middle": "838d139f2421151d6199955671300413eabecd59769be4759280aac9ce4b38dd",
+            "last": "9af457c5e70a0a2aace33128feb021a255c09280290d3bf89bee316529b1a963"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0001_episode0000_handle_top_len616_reason-complete.mp4",
+          "sha256": "9234c93e238f5b7496b9afd9d0c72e62799a2dd933017540e46cd5358559c552",
+          "size_bytes": 2450359,
+          "reported_frame_count": 617,
+          "decoded_frame_count": 617,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b5050f2c6ff9334580c418d4e40dae46e9587e9bef73ee7f3c32d5f24214dbdc",
+            "middle": "0f0855ea6039f7c71b9779eaf2a4f3d49e2c28291245cf74a22a8d613b4dc9d3",
+            "last": "5200ea5cf087e0d19df659ce72ddd4a62c4770023e2791731556563b52e9dfde"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0001_episode0000_len616_reason-complete.mp4",
+          "sha256": "95d3d1a580db6a49fa5fcbe3f700e017b7e28e395d0926f915eb9f9a999d9ec2",
+          "size_bytes": 1253078,
+          "reported_frame_count": 617,
+          "decoded_frame_count": 617,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "6c5f63dbf78a494a0ae856cd69d4ae4fbe922e94cbb1521d712a9055220d9ff7",
+            "middle": "2b21c6307887833c73b7ddbac3c0f7dd600eeacc65a2af5daad44a9c3b6572c2",
+            "last": "3f5d84b20bc9e78250f232232093d91a522162f4973ae5e8efde07319fda0d23"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_side_len612_reason-complete.mp4",
+          "sha256": "98060aa3391467f7bbca772096236a234d48a845fd3e2008b43d72faff482e8b",
+          "size_bytes": 2878013,
+          "reported_frame_count": 613,
+          "decoded_frame_count": 613,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "50dd541a5b7af91cf42f59760923bb1705bc8846d9b3432720d0be1bef2a123d",
+            "middle": "21a3a0e0735809fdf842c33bb6d9fb356e0fa62d3e63c6b383145f03286882bd",
+            "last": "d5868d214d1306c24f4db006891995fe710b01fa90d75474c7930414ce90097f"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_top_len612_reason-complete.mp4",
+          "sha256": "c00ec74d8b597252d5de4fd13bb18544ea2df76a2508f7b296c62036901dfe01",
+          "size_bytes": 4558728,
+          "reported_frame_count": 613,
+          "decoded_frame_count": 613,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "903d96695ca56532cd715787c3bf05cca1c7c8c7a2adbb4b9027c33947adbadd",
+            "middle": "db15ac314cef6c39da7d3df278dd3ec7d3cdacd29af587fc282a1fb6a33f0866",
+            "last": "75dff6fbb57a12947e713f5d2842539b34602fad6cef7639c6dc4f95ba54c076"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_len612_reason-complete.mp4",
+          "sha256": "b0a4bd382dd7353deebb9897bf9e9782952a31e151fd4db4c464a0f886dda39c",
+          "size_bytes": 1303093,
+          "reported_frame_count": 613,
+          "decoded_frame_count": 613,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d9274a7797b871bf8c68ec6f351b8b3a3f0e2b77a444eb1cabfa182b730c2ed7",
+            "middle": "cbcde5cda135d57db2408a78a81e5b32e59dd67ef1e7da26b4d9031f0a5634d4",
+            "last": "4ea33838dbf9da3ec8abecfd8b8331a771f390775be413664909471645d38679"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0003_episode0000_handle_side_len637_reason-complete.mp4",
+          "sha256": "a601d582f3608df8419fec8a02448d2083eed4f0cad4a85cc4898646876c0516",
+          "size_bytes": 2952546,
+          "reported_frame_count": 638,
+          "decoded_frame_count": 638,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "1284598fe924593fff72114b49c7ee7227ec93e151c085ad4afe7a341685af40",
+            "middle": "ceee2f3764d7548d2c8207cad823028d5524a3833e1c6327839b23ebb8038149",
+            "last": "1cc4b09b47300527365bb9fc8af35536842609b38f5446061dcc7482302c7ed1"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0003_episode0000_handle_top_len637_reason-complete.mp4",
+          "sha256": "8fb22811edd84f96fbacdfde446862b0dd4ce8dfb943fde134ffa985610df778",
+          "size_bytes": 6715033,
+          "reported_frame_count": 638,
+          "decoded_frame_count": 638,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "5480d3ae0759fbb70537bd3833d4a9d33f6bbb7176ac1cb0f97cd06f5d57eec8",
+            "middle": "70e473de3a5f56a3ba27bc1091dcd6904cea6d8cc207dcc71b96669a1b3326ad",
+            "last": "373433040cae9c14d144b67b4a50a4fd51efe692034383fb274b927ee4157687"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0003_episode0000_len637_reason-complete.mp4",
+          "sha256": "5f21edcddc9ad0be5001f03e6c3e88c1dddc58ac7240c9a51d430957eeaa33d8",
+          "size_bytes": 1602558,
+          "reported_frame_count": 638,
+          "decoded_frame_count": 638,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0ca317de41efd8dd392321f725b8b45e128b479aff7fd18c572d9a55a399605d",
+            "middle": "ce22557de903f8398c00e6a85d15b420b9e567ea9102b30582c1bcc147774476",
+            "last": "15fb49d3fde92e9fa84657ac41e10c2ae9bd50934e0cfca7f7b420494273a830"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0004_episode0000_handle_side_len610_reason-complete.mp4",
+          "sha256": "e37466c396bb33dab8d8034f032c751dac06da1aec9f68c4036a9eb80686d677",
+          "size_bytes": 2189911,
+          "reported_frame_count": 611,
+          "decoded_frame_count": 611,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "cf41af0f4d49acb3f250765d8e21c0b2693ce61f8fadb6fec388532dccd07895",
+            "middle": "2198611c597ceb2ed6984bf06b37101f2929d97e72dec2d71832b6e85de59481",
+            "last": "99285e52efacef4c6dcaa97e82551ab3eaf04f95f5f087b5ed66fd466e8a11e0"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0004_episode0000_handle_top_len610_reason-complete.mp4",
+          "sha256": "ca3dc68cc3dbbff547c24688c176edd07e3e92deda4817556e05dc8fead10105",
+          "size_bytes": 3174969,
+          "reported_frame_count": 611,
+          "decoded_frame_count": 611,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "80c5ee3dd93d4acb497789537aaf3b3816d66b73a23c97c5ad69e099caf94095",
+            "middle": "9c64e5c041800eddf868b17292448e840c50e36a573bf35cc00aaa0ff61e0719",
+            "last": "93e85e1084174d809295d4b20d4a4e11766e8a7df73ebd5afe605611ee5b53f8"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0004_episode0000_len610_reason-complete.mp4",
+          "sha256": "297450ab4a95fd55eedb574035969b173ce736249ff5317ba70d3ad367f37a5a",
+          "size_bytes": 2061173,
+          "reported_frame_count": 611,
+          "decoded_frame_count": 611,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "73b384e7df5053913188dd17d54fad70a5b8508b508ec633ae79d646050c6f10",
+            "middle": "f2d82a9854295cf25a46b6b76a396c7dac09d9b40a520f29054df5a99d8aa387",
+            "last": "a0d5f137b93df9a549bd972b2e30a098ab6620c388c220ea33133efdb1f85336"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0005_episode0000_handle_side_len602_reason-complete.mp4",
+          "sha256": "7b98d9ea28cb44fda2efec8e5827960e9edd85ebc5ea7d8384c7341b5c3ecf99",
+          "size_bytes": 2942354,
+          "reported_frame_count": 603,
+          "decoded_frame_count": 603,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a852ad4a36f6637a9cf22516b802d1dbebd5d31e6139ee56981b1ea3fa1742bb",
+            "middle": "5bb526c272ca8f9a3c6a564f6a1ce0e0543accefcfdfc9f2db3ee9dcb3151b75",
+            "last": "a060834c4e818135adf02f409f55a977bfd6aa33ab4553acff38a6e2e8a393b8"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0005_episode0000_handle_top_len602_reason-complete.mp4",
+          "sha256": "1d03b74a5bcab6790d990c854856337a965dd73234c6b8af7e81523b8e6212aa",
+          "size_bytes": 3741150,
+          "reported_frame_count": 603,
+          "decoded_frame_count": 603,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f4f7d7fc3bcd6efcf74f54908cb6225b721cf16f5ae0cfd6a10f3d20c001ace5",
+            "middle": "fae1f035e19029ebc141f42a33a9ba76d6c468bb08eb4143ff574d655bd123e4",
+            "last": "5bd86f1d35011d5b2ce86fbc4875312362c1e5c90f70ab5abbe91417798081da"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0005_episode0000_len602_reason-complete.mp4",
+          "sha256": "fcd75eda0b3558ff250826e3cb8fb6062f20e6df61a1a764f3e800f046fe2c6c",
+          "size_bytes": 1845427,
+          "reported_frame_count": 603,
+          "decoded_frame_count": 603,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a941f6a2811428af70a3258b0019731c136310bf00cec07cd6d59d4dbede2c79",
+            "middle": "bc42bdd11c083294dce6a523ddcca31fff91c350dbd0b25b5a7e0920547b29e0",
+            "last": "d148d208b34d3d3afeed60dcba41bebc472ffbfaf5c1fa0debdd7d18c1d53f4f"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0006_episode0000_handle_side_len583_reason-complete.mp4",
+          "sha256": "221c846b913a67d07d890a2759455d8e4e5c42c6a8666c58ee4a25749ed7118e",
+          "size_bytes": 2472158,
+          "reported_frame_count": 584,
+          "decoded_frame_count": 584,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "c774ca44ded9dc8c9d2b8c7b603340e2fd9cf0ace7d43e85b828689469ac2225",
+            "middle": "444f8fbd6ba659292107121a79826fcbe62d03504bb902915b4ba239a592bcac",
+            "last": "d5afbe0978f9567b304f22269f989d1d34124aa1fbe77d3b31eaa4696c937dc5"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0006_episode0000_handle_top_len583_reason-complete.mp4",
+          "sha256": "d60eaa5534776262f4ef45dd32da57a2c870941d758c9ca4b6895aaf2a6d7396",
+          "size_bytes": 4085004,
+          "reported_frame_count": 584,
+          "decoded_frame_count": 584,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "544271b32a83843f70d56bfd68b9d936e760b2f3117a9070833171739a18335e",
+            "middle": "ee08f3d79e53d0a79c3f5ab0eac3fb3650678f70c4d3a5138893783bdafdd84e",
+            "last": "07261766ac139feb5dba831d53ca837d5cd2721a3b4af826224a7c5c39ca0a47"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0006_episode0000_len583_reason-complete.mp4",
+          "sha256": "e9398930fe87ae33d43a6eb797ac7417e0d311992a9796d9d34e6cb7eba55475",
+          "size_bytes": 1224024,
+          "reported_frame_count": 584,
+          "decoded_frame_count": 584,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "eeb0303a748b8eb5a406ee54a6e95daef19bdb94f34aa50b4e0b0ef6edeb46d6",
+            "middle": "eccb14888d7c4a6c6c20df6d4186fbf58fe88adcaebbf189f20a7b39e7dd4517",
+            "last": "4048282737c4dbbd1b8c0b9ec32d1351bb8d33df3e8ee9a09a060f508b17f7b5"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0007_episode0000_handle_side_len605_reason-complete.mp4",
+          "sha256": "1fa3b4f4429a443bfa1952c3f0b763703d5b1633892b32df4f4ea8fb057051d2",
+          "size_bytes": 3248578,
+          "reported_frame_count": 606,
+          "decoded_frame_count": 606,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "acd3dcc7d6810dcfb0bc4e3a3b5c7ebb9ed0e3fe7bb2ba238ace0a896c51fc4e",
+            "middle": "15d5b9263c4f4f6113576fb979ecb6aa7d38ce7e32855f50a35d1f9763b99a3e",
+            "last": "765982f16ee93e2c47683140849b0f482878d335dc9e676b903761574705f21c"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0007_episode0000_handle_top_len605_reason-complete.mp4",
+          "sha256": "caf92c564306432c666c170746b900cffea9f2c8433ca54ff194e6dcd30cc764",
+          "size_bytes": 7253953,
+          "reported_frame_count": 606,
+          "decoded_frame_count": 606,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "2e5c7f8961e5a1879cd5d69a4244b1b2f4d6ee3dd23c6246a3b3107a49c6a2c1",
+            "middle": "240f2fb1249671c4a26391aa46dcdf6d3d1e9490c70be6bf360cb4e86370af82",
+            "last": "bd587ba785eb2c51ae62000efff537a08a347c1aadd9cafc6bfe3d63ba1c0940"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0007_episode0000_len605_reason-complete.mp4",
+          "sha256": "215b9606ef9005b0497cad17e682f8196f9898eb46d6fedbe7cc25db22cf6d7e",
+          "size_bytes": 1290377,
+          "reported_frame_count": 606,
+          "decoded_frame_count": 606,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "eccfa6f926fcfe7492c4dcc5fc5e328e1d0850bc80d52edaf419fe8e8e4e3870",
+            "middle": "4cad01670151ec31e26df2080ea7600ee8f0203ce8f5a982c0af16d9b934f5f0",
+            "last": "9aec02e95f185549fdd77402dd4c83c78572ed06dd69da74939ac5c8e9031ffd"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0008_episode0000_handle_side_len634_reason-complete.mp4",
+          "sha256": "ed7ac95db8ac737c26456b4f510c39bc1989d76a0e31c9c8c369df1c459ab9ee",
+          "size_bytes": 3158294,
+          "reported_frame_count": 635,
+          "decoded_frame_count": 635,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "9fe2e703dd81ee1435e6b43a6fa467fe53401de9fc5b5c854b7165ca216828c0",
+            "middle": "170c01f6cc5669e0fbcda4b4ed5f2bf714406da0b4d3a6b9fd4f742c89a7098f",
+            "last": "3a958fa963af4fc620bb43cffbc953b284977255222cf0a583453e33206f0125"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0008_episode0000_handle_top_len634_reason-complete.mp4",
+          "sha256": "22e686f7c24b4ec6ff1821afc1f4a6a04fbc0917f49ce4fd5ea798bc576041aa",
+          "size_bytes": 3814541,
+          "reported_frame_count": 635,
+          "decoded_frame_count": 635,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "273c246934a477a8061a8e000ad935500b1c06e49fbdc9b2d53a6ac38753d5b5",
+            "middle": "8c020636618062e119370bc26b4292cc796a8bcd6333b953a6eeffdfd77a69e5",
+            "last": "d2b924d5f05ad30cb9f7cb727f2106e62947d3e64b00f63724461da86d7ef551"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0008_episode0000_len634_reason-complete.mp4",
+          "sha256": "a29c7ee0d76a89a8915ff72deccc857d3b099b5d071308eb701378c1db576c82",
+          "size_bytes": 1970101,
+          "reported_frame_count": 635,
+          "decoded_frame_count": 635,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "13d31140a8bc0818dd0ef18934f32bbb620e190dbf1903799a129d776dd14b7a",
+            "middle": "04ac8ed92a6a043db771f2050706605b5cc7b0fc03b52199c90039dc43539d1c",
+            "last": "e7d54a24107a7e048d16d9ab68d420dadb09d7e1ad059f8802f6aa0282e7fa55"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0009_episode0000_handle_side_len650_reason-complete.mp4",
+          "sha256": "d7235b8a8b2bc1530760d70b50ed65ebfab8e9c56e9c8a39faafd2b14970cd25",
+          "size_bytes": 3004101,
+          "reported_frame_count": 651,
+          "decoded_frame_count": 651,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "e26fddbb48e968329aa2764b528cf5e0293df566f8726f616322c5375f17485e",
+            "middle": "837f1693d08a626bdbfe47c2f15c6bd305d89c131c86f015d2a7950804e67680",
+            "last": "e690625554589d6a0356cd84e834212dea947765213b002cb509330181f6d1b3"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0009_episode0000_handle_top_len650_reason-complete.mp4",
+          "sha256": "c365baa9c22b30cdc66357e8c3fc9e170acddf96c8c45c9357957f2b8a3a70ec",
+          "size_bytes": 3732287,
+          "reported_frame_count": 651,
+          "decoded_frame_count": 651,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "41457d1ed9ff18e2c716247d18adde0998a5c0c642c21991deb18fc7d8b70edb",
+            "middle": "6da2180f753e4fe565dd59eaaa08e2c8606c9c49507fbfb9b67208759010221c",
+            "last": "6a442ba8beb135179f68bfbb3d6fbfacc56c8f316054750b7ab7c31a9784f0f1"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0009_episode0000_len650_reason-complete.mp4",
+          "sha256": "a8f0c73ef90d9be1c7c9de13edb98f944e22b6c5d5fc3652a05dd7cc192b1dd3",
+          "size_bytes": 1846537,
+          "reported_frame_count": 651,
+          "decoded_frame_count": 651,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b757783ac130318b6e9a0c38f294f88dd0cd2f3b210491212ac4910007f939f9",
+            "middle": "ffa6e624c81b5338a8cf3f47d7090e6af8abadc2ece611edb764b82859de41c6",
+            "last": "3cbc8b8150ed93a1f85f7d2b7114958ef5efd5f11918a4adc6595f9683602d1b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0010_episode0000_handle_side_len646_reason-complete.mp4",
+          "sha256": "e604b0195f83a11eaf07a30c466d01ed80c7c518dbddec14333f820e32d1696c",
+          "size_bytes": 3121485,
+          "reported_frame_count": 647,
+          "decoded_frame_count": 647,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f680791d8369ce4b8b06aea24045c0d0fdb7f2486967fbb5040bd70d1cf056c5",
+            "middle": "76efe6fe40475833d58c1a46a29c12e880301f8f62d1d6f6431661c974bb8ab7",
+            "last": "ddb2aa0e9e86ab94080d953207971e17a5d30b6c965ff56558b144337284afa4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0010_episode0000_handle_top_len646_reason-complete.mp4",
+          "sha256": "1865f5ebea8db1ca9953549546a69535c1059bc640845ea96b96aa4bc47d1c9a",
+          "size_bytes": 3890814,
+          "reported_frame_count": 647,
+          "decoded_frame_count": 647,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a0dde585218360639de279b4b735db8ee69ffc8706cd33d8df1956c871dd7302",
+            "middle": "25336e3581f2888d33c17b4b25906b96ca4d95731b4696d99e0086315a6b0943",
+            "last": "4d9ca9db401b1647ecad67bc3fb3325e43bec3cc369f006d22fb1991901bb850"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0010_episode0000_len646_reason-complete.mp4",
+          "sha256": "a09802614bd0f0c66e6a7ac1654884a9554ee3b1bdebce893ac3ba8385e4c2d3",
+          "size_bytes": 1881908,
+          "reported_frame_count": 647,
+          "decoded_frame_count": 647,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "1be9ac6f32476dd5b8c142afad5798be534d85406311ff7c4a8f9730fd3ef278",
+            "middle": "f4c2fcb027309fa4a53d1a5024de3e1e27379c8a165d30d541d9c94bb2d342a5",
+            "last": "640b281bdab90868cfaf27350ac21076e2d70a5033a9ef3f69eba544bea67fa4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0011_episode0000_handle_side_len633_reason-complete.mp4",
+          "sha256": "e98d644147a9ef3991ef8b57882491e354705890c3c18293de578b6bc597cb03",
+          "size_bytes": 2638218,
+          "reported_frame_count": 634,
+          "decoded_frame_count": 634,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "775e10e95c02d2e0f2d7a5c724f78a300d768379526d4427ce657cba298aa308",
+            "middle": "98ba4b6f051c9f608e24f6a9d9aab1404b05f3896e432b35688bbb3f5f5a925c",
+            "last": "9a7dc1722f7ee2b2cab2175e73335b31c98fe593b652b9ff8707aab948a04674"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0011_episode0000_handle_top_len633_reason-complete.mp4",
+          "sha256": "2a167356b3d81c3aa98f7a8a4f15d4797eec5347c150b6d7b8623311c7f73ff9",
+          "size_bytes": 7331433,
+          "reported_frame_count": 634,
+          "decoded_frame_count": 634,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "e34188f5428d4f2ed7a8594511cfb29db6f57cf914581b61ebb24d70f1be353f",
+            "middle": "cd096b00fea5e7198adc028e96f501e330b10cb2f4143f87cffdb6286957e01a",
+            "last": "09c87dad57c3bd0ef48a752a20dc4dafd1e3e9691e290d54d82c5b12daa875db"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0011_episode0000_len633_reason-complete.mp4",
+          "sha256": "18daf4c6157957c6d85f3cb64d49b6bf2af77d038d6683ec2b1a6f497a877001",
+          "size_bytes": 1765639,
+          "reported_frame_count": 634,
+          "decoded_frame_count": 634,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a219067e3e58a314fac0489a47ecd09fb37bbf6fedbd72ab6793f7e16ab82aa3",
+            "middle": "d1d1b26383dce35d4c6e7c59ceaef7538e9869280962828c1d9b8e77df722924",
+            "last": "9dbfe3ab0b658f0c1240c9fdaacce64e044e9935ca6656715d3d8b5d87f009ef"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0012_episode0000_handle_side_len627_reason-complete.mp4",
+          "sha256": "21c862a823315edaa00b30ede3856a43730f20558848f1b1d09b37b35bccf489",
+          "size_bytes": 2173658,
+          "reported_frame_count": 628,
+          "decoded_frame_count": 628,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "fea7f05a225d33723f6f6367de49e259d2b9be3ecd72252f1189b16fa2586182",
+            "middle": "620a12e1c8422e430677b06408723cb8ab919d40788fc1c682acd7b882f9b31a",
+            "last": "cc4b6005158f43760fd31386330334ed718e95103eba903722837796937a3415"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0012_episode0000_handle_top_len627_reason-complete.mp4",
+          "sha256": "e9255f6b3a9d4475801bce93ea3d6e7767c0c365f9442c14d35e5380f3e1d71d",
+          "size_bytes": 3456224,
+          "reported_frame_count": 628,
+          "decoded_frame_count": 628,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d6f5b0158e89ce945e79d315df8158a7901132c915a55ee4a1a715fa6a68e9ae",
+            "middle": "3ed45452677de758c5b6e91ada3dac94e704270a9da5ffced01f2f08f3065f1d",
+            "last": "8abac94dacbfbf543321f26cff2db9a4a0cc3ed80908c3079842ccdb170949da"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0012_episode0000_len627_reason-complete.mp4",
+          "sha256": "0bfe434debc9ee8dc418d693ce9b9a57fbde4128a001afabafdce01dff865d23",
+          "size_bytes": 1544007,
+          "reported_frame_count": 628,
+          "decoded_frame_count": 628,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d581aff4e4198a207b2a8857baba435b7396081a274ecc539155630306dc3fa3",
+            "middle": "1cdb81b4be1104a44c3b5c324b71296b0167d4e2029d13031d0f1abca7c19502",
+            "last": "78c74a117213755daac8f1d345d5e85448f5a4e8573385a2ee20708f3b1d587d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0013_episode0000_handle_side_len687_reason-complete.mp4",
+          "sha256": "4ec563d2d0f1259f3f65d06bc483e3a85f3468fd7a2b5e2d2bc1f525bf7e2e81",
+          "size_bytes": 3036104,
+          "reported_frame_count": 688,
+          "decoded_frame_count": 688,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d5978334a9c97a367b50729e434a4a4de1b49a8daec95f56351ab9dde9abe2ee",
+            "middle": "c5ea90454698668ed4df2b168b83642d15522132f8b4905b68a34808e5f30f50",
+            "last": "a64a1ffe8162fa08f8180bbaea42fb55becdac9277f3c63f5c67195467ba363e"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0013_episode0000_handle_top_len687_reason-complete.mp4",
+          "sha256": "49e11460ed6b22db5cbeb59c2e0cffb0387413d5b0911dcbabd7843a71dee84f",
+          "size_bytes": 3498768,
+          "reported_frame_count": 688,
+          "decoded_frame_count": 688,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "2405ff6da778cd1cf8cc16084f9309b57208afd1c1583ff292cb87e0968bfa21",
+            "middle": "c188e1a453556dbebd2c940e092f1df32c4b199294131eded7a0ec8de20583bb",
+            "last": "56a25ebdcfcc85607dcd621832391e62cbd708e3bf040d3aab792642aa12da19"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0013_episode0000_len687_reason-complete.mp4",
+          "sha256": "786d5d7e1629e1bd1fb22e43184d25635161cffbe8a0f557f6849c39c99944ca",
+          "size_bytes": 1925366,
+          "reported_frame_count": 688,
+          "decoded_frame_count": 688,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f7f0025c2a8397206c7310079b6f4d56051770d49fcfcbd0aef256f173bfffe9",
+            "middle": "b637ca9ba54913f7a093db441650f4f8c295c8ba54787adbdf35e7be20170c6e",
+            "last": "c8372da3ace186d6355eebb6157bd27162ea0b0beee2d3a48767dded749eccc5"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0014_episode0000_handle_side_len638_reason-complete.mp4",
+          "sha256": "ac407209155ddd92d461cf0908fd1c4b63dfca8262fb5f2d3530eda6a6b1a18c",
+          "size_bytes": 2583248,
+          "reported_frame_count": 639,
+          "decoded_frame_count": 639,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "ac38ea3fda718916a24c545e1af7edb34821af7bbd211eb271995a9d65ee9c1d",
+            "middle": "c67538e49b548645a6b65bfb57c04c1e5512ff43931e2d55fd3733aacb5f8f08",
+            "last": "cd008f6e5fe4a9e8b82e9f4bd3f873c35a92ea3f3f37cf9668d5417d0b6760ad"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0014_episode0000_handle_top_len638_reason-complete.mp4",
+          "sha256": "73946c4cf6659ab8e4301fccc9540ec39b6d03970d0ec0aef618b3628cb6c48d",
+          "size_bytes": 6152993,
+          "reported_frame_count": 639,
+          "decoded_frame_count": 639,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "8cc9564a24c136475405736f9ea5bf58ed9fe3489815b39e2511609dc3839405",
+            "middle": "4ab17b22529c73a08deb2ad01655c07dd4710c8f40feaa32df661478e30ed724",
+            "last": "2b6e62695a64b78d2cb11e13c53ca53d8460d0fb2ac65708cf6a3c5b59543c02"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0014_episode0000_len638_reason-complete.mp4",
+          "sha256": "ff0b6487da361fd98c2b1f680b684996848d531e003bb9eb340ffaed1c578ef0",
+          "size_bytes": 2058562,
+          "reported_frame_count": 639,
+          "decoded_frame_count": 639,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "3f2142cd224f8eda1a63a9726adc63099aeed10b650e1adc5f85e12959210f82",
+            "middle": "c67bf99fa88bc8abc533c8baeaba64015b5b98c0ade81c4d5a389b447392b771",
+            "last": "6ec7b50367be11619b8b826f883ff422217fbdfc0f9b8c95c24298715c61db4b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0015_episode0000_handle_side_len563_reason-complete.mp4",
+          "sha256": "086235a27eb5f0505e5a9daba583aa7a64ed315f2e54f371446b4ebd7e2727e7",
+          "size_bytes": 2293494,
+          "reported_frame_count": 564,
+          "decoded_frame_count": 564,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "8ae8436b55101bb7e6fc48dece11bd9a6f70cd1e816df61e2fe5dee87ae1d739",
+            "middle": "efa1fe9432664bb5ad3831202437640c023792a0fdd4981195e17e4ba70ab9ae",
+            "last": "d00c7197f4bdd92571e138e46a4da3bb0b3379dc47f92bca0964505c6c538237"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0015_episode0000_handle_top_len563_reason-complete.mp4",
+          "sha256": "5e2b3416bc1033fc14ea7cdcb71da9e5534df4698cc7418587dd6b06e30af351",
+          "size_bytes": 2867842,
+          "reported_frame_count": 564,
+          "decoded_frame_count": 564,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "ca963d034c1970a56b67c0d794c65220e4b0af0071c3434f2bdf11fd2108e63e",
+            "middle": "4301e4a2d57a54d5848b4cc2067d7bdac1edb290f4f4576a96c3d9b982aed336",
+            "last": "05fa6ef317feb64d55305ccf2fb92632eaa636dd0172ea44a51e61c37eb2208b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0015_episode0000_len563_reason-complete.mp4",
+          "sha256": "e7ae5be0b3c1a86617de42e4029942707f15613798ad96d68aca0aaa1f2af0e9",
+          "size_bytes": 1049224,
+          "reported_frame_count": 564,
+          "decoded_frame_count": 564,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a4b3dcebe385f093174ef51946b8a8ee92fe56ad8f08881dd9079e0d75cb937d",
+            "middle": "24bdd84426e9b3c730714b9a653a9843f1c26ffab194dc1de6dc1235127b1dd1",
+            "last": "475838aa618db4d3c29ae68ff0c10334a2356922929658f53444dcd4f8a6842b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "main"
+          ]
+        }
+      ],
+      "qualitative_findings": [
+        "Viewed env0002/l02 contact sheet: the robot begins outside the doorway, reaches into the handle/doorway region in middle samples, and is only partially visible in later handle-side frames.",
+        "The five sampled views do not by themselves establish a completed grasp, latch event, hinge displacement, or task success."
+      ]
+    },
+    {
+      "case_id": "v21B_B6_step0750",
+      "matrix_identity": {
+        "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750",
+        "checkpoint": "logs_rl/a2_piper_full_stage_a2_base/base_v21B/formal/B6/model_step_000750.pt",
+        "checkpoint_sha256": "125c51e197b2cc724e4f2def506000768c3aefb73ad8a58681f03a823cdb4264",
+        "expected_primary_videos": 48,
+        "surface_env_id": 2,
+        "surface_scenario_id": "l02",
+        "report_role": "report_only_illustration",
+        "purpose": "REPORT_ONLY_SCIENTIFIC_ILLUSTRATION_NOT_RELEASE"
+      },
+      "receipt": {
+        "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/process_receipt.json",
+        "sha256": "b33a46755ecca90aea6a850cc26b2f39b05842034e1acf6106a5b22fb417d394",
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true
+      },
+      "inventory": {
+        "finalized_mp4_count": 60,
+        "primary_count": 48,
+        "auxiliary_count": 12,
+        "writing_count": 0,
+        "primary_set_complete": true,
+        "all_finalized_decode_pass": true
+      },
+      "selected_env0002_episode0000": {
+        "main": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_len690_reason-complete.mp4",
+        "handle_top": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_top_len690_reason-complete.mp4",
+        "handle_side": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_side_len690_reason-complete.mp4"
+      },
+      "contact_sheet": {
+        "case_id": "v21B_B6_step0750",
+        "env_id": 2,
+        "scenario_id": "l02",
+        "episode": 0,
+        "time_fractions": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "cameras": {
+          "main": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_len690_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              172,
+              345,
+              518,
+              690
+            ],
+            "frame_count": 691,
+            "fps": 20.0
+          },
+          "handle_top": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_top_len690_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              172,
+              345,
+              518,
+              690
+            ],
+            "frame_count": 691,
+            "fps": 20.0
+          },
+          "handle_side": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_side_len690_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              172,
+              345,
+              518,
+              690
+            ],
+            "frame_count": 691,
+            "fps": 20.0
+          }
+        },
+        "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_B6_step0750_env0002_l02_contact_3x5.png",
+        "sha256": "9453ff9bb502e399b06592a2dd5b93372b3aea313b1cfc7a4a2afd61ba2e516d",
+        "size_bytes": 864592
+      },
+      "videos": [
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0000_episode0000_handle_side_len673_reason-complete.mp4",
+          "sha256": "18da872914273c8b5c6cfdef353450721f1f5c38017e1a8aa8c0ce091f972075",
+          "size_bytes": 3251326,
+          "reported_frame_count": 674,
+          "decoded_frame_count": 674,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "eaf5eccb0367e8c6fb11cabdab56d3131d4dee720bb27e6f30f113d2c4bda68e",
+            "middle": "17f2738e093d935e8d41b83e4c86d1cefa7263261a49e74aed8c1ed8811c1e02",
+            "last": "81d250b9a91469133d87c3f8ae04faef5fd9507327f5fb53bb3c50c4ed40a7ff"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0000_episode0000_handle_top_len673_reason-complete.mp4",
+          "sha256": "ae1f7dc19e89fb99670320910d9bb1f2d5194c5e827858696b0034e8ef9ba281",
+          "size_bytes": 5146859,
+          "reported_frame_count": 674,
+          "decoded_frame_count": 674,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d3eaebf46513c6860f529048c26afb04a9bb2b5ed07b19c5d5c92ecfeee12c61",
+            "middle": "c169af9a9e15571e7789f96244f8c318947ba750fb5a9614ef8f05a680fe748f",
+            "last": "a87b1ea4a0e95d32d6385288ed590143963810820df8f8c84498856a7c17eefb"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0000_episode0000_len673_reason-complete.mp4",
+          "sha256": "f8bde634936b9f8e09fa4be9cca2f9967343d8bd9e272c915fc3a5afe7cd6994",
+          "size_bytes": 1657138,
+          "reported_frame_count": 674,
+          "decoded_frame_count": 674,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "db57d9565a5e5f15096e0b261705f6cf0bbd6bbed827c338bb2e3ad69a29c9e7",
+            "middle": "895c30132b634e8ad3a4647bee00cea8ca2d18f3d865e79ad4fba5920b4fd613",
+            "last": "203f04f5adad73f12ad28f37803f9f62d6ff63f8a2c1539379119253feb17ed7"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0001_episode0000_handle_side_len700_reason-complete.mp4",
+          "sha256": "534c64a7dae6931f32d35d556732a3dcb222382512b68241afbec69714e6cf36",
+          "size_bytes": 1357124,
+          "reported_frame_count": 701,
+          "decoded_frame_count": 701,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "eb9f5aef82c1d930ce5fee4ed39ddf9997cdee0d9af71975d62e062ef11eb6a5",
+            "middle": "7a181fc142e0fd75cbd240d37adfbb657abf7da79e528b1431e3310488116a7f",
+            "last": "33f538386bb6293017b33716a9f2c1dd0f3d169aa91df3138e4a4fc9ecbddc70"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0001_episode0000_handle_top_len700_reason-complete.mp4",
+          "sha256": "2edc222c6ad52c1ac2bb860d67b0665191e2c1942eef84f35bc8a04a26b1630d",
+          "size_bytes": 2768061,
+          "reported_frame_count": 701,
+          "decoded_frame_count": 701,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "27cbb8a96e2df262518e4449e11f63f56854eb4f6e93f202594ffed5157f7e5c",
+            "middle": "72d773c7cff20af7b57da418d5053bab0bcac2f9d43244b14a443e8404447416",
+            "last": "47ae59e32a039a0e70edb23c1666555912a610a1a7aa332c68efc224988092d1"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0001_episode0000_len700_reason-complete.mp4",
+          "sha256": "5236f11d960af276049f67e72bb8de7b70a7b241a1bd940af3e115a0cb67d8b3",
+          "size_bytes": 1348165,
+          "reported_frame_count": 701,
+          "decoded_frame_count": 701,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f568f18a12d16007a4ed6aa6f06fd74b370f49d5531595332d718260215c4f2d",
+            "middle": "19849c8e23c89d88d8ef027bbda88a5759038ffdf5961134665600fe2451e817",
+            "last": "cb0cc088913d8203a156f178e9c6c950685a456c562fab262842a9f993506c2b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_side_len690_reason-complete.mp4",
+          "sha256": "e8f55d9df628541313b209de0f2e87ec05e27e2b551f09bc39169f5e8fc009a5",
+          "size_bytes": 3112050,
+          "reported_frame_count": 691,
+          "decoded_frame_count": 691,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "93f40471411011b08f61a7d3e71309c044ac7ad1c1609c212e0fc508b35bf4d7",
+            "middle": "efd05391d320ae6175cc04e857b61fe785a010c308f54dc2e275e325eaa23c25",
+            "last": "5a97f3220e335787b02510d0ecb670857e70f3c31bbc0f4683ea7e054e183229"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_top_len690_reason-complete.mp4",
+          "sha256": "a034795874869ae21b6b56ed214ba93770ab2339f6fdddfcdce2e2625bb21b1c",
+          "size_bytes": 4786391,
+          "reported_frame_count": 691,
+          "decoded_frame_count": 691,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "6513962ed2dd46dbb3d9a99154c68f6de71f02e92c74c15ca081141c215d9529",
+            "middle": "6f10b99b304337769cf56601637ad984ff7c4e484be5f9005abc6b63a2076d27",
+            "last": "2a2e5010c86ad08e95883f5bdc2cb756ad2551d6f1df3457ba0bf0ddecec6c96"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_len690_reason-complete.mp4",
+          "sha256": "b02516b2798295acc52ddac7d31e7c39f94408cb9b9cb1bfc7331f3e6cf6c2a0",
+          "size_bytes": 1435636,
+          "reported_frame_count": 691,
+          "decoded_frame_count": 691,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "4c95abee4c72fb212ba34904253ebaf6fa0f44736a4a8a637b8dbcc62de4ffbc",
+            "middle": "aee9406154581f51c613cb9c9a712f762ee1ee0f198a2ff0de4bf8ea38b5062d",
+            "last": "d7f3d554a74698c077e2348a9197934ca085058ac27431acfe26fac866d8a035"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0003_episode0000_handle_side_len753_reason-complete.mp4",
+          "sha256": "75965f1ca43f30c1dcc8ef13191e1437ffad598a612874c120e0c701d308cfae",
+          "size_bytes": 3404511,
+          "reported_frame_count": 754,
+          "decoded_frame_count": 754,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "1c7bfa47f60c63e6f22d11b67e0cc507253c55580b0fea452d7511e21c2ce082",
+            "middle": "8efd72a1d8534255e9240edefd2596fed302399d396115895b45851988b252ff",
+            "last": "f0db56e4bab44f43b1b80ee4187fbf12485dcb876ed07f871e54bbb8a7f99a2e"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0003_episode0000_handle_top_len753_reason-complete.mp4",
+          "sha256": "5e6bbaaa3ce457b6b5e1785038d9be318c173821b8ef7b5f9f99ac3f08862626",
+          "size_bytes": 7851941,
+          "reported_frame_count": 754,
+          "decoded_frame_count": 754,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "740eb2d4b6e0b34a70cbb71df0144596431433437c367efb079aa69e71e3e780",
+            "middle": "006fa06b91b3fd7d5f5a7f035d7c87cf8d4e91ff4454c670064e935253cbb7c8",
+            "last": "4f81f73e8a3bdbabe29af0ff8b0fe210cc03bdc905245e9f928ede287bbca28c"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0003_episode0000_len753_reason-complete.mp4",
+          "sha256": "49a404832d725fe10c3807489aaa1328e460201d75720f29c0523830e96b59b1",
+          "size_bytes": 1842270,
+          "reported_frame_count": 754,
+          "decoded_frame_count": 754,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "83942943892b9c2da40f5f739d2bc7c51931ac9f7b8454191be01a7341f0f5a1",
+            "middle": "77db6d68b7f6c0ff2384bcc622c71c57c094ddea31b8efd9a365897d106bb3be",
+            "last": "82571b4ba8c72ee8bd8d00cc8081f1971fc39c0875dabd19ee0df6d1abb8e9f4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0004_episode0000_handle_side_len671_reason-complete.mp4",
+          "sha256": "c28ea56ce9093df428af3ba0ab9fda16058da0d90192cfb6ffdc3b386b424ce4",
+          "size_bytes": 2271316,
+          "reported_frame_count": 672,
+          "decoded_frame_count": 672,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "8ec643a2f912bb9da3a2e98953cd820fd4a39b139b1e50a540eb7ede43fc6fa9",
+            "middle": "904a87b46e59645ccb530cb7bc79d848f76634fb811c095ffa412042220afdeb",
+            "last": "ca229afc6bb3709ed7787dc9eec15eb1c7784989b5ee66e94e39239c1ab294ee"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0004_episode0000_handle_top_len671_reason-complete.mp4",
+          "sha256": "bdbd1465bc0b72e072c13f94efe4b43d30cef07c9844d8ea1b88317cbb868007",
+          "size_bytes": 3381986,
+          "reported_frame_count": 672,
+          "decoded_frame_count": 672,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "ea20c7f1ff928214b863d96f5f8581b7c68cdf0cc31c53658cee1ae72aedb1bb",
+            "middle": "582e426e89666a4cf3730d0e5b46990d3a0e510bb9924d476b5830efa6a38331",
+            "last": "1a3288246b38803572a611d0d26d31db580d5c4450c74cfe1435518d3aa1bfc1"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0004_episode0000_len671_reason-complete.mp4",
+          "sha256": "207416133cca3df6e70d239c3989d357ca2fd5bcc804fb596d5b8a312cc1d06e",
+          "size_bytes": 2221876,
+          "reported_frame_count": 672,
+          "decoded_frame_count": 672,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0da054be3316cfeccb57fefed9be0beabee2ec54285e841cb59cc497bd9e348b",
+            "middle": "8262a8b4190866ee0598c59fcdcfb3f41ec5a45f5d7a0db34210620c631b5362",
+            "last": "d6de1cc1ae623c07dd607c6db66c6f3bc7db0e18c1185492c3d69cbdda956a37"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0005_episode0000_handle_side_len742_reason-complete.mp4",
+          "sha256": "b385686b0288cd23452a3ece988a9a3121b452e682cd1312aba810f00f0aba26",
+          "size_bytes": 3591492,
+          "reported_frame_count": 743,
+          "decoded_frame_count": 743,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "2b13fc4f92315e4cda852eb40f44130472e0f852205c63b634922bdb1f81b7d0",
+            "middle": "aa642b29e189f4282b9d888c5becc460f65f0f49827ae1ab4911313528a7988a",
+            "last": "5d39a953356fb89261c3078aeb2e99a6de70caf98f615952839b9df850a1ed5b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0005_episode0000_handle_top_len742_reason-complete.mp4",
+          "sha256": "f7059e9d199b12982562dd6d93743e90e19a64c0833b946f9ca2173f06819c52",
+          "size_bytes": 4490530,
+          "reported_frame_count": 743,
+          "decoded_frame_count": 743,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "43d013cc9aeb6ee03e507367b8643e5ecfc336141f9864bf757873f5b0a2746c",
+            "middle": "8349ddc6860d3ff010767b2ac439b0319074ab6de1579562f7c5e89938ea01cf",
+            "last": "0c7ee801a9671eee3764ea0d4a6ec1fd73d956e84616c41a67ed39150c31dcc6"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0005_episode0000_len742_reason-complete.mp4",
+          "sha256": "4ff766ebf380d4b451d0af5625ece1c3141ed0b1bf724e9e02b76c104061e6db",
+          "size_bytes": 2152303,
+          "reported_frame_count": 743,
+          "decoded_frame_count": 743,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "35169ed61e492b8d2c0a1ce768fc7c555ebd9e315d96bf90ed56ebc569df5034",
+            "middle": "df2f1bac9e9f1c0e83de4ad384d50c0fd5146cb0463c8a0f73cb2cf363b64463",
+            "last": "207d4295da9f3f5c2a4b3796bb91cd79b2cc031539508a229bb8a912643ea2ba"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0006_episode0000_handle_side_len719_reason-complete.mp4",
+          "sha256": "527664bb8fd9cb8b9411886828d8fccf77e5efa09e43655bf1096860787a0238",
+          "size_bytes": 2998121,
+          "reported_frame_count": 720,
+          "decoded_frame_count": 720,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d8da2197345d507b05abc02ecab0b25c0e46c714132d57fdc95b70eef5cd0172",
+            "middle": "17c6ea73b236b0e503a97d8b17b5c3478bb7f7c6821c1596cca7a85915819206",
+            "last": "955e8fd292acadddd9ded74bbe3012cf2a9fa312bac29377a91aaf2ab04bdc9f"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0006_episode0000_handle_top_len719_reason-complete.mp4",
+          "sha256": "cccd5ddf2fb8fa551b658b1c6db738b4cb94ccaa4f0eb56fbaecbca312ed161f",
+          "size_bytes": 4841797,
+          "reported_frame_count": 720,
+          "decoded_frame_count": 720,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "fa7d9017ab0dbb02ae4e60d2f85eda88a32db0bce190435908ebe2c7f0f57301",
+            "middle": "58e0e9987f8aa5ff9b9e7282c698166edc1f1dcee169bb460ac7e0cef39a13d2",
+            "last": "1dea97013a51eb5a9489fb07793aa9aedda78ddca6d72c7eb696b92bef98e534"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0006_episode0000_len719_reason-complete.mp4",
+          "sha256": "162e974cd5376107b84a3c1cfe7a30f88d36cfe2d9011680aa03acb5a45ba58f",
+          "size_bytes": 1442299,
+          "reported_frame_count": 720,
+          "decoded_frame_count": 720,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "48146312458edfb32cd64626c37b8d2b426c5644b30392b4bc7b3ac0564cf23a",
+            "middle": "bcaa4ab4f94c07650d207ed733ac8137f55b231331c907b0f64c77ce155c89dd",
+            "last": "20f48f54c0275a24dbc37dcb5f773aaa9a7500e13984c822297df854ef7255c1"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0006_episode0001_handle_side_len33_reason-upper_dof_overspeed.mp4",
+          "sha256": "dedaae9acec0196dd57a322f697eba395836fca0eea6b727cf74bab4f1bbd935",
+          "size_bytes": 11303,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "6f38a6209df6e39aa7461b2ed2af348f07b9451fadfd53c0508da5d9fa9f888b",
+            "middle": "6f38a6209df6e39aa7461b2ed2af348f07b9451fadfd53c0508da5d9fa9f888b",
+            "last": "6f38a6209df6e39aa7461b2ed2af348f07b9451fadfd53c0508da5d9fa9f888b"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0006_episode0001_handle_top_len33_reason-upper_dof_overspeed.mp4",
+          "sha256": "47c706b52913449c7a5807fb6895b066002a204b2bd79c28135ed1c279644f1a",
+          "size_bytes": 18188,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a61110bfc919dd968a65462920f33a8b914a47fb9eb4d471666bf33055ded1c8",
+            "middle": "a61110bfc919dd968a65462920f33a8b914a47fb9eb4d471666bf33055ded1c8",
+            "last": "a61110bfc919dd968a65462920f33a8b914a47fb9eb4d471666bf33055ded1c8"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0006_episode0001_len33_reason-upper_dof_overspeed.mp4",
+          "sha256": "88185446b4058a3e6059d7d24aca232da20a21546656b0fad3c129cd2930f329",
+          "size_bytes": 13133,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "757e3a8a681818551b593d49290fbea0d1709ca02851fbbba009b4c69802164e",
+            "middle": "757e3a8a681818551b593d49290fbea0d1709ca02851fbbba009b4c69802164e",
+            "last": "757e3a8a681818551b593d49290fbea0d1709ca02851fbbba009b4c69802164e"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0007_episode0000_handle_side_len749_reason-complete.mp4",
+          "sha256": "0d0ac8cbe575a0663c8fc45d570868d66a459353e2e8ced9972dcc63a115cc0d",
+          "size_bytes": 3893799,
+          "reported_frame_count": 750,
+          "decoded_frame_count": 750,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a1436b22c33de6a487cde8b91666530f72bda7ab1acc86b6f31a57449fa3cd27",
+            "middle": "b5b04dec31397fb893fd08b4435cc5af60b58301fa90ed6a0b1bc973d0a9ef5a",
+            "last": "aae23fac069328fc1443ee5934c32eae8b05adab290f2b9057f6957355431162"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0007_episode0000_handle_top_len749_reason-complete.mp4",
+          "sha256": "f59b2752001de1c7f372105fa818728fd5bac0fe0a2d41b75fe6e0a3814b451c",
+          "size_bytes": 8520039,
+          "reported_frame_count": 750,
+          "decoded_frame_count": 750,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "522ae295aa1bb5b63233243588ae2e25494fac6e621274cdb6bb030e1ea3b900",
+            "middle": "8257a11756142bbddaa0b26faf729e8ac10c250a56aab3162408f666cbdf97b0",
+            "last": "508c3061bdfc5993ad8d119dce74273b67552cea8d4af3ddfeeb2e73cdab57f6"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0007_episode0000_len749_reason-complete.mp4",
+          "sha256": "0d0642428c8b1a49fb1180b98bde5971e39e435efa00225292654ed86adb681c",
+          "size_bytes": 1515930,
+          "reported_frame_count": 750,
+          "decoded_frame_count": 750,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d488e73911e09e53fb195ccb30b016adf3fe71dcb313a89c4218004e451d0fe8",
+            "middle": "9ab6eed79d08920fe9759ff74ca28e03cfcb67e4ef6abb18923626dbab19524b",
+            "last": "0c664d9565256d4294127f403de60c045bc50c73755f6e5c621452462e943b2a"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0008_episode0000_handle_side_len723_reason-complete.mp4",
+          "sha256": "c519a86a55acea76d2473c0e48681c03a8457994c08db8ab305cc48e1bb07fe1",
+          "size_bytes": 3572398,
+          "reported_frame_count": 724,
+          "decoded_frame_count": 724,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "3a3aa97cda8d9c20ea8cefd6ed92d807ef79c0dda6956dbff517b552106954a4",
+            "middle": "a0f18aa8dcc538be7336ef073606f0cb2fba110f03e7b403b470c9078632110c",
+            "last": "f321ca5ddd42d5518d57801834214440a51fb4320ebb33cb76182184f0204092"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0008_episode0000_handle_top_len723_reason-complete.mp4",
+          "sha256": "aa568c610da4599cc090402d62e457d5cf9331f709d6812761f3cb3adc428c06",
+          "size_bytes": 3970741,
+          "reported_frame_count": 724,
+          "decoded_frame_count": 724,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "911b6dceab92195553fe23582e5a566fcfe2f5ed7ce9b20278c6c79baf6bc325",
+            "middle": "b669218519453052840d45d5f4a0e6dbbe3f8ed20b09f14d3123344bc85bc59b",
+            "last": "ef5f4435467d31534e48d7b39034af5f5e6e277535b04f59e9fa09da39781e90"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0008_episode0000_len723_reason-complete.mp4",
+          "sha256": "dd0c39fa9abb12fa9f85e0e0689b3649e5049554c0fbdbc972773b663c8974dd",
+          "size_bytes": 2186653,
+          "reported_frame_count": 724,
+          "decoded_frame_count": 724,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b260990cf3ecb054ce8ae4e26c81fefdc537630bbf2682e12449af87f7a6438e",
+            "middle": "d6c964c40010563b996286e64f19dffe158dad518333c8ec2e0000d3a8d6b13b",
+            "last": "5f801e1e69bfaabb8968b6a8d4c4041838d2e39646de900507c01087b441ba7a"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0008_episode0001_handle_side_len13_reason-bad_orientation.mp4",
+          "sha256": "32584011ab6e3910ba87175191b41fa0f9f3c0d93a7cd3d579abd466a5860510",
+          "size_bytes": 13628,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b71194860ab79caa4f09bb4f0dc7baa4c8ac48ba9ba0015c6d289a6349ec3e55",
+            "middle": "b71194860ab79caa4f09bb4f0dc7baa4c8ac48ba9ba0015c6d289a6349ec3e55",
+            "last": "b71194860ab79caa4f09bb4f0dc7baa4c8ac48ba9ba0015c6d289a6349ec3e55"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0008_episode0001_handle_top_len13_reason-bad_orientation.mp4",
+          "sha256": "889f399d624a7d89cd2e2924dd76dc21220bf26352d6d538796721651d098510",
+          "size_bytes": 15167,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "acfdddcdd66b0ecfedac87431eec3795cd59b081332d8e453b63e186e49b0aa2",
+            "middle": "acfdddcdd66b0ecfedac87431eec3795cd59b081332d8e453b63e186e49b0aa2",
+            "last": "acfdddcdd66b0ecfedac87431eec3795cd59b081332d8e453b63e186e49b0aa2"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0008_episode0001_len13_reason-bad_orientation.mp4",
+          "sha256": "df5e0b8e1b3496dd5ee996c7a28f3a2d64ebca336b77145eb47d12630b280f02",
+          "size_bytes": 36292,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "35be2aaabe6741358e4fde8330ad8fbb3c689d734eba944495c74d2587443be7",
+            "middle": "35be2aaabe6741358e4fde8330ad8fbb3c689d734eba944495c74d2587443be7",
+            "last": "35be2aaabe6741358e4fde8330ad8fbb3c689d734eba944495c74d2587443be7"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0009_episode0000_handle_side_len785_reason-complete.mp4",
+          "sha256": "e0659e94bc12391444fde9b438974f05ba469e205560823ef6b770583e36bfc6",
+          "size_bytes": 3786770,
+          "reported_frame_count": 786,
+          "decoded_frame_count": 786,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "153e0e942debd5de26e8299825f9b9b151c1ca6b478dc5bb9586431a75de23ee",
+            "middle": "b8a551c5a41d7a1d2badb249a07c2cc0d86367f47d855896949c09ec10cdfe3f",
+            "last": "dd9a2ab1c7da5cbbdfec64e1607eec25cc34f710049b5e8a1cec26d551d5e1c4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0009_episode0000_handle_top_len785_reason-complete.mp4",
+          "sha256": "0e2da04f864eec0b76dd1f1919c795d6af71fdd5777fbd5f1278928cf59ccf58",
+          "size_bytes": 4455240,
+          "reported_frame_count": 786,
+          "decoded_frame_count": 786,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "89004cbd880c82db8b9a4e71ecd7dadbd821a63d028aa7922add84bac01ff16b",
+            "middle": "2e8720b06a69276203183528acbcb851d4027beac97d83fab4982ee96978f23a",
+            "last": "473b04bf7edda70aa51b16840e2270ac6b57a729c8aa52e62d9c795da6ed53df"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0009_episode0000_len785_reason-complete.mp4",
+          "sha256": "a632e5de27af2400bfea6392643f3bf6208607551926cb2d5084f1d715cd8544",
+          "size_bytes": 2232878,
+          "reported_frame_count": 786,
+          "decoded_frame_count": 786,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "705fb0509d6ebb3d6d7a3f96e36531fd2979b3249d708d4cf8cbab9ccdd2086e",
+            "middle": "a5e1fccadb79a46079becd58a6ad8610663337ddc8e2b9a924db778055641ba4",
+            "last": "ca33658b8d9907a28d66b73ec796afb751c2f6a761c54e3e7d39cbf4b279e9a6"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0010_episode0000_handle_side_len771_reason-complete.mp4",
+          "sha256": "dffffbb0dd9faf0cbe9a4f2a790816427a83d97e815edf20a94fa9cc2367a496",
+          "size_bytes": 3975476,
+          "reported_frame_count": 772,
+          "decoded_frame_count": 772,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "ba571403835621948a8bca8d13ab2522afd3f9ef95968627df08b712d6a38cc3",
+            "middle": "f9c9de809a62304ced7e50dab711d99848468fe7f10d801f8e32840ddb1887b7",
+            "last": "97e3e2e0db82b2e2ccfd1c59e425c2924d2be6ce948bdafdd18e5aa83c04634c"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0010_episode0000_handle_top_len771_reason-complete.mp4",
+          "sha256": "85cb6de70d4e3669996146b037a63f3f335ef57f97b2dada5d9da5ca2fa77e34",
+          "size_bytes": 4586571,
+          "reported_frame_count": 772,
+          "decoded_frame_count": 772,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "708a3ef989478af748911695344897e0d96dafaf7efba6122f7f239c9d754376",
+            "middle": "3084219d88c3cae58e735379a71143d8261e3d035c1688423fcba530b0bc5591",
+            "last": "a210433bb1b8c0f6919ffb8a41d0c050a8bb35eac8de56fc3076f87c4de3b318"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0010_episode0000_len771_reason-complete.mp4",
+          "sha256": "4a587f7c822da4019950f577e12ce65c813f536d37034ff5a212dd639d8f0104",
+          "size_bytes": 2227157,
+          "reported_frame_count": 772,
+          "decoded_frame_count": 772,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f01a688c768a7e56c779a83c518d4648bb9d081284fbdb26502862fd4af83f94",
+            "middle": "b5d79e89a61c854741009e0768b22d6341caca0c04d38afaeeb919a0b7bd10be",
+            "last": "26c4dcdfa473b4d095dc5b56613dc7a0cd18f22b5dfc46d859dc1aec4dacbd56"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0011_episode0000_handle_side_len737_reason-complete.mp4",
+          "sha256": "4b7eca589fbd2584ed3c2e2878fd81d3d50f4917690fb9958ec0e72fb95188c8",
+          "size_bytes": 2855121,
+          "reported_frame_count": 738,
+          "decoded_frame_count": 738,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "7b9d26f097f9cefff75e6804a20c154d392c2da378a5bf0efa431806432d3b33",
+            "middle": "9b7a4a7437cb48262d1d164a62d7daaf702daee8e0ae8cafbfcef30a0bc4a19a",
+            "last": "0f30121f3e7dac2fd8123afabf17cc3affa25f6b232adae13733252f745c85c5"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0011_episode0000_handle_top_len737_reason-complete.mp4",
+          "sha256": "ea47524ce47d3a01f67d64f365ecd86f09cd3c7b38b8a077d6ae90c6402dae3b",
+          "size_bytes": 7971852,
+          "reported_frame_count": 738,
+          "decoded_frame_count": 738,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "c79a4f26be6f33abf55590d4a62a8abb7e003cfd0e3dcd7cfa9873679a45f221",
+            "middle": "b400b888ed51ac70dd9eca2097d3aa5e623f661215afad97b2f30ae5ff63d395",
+            "last": "c5b3d63513494ef263cbdce3b18487e023a0619e0792603de64f78a249196677"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0011_episode0000_len737_reason-complete.mp4",
+          "sha256": "88f8a7ecc275a262122a2ae58da1d5523881f697d71594e434091e38cc7cd478",
+          "size_bytes": 1931086,
+          "reported_frame_count": 738,
+          "decoded_frame_count": 738,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "65deaeaf7b30482246019513c77a7a6312f93562ee612ac5d49644e44c891fb1",
+            "middle": "c9daac802007d53b6db95a548e5573c2665d88d51887486811a5fb8b9b1e6ea8",
+            "last": "4c966e6cb5a589d531dd70657f6017bd5312f46ffb206cbe5a2f83f68a83835b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0012_episode0000_handle_side_len802_reason-complete.mp4",
+          "sha256": "0eb04fbf31239f468c917b378509c01855ac4d16f324a32449c7ab69e0d898fb",
+          "size_bytes": 2542542,
+          "reported_frame_count": 803,
+          "decoded_frame_count": 803,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "e26e381a744c212efa3ea5b26c4b8eba2aa764decf0e891ef5d3942e972a2e87",
+            "middle": "9c8d1b1a476c06e80bb9245562b4bad0d53e896ac076e975dcf769e930c3b5d2",
+            "last": "64405c6bfea0e23fa2fe39058dad650a0f608afe9a9041cff5efbb8e944148b2"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0012_episode0000_handle_top_len802_reason-complete.mp4",
+          "sha256": "9c82252c397e2e77adcdbe994643bdcfb72a144d604399549fcaac539a47738e",
+          "size_bytes": 4237553,
+          "reported_frame_count": 803,
+          "decoded_frame_count": 803,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "5b7279f36b06b72f0bf28608ce29a57b6047c3acd31ea9582884a53ca8377fa9",
+            "middle": "01800b3cd13a7bb78fa342a25bb504e35ef597ca046ce5466f4762d2226c008c",
+            "last": "7da57d917d85a00a39ea69ed0ca012ec2ad4556c52ccf8bf5e095f48cf4376a0"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0012_episode0000_len802_reason-complete.mp4",
+          "sha256": "3859a4e26726712d1e2ec9ebd91d6b056a34b73da09546e726b837be928cb835",
+          "size_bytes": 1943493,
+          "reported_frame_count": 803,
+          "decoded_frame_count": 803,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "7571c0f4e9bc582590ef6b9ff069a5e42c1f4ab61781edf626e821d2acba42bc",
+            "middle": "3784f6de4c74a8779d145a595d1c2b3355e2351cfc7d6695b1688031fbd2ff00",
+            "last": "7818058e200ca08d9fb2b08f335ead2f927ef0e6bccce9099537dcd9a61c08d9"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0013_episode0000_handle_side_len731_reason-complete.mp4",
+          "sha256": "21de45694203a6c526a14d886ac948a173be1dac02ae441a698d7cc604478eb0",
+          "size_bytes": 3152901,
+          "reported_frame_count": 732,
+          "decoded_frame_count": 732,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0fbec9ec3dd3772424496016d78f3e0d94068fb808f81db6865514dd41c0cf20",
+            "middle": "baba904abaf508e4fe60d21a070c81bd210db838fedd50ac92c2e9a87dd59571",
+            "last": "ab599c7052b64fee9366a5998364f936d16a00ab42a640595b56863ea5ef4190"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0013_episode0000_handle_top_len731_reason-complete.mp4",
+          "sha256": "6b2b8e6cb4ca8b17b7da757948394c41b89e35126f9cb45a829b30b18cdfaab3",
+          "size_bytes": 3730869,
+          "reported_frame_count": 732,
+          "decoded_frame_count": 732,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a1d145dd088f7853be44e77d2a124d5fb0dc024c1bb07cc966766b2ca34b63ae",
+            "middle": "ec60afe9db2dabe9ca6ed85a966a0e552592901ab5a72b57b7d280b16c4f9f2d",
+            "last": "e6b6729020b5a2dabdea876f9d5d1478993a2b326a371e571bd8da573be99032"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0013_episode0000_len731_reason-complete.mp4",
+          "sha256": "e92f2d1ba74d21ee9765bb7431a136ab51c9132bcb406b64812baba4ed41dc5d",
+          "size_bytes": 2014544,
+          "reported_frame_count": 732,
+          "decoded_frame_count": 732,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "9c3fdd646b73473ec75a308a43302c12a2ac12c285cd8db1322c29233c155cb9",
+            "middle": "4012737f5200adaf7b921f33701e546941a176c299a90504dc67724a4ab20041",
+            "last": "2582fb6fdee1513aaeac7f7e456a2207a5b66093574a0a1cb0e0668c54ffca7e"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0013_episode0001_handle_side_len13_reason-bad_orientation.mp4",
+          "sha256": "a66035a7b3992573e30cec051340c128afd108c7df5857ee8ae4f64f7f42bf91",
+          "size_bytes": 16165,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "67626a23a42504cd5474a6e544d6d61b849a7674c75888ea03b02aa0667acba6",
+            "middle": "67626a23a42504cd5474a6e544d6d61b849a7674c75888ea03b02aa0667acba6",
+            "last": "67626a23a42504cd5474a6e544d6d61b849a7674c75888ea03b02aa0667acba6"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0013_episode0001_handle_top_len13_reason-bad_orientation.mp4",
+          "sha256": "a4b06623f7c2e2334e7340f00ff285953a239c66d06445a22f0c27a01ddfe43d",
+          "size_bytes": 28205,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "117f427945b8d21e5460463003614cb363a8a659de2ed14c578431d68ec393e7",
+            "middle": "117f427945b8d21e5460463003614cb363a8a659de2ed14c578431d68ec393e7",
+            "last": "117f427945b8d21e5460463003614cb363a8a659de2ed14c578431d68ec393e7"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0013_episode0001_len13_reason-bad_orientation.mp4",
+          "sha256": "95421ef8cb01b3095f66e1be18667bd9fde27034d8cfaf27e9c77390b27c9ace",
+          "size_bytes": 30136,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0c5d41a6c50e30e818f878fec5da4b1cc595371293d8eff82770bc3a84bee2bd",
+            "middle": "0c5d41a6c50e30e818f878fec5da4b1cc595371293d8eff82770bc3a84bee2bd",
+            "last": "0c5d41a6c50e30e818f878fec5da4b1cc595371293d8eff82770bc3a84bee2bd"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0014_episode0000_handle_side_len742_reason-complete.mp4",
+          "sha256": "b838f274610ed632cdf58babe2823326c3f6ce6d9c1401a59aca7747f363f590",
+          "size_bytes": 2801632,
+          "reported_frame_count": 743,
+          "decoded_frame_count": 743,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "61f4ef641388e16a117d90f11ad0115111c4774da2c9727649f06267546a8d1a",
+            "middle": "23d26105f8161fcee254204f4941e6d1d8dc6b4d5232399550f1d26dc49fbcb7",
+            "last": "677c8bd16983a053079284d6ddfe3be7711d4c993f4c741a1f171c9322b80297"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0014_episode0000_handle_top_len742_reason-complete.mp4",
+          "sha256": "dd40c06b622098dc9206d9ffd95503e3eea6a1d13bd364d436bc34cd0e8358d9",
+          "size_bytes": 6998497,
+          "reported_frame_count": 743,
+          "decoded_frame_count": 743,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "3020d6ef7c32438461d32691612260e661722ae3b55ba6d4ce9fce9865c944f6",
+            "middle": "1a2471e8533f0498caf7acc31494b9db7c281c39db02e7e19511a267c8beb2ab",
+            "last": "b04795f6881be9e02ceb636a3a9e854ce62c718bf8b8924569457c64c3daabcc"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0014_episode0000_len742_reason-complete.mp4",
+          "sha256": "0ef37c58fef737df6e2d4b1cfc698bf738e1cab5ed1c389e3cc07295e3ea1eea",
+          "size_bytes": 2286509,
+          "reported_frame_count": 743,
+          "decoded_frame_count": 743,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "3c0d24e48d72e079398bfa521c676dc6387a98b3a4d5956139d309222bbd7658",
+            "middle": "d1a46b12b0b94946b3e5554f3bbe09f8fba4d1f14964f10fb6248c5e6ae5e1e5",
+            "last": "7c319b0fa8b7b0a045d26173999989ae1d94133c2bdd73f09b7ce239ec5bc359"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0015_episode0000_handle_side_len732_reason-complete.mp4",
+          "sha256": "5c5200304183f8188a00b74b504612e8226b5ed9a1292125dbd5fd7faebac373",
+          "size_bytes": 3016306,
+          "reported_frame_count": 733,
+          "decoded_frame_count": 733,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f7f642347c3ccbd1a087b8a14332fbb5d036f5e8af37535afbd8294f82988a17",
+            "middle": "97ff4593ac26793a24b4d6a105d7f5e33b6b61a2c0243b7e0333f522861a8f19",
+            "last": "84100e117d7bc7fd65b391916b38d785c956d26d48453975b9c0f576c6db1a33"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0015_episode0000_handle_top_len732_reason-complete.mp4",
+          "sha256": "cedb5ed580489db6579c74ac3ce5df8e013423314a7dfaf81559ad13a126af7b",
+          "size_bytes": 3627420,
+          "reported_frame_count": 733,
+          "decoded_frame_count": 733,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0a11cc0368f8603baf915ee323ba7d955a16a0e508686ae68c0c9deda2869022",
+            "middle": "8a56bef20983822b04cb3407affc0fbf0e9a410ccbb6441913da366fb21c06c4",
+            "last": "451b59e8957659582c53f770226a3fa4899815d8f312c063eb54c1abe5927af0"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0015_episode0000_len732_reason-complete.mp4",
+          "sha256": "19ad068d2696f3bb84eed8b1e88851f567ce3e3a3fbacc00a71375589e723e1c",
+          "size_bytes": 1270593,
+          "reported_frame_count": 733,
+          "decoded_frame_count": 733,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "9c7722f424a2ef6abd68605ddf84f1055da4648ae705f9a50c298befc9bf48c2",
+            "middle": "a9a8486c2d3abb222f70af13f4cebf93cc9716979ab04f9d31b5b8d64ec2a89c",
+            "last": "795151994950f9aa96ed05f70297117923576cab659cbb4b7c85b234bdfe10b2"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0015_episode0001_handle_side_len34_reason-bad_orientation.mp4",
+          "sha256": "eb458f1e1154b8adb4f38d40deb15ced0df6d595fbf2bef33b8e0aea9e0a118e",
+          "size_bytes": 8668,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f724ac69a62ea8228c1655ef2d0eb80571775ad95f2ed72af0e75cca01518095",
+            "middle": "f724ac69a62ea8228c1655ef2d0eb80571775ad95f2ed72af0e75cca01518095",
+            "last": "f724ac69a62ea8228c1655ef2d0eb80571775ad95f2ed72af0e75cca01518095"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0015_episode0001_handle_top_len34_reason-bad_orientation.mp4",
+          "sha256": "d67db2269de088e220252db3e49f798cbeb8371b0cddf4e28133d9db7290058e",
+          "size_bytes": 10788,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "5a066e42f5406bd57b085da4f6ad099bdaf67429a8990cea1aecabb8bff851ce",
+            "middle": "5a066e42f5406bd57b085da4f6ad099bdaf67429a8990cea1aecabb8bff851ce",
+            "last": "5a066e42f5406bd57b085da4f6ad099bdaf67429a8990cea1aecabb8bff851ce"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0015_episode0001_len34_reason-bad_orientation.mp4",
+          "sha256": "4f82d2787e3a1508b2ab7c2f848e4a79a6b2b6192d11948b3ab2485a4591c9c8",
+          "size_bytes": 11388,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "22b4b27d406f7008a587d7ddbc8e7578ad95b2d17dced620dd6673f7e87e7369",
+            "middle": "22b4b27d406f7008a587d7ddbc8e7578ad95b2d17dced620dd6673f7e87e7369",
+            "last": "22b4b27d406f7008a587d7ddbc8e7578ad95b2d17dced620dd6673f7e87e7369"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        }
+      ],
+      "qualitative_findings": [
+        "Viewed env0002/l02 contact sheet: the robot approaches the doorway and the arm/body enter the handle-adjacent region in middle samples; later frames are substantially occluded by the door/frame or show partial body only.",
+        "The sheet is qualitative visual context only and does not establish contact state, opening magnitude, or success."
+      ]
+    },
+    {
+      "case_id": "v21B_B6_step2500",
+      "matrix_identity": {
+        "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500",
+        "checkpoint": "logs_rl/a2_piper_full_stage_a2_base/base_v21B/formal/B6/model_step_002500.pt",
+        "checkpoint_sha256": "64e2f80711cb54ca29b639c75ed38fe9885b0420a53c2395ad033ee66bbd2291",
+        "expected_primary_videos": 48,
+        "surface_env_id": 2,
+        "surface_scenario_id": "l02",
+        "report_role": "report_only_illustration",
+        "purpose": "REPORT_ONLY_SCIENTIFIC_ILLUSTRATION_NOT_RELEASE"
+      },
+      "receipt": {
+        "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/process_receipt.json",
+        "sha256": "5fcfb177aaee495f4d68020450ee61fe41949aead39d5fdb4b81b439b7231f8d",
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true
+      },
+      "inventory": {
+        "finalized_mp4_count": 57,
+        "primary_count": 48,
+        "auxiliary_count": 9,
+        "writing_count": 0,
+        "primary_set_complete": true,
+        "all_finalized_decode_pass": true
+      },
+      "selected_env0002_episode0000": {
+        "main": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_len668_reason-complete.mp4",
+        "handle_top": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_top_len668_reason-complete.mp4",
+        "handle_side": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_side_len668_reason-complete.mp4"
+      },
+      "contact_sheet": {
+        "case_id": "v21B_B6_step2500",
+        "env_id": 2,
+        "scenario_id": "l02",
+        "episode": 0,
+        "time_fractions": [
+          0,
+          0.25,
+          0.5,
+          0.75,
+          1
+        ],
+        "cameras": {
+          "main": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_len668_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              167,
+              334,
+              501,
+              668
+            ],
+            "frame_count": 669,
+            "fps": 20.0
+          },
+          "handle_top": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_top_len668_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              167,
+              334,
+              501,
+              668
+            ],
+            "frame_count": 669,
+            "fps": 20.0
+          },
+          "handle_side": {
+            "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_side_len668_reason-complete.mp4",
+            "frame_indices": [
+              0,
+              167,
+              334,
+              501,
+              668
+            ],
+            "frame_count": 669,
+            "fps": 20.0
+          }
+        },
+        "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_B6_step2500_env0002_l02_contact_3x5.png",
+        "sha256": "3802551a4a29e3c9d8300f6be7124c74b14cf5ec21974afc516374362ead1a8a",
+        "size_bytes": 865918
+      },
+      "videos": [
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0000_episode0000_handle_side_len630_reason-complete.mp4",
+          "sha256": "2bc054b9a6a273f4febc2d8c7cac41f11a71eee72883167b456fce3308dd0ba0",
+          "size_bytes": 3144404,
+          "reported_frame_count": 631,
+          "decoded_frame_count": 631,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "cd3913cc26e439ac2cdd5d8617c0dd160b73e5bee274b6c432af0fe8f1f22171",
+            "middle": "89ab17763f0c6ecd3331410c19cffccd0f6401b59291dd6e0f6797edf5033162",
+            "last": "d1246e4b8b6b94710b20f983b7f7b549c6d5e1e1062be5ebbd07d587de079239"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0000_episode0000_handle_top_len630_reason-complete.mp4",
+          "sha256": "efd720ed19962259b45bbe8e38bb9e3015a0a0da12d9937e28f811b947adda20",
+          "size_bytes": 4930456,
+          "reported_frame_count": 631,
+          "decoded_frame_count": 631,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "604064f92a486e63c3c2e85c8478cf4a27e6cb134cfe4b386a5b52244782be82",
+            "middle": "143d54f3c2f5c2bec26906e3beb7bb62a0538e44b9ade3b14bff19189bf972f1",
+            "last": "2cd2f7f2c2b47181834e0dfd38e774a73b974d40b788c50f5475b6cec5224e95"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0000_episode0000_len630_reason-complete.mp4",
+          "sha256": "97ad9482277bdc01132f5daac4b2676cbf12261c23c24b8f22c2ed21c5b5ad1e",
+          "size_bytes": 1549301,
+          "reported_frame_count": 631,
+          "decoded_frame_count": 631,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "5f203816b44a41d4e3dfc0a7fa0972816af4fb391ec786a82fcb01f9774adb77",
+            "middle": "199d8d1bdb6c745604408a92e9acdde64a71fa8e181800b5e5776b14c9a0b9cf",
+            "last": "dfd5ba59bddaeb0250cb818f939e601f211e275db1cb81da150e1cafaf2c0788"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            0,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0001_episode0000_handle_side_len644_reason-complete.mp4",
+          "sha256": "d03c219c992415bab2323d6925258f3f19c74fdf752db93065b212b153f946a2",
+          "size_bytes": 1445970,
+          "reported_frame_count": 645,
+          "decoded_frame_count": 645,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "7fb9d9b0d9beca12d5f1281fe29d2eed98f77105433d18cbefd5e8b0147e2c9f",
+            "middle": "925deeea16aa3c4aed4f41f11a992e39296b115f9e9711472d180148e48aad3c",
+            "last": "cd26c7d6620ed417a7e41c49429c2ac391ace1deb9e31b3d2d95dfcd41eb3c32"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0001_episode0000_handle_top_len644_reason-complete.mp4",
+          "sha256": "a6e57b7d98a191b6d0153a9de5fd63420d713faac3709951902f71400345a18a",
+          "size_bytes": 2573222,
+          "reported_frame_count": 645,
+          "decoded_frame_count": 645,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f469cd92ef93869b537a1ab468558b9cc538118e782831d7118ab73f5e4aeeb2",
+            "middle": "a69ebdd0159e6f7dd7213794683ab6cecf39e6646c9e167db8c2055d43a96d68",
+            "last": "3946aaa315bddc15cc6c7fd74b5db50655b5a0e083cada89104fdb0a97ebd2b0"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0001_episode0000_len644_reason-complete.mp4",
+          "sha256": "af5b080565530d2bb93b4d80d99b8c1617b6f4486721a73dcb9d7e3b40086526",
+          "size_bytes": 1277993,
+          "reported_frame_count": 645,
+          "decoded_frame_count": 645,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "ea813ea2ba09020b1799412103559369249cc72e1debf4500581b0fa074007c7",
+            "middle": "b2ed2b13b5c4e5294e1c2911948c7f48334fa4ae5480799063ae85a5d702e139",
+            "last": "16b766ee5492119f60b9b6754837f85111755b867b741e91d39d172e5ec37695"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            1,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_side_len668_reason-complete.mp4",
+          "sha256": "92910eecffb7954644a57db24c1ccdb6f64da270371c2a8e3b92773ee41bf502",
+          "size_bytes": 3032523,
+          "reported_frame_count": 669,
+          "decoded_frame_count": 669,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "abe8fb428b358b5b79358a7efddc663435190cd949e86ff08882145a7c56ae49",
+            "middle": "73f6f845a51177389839fed477775ee3c550b2d262f7f8627fd8aa00327eee31",
+            "last": "3e3a4a3cbf52cd357d96d536f82248fd74c89894a3378f0de015501ddc1ad31e"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_top_len668_reason-complete.mp4",
+          "sha256": "549f8f820a7aaf6402d0a576a7bacff569e66ad3a56f3cf81283f6356a2e8de6",
+          "size_bytes": 5020185,
+          "reported_frame_count": 669,
+          "decoded_frame_count": 669,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "c506aadfc9760024f4a2e469968e45efe1d233f7942f4b0c83161342022c36d9",
+            "middle": "2bda6d741bab22dfb6d63e01faad3b28acad38248d044842e3bfbd19ab1504aa",
+            "last": "d82f8cdc1f8d0b64b0de74f9fbdf1011c7ef5fce0ad8bacad43e758b559ea32e"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_len668_reason-complete.mp4",
+          "sha256": "ecbc6a5e61e93b9e1a6947b3e75dcac6590524a45f3d001788185c7dc16fa3eb",
+          "size_bytes": 1408692,
+          "reported_frame_count": 669,
+          "decoded_frame_count": 669,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "1613e68e1a0dd838390c0fcce3d84ed3aa5471242725609ea4b10d792cf4d7cf",
+            "middle": "0f4edd664d7df0514f7ecb315220331f1fed52e28229a5cf61a147dc969b8229",
+            "last": "2cb24d2892e3f10a6d4d0041344f612cee5b7524d534fd00ece2d8be3cd4876a"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            2,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0001_handle_side_len26_reason-low_height.mp4",
+          "sha256": "d0cf5174c3b732bd78eee45cbc58fddd7aa560268fdc69b72d6f9e9ab4281859",
+          "size_bytes": 13368,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "ab31470bab0aa8b00096e4ceaae83ea67619f5d0260fc46a45f54281aa75464c",
+            "middle": "ab31470bab0aa8b00096e4ceaae83ea67619f5d0260fc46a45f54281aa75464c",
+            "last": "ab31470bab0aa8b00096e4ceaae83ea67619f5d0260fc46a45f54281aa75464c"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0001_handle_top_len26_reason-low_height.mp4",
+          "sha256": "c21af0a2e31326509f41adbaec7b199344c23c5f8a868ab0969976e8920ddaa1",
+          "size_bytes": 24899,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "05973deb1058409b2789ee1ee536da5769c1559a3dc0b07aac8132581c9ac715",
+            "middle": "05973deb1058409b2789ee1ee536da5769c1559a3dc0b07aac8132581c9ac715",
+            "last": "05973deb1058409b2789ee1ee536da5769c1559a3dc0b07aac8132581c9ac715"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0001_len26_reason-low_height.mp4",
+          "sha256": "45e0469cb9a32ad026118ed035336ce8586223035244fd123b1b01b3c3cff53b",
+          "size_bytes": 13424,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "48aacc12fd4e3052d3e977303cf7087b3fcfd2c58a7307f81229dbe19f9c2000",
+            "middle": "48aacc12fd4e3052d3e977303cf7087b3fcfd2c58a7307f81229dbe19f9c2000",
+            "last": "48aacc12fd4e3052d3e977303cf7087b3fcfd2c58a7307f81229dbe19f9c2000"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0003_episode0000_handle_side_len697_reason-complete.mp4",
+          "sha256": "95e41c2a6877d3ab147abf5527f74c7aa67406dd6b7611fd610e3a709c92859a",
+          "size_bytes": 3244236,
+          "reported_frame_count": 698,
+          "decoded_frame_count": 698,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "61553e89254a5fc1303c73e4bcba89aa9735180cbfcba74da4ce7b853536f532",
+            "middle": "d7aad64ac23b085ab26789c2cedaa08bc10cb1565bb752d44d05be42876c8143",
+            "last": "53b4edb1cc57873664a41b51a5d45cbf6729374f19b48f6f9a8953d9f13b6d84"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0003_episode0000_handle_top_len697_reason-complete.mp4",
+          "sha256": "0ef8563ca437ae373b6c1c5183a2e8e5c6763d6bd433e2602869534e3e30f46a",
+          "size_bytes": 7587437,
+          "reported_frame_count": 698,
+          "decoded_frame_count": 698,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "68c18a400b0c9a9249394f9e6b6cd423f4160dfc9cedd844a5cec8fb9da92195",
+            "middle": "850069f5731faf71df956c898b7d843635eaf29765e0600a41e927973dcda831",
+            "last": "135e666fd6ba7cad68c6f8ea85ca3b96529f5cb8d3b0eb16f00a0a83a2926d72"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0003_episode0000_len697_reason-complete.mp4",
+          "sha256": "8949e72420590084fb303d3ad874890a39479c38c69ab4ada1436110fc106a6e",
+          "size_bytes": 1676979,
+          "reported_frame_count": 698,
+          "decoded_frame_count": 698,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0200b790bd28e85c41799491668ba54c8b7ec6cfe33c09ec179dc671e3ddb67a",
+            "middle": "0f54c7f84a386c64131d30031abbeea2138e5b7685600d6b03d0fb8e4d331d48",
+            "last": "d384dd67b74ba7681e915c455019e0a6391ad95dea4c9436ac8a4d737562b14d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            3,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0004_episode0000_handle_side_len684_reason-complete.mp4",
+          "sha256": "668b8819211d7132dac808546e5389f174c64bdf4fc4f8863d6e9050e6e2bfaa",
+          "size_bytes": 2418119,
+          "reported_frame_count": 685,
+          "decoded_frame_count": 685,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "8c9dfb37e2546c12d1d6d0f3ed6ba5baae5b43b6d61b411527dd7510c16bd9e5",
+            "middle": "dd7ff8e21d7b3ebe3749d564678f632ac14a05c36cd69da2d2f15b2f5416a113",
+            "last": "c65517929e03dd66782865ec3e1061f00529519e1a62e7b59ee57551eea9cd5d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0004_episode0000_handle_top_len684_reason-complete.mp4",
+          "sha256": "f93cad527bb676c44d67a9b25fe782fd2b7a735722c66b9fca66b2340c1521c5",
+          "size_bytes": 3447623,
+          "reported_frame_count": 685,
+          "decoded_frame_count": 685,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "2e9af0762866fe1073e35ba95cfc3f351c66f111989d24c1af04a6d2f24d0ca7",
+            "middle": "36c53d168439cf5807d17178e198c37f94fb1ea9f5961041a2e410e08455cbda",
+            "last": "263d324a7f218ee6dc96477953e81df0be21cc6ecca80ffa18e34ddf1252c48f"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0004_episode0000_len684_reason-complete.mp4",
+          "sha256": "fd38f1ce1ab390b566afef1b24cf6476f7a5ce38ba6850c55a162eecc3aa51cf",
+          "size_bytes": 2240190,
+          "reported_frame_count": 685,
+          "decoded_frame_count": 685,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "c4db0500a8cb32d84f979f0580a568b286f6aba2e9739a012809a50be6e63f62",
+            "middle": "a33101f20e8a957ad97561e930b720dd2d7948d2fbf88de63f8158f7a5baab22",
+            "last": "bd26cd079a7f71e9145296e44f391e6ec0a158982195667581c7f3d87d781ab4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            4,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0005_episode0000_handle_side_len677_reason-complete.mp4",
+          "sha256": "7e9e4d91f4adde6af71b5cbb241e72dd1bf74da3165095a930e61c485b6c8051",
+          "size_bytes": 3157871,
+          "reported_frame_count": 678,
+          "decoded_frame_count": 678,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "1987716b923d53b271e57d7a6a48c430d11b9f4c5d78d662de0d4261e46a643b",
+            "middle": "e10ad18ffbb1b6341c75e3d875502019800288cbb6b1ebbd8f4dbed394d3b170",
+            "last": "1082f74de0762a72ca090802bd01d57e04d19011d46c09bae40ce1c2e2a836d9"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0005_episode0000_handle_top_len677_reason-complete.mp4",
+          "sha256": "11e9148e0aee32b75cb9445e642461f2b30064bfac8a233121da8a6bb09b25ac",
+          "size_bytes": 4181123,
+          "reported_frame_count": 678,
+          "decoded_frame_count": 678,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "575a66c9db5c7d93e1f7868c0b349a34eea8778edf4d0c2977ba4691171e0d25",
+            "middle": "27849d7dcdcfd306e47977f2dcf4e9b03dacf390ed40c87b48e21c61899d73d8",
+            "last": "7cf782edcdcec324864d5160fa0a1ce7347440f4ba2a54d9ab7bc0602a6889d6"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0005_episode0000_len677_reason-complete.mp4",
+          "sha256": "755293281803ee595e7f4ccfb35151230cdf3a41b40b93f9835d2755827fd8c6",
+          "size_bytes": 2024406,
+          "reported_frame_count": 678,
+          "decoded_frame_count": 678,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "a53006dbf0c1b90956ccfb666c67ca95fd57d81c15f0b376639b62e396ea215d",
+            "middle": "ecb27cbcf72286b6ba7b0a25381c7da92f7b4601c8bdf7369346507a760ee17f",
+            "last": "7d82659ac6f998591f3884f475306fb192367b45b607c2575c133781fdf0afc6"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            5,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0006_episode0000_handle_side_len657_reason-complete.mp4",
+          "sha256": "2647f96141e7b1dc20b6cac20bbe460a88d38beeb0ca07b8ed78fdcb51d70f01",
+          "size_bytes": 2655105,
+          "reported_frame_count": 658,
+          "decoded_frame_count": 658,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b7f71f0d5fc23fc978331b9fbda0d06f681425909b50f4c359e0e736abf5a302",
+            "middle": "11ffcc0d3609b10a00744078323774bbe7d9d48c1fe83de77e82d8152c14cccb",
+            "last": "9a7f897323fae32dd4f13dda0ae8a22377055c9a3268b20ad46a110e544b28c4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0006_episode0000_handle_top_len657_reason-complete.mp4",
+          "sha256": "21a005efb267fe41bfd8bb942f3635e7dc3385e3df78ccf6eafba9eb93247b0b",
+          "size_bytes": 4513508,
+          "reported_frame_count": 658,
+          "decoded_frame_count": 658,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0f9b01a1b2ae69c46acf574b0288637af76772ab1adcdb08d7242c1bc8f08a5b",
+            "middle": "2678a96948196c1b6d1e704edd94d66c369ed87193f9a062a4e62de39de77c36",
+            "last": "980c9097ca0aa5ef0139eed496de465b4d6db14fbae709eba7f4fc85e463e0ba"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0006_episode0000_len657_reason-complete.mp4",
+          "sha256": "8f26624dbca17e8376c4c84ee9efcf9cae5244e08ad6e2561865071713db1903",
+          "size_bytes": 1348218,
+          "reported_frame_count": 658,
+          "decoded_frame_count": 658,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "e38c80aa396b3c01034592aedcc9b1a92f6f55165090ee92bb92d4e49c67105e",
+            "middle": "da6828acb44720e3165edbecfc1ded247ccf78c4e80995c7df4b1e7676eae345",
+            "last": "ac7cbdbcd534c42e6c3c1e16f20364b5eb196a571613ca4373fe538556e2c7a9"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            6,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0007_episode0000_handle_side_len724_reason-complete.mp4",
+          "sha256": "391d21485f6197fa712a5844dea8ef8d7f426f79b0771530e3ebd4d04d19d45c",
+          "size_bytes": 3666079,
+          "reported_frame_count": 725,
+          "decoded_frame_count": 725,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f339df18a947d35c5fd21eb50ba714dbd429d47e000312c820f2903c52e3bddb",
+            "middle": "2002a32584230fddbbf31b858dcf3cf7d95e6ddc60ef8f0b15bb33080cd7b1b9",
+            "last": "26aaa0b7c13e299f1da7c7337ac5502bd381eb82f92fc0984ce58dae632fee20"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0007_episode0000_handle_top_len724_reason-complete.mp4",
+          "sha256": "5e3c5eaade92051f8f465ad3300eca13ba428bec14f853d899bd1260df5cbe53",
+          "size_bytes": 8336171,
+          "reported_frame_count": 725,
+          "decoded_frame_count": 725,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "05a06fb15dda947c0f4f0f1b9cdf5b95193add54758a0c5cef191ed6f09b4f66",
+            "middle": "60b50503abb89268fecd127283f5fec85b4813512d1dd34d1aa5d94aa448353e",
+            "last": "f30b0556272414f7f953972f2079843eb2fd064a2daa3ac0c031c8ee08d6680d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0007_episode0000_len724_reason-complete.mp4",
+          "sha256": "44f7adaf8f8af947aafd4b78716c1cc4f4a6911c7360880a56cfe1b46bc8f611",
+          "size_bytes": 1492193,
+          "reported_frame_count": 725,
+          "decoded_frame_count": 725,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d212aa302a1b5df56ec70de130f4e0a6044c4548002c1eded69d7fe7284609a9",
+            "middle": "154962f7e938297b0e3349826471bfb89d5c059fa8a99628ee01512a866a198e",
+            "last": "1c415f72e9a62c034b26cb3fb1d8fb6579651d90e911b292179c4e56bcfd63d3"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            7,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0008_episode0000_handle_side_len707_reason-complete.mp4",
+          "sha256": "6208ba20a6b409bbd183170c04b17bea39bbec10721b4cc7173105ede60a06bc",
+          "size_bytes": 3586250,
+          "reported_frame_count": 708,
+          "decoded_frame_count": 708,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "b7dfdf1d73277e0be8e314bf56dd19add9f7acb5ed341ef4cbee80c9bfd4e121",
+            "middle": "0400f39d20be875119e94737b60da712f38aa8b5c6cf50b333273e5d1609cb3d",
+            "last": "2e39bcd567f71074da7ad8fd3172b6dd706660220f208e6cad2615ccc2cb619b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0008_episode0000_handle_top_len707_reason-complete.mp4",
+          "sha256": "fe631ec4c9a5238c4c2465e898f6c29cb5df225b4ba0604987dd6a43b9418b8c",
+          "size_bytes": 4343571,
+          "reported_frame_count": 708,
+          "decoded_frame_count": 708,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0a4bc8ae4c59b36cbd244e79ee6836f16fb8c1b26c46a42e1015dba03dd50ea0",
+            "middle": "6140b3de9cd6219c8991a2bc49746acc10a3b4f1d6d6652b47f81d35621942f2",
+            "last": "2546914fff80b60782237294474e4f9ffd3086426db7a81071f3758a7f21e06d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0008_episode0000_len707_reason-complete.mp4",
+          "sha256": "f26ba0109391df6eb73787f1b5313075eded7e81bf49f2ab534703bd134a49c2",
+          "size_bytes": 2154355,
+          "reported_frame_count": 708,
+          "decoded_frame_count": 708,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "72895de14e9c1ec48d1f31aed781c932dea9cbcb65ab87617d8bc37c015083a7",
+            "middle": "69093435b0f64db6d86c4187fe814321739bbbf02bb27a3a37e6f44a7f366d3f",
+            "last": "5de4a630d01ad93208eac9915f56224b7474676f31457d5c81900ada3c0a617b"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            8,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0009_episode0000_handle_side_len705_reason-complete.mp4",
+          "sha256": "b910de10d3b8b126f46b810ec80d9b1738de29226186cd575cc3390c94090449",
+          "size_bytes": 3344324,
+          "reported_frame_count": 706,
+          "decoded_frame_count": 706,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "af6c5c26886173a16c404a62ebeef3359ca70b3b9163c39944a23c4530bbb784",
+            "middle": "7c374c62b36fc0440e5bc2ee5d1083c2f1ac145b43a20ee1b745ca2dd20c97c0",
+            "last": "e0a803d6ce4f3ab61955667c3599ca370b2e04dac881c5e6f133abec2674c4b0"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0009_episode0000_handle_top_len705_reason-complete.mp4",
+          "sha256": "f4c795ac176d32a9c1122602b9849003e2d43f48ba4f05d0fd3ebdafdc6d2860",
+          "size_bytes": 3976473,
+          "reported_frame_count": 706,
+          "decoded_frame_count": 706,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "2ca805213aabf2a23ce1b61909d9d188a25cab71976e551f81e56dc923242554",
+            "middle": "7e65446d4876935bfb08503e44834db7483bdfe720c53b6942868ca1023b2d5f",
+            "last": "dfa15093e0d279992d00bded57c26f3678fe6bf2393e8b3b511ada9f56b592c1"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0009_episode0000_len705_reason-complete.mp4",
+          "sha256": "fe21356b968febcefdba562b3c48214e5bcfb22d080642d13e4c66c390c579bb",
+          "size_bytes": 1922463,
+          "reported_frame_count": 706,
+          "decoded_frame_count": 706,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "eb82b02b931554e2e9bf93e48c73121564ff2742593bac61e7133b2d1e977ee8",
+            "middle": "bde1d74c2d81c89f1ad87000902165b494c55a316567848454be1af1775cc525",
+            "last": "563dec37ddefc8d46afd18c1a24af1cc565dde5677cb958da6d183026cb64c0e"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            9,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0010_episode0000_handle_side_len739_reason-complete.mp4",
+          "sha256": "7bc9b937a2f471fd266c058f3e85784c4fc3519d4e33cd968d3d278ed6f379fb",
+          "size_bytes": 3732573,
+          "reported_frame_count": 740,
+          "decoded_frame_count": 740,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "462f449342cdaa7b19d727f21bf9b5d8f4fd6bcaf5e0e407edb6d8f83bac1787",
+            "middle": "f3183455a9d405934fe4ea24f3f561cd51d327e44287175d453e7fc66d76baea",
+            "last": "d23c09c2d78f7f058b95be62f2e25d93a78fb7e1a54f1c80cfeac3a72e696adb"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0010_episode0000_handle_top_len739_reason-complete.mp4",
+          "sha256": "cb7a145d6bec12f14f29bed68653bc454b679f2341a2fa319c106fb59b8a9a54",
+          "size_bytes": 4421345,
+          "reported_frame_count": 740,
+          "decoded_frame_count": 740,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "4c83b3796b5f3db7e8d61c50f57504234c683e1ac70d9809de2fcb8f594559d2",
+            "middle": "b1dec272ce1c62e3e0af9c6f4ced8ddde3391c4d1c41e648e85b3e8c5cfb9ce4",
+            "last": "3b842555ac96cb28d75ba5a773f6bc87bae242b7a2954b120445d1aec7c2d44a"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0010_episode0000_len739_reason-complete.mp4",
+          "sha256": "1de8f8aed67f7b4e4359b515459cecdd3a04dbb9a94991c9a4560ad8871d4a86",
+          "size_bytes": 2052152,
+          "reported_frame_count": 740,
+          "decoded_frame_count": 740,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "70c5fd1bc62bcd5d41defc3533ad1f5915d61482333e308faf6d553b6d3ed117",
+            "middle": "6a03a4e47be4a6370f2ee871a82bb3b1ca5fa969ab87f9f7bca4ff291860ea48",
+            "last": "ce12eff8ef0c45b6d00056ac04e749d3cdbbc5c1cc2c922ed15bc93385805de0"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            10,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0011_episode0000_handle_side_len670_reason-complete.mp4",
+          "sha256": "fca0fdcb71cd0201033a58865919957d5358be4eba0703178ca864ae28de148b",
+          "size_bytes": 2701155,
+          "reported_frame_count": 671,
+          "decoded_frame_count": 671,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "8d1603e4e72488edddf6fcc36200f3b4660584613d03f29101862e7bd160b416",
+            "middle": "7560c808a12a0334ea1ec033327e13a96072ff4f805ce0f0f7616308ac7d6835",
+            "last": "7b5ea5799542092125ce5bfcf1f72faa2f1c280855a38b34060138b79bb7a153"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0011_episode0000_handle_top_len670_reason-complete.mp4",
+          "sha256": "9264ffd6cd556b40d767d5f0067b82a52d83c20fd552479b6a7536178dc13d55",
+          "size_bytes": 7690517,
+          "reported_frame_count": 671,
+          "decoded_frame_count": 671,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "30d5317f8884a8a0c360b7e3e52150540636e35a1589a4cf20ada87432583af2",
+            "middle": "b39a87925dd93c10751426de8de917899b363a6f1828d796416b9c0c66c735a1",
+            "last": "33d3a81785945335bc9e51979dd5b061a90dfd31bb00479e981baf460aa121d4"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0011_episode0000_len670_reason-complete.mp4",
+          "sha256": "4f3435fe995fb992d60a42454548e36b48344b4e9bb9af8d7880d2ea68bd87a6",
+          "size_bytes": 1794803,
+          "reported_frame_count": 671,
+          "decoded_frame_count": 671,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d3eb19d35948e1f0424ed136448e7c37bf1027a18a3001b5365cbdb46fa4e5c3",
+            "middle": "8e4b262987973242cb0531bd335b609c8b39b150e8b0f925c6884f08f3a69d2a",
+            "last": "2f63504adfd977c9d652fdfba19d31db61e2bbf82b52fa68d28db9c80a34dd74"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            11,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0012_episode0000_handle_side_len705_reason-complete.mp4",
+          "sha256": "f3dffc98e48692bb0f1f51413e71aa53a84a5c236e8ec2f0754a9f671f68748f",
+          "size_bytes": 2397177,
+          "reported_frame_count": 706,
+          "decoded_frame_count": 706,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "083d521437fadd532b29d3e7a3fbff26e767cb30afd601ad93b8a255d4572485",
+            "middle": "2d93f3ee2ff7a637fdc21f877ebeaf7c6661ba7c83fe92ee87fb9ebfc8219a23",
+            "last": "797aa726286660e3a20ee8e0a0bde72ff4fbbc682ffa6f0c9127f1b85bca2650"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0012_episode0000_handle_top_len705_reason-complete.mp4",
+          "sha256": "b63cf75db266274ec9c76b18507ec1a7c98d2612289db0be0113eb283497c414",
+          "size_bytes": 3712484,
+          "reported_frame_count": 706,
+          "decoded_frame_count": 706,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "d8491fb4ca6bd4a75980789d3c6fbcc77b2ac9bd93efd8ede47997ffe74f5711",
+            "middle": "c1e590cf5934da77874927abb6f74f12df25af0f81a13b487422c26ed60e7fa8",
+            "last": "5fa90dbcc0045ff20b5855e25f32f48d154e5fc24240aebfdb1be705dac48ee9"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0012_episode0000_len705_reason-complete.mp4",
+          "sha256": "f0c2d05e437b2eb2267b70a0e0072287f60664b767d537fb9b590ffc3537d258",
+          "size_bytes": 1675253,
+          "reported_frame_count": 706,
+          "decoded_frame_count": 706,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "91e37a330c78ef7c4623da7b2e5ac37abdceb8f5948d6c22857ff32cefcb1dd4",
+            "middle": "4c833adfc3ed992ae2f1d0fd9e465294425ad556381c803a5d90058919ae5944",
+            "last": "54a7bb80fd6a0d1de198bde7bb041588cb6af5d8cd08a0b3b9d78d123e3789cf"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            12,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0012_episode0001_handle_side_len32_reason-bad_orientation.mp4",
+          "sha256": "c89b58e20d0e8a243a82071e5df6e4274211e96119ffc3433453cc8d55d4664b",
+          "size_bytes": 12162,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "427367ad7e2f53a722e587f23d4504cde4e0099281557126aa13cdfa8a2c2b22",
+            "middle": "427367ad7e2f53a722e587f23d4504cde4e0099281557126aa13cdfa8a2c2b22",
+            "last": "427367ad7e2f53a722e587f23d4504cde4e0099281557126aa13cdfa8a2c2b22"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0012_episode0001_handle_top_len32_reason-bad_orientation.mp4",
+          "sha256": "4344582e7faa5c95ff11bec023b350384a51678bc19f78021b3fabf5347aa621",
+          "size_bytes": 15026,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "5381aefd9be174948436eaae2cc519ad1ddf9f562b218360c1dcd6cde4c91899",
+            "middle": "5381aefd9be174948436eaae2cc519ad1ddf9f562b218360c1dcd6cde4c91899",
+            "last": "5381aefd9be174948436eaae2cc519ad1ddf9f562b218360c1dcd6cde4c91899"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0012_episode0001_len32_reason-bad_orientation.mp4",
+          "sha256": "a460ee041ac182da4db942ee22a692a7e8e75a3ea77d6e640b35310201f46783",
+          "size_bytes": 33754,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "8840d04b11d6188e09bb5068c1de7ebbfd3a7e9d74a2a7ae614210ed37666979",
+            "middle": "8840d04b11d6188e09bb5068c1de7ebbfd3a7e9d74a2a7ae614210ed37666979",
+            "last": "8840d04b11d6188e09bb5068c1de7ebbfd3a7e9d74a2a7ae614210ed37666979"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0013_episode0000_handle_side_len706_reason-complete.mp4",
+          "sha256": "68c35f67d9f4071d431b645127ac7c23573c3518f3dc4376ca932811286f45d0",
+          "size_bytes": 3159522,
+          "reported_frame_count": 707,
+          "decoded_frame_count": 707,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "0df7f5af4e97bd188e45ce4bec97d40612fa79dcf30a1a4f46fd52bb200a6022",
+            "middle": "4a37dbaf975c29bda2462da83772f54d4a4754435e95c575b8c418f031029a96",
+            "last": "5c90daa35d0f92e5717ea08461586d80b9ee12a66f38b30761e5cef0d7b362cd"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0013_episode0000_handle_top_len706_reason-complete.mp4",
+          "sha256": "5ed68043ce3d84113979c0e3b3914e6ec2203649f752ec5851b2163e6afd38f6",
+          "size_bytes": 3628795,
+          "reported_frame_count": 707,
+          "decoded_frame_count": 707,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "eac1690f433d48940967a6baeb8cd1a091c38eb92f94df9ac4cf7c9a43b95bd7",
+            "middle": "c05836dd294421023c81d68d5aeccf0f746b21303e72180d791634d36b2097b1",
+            "last": "42bdff28a116c16742b0991c1810d57ecc54f28ff894a01d193b9a4fec7e5c3d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0013_episode0000_len706_reason-complete.mp4",
+          "sha256": "abab6e69f84c99efe6d2828bd40e02272b8899072faefb6f4f6bd069ed044508",
+          "size_bytes": 1975593,
+          "reported_frame_count": 707,
+          "decoded_frame_count": 707,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "9f6ede63dbea09e2be3290c2ad59d64703b6a7b52deed59e7e304340e0bde384",
+            "middle": "6b0761e64f55dce7adbc16131bf4cb6d1b2ffc453e5732a643823cd8d35d6ba8",
+            "last": "fb5af6aff7b7580f5d7532de77e4d0c24a60f590f483f35b79fcb5e4ae727e27"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            13,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0014_episode0000_handle_side_len748_reason-complete.mp4",
+          "sha256": "2dce9e5eadf7ec745fd115e597b4d46bbb242246f869b9cd2d42693f94965907",
+          "size_bytes": 2772753,
+          "reported_frame_count": 749,
+          "decoded_frame_count": 749,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "c73201d358f26134fc5fe1860edd7120c34d34fc5b08b117e1b29be9230409ed",
+            "middle": "fb76d768c43829ba16cdbbfc0c0f2989b42d527cb32b579b26df05da61703600",
+            "last": "add7cb296833c38c91dff6f0cc2d5ea509f4fbe3420b686f8687d5e77086e2f8"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0014_episode0000_handle_top_len748_reason-complete.mp4",
+          "sha256": "5faef3ed7d64a2bf1592776e37e9aa69c01d57e8c3d1039550ad155c4c4feae8",
+          "size_bytes": 7091580,
+          "reported_frame_count": 749,
+          "decoded_frame_count": 749,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "102488068775c5f209e147ef1eafd0ac37b6c898f4e55c1756673677ddeb5cc5",
+            "middle": "65dbd0aad687de6300c2abba359c861fe60ed05f3241eba24af20d0b38bee201",
+            "last": "2fae81f18cf42ddc4d22b8450596bc51be4f9980f642e018f97b884d08988a7a"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0014_episode0000_len748_reason-complete.mp4",
+          "sha256": "addd9878da08490896eb42eef8bfdc21699588297de5db8723c66fd622acf0e2",
+          "size_bytes": 2322902,
+          "reported_frame_count": 749,
+          "decoded_frame_count": 749,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "bb4b1bc96117f97dc621de0fcc0770541b8c753674ca476a05b15194a6d82e5d",
+            "middle": "07925f1cde2010ce8fe2d04b5140162e1e4d82ea5396ac9c615f8e12bda74219",
+            "last": "33465f8c17d0a4835dbf9bc02952416b53f6eda29366b7531e3a87834095a484"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            14,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0015_episode0000_handle_side_len658_reason-complete.mp4",
+          "sha256": "0ab220104ffd7405bcb83a89cb0112cc78670b38ba0fc1ed4d4a2bc12591a118",
+          "size_bytes": 2569700,
+          "reported_frame_count": 659,
+          "decoded_frame_count": 659,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "44f40c95b5693c517780ea42990a43e1f33b07a33fa09f2f38cf0d0d97fd8057",
+            "middle": "459afcfc7942567bf5129a747a0e9cce68512b992e0213630d4b576ef6e1de40",
+            "last": "c58364e41615156cb9cd071f0864cbbd8c7aa9d827c87dc0d81aba0333baad9c"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "handle_side"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0015_episode0000_handle_top_len658_reason-complete.mp4",
+          "sha256": "b2ecf8615b99f4cbca0e84c1f3f6ebf4ff569d660d17b697901b04f9814b7f3a",
+          "size_bytes": 3253810,
+          "reported_frame_count": 659,
+          "decoded_frame_count": 659,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "fc597e3cfc51f0d818b983d36af17e25234676355900851b2e068b32704ca271",
+            "middle": "bc724c4df105798bcd95785d8faaff92392f808a44e771cbe8309c1bfc7edf22",
+            "last": "fc395d171ae7651c6551a0ee45fc51a63680f3b31a65b62387d919af32726f6d"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "handle_top"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0015_episode0000_len658_reason-complete.mp4",
+          "sha256": "7308a1fc6c7d4a181c92ad7a332959db9a279e3fd194e6e32dd856ebcb83cc2e",
+          "size_bytes": 1175547,
+          "reported_frame_count": 659,
+          "decoded_frame_count": 659,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "f167bd9a54160dd5b787cc5aaf2da0460ae469b239d96f9185dd893084fe11c5",
+            "middle": "67cb4ca8ee28bb0be753727caf277370b8a1848ea1c8f7653682f0015115f480",
+            "last": "e2357973623ece82faeffcb11d42e66954e0e54cda4695fbaf5855adbf610dca"
+          },
+          "sample_hashes_vary": true,
+          "sample_hash_verdict": "PASS",
+          "decode_pass": true,
+          "role": "primary",
+          "primary_key": [
+            15,
+            0,
+            "main"
+          ]
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0015_episode0001_handle_side_len42_reason-upper_dof_overspeed.mp4",
+          "sha256": "a4a93f07fec08623f280465c95e51309eb3c8d8bc4ef0621811b5b9c3b64aa85",
+          "size_bytes": 20791,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "7cbc43dca10c1d29418043ad72b90cfdbe1abcb38e3bb29ca205a66585f7e5ae",
+            "middle": "7cbc43dca10c1d29418043ad72b90cfdbe1abcb38e3bb29ca205a66585f7e5ae",
+            "last": "7cbc43dca10c1d29418043ad72b90cfdbe1abcb38e3bb29ca205a66585f7e5ae"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0015_episode0001_handle_top_len42_reason-upper_dof_overspeed.mp4",
+          "sha256": "15e4ce15e0630b3f78455e146d10c341822a85cf9a2ebbd53217b923c496274a",
+          "size_bytes": 16135,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "9e91d627ef28209a8e46562d68bb95e3fcfd36177dec49d8fc0ac305ef5756df",
+            "middle": "9e91d627ef28209a8e46562d68bb95e3fcfd36177dec49d8fc0ac305ef5756df",
+            "last": "9e91d627ef28209a8e46562d68bb95e3fcfd36177dec49d8fc0ac305ef5756df"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        },
+        {
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0015_episode0001_len42_reason-upper_dof_overspeed.mp4",
+          "sha256": "a2a721708acdc92fb86f0bf64335ca2040df02731f473c3751eb6b7ee46d8286",
+          "size_bytes": 10160,
+          "reported_frame_count": 1,
+          "decoded_frame_count": 1,
+          "fps": 20.0,
+          "shape": [
+            720,
+            1280,
+            3
+          ],
+          "stable_shape": true,
+          "sample_frame_hashes": {
+            "first": "08f274bb149463b2aa27562c431d1e40bb7e95a18fe59b7bac344090e83ce985",
+            "middle": "08f274bb149463b2aa27562c431d1e40bb7e95a18fe59b7bac344090e83ce985",
+            "last": "08f274bb149463b2aa27562c431d1e40bb7e95a18fe59b7bac344090e83ce985"
+          },
+          "sample_hashes_vary": false,
+          "sample_hash_verdict": "N/A_SINGLE_FRAME",
+          "decode_pass": true,
+          "role": "auxiliary",
+          "primary_key": null
+        }
+      ],
+      "qualitative_findings": [
+        "Viewed env0002/l02 contact sheet: the robot approaches and reaches into the doorway/handle region across early and middle samples; later samples mainly show the door/frame and partial robot geometry.",
+        "The sheet is qualitative visual context only and does not establish contact state, opening magnitude, or success."
+      ]
+    }
+  ],
+  "limits": [
+    "Qualitative render-media QA only; no scientific, release, or hardware performance conclusion.",
+    "Effort/torque remains ESTIMATE_ONLY; no true applied PhysX or hardware torque is inferred.",
+    "OpenCV full decode checks file/frame-stream integrity, not robot-task semantic correctness."
+  ],
+  "summary": {
+    "cases_passed": 3,
+    "primary_videos_decoded": 144,
+    "auxiliary_videos_decoded": 21,
+    "all_finalized_videos_decoded": 165,
+    "all_decode_pass": true,
+    "all_multiframe_samples_vary": true,
+    "single_frame_auxiliary_sample_hashes": "N/A_SINGLE_FRAME",
+    "all_writing_absent": true,
+    "status": "PASS"
+  },
+  "human_contact_sheet_inspection": {
+    "all_three_viewed": true,
+    "scope": "env0002/l02, episode0000, main + handle_top + handle_side, five normalized timepoints",
+    "cross_case_finding": "Each sheet shows approach/reach near the doorway; later framing frequently occludes the robot or shows partial geometry. No behavior, science, release, torque, or hardware inference is made."
+  }
+}

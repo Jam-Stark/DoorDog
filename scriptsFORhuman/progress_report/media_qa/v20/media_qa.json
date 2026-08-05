@@ -1,0 +1,384 @@
+{
+  "schema": "a2_piper_v20_media_qa_v1",
+  "matrix_sha256": "eff869d458caf06e9bb40419506e261f03d327479e093bf59d879d53c5382ce3",
+  "created_at_utc": "2026-08-05T19:52:50.102836+00:00",
+  "scope": "qualitative media integrity only; not Route-A numerical evidence or Route-B/release evidence",
+  "cases": [
+    {
+      "case_id": "v20_G1_step0250",
+      "root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250",
+      "receipt": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/process_receipt.json",
+      "receipt_exit_code": 0,
+      "receipt_natural_exit": true,
+      "finalized_primary_count": 3,
+      "writing_count": 0,
+      "selected_set": "env0000_episode0000/main|handle_top|handle_side",
+      "videos": [
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/renderings/2026-08-06_03-33-50_env0000_episode0000_handle_side_len673_reason-complete.mp4",
+          "sha256": "5559bccd1a8fa0caf3c091315b6a25340b8b057a61d596d2f1a9feea740d51f8",
+          "bytes": 2796696,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 674,
+          "frames_decoded": 674,
+          "duration_seconds": 33.7,
+          "role": "primary",
+          "case_id": "v20_G1_step0250",
+          "camera": "handle_side",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/renderings/2026-08-06_03-33-50_env0000_episode0000_handle_top_len673_reason-complete.mp4",
+          "sha256": "e414d40791e3501654303e125dce105fddf9dd26ef221db6dd1c610ee9aca2f1",
+          "bytes": 3461140,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 674,
+          "frames_decoded": 674,
+          "duration_seconds": 33.7,
+          "role": "primary",
+          "case_id": "v20_G1_step0250",
+          "camera": "handle_top",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/renderings/2026-08-06_03-33-50_env0000_episode0000_len673_reason-complete.mp4",
+          "sha256": "b3ca9dfca104f12d261413dba351516ee158d2012d01f6a5d133fe24edca9f8d",
+          "bytes": 1526241,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 674,
+          "frames_decoded": 674,
+          "duration_seconds": 33.7,
+          "role": "primary",
+          "case_id": "v20_G1_step0250",
+          "camera": "main",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v20/v20_G1_step0250_contact_sheet.png",
+      "pass": true
+    },
+    {
+      "case_id": "v20_G2_step0250",
+      "root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250",
+      "receipt": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/process_receipt.json",
+      "receipt_exit_code": 0,
+      "receipt_natural_exit": true,
+      "finalized_primary_count": 3,
+      "writing_count": 0,
+      "selected_set": "env0000_episode0000/main|handle_top|handle_side",
+      "videos": [
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/renderings/2026-08-06_03-34-33_env0000_episode0000_handle_side_len607_reason-complete.mp4",
+          "sha256": "95eb4d63e6924252224ff03c108ffc689e49d3b5accc827d81781b475e82f0fd",
+          "bytes": 2551551,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 608,
+          "frames_decoded": 608,
+          "duration_seconds": 30.4,
+          "role": "primary",
+          "case_id": "v20_G2_step0250",
+          "camera": "handle_side",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/renderings/2026-08-06_03-34-33_env0000_episode0000_handle_top_len607_reason-complete.mp4",
+          "sha256": "b9e0b4133af3b541d2ee29a505418c5434351f742060ff21877dd81135040594",
+          "bytes": 3110903,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 608,
+          "frames_decoded": 608,
+          "duration_seconds": 30.4,
+          "role": "primary",
+          "case_id": "v20_G2_step0250",
+          "camera": "handle_top",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/renderings/2026-08-06_03-34-33_env0000_episode0000_len607_reason-complete.mp4",
+          "sha256": "adbed0f3cc05165e3688f1d9d2df3572526a038b12d4af38c0d3e7f7f0c00fe1",
+          "bytes": 1412997,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 608,
+          "frames_decoded": 608,
+          "duration_seconds": 30.4,
+          "role": "primary",
+          "case_id": "v20_G2_step0250",
+          "camera": "main",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v20/v20_G2_step0250_contact_sheet.png",
+      "pass": true
+    },
+    {
+      "case_id": "v20_G3_step0750",
+      "root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750",
+      "receipt": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/process_receipt.json",
+      "receipt_exit_code": 0,
+      "receipt_natural_exit": true,
+      "finalized_primary_count": 3,
+      "writing_count": 0,
+      "selected_set": "env0000_episode0000/main|handle_top|handle_side",
+      "videos": [
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/renderings/2026-08-06_03-42-01_env0000_episode0000_handle_side_len697_reason-complete.mp4",
+          "sha256": "3c89c30eeccb8232a051c681675491204b3ac8d098f33e51f56de49caa6e6fd6",
+          "bytes": 2813113,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 698,
+          "frames_decoded": 698,
+          "duration_seconds": 34.9,
+          "role": "primary",
+          "case_id": "v20_G3_step0750",
+          "camera": "handle_side",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/renderings/2026-08-06_03-42-01_env0000_episode0000_handle_top_len697_reason-complete.mp4",
+          "sha256": "5cfd16734c61f4b09a3a6d21b8cfa02d802fe15639d8acff2aaa91f72dc6a0f6",
+          "bytes": 3668877,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 698,
+          "frames_decoded": 698,
+          "duration_seconds": 34.9,
+          "role": "primary",
+          "case_id": "v20_G3_step0750",
+          "camera": "handle_top",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/renderings/2026-08-06_03-42-01_env0000_episode0000_len697_reason-complete.mp4",
+          "sha256": "1081e94cedc424968aebce525d45ce37c7e0d5607b988020d783a621dcb3464c",
+          "bytes": 1586100,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 698,
+          "frames_decoded": 698,
+          "duration_seconds": 34.9,
+          "role": "primary",
+          "case_id": "v20_G3_step0750",
+          "camera": "main",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v20/v20_G3_step0750_contact_sheet.png",
+      "pass": true
+    },
+    {
+      "case_id": "v20_G6_step1250",
+      "root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250",
+      "receipt": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/process_receipt.json",
+      "receipt_exit_code": 0,
+      "receipt_natural_exit": true,
+      "finalized_primary_count": 3,
+      "writing_count": 0,
+      "selected_set": "env0000_episode0000/main|handle_top|handle_side",
+      "videos": [
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/renderings/2026-08-06_03-36-16_env0000_episode0000_handle_side_len736_reason-complete.mp4",
+          "sha256": "a71882f78091d6117fe155d32e01d22c417aa31751f89a88f89b1cdd2067701c",
+          "bytes": 3053175,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 737,
+          "frames_decoded": 737,
+          "duration_seconds": 36.85,
+          "role": "primary",
+          "case_id": "v20_G6_step1250",
+          "camera": "handle_side",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/renderings/2026-08-06_03-36-16_env0000_episode0000_handle_top_len736_reason-complete.mp4",
+          "sha256": "f7adbd4cd7e8c4e0655daa025f93b22c1683d7b23b38353305defb82a2de7384",
+          "bytes": 4233969,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 737,
+          "frames_decoded": 737,
+          "duration_seconds": 36.85,
+          "role": "primary",
+          "case_id": "v20_G6_step1250",
+          "camera": "handle_top",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/renderings/2026-08-06_03-36-16_env0000_episode0000_len736_reason-complete.mp4",
+          "sha256": "56a693a2c91eeae51322694f1648fc2aa258dceab4ae720504fa3f493580e0da",
+          "bytes": 1644001,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 737,
+          "frames_decoded": 737,
+          "duration_seconds": 36.85,
+          "role": "primary",
+          "case_id": "v20_G6_step1250",
+          "camera": "main",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v20/v20_G6_step1250_contact_sheet.png",
+      "pass": true
+    },
+    {
+      "case_id": "v20_G7_step1000",
+      "root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000",
+      "receipt": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/process_receipt.json",
+      "receipt_exit_code": 0,
+      "receipt_natural_exit": true,
+      "finalized_primary_count": 3,
+      "writing_count": 0,
+      "selected_set": "env0000_episode0000/main|handle_top|handle_side",
+      "videos": [
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/renderings/2026-08-06_03-43-53_env0000_episode0000_handle_side_len654_reason-stage_overtime.mp4",
+          "sha256": "2ce48d940856176a07643436c22b1458db4d1f6ac22de01b2391334fd095de09",
+          "bytes": 2336386,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 655,
+          "frames_decoded": 655,
+          "duration_seconds": 32.75,
+          "role": "primary",
+          "case_id": "v20_G7_step1000",
+          "camera": "handle_side",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/renderings/2026-08-06_03-43-53_env0000_episode0000_handle_top_len654_reason-stage_overtime.mp4",
+          "sha256": "257a252a0bccb54666f7f073f813b8581b57dc6d75d649f0db63cb2faa864b05",
+          "bytes": 3397100,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 655,
+          "frames_decoded": 655,
+          "duration_seconds": 32.75,
+          "role": "primary",
+          "case_id": "v20_G7_step1000",
+          "camera": "handle_top",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        },
+        {
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/renderings/2026-08-06_03-43-53_env0000_episode0000_len654_reason-stage_overtime.mp4",
+          "sha256": "bbab2651172f3ef66ee2c3896a017804869db8f245fea59b81709e34fa60ae5b",
+          "bytes": 1531594,
+          "resolution": [
+            1280,
+            720
+          ],
+          "fps": 20.0,
+          "frames_reported": 655,
+          "frames_decoded": 655,
+          "duration_seconds": 32.75,
+          "role": "primary",
+          "case_id": "v20_G7_step1000",
+          "camera": "main",
+          "regular_non_symlink": true,
+          "decode_pass": true,
+          "metadata_pass": true,
+          "variation_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v20/v20_G7_step1000_contact_sheet.png",
+      "pass": true
+    }
+  ],
+  "totals": {
+    "roots": 5,
+    "primary_videos": 15,
+    "writing": 0,
+    "pass": true
+  }
+}

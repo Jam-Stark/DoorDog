@@ -1,0 +1,424 @@
+{
+  "schema": "a2_piper_v19_v21_progress_report_manifest_v1",
+  "candidate_id": "399d62334700c0c7c1e3df2f16557bcfd14ca6d69e32a774286dc15793737108",
+  "matrix_path": "scriptsFORhuman/progress_report/a2_piper_v19_v21_render_matrix_20260806.json",
+  "matrix_sha256": "eff869d458caf06e9bb40419506e261f03d327479e093bf59d879d53c5382ce3",
+  "report_path": "scriptsFORhuman/progress_report/report/a2_piper_v19_v21_progress_report_20260806.html",
+  "report_sha256": "1664d351cda6c7d3dbfdabd3232e4252517277dfb2eef7c65d41a96c7f9cb874",
+  "source_paths": [
+    "scriptsFORhuman/progress_report/a2_piper_v19_v21_render_matrix_20260806.json",
+    "scriptsFORhuman/progress_report/media_qa/v19/qa_manifest.json",
+    "scriptsFORhuman/progress_report/media_qa/v19/QA_REPORT.md",
+    "scriptsFORhuman/progress_report/media_qa/v20/media_qa.json",
+    "scriptsFORhuman/progress_report/media_qa/v20/media_qa.md",
+    "scriptsFORhuman/progress_report/media_qa/v21B_part1/media_manifest.json",
+    "scriptsFORhuman/progress_report/media_qa/v21B_part1/media_qa.md",
+    "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_part2_media_qa.json",
+    "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_part2_media_qa.md",
+    "logs_eval/base_v19/final_analysis/_v19_final_analysis_20260728/a2_piper_v19_final_analysis.md",
+    "logs_eval/base_v19/render/_v19_render_G3_G7_reconciled_r4_20260728/a2_piper_v19_render_qa.md",
+    "logs_eval/base_v20_R2/m22_r3_route_a_f8e3197_offline_20260801/SEND_METRICS.md",
+    "logs_eval/base_v20_R2/m22_r3_route_a_f8e3197_offline_20260801/winner_render_G4_step002500_5env_3cam_20260801_retry5/RENDER_MEDIA_QA.json",
+    "logs_eval/base_v21B/f3_promotion_20260802_r3/V21B_F3_ADAPTATION_FROZEN.json",
+    "logs_eval/base_v21B/postformal_20260804_route_b_f5_no_release_r31/V21B_ROUTE_B.md",
+    "logs_eval/base_v21B/postformal_20260804_route_b_f5_no_release_r31/R31_TERMINAL.json",
+    "logs_eval/base_v21B/posthoc_diagnostic_render_20260804_r3_qa_r1/QA_REPORT.md"
+  ],
+  "counts": {
+    "checkpoints": 16,
+    "checkpoints_by_version": {
+      "v19": 5,
+      "v20": 5,
+      "v21B": 6
+    },
+    "all_primary_videos": 318,
+    "all_primary_by_version": {
+      "v19": 15,
+      "v20": 15,
+      "v21B": 288
+    },
+    "curated_primary_videos": 48,
+    "curated_per_checkpoint": 3,
+    "contact_sheets": 16,
+    "v21B_auxiliary_videos": 48,
+    "v21B_finalized_videos": 336
+  },
+  "limitations": [
+    "Render media is qualitative context, not policy success, release eligibility, contact/grasp, hinge displacement, or hardware behavior.",
+    "v19 full numeric judgement is FAIL; G3 is mechanical fallback/non-release only.",
+    "v20 quantitative claim is strict Route-A only; Route-B, pooled, holdout, and final were not run.",
+    "v21B torque authority is ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE; no true applied PhysX torque or real-hardware force claim.",
+    "v21B F5/R31 is COMPLETED_SCIENTIFIC_NO_RELEASE; B3 remains runtime evidence failure and no release/holdout/release render exists.",
+    "Auxiliary clips never substitute for primary evidence; one-frame auxiliary variation is N/A."
+  ],
+  "cases": [
+    {
+      "case_id": "v21B_B1_step0500",
+      "version": "v21B",
+      "branch_or_cell": "B1",
+      "checkpoint_step": 500,
+      "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B1_step0500",
+      "selection_rationale": "early F3 fallback cell",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B1_step0500/renderings/2026-08-06_01-50-07_env0002_episode0000_handle_side_len667_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B1_step0500/renderings/2026-08-06_01-50-07_env0002_episode0000_handle_top_len667_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B1_step0500/renderings/2026-08-06_01-50-07_env0002_episode0000_len667_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v21B_part1/v21B_B1_step0500_env0002_episode0000_contact.png"
+    },
+    {
+      "case_id": "v21B_B6_step2500",
+      "version": "v21B",
+      "branch_or_cell": "B6",
+      "checkpoint_step": 2500,
+      "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500",
+      "selection_rationale": "late B6 paired comparison",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_side_len668_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_handle_top_len668_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step2500/renderings/2026-08-06_02-15-28_env0002_episode0000_len668_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_B6_step2500_env0002_l02_contact_3x5.png"
+    },
+    {
+      "case_id": "v19_G1_step0500",
+      "version": "v19",
+      "branch_or_cell": "G1",
+      "checkpoint_step": 500,
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1",
+      "selection_rationale": "early full baseline",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-20_env0000_episode0000_handle_side_len695_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-20_env0000_episode0000_handle_top_len695_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-20_env0000_episode0000_len695_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v19/v19_G1_step0500_contact.png"
+    },
+    {
+      "case_id": "v20_G1_step0250",
+      "version": "v20",
+      "branch_or_cell": "G1",
+      "checkpoint_step": 250,
+      "output_root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250",
+      "selection_rationale": "Route-A early control",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/renderings/2026-08-06_03-33-50_env0000_episode0000_handle_side_len673_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/renderings/2026-08-06_03-33-50_env0000_episode0000_handle_top_len673_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G1_step0250/renderings/2026-08-06_03-33-50_env0000_episode0000_len673_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v20/v20_G1_step0250_contact_sheet.png"
+    },
+    {
+      "case_id": "v21B_B3_step1250",
+      "version": "v21B",
+      "branch_or_cell": "B3",
+      "checkpoint_step": 1250,
+      "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B3_step1250",
+      "selection_rationale": "runtime-evidence-failure cell observation",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B3_step1250/renderings/2026-08-06_01-50-30_env0002_episode0000_handle_side_len824_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B3_step1250/renderings/2026-08-06_01-50-30_env0002_episode0000_handle_top_len824_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B3_step1250/renderings/2026-08-06_01-50-30_env0002_episode0000_len824_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v21B_part1/v21B_B3_step1250_env0002_episode0000_contact.png"
+    },
+    {
+      "case_id": "v21B_B5_step0750",
+      "version": "v21B",
+      "branch_or_cell": "B5",
+      "checkpoint_step": 750,
+      "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750",
+      "selection_rationale": "mechanism-only/nonpromotable control",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_side_len612_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_handle_top_len612_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B5_step0750/renderings/2026-08-06_02-19-55_env0002_episode0000_len612_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_B5_step0750_env0002_l02_contact_3x5.png"
+    },
+    {
+      "case_id": "v19_G2_step0500",
+      "version": "v19",
+      "branch_or_cell": "G2",
+      "checkpoint_step": 500,
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1",
+      "selection_rationale": "paired norm-control",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-19_env0000_episode0000_handle_side_len763_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-19_env0000_episode0000_handle_top_len763_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-19_env0000_episode0000_len763_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v19/v19_G2_step0500_contact.png"
+    },
+    {
+      "case_id": "v20_G2_step0250",
+      "version": "v20",
+      "branch_or_cell": "G2",
+      "checkpoint_step": 250,
+      "output_root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250",
+      "selection_rationale": "economics-only paired control",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/renderings/2026-08-06_03-34-33_env0000_episode0000_handle_side_len607_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/renderings/2026-08-06_03-34-33_env0000_episode0000_handle_top_len607_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G2_step0250/renderings/2026-08-06_03-34-33_env0000_episode0000_len607_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v20/v20_G2_step0250_contact_sheet.png"
+    },
+    {
+      "case_id": "v21B_B4_step1250",
+      "version": "v21B",
+      "branch_or_cell": "B4",
+      "checkpoint_step": 1250,
+      "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B4_step1250",
+      "selection_rationale": "theta paired mid-stage cell",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B4_step1250/renderings/2026-08-06_01-49-53_env0002_episode0000_handle_side_len826_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B4_step1250/renderings/2026-08-06_01-49-53_env0002_episode0000_handle_top_len826_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B4_step1250/renderings/2026-08-06_01-49-53_env0002_episode0000_len826_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v21B_part1/v21B_B4_step1250_env0002_episode0000_contact.png"
+    },
+    {
+      "case_id": "v19_G4_step0500",
+      "version": "v19",
+      "branch_or_cell": "G4",
+      "checkpoint_step": 500,
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1",
+      "selection_rationale": "drifted-warmstart regression check",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-27-17_env0000_episode0000_handle_side_len703_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-27-17_env0000_episode0000_handle_top_len703_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-27-17_env0000_episode0000_len703_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v19/v19_G4_step0500_contact.png"
+    },
+    {
+      "case_id": "v19_G6_step1250",
+      "version": "v19",
+      "branch_or_cell": "G6",
+      "checkpoint_step": 1250,
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250",
+      "selection_rationale": "mid-stage replication",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/renderings/2026-08-06_03-34-45_env0000_episode0000_handle_side_len640_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/renderings/2026-08-06_03-34-45_env0000_episode0000_handle_top_len640_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/renderings/2026-08-06_03-34-45_env0000_episode0000_len640_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v19/v19_G6_step1250_contact.png"
+    },
+    {
+      "case_id": "v20_G3_step0750",
+      "version": "v20",
+      "branch_or_cell": "G3",
+      "checkpoint_step": 750,
+      "output_root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750",
+      "selection_rationale": "PARTIAL_EFFECT local comparison",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/renderings/2026-08-06_03-42-01_env0000_episode0000_handle_side_len697_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/renderings/2026-08-06_03-42-01_env0000_episode0000_handle_top_len697_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G3_step0750/renderings/2026-08-06_03-42-01_env0000_episode0000_len697_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v20/v20_G3_step0750_contact_sheet.png"
+    },
+    {
+      "case_id": "v21B_B6_step0750",
+      "version": "v21B",
+      "branch_or_cell": "B6",
+      "checkpoint_step": 750,
+      "output_root": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750",
+      "selection_rationale": "seed1 transition sample",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_side_len690_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_handle_top_len690_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v21B/progress_report_multickpt_render_20260806/v21B_B6_step0750/renderings/2026-08-06_01-50-25_env0002_episode0000_len690_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v21B_part2/v21B_B6_step0750_env0002_l02_contact_3x5.png"
+    },
+    {
+      "case_id": "v19_G5_step2250",
+      "version": "v19",
+      "branch_or_cell": "G5",
+      "checkpoint_step": 2250,
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1",
+      "selection_rationale": "late overspeed-fix comparison",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/renderings/2026-08-06_03-28-51_env0000_episode0000_handle_side_len672_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/renderings/2026-08-06_03-28-51_env0000_episode0000_handle_top_len672_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/renderings/2026-08-06_03-28-51_env0000_episode0000_len672_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v19/v19_G5_step2250_contact.png"
+    },
+    {
+      "case_id": "v20_G6_step1250",
+      "version": "v20",
+      "branch_or_cell": "G6",
+      "checkpoint_step": 1250,
+      "output_root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250",
+      "selection_rationale": "late effect comparison",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/renderings/2026-08-06_03-36-16_env0000_episode0000_handle_side_len736_reason-complete.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/renderings/2026-08-06_03-36-16_env0000_episode0000_handle_top_len736_reason-complete.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G6_step1250/renderings/2026-08-06_03-36-16_env0000_episode0000_len736_reason-complete.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v20/v20_G6_step1250_contact_sheet.png"
+    },
+    {
+      "case_id": "v20_G7_step1000",
+      "version": "v20",
+      "branch_or_cell": "G7",
+      "checkpoint_step": 1000,
+      "output_root": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000",
+      "selection_rationale": "stage-overtime regression comparison",
+      "selected_primary_videos": [
+        {
+          "camera": "handle_side",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/renderings/2026-08-06_03-43-53_env0000_episode0000_handle_side_len654_reason-stage_overtime.mp4"
+        },
+        {
+          "camera": "handle_top",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/renderings/2026-08-06_03-43-53_env0000_episode0000_handle_top_len654_reason-stage_overtime.mp4"
+        },
+        {
+          "camera": "main",
+          "path": "logs_eval/base_v20_R2/progress_report_multickpt_render_20260806/v20_G7_step1000/renderings/2026-08-06_03-43-53_env0000_episode0000_len654_reason-stage_overtime.mp4"
+        }
+      ],
+      "contact_sheet_path": "scriptsFORhuman/progress_report/media_qa/v20/v20_G7_step1000_contact_sheet.png"
+    }
+  ]
+}

@@ -1,0 +1,553 @@
+{
+  "schema": "a2_piper_v19_media_qa_manifest_v1",
+  "candidate_id": "399d62334700c0c7c1e3df2f16557bcfd14ca6d69e32a774286dc15793737108",
+  "matrix_path": "scriptsFORhuman/progress_report/a2_piper_v19_v21_render_matrix_20260806.json",
+  "matrix_sha256": "eff869d458caf06e9bb40419506e261f03d327479e093bf59d879d53c5382ce3",
+  "selection_rule": "all and only current matrix v19 cases; selected env0000 episode0000 primary clips for main, handle_top, handle_side",
+  "case_count": 5,
+  "selected_primary_video_count": 15,
+  "finalized_mp4_count": 15,
+  "writing_mp4_count": 0,
+  "cases": [
+    {
+      "case_id": "v19_G1_step0500",
+      "version": "v19",
+      "report_role": "report_only_illustration",
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1",
+      "receipt_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/process_receipt.json",
+      "receipt_gate": {
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true,
+        "media_gate_pass": true
+      },
+      "finalized_mp4_count": 3,
+      "writing_mp4_count": 0,
+      "selected_primary_count": 3,
+      "videos": [
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-20_env0000_episode0000_len695_reason-complete.mp4",
+          "sha256": "f7959779a8e14598ec1ccaaaa85e440064271f0eca75e82ad16cb55130559020",
+          "bytes": 1221854,
+          "camera": "main",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 696,
+          "decoded_frames": 696,
+          "duration_seconds": 34.8,
+          "sample_indices": [
+            0,
+            174,
+            348,
+            521,
+            695
+          ],
+          "sample_sha256": [
+            "7fc70c2fffb50259ed6455f6d52bbe059207db902828b16223dd11f86c8baea9",
+            "5456307e74c7e57b23b3bd35d322b53f22cc1c4ae79556271240f692b09052bd",
+            "61f55dbfd1621500c43d7ee982413b55dc900ce2f091d7926319c31d3481124b",
+            "a221535e3fc8eaa367672fa37dfe4b8ddd95439a610d39257358368355004d4b",
+            "b239716f79bcb216a78c9ba6e24020394a652c0584bfae6f72c2b11e367256bf"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-20_env0000_episode0000_handle_top_len695_reason-complete.mp4",
+          "sha256": "671864d0f6a673fbe3d3c3bbf91cc1f889131a88438b28e457259b8377d81cb2",
+          "bytes": 3229973,
+          "camera": "handle_top",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 696,
+          "decoded_frames": 696,
+          "duration_seconds": 34.8,
+          "sample_indices": [
+            0,
+            174,
+            348,
+            521,
+            695
+          ],
+          "sample_sha256": [
+            "274c4a8a55132103fd06902d3c22b9104f7750e4308c695b5cda1171c294ad09",
+            "191d5503941e8a7e9451dd9d8a451bb02f8439a069231dd1a8be8f20fa984d5c",
+            "a3a8dad85f942262570787c37d5e10a2380cd65c5951987669de5221a6805dd9",
+            "c69a94bc22a1f3770a2d902c18a8f8b4e8c2b1ee77b75656ddff124fb94c9e68",
+            "ca5bc747bf0ab4b9337965f54613d2207f722edd48428e3fc89a2ca230332553"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G1_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-20_env0000_episode0000_handle_side_len695_reason-complete.mp4",
+          "sha256": "7ea02cfddb78594a35fb40cbd0412368a0297003b1cac8cc1be5bdcd5cdad2de",
+          "bytes": 1932097,
+          "camera": "handle_side",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 696,
+          "decoded_frames": 696,
+          "duration_seconds": 34.8,
+          "sample_indices": [
+            0,
+            174,
+            348,
+            521,
+            695
+          ],
+          "sample_sha256": [
+            "9526fe44cc7836d700e1db81d1bf0a5a1f2c33f97f51fe1091eb2a61b0f7e660",
+            "a85be1207a170d5c4f713e2d433e1ee91c41d751ccd2f1da8ca053aa10a3bcdc",
+            "17117a9b2519e0e73e1368b52f19fee7b2d3e9538e94b898d4e3dda13a98772f",
+            "191680242a98c7c113822b8c5f5248c81036e7a6be102332b68861ba0e6f9a4d",
+            "5eda69f38d38db4fdbb40587ff63f50ef913b3480e883419b0ce6aa5dd8e1539"
+          ],
+          "qa_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v19/v19_G1_step0500_contact.png",
+      "qa_pass": true
+    },
+    {
+      "case_id": "v19_G2_step0500",
+      "version": "v19",
+      "report_role": "report_only_illustration",
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1",
+      "receipt_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/process_receipt.json",
+      "receipt_gate": {
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true,
+        "media_gate_pass": true
+      },
+      "finalized_mp4_count": 3,
+      "writing_mp4_count": 0,
+      "selected_primary_count": 3,
+      "videos": [
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-19_env0000_episode0000_len763_reason-complete.mp4",
+          "sha256": "ec5e3049789b7e38fb6568a82cc7216d082c7e14e89701fed088fd3378d081b2",
+          "bytes": 1386738,
+          "camera": "main",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 764,
+          "decoded_frames": 764,
+          "duration_seconds": 38.2,
+          "sample_indices": [
+            0,
+            191,
+            382,
+            572,
+            763
+          ],
+          "sample_sha256": [
+            "b8f8c1db718be477abe0a28452f0496ea7f173b6eb9596f7e6d53d7368755c8d",
+            "4b4e08acacfde0c4a84a68b3e223d7628b9ecde6745c9b33aa7883907156ca08",
+            "c2dc90e48f1d1fa4971d200edc361580f992370eb176e7a3e3c5177cde6e3588",
+            "a5ac94f5f8b79fc8210ad9369db50bfe098ff6838b3531962356b50405fbec5f",
+            "d5dd16925dd9fd49763973d6393fffdce01bd4d115e91909c304666165a30fec"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-19_env0000_episode0000_handle_top_len763_reason-complete.mp4",
+          "sha256": "4f7f7195f6e1974a57320eadc8d5e53ab71144e35c96627de1597b583c851371",
+          "bytes": 3577885,
+          "camera": "handle_top",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 764,
+          "decoded_frames": 764,
+          "duration_seconds": 38.2,
+          "sample_indices": [
+            0,
+            191,
+            382,
+            572,
+            763
+          ],
+          "sample_sha256": [
+            "55990b6819636b7cb46abd33690b7510f7e7c98902027bc3354d0837247e8c64",
+            "d77887024fea0f6f67641b41d977682c0ebb916650aa27e5d50572b4f8106d0f",
+            "4a971a11f4cfa3ebcd55b28b1ea86c3b5c7514bc09ffcdb4a3385eb3e91cbbd9",
+            "591f63c8e52886d58044e86ef3f81ded60c8f61cdccef34ff12cefefc05e6a78",
+            "d2c338be241fa831da17db3cc7b6fe31fe8f6fee8a49f69e04a0b699ea2ecadf"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G2_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-26-19_env0000_episode0000_handle_side_len763_reason-complete.mp4",
+          "sha256": "10bfe539ed40aced2a6a8e0bd27b64d7d385aed714aab10b51e774df9807b047",
+          "bytes": 2320922,
+          "camera": "handle_side",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 764,
+          "decoded_frames": 764,
+          "duration_seconds": 38.2,
+          "sample_indices": [
+            0,
+            191,
+            382,
+            572,
+            763
+          ],
+          "sample_sha256": [
+            "a5de6eaf6af173772937b4fc8334a19e31451c9d1c158f9e5f20ceae35b5a9e6",
+            "a4f3d831593a9876077d874b87440313fdbcd0106bbad71ce93778a17bdec2cc",
+            "3776df4512fe15052d7766d0023d811ea225a0cf6ecd7d14b569e469609e3560",
+            "5a549575f10d425a90e75d40774909c781731e079dd01cfc2a5ec3550af8dbbf",
+            "c2588b68dc98c95eb0fb93cb23e7433f1236f46b248ed431ab2f109ce5ca8a33"
+          ],
+          "qa_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v19/v19_G2_step0500_contact.png",
+      "qa_pass": true
+    },
+    {
+      "case_id": "v19_G4_step0500",
+      "version": "v19",
+      "report_role": "report_only_illustration",
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1",
+      "receipt_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/process_receipt.json",
+      "receipt_gate": {
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true,
+        "media_gate_pass": true
+      },
+      "finalized_mp4_count": 3,
+      "writing_mp4_count": 0,
+      "selected_primary_count": 3,
+      "videos": [
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-27-17_env0000_episode0000_len703_reason-complete.mp4",
+          "sha256": "4bfc2f6f1adce34fff6e168103b956fca0c752533955a067e630e1e24f7c684c",
+          "bytes": 1283574,
+          "camera": "main",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 704,
+          "decoded_frames": 704,
+          "duration_seconds": 35.2,
+          "sample_indices": [
+            0,
+            176,
+            352,
+            527,
+            703
+          ],
+          "sample_sha256": [
+            "27b6f5e056f8a0678cb60948b0aa79da9b84ee3a22993681a25e70161ad151b3",
+            "ea856f129f6334ae049ee72bf10b3b5b75dc42a1019cd8b407448ee55c674ad1",
+            "046b0d68ff4a95512e07deabd19c36b7b952512f9dee46755e1a01e9ad7d2584",
+            "61b4e619d84f4566501f2ca25a0be87b8d97476069a3299564e3651d2d5d131f",
+            "5ba5ac89de2b39d59db0ebac18c5f192f78ab07910abb3c747820242e72471d4"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-27-17_env0000_episode0000_handle_top_len703_reason-complete.mp4",
+          "sha256": "64ba16a35dd922e07c3a6968309488df12407e9331c878b1c414a1e8651480ac",
+          "bytes": 3189240,
+          "camera": "handle_top",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 704,
+          "decoded_frames": 704,
+          "duration_seconds": 35.2,
+          "sample_indices": [
+            0,
+            176,
+            352,
+            527,
+            703
+          ],
+          "sample_sha256": [
+            "59bb07b3bba00e71bb7e6cf7ed8dbc865058c12b49394d68e87f36e14e10ec3d",
+            "e61249a6b753b4ee0a00980b1790660271d80d37e0b0ccc1e103dc9775b70ca7",
+            "0c3d5cffd3fee6a3bc22d52f985ec21d37dcd5e7afcbc0f70232fc8cfd276f55",
+            "d3a3652fd36930da2dfacb77905090c8a1759b7958ecbb82f611f027d3133a9f",
+            "f189a888e6a5f07a9af9d0f420f368bd02f6d0f3884fb29467e9d6ae99147cc1"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G4_step0500_legacy_defaults_recovery_r1/renderings/2026-08-06_03-27-17_env0000_episode0000_handle_side_len703_reason-complete.mp4",
+          "sha256": "79166f96a6bca89dac9001836a0a5f4d44f31b1097572346856fd4fca36df3de",
+          "bytes": 2041595,
+          "camera": "handle_side",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 704,
+          "decoded_frames": 704,
+          "duration_seconds": 35.2,
+          "sample_indices": [
+            0,
+            176,
+            352,
+            527,
+            703
+          ],
+          "sample_sha256": [
+            "d6503d6b1454671809e0a05a39dbb8824bbf1c92e7399c7550498cd7a53e3078",
+            "52b91e8cd0776cfc29838efbf596210483a4faa3e574a9bcb357a0f995e6eab0",
+            "6690454a3075ce0ce1483087b5c4e3ec2cc62adacd605419966a0a4a796b439d",
+            "bf23123eed4afeb6c87dd55533f7ca60fa44105450cc02b44829f024c3c9816b",
+            "5e6ad28ae3020be6b399541c70281fd9d540e9c2a48f5de7898c76bfa4b794db"
+          ],
+          "qa_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v19/v19_G4_step0500_contact.png",
+      "qa_pass": true
+    },
+    {
+      "case_id": "v19_G6_step1250",
+      "version": "v19",
+      "report_role": "report_only_illustration",
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250",
+      "receipt_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/process_receipt.json",
+      "receipt_gate": {
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true,
+        "media_gate_pass": true
+      },
+      "finalized_mp4_count": 3,
+      "writing_mp4_count": 0,
+      "selected_primary_count": 3,
+      "videos": [
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/renderings/2026-08-06_03-34-45_env0000_episode0000_len640_reason-complete.mp4",
+          "sha256": "008bf9c9d7126f93d0ce8d63b5fa2af51d4677d6f85bb20a13607a903b8808fe",
+          "bytes": 1176694,
+          "camera": "main",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 641,
+          "decoded_frames": 641,
+          "duration_seconds": 32.05,
+          "sample_indices": [
+            0,
+            160,
+            320,
+            480,
+            640
+          ],
+          "sample_sha256": [
+            "eb48a583a6d3aaf314543ce14fc2e24aadb6f919dc1e82e8fe6759f0867572de",
+            "06f289ff27f51b01f891c91c0a074dc18e2bf284ffff11fe9a8b188aae73c9ce",
+            "8551bdde7f498fceaeda0b293bcce452bbacced602d29f4cf30d4ddc421cb42f",
+            "e44dd0c5dca6a17705eb3bc9ce7ee69d46bc1ffd3edf9b6aeba8f76a5149d0a3",
+            "820ff0ea079fe3a3ba5f9400552b420472695bccc891c2bb14d65d6e66f849ae"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/renderings/2026-08-06_03-34-45_env0000_episode0000_handle_top_len640_reason-complete.mp4",
+          "sha256": "cc5e7d5129e1564b42f64615a78a88aa41b503bc0ffc8d38ccfac93c6745a603",
+          "bytes": 2910650,
+          "camera": "handle_top",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 641,
+          "decoded_frames": 641,
+          "duration_seconds": 32.05,
+          "sample_indices": [
+            0,
+            160,
+            320,
+            480,
+            640
+          ],
+          "sample_sha256": [
+            "4ef4275f6bafcde872354cc29f6b73abc7daf660a2a844d6ff9849b90c1872f5",
+            "ce064129f42ee2f380cdd3618eb3bd101173fdb4e7f6dce7cceaab39a7f03237",
+            "76e67f372f2e636ca38ecff40a54d7bae41cd299346e1ee8c3010e2cb84fb46c",
+            "46e7276f60b46ccec863223fdddd9fcb9cc4efb05dd5d52d7a0d746f56b5e7ee",
+            "9f22b3108d9e2402aaf8465865db75a11fa857975a4c58f475d28fe37294d619"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G6_step1250/renderings/2026-08-06_03-34-45_env0000_episode0000_handle_side_len640_reason-complete.mp4",
+          "sha256": "34904e27ae8a90d6fcdaa5634dd37cce82fc6726fa088615c10b13a094b59fbc",
+          "bytes": 1821242,
+          "camera": "handle_side",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 641,
+          "decoded_frames": 641,
+          "duration_seconds": 32.05,
+          "sample_indices": [
+            0,
+            160,
+            320,
+            480,
+            640
+          ],
+          "sample_sha256": [
+            "4233f1eaa4e3e8eaa595abf93c82bd676736d44684a9bc1796dca3c41d26426c",
+            "3e71cdc6ae2067a4477718aff7f5b5768f613b31dfd02b121a8aa95cffda09b9",
+            "6f3bc03c0d29c8a91e66a0573e27ab46d387741f74d039a260e4160b6d3328a0",
+            "6b5b4070e72009cf5bc44517676c1358a2a66f4924fe4e8c9b032e52c5c739e4",
+            "13a0e064141736c1d6b4de092e6fce086778d738487dd16aca7b22283585ee84"
+          ],
+          "qa_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v19/v19_G6_step1250_contact.png",
+      "qa_pass": true
+    },
+    {
+      "case_id": "v19_G5_step2250",
+      "version": "v19",
+      "report_role": "report_only_illustration",
+      "output_root": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1",
+      "receipt_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/process_receipt.json",
+      "receipt_gate": {
+        "exit_code": 0,
+        "natural_exit": true,
+        "startup_marker_seen": true,
+        "media_gate_pass": true
+      },
+      "finalized_mp4_count": 3,
+      "writing_mp4_count": 0,
+      "selected_primary_count": 3,
+      "videos": [
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/renderings/2026-08-06_03-28-51_env0000_episode0000_len672_reason-complete.mp4",
+          "sha256": "b8d5f9743f996db9c01b7bd11f89ff15897631d2aa08cf6650d6a9d496d2d89d",
+          "bytes": 1194508,
+          "camera": "main",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 673,
+          "decoded_frames": 673,
+          "duration_seconds": 33.65,
+          "sample_indices": [
+            0,
+            168,
+            336,
+            504,
+            672
+          ],
+          "sample_sha256": [
+            "56d03737efbc37cb16b8f6dc18f861b6ba814ad083e88eaef0f456684b193e89",
+            "ee4f6caef70bf3e7f1c9a9a5a48f993084b0dedc9d19153c86875e5028d28aed",
+            "59c74355ad38c4aff5c9a7de967506cf67150b30dd3bcd31dfbadaf24ad3a062",
+            "ddc0432265858a3bc4fb6171db449c296087d95281832c510e93b0145af9e4d9",
+            "9552760135e5d2bd1b87571d6e91688264269c4461565861ae9593299c198727"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/renderings/2026-08-06_03-28-51_env0000_episode0000_handle_top_len672_reason-complete.mp4",
+          "sha256": "76a7aeb08de9487a7350c13f48f5ddfe1712fa7295cb264a659a7f6439898234",
+          "bytes": 3088813,
+          "camera": "handle_top",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 673,
+          "decoded_frames": 673,
+          "duration_seconds": 33.65,
+          "sample_indices": [
+            0,
+            168,
+            336,
+            504,
+            672
+          ],
+          "sample_sha256": [
+            "3246be606e152c5fe19678bba11ffa06ffd27a6c14d39840eccedc405772b90f",
+            "bb7e0e74921dc0358968c0050a0b71004a694415031c72457fa7d4d5cfb0e94a",
+            "eec8f558fd7a62496114fd60b3fd724ff9478714b1ed95b07022de9efd36f71d",
+            "a3c0fca8ecc43464d83b75793fa37c5f0cc38c52660a6a9ffa2839b18ce78d74",
+            "54ce1d52be6d75cf586e1302a8637a5c56c6aa90144a731f1613802fea94bf01"
+          ],
+          "qa_pass": true
+        },
+        {
+          "relative_path": "logs_eval/base_v19/progress_report_multickpt_render_20260806/v19_G5_step2250_legacy_defaults_recovery_r1/renderings/2026-08-06_03-28-51_env0000_episode0000_handle_side_len672_reason-complete.mp4",
+          "sha256": "5f8a20f55600e813ed465a0cdfedc33a4b3d154da358b43902ed9b6b5f11dfb9",
+          "bytes": 1900547,
+          "camera": "handle_side",
+          "role": "selected_primary_env0000_episode0000",
+          "width": 1280,
+          "height": 720,
+          "channels": 3,
+          "fps": 20.0,
+          "reported_frames": 673,
+          "decoded_frames": 673,
+          "duration_seconds": 33.65,
+          "sample_indices": [
+            0,
+            168,
+            336,
+            504,
+            672
+          ],
+          "sample_sha256": [
+            "26f9e9cec66badcec381e913734dfc861afa7704370a3fcb24e1c8a829539d09",
+            "a806590498c05e48d9eeb10e4ed5700d54b9587bf9708bd4a5946938a50834b6",
+            "1b152ab4b355fb9c67b849bc7421faf7ef7265d8de10bd29157c3aead98551c8",
+            "a312c38c58ad82c3f1f5618bd8269392474efa444a2fb274607325a312f6ebdb",
+            "faf4eaa6eebc6a1209956813d708bac2b652c3eb7bbf175613f641d288cd9633"
+          ],
+          "qa_pass": true
+        }
+      ],
+      "contact_sheet": "scriptsFORhuman/progress_report/media_qa/v19/v19_G5_step2250_contact.png",
+      "qa_pass": true
+    }
+  ],
+  "qa_pass": true,
+  "limitations": [
+    "CPU/OpenCV container-level media validation only.",
+    "Qualitative contact sheets do not establish policy, scientific, release, or hardware success."
+  ]
+}

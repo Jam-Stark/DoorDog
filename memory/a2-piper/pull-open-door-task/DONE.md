@@ -15,3 +15,7 @@
   - D.4 decision: INITIALIZATION UNRESOLVED; W used as operational default per D.4 (historical scratch-basin evidence: S2 complete E2 failure).
   - Stratification: spawnHook=True helps S1 (100% all events); hinge <=7.25Nm doors generally easier; body-panel contact essentially zero (no confound).
   - Door scenarios seed-matched between W and S (identical spawnHook + hinge_force_nm per seed pair) — correct experimental design.
+- 2026-08-05 19:00 HKT - P3 hook x finger-effort adaptation complete: 4 cells (control ABSENT hook + treatment PRESENT hook, seeds 0/1, warm v20 G4 step2500, 256 env x 500 batches, GPU2+GPU3, natural exit, step250/500 saved). Event-funnel analysis (16 episodes/cell step500):
+  - seed0: control and treatment IDENTICAL (both 15/16 E1-E5, 0% E6/E7, 0 bpc, hdf_mean 8.2) — hook made NO difference.
+  - seed1: treatment slightly better — E1=94% vs control 88% (+6pp), E3|E2=100% vs 86% (+14pp), E5 reached 14/16 vs 12/16 (+2 episodes).
+  - Conclusion: hooks provide a small, seed-dependent benefit for tensile capture retention in warm-start policies, but the effect is not conclusive. Much weaker than the P2 scratch finding (spawnHook=True helped S1 reach 100% all events). Hooks are a weak positive factor for warm-start, not a strong mechanism.

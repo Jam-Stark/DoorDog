@@ -1,4 +1,4 @@
 # Pull-Open-Door Task TODO
 
-- 2026-08-05 02:30 HKT - P2 execution: 6 cells W/S x seed {0,1,2}, 256 env, 750 batches, GPU2+GPU3 only. DV event-funnel conditional probabilities stratified by spawnHook AND hinge_drive_max_force. Curriculum selectors disabled. Amendment 6 accounting (infra failures unlimited retry).
-- 2026-08-05 02:30 HKT - P2 requires GPU2+GPU3 — verify both free before launch. Sequence 6 cells on 2 GPUs.
+- 2026-08-05 15:00 HKT - P3 mechanism-targeted adaptation: P2 identified E2 (tensile capture) as the bottleneck and spawnHook as a retention factor for scratch. Per fork table: matched hook × finger-effort control/treatment with replicates. New scope — requires user authorization.
+- 2026-08-05 15:00 HKT - P2 initialization UNRESOLVED (inconsistent across seeds). W used as operational default per D.4. If P3's event funnel is ambiguous, the demoted P1 scripted probe becomes OPTIONAL diagnostic.

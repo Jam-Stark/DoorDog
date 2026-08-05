@@ -9,3 +9,9 @@
   - P0-G canonical smoke re-run on GPU2 (64 env x 50 iter, natural exit, model_step_000050.pt saved).
   - Oracle dual review PASS: isaaclab PASS (0 findings) + code_reviewer PASS (5 findings fixed: P0-1 device GPU2, P0-2 telemetry v2, P1-3 SHA binding, P1-4 behavioral tests, P2-5 cleanup).
   - 152+ tests passed; py_compile OK; all hashes verified.
+- 2026-08-05 15:00 HKT - P2 six-cell W/S bounded adaptation complete: all 6 cells (W0/W1/W2 warm v20 G4 step2500 + S0/S1/S2 scratch) trained 256 env x 750 batches on GPU2+GPU3, natural exit, step250/500/750 saved. Event-funnel analysis (16 episodes/cell step750):
+  - Conditional: E1→E2 is the bottleneck (S2=0%, S1=88%, W0/W2=94%); once E2 achieved, E3-E5 are 100% reliable. E6/E7 never reached (0% everywhere).
+  - Per seed: S0 > W0, W1 > S1, W2 >> S2. Effect inconsistent across seeds.
+  - D.4 decision: INITIALIZATION UNRESOLVED; W used as operational default per D.4 (historical scratch-basin evidence: S2 complete E2 failure).
+  - Stratification: spawnHook=True helps S1 (100% all events); hinge <=7.25Nm doors generally easier; body-panel contact essentially zero (no confound).
+  - Door scenarios seed-matched between W and S (identical spawnHook + hinge_force_nm per seed pair) — correct experimental design.

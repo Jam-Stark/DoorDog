@@ -192,6 +192,224 @@ def get_TaskObjCfgDict_for_v21B_scenario_manifest(
     return _validate_v21b_ordered_task_cfg(result, rows, topology)
 
 
+_V22_MANIFEST_SCHEMA = "a2_piper_base_v22_scenario_manifest_v1"
+_V22_MANIFEST_FLAG = "a2_v22_scenario_manifest_enabled"
+_V22_MANIFEST_PATH_KEY = "a2_v22_scenario_manifest_path"
+_V22_MANIFEST_SHA_KEY = "a2_v22_scenario_manifest_sha256"
+_V22_MANIFEST_NAME_KEY = "a2_v22_scenario_manifest_name"
+_V22_BUCKET_MIXTURE_KEY = "a2_v22_hinge_bucket_mixture"
+_V22_BUCKET_SEED_KEY = "a2_v22_hinge_bucket_seed"
+_V22_ROW_FIELDS = (
+    "scenario_id",
+    "handle_height_m",
+    "door_weight_kg",
+    "hinge_max_force_nm",
+    "hinge_damping_native",
+    "hinge_stiffness_native",
+    "bucket",
+)
+_V22_BUCKET_NAMES = ("H0", "H1", "H2", "H3", "H4")
+_V22_BUCKET_RANGE_FIELDS = ("damping", "stiffness", "max_force_nm", "mass_kg", "handle_height_m")
+
+
+def _v22_base_door_cfg(task_obj_cfg_dict: dict):
+    if not isinstance(task_obj_cfg_dict, dict) or "door" not in task_obj_cfg_dict:
+        raise ValueError("v22 selector requires a door TaskObjCfgDict")
+    spawn_cfg = task_obj_cfg_dict["door"].spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg) or not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("v22 selector requires a non-empty MultiAssetSpawnerCfg")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("v22 selector base asset must be DoorSpawnerCfg")
+    return spawn_cfg, base_door_cfg
+
+
+def _v22_finite_positive(value, label: str) -> float:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise TypeError(f"v22 {label} must be a real number, got {value!r}")
+    number = float(value)
+    if not math.isfinite(number) or number <= 0.0:
+        raise ValueError(f"v22 {label} must be finite and positive, got {number!r}")
+    return number
+
+
+def load_v22_scenario_manifest(env_config) -> dict:
+    """Load and hash-verify a v22 deterministic scenario manifest."""
+    path_value = env_config.get(_V22_MANIFEST_PATH_KEY)
+    if not isinstance(path_value, (str, Path)) or not str(path_value):
+        raise ValueError(f"v22 scenario selection requires {_V22_MANIFEST_PATH_KEY}")
+    path = Path(path_value)
+    if not path.is_file() or path.is_symlink():
+        raise ValueError(f"v22 scenario manifest must be a regular non-symlink file: {path}")
+    raw = path.read_bytes()
+    expected_sha = env_config.get(_V22_MANIFEST_SHA_KEY)
+    if not isinstance(expected_sha, str) or len(expected_sha) != 64:
+        raise ValueError(f"v22 scenario selection requires {_V22_MANIFEST_SHA_KEY}")
+    actual_sha = hashlib.sha256(raw).hexdigest()
+    if actual_sha != expected_sha:
+        raise ValueError(f"v22 scenario manifest hash mismatch: {actual_sha} != {expected_sha}")
+    payload = json.loads(raw.decode("utf-8"))
+    if not isinstance(payload, dict) or payload.get("schema") != _V22_MANIFEST_SCHEMA:
+        raise ValueError("v22 scenario manifest schema is invalid")
+    expected_name = env_config.get(_V22_MANIFEST_NAME_KEY)
+    if expected_name is not None and payload.get("manifest_name") != expected_name:
+        raise ValueError(
+            f"v22 scenario manifest name mismatch: {payload.get('manifest_name')!r} != {expected_name!r}"
+        )
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or not rows:
+        raise ValueError("v22 scenario manifest requires a non-empty rows list")
+    ids = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or any(field not in row for field in _V22_ROW_FIELDS):
+            raise ValueError(f"v22 scenario manifest row {index} is missing required fields")
+        if not isinstance(row["scenario_id"], str) or not row["scenario_id"]:
+            raise ValueError(f"v22 scenario manifest row {index} has an invalid scenario_id")
+        if row["scenario_id"] in ids:
+            raise ValueError(f"v22 scenario manifest duplicate scenario_id {row['scenario_id']!r}")
+        ids.add(row["scenario_id"])
+        for field in ("handle_height_m", "door_weight_kg", "hinge_max_force_nm", "hinge_stiffness_native"):
+            _v22_finite_positive(row[field], f"{field} in row {index}")
+        damping = row["hinge_damping_native"]
+        if isinstance(damping, bool) or not isinstance(damping, Real) or not math.isfinite(float(damping)) or float(damping) < 0.0:
+            raise ValueError(f"v22 hinge_damping_native in row {index} must be finite and non-negative")
+        if row["bucket"] not in _V22_BUCKET_NAMES:
+            raise ValueError(f"v22 scenario manifest row {index} bucket {row['bucket']!r} is not registered")
+    return payload
+
+
+def get_TaskObjCfgDict_for_v22_scenario_manifest(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Bind one deterministic hinge tuple per environment from a signed v22 manifest."""
+    payload = load_v22_scenario_manifest(env_config)
+    rows = payload["rows"]
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != len(rows):
+        raise ValueError(
+            f"v22 scenario manifest requires num_envs={len(rows)}, got {num_envs!r}"
+        )
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    spawn_cfg, base_door_cfg = _v22_base_door_cfg(base)
+    upper, lower = float(base_door_cfg.door_handle_tblr[0]), float(base_door_cfg.door_handle_tblr[1])
+    variants = []
+    for row in rows:
+        height = float(row["handle_height_m"])
+        if not lower <= height <= upper:
+            raise ValueError(
+                f"v22 scenario {row['scenario_id']} handle height {height} is outside [{lower}, {upper}]"
+            )
+        variants.append(
+            base_door_cfg.replace(
+                rand_door_handle_height=height,
+                rand_door_weight=float(row["door_weight_kg"]),
+                rand_hinge_drive_max_force=float(row["hinge_max_force_nm"]),
+                rand_hinge_drive_damping=float(row["hinge_damping_native"]),
+                rand_hinge_drive_stiffness=float(row["hinge_stiffness_native"]),
+            )
+        )
+    result = dict(base)
+    result["door"] = base["door"].replace(
+        spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    )
+    return result
+
+
+def _validate_v22_bucket_mixture(mixture) -> list[dict]:
+    if isinstance(mixture, (str, bytes)) or not isinstance(mixture, Sequence) or not mixture:
+        raise TypeError(f"{_V22_BUCKET_MIXTURE_KEY} must be a non-empty sequence of bucket entries")
+    validated = []
+    total_weight = 0.0
+    seen = set()
+    for index, entry in enumerate(mixture):
+        if not hasattr(entry, "get"):
+            raise TypeError(f"{_V22_BUCKET_MIXTURE_KEY}[{index}] must be a mapping")
+        name = entry.get("bucket")
+        if name not in _V22_BUCKET_NAMES:
+            raise ValueError(f"{_V22_BUCKET_MIXTURE_KEY}[{index}] bucket {name!r} is not registered")
+        if name in seen:
+            raise ValueError(f"{_V22_BUCKET_MIXTURE_KEY} repeats bucket {name!r}")
+        seen.add(name)
+        weight = entry.get("weight")
+        if isinstance(weight, bool) or not isinstance(weight, Real) or not math.isfinite(float(weight)) or float(weight) <= 0.0:
+            raise ValueError(f"{_V22_BUCKET_MIXTURE_KEY}[{index}] weight must be finite and positive")
+        ranges = {}
+        for field in _V22_BUCKET_RANGE_FIELDS:
+            bounds = entry.get(field)
+            if isinstance(bounds, (str, bytes)) or not isinstance(bounds, Sequence) or len(bounds) != 2:
+                raise ValueError(f"{_V22_BUCKET_MIXTURE_KEY}[{index}].{field} must be a two-bound sequence")
+            low, high = (float(bound) for bound in bounds)
+            if not math.isfinite(low) or not math.isfinite(high) or low > high or low < 0.0:
+                raise ValueError(f"{_V22_BUCKET_MIXTURE_KEY}[{index}].{field} bounds are invalid: {bounds!r}")
+            ranges[field] = (low, high)
+        total_weight += float(weight)
+        validated.append({"bucket": name, "weight": float(weight), **ranges})
+    if not math.isfinite(total_weight) or total_weight <= 0.0:
+        raise ValueError(f"{_V22_BUCKET_MIXTURE_KEY} total weight must be positive")
+    for entry in validated:
+        entry["normalized_weight"] = entry["weight"] / total_weight
+    return validated
+
+
+def get_TaskObjCfgDict_for_v22_hinge_bucket_mixture(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Assign each training environment to a frozen H0-H4 bucket with its own hinge ranges."""
+    mixture = _validate_v22_bucket_mixture(env_config[_V22_BUCKET_MIXTURE_KEY])
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs < 1:
+        raise ValueError(f"v22 bucket mixture requires a positive num_envs, got {num_envs!r}")
+    seed = env_config.get(_V22_BUCKET_SEED_KEY)
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError(f"{_V22_BUCKET_SEED_KEY} must be a non-negative integer")
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    spawn_cfg, base_door_cfg = _v22_base_door_cfg(base)
+    # Deterministic largest-remainder allocation so the realized mixture matches the
+    # frozen weights exactly rather than only in expectation.
+    exact = [entry["normalized_weight"] * num_envs for entry in mixture]
+    counts = [int(math.floor(value)) for value in exact]
+    remainder = num_envs - sum(counts)
+    order = sorted(range(len(mixture)), key=lambda i: (-(exact[i] - counts[i]), i))
+    for position in range(remainder):
+        counts[order[position % len(mixture)]] += 1
+    assignment = []
+    for entry, count in zip(mixture, counts):
+        assignment.extend([entry] * count)
+    if len(assignment) != num_envs:
+        raise ValueError("v22 bucket allocation did not cover every environment")
+    np.random.default_rng(seed).shuffle(assignment)
+    variants = []
+    for entry in assignment:
+        height_low, height_high = entry["handle_height_m"]
+        base_upper, base_lower = float(base_door_cfg.door_handle_tblr[0]), float(base_door_cfg.door_handle_tblr[1])
+        if height_low < base_lower or height_high > base_upper:
+            raise ValueError(
+                f"v22 bucket {entry['bucket']} handle height range [{height_low}, {height_high}] "
+                f"is outside the asset bounds [{base_lower}, {base_upper}]"
+            )
+        variants.append(
+            base_door_cfg.replace(
+                door_handle_tblr=(
+                    height_high,
+                    height_low,
+                    base_door_cfg.door_handle_tblr[2],
+                    base_door_cfg.door_handle_tblr[3],
+                ),
+                door_weight=entry["mass_kg"],
+                hinge_drive_max_force_range=entry["max_force_nm"],
+                hinge_drive_damping_range=entry["damping"],
+                hinge_drive_stiffness_range=entry["stiffness"],
+            )
+        )
+    result = dict(base)
+    result["door"] = base["door"].replace(
+        spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    )
+    return result
+
+
 def _build_eval_door_handle_height_grid(
     bounds: Sequence[Real], num_envs: int, door_handle_tblr: Sequence[Real]
 ) -> tuple[float, ...]:
@@ -547,6 +765,14 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
         raise TypeError("env_config must be a mapping-like configuration")
     if env_config.get(_V21B_SIGNED_PROBE_FLAG) is True:
         return get_TaskObjCfgDict_for_v21B_scenario_manifest(num_envs, env_config)
+    if env_config.get(_V22_MANIFEST_FLAG) is True:
+        if _V22_BUCKET_MIXTURE_KEY in env_config:
+            raise ValueError(
+                f"{_V22_MANIFEST_FLAG} and {_V22_BUCKET_MIXTURE_KEY} are mutually exclusive"
+            )
+        return get_TaskObjCfgDict_for_v22_scenario_manifest(num_envs, env_config)
+    if _V22_BUCKET_MIXTURE_KEY in env_config:
+        return get_TaskObjCfgDict_for_v22_hinge_bucket_mixture(num_envs, env_config)
     height_grid_key = "a2_eval_door_handle_height_linspace"
     height_weight_pairs_key = "a2_eval_door_handle_height_weight_pairs"
     if height_grid_key in env_config and height_weight_pairs_key in env_config:

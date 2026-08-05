@@ -451,8 +451,15 @@ def _build_door(
     hinge_drive.GetTargetPositionAttr().Set(-10.0)
     hinge_drive_max_force = np.random.uniform(2.5, 4.5)
     hinge_drive.GetMaxForceAttr().Set(hinge_drive_max_force)
-    hinge_drive.GetDampingAttr().Set(50.0)
-    hinge_drive_stiffness = np.random.uniform(1.0, 10.0)
+    # v22 §5A.2: damping is exported per asset instead of being an implicit constant.
+    hinge_drive_damping = (
+        50.0 if cfg.hinge_drive_damping_range is None
+        else float(np.random.uniform(*cfg.hinge_drive_damping_range))
+    )
+    hinge_drive.GetDampingAttr().Set(hinge_drive_damping)
+    hinge_drive_stiffness = np.random.uniform(
+        *(cfg.hinge_drive_stiffness_range or (1.0, 10.0))
+    )
     hinge_drive.GetStiffnessAttr().Set(hinge_drive_stiffness)
     _update_joint_transform(stage, hinge_joint_prim_path, root_prim_path, panel_prim_path)
 
@@ -639,6 +646,7 @@ def _build_door(
         "spawnHook": bool(spawn_hook),
         "hingeDriveMaxForce": float(hinge_drive.GetMaxForceAttr().Get()),
         "hingeDriveStiffness": float(hinge_drive.GetStiffnessAttr().Get()),
+        "hingeDriveDamping": float(hinge_drive.GetDampingAttr().Get()),
         "handleDriveMaxForce": float(handle_drive.GetMaxForceAttr().Get()),
     }
     if cfg.add_walls:

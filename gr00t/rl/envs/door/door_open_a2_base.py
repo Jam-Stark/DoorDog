@@ -74,6 +74,42 @@ from gr00t.rl.envs.door.a2_v21b_evidence import (
     a2_v21b_init_arm_episode_accumulator,
     a2_v21b_reset_arm_episode_accumulator,
 )
+from gr00t.rl.envs.door.a2_v22_evidence import (
+    V22_ACHIEVED_PITCH_INDEX,
+    V22_ACHIEVED_ROLL_INDEX,
+    V22_ARM_FAILURE_EFFORT_UTILIZATION,
+    V22_ARM_FAILURE_HINGE_VEL,
+    V22_ARM_FAILURE_JOINT_MARGIN,
+    V22_ARM_FAILURE_STEPS,
+    V22_CLEARANCE_BODY_HOLD,
+    V22_CLEARANCE_FLING,
+    V22_CLEARANCE_HAND_HOLD,
+    V22_CLEARANCE_MIN_HINGE,
+    V22_CLEARANCE_NONE,
+    V22_CLEARANCE_STRATEGY_NAMES,
+    V22_CLEARANCE_UNSAFE,
+    V22_COMMAND_PITCH_INDEX,
+    V22_COMMAND_ROLL_INDEX,
+    V22_FLING_MIN_RELEASE_HINGE,
+    V22_FREE_RETURN_CLASSES,
+    V22_HINGE_BUCKETS,
+    V22_NEED_OFF_THRESHOLD,
+    V22_POSTURE_ATTEMPT_STEPS,
+    V22_RELEASE_VELOCITY_GLOBAL_SOFT_MAX,
+    V22_STEP_TRACE_SCHEMA,
+    v22_apply_need_hysteresis,
+    v22_arm_margin_quality,
+    v22_bucket_index_from_runtime,
+    v22_excess_posture_penalty,
+    v22_fling_band_tensors,
+    v22_height_nominal_posture,
+    v22_posture_feasibility_reward,
+    v22_posture_need_components,
+    v22_posture_need_score,
+    v22_saturation_penalty,
+    v22_validate_bucket_table,
+    v22_validate_height_nominal_series,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -103,6 +139,12 @@ A2_V20_R1_CROSSING_SHORTFALL_GAIN = 1.0
 A2_V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
 A2_V21B_THETA_SEND_MIN_RAD = 0.90
 A2_V21B_THETA_SEND_MAX_RAD = 1.30
+
+# v22 is the posture / clearance / hinge-randomization successor.  It inherits the
+# v21-B send curriculum verbatim (theta_send frozen at 0.90 rad, 0/500 schedule)
+# and reuses the shared R2 trace lifecycle and the v21-B arm estimate telemetry.
+A2_V22_PLAN_ID = "base_v22_posture_clearance_force_routing_v3"
+A2_V22_THETA_SEND_RAD = 0.90
 
 
 A2_V20_R1_ENDPOINT_SCHEMA = "a2_piper_v20_R1_endpoint_record_v1"
@@ -5701,7 +5743,7 @@ class DoorPregrasp(
                     f"{A2_V20_R1_PLAN_ID!r} (explicit candidate header), with snapshot guard false."
                 )
             return
-        if plan_id == A2_V21B_PLAN_ID:
+        if plan_id in (A2_V21B_PLAN_ID, A2_V22_PLAN_ID):
             if not guard or soft_end != A2_V20_R1_SOFT_PHASE_END_BATCH:
                 raise RuntimeError(
                     "v21-B enabled path requires the exact 0/500 schedule and snapshot guard."
@@ -5712,7 +5754,13 @@ class DoorPregrasp(
             ):
                 raise RuntimeError("v21-B crossing component constants must remain exactly 1.0/1.0.")
             theta_send = self._get_a2_v20_send_hinge_threshold()
-            if not A2_V21B_THETA_SEND_MIN_RAD <= theta_send <= A2_V21B_THETA_SEND_MAX_RAD:
+            if plan_id == A2_V22_PLAN_ID:
+                if theta_send != A2_V22_THETA_SEND_RAD:
+                    raise RuntimeError(
+                        f"v22 plan {A2_V22_PLAN_ID!r} freezes theta_send at "
+                        f"{A2_V22_THETA_SEND_RAD} rad; got {theta_send!r}."
+                    )
+            elif not A2_V21B_THETA_SEND_MIN_RAD <= theta_send <= A2_V21B_THETA_SEND_MAX_RAD:
                 raise RuntimeError(
                     f"v21-B plan {A2_V21B_PLAN_ID!r} requires send threshold in "
                     f"[{A2_V21B_THETA_SEND_MIN_RAD:.2f}, {A2_V21B_THETA_SEND_MAX_RAD:.2f}] rad; "
@@ -6840,6 +6888,7 @@ class DoorPregrasp(
             )
         self._init_a2_v20_r2_evidence_buffers()
         self._init_a2_v21b_arm_evidence_buffers()
+        self._init_a2_v22_buffers()
         self.relative_door_pos_buf = torch.zeros(
             self.num_envs, 3, device=self.device, requires_grad=False,
         )
@@ -6953,6 +7002,518 @@ class DoorPregrasp(
         self._a2_v21b_completed_upper_dof_overspeed = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+
+    def _get_a2_v22_bool(self, key: str, *, required: bool) -> bool:
+        if key not in self.config:
+            if required:
+                raise RuntimeError(f"v22 requires env.config.{key}.")
+            return False
+        value = self.config[key]
+        if not isinstance(value, bool):
+            raise RuntimeError(f"env.config.{key} must be bool; got {value!r}.")
+        return value
+
+    def _get_a2_v22_positive_float(self, key: str) -> float:
+        if key not in self.config:
+            raise RuntimeError(f"v22 requires the measured env.config.{key}.")
+        value = self.config[key]
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise RuntimeError(f"env.config.{key} must be a real number; got {value!r}.")
+        number = float(value)
+        if not math.isfinite(number) or number <= 0.0:
+            raise RuntimeError(f"env.config.{key} must be finite and positive; got {number!r}.")
+        return number
+
+    def _init_a2_v22_buffers(self) -> None:
+        """Initialize v22 posture / clearance / force-routing state.
+
+        Every measured quantity (the P0-C nominal posture table, the workspace
+        lower-tail threshold, the tracking-error baseline) is a required config
+        input.  There is no defaulted stand-in: an unmeasured v22 run must fail
+        here rather than train against invented numbers.
+        """
+
+        self._a2_v22_enabled = self._get_a2_v22_bool("a2_v22_evidence_enabled", required=False)
+        if not self._a2_v22_enabled:
+            return
+        if self._get_a2_v20_r1_plan_id() != A2_V22_PLAN_ID:
+            raise RuntimeError(
+                f"v22 evidence requires env.config.a2_v20_R1_plan_id={A2_V22_PLAN_ID!r}."
+            )
+
+        self._a2_v22_posture_enabled = self._get_a2_v22_bool("a2_v22_posture_enabled", required=True)
+        self._a2_v22_posture_telemetry_only = self._get_a2_v22_bool(
+            "a2_v22_posture_telemetry_only", required=True
+        )
+        self._a2_v22_clearance_enabled = self._get_a2_v22_bool(
+            "a2_v22_clearance_enabled", required=True
+        )
+        self._a2_v22_body_assist_enabled = self._get_a2_v22_bool(
+            "a2_v22_body_assist_enabled", required=True
+        )
+        if self._a2_v22_posture_telemetry_only and not self._a2_v22_posture_enabled:
+            raise RuntimeError("v22 posture telemetry-only mode requires the posture mechanism enabled.")
+
+        heights, nominal_pitch, nominal_roll = v22_validate_height_nominal_series(
+            self.config.get("a2_v22_nominal_heights_m"),
+            self.config.get("a2_v22_nominal_pitch_rad"),
+            self.config.get("a2_v22_nominal_roll_rad"),
+        )
+        float_dtype = self.simulator.scene.articulations["robot"].data.joint_pos.dtype
+        self._a2_v22_nominal_heights = torch.tensor(heights, device=self.device, dtype=float_dtype)
+        self._a2_v22_nominal_pitch_table = torch.tensor(nominal_pitch, device=self.device, dtype=float_dtype)
+        self._a2_v22_nominal_roll_table = torch.tensor(nominal_roll, device=self.device, dtype=float_dtype)
+        self._a2_v22_directional_wrench_threshold = self._get_a2_v22_positive_float(
+            "a2_v22_directional_wrench_threshold_n"
+        )
+        self._a2_v22_tracking_error_p90 = self._get_a2_v22_positive_float(
+            "a2_v22_arm_tracking_error_p90"
+        )
+        self._a2_v22_workspace_margin_threshold = self._get_a2_v22_positive_float(
+            "a2_v22_workspace_margin_threshold"
+        )
+        # A calibration probe declares that its measured constants are bootstrap
+        # placeholders.  The formal launcher refuses any config carrying this flag,
+        # so a probe config can never become a training config by accident.
+        self._a2_v22_calibration_probe = self._get_a2_v22_bool(
+            "a2_v22_calibration_probe", required=False
+        )
+
+        robot = self.simulator.scene.articulations["robot"]
+        body_ids, body_names = robot.find_bodies("arm_body6_to_gripper", preserve_order=True)
+        if len(body_ids) != 1 or body_names != ["arm_body6_to_gripper"]:
+            raise RuntimeError(f"v22 requires one arm_body6_to_gripper body; got {body_names!r}.")
+        self._a2_v22_jacobian_body_id = int(body_ids[0])
+        arm_joint_ids, arm_joint_names = robot.find_joints(
+            [f"arm_j{i}" for i in range(1, 7)], preserve_order=True
+        )
+        if arm_joint_names != [f"arm_j{i}" for i in range(1, 7)]:
+            raise RuntimeError(f"v22 arm joint order mismatch: {arm_joint_names!r}.")
+        self._a2_v22_arm_joint_ids = torch.tensor(arm_joint_ids, dtype=torch.long, device=self.device)
+        # The floating-base Jacobian carries the 6 root DoF ahead of the articulation joints.
+        self._a2_v22_jacobian_joint_ids = [joint_id + 6 for joint_id in arm_joint_ids]
+
+        zeros_f = lambda: torch.zeros(self.num_envs, dtype=float_dtype, device=self.device)
+        zeros_b = lambda: torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        zeros_l = lambda: torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+
+        self._a2_v22_command_pitch = zeros_f()
+        self._a2_v22_command_roll = zeros_f()
+        self._a2_v22_achieved_pitch = zeros_f()
+        self._a2_v22_achieved_roll = zeros_f()
+        self._a2_v22_nominal_pitch = zeros_f()
+        self._a2_v22_nominal_roll = zeros_f()
+        self._a2_v22_joint_position_margin = zeros_f()
+        self._a2_v22_directional_wrench = zeros_f()
+        self._a2_v22_effort_utilization = zeros_f()
+        self._a2_v22_arm_tracking_error = zeros_f()
+        self._a2_v22_arm_margin_quality = zeros_f()
+        self._a2_v22_posture_need_score = zeros_f()
+        self._a2_v22_posture_need_active = zeros_b()
+        self._a2_v22_need_on_streak = zeros_l()
+        self._a2_v22_need_off_streak = zeros_l()
+        self._a2_v22_force_need_streak = zeros_l()
+        self._a2_v22_tracking_need_streak = zeros_l()
+        self._a2_v22_height_need = zeros_b()
+        self._a2_v22_workspace_need = zeros_b()
+        self._a2_v22_force_need = zeros_b()
+        self._a2_v22_tracking_need = zeros_b()
+        self._a2_v22_ordinary_need_negative = zeros_b()
+        self._a2_v22_ordinary_opening_valid = zeros_b()
+
+        self._a2_v22_release_hinge_velocity = torch.full(
+            (self.num_envs,), float("nan"), dtype=float_dtype, device=self.device
+        )
+        self._a2_v22_min_hinge_after_release = torch.full(
+            (self.num_envs,), float("nan"), dtype=float_dtype, device=self.device
+        )
+        self._a2_v22_peak_closing_velocity = zeros_f()
+        self._a2_v22_root_clear_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v22_clearance_strategy = torch.full(
+            (self.num_envs,), V22_CLEARANCE_NONE, dtype=torch.long, device=self.device
+        )
+        self._a2_v22_clearance_success = zeros_b()
+        self._a2_v22_clearance_awarded = zeros_b()
+        self._a2_v22_unsafe_release = zeros_b()
+        self._a2_v22_unsafe_release_awarded = zeros_b()
+        self._a2_v22_fling_awarded = zeros_b()
+        self._a2_v22_fling_eligible = zeros_b()
+        self._a2_v22_frame_contact_after_release = zeros_b()
+        self._a2_v22_hold_at_release = zeros_b()
+        self._a2_v22_upper_dof_overspeed = zeros_b()
+
+        self._a2_v22_arm_failure_streak = zeros_l()
+        self._a2_v22_posture_attempt_streak = zeros_l()
+        self._a2_v22_arm_failure_latched = zeros_b()
+        self._a2_v22_body_assist_eligible = zeros_b()
+
+        self._a2_v22_hinge_damping_native = zeros_f()
+        self._a2_v22_hinge_stiffness_native = zeros_f()
+        self._a2_v22_free_return_class_index = torch.full(
+            (self.num_envs,),
+            V22_FREE_RETURN_CLASSES.index("UNCLASSIFIED"),
+            dtype=torch.long,
+            device=self.device,
+        )
+        bucket_table = self.config.get("a2_v22_hinge_bucket_table")
+        if bucket_table is None:
+            self._a2_v22_bucket_table = None
+        else:
+            self._a2_v22_bucket_table = v22_validate_bucket_table(bucket_table)
+        self._a2_v22_registered_bucket_index = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v22_opening_tangent_w = torch.zeros(
+            self.num_envs, 3, dtype=float_dtype, device=self.device
+        )
+
+    def _reset_a2_v22_state(self, env_ids) -> None:
+        if not getattr(self, "_a2_v22_enabled", False):
+            return
+        self._a2_v22_posture_need_active[env_ids] = False
+        self._a2_v22_need_on_streak[env_ids] = 0
+        self._a2_v22_need_off_streak[env_ids] = 0
+        self._a2_v22_force_need_streak[env_ids] = 0
+        self._a2_v22_tracking_need_streak[env_ids] = 0
+        self._a2_v22_height_need[env_ids] = False
+        self._a2_v22_workspace_need[env_ids] = False
+        self._a2_v22_force_need[env_ids] = False
+        self._a2_v22_tracking_need[env_ids] = False
+        self._a2_v22_posture_need_score[env_ids] = 0.0
+        self._a2_v22_ordinary_need_negative[env_ids] = False
+        self._a2_v22_ordinary_opening_valid[env_ids] = False
+        self._a2_v22_release_hinge_velocity[env_ids] = float("nan")
+        self._a2_v22_min_hinge_after_release[env_ids] = float("nan")
+        self._a2_v22_peak_closing_velocity[env_ids] = 0.0
+        self._a2_v22_root_clear_step[env_ids] = -1
+        self._a2_v22_clearance_strategy[env_ids] = V22_CLEARANCE_NONE
+        self._a2_v22_clearance_success[env_ids] = False
+        self._a2_v22_clearance_awarded[env_ids] = False
+        self._a2_v22_unsafe_release[env_ids] = False
+        self._a2_v22_unsafe_release_awarded[env_ids] = False
+        self._a2_v22_fling_awarded[env_ids] = False
+        self._a2_v22_fling_eligible[env_ids] = False
+        self._a2_v22_frame_contact_after_release[env_ids] = False
+        self._a2_v22_hold_at_release[env_ids] = False
+        self._a2_v22_upper_dof_overspeed[env_ids] = False
+        self._a2_v22_arm_failure_streak[env_ids] = 0
+        self._a2_v22_posture_attempt_streak[env_ids] = 0
+        self._a2_v22_arm_failure_latched[env_ids] = False
+        self._a2_v22_body_assist_eligible[env_ids] = False
+
+    def _a2_v22_directional_wrench_capacity(self) -> torch.Tensor:
+        """Relative directional-wrench capacity along the measured opening tangent.
+
+        For a unit tangential handle force the required arm torques are
+        ``J_pos^T u``; the achievable force before the first arm joint saturates is
+        ``min_j effort_limit_j / |(J_pos^T u)_j|``.  This is the §0.4 capability
+        lever expressed as newtons, not a manipulability abstraction.
+        """
+        robot = self.simulator.scene.articulations["robot"]
+        jacobian = robot.root_physx_view.get_jacobians()[
+            :, self._a2_v22_jacobian_body_id, :, self._a2_v22_jacobian_joint_ids
+        ]
+        expected = (self.num_envs, 6, 6)
+        if tuple(jacobian.shape) != expected or not torch.all(torch.isfinite(jacobian)):
+            raise RuntimeError(
+                f"v22 directional wrench requires a finite Jacobian shape {expected}; "
+                f"got {tuple(jacobian.shape)}."
+            )
+        tangent = self._a2_v22_opening_tangent_w.to(dtype=jacobian.dtype)
+        torque_per_newton = torch.einsum("nij,ni->nj", jacobian[:, :3, :], tangent)
+        effort_limit = robot.data.joint_effort_limits[:, self._a2_v22_arm_joint_ids]
+        eps = torch.finfo(jacobian.dtype).eps
+        capacity = (effort_limit / torch.clamp(torque_per_newton.abs(), min=eps)).amin(dim=-1)
+        return torch.clamp(capacity, max=1.0e6)
+
+    def _a2_v22_arm_joint_position_margin(self) -> torch.Tensor:
+        """Worst-joint normalized distance to the arm's HARD joint-position limits.
+
+        The soft limits are a shrunk training band that the warm-start policy
+        routinely sits outside, so a soft-limit margin reads negative through most
+        of a valid hold and cannot express "how close is this joint to its physical
+        stop".  §7.2/§7.3/§9.2 all mean the physical margin.
+        """
+        robot = self.simulator.scene.articulations["robot"]
+        ids = self._a2_v22_arm_joint_ids
+        limits = robot.data.joint_pos_limits[:, ids]
+        position = robot.data.joint_pos[:, ids]
+        span = limits[..., 1] - limits[..., 0]
+        if torch.any(span <= 0.0) or not torch.all(torch.isfinite(span)):
+            raise RuntimeError("v22 arm joint limits must define a positive finite span.")
+        normalized = torch.minimum(position - limits[..., 0], limits[..., 1] - position) / span
+        return normalized.amin(dim=-1)
+
+    def _a2_v22_arm_effort_and_tracking(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """Live arm effort-proxy utilization and worst-joint tracking error.
+
+        The effort figure is an implicit-PD estimate, never a PhysX drive-force
+        readback; v22 inherits the v21-B ``ESTIMATE_ONLY`` authority label.
+        """
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        ids = self._a2_v22_arm_joint_ids
+        joint_pos = data.joint_pos[:, ids]
+        joint_pos_target = data.joint_pos_target[:, ids]
+        effort_limit = data.joint_effort_limits[:, ids]
+        _unclipped, clipped, _saturated = a2_hold_pd_effort_estimates(
+            joint_pos,
+            data.joint_vel[:, ids],
+            joint_pos_target,
+            data.joint_stiffness[:, ids],
+            data.joint_damping[:, ids],
+            effort_limit,
+        )
+        if torch.any(effort_limit <= 0.0) or not torch.all(torch.isfinite(effort_limit)):
+            raise RuntimeError("v22 arm effort limits must be positive and finite.")
+        utilization = (clipped.abs() / effort_limit).amax(dim=-1)
+        tracking_error = (joint_pos_target - joint_pos).abs().amax(dim=-1)
+        if not torch.all(torch.isfinite(utilization)) or not torch.all(torch.isfinite(tracking_error)):
+            raise RuntimeError("v22 arm effort/tracking telemetry is non-finite.")
+        return utilization, tracking_error
+
+    def _update_a2_v22_state(self) -> None:
+        """Advance every v22 posture / clearance / routing latch once per control step."""
+
+        if not getattr(self, "_a2_v22_enabled", False):
+            return
+        float_dtype = self._a2_v22_command_pitch.dtype
+        raw_command = self._a2_base_command_raw
+        scaled_command = self._homie_commands
+        for name, value in (("_a2_base_command_raw", raw_command), ("_homie_commands", scaled_command)):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs, 5)
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(f"v22 posture telemetry requires finite {name} shape ({self.num_envs}, 5).")
+        # Command side: the scaled, clipped posture command actually sent to the
+        # frozen A2_Base policy.  Achieved side: the realized trunk angle.  They
+        # are stored under distinct keys and never substituted for each other.
+        self._a2_v22_command_pitch[:] = scaled_command[:, V22_COMMAND_PITCH_INDEX].to(float_dtype)
+        self._a2_v22_command_roll[:] = scaled_command[:, V22_COMMAND_ROLL_INDEX].to(float_dtype)
+        rpy = self.rpy
+        if not torch.is_tensor(rpy) or rpy.shape[0] != self.num_envs or rpy.shape[1] < 3:
+            raise RuntimeError("v22 posture telemetry requires self.rpy shape (N, >=3).")
+        self._a2_v22_achieved_roll[:] = rpy[:, V22_ACHIEVED_ROLL_INDEX].to(float_dtype)
+        self._a2_v22_achieved_pitch[:] = rpy[:, V22_ACHIEVED_PITCH_INDEX].to(float_dtype)
+
+        handle_height = self.door_handle_height.to(float_dtype)
+        nominal_pitch, nominal_roll = v22_height_nominal_posture(
+            handle_height,
+            self._a2_v22_nominal_heights,
+            self._a2_v22_nominal_pitch_table,
+            self._a2_v22_nominal_roll_table,
+        )
+        self._a2_v22_nominal_pitch[:] = nominal_pitch
+        self._a2_v22_nominal_roll[:] = nominal_roll
+
+        self._a2_v22_joint_position_margin[:] = self._a2_v22_arm_joint_position_margin().to(float_dtype)
+        self._a2_v22_directional_wrench[:] = self._a2_v22_directional_wrench_capacity().to(float_dtype)
+
+        utilization, tracking = self._a2_v22_arm_effort_and_tracking()
+        self._a2_v22_effort_utilization[:] = utilization.to(float_dtype)
+        self._a2_v22_arm_tracking_error[:] = tracking.to(float_dtype)
+        self._a2_v22_arm_margin_quality[:] = v22_arm_margin_quality(
+            self._a2_v22_joint_position_margin, self._a2_v22_effort_utilization
+        )
+
+        hinge_pos = self._get_door_joint_pos("v22 state update", 1)[:, 0].to(float_dtype)
+        hinge_vel = self._get_door_joint_vel("v22 state update", 1)[:, 0].to(float_dtype)
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        release_gate = self._a2_stage4_release_gate
+        root_crossed = self._a2_root_x_ever_crossed
+        opening = (self.stage_buf >= self.STAGE_OPEN) & (self.stage_buf <= self.STAGE_SWING)
+
+        components = v22_posture_need_components(
+            nominal_pitch=self._a2_v22_nominal_pitch,
+            nominal_roll=self._a2_v22_nominal_roll,
+            joint_position_margin=self._a2_v22_joint_position_margin,
+            workspace_margin_threshold=self._a2_v22_workspace_margin_threshold,
+            directional_wrench=self._a2_v22_directional_wrench,
+            directional_wrench_threshold=self._a2_v22_directional_wrench_threshold,
+            valid_hold=hold_ok,
+            hinge_velocity=hinge_vel,
+            effort_utilization=self._a2_v22_effort_utilization,
+            arm_tracking_error=self._a2_v22_arm_tracking_error,
+            arm_tracking_error_p90=self._a2_v22_tracking_error_p90,
+            force_need_streak=self._a2_v22_force_need_streak,
+            tracking_need_streak=self._a2_v22_tracking_need_streak,
+        )
+        self._a2_v22_height_need[:] = components["height_need"]
+        self._a2_v22_workspace_need[:] = components["workspace_need"]
+        self._a2_v22_force_need[:] = components["force_need"]
+        self._a2_v22_tracking_need[:] = components["tracking_need"]
+        score = v22_posture_need_score(components).to(float_dtype)
+        self._a2_v22_posture_need_score[:] = score
+        v22_apply_need_hysteresis(
+            score,
+            self._a2_v22_posture_need_active,
+            self._a2_v22_need_on_streak,
+            self._a2_v22_need_off_streak,
+        )
+
+        # §7.6.2 same-denominator frame classification.  Body-assist eligibility and
+        # body contact both disqualify a frame from the ordinary denominator.
+        _per_body_force, body_total = self._get_a2_door_body_panel_contact_forces()
+        body_contact = body_total > 0.0
+        self._a2_v22_ordinary_opening_valid[:] = opening & ~self.reset_buf.to(torch.bool)
+        self._a2_v22_ordinary_need_negative[:] = (
+            self._a2_v22_ordinary_opening_valid
+            & ~self._a2_v22_body_assist_eligible
+            & ~body_contact
+            & (score <= V22_NEED_OFF_THRESHOLD)
+        )
+
+        self._a2_v22_hinge_damping_native[:] = self.door_hinge_drive_damping.to(float_dtype)
+        self._a2_v22_hinge_stiffness_native[:] = self.door_hinge_drive_stiffness.to(float_dtype)
+        if self._a2_v22_bucket_table is not None:
+            self._a2_v22_registered_bucket_index[:] = v22_bucket_index_from_runtime(
+                self._a2_v22_hinge_damping_native,
+                self._a2_v22_hinge_stiffness_native,
+                self.door_hinge_drive_max_force.to(float_dtype),
+                self._a2_v22_bucket_table,
+            )
+
+        if self._a2_v22_clearance_enabled:
+            self._update_a2_v22_clearance(
+                hinge_pos=hinge_pos,
+                hinge_vel=hinge_vel,
+                hold_ok=hold_ok,
+                release_gate=release_gate,
+                root_crossed=root_crossed,
+                body_contact=body_contact,
+            )
+        self._update_a2_v22_routing_latches(
+            hinge_pos=hinge_pos, hinge_vel=hinge_vel, hold_ok=hold_ok, opening=opening
+        )
+
+    def _update_a2_v22_clearance(
+        self,
+        *,
+        hinge_pos: torch.Tensor,
+        hinge_vel: torch.Tensor,
+        hold_ok: torch.Tensor,
+        release_gate: torch.Tensor,
+        root_crossed: torch.Tensor,
+        body_contact: torch.Tensor,
+    ) -> None:
+        """Classify release strategy and clearance outcome (plan §8)."""
+
+        frame_force = self._get_door_frame_contact_force_per_env("v22 clearance")
+        frame_contact = frame_force > 0.0
+        newly_released = release_gate & torch.isnan(self._a2_v22_release_hinge_velocity)
+        if torch.any(newly_released):
+            self._a2_v22_release_hinge_velocity[newly_released] = hinge_vel[newly_released]
+            self._a2_v22_min_hinge_after_release[newly_released] = hinge_pos[newly_released]
+            self._a2_v22_hold_at_release[newly_released] = hold_ok[newly_released]
+
+        after_release = release_gate & ~torch.isnan(self._a2_v22_release_hinge_velocity)
+        before_clear = after_release & ~root_crossed
+        if torch.any(after_release):
+            self._a2_v22_min_hinge_after_release[after_release] = torch.minimum(
+                self._a2_v22_min_hinge_after_release[after_release], hinge_pos[after_release]
+            )
+            closing = torch.clamp(-hinge_vel, min=0.0)
+            self._a2_v22_peak_closing_velocity[after_release] = torch.maximum(
+                self._a2_v22_peak_closing_velocity[after_release], closing[after_release]
+            )
+            self._a2_v22_frame_contact_after_release[after_release & frame_contact] = True
+
+        # Controlled-fling eligibility is decided exactly at release (§8.3).
+        overspeed = self._a2_v22_upper_dof_overspeed
+        release_hinge = self._a2_hinge_at_release
+        fling_eligible = (
+            newly_released
+            & self._a2_v22_hold_at_release
+            & (release_hinge >= V22_FLING_MIN_RELEASE_HINGE)
+            & (hinge_vel > 0.0)
+            & ~frame_contact
+            & ~overspeed
+        )
+        self._a2_v22_fling_eligible[fling_eligible] = True
+
+        # An unsafe release is premature support loss, excessive release speed, or
+        # a rebound collision after release.  It is never a clearance success.
+        unsafe = (
+            newly_released
+            & (
+                ~self._a2_v22_hold_at_release
+                | (hinge_vel > V22_RELEASE_VELOCITY_GLOBAL_SOFT_MAX)
+            )
+        ) | (after_release & body_contact & ~root_crossed) | (after_release & frame_contact)
+        self._a2_v22_unsafe_release[unsafe] = True
+
+        newly_clear = root_crossed & (self._a2_v22_root_clear_step < 0)
+        if torch.any(newly_clear):
+            self._a2_v22_root_clear_step[newly_clear] = self.episode_length_buf[newly_clear]
+            min_hinge = torch.where(
+                torch.isnan(self._a2_v22_min_hinge_after_release),
+                hinge_pos,
+                self._a2_v22_min_hinge_after_release,
+            )
+            success = (
+                newly_clear
+                & ~self._a2_v22_unsafe_release
+                & ~self._a2_v22_frame_contact_after_release
+                & (min_hinge >= V22_CLEARANCE_MIN_HINGE)
+            )
+            self._a2_v22_clearance_success[success] = True
+            strategy = torch.where(
+                self._a2_v22_fling_eligible,
+                torch.full_like(self._a2_v22_clearance_strategy, V22_CLEARANCE_FLING),
+                torch.where(
+                    hold_ok,
+                    torch.full_like(self._a2_v22_clearance_strategy, V22_CLEARANCE_HAND_HOLD),
+                    torch.where(
+                        body_contact,
+                        torch.full_like(self._a2_v22_clearance_strategy, V22_CLEARANCE_BODY_HOLD),
+                        torch.full_like(self._a2_v22_clearance_strategy, V22_CLEARANCE_UNSAFE),
+                    ),
+                ),
+            )
+            strategy = torch.where(
+                self._a2_v22_unsafe_release,
+                torch.full_like(strategy, V22_CLEARANCE_UNSAFE),
+                strategy,
+            )
+            self._a2_v22_clearance_strategy[newly_clear] = strategy[newly_clear]
+
+    def _update_a2_v22_routing_latches(
+        self, *, hinge_pos: torch.Tensor, hinge_vel: torch.Tensor, hold_ok: torch.Tensor, opening: torch.Tensor
+    ) -> None:
+        """Arm-plus-posture failure latch and body-assist eligibility (plan §9.2)."""
+
+        unlatched = hinge_pos >= self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
+        failing = (
+            hold_ok
+            & unlatched
+            & opening
+            & (hinge_vel < V22_ARM_FAILURE_HINGE_VEL)
+            & (
+                (self._a2_v22_effort_utilization > V22_ARM_FAILURE_EFFORT_UTILIZATION)
+                | (self._a2_v22_arm_tracking_error > self._a2_v22_tracking_error_p90)
+                | (self._a2_v22_joint_position_margin < V22_ARM_FAILURE_JOINT_MARGIN)
+            )
+        )
+        self._a2_v22_arm_failure_streak.copy_(
+            torch.where(failing, self._a2_v22_arm_failure_streak + 1, torch.zeros_like(self._a2_v22_arm_failure_streak))
+        )
+        self._a2_v22_arm_failure_latched |= self._a2_v22_arm_failure_streak >= V22_ARM_FAILURE_STEPS
+        attempting = self._a2_v22_arm_failure_latched & self._a2_v22_posture_need_active
+        self._a2_v22_posture_attempt_streak.copy_(
+            torch.where(
+                attempting,
+                self._a2_v22_posture_attempt_streak + 1,
+                self._a2_v22_posture_attempt_streak,
+            )
+        )
+        if self._a2_v22_body_assist_enabled:
+            self._a2_v22_body_assist_eligible |= self._a2_v22_arm_failure_latched & (
+                self._a2_v22_posture_attempt_streak >= V22_POSTURE_ATTEMPT_STEPS
+            )
 
     def _update_a2_v21b_arm_evidence_accumulators(self) -> None:
         """Capture one post-physics arm_j1..arm_j6 estimate sample."""
@@ -8449,10 +9010,115 @@ class DoorPregrasp(
                 "terminal": terminal,
                 "terminal_reason": terminal_reason,
             }
+            if getattr(self, "_a2_v22_enabled", False):
+                row.update(self._a2_v22_trace_fields(env_id))
             rows.append(row)
             if terminal:
                 self._r2_terminal_reason[env_id] = terminal_reason
                 self._r2_terminal_step[env_id] = step
+
+    def _a2_v22_trace_fields(self, env_id: int) -> dict[str, object]:
+        """Per-step v22 trace fields.
+
+        Commanded and achieved posture are separate keys (plan §7.1).  Hinge
+        damping/stiffness/max-force are the runtime values, and the bucket label
+        is derived from them, never from a scenario name (plan §5A.5).
+        """
+        bucket_index = int(self._a2_v22_registered_bucket_index[env_id].item())
+        class_index = int(self._a2_v22_free_return_class_index[env_id].item())
+        release_velocity = float(self._a2_v22_release_hinge_velocity[env_id].item())
+        min_hinge = float(self._a2_v22_min_hinge_after_release[env_id].item())
+        root_clear_step = int(self._a2_v22_root_clear_step[env_id].item())
+        return {
+            "v22_schema": V22_STEP_TRACE_SCHEMA,
+            "v22_posture_command_pitch_rad": float(self._a2_v22_command_pitch[env_id].item()),
+            "v22_posture_command_roll_rad": float(self._a2_v22_command_roll[env_id].item()),
+            "v22_posture_achieved_pitch_rad": float(self._a2_v22_achieved_pitch[env_id].item()),
+            "v22_posture_achieved_roll_rad": float(self._a2_v22_achieved_roll[env_id].item()),
+            "v22_posture_nominal_pitch_rad": float(self._a2_v22_nominal_pitch[env_id].item()),
+            "v22_posture_nominal_roll_rad": float(self._a2_v22_nominal_roll[env_id].item()),
+            "v22_posture_need_score": float(self._a2_v22_posture_need_score[env_id].item()),
+            "v22_posture_need_active": bool(self._a2_v22_posture_need_active[env_id].item()),
+            "v22_height_need": bool(self._a2_v22_height_need[env_id].item()),
+            "v22_workspace_need": bool(self._a2_v22_workspace_need[env_id].item()),
+            "v22_force_need": bool(self._a2_v22_force_need[env_id].item()),
+            "v22_tracking_need": bool(self._a2_v22_tracking_need[env_id].item()),
+            "v22_ordinary_opening_valid": bool(self._a2_v22_ordinary_opening_valid[env_id].item()),
+            "v22_ordinary_need_negative": bool(self._a2_v22_ordinary_need_negative[env_id].item()),
+            "v22_arm_joint_position_margin": float(self._a2_v22_joint_position_margin[env_id].item()),
+            "v22_directional_wrench_n": float(self._a2_v22_directional_wrench[env_id].item()),
+            "v22_arm_effort_utilization": float(self._a2_v22_effort_utilization[env_id].item()),
+            "v22_arm_tracking_error_rad": float(self._a2_v22_arm_tracking_error[env_id].item()),
+            "v22_arm_failure_latched": bool(self._a2_v22_arm_failure_latched[env_id].item()),
+            "v22_body_assist_eligible": bool(self._a2_v22_body_assist_eligible[env_id].item()),
+            "v22_release_hinge_velocity_radps": None if math.isnan(release_velocity) else release_velocity,
+            "v22_min_hinge_after_release_rad": None if math.isnan(min_hinge) else min_hinge,
+            "v22_peak_closing_velocity_radps": float(self._a2_v22_peak_closing_velocity[env_id].item()),
+            "v22_root_clear_step": None if root_clear_step < 0 else root_clear_step,
+            "v22_clearance_strategy": V22_CLEARANCE_STRATEGY_NAMES[
+                int(self._a2_v22_clearance_strategy[env_id].item())
+            ],
+            "v22_clearance_success": bool(self._a2_v22_clearance_success[env_id].item()),
+            "v22_unsafe_release": bool(self._a2_v22_unsafe_release[env_id].item()),
+            "v22_fling_eligible": bool(self._a2_v22_fling_eligible[env_id].item()),
+            "v22_frame_contact_after_release": bool(
+                self._a2_v22_frame_contact_after_release[env_id].item()
+            ),
+            "door_hinge_drive_damping_native": float(self._a2_v22_hinge_damping_native[env_id].item()),
+            "door_hinge_drive_stiffness_native": float(
+                self._a2_v22_hinge_stiffness_native[env_id].item()
+            ),
+            "door_hinge_drive_max_force_nm": float(self.door_hinge_drive_max_force[env_id].item()),
+            "measured_free_return_class": V22_FREE_RETURN_CLASSES[class_index],
+            "registered_hinge_bucket": None if bucket_index < 0 else V22_HINGE_BUCKETS[bucket_index],
+        }
+
+    def _log_a2_v22_telemetry(self) -> None:
+        """Publish v22 posture / clearance / routing rates for live training runs."""
+        if not getattr(self, "_a2_v22_enabled", False):
+            return
+        ordinary = self._a2_v22_ordinary_need_negative
+        ordinary_count = ordinary.sum()
+        command_pitch = self._a2_v22_command_pitch.abs()
+        command_roll = self._a2_v22_command_roll.abs()
+        log = self.log_dict
+        log["a2_v22_posture_need_active_frac"] = self._a2_v22_posture_need_active.float().mean()
+        log["a2_v22_height_need_frac"] = self._a2_v22_height_need.float().mean()
+        log["a2_v22_workspace_need_frac"] = self._a2_v22_workspace_need.float().mean()
+        log["a2_v22_force_need_frac"] = self._a2_v22_force_need.float().mean()
+        log["a2_v22_tracking_need_frac"] = self._a2_v22_tracking_need.float().mean()
+        log["a2_v22_ordinary_need_negative_frac"] = ordinary.float().mean()
+        log["a2_v22_command_pitch_abs_mean"] = command_pitch.mean()
+        log["a2_v22_command_roll_abs_mean"] = command_roll.mean()
+        log["a2_v22_achieved_pitch_abs_mean"] = self._a2_v22_achieved_pitch.abs().mean()
+        log["a2_v22_achieved_roll_abs_mean"] = self._a2_v22_achieved_roll.abs().mean()
+        log["a2_v22_command_roll_saturation_frac"] = (
+            command_roll >= 0.95 * self._a2_body_pitch_roll_scale
+        ).float().mean()
+        log["a2_v22_command_pitch_saturation_frac"] = (
+            command_pitch >= 0.95 * self._a2_body_pitch_roll_scale
+        ).float().mean()
+        denominator = torch.clamp(ordinary_count.float(), min=1.0)
+        log["a2_v22_ordinary_command_pitch_abs_mean"] = (
+            (command_pitch * ordinary.float()).sum() / denominator
+        )
+        log["a2_v22_ordinary_command_roll_abs_mean"] = (
+            (command_roll * ordinary.float()).sum() / denominator
+        )
+        log["a2_v22_directional_wrench_n_mean"] = self._a2_v22_directional_wrench.mean()
+        log["a2_v22_arm_joint_position_margin_mean"] = self._a2_v22_joint_position_margin.mean()
+        log["a2_v22_arm_effort_utilization_mean"] = self._a2_v22_effort_utilization.mean()
+        log["a2_v22_arm_failure_latched_frac"] = self._a2_v22_arm_failure_latched.float().mean()
+        log["a2_v22_body_assist_eligible_frac"] = self._a2_v22_body_assist_eligible.float().mean()
+        log["a2_v22_clearance_success_frac"] = self._a2_v22_clearance_success.float().mean()
+        log["a2_v22_unsafe_release_frac"] = self._a2_v22_unsafe_release.float().mean()
+        log["a2_v22_fling_eligible_frac"] = self._a2_v22_fling_eligible.float().mean()
+        released = ~torch.isnan(self._a2_v22_release_hinge_velocity)
+        log["a2_v22_release_velocity_radps_mean"] = torch.where(
+            released, self._a2_v22_release_hinge_velocity, torch.zeros_like(self._a2_v22_release_hinge_velocity)
+        ).sum() / torch.clamp(released.sum().float(), min=1.0)
+        log["a2_v22_hinge_damping_native_mean"] = self._a2_v22_hinge_damping_native.mean()
+        log["a2_v22_hinge_stiffness_native_mean"] = self._a2_v22_hinge_stiffness_native.mean()
 
     def _r2_required_provenance(self, provenance=None) -> dict[str, object]:
         source = self._a2_v20_r2_provenance if provenance is None else provenance
@@ -9001,6 +9667,7 @@ class DoorPregrasp(
                 self._update_a2_v14_root_height_telemetry()
                 self._update_a2_v20_r2_evidence_accumulators()
                 self._update_a2_v21b_arm_evidence_accumulators()
+                self._update_a2_v22_state()
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
         current_root_pos = self.simulator.robot_root_states[env_ids, :3].clone()
@@ -9416,6 +10083,8 @@ class DoorPregrasp(
             self.door_width,
             self.door_open_lr,
         )
+        if getattr(self, "_a2_v22_enabled", False):
+            self._a2_v22_opening_tangent_w[:] = tangent_w.to(self._a2_v22_opening_tangent_w.dtype)
         root_link_pos_w = self.simulator._rigid_body_pos[:, self.root_idx, :]
         root_link_vel_w = self.simulator._rigid_body_vel[:, self.root_idx, :]
         root_link_ang_vel_w = self.simulator._rigid_body_ang_vel[:, self.root_idx, :]
@@ -11622,6 +12291,98 @@ class DoorPregrasp(
             )
         return torch.abs(raw_base_command[:, 3:5].clamp(-1.0, 1.0)).sum(dim=-1)
 
+    def _a2_v22_reward_gate(self, name: str) -> torch.Tensor | None:
+        """Return None when a v22 reward term must contribute exactly nothing."""
+        if not getattr(self, "_a2_v22_enabled", False):
+            raise RuntimeError(f"{name} requires env.config.a2_v22_evidence_enabled=true.")
+        if self._a2_v22_posture_telemetry_only:
+            return torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+        return None
+
+    def _reward_penalty_a2_v22_excess_posture(self):
+        zero = self._a2_v22_reward_gate("penalty_a2_v22_excess_posture")
+        if zero is not None:
+            return zero
+        if not self._a2_v22_posture_enabled:
+            raise RuntimeError("penalty_a2_v22_excess_posture requires a2_v22_posture_enabled=true.")
+        return v22_excess_posture_penalty(
+            command_pitch=self._a2_v22_command_pitch,
+            command_roll=self._a2_v22_command_roll,
+            nominal_pitch=self._a2_v22_nominal_pitch,
+            nominal_roll=self._a2_v22_nominal_roll,
+            posture_need=self._a2_v22_posture_need_active.to(self._a2_v22_command_pitch.dtype),
+        )
+
+    def _reward_penalty_a2_v22_posture_saturation(self):
+        zero = self._a2_v22_reward_gate("penalty_a2_v22_posture_saturation")
+        if zero is not None:
+            return zero
+        return v22_saturation_penalty(self._a2_v22_command_pitch, self._a2_v22_command_roll)
+
+    def _reward_a2_v22_posture_feasibility(self):
+        zero = self._a2_v22_reward_gate("a2_v22_posture_feasibility")
+        if zero is not None:
+            return zero
+        if not self._a2_v22_posture_enabled:
+            raise RuntimeError("a2_v22_posture_feasibility requires a2_v22_posture_enabled=true.")
+        hinge_vel = self._get_door_joint_vel("v22 posture feasibility", 1)[:, 0].to(
+            self._a2_v22_command_pitch.dtype
+        )
+        return v22_posture_feasibility_reward(
+            posture_need=self._a2_v22_posture_need_active.to(self._a2_v22_command_pitch.dtype),
+            valid_hold=self._get_a2_hold_streak_ok_mask(),
+            hinge_velocity=hinge_vel,
+            arm_margin_quality=self._a2_v22_arm_margin_quality,
+            arc_tracking_quality=self._a2_v20_arc_tracking_quality.to(
+                self._a2_v22_command_pitch.dtype
+            ),
+        )
+
+    def _reward_a2_v22_clearance_success(self):
+        zero = self._a2_v22_reward_gate("a2_v22_clearance_success")
+        if zero is not None:
+            return zero
+        if not self._a2_v22_clearance_enabled:
+            raise RuntimeError("a2_v22_clearance_success requires a2_v22_clearance_enabled=true.")
+        emit = self._a2_v22_clearance_success & ~self._a2_v22_clearance_awarded
+        self._a2_v22_clearance_awarded |= emit
+        return emit.to(self._a2_v22_command_pitch.dtype)
+
+    def _reward_a2_v22_controlled_fling(self):
+        zero = self._a2_v22_reward_gate("a2_v22_controlled_fling")
+        if zero is not None:
+            return zero
+        if not self._a2_v22_clearance_enabled:
+            raise RuntimeError("a2_v22_controlled_fling requires a2_v22_clearance_enabled=true.")
+        dtype = self._a2_v22_command_pitch.dtype
+        low, high = v22_fling_band_tensors(
+            self._a2_v22_free_return_class_index, self._a2_v22_command_pitch.device, dtype
+        )
+        release_velocity = self._a2_v22_release_hinge_velocity
+        in_band = (
+            ~torch.isnan(release_velocity)
+            & (release_velocity >= low)
+            & (release_velocity <= high)
+        )
+        emit = (
+            self._a2_v22_fling_eligible
+            & in_band
+            & ~self._a2_v22_unsafe_release
+            & ~self._a2_v22_fling_awarded
+        )
+        self._a2_v22_fling_awarded |= emit
+        return emit.to(dtype)
+
+    def _reward_penalty_a2_v22_unsafe_release(self):
+        zero = self._a2_v22_reward_gate("penalty_a2_v22_unsafe_release")
+        if zero is not None:
+            return zero
+        if not self._a2_v22_clearance_enabled:
+            raise RuntimeError("penalty_a2_v22_unsafe_release requires a2_v22_clearance_enabled=true.")
+        emit = self._a2_v22_unsafe_release & ~self._a2_v22_unsafe_release_awarded
+        self._a2_v22_unsafe_release_awarded |= emit
+        return emit.to(self._a2_v22_command_pitch.dtype)
+
     def _reward_penalty_upper_body_dof_vel(self):
         return torch.sum(self.simulator.dof_vel[:, self._upper_non_finger_dof_idx] ** 2, dim=-1)
 
@@ -13088,6 +13849,7 @@ class DoorPregrasp(
         self.log_dict["a2_root_yaw_mean"] = rpy[:, 2].mean()
         self.log_dict["a2_root_roll_mean"] = rpy[:, 0].mean()
         self.log_dict["a2_root_pitch_mean"] = rpy[:, 1].mean()
+        self._log_a2_v22_telemetry()
         self.log_dict["a2_target_root_distance_mean"] = target_root_distance.mean()
         self.log_dict["a2_doorframe_contact_force_mean"] = door_frame_contact_force.mean()
         self.log_dict["a2_doorframe_contact_frac"] = (
@@ -14192,6 +14954,11 @@ class DoorPregrasp(
                     "door_arm_panel_normal_force_per_filter": selected_door_arm_panel_force_per_filter[idx],
                     "door_arm_panel_normal_force_total": float(
                         selected_door_arm_panel_force_total[idx]
+                    ),
+                    **(
+                        self._a2_v22_trace_fields(int(env_id))
+                        if getattr(self, "_a2_v22_enabled", False)
+                        else {}
                     ),
                 }
             )
@@ -21751,6 +22518,7 @@ class DoorPregrasp(
             self._a2_stage1_root_height_sum[env_ids] = 0.0
             self._a2_stage1_root_height_count[env_ids] = 0
             self._a2_v20_send_ready[env_ids] = False
+            self._reset_a2_v22_state(env_ids)
             if cfg is not None and cfg.get("v20_arc_probe_enabled", False):
                 self._a2_v20_arc_probe_handoff_streak[env_ids] = 0
                 self._a2_v20_arc_probe_handoff_ready[env_ids] = False
@@ -22107,6 +22875,9 @@ class DoorPregrasp(
         upper_dof_overspeed = dof_overspeed & not_just_resetted
         self._mark_terminal_reason("upper_dof_overspeed", upper_dof_overspeed)
         self.reset_buf |= upper_dof_overspeed
+
+        if getattr(self, "_a2_v22_enabled", False):
+            self._a2_v22_upper_dof_overspeed |= upper_dof_overspeed
 
         if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
             terminal_reason_bufs = getattr(self, "_terminal_reason_bufs", None)

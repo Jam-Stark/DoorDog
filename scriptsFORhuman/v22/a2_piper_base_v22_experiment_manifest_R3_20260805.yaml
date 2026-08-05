@@ -1,0 +1,437 @@
+schema: a2_piper_base_v22_experiment_manifest_v3
+plan_id: base_v22_posture_clearance_force_routing_v3
+execution_id: base_v22_execution_v3
+date_hkt: '2026-08-05'
+repository: Jam-Stark/DoorDog
+branch: A2_Piper
+
+supersedes:
+  plan_id: base_v22_posture_clearance_force_routing_v2
+  execution_id: base_v22_execution_v2
+  manifest_path: scriptsFORhuman/v22/a2_piper_base_v22_experiment_manifest_revision2_20260805.yaml
+  plan_path: scriptsFORhuman/v22/a2_piper_base_v22_posture_clearance_force_routing_randomization_plan_20260805.md
+  relationship: revision_supersedes_without_rewriting_historical_evidence
+  revision_2_files_modified: false
+
+plan_document: scriptsFORhuman/a2_piper_base_v22_posture_clearance_force_routing_plan_R3_20260805.md
+change_log: scriptsFORhuman/v22/a2_piper_base_v22_R3_change_log_20260805.md
+
+scientific_base_commit: 89c6538ad274ab6d1256389e3f2b3ceefd68d98a
+scientific_base_note: or a direct descendant whose additional changes are repository housekeeping only
+
+# ---------------------------------------------------------------------------
+# Readiness. No formal training may start while formal_training_ready is false.
+# ---------------------------------------------------------------------------
+formal_training_ready: false
+formal_training_ready_requires:
+- V22_POSTURE_GATE_FREEZE.json exists and is hashed, OR a signed POSTURE_GATES_REPORT_ONLY waiver
+- V22_HINGE_RANGE_FREEZE.json exists and is hashed
+- V22_ACTION_SEMANTICS.json exists and is hashed
+- source lock recorded
+- warm-start checkpoint hash verified on host
+- resolved per-cell configs hashed
+- runtime evidence schemas registered
+
+legal_physical_gpus: [0, 1]
+forbidden_physical_gpus: [2, 3, 4, 5, 6, 7]
+gpu_policy_note: >-
+  GPU2/GPU3 are leased to pull-v0 by the 2026-08-04 lease amendment; GPU4-7 are
+  occupied by another tenant. An idle nvidia-smi reading is not a lease and does
+  not authorize scheduling.
+
+warm_start:
+  path: logs_rl/a2_piper_full_stage_a2_base/base_v21B/formal/B1/model_step_000500.pt
+  sha256: d2732c148dd3176abafbf3a5c9425d4a34c17b352e8362bbfb38c8ac960d8421
+  sha256_verified_on_worker_host: true
+  verified_date_hkt: '2026-08-05'
+  saved_config_sha256: 70ccd1b43a07574d36702947c706b5ef80184fffd0d2853cf188c9286a959a79
+  load_mode: policy_only
+
+fixed:
+  theta_send_rad: 0.9
+  release_hinge_rad: 1.6
+  stage4_to5_hinge_rad: 1.25
+  crossing_plane_m: 0.0
+  crossing_debounce_steps: 2
+  arm_profile: ARM_V20
+  arm_effort_limits_nm: [100, 100, 100, 100, 100, 100]
+  piper_velocity_limits: unchanged
+  kp_kd: unchanged
+  stage_time: unchanged
+  action_dim: 12
+  actor_observation_dim: unchanged
+  legacy_pitch_roll_scale_rad: 0.40
+  a2_base_policy_sha256: 783c65386ce49127a17ec261794ed3c7002309e293e3cb88562dee922c894b1b
+  urdf_sha256: d02cdacdcd4aaf1480b52ba9a6a62f5e9bbd040036a796154dbff70d1391a1d5
+  formal_wave_a_legacy_scale_ablation: removed
+
+# ---------------------------------------------------------------------------
+# POSTURE GATES -- unresolved by type, not by omission.
+# Repairs revision-2 absolute thresholds that measurement showed unreachable.
+# ---------------------------------------------------------------------------
+posture:
+  posture_gate_state: P0_CALIBRATION_REQUIRED
+  posture_baseline_artifact: null
+  posture_denominator_adjudication_artifact: null
+  posture_gate_freeze_artifact: null
+  posture_need_state: null
+
+  withdrawn_revision2_absolute_gates:
+    reason: >-
+      Measured on the exact frozen B1@500 warm start over all available frames, all six
+      revision-2 posture gates fail in both STANDARD and RELAXED_1; roll p50 by 6.4x.
+      Posture-economy shaping is additionally a closed dead end in this project
+      (v16 -0.15 and v17 -1.5 ~12% of income both failed; P2 proved pitch load-bearing).
+    withdrawn:
+      ordinary_pitch_p50_max_rad: [0.10, 0.15]
+      ordinary_pitch_p95_max_rad: [0.25, 0.30]
+      ordinary_roll_p50_max_rad: [0.06, 0.10]
+      ordinary_roll_p95_max_rad: [0.18, 0.22]
+      ordinary_pitch_saturation_max: [0.08, 0.15]
+      status: NOT_PREREGISTERED_RELEASE_BLOCKERS
+
+  diagnostic_measurement_non_binding:
+    provenance: trace fields root_pitch / root_roll = ACHIEVED trunk angle, NOT command
+    scope: all frames, not the ordinary_need_negative denominator
+    binding: false
+    source: logs_eval/base_v21B/postformal_20260804_route_b_b1_pooled48_r24
+    achieved_pitch_p50_rad: 0.2358
+    achieved_pitch_p95_rad: 0.3524
+    achieved_roll_p50_rad: 0.3840
+    achieved_roll_p95_rad: 0.4296
+    achieved_roll_saturation_at_0p95_of_0p40: 0.569
+    v20_g4_step2500_reference:
+      achieved_pitch_p50_rad: 0.2837
+      achieved_roll_p50_rad: 0.3185
+      achieved_roll_saturation: 0.262
+    prohibition: >-
+      These values may not be converted into absolute gates such as roll p50 <= 0.30 or
+      pitch p50 <= 0.20. They justify withdrawing the revision-2 gates only.
+
+  p0_posture_baseline:
+    node_id: P0-POSTURE-BASELINE
+    raw_producer:
+      checkpoint: frozen B1@500, exact
+      optimizer_update: false
+      action_intervention_primary_baseline: none
+      posture_need: telemetry_only_no_reward_no_action_effect
+    ordinary_need_negative_frame_definition:
+    - scenario belongs to E0_CORE / ordinary16
+    - stage is OPEN or SWING
+    - valid task-space/reference state
+    - no body-assist eligibility and no body contact
+    - not a terminal-only frame
+    - posture_need_score <= 0.35
+    required_published_fields:
+    - total_ordinary_frames
+    - ordinary_need_negative_frames
+    - contributing_episode_count
+    - fraction_of_ordinary_frames_need_negative
+    - per_episode_and_pooled_command_distributions
+    - commanded_pitch_roll_separately
+    - achieved_pitch_roll_separately
+    - command_saturation_rates
+    - posture_need_component_prevalences_individually
+    - source_checkpoint_config_hashes
+    binding_denominator_minimums:
+      contributing_episodes_min: 8
+      contributing_episodes_denominator: 16
+      ordinary_need_negative_frames_min: 1000
+    insufficient_denominator_state: REPORT_ONLY_INSUFFICIENT_DENOMINATOR
+    insufficient_denominator_effect: >-
+      Posture gates must not block pilot, formal training, Route A, Route B, or a
+      research-complete result.
+    vacuity_threshold_fraction_of_valid_ordinary_opening_frames: 0.25
+    vacuity_state: POSTURE_NEED_OVERACTIVE_OR_VACUOUS
+    vacuity_effect: >-
+      Worker may continue; posture_need precision and ordinary-posture release claims
+      become report-only until corrected in the authorized adaptation window.
+    outputs:
+    - V22_POSTURE_BASELINE.json
+    - V22_POSTURE_DENOMINATOR_ADJUDICATION.json
+    - V22_POSTURE_GATE_FREEZE.json
+    consumes_method_amendment: false
+    consumes_waiver_budget: false
+    consumes_window_c: false
+
+  posture_need_precision_rule:
+    binding_only_if_labels_independent: true
+    independent_label_source: P0-B frozen causal intervention (zero/clamped posture vs unchanged policy)
+    if_labels_derived_from_posture_need_signals: CIRCULAR_REPORT_ONLY
+
+  gate_form: same_denominator_warm_start_relative
+  gate_side: command
+  standard:
+    pitch_command_p50_max_multiplier_of_B0: 0.85
+    roll_command_p50_max_multiplier_of_B0: 0.80
+    roll_saturation_max_multiplier_of_B0: 0.70
+    pitch_p95_max_offset_rad_over_B0: 0.05
+    roll_p95_max_offset_rad_over_B0: 0.05
+    ordinary_goal_regression_max_of_16: 1
+    ordinary_clearance_success_regression_max_of_16: 1
+  relaxed_1:
+    pitch_command_p50_max_multiplier_of_B0: 0.95
+    roll_command_p50_max_multiplier_of_B0: 0.90
+    roll_saturation_max_multiplier_of_B0: 0.85
+    pitch_p95_max_offset_rad_over_B0: 0.08
+    roll_p95_max_offset_rad_over_B0: 0.08
+    ordinary_goal_regression_max_of_16: 2
+    ordinary_clearance_success_regression_max_of_16: 2
+  refinement_rule: >-
+    Formulas may be refined only by citing a stronger measured basis. They may not be
+    replaced by new unmeasured absolute values.
+
+# ---------------------------------------------------------------------------
+# HINGE RANDOMIZATION -- ranges unfrozen pending P0-D.
+# ---------------------------------------------------------------------------
+randomization:
+  hinge_randomization_state: P0_D_REQUIRED_UNFROZEN
+  final_bucket_ranges: null
+  final_bucket_weights: null
+  hinge_range_freeze_artifact: null
+  freeze_artifact_path: logs_eval/base_v22/locks/V22_HINGE_RANGE_FREEZE.json
+  provisional_candidate_ranges_location: >-
+    plan Appendix A, labelled PROVISIONAL_CANDIDATE_RANGES_NOT_AUTHORIZED_FOR_FORMAL_TRAINING
+
+  retained_axes:
+    handle_height_m: [0.85, 1.10]
+    door_mass_kg: [80, 160]
+
+  new_hinge_axes:
+  - hinge_drive_damping_native
+  - hinge_drive_stiffness_native
+  - hinge_drive_max_force_nm
+
+  worker_adjustable_bounds:
+    damping_native: [10, 200]
+    stiffness_native: [0.5, 30]
+    max_force_nm: [2.5, 24]
+    mass_kg: [80, 180]
+    handle_height_m: [0.85, 1.10]
+
+  evaluation_manifests:
+    state: CONSTRUCTED_AFTER_P0_D
+    names: [E0_CORE16, E1_DAMPING16, E2_REBOUND16, E3_RESISTIVE16, E4_COMPOUND16]
+    rows_each: 16
+    immutable_after: window_A
+
+  source_execution_gap:
+    verified_on_host: true
+    hinge_damping_is_randomizable: false
+    hinge_damping_read_path: door.py:971 hinge_drive.GetDampingAttr().Get()
+    hinge_damping_consumed_at: door_open_a2_base.py:6347
+    rand_hinge_drive_stiffness_exists: true
+    rand_hinge_drive_max_force_exists: true
+    rand_hinge_drive_damping_exists: false
+    metadata_binds_damping: false
+    traces_carry_damping_and_stiffness: false
+    revision_2_assumed_damping_value: 50.0
+    revision_2_assumed_damping_verified: false
+
+  required_plumbing:
+    door_py:
+    - add hinge_drive_damping_range
+    - add rand_hinge_drive_damping
+    - validate finite non-negative values
+    - set runtime USD drive damping from sampled/fixed value
+    - serialize damping into metadata
+    - restore damping from metadata
+    generate_door_assets_py:
+    - generate and export damping
+    - include damping in metadata.json
+    scenario_cfg_isaacsim_py:
+    - bind deterministic damping, stiffness, and max force per scenario
+    - validate exact ordered values and hashes
+    evidence_export:
+    - door_hinge_drive_damping_native
+    - door_hinge_drive_stiffness_native
+    - door_hinge_drive_max_force_nm
+    - door_hinge_drive_target_rad
+    - measured_free_return_class
+    - registered_hinge_bucket
+    binding_rule: >-
+      No accepted record may infer bucket membership from a scenario name alone; runtime
+      values must match the signed scenario manifest.
+
+  p0_d:
+    node_id: P0-D
+    runtime_attributes_to_read_first:
+    - hinge_drive.GetDampingAttr().Get()
+    - hinge_drive.GetStiffnessAttr().Get()
+    - hinge_drive.GetMaxForceAttr().Get()
+    probes:
+    - free_return_from_fixed_angle_1.20_rad
+    - fixed_external_opening_torque_5_10_15_20_nm
+    - damping_stiffness_maxforce_attribution
+    response_classes: [CORE, HIGH_DAMPING, FAST_REBOUND, HIGH_RESISTIVE, COMPOUND, UNCLASSIFIED]
+    outputs:
+    - V22_HINGE_RUNTIME_BASELINE.json
+    - V22_HINGE_DYNAMICS_PROBE.json
+    - V22_HINGE_RANGE_FREEZE.json
+    range_selection_authorized: true
+    consumes_window_c: false
+    consumes_waiver_budget: false
+
+clearance_strategies: [FLING_CLEARANCE, HAND_HOLD_CLEARANCE, BODY_HOLD_CLEARANCE]
+clearance_policy:
+  minimum_fling_rate: null
+  generic_coast_penalty: false
+  fling_may_fail_on_hard_doors: true
+  fast_rebound_vs_high_damping_distinction_preserved: true
+
+body_assist:
+  approved_bodies: [trunk, FL_thigh, FR_thigh]
+  forbidden_bodies: [rear_thighs, calves, feet, arm_links, gripper_links, sensor_head, door_frame, handle]
+  requires_arm_plus_posture_failure_latch: true
+  requires_posture_attempt_first: true
+  arm_failure_persistence_steps: 15
+  posture_attempt_persistence_steps: 10
+  adjudicated_only_if_e4_arm_failure_denominator_min_of_16: 8
+  insufficient_denominator_result: BODY_ASSIST_NOT_TRIGGERED
+  insufficient_denominator_blocks_round: false
+  frame_contact_counts_as_assist: false
+  torque_authority: ESTIMATE_ONLY_ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE
+  real_hardware_force_claim_permitted: false
+
+training_common:
+  num_envs: 4096
+  num_batches: 2500
+  save_frequency: 250
+  checkpoint_load_mode: policy_only
+
+formal_cells:
+- {cell: G1, wave: 1, gpu: 0, seed: 0, posture: conditional, randomization: current_v21, body_assist: false}
+- {cell: G2, wave: 1, gpu: 1, seed: 1, posture: conditional, randomization: current_v21, body_assist: false}
+- {cell: G3, wave: 2, gpu: 0, seed: 0, posture: selected, randomization: v22_H0_H4_frozen_by_P0_D, body_assist: false}
+- {cell: G4, wave: 2, gpu: 1, seed: 1, posture: selected, randomization: v22_H0_H4_frozen_by_P0_D, body_assist: false}
+- {cell: G5, wave: 3, gpu: 0, seed: 0, posture: selected, randomization: v22_H0_H4_frozen_by_P0_D, body_assist: true}
+- {cell: G6, wave: 3, gpu: 1, seed: 1, posture: selected, randomization: v22_H0_H4_frozen_by_P0_D, body_assist: true}
+
+wave_3_skippable_if:
+- P0-E unsafe
+- no arm-failure denominator
+- body assist scientifically irrelevant under the frozen envelope
+
+schedule:
+  formal_wave_hours_reference: 17
+  formal_wave_hours_reference_basis: >-
+    v21-B base_v21B/formal/B1 step250->step2500 = 17h07m; B4 = 16h49m
+  wave_1_hours: 17
+  wave_2_hours: 17
+  mandatory_formal_subtotal_hours: 34
+  wave_3_hours_conditional: 17
+  maximum_formal_subtotal_hours: 51
+  excludes:
+  - P0 source work
+  - posture baseline
+  - dynamics characterization
+  - pilot
+  - Route A checkpoint evaluation
+  - pooled48
+  - Dynamics80
+  - holdout64
+  - render
+  liveness_required: true
+  overrun_is_not_failure_if:
+  - checkpoints continue to advance
+  - metrics remain finite
+  - GPU process remains live
+  - no natural-exit or evidence error occurs
+
+# ---------------------------------------------------------------------------
+# RELEASE GATE
+# ---------------------------------------------------------------------------
+release_goal_pooled48: 46
+release_goal_pooled48_denominator: 48
+release_goal_pooled48_waivable: false
+release_goal_note: >-
+  Restored to the standing north-star red-line. Revision 2 had set 45. Neither RELAXED_1
+  nor WORKER_ADAPTED may lower it for a release claim.
+research_continuation_below_release_goal_label: RESEARCH_CONTINUATION_BELOW_RELEASE_GOAL
+labels_forbidden_below_release_goal:
+- V22_POSTURE_CLEARANCE_RELEASE
+- V22_FORCE_ROUTING_RELEASE
+valid_non_release_terminal_labels:
+- V22_RESEARCH_PASS_NO_RELEASE
+- V22_RANDOMIZATION_BOUNDARY_IDENTIFIED
+- V22_POSTURE_CONDITIONALLY_USEFUL_NO_RELEASE
+- V22_BODY_ASSIST_NO_INCREMENT
+- V22_POSTURE_CONDITIONALLY_USEFUL
+- V22_POSTURE_MECHANISM_NULL
+- V22_CONTROLLED_FLING_USEFUL
+- V22_HOLD_OPEN_DOMINANT
+- V22_BODY_ASSIST_NOT_TRIGGERED
+- V22_BODY_ASSIST_UNSAFE
+- V22_DAMPING_BOUNDARY_IDENTIFIED
+- V22_REBOUND_BOUNDARY_IDENTIFIED
+- V22_RESISTIVE_BOUNDARY_IDENTIFIED
+
+acceptance_non_waivable:
+- strict provenance
+- finite data
+- legal GPUs physical 0/1 only
+- no hidden control
+- no frame-assist
+- no unidentified/forbidden body assist
+- no source/checkpoint/config substitution
+- pooled48 goal >= 46/48 for any release claim
+
+acceptance_standard_measured_and_retained:
+  release_velocity_p95_max_radps: 0.75
+  release_velocity_p95_measured_warm_start: 0.486
+  post_release_panel_robot_collision_max: 0
+  post_release_collision_measured_warm_start: '0/43'
+  overspeed_max_of_48: 2
+  overspeed_base_rate_measured: 0.029
+  pooled_supported_crossing_min_of_48: 44
+  pooled_clearance_success_min_of_48: 44
+  unsafe_release_max_of_48: 2
+  holdout_goal_min_of_64: 59
+  holdout_supported_crossing_min_of_64: 58
+  dynamics_manifest_minimums:
+    E0_goal_of_16: 15
+    E1_goal_of_16: 13
+    E2_clearance_success_of_16: 13
+    E3_goal_of_16: 12
+    E4_goal_of_16_or_clean_boundary: 9
+  body_assist_if_adjudicated:
+    g5_g3_or_g6_g4_gain_min_of_16: 3
+    ordinary_body_assist_max_of_16: 1
+    unauthorized_body_contact_max: 0
+    contact_p95_max_n: 180
+    contact_max_n: 300
+
+worker_authority:
+  profiles: [STANDARD, RELAXED_1, WORKER_ADAPTED]
+  exploratory_continuation_allowed: true
+  hard_gates_waivable: false
+  release_goal_waivable: false
+  adaptation_windows: [A, B, C]
+  method_amendments_max: 1
+  waiver_artifact_path: logs_eval/base_v22/locks/V22_GATE_WAIVER_<ID>.json
+  planned_admission_nodes_exempt_from_budget:
+  - P0-POSTURE-BASELINE
+  - P0-D range selection
+
+attempt_limits:
+  implementation_candidates: 2
+  pilot_after_optimizer_progress: 1
+  range_adjustments: 1
+  profile_matrix_adaptations: 1
+  post_wave_method_amendments: 1
+  formal_processes_per_cell_cohort: 1
+
+promotion_requires_artifact_hashes:
+- V22_POSTURE_GATE_FREEZE.json
+- V22_HINGE_RANGE_FREEZE.json
+- source_lock
+- warm_start_checkpoint
+- resolved_configs
+- action_semantics
+- runtime_evidence_schemas
+promotion_override_requires_signed_waiver: POSTURE_GATES_REPORT_ONLY
+
+artifact_root: logs_eval/base_v22
+training_root: logs_rl/a2_piper_full_stage_a2_base/base_v22
+launcher_root: logs_rl/launchers/base_v22
+lock_root: logs_eval/base_v22/locks

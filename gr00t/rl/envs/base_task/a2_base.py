@@ -542,6 +542,61 @@ class A2Base(LeggedRobotBase):
 
         return self.obs_buf_dict, self.rew_buf, self.reset_buf, self.extras
 
+    def _apply_a2_v22_posture_intervention(self, raw_base_action):
+        """Apply a frozen v22 posture intervention to the pitch/roll action slice.
+
+        This is an explicit, declared evaluation-time intervention used by the
+        P0-A action-semantics probe and the P0-B causal posture experiment.  It is
+        never a training-time control path: any config that enables it must also
+        declare ``a2_v22_posture_intervention_probe=true`` so an intervened run
+        can never be mistaken for an unmodified policy rollout.
+        """
+        mode = self.config.get("a2_v22_posture_intervention")
+        if mode is None:
+            return raw_base_action
+        if self.config.get("a2_v22_posture_intervention_probe") is not True:
+            raise RuntimeError(
+                "a2_v22_posture_intervention requires "
+                "env.config.a2_v22_posture_intervention_probe=true."
+            )
+        if mode == "legacy":
+            return raw_base_action
+        intervened = raw_base_action.clone()
+        if mode == "zero":
+            intervened[:, 3:5] = 0.0
+            return intervened
+        if mode == "clamp":
+            bounds = self.config.get("a2_v22_posture_intervention_clamp_rad")
+            if (
+                isinstance(bounds, str)
+                or bounds is None
+                or len(bounds) != 2
+                or any(float(item) <= 0.0 for item in bounds)
+            ):
+                raise RuntimeError(
+                    "clamp intervention requires "
+                    "env.config.a2_v22_posture_intervention_clamp_rad=[pitch_rad, roll_rad]."
+                )
+            pitch_limit = float(bounds[0]) / self._a2_body_pitch_roll_scale
+            roll_limit = float(bounds[1]) / self._a2_body_pitch_roll_scale
+            intervened[:, 3] = raw_base_action[:, 3].clamp(-pitch_limit, pitch_limit)
+            intervened[:, 4] = raw_base_action[:, 4].clamp(-roll_limit, roll_limit)
+            return intervened
+        if mode == "fixed":
+            fixed = self.config.get("a2_v22_posture_intervention_fixed_rad")
+            if isinstance(fixed, str) or fixed is None or len(fixed) != 2:
+                raise RuntimeError(
+                    "fixed intervention requires "
+                    "env.config.a2_v22_posture_intervention_fixed_rad=[pitch_rad, roll_rad]."
+                )
+            intervened[:, 3] = float(fixed[0]) / self._a2_body_pitch_roll_scale
+            intervened[:, 4] = float(fixed[1]) / self._a2_body_pitch_roll_scale
+            return intervened
+        raise RuntimeError(
+            "a2_v22_posture_intervention must be one of legacy/zero/clamp/fixed; "
+            f"got {mode!r}."
+        )
+
     def _step_a2_base(self, actor_state):
         actions = actor_state["actions"]
         if actions.shape[-1] != self._a2_high_level_action_dim + self._a2_leg_action_dim:
@@ -558,6 +613,7 @@ class A2Base(LeggedRobotBase):
         if capture_eval_env_action is not None:
             capture_eval_env_action(high_level_actions)
         raw_base_action = high_level_actions[:, layout["base_start"] : layout["base_end"]]
+        raw_base_action = self._apply_a2_v22_posture_intervention(raw_base_action)
         arm_actions = high_level_actions[:, layout["arm_start"] : layout["arm_end"]]
         gripper_primitive = high_level_actions[
             :, layout["gripper_index"] : layout["gripper_index"] + 1

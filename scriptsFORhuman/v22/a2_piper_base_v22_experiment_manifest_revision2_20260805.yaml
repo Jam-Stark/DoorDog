@@ -1,0 +1,197 @@
+schema: a2_piper_base_v22_experiment_manifest_v2
+plan_id: base_v22_posture_clearance_force_routing_v2
+execution_id: base_v22_execution_v2
+date_hkt: '2026-08-05'
+repository: Jam-Stark/DoorDog
+branch: A2_Piper
+scientific_base_commit: 89c6538ad274ab6d1256389e3f2b3ceefd68d98a
+legal_physical_gpus:
+- 0
+- 1
+warm_start:
+  path: logs_rl/a2_piper_full_stage_a2_base/base_v21B/formal/B1/model_step_000500.pt
+  sha256: d2732c148dd3176abafbf3a5c9425d4a34c17b352e8362bbfb38c8ac960d8421
+  saved_config_sha256: 70ccd1b43a07574d36702947c706b5ef80184fffd0d2853cf188c9286a959a79
+  load_mode: policy_only
+fixed:
+  theta_send_rad: 0.9
+  release_hinge_rad: 1.6
+  stage4_to5_hinge_rad: 1.25
+  crossing_plane_m: 0.0
+  crossing_debounce_steps: 2
+  arm_profile: ARM_V20
+  arm_effort_limits_nm:
+  - 100
+  - 100
+  - 100
+  - 100
+  - 100
+  - 100
+  stage_time: unchanged
+  action_dim: 12
+  actor_observation_dim: unchanged
+randomization:
+  handle_height_m:
+  - 0.85
+  - 1.1
+  door_mass_kg:
+  - 80
+  - 160
+  buckets:
+    H0_CORE:
+      weight: 0.55
+      damping_native:
+      - 30
+      - 70
+      stiffness_native:
+      - 1
+      - 10
+      max_force_nm:
+      - 3
+      - 12
+    H1_HIGH_DAMPING:
+      weight: 0.15
+      damping_native:
+      - 70
+      - 120
+      stiffness_native:
+      - 2
+      - 10
+      max_force_nm:
+      - 6
+      - 16
+    H2_FAST_REBOUND:
+      weight: 0.15
+      damping_native:
+      - 15
+      - 40
+      stiffness_native:
+      - 10
+      - 20
+      max_force_nm:
+      - 10
+      - 18
+    H3_HIGH_RESISTIVE_TORQUE:
+      weight: 0.1
+      damping_native:
+      - 40
+      - 80
+      stiffness_native:
+      - 6
+      - 16
+      max_force_nm:
+      - 14
+      - 20
+    H4_COMPOUND_EXTREME:
+      weight: 0.05
+      damping_native:
+      - 90
+      - 150
+      stiffness_native:
+      - 14
+      - 24
+      max_force_nm:
+      - 16
+      - 22
+      mass_kg:
+      - 140
+      - 160
+      handle_height_m:
+      - 0.85
+      - 1.1
+  worker_adjustable_bounds:
+    damping_native:
+    - 10
+    - 200
+    stiffness_native:
+    - 0.5
+    - 30
+    max_force_nm:
+    - 2.5
+    - 24
+    mass_kg:
+    - 80
+    - 180
+    handle_height_m:
+    - 0.85
+    - 1.1
+  evaluation_manifests:
+  - E0_CORE16
+  - E1_DAMPING16
+  - E2_REBOUND16
+  - E3_RESISTIVE16
+  - E4_COMPOUND16
+clearance_strategies:
+- FLING_CLEARANCE
+- HAND_HOLD_CLEARANCE
+- BODY_HOLD_CLEARANCE
+training_common:
+  num_envs: 4096
+  num_batches: 2500
+  save_frequency: 250
+  checkpoint_load_mode: policy_only
+formal_cells:
+- cell: G1
+  wave: 1
+  gpu: 0
+  seed: 0
+  posture: conditional
+  randomization: current
+  body_assist: false
+- cell: G2
+  wave: 1
+  gpu: 1
+  seed: 1
+  posture: conditional
+  randomization: current
+  body_assist: false
+- cell: G3
+  wave: 2
+  gpu: 0
+  seed: 0
+  posture: selected
+  randomization: v22_H0_H4
+  body_assist: false
+- cell: G4
+  wave: 2
+  gpu: 1
+  seed: 1
+  posture: selected
+  randomization: v22_H0_H4
+  body_assist: false
+- cell: G5
+  wave: 3
+  gpu: 0
+  seed: 0
+  posture: selected
+  randomization: v22_H0_H4
+  body_assist: true
+- cell: G6
+  wave: 3
+  gpu: 1
+  seed: 1
+  posture: selected
+  randomization: v22_H0_H4
+  body_assist: true
+worker_authority:
+  profiles:
+  - STANDARD
+  - RELAXED_1
+  - WORKER_ADAPTED
+  exploratory_continuation_allowed: true
+  hard_gates_waivable: false
+  adaptation_windows:
+  - A
+  - B
+  - C
+  method_amendments_max: 1
+attempt_limits:
+  implementation_candidates: 2
+  pilot_after_optimizer_progress: 1
+  range_adjustments: 1
+  profile_matrix_adaptations: 1
+  post_wave_method_amendments: 1
+  formal_processes_per_cell_cohort: 1
+artifact_root: logs_eval/base_v22
+training_root: logs_rl/a2_piper_full_stage_a2_base/base_v22
+launcher_root: logs_rl/launchers/base_v22

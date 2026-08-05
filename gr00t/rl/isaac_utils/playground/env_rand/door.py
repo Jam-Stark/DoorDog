@@ -39,6 +39,34 @@ from gr00t.rl.isaac_utils.playground.utils.usd_utils import (
 )
 
 
+LEGACY_HINGE_DRIVE_DAMPING = 50.0
+LEGACY_HINGE_DRIVE_STIFFNESS_RANGE = (1.0, 10.0)
+
+
+def _resolve_hinge_drive_scalar(
+    fixed: Optional[float],
+    sampling_range: Optional[tuple[float, float]],
+    legacy_default: Optional[float],
+    field_name: str,
+) -> float:
+    """Resolve a hinge-drive scalar from an exact value, a range, or the legacy default."""
+    if fixed is not None:
+        if isinstance(fixed, bool) or not isinstance(fixed, Real):
+            raise TypeError(f"{field_name} must be a real number, got {fixed!r}")
+        value = float(fixed)
+        if not np.isfinite(value) or value < 0.0:
+            raise ValueError(f"{field_name} must be finite and non-negative, got {value!r}")
+        return value
+    if sampling_range is not None:
+        value = _sample_uniform_range(tuple(sampling_range), f"{field_name}_range")
+        if value < 0.0:
+            raise ValueError(f"{field_name}_range must stay non-negative, got {value!r}")
+        return value
+    if legacy_default is None:
+        raise ValueError(f"{field_name} has no fixed value, no range, and no legacy default")
+    return float(legacy_default)
+
+
 def _sample_uniform_range(value: tuple[float, float], field_name: str) -> float:
     """Sample a finite, strictly ordered numeric range."""
     if not isinstance(value, tuple) or len(value) != 2:
@@ -66,6 +94,10 @@ class DoorSpawnerCfg(sim_utils.RigidObjectSpawnerCfg):
     door_open_io: list[Literal["in", "out"]] = ["in", "out"]
     door_weight: tuple[float, float] = (80.0, 120.0)
     hinge_drive_max_force_range: tuple[float, float] = (2.5, 4.5)
+    # v22 §5A: damping/stiffness become real random variables.  ``None`` keeps the
+    # historical fixed damping 50.0 / stiffness U(1, 10) used by v20/v21.
+    hinge_drive_damping_range: Optional[tuple[float, float]] = None
+    hinge_drive_stiffness_range: Optional[tuple[float, float]] = None
     handle_drive_max_force_range: tuple[float, float] = (1.0, 2.0)
     add_walls: bool = False
     wall_minimum_clearance_fblr: tuple[float, float, float, float] = (3.0, 3.0, 1.0, 1.0)
@@ -104,6 +136,7 @@ class DoorSpawnerCfg(sim_utils.RigidObjectSpawnerCfg):
     rand_spawn_hook: Optional[bool] = None
     rand_hinge_drive_max_force: Optional[float] = None
     rand_hinge_drive_stiffness: Optional[float] = None
+    rand_hinge_drive_damping: Optional[float] = None
     rand_handle_drive_max_force: Optional[float] = None
     rand_front: Optional[bool] = None
     rand_rear: Optional[bool] = None
@@ -505,11 +538,21 @@ def spawn_door(
         if cfg.rand_hinge_drive_max_force is None
         else cfg.rand_hinge_drive_max_force
     )
-    hinge_drive.GetDampingAttr().Set(50.0)
+    hinge_drive.GetDampingAttr().Set(
+        _resolve_hinge_drive_scalar(
+            cfg.rand_hinge_drive_damping,
+            cfg.hinge_drive_damping_range,
+            LEGACY_HINGE_DRIVE_DAMPING,
+            "hinge_drive_damping",
+        )
+    )
     hinge_drive.GetStiffnessAttr().Set(
-        np.random.uniform(1, 10.0)
-        if cfg.rand_hinge_drive_stiffness is None
-        else cfg.rand_hinge_drive_stiffness
+        _resolve_hinge_drive_scalar(
+            cfg.rand_hinge_drive_stiffness,
+            cfg.hinge_drive_stiffness_range or LEGACY_HINGE_DRIVE_STIFFNESS_RANGE,
+            None,
+            "hinge_drive_stiffness",
+        )
     )
     _update_joint_transform(stage, hinge_joint_prim_path, root_prim_path, panel_prim_path)
 
@@ -1115,6 +1158,7 @@ def get_deterministic_door_config(cfg: DoorSpawnerCfg, metadata: dict) -> DoorSp
     cfg.rand_spawn_hook = metadata["spawnHook"]
     cfg.rand_hinge_drive_max_force = metadata["hingeDriveMaxForce"]
     cfg.rand_hinge_drive_stiffness = metadata["hingeDriveStiffness"]
+    cfg.rand_hinge_drive_damping = metadata["hingeDriveDamping"]
     cfg.rand_handle_drive_max_force = metadata["handleDriveMaxForce"]
 
     if cfg.add_walls:

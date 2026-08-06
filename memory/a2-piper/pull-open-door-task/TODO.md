@@ -1,4 +1,4 @@
 # Pull-Open-Door Task TODO
 
-- 2026-08-05 19:00 HKT - P2 initialization UNRESOLVED (inconsistent across seeds). W used as operational default per D.4. P3 hook × finger-effort result: small seed-dependent hook benefit for warm-start (seed1 E1 +6pp, E3|E2 +14pp; seed0 no difference). Hooks are a weak positive factor for warm-start, not a strong mechanism.
-- 2026-08-05 19:00 HKT - Next phase options: (a) matched 10N vs 45N finger-effort adaptation (fork table's P1-based condition, P2-informed); (b) pull-specific P0-F zero-shot fingerprint; (c) review the overall pull-v0 round and decide next steps. Requires user direction.
+- 2026-08-06 14:00 HKT - P4 capability boundary: E6/E7 (path reversal, whole-body clear) never reached by any seed in any phase (P2/P3/P4). The pull policy can acquire/capture/progress/clearance-decide but cannot reverse path + clear whole body. Next direction: investigate why E6/E7 is unreachable (path reversal mechanics, doorway clearance geometry, or reward/curriculum design for the clear phase). Requires user direction on scope.
+- 2026-08-06 14:00 HKT - seed1 instability: E2-E5 oscillates between 2/16 and 16/16 across checkpoints. Uniform across strata — not explained by spawnHook or hinge force. Possible causes: training instability, reward landscape, or seed-specific basin. Consider matched replicates or longer training to resolve.

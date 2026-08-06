@@ -1,5 +1,5 @@
 # @package _global_
-# User-approved c18 v19 runtime reconstruction; isolated from C-B/C-B2.
+# C-B2H-Pro P2 B1: fresh dual-D435 common-init source branch.
 defaults:
   - /algo: dagger_vision_distributed
   - /env: door_open_a2_base
@@ -11,12 +11,12 @@ defaults:
   - /obs: wbmanip/door_open_a2_base_dagger_triview
   - /opt: wandb
   - override /trainer: trl_distill_a2_base_api
-exp_base: cb2h_v19_reconstruction
-exp_var: v19_cb2h_dualraw_dagger_lstm
-experiment_name: cb2h_v19_reconstruction_v19_cb2h_dualraw_dagger_lstm
-experiment_dir: ./logs_rl/cb2h_v19
+
+exp_base: cb2h_pro_p2
+exp_var: v19_p2_b1
+experiment_name: cb2h_pro_p2_v19_b1
+project_name: a2_piper_open_door_cb2h_pro_p2_b1
 num_envs: 64
-project_name: a2_piper_open_door_v19_cb2h_student_distill
 headless: True
 enable_cameras: True
 domain_rand:
@@ -26,8 +26,46 @@ teacher_config_path: REQUIRED_A2_V19_TEACHER_CONFIG.yaml
 teacher_manifest_path: REQUIRED_A2_V19_TEACHER_MANIFEST.json
 callbacks:
   model_save: {save_frequency: 500}
+
+# B1 intentionally has no Head/context observation key or Head encoder.
+obs:
+  obs_dict:
+    actor_obs: [base_ang_vel, projected_gravity, a2_student_dof_pos, a2_student_dof_vel, actions, delta_actions, a2_base_command, a2_base_command_raw]
+    vision_obs: [rgb_image]
+    camera_meta: [camera_meta]
+    teacher_obs: [dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos, base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions, gripper_handle_transform, a2_base_command_raw, a2_base_command]
+    critic_obs: [dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos, base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions, gripper_handle_transform, a2_base_command_raw, transition, complete, time_in_stage, actual_time_in_stage, total_time, a2_base_command]
+    a2_base_obs: [a2_base_obs]
+  obs_dims:
+    - base_ang_vel: 3
+    - projected_gravity: 3
+    - a2_student_dof_pos: 20
+    - a2_student_dof_vel: 20
+    - actions: 19
+    - delta_actions: 6
+    - a2_base_command: 5
+    - a2_base_command_raw: 5
+    - rgb_image: 497664
+    - camera_meta: 4
+    - dof_pos: 20
+    - relative_to_door: 9
+    - dof_vel: 20
+    - projected_gravity: 3
+    - door_dof_pos: 2
+    - base_lin_vel: 3
+    - hand_force: 6
+    - stage: "${eval:'len(${env.config.max_stage_time})'}"
+    - privileged_door_info: 8
+    - gripper_handle_transform: 18
+    - transition: 1
+    - complete: 1
+    - time_in_stage: 1
+    - actual_time_in_stage: 1
+    - total_time: 1
+    - a2_base_obs: 1620
+
 algo:
-  trl: {num_total_batches: 10000}
+  trl: {num_total_batches: 500}
   config:
     use_new_actor_critic: True
     use_dagger: True
@@ -60,56 +98,53 @@ algo:
       metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
       obs_dim: 1620
       action_dim: 12
-    network_load_dict:
-      teacher_actor:
-        path: ${teacher_actor_path}
     teacher_artifact:
       checkpoint_path: ${teacher_actor_path}
       config_path: ${teacher_config_path}
       manifest_path: ${teacher_manifest_path}
-    use_obj_pred: False
-    obj_pred_loss_coef: 0.0
+    p2_common_init:
+      enabled: True
+      branch: b1
+      mode: create
+      architecture: C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2
+      seed: 0
+      config_sha256: 9b3121b2d92b79237d0a871b5ff96eab8d4e32165627075170dafe7a3c6e4cfa
+      artifact_path: ${experiment_dir}/common_init/b1_common_init.pt
+      step0_manifest_path: ${experiment_dir}/common_init/b1_step0_manifest.json
+      source_step0_manifest_path: ${experiment_dir}/common_init/b1_step0_manifest.json
+      trusted_artifact_sha256: REQUIRED_AFTER_B1_STEP0_SEAL
+      trusted_source_step0_manifest_sha256: REQUIRED_AFTER_B1_STEP0_SEAL
+      runtime_identity: {runtime_repository: /tmp/cb2h_v19_runtime.waPJHftX/c18, runtime_commit: c18aea8bdc1c76ce850b5223663d0ad8a7474c0a}
     init_noise_std: 0.001
     max_noise_std: 0.001
     clamp_noise_std: True
     freeze_noise_std: False
+    module_dim: {actor_obs: -1, teacher_obs: -1, critic_obs: -1, vision_feature_dim: 128}
     gamma: 0.9966
     lam: 0.983
     desired_kl: 0.005
     init_at_random_ep_len: False
-    module_dim: {actor_obs: -1, teacher_obs: -1, critic_obs: -1, vision_feature_dim: 128}
+    use_obj_pred: False
+    obj_pred_loss_coef: 0.0
+    p2_lifecycle:
+      enabled: True
+      target_global_step: 500
     actor:
-      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_triview_recurrent.TriViewContextSharedEncoderVisionRecurrentActor
+      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_p2_recurrent.DualD435VisionRecurrentActor
       input_key: actor_obs
-      manipulation_vision_key: vision_obs
-      context_vision_key: context_vision_obs
-      camera_meta_key: camera_meta
       running_mean_std: True
       rnn_type: lstm
       rnn_hidden_dim: 256
       rnn_num_layers: 2
       view_contract:
-        manipulation_shape: [384, 216, 6]
-        context_shape: [136, 384, 3]
-        camera_meta_dim: 6
-        d435i_view_order: [left, right]
-        d435i_feature_dim: 128
-        head_feature_dim: 128
-        fused_feature_dim: 128
-        d435i_forward_mode: sequential
+        camera_meta_dim: 4
+        d435i_forward_mode: packed
       backbone:
         d435i_vision_module:
           _target_: gr00t.rl.agents.modules.modules.BaseModule
           process_output_dim: True
           module_config_dict:
             input_dim: [vision_obs]
-            output_dim: [128]
-            layer_config: {type: ResNet, resnet_type: resnet18, pretrained: True, trainable: True}
-        head_vision_module:
-          _target_: gr00t.rl.agents.modules.modules.BaseModule
-          process_output_dim: True
-          module_config_dict:
-            input_dim: [context_vision_obs]
             output_dim: [128]
             layer_config: {type: ResNet, resnet_type: resnet18, pretrained: True, trainable: True}
         mlp_module:
@@ -119,7 +154,6 @@ algo:
             input_dim: [actor_obs]
             output_dim: [12]
             layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
-
     teacher_actor:
       _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
       input_key: teacher_obs
@@ -132,12 +166,8 @@ algo:
         process_output_dim: True
         module_config_dict:
           input_dim: [teacher_obs]
-          output_dim: ["${algo.config.teacher_action_dim}"]
-          layer_config:
-            type: MLP
-            hidden_dims: [512, 256, 128]
-            activation: SiLU
-
+          output_dim: [12]
+          layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
     critic:
       _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentCritic
       running_mean_std: True
@@ -150,13 +180,10 @@ algo:
         module_config_dict:
           input_dim: [critic_obs]
           output_dim: [1]
-          layer_config:
-            type: MLP
-            hidden_dims: [512, 256, 128]
-            activation: SiLU
+          layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
+
 env:
   config:
-    # Exact c18 v19 G2 runtime semantics; Student topology remains local below.
     a2_m39_gripper_material_enabled: True
     a2_door_weight_range: [80.0, 160.0]
     a2_corridor_enabled: True
@@ -193,8 +220,7 @@ env:
     a2_stage0_staging_x_min: 0.50
     a2_stage0_staging_x_max: 0.80
     a2_stage0_staging_y_tol: 0.15
-    reset_from_dataset:
-      enabled: False
+    reset_from_dataset: {enabled: False}
 rewards:
   reward_penalty_curriculum: False
   reward_initial_penalty_scale: 1.0
@@ -218,12 +244,13 @@ rewards:
     penalty_a2_stage3_stage4_over_force: -1.0
     penalty_a2_door_body_contact: -3.0
     penalty_a2_posture_command_l1: -0.3
+
 simulator:
   config:
     randomize_dome_light: False
     cameras:
       enable_cameras: True
-      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19
+      architecture_id: C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2
       camera_parent: trunk
       camera_prim_suffix: d435i_left_portrait_policy_camera
       camera_pos: [0.215, 0.095, 0.165]
@@ -241,7 +268,7 @@ simulator:
       image_std: [0.229, 0.224, 0.225]
       policy_multiview:
         enabled: True
-        architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19
+        architecture_id: C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2
         layout: channel_stacked_raw_rgb
         primary_resolution: [384, 216]
         output_resolution: [384, 216]
@@ -261,43 +288,9 @@ simulator:
           vertical_aperture: 1.3826799354772965
           clipping_range: [0.1, 20.0]
           update_period: 0.03333333333333333
-        context:
-          sensor_name: a2_head_oem_policy
-          parent: trunk
-          prim_suffix: a2_head_oem_policy_camera
-          position_m: [0.3381, 0.0336, 0.0525]
-          rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
-          convention: world
-          resolution: [136, 384]
-          focal_length: 1.0
-          focus_distance: 0.5
-          horizontal_aperture: 4.492073547808433
-          vertical_aperture: 1.59094271484882
-          clipping_range: [0.1, 20.0]
-          update_period: 0.06666666666666667
         camera_meta:
           enabled: True
-          order: [left_age_normalized, right_age_normalized, head_age_normalized, left_valid, right_valid, head_valid]
+          order: [left_age_normalized, right_age_normalized, left_valid, right_valid]
     scene: {replicate_physics: False, env_spacing: 20.0}
     sim:
       physx: {num_position_iterations: 4, num_velocity_iterations: 2, max_depenetration_velocity: 300.0}
-robot:
-  asset: {self_collisions: 0}
-  use_primitive: False
-  actions_dim: 20
-  check_action_dim: True
-  terminate_after_contacts_on: []
-  dof_effort_limit_list: [
-    120.0, 120.0, 180.0,
-    120.0, 120.0, 180.0,
-    120.0, 120.0, 180.0,
-    120.0, 120.0, 180.0,
-    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
-  ]
-  control:
-    stiffness:
-      arm_j7: 1300.0
-      arm_j8: 1300.0
-    damping:
-      arm_j7: 32.0
-      arm_j8: 32.0

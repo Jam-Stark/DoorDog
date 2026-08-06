@@ -36,6 +36,21 @@ from gr00t.rl.utils.torch_utils import to_torch
 
 
 
+_DUAL_D435_POLICY_ARCHITECTURES = {
+    "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+    "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+}
+
+
+def _is_dual_d435_policy(policy_multiview):
+    return (
+        isinstance(policy_multiview, dict)
+        and policy_multiview.get("architecture_id") in _DUAL_D435_POLICY_ARCHITECTURES
+    )
+
+
 class LeggedRobotBase(BaseTask):
     # pyright: ignore[reportUninitializedInstanceVariable]
 
@@ -1171,9 +1186,7 @@ class LeggedRobotBase(BaseTask):
         self._refresh_sim_tensors()
         policy_multiview = getattr(self.simulator, "_policy_multiview", None)
         if (
-            isinstance(policy_multiview, dict)
-            and policy_multiview.get("architecture_id")
-            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            _is_dual_d435_policy(policy_multiview)
         ):
             self.simulator.prime_c_b2h_camera_cache(all_env_ids)
 
@@ -1222,9 +1235,7 @@ class LeggedRobotBase(BaseTask):
         policy_multiview = getattr(self.simulator, "_policy_multiview", None)
         if (
             len(refresh_env_ids) > 0
-            and isinstance(policy_multiview, dict)
-            and policy_multiview.get("architecture_id")
-            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            and _is_dual_d435_policy(policy_multiview)
         ):
             self.simulator.prime_c_b2h_camera_cache(refresh_env_ids)
 
@@ -1511,9 +1522,7 @@ class LeggedRobotBase(BaseTask):
         self._post_reset_callback(env_ids)
         policy_multiview = getattr(self.simulator, "_policy_multiview", None)
         if (
-            isinstance(policy_multiview, dict)
-            and policy_multiview.get("architecture_id")
-            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            _is_dual_d435_policy(policy_multiview)
         ):
             self.simulator.invalidate_c_b2h_camera_cache(env_ids)
 
@@ -2435,17 +2444,22 @@ class LeggedRobotBase(BaseTask):
             if (
                 policy_multiview is not None
                 and policy_multiview.get("architecture_id")
-                == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+                in {
+                    "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+                }
             ):
                 if self.config.domain_rand.image_augmentation.enabled:
                     raise ValueError(
-                        "C-B2H tri-view observations require image augmentation to be disabled"
+                        "Dual-D435 observations require image augmentation to be disabled"
                     )
                 rgb_image = self.simulator.get_rgb_image()
                 expected_shape = (self.num_envs, 384, 216, 6)
                 if tuple(rgb_image.shape) != expected_shape:
                     raise RuntimeError(
-                        f"C-B2H vision_obs shape mismatch: expected {expected_shape}, got {tuple(rgb_image.shape)}"
+                        f"Dual-D435 vision_obs shape mismatch: expected {expected_shape}, got {tuple(rgb_image.shape)}"
                     )
                 if rgb_image.dtype != torch.float32 or not torch.all(torch.isfinite(rgb_image)):
                     raise RuntimeError("C-B2H vision_obs must be finite float32")
@@ -2534,7 +2548,11 @@ class LeggedRobotBase(BaseTask):
         if (
             policy_multiview is None
             or policy_multiview.get("architecture_id")
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            not in {
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            }
         ):
             raise RuntimeError("context_rgb_image is only valid for the C-B2H tri-view branch")
         if self.config.domain_rand.image_augmentation.enabled:
@@ -2555,23 +2573,32 @@ class LeggedRobotBase(BaseTask):
         if (
             policy_multiview is None
             or policy_multiview.get("architecture_id")
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            not in {
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            }
         ):
-            raise RuntimeError("camera_meta is only valid for the C-B2H tri-view branch")
+            raise RuntimeError("camera_meta is only valid for the dual-D435 branch")
         if self.config.domain_rand.image_augmentation.enabled:
             raise ValueError("C-B2H tri-view observations require image augmentation to be disabled")
         camera_meta = self.simulator.get_camera_meta()
-        expected_shape = (self.num_envs, 6)
+        architecture_id = policy_multiview.get("architecture_id")
+        expected_meta_dim = 4 if architecture_id == "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2" else 6
+        age_dim = 2 if expected_meta_dim == 4 else 3
+        expected_shape = (self.num_envs, expected_meta_dim)
         if tuple(camera_meta.shape) != expected_shape:
             raise RuntimeError(
-                f"C-B2H camera_meta shape mismatch: expected {expected_shape}, got {tuple(camera_meta.shape)}"
+                f"Dual-D435 camera_meta shape mismatch: expected {expected_shape}, got {tuple(camera_meta.shape)}"
             )
         if camera_meta.dtype != torch.float32 or not torch.all(torch.isfinite(camera_meta)):
-            raise RuntimeError("C-B2H camera_meta must be finite float32")
-        if bool((camera_meta[:, :3] < 0.0).any().item()) or bool((camera_meta[:, :3] > 1.0).any().item()):
-            raise RuntimeError("C-B2H camera_meta age values must be normalized to [0,1]")
-        if not bool(torch.all((camera_meta[:, 3:] == 0.0) | (camera_meta[:, 3:] == 1.0)).item()):
-            raise RuntimeError("C-B2H camera_meta validity values must be exactly 0 or 1")
+            raise RuntimeError("Dual-D435 camera_meta must be finite float32")
+        if bool((camera_meta[:, :age_dim] < 0.0).any().item()) or bool((camera_meta[:, :age_dim] > 1.0).any().item()):
+            raise RuntimeError("Dual-D435 camera_meta age values must be normalized to [0,1]")
+        if not bool(torch.all((camera_meta[:, age_dim:] == 0.0) | (camera_meta[:, age_dim:] == 1.0)).item()):
+            raise RuntimeError("Dual-D435 camera_meta validity values must be exactly 0 or 1")
         return camera_meta
 
     def _get_obs_rgb_image_history(self):

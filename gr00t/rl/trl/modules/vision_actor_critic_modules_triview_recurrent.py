@@ -67,10 +67,16 @@ class TriViewContextSharedEncoderVisionRecurrentActor(nn.Module):
 
         contract = view_contract or {}
         if isinstance(contract, Mapping):
+            if "d435i_forward_mode" not in contract:
+                raise ValueError(
+                    "C-B2H view_contract must explicitly set d435i_forward_mode to "
+                    "'sequential' or 'packed'"
+                )
             manipulation_shape = tuple(int(value) for value in contract.get("manipulation_shape", (384, 216, 6)))
             context_shape = tuple(int(value) for value in contract.get("context_shape", (136, 384, 3)))
             meta_dim = int(contract.get("camera_meta_dim", 6))
             view_order = tuple(contract.get("d435i_view_order", ("left", "right")))
+            d435i_forward_mode = contract["d435i_forward_mode"]
             d435i_feature_dim = int(contract.get("d435i_feature_dim", 128))
             head_feature_dim = int(contract.get("head_feature_dim", 128))
             fused_feature_dim = int(contract.get("fused_feature_dim", 128))
@@ -80,6 +86,11 @@ class TriViewContextSharedEncoderVisionRecurrentActor(nn.Module):
             raise ValueError(f"C-B2H view shapes are fixed; got {manipulation_shape=} {context_shape=}")
         if meta_dim != 6 or view_order != ("left", "right"):
             raise ValueError(f"C-B2H camera metadata/view order drifted: {meta_dim=} {view_order=}")
+        if d435i_forward_mode not in ("sequential", "packed"):
+            raise ValueError(
+                "C-B2H d435i_forward_mode must be exactly 'sequential' or 'packed'; "
+                f"got {d435i_forward_mode!r}"
+            )
         if (d435i_feature_dim, head_feature_dim, fused_feature_dim) != (128, 128, 128):
             raise ValueError("C-B2H encoder and fused feature dimensions must each be 128")
         if int(rnn_hidden_dim) != 256 or int(rnn_num_layers) != 2 or rnn_type.lower() != "lstm":
@@ -145,6 +156,9 @@ class TriViewContextSharedEncoderVisionRecurrentActor(nn.Module):
         self.manipulation_tau_s = 0.05
         self.context_tau_s = 0.10
         self.head_base_weight = 0.25
+        self.d435i_forward_mode = d435i_forward_mode
+        self._diagnostic_cache = {}
+        self._diagnostic_per_sample_cache = {}
 
         concat_dim = 81 + 128
         if concat_dim != 209:
@@ -244,14 +258,138 @@ class TriViewContextSharedEncoderVisionRecurrentActor(nn.Module):
             raise ValueError("C-B2H requires at least one valid D435 view per row")
         manipulation_base = (left_conf[:, None] * left + right_conf[:, None] * right) / (left_conf + right_conf).clamp_min(torch.finfo(left.dtype).eps)[:, None]
         manipulation_input = torch.cat((left, right, (left - right).abs()), dim=-1)
-        manipulation = self.manipulation_norm(manipulation_base + self.manipulation_residual(manipulation_input))
+        manipulation_residual = self.manipulation_residual(manipulation_input)
+        manipulation = self.manipulation_norm(manipulation_base + manipulation_residual)
 
         head = self.head_view_norm(f_head + self.head_view_embedding)
         head_conf = camera_meta[:, 5] * torch.exp(-age_s[:, 2] / self.context_tau_s)
         context_input = torch.cat((manipulation, head, (manipulation - head).abs(), camera_meta), dim=-1)
         context_residual = self.context_residual(context_input)
         gate = self.context_gate(context_input)
-        return self.context_norm(manipulation + head_conf[:, None] * (self.head_base_weight * head + gate * context_residual))
+        gate_detached = gate.detach()
+        fixed_head_contribution = head_conf[:, None] * (self.head_base_weight * head)
+        gated_context_residual = head_conf[:, None] * (gate * context_residual)
+        self._diagnostic_cache = {
+            "feature/d435_left_norm": torch.linalg.vector_norm(f_left.detach(), dim=-1).mean(),
+            "feature/d435_right_norm": torch.linalg.vector_norm(f_right.detach(), dim=-1).mean(),
+            "feature/d435_norm": torch.linalg.vector_norm(
+                torch.cat((f_left.detach(), f_right.detach()), dim=0), dim=-1
+            ).mean(),
+            "feature/head_norm": torch.linalg.vector_norm(f_head.detach(), dim=-1).mean(),
+            "feature/head_gate_mean": gate_detached.mean(),
+            "feature/head_gate_min": gate_detached.amin(),
+            "feature/head_gate_max": gate_detached.amax(),
+            "feature/head_gate_p95": torch.quantile(gate_detached.reshape(-1).float(), 0.95),
+            "feature/manipulation_residual_norm": torch.linalg.vector_norm(
+                manipulation_residual.detach(), dim=-1
+            ).mean(),
+            "feature/manipulation_norm": torch.linalg.vector_norm(
+                manipulation.detach(), dim=-1
+            ).mean(),
+            "feature/context_gate_mean": gate_detached.mean(),
+            "feature/head_fixed_contribution_norm": torch.linalg.vector_norm(
+                fixed_head_contribution.detach(), dim=-1
+            ).mean(),
+            "feature/context_residual_gated_norm": torch.linalg.vector_norm(
+                gated_context_residual.detach(), dim=-1
+            ).mean(),
+        }
+        self._diagnostic_per_sample_cache = {
+            "feature/d435_left_norm": torch.linalg.vector_norm(f_left.detach(), dim=-1),
+            "feature/d435_right_norm": torch.linalg.vector_norm(f_right.detach(), dim=-1),
+            "feature/head_norm": torch.linalg.vector_norm(f_head.detach(), dim=-1),
+            "feature/manipulation_residual_norm": torch.linalg.vector_norm(
+                manipulation_residual.detach(), dim=-1
+            ),
+            "feature/manipulation_norm": torch.linalg.vector_norm(manipulation.detach(), dim=-1),
+            "feature/context_gate": gate_detached.squeeze(-1),
+            "feature/head_fixed_contribution_norm": torch.linalg.vector_norm(
+                fixed_head_contribution.detach(), dim=-1
+            ),
+            "feature/context_residual_gated_norm": torch.linalg.vector_norm(
+                gated_context_residual.detach(), dim=-1
+            ),
+        }
+        if not all(bool(torch.isfinite(value).item()) for value in self._diagnostic_cache.values()):
+            raise ValueError("C-B2H observability feature/gate diagnostics must be finite")
+        if not all(
+            bool(torch.all(torch.isfinite(value)).item())
+            for value in self._diagnostic_per_sample_cache.values()
+        ):
+            raise ValueError("C-B2H per-sample fusion diagnostics must be finite")
+        return self.context_norm(
+            manipulation
+            + head_conf[:, None] * (self.head_base_weight * head + gate * context_residual)
+        )
+
+    def get_observability_snapshot(self, *, per_sample=False):
+        """Return the latest finite feature/gate/SyncBN diagnostics.
+
+        The snapshot is intentionally read-only and detached from the current
+        autograd graph.  It is populated by the most recent successful forward.
+        Calling it before a forward is an invalid diagnostic request.
+        """
+        if not self._diagnostic_cache:
+            raise RuntimeError("C-B2H observability snapshot is unavailable before a forward")
+        if not isinstance(per_sample, bool):
+            raise TypeError(f"per_sample must be bool; got {per_sample!r}")
+        if per_sample:
+            if not self._diagnostic_per_sample_cache:
+                raise RuntimeError("C-B2H per-sample observability is unavailable before a forward")
+            return {
+                key: value.detach().clone() for key, value in self._diagnostic_per_sample_cache.items()
+            }
+        snapshot = dict(self._diagnostic_cache)
+        for module_name, module in (
+            ("d435", self.d435i_vision_module),
+            ("head", self.head_vision_module),
+        ):
+            counts = [
+                buffer.detach()
+                for name, buffer in module.named_buffers()
+                if name.endswith("num_batches_tracked")
+            ]
+            for index, count in enumerate(counts):
+                if count.ndim != 0 or count.dtype not in (
+                    torch.int8,
+                    torch.int16,
+                    torch.int32,
+                    torch.int64,
+                    torch.uint8,
+                ):
+                    raise ValueError(f"C-B2H {module_name} SyncBN count must be scalar integer")
+                if not bool(torch.isfinite(count.float()).item()):
+                    raise ValueError(f"C-B2H {module_name} SyncBN count must be finite")
+                snapshot[f"bn/{module_name}_num_batches_tracked_{index}"] = count.to(
+                    dtype=torch.float32
+                )
+            if counts:
+                snapshot[f"bn/{module_name}_num_batches_tracked"] = counts[0].to(
+                    dtype=torch.float32
+                )
+        return {key: value.detach() for key, value in snapshot.items()}
+
+    @staticmethod
+    def _validate_encoded_features(name, encoded, expected_batch, reference):
+        if not torch.is_tensor(encoded) or encoded.ndim != 2:
+            raise ValueError(
+                f"C-B2H {name} encoder output must be a rank-2 tensor; "
+                f"got {getattr(encoded, 'shape', None)}"
+            )
+        if tuple(encoded.shape) != (expected_batch, 128):
+            raise ValueError(
+                f"C-B2H {name} encoder output must be [{expected_batch},128]; "
+                f"got {tuple(encoded.shape)}"
+            )
+        if encoded.dtype != reference.dtype or encoded.device != reference.device:
+            raise ValueError(
+                f"C-B2H {name} encoder output must preserve input dtype/device; "
+                f"got dtype={encoded.dtype} device={encoded.device}, "
+                f"expected dtype={reference.dtype} device={reference.device}"
+            )
+        if not torch.is_floating_point(encoded) or not bool(torch.all(torch.isfinite(encoded)).item()):
+            raise ValueError(f"C-B2H {name} encoder output must be finite floating data")
+        return encoded
 
     def _encode_views(self, dual, head, meta, masks):
         self._validate_views(dual, head, meta, masks)
@@ -268,10 +406,49 @@ class TriViewContextSharedEncoderVisionRecurrentActor(nn.Module):
             dual_flat, head_flat, meta_flat = dual, head, meta
         left = dual_flat[..., :3].permute(0, 3, 1, 2).contiguous()
         right = dual_flat[..., 3:6].permute(0, 3, 1, 2).contiguous()
-        f_left = self.d435i_vision_module(left).reshape(left.shape[0], 128)
-        f_right = self.d435i_vision_module(right).reshape(right.shape[0], 128)
+        if left.shape != right.shape:
+            raise ValueError(
+                "C-B2H left/right D435 inputs must have identical shapes; "
+                f"got left={tuple(left.shape)} right={tuple(right.shape)}"
+            )
+        if left.ndim != 4 or tuple(left.shape[1:]) != (3, 384, 216):
+            raise ValueError(
+                "C-B2H D435 encoder input must be [M,3,384,216]; "
+                f"got {tuple(left.shape)}"
+            )
+        if left.dtype != right.dtype or left.device != right.device:
+            raise ValueError("C-B2H left/right D435 inputs must share dtype and device")
         count = left.shape[0]
-        f_head = self.head_vision_module(head_flat.permute(0, 3, 1, 2).contiguous()).reshape(count, 128)
+        if count <= 0:
+            raise ValueError("C-B2H D435 encoder received no valid frames")
+        if self.d435i_forward_mode == "sequential":
+            f_left = self._validate_encoded_features(
+                "D435 left", self.d435i_vision_module(left), count, left
+            )
+            f_right = self._validate_encoded_features(
+                "D435 right", self.d435i_vision_module(right), count, right
+            )
+        elif self.d435i_forward_mode == "packed":
+            packed = torch.cat((left, right), dim=0)
+            if tuple(packed.shape) != (2 * count, 3, 384, 216):
+                raise ValueError(
+                    "C-B2H packed D435 input shape drifted; "
+                    f"got {tuple(packed.shape)}"
+                )
+            encoded = self._validate_encoded_features(
+                "packed D435", self.d435i_vision_module(packed), 2 * count, packed
+            )
+            f_left, f_right = encoded.split(count, dim=0)
+        else:
+            raise RuntimeError(
+                "C-B2H d435i_forward_mode became invalid after initialization: "
+                f"{self.d435i_forward_mode!r}"
+            )
+        count = left.shape[0]
+        head_input = head_flat.permute(0, 3, 1, 2).contiguous()
+        f_head = self._validate_encoded_features(
+            "Head", self.head_vision_module(head_input), count, head_input
+        )
         fused = self._fuse(f_left, f_right, f_head, meta_flat)
         if not sequence:
             return fused

@@ -14,6 +14,84 @@ from gr00t.rl.utils.a2_policy_camera import (
     compose_horizontal_letterboxed_rgb,
     normalize_head_context_rgb,
 )
+
+
+_P2_B1_ARCHITECTURE = "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2"
+_P2_B2_ARCHITECTURE = "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2"
+_P2_B2H_TOEOUT6_ARCHITECTURE = "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2"
+_CB2H_ARCHITECTURES = {
+    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+    _P2_B2_ARCHITECTURE,
+    _P2_B2H_TOEOUT6_ARCHITECTURE,
+}
+_DUAL_D435_ARCHITECTURES = _CB2H_ARCHITECTURES | {_P2_B1_ARCHITECTURE}
+
+
+def _is_dual_d435_architecture(architecture_id):
+    return architecture_id in _DUAL_D435_ARCHITECTURES
+
+
+def _is_cb2h_architecture(architecture_id):
+    return architecture_id in _CB2H_ARCHITECTURES
+
+
+def _camera_forward_y(rotation_wxyz):
+    """Return the trunk-frame +X optical-ray Y component for WXYZ ``q``."""
+    w, x, y, z = rotation_wxyz
+    return 2.0 * (x * y + w * z)
+
+
+def validate_toeout6_camera_pair(left_pos, left_rot, right_pos, right_rot):
+    """Validate the exact mirrored, outward-facing B2H toe-out6 pair.
+
+    This check is intentionally independent of Isaac Sim/USD and is used both
+    during static configuration validation and before a live sensor is built.
+    It rejects a swapped named quaternion: the left camera must point toward
+    positive trunk-Y and the right camera toward negative trunk-Y.
+    """
+    left_position, left_rotation = parse_camera_pose(left_pos, left_rot)
+    right_position, right_rotation = parse_camera_pose(right_pos, right_rot)
+    if not math.isclose(left_position[0], right_position[0], abs_tol=1.0e-9):
+        raise ValueError("toe-out6 left/right camera X positions must match")
+    if not math.isclose(left_position[2], right_position[2], abs_tol=1.0e-9):
+        raise ValueError("toe-out6 left/right camera Z positions must match")
+    if not math.isclose(left_position[1], -right_position[1], abs_tol=1.0e-9):
+        raise ValueError("toe-out6 left/right camera Y positions must be mirrored")
+    left_forward_y = _camera_forward_y(left_rotation)
+    right_forward_y = _camera_forward_y(right_rotation)
+    if left_position[1] * left_forward_y <= 0.0:
+        raise ValueError(
+            "C-B2H toe-out6 left camera must point outward: "
+            f"left_y={left_position[1]!r} left_forward_y={left_forward_y!r}"
+        )
+    if right_position[1] * right_forward_y <= 0.0:
+        raise ValueError(
+            "C-B2H toe-out6 right camera must point outward: "
+            f"right_y={right_position[1]!r} right_forward_y={right_forward_y!r}"
+        )
+    # Mirror relation is checked on the actual normalized quaternion values,
+    # not merely on a yaw label.  This catches left/right name swaps and
+    # accidental non-mirror roll/pitch changes.
+    expected_right = (left_rotation[0], -left_rotation[1], left_rotation[2], -left_rotation[3])
+    if any(
+        not math.isclose(actual, expected, rel_tol=0.0, abs_tol=1.0e-7)
+        for actual, expected in zip(right_rotation, expected_right, strict=True)
+    ):
+        raise ValueError(
+            "C-B2H toe-out6 camera quaternions must be mirrored WXYZ; "
+            f"left={left_rotation!r} right={right_rotation!r}"
+        )
+    return {
+        "left_position_m": list(left_position),
+        "left_rotation_wxyz": list(left_rotation),
+        "right_position_m": list(right_position),
+        "right_rotation_wxyz": list(right_rotation),
+        "left_forward_y": left_forward_y,
+        "right_forward_y": right_forward_y,
+        "left_outward": True,
+        "right_outward": True,
+        "convention": "world",
+    }
 from pxr import Sdf, UsdGeom
 
 try:
@@ -2054,6 +2132,7 @@ class IsaacSim(BaseSimulator):
             primary_camera_resolution = camera_resolution
             policy_multiview = cameras_cfg.get("policy_multiview", None)
             policy_secondary_cfg = None
+            policy_context_cfg = None
             policy_architecture_id = None
             if policy_multiview is not None:
                 if not isinstance(policy_multiview, Mapping):
@@ -2061,10 +2140,16 @@ class IsaacSim(BaseSimulator):
                 if policy_multiview.get("enabled") is not True:
                     raise ValueError("cameras.policy_multiview.enabled must be exactly true")
                 policy_architecture_id = policy_multiview.get("architecture_id")
-                if policy_architecture_id not in ("C-B", "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"):
+                if policy_architecture_id not in (
+                    "C-B",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                    _P2_B1_ARCHITECTURE,
+                    _P2_B2_ARCHITECTURE,
+                    _P2_B2H_TOEOUT6_ARCHITECTURE,
+                ):
                     raise ValueError(
-                        "cameras.policy_multiview.architecture_id must be 'C-B' or "
-                        "'C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19'"
+                        "cameras.policy_multiview.architecture_id must be 'C-B', "
+                        "the legacy C-B2H ID, or one of the P2 B1/B2/TOEOUT6 IDs"
                     )
                 primary_camera_resolution = _camera_numeric_sequence(
                     policy_multiview.get("primary_resolution", None),
@@ -2098,7 +2183,7 @@ class IsaacSim(BaseSimulator):
                     policy_secondary_cfg = policy_multiview.get("secondary", None)
                     if not isinstance(policy_secondary_cfg, Mapping):
                         raise TypeError("policy_multiview.secondary must be a mapping")
-                else:
+                elif _is_cb2h_architecture(policy_architecture_id):
                     if policy_multiview.get("layout") != "channel_stacked_raw_rgb":
                         raise ValueError(
                             "C-B2H policy_multiview.layout must be 'channel_stacked_raw_rgb'"
@@ -2112,6 +2197,20 @@ class IsaacSim(BaseSimulator):
                     policy_context_cfg = policy_multiview.get("context", None)
                     if not isinstance(policy_secondary_cfg, Mapping) or not isinstance(policy_context_cfg, Mapping):
                         raise TypeError("C-B2H policy_multiview requires right and context mappings")
+                else:
+                    if policy_multiview.get("layout") != "channel_stacked_raw_rgb":
+                        raise ValueError(
+                            "C-B1 policy_multiview.layout must be 'channel_stacked_raw_rgb'"
+                        )
+                    if tuple(int(value) for value in primary_camera_resolution) != (384, 216):
+                        raise ValueError("C-B1 left D435 resolution must be [384,216]")
+                    output_shape = tuple(policy_multiview.get("output_shape", ()))
+                    if output_shape != (384, 216, 6):
+                        raise ValueError("C-B1 vision_obs output_shape must be [384,216,6]")
+                    policy_secondary_cfg = policy_multiview.get("right", None)
+                    if not isinstance(policy_secondary_cfg, Mapping):
+                        raise TypeError("C-B1 policy_multiview requires a right mapping")
+                    policy_context_cfg = None
             update_period_value = cameras_cfg.get("camera_update_period", 0.0)
             if isinstance(update_period_value, bool):
                 raise ValueError("cameras.camera_update_period must be numeric, not bool")
@@ -2159,7 +2258,9 @@ class IsaacSim(BaseSimulator):
             self._cb2h_context_vision_obs_cache = None
             self._cb2h_camera_meta_cache = None
             self._cb2h_elapsed_s = 0.0
-            self._cb2h_last_capture_s = {"left": None, "right": None, "head": None}
+            self._p2_has_head_camera = _is_cb2h_architecture(policy_architecture_id)
+            _camera_names = ("left", "right", "head") if self._p2_has_head_camera else ("left", "right")
+            self._cb2h_last_capture_s = {name: None for name in _camera_names}
             self._cb2h_last_frame_s = {
                 name: torch.full(
                     (self.num_envs,),
@@ -2167,7 +2268,7 @@ class IsaacSim(BaseSimulator):
                     device=self.sim_device,
                     dtype=torch.float32,
                 )
-                for name in ("left", "right", "head")
+                for name in _camera_names
             }
             self._cb2h_last_frame_id = {
                 name: torch.full(
@@ -2176,7 +2277,7 @@ class IsaacSim(BaseSimulator):
                     device=self.sim_device,
                     dtype=torch.int64,
                 )
-                for name in ("left", "right", "head")
+                for name in _camera_names
             }
             self._cb2h_ever_captured = {
                 name: torch.zeros(
@@ -2184,7 +2285,7 @@ class IsaacSim(BaseSimulator):
                     device=self.sim_device,
                     dtype=torch.bool,
                 )
-                for name in ("left", "right", "head")
+                for name in _camera_names
             }
             self._cb2h_cache_valid = torch.zeros(
                 self.num_envs,
@@ -2284,7 +2385,7 @@ class IsaacSim(BaseSimulator):
                     "output_resolution": tuple(int(value) for value in camera_resolution),
                     "secondary_name": secondary_name,
                 }
-            elif policy_architecture_id == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19":
+            elif _is_cb2h_architecture(policy_architecture_id):
                 right_name = policy_secondary_cfg.get("sensor_name", None)
                 if right_name != "d435i_right_portrait_policy":
                     raise ValueError("C-B2H right sensor_name must be d435i_right_portrait_policy")
@@ -2313,6 +2414,13 @@ class IsaacSim(BaseSimulator):
                 context_period = float(context_cfg.get("update_period"))
                 if not math.isclose(context_period, 1.0 / 15.0, rel_tol=0.0, abs_tol=1.0e-12):
                     raise ValueError("C-B2H context update_period must be exactly 1/15 s")
+                if policy_architecture_id == _P2_B2H_TOEOUT6_ARCHITECTURE:
+                    toeout_geometry = validate_toeout6_camera_pair(
+                        camera_pos,
+                        camera_rot,
+                        right_pos,
+                        right_rot,
+                    )
                 right_config = TiledCameraCfg(
                     prim_path=f"/World/envs/env_.*/Robot/trunk/{policy_secondary_cfg['prim_suffix']}",
                     offset=TiledCameraCfg.OffsetCfg(pos=right_pos, rot=right_rot, convention="world"),
@@ -2350,7 +2458,7 @@ class IsaacSim(BaseSimulator):
                 self.scene.sensors[right_name] = self.policy_secondary_camera
                 self.scene.sensors[context_cfg["sensor_name"]] = self.policy_context_camera
                 self._policy_multiview = {
-                    "architecture_id": "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                    "architecture_id": policy_architecture_id,
                     "primary_resolution": (384, 216),
                     "right_resolution": (384, 216),
                     "context_resolution": (136, 384),
@@ -2359,6 +2467,51 @@ class IsaacSim(BaseSimulator):
                     "context_name": context_cfg["sensor_name"],
                     "fast_period_s": 1.0 / 30.0,
                     "context_period_s": 1.0 / 15.0,
+                }
+                if policy_architecture_id == _P2_B2H_TOEOUT6_ARCHITECTURE:
+                    self._policy_multiview["geometry"] = toeout_geometry
+            elif policy_architecture_id == _P2_B1_ARCHITECTURE:
+                right_name = policy_secondary_cfg.get("sensor_name", None)
+                if right_name != "d435i_right_portrait_policy":
+                    raise ValueError("C-B1 right sensor_name must be d435i_right_portrait_policy")
+                if policy_secondary_cfg.get("parent") != "trunk" or policy_secondary_cfg.get("convention") != "world":
+                    raise ValueError("C-B1 right camera requires parent='trunk' and convention='world'")
+                right_pos, right_rot = parse_camera_pose(
+                    policy_secondary_cfg.get("position_m"), policy_secondary_cfg.get("rotation_wxyz")
+                )
+                right_resolution = _camera_numeric_sequence(
+                    policy_secondary_cfg.get("resolution"), 2, "C-B1 right resolution"
+                )
+                if tuple(int(value) for value in right_resolution) != (384, 216):
+                    raise ValueError("C-B1 right D435 resolution must be [384,216]")
+                right_period = float(policy_secondary_cfg.get("update_period"))
+                if not math.isclose(right_period, 1.0 / 30.0, rel_tol=0.0, abs_tol=1.0e-12):
+                    raise ValueError("C-B1 right D435 update_period must be exactly 1/30 s")
+                right_config = TiledCameraCfg(
+                    prim_path=f"/World/envs/env_.*/Robot/trunk/{policy_secondary_cfg['prim_suffix']}",
+                    offset=TiledCameraCfg.OffsetCfg(pos=right_pos, rot=right_rot, convention="world"),
+                    data_types=["rgb"],
+                    spawn=sim_utils.PinholeCameraCfg(
+                        focal_length=float(policy_secondary_cfg["focal_length"]),
+                        focus_distance=float(policy_secondary_cfg["focus_distance"]),
+                        horizontal_aperture=float(policy_secondary_cfg["horizontal_aperture"]),
+                        vertical_aperture=float(policy_secondary_cfg["vertical_aperture"]),
+                        clipping_range=parse_camera_clipping_range(policy_secondary_cfg["clipping_range"]),
+                    ),
+                    width=216,
+                    height=384,
+                    update_period=right_period,
+                    debug_vis=True,
+                )
+                self.policy_secondary_camera = TiledCamera(right_config)
+                self.scene.sensors[right_name] = self.policy_secondary_camera
+                self._policy_multiview = {
+                    "architecture_id": policy_architecture_id,
+                    "primary_resolution": (384, 216),
+                    "right_resolution": (384, 216),
+                    "output_shape": (384, 216, 6),
+                    "right_name": right_name,
+                    "fast_period_s": 1.0 / 30.0,
                 }
         else:
             self.ego_camera = None
@@ -2735,8 +2888,12 @@ class IsaacSim(BaseSimulator):
             raise RuntimeError("RGB requested but the ego camera sensor is disabled")
         if (
             self._policy_multiview is not None
-            and self._policy_multiview["architecture_id"]
-            == "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            and self._policy_multiview["architecture_id"] in (
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
             if self._cb2h_vision_obs_cache is None:
                 raise RuntimeError(
@@ -2822,8 +2979,12 @@ class IsaacSim(BaseSimulator):
         """Invalidate only reset environments until a fresh rendered capture is primed."""
         if (
             self._policy_multiview is None
-            or self._policy_multiview["architecture_id"]
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            or self._policy_multiview["architecture_id"] not in (
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
             return
         if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype == torch.bool:
@@ -2834,7 +2995,7 @@ class IsaacSim(BaseSimulator):
         if bool(torch.any((env_ids < 0) | (env_ids >= self.num_envs)).item()):
             raise IndexError(f"C-B2H reset env_ids are outside [0,{self.num_envs})")
         self._cb2h_cache_valid[env_ids] = False
-        for name in ("left", "right", "head"):
+        for name in self._cb2h_ever_captured:
             self._cb2h_ever_captured[name][env_ids] = False
             self._cb2h_last_frame_id[name][env_ids] = -1
             self._cb2h_last_frame_s[name][env_ids] = -1.0
@@ -2848,13 +3009,17 @@ class IsaacSim(BaseSimulator):
     def _refresh_c_b2h_camera_meta_cache(self, required_mask=None):
         if (
             self._policy_multiview is None
-            or self._policy_multiview["architecture_id"]
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            or self._policy_multiview["architecture_id"] not in (
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
             return
         ages = []
         validity = []
-        for name in ("left", "right", "head"):
+        for name in self._cb2h_ever_captured:
             captured = self._cb2h_ever_captured[name]
             frame_time = self._cb2h_last_frame_s[name]
             if bool(torch.any(captured & (frame_time < 0.0)).item()):
@@ -2872,6 +3037,124 @@ class IsaacSim(BaseSimulator):
             )
         self._cb2h_camera_meta_cache[required_mask] = camera_meta_cache[required_mask]
 
+    def _capture_p2_b1_camera_cache(
+        self,
+        *,
+        force=False,
+        advance_time=True,
+        required_env_ids=None,
+    ):
+        """Capture the fresh B1 dual-D435 branch with no Head sensor/cache."""
+        cameras_cfg = self.simulator_config.cameras
+        fast_period = self._policy_multiview["fast_period_s"]
+        explicit_required_envs = required_env_ids is not None
+        if advance_time:
+            self._cb2h_elapsed_s += 1.0 / float(self.simulator_config.sim.fps)
+        elapsed = self._cb2h_elapsed_s
+        if required_env_ids is None:
+            required_mask = torch.ones(self.num_envs, device=self.sim_device, dtype=torch.bool)
+        else:
+            if (
+                not torch.is_tensor(required_env_ids)
+                or required_env_ids.ndim != 1
+                or required_env_ids.dtype == torch.bool
+            ):
+                raise ValueError("C-B1 required_env_ids must be a one-dimensional integer tensor")
+            required_ids = required_env_ids.to(device=self.sim_device, dtype=torch.long)
+            if bool(torch.any((required_ids < 0) | (required_ids >= self.num_envs)).item()):
+                raise IndexError(f"C-B1 required_env_ids are outside [0,{self.num_envs})")
+            required_mask = torch.zeros(self.num_envs, device=self.sim_device, dtype=torch.bool)
+            required_mask[required_ids] = True
+        if not bool(required_mask.any().item()):
+            raise ValueError("C-B1 capture requires at least one environment")
+        full_capture = bool(torch.all(required_mask).item())
+        partial_capture = explicit_required_envs and not full_capture
+        if partial_capture:
+            if self._cb2h_vision_obs_cache is None or self._cb2h_camera_meta_cache is None:
+                raise RuntimeError("C-B1 partial capture requires initialized dual camera caches")
+            non_target_mask = ~required_mask
+            if bool(torch.any(non_target_mask & ~self._cb2h_cache_valid).item()):
+                raise RuntimeError("C-B1 partial capture requires valid non-target camera rows")
+            for name in self._cb2h_ever_captured:
+                captured = self._cb2h_ever_captured[name]
+                frame_id = self._cb2h_last_frame_id[name]
+                frame_s = self._cb2h_last_frame_s[name]
+                if bool(torch.any(non_target_mask & (~captured | (frame_id < 0) | (frame_s < 0.0))).item()):
+                    raise RuntimeError("C-B1 partial capture requires initialized non-target frame history")
+        last_fast_capture = self._cb2h_last_capture_s["left"]
+        fast_due = (
+            not bool(torch.all(self._cb2h_ever_captured["left"]).item())
+            or last_fast_capture is None
+            or elapsed - last_fast_capture + 1.0e-12 >= fast_period
+        )
+        if not force and not fast_due:
+            self._refresh_c_b2h_camera_meta_cache(required_mask=required_mask if partial_capture else None)
+            return
+
+        def read_camera(sensor, name):
+            output = getattr(sensor.data, "output", None)
+            if output is None or "rgb" not in output:
+                raise RuntimeError(f"C-B1 {name} camera has no public RGB output")
+            rgb = validate_camera_rgb_output(output["rgb"], (self.num_envs, 384, 216, 3), name)
+            frame = sensor.frame
+            if not torch.is_tensor(frame) or tuple(frame.shape) != (self.num_envs,):
+                raise RuntimeError(f"C-B1 {name} camera.frame must be [{self.num_envs}]")
+            if not bool(torch.all(frame > 0).item()):
+                raise RuntimeError(f"C-B1 {name} camera.frame is unavailable before first render")
+            frame = frame.to(device=self.sim_device, dtype=torch.int64)
+            previous = self._cb2h_last_frame_id[name]
+            captured = self._cb2h_ever_captured[name]
+            advanced = torch.where(captured, frame > previous, frame > 0)
+            if explicit_required_envs and bool(torch.any(required_mask & ~advanced).item()):
+                stale_envs = (required_mask & ~advanced).nonzero(as_tuple=False).flatten().tolist()
+                raise RuntimeError(f"C-B1 {name} camera.frame did not advance for required environments: {stale_envs}")
+            return rgb.detach().clone(), frame.detach().clone(), advanced
+
+        left_rgb, left_frame, left_advanced = read_camera(self.ego_camera, "left")
+        right_rgb, right_frame, right_advanced = read_camera(self.policy_secondary_camera, "right")
+        if not bool(torch.equal(left_frame, right_frame)):
+            drift_envs = (left_frame != right_frame).nonzero(as_tuple=False).flatten().tolist()
+            raise RuntimeError(f"C-B1 left/right camera frames must be synchronized; drift_envs={drift_envs}")
+        if not bool(torch.equal(left_advanced, right_advanced)):
+            drift_envs = (left_advanced != right_advanced).nonzero(as_tuple=False).flatten().tolist()
+            raise RuntimeError(f"C-B1 left/right camera advance masks must be synchronized; drift_envs={drift_envs}")
+        vision_commit_mask = required_mask if explicit_required_envs else left_advanced
+        if not explicit_required_envs and self._cb2h_vision_obs_cache is None and bool(torch.any(~vision_commit_mask).item()):
+            raise RuntimeError("C-B1 initial normal capture requires synchronized fresh left/right rows")
+
+        def commit_frame(name, frame, advanced):
+            self._cb2h_last_frame_id[name] = torch.where(vision_commit_mask, frame, self._cb2h_last_frame_id[name])
+            self._cb2h_last_frame_s[name] = torch.where(
+                vision_commit_mask & advanced,
+                torch.full_like(self._cb2h_last_frame_s[name], elapsed),
+                self._cb2h_last_frame_s[name],
+            )
+            self._cb2h_ever_captured[name] = torch.where(
+                vision_commit_mask,
+                self._cb2h_ever_captured[name] | (frame > 0),
+                self._cb2h_ever_captured[name],
+            )
+
+        commit_frame("left", left_frame, left_advanced)
+        commit_frame("right", right_frame, right_advanced)
+        if bool(torch.any(vision_commit_mask).item()) and not partial_capture:
+            self._cb2h_last_capture_s["left"] = elapsed
+            self._cb2h_last_capture_s["right"] = elapsed
+        vision_obs = compose_channel_stacked_dual_rgb(
+            left_rgb,
+            right_rgb,
+            resolution=(384, 216),
+            image_mean=cameras_cfg.image_mean,
+            image_std=cameras_cfg.image_std,
+        )
+        if self._cb2h_vision_obs_cache is None:
+            self._cb2h_vision_obs_cache = vision_obs
+        else:
+            self._cb2h_vision_obs_cache[vision_commit_mask] = vision_obs[vision_commit_mask]
+        cache_valid = self._cb2h_ever_captured["left"] & self._cb2h_ever_captured["right"]
+        self._cb2h_cache_valid[vision_commit_mask] = cache_valid[vision_commit_mask]
+        self._refresh_c_b2h_camera_meta_cache(required_mask=required_mask if partial_capture else None)
+
     def _capture_c_b2h_camera_cache(
         self,
         *,
@@ -2882,9 +3165,20 @@ class IsaacSim(BaseSimulator):
         """Capture tri-view RGB only after ``scene.update`` has completed."""
         if (
             self._policy_multiview is None
-            or self._policy_multiview["architecture_id"]
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            or self._policy_multiview["architecture_id"] not in (
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
+            return
+        if self._policy_multiview["architecture_id"] == "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2":
+            self._capture_p2_b1_camera_cache(
+                force=force,
+                advance_time=advance_time,
+                required_env_ids=required_env_ids,
+            )
             return
 
         cameras_cfg = self.simulator_config.cameras
@@ -2933,7 +3227,7 @@ class IsaacSim(BaseSimulator):
                 raise RuntimeError(
                     "C-B2H partial capture requires valid non-target camera cache rows"
                 )
-            for name in ("left", "right", "head"):
+            for name in self._cb2h_ever_captured:
                 captured = self._cb2h_ever_captured[name]
                 frame_id = self._cb2h_last_frame_id[name]
                 frame_s = self._cb2h_last_frame_s[name]
@@ -3094,8 +3388,11 @@ class IsaacSim(BaseSimulator):
     def get_context_vision_image(self):
         if (
             self._policy_multiview is None
-            or self._policy_multiview["architecture_id"]
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            or self._policy_multiview["architecture_id"] not in (
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
             raise RuntimeError("C-B2H context vision requested outside the tri-view branch")
         if self._cb2h_context_vision_obs_cache is None:
@@ -3108,13 +3405,17 @@ class IsaacSim(BaseSimulator):
     def get_camera_meta(self):
         if (
             self._policy_multiview is None
-            or self._policy_multiview["architecture_id"]
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            or self._policy_multiview["architecture_id"] not in (
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
-            raise RuntimeError("C-B2H camera_meta requested outside the tri-view branch")
+            raise RuntimeError("camera_meta requested outside the dual-D435 branch")
         if self._cb2h_camera_meta_cache is None:
             raise RuntimeError(
-                "C-B2H camera_meta requested before the first post-scene-update camera capture"
+                "camera_meta requested before the first post-scene-update camera capture"
             )
         self._require_c_b2h_camera_cache_ready()
         return self._cb2h_camera_meta_cache
@@ -3150,8 +3451,12 @@ class IsaacSim(BaseSimulator):
         """Render and refresh reset environments before their next observation."""
         if (
             self._policy_multiview is None
-            or self._policy_multiview["architecture_id"]
-            != "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19"
+            or self._policy_multiview["architecture_id"] not in (
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            )
         ):
             return
         if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype == torch.bool:
@@ -3161,7 +3466,8 @@ class IsaacSim(BaseSimulator):
         self.invalidate_c_b2h_camera_cache(env_ids)
         self.ego_camera.reset(env_ids)
         self.policy_secondary_camera.reset(env_ids)
-        self.policy_context_camera.reset(env_ids)
+        if self.policy_context_camera is not None:
+            self.policy_context_camera.reset(env_ids)
         self.sim.render()
         self.scene.update(dt=0.0)
         self._capture_c_b2h_camera_cache(

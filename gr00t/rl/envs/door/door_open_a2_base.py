@@ -5683,6 +5683,8 @@ class DoorPregrasp(
             "a2_stage3_stage4_contact_stability_frac": stage3_stage4_contact_stability,
             "a2_stage3_stage4_streak_ge_K_frac": stage3_stage4_streak_ge_k,
             "a2_stage3_stage4_over_force_frac": stage3_stage4_over_force,
+            "a2_stage3_stage4_over_force_numerator_frac": stage3_stage4_over_force,
+            "a2_stage3_stage4_over_force_denominator_frac": stage3_stage4_active,
             "a2_stage3_contact_stability_numerator_frac": stage3_contact_stability,
             "a2_stage3_contact_stability_denominator_frac": stage3_active,
             "a2_stage4_contact_stability_numerator_frac": stage4_contact_stability,
@@ -5776,6 +5778,10 @@ class DoorPregrasp(
                 stage3_stage4_active,
                 0.95,
             )
+        )
+        self.log_dict["_a2_stage3_stage4_hinge_velocity_samples"] = hinge_vel
+        self.log_dict["_a2_stage3_stage4_hinge_velocity_sample_mask"] = (
+            stage3_stage4_active
         )
         self.log_dict["a2_stage2_target_offset_x_abs_mean"] = (
             target_offset[:, 0].abs() * stage2_active_float

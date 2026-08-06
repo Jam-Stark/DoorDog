@@ -174,6 +174,7 @@ def test_v19_config_binds_exact_tri_view_geometry_and_training_dimensions():
     assert multiview["context"]["rotation_wxyz"] == [1.0, 0.0, 0.0, 0.0]
     assert multiview["context"]["resolution"] == [136, 384]
     assert multiview["context"]["update_period"] == pytest.approx(1.0 / 15.0)
+    assert exp["algo"]["config"]["actor"]["view_contract"]["d435i_forward_mode"] == "sequential"
     assert exp["domain_rand"]["image_augmentation"]["enabled"] is False
     assert obs["obs_dims"][8]["rgb_image"] == 497664
     assert obs["obs_dims"][9]["context_rgb_image"] == 156672
@@ -536,7 +537,7 @@ class _Config(dict):
             raise AttributeError(key) from exc
 
 
-def _build_fake_actor(monkeypatch):
+def _build_fake_actor(monkeypatch, d435i_forward_mode="sequential"):
     import gr00t.rl.trl.modules.vision_actor_critic_modules_triview_recurrent as actor_impl
 
     calls = {"d435": 0, "head": 0}
@@ -609,6 +610,9 @@ def _build_fake_actor(monkeypatch):
         backbone=backbone,
         module_dim_dict={},
         running_mean_std=False,
+        view_contract=(
+            {} if d435i_forward_mode is None else {"d435i_forward_mode": d435i_forward_mode}
+        ),
     )
     return actor, calls
 
@@ -704,6 +708,114 @@ def test_actor_executes_rollout_sequence_backward_and_strict_rank_contract(monke
                 "vision_obs": _make_actor_obs(batch=1, sequence=1)["vision_obs"],
             }
         )
+
+
+def test_actor_packed_d435_calls_shared_encoder_once_and_preserves_split_order(monkeypatch):
+    actor, calls = _build_fake_actor(monkeypatch, d435i_forward_mode="packed")
+    output = actor.forward(_make_actor_obs(batch=2))
+    assert output.shape == (2, 12)
+    assert calls == {"d435": 1, "head": 1}
+    state_keys = set(actor.state_dict())
+    assert any(key.startswith("d435i_vision_module.") for key in state_keys)
+    assert not any("left_encoder" in key or "right_encoder" in key for key in state_keys)
+    assert actor.d435i_vision_module is not actor.head_vision_module
+
+
+def test_actor_observability_snapshot_is_finite_and_named(monkeypatch):
+    actor, _ = _build_fake_actor(monkeypatch, d435i_forward_mode="packed")
+    actor.forward(_make_actor_obs(batch=2))
+    snapshot = actor.get_observability_snapshot()
+    expected = {
+        "feature/d435_left_norm",
+        "feature/d435_right_norm",
+        "feature/d435_norm",
+        "feature/head_norm",
+        "feature/head_gate_mean",
+        "feature/head_gate_p95",
+    }
+    assert expected.issubset(snapshot)
+    assert all(value.ndim == 0 and torch.isfinite(value) for value in snapshot.values())
+
+
+def test_actor_rejects_missing_or_invalid_d435_forward_mode(monkeypatch):
+    with pytest.raises(ValueError, match="d435i_forward_mode"):
+        _build_fake_actor(monkeypatch, d435i_forward_mode=None)
+    with pytest.raises(ValueError, match="d435i_forward_mode"):
+        _build_fake_actor(monkeypatch, d435i_forward_mode="unsupported")
+
+
+def test_actor_packed_mode_fails_fast_on_invalid_input_without_sequential_fallback(monkeypatch):
+    actor, calls = _build_fake_actor(monkeypatch, d435i_forward_mode="packed")
+    invalid = _make_actor_obs(batch=1)
+    invalid["vision_obs"] = invalid["vision_obs"][:, :, :-1]
+    with pytest.raises(ValueError, match="shapes must be|image shapes"):
+        actor.forward(invalid)
+    assert calls == {"d435": 0, "head": 0}
+
+    actor, calls = _build_fake_actor(monkeypatch, d435i_forward_mode="packed")
+    actor.d435i_forward_mode = "invalid-after-init"
+    with pytest.raises(RuntimeError, match="d435i_forward_mode"):
+        actor.forward(_make_actor_obs(batch=1))
+    assert calls == {"d435": 0, "head": 0}
+
+
+def test_actor_packed_preserves_left_right_order_for_rollout_and_masked_sequence(monkeypatch):
+    actor, _ = _build_fake_actor(monkeypatch, d435i_forward_mode="packed")
+    captured = []
+
+    class RecordingEncoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.output_dim = 128
+            self.module_config_dict = _Config(layer_config=_Config(type="ResNet"))
+
+        def forward(self, value):
+            captured.append(value.detach().clone())
+            output = torch.zeros(value.shape[0], 128, dtype=value.dtype, device=value.device)
+            output[:, 0] = value.mean(dim=(1, 2, 3))
+            return output
+
+    actor.d435i_vision_module = RecordingEncoder()
+    monkeypatch.setattr(
+        actor,
+        "_fuse",
+        lambda f_left, f_right, f_head, camera_meta: f_left + f_right + f_head,
+    )
+    rank4 = _make_actor_obs(batch=2)
+    actor._encode_views(rank4["vision_obs"], rank4["context_vision_obs"], rank4["camera_meta"], None)
+    assert len(captured) == 1
+    assert tuple(captured[0].shape) == (4, 3, 384, 216)
+    assert torch.allclose(captured[0][:2].mean(dim=(1, 2, 3)), torch.full((2,), 0.25))
+    assert torch.allclose(captured[0][2:].mean(dim=(1, 2, 3)), torch.full((2,), 0.5))
+
+    sequence = _make_actor_obs(batch=2, sequence=2)
+    masks = torch.tensor([[True, False], [True, True]])
+    actor._encode_views(
+        sequence["vision_obs"], sequence["context_vision_obs"], sequence["camera_meta"], masks
+    )
+    assert len(captured) == 2
+    assert tuple(captured[1].shape) == (6, 3, 384, 216)
+
+
+def test_actor_syncbn_batch_count_delta_is_mode_specific(monkeypatch):
+    class CountingEncoder(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.output_dim = 128
+            self.module_config_dict = _Config(layer_config=_Config(type="ResNet"))
+            self.register_buffer("num_batches_tracked", torch.zeros((), dtype=torch.long))
+
+        def forward(self, value):
+            self.num_batches_tracked.add_(1)
+            return torch.zeros(value.shape[0], 128, dtype=value.dtype, device=value.device)
+
+    for mode, expected_d435_count in (("packed", 1), ("sequential", 2)):
+        actor, _ = _build_fake_actor(monkeypatch, d435i_forward_mode=mode)
+        actor.d435i_vision_module = CountingEncoder()
+        actor.head_vision_module = CountingEncoder()
+        actor.forward(_make_actor_obs(batch=2))
+        assert int(actor.d435i_vision_module.num_batches_tracked.item()) == expected_d435_count
+        assert int(actor.head_vision_module.num_batches_tracked.item()) == 1
 
 
 def test_actor_accepts_rank4_meta2_and_rank5_meta3_without_downloads(monkeypatch):

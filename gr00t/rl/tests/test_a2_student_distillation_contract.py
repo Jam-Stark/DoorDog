@@ -40,7 +40,11 @@ from gr00t.rl.scripts.validate_a2_teacher_checkpoint import (
     validate_teacher_config,
 )
 from gr00t.rl.trl.callbacks.model_save_callback import ModelSaveCallback
-from gr00t.rl.trl.trainer.distill_trainer_a2_base_api import compose_a2_rollout_action
+from gr00t.rl.trl.trainer.distill_trainer_a2_base_api import (
+    build_cyclic_teacher_mask,
+    compose_a2_rollout_action,
+    cyclic_teacher_mask_hash,
+)
 import gr00t.rl.trl.trainer.distill_trainer_a2_base_api as distill_module
 from gr00t.rl.trl.modules.actor_critic_modules_recurrent import RecurrentActor
 from gr00t.rl.trl.modules.memory import Memory
@@ -421,6 +425,31 @@ def test_a2_action_composition_is_12_plus_12_boundary():
         compose_a2_rollout_action(torch.zeros(2, 11), legs)
 
 
+def test_a2_cyclic_teacher_mask_exactness_rotation_fairness_and_hash():
+    mask0 = build_cyclic_teacher_mask(64, 0.75, 0)
+    mask1 = build_cyclic_teacher_mask(64, 0.75, 1)
+    assert int(mask0.sum()) == 48
+    assert int(mask1.sum()) == 48
+    assert torch.equal(mask1, torch.roll(mask0, shifts=1, dims=0))
+    assert torch.equal(mask0, build_cyclic_teacher_mask(64, 0.75, 0))
+    student_counts = torch.zeros(64, dtype=torch.int64)
+    for step in range(64):
+        student_counts += (~build_cyclic_teacher_mask(64, 0.75, step)).to(torch.int64)
+    assert torch.all(student_counts == 16)
+    assert cyclic_teacher_mask_hash(mask0) == cyclic_teacher_mask_hash(
+        build_cyclic_teacher_mask(64, 0.75, 0)
+    )
+    assert int(build_cyclic_teacher_mask(64, 1.0, 13).sum()) == 64
+    assert int(
+        build_cyclic_teacher_mask(64, 0.0, 13, enforce_teacher_rollout=False).sum()
+    ) == 0
+
+
+def test_a2_cyclic_teacher_mask_rejects_nonintegral_ratio():
+    with pytest.raises(ValueError, match="exact integer"):
+        build_cyclic_teacher_mask(64, 0.1, 0)
+
+
 def test_teacher_manifest_generation_and_rejection(tmp_path):
     checkpoint = tmp_path / "teacher_step_010000.pt"
     config = tmp_path / "teacher_config.yaml"
@@ -647,6 +676,120 @@ def test_a2_teacher_rollout_dispatch_is_singular(monkeypatch):
     calls.clear()
     assert trainer._rollout_step("model", "obs") == "rollout-result"
     assert [entry[0] for entry in calls] == ["teacher_init", "ppo_rollout", "teacher_clear"]
+
+
+def test_non_cb2h_multi_rollout_preserves_legacy_selection_without_mask_leak(monkeypatch):
+    selected = []
+
+    class Teacher:
+        def init_rollout(self):
+            return None
+
+        def clear_rollout(self):
+            return None
+
+    class Policy:
+        is_recurrent = False
+
+        def rollout(self, **kwargs):
+            del kwargs
+            return {
+                "actions": torch.zeros(4, 12),
+                "action_mean": torch.zeros(4, 12),
+                "action_sigma": torch.ones(4, 12),
+            }
+
+        @staticmethod
+        def get_actions_log_prob(actions):
+            return torch.zeros(actions.shape[0])
+
+    def fake_rollout(self, model, obs_dict):
+        del model, obs_dict
+        for _ in range(2):
+            self.policy_step(
+                Policy(),
+                None,
+                None,
+                {
+                    "actor_obs": torch.zeros(4, 81),
+                    "vision_obs": torch.zeros(4, 1, 1, 3),
+                },
+                cur_dones=torch.zeros(4, dtype=torch.bool),
+                store_hidden_states=False,
+            )
+        return "legacy-rollout"
+
+    monkeypatch.setattr(distill_module.A2TRLPPOTrainer, "_rollout_step", fake_rollout)
+    trainer = distill_module.TRLDistillTrainerA2BaseAPI.__new__(
+        distill_module.TRLDistillTrainerA2BaseAPI
+    )
+    trainer.ref_model = Teacher()
+    trainer._a2_cb2h_enabled = False
+    trainer.config = {"ratio_teacher_rollout": 0.5, "enforce_teacher_rollout": True}
+    trainer.accelerator = SimpleNamespace(device=torch.device("cpu"))
+    trainer._validate_rollout_obs = lambda obs_dict, require_teacher: None
+    trainer._teacher_actions = lambda obs_dict: torch.ones(4, 12)
+
+    class Unwrapped:
+        @staticmethod
+        def _a2_base_actions(obs_dict, high_level):
+            del obs_dict
+            selected.append(high_level.detach().clone())
+            return torch.zeros_like(high_level)
+
+    trainer.unwrapped_model = Unwrapped()
+    assert trainer._rollout_step("model", "obs") == "legacy-rollout"
+    assert trainer._rollout_step("model", "obs") == "legacy-rollout"
+    assert not hasattr(trainer, "_cb2h_rollout_mask")
+    assert len(selected) == 4
+    for action in selected:
+        assert torch.equal(action[:2], torch.ones(2, 12))
+        assert torch.equal(action[2:], torch.zeros(2, 12))
+
+
+def test_cb2h_observability_resets_per_rollout_and_distinguishes_train_rollout(monkeypatch):
+    trainer = distill_module.TRLDistillTrainerA2BaseAPI.__new__(
+        distill_module.TRLDistillTrainerA2BaseAPI
+    )
+    trainer._begin_cb2h_rollout_observability()
+    trainer._cb2h_rollout_action_sq_sum = torch.ones(12, dtype=torch.float64)
+    trainer._cb2h_rollout_disagreement_sum = torch.tensor(12.0, dtype=torch.float64)
+    trainer._cb2h_rollout_sample_count = 1
+    trainer._cb2h_rollout_feature_sum = {"feature/d435_norm": 1.0}
+    trainer._cb2h_rollout_feature_count = 1
+    trainer._cb2h_rollout_mask = torch.tensor([True, False])
+    trainer._cb2h_rollout_mask_config = (2, 0.5, True, 0)
+    trainer._cb2h_stage_hook_required_emitted = True
+    trainer._finish_cb2h_rollout_observability()
+
+    class Policy(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.d435i_vision_module = torch.nn.Linear(1, 1)
+            self.head_vision_module = torch.nn.Linear(1, 1)
+
+        @staticmethod
+        def get_observability_snapshot():
+            return {"feature/d435_norm": torch.tensor(2.0)}
+
+    trainer._a2_cb2h_enabled = True
+    trainer.model = SimpleNamespace(policy=Policy())
+    trainer.accelerator = SimpleNamespace(unwrap_model=lambda model: model)
+    trainer._cb2h_train_feature_sums = {"feature/d435_norm": 4.0}
+    trainer._cb2h_train_feature_count = 2
+    trainer._cb2h_gradient_sums = {"gradient/d435_norm": 6.0, "gradient/head_norm": 8.0}
+    trainer._cb2h_gradient_count = 2
+    metrics = trainer._build_cb2h_train_observability()
+    assert metrics["feature/d435_norm"] == pytest.approx(1.0)
+    assert metrics["rollout/feature/d435_norm"] == pytest.approx(1.0)
+    assert metrics["train/feature/d435_norm"] == pytest.approx(2.0)
+    assert metrics["gradient/d435_norm"] == pytest.approx(3.0)
+    assert metrics["gradient/head_norm"] == pytest.approx(4.0)
+
+    trainer._begin_cb2h_rollout_observability()
+    assert trainer._cb2h_gradient_count == 0
+    assert trainer._cb2h_train_feature_count == 0
+    assert trainer._cb2h_rollout_sample_count == 0
 
 
 def test_recurrent_teacher_rollout_cleanup_can_repeat_after_deterministic_inference():

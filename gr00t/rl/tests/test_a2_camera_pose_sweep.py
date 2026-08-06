@@ -11,6 +11,7 @@ from gr00t.rl.scripts.sweep_a2_student_camera_pose import (
     prepare_writable_eval_input,
     verify_teacher_artifacts,
 )
+from gr00t.rl.scripts import run_a2_camera_pose_eval as bootstrap
 from gr00t.rl.utils.a2_camera_pose_sweep import (
     STAGE_NAMES,
     derive_center_crop_intrinsics,
@@ -535,6 +536,62 @@ def test_runtime_overlay_bootstrap_loads_only_camera_modules_from_worktree():
     assert '"d435i_landscape_stage0_3_pitch_sweep"' in source
     assert "camera pose bootstrap requires exactly one" in source
     assert 'f"{camera_config}.yaml"' in source
+    assert "BOOTSTRAP_PROFILES" in source
+    assert "toeout-no-panorama" in source
+    assert "--bootstrap-profile" in source
+
+
+def _write_bootstrap_overlay_sources(root: Path, *, camera=True, env=True, panorama=False, env_source=None):
+    if camera:
+        camera_path = root / "gr00t/rl/utils/a2_camera_pose_sweep.py"
+        camera_path.parent.mkdir(parents=True, exist_ok=True)
+        camera_path.write_text("CAMERA_OVERLAY = True\n", encoding="utf-8")
+    if env:
+        env_path = root / "gr00t/rl/envs/door/door_open_a2_camera_pose_sweep.py"
+        env_path.parent.mkdir(parents=True, exist_ok=True)
+        env_path.write_text(env_source or "ENV_OVERLAY = True\n", encoding="utf-8")
+    if panorama:
+        panorama_path = root / "gr00t/rl/utils/a2_dual_portrait_panorama.py"
+        panorama_path.parent.mkdir(parents=True, exist_ok=True)
+        panorama_path.write_text("PANORAMA_OVERLAY = True\n", encoding="utf-8")
+
+
+def test_legacy_bootstrap_profile_still_requires_panorama_source(tmp_path):
+    _write_bootstrap_overlay_sources(tmp_path, panorama=False)
+    with pytest.raises(FileNotFoundError, match="a2_dual_portrait_panorama.py"):
+        bootstrap.resolve_overlay_sources(tmp_path, bootstrap.BOOTSTRAP_PROFILE_LEGACY)
+
+
+def test_toeout_bootstrap_profile_resolves_without_panorama_source(tmp_path):
+    _write_bootstrap_overlay_sources(tmp_path, panorama=False)
+    sources = bootstrap.resolve_overlay_sources(
+        tmp_path,
+        bootstrap.BOOTSTRAP_PROFILE_TOEOUT_NO_PANORAMA,
+    )
+    assert set(sources) == {
+        "gr00t.rl.utils.a2_camera_pose_sweep",
+        "gr00t.rl.envs.door.door_open_a2_camera_pose_sweep",
+    }
+
+
+@pytest.mark.parametrize("missing", ("camera", "env"))
+def test_toeout_bootstrap_profile_rejects_missing_required_overlay_source(tmp_path, missing):
+    _write_bootstrap_overlay_sources(tmp_path, camera=missing != "camera", env=missing != "env")
+    with pytest.raises(FileNotFoundError, match="camera pose overlay source"):
+        bootstrap.resolve_overlay_sources(tmp_path, bootstrap.BOOTSTRAP_PROFILE_TOEOUT_NO_PANORAMA)
+
+
+@pytest.mark.parametrize(
+    "env_source",
+    (
+        "from gr00t.rl.utils.a2_dual_portrait_panorama import depth_aware_cylindrical_panorama\n",
+        "def build_panorama():\n    return None\n",
+    ),
+)
+def test_toeout_bootstrap_profile_rejects_forbidden_panorama_source(tmp_path, env_source):
+    _write_bootstrap_overlay_sources(tmp_path, env_source=env_source)
+    with pytest.raises(RuntimeError, match="forbidden panorama"):
+        bootstrap.resolve_overlay_sources(tmp_path, bootstrap.BOOTSTRAP_PROFILE_TOEOUT_NO_PANORAMA)
 
 
 def test_runtime_source_reuses_one_camera_and_guards_same_physics_step():

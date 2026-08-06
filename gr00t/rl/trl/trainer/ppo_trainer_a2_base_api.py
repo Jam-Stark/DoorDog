@@ -94,6 +94,63 @@ def _validate_a2_single_gpu_binding(accelerator, model, identity) -> None:
     )
 
 
+def _validate_a2_mgpu_ddp_binding(accelerator, model, identity) -> None:
+    """Validate the strict four-rank Accelerate/DDP post-prepare contract."""
+    from accelerate.state import DistributedType
+
+    if identity.get("mode") != "accelerate-ddp-4rank-64e-v1":
+        raise RuntimeError("A2 DDP validator received a non-DDP binding identity")
+    rank = int(identity["rank"])
+    local_rank = int(identity["local_rank"])
+    single_cvd = identity.get("single_visible") is True
+    if identity.get("topology_id") != "A2-ACCELERATE-DDP-4RANK-64E-V1":
+        raise RuntimeError("A2 DDP topology identity drifted")
+    if int(identity.get("world_size", -1)) != 4 or rank not in range(4):
+        raise RuntimeError("A2 DDP binding requires ranks 0..3 and world_size=4")
+    if not single_cvd and local_rank != rank:
+        raise RuntimeError("A2 legacy four-visible DDP binding requires local_rank == rank")
+    expected_local_rank = 0 if single_cvd else local_rank
+    if accelerator.num_processes != 4 or accelerator.process_index != rank:
+        raise RuntimeError("A2 DDP Accelerator world/rank mismatch")
+    state = getattr(accelerator, "state", None)
+    if state is None or state.distributed_type is not DistributedType.MULTI_GPU:
+        raise RuntimeError("A2 DDP Accelerator must use DistributedType.MULTI_GPU")
+    expected_device = torch.device("cuda", expected_local_rank)
+    if torch.device(accelerator.device) != expected_device:
+        raise RuntimeError(
+            "A2 DDP Accelerator device mismatch; "
+            f"expected={expected_device} actual={accelerator.device}"
+        )
+    if torch.cuda.current_device() != expected_local_rank:
+        raise RuntimeError("A2 DDP current CUDA device does not match the validated logical device")
+    if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
+        raise RuntimeError("A2 DDP requires initialized torch.distributed")
+    if type(model).__name__ != "DistributedDataParallel":
+        raise RuntimeError(
+            "A2 DDP strict mode requires Accelerate's DistributedDataParallel wrapper; "
+            f"got {type(model).__name__}"
+        )
+    device_ids = getattr(model, "device_ids", None)
+    if device_ids not in ([expected_local_rank], (expected_local_rank,)):
+        raise RuntimeError(
+            "A2 DDP device_ids must contain exactly the validated logical device; "
+            f"expected={[expected_local_rank]} actual={device_ids!r}"
+        )
+    for name, parameter in model.module.named_parameters():
+        if parameter.device != expected_device:
+            raise RuntimeError(
+                "A2 DDP model parameter device mismatch; "
+                f"name={name!r} expected={expected_device} actual={parameter.device}"
+            )
+    print(
+        "[A2_MGPU_DDP] "
+        f"topology={identity['topology_id']} rank={rank} local_rank={local_rank} "
+        f"logical_cuda={expected_local_rank} single_cvd={single_cvd} "
+        f"device={expected_device} wrapper=DistributedDataParallel world_size=4",
+        flush=True,
+    )
+
+
 def _seed_a2_local_generators(seed: int) -> int:
     """Seed CPU's default generator and only the selected current CUDA device."""
     torch.default_generator.manual_seed(seed)
@@ -1673,7 +1730,10 @@ class TRLPPOTrainer(PPOTrainer):
             self.model, self.optimizer, self.dataloader
         )
         if self.a2_gpu_identity is not None:
-            _validate_a2_single_gpu_binding(accelerator, self.model, self.a2_gpu_identity)
+            if self.a2_gpu_identity.get("mode") == "accelerate-ddp-4rank-64e-v1":
+                _validate_a2_mgpu_ddp_binding(accelerator, self.model, self.a2_gpu_identity)
+            else:
+                _validate_a2_single_gpu_binding(accelerator, self.model, self.a2_gpu_identity)
         self.unwrapped_model = unwrap_model(self.model)
         if self.a2_gpu_identity is None:
             torch.manual_seed(self.local_seed)  # reset the local seed again

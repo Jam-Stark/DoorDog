@@ -1,5 +1,6 @@
 # @package _global_
-# User-approved c18 v19 runtime reconstruction; isolated from C-B/C-B2.
+# Standalone C-B2H toe-out6 + four-rank Accelerate/DDP route.
+# Historical P2 B1/B2 TOEIN configs remain separate and unchanged.
 defaults:
   - /algo: dagger_vision_distributed
   - /env: door_open_a2_base
@@ -11,30 +12,60 @@ defaults:
   - /obs: wbmanip/door_open_a2_base_dagger_triview
   - /opt: wandb
   - override /trainer: trl_distill_a2_base_api
-exp_base: cb2h_v19_reconstruction
-exp_var: v19_cb2h_dualraw_dagger_lstm
-experiment_name: cb2h_v19_reconstruction_v19_cb2h_dualraw_dagger_lstm
-experiment_dir: ./logs_rl/cb2h_v19
+
+exp_base: cb2h_v19_toeout6_mgpu
+exp_var: 4x64_8k
+experiment_name: cb2h_v19_toeout6_mgpu
+project_name: a2_piper_open_door_cb2h_v19_toeout6_mgpu
 num_envs: 64
-project_name: a2_piper_open_door_v19_cb2h_student_distill
+num_gpus: 4
 headless: True
 enable_cameras: True
 domain_rand:
-  image_augmentation: {enabled: False}
-teacher_actor_path: REQUIRED_A2_V19_TEACHER_CHECKPOINT.pt
-teacher_config_path: REQUIRED_A2_V19_TEACHER_CONFIG.yaml
-teacher_manifest_path: REQUIRED_A2_V19_TEACHER_MANIFEST.json
+  image_augmentation:
+    enabled: False
+seed: 0
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: False
+multi_gpu: True
+topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+gpu_binding_mode: accelerate-ddp-4rank-64e-v1
+approved_output_root: logs_rl/by_batch/cb2h_v19_toeout6_pitch50_20260804
+distributed_master_port: 29640
+
+# The only immutable Teacher allowed by this route.
+teacher_actor_path: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/model_step_002000.pt
+teacher_config_path: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/config.yaml
+teacher_manifest_path: logs_rl/cb2h_v19_runtime/g2_step2000_c18_reconstruction_candidate6168e6a2/teacher_manifest.json
+teacher_checkpoint_sha256: b331c9a343c71dccf6cce31f71c1727a24298d72808c25763a0f702c369a866d
+teacher_config_sha256: 65c1537b38d670097bc8498428e0aad1705c3fd66eeef41a93d63e3b6da4cf96
+teacher_manifest_sha256: 479f4460d4dc05feea9d87d3189fa0617b21078f91b6f5176f4a9c41b141d1b7
+runtime_repository: /tmp/cb2h_v19_runtime.waPJHftX/c18
+runtime_commit: c18aea8bdc1c76ce850b5223663d0ad8a7474c0a
+
 callbacks:
-  model_save: {save_frequency: 500}
+  model_save:
+    save_frequency: 500
+    strict_mode: True
+
 algo:
-  trl: {num_total_batches: 10000}
+  trl:
+    num_total_batches: 8000
+    world_size: 4
+    per_device_train_batch_size: 16
+    num_ppo_epochs: 1
+    gradient_accumulation_steps: 1
   config:
     use_new_actor_critic: True
     use_dagger: True
-    distill_only: False
+    distill_only: True
     num_steps_per_env: 8
     num_learning_epochs: 1
     num_mini_batches: 4
+    per_device_train_batch_size: 16
+    gradient_accumulation_steps: 1
+    rank_seed: 0
     use_padding_mask: False
     ppo_shuffle_every_epoch: True
     sync_advantage_normalization: True
@@ -46,6 +77,11 @@ algo:
     train_with_evaluating_env: False
     enforce_teacher_rollout: True
     ratio_teacher_rollout: 1.0
+    mixed_rollout_schedule:
+      - {phase: L0, start_step: 0, end_step: 1000, ratio: 1.0}
+      - {phase: L1, start_step: 1000, end_step: 2000, ratio: 0.75}
+      - {phase: L2, start_step: 2000, end_step: 4000, ratio: 0.5}
+      - {phase: L3, start_step: 4000, end_step: 8000, ratio: 0.25}
     student_action_dim: 12
     teacher_action_dim: 12
     rollout_action_dim: 24
@@ -60,43 +96,52 @@ algo:
       metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
       obs_dim: 1620
       action_dim: 12
-    network_load_dict:
-      teacher_actor:
-        path: ${teacher_actor_path}
     teacher_artifact:
       checkpoint_path: ${teacher_actor_path}
       config_path: ${teacher_config_path}
       manifest_path: ${teacher_manifest_path}
-    use_obj_pred: False
-    obj_pred_loss_coef: 0.0
+      checkpoint_sha256: ${teacher_checkpoint_sha256}
+      config_sha256: ${teacher_config_sha256}
+      manifest_sha256: ${teacher_manifest_sha256}
+      runtime_repository: ${runtime_repository}
+      runtime_commit: ${runtime_commit}
+    fresh_ddp_init:
+      enabled: True
+      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+      topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+      seed: 0
+      rank_seed_offset: global_rank
+      load_before_optimizer: True
+      strict_model_hash: True
+      checkpoint: null
+      auto_load_latest: False
+      rank0_init_dir: ${experiment_dir}/fresh_init
+    p2_lifecycle:
+      enabled: True
+      target_global_step: 8000
+    p2_common_init:
+      enabled: False
     init_noise_std: 0.001
     max_noise_std: 0.001
     clamp_noise_std: True
-    freeze_noise_std: False
+    freeze_noise_std: True
     gamma: 0.9966
     lam: 0.983
     desired_kl: 0.005
     init_at_random_ep_len: False
+    use_obj_pred: False
+    obj_pred_loss_coef: 0.0
     module_dim: {actor_obs: -1, teacher_obs: -1, critic_obs: -1, vision_feature_dim: 128}
     actor:
-      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_triview_recurrent.TriViewContextSharedEncoderVisionRecurrentActor
+      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_p2_recurrent.DualD435HeadVisionRecurrentToeOut6Actor
       input_key: actor_obs
-      manipulation_vision_key: vision_obs
-      context_vision_key: context_vision_obs
-      camera_meta_key: camera_meta
       running_mean_std: True
       rnn_type: lstm
       rnn_hidden_dim: 256
       rnn_num_layers: 2
       view_contract:
-        manipulation_shape: [384, 216, 6]
-        context_shape: [136, 384, 3]
         camera_meta_dim: 6
-        d435i_view_order: [left, right]
-        d435i_feature_dim: 128
-        head_feature_dim: 128
-        fused_feature_dim: 128
-        d435i_forward_mode: sequential
+        d435i_forward_mode: packed
       backbone:
         d435i_vision_module:
           _target_: gr00t.rl.agents.modules.modules.BaseModule
@@ -119,7 +164,6 @@ algo:
             input_dim: [actor_obs]
             output_dim: [12]
             layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
-
     teacher_actor:
       _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
       input_key: teacher_obs
@@ -132,12 +176,8 @@ algo:
         process_output_dim: True
         module_config_dict:
           input_dim: [teacher_obs]
-          output_dim: ["${algo.config.teacher_action_dim}"]
-          layer_config:
-            type: MLP
-            hidden_dims: [512, 256, 128]
-            activation: SiLU
-
+          output_dim: [12]
+          layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
     critic:
       _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentCritic
       running_mean_std: True
@@ -150,84 +190,24 @@ algo:
         module_config_dict:
           input_dim: [critic_obs]
           output_dim: [1]
-          layer_config:
-            type: MLP
-            hidden_dims: [512, 256, 128]
-            activation: SiLU
+          layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
+
 env:
   config:
-    # Exact c18 v19 G2 runtime semantics; Student topology remains local below.
-    a2_m39_gripper_material_enabled: True
-    a2_door_weight_range: [80.0, 160.0]
-    a2_corridor_enabled: True
-    a2_corridor_door_wide_hinge_norm: 1.5
-    a2_arm_dof_overspeed_soft_margin_enabled: True
-    a2_arm_dof_overspeed_soft_margin_width: 0.5
-    a2_door_body_contact_penalty_mode: event_v17
-    a2_stage5_hold_income_continuity_enabled: True
-    a2_door_body_contact_event_force_threshold: 5.0
-    a2_door_body_contact_event_peak_force_norm: 200.0
-    a2_door_body_contact_event_component_cap: 2.0
-    a2_stage2_contact_force_threshold: 1.0
-    a2_stage2_squeeze_force_min: 2.0
-    a2_stage2_squeeze_force_max: 30.0
-    a2_stage2_over_force_threshold: 55.0
-    a2_grasp_gate_mode: control_streak
-    a2_grasp_streak_control_steps: 5
-    a2_stage3_to4_door_hinge_threshold: 0.25
-    a2_stage3_to4_requires_grasp_streak: True
-    a2_stage3_to4_streak_highwater: False
-    a2_stage3_base_unlocked: True
-    a2_stage3_unlatch_handle_position_norm: 0.6
-    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
-    a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
-    a2_stage3_stage4_hold_and_drive_velocity_norm_in_corridor: 0.4
-    a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
-    a2_stage3_stage4_coasting_velocity_threshold: 0.1
-    a2_stage3_handle_hard_limit_position: 0.785398
-    a2_stage3_handle_hard_limit_tolerance: 0.005
-    a2_stage4_release_hinge_threshold: 1.60
-    a2_stage4_to5_door_hinge_threshold: 1.25
-    a2_stage45_door_frame_contact_scale: 0.2
-    a2_stage35_door_panel_contact_scale: 0.0
-    a2_stage0_staging_x_min: 0.50
-    a2_stage0_staging_x_max: 0.80
-    a2_stage0_staging_y_tol: 0.15
     reset_from_dataset:
       enabled: False
-rewards:
-  reward_penalty_curriculum: False
-  reward_initial_penalty_scale: 1.0
-  reward_min_penalty_scale: 1.0
-  reward_max_penalty_scale: 1.0
-  reward_penalty_degree: 0.0
-  reward_scales:
-    push_door_handle: 0.0
-    push_door_hinge: 6.0
-    push_door_force: 0.0
-    a2_stage3_unlatch_hold: 3.0
-    a2_stage3_stage4_hold_and_drive: 8.0
-    a2_corridor_door_wide: 4.0
-    a2_corridor_clean_passage: 1.0
-    a2_stage3_stage4_keep_close_command: 0.5
-    penalty_a2_stage3_stage4_open_command: -1.0
-    a2_stage3_stage4_both_contact: 0.5
-    a2_stage3_stage4_opposite_squeeze: 0.5
-    a2_stage3_stage4_squeeze_force_window: 0.5
-    a2_stage3_stage4_contact_stability: 0.5
-    penalty_a2_stage3_stage4_over_force: -1.0
-    penalty_a2_door_body_contact: -3.0
-    penalty_a2_posture_command_l1: -0.3
+
 simulator:
   config:
     randomize_dome_light: False
     cameras:
       enable_cameras: True
-      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19
+      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+      topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
       camera_parent: trunk
       camera_prim_suffix: d435i_left_portrait_policy_camera
-      camera_pos: [0.215, 0.095, 0.165]
-      camera_rot_wxyz: [0.852868532, -0.086824089, -0.492403877, -0.150383733]
+      camera_pos: [0.215, 0.065, 0.165]
+      camera_rot_wxyz: [0.905065723713, 0.022118130854, -0.422039078101, 0.047432484685]
       camera_convention: world
       camera_focal_length: 1.0
       camera_focus_distance: 0.5
@@ -241,7 +221,8 @@ simulator:
       image_std: [0.229, 0.224, 0.225]
       policy_multiview:
         enabled: True
-        architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19
+        architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+        topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
         layout: channel_stacked_raw_rgb
         primary_resolution: [384, 216]
         output_resolution: [384, 216]
@@ -251,8 +232,8 @@ simulator:
           sensor_name: d435i_right_portrait_policy
           parent: trunk
           prim_suffix: d435i_right_portrait_policy_camera
-          position_m: [0.215, -0.095, 0.165]
-          rotation_wxyz: [0.852868532, 0.086824089, -0.492403877, 0.150383733]
+          position_m: [0.215, -0.065, 0.165]
+          rotation_wxyz: [0.905065723713, -0.022118130854, -0.422039078101, -0.047432484685]
           convention: world
           resolution: [384, 216]
           focal_length: 1.0
@@ -281,23 +262,3 @@ simulator:
     scene: {replicate_physics: False, env_spacing: 20.0}
     sim:
       physx: {num_position_iterations: 4, num_velocity_iterations: 2, max_depenetration_velocity: 300.0}
-robot:
-  asset: {self_collisions: 0}
-  use_primitive: False
-  actions_dim: 20
-  check_action_dim: True
-  terminate_after_contacts_on: []
-  dof_effort_limit_list: [
-    120.0, 120.0, 180.0,
-    120.0, 120.0, 180.0,
-    120.0, 120.0, 180.0,
-    120.0, 120.0, 180.0,
-    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
-  ]
-  control:
-    stiffness:
-      arm_j7: 1300.0
-      arm_j8: 1300.0
-    damping:
-      arm_j7: 32.0
-      arm_j8: 32.0

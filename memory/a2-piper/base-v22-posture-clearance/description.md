@@ -2,7 +2,7 @@
 name: base-v22-posture-clearance
 scope: A2+Piper base_v22 conditional posture / clearance strategy / hinge randomization / body-assist force routing round (plan revision 3)
 status: active
-last_updated: 2026-08-05 03:40 HKT
+last_updated: 2026-08-06 22:50 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v22-posture-clearance/description.md
@@ -51,3 +51,11 @@ read_when:
 - Smoke：`logs_rl/a2_piper_full_stage_a2_base_smoke/base_v22/`
 - Launcher：`logs_rl/launchers/base_v22/`
 - Eval / artifacts：`logs_eval/base_v22/`，locks 在 `logs_eval/base_v22/locks/`
+- Route A（Wave 1 完成）：`logs_eval/base_v22/postformal_20260806_route_a/`（20/20 ROW_PASS，evidence index + selection 在内）
+- Render（§15.4，选中 G1:step1250）：`logs_eval/base_v22/render_20260806_g1_step1250/`（5 场景 48/48 主片 PASS + QA contact sheets 在 `qa/`）
+
+## Current State（2026-08-06）
+
+- Wave 1（G1/G2）训练与 Route A 已关闭；裁决选定 **G1:step1250** 为最接近 §23 理想行为的 checkpoint，render 已交付。
+- 未关闭：P0-B/P0-F（posture_need precision 保持 report-only）、P0-E、§6.2 fixed-torque probe 重测、Wave 2 bucket 复现验证——Wave 2/3 未启动。
+- Route B（pooled48/Dynamics80/holdout64）未执行；本轮不构成 release 决定。

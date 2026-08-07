@@ -225,5 +225,4 @@ DINOv3_models/*
 data/door_assets/*
 
 # Local cloud-session handoff archives (eval/render evidence; never commit)
-/a2_piper_v20_cloud_delivery_*.zip
-/a2_piper_v21B_cloud_delivery_*.zip
+*.zip

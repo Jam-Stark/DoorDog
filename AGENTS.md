@@ -40,6 +40,12 @@ Main agent 默认不直接 implement complex product code。简单修改可按 S
 - 对缺失配置、shape/type/device mismatch、unsupported API 与 invalid state 给出清晰错误，让问题在运行/训练中暴露。
 - 不使用 `as any`、`@ts-ignore` 或其他 type suppression 掩盖问题。
 - 不对未读 code 或未运行的行为作 PASS 声明；`static PASS`、`runtime PASS` 与 `INCONCLUSIVE` 必须明确区分。
+- 我们不是一个安全攻防项目，你有权力进行校验，但是禁止禁止禁止过度防御
+- 禁止写哈希和SHA256
+- 禁止反复的基本不可能出现的case写防御
+- 需要rubric的地方不要过度机械化
+- 长等待任务直接sleep 600s  1800s或者更长时间来长时间等待
+- 不能反复review，过度审计，严格控制编译/diff/路径边界检查次数，减少过度串行的 fixture 修复、sandbox loopback、重复等待和过保守检查。你必须先证明操作路径，先把功能实现出来，等我确认没问题，然后才能添加护栏、变异/回归/遗留兼容性保护，或测试。或者只有等到我提起某个功能在什么情况下出现了问题之后再去补充相关的测试。要专注在功能实现本身上，而不是过度关注安全、护栏和各种测试
 
 IsaacLab code 还必须优先使用 IsaacLab high-level API。若能使用 high-level API 完成，禁止用 `pxr.UsdGeom`、`stage.DefinePrim`、`omni.usd` 等 low-level USD API 绕过 framework contract。
 

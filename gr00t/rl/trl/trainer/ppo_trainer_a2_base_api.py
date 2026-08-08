@@ -3,6 +3,7 @@
 
 
 from collections import deque
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 import json
@@ -3227,7 +3228,16 @@ class TRLPPOTrainer(PPOTrainer):
         self._eval_mode()
         self.env.set_is_evaluating()
         self.policy_model.eval_mode()
-        self.policy_model.init_rollout()
+        a2_eval_action_provider = getattr(self, "_a2_eval_action_provider", None)
+        if a2_eval_action_provider is not None:
+            if not callable(a2_eval_action_provider):
+                raise RuntimeError("A2 eval action provider must be callable")
+            provider_begin = getattr(self, "_a2_eval_action_provider_begin", None)
+            if not callable(provider_begin):
+                raise RuntimeError("A2 eval action provider requires an explicit begin hook")
+            provider_begin()
+        else:
+            self.policy_model.init_rollout()
         obs_dict = self.env.reset_all()
         for obs_key in obs_dict.keys():
             obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
@@ -3255,6 +3265,7 @@ class TRLPPOTrainer(PPOTrainer):
             dtype=torch.long,
             device=self.accelerator.device,
         )
+        dones = torch.zeros(self.env.num_envs, device=self.accelerator.device)
 
         # Initialize environment-based metrics tracking
         self.env.init_eval_metrics_tracking(self.accelerator.device)
@@ -3362,8 +3373,27 @@ class TRLPPOTrainer(PPOTrainer):
 
                     actor_state = {}
 
-                    actions = policy_model.rollout(obs_dict=obs_dict)
-                    action_mean = policy_model.action_mean.detach()
+                    provider_state = None
+                    if a2_eval_action_provider is not None:
+                        provider_state = a2_eval_action_provider(
+                            policy_model, obs_dict, cur_dones=dones
+                        )
+                        if not isinstance(provider_state, Mapping):
+                            raise RuntimeError("A2 eval action provider must return a mapping")
+                        action_mean = provider_state.get("high_level_action")
+                        if (
+                            not torch.is_tensor(action_mean)
+                            or tuple(action_mean.shape) != (self.env.num_envs, 12)
+                            or not torch.is_floating_point(action_mean)
+                            or not torch.all(torch.isfinite(action_mean))
+                        ):
+                            raise RuntimeError(
+                                "A2 eval action provider high-level action must be finite "
+                                "floating [num_envs,12]"
+                            )
+                    else:
+                        policy_model.rollout(obs_dict=obs_dict)
+                        action_mean = policy_model.action_mean.detach()
 
                     if self.use_a2_base:
                         get_action_layout = getattr(
@@ -3423,6 +3453,13 @@ class TRLPPOTrainer(PPOTrainer):
                             forced_close_stage_ids=forced_close_stage_ids,
                         )
                         post_forced_override_pre_env_action = action_mean
+                        if provider_state is not None and (
+                            a2_eval_diagnostics["forced_close_enabled"]
+                            or a2_hold_oracle_config["enabled"]
+                        ):
+                            raise RuntimeError(
+                                "A2 eval action provider does not permit forced-close or hold-oracle intervention"
+                            )
                         if a2_eval_diagnostics["forced_close_enabled"]:
                             post_forced_override_pre_env_action = action_mean.clone()
                             post_forced_override_pre_env_action[
@@ -3466,12 +3503,32 @@ class TRLPPOTrainer(PPOTrainer):
                                 episode_indices=eval_episode_indices,
                             )
 
-                        a2_actions = model._a2_base_actions(
-                            obs_dict, post_oracle_override_pre_env_action
-                        )
-                        step_actions = torch.cat(
-                            [post_oracle_override_pre_env_action, a2_actions], dim=-1
-                        )
+                        if provider_state is not None:
+                            step_actions = provider_state.get("actions")
+                            if (
+                                not torch.is_tensor(step_actions)
+                                or tuple(step_actions.shape)
+                                != (self.env.num_envs, action_layout["dim"] + self.a2_base_action_dim)
+                                or not torch.is_floating_point(step_actions)
+                                or not torch.all(torch.isfinite(step_actions))
+                            ):
+                                raise RuntimeError(
+                                    "A2 eval action provider must return one finite composed action per env"
+                                )
+                            if not torch.equal(
+                                step_actions[:, : action_layout["dim"]],
+                                post_oracle_override_pre_env_action,
+                            ):
+                                raise RuntimeError(
+                                    "A2 eval provider composed action high-level prefix differs from diagnostic action"
+                                )
+                        else:
+                            a2_actions = model._a2_base_actions(
+                                obs_dict, post_oracle_override_pre_env_action
+                            )
+                            step_actions = torch.cat(
+                                [post_oracle_override_pre_env_action, a2_actions], dim=-1
+                            )
                     else:
                         homie_obs = obs_dict["homie_obs"]
                         walk_out = homie_walk_model(homie_obs)
@@ -3499,6 +3556,12 @@ class TRLPPOTrainer(PPOTrainer):
                         obs_dict[obs_key] = obs_dict[obs_key].to(device)
 
                     rewards, dones = rewards.to(device), dones.to(device)
+
+                    if a2_eval_action_provider is not None:
+                        provider_reset = getattr(self, "_a2_eval_action_provider_reset", None)
+                        if not callable(provider_reset):
+                            raise RuntimeError("A2 eval action provider requires an explicit reset hook")
+                        provider_reset(dones)
 
                     if dump_eval_to_log_metrics:
                         if "to_log" not in infos or not isinstance(infos["to_log"], dict):
@@ -3572,7 +3635,13 @@ class TRLPPOTrainer(PPOTrainer):
                         self.env.render_results(env_ids=non_terminal_env_ids, frame_type="step")
 
         self.env.end_render_results()
-        self.policy_model.clear_rollout()
+        if a2_eval_action_provider is not None:
+            provider_end = getattr(self, "_a2_eval_action_provider_end", None)
+            if not callable(provider_end):
+                raise RuntimeError("A2 eval action provider requires an explicit end hook")
+            provider_end()
+        else:
+            self.policy_model.clear_rollout()
         print(f"Evaluation completed - {completed_episodes} episodes finished")
 
         # Get evaluation summary from environment (includes class-wise metrics)
@@ -3712,6 +3781,27 @@ class TRLPPOTrainer(PPOTrainer):
                     json.dump(safe_stage2_trace, f, indent=4, allow_nan=False)
                 os.replace(stage2_trace_tmp_path, stage2_trace_path)
                 logger.info(f"Saved A2 stage2-5 step trace to {stage2_trace_path}")
+
+            if a2_eval_diagnostics["diagnostic_enabled"]:
+                get_stage0_1_trace = getattr(
+                    self.env, "get_a2_eval_stage0_1_step_trace_records", None
+                )
+                if get_stage0_1_trace is None:
+                    raise RuntimeError(
+                        "A2 expanded eval diagnostics require "
+                        "env.get_a2_eval_stage0_1_step_trace_records()."
+                    )
+                safe_stage0_1_trace = _make_json_safe(
+                    get_stage0_1_trace(), path="stage0_1_step_trace"
+                )
+                stage0_1_trace_path = os.path.join(
+                    eval_output_dir, "stage0_1_step_trace.json"
+                )
+                stage0_1_trace_tmp_path = f"{stage0_1_trace_path}.tmp"
+                with open(stage0_1_trace_tmp_path, "w") as f:
+                    json.dump(safe_stage0_1_trace, f, indent=4, allow_nan=False)
+                os.replace(stage0_1_trace_tmp_path, stage0_1_trace_path)
+                logger.info(f"Saved A2 stage0/1 step trace to {stage0_1_trace_path}")
 
         metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
         metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"

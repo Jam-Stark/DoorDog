@@ -18,6 +18,10 @@ The runner has three explicit modes:
 ``full``
     Run ``formal`` and ``render`` in fresh child processes below one fresh root.
 
+``diagnose``
+    Run the true Teacher controller with the expanded A2 stage0/1 and stage2-5
+    traces, preserving the complete per-reset door customData table.
+
 The wrapper deliberately resolves the current worktree before importing
 ``gr00t``.  It does not install a runtime import redirect: the three
 IsaacLab-sensitive source modules are pinned by absolute path and SHA-256 and
@@ -55,6 +59,7 @@ ARCHITECTURE_ID = "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2"
 ACTOR_TARGET_SUFFIX = "DualD435HeadVisionRecurrentToeOut6Actor"
 FORMAL_RANKING_ORDER = "goal_reached_desc,max_stage_desc,reward_desc,env_id_asc"
 VIDEO_FPS = 20
+_DIAGNOSTIC_PATH_ONLY = False
 
 RUNTIME_MODULES = {
     "gr00t.rl.envs.door.door_open_a2_base": REPO_ROOT / "gr00t/rl/envs/door/door_open_a2_base.py",
@@ -66,6 +71,25 @@ RANDOMIZED_CASE_KEYS = (
     "door_handle_drive_max_force",
     "door_handle_height",
     "door_weight",
+)
+FULL_CUSTOM_DATA_KEYS = (
+    "doorWidth",
+    "doorHeight",
+    "doorHandleHeight",
+    "doorHandleWidth",
+    "doorWeight",
+    "doorHandleType",
+    "doorOpenLR",
+    "doorOpenIO",
+    "totalWallHeight",
+    "axleLength",
+    "handleLength",
+    "hookLength",
+    "handleRadius",
+    "spawnHook",
+    "hingeDriveMaxForce",
+    "hingeDriveStiffness",
+    "handleDriveMaxForce",
 )
 OUTCOME_KEYS = ("goal_reached", "max_stage", "terminal_reason", "reward")
 METRICS_SCHEMA = "a2_toeout6_student_metrics_v1"
@@ -152,6 +176,19 @@ def _runtime_source_identity() -> dict[str, dict[str, str]]:
     return identity
 
 
+def _diagnostic_runtime_identity() -> dict[str, dict[str, str]]:
+    identity: dict[str, dict[str, str]] = {}
+    for module_name, path in RUNTIME_MODULES.items():
+        source = path.resolve(strict=True)
+        if not source.is_relative_to(REPO_ROOT) or not source.is_file():
+            raise FileNotFoundError(f"required worktree module is unavailable: {source}")
+        identity[module_name] = {
+            "path": str(source),
+            "relative_path": str(source.relative_to(REPO_ROOT)),
+        }
+    return identity
+
+
 def _module_locations(module_name: str, module: Any) -> list[Path]:
     locations: list[Path] = []
     module_file = getattr(module, "__file__", None)
@@ -200,6 +237,8 @@ def validate_worktree_import_preflight() -> dict[str, dict[str, str]]:
             f"origin={origin} expected_under={expected_root}"
         )
     sys.path.insert(0, str(REPO_ROOT))
+    if _DIAGNOSTIC_PATH_ONLY:
+        return _diagnostic_runtime_identity()
     return _runtime_source_identity()
 
 
@@ -245,6 +284,8 @@ def validate_checkpoint_and_config(
     expected_checkpoint_sha256: str | None = None,
     expected_config_sha256: str | None = None,
 ) -> dict[str, Any]:
+    if _DIAGNOSTIC_PATH_ONLY:
+        return _diagnostic_checkpoint_info(checkpoint, expected_global_step, config_override)
     if isinstance(expected_global_step, bool) or expected_global_step != EXPECTED_GLOBAL_STEP:
         raise ValueError(
             f"expected global step must be exactly {EXPECTED_GLOBAL_STEP}; got {expected_global_step!r}"
@@ -381,6 +422,51 @@ def validate_checkpoint_and_config(
     }
 
 
+def _diagnostic_checkpoint_info(
+    checkpoint: Path,
+    expected_global_step: int,
+    config_override: Path | None = None,
+) -> dict[str, Any]:
+    if isinstance(expected_global_step, bool) or expected_global_step != EXPECTED_GLOBAL_STEP:
+        raise ValueError(
+            f"expected global step must be exactly {EXPECTED_GLOBAL_STEP}; got {expected_global_step!r}"
+        )
+    checkpoint = _workspace_path(checkpoint, must_exist=True)
+    if checkpoint.name != f"model_step_{EXPECTED_GLOBAL_STEP:06d}.pt":
+        raise ValueError(
+            "checkpoint filename must encode the required global step: "
+            f"model_step_{EXPECTED_GLOBAL_STEP:06d}.pt; got {checkpoint.name!r}"
+        )
+    config_path = checkpoint.with_name("config.yaml")
+    if config_override is not None:
+        requested = _workspace_path(config_override, must_exist=True)
+        if requested != config_path:
+            raise ValueError(
+                "checkpoint config must be the adjacent config.yaml: "
+                f"expected={config_path} got={requested}"
+            )
+    import torch
+
+    payload = torch.load(checkpoint, map_location="cpu", weights_only=False)
+    if not isinstance(payload, Mapping):
+        raise TypeError("Student checkpoint payload must be a mapping")
+    state = payload.get("state")
+    global_step = getattr(state, "global_step", None)
+    if global_step is None and isinstance(state, Mapping):
+        global_step = state.get("global_step")
+    if isinstance(global_step, bool) or not isinstance(global_step, int):
+        raise RuntimeError("Student checkpoint state.global_step is missing or non-integer")
+    if global_step != expected_global_step:
+        raise RuntimeError(
+            f"Student checkpoint state.global_step mismatch: expected={expected_global_step} got={global_step}"
+        )
+    return {
+        "path": str(checkpoint),
+        "config_path": str(config_path),
+        "global_step": int(global_step),
+    }
+
+
 CONTROLLERS = ("student", "teacher")
 
 
@@ -415,6 +501,7 @@ def _validate_effective_eval_contract(
     *,
     controller: str = "student",
     seed: int = EXPECTED_SEED,
+    diagnostic: bool = False,
 ) -> None:
     contract = _contract(controller, seed)
     if config.get("enforce_teacher_rollout") is not contract["enforce_teacher_rollout"]:
@@ -436,8 +523,12 @@ def _validate_effective_eval_contract(
         raise RuntimeError(f"formal {controller} eval requires one first episode per environment")
     if int(eval_config.get("num_eval_episodes", -1)) != EXPECTED_EPISODES:
         raise RuntimeError(f"formal {controller} eval requires num_eval_episodes=16")
-    if eval_config.get("a2_diagnostic_trace_enabled", False) is not False:
-        raise RuntimeError(f"formal {controller} eval forbids diagnostic action interventions")
+    diagnostic_flag = eval_config.get("a2_diagnostic_trace_enabled", False)
+    if diagnostic_flag is not diagnostic:
+        raise RuntimeError(
+            f"formal {controller} eval requires "
+            f"a2_diagnostic_trace_enabled={diagnostic}"
+        )
     if eval_config.get("a2_forced_gripper_close_enabled", False) is not False:
         raise RuntimeError(f"formal {controller} eval forbids forced gripper-close intervention")
     actor_mode = getattr(policy_model, "d435i_forward_mode", None)
@@ -462,12 +553,14 @@ def build_overrides(
     controller: str = "student",
     seed: int = EXPECTED_SEED,
 ) -> list[str]:
-    if mode not in {"formal", "render"}:
-        raise ValueError(f"child eval mode must be formal or render; got {mode!r}")
+    if mode not in {"formal", "render", "diagnose"}:
+        raise ValueError(f"child eval mode must be formal, render, or diagnose; got {mode!r}")
     if controller not in CONTROLLERS:
         raise ValueError(f"unsupported controller {controller!r}; expected one of {CONTROLLERS}")
     if mode == "render" and controller != "student":
         raise ValueError("selected render is only defined for the Student controller")
+    if mode == "diagnose" and controller != "teacher":
+        raise ValueError("Teacher diagnostic mode requires the Teacher controller")
     _validate_seed(seed)
     output_root = output_root.resolve()
     artifact_root = _render_staging_root(output_root) if mode == "render" else output_root
@@ -488,7 +581,8 @@ def build_overrides(
         "+algo.config.actor.view_contract.d435i_forward_mode=packed",
         "+algo.config.eval.eval_num_envs_episodes=true",
         "algo.config.eval.num_eval_episodes=16",
-        "algo.config.eval.a2_diagnostic_trace_enabled=false",
+        "algo.config.eval.a2_diagnostic_trace_enabled="
+        f"{str(mode == 'diagnose').lower()}",
         "algo.config.eval.a2_forced_gripper_close_enabled=false",
         "+algo.config.eval.dump_to_log_metrics=false",
         "algo.config.eval.save_videos=false",
@@ -502,6 +596,8 @@ def build_overrides(
         # step-8000 phase would otherwise override the requested formal Teacher
         # ratio.  A null schedule makes the explicit ratio=1.0 contract active.
         overrides.append("+algo.config.mixed_rollout_schedule=null")
+    if mode == "diagnose":
+        overrides.append("algo.config.eval.a2_hold_oracle_enabled=false")
     required = {
         "seed": str(seed),
         "num_envs": "16",
@@ -510,6 +606,7 @@ def build_overrides(
         "algo.config.actor.view_contract.d435i_forward_mode": "packed",
         "algo.config.eval.eval_num_envs_episodes": "true",
         "algo.config.eval.num_eval_episodes": "16",
+        "algo.config.eval.a2_diagnostic_trace_enabled": str(mode == "diagnose").lower(),
         "simulator.config.render_results": "false",
         "eval_output_dir": str(artifact_root),
         "eval_log_dir": str(runtime_root),
@@ -525,7 +622,11 @@ def build_overrides(
     return overrides
 
 
-def capture_reset_case_table(env: Any) -> dict[int, dict[str, Any]]:
+def capture_reset_case_table(
+    env: Any,
+    *,
+    include_full_custom_data: bool = False,
+) -> dict[int, dict[str, Any]]:
     """Read the exact spawn metadata used by the current DoorPregrasp env.
 
     The two drive-force values are authored only in the door prim's custom
@@ -563,6 +664,16 @@ def capture_reset_case_table(env: Any) -> dict[int, dict[str, Any]]:
             if not math.isfinite(float(value)):
                 raise ValueError(f"reset identity {key} must be finite; got {value!r}")
             case[key] = float(value)
+        if include_full_custom_data:
+            missing_keys = [key for key in FULL_CUSTOM_DATA_KEYS if key not in metadata]
+            if missing_keys:
+                raise KeyError(
+                    f"door customData missing diagnostic fields for env_id={env_id}: "
+                    f"{missing_keys}"
+                )
+            case["door_custom_data"] = {
+                str(key): json_safe(value) for key, value in metadata.items()
+            }
         table[env_id] = case
     return table
 
@@ -939,6 +1050,7 @@ def make_formal_eval(
     *,
     controller: str = "student",
     seed: int = EXPECTED_SEED,
+    diagnostic: bool = False,
 ):
     def formal_eval(self):
         _validate_effective_eval_contract(
@@ -946,28 +1058,198 @@ def make_formal_eval(
             self.policy_model,
             controller=controller,
             seed=seed,
+            diagnostic=diagnostic,
         )
         _validate_runtime_seed(self, seed)
         if int(self.env.num_envs) != EXPECTED_NUM_ENVS:
             raise RuntimeError(f"formal {controller} eval requires exactly 16 environments")
-        case_table = capture_reset_case_table(self.env)
+        if diagnostic and controller != "teacher":
+            raise RuntimeError("expanded Teacher diagnostic lane requires controller=teacher")
+        action_source_summary = None
+        if controller == "teacher":
+            enable_provider = getattr(self, "enable_a2_eval_teacher_action_provider", None)
+            if not callable(enable_provider):
+                raise RuntimeError(
+                    "Teacher eval requires the true Teacher action provider"
+                )
+            enable_provider()
+        case_table = capture_reset_case_table(
+            self.env,
+            include_full_custom_data=diagnostic,
+        )
         result = base_eval(self)
         metrics = result if isinstance(result, Mapping) else self.env.get_eval_metrics_summary()
-        verify_loaded_runtime_sources(source_identity)
-        selection = seal_formal_artifacts(
-            output_root,
-            checkpoint_info,
-            source_identity,
-            metrics,
-            case_table,
-            controller=controller,
-            seed=seed,
-        )
-        print(
-            f"[A2_TOEOUT6_{controller.upper()}_FORMAL_PASS] "
-            f"selected_env={selection['selected']['env_id']} output={output_root}",
-            flush=True,
-        )
+        if controller == "teacher":
+            get_action_summary = getattr(self, "get_a2_eval_action_source_summary", None)
+            if not callable(get_action_summary):
+                raise RuntimeError("Teacher eval requires action-source summary getter")
+            action_source_summary = get_action_summary()
+            if not isinstance(action_source_summary, Mapping):
+                raise RuntimeError("Teacher eval action-source summary must be a mapping")
+            required_counters = (
+                "teacher_action_steps",
+                "teacher_action_env_count",
+                "exact_teacher_match_steps",
+                "exact_teacher_match_env_count",
+                "student_rollout_calls",
+            )
+            counters = {}
+            for field_name in required_counters:
+                value = action_source_summary.get(field_name)
+                if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                    raise RuntimeError(
+                        f"Teacher eval action-source counter {field_name!r} must be a non-negative int"
+                    )
+                counters[field_name] = value
+            if counters["teacher_action_steps"] <= 0:
+                raise RuntimeError("Teacher eval completed without any Teacher action steps")
+            if counters["exact_teacher_match_steps"] != counters["teacher_action_steps"]:
+                raise RuntimeError("Teacher exact-match step counter diverged from Teacher counter")
+            if counters["exact_teacher_match_env_count"] != counters["teacher_action_env_count"]:
+                raise RuntimeError("Teacher exact-match env counter diverged from Teacher counter")
+            if counters["student_rollout_calls"] != 0:
+                raise RuntimeError("Teacher eval unexpectedly called Student rollout")
+        selection = None
+        if not diagnostic:
+            verify_loaded_runtime_sources(source_identity)
+            selection = seal_formal_artifacts(
+                output_root,
+                checkpoint_info,
+                source_identity,
+                metrics,
+                case_table,
+                controller=controller,
+                seed=seed,
+            )
+        if diagnostic:
+            stage0_trace_path = output_root / "stage0_1_step_trace.json"
+            stage2_trace_path = output_root / "stage2_5_step_trace.json"
+            trace_counts = {}
+            for name, path in (
+                ("stage0_1", stage0_trace_path),
+                ("stage2_5", stage2_trace_path),
+            ):
+                if not path.is_file():
+                    raise RuntimeError(f"Teacher diagnostic trace artifact is missing: {path}")
+                with path.open(encoding="utf-8") as stream:
+                    trace_payload = json.load(stream)
+                if not isinstance(trace_payload, list):
+                    raise RuntimeError(f"Teacher diagnostic trace must be a list: {path}")
+                trace_counts[name] = len(trace_payload)
+            if not isinstance(action_source_summary, Mapping):
+                raise RuntimeError("Teacher diagnostic lane requires action-source summary")
+            teacher_artifact = _mapping(
+                self.config.get("teacher_artifact"), "algo.config.teacher_artifact"
+            )
+            teacher_manifest = _mapping(
+                getattr(self, "teacher_manifest", None), "teacher_manifest"
+            )
+            teacher_checkpoint_manifest = _mapping(
+                teacher_manifest.get("checkpoint"), "teacher_manifest.checkpoint"
+            )
+            teacher_state_key = teacher_checkpoint_manifest.get("state_dict_key")
+            if not isinstance(teacher_state_key, str) or not teacher_state_key:
+                raise RuntimeError("Teacher manifest state_dict_key is missing")
+            provenance = {
+                "student": {
+                    "checkpoint_path": str(
+                        Path(str(checkpoint_info["path"])).expanduser().resolve(strict=True)
+                    ),
+                    "config_path": str(
+                        Path(str(checkpoint_info["config_path"])).expanduser().resolve(strict=True)
+                    ),
+                },
+                "teacher": {
+                    "checkpoint_path": str(
+                        Path(str(teacher_artifact.get("checkpoint_path")))
+                        .expanduser()
+                        .resolve(strict=True)
+                    ),
+                    "config_path": str(
+                        Path(str(teacher_artifact.get("config_path")))
+                        .expanduser()
+                        .resolve(strict=True)
+                    ),
+                    "manifest_path": str(
+                        Path(str(teacher_artifact.get("manifest_path")))
+                        .expanduser()
+                        .resolve(strict=True)
+                    ),
+                    "state_dict_key": teacher_state_key,
+                },
+                "worktree_sources": {
+                    str(module_name): {
+                        "path": str(Path(str(source["path"])).expanduser().resolve(strict=True)),
+                        "relative_path": str(source["relative_path"]),
+                    }
+                    for module_name, source in source_identity.items()
+                },
+            }
+            diagnostic_payload = {
+                "schema": "a2_toeout6_teacher_stage0_diagnostic_v1",
+                "training_performed": False,
+                "controller": "teacher",
+                "seed": seed,
+                "action_source_proof": action_source_summary,
+                "resolved_provenance": provenance,
+                "action_contract": {
+                    "selected_high_level_source": "TRLDistillTrainerA2BaseAPI.policy_step.gt_actions",
+                    "teacher_rollout_ratio": 1.0,
+                    "mixed_rollout_schedule": None,
+                    "student_rollout_called": False,
+                    "forced_close_intervention": False,
+                    "hold_oracle_intervention": False,
+                    "composed_action_dim": 24,
+                    "base_action_source": "TRLDistillTrainerA2BaseAPI.policy_step._a2_base_actions",
+                },
+                "stage0_to1_gate_contract": {
+                    "predicate": (
+                        "staging_distance < staging_threshold and "
+                        "arm_max_deviation < arm_threshold"
+                    ),
+                    "staging_threshold": 0.1,
+                    "arm_threshold_source": "algo.config.a2_base.a2_stage0_arm_default_max_deviation",
+                    "transition_timing": "pre-stage-advance stage_buf and actual completed physics state",
+                },
+                "stage1_to2_gate_contract": {
+                    "predicate": (
+                        "pregrasp_distance < 0.1 and opening_alignment >= 0.8 and "
+                        "approach_alignment >= 0.8 and base_command_norm <= 0.1 and "
+                        "gripper_ready"
+                    ),
+                    "pregrasp_threshold": 0.1,
+                    "opening_alignment_threshold": 0.8,
+                    "approach_alignment_threshold": 0.8,
+                    "base_command_norm_threshold": 0.1,
+                    "transition_timing": "pre-stage-advance stage_buf and actual completed physics state",
+                },
+                "case_table": case_table,
+                "terminal_outcomes": metrics,
+                "trace_artifacts": {
+                    "stage0_1": {
+                        "path": str(stage0_trace_path),
+                        "record_count": trace_counts["stage0_1"],
+                    },
+                    "stage2_5": {
+                        "path": str(stage2_trace_path),
+                        "record_count": trace_counts["stage2_5"],
+                    },
+                },
+                "full_custom_data_keys": list(FULL_CUSTOM_DATA_KEYS),
+            }
+            atomic_json_write(output_root / "teacher_stage0_diagnostic.json", diagnostic_payload)
+        if diagnostic:
+            print(
+                f"[A2_TOEOUT6_{controller.upper()}_DIAGNOSTIC_PASS] "
+                f"output={output_root}",
+                flush=True,
+            )
+        else:
+            print(
+                f"[A2_TOEOUT6_{controller.upper()}_FORMAL_PASS] "
+                f"selected_env={selection['selected']['env_id']} output={output_root}",
+                flush=True,
+            )
         return result
 
     formal_eval.__name__ = f"toeout6_{controller}_formal_eval"
@@ -1233,6 +1515,28 @@ def _direct_load_teacher_actor(self: Any) -> None:
     self.teacher_manifest = manifest
 
 
+def _load_teacher_actor_diagnostic(self: Any) -> None:
+    import torch
+
+    artifact = _mapping(self.config.get("teacher_artifact"), "algo.config.teacher_artifact")
+    checkpoint_path = Path(str(artifact.get("checkpoint_path"))).expanduser().resolve(strict=True)
+    manifest_path = Path(str(artifact.get("manifest_path"))).expanduser().resolve(strict=True)
+    with manifest_path.open(encoding="utf-8") as stream:
+        manifest = json.load(stream)
+    checkpoint_manifest = _mapping(manifest.get("checkpoint"), "Teacher manifest checkpoint")
+    state_key = checkpoint_manifest.get("state_dict_key")
+    if not isinstance(state_key, str) or not state_key:
+        raise RuntimeError("Teacher manifest state_dict_key is missing")
+    if self.ref_model is None or int(getattr(self.ref_model, "num_actions", -1)) != 12:
+        raise RuntimeError("Student eval requires a 12D recurrent Teacher reference model")
+    payload = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    if not isinstance(payload, Mapping) or not isinstance(payload.get(state_key), Mapping):
+        raise RuntimeError(f"Teacher checkpoint does not contain manifest state key {state_key!r}")
+    self.ref_model.load_state_dict(payload[state_key], strict=True)
+    self.ref_model.eval()
+    self.teacher_manifest = manifest
+
+
 def _prepare_runtime(
     mode: str,
     output_root: Path,
@@ -1256,6 +1560,8 @@ def _prepare_runtime(
     _validate_seed(seed)
     if mode == "render" and controller != "student":
         raise ValueError("selected render is only defined for the Student controller")
+    if mode == "diagnose" and controller != "teacher":
+        raise ValueError("Teacher diagnostic mode requires the Teacher controller")
 
     if TRLDistillTrainerA2BaseAPI.eval is not GenericTRLPPOTrainer.eval:
         # The current Student class may already carry a prior binding in an
@@ -1265,7 +1571,9 @@ def _prepare_runtime(
             raise RuntimeError("current Student trainer eval method binding is unexpected")
     else:
         TRLDistillTrainerA2BaseAPI.eval = A2TRLPPOTrainer.eval
-    TRLDistillTrainerA2BaseAPI.load_teacher_actor = _direct_load_teacher_actor
+    TRLDistillTrainerA2BaseAPI.load_teacher_actor = (
+        _load_teacher_actor_diagnostic if mode == "diagnose" else _direct_load_teacher_actor
+    )
     base_eval = A2TRLPPOTrainer.eval
     if mode == "formal":
         TRLDistillTrainerA2BaseAPI.eval = make_formal_eval(
@@ -1275,6 +1583,17 @@ def _prepare_runtime(
             source_identity,
             controller=controller,
             seed=seed,
+            diagnostic=False,
+        )
+    elif mode == "diagnose":
+        TRLDistillTrainerA2BaseAPI.eval = make_formal_eval(
+            base_eval,
+            output_root,
+            checkpoint_info,
+            source_identity,
+            controller=controller,
+            seed=seed,
+            diagnostic=True,
         )
     elif mode == "render":
         if selection is None or selection_path is None:
@@ -1318,7 +1637,11 @@ def _prepare_runtime(
                 output_root
                 / ("student_selection.json" if controller == "student" else "teacher_selection.json")
                 if mode == "formal"
-                else output_root / "selected_render_metadata.json"
+                else (
+                    output_root / "selected_render_metadata.json"
+                    if mode == "render"
+                    else output_root / "teacher_stage0_diagnostic.json"
+                )
             )
             if not artifact.is_file():
                 raise RuntimeError(f"eval returned success without required artifact: {artifact}")
@@ -1376,7 +1699,7 @@ def _run_child(args: argparse.Namespace, mode: str, output_root: Path, selection
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--mode", choices=("formal", "render", "full"), required=True)
+    parser.add_argument("--mode", choices=("formal", "render", "diagnose", "full"), required=True)
     parser.add_argument("--controller", choices=CONTROLLERS, default="student")
     parser.add_argument("--seed", type=int, default=EXPECTED_SEED)
     parser.add_argument("--render-env-id", type=int)
@@ -1398,6 +1721,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         parser.error("render mode requires --selection-json from a formal run")
     if args.mode == "render" and args.controller != "student":
         parser.error("render mode requires --controller student")
+    if args.mode == "diagnose" and args.controller != "teacher":
+        parser.error("diagnose mode requires --controller teacher")
     if args.mode != "render" and args.render_env_id is not None:
         parser.error("--render-env-id is only valid for render mode")
     if args.mode == "full" and args.controller != "student":
@@ -1410,7 +1735,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    global _DIAGNOSTIC_PATH_ONLY
     args = parse_args(argv)
+    _DIAGNOSTIC_PATH_ONLY = args.mode == "diagnose"
     checkpoint_info = validate_checkpoint_and_config(
         args.checkpoint,
         args.expected_global_step,
@@ -1467,7 +1794,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         output_root
         / ("student_selection.json" if args.controller == "student" else "teacher_selection.json")
         if args.mode == "formal"
-        else output_root / "selected_render_metadata.json"
+        else (
+            output_root / "selected_render_metadata.json"
+            if args.mode == "render"
+            else output_root / "teacher_stage0_diagnostic.json"
+        )
     )
     if not required.is_file():
         raise RuntimeError(f"eval exited without required artifact: {required}")

@@ -5208,7 +5208,7 @@ class DoorPregrasp(
         stage3_stage4 = (stage_buf == self.STAGE_OPEN) | (stage_buf == self.STAGE_SWING)
         return stage3_stage4 & history_window_in_stage & torch.all(both_contact_history, dim=-1)
 
-    def _get_a2_stage1_pregrasp_ready_mask(self):
+    def _get_a2_stage1_pregrasp_ready_components(self):
         data = self._get_a2_gripper_handle_frame_transformer().data
         target_pos_source = getattr(data, "target_pos_source", None)
         if (
@@ -5224,7 +5224,8 @@ class DoorPregrasp(
 
         pregrasp_distance = torch.linalg.norm(target_pos_source[:, 1, :], dim=-1)
         opening_alignment, approach_alignment = self._get_a2_gripper_handle_orientation_metrics()
-        base_still = torch.norm(self.get_physical_homie_commands()[:, :3], dim=1) <= 0.1
+        base_command_norm = torch.norm(self.get_physical_homie_commands()[:, :3], dim=1)
+        base_still = base_command_norm <= 0.1
 
         gripper_pos = self.simulator.dof_pos[:, self._a2_gripper_dof_indices]
         close_target = self._a2_gripper_close_target
@@ -5242,13 +5243,42 @@ class DoorPregrasp(
             dim=-1,
         )
 
-        return (
-            (pregrasp_distance < 0.1)
-            & (opening_alignment >= 0.8)
-            & (approach_alignment >= 0.8)
-            & base_still
-            & gripper_ready
-        )
+        pregrasp_threshold = pregrasp_distance.new_tensor(0.1)
+        opening_threshold = opening_alignment.new_tensor(0.8)
+        approach_threshold = approach_alignment.new_tensor(0.8)
+        base_threshold = pregrasp_distance.new_tensor(0.1)
+        return {
+            "pregrasp_distance": pregrasp_distance,
+            "pregrasp_threshold": pregrasp_threshold,
+            "pregrasp_margin": pregrasp_threshold - pregrasp_distance,
+            "pregrasp_ready": pregrasp_distance < pregrasp_threshold,
+            "opening_alignment": opening_alignment,
+            "opening_threshold": opening_threshold,
+            "opening_margin": opening_alignment - opening_threshold,
+            "opening_ready": opening_alignment >= opening_threshold,
+            "approach_alignment": approach_alignment,
+            "approach_threshold": approach_threshold,
+            "approach_margin": approach_alignment - approach_threshold,
+            "approach_ready": approach_alignment >= approach_threshold,
+            "base_command_norm": base_command_norm,
+            "base_threshold": base_threshold,
+            "base_margin": base_threshold - base_command_norm,
+            "base_still": base_still,
+            "gripper_pos": gripper_pos,
+            "gripper_lower": lower[None, :].expand(self.num_envs, -1),
+            "gripper_upper": upper[None, :].expand(self.num_envs, -1),
+            "gripper_ready": gripper_ready,
+            "ready_predicate": (
+                (pregrasp_distance < pregrasp_threshold)
+                & (opening_alignment >= opening_threshold)
+                & (approach_alignment >= approach_threshold)
+                & base_still
+                & gripper_ready
+            ),
+        }
+
+    def _get_a2_stage1_pregrasp_ready_mask(self):
+        return self._get_a2_stage1_pregrasp_ready_components()["ready_predicate"]
 
     def _get_a2_door_open_bypass_mask(self):
         joint_pos = self._get_door_joint_pos("A2 door-open bypass diagnostics", 1)
@@ -6563,6 +6593,7 @@ class DoorPregrasp(
         self._a2_eval_reward_raw_by_name = None
         self._a2_eval_reward_scaled_by_name = None
         self._a2_stage2_step_trace_records = []
+        self._a2_stage0_1_step_trace_records = []
         self._a2_stage2_step_trace_step_index = 0
 
     def set_a2_eval_diagnostic_actions(
@@ -12275,6 +12306,172 @@ class DoorPregrasp(
             record.update(oracle)
         return records
 
+    def _get_a2_eval_stage0_1_gate_fields(self, env_ids: torch.Tensor):
+        if not self._a2_eval_diagnostic_trace_enabled:
+            raise RuntimeError(
+                "A2 stage0/1 gate diagnostics requested while diagnostics are disabled."
+            )
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(env_ids) else tuple(env_ids.shape)
+            dtype = None if not torch.is_tensor(env_ids) else env_ids.dtype
+            device = None if not torch.is_tensor(env_ids) else env_ids.device
+            raise RuntimeError(
+                "A2 stage0/1 gate diagnostic env_ids require long tensor on env device; "
+                f"got shape={shape}, dtype={dtype}, device={device}."
+            )
+
+        stage_buf = getattr(self, "stage_buf", None)
+        time_in_stage_buf = getattr(self, "time_in_stage_buf", None)
+        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+        episode_length_buf = getattr(self, "episode_length_buf", None)
+        buffers = {
+            "stage_buf": stage_buf,
+            "time_in_stage_buf": time_in_stage_buf,
+            "actual_time_in_stage_buf": actual_time_in_stage_buf,
+            "episode_length_buf": episode_length_buf,
+        }
+        for name, value in buffers.items():
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                device = None if not torch.is_tensor(value) else value.device
+                raise RuntimeError(
+                    f"A2 stage0/1 gate diagnostic {name} requires device tensor shape "
+                    f"({self.num_envs},); got shape={shape}, device={device}."
+                )
+
+        stage0_components = self._get_a2_stage0_to1_predicate_components()
+        stage1_components = self._get_a2_stage1_pregrasp_ready_components()
+        stage0_predicate = stage0_components["staging_predicate"]
+        stage1_predicate = stage1_components["ready_predicate"]
+        if (
+            stage0_predicate.shape != (self.num_envs,)
+            or stage1_predicate.shape != (self.num_envs,)
+            or stage0_predicate.dtype != torch.bool
+            or stage1_predicate.dtype != torch.bool
+        ):
+            raise RuntimeError("A2 stage0/1 gate predicates must be bool tensors per env.")
+
+        records = []
+        for env_id in env_ids.tolist():
+            stage = int(stage_buf[env_id].item())
+            if stage == self.STAGE_WALK_TO_DOOR:
+                transition_predicate = bool(stage0_predicate[env_id].item())
+                post_stage = self.STAGE_PREGRASP if transition_predicate else stage
+            elif stage == self.STAGE_PREGRASP:
+                transition_predicate = bool(stage1_predicate[env_id].item())
+                post_stage = self.STAGE_GRASP if transition_predicate else stage
+            else:
+                transition_predicate = False
+                post_stage = stage
+            stage_transition = post_stage != stage
+            records.append(
+                {
+                    "stage0_staging": {
+                        "distance": float(stage0_components["staging_distance"][env_id].item()),
+                        "threshold": float(stage0_components["staging_threshold"].item()),
+                        "margin": float(stage0_components["staging_margin"][env_id].item()),
+                        "ready": bool(stage0_components["staging_ready"][env_id].item()),
+                        "arm_max_deviation": float(
+                            stage0_components["arm_max_deviation"][env_id].item()
+                        ),
+                        "arm_threshold": float(stage0_components["arm_threshold"].item()),
+                        "arm_margin": float(stage0_components["arm_margin"][env_id].item()),
+                        "arm_ready": bool(stage0_components["arm_ready"][env_id].item()),
+                        "predicate": bool(stage0_predicate[env_id].item()),
+                        "streak": {
+                            "required": 1,
+                            "observed": 1 if bool(stage0_predicate[env_id].item()) else 0,
+                        },
+                    },
+                    "stage1_pregrasp_ready": {
+                        "pregrasp_distance": float(
+                            stage1_components["pregrasp_distance"][env_id].item()
+                        ),
+                        "pregrasp_threshold": float(
+                            stage1_components["pregrasp_threshold"].item()
+                        ),
+                        "pregrasp_margin": float(
+                            stage1_components["pregrasp_margin"][env_id].item()
+                        ),
+                        "pregrasp_ready": bool(
+                            stage1_components["pregrasp_ready"][env_id].item()
+                        ),
+                        "opening_alignment": float(
+                            stage1_components["opening_alignment"][env_id].item()
+                        ),
+                        "opening_threshold": float(
+                            stage1_components["opening_threshold"].item()
+                        ),
+                        "opening_margin": float(
+                            stage1_components["opening_margin"][env_id].item()
+                        ),
+                        "opening_ready": bool(
+                            stage1_components["opening_ready"][env_id].item()
+                        ),
+                        "approach_alignment": float(
+                            stage1_components["approach_alignment"][env_id].item()
+                        ),
+                        "approach_threshold": float(
+                            stage1_components["approach_threshold"].item()
+                        ),
+                        "approach_margin": float(
+                            stage1_components["approach_margin"][env_id].item()
+                        ),
+                        "approach_ready": bool(
+                            stage1_components["approach_ready"][env_id].item()
+                        ),
+                        "base_command_norm": float(
+                            stage1_components["base_command_norm"][env_id].item()
+                        ),
+                        "base_threshold": float(stage1_components["base_threshold"].item()),
+                        "base_margin": float(stage1_components["base_margin"][env_id].item()),
+                        "base_still": bool(stage1_components["base_still"][env_id].item()),
+                        "gripper_pos": stage1_components["gripper_pos"][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "gripper_lower": stage1_components["gripper_lower"][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "gripper_upper": stage1_components["gripper_upper"][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "gripper_ready": bool(
+                            stage1_components["gripper_ready"][env_id].item()
+                        ),
+                        "predicate": bool(stage1_predicate[env_id].item()),
+                        "streak": {
+                            "required": 1,
+                            "observed": 1 if bool(stage1_predicate[env_id].item()) else 0,
+                        },
+                    },
+                    "pre_stage": stage,
+                    "post_stage": post_stage,
+                    "stage_transition": stage_transition,
+                    "transition_from": stage if stage_transition else None,
+                    "transition_to": post_stage if stage_transition else None,
+                    "transition_predicate": transition_predicate,
+                    "stage0_to1_predicate": bool(stage0_predicate[env_id].item()),
+                    "stage1_to2_predicate": bool(stage1_predicate[env_id].item()),
+                    "stage_transition_streak": 1 if stage_transition else 0,
+                    "time_in_stage": int(time_in_stage_buf[env_id].item()),
+                    "actual_time_in_stage": int(actual_time_in_stage_buf[env_id].item()),
+                    "episode_length": int(episode_length_buf[env_id].item()),
+                }
+            )
+        return records
+
     def _capture_a2_eval_stage2_step_trace(self):
         if not self._use_a2_base:
             return
@@ -12374,6 +12571,55 @@ class DoorPregrasp(
                 record["step_index"] = step_index
             self._a2_stage2_step_trace_records.extend(records)
 
+        if self._a2_eval_diagnostic_trace_enabled:
+            stage0_1_trace_stage_mask = (
+                (stage_buf == self.STAGE_WALK_TO_DOOR)
+                | (stage_buf == self.STAGE_PREGRASP)
+            )
+            first_episode_active_mask = self._a2_eval_first_episode_active_mask
+            if (
+                not torch.is_tensor(first_episode_active_mask)
+                or tuple(first_episode_active_mask.shape) != (self.num_envs,)
+                or first_episode_active_mask.dtype != torch.bool
+            ):
+                raise RuntimeError(
+                    "A2 stage0/1 trace requires first-episode active bool mask "
+                    f"shape ({self.num_envs},)."
+                )
+            stage0_1_trace_stage_mask &= first_episode_active_mask
+            stage0_1_env_ids = stage0_1_trace_stage_mask.nonzero(as_tuple=False).flatten()
+            if stage0_1_env_ids.numel() > 0:
+                base_records = self._get_a2_terminal_diagnostics(stage0_1_env_ids)
+                diagnostic_fields = self._get_a2_eval_diagnostic_step_fields(stage0_1_env_ids)
+                gate_fields = self._get_a2_eval_stage0_1_gate_fields(stage0_1_env_ids)
+                expected_count = stage0_1_env_ids.numel()
+                if not (
+                    len(base_records) == len(diagnostic_fields) == len(gate_fields) == expected_count
+                ):
+                    raise RuntimeError(
+                        "A2 stage0/1 trace field counts must match env ids; "
+                        f"base={len(base_records)}, diagnostic={len(diagnostic_fields)}, "
+                        f"gate={len(gate_fields)}, envs={expected_count}."
+                    )
+                for record, action_fields, transition_fields in zip(
+                    base_records, diagnostic_fields, gate_fields
+                ):
+                    if not isinstance(record, dict):
+                        raise TypeError("A2 stage0/1 trace base records must be dicts.")
+                    overlap = (
+                        set(record).intersection(action_fields)
+                        | set(record).intersection(transition_fields)
+                        | set(action_fields).intersection(transition_fields)
+                    )
+                    if overlap:
+                        raise RuntimeError(
+                            "A2 stage0/1 trace field collision: " f"{sorted(overlap)}."
+                        )
+                    record.update(action_fields)
+                    record.update(transition_fields)
+                    record["step_index"] = step_index
+                self._a2_stage0_1_step_trace_records.extend(base_records)
+
         self._a2_stage2_step_trace_step_index += 1
 
     def get_a2_eval_stage2_step_trace_records(self):
@@ -12384,6 +12630,16 @@ class DoorPregrasp(
                 "A2 stage2-5 step trace requested before init_a2_eval_stage2_step_trace()."
             )
         return [dict(record) for record in self._a2_stage2_step_trace_records]
+
+    def get_a2_eval_stage0_1_step_trace_records(self):
+        if not self._use_a2_base:
+            raise RuntimeError("A2 stage0/1 step trace is only available for A2 envs.")
+        if "_a2_stage0_1_step_trace_records" not in self.__dict__:
+            raise RuntimeError(
+                "A2 stage0/1 step trace requested before "
+                "init_a2_eval_stage2_step_trace()."
+            )
+        return [dict(record) for record in self._a2_stage0_1_step_trace_records]
 
     def _get_obs_gripper_handle_transform(self):
         if not self._use_a2_base:
@@ -12787,14 +13043,15 @@ class DoorPregrasp(
     def _stage_0_to_complete_condition(self):
         return self._stage_0_to_1_advance_condition()
 
-    def _stage_0_to_1_advance_condition(self):
+    def _get_a2_stage0_to1_predicate_components(self):
         # get close enough to the configured staging position in front of handle
         grasp_target = self._compute_grasp_target()
         stage0_target = grasp_target.clone()
         stage0_target[:, 0] -= self._get_a2_stage0_staging_x_offset()
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = stage0_target[:, 2]
-        cond = (root_pos - stage0_target).norm(dim=-1) < 0.1
+        staging_distance = (root_pos - stage0_target).norm(dim=-1)
+        staging_threshold = staging_distance.new_tensor(0.1)
 
         # keep A2 arm body DOF / Piper arm_j1..j6 at robot default; gripper arm_j7/8 are excluded.
         if self._use_a2_base:
@@ -12813,8 +13070,22 @@ class DoorPregrasp(
             .max(dim=-1)
             .values
         )
-        cond &= max_deviation < arm_max_deviation
-        return cond
+        arm_threshold = max_deviation.new_tensor(arm_max_deviation)
+        return {
+            "staging_distance": staging_distance,
+            "staging_threshold": staging_threshold,
+            "staging_margin": staging_threshold - staging_distance,
+            "staging_ready": staging_distance < staging_threshold,
+            "arm_max_deviation": max_deviation,
+            "arm_threshold": arm_threshold,
+            "arm_margin": arm_threshold - max_deviation,
+            "arm_ready": max_deviation < arm_threshold,
+            "staging_predicate": (staging_distance < staging_threshold)
+            & (max_deviation < arm_threshold),
+        }
+
+    def _stage_0_to_1_advance_condition(self):
+        return self._get_a2_stage0_to1_predicate_components()["staging_predicate"]
 
     def _stage_1_reward_condition(self):
         # small homie command

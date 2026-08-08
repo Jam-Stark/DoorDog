@@ -301,6 +301,11 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         self._a2_bc_only_graph_validated = False
         self._a2_last_bc_loss = None
         self._a2_last_gradient_finite = False
+        self._a2_eval_action_provider = None
+        self._a2_eval_action_provider_begin = None
+        self._a2_eval_action_provider_reset = None
+        self._a2_eval_action_provider_end = None
+        self._a2_eval_action_source_summary = None
         super().__init__(
             args=args,
             config=config,
@@ -1250,6 +1255,106 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
             raise ValueError("Teacher actions device must match teacher_obs")
         return actions
 
+    def enable_a2_eval_teacher_action_provider(self) -> None:
+        """Opt into the composed pure-Teacher provider used by A2 eval diagnostics.
+
+        The normal Student eval path leaves ``_a2_eval_action_provider`` unset
+        and therefore keeps its existing direct Student rollout behavior.
+        Teacher eval explicitly enables this provider so the environment
+        receives the single 24D action composed by ``policy_step``.
+        """
+        self._a2_eval_action_provider = self._a2_eval_teacher_action_provider
+        self._a2_eval_action_provider_begin = self._begin_a2_eval_teacher_rollout
+        self._a2_eval_action_provider_reset = self._reset_a2_eval_teacher_rollout
+        self._a2_eval_action_provider_end = self._end_a2_eval_teacher_rollout
+
+    def _begin_a2_eval_teacher_rollout(self) -> None:
+        if self.ref_model is None or not hasattr(self.ref_model, "init_rollout"):
+            raise RuntimeError("A2 eval pure Teacher provider requires ref_model.init_rollout()")
+        if not hasattr(self.ref_model, "reset") or not hasattr(self.ref_model, "clear_rollout"):
+            raise RuntimeError(
+                "A2 eval pure Teacher provider requires ref_model.reset(dones) and "
+                "ref_model.clear_rollout()"
+            )
+        if self.config.get("enforce_teacher_rollout") is not True:
+            raise RuntimeError("A2 eval pure Teacher provider requires enforce_teacher_rollout=true")
+        if float(self.config.get("ratio_teacher_rollout", -1.0)) != 1.0:
+            raise RuntimeError("A2 eval pure Teacher provider requires ratio_teacher_rollout=1.0")
+        if self.config.get("mixed_rollout_schedule") is not None:
+            raise RuntimeError("A2 eval pure Teacher provider requires mixed_rollout_schedule=null")
+        self.ref_model.init_rollout()
+        self._a2_eval_action_source_summary = {
+            "provider": "TRLDistillTrainerA2BaseAPI.policy_step",
+            "controller": "teacher",
+            "teacher_rollout_ratio": 1.0,
+            "enforce_teacher_rollout": True,
+            "mixed_rollout_schedule": None,
+            "selected_high_level_source": "gt_actions",
+            "composed_action_dim": A2_ROLLOUT_ACTION_DIM,
+            "teacher_action_steps": 0,
+            "teacher_action_env_count": 0,
+            "exact_teacher_match_steps": 0,
+            "exact_teacher_match_env_count": 0,
+            "student_rollout_calls": 0,
+        }
+
+    def _reset_a2_eval_teacher_rollout(self, dones) -> None:
+        if self.ref_model is None or not hasattr(self.ref_model, "reset"):
+            raise RuntimeError("A2 eval pure Teacher provider requires ref_model.reset(dones)")
+        if not torch.is_tensor(dones):
+            raise TypeError("A2 eval pure Teacher reset requires a dones tensor")
+        self.ref_model.reset(dones)
+
+    def _end_a2_eval_teacher_rollout(self) -> None:
+        if self.ref_model is None or not hasattr(self.ref_model, "clear_rollout"):
+            raise RuntimeError("A2 eval pure Teacher provider requires ref_model.clear_rollout()")
+        self.ref_model.clear_rollout()
+
+    def get_a2_eval_action_source_summary(self) -> dict:
+        summary = self._a2_eval_action_source_summary
+        if not isinstance(summary, Mapping):
+            raise RuntimeError("A2 eval action-source summary is unavailable")
+        return deepcopy(dict(summary))
+
+    def _a2_eval_teacher_action_provider(self, policy_model, obs_dict, cur_dones=None):
+        result = self.policy_step(
+            policy_model,
+            None,
+            None,
+            obs_dict,
+            cur_dones=cur_dones,
+            store_hidden_states=False,
+            teacher_only=True,
+        )
+        actions = result.get("actions")
+        teacher_actions = result.get("gt_actions")
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.env.num_envs, A2_ROLLOUT_ACTION_DIM)
+            or not torch.is_tensor(teacher_actions)
+            or tuple(teacher_actions.shape) != (self.env.num_envs, A2_STUDENT_ACTION_DIM)
+        ):
+            raise RuntimeError("A2 pure Teacher provider returned an invalid composed action shape")
+        selected_high = actions[:, :A2_STUDENT_ACTION_DIM]
+        if not torch.equal(selected_high, teacher_actions):
+            raise RuntimeError(
+                "A2 pure Teacher provider selected high-level action differs from gt_actions"
+            )
+        summary = self._a2_eval_action_source_summary
+        if not isinstance(summary, dict):
+            raise RuntimeError("A2 pure Teacher action-source summary was not initialized")
+        summary["teacher_action_steps"] += 1
+        summary["teacher_action_env_count"] += int(self.env.num_envs)
+        summary["exact_teacher_match_steps"] += 1
+        summary["exact_teacher_match_env_count"] += int(self.env.num_envs)
+        return {
+            "actions": actions,
+            "action_mean": result["action_mean"],
+            "high_level_action": selected_high,
+            "gt_actions": teacher_actions,
+            "action_source": "teacher",
+        }
+
     def policy_step(
         self,
         policy_model,
@@ -1259,75 +1364,91 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
         cur_dones=None,
         store_hidden_states=True,
         stage_tensor=None,
+        teacher_only=False,
     ):
         if auxiliary_model_a is not None or auxiliary_model_b is not None:
             raise ValueError("A2 Student trainer does not support auxiliary policy models")
         self._validate_rollout_obs(obs_dict, require_teacher=True)
         teacher_actions = self._teacher_actions(obs_dict)
-        actor_obs_dict = {"actor_obs": obs_dict["actor_obs"], "vision_obs": obs_dict["vision_obs"]}
-        if getattr(self, "_a2_camera_meta_enabled", False):
-            actor_obs_dict["camera_meta"] = obs_dict["camera_meta"]
-        if getattr(self, "_a2_cb2h_enabled", False):
-            actor_obs_dict["context_vision_obs"] = obs_dict["context_vision_obs"]
-        if cur_dones is None:
-            dones = self.storage.query_key("dones").to(self.accelerator.device)[: self.storage.step + 1]
-            episode_attnmask = compute_episode_attnmask(dones.squeeze(-1).transpose(0, 1))
+        if teacher_only:
+            if self.config.get("enforce_teacher_rollout") is not True:
+                raise RuntimeError("teacher_only policy_step requires enforce_teacher_rollout=true")
+            if float(self.config.get("ratio_teacher_rollout", -1.0)) != 1.0:
+                raise RuntimeError("teacher_only policy_step requires ratio_teacher_rollout=1.0")
+            if self.config.get("mixed_rollout_schedule") is not None:
+                raise RuntimeError("teacher_only policy_step requires mixed_rollout_schedule=null")
+            high_level_actions = teacher_actions
+            high_level_mean = teacher_actions
+            high_level_sigma = torch.zeros_like(teacher_actions)
+            selected_high = teacher_actions
+            selected_mean = teacher_actions
+            ratio = 1.0
+            actor_hidden_states = None
         else:
-            episode_attnmask = None
-        actor_hidden_states = (
-            policy_model.get_hidden_states()
-            if store_hidden_states and getattr(policy_model, "is_recurrent", False)
-            else None
-        )
-        student_state = policy_model.rollout(
-            obs_dict=actor_obs_dict, episode_attnmask=episode_attnmask, cur_dones=cur_dones
-        )
-        high_level_actions = student_state["actions"]
-        high_level_mean = student_state["action_mean"]
-        high_level_sigma = student_state["action_sigma"]
-        _validate_floating_tensor("student_actions", high_level_actions, A2_STUDENT_ACTION_DIM)
-        _validate_floating_tensor("student_action_mean", high_level_mean, A2_STUDENT_ACTION_DIM)
-        _validate_floating_tensor("student_action_sigma", high_level_sigma, A2_STUDENT_ACTION_DIM)
-        if any(
-            tensor.device != obs_dict["actor_obs"].device
-            for tensor in (high_level_actions, high_level_mean, high_level_sigma, teacher_actions)
-        ):
-            raise ValueError("Teacher/student action tensors must match observation device")
-        if high_level_actions.shape != teacher_actions.shape:
-            raise ValueError("Student and Teacher high-level action shapes differ")
-        if getattr(self, "_a2_cb2h_enabled", False) or getattr(self, "_a2_p2_diagnostic_enabled", False):
-            ratio = self._resolve_cb2h_rollout_phase(int(getattr(self.state, "global_step", 0)))["ratio"]
-        else:
-            ratio = float(self.config.get("ratio_teacher_rollout", 1.0))
-        p2_diagnostic_enabled = getattr(self, "_a2_p2_diagnostic_enabled", False)
-        if not getattr(self, "_a2_cb2h_enabled", False) and not p2_diagnostic_enabled:
-            # Preserve the legacy A2 route exactly: fixed-prefix replacement is
-            # intentionally retained outside C-B2H and no C-B2H diagnostics or
-            # rollout-mask state is created.
-            if not 0.0 <= ratio <= 1.0:
-                raise ValueError(f"ratio_teacher_rollout must be within [0,1], got {ratio}")
-            selected_high = high_level_actions
-            selected_mean = high_level_mean
-            if self.config.get("enforce_teacher_rollout", False):
-                count = int(selected_high.shape[0] * ratio)
-                selected_high = selected_high.clone()
-                selected_mean = selected_mean.clone()
-                selected_high[:count] = teacher_actions[:count]
-                selected_mean[:count] = teacher_actions[:count]
-        else:
-            if stage_tensor is not None:
-                self.record_stage_tensor(stage_tensor)
-            stage_for_metrics = self._stage_tensor_for_policy_step(high_level_actions.shape[0])
-            teacher_mask = self._ensure_cb2h_rollout_mask(
-                high_level_actions.shape[0], high_level_actions.device
+            actor_obs_dict = {"actor_obs": obs_dict["actor_obs"], "vision_obs": obs_dict["vision_obs"]}
+            if getattr(self, "_a2_camera_meta_enabled", False):
+                actor_obs_dict["camera_meta"] = obs_dict["camera_meta"]
+            if getattr(self, "_a2_cb2h_enabled", False):
+                actor_obs_dict["context_vision_obs"] = obs_dict["context_vision_obs"]
+            if cur_dones is None:
+                dones = self.storage.query_key("dones").to(self.accelerator.device)[: self.storage.step + 1]
+                episode_attnmask = compute_episode_attnmask(dones.squeeze(-1).transpose(0, 1))
+            else:
+                episode_attnmask = None
+            actor_hidden_states = (
+                policy_model.get_hidden_states()
+                if store_hidden_states and getattr(policy_model, "is_recurrent", False)
+                else None
             )
-            if teacher_mask.shape != (high_level_actions.shape[0],) or teacher_mask.dtype != torch.bool:
-                raise RuntimeError("C-B2H rollout Teacher mask shape/dtype drifted")
-            selected_high = torch.where(teacher_mask[:, None], teacher_actions, high_level_actions)
-            selected_mean = torch.where(teacher_mask[:, None], teacher_actions, high_level_mean)
-            self._record_cb2h_rollout_diagnostics(
-                policy_model, high_level_mean, teacher_actions, stage_for_metrics
+            student_state = policy_model.rollout(
+                obs_dict=actor_obs_dict, episode_attnmask=episode_attnmask, cur_dones=cur_dones
             )
+            high_level_actions = student_state["actions"]
+            high_level_mean = student_state["action_mean"]
+            high_level_sigma = student_state["action_sigma"]
+            _validate_floating_tensor("student_actions", high_level_actions, A2_STUDENT_ACTION_DIM)
+            _validate_floating_tensor("student_action_mean", high_level_mean, A2_STUDENT_ACTION_DIM)
+            _validate_floating_tensor("student_action_sigma", high_level_sigma, A2_STUDENT_ACTION_DIM)
+            if any(
+                tensor.device != obs_dict["actor_obs"].device
+                for tensor in (high_level_actions, high_level_mean, high_level_sigma, teacher_actions)
+            ):
+                raise ValueError("Teacher/student action tensors must match observation device")
+            if high_level_actions.shape != teacher_actions.shape:
+                raise ValueError("Student and Teacher high-level action shapes differ")
+            if getattr(self, "_a2_cb2h_enabled", False) or getattr(self, "_a2_p2_diagnostic_enabled", False):
+                ratio = self._resolve_cb2h_rollout_phase(int(getattr(self.state, "global_step", 0)))["ratio"]
+            else:
+                ratio = float(self.config.get("ratio_teacher_rollout", 1.0))
+            p2_diagnostic_enabled = getattr(self, "_a2_p2_diagnostic_enabled", False)
+            if not getattr(self, "_a2_cb2h_enabled", False) and not p2_diagnostic_enabled:
+                # Preserve the legacy A2 route exactly: fixed-prefix replacement is
+                # intentionally retained outside C-B2H and no C-B2H diagnostics or
+                # rollout-mask state is created.
+                if not 0.0 <= ratio <= 1.0:
+                    raise ValueError(f"ratio_teacher_rollout must be within [0,1], got {ratio}")
+                selected_high = high_level_actions
+                selected_mean = high_level_mean
+                if self.config.get("enforce_teacher_rollout", False):
+                    count = int(selected_high.shape[0] * ratio)
+                    selected_high = selected_high.clone()
+                    selected_mean = selected_mean.clone()
+                    selected_high[:count] = teacher_actions[:count]
+                    selected_mean[:count] = teacher_actions[:count]
+            else:
+                if stage_tensor is not None:
+                    self.record_stage_tensor(stage_tensor)
+                stage_for_metrics = self._stage_tensor_for_policy_step(high_level_actions.shape[0])
+                teacher_mask = self._ensure_cb2h_rollout_mask(
+                    high_level_actions.shape[0], high_level_actions.device
+                )
+                if teacher_mask.shape != (high_level_actions.shape[0],) or teacher_mask.dtype != torch.bool:
+                    raise RuntimeError("C-B2H rollout Teacher mask shape/dtype drifted")
+                selected_high = torch.where(teacher_mask[:, None], teacher_actions, high_level_actions)
+                selected_mean = torch.where(teacher_mask[:, None], teacher_actions, high_level_mean)
+                self._record_cb2h_rollout_diagnostics(
+                    policy_model, high_level_mean, teacher_actions, stage_for_metrics
+                )
         leg_actions = self.unwrapped_model._a2_base_actions(obs_dict, selected_high)
         if not torch.is_tensor(leg_actions) or leg_actions.device != obs_dict["actor_obs"].device:
             raise ValueError("A2_Base leg actions must be a tensor on the observation device")
@@ -1339,7 +1460,11 @@ class TRLDistillTrainerA2BaseAPI(TRLDistillTrainer):
             "actions": actions,
             "action_mean": action_mean,
             "action_sigma": action_sigma,
-            "actions_log_prob": policy_model.get_actions_log_prob(high_level_actions).unsqueeze(1),
+            "actions_log_prob": (
+                torch.zeros((high_level_actions.shape[0], 1), device=high_level_actions.device)
+                if teacher_only
+                else policy_model.get_actions_log_prob(high_level_actions).unsqueeze(1)
+            ),
             "gt_actions": teacher_actions,
         }
         if actor_hidden_states is not None:

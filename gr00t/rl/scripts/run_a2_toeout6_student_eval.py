@@ -55,6 +55,14 @@ EXPECTED_GLOBAL_STEP = 8000
 EXPECTED_SEED = 0
 EXPECTED_NUM_ENVS = 16
 EXPECTED_EPISODES = 16
+A2_STAGE0_STAGING_X_MIN = 0.50
+A2_STAGE0_STAGING_X_MAX = 0.80
+A2_STAGE0_STAGING_Y_TOL = 0.15
+A2_STAGE0_STAGING_BAND_CONFIG = {
+    "a2_stage0_staging_x_min": A2_STAGE0_STAGING_X_MIN,
+    "a2_stage0_staging_x_max": A2_STAGE0_STAGING_X_MAX,
+    "a2_stage0_staging_y_tol": A2_STAGE0_STAGING_Y_TOL,
+}
 ARCHITECTURE_ID = "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2"
 ACTOR_TARGET_SUFFIX = "DualD435HeadVisionRecurrentToeOut6Actor"
 FORMAL_RANKING_ORDER = "goal_reached_desc,max_stage_desc,reward_desc,env_id_asc"
@@ -495,6 +503,27 @@ def _contract(controller: str = "student", seed: int = EXPECTED_SEED) -> dict[st
     }
 
 
+def _validate_effective_a2_stage0_staging_contract(
+    env_config: Mapping[str, Any],
+) -> None:
+    if not isinstance(env_config, Mapping):
+        raise TypeError(
+            "effective env.config must be a mapping for the A2 stage0 staging contract"
+        )
+    for key, expected in A2_STAGE0_STAGING_BAND_CONFIG.items():
+        value = env_config.get(key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) != expected
+        ):
+            raise RuntimeError(
+                "effective env.config A2 stage0 staging contract mismatch for "
+                f"{key!r}: expected finite {expected!r}, got {value!r}"
+            )
+
+
 def _validate_effective_eval_contract(
     config: Mapping[str, Any],
     policy_model: Any,
@@ -578,6 +607,9 @@ def build_overrides(
         f"{str(contract['enforce_teacher_rollout']).lower()}",
         f"+algo.config.ratio_teacher_rollout={contract['ratio_teacher_rollout']}",
         "+algo.config.use_a2_base=true",
+        f"+env.config.a2_stage0_staging_x_min={A2_STAGE0_STAGING_X_MIN:.2f}",
+        f"+env.config.a2_stage0_staging_x_max={A2_STAGE0_STAGING_X_MAX:.2f}",
+        f"+env.config.a2_stage0_staging_y_tol={A2_STAGE0_STAGING_Y_TOL:.2f}",
         "+algo.config.actor.view_contract.d435i_forward_mode=packed",
         "+algo.config.eval.eval_num_envs_episodes=true",
         "algo.config.eval.num_eval_episodes=16",
@@ -603,6 +635,9 @@ def build_overrides(
         "num_envs": "16",
         "algo.config.enforce_teacher_rollout": str(contract["enforce_teacher_rollout"]).lower(),
         "algo.config.ratio_teacher_rollout": str(contract["ratio_teacher_rollout"]),
+        "env.config.a2_stage0_staging_x_min": f"{A2_STAGE0_STAGING_X_MIN:.2f}",
+        "env.config.a2_stage0_staging_x_max": f"{A2_STAGE0_STAGING_X_MAX:.2f}",
+        "env.config.a2_stage0_staging_y_tol": f"{A2_STAGE0_STAGING_Y_TOL:.2f}",
         "algo.config.actor.view_contract.d435i_forward_mode": "packed",
         "algo.config.eval.eval_num_envs_episodes": "true",
         "algo.config.eval.num_eval_episodes": "16",
@@ -1053,6 +1088,7 @@ def make_formal_eval(
     diagnostic: bool = False,
 ):
     def formal_eval(self):
+        _validate_effective_a2_stage0_staging_contract(self.env.config)
         _validate_effective_eval_contract(
             self.config,
             self.policy_model,
@@ -1277,6 +1313,7 @@ def make_render_eval(
     def render_eval(self):
         import torch
 
+        _validate_effective_a2_stage0_staging_contract(self.env.config)
         _validate_effective_eval_contract(self.config, self.policy_model, seed=seed)
         _validate_runtime_seed(self, seed)
         if int(self.env.num_envs) != EXPECTED_NUM_ENVS:

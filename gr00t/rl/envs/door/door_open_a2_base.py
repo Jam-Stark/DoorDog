@@ -473,6 +473,99 @@ def a2_root_x_first_crossing_env_count(root_x_ever_crossed: torch.Tensor) -> tor
         raise ValueError("A2 root-X crossing count requires a 1D bool latch vector.")
     return root_x_ever_crossed.sum(dtype=torch.float32)
 
+
+def a2_validate_stage0_staging_band(
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+) -> tuple[float, float, float]:
+    """Validate and normalize the A2 stage0 staging-band contract."""
+    values = (x_min, x_max, y_tol)
+    if any(
+        isinstance(value, bool) or not isinstance(value, (int, float))
+        for value in values
+    ):
+        raise ValueError("A2 stage0 staging band requires three numeric values.")
+    x_min, x_max, y_tol = (float(value) for value in values)
+    if not all(math.isfinite(value) for value in (x_min, x_max, y_tol)):
+        raise ValueError("A2 stage0 staging band values must be finite.")
+    if x_min <= 0.0 or x_max < x_min or y_tol <= 0.0:
+        raise ValueError(
+            "A2 stage0 staging band requires 0 < x_min <= x_max and y_tol > 0."
+        )
+    return x_min, x_max, y_tol
+
+
+def _validate_a2_stage0_staging_tensors(
+    root_pos: torch.Tensor,
+    grasp_target: torch.Tensor,
+) -> None:
+    if (
+        not torch.is_tensor(root_pos)
+        or not torch.is_tensor(grasp_target)
+        or root_pos.ndim != 2
+        or tuple(root_pos.shape) != tuple(grasp_target.shape)
+        or root_pos.shape[1] != 3
+        or not root_pos.is_floating_point()
+        or grasp_target.dtype != root_pos.dtype
+        or grasp_target.device != root_pos.device
+        or not torch.all(torch.isfinite(root_pos))
+        or not torch.all(torch.isfinite(grasp_target))
+    ):
+        raise ValueError(
+            "A2 stage0 staging geometry requires matching finite floating (N, 3) "
+            "root and grasp tensors."
+        )
+
+
+def a2_stage0_staging_band_mask(
+    root_pos: torch.Tensor,
+    grasp_target: torch.Tensor,
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+) -> torch.Tensor:
+    """Return membership in the handle-relative stage0 staging band."""
+    _validate_a2_stage0_staging_tensors(root_pos, grasp_target)
+    x_min, x_max, y_tol = a2_validate_stage0_staging_band(
+        x_min,
+        x_max,
+        y_tol,
+    )
+    dx = grasp_target[:, 0] - root_pos[:, 0]
+    dy = root_pos[:, 1] - grasp_target[:, 1]
+    return (dx >= x_min) & (dx <= x_max) & (dy.abs() < y_tol)
+
+
+def a2_stage0_nearest_staging_target(
+    root_pos: torch.Tensor,
+    grasp_target: torch.Tensor,
+    x_min: float,
+    x_max: float,
+    y_tol: float,
+) -> torch.Tensor:
+    """Return the nearest point in the stage0 band for each root pose."""
+    _validate_a2_stage0_staging_tensors(root_pos, grasp_target)
+    x_min, x_max, y_tol = a2_validate_stage0_staging_band(
+        x_min,
+        x_max,
+        y_tol,
+    )
+    dx = grasp_target[:, 0] - root_pos[:, 0]
+    dy = grasp_target[:, 1] - root_pos[:, 1]
+    target = grasp_target.clone()
+    target[:, 0] = grasp_target[:, 0] - dx.clamp(x_min, x_max)
+    y_boundary = torch.full_like(dy, y_tol)
+    interior_y_boundary = torch.nextafter(y_boundary, torch.zeros_like(y_boundary))
+    clamped_dy = torch.maximum(
+        torch.minimum(dy, interior_y_boundary),
+        -interior_y_boundary,
+    )
+    target[:, 1] = grasp_target[:, 1] - clamped_dy
+    target[:, 2] = root_pos[:, 2]
+    return target
+
+
 def a2_hold_quaternion_geodesic_rad(quat_a: torch.Tensor, quat_b: torch.Tensor):
     """Return the sign-invariant geodesic angle between unit WXYZ quaternions."""
     if (
@@ -2586,7 +2679,10 @@ class DoorPregrasp(
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_PREGRASP_OFFSET = (-0.10, 0.0, 0.0)  # in grasp_target body frame (= door root frame)
-    A2_STAGE0_STAGING_OFFSET_CONFIG_KEY = "a2_stage0_staging_x_offset"
+    A2_STAGE0_STAGING_X_MIN_CONFIG_KEY = "a2_stage0_staging_x_min"
+    A2_STAGE0_STAGING_X_MAX_CONFIG_KEY = "a2_stage0_staging_x_max"
+    A2_STAGE0_STAGING_Y_TOL_CONFIG_KEY = "a2_stage0_staging_y_tol"
+    NON_A2_STAGE0_STAGING_OFFSET_CONFIG_KEY = "non_a2_stage0_staging_x_offset"
     A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage3_to4_door_hinge_threshold"
     )
@@ -2921,10 +3017,26 @@ class DoorPregrasp(
             "A2 stage2 over-force threshold",
         )
 
-    def _get_a2_stage0_staging_x_offset(self) -> float:
+    def _get_a2_stage0_staging_band(self) -> tuple[float, float, float]:
+        return a2_validate_stage0_staging_band(
+            self._get_required_positive_float_config(
+                self.A2_STAGE0_STAGING_X_MIN_CONFIG_KEY,
+                "A2 stage0 staging band minimum standoff",
+            ),
+            self._get_required_positive_float_config(
+                self.A2_STAGE0_STAGING_X_MAX_CONFIG_KEY,
+                "A2 stage0 staging band maximum standoff",
+            ),
+            self._get_required_positive_float_config(
+                self.A2_STAGE0_STAGING_Y_TOL_CONFIG_KEY,
+                "A2 stage0 staging band lateral tolerance",
+            ),
+        )
+
+    def _get_non_a2_stage0_staging_x_offset(self) -> float:
         return self._get_required_positive_float_config(
-            self.A2_STAGE0_STAGING_OFFSET_CONFIG_KEY,
-            "A2 stage0 staging target",
+            self.NON_A2_STAGE0_STAGING_OFFSET_CONFIG_KEY,
+            "non-A2 stage0 staging target",
         )
 
     def _get_a2_stage3_to4_door_hinge_threshold(self) -> float:
@@ -3552,16 +3664,38 @@ class DoorPregrasp(
 
     @StagedTaskBase.effective_in_stage(STAGE_WALK_TO_DOOR)
     def _reward_walk_to_door(self):
-        # A2: walk toward a staging position in front of handle (door normal -X),
-        # so base aligns with handle Y and stops at a comfortable arm reach distance.
         current_root_pos = self.simulator.robot_root_states[:, :3].clone()
         grasp_target_pos = self._compute_grasp_target().clone()
-        # staging target: configured distance from handle along -X (door normal, toward robot side)
-        stage0_target_pos = grasp_target_pos.clone()
-        stage0_target_pos[:, 0] -= self._get_a2_stage0_staging_x_offset()
-        stage0_target_pos[:, 2] = current_root_pos[:, 2]
-        target_direction = stage0_target_pos - current_root_pos
-        target_dir = F.normalize(target_direction, dim=-1)
+        if self._use_a2_base:
+            # Track the nearest point in the handle-relative staging band. Inside the
+            # band the target equals the root pose, so this reward has no standoff bias.
+            x_min, x_max, y_tol = self._get_a2_stage0_staging_band()
+            stage0_target_pos = a2_stage0_nearest_staging_target(
+                current_root_pos,
+                grasp_target_pos,
+                x_min,
+                x_max,
+                y_tol,
+            )
+            target_direction = stage0_target_pos - current_root_pos
+            target_distance = torch.linalg.norm(target_direction, dim=-1, keepdim=True)
+            nonzero_distance = target_distance > 0.0
+            divisor = torch.where(
+                nonzero_distance,
+                target_distance,
+                torch.ones_like(target_distance),
+            )
+            target_dir = torch.where(
+                nonzero_distance,
+                target_direction / divisor,
+                torch.zeros_like(target_direction),
+            )
+        else:
+            stage0_target_pos = grasp_target_pos.clone()
+            stage0_target_pos[:, 0] -= self._get_non_a2_stage0_staging_x_offset()
+            stage0_target_pos[:, 2] = current_root_pos[:, 2]
+            target_direction = stage0_target_pos - current_root_pos
+            target_dir = F.normalize(target_direction, dim=-1)
         current_root_vel = self.simulator.robot_root_states[:, 7:10].clone()
 
         target_vel = self.config.get("target_root_vel", 0.3) * target_dir
@@ -4726,9 +4860,12 @@ class DoorPregrasp(
             "penalty_a2_stage1_stage2_base_forward_creep",
         )
         grasp_target = self._compute_grasp_target()
-        stage0_target_x = grasp_target[:, 0] - self._get_a2_stage0_staging_x_offset()
+        x_min, _x_max, _y_tol = self._get_a2_stage0_staging_band()
+        stage0_near_boundary_x = grasp_target[:, 0] - x_min
         root_x = self.simulator.robot_root_states[:, 0]
-        reward = ((root_x - stage0_target_x - deadband) / scale).clamp(0.0, 1.0)
+        reward = (
+            (root_x - stage0_near_boundary_x - deadband) / scale
+        ).clamp(0.0, 1.0)
         return reward
 
     def _reward_penalty_upright(self):
@@ -12360,6 +12497,84 @@ class DoorPregrasp(
         ):
             raise RuntimeError("A2 stage0/1 gate predicates must be bool tensors per env.")
 
+        transform_data = self._get_a2_gripper_handle_frame_transformer().data
+        stage0_grasp_target_pos_w = stage0_components["grasp_target_pos_w"]
+        stage0_root_pos_w = stage0_components["root_pos_w"]
+        source_pos_w = getattr(transform_data, "source_pos_w", None)
+        staging_dx = stage0_grasp_target_pos_w[:, 0] - stage0_root_pos_w[:, 0]
+        staging_dy = stage0_root_pos_w[:, 1] - stage0_grasp_target_pos_w[:, 1]
+        nearest_stage0_target_pos_w = a2_stage0_nearest_staging_target(
+            stage0_root_pos_w,
+            stage0_grasp_target_pos_w,
+            stage0_components["staging_x_min"],
+            stage0_components["staging_x_max"],
+            stage0_components["staging_y_tol"],
+        )
+        stage0_world_fields = {
+            "grasp_target_pos_w": stage0_grasp_target_pos_w,
+            "staging_dx": staging_dx,
+            "staging_dy": staging_dy,
+            "grasp_minus_root_xy": (
+                stage0_grasp_target_pos_w[:, :2] - stage0_root_pos_w[:, :2]
+            ),
+            "nearest_stage0_target_pos_w": nearest_stage0_target_pos_w,
+            "source_pos_w": source_pos_w,
+        }
+        expected_stage0_world_shapes = {
+            "grasp_target_pos_w": (self.num_envs, 3),
+            "staging_dx": (self.num_envs,),
+            "staging_dy": (self.num_envs,),
+            "grasp_minus_root_xy": (self.num_envs, 2),
+            "nearest_stage0_target_pos_w": (self.num_envs, 3),
+            "source_pos_w": (self.num_envs, 3),
+        }
+        for field_name, field_value in stage0_world_fields.items():
+            expected_shape = expected_stage0_world_shapes[field_name]
+            if (
+                not torch.is_tensor(field_value)
+                or tuple(field_value.shape) != expected_shape
+                or field_value.device != torch.device(self.device)
+                or not field_value.is_floating_point()
+                or not torch.all(torch.isfinite(field_value))
+            ):
+                shape = None if not torch.is_tensor(field_value) else tuple(field_value.shape)
+                dtype = None if not torch.is_tensor(field_value) else field_value.dtype
+                device = None if not torch.is_tensor(field_value) else field_value.device
+                raise RuntimeError(
+                    "A2 stage0/1 gate diagnostics require finite FrameTransformer/world "
+                    f"field {field_name!r} with shape {expected_shape} on {self.device}; "
+                    f"got shape={shape}, dtype={dtype}, device={device}."
+                )
+        for field_name, field_value in (
+            ("staging_x_min", stage0_components["staging_x_min"]),
+            ("staging_x_max", stage0_components["staging_x_max"]),
+            ("staging_y_tol", stage0_components["staging_y_tol"]),
+            ("base_threshold", stage0_components["base_threshold"]),
+        ):
+            if (
+                isinstance(field_value, bool)
+                or not isinstance(field_value, float)
+                or not math.isfinite(field_value)
+            ):
+                raise RuntimeError(
+                    "A2 stage0/1 gate diagnostics require finite float "
+                    f"{field_name}; got {field_value!r} ({type(field_value).__name__})."
+                )
+        base_command_norm = stage0_components["base_command_norm"]
+        if (
+            not self._use_a2_base
+            or not torch.is_tensor(base_command_norm)
+            or tuple(base_command_norm.shape) != (self.num_envs,)
+            or base_command_norm.device != torch.device(self.device)
+            or not base_command_norm.is_floating_point()
+            or not torch.all(torch.isfinite(base_command_norm))
+        ):
+            raise RuntimeError(
+                "A2 stage0/1 gate diagnostics require finite A2 physical-base norm "
+                f"shape ({self.num_envs},) on {self.device}; got "
+                f"{None if not torch.is_tensor(base_command_norm) else tuple(base_command_norm.shape)}."
+            )
+
         records = []
         for env_id in env_ids.tolist():
             stage = int(stage_buf[env_id].item())
@@ -12376,10 +12591,43 @@ class DoorPregrasp(
             records.append(
                 {
                     "stage0_staging": {
-                        "distance": float(stage0_components["staging_distance"][env_id].item()),
-                        "threshold": float(stage0_components["staging_threshold"].item()),
-                        "margin": float(stage0_components["staging_margin"][env_id].item()),
-                        "ready": bool(stage0_components["staging_ready"][env_id].item()),
+                        "grasp_target_pos_w": stage0_world_fields["grasp_target_pos_w"][
+                            env_id
+                        ]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "nearest_stage0_target_pos_w": stage0_world_fields[
+                            "nearest_stage0_target_pos_w"
+                        ][env_id]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "grasp_minus_root_xy": stage0_world_fields["grasp_minus_root_xy"][
+                            env_id
+                        ]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "gripper_source_pos_w": stage0_world_fields["source_pos_w"][
+                            env_id
+                        ]
+                        .detach()
+                        .cpu()
+                        .tolist(),
+                        "dx": float(stage0_world_fields["staging_dx"][env_id].item()),
+                        "dy": float(stage0_world_fields["staging_dy"][env_id].item()),
+                        "x_min": stage0_components["staging_x_min"],
+                        "x_max": stage0_components["staging_x_max"],
+                        "y_tol": stage0_components["staging_y_tol"],
+                        "band_ready": bool(
+                            stage0_components["staging_band_ready"][env_id].item()
+                        ),
+                        "base_command_norm": float(base_command_norm[env_id].item()),
+                        "base_threshold": stage0_components["base_threshold"],
+                        "base_margin": stage0_components["base_threshold"]
+                        - float(base_command_norm[env_id].item()),
+                        "base_still": bool(stage0_components["base_still"][env_id].item()),
                         "arm_max_deviation": float(
                             stage0_components["arm_max_deviation"][env_id].item()
                         ),
@@ -13044,20 +13292,77 @@ class DoorPregrasp(
         return self._stage_0_to_1_advance_condition()
 
     def _get_a2_stage0_to1_predicate_components(self):
-        # get close enough to the configured staging position in front of handle
+        if self._use_a2_base:
+            # Enter stage1 anywhere inside the handle-relative staging band.
+            grasp_target = self._compute_grasp_target()
+            root_pos = self.simulator.robot_root_states[:, :3]
+            x_min, x_max, y_tol = self._get_a2_stage0_staging_band()
+            staging_band_ready = a2_stage0_staging_band_mask(
+                root_pos,
+                grasp_target,
+                x_min,
+                x_max,
+                y_tol,
+            )
+
+            # keep A2 arm body DOF / Piper arm_j1..j6 at robot default; gripper arm_j7/8 are excluded.
+            arm_target_pos = self._get_a2_arm_default_dof_pos()
+            arm_max_deviation = self._get_required_positive_float_config(
+                "a2_stage0_arm_default_max_deviation",
+                "stage0->1 arm default transition",
+            )
+            max_deviation = (
+                torch.abs(
+                    self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
+                    - arm_target_pos
+                )
+                .max(dim=-1)
+                .values
+            )
+            arm_threshold = max_deviation.new_tensor(arm_max_deviation)
+            arm_ready = max_deviation < arm_threshold
+            base_command = self.get_physical_homie_commands()
+            if (
+                not torch.is_tensor(base_command)
+                or tuple(base_command.shape) != (self.num_envs, 5)
+                or not torch.all(torch.isfinite(base_command))
+                or base_command.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(base_command) else tuple(base_command.shape)
+                raise RuntimeError(
+                    "A2 stage0->1 base-still gate requires finite physical homie "
+                    f"commands shape ({self.num_envs}, 5) on {self.device}; got {shape}."
+                )
+            base_command_norm = torch.norm(base_command[:, :3], dim=1)
+            base_threshold = 0.1
+            base_still = base_command_norm <= base_threshold
+            return {
+                "grasp_target_pos_w": grasp_target,
+                "root_pos_w": root_pos,
+                "staging_x_min": x_min,
+                "staging_x_max": x_max,
+                "staging_y_tol": y_tol,
+                "staging_band_ready": staging_band_ready,
+                "arm_max_deviation": max_deviation,
+                "arm_threshold": arm_threshold,
+                "arm_margin": arm_threshold - max_deviation,
+                "arm_ready": arm_ready,
+                "base_command_norm": base_command_norm,
+                "base_threshold": base_threshold,
+                "base_still": base_still,
+                "staging_predicate": staging_band_ready & arm_ready & base_still,
+            }
+
+        # Preserve the non-A2 stage0 point target: project the root onto the
+        # target plane and require the original strict 0.1m staging gate.
         grasp_target = self._compute_grasp_target()
         stage0_target = grasp_target.clone()
-        stage0_target[:, 0] -= self._get_a2_stage0_staging_x_offset()
+        stage0_target[:, 0] -= self._get_non_a2_stage0_staging_x_offset()
         root_pos = self.simulator.robot_root_states[:, :3].clone()
         root_pos[:, 2] = stage0_target[:, 2]
         staging_distance = (root_pos - stage0_target).norm(dim=-1)
         staging_threshold = staging_distance.new_tensor(0.1)
-
-        # keep A2 arm body DOF / Piper arm_j1..j6 at robot default; gripper arm_j7/8 are excluded.
-        if self._use_a2_base:
-            arm_target_pos = self._get_a2_arm_default_dof_pos()
-        else:
-            arm_target_pos = self.default_dof_pos[:, self._upper_non_gripper_dof_idx]
+        arm_target_pos = self.default_dof_pos[:, self._upper_non_gripper_dof_idx]
         arm_max_deviation = self._get_required_positive_float_config(
             "a2_stage0_arm_default_max_deviation",
             "stage0->1 arm default transition",
@@ -13377,10 +13682,24 @@ class DoorPregrasp(
                 mass_props=None,
                 rigid_props=None,
             )
+            stage0_x_min, stage0_x_max, _stage0_y_tol = (
+                self._get_a2_stage0_staging_band()
+            )
             sim_utils_vis.spawn_sphere(
-                prim_path=f"/World/envs/env_.*/{target_obj}/grasp_target/vis_stage0_target",
+                prim_path=(
+                    f"/World/envs/env_.*/{target_obj}/grasp_target/"
+                    "vis_stage0_near_boundary"
+                ),
                 cfg=vis_stage0_cfg,
-                translation=(-self._get_a2_stage0_staging_x_offset(), 0.0, 0.0),
+                translation=(-stage0_x_min, 0.0, 0.0),
+            )
+            sim_utils_vis.spawn_sphere(
+                prim_path=(
+                    f"/World/envs/env_.*/{target_obj}/grasp_target/"
+                    "vis_stage0_far_boundary"
+                ),
+                cfg=vis_stage0_cfg,
+                translation=(-stage0_x_max, 0.0, 0.0),
             )
 
             # Handle coordinate axis visualizer: 3 cylinders (R=X, G=Y, B=Z) at grasp_target.
@@ -13418,6 +13737,25 @@ class DoorPregrasp(
                 )
 
             return
+
+        import isaaclab.sim as sim_utils_vis
+        vis_stage0_cfg = sim_utils_vis.SphereCfg(
+            radius=0.02,
+            visual_material=sim_utils_vis.PreviewSurfaceCfg(
+                diffuse_color=(0.0, 0.0, 1.0)
+            ),
+            collision_props=None,
+            mass_props=None,
+            rigid_props=None,
+        )
+        sim_utils_vis.spawn_sphere(
+            prim_path=(
+                f"/World/envs/env_.*/{target_obj}/grasp_target/"
+                "vis_stage0_target"
+            ),
+            cfg=vis_stage0_cfg,
+            translation=(-self._get_non_a2_stage0_staging_x_offset(), 0.0, 0.0),
+        )
 
         head_target_frame_transformer_config: FrameTransformerCfg = FrameTransformerCfg(
             prim_path="/World/envs/env_.*/Robot/head_link",

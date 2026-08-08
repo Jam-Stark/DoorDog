@@ -4,13 +4,16 @@
 The runner has three explicit modes:
 
 ``formal``
-    Evaluate exactly one Student-controlled episode in each of 16 environments,
-    then seal ``formal_student_metrics.json`` and ``student_selection.json``.
+    Evaluate exactly one Student- or Teacher-controlled episode in each of 16
+    environments, then seal controller-specific formal metrics and selection
+    artifacts (``formal_student_metrics.json``/``student_selection.json`` or
+    ``formal_teacher_metrics.json``/``teacher_selection.json``).
 
 ``render``
     Consume a hash-validated sealed selection and replay only that case while
     writing the selected Student policy's left D435, right D435, OEM Head and
-    D435 left/right side-by-side videos.
+    D435 left/right side-by-side videos.  ``--render-env-id`` may select any
+    one validated ranking record without changing the source selection JSON.
 
 ``full``
     Run ``formal`` and ``render`` in fresh child processes below one fresh root.
@@ -25,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 import hashlib
 import importlib
 import importlib.util
@@ -66,6 +70,8 @@ RANDOMIZED_CASE_KEYS = (
 OUTCOME_KEYS = ("goal_reached", "max_stage", "terminal_reason", "reward")
 METRICS_SCHEMA = "a2_toeout6_student_metrics_v1"
 SELECTION_SCHEMA = "a2_toeout6_student_selection_v1"
+TEACHER_METRICS_SCHEMA = "a2_toeout6_teacher_metrics_v1"
+TEACHER_SELECTION_SCHEMA = "a2_toeout6_teacher_selection_v1"
 RENDER_SCHEMA = "a2_toeout6_student_render_v1"
 SOURCE_SHA256 = {
     str(path.relative_to(REPO_ROOT)): None for path in RUNTIME_MODULES.values()
@@ -375,15 +381,27 @@ def validate_checkpoint_and_config(
     }
 
 
-def _contract() -> dict[str, Any]:
+CONTROLLERS = ("student", "teacher")
+
+
+def _validate_seed(seed: int) -> int:
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError(f"seed must be a nonnegative integer; got {seed!r}")
+    return seed
+
+
+def _contract(controller: str = "student", seed: int = EXPECTED_SEED) -> dict[str, Any]:
+    if controller not in CONTROLLERS:
+        raise ValueError(f"unsupported controller {controller!r}; expected one of {CONTROLLERS}")
+    _validate_seed(seed)
     return {
-        "controller": "student",
-        "seed": EXPECTED_SEED,
+        "controller": controller,
+        "seed": seed,
         "num_envs": EXPECTED_NUM_ENVS,
         "one_episode_per_env": True,
-        "enforce_teacher_rollout": False,
-        "ratio_teacher_rollout": 0.0,
-        "pure_student": True,
+        "enforce_teacher_rollout": controller == "teacher",
+        "ratio_teacher_rollout": 1.0 if controller == "teacher" else 0.0,
+        "pure_student": controller == "student",
         "use_a2_base": True,
         "architecture_id": ARCHITECTURE_ID,
         "d435i_forward_mode": "packed",
@@ -391,65 +409,109 @@ def _contract() -> dict[str, Any]:
     }
 
 
-def _validate_effective_eval_contract(config: Mapping[str, Any], policy_model: Any) -> None:
-    if config.get("enforce_teacher_rollout") is not False:
-        raise RuntimeError("formal Student eval requires enforce_teacher_rollout=false")
-    if float(config.get("ratio_teacher_rollout", -1.0)) != 0.0:
-        raise RuntimeError("formal Student eval requires ratio_teacher_rollout=0.0")
+def _validate_effective_eval_contract(
+    config: Mapping[str, Any],
+    policy_model: Any,
+    *,
+    controller: str = "student",
+    seed: int = EXPECTED_SEED,
+) -> None:
+    contract = _contract(controller, seed)
+    if config.get("enforce_teacher_rollout") is not contract["enforce_teacher_rollout"]:
+        raise RuntimeError(
+            f"formal {controller} eval requires "
+            f"enforce_teacher_rollout={contract['enforce_teacher_rollout']}"
+        )
+    if float(config.get("ratio_teacher_rollout", -1.0)) != contract["ratio_teacher_rollout"]:
+        raise RuntimeError(
+            f"formal {controller} eval requires "
+            f"ratio_teacher_rollout={contract['ratio_teacher_rollout']}"
+        )
+    if controller == "teacher" and config.get("mixed_rollout_schedule") is not None:
+        raise RuntimeError("formal Teacher eval requires mixed_rollout_schedule=null")
     if config.get("use_a2_base") is not True:
-        raise RuntimeError("formal Student eval requires frozen A2_Base")
-    eval_config = _mapping(config.get("eval"), "effective Student eval config")
+        raise RuntimeError(f"formal {controller} eval requires frozen A2_Base")
+    eval_config = _mapping(config.get("eval"), f"effective {controller} eval config")
     if eval_config.get("eval_num_envs_episodes") is not True:
-        raise RuntimeError("formal Student eval requires one first episode per environment")
+        raise RuntimeError(f"formal {controller} eval requires one first episode per environment")
     if int(eval_config.get("num_eval_episodes", -1)) != EXPECTED_EPISODES:
-        raise RuntimeError("formal Student eval requires num_eval_episodes=16")
+        raise RuntimeError(f"formal {controller} eval requires num_eval_episodes=16")
     if eval_config.get("a2_diagnostic_trace_enabled", False) is not False:
-        raise RuntimeError("formal Student eval forbids diagnostic action interventions")
+        raise RuntimeError(f"formal {controller} eval forbids diagnostic action interventions")
     if eval_config.get("a2_forced_gripper_close_enabled", False) is not False:
-        raise RuntimeError("formal Student eval forbids forced gripper-close intervention")
+        raise RuntimeError(f"formal {controller} eval forbids forced gripper-close intervention")
     actor_mode = getattr(policy_model, "d435i_forward_mode", None)
     if actor_mode != "packed":
         raise RuntimeError(f"instantiated ToeOut6 policy mode drifted: {actor_mode!r}")
 
 
-def build_overrides(mode: str, output_root: Path, checkpoint: Path) -> list[str]:
+def _validate_runtime_seed(trainer: Any, seed: int) -> None:
+    _validate_seed(seed)
+    local_seed = getattr(trainer, "local_seed", None)
+    if isinstance(local_seed, bool) or not isinstance(local_seed, int) or local_seed != seed:
+        raise RuntimeError(
+            f"eval runtime seed drifted: expected local_seed={seed}, got {local_seed!r}"
+        )
+
+
+def build_overrides(
+    mode: str,
+    output_root: Path,
+    checkpoint: Path,
+    *,
+    controller: str = "student",
+    seed: int = EXPECTED_SEED,
+) -> list[str]:
     if mode not in {"formal", "render"}:
         raise ValueError(f"child eval mode must be formal or render; got {mode!r}")
+    if controller not in CONTROLLERS:
+        raise ValueError(f"unsupported controller {controller!r}; expected one of {CONTROLLERS}")
+    if mode == "render" and controller != "student":
+        raise ValueError("selected render is only defined for the Student controller")
+    _validate_seed(seed)
     output_root = output_root.resolve()
+    artifact_root = _render_staging_root(output_root) if mode == "render" else output_root
     runtime_root = output_root.with_name(f".{output_root.name}.runtime")
+    contract = _contract(controller, seed)
     overrides = [
         f"checkpoint={checkpoint.resolve()}",
-        "+seed=0",
+        f"+seed={seed}",
         "+num_envs=16",
         "+headless=true",
         "+use_wandb=false",
         "+auto_load_latest=false",
-        "+checkpoint_load_mode=full",
-        "+algo.config.enforce_teacher_rollout=false",
-        "+algo.config.ratio_teacher_rollout=0.0",
+        "checkpoint_load_mode=full",
+        "+algo.config.enforce_teacher_rollout="
+        f"{str(contract['enforce_teacher_rollout']).lower()}",
+        f"+algo.config.ratio_teacher_rollout={contract['ratio_teacher_rollout']}",
         "+algo.config.use_a2_base=true",
         "+algo.config.actor.view_contract.d435i_forward_mode=packed",
         "+algo.config.eval.eval_num_envs_episodes=true",
         "algo.config.eval.num_eval_episodes=16",
-        "+algo.config.eval.a2_diagnostic_trace_enabled=false",
-        "+algo.config.eval.a2_forced_gripper_close_enabled=false",
+        "algo.config.eval.a2_diagnostic_trace_enabled=false",
+        "algo.config.eval.a2_forced_gripper_close_enabled=false",
         "+algo.config.eval.dump_to_log_metrics=false",
-        "+algo.config.eval.save_videos=false",
-        "+algo.config.eval.save_trajectories=false",
+        "algo.config.eval.save_videos=false",
+        "algo.config.eval.save_trajectories=false",
         "+simulator.config.render_results=false",
-        f"eval_output_dir={output_root}",
+        f"eval_output_dir={artifact_root}",
         f"eval_log_dir={runtime_root}",
     ]
+    if controller == "teacher":
+        # The loaded ToeOut6 checkpoint config carries a training schedule whose
+        # step-8000 phase would otherwise override the requested formal Teacher
+        # ratio.  A null schedule makes the explicit ratio=1.0 contract active.
+        overrides.append("+algo.config.mixed_rollout_schedule=null")
     required = {
-        "seed": "0",
+        "seed": str(seed),
         "num_envs": "16",
-        "algo.config.enforce_teacher_rollout": "false",
-        "algo.config.ratio_teacher_rollout": "0.0",
+        "algo.config.enforce_teacher_rollout": str(contract["enforce_teacher_rollout"]).lower(),
+        "algo.config.ratio_teacher_rollout": str(contract["ratio_teacher_rollout"]),
         "algo.config.actor.view_contract.d435i_forward_mode": "packed",
         "algo.config.eval.eval_num_envs_episodes": "true",
         "algo.config.eval.num_eval_episodes": "16",
         "simulator.config.render_results": "false",
-        "eval_output_dir": str(output_root),
+        "eval_output_dir": str(artifact_root),
         "eval_log_dir": str(runtime_root),
     }
     for key, expected in required.items():
@@ -588,20 +650,25 @@ def seal_formal_artifacts(
     source_identity: Mapping[str, Mapping[str, str]],
     metrics: Mapping[str, Any],
     case_table: Mapping[int, Mapping[str, Any]],
+    *,
+    controller: str = "student",
+    seed: int = EXPECTED_SEED,
 ) -> dict[str, Any]:
+    contract = _contract(controller, seed)
     records = episode_records(json_safe(metrics), case_table)
     ranked = rank_episode_records(records)
-    contract = _contract()
     safe_checkpoint = json_safe(checkpoint_info)
     safe_sources = json_safe(source_identity)
+    metrics_schema = METRICS_SCHEMA if controller == "student" else TEACHER_METRICS_SCHEMA
+    selection_schema = SELECTION_SCHEMA if controller == "student" else TEACHER_SELECTION_SCHEMA
     metrics_payload = {
-        "schema": METRICS_SCHEMA,
-        "controller": "student",
+        "schema": metrics_schema,
+        "controller": controller,
         "training_performed": False,
         "optimizer_step_count": 0,
         "checkpoint": safe_checkpoint,
         "worktree_sources": safe_sources,
-        "case_seed": EXPECTED_SEED,
+        "case_seed": seed,
         "contract": contract,
         "case_table": [
             {"env_id": env_id, "randomized_case": json_safe(case_table[env_id])}
@@ -609,16 +676,16 @@ def seal_formal_artifacts(
         ],
         "episodes": records,
     }
-    metrics_path = output_root / "formal_student_metrics.json"
+    metrics_path = output_root / f"formal_{controller}_metrics.json"
     atomic_json_write(metrics_path, metrics_payload)
     selected = ranked[0]
     selection = {
-        "schema": SELECTION_SCHEMA,
-        "controller": "student",
+        "schema": selection_schema,
+        "controller": controller,
         "training_performed": False,
         "checkpoint": safe_checkpoint,
         "worktree_sources": safe_sources,
-        "case_seed": EXPECTED_SEED,
+        "case_seed": seed,
         "contract": contract,
         "ranking": {"order": FORMAL_RANKING_ORDER, "records": ranked},
         "selected": {
@@ -635,7 +702,9 @@ def seal_formal_artifacts(
             "sha256": sha256_file(metrics_path),
         },
     }
-    selection_path = output_root / "student_selection.json"
+    selection_path = output_root / (
+        "student_selection.json" if controller == "student" else "teacher_selection.json"
+    )
     atomic_json_write(selection_path, selection)
     return selection
 
@@ -650,15 +719,18 @@ def load_sealed_selection(
     selection_path: Path,
     checkpoint_info: Mapping[str, Any],
     source_identity: Mapping[str, Mapping[str, str]],
+    *,
+    seed: int = EXPECTED_SEED,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
+    _validate_seed(seed)
     selection_path = _workspace_path(selection_path, must_exist=True)
     with selection_path.open(encoding="utf-8") as stream:
         selection = json.load(stream)
     if not isinstance(selection, Mapping) or selection.get("schema") != SELECTION_SCHEMA:
         raise ValueError("unsupported or malformed Student selection schema")
-    if selection.get("controller") != "student" or selection.get("case_seed") != EXPECTED_SEED:
+    if selection.get("controller") != "student" or selection.get("case_seed") != seed:
         raise RuntimeError("sealed selection Student/seed contract drifted")
-    if selection.get("contract") != _contract():
+    if selection.get("contract") != _contract("student", seed):
         raise RuntimeError("sealed selection formal Student contract drifted")
     if selection.get("checkpoint") != json_safe(checkpoint_info):
         raise RuntimeError("sealed selection checkpoint identity differs from supplied checkpoint")
@@ -671,6 +743,10 @@ def load_sealed_selection(
         metrics = json.load(stream)
     if not isinstance(metrics, Mapping) or metrics.get("schema") != METRICS_SCHEMA:
         raise RuntimeError("sealed source metrics schema drifted")
+    if metrics.get("controller") != "student" or metrics.get("case_seed") != seed:
+        raise RuntimeError("sealed source metrics Student/seed contract drifted")
+    if metrics.get("contract") != _contract("student", seed):
+        raise RuntimeError("sealed source metrics formal Student contract drifted")
     if metrics.get("checkpoint") != selection.get("checkpoint"):
         raise RuntimeError("sealed source metrics checkpoint identity drifted")
     _require_source_identity(metrics, source_identity)
@@ -691,6 +767,34 @@ def load_sealed_selection(
     if selected.get("reward") != top.get("reward"):
         raise RuntimeError("sealed selected case reward does not match canonical ranking")
     return dict(selection), dict(metrics)
+
+
+def select_render_record(selection: Mapping[str, Any], env_id: int) -> dict[str, Any]:
+    """Return a copy of a validated Student selection targeting one ranked env."""
+    if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in range(EXPECTED_NUM_ENVS):
+        raise ValueError(f"render env_id must be an integer in [0,{EXPECTED_NUM_ENVS - 1}]; got {env_id!r}")
+    ranking = _mapping(selection.get("ranking"), "selection.ranking")
+    records = ranking.get("records")
+    if not isinstance(records, list) or len(records) != EXPECTED_EPISODES:
+        raise RuntimeError("validated Student selection ranking must contain exactly 16 records")
+    matches = [record for record in records if isinstance(record, Mapping) and record.get("env_id") == env_id]
+    if len(matches) != 1:
+        raise RuntimeError(f"validated Student selection must contain exactly one env_id={env_id}")
+    record = matches[0]
+    selected = deepcopy(dict(selection))
+    selected["selected"] = {
+        key: deepcopy(record[key])
+        for key in (
+            "env_id",
+            "episode_index",
+            "reward",
+            "goal_reached",
+            "max_stage",
+            "terminal_reason",
+            "randomized_case",
+        )
+    }
+    return selected
 
 
 def _selected_record(selection: Mapping[str, Any]) -> dict[str, Any]:
@@ -832,11 +936,20 @@ def make_formal_eval(
     output_root: Path,
     checkpoint_info: Mapping[str, Any],
     source_identity: Mapping[str, Mapping[str, str]],
+    *,
+    controller: str = "student",
+    seed: int = EXPECTED_SEED,
 ):
     def formal_eval(self):
-        _validate_effective_eval_contract(self.config, self.policy_model)
+        _validate_effective_eval_contract(
+            self.config,
+            self.policy_model,
+            controller=controller,
+            seed=seed,
+        )
+        _validate_runtime_seed(self, seed)
         if int(self.env.num_envs) != EXPECTED_NUM_ENVS:
-            raise RuntimeError("formal Student eval requires exactly 16 environments")
+            raise RuntimeError(f"formal {controller} eval requires exactly 16 environments")
         case_table = capture_reset_case_table(self.env)
         result = base_eval(self)
         metrics = result if isinstance(result, Mapping) else self.env.get_eval_metrics_summary()
@@ -847,16 +960,18 @@ def make_formal_eval(
             source_identity,
             metrics,
             case_table,
+            controller=controller,
+            seed=seed,
         )
         print(
-            "[A2_TOEOUT6_STUDENT_FORMAL_PASS] "
+            f"[A2_TOEOUT6_{controller.upper()}_FORMAL_PASS] "
             f"selected_env={selection['selected']['env_id']} output={output_root}",
             flush=True,
         )
         return result
 
-    formal_eval.__name__ = "toeout6_student_formal_eval"
-    formal_eval.__qualname__ = "toeout6_student_formal_eval"
+    formal_eval.__name__ = f"toeout6_{controller}_formal_eval"
+    formal_eval.__qualname__ = f"toeout6_{controller}_formal_eval"
     formal_eval._a2_eval_base = base_eval
     return formal_eval
 
@@ -868,6 +983,8 @@ def make_render_eval(
     selection_path: Path,
     checkpoint_info: Mapping[str, Any],
     source_identity: Mapping[str, Mapping[str, str]],
+    *,
+    seed: int = EXPECTED_SEED,
 ):
     import imageio.v2 as imageio
 
@@ -878,7 +995,8 @@ def make_render_eval(
     def render_eval(self):
         import torch
 
-        _validate_effective_eval_contract(self.config, self.policy_model)
+        _validate_effective_eval_contract(self.config, self.policy_model, seed=seed)
+        _validate_runtime_seed(self, seed)
         if int(self.env.num_envs) != EXPECTED_NUM_ENVS:
             raise RuntimeError("selected Student render requires exactly 16 environments")
         if output_root.exists() or staging_root.exists():
@@ -1006,12 +1124,16 @@ def make_render_eval(
                     raise RuntimeError(f"selected render temporary video was not written: {temporary}")
                 os.replace(temporary, final_paths[name])
             video_metadata = [
-                _validate_video(final_paths[name], frame_counts[name], tuple(first_frames[name].shape))
+                {
+                    **_validate_video(final_paths[name], frame_counts[name], tuple(first_frames[name].shape)),
+                    "path": str(output_root / final_paths[name].relative_to(staging_root)),
+                }
                 for name in ("left_d435", "right_d435", "head_oem", "d435_left_right_side_by_side")
             ]
             metadata = {
                 "schema": RENDER_SCHEMA,
                 "training_performed": False,
+                "case_seed": seed,
                 "selection": {
                     "path": str(selection_path.resolve()),
                     "sha256": selection_sha,
@@ -1118,6 +1240,9 @@ def _prepare_runtime(
     source_identity: Mapping[str, Mapping[str, str]],
     selection: Mapping[str, Any] | None,
     selection_path: Path | None,
+    *,
+    controller: str = "student",
+    seed: int = EXPECTED_SEED,
 ) -> None:
     """Patch only current-worktree Student hooks before executing eval_agent_trl."""
     import isaaclab.app as isaaclab_app
@@ -1125,6 +1250,12 @@ def _prepare_runtime(
     from gr00t.rl.trl.trainer.distill_trainer_a2_base_api import TRLDistillTrainerA2BaseAPI
     from gr00t.rl.trl.trainer.ppo_trainer import TRLPPOTrainer as GenericTRLPPOTrainer
     from gr00t.rl.trl.trainer.ppo_trainer_a2_base_api import TRLPPOTrainer as A2TRLPPOTrainer
+
+    if controller not in CONTROLLERS:
+        raise ValueError(f"unsupported controller {controller!r}; expected one of {CONTROLLERS}")
+    _validate_seed(seed)
+    if mode == "render" and controller != "student":
+        raise ValueError("selected render is only defined for the Student controller")
 
     if TRLDistillTrainerA2BaseAPI.eval is not GenericTRLPPOTrainer.eval:
         # The current Student class may already carry a prior binding in an
@@ -1138,7 +1269,12 @@ def _prepare_runtime(
     base_eval = A2TRLPPOTrainer.eval
     if mode == "formal":
         TRLDistillTrainerA2BaseAPI.eval = make_formal_eval(
-            base_eval, output_root, checkpoint_info, source_identity
+            base_eval,
+            output_root,
+            checkpoint_info,
+            source_identity,
+            controller=controller,
+            seed=seed,
         )
     elif mode == "render":
         if selection is None or selection_path is None:
@@ -1150,6 +1286,7 @@ def _prepare_runtime(
             selection_path,
             checkpoint_info,
             source_identity,
+            seed=seed,
         )
     else:
         raise ValueError(f"unsupported runtime mode {mode!r}")
@@ -1165,14 +1302,21 @@ def _prepare_runtime(
             super().__init__(*args, **kwargs)
 
     isaaclab_app.AppLauncher = VerifiedAppLauncher
-    overrides = build_overrides(mode, output_root, Path(str(checkpoint_info["path"])))
+    overrides = build_overrides(
+        mode,
+        output_root,
+        Path(str(checkpoint_info["path"])),
+        controller=controller,
+        seed=seed,
+    )
     sys.argv = [str(EVAL_ENTRY), *overrides]
     original_exit = os._exit
 
     def guarded_exit(status: int) -> None:
         if status == 0:
             artifact = (
-                output_root / "student_selection.json"
+                output_root
+                / ("student_selection.json" if controller == "student" else "teacher_selection.json")
                 if mode == "formal"
                 else output_root / "selected_render_metadata.json"
             )
@@ -1206,6 +1350,10 @@ def _run_child(args: argparse.Namespace, mode: str, output_root: Path, selection
         str(Path(__file__).resolve()),
         "--mode",
         mode,
+        "--controller",
+        args.controller,
+        "--seed",
+        str(args.seed),
         "--checkpoint",
         str(args.checkpoint),
         "--expected-global-step",
@@ -1221,12 +1369,17 @@ def _run_child(args: argparse.Namespace, mode: str, output_root: Path, selection
         command.extend(("--checkpoint-config-sha256", args.checkpoint_config_sha256))
     if selection_path is not None:
         command.extend(("--selection-json", str(selection_path)))
+    if args.render_env_id is not None:
+        command.extend(("--render-env-id", str(args.render_env_id)))
     subprocess.run(command, cwd=REPO_ROOT, check=True)
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("formal", "render", "full"), required=True)
+    parser.add_argument("--controller", choices=CONTROLLERS, default="student")
+    parser.add_argument("--seed", type=int, default=EXPECTED_SEED)
+    parser.add_argument("--render-env-id", type=int)
     parser.add_argument("--checkpoint", type=Path, required=True)
     parser.add_argument("--expected-global-step", type=int, required=True)
     parser.add_argument("--output-root", type=Path, required=True)
@@ -1235,10 +1388,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--checkpoint-config-sha256")
     parser.add_argument("--selection-json", type=Path)
     args = parser.parse_args(argv)
+    if args.seed < 0:
+        parser.error("--seed must be a nonnegative integer")
+    if args.render_env_id is not None and not 0 <= args.render_env_id < EXPECTED_NUM_ENVS:
+        parser.error(f"--render-env-id must be in [0,{EXPECTED_NUM_ENVS - 1}]")
     if (args.checkpoint_config is None) != (args.checkpoint_config_sha256 is None):
         parser.error("--checkpoint-config and --checkpoint-config-sha256 must be supplied together")
     if args.mode == "render" and args.selection_json is None:
         parser.error("render mode requires --selection-json from a formal run")
+    if args.mode == "render" and args.controller != "student":
+        parser.error("render mode requires --controller student")
+    if args.mode != "render" and args.render_env_id is not None:
+        parser.error("--render-env-id is only valid for render mode")
+    if args.mode == "full" and args.controller != "student":
+        parser.error("full mode requires --controller student")
     if args.mode != "render" and args.selection_json is not None:
         parser.error("--selection-json is only valid for render mode")
     if args.mode == "full" and args.selection_json is not None:
@@ -1282,7 +1445,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     selection_path = None
     if args.mode == "render":
         selection_path = _workspace_path(args.selection_json, must_exist=True)
-        selection, _ = load_sealed_selection(selection_path, checkpoint_info, source_identity)
+        selection, _ = load_sealed_selection(
+            selection_path,
+            checkpoint_info,
+            source_identity,
+            seed=args.seed,
+        )
+        if args.render_env_id is not None:
+            selection = select_render_record(selection, args.render_env_id)
     _prepare_runtime(
         args.mode,
         output_root,
@@ -1290,9 +1460,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         source_identity,
         selection,
         selection_path,
+        controller=args.controller,
+        seed=args.seed,
     )
     required = (
-        output_root / "student_selection.json"
+        output_root
+        / ("student_selection.json" if args.controller == "student" else "teacher_selection.json")
         if args.mode == "formal"
         else output_root / "selected_render_metadata.json"
     )

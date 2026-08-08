@@ -1,7 +1,8 @@
-"""base_v22 Wave-1 Route A (plan §14) — canonical16 checkpoint evaluation.
+"""base_v22 Route A (plan §14) — canonical16 checkpoint evaluation.
 
-Two GPU-serial lanes: G1's ten checkpoints sequentially on physical GPU0, G2's
-ten on physical GPU1.  Every row is a strict first-episode canonical16 run that
+The default ``wave1`` profile preserves the original G1/G2 evaluation.  The
+``wave23`` profile evaluates G3/G4/G5/G6 on four GPU-serial lanes.  Every row is
+a strict first-episode canonical16 run that
 binds the signed v21-B scenario manifest selector (the canonical16 contract on
 this codebase) with the v22 evidence exporter.  The controller fails fast: a
 nonzero exit, a post-exit validation failure, or a stale admission chain stops
@@ -58,11 +59,12 @@ from ._v22_common import (
 from .formal_launcher import REQUIRED_LOCKS, load_admission
 
 # ---------------------------------------------------------------------------
-# Route-A constants (plan §14, §18.1)
+# Route-A profiles (plan §14; physical GPU assignment is launch-time state)
 # ---------------------------------------------------------------------------
 
 ROUTE_A_ROOT = REPO_ROOT / "logs_eval/base_v22/postformal_20260806_route_a"
 ROUTE_A_CELLS = ("G1", "G2")
+ROUTE_A_GPU_BY_CELL = {"G1": 0, "G2": 1}
 ROUTE_A_STEPS = tuple(range(250, 2501, 250))
 ROUTE_A_TOPOLOGY = "canonical16"
 ROUTE_A_NUM_ENVS = 16
@@ -80,6 +82,37 @@ GPU_EVIDENCE_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_GPU_EVIDENCE.json"
 FAILURE_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_FAILURE.json"
 TERMINAL_STATUS_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_TERMINAL_STATUS.json"
 EVIDENCE_INDEX_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_EVIDENCE_INDEX.json"
+
+ROUTE_A_PROFILES = {
+    "wave1": {
+        "root": "logs_eval/base_v22/postformal_20260806_route_a",
+        "cells": ("G1", "G2"),
+        "gpu_by_cell": {"G1": 0, "G2": 1},
+    },
+    "wave23": {
+        "root": "logs_eval/base_v22/postformal_20260808_route_a_wave23",
+        "cells": ("G3", "G4", "G5", "G6"),
+        "gpu_by_cell": {"G3": 0, "G4": 1, "G5": 2, "G6": 3},
+    },
+}
+
+
+def configure_route_a(profile: str) -> None:
+    global ROUTE_A_ROOT, ROUTE_A_CELLS, ROUTE_A_GPU_BY_CELL
+    global MANIFEST_PATH, QUEUE_PATH, RUNTIME_PLAN_PATH, GPU_EVIDENCE_PATH
+    global FAILURE_PATH, TERMINAL_STATUS_PATH, EVIDENCE_INDEX_PATH
+
+    selected = ROUTE_A_PROFILES[profile]
+    ROUTE_A_ROOT = REPO_ROOT / selected["root"]
+    ROUTE_A_CELLS = selected["cells"]
+    ROUTE_A_GPU_BY_CELL = selected["gpu_by_cell"]
+    MANIFEST_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_MANIFEST.json"
+    QUEUE_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_QUEUE.json"
+    RUNTIME_PLAN_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_RUNTIME_PLAN.json"
+    GPU_EVIDENCE_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_GPU_EVIDENCE.json"
+    FAILURE_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_FAILURE.json"
+    TERMINAL_STATUS_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_TERMINAL_STATUS.json"
+    EVIDENCE_INDEX_PATH = ROUTE_A_ROOT / "V22_ROUTE_A_EVIDENCE_INDEX.json"
 
 DIAGNOSTIC_REWARD_TERMS = (
     "push_door_hinge",
@@ -261,17 +294,19 @@ def validate_cell_config(cell: str, config_path: Path, admission: Mapping[str, A
 
     if config.get("seed") != V22_CELL_SEED[cell]:
         raise V22Error(f"{cell} config seed {config.get('seed')!r} != {V22_CELL_SEED[cell]!r}")
+    wave_by_cell = {"G1": 1, "G2": 1, "G3": 2, "G4": 2, "G5": 3, "G6": 3}
+    body_assist_by_cell = {"G1": False, "G2": False, "G3": False, "G4": False, "G5": True, "G6": True}
     expected_env = {
         "a2_v20_R1_plan_id": V22_PLAN_ID,
         "a2_v20_send_hinge_threshold": V22_THETA_SEND_RAD,
         "a2_v20_pre_send_crossing_mode": EXPECTED_PRE_SEND_CROSSING_MODE,
         "a2_v22_cell": cell,
-        "a2_v22_wave": 1,
+        "a2_v22_wave": wave_by_cell[cell],
         "a2_v22_evidence_enabled": True,
         "a2_v22_posture_enabled": True,
         "a2_v22_posture_telemetry_only": False,
         "a2_v22_clearance_enabled": True,
-        "a2_v22_body_assist_enabled": False,
+        "a2_v22_body_assist_enabled": body_assist_by_cell[cell],
         "a2_v22_nominal_heights_m": atlas["nominal_heights_m"],
         "a2_v22_nominal_pitch_rad": atlas["nominal_pitch_rad"],
         "a2_v22_nominal_roll_rad": atlas["nominal_roll_rad"],
@@ -298,6 +333,8 @@ def validate_cell_config(cell: str, config_path: Path, admission: Mapping[str, A
         "config_path": str(config_path),
         "config_sha256": sha256_file(config_path),
         "seed": V22_CELL_SEED[cell],
+        "wave": wave_by_cell[cell],
+        "body_assist_enabled": body_assist_by_cell[cell],
         "pre_send_crossing_mode": env_config["a2_v20_pre_send_crossing_mode"],
         "posture_gate_state": env_config["a2_v22_posture_gate_state"],
     }
@@ -343,7 +380,7 @@ def build_row(
     bucket_table: Sequence[Mapping[str, Any]],
 ) -> dict[str, Any]:
     seed = V22_CELL_SEED[cell]
-    gpu = require_gpu(V22_CELL_GPU[cell])
+    gpu = ROUTE_A_GPU_BY_CELL[cell]
     checkpoint = REPO_ROOT / V22_TRAINING_ROOT / cell / f"model_step_{step:06d}.pt"
     if checkpoint.is_symlink() or not checkpoint.is_file():
         raise V22Error(f"{cell} checkpoint is missing: {checkpoint}")
@@ -484,7 +521,7 @@ def build_manifest() -> dict[str, Any]:
         first_episode_only=True,
         cells=list(ROUTE_A_CELLS),
         steps=list(ROUTE_A_STEPS),
-        cell_factors={cell: {"seed": V22_CELL_SEED[cell], "physical_gpu": V22_CELL_GPU[cell]} for cell in ROUTE_A_CELLS},
+        cell_factors={cell: {"seed": V22_CELL_SEED[cell], "physical_gpu": ROUTE_A_GPU_BY_CELL[cell]} for cell in ROUTE_A_CELLS},
         cell_config_validation=cells,
         admission_locks={
             name: {"path": str(locks["path"]), "file_sha256": locks["file_sha256"]}
@@ -507,6 +544,10 @@ def build_manifest() -> dict[str, Any]:
 
 def build_queue(manifest: Mapping[str, Any]) -> dict[str, Any]:
     rows = manifest["rows"]
+    lane_cells = {
+        str(gpu): sorted({row["cell"] for row in rows if row["physical_gpu"] == gpu})
+        for gpu in sorted({row["physical_gpu"] for row in rows})
+    }
     lanes = {
         str(gpu): [
             {
@@ -530,7 +571,7 @@ def build_queue(manifest: Mapping[str, Any]) -> dict[str, Any]:
         status="BUILT",
         created_utc=_now(),
         manifest_sha256=manifest["manifest_sha256"],
-        lane_cells={"0": ["G1"], "1": ["G2"]},
+        lane_cells=lane_cells,
         lanes=lanes,
         row_count=len(rows),
         scheduling="gpu-serial; stop scheduling on first nonzero exit or post-exit validation failure; no retries",
@@ -641,6 +682,8 @@ def validate_row_completion(row: Mapping[str, Any]) -> dict[str, Any]:
     env_cfg = runtime_config.get("env", {}).get("config")
     if not isinstance(env_cfg, Mapping):
         raise V22Error("runtime config lacks env.config")
+    wave_by_cell = {"G1": 1, "G2": 1, "G3": 2, "G4": 2, "G5": 3, "G6": 3}
+    body_assist_by_cell = {"G1": False, "G2": False, "G3": False, "G4": False, "G5": True, "G6": True}
     runtime_expect = {
         "a2_v21B_signed_probe_scenarios_enabled": True,
         "a2_v21B_census_topology": ROUTE_A_TOPOLOGY,
@@ -657,7 +700,9 @@ def validate_row_completion(row: Mapping[str, Any]) -> dict[str, Any]:
         "a2_v20_send_hinge_threshold": V22_THETA_SEND_RAD,
         "a2_v20_pre_send_crossing_mode": EXPECTED_PRE_SEND_CROSSING_MODE,
         "a2_v22_posture_telemetry_only": False,
-        "a2_v22_body_assist_enabled": False,
+        "a2_v22_cell": row["cell"],
+        "a2_v22_wave": wave_by_cell[row["cell"]],
+        "a2_v22_body_assist_enabled": body_assist_by_cell[row["cell"]],
     }
     for key, expected in runtime_expect.items():
         actual = env_cfg.get(key)
@@ -915,7 +960,7 @@ def assert_eval_gpus_idle(snapshot: Mapping[str, Any]) -> None:
             uuid_to_index[parts[1]] = parts[0]
     for app in snapshot["compute_apps"]:
         parts = [part.strip() for part in app.split(",")]
-        if parts and parts[0] in uuid_to_index and uuid_to_index[parts[0]] in {"0", "1"}:
+        if parts and parts[0] in uuid_to_index and int(uuid_to_index[parts[0]]) in set(ROUTE_A_GPU_BY_CELL.values()):
             raise V22Error(
                 f"physical GPU {uuid_to_index[parts[0]]} already runs a compute app ({app}); "
                 "Route A refuses to share its leased GPUs"
@@ -1201,7 +1246,8 @@ def _load_manifest() -> dict[str, Any]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="base_v22 Wave-1 Route A canonical16 controller")
+    parser = argparse.ArgumentParser(description="base_v22 Route A canonical16 controller")
+    parser.add_argument("--profile", choices=tuple(ROUTE_A_PROFILES), default="wave1")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("build")
     run_parser = sub.add_parser("run")
@@ -1212,6 +1258,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     seal_parser.add_argument("row_id")
     sub.add_parser("index")
     args = parser.parse_args(argv)
+    configure_route_a(args.profile)
 
     if args.command == "build":
         if ROUTE_A_ROOT.exists() and any(ROUTE_A_ROOT.iterdir()):
@@ -1221,17 +1268,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         queue = build_queue(manifest)
         write_json(MANIFEST_PATH, manifest)
         write_json(QUEUE_PATH, queue)
+        lane_cells = {
+            str(gpu): sorted(cell for cell, assigned in ROUTE_A_GPU_BY_CELL.items() if assigned == gpu)
+            for gpu in sorted(set(ROUTE_A_GPU_BY_CELL.values()))
+        }
+        rows_by_gpu = {
+            str(gpu): sum(1 for row in manifest["rows"] if row["physical_gpu"] == gpu)
+            for gpu in sorted(set(ROUTE_A_GPU_BY_CELL.values()))
+        }
         write_json(RUNTIME_PLAN_PATH, artifact_payload(
             "route_a_runtime_plan",
             status="READY",
             created_utc=_now(),
             manifest_sha256=manifest["manifest_sha256"],
             queue_sha256=queue["queue_sha256"],
-            lane_cells={"0": ["G1"], "1": ["G2"]},
-            rows_by_gpu={"0": len(ROUTE_A_STEPS), "1": len(ROUTE_A_STEPS)},
-            device_contract="no CUDA_VISIBLE_DEVICES; ACCELERATE_TORCH_DEVICE=cuda:N; N in {0,1}",
+            lane_cells=lane_cells,
+            rows_by_gpu=rows_by_gpu,
+            device_contract=(
+                "no CUDA_VISIBLE_DEVICES; ACCELERATE_TORCH_DEVICE=cuda:N; "
+                f"N in {sorted(set(ROUTE_A_GPU_BY_CELL.values()))}"
+            ),
             wandb_mode="disabled",
-            max_live_processes=2,
+            max_live_processes=len(ROUTE_A_GPU_BY_CELL),
             stop_rule="stop scheduling on first nonzero exit or post-exit validation failure; no retries",
         ))
         print(f"BUILT manifest={MANIFEST_PATH} rows={len(manifest['rows'])}", flush=True)

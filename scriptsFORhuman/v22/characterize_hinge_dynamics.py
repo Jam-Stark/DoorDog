@@ -55,7 +55,12 @@ DOOR_MASS_KG = 120.0
 DOOR_HANDLE_HEIGHT_M = 0.975
 
 
-def _run_probe(*, device: str, num_envs_note: str) -> dict:
+def _run_probe(
+    *,
+    device: str,
+    num_envs_note: str,
+    fixed_torques_nm: tuple[float, ...] = FIXED_TORQUES_NM,
+) -> dict:
     """Boot a door-only scene and return every measured quantity."""
     import torch
 
@@ -261,7 +266,7 @@ def _run_probe(*, device: str, num_envs_note: str) -> dict:
         raise RuntimeError(f"P0-D requires exactly one door_panel body; got {panel_names!r}")
     fixed_torque_rows = []
     torque_steps = int(FIXED_TORQUE_SECONDS / SIM_DT)
-    for torque in FIXED_TORQUES_NM:
+    for torque in fixed_torques_nm:
         for sign, sign_label in ((1.0, "world_plus_z"), (-1.0, "world_minus_z")):
             _reset_hinge(0.0)
             forces = torch.zeros(door.num_instances, 1, 3, device=door.device)

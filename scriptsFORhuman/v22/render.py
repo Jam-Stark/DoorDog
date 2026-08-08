@@ -1,4 +1,4 @@
-"""base_v22 §15.4 render — five scenarios x three cameras for the selected Route A checkpoint.
+"""base_v22 §15.4 render — five scenarios x three cameras for a Route-A selection.
 
 One invocation renders exactly one scenario (``--scenario``) on one physical GPU
 (``--gpu``); the lead drives the five scenarios across the currently assigned
@@ -35,6 +35,7 @@ from scriptsFORhuman.v22._v22_common import (  # noqa: E402
     V22_ARTIFACT_ROOT,
     V22Error,
     digest,
+    read_json,
     sha256_file,
     write_json,
 )
@@ -44,9 +45,9 @@ LOCK_PATH = Path("/tmp/doordog-a2-piper-headless-kit-copy.lock")
 LOCK_MARKER = b"[INFO][AppLauncher]: Loading experience file:"
 
 CHECKPOINT = REPO / "logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt"
-CHECKPOINT_SHA256 = "f784689fcc1a307acb0dee7083943d077f0d3794b2badf9b5fde19d18eeeac3b"
 SELECTION_PATH = REPO / V22_ARTIFACT_ROOT / "postformal_20260806_route_a" / "V22_ROUTE_A_SELECTION.json"
 RENDER_ROOT = REPO / V22_ARTIFACT_ROOT / "render_20260806_g1_step1250"
+CANDIDATE_TAG = "g1_step1250"
 BUCKET_TABLE = (
     "[{bucket: H0, damping: [50.0, 150.0], stiffness: [6.0, 20.0], max_force_nm: [10.0, 24.0]},"
     "{bucket: H1, damping: [30.0, 120.0], stiffness: [2.0, 6.0], max_force_nm: [5.0, 12.0]},"
@@ -131,12 +132,13 @@ def build_argv(scenario: tuple, manifest_path: Path, manifest_sha: str, output_r
         "++env.config.a2_v21B_evidence_enabled=false",
         "++env.config.a2_v22_evidence_enabled=true",
         f"++env.config.a2_v22_hinge_bucket_table={BUCKET_TABLE}",
+        "++env.config.a2_v22_hinge_bucket_mixture=null",
         "++env.config.a2_v22_scenario_manifest_enabled=true",
         f"++env.config.a2_v22_scenario_manifest_path='{manifest_path}'",
         f"++env.config.a2_v22_scenario_manifest_sha256={manifest_sha}",
         f"++env.config.a2_v22_scenario_manifest_name='v22_render_{name}'",
         f"++env.config.save_rendering_dir={output_root / 'renderings'}",
-        f"++eval_name=v22_render_g1_step1250_{name}_seed0",
+        f"++eval_name=v22_render_{CANDIDATE_TAG}_{name}_seed0",
         f"++eval_output_dir={output_root}",
     ]
     env = {
@@ -201,8 +203,6 @@ def run_scenario(scenario_name: str, gpu: int) -> int:
     scenario = next((s for s in SCENARIOS if s[0] == scenario_name), None)
     if scenario is None:
         raise V22Error(f"unknown render scenario {scenario_name!r}; registered: {[s[0] for s in SCENARIOS]}")
-    if sha256_file(CHECKPOINT) != CHECKPOINT_SHA256:
-        raise V22Error("selected checkpoint hash mismatch against V22_ROUTE_A_SELECTION.json")
     if not SELECTION_PATH.is_file():
         raise V22Error(f"selection artifact missing: {SELECTION_PATH}")
     RENDER_ROOT.mkdir(parents=True, exist_ok=True)
@@ -265,11 +265,141 @@ def run_scenario(scenario_name: str, gpu: int) -> int:
     return 0
 
 
+def configure_candidate(selection_path: Path, output_root: Path) -> None:
+    global CHECKPOINT, SELECTION_PATH, RENDER_ROOT, CANDIDATE_TAG
+    selection = read_json(selection_path)
+    selected = selection["selected"]
+    CHECKPOINT = Path(selected["checkpoint_path"])
+    SELECTION_PATH = selection_path
+    RENDER_ROOT = output_root
+    CANDIDATE_TAG = f"{selected['cell'].lower()}_step{int(selected['step']):04d}"
+
+
+def summarize(selection_path: Path, output_root: Path) -> None:
+    selection = read_json(selection_path)
+    scenarios = {}
+    for scenario in SCENARIOS:
+        name = scenario[0]
+        root = output_root / name
+        receipt = read_json(root / "render_receipt.json")
+        metrics = read_json(root / "metrics_eval.json")
+        records = read_json(root / "a2_v14_per_env_records.json")
+        scenarios[name] = {
+            "exit_code": receipt["exit_code"],
+            "duration_seconds": receipt["duration_seconds"],
+            "primary_mp4": receipt["media_gate"]["primary_count"],
+            "auxiliary_mp4": len(receipt["media_gate"]["auxiliary_mp4"]),
+            "goal_of_16": sum(1 for value in metrics["episode_goal_reached"] if value is True),
+            "supported_crossing_of_16": sum(
+                1 for record in records if record.get("crossing_while_holding") is True
+            ),
+            "post_release_body_contact_of_16": sum(
+                1 for record in records if record.get("post_release_body_contact") is True
+            ),
+        }
+    write_json(
+        output_root / "V22_RENDER_SUMMARY.json",
+        {
+            "schema": "a2_piper_base_v22_render_summary_v1",
+            "status": "RENDER_PASS",
+            "plan_id": "base_v22_posture_clearance_force_routing_v3",
+            "execution_id": "base_v22_execution_v3",
+            "selection_path": str(selection_path),
+            "candidate": {
+                key: selection["selected"][key]
+                for key in ("row_id", "cell", "step", "seed", "checkpoint_path")
+            },
+            "render_mode": "num_envs=16, one replicated manifest per scenario, three cameras",
+            "media_files_primary_total": sum(item["primary_mp4"] for item in scenarios.values()),
+            "scenarios": scenarios,
+        },
+    )
+
+
+def run_all(selection_path: Path, output_root: Path, gpus: list[int]) -> int:
+    output_root.mkdir(parents=True, exist_ok=False)
+    jobs = [scenario[0] for scenario in SCENARIOS]
+    write_json(
+        output_root / "V22_RENDER_RUNTIME_PLAN.json",
+        {
+            "schema": "a2_piper_base_v22_render_runtime_plan_v1",
+            "selection_path": str(selection_path),
+            "candidate": CANDIDATE_TAG,
+            "gpus": gpus,
+            "scenarios": jobs,
+            "scheduling": "one live render per GPU; shared startup flock; stop new launches on first failure",
+        },
+    )
+    pending = list(jobs)
+    active: dict[int, tuple[str, subprocess.Popen]] = {}
+    completed: list[dict] = []
+    failed = False
+    while active or (pending and not failed):
+        if not failed:
+            for gpu in gpus:
+                if gpu in active or not pending:
+                    continue
+                scenario = pending.pop(0)
+                command = [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--scenario",
+                    scenario,
+                    "--gpu",
+                    str(gpu),
+                    "--selection",
+                    str(selection_path),
+                    "--output-root",
+                    str(output_root),
+                ]
+                process = subprocess.Popen(command, cwd=REPO)
+                active[gpu] = (scenario, process)
+                print(f"RENDER_ALL LAUNCHED {scenario} gpu={gpu} pid={process.pid}", flush=True)
+        for gpu, (scenario, process) in list(active.items()):
+            code = process.poll()
+            if code is None:
+                continue
+            completed.append({"scenario": scenario, "gpu": gpu, "exit_code": code})
+            del active[gpu]
+            if code != 0:
+                failed = True
+                print(f"RENDER_ALL FAIL {scenario} gpu={gpu} exit={code}; no new renders will launch", flush=True)
+        if active:
+            time.sleep(2.0)
+    status = "PASS" if not failed and not pending else "FAIL"
+    write_json(
+        output_root / "V22_RENDER_TERMINAL_STATUS.json",
+        {
+            "schema": "a2_piper_base_v22_render_terminal_status_v1",
+            "status": status,
+            "candidate": CANDIDATE_TAG,
+            "completed": completed,
+            "pending": pending,
+        },
+    )
+    if status == "PASS":
+        summarize(selection_path, output_root)
+    print(f"RENDER_ALL {status} completed={len(completed)}/{len(jobs)}", flush=True)
+    return 0 if status == "PASS" else 2
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scenario", required=True, choices=[s[0] for s in SCENARIOS])
-    parser.add_argument("--gpu", type=int, required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--scenario", choices=[s[0] for s in SCENARIOS])
+    mode.add_argument("--all", action="store_true")
+    parser.add_argument("--gpu", type=int)
+    parser.add_argument("--gpus", type=int, nargs="+")
+    parser.add_argument("--selection", type=Path, default=SELECTION_PATH)
+    parser.add_argument("--output-root", type=Path, default=RENDER_ROOT)
     args = parser.parse_args()
+    configure_candidate(args.selection, args.output_root)
+    if args.all:
+        if not args.gpus:
+            raise V22Error("--all requires --gpus")
+        return run_all(args.selection, args.output_root, args.gpus)
+    if args.gpu is None:
+        raise V22Error("--scenario requires --gpu")
     return run_scenario(args.scenario, args.gpu)
 
 

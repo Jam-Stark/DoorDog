@@ -1,6 +1,6 @@
 """base_v22 Route A evidence index — per-env causal attribution over delivered traces.
 
-Reads the 20 delivered Route A row evidence units (row_receipt.json +
+Reads the selected Route A profile's row evidence units (row_receipt.json +
 stage2_step_trace.json + a2_v14_per_env_records.json) and produces
 V22_ROUTE_A_EVIDENCE_INDEX.json at the Route A root.
 
@@ -16,6 +16,7 @@ Fail-fast: any missing artifact, non-finite metric, or topology mismatch raises.
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import sys
@@ -35,10 +36,31 @@ from scriptsFORhuman.v22._v22_common import (  # noqa: E402
 ROUTE_A_ROOT = REPO / V22_ARTIFACT_ROOT / "postformal_20260806_route_a"
 CELLS = ("G1", "G2")
 STEPS = tuple(range(250, 2501, 250))
-SEED_BY_CELL = {"G1": 0, "G2": 1}
+SEED_BY_CELL = {"G1": 0, "G2": 1, "G3": 0, "G4": 1, "G5": 0, "G6": 1}
+PROFILES = {
+    "wave1": ("postformal_20260806_route_a", ("G1", "G2")),
+    "wave23": ("postformal_20260808_route_a_wave23", ("G3", "G4", "G5", "G6")),
+}
 RELEASE_VELOCITY_SOFT_MAX = 0.75
 CLEARANCE_MIN_HINGE = 1.10
 SATURATION_THRESHOLD = 0.95 * 0.40
+BODY_CONTACT_EVENT_N = 1.0
+BODY_FILTER_NAMES = (
+    "trunk",
+    "FL_hip",
+    "FL_thigh",
+    "FL_calf",
+    "RL_hip",
+    "RL_thigh",
+    "RL_calf",
+    "FR_hip",
+    "FR_thigh",
+    "FR_calf",
+    "RR_hip",
+    "RR_thigh",
+    "RR_calf",
+)
+APPROVED_BODY_ASSIST_FILTERS = frozenset(("trunk", "FL_thigh", "FR_thigh"))
 
 CAUSE_CLASSES = (
     "none",
@@ -48,6 +70,13 @@ CAUSE_CLASSES = (
     "pre_clear_support_loss",
     "post_clear_natural_release",
 )
+
+
+def configure(profile: str) -> None:
+    global ROUTE_A_ROOT, CELLS
+    root_name, cells = PROFILES[profile]
+    ROUTE_A_ROOT = REPO / V22_ARTIFACT_ROOT / root_name
+    CELLS = cells
 
 
 def _finite(value: float | int | None, *, name: str) -> float:
@@ -110,6 +139,32 @@ def analyze_env(steps: list[dict]) -> dict:
     ach_pitch = [abs(_finite(s.get("v22_posture_achieved_pitch_rad"), name="ach pitch")) for s in steps]
     ach_roll = [abs(_finite(s.get("v22_posture_achieved_roll_rad"), name="ach roll")) for s in steps]
     ordinary_nn = [s for s in steps if s.get("v22_ordinary_need_negative") is True]
+    arm_failure_latched = any(s.get("v22_arm_failure_latched") is True for s in steps)
+    body_assist_eligible = any(s.get("v22_body_assist_eligible") is True for s in steps)
+    force_need = any(s.get("v22_force_need") is True for s in steps)
+    body_panel_forces = [
+        _finite(s.get("door_body_panel_normal_force_total"), name="body panel force") for s in steps
+    ]
+    body_panel_force_vectors = []
+    for step in steps:
+        values = step.get("door_body_panel_normal_force_per_filter")
+        if not isinstance(values, list) or len(values) != len(BODY_FILTER_NAMES):
+            raise V22Error("body panel per-filter force vector is missing or has the wrong length")
+        body_panel_force_vectors.append(
+            [_finite(value, name="body panel per-filter force") for value in values]
+        )
+    unauthorized_body_contact = False
+    approved_body_contact = False
+    for step, values in zip(steps, body_panel_force_vectors):
+        for name, force in zip(BODY_FILTER_NAMES, values):
+            if force < BODY_CONTACT_EVENT_N:
+                continue
+            if name in APPROVED_BODY_ASSIST_FILTERS:
+                approved_body_contact = True
+                if step.get("v22_body_assist_eligible") is not True:
+                    unauthorized_body_contact = True
+            else:
+                unauthorized_body_contact = True
 
     if unsafe_index is None:
         cause = "none"
@@ -156,6 +211,16 @@ def analyze_env(steps: list[dict]) -> dict:
         "ach_abs_pitch_p50": quantile(ach_pitch, 0.5),
         "ach_abs_roll_p50": quantile(ach_roll, 0.5),
         "ordinary_need_negative_frames": len(ordinary_nn),
+        "arm_failure_latched": arm_failure_latched,
+        "body_assist_eligible": body_assist_eligible,
+        "force_need": force_need,
+        "body_panel_force_max_n": max(body_panel_forces),
+        "body_panel_force_max_by_filter_n": {
+            name: max(values[index] for values in body_panel_force_vectors)
+            for index, name in enumerate(BODY_FILTER_NAMES)
+        },
+        "approved_body_contact": approved_body_contact,
+        "unauthorized_body_contact": unauthorized_body_contact,
         "cmd_pitch_saturation": (
             sum(1 for s in ordinary_nn if abs(s["v22_posture_command_pitch_rad"]) >= SATURATION_THRESHOLD)
             / len(ordinary_nn)
@@ -235,6 +300,14 @@ def analyze_row(cell: str, step: int) -> dict:
         "goal_of_16": goal,
         "supported_crossing_of_16": supported,
         "record_post_release_body_contact_of_16": record_body_contact,
+        "arm_failure_latched_of_16": sum(1 for env in envs if env["arm_failure_latched"]),
+        "body_assist_eligible_of_16": sum(1 for env in envs if env["body_assist_eligible"]),
+        "force_need_of_16": sum(1 for env in envs if env["force_need"]),
+        "body_panel_contact_of_16": sum(1 for env in envs if env["body_panel_force_max_n"] > 0.0),
+        "unauthorized_body_contact_of_16": sum(
+            1 for env in envs if env["unauthorized_body_contact"]
+        ),
+        "body_panel_force_max_n": max(env["body_panel_force_max_n"] for env in envs),
         "clearance_success_of_16": sum(1 for env in envs if env["clearance_success"]),
         "strategy_counts": strategies,
         "unsafe_release_raw_of_16": sum(1 for env in envs if env["cause"] != "none"),
@@ -255,14 +328,18 @@ def analyze_row(cell: str, step: int) -> dict:
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="base_v22 Route A causal evidence analysis")
+    parser.add_argument("--profile", choices=tuple(PROFILES), default="wave1")
+    args = parser.parse_args(argv)
+    configure(args.profile)
     rows = [analyze_row(cell, step) for cell in CELLS for step in STEPS]
     index = {
         "schema": "a2_piper_base_v22_route_a_evidence_index_v1",
         "plan_id": "base_v22_posture_clearance_force_routing_v3",
         "execution_id": "base_v22_execution_v3",
         "route_a_root": str(ROUTE_A_ROOT),
-        "producer": "lead_direct_after_executor_timeout_takeover",
+        "producer": "lead_direct_route_a_causal_analysis",
         "cause_class_semantics": {
             "excessive_release_speed": "release stamped with hinge velocity > 0.75 rad/s (real §8.6 violation)",
             "post_release_body_contact": "post-release panel/body contact before root clear (real violation)",

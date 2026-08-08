@@ -766,12 +766,12 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     if env_config.get(_V21B_SIGNED_PROBE_FLAG) is True:
         return get_TaskObjCfgDict_for_v21B_scenario_manifest(num_envs, env_config)
     if env_config.get(_V22_MANIFEST_FLAG) is True:
-        if _V22_BUCKET_MIXTURE_KEY in env_config:
+        if env_config.get(_V22_BUCKET_MIXTURE_KEY) is not None:
             raise ValueError(
                 f"{_V22_MANIFEST_FLAG} and {_V22_BUCKET_MIXTURE_KEY} are mutually exclusive"
             )
         return get_TaskObjCfgDict_for_v22_scenario_manifest(num_envs, env_config)
-    if _V22_BUCKET_MIXTURE_KEY in env_config:
+    if env_config.get(_V22_BUCKET_MIXTURE_KEY) is not None:
         return get_TaskObjCfgDict_for_v22_hinge_bucket_mixture(num_envs, env_config)
     height_grid_key = "a2_eval_door_handle_height_linspace"
     height_weight_pairs_key = "a2_eval_door_handle_height_weight_pairs"

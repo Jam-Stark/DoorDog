@@ -1,4 +1,4 @@
-"""base_v22 §15 Route B for the selected Wave-1 checkpoint (G1:step1250).
+"""base_v22 §15 Route B for a Route-A selected checkpoint.
 
 pooled48 (seeds 1,2; seed 0 reuses the Route A row), Dynamics80 (E0_CORE16 /
 E1_DAMPING16 / E2_REBOUND16 built from the frozen H0/H1/H2 ranges; H3/H4
@@ -30,7 +30,7 @@ from scriptsFORhuman.v22._v22_common import (  # noqa: E402
     V22_ARTIFACT_ROOT,
     V22Error,
     digest,
-    sha256_file,
+    read_json,
     write_json,
 )
 from scriptsFORhuman.v22.m22 import (  # noqa: E402
@@ -38,9 +38,9 @@ from scriptsFORhuman.v22.m22 import (  # noqa: E402
 )
 
 CHECKPOINT = REPO / "logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt"
-CHECKPOINT_SHA256 = "f784689fcc1a307acb0dee7083943d077f0d3794b2badf9b5fde19d18eeeac3b"
 SELECTION_PATH = REPO / V22_ARTIFACT_ROOT / "postformal_20260806_route_a" / "V22_ROUTE_A_SELECTION.json"
 ROUTE_B_ROOT = REPO / V22_ARTIFACT_ROOT / "route_b_20260806_g1_step1250"
+CANDIDATE_TAG = "g1_step1250"
 LOCK_PATH = Path("/tmp/doordog-a2-piper-headless-kit-copy.lock")
 LOCK_MARKER = b"[INFO][AppLauncher]: Loading experience file:"
 RENDER_GPUS = (0, 1, 2, 3)
@@ -118,6 +118,7 @@ def _canonical16_overrides(scenario: dict) -> list[str]:
 
 def _v22_manifest_overrides(path: Path, sha: str, name: str) -> list[str]:
     return [
+        "++env.config.a2_v22_hinge_bucket_mixture=null",
         "++env.config.a2_v22_scenario_manifest_enabled=true",
         f"++env.config.a2_v22_scenario_manifest_path='{path}'",
         f"++env.config.a2_v22_scenario_manifest_sha256={sha}",
@@ -154,14 +155,19 @@ def build_argv(checkpoint: Path, seed: int, output_root: Path, extra_selector: l
 def run_one(name: str, gpu: int, seed: int, selector: list[str], output_root: Path) -> int:
     if gpu not in RENDER_GPUS:
         raise V22Error(f"GPU {gpu} not in assigned set {RENDER_GPUS}")
-    if sha256_file(CHECKPOINT) != CHECKPOINT_SHA256:
-        raise V22Error("checkpoint hash mismatch")
     output_root.parent.mkdir(parents=True, exist_ok=True)
     if output_root.exists():
         raise V22Error(f"output root must be fresh: {output_root}")
     output_root.mkdir()
-    run_uuid = f"v22-routeB-{name}-seed{seed}"
-    argv, base_env = build_argv(CHECKPOINT, seed, output_root, selector, run_uuid, f"v22_routeB_{name}_seed{seed}")
+    run_uuid = f"v22-routeB-{CANDIDATE_TAG}-{name}-seed{seed}"
+    argv, base_env = build_argv(
+        CHECKPOINT,
+        seed,
+        output_root,
+        selector,
+        run_uuid,
+        f"v22_routeB_{CANDIDATE_TAG}_{name}_seed{seed}",
+    )
     env = os.environ.copy()
     env.pop("CUDA_VISIBLE_DEVICES", None)
     env.update(base_env)
@@ -197,11 +203,142 @@ def run_one(name: str, gpu: int, seed: int, selector: list[str], output_root: Pa
     return 0
 
 
+def configure_candidate(selection_path: Path, output_root: Path) -> None:
+    global CHECKPOINT, SELECTION_PATH, ROUTE_B_ROOT, CANDIDATE_TAG
+    selection = read_json(selection_path)
+    selected = selection["selected"]
+    CHECKPOINT = Path(selected["checkpoint_path"])
+    SELECTION_PATH = selection_path
+    ROUTE_B_ROOT = output_root
+    CANDIDATE_TAG = f"{selected['cell'].lower()}_step{int(selected['step']):04d}"
+
+
+def _job_root(output_root: Path, job: str) -> Path:
+    if job.startswith("pooled:"):
+        return output_root / "pooled48" / f"seed{int(job.split(':')[1])}" / "canonical16"
+    if job.startswith("holdout:"):
+        return output_root / "holdout64" / f"seed{int(job.split(':')[1])}" / "canonical16"
+    return output_root / "dynamics80" / job / "canonical16"
+
+
+def run_all(selection_path: Path, output_root: Path, gpus: list[int], *, resume: bool) -> int:
+    selection = read_json(selection_path)
+    selected = selection["selected"]
+    reused_seed = int(selected["seed"])
+    route_a_root = Path(selection["inputs"]["evidence_index_path"]).parent
+    reused_root = (
+        route_a_root
+        / selected["cell"]
+        / f"step{int(selected['step']):04d}"
+        / "canonical16"
+        / f"seed{reused_seed}"
+    )
+    jobs = [f"pooled:{seed}" for seed in (0, 1, 2) if seed != reused_seed]
+    jobs.extend(("E0_CORE16", "E1_DAMPING16", "E2_REBOUND16"))
+    jobs.extend(f"holdout:{seed}" for seed in (3, 4, 5, 6))
+
+    output_root.mkdir(parents=True, exist_ok=resume)
+    if resume and not (output_root / "V22_ROUTE_B_RUNTIME_PLAN.json").is_file():
+        raise V22Error("--resume requires an existing Route-B runtime plan")
+    completed = []
+    if resume:
+        for job in jobs:
+            receipt_path = _job_root(output_root, job) / "run_receipt.json"
+            if not receipt_path.is_file():
+                continue
+            receipt = read_json(receipt_path)
+            if receipt.get("natural_exit") is True and receipt.get("exit_code") == 0:
+                completed.append(
+                    {
+                        "run": job,
+                        "gpu": receipt["physical_gpu"],
+                        "exit_code": 0,
+                        "reused_existing": True,
+                    }
+                )
+    write_json(
+        output_root / ("V22_ROUTE_B_RUNTIME_PLAN_RESUME.json" if resume else "V22_ROUTE_B_RUNTIME_PLAN.json"),
+        {
+            "schema": "a2_piper_base_v22_route_b_runtime_plan_v1",
+            "selection_path": str(selection_path),
+            "candidate": CANDIDATE_TAG,
+            "gpus": gpus,
+            "fresh_runs": [job for job in jobs if job not in {row["run"] for row in completed}],
+            "pooled_reuse": {"seed": reused_seed, "route_a_row_root": str(reused_root)},
+            "scheduling": "one live run per GPU; shared startup flock; stop new launches on first failure",
+        },
+    )
+
+    pending = [job for job in jobs if job not in {row["run"] for row in completed}]
+    active: dict[int, tuple[str, subprocess.Popen]] = {}
+    failed = False
+    while active or (pending and not failed):
+        if not failed:
+            for gpu in gpus:
+                if gpu in active or not pending:
+                    continue
+                job = pending.pop(0)
+                command = [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--run",
+                    job,
+                    "--gpu",
+                    str(gpu),
+                    "--selection",
+                    str(selection_path),
+                    "--output-root",
+                    str(output_root),
+                ]
+                process = subprocess.Popen(command, cwd=REPO)
+                active[gpu] = (job, process)
+                print(f"ROUTE_B_ALL LAUNCHED {job} gpu={gpu} pid={process.pid}", flush=True)
+        for gpu, (job, process) in list(active.items()):
+            code = process.poll()
+            if code is None:
+                continue
+            completed.append({"run": job, "gpu": gpu, "exit_code": code})
+            del active[gpu]
+            if code != 0:
+                failed = True
+                print(f"ROUTE_B_ALL FAIL {job} gpu={gpu} exit={code}; no new runs will launch", flush=True)
+        if active:
+            time.sleep(2.0)
+
+    status = "PASS" if not failed and not pending else "FAIL"
+    write_json(
+        output_root / "V22_ROUTE_B_TERMINAL_STATUS.json",
+        {
+            "schema": "a2_piper_base_v22_route_b_terminal_status_v1",
+            "status": status,
+            "candidate": CANDIDATE_TAG,
+            "completed": completed,
+            "pending": pending,
+            "pooled_reuse": {"seed": reused_seed, "route_a_row_root": str(reused_root)},
+        },
+    )
+    print(f"ROUTE_B_ALL {status} completed={len(completed)}/{len(jobs)}", flush=True)
+    return 0 if status == "PASS" else 2
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--run", required=True, help="pooled:seedN | E0_CORE16 | E1_DAMPING16 | E2_REBOUND16 | holdout:seedN")
-    parser.add_argument("--gpu", type=int, required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--run", help="pooled:seedN | E0_CORE16 | E1_DAMPING16 | E2_REBOUND16 | holdout:seedN")
+    mode.add_argument("--all", action="store_true", help="run every fresh Route-B row and reuse the selected Route-A seed")
+    parser.add_argument("--gpu", type=int)
+    parser.add_argument("--gpus", type=int, nargs="+")
+    parser.add_argument("--selection", type=Path, default=SELECTION_PATH)
+    parser.add_argument("--output-root", type=Path, default=ROUTE_B_ROOT)
+    parser.add_argument("--resume", action="store_true")
     a = parser.parse_args()
+    configure_candidate(a.selection, a.output_root)
+    if a.all:
+        if not a.gpus:
+            raise V22Error("--all requires --gpus")
+        return run_all(a.selection, a.output_root, a.gpus, resume=a.resume)
+    if a.gpu is None:
+        raise V22Error("--run requires --gpu")
     canonical = load_scenario_manifest()
     if a.run.startswith("pooled:"):
         seed = int(a.run.split(":")[1])

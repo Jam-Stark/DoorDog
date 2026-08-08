@@ -77,6 +77,8 @@ def build_probe_argv(
     tracking_p90_rad: float = BOOTSTRAP_TRACKING_P90_RAD,
     workspace_margin_threshold: float = BOOTSTRAP_MARGIN_THRESHOLD,
     calibration_probe: bool = True,
+    include_height_linspace: bool = True,
+    selector_overrides: Sequence[str] = (),
     repo_root: Path = REPO_ROOT,
 ) -> list[str]:
     """Build the exact evaluation command for one v22 posture probe."""
@@ -104,8 +106,6 @@ def build_probe_argv(
         "++algo.config.eval.a2_eval_m41_strict_telemetry=false",
         "++algo.config.eval.save_videos=false",
         "++algo.config.eval.save_trajectories=false",
-        "++env.config.a2_eval_door_handle_height_linspace="
-        + _list_override(HANDLE_HEIGHT_BOUNDS),
         # v22 identity: switching the plan id takes this run off the v21-B
         # materialization chain and onto the v22 telemetry path.
         f"++env.config.a2_v20_R1_plan_id={V22_PLAN_ID}",
@@ -127,6 +127,12 @@ def build_probe_argv(
         f"++eval_name={eval_name}",
         f"++eval_output_dir={Path(output_dir).resolve()}",
     ]
+    if include_height_linspace:
+        argv.append(
+            "++env.config.a2_eval_door_handle_height_linspace="
+            + _list_override(HANDLE_HEIGHT_BOUNDS)
+        )
+    argv.extend(selector_overrides)
     if intervention != "legacy":
         argv.append("++env.config.a2_v22_posture_intervention_probe=true")
         argv.append(f"++env.config.a2_v22_posture_intervention={intervention}")

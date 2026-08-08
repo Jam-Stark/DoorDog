@@ -18,6 +18,7 @@ from gr00t.rl.envs.door.a2_pull_direction import (
 )
 
 A2_PULL_V0_PLAN_ID = "a2_piper_pull_v0_tensile_feasibility_v1"
+A2_PULL_V1_PLAN_ID = "a2_piper_pull_v1_reward_port_and_stage_semantics"
 A2_PULL_V0_TARGET_FRAME_VERSION = "grasp_target_active_face_io_z_pre_v1"
 A2_PULL_V0_TARGET_ORIENTATION_WXYZ = (-0.5, -0.5, 0.5, 0.5)
 A2_PULL_V0_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 100, 200)
@@ -423,9 +424,162 @@ def validate_a2_pull_v0_guard(
     }
 
 
+def _validate_a2_pull_v1_reward_scales(
+    config: Mapping[str, Any],
+    *,
+    reward_scales: Mapping[str, Any] | None,
+    reward_scale_dt: float | None,
+) -> str:
+    """Validate the only two v1 bridge-scale pairs (A or B)."""
+
+    configured_rewards = _require_mapping(
+        _mapping_item(config, "rewards", "Pull-v1 config"),
+        "Pull-v1 rewards",
+    )
+    configured_scales = _require_mapping(
+        _mapping_item(configured_rewards, "reward_scales", "Pull-v1 rewards"),
+        "Pull-v1 rewards.reward_scales",
+    )
+    expected_fixed = {
+        "dont_push_door_handle": 3.0,
+        "target_root_distance": 12.0,
+        "pull_door_hinge": 6.0,
+        "pull_door_handle": 0.0,
+    }
+    configured_bridge = tuple(
+        float(_mapping_item(configured_scales, key, "Pull-v1 rewards.reward_scales"))
+        for key in ("a2_stage3_unlatch_hold", "a2_stage3_stage4_hold_and_drive")
+        if key in configured_scales
+    )
+    if reward_scales is None:
+        for key, expected in expected_fixed.items():
+            value = _mapping_item(configured_scales, key, "Pull-v1 rewards.reward_scales")
+            if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+                raise RuntimeError(
+                    f"Pull-v1 rewards.reward_scales.{key} must be a finite number; got {value!r}."
+                )
+            if float(value) != expected:
+                raise RuntimeError(
+                    f"Pull-v1 rewards.reward_scales.{key} must be exactly {expected!r}; got {value!r}."
+                )
+        if configured_bridge == (0.0, 0.0):
+            return "V1-A"
+        if configured_bridge == (3.0, 8.0):
+            return "V1-B"
+        raise RuntimeError(
+            "Pull-v1 bridge scales must be the exact V1-A pair (0.0, 0.0) or "
+            f"V1-B pair (3.0, 8.0); got {configured_bridge!r}."
+        )
+
+    if reward_scale_dt is None or isinstance(reward_scale_dt, bool) or not math.isfinite(float(reward_scale_dt)):
+        raise RuntimeError("Pull-v1 runtime reward-scale validation requires a finite dt.")
+    runtime_bridge = tuple(
+        float(reward_scales[key])
+        for key in ("a2_stage3_unlatch_hold", "a2_stage3_stage4_hold_and_drive")
+        if key in reward_scales
+    )
+    expected_runtime_fixed = {
+        key: expected * float(reward_scale_dt) for key, expected in expected_fixed.items()
+    }
+    for key, expected in expected_runtime_fixed.items():
+        if expected == 0.0:
+            if key in reward_scales:
+                raise RuntimeError(
+                    f"Pull-v1 runtime reward scale {key} must remain disabled at zero."
+                )
+            continue
+        if key not in reward_scales or float(reward_scales[key]) != expected:
+            raise RuntimeError(
+                f"Pull-v1 runtime reward scale {key} must resolve to {expected!r}; "
+                f"got {None if key not in reward_scales else reward_scales[key]!r}."
+            )
+    if runtime_bridge == ():
+        return "V1-A"
+    if runtime_bridge == (3.0 * float(reward_scale_dt), 8.0 * float(reward_scale_dt)):
+        return "V1-B"
+    raise RuntimeError(
+        "Pull-v1 runtime bridge scales must be the exact V1-A disabled pair or "
+        f"V1-B pair scaled by dt; got {runtime_bridge!r}."
+    )
+
+
+def validate_a2_pull_v1_guard(
+    config: Mapping[str, Any],
+    *,
+    actual_finger_effort_n: Any,
+    actual_finger_stiffness: Any,
+    actual_finger_damping: Any,
+    reward_scales: Mapping[str, Any] | None = None,
+    reward_scale_dt: float | None = None,
+) -> dict[str, Any]:
+    """Validate the bounded v1 pull construction and reward-port contract."""
+
+    _require_exact(config, "a2_v20_R1_plan_id", A2_PULL_V1_PLAN_ID)
+    _require_exact(config, "a2_pull_direction_contract_version", A2_PULL_V0_DIRECTION_CONTRACT_VERSION)
+    _require_exact(config, "a2_pull_target_frame_version", A2_PULL_V0_TARGET_FRAME_VERSION)
+    _require_exact_numeric_sequence(config, "a2_pull_target_orientation_wxyz", A2_PULL_V0_TARGET_ORIENTATION_WXYZ)
+    _require_exact(config, "a2_pull_door_open_io", _PULL_DIRECTION.door_open_io)
+    _require_exact(config, "a2_pull_door_open_lr", _PULL_DIRECTION.door_open_lr)
+    _require_exact_number(config, "a2_pull_robot_initial_side_x_sign", float(_PULL_DIRECTION.approach_side_x))
+    _require_exact_number(config, "a2_pull_robot_initial_yaw_rad", math.pi)
+    _require_exact_number(config, "a2_pull_active_handle_face_x_sign", float(_PULL_DIRECTION.active_handle_face_x))
+    _require_exact_number(config, "a2_pull_travel_dir_x", float(_PULL_DIRECTION.travel_dir_x))
+    _require_exact_numeric_sequence(config, "target_root_pos", (_PULL_DIRECTION.final_target_x(0.0, 2.0), 0.0, 0.5))
+    _require_exact_numeric_sequence(config, "max_stage_time", tuple(float(item) for item in A2_PULL_V0_STAGE_TIME_BUDGET_STEPS))
+    _require_exact(config, "a2_pull_threshold_mode", "hard_gate")
+    _require_exact(config, "a2_pull_effort_provenance", "ESTIMATE_ONLY")
+    _require_exact(config, "a2_pull_add_walls", False)
+    _require_exact_number(config, "a2_stage3_to4_door_hinge_threshold", 0.25)
+    _require_exact_number(config, "a2_v20_send_hinge_threshold", 1.0)
+
+    if _required(config, "a2_pull_hook_profile") not in _HOOK_PROFILES:
+        raise RuntimeError("Pull-v1 a2_pull_hook_profile is not a supported frozen profile.")
+    if _required(config, "a2_pull_friction_profile") not in _FRICTION_PROFILES:
+        raise RuntimeError("Pull-v1 a2_pull_friction_profile is not a supported frozen profile.")
+    _require_exact(config, "a2_pull_finger_profile", "V20_G4_45N_KP1300_KD32")
+    for key, expected in (
+        ("a2_v20_R1_send_curriculum_enabled", False),
+        ("a2_v20_R1_snapshot_guard_enabled", False),
+        ("a2_v20_send_latch_enabled", False),
+        ("a2_v20_pre_send_crossing_mode", "disabled"),
+        ("a2_v20_telemetry_enabled", False),
+        ("a2_v20_traversal_economics_enabled", False),
+        ("a2_v20_arm_tie_enabled", False),
+        ("a2_corridor_enabled", False),
+        ("a2_corridor_latch_mode", "legacy_root_or_hinge"),
+        ("a2_v20_R2_evidence_enabled", False),
+        ("a2_v20_formal_launch", False),
+    ):
+        _require_exact(config, key, expected)
+    _require_exact_number(config, "a2_v20_arm_tangent_carry_scale", 0.0)
+    _require_exact_number(config, "a2_v20_handle_arc_tracking_scale", 0.0)
+    profile = _FINGER_PROFILES["V20_G4_45N_KP1300_KD32"]
+    effort_rows = _require_profile_rows(actual_finger_effort_n, "finger effort", profile["effort_n"])
+    stiffness_rows = _require_profile_rows(actual_finger_stiffness, "finger stiffness", profile["stiffness"])
+    damping_rows = _require_profile_rows(actual_finger_damping, "finger damping", profile["damping"])
+    if not (len(effort_rows) == len(stiffness_rows) == len(damping_rows)):
+        raise RuntimeError("Pull-v1 resolved finger profile row counts disagree.")
+    variant = _validate_a2_pull_v1_reward_scales(
+        config,
+        reward_scales=reward_scales,
+        reward_scale_dt=reward_scale_dt,
+    )
+    return {
+        "plan_id": A2_PULL_V1_PLAN_ID,
+        "variant": variant,
+        "threshold_mode": "hard_gate",
+        "send_hinge_threshold": 1.0,
+        "finger_profile": "V20_G4_45N_KP1300_KD32",
+        "hook_profile": _required(config, "a2_pull_hook_profile"),
+        "friction_profile": _required(config, "a2_pull_friction_profile"),
+        "num_profile_rows": len(effort_rows),
+    }
+
+
 __all__ = [
     "A2_PULL_V0_DIRECTION_CONTRACT_VERSION",
     "A2_PULL_V0_PLAN_ID",
+    "A2_PULL_V1_PLAN_ID",
     "A2_PULL_V0_RESOLVED_G4_CONFIG_PATH",
     "A2_PULL_V0_SOURCE_FREEZE_PATH",
     "A2_PULL_V0_STAGE_TIME_BUDGET_STEPS",
@@ -433,4 +587,5 @@ __all__ = [
     "A2_PULL_V0_TARGET_ORIENTATION_WXYZ",
     "validate_a2_pull_v0_guard",
     "validate_a2_pull_v0_resolved_g4_config",
+    "validate_a2_pull_v1_guard",
 ]

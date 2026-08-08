@@ -35,6 +35,18 @@ class A2PullEvent(IntEnum):
 
 A2_PULL_EVENT_NAMES = tuple(event.name for event in A2PullEvent)
 A2_PULL_PRE_E0 = "PRE_E0"
+# E3 is a report-only shaping label in the v1 hard-gate route.  It remains in
+# the schema, but it is intentionally not a predecessor of E4.
+A2_PULL_HARD_GATE_EVENT_PREDECESSORS: tuple[int | None, ...] = (
+    None,
+    A2PullEvent.E0_RESET_VALID,
+    A2PullEvent.E1_OUTSIDE_FACE_PREGRASP,
+    None,
+    A2PullEvent.E2_TENSILE_CAPTURE,
+    A2PullEvent.E4_POSITIVE_HINGE_RETAINED,
+    A2PullEvent.E5_CLEARANCE_DECISION,
+    A2PullEvent.E6_PATH_REVERSAL_ENTRY,
+)
 
 A2_PULL_CONTROL_STEP_UNITS = {
     "door_open_io_sign": "unitless",
@@ -107,6 +119,34 @@ def _is_finite_real(value: Any) -> bool:
         and isinstance(value, Real)
         and math.isfinite(float(value))
     )
+
+
+def _normalize_event_predecessors(
+    event_predecessors: Sequence[int | None] | None,
+) -> tuple[int | None, ...] | None:
+    if event_predecessors is None:
+        return None
+    predecessors = tuple(event_predecessors)
+    if len(predecessors) != len(A2PullEvent):
+        raise ValueError(
+            "event_predecessors must provide one predecessor for each pull event."
+        )
+    normalized: list[int | None] = []
+    for event_index, predecessor in enumerate(predecessors):
+        if predecessor is None:
+            normalized.append(None)
+            continue
+        if (
+            isinstance(predecessor, bool)
+            or not isinstance(predecessor, Integral)
+            or int(predecessor) < 0
+            or int(predecessor) >= event_index
+        ):
+            raise ValueError(
+                "event_predecessors must use None or an earlier event index for each event."
+            )
+        normalized.append(int(predecessor))
+    return tuple(normalized)
 
 
 def _require_finite_tree(value: Any, field_name: str) -> None:
@@ -228,8 +268,12 @@ def validate_a2_pull_control_step(record: Mapping[str, Any]) -> None:
             raise ValueError(f"{field_name} must be finite; got {record[field_name]!r}.")
 
 
-def validate_a2_pull_episode(record: Mapping[str, Any]) -> None:
-    """Validate an episode summary, including event contiguity and ordering."""
+def validate_a2_pull_episode(
+    record: Mapping[str, Any],
+    *,
+    event_predecessors: Sequence[int | None] | None = None,
+) -> None:
+    """Validate an episode summary, including event dependency ordering."""
 
     expected = {
         **A2_PULL_EPISODE_UNITS,
@@ -252,35 +296,76 @@ def validate_a2_pull_episode(record: Mapping[str, Any]) -> None:
             raise ValueError(
                 f"{field_name} must preserve exact event order {A2_PULL_EVENT_NAMES}."
             )
-    previous_reached = True
-    previous_step = -1
-    previous_time = -1.0
-    for event_name in A2_PULL_EVENT_NAMES:
-        event_reached = reached[event_name]
-        if not isinstance(event_reached, bool):
-            raise ValueError(f"event_reached.{event_name} must be bool.")
-        if event_reached and not previous_reached:
-            raise ValueError(f"{event_name} cannot be reached before its predecessor.")
-        step = first_steps[event_name]
-        time_s = first_times[event_name]
-        if event_reached:
-            if (
-                isinstance(step, bool)
-                or not isinstance(step, Integral)
-                or int(step) < 0
-                or int(step) < previous_step
-                or not _is_finite_real(time_s)
-                or float(time_s) < 0.0
-                or float(time_s) < previous_time
-            ):
-                raise ValueError(
-                    f"{event_name} first step/time must be non-negative and ordered."
-                )
-            previous_step = int(step)
-            previous_time = float(time_s)
-        elif step != A2_PULL_NA or time_s != A2_PULL_NA:
-            raise ValueError(f"Unreached {event_name} must use 'N/A' step and time.")
-        previous_reached = event_reached
+    normalized_predecessors = _normalize_event_predecessors(event_predecessors)
+    if normalized_predecessors is None:
+        previous_reached = True
+        previous_step = -1
+        previous_time = -1.0
+        for event_name in A2_PULL_EVENT_NAMES:
+            event_reached = reached[event_name]
+            if not isinstance(event_reached, bool):
+                raise ValueError(f"event_reached.{event_name} must be bool.")
+            if event_reached and not previous_reached:
+                raise ValueError(f"{event_name} cannot be reached before its predecessor.")
+            step = first_steps[event_name]
+            time_s = first_times[event_name]
+            if event_reached:
+                if (
+                    isinstance(step, bool)
+                    or not isinstance(step, Integral)
+                    or int(step) < 0
+                    or int(step) < previous_step
+                    or not _is_finite_real(time_s)
+                    or float(time_s) < 0.0
+                    or float(time_s) < previous_time
+                ):
+                    raise ValueError(
+                        f"{event_name} first step/time must be non-negative and ordered."
+                    )
+                previous_step = int(step)
+                previous_time = float(time_s)
+            elif step != A2_PULL_NA or time_s != A2_PULL_NA:
+                raise ValueError(f"Unreached {event_name} must use 'N/A' step and time.")
+            previous_reached = event_reached
+    else:
+        for event_index, event_name in enumerate(A2_PULL_EVENT_NAMES):
+            event_reached = reached[event_name]
+            if not isinstance(event_reached, bool):
+                raise ValueError(f"event_reached.{event_name} must be bool.")
+            step = first_steps[event_name]
+            time_s = first_times[event_name]
+            if event_reached:
+                if (
+                    isinstance(step, bool)
+                    or not isinstance(step, Integral)
+                    or int(step) < 0
+                    or not _is_finite_real(time_s)
+                    or float(time_s) < 0.0
+                ):
+                    raise ValueError(
+                        f"{event_name} first step/time must be non-negative and finite."
+                    )
+                predecessor = normalized_predecessors[event_index]
+                if predecessor is not None:
+                    predecessor_name = A2_PULL_EVENT_NAMES[predecessor]
+                    if not reached[predecessor_name]:
+                        raise ValueError(
+                            f"{event_name} cannot be reached before {predecessor_name}."
+                        )
+                    predecessor_step = first_steps[predecessor_name]
+                    predecessor_time = first_times[predecessor_name]
+                    if (
+                        isinstance(predecessor_step, bool)
+                        or not isinstance(predecessor_step, Integral)
+                        or int(step) < int(predecessor_step)
+                        or not _is_finite_real(predecessor_time)
+                        or float(time_s) < float(predecessor_time)
+                    ):
+                        raise ValueError(
+                            f"{event_name} first step/time must not precede {predecessor_name}."
+                        )
+            elif step != A2_PULL_NA or time_s != A2_PULL_NA:
+                raise ValueError(f"Unreached {event_name} must use 'N/A' step and time.")
     terminal_reason = record["terminal_reason"]
     if not isinstance(terminal_reason, str) or not terminal_reason:
         raise ValueError("terminal_reason must be a non-empty string.")
@@ -318,8 +403,10 @@ def advance_a2_pull_events(
     evidence: torch.Tensor,
     first_event_step: torch.Tensor,
     control_step: torch.Tensor,
+    *,
+    event_predecessors: Sequence[int | None] | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Advance only causally contiguous E0–E7 events on a control step."""
+    """Advance pull events on a control step under an explicit dependency graph."""
 
     if (
         not torch.is_tensor(reached)
@@ -348,26 +435,52 @@ def advance_a2_pull_events(
         or torch.any(control_step < 0)
     ):
         raise ValueError("control_step must be a non-negative device-local long vector.")
+    normalized_predecessors = _normalize_event_predecessors(event_predecessors)
     updated = reached.clone()
     updated_first = first_event_step.clone()
     for event_index in range(len(A2PullEvent)):
+        predecessor_index = (
+            None if event_index == 0 else event_index - 1
+            if normalized_predecessors is None
+            else normalized_predecessors[event_index]
+        )
         predecessor = (
             torch.ones(reached.shape[0], dtype=torch.bool, device=reached.device)
-            if event_index == 0
-            else updated[:, event_index - 1]
+            if predecessor_index is None
+            else updated[:, predecessor_index]
         )
         newly_reached = ~updated[:, event_index] & evidence[:, event_index] & predecessor
         updated[:, event_index] |= newly_reached
         updated_first[newly_reached, event_index] = control_step[newly_reached]
-    if torch.any(updated[:, 1:] & ~updated[:, :-1]):
-        raise RuntimeError("Pull event state became non-contiguous.")
+    if normalized_predecessors is None:
+        if torch.any(updated[:, 1:] & ~updated[:, :-1]):
+            raise RuntimeError("Pull event state became non-contiguous.")
+    else:
+        for event_index, predecessor_index in enumerate(normalized_predecessors):
+            if predecessor_index is None:
+                continue
+            reached_without_predecessor = updated[:, event_index] & ~updated[:, predecessor_index]
+            if torch.any(reached_without_predecessor):
+                raise RuntimeError("Pull hard-gate event state violated its dependency graph.")
+            invalid_first_step_order = updated[:, event_index] & (
+                (updated_first[:, predecessor_index] < 0)
+                | (updated_first[:, event_index] < updated_first[:, predecessor_index])
+            )
+            if torch.any(invalid_first_step_order):
+                raise RuntimeError(
+                    "Pull hard-gate first-event steps violated dependency ordering."
+                )
     expected_unset = ~updated
     if torch.any(updated_first[expected_unset] != -1) or torch.any(updated_first[updated] < 0):
         raise RuntimeError("Pull first-event steps disagree with reached state.")
     return updated, updated_first
 
 
-def a2_pull_event_state_names(reached: torch.Tensor) -> list[str]:
+def a2_pull_event_state_names(
+    reached: torch.Tensor,
+    *,
+    event_predecessors: Sequence[int | None] | None = None,
+) -> list[str]:
     if (
         not torch.is_tensor(reached)
         or reached.ndim != 2
@@ -375,10 +488,33 @@ def a2_pull_event_state_names(reached: torch.Tensor) -> list[str]:
         or reached.dtype != torch.bool
     ):
         raise ValueError("reached must be a bool (N, 8) tensor.")
-    if torch.any(reached[:, 1:] & ~reached[:, :-1]):
-        raise ValueError("reached events must be causally contiguous.")
-    event_counts = reached.long().sum(dim=-1).tolist()
-    return [A2_PULL_PRE_E0 if count == 0 else A2_PULL_EVENT_NAMES[count - 1] for count in event_counts]
+    normalized_predecessors = _normalize_event_predecessors(event_predecessors)
+    if normalized_predecessors is None:
+        if torch.any(reached[:, 1:] & ~reached[:, :-1]):
+            raise ValueError("reached events must be causally contiguous.")
+        event_counts = reached.long().sum(dim=-1).tolist()
+        return [
+            A2_PULL_PRE_E0 if count == 0 else A2_PULL_EVENT_NAMES[count - 1]
+            for count in event_counts
+        ]
+    for event_index, predecessor_index in enumerate(normalized_predecessors):
+        if predecessor_index is not None and torch.any(
+            reached[:, event_index] & ~reached[:, predecessor_index]
+        ):
+            raise ValueError("reached events violate the supplied dependency graph.")
+    highest_reached = torch.full(
+        (reached.shape[0],), -1, dtype=torch.long, device=reached.device
+    )
+    for event_index in range(len(A2PullEvent)):
+        highest_reached = torch.where(
+            reached[:, event_index],
+            torch.full_like(highest_reached, event_index),
+            highest_reached,
+        )
+    return [
+        A2_PULL_PRE_E0 if event_index < 0 else A2_PULL_EVENT_NAMES[event_index]
+        for event_index in highest_reached.tolist()
+    ]
 
 
 def _a2_pull_event_funnel_ratios(episodes: Sequence[Mapping[str, Any]]) -> dict[str, float | str]:
@@ -404,13 +540,17 @@ def _a2_pull_event_funnel_ratios(episodes: Sequence[Mapping[str, Any]]) -> dict[
     return funnel
 
 
-def a2_pull_event_funnel(episodes: Sequence[Mapping[str, Any]]) -> dict[str, float | str]:
+def a2_pull_event_funnel(
+    episodes: Sequence[Mapping[str, Any]],
+    *,
+    event_predecessors: Sequence[int | None] | None = None,
+) -> dict[str, float | str]:
     """Return event-funnel ratios with explicit N/A conditional denominators."""
 
     if not isinstance(episodes, Sequence) or isinstance(episodes, (str, bytes)) or not episodes:
         raise ValueError("event funnel requires at least one episode record.")
     for episode in episodes:
-        validate_a2_pull_episode(episode)
+        validate_a2_pull_episode(episode, event_predecessors=event_predecessors)
     funnel = _a2_pull_event_funnel_ratios(episodes)
     for spawn_hook in (True, False):
         subset = [episode for episode in episodes if episode["spawn_hook"] is spawn_hook]
@@ -438,6 +578,7 @@ __all__ = [
     "A2_PULL_ESTIMATE_ONLY",
     "A2_PULL_ESTIMATE_ONLY_FIELDS",
     "A2_PULL_EVENT_NAMES",
+    "A2_PULL_HARD_GATE_EVENT_PREDECESSORS",
     "A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS",
     "A2_PULL_HINGE_DRIVE_FORCE_BUCKET_THRESHOLD_NM",
     "A2_PULL_NA",

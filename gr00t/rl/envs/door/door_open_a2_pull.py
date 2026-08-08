@@ -29,6 +29,7 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
     A2PullEvent,
     A2_PULL_ESTIMATE_ONLY,
     A2_PULL_EVENT_NAMES,
+    A2_PULL_HARD_GATE_EVENT_PREDECESSORS,
     A2_PULL_NA,
     a2_pull_event_state_names,
     advance_a2_pull_events,
@@ -61,6 +62,15 @@ class DoorOpenA2Pull(DoorPregrasp):
             door_open_lr=config_mapping["a2_pull_door_open_lr"],
         )
         super().__init__(config, device)
+
+    def _get_a2_pull_threshold_mode(self) -> str:
+        mode = self.config.get("a2_pull_threshold_mode")
+        if mode not in ("report_only", "hard_gate"):
+            raise RuntimeError(
+                "Pull threshold mode must be exactly 'report_only' or 'hard_gate'; "
+                f"got {mode!r}."
+            )
+        return mode
 
     @override
     def _get_a2_grasp_target_orientation_wxyz(self) -> tuple[float, float, float, float]:
@@ -151,6 +161,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_clearance_ready = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+        self._a2_pull_aperture_ready = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
         self._a2_pull_stage0_staging_band = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
@@ -224,6 +237,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_proof_valid[env_ids] = False
         self._a2_pull_minimum_panel_robot_clearance_m[env_ids] = float("nan")
         self._a2_pull_clearance_ready[env_ids] = False
+        self._a2_pull_aperture_ready[env_ids] = False
         self._a2_pull_stage0_staging_band[env_ids] = False
         self._a2_pull_stage0_arm_default[env_ids] = False
         self._a2_pull_stage0_base_still[env_ids] = False
@@ -257,9 +271,10 @@ class DoorOpenA2Pull(DoorPregrasp):
         ]
         if torch.any(before_e4):
             raise RuntimeError("Pull E5 decision cannot be recorded before E4.")
-        before_clearance = decision_mask & ~self._a2_pull_clearance_ready
-        if torch.any(before_clearance):
-            raise RuntimeError("Pull E5 decision cannot be recorded before measured clearance.")
+        if self._get_a2_pull_threshold_mode() == "report_only":
+            before_clearance = decision_mask & ~self._a2_pull_clearance_ready
+            if torch.any(before_clearance):
+                raise RuntimeError("Pull E5 decision cannot be recorded before measured clearance.")
         self._a2_pull_release_or_hold_decision |= decision_mask
 
     def _get_a2_pull_whole_body_clear_mask(self, door_x: torch.Tensor) -> torch.Tensor:
@@ -517,6 +532,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         tensile_capture = self._a2_pull_proof_valid
 
         door_joint_pos = self._get_door_joint_pos("pull event telemetry", 3)
+        threshold_mode = self._get_a2_pull_threshold_mode()
         latch_released = door_joint_pos[:, 2] > 0.0
         positive_hinge = door_joint_pos[:, 0] > 0.0
         first_positive = positive_hinge & torch.isnan(
@@ -533,6 +549,9 @@ class DoorOpenA2Pull(DoorPregrasp):
                 self._a2_pull_held_hinge_max_rad[held_hinge], door_joint_pos[held_hinge, 0]
             ),
         )
+        send_hinge_threshold = self._get_a2_v20_send_hinge_threshold()
+        aperture_ready_now = stable_contact & (door_joint_pos[:, 0] >= send_hinge_threshold)
+        self._a2_pull_aperture_ready |= aperture_ready_now
         signed_crossing = self._pull_direction.signed_crossing_progress(root_x, door_x)
         whole_body_crossing = self._get_a2_pull_whole_body_clear_mask(door_x)
         minimum_clearance = self._get_a2_pull_minimum_panel_robot_clearance()
@@ -548,17 +567,20 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
 
         reached = self._a2_pull_event_reached
-        decision_mask = (
-            reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
-            & stable_contact
-            & panel_clear
-            & self._a2_pull_clearance_ready
-        )
-        self.record_a2_pull_release_or_hold_decision(decision_mask)
-        decision_latched = decision_mask & ~torch.isfinite(self._a2_pull_hinge_at_decision_rad)
-        self._a2_pull_hinge_at_decision_rad[decision_latched] = door_joint_pos[
-            decision_latched, 0
-        ]
+        if threshold_mode == "report_only":
+            decision_mask = (
+                reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
+                & stable_contact
+                & panel_clear
+                & self._a2_pull_clearance_ready
+            )
+            self.record_a2_pull_release_or_hold_decision(decision_mask)
+            decision_latched = decision_mask & ~torch.isfinite(
+                self._a2_pull_hinge_at_decision_rad
+            )
+            self._a2_pull_hinge_at_decision_rad[decision_latched] = door_joint_pos[
+                decision_latched, 0
+            ]
 
         evidence = torch.zeros_like(reached)
         evidence[:, A2PullEvent.E0_RESET_VALID] = (
@@ -570,24 +592,38 @@ class DoorOpenA2Pull(DoorPregrasp):
             (self.stage_buf >= self.STAGE_PREGRASP) & panel_clear
         )
         evidence[:, A2PullEvent.E2_TENSILE_CAPTURE] = tensile_capture
-        evidence[:, A2PullEvent.E3_LATCH_RELEASE] = (
-            reached[:, A2PullEvent.E2_TENSILE_CAPTURE]
-            & latch_released
-            & stable_contact
-            & panel_clear
-        )
-        evidence[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED] = (
-            reached[:, A2PullEvent.E3_LATCH_RELEASE]
-            & positive_hinge
-            & stable_contact
-            & panel_clear
-        )
-        evidence[:, A2PullEvent.E5_CLEARANCE_DECISION] = (
-            reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
-            & self._a2_pull_release_or_hold_decision
-            & self._a2_pull_clearance_ready
-            & panel_clear
-        )
+        if threshold_mode == "hard_gate":
+            evidence[:, A2PullEvent.E3_LATCH_RELEASE] = (
+                door_joint_pos[:, 1] >= 0.3
+            ) & stable_contact
+            evidence[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED] = (
+                reached[:, A2PullEvent.E2_TENSILE_CAPTURE]
+                & (door_joint_pos[:, 0] > self._get_a2_stage3_to4_door_hinge_threshold())
+                & stable_contact
+                & panel_clear
+            )
+            evidence[:, A2PullEvent.E5_CLEARANCE_DECISION] = (
+                self._a2_pull_aperture_ready & panel_clear
+            )
+        else:
+            evidence[:, A2PullEvent.E3_LATCH_RELEASE] = (
+                reached[:, A2PullEvent.E2_TENSILE_CAPTURE]
+                & latch_released
+                & stable_contact
+                & panel_clear
+            )
+            evidence[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED] = (
+                reached[:, A2PullEvent.E3_LATCH_RELEASE]
+                & positive_hinge
+                & stable_contact
+                & panel_clear
+            )
+            evidence[:, A2PullEvent.E5_CLEARANCE_DECISION] = (
+                reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
+                & self._a2_pull_release_or_hold_decision
+                & self._a2_pull_clearance_ready
+                & panel_clear
+            )
         evidence[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY] = (
             reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
             & (signed_crossing > 0.0)
@@ -606,6 +642,11 @@ class DoorOpenA2Pull(DoorPregrasp):
             evidence[selected],
             self._a2_pull_first_event_step[selected],
             control_step[selected],
+            event_predecessors=(
+                A2_PULL_HARD_GATE_EVENT_PREDECESSORS
+                if threshold_mode == "hard_gate"
+                else None
+            ),
         )
         newly_reached = updated_reached & ~old_reached
         self._a2_pull_event_reached[selected] = updated_reached
@@ -616,6 +657,20 @@ class DoorOpenA2Pull(DoorPregrasp):
             selected_time[:, None].expand_as(newly_reached).to(dtype=torch.float32),
             self._a2_pull_first_event_time_s[selected],
         )
+        if threshold_mode == "hard_gate":
+            decision_mask = torch.zeros_like(self._a2_pull_release_or_hold_decision)
+            decision_mask[selected] = (
+                updated_reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
+                & self._a2_pull_aperture_ready[selected]
+                & panel_clear[selected]
+            )
+            self.record_a2_pull_release_or_hold_decision(decision_mask)
+            decision_latched = decision_mask & ~torch.isfinite(
+                self._a2_pull_hinge_at_decision_rad
+            )
+            self._a2_pull_hinge_at_decision_rad[decision_latched] = door_joint_pos[
+                decision_latched, 0
+            ]
         new_reversal = (
             (self._a2_pull_first_path_reversal_step[selected] < 0)
             & updated_reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
@@ -734,6 +789,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         dt = float(self.dt)
         if not math.isfinite(dt) or dt <= 0.0:
             raise RuntimeError(f"Pull episode diagnostics requires positive finite dt; got {dt!r}.")
+        threshold_mode = self._get_a2_pull_threshold_mode()
         records: list[dict] = []
         for record_index, env_id in enumerate(selected.tolist()):
             reached = {
@@ -841,7 +897,14 @@ class DoorOpenA2Pull(DoorPregrasp):
                 "spawn_hook": bool(self.door_spawn_hook[env_id].item()),
                 "hinge_drive_max_force_nm": float(self.door_hinge_drive_max_force[env_id].item()),
             }
-            validate_a2_pull_episode(record)
+            validate_a2_pull_episode(
+                record,
+                event_predecessors=(
+                    A2_PULL_HARD_GATE_EVENT_PREDECESSORS
+                    if threshold_mode == "hard_gate"
+                    else None
+                ),
+            )
             records.append(record)
         return records
 
@@ -955,7 +1018,14 @@ class DoorOpenA2Pull(DoorPregrasp):
             "pull door-arm frame contact",
         )
         effort = self._get_a2_pull_pd_effort_telemetry()
-        event_states = a2_pull_event_state_names(self._a2_pull_event_reached)
+        event_states = a2_pull_event_state_names(
+            self._a2_pull_event_reached,
+            event_predecessors=(
+                A2_PULL_HARD_GATE_EVENT_PREDECESSORS
+                if self._get_a2_pull_threshold_mode() == "hard_gate"
+                else None
+            ),
+        )
         panel_names = (
             *self.A2_DOOR_BODY_PANEL_FILTER_NAMES,
             *self.A2_DOOR_ARM_PANEL_FILTER_NAMES,
@@ -1305,6 +1375,13 @@ class DoorOpenA2Pull(DoorPregrasp):
 
     @override
     def _stage_3_to_4_advance_condition(self):
+        threshold_mode = self._get_a2_pull_threshold_mode()
+        if threshold_mode == "hard_gate":
+            body_forces, body_total = self._get_a2_door_body_panel_contact_forces()
+            arm_forces, arm_total = self._get_a2_door_arm_panel_contact_forces()
+            del body_forces, arm_forces
+            panel_clear = (body_total + arm_total) == 0.0
+            return super()._stage_3_to_4_advance_condition() & panel_clear
         contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
             "pull stage3 to stage4 advance"
         )
@@ -1323,6 +1400,12 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _reward_target_root_distance(self):
         reward = super()._reward_target_root_distance()
+        if self._get_a2_pull_threshold_mode() == "hard_gate":
+            return torch.where(
+                self._a2_pull_aperture_ready,
+                reward,
+                torch.zeros_like(reward),
+            )
         measured_e5 = (
             self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
             & self._a2_pull_clearance_ready

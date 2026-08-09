@@ -2,7 +2,7 @@
 name: base-v23-force-feasibility
 scope: A2+Piper base_v23 P0 force-feasibility calibration, certificate, and D1 admission boundary
 status: interim_typed_adjudication_formal_no_go
-last_updated: 2026-08-10 05:08 HKT
+last_updated: 2026-08-10 07:53 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v23-force-feasibility/description.md
@@ -27,6 +27,7 @@ read_when:
 - R53 缺少 `a2_v23_p05_seed` 时，strict consumer 应 fail-fast。R54 只加入 exact integer override；没有 coercion、fallback 或 alternate D1 source/rule。
 - R21 的 `RUNTIME_VERIFIED` RP0 contract 仅证明其自身 64-env runtime / resume contract；不能替代 R54 P05 raw dimensions 3/4 的 direct proof，该 proof 仍为 `INCONCLUSIVE`。
 - R78 只完成 bounded partial A0/D0 P0.8 source plumbing；`p08_overall_status=PARTIAL_INCOMPLETE`。它不证明 exact state clone、recurrent restore、alternate-mode effect、D1、formal admission 或 release。
+- R112 只完成 D0 P0.9 四型 smoke；canonical receipt 虽有 `p010_d0_full_pilot_admission=true`，但 `d1_admission=false`、`formal_admission=false`、`release_receipt=false`，不能提升为 policy-quality 或 formal claim。
 
 ## Measured Facts and Typed Adjudication
 
@@ -38,6 +39,7 @@ read_when:
 - R54 FULL / ACUTE producers 均 runtime `rc0`，各 exact16 finite records；valid windows 分别为 FULL `15/16`（env5 missing）与 ACUTE `1/16`（仅 env12）。Canonical reduce `rc2`，保留 exact16/no-subset，而没有 D1 freeze。
 - P0.6 common reward 已由 concrete warm/FULL/D0 config 实际 compose：v22 conditional terms 撤三留三，`penalty_a2_posture_command_l1=0`。R68 GPU0 short smoke 为 runtime `rc0`、16 completed episodes、3,590 finite numeric metric values。R72 六个 fresh sequential GPU0 stage pass 均正常完成 16 episodes，capture counts 为 `16/16/16/16/16/13`；canonical stationary-rent audit 为 `COMPLETE`、`missing_stages=[]`。该结论只验证 zero-action same-step audit contract 与 reward composition，不是 policy-quality / long-horizon stationarity / formal-training claim。
 - R78 partial A0/D0 P0.8：单次 fresh GPU0 warm/FULL/D0 evaluator runtime `rc0`，正常完成 16 个 first episodes；16 份 physical readback 与 R50 A0 source geometry 及 requested/native door parameters 一致。Stages `2/3/4` 全覆盖，reducer 输出 3 个 state-bank entries 与 `3×5=15` 个 bindings；仅 FULL 是 captured source rollout，四个 alternative modes 均未执行。Canonical receipt 为 `PARTIAL_A0_D0_PLUMBING_RUNTIME_VERIFIED`，`p09_d0_smoke_admission=true`，同时 overall P0.8 仍 `PARTIAL_INCOMPLETE`。
+- R112 D0 P0.9：WARM_FULL/GPU0、WARM_RP0/GPU1、SCRATCH_FULL/GPU2、SCRATCH_RP0/GPU3 各 single-attempt 运行 `64 env × 10 batch`，runner/child 均 `rc0`。四份 step-10 checkpoint 均通过 schema、`global_step=10` 与 finiteness validation；AppLauncher/Torch/Isaac/Kit Vulkan 设备证据匹配，task PID 未使用 GPU4--7。CPU-only REDUCE `rc0`，canonical status 为 `P0_9_D0_FOUR_TYPE_SMOKES_RUNTIME_VERIFIED`，仅准入 D0 P0.10 FULL pilot。
 
 ## Canonical Evidence
 
@@ -54,6 +56,8 @@ read_when:
 - R72 P0.6 stationary-rent audit: `logs_eval/base_v23/p0/reward/stationary_rent_audit.json` (six pass receipts under `logs_eval/base_v23/p0/r72_p06_stationary_rent_runtime_20260810/passes/`)
 - R78 partial P0.8 runtime: `logs_eval/base_v23/p0/r78_p08_a0_d0_runtime_20260810/`
 - R78 partial P0.8 canonical receipt: `logs_eval/base_v23/p0/state_bank/state_bank_plan.json`
+- R112 P0.9 four-type runs: `logs_rl/a2_piper_full_stage_a2_base_smoke/base_v23/r112/{warm_full,warm_rp0,scratch_full,scratch_rp0}/`
+- R112 P0.9 canonical receipt: `logs_eval/base_v23/p0/p09_d0_type_smoke_receipt.json`
 - Human-readable adjudication: `scriptsFORhuman/v23/V23_P0_INTERIM_REPORT_20260810.md`
 
 ## Validation Status
@@ -62,11 +66,12 @@ read_when:
 - R54 FULL/ACUTE producer commands have runtime `rc0`; the canonical reducer's `rc2` is an expected typed incomplete scientific result, not runtime PASS for D1 admission.
 - R68 and R72 are targeted IsaacSim evaluator runtime evidence for P0.6 only. R72 RUN/REDUCE both returned `rc0`; all reward/action numeric values were finite and no retry, training, P0.9, D1, or render command ran.
 - R77 code/IsaacLab frozen-candidate reviews and R78 targeted GPU0 runtime QA are `PASS` for the bounded partial P0.8 node. R78 RUN returned `rc0` once; there was no retry, separate REDUCE, training, P0.9, D1, formal evaluation, or render command.
+- R113 code review is `PASS` for candidate `v23-p09-r112@cacd155-m1u2`. R114--R117 each ran exactly one assigned P0.9 type and returned runner/child `rc0`; the single R112 REDUCE returned `rc0`. This is runtime smoke evidence only, not policy-quality or formal admission.
 
 ## DONE Summary
 
-P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, R54 exact16 producer plus typed incomplete reduction, P0.6 common-reward/stationary-rent runtime, the separate R21 RP0 contract, and the R78 bounded partial A0/D0 P0.8 node have verified receipts. These are completed sub-results only.
+P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, R54 exact16 producer plus typed incomplete reduction, P0.6 common-reward/stationary-rent runtime, the separate R21 RP0 contract, the R78 bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type smokes have verified receipts. These are completed sub-results only.
 
 ## TODO Summary
 
-The admitted D0 P0.9 smokes and D0 P0.10 pilot remain; overall P0.8 also remains `PARTIAL_INCOMPLETE` outside the bounded R78 source-plumbing receipt. D1 admission/formal work remains blocked by the R54 stable-window result; direct R54 raw-dimension 3/4 proof remains `INCONCLUSIVE`.
+The admitted D0 P0.10 FULL pilot remains; overall P0.8 also remains `PARTIAL_INCOMPLETE` outside the bounded R78 source-plumbing receipt. D1 admission/formal work remains blocked by the R54 stable-window result; direct R54 raw-dimension 3/4 proof remains `INCONCLUSIVE`.

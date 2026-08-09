@@ -1,14 +1,15 @@
-# v23 P0 interim report — R78 partial P0.8 closure
+# v23 P0 interim report — R112 D0 P0.9 closure
 
 **Date:** 2026-08-10 HKT
-**Scope:** typed adjudication through the verified R78 partial A0/D0 P0.8 runtime receipt
+**Scope:** typed adjudication through the verified R112 D0 P0.9 four-type runtime receipt
 **Answer first:** P0 evidence is partial and typed.  The A8 certificate is
 terminal `COMPLETED_TYPED_NEGATIVE`; the R54 D1 capability-source reducer is
 `D1_CAPABILITY_SOURCE_INCOMPLETE` with no D1 freeze.  Formal v23 training is a
 hard **NO-GO**.  P0.6 common-reward composition and stationary-rent capture are
 runtime verified.  R78 also runtime-verifies only the bounded partial A0/D0
-P0.8 source-plumbing node and admits the D0 P0.9 smoke; no broader P0.8, D1,
-formal, clone, or release claim follows.
+P0.8 source-plumbing node.  R112 additionally verifies all four bounded D0 P0.9
+smokes and admits only the D0 P0.10 FULL pilot; no broader P0.8, D1, formal,
+clone, policy-quality, or release claim follows.
 
 ## STATUS
 
@@ -32,8 +33,8 @@ H1–H5, formal 8×2, F3/D1-lite, or release/goal claim.
 | P0.6 | `RUNTIME_VERIFIED / AUDIT_COMPLETE` | R68 completed a 16-env warm/FULL/D0 short smoke with finite metrics. R72 completed six fresh policy-only stage passes on GPU0; all six processes finished 16 episodes, the pass record counts were `16/16/16/16/16/13`, and the canonical audit is `COMPLETE` with `missing_stages=[]`. |
 | P0.7 | `RUNTIME_VERIFIED` | R21 RP0 contract: real 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11`, raw posture indices 3/4 neutralized at `0.0`. |
 | P0.8 | `PARTIAL_A0_D0_RUNTIME_VERIFIED / OVERALL_INCOMPLETE` | R78 completed one fresh 16-env GPU0 source rollout, captured stages 2/3/4, and emitted 3 entries plus 15 typed bindings. Exact state clone, recurrent restore, alternate-mode effects, formal admission, and release remain false/unverified. |
-| P0.9 | `D0_SMOKE_ADMITTED / PENDING` | The R78 receipt admits only the bounded D0 four-type 64-env × 10-batch smokes; none ran in R78. |
-| P0.10 | `NOT_RUN/PENDING` | D0 FULL pilot is the next bounded node; no GO/NO-GO claim. |
+| P0.9 | `RUNTIME_VERIFIED / COMPLETE` | R112 WARM_FULL/GPU0, WARM_RP0/GPU1, SCRATCH_FULL/GPU2, and SCRATCH_RP0/GPU3 each ran once at 64 envs × 10 batches, returned runner/child `rc0`, and produced a validated finite step-10 checkpoint. |
+| P0.10 | `ADMITTED / PENDING` | The canonical R112 receipt has `p010_d0_full_pilot_admission=true`; the D0 FULL pilot has not run and has no GO/NO-GO claim. |
 
 ### Certificate versus D1-source distinction
 
@@ -109,13 +110,13 @@ false.  No intervention-effect or delta-J result is claimed.
 
 ## FILES_CHANGED
 
-The R78 closure candidate contains the opt-in trainer capture path, one P0.8
-launch config, the state-bank runner/reducer, typed intervention binding updates,
-this report, the v23 plan synchronization, and the corresponding mechanical
-memory update.
-Runtime outputs remain under the canonical ignored `logs_eval/base_v23/p0/`
-tree.  The eight user-provided v23 source documents remain untracked and are
-not part of the candidate.
+The R112 closure candidate contains the post-AppLauncher CUDA device binding,
+one P0.9 D0 smoke config, the four-type runner/reducer, this report, the v23
+plan synchronization, and the corresponding mechanical memory update.
+Runtime outputs remain under the canonical ignored
+`logs_rl/a2_piper_full_stage_a2_base_smoke/base_v23/r112/` and
+`logs_eval/base_v23/p0/` trees.  The eight user-provided v23 source documents
+remain untracked and are not part of the candidate.
 
 ## TESTS_RUN
 
@@ -131,8 +132,15 @@ not part of the candidate.
   fresh evaluator process, runtime `rc0` in about 229 seconds, normal 16-episode
   completion, stages `2/3/4`, 3 entries, 15 bindings, and 16 finite physical
   readbacks.
-- No retry, separate reduce, training, P0.9, D1, formal evaluation, or rendering
-  command was run.
+- R112 P0.9: four parallel, single-attempt D0 training smokes returned
+  runner/child `rc0` for WARM_FULL/GPU0, WARM_RP0/GPU1,
+  SCRATCH_FULL/GPU2, and SCRATCH_RP0/GPU3.  Each used 64 envs × 10 batches,
+  saved a finite `model_step_000010.pt`, and validated AppLauncher/Torch/Isaac
+  and Kit Vulkan device evidence.  No task PID used GPU4--7.
+- R112 REDUCE: CPU-only `rc0`; canonical status
+  `P0_9_D0_FOUR_TYPE_SMOKES_RUNTIME_VERIFIED`, all four types passed, and
+  `p010_d0_full_pilot_admission=true`.  D1/formal/release admission remains
+  false.
 
 ## RESULT_CLASSIFICATION
 
@@ -146,8 +154,8 @@ claim.
 
 ```text
 [R78 COMPLETE] partial P0.8 A0/D0 state-bank/plumbing work
-  -> [NEXT/ADMITTED] D0 P0.9 four-type 64-env × 10-batch smokes
-  -> D0 P0.10 FULL pilot
+  -> [R112 COMPLETE] D0 P0.9 four-type 64-env × 10-batch smokes
+  -> [NEXT/ADMITTED] D0 P0.10 FULL pilot
   -> adjudicate the resulting evidence
 ```
 
@@ -157,14 +165,13 @@ This DAG is preparation-only while D1 window closure remains unresolved.
 
 | Allowed now | Forbidden now |
 |---|---|
-| Consume the R78 partial P0.8 receipt only as D0 P0.9 admission. | F3/D1-lite execution or any D1-mixture claim. |
-| Run the admitted D0 P0.9 four-type smokes. | Writing a D1 freeze before the reducer/window contract passes. |
+| Consume the R112 P0.9 receipt only as D0 P0.10 admission. | F3/D1-lite execution or any D1-mixture claim. |
+| Preserve the four R112 smoke records and their canonical receipt as bounded runtime evidence. | Writing a D1 freeze before the reducer/window contract passes. |
 | Run the bounded D0 P0.10 FULL pilot and adjudicate its own receipt. | H1–H5 claims, final goal/release claims, or direct R54 raw-dim 3/4 claims. |
 
 ## STOP_OR_CONTINUE
 
 **STOP:** formal training, formal evaluation, final G1–G8 admission, H1–H5,
 8×2, F3/D1-lite, D1 freeze, and release/goal claims.
-**CONTINUE:** run only the admitted D0 P0.9 node, then the remaining bounded D0
-preparation DAG above, with typed receipts and the fail-fast no-fallback boundary
-preserved.
+**CONTINUE:** run only the admitted D0 P0.10 FULL pilot, then adjudicate its own
+typed receipt with the fail-fast no-fallback boundary preserved.

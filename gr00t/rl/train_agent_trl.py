@@ -340,6 +340,7 @@ def main(config: OmegaConf):
     from datetime import timedelta
 
     from accelerate import Accelerator, DistributedDataParallelKwargs, InitProcessGroupKwargs
+    import torch
 
     # --- Distributed training setup ---
     ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=False)
@@ -349,7 +350,8 @@ def main(config: OmegaConf):
         kwargs_handlers=[ddp_kwargs, kwargs],
     )
 
-    device = str(accelerator.device)
+    accelerator_device = accelerator.device
+    device = str(accelerator_device)
     if device == "cuda":
         device = "cuda:0"
     config.multi_gpu = accelerator.num_processes > 1
@@ -413,6 +415,8 @@ def main(config: OmegaConf):
             args_cli.experience = dest_path / "phc.isaaclab.python.headless.rendering.kit"
 
         app_launcher = AppLauncher(args_cli)
+        if accelerator_device.type == "cuda":
+            torch.cuda.set_device(device)
         simulation_app = app_launcher.app
 
     # --- Imports that must come after Isaac Sim initialization ---

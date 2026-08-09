@@ -3,15 +3,16 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** interim P0 adjudication; P0.6 and the bounded partial A0/D0 P0.8 node are runtime verified, P0.9 D0 smoke is admitted, the D1 source branch is incomplete, and there is no formal training admission
+**Runtime state:** interim P0 adjudication; P0.6, the bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type smokes are runtime verified; P0.10 is admitted, the D1 source branch is incomplete, and there is no formal training admission
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
 by the current git commit together with its readable source or saved-config
 paths.  The original R1 preparation tools write plain JSON/Markdown.  The later
 P0.6 stationary-rent and P0.8 state-bank tools are separately bounded evaluator
-runner/reducers and do not authorize formal training, formal evaluation, or
-rendering.
+runner/reducers.  The P0.9 runner verifies only four D0 training smokes and
+admits P0.10; none of these tools authorizes formal training, formal evaluation,
+or rendering.
 
 ## 1. Scientific question and fixed matrix
 
@@ -185,8 +186,8 @@ explicitly typed rather than promoted.
 | P0.6 | Common reward and stationary-rent audit | `RUNTIME_VERIFIED / AUDIT_COMPLETE`; R68 short smoke passed and R72 reduced six stage passes to `COMPLETE` with no missing stage |
 | P0.7 | RP0 distribution contract and resume checks | `RUNTIME_VERIFIED`; RP0 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11` |
 | P0.8 | State-bank replay prefixes and forward interventions | `PARTIAL_A0_D0_RUNTIME_VERIFIED / OVERALL_INCOMPLETE`; R78 captured stages 2/3/4 and emitted 15 typed bindings, with no exact state clone or release receipt |
-| P0.9 | Four 64-env × 10-batch type smokes | `D0_SMOKE_ADMITTED / PENDING`; R78 admits only the bounded D0 smoke node |
-| P0.10 | Scratch D0 FULL pilot | `NOT_RUN/PENDING`; bounded next node, no GO/NO-GO claim |
+| P0.9 | Four 64-env × 10-batch type smokes | `RUNTIME_VERIFIED / COMPLETE`; R112 WARM_FULL, WARM_RP0, SCRATCH_FULL, and SCRATCH_RP0 each returned runner/child `rc0`, produced a finite step-10 checkpoint, and reduced to the canonical four-type receipt |
+| P0.10 | Scratch D0 FULL pilot | `ADMITTED / PENDING`; the R112 P0.9 receipt admits only this bounded next node, with no GO/NO-GO claim yet |
 
 ### P0.3 evidence tie
 
@@ -445,8 +446,9 @@ The R1 implementation stopped after the plan, source reader, P0.2/P0.3/P0.4/P0.5
 and P0.8 pure-data skeletons, reward registry, and non-launchable common config
 were statically parseable.  The later R49/R54/R68/R72 records are evidence-only
 interim calibration adjudication: P0.2, P0.4, the A8 P0.5 certificate, P0.6,
-P0.7, and the bounded partial A0/D0 P0.8 node have typed evidence; the D1
-source, overall P0.8, P0.9, and P0.10 remain incomplete.  Formal
+P0.7, the bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type
+smokes have typed evidence; the D1 source, overall P0.8, and P0.10 remain
+incomplete.  Formal
 training, formal evaluation, rendering, and final G1–G8 configs remain
 `NOT_RUN/PENDING`, and the formal training gate remains **NO-GO**.
 
@@ -539,8 +541,8 @@ bounded D0 preparation DAG:
 
 ```text
 [R78 COMPLETE] partial P0.8 A0/D0 state-bank/plumbing work
-  -> [NEXT/ADMITTED] D0 P0.9 four-type 64-env × 10-batch smokes
-  -> D0 P0.10 FULL pilot
+  -> [R112 COMPLETE] D0 P0.9 four-type 64-env × 10-batch smokes
+  -> [NEXT/ADMITTED] D0 P0.10 FULL pilot
   -> adjudicate the resulting evidence
 ```
 
@@ -548,5 +550,6 @@ The following remain forbidden in this interim state: formal 8×2 training,
 F3/D1-lite execution, any D1 freeze or D1-mixture claim, H1–H5 claims, final
 goal/release claims, and any claim that the R54 raw dimensions were directly
 proved.  P0.4 remains raw/typed, P0.5 D1 remains incomplete, and P0.8 remains
-overall incomplete despite its bounded R78 receipt; P0.9–P0.10 remain
-incomplete until their own receipts exist.
+overall incomplete despite its bounded R78 receipt.  P0.9 is complete only for
+the R112 D0 smoke contract; P0.10 remains incomplete until its own receipt
+exists.

@@ -10,6 +10,7 @@ zero-valued state.
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
@@ -37,6 +38,9 @@ A2_V23_ORACLE_OVERRIDE_FIELDS = (
     "a2_v23_oracle_tangential_delta_raw",
     "a2_v23_oracle_active_mask",
 )
+STATE_BANK_ENTRY_SCHEMA = "a2_piper_v23_state_bank_entry_v1"
+STATE_BANK_BINDING_SCHEMA = "a2_piper_v23_state_bank_binding_v1"
+STATE_BANK_TARGET_STAGES = (2, 3, 4)
 
 
 def _scenario_ids(value: Sequence[str] | str) -> list[str]:
@@ -181,6 +185,157 @@ def apply_forward_switch(episode: Mapping[str, Any], mode: str) -> dict[str, Any
         "outcome": "PENDING_RUNTIME_FORWARD_EXECUTION",
         "missing_input_policy": "TYPED_STATUS_REQUIRED",
     }
+
+
+def _validate_state_bank_prefix(entry: Mapping[str, Any]) -> None:
+    prefix = entry.get("replay_prefix")
+    if not isinstance(prefix, list) or not prefix:
+        raise V23Error("state-bank entry requires a non-empty replay_prefix")
+    entry_env = entry.get("env_id")
+    entry_episode = entry.get("episode_index")
+    if isinstance(entry_env, bool) or not isinstance(entry_env, int) or entry_env < 0:
+        raise V23Error("state-bank entry env_id must be a non-negative integer")
+    if isinstance(entry_episode, bool) or not isinstance(entry_episode, int) or entry_episode < 0:
+        raise V23Error("state-bank entry episode_index must be a non-negative integer")
+    actor_width = None
+    for row_index, row in enumerate(prefix):
+        if not isinstance(row, Mapping) or row.get("schema") != "a2_piper_v23_state_bank_prefix_row_v1":
+            raise V23Error(f"state-bank replay_prefix[{row_index}] schema is unsupported")
+        if (
+            row.get("env_id") != entry_env
+            or row.get("episode_index") != entry_episode
+            or row.get("episode_id") != entry.get("episode_id")
+        ):
+            raise V23Error("state-bank replay-prefix env/episode identity disagrees with its entry")
+        if row.get("control_step") != row_index or row.get("done_before_step") is not False:
+            raise V23Error("state-bank replay_prefix must be contiguous pre-step rows from control_step 0")
+        actor_obs = row.get("actor_obs")
+        action_mean = row.get("action_mean")
+        applied = row.get("applied_high_level_action")
+        if not isinstance(actor_obs, list) or not actor_obs:
+            raise V23Error("state-bank replay-prefix actor_obs must be a non-empty list")
+        if actor_width is None:
+            actor_width = len(actor_obs)
+        if len(actor_obs) != actor_width:
+            raise V23Error("state-bank replay-prefix actor_obs width must remain consistent")
+        if not isinstance(action_mean, list) or not action_mean:
+            raise V23Error("state-bank replay-prefix action_mean must be a non-empty list")
+        if not isinstance(applied, list) or len(applied) != 12:
+            raise V23Error("state-bank replay-prefix applied_high_level_action must be 12-D")
+        values = actor_obs + action_mean + applied
+        if any(isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) for value in values):
+            raise V23Error("state-bank replay-prefix tensors must contain finite numeric values")
+    if prefix[-1].get("pre_stage") != entry.get("stage"):
+        raise V23Error("state-bank replay-prefix final pre-stage does not match its entry stage")
+
+
+def bind_state_bank_entries(
+    entries: Sequence[Mapping[str, Any]],
+    *,
+    source_identity: Mapping[str, Any],
+) -> list[dict[str, Any]]:
+    """Bind each captured real prefix to all five forward-only intervention modes."""
+
+    if not isinstance(source_identity, Mapping) or not source_identity:
+        raise V23Error("state-bank bindings require a non-empty source identity")
+    required_identity = {
+        "schema",
+        "status",
+        "source_freeze_path",
+        "source_cell",
+        "atlas_cell",
+        "selection_basis",
+        "effort_nm",
+        "source_geometry_id",
+    }
+    if set(source_identity) != required_identity:
+        raise V23Error("state-bank source identity coverage is not exact")
+    if (
+        source_identity.get("schema") != "a2_piper_v23_capability_source_freeze_v1"
+        or source_identity.get("status") != "CAPABILITY_SOURCE_FROZEN"
+        or source_identity.get("source_cell") != "A0"
+        or source_identity.get("atlas_cell") != "A0"
+        or source_identity.get("selection_basis") != "CURRENT_EASY_A0_STABLE_REFERENCE"
+        or source_identity.get("effort_nm") != 40.0
+    ):
+        raise V23Error("state-bank source identity is not the fixed R50 A0 freeze")
+    if not isinstance(entries, Sequence) or isinstance(entries, (str, bytes)):
+        raise V23Error("state-bank entries must be a sequence")
+    if len(entries) != len(STATE_BANK_TARGET_STAGES):
+        raise V23Error("state-bank bindings require exactly one entry for stages 2, 3, and 4")
+    by_stage = {}
+    for entry in entries:
+        if not isinstance(entry, Mapping) or entry.get("schema") != STATE_BANK_ENTRY_SCHEMA:
+            raise V23Error("state-bank entry schema is unsupported")
+        for field in ("entry_id", "scenario_id", "episode_id", "replay_prefix_id"):
+            if not isinstance(entry.get(field), str) or not entry[field]:
+                raise V23Error(f"state-bank entry {field} must be a non-empty identity string")
+        stage = entry.get("stage")
+        if isinstance(stage, bool) or not isinstance(stage, int) or stage not in STATE_BANK_TARGET_STAGES:
+            raise V23Error("state-bank entry stage must be one of 2, 3, and 4")
+        if stage in by_stage:
+            raise V23Error(f"duplicate state-bank stage entry: {stage}")
+        if entry.get("source_identity") != dict(source_identity):
+            raise V23Error("state-bank entry source identity disagrees with the reducer source lock")
+        if entry.get("atlas_cell") != "A0" or entry.get("source_cell") != "A0":
+            raise V23Error("state-bank entry must record atlas_cell=A0 and source_cell=A0")
+        if entry.get("forward_mode") != "FULL":
+            raise V23Error("state-bank source capture must use forward mode FULL")
+        if entry.get("reset_origin") != "evaluator.reset_all_first_episode_observation":
+            raise V23Error("state-bank entry reset origin is not the evaluator reset")
+        if (
+            entry.get("state_clone_supported") is not False
+            or entry.get("recurrent_state_restore_supported") is not False
+            or entry.get("recurrent_prefix_status") != "CAPTURED_NOT_REEXECUTED"
+            or entry.get("capture_selection") != "FIRST_TARGET_STEP_LOWEST_ENV_ID"
+        ):
+            raise V23Error("state-bank entry violates the forward-only capture contract")
+        _validate_state_bank_prefix(entry)
+        by_stage[stage] = entry
+    if tuple(sorted(by_stage)) != STATE_BANK_TARGET_STAGES:
+        raise V23Error("state-bank entries do not cover stages 2, 3, and 4 exactly")
+
+    bindings = []
+    for stage in STATE_BANK_TARGET_STAGES:
+        entry = by_stage[stage]
+        episode = {
+            "scenario_id": entry.get("scenario_id"),
+            "seed": entry.get("seed"),
+            "replay_prefix_id": entry.get("replay_prefix_id"),
+            "replay_prefix": entry.get("replay_prefix"),
+        }
+        for mode in V23_INTERVENTION_MODES:
+            switch_record = apply_forward_switch(episode, mode)
+            bindings.append(
+                {
+                    "schema": STATE_BANK_BINDING_SCHEMA,
+                    "entry_id": entry["entry_id"],
+                    "stage": stage,
+                    "mode": mode,
+                    "binding_status": (
+                        "RUNTIME_SOURCE_CAPTURED"
+                        if mode == "FULL"
+                        else "STATIC_BOUND_RUNTIME_PENDING"
+                    ),
+                    "switch_rule": switch_record["switch_rule"],
+                    "required_actor_state_fields": switch_record["required_actor_state_fields"],
+                    "replay_prefix_id": entry["replay_prefix_id"],
+                    "replay_prefix_length": len(entry["replay_prefix"]),
+                    "source_identity": dict(source_identity),
+                    "forward_only": True,
+                    "state_clone_supported": False,
+                    "recurrent_state_restore_supported": False,
+                    "recurrent_prefix_status": "CAPTURED_NOT_REEXECUTED",
+                    "execution_status": (
+                        "SOURCE_ROLLOUT_CAPTURED_NOT_REEXECUTED"
+                        if mode == "FULL"
+                        else "NOT_EXECUTED_ALTERNATE_MODE"
+                    ),
+                }
+            )
+    if len(bindings) != 15:
+        raise V23Error(f"state-bank binding cardinality must be exactly 15; got {len(bindings)}")
+    return bindings
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -77,6 +77,59 @@ _A2_V23_RP0_RUNTIME_NEUTRAL = 0.0
 _A2_V23_RP0_RUNTIME_ENVS = 64
 _A2_V23_STATIONARY_RENT_PASS_SCHEMA = "a2_piper_v23_stationary_rent_pass_v1"
 _A2_V23_STATIONARY_RENT_PASS_FILENAME = "a2_v23_stationary_rent_pass.json"
+_A2_V23_P08_STATE_BANK_RAW_SCHEMA = "a2_piper_v23_p08_state_bank_raw_v1"
+_A2_V23_P08_STATE_BANK_ENTRY_SCHEMA = "a2_piper_v23_state_bank_entry_v1"
+_A2_V23_P08_STATE_BANK_RAW_FILENAME = "a2_v23_p08_state_bank_raw.json"
+_A2_V23_P08_TARGET_STAGES = (2, 3, 4)
+_A2_V23_P08_FORWARD_MODE = "FULL"
+_A2_V23_P08_SOURCE_FREEZE_PATH = (
+    "logs_eval/base_v23/p0/r50_p05_d1_source_20260809/a0_capability_source_freeze.json"
+)
+_A2_V23_P08_SOURCE_SCHEMA = "a2_piper_v23_capability_source_freeze_v1"
+_A2_V23_P08_SOURCE_STATUS = "CAPABILITY_SOURCE_FROZEN"
+_A2_V23_P08_SOURCE_CELL = "A0"
+_A2_V23_P08_SELECTION_BASIS = "CURRENT_EASY_A0_STABLE_REFERENCE"
+_A2_V23_P08_EFFORT_NM = 40.0
+_A2_V23_P08_CHECKPOINT_STEP = 1250
+_A2_V23_P08_SEED = 0
+_A2_V23_P08_NUM_ENVS = 16
+_A2_V23_P08_P05_PURPOSE = "D1_CAPABILITY_SOURCE"
+_A2_V23_P08_P05_MODE = "FULL"
+_A2_V23_P08_P05_TOPOLOGY = "canonical16"
+_A2_V23_P08_P05_BOUND_MANIFEST_SCHEMA = (
+    "a2_piper_base_v23_d1_capability_bound_plain16_manifest_v1"
+)
+_A2_V23_P08_P05_BOUND_MANIFEST_STATUS = "BOUND_D1_CAPABILITY_SOURCE"
+_A2_V23_P08_P05_BOUND_SELECTOR_MODE = "v23_d1_capability_source_plain16"
+_A2_V23_P08_P05_EFFORT_FREEZE_PATH = (
+    "logs_eval/base_v23/p0/r33_p02_effort_freeze_20260809/effort_freeze.json"
+)
+_A2_V23_P08_P05_ATLAS_PATH = (
+    "logs_eval/base_v23/p0/r26_p02_p04_p05_runtime_20260809/p04/door_atlas_raw.json"
+)
+_A2_V23_P08_P05_EXTERNAL_THRESHOLD_PATH = (
+    "logs_eval/base_v23/p0/r26_p02_p04_p05_runtime_20260809/p04/door_external_torque_threshold.json"
+)
+_A2_V23_P08_P05_PLAIN_MANIFEST_PATH = (
+    "logs_eval/base_v23/p0/r31_p02_temporal_runtime_20260809/torque/effort_40/canonical16/"
+    "v23_p0_plain_scenario_manifest.json"
+)
+_A2_V23_P08_P05_CONFIG_ID = (
+    "logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/config.yaml"
+)
+_A2_V23_P08_P05_REQUESTED_PARAMS = {
+    "hinge_damping_native": 50.0,
+    "hinge_stiffness_native": 2.0,
+    "hinge_max_force_nm": 4.5,
+    "door_weight_kg": 120.0,
+}
+_A2_V23_P08_P05_NATIVE_PARAMS = {
+    "hinge_damping_native": 2864.7890625,
+    "hinge_stiffness_native": 114.59156036376953,
+    "hinge_effort_limit_nm": 4.5,
+    "door_weight_kg": 119.99999237060547,
+}
+_A2_V23_P08_P05_READBACK_SCHEMA = "a2_piper_v23_p05_runtime_physical_readback_v1"
 _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS = (
     "epoch",
     "global_step",
@@ -2211,6 +2264,538 @@ def _capture_a2_v23_stationary_rent_records(
             }
         )
     return records
+
+
+def _read_a2_v23_p08_state_bank_config(
+    eval_config,
+    *,
+    env,
+    checkpoint_load_mode,
+    checkpoint_path,
+    seed,
+    process_count,
+):
+    """Resolve the strict opt-in A0/D0 P0.8 state-bank capture contract."""
+
+    enabled = eval_config.get("a2_v23_p08_state_bank_export", False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            "eval.a2_v23_p08_state_bank_export must be bool; "
+            f"got {enabled!r}."
+        )
+    if not enabled:
+        return {"enabled": False}
+    if eval_config.get("a2_v23_p05_runtime_export") is not False:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires eval.a2_v23_p05_runtime_export=false."
+        )
+
+    if not bool(getattr(env, "_use_a2_base", False)):
+        raise RuntimeError("P0.8 state-bank capture requires an A2_Base environment.")
+    if eval_config.get("eval_num_envs_episodes") is not True:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires eval.eval_num_envs_episodes=true."
+        )
+    if process_count != 1:
+        raise RuntimeError("P0.8 state-bank capture requires single-process evaluation.")
+    target_stages = eval_config.get("a2_v23_p08_target_stages")
+    if not isinstance(target_stages, (list, tuple, ListConfig)):
+        raise RuntimeError("eval.a2_v23_p08_target_stages must be a list of stage ids.")
+    target_stages = tuple(target_stages)
+    if target_stages != _A2_V23_P08_TARGET_STAGES:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires target stages exactly [2, 3, 4]; "
+            f"got {target_stages!r}."
+        )
+    forward_mode = eval_config.get("a2_v23_p08_forward_mode")
+    if forward_mode != _A2_V23_P08_FORWARD_MODE:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires forward mode FULL; "
+            f"got {forward_mode!r}."
+        )
+    if checkpoint_load_mode != "policy_only":
+        raise RuntimeError("P0.8 state-bank capture requires checkpoint_load_mode=policy_only.")
+    if seed != _A2_V23_P08_SEED:
+        raise RuntimeError("P0.8 state-bank capture requires seed=0.")
+    if int(env.num_envs) != _A2_V23_P08_NUM_ENVS:
+        raise RuntimeError("P0.8 state-bank capture requires exactly 16 environments.")
+    configured_step = eval_config.get("a2_v23_p08_checkpoint_step")
+    if configured_step != _A2_V23_P08_CHECKPOINT_STEP:
+        raise RuntimeError("P0.8 state-bank capture requires the v22 G1 step1250 anchor.")
+    if eval_config.get("a2_v23_p08_source_cell") != _A2_V23_P08_SOURCE_CELL:
+        raise RuntimeError("P0.8 state-bank capture requires source_cell=A0.")
+    if eval_config.get("a2_v23_p08_atlas_cell") != _A2_V23_P08_SOURCE_CELL:
+        raise RuntimeError("P0.8 state-bank capture requires atlas_cell=A0.")
+    if eval_config.get("a2_v23_p08_selection_basis") != _A2_V23_P08_SELECTION_BASIS:
+        raise RuntimeError("P0.8 state-bank capture requires the registered A0 selection basis.")
+    if eval_config.get("a2_v23_p08_effort_profile_nm") != _A2_V23_P08_EFFORT_NM:
+        raise RuntimeError("P0.8 state-bank capture requires the 40 N*m effort profile.")
+    if eval_config.get("a2_v23_p08_seed") != _A2_V23_P08_SEED:
+        raise RuntimeError("P0.8 state-bank capture requires the seed0 policy anchor.")
+    if eval_config.get("a2_v23_p08_num_envs") != _A2_V23_P08_NUM_ENVS:
+        raise RuntimeError("P0.8 state-bank capture requires the 16-env policy anchor.")
+    expected_checkpoint_suffix = (
+        "logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt"
+    )
+    if not isinstance(checkpoint_path, str) or not checkpoint_path.endswith(expected_checkpoint_suffix):
+        raise RuntimeError(
+            "P0.8 state-bank capture requires the v22 G1 step1250 checkpoint anchor; "
+            f"got {checkpoint_path!r}."
+        )
+
+    source_path = eval_config.get("a2_v23_p08_source_freeze_path")
+    if source_path != _A2_V23_P08_SOURCE_FREEZE_PATH:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires the fixed R50 A0 source-freeze path; "
+            f"got {source_path!r}."
+        )
+    if (
+        env.config.get("a2_v23_p08_source_freeze_path") != _A2_V23_P08_SOURCE_FREEZE_PATH
+        or env.config.get("a2_v23_p08_source_cell") != _A2_V23_P08_SOURCE_CELL
+        or env.config.get("a2_v23_p08_atlas_cell") != _A2_V23_P08_SOURCE_CELL
+    ):
+        raise RuntimeError("P0.8 env source-freeze/source-cell binding disagrees with the fixed A0 contract.")
+    source_file = Path(source_path)
+    if not source_file.is_absolute():
+        source_file = Path.cwd() / source_file
+    if not source_file.is_file():
+        raise RuntimeError(f"P0.8 source-freeze artifact is missing: {source_file}")
+    try:
+        source_payload = json.loads(source_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"P0.8 source-freeze artifact is invalid JSON: {source_file}") from exc
+    if (
+        source_payload.get("schema") != _A2_V23_P08_SOURCE_SCHEMA
+        or source_payload.get("status") != _A2_V23_P08_SOURCE_STATUS
+        or source_payload.get("source_cell_id") != _A2_V23_P08_SOURCE_CELL
+        or source_payload.get("selection_basis") != _A2_V23_P08_SELECTION_BASIS
+        or source_payload.get("selected_effort_nm") != _A2_V23_P08_EFFORT_NM
+    ):
+        raise RuntimeError("P0.8 source-freeze schema/status/cell/basis/effort identity disagrees.")
+    configured_effort = env.config.get("a2_v23_effort_profile_nm")
+    if configured_effort != _A2_V23_P08_EFFORT_NM:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires env.config.a2_v23_effort_profile_nm=40.0."
+        )
+    geometry_id = source_payload.get("source_geometry_id")
+    if not isinstance(geometry_id, str) or not geometry_id:
+        raise RuntimeError("P0.8 source-freeze artifact has no source_geometry_id.")
+    configured_geometry = eval_config.get("a2_v23_p08_source_geometry_id")
+    if configured_geometry != geometry_id:
+        raise RuntimeError("P0.8 source geometry identity disagrees with the R50 source freeze.")
+    if env.config.get("a2_v23_p08_source_geometry_id") != geometry_id:
+        raise RuntimeError("P0.8 env source geometry identity disagrees with the R50 source freeze.")
+
+    def resolve_required_path(value, label):
+        if not isinstance(value, str) or not value:
+            raise RuntimeError(f"P0.8 requires a non-empty {label} path.")
+        path = Path(value)
+        if not path.is_absolute():
+            path = Path.cwd() / path
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError(f"P0.8 {label} is not a regular file: {path}")
+        return str(path.resolve())
+
+    p05_config = env.config
+    if p05_config.get("a2_v23_p05_runtime_enabled") is not True:
+        raise RuntimeError(
+            "P0.8 state-bank capture requires the high-level P0.5 runtime initializer."
+        )
+    if p05_config.get("a2_v23_p05_purpose") != _A2_V23_P08_P05_PURPOSE:
+        raise RuntimeError("P0.8 state-bank capture requires purpose=D1_CAPABILITY_SOURCE.")
+    if p05_config.get("a2_v23_p05_mode") != _A2_V23_P08_P05_MODE:
+        raise RuntimeError("P0.8 state-bank capture requires P0.5 mode FULL.")
+    if p05_config.get("a2_v23_p05_topology") != _A2_V23_P08_P05_TOPOLOGY:
+        raise RuntimeError("P0.8 state-bank capture requires the canonical16 P0.5 topology.")
+    if p05_config.get("a2_v23_p05_cell_id") != _A2_V23_P08_SOURCE_CELL:
+        raise RuntimeError("P0.8 state-bank capture requires P0.5 source cell A0.")
+    if p05_config.get("a2_v23_p05_geometry_id") != geometry_id:
+        raise RuntimeError("P0.8 P0.5 geometry identity disagrees with the R50 source freeze.")
+    if p05_config.get("a2_v23_p05_checkpoint_load_mode") != "policy_only":
+        raise RuntimeError("P0.8 P0.5 physical binding requires checkpoint_load_mode=policy_only.")
+    if p05_config.get("a2_v23_p05_seed") != _A2_V23_P08_SEED:
+        raise RuntimeError("P0.8 P0.5 physical binding requires seed=0.")
+    if p05_config.get("a2_v23_p05_effort_profile_nm") != _A2_V23_P08_EFFORT_NM:
+        raise RuntimeError("P0.8 P0.5 physical binding requires the 40 N*m effort freeze.")
+    if p05_config.get("a2_v23_p05_requested_hinge_damping_native") != _A2_V23_P08_P05_REQUESTED_PARAMS["hinge_damping_native"] or p05_config.get("a2_v23_p05_requested_hinge_stiffness_native") != _A2_V23_P08_P05_REQUESTED_PARAMS["hinge_stiffness_native"] or p05_config.get("a2_v23_p05_requested_hinge_max_force_nm") != _A2_V23_P08_P05_REQUESTED_PARAMS["hinge_max_force_nm"] or p05_config.get("a2_v23_p05_requested_door_weight_kg") != _A2_V23_P08_P05_REQUESTED_PARAMS["door_weight_kg"]:
+        raise RuntimeError("P0.8 P0.5 requested A0 parameters are not the R50 values.")
+    if p05_config.get("a2_v23_p05_hinge_damping_native") != _A2_V23_P08_P05_NATIVE_PARAMS["hinge_damping_native"] or p05_config.get("a2_v23_p05_hinge_stiffness_native") != _A2_V23_P08_P05_NATIVE_PARAMS["hinge_stiffness_native"] or p05_config.get("a2_v23_p05_hinge_effort_limit_nm") != _A2_V23_P08_P05_NATIVE_PARAMS["hinge_effort_limit_nm"] or p05_config.get("a2_v23_p05_door_weight_kg") != _A2_V23_P08_P05_NATIVE_PARAMS["door_weight_kg"]:
+        raise RuntimeError("P0.8 P0.5 native A0 parameters are not the R50 values.")
+    expected_p05_paths = {
+        "a2_v23_p05_effort_freeze_path": _A2_V23_P08_P05_EFFORT_FREEZE_PATH,
+        "a2_v23_p05_atlas_manifest_path": _A2_V23_P08_P05_ATLAS_PATH,
+        "a2_v23_p05_external_threshold_path": _A2_V23_P08_P05_EXTERNAL_THRESHOLD_PATH,
+        "a2_v23_p05_plain_manifest_path": _A2_V23_P08_P05_PLAIN_MANIFEST_PATH,
+        "a2_v23_p05_capability_source_freeze_path": _A2_V23_P08_SOURCE_FREEZE_PATH,
+        "a2_v23_p05_checkpoint": expected_checkpoint_suffix,
+        "a2_v23_p05_config_id": _A2_V23_P08_P05_CONFIG_ID,
+    }
+    resolved_p05_paths = {}
+    for key, expected in expected_p05_paths.items():
+        value = p05_config.get(key)
+        if key in ("a2_v23_p05_checkpoint", "a2_v23_p05_config_id"):
+            resolved_p05_paths[key] = resolve_required_path(value, key)
+            expected_path = Path(expected)
+            if not str(Path(resolved_p05_paths[key])).endswith(str(expected_path)):
+                raise RuntimeError(f"P0.8 {key} is not the fixed v22 G1 identity.")
+        else:
+            resolved_p05_paths[key] = resolve_required_path(value, key)
+            expected_path = Path(expected)
+            expected_resolved = expected_path if expected_path.is_absolute() else Path.cwd() / expected_path
+            if Path(resolved_p05_paths[key]) != expected_resolved.resolve():
+                raise RuntimeError(f"P0.8 {key} is not the fixed R50/R54 input.")
+    if p05_config.get("a2_v23_p05_bands") is not None:
+        raise RuntimeError("P0.8 D1 capability-source binding forbids rescue bands.")
+    if p05_config.get("a2_v23_p0_plain_scenario_enabled") is not True or p05_config.get("a2_v23_p0_bound_plain_scenario_enabled") is not True:
+        raise RuntimeError("P0.8 requires the bound-plain A0 scene selector.")
+    if p05_config.get("a2_v23_p0_scenario_topology") != _A2_V23_P08_P05_TOPOLOGY:
+        raise RuntimeError("P0.8 bound-plain selector requires topology=canonical16.")
+    bound_manifest_value = p05_config.get("a2_v23_p0_bound_plain_scenario_manifest_path")
+    scenario_manifest_value = p05_config.get("a2_v23_p0_scenario_manifest_path")
+    p05_bound_manifest_value = p05_config.get("a2_v23_p05_bound_plain_manifest_path")
+    bound_manifest_path = resolve_required_path(
+        bound_manifest_value, "fresh bound plain scenario manifest"
+    )
+    if scenario_manifest_value != bound_manifest_value or p05_bound_manifest_value != bound_manifest_value:
+        raise RuntimeError("P0.8 scenario selector and P0.5 must share the fresh bound manifest.")
+    if Path(bound_manifest_path).name != "d1_capability_bound_plain_scenario_manifest.json":
+        raise RuntimeError("P0.8 bound manifest must use the D1 capability-source filename.")
+    manifest_payload = json.loads(Path(bound_manifest_path).read_text(encoding="utf-8"))
+    if (
+        manifest_payload.get("schema") != _A2_V23_P08_P05_BOUND_MANIFEST_SCHEMA
+        or manifest_payload.get("status") != _A2_V23_P08_P05_BOUND_MANIFEST_STATUS
+        or manifest_payload.get("purpose") != _A2_V23_P08_P05_PURPOSE
+        or manifest_payload.get("selector_mode") != _A2_V23_P08_P05_BOUND_SELECTOR_MODE
+        or manifest_payload.get("topology") != _A2_V23_P08_P05_TOPOLOGY
+        or not isinstance(manifest_payload.get("rows"), list)
+        or len(manifest_payload["rows"]) != _A2_V23_P08_NUM_ENVS
+    ):
+        raise RuntimeError("P0.8 fresh bound manifest is not the exact R54 D1 capability-source contract.")
+
+    return {
+        "enabled": True,
+        "target_stages": target_stages,
+        "forward_mode": _A2_V23_P08_FORWARD_MODE,
+        "source_identity": {
+            "source_freeze_path": _A2_V23_P08_SOURCE_FREEZE_PATH,
+            "schema": _A2_V23_P08_SOURCE_SCHEMA,
+            "status": _A2_V23_P08_SOURCE_STATUS,
+            "source_cell": _A2_V23_P08_SOURCE_CELL,
+            "atlas_cell": _A2_V23_P08_SOURCE_CELL,
+            "selection_basis": _A2_V23_P08_SELECTION_BASIS,
+            "effort_nm": _A2_V23_P08_EFFORT_NM,
+            "source_geometry_id": geometry_id,
+        },
+        "checkpoint": expected_checkpoint_suffix,
+        "checkpoint_load_mode": "policy_only",
+        "checkpoint_step": _A2_V23_P08_CHECKPOINT_STEP,
+        "seed": _A2_V23_P08_SEED,
+        "num_envs": _A2_V23_P08_NUM_ENVS,
+        "physical_binding_required": True,
+        "physical_readback_schema": _A2_V23_P08_P05_READBACK_SCHEMA,
+        "p05_purpose": _A2_V23_P08_P05_PURPOSE,
+        "p05_mode": _A2_V23_P08_P05_MODE,
+        "p05_topology": _A2_V23_P08_P05_TOPOLOGY,
+        "p05_requested_params": dict(_A2_V23_P08_P05_REQUESTED_PARAMS),
+        "p05_native_params": dict(_A2_V23_P08_P05_NATIVE_PARAMS),
+        "bound_manifest_path": bound_manifest_path,
+        "p05_input_paths": resolved_p05_paths,
+        "canonical_geometry": deepcopy(source_payload["canonical_geometry"]),
+    }
+
+
+def _validate_a2_v23_p08_p05_terminal_readback(
+    record,
+    *,
+    config,
+    env_id,
+    episode_index,
+):
+    """Validate one public P0.5 terminal getter record before A0 labeling."""
+
+    if not isinstance(record, Mapping):
+        raise RuntimeError("P0.8 physical source binding requires a typed P0.5 getter mapping.")
+    expected_episode_id = f"a2-v23-p05-env{env_id}-episode{episode_index}"
+    if (
+        record.get("schema") != "a2_piper_v23_episode_record_v1"
+        or record.get("evidence_state") != "TERMINAL_SNAPSHOT"
+        or record.get("mode") != _A2_V23_P08_P05_MODE
+        or record.get("purpose") != _A2_V23_P08_P05_PURPOSE
+        or record.get("checkpoint_load_mode") != "policy_only"
+        or record.get("topology") != _A2_V23_P08_P05_TOPOLOGY
+        or record.get("seed") != _A2_V23_P08_SEED
+        or record.get("episode_id") != expected_episode_id
+        or record.get("cell_id") != _A2_V23_P08_SOURCE_CELL
+        or record.get("geometry_id") != config["source_identity"]["source_geometry_id"]
+        or record.get("canonical_geometry") != config["canonical_geometry"]
+    ):
+        raise RuntimeError("P0.8 P0.5 terminal record identity is not the fixed A0 FULL source.")
+    step_rows = record.get("step_rows")
+    if not isinstance(step_rows, list) or not step_rows:
+        raise RuntimeError("P0.8 P0.5 terminal record has no authoritative physical step readback.")
+    sample = step_rows[0].get("capability_sample") if isinstance(step_rows[0], Mapping) else None
+    if not isinstance(sample, Mapping):
+        raise RuntimeError("P0.8 P0.5 terminal record lacks the typed capability readback.")
+    if (
+        sample.get("schema") != "a2_piper_v23_capability_sample_v1"
+        or sample.get("cell_id") != _A2_V23_P08_SOURCE_CELL
+        or sample.get("geometry_id") != config["source_identity"]["source_geometry_id"]
+        or sample.get("canonical_geometry") != config["canonical_geometry"]
+        or sample.get("realized_params") != _A2_V23_P08_P05_NATIVE_PARAMS
+        or sample.get("checkpoint_load_mode") != "policy_only"
+    ):
+        raise RuntimeError("P0.8 P0.5 capability readback does not match R50 native A0 parameters.")
+    mass_inertia = sample.get("mass_inertia_receipt")
+    if (
+        not isinstance(mass_inertia, Mapping)
+        or mass_inertia.get("schema") != "a2_piper_v23_p05_mass_inertia_receipt_v1"
+        or mass_inertia.get("applied_once") is not True
+        or mass_inertia.get("env_id") != env_id
+    ):
+        raise RuntimeError("P0.8 P0.5 physical mass/inertia readback is not authoritative.")
+    for field in ("applied_panel_mass_kg", "inertia_scale"):
+        value = mass_inertia.get(field)
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
+            raise RuntimeError(f"P0.8 P0.5 physical readback {field} is not finite.")
+    if not math.isclose(
+        float(mass_inertia["applied_panel_mass_kg"]),
+        _A2_V23_P08_P05_NATIVE_PARAMS["door_weight_kg"],
+        rel_tol=0.0,
+        abs_tol=1.0e-5,
+    ):
+        raise RuntimeError("P0.8 P0.5 applied panel mass does not match the R50 native weight.")
+    for field in ("expected_scaled_panel_inertia", "readback_panel_inertia"):
+        values = mass_inertia.get(field)
+        if (
+            not isinstance(values, list)
+            or len(values) != 9
+            or any(
+                isinstance(value, bool)
+                or not isinstance(value, (int, float))
+                or not math.isfinite(float(value))
+                for value in values
+            )
+        ):
+            raise RuntimeError(f"P0.8 P0.5 {field} is not a finite native readback vector.")
+    if any(
+        not math.isclose(float(actual), float(expected), rel_tol=0.0, abs_tol=1.0e-5)
+        for actual, expected in zip(
+            mass_inertia["readback_panel_inertia"], mass_inertia["expected_scaled_panel_inertia"]
+        )
+    ):
+        raise RuntimeError("P0.8 P0.5 readback inertia does not match the applied high-level write.")
+    return {
+        "schema": _A2_V23_P08_P05_READBACK_SCHEMA,
+        "authority": "P0.5_PUBLIC_TYPED_EPISODE_GETTER",
+        "env_id": int(env_id),
+        "episode_index": int(episode_index),
+        "episode_id": expected_episode_id,
+        "purpose": _A2_V23_P08_P05_PURPOSE,
+        "mode": _A2_V23_P08_P05_MODE,
+        "topology": _A2_V23_P08_P05_TOPOLOGY,
+        "cell_id": _A2_V23_P08_SOURCE_CELL,
+        "geometry_id": config["source_identity"]["source_geometry_id"],
+        "canonical_geometry": deepcopy(config["canonical_geometry"]),
+        "requested_params": dict(_A2_V23_P08_P05_REQUESTED_PARAMS),
+        "native_params": dict(_A2_V23_P08_P05_NATIVE_PARAMS),
+        "applied_native_params": dict(sample["realized_params"]),
+        "readback_native_params": dict(sample["realized_params"]),
+        "mass_inertia_receipt": deepcopy(mass_inertia),
+    }
+
+
+def _capture_a2_v23_p08_step(
+    *,
+    config,
+    obs_dict,
+    action_mean,
+    applied_high_level_action,
+    stage_buf,
+    first_episode_active_mask,
+    eval_episode_indices,
+    cur_episode_length,
+    prefix_rows,
+    captured_entries,
+):
+    """Append one pre-step prefix row per active first-episode env and capture first targets."""
+
+    actor_obs = obs_dict.get("actor_obs")
+    num_envs = config["num_envs"]
+    if (
+        not torch.is_tensor(actor_obs)
+        or actor_obs.ndim != 2
+        or tuple(actor_obs.shape[:1]) != (num_envs,)
+        or not torch.is_floating_point(actor_obs)
+        or not bool(torch.all(torch.isfinite(actor_obs)).item())
+    ):
+        raise RuntimeError("P0.8 capture requires finite rank-2 obs_dict['actor_obs'] for all envs.")
+    if (
+        not torch.is_tensor(action_mean)
+        or action_mean.ndim != 2
+        or tuple(action_mean.shape[:1]) != (num_envs,)
+        or action_mean.shape[1] <= 0
+        or not torch.is_floating_point(action_mean)
+        or not bool(torch.all(torch.isfinite(action_mean)).item())
+    ):
+        raise RuntimeError("P0.8 capture requires finite deterministic action_mean for all envs.")
+    if (
+        not torch.is_tensor(applied_high_level_action)
+        or tuple(applied_high_level_action.shape) != (num_envs, 12)
+        or not torch.is_floating_point(applied_high_level_action)
+        or not bool(torch.all(torch.isfinite(applied_high_level_action)).item())
+    ):
+        raise RuntimeError("P0.8 capture requires finite applied 12-D high-level actions for all envs.")
+    if (
+        not torch.is_tensor(stage_buf)
+        or tuple(stage_buf.shape) != (num_envs,)
+        or stage_buf.dtype != torch.long
+    ):
+        raise RuntimeError("P0.8 capture requires the pre-step stage_buf tensor for all envs.")
+    if (
+        not torch.is_tensor(first_episode_active_mask)
+        or tuple(first_episode_active_mask.shape) != (num_envs,)
+        or first_episode_active_mask.dtype != torch.bool
+    ):
+        raise RuntimeError("P0.8 capture requires the first-episode active mask for all envs.")
+    for env_id in torch.nonzero(first_episode_active_mask, as_tuple=False).flatten().tolist():
+        episode_index = int(eval_episode_indices[env_id].item())
+        control_step = int(cur_episode_length[env_id].item())
+        prefix_rows[env_id].append(
+            {
+                "schema": "a2_piper_v23_state_bank_prefix_row_v1",
+                "env_id": int(env_id),
+                "episode_index": episode_index,
+                "episode_id": f"a2-v23-state-bank-env{env_id}-episode{episode_index}",
+                "control_step": control_step,
+                "pre_stage": int(stage_buf[env_id].item()),
+                "done_before_step": False,
+                "actor_obs": [float(value) for value in actor_obs[env_id].detach().cpu().tolist()],
+                "action_mean": [float(value) for value in action_mean[env_id].detach().cpu().tolist()],
+                "applied_high_level_action": [
+                    float(value) for value in applied_high_level_action[env_id].detach().cpu().tolist()
+                ],
+            }
+        )
+
+    for target_stage in config["target_stages"]:
+        if target_stage in captured_entries:
+            continue
+        candidates = [
+            int(env_id)
+            for env_id in torch.nonzero(first_episode_active_mask, as_tuple=False).flatten().tolist()
+            if int(stage_buf[env_id].item()) == target_stage
+        ]
+        if not candidates:
+            continue
+        chosen_env_id = min(candidates)
+        selected_rows = prefix_rows[chosen_env_id]
+        if not selected_rows:
+            raise RuntimeError("P0.8 target capture found no contiguous prefix rows.")
+        episode_index = int(eval_episode_indices[chosen_env_id].item())
+        captured_entries[target_stage] = {
+            "schema": _A2_V23_P08_STATE_BANK_ENTRY_SCHEMA,
+            "entry_id": f"a2-v23-state-bank-stage{target_stage}-env{chosen_env_id}-episode{episode_index}",
+            "scenario_id": f"D0_current_like_stage{target_stage}",
+            "seed": config["seed"],
+            # Source/atlas labels are assigned only after the public P0.5
+            # terminal getter supplies authoritative applied/readback identity.
+            "atlas_cell": None,
+            "source_cell": None,
+            "stage": int(target_stage),
+            "env_id": chosen_env_id,
+            "episode_index": episode_index,
+            "episode_id": selected_rows[-1]["episode_id"],
+            "replay_prefix_id": f"D0_current_like_stage{target_stage}_env{chosen_env_id}_episode{episode_index}",
+            "reset_origin": "evaluator.reset_all_first_episode_observation",
+            "source_identity": None,
+            "forward_mode": config["forward_mode"],
+            "state_clone_supported": False,
+            "recurrent_state_restore_supported": False,
+            "recurrent_prefix_status": "CAPTURED_NOT_REEXECUTED",
+            "capture_selection": "FIRST_TARGET_STEP_LOWEST_ENV_ID",
+            "replay_prefix": deepcopy(selected_rows),
+        }
+
+
+def _write_a2_v23_p08_raw_capture(
+    eval_output_dir,
+    config,
+    captured_entries,
+    *,
+    completed_episodes,
+    physical_readbacks,
+):
+    """Write the single raw P0.8 capture payload after normal evaluation finalization."""
+
+    if not isinstance(physical_readbacks, list) or len(physical_readbacks) != config["num_envs"]:
+        raise RuntimeError(
+            "P0.8 raw capture requires one authoritative P0.5 physical readback per environment."
+        )
+    by_env = {}
+    for readback in physical_readbacks:
+        env_id = readback.get("env_id") if isinstance(readback, Mapping) else None
+        if env_id in by_env:
+            raise RuntimeError("P0.8 raw capture received duplicate P0.5 physical readback env ids.")
+        by_env[env_id] = readback
+    if set(by_env) != set(range(config["num_envs"])):
+        raise RuntimeError("P0.8 raw capture physical readback does not cover canonical16.")
+    entries = []
+    for stage in config["target_stages"]:
+        if stage not in captured_entries:
+            continue
+        entry = deepcopy(captured_entries[stage])
+        if entry.get("source_identity") is not None:
+            raise RuntimeError("P0.8 source labels must remain unset until physical readback validation.")
+        entry["source_identity"] = deepcopy(config["source_identity"])
+        entry["atlas_cell"] = config["source_identity"]["atlas_cell"]
+        entry["source_cell"] = config["source_identity"]["source_cell"]
+        entry["physical_readback_env_id"] = int(entry["env_id"])
+        if entry["physical_readback_env_id"] not in by_env:
+            raise RuntimeError("P0.8 state-bank entry env lacks authoritative physical readback.")
+        entries.append(entry)
+    missing_stages = [stage for stage in config["target_stages"] if stage not in captured_entries]
+    payload = {
+        "schema": _A2_V23_P08_STATE_BANK_RAW_SCHEMA,
+        "status": (
+            "RAW_CAPTURE_COMPLETE"
+            if not missing_stages
+            else "PARTIAL_A0_D0_PREFIX_COVERAGE_INCOMPLETE"
+        ),
+        "p08_overall_status": "PARTIAL_INCOMPLETE",
+        "target_stages": list(config["target_stages"]),
+        "captured_stages": [entry["stage"] for entry in entries],
+        "missing_stages": missing_stages,
+        "forward_only": True,
+        "state_clone_supported": False,
+        "recurrent_state_restore_supported": False,
+        "recurrent_prefix_status": "CAPTURED_NOT_REEXECUTED",
+        "normal_eval_finalization": True,
+        "completed_episodes": int(completed_episodes),
+        "checkpoint": config["checkpoint"],
+        "checkpoint_load_mode": config["checkpoint_load_mode"],
+        "checkpoint_step": config["checkpoint_step"],
+        "seed": config["seed"],
+        "num_envs": config["num_envs"],
+        "source_identity": config["source_identity"],
+        "physical_readback": physical_readbacks,
+        "entries": entries,
+        "excluded_claims": [
+            "NO_EXACT_STATE_CLONE",
+            "NO_RECURRENT_STATE_RESTORE",
+            "NO_INTERVENTION_EFFECT_OR_DELTA_J_CLAIM",
+            "NO_D1_E_ZONE_OR_FORMAL_ADMISSION",
+            "NO_RELEASE_RECEIPT",
+        ],
+    }
+    eval_output_dir = Path(eval_output_dir)
+    eval_output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = eval_output_dir / _A2_V23_P08_STATE_BANK_RAW_FILENAME
+    temporary_path = Path(f"{output_path}.tmp")
+    with temporary_path.open("w", encoding="utf-8") as stream:
+        json.dump(payload, stream, indent=4, allow_nan=False)
+    os.replace(temporary_path, output_path)
+    logger.info("Saved v23 P0.8 raw state-bank capture to %s", output_path)
+    return payload
 
 
 def _build_a2_eval_first_episode_active_mask(
@@ -5847,6 +6432,35 @@ class TRLPPOTrainer(PPOTrainer):
         a2_v23_stationary_rent = _read_a2_v23_stationary_rent_config(
             self.config.get("eval", {})
         )
+        a2_v23_p08_state_bank = _read_a2_v23_p08_state_bank_config(
+            self.config.get("eval", {}),
+            env=self.env,
+            checkpoint_load_mode=self.checkpoint_load_mode,
+            checkpoint_path=self.checkpoint_path,
+            seed=int(self.args.seed),
+            process_count=self.accelerator.num_processes,
+        )
+        if a2_v23_p08_state_bank["enabled"] and a2_v23_stationary_rent["enabled"]:
+            raise RuntimeError(
+                "P0.8 state-bank capture cannot share a rollout with stationary-rent export."
+            )
+        if a2_v23_p08_state_bank["enabled"]:
+            get_p05_evidence = getattr(self.env, "get_a2_v23_p05_episode_evidence", None)
+            if not callable(get_p05_evidence):
+                raise RuntimeError(
+                    "P0.8 state-bank capture requires the existing P0.5 typed episode getter."
+                )
+            live_p05 = get_p05_evidence(0)
+            if (
+                not isinstance(live_p05, Mapping)
+                or live_p05.get("schema") != "a2_piper_v23_episode_record_live_v1"
+                or live_p05.get("mode") != _A2_V23_P08_P05_MODE
+                or live_p05.get("purpose") != _A2_V23_P08_P05_PURPOSE
+                or live_p05.get("step_rows") != []
+            ):
+                raise RuntimeError(
+                    "P0.8 P0.5 preflight did not expose the initialized FULL/D1 typed state."
+                )
         if a2_v23_stationary_rent["enabled"]:
             if not self.use_a2_base or not bool(getattr(self.env, "_use_a2_base", False)):
                 raise RuntimeError(
@@ -5992,6 +6606,9 @@ class TRLPPOTrainer(PPOTrainer):
             if a2_v23_stationary_rent["enabled"]
             else None
         )
+        p08_prefix_rows = [[] for _ in range(self.env.num_envs)] if a2_v23_p08_state_bank["enabled"] else None
+        p08_captured_entries = {} if a2_v23_p08_state_bank["enabled"] else None
+        p08_physical_readbacks = [] if a2_v23_p08_state_bank["enabled"] else None
         self.env.render_results(frame_type="initial")
 
         def terminate_rollout():
@@ -6198,6 +6815,20 @@ class TRLPPOTrainer(PPOTrainer):
                                 episode_indices=eval_episode_indices,
                             )
 
+                        if a2_v23_p08_state_bank["enabled"]:
+                            _capture_a2_v23_p08_step(
+                                config=a2_v23_p08_state_bank,
+                                obs_dict=obs_dict,
+                                action_mean=action_mean,
+                                applied_high_level_action=applied_high_level_action,
+                                stage_buf=stage_buf,
+                                first_episode_active_mask=first_episode_active_mask,
+                                eval_episode_indices=eval_episode_indices,
+                                cur_episode_length=self.cur_episode_length,
+                                prefix_rows=p08_prefix_rows,
+                                captured_entries=p08_captured_entries,
+                            )
+
                         a2_actions = model._a2_base_actions(
                             obs_dict, applied_high_level_action
                         )
@@ -6361,6 +6992,27 @@ class TRLPPOTrainer(PPOTrainer):
                                         "authority": "EVALUATOR_ASSIGNED_ENV_EPISODE_ID",
                                     }
                                     a2_v23_p05_terminal_records.append(terminal_record)
+
+                            if a2_v23_p08_state_bank["enabled"]:
+                                get_p05_evidence = getattr(
+                                    self.env, "get_a2_v23_p05_episode_evidence", None
+                                )
+                                if not callable(get_p05_evidence):
+                                    raise RuntimeError(
+                                        "P0.8 state-bank capture requires the P0.5 typed episode getter."
+                                    )
+                                for env_idx in valid_new_ids.flatten().detach().cpu().tolist():
+                                    env_id = int(env_idx)
+                                    episode_index = int(eval_episode_indices[env_id].item())
+                                    terminal_record = get_p05_evidence(env_id)
+                                    p08_physical_readbacks.append(
+                                        _validate_a2_v23_p08_p05_terminal_readback(
+                                            terminal_record,
+                                            config=a2_v23_p08_state_bank,
+                                            env_id=env_id,
+                                            episode_index=episode_index,
+                                        )
+                                    )
 
                             for env_idx in valid_new_ids:
                                 reward = self.cur_reward_sum[env_idx].item()
@@ -6834,6 +7486,15 @@ class TRLPPOTrainer(PPOTrainer):
         os.replace(metrics_eval_tmp_path, metrics_eval_path)
 
         logger.info(f"Saved eval_dict to {metrics_eval_path}")  # self.args.eval_output_dir
+
+        if a2_v23_p08_state_bank["enabled"]:
+            _write_a2_v23_p08_raw_capture(
+                eval_output_dir,
+                a2_v23_p08_state_bank,
+                p08_captured_entries,
+                completed_episodes=completed_episodes,
+                physical_readbacks=p08_physical_readbacks,
+            )
 
         return eval_dict
 

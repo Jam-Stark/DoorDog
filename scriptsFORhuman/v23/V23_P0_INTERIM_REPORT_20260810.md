@@ -1,12 +1,14 @@
-# v23 P0 interim report — R72 P0.6 closure
+# v23 P0 interim report — R78 partial P0.8 closure
 
 **Date:** 2026-08-10 HKT
-**Scope:** typed adjudication through the verified R68/R72 P0.6 runtime records
+**Scope:** typed adjudication through the verified R78 partial A0/D0 P0.8 runtime receipt
 **Answer first:** P0 evidence is partial and typed.  The A8 certificate is
 terminal `COMPLETED_TYPED_NEGATIVE`; the R54 D1 capability-source reducer is
 `D1_CAPABILITY_SOURCE_INCOMPLETE` with no D1 freeze.  Formal v23 training is a
 hard **NO-GO**.  P0.6 common-reward composition and stationary-rent capture are
-runtime verified; only the remaining bounded D0 preparation DAG may continue.
+runtime verified.  R78 also runtime-verifies only the bounded partial A0/D0
+P0.8 source-plumbing node and admits the D0 P0.9 smoke; no broader P0.8, D1,
+formal, clone, or release claim follows.
 
 ## STATUS
 
@@ -29,8 +31,8 @@ H1–H5, formal 8×2, F3/D1-lite, or release/goal claim.
 | P0.5 D1 source | `D1_CAPABILITY_SOURCE_INCOMPLETE` | R54 has exact16 FULL and exact16 ACUTE source records, but the reducer exits `rc2`; `d1_freeze_written=false`. |
 | P0.6 | `RUNTIME_VERIFIED / AUDIT_COMPLETE` | R68 completed a 16-env warm/FULL/D0 short smoke with finite metrics. R72 completed six fresh policy-only stage passes on GPU0; all six processes finished 16 episodes, the pass record counts were `16/16/16/16/16/13`, and the canonical audit is `COMPLETE` with `missing_stages=[]`. |
 | P0.7 | `RUNTIME_VERIFIED` | R21 RP0 contract: real 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11`, raw posture indices 3/4 neutralized at `0.0`. |
-| P0.8 | `PARTIAL/INCOMPLETE` | R55 permits A0/D0 state-bank/plumbing work only; no exact state clone or release receipt. |
-| P0.9 | `CONDITIONAL/PENDING` | Only bounded D0 four-type 64-env × 10-batch smokes are allowed after the P0.8 plumbing step. |
+| P0.8 | `PARTIAL_A0_D0_RUNTIME_VERIFIED / OVERALL_INCOMPLETE` | R78 completed one fresh 16-env GPU0 source rollout, captured stages 2/3/4, and emitted 3 entries plus 15 typed bindings. Exact state clone, recurrent restore, alternate-mode effects, formal admission, and release remain false/unverified. |
+| P0.9 | `D0_SMOKE_ADMITTED / PENDING` | The R78 receipt admits only the bounded D0 four-type 64-env × 10-batch smokes; none ran in R78. |
 | P0.10 | `NOT_RUN/PENDING` | D0 FULL pilot is the next bounded node; no GO/NO-GO claim. |
 
 ### Certificate versus D1-source distinction
@@ -83,11 +85,34 @@ action, and the same 58 finite raw/scaled reward terms.  The reducer wrote
 contract and reward composition; it is not a policy-quality, long-horizon
 stationarity, formal-training, or release claim.
 
+### P0.8 partial A0/D0 state-bank evidence
+
+R78 materialized one fresh R50/R54-bound A0 source manifest and launched the
+warm step1250 `FULL/D0` evaluator once on physical GPU0 / logical `cuda:0`.
+The process returned `rc0` after normal completion of all 16 first episodes.
+All 16 authoritative physical readbacks matched the R50 geometry and requested
+door parameters `50/2/4.5/120`; their native readbacks were
+`2864.7890625/114.59156036376953/4.5/119.99999237060547` for
+damping/stiffness/max-force/mass.
+
+The source rollout captured finite contiguous pre-step prefixes for target
+stages `2/3/4`.  Reduction wrote 3 state-bank entries and exactly 15 bindings.
+The 3 `FULL` bindings are labeled
+`SOURCE_ROLLOUT_CAPTURED_NOT_REEXECUTED`; the 12 bindings for the four alternate
+modes remain `NOT_EXECUTED_ALTERNATE_MODE`.  The canonical receipt
+`logs_eval/base_v23/p0/state_bank/state_bank_plan.json` has schema
+`a2_piper_v23_p08_partial_a0_d0_receipt_v1`, status
+`PARTIAL_A0_D0_PLUMBING_RUNTIME_VERIFIED`, `missing_stages=[]`,
+`p08_overall_status=PARTIAL_INCOMPLETE`, and `p09_d0_smoke_admission=true`.
+Formal admission, release, exact state clone, and recurrent-state restore remain
+false.  No intervention-effect or delta-J result is claimed.
+
 ## FILES_CHANGED
 
-The P0.6 closure candidate contains one launch config, the dedicated evaluator /
-environment / trainer capture path, the six-pass runner/reducer, this report,
-the v23 plan synchronization, and the corresponding mechanical memory update.
+The R78 closure candidate contains the opt-in trainer capture path, one P0.8
+launch config, the state-bank runner/reducer, typed intervention binding updates,
+this report, the v23 plan synchronization, and the corresponding mechanical
+memory update.
 Runtime outputs remain under the canonical ignored `logs_eval/base_v23/p0/`
 tree.  The eight user-provided v23 source documents remain untracked and are
 not part of the candidate.
@@ -101,8 +126,13 @@ not part of the candidate.
   reached normal 16-episode finalization.
 - R72 REDUCE: `rc0`; canonical typed audit `COMPLETE`, no missing stage.
 - Targeted Hydra composition, Python parse/source checks, code review, and
-  IsaacLab semantics review passed for the frozen P0.6 candidate.
-- No training, P0.9, D1, formal evaluation, or rendering command was run.
+  IsaacLab semantics review passed for the frozen P0.8 candidate.
+- R78 P0.8 RUN: project Python, physical GPU0 / logical `cuda:0`, exactly one
+  fresh evaluator process, runtime `rc0` in about 229 seconds, normal 16-episode
+  completion, stages `2/3/4`, 3 entries, 15 bindings, and 16 finite physical
+  readbacks.
+- No retry, separate reduce, training, P0.9, D1, formal evaluation, or rendering
+  command was run.
 
 ## RESULT_CLASSIFICATION
 
@@ -115,8 +145,8 @@ claim.
 ## NEXT_DAG_NODE
 
 ```text
-partial P0.8 A0/D0 state-bank/plumbing work
-  -> conditional D0 P0.9 four-type 64-env × 10-batch smokes
+[R78 COMPLETE] partial P0.8 A0/D0 state-bank/plumbing work
+  -> [NEXT/ADMITTED] D0 P0.9 four-type 64-env × 10-batch smokes
   -> D0 P0.10 FULL pilot
   -> adjudicate the resulting evidence
 ```
@@ -127,13 +157,14 @@ This DAG is preparation-only while D1 window closure remains unresolved.
 
 | Allowed now | Forbidden now |
 |---|---|
-| Implement only the partial P0.8 A0/D0/plumbing node. | F3/D1-lite execution or any D1-mixture claim. |
-| Run conditional D0 P0.9 four-type smokes after the P0.8 plumbing receipt. | Writing a D1 freeze before the reducer/window contract passes. |
+| Consume the R78 partial P0.8 receipt only as D0 P0.9 admission. | F3/D1-lite execution or any D1-mixture claim. |
+| Run the admitted D0 P0.9 four-type smokes. | Writing a D1 freeze before the reducer/window contract passes. |
 | Run the bounded D0 P0.10 FULL pilot and adjudicate its own receipt. | H1–H5 claims, final goal/release claims, or direct R54 raw-dim 3/4 claims. |
 
 ## STOP_OR_CONTINUE
 
 **STOP:** formal training, formal evaluation, final G1–G8 admission, H1–H5,
 8×2, F3/D1-lite, D1 freeze, and release/goal claims.
-**CONTINUE:** begin with partial P0.8, then only the bounded D0 preparation DAG
-above, with typed receipts and the fail-fast no-fallback boundary preserved.
+**CONTINUE:** run only the admitted D0 P0.9 node, then the remaining bounded D0
+preparation DAG above, with typed receipts and the fail-fast no-fallback boundary
+preserved.

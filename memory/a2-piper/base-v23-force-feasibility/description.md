@@ -2,7 +2,7 @@
 name: base-v23-force-feasibility
 scope: A2+Piper base_v23 P0 force-feasibility calibration, certificate, and D1 admission boundary
 status: interim_typed_adjudication_formal_no_go
-last_updated: 2026-08-10 01:30 HKT
+last_updated: 2026-08-10 03:37 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v23-force-feasibility/description.md
@@ -35,6 +35,7 @@ read_when:
 - R49 A8 certificate branch：pair `PASS`（15 `PREFIX_EQUAL`，env5 `NO_RESCUE_LATCH`）；bundle `READY_FOR_CERTIFICATE`；certificate `COMPLETED_TYPED_NEGATIVE` has `identity_count=16`, `pass_count=0`, 15 `COMPLETED_TYPED_NEGATIVE`, and env5 `RESCUE_NOT_EXECUTED`, with `confirmed_E2=false`。这是完成的 scientific negative，不是 D1 admission。
 - R50 A0 source freeze：`CAPABILITY_SOURCE_FROZEN` at effort `40 N*m`。Requested damping/stiffness/max force/mass 为 `50 / 2 / 4.5 / 120`，native readback 为 `2864.7890625 / 114.59156036376953 / 4.5 / 119.99999237060547`。
 - R54 FULL / ACUTE producers 均 runtime `rc0`，各 exact16 finite records；valid windows 分别为 FULL `15/16`（env5 missing）与 ACUTE `1/16`（仅 env12）。Canonical reduce `rc2`，保留 exact16/no-subset，而没有 D1 freeze。
+- P0.6 common reward 已由 concrete warm/FULL/D0 config 实际 compose：v22 conditional terms 撤三留三，`penalty_a2_posture_command_l1=0`。R68 GPU0 short smoke 为 runtime `rc0`、16 completed episodes、3,590 finite numeric metric values。R72 六个 fresh sequential GPU0 stage pass 均正常完成 16 episodes，capture counts 为 `16/16/16/16/16/13`；canonical stationary-rent audit 为 `COMPLETE`、`missing_stages=[]`。该结论只验证 zero-action same-step audit contract 与 reward composition，不是 policy-quality / long-horizon stationarity / formal-training claim。
 
 ## Canonical Evidence
 
@@ -47,18 +48,20 @@ read_when:
 - R54 ACUTE input: `logs_eval/base_v23/p0/r54_p05_d1_source_runtime_20260810/runs/acute_rp0/a2_v23_p05_episode_records.json`
 - R54 reduction: `logs_eval/base_v23/p0/r54_p05_d1_reduction_20260810/d1_capability_source_incomplete.json`
 - R21 RP0 contract: `logs_eval/base_v23/p0/a2_piper_v23_p07_rp0_contract_r21.json`
+- R68 P0.6 short smoke: `logs_eval/base_v23/p0/r68_p06_reward_runtime_20260810/smoke/`
+- R72 P0.6 stationary-rent audit: `logs_eval/base_v23/p0/reward/stationary_rent_audit.json` (six pass receipts under `logs_eval/base_v23/p0/r72_p06_stationary_rent_runtime_20260810/passes/`)
 - Human-readable adjudication: `scriptsFORhuman/v23/V23_P0_INTERIM_REPORT_20260810.md`
 
 ## Validation Status
 
 - R51 Isaac review, R52 code/goal candidate gates, and R54 seed-code gate are `PASS` review evidence.
 - R54 FULL/ACUTE producer commands have runtime `rc0`; the canonical reducer's `rc2` is an expected typed incomplete scientific result, not runtime PASS for D1 admission.
-- This entry records no new simulation/training execution. Its status is a documentation readback of the cited evidence, not a runtime claim.
+- R68 and R72 are targeted IsaacSim evaluator runtime evidence for P0.6 only. R72 RUN/REDUCE both returned `rc0`; all reward/action numeric values were finite and no retry, training, P0.9, D1, or render command ran.
 
 ## DONE Summary
 
-P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, R54 exact16 producer plus typed incomplete reduction, and the separate R21 RP0 contract have verified receipts. These are completed sub-results only.
+P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, R54 exact16 producer plus typed incomplete reduction, P0.6 common-reward/stationary-rent runtime, and the separate R21 RP0 contract have verified receipts. These are completed sub-results only.
 
 ## TODO Summary
 
-P0.6, partial A0/D0 P0.8 plumbing/state bank, conditional D0 P0.9 smokes, and D0 P0.10 pilot remain. D1 admission/formal work remains blocked by the R54 stable-window result; direct R54 raw-dimension 3/4 proof remains `INCONCLUSIVE`.
+Partial A0/D0 P0.8 plumbing/state bank, conditional D0 P0.9 smokes, and D0 P0.10 pilot remain. D1 admission/formal work remains blocked by the R54 stable-window result; direct R54 raw-dimension 3/4 proof remains `INCONCLUSIVE`.

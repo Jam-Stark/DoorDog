@@ -291,6 +291,23 @@ def _normalize_eval_checkpoint_load_mode(config):
         config.checkpoint_load_mode,
         "Evaluation runtime",
     )
+    p06_policy_only = OmegaConf.select(
+        config,
+        "algo.config.eval.a2_v23_p06_policy_only",
+        default=False,
+    )
+    if not isinstance(p06_policy_only, bool):
+        raise ValueError(
+            "algo.config.eval.a2_v23_p06_policy_only must be bool; "
+            f"got {p06_policy_only!r}."
+        )
+    if p06_policy_only:
+        if requested_mode != "policy_only":
+            raise ValueError(
+                "P0.6 evaluation requires checkpoint_load_mode='policy_only'; "
+                f"got {requested_mode!r}."
+            )
+        return
     if requested_mode != "full":
         logger.warning(
             "Evaluation requested checkpoint_load_mode={!r}; normalizing to 'full' so "
@@ -746,7 +763,7 @@ def main(override_config: OmegaConf):
     # --- Build trainer (loads checkpoint weights) ---
     checkpoint_load_kwargs = {}
     if config.trainer["_target_"] == _A2_BASE_API_TRAINER_TARGET:
-        checkpoint_load_kwargs["checkpoint_load_mode"] = "full"
+        checkpoint_load_kwargs["checkpoint_load_mode"] = config.checkpoint_load_mode
 
     trainer = custom_instantiate(
         config.trainer,

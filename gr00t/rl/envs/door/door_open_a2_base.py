@@ -6928,6 +6928,9 @@ class DoorPregrasp(
             self._a2_v20_positive_total_tangent_mps = torch.zeros(
                 self.num_envs, dtype=torch.float32, device=self.device
             )
+        self._a2_v23_stationary_rent_last_scaled_components = {}
+        self._a2_v23_stationary_rent_last_raw_components = {}
+        self._a2_v23_stationary_rent_last_reward_stage = None
         self._init_a2_v20_r2_evidence_buffers()
         self._init_a2_v21b_arm_evidence_buffers()
         self._init_a2_v22_buffers()
@@ -13506,6 +13509,68 @@ class DoorPregrasp(
 
     def _after_reward_components(self, raw_components, scaled_components):
         """Accumulate exact reward components for R2 without changing reward semantics."""
+        stationary_rent_enabled = self.config.get(
+            "a2_v23_stationary_rent_runtime_enabled", False
+        )
+        if not isinstance(stationary_rent_enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v23_stationary_rent_runtime_enabled must be bool; "
+                f"got {stationary_rent_enabled!r}."
+            )
+        if stationary_rent_enabled:
+            if not isinstance(raw_components, Mapping) or not isinstance(scaled_components, Mapping):
+                raise RuntimeError(
+                    "v23 stationary-rent runtime requires raw/scaled reward component mappings."
+                )
+            expected = tuple(raw_components)
+            if not expected or set(scaled_components) != set(expected):
+                raise RuntimeError(
+                    "v23 stationary-rent runtime requires exact reward-name coverage; "
+                    f"raw={tuple(raw_components)}, scaled={tuple(scaled_components)}."
+                )
+            raw_snapshot = {}
+            scaled_snapshot = {}
+            for name in expected:
+                raw_value = raw_components[name]
+                scaled_value = scaled_components[name]
+                for value_name, value in (
+                    ("raw", raw_value),
+                    ("scaled", scaled_value),
+                ):
+                    if (
+                        not torch.is_tensor(value)
+                        or tuple(value.shape) != (self.num_envs,)
+                        or value.dtype != torch.float32
+                        or value.device != torch.device(self.device)
+                        or not bool(torch.all(torch.isfinite(value)).item())
+                    ):
+                        shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                        dtype = None if not torch.is_tensor(value) else value.dtype
+                        device = None if not torch.is_tensor(value) else value.device
+                        raise RuntimeError(
+                            f"v23 stationary-rent {value_name} component {name!r} requires "
+                            f"finite float32 shape ({self.num_envs},) on {self.device}; "
+                            f"got shape={shape}, dtype={dtype}, device={device}."
+                        )
+                raw_snapshot[name] = raw_components[name].detach().clone()
+                scaled_snapshot[name] = scaled_components[name].detach().clone()
+            reward_stage = self.stage_buf
+            if (
+                not torch.is_tensor(reward_stage)
+                or tuple(reward_stage.shape) != (self.num_envs,)
+                or reward_stage.dtype != torch.long
+                or reward_stage.device != torch.device(self.device)
+            ):
+                shape = None if not torch.is_tensor(reward_stage) else tuple(reward_stage.shape)
+                dtype = None if not torch.is_tensor(reward_stage) else reward_stage.dtype
+                device = None if not torch.is_tensor(reward_stage) else reward_stage.device
+                raise RuntimeError(
+                    "v23 stationary-rent reward stage requires a device-local long tensor "
+                    f"with shape ({self.num_envs},); got shape={shape}, dtype={dtype}, device={device}."
+                )
+            self._a2_v23_stationary_rent_last_raw_components = raw_snapshot
+            self._a2_v23_stationary_rent_last_scaled_components = scaled_snapshot
+            self._a2_v23_stationary_rent_last_reward_stage = reward_stage.detach().clone()
         if not self._a2_v20_r2_evidence_enabled:
             return None
         # raw_components is the authoritative set of reward terms the env

@@ -1,11 +1,12 @@
-# v23 P0 interim report — R55 adjudication (synced R56)
+# v23 P0 interim report — R72 P0.6 closure
 
 **Date:** 2026-08-10 HKT
-**Scope:** documentation-only adjudication of the verified R49/R54 P0 records
+**Scope:** typed adjudication through the verified R68/R72 P0.6 runtime records
 **Answer first:** P0 evidence is partial and typed.  The A8 certificate is
 terminal `COMPLETED_TYPED_NEGATIVE`; the R54 D1 capability-source reducer is
 `D1_CAPABILITY_SOURCE_INCOMPLETE` with no D1 freeze.  Formal v23 training is a
-hard **NO-GO**.  Only the bounded D0 preparation DAG may continue.
+hard **NO-GO**.  P0.6 common-reward composition and stationary-rent capture are
+runtime verified; only the remaining bounded D0 preparation DAG may continue.
 
 ## STATUS
 
@@ -26,7 +27,7 @@ H1–H5, formal 8×2, F3/D1-lite, or release/goal claim.
 | P0.4 | `MEASURED_RAW` | Atlas and external-threshold producers are raw/typed. Positive brackets: A0/A1 `(10,15]`, A2/A3/A7 `(25,30]`, A4/A5/A6 `(15,20]`, A8 `(30,40]`; negative sign is `RIGHT_CENSORED`. D1 zones/mixture are not frozen. |
 | P0.5 certificate | `COMPLETED_TYPED_NEGATIVE` | R49 certificate has pass0, 15 typed-negative records, env5 `RESCUE_NOT_EXECUTED`, and `confirmed_E2=false`. |
 | P0.5 D1 source | `D1_CAPABILITY_SOURCE_INCOMPLETE` | R54 has exact16 FULL and exact16 ACUTE source records, but the reducer exits `rc2`; `d1_freeze_written=false`. |
-| P0.6 | `NOT_RUN/PENDING` | Common reward registry exists; stationary-rent result remains pending. |
+| P0.6 | `RUNTIME_VERIFIED / AUDIT_COMPLETE` | R68 completed a 16-env warm/FULL/D0 short smoke with finite metrics. R72 completed six fresh policy-only stage passes on GPU0; all six processes finished 16 episodes, the pass record counts were `16/16/16/16/16/13`, and the canonical audit is `COMPLETE` with `missing_stages=[]`. |
 | P0.7 | `RUNTIME_VERIFIED` | R21 RP0 contract: real 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11`, raw posture indices 3/4 neutralized at `0.0`. |
 | P0.8 | `PARTIAL/INCOMPLETE` | R55 permits A0/D0 state-bank/plumbing work only; no exact state clone or release receipt. |
 | P0.9 | `CONDITIONAL/PENDING` | Only bounded D0 four-type 64-env × 10-batch smokes are allowed after the P0.8 plumbing step. |
@@ -61,21 +62,47 @@ Direct proof of R54 P05 source raw dimensions 3/4 is **INCONCLUSIVE**.  The R21
 RP0 contract proves its own mask indices and neutral semantics, but those facts
 cannot be used as a substitute for a direct R54 source-dimension receipt.
 
+### P0.6 common reward and stationary-rent evidence
+
+The concrete P0.6 config composes the v23 reward registry for the v22 step1250
+warm checkpoint under `FULL/D0`, keeps
+`a2_v22_clearance_success=+4`, `a2_v22_controlled_fling=+2`, and
+`penalty_a2_v22_unsafe_release=-8`, removes the other three v22 posture terms,
+and leaves `penalty_a2_posture_command_l1=0`.  R68 exercised that effective
+configuration for 16 completed episodes with 3,590 finite numeric metric
+values; R2, RP0, stationary capture, cameras, and rendering were disabled.
+
+R72 then ran six fresh sequential GPU0 processes targeting stages `0..5`.
+Every process completed the normal 16-episode evaluator finalization.  The
+stage record counts were `16/16/16/16/16/13`: each recorded row has exact
+target/pre/post stage identity, a verified all-zero 12-D applied high-level
+action, and the same 58 finite raw/scaled reward terms.  The reducer wrote
+`logs_eval/base_v23/p0/reward/stationary_rent_audit.json` with schema
+`a2_piper_v23_stationary_rent_audit_v1`, status `COMPLETE`, and
+`missing_stages=[]`.  This verifies the bounded zero-action same-step audit
+contract and reward composition; it is not a policy-quality, long-horizon
+stationarity, formal-training, or release claim.
+
 ## FILES_CHANGED
 
-This documentation synchronization changes only:
-
-1. `scriptsFORhuman/v23/a2_piper_base_v23_plan_R1_20260809.md`
-2. `scriptsFORhuman/a2_piper_longterm_TODO.md`
-3. `scriptsFORhuman/v23/V23_P0_INTERIM_REPORT_20260810.md`
-
-No v23 core code, config, test, memory, or runtime artifact is changed by R56.
+The P0.6 closure candidate contains one launch config, the dedicated evaluator /
+environment / trainer capture path, the six-pass runner/reducer, this report,
+the v23 plan synchronization, and the corresponding mechanical memory update.
+Runtime outputs remain under the canonical ignored `logs_eval/base_v23/p0/`
+tree.  The eight user-provided v23 source documents remain untracked and are
+not part of the candidate.
 
 ## TESTS_RUN
 
-R56 is docs-only.  No GPU, IsaacSim, trainer, evaluator, renderer, or unit test
-was run.  The final handoff performs Markdown readback and one scoped
-`git diff --check` over the three paths.
+- R68 short smoke: project Python, physical GPU0 / logical `cuda:0`, runtime
+  `rc0`, 16 completed episodes, and 3,590 finite numeric metric values.
+- R72 stationary-rent RUN: project Python, physical GPU0 / logical `cuda:0`,
+  runtime `rc0` in about 23m22s; six fresh sequential stage processes all
+  reached normal 16-episode finalization.
+- R72 REDUCE: `rc0`; canonical typed audit `COMPLETE`, no missing stage.
+- Targeted Hydra composition, Python parse/source checks, code review, and
+  IsaacLab semantics review passed for the frozen P0.6 candidate.
+- No training, P0.9, D1, formal evaluation, or rendering command was run.
 
 ## RESULT_CLASSIFICATION
 
@@ -88,8 +115,7 @@ claim.
 ## NEXT_DAG_NODE
 
 ```text
-P0.6 continue (rent/audit)
-  -> partial P0.8 A0/D0 state-bank/plumbing work
+partial P0.8 A0/D0 state-bank/plumbing work
   -> conditional D0 P0.9 four-type 64-env × 10-batch smokes
   -> D0 P0.10 FULL pilot
   -> adjudicate the resulting evidence
@@ -101,7 +127,6 @@ This DAG is preparation-only while D1 window closure remains unresolved.
 
 | Allowed now | Forbidden now |
 |---|---|
-| Continue P0.6 stationary-rent/audit work. | Formal 8×2 v23 training. |
 | Implement only the partial P0.8 A0/D0/plumbing node. | F3/D1-lite execution or any D1-mixture claim. |
 | Run conditional D0 P0.9 four-type smokes after the P0.8 plumbing receipt. | Writing a D1 freeze before the reducer/window contract passes. |
 | Run the bounded D0 P0.10 FULL pilot and adjudicate its own receipt. | H1–H5 claims, final goal/release claims, or direct R54 raw-dim 3/4 claims. |
@@ -110,5 +135,5 @@ This DAG is preparation-only while D1 window closure remains unresolved.
 
 **STOP:** formal training, formal evaluation, final G1–G8 admission, H1–H5,
 8×2, F3/D1-lite, D1 freeze, and release/goal claims.
-**CONTINUE:** only the bounded D0 preparation DAG above, with typed receipts and
-the fail-fast no-fallback boundary preserved.
+**CONTINUE:** begin with partial P0.8, then only the bounded D0 preparation DAG
+above, with typed receipts and the fail-fast no-fallback boundary preserved.

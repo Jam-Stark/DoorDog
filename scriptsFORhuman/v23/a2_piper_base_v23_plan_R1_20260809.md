@@ -3,13 +3,14 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** interim P0 adjudication; selected calibration records exist, the D1 source branch is incomplete, and there is no formal training admission
+**Runtime state:** interim P0 adjudication; P0.6 is runtime verified, the D1 source branch is incomplete, and there is no formal training admission
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
 by the current git commit together with its readable source or saved-config
-paths.  The preparation tools write plain JSON/Markdown and do not run a
-simulator, trainer, evaluator, or renderer.
+paths.  The original R1 preparation tools write plain JSON/Markdown.  The later
+P0.6 stationary-rent tool is a separately bounded evaluator runner/reducer and
+does not authorize training, formal evaluation, or rendering.
 
 ## 1. Scientific question and fixed matrix
 
@@ -180,7 +181,7 @@ explicitly typed rather than promoted.
 | P0.3 | Kp/action-scale/clip consistency | `NOT_RUN/PENDING`; tie nominal PD, clipped command, tracking error |
 | P0.4 | Door atlas A0–A8 and E-zone provisional labels | `MEASURED_RAW`; typed brackets exist, but D1 zones/mixture remain `NOT_FROZEN` |
 | P0.5 | Feasibility certificate calibration | A8 certificate `COMPLETED_TYPED_NEGATIVE`; separate D1 source/reducer branch remains incomplete and `confirmed_E2=false` |
-| P0.6 | Common reward and stationary-rent audit | registry skeleton present; rent result `NOT_RUN/PENDING` |
+| P0.6 | Common reward and stationary-rent audit | `RUNTIME_VERIFIED / AUDIT_COMPLETE`; R68 short smoke passed and R72 reduced six stage passes to `COMPLETE` with no missing stage |
 | P0.7 | RP0 distribution contract and resume checks | `RUNTIME_VERIFIED`; RP0 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11` |
 | P0.8 | State-bank replay prefixes and forward interventions | `PARTIAL/INCOMPLETE`; A0/D0/plumbing continuation only, no exact state clone or release receipt |
 | P0.9 | Four 64-env × 10-batch type smokes | `CONDITIONAL/PENDING`; only the bounded D0 smoke node is allowed after the P0.8 plumbing step |
@@ -335,8 +336,21 @@ task-flow overrides.  It removes
 `penalty_a2_v22_posture_saturation`; it keeps
 `a2_v22_clearance_success`, `a2_v22_controlled_fling`, and
 `penalty_a2_v22_unsafe_release`.  `penalty_a2_posture_command_l1` remains
-exactly `0.0`.  The stationary-rent audit is a source/config audit mode and
-does not run simulation in this skeleton.
+exactly `0.0`.
+
+The concrete P0.6 launch config is
+`gr00t/rl/config/ablation/wbmanip/base_v23_p06_warm_full_d0_smoke.yaml`.
+R68 verified its effective warm step1250, policy-only, FULL/D0 composition in a
+16-env GPU0 short smoke.  R72 ran six fresh sequential GPU0 evaluator processes,
+one for each target stage `0..5`, with exact zero 12-D applied high-level action
+at capture and normal 16-episode finalization.  Pass record counts were
+`16/16/16/16/16/13`; every captured row contains 58 finite raw and 58 finite
+scaled same-name terms with project semantics `scaled = raw * configured scale`
+and no manager `dt` factor.  The canonical receipt
+`logs_eval/base_v23/p0/reward/stationary_rent_audit.json` is
+`a2_piper_v23_stationary_rent_audit_v1 / COMPLETE` with
+`missing_stages=[]`.  This completes the bounded P0.6 audit contract but does
+not claim policy quality or long-horizon stationary behavior.
 
 ## 7. Configuration freeze boundary
 
@@ -362,6 +376,8 @@ logs_eval/base_v23/p0/torque/effort_<rung>/{canonical16,heavy16}/
 logs_eval/base_v23/p0/a2_v23_p0_temporal_records.json
 logs_eval/base_v23/p0/door_external_torque_threshold.json
 logs_eval/base_v23/p0/capability_binding/
+logs_eval/base_v23/p0/reward/stationary_rent_audit.json
+logs_eval/base_v23/p0/reward/stationary_rent_passes/
 logs_eval/base_v23/route_a/seed0/
 logs_eval/base_v23/route_a/seed1/
 logs_eval/base_v23/pooled48/
@@ -414,9 +430,10 @@ high-level APIs (no low-level USD escape hatch).
 
 The R1 implementation stopped after the plan, source reader, P0.2/P0.3/P0.4/P0.5
 and P0.8 pure-data skeletons, reward registry, and non-launchable common config
-were statically parseable.  The later R49/R54 records are evidence-only interim
-calibration adjudication: P0.2, P0.4, the A8 P0.5 certificate, and P0.7 have
-typed evidence; the D1 source, P0.8, P0.9, and P0.10 remain incomplete.  Formal
+were statically parseable.  The later R49/R54/R68/R72 records are evidence-only
+interim calibration adjudication: P0.2, P0.4, the A8 P0.5 certificate, P0.6,
+and P0.7 have typed evidence; the D1 source, P0.8, P0.9, and P0.10 remain
+incomplete.  Formal
 training, formal evaluation, rendering, and final G1–G8 configs remain
 `NOT_RUN/PENDING`, and the formal training gate remains **NO-GO**.
 
@@ -508,8 +525,7 @@ reduced and the exact D1 freeze is written.  The only allowed continuation is th
 bounded D0 preparation DAG:
 
 ```text
-P0.6 continue (rent/audit)
-  -> partial P0.8 A0/D0 state-bank/plumbing work
+partial P0.8 A0/D0 state-bank/plumbing work
   -> conditional D0 P0.9 four-type 64-env × 10-batch smokes
   -> D0 P0.10 FULL pilot
   -> adjudicate the resulting evidence

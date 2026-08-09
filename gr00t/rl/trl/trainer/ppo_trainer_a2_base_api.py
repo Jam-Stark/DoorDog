@@ -75,6 +75,8 @@ _A2_V23_RP0_EFFECTIVE_CONFIG_FILENAME = "a2_v23_p07_effective_config.json"
 _A2_V23_RP0_RUNTIME_MASK_INDICES = (3, 4)
 _A2_V23_RP0_RUNTIME_NEUTRAL = 0.0
 _A2_V23_RP0_RUNTIME_ENVS = 64
+_A2_V23_STATIONARY_RENT_PASS_SCHEMA = "a2_piper_v23_stationary_rent_pass_v1"
+_A2_V23_STATIONARY_RENT_PASS_FILENAME = "a2_v23_stationary_rent_pass.json"
 _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS = (
     "epoch",
     "global_step",
@@ -2077,6 +2079,138 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "strict_m41_telemetry": strict_m41_telemetry,
         "strict_v20_telemetry": strict_v20_telemetry,
     }
+
+
+def _read_a2_v23_stationary_rent_config(eval_config):
+    """Resolve the opt-in one-zero-action v23 stationary-rent pass."""
+
+    enabled = eval_config.get("a2_v23_stationary_rent_export", False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            "eval.a2_v23_stationary_rent_export must be bool; "
+            f"got {enabled!r}."
+        )
+    target_stage = eval_config.get("a2_v23_stationary_rent_target_stage")
+    if enabled and (
+        isinstance(target_stage, bool)
+        or not isinstance(target_stage, int)
+        or target_stage not in range(6)
+    ):
+        raise RuntimeError(
+            "eval.a2_v23_stationary_rent_target_stage must be an integer in 0..5 "
+            f"when stationary-rent export is enabled; got {target_stage!r}."
+        )
+    return {"enabled": enabled, "target_stage": target_stage}
+
+
+def _capture_a2_v23_stationary_rent_records(
+    env,
+    pending,
+    dones,
+    *,
+    target_stage: int,
+):
+    """Consume the dedicated post-reward/pre-reset component clones for one pass."""
+
+    raw_components = env._a2_v23_stationary_rent_last_raw_components
+    scaled_components = env._a2_v23_stationary_rent_last_scaled_components
+    if not isinstance(raw_components, Mapping) or not isinstance(scaled_components, Mapping):
+        raise RuntimeError(
+            "v23 stationary-rent export requires dedicated raw/scaled component mappings."
+        )
+    if set(raw_components) != set(scaled_components) or not raw_components:
+        raise RuntimeError(
+            "v23 stationary-rent export requires exact reward-name coverage; "
+            f"raw={tuple(raw_components)}, scaled={tuple(scaled_components)}."
+        )
+    if any(not isinstance(name, str) or not name for name in raw_components):
+        raise RuntimeError("v23 stationary-rent export requires non-empty string reward names.")
+
+    num_envs = int(env.num_envs)
+    env_device = torch.device(env.device)
+    dones_flat = dones.reshape(-1)
+    if tuple(dones_flat.shape) != (num_envs,):
+        raise RuntimeError(
+            "v23 stationary-rent export requires one done value per environment; "
+            f"got shape={tuple(dones_flat.shape)}."
+        )
+    reward_stage = env._a2_v23_stationary_rent_last_reward_stage
+    if (
+        not torch.is_tensor(reward_stage)
+        or tuple(reward_stage.shape) != (num_envs,)
+        or reward_stage.dtype != torch.long
+        or reward_stage.device != env_device
+    ):
+        raise RuntimeError(
+            "v23 stationary-rent export requires one dedicated pre-reset reward stage per environment; "
+            f"got shape={None if not torch.is_tensor(reward_stage) else tuple(reward_stage.shape)}."
+        )
+
+    for name in raw_components:
+        for value_name, value in (("raw", raw_components[name]), ("scaled", scaled_components[name])):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (num_envs,)
+                or value.dtype != torch.float32
+                or value.device != env_device
+                or not bool(torch.all(torch.isfinite(value)).item())
+            ):
+                shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                dtype = None if not torch.is_tensor(value) else value.dtype
+                device = None if not torch.is_tensor(value) else value.device
+                raise RuntimeError(
+                    f"v23 stationary-rent {value_name} component {name!r} must be "
+                    f"finite float32 shape ({num_envs},) on {env_device}; "
+                    f"got shape={shape}, dtype={dtype}, device={device}."
+                )
+
+    env_ids = pending["env_ids"]
+    pre_stage = pending["pre_stage"]
+    episode_indices = pending["episode_indices"]
+    policy_raw_action = pending["policy_raw_action"]
+    applied_high_level_action = pending["applied_high_level_action"]
+    if not torch.is_tensor(applied_high_level_action) or applied_high_level_action.ndim != 2:
+        raise RuntimeError("v23 stationary-rent pending applied action must be rank-2.")
+    if applied_high_level_action.shape[-1] != 12:
+        raise RuntimeError(
+            "v23 stationary-rent pending applied action must have exactly 12 dimensions; "
+            f"got {applied_high_level_action.shape[-1]}."
+        )
+    if not bool(torch.all(applied_high_level_action == 0.0).item()):
+        raise RuntimeError("v23 stationary-rent pending action is not the exact all-zero 12-D vector.")
+
+    records = []
+    for row_index, env_id_value in enumerate(env_ids.tolist()):
+        env_id = int(env_id_value)
+        episode_index = int(episode_indices[row_index].item())
+        raw_action = policy_raw_action[row_index]
+        applied_action = applied_high_level_action[row_index]
+        reward_raw = {}
+        reward_scaled = {}
+        for name in raw_components:
+            reward_raw[name] = float(raw_components[name][env_id].item())
+            reward_scaled[name] = float(scaled_components[name][env_id].item())
+            if not math.isfinite(reward_raw[name]) or not math.isfinite(reward_scaled[name]):
+                raise RuntimeError(
+                    f"v23 stationary-rent reward scalar {name!r} is non-finite for env {env_id}."
+                )
+        records.append(
+            {
+                "env_id": env_id,
+                "episode_index": episode_index,
+                "episode_id": f"a2-v23-stationary-rent-env{env_id}-episode{episode_index}",
+                "target_stage": int(target_stage),
+                "pre_stage": int(pre_stage[row_index].item()),
+                "post_stage": int(reward_stage[env_id].item()),
+                "policy_raw_action": [float(value) for value in raw_action.tolist()],
+                "applied_high_level_action": [float(value) for value in applied_action.tolist()],
+                "zero_action_verified": True,
+                "done": bool(dones_flat[env_id].item()),
+                "reward_raw": reward_raw,
+                "reward_scaled": reward_scaled,
+            }
+        )
+    return records
 
 
 def _build_a2_eval_first_episode_active_mask(
@@ -5710,6 +5844,36 @@ class TRLPPOTrainer(PPOTrainer):
                 "eval.a2_v23_p05_runtime_export must be bool; "
                 f"got {a2_v23_p05_runtime_export!r}."
             )
+        a2_v23_stationary_rent = _read_a2_v23_stationary_rent_config(
+            self.config.get("eval", {})
+        )
+        if a2_v23_stationary_rent["enabled"]:
+            if not self.use_a2_base or not bool(getattr(self.env, "_use_a2_base", False)):
+                raise RuntimeError(
+                    "eval.a2_v23_stationary_rent_export requires an A2_Base environment."
+                )
+            if self.accelerator.num_processes != 1:
+                raise RuntimeError(
+                    "eval.a2_v23_stationary_rent_export requires single-process evaluation."
+                )
+            if eval_num_envs_episodes is not True:
+                raise RuntimeError(
+                    "eval.a2_v23_stationary_rent_export requires "
+                    "eval.eval_num_envs_episodes=true."
+                )
+            stationary_runtime_enabled = self.env.config.get(
+                "a2_v23_stationary_rent_runtime_enabled", False
+            )
+            if not isinstance(stationary_runtime_enabled, bool) or not stationary_runtime_enabled:
+                raise RuntimeError(
+                    "eval.a2_v23_stationary_rent_export requires "
+                    "env.config.a2_v23_stationary_rent_runtime_enabled=true."
+                )
+            if self.env._a2_v20_r2_evidence_enabled is not False:
+                raise RuntimeError(
+                    "eval.a2_v23_stationary_rent_export requires "
+                    "env.config.a2_v20_R2_evidence_enabled=false."
+                )
         if a2_v23_p05_runtime_export:
             if not getattr(self.env, "_a2_v23_p05_enabled", False):
                 raise RuntimeError(
@@ -5817,6 +5981,17 @@ class TRLPPOTrainer(PPOTrainer):
             self.env.num_envs, dtype=torch.int32, device=self.accelerator.device
         )
         completed_episodes = 0
+        stationary_rent_records: list[dict] = []
+        stationary_rent_pending = None
+        stationary_rent_captured = (
+            torch.zeros(
+                self.env.num_envs,
+                dtype=torch.bool,
+                device=self.accelerator.device,
+            )
+            if a2_v23_stationary_rent["enabled"]
+            else None
+        )
         self.env.render_results(frame_type="initial")
 
         def terminate_rollout():
@@ -5859,6 +6034,14 @@ class TRLPPOTrainer(PPOTrainer):
                                 "A2 eval requires env.get_a2_high_level_action_layout()."
                             )
                         action_layout = get_action_layout()
+                        if (
+                            a2_v23_stationary_rent["enabled"]
+                            and action_layout["dim"] != 12
+                        ):
+                            raise RuntimeError(
+                                "eval.a2_v23_stationary_rent_export requires the canonical 12-D "
+                                f"A2 high-level action layout; got {action_layout['dim']}."
+                            )
                         expected_action_shape = (
                             self.env.num_envs,
                             action_layout["dim"],
@@ -5965,6 +6148,37 @@ class TRLPPOTrainer(PPOTrainer):
                             v23_actor_state["a2_v23_pre_low_level_applied"] = True
                             actor_state.update(v23_actor_state)
 
+                        applied_high_level_action = post_oracle_override_pre_env_action
+                        if a2_v23_stationary_rent["enabled"]:
+                            stationary_target_stage = a2_v23_stationary_rent["target_stage"]
+                            stationary_capture_mask = (
+                                first_episode_active_mask
+                                & ~stationary_rent_captured
+                                & (stage_buf == stationary_target_stage)
+                            )
+                            stationary_env_ids = stationary_capture_mask.nonzero(
+                                as_tuple=False
+                            ).flatten()
+                            if stationary_env_ids.numel() > 0:
+                                applied_high_level_action = (
+                                    post_oracle_override_pre_env_action.clone()
+                                )
+                                applied_high_level_action[stationary_capture_mask] = 0.0
+                                stationary_rent_pending = {
+                                    "env_ids": stationary_env_ids.detach().clone(),
+                                    "pre_stage": stage_buf[stationary_env_ids].detach().clone(),
+                                    "episode_indices": eval_episode_indices[
+                                        stationary_env_ids
+                                    ].detach().clone(),
+                                    "policy_raw_action": action_mean[
+                                        stationary_env_ids
+                                    ].detach().clone(),
+                                    "applied_high_level_action": applied_high_level_action[
+                                        stationary_env_ids
+                                    ].detach().clone(),
+                                }
+                                stationary_rent_captured[stationary_env_ids] = True
+
                         if a2_eval_diagnostics["diagnostic_enabled"]:
                             set_diagnostic_actions = getattr(
                                 self.env, "set_a2_eval_diagnostic_actions", None
@@ -5985,10 +6199,10 @@ class TRLPPOTrainer(PPOTrainer):
                             )
 
                         a2_actions = model._a2_base_actions(
-                            obs_dict, post_oracle_override_pre_env_action
+                            obs_dict, applied_high_level_action
                         )
                         step_actions = torch.cat(
-                            [post_oracle_override_pre_env_action, a2_actions], dim=-1
+                            [applied_high_level_action, a2_actions], dim=-1
                         )
                     else:
                         homie_obs = obs_dict["homie_obs"]
@@ -6012,6 +6226,17 @@ class TRLPPOTrainer(PPOTrainer):
                     actor_state["actions"] = step_actions
 
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
+
+                    if stationary_rent_pending is not None:
+                        stationary_rent_records.extend(
+                            _capture_a2_v23_stationary_rent_records(
+                                self.env,
+                                stationary_rent_pending,
+                                dones,
+                                target_stage=a2_v23_stationary_rent["target_stage"],
+                            )
+                        )
+                        stationary_rent_pending = None
 
                     if a2_v23_p05_runtime_export:
                         apply_p05_latch = getattr(
@@ -6304,6 +6529,40 @@ class TRLPPOTrainer(PPOTrainer):
 
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if a2_v23_stationary_rent["enabled"]:
+            stationary_payload = {
+                "schema": _A2_V23_STATIONARY_RENT_PASS_SCHEMA,
+                "status": (
+                    "COMPLETE" if stationary_rent_records else "INCOMPLETE_MISSING_STAGE"
+                ),
+                "target_stage": int(a2_v23_stationary_rent["target_stage"]),
+                "forward_only": True,
+                "state_clone_supported": False,
+                "checkpoint_load_mode": self.checkpoint_load_mode,
+                "num_envs": int(self.env.num_envs),
+                "reward_semantics": {
+                    "raw": "reward-function output",
+                    "scaled": (
+                        "raw * configured scale in this project custom engine; "
+                        "no IsaacLab manager dt factor"
+                    ),
+                },
+                "records": stationary_rent_records,
+            }
+            stationary_path = os.path.join(
+                eval_output_dir, _A2_V23_STATIONARY_RENT_PASS_FILENAME
+            )
+            stationary_tmp_path = f"{stationary_path}.tmp"
+            with open(stationary_tmp_path, "w", encoding="utf-8") as stationary_stream:
+                json.dump(
+                    _make_json_safe(stationary_payload, path="a2_v23_stationary_rent_pass"),
+                    stationary_stream,
+                    indent=4,
+                    allow_nan=False,
+                )
+            os.replace(stationary_tmp_path, stationary_path)
+            logger.info(f"Saved v23 stationary-rent pass to {stationary_path}")
 
         if a2_v23_p0_runtime_export:
             env_config = getattr(self.env, "config", None)

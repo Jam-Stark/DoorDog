@@ -1,0 +1,102 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v22_G1_posture_seed0
+  - /rewards: wbmanip/reward_door_open_a2_v23
+  - _self_
+
+# P0.6 contract-only warm FULL/D0 eval overlay.  This is not a formal launch,
+# D1 admission, or training configuration.
+v23_schema: a2_piper_base_v23_p06_stationary_rent_contract_v1
+v23_plan_id: base_v23_force_feasibility_initialization_posture_R1
+v23_config_state: P0_6_CONTRACT_ONLY
+v23_formal_launchable: false
+v23_contract_only: true
+v23_cell: G1
+v23_seed: 0
+v23_initialization: v22_warm
+v23_door_regime: D0
+v23_posture_mode: FULL
+v23_effort_profile_nm: 40.0
+v23_effort_profile_source: P0_2_MEASURED_FREEZE
+v23_reward_registry_source: gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v23.yaml
+v23_common_reward_state: P0_6_REWARD_REGISTRY_SELECTED
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 16
+num_gpus: 1
+multi_gpu: false
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    rp0_enabled: false
+    eval:
+      eval_num_envs_episodes: true
+      num_eval_episodes: 16
+      a2_v23_p06_policy_only: true
+      a2_v23_stationary_rent_export: false
+      a2_v23_stationary_rent_target_stage: null
+      a2_v23_p0_runtime_export: false
+      a2_v23_p05_runtime_export: false
+      a2_diagnostic_trace_enabled: false
+      a2_eval_m41_strict_telemetry: false
+      a2_eval_v20_strict_telemetry: false
+      dump_to_log_metrics: false
+  trl:
+    num_total_batches: 10
+
+callbacks:
+  model_save:
+    save_frequency: 10
+
+env:
+  config:
+    a2_v20_R2_evidence_enabled: false
+    a2_v23_formal_launch: false
+    a2_v23_stationary_rent_runtime_enabled: false
+    a2_v23_effort_profile_nm: 40.0
+    a2_v23_effort_profile_source: P0_2_MEASURED_FREEZE
+    a2_v23_effort_profile_applied: robot.dof_effort_limit_list
+    a2_v23_rp0_enabled: false
+    a2_v23_rp0_mask_indices: [3, 4]
+    a2_v23_rp0_neutral_value: 0.0
+    # Exact measured v22 bootstrap values used by the verified P0.7 D0 spine.
+    a2_v22_nominal_heights_m: [0.85, 0.866667, 0.883333, 0.933333, 0.95, 0.966667, 0.983333, 1.0, 1.03333, 1.05, 1.06667, 1.08333, 1.1]
+    a2_v22_nominal_pitch_rad: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    a2_v22_nominal_roll_rad: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    a2_v22_directional_wrench_threshold_n: 209.919
+    a2_v22_arm_tracking_error_p90: 2.25529
+    a2_v22_workspace_margin_threshold: 0.15
+
+robot:
+  # The six Piper arm limits carry the frozen 40.0 N*m profile; legs and
+  # gripper retain the measured v22 order and limits.
+  dof_effort_limit_list: [120.0, 120.0, 180.0, 120.0, 120.0, 180.0, 120.0, 120.0, 180.0, 120.0, 120.0, 180.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 45.0, 45.0]
+
+stationary_rent_audit:
+  enabled: false
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_scales:
+    # v22 posture L1 and the three retired v22 registry terms are explicitly
+    # zeroed because nested v22 keys survive the reward-group merge.
+    penalty_a2_posture_command_l1: 0.0
+    penalty_a2_v22_excess_posture: 0.0
+    a2_v22_posture_feasibility: 0.0
+    penalty_a2_v22_posture_saturation: 0.0
+    # Retained v22 clearance/fling/unsafe-release terms remain exact.
+    a2_v22_clearance_success: 4.0
+    a2_v22_controlled_fling: 2.0
+    penalty_a2_v22_unsafe_release: -8.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false

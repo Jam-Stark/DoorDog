@@ -3,6 +3,7 @@
 
 
 from collections import deque
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 import hashlib
@@ -13,6 +14,7 @@ import subprocess
 from pathlib import Path
 import tempfile
 from typing import Dict, Optional
+from numbers import Real
 
 import numpy as np
 import pandas as pd
@@ -65,6 +67,45 @@ _V21B_COVERAGE_METRICS = frozenset((
 ))
 _V21B_MATERIALIZATION_PHASES = frozenset(("POST_CENSUS", "FORMAL_PROMOTED"))
 _V21B_MISSING_CONFIG = object()
+
+_A2_V23_RP0_RUNTIME_RECEIPT_SCHEMA = "a2_piper_v23_p07_rp0_runtime_receipt_v1"
+_A2_V23_RP0_RUNTIME_RECEIPT_FILENAME = "a2_v23_p07_runtime_receipt.json"
+_A2_V23_RP0_EFFECTIVE_CONFIG_SCHEMA = "a2_piper_v23_p07_effective_config_v1"
+_A2_V23_RP0_EFFECTIVE_CONFIG_FILENAME = "a2_v23_p07_effective_config.json"
+_A2_V23_RP0_RUNTIME_MASK_INDICES = (3, 4)
+_A2_V23_RP0_RUNTIME_NEUTRAL = 0.0
+_A2_V23_RP0_RUNTIME_ENVS = 64
+_A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS = (
+    "epoch",
+    "global_step",
+    "max_steps",
+    "logging_steps",
+    "eval_steps",
+    "save_steps",
+    "train_batch_size",
+    "num_train_epochs",
+    "num_input_tokens_seen",
+    "total_flos",
+    "best_metric",
+    "best_global_step",
+    "best_model_checkpoint",
+    "is_local_process_zero",
+    "is_world_process_zero",
+    "is_hyper_param_search",
+    "trial_name",
+    "trial_params",
+    "stateful_callbacks",
+    "episode",
+    "rewbuffer",
+    "lenbuffer",
+    "cur_reward_sum",
+    "cur_episode_length",
+    "tot_timesteps",
+    "tot_time",
+    "eval_step",
+    "eval_render_step",
+)
+_A2_V23_FULL_ENV_RESET_STATE_FIELDS = frozenset(("cur_reward_sum", "cur_episode_length"))
 
 
 def _v21b_scalar(value, *, key: str):
@@ -1793,6 +1834,153 @@ def _make_json_safe(value, path="root"):
     raise TypeError(f"Unsupported eval metrics value type at {path}: {type(value).__name__}")
 
 
+def _a2_v23_p0_metric_vector(record: Mapping, field: str) -> list[float] | None:
+    """Read one six-joint v23 metric without replacing missing values."""
+
+    value = record.get(field)
+    if isinstance(value, Mapping):
+        if value.get("status") == "N/A":
+            return None
+        raise RuntimeError(f"v23 P0 terminal metric {field} has an invalid typed value.")
+    if not isinstance(value, (list, tuple)) or len(value) != 6:
+        raise RuntimeError(f"v23 P0 terminal metric {field} requires six arm-joint values.")
+    result = [float(item) for item in value]
+    if any(not math.isfinite(item) for item in result):
+        raise RuntimeError(f"v23 P0 terminal metric {field} contains a non-finite value.")
+    return result
+
+
+def _build_a2_v23_p0_export_payload(
+    records: list[Mapping], *, effort_nm: float
+) -> tuple[dict, dict]:
+    """Build terminal records and one effort-ladder-compatible observation.
+
+    The aggregate is explicitly the maximum over terminal environments and six
+    arm joints.  Historical records are not synthesized and a missing metric is
+    represented by ``PENDING`` in the pure-data observation while each terminal
+    record retains its typed N/A value.
+    """
+
+    if isinstance(effort_nm, bool) or not isinstance(effort_nm, (int, float)):
+        raise RuntimeError("v23 P0 export requires a numeric env.config.a2_v23_effort_profile_nm.")
+    effort_value = float(effort_nm)
+    if not math.isfinite(effort_value) or effort_value <= 0.0:
+        raise RuntimeError("v23 P0 export effort profile must be finite and strictly positive.")
+    if not records:
+        raise RuntimeError("v23 P0 export requires at least one terminal episode record.")
+
+    valid_rows: list[dict[str, list[float]]] = []
+    for index, record in enumerate(records):
+        if not isinstance(record, Mapping):
+            raise RuntimeError(f"v23 P0 terminal record {index} is not a mapping.")
+        if record.get("evidence_state") != "TERMINAL_SNAPSHOT":
+            raise RuntimeError(
+                f"v23 P0 terminal record {index} was not captured as TERMINAL_SNAPSHOT."
+            )
+        valid_frame_count = record.get("valid_frame_count")
+        if isinstance(valid_frame_count, bool) or not isinstance(valid_frame_count, int) or valid_frame_count < 0:
+            raise RuntimeError(f"v23 P0 terminal record {index} has invalid valid_frame_count.")
+        if valid_frame_count == 0:
+            continue
+        row = {
+            "nominal": _a2_v23_p0_metric_vector(record, "nominal_pd_torque_abs_max"),
+            "clipped": _a2_v23_p0_metric_vector(record, "clipped_command_torque_abs_max"),
+            "tracking": _a2_v23_p0_metric_vector(record, "arm_joint_position_error_abs_max_6d"),
+        }
+        if any(value is None for value in row.values()):
+            raise RuntimeError(
+                f"v23 P0 terminal record {index} has valid frames but a typed-missing metric."
+            )
+        valid_rows.append({
+            "nominal": row["nominal"],
+            "clipped": row["clipped"],
+            "tracking": row["tracking"],
+        })
+
+    if valid_rows:
+        nominal = max(value for row in valid_rows for value in row["nominal"])
+        clipped = max(value for row in valid_rows for value in row["clipped"])
+        tracking = max(value for row in valid_rows for value in row["tracking"])
+        aggregate_status = "OBSERVED"
+    else:
+        nominal = clipped = tracking = "PENDING"
+        aggregate_status = "N/A_NO_VALID_TORQUE_TELEMETRY"
+
+    observation = {
+        "effort_nm": effort_value,
+        "status": aggregate_status,
+        "decision_flags": {
+            "meaningful_clipped_saturation": "PENDING",
+            "e0_not_collapsed": "PENDING",
+            "heavy_door_deteriorates_first": "PENDING",
+            "pd_oscillation_absent": "PENDING",
+        },
+        "nominal_clipped_tracking": {
+            "nominal_pd_torque": nominal,
+            "clipped_command_torque": clipped,
+            "tracking_error": tracking,
+            "authority": "ESTIMATE_ONLY; max_over_terminal_envs_and_arm_joints",
+        },
+        "aggregation": {
+            "operator": "max",
+            "scope": "terminal_envs_and_six_arm_joints",
+            "tracking_error_formula": "v21B: joint_pos_target - joint_pos",
+        },
+        "missing_metric_state": (
+            {"status": "N/A", "reason": "NO_VALID_TORQUE_TELEMETRY", "denominator": 0}
+            if not valid_rows
+            else None
+        ),
+    }
+    records_payload = {
+        "schema": "a2_piper_base_v23_p0_torque_terminal_records_v1",
+        "effort_nm": effort_value,
+        "terminal_identity_contract": {
+            "fields": ["env_id", "episode_index", "episode_id"],
+            "episode_id_authority": "EVALUATOR_ASSIGNED_ENV_EPISODE_ID",
+        },
+        "tracking_error_contract": {
+            "formula": "v21B: joint_pos_target - joint_pos",
+            "position_error_field": "arm_joint_position_error_6d",
+            "velocity_field": "arm_joint_velocity_6d",
+            "aggregation": "per-joint mean/max over valid terminal frames",
+        },
+        "records": list(records),
+    }
+    raw_temporal_records = []
+    for index, record in enumerate(records):
+        temporal = record.get("temporal_episode") if isinstance(record, Mapping) else None
+        if temporal is not None:
+            if not isinstance(temporal, Mapping):
+                raise RuntimeError(f"v23 P0 terminal record {index}.temporal_episode must be a mapping.")
+            if temporal.get("schema") != "a2_piper_base_v23_p0_temporal_episode_v1":
+                raise RuntimeError(f"v23 P0 terminal record {index}.temporal_episode schema is not registered.")
+            provenance = temporal.get("source_provenance")
+            required_provenance = (
+                "checkpoint", "config", "scenario", "topology", "seed", "plain_prefix_id",
+                "env_id", "episode_index", "episode_id", "effort_nm",
+            )
+            if not isinstance(provenance, Mapping) or any(key not in provenance for key in required_provenance):
+                raise RuntimeError(f"v23 P0 terminal record {index}.temporal_episode lacks strict source provenance.")
+            raw_temporal_records.append(dict(temporal))
+    records_payload["temporal_records"] = {
+        "schema": "a2_piper_base_v23_p0_temporal_records_v1",
+        "temporary_label": "A0_CANONICAL16_P0_REFERENCE",
+        "records": raw_temporal_records,
+        "status": "RAW_TEMPORAL_PRESERVED" if raw_temporal_records else "PENDING_NO_RAW_TEMPORAL_RECORDS",
+        "aggregate_fallback": False,
+    }
+    aggregate_payload = {
+        "schema": "a2_piper_base_v23_p0_effort_observations_v1",
+        "rows": [observation],
+        "rungs": [observation],
+        "registered_rung_observation": observation,
+        "source": "a2_v23_terminal_snapshot",
+        "prior_evidence": "historical_v21B_material_is_prior_only",
+    }
+    return records_payload, aggregate_payload
+
+
 def _read_a2_eval_diagnostic_config(eval_config):
     p2_posture_axis = _read_a2_eval_p2_posture_axis(eval_config)
     strict_m41_telemetry = eval_config.get(_A2_EVAL_M41_STRICT_TELEMETRY_KEY, False)
@@ -2179,6 +2367,9 @@ class PolicyAndValueWrapper(nn.Module):
                     "action_std": torch.cat([self.policy.action_std, a2_sigma], dim=-1),
                     "entropy": self.policy.entropy,
                 }
+                action_mask = getattr(self.policy, "rp0_action_mask", None)
+                if action_mask is not None:
+                    results["action_mask"] = action_mask
                 return results
             homie_obs = kwargs["obs_dict"]["homie_obs"]
             stand_homie_obs = homie_obs.clone()
@@ -2243,6 +2434,21 @@ class PolicyAndValueWrapper(nn.Module):
                 "action_std": torch.cat([self.policy.action_std, homie_sigma], dim=-1),
                 "entropy": entropy,
             }
+            action_mask = getattr(self.policy, "rp0_action_mask", None)
+            if action_mask is not None:
+                if self.opt_homie:
+                    action_mask = torch.cat(
+                        [
+                            action_mask,
+                            torch.ones(
+                                homie_mean.shape[-1],
+                                dtype=torch.bool,
+                                device=action_mask.device,
+                            ),
+                        ],
+                        dim=0,
+                    )
+                results["action_mask"] = action_mask
         elif mode == "policy_distill":
             results = self.policy.act(**kwargs)
         elif mode == "policy_distill_ppo":
@@ -2255,6 +2461,9 @@ class PolicyAndValueWrapper(nn.Module):
                 "action_std": policy_state_dict["action_sigma"],
                 "entropy": self.policy.entropy,
             }
+            action_mask = getattr(self.policy, "rp0_action_mask", None)
+            if action_mask is not None:
+                results["action_mask"] = action_mask
             if "normalized_actions" in policy_state_dict:
                 results["normalized_actions"] = policy_state_dict["normalized_actions"]
         elif mode == "policy_w_and_wo_imgaug":
@@ -2270,6 +2479,9 @@ class PolicyAndValueWrapper(nn.Module):
                 "action_std": policy_state_dict["action_sigma"],
                 "entropy": self.policy.entropy,
             }
+            action_mask = getattr(self.policy, "rp0_action_mask", None)
+            if action_mask is not None:
+                results["action_mask"] = action_mask
 
             # The second forward is with image augmentation
             self.policy.transform_train()
@@ -2456,14 +2668,41 @@ class TRLPPOTrainer(PPOTrainer):
         self._init_config()
         self._setup_storage()
 
+        self._a2_v23_runtime_receipt_enabled = False
+        self._a2_v23_runtime_receipt_config = None
+        self._a2_v23_runtime_load_facts = {
+            "load_mode": self.checkpoint_load_mode,
+            "actor": {"loaded": False, "state_key": None, "strict": False},
+            "value": {"loaded": False, "state_key": None, "strict": False},
+            "optimizer": {"loaded": False, "state_key": None},
+            "scheduler": {"loaded": False, "state_key": None},
+            "trainer": {"loaded": False, "state_key": None},
+            "environment": {"loaded": False, "state_key": None},
+        }
+        self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)
+        self._a2_v23_runtime_masked_stats = {
+            "actions": {"max_abs": [0.0, 0.0], "sample_count": 0},
+            "action_mean": {"max_abs": [0.0, 0.0], "sample_count": 0},
+        }
+        self._a2_v23_runtime_invocation_start_global_step = None
+        self._a2_v23_runtime_invocation_end_global_step = None
+        self._a2_v23_runtime_terminal_batch_completed = False
+
         # Initialize trajectory counter for recurrent policy training
         self._current_first_traj = 0
+
+        self._a2_v23_runtime_receipt_config = self._resolve_a2_v23_runtime_receipt_config()
+        self._a2_v23_runtime_receipt_enabled = (
+            self._a2_v23_runtime_receipt_config is not None
+        )
 
         if checkpoint is not None:
             if self.checkpoint_load_mode == "full":
                 self.load_checkpoint(checkpoint)
             else:
                 self.load_policy_checkpoint(checkpoint)
+
+        self._write_a2_v23_effective_config()
 
     def write_r2_training_metric(self, row, output_path):
         """Append one finite, source-bound lightweight training metric row."""
@@ -3269,6 +3508,467 @@ class TRLPPOTrainer(PPOTrainer):
         self.imgaug_bc_loss_coef = self.config.get("imgaug_bc_loss_coef", 1.0)
         self.imgaug_bc_loss_fn = torch.nn.MSELoss()
 
+    @staticmethod
+    def _a2_v23_runtime_bool(value, *, name: str) -> bool:
+        if not isinstance(value, bool):
+            raise RuntimeError(f"{name} must be bool; got {value!r}.")
+        return value
+
+    @staticmethod
+    def _a2_v23_runtime_indices(value, *, name: str) -> list[int]:
+        if isinstance(value, (str, bytes)) or not isinstance(value, (list, tuple, ListConfig)):
+            raise RuntimeError(f"{name} must be a list of integer action indices; got {value!r}.")
+        values = list(value)
+        if any(isinstance(item, bool) or not isinstance(item, int) for item in values):
+            raise RuntimeError(f"{name} must contain only integer action indices; got {value!r}.")
+        return values
+
+    def _resolve_a2_v23_runtime_receipt_config(self):
+        """Resolve the opt-in P0.7 receipt contract without changing default training."""
+
+        eval_config = self.config.get("eval", {})
+        if not isinstance(eval_config, (Mapping, dict, ListConfig)):
+            raise RuntimeError("algo.config.eval must be a mapping when present.")
+        enabled = eval_config.get("a2_v23_p0_runtime_receipt", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "algo.config.eval.a2_v23_p0_runtime_receipt must be bool; "
+                f"got {enabled!r}."
+            )
+        if not enabled:
+            return None
+
+        mode = eval_config.get("a2_v23_p0_runtime_mode")
+        if mode not in {"RP0", "FULL"}:
+            raise RuntimeError(
+                "algo.config.eval.a2_v23_p0_runtime_mode must be exactly 'RP0' or 'FULL' "
+                f"when the receipt is enabled; got {mode!r}."
+            )
+        rp0_enabled = self._a2_v23_runtime_bool(
+            self.config.get("rp0_enabled"), name="algo.config.rp0_enabled"
+        )
+        expected_enabled = mode == "RP0"
+        if rp0_enabled != expected_enabled:
+            raise RuntimeError(
+                "v23 P0.7 runtime mode disagrees with algo.config.rp0_enabled: "
+                f"mode={mode!r}, rp0_enabled={rp0_enabled!r}."
+            )
+
+        indices = self._a2_v23_runtime_indices(
+            self.config.get("rp0_mask_indices"), name="algo.config.rp0_mask_indices"
+        )
+        if indices != list(_A2_V23_RP0_RUNTIME_MASK_INDICES):
+            raise RuntimeError(
+                "v23 P0.7 runtime requires algo.config.rp0_mask_indices=[3,4]; "
+                f"got {indices!r}."
+            )
+        neutral = self.config.get("rp0_neutral_value")
+        if isinstance(neutral, bool) or not isinstance(neutral, (int, float)):
+            raise RuntimeError(
+                "algo.config.rp0_neutral_value must be numeric when the receipt is enabled; "
+                f"got {neutral!r}."
+            )
+        neutral = float(neutral)
+        if not math.isfinite(neutral) or neutral != _A2_V23_RP0_RUNTIME_NEUTRAL:
+            raise RuntimeError(
+                "v23 P0.7 runtime requires algo.config.rp0_neutral_value=0.0; "
+                f"got {neutral!r}."
+            )
+
+        env_config = self.env.config
+        env_enabled = self._a2_v23_runtime_bool(
+            env_config.get("a2_v23_rp0_enabled"),
+            name="env.config.a2_v23_rp0_enabled",
+        )
+        if env_enabled != rp0_enabled:
+            raise RuntimeError(
+                "v23 P0.7 runtime env/algo RP0 enable flags disagree: "
+                f"env={env_enabled!r}, algo={rp0_enabled!r}."
+            )
+        env_indices = self._a2_v23_runtime_indices(
+            env_config.get("a2_v23_rp0_mask_indices"),
+            name="env.config.a2_v23_rp0_mask_indices",
+        )
+        if env_indices != indices:
+            raise RuntimeError(
+                "v23 P0.7 runtime env/algo RP0 mask indices disagree: "
+                f"env={env_indices!r}, algo={indices!r}."
+            )
+        env_neutral = env_config.get("a2_v23_rp0_neutral_value")
+        if isinstance(env_neutral, bool) or not isinstance(env_neutral, (int, float)):
+            raise RuntimeError(
+                "env.config.a2_v23_rp0_neutral_value must be numeric when the receipt is enabled; "
+                f"got {env_neutral!r}."
+            )
+        if float(env_neutral) != neutral:
+            raise RuntimeError(
+                "v23 P0.7 runtime env/algo RP0 neutral values disagree: "
+                f"env={env_neutral!r}, algo={neutral!r}."
+            )
+        if int(self.env.num_envs) != _A2_V23_RP0_RUNTIME_ENVS:
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires exactly 64 environments; "
+                f"got {self.env.num_envs!r}."
+            )
+
+        if int(self.accelerator.num_processes) != 1:
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt is a canonical single-rank contract; "
+                f"got world_size={self.accelerator.num_processes}."
+            )
+        physical_gpu_count = int(torch.cuda.device_count())
+        if physical_gpu_count != 1:
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires exactly one visible physical GPU; "
+                f"got physical_gpu_count={physical_gpu_count}."
+            )
+        workflow = self.workflow_config
+        if workflow is None:
+            raise RuntimeError("v23 P0.7 runtime receipt requires the resolved workflow config.")
+        workflow_num_gpus = workflow.get("num_gpus")
+        if workflow_num_gpus != 1:
+            raise RuntimeError(
+                "v23 P0.7 runtime workflow config must declare num_gpus=1; "
+                f"got {workflow_num_gpus!r}."
+            )
+        if workflow.get("multi_gpu") is not False:
+            raise RuntimeError("v23 P0.7 runtime workflow config must declare multi_gpu=false.")
+        workflow_num_envs = workflow.get("num_envs")
+        if workflow_num_envs != _A2_V23_RP0_RUNTIME_ENVS:
+            raise RuntimeError(
+                "v23 P0.7 runtime workflow config must resolve num_envs=64; "
+                f"got {workflow_num_envs!r}."
+            )
+        workflow_load_mode = workflow.get("checkpoint_load_mode")
+        expected_load_mode = "policy_only" if mode == "RP0" else "full"
+        if workflow_load_mode != expected_load_mode or self.checkpoint_load_mode != expected_load_mode:
+            raise RuntimeError(
+                "v23 P0.7 runtime checkpoint load mode mismatch: "
+                f"workflow={workflow_load_mode!r}, trainer={self.checkpoint_load_mode!r}, "
+                f"expected={expected_load_mode!r}."
+            )
+        if workflow.get("auto_load_latest") is not False:
+            raise RuntimeError("v23 P0.7 runtime requires auto_load_latest=false.")
+        if self.checkpoint_path is None or not Path(self.checkpoint_path).is_file():
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires an existing explicit input checkpoint."
+            )
+        expected_initial_step10_path = None
+        if mode == "FULL":
+            expected_raw = workflow.get("expected_initial_step10_checkpoint_path")
+            if not isinstance(expected_raw, str) or not expected_raw:
+                raise RuntimeError(
+                    "v23 P0.7 FULL runtime requires an explicit expected_initial_step10_checkpoint_path."
+                )
+            expected_path = Path(expected_raw).expanduser()
+            if not expected_path.is_absolute():
+                raise RuntimeError(
+                    "v23 P0.7 FULL expected_initial_step10_checkpoint_path must be absolute."
+                )
+            if expected_path.is_symlink() or not expected_path.is_file():
+                raise RuntimeError(
+                    "v23 P0.7 FULL expected_initial_step10_checkpoint_path must be an existing regular file: "
+                    f"{expected_path}"
+                )
+            expected_path = expected_path.resolve()
+            actual_path = Path(self.checkpoint_path).expanduser().resolve()
+            if actual_path != expected_path:
+                raise RuntimeError(
+                    "v23 P0.7 FULL checkpoint path does not exactly match the expected RP0 step10 path: "
+                    f"actual={actual_path}, expected={expected_path}."
+                )
+            if expected_path.name != "model_step_000010.pt":
+                raise RuntimeError(
+                    "v23 P0.7 FULL expected_initial_step10_checkpoint_path must name model_step_000010.pt; "
+                    f"got {expected_path.name!r}."
+                )
+            expected_initial_step10_path = str(expected_path)
+        elif workflow.get("expected_initial_step10_checkpoint_path") is not None:
+            raise RuntimeError(
+                "v23 P0.7 RP0 runtime must leave FULL-only expected_initial_step10_checkpoint_path unset."
+            )
+
+        effort_nm = env_config.get("a2_v23_effort_profile_nm")
+        if isinstance(effort_nm, bool) or not isinstance(effort_nm, (int, float)) or float(effort_nm) != 100.0:
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires contract-only arm effort 100.0 Nm; "
+                f"got {effort_nm!r}."
+            )
+        effort_source = env_config.get("a2_v23_effort_profile_source")
+        if effort_source != "P0_CONTRACT_ONLY_NOT_V23_FREEZE":
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires the contract-only effort provenance; "
+                f"got {effort_source!r}."
+            )
+
+        callback_matches = [
+            callback
+            for callback in self.callbacks
+            if hasattr(callback, "save_frequency") and hasattr(callback, "save_dir")
+        ]
+        if len(callback_matches) != 1:
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires exactly one model-save callback with "
+                f"save_frequency/save_dir; found {len(callback_matches)}."
+            )
+        callback = callback_matches[0]
+        save_frequency = callback.save_frequency
+        if isinstance(save_frequency, bool) or not isinstance(save_frequency, int):
+            raise RuntimeError(
+                "v23 P0.7 runtime model-save callback frequency must be an integer; "
+                f"got {save_frequency!r}."
+            )
+        expected_frequency = 10 if mode == "RP0" else 1
+        if save_frequency != expected_frequency:
+            raise RuntimeError(
+                "v23 P0.7 runtime model-save frequency mismatch: "
+                f"got {save_frequency}, expected {expected_frequency} for {mode}."
+            )
+        save_dir = Path(str(callback.save_dir)).expanduser().resolve()
+        output_dir = Path(str(self.args.output_dir)).expanduser().resolve()
+        if save_dir != output_dir:
+            raise RuntimeError(
+                "v23 P0.7 runtime checkpoint directory must equal the invocation output directory: "
+                f"save_dir={save_dir}, output_dir={output_dir}."
+            )
+        expected_batches = 10 if mode == "RP0" else 1
+        if int(self.args.num_total_batches) != expected_batches:
+            raise RuntimeError(
+                "v23 P0.7 runtime invocation batch mismatch: "
+                f"got {self.args.num_total_batches}, expected {expected_batches} for {mode}."
+            )
+        input_name = Path(self.checkpoint_path).name
+        expected_input_name = "model_step_001250.pt" if mode == "RP0" else "model_step_000010.pt"
+        if input_name != expected_input_name:
+            raise RuntimeError(
+                "v23 P0.7 runtime input checkpoint name mismatch: "
+                f"got {input_name!r}, expected {expected_input_name!r}."
+            )
+
+        return {
+            "schema": _A2_V23_RP0_RUNTIME_RECEIPT_SCHEMA,
+            "mode": mode,
+            "rp0_enabled": rp0_enabled,
+            "mask_indices": indices,
+            "neutral_value": neutral,
+            "env_count": int(self.env.num_envs),
+            "checkpoint_load_mode": expected_load_mode,
+            "invocation_batches": expected_batches,
+            "save_frequency": expected_frequency,
+            "input_checkpoint_path": str(Path(self.checkpoint_path).resolve()),
+            "expected_initial_step10_checkpoint_path": expected_initial_step10_path,
+            "output_dir": str(output_dir),
+            "effort_profile_nm": float(effort_nm),
+            "effort_profile_source": effort_source,
+        }
+
+    def _write_a2_v23_effective_config(self) -> None:
+        if not self._a2_v23_runtime_receipt_enabled:
+            return
+        if not self.accelerator.is_main_process:
+            raise RuntimeError("v23 P0.7 canonical config writing requires the sole rank to be main.")
+        config = self._a2_v23_runtime_receipt_config
+        if config is None:
+            raise RuntimeError("v23 P0.7 effective config requires resolved receipt config.")
+        run_dir = Path(config["output_dir"])
+        effective_path = run_dir / _A2_V23_RP0_EFFECTIVE_CONFIG_FILENAME
+        if effective_path.is_symlink() or effective_path.exists():
+            raise RuntimeError(
+                "v23 P0.7 effective config path must be a new canonical sibling: "
+                f"{effective_path}"
+            )
+        expected_start = 0 if config["mode"] == "RP0" else 10
+        expected_end = 10 if config["mode"] == "RP0" else 11
+        payload = {
+            "schema": _A2_V23_RP0_EFFECTIVE_CONFIG_SCHEMA,
+            "status": "EFFECTIVE_CONFIG_VERIFIED",
+            "canonical_run_dir": str(run_dir.resolve()),
+            "physical_gpu_count": 1,
+            "world_size": 1,
+            "mode": config["mode"],
+            "rp0_enabled": config["rp0_enabled"],
+            "mask_indices": list(config["mask_indices"]),
+            "neutral_value": config["neutral_value"],
+            "env_count": config["env_count"],
+            "invocation_batches": config["invocation_batches"],
+            "save_frequency": config["save_frequency"],
+            "input_checkpoint_path": config["input_checkpoint_path"],
+            "checkpoint_load_mode": config["checkpoint_load_mode"],
+            "auto_load_latest": False,
+            "expected_initial_step10_checkpoint_path": config[
+                "expected_initial_step10_checkpoint_path"
+            ],
+            "effort_profile_nm": config["effort_profile_nm"],
+            "effort_profile_source": config["effort_profile_source"],
+            "expected_start_global_step": expected_start,
+            "expected_end_global_step": expected_end,
+            "expected_output_checkpoint_path": str(
+                (run_dir / f"model_step_{expected_end:06d}.pt").resolve()
+            ),
+            "launcher_config_path": str((run_dir / "config.yaml").resolve()),
+        }
+        run_dir.mkdir(parents=True, exist_ok=True)
+        with effective_path.open("x", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        config["effective_config_path"] = str(effective_path.resolve())
+
+    def _a2_v23_runtime_mask_vector(self) -> list[bool]:
+        policy = self.policy_model
+        mask = getattr(policy, "rp0_action_mask", None)
+        if not isinstance(mask, torch.Tensor) or mask.ndim != 1:
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires the actor's reconstructed rp0_action_mask."
+            )
+        if mask.numel() < max(_A2_V23_RP0_RUNTIME_MASK_INDICES) + 1:
+            raise RuntimeError("v23 P0.7 runtime actor mask is shorter than raw posture indices [3,4].")
+        return [bool(value) for value in mask.detach().cpu().tolist()]
+
+    def _a2_v23_record_masked_rollout_stats(self) -> None:
+        if not self._a2_v23_runtime_receipt_enabled:
+            return
+        indices = list(_A2_V23_RP0_RUNTIME_MASK_INDICES)
+        for field in ("actions", "action_mean"):
+            values = self.storage.query_key(field)
+            if values.ndim != 3 or values.shape[-1] <= max(indices):
+                raise RuntimeError(
+                    f"v23 P0.7 runtime {field} rollout tensor must be [steps,envs,actions] "
+                    f"with raw indices [3,4]; got shape={tuple(values.shape)}."
+                )
+            selected = values[..., indices].detach().abs().reshape(-1, len(indices))
+            local_max = selected.amax(dim=0)
+            gathered = self.accelerator.gather_for_metrics(local_max)
+            if gathered.numel() % len(indices) != 0:
+                raise RuntimeError("v23 P0.7 runtime gathered masked statistics have an invalid shape.")
+            global_max = gathered.reshape(-1, len(indices)).amax(dim=0).cpu().tolist()
+            previous = self._a2_v23_runtime_masked_stats[field]["max_abs"]
+            self._a2_v23_runtime_masked_stats[field]["max_abs"] = [
+                max(float(previous[index]), float(global_max[index]))
+                for index in range(len(indices))
+            ]
+            sample_count = int(selected.shape[0]) * int(self.accelerator.num_processes)
+            self._a2_v23_runtime_masked_stats[field]["sample_count"] += sample_count
+
+    def _a2_v23_runtime_output_checkpoint(self) -> Path:
+        if self._a2_v23_runtime_receipt_config is None:
+            raise RuntimeError("v23 P0.7 runtime receipt config was not resolved.")
+        end_step = self._a2_v23_runtime_invocation_end_global_step
+        if end_step is None:
+            raise RuntimeError("v23 P0.7 runtime receipt has no terminal global step.")
+        expected_step = 10 if self._a2_v23_runtime_receipt_config["mode"] == "RP0" else 11
+        if end_step != expected_step:
+            raise RuntimeError(
+                "v23 P0.7 runtime post-batch step mismatch: "
+                f"got {end_step}, expected {expected_step}."
+            )
+        output_path = Path(self._a2_v23_runtime_receipt_config["output_dir"]) / (
+            f"model_step_{end_step:06d}.pt"
+        )
+        if output_path.is_symlink() or not output_path.is_file():
+            raise RuntimeError(
+                "v23 P0.7 runtime receipt requires a real terminal model-save checkpoint: "
+                f"{output_path}"
+            )
+        return output_path
+
+    def _write_a2_v23_runtime_receipt(self) -> None:
+        if not self._a2_v23_runtime_receipt_enabled:
+            return
+        if not self.accelerator.is_main_process:
+            return
+        config = self._a2_v23_runtime_receipt_config
+        if config is None:
+            raise RuntimeError("v23 P0.7 runtime receipt was enabled without resolved config.")
+        if not self._a2_v23_runtime_terminal_batch_completed:
+            raise RuntimeError("v23 P0.7 runtime receipt requires the terminal invocation batch.")
+        start_step = self._a2_v23_runtime_invocation_start_global_step
+        end_step = self._a2_v23_runtime_invocation_end_global_step
+        expected_start = 0 if config["mode"] == "RP0" else 10
+        if start_step != expected_start:
+            raise RuntimeError(
+                "v23 P0.7 runtime start global step mismatch: "
+                f"got {start_step}, expected {expected_start}."
+            )
+        output_path = self._a2_v23_runtime_output_checkpoint()
+        input_path = Path(config["input_checkpoint_path"])
+        actor_mask = self._a2_v23_runtime_mask_vector()
+        expected_masked_zero = config["mode"] == "RP0"
+        for field in ("actions", "action_mean"):
+            stats = self._a2_v23_runtime_masked_stats[field]
+            if stats["sample_count"] <= 0:
+                raise RuntimeError(f"v23 P0.7 runtime {field} masked stats have no rollout samples.")
+            if expected_masked_zero and any(value != 0.0 for value in stats["max_abs"]):
+                raise RuntimeError(
+                    f"v23 P0.7 RP0 runtime requires exact zero masked {field}; got {stats['max_abs']}."
+                )
+        load_facts = self._a2_v23_runtime_load_facts
+        if load_facts.get("load_mode") != config["checkpoint_load_mode"]:
+            raise RuntimeError("v23 P0.7 runtime load facts disagree with the configured load mode.")
+        if config["mode"] == "RP0":
+            if not load_facts["actor"].get("loaded") or load_facts["value"].get("loaded"):
+                raise RuntimeError("v23 P0.7 RP0 receipt has inconsistent policy-only restore facts.")
+        else:
+            required = ("actor", "value", "optimizer", "scheduler", "trainer")
+            if any(not load_facts[key].get("loaded") for key in required):
+                raise RuntimeError("v23 P0.7 FULL receipt requires strict actor/value/optimizer/scheduler/trainer restore facts.")
+
+        payload = {
+            "schema": _A2_V23_RP0_RUNTIME_RECEIPT_SCHEMA,
+            "status": "RUNTIME_RECEIPT_VERIFIED",
+            "mode": config["mode"],
+            "contract": {
+                "rp0_enabled": config["rp0_enabled"],
+                "mask_vector": actor_mask,
+                "mask_indices": list(config["mask_indices"]),
+                "neutral_value": config["neutral_value"],
+                "env_count": config["env_count"],
+            },
+            "checkpoint": {
+                "input_path": str(input_path),
+                "input_exists": input_path.is_file() and not input_path.is_symlink(),
+                "load_mode": config["checkpoint_load_mode"],
+                "output_path": str(output_path.resolve()),
+                "output_exists": True,
+            },
+            "global_step": {
+                "restored_start": int(self._a2_v23_runtime_restored_start_global_step),
+                "invocation_start": int(start_step),
+                "post_batch_end": int(end_step),
+            },
+            "invocation": {
+                "num_total_batches": int(config["invocation_batches"]),
+                "save_frequency": int(config["save_frequency"]),
+                "terminal_batch_completed": True,
+                "terminal_save_verified": True,
+            },
+            "masked_stats": self._a2_v23_runtime_masked_stats,
+            "restore_facts": load_facts,
+            "canonical_run_dir": config["output_dir"],
+            "effective_config_path": config["effective_config_path"],
+            "expected_initial_step10_checkpoint_path": config[
+                "expected_initial_step10_checkpoint_path"
+            ],
+            "receipt_path": str(
+                (Path(config["output_dir"]) / _A2_V23_RP0_RUNTIME_RECEIPT_FILENAME).resolve()
+            ),
+            "environment_continuity": False,
+            "environment_continuity_basis": "trainer_reset_all_after_checkpoint_restore",
+        }
+        output_dir = Path(config["output_dir"])
+        receipt_path = output_dir / _A2_V23_RP0_RUNTIME_RECEIPT_FILENAME
+        if receipt_path.is_symlink() or receipt_path.exists():
+            raise RuntimeError(f"v23 P0.7 runtime receipt path must be a new canonical file: {receipt_path}")
+        temporary_path = receipt_path.with_suffix(".json.tmp")
+        with temporary_path.open("w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_path, receipt_path)
+        logger.info("Saved v23 P0.7 runtime receipt to %s", receipt_path)
+
     def _setup_storage(self):
         self.storage = RolloutStorage(
             self.env.num_envs, self.num_steps_per_env, device=self.accelerator.device
@@ -3604,6 +4304,7 @@ class TRLPPOTrainer(PPOTrainer):
                 self.storage.batch_update_data("returns", returns)
                 self.storage.batch_update_data("advantages", advantages)
 
+        self._a2_v23_record_masked_rollout_stats()
         policy_model.clear_rollout()
         return obs_dict
 
@@ -3998,14 +4699,25 @@ class TRLPPOTrainer(PPOTrainer):
             mb_old_mu = mb_old_mu[..., : self.policy_model.num_actions]
             mb_old_sigma = mb_old_sigma[..., : self.policy_model.num_actions]
 
+        action_mask = policy_results.get(
+            "action_mask",
+            torch.ones(sigma_batch.shape[-1], dtype=torch.bool, device=sigma_batch.device),
+        )
+        if tuple(action_mask.shape) != (sigma_batch.shape[-1],):
+            raise ValueError(
+                "A2 PPO action mask must be one-dimensional and match the KL action width; "
+                f"got {tuple(action_mask.shape)} for width {sigma_batch.shape[-1]}."
+            )
+        action_mask = action_mask.to(device=sigma_batch.device, dtype=torch.bool)
+
         with torch.no_grad():
-            kl = torch.sum(
+            kl_per_dim = (
                 torch.log(sigma_batch / mb_old_sigma + 1.0e-5)
                 + (torch.square(mb_old_sigma) + torch.square(mb_old_mu - mu_batch))
                 / (2.0 * torch.square(sigma_batch))
-                - 0.5,
-                dim=-1,
+                - 0.5
             )
+            kl = torch.sum(kl_per_dim * action_mask, dim=-1)
             local_kl_mean = torch.mean(kl)
             kl_mean = self.accelerator.gather(local_kl_mean).mean()
             self._adjust_learning_rate_based_on_kl(kl_mean, optimizer)
@@ -4165,6 +4877,23 @@ class TRLPPOTrainer(PPOTrainer):
         # trainer state initialization
         self.state.max_steps = args.num_total_batches
         self.state.num_train_epochs = args.total_episodes / self.train_dataset_len
+        if self._a2_v23_runtime_receipt_enabled:
+            self._a2_v23_runtime_invocation_start_global_step = int(self.state.global_step)
+            expected_start = (
+                0 if self._a2_v23_runtime_receipt_config["mode"] == "RP0" else 10
+            )
+            if self._a2_v23_runtime_invocation_start_global_step != expected_start:
+                raise RuntimeError(
+                    "v23 P0.7 runtime invocation start global step mismatch: "
+                    f"got {self._a2_v23_runtime_invocation_start_global_step}, "
+                    f"expected {expected_start}."
+                )
+            if self._a2_v23_runtime_restored_start_global_step != expected_start:
+                raise RuntimeError(
+                    "v23 P0.7 runtime restored state global step mismatch: "
+                    f"got {self._a2_v23_runtime_restored_start_global_step}, "
+                    f"expected {expected_start}."
+                )
         # Compute absolute values for logging, eval, and save if given as ratio
         if args.logging_steps is not None:
             if args.logging_steps < 1:
@@ -4402,6 +5131,10 @@ class TRLPPOTrainer(PPOTrainer):
 
             self.control = self.callback_handler.on_step_end(args, self.state, self.control)
 
+            if self._a2_v23_runtime_receipt_enabled and batch_idx == args.num_total_batches:
+                self._a2_v23_runtime_terminal_batch_completed = True
+                self._a2_v23_runtime_invocation_end_global_step = int(self.state.global_step)
+
             del (
                 metrics,
                 rollout_data,
@@ -4411,6 +5144,9 @@ class TRLPPOTrainer(PPOTrainer):
 
             if self.control.should_training_stop:
                 break
+
+        if self._a2_v23_runtime_receipt_enabled and self._a2_v23_runtime_terminal_batch_completed:
+            self._write_a2_v23_runtime_receipt()
 
         if self.control.should_training_stop:
             return
@@ -4589,6 +5325,215 @@ class TRLPPOTrainer(PPOTrainer):
         for param_group in optimizer.param_groups:
             param_group["lr"] = self.args.learning_rate
 
+    def _require_a2_v23_full_checkpoint_path(self, checkpoint_path) -> None:
+        config = self._a2_v23_runtime_receipt_config
+        if config is None or config["mode"] != "FULL":
+            return
+        expected_raw = config.get("expected_initial_step10_checkpoint_path")
+        if not isinstance(expected_raw, str) or not expected_raw:
+            raise RuntimeError(
+                "v23 P0.7 FULL restore has no canonical expected RP0 step10 checkpoint path."
+            )
+        expected_path = Path(expected_raw).expanduser().resolve()
+        actual_path = Path(str(checkpoint_path)).expanduser()
+        if actual_path.is_symlink() or not actual_path.is_file():
+            raise RuntimeError(
+                "v23 P0.7 FULL restore input checkpoint must be an existing regular file: "
+                f"{actual_path}"
+            )
+        actual_path = actual_path.resolve()
+        if actual_path != expected_path:
+            raise RuntimeError(
+                "v23 P0.7 FULL restore input checkpoint does not exactly match the expected RP0 step10 path: "
+                f"actual={actual_path}, expected={expected_path}."
+            )
+        if actual_path.name != "model_step_000010.pt":
+            raise RuntimeError(
+                "v23 P0.7 FULL restore input checkpoint must name model_step_000010.pt; "
+                f"got {actual_path.name!r}."
+            )
+
+    def _require_a2_v23_full_trainer_state(self, state) -> dict[str, object]:
+        """Validate the complete persisted state schema before applying a FULL restore."""
+
+        if not hasattr(state, "__dict__"):
+            raise RuntimeError("v23 P0.7 FULL checkpoint state is not a trainer state object.")
+        state_dict = vars(state)
+        missing = [
+            key for key in _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS if key not in state_dict
+        ]
+        if missing:
+            raise RuntimeError(
+                "v23 P0.7 FULL checkpoint trainer state is missing required fields: "
+                f"{missing}."
+            )
+
+        def require_int(key: str) -> None:
+            value = state_dict[key]
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be an integer; "
+                    f"got {value!r}."
+                )
+
+        def require_number(key: str) -> None:
+            value = state_dict[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be numeric; "
+                    f"got {value!r}."
+                )
+            if not math.isfinite(float(value)):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be finite."
+                )
+
+        for key in (
+            "global_step",
+            "max_steps",
+            "logging_steps",
+            "eval_steps",
+            "save_steps",
+            "num_input_tokens_seen",
+            "episode",
+            "tot_timesteps",
+            "eval_step",
+            "eval_render_step",
+        ):
+            require_int(key)
+        for key in ("epoch", "num_train_epochs", "total_flos", "tot_time"):
+            require_number(key)
+
+        for key in ("train_batch_size", "best_global_step"):
+            value = state_dict[key]
+            if value is not None and (isinstance(value, bool) or not isinstance(value, int)):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be an integer or null."
+                )
+        if state_dict["best_metric"] is not None:
+            require_number("best_metric")
+        for key in ("best_model_checkpoint", "trial_name"):
+            value = state_dict[key]
+            if value is not None and not isinstance(value, str):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be a string or null."
+                )
+        if state_dict["trial_params"] is not None and not isinstance(state_dict["trial_params"], Mapping):
+            raise RuntimeError(
+                "v23 P0.7 FULL checkpoint trainer state field 'trial_params' must be a mapping or null."
+            )
+        for key in ("is_local_process_zero", "is_world_process_zero", "is_hyper_param_search"):
+            if not isinstance(state_dict[key], bool):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be bool."
+                )
+        if not isinstance(state_dict["stateful_callbacks"], Mapping):
+            raise RuntimeError(
+                "v23 P0.7 FULL checkpoint trainer state field 'stateful_callbacks' must be a mapping."
+            )
+        for key in ("rewbuffer", "lenbuffer"):
+            if not isinstance(state_dict[key], deque):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be a deque."
+                )
+            for index, member in enumerate(state_dict[key]):
+                if isinstance(member, bool) or not isinstance(member, Real):
+                    raise RuntimeError(
+                        f"v23 P0.7 FULL checkpoint trainer state field {key!r}[{index}] "
+                        f"must be a real numeric value; got {member!r}."
+                    )
+                if not math.isfinite(float(member)):
+                    raise RuntimeError(
+                        f"v23 P0.7 FULL checkpoint trainer state field {key!r}[{index}] "
+                        "must be finite."
+                    )
+        for key in _A2_V23_FULL_ENV_RESET_STATE_FIELDS:
+            value = state_dict[key]
+            if not isinstance(value, torch.Tensor) or value.ndim != 1:
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must be a one-dimensional tensor."
+                )
+            if value.shape[0] != int(self.env.num_envs):
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} must have one value per environment; "
+                    f"got shape={tuple(value.shape)}, envs={self.env.num_envs}."
+                )
+            if not torch.isfinite(value).all().item():
+                raise RuntimeError(
+                    f"v23 P0.7 FULL checkpoint trainer state field {key!r} contains non-finite values."
+                )
+        return state_dict
+
+    def _require_a2_v23_full_checkpoint_components(self, checkpoint, checkpoint_path=None):
+        """Preflight every component needed by the opt-in FULL restore contract."""
+
+        if self._a2_v23_runtime_receipt_config is None or self._a2_v23_runtime_receipt_config["mode"] != "FULL":
+            return None
+        if checkpoint_path is not None:
+            self._require_a2_v23_full_checkpoint_path(checkpoint_path)
+        if self.checkpoint_load_mode != "full":
+            raise RuntimeError("v23 P0.7 FULL receipt requires checkpoint_load_mode='full'.")
+        input_path = Path(checkpoint_path or self.checkpoint_path)
+        if input_path.name != "model_step_000010.pt":
+            raise RuntimeError(
+                "v23 P0.7 FULL receipt requires the explicit step10 input checkpoint; "
+                f"got {str(input_path)!r}."
+            )
+        if not isinstance(checkpoint, Mapping):
+            raise RuntimeError("v23 P0.7 FULL checkpoint must be a mapping.")
+        actor_keys = [key for key in ("actor_model_state_dict", "policy_state_dict") if key in checkpoint]
+        required = ("value_state_dict", "optimizer_state_dict", "lr_scheduler_state_dict", "state")
+        if len(actor_keys) != 1 or any(key not in checkpoint for key in required):
+            missing = [key for key in required if key not in checkpoint]
+            if not actor_keys:
+                missing.append("policy_state_dict|actor_model_state_dict")
+            raise RuntimeError(
+                "v23 P0.7 FULL checkpoint is missing required restore components: "
+                f"{missing}."
+            )
+        if checkpoint[actor_keys[0]] is None:
+            raise RuntimeError("v23 P0.7 FULL checkpoint actor state is null.")
+        if checkpoint["value_state_dict"] is None:
+            raise RuntimeError("v23 P0.7 FULL checkpoint value_state_dict is null.")
+        if checkpoint["optimizer_state_dict"] is None:
+            raise RuntimeError("v23 P0.7 FULL checkpoint optimizer_state_dict is null.")
+        if checkpoint["lr_scheduler_state_dict"] is None:
+            raise RuntimeError("v23 P0.7 FULL checkpoint lr_scheduler_state_dict is null.")
+        state = checkpoint["state"]
+        state_dict = self._require_a2_v23_full_trainer_state(state)
+        restored_step = state_dict.get("global_step")
+        if isinstance(restored_step, bool) or not isinstance(restored_step, int) or restored_step != 10:
+            raise RuntimeError(
+                "v23 P0.7 FULL checkpoint trainer state must restore global_step=10; "
+                f"got {restored_step!r}."
+            )
+        if self.value_model is None or self.optimizer is None or self.lr_scheduler is None:
+            raise RuntimeError(
+                "v23 P0.7 FULL receipt requires instantiated value, optimizer, and scheduler components."
+            )
+        return state_dict
+
+    def _require_a2_v23_full_restore_facts(self) -> None:
+        config = self._a2_v23_runtime_receipt_config
+        if config is None or config["mode"] != "FULL":
+            return
+        facts = self._a2_v23_runtime_load_facts
+        required = ("actor", "value", "optimizer", "scheduler", "trainer")
+        if facts.get("load_mode") != "full" or any(not facts[key].get("loaded") for key in required):
+            raise RuntimeError(
+                "v23 P0.7 FULL restore did not load actor/value/optimizer/scheduler/trainer state completely."
+            )
+        if not facts["actor"].get("strict") or not facts["value"].get("strict"):
+            raise RuntimeError("v23 P0.7 FULL restore actor/value loads were not strict.")
+        if facts["trainer"].get("required_fields") != list(
+            _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS
+        ):
+            raise RuntimeError(
+                "v23 P0.7 FULL restore trainer state did not restore the complete required field set."
+            )
+        if facts["trainer"].get("global_step") != 10 or self.state.global_step != 10:
+            raise RuntimeError("v23 P0.7 FULL restore did not leave trainer global_step=10.")
+
     def load_policy_checkpoint(self, checkpoint_path):
         """Strictly load only the actor policy weights from a checkpoint."""
         print(f"Loading policy-only checkpoint from {checkpoint_path}")
@@ -4608,7 +5553,16 @@ class TRLPPOTrainer(PPOTrainer):
 
         model = self.accelerator.unwrap_model(self.model)
         actor_key = present_actor_keys[0]
-        model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+        load_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+        self._a2_v23_runtime_load_facts["actor"] = {
+            "loaded": True,
+            "state_key": actor_key,
+            "strict": True,
+            "missing_keys": list(load_result.missing_keys),
+            "unexpected_keys": list(load_result.unexpected_keys),
+        }
+        self._a2_v23_runtime_load_facts["load_mode"] = "policy_only"
+        self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)
         print(f"Loaded policy-only checkpoint actor from key {actor_key!r}")
 
     def load_checkpoint(self, checkpoint_path):
@@ -4618,23 +5572,58 @@ class TRLPPOTrainer(PPOTrainer):
             checkpoint_path (str): Path to the checkpoint file
         """
         print(f"Loading checkpoint from {checkpoint_path}")
+        self._require_a2_v23_full_checkpoint_path(checkpoint_path)
         checkpoint = torch.load(
             checkpoint_path, map_location=self.accelerator.device, weights_only=False
+        )
+        required_state = self._require_a2_v23_full_checkpoint_components(
+            checkpoint, checkpoint_path
         )
 
         # Load model state
         model = self.accelerator.unwrap_model(self.model)
         if "actor_model_state_dict" in checkpoint:
-            model.policy.load_state_dict(checkpoint["actor_model_state_dict"])
+            actor_key = "actor_model_state_dict"
+            actor_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+            self._a2_v23_runtime_load_facts["actor"] = {
+                "loaded": True,
+                "state_key": actor_key,
+                "strict": True,
+                "missing_keys": list(actor_result.missing_keys),
+                "unexpected_keys": list(actor_result.unexpected_keys),
+            }
         elif "policy_state_dict" in checkpoint:
-            model.policy.load_state_dict(checkpoint["policy_state_dict"])
+            actor_key = "policy_state_dict"
+            actor_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+            self._a2_v23_runtime_load_facts["actor"] = {
+                "loaded": True,
+                "state_key": actor_key,
+                "strict": True,
+                "missing_keys": list(actor_result.missing_keys),
+                "unexpected_keys": list(actor_result.unexpected_keys),
+            }
         if "value_state_dict" in checkpoint and model.value_model is not None:
-            model.value_model.load_state_dict(checkpoint["value_state_dict"])
+            if checkpoint["value_state_dict"] is None:
+                raise RuntimeError("Full checkpoint contains a null value_state_dict.")
+            value_result = model.value_model.load_state_dict(
+                checkpoint["value_state_dict"], strict=True
+            )
+            self._a2_v23_runtime_load_facts["value"] = {
+                "loaded": True,
+                "state_key": "value_state_dict",
+                "strict": True,
+                "missing_keys": list(value_result.missing_keys),
+                "unexpected_keys": list(value_result.unexpected_keys),
+            }
         if "homie_state_dict" in checkpoint and model.homie_model is not None:
             model.homie_model.load_state_dict(checkpoint["homie_state_dict"])
         # Load optimizer state
         if "optimizer_state_dict" in checkpoint and checkpoint["optimizer_state_dict"] is not None:
             self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+            self._a2_v23_runtime_load_facts["optimizer"] = {
+                "loaded": True,
+                "state_key": "optimizer_state_dict",
+            }
 
             # Update learning rate if available
             if "args" in checkpoint and hasattr(checkpoint["args"], "learning_rate"):
@@ -4648,24 +5637,47 @@ class TRLPPOTrainer(PPOTrainer):
             and checkpoint["lr_scheduler_state_dict"] is not None
         ):
             self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler_state_dict"])
+            self._a2_v23_runtime_load_facts["scheduler"] = {
+                "loaded": True,
+                "state_key": "lr_scheduler_state_dict",
+            }
 
         if "env_state_dict" in checkpoint:
             self.env.load_env_state_dict(checkpoint["env_state_dict"])
+            self._a2_v23_runtime_load_facts["environment"] = {
+                "loaded": True,
+                "state_key": "env_state_dict",
+            }
 
         if "state" in checkpoint:
-            for key, value in checkpoint["state"].__dict__.items():
-                # Skip loading cur_reward_sum and cur_episode_length from checkpoint
-                # as they are environment-dependent and should match current env size
-                if key in ["cur_reward_sum", "cur_episode_length"]:
-                    continue  # Skip loading these, keep the ones initialized for current env size
-                if key not in [
-                    "stateful_callbacks",
-                    "is_local_process_zero",
-                    "is_world_process_zero",
-                    "log_history",
-                ]:
-                    setattr(self.state, key, value)
+            if required_state is not None:
+                for key in _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS:
+                    if key not in _A2_V23_FULL_ENV_RESET_STATE_FIELDS:
+                        setattr(self.state, key, required_state[key])
+                self._a2_v23_runtime_load_facts["trainer"] = {
+                    "loaded": True,
+                    "state_key": "state",
+                    "global_step": int(self.state.global_step),
+                    "required_fields": list(_A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS),
+                }
+            else:
+                # Preserve the repository's generic full-resume semantics for
+                # every non-v23 runtime: copy its persisted state exactly as
+                # the pre-v23 loader did, including unknown future fields.
+                for key, value in checkpoint["state"].__dict__.items():
+                    if key in ["cur_reward_sum", "cur_episode_length"]:
+                        continue
+                    if key not in [
+                        "stateful_callbacks",
+                        "is_local_process_zero",
+                        "is_world_process_zero",
+                        "log_history",
+                    ]:
+                        setattr(self.state, key, value)
 
+        self._a2_v23_runtime_load_facts["load_mode"] = "full"
+        self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)
+        self._require_a2_v23_full_restore_facts()
         print(f"Loaded checkpoint from step {self.state.global_step}")
         return checkpoint
 
@@ -4682,10 +5694,37 @@ class TRLPPOTrainer(PPOTrainer):
         dump_eval_to_log_metrics = self.config.get("eval", {}).get(
             "dump_to_log_metrics", False
         )
+        a2_v23_p0_runtime_export = self.config.get("eval", {}).get(
+            "a2_v23_p0_runtime_export", False
+        )
+        if not isinstance(a2_v23_p0_runtime_export, bool):
+            raise RuntimeError(
+                "eval.a2_v23_p0_runtime_export must be bool; "
+                f"got {a2_v23_p0_runtime_export!r}."
+            )
+        a2_v23_p05_runtime_export = self.config.get("eval", {}).get(
+            "a2_v23_p05_runtime_export", False
+        )
+        if not isinstance(a2_v23_p05_runtime_export, bool):
+            raise RuntimeError(
+                "eval.a2_v23_p05_runtime_export must be bool; "
+                f"got {a2_v23_p05_runtime_export!r}."
+            )
+        if a2_v23_p05_runtime_export:
+            if not getattr(self.env, "_a2_v23_p05_enabled", False):
+                raise RuntimeError(
+                    "eval.a2_v23_p05_runtime_export requires env.config.a2_v23_p05_runtime_enabled=true."
+                )
+            if getattr(self.env, "_a2_v23_p05_mode", None) not in (
+                "FULL", "ACUTE_RP0", "HIGHER_EFFORT_RESCUE"
+            ):
+                raise RuntimeError("P0.5 runtime export requires a strict three-mode env configuration.")
         a2_eval_diagnostics = _read_a2_eval_diagnostic_config(
             self.config.get("eval", {})
         )
         eval_to_log_records = []
+        a2_v23_p0_terminal_records: list[dict] = []
+        a2_v23_p05_terminal_records: list[dict] = []
 
         if eval_num_envs_episodes:
             max_episodes = self.env.num_envs  # One episode per environment
@@ -4898,6 +5937,34 @@ class TRLPPOTrainer(PPOTrainer):
                                 first_episode_active_mask,
                             )
 
+                        if a2_v23_p05_runtime_export:
+                            p05_actor_state = self.env.build_a2_v23_p05_forward_intervention_actor_state(
+                                device=post_oracle_override_pre_env_action.device,
+                                dtype=post_oracle_override_pre_env_action.dtype,
+                            )
+                            post_oracle_override_pre_env_action = self.env.apply_a2_v23_p05_high_level_intervention(
+                                post_oracle_override_pre_env_action,
+                                actor_state=p05_actor_state,
+                            )
+                            p05_actor_state["a2_v23_pre_low_level_applied"] = True
+                            actor_state.update(p05_actor_state)
+                        v23_mode = self.env.config.get("a2_v23_forward_intervention_mode")
+                        if not a2_v23_p05_runtime_export and v23_mode is not None:
+                            v23_actor_state = (
+                                self.env.build_a2_v23_forward_intervention_actor_state(
+                                    device=post_oracle_override_pre_env_action.device,
+                                    dtype=post_oracle_override_pre_env_action.dtype,
+                                )
+                            )
+                            post_oracle_override_pre_env_action = (
+                                self.env.apply_a2_v23_high_level_intervention(
+                                    post_oracle_override_pre_env_action,
+                                    actor_state=v23_actor_state,
+                                )
+                            )
+                            v23_actor_state["a2_v23_pre_low_level_applied"] = True
+                            actor_state.update(v23_actor_state)
+
                         if a2_eval_diagnostics["diagnostic_enabled"]:
                             set_diagnostic_actions = getattr(
                                 self.env, "set_a2_eval_diagnostic_actions", None
@@ -4945,6 +6012,16 @@ class TRLPPOTrainer(PPOTrainer):
                     actor_state["actions"] = step_actions
 
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
+
+                    if a2_v23_p05_runtime_export:
+                        apply_p05_latch = getattr(
+                            self.env, "maybe_apply_a2_v23_p05_rescue_latch", None
+                        )
+                        if apply_p05_latch is None:
+                            raise RuntimeError(
+                                "P0.5 runtime export requires a typed rescue-latch hook."
+                            )
+                        apply_p05_latch()
 
                     for obs_key in obs_dict.keys():
                         obs_dict[obs_key] = obs_dict[obs_key].to(device)
@@ -5001,6 +6078,64 @@ class TRLPPOTrainer(PPOTrainer):
                             self.env.process_eval_episode_completions(
                                 valid_new_ids, self.cur_reward_sum, self.cur_episode_length
                             )
+
+                            if a2_v23_p0_runtime_export:
+                                get_v23_torque_evidence = getattr(
+                                    self.env, "get_a2_v23_torque_episode_evidence", None
+                                )
+                                if get_v23_torque_evidence is None:
+                                    raise RuntimeError(
+                                        "eval.a2_v23_p0_runtime_export requires "
+                                        "env.get_a2_v23_torque_episode_evidence()."
+                                    )
+                                for env_idx in valid_new_ids.flatten().detach().cpu().tolist():
+                                    env_id = int(env_idx)
+                                    terminal_record = get_v23_torque_evidence(env_id)
+                                    if not isinstance(terminal_record, dict):
+                                        raise RuntimeError(
+                                            "v23 P0 terminal evidence getter must return a mapping."
+                                        )
+                                    if terminal_record.get("evidence_state") != "TERMINAL_SNAPSHOT":
+                                        raise RuntimeError(
+                                            "v23 P0 export requires the terminal snapshot before eval reset."
+                                        )
+                                    episode_index = int(eval_episode_indices[env_id].item())
+                                    terminal_record = dict(terminal_record)
+                                    terminal_record["terminal_identity"] = {
+                                        "env_id": env_id,
+                                        "episode_index": episode_index,
+                                        "episode_id": f"a2-v23-eval-env{env_id}-episode{episode_index}",
+                                        "authority": "EVALUATOR_ASSIGNED_ENV_EPISODE_ID",
+                                    }
+                                    a2_v23_p0_terminal_records.append(terminal_record)
+
+                            if a2_v23_p05_runtime_export:
+                                get_v23_p05_evidence = getattr(
+                                    self.env, "get_a2_v23_p05_episode_evidence", None
+                                )
+                                if get_v23_p05_evidence is None:
+                                    raise RuntimeError(
+                                        "eval.a2_v23_p05_runtime_export requires "
+                                        "env.get_a2_v23_p05_episode_evidence()."
+                                    )
+                                for env_idx in valid_new_ids.flatten().detach().cpu().tolist():
+                                    env_id = int(env_idx)
+                                    terminal_record = get_v23_p05_evidence(env_id)
+                                    if not isinstance(terminal_record, dict):
+                                        raise RuntimeError("P0.5 episode evidence getter must return a mapping.")
+                                    if terminal_record.get("evidence_state") != "TERMINAL_SNAPSHOT":
+                                        raise RuntimeError(
+                                            "P0.5 runtime export requires terminal episode evidence before eval reset."
+                                        )
+                                    episode_index = int(eval_episode_indices[env_id].item())
+                                    terminal_record = dict(terminal_record)
+                                    terminal_record["evaluator_terminal_identity"] = {
+                                        "env_id": env_id,
+                                        "episode_index": episode_index,
+                                        "episode_id": f"a2-v23-p05-eval-env{env_id}-episode{episode_index}",
+                                        "authority": "EVALUATOR_ASSIGNED_ENV_EPISODE_ID",
+                                    }
+                                    a2_v23_p05_terminal_records.append(terminal_record)
 
                             for env_idx in valid_new_ids:
                                 reward = self.cur_reward_sum[env_idx].item()
@@ -5169,6 +6304,104 @@ class TRLPPOTrainer(PPOTrainer):
 
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if a2_v23_p0_runtime_export:
+            env_config = getattr(self.env, "config", None)
+            if env_config is None or "a2_v23_effort_profile_nm" not in env_config:
+                raise RuntimeError(
+                    "eval.a2_v23_p0_runtime_export requires "
+                    "env.config.a2_v23_effort_profile_nm."
+                )
+            effort_nm = env_config.get("a2_v23_effort_profile_nm")
+            v23_records_payload, v23_aggregate_payload = _build_a2_v23_p0_export_payload(
+                a2_v23_p0_terminal_records,
+                effort_nm=effort_nm,
+            )
+            v23_records_path = os.path.join(
+                eval_output_dir, "a2_v23_p0_torque_terminal_records.json"
+            )
+            v23_records_tmp_path = f"{v23_records_path}.tmp"
+            with open(v23_records_tmp_path, "w") as f:
+                json.dump(
+                    _make_json_safe(v23_records_payload, path="a2_v23_p0_terminal_records"),
+                    f,
+                    indent=4,
+                    allow_nan=False,
+                )
+            os.replace(v23_records_tmp_path, v23_records_path)
+            v23_aggregate_path = os.path.join(
+                eval_output_dir, "a2_v23_p0_effort_observations.json"
+            )
+            v23_aggregate_tmp_path = f"{v23_aggregate_path}.tmp"
+            with open(v23_aggregate_tmp_path, "w") as f:
+                json.dump(
+                    _make_json_safe(v23_aggregate_payload, path="a2_v23_p0_effort_observations"),
+                    f,
+                    indent=4,
+                    allow_nan=False,
+                )
+            os.replace(v23_aggregate_tmp_path, v23_aggregate_path)
+            temporal_payload = v23_records_payload.get(
+                "temporal_records",
+                {
+                    "schema": "a2_piper_base_v23_p0_temporal_records_v1",
+                    "temporary_label": "A0_CANONICAL16_P0_REFERENCE",
+                    "records": [],
+                    "status": "PENDING_NO_RAW_TEMPORAL_RECORDS",
+                    "aggregate_fallback": False,
+                },
+            )
+            temporal_path = os.path.join(eval_output_dir, "a2_v23_p0_temporal_records.json")
+            temporal_tmp_path = f"{temporal_path}.tmp"
+            with open(temporal_tmp_path, "w") as f:
+                json.dump(_make_json_safe(temporal_payload, path="a2_v23_p0_temporal_records"), f, indent=4, allow_nan=False)
+            os.replace(temporal_tmp_path, temporal_path)
+            logger.info(f"Saved v23 P0 terminal records to {v23_records_path}")
+            logger.info(f"Saved v23 P0 effort observations to {v23_aggregate_path}")
+            logger.info(f"Saved v23 P0 raw temporal records to {temporal_path}")
+
+        if a2_v23_p05_runtime_export:
+            if not a2_v23_p05_terminal_records:
+                raise RuntimeError("P0.5 runtime export requires at least one terminal episode record.")
+            step_records = []
+            window_records = []
+            for episode in a2_v23_p05_terminal_records:
+                rows = episode.get("step_rows")
+                windows = episode.get("window_rows")
+                if not isinstance(rows, list) or not isinstance(windows, list):
+                    raise RuntimeError("P0.5 terminal episode records require step_rows and window_rows lists.")
+                step_records.extend(rows)
+                window_records.extend(windows)
+            p05_exports = {
+                "a2_v23_p05_step_records.json": {
+                    "schema": "a2_piper_v23_step_records_export_v1",
+                    "records": step_records,
+                    "source": "a2_v23_p05_terminal_episode_snapshots",
+                },
+                "a2_v23_p05_window_records.json": {
+                    "schema": "a2_piper_v23_window_records_export_v1",
+                    "records": window_records,
+                    "source": "a2_v23_p05_terminal_episode_snapshots",
+                },
+                "a2_v23_p05_episode_records.json": {
+                    "schema": "a2_piper_v23_episode_records_export_v1",
+                    "records": a2_v23_p05_terminal_records,
+                    "source": "a2_v23_p05_terminal_episode_snapshots",
+                },
+                "a2_v23_p05_pairs.json": {
+                    "schema": "a2_piper_v23_prefix_pairs_export_v1",
+                    "status": "PENDING_SEPARATE_FORWARD_RUNS",
+                    "records": [],
+                    "comparison": "direct_python_equality_of_registered_pre_switch_rows",
+                },
+            }
+            for filename, payload in p05_exports.items():
+                output_path = os.path.join(eval_output_dir, filename)
+                tmp_path = f"{output_path}.tmp"
+                with open(tmp_path, "w") as f:
+                    json.dump(_make_json_safe(payload, path=filename), f, indent=4, allow_nan=False)
+                os.replace(tmp_path, output_path)
+                logger.info(f"Saved v23 P0.5 evidence to {output_path}")
 
         if strict_v20_payload is not None:
             v20_path = os.path.join(eval_output_dir, "a2_v20_strict_telemetry.json")

@@ -6,9 +6,10 @@ import logging
 import hashlib
 import json
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from numbers import Real
 from pathlib import Path
+from typing import Any
 
 logging.getLogger("asyncio").setLevel(logging.WARNING)
 
@@ -22,6 +23,104 @@ from gr00t.rl.isaac_utils.playground.env_rand.door import DoorSpawnerCfg, spawn_
 
 _V21B_MANIFEST_SCHEMA = "a2_piper_base_v21B_heavy16_manifest_v1"
 _V21B_SIGNED_PROBE_FLAG = "a2_v21B_signed_probe_scenarios_enabled"
+
+# v23 P0 deliberately owns a plain, readable selector contract.  It is not a
+# compatibility alias for the signed v21-B selector: no legacy integrity
+# fields are accepted or forwarded on this branch.
+_V23_P0_PLAIN_MANIFEST_SCHEMA = "a2_piper_base_v23_p0_plain_scenario_manifest_v1"
+_V23_P0_PLAIN_MANIFEST_FLAG = "a2_v23_p0_plain_scenario_enabled"
+_V23_P0_PLAIN_MANIFEST_PATH_KEY = "a2_v23_p0_scenario_manifest_path"
+_V23_P0_PLAIN_TOPOLOGY_KEY = "a2_v23_p0_scenario_topology"
+_V23_P0_PLAIN_SOURCE_FIELDS = {
+    "scenario_id",
+    "handle_height_m",
+    "door_weight_kg",
+    "hinge_force_nm",
+}
+_V23_P0_PLAIN_TOPOLOGIES = ("canonical16", "heavy16")
+
+# v23 P0 bound mode is a separate, strict high-level selector.  The historical
+# plain selector above remains unchanged when this mode is disabled.
+_V23_P0_BOUND_MANIFEST_SCHEMA = "a2_piper_base_v23_p0_bound_plain16_manifest_v1"
+_V23_P0_BOUND_MANIFEST_FLAG = "a2_v23_p0_bound_plain_scenario_enabled"
+_V23_P0_BOUND_MANIFEST_PATH_KEY = "a2_v23_p0_bound_plain_scenario_manifest_path"
+_V23_P0_BOUND_SELECTOR_MODE = "v23_bound_plain16"
+_V23_P0_BOUND_CANONICAL_SCHEMA = "a2_piper_v23_canonical_geometry_v1"
+_V23_D1_BOUND_MANIFEST_SCHEMA = "a2_piper_base_v23_d1_capability_bound_plain16_manifest_v1"
+_V23_D1_BOUND_SELECTOR_MODE = "v23_d1_capability_source_plain16"
+_V23_D1_BOUND_STATUS = "BOUND_D1_CAPABILITY_SOURCE"
+_V23_D1_BOUND_PURPOSE = "D1_CAPABILITY_SOURCE"
+_V23_D1_SOURCE_FREEZE_SCHEMA = "a2_piper_v23_capability_source_freeze_v1"
+_V23_D1_SOURCE_FREEZE_STATUS = "CAPABILITY_SOURCE_FROZEN"
+_V23_D1_SOURCE_CELL_ID = "A0"
+_V23_D1_SOURCE_BASIS = "CURRENT_EASY_A0_STABLE_REFERENCE"
+_V23_D1_REQUESTED_PARAMS = {
+    "hinge_damping_native": 50.0,
+    "hinge_stiffness_native": 2.0,
+    "hinge_max_force_nm": 4.5,
+    "door_weight_kg": 120.0,
+}
+_V23_D1_NATIVE_PARAMS = {
+    "hinge_damping_native": 2864.7890625,
+    "hinge_stiffness_native": 114.59156036376953,
+    "hinge_effort_limit_nm": 4.5,
+    "door_weight_kg": 119.99999237060547,
+}
+_V23_P0_BOUND_LOCAL_FACTS = {
+    "door_width_m": 0.95,
+    "door_height_m": 2.05,
+    "handle_height_m": 0.975,
+    "handle_width_m": 0.12,
+    "handle_type": "lever",
+    "door_open_lr": "right",
+    "door_open_io": "out",
+    "door_open_lr_sign": -1,
+    "door_open_io_sign": -1,
+    "hinge_axis_local": [0.0, 0.0, 1.0],
+    "hinge_anchor_local": [0.02, 0.475, 0.0],
+}
+_V23_P0_BOUND_SOURCE_IDENTITY_FIELDS = {
+    "source_manifest_path",
+    "source_role",
+    "source_row",
+}
+_V23_P0_BOUND_REQUESTED_PARAMS = {
+    "hinge_damping_native": 200.0,
+    "hinge_stiffness_native": 30.0,
+    "hinge_max_force_nm": 24.0,
+    "door_weight_kg": 160.0,
+}
+_V23_P0_BOUND_NATIVE_PARAMS = {
+    "hinge_damping_native": 11459.15625,
+    "hinge_stiffness_native": 1718.8734130859375,
+    "hinge_effort_limit_nm": 24.0,
+    "door_weight_kg": 160.0,
+}
+_V23_P0_BOUND_ROW_FIELDS = {
+    "source_identity",
+    "scenario_id",
+    "env_id",
+    "episode_index",
+    "plain_prefix_id",
+    "checkpoint",
+    "config",
+    "seed",
+    "topology",
+    "cell_id",
+    "geometry_id",
+    "canonical_geometry",
+    "requested_params",
+    "realized_params",
+    "door_width_m",
+    "door_height_m",
+    "handle_height_m",
+    "handle_width_m",
+    "handle_type",
+    "door_open_lr",
+    "door_open_io",
+    "hinge_axis_local",
+    "hinge_anchor_local",
+}
 
 
 def _v21b_scenario_digest(row: dict) -> str:
@@ -190,6 +289,629 @@ def get_TaskObjCfgDict_for_v21B_scenario_manifest(
     result = dict(base)
     result["door"] = base["door"].replace(spawn=ordered_spawn_cfg)
     return _validate_v21b_ordered_task_cfg(result, rows, topology)
+
+
+def _v23_p0_reject_integrity_fields(value, *, path: str = "manifest") -> None:
+    """Reject legacy digest/hash ceremony from the plain v23 manifest."""
+
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise ValueError(f"v23 P0 plain manifest key at {path} must be a string")
+            lowered = key.lower()
+            if "sha" in lowered or "hash" in lowered or "digest" in lowered:
+                raise ValueError(
+                    f"v23 P0 plain manifest forbids integrity field {path}.{key}"
+                )
+            _v23_p0_reject_integrity_fields(item, path=f"{path}.{key}")
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            _v23_p0_reject_integrity_fields(item, path=f"{path}[{index}]")
+
+
+def _v23_p0_plain_manifest_payload(env_config) -> tuple[dict, Path]:
+    """Read and validate one v23 P0 plain canonical16/heavy16 manifest."""
+
+    if env_config.get(_V23_P0_PLAIN_MANIFEST_FLAG) is not True:
+        raise ValueError(
+            f"v23 P0 plain selector requires env.config.{_V23_P0_PLAIN_MANIFEST_FLAG}=true"
+        )
+    path_value = env_config.get(_V23_P0_PLAIN_MANIFEST_PATH_KEY)
+    if not isinstance(path_value, (str, Path)) or not str(path_value):
+        raise ValueError(
+            f"v23 P0 plain selector requires {_V23_P0_PLAIN_MANIFEST_PATH_KEY}"
+        )
+    path = Path(path_value)
+    if not path.is_absolute() or not path.is_file() or path.is_symlink():
+        raise ValueError(
+            "v23 P0 plain scenario manifest must be an absolute regular non-symlink file: "
+            f"{path}"
+        )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"v23 P0 plain scenario manifest is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("v23 P0 plain scenario manifest root must be an object")
+    _v23_p0_reject_integrity_fields(payload)
+    expected_keys = {
+        "schema",
+        "status",
+        "topology",
+        "source_manifest_path",
+        "source_role",
+        "rows",
+    }
+    if set(payload) != expected_keys:
+        raise ValueError(
+            "v23 P0 plain scenario manifest fields must be exactly "
+            f"{sorted(expected_keys)}; got {sorted(payload)}"
+        )
+    if payload.get("schema") != _V23_P0_PLAIN_MANIFEST_SCHEMA:
+        raise ValueError("v23 P0 plain scenario manifest schema is invalid")
+    if payload.get("status") != "STATIC_PLAIN":
+        raise ValueError("v23 P0 plain scenario manifest status must be STATIC_PLAIN")
+    topology = payload.get("topology")
+    if topology not in _V23_P0_PLAIN_TOPOLOGIES:
+        raise ValueError(
+            "v23 P0 plain scenario manifest topology must be canonical16 or heavy16"
+        )
+    configured_topology = env_config.get(_V23_P0_PLAIN_TOPOLOGY_KEY)
+    if configured_topology != topology:
+        raise ValueError(
+            "v23 P0 plain scenario topology disagrees with env.config: "
+            f"manifest={topology!r}, config={configured_topology!r}"
+        )
+    source_path_value = payload.get("source_manifest_path")
+    if not isinstance(source_path_value, str) or not source_path_value:
+        raise ValueError("v23 P0 plain scenario manifest requires source_manifest_path")
+    source_path = Path(source_path_value)
+    if not source_path.is_absolute() or not source_path.is_file() or source_path.is_symlink():
+        raise ValueError(
+            "v23 P0 plain scenario source_manifest_path must be an absolute regular file: "
+            f"{source_path}"
+        )
+    if payload.get("source_role") != "historical_prior_only":
+        raise ValueError(
+            "v23 P0 plain scenario source_role must be historical_prior_only"
+        )
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or len(rows) != 16:
+        raise ValueError("v23 P0 plain scenario manifest requires exactly 16 rows")
+    scenario_ids: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != _V23_P0_PLAIN_SOURCE_FIELDS:
+            raise ValueError(
+                f"v23 P0 plain scenario row {index} fields must be exactly "
+                f"{sorted(_V23_P0_PLAIN_SOURCE_FIELDS)}"
+            )
+        scenario_id = row["scenario_id"]
+        if not isinstance(scenario_id, str) or not scenario_id or scenario_id in scenario_ids:
+            raise ValueError(
+                f"v23 P0 plain scenario row {index} has a missing or duplicate scenario_id"
+            )
+        scenario_ids.add(scenario_id)
+        for field in ("handle_height_m", "door_weight_kg", "hinge_force_nm"):
+            value = row[field]
+            if isinstance(value, bool) or not isinstance(value, Real):
+                raise TypeError(f"v23 P0 plain scenario row {index} {field} must be real")
+            numeric = float(value)
+            if not math.isfinite(numeric) or numeric <= 0.0:
+                raise ValueError(
+                    f"v23 P0 plain scenario row {index} {field} must be finite and positive"
+                )
+    return payload, path
+
+
+def _v23_p0_bound_float(value, expected: float, label: str) -> None:
+    if isinstance(value, bool) or not isinstance(value, Real):
+        raise TypeError(f"v23 P0 bound {label} must be real")
+    numeric = float(value)
+    if not math.isfinite(numeric) or not math.isclose(
+        numeric, float(expected), rel_tol=0.0, abs_tol=1.0e-9
+    ):
+        raise ValueError(f"v23 P0 bound {label} disagrees with canonical geometry")
+
+
+def _v23_p0_bound_vector(value, expected: Sequence[Real], label: str) -> None:
+    if (
+        isinstance(value, (str, bytes))
+        or not isinstance(value, Sequence)
+        or len(value) != len(expected)
+    ):
+        raise ValueError(f"v23 P0 bound {label} must have exactly {len(expected)} values")
+    for index, (actual, target) in enumerate(zip(value, expected)):
+        _v23_p0_bound_float(actual, float(target), f"{label}[{index}]")
+
+
+def _v23_d1_bound_manifest_payload(
+    payload: dict,
+    path: Path,
+    env_config,
+) -> tuple[dict, Path]:
+    expected_keys = {
+        "schema",
+        "status",
+        "purpose",
+        "selector_mode",
+        "topology",
+        "source_manifest_path",
+        "source_role",
+        "capability_source_freeze_schema",
+        "capability_source_freeze_path",
+        "canonical_geometry_schema",
+        "rows",
+    }
+    if set(payload) != expected_keys:
+        raise ValueError("v23 D1 bound manifest fields do not match the exact capability-source schema")
+    if (
+        payload.get("schema") != _V23_D1_BOUND_MANIFEST_SCHEMA
+        or payload.get("status") != _V23_D1_BOUND_STATUS
+        or payload.get("purpose") != _V23_D1_BOUND_PURPOSE
+        or payload.get("selector_mode") != _V23_D1_BOUND_SELECTOR_MODE
+        or payload.get("capability_source_freeze_schema") != _V23_D1_SOURCE_FREEZE_SCHEMA
+        or payload.get("canonical_geometry_schema") != _V23_P0_BOUND_CANONICAL_SCHEMA
+    ):
+        raise ValueError("v23 D1 bound manifest schema/status/purpose is invalid")
+    topology = payload.get("topology")
+    if topology not in _V23_P0_PLAIN_TOPOLOGIES:
+        raise ValueError("v23 D1 bound topology must be canonical16 or heavy16")
+    if env_config.get(_V23_P0_PLAIN_TOPOLOGY_KEY) != topology:
+        raise ValueError("v23 D1 bound topology disagrees with env.config")
+    source_path_value = payload.get("source_manifest_path")
+    source_path = Path(source_path_value) if isinstance(source_path_value, str) else None
+    if source_path is None or not source_path.is_absolute() or source_path.is_symlink() or not source_path.is_file():
+        raise ValueError("v23 D1 source_manifest_path must be an absolute regular file")
+    if payload.get("source_role") != "historical_prior_only":
+        raise ValueError("v23 D1 source_role must be historical_prior_only")
+    freeze_path_value = payload.get("capability_source_freeze_path")
+    freeze_path = Path(freeze_path_value) if isinstance(freeze_path_value, str) else None
+    if freeze_path is None or not freeze_path.is_absolute() or freeze_path.is_symlink() or not freeze_path.is_file():
+        raise ValueError("v23 D1 capability_source_freeze_path must be an absolute regular file")
+    try:
+        source_freeze = json.loads(freeze_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError("v23 D1 capability source freeze is not valid JSON") from exc
+    if not isinstance(source_freeze, dict):
+        raise ValueError("v23 D1 capability source freeze root must be an object")
+    if (
+        set(source_freeze)
+        != {
+            "schema", "status", "purpose", "source_cell_id", "source_geometry_id", "selection_basis",
+            "selected_effort_nm", "effort_profile", "confirmed_E2", "requested_params", "native_params",
+            "canonical_geometry", "shared_local_kinematic_facts", "source_paths", "source_provenance",
+        }
+        or source_freeze.get("schema") != _V23_D1_SOURCE_FREEZE_SCHEMA
+        or source_freeze.get("status") != _V23_D1_SOURCE_FREEZE_STATUS
+        or source_freeze.get("purpose") != _V23_D1_BOUND_PURPOSE
+        or source_freeze.get("source_cell_id") != _V23_D1_SOURCE_CELL_ID
+        or source_freeze.get("selection_basis") != _V23_D1_SOURCE_BASIS
+        or source_freeze.get("selected_effort_nm") != 40.0
+        or source_freeze.get("effort_profile") != {"effort_nm": 40.0, "name": "base_v23_p0_effort_40"}
+        or source_freeze.get("confirmed_E2") is not False
+        or source_freeze.get("requested_params") != _V23_D1_REQUESTED_PARAMS
+        or source_freeze.get("native_params") != _V23_D1_NATIVE_PARAMS
+    ):
+        raise ValueError("v23 D1 capability source freeze identity/parameters are invalid")
+    source_paths = source_freeze.get("source_paths")
+    if (
+        not isinstance(source_paths, dict)
+        or set(source_paths) != {"atlas", "external_threshold", "effort_freeze"}
+        or any(not isinstance(value, str) or not value for value in source_paths.values())
+    ):
+        raise ValueError("v23 D1 capability source freeze source paths are invalid")
+    source_provenance = source_freeze.get("source_provenance")
+    external_provenance = source_provenance.get("external_threshold") if isinstance(source_provenance, dict) else None
+    if (
+        not isinstance(source_provenance, dict)
+        or set(source_provenance) != {"atlas", "external_threshold", "effort_freeze"}
+        or not isinstance(external_provenance, dict)
+        or external_provenance.get("schema") != "a2_piper_v23_door_external_torque_threshold_v1"
+        or external_provenance.get("status") != "MEASURED_RAW"
+        or external_provenance.get("row_count") != 180
+    ):
+        raise ValueError("v23 D1 capability source freeze external provenance is invalid")
+    source_geometry = source_freeze.get("canonical_geometry")
+    if (
+        not isinstance(source_geometry, dict)
+        or source_geometry.get("schema") != _V23_P0_BOUND_CANONICAL_SCHEMA
+        or source_geometry.get("cell_id") != _V23_D1_SOURCE_CELL_ID
+        or source_geometry.get("geometry_id") != source_freeze.get("source_geometry_id")
+        or source_geometry.get("realized_params")
+        != {
+            "hinge_damping_native": _V23_D1_NATIVE_PARAMS["hinge_damping_native"],
+            "hinge_stiffness_native": _V23_D1_NATIVE_PARAMS["hinge_stiffness_native"],
+            "hinge_effort_limit_nm": _V23_D1_NATIVE_PARAMS["hinge_effort_limit_nm"],
+            "door_weight_kg": _V23_D1_NATIVE_PARAMS["door_weight_kg"],
+        }
+    ):
+        raise ValueError("v23 D1 source canonical geometry is invalid")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or len(rows) != 16:
+        raise ValueError("v23 D1 bound manifest requires exactly 16 rows")
+    row_fields = _V23_P0_BOUND_ROW_FIELDS | {"purpose"}
+    scenario_ids: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != row_fields:
+            raise ValueError(f"v23 D1 bound row {index} fields are invalid")
+        if row.get("purpose") != _V23_D1_BOUND_PURPOSE or row.get("env_id") != index or row.get("episode_index") != 0:
+            raise ValueError(f"v23 D1 bound row {index} purpose/env identity is invalid")
+        scenario_id = row.get("scenario_id")
+        if not isinstance(scenario_id, str) or not scenario_id or scenario_id in scenario_ids:
+            raise ValueError(f"v23 D1 bound row {index} scenario identity is invalid")
+        scenario_ids.add(scenario_id)
+        if row.get("plain_prefix_id") != f"{scenario_id}:{topology}:env{index}:episode0":
+            raise ValueError(f"v23 D1 bound row {index} plain_prefix_id is invalid")
+        if row.get("topology") != topology or row.get("seed") != 0:
+            raise ValueError(f"v23 D1 bound row {index} policy identity is invalid")
+        source_identity = row.get("source_identity")
+        if (
+            not isinstance(source_identity, dict)
+            or set(source_identity) != _V23_P0_BOUND_SOURCE_IDENTITY_FIELDS
+            or source_identity.get("source_manifest_path") != source_path_value
+            or source_identity.get("source_role") != "historical_prior_only"
+            or not isinstance(source_identity.get("source_row"), dict)
+            or set(source_identity["source_row"]) != _V23_P0_PLAIN_SOURCE_FIELDS
+            or source_identity["source_row"].get("scenario_id") != scenario_id
+        ):
+            raise ValueError(f"v23 D1 bound row {index} source identity is invalid")
+        if (
+            row.get("cell_id") != _V23_D1_SOURCE_CELL_ID
+            or row.get("geometry_id") != source_freeze["source_geometry_id"]
+            or row.get("canonical_geometry") != source_geometry
+            or row.get("requested_params") != _V23_D1_REQUESTED_PARAMS
+            or row.get("realized_params") != source_geometry["realized_params"]
+        ):
+            raise ValueError(f"v23 D1 bound row {index} A0 geometry/dynamics are invalid")
+        facts = source_geometry.get("local_facts")
+        if not isinstance(facts, dict):
+            raise ValueError("v23 D1 source canonical geometry local_facts are missing")
+        for field in ("door_width_m", "door_height_m", "handle_height_m", "handle_width_m", "handle_type", "door_open_lr", "door_open_io"):
+            if row.get(field) != facts[field]:
+                raise ValueError(f"v23 D1 bound row {index}.{field} disagrees with A0 geometry")
+        for field in ("hinge_axis_local", "hinge_anchor_local"):
+            if row.get(field) != facts[field]:
+                raise ValueError(f"v23 D1 bound row {index}.{field} disagrees with A0 geometry")
+    if len(scenario_ids) != 16:
+        raise ValueError("v23 D1 bound scenarios must cover plain16 exactly")
+    return payload, path
+
+
+def _v23_p0_bound_manifest_payload(env_config) -> tuple[dict, Path]:
+    """Read one strict bound plain16 manifest for high-level spawn replacement."""
+
+    if env_config.get(_V23_P0_BOUND_MANIFEST_FLAG) is not True:
+        raise ValueError(
+            f"v23 P0 bound selector requires env.config.{_V23_P0_BOUND_MANIFEST_FLAG}=true"
+        )
+    path_value = env_config.get(_V23_P0_BOUND_MANIFEST_PATH_KEY)
+    if not isinstance(path_value, (str, Path)) or not str(path_value):
+        raise ValueError(
+            f"v23 P0 bound selector requires {_V23_P0_BOUND_MANIFEST_PATH_KEY}"
+        )
+    path = Path(path_value)
+    if not path.is_absolute() or not path.is_file() or path.is_symlink():
+        raise ValueError(
+            "v23 P0 bound plain16 manifest must be an absolute regular non-symlink file: "
+            f"{path}"
+        )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"v23 P0 bound plain16 manifest is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("v23 P0 bound plain16 manifest root must be an object")
+    if payload.get("schema") == _V23_D1_BOUND_MANIFEST_SCHEMA:
+        return _v23_d1_bound_manifest_payload(payload, path, env_config)
+    _v23_p0_reject_integrity_fields(payload)
+    expected_keys = {
+        "schema",
+        "status",
+        "selector_mode",
+        "topology",
+        "source_manifest_path",
+        "source_role",
+        "canonical_geometry_schema",
+        "rows",
+    }
+    if set(payload) != expected_keys:
+        raise ValueError(
+            "v23 P0 bound plain16 manifest fields must be exactly "
+            f"{sorted(expected_keys)}; got {sorted(payload)}"
+        )
+    if (
+        payload.get("schema") != _V23_P0_BOUND_MANIFEST_SCHEMA
+        or payload.get("status") != "BOUND_PLAIN16"
+        or payload.get("selector_mode") != _V23_P0_BOUND_SELECTOR_MODE
+        or payload.get("canonical_geometry_schema") != _V23_P0_BOUND_CANONICAL_SCHEMA
+    ):
+        raise ValueError("v23 P0 bound plain16 manifest schema/status/mode is invalid")
+    topology = payload.get("topology")
+    if topology not in _V23_P0_PLAIN_TOPOLOGIES:
+        raise ValueError("v23 P0 bound plain16 topology must be canonical16 or heavy16")
+    if env_config.get(_V23_P0_PLAIN_TOPOLOGY_KEY) != topology:
+        raise ValueError("v23 P0 bound plain16 topology disagrees with env.config")
+    source_path_value = payload.get("source_manifest_path")
+    if not isinstance(source_path_value, str) or not source_path_value:
+        raise ValueError("v23 P0 bound plain16 manifest requires source_manifest_path")
+    source_path = Path(source_path_value)
+    if not source_path.is_absolute() or not source_path.is_file() or source_path.is_symlink():
+        raise ValueError("v23 P0 bound source_manifest_path must be an absolute regular file")
+    if payload.get("source_role") != "historical_prior_only":
+        raise ValueError("v23 P0 bound source_role must be historical_prior_only")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or len(rows) != 16:
+        raise ValueError("v23 P0 bound plain16 manifest requires exactly 16 rows")
+    selected_cell = None
+    selected_geometry_id = None
+    scenario_ids: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != _V23_P0_BOUND_ROW_FIELDS:
+            raise ValueError(
+                f"v23 P0 bound row {index} fields must be exactly "
+                f"{sorted(_V23_P0_BOUND_ROW_FIELDS)}"
+            )
+        scenario_id = row["scenario_id"]
+        if not isinstance(scenario_id, str) or not scenario_id or scenario_id in scenario_ids:
+            raise ValueError(f"v23 P0 bound row {index} has a missing or duplicate scenario_id")
+        scenario_ids.add(scenario_id)
+        if row["env_id"] != index or row["episode_index"] != 0:
+            raise ValueError(f"v23 P0 bound row {index} env/episode identity is not plain16 ordered")
+        if row["plain_prefix_id"] != f"{scenario_id}:{topology}:env{index}:episode0":
+            raise ValueError(f"v23 P0 bound row {index} plain_prefix_id is not immutable CRN identity")
+        if any(not isinstance(row[key], str) or not row[key] for key in ("checkpoint", "config")):
+            raise ValueError(f"v23 P0 bound row {index} checkpoint/config identity is invalid")
+        if isinstance(row["seed"], bool) or not isinstance(row["seed"], int) or row["seed"] != 0:
+            raise ValueError(f"v23 P0 bound row {index} seed must be the fixed integer 0")
+        if row["topology"] != topology:
+            raise ValueError(f"v23 P0 bound row {index} topology disagrees with the manifest")
+        source_identity = row["source_identity"]
+        if (
+            not isinstance(source_identity, dict)
+            or set(source_identity) != _V23_P0_BOUND_SOURCE_IDENTITY_FIELDS
+        ):
+            raise ValueError(f"v23 P0 bound row {index} source identity fields are invalid")
+        source_row = source_identity.get("source_row")
+        if (
+            source_identity.get("source_manifest_path") != source_path_value
+            or source_identity.get("source_role") != "historical_prior_only"
+            or not isinstance(source_row, dict)
+            or set(source_row) != _V23_P0_PLAIN_SOURCE_FIELDS
+            or source_row.get("scenario_id") != scenario_id
+        ):
+            raise ValueError(f"v23 P0 bound row {index} source identity is not immutable")
+        for field in ("handle_height_m", "door_weight_kg", "hinge_force_nm"):
+            value = source_row[field]
+            if (
+                isinstance(value, bool)
+                or not isinstance(value, Real)
+                or not math.isfinite(float(value))
+                or float(value) <= 0.0
+            ):
+                raise ValueError(f"v23 P0 bound row {index} source value {field} is invalid")
+        canonical = row["canonical_geometry"]
+        if (
+            not isinstance(canonical, dict)
+            or set(canonical)
+            != {
+                "schema",
+                "geometry_id",
+                "cell_id",
+                "realized_params",
+                "local_facts",
+                "world_origin_excluded",
+                "authority",
+            }
+        ):
+            raise ValueError(f"v23 P0 bound row {index} canonical geometry fields are invalid")
+        if (
+            canonical["schema"] != _V23_P0_BOUND_CANONICAL_SCHEMA
+            or canonical["cell_id"] != row["cell_id"]
+            or canonical["geometry_id"] != row["geometry_id"]
+            or canonical["world_origin_excluded"] is not True
+            or not isinstance(canonical["authority"], str)
+            or not canonical["authority"]
+        ):
+            raise ValueError(f"v23 P0 bound row {index} canonical geometry identity is invalid")
+        realized = row["realized_params"]
+        if (
+            not isinstance(realized, dict)
+            or set(realized)
+            != {
+                "hinge_damping_native",
+                "hinge_stiffness_native",
+                "hinge_effort_limit_nm",
+                "door_weight_kg",
+            }
+            or realized != canonical["realized_params"]
+            or realized != _V23_P0_BOUND_NATIVE_PARAMS
+        ):
+            raise ValueError(f"v23 P0 bound row {index} realized dynamics are invalid")
+        requested = row["requested_params"]
+        if (
+            not isinstance(requested, dict)
+            or set(requested) != set(_V23_P0_BOUND_REQUESTED_PARAMS)
+            or requested != _V23_P0_BOUND_REQUESTED_PARAMS
+        ):
+            raise ValueError(f"v23 P0 bound row {index} requested spawn parameters are invalid")
+        damping = realized["hinge_damping_native"]
+        if (
+            isinstance(damping, bool)
+            or not isinstance(damping, Real)
+            or not math.isfinite(float(damping))
+            or float(damping) < 0.0
+        ):
+            raise ValueError(f"v23 P0 bound row {index} hinge damping is invalid")
+        for field in ("hinge_stiffness_native", "hinge_effort_limit_nm", "door_weight_kg"):
+            if (
+                isinstance(realized[field], bool)
+                or not isinstance(realized[field], Real)
+                or not math.isfinite(float(realized[field]))
+                or float(realized[field]) <= 0.0
+            ):
+                raise ValueError(f"v23 P0 bound row {index} realized {field} is invalid")
+        local_facts = canonical["local_facts"]
+        if not isinstance(local_facts, dict) or set(local_facts) != set(_V23_P0_BOUND_LOCAL_FACTS):
+            raise ValueError(f"v23 P0 bound row {index} local facts are incomplete")
+        for field in (
+            "door_width_m",
+            "door_height_m",
+            "handle_height_m",
+            "handle_width_m",
+            "door_open_lr_sign",
+            "door_open_io_sign",
+        ):
+            _v23_p0_bound_float(local_facts[field], _V23_P0_BOUND_LOCAL_FACTS[field], f"row {index}.{field}")
+        for field in ("hinge_axis_local", "hinge_anchor_local"):
+            _v23_p0_bound_vector(
+                local_facts[field], _V23_P0_BOUND_LOCAL_FACTS[field], f"row {index}.{field}"
+            )
+        for field in ("handle_type", "door_open_lr", "door_open_io"):
+            if local_facts[field] != _V23_P0_BOUND_LOCAL_FACTS[field]:
+                raise ValueError(f"v23 P0 bound row {index}.{field} disagrees with canonical geometry")
+        for field in (
+            "door_width_m",
+            "door_height_m",
+            "handle_height_m",
+            "handle_width_m",
+            "handle_type",
+            "door_open_lr",
+            "door_open_io",
+        ):
+            if row[field] != local_facts[field]:
+                raise ValueError(f"v23 P0 bound row {index}.{field} disagrees with canonical geometry")
+        for field in ("hinge_axis_local", "hinge_anchor_local"):
+            _v23_p0_bound_vector(row[field], local_facts[field], f"row {index}.{field}")
+        if selected_cell is None:
+            selected_cell = row["cell_id"]
+            selected_geometry_id = row["geometry_id"]
+        elif row["cell_id"] != selected_cell or row["geometry_id"] != selected_geometry_id:
+            raise ValueError("v23 P0 bound plain16 rows must select one canonical atlas cell")
+    return payload, path
+
+
+def _apply_v23_p0_bound_plain16_spawn_config(
+    num_envs: int,
+    payload: Mapping[str, Any],
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Apply every registered bound geometry/dynamics field via high-level cfg replacement."""
+
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != 16:
+        raise ValueError("v23 P0 bound plain16 topology requires num_envs=16")
+    rows = payload.get("rows") if isinstance(payload, Mapping) else None
+    if not isinstance(rows, list) or len(rows) != num_envs:
+        raise ValueError("v23 P0 bound plain16 spawn config requires exactly 16 rows")
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base, dict) or "door" not in base:
+        raise ValueError("v23 P0 bound plain16 selector requires a door TaskObjCfgDict")
+    door_cfg = base["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("v23 P0 bound plain16 selector requires MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("v23 P0 bound plain16 selector requires non-empty assets_cfg")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("v23 P0 bound plain16 selector base asset must be DoorSpawnerCfg")
+    variants = []
+    for row in rows:
+        requested = row["requested_params"]
+        variants.append(
+            base_door_cfg.replace(
+                rand_door_width=float(row["door_width_m"]),
+                rand_door_height=float(row["door_height_m"]),
+                rand_door_handle_height=float(row["handle_height_m"]),
+                rand_door_handle_width=float(row["handle_width_m"]),
+                rand_door_handle_type=row["handle_type"],
+                rand_door_open_lr=row["door_open_lr"],
+                rand_door_open_io=row["door_open_io"],
+                rand_door_weight=float(requested["door_weight_kg"]),
+                rand_hinge_drive_max_force=float(requested["hinge_max_force_nm"]),
+                rand_hinge_drive_damping=float(requested["hinge_damping_native"]),
+                rand_hinge_drive_stiffness=float(requested["hinge_stiffness_native"]),
+            )
+        )
+    return {
+        **base,
+        "door": door_cfg.replace(
+            spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+        ),
+    }
+
+
+def _apply_v23_d1_capability_bound_plain16_spawn_config(
+    num_envs: int,
+    payload: Mapping[str, Any],
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    if payload.get("schema") != _V23_D1_BOUND_MANIFEST_SCHEMA:
+        raise ValueError("v23 D1 spawn helper requires the exact D1 capability-source schema")
+    return _apply_v23_p0_bound_plain16_spawn_config(num_envs, payload, task_obj_cfg_dict)
+
+
+def get_TaskObjCfgDict_for_v23_p0_bound_plain16_manifest(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    payload, _ = _v23_p0_bound_manifest_payload(env_config)
+    if payload.get("schema") == _V23_D1_BOUND_MANIFEST_SCHEMA:
+        return _apply_v23_d1_capability_bound_plain16_spawn_config(num_envs, payload, task_obj_cfg_dict)
+    return _apply_v23_p0_bound_plain16_spawn_config(num_envs, payload, task_obj_cfg_dict)
+
+
+def get_TaskObjCfgDict_for_v23_p0_plain_scenario_manifest(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Select deterministic v23 P0 door variants through high-level replacement."""
+
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != 16:
+        raise ValueError("v23 P0 plain scenario topology requires num_envs=16")
+    payload, _ = _v23_p0_plain_manifest_payload(env_config)
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base, dict) or "door" not in base:
+        raise ValueError("v23 P0 plain selector requires a door TaskObjCfgDict")
+    door_cfg = base["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("v23 P0 plain selector requires MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("v23 P0 plain selector requires non-empty assets_cfg")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("v23 P0 plain selector base asset must be DoorSpawnerCfg")
+    bounds = base_door_cfg.door_handle_tblr
+    if (
+        isinstance(bounds, (str, bytes))
+        or not isinstance(bounds, Sequence)
+        or len(bounds) != 4
+    ):
+        raise ValueError("v23 P0 plain selector base door_handle_tblr must have four values")
+    upper, lower = float(bounds[0]), float(bounds[1])
+    if not math.isfinite(upper) or not math.isfinite(lower) or lower >= upper:
+        raise ValueError("v23 P0 plain selector base handle-height bounds are invalid")
+    variants = []
+    for index, row in enumerate(payload["rows"]):
+        height = float(row["handle_height_m"])
+        if not lower <= height <= upper:
+            raise ValueError(
+                f"v23 P0 plain scenario row {index} handle height {height} is outside [{lower}, {upper}]"
+            )
+        variants.append(
+            base_door_cfg.replace(
+                rand_door_handle_height=height,
+                rand_door_weight=float(row["door_weight_kg"]),
+                rand_hinge_drive_max_force=float(row["hinge_force_nm"]),
+            )
+        )
+    result = dict(base)
+    result["door"] = door_cfg.replace(
+        spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    )
+    return result
 
 
 _V22_MANIFEST_SCHEMA = "a2_piper_base_v22_scenario_manifest_v1"
@@ -763,6 +1485,43 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    v23_bound_fields_present = any(
+        key in env_config
+        for key in (
+            _V23_P0_BOUND_MANIFEST_FLAG,
+            _V23_P0_BOUND_MANIFEST_PATH_KEY,
+        )
+    )
+    if v23_bound_fields_present:
+        if env_config.get(_V23_P0_BOUND_MANIFEST_FLAG) is not True:
+            raise ValueError(
+                "v23 P0 bound selector fields require "
+                f"env.config.{_V23_P0_BOUND_MANIFEST_FLAG}=true"
+            )
+        if env_config.get(_V21B_SIGNED_PROBE_FLAG) is True:
+            raise ValueError(
+                "v23 P0 bound selector and signed v21-B selector are mutually exclusive"
+            )
+        return get_TaskObjCfgDict_for_v23_p0_bound_plain16_manifest(num_envs, env_config)
+    v23_plain_fields_present = any(
+        key in env_config
+        for key in (
+            _V23_P0_PLAIN_MANIFEST_FLAG,
+            _V23_P0_PLAIN_MANIFEST_PATH_KEY,
+            _V23_P0_PLAIN_TOPOLOGY_KEY,
+        )
+    )
+    if v23_plain_fields_present:
+        if env_config.get(_V23_P0_PLAIN_MANIFEST_FLAG) is not True:
+            raise ValueError(
+                "v23 P0 plain selector fields require "
+                f"env.config.{_V23_P0_PLAIN_MANIFEST_FLAG}=true"
+            )
+        if env_config.get(_V21B_SIGNED_PROBE_FLAG) is True:
+            raise ValueError(
+                "v23 P0 plain selector and signed v21-B selector are mutually exclusive"
+            )
+        return get_TaskObjCfgDict_for_v23_p0_plain_scenario_manifest(num_envs, env_config)
     if env_config.get(_V21B_SIGNED_PROBE_FLAG) is True:
         return get_TaskObjCfgDict_for_v21B_scenario_manifest(num_envs, env_config)
     if env_config.get(_V22_MANIFEST_FLAG) is True:

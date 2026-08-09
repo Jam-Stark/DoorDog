@@ -64,6 +64,9 @@ class PolicyAndValueWrapper(nn.Module):
                 "action_std": self.policy.action_std,
                 "entropy": self.policy.entropy,
             }
+            action_mask = getattr(self.policy, "rp0_action_mask", None)
+            if action_mask is not None:
+                results["action_mask"] = action_mask
         elif mode == "policy_distill":
             results = self.policy.act(**kwargs)
         elif mode == "policy_distill_ppo":
@@ -76,6 +79,9 @@ class PolicyAndValueWrapper(nn.Module):
                 "action_std": policy_state_dict["action_sigma"],
                 "entropy": self.policy.entropy,
             }
+            action_mask = getattr(self.policy, "rp0_action_mask", None)
+            if action_mask is not None:
+                results["action_mask"] = action_mask
             if "normalized_actions" in policy_state_dict:
                 results["normalized_actions"] = policy_state_dict["normalized_actions"]
         elif mode == "policy_w_and_wo_imgaug":
@@ -91,6 +97,9 @@ class PolicyAndValueWrapper(nn.Module):
                 "action_std": policy_state_dict["action_sigma"],
                 "entropy": self.policy.entropy,
             }
+            action_mask = getattr(self.policy, "rp0_action_mask", None)
+            if action_mask is not None:
+                results["action_mask"] = action_mask
 
             # The second forward is with image augmentation
             self.policy.transform_train()
@@ -1160,14 +1169,24 @@ class TRLPPOTrainer(PPOTrainer):
         sigma_batch = policy_results["action_std"]
         mu_batch = policy_results["action_mean"]
         entropy_batch = policy_results["entropy"]
+        action_mask = policy_results.get(
+            "action_mask",
+            torch.ones(sigma_batch.shape[-1], dtype=torch.bool, device=sigma_batch.device),
+        )
+        if tuple(action_mask.shape) != (sigma_batch.shape[-1],):
+            raise ValueError(
+                "PPO action mask must be a one-dimensional vector matching the action width; "
+                f"got {tuple(action_mask.shape)} for width {sigma_batch.shape[-1]}."
+            )
+        action_mask = action_mask.to(device=sigma_batch.device, dtype=torch.bool)
         with torch.no_grad():
-            kl = torch.sum(
+            kl_per_dim = (
                 torch.log(sigma_batch / mb_old_sigma + 1.0e-5)
                 + (torch.square(mb_old_sigma) + torch.square(mb_old_mu - mu_batch))
                 / (2.0 * torch.square(sigma_batch))
-                - 0.5,
-                axis=-1,
+                - 0.5
             )
+            kl = torch.sum(kl_per_dim * action_mask, axis=-1)
             local_kl_mean = torch.mean(kl)
             kl_mean = self.accelerator.gather(local_kl_mean).mean()
             self._adjust_learning_rate_based_on_kl(kl_mean, optimizer)

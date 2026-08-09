@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from collections.abc import Sequence
 
 import torch
 import torch.nn as nn
@@ -14,6 +15,40 @@ from torch.distributions import Normal
 from gr00t.rl.trl.utils.common import custom_instantiate
 from gr00t.rl.trl.utils.rl import compute_episode_attnmask
 from gr00t.rl.utils.running_mean_std import RunningMeanStd
+
+
+def _resolve_rp0_action_contract(algo_config, num_actions: int) -> tuple[bool, tuple[int, ...], float]:
+    """Resolve the versioned RP0 action mask without silent fallback."""
+
+    enabled = algo_config.get("rp0_enabled", False)
+    if not isinstance(enabled, bool):
+        raise ValueError(f"algo.config.rp0_enabled must be bool; got {enabled!r}.")
+    indices = algo_config.get("rp0_mask_indices", [3, 4] if enabled else [])
+    if isinstance(indices, (str, bytes)) or not isinstance(indices, Sequence):
+        raise ValueError("algo.config.rp0_mask_indices must be a list/tuple of integer action indices.")
+    if any(isinstance(index, bool) or not isinstance(index, int) for index in indices):
+        raise ValueError("algo.config.rp0_mask_indices must contain only integer action indices.")
+    if len(set(indices)) != len(indices):
+        raise ValueError("algo.config.rp0_mask_indices must not contain duplicates.")
+    if any(index < 0 or index >= num_actions for index in indices):
+        raise ValueError(
+            "algo.config.rp0_mask_indices contains an index outside the actor action dimension "
+            f"{num_actions}: {indices!r}."
+        )
+    neutral = algo_config.get("rp0_neutral_value", 0.0)
+    if isinstance(neutral, bool) or not isinstance(neutral, (int, float)):
+        raise ValueError(f"algo.config.rp0_neutral_value must be a real number; got {neutral!r}.")
+    neutral = float(neutral)
+    if not torch.isfinite(torch.tensor(neutral)):
+        raise ValueError(f"algo.config.rp0_neutral_value must be finite; got {neutral!r}.")
+    if indices and tuple(indices) != (3, 4):
+        raise ValueError(
+            "v23 RP0 requires raw base posture indices [3,4] (pitch,roll); "
+            f"got {list(indices)!r}."
+        )
+    if neutral != 0.0:
+        raise ValueError(f"v23 RP0 requires semantic neutral raw value 0.0; got {neutral!r}.")
+    return enabled, tuple(indices), neutral
 
 
 class Actor(nn.Module):
@@ -57,6 +92,24 @@ class Actor(nn.Module):
         # Action noise
         self.num_actions = self.actor_module.output_dim
         self.std = nn.Parameter(init_noise_std * torch.ones(self.num_actions))
+
+        rp0_enabled, rp0_indices, rp0_neutral_value = _resolve_rp0_action_contract(
+            algo_config, self.num_actions
+        )
+        rp0_mask = torch.ones(self.num_actions, dtype=torch.bool)
+        effective_indices = rp0_indices if rp0_enabled else ()
+        if effective_indices:
+            rp0_mask[list(effective_indices)] = False
+        self.rp0_enabled = rp0_enabled
+        self.rp0_mask_indices = rp0_indices
+        self.rp0_neutral_value = rp0_neutral_value
+        # RP0 is a resolved runtime contract, not learned state.  Keep these
+        # tensors as plain attributes so strict loading of pre-v23 policy-only
+        # checkpoints sees exactly the legacy parameter/buffer key set.
+        self.rp0_action_mask = rp0_mask
+        self.rp0_neutral_action = torch.full(
+            (self.num_actions,), rp0_neutral_value, dtype=torch.float32
+        )
 
         if algo_config.get("freeze_noise_std", False):
             self.std.requires_grad = False
@@ -103,7 +156,29 @@ class Actor(nn.Module):
 
     @property
     def entropy(self):
-        return self.distribution.entropy().sum(dim=-1)
+        entropy = self.distribution.entropy()
+        mask = self.rp0_action_mask.to(device=entropy.device, dtype=entropy.dtype)
+        return (entropy * mask).sum(dim=-1)
+
+    def _masked_mean(self, mean):
+        if not self.rp0_enabled:
+            return mean
+        neutral = self.rp0_neutral_action.to(device=mean.device, dtype=mean.dtype)
+        return torch.where(self.rp0_action_mask.to(device=mean.device), mean, neutral)
+
+    def _build_distribution(self, mean):
+        mean = self._masked_mean(mean)
+        return Normal(mean, mean * 0.0 + self.std)
+
+    def _sample_actions(self):
+        actions = self.distribution.sample()
+        if not self.rp0_enabled:
+            return actions
+        neutral = self.rp0_neutral_action.to(device=actions.device, dtype=actions.dtype)
+        return torch.where(self.rp0_action_mask.to(device=actions.device), actions, neutral)
+
+    def _mask_inference_actions(self, actions):
+        return self._masked_mean(actions)
 
     def update_distribution(self, obs_dict, episode_attnmask=None, last_step_only=False, **kwargs):
         # obs_dict[self.input_key] = torch.zeros_like(obs_dict[self.input_key]) # DEBUG
@@ -116,7 +191,7 @@ class Actor(nn.Module):
             with torch.no_grad():
                 self.std.clamp_(max=self.max_noise_std)
         # import ipdb; ipdb.set_trace()
-        self.distribution = Normal(mean, mean * 0.0 + self.std)
+        self.distribution = self._build_distribution(mean)
 
     def act(self, obs_dict, episode_attnmask=None, **kwargs):
         try:
@@ -127,7 +202,7 @@ class Actor(nn.Module):
 
             ipdb.set_trace()
             raise e
-        actions = self.distribution.sample()
+        actions = self._sample_actions()
         return TensorDict(
             {
                 "actions": actions,
@@ -197,7 +272,7 @@ class Actor(nn.Module):
         self.steps += 1
         return TensorDict(
             {
-                "actions": self.distribution.sample(),
+                "actions": self._sample_actions(),
                 "action_mean": self.action_mean,
                 "action_sigma": self.action_std,
             }
@@ -218,7 +293,7 @@ class Actor(nn.Module):
         self.steps += 1
         return TensorDict(
             {
-                "actions": self.distribution.sample(),
+                "actions": self._sample_actions(),
                 "action_mean": self.action_mean,
                 "action_sigma": self.action_std,
                 # Note: predicted_obj_pos is NOT included since this base actor doesn't predict object positions
@@ -226,7 +301,12 @@ class Actor(nn.Module):
         )
 
     def get_actions_log_prob(self, actions):
-        return self.distribution.log_prob(actions).sum(dim=-1)
+        if actions.shape[-1] != self.num_actions:
+            raise ValueError(
+                f"RP0 actor log-prob expects action width {self.num_actions}; got {actions.shape[-1]}"
+            )
+        log_prob = self.distribution.log_prob(actions)
+        return (log_prob * self.rp0_action_mask.to(device=actions.device, dtype=log_prob.dtype)).sum(dim=-1)
 
     def act_inference(self, obs_dict, episode_attnmask=None, cur_dones=None, **kwargs):
         episode_attnmask = self._update_obs_buffer(obs_dict, episode_attnmask, cur_dones)
@@ -234,7 +314,7 @@ class Actor(nn.Module):
             obs_dict=self.obs_dict_buffer, episode_attnmask=episode_attnmask, **kwargs
         )
         # last step only
-        actions_mean = actions_mean[:, -1]
+        actions_mean = self._mask_inference_actions(actions_mean[:, -1])
         self.steps += 1
         return actions_mean
 
@@ -245,7 +325,7 @@ class Actor(nn.Module):
         """
         actions_mean = self.forward(obs_dict=obs_dict, episode_attnmask=episode_attnmask, **kwargs)
         # last step only
-        actions_mean = actions_mean[:, -1]
+        actions_mean = self._mask_inference_actions(actions_mean[:, -1])
         return actions_mean
 
     def to_cpu(self):

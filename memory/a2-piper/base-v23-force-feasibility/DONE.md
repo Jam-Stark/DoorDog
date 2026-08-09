@@ -1,0 +1,9 @@
+# DONE
+
+- 2026-08-10 01:30 HKT - Recorded P0.2 effort-freeze receipt `a2_piper_v23_effort_freeze_v1`: `MEASURED_FREEZE` at `40 N*m`, `LADDER_INCONCLUSIVE`, 12 runs / 192 records. This is a shared boundary profile, not a normal ladder selection.
+- 2026-08-10 01:30 HKT - Recorded the completed P0.4 raw atlas/external producer outputs: positive brackets A0/A1 `(10,15]`, A2/A3/A7 `(25,30]`, A4/A5/A6 `(15,20]`, A8 `(30,40]`, with negative `RIGHT_CENSORED`. This does not complete P0.4 classification, D1 zones, or mixture.
+- 2026-08-10 01:30 HKT - Recorded P0.5 calibration bands: stable grasp `20`; progress `0.02--0.04 rad` per `25--40` steps; clipped utilization/fraction `0.9/0.3`; rescue `0.10--0.15 rad/window`.
+- 2026-08-10 01:30 HKT - Recorded R49 A8 certificate branch as terminal `COMPLETED_TYPED_NEGATIVE`: pair `PASS` with 15 `PREFIX_EQUAL` plus env5 `NO_RESCUE_LATCH`, bundle `READY_FOR_CERTIFICATE`, and certificate `identity_count=16` / `pass_count=0` with 15 `COMPLETED_TYPED_NEGATIVE` plus env5 `RESCUE_NOT_EXECUTED` and `confirmed_E2=false`. It is a completed scientific negative, not D1 admission.
+- 2026-08-10 01:30 HKT - Recorded R50 A0 `CAPABILITY_SOURCE_FROZEN` source geometry at effort `40 N*m`; requested `50/2/4.5/120` and native `2864.7890625/114.59156036376953/4.5/119.99999237060547` for damping/stiffness/max force/mass.
+- 2026-08-10 01:30 HKT - Recorded R53 fail-fast missing-seed diagnosis and R54 exact-integer seed override without coercion/fallback. R54 FULL/ACUTE produced finite exact16 records with runtime `rc0`; reduction is the completed typed result `D1_CAPABILITY_SOURCE_INCOMPLETE` (`rc2`, no D1 freeze, no zones/capacity/schedules).
+- 2026-08-10 01:30 HKT - Recorded the separate R21 RP0 distribution/resume contract as `RUNTIME_VERIFIED` for its own `64-env × 10-batch` plus FULL resume `64-env × 1-batch` contract (`0→10→11`); it does not verify R54 P05 raw dimensions 3/4.

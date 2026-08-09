@@ -10,6 +10,10 @@ from typing_extensions import override
 
 from gr00t.rl.envs.base_task.finger_primitive_base import FingerPrimitiveBase
 from gr00t.rl.envs.legged_base_task.legged_robot_base import LeggedRobotBase
+from gr00t.rl.envs.door.a2_v23_evidence import (
+    V23_P05_MODES,
+    a2_v23_apply_forward_intervention,
+)
 from gr00t.rl.utils.torch_utils import quat_rotate
 
 
@@ -597,6 +601,255 @@ class A2Base(LeggedRobotBase):
             f"got {mode!r}."
         )
 
+    def _get_a2_v23_stable_grasp_mask(self, num_envs: int, device: torch.device) -> torch.Tensor:
+        """Return the episode high-water latch used by BASE0_AT_GRASP."""
+
+        highwater = getattr(self, "_a2_stage3_grasp_streak_highwater", None)
+        if (
+            not torch.is_tensor(highwater)
+            or tuple(highwater.shape) != (num_envs,)
+            or highwater.dtype != torch.bool
+            or highwater.device != device
+        ):
+            raise RuntimeError(
+                "BASE0_AT_GRASP requires the episode stage3 grasp-streak high-water latch."
+            )
+        return highwater
+
+    def apply_a2_v23_forward_intervention(self, raw_base_action, *, actor_state=None):
+        """Apply one explicitly configured forward-only v23 intervention."""
+
+        mode = self.config.get("a2_v23_forward_intervention_mode")
+        if mode is None:
+            return raw_base_action
+        actor_state = {} if actor_state is None else actor_state
+        if not isinstance(actor_state, dict):
+            raise ValueError("v23 forward intervention actor_state must be a mapping when provided.")
+        pre_low_level_applied = actor_state.get("a2_v23_pre_low_level_applied", False)
+        if not isinstance(pre_low_level_applied, bool):
+            raise ValueError("a2_v23_pre_low_level_applied must be bool when provided.")
+        if pre_low_level_applied:
+            return raw_base_action
+        if getattr(self, "is_evaluating", False) is not True:
+            raise RuntimeError(
+                "v23 forward interventions are evaluation-only and must be applied "
+                "before specialized A2 low-level action generation."
+            )
+        stable_mask = None
+        if mode == "BASE0_AT_GRASP":
+            stable_mask = self._get_a2_v23_stable_grasp_mask(
+                raw_base_action.shape[0], raw_base_action.device
+            )
+        oracle_delta = actor_state.get("a2_v23_oracle_tangential_delta_raw")
+        oracle_active = actor_state.get("a2_v23_oracle_active_mask")
+        intervened, metadata = a2_v23_apply_forward_intervention(
+            raw_base_action,
+            mode=mode,
+            stable_grasp_mask=stable_mask,
+            oracle_tangential_delta_raw=oracle_delta,
+            oracle_active_mask=oracle_active,
+            higher_effort_profile_applied=actor_state.get(
+                "a2_v23_effort_profile_applied", False
+            ),
+        )
+        self._a2_v23_last_forward_intervention = metadata
+        return intervened
+
+    def apply_a2_v23_high_level_intervention(self, high_level_actions, *, actor_state=None):
+        """Apply the v23 base-command intervention before A2 low-level inference."""
+
+        if not torch.is_tensor(high_level_actions) or high_level_actions.ndim != 2:
+            shape = None if not torch.is_tensor(high_level_actions) else tuple(high_level_actions.shape)
+            raise ValueError(
+                "v23 high-level intervention requires a floating tensor with shape (N,action_dim); "
+                f"got {shape}."
+            )
+        if not high_level_actions.is_floating_point() or not torch.all(torch.isfinite(high_level_actions)):
+            raise ValueError("v23 high-level intervention requires finite floating actions.")
+        layout = self.get_a2_high_level_action_layout()
+        if high_level_actions.shape[-1] != layout["dim"]:
+            raise ValueError(
+                "v23 high-level intervention action width mismatch: "
+                f"got {high_level_actions.shape[-1]}, expected {layout['dim']}."
+            )
+        mode = self.config.get("a2_v23_forward_intervention_mode")
+        if mode is None:
+            return high_level_actions
+        result = high_level_actions.clone()
+        base_action = result[:, layout["base_start"] : layout["base_end"]]
+        result[:, layout["base_start"] : layout["base_end"]] = self.apply_a2_v23_forward_intervention(
+            base_action,
+            actor_state=actor_state,
+        )
+        return result
+
+    def build_a2_v23_forward_intervention_actor_state(
+        self, *, device: torch.device, dtype: torch.dtype
+    ) -> dict:
+        """Resolve explicit evaluator inputs for the configured v23 intervention."""
+
+        mode = self.config.get("a2_v23_forward_intervention_mode")
+        if mode is None:
+            return {}
+        if not isinstance(device, torch.device):
+            raise ValueError(f"v23 evaluator state device must be torch.device; got {device!r}.")
+        if not isinstance(dtype, torch.dtype) or not dtype.is_floating_point:
+            raise ValueError(f"v23 evaluator state dtype must be floating torch.dtype; got {dtype!r}.")
+
+        actor_state = {}
+        if mode == "HIGHER_EFFORT_RESCUE":
+            key = "a2_v23_effort_profile_applied"
+            if key not in self.config:
+                raise RuntimeError(
+                    "HIGHER_EFFORT_RESCUE requires env.config.a2_v23_effort_profile_applied."
+                )
+            applied = self.config[key]
+            if not isinstance(applied, bool):
+                raise ValueError(f"env.config.{key} must be bool; got {applied!r}.")
+            actor_state[key] = applied
+            return actor_state
+
+        if mode != "ORACLE_TANGENTIAL_ASSIST":
+            return actor_state
+
+        delta_key = "a2_v23_oracle_tangential_delta_raw"
+        active_key = "a2_v23_oracle_active_mask"
+        for key in (delta_key, active_key):
+            if key not in self.config or self.config[key] is None:
+                raise RuntimeError(
+                    "ORACLE_TANGENTIAL_ASSIST requires explicit "
+                    f"env.config.{delta_key} and env.config.{active_key}."
+                )
+
+        delta = self.config[delta_key]
+        if not torch.is_tensor(delta):
+            delta = torch.as_tensor(delta, device=device)
+        if (
+            tuple(delta.shape) != (self.num_envs, self.A2_BASE_COMMAND_ACTION_DIM)
+            or not delta.is_floating_point()
+            or not torch.all(torch.isfinite(delta))
+        ):
+            raise ValueError(
+                f"env.config.{delta_key} requires finite floating shape "
+                f"({self.num_envs},{self.A2_BASE_COMMAND_ACTION_DIM}); got "
+                f"shape={tuple(delta.shape)}, dtype={delta.dtype}."
+            )
+        delta = delta.to(device=device, dtype=dtype)
+
+        active = self.config[active_key]
+        if not torch.is_tensor(active):
+            active = torch.as_tensor(active, device=device)
+        if (
+            tuple(active.shape) != (self.num_envs,)
+            or active.dtype != torch.bool
+        ):
+            raise ValueError(
+                f"env.config.{active_key} requires bool shape ({self.num_envs},); got "
+                f"shape={tuple(active.shape)}, dtype={active.dtype}."
+            )
+        active = active.to(device=device)
+        actor_state[delta_key] = delta
+        actor_state[active_key] = active
+        return actor_state
+
+    def build_a2_v23_p05_forward_intervention_actor_state(
+        self, *, device: torch.device, dtype: torch.dtype
+    ) -> dict:
+        """Resolve the strict P0.5 three-mode action contract.
+
+        This is separate from the legacy v23 resolver so unsupported legacy
+        actions cannot enter a P0.5 certificate by configuration accident.
+        """
+
+        mode = self.config.get("a2_v23_p05_mode")
+        if mode is None:
+            mode = self.config.get("a2_v23_forward_intervention_mode")
+        if mode not in V23_P05_MODES:
+            raise RuntimeError(f"P0.5 requires a2_v23_p05_mode in {V23_P05_MODES}; got {mode!r}.")
+        if not isinstance(device, torch.device):
+            raise ValueError("P0.5 actor-state device must be torch.device.")
+        if not isinstance(dtype, torch.dtype) or not dtype.is_floating_point:
+            raise ValueError("P0.5 actor-state dtype must be floating torch.dtype.")
+        state: dict = {"a2_v23_p05_mode": mode}
+        if mode == "HIGHER_EFFORT_RESCUE":
+            latched = getattr(self, "_a2_v23_p05_rescue_latched", None)
+            if (
+                not torch.is_tensor(latched)
+                or tuple(latched.shape) != (self.num_envs,)
+                or latched.dtype != torch.bool
+                or latched.device != device
+            ):
+                raise RuntimeError(
+                    "HIGHER_EFFORT_RESCUE requires the typed dynamic rescue-latch buffer."
+                )
+            state["a2_v23_p05_rescue_latched"] = latched.clone()
+        return state
+
+    def apply_a2_v23_p05_forward_intervention(self, raw_base_action, *, actor_state=None):
+        """Apply only FULL, ACUTE_RP0, or HIGHER_EFFORT_RESCUE to base actions."""
+
+        actor_state = {} if actor_state is None else actor_state
+        if not isinstance(actor_state, dict):
+            raise ValueError("P0.5 actor_state must be a mapping when provided.")
+        forbidden = {"a2_v23_oracle_tangential_delta_raw", "a2_v23_oracle_active_mask"}
+        if forbidden.intersection(actor_state):
+            raise ValueError("P0.5 action contract does not accept oracle action inputs.")
+        mode = actor_state.get("a2_v23_p05_mode", self.config.get("a2_v23_p05_mode"))
+        if mode is None:
+            mode = self.config.get("a2_v23_forward_intervention_mode")
+        if mode not in V23_P05_MODES:
+            raise RuntimeError(f"P0.5 mode must be one of {V23_P05_MODES}; got {mode!r}.")
+        if actor_state.get("a2_v23_pre_low_level_applied", False):
+            if not isinstance(actor_state["a2_v23_pre_low_level_applied"], bool):
+                raise ValueError("a2_v23_pre_low_level_applied must be bool.")
+            return raw_base_action
+        if getattr(self, "is_evaluating", False) is not True:
+            raise RuntimeError("P0.5 forward intervention is evaluation-only.")
+        if mode == "HIGHER_EFFORT_RESCUE":
+            latched = actor_state.get("a2_v23_p05_rescue_latched")
+            if (
+                not torch.is_tensor(latched)
+                or tuple(latched.shape) != (raw_base_action.shape[0],)
+                or latched.dtype != torch.bool
+                or latched.device != raw_base_action.device
+            ):
+                raise RuntimeError("P0.5 rescue requires the typed dynamic rescue-latch mask.")
+            result, metadata = a2_v23_apply_forward_intervention(
+                raw_base_action,
+                mode="FULL",
+            )
+            metadata["mode"] = mode
+            metadata["rescue_latched"] = latched.clone()
+            metadata["effort_profile_application"] = "DYNAMIC_CAP_AT_TYPED_RESCUE_LATCH"
+        else:
+            result, metadata = a2_v23_apply_forward_intervention(
+                raw_base_action,
+                mode=mode,
+            )
+        metadata["p05_mode"] = mode
+        self._a2_v23_p05_last_forward_intervention = metadata
+        return result
+
+    def apply_a2_v23_p05_high_level_intervention(self, high_level_actions, *, actor_state=None):
+        if not torch.is_tensor(high_level_actions) or high_level_actions.ndim != 2:
+            raise ValueError("P0.5 high-level intervention requires a rank-2 tensor.")
+        if not high_level_actions.is_floating_point() or not torch.all(torch.isfinite(high_level_actions)):
+            raise ValueError("P0.5 high-level intervention requires finite floating actions.")
+        layout = self.get_a2_high_level_action_layout()
+        if high_level_actions.shape[-1] != layout["dim"]:
+            raise ValueError("P0.5 high-level intervention action width mismatch.")
+        mode = (actor_state or {}).get("a2_v23_p05_mode", self.config.get("a2_v23_p05_mode"))
+        if mode is None:
+            mode = self.config.get("a2_v23_forward_intervention_mode")
+        if mode not in V23_P05_MODES:
+            raise RuntimeError(f"P0.5 mode must be one of {V23_P05_MODES}; got {mode!r}.")
+        result = high_level_actions.clone()
+        base = result[:, layout["base_start"] : layout["base_end"]]
+        result[:, layout["base_start"] : layout["base_end"]] = self.apply_a2_v23_p05_forward_intervention(
+            base, actor_state=actor_state
+        )
+        return result
+
     def _step_a2_base(self, actor_state):
         actions = actor_state["actions"]
         if actions.shape[-1] != self._a2_high_level_action_dim + self._a2_leg_action_dim:
@@ -614,6 +867,7 @@ class A2Base(LeggedRobotBase):
             capture_eval_env_action(high_level_actions)
         raw_base_action = high_level_actions[:, layout["base_start"] : layout["base_end"]]
         raw_base_action = self._apply_a2_v22_posture_intervention(raw_base_action)
+        raw_base_action = self.apply_a2_v23_forward_intervention(raw_base_action, actor_state=actor_state)
         arm_actions = high_level_actions[:, layout["arm_start"] : layout["arm_end"]]
         gripper_primitive = high_level_actions[
             :, layout["gripper_index"] : layout["gripper_index"] + 1

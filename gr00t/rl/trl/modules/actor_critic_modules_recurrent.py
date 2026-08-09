@@ -168,7 +168,7 @@ class RecurrentActor(Actor):
             original_dones=original_dones,
             **kwargs,
         )
-        actions = self.distribution.sample()
+        actions = self._sample_actions()
         return TensorDict(
             {
                 "actions": actions,
@@ -202,7 +202,7 @@ class RecurrentActor(Actor):
             with torch.no_grad():
                 self.std.clamp_(max=self.max_noise_std)
 
-        self.distribution = Normal(mean, mean * 0.0 + self.std)
+        self.distribution = self._build_distribution(mean)
 
     def rollout(self, obs_dict, episode_attnmask=None, cur_dones=None, **kwargs):
         """Rollout method for recurrent actor during environment interaction."""
@@ -226,12 +226,12 @@ class RecurrentActor(Actor):
         if self.clamp_noise_std:
             with torch.no_grad():
                 self.std.clamp_(max=self.max_noise_std)
-        self.distribution = Normal(mean, mean * 0.0 + self.std)
+        self.distribution = self._build_distribution(mean)
 
         self.steps += 1
         return TensorDict(
             {
-                "actions": self.distribution.sample(),
+                "actions": self._sample_actions(),
                 "action_mean": self.action_mean,
                 "action_sigma": self.action_std,
             }
@@ -253,7 +253,7 @@ class RecurrentActor(Actor):
         if len(memory_out.shape) == 3:  # [seq_len=1, batch_size, hidden_dim]
             memory_out = memory_out.squeeze(0)  # [batch_size, hidden_dim]
 
-        actions_mean = self.actor_module(memory_out, **kwargs)
+        actions_mean = self._mask_inference_actions(self.actor_module(memory_out, **kwargs))
 
         self.steps += 1
         return actions_mean

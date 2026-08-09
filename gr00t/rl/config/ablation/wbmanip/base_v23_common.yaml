@@ -1,0 +1,105 @@
+# @package _global_
+
+# Non-launchable v23 config skeleton.  A specialized G1--G8 config may only be
+# derived after the listed P0 records have been written and reviewed by the
+# runtime consumer.  Null values below mean "required input is missing", not a
+# numeric default.
+v23_schema: a2_piper_base_v23_common_config_v1
+v23_plan_id: base_v23_force_feasibility_initialization_posture_R1
+v23_config_state: P0_FREEZE_REQUIRED
+v23_formal_launchable: false
+v23_fail_fast_on_missing_freeze: true
+v23_cell: null
+v23_seed: null
+v23_initialization: null
+v23_door_regime: null
+v23_posture_mode: null
+
+checkpoint: null
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+num_envs: 4096
+headless: true
+
+v23_identity:
+  warm_checkpoint_path: logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt
+  warm_saved_config_path: logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/config.yaml
+  warm_load_mode: policy_only
+  d0_source_config_path: gr00t/rl/config/ablation/wbmanip/base_v22_G1_posture_seed0.yaml
+  d0_resolved_config_path: logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/config.yaml
+  identity_inputs: [git_commit, source_path, saved_config_path]
+
+v23_freeze_contract:
+  status: PENDING
+  required_records:
+    effort_profile: null
+    door_atlas: null
+    feasibility_certificate: null
+    common_reward: null
+    state_bank: null
+  d1_training_mixture_source: P0_DOOR_ATLAS_FREEZE_REQUIRED
+  confirmed_e2_training_samples: false
+  d1_curriculum_schedule:
+    - {progress: "0-20%", E0: 1.0, E1: 0.0, near_E2: 0.0, confirmed_E2: 0.0}
+    - {progress: "20-50%", E0: 0.6, E1: 0.4, near_E2: 0.0, confirmed_E2: 0.0}
+    - {progress: "50-100%", E0: 0.3, E1: 0.6, near_E2: 0.1, confirmed_E2: 0.0}
+
+algo:
+  config:
+    # Core implementation consumes these exact RP0 fields.  The common
+    # skeleton is FULL-shaped; RP0 cells override only rp0_enabled after the
+    # distribution contract is frozen.
+    rp0_enabled: false
+    rp0_mask_indices: [3, 4]
+    rp0_neutral_value: 0.0
+    v23_effort_profile_nm: null
+    v23_effort_profile_source: P0_EFFORT_PROFILE_FREEZE_REQUIRED
+    v23_rp0_distribution_state: P0_RP0_CONTRACT_REQUIRED
+    num_mini_batches: 4
+    eval:
+      a2_v23_p0_runtime_export: false
+  trl:
+    num_total_batches: 2500
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v23_evidence_enabled: true
+    # The torque consumer reads this exact flag; keep it explicit in the
+    # common composition rather than introducing an unconsumed alias.
+    a2_v23_torque_telemetry_enabled: true
+    a2_v23_formal_launch: false
+    a2_v23_common_reward_state: P0_COMMON_REWARD_FREEZE_REQUIRED
+    a2_v23_effort_profile_nm: null
+    a2_v23_d0_source_config_path: gr00t/rl/config/ablation/wbmanip/base_v22_G1_posture_seed0.yaml
+    a2_v23_d1_manifest_path: null
+    a2_v23_state_bank_path: null
+    a2_v23_feasibility_certificate_path: null
+    a2_v23_stationary_rent_audit_mode: source_only_no_simulation
+    a2_v23_missing_input_policy: fail_fast_typed_error
+    a2_v23_forward_intervention_mode: null
+    a2_v23_effort_profile_applied: null
+    a2_v23_oracle_tangential_delta_raw: null
+    a2_v23_oracle_active_mask: null
+    a2_v23_rp0_enabled: false
+    a2_v23_rp0_mask_indices: [3, 4]
+    a2_v23_rp0_neutral_value: 0.0
+    enable_staged_reset: true
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+rewards:
+  source: gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v23.yaml
+  v23_common_reward_state: P0_FREEZE_REQUIRED
+
+robot:
+  dof_effort_limit_list: null
+  v23_effort_profile_source: P0_EFFORT_PROFILE_FREEZE_REQUIRED
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false

@@ -192,6 +192,45 @@ def parse_camera_pose(pos, rot_wxyz):
 
 def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
     """Select version selectors and compose them with explicit eval door hooks."""
+    v23_plain_enabled_key = "a2_v23_p0_plain_scenario_enabled"
+    v23_plain_path_key = "a2_v23_p0_scenario_manifest_path"
+    v23_plain_topology_key = "a2_v23_p0_scenario_topology"
+    v23_plain_keys = (
+        v23_plain_enabled_key,
+        v23_plain_path_key,
+        v23_plain_topology_key,
+    )
+    if any(key in env_config for key in v23_plain_keys):
+        v23_disabled = env_config.get(v23_plain_enabled_key) is False
+        missing_v23_keys = [key for key in v23_plain_keys if key not in env_config]
+        if v23_disabled:
+            if any(key in env_config for key in v23_plain_keys[1:]):
+                raise ValueError(
+                    "disabled v23 P0 plain selector must omit manifest path and topology"
+                )
+        else:
+            if missing_v23_keys:
+                raise ValueError(
+                    "v23 P0 plain selector requires all explicit fields; missing "
+                    f"{missing_v23_keys}"
+                )
+            if env_config.get(v23_plain_enabled_key) is not True:
+                raise ValueError(
+                    f"{v23_plain_enabled_key} must be true when v23 selector fields are present"
+                )
+            hook_name = "get_TaskObjCfgDict_for_door_config"
+            hook = getattr(task_module, hook_name, None)
+            if not callable(hook):
+                raise TypeError(
+                    f"task module must expose callable {hook_name!r} for v23 P0 plain scenarios"
+                )
+            task_obj_cfg_dict = hook(num_envs, env_config)
+            if not isinstance(task_obj_cfg_dict, dict):
+                raise TypeError(
+                    "v23 P0 plain scenario selector must return a dict, "
+                    f"got {type(task_obj_cfg_dict).__name__}"
+                )
+            return task_obj_cfg_dict
     v21b_probe_key = "a2_v21B_signed_probe_scenarios_enabled"
     if env_config.get(v21b_probe_key) is True:
         hook_name = "get_TaskObjCfgDict_for_v21B_scenario_manifest"

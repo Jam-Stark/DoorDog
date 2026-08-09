@@ -110,6 +110,22 @@ from gr00t.rl.envs.door.a2_v22_evidence import (
     v22_validate_bucket_table,
     v22_validate_height_nominal_series,
 )
+from gr00t.rl.envs.door.a2_v23_evidence import (
+    V23_P05_FAILURE_FLAGS,
+    V23_P05_MODES,
+    V23_P05_RESCUE_NOT_APPLICABLE_BASELINE_AT_MAX,
+    a2_v23_accumulate_torque_step,
+    a2_v23_build_p05_episode_record,
+    a2_v23_build_p05_step_record,
+    a2_v23_build_p05_window_record,
+    a2_v23_build_temporal_episode_record,
+    a2_v23_build_temporal_step_record,
+    a2_v23_build_torque_step_telemetry,
+    a2_v23_finalize_torque_episode,
+    a2_v23_init_torque_accumulator,
+    a2_v23_reset_torque_accumulator,
+    a2_v23_validate_p05_bands,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -145,6 +161,29 @@ A2_V21B_THETA_SEND_MAX_RAD = 1.30
 # and reuses the shared R2 trace lifecycle and the v21-B arm estimate telemetry.
 A2_V22_PLAN_ID = "base_v22_posture_clearance_force_routing_v3"
 A2_V22_THETA_SEND_RAD = 0.90
+
+V23_P05_CERTIFICATE_PURPOSE = "P05_CERTIFICATE"
+V23_D1_CAPABILITY_SOURCE_PURPOSE = "D1_CAPABILITY_SOURCE"
+V23_D1_BOUND_MANIFEST_SCHEMA = "a2_piper_base_v23_d1_capability_bound_plain16_manifest_v1"
+V23_D1_BOUND_SELECTOR_MODE = "v23_d1_capability_source_plain16"
+V23_D1_BOUND_STATUS = "BOUND_D1_CAPABILITY_SOURCE"
+V23_D1_SOURCE_FREEZE_SCHEMA = "a2_piper_v23_capability_source_freeze_v1"
+V23_D1_SOURCE_FREEZE_STATUS = "CAPABILITY_SOURCE_FROZEN"
+V23_D1_SOURCE_CELL_ID = "A0"
+V23_D1_SOURCE_BASIS = "CURRENT_EASY_A0_STABLE_REFERENCE"
+V23_D1_REQUESTED_PARAMS = {
+    "hinge_damping_native": 50.0,
+    "hinge_stiffness_native": 2.0,
+    "hinge_max_force_nm": 4.5,
+    "door_weight_kg": 120.0,
+}
+V23_D1_NATIVE_PARAMS = {
+    "hinge_damping_native": 2864.7890625,
+    "hinge_stiffness_native": 114.59156036376953,
+    "hinge_effort_limit_nm": 4.5,
+    "door_weight_kg": 119.99999237060547,
+}
+V23_D1_CLIPPED_UTILIZATION_MIN = 0.90
 
 
 A2_V20_R1_ENDPOINT_SCHEMA = "a2_piper_v20_R1_endpoint_record_v1"
@@ -6204,6 +6243,8 @@ class DoorPregrasp(
             if self._reset_from_dataset_enabled():
                 self._init_reset_from_dataset(config, device)
             self._init_a2_door_pregrasp_state()
+            self._init_a2_v23_torque_telemetry()
+            self._init_a2_v23_p05_evidence()
             return
 
         # finger primitive related
@@ -6408,6 +6449,7 @@ class DoorPregrasp(
                 "handleDriveStiffness"
             ]
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
+            self.door_open_io[env_id] = door_metadata["doorOpenIO"]
 
         for field_name in (
             "door_handle_height",
@@ -7002,6 +7044,1474 @@ class DoorPregrasp(
         self._a2_v21b_completed_upper_dof_overspeed = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+
+    def _init_a2_v23_torque_telemetry(self) -> None:
+        enabled = self.config.get("a2_v23_torque_telemetry_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v23_torque_telemetry_enabled must be bool; "
+                f"got {enabled!r}."
+            )
+        self._a2_v23_torque_telemetry_enabled = enabled
+        if not enabled:
+            return
+        if not self._use_a2_base:
+            raise RuntimeError("v23 torque telemetry requires A2_Base mode.")
+        robot = self.simulator.scene.articulations["robot"]
+        joint_names = list(robot.joint_names)
+        required_names = ("arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6")
+        if any(joint_names.count(name) != 1 for name in required_names):
+            raise RuntimeError(
+                "v23 torque telemetry requires one exact arm_j1..arm_j6 articulation mapping; "
+                f"joint_names={joint_names!r}."
+            )
+        arm_ids = [joint_names.index(name) for name in required_names]
+        self._a2_v23_arm_joint_ids = torch.tensor(arm_ids, dtype=torch.long, device=self.device)
+        self._a2_v23_arm_joint_names = required_names
+        self._a2_v23_torque_evidence = a2_v23_init_torque_accumulator(
+            self.num_envs,
+            len(required_names),
+            dtype=robot.data.joint_pos.dtype,
+            device=self.device,
+        )
+        self._a2_v23_last_torque_step = None
+        self._a2_v23_completed_torque_evidence = [None] * self.num_envs
+        temporal_enabled = self.config.get("a2_v23_p0_temporal_evidence_enabled", False)
+        if not isinstance(temporal_enabled, bool):
+            raise RuntimeError("env.config.a2_v23_p0_temporal_evidence_enabled must be bool.")
+        self._a2_v23_temporal_evidence_enabled = temporal_enabled
+        if temporal_enabled:
+            checkpoint_load_mode = self.config.get("a2_v23_p0_checkpoint_load_mode")
+            if checkpoint_load_mode != "policy_only":
+                raise RuntimeError(
+                    "raw P0.2 temporal evidence requires a2_v23_p0_checkpoint_load_mode=policy_only."
+                )
+            topology = self.config.get("a2_v23_p0_scenario_topology")
+            if topology not in ("canonical16", "heavy16"):
+                raise RuntimeError("raw P0.2 temporal evidence requires canonical16/heavy16 topology.")
+            self._a2_v23_temporal_topology = topology
+            self._a2_v23_temporal_episode_indices = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_v23_temporal_rows = [[] for _ in range(self.num_envs)]
+            self._a2_v23_completed_temporal_evidence = [None] * self.num_envs
+            self._a2_v23_temporal_substep_frames = [[] for _ in range(self.num_envs)]
+            self._a2_v23_temporal_last_target = robot.data.joint_pos_target[:, self._a2_v23_arm_joint_ids].detach().clone()
+            provenance = {
+                "checkpoint": self.config.get("a2_v23_p0_checkpoint"),
+                "config": self.config.get("a2_v23_p0_config_id"),
+                "scenario": self.config.get("a2_v23_p0_scenario_id"),
+                "topology": topology,
+                "seed": self.config.get("a2_v23_p0_seed"),
+                "plain_prefix_id": self.config.get("a2_v23_p0_plain_prefix_id"),
+                "checkpoint_load_mode": checkpoint_load_mode,
+            }
+            if (
+                all(
+                    isinstance(provenance[key], (str, int))
+                    and not isinstance(provenance[key], bool)
+                    and provenance[key] not in ("", None)
+                    for key in provenance
+                    if key != "topology"
+                )
+                and isinstance(provenance["seed"], int)
+                and not isinstance(provenance["seed"], bool)
+            ):
+                self._a2_v23_temporal_source_provenance = provenance
+            else:
+                self._a2_v23_temporal_source_provenance = None
+
+    @override
+    def _post_physics_substep(self, sim_sub_t: int) -> None:
+        """Capture one GPU-local frame after each real IsaacLab physics step."""
+        super()._post_physics_substep(sim_sub_t)
+        if not getattr(self, "_a2_v23_temporal_evidence_enabled", False):
+            return
+        decimation = int(self.config.simulator.config.sim.control_decimation)
+        if isinstance(sim_sub_t, bool) or not isinstance(sim_sub_t, int) or not 0 <= sim_sub_t < decimation:
+            raise RuntimeError(f"temporal physics substep index must be within 0..{decimation - 1}.")
+        if sim_sub_t == 0:
+            if any(self._a2_v23_temporal_substep_frames):
+                raise RuntimeError("temporal substep frames were not finalized before the next control step.")
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        ids = self._a2_v23_arm_joint_ids
+        q = data.joint_pos[:, ids]
+        qdot = data.joint_vel[:, ids]
+        target = data.joint_pos_target[:, ids]
+        kp = data.joint_stiffness[:, ids]
+        kd = data.joint_damping[:, ids]
+        limits = data.joint_effort_limits[:, ids]
+        velocity_limits = data.joint_vel_limits[:, ids]
+        nominal = kp * (target - q) - kd * qdot
+        clipped = torch.clamp(nominal, -limits, limits)
+        target_increment = target - self._a2_v23_temporal_last_target
+        self._a2_v23_temporal_last_target = target.detach().clone()
+        values = (nominal, clipped, limits, qdot, velocity_limits, target, target_increment)
+        if any(not torch.is_tensor(value) or not torch.all(torch.isfinite(value)) for value in values):
+            raise RuntimeError("temporal physics-frame capture requires finite device-local arm tensors.")
+        for env_id in range(self.num_envs):
+            self._a2_v23_temporal_substep_frames[env_id].append(
+                {
+                    "physics_frame_index": sim_sub_t,
+                    "nominal_torque_nm": nominal[env_id].detach().clone(),
+                    "clipped_torque_nm": clipped[env_id].detach().clone(),
+                    "effort_limit_nm": limits[env_id].detach().clone(),
+                    "joint_velocity_rad_s": qdot[env_id].detach().clone(),
+                    "joint_velocity_limit_rad_s": velocity_limits[env_id].detach().clone(),
+                    "joint_target_rad": target[env_id].detach().clone(),
+                    "joint_target_increment_rad": target_increment[env_id].detach().clone(),
+                }
+            )
+
+    def _update_a2_v23_torque_telemetry(self) -> None:
+        if not getattr(self, "_a2_v23_torque_telemetry_enabled", False):
+            return
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        ids = self._a2_v23_arm_joint_ids
+        joint_pos = data.joint_pos[:, ids]
+        episode_step = self.episode_length_buf - 1
+        valid_mask = (episode_step >= 0) & (episode_step < int(self.max_episode_length))
+        step = a2_v23_build_torque_step_telemetry(
+            joint_pos=joint_pos,
+            joint_vel=data.joint_vel[:, ids],
+            joint_pos_target=data.joint_pos_target[:, ids],
+            stiffness=data.joint_stiffness[:, ids],
+            damping=data.joint_damping[:, ids],
+            effort_limit=data.joint_effort_limits[:, ids],
+            implicit_computed_torque=data.computed_torque[:, ids],
+            implicit_applied_torque=data.applied_torque[:, ids],
+            joint_names=self._a2_v23_arm_joint_names,
+            valid_mask=valid_mask,
+            step_index=episode_step,
+        )
+        a2_v23_accumulate_torque_step(self._a2_v23_torque_evidence, step)
+        self._a2_v23_last_torque_step = step
+        self.log_dict["a2_v23_nominal_pd_torque_abs_max"] = torch.amax(
+            torch.abs(step["nominal_pd_torque_estimate"]), dim=-1
+        )
+        self.log_dict["a2_v23_clipped_command_torque_abs_max"] = torch.amax(
+            torch.abs(step["clipped_command_torque_estimate"]), dim=-1
+        )
+        self.log_dict["a2_v23_torque_estimate_valid"] = valid_mask
+
+    def _finalize_a2_v23_temporal_control_rows(self) -> None:
+        if not getattr(self, "_a2_v23_temporal_evidence_enabled", False):
+            return
+        frames_by_env = self._a2_v23_temporal_substep_frames
+        decimation = int(self.config.simulator.config.sim.control_decimation)
+        if any(len(frames) != decimation for frames in frames_by_env):
+            counts = [len(frames) for frames in frames_by_env]
+            raise RuntimeError(
+                "raw P0.2 temporal evidence requires exactly one frame per real physics substep; "
+                f"expected={decimation}, counts={counts}."
+            )
+        step = self._a2_v23_last_torque_step
+        if not isinstance(step, Mapping):
+            raise RuntimeError("raw P0.2 temporal evidence requires the current control telemetry step.")
+        terminal_buffers = getattr(self, "_terminal_reason_bufs", None)
+        if not isinstance(terminal_buffers, dict):
+            raise RuntimeError("raw P0.2 temporal evidence requires finalized terminal reason buffers.")
+        fall = terminal_buffers.get("bad_orientation")
+        timeout = terminal_buffers.get("stage_overtime")
+        collision = getattr(self, "_a2_door_body_contact_event_active", None)
+        required_flags = (fall, timeout, collision)
+        if any(
+            not torch.is_tensor(value)
+            or tuple(value.shape) != (self.num_envs,)
+            or value.dtype != torch.bool
+            or value.device != torch.device(self.device)
+            for value in required_flags
+        ):
+            raise RuntimeError("raw P0.2 temporal evidence requires current device-local failure flags.")
+        hinge_pos = self._get_door_joint_pos("v23 temporal telemetry", 1)[:, 0]
+        stable_streak = self._a2_stage3_stage4_both_contact_streak
+        control_steps = self.episode_length_buf - 1
+        if not torch.is_tensor(control_steps) or control_steps.shape != (self.num_envs,):
+            raise RuntimeError("raw P0.2 temporal evidence requires episode-local control steps.")
+        for env_id in range(self.num_envs):
+            frames = [
+                {
+                    key: (value if key == "physics_frame_index" else value.detach().cpu().tolist())
+                    for key, value in frame.items()
+                }
+                for frame in frames_by_env[env_id]
+            ]
+            episode_index = int(self._a2_v23_temporal_episode_indices[env_id].item())
+            episode_id = f"a2-v23-temporal-env{env_id}-episode{episode_index}"
+            row = a2_v23_build_temporal_step_record(
+                effort_nm=float(self.config["a2_v23_effort_profile_nm"]),
+                topology=self._a2_v23_temporal_topology,
+                env_id=env_id,
+                episode_index=episode_index,
+                episode_id=episode_id,
+                control_step=int(control_steps[env_id].item()),
+                stage=int(self.stage_buf[env_id].item()),
+                stable_grasp_streak=int(stable_streak[env_id].item()),
+                hinge_angle_rad=float(hinge_pos[env_id].item()),
+                nominal_torque_nm=step["nominal_pd_torque_estimate"][env_id].detach().cpu().tolist(),
+                clipped_torque_nm=step["clipped_command_torque_estimate"][env_id].detach().cpu().tolist(),
+                effort_limit_nm=step["effort_limit"][env_id].detach().cpu().tolist(),
+                joint_velocity_rad_s=step["arm_joint_velocity_6d"][env_id].detach().cpu().tolist(),
+                joint_velocity_limit_rad_s=self.simulator.scene.articulations["robot"].data.joint_vel_limits[
+                    env_id, self._a2_v23_arm_joint_ids
+                ].detach().cpu().tolist(),
+                joint_target_rad=self.simulator.scene.articulations["robot"].data.joint_pos_target[
+                    env_id, self._a2_v23_arm_joint_ids
+                ].detach().cpu().tolist(),
+                joint_target_increment_rad=frames[0]["joint_target_increment_rad"],
+                failure_flags={
+                    "FALL": bool(fall[env_id].item()),
+                    "LOST_GRASP": bool(
+                        self.stage_buf[env_id].item() in (self.STAGE_OPEN, self.STAGE_SWING)
+                        and stable_streak[env_id].item() < 1
+                    ),
+                    "DOOR_FRAME_COLLISION": bool(collision[env_id].item()),
+                    "TIMEOUT_WRONG_STAGE": bool(timeout[env_id].item()),
+                },
+                physics_frames=frames,
+            )
+            self._a2_v23_temporal_rows[env_id].append(row)
+        self._a2_v23_temporal_substep_frames = [[] for _ in range(self.num_envs)]
+
+    def _snapshot_a2_v23_torque_telemetry(self, env_ids: torch.Tensor) -> None:
+        """Freeze completed-episode evidence before the live accumulator resets."""
+
+        if not getattr(self, "_a2_v23_torque_telemetry_enabled", False):
+            return
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("v23 torque snapshot requires valid device-local env ids.")
+        for env_id in env_ids.detach().cpu().tolist():
+            valid_frames = int(self._a2_v23_torque_evidence["valid_frames"][env_id].item())
+            episode_started = int(self.episode_length_buf[env_id].item()) > 0
+            if valid_frames == 0 and not episode_started:
+                continue
+            record = a2_v23_finalize_torque_episode(
+                self._a2_v23_torque_evidence,
+                env_id,
+                joint_names=self._a2_v23_arm_joint_names,
+            )
+            if getattr(self, "_a2_v23_temporal_evidence_enabled", False):
+                episode_index = int(self._a2_v23_temporal_episode_indices[env_id].item())
+                episode_id = f"a2-v23-temporal-env{env_id}-episode{episode_index}"
+                record["temporal_episode"] = a2_v23_build_temporal_episode_record(
+                    effort_nm=float(self.config["a2_v23_effort_profile_nm"]),
+                    topology=self._a2_v23_temporal_topology,
+                    env_id=env_id,
+                    episode_index=episode_index,
+                    episode_id=episode_id,
+                    step_rows=self._a2_v23_temporal_rows[env_id],
+                    source_provenance=(
+                        {
+                            **self._a2_v23_temporal_source_provenance,
+                            "env_id": env_id,
+                            "episode_index": episode_index,
+                            "episode_id": episode_id,
+                            "effort_nm": float(self.config["a2_v23_effort_profile_nm"]),
+                        }
+                        if self._a2_v23_temporal_source_provenance is not None
+                        else None
+                    ),
+                ) if self._a2_v23_temporal_rows[env_id] else None
+            record["evidence_state"] = "TERMINAL_SNAPSHOT"
+            self._a2_v23_completed_torque_evidence[env_id] = record
+
+    def get_a2_v23_torque_episode_evidence(self, env_id: int) -> dict[str, Any]:
+        if not getattr(self, "_a2_v23_torque_telemetry_enabled", False):
+            raise RuntimeError("v23 torque telemetry is unavailable when disabled.")
+        live_record = a2_v23_finalize_torque_episode(
+            self._a2_v23_torque_evidence,
+            env_id,
+            joint_names=self._a2_v23_arm_joint_names,
+        )
+        terminal_record = self._a2_v23_completed_torque_evidence[env_id]
+        if terminal_record is None:
+            live_record["evidence_state"] = "LIVE"
+            return live_record
+        result = dict(terminal_record)
+        result["evidence_state"] = "TERMINAL_SNAPSHOT"
+        result["live_record"] = live_record
+        return result
+
+    def _init_a2_v23_p05_evidence(self) -> None:
+        enabled = self.config.get("a2_v23_p05_runtime_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v23_p05_runtime_enabled must be bool.")
+        self._a2_v23_p05_enabled = enabled
+        if not enabled:
+            return
+        if getattr(self, "_a2_v23_p05_cell_dynamics_applied", False):
+            raise RuntimeError("P0.5 canonical cell dynamics are one-time initialization writes.")
+        self._a2_v23_p05_cell_dynamics_applied = False
+        purpose = self.config.get("a2_v23_p05_purpose", V23_P05_CERTIFICATE_PURPOSE)
+        if purpose not in (V23_P05_CERTIFICATE_PURPOSE, V23_D1_CAPABILITY_SOURCE_PURPOSE):
+            raise RuntimeError(
+                "P0.5 requires env.config.a2_v23_p05_purpose to be "
+                f"{(V23_P05_CERTIFICATE_PURPOSE, V23_D1_CAPABILITY_SOURCE_PURPOSE)}; got {purpose!r}."
+            )
+        self._a2_v23_p05_purpose = purpose
+        d1_capability_source = purpose == V23_D1_CAPABILITY_SOURCE_PURPOSE
+        mode = self.config.get("a2_v23_p05_mode")
+        allowed_modes = ("FULL", "ACUTE_RP0") if d1_capability_source else V23_P05_MODES
+        if mode not in allowed_modes:
+            raise RuntimeError(f"P0.5 requires env.config.a2_v23_p05_mode in {allowed_modes}; got {mode!r}.")
+        topology = self.config.get("a2_v23_p05_topology")
+        if topology not in ("canonical16", "heavy16"):
+            raise RuntimeError("P0.5 topology must be explicitly canonical16 or heavy16.")
+        checkpoint = self.config.get("a2_v23_p05_checkpoint")
+        config_id = self.config.get("a2_v23_p05_config_id")
+        seed = self.config.get("a2_v23_p05_seed")
+        checkpoint_load_mode = self.config.get("a2_v23_p05_checkpoint_load_mode")
+        if any(not isinstance(value, str) or not value for value in (checkpoint, config_id)):
+            raise RuntimeError("P0.5 requires non-empty checkpoint/config identity inputs.")
+        if checkpoint_load_mode != "policy_only":
+            raise RuntimeError("P0.5 requires env.config.a2_v23_p05_checkpoint_load_mode=policy_only.")
+        if self.config.get("a2_v20_R2_evidence_enabled") is not False:
+            raise RuntimeError("P0.5 requires a2_v20_R2_evidence_enabled=false.")
+        if self.config.get("a2_v23_p0_plain_scenario_enabled") is not True:
+            raise RuntimeError("P0.5 requires the v23 P0 plain scenario selector.")
+        warm_checkpoint = Path(checkpoint).expanduser()
+        warm_config = Path(config_id).expanduser()
+        if not warm_checkpoint.is_absolute():
+            warm_checkpoint = Path.cwd() / warm_checkpoint
+        if not warm_config.is_absolute():
+            warm_config = Path.cwd() / warm_config
+        if warm_checkpoint.as_posix().endswith(
+            "logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt"
+        ) is not True or warm_checkpoint.is_symlink() or not warm_checkpoint.is_file():
+            raise RuntimeError("P0.5 requires the fixed v22 G1 step1250 warm checkpoint.")
+        if warm_config.as_posix().endswith(
+            "logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/config.yaml"
+        ) is not True or warm_config.is_symlink() or not warm_config.is_file():
+            raise RuntimeError("P0.5 requires the fixed v22 G1 warm config identity.")
+        if isinstance(seed, bool) or not isinstance(seed, int):
+            raise RuntimeError("P0.5 requires integer env.config.a2_v23_p05_seed.")
+        configured_bands = self.config.get("a2_v23_p05_bands")
+        required_inputs = [
+            ("a2_v23_p05_effort_freeze_path", "real effort freeze"),
+            ("a2_v23_p05_atlas_manifest_path", "real atlas manifest"),
+            ("a2_v23_p05_plain_manifest_path", "plain scenario manifest"),
+            ("a2_v23_p05_bound_plain_manifest_path", "bound plain scenario manifest"),
+        ]
+        if d1_capability_source:
+            required_inputs.append(("a2_v23_p05_capability_source_freeze_path", "A0 capability source freeze"))
+            required_inputs.append(("a2_v23_p05_external_threshold_path", "external threshold evidence"))
+            if configured_bands is not None:
+                raise RuntimeError("D1 capability-source purpose forbids configured P0.5 rescue bands.")
+        else:
+            required_inputs.append(("a2_v23_p05_bands_path", "selected P0.5 bands"))
+        for key, label in required_inputs:
+            raw_path = self.config.get(key)
+            if not isinstance(raw_path, str) or not raw_path:
+                raise RuntimeError(f"P0.5 requires env.config.{key} for {label}.")
+            path = Path(raw_path).expanduser()
+            if not path.is_absolute():
+                path = Path.cwd() / path
+            if path.is_symlink() or not path.is_file():
+                raise RuntimeError(f"P0.5 {label} is not a regular file: {path}")
+        def read_p05_input(key: str, label: str) -> dict[str, Any]:
+            path = Path(self.config[key]).expanduser()
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise RuntimeError(f"P0.5 {label} is not valid JSON: {path}") from exc
+            if not isinstance(payload, dict):
+                raise RuntimeError(f"P0.5 {label} must be a JSON object: {path}")
+            return payload
+        effort_input = read_p05_input("a2_v23_p05_effort_freeze_path", "real effort freeze")
+        if effort_input.get("schema") != "a2_piper_v23_effort_freeze_v1":
+            raise RuntimeError("P0.5 effort freeze input requires the exact v1 freeze schema.")
+        if effort_input.get("status") != "MEASURED_FREEZE":
+            raise RuntimeError("P0.5 effort freeze input must be a measured freeze.")
+        selection_outcome = effort_input.get("selection_outcome")
+        if selection_outcome not in (
+            "NORMAL_BOUNDARY_SELECTED",
+            "LADDER_INCONCLUSIVE",
+            "F2_100_SELECTED",
+        ):
+            raise RuntimeError("P0.5 effort freeze selection_outcome must be a measured normal/F2 outcome.")
+        source_provenance = effort_input.get("source_provenance")
+        authorities = effort_input.get("authorities")
+        if (
+            not isinstance(source_provenance, dict)
+            or source_provenance.get("complete") is not True
+            or source_provenance.get("record_count") != 192
+            or not isinstance(source_provenance.get("runs"), list)
+            or len(source_provenance["runs"]) != 12
+            or not isinstance(authorities, dict)
+            or authorities.get("checkpoint_load_mode") != "policy_only"
+        ):
+            raise RuntimeError("P0.5 effort freeze provenance/authority is incomplete or not policy_only.")
+        for run in source_provenance["runs"]:
+            if (
+                not isinstance(run, dict)
+                or run.get("record_count") != 16
+                or run.get("topology") not in ("canonical16", "heavy16")
+                or run.get("checkpoint_load_mode") != "policy_only"
+            ):
+                raise RuntimeError("P0.5 effort freeze run provenance is not the complete policy_only ladder.")
+        selected_effort = effort_input.get("selected_effort_nm")
+        if isinstance(selected_effort, bool) or not isinstance(selected_effort, (int, float)):
+            raise RuntimeError("P0.5 effort freeze input requires selected_effort_nm.")
+        if (
+            not math.isfinite(float(selected_effort))
+            or float(selected_effort) not in (20.0, 25.0, 30.0, 40.0, 60.0, 100.0)
+        ):
+            raise RuntimeError("P0.5 effort freeze selected_effort_nm must be a registered rung.")
+        effort_profile = effort_input.get("effort_profile")
+        if (
+            not isinstance(effort_profile, dict)
+            or effort_profile.get("effort_nm") != float(selected_effort)
+            or effort_profile.get("name") != f"base_v23_p0_effort_{float(selected_effort):g}"
+        ):
+            raise RuntimeError("P0.5 effort freeze effort_profile does not match selected_effort_nm.")
+        configured_effort = self.config.get("a2_v23_p05_effort_profile_nm")
+        if isinstance(configured_effort, bool) or not isinstance(configured_effort, (int, float)):
+            raise RuntimeError("P0.5 requires numeric a2_v23_p05_effort_profile_nm.")
+        if not math.isfinite(float(configured_effort)) or float(configured_effort) != float(selected_effort):
+            raise RuntimeError("P0.5 effort profile does not match the measured effort freeze.")
+        source_freeze = None
+        if d1_capability_source:
+            from scriptsFORhuman.v23.capability_binding import validate_capability_source_freeze
+
+            if float(selected_effort) != 40.0:
+                raise RuntimeError("D1 capability-source purpose requires the exact 40 Nm effort freeze.")
+            source_freeze = validate_capability_source_freeze(
+                read_p05_input("a2_v23_p05_capability_source_freeze_path", "A0 capability source freeze")
+            )
+            if source_freeze["source_paths"].get("effort_freeze") != str(
+                Path(self.config["a2_v23_p05_effort_freeze_path"]).expanduser().resolve()
+            ):
+                raise RuntimeError("D1 capability source freeze effort path disagrees with the launch effort freeze.")
+            if source_freeze.get("source_paths", {}).get("atlas") != str(
+                Path(self.config["a2_v23_p05_atlas_manifest_path"]).expanduser().resolve()
+            ):
+                raise RuntimeError("D1 capability source freeze atlas path disagrees with the launch atlas manifest.")
+            if source_freeze.get("source_paths", {}).get("external_threshold") != str(
+                Path(self.config["a2_v23_p05_external_threshold_path"]).expanduser().resolve()
+            ):
+                raise RuntimeError("D1 capability source freeze external path disagrees with the launch threshold evidence.")
+            if source_freeze.get("schema") != V23_D1_SOURCE_FREEZE_SCHEMA or source_freeze.get("status") != V23_D1_SOURCE_FREEZE_STATUS:
+                raise RuntimeError("D1 capability source freeze schema/status is invalid.")
+            if source_freeze.get("purpose") != V23_D1_CAPABILITY_SOURCE_PURPOSE:
+                raise RuntimeError("D1 capability source freeze purpose is invalid.")
+            if source_freeze.get("source_cell_id") != V23_D1_SOURCE_CELL_ID or source_freeze.get("selection_basis") != V23_D1_SOURCE_BASIS:
+                raise RuntimeError("D1 capability source freeze must be the exact A0 stable reference.")
+            if source_freeze.get("selected_effort_nm") != 40.0:
+                raise RuntimeError("D1 capability source freeze selected_effort_nm must be exactly 40 Nm.")
+            if source_freeze.get("requested_params") != V23_D1_REQUESTED_PARAMS or source_freeze.get("native_params") != V23_D1_NATIVE_PARAMS:
+                raise RuntimeError("D1 capability source freeze parameters are not the exact A0 source values.")
+        atlas_input = read_p05_input("a2_v23_p05_atlas_manifest_path", "real atlas manifest")
+        if atlas_input.get("schema") != "a2_piper_v23_door_atlas_raw_v1" or atlas_input.get("status") != "MEASURED_RAW":
+            raise RuntimeError("P0.5 atlas manifest requires the exact measured atlas schema/status.")
+        atlas_rows = atlas_input.get("rows")
+        if not isinstance(atlas_rows, list) or len(atlas_rows) != 9:
+            raise RuntimeError("P0.5 atlas manifest requires exactly nine measured A0-A8 rows.")
+        atlas_by_cell = {}
+        from scriptsFORhuman.v23.p0_door_atlas_probe import validate_canonical_geometry_record
+
+        for atlas_row in atlas_rows:
+            if (
+                not isinstance(atlas_row, dict)
+                or not isinstance(atlas_row.get("cell_id"), str)
+                or not isinstance(atlas_row.get("geometry_id"), str)
+                or not isinstance(atlas_row.get("canonical_geometry"), dict)
+            ):
+                raise RuntimeError("P0.5 atlas rows require registered cell_id and geometry_id.")
+            if not isinstance(atlas_row.get("realized_params"), dict) or not atlas_row["realized_params"]:
+                raise RuntimeError("P0.5 atlas rows require realized_params.")
+            if atlas_row["cell_id"] in atlas_by_cell:
+                raise RuntimeError("P0.5 atlas cell_id values must be unique.")
+            canonical = validate_canonical_geometry_record(
+                atlas_row["canonical_geometry"],
+                cell_id=atlas_row["cell_id"],
+                realized_params=atlas_row["realized_params"],
+            )
+            if atlas_row["geometry_id"] != canonical["geometry_id"]:
+                raise RuntimeError("P0.5 atlas geometry_id does not match canonical realized geometry.")
+            atlas_by_cell[atlas_row["cell_id"]] = {**atlas_row, "canonical_geometry": canonical}
+        selected_cell = V23_D1_SOURCE_CELL_ID if d1_capability_source else self.config.get("a2_v23_p05_cell_id")
+        if not isinstance(selected_cell, str) or selected_cell not in atlas_by_cell:
+            raise RuntimeError("P0.5 requires explicit env.config.a2_v23_p05_cell_id bound to the measured A0-A8 atlas.")
+        if d1_capability_source:
+            if source_freeze is None:
+                raise RuntimeError("D1 capability-source setup requires the validated A0 source freeze.")
+            if source_freeze["source_geometry_id"] != atlas_by_cell[selected_cell]["geometry_id"]:
+                raise RuntimeError("D1 capability source freeze geometry does not match the measured A0 atlas row.")
+            if source_freeze["canonical_geometry"] != atlas_by_cell[selected_cell]["canonical_geometry"]:
+                raise RuntimeError("D1 capability source freeze canonical geometry does not match measured A0.")
+            self._a2_v23_p05_cell_id = V23_D1_SOURCE_CELL_ID
+            self._a2_v23_p05_canonical_geometry = dict(source_freeze["canonical_geometry"])
+            self._a2_v23_p05_geometry_id = source_freeze["source_geometry_id"]
+            self._a2_v23_p05_realized_params = {
+                "hinge_damping_native": source_freeze["native_params"]["hinge_damping_native"],
+                "hinge_stiffness_native": source_freeze["native_params"]["hinge_stiffness_native"],
+                "hinge_effort_limit_nm": source_freeze["native_params"]["hinge_effort_limit_nm"],
+                "door_weight_kg": source_freeze["native_params"]["door_weight_kg"],
+            }
+        else:
+            self._a2_v23_p05_cell_id = selected_cell
+            self._a2_v23_p05_canonical_geometry = dict(atlas_by_cell[selected_cell]["canonical_geometry"])
+        self._a2_v23_p05_geometry_id = self._a2_v23_p05_canonical_geometry["geometry_id"]
+        self._a2_v23_p05_realized_params = dict(self._a2_v23_p05_canonical_geometry["realized_params"])
+        if self.config.get("a2_v23_p05_geometry_id") != self._a2_v23_p05_geometry_id:
+            raise RuntimeError("P0.5 launch geometry_id does not match the selected canonical atlas cell.")
+        if d1_capability_source and self.config.get("a2_v23_p05_cell_id") != V23_D1_SOURCE_CELL_ID:
+            raise RuntimeError("D1 capability-source launch must bind env.config.a2_v23_p05_cell_id=A0.")
+        if d1_capability_source:
+            requested_config = {
+                "hinge_damping_native": self.config.get("a2_v23_p05_requested_hinge_damping_native"),
+                "hinge_stiffness_native": self.config.get("a2_v23_p05_requested_hinge_stiffness_native"),
+                "hinge_max_force_nm": self.config.get("a2_v23_p05_requested_hinge_max_force_nm"),
+                "door_weight_kg": self.config.get("a2_v23_p05_requested_door_weight_kg"),
+            }
+            if requested_config != V23_D1_REQUESTED_PARAMS:
+                raise RuntimeError("D1 capability-source launch requested parameters are not the exact A0 values.")
+        for config_key, field in (
+            ("a2_v23_p05_hinge_damping_native", "hinge_damping_native"),
+            ("a2_v23_p05_hinge_stiffness_native", "hinge_stiffness_native"),
+            ("a2_v23_p05_hinge_effort_limit_nm", "hinge_effort_limit_nm"),
+            ("a2_v23_p05_door_weight_kg", "door_weight_kg"),
+        ):
+            configured_value = self.config.get(config_key)
+            if (
+                isinstance(configured_value, bool)
+                or not isinstance(configured_value, (int, float))
+                or not math.isfinite(float(configured_value))
+                or float(configured_value) != float(self._a2_v23_p05_realized_params[field])
+            ):
+                raise RuntimeError(f"P0.5 {config_key} does not match canonical realized geometry.")
+        plain_expected_keys = {
+            "schema",
+            "status",
+            "topology",
+            "source_manifest_path",
+            "source_role",
+            "rows",
+        }
+        plain_row_fields = {"scenario_id", "handle_height_m", "door_weight_kg", "hinge_force_nm"}
+
+        def validate_plain_payload(payload: dict[str, Any], label: str) -> tuple[str, list[dict[str, Any]]]:
+            if set(payload) != plain_expected_keys:
+                raise RuntimeError(f"P0.5 {label} fields are not the exact selector schema.")
+            if (
+                payload.get("schema") != "a2_piper_base_v23_p0_plain_scenario_manifest_v1"
+                or payload.get("status") != "STATIC_PLAIN"
+                or payload.get("topology") != topology
+                or payload.get("source_role") != "historical_prior_only"
+            ):
+                raise RuntimeError(f"P0.5 {label} schema/status/topology is invalid.")
+            source = payload.get("source_manifest_path")
+            if not isinstance(source, str) or not source:
+                raise RuntimeError(f"P0.5 {label} requires source_manifest_path.")
+            source_path = Path(source)
+            if not source_path.is_absolute() or source_path.is_symlink() or not source_path.is_file():
+                raise RuntimeError(f"P0.5 {label} source_manifest_path must be an absolute regular file.")
+            rows = payload.get("rows")
+            if not isinstance(rows, list) or len(rows) != 16 or self.num_envs != 16:
+                raise RuntimeError(f"P0.5 {label} requires exactly 16 rows and 16 environments.")
+            scenario_ids: set[str] = set()
+            normalized_rows: list[dict[str, Any]] = []
+            for index, row in enumerate(rows):
+                if not isinstance(row, dict) or set(row) != plain_row_fields:
+                    raise RuntimeError(f"P0.5 {label} row {index} fields are invalid.")
+                scenario_id = row.get("scenario_id")
+                if not isinstance(scenario_id, str) or not scenario_id or scenario_id in scenario_ids:
+                    raise RuntimeError(f"P0.5 {label} row {index} has an invalid scenario_id.")
+                scenario_ids.add(scenario_id)
+                for field in ("handle_height_m", "door_weight_kg", "hinge_force_nm"):
+                    value = row.get(field)
+                    if (
+                        isinstance(value, bool)
+                        or not isinstance(value, (int, float))
+                        or not math.isfinite(float(value))
+                        or float(value) <= 0.0
+                    ):
+                        raise RuntimeError(f"P0.5 {label} row {index} {field} must be finite and positive.")
+                normalized_rows.append(dict(row))
+            return source, normalized_rows
+
+        bound_row_fields = {
+            "source_identity",
+            "scenario_id",
+            "env_id",
+            "episode_index",
+            "plain_prefix_id",
+            "checkpoint",
+            "config",
+            "seed",
+            "topology",
+            "cell_id",
+            "geometry_id",
+            "canonical_geometry",
+            "requested_params",
+            "realized_params",
+            "door_width_m",
+            "door_height_m",
+            "handle_height_m",
+            "handle_width_m",
+            "handle_type",
+            "door_open_lr",
+            "door_open_io",
+            "hinge_axis_local",
+            "hinge_anchor_local",
+        }
+        if d1_capability_source:
+            bound_row_fields.add("purpose")
+
+        def validate_bound_payload(payload: dict[str, Any]) -> tuple[str, list[dict[str, Any]]]:
+            expected_keys = {
+                "schema",
+                "status",
+                "selector_mode",
+                "topology",
+                "source_manifest_path",
+                "source_role",
+                "canonical_geometry_schema",
+                "rows",
+            }
+            if d1_capability_source:
+                expected_keys.update(
+                    {
+                        "purpose",
+                        "capability_source_freeze_schema",
+                        "capability_source_freeze_path",
+                    }
+                )
+            if set(payload) != expected_keys:
+                raise RuntimeError("P0.5 bound plain16 manifest fields are not the registered schema.")
+            expected_schema = V23_D1_BOUND_MANIFEST_SCHEMA if d1_capability_source else "a2_piper_base_v23_p0_bound_plain16_manifest_v1"
+            expected_status = V23_D1_BOUND_STATUS if d1_capability_source else "BOUND_PLAIN16"
+            expected_selector = V23_D1_BOUND_SELECTOR_MODE if d1_capability_source else "v23_bound_plain16"
+            if (
+                payload.get("schema") != expected_schema
+                or payload.get("status") != expected_status
+                or payload.get("selector_mode") != expected_selector
+                or payload.get("canonical_geometry_schema") != "a2_piper_v23_canonical_geometry_v1"
+                or payload.get("topology") != topology
+                or payload.get("source_role") != "historical_prior_only"
+            ):
+                raise RuntimeError("P0.5 bound plain16 manifest schema/status/mode is invalid.")
+            if d1_capability_source:
+                expected_source_path = str(Path(self.config["a2_v23_p05_capability_source_freeze_path"]).expanduser().resolve())
+                if (
+                    payload.get("purpose") != V23_D1_CAPABILITY_SOURCE_PURPOSE
+                    or payload.get("capability_source_freeze_schema") != V23_D1_SOURCE_FREEZE_SCHEMA
+                    or payload.get("capability_source_freeze_path") != expected_source_path
+                ):
+                    raise RuntimeError("P0.5 D1 bound manifest source-freeze identity is invalid.")
+            source = payload.get("source_manifest_path")
+            if not isinstance(source, str) or not source:
+                raise RuntimeError("P0.5 bound plain16 manifest requires source_manifest_path.")
+            source_path = Path(source)
+            if not source_path.is_absolute() or source_path.is_symlink() or not source_path.is_file():
+                raise RuntimeError("P0.5 bound source_manifest_path must be an absolute regular file.")
+            rows = payload.get("rows")
+            if not isinstance(rows, list) or len(rows) != 16 or self.num_envs != 16:
+                raise RuntimeError("P0.5 bound plain16 manifest requires exactly 16 rows and 16 environments.")
+            normalized_rows = []
+            for index, row in enumerate(rows):
+                if not isinstance(row, dict) or set(row) != bound_row_fields:
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} fields are invalid.")
+                if d1_capability_source and row.get("purpose") != V23_D1_CAPABILITY_SOURCE_PURPOSE:
+                    raise RuntimeError(f"P0.5 D1 bound plain16 row {index} purpose is invalid.")
+                if row.get("env_id") != index or row.get("episode_index") != 0:
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} env/episode identity is invalid.")
+                scenario_id = row.get("scenario_id")
+                if (
+                    not isinstance(scenario_id, str)
+                    or not scenario_id
+                    or row.get("plain_prefix_id") != f"{scenario_id}:{topology}:env{index}:episode0"
+                ):
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} CRN identity is invalid.")
+                if (
+                    row.get("checkpoint") != checkpoint
+                    or row.get("config") != config_id
+                    or row.get("seed") != seed
+                    or row.get("topology") != topology
+                ):
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} policy identity is invalid.")
+                source_identity = row.get("source_identity")
+                if (
+                    not isinstance(source_identity, dict)
+                    or set(source_identity)
+                    != {"source_manifest_path", "source_role", "source_row"}
+                    or source_identity.get("source_manifest_path") != source
+                    or source_identity.get("source_role") != "historical_prior_only"
+                ):
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} source identity is invalid.")
+                source_row = source_identity.get("source_row")
+                if not isinstance(source_row, dict) or set(source_row) != plain_row_fields:
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} source row is invalid.")
+                if source_row.get("scenario_id") != scenario_id:
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} source scenario identity changed.")
+                normalized_rows.append(dict(row))
+            return source, normalized_rows
+
+        plain_input = read_p05_input("a2_v23_p05_plain_manifest_path", "plain scenario manifest")
+        bound_input = read_p05_input(
+            "a2_v23_p05_bound_plain_manifest_path", "bound plain scenario manifest"
+        )
+        plain_source, source_rows = validate_plain_payload(plain_input, "plain scenario manifest")
+        bound_source, bound_rows = validate_bound_payload(bound_input)
+        if bound_source != plain_source:
+            raise RuntimeError(
+                "P0.5 bound plain manifest must preserve the historical source reference."
+            )
+        if [row["scenario_id"] for row in bound_rows] != [row["scenario_id"] for row in source_rows]:
+            raise RuntimeError("P0.5 bound plain manifest must preserve plain16 scenario identity order.")
+        canonical_facts = self._a2_v23_p05_canonical_geometry["local_facts"]
+        canonical_realized = self._a2_v23_p05_realized_params
+        if [row["scenario_id"] for row in bound_rows] != [row["scenario_id"] for row in source_rows]:
+            raise RuntimeError("P0.5 bound plain16 source identity order disagrees with historical plain16.")
+        expected_requested_params = V23_D1_REQUESTED_PARAMS if d1_capability_source else {
+            "hinge_damping_native": 200.0,
+            "hinge_stiffness_native": 30.0,
+            "hinge_max_force_nm": 24.0,
+            "door_weight_kg": 160.0,
+        }
+        for index, row in enumerate(bound_rows):
+            if row["cell_id"] != self._a2_v23_p05_cell_id or row["geometry_id"] != self._a2_v23_p05_geometry_id:
+                raise RuntimeError(f"P0.5 bound plain16 row {index} geometry identity disagrees with atlas selection.")
+            if row["canonical_geometry"] != self._a2_v23_p05_canonical_geometry:
+                raise RuntimeError(f"P0.5 bound plain16 row {index} canonical geometry disagrees with atlas selection.")
+            if row["realized_params"] != canonical_realized:
+                raise RuntimeError(f"P0.5 bound plain16 row {index} realized dynamics disagree with atlas selection.")
+            if (
+                not isinstance(row["requested_params"], dict)
+                or set(row["requested_params"]) != set(expected_requested_params)
+                or row["requested_params"] != expected_requested_params
+            ):
+                raise RuntimeError(f"P0.5 bound plain16 row {index} requested spawn parameters are invalid.")
+            expected_values = {
+                "door_width_m": canonical_facts["door_width_m"],
+                "door_height_m": canonical_facts["door_height_m"],
+                "handle_height_m": canonical_facts["handle_height_m"],
+                "handle_width_m": canonical_facts["handle_width_m"],
+            }
+            for field, expected in expected_values.items():
+                if not math.isclose(float(row[field]), float(expected), rel_tol=0.0, abs_tol=1.0e-9):
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} {field} disagrees with canonical geometry.")
+            if (
+                row["handle_type"] != canonical_facts["handle_type"]
+                or row["door_open_lr"] != canonical_facts["door_open_lr"]
+                or row["door_open_io"] != canonical_facts["door_open_io"]
+            ):
+                raise RuntimeError(f"P0.5 bound plain16 row {index} handle/opening semantics disagree with canonical geometry.")
+            for field in ("hinge_axis_local", "hinge_anchor_local"):
+                if row[field] != canonical_facts[field]:
+                    raise RuntimeError(f"P0.5 bound plain16 row {index} {field} disagrees with canonical geometry.")
+        if d1_capability_source:
+            self._a2_v23_p05_bands = {"clipped_utilization_min": V23_D1_CLIPPED_UTILIZATION_MIN}
+            self._a2_v23_p05_bands_path = None
+        else:
+            bands_input = read_p05_input("a2_v23_p05_bands_path", "selected P0.5 bands")
+            measured_bands = a2_v23_validate_p05_bands(bands_input.get("bands", bands_input))
+            if configured_bands is not None:
+                configured_bands = a2_v23_validate_p05_bands(configured_bands)
+                if configured_bands != measured_bands:
+                    raise RuntimeError("P0.5 configured bands disagree with the measured bands input.")
+            self._a2_v23_p05_bands = measured_bands
+        self._a2_v23_p05_effort_freeze_path = str(Path(self.config["a2_v23_p05_effort_freeze_path"]).expanduser())
+        self._a2_v23_p05_atlas_manifest_path = str(Path(self.config["a2_v23_p05_atlas_manifest_path"]).expanduser())
+        if not d1_capability_source:
+            self._a2_v23_p05_bands_path = str(Path(self.config["a2_v23_p05_bands_path"]).expanduser())
+        self._a2_v23_p05_plain_manifest_path = str(Path(self.config["a2_v23_p05_plain_manifest_path"]).expanduser())
+        self._a2_v23_p05_bound_plain_manifest_path = str(
+            Path(self.config["a2_v23_p05_bound_plain_manifest_path"]).expanduser()
+        )
+        self._a2_v23_p05_capability_source_freeze_path = (
+            str(Path(self.config["a2_v23_p05_capability_source_freeze_path"]).expanduser())
+            if d1_capability_source
+            else None
+        )
+        self._a2_v23_p05_external_threshold_path = (
+            str(Path(self.config["a2_v23_p05_external_threshold_path"]).expanduser())
+            if d1_capability_source
+            else None
+        )
+        rescue_effort = 100.0 if d1_capability_source else self.config.get("a2_v23_p05_rescue_effort_nm")
+        if isinstance(rescue_effort, bool) or not isinstance(rescue_effort, (int, float)):
+            raise RuntimeError("P0.5 rescue requires explicit numeric a2_v23_p05_rescue_effort_nm=100.")
+        if not math.isfinite(float(rescue_effort)) or float(rescue_effort) != 100.0:
+            raise RuntimeError("P0.5 dynamic rescue cap is fixed at exactly 100 Nm.")
+        robot = self.simulator.scene.articulations["robot"]
+        if not hasattr(robot, "write_joint_effort_limit_to_sim"):
+            raise RuntimeError("P0.5 rescue requires IsaacLab Articulation.write_joint_effort_limit_to_sim().")
+        if not hasattr(self, "_a2_v23_arm_joint_ids"):
+            required_names = [f"arm_j{i}" for i in range(1, 7)]
+            arm_ids, arm_names = robot.find_joints(required_names, preserve_order=True)
+            if arm_names != required_names:
+                raise RuntimeError(f"P0.5 arm joint order mismatch: {arm_names!r}.")
+            self._a2_v23_arm_joint_ids = torch.tensor(arm_ids, dtype=torch.long, device=self.device)
+            self._a2_v23_arm_joint_names = tuple(required_names)
+        baseline = robot.data.joint_effort_limits[:, self._a2_v23_arm_joint_ids].detach().clone()
+        if (
+            tuple(baseline.shape) != (self.num_envs, 6)
+            or not torch.all(torch.isfinite(baseline))
+            or torch.any(baseline <= 0.0)
+            or torch.any(baseline > 100.0)
+        ):
+            raise RuntimeError("P0.5 baseline arm effort limits must be finite, positive, and <=100 Nm.")
+        expected_baseline = torch.full_like(baseline, float(selected_effort))
+        if not torch.allclose(baseline, expected_baseline, atol=1.0e-5, rtol=0.0):
+            raise RuntimeError(
+                "P0.5 actual six-joint arm baseline limits do not equal the selected effort freeze."
+            )
+        self._a2_v23_p05_mode = mode
+        self._a2_v23_p05_topology = topology
+        self._a2_v23_p05_plain_scenario_rows = [dict(row) for row in bound_rows]
+        self._a2_v23_p05_source_scenario_rows = [dict(row) for row in source_rows]
+        self._a2_v23_p05_checkpoint = checkpoint
+        self._a2_v23_p05_config_id = config_id
+        self._a2_v23_p05_seed = seed
+        self._a2_v23_p05_checkpoint_load_mode = checkpoint_load_mode
+        self._a2_v23_p05_baseline_effort_limits = baseline
+        door_articulation = self.simulator.scene.articulations["door"]
+        handle_ids, handle_names = door_articulation.find_bodies("door_handle", preserve_order=True)
+        if len(handle_ids) != 1 or list(handle_names) != ["door_handle"]:
+            raise RuntimeError(f"P0.4 requires exactly one door_handle body; got {handle_names!r}.")
+        hinge_ids, hinge_names = door_articulation.find_joints(".*hinge.*", preserve_order=True)
+        panel_ids, panel_names = door_articulation.find_bodies("door_panel", preserve_order=True)
+        if len(hinge_ids) != 1 or len(panel_ids) != 1 or list(panel_names) != ["door_panel"]:
+            raise RuntimeError(
+                f"P0.5 canonical cell dynamics require one hinge and one door_panel; "
+                f"hinge={hinge_names!r}, panel={panel_names!r}."
+            )
+        hinge_id = int(hinge_ids[0])
+        panel_id = int(panel_ids[0])
+        self.door_width = torch.full_like(self.door_width, float(self._a2_v23_p05_canonical_geometry["local_facts"]["door_width_m"]))
+        self.door_height = torch.full_like(self.door_height, float(self._a2_v23_p05_canonical_geometry["local_facts"]["door_height_m"]))
+        self.door_handle_height = torch.full_like(self.door_handle_height, float(self._a2_v23_p05_canonical_geometry["local_facts"]["handle_height_m"]))
+        self.door_handle_width = torch.full_like(self.door_handle_width, float(self._a2_v23_p05_canonical_geometry["local_facts"]["handle_width_m"]))
+        self.door_weight = torch.full_like(self.door_weight, float(self._a2_v23_p05_realized_params["door_weight_kg"]))
+        self.door_open_lr = torch.full_like(self.door_open_lr, float(self._a2_v23_p05_canonical_geometry["local_facts"]["door_open_lr_sign"]))
+        self.door_open_io = torch.full_like(self.door_open_io, float(self._a2_v23_p05_canonical_geometry["local_facts"]["door_open_io_sign"]))
+        self.door_hinge_drive_max_force = torch.full_like(
+            self.door_hinge_drive_max_force,
+            float(self._a2_v23_p05_realized_params["hinge_effort_limit_nm"]),
+        )
+        facts = self._a2_v23_p05_canonical_geometry["local_facts"]
+        for tensor, expected, name in (
+            (self.door_width, facts["door_width_m"], "door_width"),
+            (self.door_height, facts["door_height_m"], "door_height"),
+            (self.door_handle_height, facts["handle_height_m"], "door_handle_height"),
+            (self.door_handle_width, facts["handle_width_m"], "door_handle_width"),
+            (self.door_weight, self._a2_v23_p05_realized_params["door_weight_kg"], "door_weight"),
+            (self.door_open_lr, facts["door_open_lr_sign"], "door_open_lr"),
+            (self.door_open_io, facts["door_open_io_sign"], "door_open_io"),
+        ):
+            if not torch.allclose(tensor, torch.full_like(tensor, float(expected)), atol=1.0e-5, rtol=0.0):
+                raise RuntimeError(f"P0.5 runtime geometry fact {name} disagrees with canonical geometry.")
+        body_pos_w = door_articulation.data.body_pos_w
+        body_quat_w = door_articulation.data.body_quat_w
+        if (
+            not torch.is_tensor(body_pos_w)
+            or not torch.is_tensor(body_quat_w)
+            or tuple(body_pos_w.shape) != (self.num_envs, door_articulation.num_bodies, 3)
+            or tuple(body_quat_w.shape) != (self.num_envs, door_articulation.num_bodies, 4)
+            or not torch.all(torch.isfinite(body_pos_w))
+            or not torch.all(torch.isfinite(body_quat_w))
+        ):
+            raise RuntimeError("P0.5 bound geometry requires finite high-level door body poses.")
+        panel_pos_w = body_pos_w[:, panel_id, :]
+        handle_pos_w = body_pos_w[:, int(handle_ids[0]), :]
+        panel_quat_w = body_quat_w[:, panel_id, :]
+        handle_offset_local = quat_apply_inverse(panel_quat_w, handle_pos_w - panel_pos_w)
+        expected_handle_offset_local = torch.stack(
+            (
+                torch.zeros_like(self.door_width),
+                (0.5 * self.door_width - self.door_handle_width) * self.door_open_lr,
+                self.door_handle_height,
+            ),
+            dim=-1,
+        ).to(dtype=handle_offset_local.dtype, device=handle_offset_local.device)
+        if not torch.allclose(handle_offset_local, expected_handle_offset_local, atol=1.0e-3, rtol=0.0):
+            raise RuntimeError("P0.5 high-level door body positions disagree with bound handle geometry.")
+        hinge_dtype = door_articulation.data.joint_pos.dtype
+        all_env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
+        selected_damping = torch.full(
+            (self.num_envs, 1), float(self._a2_v23_p05_realized_params["hinge_damping_native"]),
+            dtype=hinge_dtype, device=self.device,
+        )
+        selected_stiffness = torch.full(
+            (self.num_envs, 1), float(self._a2_v23_p05_realized_params["hinge_stiffness_native"]),
+            dtype=hinge_dtype, device=self.device,
+        )
+        selected_effort_limit = torch.full(
+            (self.num_envs, 1), float(self._a2_v23_p05_realized_params["hinge_effort_limit_nm"]),
+            dtype=hinge_dtype, device=self.device,
+        )
+        door_articulation.write_joint_damping_to_sim(
+            selected_damping, joint_ids=[hinge_id], env_ids=all_env_ids
+        )
+        door_articulation.write_joint_stiffness_to_sim(
+            selected_stiffness, joint_ids=[hinge_id], env_ids=all_env_ids
+        )
+        door_articulation.write_joint_effort_limit_to_sim(
+            selected_effort_limit, joint_ids=[hinge_id], env_ids=all_env_ids
+        )
+        root_physx_view = door_articulation.root_physx_view
+        masses_before = root_physx_view.get_masses().clone()
+        inertias_before = root_physx_view.get_inertias().clone()
+        if tuple(masses_before.shape) != (self.num_envs, door_articulation.num_bodies):
+            raise RuntimeError("P0.5 canonical cell dynamics mass tensor shape is not the door topology.")
+        if tuple(inertias_before.shape) != (self.num_envs, door_articulation.num_bodies, 9):
+            raise RuntimeError("P0.5 canonical cell dynamics inertia tensor shape is not the door topology.")
+        if not torch.all(torch.isfinite(masses_before)) or not torch.all(torch.isfinite(inertias_before)):
+            raise RuntimeError("P0.5 original panel mass/inertia tensors must be finite.")
+        selected_mass = float(self._a2_v23_p05_realized_params["door_weight_kg"])
+        original_panel_mass = masses_before[:, panel_id].clone()
+        original_panel_inertia = inertias_before[:, panel_id, :].clone()
+        if torch.any(original_panel_mass <= 0.0):
+            raise RuntimeError("P0.5 original panel masses must be positive.")
+        mass_ratio = torch.full_like(original_panel_mass, selected_mass) / original_panel_mass
+        if not torch.all(torch.isfinite(mass_ratio)) or torch.any(mass_ratio <= 0.0):
+            raise RuntimeError("P0.5 panel mass ratio must be finite and positive.")
+        expected_scaled_panel_inertia = original_panel_inertia * mass_ratio[:, None]
+        masses = masses_before.clone()
+        masses[:, panel_id] = selected_mass
+        inertias = inertias_before.clone()
+        inertias[:, panel_id, :] = expected_scaled_panel_inertia
+        cpu_env_ids = torch.arange(self.num_envs, dtype=torch.long, device="cpu")
+        root_physx_view.set_masses(masses, cpu_env_ids)
+        root_physx_view.set_inertias(inertias, cpu_env_ids)
+        readback_damping = door_articulation.data.joint_damping[:, hinge_id]
+        readback_stiffness = door_articulation.data.joint_stiffness[:, hinge_id]
+        readback_effort = door_articulation.data.joint_effort_limits[:, hinge_id]
+        readback_masses = root_physx_view.get_masses()[:, panel_id]
+        readback_inertias = root_physx_view.get_inertias()[:, panel_id, :]
+        if (
+            not torch.allclose(readback_damping, selected_damping[:, 0], atol=1.0e-5, rtol=0.0)
+            or not torch.allclose(readback_stiffness, selected_stiffness[:, 0], atol=1.0e-5, rtol=0.0)
+            or not torch.allclose(readback_effort, selected_effort_limit[:, 0], atol=1.0e-5, rtol=0.0)
+            or not torch.allclose(
+                readback_masses,
+                torch.full_like(readback_masses, selected_mass),
+                atol=1.0e-5,
+                rtol=0.0,
+            )
+            or not torch.allclose(
+                readback_inertias,
+                expected_scaled_panel_inertia,
+                atol=1.0e-5,
+                rtol=0.0,
+            )
+        ):
+            raise RuntimeError("P0.5 canonical cell dynamics high-level write/readback disagreed.")
+        self._a2_v23_p05_mass_inertia_receipt = {
+            "schema": "a2_piper_v23_p05_mass_inertia_receipt_v1",
+            "purpose": self._a2_v23_p05_purpose,
+            "panel_body_id": panel_id,
+            "env_ids": list(range(self.num_envs)),
+            "uniform_density": True,
+            "applied_once": True,
+            "bound_plain_manifest_path": self._a2_v23_p05_bound_plain_manifest_path,
+            "capability_source_freeze_path": self._a2_v23_p05_capability_source_freeze_path,
+            "external_threshold_path": self._a2_v23_p05_external_threshold_path,
+            "original_panel_mass_kg": [float(value) for value in original_panel_mass.tolist()],
+            "applied_panel_mass_kg": [float(value) for value in readback_masses.tolist()],
+            "inertia_scale": [float(value) for value in mass_ratio.tolist()],
+            "original_panel_inertia": original_panel_inertia.tolist(),
+            "expected_scaled_panel_inertia": expected_scaled_panel_inertia.tolist(),
+            "readback_panel_inertia": readback_inertias.tolist(),
+        }
+        self._a2_v23_p05_cell_dynamics_applied = True
+        self.door_weight = torch.full_like(self.door_weight, selected_mass)
+        self.door_hinge_drive_max_force = torch.full_like(
+            self.door_hinge_drive_max_force,
+            float(self._a2_v23_p05_realized_params["hinge_effort_limit_nm"]),
+        )
+        self.door_hinge_drive_damping = torch.full_like(
+            self.door_hinge_drive_damping,
+            float(self._a2_v23_p05_realized_params["hinge_damping_native"]),
+        )
+        self.door_hinge_drive_stiffness = torch.full_like(
+            self.door_hinge_drive_stiffness,
+            float(self._a2_v23_p05_realized_params["hinge_stiffness_native"]),
+        )
+        self._a2_v23_p05_hinge_joint_id = hinge_id
+        self._a2_v23_p05_panel_body_id = panel_id
+        self._a2_v23_p05_capability_handle_id = int(handle_ids[0])
+        self._a2_v23_p05_rescue_cap_nm = 100.0
+        self._a2_v23_p05_switch_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v23_p05_latch_window_steps = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v23_p05_rescue_latched = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v23_p05_hinge_at_switch = torch.full(
+            (self.num_envs,), float("nan"), dtype=baseline.dtype, device=self.device
+        )
+        self._a2_v23_p05_rescue_status = ["NOT_REQUESTED"] * self.num_envs
+        self._a2_v23_p05_requested_profile = [
+            {"status": "NOT_REQUESTED"} for _ in range(self.num_envs)
+        ]
+        self._a2_v23_p05_applied_profile = [
+            {"status": "NOT_EXECUTED"} for _ in range(self.num_envs)
+        ]
+        self._a2_v23_p05_episode_indices = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v23_p05_previous_hinge = torch.full(
+            (self.num_envs,), float("nan"), dtype=baseline.dtype, device=self.device
+        )
+        self._a2_v23_p05_previous_hinge_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v23_p05_step_rows = [[] for _ in range(self.num_envs)]
+        self._a2_v23_p05_completed_episode_evidence = [None] * self.num_envs
+
+    def _a2_v23_p05_validate_env_ids(self, env_ids: torch.Tensor) -> None:
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("P0.5 env_ids must be non-negative device-local long indices.")
+
+    def apply_a2_v23_p05_rescue(
+        self,
+        env_ids: torch.Tensor,
+        *,
+        switch_step: torch.Tensor | None = None,
+        latch_mask: torch.Tensor | None = None,
+    ) -> None:
+        """Raise only the six arm effort limits at an explicit typed rescue latch."""
+
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            raise RuntimeError("P0.5 rescue is unavailable when runtime evidence is disabled.")
+        if self._a2_v23_p05_mode != "HIGHER_EFFORT_RESCUE":
+            raise RuntimeError("P0.5 rescue latch is only valid in HIGHER_EFFORT_RESCUE mode.")
+        self._a2_v23_p05_validate_env_ids(env_ids)
+        if latch_mask is None:
+            latch_mask = self.get_a2_v23_p05_rescue_latch_mask()
+        if (
+            not torch.is_tensor(latch_mask)
+            or tuple(latch_mask.shape) != (self.num_envs,)
+            or latch_mask.dtype != torch.bool
+            or latch_mask.device != torch.device(self.device)
+            or not torch.all(latch_mask[env_ids])
+        ):
+            raise RuntimeError("P0.5 effort write requires the typed five-band rescue latch mask.")
+        robot = self.simulator.scene.articulations["robot"]
+        if switch_step is None:
+            switch_step = self.episode_length_buf[env_ids] - 1
+        if (
+            not torch.is_tensor(switch_step)
+            or tuple(switch_step.shape) != tuple(env_ids.shape)
+            or switch_step.dtype != torch.long
+            or switch_step.device != env_ids.device
+            or torch.any(switch_step < 0)
+        ):
+            raise RuntimeError("P0.5 rescue switch_step must be device-local non-negative long values.")
+        requested = torch.full(
+            (len(env_ids), 6), self._a2_v23_p05_rescue_cap_nm,
+            dtype=self._a2_v23_p05_baseline_effort_limits.dtype,
+            device=self.device,
+        )
+        baseline = self._a2_v23_p05_baseline_effort_limits[env_ids]
+        for row, env_id in enumerate(env_ids.detach().cpu().tolist()):
+            baseline_row = baseline[row]
+            trigger_window_steps = int(self._a2_v23_p05_latch_window_steps[env_id].item())
+            if trigger_window_steps < 0:
+                raise RuntimeError("P0.5 rescue effort write requires a recorded latch window length.")
+            request_profile = {
+                "status": "REQUESTED",
+                "effort_cap_nm": self._a2_v23_p05_rescue_cap_nm,
+                "trigger_window_steps": trigger_window_steps,
+                "joint_names": list(self._a2_v23_arm_joint_names),
+                "baseline_effort_limit_nm": baseline_row.detach().cpu().tolist(),
+            }
+            self._a2_v23_p05_requested_profile[env_id] = request_profile
+            if torch.all(baseline_row == self._a2_v23_p05_rescue_cap_nm):
+                self._a2_v23_p05_rescue_status[env_id] = V23_P05_RESCUE_NOT_APPLICABLE_BASELINE_AT_MAX
+                self._a2_v23_p05_applied_profile[env_id] = {
+                    "status": V23_P05_RESCUE_NOT_APPLICABLE_BASELINE_AT_MAX,
+                    "trigger_window_steps": trigger_window_steps,
+                    "readback_effort_limit_nm": baseline_row.detach().cpu().tolist(),
+                }
+                self._a2_v23_p05_rescue_latched[env_id] = True
+                self._a2_v23_p05_switch_step[env_id] = switch_step[row]
+                continue
+            robot.write_joint_effort_limit_to_sim(
+                requested[row],
+                joint_ids=self._a2_v23_arm_joint_ids,
+                env_ids=env_ids[row : row + 1],
+            )
+            readback = robot.data.joint_effort_limits[env_ids[row : row + 1]][:, self._a2_v23_arm_joint_ids]
+            if tuple(readback.shape) != (1, 6) or not torch.allclose(
+                readback, requested[row : row + 1], atol=1.0e-5, rtol=0.0
+            ):
+                raise RuntimeError("P0.5 rescue effort-limit readback did not equal requested 100 Nm.")
+            self._a2_v23_p05_rescue_status[env_id] = "APPLIED"
+            self._a2_v23_p05_applied_profile[env_id] = {
+                "status": "APPLIED",
+                "effort_cap_nm": self._a2_v23_p05_rescue_cap_nm,
+                "trigger_window_steps": trigger_window_steps,
+                "joint_names": list(self._a2_v23_arm_joint_names),
+                "readback_effort_limit_nm": readback[0].detach().cpu().tolist(),
+            }
+            self._a2_v23_p05_rescue_latched[env_id] = True
+            self._a2_v23_p05_switch_step[env_id] = switch_step[row]
+        hinge = self._get_door_joint_pos("P0.5 rescue latch", 1)[:, 0]
+        self._a2_v23_p05_hinge_at_switch[env_ids] = hinge[env_ids]
+
+    def get_a2_v23_p05_rescue_latch_mask(self) -> torch.Tensor:
+        """Return the measured five-band latch mask without selecting thresholds."""
+
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            raise RuntimeError("P0.5 rescue latch is unavailable when evidence is disabled.")
+        mask = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        if self._a2_v23_p05_mode != "HIGHER_EFFORT_RESCUE":
+            return mask
+        progress_min = self._a2_v23_p05_bands["low_progress_min_rad"]
+        progress_max = self._a2_v23_p05_bands["low_progress_max_rad"]
+        window_min = self._a2_v23_p05_bands["low_progress_window_min_steps"]
+        window_max = self._a2_v23_p05_bands["low_progress_window_max_steps"]
+        for env_id, rows in enumerate(self._a2_v23_p05_step_rows):
+            if self._a2_v23_p05_rescue_latched[env_id]:
+                continue
+            self._a2_v23_p05_latch_window_steps[env_id] = -1
+            for window_steps in range(window_min, window_max + 1):
+                if len(rows) < window_steps:
+                    continue
+                selected = rows[-window_steps:]
+                window = a2_v23_build_p05_window_record(
+                    selected,
+                    start_step=int(selected[0]["control_step"]),
+                    end_step=int(selected[-1]["control_step"]),
+                    window_id=f"latch-env{env_id}-step{int(selected[-1]['control_step'])}-len{window_steps}",
+                )
+                if (
+                    window["stable_grasp_streak_max"] >= self._a2_v23_p05_bands["stable_grasp_min_steps"]
+                    and window["stable_grasp_all_rows"]
+                    and progress_min <= window["progress_rad"] <= progress_max
+                    and window["clipped_window_fraction"] >= self._a2_v23_p05_bands["clipped_fraction_min"]
+                    and not any(window["failure_flags"].values())
+                ):
+                    self._a2_v23_p05_latch_window_steps[env_id] = window_steps
+                    mask[env_id] = True
+                    break
+        return mask
+
+    def maybe_apply_a2_v23_p05_rescue_latch(self) -> torch.Tensor:
+        """Apply the dynamic cap only for envs satisfying the typed P0.5 latch."""
+
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            return torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        latch = self.get_a2_v23_p05_rescue_latch_mask()
+        if torch.any(latch):
+            env_ids = latch.nonzero(as_tuple=False).flatten().to(dtype=torch.long)
+            switch_step = (self.episode_length_buf[env_ids] - 1).to(dtype=torch.long)
+            self.apply_a2_v23_p05_rescue(env_ids, switch_step=switch_step, latch_mask=latch)
+        return latch
+
+    def _restore_a2_v23_p05_effort_limits(self, env_ids: torch.Tensor) -> None:
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            return
+        self._a2_v23_p05_validate_env_ids(env_ids)
+        robot = self.simulator.scene.articulations["robot"]
+        baseline = self._a2_v23_p05_baseline_effort_limits[env_ids]
+        robot.write_joint_effort_limit_to_sim(
+            baseline,
+            joint_ids=self._a2_v23_arm_joint_ids,
+            env_ids=env_ids,
+        )
+        readback = robot.data.joint_effort_limits[env_ids][:, self._a2_v23_arm_joint_ids]
+        if not torch.allclose(readback, baseline, atol=1.0e-5, rtol=0.0):
+            raise RuntimeError("P0.5 reset effort-limit readback did not restore the baseline.")
+
+    def _a2_v23_p05_failure_flags(self, hold_ok: torch.Tensor) -> list[dict[str, bool]]:
+        terminal_buffers = getattr(self, "_terminal_reason_bufs", {})
+        if "bad_orientation" not in terminal_buffers or "stage_overtime" not in terminal_buffers:
+            raise RuntimeError("P0.5 requires typed bad_orientation and stage_overtime terminal buffers.")
+        fall = terminal_buffers["bad_orientation"]
+        timeout = terminal_buffers["stage_overtime"]
+        if not torch.is_tensor(fall) or tuple(fall.shape) != (self.num_envs,) or fall.dtype != torch.bool:
+            raise RuntimeError("P0.5 FALL terminal flag is unavailable.")
+        if not torch.is_tensor(timeout) or tuple(timeout.shape) != (self.num_envs,) or timeout.dtype != torch.bool:
+            raise RuntimeError("P0.5 TIMEOUT_WRONG_STAGE terminal flag is unavailable.")
+        stage_open = (self.stage_buf == self.STAGE_OPEN) | (self.stage_buf == self.STAGE_SWING)
+        door_collision = getattr(self, "_a2_door_body_contact_event_active", None)
+        if not torch.is_tensor(door_collision) or tuple(door_collision.shape) != (self.num_envs,) or door_collision.dtype != torch.bool:
+            raise RuntimeError("P0.5 DOOR_FRAME_COLLISION event flag is unavailable.")
+        lost_grasp = stage_open & ~hold_ok
+        return [
+            {
+                "FALL": bool(fall[index].item()),
+                "LOST_GRASP": bool(lost_grasp[index].item()),
+                "DOOR_FRAME_COLLISION": bool(door_collision[index].item()),
+                "TIMEOUT_WRONG_STAGE": bool(timeout[index].item()),
+            }
+            for index in range(self.num_envs)
+        ]
+
+    def _a2_v23_p04_capability_samples(self) -> list[dict[str, Any]]:
+        """Capture geometry-conditioned force capacity from the high-level runtime tensors."""
+        from scriptsFORhuman.v23.capability_binding import bind_articulation_capability
+
+        robot = self.simulator.scene.articulations["robot"]
+        door = self.simulator.scene.articulations["door"]
+        root_pos = door.data.root_pos_w
+        root_quat = door.data.root_quat_w
+        if not torch.is_tensor(root_pos) or not torch.is_tensor(root_quat):
+            raise RuntimeError("P0.4 capability requires high-level door root_pos_w/root_quat_w tensors.")
+        z_axis = torch.zeros(self.num_envs, 3, dtype=root_pos.dtype, device=root_pos.device)
+        z_axis[:, 2] = 1.0
+        door_lr = self.door_open_lr.to(dtype=root_pos.dtype)
+        hinge_axis = (-door_lr)[:, None] * quat_apply(root_quat, z_axis)
+        hinge_anchor_local = torch.stack(
+            (
+                torch.full_like(self.door_width, 0.02),
+                -0.5 * self.door_width * door_lr,
+                torch.zeros_like(self.door_width),
+            ),
+            dim=-1,
+        ).to(dtype=root_pos.dtype)
+        hinge_position = root_pos + quat_apply(root_quat, hinge_anchor_local)
+        binding = bind_articulation_capability(robot, door, hinge_axis, hinge_position)
+        solved = binding["binding"]
+        samples = []
+        for env_id in range(self.num_envs):
+            status = solved["status_by_sample"][env_id]
+            def _json_number(value: Any) -> float | None:
+                number = float(value)
+                return number if math.isfinite(number) else None
+            samples.append(
+                {
+                    "schema": "a2_piper_v23_capability_sample_v1",
+                    "cell_id": self._a2_v23_p05_cell_id,
+                    "geometry_id": self._a2_v23_p05_geometry_id,
+                    "canonical_geometry": dict(self._a2_v23_p05_canonical_geometry),
+                    "realized_params": dict(self._a2_v23_p05_realized_params),
+                    "checkpoint_load_mode": self._a2_v23_p05_checkpoint_load_mode,
+                    "mass_inertia_receipt": {
+                        "schema": self._a2_v23_p05_mass_inertia_receipt["schema"],
+                        "panel_body_id": self._a2_v23_p05_mass_inertia_receipt["panel_body_id"],
+                        "env_id": env_id,
+                        "uniform_density": self._a2_v23_p05_mass_inertia_receipt["uniform_density"],
+                        "applied_once": self._a2_v23_p05_mass_inertia_receipt["applied_once"],
+                        "original_panel_mass_kg": self._a2_v23_p05_mass_inertia_receipt[
+                            "original_panel_mass_kg"
+                        ][env_id],
+                        "applied_panel_mass_kg": self._a2_v23_p05_mass_inertia_receipt[
+                            "applied_panel_mass_kg"
+                        ][env_id],
+                        "inertia_scale": self._a2_v23_p05_mass_inertia_receipt["inertia_scale"][env_id],
+                        "original_panel_inertia": self._a2_v23_p05_mass_inertia_receipt[
+                            "original_panel_inertia"
+                        ][env_id],
+                        "expected_scaled_panel_inertia": self._a2_v23_p05_mass_inertia_receipt[
+                            "expected_scaled_panel_inertia"
+                        ][env_id],
+                        "readback_panel_inertia": self._a2_v23_p05_mass_inertia_receipt[
+                            "readback_panel_inertia"
+                        ][env_id],
+                    },
+                    "status": status,
+                    "authority": "ESTIMATE_ONLY_GEOMETRY_CONDITIONED_NOT_PHYSX_FORCE_TRUTH",
+                    "capacity_nm": _json_number(solved["capacities_nm"][env_id].item()),
+                    "lower_nm": _json_number(solved["lower_nm"][env_id].item()),
+                    "upper_nm": _json_number(solved["upper_nm"][env_id].item()),
+                    "rho_m": _json_number(solved["rho_m"][env_id].item()),
+                    "d_i": [float(value) for value in solved["d_i"][env_id].detach().cpu().tolist()],
+                    "gravity_nm": [float(value) for value in solved["gravity_nm"][env_id].detach().cpu().tolist()],
+                    "effort_limit_nm": [float(value) for value in solved["effort_limit_nm"][env_id].detach().cpu().tolist()],
+                    "tangent_w": [float(value) for value in solved["tangent_w"][env_id].detach().cpu().tolist()],
+                    "hinge_axis_w": [float(value) for value in hinge_axis[env_id].detach().cpu().tolist()],
+                    "hinge_position_w": [float(value) for value in hinge_position[env_id].detach().cpu().tolist()],
+                    "handle_position_w": [float(value) for value in door.data.body_pos_w[env_id, self._a2_v23_p05_capability_handle_id].detach().cpu().tolist()],
+                    "body_name": "arm_body6_to_gripper",
+                    "handle_name": "door_handle",
+                }
+            )
+        return samples
+
+    def _update_a2_v23_p05_evidence(self) -> None:
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            return
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        ids = self._a2_v23_arm_joint_ids
+        hinge_pos = self._get_door_joint_pos("P0.5 step evidence", 1)[:, 0].to(data.joint_pos.dtype)
+        hinge_vel = self._get_door_joint_vel("P0.5 step evidence", 1)[:, 0].to(data.joint_pos.dtype)
+        current_step = self.episode_length_buf - 1
+        valid = (current_step >= 0) & (current_step < int(self.max_episode_length))
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks("P0.5 stable grasp evidence")
+        predicates = {
+            "both_contact": contact_masks["both_contact"],
+            "sufficient_squeeze": contact_masks["sufficient_squeeze"],
+            "opposite_squeeze": contact_masks["opposite_squeeze"],
+            "opening_stage": (self.stage_buf == self.STAGE_OPEN) | (self.stage_buf == self.STAGE_SWING),
+        }
+        failure_flags = self._a2_v23_p05_failure_flags(hold_ok)
+        nominal = data.joint_stiffness[:, ids] * (data.joint_pos_target[:, ids] - data.joint_pos[:, ids]) - data.joint_damping[:, ids] * data.joint_vel[:, ids]
+        limits = data.joint_effort_limits[:, ids]
+        clipped = torch.clamp(nominal, min=-limits, max=limits)
+        if not torch.all(torch.isfinite(nominal)) or not torch.all(torch.isfinite(clipped)):
+            raise RuntimeError("P0.5 nominal/clipped effort telemetry is non-finite.")
+        capability_samples = self._a2_v23_p04_capability_samples()
+        for env_id in range(self.num_envs):
+            if not bool(valid[env_id].item()):
+                continue
+            previous_valid = bool(self._a2_v23_p05_previous_hinge_valid[env_id].item())
+            progress = float(
+                (hinge_pos[env_id] - self._a2_v23_p05_previous_hinge[env_id]).item()
+            ) if previous_valid else 0.0
+            self._a2_v23_p05_previous_hinge[env_id] = hinge_pos[env_id]
+            self._a2_v23_p05_previous_hinge_valid[env_id] = True
+            episode_index = int(self._a2_v23_p05_episode_indices[env_id].item())
+            episode_id = f"a2-v23-p05-env{env_id}-episode{episode_index}"
+            switch_step = int(self._a2_v23_p05_switch_step[env_id].item())
+            post_progress = None
+            if switch_step >= 0:
+                post_progress = float((hinge_pos[env_id] - self._a2_v23_p05_hinge_at_switch[env_id]).item())
+            requested = self._a2_v23_p05_requested_profile[env_id]
+            applied = self._a2_v23_p05_applied_profile[env_id]
+            scenario = self._a2_v23_p05_plain_scenario_rows[env_id]["scenario_id"]
+            row = a2_v23_build_p05_step_record(
+                scenario=scenario,
+                topology=self._a2_v23_p05_topology,
+                env_id=env_id,
+                episode_index=episode_index,
+                episode_id=episode_id,
+                checkpoint=self._a2_v23_p05_checkpoint,
+                config=self._a2_v23_p05_config_id,
+                seed=self._a2_v23_p05_seed,
+                checkpoint_load_mode=self._a2_v23_p05_checkpoint_load_mode,
+                mode=self._a2_v23_p05_mode,
+                plain_prefix_id=f"{scenario}:{self._a2_v23_p05_topology}:env{env_id}:episode{episode_index}",
+                control_step=int(current_step[env_id].item()),
+                switch_step=switch_step,
+                stable_grasp_predicates={key: bool(value[env_id].item()) for key, value in predicates.items()},
+                stable_grasp_streak=int(self._a2_stage3_stage4_both_contact_streak[env_id].item()),
+                hinge_position_rad=float(hinge_pos[env_id].item()),
+                hinge_velocity_rad_s=float(hinge_vel[env_id].item()),
+                window_progress_rad=progress,
+                arm_nominal_torque_nm=nominal[env_id].detach().cpu().tolist(),
+                arm_clipped_torque_nm=clipped[env_id].detach().cpu().tolist(),
+                arm_effort_limit_nm=limits[env_id].detach().cpu().tolist(),
+                failure_flags=failure_flags[env_id],
+                requested_rescue_profile=requested,
+                applied_rescue_profile=applied,
+                clipped_utilization_min=self._a2_v23_p05_bands["clipped_utilization_min"],
+                post_switch_progress_rad=post_progress,
+                capability_sample={
+                    **capability_samples[env_id],
+                    "identity": {
+                        "mode": self._a2_v23_p05_mode,
+                        "checkpoint": self._a2_v23_p05_checkpoint,
+                        "config": self._a2_v23_p05_config_id,
+                        "checkpoint_load_mode": self._a2_v23_p05_checkpoint_load_mode,
+                        "topology": self._a2_v23_p05_topology,
+                        "scenario": scenario,
+                        "env_id": env_id,
+                        "episode_index": episode_index,
+                        "episode_id": episode_id,
+                        "control_step": int(current_step[env_id].item()),
+                        "cell_id": self._a2_v23_p05_cell_id,
+                        "geometry_id": self._a2_v23_p05_geometry_id,
+                        "canonical_geometry": dict(self._a2_v23_p05_canonical_geometry),
+                    },
+                },
+                purpose=self._a2_v23_p05_purpose,
+            )
+            self._a2_v23_p05_step_rows[env_id].append(row)
+
+    def _snapshot_a2_v23_p05_evidence(self, env_ids: torch.Tensor) -> None:
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            return
+        self._a2_v23_p05_validate_env_ids(env_ids)
+        for env_id in env_ids.detach().cpu().tolist():
+            rows = self._a2_v23_p05_step_rows[env_id]
+            if not rows:
+                continue
+            windows = []
+            end_step = int(rows[-1]["control_step"])
+            if self._a2_v23_p05_purpose == V23_D1_CAPABILITY_SOURCE_PURPOSE:
+                window_min = 25
+                window_max = 25
+            else:
+                window_min = self._a2_v23_p05_bands["low_progress_window_min_steps"]
+                window_max = self._a2_v23_p05_bands["low_progress_window_max_steps"]
+            for window_steps in range(window_min, window_max + 1):
+                start_step = end_step - window_steps + 1
+                if start_step < 0:
+                    continue
+                windows.append(
+                    a2_v23_build_p05_window_record(
+                        rows, start_step=start_step, end_step=end_step,
+                        window_id=(
+                            f"env{env_id}-episode{int(self._a2_v23_p05_episode_indices[env_id].item())}"
+                            f"-last{window_steps}"
+                        ),
+                    )
+                )
+            episode_index = int(self._a2_v23_p05_episode_indices[env_id].item())
+            scenario = self._a2_v23_p05_plain_scenario_rows[env_id]["scenario_id"]
+            identity = {
+                "checkpoint": self._a2_v23_p05_checkpoint,
+                "config": self._a2_v23_p05_config_id,
+                "checkpoint_load_mode": self._a2_v23_p05_checkpoint_load_mode,
+                "scenario": scenario,
+                "topology": self._a2_v23_p05_topology,
+                "seed": self._a2_v23_p05_seed,
+                "episode_id": f"a2-v23-p05-env{env_id}-episode{episode_index}",
+                "cell_id": self._a2_v23_p05_cell_id,
+                "geometry_id": self._a2_v23_p05_geometry_id,
+                "canonical_geometry": dict(self._a2_v23_p05_canonical_geometry),
+            }
+            record = a2_v23_build_p05_episode_record(
+                identity=identity,
+                mode=self._a2_v23_p05_mode,
+                plain_prefix_id=rows[0]["plain_prefix_id"],
+                step_rows=rows,
+                window_rows=windows,
+                switch_step=int(self._a2_v23_p05_switch_step[env_id].item()),
+                rescue_status=self._a2_v23_p05_rescue_status[env_id],
+                requested_rescue_profile=self._a2_v23_p05_requested_profile[env_id],
+                applied_rescue_profile=self._a2_v23_p05_applied_profile[env_id],
+                purpose=self._a2_v23_p05_purpose,
+            )
+            record["evidence_state"] = "TERMINAL_SNAPSHOT"
+            self._a2_v23_p05_completed_episode_evidence[env_id] = record
+
+    def get_a2_v23_p05_episode_evidence(self, env_id: int) -> dict[str, Any]:
+        if not getattr(self, "_a2_v23_p05_enabled", False):
+            raise RuntimeError("P0.5 evidence is unavailable when disabled.")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise ValueError("P0.5 evidence env_id is invalid.")
+        live = {
+            "schema": "a2_piper_v23_episode_record_live_v1",
+            "mode": self._a2_v23_p05_mode,
+            "purpose": self._a2_v23_p05_purpose,
+            "step_rows": list(self._a2_v23_p05_step_rows[env_id]),
+            "rescue_status": self._a2_v23_p05_rescue_status[env_id],
+        }
+        terminal = self._a2_v23_p05_completed_episode_evidence[env_id]
+        if terminal is None:
+            live["evidence_state"] = "LIVE"
+            return live
+        result = dict(terminal)
+        result["evidence_state"] = "TERMINAL_SNAPSHOT"
+        result["live_record"] = live
+        return result
 
     def _get_a2_v22_bool(self, key: str, *, required: bool) -> bool:
         if key not in self.config:
@@ -9667,6 +11177,7 @@ class DoorPregrasp(
                 self._update_a2_v14_root_height_telemetry()
                 self._update_a2_v20_r2_evidence_accumulators()
                 self._update_a2_v21b_arm_evidence_accumulators()
+                self._update_a2_v23_torque_telemetry()
                 self._update_a2_v22_state()
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
@@ -22577,6 +24088,35 @@ class DoorPregrasp(
             self._a2_v21b_last_decomposition_sanity_valid[env_ids] = False
             self._a2_v21b_stage_overtime[env_ids] = False
             self._a2_v21b_upper_dof_overspeed[env_ids] = False
+        if getattr(self, "_a2_v23_torque_telemetry_enabled", False):
+            self._snapshot_a2_v23_torque_telemetry(env_ids)
+            a2_v23_reset_torque_accumulator(self._a2_v23_torque_evidence, env_ids)
+            if getattr(self, "_a2_v23_temporal_evidence_enabled", False):
+                for env_id in env_ids.detach().cpu().tolist():
+                    if self._a2_v23_temporal_rows[env_id]:
+                        self._a2_v23_temporal_episode_indices[env_id] += 1
+                    self._a2_v23_temporal_rows[env_id] = []
+                    self._a2_v23_temporal_substep_frames[env_id] = []
+                robot_data = self.simulator.scene.articulations["robot"].data
+                self._a2_v23_temporal_last_target[env_ids] = robot_data.joint_pos_target[
+                    env_ids
+                ][:, self._a2_v23_arm_joint_ids].detach()
+        if getattr(self, "_a2_v23_p05_enabled", False):
+            self._snapshot_a2_v23_p05_evidence(env_ids)
+            self._restore_a2_v23_p05_effort_limits(env_ids)
+            self._a2_v23_p05_switch_step[env_ids] = -1
+            self._a2_v23_p05_latch_window_steps[env_ids] = -1
+            self._a2_v23_p05_rescue_latched[env_ids] = False
+            self._a2_v23_p05_hinge_at_switch[env_ids] = float("nan")
+            self._a2_v23_p05_previous_hinge[env_ids] = float("nan")
+            self._a2_v23_p05_previous_hinge_valid[env_ids] = False
+            for env_id in env_ids.detach().cpu().tolist():
+                if self._a2_v23_p05_step_rows[env_id]:
+                    self._a2_v23_p05_episode_indices[env_id] += 1
+                self._a2_v23_p05_step_rows[env_id] = []
+                self._a2_v23_p05_rescue_status[env_id] = "NOT_REQUESTED"
+                self._a2_v23_p05_requested_profile[env_id] = {"status": "NOT_REQUESTED"}
+                self._a2_v23_p05_applied_profile[env_id] = {"status": "NOT_EXECUTED"}
         return super()._reset_buffers_callback(env_ids, target_buf)
 
 
@@ -22906,6 +24446,12 @@ class DoorPregrasp(
         # is_grasping_or_opening = (self.stage_buf == DoorPregrasp.STAGE_GRASP) | (self.stage_buf == DoorPregrasp.STAGE_OPEN)
         # homie_command_norm = torch.norm(self.get_physical_homie_commands()[:, :3], dim=1)
         # self.reset_buf |= (homie_command_norm > self.termination_level) & is_grasping_or_opening
+
+        # P0.5 samples after every current-step terminal reason and reset flag
+        # has been finalized, before reward/reset consumes the snapshot.
+        if getattr(self, "_a2_v23_p05_enabled", False):
+            self._update_a2_v23_p05_evidence()
+        self._finalize_a2_v23_temporal_control_rows()
 
     @property
     def ground_height(self):

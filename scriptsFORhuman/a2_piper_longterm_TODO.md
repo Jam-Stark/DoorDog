@@ -60,3 +60,50 @@
 - [x] 2026-07-22:mass 轴 80–160 完成于 v16(全桶 100% goal,B ckpt2000 为 release);v16 三项行为 shaping 全败并诊断同根(定标未按实测决算 + stage 边界收益断层),重做于 v17 M34/M35。
 - [x] 2026-07-22:设计规则第三例沉淀——"stage 边界收益断层":凡跨 stage 的行为目标,其收益项作用域必须覆盖边界两侧,否则策略在边界处理性弃行为(v13 门挡房租、v15 gate 死区、v16 送门无薪同族)。
 - [x] 2026-07-24:**push-wide-then-release 于 v17 解决**——6-cell factorial 干净归因:制度(阈值 1.35/1.25)与计价(事件制)均必要、合用充分且可复制(G6);release=G5 ckpt2500,48/48 全桶,松手后接触 47/48→1/48。M36 gain probe PASS(15/16 零样本)→ v18 采纳。posture 经济第二次失败(λ×10 付 12% 收入仍 98-100% 使用)→ 价格弹性假说否决,转 P2 判别探针;scratch 重训仅在"习惯性"判定后立项。
+
+## [POST-v23 — DO NOT IMPLEMENT IN V23 CORE]
+
+更新时间:2026-08-10 HKT。以下 LT-23-01..12 是 v23 之后的 long-term
+scope，**当前均未在 v23 core 实现**；本节不是完成项，也不改变上面的历史
+条目。
+
+1. **LT-23-01 真实 PiPER capability calibration**：测量各关节连续/峰值
+   扭矩、torque-speed curve、current/thermal limit、实机静态与持续推力，
+   修正 URDF effort，并校准 Kp、action scale、effort clipping；验收为仿真
+   torque utilization 与实机电流/负载趋势对齐。
+2. **LT-23-02 真实 hinge friction model**：独立实现并随机化 Coulomb
+   friction、stiction、breakaway torque、velocity-dependent friction、
+   hysteresis 与 latch release discontinuity；不得用 damping 代替静摩擦。
+3. **LT-23-03 Dynamics oracle 与 system identification**：critic/oracle
+   使用 `[m,I,c,k,tau_max,tau_breakaway,mu,tau_arm_limit]`，actor 使用
+   history-estimated latent；对照 critic-only privilege、oracle actor upper
+   bound、history-estimator actor。
+4. **LT-23-04 三分支 factorized actor**：shared recurrent trunk 下分出
+   navigation(vx/vy/yaw)、posture(roll/pitch)、manipulation(arm+gripper)
+   heads，并分别保存 log_prob、ratio、KL、entropy、clipfrac、advantage。
+5. **LT-23-05 Matched intervention runner**：支持 exact simulator state
+   clone、recurrent history clone、common random numbers、control-step
+   horizon、safe neutral posture、safe neutral arm hold 与 four-branch rollout。
+6. **LT-23-06 Intervention-supervised coupling critic**：实现
+   `Q_C(z,a_nav,a_posture,a_arm)`，监督 posture-arm、nav-arm interaction，
+   必要时加入 triplet residual。
+7. **LT-23-07 Counterfactual branch PPO**：为 navigation、posture、arm
+   分别生成 counterfactual advantage；禁止 joint ratio 乘 branch-specific
+   advantage。
+8. **LT-23-08 Learned sparse posture gate**：实现 `a_phi=g_t Δphi_t`，gate
+   由 dynamics/history/coupling value 决定；E0 自动关闭、E1 适度开启、E2
+   输出低-confidence 或 body-assist request，不用目标高度硬编码标签。
+9. **LT-23-09 Handoff/downstream critic**：预测 stage 结束状态对后续完整
+   成功的价值，覆盖 stage farming、bad transition、提前 release、门开但无法
+   穿过，以及不适合下一阶段的 grasp/arm margin。
+10. **LT-23-10 Body-assist curriculum**：仅在 E2 certificate 建立后实施，
+    包括 trunk/front-thigh candidate contacts、safe contact-region mask、
+    contact force/velocity limits、strict force-failure gate、ordinary-door
+    negative curriculum 与 arm+posture rescue 对照。
+11. **LT-23-11 Student dynamics/coupling distillation**：student 不接收
+    door mass/damping ground truth，而从 RGB、proprioception、force/history、
+    hinge visual motion 学习 teacher 的 dynamics latent、posture mode、
+    release/hold strategy。
+12. **LT-23-12 active anti-rebound gripper bracing/re-contact**：研究并验证
+    gripper 在门回弹阶段的主动 bracing/re-contact 策略；保持为 post-v23
+    long-term 项，未进入 v23 core。

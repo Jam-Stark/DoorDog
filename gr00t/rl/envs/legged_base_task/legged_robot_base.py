@@ -1117,6 +1117,14 @@ class LeggedRobotBase(BaseTask):
             self._update_meta_pd_scale(sim_sub_t)
             self._apply_force_in_physics_step()
             self.simulator.simulate_at_each_physics_step()
+            # The simulator has advanced and scene state has been refreshed at
+            # this point.  Subclasses may capture one frame for this real
+            # physics substep; control-rate callbacks must not synthesize it.
+            self._post_physics_substep(sim_sub_t)
+
+    def _post_physics_substep(self, sim_sub_t: int) -> None:
+        """Hook invoked once after each real physics substep."""
+        del sim_sub_t
 
     def _compute_perturbation_forces(self):
         """

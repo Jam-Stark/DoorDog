@@ -1,0 +1,171 @@
+# @package _global_
+
+# Common registry for all v23 cells.  P0.6 freezes this registry before any
+# formal optimizer update; the source/config record remains non-launchable until
+# that freeze is supplied by the caller.
+v23_schema: a2_piper_base_v23_common_reward_v1
+v23_common_reward_state: P0_FREEZE_REQUIRED
+v23_formal_launchable: false
+
+stationary_rent_audit:
+  enabled: false
+  mode: source_only_no_simulation
+  status: NOT_RUN_PENDING
+  required_stages: [stage0, stage1, stage2, stage3, stage4, stage5]
+
+rewards:
+  set_reward: Haoru
+  set_reward_date: 20250825
+  only_positive_rewards: False
+  reward_scales:
+      penalty_dof_acc: -1.0e-5
+      penalty_dof_vel: -1.0e-3
+      penalty_delta_action_rate: -0.01
+
+      termination: -1000.0
+      limits_dof_pos: -5.0
+      limits_gripper_primitive_action: -1.0
+
+      # walk to door
+      walk_to_door: 5.0
+      penalty_upper_body_non_gripper_deviation_l1: -5.0
+      penalty_face_door: -1.0
+      penalty_base_roll_pitch_l2: -2.0
+
+      # pregrasp
+      gripper_handle_orientation: 3.0
+      pregrasp_gripper_dof_pos_l1: 0.5
+      penalty_unused_dof_deviation_l1: 0.0
+      pregrasp_target_distance: 6.0
+      penalty_not_standing_still: -15.0
+
+      # grasp
+      grasp_finger_dof_pos_l1: 0.0
+      grasp_target_distance: 3.0
+      grasp: 0.2
+      a2_stage2_close_command: 1.0
+      penalty_a2_stage2_open_command_in_close_gate: -0.4
+      a2_stage2_close_progress: 0.5
+      a2_stage2_handle_center_y: 6.0
+      a2_stage2_handle_approach_xz: 3.0
+      a2_stage2_both_contact: 1.0
+      a2_stage2_opposite_squeeze: 1.0
+      a2_stage2_squeeze_force_window: 1.0
+      a2_stage2_contact_stability: 1.0
+      penalty_a2_stage2_over_force: -1.0
+      penalty_a2_stage2_single_finger_contact: 0.0
+      penalty_a2_stage1_stage2_base_forward_creep: -1.5
+
+      # v22 G1 task-flow overrides retained for the common v23 registry
+      push_door_handle: 0.0
+      push_door_hinge: 6.0
+      push_door_force: 0.0
+      a2_stage3_unlatch_hold: 3.0
+      a2_stage3_stage4_hold_and_drive: 8.0
+      a2_corridor_door_wide: 4.2666667
+      a2_corridor_clean_passage: 1.0
+      penalty_a2_v20_pre_send_crossing: -15.0
+      a2_v20_arm_tangent_carry: 0.0
+      a2_v20_handle_arc_tracking: 0.0
+      a2_v20_R2_evidence_component: 0.0
+      a2_stage3_stage4_keep_close_command: 0.5
+      penalty_a2_stage3_stage4_open_command: -1.0
+      a2_stage3_stage4_both_contact: 0.5
+      a2_stage3_stage4_opposite_squeeze: 0.5
+      a2_stage3_stage4_squeeze_force_window: 0.5
+      a2_stage3_stage4_contact_stability: 0.5
+      penalty_a2_stage3_stage4_over_force: -1.0
+      penalty_a2_door_body_contact: -3.0
+      penalty_a2_posture_command_l1: 0.0
+
+      # outcome/safety terms retained from v22
+      a2_v22_clearance_success: 4.0
+      a2_v22_controlled_fling: 2.0
+      penalty_a2_v22_unsafe_release: -8.0
+
+      # swing
+      dont_push_door_handle: 3.0
+      target_root_distance: 12.0
+      a2_stage4_grasp_target_distance_mild: 1.0
+      penalty_standing_still: -1.0
+      penalty_a2_stage4_arm_default_pose_l1: 0.0
+
+      # always on
+      stage: 1.0
+      complete: 4.0
+      success_save_time: 0.5
+      ref_dof_legs: 0.25
+      penalty_door_frame_contact: -1.0
+      penalty_door_panel_contact: -0.1
+      penalty_base_command_limit: -1.0
+      penalty_undesired_contact: -0.2
+      penalty_dof_overspeed: -0.1
+      orientation_control: -5.0
+
+  reward_limit:
+    soft_dof_pos_limit: 0.95
+    soft_dof_vel_limit: 0.95
+    soft_torque_limit: 0.9
+    reward_limits_curriculum:
+      soft_dof_pos_curriculum: False
+      soft_dof_pos_initial_limit: 1.15
+      soft_dof_pos_max_limit: 1.15
+      soft_dof_pos_min_limit: 0.95
+      soft_dof_pos_curriculum_degree: 0.00000025
+      soft_dof_pos_curriculum_level_down_threshold: 40
+      soft_dof_pos_curriculum_level_up_threshold: 42
+      soft_dof_vel_curriculum: False
+      soft_dof_vel_initial_limit: 1.15
+      soft_dof_vel_max_limit: 1.25
+      soft_dof_vel_min_limit: 0.95
+      soft_dof_vel_curriculum_degree: 0.00000025
+      soft_dof_vel_curriculum_level_down_threshold: 40
+      soft_dof_vel_curriculum_level_up_threshold: 42
+      soft_torque_curriculum: False
+      soft_torque_initial_limit: 1.15
+      soft_torque_max_limit: 1.25
+      soft_torque_min_limit: 0.85
+      soft_torque_curriculum_degree: 0.00000025
+      soft_torque_curriculum_level_down_threshold: 40
+      soft_torque_curriculum_level_up_threshold: 42
+
+  reward_penalty_curriculum: False
+  reward_initial_penalty_scale: 1.0
+  reward_min_penalty_scale: 1.0
+  reward_max_penalty_scale: 1.0
+  reward_penalty_level_down_ave_goal_reached_rate: 0.5
+  reward_penalty_level_up_ave_goal_reached_rate: 0.7
+  reward_penalty_degree: 0.0
+  num_compute_average_epl: 10000
+  reward_penalty_reward_names:
+      - walk_to_door
+      - gripper_handle_orientation
+      - pregrasp_gripper_dof_pos_l1
+      - pregrasp_target_distance
+      - grasp_finger_dof_pos_l1
+      - grasp_target_distance
+      - grasp
+      - a2_stage2_close_command
+      - a2_stage2_close_progress
+      - a2_stage2_handle_center_y
+      - a2_stage2_handle_approach_xz
+      - a2_stage2_both_contact
+      - a2_stage2_opposite_squeeze
+      - a2_stage2_squeeze_force_window
+      - a2_stage2_contact_stability
+      - push_door_handle
+      - dont_push_door_handle
+      - push_door_hinge
+      - push_door_force
+      - a2_stage3_unlatch_hold
+      - a2_stage3_stage4_hold_and_drive
+      - a2_stage3_stage4_keep_close_command
+      - a2_stage3_stage4_both_contact
+      - a2_stage3_stage4_opposite_squeeze
+      - a2_stage3_stage4_squeeze_force_window
+      - a2_stage3_stage4_contact_stability
+      - a2_v22_clearance_success
+      - a2_v22_controlled_fling
+      - penalty_a2_v22_unsafe_release
+      - target_root_distance
+      - a2_stage4_grasp_target_distance_mild

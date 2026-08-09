@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-01(v20 因变量读出关闭)。
+创建:2026-07-21;最近更新:2026-08-09 15:19 HKT (pull-v1 physical-gate closure)。
 
 ---
 
@@ -10,6 +10,7 @@
 | 条目 | 排期 | 出处 |
 |---|---|---|
 | 真实 Piper arm 限位轮(force_feasible 边界前置)**+ θ_send 统一 rider**:corridor-latch 的 `hinge≥1.0` 分支、send-curriculum 目标、crossing gate 合并为单一 θ_send≈1.25–1.30。预注册预测:crossing p50 追随 θ_send(v20 全部 send cell 钉在 1.00–1.02 = 该分支即下一 pay boundary,阈值贴靠第 5 例);盯 heavy-tail stage_overtime(160kg/11.5N·m case 已现:送门耗时,时间预算而非力是重门边际约束) | **下一轮** | v20 收口读出(SEND_METRICS):send curriculum 为唯一有效成分(G3 +0.207;G2 经济学单独 +0.026 无效;arm-tie 无增量;G6/G7 复制,seed 差 −0.018) |
+| pull-v1 physical-gate attribution:在新 scope 下比较 R0/R1 与 matched A/B 的 handle-frame tensile force、arm/base trajectory、grasp stability 与 hinge torque transfer；不先开 V1-C 或 broad reward sweep | 下一轮前的 bounded analysis | v1 0/288 true Stage3→4；reward port active 但 R0/R1 强 seed sensitivity |
 | 若宣布正式 release:补 Route B(pooled48/holdout64/final analysis)——G4@2500 目前仅 Route A 证据(goal 15/16) | release 决策时 | v20 Route B 未跑 |
 
 ## B. 下一批候选(v17)

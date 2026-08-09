@@ -1,23 +1,31 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 round (pull-side P1 scripted probe + push-side anchor)
+scope: A2+Piper pull-door v0 foundations + pull-v1 Stage3→4 physical-gate closure
 status: active
-last_updated: 2026-08-05 02:30 HKT
+last_updated: 2026-08-09 15:19 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续 pull-door v0 的 anchor probe / P1 matrix / P2 工作前
-  - 需要确认 R17 evidence tooling 状态、Attempt19 PROBE_INVALID / Attempt20 anchor-FAIL 边界、或 GPU lease 口径时
+  - 继续 pull-v1 physical-gate、tensile force-transfer 或 trajectory 分析前
+  - 需要区分 v1 runtime closure 与 v0 anchor / E6-E7 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 round)
+# Pull-Open-Door Task (v0 foundations + v1 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 round 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations 与 pull-v1 physical-gate closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v1 Closure (2026-08-09 15:19 HKT)
+
+- C1–C6 的 Stage3→4 hard gate、event semantics 与 V1-A/B/R configs 已完成；static validation 为 Python compile PASS、YAML/Hydra composition PASS。namespace suite 为 `148 passed / 4 failed`，四项为缺失历史 Kit logs 的无关 fixture，未修复。
+- D0 frozen replay runtime PASS：16/16 终止 episode 均停在 Stage3，E4/E5 均为 0，四项 semantic/integrity invariant 均为零。V1-B 64 env × 50 batch smoke natural exit。
+- V1-A/V1-B/R 双 seed formal training 与 checkpoint eval 均完成。18 个 accepted v1 cell×checkpoint、288 terminal episodes 的 true Stage3→4（`hinge>0.25 ∧ grasp-streak ∧ panel_clear`）均为 0；每行四项 integrity invariant 均为 0，不能宣称真实 Stage4 capability PASS。
+- A/B 的 valid-hold hinge Δ max ≤0.002201 rad，双 seed stable unlatch 均为 0。R 的 `pull_door_handle` reward port 行为上 active：step750 stable unlatch 为 seed0 13/16、seed1 2/16；R0 hinge Δ max 0.100607 rad 仍低于 0.25 gate，R1 保持 baseline scale。预注册“reward 迁移不是主要瓶颈”negative 未触发。
+- R 的两次 construction-guard defect 都在 batch1 前按 root cause 修复；最终 A/B/R exact config/runtime contracts fail fast，第三次 R launch 每 seed natural exit。下一 scope 仅比较 R0/R1 与 matched A/B 的 handle-frame force direction、arm/base trajectory、grasp stability 与 hinge torque transfer；不要先启动 V1-C 或另一轮 broad reward sweep。
 
 ## Governing Design
 
@@ -105,11 +113,13 @@ read_when:
 
 ## TODO Summary
 
-- 2026-08-05 00:20 HKT - Anchor FAIL `BASE_RELIEF_DISPLACEMENT_LIMIT` 需新 scope 调查（base relief 参数 / probe stage 4 行为 / 物理 fixture）。非 R17 问题（R17 是 evidence/runner tooling）。
-- 2026-08-05 00:20 HKT - Anchor PASS 后才可 freeze candidate → code_reviewer → isaaclab_reviewer → unlock P1 pull matrix。
-- 2026-08-05 00:20 HKT - P2 locked until P1 + explicit GPU allocation。
+- 2026-08-09 15:19 HKT - Primary pull-v1 next scope: compare R0-500/R0-750, R1-750, and matched A/B episodes at handle-frame tensile force direction, arm/base trajectory, grasp stability, and hinge torque transfer. true Stage3→4 remains 0/288 despite active reward port; preserve the hard gate/invariants and do not start V1-C or another broad reward sweep before attribution.
+- 2026-08-09 15:19 HKT - R seed sensitivity remains unresolved: R step750 stable unlatch is seed0 13/16 versus seed1 2/16; R0 hinge Δ max is 0.100607 rad (<0.25 gate) while R1 is baseline scale. Analyze this split within the force-transfer/trajectory scope; no robustness PASS.
+- 2026-08-06 14:30 HKT - v0 E6/E7 capability boundary remains a separate historical problem: the policy never attempts path reversal (first_path_reversal_step=N/A for all episodes), ends at E5 with stage_overtime at 654 steps, and has tiny outward excursion (0.013-0.099m). Possible causes remain clear-phase reward, stage-time budget, or base-motion action space; investigate only under separately authorized scope.
+- 2026-08-06 14:00 HKT - v0 seed1 E2-E5 instability remains historical context: checkpoints oscillated between 2/16 and 16/16 uniformly across strata, not explained by spawnHook or hinge force. Matched replicates or longer training remain a separate option.
 
 ## DONE Summary
 
+- 2026-08-09 15:19 HKT - pull-v1 closure: C1–C6 implemented; Python compile and YAML/Hydra composition static PASS. D0 frozen replay runtime PASS (16/16 terminal Stage3, E4/E5 0, four integrity invariants 0) and V1-B 64×50 smoke natural exit. V1-A/B/R dual-seed training/eval completed: 18 accepted rows / 288 terminal episodes have true Stage3→4 0/288 and all four invariants zero. A/B hinge Δ max ≤0.002201 rad with zero stable unlatch; R reward port is behaviorally active at step750 (stable unlatch R0 13/16, R1 2/16), but R0 hinge Δ max 0.100607 rad remains below 0.25 and R1 is baseline scale. Two pre-batch1 construction-guard root fixes landed; final A/B/R contracts fail fast. The preregistered negative statement was not triggered.
 - 2026-08-05 00:20 HKT - R17 repair complete: helper attempt-label threading + Attempt20 enumeration classification + runner Attempt20 support + lifecycle-signal receipt + Attempt19 PROBE_INVALID receipts + focused tests (152 passed)。R17 receipt sha `73d0e218…`。
 - 2026-08-05 00:20 HKT - Attempt20 executed: admission PASS (R17 fix validated at runtime), anchor FAIL (BASE_RELIEF_DISPLACEMENT_LIMIT, zero proof samples)。scientific_verdict_consumed false。Receipt sha `b1b2fa0d…`。

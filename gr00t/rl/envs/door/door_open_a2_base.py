@@ -12443,6 +12443,235 @@ class DoorPregrasp(
             record.update(oracle)
         return records
 
+    def _get_a2_eval_stage2_completion_fields(self, env_ids: torch.Tensor):
+        if not self._a2_eval_diagnostic_trace_enabled:
+            raise RuntimeError(
+                "A2 stage2 completion operands requested while diagnostics are disabled."
+            )
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            shape = None if not torch.is_tensor(env_ids) else tuple(env_ids.shape)
+            dtype = None if not torch.is_tensor(env_ids) else env_ids.dtype
+            device = None if not torch.is_tensor(env_ids) else env_ids.device
+            raise RuntimeError(
+                "A2 stage2 completion operand env_ids require valid long tensor on env "
+                f"device; got shape={shape}, dtype={dtype}, device={device}."
+            )
+
+        history_length = self._get_a2_stage2_grasp_contact_history_length()
+        gate_mode = self._get_a2_grasp_gate_mode()
+        required_streak = self._get_a2_grasp_streak_control_steps()
+        forces_w_history = self._get_a2_gripper_handle_contact_force_history()
+        expected_history_shape = (self.num_envs, history_length, 2, 3)
+        if tuple(forces_w_history.shape) != expected_history_shape:
+            raise RuntimeError(
+                "A2 stage2 completion trace requires contact force history shape "
+                f"{expected_history_shape}; got {tuple(forces_w_history.shape)}."
+            )
+
+        history_masks = self._get_a2_stage2_contact_squeeze_masks(
+            forces_w_history, "A2 stage2 completion trace"
+        )
+        forces_source_history = self._get_a2_stage2_forces_source(
+            forces_w_history, "A2 stage2 completion trace"
+        )
+        completion_masks = self._get_a2_stage2_grasp_completion_masks()
+
+        stage_buf = getattr(self, "stage_buf", None)
+        actual_time_in_stage_buf = getattr(self, "actual_time_in_stage_buf", None)
+        for field_name, value in (
+            ("stage_buf", stage_buf),
+            ("actual_time_in_stage_buf", actual_time_in_stage_buf),
+        ):
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+            ):
+                shape = None if not torch.is_tensor(value) else tuple(value.shape)
+                raise RuntimeError(
+                    "A2 stage2 completion trace requires "
+                    f"{field_name} shape ({self.num_envs},); got {shape}."
+                )
+
+        stage2_streak = self._get_a2_grasp_control_streak_buffer(
+            "_a2_stage2_squeeze_streak",
+            "A2 stage2 completion trace",
+        )
+        if gate_mode == self.A2_GRASP_GATE_MODE_CONTROL_STREAK:
+            base_completion = (stage_buf == self.STAGE_GRASP) & (
+                stage2_streak >= required_streak
+            )
+        else:
+            base_completion = (
+                (stage_buf == self.STAGE_GRASP)
+                & (actual_time_in_stage_buf >= history_length - 1)
+                & torch.all(
+                    history_masks["both_contact"]
+                    & history_masks["sufficient_squeeze"]
+                    & history_masks["opposite_squeeze"],
+                    dim=-1,
+                )
+            )
+
+        close_gate_required = self._get_a2_stage2_completion_close_gate_required()
+        close_command_threshold = self._get_a2_stage2_completion_close_command_threshold()
+        close_progress_threshold = (
+            self._get_a2_stage2_completion_close_progress_min_threshold()
+        )
+        gripper_dof_indices = self._a2_gripper_dof_indices
+        open_target = self._a2_gripper_open_target
+        close_target = self._a2_gripper_close_target
+        span = (open_target - close_target).abs()
+        gripper_pos = self.simulator.dof_pos[:, gripper_dof_indices]
+        close_progress = (
+            (open_target[None, :] - gripper_pos).abs() / span[None, :]
+        ).clamp(0.0, 1.0)
+        close_progress_min = completion_masks["close_progress_min"]
+        close_progress_complete = close_progress_min >= close_progress_threshold
+
+        records = []
+        for env_id in env_ids.tolist():
+            records.append(
+                {
+                    "stage2_completion_history_length": int(history_length),
+                    "stage2_completion_history_order": "newest_first",
+                    "stage2_completion_contact_body_order": ["arm_body7", "arm_body8"],
+                    "stage2_completion_force_frame": "world_w",
+                    "stage2_completion_squeeze_frame": "gripper_source",
+                    "stage2_completion_gate_mode": gate_mode,
+                    "stage2_completion_required_streak": int(required_streak),
+                    "stage2_completion_contact_force_threshold": float(
+                        self._get_a2_stage2_contact_force_threshold()
+                    ),
+                    "stage2_completion_squeeze_force_min": float(
+                        self._get_a2_stage2_squeeze_force_min()
+                    ),
+                    "stage2_completion_squeeze_force_max": float(
+                        self._get_a2_stage2_squeeze_force_max()
+                    ),
+                    "stage2_completion_over_force_threshold": float(
+                        self._get_a2_stage2_over_force_threshold()
+                    ),
+                    "stage2_completion_contact_force_history_w": forces_w_history[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_contact_force_source_history": forces_source_history[
+                        env_id
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_contact_force_norm_history": history_masks[
+                        "contact_force"
+                    ][env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_squeeze_y_history": history_masks["squeeze_y"][
+                        env_id
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_both_contact_history": history_masks[
+                        "both_contact"
+                    ][env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_sufficient_squeeze_history": history_masks[
+                        "sufficient_squeeze"
+                    ][env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_opposite_squeeze_history": history_masks[
+                        "opposite_squeeze"
+                    ][env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_squeeze_window_history": history_masks[
+                        "squeeze_window"
+                    ][env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_over_force_history": history_masks["over_force"][
+                        env_id
+                    ]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_both_contact_current": bool(
+                        completion_masks["both_contact_current"][env_id].item()
+                    ),
+                    "stage2_completion_sufficient_squeeze_current": bool(
+                        completion_masks["sufficient_squeeze_current"][env_id].item()
+                    ),
+                    "stage2_completion_opposite_squeeze_current": bool(
+                        completion_masks["opposite_squeeze_current"][env_id].item()
+                    ),
+                    "stage2_completion_squeeze_window_current": bool(
+                        completion_masks["squeeze_window_current"][env_id].item()
+                    ),
+                    "stage2_completion_over_force_current": bool(
+                        completion_masks["over_force_current"][env_id].item()
+                    ),
+                    "stage2_completion_streak": int(stage2_streak[env_id].item()),
+                    "stage2_completion_streak_ge_required": bool(
+                        stage2_streak[env_id].item() >= required_streak
+                    ),
+                    "stage2_completion_actual_time_in_stage": int(
+                        actual_time_in_stage_buf[env_id].item()
+                    ),
+                    "stage2_completion_base_completion": bool(
+                        base_completion[env_id].item()
+                    ),
+                    "stage2_completion_close_gate_required": bool(close_gate_required),
+                    "stage2_completion_close_gate_required_effective": bool(
+                        close_gate_required
+                    ),
+                    "stage2_completion_close_gate_required_for_current_stage": bool(
+                        close_gate_required
+                        and stage_buf[env_id].item() == self.STAGE_GRASP
+                    ),
+                    "stage2_completion_close_gate": bool(
+                        completion_masks["close_gate"][env_id].item()
+                    ),
+                    "stage2_completion_stable_close": bool(
+                        completion_masks["stable_close"][env_id].item()
+                    ),
+                    "stage2_completion_close_command_threshold": float(
+                        close_command_threshold
+                    ),
+                    "stage2_completion_close_progress_threshold": float(
+                        close_progress_threshold
+                    ),
+                    "stage2_completion_close_progress": close_progress[env_id]
+                    .detach()
+                    .cpu()
+                    .tolist(),
+                    "stage2_completion_close_progress_min": float(
+                        close_progress_min[env_id].item()
+                    ),
+                    "stage2_completion_close_progress_complete": bool(
+                        close_progress_complete[env_id].item()
+                    ),
+                    "stage2_completion_final": bool(
+                        completion_masks["completion"][env_id].item()
+                    ),
+                }
+            )
+        return records
+
     def _get_a2_eval_stage0_1_gate_fields(self, env_ids: torch.Tensor):
         if not self._a2_eval_diagnostic_trace_enabled:
             raise RuntimeError(
@@ -12790,33 +13019,88 @@ class DoorPregrasp(
                 diagnostic_fields = self._get_a2_eval_diagnostic_step_fields(
                     trace_env_ids
                 )
+                completion_fields = self._get_a2_eval_stage2_completion_fields(
+                    trace_env_ids
+                )
                 if len(diagnostic_fields) != len(records):
                     raise RuntimeError(
                         "A2 expanded eval diagnostics returned "
                         f"{len(diagnostic_fields)} entries for {len(records)} trace records."
                     )
+                if len(completion_fields) != len(records):
+                    raise RuntimeError(
+                        "A2 stage2 completion operands returned "
+                        f"{len(completion_fields)} entries for {len(records)} trace records."
+                    )
             else:
                 diagnostic_fields = [{} for _ in records]
 
             hinge_threshold = self._get_a2_stage3_to4_door_hinge_threshold()
-            for record, extra_fields in zip(records, diagnostic_fields):
-                if not isinstance(record, dict):
-                    raise TypeError(
-                        "A2 stage2-5 step trace records must be dicts, "
-                        f"got {type(record).__name__}."
+            if self._a2_eval_diagnostic_trace_enabled:
+                for record, extra_fields, stage2_fields in zip(
+                    records, diagnostic_fields, completion_fields
+                ):
+                    if not isinstance(record, dict):
+                        raise TypeError(
+                            "A2 stage2-5 step trace records must be dicts, "
+                            f"got {type(record).__name__}."
+                        )
+                    overlap = (
+                        set(record).intersection(extra_fields)
+                        | set(record).intersection(stage2_fields)
+                        | set(extra_fields).intersection(stage2_fields)
                     )
-                overlap = set(record).intersection(extra_fields)
-                if overlap:
-                    raise RuntimeError(
-                        "A2 expanded eval diagnostic fields overlap base trace fields: "
-                        f"{sorted(overlap)}."
+                    if overlap:
+                        raise RuntimeError(
+                            "A2 expanded eval diagnostic fields overlap base trace fields: "
+                            f"{sorted(overlap)}."
+                        )
+                    record.update(extra_fields)
+                    stage2_fields = dict(stage2_fields)
+                    stage2_fields.update(
+                        {
+                            "stage2_completion_gripper_command_raw": record[
+                                "gripper_primitive_raw"
+                            ][0],
+                            "stage2_completion_gripper_command_post_delta": record[
+                                "post_delta_post_warp_gripper_primitive"
+                            ],
+                            "stage2_completion_gripper_joint_pos": record[
+                                "gripper_joint_pos"
+                            ],
+                            "stage2_completion_gripper_joint_target": record[
+                                "gripper_joint_pos_target"
+                            ],
+                            "stage2_completion_gripper_joint_close_error": record[
+                                "arm_j7_j8_close_error"
+                            ],
+                        }
                     )
-                record.update(extra_fields)
-                record["stage3_to4_door_hinge_threshold"] = hinge_threshold
-                record["stage3_to4_door_hinge_margin"] = (
-                    record["door_hinge_joint_pos"] - hinge_threshold
-                )
-                record["step_index"] = step_index
+                    record.update(stage2_fields)
+                    record["stage3_to4_door_hinge_threshold"] = hinge_threshold
+                    record["stage3_to4_door_hinge_margin"] = (
+                        record["door_hinge_joint_pos"] - hinge_threshold
+                    )
+                    record["step_index"] = step_index
+            else:
+                for record, extra_fields in zip(records, diagnostic_fields):
+                    if not isinstance(record, dict):
+                        raise TypeError(
+                            "A2 stage2-5 step trace records must be dicts, "
+                            f"got {type(record).__name__}."
+                        )
+                    overlap = set(record).intersection(extra_fields)
+                    if overlap:
+                        raise RuntimeError(
+                            "A2 expanded eval diagnostic fields overlap base trace fields: "
+                            f"{sorted(overlap)}."
+                        )
+                    record.update(extra_fields)
+                    record["stage3_to4_door_hinge_threshold"] = hinge_threshold
+                    record["stage3_to4_door_hinge_margin"] = (
+                        record["door_hinge_joint_pos"] - hinge_threshold
+                    )
+                    record["step_index"] = step_index
             self._a2_stage2_step_trace_records.extend(records)
 
         if self._a2_eval_diagnostic_trace_enabled:

@@ -19,8 +19,9 @@ The runner has three explicit modes:
     Run ``formal`` and ``render`` in fresh child processes below one fresh root.
 
 ``diagnose``
-    Run the true Teacher controller with the expanded A2 stage0/1 and stage2-5
-    traces, preserving the complete per-reset door customData table.
+    Run either the pure Student or true Teacher controller with the expanded A2
+    stage0/1 and stage2-5 traces, preserving the complete per-reset door
+    customData table.
 
 The wrapper deliberately resolves the current worktree before importing
 ``gr00t``.  It does not install a runtime import redirect: the three
@@ -104,6 +105,8 @@ METRICS_SCHEMA = "a2_toeout6_student_metrics_v1"
 SELECTION_SCHEMA = "a2_toeout6_student_selection_v1"
 TEACHER_METRICS_SCHEMA = "a2_toeout6_teacher_metrics_v1"
 TEACHER_SELECTION_SCHEMA = "a2_toeout6_teacher_selection_v1"
+STUDENT_DIAGNOSTIC_SCHEMA = "a2_toeout6_student_stage2_diagnostic_v1"
+TEACHER_DIAGNOSTIC_SCHEMA = "a2_toeout6_teacher_stage0_diagnostic_v1"
 RENDER_SCHEMA = "a2_toeout6_student_render_v1"
 SOURCE_SHA256 = {
     str(path.relative_to(REPO_ROOT)): None for path in RUNTIME_MODULES.values()
@@ -478,6 +481,31 @@ def _diagnostic_checkpoint_info(
 CONTROLLERS = ("student", "teacher")
 
 
+def _diagnostic_artifact_name(controller: str) -> str:
+    if controller not in CONTROLLERS:
+        raise ValueError(f"unsupported controller {controller!r}; expected one of {CONTROLLERS}")
+    return (
+        "teacher_stage0_diagnostic.json"
+        if controller == "teacher"
+        else "student_stage2_diagnostic.json"
+    )
+
+
+def _resolve_diagnostic_mixed_rollout_schedule(config: Mapping[str, Any]):
+    schedule = config.get("mixed_rollout_schedule")
+    if schedule is None:
+        return None
+    from omegaconf import OmegaConf
+
+    resolved_schedule = OmegaConf.to_container(schedule, resolve=True)
+    if not isinstance(resolved_schedule, list):
+        raise RuntimeError(
+            "Student diagnostic mixed_rollout_schedule must resolve to a list; "
+            f"got {type(resolved_schedule).__name__}."
+        )
+    return resolved_schedule
+
+
 def _validate_seed(seed: int) -> int:
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise ValueError(f"seed must be a nonnegative integer; got {seed!r}")
@@ -588,8 +616,6 @@ def build_overrides(
         raise ValueError(f"unsupported controller {controller!r}; expected one of {CONTROLLERS}")
     if mode == "render" and controller != "student":
         raise ValueError("selected render is only defined for the Student controller")
-    if mode == "diagnose" and controller != "teacher":
-        raise ValueError("Teacher diagnostic mode requires the Teacher controller")
     _validate_seed(seed)
     output_root = output_root.resolve()
     artifact_root = _render_staging_root(output_root) if mode == "render" else output_root
@@ -1099,8 +1125,6 @@ def make_formal_eval(
         _validate_runtime_seed(self, seed)
         if int(self.env.num_envs) != EXPECTED_NUM_ENVS:
             raise RuntimeError(f"formal {controller} eval requires exactly 16 environments")
-        if diagnostic and controller != "teacher":
-            raise RuntimeError("expanded Teacher diagnostic lane requires controller=teacher")
         action_source_summary = None
         if controller == "teacher":
             enable_provider = getattr(self, "enable_a2_eval_teacher_action_provider", None)
@@ -1172,7 +1196,7 @@ def make_formal_eval(
                 if not isinstance(trace_payload, list):
                     raise RuntimeError(f"Teacher diagnostic trace must be a list: {path}")
                 trace_counts[name] = len(trace_payload)
-            if not isinstance(action_source_summary, Mapping):
+            if controller == "teacher" and not isinstance(action_source_summary, Mapping):
                 raise RuntimeError("Teacher diagnostic lane requires action-source summary")
             teacher_artifact = _mapping(
                 self.config.get("teacher_artifact"), "algo.config.teacher_artifact"
@@ -1221,59 +1245,91 @@ def make_formal_eval(
                     for module_name, source in source_identity.items()
                 },
             }
-            diagnostic_payload = {
-                "schema": "a2_toeout6_teacher_stage0_diagnostic_v1",
-                "training_performed": False,
-                "controller": "teacher",
-                "seed": seed,
-                "action_source_proof": action_source_summary,
-                "resolved_provenance": provenance,
-                "action_contract": {
-                    "selected_high_level_source": "TRLDistillTrainerA2BaseAPI.policy_step.gt_actions",
-                    "teacher_rollout_ratio": 1.0,
-                    "mixed_rollout_schedule": None,
-                    "student_rollout_called": False,
-                    "forced_close_intervention": False,
-                    "hold_oracle_intervention": False,
-                    "composed_action_dim": 24,
-                    "base_action_source": "TRLDistillTrainerA2BaseAPI.policy_step._a2_base_actions",
-                },
-                "stage0_to1_gate_contract": {
-                    "predicate": (
-                        "staging_distance < staging_threshold and "
-                        "arm_max_deviation < arm_threshold"
-                    ),
-                    "staging_threshold": 0.1,
-                    "arm_threshold_source": "algo.config.a2_base.a2_stage0_arm_default_max_deviation",
-                    "transition_timing": "pre-stage-advance stage_buf and actual completed physics state",
-                },
-                "stage1_to2_gate_contract": {
-                    "predicate": (
-                        "pregrasp_distance < 0.1 and opening_alignment >= 0.8 and "
-                        "approach_alignment >= 0.8 and base_command_norm <= 0.1 and "
-                        "gripper_ready"
-                    ),
-                    "pregrasp_threshold": 0.1,
-                    "opening_alignment_threshold": 0.8,
-                    "approach_alignment_threshold": 0.8,
-                    "base_command_norm_threshold": 0.1,
-                    "transition_timing": "pre-stage-advance stage_buf and actual completed physics state",
-                },
-                "case_table": case_table,
-                "terminal_outcomes": metrics,
-                "trace_artifacts": {
-                    "stage0_1": {
-                        "path": str(stage0_trace_path),
-                        "record_count": trace_counts["stage0_1"],
+            if controller == "teacher":
+                diagnostic_payload = {
+                    "schema": TEACHER_DIAGNOSTIC_SCHEMA,
+                    "training_performed": False,
+                    "controller": "teacher",
+                    "seed": seed,
+                    "action_source_proof": action_source_summary,
+                    "resolved_provenance": provenance,
+                    "action_contract": {
+                        "selected_high_level_source": "TRLDistillTrainerA2BaseAPI.policy_step.gt_actions",
+                        "teacher_rollout_ratio": 1.0,
+                        "mixed_rollout_schedule": None,
+                        "student_rollout_called": False,
+                        "forced_close_intervention": False,
+                        "hold_oracle_intervention": False,
+                        "composed_action_dim": 24,
+                        "base_action_source": "TRLDistillTrainerA2BaseAPI.policy_step._a2_base_actions",
                     },
-                    "stage2_5": {
-                        "path": str(stage2_trace_path),
-                        "record_count": trace_counts["stage2_5"],
+                    "stage0_to1_gate_contract": {
+                        "predicate": (
+                            "staging_distance < staging_threshold and "
+                            "arm_max_deviation < arm_threshold"
+                        ),
+                        "staging_threshold": 0.1,
+                        "arm_threshold_source": "algo.config.a2_base.a2_stage0_arm_default_max_deviation",
+                        "transition_timing": "pre-stage-advance stage_buf and actual completed physics state",
                     },
-                },
-                "full_custom_data_keys": list(FULL_CUSTOM_DATA_KEYS),
-            }
-            atomic_json_write(output_root / "teacher_stage0_diagnostic.json", diagnostic_payload)
+                    "stage1_to2_gate_contract": {
+                        "predicate": (
+                            "pregrasp_distance < 0.1 and opening_alignment >= 0.8 and "
+                            "approach_alignment >= 0.8 and base_command_norm <= 0.1 and "
+                            "gripper_ready"
+                        ),
+                        "pregrasp_threshold": 0.1,
+                        "opening_alignment_threshold": 0.8,
+                        "approach_alignment_threshold": 0.8,
+                        "base_command_norm_threshold": 0.1,
+                        "transition_timing": "pre-stage-advance stage_buf and actual completed physics state",
+                    },
+                    "case_table": case_table,
+                    "terminal_outcomes": metrics,
+                    "trace_artifacts": {
+                        "stage0_1": {
+                            "path": str(stage0_trace_path),
+                            "record_count": trace_counts["stage0_1"],
+                        },
+                        "stage2_5": {
+                            "path": str(stage2_trace_path),
+                            "record_count": trace_counts["stage2_5"],
+                        },
+                    },
+                    "full_custom_data_keys": list(FULL_CUSTOM_DATA_KEYS),
+                }
+            else:
+                diagnostic_payload = {
+                    "schema": STUDENT_DIAGNOSTIC_SCHEMA,
+                    "training_performed": False,
+                    "controller": "student",
+                    "seed": seed,
+                    "resolved_provenance": provenance,
+                    "configured_controller_contract": {
+                        "controller": "student",
+                        "teacher_rollout_ratio": 0.0,
+                        "enforce_teacher_rollout": False,
+                        "mixed_rollout_schedule": _resolve_diagnostic_mixed_rollout_schedule(
+                            self.config
+                        ),
+                        "composed_action_dim": 24,
+                        "base_action_source": "TRLPPOTrainer._a2_base_actions",
+                    },
+                    "case_table": case_table,
+                    "terminal_outcomes": metrics,
+                    "trace_artifacts": {
+                        "stage0_1": {
+                            "path": str(stage0_trace_path),
+                            "record_count": trace_counts["stage0_1"],
+                        },
+                        "stage2_5": {
+                            "path": str(stage2_trace_path),
+                            "record_count": trace_counts["stage2_5"],
+                        },
+                    },
+                    "full_custom_data_keys": list(FULL_CUSTOM_DATA_KEYS),
+                }
+            atomic_json_write(output_root / _diagnostic_artifact_name(controller), diagnostic_payload)
         if diagnostic:
             print(
                 f"[A2_TOEOUT6_{controller.upper()}_DIAGNOSTIC_PASS] "
@@ -1597,8 +1653,6 @@ def _prepare_runtime(
     _validate_seed(seed)
     if mode == "render" and controller != "student":
         raise ValueError("selected render is only defined for the Student controller")
-    if mode == "diagnose" and controller != "teacher":
-        raise ValueError("Teacher diagnostic mode requires the Teacher controller")
 
     if TRLDistillTrainerA2BaseAPI.eval is not GenericTRLPPOTrainer.eval:
         # The current Student class may already carry a prior binding in an
@@ -1609,7 +1663,9 @@ def _prepare_runtime(
     else:
         TRLDistillTrainerA2BaseAPI.eval = A2TRLPPOTrainer.eval
     TRLDistillTrainerA2BaseAPI.load_teacher_actor = (
-        _load_teacher_actor_diagnostic if mode == "diagnose" else _direct_load_teacher_actor
+        _load_teacher_actor_diagnostic
+        if mode == "diagnose" and controller == "teacher"
+        else _direct_load_teacher_actor
     )
     base_eval = A2TRLPPOTrainer.eval
     if mode == "formal":
@@ -1677,7 +1733,7 @@ def _prepare_runtime(
                 else (
                     output_root / "selected_render_metadata.json"
                     if mode == "render"
-                    else output_root / "teacher_stage0_diagnostic.json"
+                    else output_root / _diagnostic_artifact_name(controller)
                 )
             )
             if not artifact.is_file():
@@ -1758,8 +1814,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         parser.error("render mode requires --selection-json from a formal run")
     if args.mode == "render" and args.controller != "student":
         parser.error("render mode requires --controller student")
-    if args.mode == "diagnose" and args.controller != "teacher":
-        parser.error("diagnose mode requires --controller teacher")
     if args.mode != "render" and args.render_env_id is not None:
         parser.error("--render-env-id is only valid for render mode")
     if args.mode == "full" and args.controller != "student":
@@ -1834,7 +1888,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         else (
             output_root / "selected_render_metadata.json"
             if args.mode == "render"
-            else output_root / "teacher_stage0_diagnostic.json"
+            else output_root / _diagnostic_artifact_name(args.controller)
         )
     )
     if not required.is_file():

@@ -430,7 +430,7 @@ def _validate_a2_pull_v1_reward_scales(
     reward_scales: Mapping[str, Any] | None,
     reward_scale_dt: float | None,
 ) -> str:
-    """Validate the only two v1 bridge-scale pairs (A or B)."""
+    """Validate the three v1 reward-scale variants (A, B, or R)."""
 
     configured_rewards = _require_mapping(
         _mapping_item(config, "rewards", "Pull-v1 config"),
@@ -444,63 +444,98 @@ def _validate_a2_pull_v1_reward_scales(
         "dont_push_door_handle": 3.0,
         "target_root_distance": 12.0,
         "pull_door_hinge": 6.0,
-        "pull_door_handle": 0.0,
     }
-    configured_bridge = tuple(
-        float(_mapping_item(configured_scales, key, "Pull-v1 rewards.reward_scales"))
-        for key in ("a2_stage3_unlatch_hold", "a2_stage3_stage4_hold_and_drive")
-        if key in configured_scales
-    )
-    if reward_scales is None:
-        for key, expected in expected_fixed.items():
-            value = _mapping_item(configured_scales, key, "Pull-v1 rewards.reward_scales")
-            if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
-                raise RuntimeError(
-                    f"Pull-v1 rewards.reward_scales.{key} must be a finite number; got {value!r}."
-                )
-            if float(value) != expected:
-                raise RuntimeError(
-                    f"Pull-v1 rewards.reward_scales.{key} must be exactly {expected!r}; got {value!r}."
-                )
-        if configured_bridge == (0.0, 0.0):
-            return "V1-A"
-        if configured_bridge == (3.0, 8.0):
-            return "V1-B"
+    for key, expected in expected_fixed.items():
+        value = _mapping_item(configured_scales, key, "Pull-v1 rewards.reward_scales")
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+            raise RuntimeError(
+                f"Pull-v1 rewards.reward_scales.{key} must be a finite number; got {value!r}."
+            )
+        if float(value) != expected:
+            raise RuntimeError(
+                f"Pull-v1 rewards.reward_scales.{key} must be exactly {expected!r}; got {value!r}."
+            )
+
+    handle_key = "pull_door_handle"
+    configured_handle = _mapping_item(configured_scales, handle_key, "Pull-v1 rewards.reward_scales")
+    if (
+        isinstance(configured_handle, bool)
+        or not isinstance(configured_handle, Real)
+        or not math.isfinite(float(configured_handle))
+    ):
         raise RuntimeError(
-            "Pull-v1 bridge scales must be the exact V1-A pair (0.0, 0.0) or "
-            f"V1-B pair (3.0, 8.0); got {configured_bridge!r}."
+            "Pull-v1 rewards.reward_scales.pull_door_handle must be a finite number; "
+            f"got {configured_handle!r}."
         )
+    configured_handle = float(configured_handle)
+    configured_bridge_values = []
+    for key in ("a2_stage3_unlatch_hold", "a2_stage3_stage4_hold_and_drive"):
+        if key not in configured_scales:
+            continue
+        value = configured_scales[key]
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+            raise RuntimeError(
+                f"Pull-v1 rewards.reward_scales.{key} must be a finite number; got {value!r}."
+            )
+        configured_bridge_values.append(float(value))
+    configured_bridge = tuple(configured_bridge_values)
+    if configured_bridge == (0.0, 0.0) and configured_handle == 0.0:
+        variant = "V1-A"
+    elif configured_bridge == (3.0, 8.0) and configured_handle == 0.0:
+        variant = "V1-B"
+    elif configured_bridge == (3.0, 8.0) and configured_handle == 6.0:
+        variant = "V1-R"
+    else:
+        raise RuntimeError(
+            "Pull-v1 reward scales must match V1-A (bridge (0.0, 0.0), handle 0.0), "
+            "V1-B (bridge (3.0, 8.0), handle 0.0), or "
+            f"V1-R (bridge (3.0, 8.0), handle 6.0); got bridge={configured_bridge!r}, "
+            f"handle={configured_handle!r}."
+        )
+
+    if reward_scales is None:
+        return variant
 
     if reward_scale_dt is None or isinstance(reward_scale_dt, bool) or not math.isfinite(float(reward_scale_dt)):
         raise RuntimeError("Pull-v1 runtime reward-scale validation requires a finite dt.")
-    runtime_bridge = tuple(
-        float(reward_scales[key])
-        for key in ("a2_stage3_unlatch_hold", "a2_stage3_stage4_hold_and_drive")
-        if key in reward_scales
-    )
-    expected_runtime_fixed = {
-        key: expected * float(reward_scale_dt) for key, expected in expected_fixed.items()
+    dt = float(reward_scale_dt)
+    expected_runtime = {
+        key: expected * dt for key, expected in expected_fixed.items()
     }
-    for key, expected in expected_runtime_fixed.items():
-        if expected == 0.0:
-            if key in reward_scales:
-                raise RuntimeError(
-                    f"Pull-v1 runtime reward scale {key} must remain disabled at zero."
-                )
-            continue
-        if key not in reward_scales or float(reward_scales[key]) != expected:
+    if variant in ("V1-B", "V1-R"):
+        expected_runtime.update(
+            {
+                "a2_stage3_unlatch_hold": 3.0 * dt,
+                "a2_stage3_stage4_hold_and_drive": 8.0 * dt,
+            }
+        )
+    if variant == "V1-R":
+        expected_runtime[handle_key] = configured_handle * dt
+
+    for key, expected in expected_runtime.items():
+        if key not in reward_scales:
             raise RuntimeError(
-                f"Pull-v1 runtime reward scale {key} must resolve to {expected!r}; "
-                f"got {None if key not in reward_scales else reward_scales[key]!r}."
+                f"Pull-v1 runtime reward scale {key} must resolve to {expected!r}; got None."
             )
-    if runtime_bridge == ():
-        return "V1-A"
-    if runtime_bridge == (3.0 * float(reward_scale_dt), 8.0 * float(reward_scale_dt)):
-        return "V1-B"
-    raise RuntimeError(
-        "Pull-v1 runtime bridge scales must be the exact V1-A disabled pair or "
-        f"V1-B pair scaled by dt; got {runtime_bridge!r}."
-    )
+        value = reward_scales[key]
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+            raise RuntimeError(
+                f"Pull-v1 runtime reward scale {key} must be finite; got {value!r}."
+            )
+        if float(value) != expected:
+            raise RuntimeError(
+                f"Pull-v1 runtime reward scale {key} must resolve to {expected!r}; got {value!r}."
+            )
+
+    runtime_zero_keys = {
+        "a2_stage3_unlatch_hold",
+        "a2_stage3_stage4_hold_and_drive",
+        handle_key,
+    }.difference(expected_runtime)
+    for key in runtime_zero_keys:
+        if key in reward_scales:
+            raise RuntimeError(f"Pull-v1 runtime reward scale {key} must remain disabled at zero.")
+    return variant
 
 
 def validate_a2_pull_v1_guard(

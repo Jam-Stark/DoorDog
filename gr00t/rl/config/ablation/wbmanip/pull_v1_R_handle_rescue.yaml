@@ -1,0 +1,86 @@
+# @package _global_
+# Pull-v1 R: handle-rescue reward port (V1-B topology with pull-handle shaping).
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v0_p4_formal_seed0-20260805_211252/model_step_002500.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 256
+headless: true
+use_wandb: false
+
+algo:
+  trl:
+    num_total_batches: 750
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v20_R1_plan_id: a2_piper_pull_v1_reward_port_and_stage_semantics
+    a2_door_weight_range: [80.0, 160.0]
+    a2_pull_hook_profile: STOCHASTIC_BASELINE
+    a2_pull_friction_profile: RESOLVED_V20_G4
+    a2_pull_finger_profile: V20_G4_45N_KP1300_KD32
+    a2_pull_threshold_mode: hard_gate
+    a2_pull_effort_provenance: ESTIMATE_ONLY
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_to4_requires_grasp_streak: true
+    a2_stage4_release_hinge_threshold: 1.60
+    a2_stage4_to5_door_hinge_threshold: 1.25
+    a2_v20_send_hinge_threshold: 1.0
+    a2_v20_R1_send_curriculum_enabled: false
+    a2_v20_R1_snapshot_guard_enabled: false
+    a2_v20_send_latch_enabled: false
+    a2_v20_pre_send_crossing_mode: disabled
+    a2_v20_telemetry_enabled: false
+    a2_v20_traversal_economics_enabled: false
+    a2_corridor_latch_mode: legacy_root_or_hinge
+    a2_v20_arm_tie_enabled: false
+    a2_v20_arm_tangent_carry_scale: 0.0
+    a2_v20_handle_arc_tracking_scale: 0.0
+    a2_v20_R2_evidence_enabled: false
+    a2_v20_formal_launch: false
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 0.0
+    push_door_force: 0.0
+    a2_stage3_unlatch_hold: 3.0
+    a2_stage3_stage4_hold_and_drive: 8.0
+    dont_push_door_handle: 3.0
+    target_root_distance: 12.0
+    pull_door_handle: 6.0
+    pull_door_hinge: 6.0
+    penalty_a2_v20_pre_send_crossing: 0.0
+    a2_v20_arm_tangent_carry: 0.0
+    a2_v20_handle_arc_tracking: 0.0
+
+robot:
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
+  ]
+  control:
+    stiffness:
+      arm_j7: 1300.0
+      arm_j8: 1300.0
+    damping:
+      arm_j7: 32.0
+      arm_j8: 32.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2

@@ -1,23 +1,32 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3 traversal closure
 status: active
-last_updated: 2026-08-10 09:32 HKT
+last_updated: 2026-08-11 00:03 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续 pull-v3 traversal / V1-C 或复用 pull-v2 Stage4 occupant 前
-  - 需要区分 v2 wall-removal runtime closure 与 v1/v0 历史边界时
+  - 继续 pull-v4 frame-neighborhood traversal 或复用 pull-v3 release-then-cross 证据前
+  - 需要区分 v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2 closure)
+# Pull-Open-Door Task (v0 foundations + v1/v2/v3 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure 与 pull-v2 wall-removal/Stage4 occupancy closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure 与 pull-v3 release-then-cross traversal negative closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v3 Closure (2026-08-11 00:03 HKT)
+
+- North Star 固定为 `aperture_ready → deliberate release → through-frame → whole-body clear to -X`，不做 hold-through。C1–C7 已落地：v3 guard、Stage4/5 时间预算 `250/300` 与 `24 s` episode、frame-passage 门框谓词、aperture 后 open-command penalty 遮罩、仅两项 corridor reward（`4.2666667/1.0`）、signed trunk-footprint-to-current-panel clearance/base path/reversal/recontact telemetry，以及 `pull_v3_T_traversal.yaml`。`penalty_a2_v20_pre_send_crossing` 未移植，其余 reward scale/threshold 未改。
+- Frozen pull-v2 Wave2 actor 的 canonical D0-lite 为 16×804 steps：E6/E7 均为 `0/16`，六项 invariant 全零，corridor 在 aperture 前激活为零；单次 64×50 smoke natural exit。Wave1 两 seed 均为 256 env×750 batches，step250/500/750 checkpoint 齐备；六个 checkpoint 各 eval 16 episodes，Stage4 admission 为 seed0 `16/15/15`、seed1 `16/16/16`，六项 invariant 每格全零。
+- Wave1 六格 E6/E7/complete 全为零，双 seed 同判 `G2`，不触发 Wave2 或 seed2。具体为 G2(c)：deliberate release 依次为 seed0 `7/16,2/16,0/16`、seed1 `1/16,0/16,0/16`，发生 release 的 episode 均观测到 −X motion，但所有格 frame-approach/frame-passage/planar-crossing/detour 仍为零。结论是 traversal approach/path-distribution 的科学负结果；本轮未追加或修改 reward scale，下一候选仅预登记 v4 frame-neighborhood/path shaping。
+- G10 触发：seed0 step500 的 post-release recontact 最大 `18`（median `0`）；只在 pull longterm TODO 第 1 条勾稽 arm brace 期货，本轮不实现。G5 未触发（六格 panel-contact median 均为 `0`），G6 未触发。
+- Durable trace contract：`stage2_5_step_trace` 只覆盖 terminal `stage_buf∈{2,3,4,5}`；terminal diagnostics 仍必须完整覆盖 16 episodes 并作为 E0–E7/complete 分母。stage0/1 terminal 无 trace row 是合法域外，不得误判为丢行，也不得把真正的 stage2–5 缺行降级为零。
+- Review evidence boundary：唯一一轮 code/IsaacLab review 的正式 verdict 为 FAIL；C6 signed clearance 与 analyzer/orchestration/report findings 已定向修复，修复后由 targeted static checks、canonical D0、smoke、formal train/eval 与 fail-closed analysis 验证。依用户“一轮 review 上限”未生成第二轮 reviewer PASS，不得把它表述为 review PASS。
 
 ## Pull-v2 Closure (2026-08-10 09:32 HKT)
 
@@ -122,12 +131,14 @@ read_when:
 
 ## TODO Summary
 
-- 2026-08-10 09:32 HKT - Primary pull-v3 next scope: enter traversal/V1-C from the validated pull-v2 Wave2 true-Stage4 occupant. Preserve latch threshold `0.02292371541261673`, `near_closed=0.25` single-axis change, Stage3→4 hard gate and all four invariants; do not continue adding v2 reward seams.
+- 2026-08-11 00:03 HKT - Primary next candidate is a separately planned pull-v4 frame-neighborhood/path-distribution round after v3 G2(c): preserve v3 frame-passage predicates, C4 release mask, corridor scales, latch threshold `0.02292371541261673`, `near_closed=0.25`, hard gate and six invariants; do not retrofit another scale inside v3.
+- 2026-08-11 00:03 HKT - G10 brace future is now evidence-triggered by one v3 cell with post-release recontact max `18`; keep it in `scriptsFORhuman/pull_task/a2_piper_pull_longterm_TODO.md` and do not implement until a separately authorized round.
 - 2026-08-06 14:30 HKT - v0 E6/E7 capability boundary remains a separate historical problem: the policy never attempts path reversal (first_path_reversal_step=N/A for all episodes), ends at E5 with stage_overtime at 654 steps, and has tiny outward excursion (0.013-0.099m). Possible causes remain clear-phase reward, stage-time budget, or base-motion action space; investigate only under separately authorized scope.
 - 2026-08-06 14:00 HKT - v0 seed1 E2-E5 instability remains historical context: checkpoints oscillated between 2/16 and 16/16 uniformly across strata, not explained by spawnHook or hinge force. Matched replicates or longer training remain a separate option.
 
 ## DONE Summary
 
+- 2026-08-11 00:03 HKT - pull-v3 closure: C1–C7, canonical D0-lite, single smoke, dual-seed Wave1 train and six checkpoint evals completed. All six invariants were zero; all cells had E6/E7/complete `0/16`, so G2(c) closed as a traversal approach/path-distribution negative and no Wave2/seed2 ran. G10 triggered on recontact max `18`; one review wave remained formally FAIL with bounded fixes runtime/target validated and no second reviewer PASS.
 - 2026-08-10 09:32 HKT - pull-v2 closure: canonical U-probe measured `theta*=0.6 rad` and latch threshold `0.02292371541261673`; only reward change was `near_closed 0.1→0.25`. Wave1 step750 true Stage3→4 reached `10/16` and `6/16`, triggering G1. Wave2 relay produced true Stage4 `13/16,14/16,15/16` and `11/16,16/16,16/16`; all four invariants were zero across 12 accepted cells/192 terminal episodes. A0 was NOT_TRIGGERED; next scope is traversal/V1-C.
 - 2026-08-09 15:19 HKT - pull-v1 closure: C1–C6 implemented; Python compile and YAML/Hydra composition static PASS. D0 frozen replay runtime PASS (16/16 terminal Stage3, E4/E5 0, four integrity invariants 0) and V1-B 64×50 smoke natural exit. V1-A/B/R dual-seed training/eval completed: 18 accepted rows / 288 terminal episodes have true Stage3→4 0/288 and all four invariants zero. A/B hinge Δ max ≤0.002201 rad with zero stable unlatch; R reward port is behaviorally active at step750 (stable unlatch R0 13/16, R1 2/16), but R0 hinge Δ max 0.100607 rad remains below 0.25 and R1 is baseline scale. Two pre-batch1 construction-guard root fixes landed; final A/B/R contracts fail fast. The preregistered negative statement was not triggered.
 - 2026-08-05 00:20 HKT - R17 repair complete: helper attempt-label threading + Attempt20 enumeration classification + runner Attempt20 support + lifecycle-signal receipt + Attempt19 PROBE_INVALID receipts + focused tests (152 passed)。R17 receipt sha `73d0e218…`。

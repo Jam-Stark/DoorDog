@@ -1,0 +1,32 @@
+{
+  "schema": "pull_v3_d0_lite_receipt_v1",
+  "status": "PASS",
+  "plan_id": "a2_piper_pull_v3_release_then_cross_traversal",
+  "checkpoint": "logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v2_W_wave2_relay_seed1/model_step_000750.pt",
+  "output_dir": "logs_eval/a2_piper_pull_v3/D0_lite_seed1_step750",
+  "metrics": "logs_eval/a2_piper_pull_v3/D0_lite_seed1_step750/eval/metrics_eval.json",
+  "trace": "logs_eval/a2_piper_pull_v3/D0_lite_seed1_step750/eval/stage2_5_step_trace.json",
+  "acceptance": {
+    "episode_count": 16,
+    "invariants": {
+      "fake_e4": 0,
+      "stage4_snapshot_below_hinge_gate": 0,
+      "dont_push_before_true_stage3_to4": 0,
+      "target_root_before_aperture_ready": 0,
+      "corridor_active_before_aperture_ready": 0,
+      "complete_without_frame_passage": 0,
+      "all_zero": true,
+      "stage4_admission_count": 16
+    },
+    "episode_length_steps": {
+      "count": 16,
+      "median": 804.0,
+      "min": 804.0,
+      "max": 804.0
+    },
+    "max_episode_length_steps": 804.0,
+    "E6_count": 0,
+    "E7_count": 0,
+    "corridor_raw_pre_aperture": 0
+  }
+}

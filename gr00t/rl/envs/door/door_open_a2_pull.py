@@ -72,6 +72,12 @@ class DoorOpenA2Pull(DoorPregrasp):
             )
         return mode
 
+    def _get_a2_pull_e3_latch_threshold_m(self) -> float:
+        return self._get_required_positive_float_config(
+            "a2_pull_e3_latch_threshold_m",
+            "pull E3 latch release telemetry",
+        )
+
     @override
     def _get_a2_grasp_target_orientation_wxyz(self) -> tuple[float, float, float, float]:
         configured = self.config.get("a2_pull_target_orientation_wxyz")
@@ -100,6 +106,24 @@ class DoorOpenA2Pull(DoorPregrasp):
             len(A2PullEvent),
             dtype=torch.bool,
             device=self.device,
+        )
+        self._a2_pull_stable_unlatch_handle_ever = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_stable_unlatch_latch_ever = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_relock_handle_ever = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_relock_latch_ever = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_prev_handle_unlatched = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_prev_latch_unlatched = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
         )
         self._a2_pull_first_event_step = torch.full(
             (self.num_envs, len(A2PullEvent)),
@@ -222,6 +246,12 @@ class DoorOpenA2Pull(DoorPregrasp):
     def _reset_buffers_callback(self, env_ids, target_buf=None):
         result = super()._reset_buffers_callback(env_ids, target_buf)
         self._a2_pull_event_reached[env_ids] = False
+        self._a2_pull_stable_unlatch_handle_ever[env_ids] = False
+        self._a2_pull_stable_unlatch_latch_ever[env_ids] = False
+        self._a2_pull_relock_handle_ever[env_ids] = False
+        self._a2_pull_relock_latch_ever[env_ids] = False
+        self._a2_pull_prev_handle_unlatched[env_ids] = False
+        self._a2_pull_prev_latch_unlatched[env_ids] = False
         self._a2_pull_first_event_step[env_ids] = -1
         self._a2_pull_first_event_time_s[env_ids] = float("nan")
         self._a2_pull_capture_root_x[env_ids] = float("nan")
@@ -533,7 +563,28 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         door_joint_pos = self._get_door_joint_pos("pull event telemetry", 3)
         threshold_mode = self._get_a2_pull_threshold_mode()
-        latch_released = door_joint_pos[:, 2] > 0.0
+        latch_threshold_m = self._get_a2_pull_e3_latch_threshold_m()
+        handle_unlatched = door_joint_pos[:, 1] >= 0.3
+        latch_released = door_joint_pos[:, 2] >= latch_threshold_m
+        stable_unlatch_handle_now = stable_contact & handle_unlatched
+        stable_unlatch_latch_now = stable_contact & latch_released
+        stage3_to4_hinge_threshold = self._get_a2_stage3_to4_door_hinge_threshold()
+        relock_handle_now = (
+            self._a2_pull_prev_handle_unlatched
+            & ~handle_unlatched
+            & (door_joint_pos[:, 0] < stage3_to4_hinge_threshold)
+        )
+        relock_latch_now = (
+            self._a2_pull_prev_latch_unlatched
+            & ~latch_released
+            & (door_joint_pos[:, 0] < stage3_to4_hinge_threshold)
+        )
+        self._a2_pull_stable_unlatch_handle_ever |= stable_unlatch_handle_now
+        self._a2_pull_stable_unlatch_latch_ever |= stable_unlatch_latch_now
+        self._a2_pull_relock_handle_ever |= relock_handle_now
+        self._a2_pull_relock_latch_ever |= relock_latch_now
+        self._a2_pull_prev_handle_unlatched[:] = handle_unlatched
+        self._a2_pull_prev_latch_unlatched[:] = latch_released
         positive_hinge = door_joint_pos[:, 0] > 0.0
         first_positive = positive_hinge & torch.isnan(
             self._a2_pull_hinge_at_first_positive_progress_rad
@@ -594,8 +645,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         evidence[:, A2PullEvent.E2_TENSILE_CAPTURE] = tensile_capture
         if threshold_mode == "hard_gate":
             evidence[:, A2PullEvent.E3_LATCH_RELEASE] = (
-                door_joint_pos[:, 1] >= 0.3
-            ) & stable_contact
+                latch_released
+                & stable_contact
+            )
             evidence[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED] = (
                 reached[:, A2PullEvent.E2_TENSILE_CAPTURE]
                 & (door_joint_pos[:, 0] > self._get_a2_stage3_to4_door_hinge_threshold())
@@ -764,6 +816,22 @@ class DoorOpenA2Pull(DoorPregrasp):
                 ),
                 "admission_stage2_grasp_gate": False,
                 "proof_world_direction": "+X",
+            }
+            record["pull_v2_unlatch"] = {
+                "stable_unlatch_handle_based": bool(
+                    self._a2_pull_stable_unlatch_handle_ever[env_id].item()
+                ),
+                "stable_unlatch_latch_based": bool(
+                    self._a2_pull_stable_unlatch_latch_ever[env_id].item()
+                ),
+                "relock_handle_based": bool(self._a2_pull_relock_handle_ever[env_id].item()),
+                "relock_latch_based": bool(self._a2_pull_relock_latch_ever[env_id].item()),
+                "handle_unlatch_threshold_rad": 0.3,
+                "latch_unlatch_threshold_m": self._get_a2_pull_e3_latch_threshold_m(),
+                "relock_definition": (
+                    "prior stable threshold crossing, then threshold loss while "
+                    "hinge remains below the Stage3-to4 gate"
+                ),
             }
         return records
 
@@ -1114,6 +1182,22 @@ class DoorOpenA2Pull(DoorPregrasp):
                 },
             }
             validate_a2_pull_control_step(record)
+            record["pull_v2_unlatch"] = {
+                "stable_unlatch_handle_based": bool(
+                    self._a2_pull_stable_unlatch_handle_ever[env_id].item()
+                ),
+                "stable_unlatch_latch_based": bool(
+                    self._a2_pull_stable_unlatch_latch_ever[env_id].item()
+                ),
+                "relock_handle_based": bool(self._a2_pull_relock_handle_ever[env_id].item()),
+                "relock_latch_based": bool(self._a2_pull_relock_latch_ever[env_id].item()),
+                "handle_unlatch_threshold_rad": 0.3,
+                "latch_unlatch_threshold_m": self._get_a2_pull_e3_latch_threshold_m(),
+                "relock_definition": (
+                    "prior stable threshold crossing, then threshold loss while "
+                    "hinge remains below the Stage3-to4 gate"
+                ),
+            }
             records.append(record)
         return records
 

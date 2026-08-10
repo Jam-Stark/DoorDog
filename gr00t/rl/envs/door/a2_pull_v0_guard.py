@@ -19,6 +19,8 @@ from gr00t.rl.envs.door.a2_pull_direction import (
 
 A2_PULL_V0_PLAN_ID = "a2_piper_pull_v0_tensile_feasibility_v1"
 A2_PULL_V1_PLAN_ID = "a2_piper_pull_v1_reward_port_and_stage_semantics"
+A2_PULL_V2_PLAN_ID = "a2_piper_pull_v2_wall_removal_and_unlatch_calibration"
+A2_PULL_V2_E3_LATCH_THRESHOLD_M = 0.02292371541261673
 A2_PULL_V0_TARGET_FRAME_VERSION = "grasp_target_active_face_io_z_pre_v1"
 A2_PULL_V0_TARGET_ORIENTATION_WXYZ = (-0.5, -0.5, 0.5, 0.5)
 A2_PULL_V0_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 100, 200)
@@ -619,10 +621,91 @@ def validate_a2_pull_v1_guard(
     }
 
 
+def validate_a2_pull_v2_guard(
+    config: Mapping[str, Any],
+    *,
+    actual_finger_effort_n: Any,
+    actual_finger_stiffness: Any,
+    actual_finger_damping: Any,
+    reward_scales: Mapping[str, Any] | None = None,
+    reward_scale_dt: float | None = None,
+) -> dict[str, Any]:
+    """Validate the pull-v2 wall-removal contract against the frozen V1-R port."""
+
+    _require_exact(config, "a2_v20_R1_plan_id", A2_PULL_V2_PLAN_ID)
+    _require_exact(config, "a2_pull_direction_contract_version", A2_PULL_V0_DIRECTION_CONTRACT_VERSION)
+    _require_exact(config, "a2_pull_target_frame_version", A2_PULL_V0_TARGET_FRAME_VERSION)
+    _require_exact_numeric_sequence(config, "a2_pull_target_orientation_wxyz", A2_PULL_V0_TARGET_ORIENTATION_WXYZ)
+    _require_exact(config, "a2_pull_door_open_io", _PULL_DIRECTION.door_open_io)
+    _require_exact(config, "a2_pull_door_open_lr", _PULL_DIRECTION.door_open_lr)
+    _require_exact_number(config, "a2_pull_robot_initial_side_x_sign", float(_PULL_DIRECTION.approach_side_x))
+    _require_exact_number(config, "a2_pull_robot_initial_yaw_rad", math.pi)
+    _require_exact_number(config, "a2_pull_active_handle_face_x_sign", float(_PULL_DIRECTION.active_handle_face_x))
+    _require_exact_number(config, "a2_pull_travel_dir_x", float(_PULL_DIRECTION.travel_dir_x))
+    _require_exact_numeric_sequence(config, "target_root_pos", (_PULL_DIRECTION.final_target_x(0.0, 2.0), 0.0, 0.5))
+    _require_exact_numeric_sequence(config, "max_stage_time", tuple(float(item) for item in A2_PULL_V0_STAGE_TIME_BUDGET_STEPS))
+    _require_exact(config, "a2_pull_threshold_mode", "hard_gate")
+    _require_exact(config, "a2_pull_effort_provenance", "ESTIMATE_ONLY")
+    _require_exact(config, "a2_pull_add_walls", False)
+    _require_exact_number(config, "a2_stage3_to4_door_hinge_threshold", 0.25)
+    _require_exact_number(config, "a2_stage3_unlatch_near_closed_hinge_threshold", 0.25)
+    _require_exact_number(config, "a2_pull_e3_latch_threshold_m", A2_PULL_V2_E3_LATCH_THRESHOLD_M)
+    _require_exact_number(config, "a2_v20_send_hinge_threshold", 1.0)
+
+    if _required(config, "a2_pull_hook_profile") not in _HOOK_PROFILES:
+        raise RuntimeError("Pull-v2 a2_pull_hook_profile is not a supported frozen profile.")
+    if _required(config, "a2_pull_friction_profile") not in _FRICTION_PROFILES:
+        raise RuntimeError("Pull-v2 a2_pull_friction_profile is not a supported frozen profile.")
+    _require_exact(config, "a2_pull_finger_profile", "V20_G4_45N_KP1300_KD32")
+    for key, expected in (
+        ("a2_v20_R1_send_curriculum_enabled", False),
+        ("a2_v20_R1_snapshot_guard_enabled", False),
+        ("a2_v20_send_latch_enabled", False),
+        ("a2_v20_pre_send_crossing_mode", "disabled"),
+        ("a2_v20_telemetry_enabled", False),
+        ("a2_v20_traversal_economics_enabled", False),
+        ("a2_v20_arm_tie_enabled", False),
+        ("a2_corridor_enabled", False),
+        ("a2_corridor_latch_mode", "legacy_root_or_hinge"),
+        ("a2_v20_R2_evidence_enabled", False),
+        ("a2_v20_formal_launch", False),
+    ):
+        _require_exact(config, key, expected)
+    _require_exact_number(config, "a2_v20_arm_tangent_carry_scale", 0.0)
+    _require_exact_number(config, "a2_v20_handle_arc_tracking_scale", 0.0)
+    profile = _FINGER_PROFILES["V20_G4_45N_KP1300_KD32"]
+    effort_rows = _require_profile_rows(actual_finger_effort_n, "finger effort", profile["effort_n"])
+    stiffness_rows = _require_profile_rows(actual_finger_stiffness, "finger stiffness", profile["stiffness"])
+    damping_rows = _require_profile_rows(actual_finger_damping, "finger damping", profile["damping"])
+    if not (len(effort_rows) == len(stiffness_rows) == len(damping_rows)):
+        raise RuntimeError("Pull-v2 resolved finger profile row counts disagree.")
+    variant = _validate_a2_pull_v1_reward_scales(
+        config,
+        reward_scales=reward_scales,
+        reward_scale_dt=reward_scale_dt,
+    )
+    if variant != "V1-R":
+        raise RuntimeError(f"Pull-v2 requires the V1-R reward port; got {variant!r}.")
+    return {
+        "plan_id": A2_PULL_V2_PLAN_ID,
+        "variant": variant,
+        "near_closed_hinge_threshold": 0.25,
+        "e3_latch_threshold_m": A2_PULL_V2_E3_LATCH_THRESHOLD_M,
+        "threshold_mode": "hard_gate",
+        "send_hinge_threshold": 1.0,
+        "finger_profile": "V20_G4_45N_KP1300_KD32",
+        "hook_profile": _required(config, "a2_pull_hook_profile"),
+        "friction_profile": _required(config, "a2_pull_friction_profile"),
+        "num_profile_rows": len(effort_rows),
+    }
+
+
 __all__ = [
     "A2_PULL_V0_DIRECTION_CONTRACT_VERSION",
     "A2_PULL_V0_PLAN_ID",
     "A2_PULL_V1_PLAN_ID",
+    "A2_PULL_V2_PLAN_ID",
+    "A2_PULL_V2_E3_LATCH_THRESHOLD_M",
     "A2_PULL_V0_RESOLVED_G4_CONFIG_PATH",
     "A2_PULL_V0_SOURCE_FREEZE_PATH",
     "A2_PULL_V0_STAGE_TIME_BUDGET_STEPS",
@@ -631,4 +714,5 @@ __all__ = [
     "validate_a2_pull_v0_guard",
     "validate_a2_pull_v0_resolved_g4_config",
     "validate_a2_pull_v1_guard",
+    "validate_a2_pull_v2_guard",
 ]

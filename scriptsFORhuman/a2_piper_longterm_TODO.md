@@ -63,7 +63,7 @@
 
 ## [POST-v23 — DO NOT IMPLEMENT IN V23 CORE]
 
-更新时间:2026-08-10 HKT。以下 LT-23-01..12 是 v23 之后的 long-term
+更新时间:2026-08-10 HKT。以下 LT-23-01..13 是 v23 之后的 long-term
 scope，**当前均未在 v23 core 实现**；本节不是完成项，也不改变上面的历史
 条目。
 
@@ -104,6 +104,10 @@ scope，**当前均未在 v23 core 实现**；本节不是完成项，也不改�
     door mass/damping ground truth，而从 RGB、proprioception、force/history、
     hinge visual motion 学习 teacher 的 dynamics latent、posture mode、
     release/hold strategy。
-12. **LT-23-12 active anti-rebound gripper bracing/re-contact**：研究并验证
+12. **LT-23-12 源码版本隔离重构**：将 `door_open_a2_base.py` 按版本抽出
+    evidence/gate 模块并保留固定 hook 面；全部历史 checkpoint 必须可加载、
+    可复评。测试、runner、launcher 按版本归入 `scriptsFORhuman/vNN/`，此后
+    每个版本只允许 additive、config-gated 接入。
+13. **LT-23-13 active anti-rebound gripper bracing/re-contact**：研究并验证
     gripper 在门回弹阶段的主动 bracing/re-contact 策略；保持为 post-v23
     long-term 项，未进入 v23 core。

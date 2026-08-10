@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from hashlib import sha256
 import math
 import os
+from pathlib import Path
 from typing import Optional
 
 from pxr import Sdf, UsdGeom
@@ -192,6 +193,39 @@ def parse_camera_pose(pos, rot_wxyz):
 
 def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
     """Select version selectors and compose them with explicit eval door hooks."""
+    route_b_enabled_key = "a2_v23_route_b_render_enabled"
+    route_b_manifest_key = "a2_v23_route_b_render_manifest_path"
+    route_b_fields_present = route_b_enabled_key in env_config or route_b_manifest_key in env_config
+    if route_b_fields_present:
+        route_b_enabled = env_config.get(route_b_enabled_key, False)
+        route_b_manifest = env_config.get(route_b_manifest_key)
+        if route_b_enabled is False:
+            if route_b_manifest is not None:
+                raise ValueError(
+                    "disabled v23 Route-B render selector requires a null/absent manifest path"
+                )
+        elif route_b_enabled is True:
+            if not isinstance(route_b_manifest, (str, os.PathLike)) or not str(route_b_manifest):
+                raise ValueError(
+                    "enabled v23 Route-B render selector requires a manifest path"
+                )
+            manifest_path = Path(route_b_manifest)
+            if not manifest_path.is_absolute() or manifest_path.is_symlink() or not manifest_path.is_file():
+                raise ValueError(
+                    "enabled v23 Route-B render selector requires an absolute regular non-symlink manifest file"
+                )
+            hook_name = "get_TaskObjCfgDict_for_v23_route_b_render_manifest"
+            hook = getattr(task_module, hook_name, None)
+            if not callable(hook):
+                raise TypeError(
+                    f"task module must expose callable {hook_name!r} for Route-B renders"
+                )
+            task_obj_cfg_dict = hook(num_envs, env_config)
+            if not isinstance(task_obj_cfg_dict, dict):
+                raise TypeError("v23 Route-B render selector must return a dict")
+            return task_obj_cfg_dict
+        else:
+            raise TypeError(f"{route_b_enabled_key} must be a boolean when present")
     v23_plain_enabled_key = "a2_v23_p0_plain_scenario_enabled"
     v23_plain_path_key = "a2_v23_p0_scenario_manifest_path"
     v23_plain_topology_key = "a2_v23_p0_scenario_topology"

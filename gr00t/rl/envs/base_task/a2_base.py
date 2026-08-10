@@ -48,6 +48,12 @@ class A2Base(LeggedRobotBase):
     A2_BASE_COMMAND_ACTION_DIM = 5
     A2_ARM_ACTION_DIM = 6
     A2_GRIPPER_PRIMITIVE_ACTION_DIM = 1
+    A2_V23_P08_V2_MODES = (
+        "ACUTE_RP0",
+        "BASE0_AT_GRASP",
+        "HIGHER_EFFORT_RESCUE",
+        "ORACLE_TANGENTIAL_ASSIST",
+    )
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -416,6 +422,42 @@ class A2Base(LeggedRobotBase):
         # Validate the configured high-level action contract against the canonical
         # base + Piper arm + gripper layout consumed by _step_a2_base().
         self.get_a2_high_level_action_layout()
+        self._init_a2_v23_p08_v2_action_state()
+
+    def _init_a2_v23_p08_v2_action_state(self) -> None:
+        """Initialize the opt-in P0.8 preformal-v2 forward-action contract."""
+
+        enabled = self.config.get("a2_v23_p08_v2_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v23_p08_v2_enabled must be bool.")
+        self._a2_v23_p08_v2_enabled = enabled
+        if not enabled:
+            return
+        mode = self.config.get("a2_v23_p08_v2_mode")
+        if mode not in self.A2_V23_P08_V2_MODES:
+            raise RuntimeError(
+                "P0.8 preformal-v2 requires env.config.a2_v23_p08_v2_mode in "
+                f"{self.A2_V23_P08_V2_MODES}; got {mode!r}."
+            )
+        if self.num_envs != 1:
+            raise RuntimeError("P0.8 preformal-v2 requires exactly one environment.")
+        if self.config.get("a2_v23_p05_runtime_enabled", False) is True:
+            raise RuntimeError(
+                "P0.8 preformal-v2 cannot share an environment with the strict 16-env P0.5 runtime."
+            )
+        self._a2_v23_p08_v2_mode = mode
+        self._a2_v23_p08_v2_trigger_mask = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v23_p08_v2_switch_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v23_p08_v2_observed_latch_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_v23_p08_v2_action_records = [
+            {} for _ in range(self.num_envs)
+        ]
 
     def get_a2_high_level_action_layout(self) -> dict[str, int]:
         if not self._use_a2_base:
@@ -654,6 +696,201 @@ class A2Base(LeggedRobotBase):
         )
         self._a2_v23_last_forward_intervention = metadata
         return intervened
+
+    def _a2_v23_p08_v2_control_steps(self, control_step) -> torch.Tensor:
+        if isinstance(control_step, bool):
+            raise ValueError("P0.8 preformal-v2 control_step cannot be bool.")
+        if isinstance(control_step, int):
+            if control_step < 0:
+                raise ValueError("P0.8 preformal-v2 control_step must be non-negative.")
+            return torch.full(
+                (self.num_envs,), control_step, dtype=torch.long, device=self.device
+            )
+        if (
+            not torch.is_tensor(control_step)
+            or tuple(control_step.shape) != (self.num_envs,)
+            or control_step.dtype != torch.long
+            or control_step.device != torch.device(self.device)
+            or torch.any(control_step < 0)
+        ):
+            shape = None if not torch.is_tensor(control_step) else tuple(control_step.shape)
+            raise ValueError(
+                "P0.8 preformal-v2 control_step requires a device-local non-negative "
+                f"long vector ({self.num_envs},); got {shape}."
+            )
+        return control_step
+
+    def build_a2_v23_p08_v2_actor_state(
+        self, *, device: torch.device, dtype: torch.dtype, control_step
+    ) -> dict:
+        """Resolve the observed trigger state for one forward v2 action step."""
+
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            return {}
+        if not isinstance(device, torch.device):
+            raise ValueError("P0.8 preformal-v2 actor-state device must be torch.device.")
+        if not isinstance(dtype, torch.dtype) or not dtype.is_floating_point:
+            raise ValueError("P0.8 preformal-v2 actor-state dtype must be floating.")
+        steps = self._a2_v23_p08_v2_control_steps(control_step)
+        mode = self._a2_v23_p08_v2_mode
+        trigger_mask = getattr(self, "_a2_v23_p08_v2_trigger_mask", None)
+        if (
+            not torch.is_tensor(trigger_mask)
+            or tuple(trigger_mask.shape) != (self.num_envs,)
+            or trigger_mask.dtype != torch.bool
+            or trigger_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("P0.8 preformal-v2 requires a device-local trigger mask.")
+        if mode == "ACUTE_RP0":
+            active_mask = trigger_mask | (steps == 0)
+        elif mode == "BASE0_AT_GRASP":
+            stable_mask = self._get_a2_v23_stable_grasp_mask(
+                self.num_envs, torch.device(self.device)
+            )
+            active_mask = trigger_mask | stable_mask
+        else:
+            active_mask = trigger_mask.clone()
+        state = {
+            "a2_v23_p08_v2_mode": mode,
+            "a2_v23_p08_v2_active_mask": active_mask.clone(),
+            "a2_v23_p08_v2_control_step": steps.clone(),
+        }
+        if mode == "HIGHER_EFFORT_RESCUE":
+            applied_mask = getattr(self, "_a2_v23_p08_v2_effort_applied_mask", None)
+            if (
+                not torch.is_tensor(applied_mask)
+                or tuple(applied_mask.shape) != (self.num_envs,)
+                or applied_mask.dtype != torch.bool
+                or applied_mask.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    "HIGHER_EFFORT_RESCUE requires the observed effort readback mask."
+                )
+            if torch.any(active_mask & ~applied_mask):
+                raise RuntimeError(
+                    "HIGHER_EFFORT_RESCUE action switch observed before effort readback."
+                )
+            state["a2_v23_p08_v2_effort_profile_applied"] = bool(
+                torch.all(applied_mask[active_mask]).item()
+            ) if torch.any(active_mask) else False
+        if mode == "ORACLE_TANGENTIAL_ASSIST":
+            delta = self.config.get("a2_v23_p08_v2_oracle_tangential_delta_raw")
+            if delta is None:
+                raise RuntimeError(
+                    "ORACLE_TANGENTIAL_ASSIST requires explicit "
+                    "env.config.a2_v23_p08_v2_oracle_tangential_delta_raw."
+                )
+            if not torch.is_tensor(delta):
+                delta = torch.as_tensor(delta, device=device)
+            if (
+                tuple(delta.shape) != (self.num_envs, self.A2_BASE_COMMAND_ACTION_DIM)
+                or not delta.is_floating_point()
+                or not torch.all(torch.isfinite(delta))
+            ):
+                raise ValueError(
+                    "P0.8 oracle tangential delta requires finite floating shape "
+                    f"({self.num_envs},{self.A2_BASE_COMMAND_ACTION_DIM})."
+                )
+            state["a2_v23_p08_v2_oracle_tangential_delta_raw"] = delta.to(
+                device=device, dtype=dtype
+            )
+            state["a2_v23_p08_v2_oracle_active_mask"] = active_mask.to(device=device)
+        return state
+
+    def apply_a2_v23_p08_v2_high_level_intervention(
+        self, high_level_actions, *, actor_state=None
+    ):
+        """Apply one observed-trigger forward intervention before low-level inference."""
+
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            return high_level_actions
+        if (
+            not torch.is_tensor(high_level_actions)
+            or high_level_actions.ndim != 2
+            or tuple(high_level_actions.shape) != (self.num_envs, 12)
+            or not high_level_actions.is_floating_point()
+            or not torch.all(torch.isfinite(high_level_actions))
+        ):
+            shape = None if not torch.is_tensor(high_level_actions) else tuple(high_level_actions.shape)
+            raise ValueError(
+                "P0.8 preformal-v2 requires finite high-level actions with shape "
+                f"({self.num_envs},12); got {shape}."
+            )
+        if not isinstance(actor_state, dict):
+            raise ValueError("P0.8 preformal-v2 actor_state must be a mapping.")
+        mode = actor_state.get("a2_v23_p08_v2_mode", self._a2_v23_p08_v2_mode)
+        active = actor_state.get("a2_v23_p08_v2_active_mask")
+        steps = actor_state.get("a2_v23_p08_v2_control_step")
+        if (
+            mode not in self.A2_V23_P08_V2_MODES
+            or not torch.is_tensor(active)
+            or tuple(active.shape) != (self.num_envs,)
+            or active.dtype != torch.bool
+            or active.device != high_level_actions.device
+        ):
+            raise ValueError("P0.8 preformal-v2 actor_state mode/mask contract is invalid.")
+        if not torch.is_tensor(steps) or tuple(steps.shape) != (self.num_envs,):
+            raise ValueError("P0.8 preformal-v2 actor_state control_step contract is invalid.")
+        base = high_level_actions[:, : self.A2_BASE_COMMAND_ACTION_DIM]
+        if mode == "ACUTE_RP0":
+            candidate, metadata = a2_v23_apply_forward_intervention(
+                base, mode="ACUTE_RP0"
+            )
+            intervened = torch.where(active[:, None], candidate, base)
+        elif mode == "BASE0_AT_GRASP":
+            intervened, metadata = a2_v23_apply_forward_intervention(
+                base, mode="BASE0_AT_GRASP", stable_grasp_mask=active
+            )
+        elif mode == "HIGHER_EFFORT_RESCUE":
+            applied = actor_state.get("a2_v23_p08_v2_effort_profile_applied", False)
+            if torch.any(active) and applied is not True:
+                raise RuntimeError(
+                    "HIGHER_EFFORT_RESCUE requires an observed effort-limit readback before switching."
+                )
+            if torch.any(active):
+                intervened, metadata = a2_v23_apply_forward_intervention(
+                    base,
+                    mode="HIGHER_EFFORT_RESCUE",
+                    higher_effort_profile_applied=True,
+                )
+            else:
+                intervened = base.clone()
+                metadata = {
+                    "mode": mode,
+                    "forward_only": True,
+                    "state_clone_supported": False,
+                    "effort_profile_applied": False,
+                }
+        else:
+            delta = actor_state.get("a2_v23_p08_v2_oracle_tangential_delta_raw")
+            oracle_active = actor_state.get("a2_v23_p08_v2_oracle_active_mask")
+            intervened, metadata = a2_v23_apply_forward_intervention(
+                base,
+                mode="ORACLE_TANGENTIAL_ASSIST",
+                oracle_tangential_delta_raw=delta,
+                oracle_active_mask=oracle_active,
+            )
+        previous_switch = self._a2_v23_p08_v2_switch_step
+        switch_now = active & (previous_switch < 0)
+        self._a2_v23_p08_v2_trigger_mask |= active
+        self._a2_v23_p08_v2_switch_step[switch_now] = steps[switch_now]
+        result = high_level_actions.clone()
+        result[:, : self.A2_BASE_COMMAND_ACTION_DIM] = intervened
+        self._a2_v23_p08_v2_last_forward_intervention = metadata
+        for env_id in range(self.num_envs):
+            if not bool(active[env_id].item()) and self._a2_v23_p08_v2_action_records[env_id]:
+                continue
+            self._a2_v23_p08_v2_action_records[env_id] = {
+                "control_step": int(steps[env_id].item()),
+                "pre_action_5d": [float(value) for value in base[env_id].detach().cpu().tolist()],
+                "post_action_5d": [float(value) for value in intervened[env_id].detach().cpu().tolist()],
+                "post_indices_3_4": [
+                    float(value) for value in intervened[env_id, 3:5].detach().cpu().tolist()
+                ],
+                "active": bool(active[env_id].item()),
+                "switch_step": int(self._a2_v23_p08_v2_switch_step[env_id].item()),
+            }
+        return result
 
     def apply_a2_v23_high_level_intervention(self, high_level_actions, *, actor_state=None):
         """Apply the v23 base-command intervention before A2 low-level inference."""

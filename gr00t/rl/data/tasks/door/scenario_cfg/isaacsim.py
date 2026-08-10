@@ -39,6 +39,22 @@ _V23_P0_PLAIN_SOURCE_FIELDS = {
 }
 _V23_P0_PLAIN_TOPOLOGIES = ("canonical16", "heavy16")
 
+# Route-B visual evidence owns a separate, deliberately unambiguous static
+# manifest.  The simulator selector consumes this exact schema only when the
+# render flag is explicitly enabled; historical selectors remain unchanged.
+_V23_ROUTE_B_RENDER_MANIFEST_SCHEMA = "a2_piper_v23_route_b_render_scenario_manifest_v1"
+_V23_ROUTE_B_RENDER_MANIFEST_STATUS = "STATIC_RENDER"
+_V23_ROUTE_B_RENDER_MANIFEST_TOPOLOGY = "render16"
+_V23_ROUTE_B_RENDER_ENABLED_KEY = "a2_v23_route_b_render_enabled"
+_V23_ROUTE_B_RENDER_MANIFEST_PATH_KEY = "a2_v23_route_b_render_manifest_path"
+_V23_ROUTE_B_RENDER_SCALAR_FIELDS = (
+    "handle_height_m",
+    "door_weight_kg",
+    "hinge_max_force_nm",
+    "hinge_damping_native",
+    "hinge_stiffness_native",
+)
+
 # v23 P0 bound mode is a separate, strict high-level selector.  The historical
 # plain selector above remains unchanged when this mode is disabled.
 _V23_P0_BOUND_MANIFEST_SCHEMA = "a2_piper_base_v23_p0_bound_plain16_manifest_v1"
@@ -50,6 +66,13 @@ _V23_D1_BOUND_MANIFEST_SCHEMA = "a2_piper_base_v23_d1_capability_bound_plain16_m
 _V23_D1_BOUND_SELECTOR_MODE = "v23_d1_capability_source_plain16"
 _V23_D1_BOUND_STATUS = "BOUND_D1_CAPABILITY_SOURCE"
 _V23_D1_BOUND_PURPOSE = "D1_CAPABILITY_SOURCE"
+_V23_D1_SAMPLER_ENABLED_KEY = "a2_v23_d1_sampler_enabled"
+_V23_D1_MANIFEST_PATH_KEY = "a2_v23_d1_manifest_path"
+_V23_D1_VARIANT_KEY = "a2_v23_d1_variant"
+_V23_D1_BUCKET_SEED_KEY = "a2_v23_d1_bucket_seed"
+_V23_D1_TOTAL_STEPS_KEY = "a2_v23_d1_total_steps"
+_V23_D1_RECEIPT_PATH_KEY = "a2_v23_d1_receipt_path"
+_V23_D1_GLOBAL_STEP_KEY = "a2_v23_d1_global_step"
 _V23_D1_SOURCE_FREEZE_SCHEMA = "a2_piper_v23_capability_source_freeze_v1"
 _V23_D1_SOURCE_FREEZE_STATUS = "CAPABILITY_SOURCE_FROZEN"
 _V23_D1_SOURCE_CELL_ID = "A0"
@@ -914,6 +937,244 @@ def get_TaskObjCfgDict_for_v23_p0_plain_scenario_manifest(
     return result
 
 
+def _v23_route_b_render_manifest_payload(env_config) -> tuple[dict, Path]:
+    """Read and validate one exact static render16 manifest."""
+
+    if env_config.get(_V23_ROUTE_B_RENDER_ENABLED_KEY) is not True:
+        raise ValueError(
+            "v23 Route-B render selector requires "
+            f"{_V23_ROUTE_B_RENDER_ENABLED_KEY}=true"
+        )
+    path_value = env_config.get(_V23_ROUTE_B_RENDER_MANIFEST_PATH_KEY)
+    if not isinstance(path_value, (str, Path)) or not str(path_value):
+        raise ValueError(
+            "v23 Route-B render selector requires "
+            f"{_V23_ROUTE_B_RENDER_MANIFEST_PATH_KEY}"
+        )
+    path = Path(path_value)
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise ValueError(
+            "v23 Route-B render manifest must be an absolute regular non-symlink file: "
+            f"{path}"
+        )
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"v23 Route-B render manifest is not valid JSON: {path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("v23 Route-B render manifest must be a JSON object")
+    if payload.get("schema") != _V23_ROUTE_B_RENDER_MANIFEST_SCHEMA:
+        raise ValueError("v23 Route-B render manifest schema is invalid")
+    if payload.get("status") != _V23_ROUTE_B_RENDER_MANIFEST_STATUS:
+        raise ValueError("v23 Route-B render manifest status must be STATIC_RENDER")
+    if payload.get("topology") != _V23_ROUTE_B_RENDER_MANIFEST_TOPOLOGY:
+        raise ValueError("v23 Route-B render manifest topology must be render16")
+    scenario_id = payload.get("scenario_id")
+    if not isinstance(scenario_id, str) or not scenario_id:
+        raise ValueError("v23 Route-B render manifest scenario_id must be non-empty")
+    rows = payload.get("rows")
+    if not isinstance(rows, list) or len(rows) != 16:
+        raise ValueError("v23 Route-B render manifest requires exactly 16 rows")
+    expected_fields = {"env_id", "scenario_id", *_V23_ROUTE_B_RENDER_SCALAR_FIELDS}
+    row_ids = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, Mapping) or set(row) != expected_fields:
+            raise ValueError(f"v23 Route-B render manifest row {index} has invalid fields")
+        if row.get("env_id") != index:
+            raise ValueError("v23 Route-B render manifest rows must be ordered env0 through env15")
+        expected_id = f"{scenario_id}_env{index:02d}"
+        if row.get("scenario_id") != expected_id or expected_id in row_ids:
+            raise ValueError("v23 Route-B render manifest scenario_ids must be ordered and unique")
+        row_ids.add(expected_id)
+        for field in _V23_ROUTE_B_RENDER_SCALAR_FIELDS:
+            value = row[field]
+            if isinstance(value, bool) or not isinstance(value, Real):
+                raise ValueError(f"v23 Route-B render row {index}.{field} must be numeric")
+            number = float(value)
+            if not math.isfinite(number) or number <= 0.0:
+                raise ValueError(f"v23 Route-B render row {index}.{field} must be finite and positive")
+    return payload, path
+
+
+def get_TaskObjCfgDict_for_v23_route_b_render_manifest(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Bind one static DoorSpawnerCfg variant to each render environment."""
+
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != 16:
+        raise ValueError("v23 Route-B render16 topology requires num_envs=16")
+    payload, _ = _v23_route_b_render_manifest_payload(env_config)
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base, dict) or "door" not in base:
+        raise ValueError("v23 Route-B render selector requires a door TaskObjCfgDict")
+    door_cfg = base["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("v23 Route-B render selector requires MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("v23 Route-B render selector requires non-empty assets_cfg")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("v23 Route-B render selector base asset must be DoorSpawnerCfg")
+    bounds = base_door_cfg.door_handle_tblr
+    if isinstance(bounds, (str, bytes)) or not isinstance(bounds, Sequence) or len(bounds) != 4:
+        raise ValueError("v23 Route-B render selector base door_handle_tblr must have four values")
+    upper, lower = float(bounds[0]), float(bounds[1])
+    if not math.isfinite(upper) or not math.isfinite(lower) or lower >= upper:
+        raise ValueError("v23 Route-B render selector base handle-height bounds are invalid")
+    variants = []
+    for index, row in enumerate(payload["rows"]):
+        height = float(row["handle_height_m"])
+        if not lower <= height <= upper:
+            raise ValueError(
+                f"v23 Route-B render row {index} handle height {height} is outside [{lower}, {upper}]"
+            )
+        variants.append(
+            base_door_cfg.replace(
+                rand_door_handle_height=height,
+                rand_door_weight=float(row["door_weight_kg"]),
+                rand_hinge_drive_max_force=float(row["hinge_max_force_nm"]),
+                rand_hinge_drive_damping=float(row["hinge_damping_native"]),
+                rand_hinge_drive_stiffness=float(row["hinge_stiffness_native"]),
+            )
+        )
+    if len(variants) != num_envs:
+        raise ValueError("v23 Route-B render selector variant count must be exactly 16")
+    ordered_spawn_cfg = spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    return {**base, "door": door_cfg.replace(spawn=ordered_spawn_cfg)}
+
+
+def _v23_d1_sampler_env_config(env_config) -> dict:
+    """Validate the additive D1 sampler selector without touching old paths."""
+
+    if env_config.get(_V23_D1_SAMPLER_ENABLED_KEY) is not True:
+        raise ValueError(
+            f"v23 D1 selector requires env.config.{_V23_D1_SAMPLER_ENABLED_KEY}=true"
+        )
+    required = (
+        _V23_D1_MANIFEST_PATH_KEY,
+        _V23_D1_VARIANT_KEY,
+        _V23_D1_BUCKET_SEED_KEY,
+        _V23_D1_TOTAL_STEPS_KEY,
+        _V23_D1_RECEIPT_PATH_KEY,
+    )
+    missing = [key for key in required if key not in env_config]
+    if missing:
+        raise ValueError(f"v23 D1 selector requires all explicit fields; missing {missing}")
+    manifest_path = env_config[_V23_D1_MANIFEST_PATH_KEY]
+    receipt_path = env_config[_V23_D1_RECEIPT_PATH_KEY]
+    if not isinstance(manifest_path, (str, Path)) or not str(manifest_path):
+        raise ValueError("v23 D1 manifest path must be a non-empty path")
+    if not isinstance(receipt_path, (str, Path)) or not str(receipt_path):
+        raise ValueError("v23 D1 physics receipt path must be a non-empty path")
+    variant = env_config[_V23_D1_VARIANT_KEY]
+    if variant not in ("normal", "lite"):
+        raise ValueError("v23 D1 variant must be 'normal' or 'lite'")
+    seed = env_config[_V23_D1_BUCKET_SEED_KEY]
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
+        raise ValueError("v23 D1 bucket seed must be a non-negative integer")
+    total_steps = env_config[_V23_D1_TOTAL_STEPS_KEY]
+    if isinstance(total_steps, bool) or not isinstance(total_steps, int) or total_steps not in (10, 2500):
+        raise ValueError("v23 D1 total steps must be 10 or 2500")
+    global_step = env_config.get(_V23_D1_GLOBAL_STEP_KEY, 0)
+    if isinstance(global_step, bool) or not isinstance(global_step, int) or not 0 <= global_step < total_steps:
+        raise ValueError("v23 D1 global step must be an absolute step in the configured run")
+    return dict(env_config)
+
+
+def get_TaskObjCfgDict_for_v23_d1_sampler(
+    num_envs: int,
+    env_config,
+    task_obj_cfg_dict: dict | None = None,
+) -> dict:
+    """Bind one immutable physics-first D1 row per environment.
+
+    This is an IsaacLab high-level config replacement: every variant is
+    materialized through ``DoorSpawnerCfg.replace`` and no USD prim is touched.
+    ``rand_door_weight`` is an absolute panel mass at spawn; the optional
+    startup event helper below uses IsaacLab's absolute-mass operation with
+    inertia recomputation for paths that apply mass after scene creation.
+    """
+
+    _v23_d1_sampler_env_config(env_config)
+    from gr00t.rl.envs.door.a2_v23_d1_sampler import D1Sampler
+
+    sampler = D1Sampler.from_config(env_config)
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs != sampler.total_envs:
+        raise ValueError(
+            f"v23 D1 {sampler.total_steps}-step topology requires num_envs={sampler.total_envs}"
+        )
+    global_step = env_config.get(_V23_D1_GLOBAL_STEP_KEY, 0)
+    assignments = sampler.assignments(global_step)
+    base = TaskObjCfgDict if task_obj_cfg_dict is None else task_obj_cfg_dict
+    if not isinstance(base, dict) or "door" not in base:
+        raise ValueError("v23 D1 selector requires a door TaskObjCfgDict")
+    door_cfg = base["door"]
+    spawn_cfg = door_cfg.spawn
+    if not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg):
+        raise TypeError("v23 D1 selector requires MultiAssetSpawnerCfg")
+    if not isinstance(spawn_cfg.assets_cfg, list) or not spawn_cfg.assets_cfg:
+        raise ValueError("v23 D1 selector requires non-empty assets_cfg")
+    base_door_cfg = spawn_cfg.assets_cfg[0]
+    if not isinstance(base_door_cfg, DoorSpawnerCfg):
+        raise TypeError("v23 D1 selector base asset must be DoorSpawnerCfg")
+    variants = []
+    for assignment in assignments:
+        row = assignment.realized_row
+        params = row.realized_params
+        variants.append(
+            base_door_cfg.replace(
+                rand_door_width=row.door_width_m,
+                rand_door_height=row.door_height_m,
+                rand_door_handle_height=row.handle_height_m,
+                rand_door_handle_width=row.handle_width_m,
+                rand_door_handle_type=row.handle_type,
+                rand_door_open_lr=row.door_open_lr,
+                rand_door_open_io=row.door_open_io,
+                rand_door_weight=params.door_weight_kg,
+                rand_hinge_drive_max_force=params.hinge_effort_limit_nm,
+                rand_hinge_drive_damping=params.hinge_damping_native,
+                rand_hinge_drive_stiffness=params.hinge_stiffness_native,
+            )
+        )
+    return {
+        **base,
+        "door": door_cfg.replace(
+            spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+        ),
+    }
+
+
+def get_v23_d1_mass_event_cfg(cell_id: str, env_config):
+    """Build a high-level startup mass event for absolute mass + inertia recompute.
+
+    The returned ``EventTermCfg`` is intentionally a standalone composition
+    helper.  It is not wired into the shared trainer in this revision.
+    """
+
+    _v23_d1_sampler_env_config(env_config)
+    import isaaclab.envs.mdp as mdp
+    from isaaclab.managers import EventTermCfg, SceneEntityCfg
+    from gr00t.rl.envs.door.a2_v23_d1_sampler import D1Sampler
+
+    sampler = D1Sampler.from_config(env_config)
+    row = sampler.catalog.row(cell_id)
+    mass = row.realized_params.door_weight_kg
+    return EventTermCfg(
+        func=mdp.randomize_rigid_body_mass,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("door", body_names=["door_panel"]),
+            "mass_distribution_params": (mass, mass),
+            "operation": "abs",
+            "distribution": "uniform",
+            "recompute_inertia": True,
+        },
+    )
+
+
 _V22_MANIFEST_SCHEMA = "a2_piper_base_v22_scenario_manifest_v1"
 _V22_MANIFEST_FLAG = "a2_v22_scenario_manifest_enabled"
 _V22_MANIFEST_PATH_KEY = "a2_v22_scenario_manifest_path"
@@ -1485,6 +1746,18 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    if env_config.get("a2_v23_d1_sampler_enabled") is True:
+        if any(
+            env_config.get(key) is True
+            for key in (
+                _V23_P0_PLAIN_MANIFEST_FLAG,
+                _V23_P0_BOUND_MANIFEST_FLAG,
+                _V21B_SIGNED_PROBE_FLAG,
+                _V22_MANIFEST_FLAG,
+            )
+        ):
+            raise ValueError("v23 D1 sampler selector cannot be combined with another scenario selector")
+        return get_TaskObjCfgDict_for_v23_d1_sampler(num_envs, env_config)
     v23_bound_fields_present = any(
         key in env_config
         for key in (

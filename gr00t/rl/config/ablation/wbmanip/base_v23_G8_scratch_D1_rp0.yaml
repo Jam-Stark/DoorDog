@@ -1,0 +1,47 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v23_G7_scratch_D1_full
+  - _self_
+v23_schema: a2_piper_base_v23_G8_warm_head_reset_D1_rp0_v1
+v23_plan_id: base_v23_force_feasibility_initialization_posture_R1
+v23_config_state: FORMAL_8X2
+v23_formal_launchable: true
+v23_training_enabled: true
+v23_cell: G8
+v23_initialization: warm_head_reset
+v23_door_regime: D1
+v23_posture_mode: RP0
+checkpoint_load_mode: policy_only
+v23_output_head_inheritance: true
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v22/G1/model_step_001250.pt
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+headless: true
+algo:
+  config:
+    num_mini_batches: 4
+    rp0_enabled: true
+    rp0_mask_indices: [3, 4]
+    rp0_neutral_value: 0.0
+  trl:
+    num_total_batches: 2500
+callbacks:
+  model_save:
+    save_frequency: 250
+env:
+  config:
+    a2_v23_formal_launch: true
+    a2_v23_effort_profile_nm: 40.0
+    a2_v23_effort_profile_source: P0_2_MEASURED_FREEZE
+    a2_v23_d1_sampler_enabled: true
+    a2_v23_d1_manifest_path: logs_eval/base_v23/p0/p04_d1_physics_first_20260810/p04_d1_physics_first.json
+    a2_v23_d1_variant: normal
+    a2_v23_d1_bucket_seed: 0
+    a2_v23_d1_total_steps: 2500
+    a2_v23_d1_receipt_path: logs_eval/base_v23/p0/p04_d1_physics_first_20260810/p04_d1_physics_first.json
+    a2_v23_d1_global_step: 0
+    a2_v23_d1_confirmed_e2_enabled: false
+    a2_v23_rp0_enabled: true
+robot:
+  dof_effort_limit_list: [120.0, 120.0, 180.0, 120.0, 120.0, 180.0, 120.0, 120.0, 180.0, 120.0, 120.0, 180.0, 40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 45.0, 45.0]

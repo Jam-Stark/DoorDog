@@ -3,7 +3,7 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** interim P0 adjudication; P0.1/P0.3, P0.6, the bounded partial A0/D0 P0.8 node, the R112 D0 P0.9 smokes, and the triggered F1 head-reset two-type smokes are runtime verified; P0.10 remains an operational scratch-admission NO-GO with Branch B scientifically unmeasured, the D1 source branch is incomplete, and there is no formal training admission
+**Runtime state:** formal admission prerequisites complete; P0.1/P0.3, P0.2/F2 effort40, P0.6, P0.7, R78 state-bank plumbing, P0.9, P0.10 adjudication, F1 head-reset smokes, the owner-approved physics-first D1 freeze, P0.8 preformal-v2, and the D1-FULL 64×10 bucket-plumbing smoke have all passed.  The active runtime boundary is A1 formal training on physical GPU0 and GPU1 only.
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
@@ -12,8 +12,9 @@ paths.  The original R1 preparation tools write plain JSON/Markdown.  The later
 P0.6 stationary-rent and P0.8 state-bank tools are separately bounded evaluator
 runner/reducers.  The P0.9 runner verifies only four D0 training smokes.  P0.10
 consumed that bounded admission and terminated with the pre-registered F1
-branch.  F1 is now implemented and smoke-verified for D0 FULL/RP0 only; none of
-these tools authorizes formal training, formal evaluation, or rendering.
+branch.  F1 is now implemented and smoke-verified for D0 FULL/RP0.  The owner
+decision in section 15 supersedes the former R54 symmetric-window gate and the
+former requirement to execute the complete P0.8 intervention suite preformal.
 
 ## 1. Scientific question and fixed matrix
 
@@ -23,16 +24,16 @@ and D1 may differ only in door parameters.  RP0 is a distribution-level actor
 mask on raw action indices 3 and 4 (pitch and roll), with semantic neutral value
 `0.0`; it is not a post-sample action clamp.
 
-| Group | Initialization | Train door | Posture | Formal GPU in a sub-wave |
+| Group | Initialization | Train door | Posture | Two-GPU execution lane |
 |---|---|---|---|---:|
 | G1 | v22 warm | D0 | FULL | 0 |
-| G2 | v22 warm | D0 | RP0 | 1 |
-| G3 | scratch | D0 | FULL | 2 |
-| G4 | scratch | D0 | RP0 | 3 |
+| G2 | v22 warm | D0 | RP0 | 0 |
+| G3 | warm head-reset | D0 | FULL | 1 |
+| G4 | warm head-reset | D0 | RP0 | 1 |
 | G5 | v22 warm | D1 | FULL | 0 |
-| G6 | v22 warm | D1 | RP0 | 1 |
-| G7 | scratch | D1 | FULL | 2 |
-| G8 | scratch | D1 | RP0 | 3 |
+| G6 | v22 warm | D1 | RP0 | 0 |
+| G7 | warm head-reset | D1 | FULL | 1 |
+| G8 | warm head-reset | D1 | RP0 | 1 |
 
 Every cell uses 4096 environments, the same network and reward registry, the
 same staged-reset schedule, the same optimizer and formal budget, and the same
@@ -72,7 +73,12 @@ P0 behavior measurements.
 
 D1 is created by the P0.4 physics-first atlas.  It may use only the validated
 global bounds `damping <= 200`, `stiffness <= 30`, and `max_force <= 24`; a
-confirmed E2 cell is evaluation-only.
+confirmed E2 cell is evaluation-only.  Per the 2026-08-10 owner decision, the
+primary classifier is scripted door-side free-return/fixed-torque
+`tau_required` compared with the matrix-wide effort40 boundary.  Policy FULL
+and ACUTE records are auxiliary only: FULL `>=12/16` valid windows may be
+archived, sparse ACUTE is typed `ACUTE_WINDOWS_SPARSE_EXPECTED`, and neither
+mode imposes a symmetric completeness gate.
 
 | Training interval | E0/current-like | E1 posture-beneficial | near-E2 | confirmed E2 |
 |---|---:|---:|---:|---:|
@@ -80,13 +86,12 @@ confirmed E2 cell is evaluation-only.
 | 20–50% | 60% | 40% | 0% | 0% |
 | 50–100% | 30% | 60% | 10% | 0% |
 
-Normal D1 freezes only with a nonempty E0/E1/nearE2 set and schedule
+Normal D1 freezes from the measured physics-first provisional zones with schedule
 `100/0/0 -> 60/40/0 -> 30/60/10` (E0/E1/nearE2). F2-100 uses D1-lite exactly
-`100/0/0 -> 65/35/0 -> 40/55/5`. In either case choose uniformly among all
-max-U cells satisfying `U<=min(C_FULL,C_RP0)`; if the set is empty, do not
-freeze D1 and emit `NO_D1`/H4. F2-100 pre-marks H4 and its D1-lite zones are
-exactly every tied max-U cell `M` (no other valid cell); it does not invent a
-tie-break.
+`100/0/0 -> 65/35/0 -> 40/55/5`.  D1-lite halves the near-E2 share and narrows
+the E1 upper range.  All labels are provisional and are re-adjudicated after
+G4/G8 head-reset RP0 training.  The former `min(C_FULL,C_RP0)` admission rule
+is historical R54 logic and is not part of the active physics-first freeze.
 
 P0.2 runs the exact effort ladder `[100,60,40,30,25,20] N*m` and exports raw
 temporal rows under `a2_piper_base_v23_p0_temporal_records_v1`. Every rung and
@@ -142,18 +147,22 @@ One selected profile, if any, is shared by all eight groups.
 
 ## 4. Execution waves and ordering
 
-Physical GPUs 0–3 are the only v23 runtime lease.  Four-cell sub-waves are
-serial in the following order; each completed sub-wave is followed immediately
-by its Route-A evaluation before the next training sub-wave:
+Physical GPUs 0 and 1 are the only v23 runtime lease.  Each scientific four-cell
+sub-wave executes as two serial two-cell slices; Route A starts only after both
+slices complete, preserving the original scientific sub-wave boundary:
 
 ```text
-A1: seed 0, G1/G3/G5/G7
+A1-D0: seed 0, GPU0=G1, GPU1=G3
+A1-D1: seed 0, GPU0=G5, GPU1=G7
 Route-A A1
-A2: seed 0, G2/G4/G6/G8
+A2-D0: seed 0, GPU0=G2, GPU1=G4
+A2-D1: seed 0, GPU0=G6, GPU1=G8
 Route-A A2
-B1: seed 1, G1/G3/G5/G7
+B1-D0: seed 1, GPU0=G1, GPU1=G3
+B1-D1: seed 1, GPU0=G5, GPU1=G7
 Route-A B1
-B2: seed 1, G2/G4/G6/G8
+B2-D0: seed 1, GPU0=G2, GPU1=G4
+B2-D1: seed 1, GPU0=G6, GPU1=G8
 Route-A B2
 ```
 
@@ -180,13 +189,13 @@ explicitly typed rather than promoted.
 | Node | Purpose | Required evidence state |
 |---|---|---|
 | P0.1 | Extend `computed_torque` and `applied_torque` accumulation with authority labels | `RUNTIME_TYPED / COMPLETE`; R170 FULL exact16 produced 45,776 joined PRE/POST phase frames; computed/applied values are POST estimates derived from PRE state and actual PhysX drive torque remains `UNKNOWN` |
-| P0.2 | Effort ladder and shared boundary profile | `MEASURED_FREEZE` at `40.0 N*m`, with `LADDER_INCONCLUSIVE`; exact 12 runs / 192 records, no normal selection |
+| P0.2 | Effort ladder and shared boundary profile | `F2_CLOSED / MEASURED_FREEZE` at `40.0 N*m`, with `LADDER_INCONCLUSIVE`; one effort profile is frozen for the full matrix |
 | P0.3 | Kp/action-scale/clip consistency | `RUNTIME_TYPED / COMPLETE`; R170 exact16 emitted 16 controller identities binding the live action/articulation permutation, FULL load mode, target equation, nominal PD, effort-40 clipped command, and tracking error |
-| P0.4 | Door atlas A0–A8 and E-zone provisional labels | `MEASURED_RAW`; typed brackets exist, but D1 zones/mixture remain `NOT_FROZEN` |
-| P0.5 | Feasibility certificate calibration | A8 certificate `COMPLETED_TYPED_NEGATIVE`; separate D1 source/reducer branch remains incomplete and `confirmed_E2=false` |
+| P0.4 | Door atlas A0–A8 and E-zone provisional labels | `P0_4_D1_PHYSICS_FIRST_FREEZE_ADMITTED`; the canonical R190 receipt freezes normal D1 and D1-lite from measured physics-first brackets and supersedes R54 for admission |
+| P0.5 | Feasibility certificate calibration | `THRESHOLDS_FROZEN`; R35 bands are bound into the R190 physics-first receipt with atlas provenance; A8 remains historical `COMPLETED_TYPED_NEGATIVE`, `confirmed_E2=false` |
 | P0.6 | Common reward and stationary-rent audit | `RUNTIME_VERIFIED / AUDIT_COMPLETE`; R68 short smoke passed and R72 reduced six stage passes to `COMPLETE` with no missing stage |
 | P0.7 | RP0 distribution contract and resume checks | `RUNTIME_VERIFIED`; RP0 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11` |
-| P0.8 | State-bank replay prefixes and forward interventions | `PARTIAL_A0_D0_RUNTIME_VERIFIED / OVERALL_INCOMPLETE`; R78 captured stages 2/3/4 and emitted 15 typed bindings, with no exact state clone or release receipt |
+| P0.8 | State-bank replay prefixes and forward interventions | `P0_8_PREFORMAL_COMPLETE`; unchanged R78 plumbing plus four real one-env trigger records passed, while the complete intervention suite remains deferred to Route B |
 | P0.9 | Four 64-env × 10-batch type smokes | `RUNTIME_VERIFIED / COMPLETE`; R112 WARM_FULL, WARM_RP0, SCRATCH_FULL, and SCRATCH_RP0 each returned runner/child `rc0`, produced a finite step-10 checkpoint, and reduced to the canonical four-type receipt |
 | P0.10 | Scratch D0 FULL pilot | `TERMINAL OPERATIONAL NO-GO / SCIENTIFIC INCONCLUSIVE`; Branch A measured-valid-failed at 16 evaluated / 12 stage-2 / 0 stable-grasp, while Branch B is `UNMEASURED_OBSERVABILITY_BLOCKED` and `UNADJUDICATED`; triggered F1 is implemented and its D0 FULL/RP0 64×10 smokes are runtime verified |
 
@@ -417,10 +426,10 @@ digests, synthetic PASS results, or hidden controller decisions.
 
 Runtime ownership is explicit: P0.2/P0.4 producers own only the above P0 roots;
 the trainer preserves raw episode rows, while `effort_ladder.py` is the sole
-CPU reducer. Physical runtime is restricted to GPU0--3; no GPU4--7, no display,
-no port lease, and no training process may share a probe GPU. Until temporal,
-external, and capability evidence is reduced and the exact D1 freeze is
-written, formal training is a formal **NO-GO**. Calibration changes are
+CPU reducer. Physical runtime is restricted to GPU0 and GPU1 only; GPU2--7 are
+out of scope, with no display or port lease, and no training process may share
+a probe GPU.  Formal launch waits only for the owner-approved physics-first D1,
+P0.8 preformal-v2, and D1-FULL plumbing-smoke receipts. Calibration changes are
 evidence-only: reward/termination semantics are untouched beyond sampling,
 trainer transport preserves raw rows, and all scene geometry uses IsaacLab
 high-level APIs (no low-level USD escape hatch).
@@ -452,18 +461,13 @@ high-level APIs (no low-level USD escape hatch).
 
 ## 10. Stopping condition for R1
 
-The R1 implementation stopped after the plan, source reader, P0.2/P0.3/P0.4/P0.5
-and P0.8 pure-data skeletons, reward registry, and non-launchable common config
-were statically parseable.  The later R49/R54/R68/R72 records are evidence-only
-interim calibration adjudication: P0.2, P0.4, the A8 P0.5 certificate, P0.6,
-P0.7, the bounded partial A0/D0 P0.8 node, the R112 D0 P0.9 four-type smokes,
-and R170 P0.1/P0.3 have typed evidence.  P0.10 is terminal for scratch
-admission: operational NO-GO, with Branch B scientifically unmeasured.  The D1
-source and overall P0.8 remain incomplete.  Formal
-training, formal evaluation, rendering, and final G1–G8 configs remain
-`NOT_RUN/PENDING`, and the formal training gate remains **NO-GO**.
+R1 now continues under the owner-unblock decision in section 15.  Historical
+P0 receipts remain immutable evidence.  The immediate stopping condition is to
+produce the new physics-first D1/D1-lite receipt, the P0.8 preformal-v2 receipt,
+and one passing D1-FULL 64×10 plumbing smoke.  That exact conjunction admits
+formal 8×2 training without another approval gate.
 
-## 11. R51 reduction-closure contract (effective schema update)
+## 11. R51 reduction-closure contract (historical; D1 admission superseded by section 15)
 
 The seven-file reduction closure keeps the measured R46 A8 certificate path
 byte-compatible while making the two producer purposes explicit:
@@ -509,11 +513,11 @@ zone.  With a measured directional bracket `L<U`, the fixed hierarchy is
 sets remain typed `NO_D1`/H4; no cell, threshold, prefix, or rescue fallback
 is inferred.
 
-## 12. R55 adjudication and bounded continuation (interim; 2026-08-10 HKT; synced R56)
+## 12. R55 adjudication and bounded continuation (historical; superseded by section 15)
 
-This section is the current answer-first adjudication of the measured P0
-records.  It does not change the fixed thresholds, schedules, or F1–F8
-contingencies above.
+This section preserves the R54/R55 historical adjudication.  Its symmetric
+FULL/ACUTE completeness gate is not an active admission rule after the owner
+decision; none of its receipts are modified or relabeled.
 
 ### 12.1 Evidence and typed result
 
@@ -546,9 +550,8 @@ infer it from the RP0 mask contract, neutral statistics, or configuration shape.
 
 ### 12.3 Formal gate and bounded DAG
 
-Formal training is a hard **NO-GO** until the D1 source/window contract is
-reduced and the exact D1 freeze is written.  The only allowed continuation is the
-bounded D0 preparation DAG:
+This historical gate was superseded by section 15.  The old DAG is retained as
+provenance only:
 
 ```text
 [R78 COMPLETE] partial P0.8 A0/D0 state-bank/plumbing work
@@ -558,13 +561,9 @@ bounded D0 preparation DAG:
   -> [NEXT] resolve P0.4 D1 and overall P0.8, or preserve typed NO-GO
 ```
 
-The following remain forbidden in this interim state: formal 8×2 training,
-F3/D1-lite execution, any D1 freeze or D1-mixture claim, H1–H5 claims, final
-goal/release claims, and any claim that the R54 raw dimensions were directly
-proved.  P0.4 remains raw/typed, P0.5 D1 remains incomplete, and P0.8 remains
-overall incomplete despite its bounded R78 receipt.  P0.9 is complete only for
-the R112 D0 smoke contract.  P0.10's terminal receipt bars scratch admission;
-it does not adjudicate Branch B scientifically or admit formal work.
+Do not use this historical paragraph to block the owner-approved revised P0
+path.  It remains valid only as a description of what R54/R78 themselves did
+and did not prove.
 
 ## 13. R170/R173 P0.1/P0.3 closure and P0.10 terminal adjudication (2026-08-10 HKT)
 
@@ -616,3 +615,115 @@ schema `a2_piper_v23_f1_head_reset_d0_receipt_v1` and status
 the F1 implementation/smoke node.  It does not measure Branch B, establish
 policy quality, complete P0.8, admit D1/formal work, or support release/goal
 success.
+
+## 15. Owner-unblock decision and active continuation (2026-08-10 HKT)
+
+The effective decision is
+`scriptsFORhuman/v23/DoorDog_v23_owner_decision_p0_unblock_20260810.md`.
+It selects the combined option 2+3, rejects the former terminal NO-GO and a
+D0-only continuation, and supersedes only the admission semantics identified
+below.  Historical R54 and R78 inputs and receipts remain immutable.
+
+### 15.1 Physics-first D1 and D1-lite freeze
+
+F2 closes P0.2 at one matrix-wide effort boundary of `40.0 N*m`.  The D1
+classifier consumes the scripted free-return/fixed-torque atlas brackets and
+uses their measured positive-direction upper endpoint `U` without interpolation
+or policy-derived promotion:
+
+| Zone | Active normal-D1 cells | Measured rule |
+|---|---|---|
+| E0 | A0, A1 | `U <= 15 N*m` |
+| E1 | A4, A5, A6, A2, A3, A7 | `15 < U <= 30 N*m` |
+| near-E2 | A8 | measured `(30,40] N*m`, reaching the effort40 boundary |
+| confirmed E2 | none | remains evaluation-only and unconfirmed |
+
+D1-lite keeps E0 unchanged, narrows E1 to A4/A5/A6 (`15 < U <= 20 N*m`),
+keeps A8 as near-E2, and uses
+`100/0/0 -> 65/35/0 -> 40/55/5`.  Normal D1 uses
+`100/0/0 -> 60/40/0 -> 30/60/10`.  This is the minimum F-plan adjudication
+that preserves every measured tier boundary, introduces no unmeasured tie-break
+or capacity estimate, and implements the owner's narrower-E1/halved-near-E2
+D1-lite instruction.  The labels are provisional; HR-RP0 cells re-adjudicate
+them after training.
+
+The new receipt is
+`logs_eval/base_v23/p0/p04_d1_physics_first_20260810/p04_d1_physics_first.json`
+with schema `a2_piper_v23_p04_d1_physics_first_v1`.  It records the effort40
+comparison, normal and lite zones/schedules, `confirmed_E2=false`, the R35
+P0.5 bands, and atlas provenance including the measured `0.02 rad`
+opening-pass threshold.  Policy probes are auxiliary only: FULL with at least
+12/16 valid windows is archived, ACUTE is typed
+`ACUTE_WINDOWS_SPARSE_EXPECTED`, and the known env5 gap is non-blocking.  No
+fresh raw-action dimensions 3/4 telemetry is required for this freeze.
+
+### 15.2 P0.8 preformal-v2 gate
+
+R78 already satisfies the state-bank plumbing requirement: stages 2/3/4, three
+entries, and 15 static bindings.  A new default-off `a2_v23_p08_v2_*` path must
+execute exactly one 1--2-environment trigger verification for each non-FULL
+mode: `ACUTE_RP0`, `BASE0_AT_GRASP`, `HIGHER_EFFORT_RESCUE`, and
+`ORACLE_TANGENTIAL_ASSIST`.  Each record must identify the observed switch/latch,
+pre/post action transformation, and, for rescue, the high-level six-joint
+effort-limit request/readback.  These short runs prove only connection,
+switching, and record marking; they do not claim causal effect, policy quality,
+state cloning, or recurrent-state restoration.
+
+The reducer writes
+`logs_eval/base_v23/p0/interventions/preformal_v2/p08_preformal_v2_receipt.json`
+with schema `a2_piper_v23_p08_preformal_v2_receipt_v1` and status
+`P0_8_PREFORMAL_COMPLETE` iff unchanged R78 plumbing is present and exactly one
+valid triggered record exists for all four modes.  The complete four-mode
+runtime suite remains deferred to Route B on selected checkpoints.
+
+The canonical receipt is now complete.  The bounded runtime evidence is:
+ACUTE switched at episode start step `0`; BASE0 observed the real stable-grasp
+high-water latch at step `180` and switched at `181`; higher-effort rescue and
+oracle assist observed the frozen typed-failure latch at step `530` and switched
+at `531`.  Rescue proves only a configured six-joint solver-limit request and
+readback.  The receipt keeps `formal_admission=false`, `release_receipt=false`,
+and makes no causal, policy-quality, exact-clone, recurrent-restore, or actual
+PhysX torque claim.
+
+### 15.3 Formal admission, resources, and source discipline
+
+Formal 8x2 admission is the conjunction of:
+
+1. the physics-first D1/D1-lite receipt;
+2. the `P0_8_PREFORMAL_COMPLETE` receipt; and
+3. one passing D1-FULL `64 env x 10 batch` bucket-plumbing smoke.
+
+That conjunction is complete.  R228 was the preserved fail-fast attempt that
+stopped before optimizer initialization because the D1 root config did not
+carry the exact measured v22 contact-table input.  After that source contract
+was fixed, R233 completed the fresh GPU0 training run naturally and produced a
+finite step-10 checkpoint.  R238 reduced the immutable R233 raw record to
+`logs_eval/base_v23/p0/d1_full_64x10/d1_full_64x10_receipt.json`, schema
+`a2_piper_v23_d1_full_64x10_receipt_v1`, status
+`D1_FULL_64X10_BUCKET_PLUMBING_RUNTIME_VERIFIED`.  This is a bucket-plumbing
+and short-training pass only; it does not claim policy quality or release.
+
+No other reducer completeness or symmetry rule may be added.  Physical GPU0
+and GPU1 are the only runtime resources; GPU2--7 are excluded.  Four-cell
+scientific sub-waves use the two serial slices in section 4, followed by one
+Route-A evaluation after both slices.  The long-run wait uses the observed
+step-250 checkpoint interval extrapolated by `1.05`, then one long sleep and a
+natural-exit/OOM/traceback check.
+
+All new v23 tests, runners, launchers, orchestration, and analysis scripts live
+under `scriptsFORhuman/v23/`.  A runtime-imported production module may remain
+inside `gr00t` only as a separate v23 module.  Shared source/config changes are
+additive and gated by default-off `a2_v23_*` keys; existing `a2_v20_*`,
+`a2_v21B_*`, and `a2_v22_*` semantics remain unchanged.  No v23 file is moved,
+renamed, or cleaned up mid-round.  Post-v23 source isolation is recorded as
+LT-23-12 in `scriptsFORhuman/a2_piper_longterm_TODO.md`.
+
+The active DAG is therefore:
+
+```text
+physics-first D1/D1-lite receipt + P0.8 preformal-v2 receipt
+  -> D1-FULL 64x10 plumbing smoke
+  -> A1, A2, B1, B2 two-GPU slices + Route A after each scientific sub-wave
+  -> selected Route B full interventions
+  -> holdout64 -> render -> final analysis/report
+```

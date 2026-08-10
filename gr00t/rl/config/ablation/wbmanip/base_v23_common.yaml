@@ -58,6 +58,9 @@ algo:
     num_mini_batches: 4
     eval:
       a2_v23_p0_runtime_export: false
+    # D1 raw export is opt-in and requires the runner to provide a fresh path.
+    a2_v23_d1_runtime_export: false
+    a2_v23_d1_runtime_raw_path: null
   trl:
     num_total_batches: 2500
 
@@ -76,6 +79,15 @@ env:
     a2_v23_effort_profile_nm: null
     a2_v23_d0_source_config_path: gr00t/rl/config/ablation/wbmanip/base_v22_G1_posture_seed0.yaml
     a2_v23_d1_manifest_path: null
+    # D1 physics-first sampler is additive and disabled for historical configs.
+    # When enabled, manifest_path and receipt_path must name the same R190
+    # physics-first receipt; no alternate source is accepted.
+    a2_v23_d1_sampler_enabled: false
+    a2_v23_d1_variant: normal
+    a2_v23_d1_bucket_seed: null
+    a2_v23_d1_total_steps: null
+    a2_v23_d1_receipt_path: null
+    a2_v23_d1_global_step: 0
     a2_v23_state_bank_path: null
     a2_v23_feasibility_certificate_path: null
     a2_v23_stationary_rent_audit_mode: source_only_no_simulation
@@ -84,6 +96,8 @@ env:
     a2_v23_effort_profile_applied: null
     a2_v23_oracle_tangential_delta_raw: null
     a2_v23_oracle_active_mask: null
+    a2_v23_route_b_render_enabled: false
+    a2_v23_route_b_render_manifest_path: null
     a2_v23_rp0_enabled: false
     a2_v23_rp0_mask_indices: [3, 4]
     a2_v23_rp0_neutral_value: 0.0

@@ -74,6 +74,13 @@ _A2_V23_RP0_EFFECTIVE_CONFIG_SCHEMA = "a2_piper_v23_p07_effective_config_v1"
 _A2_V23_RP0_EFFECTIVE_CONFIG_FILENAME = "a2_v23_p07_effective_config.json"
 _A2_V23_RP0_RUNTIME_MASK_INDICES = (3, 4)
 _A2_V23_RP0_RUNTIME_NEUTRAL = 0.0
+_A2_V23_D1_RAW_SCHEMA = "a2_piper_v23_d1_full_64x10_raw_v1"
+_A2_V23_D1_RAW_STATUS = "RUNTIME_VERIFIED"
+_A2_V23_D1_RUNTIME_EXPORT_KEY = "a2_v23_d1_runtime_export"
+_A2_V23_D1_RUNTIME_RAW_PATH_KEY = "a2_v23_d1_runtime_raw_path"
+_A2_V23_D1_SAMPLER_ENABLED_KEY = "a2_v23_d1_sampler_enabled"
+_A2_V23_D1_TOTAL_STEPS_KEY = "a2_v23_d1_total_steps"
+_A2_V23_WARM_HEAD_RESET_ENABLED_KEY = "a2_v23_warm_head_reset_enabled"
 _A2_V23_RP0_RUNTIME_ENVS = 64
 _A2_V23_STATIONARY_RENT_PASS_SCHEMA = "a2_piper_v23_stationary_rent_pass_v1"
 _A2_V23_STATIONARY_RENT_PASS_FILENAME = "a2_v23_stationary_rent_pass.json"
@@ -161,6 +168,111 @@ _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS = (
     "eval_render_step",
 )
 _A2_V23_FULL_ENV_RESET_STATE_FIELDS = frozenset(("cur_reward_sum", "cur_episode_length"))
+_A2_V23_ROUTE_A_UNSAFE_CONTACT_FIELD = "v23_unsafe_contact"
+
+
+def _read_a2_v23_route_a_unsafe_contact_config(
+    eval_config,
+    *,
+    env,
+    eval_num_envs_episodes,
+    process_count,
+):
+    """Resolve the strict opt-in Route-A direct unsafe-contact export contract."""
+
+    enabled = eval_config.get("a2_v23_route_a_unsafe_contact_export", False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            "eval.a2_v23_route_a_unsafe_contact_export must be bool; "
+            f"got {enabled!r}."
+        )
+    if not enabled:
+        return {"enabled": False}
+    if not bool(getattr(env, "_use_a2_base", False)):
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires an A2_Base environment."
+        )
+    if eval_num_envs_episodes is not True:
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires eval.eval_num_envs_episodes=true."
+        )
+    if process_count != 1:
+        raise RuntimeError("Route-A unsafe-contact export requires one process.")
+    if int(env.num_envs) != 16:
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires exactly 16 canonical environments."
+        )
+    env_config = getattr(env, "config", None)
+    if env_config is None or env_config.get("a2_v23_route_a_unsafe_contact_enabled") is not True:
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires "
+            "env.config.a2_v23_route_a_unsafe_contact_enabled=true."
+        )
+    if getattr(env, "_a2_v23_route_a_unsafe_contact_enabled", None) is not True:
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires the environment producer gate to be enabled."
+        )
+    topology = eval_config.get(
+        "a2_v23_route_a_topology",
+        eval_config.get("v23_route_a_topology", "canonical16"),
+    )
+    env_topology = env_config.get("a2_v23_route_a_topology", "canonical16")
+    if topology != "canonical16" or env_topology != "canonical16":
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires topology=canonical16."
+        )
+    getter = getattr(env, "get_a2_v23_route_a_unsafe_contact", None)
+    if not callable(getter):
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires the strict environment getter."
+        )
+    return {
+        "enabled": True,
+        "topology": "canonical16",
+        "num_envs": 16,
+        "getter": getter,
+    }
+
+
+def _attach_a2_v23_route_a_unsafe_contact(records, snapshots, *, expected_num_envs):
+    """Attach only strict pre-reset direct producer snapshots to v14 rows."""
+
+    if not isinstance(records, list) or len(records) != expected_num_envs:
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires one v14 record per environment."
+        )
+    if not isinstance(snapshots, dict) or set(snapshots) != set(range(expected_num_envs)):
+        raise RuntimeError(
+            "Route-A unsafe-contact export requires one pre-reset snapshot per environment."
+        )
+    seen = set()
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise RuntimeError(
+                f"Route-A unsafe-contact v14 record {index} must be a mapping."
+            )
+        env_id = record.get("env_id")
+        if (
+            isinstance(env_id, bool)
+            or not isinstance(env_id, int)
+            or env_id not in range(expected_num_envs)
+            or env_id in seen
+        ):
+            raise RuntimeError(
+                "Route-A unsafe-contact v14 records require unique env ids 0..15."
+            )
+        value = snapshots[env_id]
+        if not isinstance(value, bool):
+            raise RuntimeError(
+                f"Route-A unsafe-contact snapshot env{env_id} must be a native bool; got {value!r}."
+            )
+        record[_A2_V23_ROUTE_A_UNSAFE_CONTACT_FIELD] = value
+        seen.add(env_id)
+    if seen != set(range(expected_num_envs)):
+        raise RuntimeError(
+            "Route-A unsafe-contact v14 records must cover env ids 0..15 exactly."
+        )
+    return records
 
 
 def _v21b_scalar(value, *, key: str):
@@ -2504,6 +2616,81 @@ def _read_a2_v23_p08_state_bank_config(
     }
 
 
+def _read_a2_v23_p08_v2_config(
+    eval_config,
+    *,
+    env,
+    process_count,
+):
+    """Resolve the strict opt-in one-env P0.8 preformal-v2 export contract."""
+
+    enabled = eval_config.get("a2_v23_p08_v2_export", False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            "eval.a2_v23_p08_v2_export must be bool; "
+            f"got {enabled!r}."
+        )
+    if not enabled:
+        return {"enabled": False}
+    if not bool(getattr(env, "_use_a2_base", False)):
+        raise RuntimeError("P0.8 preformal-v2 export requires an A2_Base environment.")
+    if process_count != 1:
+        raise RuntimeError("P0.8 preformal-v2 export requires one process.")
+    if eval_config.get("eval_num_envs_episodes") is not True:
+        raise RuntimeError(
+            "P0.8 preformal-v2 export requires eval.eval_num_envs_episodes=true."
+        )
+    if int(env.num_envs) != 1:
+        raise RuntimeError("P0.8 preformal-v2 export requires exactly one environment.")
+    if eval_config.get("a2_v23_p05_runtime_export") is not False:
+        raise RuntimeError(
+            "P0.8 preformal-v2 export requires eval.a2_v23_p05_runtime_export=false."
+        )
+    if eval_config.get("a2_v23_p08_state_bank_export") is not False:
+        raise RuntimeError(
+            "P0.8 preformal-v2 trigger runs cannot share the R78 state-bank capture."
+        )
+    if env.config.get("a2_v23_p08_v2_enabled") is not True:
+        raise RuntimeError(
+            "P0.8 preformal-v2 export requires env.config.a2_v23_p08_v2_enabled=true."
+        )
+    if env.config.get("a2_v23_forward_intervention_mode") is not None:
+        raise RuntimeError(
+            "P0.8 preformal-v2 export cannot share the historical v23 forward-intervention mode."
+        )
+    mode = env.config.get("a2_v23_p08_v2_mode")
+    allowed_modes = (
+        "ACUTE_RP0",
+        "BASE0_AT_GRASP",
+        "HIGHER_EFFORT_RESCUE",
+        "ORACLE_TANGENTIAL_ASSIST",
+    )
+    if mode not in allowed_modes:
+        raise RuntimeError(
+            "P0.8 preformal-v2 export requires a registered four-mode env configuration; "
+            f"got {mode!r}."
+        )
+    record_env_id = eval_config.get("a2_v23_p08_v2_record_env_id", 0)
+    if isinstance(record_env_id, bool) or not isinstance(record_env_id, int):
+        raise RuntimeError("eval.a2_v23_p08_v2_record_env_id must be an integer.")
+    if not 0 <= record_env_id < int(env.num_envs):
+        raise RuntimeError("eval.a2_v23_p08_v2_record_env_id is outside the live env range.")
+    filename = eval_config.get(
+        "a2_v23_p08_v2_raw_filename", "a2_v23_p08_v2_raw.json"
+    )
+    if not isinstance(filename, str) or not filename:
+        raise RuntimeError("eval.a2_v23_p08_v2_raw_filename must be a non-empty string.")
+    if Path(filename).name != filename:
+        raise RuntimeError("eval.a2_v23_p08_v2_raw_filename must be a basename.")
+    return {
+        "enabled": True,
+        "mode": mode,
+        "record_env_id": record_env_id,
+        "raw_filename": filename,
+        "num_envs": int(env.num_envs),
+    }
+
+
 def _validate_a2_v23_p08_p05_terminal_readback(
     record,
     *,
@@ -3386,6 +3573,10 @@ class TRLPPOTrainer(PPOTrainer):
         )
         self._init_config()
         self._setup_storage()
+        self._a2_v23_d1_runtime_export = False
+        self._a2_v23_d1_runtime_raw_path = None
+        self._a2_v23_d1_phase_rows = []
+        self._resolve_a2_v23_d1_runtime_config()
 
         self._a2_v23_runtime_receipt_enabled = False
         self._a2_v23_runtime_receipt_config = None
@@ -4241,6 +4432,222 @@ class TRLPPOTrainer(PPOTrainer):
         if any(isinstance(item, bool) or not isinstance(item, int) for item in values):
             raise RuntimeError(f"{name} must contain only integer action indices; got {value!r}.")
         return values
+
+    def _resolve_a2_v23_d1_runtime_config(self):
+        """Resolve the explicit opt-in D1 raw runtime export contract."""
+
+        env_config = self.env.config
+        enabled = env_config.get(_A2_V23_D1_SAMPLER_ENABLED_KEY, False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                f"env.config.{_A2_V23_D1_SAMPLER_ENABLED_KEY} must be bool; got {enabled!r}."
+            )
+        export = self.config.get(_A2_V23_D1_RUNTIME_EXPORT_KEY, False)
+        if not isinstance(export, bool):
+            raise RuntimeError(
+                f"algo.config.{_A2_V23_D1_RUNTIME_EXPORT_KEY} must be bool; got {export!r}."
+            )
+        raw_path = self.config.get(_A2_V23_D1_RUNTIME_RAW_PATH_KEY)
+        if raw_path is not None and (not isinstance(raw_path, (str, Path)) or not str(raw_path)):
+            raise RuntimeError(
+                f"algo.config.{_A2_V23_D1_RUNTIME_RAW_PATH_KEY} must be a non-empty path when present."
+            )
+        if export and not enabled:
+            raise RuntimeError("D1 raw export cannot be enabled when the D1 sampler is disabled.")
+        if export and not isinstance(raw_path, (str, Path)):
+            raise RuntimeError("D1 raw export requires an explicit raw path.")
+        if export:
+            resolved = Path(str(raw_path)).expanduser().resolve()
+            if resolved.exists() or resolved.is_symlink():
+                raise RuntimeError(f"D1 raw export refuses an existing output path: {resolved}")
+            self._a2_v23_d1_runtime_raw_path = resolved
+        self._a2_v23_d1_runtime_export = export
+
+    def _a2_v23_d1_prepare_step(self, global_step: int) -> bool:
+        """Apply the env-owned absolute step and return its reset boundary."""
+
+        if not self._a2_v23_d1_runtime_export and not self.env.config.get(
+            _A2_V23_D1_SAMPLER_ENABLED_KEY, False
+        ):
+            return False
+        if isinstance(global_step, bool) or not isinstance(global_step, int):
+            raise RuntimeError(f"D1 trainer global_step must be an absolute integer; got {global_step!r}.")
+        row = self.env.apply_a2_v23_d1_global_step(global_step)
+        if not isinstance(row, Mapping) or row.get("global_step") != global_step:
+            raise RuntimeError("D1 env step hook did not return the requested absolute global_step.")
+        if self._a2_v23_d1_phase_rows:
+            previous = self._a2_v23_d1_phase_rows[-1]["global_step"]
+            if global_step < previous:
+                raise RuntimeError(
+                    "D1 trainer phase telemetry must contain non-decreasing absolute steps."
+                )
+            if global_step == previous:
+                if row.get("full_reset_boundary"):
+                    raise RuntimeError("D1 repeated absolute step cannot request an additional full reset.")
+                return False
+        self._a2_v23_d1_phase_rows.append(dict(row))
+        return bool(row.get("full_reset_boundary"))
+
+    @staticmethod
+    def _a2_v23_d1_assert_finite_checkpoint_value(value, *, visited: set[int] | None = None):
+        if visited is None:
+            visited = set()
+        value_id = id(value)
+        if value_id in visited:
+            return
+        visited.add(value_id)
+        if torch.is_tensor(value):
+            if not torch.all(torch.isfinite(value)):
+                raise RuntimeError("D1 saved checkpoint contains a non-finite tensor.")
+            return
+        if isinstance(value, np.ndarray):
+            if not np.all(np.isfinite(value)):
+                raise RuntimeError("D1 saved checkpoint contains a non-finite array.")
+            return
+        if isinstance(value, float):
+            if not math.isfinite(value):
+                raise RuntimeError("D1 saved checkpoint contains a non-finite scalar.")
+            return
+        if isinstance(value, Mapping):
+            for item in value.values():
+                TRLPPOTrainer._a2_v23_d1_assert_finite_checkpoint_value(item, visited=visited)
+            return
+        if isinstance(value, (list, tuple)):
+            for item in value:
+                TRLPPOTrainer._a2_v23_d1_assert_finite_checkpoint_value(item, visited=visited)
+            return
+        if hasattr(value, "__dict__"):
+            TRLPPOTrainer._a2_v23_d1_assert_finite_checkpoint_value(vars(value), visited=visited)
+
+    def _a2_v23_d1_observe_saved_checkpoint(self):
+        checkpoint_path = Path(str(self.args.output_dir)).expanduser().resolve() / "model_step_000010.pt"
+        if checkpoint_path.is_symlink() or not checkpoint_path.is_file():
+            raise RuntimeError(
+                "D1 runtime export requires the actual model_step_000010.pt produced by the save callback."
+            )
+        checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+        checkpoint_state = checkpoint.get("state") if isinstance(checkpoint, Mapping) else None
+        checkpoint_step = getattr(checkpoint_state, "global_step", None)
+        if checkpoint_step is None and isinstance(checkpoint_state, Mapping):
+            checkpoint_step = checkpoint_state.get("global_step")
+        if checkpoint_step != 10:
+            raise RuntimeError(
+                f"D1 saved checkpoint state.global_step must be 10; got {checkpoint_step!r}."
+            )
+        self._a2_v23_d1_assert_finite_checkpoint_value(checkpoint)
+        return checkpoint_path
+
+    def _write_a2_v23_d1_runtime_raw(self):
+        """Write one strict D1 raw record only after the actual step-10 save."""
+
+        if not self._a2_v23_d1_runtime_export:
+            return
+        if self._a2_v23_d1_runtime_raw_path is None:
+            raise RuntimeError("D1 runtime export path was not resolved.")
+        workflow = self.workflow_config
+        if workflow is None or not isinstance(workflow, Mapping):
+            raise RuntimeError("D1 runtime export requires the resolved workflow config.")
+        identity = {
+            "cell": workflow.get("v23_cell"),
+            "seed": workflow.get("v23_seed"),
+            "initialization": workflow.get("v23_initialization"),
+            "door_regime": workflow.get("v23_door_regime"),
+            "posture_mode": workflow.get("v23_posture_mode"),
+            "training_enabled": workflow.get("v23_training_enabled"),
+        }
+        if identity != {
+            "cell": "G5",
+            "seed": 0,
+            "initialization": "v22_warm",
+            "door_regime": "D1",
+            "posture_mode": "FULL",
+            "training_enabled": True,
+        }:
+            raise RuntimeError(f"D1 raw export workflow identity is not the exact G5 smoke identity: {identity!r}.")
+        if workflow.get("v23_formal_launchable") is not False or workflow.get("v23_contract_only") is not False:
+            raise RuntimeError("D1 raw export requires non-formal, non-contract-only smoke workflow flags.")
+
+        env_config = self.env.config
+        if env_config.get(_A2_V23_D1_TOTAL_STEPS_KEY) != 10 or self.env.num_envs != 64:
+            raise RuntimeError("D1 raw export requires the exact 64x10 topology.")
+        if int(self.args.num_total_batches) != 10:
+            raise RuntimeError("D1 raw export requires num_total_batches=10.")
+        if int(self.config.get("num_mini_batches")) != 1:
+            raise RuntimeError("D1 raw export requires num_mini_batches=1.")
+        save_frequency = workflow.get("callbacks", {}).get("model_save", {}).get("save_frequency")
+        if save_frequency != 10:
+            raise RuntimeError("D1 raw export requires model_save.save_frequency=10.")
+        if int(self.accelerator.num_processes) != 1:
+            raise RuntimeError("D1 raw export requires exactly one process.")
+        visible_gpu = os.environ.get("CUDA_VISIBLE_DEVICES")
+        if visible_gpu not in {"0", "1"}:
+            raise RuntimeError("D1 raw export requires CUDA_VISIBLE_DEVICES to identify physical GPU 0 or 1.")
+        if int(torch.cuda.device_count()) != 1 or int(torch.cuda.current_device()) != 0:
+            raise RuntimeError("D1 raw export requires one visible logical cuda:0 device.")
+        if self.state.global_step != 10:
+            raise RuntimeError(f"D1 raw export requires successful state.global_step=10; got {self.state.global_step}.")
+        if len(self._a2_v23_d1_phase_rows) != 10 or [row.get("global_step") for row in self._a2_v23_d1_phase_rows] != list(range(10)):
+            raise RuntimeError("D1 raw export requires exactly one phase row for absolute steps 0..9.")
+        for row in self._a2_v23_d1_phase_rows:
+            step = row.get("global_step")
+            if row.get("full_reset_boundary") is not (step in (0, 2, 5)):
+                raise RuntimeError(f"D1 phase reset boundary is invalid at global_step={step}.")
+            if row.get("configured_joint_readback_status") != "CONFIGURED_HIGH_LEVEL_JOINT_READBACK_VERIFIED":
+                raise RuntimeError(f"D1 configured joint readback is incomplete at global_step={step}.")
+            assignments = row.get("assignments")
+            if not isinstance(assignments, list) or len(assignments) != 64:
+                raise RuntimeError(f"D1 realized assignments are incomplete at global_step={step}.")
+            applied_mass = row.get("door_panel_mass_kg_applied")
+            expected_mass = [assignment["realized_params"]["door_weight_kg"] for assignment in assignments]
+            if applied_mass != expected_mass:
+                raise RuntimeError(f"D1 applied mass assignments disagree at global_step={step}.")
+            if row.get("door_panel_mass_assignment_source") != "D1Sampler.realized_params_via_mdp.randomize_rigid_body_mass":
+                raise RuntimeError(f"D1 applied mass assignment source is invalid at global_step={step}.")
+
+        checkpoint_path = self._a2_v23_d1_observe_saved_checkpoint()
+        raw = {
+            "schema": _A2_V23_D1_RAW_SCHEMA,
+            "status": _A2_V23_D1_RAW_STATUS,
+            "task_id": "V23-R211-D1-FULL-64X10",
+            "revision": "C2",
+            "cell": "G5",
+            "seed": 0,
+            "initialization": "v22_warm",
+            "door_regime": "D1",
+            "posture_mode": "FULL",
+            "training_enabled": True,
+            "physical_gpu": int(visible_gpu),
+            "logical_device": "cuda:0",
+            "num_processes": 1,
+            "process_count": 1,
+            "num_envs": 64,
+            "num_total_batches": 10,
+            "num_mini_batches": 1,
+            "save_frequency": 10,
+            "retry_count": 0,
+            "returncode": 0,
+            "checkpoint_path": str(checkpoint_path),
+            "checkpoint_global_step": 10,
+            "checkpoint_finite": True,
+            "phases": self._a2_v23_d1_phase_rows,
+            "full_reset_boundaries": [0, 2, 5],
+            "formal_admission": False,
+            "policy_quality_claim": False,
+            "readback_claim": "CONFIGURED_DYNAMICS_ONLY",
+            "excluded_claims": [
+                "NO_POLICY_QUALITY_CLAIM",
+                "NO_D1_PHYSICS_ADJUDICATION_CLAIM",
+                "NO_FORMAL_ADMISSION",
+                "NO_RELEASE_RECEIPT",
+            ],
+        }
+        target = self._a2_v23_d1_runtime_raw_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            raise RuntimeError(f"D1 raw export refuses to overwrite existing output: {target}")
+        with target.open("x", encoding="utf-8") as handle:
+            json.dump(raw, handle, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            handle.write("\n")
 
     def _resolve_a2_v23_runtime_receipt_config(self):
         """Resolve the opt-in P0.7 receipt contract without changing default training."""
@@ -5637,7 +6044,13 @@ class TRLPPOTrainer(PPOTrainer):
             self.model_wrapped = self.model
 
         # env
+        d1_enabled = bool(self.env.config.get(_A2_V23_D1_SAMPLER_ENABLED_KEY, False))
+        if d1_enabled and self.env.config.get("reinit_sim_freq", 0) > 0:
+            raise RuntimeError("D1 absolute-step runtime does not support reinit_sim_freq resets.")
+        d1_initial_boundary = self._a2_v23_d1_prepare_step(int(self.state.global_step)) if d1_enabled else False
         obs_dict = self.env.reset_all()
+        if d1_enabled and not d1_initial_boundary:
+            raise RuntimeError("D1 first absolute-step invocation must be a full-reset boundary.")
         if self.config.get("init_at_random_ep_len", False):
             self.env.episode_length_buf = torch.randint_like(
                 self.env.episode_length_buf, high=int(self.env.max_episode_length)
@@ -5665,6 +6078,12 @@ class TRLPPOTrainer(PPOTrainer):
             reinit_sim_freq = self.env.config.get("reinit_sim_freq", 0)
             if reinit_sim_freq > 0 and (self.state.global_step + 1) % reinit_sim_freq == 0:
                 self.env.reinit_sim()
+                obs_dict = self.env.reset_all()
+                for obs_key in obs_dict.keys():
+                    obs_dict[obs_key] = obs_dict[obs_key].to(device)
+
+            d1_boundary = self._a2_v23_d1_prepare_step(int(self.state.global_step)) if d1_enabled else False
+            if d1_enabled and d1_boundary:
                 obs_dict = self.env.reset_all()
                 for obs_key in obs_dict.keys():
                     obs_dict[obs_key] = obs_dict[obs_key].to(device)
@@ -5863,6 +6282,9 @@ class TRLPPOTrainer(PPOTrainer):
 
             if self.control.should_training_stop:
                 break
+
+        if self._a2_v23_d1_runtime_export:
+            self._write_a2_v23_d1_runtime_raw()
 
         if self._a2_v23_runtime_receipt_enabled and self._a2_v23_runtime_terminal_batch_completed:
             self._write_a2_v23_runtime_receipt()
@@ -6259,7 +6681,19 @@ class TRLPPOTrainer(PPOTrainer):
         if self.workflow_config is None:
             return None
         initialization = self.workflow_config.get("v23_initialization")
+        enabled = self.env.config.get(_A2_V23_WARM_HEAD_RESET_ENABLED_KEY, False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                f"env.config.{_A2_V23_WARM_HEAD_RESET_ENABLED_KEY} must be bool; got {enabled!r}."
+            )
         if initialization != "warm_head_reset":
+            if enabled:
+                raise RuntimeError(
+                    f"env.config.{_A2_V23_WARM_HEAD_RESET_ENABLED_KEY}=true requires "
+                    "v23_initialization='warm_head_reset'."
+                )
+            return None
+        if not enabled:
             return None
         if self.checkpoint_load_mode != "policy_only":
             raise RuntimeError(
@@ -6497,6 +6931,12 @@ class TRLPPOTrainer(PPOTrainer):
                 "eval.a2_v23_p05_runtime_export must be bool; "
                 f"got {a2_v23_p05_runtime_export!r}."
             )
+        a2_v23_route_a_unsafe_contact = _read_a2_v23_route_a_unsafe_contact_config(
+            self.config.get("eval", {}),
+            env=self.env,
+            eval_num_envs_episodes=eval_num_envs_episodes,
+            process_count=self.accelerator.num_processes,
+        )
         a2_v23_stationary_rent = _read_a2_v23_stationary_rent_config(
             self.config.get("eval", {})
         )
@@ -6508,9 +6948,22 @@ class TRLPPOTrainer(PPOTrainer):
             seed=int(self.args.seed),
             process_count=self.accelerator.num_processes,
         )
+        a2_v23_p08_v2 = _read_a2_v23_p08_v2_config(
+            self.config.get("eval", {}),
+            env=self.env,
+            process_count=self.accelerator.num_processes,
+        )
         if a2_v23_p08_state_bank["enabled"] and a2_v23_stationary_rent["enabled"]:
             raise RuntimeError(
                 "P0.8 state-bank capture cannot share a rollout with stationary-rent export."
+            )
+        if a2_v23_p08_v2["enabled"] and a2_v23_stationary_rent["enabled"]:
+            raise RuntimeError(
+                "P0.8 preformal-v2 trigger runs cannot share a rollout with stationary-rent export."
+            )
+        if a2_v23_p08_v2["enabled"] and a2_v23_p08_state_bank["enabled"]:
+            raise RuntimeError(
+                "P0.8 preformal-v2 trigger runs cannot share the R78 state-bank capture."
             )
         if a2_v23_p08_state_bank["enabled"]:
             get_p05_evidence = getattr(self.env, "get_a2_v23_p05_episode_evidence", None)
@@ -6571,6 +7024,8 @@ class TRLPPOTrainer(PPOTrainer):
         eval_to_log_records = []
         a2_v23_p0_terminal_records: list[dict] = []
         a2_v23_p05_terminal_records: list[dict] = []
+        a2_v23_p08_v2_terminal_records: dict[int, dict] = {}
+        a2_v23_route_a_unsafe_contact_snapshots: dict[int, bool] = {}
 
         if eval_num_envs_episodes:
             max_episodes = self.env.num_envs  # One episode per environment
@@ -6590,6 +7045,10 @@ class TRLPPOTrainer(PPOTrainer):
         # Initialize environment-based metrics tracking
         self.env.init_eval_metrics_tracking(self.accelerator.device)
         a2_stage2_trace_enabled = bool(getattr(self.env, "_use_a2_base", False))
+        if a2_v23_route_a_unsafe_contact["enabled"] and not a2_stage2_trace_enabled:
+            raise RuntimeError(
+                "Route-A unsafe-contact export requires the A2 v14 stage2 evaluation path."
+            )
         if a2_eval_diagnostics["diagnostic_enabled"] and not a2_stage2_trace_enabled:
             raise RuntimeError("A2 eval diagnostics can only be enabled for an A2_Base env.")
         if a2_stage2_trace_enabled:
@@ -6833,6 +7292,29 @@ class TRLPPOTrainer(PPOTrainer):
                             v23_actor_state["a2_v23_pre_low_level_applied"] = True
                             actor_state.update(v23_actor_state)
 
+                        if a2_v23_p08_v2["enabled"]:
+                            build_v2_state = getattr(
+                                self.env, "build_a2_v23_p08_v2_actor_state", None
+                            )
+                            apply_v2 = getattr(
+                                self.env, "apply_a2_v23_p08_v2_high_level_intervention", None
+                            )
+                            if build_v2_state is None or apply_v2 is None:
+                                raise RuntimeError(
+                                    "P0.8 preformal-v2 export requires the env trigger/action hooks."
+                                )
+                            v2_actor_state = build_v2_state(
+                                device=post_oracle_override_pre_env_action.device,
+                                dtype=post_oracle_override_pre_env_action.dtype,
+                                control_step=self.cur_episode_length.clone().to(dtype=torch.long),
+                            )
+                            post_oracle_override_pre_env_action = apply_v2(
+                                post_oracle_override_pre_env_action,
+                                actor_state=v2_actor_state,
+                            )
+                            actor_state.update(v2_actor_state)
+                            actor_state["a2_v23_p08_v2_pre_low_level_applied"] = True
+
                         applied_high_level_action = post_oracle_override_pre_env_action
                         if a2_v23_stationary_rent["enabled"]:
                             stationary_target_stage = a2_v23_stationary_rent["target_stage"]
@@ -6937,6 +7419,16 @@ class TRLPPOTrainer(PPOTrainer):
                         )
                         stationary_rent_pending = None
 
+                    if a2_v23_p08_v2["enabled"]:
+                        apply_v2_latch = getattr(
+                            self.env, "maybe_apply_a2_v23_p08_v2_latch", None
+                        )
+                        if apply_v2_latch is None:
+                            raise RuntimeError(
+                                "P0.8 preformal-v2 export requires the typed post-step latch hook."
+                            )
+                        apply_v2_latch()
+
                     if a2_v23_p05_runtime_export:
                         apply_p05_latch = getattr(
                             self.env, "maybe_apply_a2_v23_p05_rescue_latch", None
@@ -6998,6 +7490,22 @@ class TRLPPOTrainer(PPOTrainer):
 
                         if len(valid_new_ids) > 0:
                             completed_episodes += len(valid_new_ids)
+
+                            if a2_v23_route_a_unsafe_contact["enabled"]:
+                                get_unsafe_contact = a2_v23_route_a_unsafe_contact["getter"]
+                                for env_idx in valid_new_ids.flatten().detach().cpu().tolist():
+                                    env_id = int(env_idx)
+                                    if env_id in a2_v23_route_a_unsafe_contact_snapshots:
+                                        raise RuntimeError(
+                                            "Route-A unsafe-contact export received a duplicate completed env id."
+                                        )
+                                    value = get_unsafe_contact(env_id)
+                                    if not isinstance(value, bool):
+                                        raise RuntimeError(
+                                            "Route-A unsafe-contact getter must return a native bool; "
+                                            f"env_id={env_id}, value={value!r}."
+                                        )
+                                    a2_v23_route_a_unsafe_contact_snapshots[env_id] = value
 
                             self.env.process_eval_episode_completions(
                                 valid_new_ids, self.cur_reward_sum, self.cur_episode_length
@@ -7080,6 +7588,29 @@ class TRLPPOTrainer(PPOTrainer):
                                             env_id=env_id,
                                             episode_index=episode_index,
                                         )
+                                    )
+
+                            if a2_v23_p08_v2["enabled"]:
+                                get_v2_evidence = getattr(
+                                    self.env, "get_a2_v23_p08_v2_episode_record", None
+                                )
+                                if get_v2_evidence is None:
+                                    raise RuntimeError(
+                                        "P0.8 preformal-v2 export requires the episode-record getter."
+                                    )
+                                for env_idx in valid_new_ids.flatten().detach().cpu().tolist():
+                                    env_id = int(env_idx)
+                                    terminal_record = get_v2_evidence(env_id)
+                                    if not isinstance(terminal_record, dict):
+                                        raise RuntimeError(
+                                            "P0.8 preformal-v2 episode getter must return a mapping."
+                                        )
+                                    if terminal_record.get("mode") != a2_v23_p08_v2["mode"]:
+                                        raise RuntimeError(
+                                            "P0.8 preformal-v2 episode record mode disagrees with the run."
+                                        )
+                                    a2_v23_p08_v2_terminal_records[env_id] = dict(
+                                        terminal_record
                                     )
 
                             for env_idx in valid_new_ids:
@@ -7250,6 +7781,42 @@ class TRLPPOTrainer(PPOTrainer):
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
 
+        if a2_v23_p08_v2["enabled"]:
+            selected_env_id = a2_v23_p08_v2["record_env_id"]
+            raw_record = a2_v23_p08_v2_terminal_records.get(selected_env_id)
+            if raw_record is None:
+                raise RuntimeError(
+                    "P0.8 preformal-v2 export requires the selected env's terminal snapshot; "
+                    f"env_id={selected_env_id} has no terminal record."
+                )
+            raw_record = dict(raw_record)
+            raw_record["physical_gpu"] = os.environ.get("CUDA_VISIBLE_DEVICES")
+            raw_record["logical_gpu"] = "cuda:0"
+            raw_record["num_envs"] = int(self.env.num_envs)
+            raw_record["process_count"] = int(self.accelerator.num_processes)
+            raw_record.setdefault(
+                "excluded_claims",
+                [
+                    "NO_CAUSAL_EFFECT_CLAIM",
+                    "NO_POLICY_QUALITY_CLAIM",
+                    "NO_EXACT_STATE_CLONE",
+                    "NO_RECURRENT_STATE_RESTORE",
+                    "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
+                    "NO_ROUTE_B_SUITE_EXECUTION",
+                ],
+            )
+            raw_path = os.path.join(eval_output_dir, a2_v23_p08_v2["raw_filename"])
+            raw_tmp_path = f"{raw_path}.tmp"
+            with open(raw_tmp_path, "w", encoding="utf-8") as raw_stream:
+                json.dump(
+                    _make_json_safe(raw_record, path="a2_v23_p08_v2_raw"),
+                    raw_stream,
+                    indent=2,
+                    allow_nan=False,
+                )
+            os.replace(raw_tmp_path, raw_path)
+            logger.info("Saved P0.8 preformal-v2 raw record to %s", raw_path)
+
         if a2_v23_stationary_rent["enabled"]:
             stationary_payload = {
                 "schema": _A2_V23_STATIONARY_RENT_PASS_SCHEMA,
@@ -7414,6 +7981,13 @@ class TRLPPOTrainer(PPOTrainer):
                 self.env.num_envs,
                 include_m38_fields=strict_m41_telemetry,
             )
+            if a2_v23_route_a_unsafe_contact["enabled"]:
+                _attach_a2_v23_route_a_unsafe_contact(
+                    v14_eval_records,
+                    a2_v23_route_a_unsafe_contact_snapshots,
+                    expected_num_envs=self.env.num_envs,
+                )
+                strict_safe_v14_records = None
             v14_records_path = os.path.join(
                 eval_output_dir,
                 "a2_v14_per_env_records.json",

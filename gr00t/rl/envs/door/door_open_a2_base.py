@@ -188,6 +188,16 @@ V23_D1_NATIVE_PARAMS = {
     "hinge_effort_limit_nm": 4.5,
     "door_weight_kg": 119.99999237060547,
 }
+
+# The D1 runtime consumer is opt-in.  Historical A2/Route-A paths do not
+# consult these keys unless the sampler selector is explicitly enabled.
+_A2_V23_D1_SAMPLER_ENABLED_KEY = "a2_v23_d1_sampler_enabled"
+_A2_V23_D1_MANIFEST_PATH_KEY = "a2_v23_d1_manifest_path"
+_A2_V23_D1_RECEIPT_PATH_KEY = "a2_v23_d1_receipt_path"
+_A2_V23_D1_VARIANT_KEY = "a2_v23_d1_variant"
+_A2_V23_D1_BUCKET_SEED_KEY = "a2_v23_d1_bucket_seed"
+_A2_V23_D1_TOTAL_STEPS_KEY = "a2_v23_d1_total_steps"
+_A2_V23_D1_CONFIRMED_E2_KEY = "a2_v23_d1_confirmed_e2_enabled"
 V23_D1_CLIPPED_UTILIZATION_MIN = 0.90
 
 
@@ -5082,6 +5092,9 @@ class DoorPregrasp(
     A2_DOOR_BODY_CONTACT_EVENT_COMPONENT_CAP_CONFIG_KEY = (
         "a2_door_body_contact_event_component_cap"
     )
+    A2_V23_ROUTE_A_UNSAFE_CONTACT_ENABLED_CONFIG_KEY = (
+        "a2_v23_route_a_unsafe_contact_enabled"
+    )
     A2_STAGE45_DOOR_FRAME_CONTACT_SCALE_CONFIG_KEY = (
         "a2_stage45_door_frame_contact_scale"
     )
@@ -6228,7 +6241,25 @@ class DoorPregrasp(
         return super().close_render_results_for_envs(selected, episode_lengths=selected_lengths, terminal_reasons=selected_reasons)
 
     def __init__(self, config, device):
+        self._a2_v23_d1_enabled = False
+        self._a2_v23_d1_sampler = None
+        self._a2_v23_d1_mass_event_cfg = None
+        self._a2_v23_d1_mass_term = None
+        self._a2_v23_d1_hinge_joint_id = None
+        self._a2_v23_d1_panel_body_id = None
+        self._a2_v23_d1_last_global_step = None
+        self._a2_v23_d1_last_phase = None
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
+        route_a_unsafe_contact_enabled = config.get(
+            self.A2_V23_ROUTE_A_UNSAFE_CONTACT_ENABLED_CONFIG_KEY,
+            False,
+        )
+        if not isinstance(route_a_unsafe_contact_enabled, bool):
+            raise ValueError(
+                f"env.config.{self.A2_V23_ROUTE_A_UNSAFE_CONTACT_ENABLED_CONFIG_KEY} must be bool; "
+                f"got {route_a_unsafe_contact_enabled!r}."
+            )
+        self._a2_v23_route_a_unsafe_contact_enabled = route_a_unsafe_contact_enabled
         self._a2_eval_diagnostic_trace_enabled = False
         r2_enabled = config.get("a2_v20_R2_evidence_enabled", False)
         if not isinstance(r2_enabled, bool):
@@ -6248,8 +6279,11 @@ class DoorPregrasp(
             if self._reset_from_dataset_enabled():
                 self._init_reset_from_dataset(config, device)
             self._init_a2_door_pregrasp_state()
+            self._init_a2_v23_route_a_unsafe_contact()
             self._init_a2_v23_torque_telemetry()
             self._init_a2_v23_p05_evidence()
+            self._init_a2_v23_p08_v2_evidence()
+            self._init_a2_v23_d1_runtime()
             return
 
         # finger primitive related
@@ -6395,6 +6429,262 @@ class DoorPregrasp(
         self.target_root_pos = torch.tensor(self.config.target_root_pos, device=self.device)[
             None, :
         ]
+
+    def _init_a2_v23_d1_runtime(self):
+        """Initialize the opt-in D1 physics-first runtime consumer.
+
+        The sampler is the sole source of D1 assignments. This method binds
+        high-level IsaacLab articulation/event APIs to those assignments and
+        leaves historical Route-A/P0.8 behavior unchanged when disabled.
+        """
+
+        enabled = self.config.get(_A2_V23_D1_SAMPLER_ENABLED_KEY, False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                f"env.config.{_A2_V23_D1_SAMPLER_ENABLED_KEY} must be bool; got {enabled!r}."
+            )
+        if not enabled:
+            return
+
+        from isaaclab.envs import mdp
+        from isaaclab.managers import EventTermCfg, SceneEntityCfg
+        from gr00t.rl.envs.door.a2_v23_d1_sampler import DEFAULT_RECEIPT_PATH, D1Sampler
+
+        manifest_path = self.config.get(_A2_V23_D1_MANIFEST_PATH_KEY)
+        receipt_path = self.config.get(_A2_V23_D1_RECEIPT_PATH_KEY)
+        if not isinstance(manifest_path, (str, Path)) or not str(manifest_path):
+            raise RuntimeError("D1 runtime requires a non-empty manifest path.")
+        if not isinstance(receipt_path, (str, Path)) or not str(receipt_path):
+            raise RuntimeError("D1 runtime requires a non-empty receipt path.")
+        manifest = Path(str(manifest_path)).expanduser()
+        receipt = Path(str(receipt_path)).expanduser()
+        if manifest.is_symlink() or receipt.is_symlink():
+            raise RuntimeError("D1 runtime source paths must not be symlinks.")
+        if manifest.resolve() != receipt.resolve():
+            raise RuntimeError("D1 runtime manifest_path and receipt_path must resolve to one canonical receipt.")
+        if manifest.resolve() != DEFAULT_RECEIPT_PATH.resolve():
+            raise RuntimeError("D1 runtime must use the canonical R190 physics-first receipt.")
+
+        sampler = D1Sampler.from_config(self.config)
+        if self.num_envs != sampler.total_envs:
+            raise RuntimeError(
+                f"D1 runtime topology requires {sampler.total_envs} environments; got {self.num_envs}."
+            )
+        confirmed_e2 = self.config.get(_A2_V23_D1_CONFIRMED_E2_KEY, False)
+        if not isinstance(confirmed_e2, bool) or confirmed_e2:
+            raise RuntimeError("D1 runtime requires confirmed_E2 to remain explicitly false.")
+
+        door_articulation = self.simulator.scene.articulations["door"]
+        hinge_ids, hinge_names = door_articulation.find_joints(".*hinge.*", preserve_order=True)
+        panel_ids, panel_names = door_articulation.find_bodies("door_panel", preserve_order=True)
+        if len(hinge_ids) != 1 or len(panel_ids) != 1 or list(panel_names) != ["door_panel"]:
+            raise RuntimeError(
+                "D1 runtime requires exactly one high-level door hinge and door_panel body; "
+                f"hinge={hinge_names!r}, panel={panel_names!r}."
+            )
+
+        mass_event_cfg = EventTermCfg(
+            func=mdp.randomize_rigid_body_mass,
+            mode="startup",
+            params={
+                "asset_cfg": SceneEntityCfg(
+                    "door",
+                    body_names=["door_panel"],
+                    preserve_order=True,
+                ),
+                "mass_distribution_params": (1.0, 1.0),
+                "operation": "abs",
+                "distribution": "uniform",
+                "recompute_inertia": True,
+            },
+        )
+        mass_event_cfg.params["asset_cfg"].resolve(self.simulator.scene)
+        if mass_event_cfg.params["asset_cfg"].body_ids != list(panel_ids):
+            raise RuntimeError("D1 mass EventTermCfg resolved a different door_panel body id.")
+        mass_term = mdp.randomize_rigid_body_mass(cfg=mass_event_cfg, env=self.simulator)
+
+        self._a2_v23_d1_enabled = True
+        self._a2_v23_d1_sampler = sampler
+        self._a2_v23_d1_hinge_joint_id = int(hinge_ids[0])
+        self._a2_v23_d1_panel_body_id = int(panel_ids[0])
+        self._a2_v23_d1_mass_event_cfg = mass_event_cfg
+        self._a2_v23_d1_mass_term = mass_term
+
+    @staticmethod
+    def _a2_v23_d1_assignment_param_tensors(assignments, *, dtype, device):
+        return {
+            "damping": torch.tensor(
+                [item.realized_row.realized_params.hinge_damping_native for item in assignments],
+                dtype=dtype,
+                device=device,
+            ).reshape(-1, 1),
+            "stiffness": torch.tensor(
+                [item.realized_row.realized_params.hinge_stiffness_native for item in assignments],
+                dtype=dtype,
+                device=device,
+            ).reshape(-1, 1),
+            "effort_limit": torch.tensor(
+                [item.realized_row.realized_params.hinge_effort_limit_nm for item in assignments],
+                dtype=dtype,
+                device=device,
+            ).reshape(-1, 1),
+            "mass": torch.tensor(
+                [item.realized_row.realized_params.door_weight_kg for item in assignments],
+                dtype=dtype,
+                device=device,
+            ),
+        }
+
+    def _a2_v23_d1_apply_phase(self, assignments):
+        door_articulation = self.simulator.scene.articulations["door"]
+        params = self._a2_v23_d1_assignment_param_tensors(
+            assignments,
+            dtype=door_articulation.data.joint_pos.dtype,
+            device=self.device,
+        )
+        env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
+        hinge_id = self._a2_v23_d1_hinge_joint_id
+        door_articulation.write_joint_damping_to_sim(
+            params["damping"], joint_ids=[hinge_id], env_ids=env_ids
+        )
+        door_articulation.write_joint_stiffness_to_sim(
+            params["stiffness"], joint_ids=[hinge_id], env_ids=env_ids
+        )
+        door_articulation.write_joint_effort_limit_to_sim(
+            params["effort_limit"], joint_ids=[hinge_id], env_ids=env_ids
+        )
+
+        grouped_env_ids = {}
+        for env_index, mass in enumerate(params["mass"].detach().cpu().tolist()):
+            grouped_env_ids.setdefault(float(mass), []).append(env_index)
+        mass_cfg = self._a2_v23_d1_mass_event_cfg.params
+        for mass, indices in grouped_env_ids.items():
+            group_ids = torch.tensor(indices, dtype=torch.long, device=self.device)
+            self._a2_v23_d1_mass_term(
+                self.simulator,
+                group_ids,
+                asset_cfg=mass_cfg["asset_cfg"],
+                mass_distribution_params=(mass, mass),
+                operation="abs",
+                distribution="uniform",
+                recompute_inertia=True,
+            )
+
+        # Keep task metadata aligned with immutable per-environment assignments.
+        self.door_hinge_drive_damping[:] = params["damping"][:, 0].to(self.door_hinge_drive_damping.dtype)
+        self.door_hinge_drive_stiffness[:] = params["stiffness"][:, 0].to(self.door_hinge_drive_stiffness.dtype)
+        self.door_hinge_drive_max_force[:] = params["effort_limit"][:, 0].to(self.door_hinge_drive_max_force.dtype)
+        self.door_weight[:] = params["mass"].to(self.door_weight.dtype)
+        self.door_width[:] = torch.tensor(
+            [item.realized_row.door_width_m for item in assignments],
+            dtype=self.door_width.dtype,
+            device=self.device,
+        )
+        self.door_height[:] = torch.tensor(
+            [item.realized_row.door_height_m for item in assignments],
+            dtype=self.door_height.dtype,
+            device=self.device,
+        )
+        self.door_handle_height[:] = torch.tensor(
+            [item.realized_row.handle_height_m for item in assignments],
+            dtype=self.door_handle_height.dtype,
+            device=self.device,
+        )
+        self.door_handle_width[:] = torch.tensor(
+            [item.realized_row.handle_width_m for item in assignments],
+            dtype=self.door_handle_width.dtype,
+            device=self.device,
+        )
+        self.door_open_lr[:] = torch.tensor(
+            [item.realized_row.door_open_lr_sign for item in assignments],
+            dtype=self.door_open_lr.dtype,
+            device=self.device,
+        )
+        self.door_open_io[:] = torch.tensor(
+            [item.realized_row.door_open_io_sign for item in assignments],
+            dtype=self.door_open_io.dtype,
+            device=self.device,
+        )
+
+    def _a2_v23_d1_readback(self, assignments):
+        door_articulation = self.simulator.scene.articulations["door"]
+        hinge_id = self._a2_v23_d1_hinge_joint_id
+        expected = self._a2_v23_d1_assignment_param_tensors(
+            assignments,
+            dtype=door_articulation.data.joint_pos.dtype,
+            device=self.device,
+        )
+        damping = door_articulation.data.joint_damping[:, hinge_id]
+        stiffness = door_articulation.data.joint_stiffness[:, hinge_id]
+        effort_limit = door_articulation.data.joint_effort_limits[:, hinge_id]
+        position_limits = door_articulation.data.joint_pos_limits[:, hinge_id, :]
+        if (
+            not torch.all(torch.isfinite(damping))
+            or not torch.all(torch.isfinite(stiffness))
+            or not torch.all(torch.isfinite(effort_limit))
+            or not torch.all(torch.isfinite(position_limits))
+            or not torch.allclose(damping, expected["damping"][:, 0], atol=1.0e-4, rtol=0.0)
+            or not torch.allclose(stiffness, expected["stiffness"][:, 0], atol=1.0e-4, rtol=0.0)
+            or not torch.allclose(effort_limit, expected["effort_limit"][:, 0], atol=1.0e-4, rtol=0.0)
+        ):
+            raise RuntimeError("D1 configured high-level joint dynamics readback disagreed with sampler assignments.")
+        return {
+            "status": "CONFIGURED_HIGH_LEVEL_JOINT_READBACK_VERIFIED",
+            "claim": "CONFIGURED_JOINT_DYNAMICS_ONLY",
+            "hinge_joint_id": hinge_id,
+            "joint_position_limits": position_limits.detach().cpu().tolist(),
+            "joint_damping_native": damping.detach().cpu().tolist(),
+            "joint_stiffness_native": stiffness.detach().cpu().tolist(),
+            "joint_effort_limit_nm": effort_limit.detach().cpu().tolist(),
+        }
+
+    def apply_a2_v23_d1_global_step(self, global_step: int):
+        """Apply one absolute D1 step and return its phase telemetry row."""
+
+        if not self._a2_v23_d1_enabled:
+            return None
+        if isinstance(global_step, bool) or not isinstance(global_step, int):
+            raise TypeError("D1 global_step must be an absolute integer")
+        if self._a2_v23_d1_last_global_step is not None and global_step < self._a2_v23_d1_last_global_step:
+            raise RuntimeError(
+                "D1 global_step must be monotonic; "
+                f"previous={self._a2_v23_d1_last_global_step}, current={global_step}."
+            )
+        sampler = self._a2_v23_d1_sampler
+        phase = sampler.phase_index(global_step)
+        phase_changed = self._a2_v23_d1_last_phase is None or phase != self._a2_v23_d1_last_phase
+        assignments = sampler.assignments(global_step)
+        if phase_changed:
+            self._a2_v23_d1_apply_phase(assignments)
+        joint_readback = self._a2_v23_d1_readback(assignments)
+        applied_mass = [
+            assignment.realized_row.realized_params.door_weight_kg
+            for assignment in assignments
+        ]
+        self._a2_v23_d1_last_global_step = global_step
+        self._a2_v23_d1_last_phase = phase
+        return {
+            "global_step": global_step,
+            "phase": phase,
+            "intended_bucket_counts": sampler.bucket_counts(global_step),
+            "bucket_counts": sampler.bucket_counts(global_step),
+            "assignments": sampler.telemetry(global_step),
+            "realized_assignment_identity": [
+                {
+                    "env_index": assignment.env_index,
+                    "cell_id": assignment.realized_row.cell_id,
+                    "realized_params": assignment.realized_row.realized_params.as_dict(),
+                }
+                for assignment in assignments
+            ],
+            "dynamics_applied": phase_changed,
+            "full_reset_boundary": phase_changed,
+            "reset_scope": "full_environment" if phase_changed else "none",
+            "configured_joint_readback_status": joint_readback["status"],
+            "configured_joint_readback": joint_readback,
+            "door_panel_mass_kg_applied": applied_mass,
+            "door_panel_mass_assignment_source": "D1Sampler.realized_params_via_mdp.randomize_rigid_body_mass",
+        }
 
     def _init_door_metadata(self):
         stage: Usd.Stage = omni.usd.get_context().get_stage()
@@ -6757,6 +7047,13 @@ class DoorPregrasp(
             self._a2_door_body_contact_event_emitted = torch.zeros(
                 self.num_envs, dtype=torch.float32, device=self.device
             )
+            if self._a2_v23_route_a_unsafe_contact_enabled:
+                self._a2_v23_route_a_unsafe_contact_latched = torch.zeros(
+                    self.num_envs, dtype=torch.bool, device=self.device
+                )
+                self._a2_v23_route_a_unsafe_contact_completed = torch.zeros(
+                    self.num_envs, dtype=torch.bool, device=self.device
+                )
             self._a2_release_event_valid = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
@@ -7052,6 +7349,79 @@ class DoorPregrasp(
         self._a2_v21b_completed_upper_dof_overspeed = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+
+    def _init_a2_v23_route_a_unsafe_contact(self) -> None:
+        if not self._a2_v23_route_a_unsafe_contact_enabled:
+            return
+        if not self._use_a2_base:
+            raise RuntimeError("Route-A unsafe-contact evidence requires A2_Base mode.")
+        if self._get_a2_door_body_contact_penalty_mode() != "event_v17":
+            raise RuntimeError(
+                "Route-A unsafe-contact evidence requires the registered event_v17 "
+                "door-body contact taxonomy."
+            )
+        self._get_a2_v23_route_a_unsafe_contact_latch(
+            "Route-A unsafe-contact initialization"
+        )
+
+    def _update_a2_v23_route_a_unsafe_contact(self, env_ids=None) -> None:
+        if not self._a2_v23_route_a_unsafe_contact_enabled:
+            return
+        latch = self._get_a2_v23_route_a_unsafe_contact_latch(
+            "Route-A unsafe-contact update"
+        )
+        active, _peak, _pending, emitted = self._get_a2_door_body_contact_event_buffers(
+            "Route-A unsafe-contact update"
+        )
+        contact_observed = active | (emitted > 0.0)
+        if env_ids is None:
+            latch |= contact_observed
+            return
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError(
+                "Route-A unsafe-contact partial update requires valid device-local env ids."
+            )
+        latch[env_ids] |= contact_observed[env_ids]
+
+    def _get_a2_v23_route_a_unsafe_contact_latch(self, context: str) -> torch.Tensor:
+        if not self._a2_v23_route_a_unsafe_contact_enabled:
+            raise RuntimeError(
+                f"{context} requires env.config.{self.A2_V23_ROUTE_A_UNSAFE_CONTACT_ENABLED_CONFIG_KEY}=true."
+            )
+        latch = getattr(self, "_a2_v23_route_a_unsafe_contact_latched", None)
+        completed = getattr(self, "_a2_v23_route_a_unsafe_contact_completed", None)
+        if (
+            not torch.is_tensor(latch)
+            or tuple(latch.shape) != (self.num_envs,)
+            or latch.dtype != torch.bool
+            or latch.device != torch.device(self.device)
+            or not torch.is_tensor(completed)
+            or tuple(completed.shape) != (self.num_envs,)
+            or completed.dtype != torch.bool
+            or completed.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                f"{context} requires device-local bool Route-A unsafe-contact latch/snapshot buffers."
+            )
+        return latch
+
+    def get_a2_v23_route_a_unsafe_contact(self, env_id: int) -> bool:
+        self._get_a2_v23_route_a_unsafe_contact_latch(
+            "Route-A unsafe-contact getter"
+        )
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise RuntimeError(
+                f"Route-A unsafe-contact getter requires env_id in [0, {self.num_envs}); got {env_id!r}."
+            )
+        completed = self._a2_v23_route_a_unsafe_contact_completed
+        return bool(completed[env_id].item())
 
     def _init_a2_v23_torque_telemetry(self) -> None:
         enabled = self.config.get("a2_v23_torque_telemetry_enabled", False)
@@ -8419,6 +8789,496 @@ class DoorPregrasp(
         )
         self._a2_v23_p05_step_rows = [[] for _ in range(self.num_envs)]
         self._a2_v23_p05_completed_episode_evidence = [None] * self.num_envs
+
+    def _init_a2_v23_p08_v2_evidence(self) -> None:
+        """Initialize the default-off four-mode P0.8 preformal-v2 evidence path."""
+
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            return
+        if getattr(self, "_a2_v23_p05_enabled", False):
+            raise RuntimeError(
+                "P0.8 preformal-v2 must not alter or share the strict P0.5 16-env contract."
+            )
+        if self.num_envs != 1:
+            raise RuntimeError("P0.8 preformal-v2 requires exactly one environment.")
+        mode = self._a2_v23_p08_v2_mode
+        config = self.config
+
+        def _required_number(key: str, *, positive: bool = False) -> float:
+            if key not in config:
+                raise RuntimeError(f"P0.8 preformal-v2 requires env.config.{key}.")
+            value = config[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise RuntimeError(f"env.config.{key} must be numeric; got {value!r}.")
+            value = float(value)
+            if not math.isfinite(value) or (positive and value <= 0.0):
+                raise RuntimeError(f"env.config.{key} must be finite and valid; got {value!r}.")
+            return value
+
+        low_progress_min = _required_number("a2_v23_p08_v2_low_progress_min_rad")
+        low_progress_max = _required_number("a2_v23_p08_v2_low_progress_max_rad")
+        window_min = _required_number("a2_v23_p08_v2_low_progress_window_min_steps", positive=True)
+        window_max = _required_number("a2_v23_p08_v2_low_progress_window_max_steps", positive=True)
+        stable_min = _required_number("a2_v23_p08_v2_stable_grasp_min_steps", positive=True)
+        clipped_utilization_min = _required_number(
+            "a2_v23_p08_v2_clipped_utilization_min", positive=True
+        )
+        clipped_fraction_min = _required_number(
+            "a2_v23_p08_v2_clipped_fraction_min", positive=True
+        )
+        if (
+            low_progress_min != 0.02
+            or low_progress_max != 0.04
+            or window_min != 25
+            or window_max != 40
+            or stable_min != 20
+            or clipped_utilization_min != 0.9
+            or clipped_fraction_min != 0.3
+        ):
+            raise RuntimeError(
+                "P0.8 preformal-v2 requires the frozen P0.5 bands: "
+                "progress 0.02..0.04 rad, windows 25..40, stable grasp 20, "
+                "clipped utilization/fraction 0.9/0.3."
+            )
+        if int(window_min) != window_min or int(window_max) != window_max:
+            raise RuntimeError("P0.8 preformal-v2 progress window bounds must be integers.")
+        if int(stable_min) != stable_min:
+            raise RuntimeError("P0.8 preformal-v2 stable-grasp threshold must be an integer.")
+        window_min = int(window_min)
+        window_max = int(window_max)
+        stable_min = int(stable_min)
+        if window_min <= 0 or window_max < window_min or stable_min <= 0:
+            raise RuntimeError("P0.8 preformal-v2 progress/stable window bounds are invalid.")
+
+        rescue_limit = _required_number(
+            "a2_v23_p08_v2_rescue_effort_limit_nm", positive=True
+        )
+        checkpoint = config.get("a2_v23_p08_v2_checkpoint")
+        config_id = config.get("a2_v23_p08_v2_config_id")
+        scenario_id = config.get("a2_v23_p08_v2_scenario_id")
+        seed = config.get("a2_v23_p08_v2_seed")
+        if any(not isinstance(value, str) or not value for value in (checkpoint, config_id, scenario_id)):
+            raise RuntimeError(
+                "P0.8 preformal-v2 requires checkpoint/config/scenario identity strings."
+            )
+        if isinstance(seed, bool) or not isinstance(seed, int):
+            raise RuntimeError("P0.8 preformal-v2 requires integer env.config.a2_v23_p08_v2_seed.")
+
+        robot = self.simulator.scene.articulations["robot"]
+        required_names = [f"arm_j{i}" for i in range(1, 7)]
+        arm_ids, arm_names = robot.find_joints(required_names, preserve_order=True)
+        if list(arm_names) != required_names:
+            raise RuntimeError(f"P0.8 preformal-v2 arm joint order mismatch: {arm_names!r}.")
+        self._a2_v23_p08_v2_arm_joint_ids = torch.tensor(
+            arm_ids, dtype=torch.long, device=self.device
+        )
+        self._a2_v23_p08_v2_arm_joint_names = tuple(required_names)
+        baseline = robot.data.joint_effort_limits[:, self._a2_v23_p08_v2_arm_joint_ids].detach().clone()
+        if (
+            tuple(baseline.shape) != (self.num_envs, 6)
+            or not torch.all(torch.isfinite(baseline))
+            or torch.any(baseline <= 0.0)
+        ):
+            raise RuntimeError("P0.8 preformal-v2 baseline arm effort limits are invalid.")
+        if rescue_limit <= float(baseline.max().item()):
+            raise RuntimeError(
+                "P0.8 preformal-v2 rescue effort limit must exceed the observed baseline."
+            )
+
+        self._a2_v23_p08_v2_checkpoint = checkpoint
+        self._a2_v23_p08_v2_config_id = config_id
+        self._a2_v23_p08_v2_scenario_id = scenario_id
+        self._a2_v23_p08_v2_seed = seed
+        self._a2_v23_p08_v2_low_progress_min_rad = low_progress_min
+        self._a2_v23_p08_v2_low_progress_max_rad = low_progress_max
+        self._a2_v23_p08_v2_window_min_steps = window_min
+        self._a2_v23_p08_v2_window_max_steps = window_max
+        self._a2_v23_p08_v2_stable_grasp_min_steps = stable_min
+        self._a2_v23_p08_v2_clipped_utilization_min = clipped_utilization_min
+        self._a2_v23_p08_v2_clipped_fraction_min = clipped_fraction_min
+        self._a2_v23_p08_v2_rescue_effort_limit_nm = rescue_limit
+        self._a2_v23_p08_v2_baseline_effort_limits = baseline
+        self._a2_v23_p08_v2_effort_applied_mask = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v23_p08_v2_window_rows = [[] for _ in range(self.num_envs)]
+        self._a2_v23_p08_v2_last_windows = [[] for _ in range(self.num_envs)]
+        self._a2_v23_p08_v2_observed_stable = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v23_p08_v2_observed_typed_failure = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v23_p08_v2_latch_predicates = [
+            {} for _ in range(self.num_envs)
+        ]
+        self._a2_v23_p08_v2_failure_flags = [
+            {} for _ in range(self.num_envs)
+        ]
+        self._a2_v23_p08_v2_requested_profile = [
+            {"status": "NOT_REQUESTED"} for _ in range(self.num_envs)
+        ]
+        self._a2_v23_p08_v2_applied_profile = [
+            {"status": "NOT_EXECUTED"} for _ in range(self.num_envs)
+        ]
+        self._a2_v23_p08_v2_terminal_records = [None] * self.num_envs
+        self._a2_v23_p08_v2_episode_indices = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+
+    def _a2_v23_p08_v2_validate_env_ids(self, env_ids: torch.Tensor) -> None:
+        if (
+            not torch.is_tensor(env_ids)
+            or env_ids.ndim != 1
+            or env_ids.dtype != torch.long
+            or env_ids.device != torch.device(self.device)
+            or torch.any(env_ids < 0)
+            or torch.any(env_ids >= self.num_envs)
+        ):
+            raise RuntimeError("P0.8 preformal-v2 env_ids must be device-local long indices.")
+
+    def maybe_apply_a2_v23_p08_v2_latch(self) -> torch.Tensor:
+        """Apply and read back the six-joint rescue limit after an observed latch."""
+
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            return torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        latch = self._a2_v23_p08_v2_trigger_mask.clone()
+        if self._a2_v23_p08_v2_mode != "HIGHER_EFFORT_RESCUE":
+            return latch
+        pending = latch & ~self._a2_v23_p08_v2_effort_applied_mask
+        if not torch.any(pending):
+            return latch
+        env_ids = pending.nonzero(as_tuple=False).flatten().to(dtype=torch.long)
+        self._a2_v23_p08_v2_validate_env_ids(env_ids)
+        robot = self.simulator.scene.articulations["robot"]
+        requested = torch.full(
+            (len(env_ids), 6),
+            self._a2_v23_p08_v2_rescue_effort_limit_nm,
+            dtype=self._a2_v23_p08_v2_baseline_effort_limits.dtype,
+            device=self.device,
+        )
+        robot.write_joint_effort_limit_to_sim(
+            requested,
+            joint_ids=self._a2_v23_p08_v2_arm_joint_ids,
+            env_ids=env_ids,
+        )
+        readback = robot.data.joint_effort_limits[env_ids][:, self._a2_v23_p08_v2_arm_joint_ids]
+        if tuple(readback.shape) != (len(env_ids), 6) or not torch.allclose(
+            readback, requested, atol=1.0e-5, rtol=0.0
+        ):
+            raise RuntimeError(
+                "P0.8 preformal-v2 six-joint effort-limit readback did not equal the request."
+            )
+        for row, env_id in enumerate(env_ids.detach().cpu().tolist()):
+            self._a2_v23_p08_v2_requested_profile[env_id] = {
+                "status": "REQUESTED",
+                "effort_limit_nm": self._a2_v23_p08_v2_rescue_effort_limit_nm,
+                "joint_names": list(self._a2_v23_p08_v2_arm_joint_names),
+                "baseline_effort_limit_nm": self._a2_v23_p08_v2_baseline_effort_limits[
+                    env_id
+                ].detach().cpu().tolist(),
+            }
+            self._a2_v23_p08_v2_applied_profile[env_id] = {
+                "status": "APPLIED",
+                "effort_limit_nm": self._a2_v23_p08_v2_rescue_effort_limit_nm,
+                "joint_names": list(self._a2_v23_p08_v2_arm_joint_names),
+                "readback_effort_limit_nm": readback[row].detach().cpu().tolist(),
+                "authority": "CONFIGURED_SOLVER_LIMIT_READBACK_NOT_ACTUAL_PHYSX_TORQUE",
+            }
+            self._a2_v23_p08_v2_effort_applied_mask[env_id] = True
+        return latch
+
+    def _update_a2_v23_p08_v2_latch(self) -> None:
+        """Observe stable-grasp and typed-failure predicates after one physics step."""
+
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            return
+        mode = self._a2_v23_p08_v2_mode
+        if mode == "BASE0_AT_GRASP":
+            stable = self._a2_stage3_grasp_streak_highwater.clone()
+            self._a2_v23_p08_v2_observed_stable |= stable
+            self._a2_v23_p08_v2_trigger_mask |= stable
+            for env_id in stable.nonzero(as_tuple=False).flatten().detach().cpu().tolist():
+                if self._a2_v23_p08_v2_observed_latch_step[env_id] < 0:
+                    self._a2_v23_p08_v2_observed_latch_step[env_id] = self.episode_length_buf[env_id] - 1
+            return
+        if mode == "ACUTE_RP0":
+            return
+
+        current_step = self.episode_length_buf - 1
+        valid = (current_step >= 0) & (current_step < int(self.max_episode_length))
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "P0.8 preformal-v2 stable grasp evidence"
+        )
+        stable_predicates = {
+            "both_contact": contact_masks["both_contact"],
+            "sufficient_squeeze": contact_masks["sufficient_squeeze"],
+            "opposite_squeeze": contact_masks["opposite_squeeze"],
+            "opening_stage": (self.stage_buf == self.STAGE_OPEN)
+            | (self.stage_buf == self.STAGE_SWING),
+        }
+        stable_streak = self._a2_stage3_stage4_both_contact_streak
+        stable_rows = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
+        for predicate in stable_predicates.values():
+            stable_rows &= predicate
+        stable_rows &= stable_streak >= self._a2_v23_p08_v2_stable_grasp_min_steps
+        self._a2_v23_p08_v2_observed_stable |= stable_rows
+
+        hinge = self._get_door_joint_pos("P0.8 preformal-v2 latch", 1)[:, 0]
+        hinge_vel = self._get_door_joint_vel("P0.8 preformal-v2 latch", 1)[:, 0]
+        data = self.simulator.scene.articulations["robot"].data
+        ids = self._a2_v23_p08_v2_arm_joint_ids
+        nominal = data.joint_stiffness[:, ids] * (
+            data.joint_pos_target[:, ids] - data.joint_pos[:, ids]
+        ) - data.joint_damping[:, ids] * data.joint_vel[:, ids]
+        limits = data.joint_effort_limits[:, ids]
+        clipped = torch.clamp(nominal, min=-limits, max=limits)
+        if (
+            not torch.all(torch.isfinite(hinge))
+            or not torch.all(torch.isfinite(hinge_vel))
+            or not torch.all(torch.isfinite(nominal))
+            or not torch.all(torch.isfinite(clipped))
+            or not torch.all(torch.isfinite(limits))
+            or torch.any(limits <= 0.0)
+        ):
+            raise RuntimeError("P0.8 preformal-v2 latch telemetry is non-finite or invalid.")
+        hold_ok = self._get_a2_hold_streak_ok_mask()
+        failure_flags = self._a2_v23_p05_failure_flags(hold_ok)
+        for env_id in range(self.num_envs):
+            if not bool(valid[env_id].item()):
+                continue
+            step = int(current_step[env_id].item())
+            episode_index = int(self._a2_v23_p08_v2_episode_indices[env_id].item())
+            episode_id = f"a2-v23-p08-v2-env{env_id}-episode{episode_index}"
+            plain_prefix_id = (
+                f"{self._a2_v23_p08_v2_scenario_id}:a2_base_v23_p08_v2:"
+                f"env{env_id}:episode{episode_index}"
+            )
+            rows = self._a2_v23_p08_v2_window_rows[env_id]
+            previous_hinge = (
+                rows[-1]["hinge_position_rad"] if rows else float(hinge[env_id].item())
+            )
+            row = {
+                "schema": "a2_piper_v23_p08_v2_step_row_v1",
+                "checkpoint": self._a2_v23_p08_v2_checkpoint,
+                "config": self._a2_v23_p08_v2_config_id,
+                "scenario": self._a2_v23_p08_v2_scenario_id,
+                "topology": "a2_base_v23_p08_v2",
+                "seed": self._a2_v23_p08_v2_seed,
+                "episode_id": episode_id,
+                "checkpoint_load_mode": "policy_only",
+                "cell_id": "A0",
+                "geometry_id": "A0_preformal_v2",
+                "canonical_geometry": {"cell_id": "A0", "geometry_id": "A0_preformal_v2"},
+                "mode": mode,
+                "plain_prefix_id": plain_prefix_id,
+                "control_step": step,
+                "stable_grasp_predicates": {
+                    key: bool(value[env_id].item()) for key, value in stable_predicates.items()
+                },
+                "stable_grasp_streak": int(stable_streak[env_id].item()),
+                "hinge_position_rad": float(hinge[env_id].item()),
+                "hinge_velocity_rad_s": float(hinge_vel[env_id].item()),
+                "window_progress_rad": float(hinge[env_id].item()) - float(previous_hinge),
+                "arm_nominal_torque_nm": nominal[env_id].detach().cpu().tolist(),
+                "arm_clipped_torque_nm": clipped[env_id].detach().cpu().tolist(),
+                "arm_effort_limit_nm": limits[env_id].detach().cpu().tolist(),
+                "failure_flags": dict(failure_flags[env_id]),
+                "requested_rescue_profile": dict(self._a2_v23_p08_v2_requested_profile[env_id]),
+                "applied_rescue_profile": dict(self._a2_v23_p08_v2_applied_profile[env_id]),
+                "clipped_utilization_min": self._a2_v23_p08_v2_clipped_utilization_min,
+            }
+            rows.append(row)
+            if len(rows) > self._a2_v23_p08_v2_window_max_steps:
+                del rows[: -self._a2_v23_p08_v2_window_max_steps]
+            windows = []
+            accepted_window = None
+            for window_steps in range(
+                self._a2_v23_p08_v2_window_min_steps,
+                self._a2_v23_p08_v2_window_max_steps + 1,
+            ):
+                if len(rows) < window_steps:
+                    continue
+                selected = rows[-window_steps:]
+                window = a2_v23_build_p05_window_record(
+                    rows,
+                    start_step=int(selected[0]["control_step"]),
+                    end_step=int(selected[-1]["control_step"]),
+                    window_id=f"env{env_id}-episode{episode_index}-last{window_steps}",
+                )
+                windows.append(window)
+                if accepted_window is None and (
+                    window["stable_grasp_all_rows"]
+                    and self._a2_v23_p08_v2_low_progress_min_rad
+                    <= window["progress_rad"]
+                    <= self._a2_v23_p08_v2_low_progress_max_rad
+                    and window["clipped_window_fraction"]
+                    >= self._a2_v23_p08_v2_clipped_fraction_min
+                    and not any(window["failure_flags"].values())
+                ):
+                    accepted_window = window
+            self._a2_v23_p08_v2_last_windows[env_id] = windows
+            if windows:
+                latest_window = windows[-1]
+                self._a2_v23_p08_v2_latch_predicates[env_id] = {
+                    "window_id": latest_window["window_id"],
+                    "start_step": latest_window["start_step"],
+                    "end_step": latest_window["end_step"],
+                    "window_steps": latest_window["window_steps"],
+                    "stable_grasp_all_rows": latest_window["stable_grasp_all_rows"],
+                    "progress_rad": latest_window["progress_rad"],
+                    "clipped_window_fraction": latest_window["clipped_window_fraction"],
+                }
+                self._a2_v23_p08_v2_failure_flags[env_id] = dict(
+                    latest_window["failure_flags"]
+                )
+            if accepted_window is not None and not bool(
+                self._a2_v23_p08_v2_observed_typed_failure[env_id].item()
+            ):
+                self._a2_v23_p08_v2_observed_typed_failure[env_id] = True
+                self._a2_v23_p08_v2_trigger_mask[env_id] = True
+                self._a2_v23_p08_v2_observed_latch_step[env_id] = current_step[env_id]
+                self._a2_v23_p08_v2_latch_predicates[env_id] = {
+                    "window_id": accepted_window["window_id"],
+                    "start_step": accepted_window["start_step"],
+                    "end_step": accepted_window["end_step"],
+                    "window_steps": accepted_window["window_steps"],
+                    "stable_grasp_all_rows": accepted_window["stable_grasp_all_rows"],
+                    "progress_rad": accepted_window["progress_rad"],
+                    "clipped_window_fraction": accepted_window["clipped_window_fraction"],
+                }
+                self._a2_v23_p08_v2_failure_flags[env_id] = dict(
+                    accepted_window["failure_flags"]
+                )
+
+    def _snapshot_a2_v23_p08_v2_evidence(self, env_ids: torch.Tensor) -> None:
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            return
+        self._a2_v23_p08_v2_validate_env_ids(env_ids)
+        mode = self._a2_v23_p08_v2_mode
+        for env_id in env_ids.detach().cpu().tolist():
+            action_record = self._a2_v23_p08_v2_action_records[env_id]
+            if not isinstance(action_record, dict) or not action_record:
+                raise RuntimeError(
+                    "P0.8 preformal-v2 completed episode has no action snapshot; "
+                    f"env_id={env_id}."
+                )
+            action = dict(action_record)
+            if (
+                not isinstance(action.get("pre_action_5d"), list)
+                or not isinstance(action.get("post_action_5d"), list)
+                or not isinstance(action.get("post_indices_3_4"), list)
+                or len(action["pre_action_5d"]) != 5
+                or len(action["post_action_5d"]) != 5
+                or len(action["post_indices_3_4"]) != 2
+            ):
+                raise RuntimeError(
+                    "P0.8 preformal-v2 completed episode action snapshot is incomplete; "
+                    f"env_id={env_id}."
+                )
+            switch_step = int(self._a2_v23_p08_v2_switch_step[env_id].item())
+            observed = bool(self._a2_v23_p08_v2_trigger_mask[env_id].item())
+            if mode == "ACUTE_RP0":
+                observed_latch = {"event": "EPISODE_START", "observed": True, "step": 0}
+            elif mode == "BASE0_AT_GRASP":
+                observed_latch = {
+                    "event": "STABLE_GRASP_LATCH",
+                    "observed": observed,
+                    "step": int(self._a2_v23_p08_v2_observed_latch_step[env_id].item()),
+                    "high_water": bool(self._a2_v23_p08_v2_observed_stable[env_id].item()),
+                }
+            else:
+                observed_latch = {
+                    "event": "TYPED_FAILURE_LATCH",
+                    "observed": observed,
+                    "step": int(self._a2_v23_p08_v2_observed_latch_step[env_id].item()),
+                    "predicates": dict(self._a2_v23_p08_v2_latch_predicates[env_id]),
+                    "failure_flags": dict(self._a2_v23_p08_v2_failure_flags[env_id]),
+                }
+            if mode in ("ACUTE_RP0", "BASE0_AT_GRASP"):
+                mode_readback = {
+                    "post_indices_3_4_zero": action.get("post_indices_3_4") == [0.0, 0.0]
+                }
+            elif mode == "HIGHER_EFFORT_RESCUE":
+                mode_readback = {
+                    "requested_profile": dict(self._a2_v23_p08_v2_requested_profile[env_id]),
+                    "applied_profile": dict(self._a2_v23_p08_v2_applied_profile[env_id]),
+                    "effort_readback_status": self._a2_v23_p08_v2_applied_profile[env_id].get("status"),
+                }
+            else:
+                oracle_delta_raw = self.config.get("a2_v23_p08_v2_oracle_tangential_delta_raw")
+                if torch.is_tensor(oracle_delta_raw):
+                    oracle_delta_raw = oracle_delta_raw.detach().to(device="cpu", dtype=torch.float32).tolist()
+                else:
+                    oracle_delta_raw = [
+                        [float(value) for value in row]
+                        for row in oracle_delta_raw
+                    ]
+                delta_vector = oracle_delta_raw[0]
+                pre_action = action.get("pre_action_5d")
+                post_action = action.get("post_action_5d")
+                post_equals_pre_plus_delta = bool(observed) and all(
+                    math.isclose(
+                        float(post_value),
+                        float(pre_value) + float(delta_value),
+                        rel_tol=0.0,
+                        abs_tol=1.0e-6,
+                    )
+                    for pre_value, post_value, delta_value in zip(
+                        pre_action,
+                        post_action,
+                        delta_vector,
+                    )
+                )
+                mode_readback = {
+                    "delta_raw": oracle_delta_raw,
+                    "active_mask": [bool(observed)],
+                    "post_equals_pre_plus_delta": post_equals_pre_plus_delta,
+                }
+            record = {
+                "schema": "a2_piper_v23_p08_preformal_v2_raw_v1",
+                "mode": mode,
+                "status": "TRIGGERED" if switch_step >= 0 else "NOT_TRIGGERED",
+                "checkpoint": self._a2_v23_p08_v2_checkpoint,
+                "checkpoint_load_mode": "policy_only",
+                "config": self._a2_v23_p08_v2_config_id,
+                "scenario": self._a2_v23_p08_v2_scenario_id,
+                "seed": self._a2_v23_p08_v2_seed,
+                "env_id": env_id,
+                "env_count": self.num_envs,
+                "episode_index": int(self._a2_v23_p08_v2_episode_indices[env_id].item()),
+                "observed_latch": observed_latch,
+                "switch_step": switch_step,
+                "action_proof": action,
+                "state_clone_supported": False,
+                "recurrent_state_restore_supported": False,
+                "forward_only": True,
+                "mode_readback": mode_readback,
+                "excluded_claims": [
+                    "NO_CAUSAL_EFFECT_CLAIM",
+                    "NO_POLICY_QUALITY_CLAIM",
+                    "NO_EXACT_STATE_CLONE",
+                    "NO_RECURRENT_STATE_RESTORE",
+                    "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
+                    "NO_ROUTE_B_SUITE_EXECUTION",
+                ],
+            }
+            self._a2_v23_p08_v2_terminal_records[env_id] = record
+
+    def get_a2_v23_p08_v2_episode_record(self, env_id: int) -> dict[str, Any]:
+        if not getattr(self, "_a2_v23_p08_v2_enabled", False):
+            raise RuntimeError("P0.8 preformal-v2 evidence is unavailable when disabled.")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise ValueError("P0.8 preformal-v2 evidence env_id is invalid.")
+        record = self._a2_v23_p08_v2_terminal_records[env_id]
+        if record is None:
+            raise RuntimeError(
+                "P0.8 preformal-v2 terminal snapshot is unavailable after episode completion; "
+                f"env_id={env_id}."
+            )
+        if not isinstance(record, dict):
+            raise RuntimeError("P0.8 preformal-v2 episode record was not materialized.")
+        return dict(record)
 
     def _a2_v23_p05_validate_env_ids(self, env_ids: torch.Tensor) -> None:
         if (
@@ -11518,6 +12378,7 @@ class DoorPregrasp(
             self._update_a2_grasp_control_streaks(env_ids)
             self._update_a2_stage5_hold_continuation(env_ids)
             self._update_a2_door_body_contact_event(env_ids)
+            self._update_a2_v23_route_a_unsafe_contact(env_ids)
             self._update_a2_stage4_release_and_root_latches(env_ids)
             self._update_a2_v20_state(env_ids)
             if env_ids is None and post_physics:
@@ -24420,6 +25281,12 @@ class DoorPregrasp(
             self._a2_door_body_contact_event_peak[env_ids] = 0.0
             self._a2_door_body_contact_event_pending[env_ids] = 0.0
             self._a2_door_body_contact_event_emitted[env_ids] = 0.0
+            if self._a2_v23_route_a_unsafe_contact_enabled:
+                latch = self._get_a2_v23_route_a_unsafe_contact_latch(
+                    "Route-A unsafe-contact reset"
+                )
+                self._a2_v23_route_a_unsafe_contact_completed[env_ids] = latch[env_ids]
+                latch[env_ids] = False
             self._a2_stage4_release_gate[env_ids] = False
             self._a2_root_x_ever_crossed[env_ids] = False
             self._a2_corridor_latched[env_ids] = False
@@ -24527,6 +25394,53 @@ class DoorPregrasp(
                 self._a2_v23_p05_rescue_status[env_id] = "NOT_REQUESTED"
                 self._a2_v23_p05_requested_profile[env_id] = {"status": "NOT_REQUESTED"}
                 self._a2_v23_p05_applied_profile[env_id] = {"status": "NOT_EXECUTED"}
+        if getattr(self, "_a2_v23_p08_v2_enabled", False):
+            episode_progress = self.episode_length_buf[env_ids]
+            completed_env_ids = env_ids[episode_progress > 0]
+            if completed_env_ids.numel() > 0:
+                missing_action_env_ids = [
+                    env_id
+                    for env_id in completed_env_ids.detach().cpu().tolist()
+                    if not self._a2_v23_p08_v2_action_records[env_id]
+                ]
+                if missing_action_env_ids:
+                    raise RuntimeError(
+                        "P0.8 preformal-v2 completed episode has no action snapshot; "
+                        f"env_ids={missing_action_env_ids}."
+                    )
+                self._snapshot_a2_v23_p08_v2_evidence(completed_env_ids)
+            if self._a2_v23_p08_v2_mode == "HIGHER_EFFORT_RESCUE":
+                robot = self.simulator.scene.articulations["robot"]
+                baseline = self._a2_v23_p08_v2_baseline_effort_limits[env_ids]
+                robot.write_joint_effort_limit_to_sim(
+                    baseline,
+                    joint_ids=self._a2_v23_p08_v2_arm_joint_ids,
+                    env_ids=env_ids,
+                )
+                readback = robot.data.joint_effort_limits[env_ids][
+                    :, self._a2_v23_p08_v2_arm_joint_ids
+                ]
+                if not torch.allclose(readback, baseline, atol=1.0e-5, rtol=0.0):
+                    raise RuntimeError(
+                        "P0.8 preformal-v2 reset effort-limit readback did not restore the baseline."
+                    )
+            self._a2_v23_p08_v2_trigger_mask[env_ids] = False
+            self._a2_v23_p08_v2_switch_step[env_ids] = -1
+            self._a2_v23_p08_v2_observed_latch_step[env_ids] = -1
+            self._a2_v23_p08_v2_effort_applied_mask[env_ids] = False
+            self._a2_v23_p08_v2_observed_stable[env_ids] = False
+            self._a2_v23_p08_v2_observed_typed_failure[env_ids] = False
+            completed_env_id_set = set(completed_env_ids.detach().cpu().tolist())
+            for env_id in env_ids.detach().cpu().tolist():
+                if env_id in completed_env_id_set:
+                    self._a2_v23_p08_v2_episode_indices[env_id] += 1
+                self._a2_v23_p08_v2_action_records[env_id] = {}
+                self._a2_v23_p08_v2_window_rows[env_id] = []
+                self._a2_v23_p08_v2_last_windows[env_id] = []
+                self._a2_v23_p08_v2_latch_predicates[env_id] = {}
+                self._a2_v23_p08_v2_failure_flags[env_id] = {}
+                self._a2_v23_p08_v2_requested_profile[env_id] = {"status": "NOT_REQUESTED"}
+                self._a2_v23_p08_v2_applied_profile[env_id] = {"status": "NOT_EXECUTED"}
         return super()._reset_buffers_callback(env_ids, target_buf)
 
 
@@ -24861,6 +25775,7 @@ class DoorPregrasp(
         # has been finalized, before reward/reset consumes the snapshot.
         if getattr(self, "_a2_v23_p05_enabled", False):
             self._update_a2_v23_p05_evidence()
+        self._update_a2_v23_p08_v2_latch()
         self._finalize_a2_v23_temporal_control_rows()
 
     @property

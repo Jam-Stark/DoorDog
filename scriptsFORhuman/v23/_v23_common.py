@@ -41,16 +41,56 @@ V23_POOLED_EPISODES = 48
 V23_HOLDOUT_EPISODES = 64
 V23_ROUTE_A_STEPS = tuple(range(250, 2501, 250))
 V23_EFFORT_RUNGS = (100.0, 60.0, 40.0, 30.0, 25.0, 20.0)
-V23_LEGAL_PHYSICAL_GPUS = (0, 1, 2, 3)
+V23_LEGAL_PHYSICAL_GPUS = (0, 1)
 V23_RP0_MASK_INDICES = (3, 4)
 V23_RP0_NEUTRAL_VALUE = 0.0
 
-V23_GPU_SUBWAVES = {
-    "A1": {"seed": 0, "cells": ("G1", "G3", "G5", "G7"), "gpus": (0, 1, 2, 3)},
-    "A2": {"seed": 0, "cells": ("G2", "G4", "G6", "G8"), "gpus": (0, 1, 2, 3)},
-    "B1": {"seed": 1, "cells": ("G1", "G3", "G5", "G7"), "gpus": (0, 1, 2, 3)},
-    "B2": {"seed": 1, "cells": ("G2", "G4", "G6", "G8"), "gpus": (0, 1, 2, 3)},
+# Formal execution is a two-GPU lease.  Each four-cell scientific sub-wave is
+# split into two serial slices; keeping the slice table explicit prevents a
+# caller from accidentally restoring the historical four-GPU whole-wave map.
+V23_GPU_SLICES = {
+    "A1-D0": {"subwave": "A1", "seed": 0, "cells": ("G1", "G3"), "gpus": (0, 1), "door_regime": "D0"},
+    "A1-D1": {"subwave": "A1", "seed": 0, "cells": ("G5", "G7"), "gpus": (0, 1), "door_regime": "D1"},
+    "A2-D0": {"subwave": "A2", "seed": 0, "cells": ("G2", "G4"), "gpus": (0, 1), "door_regime": "D0"},
+    "A2-D1": {"subwave": "A2", "seed": 0, "cells": ("G6", "G8"), "gpus": (0, 1), "door_regime": "D1"},
+    "B1-D0": {"subwave": "B1", "seed": 1, "cells": ("G1", "G3"), "gpus": (0, 1), "door_regime": "D0"},
+    "B1-D1": {"subwave": "B1", "seed": 1, "cells": ("G5", "G7"), "gpus": (0, 1), "door_regime": "D1"},
+    "B2-D0": {"subwave": "B2", "seed": 1, "cells": ("G2", "G4"), "gpus": (0, 1), "door_regime": "D0"},
+    "B2-D1": {"subwave": "B2", "seed": 1, "cells": ("G6", "G8"), "gpus": (0, 1), "door_regime": "D1"},
 }
+
+V23_GPU_SUBWAVES = {
+    "A1": {"seed": 0, "slices": ("A1-D0", "A1-D1"), "cells": ("G1", "G3", "G5", "G7"), "gpus": (0, 1)},
+    "A2": {"seed": 0, "slices": ("A2-D0", "A2-D1"), "cells": ("G2", "G4", "G6", "G8"), "gpus": (0, 1)},
+    "B1": {"seed": 1, "slices": ("B1-D0", "B1-D1"), "cells": ("G1", "G3", "G5", "G7"), "gpus": (0, 1)},
+    "B2": {"seed": 1, "slices": ("B2-D0", "B2-D1"), "cells": ("G2", "G4", "G6", "G8"), "gpus": (0, 1)},
+}
+
+V23_FORMAL_EXECUTION_ORDER = (
+    "A1-D0", "A1-D1", "RouteA-A1",
+    "A2-D0", "A2-D1", "RouteA-A2",
+    "B1-D0", "B1-D1", "RouteA-B1",
+    "B2-D0", "B2-D1", "RouteA-B2",
+)
+
+V23_FORMAL_CELL_CONFIGS = {
+    "G1": "gr00t/rl/config/ablation/wbmanip/base_v23_G1_warm_D0_full.yaml",
+    "G2": "gr00t/rl/config/ablation/wbmanip/base_v23_G2_warm_D0_rp0.yaml",
+    "G3": "gr00t/rl/config/ablation/wbmanip/base_v23_G3_scratch_D0_full.yaml",
+    "G4": "gr00t/rl/config/ablation/wbmanip/base_v23_G4_scratch_D0_rp0.yaml",
+    "G5": "gr00t/rl/config/ablation/wbmanip/base_v23_G5_warm_D1_full.yaml",
+    "G6": "gr00t/rl/config/ablation/wbmanip/base_v23_G6_warm_D1_rp0.yaml",
+    "G7": "gr00t/rl/config/ablation/wbmanip/base_v23_G7_scratch_D1_full.yaml",
+    "G8": "gr00t/rl/config/ablation/wbmanip/base_v23_G8_scratch_D1_rp0.yaml",
+}
+
+V23_FORMAL_CELL_GPU = {cell: gpu for cell, gpu in (
+    ("G1", 0), ("G3", 1), ("G5", 0), ("G7", 1),
+    ("G2", 0), ("G4", 1), ("G6", 0), ("G8", 1),
+)}
+
+V23_DOOR_REGIMES = ("D0", "D1")
+V23_POSTURE_MODES = ("FULL", "RP0")
 
 V23_CELL_FACTORS = {
     "G1": {"initialization": "v22_warm", "door_regime": "D0", "posture": "FULL"},
@@ -278,15 +318,22 @@ __all__ = [
     "V23_D0_SOURCE_FACTS",
     "V23_D0_SOURCE_RESOLVED_CONFIG",
     "V23_EFFORT_RUNGS",
+    "V23_DOOR_REGIMES",
     "V23_FORMAL_BATCHES",
+    "V23_FORMAL_CELL_CONFIGS",
     "V23_FORMAL_ENVS",
+    "V23_FORMAL_CELL_GPU",
+    "V23_FORMAL_EXECUTION_ORDER",
     "V23_GPU_SUBWAVES",
+    "V23_GPU_SLICES",
     "V23_HOLDOUT_EPISODES",
     "V23_INTERVENTION_MODES",
+    "V23_LAUNCHER_ROOT",
     "V23_LEGAL_PHYSICAL_GPUS",
     "V23_PLAN_DOCUMENT",
     "V23_PLAN_ID",
     "V23_POOLED_EPISODES",
+    "V23_POSTURE_MODES",
     "V23_ROUTE_A_STEPS",
     "V23_RP0_MASK_INDICES",
     "V23_RP0_NEUTRAL_VALUE",

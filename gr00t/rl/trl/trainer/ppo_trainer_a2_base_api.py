@@ -6253,6 +6253,71 @@ class TRLPPOTrainer(PPOTrainer):
         if facts["trainer"].get("global_step") != 10 or self.state.global_step != 10:
             raise RuntimeError("v23 P0.7 FULL restore did not leave trainer global_step=10.")
 
+    def _apply_v23_warm_head_reset(self, policy):
+        """Reset only the raw pitch/roll rows of the warm policy output head."""
+
+        if self.workflow_config is None:
+            return None
+        initialization = self.workflow_config.get("v23_initialization")
+        if initialization != "warm_head_reset":
+            return None
+        if self.checkpoint_load_mode != "policy_only":
+            raise RuntimeError(
+                "v23 warm_head_reset requires checkpoint_load_mode='policy_only'."
+            )
+        if isinstance(self.local_seed, bool) or not isinstance(self.local_seed, int):
+            raise RuntimeError(
+                "v23 warm_head_reset requires an integer local_seed for its local generator."
+            )
+
+        required_keys = (
+            "actor_module.module.6.weight",
+            "actor_module.module.6.bias",
+            "std",
+        )
+        parameters = dict(policy.named_parameters())
+        missing = [key for key in required_keys if key not in parameters]
+        if missing:
+            raise RuntimeError(
+                "v23 warm_head_reset policy is missing exact required parameters: "
+                f"{missing}."
+            )
+        expected_shapes = {
+            "actor_module.module.6.weight": (12, 128),
+            "actor_module.module.6.bias": (12,),
+            "std": (12,),
+        }
+        for key, expected_shape in expected_shapes.items():
+            parameter = parameters[key]
+            if tuple(parameter.shape) != expected_shape:
+                raise RuntimeError(
+                    "v23 warm_head_reset parameter shape mismatch for "
+                    f"{key!r}: got {tuple(parameter.shape)}, expected {expected_shape}."
+                )
+
+        weight = parameters["actor_module.module.6.weight"]
+        bias = parameters["actor_module.module.6.bias"]
+        std = parameters["std"]
+        generator = torch.Generator(device=weight.device)
+        generator.manual_seed(self.local_seed)
+        with torch.no_grad():
+            torch.nn.init.kaiming_uniform_(
+                weight[3:5], a=math.sqrt(5), generator=generator
+            )
+            bound = 1.0 / math.sqrt(128)
+            torch.nn.init.uniform_(bias[3:5], -bound, bound, generator=generator)
+            std[3:5].fill_(0.8)
+        return {
+            "applied": True,
+            "initialization": initialization,
+            "weight_key": "actor_module.module.6.weight",
+            "bias_key": "actor_module.module.6.bias",
+            "std_key": "std",
+            "row_slice": [3, 5],
+            "std_value": 0.8,
+            "local_seed": self.local_seed,
+        }
+
     def load_policy_checkpoint(self, checkpoint_path):
         """Strictly load only the actor policy weights from a checkpoint."""
         print(f"Loading policy-only checkpoint from {checkpoint_path}")
@@ -6273,6 +6338,7 @@ class TRLPPOTrainer(PPOTrainer):
         model = self.accelerator.unwrap_model(self.model)
         actor_key = present_actor_keys[0]
         load_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+        warm_head_reset = self._apply_v23_warm_head_reset(model.policy)
         self._a2_v23_runtime_load_facts["actor"] = {
             "loaded": True,
             "state_key": actor_key,
@@ -6280,6 +6346,8 @@ class TRLPPOTrainer(PPOTrainer):
             "missing_keys": list(load_result.missing_keys),
             "unexpected_keys": list(load_result.unexpected_keys),
         }
+        if warm_head_reset is not None:
+            self._a2_v23_runtime_load_facts["actor"]["warm_head_reset"] = warm_head_reset
         self._a2_v23_runtime_load_facts["load_mode"] = "policy_only"
         self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)
         print(f"Loaded policy-only checkpoint actor from key {actor_key!r}")

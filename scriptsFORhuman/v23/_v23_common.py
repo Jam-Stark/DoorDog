@@ -55,12 +55,12 @@ V23_GPU_SUBWAVES = {
 V23_CELL_FACTORS = {
     "G1": {"initialization": "v22_warm", "door_regime": "D0", "posture": "FULL"},
     "G2": {"initialization": "v22_warm", "door_regime": "D0", "posture": "RP0"},
-    "G3": {"initialization": "scratch", "door_regime": "D0", "posture": "FULL"},
-    "G4": {"initialization": "scratch", "door_regime": "D0", "posture": "RP0"},
+    "G3": {"initialization": "warm_head_reset", "door_regime": "D0", "posture": "FULL"},
+    "G4": {"initialization": "warm_head_reset", "door_regime": "D0", "posture": "RP0"},
     "G5": {"initialization": "v22_warm", "door_regime": "D1", "posture": "FULL"},
     "G6": {"initialization": "v22_warm", "door_regime": "D1", "posture": "RP0"},
-    "G7": {"initialization": "scratch", "door_regime": "D1", "posture": "FULL"},
-    "G8": {"initialization": "scratch", "door_regime": "D1", "posture": "RP0"},
+    "G7": {"initialization": "warm_head_reset", "door_regime": "D1", "posture": "FULL"},
+    "G8": {"initialization": "warm_head_reset", "door_regime": "D1", "posture": "RP0"},
 }
 
 V23_INTERVENTION_MODES = (

@@ -3,7 +3,7 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** interim P0 adjudication; P0.1/P0.3, P0.6, the bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type smokes are runtime verified; P0.10 has a terminal operational NO-GO with Branch B scientifically unmeasured, F1 is triggered, the D1 source branch is incomplete, and there is no formal training admission
+**Runtime state:** interim P0 adjudication; P0.1/P0.3, P0.6, the bounded partial A0/D0 P0.8 node, the R112 D0 P0.9 smokes, and the triggered F1 head-reset two-type smokes are runtime verified; P0.10 remains an operational scratch-admission NO-GO with Branch B scientifically unmeasured, the D1 source branch is incomplete, and there is no formal training admission
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
@@ -12,8 +12,8 @@ paths.  The original R1 preparation tools write plain JSON/Markdown.  The later
 P0.6 stationary-rent and P0.8 state-bank tools are separately bounded evaluator
 runner/reducers.  The P0.9 runner verifies only four D0 training smokes.  P0.10
 consumed that bounded admission and terminated with the pre-registered F1
-branch; none of these tools authorizes formal training, formal evaluation, or
-rendering.
+branch.  F1 is now implemented and smoke-verified for D0 FULL/RP0 only; none of
+these tools authorizes formal training, formal evaluation, or rendering.
 
 ## 1. Scientific question and fixed matrix
 
@@ -188,7 +188,7 @@ explicitly typed rather than promoted.
 | P0.7 | RP0 distribution contract and resume checks | `RUNTIME_VERIFIED`; RP0 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11` |
 | P0.8 | State-bank replay prefixes and forward interventions | `PARTIAL_A0_D0_RUNTIME_VERIFIED / OVERALL_INCOMPLETE`; R78 captured stages 2/3/4 and emitted 15 typed bindings, with no exact state clone or release receipt |
 | P0.9 | Four 64-env × 10-batch type smokes | `RUNTIME_VERIFIED / COMPLETE`; R112 WARM_FULL, WARM_RP0, SCRATCH_FULL, and SCRATCH_RP0 each returned runner/child `rc0`, produced a finite step-10 checkpoint, and reduced to the canonical four-type receipt |
-| P0.10 | Scratch D0 FULL pilot | `TERMINAL OPERATIONAL NO-GO / SCIENTIFIC INCONCLUSIVE`; Branch A measured-valid-failed at 16 evaluated / 12 stage-2 / 0 stable-grasp, while Branch B is `UNMEASURED_OBSERVABILITY_BLOCKED` and `UNADJUDICATED`; F1 is triggered |
+| P0.10 | Scratch D0 FULL pilot | `TERMINAL OPERATIONAL NO-GO / SCIENTIFIC INCONCLUSIVE`; Branch A measured-valid-failed at 16 evaluated / 12 stage-2 / 0 stable-grasp, while Branch B is `UNMEASURED_OBSERVABILITY_BLOCKED` and `UNADJUDICATED`; triggered F1 is implemented and its D0 FULL/RP0 64×10 smokes are runtime verified |
 
 ### P0.3 evidence tie
 
@@ -427,11 +427,12 @@ high-level APIs (no low-level USD escape hatch).
 
 ## 9. Pre-registered contingencies F1–F8
 
-* **F1 scratch pilot NO-GO — TRIGGERED:** P0.10 preserved Branch A's measured
+* **F1 scratch pilot NO-GO — TRIGGERED / SMOKE-COMPLETE:** P0.10 preserved Branch A's measured
   failure and Branch B's observability block, and recorded
-  `V23_SCRATCH_CURRICULUM_INSUFFICIENT_PILOT`.  The next bounded work is the
-  approved head-reset implementation and its two minimal type smokes.  Do not
-  claim full scratch evidence or a Branch-B policy result.
+  `V23_SCRATCH_CURRICULUM_INSUFFICIENT_PILOT`.  The approved head-reset now
+  resets only actor output rows 3/4 plus corresponding `std`, and both D0 FULL
+  and RP0 64×10 smokes passed.  Do not claim full scratch evidence, policy
+  quality, or a Branch-B result.
 * **F2 effort ladder inconclusive:** retain `LADDER_INCONCLUSIVE`; use the
   planner-approved bounded profile only after recording the missing boundary
   evidence.  Do not chase extreme door parameters.
@@ -553,7 +554,8 @@ bounded D0 preparation DAG:
 [R78 COMPLETE] partial P0.8 A0/D0 state-bank/plumbing work
   -> [R112 COMPLETE] D0 P0.9 four-type 64-env × 10-batch smokes
   -> [TERMINAL NO-GO] D0 P0.10 FULL pilot
-  -> [NEXT/F1] head-reset implementation and two minimal type smokes
+  -> [R182 COMPLETE] F1 head-reset implementation and two D0 type smokes
+  -> [NEXT] resolve P0.4 D1 and overall P0.8, or preserve typed NO-GO
 ```
 
 The following remain forbidden in this interim state: formal 8×2 training,
@@ -589,4 +591,28 @@ preserved checkpoint does not contain `staged_reset_buf` or
 `staged_reset_num_samples`, and canonical16 produced no stage-3-or-later birth
 source.  Therefore the operational scratch-admission result is NO-GO, the
 scientific result is `P0_10_SCIENTIFIC_INCONCLUSIVE_BRANCH_B_UNMEASURED`, and
-F1 is triggered without claiming that its head-reset variant is implemented.
+F1 is triggered.  Section 14 records the subsequent bounded implementation and
+runtime-smoke closure; it does not change the Branch-B scientific result.
+
+## 14. R177–R182 F1 head-reset closure (2026-08-10 HKT)
+
+F1 implements a strict `warm_head_reset` path immediately after the existing
+strict `policy_only` actor load.  It reinitializes only
+`actor_module.module.6.weight[3:5]`, the matching bias rows, and `std[3:5]`
+(`0.8`) using a local device generator seeded from the run seed.  All other
+actor/LSTM/RMS tensors remain inherited; critic, optimizer, scheduler, trainer,
+and environment state remain fresh.  Future G3/G4/G7/G8 use
+`warm_head_reset`, while G1/G2/G5/G6 remain `v22_warm`; G7/G8 are not admitted
+while D1 is blocked.
+
+R180 and R181 each ran exactly once at `64 env × 10 batch` with no retry.
+HR-FULL-D0 used physical GPU0/logical `cuda:0`; HR-RP0-D0 used physical
+GPU1/logical `cuda:0`.  Both child processes returned naturally with `rc0`,
+preserved the exact resolved config, and produced finite step-10 checkpoints.
+The sole CPU R182 reducer returned `rc0` and wrote
+`logs_eval/base_v23/p0/p010_f1_head_reset_d0_type_smoke_receipt.json` with
+schema `a2_piper_v23_f1_head_reset_d0_receipt_v1` and status
+`P0_10_F1_D0_HEAD_RESET_TWO_TYPE_SMOKES_RUNTIME_VERIFIED`.  This closes only
+the F1 implementation/smoke node.  It does not measure Branch B, establish
+policy quality, complete P0.8, admit D1/formal work, or support release/goal
+success.

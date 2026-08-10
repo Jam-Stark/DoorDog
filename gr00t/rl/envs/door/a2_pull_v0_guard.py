@@ -20,10 +20,15 @@ from gr00t.rl.envs.door.a2_pull_direction import (
 A2_PULL_V0_PLAN_ID = "a2_piper_pull_v0_tensile_feasibility_v1"
 A2_PULL_V1_PLAN_ID = "a2_piper_pull_v1_reward_port_and_stage_semantics"
 A2_PULL_V2_PLAN_ID = "a2_piper_pull_v2_wall_removal_and_unlatch_calibration"
+A2_PULL_V3_PLAN_ID = "a2_piper_pull_v3_release_then_cross_traversal"
 A2_PULL_V2_E3_LATCH_THRESHOLD_M = 0.02292371541261673
 A2_PULL_V0_TARGET_FRAME_VERSION = "grasp_target_active_face_io_z_pre_v1"
 A2_PULL_V0_TARGET_ORIENTATION_WXYZ = (-0.5, -0.5, 0.5, 0.5)
 A2_PULL_V0_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 100, 200)
+A2_PULL_V3_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 250, 300)
+A2_PULL_V3_MAX_EPISODE_LENGTH_S = 24.0
+A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE = 4.2666667
+A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE = 1.0
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 A2_PULL_V0_SOURCE_FREEZE_PATH = _REPO_ROOT / "scriptsFORhuman/pull_v0/PULL_V0_SOURCE_FREEZE.json"
 A2_PULL_V0_RESOLVED_G4_CONFIG_PATH = (
@@ -700,19 +705,113 @@ def validate_a2_pull_v2_guard(
     }
 
 
+def validate_a2_pull_v3_guard(
+    config: Mapping[str, Any],
+    *,
+    actual_finger_effort_n: Any,
+    actual_finger_stiffness: Any,
+    actual_finger_damping: Any,
+    reward_scales: Mapping[str, Any] | None = None,
+    reward_scale_dt: float | None = None,
+) -> dict[str, Any]:
+    """Validate the pull-v3 release-then-cross construction contract."""
+
+    _require_exact(config, "a2_v20_R1_plan_id", A2_PULL_V3_PLAN_ID)
+    _require_exact_numeric_sequence(
+        config,
+        "max_stage_time",
+        tuple(float(item) for item in A2_PULL_V3_STAGE_TIME_BUDGET_STEPS),
+    )
+    _require_exact_number(config, "max_episode_length_s", A2_PULL_V3_MAX_EPISODE_LENGTH_S)
+
+    if reward_scales is None:
+        configured_rewards = _require_mapping(
+            _mapping_item(config, "rewards", "Pull-v3 config"),
+            "Pull-v3 rewards",
+        )
+        configured_scales = _require_mapping(
+            _mapping_item(configured_rewards, "reward_scales", "Pull-v3 rewards"),
+            "Pull-v3 rewards.reward_scales",
+        )
+        expected_scales = {
+            "a2_corridor_door_wide": A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE,
+            "a2_corridor_clean_passage": A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE,
+        }
+    else:
+        if reward_scale_dt is None or isinstance(reward_scale_dt, bool) or not math.isfinite(float(reward_scale_dt)):
+            raise RuntimeError("Pull-v3 runtime reward-scale validation requires a finite dt.")
+        configured_scales = reward_scales
+        expected_scales = {
+            "a2_corridor_door_wide": A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE * float(reward_scale_dt),
+            "a2_corridor_clean_passage": A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE * float(reward_scale_dt),
+        }
+    for key, expected in (
+        ("a2_corridor_door_wide", expected_scales["a2_corridor_door_wide"]),
+        ("a2_corridor_clean_passage", expected_scales["a2_corridor_clean_passage"]),
+    ):
+        value = _mapping_item(configured_scales, key, "Pull-v3 rewards.reward_scales")
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+            raise RuntimeError(
+                f"Pull-v3 rewards.reward_scales.{key} must be a finite number; got {value!r}."
+            )
+        if float(value) != expected:
+            raise RuntimeError(
+                f"Pull-v3 rewards.reward_scales.{key} must be exactly {expected!r}; got {value!r}."
+            )
+
+    # Reuse the frozen v2 contract for all unchanged direction, latch, finger,
+    # reward-port, and disabled v20 selectors.  Only the explicitly versioned
+    # v3 budget and corridor additions differ.
+    v2_contract = dict(config)
+    v2_contract["a2_v20_R1_plan_id"] = A2_PULL_V2_PLAN_ID
+    v2_contract["max_stage_time"] = tuple(
+        float(item) for item in A2_PULL_V0_STAGE_TIME_BUDGET_STEPS
+    )
+    validate_a2_pull_v2_guard(
+        v2_contract,
+        actual_finger_effort_n=actual_finger_effort_n,
+        actual_finger_stiffness=actual_finger_stiffness,
+        actual_finger_damping=actual_finger_damping,
+        reward_scales=reward_scales,
+        reward_scale_dt=reward_scale_dt,
+    )
+    return {
+        "plan_id": A2_PULL_V3_PLAN_ID,
+        "variant": "V1-R",
+        "near_closed_hinge_threshold": 0.25,
+        "e3_latch_threshold_m": A2_PULL_V2_E3_LATCH_THRESHOLD_M,
+        "max_stage_time": A2_PULL_V3_STAGE_TIME_BUDGET_STEPS,
+        "max_episode_length_s": A2_PULL_V3_MAX_EPISODE_LENGTH_S,
+        "corridor_door_wide_scale": A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE,
+        "corridor_clean_passage_scale": A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE,
+        "threshold_mode": "hard_gate",
+        "send_hinge_threshold": 1.0,
+        "finger_profile": "V20_G4_45N_KP1300_KD32",
+        "hook_profile": _required(config, "a2_pull_hook_profile"),
+        "friction_profile": _required(config, "a2_pull_friction_profile"),
+        "num_profile_rows": len(_normalize_profile_rows(actual_finger_effort_n, "finger effort")),
+    }
+
+
 __all__ = [
     "A2_PULL_V0_DIRECTION_CONTRACT_VERSION",
     "A2_PULL_V0_PLAN_ID",
     "A2_PULL_V1_PLAN_ID",
     "A2_PULL_V2_PLAN_ID",
+    "A2_PULL_V3_PLAN_ID",
     "A2_PULL_V2_E3_LATCH_THRESHOLD_M",
     "A2_PULL_V0_RESOLVED_G4_CONFIG_PATH",
     "A2_PULL_V0_SOURCE_FREEZE_PATH",
     "A2_PULL_V0_STAGE_TIME_BUDGET_STEPS",
+    "A2_PULL_V3_STAGE_TIME_BUDGET_STEPS",
+    "A2_PULL_V3_MAX_EPISODE_LENGTH_S",
+    "A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE",
+    "A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE",
     "A2_PULL_V0_TARGET_FRAME_VERSION",
     "A2_PULL_V0_TARGET_ORIENTATION_WXYZ",
     "validate_a2_pull_v0_guard",
     "validate_a2_pull_v0_resolved_g4_config",
     "validate_a2_pull_v1_guard",
     "validate_a2_pull_v2_guard",
+    "validate_a2_pull_v3_guard",
 ]

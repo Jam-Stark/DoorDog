@@ -36,7 +36,10 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
     validate_a2_pull_control_step,
     validate_a2_pull_episode,
 )
-from gr00t.rl.envs.door.a2_pull_v0_guard import A2_PULL_V0_TARGET_ORIENTATION_WXYZ
+from gr00t.rl.envs.door.a2_pull_v0_guard import (
+    A2_PULL_V0_TARGET_ORIENTATION_WXYZ,
+    A2_PULL_V3_PLAN_ID,
+)
 from gr00t.rl.envs.door.door_open_a2_base import (
     DoorPregrasp,
     a2_hold_pd_effort_estimates,
@@ -52,6 +55,15 @@ class DoorOpenA2Pull(DoorPregrasp):
     A2_PUSH_ANCHOR_TARGET_ORIENTATION_WXYZ = (0.5, 0.5, 0.5, 0.5)
     A2_PULL_DOOR_BODY_FRAME_CONTACT_SENSOR = "a2_pull_door_body_frame_contact_sensor"
     A2_PULL_DOOR_ARM_FRAME_CONTACT_SENSOR = "a2_pull_door_arm_frame_contact_sensor"
+    # Source-grounded panel geometry from door.py: the panel cube has a 0.02 m
+    # half-thickness and the builder's end gap is gap_width=0.002 m.
+    _A2_PULL_PANEL_HALF_THICKNESS_M = 0.02
+    _A2_PULL_PANEL_END_GAP_M = 0.002
+    _A2_PULL_DOOR_HINGE_LOCAL_X_M = 0.02
+    # The A2_Piper trunk URDF (data/robots/A2_Piper/a2_piper.urdf) horizontal
+    # envelope is approximately 0.398 m;
+    # use the source-grounded 0.40 m circular footprint for report-only clearance.
+    _A2_PULL_TRUNK_FOOTPRINT_RADIUS_M = 0.40
 
     def __init__(self, config, device):
         config_mapping = config.get("config", config)
@@ -62,6 +74,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             door_open_lr=config_mapping["a2_pull_door_open_lr"],
         )
         super().__init__(config, device)
+
+    def _is_a2_pull_v3(self) -> bool:
+        return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V3_PLAN_ID
 
     def _get_a2_pull_threshold_mode(self) -> str:
         mode = self.config.get("a2_pull_threshold_mode")
@@ -101,6 +116,26 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _init_buffers(self):
         super()._init_buffers()
+        door_articulation = self.simulator.scene.articulations["door"]
+        door_panel_body_ids, door_panel_body_names = door_articulation.find_bodies(
+            "door_panel", preserve_order=True
+        )
+        if door_panel_body_names != ["door_panel"] or len(door_panel_body_ids) != 1:
+            raise RuntimeError(
+                "Pull clearance requires exactly one door_panel articulation body; "
+                f"got ids={door_panel_body_ids!r}, names={door_panel_body_names!r}."
+            )
+        robot_articulation = self.simulator.scene.articulations["robot"]
+        trunk_body_ids, trunk_body_names = robot_articulation.find_bodies(
+            "trunk", preserve_order=True
+        )
+        if trunk_body_names != ["trunk"] or len(trunk_body_ids) != 1:
+            raise RuntimeError(
+                "Pull clearance requires exactly one trunk articulation body; "
+                f"got ids={trunk_body_ids!r}, names={trunk_body_names!r}."
+            )
+        self._a2_pull_door_panel_body_id = door_panel_body_ids[0]
+        self._a2_pull_trunk_body_id = trunk_body_ids[0]
         self._a2_pull_event_reached = torch.zeros(
             self.num_envs,
             len(A2PullEvent),
@@ -188,6 +223,66 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_aperture_ready = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+        self._a2_pull_frame_passage = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_frame_passage_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_planar_crossing = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_planar_crossing_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_detour = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_frame_approach = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_deliberate_release = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_deliberate_release_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_first_negative_x_motion_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_prev_stable_contact = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_prev_panel_contact = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_post_release_recontact_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_base_path_length_m = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_prev_base_pos_xy = torch.full(
+            (self.num_envs, 2), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_base_reversal_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_prev_travel_velocity = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_swept_arc_clearance_margin_current_m = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_swept_arc_clearance_margin_min_m = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_corridor_door_wide_pre_aperture_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_corridor_clean_passage_pre_aperture_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
         self._a2_pull_stage0_staging_band = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
@@ -268,6 +363,26 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_minimum_panel_robot_clearance_m[env_ids] = float("nan")
         self._a2_pull_clearance_ready[env_ids] = False
         self._a2_pull_aperture_ready[env_ids] = False
+        self._a2_pull_frame_passage[env_ids] = False
+        self._a2_pull_frame_passage_step[env_ids] = -1
+        self._a2_pull_planar_crossing[env_ids] = False
+        self._a2_pull_planar_crossing_step[env_ids] = -1
+        self._a2_pull_detour[env_ids] = False
+        self._a2_pull_frame_approach[env_ids] = False
+        self._a2_pull_deliberate_release[env_ids] = False
+        self._a2_pull_deliberate_release_step[env_ids] = -1
+        self._a2_pull_first_negative_x_motion_step[env_ids] = -1
+        self._a2_pull_prev_stable_contact[env_ids] = False
+        self._a2_pull_prev_panel_contact[env_ids] = False
+        self._a2_pull_post_release_recontact_count[env_ids] = 0
+        self._a2_pull_base_path_length_m[env_ids] = 0.0
+        self._a2_pull_prev_base_pos_xy[env_ids] = float("nan")
+        self._a2_pull_base_reversal_count[env_ids] = 0
+        self._a2_pull_prev_travel_velocity[env_ids] = float("nan")
+        self._a2_pull_swept_arc_clearance_margin_current_m[env_ids] = float("nan")
+        self._a2_pull_swept_arc_clearance_margin_min_m[env_ids] = float("nan")
+        self._a2_pull_corridor_door_wide_pre_aperture_steps[env_ids] = 0
+        self._a2_pull_corridor_clean_passage_pre_aperture_steps[env_ids] = 0
         self._a2_pull_stage0_staging_band[env_ids] = False
         self._a2_pull_stage0_arm_default[env_ids] = False
         self._a2_pull_stage0_base_still[env_ids] = False
@@ -327,42 +442,96 @@ class DoorOpenA2Pull(DoorPregrasp):
         return torch.all(signed_body_progress > 1.5, dim=-1)
 
     def _get_a2_pull_minimum_panel_robot_clearance(self) -> torch.Tensor:
-        """Return a measured point-cloud clearance proxy from high-level articulation data."""
+        """Return the signed trunk-footprint clearance to the current door-panel slab."""
 
+        door_states = self.simulator.get_task_root_state("door")
         door_data = self.simulator.scene.articulations["door"].data
         robot_data = self.simulator.scene.articulations["robot"].data
-        door_body_pos_w = door_data.body_pos_w
-        robot_body_pos_w = robot_data.body_pos_w
+        panel_body_quat_w = door_data.body_quat_w[:, self._a2_pull_door_panel_body_id]
+        trunk_body_pos_w = robot_data.body_pos_w[:, self._a2_pull_trunk_body_id]
         if (
-            not torch.is_tensor(door_body_pos_w)
-            or door_body_pos_w.ndim != 3
-            or tuple(door_body_pos_w.shape[:1]) != (self.num_envs,)
-            or door_body_pos_w.shape[2] != 3
-            or not torch.all(torch.isfinite(door_body_pos_w))
-            or not torch.is_tensor(robot_body_pos_w)
-            or robot_body_pos_w.ndim != 3
-            or tuple(robot_body_pos_w.shape[:1]) != (self.num_envs,)
-            or robot_body_pos_w.shape[2] != 3
-            or not torch.all(torch.isfinite(robot_body_pos_w))
+            not torch.is_tensor(door_states)
+            or door_states.ndim != 2
+            or door_states.shape[0] != self.num_envs
+            or door_states.shape[1] < 7
+            or not door_states.is_floating_point()
+            or door_states.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(door_states))
+            or not torch.is_tensor(panel_body_quat_w)
+            or tuple(panel_body_quat_w.shape) != (self.num_envs, 4)
+            or panel_body_quat_w.dtype != door_states.dtype
+            or panel_body_quat_w.device != door_states.device
+            or not torch.all(torch.isfinite(panel_body_quat_w))
+            or not torch.is_tensor(trunk_body_pos_w)
+            or tuple(trunk_body_pos_w.shape) != (self.num_envs, 3)
+            or trunk_body_pos_w.dtype != door_states.dtype
+            or trunk_body_pos_w.device != door_states.device
+            or not torch.all(torch.isfinite(trunk_body_pos_w))
+            or tuple(self.door_width.shape) != (self.num_envs,)
+            or self.door_width.dtype != door_states.dtype
+            or self.door_width.device != door_states.device
+            or not torch.all(torch.isfinite(self.door_width))
+            or tuple(self.door_open_lr.shape) != (self.num_envs,)
+            or self.door_open_lr.dtype != door_states.dtype
+            or self.door_open_lr.device != door_states.device
+            or not torch.all(torch.isfinite(self.door_open_lr))
         ):
             raise RuntimeError(
-                "Pull E5 clearance requires finite Articulation.data.body_pos_w for door and robot."
+                "Pull E5 signed clearance requires finite floating root, panel, trunk, "
+                "and door metadata tensors on the simulation device."
             )
-        point_distances = torch.cdist(
-            door_body_pos_w,
-            robot_body_pos_w,
-            p=2,
+        if torch.any(self.door_width <= 2.0 * self._A2_PULL_PANEL_END_GAP_M):
+            raise RuntimeError(
+                "Pull E5 signed clearance requires door width greater than both panel "
+                "gaps."
+            )
+        if torch.any(torch.abs(self.door_open_lr) != 1.0):
+            raise RuntimeError("Pull E5 signed clearance requires door_open_lr exactly +/-1.")
+
+        _, _, door_root_yaw = euler_xyz_from_quat(door_states[:, 3:7])
+        _, _, panel_yaw = euler_xyz_from_quat(panel_body_quat_w)
+        root_cos = torch.cos(door_root_yaw)
+        root_sin = torch.sin(door_root_yaw)
+        hinge_local_x = torch.full_like(self.door_width, self._A2_PULL_DOOR_HINGE_LOCAL_X_M)
+        hinge_local_y = -0.5 * self.door_width * self.door_open_lr
+        hinge_world_xy = door_states[:, :2] + torch.stack(
+            (
+                root_cos * hinge_local_x - root_sin * hinge_local_y,
+                root_sin * hinge_local_x + root_cos * hinge_local_y,
+            ),
+            dim=-1,
         )
-        minimum_clearance = point_distances.amin(dim=(1, 2))
-        _body_forces, body_total = self._get_a2_door_body_panel_contact_forces()
-        _arm_forces, arm_total = self._get_a2_door_arm_panel_contact_forces()
+        panel_axis_world = self.door_open_lr[:, None] * torch.stack(
+            (-torch.sin(panel_yaw), torch.cos(panel_yaw)), dim=-1
+        )
+        panel_end_gap = torch.full_like(self.door_width, self._A2_PULL_PANEL_END_GAP_M)
+        panel_end_distance = self.door_width - panel_end_gap
+        panel_p0 = hinge_world_xy + panel_axis_world * panel_end_gap[:, None]
+        panel_p1 = hinge_world_xy + panel_axis_world * panel_end_distance[:, None]
+        panel_segment = panel_p1 - panel_p0
+        segment_length_sq = torch.sum(panel_segment * panel_segment, dim=-1)
+        if torch.any(segment_length_sq <= torch.finfo(door_states.dtype).eps):
+            raise RuntimeError("Pull E5 signed clearance requires a non-degenerate panel segment.")
+
+        trunk_center_xy = trunk_body_pos_w[:, :2]
+        segment_projection = torch.sum(
+            (trunk_center_xy - panel_p0) * panel_segment, dim=-1
+        ) / segment_length_sq
+        closest_panel_xy = panel_p0 + segment_projection.clamp(0.0, 1.0)[:, None] * panel_segment
+        raw_signed = (
+            torch.linalg.norm(trunk_center_xy - closest_panel_xy, dim=-1)
+            - self._A2_PULL_PANEL_HALF_THICKNESS_M
+            - self._A2_PULL_TRUNK_FOOTPRINT_RADIUS_M
+        )
+        body_panel_per_filter, _ = self._get_a2_door_body_panel_contact_forces()
+        contact_with_ordered_trunk = body_panel_per_filter[:, 0] > 0.0
         minimum_clearance = torch.where(
-            body_total + arm_total > 0.0,
-            torch.zeros_like(minimum_clearance),
-            minimum_clearance,
+            contact_with_ordered_trunk,
+            torch.minimum(raw_signed, torch.zeros_like(raw_signed)),
+            raw_signed,
         )
         if not torch.all(torch.isfinite(minimum_clearance)):
-            raise RuntimeError("Pull E5 measured clearance must be finite.")
+            raise RuntimeError("Pull E5 signed clearance must be finite.")
         return minimum_clearance
 
     def _get_a2_pull_control_proof_thresholds(self) -> tuple[float, float, float, int]:
@@ -453,8 +622,13 @@ class DoorOpenA2Pull(DoorPregrasp):
         dt = float(self.dt)
         if not math.isfinite(dt) or dt <= 0.0:
             raise RuntimeError(f"Pull event telemetry requires positive finite dt; got {dt!r}.")
+        control_step = self.episode_length_buf.to(dtype=torch.long)
         root_x = root_states[:, 0]
         door_x = door_states[:, 0]
+        root_y = root_states[:, 1]
+        door_y = door_states[:, 1]
+        frame_approach_now = torch.abs(root_x - door_x) < 0.3
+        in_frame_opening_now = torch.abs(root_y - door_y) <= 0.5 * self.door_width
         _, _, root_yaw = euler_xyz_from_quat(root_states[:, 3:7])
         _, _, door_yaw = euler_xyz_from_quat(door_states[:, 3:7])
         expected_approach_yaw = (1.0 + self._pull_direction.io_sign) * 0.5 * math.pi
@@ -491,6 +665,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             "pull event telemetry"
         )
         bilateral_contact = contact_masks["both_contact"]
+        no_handle_contact = ~torch.any(contact_masks["contacting"], dim=-1)
         stable_contact = bilateral_contact & (
             self._get_a2_stage2_contact_stability_mask()
             | self._get_a2_hold_streak_ok_mask()
@@ -500,6 +675,44 @@ class DoorOpenA2Pull(DoorPregrasp):
         del body_panel_per_filter, arm_panel_per_filter
         panel_clear = (body_panel_total + arm_panel_total) == 0.0
 
+        # v3 traversal telemetry is pull-local and does not alter v0/v1/v2
+        # predicates.  A frame passage is latched only inside the measured
+        # door opening and while the panel-contact gate is clear.
+        if self._is_a2_pull_v3():
+            frame_passage_now = (
+                frame_approach_now & in_frame_opening_now & panel_clear
+            )
+            new_frame_passage = frame_passage_now & ~self._a2_pull_frame_passage
+            self._a2_pull_frame_passage |= frame_passage_now
+            self._a2_pull_frame_passage_step[new_frame_passage] = control_step[
+                new_frame_passage
+            ]
+            self._a2_pull_frame_approach |= frame_approach_now & in_frame_opening_now
+        else:
+            frame_passage_now = torch.zeros_like(panel_clear)
+
+        # Report-only base path/reversal metrics use high-level root state and
+        # the pull travel direction; they are never reward or stage inputs.
+        base_pos_xy = root_states[:, :2]
+        previous_base_valid = torch.all(
+            torch.isfinite(self._a2_pull_prev_base_pos_xy), dim=-1
+        )
+        self._a2_pull_base_path_length_m += torch.where(
+            previous_base_valid,
+            torch.linalg.norm(base_pos_xy - self._a2_pull_prev_base_pos_xy, dim=-1),
+            torch.zeros_like(self._a2_pull_base_path_length_m),
+        )
+        self._a2_pull_prev_base_pos_xy[:] = base_pos_xy
+        travel_velocity = self._pull_direction.travel_dir_x * root_states[:, 7]
+        previous_velocity_valid = torch.isfinite(self._a2_pull_prev_travel_velocity)
+        velocity_reversal = (
+            previous_velocity_valid
+            & ((self._a2_pull_prev_travel_velocity > 0.0) != (travel_velocity > 0.0))
+            & (travel_velocity != 0.0)
+            & (self._a2_pull_prev_travel_velocity != 0.0)
+        )
+        self._a2_pull_base_reversal_count += velocity_reversal.long()
+        self._a2_pull_prev_travel_velocity[:] = travel_velocity
         proof_duration_min, proof_retreat_min, monotone_tolerance, proof_steps_min = (
             self._get_a2_pull_control_proof_thresholds()
         )
@@ -604,6 +817,14 @@ class DoorOpenA2Pull(DoorPregrasp):
         aperture_ready_now = stable_contact & (door_joint_pos[:, 0] >= send_hinge_threshold)
         self._a2_pull_aperture_ready |= aperture_ready_now
         signed_crossing = self._pull_direction.signed_crossing_progress(root_x, door_x)
+        planar_crossing_now = signed_crossing > 0.0
+        new_planar_crossing = planar_crossing_now & ~self._a2_pull_planar_crossing
+        self._a2_pull_planar_crossing |= planar_crossing_now
+        self._a2_pull_planar_crossing_step[new_planar_crossing] = control_step[
+            new_planar_crossing
+        ]
+        detour_now = self._is_a2_pull_v3() & planar_crossing_now & ~self._a2_pull_frame_passage
+        self._a2_pull_detour |= detour_now
         whole_body_crossing = self._get_a2_pull_whole_body_clear_mask(door_x)
         minimum_clearance = self._get_a2_pull_minimum_panel_robot_clearance()
         clearance_min = self._get_required_positive_float_config(
@@ -611,11 +832,54 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         self._a2_pull_minimum_panel_robot_clearance_m[:] = minimum_clearance
         self._a2_pull_clearance_ready[:] = minimum_clearance >= clearance_min
+        self._a2_pull_swept_arc_clearance_margin_current_m[:] = minimum_clearance
+        margin_valid = torch.isfinite(minimum_clearance)
+        self._a2_pull_swept_arc_clearance_margin_min_m[:] = torch.where(
+            torch.isfinite(self._a2_pull_swept_arc_clearance_margin_min_m),
+            torch.minimum(
+                self._a2_pull_swept_arc_clearance_margin_min_m,
+                minimum_clearance,
+            ),
+            torch.where(
+                margin_valid,
+                minimum_clearance,
+                self._a2_pull_swept_arc_clearance_margin_min_m,
+            ),
+        )
         body_contact_now = body_panel_total + arm_panel_total > 0.0
         self._a2_pull_body_panel_contact_steps[:] += body_contact_now.long()
         self._a2_pull_body_panel_contact_impulse_ns[:] += (
             (body_panel_total + arm_panel_total) * dt
         )
+        deliberate_release_now = (
+            self._is_a2_pull_v3()
+            & self._a2_pull_aperture_ready
+            & self._a2_pull_prev_stable_contact
+            & no_handle_contact
+            & self._a2_pull_release_or_hold_decision
+            & panel_clear
+        )
+        new_deliberate_release = deliberate_release_now & ~self._a2_pull_deliberate_release
+        self._a2_pull_deliberate_release |= deliberate_release_now
+        self._a2_pull_deliberate_release_step[new_deliberate_release] = control_step[
+            new_deliberate_release
+        ]
+        post_release_recontact = (
+            self._a2_pull_deliberate_release
+            & body_contact_now
+            & ~self._a2_pull_prev_panel_contact
+        )
+        self._a2_pull_post_release_recontact_count += post_release_recontact.long()
+        self._a2_pull_prev_panel_contact[:] = body_contact_now
+        self._a2_pull_prev_stable_contact[:] = stable_contact
+        first_negative_x_motion = (
+            (self._a2_pull_first_negative_x_motion_step < 0)
+            & self._a2_pull_deliberate_release
+            & (root_states[:, 7] < 0.0)
+        )
+        self._a2_pull_first_negative_x_motion_step[first_negative_x_motion] = control_step[
+            first_negative_x_motion
+        ]
 
         reached = self._a2_pull_event_reached
         if threshold_mode == "report_only":
@@ -676,18 +940,24 @@ class DoorOpenA2Pull(DoorPregrasp):
                 & self._a2_pull_clearance_ready
                 & panel_clear
             )
+        frame_requirement = (
+            self._a2_pull_frame_passage
+            if self._is_a2_pull_v3()
+            else torch.ones_like(self._a2_pull_event_reached[:, 0])
+        )
         evidence[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY] = (
             reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
             & (signed_crossing > 0.0)
             & (self._pull_direction.travel_dir_x * root_states[:, 7] > 0.0)
             & panel_clear
+            & frame_requirement
         )
         evidence[:, A2PullEvent.E7_WHOLE_BODY_CLEAR] = (
             reached[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY]
             & whole_body_crossing
             & panel_clear
+            & frame_requirement
         )
-        control_step = self.episode_length_buf.to(dtype=torch.long)
         old_reached = reached[selected].clone()
         updated_reached, updated_first = advance_a2_pull_events(
             old_reached,
@@ -774,6 +1044,31 @@ class DoorOpenA2Pull(DoorPregrasp):
                 raise RuntimeError(f"Pull raw reward component {name!r} must be finite.")
             captured[name] = value.detach().clone()
         self._a2_pull_last_raw_reward_components = captured
+        if self._is_a2_pull_v3():
+            for reward_name in (
+                "a2_corridor_door_wide",
+                "a2_corridor_clean_passage",
+            ):
+                raw_value = captured.get(reward_name)
+                if (
+                    not torch.is_tensor(raw_value)
+                    or tuple(raw_value.shape) != (self.num_envs,)
+                    or raw_value.device != torch.device(self.device)
+                    or not raw_value.is_floating_point()
+                    or not torch.all(torch.isfinite(raw_value))
+                ):
+                    raise RuntimeError(
+                        f"Pull-v3 telemetry requires finite raw reward component {reward_name!r}."
+                    )
+                pre_aperture = raw_value > 0.0
+                if reward_name == "a2_corridor_door_wide":
+                    self._a2_pull_corridor_door_wide_pre_aperture_steps += (
+                        pre_aperture & ~self._a2_pull_aperture_ready
+                    ).long()
+                else:
+                    self._a2_pull_corridor_clean_passage_pre_aperture_steps += (
+                        pre_aperture & ~self._a2_pull_aperture_ready
+                    ).long()
         if not self._a2_pull_runtime_telemetry_contract_checked:
             self._a2_pull_runtime_telemetry_contract_sample = (
                 self.get_a2_pull_control_step_telemetry()
@@ -833,6 +1128,91 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "hinge remains below the Stage3-to4 gate"
                 ),
             }
+            if self._is_a2_pull_v3():
+                reached = episode_record["event_reached"]
+                first_steps = episode_record["first_event_step"]
+                e5_to_e7_steps = (
+                    int(first_steps[A2PullEvent.E7_WHOLE_BODY_CLEAR.name])
+                    - int(first_steps[A2PullEvent.E5_CLEARANCE_DECISION.name])
+                    if reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]
+                    and reached[A2PullEvent.E5_CLEARANCE_DECISION.name]
+                    else None
+                )
+                release_step = int(self._a2_pull_deliberate_release_step[env_id].item())
+                first_negative_step = int(
+                    self._a2_pull_first_negative_x_motion_step[env_id].item()
+                )
+                record["pull_v3_traversal"] = {
+                    "frame_passage": bool(self._a2_pull_frame_passage[env_id].item()),
+                    "frame_passage_step": (
+                        int(self._a2_pull_frame_passage_step[env_id].item())
+                        if int(self._a2_pull_frame_passage_step[env_id].item()) >= 0
+                        else None
+                    ),
+                    "planar_crossing": bool(self._a2_pull_planar_crossing[env_id].item()),
+                    "detour": bool(self._a2_pull_detour[env_id].item()),
+                    "deliberate_release": bool(
+                        self._a2_pull_deliberate_release[env_id].item()
+                    ),
+                    "deliberate_release_step": (
+                        int(self._a2_pull_deliberate_release_step[env_id].item())
+                        if int(self._a2_pull_deliberate_release_step[env_id].item()) >= 0
+                        else None
+                    ),
+                    "first_negative_x_motion_step": (
+                        first_negative_step
+                        if first_negative_step >= 0
+                        else None
+                    ),
+                    "release_to_first_negative_x_motion_steps": (
+                        first_negative_step - release_step
+                        if release_step >= 0 and first_negative_step >= release_step
+                        else None
+                    ),
+                    "frame_approach": bool(self._a2_pull_frame_approach[env_id].item()),
+                    "panel_clear": bool(not self._a2_pull_prev_panel_contact[env_id].item()),
+                    "e5_to_e7_steps": e5_to_e7_steps,
+                    "swept_arc_clearance_margin_min_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_min_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_min_m[env_id]
+                        )
+                        else None
+                    ),
+                    "swept_arc_clearance_margin_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_current_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_current_m[env_id]
+                        )
+                        else None
+                    ),
+                    "signed_clearance_margin_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_current_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_current_m[env_id]
+                        )
+                        else None
+                    ),
+                    "base_path_length_m": float(
+                        self._a2_pull_base_path_length_m[env_id].item()
+                    ),
+                    "base_reversal_count": int(
+                        self._a2_pull_base_reversal_count[env_id].item()
+                    ),
+                    "post_release_recontact_count": int(
+                        self._a2_pull_post_release_recontact_count[env_id].item()
+                    ),
+                    "corridor_door_wide_pre_aperture_steps": int(
+                        self._a2_pull_corridor_door_wide_pre_aperture_steps[env_id].item()
+                    ),
+                    "corridor_clean_passage_pre_aperture_steps": int(
+                        self._a2_pull_corridor_clean_passage_pre_aperture_steps[env_id].item()
+                    ),
+                    "complete_without_frame_passage": bool(
+                        reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]
+                        and not self._a2_pull_frame_passage[env_id].item()
+                    ),
+                }
         return records
 
     def get_a2_pull_episode_records(self, env_ids, terminal_records=None) -> list[dict]:
@@ -1073,8 +1453,15 @@ class DoorOpenA2Pull(DoorPregrasp):
         contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
             "pull control-step telemetry"
         )
-        body_panel_forces, _ = self._get_a2_door_body_panel_contact_forces()
-        arm_panel_forces, _ = self._get_a2_door_arm_panel_contact_forces()
+        stable_contact_current = contact_masks["both_contact"] & (
+            self._get_a2_stage2_contact_stability_mask()
+            | self._get_a2_hold_streak_ok_mask()
+        )
+        aperture_ready_current = stable_contact_current & (
+            door_joint_pos[:, 0] >= self._get_a2_v20_send_hinge_threshold()
+        )
+        body_panel_forces, body_panel_total = self._get_a2_door_body_panel_contact_forces()
+        arm_panel_forces, arm_panel_total = self._get_a2_door_arm_panel_contact_forces()
         body_frame_forces, _ = self._get_a2_door_panel_contact_force_components(
             self.A2_PULL_DOOR_BODY_FRAME_CONTACT_SENSOR,
             self.A2_DOOR_BODY_PANEL_FILTER_NAMES,
@@ -1198,6 +1585,108 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "hinge remains below the Stage3-to4 gate"
                 ),
             }
+            if self._is_a2_pull_v3():
+                frame_approach_current = bool(
+                    (abs(float(root_x[env_id].item()) - float(door_x[env_id].item())) < 0.3)
+                    and (
+                        abs(float(root_states[env_id, 1].item()) - float(door_states[env_id, 1].item()))
+                        <= 0.5 * float(self.door_width[env_id].item())
+                    )
+                )
+                panel_clear_current = bool(
+                    (body_panel_total[env_id] + arm_panel_total[env_id]).item() == 0.0
+                )
+                frame_passage_current = bool(
+                    frame_approach_current and panel_clear_current
+                )
+                planar_crossing_current = bool(
+                    self._pull_direction.signed_crossing_progress(
+                        root_x[env_id], door_x[env_id]
+                    ).item()
+                    > 0.0
+                )
+                corridor_wide_raw = self._a2_pull_last_raw_reward_components[
+                    "a2_corridor_door_wide"
+                ][env_id]
+                corridor_clean_raw = self._a2_pull_last_raw_reward_components[
+                    "a2_corridor_clean_passage"
+                ][env_id]
+                current_step = int(self.episode_length_buf[env_id].item())
+                release_step = int(self._a2_pull_deliberate_release_step[env_id].item())
+                record["pull_v3_traversal"] = {
+                    "aperture_ready": bool(self._a2_pull_aperture_ready[env_id].item()),
+                    "aperture_ready_current": bool(aperture_ready_current[env_id].item()),
+                    "frame_approach": bool(self._a2_pull_frame_approach[env_id].item()),
+                    "frame_approach_current": frame_approach_current,
+                    "frame_passage": bool(self._a2_pull_frame_passage[env_id].item()),
+                    "frame_passage_current": frame_passage_current,
+                    "planar_crossing": bool(self._a2_pull_planar_crossing[env_id].item()),
+                    "planar_crossing_current": planar_crossing_current,
+                    "detour": bool(self._a2_pull_detour[env_id].item()),
+                    "detour_current": planar_crossing_current
+                    and not bool(self._a2_pull_frame_passage[env_id].item()),
+                    "deliberate_release": bool(
+                        self._a2_pull_deliberate_release[env_id].item()
+                    ),
+                    "deliberate_release_current": release_step == current_step,
+                    "panel_clear": panel_clear_current,
+                    "panel_contact_ever": bool(
+                        self._a2_pull_body_panel_contact_steps[env_id].item() > 0
+                    ),
+                    "bilateral_handle_contact": bool(
+                        contact_masks["both_contact"][env_id].item()
+                    ),
+                    "no_handle_contact": bool(
+                        (~torch.any(contact_masks["contacting"][env_id])).item()
+                    ),
+                    "minimum_clearance_margin_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_current_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_current_m[env_id]
+                        )
+                        else None
+                    ),
+                    "swept_arc_clearance_margin_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_current_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_current_m[env_id]
+                        )
+                        else None
+                    ),
+                    "signed_clearance_margin_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_current_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_current_m[env_id]
+                        )
+                        else None
+                    ),
+                    "swept_arc_clearance_margin_min_m": (
+                        float(self._a2_pull_swept_arc_clearance_margin_min_m[env_id].item())
+                        if torch.isfinite(
+                            self._a2_pull_swept_arc_clearance_margin_min_m[env_id]
+                        )
+                        else None
+                    ),
+                    "base_path_length_m": float(
+                        self._a2_pull_base_path_length_m[env_id].item()
+                    ),
+                    "base_reversal_count": int(
+                        self._a2_pull_base_reversal_count[env_id].item()
+                    ),
+                    "post_release_recontact_count": int(
+                        self._a2_pull_post_release_recontact_count[env_id].item()
+                    ),
+                    "corridor_door_wide_raw": float(corridor_wide_raw.item()),
+                    "corridor_clean_passage_raw": float(corridor_clean_raw.item()),
+                    "corridor_door_wide_raw_component": float(corridor_wide_raw.item()),
+                    "corridor_clean_passage_raw_component": float(corridor_clean_raw.item()),
+                    "corridor_door_wide_pre_aperture_steps": int(
+                        self._a2_pull_corridor_door_wide_pre_aperture_steps[env_id].item()
+                    ),
+                    "corridor_clean_passage_pre_aperture_steps": int(
+                        self._a2_pull_corridor_clean_passage_pre_aperture_steps[env_id].item()
+                    ),
+                }
             records.append(record)
         return records
 
@@ -1446,6 +1935,44 @@ class DoorOpenA2Pull(DoorPregrasp):
         reward = (hinge_velocity + hinge_position).clamp(max=1.0, min=-1.0)
         return reward * income_mask.float()
 
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
+    @override
+    def _reward_penalty_a2_stage3_stage4_open_command(self):
+        if not self._is_a2_pull_v3():
+            return super()._reward_penalty_a2_stage3_stage4_open_command()
+        primitive = self._get_a2_gripper_primitive_raw_column(
+            "pull-v3 penalty_a2_stage3_stage4_open_command"
+        )
+        reward = ((primitive - 0.2) / 0.8).clamp(0.0, 1.0)
+        pull_v3_hold_mask = (self.stage_buf == self.STAGE_OPEN) | (
+            (self.stage_buf == self.STAGE_SWING) & ~self._a2_pull_aperture_ready
+        )
+        return reward * pull_v3_hold_mask.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    @override
+    def _reward_a2_corridor_door_wide(self):
+        if not self._is_a2_pull_v3():
+            return super()._reward_a2_corridor_door_wide()
+        door_joint_pos = self._get_door_joint_pos("pull-v3 corridor door-wide reward", 1)
+        door_states = self.simulator.get_task_root_state("door")
+        whole_body_clear = self._get_a2_pull_whole_body_clear_mask(door_states[:, 0])
+        return (
+            (door_joint_pos[:, 0] / 1.5).clamp(0.0, 1.0)
+            * self._a2_pull_aperture_ready.float()
+            * (~whole_body_clear).float()
+        )
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    @override
+    def _reward_a2_corridor_clean_passage(self):
+        if not self._is_a2_pull_v3():
+            return super()._reward_a2_corridor_clean_passage()
+        _body_forces, body_total = self._get_a2_door_body_panel_contact_forces()
+        _arm_forces, arm_total = self._get_a2_door_arm_panel_contact_forces()
+        no_panel_contact = (body_total + arm_total) == 0.0
+        return self._a2_pull_aperture_ready.float() * no_panel_contact.float()
+
     @override
     def _stage_2_to_3_advance_condition(self):
         contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
@@ -1506,19 +2033,31 @@ class DoorOpenA2Pull(DoorPregrasp):
         body_forces, body_total = self._get_a2_door_body_panel_contact_forces()
         arm_forces, arm_total = self._get_a2_door_arm_panel_contact_forces()
         del body_forces, arm_forces
+        frame_requirement = (
+            self._a2_pull_frame_passage
+            if self._is_a2_pull_v3()
+            else torch.ones_like(self._a2_pull_event_reached[:, 0])
+        )
         return (
             self._a2_pull_event_reached[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY]
             & (signed_crossing > 0.0)
             & (self._pull_direction.travel_dir_x * root_states[:, 7] > 0.0)
             & ((body_total + arm_total) == 0.0)
+            & frame_requirement
         )
 
     @override
     def _stage_5_to_complete_condition(self):
         door_states = self.simulator.get_task_root_state("door")
+        frame_requirement = (
+            self._a2_pull_frame_passage
+            if self._is_a2_pull_v3()
+            else torch.ones_like(self._a2_pull_event_reached[:, 0])
+        )
         return (
             self._a2_pull_event_reached[:, A2PullEvent.E7_WHOLE_BODY_CLEAR]
             & self._get_a2_pull_whole_body_clear_mask(door_states[:, 0])
+            & frame_requirement
         )
 
 

@@ -1,8 +1,8 @@
 ---
 name: base-v23-force-feasibility
 scope: A2+Piper base_v23 P0 force-feasibility calibration, certificate, and D1 admission boundary
-status: formal_admission_prerequisites_complete_pending_A1
-last_updated: 2026-08-10 21:22 HKT
+status: formal_A1_D0_in_progress
+last_updated: 2026-08-10 22:42 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v23-force-feasibility/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Purpose
 
-本 entry 保存 `base_v23` P0 的可复用 calibration / force-feasibility 事实及其 admission 边界。历史 R54 的 `INTERIM_TYPED_ADJUDICATION / FORMAL_NO-GO` 只保留为其 capability-source reducer 的 typed result；owner 的 `OPTION_2_PLUS_3_COMBINED` 已用 physics-first D1/D1-lite 与 P0.8 preformal-v2 取代该 admission gate。R238 已完成最后一项 D1-FULL `64×10` bucket-plumbing prerequisite，下一步为 A1；这只完成 TRAINING_PASS plumbing，不是 formal-training、policy-quality 或 release claim。
+本 entry 保存 `base_v23` P0 的可复用 calibration / force-feasibility 事实及其 admission 边界。历史 R54 的 `INTERIM_TYPED_ADJUDICATION / FORMAL_NO-GO` 只保留为其 capability-source reducer 的 typed result；owner 的 `OPTION_2_PLUS_3_COMBINED` 已用 physics-first D1/D1-lite 与 P0.8 preformal-v2 取代该 admission gate。R257 canonical lock 已授予 frozen formal matrix 的 `START_FORMAL_TRAINING_ONLY` permission；A1-D0 G1/G3 已于 22:25 HKT 在 physical GPU0/1 launch，但尚无自然完成、reducer、policy 或 release outcome。
 
 ## Hard Boundaries
 
@@ -32,7 +32,7 @@ read_when:
 - R112 只完成 D0 P0.9 四型 smoke；canonical receipt 虽有 `p010_d0_full_pilot_admission=true`，但 `d1_admission=false`、`formal_admission=false`、`release_receipt=false`，不能提升为 policy-quality 或 formal claim。
 - R170/R173 的 P0.1/P0.3 runtime typed adjudication 只证明 telemetry timing/authority、controller identity、action→articulation mapping、effort clipping 与 FULL checkpoint load；computed/applied 均是由 PRE state 导出的 POST actuator estimate，actual PhysX drive torque 仍 `UNKNOWN/ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE`。R31/R33 legacy evidence 未获升级；R161/R164/R169 保持 prior typed F8 failures。
 - P0.10 terminal adjudication 是 operational `NO-GO`，scientific result 为 Branch B 未测量的 `INCONCLUSIVE`；它不构成 Branch B outcome、D1、formal admission、policy quality、release 或 goal success。F1 已完成 bounded head-reset implementation 与 two-type runtime smoke，但并未 adjudicate Branch B；此前 D1 blocked 时 G7/G8 未 launch，这不是对已完成 prerequisite 后 A1 的否定。
-- Formal 8×2 的 active conjunction R190 physics-first receipt、`P0_8_PREFORMAL_COMPLETE` receipt 与 R238 D1-FULL `64×10` bucket-plumbing receipt 已全部完成，故 A1 可开始；R238 的 `formal_admission=false` / `policy_quality_claim=false` 与 excluded release claim 仍必须保留，不能把 prerequisite completion 写成 formal-training、policy 或 release PASS。Physical GPU0/GPU1 是仅有的 v23 runtime resources，GPU2--7 excluded；Route B complete intervention suite、holdout64 与 render 仍 pending。
+- R257 lock `logs_eval/base_v23/locks/V23_FORMAL_ADMISSION_PASS.json`（schema `a2_piper_v23_formal_admission_v1`, status `V23_FORMAL_ADMISSION_PASS`）验证 FORMAL_PLAN、D1_PHYSICS_FIRST、P0_8_PREFORMAL_V2、D1_FULL_64X10 后，令 `formal_admission=true`，其 scope 严格为 `START_FORMAL_TRAINING_ONLY`。它不意味着 policy quality、release receipt 或 `formal_training_completed`；后三者均为 false。Physical GPU0/GPU1 是仅有的 v23 runtime resources，GPU2--7 excluded；Route B complete intervention suite、holdout64 与 render 仍 pending。
 
 ## Measured Facts and Typed Adjudication
 
@@ -46,6 +46,7 @@ read_when:
 - R78 partial A0/D0 P0.8：单次 fresh GPU0 warm/FULL/D0 evaluator runtime `rc0`，正常完成 16 个 first episodes；16 份 physical readback 与 R50 A0 source geometry 及 requested/native door parameters 一致。Stages `2/3/4` 全覆盖，reducer 输出 3 个 state-bank entries 与 `3×5=15` 个 bindings；仅 FULL 是 captured source rollout，四个 alternative modes 均未执行。Canonical receipt 为 `PARTIAL_A0_D0_PLUMBING_RUNTIME_VERIFIED`，`p09_d0_smoke_admission=true`，同时 overall P0.8 仍 `PARTIAL_INCOMPLETE`。
 - R112 D0 P0.9：WARM_FULL/GPU0、WARM_RP0/GPU1、SCRATCH_FULL/GPU2、SCRATCH_RP0/GPU3 各 single-attempt 运行 `64 env × 10 batch`，runner/child 均 `rc0`。四份 step-10 checkpoint 均通过 schema、`global_step=10` 与 finiteness validation；AppLauncher/Torch/Isaac/Kit Vulkan 设备证据匹配，task PID 未使用 GPU4--7。CPU-only REDUCE `rc0`，canonical status 为 `P0_9_D0_FOUR_TYPE_SMOKES_RUNTIME_VERIFIED`，仅准入 D0 P0.10 FULL pilot。
 - R228→R238 D1-FULL gate：R228 在 pre-optimizer 阶段 fail-fast 暴露缺失的 v22 measured height-nominal config；R231 以 source-backed v22 G1/smoke config 补齐该 exact input，R233 在 physical GPU0/logical `cuda:0` 完成 G5 `v22_warm` / D1 / FULL 的 `64 env × 10 batch` RUN（`num_mini_batches=1`、finite step-10 checkpoint）。R235 修复 reducer 对 explicit-zero 的处理，R238 strict REDUCE 写出 canonical receipt。该结果是 D1 bucket/plumbing `TRAINING_PASS`，不是 policy quality、formal training 或 release evidence。
+- R257/R258 start state：R256 code review `PASS`，R257 CPU REDUCE runtime QA 一次 `rc0` 后写入 formal-admission lock。G1（physical GPU0）与 G3（physical GPU1）在 `2026-08-10 22:25 HKT` launch 为 A1-D0 live slices；仅 launch state 已知，natural completion、REDUCE_SLICE、metrics、policy quality、release 与 goal outcome 均未证明。
 - R170/R173 P0.1/P0.3：FULL exact16 runtime 产生 `45,776` joined phase frames，覆盖 `PRE_ACTUATOR_COMPUTE/PRE` 与 `POST_PHYSICS/POST`。P0.1 computed/applied 均为 PRE state 导出的 POST actuator estimate，actual PhysX drive torque remains `UNKNOWN/ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE`。P0.3 有 16 个 controller identities，live action→articulation permutation 为 `[0,4,9,2,6,11,1,5,10,3,7,12,8,13,14,15,16,17,18,19]`；arm slots `[12,13,14,15,16,17]` 对应 articulation IDs `[8,13,14,15,16,17]`，执行 `effort40` clipping，且为 FULL checkpoint load。该结果仅 P0.1/P0.3，D1/formal/release 均为 false。
 - P0.10 terminal R160：top status `P0_10_SCRATCH_ADMISSION_NO_GO_BRANCH_A_FAILED_BRANCH_B_OBSERVABILITY_BLOCKED`；Branch A 是有效 measured fail，evaluated/stage2/stable-grasp counts 为 `16/12/0`。Branch B 为 `UNMEASURED_OBSERVABILITY_BLOCKED`，policy outcome `UNADJUDICATED`：checkpoint 缺少 `staged_reset_buf` / `staged_reset_num_samples`，且 canonical16 没有 `stage>=3` birth-stage source。scientific outcome 是 `P0_10_SCIENTIFIC_INCONCLUSIVE_BRANCH_B_UNMEASURED`，并触发 F1 marker `V23_SCRATCH_CURRICULUM_INSUFFICIENT_PILOT`。
 - P0.10 F1 R177/R180--R182：`warm_head_reset` 在 strict post-policy-only-load 后，只 reset actor final rows `[3:5]` 的 weight/bias 及 `std[3:5]=0.8`，使用 local seed/device generator；其余 actor rows、LSTM、RMS 以及 fresh critic/optimizer state 保持既定状态。G3/G4/G7/G8 route `warm_head_reset`，G1/G2/G5/G6 保持 warm；D1 blocked 时 G7/G8 仍 unlaunched。R180 `HR_FULL_D0`（physical0/logical0）与 R181 `HR_RP0_D0`（physical1/logical0）各 natural `rc0`、no retry、`64×10`，均有 finite step-10 checkpoint。R182 canonical aggregate 为 `P0_10_F1_D0_HEAD_RESET_TWO_TYPE_SMOKES_RUNTIME_VERIFIED`、`f1_smoke_complete=true`、`p010_f1_status=COMPLETE`，但 D1/formal/release 均 false。
@@ -64,6 +65,7 @@ read_when:
 - P0.8 preformal-v2 canonical receipt: `logs_eval/base_v23/p0/interventions/preformal_v2/p08_preformal_v2_receipt.json`
 - R233 D1-FULL raw: `logs_rl/a2_piper_full_stage_a2_base_smoke/base_v23/d1_full_64x10_r233/d1_full_64x10_raw.json`
 - R238 D1-FULL canonical receipt: `logs_eval/base_v23/p0/d1_full_64x10/d1_full_64x10_receipt.json`
+- R257 formal-admission lock: `logs_eval/base_v23/locks/V23_FORMAL_ADMISSION_PASS.json`
 - R21 RP0 contract: `logs_eval/base_v23/p0/a2_piper_v23_p07_rp0_contract_r21.json`
 - R68 P0.6 short smoke: `logs_eval/base_v23/p0/r68_p06_reward_runtime_20260810/smoke/`
 - R72 P0.6 stationary-rent audit: `logs_eval/base_v23/p0/reward/stationary_rent_audit.json` (six pass receipts under `logs_eval/base_v23/p0/r72_p06_stationary_rent_runtime_20260810/passes/`)
@@ -89,11 +91,12 @@ read_when:
 - R190 physics candidate `V23-R190-C1` has code-review `PASS` and independent runtime-evidence QA `PASS`. Its canonical `a2_piper_v23_p04_d1_physics_first_v1` receipt is `P0_4_D1_PHYSICS_FIRST_FREEZE_ADMITTED`; policy records are auxiliary (FULL `15/16`, ACUTE `1/16` sparse expected), and R54 is not an active completeness gate.
 - P0.8 source candidate `V23-R191-C5` has code-review and IsaacLab-review `PASS`; R206/R207 four-trigger runtime lanes and R207 C4 `REDUCE_ONLY` are `PASS`. Canonical `a2_piper_v23_p08_preformal_v2_receipt_v1` is `P0_8_PREFORMAL_COMPLETE`, has four records/no incomplete reasons and `p08_preformal_gate=true`, while `formal_admission=false` and `release_receipt=false`.
 - `V23-R232-D1-C1` code-quality and IsaacLab reviews are `PASS`; R233 RUN is reviewed training/plumbing evidence `PASS`; `V23-R237-REDUCE-C1` code-quality and R238 strict REDUCE runtime QA are `PASS`. Canonical `a2_piper_v23_d1_full_64x10_receipt_v1` status is `D1_FULL_64X10_BUCKET_PLUMBING_RUNTIME_VERIFIED`, with `formal_admission=false`, `policy_quality_claim=false`, and no release receipt.
+- R256 code review and R257 one-shot CPU REDUCE runtime QA are `PASS`; R257 writes the canonical start-admission lock only. This is authorization to start the frozen formal matrix, not completion evidence.
 
 ## DONE Summary
 
-P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, historical R54 exact16 producer plus typed incomplete reduction, R190 physics-first D1/D1-lite freeze, P0.6 common-reward/stationary-rent runtime, the separate R21 RP0 contract, R78 plumbing plus P0.8 preformal-v2 four-trigger closure, R112 D0 P0.9 four-type smokes, R170/R173 P0.1/P0.3 runtime typed adjudication, R160 P0.10 terminal adjudication, R177/R180--R182 F1 head-reset two-type smokes, and R238 D1-FULL bucket-plumbing gate have verified receipts. Formal-admission prerequisites are complete, while formal training, policy quality, and release remain unproved.
+P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, historical R54 exact16 producer plus typed incomplete reduction, R190 physics-first D1/D1-lite freeze, P0.6 common-reward/stationary-rent runtime, the separate R21 RP0 contract, R78 plumbing plus P0.8 preformal-v2 four-trigger closure, R112 D0 P0.9 four-type smokes, R170/R173 P0.1/P0.3 runtime typed adjudication, R160 P0.10 terminal adjudication, R177/R180--R182 F1 head-reset two-type smokes, R238 D1-FULL bucket-plumbing gate, and R257 start-admission lock have verified receipts. A1-D0 G1/G3 are live; formal-training completion, policy quality, release, and goal outcome remain unproved.
 
 ## TODO Summary
 
-Formal-admission prerequisites are complete. Next execute A1 as two GPU0/GPU1 slices—G1/G3 D0 then G5/G7 D1—followed by Route A; Route B full interventions, holdout64, render, and final analysis remain pending.
+A1-D0 G1/G3 are live. First-awake monitor them to natural completion, run `REDUCE_SLICE` for A1-D0, then launch G5/G7; Route B full interventions, holdout64, render, and final analysis remain pending.

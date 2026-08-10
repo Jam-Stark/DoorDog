@@ -1,5 +1,5 @@
 # TODO
 
-- 2026-08-10 21:22 HKT - Execute A1 as two serial GPU0/GPU1 slices: G1/G3 D0, then G5/G7 D1; after both slices complete, run Route A. The completed D1-FULL gate is prerequisite plumbing, not policy-quality or release evidence.
-- 2026-08-10 21:22 HKT - Continue the approved A2/B1/B2 schedule only after A1/Route A evidence is available; complete Route B interventions only for selected checkpoints.
-- 2026-08-10 21:22 HKT - Keep holdout64, render, and final analysis/report pending until their upstream selected-checkpoint gates are complete.
+- 2026-08-10 22:42 HKT - First-awake monitor live A1-D0 G1/G3 on physical GPU0/1 to natural completion; do not claim outcome from the `2026-08-10 22:25 HKT` launch alone.
+- 2026-08-10 22:42 HKT - After both A1-D0 slices naturally complete, run `REDUCE_SLICE` for A1-D0, then launch G5/G7 as the next A1-D1 GPU0/GPU1 slice.
+- 2026-08-10 22:42 HKT - Keep Route B interventions, holdout64, render, and final analysis/report pending until their upstream selected-checkpoint gates are complete.

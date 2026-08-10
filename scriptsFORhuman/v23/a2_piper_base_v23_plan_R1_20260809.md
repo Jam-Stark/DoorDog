@@ -3,7 +3,7 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** formal admission prerequisites complete; P0.1/P0.3, P0.2/F2 effort40, P0.6, P0.7, R78 state-bank plumbing, P0.9, P0.10 adjudication, F1 head-reset smokes, the owner-approved physics-first D1 freeze, P0.8 preformal-v2, and the D1-FULL 64×10 bucket-plumbing smoke have all passed.  The active runtime boundary is A1 formal training on physical GPU0 and GPU1 only.
+**Runtime state:** formal admission prerequisites complete and A1-D0 in progress; P0.1/P0.3, P0.2/F2 effort40, P0.6, P0.7, R78 state-bank plumbing, P0.9, P0.10 adjudication, F1 head-reset smokes, the owner-approved physics-first D1 freeze, P0.8 preformal-v2, and the D1-FULL 64×10 bucket-plumbing smoke have all passed.  The canonical start-admission lock is complete, and A1 G1/G3 launched at 2026-08-10 22:25 HKT on physical GPU0/GPU1; no formal-training outcome is claimed while those cells remain live.
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
@@ -702,6 +702,15 @@ finite step-10 checkpoint.  R238 reduced the immutable R233 raw record to
 `a2_piper_v23_d1_full_64x10_receipt_v1`, status
 `D1_FULL_64X10_BUCKET_PLUMBING_RUNTIME_VERIFIED`.  This is a bucket-plumbing
 and short-training pass only; it does not claim policy quality or release.
+
+The CPU-only canonical reducer
+`scriptsFORhuman/v23/formal_admission.py` binds those three receipts to the
+`READY_TO_ADMIT` GPU0/1 formal plan and writes
+`logs_eval/base_v23/locks/V23_FORMAL_ADMISSION_PASS.json`, schema
+`a2_piper_v23_formal_admission_v1`, status `V23_FORMAL_ADMISSION_PASS`, scope
+`START_FORMAL_TRAINING_ONLY`.  Its `formal_admission=true` means only that the
+frozen matrix may start; `formal_training_completed`, `policy_quality_claim`,
+and `release_receipt` remain false.
 
 No other reducer completeness or symmetry rule may be added.  Physical GPU0
 and GPU1 are the only runtime resources; GPU2--7 are excluded.  Four-cell

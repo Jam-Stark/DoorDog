@@ -1,6 +1,6 @@
 # TODO
 
-Status at 2026-08-09 11:05 HKT: `TRAINING_PASS; R14 resolved; base_v16_B Gemini 335L stage1–5 sweep, Scheme C, C-B2 and TOEIN20 camera eval complete; C-B v16 Student one-update and GPU7 pilot complete; C-B2H exact64 formal 10000-step checkpoint complete; old Student-only eval quality FAIL/poor; ToeOut6/pitch−50° fixed-G2 multi-seed/Stage2 diagnostic complete; lifecycle unresolved`。
+Status at 2026-08-10 19:39 HKT: `TRAINING_PASS; R14 resolved; base_v16_B Gemini 335L stage1–5 sweep, Scheme C, C-B2 and TOEIN20 camera eval complete; C-B v16 Student one-update and GPU7 pilot complete; C-B2H exact64 formal 10000-step checkpoint complete; old Student-only eval quality FAIL/poor; ToeOut6/pitch−50° fixed-G2 multi-seed/Stage2 diagnostic and large-scale camera eval complete; lifecycle unresolved`。
 
 There is no blocker for the completed goal. The following are explicitly deferred, non-blocking future work and must not be read as completed or implied by `TRAINING_PASS`:
 
@@ -10,6 +10,7 @@ There is no blocker for the completed goal. The following are explicitly deferre
 - Replace the rejected C-B2 panorama prototype. Diagnose transform/projection convention, `distance_to_image_plane` interpretation, forward-warp/Z-buffer sampling, occlusion seams and hole policy; add explicit visual and quantitative seam-quality acceptance before any Student integration.
 - Visual/material randomization, multi-seed camera validation, and any future multi-seed C-B2H training/eval。ToeOut6/pitch−50° step8000 的三 seed Student baseline 已完成，但不等于 broader training stability。
 - Fixed-G2 multi-seed 与 matched Stage2 diagnostic 已完成。若要推进，只能另行申请 targeted Stage2 DAgger/contact-continuity finetune 的 `HIGH_RISK` brief：必须明确 Student-controlled rollout/data collection、成本与停止条件，并用 formal multi-seed 和 repeated-replay acceptance 验收。不得启动 full retrain 或 generic `1–2k` continuation，也不得把当前 Teacher `32/32` 或 Student `42/48` 外推为 determinism/general/deployment/physical-camera PASS。Recurrent ONNX/export、final policy-quality improvement 与 open-door success evaluation 仍需独立 scope。
+- 2026-08-10 large-scale camera eval 已完成：Student `459/512`、true-action Teacher `255/256`，但 direct visual metrics 为 `0/768`，故 camera/perception attribution 是 `UNKNOWN/INCONCLUSIVE`。修复 direct-visibility capture、existing D435-depth ablation 或 wrist-camera decision 都不是已授权工作；若未来 separately approved perception ablation，先评估已有 D435 depth，不默认启用 depth 或增加 wrist camera。
 
 已授权的 C-B2H 10000-step 长训已经完成；上述任何 future item 都需要独立批准、frozen candidate 与 risk-appropriate validation。
 
@@ -18,3 +19,4 @@ There is no blocker for the completed goal. The following are explicitly deferre
 - 2026-07-30 17:34 HKT - C-B2 ±20° toe-in wider-view comparison 已完成；空洞率由 ±15° 的 `22.97%` 升至 `27.08%`，未改善 panorama，重构与 seam-quality gate TODO 保持开放。
 - 2026-08-02 05:00 HKT - fix commit `0f9c11e` 的 fresh c18 + G2 step2000 GPU7/64-env retry 已完成 10,000-step checkpoint；formal Student-only eval 的 protocol/runtime artifacts PASS，但 `0/16 goal`、all `stage_overtime` 为 policy-quality FAIL/poor。exact env13 case 的三次 replay 都 drift 到 stage1，best-only render 已保留 trial01；自然 Kit lifecycle、ONNX/export、多 seed、final policy quality/open-door success 与 physical camera 项保持 TODO，资源不足必须 BLOCK，禁止自动降 env、resume fallback、换 GPU 或 silent retry。
 - 2026-08-09 11:05 HKT - fixed-G2 multi-seed/Stage2 diagnosis 已关闭：Teacher seed0/1 为 `32/32`，Student seed0/1/2 为 `42/48 = 87.5%`；env4 Stage2 evidence 指向 intermittent bilateral contact/squeeze continuity，不是 contract drift 或全局 handle visibility loss。任何 targeted DAgger/contact-continuity finetune 都需新 approved `HIGH_RISK` brief、multi-seed/repeated-replay acceptance；不启动 full retrain 或 generic `1–2k` continuation。
+- 2026-08-10 19:39 HKT - large-scale eval 已完成并记录于 DONE；remaining visibility/depth work 和 targeted Stage2 finetune 均需 separately approved scope，不能从本 eval 推导 current-camera、deployment 或 physical-camera PASS。

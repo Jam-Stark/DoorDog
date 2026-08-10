@@ -1,23 +1,32 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1 Stage3→4 physical-gate closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 closure
 status: active
-last_updated: 2026-08-09 15:19 HKT
+last_updated: 2026-08-10 09:32 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续 pull-v1 physical-gate、tensile force-transfer 或 trajectory 分析前
-  - 需要区分 v1 runtime closure 与 v0 anchor / E6-E7 历史边界时
+  - 继续 pull-v3 traversal / V1-C 或复用 pull-v2 Stage4 occupant 前
+  - 需要区分 v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1 closure)
+# Pull-Open-Door Task (v0 foundations + v1/v2 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations 与 pull-v1 physical-gate closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure 与 pull-v2 wall-removal/Stage4 occupancy closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v2 Closure (2026-08-10 09:32 HKT)
+
+- Canonical deterministic U-probe（无机器人）测得 `theta*=0.6 rad`，回填 `a2_pull_e3_latch_threshold_m=0.02292371541261673`；θ=0 时 hinge max `0.001943 rad`，G5/G6 均未触发。第一次 sampled-fixture receipt 已标记 invalid，不作为标定证据。
+- V2-W 从 v1-R seed0 step750 `policy_only` warm start。唯一 reward 改动是 `a2_stage3_unlatch_near_closed_hinge_threshold 0.1→0.25`；`UNLATCH_NORM=0.6`、速度 norm、`dont_push_door_handle`、`target_root_distance` 与 Stage3→4 hard gate 均未改。E3 改用 calibrated latch threshold + stable contact，handle/latch 双口径 stable-unlatch/relock 进入 telemetry。
+- 单次 64×50 smoke 验证 v2 plan-id、训练路径与 resolved `near_closed=0.25`；它发生在 canonical probe 回填之前，resolved latch threshold 为 sampled attempt 值，因此只构成 smoke acceptance，不构成 canonical E3 runtime calibration PASS。Wave1/Wave2 formal resolved config 使用 canonical threshold。
+- Wave1 双 seed 触发 G1：step750 true Stage3→4 为 seed0 `10/16`、seed1 `6/16`，valid-hold hinge Δ max 为 `0.749745/0.492656 rad`；dwell `0.105–0.25` 为 `1997/1193`，不再是 v1 恒零墙。最佳 Wave1 seed0 step750 relay 进入 Wave2。
+- Wave2 六格 true Stage4 依次为 seed0 `13/16,14/16,15/16`、seed1 `11/16,16/16,16/16`；step750 hinge Δ max `2.527259/2.617994 rad`。Wave1+Wave2 共 12 cell、192 terminal episode，四项 integrity invariant 每格均为零；A0 因 G3 false 而 `NOT_TRIGGERED`。下一 round 转 traversal/V1-C，不在 v2 继续追加 reward seam。
+- Review evidence boundary：唯一一轮 code/IsaacLab review 的正式 verdict 为 FAIL；其 seed forwarding、E3 predicate、analyzer、U-probe fixture/GPU binding 与 orchestration findings 已定向修复。依用户“一轮 review 上限”未生成第二轮 reviewer PASS；修复后的 acceptance evidence 来自 Hydra/static check、canonical U-probe、smoke、两轮训练/eval 与 fail-closed analysis。不得把它表述为第二轮 review PASS。
 
 ## Pull-v1 Closure (2026-08-09 15:19 HKT)
 
@@ -113,13 +122,13 @@ read_when:
 
 ## TODO Summary
 
-- 2026-08-09 15:19 HKT - Primary pull-v1 next scope: compare R0-500/R0-750, R1-750, and matched A/B episodes at handle-frame tensile force direction, arm/base trajectory, grasp stability, and hinge torque transfer. true Stage3→4 remains 0/288 despite active reward port; preserve the hard gate/invariants and do not start V1-C or another broad reward sweep before attribution.
-- 2026-08-09 15:19 HKT - R seed sensitivity remains unresolved: R step750 stable unlatch is seed0 13/16 versus seed1 2/16; R0 hinge Δ max is 0.100607 rad (<0.25 gate) while R1 is baseline scale. Analyze this split within the force-transfer/trajectory scope; no robustness PASS.
+- 2026-08-10 09:32 HKT - Primary pull-v3 next scope: enter traversal/V1-C from the validated pull-v2 Wave2 true-Stage4 occupant. Preserve latch threshold `0.02292371541261673`, `near_closed=0.25` single-axis change, Stage3→4 hard gate and all four invariants; do not continue adding v2 reward seams.
 - 2026-08-06 14:30 HKT - v0 E6/E7 capability boundary remains a separate historical problem: the policy never attempts path reversal (first_path_reversal_step=N/A for all episodes), ends at E5 with stage_overtime at 654 steps, and has tiny outward excursion (0.013-0.099m). Possible causes remain clear-phase reward, stage-time budget, or base-motion action space; investigate only under separately authorized scope.
 - 2026-08-06 14:00 HKT - v0 seed1 E2-E5 instability remains historical context: checkpoints oscillated between 2/16 and 16/16 uniformly across strata, not explained by spawnHook or hinge force. Matched replicates or longer training remain a separate option.
 
 ## DONE Summary
 
+- 2026-08-10 09:32 HKT - pull-v2 closure: canonical U-probe measured `theta*=0.6 rad` and latch threshold `0.02292371541261673`; only reward change was `near_closed 0.1→0.25`. Wave1 step750 true Stage3→4 reached `10/16` and `6/16`, triggering G1. Wave2 relay produced true Stage4 `13/16,14/16,15/16` and `11/16,16/16,16/16`; all four invariants were zero across 12 accepted cells/192 terminal episodes. A0 was NOT_TRIGGERED; next scope is traversal/V1-C.
 - 2026-08-09 15:19 HKT - pull-v1 closure: C1–C6 implemented; Python compile and YAML/Hydra composition static PASS. D0 frozen replay runtime PASS (16/16 terminal Stage3, E4/E5 0, four integrity invariants 0) and V1-B 64×50 smoke natural exit. V1-A/B/R dual-seed training/eval completed: 18 accepted rows / 288 terminal episodes have true Stage3→4 0/288 and all four invariants zero. A/B hinge Δ max ≤0.002201 rad with zero stable unlatch; R reward port is behaviorally active at step750 (stable unlatch R0 13/16, R1 2/16), but R0 hinge Δ max 0.100607 rad remains below 0.25 and R1 is baseline scale. Two pre-batch1 construction-guard root fixes landed; final A/B/R contracts fail fast. The preregistered negative statement was not triggered.
 - 2026-08-05 00:20 HKT - R17 repair complete: helper attempt-label threading + Attempt20 enumeration classification + runner Attempt20 support + lifecycle-signal receipt + Attempt19 PROBE_INVALID receipts + focused tests (152 passed)。R17 receipt sha `73d0e218…`。
 - 2026-08-05 00:20 HKT - Attempt20 executed: admission PASS (R17 fix validated at runtime), anchor FAIL (BASE_RELIEF_DISPLACEMENT_LIMIT, zero proof samples)。scientific_verdict_consumed false。Receipt sha `b1b2fa0d…`。

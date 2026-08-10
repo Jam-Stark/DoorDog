@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-09 15:19 HKT (pull-v1 physical-gate closure)。
+创建:2026-07-21;最近更新:2026-08-10 09:32 HKT (pull-v2 wall-removal + Stage4 occupancy closure)。
 
 ---
 
@@ -10,7 +10,7 @@
 | 条目 | 排期 | 出处 |
 |---|---|---|
 | 真实 Piper arm 限位轮(force_feasible 边界前置)**+ θ_send 统一 rider**:corridor-latch 的 `hinge≥1.0` 分支、send-curriculum 目标、crossing gate 合并为单一 θ_send≈1.25–1.30。预注册预测:crossing p50 追随 θ_send(v20 全部 send cell 钉在 1.00–1.02 = 该分支即下一 pay boundary,阈值贴靠第 5 例);盯 heavy-tail stage_overtime(160kg/11.5N·m case 已现:送门耗时,时间预算而非力是重门边际约束) | **下一轮** | v20 收口读出(SEND_METRICS):send curriculum 为唯一有效成分(G3 +0.207;G2 经济学单独 +0.026 无效;arm-tie 无增量;G6/G7 复制,seed 差 −0.018) |
-| pull-v1 physical-gate attribution:在新 scope 下比较 R0/R1 与 matched A/B 的 handle-frame tensile force、arm/base trajectory、grasp stability 与 hinge torque transfer；不先开 V1-C 或 broad reward sweep | 下一轮前的 bounded analysis | v1 0/288 true Stage3→4；reward port active 但 R0/R1 强 seed sensitivity |
+| pull-v3 traversal(V1-C 域):从 pull-v2 Wave2 的真 Stage4 occupant 进入 Stage4→traversal，保留 latch 阈值 `0.02292371541261673`、`near_closed=0.25` 单轴改动、hard gate 与四项 invariant；不在 v2 reward seam 上继续叠加 | **下一轮** | pull-v2 Wave2:seed0 `13/16→15/16`、seed1 `11/16→16/16` true Stage4，12-cell invariants 全零 |
 | 若宣布正式 release:补 Route B(pooled48/holdout64/final analysis)——G4@2500 目前仅 Route A 证据(goal 15/16) | release 决策时 | v20 Route B 未跑 |
 
 ## B. 下一批候选(v17)
@@ -51,6 +51,7 @@
 
 ## 归档(已完成/已否决)
 
+- [x] 2026-08-10 09:32 HKT:**pull-v2 wall-removal / unlatch calibration 收口**——canonical U-probe `theta*=0.6rad`、latch threshold=`0.02292371541261673`；唯一 reward 改动 `near_closed 0.1→0.25` 后，Wave1 两 seed 触发 G1，Wave2 六格 true Stage4=`13/16,14/16,15/16,11/16,16/16,16/16`，四项 invariant 全零。原 pull-v1 force-transfer/seed-sensitivity attribution 已由该单轴实验闭合；下一 scope 转 traversal/V1-C。
 - [x] 2026-08-01:**v19 收口(负结果,高信息量)**——70 ckpt/55 valid 中 hinge_at_crossing_p50 上限 0.7869、0/55 ≥0.9;release ceiling 提高被"base-drag"满足(root_x@release p50 0.686)。云端 pro 模型诊断获背书并沉淀两条设计规则:**规则 11**(行为要求写在正确的物理事件上——三轮都约束了 at-release/at-stage-flip,用户要的是 at-crossing)、**规则 12**(round 汇总表必须含本 round 因变量)。
 - [x] 2026-08-01 19:06 HKT:**v20 Route-A 因变量读出关闭**——70/70 checkpoint、1120/1120 records/traces、740908 trace rows strict-valid，fallback eval 0。约束 goal≥15/16 下 winner 为 G4 step2500：hinge_at_crossing p50/p95=`1.0160/1.0628rad`、root_x_at_release p50/p95=`0.4717/0.6680m`、held_hinge_max p50/p95=`1.2911/1.3617rad`，相对 v19 `+0.2291rad`，预注册标签 `PARTIAL_EFFECT`。winner 5 episodes×3 cameras=15 MP4 full decode，crossing 前目视门已宽开 `YES_5_OF_5`；160kg/11.4905N·m case crossing 前 hinge=`0.9999rad`。因此“无 cell 移动”制度化 fallback 未触发；Route B strict DAG/pooled48/holdout64/final analysis 保持 NOT RUN。
 - [x] 2026-08-01:v20 R2/R3 完成训练(7 组×10 ckpt)与 Route A eval(1120 records,任务健康保持);其后因变量读出与 winner render 已由上一条关闭。

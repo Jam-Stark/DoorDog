@@ -1,0 +1,1271 @@
+{
+  "schema": "pull_v2_analysis_v2_fail_closed",
+  "plan_id": "a2_piper_pull_v2_wall_removal_and_unlatch_calibration",
+  "checkpoint_steps_required": [
+    250,
+    500,
+    750
+  ],
+  "cells": [
+    {
+      "source": "logs_eval/a2_piper_pull_v2/W_wave2_relay_seed0_step250/eval/metrics_eval.json",
+      "seed": 0,
+      "step": 250,
+      "primary": {
+        "episode_count": 16,
+        "true_stage3_to4_rate": 0.8125,
+        "positive_hinge_while_valid_hold_rate": 1.0,
+        "hinge_delta_while_valid_hold_rad": {
+          "median": 1.0569628462823348,
+          "max": 1.3792781812134731
+        }
+      },
+      "secondary": {
+        "available": true,
+        "episode_count": 16,
+        "stable_unlatch_handle_based": 0.9375,
+        "stable_unlatch_latch_based": 0.9375,
+        "relock_handle_based": 0.25,
+        "relock_latch_based": 0.75,
+        "thresholds": {
+          "handle_rad": 0.3,
+          "latch_m": 0.02292371541261673
+        },
+        "relock_definition": "prior stable threshold crossing, then threshold loss while hinge remains below the Stage3-to4 gate"
+      },
+      "dwell": {
+        "hinge_dwell_band_counts": {
+          "<0.02": 1755,
+          "0.02-0.08": 596,
+          "0.08-0.105": 90,
+          "0.105-0.25": 737,
+          ">=0.25": 5287
+        },
+        "finite_hinge_trace_steps": 8465,
+        "active_unlatch_hold_steps_hinge_0p1_0p25": 477
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "stage4_admission": {
+          "unit": "environment",
+          "boundary": "first trace row with pull_v0.stage >= 4 per env_id",
+          "post_admission_stage4_rows_excluded": 5261,
+          "admission_snapshot_count": 13,
+          "below_hinge_gate_count": 0,
+          "below_hinge_gate_rate": 0.0,
+          "snapshots": [
+            {
+              "env_id": 0,
+              "step_index": 260,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25911158323287964,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 2,
+              "step_index": 208,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2561872601509094,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 3,
+              "step_index": 238,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25354689359664917,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 4,
+              "step_index": 277,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25931107997894287,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 6,
+              "step_index": 247,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2547204792499542,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 7,
+              "step_index": 311,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2591675817966461,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 8,
+              "step_index": 236,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.261186420917511,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 9,
+              "step_index": 224,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25609928369522095,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 10,
+              "step_index": 230,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2555190920829773,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 12,
+              "step_index": 260,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2595319449901581,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 13,
+              "step_index": 234,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2574974000453949,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 14,
+              "step_index": 213,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2590404450893402,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 15,
+              "step_index": 290,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2559288442134857,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            }
+          ]
+        },
+        "all_zero": true
+      },
+      "A0_observables": {
+        "status": "BOUNDED_OBSERVABLES_ONLY",
+        "handle_local_slip_norm_mps": {
+          "count": 8465,
+          "median": 0.050018046170005936,
+          "max": 4.838870276337656
+        },
+        "finger_effort_utilization": {
+          "count": 16930,
+          "median": 0.3248043358325958,
+          "max": 1.0
+        },
+        "arm_effort_utilization": {
+          "count": 50790,
+          "median": 0.03788825124502182,
+          "max": 1.0
+        },
+        "root_relative_x": {
+          "count": 8465,
+          "median": 0.9710674285888672,
+          "max": 1.5888538360595703
+        },
+        "tcp_position_error_m": {
+          "count": 8465,
+          "median": 0.03956056386232376,
+          "max": 0.9223279356956482
+        },
+        "handle_frame_movement_proxy_m": {
+          "count": 8465,
+          "median": 0.03956056386232376,
+          "max": 0.9223279356956482
+        },
+        "unavailable": [
+          "exact action decomposition by arm/base command channel",
+          "joint-level applied actuator torque decomposition"
+        ]
+      }
+    },
+    {
+      "source": "logs_eval/a2_piper_pull_v2/W_wave2_relay_seed0_step500/eval/metrics_eval.json",
+      "seed": 0,
+      "step": 500,
+      "primary": {
+        "episode_count": 16,
+        "true_stage3_to4_rate": 0.875,
+        "positive_hinge_while_valid_hold_rate": 1.0,
+        "hinge_delta_while_valid_hold_rad": {
+          "median": 1.3800859445405582,
+          "max": 1.8878755557863711
+        }
+      },
+      "secondary": {
+        "available": true,
+        "episode_count": 16,
+        "stable_unlatch_handle_based": 0.875,
+        "stable_unlatch_latch_based": 0.875,
+        "relock_handle_based": 0.0,
+        "relock_latch_based": 0.6875,
+        "thresholds": {
+          "handle_rad": 0.3,
+          "latch_m": 0.02292371541261673
+        },
+        "relock_definition": "prior stable threshold crossing, then threshold loss while hinge remains below the Stage3-to4 gate"
+      },
+      "dwell": {
+        "hinge_dwell_band_counts": {
+          "<0.02": 1643,
+          "0.02-0.08": 280,
+          "0.08-0.105": 156,
+          "0.105-0.25": 425,
+          ">=0.25": 6063
+        },
+        "finite_hinge_trace_steps": 8567,
+        "active_unlatch_hold_steps_hinge_0p1_0p25": 440
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "stage4_admission": {
+          "unit": "environment",
+          "boundary": "first trace row with pull_v0.stage >= 4 per env_id",
+          "post_admission_stage4_rows_excluded": 6035,
+          "admission_snapshot_count": 14,
+          "below_hinge_gate_count": 0,
+          "below_hinge_gate_rate": 0.0,
+          "snapshots": [
+            {
+              "env_id": 0,
+              "step_index": 260,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2596840262413025,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 1,
+              "step_index": 226,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2576947808265686,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 2,
+              "step_index": 180,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25754621624946594,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 3,
+              "step_index": 314,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2567031681537628,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 4,
+              "step_index": 253,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25911903381347656,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 7,
+              "step_index": 216,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25601083040237427,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 8,
+              "step_index": 225,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2560946047306061,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 9,
+              "step_index": 190,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2568255066871643,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 10,
+              "step_index": 196,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.257546991109848,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 11,
+              "step_index": 201,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25602662563323975,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 12,
+              "step_index": 224,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2563978135585785,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 13,
+              "step_index": 182,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2562611699104309,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 14,
+              "step_index": 224,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2547762393951416,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 15,
+              "step_index": 216,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2572154998779297,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            }
+          ]
+        },
+        "all_zero": true
+      },
+      "A0_observables": {
+        "status": "BOUNDED_OBSERVABLES_ONLY",
+        "handle_local_slip_norm_mps": {
+          "count": 8567,
+          "median": 0.05768112366604731,
+          "max": 4.928718520922898
+        },
+        "finger_effort_utilization": {
+          "count": 17134,
+          "median": 0.2987344563007355,
+          "max": 1.0
+        },
+        "arm_effort_utilization": {
+          "count": 51402,
+          "median": 0.034414539113640785,
+          "max": 1.0
+        },
+        "root_relative_x": {
+          "count": 8567,
+          "median": 1.0281810760498047,
+          "max": 1.4702692031860352
+        },
+        "tcp_position_error_m": {
+          "count": 8567,
+          "median": 0.06799192726612091,
+          "max": 1.0426467657089233
+        },
+        "handle_frame_movement_proxy_m": {
+          "count": 8567,
+          "median": 0.06799192726612091,
+          "max": 1.0426467657089233
+        },
+        "unavailable": [
+          "exact action decomposition by arm/base command channel",
+          "joint-level applied actuator torque decomposition"
+        ]
+      }
+    },
+    {
+      "source": "logs_eval/a2_piper_pull_v2/W_wave2_relay_seed0_step750/eval/metrics_eval.json",
+      "seed": 0,
+      "step": 750,
+      "primary": {
+        "episode_count": 16,
+        "true_stage3_to4_rate": 0.9375,
+        "positive_hinge_while_valid_hold_rate": 1.0,
+        "hinge_delta_while_valid_hold_rad": {
+          "median": 1.726028202597763,
+          "max": 2.527258632797335
+        }
+      },
+      "secondary": {
+        "available": true,
+        "episode_count": 16,
+        "stable_unlatch_handle_based": 0.9375,
+        "stable_unlatch_latch_based": 0.9375,
+        "relock_handle_based": 0.0625,
+        "relock_latch_based": 0.5625,
+        "thresholds": {
+          "handle_rad": 0.3,
+          "latch_m": 0.02292371541261673
+        },
+        "relock_definition": "prior stable threshold crossing, then threshold loss while hinge remains below the Stage3-to4 gate"
+      },
+      "dwell": {
+        "hinge_dwell_band_counts": {
+          "<0.02": 1065,
+          "0.02-0.08": 265,
+          "0.08-0.105": 86,
+          "0.105-0.25": 454,
+          ">=0.25": 6817
+        },
+        "finite_hinge_trace_steps": 8687,
+        "active_unlatch_hold_steps_hinge_0p1_0p25": 472
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "stage4_admission": {
+          "unit": "environment",
+          "boundary": "first trace row with pull_v0.stage >= 4 per env_id",
+          "post_admission_stage4_rows_excluded": 6787,
+          "admission_snapshot_count": 15,
+          "below_hinge_gate_count": 0,
+          "below_hinge_gate_rate": 0.0,
+          "snapshots": [
+            {
+              "env_id": 0,
+              "step_index": 238,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.26017215847969055,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 1,
+              "step_index": 202,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25513413548469543,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 2,
+              "step_index": 183,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2575795650482178,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 3,
+              "step_index": 199,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25990384817123413,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 4,
+              "step_index": 219,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.26041385531425476,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 6,
+              "step_index": 276,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2578348219394684,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 7,
+              "step_index": 209,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2619454562664032,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 8,
+              "step_index": 193,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25475820899009705,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 9,
+              "step_index": 187,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2565977871417999,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 10,
+              "step_index": 170,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.256295770406723,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 11,
+              "step_index": 191,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.26087358593940735,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 12,
+              "step_index": 208,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25891849398612976,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 13,
+              "step_index": 154,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25952035188674927,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 14,
+              "step_index": 182,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2584455907344818,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 15,
+              "step_index": 197,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25830188393592834,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            }
+          ]
+        },
+        "all_zero": true
+      },
+      "A0_observables": {
+        "status": "BOUNDED_OBSERVABLES_ONLY",
+        "handle_local_slip_norm_mps": {
+          "count": 8687,
+          "median": 0.047173916334127354,
+          "max": 1.63119450028522
+        },
+        "finger_effort_utilization": {
+          "count": 17374,
+          "median": 0.3478730022907257,
+          "max": 1.0
+        },
+        "arm_effort_utilization": {
+          "count": 52122,
+          "median": 0.04152921959757805,
+          "max": 1.0
+        },
+        "root_relative_x": {
+          "count": 8687,
+          "median": 0.9930658340454102,
+          "max": 1.4153118133544922
+        },
+        "tcp_position_error_m": {
+          "count": 8687,
+          "median": 0.06839259713888168,
+          "max": 0.19900402426719666
+        },
+        "handle_frame_movement_proxy_m": {
+          "count": 8687,
+          "median": 0.06839259713888168,
+          "max": 0.19900402426719666
+        },
+        "unavailable": [
+          "exact action decomposition by arm/base command channel",
+          "joint-level applied actuator torque decomposition"
+        ]
+      }
+    },
+    {
+      "source": "logs_eval/a2_piper_pull_v2/W_wave2_relay_seed1_step250/eval/metrics_eval.json",
+      "seed": 1,
+      "step": 250,
+      "primary": {
+        "episode_count": 16,
+        "true_stage3_to4_rate": 0.6875,
+        "positive_hinge_while_valid_hold_rate": 1.0,
+        "hinge_delta_while_valid_hold_rad": {
+          "median": 0.502807422304383,
+          "max": 0.9103420964749303
+        }
+      },
+      "secondary": {
+        "available": true,
+        "episode_count": 16,
+        "stable_unlatch_handle_based": 1.0,
+        "stable_unlatch_latch_based": 0.9375,
+        "relock_handle_based": 0.125,
+        "relock_latch_based": 0.75,
+        "thresholds": {
+          "handle_rad": 0.3,
+          "latch_m": 0.02292371541261673
+        },
+        "relock_definition": "prior stable threshold crossing, then threshold loss while hinge remains below the Stage3-to4 gate"
+      },
+      "dwell": {
+        "hinge_dwell_band_counts": {
+          "<0.02": 2205,
+          "0.02-0.08": 805,
+          "0.08-0.105": 215,
+          "0.105-0.25": 1809,
+          ">=0.25": 3629
+        },
+        "finite_hinge_trace_steps": 8663,
+        "active_unlatch_hold_steps_hinge_0p1_0p25": 1854
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "stage4_admission": {
+          "unit": "environment",
+          "boundary": "first trace row with pull_v0.stage >= 4 per env_id",
+          "post_admission_stage4_rows_excluded": 3625,
+          "admission_snapshot_count": 11,
+          "below_hinge_gate_count": 0,
+          "below_hinge_gate_rate": 0.0,
+          "snapshots": [
+            {
+              "env_id": 0,
+              "step_index": 297,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2517921030521393,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 2,
+              "step_index": 299,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2539876699447632,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 3,
+              "step_index": 227,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2522314488887787,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 6,
+              "step_index": 365,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2515529990196228,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 8,
+              "step_index": 437,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2508476972579956,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 9,
+              "step_index": 301,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25123509764671326,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 11,
+              "step_index": 297,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.261064738035202,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 12,
+              "step_index": 440,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2506248354911804,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 13,
+              "step_index": 377,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2576479911804199,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 14,
+              "step_index": 236,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25701627135276794,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 15,
+              "step_index": 282,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2526628077030182,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            }
+          ]
+        },
+        "all_zero": true
+      },
+      "A0_observables": {
+        "status": "BOUNDED_OBSERVABLES_ONLY",
+        "handle_local_slip_norm_mps": {
+          "count": 8663,
+          "median": 0.04526553371092258,
+          "max": 1.9810381620324249
+        },
+        "finger_effort_utilization": {
+          "count": 17326,
+          "median": 0.32883112132549286,
+          "max": 1.0
+        },
+        "arm_effort_utilization": {
+          "count": 51978,
+          "median": 0.03637554123997688,
+          "max": 1.0
+        },
+        "root_relative_x": {
+          "count": 8663,
+          "median": 0.9100704193115234,
+          "max": 1.5707178115844727
+        },
+        "tcp_position_error_m": {
+          "count": 8663,
+          "median": 0.02368064783513546,
+          "max": 1.0101923942565918
+        },
+        "handle_frame_movement_proxy_m": {
+          "count": 8663,
+          "median": 0.02368064783513546,
+          "max": 1.0101923942565918
+        },
+        "unavailable": [
+          "exact action decomposition by arm/base command channel",
+          "joint-level applied actuator torque decomposition"
+        ]
+      }
+    },
+    {
+      "source": "logs_eval/a2_piper_pull_v2/W_wave2_relay_seed1_step500/eval/metrics_eval.json",
+      "seed": 1,
+      "step": 500,
+      "primary": {
+        "episode_count": 16,
+        "true_stage3_to4_rate": 1.0,
+        "positive_hinge_while_valid_hold_rate": 1.0,
+        "hinge_delta_while_valid_hold_rad": {
+          "median": 1.4452093227071612,
+          "max": 2.2176265701122126
+        }
+      },
+      "secondary": {
+        "available": true,
+        "episode_count": 16,
+        "stable_unlatch_handle_based": 1.0,
+        "stable_unlatch_latch_based": 1.0,
+        "relock_handle_based": 0.0625,
+        "relock_latch_based": 0.9375,
+        "thresholds": {
+          "handle_rad": 0.3,
+          "latch_m": 0.02292371541261673
+        },
+        "relock_definition": "prior stable threshold crossing, then threshold loss while hinge remains below the Stage3-to4 gate"
+      },
+      "dwell": {
+        "hinge_dwell_band_counts": {
+          "<0.02": 1351,
+          "0.02-0.08": 413,
+          "0.08-0.105": 118,
+          "0.105-0.25": 602,
+          ">=0.25": 6754
+        },
+        "finite_hinge_trace_steps": 9238,
+        "active_unlatch_hold_steps_hinge_0p1_0p25": 625
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "stage4_admission": {
+          "unit": "environment",
+          "boundary": "first trace row with pull_v0.stage >= 4 per env_id",
+          "post_admission_stage4_rows_excluded": 6722,
+          "admission_snapshot_count": 16,
+          "below_hinge_gate_count": 0,
+          "below_hinge_gate_rate": 0.0,
+          "snapshots": [
+            {
+              "env_id": 0,
+              "step_index": 222,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25754305720329285,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 1,
+              "step_index": 209,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2550501525402069,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 2,
+              "step_index": 272,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2553722858428955,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 3,
+              "step_index": 167,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25442564487457275,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 4,
+              "step_index": 292,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2541223168373108,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 5,
+              "step_index": 216,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2530299127101898,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 6,
+              "step_index": 236,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25561097264289856,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 7,
+              "step_index": 328,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2524995803833008,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 8,
+              "step_index": 260,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25606653094291687,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 9,
+              "step_index": 198,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2550337314605713,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 10,
+              "step_index": 203,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2600284814834595,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 11,
+              "step_index": 238,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25422853231430054,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 12,
+              "step_index": 213,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25559085607528687,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 13,
+              "step_index": 208,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2601960599422455,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 14,
+              "step_index": 207,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25915804505348206,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 15,
+              "step_index": 257,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2560354173183441,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            }
+          ]
+        },
+        "all_zero": true
+      },
+      "A0_observables": {
+        "status": "BOUNDED_OBSERVABLES_ONLY",
+        "handle_local_slip_norm_mps": {
+          "count": 9238,
+          "median": 0.04986019760317477,
+          "max": 4.9424096408043425
+        },
+        "finger_effort_utilization": {
+          "count": 18476,
+          "median": 0.33879217505455017,
+          "max": 1.0
+        },
+        "arm_effort_utilization": {
+          "count": 55428,
+          "median": 0.03491359390318394,
+          "max": 1.0
+        },
+        "root_relative_x": {
+          "count": 9238,
+          "median": 1.056391716003418,
+          "max": 1.6971721649169922
+        },
+        "tcp_position_error_m": {
+          "count": 9238,
+          "median": 0.05724573880434036,
+          "max": 1.328608751296997
+        },
+        "handle_frame_movement_proxy_m": {
+          "count": 9238,
+          "median": 0.05724573880434036,
+          "max": 1.328608751296997
+        },
+        "unavailable": [
+          "exact action decomposition by arm/base command channel",
+          "joint-level applied actuator torque decomposition"
+        ]
+      }
+    },
+    {
+      "source": "logs_eval/a2_piper_pull_v2/W_wave2_relay_seed1_step750/eval/metrics_eval.json",
+      "seed": 1,
+      "step": 750,
+      "primary": {
+        "episode_count": 16,
+        "true_stage3_to4_rate": 1.0,
+        "positive_hinge_while_valid_hold_rate": 1.0,
+        "hinge_delta_while_valid_hold_rad": {
+          "median": 1.805520890086516,
+          "max": 2.617993831023612
+        }
+      },
+      "secondary": {
+        "available": true,
+        "episode_count": 16,
+        "stable_unlatch_handle_based": 1.0,
+        "stable_unlatch_latch_based": 1.0,
+        "relock_handle_based": 0.0625,
+        "relock_latch_based": 0.6875,
+        "thresholds": {
+          "handle_rad": 0.3,
+          "latch_m": 0.02292371541261673
+        },
+        "relock_definition": "prior stable threshold crossing, then threshold loss while hinge remains below the Stage3-to4 gate"
+      },
+      "dwell": {
+        "hinge_dwell_band_counts": {
+          "<0.02": 1059,
+          "0.02-0.08": 444,
+          "0.08-0.105": 112,
+          "0.105-0.25": 540,
+          ">=0.25": 7134
+        },
+        "finite_hinge_trace_steps": 9289,
+        "active_unlatch_hold_steps_hinge_0p1_0p25": 562
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "stage4_admission": {
+          "unit": "environment",
+          "boundary": "first trace row with pull_v0.stage >= 4 per env_id",
+          "post_admission_stage4_rows_excluded": 7102,
+          "admission_snapshot_count": 16,
+          "below_hinge_gate_count": 0,
+          "below_hinge_gate_rate": 0.0,
+          "snapshots": [
+            {
+              "env_id": 0,
+              "step_index": 221,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2544940114021301,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 1,
+              "step_index": 196,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25552046298980713,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 2,
+              "step_index": 206,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25888097286224365,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 3,
+              "step_index": 144,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.255176842212677,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 4,
+              "step_index": 265,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25642454624176025,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 5,
+              "step_index": 178,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25454792380332947,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 6,
+              "step_index": 223,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2591645419597626,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 7,
+              "step_index": 317,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25651994347572327,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 8,
+              "step_index": 240,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25870707631111145,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 9,
+              "step_index": 146,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25988030433654785,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 10,
+              "step_index": 182,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.26107773184776306,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 11,
+              "step_index": 203,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.25794661045074463,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 12,
+              "step_index": 186,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2551416754722595,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 13,
+              "step_index": 198,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2617975175380707,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 14,
+              "step_index": 212,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2584482431411743,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            },
+            {
+              "env_id": 15,
+              "step_index": 229,
+              "event_state": "E4_POSITIVE_HINGE_RETAINED",
+              "hinge_position_rad": 0.2569727599620819,
+              "hinge_threshold_rad": 0.25,
+              "below_hinge_gate": false
+            }
+          ]
+        },
+        "all_zero": true
+      },
+      "A0_observables": {
+        "status": "BOUNDED_OBSERVABLES_ONLY",
+        "handle_local_slip_norm_mps": {
+          "count": 9289,
+          "median": 0.04889480506461164,
+          "max": 2.814764618299395
+        },
+        "finger_effort_utilization": {
+          "count": 18578,
+          "median": 0.37968842685222626,
+          "max": 1.0
+        },
+        "arm_effort_utilization": {
+          "count": 55734,
+          "median": 0.03386944904923439,
+          "max": 1.0
+        },
+        "root_relative_x": {
+          "count": 9289,
+          "median": 1.1195831298828125,
+          "max": 1.6974735260009766
+        },
+        "tcp_position_error_m": {
+          "count": 9289,
+          "median": 0.06261903047561646,
+          "max": 1.0463473796844482
+        },
+        "handle_frame_movement_proxy_m": {
+          "count": 9289,
+          "median": 0.06261903047561646,
+          "max": 1.0463473796844482
+        },
+        "unavailable": [
+          "exact action decomposition by arm/base command channel",
+          "joint-level applied actuator torque decomposition"
+        ]
+      }
+    }
+  ],
+  "G1_G4_decision_inputs": {
+    "decision_seeds": [
+      0,
+      1
+    ],
+    "seed_inputs": {
+      "0": {
+        "max_hinge_delta_rad": 2.527258632797335,
+        "max_true_stage3_to4_rate": 0.9375
+      },
+      "1": {
+        "max_hinge_delta_rad": 2.617993831023612,
+        "max_true_stage3_to4_rate": 1.0
+      }
+    },
+    "G1_wall_supported": true,
+    "G2_partial_platform": false,
+    "G3_wall_falsified": false,
+    "G4_opposite_seed_conclusions": false,
+    "seed_classes": {
+      "0": "G1",
+      "1": "G1"
+    },
+    "selected_branch": "G1"
+  },
+  "A0": {
+    "status": "NOT_TRIGGERED"
+  }
+}

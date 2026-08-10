@@ -1,0 +1,80 @@
+{
+  "schema": "pull_v2_u_probe_unlatch_calibration_v1",
+  "plan_id": "a2_piper_pull_v2_wall_removal_and_unlatch_calibration",
+  "status": "PASS",
+  "scene": "door_only",
+  "joint_names": [
+    "hinge_joint",
+    "handle_joint",
+    "latch_joint"
+  ],
+  "resolved_joint_indices": {
+    "hinge_joint": 0,
+    "handle_joint": 1,
+    "latch_joint": 2
+  },
+  "theta_sweep_rad": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.785
+  ],
+  "steps_per_theta": 200,
+  "hinge_target_rad": 2.6179938779914944,
+  "hinge_effort_limit_nm": 20.0,
+  "unlatch_hinge_min_rad": 0.05,
+  "table": [
+    {
+      "theta_rad": 0.0,
+      "latch_m": 2.6830084607354365e-06,
+      "hinge_max_rad": 0.0022041555494070053
+    },
+    {
+      "theta_rad": 0.1,
+      "latch_m": 0.003822400700300932,
+      "hinge_max_rad": 0.0022075846791267395
+    },
+    {
+      "theta_rad": 0.2,
+      "latch_m": 0.007642148993909359,
+      "hinge_max_rad": 0.002210862236097455
+    },
+    {
+      "theta_rad": 0.3,
+      "latch_m": 0.011462528258562088,
+      "hinge_max_rad": 0.002213994739577174
+    },
+    {
+      "theta_rad": 0.4,
+      "latch_m": 0.015284167602658272,
+      "hinge_max_rad": 0.0022171714808791876
+    },
+    {
+      "theta_rad": 0.5,
+      "latch_m": 0.02245621755719185,
+      "hinge_max_rad": 0.09221713989973068
+    },
+    {
+      "theta_rad": 0.6,
+      "latch_m": 0.023019369691610336,
+      "hinge_max_rad": 0.16071836650371552
+    },
+    {
+      "theta_rad": 0.7,
+      "latch_m": 0.02682972513139248,
+      "hinge_max_rad": 0.16071689128875732
+    },
+    {
+      "theta_rad": 0.785,
+      "latch_m": 0.029999999329447746,
+      "hinge_max_rad": 0.16071540117263794
+    }
+  ],
+  "theta_star_rad": 0.5,
+  "a2_pull_e3_latch_threshold_m": 0.02245621755719185
+}

@@ -1,0 +1,150 @@
+{
+  "schema": "pull_v2_u_probe_unlatch_calibration_v1",
+  "plan_id": "a2_piper_pull_v2_wall_removal_and_unlatch_calibration",
+  "status": "PASS",
+  "scene": "door_only",
+  "fixture": {
+    "door_width_m": 0.95,
+    "door_height_m": 2.05,
+    "door_handle_height_m": 0.95,
+    "door_handle_width_m": 0.115,
+    "door_handle_type": "lever",
+    "door_weight_kg": 120.0,
+    "door_open_lr": "right",
+    "door_open_io": "out",
+    "total_wall_height_m": 2.7,
+    "axle_length_m": 0.195,
+    "handle_length_m": 0.125,
+    "hook_length_m": 0.05,
+    "handle_radius_m": 0.013,
+    "spawn_hook": true,
+    "hinge_drive_max_force_nm": 7.25,
+    "hinge_drive_stiffness": 5.5,
+    "handle_drive_max_force_nm": 2.0,
+    "door_width_range_m": [
+      0.8,
+      1.1
+    ],
+    "door_height_range_m": [
+      1.9,
+      2.2
+    ],
+    "door_handle_tblr_m": [
+      1.1,
+      0.8,
+      0.08,
+      0.15
+    ],
+    "door_weight_range_kg": [
+      80.0,
+      120.0
+    ],
+    "hinge_drive_max_force_range_nm": [
+      2.5,
+      12.0
+    ],
+    "handle_drive_max_force_range_nm": [
+      1.0,
+      3.0
+    ],
+    "wall_minimum_clearance_fblr_m": [
+      3.0,
+      3.0,
+      1.0,
+      1.0
+    ],
+    "wall_maximum_clearance_fblr_m": [
+      10.0,
+      10.0,
+      10.0,
+      10.0
+    ],
+    "randomize_material": false,
+    "use_preloaded_materials": false,
+    "preloaded_materials_num_transform": 1,
+    "preloaded_materials_num_color": 1,
+    "dynamic_material_randomization": false,
+    "dynamic_material_randomization_interval_s": 1.0,
+    "random_choice": false,
+    "build_latch": true,
+    "add_walls": false,
+    "add_floors": false,
+    "add_lights": false,
+    "add_ceiling": false,
+    "contact_sensors": true
+  },
+  "joint_names": [
+    "hinge_joint",
+    "handle_joint",
+    "latch_joint"
+  ],
+  "resolved_joint_indices": {
+    "hinge_joint": 0,
+    "handle_joint": 1,
+    "latch_joint": 2
+  },
+  "theta_sweep_rad": [
+    0.0,
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.785
+  ],
+  "steps_per_theta": 200,
+  "hinge_target_rad": 2.6179938779914944,
+  "hinge_effort_limit_nm": 20.0,
+  "unlatch_hinge_min_rad": 0.05,
+  "table": [
+    {
+      "theta_rad": 0.0,
+      "latch_m": 2.468335651428788e-06,
+      "hinge_max_rad": 0.0019425409846007824
+    },
+    {
+      "theta_rad": 0.1,
+      "latch_m": 0.0038307311479002237,
+      "hinge_max_rad": 0.0019461968913674355
+    },
+    {
+      "theta_rad": 0.2,
+      "latch_m": 0.007641913369297981,
+      "hinge_max_rad": 0.001949717989191413
+    },
+    {
+      "theta_rad": 0.3,
+      "latch_m": 0.011461634188890457,
+      "hinge_max_rad": 0.0019533850718289614
+    },
+    {
+      "theta_rad": 0.4,
+      "latch_m": 0.015282259322702885,
+      "hinge_max_rad": 0.001955497544258833
+    },
+    {
+      "theta_rad": 0.5,
+      "latch_m": 0.01975373923778534,
+      "hinge_max_rad": 0.04845188558101654
+    },
+    {
+      "theta_rad": 0.6,
+      "latch_m": 0.02292371541261673,
+      "hinge_max_rad": 0.129359170794487
+    },
+    {
+      "theta_rad": 0.7,
+      "latch_m": 0.026744624599814415,
+      "hinge_max_rad": 0.12935583293437958
+    },
+    {
+      "theta_rad": 0.785,
+      "latch_m": 0.02999989502131939,
+      "hinge_max_rad": 0.129352405667305
+    }
+  ],
+  "theta_star_rad": 0.6,
+  "a2_pull_e3_latch_threshold_m": 0.02292371541261673
+}

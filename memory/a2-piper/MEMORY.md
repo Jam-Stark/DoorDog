@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-09 15:19 HKT — pull-v1 C1–C6, D0 replay, smoke and A/B/R dual-seed closure complete. true Stage3→4 is 0/288 with all four integrity invariants zero; reward port is active but lacks robust tensile force-transfer (R0 hinge Δ max 0.100607<0.25, R1 baseline). Next route is force-transfer/trajectory attribution, not another reward sweep; v0 anchor and E6/E7 remain historical boundaries.
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-10 09:32 HKT — pull-v2 canonical U-probe calibrated latch threshold `0.02292371541261673`; the single reward-axis change `near_closed 0.1→0.25` triggered G1 and Wave2 true Stage4 occupancy (`13/16→15/16`, `11/16→16/16`) with all four invariants zero across 12 cells. Next route is traversal/V1-C from the validated occupant; preserve the latch calibration, hard gate and invariants rather than adding another v2 reward seam. v0 anchor/E6-E7 and v1 negative closure remain historical boundaries.
 
 ## Update Rules
 

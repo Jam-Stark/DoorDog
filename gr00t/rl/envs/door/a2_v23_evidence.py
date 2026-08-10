@@ -55,6 +55,46 @@ V23_P05_RESCUE_NOT_APPLICABLE_BASELINE_AT_MAX = (
 V23_TEMPORAL_STEP_SCHEMA = "a2_piper_base_v23_p0_temporal_step_v1"
 V23_TEMPORAL_EPISODE_SCHEMA = "a2_piper_base_v23_p0_temporal_episode_v1"
 V23_TEMPORAL_EXPORT_SCHEMA = "a2_piper_base_v23_p0_temporal_records_v1"
+V23_PHASE_SNAPSHOT_SCHEMA = "a2_piper_base_v23_p0_phase_snapshot_v2"
+V23_PHASE_FRAME_SCHEMA = "a2_piper_base_v23_p0_phase_aligned_frame_v2"
+V23_PHASE_PRE_ACTUATOR_COMPUTE = "PRE_ACTUATOR_COMPUTE"
+V23_PHASE_POST_PHYSICS = "POST_PHYSICS"
+V23_PHASE_AUTHORITY_NOMINAL_PD = "NOMINAL_PD"
+V23_PHASE_AUTHORITY_CLIPPED_COMMAND = "CLIPPED_COMMAND_TORQUE"
+V23_PHASE_AUTHORITY_ESTIMATE_ONLY = "ESTIMATE_ONLY"
+V23_PHASE_AUTHORITY_POST_ESTIMATE = "POST_ACTUATOR_ESTIMATE_DERIVED_FROM_PRE_STATE"
+V23_PHASE_AUTHORITY_PRE_ESTIMATE = "NOT_CAPTURED_PRE_WRITE"
+V23_PHASE_AUTHORITY_ACTUAL_PHYSX = "UNKNOWN/ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE"
+V23_PHASE_ARM_JOINT_NAMES = ("arm_j1", "arm_j2", "arm_j3", "arm_j4", "arm_j5", "arm_j6")
+V23_PHASE_VECTOR_FIELDS = (
+    "q_6d",
+    "qdot_6d",
+    "q_target_6d",
+    "qdot_target_6d",
+    "effort_target_6d",
+    "joint_velocity_limit_6d",
+    "action_after_delay_6d",
+    "action_scale_6d",
+    "action_clip_6d",
+    "default_dof_pos_6d",
+    "stiffness_6d",
+    "damping_6d",
+    "execution_effort_limit_6d",
+    "nominal_pd_torque_6d",
+    "clipped_execution_command_6d",
+    "isaaclab_computed_torque_estimate_6d",
+    "isaaclab_applied_torque_estimate_6d",
+)
+V23_PHASE_PRE_VECTOR_FIELDS = tuple(
+    field
+    for field in V23_PHASE_VECTOR_FIELDS
+    if field
+    not in {
+        "isaaclab_computed_torque_estimate_6d",
+        "isaaclab_applied_torque_estimate_6d",
+    }
+)
+V23_PHASE_POST_VECTOR_FIELDS = V23_PHASE_VECTOR_FIELDS
 V23_TEMPORAL_TOPOLOGIES = ("canonical16", "heavy16")
 V23_TEMPORAL_WINDOW_STEPS = 25
 V23_TEMPORAL_STABLE_MIN_STEPS = 20
@@ -78,6 +118,458 @@ def _temporal_vector(value: Any, *, name: str, length: int = 6) -> list[float]:
     if isinstance(value, (str, bytes)) or not isinstance(value, Sequence) or len(value) != length:
         raise ValueError(f"{name} requires exactly {length} values.")
     return [_temporal_number(item, name=f"{name}[{index}]") for index, item in enumerate(value)]
+
+
+def _phase_tensor_vector(
+    value: torch.Tensor,
+    *,
+    name: str,
+    dtype: torch.dtype | None = None,
+    device: torch.device | None = None,
+) -> torch.Tensor:
+    if not torch.is_tensor(value) or tuple(value.shape) != (6,) or not value.is_floating_point():
+        shape = None if not torch.is_tensor(value) else tuple(value.shape)
+        raise ValueError(f"{name} requires a floating tensor with shape (6,), got {shape}.")
+    if not torch.all(torch.isfinite(value)):
+        raise ValueError(f"{name} requires finite values.")
+    if dtype is not None and value.dtype != dtype:
+        raise ValueError(f"{name} dtype must be {dtype}, got {value.dtype}.")
+    if device is not None and value.device != device:
+        raise ValueError(f"{name} device must be {device}, got {value.device}.")
+    return value
+
+
+def a2_v23_resolve_phase_arm_action_mapping(
+    action_joint_names: Sequence[str],
+    articulation_joint_names: Sequence[str],
+    simulator_action_dof_ids: Sequence[int],
+    *,
+    action_width: int,
+) -> dict[str, Any]:
+    """Resolve the six arm action slots against a full simulator DOF permutation.
+
+    The low-level action tensor and IsaacLab articulation are separate contracts.
+    ``simulator_action_dof_ids`` maps every action/config slot to its articulation
+    joint ID; a complete permutation is required so no positional fallback can
+    hide an invalid simulator contract.
+    """
+
+    if isinstance(action_width, bool) or not isinstance(action_width, int) or action_width <= 0:
+        raise ValueError("phase action_width must be a positive integer.")
+    action_names = list(action_joint_names)
+    articulation_names = list(articulation_joint_names)
+    if isinstance(simulator_action_dof_ids, (str, bytes)):
+        raise ValueError("phase simulator_action_dof_ids must be a sequence of integers.")
+    simulator_ids = list(simulator_action_dof_ids)
+    if len(action_names) != action_width:
+        raise ValueError(
+            "phase action name count must equal action width; "
+            f"got {len(action_names)} and {action_width}."
+        )
+    if len(articulation_names) != action_width:
+        raise ValueError(
+            "phase articulation joint name count must equal action width; "
+            f"got {len(articulation_names)} and {action_width}."
+        )
+    if len(simulator_ids) != action_width:
+        raise ValueError(
+            "phase simulator_action_dof_ids count must equal action width; "
+            f"got {len(simulator_ids)} and {action_width}."
+        )
+    if any(not isinstance(name, str) or not name for name in action_names + articulation_names):
+        raise ValueError("phase action/articulation joint names must be non-empty strings.")
+    if len(set(action_names)) != len(action_names) or len(set(articulation_names)) != len(articulation_names):
+        raise ValueError("phase action/articulation joint names must be unique.")
+    if any(isinstance(item, bool) or not isinstance(item, int) for item in simulator_ids):
+        raise ValueError("phase simulator_action_dof_ids must contain non-bool integers.")
+    if any(item < 0 or item >= action_width for item in simulator_ids):
+        raise ValueError("phase simulator_action_dof_ids must stay within the articulation width.")
+    if len(set(simulator_ids)) != action_width or sorted(simulator_ids) != list(range(action_width)):
+        raise ValueError("phase simulator_action_dof_ids must be a complete permutation of articulation IDs.")
+    for slot, articulation_id in enumerate(simulator_ids):
+        if action_names[slot] != articulation_names[articulation_id]:
+            raise ValueError(
+                "phase action/articulation names disagree with simulator_action_dof_ids at "
+                f"slot {slot}: action={action_names[slot]!r}, "
+                f"articulation[{articulation_id}]={articulation_names[articulation_id]!r}."
+            )
+    action_slots = []
+    articulation_ids = []
+    for name in V23_PHASE_ARM_JOINT_NAMES:
+        if name not in action_names:
+            raise ValueError(f"phase arm mapping is missing required joint {name!r}.")
+        action_slot = action_names.index(name)
+        articulation_id = simulator_ids[action_slot]
+        if articulation_names[articulation_id] != name:
+            raise ValueError(
+                f"phase arm mapping for {name!r} does not resolve through simulator_action_dof_ids."
+            )
+        action_slots.append(action_slot)
+        articulation_ids.append(articulation_id)
+    if len(set(action_slots)) != 6 or len(set(articulation_ids)) != 6:
+        raise ValueError("phase arm action/articulation mapping is not one-to-one.")
+    return {
+        "arm_joint_names": list(V23_PHASE_ARM_JOINT_NAMES),
+        "action_joint_names": action_names,
+        "articulation_joint_names": articulation_names,
+        "simulator_action_dof_ids": simulator_ids,
+        "action_slot_indices": action_slots,
+        "articulation_joint_indices": articulation_ids,
+    }
+
+
+def a2_v23_build_phase_snapshot(
+    *,
+    phase: str,
+    env_id: int,
+    episode_index: int,
+    episode_id: str,
+    control_step: int,
+    physics_frame_index: int,
+    q: torch.Tensor,
+    qdot: torch.Tensor,
+    q_target: torch.Tensor,
+    qdot_target: torch.Tensor,
+    effort_target: torch.Tensor,
+    joint_velocity_limit: torch.Tensor,
+    action_after_delay: torch.Tensor,
+    action_scale: torch.Tensor,
+    action_clip: torch.Tensor,
+    default_dof_pos: torch.Tensor,
+    stiffness: torch.Tensor,
+    damping: torch.Tensor,
+    execution_effort_limit: torch.Tensor,
+    nominal_pd_torque: torch.Tensor,
+    clipped_execution_command: torch.Tensor,
+    isaaclab_computed_torque_estimate: torch.Tensor | None,
+    isaaclab_applied_torque_estimate: torch.Tensor | None,
+    action_joint_names: Sequence[str],
+    action_slot_indices: Sequence[int],
+    articulation_joint_indices: Sequence[int],
+    articulation_joint_names: Sequence[str],
+    simulator_action_dof_ids: Sequence[int],
+) -> dict[str, Any]:
+    """Capture one phase-local, device-resident six-joint actuator snapshot."""
+
+    if phase not in (V23_PHASE_PRE_ACTUATOR_COMPUTE, V23_PHASE_POST_PHYSICS):
+        raise ValueError(f"phase snapshot phase must be PRE_ACTUATOR_COMPUTE or POST_PHYSICS, got {phase!r}.")
+    for value, name in (
+        (env_id, "env_id"),
+        (episode_index, "episode_index"),
+        (control_step, "control_step"),
+        (physics_frame_index, "physics_frame_index"),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"phase snapshot {name} must be a non-negative integer.")
+    if not isinstance(episode_id, str) or not episode_id:
+        raise ValueError("phase snapshot episode_id must be non-empty.")
+    if (
+        isinstance(action_slot_indices, (str, bytes))
+        or isinstance(articulation_joint_indices, (str, bytes))
+        or len(action_slot_indices) != 6
+        or len(articulation_joint_indices) != 6
+        or any(isinstance(item, bool) or not isinstance(item, int) or item < 0 for item in action_slot_indices)
+        or any(isinstance(item, bool) or not isinstance(item, int) or item < 0 for item in articulation_joint_indices)
+    ):
+        raise ValueError("phase snapshot action/articulation indices must contain six non-negative integers.")
+    action_slots = list(action_slot_indices)
+    articulation_ids = list(articulation_joint_indices)
+    if len(set(action_slots)) != 6 or len(set(articulation_ids)) != 6:
+        raise ValueError("phase snapshot action/articulation indices must be unique.")
+    estimate_values = (
+        isaaclab_computed_torque_estimate,
+        isaaclab_applied_torque_estimate,
+    )
+    if phase == V23_PHASE_PRE_ACTUATOR_COMPUTE:
+        if any(value is not None for value in estimate_values):
+            raise ValueError("PRE_ACTUATOR_COMPUTE must exclude prior-frame actuator estimates.")
+    elif any(value is None for value in estimate_values):
+        raise ValueError("POST_PHYSICS requires current computed_torque and applied_torque estimates.")
+    fields = {
+        "q_6d": q,
+        "qdot_6d": qdot,
+        "q_target_6d": q_target,
+        "qdot_target_6d": qdot_target,
+        "effort_target_6d": effort_target,
+        "joint_velocity_limit_6d": joint_velocity_limit,
+        "action_after_delay_6d": action_after_delay,
+        "action_scale_6d": action_scale,
+        "action_clip_6d": action_clip,
+        "default_dof_pos_6d": default_dof_pos,
+        "stiffness_6d": stiffness,
+        "damping_6d": damping,
+        "execution_effort_limit_6d": execution_effort_limit,
+        "nominal_pd_torque_6d": nominal_pd_torque,
+        "clipped_execution_command_6d": clipped_execution_command,
+    }
+    if phase == V23_PHASE_POST_PHYSICS:
+        fields.update(
+            {
+                "isaaclab_computed_torque_estimate_6d": isaaclab_computed_torque_estimate,
+                "isaaclab_applied_torque_estimate_6d": isaaclab_applied_torque_estimate,
+            }
+        )
+    primary = _phase_tensor_vector(q, name="phase q")
+    dtype, device = primary.dtype, primary.device
+    for name, value in fields.items():
+        _phase_tensor_vector(value, name=f"phase {name}", dtype=dtype, device=device)
+    if torch.any(execution_effort_limit <= 0.0):
+        raise ValueError("phase execution effort limits must be strictly positive.")
+    expected_target = action_after_delay * action_scale + default_dof_pos
+    if not torch.allclose(q_target, expected_target, rtol=2e-5, atol=1e-6):
+        raise RuntimeError("phase q_target disagrees with action_after_delay * action_scale + default_dof_pos.")
+    expected_nominal = stiffness * (q_target - q) + damping * (qdot_target - qdot) + effort_target
+    if not torch.allclose(nominal_pd_torque, expected_nominal, rtol=2e-5, atol=1e-6):
+        raise RuntimeError("phase nominal PD torque is not computed from the captured q/qdot and targets.")
+    expected_clipped = torch.clamp(expected_nominal, -execution_effort_limit, execution_effort_limit)
+    if not torch.allclose(clipped_execution_command, expected_clipped, rtol=2e-5, atol=1e-6):
+        raise RuntimeError("phase clipped execution command is not clamp(nominal, +/- execution effort limit).")
+    action_names = list(action_joint_names)
+    names = list(articulation_joint_names)
+    if any(not isinstance(name, str) or not name for name in action_names + names):
+        raise ValueError("phase action/articulation joint names must contain non-empty strings.")
+    resolved_mapping = a2_v23_resolve_phase_arm_action_mapping(
+        action_names,
+        names,
+        simulator_action_dof_ids,
+        action_width=len(action_names),
+    )
+    if action_slots != resolved_mapping["action_slot_indices"]:
+        raise ValueError("phase snapshot action_slot_indices disagree with the full simulator mapping.")
+    if articulation_ids != resolved_mapping["articulation_joint_indices"]:
+        raise ValueError("phase snapshot articulation_joint_indices disagree with the full simulator mapping.")
+    return {
+        "schema": V23_PHASE_SNAPSHOT_SCHEMA,
+        "phase": phase,
+        "env_id": env_id,
+        "episode_index": episode_index,
+        "episode_id": episode_id,
+        "control_step": control_step,
+        "physics_frame_index": physics_frame_index,
+        "arm_joint_names": list(V23_PHASE_ARM_JOINT_NAMES),
+        "action_joint_names": action_names,
+        "action_slot_indices": action_slots,
+        "articulation_joint_indices": articulation_ids,
+        "articulation_joint_names": names,
+        "simulator_action_dof_ids": list(resolved_mapping["simulator_action_dof_ids"]),
+        "fields": fields,
+        "authority": {
+            "nominal_pd": V23_PHASE_AUTHORITY_NOMINAL_PD,
+            "clipped_execution_command": V23_PHASE_AUTHORITY_CLIPPED_COMMAND,
+            "isaaclab_computed_torque": (
+                V23_PHASE_AUTHORITY_POST_ESTIMATE
+                if phase == V23_PHASE_POST_PHYSICS
+                else V23_PHASE_AUTHORITY_PRE_ESTIMATE
+            ),
+            "isaaclab_applied_torque": (
+                V23_PHASE_AUTHORITY_POST_ESTIMATE
+                if phase == V23_PHASE_POST_PHYSICS
+                else V23_PHASE_AUTHORITY_PRE_ESTIMATE
+            ),
+            "isaaclab_estimate_authority": (
+                V23_PHASE_AUTHORITY_POST_ESTIMATE
+                if phase == V23_PHASE_POST_PHYSICS
+                else V23_PHASE_AUTHORITY_PRE_ESTIMATE
+            ),
+            "actual_physx_drive_torque": V23_PHASE_AUTHORITY_ACTUAL_PHYSX,
+        },
+        "tensor_contract": {
+            "dtype": str(dtype),
+            "device": str(device),
+            "shape": [6],
+            "source": "ISAACLAB_ARTICULATION_DATA_RUNTIME_TENSOR",
+        },
+    }
+
+
+def _phase_identity(snapshot: Mapping[str, Any]) -> tuple[int, int, str, int, int]:
+    try:
+        identity = (
+            snapshot["env_id"],
+            snapshot["episode_index"],
+            snapshot["episode_id"],
+            snapshot["control_step"],
+            snapshot["physics_frame_index"],
+        )
+    except (KeyError, TypeError) as exc:
+        raise ValueError("phase snapshot is missing its full frame identity.") from exc
+    if (
+        isinstance(identity[0], bool)
+        or not isinstance(identity[0], int)
+        or identity[0] < 0
+        or isinstance(identity[1], bool)
+        or not isinstance(identity[1], int)
+        or identity[1] < 0
+        or not isinstance(identity[2], str)
+        or not identity[2]
+        or isinstance(identity[3], bool)
+        or not isinstance(identity[3], int)
+        or identity[3] < 0
+        or isinstance(identity[4], bool)
+        or not isinstance(identity[4], int)
+        or identity[4] < 0
+    ):
+        raise ValueError("phase snapshot identity fields are malformed.")
+    return identity
+
+
+def a2_v23_join_phase_aligned_frame(
+    pre_snapshot: Mapping[str, Any], post_snapshot: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Join exactly one PRE and POST snapshot for one physics-frame key."""
+
+    if not isinstance(pre_snapshot, Mapping) or not isinstance(post_snapshot, Mapping):
+        raise ValueError("phase join requires mapping snapshots.")
+    if pre_snapshot.get("schema") != V23_PHASE_SNAPSHOT_SCHEMA or post_snapshot.get("schema") != V23_PHASE_SNAPSHOT_SCHEMA:
+        raise ValueError("phase join requires the registered phase snapshot schema.")
+    if pre_snapshot.get("phase") != V23_PHASE_PRE_ACTUATOR_COMPUTE:
+        raise ValueError("phase join PRE input must be PRE_ACTUATOR_COMPUTE.")
+    if post_snapshot.get("phase") != V23_PHASE_POST_PHYSICS:
+        raise ValueError("phase join POST input must be POST_PHYSICS.")
+    pre_key, post_key = _phase_identity(pre_snapshot), _phase_identity(post_snapshot)
+    if pre_key != post_key:
+        raise ValueError(f"phase PRE/POST identity mismatch: pre={pre_key!r}, post={post_key!r}.")
+    for key in (
+        "arm_joint_names",
+        "action_joint_names",
+        "action_slot_indices",
+        "articulation_joint_indices",
+        "articulation_joint_names",
+        "simulator_action_dof_ids",
+    ):
+        if pre_snapshot.get(key) != post_snapshot.get(key):
+            raise ValueError(f"phase PRE/POST mapping mismatch in {key}.")
+    pre_fields, post_fields = pre_snapshot.get("fields"), post_snapshot.get("fields")
+    if not isinstance(pre_fields, Mapping) or not isinstance(post_fields, Mapping):
+        raise ValueError("phase PRE/POST snapshots must contain fields mappings.")
+    if set(pre_fields) != set(V23_PHASE_PRE_VECTOR_FIELDS) or set(post_fields) != set(V23_PHASE_POST_VECTOR_FIELDS):
+        raise ValueError("phase PRE/POST snapshots must carry their phase-specific six-joint vectors.")
+    pre_authority = pre_snapshot.get("authority")
+    post_authority = post_snapshot.get("authority")
+    if not isinstance(pre_authority, Mapping) or not isinstance(post_authority, Mapping):
+        raise ValueError("phase PRE/POST snapshots must contain authority mappings.")
+    if pre_authority.get("nominal_pd") != V23_PHASE_AUTHORITY_NOMINAL_PD or post_authority.get(
+        "nominal_pd"
+    ) != V23_PHASE_AUTHORITY_NOMINAL_PD:
+        raise ValueError("phase PRE/POST nominal authority labels disagree.")
+    if pre_authority.get("clipped_execution_command") != V23_PHASE_AUTHORITY_CLIPPED_COMMAND or post_authority.get(
+        "clipped_execution_command"
+    ) != V23_PHASE_AUTHORITY_CLIPPED_COMMAND:
+        raise ValueError("phase PRE/POST clipped-command authority labels disagree.")
+    if pre_authority.get("isaaclab_estimate_authority") != V23_PHASE_AUTHORITY_PRE_ESTIMATE:
+        raise ValueError("phase PRE snapshot must explicitly exclude actuator estimates.")
+    if post_authority.get("isaaclab_estimate_authority") != V23_PHASE_AUTHORITY_POST_ESTIMATE:
+        raise ValueError("phase POST snapshot must label estimates as derived from PRE state.")
+    if pre_authority.get("actual_physx_drive_torque") != V23_PHASE_AUTHORITY_ACTUAL_PHYSX or post_authority.get(
+        "actual_physx_drive_torque"
+    ) != V23_PHASE_AUTHORITY_ACTUAL_PHYSX:
+        raise ValueError("phase PRE/POST actual PhysX authority labels disagree.")
+    if pre_snapshot.get("tensor_contract") != post_snapshot.get("tensor_contract"):
+        raise ValueError("phase PRE/POST tensor dtype/device contracts disagree.")
+    return {
+        "schema": V23_PHASE_FRAME_SCHEMA,
+        "env_id": pre_key[0],
+        "episode_index": pre_key[1],
+        "episode_id": pre_key[2],
+        "control_step": pre_key[3],
+        "physics_frame_index": pre_key[4],
+        "arm_joint_names": list(pre_snapshot["arm_joint_names"]),
+        "action_joint_names": list(pre_snapshot["action_joint_names"]),
+        "action_slot_indices": list(pre_snapshot["action_slot_indices"]),
+        "articulation_joint_indices": list(pre_snapshot["articulation_joint_indices"]),
+        "articulation_joint_names": list(pre_snapshot["articulation_joint_names"]),
+        "simulator_action_dof_ids": list(pre_snapshot["simulator_action_dof_ids"]),
+        "pre_actuator_compute": dict(pre_snapshot),
+        "post_physics": dict(post_snapshot),
+        "authority": {
+            "pre_actuator_compute": dict(pre_authority),
+            "post_physics": dict(post_authority),
+        },
+        "tensor_contract": dict(pre_snapshot["tensor_contract"]),
+    }
+
+
+def a2_v23_validate_phase_frame_sequence(
+    frames: Sequence[Mapping[str, Any]],
+    *,
+    expected_decimation: int,
+    env_id: int,
+    episode_id: str,
+    control_step: int,
+) -> list[Mapping[str, Any]]:
+    """Fail-fast validation for one joined control-step frame sequence."""
+
+    if isinstance(expected_decimation, bool) or not isinstance(expected_decimation, int) or expected_decimation <= 0:
+        raise ValueError("phase expected_decimation must be a positive integer.")
+    if not isinstance(frames, Sequence) or isinstance(frames, (str, bytes)) or len(frames) != expected_decimation:
+        raise ValueError(
+            "phase frame sequence must contain exactly one joined frame per real substep; "
+            f"expected={expected_decimation}."
+        )
+    if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id < 0 or not isinstance(episode_id, str) or not episode_id:
+        raise ValueError("phase sequence identity is malformed.")
+    if isinstance(control_step, bool) or not isinstance(control_step, int) or control_step < 0:
+        raise ValueError("phase sequence control_step must be a non-negative integer.")
+    seen: set[tuple[int, int, str, int, int]] = set()
+    for expected_index, frame in enumerate(frames):
+        if not isinstance(frame, Mapping) or frame.get("schema") != V23_PHASE_FRAME_SCHEMA:
+            raise ValueError(f"phase frame {expected_index} does not use the joined frame schema.")
+        key = _phase_identity(frame)
+        if key != (env_id, key[1], episode_id, control_step, expected_index):
+            raise ValueError(f"phase frame {expected_index} identity/index is misaligned: {key!r}.")
+        if key in seen:
+            raise ValueError(f"phase frame {expected_index} is duplicated.")
+        seen.add(key)
+        pre = frame.get("pre_actuator_compute")
+        post = frame.get("post_physics")
+        if not isinstance(pre, Mapping) or not isinstance(post, Mapping):
+            raise ValueError(f"phase frame {expected_index} is missing PRE/POST snapshots.")
+        if pre.get("phase") != V23_PHASE_PRE_ACTUATOR_COMPUTE or post.get("phase") != V23_PHASE_POST_PHYSICS:
+            raise ValueError(f"phase frame {expected_index} has incorrect phase labels.")
+        if _phase_identity(pre) != key or _phase_identity(post) != key:
+            raise ValueError(f"phase frame {expected_index} PRE/POST identity disagrees with joined key.")
+        for mapping_key in (
+            "arm_joint_names",
+            "action_joint_names",
+            "action_slot_indices",
+            "articulation_joint_indices",
+            "articulation_joint_names",
+            "simulator_action_dof_ids",
+        ):
+            if frame.get(mapping_key) != pre.get(mapping_key) or pre.get(mapping_key) != post.get(mapping_key):
+                raise ValueError(f"phase frame {expected_index} PRE/POST mapping disagrees in {mapping_key}.")
+        pre_authority = pre.get("authority")
+        post_authority = post.get("authority")
+        if not isinstance(pre_authority, Mapping) or not isinstance(post_authority, Mapping):
+            raise ValueError(f"phase frame {expected_index} authority labels are malformed.")
+        if frame.get("authority") != {
+            "pre_actuator_compute": dict(pre_authority),
+            "post_physics": dict(post_authority),
+        }:
+            raise ValueError(f"phase frame {expected_index} joined authority labels are malformed.")
+        if (
+            pre_authority.get("nominal_pd") != V23_PHASE_AUTHORITY_NOMINAL_PD
+            or post_authority.get("nominal_pd") != V23_PHASE_AUTHORITY_NOMINAL_PD
+            or pre_authority.get("clipped_execution_command") != V23_PHASE_AUTHORITY_CLIPPED_COMMAND
+            or post_authority.get("clipped_execution_command") != V23_PHASE_AUTHORITY_CLIPPED_COMMAND
+            or pre_authority.get("isaaclab_estimate_authority") != V23_PHASE_AUTHORITY_PRE_ESTIMATE
+            or post_authority.get("isaaclab_estimate_authority") != V23_PHASE_AUTHORITY_POST_ESTIMATE
+            or pre_authority.get("actual_physx_drive_torque") != V23_PHASE_AUTHORITY_ACTUAL_PHYSX
+            or post_authority.get("actual_physx_drive_torque") != V23_PHASE_AUTHORITY_ACTUAL_PHYSX
+        ):
+            raise ValueError(f"phase frame {expected_index} authority labels are malformed.")
+        if pre.get("tensor_contract") != post.get("tensor_contract"):
+            raise ValueError(f"phase frame {expected_index} tensor contracts disagree.")
+        for snapshot, expected_fields in (
+            (pre, V23_PHASE_PRE_VECTOR_FIELDS),
+            (post, V23_PHASE_POST_VECTOR_FIELDS),
+        ):
+            fields = snapshot.get("fields")
+            if not isinstance(fields, Mapping) or set(fields) != set(expected_fields):
+                raise ValueError(f"phase frame {expected_index} snapshot vector schema is incomplete.")
+            for field in expected_fields:
+                _temporal_vector(fields[field], name=f"phase frame {expected_index}.{field}")
+    return list(frames)
 
 
 def _temporal_failures(value: Any) -> dict[str, bool]:
@@ -112,6 +604,7 @@ def a2_v23_build_temporal_step_record(
     joint_target_rad: Sequence[float],
     failure_flags: Mapping[str, bool] | None = None,
     physics_frames: Sequence[Mapping[str, Any]] | None = None,
+    phase_frames: Sequence[Mapping[str, Any]] | None = None,
     joint_target_increment_rad: Sequence[float] | None = None,
 ) -> dict[str, Any]:
     """Build one raw control-step row for the temporal ladder materializer.
@@ -201,6 +694,15 @@ def a2_v23_build_temporal_step_record(
         target_increment = _temporal_vector(
             joint_target_increment_rad, name="joint_target_increment_rad"
         )
+    phase_rows = None
+    if phase_frames is not None:
+        phase_rows = a2_v23_validate_phase_frame_sequence(
+            phase_frames,
+            expected_decimation=len(physics_frames),
+            env_id=env_id,
+            episode_id=episode_id,
+            control_step=control_step,
+        )
     return {
         "schema": V23_TEMPORAL_STEP_SCHEMA,
         "effort_nm": effort,
@@ -222,6 +724,7 @@ def a2_v23_build_temporal_step_record(
         "joint_target_increment_rad": target_increment,
         "failure_flags": _temporal_failures(failure_flags),
         "physics_frames": frame_rows,
+        **({"phase_frames": [dict(row) for row in phase_rows]} if phase_rows is not None else {}),
     }
 
 

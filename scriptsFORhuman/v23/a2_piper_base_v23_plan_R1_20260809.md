@@ -3,16 +3,17 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** interim P0 adjudication; P0.6, the bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type smokes are runtime verified; P0.10 is admitted, the D1 source branch is incomplete, and there is no formal training admission
+**Runtime state:** interim P0 adjudication; P0.1/P0.3, P0.6, the bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type smokes are runtime verified; P0.10 has a terminal operational NO-GO with Branch B scientifically unmeasured, F1 is triggered, the D1 source branch is incomplete, and there is no formal training admission
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
 by the current git commit together with its readable source or saved-config
 paths.  The original R1 preparation tools write plain JSON/Markdown.  The later
 P0.6 stationary-rent and P0.8 state-bank tools are separately bounded evaluator
-runner/reducers.  The P0.9 runner verifies only four D0 training smokes and
-admits P0.10; none of these tools authorizes formal training, formal evaluation,
-or rendering.
+runner/reducers.  The P0.9 runner verifies only four D0 training smokes.  P0.10
+consumed that bounded admission and terminated with the pre-registered F1
+branch; none of these tools authorizes formal training, formal evaluation, or
+rendering.
 
 ## 1. Scientific question and fixed matrix
 
@@ -178,23 +179,29 @@ explicitly typed rather than promoted.
 
 | Node | Purpose | Required evidence state |
 |---|---|---|
-| P0.1 | Extend `computed_torque` and `applied_torque` accumulation with authority labels | `NOT_RUN/PENDING`; authority must remain estimate-only where solver force is unavailable |
+| P0.1 | Extend `computed_torque` and `applied_torque` accumulation with authority labels | `RUNTIME_TYPED / COMPLETE`; R170 FULL exact16 produced 45,776 joined PRE/POST phase frames; computed/applied values are POST estimates derived from PRE state and actual PhysX drive torque remains `UNKNOWN` |
 | P0.2 | Effort ladder and shared boundary profile | `MEASURED_FREEZE` at `40.0 N*m`, with `LADDER_INCONCLUSIVE`; exact 12 runs / 192 records, no normal selection |
-| P0.3 | Kp/action-scale/clip consistency | `NOT_RUN/PENDING`; tie nominal PD, clipped command, tracking error |
+| P0.3 | Kp/action-scale/clip consistency | `RUNTIME_TYPED / COMPLETE`; R170 exact16 emitted 16 controller identities binding the live action/articulation permutation, FULL load mode, target equation, nominal PD, effort-40 clipped command, and tracking error |
 | P0.4 | Door atlas A0–A8 and E-zone provisional labels | `MEASURED_RAW`; typed brackets exist, but D1 zones/mixture remain `NOT_FROZEN` |
 | P0.5 | Feasibility certificate calibration | A8 certificate `COMPLETED_TYPED_NEGATIVE`; separate D1 source/reducer branch remains incomplete and `confirmed_E2=false` |
 | P0.6 | Common reward and stationary-rent audit | `RUNTIME_VERIFIED / AUDIT_COMPLETE`; R68 short smoke passed and R72 reduced six stage passes to `COMPLETE` with no missing stage |
 | P0.7 | RP0 distribution contract and resume checks | `RUNTIME_VERIFIED`; RP0 64-env × 10-batch plus FULL resume 64-env × 1-batch, global steps `0→10→11` |
 | P0.8 | State-bank replay prefixes and forward interventions | `PARTIAL_A0_D0_RUNTIME_VERIFIED / OVERALL_INCOMPLETE`; R78 captured stages 2/3/4 and emitted 15 typed bindings, with no exact state clone or release receipt |
 | P0.9 | Four 64-env × 10-batch type smokes | `RUNTIME_VERIFIED / COMPLETE`; R112 WARM_FULL, WARM_RP0, SCRATCH_FULL, and SCRATCH_RP0 each returned runner/child `rc0`, produced a finite step-10 checkpoint, and reduced to the canonical four-type receipt |
-| P0.10 | Scratch D0 FULL pilot | `ADMITTED / PENDING`; the R112 P0.9 receipt admits only this bounded next node, with no GO/NO-GO claim yet |
+| P0.10 | Scratch D0 FULL pilot | `TERMINAL OPERATIONAL NO-GO / SCIENTIFIC INCONCLUSIVE`; Branch A measured-valid-failed at 16 evaluated / 12 stage-2 / 0 stable-grasp, while Branch B is `UNMEASURED_OBSERVABILITY_BLOCKED` and `UNADJUDICATED`; F1 is triggered |
 
 ### P0.3 evidence tie
 
 Every ladder/atlas row carries the three distinct evidence fields:
 `nominal_pd_torque`, `clipped_command_torque`, and `tracking_error`.  A nominal
 request is not an applied-force claim; the high-effort certificate uses the
-clipped command side only.
+clipped command side only.  R170 additionally binds the live full action to
+articulation permutation
+`[0,4,9,2,6,11,1,5,10,3,7,12,8,13,14,15,16,17,18,19]`: arm action slots
+`[12,13,14,15,16,17]` map to articulation IDs `[8,13,14,15,16,17]`.
+PRE snapshots are captured at `PRE_ACTUATOR_COMPUTE`, POST snapshots at
+`POST_PHYSICS`, and computed/applied torques are explicitly POST estimates from
+the PRE state rather than measured PhysX drive torque.
 
 ### P0.4 atlas
 
@@ -420,9 +427,11 @@ high-level APIs (no low-level USD escape hatch).
 
 ## 9. Pre-registered contingencies F1–F8
 
-* **F1 scratch pilot NO-GO:** preserve the evidence, then use the approved
-  head-reset interpretation for scratch cells uniformly; record the typed
-  curriculum-insufficient result.  Do not claim full scratch evidence.
+* **F1 scratch pilot NO-GO — TRIGGERED:** P0.10 preserved Branch A's measured
+  failure and Branch B's observability block, and recorded
+  `V23_SCRATCH_CURRICULUM_INSUFFICIENT_PILOT`.  The next bounded work is the
+  approved head-reset implementation and its two minimal type smokes.  Do not
+  claim full scratch evidence or a Branch-B policy result.
 * **F2 effort ladder inconclusive:** retain `LADDER_INCONCLUSIVE`; use the
   planner-approved bounded profile only after recording the missing boundary
   evidence.  Do not chase extreme door parameters.
@@ -446,9 +455,10 @@ The R1 implementation stopped after the plan, source reader, P0.2/P0.3/P0.4/P0.5
 and P0.8 pure-data skeletons, reward registry, and non-launchable common config
 were statically parseable.  The later R49/R54/R68/R72 records are evidence-only
 interim calibration adjudication: P0.2, P0.4, the A8 P0.5 certificate, P0.6,
-P0.7, the bounded partial A0/D0 P0.8 node, and the R112 D0 P0.9 four-type
-smokes have typed evidence; the D1 source, overall P0.8, and P0.10 remain
-incomplete.  Formal
+P0.7, the bounded partial A0/D0 P0.8 node, the R112 D0 P0.9 four-type smokes,
+and R170 P0.1/P0.3 have typed evidence.  P0.10 is terminal for scratch
+admission: operational NO-GO, with Branch B scientifically unmeasured.  The D1
+source and overall P0.8 remain incomplete.  Formal
 training, formal evaluation, rendering, and final G1–G8 configs remain
 `NOT_RUN/PENDING`, and the formal training gate remains **NO-GO**.
 
@@ -542,8 +552,8 @@ bounded D0 preparation DAG:
 ```text
 [R78 COMPLETE] partial P0.8 A0/D0 state-bank/plumbing work
   -> [R112 COMPLETE] D0 P0.9 four-type 64-env × 10-batch smokes
-  -> [NEXT/ADMITTED] D0 P0.10 FULL pilot
-  -> adjudicate the resulting evidence
+  -> [TERMINAL NO-GO] D0 P0.10 FULL pilot
+  -> [NEXT/F1] head-reset implementation and two minimal type smokes
 ```
 
 The following remain forbidden in this interim state: formal 8×2 training,
@@ -551,5 +561,32 @@ F3/D1-lite execution, any D1 freeze or D1-mixture claim, H1–H5 claims, final
 goal/release claims, and any claim that the R54 raw dimensions were directly
 proved.  P0.4 remains raw/typed, P0.5 D1 remains incomplete, and P0.8 remains
 overall incomplete despite its bounded R78 receipt.  P0.9 is complete only for
-the R112 D0 smoke contract; P0.10 remains incomplete until its own receipt
-exists.
+the R112 D0 smoke contract.  P0.10's terminal receipt bars scratch admission;
+it does not adjudicate Branch B scientifically or admit formal work.
+
+## 13. R170/R173 P0.1/P0.3 closure and P0.10 terminal adjudication (2026-08-10 HKT)
+
+R170 ran one fresh GPU1/logical-`cuda:0` G1 step-1250 FULL exact16 evaluator
+under the 40 N*m boundary profile.  The producer exited naturally with `rc0`
+and emitted 16 terminal records, 16 temporal episodes, 45,776 joined phase
+frames, and 16 controller identities.  Three earlier utility failures remain
+typed F8 provenance: R161 failed before App launch due Hydra override syntax,
+R164 failed the action/articulation identity assumption, and R169 selected an
+inactive diagnostic reward term.  They were neither overwritten nor promoted.
+The sole CPU R173 reduction returned `rc0` with
+`P0_1_P0_3_RUNTIME_TYPED_ADJUDICATION` at
+`logs_eval/base_v23/p0/r170_p01_p03_runtime_20260810/p01_p03_typed_adjudication.json`.
+Legacy R31/R33 evidence remains insufficient and is not upgraded.  Actual
+PhysX drive torque, D1, formal admission, and release remain unproved.
+
+The sole CPU P0.10 terminal adjudication records
+`P0_10_SCRATCH_ADMISSION_NO_GO_BRANCH_A_FAILED_BRANCH_B_OBSERVABILITY_BLOCKED`
+at `logs_eval/base_v23/p0/p010_scratch_full_d0_terminal_adjudication.json`.
+Branch A is a measured-valid failure: 16 evaluated, 12 reached stage 2, and 0
+met the stable-grasp criterion.  Branch B is
+`UNMEASURED_OBSERVABILITY_BLOCKED` with policy outcome `UNADJUDICATED`: the
+preserved checkpoint does not contain `staged_reset_buf` or
+`staged_reset_num_samples`, and canonical16 produced no stage-3-or-later birth
+source.  Therefore the operational scratch-admission result is NO-GO, the
+scientific result is `P0_10_SCIENTIFIC_INCONCLUSIVE_BRANCH_B_UNMEASURED`, and
+F1 is triggered without claiming that its head-reset variant is implemented.

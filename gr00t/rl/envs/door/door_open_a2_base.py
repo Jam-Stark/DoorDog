@@ -114,7 +114,10 @@ from gr00t.rl.envs.door.a2_v23_evidence import (
     V23_P05_FAILURE_FLAGS,
     V23_P05_MODES,
     V23_P05_RESCUE_NOT_APPLICABLE_BASELINE_AT_MAX,
+    V23_PHASE_POST_PHYSICS,
+    V23_PHASE_PRE_ACTUATOR_COMPUTE,
     a2_v23_accumulate_torque_step,
+    a2_v23_build_phase_snapshot,
     a2_v23_build_p05_episode_record,
     a2_v23_build_p05_step_record,
     a2_v23_build_p05_window_record,
@@ -123,6 +126,8 @@ from gr00t.rl.envs.door.a2_v23_evidence import (
     a2_v23_build_torque_step_telemetry,
     a2_v23_finalize_torque_episode,
     a2_v23_init_torque_accumulator,
+    a2_v23_join_phase_aligned_frame,
+    a2_v23_resolve_phase_arm_action_mapping,
     a2_v23_reset_torque_accumulator,
     a2_v23_validate_p05_bands,
 )
@@ -7068,9 +7073,60 @@ class DoorPregrasp(
                 "v23 torque telemetry requires one exact arm_j1..arm_j6 articulation mapping; "
                 f"joint_names={joint_names!r}."
             )
-        arm_ids = [joint_names.index(name) for name in required_names]
-        self._a2_v23_arm_joint_ids = torch.tensor(arm_ids, dtype=torch.long, device=self.device)
+        simulator_dof_ids = list(self.simulator.dof_ids)
+        action_width = len(self.dof_names)
+        if action_width != self.num_dof:
+            raise RuntimeError(
+                "v23 torque telemetry action width must equal the configured articulation width: "
+                f"action_names={action_width}, num_dof={self.num_dof}."
+            )
+        if len(joint_names) != action_width:
+            raise RuntimeError(
+                "v23 torque telemetry action/articulation name width mismatch: "
+                f"action_names={action_width}, articulation_names={len(joint_names)}."
+            )
+        if len(simulator_dof_ids) != action_width:
+            raise RuntimeError(
+                "v23 torque telemetry simulator action DOF ids must exactly cover the action width; "
+                f"got {simulator_dof_ids!r}."
+            )
+        if any(isinstance(item, bool) or not isinstance(item, int) for item in simulator_dof_ids):
+            raise RuntimeError(
+                "v23 torque telemetry simulator action DOF ids must be non-bool integers; "
+                f"got {simulator_dof_ids!r}."
+            )
+        if any(item < 0 or item >= action_width for item in simulator_dof_ids):
+            raise RuntimeError(
+                "v23 torque telemetry simulator action DOF ids must stay within articulation width; "
+                f"got {simulator_dof_ids!r}."
+            )
+        if len(set(simulator_dof_ids)) != action_width or sorted(simulator_dof_ids) != list(range(action_width)):
+            raise RuntimeError(
+                "v23 torque telemetry simulator action DOF ids must be a complete permutation; "
+                f"got {simulator_dof_ids!r}."
+            )
+        phase_mapping = a2_v23_resolve_phase_arm_action_mapping(
+            self.dof_names,
+            joint_names,
+            simulator_dof_ids,
+            action_width=action_width,
+        )
+        if phase_mapping["action_slot_indices"] != list(range(12, 18)):
+            raise RuntimeError(
+                "v23 torque telemetry requires arm action/config slots 12..17; "
+                f"got {phase_mapping['action_slot_indices']!r}."
+            )
+        self._a2_v23_arm_joint_ids = torch.tensor(
+            phase_mapping["articulation_joint_indices"], dtype=torch.long, device=self.device
+        )
         self._a2_v23_arm_joint_names = required_names
+        self._a2_v23_phase_action_mapping = phase_mapping
+        self._a2_v23_phase_action_slot_ids = torch.tensor(
+            phase_mapping["action_slot_indices"], dtype=torch.long, device=self.device
+        )
+        self._a2_v23_phase_articulation_joint_ids = torch.tensor(
+            phase_mapping["articulation_joint_indices"], dtype=torch.long, device=self.device
+        )
         self._a2_v23_torque_evidence = a2_v23_init_torque_accumulator(
             self.num_envs,
             len(required_names),
@@ -7085,9 +7141,9 @@ class DoorPregrasp(
         self._a2_v23_temporal_evidence_enabled = temporal_enabled
         if temporal_enabled:
             checkpoint_load_mode = self.config.get("a2_v23_p0_checkpoint_load_mode")
-            if checkpoint_load_mode != "policy_only":
+            if checkpoint_load_mode != "full":
                 raise RuntimeError(
-                    "raw P0.2 temporal evidence requires a2_v23_p0_checkpoint_load_mode=policy_only."
+                    "raw P0.2 temporal evidence requires a2_v23_p0_checkpoint_load_mode=full."
                 )
             topology = self.config.get("a2_v23_p0_scenario_topology")
             if topology not in ("canonical16", "heavy16"):
@@ -7099,6 +7155,8 @@ class DoorPregrasp(
             self._a2_v23_temporal_rows = [[] for _ in range(self.num_envs)]
             self._a2_v23_completed_temporal_evidence = [None] * self.num_envs
             self._a2_v23_temporal_substep_frames = [[] for _ in range(self.num_envs)]
+            self._a2_v23_phase_pending_pre = [dict() for _ in range(self.num_envs)]
+            self._a2_v23_phase_pre_frame_index = 0
             self._a2_v23_temporal_last_target = robot.data.joint_pos_target[:, self._a2_v23_arm_joint_ids].detach().clone()
             provenance = {
                 "checkpoint": self.config.get("a2_v23_p0_checkpoint"),
@@ -7124,6 +7182,102 @@ class DoorPregrasp(
             else:
                 self._a2_v23_temporal_source_provenance = None
 
+    def _capture_a2_v23_pre_actuator_compute(self) -> None:
+        """Capture the actuator input state immediately after target assignment."""
+
+        if not getattr(self, "_a2_v23_temporal_evidence_enabled", False):
+            return
+        decimation = int(self.config.simulator.config.sim.control_decimation)
+        frame_index = int(self._a2_v23_phase_pre_frame_index)
+        if frame_index < 0 or frame_index >= decimation:
+            raise RuntimeError(
+                "phase PRE capture frame index is outside the real decimation range; "
+                f"index={frame_index}, decimation={decimation}."
+            )
+        robot = self.simulator.scene.articulations["robot"]
+        data = robot.data
+        arm_ids = self._a2_v23_arm_joint_ids
+        action_slots = self._a2_v23_phase_action_slot_ids
+        q = data.joint_pos[:, arm_ids]
+        qdot = data.joint_vel[:, arm_ids]
+        q_target = data.joint_pos_target[:, arm_ids]
+        qdot_target = data.joint_vel_target[:, arm_ids]
+        effort_target = data.joint_effort_target[:, arm_ids]
+        action_after_delay = self.actions_after_delay[:, action_slots]
+        action_scale = torch.full_like(q, float(self.config.robot.control.action_scale))
+        action_clip = torch.full_like(q, float(self.config.robot.control.action_clip_value))
+        default_dof_pos = self.default_dof_pos[:, action_slots].expand_as(q)
+        if tuple(default_dof_pos.shape) != tuple(q.shape):
+            raise RuntimeError(
+                "phase PRE default_dof_pos action-slot selection must expand to q shape; "
+                f"default={tuple(default_dof_pos.shape)}, q={tuple(q.shape)}."
+            )
+        stiffness = data.joint_stiffness[:, arm_ids]
+        damping = data.joint_damping[:, arm_ids]
+        effort_limit = data.joint_effort_limits[:, arm_ids]
+        velocity_limit = data.joint_vel_limits[:, arm_ids]
+        nominal = stiffness * (q_target - q) + damping * (qdot_target - qdot) + effort_target
+        clipped = torch.clamp(nominal, -effort_limit, effort_limit)
+        values = (
+            q,
+            qdot,
+            q_target,
+            qdot_target,
+            effort_target,
+            action_after_delay,
+            action_scale,
+            action_clip,
+            default_dof_pos,
+            stiffness,
+            damping,
+            effort_limit,
+            velocity_limit,
+            nominal,
+            clipped,
+        )
+        if any(not torch.is_tensor(value) or not torch.all(torch.isfinite(value)) for value in values):
+            raise RuntimeError("phase PRE capture requires finite device-local arm tensors.")
+        if self._a2_v23_phase_pre_frame_index == 0 and any(self._a2_v23_phase_pending_pre):
+            raise RuntimeError("phase PRE capture found pending frames from the prior control step.")
+        for env_id in range(self.num_envs):
+            episode_index = int(self._a2_v23_temporal_episode_indices[env_id].item())
+            control_step = int(self.episode_length_buf[env_id].item())
+            episode_id = f"a2-v23-temporal-env{env_id}-episode{episode_index}"
+            key = (episode_index, control_step, frame_index)
+            if key in self._a2_v23_phase_pending_pre[env_id]:
+                raise RuntimeError(f"phase PRE capture duplicated frame key env={env_id}, key={key!r}.")
+            self._a2_v23_phase_pending_pre[env_id][key] = a2_v23_build_phase_snapshot(
+                phase=V23_PHASE_PRE_ACTUATOR_COMPUTE,
+                env_id=env_id,
+                episode_index=episode_index,
+                episode_id=episode_id,
+                control_step=control_step,
+                physics_frame_index=frame_index,
+                q=q[env_id].detach().clone(),
+                qdot=qdot[env_id].detach().clone(),
+                q_target=q_target[env_id].detach().clone(),
+                qdot_target=qdot_target[env_id].detach().clone(),
+                effort_target=effort_target[env_id].detach().clone(),
+                joint_velocity_limit=velocity_limit[env_id].detach().clone(),
+                action_after_delay=action_after_delay[env_id].detach().clone(),
+                action_scale=action_scale[env_id].detach().clone(),
+                action_clip=action_clip[env_id].detach().clone(),
+                default_dof_pos=default_dof_pos[env_id].detach().clone(),
+                stiffness=stiffness[env_id].detach().clone(),
+                damping=damping[env_id].detach().clone(),
+                execution_effort_limit=effort_limit[env_id].detach().clone(),
+                nominal_pd_torque=nominal[env_id].detach().clone(),
+                clipped_execution_command=clipped[env_id].detach().clone(),
+                isaaclab_computed_torque_estimate=None,
+                isaaclab_applied_torque_estimate=None,
+                action_joint_names=self._a2_v23_phase_action_mapping["action_joint_names"],
+                action_slot_indices=self._a2_v23_phase_action_mapping["action_slot_indices"],
+                articulation_joint_indices=self._a2_v23_phase_action_mapping["articulation_joint_indices"],
+                articulation_joint_names=self._a2_v23_phase_action_mapping["articulation_joint_names"],
+                simulator_action_dof_ids=self._a2_v23_phase_action_mapping["simulator_action_dof_ids"],
+            )
+        self._a2_v23_phase_pre_frame_index += 1
+
     @override
     def _post_physics_substep(self, sim_sub_t: int) -> None:
         """Capture one GPU-local frame after each real IsaacLab physics step."""
@@ -7136,36 +7290,111 @@ class DoorPregrasp(
         if sim_sub_t == 0:
             if any(self._a2_v23_temporal_substep_frames):
                 raise RuntimeError("temporal substep frames were not finalized before the next control step.")
+            if self._a2_v23_phase_pre_frame_index != 1:
+                raise RuntimeError(
+                    "phase POST frame zero must join exactly one PRE frame; "
+                    f"captured_pre_count={self._a2_v23_phase_pre_frame_index}."
+                )
+        elif self._a2_v23_phase_pre_frame_index != sim_sub_t + 1:
+            raise RuntimeError(
+                "phase PRE/POST substep ordering is misaligned; "
+                f"pre_count={self._a2_v23_phase_pre_frame_index}, post_index={sim_sub_t}."
+            )
         robot = self.simulator.scene.articulations["robot"]
         data = robot.data
         ids = self._a2_v23_arm_joint_ids
         q = data.joint_pos[:, ids]
         qdot = data.joint_vel[:, ids]
         target = data.joint_pos_target[:, ids]
+        qdot_target = data.joint_vel_target[:, ids]
+        effort_target = data.joint_effort_target[:, ids]
+        action_after_delay = self.actions_after_delay[:, self._a2_v23_phase_action_slot_ids]
+        action_scale = torch.full_like(q, float(self.config.robot.control.action_scale))
+        action_clip = torch.full_like(q, float(self.config.robot.control.action_clip_value))
+        default_dof_pos = self.default_dof_pos[:, self._a2_v23_phase_action_slot_ids].expand_as(q)
+        if tuple(default_dof_pos.shape) != tuple(q.shape):
+            raise RuntimeError(
+                "phase POST default_dof_pos action-slot selection must expand to q shape; "
+                f"default={tuple(default_dof_pos.shape)}, q={tuple(q.shape)}."
+            )
         kp = data.joint_stiffness[:, ids]
         kd = data.joint_damping[:, ids]
         limits = data.joint_effort_limits[:, ids]
         velocity_limits = data.joint_vel_limits[:, ids]
-        nominal = kp * (target - q) - kd * qdot
+        nominal = kp * (target - q) + kd * (qdot_target - qdot) + effort_target
         clipped = torch.clamp(nominal, -limits, limits)
+        computed = data.computed_torque[:, ids]
+        applied = data.applied_torque[:, ids]
         target_increment = target - self._a2_v23_temporal_last_target
         self._a2_v23_temporal_last_target = target.detach().clone()
-        values = (nominal, clipped, limits, qdot, velocity_limits, target, target_increment)
+        values = (
+            q,
+            qdot,
+            target,
+            qdot_target,
+            effort_target,
+            action_after_delay,
+            action_scale,
+            action_clip,
+            default_dof_pos,
+            kp,
+            kd,
+            limits,
+            velocity_limits,
+            nominal,
+            clipped,
+            computed,
+            applied,
+            target_increment,
+        )
         if any(not torch.is_tensor(value) or not torch.all(torch.isfinite(value)) for value in values):
             raise RuntimeError("temporal physics-frame capture requires finite device-local arm tensors.")
         for env_id in range(self.num_envs):
-            self._a2_v23_temporal_substep_frames[env_id].append(
-                {
-                    "physics_frame_index": sim_sub_t,
-                    "nominal_torque_nm": nominal[env_id].detach().clone(),
-                    "clipped_torque_nm": clipped[env_id].detach().clone(),
-                    "effort_limit_nm": limits[env_id].detach().clone(),
-                    "joint_velocity_rad_s": qdot[env_id].detach().clone(),
-                    "joint_velocity_limit_rad_s": velocity_limits[env_id].detach().clone(),
-                    "joint_target_rad": target[env_id].detach().clone(),
-                    "joint_target_increment_rad": target_increment[env_id].detach().clone(),
-                }
+            episode_index = int(self._a2_v23_temporal_episode_indices[env_id].item())
+            control_step = int(self.episode_length_buf[env_id].item())
+            episode_id = f"a2-v23-temporal-env{env_id}-episode{episode_index}"
+            key = (episode_index, control_step, sim_sub_t)
+            pre_snapshot = self._a2_v23_phase_pending_pre[env_id].pop(key, None)
+            if pre_snapshot is None:
+                raise RuntimeError(f"phase POST capture is missing its PRE frame env={env_id}, key={key!r}.")
+            post_snapshot = a2_v23_build_phase_snapshot(
+                phase=V23_PHASE_POST_PHYSICS,
+                env_id=env_id,
+                episode_index=episode_index,
+                episode_id=episode_id,
+                control_step=control_step,
+                physics_frame_index=sim_sub_t,
+                q=q[env_id].detach().clone(),
+                qdot=qdot[env_id].detach().clone(),
+                q_target=target[env_id].detach().clone(),
+                qdot_target=qdot_target[env_id].detach().clone(),
+                effort_target=effort_target[env_id].detach().clone(),
+                joint_velocity_limit=velocity_limits[env_id].detach().clone(),
+                action_after_delay=action_after_delay[env_id].detach().clone(),
+                action_scale=action_scale[env_id].detach().clone(),
+                action_clip=action_clip[env_id].detach().clone(),
+                default_dof_pos=default_dof_pos[env_id].detach().clone(),
+                stiffness=kp[env_id].detach().clone(),
+                damping=kd[env_id].detach().clone(),
+                execution_effort_limit=limits[env_id].detach().clone(),
+                nominal_pd_torque=nominal[env_id].detach().clone(),
+                clipped_execution_command=clipped[env_id].detach().clone(),
+                isaaclab_computed_torque_estimate=computed[env_id].detach().clone(),
+                isaaclab_applied_torque_estimate=applied[env_id].detach().clone(),
+                action_joint_names=self._a2_v23_phase_action_mapping["action_joint_names"],
+                action_slot_indices=self._a2_v23_phase_action_mapping["action_slot_indices"],
+                articulation_joint_indices=self._a2_v23_phase_action_mapping["articulation_joint_indices"],
+                articulation_joint_names=self._a2_v23_phase_action_mapping["articulation_joint_names"],
+                simulator_action_dof_ids=self._a2_v23_phase_action_mapping["simulator_action_dof_ids"],
             )
+            joined = a2_v23_join_phase_aligned_frame(pre_snapshot, post_snapshot)
+            joined["joint_target_increment_rad"] = target_increment[env_id].detach().clone()
+            self._a2_v23_temporal_substep_frames[env_id].append(joined)
+        if sim_sub_t == decimation - 1:
+            if any(self._a2_v23_phase_pending_pre):
+                counts = [len(pending) for pending in self._a2_v23_phase_pending_pre]
+                raise RuntimeError(f"phase POST final substep left pending PRE frames: counts={counts}.")
+            self._a2_v23_phase_pre_frame_index = 0
 
     def _update_a2_v23_torque_telemetry(self) -> None:
         if not getattr(self, "_a2_v23_torque_telemetry_enabled", False):
@@ -7234,13 +7463,52 @@ class DoorPregrasp(
         if not torch.is_tensor(control_steps) or control_steps.shape != (self.num_envs,):
             raise RuntimeError("raw P0.2 temporal evidence requires episode-local control steps.")
         for env_id in range(self.num_envs):
-            frames = [
-                {
-                    key: (value if key == "physics_frame_index" else value.detach().cpu().tolist())
-                    for key, value in frame.items()
-                }
-                for frame in frames_by_env[env_id]
-            ]
+            phase_frames = []
+            frames = []
+            for frame in frames_by_env[env_id]:
+                if not isinstance(frame, Mapping):
+                    raise RuntimeError("raw P0.2 temporal evidence contains a non-mapping phase frame.")
+                pre = frame.get("pre_actuator_compute")
+                post = frame.get("post_physics")
+                if not isinstance(pre, Mapping) or not isinstance(post, Mapping):
+                    raise RuntimeError("raw P0.2 temporal evidence phase frame is missing PRE/POST snapshots.")
+
+                def _serialize_snapshot(snapshot: Mapping[str, Any]) -> dict[str, Any]:
+                    fields = snapshot.get("fields")
+                    if not isinstance(fields, Mapping):
+                        raise RuntimeError("raw P0.2 phase snapshot is missing its GPU-local fields mapping.")
+                    serialized = dict(snapshot)
+                    serialized["fields"] = {
+                        key: value.detach().cpu().tolist()
+                        if torch.is_tensor(value)
+                        else value
+                        for key, value in fields.items()
+                    }
+                    return serialized
+
+                serialized_pre = _serialize_snapshot(pre)
+                serialized_post = _serialize_snapshot(post)
+                serialized_phase = dict(frame)
+                serialized_phase["pre_actuator_compute"] = serialized_pre
+                serialized_phase["post_physics"] = serialized_post
+                increment = frame.get("joint_target_increment_rad")
+                if not torch.is_tensor(increment):
+                    raise RuntimeError("raw P0.2 phase frame is missing device-local target increment telemetry.")
+                serialized_phase["joint_target_increment_rad"] = increment.detach().cpu().tolist()
+                phase_frames.append(serialized_phase)
+                post_fields = serialized_post["fields"]
+                frames.append(
+                    {
+                        "physics_frame_index": int(frame["physics_frame_index"]),
+                        "nominal_torque_nm": post_fields["nominal_pd_torque_6d"],
+                        "clipped_torque_nm": post_fields["clipped_execution_command_6d"],
+                        "effort_limit_nm": post_fields["execution_effort_limit_6d"],
+                        "joint_velocity_rad_s": post_fields["qdot_6d"],
+                        "joint_velocity_limit_rad_s": post_fields["joint_velocity_limit_6d"],
+                        "joint_target_rad": post_fields["q_target_6d"],
+                        "joint_target_increment_rad": serialized_phase["joint_target_increment_rad"],
+                    }
+                )
             episode_index = int(self._a2_v23_temporal_episode_indices[env_id].item())
             episode_id = f"a2-v23-temporal-env{env_id}-episode{episode_index}"
             row = a2_v23_build_temporal_step_record(
@@ -7274,6 +7542,7 @@ class DoorPregrasp(
                     "TIMEOUT_WRONG_STAGE": bool(timeout[env_id].item()),
                 },
                 physics_frames=frames,
+                phase_frames=phase_frames,
             )
             self._a2_v23_temporal_rows[env_id].append(row)
         self._a2_v23_temporal_substep_frames = [[] for _ in range(self.num_envs)]
@@ -7305,25 +7574,100 @@ class DoorPregrasp(
             if getattr(self, "_a2_v23_temporal_evidence_enabled", False):
                 episode_index = int(self._a2_v23_temporal_episode_indices[env_id].item())
                 episode_id = f"a2-v23-temporal-env{env_id}-episode{episode_index}"
-                record["temporal_episode"] = a2_v23_build_temporal_episode_record(
+                decimation = int(self.config.simulator.config.sim.control_decimation)
+                temporal_rows = self._a2_v23_temporal_rows[env_id]
+                if not temporal_rows:
+                    raise RuntimeError(
+                        "raw P0.2 terminal snapshot requires finalized temporal control-step rows."
+                    )
+                temporal_payload = a2_v23_build_temporal_episode_record(
                     effort_nm=float(self.config["a2_v23_effort_profile_nm"]),
                     topology=self._a2_v23_temporal_topology,
                     env_id=env_id,
                     episode_index=episode_index,
                     episode_id=episode_id,
-                    step_rows=self._a2_v23_temporal_rows[env_id],
-                    source_provenance=(
-                        {
-                            **self._a2_v23_temporal_source_provenance,
-                            "env_id": env_id,
-                            "episode_index": episode_index,
-                            "episode_id": episode_id,
-                            "effort_nm": float(self.config["a2_v23_effort_profile_nm"]),
-                        }
-                        if self._a2_v23_temporal_source_provenance is not None
-                        else None
-                    ),
-                ) if self._a2_v23_temporal_rows[env_id] else None
+                    step_rows=temporal_rows,
+                )
+                phase_frames = []
+                for row_index, row in enumerate(temporal_payload["step_rows"]):
+                    row_frames = row.get("phase_frames")
+                    if not isinstance(row_frames, list) or len(row_frames) != decimation:
+                        raise RuntimeError(
+                            "raw P0.2 terminal snapshot requires every finalized control row to carry "
+                            f"exactly {decimation} serialized phase frames; row={row_index}."
+                        )
+                    phase_frames.extend(row_frames)
+                if not phase_frames:
+                    raise RuntimeError("raw P0.2 terminal snapshot requires at least one serialized phase frame.")
+                first_frame = phase_frames[0]
+                first_pre = first_frame.get("pre_actuator_compute")
+                if not isinstance(first_pre, Mapping) or not isinstance(first_pre.get("fields"), Mapping):
+                    raise RuntimeError("raw P0.2 terminal snapshot cannot derive controller identity from PRE frame.")
+                static_fields = (
+                    "action_scale_6d",
+                    "action_clip_6d",
+                    "default_dof_pos_6d",
+                    "stiffness_6d",
+                    "damping_6d",
+                    "execution_effort_limit_6d",
+                )
+                first_mapping = {
+                    key: first_frame.get(key)
+                    for key in (
+                        "arm_joint_names",
+                        "action_joint_names",
+                        "articulation_joint_names",
+                        "simulator_action_dof_ids",
+                        "action_slot_indices",
+                        "articulation_joint_indices",
+                    )
+                }
+                first_fields = first_pre["fields"]
+                controller_identity = {
+                    "decimation": decimation,
+                    "arm_joint_names": list(first_mapping["arm_joint_names"]),
+                    "action_joint_names": list(first_mapping["action_joint_names"]),
+                    "articulation_joint_names": list(first_mapping["articulation_joint_names"]),
+                    "simulator_action_dof_ids": list(first_mapping["simulator_action_dof_ids"]),
+                    "action_slot_indices": list(first_mapping["action_slot_indices"]),
+                    "articulation_joint_indices": list(first_mapping["articulation_joint_indices"]),
+                    **{field: list(first_fields[field]) for field in static_fields},
+                    "source": "PHASE_FRAME_RUNTIME_TENSORS",
+                }
+                for frame_index, frame in enumerate(phase_frames):
+                    if not isinstance(frame, Mapping):
+                        raise RuntimeError(f"raw P0.2 serialized phase frame {frame_index} is malformed.")
+                    for key, expected in first_mapping.items():
+                        if frame.get(key) != expected:
+                            raise RuntimeError(
+                                f"raw P0.2 serialized phase frame {frame_index} mapping {key} disagrees "
+                                "with the completed first frame."
+                            )
+                    for phase_name in ("pre_actuator_compute", "post_physics"):
+                        snapshot = frame.get(phase_name)
+                        fields = snapshot.get("fields") if isinstance(snapshot, Mapping) else None
+                        if not isinstance(fields, Mapping):
+                            raise RuntimeError(
+                                f"raw P0.2 serialized phase frame {frame_index} lacks {phase_name} fields."
+                            )
+                        for field in static_fields:
+                            if fields.get(field) != first_fields[field]:
+                                raise RuntimeError(
+                                    f"raw P0.2 serialized phase frame {frame_index} {phase_name}.{field} "
+                                    "disagrees with the completed first frame."
+                                )
+                if self._a2_v23_temporal_source_provenance is None:
+                    raise RuntimeError("raw P0.2 terminal snapshot requires strict temporal source provenance.")
+                source_provenance = {
+                    **self._a2_v23_temporal_source_provenance,
+                    "env_id": env_id,
+                    "episode_index": episode_index,
+                    "episode_id": episode_id,
+                    "effort_nm": float(self.config["a2_v23_effort_profile_nm"]),
+                    "controller_identity": controller_identity,
+                }
+                temporal_payload["source_provenance"] = source_provenance
+                record["temporal_episode"] = temporal_payload
             record["evidence_state"] = "TERMINAL_SNAPSHOT"
             self._a2_v23_completed_torque_evidence[env_id] = record
 
@@ -24162,6 +24506,7 @@ class DoorPregrasp(
                         self._a2_v23_temporal_episode_indices[env_id] += 1
                     self._a2_v23_temporal_rows[env_id] = []
                     self._a2_v23_temporal_substep_frames[env_id] = []
+                    self._a2_v23_phase_pending_pre[env_id] = {}
                 robot_data = self.simulator.scene.articulations["robot"].data
                 self._a2_v23_temporal_last_target[env_ids] = robot_data.joint_pos_target[
                     env_ids
@@ -25020,7 +25365,9 @@ class DoorPregrasp(
     @override
     def _apply_force_in_physics_step(self):
         if self._use_a2_base:
-            return A2Base._apply_force_in_physics_step(self)
+            result = A2Base._apply_force_in_physics_step(self)
+            self._capture_a2_v23_pre_actuator_compute()
+            return result
         return super()._apply_force_in_physics_step()
 
     def _parse_palm_side_direction(self, palm_side_direction: list[str]) -> torch.Tensor:

@@ -10,7 +10,7 @@ TASK_ID:
 REVISION:
 FROM:
 TO:
-CANDIDATE_ID: <value or N/A>
+FROZEN_PATHS: <exact paths or N/A before freeze>
 SUMMARY:
 EVIDENCE:
 ACTION_REQUESTED:
@@ -36,7 +36,7 @@ ACTION_REQUESTED:
 
 ### `followup_task`
 
-用于唤醒 idle agent 处理 targeted fix、补证或同一 bounded context 的下一步。Follow-up 必须带最新 revision 与 candidate context；不能借此规避 approval gate。
+用于唤醒 idle agent 处理 targeted fix、补证或同一 bounded context 的下一步。Follow-up 必须带最新 `REVISION` 与 exact `FROZEN_PATHS`（未 freeze 时明确 N/A）；不能借此规避 approval gate。
 
 ### `interrupt_agent`
 
@@ -53,9 +53,9 @@ ACTION_REQUESTED:
 
 ## Peer-to-Peer Evidence Transfer
 
-Agent 可以直接把 `FINDING` 或 `QUESTION` 发送给相关 peer，以降低 Main context pollution。但任何会影响 scope、acceptance criteria、candidate、verdict、lease 或 approval 的消息，都必须把同一 distilled summary 同步给 Main。
+Agent 可以直接把 `FINDING` 或 `QUESTION` 发送给相关 peer，以降低 Main context pollution。但任何会影响 scope、acceptance criteria、`REVISION`/`FROZEN_PATHS` candidate state、verdict、lease 或 approval 的消息，都必须把同一 distilled summary 同步给 Main。
 
-Peer 不得互相授权 write、model escalation、deep research、candidate mutation 或 Git operation。
+Peer 不得互相授权 write、model escalation、deep research、frozen-path mutation 或 Git operation。
 
 ## Closure Semantics
 

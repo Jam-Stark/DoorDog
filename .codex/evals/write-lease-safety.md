@@ -25,7 +25,7 @@ Run 前 Main 必须证明该 `<run-id>` path 不存在，并记录完整 worktre
 - Writer A 只写 `<run-id>/disjoint/a/target.txt`。
 - Writer B 只写 `<run-id>/disjoint/b/target.txt`。
 - Resource leases也必须不同；Main + 2 writers不超过四 threads。
-- 验证 active overlap、path/resource disjoint、各自 release 与 combined manifest。
+- 验证 active overlap、path/resource disjoint、各自 release 与 direct path/content audit。
 
 此 case PASS 只证明该受控 fixture，不自动批准一般 parallel writers。
 
@@ -44,10 +44,10 @@ Run 前 Main 必须证明该 `<run-id>` path 不存在，并记录完整 worktre
 4. Replacement writer不得在旧 writer terminal/audit/release前启动。
 5. Main用新 revision授权 targeted continuation或清理，仅能处理本 run新建路径。
 
-## Candidate and Cleanup
+## Frozen Paths and Cleanup
 
-- 每个 case按 review contract生成 path/status/content manifest。
-- 任一 partial/unexpected content使 candidate invalid，旧 evidence失效。
+- 每个 case按 review contract记录 exact frozen paths 与 direct path/status/content audit。
+- 任一 partial/unexpected content使 frozen candidate invalid，旧 evidence失效。
 - Cleanup只能删除 Main证明由本 run新建且仍在 exact lease内的路径；不得使用 destructive Git或触碰 pre-existing work。
 - Cleanup后再次验证 full worktree/index与 pre-run baseline；evidence summary可由 Main交给后续 memory curator，但本 eval不写 canonical memory。
 
@@ -59,7 +59,7 @@ RUN_ID:
 USER_APPROVAL:
 LEASE_LEDGER:
 ACTIVE_THREAD_TRACE:
-MANIFESTS:
+PATH_AUDITS:
 INTERRUPT_AUDIT:
 OUT_OF_LEASE_CHANGES:
 CLEANUP_AND_BASELINE:

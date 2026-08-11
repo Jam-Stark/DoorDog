@@ -24,7 +24,7 @@ Nested `.codex/AGENTS.md` 只维护 `.codex` subtree，不能覆盖 root policy�
 4. Shared filesystem 上同一路径同一 revision 只有一个 writer；same-path/resource conflict 必须串行。
 5. Child 禁止 stage、commit、push、branch/reset/stash/merge/rebase、扩大 scope 或转移 lease。
 6. Standard/High review 只针对 frozen candidate；Fast 不创建 candidate。`FAIL`、`BLOCKED`、`INCONCLUSIVE`、`NOT_RUN` 与缺失 evidence 都不是 PASS。
-7. 每个 review concern 只有一个 owner；无 risk trigger 不开 lane，不重复 full-manifest audit，不为形式完整性重复已有 evidence。
+7. 每个 review concern 只有一个 owner；无 risk trigger 不开 lane，不重复 Main 的 frozen-path audit，不为形式完整性重复已有 evidence。
 8. Narrow fix 只重跑 impacted lanes；只有 scope、API/runtime semantics、candidate topology 或 material dependency 改变时才 full rerun。
 9. 无 durable memory delta 不开 memory lane；Fast/Standard mechanical memory 由 Main 原子写入并重读验证。
 10. Static catalog PASS 不证明 effective runtime identity/model/effort；不允许 silent downgrade 或 false model/runtime PASS。
@@ -121,37 +121,39 @@ STOPPING_CONDITION:
 
 User consent 前只允许 Standard 范围内的 bounded read-only discovery/planning，不启动 High writer/review wave。Consent 后运行 brief 中批准的 implementation DAG 和 risk-triggered review/runtime lanes；不再重复索要 generic implementation approval，除非 material scope expansion。
 
-High 也不“review everything”：每个 concern 一个 owner，只有 brief 有 justification 的 lane 才 mandatory，manifest 不由每个 reviewer 重算，narrow fix 只重跑 impacted lanes，无 durable delta 跳过 memory lanes。
+High 也不“review everything”：每个 concern 一个 owner，只有 brief 有 justification 的 lane 才 mandatory，reviewer 不重复 Main 的 frozen-path audit，narrow fix 只重跑 impacted lanes，无 durable delta 跳过 memory lanes。
 
 ## Delegation, Lease, and Candidate Contract
 
-每个 delegated Standard/High task 使用 `contracts/task-contract.md`，包含 `ROUTE`、authorization evidence、TASK_ID/REVISION、destination/stopping/acceptance、MEMORY_CONTEXT、BASE_SHA/dirty baseline、READ_SET/WRITE_SET/resource lease、dependencies、deliverable 与 VERIFY。Fast 不创建 dummy delegated contract。
+Candidate 仅表示当前 `TASK_ID`/`REVISION` 与 exact `FROZEN_PATHS` 的 frozen lifecycle state，不生成独立 identity value。
+
+每个 delegated Standard/High task 使用 `contracts/task-contract.md`，包含 `ROUTE`、authorization evidence、TASK_ID/REVISION、destination/stopping/acceptance、MEMORY_CONTEXT、PRE_EXISTING_DIRTY_PATHS、review/QA/curator tasks 的 `FROZEN_PATHS`、READ_SET/WRITE_SET/resource lease、dependencies、deliverable 与 VERIFY。Fast 不创建 dummy delegated contract。
 
 Main live ledger 至少跟踪：
 
 ```text
-TASK_ID REVISION ROUTE AGENT STATE BASE_SHA READ_SET WRITE_SET
-RESOURCE_LEASES BLOCKED_BY CANDIDATE_ID LAST_SUBSTANTIVE_RESULT
+TASK_ID REVISION ROUTE AGENT STATE PRE_EXISTING_DIRTY_PATHS READ_SET WRITE_SET
+RESOURCE_LEASES BLOCKED_BY FROZEN_PATHS LAST_SUBSTANTIVE_RESULT
 ```
 
-Main 对 Standard/High frozen candidate 建立 canonical manifest，覆盖 approved tracked/untracked/ignored-explicit/deleted task paths，并在 freeze 与 pre-commit 各验证一次。Reviewer 只验证 assigned concern 所需 paths/entries 与 supplied identity，不重复全量重算。
+Main 对 Standard/High frozen candidate 记录 exact `FROZEN_PATHS`，覆盖 approved tracked/untracked/ignored-explicit/deleted task paths，并在 freeze 与 pre-commit 各直接检查一次。Reviewer 只验证 assigned concern 所需 frozen paths 与 revision，不重复全量路径审计。
 
 ## Review and Fix Semantics
 
 - Standard source/config 默认 `code_reviewer:CODE_QUALITY` + targeted `runtime_qa`；其余按 trigger。
 - High 使用 user-approved brief 中的 risk lanes，不把所有 registered reviewer 自动设为 mandatory。
-- 所有 triggered lanes 必须绑定同一 candidate。Reviewer 不修 code。
+- 所有 triggered lanes 必须绑定同一 `TASK_ID`、`REVISION` 与 `FROZEN_PATHS`。Reviewer 不修 code。
 - Main 将 finding 交给有 lease 的 writer做最小 targeted fix；只使 affected verdict 失效。
 - Scope、public/API contract、runtime semantics、candidate topology 或 material dependency 改变时，Main 才宣布 full rerun。
-- Main 不重复 reviewer 已覆盖的 concern；pre-commit 只复核 manifest、批准路径、triggered verdict 与 memory consistency。
+- Main 不重复 reviewer 已覆盖的 concern；pre-commit 只复核 frozen paths、批准路径、triggered verdict 与 memory consistency。
 
 完整规则见 `contracts/review-contract.md`。
 
 ## Message and Lifecycle Semantics
 
 - `send_message`：给 running agent 补 evidence 或 non-destructive correction；不转移 scope/lease。
-- Peer `FINDING`/`QUESTION` 可以直接发送，但影响 scope/candidate/verdict/lease 的 distilled finding 必须 mirror 给 Main。
-- `followup_task`：唤醒 idle/completed agent处理 bounded targeted follow-up，携带最新 revision/candidate。
+- Peer `FINDING`/`QUESTION` 可以直接发送，但影响 scope、`REVISION`/`FROZEN_PATHS` candidate state、verdict 或 lease 的 distilled finding 必须 mirror 给 Main。
+- `followup_task`：唤醒 idle/completed agent处理 bounded targeted follow-up，携带最新 `REVISION`/`FROZEN_PATHS`。
 - `interrupt_agent`：停止 current turn；不等于 rollback。Main 等待 terminal 后审计完整 lease/partial writes，invalidate candidate，再决定 continuation/reassignment。
 - Two-strike abnormal-interrupt fallback：相同 `TASK_ID` + revision + bounded deliverable + `agent_type` + normalized root-cause `failure_signature` 第一次异常中断完成 audit 后最多重试一次；第二次同因中断且未交付时，不再第三次启动，由 Main 接管原批准 scope/lease 内最小剩余工作。Main 缺少必要 capability 时返回 `BLOCKED`。Takeover 仍服从当前 route 实际 triggered gates。
 - Main 在 agents 运行时继续 non-overlapping work，不做高频 polling；final 前所有 spawned agents 必须 terminal 或明确 abandoned。

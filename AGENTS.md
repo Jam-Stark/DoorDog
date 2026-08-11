@@ -4,6 +4,17 @@
 
 `.codex/AGENTS.md` 只会由 Codex 在其 discovery scope 内自然作用于 `.codex` subtree，不能替代 root policy。复杂任务必须由本文件显式 route 到 `.codex/TEAM.md` 与 `.codex/contracts/`。Phase 2 已直接注册九个 production roles 与 `role_probe`；registration 可用于 routing，但不证明 effective child role/model/effort。Runtime 未暴露的 metadata 必须保持 `UNKNOWN/INCONCLUSIVE`，不得 silent downgrade 或虚报 model/runtime PASS。
 
+## 0. General Role
+These are general engineering defaults, not unconditional requirements. Apply them only when they fit the approved task scope and the actual constraints of this IsaacLab repository
+- Do not preserve backward compatibility. Remove obsolete paths instead of adding compatibility layers, fallbacks, or migrations.
+- Choose the simplest implementation that fully meets the current requirements. Avoid speculative abstractions, configuration, and indirection.
+- Grow the system in layers. Start from the smallest version that works end to end, and add each new capability on top of a product that already works. Never trade a working product for unfinished complexity.
+- Keep components modular and concerns clearly separated.
+- Prefer established, well-maintained libraries when they reduce overall complexity or improve reliability. Do not reimplement common functionality without a clear reason.
+- Lean on the dependencies already in the project before writing your own implementation or adding packages. Do not assume a library lacks a capability without checking its documentation and types.
+- Make architectural decisions for the long term. Do not accept a stopgap that only works for now and is meant to be replaced later.
+- Study how established products solve the problem before designing a solution. Adopt their proven patterns and conventions rather than inventing an approach from scratch.
+
 ## 0. Runtime Routing
 
 本 repo 同时服务 Codex CLI 与 opencode/omo 两类 runtime。agent 先自识别，再选 pipeline：
@@ -40,6 +51,12 @@ Main agent 默认不直接 implement complex product code。简单修改可按 S
 - 对缺失配置、shape/type/device mismatch、unsupported API 与 invalid state 给出清晰错误，让问题在运行/训练中暴露。
 - 不使用 `as any`、`@ts-ignore` 或其他 type suppression 掩盖问题。
 - 不对未读 code 或未运行的行为作 PASS 声明；`static PASS`、`runtime PASS` 与 `INCONCLUSIVE` 必须明确区分。
+- 我们不是一个安全攻防项目，你有权力进行校验，但是禁止禁止禁止过度防御
+- 禁止写哈希和SHA256
+- 禁止反复的基本不可能出现的case写防御
+- 需要rubric的地方不要过度机械化
+- 长等待任务直接sleep 600s  1800s或者更长时间来长时间等待
+- 不能反复review，过度审计，严格控制编译/diff/路径边界检查次数，减少过度串行的 fixture 修复、sandbox loopback、重复等待和过保守检查。你必须先证明操作路径，先把功能实现出来，等我确认没问题，然后才能添加护栏、变异/回归/遗留兼容性保护，或测试。或者只有等到我提起某个功能在什么情况下出现了问题之后再去补充相关的测试。要专注在功能实现本身上，而不是过度关注安全、护栏和各种测试
 
 IsaacLab code 还必须优先使用 IsaacLab high-level API。若能使用 high-level API 完成，禁止用 `pxr.UsdGeom`、`stage.DefinePrim`、`omni.usd` 等 low-level USD API 绕过 framework contract。
 
@@ -103,7 +120,7 @@ Main 在 task intake 自主判断 route。满足以下全部条件时使用 `FAS
 
 `FAST_PATH` 流程为：`ROUTE decision → minimal PF1 → Main direct work → targeted validation → memory consistency（如适用）→ Main diff/final audit → Main stage/commit（如有 repo 修改）`。
 
-`FAST_PATH` 禁止 spawn child，也不创建 delegated task contract、lease ledger、frozen `CANDIDATE_ID`、multi-lane review 或 `memory_curator`。Main 可直接完成 bounded code/docs/config change 或原子更新简单 memory，并自行验证。User 明确要求 change/build/fix 即授权该 exact bounded fast-path change；若 user 只要求 answer/diagnose/review，不得据此扩大为 implementation。Destructive/external action 或执行中出现 material scope expansion 仍需另行 approval。
+`FAST_PATH` 禁止 spawn child，也不创建 delegated task contract、lease ledger、frozen candidate、multi-lane review 或 `memory_curator`。Main 可直接完成 bounded code/docs/config change 或原子更新简单 memory，并自行验证。User 明确要求 change/build/fix 即授权该 exact bounded fast-path change；若 user 只要求 answer/diagnose/review，不得据此扩大为 implementation。Destructive/external action 或执行中出现 material scope expansion 仍需另行 approval。
 
 `FAST_PATH` 不做重复审计：一次 targeted validation、一次 Main diff/final audit 即为默认上限。若任一条件不满足、风险/范围不确定，或执行中发现 scope 已扩大，立即停止新增修改、审计已有 diff，并升级到 `STANDARD_PATH`；若命中 high-risk trigger，再按 Section 4.4 请求 user 同意。
 
@@ -118,7 +135,7 @@ Standard 流程为：
 - User 的 change/build/fix 请求是 exact approved scope 的实施授权；无需为了进入 Standard 再索要一次 route approval。Material scope expansion、destructive/external action 与 Deep invocation 仍需各自明确授权。
 - Main 可完整使用所有 ordinary registered subagents、adaptive concurrency 与 write/resource lease。Discovery 默认按需 0–3，不为凑 wave 强制 spawn；`scope_planner` 只在 design/scope 未决时使用，`goal_reviewer:PLAN_GATE` 只在 scope/acceptance risk 存在时使用。
 - Source/config candidate 默认只触发 `code_reviewer:CODE_QUALITY` 与风险相称的 targeted `runtime_qa`。`goal_reviewer:CANDIDATE_GATE` 仅在 scope/acceptance/authorization 有真实风险时触发；`isaaclab_reviewer` 仅在实际修改 IsaacLab/RL/reward/observation/action/scene/env/training semantics 时触发；Security/Performance/Data Compatibility 也只按对应 surface 触发。
-- Candidate manifest 由 Main 在 freeze 与 pre-commit 各计算一次。Reviewer 只核对自己负责的 paths、manifest entries 与 supplied candidate identity，不重复重建整个 repository manifest。
+- Main 只在所有 writers terminal 且 leases released 后冻结 candidate，并记录当前 `TASK_ID`、`REVISION` 与 exact `FROZEN_PATHS`。Reviewer/QA 只核对自己负责的 frozen paths 与 revision，不重复全仓审计；Main 在 freeze 与 pre-commit 各直接检查 approved tracked/deleted/untracked/ignored-explicit paths。
 - `memory_curator` 只在存在 non-mechanical durable memory delta 且 triggered review 已 PASS 时使用；mechanical memory 由 Main 直接更新、重读一次。
 - Narrow fix 后只重跑受影响 lane；未受影响 verdict 保持有效，除非发生 Section 4.1 所列 material change。
 
@@ -132,7 +149,7 @@ Main **不得自主进入** `HIGH_RISK_PATH`。实施前必须向 user 提交一
 
 User 同意后执行批准 brief 对应的完整 multi-agent pipeline：`preflight → risk-targeted discovery/planning → implementation DAG → frozen candidate → approved review/runtime lanes → durable memory（如有）→ Main final audit/commit`。该 High consent 同时覆盖 brief 中的实施 pipeline，不再重复索要 generic implementation approval；material scope expansion 才重新审批。若 user 不同意，Main 应安全缩窄为 Standard，无法缩窄则报告 `BLOCKED`。
 
-High 也禁止过度审计：只运行 brief 中有 risk justification 的 lanes，每个 concern 一个 owner；manifest 仍只由 Main 在 freeze/pre-commit 计算；narrow fix 只重跑 impacted lanes；没有 durable memory delta 就跳过 memory lanes。
+High 也禁止过度审计：只运行 brief 中有 risk justification 的 lanes，每个 concern 一个 owner；Main 仍只在 freeze/pre-commit 直接检查 exact frozen paths；narrow fix 只重跑 impacted lanes；没有 durable memory delta 就跳过 memory lanes。
 
 ### 4.5 Phase 2 role routing
 
@@ -158,7 +175,7 @@ Standard/High delegated task 使用以下 routing：
 - `VERIFY`: acceptance matrix、必须执行的 command/check、证据要求。
 - `MEMORY CONTEXT`: 要读取的 exact memory paths、已提取的经验、待完成 TODO。
 
-同时写明 `TASK_ID`、dependencies、`BASE_SHA`；进入 review 后再写 `CANDIDATE_ID`。默认给 child 最小必要 context，不依赖 child 猜测 parent history。
+同时写明 `TASK_ID`、`REVISION`、dependencies、`PRE_EXISTING_DIRTY_PATHS`；进入 review 后绑定 exact `FROZEN_PATHS`。默认给 child 最小必要 context，不依赖 child 猜测 parent history。
 
 Agent output 至少包含：`STATUS`（PASS/FAIL/BLOCKED/INCONCLUSIVE）、summary、files touched、commands/results、acceptance evidence、unverified claims、memory delta proposal、lease release。只返回笼统“done”不构成交付。
 
@@ -198,9 +215,11 @@ Interrupt 不会 rollback shared filesystem。Writer 被中断或返回 aborted/
 
 ## 8. Route-aware candidate 与 review gate
 
-`FAST_PATH` 不创建 candidate 或 reviewer lane。`STANDARD_PATH`/`HIGH_RISK_PATH` 的 writer 全部 terminal 且 lease 释放后，Main 才能 freeze candidate；manifest 覆盖批准 task files 中 tracked、deleted、untracked 与 ignored-explicit paths，并结合 `BASE_SHA` 生成 `CANDIDATE_ID`。
+此处的 candidate 仅是当前 `TASK_ID`/`REVISION` 与 exact `FROZEN_PATHS` 的 lifecycle state，不生成独立 identity value。
 
-Main 在 freeze 与 pre-commit 各验证一次 canonical manifest。Reviewer 只验证 assigned concern 所需的 candidate paths、manifest entries 与 supplied ID；不要求每个 lane重复计算全 manifest。所有 triggered lanes 绑定同一 candidate；`FAIL`、`BLOCKED` 或 `INCONCLUSIVE` 都不能通过对应 gate。
+`FAST_PATH` 不创建 candidate 或 reviewer lane。`STANDARD_PATH`/`HIGH_RISK_PATH` 的 writers 全部 terminal 且 leases released 后，Main 才能 freeze candidate，并把当前 `TASK_ID`、`REVISION` 与 exact approved `FROZEN_PATHS` 记录下来。Main 直接用 Git 状态、diff 与文件读取检查 approved tracked、deleted、untracked 与 ignored-explicit paths；review/QA 期间这些 paths 保持冻结。
+
+Main 在 freeze 与 pre-commit 各直接检查一次 exact `FROZEN_PATHS`，确认没有 out-of-scope path 或状态/内容变化。Reviewer 只验证 assigned concern 所需的 frozen paths 与 revision，不承担 Main 的全局路径审计。所有 triggered lanes 绑定同一 `TASK_ID`、`REVISION` 与 `FROZEN_PATHS`；`FAIL`、`BLOCKED` 或 `INCONCLUSIVE` 都不能通过对应 gate。
 
 Standard source/config 默认 lanes 为 `code_reviewer:CODE_QUALITY` + targeted `runtime_qa`，其他 lane 按 Section 4.3 trigger。High 使用 user 已同意 brief 中的 risk-triggered lanes，不自动等于“所有 lane”。Reviewer 不修 code；Main 派发最小 targeted fix，形成新 candidate 后仅重跑 impacted lanes。Scope、API/runtime semantics、candidate topology 或 material dependency 改变时，旧相关 verdict 才全部失效并 full rerun。
 
@@ -227,10 +246,10 @@ Curator 完成后，Main 必须重新读取 actual `TODO.md`、`DONE.md`、`desc
 
 - 所有 spawned agent 已进入 completed/failed/interrupted terminal state；没有 active writer 或 reviewer。
 - 当前 route 实际 triggered review 全 PASS；存在 durable memory delta 时 memory 已更新并由 Main revalidate。
-- `git status`、working diff 与 staged diff 只包含本任务批准路径；staged manifest 与 final candidate 一致。
+- `git status`、working diff 与 staged diff 只包含本任务批准路径；staged paths 与 final frozen-path record 一致。
 - Commit message 遵循 `git log --oneline -5` 的 repository style。
 
-Main 主动 commit，但默认 **不 push**；只有 user 明确要求才 push。Commit 后报告 hash 与 committed file list。若 commit 失败，原样报告 blocker，不改写为成功。
+Main 主动 commit，但默认 **不 push**；只有 user 明确要求才 push。Commit 后报告提交结果与 committed file list。若 commit 失败，原样报告 blocker，不改写为成功。
 
 ## 11. Model rollout policy
 

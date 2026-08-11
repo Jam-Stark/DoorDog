@@ -1,8 +1,8 @@
 ---
 name: codex-agent-system-architecture
 scope: repository-wide Codex multi-agent foundation and authority model
-status: phase2_bounded_behavior_and_full_tree_wls_pass_general_runtime_inconclusive
-last_updated: 2026-07-21 23:10 HKT
+status: phase2_full_tree_wls_pass_no_hash_frozen_paths_workflow_static_pass_general_runtime_inconclusive
+last_updated: 2026-08-11 18:36 HKT
 evidence_level: STATIC/STRICT PASS; BOUNDED RUNTIME BEHAVIOR PASS; FULL-TREE WRITE SAFETY PASS; GENERAL RUNTIME INCONCLUSIVE
 owned_paths:
   - AGENTS.md
@@ -23,7 +23,8 @@ owned_paths:
 - Root `AGENTS.md` 是 repo-wide canonical policy；`.codex/AGENTS.md` 只自然作用于 `.codex` subtree。
 - `.codex/TEAM.md` 与 `.codex/contracts/` 定义 Main-only scope/route/approval/lease/Git authority、single-writer path lease，以及 route-aware candidate/review/memory gates。
 - Pipeline 使用三级 route：Main-only `FAST_PATH` 处理 bounded low-risk work；`STANDARD_PATH` 是普通 product work 默认路径并可完整使用 ordinary registered subagents；`HIGH_RISK_PATH` 只在 user 明确同意 exact `HIGH_RISK_BRIEF` 后进入。绝大多数任务应停留在 Fast 或 Standard。
-- 所有 route 禁止 over-audit：validation/review 按实际 risk trigger，one concern/one owner；manifest 只由 Main 在 freeze/pre-commit 完整验证；narrow fix 只重跑 impacted lanes；无 durable memory delta 不启动 memory reviewer/curator。
+- 所有 route 禁止 over-audit：validation/review 按实际 risk trigger，one concern/one owner；narrow fix 只重跑 impacted lanes；无 durable memory delta 不启动 memory reviewer/curator。
+- 当前 live Codex workflow 仅以 `TASK_ID`、`REVISION` 与 exact `FROZEN_PATHS` 绑定 candidate/review state；先满足 writers terminal 与 leases released barrier，Main 再在 freeze/pre-commit 直接读取 Git status、diff 与文件内容，核查 approved tracked/deleted/untracked/ignored-explicit paths。不使用 content hash/digest、candidate identity 或 manifest verification。
 - Project configured capacity target 为 6 total threads（Main + 最多 5 active children）；default wave 为 3 children。Main 在证明 sibling 无 dependency、input 已固定、writer `WRITE_SET`/output 两两 disjoint、resource lease 无冲突后，可自主扩展到 5；配置 static consistency 可验证，fresh-task effective capacity 尚未 runtime 验证。
 - User 明确批准绕过旧 activation blocker，Phase 2 直接注册九个 production profiles 与 `role_probe`；registration 可用于 routing，但不证明 effective child role/model/effort。
 - Discovery/review default wave 为三个 children，independence-proven wave 可扩展到五个 active children；多个 `isaaclab_worker` 仍只允许 provably disjoint `WRITE_SET`/artifact 与 resource lease，overlap 必须串行。
@@ -43,6 +44,7 @@ owned_paths:
 
 ## DONE Summary
 
+- 2026-08-11 18:36 HKT - 将 live Codex workflow 更新为 no-hash frozen-paths revision：candidate/review 以 `TASK_ID`、`REVISION` 与 exact `FROZEN_PATHS` 绑定，在 writers terminal/leases released 后由 Main 于 freeze/pre-commit 直接进行 Git/file audit；不使用 content hash/digest、candidate identity 或 manifest verification。omo 已符合 direct-audit/no-hash，未改动。TOML parse、targeted obsolete-field scan、diff check、code review 均为 `STATIC_PASS`；runtime lifecycle/effective metadata 未运行，保持 `NOT_RUN/INCONCLUSIVE`。
 - 2026-07-11 01:19 HKT - 完成 Codex-native root `AGENTS.md`、`.codex/TEAM.md`、contracts 与 Phase 0A/1 rollout boundary；static foundation review PASS，未声称 runtime activation PASS。
 - 2026-07-11 02:50 HKT - 按 user 明确批准完成 Phase 2 direct registration：新增九个 production profiles、十角色 registry、parallel routing 与五组 eval contracts；candidate `571e40ab8824f00244c5da586d880f6394d8bdb2c53e3d834e75f6533713b18f` 经独立 review PASS，validation level 为 STATIC PASS + strict startup PASS，未声称 production role runtime PASS。
 - 2026-07-11 04:40 HKT - Phase 2 R3 验证九个 non-Deep role 的 bounded positive contract behavior、direct peer FINDING/Main mirror、tested child snapshots 与 C1-C4 write-lease/interrupt behavior PASS；candidate `3e9f39a30b051631b8a1133cd9453271537d01b87a6b18b7000184c48292a98c` content review PASS、QA ceiling 为 `STATIC_PASS`。因 `logs_rl/` 被批准排除，general full-tree write safety 保持 INCONCLUSIVE；true simultaneous three-reviewer wave 亦为 INCONCLUSIVE，effective metadata UNKNOWN，IsaacLab runtime/training NOT_RUN。`memory_curator` 已完成 exact 12-file atomic delta 与 self-validation；Main independent revalidation 仍是 closure gate。

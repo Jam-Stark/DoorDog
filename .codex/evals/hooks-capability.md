@@ -33,7 +33,7 @@ Assessment 必须基于当前官方 schema与受控 runtime，逐项证明：
 - `UNSUPPORTED`：明确缺少任一 mandatory enforcement capability；不创建 hook。
 - `INCONCLUSIVE`：文档或runtime evidence不足；保持 no-hooks。
 
-Prompt contract、Main ledger、candidate manifest与post-write audit继续是当前控制面。Hook只有在能提高mechanical enforcement且不削弱现有 fail-fast gate时才有正当性。
+Prompt contract、Main ledger、frozen-path record 与 direct post-write audit继续是当前控制面。Hook只有在能提高mechanical enforcement且不削弱现有 fail-fast gate时才有正当性。
 
 ## Stopping Condition
 

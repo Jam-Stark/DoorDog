@@ -1,37 +1,28 @@
 # Frozen-Candidate Review Contract
 
 Review 的对象是 immutable candidate，不是移动中的 worktree。
+Candidate 仅是当前 `TASK_ID`/`REVISION` 与 exact `FROZEN_PATHS` 的 frozen lifecycle state，不生成独立 identity value。
 
 本 contract 只适用于 `STANDARD_PATH` / `HIGH_RISK_PATH` frozen candidate。Main-only `FAST_PATH` 不创建 candidate 或 multi-lane review；其 closure 使用 targeted validation、必要的 memory consistency 与一次 Main diff/final audit。
 
 ## Candidate Freeze
 
-Main 在所有 writer terminal 后：
+Main 在所有 writers terminal 且 leases released 后：
 
-1. 对照 `BASE_SHA` 与 `PRE_EXISTING_DIRTY_PATHS` 审计 task diff。
-2. 确认只有 assigned `WRITE_SET` 与明确批准的 task artifacts 被当前 task 修改。
+1. 记录当前 `TASK_ID`、`REVISION` 与 `PRE_EXISTING_DIRTY_PATHS`，再用 Git 状态、diff、索引读取和文件读取审计 task paths。
+2. 确认只有 assigned `WRITE_SET` 与明确批准的 task artifacts 被当前 task 修改；检查覆盖 tracked modification、tracked deletion、untracked file 与 explicitly approved ignored file。
 3. 运行适当 static validation。
-4. 对 approved task paths 建立 canonical manifest，并计算 candidate ID：
+4. 记录 exact approved `FROZEN_PATHS`，确认没有 out-of-scope changed path，并在 review 完成前禁止 writer 修改 frozen candidate。
 
-   ```text
-   CANDIDATE_MANIFEST = sort_by_repo_relative_path([
-     path + status_relative_to_BASE_SHA + sha256(exact_current_content_or_DELETED)
-     for every approved task path
-   ])
-
-   CANDIDATE_ID = sha256(BASE_SHA + canonical_serialize(CANDIDATE_MANIFEST))
-   ```
-
-5. Manifest 必须递归覆盖 approved `WRITE_SET` 与明确批准 task artifacts 中的所有路径，包括 tracked modification、tracked deletion、untracked file 与 ignored-but-explicit task file。存在的文件记录 exact content hash；deletion 记录明确 `DELETED` status/sentinel。
-6. 确认没有 out-of-scope changed path，并在 review 完成前禁止 writer 修改 candidate。
-
-Main 在 freeze 与 pre-commit 各完整验证一次 manifest。任意 approved task path 的 status/content 改变都会生成新 `CANDIDATE_ID`；但旧 verdict 是否失效按 impact 分析决定。Ignored 或 untracked 不得因为普通 Git diff 看不到而从 candidate 排除。
+Main 在 freeze 与 pre-commit 各直接检查一次 `FROZEN_PATHS` 的 Git 状态、diff 与文件内容。任意 frozen path 的状态或内容改变、revision 不一致或出现 out-of-scope path 都会使 frozen candidate 与相关 verdict 失效；Main 必须递增 revision 后重新 freeze。Ignored 或 untracked path 不得因为普通 Git diff 看不到而从 frozen path list 排除。
 
 ## Required Review Result
 
 ```text
 STATUS: PASS | FAIL | INCONCLUSIVE
-CANDIDATE_ID:
+TASK_ID:
+REVISION:
+FROZEN_PATHS:
 LANE:
 FINDINGS:
 EVIDENCE:
@@ -40,7 +31,7 @@ UNVERIFIED_BEHAVIOR:
 RECOMMENDED_NEXT_ACTION:
 ```
 
-Reviewer 必须验证其 assigned concern 所需 paths、对应 manifest entries 与 Main 提供的 candidate identity，并确认自己审查的内容属于同一 frozen candidate。Reviewer 不重复计算全 manifest，也不承担 Main 的全局 out-of-scope audit。Assigned entry/ID 缺失、内容不匹配或 candidate 在 review 中变化时返回 `INCONCLUSIVE`。
+Reviewer 必须验证其 assigned concern 所需的 `FROZEN_PATHS`、`REVISION` 与直接 Git/file evidence，并确认自己审查的内容属于同一 frozen candidate。Reviewer 不重复 Main 的全局路径审计。缺少 frozen path、revision 不一致、内容不匹配或 candidate 在 review 中变化时返回 `INCONCLUSIVE`。
 
 ## Route-aware Review Lanes
 
@@ -96,7 +87,7 @@ P0/P1 阻断 candidate。Targeted fix 返回获 lease implementer，Main 递增 
 
 Static catalog acceptance 与 effective runtime observability 是两个独立 evidence dimensions：
 
-- Phase 2 catalog 可以通过 TOML parse、Codex strict-config startup parse、path/schema checks、candidate manifest audit 与 `git diff --check` 获得 static PASS。User 已明确批准 direct registration，因此 registered profiles 可以用于 Main-controlled routing；registration/static PASS 不证明 effective child identity/model/effort。
+- Phase 2 catalog 可以通过 TOML parse、Codex strict-config startup parse、path/schema checks、frozen-path direct audit 与 `git diff --check` 获得 static PASS。User 已明确批准 direct registration，因此 registered profiles 可以用于 Main-controlled routing；registration/static PASS 不证明 effective child identity/model/effort。
 - Role-discovery 在缺少 explicit effective role/model/effort/sandbox 与 no-write evidence时保持 `NOT_RUN` 或 `INCONCLUSIVE`。这个 observability gap 不会 unregister 已批准 profiles，也不要求停止 ordinary routing，但任何 effective model/effort、sandbox 或 runtime behavior claim 必须保持 UNKNOWN/INCONCLUSIVE。
 - Static PASS、sentinel token、requested profile 或 agent自述不能替代 effective runtime evidence，也不得升级成 false model/runtime PASS。
 - `deep_researcher` 每次 invocation 的 explicit approval、write-safety runtime eval、hooks capability + separate approval，以及任何被声称为 PASS 的 runtime behavior 都保留各自独立 gate；不得用 catalog registration 绕过。

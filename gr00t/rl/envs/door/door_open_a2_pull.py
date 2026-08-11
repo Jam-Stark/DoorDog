@@ -39,6 +39,7 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
 from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V0_TARGET_ORIENTATION_WXYZ,
     A2_PULL_V3_PLAN_ID,
+    A2_PULL_V4_PLAN_ID,
 )
 from gr00t.rl.envs.door.door_open_a2_base import (
     DoorPregrasp,
@@ -77,6 +78,12 @@ class DoorOpenA2Pull(DoorPregrasp):
 
     def _is_a2_pull_v3(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V3_PLAN_ID
+
+    def _is_a2_pull_v4(self) -> bool:
+        return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V4_PLAN_ID
+
+    def _is_a2_pull_traversal(self) -> bool:
+        return self._is_a2_pull_v3() or self._is_a2_pull_v4()
 
     def _get_a2_pull_threshold_mode(self) -> str:
         mode = self.config.get("a2_pull_threshold_mode")
@@ -241,6 +248,18 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_frame_approach = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+        self._a2_pull_frame_approach_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_frame_approach_pre_aperture_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_frame_approach_post_frame_passage_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_frame_midpoint_distance_min_m = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
         self._a2_pull_deliberate_release = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
@@ -369,6 +388,10 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_planar_crossing_step[env_ids] = -1
         self._a2_pull_detour[env_ids] = False
         self._a2_pull_frame_approach[env_ids] = False
+        self._a2_pull_frame_approach_active[env_ids] = False
+        self._a2_pull_frame_approach_pre_aperture_steps[env_ids] = 0
+        self._a2_pull_frame_approach_post_frame_passage_steps[env_ids] = 0
+        self._a2_pull_frame_midpoint_distance_min_m[env_ids] = float("nan")
         self._a2_pull_deliberate_release[env_ids] = False
         self._a2_pull_deliberate_release_step[env_ids] = -1
         self._a2_pull_first_negative_x_motion_step[env_ids] = -1
@@ -440,6 +463,20 @@ class DoorOpenA2Pull(DoorPregrasp):
             robot_body_pos_w[:, :, 0], door_x[:, None]
         )
         return torch.all(signed_body_progress > 1.5, dim=-1)
+
+    def _get_a2_pull_door_frame_midpoint(self, door_states: torch.Tensor) -> torch.Tensor:
+        """Return the shared world XY midpoint used by frame-passage predicates."""
+
+        return door_states[:, 0:2]
+
+    def _get_a2_pull_frame_approach_active_mask(self) -> torch.Tensor:
+        """Return the exact v4 frame-approach reward activation mask."""
+
+        return (
+            self._make_mask([self.STAGE_SWING, self.STAGE_THROUGH])
+            & self._a2_pull_aperture_ready
+            & ~self._a2_pull_frame_passage
+        )
 
     def _get_a2_pull_minimum_panel_robot_clearance(self) -> torch.Tensor:
         """Return the signed trunk-footprint clearance to the current door-panel slab."""
@@ -625,10 +662,19 @@ class DoorOpenA2Pull(DoorPregrasp):
         control_step = self.episode_length_buf.to(dtype=torch.long)
         root_x = root_states[:, 0]
         door_x = door_states[:, 0]
-        root_y = root_states[:, 1]
-        door_y = door_states[:, 1]
-        frame_approach_now = torch.abs(root_x - door_x) < 0.3
-        in_frame_opening_now = torch.abs(root_y - door_y) <= 0.5 * self.door_width
+        frame_midpoint_xy = self._get_a2_pull_door_frame_midpoint(door_states)
+        frame_delta_xy = frame_midpoint_xy - root_states[:, 0:2]
+        frame_midpoint_distance = torch.linalg.vector_norm(frame_delta_xy, dim=-1)
+        frame_approach_now = torch.abs(frame_delta_xy[:, 0]) < 0.3
+        in_frame_opening_now = torch.abs(frame_delta_xy[:, 1]) <= 0.5 * self.door_width
+        self._a2_pull_frame_midpoint_distance_min_m[:] = torch.where(
+            torch.isfinite(self._a2_pull_frame_midpoint_distance_min_m),
+            torch.minimum(
+                self._a2_pull_frame_midpoint_distance_min_m,
+                frame_midpoint_distance,
+            ),
+            frame_midpoint_distance,
+        )
         _, _, root_yaw = euler_xyz_from_quat(root_states[:, 3:7])
         _, _, door_yaw = euler_xyz_from_quat(door_states[:, 3:7])
         expected_approach_yaw = (1.0 + self._pull_direction.io_sign) * 0.5 * math.pi
@@ -678,7 +724,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         # v3 traversal telemetry is pull-local and does not alter v0/v1/v2
         # predicates.  A frame passage is latched only inside the measured
         # door opening and while the panel-contact gate is clear.
-        if self._is_a2_pull_v3():
+        if self._is_a2_pull_traversal():
             frame_passage_now = (
                 frame_approach_now & in_frame_opening_now & panel_clear
             )
@@ -823,7 +869,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_planar_crossing_step[new_planar_crossing] = control_step[
             new_planar_crossing
         ]
-        detour_now = self._is_a2_pull_v3() & planar_crossing_now & ~self._a2_pull_frame_passage
+        detour_now = self._is_a2_pull_traversal() & planar_crossing_now & ~self._a2_pull_frame_passage
         self._a2_pull_detour |= detour_now
         whole_body_crossing = self._get_a2_pull_whole_body_clear_mask(door_x)
         minimum_clearance = self._get_a2_pull_minimum_panel_robot_clearance()
@@ -852,7 +898,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             (body_panel_total + arm_panel_total) * dt
         )
         deliberate_release_now = (
-            self._is_a2_pull_v3()
+            self._is_a2_pull_traversal()
             & self._a2_pull_aperture_ready
             & self._a2_pull_prev_stable_contact
             & no_handle_contact
@@ -942,7 +988,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             )
         frame_requirement = (
             self._a2_pull_frame_passage
-            if self._is_a2_pull_v3()
+            if self._is_a2_pull_traversal()
             else torch.ones_like(self._a2_pull_event_reached[:, 0])
         )
         evidence[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY] = (
@@ -1044,12 +1090,28 @@ class DoorOpenA2Pull(DoorPregrasp):
                 raise RuntimeError(f"Pull raw reward component {name!r} must be finite.")
             captured[name] = value.detach().clone()
         self._a2_pull_last_raw_reward_components = captured
-        if self._is_a2_pull_v3():
+        if self._is_a2_pull_v4() and "a2_pull_frame_approach" not in self.reward_scales:
+            self._a2_pull_frame_approach_active[:] = False
+        if self._is_a2_pull_v4():
+            self._a2_pull_frame_approach_pre_aperture_steps += (
+                self._a2_pull_frame_approach_active & ~self._a2_pull_aperture_ready
+            ).long()
+            self._a2_pull_frame_approach_post_frame_passage_steps += (
+                self._a2_pull_frame_approach_active & self._a2_pull_frame_passage
+            ).long()
+        if self._is_a2_pull_traversal():
             for reward_name in (
                 "a2_corridor_door_wide",
                 "a2_corridor_clean_passage",
             ):
                 raw_value = captured.get(reward_name)
+                if (
+                    raw_value is None
+                    and reward_name == "a2_corridor_door_wide"
+                    and self._is_a2_pull_v4()
+                    and reward_name not in self.reward_scales
+                ):
+                    raw_value = torch.zeros(self.num_envs, device=self.device)
                 if (
                     not torch.is_tensor(raw_value)
                     or tuple(raw_value.shape) != (self.num_envs,)
@@ -1128,7 +1190,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "hinge remains below the Stage3-to4 gate"
                 ),
             }
-            if self._is_a2_pull_v3():
+            if self._is_a2_pull_traversal():
                 reached = episode_record["event_reached"]
                 first_steps = episode_record["first_event_step"]
                 e5_to_e7_steps = (
@@ -1170,6 +1232,21 @@ class DoorOpenA2Pull(DoorPregrasp):
                         else None
                     ),
                     "frame_approach": bool(self._a2_pull_frame_approach[env_id].item()),
+                    "frame_approach_active": bool(
+                        self._a2_pull_frame_approach_active[env_id].item()
+                    ),
+                    "frame_approach_reward_executed": (
+                        "a2_pull_frame_approach" in self.reward_scales
+                    ),
+                    "frame_approach_raw_last": float(
+                        self._a2_pull_last_raw_reward_components.get(
+                            "a2_pull_frame_approach",
+                            torch.zeros(self.num_envs, device=self.device),
+                        )[env_id].item()
+                    ),
+                    "frame_midpoint_distance_min_m": float(
+                        self._a2_pull_frame_midpoint_distance_min_m[env_id].item()
+                    ),
                     "panel_clear": bool(not self._a2_pull_prev_panel_contact[env_id].item()),
                     "e5_to_e7_steps": e5_to_e7_steps,
                     "swept_arc_clearance_margin_min_m": (
@@ -1205,8 +1282,23 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "corridor_door_wide_pre_aperture_steps": int(
                         self._a2_pull_corridor_door_wide_pre_aperture_steps[env_id].item()
                     ),
+                    "corridor_door_wide_reward_executed": (
+                        "a2_corridor_door_wide" in self.reward_scales
+                    ),
+                    "corridor_door_wide_raw_last": float(
+                        self._a2_pull_last_raw_reward_components.get(
+                            "a2_corridor_door_wide",
+                            torch.zeros(self.num_envs, device=self.device),
+                        )[env_id].item()
+                    ),
                     "corridor_clean_passage_pre_aperture_steps": int(
                         self._a2_pull_corridor_clean_passage_pre_aperture_steps[env_id].item()
+                    ),
+                    "frame_approach_active_before_aperture_steps": int(
+                        self._a2_pull_frame_approach_pre_aperture_steps[env_id].item()
+                    ),
+                    "frame_approach_active_after_frame_passage_steps": int(
+                        self._a2_pull_frame_approach_post_frame_passage_steps[env_id].item()
                     ),
                     "complete_without_frame_passage": bool(
                         reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]
@@ -1437,6 +1529,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         door_x = door_states[:, 0]
         root_x_rel = root_x - door_x
         root_velocity_x = root_states[:, 7]
+        frame_midpoint_xy = self._get_a2_pull_door_frame_midpoint(door_states)
+        frame_delta_xy = frame_midpoint_xy - root_states[:, 0:2]
+        frame_midpoint_distance = torch.linalg.vector_norm(frame_delta_xy, dim=-1)
         _, _, root_yaw = euler_xyz_from_quat(root_states[:, 3:7])
         _, _, door_yaw = euler_xyz_from_quat(door_states[:, 3:7])
         expected_approach_yaw = (1.0 + self._pull_direction.io_sign) * 0.5 * math.pi
@@ -1484,6 +1579,14 @@ class DoorOpenA2Pull(DoorPregrasp):
         panel_names = (
             *self.A2_DOOR_BODY_PANEL_FILTER_NAMES,
             *self.A2_DOOR_ARM_PANEL_FILTER_NAMES,
+        )
+        corridor_wide_raw_component = self._a2_pull_last_raw_reward_components.get(
+            "a2_corridor_door_wide",
+            torch.zeros(self.num_envs, device=self.device),
+        )
+        frame_approach_raw_component = self._a2_pull_last_raw_reward_components.get(
+            "a2_pull_frame_approach",
+            torch.zeros(self.num_envs, device=self.device),
         )
         records = []
         for env_id in selected.tolist():
@@ -1585,11 +1688,11 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "hinge remains below the Stage3-to4 gate"
                 ),
             }
-            if self._is_a2_pull_v3():
+            if self._is_a2_pull_traversal():
                 frame_approach_current = bool(
-                    (abs(float(root_x[env_id].item()) - float(door_x[env_id].item())) < 0.3)
+                    (abs(float(frame_delta_xy[env_id, 0].item())) < 0.3)
                     and (
-                        abs(float(root_states[env_id, 1].item()) - float(door_states[env_id, 1].item()))
+                        abs(float(frame_delta_xy[env_id, 1].item()))
                         <= 0.5 * float(self.door_width[env_id].item())
                     )
                 )
@@ -1607,10 +1710,11 @@ class DoorOpenA2Pull(DoorPregrasp):
                 )
                 corridor_wide_raw = self._a2_pull_last_raw_reward_components[
                     "a2_corridor_door_wide"
-                ][env_id]
+                ][env_id] if "a2_corridor_door_wide" in self._a2_pull_last_raw_reward_components else corridor_wide_raw_component[env_id]
                 corridor_clean_raw = self._a2_pull_last_raw_reward_components[
                     "a2_corridor_clean_passage"
                 ][env_id]
+                frame_approach_raw = frame_approach_raw_component[env_id]
                 current_step = int(self.episode_length_buf[env_id].item())
                 release_step = int(self._a2_pull_deliberate_release_step[env_id].item())
                 record["pull_v3_traversal"] = {
@@ -1618,6 +1722,19 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "aperture_ready_current": bool(aperture_ready_current[env_id].item()),
                     "frame_approach": bool(self._a2_pull_frame_approach[env_id].item()),
                     "frame_approach_current": frame_approach_current,
+                    "frame_approach_active": bool(
+                        self._a2_pull_frame_approach_active[env_id].item()
+                    ),
+                    "frame_approach_reward_executed": (
+                        "a2_pull_frame_approach" in self.reward_scales
+                    ),
+                    "frame_approach_raw": float(frame_approach_raw.item()),
+                    "frame_midpoint_distance_m": float(
+                        frame_midpoint_distance[env_id].item()
+                    ),
+                    "frame_midpoint_distance_min_m": float(
+                        self._a2_pull_frame_midpoint_distance_min_m[env_id].item()
+                    ),
                     "frame_passage": bool(self._a2_pull_frame_passage[env_id].item()),
                     "frame_passage_current": frame_passage_current,
                     "planar_crossing": bool(self._a2_pull_planar_crossing[env_id].item()),
@@ -1679,6 +1796,9 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "corridor_door_wide_raw": float(corridor_wide_raw.item()),
                     "corridor_clean_passage_raw": float(corridor_clean_raw.item()),
                     "corridor_door_wide_raw_component": float(corridor_wide_raw.item()),
+                    "corridor_door_wide_reward_executed": (
+                        "a2_corridor_door_wide" in self.reward_scales
+                    ),
                     "corridor_clean_passage_raw_component": float(corridor_clean_raw.item()),
                     "corridor_door_wide_pre_aperture_steps": int(
                         self._a2_pull_corridor_door_wide_pre_aperture_steps[env_id].item()
@@ -1938,7 +2058,7 @@ class DoorOpenA2Pull(DoorPregrasp):
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
     @override
     def _reward_penalty_a2_stage3_stage4_open_command(self):
-        if not self._is_a2_pull_v3():
+        if not self._is_a2_pull_traversal():
             return super()._reward_penalty_a2_stage3_stage4_open_command()
         primitive = self._get_a2_gripper_primitive_raw_column(
             "pull-v3 penalty_a2_stage3_stage4_open_command"
@@ -1952,7 +2072,7 @@ class DoorOpenA2Pull(DoorPregrasp):
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
     @override
     def _reward_a2_corridor_door_wide(self):
-        if not self._is_a2_pull_v3():
+        if not self._is_a2_pull_traversal():
             return super()._reward_a2_corridor_door_wide()
         door_joint_pos = self._get_door_joint_pos("pull-v3 corridor door-wide reward", 1)
         door_states = self.simulator.get_task_root_state("door")
@@ -1964,9 +2084,28 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
 
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_frame_approach(self):
+        frame_midpoint_xy = self._get_a2_pull_door_frame_midpoint(
+            self.simulator.get_task_root_state("door")
+        )
+        root_states = self.simulator.robot_root_states
+        delta_xy = frame_midpoint_xy - root_states[:, 0:2]
+        distance = torch.linalg.vector_norm(delta_xy, dim=-1, keepdim=True)
+        if not torch.all(torch.isfinite(distance)) or torch.any(distance <= 0.0):
+            raise RuntimeError(
+                "Pull v4 frame-approach reward requires a finite nonzero root-to-frame-midpoint distance."
+            )
+        toward = delta_xy / distance
+        v_toward = torch.sum(root_states[:, 7:9] * toward, dim=-1)
+        raw = (v_toward / 0.3).clamp(-1.0, 1.0)
+        active = self._get_a2_pull_frame_approach_active_mask()
+        self._a2_pull_frame_approach_active[:] = active
+        return raw * active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
     @override
     def _reward_a2_corridor_clean_passage(self):
-        if not self._is_a2_pull_v3():
+        if not self._is_a2_pull_traversal():
             return super()._reward_a2_corridor_clean_passage()
         _body_forces, body_total = self._get_a2_door_body_panel_contact_forces()
         _arm_forces, arm_total = self._get_a2_door_arm_panel_contact_forces()
@@ -2035,7 +2174,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         del body_forces, arm_forces
         frame_requirement = (
             self._a2_pull_frame_passage
-            if self._is_a2_pull_v3()
+            if self._is_a2_pull_traversal()
             else torch.ones_like(self._a2_pull_event_reached[:, 0])
         )
         return (
@@ -2051,7 +2190,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         door_states = self.simulator.get_task_root_state("door")
         frame_requirement = (
             self._a2_pull_frame_passage
-            if self._is_a2_pull_v3()
+            if self._is_a2_pull_traversal()
             else torch.ones_like(self._a2_pull_event_reached[:, 0])
         )
         return (

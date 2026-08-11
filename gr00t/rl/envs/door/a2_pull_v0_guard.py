@@ -21,14 +21,21 @@ A2_PULL_V0_PLAN_ID = "a2_piper_pull_v0_tensile_feasibility_v1"
 A2_PULL_V1_PLAN_ID = "a2_piper_pull_v1_reward_port_and_stage_semantics"
 A2_PULL_V2_PLAN_ID = "a2_piper_pull_v2_wall_removal_and_unlatch_calibration"
 A2_PULL_V3_PLAN_ID = "a2_piper_pull_v3_release_then_cross_traversal"
+A2_PULL_V4_PLAN_ID = "a2_piper_pull_v4_annuity_removal_and_frame_approach"
 A2_PULL_V2_E3_LATCH_THRESHOLD_M = 0.02292371541261673
 A2_PULL_V0_TARGET_FRAME_VERSION = "grasp_target_active_face_io_z_pre_v1"
 A2_PULL_V0_TARGET_ORIENTATION_WXYZ = (-0.5, -0.5, 0.5, 0.5)
 A2_PULL_V0_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 100, 200)
 A2_PULL_V3_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 250, 300)
 A2_PULL_V3_MAX_EPISODE_LENGTH_S = 24.0
+A2_PULL_V4_G6_STAGE_TIME_BUDGET_STEPS = (250, 100, 100, 100, 1750, 300)
+A2_PULL_V4_G6_MAX_EPISODE_LENGTH_S = 54.0
 A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE = 4.2666667
 A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE = 1.0
+A2_PULL_V4_CORRIDOR_DOOR_WIDE_SCALE = 0.0
+A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE = 1.0
+A2_PULL_V4_FRAME_APPROACH_SCALE_A = 0.0
+A2_PULL_V4_FRAME_APPROACH_SCALE_B = 6.0
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 A2_PULL_V0_SOURCE_FREEZE_PATH = _REPO_ROOT / "scriptsFORhuman/pull_v0/PULL_V0_SOURCE_FREEZE.json"
 A2_PULL_V0_RESOLVED_G4_CONFIG_PATH = (
@@ -793,20 +800,219 @@ def validate_a2_pull_v3_guard(
     }
 
 
+def _validate_a2_pull_v4_reward_scales(
+    config: Mapping[str, Any],
+    *,
+    reward_scales: Mapping[str, Any] | None,
+    reward_scale_dt: float | None,
+) -> str:
+    """Validate the v4 A/B annuity-removal reward fork."""
+
+    if reward_scales is None or reward_scale_dt is None:
+        configured_rewards = _require_mapping(
+            _mapping_item(config, "rewards", "Pull-v4 config")
+            if reward_scales is None
+            else {"reward_scales": reward_scales},
+            "Pull-v4 rewards",
+        )
+        configured_scales = _require_mapping(
+            _mapping_item(configured_rewards, "reward_scales", "Pull-v4 rewards"),
+            "Pull-v4 rewards.reward_scales",
+        )
+        expected = {
+            "a2_corridor_door_wide": A2_PULL_V4_CORRIDOR_DOOR_WIDE_SCALE,
+            "a2_corridor_clean_passage": A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE,
+        }
+        frame_value = _mapping_item(
+            configured_scales,
+            "a2_pull_frame_approach",
+            "Pull-v4 rewards.reward_scales",
+        )
+        frame_value = _require_exact_number(
+            {"a2_pull_frame_approach": frame_value},
+            "a2_pull_frame_approach",
+            frame_value,
+        )
+        for key, expected_value in expected.items():
+            value = _mapping_item(configured_scales, key, "Pull-v4 rewards.reward_scales")
+            _require_exact_number(
+                {key: value},
+                key,
+                expected_value,
+            )
+        if frame_value == A2_PULL_V4_FRAME_APPROACH_SCALE_A:
+            return "A"
+        if frame_value == A2_PULL_V4_FRAME_APPROACH_SCALE_B:
+            return "B"
+        raise RuntimeError(
+            "Pull-v4 a2_pull_frame_approach must be exactly 0.0 (A) or 6.0 (B); "
+            f"got {frame_value!r}."
+        )
+
+    if reward_scale_dt is None or isinstance(reward_scale_dt, bool) or not math.isfinite(float(reward_scale_dt)):
+        raise RuntimeError("Pull-v4 runtime reward-scale validation requires a finite dt.")
+    dt = float(reward_scale_dt)
+    for key, expected_value in (
+        ("a2_corridor_clean_passage", A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE * dt),
+    ):
+        value = _mapping_item(reward_scales, key, "Pull-v4 runtime reward scales")
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)):
+            raise RuntimeError(f"Pull-v4 runtime reward scale {key} must be finite; got {value!r}.")
+        if float(value) != expected_value:
+            raise RuntimeError(
+                f"Pull-v4 runtime reward scale {key} must resolve to {expected_value!r}; got {value!r}."
+            )
+    if "a2_corridor_door_wide" in reward_scales:
+        raise RuntimeError("Pull-v4 runtime reward scale a2_corridor_door_wide must be removed at scale 0.0.")
+    frame_present = "a2_pull_frame_approach" in reward_scales
+    if not frame_present:
+        return "A"
+    frame_value = reward_scales["a2_pull_frame_approach"]
+    if isinstance(frame_value, bool) or not isinstance(frame_value, Real) or not math.isfinite(float(frame_value)):
+        raise RuntimeError(f"Pull-v4 runtime reward scale a2_pull_frame_approach must be finite; got {frame_value!r}.")
+    if float(frame_value) == A2_PULL_V4_FRAME_APPROACH_SCALE_B * dt:
+        return "B"
+    raise RuntimeError(
+        "Pull-v4 runtime reward scale a2_pull_frame_approach must be absent (A) or "
+        f"resolve to {A2_PULL_V4_FRAME_APPROACH_SCALE_B * dt!r} (B); got {frame_value!r}."
+    )
+
+
+def validate_a2_pull_v4_guard(
+    config: Mapping[str, Any],
+    *,
+    actual_finger_effort_n: Any,
+    actual_finger_stiffness: Any,
+    actual_finger_damping: Any,
+    reward_scales: Mapping[str, Any] | None = None,
+    reward_scale_dt: float | None = None,
+) -> dict[str, Any]:
+    """Validate the pull-v4 annuity-removal A/B construction contract."""
+
+    _require_exact(config, "a2_v20_R1_plan_id", A2_PULL_V4_PLAN_ID)
+    g6_budget_eval = _required(config, "a2_pull_v4_g6_budget_eval")
+    if not isinstance(g6_budget_eval, bool):
+        raise RuntimeError(
+            "env.config.a2_pull_v4_g6_budget_eval must be an explicit bool; "
+            f"got {g6_budget_eval!r}."
+        )
+    expected_stage_time = (
+        A2_PULL_V4_G6_STAGE_TIME_BUDGET_STEPS
+        if g6_budget_eval
+        else A2_PULL_V3_STAGE_TIME_BUDGET_STEPS
+    )
+    expected_episode_length_s = (
+        A2_PULL_V4_G6_MAX_EPISODE_LENGTH_S
+        if g6_budget_eval
+        else A2_PULL_V3_MAX_EPISODE_LENGTH_S
+    )
+    _require_exact_numeric_sequence(
+        config,
+        "max_stage_time",
+        tuple(float(item) for item in expected_stage_time),
+    )
+    _require_exact_number(config, "max_episode_length_s", expected_episode_length_s)
+    # Freeze every v3 traversal admission/release predicate in the v4 fork.
+    # The v2 delegation below covers the unchanged direction, latch, finger,
+    # and reward-port contract; these fields are the v3 additions and must not
+    # silently drift through a composed Hydra config.
+    for key, expected in (
+        ("a2_stage3_to4_door_hinge_threshold", 0.25),
+        ("a2_stage3_unlatch_near_closed_hinge_threshold", 0.25),
+        ("a2_pull_e3_latch_threshold_m", A2_PULL_V2_E3_LATCH_THRESHOLD_M),
+        ("a2_stage3_to4_requires_grasp_streak", True),
+        ("a2_stage4_release_hinge_threshold", 1.60),
+        ("a2_stage4_to5_door_hinge_threshold", 1.25),
+        ("a2_v20_send_hinge_threshold", 1.0),
+        ("a2_v20_R1_send_curriculum_enabled", False),
+        ("a2_v20_R1_snapshot_guard_enabled", False),
+        ("a2_v20_send_latch_enabled", False),
+        ("a2_v20_pre_send_crossing_mode", "disabled"),
+        ("a2_v20_telemetry_enabled", False),
+        ("a2_v20_traversal_economics_enabled", False),
+        ("a2_corridor_enabled", False),
+        ("a2_corridor_latch_mode", "legacy_root_or_hinge"),
+        ("a2_v20_arm_tie_enabled", False),
+        ("a2_v20_R2_evidence_enabled", False),
+        ("a2_v20_formal_launch", False),
+    ):
+        _require_exact(config, key, expected)
+    for key in ("a2_v20_arm_tangent_carry_scale", "a2_v20_handle_arc_tracking_scale"):
+        _require_exact_number(config, key, 0.0)
+    variant = _validate_a2_pull_v4_reward_scales(
+        config,
+        reward_scales=reward_scales,
+        reward_scale_dt=reward_scale_dt,
+    )
+    if g6_budget_eval and variant != "B":
+        raise RuntimeError(
+            "Pull-v4 G6 diagnostic budget is valid only for the B frame-approach arm; "
+            f"got variant {variant!r}."
+        )
+
+    # Reuse the frozen v2 construction contract for every direction, latch,
+    # finger, threshold, and non-corridor reward setting shared by v4.
+    v2_contract = dict(config)
+    v2_contract["a2_v20_R1_plan_id"] = A2_PULL_V2_PLAN_ID
+    v2_contract["max_stage_time"] = tuple(
+        float(item) for item in A2_PULL_V0_STAGE_TIME_BUDGET_STEPS
+    )
+    static_reward_scales = reward_scales is not None and reward_scale_dt is None
+    if static_reward_scales:
+        v2_contract["rewards"] = {"reward_scales": reward_scales}
+    validate_a2_pull_v2_guard(
+        v2_contract,
+        actual_finger_effort_n=actual_finger_effort_n,
+        actual_finger_stiffness=actual_finger_stiffness,
+        actual_finger_damping=actual_finger_damping,
+        reward_scales=None if static_reward_scales else reward_scales,
+        reward_scale_dt=None if static_reward_scales else reward_scale_dt,
+    )
+    return {
+        "plan_id": A2_PULL_V4_PLAN_ID,
+        "variant": variant,
+        "near_closed_hinge_threshold": 0.25,
+        "e3_latch_threshold_m": A2_PULL_V2_E3_LATCH_THRESHOLD_M,
+        "max_stage_time": expected_stage_time,
+        "max_episode_length_s": expected_episode_length_s,
+        "g6_budget_eval": g6_budget_eval,
+        "corridor_door_wide_scale": A2_PULL_V4_CORRIDOR_DOOR_WIDE_SCALE,
+        "corridor_clean_passage_scale": A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE,
+        "frame_approach_scale": (
+            A2_PULL_V4_FRAME_APPROACH_SCALE_A
+            if variant == "A"
+            else A2_PULL_V4_FRAME_APPROACH_SCALE_B
+        ),
+        "threshold_mode": "hard_gate",
+        "send_hinge_threshold": 1.0,
+        "finger_profile": "V20_G4_45N_KP1300_KD32",
+        "hook_profile": _required(config, "a2_pull_hook_profile"),
+        "friction_profile": _required(config, "a2_pull_friction_profile"),
+        "num_profile_rows": len(_normalize_profile_rows(actual_finger_effort_n, "finger effort")),
+    }
+
+
 __all__ = [
     "A2_PULL_V0_DIRECTION_CONTRACT_VERSION",
     "A2_PULL_V0_PLAN_ID",
     "A2_PULL_V1_PLAN_ID",
     "A2_PULL_V2_PLAN_ID",
     "A2_PULL_V3_PLAN_ID",
+    "A2_PULL_V4_PLAN_ID",
     "A2_PULL_V2_E3_LATCH_THRESHOLD_M",
     "A2_PULL_V0_RESOLVED_G4_CONFIG_PATH",
     "A2_PULL_V0_SOURCE_FREEZE_PATH",
     "A2_PULL_V0_STAGE_TIME_BUDGET_STEPS",
     "A2_PULL_V3_STAGE_TIME_BUDGET_STEPS",
     "A2_PULL_V3_MAX_EPISODE_LENGTH_S",
+    "A2_PULL_V4_G6_STAGE_TIME_BUDGET_STEPS",
+    "A2_PULL_V4_G6_MAX_EPISODE_LENGTH_S",
     "A2_PULL_V3_CORRIDOR_DOOR_WIDE_SCALE",
     "A2_PULL_V3_CORRIDOR_CLEAN_PASSAGE_SCALE",
+    "A2_PULL_V4_CORRIDOR_DOOR_WIDE_SCALE",
+    "A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE",
+    "A2_PULL_V4_FRAME_APPROACH_SCALE_A",
+    "A2_PULL_V4_FRAME_APPROACH_SCALE_B",
     "A2_PULL_V0_TARGET_FRAME_VERSION",
     "A2_PULL_V0_TARGET_ORIENTATION_WXYZ",
     "validate_a2_pull_v0_guard",
@@ -814,4 +1020,5 @@ __all__ = [
     "validate_a2_pull_v1_guard",
     "validate_a2_pull_v2_guard",
     "validate_a2_pull_v3_guard",
+    "validate_a2_pull_v4_guard",
 ]

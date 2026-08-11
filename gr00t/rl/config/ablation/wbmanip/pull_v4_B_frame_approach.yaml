@@ -1,0 +1,10 @@
+# @package _global_
+# Pull-v4 B: A plus signed frame-approach creation income.
+
+defaults:
+  - /ablation/wbmanip/pull_v4_A_annuity_removal
+  - _self_
+
+rewards:
+  reward_scales:
+    a2_pull_frame_approach: 6.0

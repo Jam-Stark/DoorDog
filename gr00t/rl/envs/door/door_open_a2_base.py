@@ -77,10 +77,12 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V1_PLAN_ID,
     A2_PULL_V2_PLAN_ID,
     A2_PULL_V3_PLAN_ID,
+    A2_PULL_V4_PLAN_ID,
     validate_a2_pull_v0_guard,
     validate_a2_pull_v1_guard,
     validate_a2_pull_v2_guard,
     validate_a2_pull_v3_guard,
+    validate_a2_pull_v4_guard,
 )
 from gr00t.rl.envs.door.a2_pull_direction import (
     A2DoorDirection,
@@ -6038,6 +6040,34 @@ class DoorPregrasp(
             finger_joint_ids = [actual_dof_names.index(name) for name in finger_joint_names]
             robot_data = self.simulator.scene.articulations["robot"].data
             validate_a2_pull_v3_guard(
+                self.config,
+                actual_finger_effort_n=robot_data.joint_effort_limits[:, finger_joint_ids]
+                .detach()
+                .cpu()
+                .tolist(),
+                actual_finger_stiffness=robot_data.joint_stiffness[:, finger_joint_ids]
+                .detach()
+                .cpu()
+                .tolist(),
+                actual_finger_damping=robot_data.joint_damping[:, finger_joint_ids]
+                .detach()
+                .cpu()
+                .tolist(),
+                reward_scales=self.reward_scales,
+                reward_scale_dt=float(self.dt),
+            )
+            return
+        if plan_id == A2_PULL_V4_PLAN_ID:
+            finger_joint_names = ("arm_j7", "arm_j8")
+            actual_dof_names = tuple(self.simulator.dof_names)
+            if any(actual_dof_names.count(name) != 1 for name in finger_joint_names):
+                raise RuntimeError(
+                    "Pull-v4 construction requires exactly one arm_j7 and arm_j8 joint; "
+                    f"got {actual_dof_names!r}."
+                )
+            finger_joint_ids = [actual_dof_names.index(name) for name in finger_joint_names]
+            robot_data = self.simulator.scene.articulations["robot"].data
+            validate_a2_pull_v4_guard(
                 self.config,
                 actual_finger_effort_n=robot_data.joint_effort_limits[:, finger_joint_ids]
                 .detach()

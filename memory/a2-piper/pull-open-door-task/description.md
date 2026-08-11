@@ -2,7 +2,7 @@
 name: pull-open-door-task
 scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negative closures
 status: active
-last_updated: 2026-08-11 19:53 HKT
+last_updated: 2026-08-12 00:07 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
@@ -149,6 +149,7 @@ read_when:
 
 ## DONE Summary
 
+- 2026-08-12 00:07 HKT - Handoff preparation completed: the capped derivative excerpt is at `a2_piper_pull_v1_to_v4_evidence_20260811.zip` (untracked root artifact; 108,407,774 bytes, 120 entries, within the 500,000,000-byte cap). Its tracked-source manifest and builder are `scriptsFORhuman/pull_v4/MANIFEST.md` and `scriptsFORhuman/pull_v4/build_pull_v1_v4_evidence.py`; source render evidence is under `logs_eval/a2_piper_pull_v4/renders/`. Tier1 has 97 files, Tier2 has 22 files, and the six R1 logical video omissions are explicit. Four unavailable v2 full runner logs remain omitted and `.hydra/train.log` was not substituted. R1 is INCONCLUSIVE/NOT_RUN after three launcher attempts with zero videos; this launcher-lifecycle limitation is not a policy or product-runtime verdict. R2-R4 each natural-exited and produced six full-decode 1280×720@20fps MP4s. The archive is a derivative excerpt; original evidence units remain untouched. No behavior-success claim is made.
 - 2026-08-11 19:53 HKT - pull-v4 negative closure: A/L5 与 B/L1 仅从 pull-v2 Wave2 seed1 step750 warm start；B D0-lite、B0 smoke、四个 Wave1 与 12 cell eval 完成。所有 base cell 的 E6/E7/complete `0/16`、八项 invariant 零；L5-only 不成立，L1 改善 release/proximity 但未创造 frame-neighborhood/E6。G6 不再扩时，G10 只记录不实现 brace。formal static review FAIL；targeted repairs + runtime validation；依指令无第二轮 review。
 - 2026-08-11 00:03 HKT - pull-v3 closure: C1–C7, canonical D0-lite, single smoke, dual-seed Wave1 train and six checkpoint evals completed. All six invariants were zero; all cells had E6/E7/complete `0/16`, so G2(c) closed as a traversal approach/path-distribution negative and no Wave2/seed2 ran. G10 triggered on recontact max `18`; one review wave remained formally FAIL with bounded fixes runtime/target validated and no second reviewer PASS.
 - 2026-08-10 09:32 HKT - pull-v2 closure: canonical U-probe measured `theta*=0.6 rad` and latch threshold `0.02292371541261673`; only reward change was `near_closed 0.1→0.25`. Wave1 step750 true Stage3→4 reached `10/16` and `6/16`, triggering G1. Wave2 relay produced true Stage4 `13/16,14/16,15/16` and `11/16,16/16,16/16`; all four invariants were zero across 12 accepted cells/192 terminal episodes. A0 was NOT_TRIGGERED; next scope is traversal/V1-C.

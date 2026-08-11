@@ -6,6 +6,7 @@ __pycache__/
 # C extensions
 
 *.zip
+!a2_piper_pull_v1_to_v4_evidence_20260811.zip
 
 # Distribution / packaging
 .Python

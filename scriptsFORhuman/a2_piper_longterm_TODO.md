@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-11 00:03 HKT (pull-v3 release-then-cross G2 closure)。
+创建:2026-07-21;最近更新:2026-08-11 HKT (pull-v4 negative closure)。
 
 ---
 
@@ -10,7 +10,6 @@
 | 条目 | 排期 | 出处 |
 |---|---|---|
 | 真实 Piper arm 限位轮(force_feasible 边界前置)**+ θ_send 统一 rider**:corridor-latch 的 `hinge≥1.0` 分支、send-curriculum 目标、crossing gate 合并为单一 θ_send≈1.25–1.30。预注册预测:crossing p50 追随 θ_send(v20 全部 send cell 钉在 1.00–1.02 = 该分支即下一 pay boundary,阈值贴靠第 5 例);盯 heavy-tail stage_overtime(160kg/11.5N·m case 已现:送门耗时,时间预算而非力是重门边际约束) | **下一轮** | v20 收口读出(SEND_METRICS):send curriculum 为唯一有效成分(G3 +0.207;G2 经济学单独 +0.026 无效;arm-tie 无增量;G6/G7 复制,seed 差 −0.018) |
-| pull-v4 frame-neighborhood/path-distribution 候选:从 v3 已观测的 release+−X motion 继续解决 frame-approach=0；保留 v3 through-frame 谓词、release mask、corridor scales 与六项 invariant，先预登记 frame 邻域收入/路径设计，不回改 v3 scale | **下一轮候选** | pull-v3 G2(c):六格 E6/E7/complete 全零；早期格 release 与 −X motion 同现，但 frame-approach/passage/detour 全零 |
 | 若宣布正式 release:补 Route B(pooled48/holdout64/final analysis)——G4@2500 目前仅 Route A 证据(goal 15/16) | release 决策时 | v20 Route B 未跑 |
 
 ## B. 下一批候选(v17)
@@ -50,6 +49,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-11:**pull-v4 annuity removal + frame-approach 收口(负结果)**——D0 为 16×804 natural exit，八项 invariant 全零，door-wide raw `0/0` 且 `executed=false`，signed raw 范围 `[-1,1]`、median `0`，frame income median `-7.829`，G11 correlation `0.993454` 且 sign alignment `16/16`；B smoke 为 64×50、3200 episodes、204800 timesteps、670.76s natural exit。A/B 双 seed 256×750 四个 Wave1 run 均 natural exit（10942.33/11139.88/11284.71/11014.08s），十二格 base 的 E6/E7/complete 与 frame approach/passage/detour 全为 `0/16`、八项 invariant 全零。v3 release 基线 `7/2/0/1/0/0`，v4 A `0/1/0/0/1/0`，v4 B `2/2/2/2/0/3`；A/L5-only 未逆转 extinction，B/L1 仅保留部分 release。G6 一次性扩展把 B 的 release/distance 改善为 `2→9,.726→.666; 2→9,.744→.528; 2→12,.756→.660; 2→8,.746→.627; 0→9,.751→.464; 3→11,.734→.645`，但六格 E6/E7/complete 仍零且 `changed_cell_count=0`；base G10 max/median-max `10/0`，G6 `108/3`，只记录、不实现 arm brace。正式静态 review wave verdict 仍为 FAIL；定向修复经 runtime/static evidence 验证，未生成第二轮 review PASS；不跑 relay、seed2、render。依据：`scriptsFORhuman/pull_v4/PULL_V4_ROUND_REPORT.md` 与两份 analysis JSON。
 
 - [x] 2026-08-11 00:03 HKT:**pull-v3 release-then-cross 收口(G2 科学负结果)**——C1–C7、D0-lite、64×50 smoke、双 seed 256×750 Wave1 与六个 16-episode checkpoint eval 均完成；Stage4 admission=`16/15/15,16/16/16`，六项 invariant 全零，但 E6/E7/complete 每格均为 `0/16`。早期 checkpoint 发生 deliberate release+−X motion，frame-approach/passage/detour 仍全零，故不跑 Wave2/seed2且不改 scale；G10 因 post-release recontact max `18` 触发，仅勾稽 pull 线 arm-brace 期货。
 - [x] 2026-08-10 09:32 HKT:**pull-v2 wall-removal / unlatch calibration 收口**——canonical U-probe `theta*=0.6rad`、latch threshold=`0.02292371541261673`；唯一 reward 改动 `near_closed 0.1→0.25` 后，Wave1 两 seed 触发 G1，Wave2 六格 true Stage4=`13/16,14/16,15/16,11/16,16/16,16/16`，四项 invariant 全零。原 pull-v1 force-transfer/seed-sensitivity attribution 已由该单轴实验闭合；下一 scope 转 traversal/V1-C。

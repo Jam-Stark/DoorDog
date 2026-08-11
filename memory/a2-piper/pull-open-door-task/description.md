@@ -1,23 +1,34 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3 traversal closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negative closures
 status: active
-last_updated: 2026-08-11 00:03 HKT
+last_updated: 2026-08-11 19:53 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续 pull-v4 frame-neighborhood traversal 或复用 pull-v3 release-then-cross 证据前
-  - 需要区分 v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
+  - 继续单独规划的 pull-v5 frame-neighborhood behavior-creation round，或复用 pull-v4 负结果前
+  - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2/v3 closure)
+# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure 与 pull-v3 release-then-cross traversal negative closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross 与 pull-v4 frame-neighborhood behavior-creation negative closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v4 Closure (2026-08-11 19:53 HKT) — negative
+
+- v4 A/L5（移除 `door_wide` maintenance annuity）与 B/L1（A + signed `frame_approach` creation income）都只从 pull-v2 Wave2 seed1 step750 warm start。canonical D0-lite B 为 16×804，八项 invariant 全零，`door_wide` raw 全零且未执行；signed frame raw min/max/median 为 `-1/1/0`，episode income median `-7.829`、range `[-19.590, 7.303]`；G11 correlation `0.993454`、sign alignment `16/16`。B0 64×50 smoke PASS；四个 Wave1 256×750 batch 全部 natural exit。
+- 12 个 base eval cell（A/B × seed0/1 × step250/500/750）每格均为 16 episodes、八项 invariant 全零，且 E6/E7/complete 均为 `0/16`。release curve（seed0 step250/500/750，再 seed1 同序）为 v3 `[7,2,0,1,0,0]`、v4 A `[0,1,0,0,1,0]`、v4 B `[2,2,2,2,0,3]`，故 A/L5 单独未逆转 release extinction，L5-only hypothesis 不成立；B/L1 改变了 basin，保留了有限 base release。
+- B-only G6 time diagnostic 的 release base→extended 依次为 `2→9, 2→9, 2→12, 2→8, 0→9, 3→11`；六格 frame-midpoint median 均改善，但 `frame_approach`、E6、E7、complete 仍均为零。时间是 release/proximity constraint，不是剩余 primary bottleneck；不再扩预算，也不触发 relay、seed2 或 render。G10 仅记录：base recontact max `10`、max median `0`；extended max `108`、max median `3`；brace 未实现。
+- 结论：B/L1 的 signed creation income 确实改善 release/proximity，却未创造 frame-neighborhood capability 或 E6；未确认 L5-only 假说。正式 static review 为 FAIL；其 P1 findings 已定向修复并由 D0、smoke、Wave1、base eval 与 G6 runtime validation 覆盖；依用户指令不做第二轮 review，不能写成 post-fix review PASS。证据路径：`scriptsFORhuman/pull_v4/{D0_LITE_RECEIPT,PULL_V4_ANALYSIS,PULL_V4_G6_ANALYSIS}.json`。
+
+### §0.3 Creation-vs-Maintenance general rule
+
+- 已在较早 basin 学成的 mature push/open mechanism 通常是 maintenance-grade：它能保持或修复已创建的行为，但未必能从 warm-start basin 创造缺失的 downstream behavior。目标行为缺失时，先提供与 signed task progress 绑定的一阶 dense creation income，并给足以驱逐旧 steady state 的 pressure/time；行为出现后才让 maintenance income 承接。证据链包括 `pull_door_handle` 6.0、`near_closed` truncation、corridor port 的既往结果，以及 v4 中 signed L1 改善 release/proximity 但仍未抵达 frame neighborhood 的细化证据；不得把该规律误写成 L5 单独已获确认。
 
 ## Pull-v3 Closure (2026-08-11 00:03 HKT)
 
@@ -131,13 +142,14 @@ read_when:
 
 ## TODO Summary
 
-- 2026-08-11 00:03 HKT - Primary next candidate is a separately planned pull-v4 frame-neighborhood/path-distribution round after v3 G2(c): preserve v3 frame-passage predicates, C4 release mask, corridor scales, latch threshold `0.02292371541261673`, `near_closed=0.25`, hard gate and six invariants; do not retrofit another scale inside v3.
-- 2026-08-11 00:03 HKT - G10 brace future is now evidence-triggered by one v3 cell with post-release recontact max `18`; keep it in `scriptsFORhuman/pull_task/a2_piper_pull_longterm_TODO.md` and do not implement until a separately authorized round.
+- 2026-08-11 19:53 HKT - 未解决的是 frame-neighborhood behavior creation：v4 B/L1 改善 release/proximity，但仍无 frame approach、E6、E7 或 complete。pull-v5 必须单独规划，不能静默改动当前 scale、threshold、frame predicate、C4 release mask、latch threshold `0.02292371541261673`、`near_closed=0.25`、hard gate 或八项 invariant。
+- 2026-08-11 19:53 HKT - G10/brace 仅继续监测：v4 base recontact max `10`、max median `0`，G6 extended max `108`、max median `3`；arm re-extend/brace 仍只在 pull-specific longterm TODO，需单独授权才可实施。
 - 2026-08-06 14:30 HKT - v0 E6/E7 capability boundary remains a separate historical problem: the policy never attempts path reversal (first_path_reversal_step=N/A for all episodes), ends at E5 with stage_overtime at 654 steps, and has tiny outward excursion (0.013-0.099m). Possible causes remain clear-phase reward, stage-time budget, or base-motion action space; investigate only under separately authorized scope.
 - 2026-08-06 14:00 HKT - v0 seed1 E2-E5 instability remains historical context: checkpoints oscillated between 2/16 and 16/16 uniformly across strata, not explained by spawnHook or hinge force. Matched replicates or longer training remain a separate option.
 
 ## DONE Summary
 
+- 2026-08-11 19:53 HKT - pull-v4 negative closure: A/L5 与 B/L1 仅从 pull-v2 Wave2 seed1 step750 warm start；B D0-lite、B0 smoke、四个 Wave1 与 12 cell eval 完成。所有 base cell 的 E6/E7/complete `0/16`、八项 invariant 零；L5-only 不成立，L1 改善 release/proximity 但未创造 frame-neighborhood/E6。G6 不再扩时，G10 只记录不实现 brace。formal static review FAIL；targeted repairs + runtime validation；依指令无第二轮 review。
 - 2026-08-11 00:03 HKT - pull-v3 closure: C1–C7, canonical D0-lite, single smoke, dual-seed Wave1 train and six checkpoint evals completed. All six invariants were zero; all cells had E6/E7/complete `0/16`, so G2(c) closed as a traversal approach/path-distribution negative and no Wave2/seed2 ran. G10 triggered on recontact max `18`; one review wave remained formally FAIL with bounded fixes runtime/target validated and no second reviewer PASS.
 - 2026-08-10 09:32 HKT - pull-v2 closure: canonical U-probe measured `theta*=0.6 rad` and latch threshold `0.02292371541261673`; only reward change was `near_closed 0.1→0.25`. Wave1 step750 true Stage3→4 reached `10/16` and `6/16`, triggering G1. Wave2 relay produced true Stage4 `13/16,14/16,15/16` and `11/16,16/16,16/16`; all four invariants were zero across 12 accepted cells/192 terminal episodes. A0 was NOT_TRIGGERED; next scope is traversal/V1-C.
 - 2026-08-09 15:19 HKT - pull-v1 closure: C1–C6 implemented; Python compile and YAML/Hydra composition static PASS. D0 frozen replay runtime PASS (16/16 terminal Stage3, E4/E5 0, four integrity invariants 0) and V1-B 64×50 smoke natural exit. V1-A/B/R dual-seed training/eval completed: 18 accepted rows / 288 terminal episodes have true Stage3→4 0/288 and all four invariants zero. A/B hinge Δ max ≤0.002201 rad with zero stable unlatch; R reward port is behaviorally active at step750 (stable unlatch R0 13/16, R1 2/16), but R0 hinge Δ max 0.100607 rad remains below 0.25 and R1 is baseline scale. Two pre-batch1 construction-guard root fixes landed; final A/B/R contracts fail fast. The preregistered negative statement was not triggered.

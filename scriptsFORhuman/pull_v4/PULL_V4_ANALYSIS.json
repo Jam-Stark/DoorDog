@@ -1,0 +1,2841 @@
+{
+  "schema": "pull_v4_analysis_v2_fail_closed",
+  "status": "PASS",
+  "plan_id": "a2_piper_pull_v4_annuity_removal_and_frame_approach",
+  "warm_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v2_W_wave2_relay_seed1/model_step_000750.pt",
+  "expected_cells": [
+    {
+      "variant": "A",
+      "seed": 0,
+      "step": 250
+    },
+    {
+      "variant": "A",
+      "seed": 0,
+      "step": 500
+    },
+    {
+      "variant": "A",
+      "seed": 0,
+      "step": 750
+    },
+    {
+      "variant": "A",
+      "seed": 1,
+      "step": 250
+    },
+    {
+      "variant": "A",
+      "seed": 1,
+      "step": 500
+    },
+    {
+      "variant": "A",
+      "seed": 1,
+      "step": 750
+    },
+    {
+      "variant": "B",
+      "seed": 0,
+      "step": 250
+    },
+    {
+      "variant": "B",
+      "seed": 0,
+      "step": 500
+    },
+    {
+      "variant": "B",
+      "seed": 0,
+      "step": 750
+    },
+    {
+      "variant": "B",
+      "seed": 1,
+      "step": 250
+    },
+    {
+      "variant": "B",
+      "seed": 1,
+      "step": 500
+    },
+    {
+      "variant": "B",
+      "seed": 1,
+      "step": 750
+    }
+  ],
+  "trace_stage_domain": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "cells": [
+    {
+      "variant": "A",
+      "seed": 0,
+      "step": 250,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_A_wave1_seed0_step250/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 0.9375,
+          "E2_TENSILE_CAPTURE": 0.875,
+          "E3_LATCH_RELEASE": 0.875,
+          "E4_POSITIVE_HINGE_RETAINED": 0.875,
+          "E5_CLEARANCE_DECISION": 0.875,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 0.875,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0,
+        "deliberate_release_step": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "first_negative_x_motion_rate": 0.0,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 10.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.712597519159317,
+          "min": 0.5170986652374268,
+          "max": 0.9227150082588196
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.041212961077690125,
+          "min": -0.10639190673828125,
+          "max": 0.3964587152004242
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 2.9810307025909424,
+          "min": 0.5235280990600586,
+          "max": 5.105666637420654
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 22.5,
+          "min": 6.0,
+          "max": 44.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 31.321895599365234,
+          "min": 0.0,
+          "max": 36.11308288574219
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 23.598506927490234,
+          "min": 0.0,
+          "max": 52.04604721069336
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 2.322723388671875,
+          "min": -2.4522597789764404,
+          "max": 10.756143569946289
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 30.600088119506836,
+          "min": 0.0,
+          "max": 41.43806838989258
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 9.22002124786377,
+          "min": 0.0,
+          "max": 10.82005786895752
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "A",
+      "seed": 0,
+      "step": 500,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_A_wave1_seed0_step500/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 0.9375,
+          "E2_TENSILE_CAPTURE": 0.9375,
+          "E3_LATCH_RELEASE": 0.9375,
+          "E4_POSITIVE_HINGE_RETAINED": 0.9375,
+          "E5_CLEARANCE_DECISION": 0.9375,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 0.9375,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0625,
+        "deliberate_release_step": {
+          "count": 1,
+          "median": 788.0,
+          "min": 788.0,
+          "max": 788.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 1,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "first_negative_x_motion_rate": 0.0625,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 16.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7251996099948883,
+          "min": 0.5943489074707031,
+          "max": 0.9024399518966675
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.044413283467292786,
+          "min": 0.0006940662860870361,
+          "max": 0.3663426339626312
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.536914587020874,
+          "min": 0.5634863972663879,
+          "max": 5.508178234100342
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 19.0,
+          "min": 8.0,
+          "max": 32.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 31.024383544921875,
+          "min": 0.0,
+          "max": 33.37908172607422
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 44.62839698791504,
+          "min": 0.0,
+          "max": 66.34342956542969
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 7.277926683425903,
+          "min": -5.34123420715332,
+          "max": 12.349455833435059
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 25.260050773620605,
+          "min": 0.0,
+          "max": 39.632991790771484
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 10.390048027038574,
+          "min": 0.0,
+          "max": 11.120064735412598
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "A",
+      "seed": 0,
+      "step": 750,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_A_wave1_seed0_step750/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 0.9375,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0,
+        "deliberate_release_step": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "first_negative_x_motion_rate": 0.0,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 1.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7186068892478943,
+          "min": 0.6225871443748474,
+          "max": 0.8637998700141907
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.11538860201835632,
+          "min": 0.0018172264099121094,
+          "max": 0.2052171528339386
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.7008477449417114,
+          "min": 2.702540636062622,
+          "max": 4.639533996582031
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 12.0,
+          "min": 4.0,
+          "max": 25.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 30.482691764831543,
+          "min": 12.611916542053223,
+          "max": 33.9642333984375
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 54.67472839355469,
+          "min": 0.0,
+          "max": 67.02103424072266
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 6.311418056488037,
+          "min": 0.2681336998939514,
+          "max": 16.829727172851562
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 27.12006378173828,
+          "min": 22.320030212402344,
+          "max": 32.76008987426758
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 10.010039329528809,
+          "min": 0.0,
+          "max": 10.860058784484863
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "A",
+      "seed": 1,
+      "step": 250,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_A_wave1_seed1_step250/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 0.875,
+          "E3_LATCH_RELEASE": 0.875,
+          "E4_POSITIVE_HINGE_RETAINED": 0.875,
+          "E5_CLEARANCE_DECISION": 0.8125,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 0.875,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0,
+        "deliberate_release_step": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "first_negative_x_motion_rate": 0.0,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 6.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.73702272772789,
+          "min": 0.5896651148796082,
+          "max": 0.8392742276191711
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.0011307895183563232,
+          "min": -0.1023135781288147,
+          "max": 0.2640582025051117
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.084467887878418,
+          "min": 0.6810687184333801,
+          "max": 4.326655387878418
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 26.5,
+          "min": 6.0,
+          "max": 39.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 29.28992748260498,
+          "min": 0.0,
+          "max": 33.20356369018555
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 35.06764030456543,
+          "min": 0.0,
+          "max": 47.010860443115234
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 5.540754556655884,
+          "min": -1.3392070531845093,
+          "max": 13.152798652648926
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 27.660067558288574,
+          "min": 0.0,
+          "max": 38.35297775268555
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 9.480027198791504,
+          "min": 0.0,
+          "max": 10.94006061553955
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "A",
+      "seed": 1,
+      "step": 500,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_A_wave1_seed1_step500/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 0.9375,
+          "E2_TENSILE_CAPTURE": 0.9375,
+          "E3_LATCH_RELEASE": 0.9375,
+          "E4_POSITIVE_HINGE_RETAINED": 0.9375,
+          "E5_CLEARANCE_DECISION": 0.9375,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 0.9375,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0625,
+        "deliberate_release_step": {
+          "count": 1,
+          "median": 624.0,
+          "min": 624.0,
+          "max": 624.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 1,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "first_negative_x_motion_rate": 0.0625,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7618162333965302,
+          "min": 0.5738475918769836,
+          "max": 0.844147801399231
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.051238030195236206,
+          "min": -0.021049439907073975,
+          "max": 0.1707930862903595
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.463609218597412,
+          "min": 0.7403308153152466,
+          "max": 4.462265968322754
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 17.5,
+          "min": 6.0,
+          "max": 33.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 29.888933181762695,
+          "min": 0.0,
+          "max": 34.994873046875
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 46.665998458862305,
+          "min": 0.0,
+          "max": 55.13347244262695
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 3.4492974281311035,
+          "min": -0.4873603880405426,
+          "max": 9.7712984085083
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 25.440052032470703,
+          "min": 0.0,
+          "max": 31.440093994140625
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 10.480050086975098,
+          "min": 0.0,
+          "max": 11.100064277648926
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "A",
+      "seed": 1,
+      "step": 750,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_A_wave1_seed1_step750/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 1.0,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0,
+        "deliberate_release_step": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "first_negative_x_motion_rate": 0.0,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7684614062309265,
+          "min": 0.603759765625,
+          "max": 0.8301433324813843
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.07240132987499237,
+          "min": -0.0028742849826812744,
+          "max": 0.20757630467414856
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.5746922492980957,
+          "min": 3.111384153366089,
+          "max": 4.470187664031982
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 14.0,
+          "min": 6.0,
+          "max": 28.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 28.991589546203613,
+          "min": 23.427906036376953,
+          "max": 33.5108528137207
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 47.02937889099121,
+          "min": 35.18448257446289,
+          "max": 56.52631378173828
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 7.309059381484985,
+          "min": 1.6615827083587646,
+          "max": 13.824243545532227
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 30.480087280273438,
+          "min": 25.5600528717041,
+          "max": 35.880062103271484
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 9.930037498474121,
+          "min": 8.740010261535645,
+          "max": 10.780056953430176
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "B",
+      "seed": 0,
+      "step": 250,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_B_wave1_seed0_step250/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 0.9375,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.125,
+        "deliberate_release_step": {
+          "count": 2,
+          "median": 616.5,
+          "min": 556.0,
+          "max": 677.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 2,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "first_negative_x_motion_rate": 0.125,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7256086766719818,
+          "min": 0.603606104850769,
+          "max": 0.8884535431861877
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.046982407569885254,
+          "min": -0.06249368190765381,
+          "max": 0.195876806974411
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 2.928734540939331,
+          "min": 1.6371952295303345,
+          "max": 4.070173263549805
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 16.0,
+          "min": 6.0,
+          "max": 60.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 26.672880172729492,
+          "min": 10.02816104888916,
+          "max": 32.90083694458008
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 32.180824279785156,
+          "min": 0.0,
+          "max": 45.75952911376953
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 6.870262145996094,
+          "min": 4.101531505584717,
+          "max": 16.61371421813965
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 26.915300369262695,
+          "min": 13.850240707397461,
+          "max": 45.66743087768555
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 9.380024909973145,
+          "min": 0.0,
+          "max": 10.780056953430176
+        },
+        "a2_pull_frame_approach": {
+          "count": 16,
+          "median": -4.981006383895874,
+          "min": -28.16179656982422,
+          "max": 1.7662745714187622
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "B",
+      "seed": 0,
+      "step": 500,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_B_wave1_seed0_step500/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 0.9375,
+          "E2_TENSILE_CAPTURE": 0.9375,
+          "E3_LATCH_RELEASE": 0.9375,
+          "E4_POSITIVE_HINGE_RETAINED": 0.9375,
+          "E5_CLEARANCE_DECISION": 0.9375,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 0.9375,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.125,
+        "deliberate_release_step": {
+          "count": 2,
+          "median": 688.0,
+          "min": 638.0,
+          "max": 738.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 2,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "first_negative_x_motion_rate": 0.125,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 20.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7436237037181854,
+          "min": 0.6403868794441223,
+          "max": 0.8918814063072205
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": -0.04900188744068146,
+          "min": -0.08193367719650269,
+          "max": 0.36205968260765076
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.173845648765564,
+          "min": 0.5265899300575256,
+          "max": 4.219048023223877
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 14.5,
+          "min": 10.0,
+          "max": 38.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 10.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 30.640992164611816,
+          "min": 0.0,
+          "max": 34.2082405090332
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 48.25041961669922,
+          "min": 0.0,
+          "max": 63.19471740722656
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 5.574355602264404,
+          "min": 0.0,
+          "max": 14.228591918945312
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 22.860033988952637,
+          "min": 0.0,
+          "max": 34.01681900024414
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 10.160042762756348,
+          "min": 0.0,
+          "max": 11.100064277648926
+        },
+        "a2_pull_frame_approach": {
+          "count": 16,
+          "median": -0.17280903458595276,
+          "min": -5.590020179748535,
+          "max": 10.283182144165039
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "B",
+      "seed": 0,
+      "step": 750,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_B_wave1_seed0_step750/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 1.0,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.125,
+        "deliberate_release_step": {
+          "count": 2,
+          "median": 734.0,
+          "min": 729.0,
+          "max": 739.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 2,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "first_negative_x_motion_rate": 0.125,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 18.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7561845779418945,
+          "min": 0.683861494064331,
+          "max": 0.8918467164039612
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": -0.023472830653190613,
+          "min": -0.07466462254524231,
+          "max": 0.07933378219604492
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.4281712770462036,
+          "min": 2.9972801208496094,
+          "max": 4.325376033782959
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 12.5,
+          "min": 8.0,
+          "max": 27.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 1.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 31.825940132141113,
+          "min": 14.274174690246582,
+          "max": 34.113441467285156
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 54.750545501708984,
+          "min": 19.331233978271484,
+          "max": 64.96527099609375
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 5.136380672454834,
+          "min": -0.00758114131167531,
+          "max": 12.515933990478516
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 26.820061683654785,
+          "min": 19.940719604492188,
+          "max": 32.040096282958984
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 9.750033378601074,
+          "min": 6.999994277954102,
+          "max": 10.700055122375488
+        },
+        "a2_pull_frame_approach": {
+          "count": 16,
+          "median": 2.834863781929016,
+          "min": -3.7985267639160156,
+          "max": 5.8004679679870605
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "B",
+      "seed": 1,
+      "step": 250,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_B_wave1_seed1_step250/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 1.0,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.125,
+        "deliberate_release_step": {
+          "count": 2,
+          "median": 743.5,
+          "min": 707.0,
+          "max": 780.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 2,
+          "median": 13.5,
+          "min": 5.0,
+          "max": 22.0
+        },
+        "first_negative_x_motion_rate": 0.125,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 6.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7461823523044586,
+          "min": 0.5809265375137329,
+          "max": 0.8566722273826599
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": -0.01930779218673706,
+          "min": -0.0783100426197052,
+          "max": 0.15370401740074158
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 2.9108402729034424,
+          "min": 2.213651657104492,
+          "max": 3.850290298461914
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 21.0,
+          "min": 10.0,
+          "max": 44.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 28.986899375915527,
+          "min": 23.807329177856445,
+          "max": 32.989383697509766
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 42.53218078613281,
+          "min": 17.234956741333008,
+          "max": 51.144813537597656
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 3.7517449855804443,
+          "min": -1.3280988931655884,
+          "max": 10.405143737792969
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 28.62007427215576,
+          "min": 22.440031051635742,
+          "max": 38.58860397338867
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 9.550028800964355,
+          "min": 5.979995250701904,
+          "max": 11.240067481994629
+        },
+        "a2_pull_frame_approach": {
+          "count": 16,
+          "median": -8.598812580108643,
+          "min": -11.887968063354492,
+          "max": 4.9610185623168945
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "B",
+      "seed": 1,
+      "step": 500,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_B_wave1_seed1_step500/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 1.0,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.0,
+        "deliberate_release_step": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "first_negative_x_motion_rate": 0.0,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 11.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7507572770118713,
+          "min": 0.6215413808822632,
+          "max": 0.8637828230857849
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": -0.042078882455825806,
+          "min": -0.07599109411239624,
+          "max": 0.15960416197776794
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.4067660570144653,
+          "min": 2.662731170654297,
+          "max": 4.419588088989258
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 18.0,
+          "min": 9.0,
+          "max": 47.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 24.47920036315918,
+          "min": 9.594098091125488,
+          "max": 33.05995559692383
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 53.58991050720215,
+          "min": 25.23398780822754,
+          "max": 62.986446380615234
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 9.506759643554688,
+          "min": 1.0325556993484497,
+          "max": 13.527338027954102
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 26.220057487487793,
+          "min": 20.760019302368164,
+          "max": 30.36008644104004
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 10.18004322052002,
+          "min": 7.499993801116943,
+          "max": 11.04006290435791
+        },
+        "a2_pull_frame_approach": {
+          "count": 16,
+          "median": -1.4528831541538239,
+          "min": -6.516598224639893,
+          "max": 7.775430679321289
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    },
+    {
+      "variant": "B",
+      "seed": 1,
+      "step": 750,
+      "source": "logs_eval/a2_piper_pull_v4/pull_v4_B_wave1_seed1_step750/eval/metrics_eval.json",
+      "primary": {
+        "episode_count": 16,
+        "event_rates": {
+          "E0_RESET_VALID": 1.0,
+          "E1_OUTSIDE_FACE_PREGRASP": 1.0,
+          "E2_TENSILE_CAPTURE": 1.0,
+          "E3_LATCH_RELEASE": 1.0,
+          "E4_POSITIVE_HINGE_RETAINED": 1.0,
+          "E5_CLEARANCE_DECISION": 1.0,
+          "E6_PATH_REVERSAL_ENTRY": 0.0,
+          "E7_WHOLE_BODY_CLEAR": 0.0
+        },
+        "true_stage3_to4_rate": 1.0,
+        "E6_rate": 0.0,
+        "E7_rate": 0.0,
+        "complete_rate": 0.0
+      },
+      "funnel": {
+        "deliberate_release_rate": 0.1875,
+        "deliberate_release_step": {
+          "count": 3,
+          "median": 710.0,
+          "min": 402.0,
+          "max": 773.0
+        },
+        "release_to_first_negative_x_motion_steps": {
+          "count": 3,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        },
+        "first_negative_x_motion_rate": 0.1875,
+        "frame_approach_rate": 0.0,
+        "frame_passage_rate": 0.0,
+        "planar_crossing_rate": 0.0,
+        "detour_rate": 0.0,
+        "E5_to_E7_steps": {
+          "count": 0,
+          "median": null,
+          "min": null,
+          "max": null
+        },
+        "panel_contact_steps": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 27.0
+        },
+        "frame_midpoint_distance_m": {
+          "count": 16,
+          "median": 0.7337334752082825,
+          "min": 0.6383103132247925,
+          "max": 0.8149867653846741
+        },
+        "swept_arc_clearance_margin_m": {
+          "count": 16,
+          "median": 0.00377066433429718,
+          "min": -0.06252139806747437,
+          "max": 0.15236946940422058
+        },
+        "base_path_length_m": {
+          "count": 16,
+          "median": 3.7094027996063232,
+          "min": 3.2509613037109375,
+          "max": 4.372473239898682
+        },
+        "base_reversal_count": {
+          "count": 16,
+          "median": 17.5,
+          "min": 7.0,
+          "max": 33.0
+        },
+        "post_release_recontact_count": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 5.0
+        }
+      },
+      "income": {
+        "dont_push_door_handle": {
+          "count": 16,
+          "median": 25.55855083465576,
+          "min": 15.045371055603027,
+          "max": 34.55593490600586
+        },
+        "target_root_distance": {
+          "count": 16,
+          "median": 57.206275939941406,
+          "min": 40.675628662109375,
+          "max": 62.912567138671875
+        },
+        "pull_door_handle": {
+          "count": 16,
+          "median": 9.204767227172852,
+          "min": 2.626322031021118,
+          "max": 15.36996078491211
+        },
+        "pull_door_hinge": {
+          "count": 16,
+          "median": 27.360065460205078,
+          "min": 21.600025177001953,
+          "max": 35.16006851196289
+        },
+        "a2_corridor_clean_passage": {
+          "count": 16,
+          "median": 10.020039558410645,
+          "min": 7.9799933433532715,
+          "max": 10.900059700012207
+        },
+        "a2_pull_frame_approach": {
+          "count": 16,
+          "median": -0.3035289794206619,
+          "min": -4.54023551940918,
+          "max": 5.274869918823242
+        },
+        "a2_corridor_door_wide": {
+          "count": 16,
+          "median": 0.0,
+          "min": 0.0,
+          "max": 0.0
+        }
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      },
+      "terminal_reason_counts": {
+        "stage_overtime": 16
+      }
+    }
+  ],
+  "main_comparison_table": [
+    {
+      "label": "v3 T Wave1 baseline",
+      "variant": "v3",
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": "see scriptsFORhuman/pull_v3/PULL_V3_ANALYSIS_WAVE1.json"
+    },
+    {
+      "label": "v4 A seed0 step250",
+      "variant": "A",
+      "seed": 0,
+      "step": 250,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.712597519159317,
+        "min": 0.5170986652374268,
+        "max": 0.9227150082588196
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 A seed0 step500",
+      "variant": "A",
+      "seed": 0,
+      "step": 500,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0625,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7251996099948883,
+        "min": 0.5943489074707031,
+        "max": 0.9024399518966675
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 A seed0 step750",
+      "variant": "A",
+      "seed": 0,
+      "step": 750,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7186068892478943,
+        "min": 0.6225871443748474,
+        "max": 0.8637998700141907
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 A seed1 step250",
+      "variant": "A",
+      "seed": 1,
+      "step": 250,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.73702272772789,
+        "min": 0.5896651148796082,
+        "max": 0.8392742276191711
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 A seed1 step500",
+      "variant": "A",
+      "seed": 1,
+      "step": 500,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0625,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7618162333965302,
+        "min": 0.5738475918769836,
+        "max": 0.844147801399231
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 A seed1 step750",
+      "variant": "A",
+      "seed": 1,
+      "step": 750,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7684614062309265,
+        "min": 0.603759765625,
+        "max": 0.8301433324813843
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 B seed0 step250",
+      "variant": "B",
+      "seed": 0,
+      "step": 250,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.125,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7256086766719818,
+        "min": 0.603606104850769,
+        "max": 0.8884535431861877
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 B seed0 step500",
+      "variant": "B",
+      "seed": 0,
+      "step": 500,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.125,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7436237037181854,
+        "min": 0.6403868794441223,
+        "max": 0.8918814063072205
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 B seed0 step750",
+      "variant": "B",
+      "seed": 0,
+      "step": 750,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.125,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7561845779418945,
+        "min": 0.683861494064331,
+        "max": 0.8918467164039612
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 B seed1 step250",
+      "variant": "B",
+      "seed": 1,
+      "step": 250,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.125,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7461823523044586,
+        "min": 0.5809265375137329,
+        "max": 0.8566722273826599
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 B seed1 step500",
+      "variant": "B",
+      "seed": 1,
+      "step": 500,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.0,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7507572770118713,
+        "min": 0.6215413808822632,
+        "max": 0.8637828230857849
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    },
+    {
+      "label": "v4 B seed1 step750",
+      "variant": "B",
+      "seed": 1,
+      "step": 750,
+      "E6_rate": 0.0,
+      "E7_rate": 0.0,
+      "complete_rate": 0.0,
+      "deliberate_release_rate": 0.1875,
+      "frame_midpoint_distance_m": {
+        "count": 16,
+        "median": 0.7337334752082825,
+        "min": 0.6383103132247925,
+        "max": 0.8149867653846741
+      },
+      "invariants": {
+        "fake_e4": 0,
+        "stage4_snapshot_below_hinge_gate": 0,
+        "dont_push_before_true_stage3_to4": 0,
+        "target_root_before_aperture_ready": 0,
+        "corridor_active_before_aperture_ready": 0,
+        "complete_without_frame_passage": 0,
+        "frame_approach_active_before_aperture_ready": 0,
+        "frame_approach_active_after_frame_passage": 0,
+        "all_zero": true
+      }
+    }
+  ],
+  "dv": {
+    "release_curve": {
+      "A": [
+        0.0,
+        0.0625,
+        0.0,
+        0.0,
+        0.0625,
+        0.0
+      ],
+      "B": [
+        0.125,
+        0.125,
+        0.125,
+        0.125,
+        0.0,
+        0.1875
+      ]
+    },
+    "frame_midpoint_distance_distribution": {
+      "A": [
+        {
+          "count": 16,
+          "median": 0.712597519159317,
+          "min": 0.5170986652374268,
+          "max": 0.9227150082588196
+        },
+        {
+          "count": 16,
+          "median": 0.7251996099948883,
+          "min": 0.5943489074707031,
+          "max": 0.9024399518966675
+        },
+        {
+          "count": 16,
+          "median": 0.7186068892478943,
+          "min": 0.6225871443748474,
+          "max": 0.8637998700141907
+        },
+        {
+          "count": 16,
+          "median": 0.73702272772789,
+          "min": 0.5896651148796082,
+          "max": 0.8392742276191711
+        },
+        {
+          "count": 16,
+          "median": 0.7618162333965302,
+          "min": 0.5738475918769836,
+          "max": 0.844147801399231
+        },
+        {
+          "count": 16,
+          "median": 0.7684614062309265,
+          "min": 0.603759765625,
+          "max": 0.8301433324813843
+        }
+      ],
+      "B": [
+        {
+          "count": 16,
+          "median": 0.7256086766719818,
+          "min": 0.603606104850769,
+          "max": 0.8884535431861877
+        },
+        {
+          "count": 16,
+          "median": 0.7436237037181854,
+          "min": 0.6403868794441223,
+          "max": 0.8918814063072205
+        },
+        {
+          "count": 16,
+          "median": 0.7561845779418945,
+          "min": 0.683861494064331,
+          "max": 0.8918467164039612
+        },
+        {
+          "count": 16,
+          "median": 0.7461823523044586,
+          "min": 0.5809265375137329,
+          "max": 0.8566722273826599
+        },
+        {
+          "count": 16,
+          "median": 0.7507572770118713,
+          "min": 0.6215413808822632,
+          "max": 0.8637828230857849
+        },
+        {
+          "count": 16,
+          "median": 0.7337334752082825,
+          "min": 0.6383103132247925,
+          "max": 0.8149867653846741
+        }
+      ]
+    },
+    "frame_approach_rate": {
+      "A": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "B": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "reward_income": {
+      "A": [
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 31.321895599365234,
+            "min": 0.0,
+            "max": 36.11308288574219
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 23.598506927490234,
+            "min": 0.0,
+            "max": 52.04604721069336
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 2.322723388671875,
+            "min": -2.4522597789764404,
+            "max": 10.756143569946289
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 30.600088119506836,
+            "min": 0.0,
+            "max": 41.43806838989258
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 9.22002124786377,
+            "min": 0.0,
+            "max": 10.82005786895752
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 31.024383544921875,
+            "min": 0.0,
+            "max": 33.37908172607422
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 44.62839698791504,
+            "min": 0.0,
+            "max": 66.34342956542969
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 7.277926683425903,
+            "min": -5.34123420715332,
+            "max": 12.349455833435059
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 25.260050773620605,
+            "min": 0.0,
+            "max": 39.632991790771484
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 10.390048027038574,
+            "min": 0.0,
+            "max": 11.120064735412598
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 30.482691764831543,
+            "min": 12.611916542053223,
+            "max": 33.9642333984375
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 54.67472839355469,
+            "min": 0.0,
+            "max": 67.02103424072266
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 6.311418056488037,
+            "min": 0.2681336998939514,
+            "max": 16.829727172851562
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 27.12006378173828,
+            "min": 22.320030212402344,
+            "max": 32.76008987426758
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 10.010039329528809,
+            "min": 0.0,
+            "max": 10.860058784484863
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 29.28992748260498,
+            "min": 0.0,
+            "max": 33.20356369018555
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 35.06764030456543,
+            "min": 0.0,
+            "max": 47.010860443115234
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 5.540754556655884,
+            "min": -1.3392070531845093,
+            "max": 13.152798652648926
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 27.660067558288574,
+            "min": 0.0,
+            "max": 38.35297775268555
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 9.480027198791504,
+            "min": 0.0,
+            "max": 10.94006061553955
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 29.888933181762695,
+            "min": 0.0,
+            "max": 34.994873046875
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 46.665998458862305,
+            "min": 0.0,
+            "max": 55.13347244262695
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 3.4492974281311035,
+            "min": -0.4873603880405426,
+            "max": 9.7712984085083
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 25.440052032470703,
+            "min": 0.0,
+            "max": 31.440093994140625
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 10.480050086975098,
+            "min": 0.0,
+            "max": 11.100064277648926
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 28.991589546203613,
+            "min": 23.427906036376953,
+            "max": 33.5108528137207
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 47.02937889099121,
+            "min": 35.18448257446289,
+            "max": 56.52631378173828
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 7.309059381484985,
+            "min": 1.6615827083587646,
+            "max": 13.824243545532227
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 30.480087280273438,
+            "min": 25.5600528717041,
+            "max": 35.880062103271484
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 9.930037498474121,
+            "min": 8.740010261535645,
+            "max": 10.780056953430176
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        }
+      ],
+      "B": [
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 26.672880172729492,
+            "min": 10.02816104888916,
+            "max": 32.90083694458008
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 32.180824279785156,
+            "min": 0.0,
+            "max": 45.75952911376953
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 6.870262145996094,
+            "min": 4.101531505584717,
+            "max": 16.61371421813965
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 26.915300369262695,
+            "min": 13.850240707397461,
+            "max": 45.66743087768555
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 9.380024909973145,
+            "min": 0.0,
+            "max": 10.780056953430176
+          },
+          "a2_pull_frame_approach": {
+            "count": 16,
+            "median": -4.981006383895874,
+            "min": -28.16179656982422,
+            "max": 1.7662745714187622
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 30.640992164611816,
+            "min": 0.0,
+            "max": 34.2082405090332
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 48.25041961669922,
+            "min": 0.0,
+            "max": 63.19471740722656
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 5.574355602264404,
+            "min": 0.0,
+            "max": 14.228591918945312
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 22.860033988952637,
+            "min": 0.0,
+            "max": 34.01681900024414
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 10.160042762756348,
+            "min": 0.0,
+            "max": 11.100064277648926
+          },
+          "a2_pull_frame_approach": {
+            "count": 16,
+            "median": -0.17280903458595276,
+            "min": -5.590020179748535,
+            "max": 10.283182144165039
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 31.825940132141113,
+            "min": 14.274174690246582,
+            "max": 34.113441467285156
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 54.750545501708984,
+            "min": 19.331233978271484,
+            "max": 64.96527099609375
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 5.136380672454834,
+            "min": -0.00758114131167531,
+            "max": 12.515933990478516
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 26.820061683654785,
+            "min": 19.940719604492188,
+            "max": 32.040096282958984
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 9.750033378601074,
+            "min": 6.999994277954102,
+            "max": 10.700055122375488
+          },
+          "a2_pull_frame_approach": {
+            "count": 16,
+            "median": 2.834863781929016,
+            "min": -3.7985267639160156,
+            "max": 5.8004679679870605
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 28.986899375915527,
+            "min": 23.807329177856445,
+            "max": 32.989383697509766
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 42.53218078613281,
+            "min": 17.234956741333008,
+            "max": 51.144813537597656
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 3.7517449855804443,
+            "min": -1.3280988931655884,
+            "max": 10.405143737792969
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 28.62007427215576,
+            "min": 22.440031051635742,
+            "max": 38.58860397338867
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 9.550028800964355,
+            "min": 5.979995250701904,
+            "max": 11.240067481994629
+          },
+          "a2_pull_frame_approach": {
+            "count": 16,
+            "median": -8.598812580108643,
+            "min": -11.887968063354492,
+            "max": 4.9610185623168945
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 24.47920036315918,
+            "min": 9.594098091125488,
+            "max": 33.05995559692383
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 53.58991050720215,
+            "min": 25.23398780822754,
+            "max": 62.986446380615234
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 9.506759643554688,
+            "min": 1.0325556993484497,
+            "max": 13.527338027954102
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 26.220057487487793,
+            "min": 20.760019302368164,
+            "max": 30.36008644104004
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 10.18004322052002,
+            "min": 7.499993801116943,
+            "max": 11.04006290435791
+          },
+          "a2_pull_frame_approach": {
+            "count": 16,
+            "median": -1.4528831541538239,
+            "min": -6.516598224639893,
+            "max": 7.775430679321289
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        },
+        {
+          "dont_push_door_handle": {
+            "count": 16,
+            "median": 25.55855083465576,
+            "min": 15.045371055603027,
+            "max": 34.55593490600586
+          },
+          "target_root_distance": {
+            "count": 16,
+            "median": 57.206275939941406,
+            "min": 40.675628662109375,
+            "max": 62.912567138671875
+          },
+          "pull_door_handle": {
+            "count": 16,
+            "median": 9.204767227172852,
+            "min": 2.626322031021118,
+            "max": 15.36996078491211
+          },
+          "pull_door_hinge": {
+            "count": 16,
+            "median": 27.360065460205078,
+            "min": 21.600025177001953,
+            "max": 35.16006851196289
+          },
+          "a2_corridor_clean_passage": {
+            "count": 16,
+            "median": 10.020039558410645,
+            "min": 7.9799933433532715,
+            "max": 10.900059700012207
+          },
+          "a2_pull_frame_approach": {
+            "count": 16,
+            "median": -0.3035289794206619,
+            "min": -4.54023551940918,
+            "max": 5.274869918823242
+          },
+          "a2_corridor_door_wide": {
+            "count": 16,
+            "median": 0.0,
+            "min": 0.0,
+            "max": 0.0
+          }
+        }
+      ]
+    },
+    "E6_rate": {
+      "A": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "B": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "E7_rate": {
+      "A": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "B": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "complete_rate": {
+      "A": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "B": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "invariants": {
+    "fake_e4": 0,
+    "stage4_snapshot_below_hinge_gate": 0,
+    "dont_push_before_true_stage3_to4": 0,
+    "target_root_before_aperture_ready": 0,
+    "corridor_active_before_aperture_ready": 0,
+    "complete_without_frame_passage": 0,
+    "frame_approach_active_before_aperture_ready": 0,
+    "frame_approach_active_after_frame_passage": 0,
+    "all_zero": true
+  },
+  "g1_g11": {
+    "G1": {
+      "status": "NOT_TRIGGERED",
+      "evidence": {
+        "A": 0.0,
+        "B": 0.0
+      }
+    },
+    "G2": {
+      "status": "TRIGGERED",
+      "evidence": {
+        "A": 0.0,
+        "B": 0.0
+      }
+    },
+    "G3": {
+      "status": "NOT_TRIGGERED",
+      "evidence": {
+        "A": 0.0,
+        "B": 0.0
+      }
+    },
+    "G4": {
+      "status": "NOT_TRIGGERED",
+      "evidence": {
+        "A": {
+          "0": 0.0,
+          "1": 0.0
+        },
+        "B": {
+          "0": 0.0,
+          "1": 0.0
+        }
+      }
+    },
+    "G5": {
+      "status": "NOT_TRIGGERED",
+      "evidence": {
+        "panel_contact_median_max": 0.0
+      }
+    },
+    "G6": {
+      "status": "TRIGGERED",
+      "evidence": "terminal reason evidence"
+    },
+    "G7": {
+      "status": "NOT_TRIGGERED",
+      "evidence": "all twelve cells have complete metrics/trace/diagnostics"
+    },
+    "G8": {
+      "status": "NOT_TRIGGERED",
+      "evidence": "canonical cell set is complete; GPU occupancy is launch evidence"
+    },
+    "G9": {
+      "status": "NOT_TRIGGERED",
+      "evidence": "analysis completed from the required cell set"
+    },
+    "G10": {
+      "status": "TRIGGERED",
+      "evidence": {
+        "post_release_recontact_max": 10.0
+      }
+    },
+    "G11": {
+      "status": "NOT_TRIGGERED",
+      "evidence": {
+        "frame_approach_income_max": 10.283182144165039,
+        "net_input_contract": "signed raw telemetry compared with base path length"
+      }
+    }
+  },
+  "evidence_boundary": "PASS is limited to validated JSON metrics, terminal diagnostics, and conditional stage2-5 traces; no runtime claim is inferred."
+}

@@ -5,8 +5,9 @@
 ## 1. 门回弹时 arm 重新伸出抵住门板(用户指定,2026-08-10)
 
 - **动机:** 当前门资产 closer 关门慢(max_force/damping = 0.05–0.24 rad/s,全关 11–52 s),release-then-cross 窗口从容,回弹撞击不构成现实失败模式。但更强 closer/更快回弹的资产变体下,release 后 arm 收回默认姿态、门扇回摆撞上正在过门的机器人将成为主要失败模式。期望行为:**穿门过程中检测到门回摆逼近时,arm 重新伸出抵住门板(brace),身体继续通过,清出后收臂**。
-- **触发:** v3 G10 fork 记录到 post-release recontact 成为可见失败模式;或引入强 closer 资产变体的轮次。
+- **触发:** v3/v4 G10 fork 记录到 post-release recontact 成为可见失败模式;或引入强 closer 资产变体的轮次。
 - **v3 实测勾稽(2026-08-11 00:03 HKT):** G10 已触发。Wave1 seed0 step500 的 post-release recontact max=`18`、median=`0`；其余格 max≤`1`。本轮仅记录该可见 tail failure，不实现 brace，也不据此改 v3 reward/threshold。
+- **v4 实测勾稽(2026-08-11):** base Wave1 六格的 post-release recontact max=`10`、最大单格 median=`0`；G6 extended 六格 max=`108`、最大单格 median=`3`。G6 只扩展一次，六格 E6/E7/complete 均未改变（`changed_cell_count=0`）；本轮只记录，不实现 arm brace，不改 reward/threshold。
 - **做法要点:** post-release recontact 遥测已在 v3 落地(计数+形态);行为侧需要 brace 技能的收入设计(抵门属"合法 body/arm 介入",与 push 线"body-push = 缺陷"的红线按 rule 7 分相处理);与 force_feasible 论文的 gate(s)·u_assist 叙事天然衔接(arm 不可行→base 补,此处是 body 通过受威胁→arm 补)。
 
 ## 2. add_walls=True 受限空间 pull(hardening 轮)

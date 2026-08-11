@@ -32,7 +32,7 @@ description = "Lease-bound IsaacLab implementation and debugging worker for appr
 config_file = "agents/isaaclab-worker.toml"
 
 [agents.goal_reviewer]
-description = "Independent read-only goal and constraint reviewer for plan and frozen-candidate gates."
+description = "Independent read-only goal and constraint reviewer for plan and frozen-path gates."
 config_file = "agents/goal-reviewer.toml"
 
 [agents.code_reviewer]
@@ -44,7 +44,7 @@ description = "Independent read-only IsaacLab and fail-fast reviewer for APIs, t
 config_file = "agents/isaaclab-reviewer.toml"
 
 [agents.runtime_qa]
-description = "Runtime QA executor that may write only leased evidence and output paths, never the candidate."
+description = "Runtime QA executor that may write only leased evidence and output paths, never frozen paths."
 config_file = "agents/runtime-qa.toml"
 
 [agents.memory_curator]

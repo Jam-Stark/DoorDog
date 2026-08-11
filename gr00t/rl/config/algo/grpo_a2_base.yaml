@@ -1,0 +1,64 @@
+# @package _global_
+
+defaults:
+  - trl@algo.trl: ppo
+  - eval@algo.config.eval: base
+  - _self_
+
+algo:
+  config:
+    use_new_actor_critic: true
+    use_dagger: false
+    distill_only: true
+    use_a2_base: true
+    train_with_evaluating_env: false
+    global_rank: 0
+    world_size: 1
+
+    num_steps_per_env: 850
+    num_learning_epochs: 1
+    num_mini_batches: 4
+    use_padding_mask: true
+    ppo_shuffle_every_epoch: false
+    sync_advantage_normalization: true
+
+    actor_learning_rate: 3.0e-5
+    critic_learning_rate: 0.0
+    value_loss_coef: 0.0
+    entropy_coef: 0.0
+    max_grad_norm: 1.0
+    clip_param: 0.2
+    gamma: 0.9966
+    lam: 0.983
+    desired_kl: 0.005
+    init_at_random_ep_len: false
+
+    init_noise_std: 0.05
+    max_noise_std: 0.05
+    clamp_noise_std: true
+    freeze_noise_std: true
+
+    student_action_dim: 12
+    rollout_action_dim: 24
+    a2_base_obs_dim: 1620
+    a2_base_action_dim: 12
+    a2_base:
+      enabled: true
+      policy_path: ./gr00t/rl/data/policies/A2_Base/policy.pt
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      obs_dim: 1620
+      action_dim: 12
+
+    grpo_rollout_horizon: 850
+    grpo_rollout_chunk_length: 128
+    grpo_latent_dim: 128
+    grpo_exploration_std: 0.05
+    grpo_action_rate_lambda: 0.0
+    grpo_zero_variance_threshold: 1.0e-6
+    grpo_first_update_ratio_tolerance: 1.0e-3
+
+    module_dim:
+      actor_obs: -1
+      teacher_obs: -1
+      critic_obs: -1
+      vision_feature_dim: 128

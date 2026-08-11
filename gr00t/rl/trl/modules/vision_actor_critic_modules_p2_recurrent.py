@@ -959,7 +959,14 @@ class _DualD435Core(nn.Module):
         cache = self._diagnostic_per_sample_cache if per_sample else self._diagnostic_cache
         return {key: value.detach().clone() for key, value in cache.items()}
 
-    def forward_from_latent(self, actor_obs, latent, masks=None, hidden_states=None):
+    def forward_from_latent(
+        self,
+        actor_obs,
+        latent,
+        masks=None,
+        hidden_states=None,
+        stepwise_replay=False,
+    ):
         normalized = self.normalize_actor_obs(actor_obs, masks)
         if normalized.ndim == 2:
             recurrent_input = torch.cat((normalized, latent), dim=-1)
@@ -968,7 +975,20 @@ class _DualD435Core(nn.Module):
                 memory_out = memory_out.squeeze(0)
         elif normalized.ndim == 3:
             recurrent_input = torch.cat((normalized, latent), dim=-1)
-            memory_out = self.memory(recurrent_input.transpose(0, 1), masks=masks, hidden_states=hidden_states)
+            if stepwise_replay:
+                state = hidden_states
+                outputs = []
+                for step in range(recurrent_input.shape[1]):
+                    output, state = self.memory(
+                        recurrent_input[:, step].unsqueeze(0),
+                        masks=masks[:, step : step + 1],
+                        hidden_states=state,
+                        return_new_hidden_states=True,
+                    )
+                    outputs.append(output)
+                memory_out = torch.cat(outputs, dim=1)
+            else:
+                memory_out = self.memory(recurrent_input.transpose(0, 1), masks=masks, hidden_states=hidden_states)
         else:
             raise ValueError("P2 recurrent input must be rank 2 or 3")
         output = self.mlp_module(memory_out)
@@ -1066,6 +1086,21 @@ class _P2ActorBase(nn.Module):
         if self.distribution is None:
             raise RuntimeError("P2 action distribution is unavailable before sampling")
         return self.distribution.log_prob(actions).sum(dim=-1)
+
+    def act_from_latent(self, actor_obs, latent, masks=None, hidden_states=None):
+        """Evaluate the recurrent action distribution from a cached visual latent."""
+        mean = self.core.forward_from_latent(
+            actor_obs,
+            latent,
+            masks=masks,
+            hidden_states=hidden_states,
+            stepwise_replay=True,
+        )
+        self._distribution_from_mean(mean)
+        return {
+            "action_mean": self.action_mean,
+            "action_sigma": self.action_std,
+        }
 
     def _advance_step_once(self):
         """Advance the recurrent rollout counter exactly once per policy call."""
@@ -1340,6 +1375,27 @@ class DualD435HeadVisionRecurrentActor(_P2ActorBase):
         self._distribution_from_mean(mean)
         self._advance_step_once()
         return {"actions": self.distribution.sample(), "action_mean": self.action_mean, "action_sigma": self.action_std}
+
+    def rollout_with_latent(self, obs_dict, episode_attnmask=None, cur_dones=None, **kwargs):
+        """Sample an action and return the exact fused latent used for that action."""
+        self._update_obs_buffer(obs_dict, episode_attnmask, cur_dones)
+        del kwargs
+        with torch.no_grad():
+            latent = self._encode(
+                obs_dict[self.manipulation_vision_key],
+                obs_dict[self.context_vision_key],
+                obs_dict[self.camera_meta_key],
+                masks=None,
+            )
+            mean = self.core.forward_from_latent(obs_dict[self.input_key], latent)
+        self._distribution_from_mean(mean)
+        self._advance_step_once()
+        return {
+            "actions": self.distribution.sample(),
+            "action_mean": self.action_mean,
+            "action_sigma": self.action_std,
+            "latent": latent,
+        }
 
     def act_inference(self, obs_dict, episode_attnmask=None, cur_dones=None, **kwargs):
         self._update_obs_buffer(obs_dict, episode_attnmask, cur_dones)

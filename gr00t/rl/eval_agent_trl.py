@@ -67,6 +67,9 @@ _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS = {
 _A2_BASE_API_TRAINER_TARGET = (
     "gr00t.rl.trl.trainer.ppo_trainer_a2_base_api.TRLPPOTrainer"
 )
+_A2_GRPO_TRAINER_TARGET = (
+    "gr00t.rl.trl.trainer.grpo_trainer_a2_base_api.GRPOTrainerA2BaseAPI"
+)
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
@@ -517,7 +520,10 @@ def main(override_config: OmegaConf):
 
     # --- Build trainer (loads checkpoint weights) ---
     checkpoint_load_kwargs = {}
-    if config.trainer["_target_"] == _A2_BASE_API_TRAINER_TARGET:
+    if config.trainer["_target_"] in (
+        _A2_BASE_API_TRAINER_TARGET,
+        _A2_GRPO_TRAINER_TARGET,
+    ):
         checkpoint_load_kwargs["checkpoint_load_mode"] = "full"
 
     trainer = custom_instantiate(

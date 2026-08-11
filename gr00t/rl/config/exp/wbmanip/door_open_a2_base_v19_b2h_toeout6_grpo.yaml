@@ -1,0 +1,128 @@
+# @package _global_
+# GRPO shares the sealed ToeOut6 camera/env contract with the formal P2 Student.
+defaults:
+  - /exp/wbmanip/door_open_a2_base_v19_p2_b2h_toeout6_mgpu
+  - override /algo: grpo_a2_base
+  - override /trainer: trl_grpo_a2_base_api
+  - _self_
+
+exp_base: cb2h_v19_toeout6_grpo
+exp_var: actor_only_frozen_encoder
+experiment_name: cb2h_v19_toeout6_grpo
+project_name: a2_piper_open_door_cb2h_v19_toeout6_grpo
+num_gpus: 2
+num_envs: 64
+seed: 0
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+multi_gpu: true
+topology_id: A2-ACCELERATE-DDP-2RANK-GPU23-GRPO-V1
+gpu_binding_mode: accelerate-ddp-2rank-gpu23-grpo-v1
+approved_output_root: logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811
+distributed_master_port: 29623
+
+callbacks:
+  model_save:
+    save_frequency: 10
+    strict_mode: true
+
+algo:
+  trl:
+    num_total_batches: 200
+    world_size: 2
+    per_device_train_batch_size: 16
+    num_ppo_epochs: 1
+    num_mini_batches: 4
+    gradient_accumulation_steps: 1
+    learning_rate: 3.0e-5
+    gamma: 0.9966
+    lam: 0.983
+    vf_coef: 0.0
+  config:
+    use_dagger: false
+    distill_only: true
+    teacher_artifact: null
+    teacher_actor: null
+    critic: null
+    mixed_rollout_schedule: null
+    fresh_ddp_init: null
+    p2_lifecycle: null
+    p2_common_init: null
+    enforce_teacher_rollout: false
+    ratio_teacher_rollout: 0.0
+    compute_dagger_bc_loss_w_imgaug: false
+    compute_imgaug_bc_loss: false
+    use_obj_pred: false
+    obj_pred_loss_coef: 0.0
+    num_steps_per_env: 850
+    num_learning_epochs: 1
+    num_mini_batches: 4
+    per_device_train_batch_size: 16
+    gradient_accumulation_steps: 1
+    use_padding_mask: true
+    ppo_shuffle_every_epoch: false
+    sync_advantage_normalization: true
+    actor_learning_rate: 3.0e-5
+    critic_learning_rate: 0.0
+    value_loss_coef: 0.0
+    entropy_coef: 0.0
+    max_grad_norm: 1.0
+    clip_param: 0.2
+    gamma: 0.9966
+    lam: 0.983
+    desired_kl: 0.005
+    init_at_random_ep_len: false
+    init_noise_std: 0.05
+    max_noise_std: 0.05
+    clamp_noise_std: true
+    freeze_noise_std: true
+    train_with_evaluating_env: false
+    actor:
+      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_p2_recurrent.DualD435HeadVisionRecurrentToeOut6Actor
+      input_key: actor_obs
+      running_mean_std: true
+      rnn_type: lstm
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      view_contract:
+        camera_meta_dim: 6
+        d435i_forward_mode: packed
+      backbone:
+        d435i_vision_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: true
+          module_config_dict:
+            input_dim: [vision_obs]
+            output_dim: [128]
+            layer_config:
+              type: ResNet
+              resnet_type: resnet18
+              pretrained: true
+              trainable: true
+        head_vision_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: true
+          module_config_dict:
+            input_dim: [context_vision_obs]
+            output_dim: [128]
+            layer_config:
+              type: ResNet
+              resnet_type: resnet18
+              pretrained: true
+              trainable: true
+        mlp_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: true
+          module_config_dict:
+            input_dim: [actor_obs]
+            output_dim: [12]
+            layer_config:
+              type: MLP
+              hidden_dims: [512, 256, 128]
+              activation: SiLU
+
+env:
+  config:
+    enable_staged_reset: false
+    reset_from_dataset:
+      enabled: false

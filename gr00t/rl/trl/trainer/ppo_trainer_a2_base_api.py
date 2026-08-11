@@ -1039,6 +1039,19 @@ class PolicyAndValueWrapper(nn.Module):
         return flat_actions.reshape(*action_shape[:-1], flat_actions.shape[-1])
 
     def forward_component(self, mode, actions=None, **kwargs):
+        if mode == "policy_from_latent":
+            policy_state_dict = self.policy.act_from_latent(
+                actor_obs=kwargs["actor_obs"],
+                latent=kwargs["latent"],
+                masks=kwargs.get("masks"),
+                hidden_states=kwargs.get("hidden_states"),
+            )
+            high_level_actions = actions[..., : self.policy.num_actions]
+            return {
+                "logprobs": self.policy.get_actions_log_prob(actions=high_level_actions),
+                "action_mean": policy_state_dict["action_mean"],
+                "action_std": policy_state_dict["action_sigma"],
+            }
         if mode == "policy":
             self.policy.act(**kwargs)
             if self.use_a2_base:

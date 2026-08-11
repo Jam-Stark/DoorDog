@@ -297,15 +297,17 @@ def validate_checkpoint_and_config(
 ) -> dict[str, Any]:
     if _DIAGNOSTIC_PATH_ONLY:
         return _diagnostic_checkpoint_info(checkpoint, expected_global_step, config_override)
-    if isinstance(expected_global_step, bool) or expected_global_step != EXPECTED_GLOBAL_STEP:
-        raise ValueError(
-            f"expected global step must be exactly {EXPECTED_GLOBAL_STEP}; got {expected_global_step!r}"
-        )
+    if (
+        isinstance(expected_global_step, bool)
+        or not isinstance(expected_global_step, int)
+        or expected_global_step <= 0
+    ):
+        raise ValueError(f"expected global step must be a positive integer; got {expected_global_step!r}")
     checkpoint = _workspace_path(checkpoint, must_exist=True)
-    if checkpoint.name != f"model_step_{EXPECTED_GLOBAL_STEP:06d}.pt":
+    if checkpoint.name != f"model_step_{expected_global_step:06d}.pt":
         raise ValueError(
             "checkpoint filename must encode the required global step: "
-            f"model_step_{EXPECTED_GLOBAL_STEP:06d}.pt; got {checkpoint.name!r}"
+            f"model_step_{expected_global_step:06d}.pt; got {checkpoint.name!r}"
         )
     config_path = checkpoint.with_name("config.yaml")
     if config_override is not None:
@@ -438,15 +440,17 @@ def _diagnostic_checkpoint_info(
     expected_global_step: int,
     config_override: Path | None = None,
 ) -> dict[str, Any]:
-    if isinstance(expected_global_step, bool) or expected_global_step != EXPECTED_GLOBAL_STEP:
-        raise ValueError(
-            f"expected global step must be exactly {EXPECTED_GLOBAL_STEP}; got {expected_global_step!r}"
-        )
+    if (
+        isinstance(expected_global_step, bool)
+        or not isinstance(expected_global_step, int)
+        or expected_global_step <= 0
+    ):
+        raise ValueError(f"expected global step must be a positive integer; got {expected_global_step!r}")
     checkpoint = _workspace_path(checkpoint, must_exist=True)
-    if checkpoint.name != f"model_step_{EXPECTED_GLOBAL_STEP:06d}.pt":
+    if checkpoint.name != f"model_step_{expected_global_step:06d}.pt":
         raise ValueError(
             "checkpoint filename must encode the required global step: "
-            f"model_step_{EXPECTED_GLOBAL_STEP:06d}.pt; got {checkpoint.name!r}"
+            f"model_step_{expected_global_step:06d}.pt; got {checkpoint.name!r}"
         )
     config_path = checkpoint.with_name("config.yaml")
     if config_override is not None:
@@ -1645,6 +1649,7 @@ def _prepare_runtime(
     import isaaclab.app as isaaclab_app
 
     from gr00t.rl.trl.trainer.distill_trainer_a2_base_api import TRLDistillTrainerA2BaseAPI
+    from gr00t.rl.trl.trainer.grpo_trainer_a2_base_api import GRPOTrainerA2BaseAPI
     from gr00t.rl.trl.trainer.ppo_trainer import TRLPPOTrainer as GenericTRLPPOTrainer
     from gr00t.rl.trl.trainer.ppo_trainer_a2_base_api import TRLPPOTrainer as A2TRLPPOTrainer
 
@@ -1669,7 +1674,7 @@ def _prepare_runtime(
     )
     base_eval = A2TRLPPOTrainer.eval
     if mode == "formal":
-        TRLDistillTrainerA2BaseAPI.eval = make_formal_eval(
+        formal_eval = make_formal_eval(
             base_eval,
             output_root,
             checkpoint_info,
@@ -1678,8 +1683,10 @@ def _prepare_runtime(
             seed=seed,
             diagnostic=False,
         )
+        TRLDistillTrainerA2BaseAPI.eval = formal_eval
+        GRPOTrainerA2BaseAPI.eval = formal_eval
     elif mode == "diagnose":
-        TRLDistillTrainerA2BaseAPI.eval = make_formal_eval(
+        diagnostic_eval = make_formal_eval(
             base_eval,
             output_root,
             checkpoint_info,
@@ -1688,10 +1695,12 @@ def _prepare_runtime(
             seed=seed,
             diagnostic=True,
         )
+        TRLDistillTrainerA2BaseAPI.eval = diagnostic_eval
+        GRPOTrainerA2BaseAPI.eval = diagnostic_eval
     elif mode == "render":
         if selection is None or selection_path is None:
             raise ValueError("render runtime requires sealed selection and path")
-        TRLDistillTrainerA2BaseAPI.eval = make_render_eval(
+        render_eval = make_render_eval(
             base_eval,
             output_root,
             selection,
@@ -1700,6 +1709,8 @@ def _prepare_runtime(
             source_identity,
             seed=seed,
         )
+        TRLDistillTrainerA2BaseAPI.eval = render_eval
+        GRPOTrainerA2BaseAPI.eval = render_eval
     else:
         raise ValueError(f"unsupported runtime mode {mode!r}")
 

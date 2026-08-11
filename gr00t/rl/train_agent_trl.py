@@ -74,6 +74,17 @@ _A2_MGPU_GPU_UUIDS = {
     2: "GPU-4ac67b5e-dc39-3565-d84b-1e7ce20127fa",
     3: "GPU-7c8cb1d2-4ebf-e2e3-35ad-fa0f6f72924d",
 }
+_A2_GRPO_MGPU_BINDING_MODE = "accelerate-ddp-2rank-gpu23-grpo-v1"
+_A2_GRPO_MGPU_TOPOLOGY_ID = "A2-ACCELERATE-DDP-2RANK-GPU23-GRPO-V1"
+_A2_GRPO_MGPU_PHYSICAL_GPU_SET = "2,3"
+_A2_GRPO_MGPU_MASTER_PORT = "29623"
+_A2_GRPO_MGPU_GPU_UUIDS = {
+    0: "GPU-7bb5efaa-24d3-ea73-c1ee-9b3341a708be",
+    1: "GPU-ffc02ac2-e15e-00e3-f842-6f501cb0b6e5",
+}
+_A2_DDP_BINDING_MODES = frozenset(
+    (_A2_MGPU_BINDING_MODE, _A2_GRPO_MGPU_BINDING_MODE)
+)
 _A2_GPU_BINDING_ENV = "A2_GPU_BINDING_MODE"
 # The single-visible and four-rank contracts declare disjoint required schemas.
 # ``_A2_EXPECTED_ENV`` is only the union used to reject unknown names; each
@@ -309,6 +320,96 @@ def _validate_a2_mgpu_binding(env: Mapping[str, str]):
     return identity
 
 
+def _validate_a2_grpo_mgpu_binding(env: Mapping[str, str]):
+    """Validate the two-rank, one-visible-GPU-per-rank GRPO topology."""
+    required = (
+        _A2_GPU_BINDING_ENV,
+        "CUDA_VISIBLE_DEVICES",
+        "CUDA_DEVICE_ORDER",
+        "WORLD_SIZE",
+        "LOCAL_WORLD_SIZE",
+        "RANK",
+        "LOCAL_RANK",
+        "MASTER_ADDR",
+        "MASTER_PORT",
+        "A2_EXPECTED_WORLD_SIZE",
+        "A2_EXPECTED_RANK",
+        "A2_EXPECTED_HOST_GPU_INDEX",
+        "A2_EXPECTED_LOGICAL_GPU_INDEX",
+        "A2_EXPECTED_GPU_UUID",
+        "A2_EXPECTED_PHYSICAL_GPU_SET",
+        "A2_EXPECTED_MASTER_ADDR",
+        "A2_EXPECTED_MASTER_PORT",
+    )
+    missing = [name for name in required if name not in env]
+    if missing:
+        raise RuntimeError(f"A2 GRPO DDP binding schema is incomplete; missing={missing}")
+    if env[_A2_GPU_BINDING_ENV] != _A2_GRPO_MGPU_BINDING_MODE:
+        raise RuntimeError("A2 GRPO DDP binding mode drifted")
+    if env["CUDA_DEVICE_ORDER"] != "PCI_BUS_ID":
+        raise RuntimeError("A2 GRPO DDP requires CUDA_DEVICE_ORDER=PCI_BUS_ID")
+
+    world_size = _parse_distributed_int(env["WORLD_SIZE"], "WORLD_SIZE")
+    local_world_size = _parse_distributed_int(env["LOCAL_WORLD_SIZE"], "LOCAL_WORLD_SIZE")
+    rank = _parse_distributed_int(env["RANK"], "RANK")
+    local_rank = _parse_distributed_int(env["LOCAL_RANK"], "LOCAL_RANK")
+    expected_world_size = _parse_distributed_int(
+        env["A2_EXPECTED_WORLD_SIZE"], "A2_EXPECTED_WORLD_SIZE"
+    )
+    expected_rank = _parse_distributed_int(env["A2_EXPECTED_RANK"], "A2_EXPECTED_RANK")
+    host_gpu_index = _parse_distributed_int(
+        env["A2_EXPECTED_HOST_GPU_INDEX"], "A2_EXPECTED_HOST_GPU_INDEX"
+    )
+    logical_gpu_index = _parse_distributed_int(
+        env["A2_EXPECTED_LOGICAL_GPU_INDEX"], "A2_EXPECTED_LOGICAL_GPU_INDEX"
+    )
+    expected_master_port = _parse_distributed_int(
+        env["A2_EXPECTED_MASTER_PORT"], "A2_EXPECTED_MASTER_PORT"
+    )
+    if (world_size, local_world_size, expected_world_size) != (2, 1, 2):
+        raise RuntimeError("A2 GRPO DDP requires world/local/expected world sizes 2/1/2")
+    if rank not in range(2) or expected_rank != rank or local_rank != 0:
+        raise RuntimeError("A2 GRPO DDP requires global ranks 0..1 and LOCAL_RANK=0")
+    if host_gpu_index != rank + 2 or env["CUDA_VISIBLE_DEVICES"] != str(host_gpu_index):
+        raise RuntimeError("A2 GRPO DDP physical GPU mapping must be rank0->2 and rank1->3")
+    if logical_gpu_index != 0:
+        raise RuntimeError("A2 GRPO DDP requires one visible logical CUDA device at index 0")
+    if env["A2_EXPECTED_PHYSICAL_GPU_SET"] != _A2_GRPO_MGPU_PHYSICAL_GPU_SET:
+        raise RuntimeError("A2 GRPO DDP physical GPU set must be exactly 2,3")
+    if env["MASTER_ADDR"] != "127.0.0.1" or env["A2_EXPECTED_MASTER_ADDR"] != env["MASTER_ADDR"]:
+        raise RuntimeError("A2 GRPO DDP master address must be 127.0.0.1")
+    if env["MASTER_PORT"] != _A2_GRPO_MGPU_MASTER_PORT or expected_master_port != int(
+        _A2_GRPO_MGPU_MASTER_PORT
+    ):
+        raise RuntimeError(f"A2 GRPO DDP master port must be {_A2_GRPO_MGPU_MASTER_PORT}")
+    expected_uuid = _A2_GRPO_MGPU_GPU_UUIDS[rank]
+    if env["A2_EXPECTED_GPU_UUID"] != expected_uuid:
+        raise RuntimeError("A2 GRPO DDP GPU UUID mapping drifted")
+
+    identity = {
+        "mode": _A2_GRPO_MGPU_BINDING_MODE,
+        "topology_id": _A2_GRPO_MGPU_TOPOLOGY_ID,
+        "world_size": 2,
+        "rank": rank,
+        "local_rank": 0,
+        "host_gpu_index": host_gpu_index,
+        "logical_gpu_index": 0,
+        "pinned_uuid": expected_uuid,
+        "cuda_visible_devices": env["CUDA_VISIBLE_DEVICES"],
+        "physical_gpu_set": _A2_GRPO_MGPU_PHYSICAL_GPU_SET,
+        "single_visible": True,
+        "master_addr": env["MASTER_ADDR"],
+        "master_port": int(_A2_GRPO_MGPU_MASTER_PORT),
+    }
+    print(
+        "[A2_GRPO_MGPU_BINDING_ENV] "
+        f"topology={_A2_GRPO_MGPU_TOPOLOGY_ID} rank={rank} "
+        f"host_gpu={host_gpu_index} logical_cuda=0 world_size=2",
+        flush=True,
+    )
+    return identity
+
+
 def _validate_a2_gpu_binding(env: Mapping[str, str] | None = None):
     """Validate the exact single-visible CUDA0 A2 launch schema before imports."""
     values = os.environ if env is None else env
@@ -334,6 +435,8 @@ def _validate_a2_gpu_binding(env: Mapping[str, str] | None = None):
         )
     if not _a2_gpu_binding_env_present(values):
         return None
+    if values.get(_A2_GPU_BINDING_ENV) == _A2_GRPO_MGPU_BINDING_MODE:
+        return _validate_a2_grpo_mgpu_binding(values)
     if values.get(_A2_GPU_BINDING_ENV) == _A2_MGPU_BINDING_MODE:
         return _validate_a2_mgpu_binding(values)
     if values.get(_A2_GPU_BINDING_ENV) != _A2_GPU_BINDING_MODE:
@@ -499,12 +602,12 @@ def _prepare_a2_torch_device(identity: Mapping[str, object]):
     host_gpu_index = int(identity["host_gpu_index"])
     logical_gpu_index = int(identity["logical_gpu_index"])
     expected_uuid = str(identity["pinned_uuid"])
-    if identity.get("mode") == _A2_MGPU_BINDING_MODE and identity.get("single_visible") is True:
+    if identity.get("mode") in _A2_DDP_BINDING_MODES and identity.get("single_visible") is True:
         if logical_gpu_index != 0:
             raise RuntimeError("A2 single-CVD four-rank binding requires logical CUDA device 0")
         if torch.cuda.device_count() != 1:
             raise RuntimeError(
-                "A2 single-CVD four-rank binding requires exactly one visible CUDA device; "
+                "A2 single-CVD DDP binding requires exactly one visible CUDA device; "
                 f"got device_count={torch.cuda.device_count()}"
             )
         torch.cuda.set_device(0)
@@ -521,7 +624,7 @@ def _prepare_a2_torch_device(identity: Mapping[str, object]):
         print(
             "[A2_MGPU_BINDING_TORCH] "
             f"rank={identity['rank']} local_rank=0 host_gpu_index={host_gpu_index} "
-            f"logical_cuda=0 uuid={expected_uuid} world_size=4 single_cvd=true",
+            f"logical_cuda=0 uuid={expected_uuid} world_size={identity['world_size']} single_cvd=true",
             flush=True,
         )
         return torch.device("cuda", 0)
@@ -621,8 +724,9 @@ def _a2_wait_for_everyone(accelerator, identity) -> None:
         return
     import torch
 
-    if identity.get("mode") == _A2_MGPU_BINDING_MODE:
-        if accelerator.num_processes != 4 or accelerator.process_index != int(identity["rank"]):
+    if identity.get("mode") in _A2_DDP_BINDING_MODES:
+        world_size = int(identity["world_size"])
+        if accelerator.num_processes != world_size or accelerator.process_index != int(identity["rank"]):
             raise RuntimeError(
                 "A2 four-rank Accelerator identity mismatch at barrier; "
                 f"world={accelerator.num_processes} rank={accelerator.process_index} "
@@ -676,7 +780,7 @@ def _validate_a2_ppo_config(training_args, identity: Mapping[str, object]) -> No
     from accelerate.state import DistributedType
     from transformers.training_args import ParallelMode
 
-    if identity.get("mode") == _A2_MGPU_BINDING_MODE:
+    if identity.get("mode") in _A2_DDP_BINDING_MODES:
         state = getattr(training_args, "distributed_state", None)
         expected_device = torch.device("cuda", int(identity["local_rank"]))
         if state is None or torch.device(state.device) != expected_device:
@@ -686,8 +790,9 @@ def _validate_a2_ppo_config(training_args, identity: Mapping[str, object]) -> No
                 "A2 four-rank PPOConfig requires Accelerate DistributedType.MULTI_GPU; "
                 f"got {state.distributed_type}"
             )
-        if int(state.num_processes) != 4 or int(state.process_index) != int(identity["rank"]):
-            raise RuntimeError("A2 four-rank PPOConfig world/rank mismatch")
+        world_size = int(identity["world_size"])
+        if int(state.num_processes) != world_size or int(state.process_index) != int(identity["rank"]):
+            raise RuntimeError("A2 DDP PPOConfig world/rank mismatch")
         if torch.cuda.current_device() != int(identity["local_rank"]):
             raise RuntimeError("A2 four-rank PPOConfig current CUDA index mismatch")
         if int(training_args.local_rank) != int(identity["local_rank"]):
@@ -696,12 +801,12 @@ def _validate_a2_ppo_config(training_args, identity: Mapping[str, object]) -> No
             raise RuntimeError("A2 four-rank each process must expose exactly one local GPU")
         if training_args.parallel_mode is not ParallelMode.DISTRIBUTED:
             raise RuntimeError("A2 four-rank PPOConfig must use distributed parallel mode")
-        if getattr(training_args, "world_size", None) != 4:
-            raise RuntimeError("A2 four-rank PPOConfig world_size must equal 4")
+        if getattr(training_args, "world_size", None) != world_size:
+            raise RuntimeError(f"A2 DDP PPOConfig world_size must equal {world_size}")
         print(
             "[A2_MGPU_PPO_CONFIG] "
             f"topology={identity['topology_id']} rank={identity['rank']} "
-            f"local_rank={identity['local_rank']} device={expected_device} world_size=4",
+            f"local_rank={identity['local_rank']} device={expected_device} world_size={world_size}",
             flush=True,
         )
         return
@@ -774,11 +879,12 @@ def _validate_a2_accelerator_binding(accelerator, identity: Mapping[str, object]
     import torch
     from accelerate.state import DistributedType
 
-    if identity.get("mode") == _A2_MGPU_BINDING_MODE:
+    if identity.get("mode") in _A2_DDP_BINDING_MODES:
         expected_device = torch.device("cuda", int(identity["local_rank"]))
         state = getattr(accelerator, "state", None)
-        if accelerator.num_processes != 4 or accelerator.process_index != int(identity["rank"]):
-            raise RuntimeError("A2 four-rank Accelerator world/rank mismatch")
+        world_size = int(identity["world_size"])
+        if accelerator.num_processes != world_size or accelerator.process_index != int(identity["rank"]):
+            raise RuntimeError("A2 DDP Accelerator world/rank mismatch")
         if state is None or state.distributed_type is not DistributedType.MULTI_GPU:
             raise RuntimeError("A2 four-rank Accelerator requires DistributedType.MULTI_GPU")
         if torch.device(accelerator.device) != expected_device:
@@ -793,7 +899,7 @@ def _validate_a2_accelerator_binding(accelerator, identity: Mapping[str, object]
         print(
             "[A2_MGPU_ACCELERATOR] "
             f"topology={identity['topology_id']} rank={identity['rank']} "
-            f"local_rank={identity['local_rank']} device={expected_device} world_size=4",
+            f"local_rank={identity['local_rank']} device={expected_device} world_size={world_size}",
             flush=True,
         )
         return
@@ -1084,6 +1190,9 @@ def save_training_config_snapshots(config, experiment_save_dir, unresolved_conf=
 _A2_BASE_API_TRAINER_TARGET = (
     "gr00t.rl.trl.trainer.ppo_trainer_a2_base_api.TRLPPOTrainer"
 )
+_A2_GRPO_TRAINER_TARGET = (
+    "gr00t.rl.trl.trainer.grpo_trainer_a2_base_api.GRPOTrainerA2BaseAPI"
+)
 _A2_GPU_BINDING_TRAINER_TARGETS = frozenset(
     (
         _A2_BASE_API_TRAINER_TARGET,
@@ -1109,10 +1218,11 @@ def _validate_training_checkpoint_load_config(config):
             raise ValueError(
                 "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
             )
-        if trainer_target != _A2_BASE_API_TRAINER_TARGET:
+        if trainer_target not in (_A2_BASE_API_TRAINER_TARGET, _A2_GRPO_TRAINER_TARGET):
             raise ValueError(
                 "checkpoint_load_mode='policy_only' is only implemented by "
-                f"{_A2_BASE_API_TRAINER_TARGET}; got trainer target {trainer_target!r}."
+                "the A2 PPO/GRPO trainers; "
+                f"got trainer target {trainer_target!r}."
             )
     return checkpoint_load_mode, trainer_target
 
@@ -2646,7 +2756,7 @@ def main(config: OmegaConf):
     if A2_GPU_BINDING is not None:
         _validate_a2_accelerator_binding(accelerator, A2_GPU_BINDING)
 
-    if A2_GPU_BINDING is not None and A2_GPU_BINDING.get("mode") == _A2_MGPU_BINDING_MODE:
+    if A2_GPU_BINDING is not None and A2_GPU_BINDING.get("mode") in _A2_DDP_BINDING_MODES:
         device = f"cuda:{A2_GPU_BINDING['local_rank']}"
     elif A2_GPU_BINDING is not None:
         device = "cuda:0"
@@ -2713,7 +2823,7 @@ def main(config: OmegaConf):
         args_cli.headless = config.headless
         if A2_GPU_BINDING is not None:
             args_cli.multi_gpu = False
-            if A2_GPU_BINDING.get("mode") == _A2_MGPU_BINDING_MODE:
+            if A2_GPU_BINDING.get("mode") in _A2_DDP_BINDING_MODES:
                 args_cli.distributed = True
                 args_cli.device = f"cuda:{A2_GPU_BINDING['local_rank']}"
             else:
@@ -3018,7 +3128,7 @@ def main(config: OmegaConf):
         print("saved meta:", meta)
 
     checkpoint_load_kwargs = {}
-    if trainer_target == _A2_BASE_API_TRAINER_TARGET:
+    if trainer_target in (_A2_BASE_API_TRAINER_TARGET, _A2_GRPO_TRAINER_TARGET):
         checkpoint_load_kwargs["checkpoint_load_mode"] = checkpoint_load_mode
     if trainer_target in _A2_GPU_BINDING_TRAINER_TARGETS:
         checkpoint_load_kwargs["a2_gpu_identity"] = A2_GPU_BINDING

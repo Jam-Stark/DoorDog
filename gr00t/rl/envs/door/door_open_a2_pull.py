@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import math
+import json
 from collections.abc import Mapping
+from pathlib import Path
 
 import torch
 from isaaclab.sensors import ContactSensor, ContactSensorCfg
@@ -33,6 +35,7 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
     A2_PULL_NA,
     a2_pull_event_state_names,
     advance_a2_pull_events,
+    a2_pull_v5_release_tuck_override,
     validate_a2_pull_control_step,
     validate_a2_pull_episode,
 )
@@ -40,9 +43,12 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V0_TARGET_ORIENTATION_WXYZ,
     A2_PULL_V3_PLAN_ID,
     A2_PULL_V4_PLAN_ID,
+    A2_PULL_V5_PLAN_ID,
+    A2_PULL_V5_RELEASE_STREAK_STEPS,
 )
 from gr00t.rl.envs.door.door_open_a2_base import (
     DoorPregrasp,
+    a2_hold_base_relief_command,
     a2_hold_pd_effort_estimates,
 )
 from gr00t.rl.isaac_utils.rotations import xyzw_to_wxyz
@@ -76,6 +82,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         super().__init__(config, device)
 
+    def _is_a2_pull_v5(self) -> bool:
+        return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V5_PLAN_ID
+
     def _is_a2_pull_v3(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V3_PLAN_ID
 
@@ -83,7 +92,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V4_PLAN_ID
 
     def _is_a2_pull_traversal(self) -> bool:
-        return self._is_a2_pull_v3() or self._is_a2_pull_v4()
+        return self._is_a2_pull_v3() or self._is_a2_pull_v4() or self._is_a2_pull_v5()
 
     def _get_a2_pull_threshold_mode(self) -> str:
         mode = self.config.get("a2_pull_threshold_mode")
@@ -355,6 +364,698 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_last_raw_reward_components: dict[str, torch.Tensor] = {}
         self._a2_pull_runtime_telemetry_contract_checked = False
         self._a2_pull_runtime_telemetry_contract_sample: list[dict] = []
+        if self._is_a2_pull_v5():
+            self._a2_pull_v5_persistent_release_streak = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_persistent_release = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_intervention_elapsed_steps = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_intervention_active = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_intervention_fired = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_solvable = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_reset_source = ["natural" for _ in range(self.num_envs)]
+            self._a2_pull_v5_pending_reset_source = ["natural" for _ in range(self.num_envs)]
+            self._a2_pull_v5_bank_slot_sources: list[str] = []
+            self._a2_pull_v5_bank_loaded = False
+
+    @override
+    def _init_a2_door_pregrasp_state(self):
+        super()._init_a2_door_pregrasp_state()
+        if self.config.get("a2_pull_v5_census_enabled", False) and "a2_pull_prev_stable_contact" not in self.staged_reset_buf:
+            self._register_buffer_to_track(
+                "a2_pull_prev_stable_contact",
+                tuple(self._a2_pull_prev_stable_contact.shape),
+                lambda env_ids: self._a2_pull_prev_stable_contact[env_ids].clone(),
+                lambda env_ids, data: self._load_a2_pull_v5_named_buffer(
+                    "a2_pull_prev_stable_contact", env_ids, data
+                ),
+                dtype=self._a2_pull_prev_stable_contact.dtype,
+            )
+        if self._is_a2_pull_v5():
+            self._register_a2_pull_v5_staged_reset_buffers()
+            self._load_a2_pull_v5_state_bank()
+
+    def _register_a2_pull_v5_staged_reset_buffers(self) -> None:
+        """Track every pull telemetry tensor restored with a Stage-4 bank state."""
+
+        if not self.enable_staged_reset:
+            raise RuntimeError("Pull-v5 state-bank injection requires enable_staged_reset=true.")
+        names = (
+            "a2_pull_event_reached",
+            "a2_pull_stable_unlatch_handle_ever",
+            "a2_pull_stable_unlatch_latch_ever",
+            "a2_pull_relock_handle_ever",
+            "a2_pull_relock_latch_ever",
+            "a2_pull_prev_handle_unlatched",
+            "a2_pull_prev_latch_unlatched",
+            "a2_pull_first_event_step",
+            "a2_pull_first_event_time_s",
+            "a2_pull_capture_root_x",
+            "a2_pull_capture_valid",
+            "a2_pull_max_tensile_retreat_m",
+            "a2_pull_release_or_hold_decision",
+            "a2_pull_proof_active",
+            "a2_pull_proof_start_root_x",
+            "a2_pull_proof_last_root_x",
+            "a2_pull_proof_duration_s",
+            "a2_pull_proof_displacement_m",
+            "a2_pull_proof_streak",
+            "a2_pull_proof_valid",
+            "a2_pull_minimum_panel_robot_clearance_m",
+            "a2_pull_clearance_ready",
+            "a2_pull_aperture_ready",
+            "a2_pull_frame_passage",
+            "a2_pull_frame_passage_step",
+            "a2_pull_planar_crossing",
+            "a2_pull_planar_crossing_step",
+            "a2_pull_detour",
+            "a2_pull_frame_approach",
+            "a2_pull_frame_approach_active",
+            "a2_pull_frame_approach_pre_aperture_steps",
+            "a2_pull_frame_approach_post_frame_passage_steps",
+            "a2_pull_frame_midpoint_distance_min_m",
+            "a2_pull_deliberate_release",
+            "a2_pull_deliberate_release_step",
+            "a2_pull_first_negative_x_motion_step",
+            "a2_pull_prev_stable_contact",
+            "a2_pull_prev_panel_contact",
+            "a2_pull_post_release_recontact_count",
+            "a2_pull_base_path_length_m",
+            "a2_pull_prev_base_pos_xy",
+            "a2_pull_base_reversal_count",
+            "a2_pull_prev_travel_velocity",
+            "a2_pull_swept_arc_clearance_margin_current_m",
+            "a2_pull_swept_arc_clearance_margin_min_m",
+            "a2_pull_corridor_door_wide_pre_aperture_steps",
+            "a2_pull_corridor_clean_passage_pre_aperture_steps",
+            "a2_pull_stage0_staging_band",
+            "a2_pull_stage0_arm_default",
+            "a2_pull_stage0_base_still",
+            "a2_pull_first_scripted_activation_step",
+            "a2_pull_hinge_at_first_positive_progress_rad",
+            "a2_pull_held_hinge_max_rad",
+            "a2_pull_hinge_at_decision_rad",
+            "a2_pull_root_outward_excursion_m",
+            "a2_pull_first_path_reversal_step",
+            "a2_pull_body_panel_contact_steps",
+            "a2_pull_body_panel_contact_impulse_ns",
+            "a2_pull_prev_handle_to_tcp_pos",
+            "a2_pull_handle_local_slip_xyz_mps",
+            "a2_pull_handle_local_slip_valid",
+            "a2_pull_v5_persistent_release_streak",
+            "a2_pull_v5_persistent_release",
+            "a2_pull_v5_intervention_elapsed_steps",
+            "a2_pull_v5_intervention_active",
+        )
+        for name in names:
+            tensor = getattr(self, f"_{name}")
+            if not torch.is_tensor(tensor) or tensor.shape[0] != self.num_envs:
+                raise RuntimeError(
+                    f"Pull-v5 staged buffer {name} must be a tensor with leading env axis; "
+                    f"got {getattr(tensor, 'shape', None)}."
+                )
+            if name in self.staged_reset_buf:
+                raise RuntimeError(f"Pull-v5 staged buffer name collides with existing entry: {name}")
+            self._register_buffer_to_track(
+                name,
+                tuple(tensor.shape),
+                lambda env_ids, name=name: self._store_a2_pull_v5_named_buffer(name, env_ids),
+                lambda env_ids, data, name=name: self._load_a2_pull_v5_named_buffer(name, env_ids, data),
+                dtype=tensor.dtype,
+            )
+
+    def _store_a2_pull_v5_named_buffer(self, name: str, env_ids: torch.Tensor) -> torch.Tensor:
+        value = getattr(self, f"_{name}")
+        return value[env_ids].clone()
+
+    def _load_a2_pull_v5_named_buffer(self, name: str, env_ids: torch.Tensor, data: torch.Tensor) -> None:
+        value = getattr(self, f"_{name}")
+        expected = (len(env_ids), *value.shape[1:])
+        if tuple(data.shape) != expected or data.dtype != value.dtype or data.device != value.device:
+            raise RuntimeError(
+                f"Pull-v5 staged buffer {name} shape/dtype/device mismatch: "
+                f"expected={expected}/{value.dtype}/{value.device}, got={tuple(data.shape)}/{data.dtype}/{data.device}."
+            )
+        value[env_ids] = data
+
+    def apply_a2_pull_v5_intervention(self, policy_action: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Apply the paired P2 one-second arm/gripper override to a high-level action."""
+
+        if not self._is_a2_pull_v5():
+            raise RuntimeError("Pull-v5 intervention is only available under the v5 plan guard.")
+        enabled = self.config["a2_pull_v5_intervention_enabled"]
+        if not isinstance(enabled, bool):
+            raise RuntimeError("a2_pull_v5_intervention_enabled must be bool.")
+        hinge = self._get_door_joint_pos("pull-v5 intervention", 3)[:, 0]
+        aperture = self._a2_pull_aperture_ready
+        trigger = aperture & (hinge >= 1.60)
+        newly_active = enabled & trigger & ~self._a2_pull_v5_intervention_fired
+        self._a2_pull_v5_intervention_fired |= newly_active
+        self._a2_pull_v5_intervention_elapsed_steps[newly_active] = 0
+        self._a2_pull_v5_intervention_active |= newly_active
+        # Keep the one-second window latched after the trigger even if the
+        # instantaneous aperture predicate flickers on the next control step.
+        latched_hinge = torch.where(
+            self._a2_pull_v5_intervention_active,
+            torch.full_like(hinge, 1.60),
+            hinge,
+        )
+        latched_aperture = aperture | self._a2_pull_v5_intervention_active
+        if (
+            not torch.is_tensor(self._delta_actions)
+            or tuple(self._delta_actions.shape) != (self.num_envs, 6)
+            or self._delta_actions.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(self._delta_actions))
+        ):
+            raise RuntimeError(
+                "Pull-v5 intervention requires finite cumulative arm targets with shape (N,6)."
+            )
+        if not isinstance(self._delta_action_scale, (int, float)) or self._delta_action_scale <= 0:
+            raise RuntimeError("Pull-v5 intervention requires a positive delta_action_scale.")
+        # DeltaActionBase applies this raw arm command before writing the
+        # cumulative target.  Driving by -d_prev/scale lands at the actual
+        # Piper default pose (d_des=0), rather than holding the current target.
+        default_arm_action = -self._delta_actions / float(self._delta_action_scale)
+        applied, active = a2_pull_v5_release_tuck_override(
+            policy_action,
+            latched_hinge,
+            latched_aperture,
+            self._a2_pull_v5_intervention_elapsed_steps,
+            dt=float(self.dt),
+            enabled=enabled,
+            arm_action=default_arm_action,
+        )
+        self._a2_pull_v5_intervention_elapsed_steps[active] += 1
+        self._a2_pull_v5_intervention_active &= active
+        return applied, active
+
+    def apply_a2_pull_v5_probe_command(
+        self,
+        policy_action: torch.Tensor,
+        command_name: str,
+        fixture: str,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Apply one registered P1 locomotion command through the A2 action path."""
+
+        if not self._is_a2_pull_v5():
+            raise RuntimeError("Pull-v5 probe commands require the v5 plan guard.")
+        if fixture not in {"anchor", "door"}:
+            raise RuntimeError(f"Pull-v5 probe fixture must be anchor or door; got {fixture!r}.")
+        command_library = {
+            "straight_minus_x": (-0.30, 0.0, 0.0),
+            "turn_then_forward": (0.0, 0.0, -0.55),
+            "side_step": (-0.18, 0.24, 0.0),
+            "arc": (-0.22, 0.0, 0.35),
+        }
+        if command_name not in command_library:
+            raise RuntimeError(f"Pull-v5 probe command is not registered: {command_name!r}.")
+        if (
+            not torch.is_tensor(policy_action)
+            or tuple(policy_action.shape) != (self.num_envs, 12)
+            or not policy_action.is_floating_point()
+            or policy_action.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(policy_action))
+        ):
+            raise RuntimeError("Pull-v5 probe requires a finite device-local high-level action (N,12).")
+        robot_root_quat = self.simulator.scene.articulations["robot"].data.root_quat_w
+        if (
+            tuple(robot_root_quat.shape) != (self.num_envs, 4)
+            or robot_root_quat.device != policy_action.device
+            or robot_root_quat.dtype != policy_action.dtype
+            or not torch.all(torch.isfinite(robot_root_quat))
+        ):
+            raise RuntimeError("Pull-v5 probe requires finite robot root quaternions with shape (N,4).")
+        command_xy = torch.tensor(
+            command_library[command_name][:2], device=self.device, dtype=policy_action.dtype
+        ).expand(self.num_envs, 2)
+        _residual, solvable, _body_velocity, raw_base = a2_hold_base_relief_command(
+            command_xy,
+            robot_root_quat,
+            torch.ones(self.num_envs, dtype=torch.bool, device=self.device),
+            physical_speed_mps=0.30,
+            base_command_scale=self._a2_base_command_scale,
+            min_solvable_horizontal_error_m=1.0e-3,
+        )
+        applied = policy_action.clone()
+        applied[:, :5] = raw_base
+        applied[:, 2] = float(command_library[command_name][2]) / float(self._a2_base_command_scale)
+        self._a2_pull_v5_probe_solvable |= solvable
+        return applied, solvable
+
+    @staticmethod
+    def _pull_v5_repo_path(raw_path: str, label: str) -> Path:
+        if not isinstance(raw_path, str) or not raw_path or Path(raw_path).is_absolute():
+            raise RuntimeError(f"Pull-v5 {label} must be a non-empty repository-relative path.")
+        root = Path(__file__).resolve().parents[4]
+        path = (root / raw_path).resolve()
+        if not path.is_relative_to(root):
+            raise RuntimeError(f"Pull-v5 {label} escapes the repository: {raw_path!r}.")
+        return path
+
+    def _load_a2_pull_v5_state_bank(self) -> None:
+        capture_only = self.config.get("a2_pull_v5_bank_capture_only", False)
+        if not isinstance(capture_only, bool):
+            raise RuntimeError("Pull-v5 bank capture-only selector must be bool.")
+        if capture_only:
+            # Source producers run the same v5 staged writers but intentionally
+            # omit bank injection; the builder consumes their snapshots.
+            return
+        enabled = self.config["a2_pull_v5_stage4_bank_injection_enabled"]
+        if enabled is not True:
+            raise RuntimeError("Pull-v5 runtime requires stage4 bank injection enabled for training configs.")
+        bank_path = self._pull_v5_repo_path(
+            self.config["a2_pull_v5_state_bank_path"], "state bank path"
+        )
+        if not bank_path.is_file():
+            raise FileNotFoundError(f"Pull-v5 state bank is required before v5 construction: {bank_path}")
+        payload = torch.load(bank_path, map_location=self.device, weights_only=False)
+        if not isinstance(payload, Mapping) or payload.get("schema") != "a2_piper_pull_v5_state_bank_v1":
+            raise RuntimeError("Pull-v5 state bank schema must be a2_piper_pull_v5_state_bank_v1.")
+        required = (
+            "robot_root_state",
+            "robot_dof_pos",
+            "robot_dof_vel",
+            "door_root_state",
+            "door_dof_pos",
+            "door_dof_vel",
+            "source_env_origin",
+            "provenance",
+            "buffers",
+        )
+        missing = [name for name in required if name not in payload]
+        if missing:
+            raise RuntimeError(f"Pull-v5 state bank is missing required fields: {missing}")
+        bank_size = len(payload["provenance"])
+        minimum = int(self.config["a2_pull_v5_state_bank_min_samples"])
+        if bank_size < minimum:
+            raise RuntimeError(f"Pull-v5 state bank has {bank_size} samples; minimum is {minimum}.")
+        if bank_size < 1 or not isinstance(payload["provenance"], (list, tuple)):
+            raise RuntimeError("Pull-v5 state bank provenance must be a non-empty sequence.")
+        provenance = [str(item) for item in payload["provenance"]]
+        if provenance[0] != "bank_natural_e5":
+            raise RuntimeError("Pull-v5 state bank must prioritize source A bank_natural_e5 entries first.")
+        if any(item not in {"bank_natural_e5", "bank_constructed"} for item in provenance):
+            raise RuntimeError(
+                "Pull-v5 state bank provenance must use only bank_natural_e5 or bank_constructed."
+            )
+        source_origin = payload["source_env_origin"]
+        if (
+            not torch.is_tensor(source_origin)
+            or tuple(source_origin.shape) != (bank_size, 3)
+            or source_origin.device != torch.device(self.device)
+            or not torch.is_floating_point(source_origin)
+            or not torch.all(torch.isfinite(source_origin))
+        ):
+            raise RuntimeError("Pull-v5 source_env_origin must have shape [bank, 3].")
+        tensors: dict[str, torch.Tensor] = {}
+        expected_shapes = {
+            "robot_root_state": (bank_size, 13),
+            "robot_dof_pos": (bank_size, self.simulator.scene.articulations["robot"].num_joints),
+            "robot_dof_vel": (bank_size, self.simulator.scene.articulations["robot"].num_joints),
+            "door_root_state": (bank_size, 13),
+            "door_dof_pos": (bank_size, self.simulator.scene.articulations["door"].num_joints),
+            "door_dof_vel": (bank_size, self.simulator.scene.articulations["door"].num_joints),
+        }
+        for name, shape in expected_shapes.items():
+            value = payload[name]
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != shape
+                or value.device != torch.device(self.device)
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(
+                    f"Pull-v5 bank {name} must match shape/device {shape}/{self.device}; "
+                    f"got {getattr(value, 'shape', None)}/{getattr(value, 'device', None)}."
+                )
+            tensors[name] = value
+        buffers = payload["buffers"]
+        if not isinstance(buffers, Mapping):
+            raise RuntimeError("Pull-v5 state bank buffers must be a mapping keyed by every registered buffer.")
+        for name, state_case in self.staged_reset_buf.items():
+            if state_case["type"] != "buffer":
+                continue
+            if name not in buffers:
+                raise RuntimeError(f"Pull-v5 state bank is missing registered buffer {name!r}.")
+            value = buffers[name]
+            expected = (bank_size, *state_case["data"].shape[3:])
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != expected
+                or value.dtype != state_case["data"].dtype
+                or value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(
+                    f"Pull-v5 bank buffer {name} must match {expected}/{state_case['data'].dtype}; "
+                    f"got {getattr(value, 'shape', None)}/{getattr(value, 'dtype', None)}."
+                )
+            tensors[f"buffer:{name}"] = value
+        self._a2_pull_v5_bank = {**tensors, "source_env_origin": source_origin}
+        self._a2_pull_v5_bank_slot_sources = provenance
+        self._inject_a2_pull_v5_stage4_bank()
+        self._a2_pull_v5_bank_loaded = True
+
+    def _inject_a2_pull_v5_stage4_bank(self) -> None:
+        bank = getattr(self, "_a2_pull_v5_bank", None)
+        if bank is None:
+            raise RuntimeError("Pull-v5 stage4 bank injection requires a loaded state bank.")
+        capacity = int(self.staged_reset_max_samples_per_stage)
+        bank_size = len(self._a2_pull_v5_bank_slot_sources)
+        count = min(capacity, bank_size)
+        if count < int(self.config["a2_pull_v5_state_bank_min_samples"]):
+            raise RuntimeError("Pull-v5 staged-reset capacity is smaller than the required bank minimum.")
+        stage = self.STAGE_SWING
+        source_origin = bank["source_env_origin"]
+        for env_id in range(self.num_envs):
+            target_origin = self.env_origins[env_id]
+            for slot in range(count):
+                robot_root = bank["robot_root_state"][slot].clone()
+                door_root = bank["door_root_state"][slot].clone()
+                robot_root[:3] = robot_root[:3] - source_origin[slot] + target_origin
+                door_root[:3] = door_root[:3] - source_origin[slot] + target_origin
+                robot_case = self.staged_reset_buf["robot"]
+                robot_case["root_state"][stage, slot, env_id] = robot_root
+                robot_case["dof_state"][stage, slot, env_id, :, 0] = bank["robot_dof_pos"][slot]
+                robot_case["dof_state"][stage, slot, env_id, :, 1] = bank["robot_dof_vel"][slot]
+                door_case = self.staged_reset_buf["door"]
+                door_case["root_state"][stage, slot, env_id] = door_root
+                door_case["dof_state"][stage, slot, env_id, :, 0] = bank["door_dof_pos"][slot]
+                door_case["dof_state"][stage, slot, env_id, :, 1] = bank["door_dof_vel"][slot]
+                for name, state_case in self.staged_reset_buf.items():
+                    if state_case["type"] == "buffer":
+                        value = bank[f"buffer:{name}"][slot].clone()
+                        origin_delta = target_origin - source_origin[slot]
+                        if name == "a2_pull_prev_base_pos_xy":
+                            if tuple(value.shape) != (2,) or not value.is_floating_point():
+                                raise RuntimeError(
+                                    "Pull-v5 a2_pull_prev_base_pos_xy bank payload must be finite floating [2]."
+                                )
+                            value = value + origin_delta[:2]
+                        elif name in {
+                            "a2_pull_proof_start_root_x",
+                            "a2_pull_proof_last_root_x",
+                            "a2_pull_capture_root_x",
+                        }:
+                            if tuple(value.shape) != () or not value.is_floating_point():
+                                raise RuntimeError(
+                                    f"Pull-v5 {name} bank payload must be a finite floating scalar."
+                                )
+                            value = value + origin_delta[0]
+                        state_case["data"][stage, slot, env_id] = value
+        self.staged_reset_num_samples[stage, :] = count
+        ratio = float(self.config["a2_pull_v5_stage4_bank_injection_ratio"])
+        if not 0.0 <= ratio <= 1.0:
+            raise RuntimeError(f"Pull-v5 Stage-4 bank ratio must be in [0,1]; got {ratio}.")
+        # v5 occupancy is exactly [1-p, 0, 0, 0, p, 0]: natural stage-0
+        # starts and canonical Stage-4 bank starts only.
+        self.staged_reset_ratios.zero_()
+        self.staged_reset_ratios[0] = 1.0 - ratio
+        self.staged_reset_ratios[stage] = ratio
+
+    def export_a2_pull_v5_state_bank(
+        self,
+        output_path: str,
+        *,
+        provenance: str,
+        settle_valid: bool,
+        settle_steps: int,
+    ) -> dict[str, object]:
+        """Export stage-4 snapshots through the existing high-level state writers.
+
+        The source runner calls this after its settle window; no USD prim edits
+        or synthetic state construction are permitted here.  ``provenance`` is
+        deliberately explicit so source-A and source-B payloads cannot be
+        silently mixed.
+        """
+
+        if provenance not in {"bank_natural_e5", "bank_constructed"}:
+            raise RuntimeError(f"Pull-v5 bank export provenance is unsupported: {provenance!r}.")
+        if not isinstance(settle_valid, bool) or not settle_valid:
+            raise RuntimeError("Pull-v5 bank export requires an explicitly valid settle window.")
+        if isinstance(settle_steps, bool) or not isinstance(settle_steps, int) or settle_steps < 50:
+            raise RuntimeError("Pull-v5 bank export requires settle_steps >= 50.")
+        if not self.enable_staged_reset or self.staged_reset_num_samples is None:
+            raise RuntimeError("Pull-v5 bank export requires staged reset snapshots.")
+        stage = self.STAGE_SWING
+        counts = self.staged_reset_num_samples[stage]
+        count = int(counts.min().item())
+        if count <= 0:
+            raise RuntimeError("Pull-v5 bank export has no Stage-4 snapshots after settle.")
+        robot_case = self.staged_reset_buf.get("robot")
+        door_case = self.staged_reset_buf.get("door")
+        if not isinstance(robot_case, Mapping) or not isinstance(door_case, Mapping):
+            raise RuntimeError("Pull-v5 bank export requires tracked robot and door states.")
+        robot_root = robot_case["root_state"][:]
+        door_root = door_case["root_state"][:]
+        robot_dof = robot_case["dof_state"][:]
+        door_dof = door_case["dof_state"][:]
+        rows = count * self.num_envs
+        payload: dict[str, object] = {
+            "schema": "a2_piper_pull_v5_state_bank_source_v1",
+            "robot_root_state": robot_root[stage, :count].permute(1, 0, 2).reshape(rows, 13).detach().cpu(),
+            "robot_dof_pos": robot_dof[stage, :count, :, :, 0].permute(1, 0, 2).reshape(rows, robot_dof.shape[3]).detach().cpu(),
+            "robot_dof_vel": robot_dof[stage, :count, :, :, 1].permute(1, 0, 2).reshape(rows, robot_dof.shape[3]).detach().cpu(),
+            "door_root_state": door_root[stage, :count].permute(1, 0, 2).reshape(rows, 13).detach().cpu(),
+            "door_dof_pos": door_dof[stage, :count, :, :, 0].permute(1, 0, 2).reshape(rows, door_dof.shape[3]).detach().cpu(),
+            "door_dof_vel": door_dof[stage, :count, :, :, 1].permute(1, 0, 2).reshape(rows, door_dof.shape[3]).detach().cpu(),
+            "source_env_origin": self.env_origins[:, None, :]
+            .expand(self.num_envs, count, 3)
+            .reshape(rows, 3)
+            .detach()
+            .cpu(),
+            "provenance": [provenance] * rows,
+            "settle_valid": torch.ones(rows, dtype=torch.bool),
+            "settle_steps": torch.full((rows,), settle_steps, dtype=torch.long),
+            "buffers": {},
+        }
+        buffers = payload["buffers"]
+        assert isinstance(buffers, dict)
+        for name, state_case in self.staged_reset_buf.items():
+            if state_case["type"] != "buffer":
+                continue
+            data = state_case["data"][stage, :count]
+            # [samples, envs, ...] -> [envs, samples, ...] -> flat rows.
+            data = data.permute(1, 0, *range(2, data.ndim)).reshape(rows, *data.shape[2:])
+            buffers[name] = data.detach().cpu()
+        path = self._pull_v5_repo_path(output_path, "bank capture path")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            raise FileExistsError(f"Pull-v5 bank capture refuses to overwrite {path}.")
+        torch.save(payload, path)
+        return {"schema": payload["schema"], "status": "PASS", "samples": rows, "output": str(path)}
+
+    def construct_a2_pull_v5_source_b_states(self) -> None:
+        """Capture settled Source-B Stage-4 states through the simulator API."""
+
+        if not self._is_a2_pull_v5():
+            raise RuntimeError("Source-B construction requires the v5 plan guard.")
+
+        settle_steps = self.config.get("a2_pull_v5_bank_capture_settle_steps")
+        if (
+            isinstance(settle_steps, bool)
+            or not isinstance(settle_steps, int)
+            or settle_steps < 50
+        ):
+            raise RuntimeError(
+                "Source-B construction requires a2_pull_v5_bank_capture_settle_steps >= 50."
+            )
+
+        env_ids = torch.arange(self.num_envs, device=self.device, dtype=torch.long)
+        self._reset_buffers_callback(env_ids, None)
+        self._reset_tasks_callback(env_ids)
+        self._reset_past_obs_callback(env_ids)
+        self._reset_root_states(env_ids)
+        self._reset_dofs(env_ids)
+        self._reset_object_states_callback(env_ids)
+        self._post_reset_callback(env_ids)
+
+        # The reset writers above populate the canonical target tensors.  Apply
+        # those targets with the existing simulator articulation writers before
+        # settling; no synthetic state is introduced on this route.
+        self.simulator.set_actor_root_state_tensor(env_ids, self.target_robot_root_states)
+        self.simulator.set_dof_state_tensor(env_ids, self.target_robot_dof_state)
+        self._refresh_sim_tensors()
+
+        self.set_to_stage(
+            env_ids,
+            torch.full_like(env_ids, self.STAGE_SWING),
+        )
+        self.reset_buf[:] = 0
+        self.need_to_refresh_envs[env_ids] = False
+
+        gravity_x_limit = float(self.config.termination_scales.termination_gravity_x)
+        gravity_y_limit = float(self.config.termination_scales.termination_gravity_y)
+        minimum_base_height = float(self.config.termination_scales.termination_min_base_height)
+        for _ in range(settle_steps):
+            hold_action = self._action_backmap()
+            expected_action_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
+            if (
+                not torch.is_tensor(hold_action)
+                or tuple(hold_action.shape) != (self.num_envs, expected_action_dim)
+                or hold_action.device != torch.device(self.device)
+                or not hold_action.is_floating_point()
+                or not torch.all(torch.isfinite(hold_action))
+            ):
+                shape = None if not torch.is_tensor(hold_action) else tuple(hold_action.shape)
+                raise RuntimeError(
+                    "Source-B settle requires a finite high-level A2 hold action with "
+                    f"shape ({self.num_envs}, {expected_action_dim}); got {shape}."
+                )
+            desired_arm_action = hold_action[:, self._delta_action_indices].clone()
+            hold_action[:, self._delta_action_indices] = (
+                desired_arm_action - self._delta_actions
+            ) / self._delta_action_scale
+            self.step({"actions": hold_action})
+
+            root_state = self.simulator.robot_root_states
+            robot_dof_pos = self.simulator.dof_pos
+            robot_dof_vel = self.simulator.dof_vel
+            door_state = self.simulator.get_task_root_state("door")
+            door_data = self.simulator.scene.articulations["door"].data
+            door_dof_pos = door_data.joint_pos
+            door_dof_vel = door_data.joint_vel
+            finite_state = all(
+                torch.all(torch.isfinite(value))
+                for value in (
+                    root_state,
+                    robot_dof_pos,
+                    robot_dof_vel,
+                    door_state,
+                    door_dof_pos,
+                    door_dof_vel,
+                )
+            )
+            root_height = root_state[:, 2] - self.ground_height
+            root_speed = torch.linalg.norm(root_state[:, 7:10], dim=-1)
+            root_ang_speed = torch.linalg.norm(root_state[:, 10:13], dim=-1)
+            gravity = self.projected_gravity
+            unstable = (
+                not finite_state
+                or torch.any(root_height < minimum_base_height)
+                or torch.any(torch.abs(gravity[:, 0]) > gravity_x_limit)
+                or torch.any(torch.abs(gravity[:, 1]) > gravity_y_limit)
+                or torch.any(root_speed > 1.0)
+                or torch.any(root_ang_speed > 1.0)
+                or torch.any(self.reset_buf != 0)
+            )
+            clearance = self._get_a2_pull_minimum_panel_robot_clearance()
+            frame_contact = self._get_door_frame_contact_force_per_env(
+                "Pull-v5 Source-B settle"
+            )
+            unstable = unstable or torch.any(clearance < 0.0) or torch.any(frame_contact > 0.0)
+            if unstable:
+                raise RuntimeError(
+                    "Source-B settle rejected an actual fall, penetration, contact, or unstable state."
+                )
+
+        settled_mask = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
+        self._take_snapshot_of_buffered_states(settled_mask)
+        stage_counts = self.staged_reset_num_samples[self.STAGE_SWING, env_ids]
+        if torch.any(stage_counts < 1):
+            raise RuntimeError("Source-B settle did not produce a Stage-4 staged snapshot.")
+
+    def export_a2_pull_v5_census(self, output_path: str, *, variant: str, seed: int) -> dict[str, object]:
+        """Export staged-reset occupancy and state summaries for the census runner."""
+
+        if variant not in {"v4_B", "v5"}:
+            raise RuntimeError(f"Pull-v5 census variant is unsupported: {variant!r}.")
+        if isinstance(seed, bool) or not isinstance(seed, int):
+            raise RuntimeError("Pull-v5 census seed must be an integer.")
+        if not self.enable_staged_reset or self.staged_reset_num_samples is None:
+            raise RuntimeError("Pull-v5 census requires staged reset state snapshots.")
+        stages: dict[str, object] = {}
+        for stage in range(self.num_stages):
+            count_by_env = self.staged_reset_num_samples[stage]
+            sample_count = int(count_by_env.sum().item())
+            source_counts = {"natural": sample_count}
+            if variant == "v5" and stage == self.STAGE_SWING:
+                source_counts = {"canonical_bank": sample_count}
+            row: dict[str, object] = {
+                "snapshot_count": sample_count,
+                "reset_source_counts": source_counts,
+                "hinge_rad": {},
+                "root_state": {},
+                "contact": {},
+                "arm_state": {},
+            }
+            if sample_count:
+                door_case = self.staged_reset_buf.get("door")
+                robot_case = self.staged_reset_buf.get("robot")
+                if not isinstance(door_case, Mapping) or not isinstance(robot_case, Mapping):
+                    raise RuntimeError("Pull-v5 census requires tracked robot and door states.")
+                hinge = door_case["dof_state"][stage, : int(count_by_env.max().item()), :, 0, 0]
+                root = robot_case["root_state"][stage, : int(count_by_env.max().item()), :, :3]
+                arm = robot_case["dof_state"][stage, : int(count_by_env.max().item()), :, :, 0]
+                finite_hinge = hinge[torch.isfinite(hinge)]
+                finite_root = root[torch.isfinite(root).all(dim=-1)]
+                finite_arm = arm[torch.isfinite(arm).all(dim=-1)]
+                if finite_hinge.numel() == 0 or finite_root.numel() == 0 or finite_arm.numel() == 0:
+                    raise RuntimeError(f"Pull-v5 census stage {stage} has no finite state samples.")
+                row["hinge_rad"] = {
+                    "min": float(finite_hinge.min().item()),
+                    "max": float(finite_hinge.max().item()),
+                    "mean": float(finite_hinge.mean().item()),
+                }
+                row["root_state"] = {"mean_xyz": finite_root.mean(dim=0).detach().cpu().tolist()}
+                row["arm_state"] = {"mean": finite_arm.mean(dim=0).detach().cpu().tolist()}
+                contact_case = self.staged_reset_buf.get("a2_pull_prev_stable_contact")
+                if isinstance(contact_case, Mapping):
+                    contact = contact_case["data"][stage, : int(count_by_env.max().item())]
+                    row["contact"] = {"stable_contact_count": int(contact.bool().sum().item())}
+                else:
+                    raise RuntimeError("Pull-v5 census requires tracked stable-contact snapshots.")
+            stages[str(stage)] = row
+        payload = {
+            "schema": "a2_piper_pull_v5_census_v2",
+            "variant": variant,
+            "seed": seed,
+            "stages": stages,
+        }
+        path = self._pull_v5_repo_path(output_path, "census output path")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            raise FileExistsError(f"Pull-v5 census refuses to overwrite {path}.")
+        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return {"schema": payload["schema"], "status": "PASS", "output": str(path), "stages": stages}
+
+    @override
+    def _filter_staged_reset_snapshot_mask(self, advance_mask: torch.Tensor) -> torch.Tensor:
+        filtered = super()._filter_staged_reset_snapshot_mask(advance_mask)
+        capture_only = self.config.get("a2_pull_v5_bank_capture_only", False)
+        if not isinstance(capture_only, bool):
+            raise RuntimeError("a2_pull_v5_bank_capture_only must be a boolean.")
+        if (
+            self._is_a2_pull_v5()
+            and self.config["a2_pull_v5_snapshot_freeze_enabled"]
+            and not capture_only
+        ):
+            filtered &= self.stage_buf != self.STAGE_SWING
+        return filtered
+
+    @override
+    def _sample_reset_sample_indices(self, env_ids: torch.Tensor, selected_stages: torch.Tensor) -> torch.Tensor:
+        selected = super()._sample_reset_sample_indices(env_ids, selected_stages)
+        if self._is_a2_pull_v5():
+            for env_id, stage, sample in zip(env_ids.tolist(), selected_stages.tolist(), selected.tolist()):
+                if stage == self.STAGE_SWING:
+                    if sample < 0 or sample >= len(self._a2_pull_v5_bank_slot_sources):
+                        raise RuntimeError(
+                            f"Pull-v5 canonical bank sample index is out of range: {sample}."
+                        )
+                    self._a2_pull_v5_pending_reset_source[env_id] = "canonical_bank"
+                else:
+                    self._a2_pull_v5_pending_reset_source[env_id] = "natural"
+        return selected
 
     @override
     def _reset_buffers_callback(self, env_ids, target_buf=None):
@@ -394,6 +1095,22 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_frame_midpoint_distance_min_m[env_ids] = float("nan")
         self._a2_pull_deliberate_release[env_ids] = False
         self._a2_pull_deliberate_release_step[env_ids] = -1
+        if self._is_a2_pull_v5():
+            self._a2_pull_v5_persistent_release_streak[env_ids] = 0
+            self._a2_pull_v5_persistent_release[env_ids] = False
+            self._a2_pull_v5_intervention_elapsed_steps[env_ids] = 0
+            self._a2_pull_v5_intervention_active[env_ids] = False
+            self._a2_pull_v5_intervention_fired[env_ids] = False
+            self._a2_pull_v5_probe_solvable[env_ids] = False
+            for env_id in env_ids.tolist():
+                self._a2_pull_v5_reset_source[env_id] = self._a2_pull_v5_pending_reset_source[env_id]
+                if self._a2_pull_v5_reset_source[env_id] not in {
+                    "natural",
+                    "canonical_bank",
+                }:
+                    raise RuntimeError(
+                        "Pull-v5 reset_source must be exactly natural or canonical_bank."
+                    )
         self._a2_pull_first_negative_x_motion_step[env_ids] = -1
         self._a2_pull_prev_stable_contact[env_ids] = False
         self._a2_pull_prev_panel_contact[env_ids] = False
@@ -862,6 +1579,20 @@ class DoorOpenA2Pull(DoorPregrasp):
         send_hinge_threshold = self._get_a2_v20_send_hinge_threshold()
         aperture_ready_now = stable_contact & (door_joint_pos[:, 0] >= send_hinge_threshold)
         self._a2_pull_aperture_ready |= aperture_ready_now
+        if self._is_a2_pull_v5():
+            # Persistent release is a K-step no-handle-contact latch after
+            # aperture; panel-clear remains a separate diagnostic and must not
+            # gate this release predicate.
+            persistent_candidate = self._a2_pull_aperture_ready & no_handle_contact
+            self._a2_pull_v5_persistent_release_streak[:] = torch.where(
+                persistent_candidate,
+                self._a2_pull_v5_persistent_release_streak + 1,
+                torch.zeros_like(self._a2_pull_v5_persistent_release_streak),
+            )
+            self._a2_pull_v5_persistent_release |= (
+                self._a2_pull_v5_persistent_release_streak
+                >= A2_PULL_V5_RELEASE_STREAK_STEPS
+            )
         signed_crossing = self._pull_direction.signed_crossing_progress(root_x, door_x)
         planar_crossing_now = signed_crossing > 0.0
         new_planar_crossing = planar_crossing_now & ~self._a2_pull_planar_crossing
@@ -1090,9 +1821,9 @@ class DoorOpenA2Pull(DoorPregrasp):
                 raise RuntimeError(f"Pull raw reward component {name!r} must be finite.")
             captured[name] = value.detach().clone()
         self._a2_pull_last_raw_reward_components = captured
-        if self._is_a2_pull_v4() and "a2_pull_frame_approach" not in self.reward_scales:
+        if (self._is_a2_pull_v4() or self._is_a2_pull_v5()) and "a2_pull_frame_approach" not in self.reward_scales:
             self._a2_pull_frame_approach_active[:] = False
-        if self._is_a2_pull_v4():
+        if self._is_a2_pull_v4() or self._is_a2_pull_v5():
             self._a2_pull_frame_approach_pre_aperture_steps += (
                 self._a2_pull_frame_approach_active & ~self._a2_pull_aperture_ready
             ).long()
@@ -1108,7 +1839,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                 if (
                     raw_value is None
                     and reward_name == "a2_corridor_door_wide"
-                    and self._is_a2_pull_v4()
+                    and (self._is_a2_pull_v4() or self._is_a2_pull_v5())
                     and reward_name not in self.reward_scales
                 ):
                     raw_value = torch.zeros(self.num_envs, device=self.device)
@@ -1305,6 +2036,37 @@ class DoorOpenA2Pull(DoorPregrasp):
                         and not self._a2_pull_frame_passage[env_id].item()
                     ),
                 }
+                if self._is_a2_pull_v5():
+                    record["pull_v5"] = {
+                        "reset_source": self._a2_pull_v5_reset_source[env_id],
+                        "persistent_release": bool(
+                            self._a2_pull_v5_persistent_release[env_id].item()
+                        ),
+                        "persistent_release_streak_steps": int(
+                            self._a2_pull_v5_persistent_release_streak[env_id].item()
+                        ),
+                        "release_streak_required_steps": A2_PULL_V5_RELEASE_STREAK_STEPS,
+                        "intervention_active": bool(
+                            self._a2_pull_v5_intervention_active[env_id].item()
+                        ),
+                        "intervention_fired": bool(
+                            self._a2_pull_v5_intervention_fired[env_id].item()
+                        ),
+                        "intervention_elapsed_steps": int(
+                            self._a2_pull_v5_intervention_elapsed_steps[env_id].item()
+                        ),
+                        "deliberate_release_semantics": "report_only_one_step_contact_transition",
+                    }
+                    if self.config.get("a2_pull_v5_probe_enabled", False):
+                        record["pull_v5_probe"] = {
+                            "fixture": self.config["a2_pull_v5_probe_fixture"],
+                            "command": self.config["a2_pull_v5_probe_command"],
+                            "command_solvable": bool(self._a2_pull_v5_probe_solvable[env_id].item()),
+                            "anchor_pass": bool(
+                                self.config["a2_pull_v5_probe_fixture"] == "anchor"
+                                and self._a2_pull_v5_probe_solvable[env_id].item()
+                            ),
+                        }
         return records
 
     def get_a2_pull_episode_records(self, env_ids, terminal_records=None) -> list[dict]:
@@ -1445,6 +2207,18 @@ class DoorOpenA2Pull(DoorPregrasp):
                     else None
                 ),
             )
+            if self._is_a2_pull_v5():
+                record["pull_v5"] = {
+                    "reset_source": self._a2_pull_v5_reset_source[env_id],
+                    "persistent_release": bool(
+                        self._a2_pull_v5_persistent_release[env_id].item()
+                    ),
+                    "persistent_release_streak_steps": int(
+                        self._a2_pull_v5_persistent_release_streak[env_id].item()
+                    ),
+                    "release_streak_required_steps": A2_PULL_V5_RELEASE_STREAK_STEPS,
+                    "deliberate_release_semantics": "report_only_one_step_contact_transition",
+                }
             records.append(record)
         return records
 
@@ -1672,6 +2446,23 @@ class DoorOpenA2Pull(DoorPregrasp):
                 },
             }
             validate_a2_pull_control_step(record)
+            if self._is_a2_pull_v5():
+                record["pull_v5"] = {
+                    "reset_source": self._a2_pull_v5_reset_source[env_id],
+                    "persistent_release": bool(
+                        self._a2_pull_v5_persistent_release[env_id].item()
+                    ),
+                    "persistent_release_streak_steps": int(
+                        self._a2_pull_v5_persistent_release_streak[env_id].item()
+                    ),
+                    "release_streak_required_steps": A2_PULL_V5_RELEASE_STREAK_STEPS,
+                    "intervention_active": bool(
+                        self._a2_pull_v5_intervention_active[env_id].item()
+                    ),
+                    "intervention_elapsed_steps": int(
+                        self._a2_pull_v5_intervention_elapsed_steps[env_id].item()
+                    ),
+                }
             record["pull_v2_unlatch"] = {
                 "stable_unlatch_handle_based": bool(
                     self._a2_pull_stable_unlatch_handle_ever[env_id].item()

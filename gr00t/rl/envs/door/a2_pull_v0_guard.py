@@ -22,6 +22,7 @@ A2_PULL_V1_PLAN_ID = "a2_piper_pull_v1_reward_port_and_stage_semantics"
 A2_PULL_V2_PLAN_ID = "a2_piper_pull_v2_wall_removal_and_unlatch_calibration"
 A2_PULL_V3_PLAN_ID = "a2_piper_pull_v3_release_then_cross_traversal"
 A2_PULL_V4_PLAN_ID = "a2_piper_pull_v4_annuity_removal_and_frame_approach"
+A2_PULL_V5_PLAN_ID = "a2_piper_pull_v5_bridge_occupancy_and_release_persistence"
 A2_PULL_V2_E3_LATCH_THRESHOLD_M = 0.02292371541261673
 A2_PULL_V0_TARGET_FRAME_VERSION = "grasp_target_active_face_io_z_pre_v1"
 A2_PULL_V0_TARGET_ORIENTATION_WXYZ = (-0.5, -0.5, 0.5, 0.5)
@@ -36,6 +37,11 @@ A2_PULL_V4_CORRIDOR_DOOR_WIDE_SCALE = 0.0
 A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE = 1.0
 A2_PULL_V4_FRAME_APPROACH_SCALE_A = 0.0
 A2_PULL_V4_FRAME_APPROACH_SCALE_B = 6.0
+A2_PULL_V5_STAGE_TIME_BUDGET_STEPS = A2_PULL_V3_STAGE_TIME_BUDGET_STEPS
+A2_PULL_V5_MAX_EPISODE_LENGTH_S = A2_PULL_V3_MAX_EPISODE_LENGTH_S
+A2_PULL_V5_RELEASE_STREAK_STEPS = 25
+A2_PULL_V5_MIN_STATE_BANK_SAMPLES = 64
+A2_PULL_V5_CLOSER_BUCKETS = ("2.5-5", "5-9", "9-12")
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 A2_PULL_V0_SOURCE_FREEZE_PATH = _REPO_ROOT / "scriptsFORhuman/pull_v0/PULL_V0_SOURCE_FREEZE.json"
 A2_PULL_V0_RESOLVED_G4_CONFIG_PATH = (
@@ -992,6 +998,121 @@ def validate_a2_pull_v4_guard(
     }
 
 
+def _validate_a2_pull_v5_bank_config(config: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate the v5-only staged-reset/state-bank selectors."""
+
+    injection_enabled = _mapping_item(
+        config, "a2_pull_v5_stage4_bank_injection_enabled", "Pull-v5 config"
+    )
+    if not isinstance(injection_enabled, bool):
+        raise RuntimeError(
+            "Pull-v5 stage4 bank injection must be an explicit bool; "
+            f"got {injection_enabled!r}."
+        )
+    ratio = _mapping_item(config, "a2_pull_v5_stage4_bank_injection_ratio", "Pull-v5 config")
+    if isinstance(ratio, bool) or not isinstance(ratio, Real) or not math.isfinite(float(ratio)):
+        raise RuntimeError(f"Pull-v5 stage4 bank injection ratio must be finite; got {ratio!r}.")
+    ratio = float(ratio)
+    if not 0.0 <= ratio <= 1.0:
+        raise RuntimeError(f"Pull-v5 stage4 bank injection ratio must be in [0, 1]; got {ratio!r}.")
+    streak = _mapping_item(config, "a2_pull_v5_release_streak_steps", "Pull-v5 config")
+    if isinstance(streak, bool) or not isinstance(streak, int) or streak != A2_PULL_V5_RELEASE_STREAK_STEPS:
+        raise RuntimeError(
+            "Pull-v5 persistent release requires exactly K=25 control steps; "
+            f"got {streak!r}."
+        )
+    intervention = _mapping_item(config, "a2_pull_v5_intervention_enabled", "Pull-v5 config")
+    if not isinstance(intervention, bool):
+        raise RuntimeError(f"Pull-v5 intervention selector must be bool; got {intervention!r}.")
+    snapshot_freeze = _mapping_item(config, "a2_pull_v5_snapshot_freeze_enabled", "Pull-v5 config")
+    if snapshot_freeze is not True:
+        raise RuntimeError("Pull-v5 must freeze stage4 bank slots against early-stage4 snapshot overwrite.")
+    source_telemetry = _mapping_item(
+        config, "a2_pull_v5_reset_source_telemetry_enabled", "Pull-v5 config"
+    )
+    if source_telemetry is not True:
+        raise RuntimeError("Pull-v5 reset-source telemetry must be explicitly enabled.")
+    bank_min = _mapping_item(config, "a2_pull_v5_state_bank_min_samples", "Pull-v5 config")
+    if isinstance(bank_min, bool) or not isinstance(bank_min, int) or bank_min < A2_PULL_V5_MIN_STATE_BANK_SAMPLES:
+        raise RuntimeError(
+            f"Pull-v5 state bank must require at least {A2_PULL_V5_MIN_STATE_BANK_SAMPLES} samples; "
+            f"got {bank_min!r}."
+        )
+    bank_path = _string_item(config, "a2_pull_v5_state_bank_path", "Pull-v5 config")
+    if Path(bank_path).is_absolute() or not bank_path.startswith("logs_rl/"):
+        raise RuntimeError(
+            "Pull-v5 state bank path must be repository-relative under logs_rl/; "
+            f"got {bank_path!r}."
+        )
+    receipt_path = _string_item(config, "a2_pull_v5_load_receipt_path", "Pull-v5 config")
+    if Path(receipt_path).is_absolute() or not receipt_path.startswith("logs_rl/"):
+        raise RuntimeError(
+            "Pull-v5 load receipt path must be repository-relative under logs_rl/; "
+            f"got {receipt_path!r}."
+        )
+    return {
+        "stage4_bank_injection_enabled": injection_enabled,
+        "stage4_bank_injection_ratio": ratio,
+        "release_streak_steps": streak,
+        "intervention_enabled": intervention,
+        "snapshot_freeze_enabled": snapshot_freeze,
+        "reset_source_telemetry_enabled": source_telemetry,
+        "state_bank_min_samples": bank_min,
+        "state_bank_path": bank_path,
+        "load_receipt_path": receipt_path,
+    }
+
+
+def validate_a2_pull_v5_guard(
+    config: Mapping[str, Any],
+    *,
+    actual_finger_effort_n: Any,
+    actual_finger_stiffness: Any,
+    actual_finger_damping: Any,
+    reward_scales: Mapping[str, Any] | None = None,
+    reward_scale_dt: float | None = None,
+) -> dict[str, Any]:
+    """Validate v5 before any stage/reset state can be used.
+
+    The v5 route delegates all direction, hard-gate, threshold, timing, and
+    reward semantics to the frozen v4-B contract.  Only the explicitly named
+    state-bank, release-streak, intervention, and receipt selectors are new.
+    """
+
+    _require_exact(config, "a2_v20_R1_plan_id", A2_PULL_V5_PLAN_ID)
+    v5 = _validate_a2_pull_v5_bank_config(config)
+    if "algo" in config:
+        algo = _require_mapping(config["algo"], "Pull-v5 algo")
+        algo_config = _require_mapping(_mapping_item(algo, "config", "Pull-v5 algo"), "Pull-v5 algo.config")
+        if _mapping_item(algo_config, "load_optimizer", "Pull-v5 algo.config") is not False:
+            raise RuntimeError("Every Pull-v5 config must set algo.config.load_optimizer=false.")
+
+    v4_config = dict(config)
+    v4_config["a2_v20_R1_plan_id"] = A2_PULL_V4_PLAN_ID
+    v4_config["a2_pull_v4_g6_budget_eval"] = False
+    if reward_scales is not None and reward_scale_dt is None:
+        v4_config["rewards"] = {"reward_scales": reward_scales}
+    frozen = validate_a2_pull_v4_guard(
+        v4_config,
+        actual_finger_effort_n=actual_finger_effort_n,
+        actual_finger_stiffness=actual_finger_stiffness,
+        actual_finger_damping=actual_finger_damping,
+        reward_scales=reward_scales,
+        reward_scale_dt=reward_scale_dt,
+    )
+    if tuple(float(item) for item in frozen["max_stage_time"]) != tuple(
+        float(item) for item in A2_PULL_V5_STAGE_TIME_BUDGET_STEPS
+    ):
+        raise RuntimeError("Pull-v5 max_stage_time drifted from frozen v4-B semantics.")
+    if float(frozen["max_episode_length_s"]) != A2_PULL_V5_MAX_EPISODE_LENGTH_S:
+        raise RuntimeError("Pull-v5 max_episode_length_s drifted from frozen v4-B semantics.")
+    return {
+        "plan_id": A2_PULL_V5_PLAN_ID,
+        "frozen_v4_contract": frozen,
+        **v5,
+    }
+
+
 __all__ = [
     "A2_PULL_V0_DIRECTION_CONTRACT_VERSION",
     "A2_PULL_V0_PLAN_ID",
@@ -999,6 +1120,7 @@ __all__ = [
     "A2_PULL_V2_PLAN_ID",
     "A2_PULL_V3_PLAN_ID",
     "A2_PULL_V4_PLAN_ID",
+    "A2_PULL_V5_PLAN_ID",
     "A2_PULL_V2_E3_LATCH_THRESHOLD_M",
     "A2_PULL_V0_RESOLVED_G4_CONFIG_PATH",
     "A2_PULL_V0_SOURCE_FREEZE_PATH",
@@ -1013,6 +1135,11 @@ __all__ = [
     "A2_PULL_V4_CORRIDOR_CLEAN_PASSAGE_SCALE",
     "A2_PULL_V4_FRAME_APPROACH_SCALE_A",
     "A2_PULL_V4_FRAME_APPROACH_SCALE_B",
+    "A2_PULL_V5_STAGE_TIME_BUDGET_STEPS",
+    "A2_PULL_V5_MAX_EPISODE_LENGTH_S",
+    "A2_PULL_V5_RELEASE_STREAK_STEPS",
+    "A2_PULL_V5_MIN_STATE_BANK_SAMPLES",
+    "A2_PULL_V5_CLOSER_BUCKETS",
     "A2_PULL_V0_TARGET_FRAME_VERSION",
     "A2_PULL_V0_TARGET_ORIENTATION_WXYZ",
     "validate_a2_pull_v0_guard",
@@ -1021,4 +1148,5 @@ __all__ = [
     "validate_a2_pull_v2_guard",
     "validate_a2_pull_v3_guard",
     "validate_a2_pull_v4_guard",
+    "validate_a2_pull_v5_guard",
 ]

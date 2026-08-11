@@ -18,6 +18,9 @@ A2_PULL_HINGE_DRIVE_FORCE_BUCKET_LABELS = (
     "hingeDriveMaxForceNm<=7.25Nm",
     "hingeDriveMaxForceNm>7.25Nm",
 )
+A2_PULL_V5_PERSISTENT_RELEASE_STREAK_STEPS = 25
+A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD = 1.60
+A2_PULL_V5_RELEASE_TUCK_DURATION_S = 1.0
 
 
 class A2PullEvent(IntEnum):
@@ -570,6 +573,78 @@ def a2_pull_event_funnel(
     return funnel
 
 
+def a2_pull_v5_release_tuck_override(
+    policy_action: torch.Tensor,
+    hinge_position_rad: torch.Tensor,
+    aperture_ready: torch.Tensor,
+    elapsed_steps: torch.Tensor,
+    *,
+    dt: float,
+    enabled: bool,
+    arm_action: torch.Tensor | None = None,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Apply the bounded P2 arm/gripper override while preserving base policy output.
+
+    The high-level A2 action layout is ``base[0:5]``, ``arm[5:11]``, and
+    ``gripper[11]``.  Only the arm/gripper slice is changed during the exact
+    one-second window; base commands remain the frozen actor output.
+    """
+
+    if (
+        not torch.is_tensor(policy_action)
+        or policy_action.ndim != 2
+        or policy_action.shape[1] != 12
+        or not policy_action.is_floating_point()
+        or not torch.all(torch.isfinite(policy_action))
+    ):
+        raise ValueError("Pull-v5 override requires a floating [envs, 12] high-level action tensor.")
+    expected = (policy_action.shape[0],)
+    for name, value, dtype in (
+        ("hinge_position_rad", hinge_position_rad, policy_action.dtype),
+        ("aperture_ready", aperture_ready, torch.bool),
+        ("elapsed_steps", elapsed_steps, torch.long),
+    ):
+        if not torch.is_tensor(value) or tuple(value.shape) != expected or value.device != policy_action.device:
+            raise ValueError(f"Pull-v5 override {name} must have shape {expected} on the action device.")
+        if value.dtype != dtype:
+            raise ValueError(f"Pull-v5 override {name} must have dtype {dtype}; got {value.dtype}.")
+    if not torch.all(torch.isfinite(hinge_position_rad)):
+        raise ValueError("Pull-v5 override hinge_position_rad must be finite.")
+    if torch.any(elapsed_steps < 0):
+        raise ValueError("Pull-v5 override elapsed_steps must be non-negative.")
+    if isinstance(dt, bool) or not isinstance(dt, (int, float)) or not math.isfinite(float(dt)) or dt <= 0.0:
+        raise ValueError(f"Pull-v5 override dt must be finite and > 0; got {dt!r}.")
+    if not isinstance(enabled, bool):
+        raise ValueError("Pull-v5 override enabled must be bool.")
+    duration_steps = max(1, math.ceil(A2_PULL_V5_RELEASE_TUCK_DURATION_S / float(dt)))
+    active = (
+        torch.full(expected, enabled, dtype=torch.bool, device=policy_action.device)
+        & aperture_ready
+        & (hinge_position_rad >= A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD)
+        & (elapsed_steps < duration_steps)
+    )
+    if arm_action is not None:
+        if (
+            not torch.is_tensor(arm_action)
+            or tuple(arm_action.shape) != (policy_action.shape[0], 6)
+            or arm_action.device != policy_action.device
+            or arm_action.dtype != policy_action.dtype
+            or not torch.all(torch.isfinite(arm_action))
+        ):
+            raise ValueError(
+                "Pull-v5 override arm_action must be a finite [envs, 6] tensor "
+                "matching policy_action dtype/device."
+            )
+    applied = policy_action.clone()
+    applied[active, 5:11] = (
+        torch.zeros_like(applied[active, 5:11])
+        if arm_action is None
+        else arm_action[active]
+    )
+    applied[active, 11] = 1.0
+    return applied, active
+
+
 __all__ = [
     "A2PullEvent",
     "A2_PULL_CONTROL_STEP_UNITS",
@@ -584,9 +659,13 @@ __all__ = [
     "A2_PULL_NA",
     "A2_PULL_PRE_E0",
     "A2_PULL_TELEMETRY_SCHEMA_VERSION",
+    "A2_PULL_V5_PERSISTENT_RELEASE_STREAK_STEPS",
+    "A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD",
+    "A2_PULL_V5_RELEASE_TUCK_DURATION_S",
     "a2_pull_event_funnel",
     "a2_pull_event_state_names",
     "a2_pull_hinge_drive_force_bucket",
+    "a2_pull_v5_release_tuck_override",
     "advance_a2_pull_events",
     "validate_a2_pull_control_step",
     "validate_a2_pull_episode",

@@ -1,0 +1,16 @@
+{
+  "schema": "a2_piper_pull_v5_implementation_receipt_v1",
+  "plan_id": "a2_piper_pull_v5_bridge_occupancy_and_release_persistence",
+  "status": "IMPLEMENTED_STATIC_PENDING_RUNTIME",
+  "guard": "v5 plan-id, frozen v4-B contract, bank and release selectors are wired",
+  "bank": "source-A first, source-B append, minimum 64, settle >= 50, provenance recorded",
+  "stage4_injection": "complete robot/door/root/dof and registered pull telemetry buffers with env-origin translation; occupancy is [1-p,0,0,0,p,0]",
+  "release": "persistent no-handle streak K=25; panel-clear is diagnostic-only; deliberate release remains one-step report-only",
+  "intervention": "paired one-second, one-shot arm/gripper override preserves base action slice and drives cumulative arm target to actual default pose",
+  "training": "2x2 M/C p=0.5/0.9, seed 0/1, 256 env x 250 batches, save 50, load_optimizer=false",
+  "runtime_validation": "PENDING_GPU_LEASE; static producer paths only",
+  "evidence_paths": [
+    "scriptsFORhuman/pull_v5/PULL_V5_ROUND_REPORT.md",
+    "scriptsFORhuman/pull_v5/run_pull_v5_orchestration.py"
+  ]
+}

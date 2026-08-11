@@ -1,0 +1,43 @@
+# @package _global_
+# Pull-v5 M-s0: 50% canonical Stage-4 bank injection, seed 0.
+
+defaults:
+  - /ablation/wbmanip/pull_v4_B_frame_approach
+  - _self_
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 256
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    load_optimizer: false
+  trl:
+    num_total_batches: 250
+
+callbacks:
+  model_save:
+    save_frequency: 50
+
+env:
+  config:
+    enable_staged_reset: true
+    staged_reset_max_samples_per_stage: 200
+    staged_reset_ratios: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    max_episode_length_s: 24
+    max_stage_time: [250, 100, 100, 100, 250, 300]
+    a2_pull_v4_g6_budget_eval: false
+    a2_v20_R1_plan_id: a2_piper_pull_v5_bridge_occupancy_and_release_persistence
+    a2_pull_v5_stage4_bank_injection_enabled: true
+    a2_pull_v5_stage4_bank_injection_ratio: 0.5
+    a2_pull_v5_release_streak_steps: 25
+    a2_pull_v5_intervention_enabled: false
+    a2_pull_v5_snapshot_freeze_enabled: true
+    a2_pull_v5_reset_source_telemetry_enabled: true
+    a2_pull_v5_state_bank_min_samples: 64
+    a2_pull_v5_state_bank_path: logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt
+    a2_pull_v5_load_receipt_path: logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_M_s0.json

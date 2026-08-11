@@ -3,6 +3,7 @@
 
 
 from collections import deque
+from collections.abc import Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 import hashlib
@@ -45,6 +46,8 @@ from gr00t.rl.trl.modules.homie_modules import (
 
 
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+_A2_PULL_V5_PLAN_ID = "a2_piper_pull_v5_bridge_occupancy_and_release_persistence"
+_A2_PULL_V5_LOAD_RECEIPT_SCHEMA = "a2_piper_pull_v5_load_receipt_v1"
 _V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
 _V21B_METRIC_SOURCES = {
     "send_latch_fire_rate": "a2_v21B_send_latch_fire_rate",
@@ -2414,6 +2417,25 @@ class TRLPPOTrainer(PPOTrainer):
         )
         self.workflow_config = workflow_config
         self._v21b_training_identity = None
+        env_config = getattr(env, "config", None)
+        self._a2_pull_v5_load_receipt_only = False
+        load_receipt_only = (
+            env_config.get("a2_pull_v5_load_receipt_only", False)
+            if isinstance(env_config, Mapping)
+            else False
+        )
+        if not isinstance(load_receipt_only, bool):
+            raise RuntimeError("a2_pull_v5_load_receipt_only must be a boolean.")
+        if load_receipt_only:
+            if env_config.get("a2_v20_R1_plan_id") != _A2_PULL_V5_PLAN_ID:
+                raise RuntimeError(
+                    "Pull-v5 load-receipt-only mode requires the v5 plan guard."
+                )
+            if self.checkpoint_load_mode != "policy_only":
+                raise RuntimeError(
+                    "Pull-v5 load-receipt-only mode requires checkpoint_load_mode='policy_only'."
+                )
+            self._a2_pull_v5_load_receipt_only = True
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
                 "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
@@ -4127,6 +4149,12 @@ class TRLPPOTrainer(PPOTrainer):
         return metrics
 
     def train(self):
+        if self._a2_pull_v5_load_receipt_only:
+            self.accelerator.print(
+                "Pull-v5 policy-only load receipt-only route completed; no training batches or optimizer steps."
+            )
+            return
+
         args = self.args
         accelerator = self.accelerator
         optimizer = self.optimizer
@@ -4596,6 +4624,66 @@ class TRLPPOTrainer(PPOTrainer):
         actor_key = present_actor_keys[0]
         model.policy.load_state_dict(checkpoint[actor_key], strict=True)
         print(f"Loaded policy-only checkpoint actor from key {actor_key!r}")
+        env_config = getattr(self.env, "config", None)
+        is_pull_v5 = isinstance(env_config, Mapping) and env_config.get(
+            "a2_v20_R1_plan_id"
+        ) == _A2_PULL_V5_PLAN_ID
+        if is_pull_v5:
+            if self.config.get("load_optimizer") is not False:
+                raise RuntimeError(
+                    "Pull-v5 policy-only loading requires algo.config.load_optimizer=false."
+                )
+            receipt_path_raw = env_config.get("a2_pull_v5_load_receipt_path")
+            if not isinstance(receipt_path_raw, str) or not receipt_path_raw:
+                raise RuntimeError(
+                    "Pull-v5 policy-only loading requires a2_pull_v5_load_receipt_path."
+                )
+            repo_root = Path(__file__).resolve().parents[4]
+            receipt_path = (repo_root / receipt_path_raw).resolve()
+            if not receipt_path.is_relative_to(repo_root):
+                raise RuntimeError(
+                    "Pull-v5 load receipt path must remain repository-relative: "
+                    f"{receipt_path_raw!r}."
+                )
+            worker_output_dir_raw = getattr(self.args, "output_dir", None)
+            if not isinstance(worker_output_dir_raw, str) or not worker_output_dir_raw:
+                raise RuntimeError("Pull-v5 policy-only loading requires a worker output directory binding.")
+            receipt = {
+                "schema": _A2_PULL_V5_LOAD_RECEIPT_SCHEMA,
+                "plan_id": _A2_PULL_V5_PLAN_ID,
+                "checkpoint_load_mode": "policy_only",
+                "checkpoint_path": str(Path(checkpoint_path).resolve()),
+                "run_id": str(getattr(self.args, "run_name", "")),
+                "worker_output_dir": str(Path(worker_output_dir_raw).resolve()),
+                "actor": {
+                    "loaded": True,
+                    "source_key": actor_key,
+                },
+                "critic": {
+                    "loaded": False,
+                    "reset": True,
+                    "not_loaded": True,
+                },
+                "optimizer": {
+                    "loaded": False,
+                    "reset": True,
+                    "not_loaded": True,
+                    "load_optimizer": False,
+                },
+                "scheduler": {
+                    "loaded": False,
+                    "reset": True,
+                    "not_loaded": True,
+                },
+                "status": "ACTUAL",
+            }
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            # A receipt is a per-run artifact.  Never overwrite a prior worker's
+            # binding; a reused path is a configuration error that must surface.
+            with receipt_path.open("x", encoding="utf-8") as stream:
+                json.dump(receipt, stream, indent=2, sort_keys=True)
+                stream.write("\n")
+            print(f"Pull-v5 policy-only load receipt written to {receipt_path}")
 
     def load_checkpoint(self, checkpoint_path):
         """Load a checkpoint to restore the state of model, optimizer, trainer etc.
@@ -4660,6 +4748,14 @@ class TRLPPOTrainer(PPOTrainer):
         self.env.set_is_evaluating()
         self.policy_model.eval_mode()
         self.policy_model.init_rollout()
+        capture_env_config = getattr(self.env, "config", None)
+        if isinstance(capture_env_config, Mapping) and capture_env_config.get(
+            "a2_pull_v5_bank_capture_provenance"
+        ) == "bank_constructed":
+            construct_source_b = getattr(self.env, "construct_a2_pull_v5_source_b_states", None)
+            if construct_source_b is None:
+                raise RuntimeError("Source-B capture requires high-level articulation state writers.")
+            construct_source_b()
         obs_dict = self.env.reset_all()
         for obs_key in obs_dict.keys():
             obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
@@ -4882,6 +4978,41 @@ class TRLPPOTrainer(PPOTrainer):
                             post_oracle_override_pre_env_action, _ = apply_hold_oracle(
                                 post_forced_override_pre_env_action,
                                 first_episode_active_mask,
+                            )
+
+                        env_config = getattr(self.env, "config", None)
+                        if isinstance(env_config, Mapping) and env_config.get(
+                            "a2_pull_v5_intervention_enabled", False
+                        ):
+                            apply_pull_v5_intervention = getattr(
+                                self.env, "apply_a2_pull_v5_intervention", None
+                            )
+                            if apply_pull_v5_intervention is None:
+                                raise RuntimeError(
+                                    "Pull-v5 intervention requires the environment action hook."
+                                )
+                            post_oracle_override_pre_env_action, _ = apply_pull_v5_intervention(
+                                post_oracle_override_pre_env_action
+                            )
+
+                        if isinstance(env_config, Mapping) and env_config.get(
+                            "a2_pull_v5_probe_enabled", False
+                        ):
+                            apply_pull_v5_probe = getattr(
+                                self.env, "apply_a2_pull_v5_probe_command", None
+                            )
+                            if apply_pull_v5_probe is None:
+                                raise RuntimeError(
+                                    "Pull-v5 probe requires the environment action hook."
+                                )
+                            command_name = env_config.get("a2_pull_v5_probe_command")
+                            fixture = env_config.get("a2_pull_v5_probe_fixture")
+                            if not isinstance(command_name, str) or not isinstance(fixture, str):
+                                raise RuntimeError(
+                                    "Pull-v5 probe requires string command and fixture selectors."
+                                )
+                            post_oracle_override_pre_env_action, _ = apply_pull_v5_probe(
+                                post_oracle_override_pre_env_action, command_name, fixture
                             )
 
                         if a2_eval_diagnostics["diagnostic_enabled"]:
@@ -5328,6 +5459,36 @@ class TRLPPOTrainer(PPOTrainer):
         os.replace(metrics_eval_tmp_path, metrics_eval_path)
 
         logger.info(f"Saved eval_dict to {metrics_eval_path}")  # self.args.eval_output_dir
+
+        env_config = getattr(self.env, "config", None)
+        bank_capture_path = env_config.get("a2_pull_v5_bank_capture_path") if isinstance(env_config, Mapping) else None
+        if bank_capture_path is not None:
+            if not isinstance(bank_capture_path, str) or not bank_capture_path:
+                raise RuntimeError("Pull-v5 bank capture path must be a non-empty string.")
+            if getattr(self, "_a2_pull_v5_bank_capture_exported", False):
+                raise RuntimeError("Pull-v5 bank capture exporter may run only once per evaluator.")
+            export_bank = getattr(self.env, "export_a2_pull_v5_state_bank", None)
+            if export_bank is None:
+                raise RuntimeError(
+                    "Pull-v5 bank capture requires env.export_a2_pull_v5_state_bank()."
+                )
+            export_bank(
+                bank_capture_path,
+                provenance=env_config["a2_pull_v5_bank_capture_provenance"],
+                settle_valid=env_config["a2_pull_v5_bank_capture_settle_valid"],
+                settle_steps=env_config["a2_pull_v5_bank_capture_settle_steps"],
+            )
+            self._a2_pull_v5_bank_capture_exported = True
+        census_output_path = env_config.get("a2_pull_v5_census_output_path") if isinstance(env_config, Mapping) else None
+        if census_output_path is not None:
+            export_census = getattr(self.env, "export_a2_pull_v5_census", None)
+            if export_census is None:
+                raise RuntimeError("Pull-v5 census requires env.export_a2_pull_v5_census().")
+            export_census(
+                census_output_path,
+                variant=env_config["a2_pull_v5_census_variant"],
+                seed=env_config["a2_pull_v5_census_seed"],
+            )
 
         return eval_dict
 

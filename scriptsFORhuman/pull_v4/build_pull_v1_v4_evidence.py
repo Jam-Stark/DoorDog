@@ -15,7 +15,7 @@ import tempfile
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +25,7 @@ EVAL_ROOT = ROOT / "logs_eval"
 RENDER_ROOT = EVAL_ROOT / "a2_piper_pull_v4" / "renders"
 MANIFEST_PATH = SCRIPT_DIR / "MANIFEST.md"
 TARGET_ZIP = ROOT / "a2_piper_pull_v1_to_v4_evidence_20260811.zip"
+WORK_ROOT = ROOT / "scriptsFORhuman" / "pull_v5" / "evidence_zip_work"
 
 CAP_BYTES = 500_000_000
 # The trial archive reserves this much stored space for the generated
@@ -44,10 +45,22 @@ class Entry:
     archive_path: str
     status: str = "INCLUDED"
     reason: str = ""
+    provenance_source: Path | None = None
+    original_row_count: int | None = None
+    projected_fields: tuple[str, ...] = ()
 
     @property
     def source_bytes(self) -> int:
         return self.source.stat().st_size if self.source.is_file() else 0
+
+    @property
+    def original_source(self) -> Path:
+        return self.provenance_source or self.source
+
+    @property
+    def original_source_bytes(self) -> int:
+        source = self.original_source
+        return source.stat().st_size if source.is_file() else 0
 
 
 @dataclass(frozen=True)
@@ -204,6 +217,366 @@ def _metric_specs() -> tuple[Entry, ...]:
                 _metric_entry("v4", cell, f"pull_v4_B_wave1_seed{seed}_step{step}_g6_budget")
             )
     return tuple(entries)
+
+
+# Tier-3 keeps every stage2-5 row while projecting only the fields consumed by
+# the v1/v2/v3/v4 trace validators and invariant analyzers.  The raw source
+# JSON remains untouched; the projected JSON is a derivative archive payload.
+TRACE_TOP_FIELDS = (
+    "env_id",
+    "step_index",
+    "episode_index",
+    "stage3_to4_door_hinge_threshold",
+    "stage3_to4_door_hinge_margin",
+)
+TRACE_PULL_FIELDS = (
+    "stage",
+    "event_state",
+    "root_x_rel_door_m",
+    "handle_position_rad",
+    "latch_position_m",
+    "hinge_position_rad",
+    "target_tcp_position_error_m",
+    "gripper_handle_separation_m",
+    "handle_local_slip_xyz_mps",
+    "finger_effort_utilization_estimate",
+    "arm_pd_effort_utilization_estimate",
+    "reward_component_raw",
+    "pull_v3_traversal",
+)
+TRACE_REWARD_FIELDS = (
+    "dont_push_door_handle",
+    "target_root_distance",
+    "a2_stage3_unlatch_hold",
+    "a2_corridor_door_wide",
+    "a2_corridor_clean_passage",
+    "a2_pull_frame_approach",
+)
+TRACE_V3_FIELDS = (
+    # v3/v4 boolean aliases
+    "aperture_ready_current",
+    "aperture_ready",
+    "frame_approach_current",
+    "frame_approach",
+    "frame_passage_current",
+    "frame_passage",
+    "planar_crossing_current",
+    "planar_crossing",
+    "detour_current",
+    "detour",
+    "deliberate_release_current",
+    "deliberate_release",
+    "bilateral_handle_contact",
+    "panel_clear",
+    "frame_approach_active",
+    "frame_approach_reward_executed",
+    "corridor_door_wide_reward_executed",
+    # v3/v4 finite aliases
+    "minimum_clearance_margin_m",
+    "swept_arc_clearance_margin_current_m",
+    "swept_arc_clearance_margin_m",
+    "minimum_clearance_m",
+    "swept_arc_clearance_margin_min_m",
+    "base_path_length_m",
+    "corridor_door_wide_raw",
+    "corridor_door_wide_raw_last",
+    "corridor_clean_passage_raw",
+    "frame_approach_raw",
+    "frame_approach_raw_last",
+    "frame_midpoint_distance_m",
+    "frame_midpoint_distance_min_m",
+    # v3/v4 integer aliases
+    "base_reversal_count",
+    "post_release_recontact_count",
+    "corridor_door_wide_pre_aperture_steps",
+    "corridor_clean_passage_pre_aperture_steps",
+)
+
+
+def _field_paths(value: Any, prefix: str = "") -> set[str]:
+    if isinstance(value, Mapping):
+        result: set[str] = set()
+        for key, nested in value.items():
+            path = f"{prefix}.{key}" if prefix else str(key)
+            result.update(_field_paths(nested, path))
+        return result
+    return {prefix}
+
+
+def _require_trace_field(mapping: Mapping[str, Any], key: str, label: str) -> Any:
+    if key not in mapping:
+        raise RuntimeError(f"{label} is missing required trace field {key!r}")
+    return mapping[key]
+
+
+def _require_trace_alias(mapping: Mapping[str, Any], aliases: Sequence[str], label: str) -> None:
+    present = [key for key in aliases if key in mapping]
+    if not present:
+        raise RuntimeError(f"{label} is missing required trace field alias {aliases[0]!r}")
+    if len(present) > 1:
+        values = [mapping[key] for key in present]
+        if any(value != values[0] for value in values[1:]):
+            raise RuntimeError(f"{label} has conflicting trace aliases {present!r}")
+
+
+def _trace_variant(entry: Entry) -> str | None:
+    if entry.round_label != "v4":
+        return None
+    if entry.cell.startswith("A_"):
+        return "A"
+    if entry.cell.startswith("B_"):
+        return "B"
+    raise RuntimeError(f"cannot infer v4 trace variant from metric cell {entry.cell!r}")
+
+
+def _validate_projected_trace_row(
+    row: Mapping[str, Any],
+    entry: Entry,
+    row_index: int,
+) -> None:
+    label = f"{entry.round_label}/{entry.cell} trace row {row_index}"
+    for key in ("env_id", "step_index", "stage3_to4_door_hinge_threshold"):
+        _require_trace_field(row, key, label)
+    if entry.round_label in {"v2", "v3", "v4"}:
+        _require_trace_field(row, "episode_index", label)
+    if entry.round_label == "v2":
+        _require_trace_field(row, "stage3_to4_door_hinge_margin", label)
+    pull = _require_trace_field(row, "pull_v0", label)
+    if not isinstance(pull, Mapping):
+        raise RuntimeError(f"{label}.pull_v0 must remain an object")
+    for key in TRACE_PULL_FIELDS[:-1]:
+        _require_trace_field(pull, key, f"{label}.pull_v0")
+    rewards = _require_trace_field(pull, "reward_component_raw", f"{label}.pull_v0")
+    if not isinstance(rewards, Mapping):
+        raise RuntimeError(f"{label}.pull_v0.reward_component_raw must remain an object")
+    for key in ("dont_push_door_handle", "target_root_distance"):
+        _require_trace_field(rewards, key, f"{label}.pull_v0.reward_component_raw")
+    if entry.round_label == "v2":
+        _require_trace_field(rewards, "a2_stage3_unlatch_hold", f"{label}.pull_v0.reward_component_raw")
+    if entry.round_label in {"v3", "v4"}:
+        required_rewards = ("a2_corridor_door_wide", "a2_corridor_clean_passage") if entry.round_label == "v3" else ("a2_corridor_clean_passage",)
+        for key in required_rewards:
+            _require_trace_field(rewards, key, f"{label}.pull_v0.reward_component_raw")
+        traversal = _require_trace_field(pull, "pull_v3_traversal", f"{label}.pull_v0")
+        if not isinstance(traversal, Mapping):
+            raise RuntimeError(f"{label}.pull_v0.pull_v3_traversal must remain an object")
+        required_traversal_aliases = [
+            ("aperture_ready_current",),
+            ("aperture_ready",),
+            ("frame_approach_current",),
+            ("frame_approach",),
+            ("frame_passage_current",),
+            ("frame_passage",),
+            ("planar_crossing_current",),
+            ("planar_crossing",),
+            ("detour_current",),
+            ("detour",),
+            ("deliberate_release_current",),
+            ("deliberate_release",),
+            ("bilateral_handle_contact",),
+            ("panel_clear",),
+            ("minimum_clearance_margin_m",),
+            ("swept_arc_clearance_margin_min_m",),
+            ("base_path_length_m",),
+            ("corridor_door_wide_raw", "corridor_door_wide_raw_last"),
+            ("corridor_clean_passage_raw",),
+            ("base_reversal_count",),
+            ("post_release_recontact_count",),
+            ("corridor_door_wide_pre_aperture_steps",),
+            ("corridor_clean_passage_pre_aperture_steps",),
+        ]
+        if entry.round_label == "v4":
+            required_traversal_aliases.extend(
+                (
+                    ("frame_midpoint_distance_m",),
+                    ("frame_midpoint_distance_min_m",),
+                )
+            )
+        for key in required_traversal_aliases:
+            _require_trace_alias(traversal, key, f"{label}.pull_v0.pull_v3_traversal")
+        if entry.round_label == "v4":
+            for key in (
+                ("frame_approach_active",),
+                ("frame_approach_reward_executed",),
+                ("corridor_door_wide_reward_executed",),
+                ("frame_approach_raw", "frame_approach_raw_last"),
+            ):
+                _require_trace_alias(traversal, key, f"{label}.pull_v0.pull_v3_traversal")
+            variant = _trace_variant(entry)
+            frame_reward = "a2_pull_frame_approach" in rewards
+            if variant == "A" and frame_reward:
+                raise RuntimeError(f"{label} A trace must omit a2_pull_frame_approach reward")
+            if variant == "B" and not frame_reward:
+                raise RuntimeError(f"{label} B trace is missing a2_pull_frame_approach reward")
+
+
+def _project_trace_row(row: Mapping[str, Any], entry: Entry, row_index: int) -> tuple[dict[str, Any], set[str]]:
+    label = f"{entry.round_label}/{entry.cell} trace row {row_index}"
+    if not isinstance(row, Mapping):
+        raise RuntimeError(f"{label} must be a JSON object")
+    projected: dict[str, Any] = {key: row[key] for key in TRACE_TOP_FIELDS if key in row}
+    pull = row.get("pull_v0")
+    if not isinstance(pull, Mapping):
+        raise RuntimeError(f"{label}.pull_v0 must be a JSON object")
+    projected_pull = {key: pull[key] for key in TRACE_PULL_FIELDS if key in pull}
+    rewards = pull.get("reward_component_raw")
+    if not isinstance(rewards, Mapping):
+        raise RuntimeError(f"{label}.pull_v0.reward_component_raw must be a JSON object")
+    projected_pull["reward_component_raw"] = {
+        key: rewards[key] for key in TRACE_REWARD_FIELDS if key in rewards
+    }
+    traversal = pull.get("pull_v3_traversal")
+    if isinstance(traversal, Mapping):
+        projected_pull["pull_v3_traversal"] = {
+            key: traversal[key] for key in TRACE_V3_FIELDS if key in traversal
+        }
+    projected["pull_v0"] = projected_pull
+    _validate_projected_trace_row(projected, entry, row_index)
+    return projected, _field_paths(projected)
+
+
+def _validate_trace_coverage(entry: Entry, rows: Sequence[Mapping[str, Any]]) -> None:
+    metrics_payload = json.loads(entry.source.read_text(encoding="utf-8"))
+    if not isinstance(metrics_payload, Mapping):
+        raise RuntimeError(f"formal metric payload must be an object: {entry.source}")
+    terminals = metrics_payload.get("episode_terminal_diagnostics")
+    if not isinstance(terminals, list) or not terminals:
+        raise RuntimeError(f"{entry.source} must contain a non-empty terminal diagnostic list")
+    if entry.round_label in {"v2", "v3", "v4"} and len(terminals) != 16:
+        raise RuntimeError(f"{entry.source} must contain exactly 16 terminal diagnostics")
+    terminal_ids: dict[int, int] = {}
+    for index, terminal in enumerate(terminals):
+        if not isinstance(terminal, Mapping):
+            raise RuntimeError(f"{entry.source} terminal record {index} must be an object")
+        env_id = terminal.get("env_id")
+        stage_buf = terminal.get("stage_buf")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id < 0:
+            raise RuntimeError(f"{entry.source} terminal record {index} has invalid env_id")
+        if isinstance(stage_buf, bool) or not isinstance(stage_buf, int) or stage_buf < 0:
+            raise RuntimeError(f"{entry.source} terminal record {index} has invalid stage_buf")
+        if env_id in terminal_ids:
+            raise RuntimeError(f"{entry.source} has duplicate terminal env_id {env_id}")
+        terminal_ids[env_id] = stage_buf
+    expected_ids = {env_id for env_id, stage in terminal_ids.items() if stage in {2, 3, 4, 5}}
+    observed_ids = {int(row["env_id"]) for row in rows}
+    if not expected_ids.issubset(observed_ids):
+        raise RuntimeError(
+            f"{entry.round_label}/{entry.cell} trace coverage mismatch: "
+            f"missing={sorted(expected_ids - observed_ids)}"
+        )
+    if entry.round_label in {"v3", "v4"} and observed_ids != expected_ids:
+        raise RuntimeError(
+            f"{entry.round_label}/{entry.cell} strict trace coverage mismatch: "
+            f"unexpected={sorted(observed_ids - expected_ids)}"
+        )
+    if entry.round_label in {"v2", "v3", "v4"}:
+        episode_ids: dict[int, set[int]] = {}
+        for row in rows:
+            episode_ids.setdefault(int(row["env_id"]), set()).add(int(row["episode_index"]))
+        invalid = {env_id: sorted(ids) for env_id, ids in episode_ids.items() if len(ids) != 1}
+        if invalid:
+            raise RuntimeError(f"{entry.round_label}/{entry.cell} trace episode identity mismatch: {invalid}")
+
+
+def _project_trace_entry(metric_entry: Entry, trace_source: Path, destination: Path) -> Entry:
+    try:
+        raw = json.loads(trace_source.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"cannot read trace source {trace_source}") from exc
+    if not isinstance(raw, list) or not raw:
+        raise RuntimeError(f"trace source must be a non-empty JSON list: {trace_source}")
+    projected_rows: list[dict[str, Any]] = []
+    projected_fields: set[str] = set()
+    for row_index, row in enumerate(raw):
+        projected, fields = _project_trace_row(row, metric_entry, row_index)
+        projected_rows.append(projected)
+        projected_fields.update(fields)
+    _validate_trace_coverage(metric_entry, projected_rows)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with destination.open("w", encoding="utf-8") as handle:
+        json.dump(projected_rows, handle, ensure_ascii=False, separators=(",", ":"))
+        handle.write("\n")
+    if destination.stat().st_size <= 0:
+        raise RuntimeError(f"projected trace is empty: {destination}")
+    return Entry(
+        tier="Tier3",
+        category="step_trace",
+        round_label=metric_entry.round_label,
+        cell=metric_entry.cell,
+        source=destination,
+        archive_path=_flat_archive_path("step_traces", metric_entry.round_label, metric_entry.cell, trace_source.name),
+        reason="all original rows retained; analyzer-field projection; original evidence unit untouched",
+        provenance_source=trace_source,
+        original_row_count=len(projected_rows),
+        projected_fields=tuple(sorted(projected_fields)),
+    )
+
+
+def _load_projected_trace_entry(metric_entry: Entry, trace_source: Path, destination: Path) -> Entry:
+    try:
+        projected_rows = json.loads(destination.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"cannot read existing projected trace {destination}") from exc
+    if not isinstance(projected_rows, list) or not projected_rows:
+        raise RuntimeError(f"existing projected trace must be a non-empty JSON list: {destination}")
+    projected_fields: set[str] = set()
+    for row_index, row in enumerate(projected_rows):
+        if not isinstance(row, Mapping):
+            raise RuntimeError(f"existing projected trace row {row_index} is not an object: {destination}")
+        _validate_projected_trace_row(row, metric_entry, row_index)
+        projected_fields.update(_field_paths(row))
+    _validate_trace_coverage(metric_entry, projected_rows)
+    return Entry(
+        tier="Tier3",
+        category="step_trace",
+        round_label=metric_entry.round_label,
+        cell=metric_entry.cell,
+        source=destination,
+        archive_path=_flat_archive_path("step_traces", metric_entry.round_label, metric_entry.cell, trace_source.name),
+        reason="all original rows retained; analyzer-field projection; original evidence unit untouched",
+        provenance_source=trace_source,
+        original_row_count=len(projected_rows),
+        projected_fields=tuple(sorted(projected_fields)),
+    )
+
+
+def _resolve_tier3(metrics: Sequence[Entry]) -> tuple[tuple[Entry, ...], tuple[MissingRecord, ...]]:
+    if len(metrics) != 75:
+        raise RuntimeError(f"Tier-3 trace mapping requires exactly 75 formal metrics; got {len(metrics)}")
+    WORK_ROOT.mkdir(parents=True, exist_ok=True)
+    entries: list[Entry] = []
+    missing: list[MissingRecord] = []
+    for metric in metrics:
+        eval_dir = metric.source.parent
+        candidates = (eval_dir / "stage2_5_step_trace.json", eval_dir / "stage2_step_trace.json")
+        trace_source = next((candidate for candidate in candidates if candidate.is_file()), None)
+        if trace_source is None:
+            missing.append(
+                MissingRecord(
+                    category="step_trace",
+                    round_label=metric.round_label,
+                    cell=metric.cell,
+                    expected_source=candidates[0],
+                    reason="required stage2-5 trace is missing; no legal alternate convention was present",
+                )
+            )
+            continue
+        if trace_source.stat().st_size <= 0:
+            raise RuntimeError(f"required trace source is empty: {trace_source}")
+        destination = WORK_ROOT / f"{metric.round_label}_{metric.cell}__{trace_source.name}"
+        if destination.is_file() and destination.stat().st_size > 0:
+            entries.append(_load_projected_trace_entry(metric, trace_source, destination))
+        else:
+            entries.append(_project_trace_entry(metric, trace_source, destination))
+    if missing:
+        raise FileNotFoundError(
+            "Tier-3 trace inventory is incomplete: "
+            + ", ".join(f"{record.round_label}/{record.cell}" for record in missing)
+        )
+    if len(entries) != len(metrics):
+        raise RuntimeError(f"Tier-3 trace mapping is not one-to-one: metrics={len(metrics)} traces={len(entries)}")
+    _assert_unique_archive_paths(entries)
+    return tuple(entries), tuple(missing)
 
 
 def _training_log_specs() -> tuple[Entry, ...]:
@@ -487,28 +860,42 @@ def _zip_entries(
             archive.write(entry.source, entry.archive_path)
 
 
+def _temporary_zip_handle(prefix: str):
+    WORK_ROOT.mkdir(parents=True, exist_ok=True)
+    return tempfile.NamedTemporaryFile(
+        mode="w+b",
+        prefix=prefix,
+        suffix=".zip.tmp",
+        dir=WORK_ROOT,
+    )
+
+
 def _measure_trial_size(entries: Sequence[Entry], manifest_bytes: bytes | None = None) -> int:
-    with tempfile.TemporaryFile(prefix="pull-evidence-plan-") as handle:
+    with _temporary_zip_handle("pull-evidence-plan-") as handle:
         _zip_entries(handle, entries, manifest_bytes, include_manifest_reserve=manifest_bytes is None)
         handle.flush()
         return handle.tell()
 
 
 def _measure_payload_bytes(entries: Sequence[Entry]) -> dict[str, int]:
-    totals = {"Tier1": 0, "Tier2": 0}
-    with tempfile.TemporaryFile(prefix="pull-evidence-payload-") as handle:
+    totals: dict[str, int] = {}
+    with _temporary_zip_handle("pull-evidence-payload-") as handle:
         _zip_entries(handle, entries, None)
         handle.flush()
         handle.seek(0)
         with zipfile.ZipFile(handle, mode="r") as archive:
             for entry in entries:
                 info = archive.getinfo(entry.archive_path)
-                totals[entry.tier] += info.compress_size
+                totals[entry.tier] = totals.get(entry.tier, 0) + info.compress_size
     return totals
 
 
 def _source_bytes(entries: Iterable[Entry | OmissionRecord]) -> int:
     return sum(entry.source_bytes for entry in entries if isinstance(entry, Entry))
+
+
+def _original_source_bytes(entries: Iterable[Entry | OmissionRecord]) -> int:
+    return sum(entry.original_source_bytes for entry in entries if isinstance(entry, Entry))
 
 
 def _resolve_tier2_with_cap(static_entries: Sequence[Entry]) -> Tier2Resolution:
@@ -575,12 +962,14 @@ def _fmt_bytes(value: int | None) -> str:
 def _render_manifest(
     entries: Sequence[Entry],
     missing: Sequence[MissingRecord],
+    trace_missing: Sequence[MissingRecord],
     omitted: Sequence[Entry | OmissionRecord],
     payload_bytes: dict[str, int],
     planned_archive_bytes: int,
     r1_attempt_paths: Sequence[str] = (),
 ) -> str:
     included_tier1 = [entry for entry in entries if entry.tier == "Tier1"]
+    included_tier3 = [entry for entry in entries if entry.tier == "Tier3"]
     included_tier2 = [entry for entry in entries if entry.tier == "Tier2"]
     lines = [
         "# Pull v1–v4 evidence excerpt manifest",
@@ -593,26 +982,27 @@ def _render_manifest(
         f"- Planned ZIP size with the generated manifest: `{planned_archive_bytes:,}` bytes",
         "- Tier-1 inventory: 9 training configs, 1 G6 runtime-config exemplar, 75 formal metrics, and 12 available full training logs.",
         "- Tier-1 missing inventory: 4 required v2 full runner logs, recorded explicitly below.",
-        "- Tier 3: none. No hidden continuation or additional tier was inferred.",
+        f"- Tier-3 inventory: {len(included_tier3)} all-row field projections, one for each of the 75 formal metric cells. Every projected file retains original row order/count and only analyzer-required trace fields; raw source traces remain untouched.",
         "- Render ordering note: R1→R4 is an operational inference from the enumerated render-directory order; no continuation or priority instruction was recovered.",
         "- R1 runtime status: INCONCLUSIVE / NOT_RUN after exactly three failed launcher attempts; no fourth attempt was made and no behavioral claim is made.",
         "",
         "## Tier byte report",
         "",
-        "| Tier | Included files | Source bytes | Compressed payload bytes |",
-        "| --- | ---: | ---: | ---: |",
-        f"| Tier1 | {len(included_tier1)} | {_fmt_bytes(_source_bytes(included_tier1))} | {_fmt_bytes(payload_bytes['Tier1'])} |",
-        f"| Tier2 | {len(included_tier2)} | {_fmt_bytes(_source_bytes(included_tier2))} | {_fmt_bytes(payload_bytes['Tier2'])} |",
-        f"| Omitted Tier2 MP4s | {len(omitted)} | {_fmt_bytes(_source_bytes(omitted))} | not archived |",
+        "| Tier | Included files | Archive source bytes | Original source bytes | Compressed payload bytes |",
+        "| --- | ---: | ---: | ---: | ---: |",
+        f"| Tier1 | {len(included_tier1)} | {_fmt_bytes(_source_bytes(included_tier1))} | {_fmt_bytes(_original_source_bytes(included_tier1))} | {_fmt_bytes(payload_bytes['Tier1'])} |",
+        f"| Tier3 | {len(included_tier3)} | {_fmt_bytes(_source_bytes(included_tier3))} | {_fmt_bytes(_original_source_bytes(included_tier3))} | {_fmt_bytes(payload_bytes['Tier3'])} |",
+        f"| Tier2 | {len(included_tier2)} | {_fmt_bytes(_source_bytes(included_tier2))} | {_fmt_bytes(_original_source_bytes(included_tier2))} | {_fmt_bytes(payload_bytes['Tier2'])} |",
+        f"| Omitted Tier2 MP4s | {len(omitted)} | — | {_fmt_bytes(_source_bytes(omitted))} | not archived |",
         "",
         "## Source provenance",
         "",
-        "`Archive path` is the flat path inside the ZIP. `Original repo-relative source` is resolved from this repository root. `Bytes` is the source-file byte count.",
+        "`Archive path` is the flat path inside the ZIP. `Original repo-relative source` is resolved from this repository root. `Archive bytes` is the projected/source payload byte count; `Original bytes` is the untouched source-file byte count.",
         "",
-        "| Archive path | Original repo-relative source | Bytes | Category | Status |",
-        "| --- | --- | ---: | --- | --- |",
+        "| Archive path | Original repo-relative source | Archive bytes | Original bytes | Category | Status |",
+        "| --- | --- | ---: | ---: | --- | --- |",
     ]
-    rows: list[Entry | MissingRecord | OmissionRecord] = list(entries) + list(missing) + list(omitted)
+    rows: list[Entry | MissingRecord | OmissionRecord] = list(entries) + list(missing) + list(trace_missing) + list(omitted)
     for item in rows:
         if isinstance(item, Entry):
             archive_path = (
@@ -620,19 +1010,42 @@ def _render_manifest(
                 if item.status in {"INCLUDED", "INCONCLUSIVE_NOT_RUN"}
                 else "—"
             )
-            source = item.source.relative_to(ROOT).as_posix()
+            source = item.original_source.relative_to(ROOT).as_posix()
             lines.append(
-                f"| {archive_path} | `{source}` | {_fmt_bytes(item.source_bytes)} | {item.category} | {item.status}{(': ' + item.reason) if item.reason else ''} |"
+                f"| {archive_path} | `{source}` | {_fmt_bytes(item.source_bytes)} | {_fmt_bytes(item.original_source_bytes)} | {item.category} | {item.status}{(': ' + item.reason) if item.reason else ''} |"
             )
         elif isinstance(item, MissingRecord):
             source = item.expected_source.relative_to(ROOT).as_posix()
             lines.append(
-                f"| — | `{source}` | {_fmt_bytes(item.source_bytes)} | {item.category} | MISSING: {item.reason} |"
+                f"| — | `{source}` | — | {_fmt_bytes(item.source_bytes)} | {item.category} | MISSING: {item.reason} |"
             )
         else:
             lines.append(
-                f"| — | — | — | {item.category} | OMITTED: {item.reason} ({item.logical_id}) |"
+                f"| — | — | — | — | {item.category} | OMITTED: {item.reason} ({item.logical_id}) |"
             )
+    lines.extend(
+        [
+            "",
+            "## Tier-3 projected trace inventory",
+            "",
+            "Each row below maps one formal metric cell to exactly one stage2-5 trace convention. Projection preserves every original JSON row in original order and records only fields consumed by the v1/v2/v3/v4 trace validators and inherited invariant analyzers. `Projected fields` uses dotted JSON paths; optional variant fields are present only where the source convention contains them.",
+            "",
+            "| Round/cell | Archive path | Original repo-relative source | Original bytes | Projected bytes | Rows | Projected fields |",
+            "| --- | --- | --- | ---: | ---: | ---: | --- |",
+        ]
+    )
+    for item in included_tier3:
+        fields = ", ".join(item.projected_fields)
+        lines.append(
+            f"| `{item.round_label}/{item.cell}` | `{item.archive_path}` | `{item.original_source.relative_to(ROOT).as_posix()}` | {item.original_source_bytes:,} | {item.source_bytes:,} | {item.original_row_count:,} | `{fields}` |"
+        )
+    if trace_missing:
+        lines.append("")
+        lines.append("Tier-3 missing records (build is fail-fast and does not substitute these):")
+        lines.extend(
+            f"- `{record.round_label}/{record.cell}`: `{record.expected_source.relative_to(ROOT).as_posix()}` — {record.reason}"
+            for record in trace_missing
+        )
     lines.extend(
         [
             "",
@@ -701,6 +1114,7 @@ def _plan(*, include_renders: bool = False) -> int:
 def _compute_manifest_bytes(
     tier1: Sequence[Entry],
     missing: Sequence[MissingRecord],
+    trace_missing: Sequence[MissingRecord],
     tier2: Tier2Resolution,
 ) -> tuple[tuple[Entry, ...], dict[str, int], bytes]:
     included = tuple(tier1) + tier2.entries
@@ -712,6 +1126,7 @@ def _compute_manifest_bytes(
         manifest = _render_manifest(
             included,
             missing,
+            trace_missing,
             tier2.omitted,
             payload_bytes,
             planned_archive_bytes=planned_archive_bytes,
@@ -736,81 +1151,83 @@ def _compute_manifest_bytes(
 
 
 def _build() -> int:
-    manifest_preexisting = MANIFEST_PATH.exists()
-    if manifest_preexisting and not MANIFEST_PATH.is_file():
+    if MANIFEST_PATH.exists() and not MANIFEST_PATH.is_file():
         raise RuntimeError(f"generated manifest path is not a regular file: {MANIFEST_PATH}")
 
     tier1, missing = _resolve_tier1()
-    tier2 = _resolve_tier2_with_cap(tier1)
-    included, payload_bytes, manifest_bytes = _compute_manifest_bytes(tier1, missing, tier2)
-    if manifest_preexisting:
-        existing_manifest_bytes = MANIFEST_PATH.read_bytes()
-        if existing_manifest_bytes != manifest_bytes:
-            raise RuntimeError(
-                "existing MANIFEST.md differs from the recomputed frozen-input manifest; refusing recovery"
-            )
-        recovery = True
-    else:
-        MANIFEST_PATH.write_bytes(manifest_bytes)
-        recovery = False
-    target_owned = False
+    metrics = tuple(entry for entry in tier1 if entry.category == "formal_metric")
+    tier3, trace_missing = _resolve_tier3(metrics)
+    static_entries = tuple(tier1) + tier3
+    tier2 = _resolve_tier2_with_cap(static_entries)
+    included, payload_bytes, manifest_bytes = _compute_manifest_bytes(
+        static_entries,
+        missing,
+        trace_missing,
+        tier2,
+    )
+    WORK_ROOT.mkdir(parents=True, exist_ok=True)
+    temporary_zip = WORK_ROOT / f"{TARGET_ZIP.name}.tmp"
+    temporary_manifest = WORK_ROOT / "MANIFEST.md.tmp"
+    for temporary_path in (temporary_zip, temporary_manifest):
+        if temporary_path.exists():
+            temporary_path.unlink()
     try:
         archive = zipfile.ZipFile(
-            TARGET_ZIP,
+            temporary_zip,
             mode="x",
             compression=ZIP_COMPRESSION,
             compresslevel=ZIP_COMPRESSION_LEVEL,
             allowZip64=True,
         )
     except FileExistsError as exc:
-        raise FileExistsError(f"refusing to overwrite existing target ZIP: {TARGET_ZIP}") from exc
-    target_owned = True
-    try:
-        with archive:
-            archive.write(MANIFEST_PATH, "MANIFEST.md")
-            for entry in included:
-                archive.write(entry.source, entry.archive_path)
-    except Exception:
-        if target_owned and TARGET_ZIP.exists():
-            TARGET_ZIP.unlink()
-        raise
+        raise FileExistsError(f"temporary rebuild path already exists: {temporary_zip}") from exc
+    with archive:
+        archive.writestr("MANIFEST.md", manifest_bytes)
+        for entry in included:
+            archive.write(entry.source, entry.archive_path)
 
     try:
-        actual_size = TARGET_ZIP.stat().st_size
-        with zipfile.ZipFile(TARGET_ZIP, mode="r") as archive:
+        actual_size = temporary_zip.stat().st_size
+        with zipfile.ZipFile(temporary_zip, mode="r") as archive:
             names = archive.namelist()
             expected = ["MANIFEST.md", *(entry.archive_path for entry in included)]
             if names != expected:
                 raise RuntimeError("archive layout/order differs from the resolved manifest entry set")
             if len(names) != len(set(names)):
                 raise RuntimeError("archive contains duplicate names")
-            actual_payload = {"Tier1": 0, "Tier2": 0}
+            if archive.read("MANIFEST.md") != manifest_bytes:
+                raise RuntimeError("archive manifest bytes differ from generated manifest")
+            actual_payload: dict[str, int] = {}
             for entry in included:
                 info = archive.getinfo(entry.archive_path)
                 if info.file_size != entry.source_bytes:
                     raise RuntimeError(f"archive source-byte mismatch for {entry.archive_path}")
-                actual_payload[entry.tier] += info.compress_size
+                actual_payload[entry.tier] = actual_payload.get(entry.tier, 0) + info.compress_size
             if actual_payload != payload_bytes:
                 raise RuntimeError(
                     f"compressed payload report changed during final write: {actual_payload} != {payload_bytes}"
                 )
     except Exception:
-        if target_owned and TARGET_ZIP.exists():
-            TARGET_ZIP.unlink()
+        if temporary_zip.exists():
+            temporary_zip.unlink()
         raise
     if actual_size > CAP_BYTES:
-        if target_owned and TARGET_ZIP.exists():
-            TARGET_ZIP.unlink()
+        temporary_zip.unlink()
         raise RuntimeError(f"final archive exceeds decimal cap: {actual_size} > {CAP_BYTES}")
+
+    temporary_manifest.write_bytes(manifest_bytes)
+    os.replace(temporary_zip, TARGET_ZIP)
+    os.replace(temporary_manifest, MANIFEST_PATH)
 
     print(f"Built {TARGET_ZIP}")
     print(f"Final ZIP bytes: {actual_size:,} <= cap {CAP_BYTES:,}")
     print(f"Manifest: {MANIFEST_PATH} ({len(manifest_bytes):,} bytes)")
-    if recovery:
-        print("Recovery path: existing manifest matched recomputed bytes exactly and was preserved without rewrite")
-    else:
-        print("Manifest path: generated for this build")
-    print(f"Tier1 entries: {len(tier1)}; Tier2 entries: {len(tier2.entries)}; omitted MP4s: {len(tier2.omitted)}")
+    print("Manifest path: regenerated from the frozen Tier-1/Tier-3/Tier-2 resolution")
+    print(
+        f"Tier1 entries: {len(tier1)}; Tier3 entries: {len(tier3)}; "
+        f"Tier2 entries: {len(tier2.entries)}; omitted MP4s: {len(tier2.omitted)}"
+    )
+    print(f"Tier3 projected source bytes: {_source_bytes(tier3):,}; original trace bytes: {_original_source_bytes(tier3):,}")
     return 0
 
 

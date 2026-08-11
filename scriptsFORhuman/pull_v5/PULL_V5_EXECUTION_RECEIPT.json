@@ -1,0 +1,185 @@
+{
+  "schema": "a2_piper_pull_v5_execution_receipt_v1",
+  "task_id": "A2_PULL_V5_20260812",
+  "revision": "r5_closure_docs",
+  "lane": "ROUND_REPORT",
+  "branch": "codex/a2-piper-pull-v0-20260803",
+  "status": "INCONCLUSIVE",
+  "validation_level": "DOCUMENTATION_ONLY",
+  "report": "scriptsFORhuman/pull_v5/PULL_V5_ROUND_REPORT.md",
+  "plan_id": "a2_piper_pull_v5_bridge_occupancy_and_release_persistence",
+  "phase_verdicts": {
+    "P0_census": "RUNTIME_PASS",
+    "P0_load_receipt": "RUNTIME_FAIL_BLOCKED",
+    "P0_c_archive": "STATIC_PASS",
+    "source_a": "RUNTIME_PASS_PARTIAL",
+    "source_b": "RUNTIME_FAIL_BLOCKED",
+    "final_state_bank": "BLOCKED_ABSENT",
+    "P1_anchor_and_door": "BLOCKED_INCONCLUSIVE",
+    "P2_intervention": "INCONCLUSIVE",
+    "P3": "NOT_RUN",
+    "P4": "NOT_RUN",
+    "G2": "NOT_RUN"
+  },
+  "stopping_condition": {
+    "definition": "first reproducible frame passage from both canonical and natural starts",
+    "met": false,
+    "first_dual_source_passage": false
+  },
+  "p0_census": {
+    "variant": "v4_B",
+    "seed": 1,
+    "num_envs": 64,
+    "batches": 50,
+    "stage_snapshot_counts": {
+      "0": 12800,
+      "1": 64,
+      "2": 64,
+      "3": 64,
+      "4": 64,
+      "5": 0
+    },
+    "stage4_hinge_rad": {
+      "min": 0.250109,
+      "mean": 0.252803,
+      "max": 0.256819
+    },
+    "evidence": "logs_eval/a2_piper_pull_v5/p0_v4b_census/P0_A_v4_B_seed1_r5/CENSUS_RECEIPT.json"
+  },
+  "p0_load_receipt": {
+    "requested_checkpoint_load_mode": "policy_only",
+    "requested_load_optimizer": false,
+    "physical_gpu": 6,
+    "environment_initialized": true,
+    "checkpoint_loader_reached": false,
+    "actor_loaded": false,
+    "optimizer_step_or_batch": false,
+    "root_cause": "stage4 bank injection was disabled while Pull-v5 training construction requires it enabled",
+    "evidence": "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_p0_load_only_r5/P0_LOAD_R5_RUNTIME_FAILURE_RECEIPT.json"
+  },
+  "p0_c_archive": {
+    "status": "STATIC_PASS",
+    "bytes": 302913787,
+    "entries": 195,
+    "tier1_entries": 97,
+    "tier3_projected_trace_entries": 75,
+    "tier2_entries": 22,
+    "projected_trace_count": 75,
+    "mp4_included": 18,
+    "mp4_omitted": 6,
+    "original_tier3_source_bytes": 22665835160,
+    "projected_tier3_source_bytes": 1250007189,
+    "compressed_zip_payload_bytes": 194484166,
+    "archive": "a2_piper_pull_v1_to_v4_evidence_20260811.zip",
+    "evidence": "scriptsFORhuman/pull_v5/evidence_zip_work/P0_C_EVIDENCE_ZIP_RECEIPT.md"
+  },
+  "state_bank": {
+    "source_a": {
+      "state_count": 64,
+      "provenance": "bank_natural_e5",
+      "buffer_count": 86,
+      "settle_steps": 50,
+      "settle_valid_count": 64,
+      "settle_failure_count": 0,
+      "force_bucket_labels": ["2.5-5", "5-9", "9-12"],
+      "force_distribution": [15, 18, 31],
+      "per_state_force_metadata": false,
+      "frame_approach_states": 0,
+      "aperture_states": 0,
+      "release_states": 0,
+      "midpoint_clearance_min_m": 0.5448,
+      "midpoint_clearance_median_m": 0.7108,
+      "payload": "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/source_a_actor_e5_r5.pt"
+    },
+    "source_b": {
+      "status": "RUNTIME_FAIL",
+      "settle_capture_started": false,
+      "root_cause": "staged_reset_ratios[0] must be greater than 0",
+      "payload": "NOT_PRODUCED",
+      "evidence": "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/source_b_constructed_r5.runner.log"
+    },
+    "final_bank": {
+      "status": "ABSENT",
+      "path": "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt"
+    }
+  },
+  "p1": {
+    "status": "BLOCKED_INCONCLUSIVE",
+    "anchor_attempts": "1/3",
+    "anchor_terminal_metrics": false,
+    "door_probe_launched": false,
+    "frame_passage_rate": "NOT_ADMISSIBLE",
+    "evidence": "logs_eval/a2_piper_pull_v5/p1_anchor_r5_final/anchor_canonical_attempt1/runner.log"
+  },
+  "p2": {
+    "status": "INCONCLUSIVE",
+    "control_started": true,
+    "control_terminal_records": false,
+    "intervention_started": false,
+    "metrics": "NOT_PRODUCED",
+    "evidence": "logs_eval/a2_piper_pull_v5/p2_intervention_r5_final/P2_R5_FINAL_FAILURE_RECEIPT.json"
+  },
+  "p3": {
+    "status": "NOT_RUN",
+    "cells": ["M-s0", "M-s1", "C-s0", "C-s1"],
+    "reason": "unresolved final bank and P1 prerequisites",
+    "training_runs": 0,
+    "dual_source_dv_rows": 0
+  },
+  "p4": {
+    "status": "NOT_RUN",
+    "reason": "no admissible P3 continuation candidate"
+  },
+  "gates": {
+    "G1": "BLOCKED_NOT_REACHED",
+    "G2": "NOT_RUN",
+    "G3": "BLOCKED",
+    "G4": "INCONCLUSIVE",
+    "G5": "NOT_RUN",
+    "G6": "NOT_RUN",
+    "G7": "NOT_RUN",
+    "G8": "BLOCKED",
+    "G9": "TRIGGERED_INFRASTRUCTURE_FAILURE",
+    "G10": "NOT_TRIGGERED",
+    "G11": "TRIGGERED_MINIMUM_CLOSURE",
+    "G12": "NOT_RUN"
+  },
+  "review_provenance": {
+    "formal_review": "FAIL",
+    "formal_review_wave_count": 1,
+    "formal_review_revision": "r2",
+    "post_fix_reviewer_pass": false,
+    "targeted_r3_r5_runtime_evidence_is_second_review": false
+  },
+  "resources": {
+    "recorded_phase_gpu_requests": {
+      "P0_census_and_load": [6],
+      "P1_anchor": [4],
+      "P2_control": [5],
+      "P3": []
+    },
+    "gpu_wait_duration": "NOT_RECORDED",
+    "concurrent_p3_occupancy": false
+  },
+  "artifact_paths": [
+    "scriptsFORhuman/pull_v5/PULL_V5_ROUND_REPORT.md",
+    "a2_piper_pull_v1_to_v4_evidence_20260811.zip",
+    "logs_eval/a2_piper_pull_v5/p0_v4b_census/P0_A_v4_B_seed1_r5/CENSUS_RECEIPT.json",
+    "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_p0_load_only_r5/P0_LOAD_R5_RUNTIME_FAILURE_RECEIPT.json",
+    "scriptsFORhuman/pull_v5/evidence_zip_work/P0_C_EVIDENCE_ZIP_RECEIPT.md",
+    "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/source_a_actor_e5_r5.pt",
+    "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/source_b_constructed_r5.runner.log",
+    "logs_eval/a2_piper_pull_v5/p1_anchor_r5_final/anchor_canonical_attempt1/runner.log",
+    "logs_eval/a2_piper_pull_v5/p2_intervention_r5_final/P2_R5_FINAL_FAILURE_RECEIPT.json",
+    "scriptsFORhuman/pull_v4/PULL_V4_ANALYSIS.json",
+    "scriptsFORhuman/pull_task/a2_piper_pull_v5_bridge_occupancy_plan_20260812.md"
+  ],
+  "unverified_claims": [
+    "No v5 canonical-start passage rate",
+    "No v5 natural-start passage rate",
+    "No P2 intervention effect",
+    "No P3/P4 training or checkpoint outcome",
+    "No G2 causal verdict"
+  ],
+  "memory_update": "not_requested_in_this_documentation_lane"
+}

@@ -101,6 +101,7 @@ ROUTE_A_DIAGNOSTIC_REWARD_TERMS = (
 ROW_SCHEMA = "a2_piper_v23_route_a_row_receipt_v1"
 MANIFEST_SCHEMA = "a2_piper_v23_route_a_manifest_v1"
 INDEX_SCHEMA = "a2_piper_v23_route_a_evidence_index_v1"
+RUN_RESULT_SCHEMA = "a2_piper_v23_route_a_run_result_v1"
 MANIFEST_ROW_STATUS = "ROW_READY"
 # Route-A rows are independently launchable on the eight physical GPUs.  This
 # is intentionally local to this controller: the formal training launcher
@@ -725,6 +726,40 @@ def _validate_row(row: Mapping[str, Any], *, process: Mapping[str, Any]) -> dict
     return receipt
 
 
+def _validate_run_result(
+    result: Mapping[str, Any],
+    *,
+    subwave: str,
+    manifest: Mapping[str, Any],
+    completed_rows: Sequence[str],
+    path: Path,
+) -> dict[str, Any]:
+    """Validate an existing run result before accepting a resume."""
+
+    expected = {
+        "schema": RUN_RESULT_SCHEMA,
+        "status": "PASS",
+        "subwave": subwave,
+        "seed": manifest["seed"],
+        "cells": manifest["cells"],
+        "cell_bindings": manifest["cell_bindings"],
+        "row_count": len(completed_rows),
+        "completed_rows": list(completed_rows),
+        "no_retry": True,
+    }
+    expected_keys = set(expected) | {"recorded_at_utc"}
+    if set(result) != expected_keys:
+        raise RouteAError(f"Route-A run result {path} fields disagree with the resume contract")
+    if not isinstance(result.get("recorded_at_utc"), str) or not result["recorded_at_utc"]:
+        raise RouteAError(f"Route-A run result {path} recorded_at_utc is invalid")
+    for key, wanted in expected.items():
+        if result.get(key) != wanted:
+            raise RouteAError(
+                f"Route-A run result {path} field {key} disagrees with the resume contract"
+            )
+    return dict(result)
+
+
 def run(subwave: str, *, only_row: str | None = None) -> dict[str, Any]:
     manifest = _load_manifest(subwave)
     rows = {row["row_id"]: row for row in manifest["rows"]}
@@ -767,7 +802,7 @@ def run(subwave: str, *, only_row: str | None = None) -> dict[str, Any]:
         _validate_row(row, process=process_record)
         completed.append(row["row_id"])
     result = {
-        "schema": "a2_piper_v23_route_a_run_result_v1",
+        "schema": RUN_RESULT_SCHEMA,
         "status": "PASS",
         "recorded_at_utc": _now(),
         "subwave": subwave,
@@ -783,6 +818,14 @@ def run(subwave: str, *, only_row: str | None = None) -> dict[str, Any]:
         if only_row
         else _route_root(subwave) / "V23_ROUTE_A_RUN_RESULT.json"
     )
+    if only_row and (result_path.exists() or result_path.is_symlink()):
+        return _validate_run_result(
+            _load_object(result_path),
+            subwave=subwave,
+            manifest=manifest,
+            completed_rows=completed,
+            path=result_path,
+        )
     _write(result_path, result)
     return result
 

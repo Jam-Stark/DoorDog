@@ -28,6 +28,19 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/route_a_analysis.py``
 ANALYSIS_SCHEMA = "a2_piper_v23_route_a_analysis_v1"
 ANALYSIS_STATUS = "COMPLETE"
 V23_UNSAFE_CONTACT_FIELD = "v23_unsafe_contact"
+TERMINAL_DIRECT_FIELDS = (
+    "terminal_failure",
+    "terminal_failed",
+    "failure",
+    "failed",
+    "terminal_reason",
+)
+TERMINAL_DIAGNOSTIC_FIELDS = (
+    "terminal_failure",
+    "terminal_failed",
+    "terminal_reason",
+    "terminal_reasons",
+)
 
 
 class RouteAAnalysisError(V23Error):
@@ -65,7 +78,7 @@ def _terminal_reason_failed(value: Any, *, field: str) -> bool:
 def _trace_by_env(trace: Any, *, path: Path) -> dict[int, list[Mapping[str, Any]]]:
     if not isinstance(trace, list) or not trace:
         raise RouteAAnalysisError(f"Route-A raw trace is empty: {path}")
-    grouped: dict[int, list[Mapping[str, Any]]] = {}
+    grouped: dict[int, list[Mapping[str, Any]]] = {env_id: [] for env_id in range(ROUTE_A_ENVS)}
     for index, entry in enumerate(trace):
         if not isinstance(entry, Mapping):
             raise RouteAAnalysisError(f"Route-A trace row {index} is not an object: {path}")
@@ -73,8 +86,6 @@ def _trace_by_env(trace: Any, *, path: Path) -> dict[int, list[Mapping[str, Any]
         if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in range(ROUTE_A_ENVS):
             raise RouteAAnalysisError(f"Route-A trace row {index} has invalid env_id: {path}")
         grouped.setdefault(env_id, []).append(entry)
-    if sorted(grouped) != list(range(ROUTE_A_ENVS)):
-        raise RouteAAnalysisError(f"Route-A trace does not cover env ids 0..15: {path}")
     return grouped
 
 
@@ -92,25 +103,35 @@ def _unsafe_for_env(record: Mapping[str, Any], *, row_id: str, env_id: int) -> b
 def _terminal_failure_for_env(
     record: Mapping[str, Any],
     trace_rows: Sequence[Mapping[str, Any]],
-    terminal_reasons: Sequence[Any] | None,
+    terminal_diagnostics: Mapping[int, Mapping[str, Any]] | None,
     *,
     row_id: str,
     env_id: int,
 ) -> bool:
-    for field in ("terminal_failure", "terminal_failed", "failure", "failed", "terminal_reason"):
+    for field in TERMINAL_DIRECT_FIELDS:
         if field in record:
             return _terminal_reason_failed(record[field], field=f"{row_id}.env{env_id}.{field}")
     found = False
     failure = False
     for entry in trace_rows:
-        for field in ("terminal_failure", "terminal_failed", "terminal_reason"):
+        for field in TERMINAL_DIRECT_FIELDS:
             if field in entry:
                 found = True
                 failure = failure or _terminal_reason_failed(entry[field], field=f"{row_id}.env{env_id}.{field}")
     if found:
         return failure
-    if terminal_reasons is not None:
-        return _terminal_reason_failed(terminal_reasons[env_id], field=f"{row_id}.metrics.episode_terminal_reasons[{env_id}]")
+    if terminal_diagnostics is not None:
+        diagnostic = terminal_diagnostics.get(env_id)
+        if diagnostic is None:
+            raise RouteAAnalysisError(
+                f"{row_id} env{env_id} is missing keyed terminal diagnostics"
+            )
+        for field in TERMINAL_DIAGNOSTIC_FIELDS:
+            if field in diagnostic:
+                return _terminal_reason_failed(
+                    diagnostic[field],
+                    field=f"{row_id}.metrics.episode_terminal_diagnostics.env{env_id}.{field}",
+                )
     raise RouteAAnalysisError(f"{row_id} env{env_id} has no terminal-failure evidence")
 
 
@@ -137,15 +158,38 @@ def analyze_row(row: Mapping[str, Any]) -> dict[str, Any]:
         by_env[env_id] = record
     if sorted(by_env) != list(range(ROUTE_A_ENVS)):
         raise RouteAAnalysisError(f"{row_id} episode records do not cover env ids 0..15")
-    terminal_reasons = None
-    if isinstance(metrics, Mapping) and "episode_terminal_reasons" in metrics:
-        value = metrics["episode_terminal_reasons"]
+    terminal_diagnostics: dict[int, Mapping[str, Any]] | None = None
+    if isinstance(metrics, Mapping) and "episode_terminal_diagnostics" in metrics:
+        value = metrics["episode_terminal_diagnostics"]
         if not isinstance(value, list) or len(value) != ROUTE_A_ENVS:
-            raise RouteAAnalysisError(f"{row_id} episode_terminal_reasons is not a length-16 list")
-        terminal_reasons = value
+            raise RouteAAnalysisError(
+                f"{row_id} episode_terminal_diagnostics is not a length-16 list"
+            )
+        terminal_diagnostics = {}
+        for index, diagnostic in enumerate(value):
+            if not isinstance(diagnostic, Mapping):
+                raise RouteAAnalysisError(
+                    f"{row_id} episode_terminal_diagnostics[{index}] is not an object"
+                )
+            env_id = diagnostic.get("env_id")
+            if (
+                isinstance(env_id, bool)
+                or not isinstance(env_id, int)
+                or env_id not in range(ROUTE_A_ENVS)
+                or env_id in terminal_diagnostics
+            ):
+                raise RouteAAnalysisError(
+                    f"{row_id} episode_terminal_diagnostics has invalid/duplicate env_id"
+                )
+            terminal_diagnostics[env_id] = diagnostic
+        if sorted(terminal_diagnostics) != list(range(ROUTE_A_ENVS)):
+            raise RouteAAnalysisError(
+                f"{row_id} episode_terminal_diagnostics do not cover env ids 0..15"
+            )
 
     goals = []
     crossings = []
+    crossing_na = 0
     unsafe = []
     failures = []
     for env_id in range(ROUTE_A_ENVS):
@@ -155,9 +199,23 @@ def analyze_row(row: Mapping[str, Any]) -> dict[str, Any]:
         if "crossing_while_holding" not in record:
             raise RouteAAnalysisError(f"{row_id} env{env_id} missing crossing_while_holding")
         goals.append(_bool_value(record["goal_reached"], field=f"{row_id}.env{env_id}.goal_reached"))
-        crossings.append(_bool_value(record["crossing_while_holding"], field=f"{row_id}.env{env_id}.crossing_while_holding"))
+        crossing = record["crossing_while_holding"]
+        if crossing is not None and not isinstance(crossing, bool):
+            raise RouteAAnalysisError(
+                f"Route-A field {row_id}.env{env_id}.crossing_while_holding must be boolean or null, got {crossing!r}"
+            )
+        crossing_na += crossing is None
+        crossings.append(crossing is True)
         unsafe.append(_unsafe_for_env(record, row_id=row_id, env_id=env_id))
-        failures.append(_terminal_failure_for_env(record, trace[env_id], terminal_reasons, row_id=row_id, env_id=env_id))
+        failures.append(
+            _terminal_failure_for_env(
+                record,
+                trace[env_id],
+                terminal_diagnostics,
+                row_id=row_id,
+                env_id=env_id,
+            )
+        )
     return {
         "row_id": row_id,
         "source_branch": row["source_branch"],
@@ -176,6 +234,7 @@ def analyze_row(row: Mapping[str, Any]) -> dict[str, Any]:
         "episode_count": ROUTE_A_ENVS,
         "goal_reached": sum(goals),
         "supported_crossing": sum(crossings),
+        "supported_crossing_na": crossing_na,
         "unsafe_contacts": sum(unsafe),
         "terminal_failures": sum(failures),
         "missing_evidence": [],

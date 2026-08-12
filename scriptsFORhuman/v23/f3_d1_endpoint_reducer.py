@@ -147,7 +147,6 @@ def _validate_index(index: Mapping[str, Any], *, source: Path) -> list[Mapping[s
             "checkpoint_load_mode": "policy_only",
             "episode_record_count": 16,
             "metrics_completed_episodes": 16,
-            "trace_env_ids": list(range(16)),
         }
         for key, wanted in identity.items():
             if raw_row.get(key) != wanted:
@@ -155,6 +154,17 @@ def _validate_index(index: Mapping[str, Any], *, source: Path) -> list[Mapping[s
                     f"Route-A index row {row_index} field {key} disagrees: "
                     f"expected {wanted!r}, got {raw_row.get(key)!r}"
                 )
+        trace_env_ids = raw_row.get("trace_env_ids")
+        if (
+            not isinstance(trace_env_ids, list)
+            or not trace_env_ids
+            or any(isinstance(env_id, bool) or not isinstance(env_id, int) for env_id in trace_env_ids)
+            or any(env_id not in range(16) for env_id in trace_env_ids)
+            or trace_env_ids != sorted(set(trace_env_ids))
+        ):
+            raise F3EndpointError(
+                f"Route-A index row {row_index} trace_env_ids must be a nonempty sorted subset of 0..15"
+            )
         rows.append(raw_row)
     return rows
 
@@ -228,7 +238,7 @@ def _validate_records(path: Path, *, cell: str) -> int:
     return len(records)
 
 
-def _stage3_evidence(path: Path, *, cell: str) -> tuple[int, int, list[int], int]:
+def _stage3_evidence(path: Path, *, cell: str) -> tuple[int, int, list[int], int, list[int]]:
     trace = _read_json(path, label=f"{cell} raw Route-A trace")
     if not isinstance(trace, list) or not trace:
         raise F3EndpointError(f"{cell} raw Route-A trace is empty: {path}")
@@ -250,9 +260,13 @@ def _stage3_evidence(path: Path, *, cell: str) -> tuple[int, int, list[int], int
         if stage_buf == STAGE3_VALUE:
             stage3_trace_entry_count += 1
             stage3_env_ids.add(env_id)
-    if trace_env_ids != set(range(16)):
-        raise F3EndpointError(f"{cell} raw Route-A trace does not cover env ids 0..15: {path}")
-    return stage3_trace_entry_count, len(stage3_env_ids), sorted(stage3_env_ids), len(trace)
+    return (
+        stage3_trace_entry_count,
+        len(stage3_env_ids),
+        sorted(stage3_env_ids),
+        len(trace),
+        sorted(trace_env_ids),
+    )
 
 
 def reduce_endpoint(index_path: Path, *, output_path: Path | None = None) -> dict[str, Any]:
@@ -268,7 +282,13 @@ def reduce_endpoint(index_path: Path, *, output_path: Path | None = None) -> dic
         row = endpoint_rows[cell]
         row_receipt_path, records_path, trace_path, root = _validate_row_receipt(row, index_source=source)
         record_count = _validate_records(records_path, cell=cell)
-        stage3_trace_entry_count, stage3_env_count, stage3_env_ids, trace_row_count = _stage3_evidence(
+        (
+            stage3_trace_entry_count,
+            stage3_env_count,
+            stage3_env_ids,
+            trace_row_count,
+            trace_env_ids,
+        ) = _stage3_evidence(
             trace_path, cell=cell
         )
         endpoint_evidence[cell] = {
@@ -283,6 +303,7 @@ def reduce_endpoint(index_path: Path, *, output_path: Path | None = None) -> dic
             "raw_trace_path": str(trace_path),
             "episode_record_count": record_count,
             "trace_row_count": trace_row_count,
+            "trace_env_ids": trace_env_ids,
             "stage3_trace_entry_count": stage3_trace_entry_count,
             "stage3_env_count": stage3_env_count,
             "stage3_env_ids": stage3_env_ids,

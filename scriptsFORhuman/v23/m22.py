@@ -636,7 +636,6 @@ def _expected_receipt_fields(row: Mapping[str, Any]) -> dict[str, Any]:
         "records_path": str(root / "a2_v14_per_env_records.json"),
         "raw_trace_path": str(root / "stage2_step_trace.json"),
         "episode_record_count": ROUTE_A_ENVS,
-        "trace_env_ids": list(range(ROUTE_A_ENVS)),
         "metrics_completed_episodes": ROUTE_A_EPISODES,
     }
 
@@ -645,6 +644,17 @@ def _validate_receipt_binding(row: Mapping[str, Any], receipt: Mapping[str, Any]
     for key, expected in _expected_receipt_fields(row).items():
         if receipt.get(key) != expected:
             raise RouteAError(f"Route-A receipt {path} field {key} disagrees with manifest row {row['row_id']!r}")
+    trace_env_ids = receipt.get("trace_env_ids")
+    if (
+        not isinstance(trace_env_ids, list)
+        or not trace_env_ids
+        or any(isinstance(env_id, bool) or not isinstance(env_id, int) for env_id in trace_env_ids)
+        or any(env_id not in range(ROUTE_A_ENVS) for env_id in trace_env_ids)
+        or trace_env_ids != sorted(set(trace_env_ids))
+    ):
+        raise RouteAError(
+            f"Route-A receipt {path} trace_env_ids must be a nonempty sorted subset of 0..15"
+        )
 
 
 def _json_any(path: Path) -> Any:
@@ -670,9 +680,14 @@ def _validate_row(row: Mapping[str, Any], *, process: Mapping[str, Any]) -> dict
     ids = sorted(record.get("env_id") for record in records)
     if ids != list(range(ROUTE_A_ENVS)):
         raise RouteAError(f"Route-A episode records do not cover env ids 0..15: {root}")
-    trace_ids = {entry.get("env_id") for entry in trace if isinstance(entry, Mapping)}
-    if trace_ids != set(range(ROUTE_A_ENVS)):
-        raise RouteAError(f"Route-A raw trace does not cover env ids 0..15: {root}")
+    trace_ids: set[int] = set()
+    for index, entry in enumerate(trace):
+        if not isinstance(entry, Mapping):
+            raise RouteAError(f"Route-A raw trace row {index} is not an object: {root}")
+        env_id = entry.get("env_id")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in range(ROUTE_A_ENVS):
+            raise RouteAError(f"Route-A raw trace row {index} has invalid env_id: {root}")
+        trace_ids.add(env_id)
     if metrics.get("completed_episodes") != ROUTE_A_EPISODES:
         raise RouteAError(f"Route-A metrics must report completed_episodes=16: {root}")
     receipt = {

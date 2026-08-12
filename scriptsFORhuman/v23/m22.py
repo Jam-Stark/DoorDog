@@ -86,6 +86,18 @@ ROUTE_A_ROOT = REPO_ROOT / "logs_eval/base_v23/route_a"
 ROUTE_A_TOPOLOGY = "canonical16"
 ROUTE_A_ENVS = 16
 ROUTE_A_EPISODES = 16
+# Keep the step-trace diagnostics aligned with the active, non-zero v22
+# Route-A reward terms.  The checkpoint-adjacent eval config may contain
+# zero-scale legacy terms that the trace initializer rejects.
+ROUTE_A_DIAGNOSTIC_REWARD_TERMS = (
+    "push_door_hinge",
+    "a2_stage3_unlatch_hold",
+    "a2_stage3_stage4_hold_and_drive",
+    "a2_corridor_door_wide",
+    "a2_corridor_clean_passage",
+    "penalty_a2_door_body_contact",
+    "complete",
+)
 ROW_SCHEMA = "a2_piper_v23_route_a_row_receipt_v1"
 MANIFEST_SCHEMA = "a2_piper_v23_route_a_manifest_v1"
 INDEX_SCHEMA = "a2_piper_v23_route_a_evidence_index_v1"
@@ -270,6 +282,9 @@ def _eval_command(
         f"++algo.config.eval.num_eval_episodes={ROUTE_A_EPISODES}",
         "++algo.config.eval.eval_num_envs_episodes=true",
         "++algo.config.eval.a2_diagnostic_trace_enabled=true",
+        "++algo.config.eval.a2_diagnostic_reward_terms=["
+        + ",".join(ROUTE_A_DIAGNOSTIC_REWARD_TERMS)
+        + "]",
         "++env.config.a2_v23_route_a_unsafe_contact_enabled=true",
         "++algo.config.eval.a2_v23_route_a_unsafe_contact_export=true",
         "++algo.config.eval.save_videos=false",

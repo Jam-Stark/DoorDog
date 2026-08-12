@@ -285,6 +285,7 @@ def _eval_command(
         "++algo.config.eval.a2_diagnostic_reward_terms=["
         + ",".join(ROUTE_A_DIAGNOSTIC_REWARD_TERMS)
         + "]",
+        "++env.config.a2_v20_R2_evidence_enabled=false",
         "++env.config.a2_v23_route_a_unsafe_contact_enabled=true",
         "++algo.config.eval.a2_v23_route_a_unsafe_contact_export=true",
         "++algo.config.eval.save_videos=false",

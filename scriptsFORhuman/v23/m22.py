@@ -82,7 +82,6 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/m22.py``
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-EVAL_EXPERIMENT = "wbmanip/door_open_a2_base_lstm"
 ROUTE_A_ROOT = REPO_ROOT / "logs_eval/base_v23/route_a"
 ROUTE_A_TOPOLOGY = "canonical16"
 ROUTE_A_ENVS = 16
@@ -252,15 +251,13 @@ def _eval_command(
         cell=cell,
         door_regime=V23_CELL_FACTORS[cell]["door_regime"],
     )
-    config = V23_FORMAL_CELL_CONFIGS[cell]
     command = [
         str(PROJECT_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
-        f"+exp={EVAL_EXPERIMENT}",
-        f"+ablation=wbmanip/{Path(config).stem}",
         f"++checkpoint={checkpoint}",
         "++checkpoint_load_mode=policy_only",
+        "++algo.config.eval.a2_v23_p06_policy_only=true",
         "++auto_load_latest=false",
         "++headless=true",
         f"++num_envs={ROUTE_A_ENVS}",
@@ -287,7 +284,7 @@ def _eval_command(
     if variant == "lite":
         command.extend(
             [
-                "env.config.a2_v23_d1_variant=lite",
+                "++env.config.a2_v23_d1_variant=lite",
                 f"++v23_d1_replication_label={D1_LITE_REPLICATION_LABEL}",
             ]
         )

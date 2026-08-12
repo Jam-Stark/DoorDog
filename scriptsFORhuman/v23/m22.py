@@ -2,9 +2,9 @@
 
 Route A is deliberately mechanical: after a formal sub-wave barrier it builds
 the four cells in that sub-wave at steps 250 through 2500, evaluates each on
-canonical16, and seals 40 strict rows (640 episode records).  The runner uses
-one visible physical GPU at a time and never retries a failed row.  Selection
-is implemented separately in :mod:`route_a_selection`.
+canonical16, and seals 40 strict rows (640 episode records).  Each independent
+row runner uses one visible physical GPU and never retries a failed row.
+Selection is implemented separately in :mod:`route_a_selection`.
 """
 
 from __future__ import annotations
@@ -24,8 +24,8 @@ try:
         V23_CELL_FACTORS,
         V23_D0_SOURCE_CONFIG,
         V23_FORMAL_CELL_CONFIGS,
-        V23_FORMAL_CELL_GPU,
         V23_GPU_SUBWAVES,
+        V23_GPU_SLICES,
         V23_LAUNCHER_ROOT,
         V23_PLAN_ID,
         V23_ROUTE_A_STEPS,
@@ -35,7 +35,18 @@ try:
         require_file,
         write_json,
     )
-    from .formal_launcher import D1_RECEIPT_PATH, FORMAL_SUBWAVE_RECORD_SCHEMA, SUBWAVE_RECORD_STATUS
+    from .formal_launcher import (
+        D1_RECEIPT_PATH,
+        FORMAL_CELL_RECORD_SCHEMA,
+        CELL_RECORD_STATUS,
+        FORMAL_SLICE_RECORD_SCHEMA,
+        SLICE_RECORD_STATUS,
+        FORMAL_SUBWAVE_RECORD_SCHEMA,
+        SUBWAVE_RECORD_STATUS,
+        D1_LITE_REPLICATION_LABEL,
+        _record_d1_binding,
+        _validate_d1_variant,
+    )
 except ImportError:  # direct ``python scriptsFORhuman/v23/m22.py``
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
@@ -45,8 +56,8 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/m22.py``
         V23_CELL_FACTORS,
         V23_D0_SOURCE_CONFIG,
         V23_FORMAL_CELL_CONFIGS,
-        V23_FORMAL_CELL_GPU,
         V23_GPU_SUBWAVES,
+        V23_GPU_SLICES,
         V23_LAUNCHER_ROOT,
         V23_PLAN_ID,
         V23_ROUTE_A_STEPS,
@@ -56,7 +67,18 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/m22.py``
         require_file,
         write_json,
     )
-    from scriptsFORhuman.v23.formal_launcher import D1_RECEIPT_PATH, FORMAL_SUBWAVE_RECORD_SCHEMA, SUBWAVE_RECORD_STATUS
+    from scriptsFORhuman.v23.formal_launcher import (
+        D1_RECEIPT_PATH,
+        FORMAL_CELL_RECORD_SCHEMA,
+        CELL_RECORD_STATUS,
+        FORMAL_SLICE_RECORD_SCHEMA,
+        SLICE_RECORD_STATUS,
+        FORMAL_SUBWAVE_RECORD_SCHEMA,
+        SUBWAVE_RECORD_STATUS,
+        D1_LITE_REPLICATION_LABEL,
+        _record_d1_binding,
+        _validate_d1_variant,
+    )
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
@@ -69,6 +91,10 @@ ROW_SCHEMA = "a2_piper_v23_route_a_row_receipt_v1"
 MANIFEST_SCHEMA = "a2_piper_v23_route_a_manifest_v1"
 INDEX_SCHEMA = "a2_piper_v23_route_a_evidence_index_v1"
 MANIFEST_ROW_STATUS = "ROW_READY"
+# Route-A rows are independently launchable on the eight physical GPUs.  This
+# is intentionally local to this controller: the formal training launcher
+# retains its separate training GPU lease.
+ROUTE_A_LEGAL_PHYSICAL_GPUS = (0, 1, 2, 3, 4, 5, 6, 7)
 
 
 class RouteAError(V23Error):
@@ -132,7 +158,71 @@ def _require_barrier(subwave: str) -> dict[str, Any]:
         raise RouteAError(f"formal sub-wave barrier identity disagrees: {path}")
     if barrier.get("cells") != list(spec["cells"]) or barrier.get("route_a_admission") is not True:
         raise RouteAError(f"formal sub-wave barrier does not admit Route A: {path}")
+    _sealed_cell_bindings(barrier, subwave)
     return barrier
+
+
+def _sealed_cell_bindings(
+    barrier: Mapping[str, Any],
+    subwave: str,
+) -> dict[str, dict[str, str | None]]:
+    """Derive each Route-A cell identity from its immutable barrier records."""
+
+    spec = _subwave_spec(subwave)
+    slice_records = barrier.get("slice_records")
+    if not isinstance(slice_records, list) or len(slice_records) != len(spec["slices"]):
+        raise RouteAError(f"formal sub-wave barrier has no exact slice records: {subwave}")
+    bindings: dict[str, dict[str, str | None]] = {}
+    observed_cells: list[str] = []
+    for slice_record, slice_name in zip(slice_records, spec["slices"]):
+        if not isinstance(slice_record, Mapping):
+            raise RouteAError(f"formal sub-wave barrier slice is not an object: {subwave}/{slice_name}")
+        slice_spec = V23_GPU_SLICES[slice_name]
+        if slice_record.get("slice") != slice_name or slice_record.get("subwave") != subwave:
+            raise RouteAError(f"formal sub-wave barrier slice identity disagrees: {subwave}/{slice_name}")
+        if (
+            slice_record.get("schema") != FORMAL_SLICE_RECORD_SCHEMA
+            or slice_record.get("status") != SLICE_RECORD_STATUS
+            or slice_record.get("natural_completion") is not True
+            or slice_record.get("seed") != spec["seed"]
+            or slice_record.get("cell_count") != 2
+        ):
+            raise RouteAError(f"formal sub-wave barrier slice status disagrees: {subwave}/{slice_name}")
+        expected_slice_cells = slice_spec["cells"]
+        if slice_record.get("cells") != list(expected_slice_cells):
+            raise RouteAError(f"formal sub-wave barrier slice cell order disagrees: {subwave}/{slice_name}")
+        cell_records = slice_record.get("cell_records")
+        if not isinstance(cell_records, list) or len(cell_records) != len(expected_slice_cells):
+            raise RouteAError(f"formal sub-wave barrier has no exact cell records: {subwave}/{slice_name}")
+        for cell_record, cell in zip(cell_records, expected_slice_cells):
+            if not isinstance(cell_record, Mapping):
+                raise RouteAError(f"formal cell record is not an object: {subwave}/{cell}")
+            if (
+                cell_record.get("schema") != FORMAL_CELL_RECORD_SCHEMA
+                or cell_record.get("status") != CELL_RECORD_STATUS
+                or cell_record.get("natural_completion") is not True
+                or cell_record.get("subwave") != subwave
+                or cell_record.get("seed") != spec["seed"]
+                or cell_record.get("slice") != slice_name
+                or cell_record.get("cell") != cell
+                or cell_record.get("factors") != dict(V23_CELL_FACTORS[cell])
+            ):
+                raise RouteAError(f"formal cell record identity disagrees: {subwave}/{cell}")
+            variant, label = _record_d1_binding(
+                cell_record,
+                subwave=subwave,
+                seed=spec["seed"],
+                cell=cell,
+                allow_legacy_a1=True,
+            )
+            bindings[cell] = {
+                "d1_variant": variant,
+                "replication_label": label,
+            }
+            observed_cells.append(cell)
+    if observed_cells != list(spec["cells"]):
+        raise RouteAError(f"formal sub-wave barrier cell order disagrees: {subwave}")
+    return bindings
 
 
 def _training_checkpoint(seed: int, cell: str, step: int) -> Path:
@@ -144,10 +234,26 @@ def _evaluation_root(subwave: str, cell: str, step: int) -> Path:
     return _route_root(subwave) / cell / f"step{step:04d}" / ROUTE_A_TOPOLOGY
 
 
-def _eval_command(subwave: str, cell: str, step: int, checkpoint: Path, output: Path) -> list[str]:
-    seed = int(_subwave_spec(subwave)["seed"])
+def _eval_command(
+    subwave: str,
+    cell: str,
+    step: int,
+    checkpoint: Path,
+    output: Path,
+    *,
+    d1_variant: str,
+) -> list[str]:
+    spec = _subwave_spec(subwave)
+    seed = int(spec["seed"])
+    variant = _validate_d1_variant(
+        d1_variant,
+        subwave=subwave,
+        seed=seed,
+        cell=cell,
+        door_regime=V23_CELL_FACTORS[cell]["door_regime"],
+    )
     config = V23_FORMAL_CELL_CONFIGS[cell]
-    return [
+    command = [
         str(PROJECT_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
@@ -178,14 +284,67 @@ def _eval_command(subwave: str, cell: str, step: int, checkpoint: Path, output: 
         "++env.config.a2_v23_warm_head_reset_enabled=false",
         "++env.config.a2_v23_formal_launch=false",
     ]
+    if variant == "lite":
+        command.extend(
+            [
+                "env.config.a2_v23_d1_variant=lite",
+                f"++v23_d1_replication_label={D1_LITE_REPLICATION_LABEL}",
+            ]
+        )
+    return command
 
 
-def _row_manifest(subwave: str, cell: str, step: int) -> dict[str, Any]:
+def _validate_physical_gpus(values: Any) -> tuple[int, ...]:
+    if not isinstance(values, (list, tuple)) or not values:
+        raise RouteAError("Route-A physical GPU mapping must be a nonempty list")
+    if any(isinstance(value, bool) or not isinstance(value, int) for value in values):
+        raise RouteAError("Route-A physical GPU mapping must contain integers")
+    if any(value not in ROUTE_A_LEGAL_PHYSICAL_GPUS for value in values):
+        raise RouteAError(
+            f"Route-A physical GPU mapping must be an ordered subset of {ROUTE_A_LEGAL_PHYSICAL_GPUS}"
+        )
+    if len(set(values)) != len(values):
+        raise RouteAError("Route-A physical GPU mapping must not contain duplicates")
+    return tuple(values)
+
+
+def _parse_physical_gpus(raw: str | None) -> tuple[int, ...]:
+    if raw is None:
+        return ROUTE_A_LEGAL_PHYSICAL_GPUS
+    tokens = raw.split(",")
+    if any(not token.strip() for token in tokens):
+        raise RouteAError("--physical-gpus must be a comma-separated nonempty list")
+    try:
+        values = tuple(int(token.strip()) for token in tokens)
+    except ValueError as exc:
+        raise RouteAError("--physical-gpus must contain only integer GPU indices") from exc
+    return _validate_physical_gpus(values)
+
+
+def _row_manifest(
+    subwave: str,
+    cell: str,
+    step: int,
+    row_ordinal: int,
+    physical_gpus: Sequence[int],
+    d1_variant: str,
+    replication_label: str | None,
+) -> dict[str, Any]:
     spec = _subwave_spec(subwave)
     checkpoint = _training_checkpoint(spec["seed"], cell, step)
     require_file(checkpoint, label=f"{cell} step {step} checkpoint")
     output = _evaluation_root(subwave, cell, step)
-    gpu = int(V23_FORMAL_CELL_GPU[cell])
+    gpu = physical_gpus[row_ordinal % len(physical_gpus)]
+    variant = _validate_d1_variant(
+        d1_variant,
+        subwave=subwave,
+        seed=int(spec["seed"]),
+        cell=cell,
+        door_regime=V23_CELL_FACTORS[cell]["door_regime"],
+    )
+    expected_label = D1_LITE_REPLICATION_LABEL if variant == "lite" else None
+    if replication_label != expected_label:
+        raise RouteAError(f"Route-A cell binding label disagrees: {subwave}/{cell}")
     return {
         "row_id": f"{cell}:step{step:04d}",
         "schema": ROW_SCHEMA,
@@ -197,6 +356,8 @@ def _row_manifest(subwave: str, cell: str, step: int) -> dict[str, Any]:
         "seed": spec["seed"],
         "cell": cell,
         "step": step,
+        "d1_variant": variant,
+        "replication_label": replication_label,
         "physical_gpu": gpu,
         "logical_gpu": "cuda:0",
         "topology": ROUTE_A_TOPOLOGY,
@@ -205,7 +366,14 @@ def _row_manifest(subwave: str, cell: str, step: int) -> dict[str, Any]:
         "config_path": str(REPO_ROOT / V23_FORMAL_CELL_CONFIGS[cell]),
         "scenario_path": str(_scenario_path(cell)),
         "evaluation_root": str(output),
-        "command": _eval_command(subwave, cell, step, checkpoint, output),
+        "command": _eval_command(
+            subwave,
+            cell,
+            step,
+            checkpoint,
+            output,
+            d1_variant=variant,
+        ),
         "environment": {
             "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
             "CUDA_VISIBLE_DEVICES": str(gpu),
@@ -215,14 +383,28 @@ def _row_manifest(subwave: str, cell: str, step: int) -> dict[str, Any]:
     }
 
 
-def build(subwave: str) -> dict[str, Any]:
+def build(subwave: str, *, physical_gpus: Sequence[int] | None = None) -> dict[str, Any]:
     barrier = _require_barrier(subwave)
     spec = _subwave_spec(subwave)
-    rows = [
-        _row_manifest(subwave, cell, step)
-        for cell in spec["cells"]
-        for step in V23_ROUTE_A_STEPS
-    ]
+    cell_bindings = _sealed_cell_bindings(barrier, subwave)
+    selected_gpus = _validate_physical_gpus(
+        ROUTE_A_LEGAL_PHYSICAL_GPUS if physical_gpus is None else physical_gpus
+    )
+    rows = []
+    for cell in spec["cells"]:
+        for step in V23_ROUTE_A_STEPS:
+            binding = cell_bindings[cell]
+            rows.append(
+                _row_manifest(
+                    subwave,
+                    cell,
+                    step,
+                    len(rows),
+                    selected_gpus,
+                    binding["d1_variant"],
+                    binding["replication_label"],
+                )
+            )
     expected = len(spec["cells"]) * len(V23_ROUTE_A_STEPS)
     if len(rows) != expected or expected != 40:
         raise RouteAError(f"Route-A row cardinality is {len(rows)}, expected 40")
@@ -243,6 +425,9 @@ def build(subwave: str) -> dict[str, Any]:
         "episodes_per_row": ROUTE_A_EPISODES,
         "expected_checkpoint_evals": 40,
         "expected_episode_records": 640,
+        "physical_gpus": list(selected_gpus),
+        "max_live_eval_processes": len(selected_gpus),
+        "cell_bindings": cell_bindings,
         "formal_barrier": str(_barrier_path(subwave)),
         "barrier_record": barrier,
         "row_count": len(rows),
@@ -259,8 +444,23 @@ def build(subwave: str) -> dict[str, Any]:
         "recorded_at_utc": _now(),
         "subwave": subwave,
         "row_count": len(rows),
-        "rows": [{"row_id": row["row_id"], "physical_gpu": row["physical_gpu"], "evaluation_root": row["evaluation_root"]} for row in rows],
-        "scheduling": "serial rows; stop on first nonzero exit or validation failure; no retry",
+        "physical_gpus": list(selected_gpus),
+        "max_live_eval_processes": len(selected_gpus),
+        "cell_bindings": cell_bindings,
+        "rows": [
+            {
+                "row_id": row["row_id"],
+                "physical_gpu": row["physical_gpu"],
+                "evaluation_root": row["evaluation_root"],
+                "d1_variant": row["d1_variant"],
+                "replication_label": row["replication_label"],
+            }
+            for row in rows
+        ],
+        "scheduling": (
+            f"independent row jobs on physical GPUs {','.join(str(gpu) for gpu in selected_gpus)}; "
+            "all-row serial barrier stops on first nonzero exit or validation failure; no retry"
+        ),
     }
     _write(root / "V23_ROUTE_A_MANIFEST.json", manifest)
     _write(root / "V23_ROUTE_A_QUEUE.json", queue)
@@ -272,11 +472,12 @@ def build(subwave: str) -> dict[str, Any]:
         "plan_id": V23_PLAN_ID,
         "identity_policy": "OWNER_NO_HASH_PATH_IDENTITY",
         "subwave": subwave,
-        "physical_gpus": [0, 1],
         "cuda_device_order": "PCI_BUS_ID",
         "logical_gpu": "cuda:0",
         "max_live_training_processes": 0,
-        "max_live_eval_processes": 1,
+        "physical_gpus": list(selected_gpus),
+        "cell_bindings": cell_bindings,
+        "max_live_eval_processes": len(selected_gpus),
         "checkpoint_load_mode": "policy_only",
         "no_concurrent_training": True,
         "row_count": len(rows),
@@ -294,6 +495,9 @@ def _load_manifest(subwave: str) -> dict[str, Any]:
 def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path | None = None) -> None:
     source = path or Path(f"<in-memory:{subwave}:manifest>")
     spec = _subwave_spec(subwave)
+    barrier = _require_barrier(subwave)
+    cell_bindings = _sealed_cell_bindings(barrier, subwave)
+    manifest_gpus = _validate_physical_gpus(manifest.get("physical_gpus"))
     expected_top_level = {
         "schema": MANIFEST_SCHEMA,
         "status": "BUILT",
@@ -310,6 +514,9 @@ def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path 
         "episodes_per_row": ROUTE_A_EPISODES,
         "expected_checkpoint_evals": 40,
         "expected_episode_records": 640,
+        "physical_gpus": list(manifest_gpus),
+        "max_live_eval_processes": len(manifest_gpus),
+        "cell_bindings": cell_bindings,
         "row_count": 40,
     }
     for key, expected in expected_top_level.items():
@@ -328,8 +535,10 @@ def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path 
         step = row.get("step")
         if cell not in spec["cells"] or step not in V23_ROUTE_A_STEPS:
             raise RouteAError(f"Route-A manifest row {row_index} has an invalid cell/step: {source}")
+        binding = cell_bindings[cell]
         expected_checkpoint = _training_checkpoint(spec["seed"], cell, step)
         expected_output = _evaluation_root(subwave, cell, step)
+        expected_gpu = manifest_gpus[row_index % len(manifest_gpus)]
         expected_row = {
             "row_id": f"{cell}:step{step:04d}",
             "schema": ROW_SCHEMA,
@@ -341,7 +550,9 @@ def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path 
             "seed": spec["seed"],
             "cell": cell,
             "step": step,
-            "physical_gpu": V23_FORMAL_CELL_GPU[cell],
+            "d1_variant": binding["d1_variant"],
+            "replication_label": binding["replication_label"],
+            "physical_gpu": expected_gpu,
             "logical_gpu": "cuda:0",
             "topology": ROUTE_A_TOPOLOGY,
             "checkpoint_path": str(expected_checkpoint),
@@ -351,7 +562,7 @@ def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path 
             "evaluation_root": str(expected_output),
             "environment": {
                 "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
-                "CUDA_VISIBLE_DEVICES": str(V23_FORMAL_CELL_GPU[cell]),
+                "CUDA_VISIBLE_DEVICES": str(expected_gpu),
                 "ACCELERATE_TORCH_DEVICE": "cuda:0",
                 "WANDB_MODE": "disabled",
             },
@@ -359,7 +570,14 @@ def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path 
         for key, expected in expected_row.items():
             if row.get(key) != expected:
                 raise RouteAError(f"Route-A manifest row {row_index} field {key} disagrees: {source}")
-        expected_command = _eval_command(subwave, cell, step, expected_checkpoint, expected_output)
+        expected_command = _eval_command(
+            subwave,
+            cell,
+            step,
+            expected_checkpoint,
+            expected_output,
+            d1_variant=binding["d1_variant"],
+        )
         if row.get("command") != expected_command:
             raise RouteAError(f"Route-A manifest row {row_index} command disagrees: {source}")
         row_id = expected_row["row_id"]
@@ -372,6 +590,10 @@ def _validate_manifest(subwave: str, manifest: Mapping[str, Any], *, path: Path 
         observed_pairs.add(pair)
     if observed_pairs != expected_pairs:
         raise RouteAError(f"Route-A manifest cell/step coverage is not exact: {source}")
+    if manifest.get("formal_barrier") != str(_barrier_path(subwave)):
+        raise RouteAError(f"Route-A manifest formal barrier path disagrees: {source}")
+    if manifest.get("barrier_record") != barrier:
+        raise RouteAError(f"Route-A manifest barrier record disagrees: {source}")
 
 
 def _expected_receipt_fields(row: Mapping[str, Any]) -> dict[str, Any]:
@@ -388,6 +610,8 @@ def _expected_receipt_fields(row: Mapping[str, Any]) -> dict[str, Any]:
         "seed": row["seed"],
         "cell": row["cell"],
         "step": row["step"],
+        "d1_variant": row["d1_variant"],
+        "replication_label": row["replication_label"],
         "topology": row["topology"],
         "physical_gpu": row["physical_gpu"],
         "logical_gpu": "cuda:0",
@@ -450,6 +674,8 @@ def _validate_row(row: Mapping[str, Any], *, process: Mapping[str, Any]) -> dict
         "seed": row["seed"],
         "cell": row["cell"],
         "step": row["step"],
+        "d1_variant": row["d1_variant"],
+        "replication_label": row["replication_label"],
         "topology": row["topology"],
         "physical_gpu": row["physical_gpu"],
         "logical_gpu": "cuda:0",
@@ -517,11 +743,19 @@ def run(subwave: str, *, only_row: str | None = None) -> dict[str, Any]:
         "status": "PASS",
         "recorded_at_utc": _now(),
         "subwave": subwave,
+        "seed": manifest["seed"],
+        "cells": list(manifest["cells"]),
+        "cell_bindings": manifest["cell_bindings"],
         "row_count": len(completed),
         "completed_rows": completed,
         "no_retry": True,
     }
-    _write(_route_root(subwave) / "V23_ROUTE_A_RUN_RESULT.json", result)
+    result_path = (
+        Path(selected[0]["evaluation_root"]) / "V23_ROUTE_A_RUN_RESULT.json"
+        if only_row
+        else _route_root(subwave) / "V23_ROUTE_A_RUN_RESULT.json"
+    )
+    _write(result_path, result)
     return result
 
 
@@ -559,6 +793,7 @@ def index(subwave: str) -> dict[str, Any]:
         "route": "A",
         "subwave": subwave,
         "seed": manifest["seed"],
+        "cell_bindings": manifest["cell_bindings"],
         "topology": ROUTE_A_TOPOLOGY,
         "cells": list(V23_GPU_SUBWAVES[subwave]["cells"]),
         "steps": list(V23_ROUTE_A_STEPS),
@@ -577,6 +812,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--mode", dest="mode_option")
     parser.add_argument("--subwave", required=True, choices=tuple(V23_GPU_SUBWAVES))
     parser.add_argument("--only-row")
+    parser.add_argument("--physical-gpus", dest="physical_gpus")
     args = parser.parse_args(argv)
     command_arg = args.mode_option or args.command_arg
     if command_arg is None:
@@ -584,10 +820,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     command = command_arg.upper()
     try:
         if command == "BUILD":
-            payload = build(args.subwave)
+            payload = build(args.subwave, physical_gpus=_parse_physical_gpus(args.physical_gpus))
         elif command == "RUN":
+            if args.physical_gpus is not None:
+                raise RouteAError("--physical-gpus is only valid with BUILD")
             payload = run(args.subwave, only_row=args.only_row)
         elif command == "INDEX":
+            if args.physical_gpus is not None:
+                raise RouteAError("--physical-gpus is only valid with BUILD")
             payload = index(args.subwave)
         else:
             raise RouteAError("command must be BUILD, RUN, or INDEX")

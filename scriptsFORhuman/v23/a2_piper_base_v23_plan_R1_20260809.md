@@ -3,7 +3,7 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** formal admission prerequisites complete and A1-D0 in progress; P0.1/P0.3, P0.2/F2 effort40, P0.6, P0.7, R78 state-bank plumbing, P0.9, P0.10 adjudication, F1 head-reset smokes, the owner-approved physics-first D1 freeze, P0.8 preformal-v2, and the D1-FULL 64×10 bucket-plumbing smoke have all passed.  The canonical start-admission lock is complete, and A1 G1/G3 launched at 2026-08-10 22:25 HKT on physical GPU0/GPU1; no formal-training outcome is claimed while those cells remain live.
+**Runtime state:** admission and A1 are complete; W1 (A2 seed0 RP0 + B1 seed1 FULL) is in progress on physical GPU0--7. A1 G1/G3/G5/G7 naturally reached step2500. Route-A A1 is `COMPLETE` at exact 40 rows / 640 canonical16 episodes and selected G1 step2000, G3 step0250, G5 step0500, G7 step1500. F3 is `F3_NOT_TRIGGERED` because G5/G7 endpoints each observed stage3 in 16/16 envs, so all later seed1 D1 cells use `normal`. W1 launched in eight independent tmux sessions on 2026-08-13 around 09:56 HKT; step250 is timing evidence only, not completion.
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
@@ -147,23 +147,21 @@ One selected profile, if any, is shared by all eight groups.
 
 ## 4. Execution waves and ordering
 
-Physical GPUs 0 and 1 are the only v23 runtime lease.  Each scientific four-cell
-sub-wave executes as two serial two-cell slices; Route A starts only after both
-slices complete, preserving the original scientific sub-wave boundary:
+Owner's latest resource update grants physical GPU0--7. Formal training uses
+one cell per independent tmux session, no `CUDA_VISIBLE_DEVICES`, explicit
+physical `cuda:N`, distinct ports, and approximately ten-second launch
+staggering. Evaluation uses persisted GPU/job plans and at most one live child
+per GPU. The active schedule is:
 
 ```text
-A1-D0: seed 0, GPU0=G1, GPU1=G3
-A1-D1: seed 0, GPU0=G5, GPU1=G7
-Route-A A1
-A2-D0: seed 0, GPU0=G2, GPU1=G4
-A2-D1: seed 0, GPU0=G6, GPU1=G8
-Route-A A2
-B1-D0: seed 1, GPU0=G1, GPU1=G3
-B1-D1: seed 1, GPU0=G5, GPU1=G7
-Route-A B1
-B2-D0: seed 1, GPU0=G2, GPU1=G4
-B2-D1: seed 1, GPU0=G6, GPU1=G8
-Route-A B2
+A1 complete: seed0 FULL G1/G3/G5/G7, followed by Route-A A1 and F3
+W1: GPU0=G2-s0, GPU1=G4-s0, GPU2=G6-s0, GPU3=G8-s0,
+    GPU4=G1-s1, GPU5=G3-s1, GPU6=G5-s1, GPU7=G7-s1
+W2 concurrent:
+    GPU0--3 = B2 G2/G4/G6/G8 seed1 RP0 training
+    GPU4--7 = Route-A A2+B1
+W2 closure: Route-A B2 on GPU0--7
+Postformal: Route B -> holdout64 -> render -> final analysis/report
 ```
 
 Formal training is 2500 batches with checkpoints at 250, 500, 750, 1000,
@@ -426,9 +424,10 @@ digests, synthetic PASS results, or hidden controller decisions.
 
 Runtime ownership is explicit: P0.2/P0.4 producers own only the above P0 roots;
 the trainer preserves raw episode rows, while `effort_ladder.py` is the sole
-CPU reducer. Physical runtime is restricted to GPU0 and GPU1 only; GPU2--7 are
-out of scope, with no display or port lease, and no training process may share
-a probe GPU.  Formal launch waits only for the owner-approved physics-first D1,
+CPU reducer. Historical P0 producers used their recorded GPU leases. The
+current formal/postformal schedule owns physical GPU0--7 as specified in
+section 4, with one formal cell or one eval child per GPU and distinct formal
+ports. Formal launch waits only for the owner-approved physics-first D1,
 P0.8 preformal-v2, and D1-FULL plumbing-smoke receipts. Calibration changes are
 evidence-only: reward/termination semantics are untouched beyond sampling,
 trainer transport preserves raw rows, and all scene geometry uses IsaacLab
@@ -712,10 +711,15 @@ The CPU-only canonical reducer
 frozen matrix may start; `formal_training_completed`, `policy_quality_claim`,
 and `release_receipt` remain false.
 
-No other reducer completeness or symmetry rule may be added.  Physical GPU0
-and GPU1 are the only runtime resources; GPU2--7 are excluded.  Four-cell
-scientific sub-waves use the two serial slices in section 4, followed by one
-Route-A evaluation after both slices.  The long-run wait uses the observed
+All four A1 cells have natural `rc0` completion at global step 2500 and bind
+their exact `model_step_002500.pt` checkpoints. Route-A A1 sealed exact 40
+rows / 640 canonical16 episodes. Its mechanical selection is G1 step2000, G3
+step0250, G5 step0500, and G7 step1500. The append-only F3 endpoint receipt is
+`F3_NOT_TRIGGERED`: both G5 and G7 step2500 traces contain stage3 observations
+for all 16 env IDs. Later seed1 D1 therefore remains `normal`.
+
+No other reducer completeness or symmetry rule may be added. Physical GPU0--7
+are available under the W1/W2 schedule in section 4. The long-run wait uses the observed
 step-250 checkpoint interval extrapolated by `1.05`, then one long sleep and a
 natural-exit/OOM/traceback check.
 
@@ -732,7 +736,9 @@ The active DAG is therefore:
 ```text
 physics-first D1/D1-lite receipt + P0.8 preformal-v2 receipt
   -> D1-FULL 64x10 plumbing smoke
-  -> A1, A2, B1, B2 two-GPU slices + Route A after each scientific sub-wave
+  -> A1 complete + Route-A A1 + F3
+  -> W1 eight-cell A2/B1 + W2 B2 concurrent with Route-A A2/B1
+  -> Route-A B2
   -> selected Route B full interventions
   -> holdout64 -> render -> final analysis/report
 ```

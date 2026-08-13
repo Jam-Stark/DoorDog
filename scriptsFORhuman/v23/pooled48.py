@@ -25,16 +25,11 @@ from typing import Any, Mapping, Sequence
 try:
     from ._v23_common import (
         REPO_ROOT,
-        V23_FORMAL_CELL_CONFIGS,
-        V23_FORMAL_CELL_GPU,
         V23_GPU_SUBWAVES,
         V23_INTERVENTION_MODES,
-        V23_LEGAL_PHYSICAL_GPUS,
         V23_PLAN_ID,
         V23_ROUTE_A_STEPS,
         V23Error,
-        read_json,
-        require_file,
         write_json,
     )
 except ImportError:  # direct ``python scriptsFORhuman/v23/pooled48.py``
@@ -43,16 +38,11 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/pooled48.py``
         sys.path.insert(0, str(repo_root))
     from scriptsFORhuman.v23._v23_common import (
         REPO_ROOT,
-        V23_FORMAL_CELL_CONFIGS,
-        V23_FORMAL_CELL_GPU,
         V23_GPU_SUBWAVES,
         V23_INTERVENTION_MODES,
-        V23_LEGAL_PHYSICAL_GPUS,
         V23_PLAN_ID,
         V23_ROUTE_A_STEPS,
         V23Error,
-        read_json,
-        require_file,
         write_json,
     )
 
@@ -71,6 +61,13 @@ POOLED48_EPISODES = 48
 POOLED48_ROOT = REPO_ROOT / "logs_eval/base_v23/pooled48"
 POOLED48_RECEIPT_PATH = POOLED48_ROOT / "V23_POOLED48.json"
 POOLED48_PLAN_PATH = POOLED48_ROOT / "V23_POOLED48_PLAN.json"
+
+# Route-B may be scheduled on any local physical GPU in this workstation.  The
+# common v23 formal-training map remains intentionally untouched; Route-B
+# manifests own their ordered subset and bind every job from that subset.
+PHYSICAL_GPU_DOMAIN = tuple(range(8))
+DEFAULT_PHYSICAL_GPUS = (0, 1)
+PHYSICAL_GPU_MAPPING_POLICY = "CANONICAL_JOB_ORDINAL_MODULO_ORDERED_SELECTED_LIST"
 
 ROUTE_A_SELECTION_SCHEMA = "a2_piper_v23_route_a_selection_v1"
 ROUTE_A_SELECTION_STATUS = "COMPLETE"
@@ -111,6 +108,62 @@ SELECTION_PATHS = {
 
 class Pooled48Error(V23Error):
     """A pooled48 source, command, or receipt contract is invalid."""
+
+
+def validate_physical_gpus(values: Sequence[int] | str | None) -> tuple[int, ...]:
+    """Validate an ordered, unique, non-empty local physical-GPU subset."""
+
+    if values is None:
+        values = DEFAULT_PHYSICAL_GPUS
+    if isinstance(values, str):
+        if not values.strip():
+            raise Pooled48Error("physical GPU mapping must be a non-empty comma-separated list")
+        raw_values: Sequence[Any] = values.split(",")
+    elif isinstance(values, (bytes, bytearray)):
+        raise Pooled48Error("physical GPU mapping must be an ordered integer sequence")
+    else:
+        raw_values = values
+    try:
+        normalized = tuple(int(item) if isinstance(item, str) and item.strip() else item for item in raw_values)
+    except (TypeError, ValueError) as exc:
+        raise Pooled48Error("physical GPU mapping must contain integer ids") from exc
+    if not normalized:
+        raise Pooled48Error("physical GPU mapping must be non-empty")
+    if any(isinstance(item, bool) or not isinstance(item, int) for item in normalized):
+        raise Pooled48Error("physical GPU mapping must contain integer ids")
+    if any(item not in PHYSICAL_GPU_DOMAIN for item in normalized):
+        raise Pooled48Error(
+            f"physical GPU mapping must be an ordered unique subset of {list(PHYSICAL_GPU_DOMAIN)}"
+        )
+    if len(set(normalized)) != len(normalized):
+        raise Pooled48Error("physical GPU mapping must not contain duplicates")
+    return normalized
+
+
+def parse_physical_gpus(value: str) -> tuple[int, ...]:
+    """Parse the CLI ``--physical-gpus`` value with the same strict contract."""
+
+    return validate_physical_gpus(value)
+
+
+def physical_gpu_for_ordinal(ordinal: int, physical_gpus: Sequence[int] | str | None) -> int:
+    """Map a canonical job ordinal deterministically to a selected GPU."""
+
+    if isinstance(ordinal, bool) or not isinstance(ordinal, int) or ordinal < 0:
+        raise Pooled48Error("canonical job ordinal must be a non-negative integer")
+    selected = validate_physical_gpus(physical_gpus)
+    return selected[ordinal % len(selected)]
+
+
+def canonical_candidate_ordinal(candidate: Mapping[str, Any]) -> int:
+    """Return the stable pooled ordinal for one selected candidate."""
+
+    try:
+        subwave_index = SUBWAVE_ORDER.index(str(candidate["subwave"]))
+        cell_index = V23_GPU_SUBWAVES[str(candidate["subwave"])]["cells"].index(str(candidate["cell"]))
+    except (KeyError, ValueError) as exc:
+        raise Pooled48Error("candidate is not in canonical Route-B order") from exc
+    return subwave_index * 4 + cell_index
 
 
 def _now() -> str:
@@ -294,11 +347,10 @@ def _candidate_root(candidate: Mapping[str, Any]) -> Path:
     )
 
 
-def _command(candidate: Mapping[str, Any], output: Path) -> list[str]:
+def _command(candidate: Mapping[str, Any], output: Path, *, physical_gpu: int) -> list[str]:
     config = Path(str(candidate["config_path"]))
-    gpu = int(V23_FORMAL_CELL_GPU[candidate["cell"]])
-    if gpu not in V23_LEGAL_PHYSICAL_GPUS:
-        raise Pooled48Error(f"selected cell {candidate['cell']} maps to illegal physical GPU {gpu}")
+    if physical_gpu not in PHYSICAL_GPU_DOMAIN:
+        raise Pooled48Error(f"selected candidate maps to illegal physical GPU {physical_gpu}")
     return [
         str(PROJECT_PYTHON),
         "-m",
@@ -307,6 +359,7 @@ def _command(candidate: Mapping[str, Any], output: Path) -> list[str]:
         f"+ablation=wbmanip/{config.stem}",
         f"++checkpoint={candidate['checkpoint_path']}",
         "++checkpoint_load_mode=policy_only",
+        "++algo.config.eval.a2_v23_p06_policy_only=true",
         "++auto_load_latest=false",
         "++headless=true",
         f"++num_envs={POOLED48_NUM_ENVS}",
@@ -320,6 +373,7 @@ def _command(candidate: Mapping[str, Any], output: Path) -> list[str]:
         "++algo.config.eval.eval_num_envs_episodes=true",
         "++algo.config.eval.a2_diagnostic_trace_enabled=true",
         "++algo.config.num_mini_batches=1",
+        "++env.config.a2_v23_d1_sampler_enabled=false",
         "++env.config.a2_v23_route_a_unsafe_contact_enabled=false",
         "++algo.config.eval.a2_v23_route_a_unsafe_contact_export=false",
         "++algo.config.eval.save_videos=false",
@@ -335,11 +389,29 @@ def _command(candidate: Mapping[str, Any], output: Path) -> list[str]:
     ]
 
 
-def _job_plan(candidate: Mapping[str, Any]) -> dict[str, Any]:
+def _job_plan(
+    candidate: Mapping[str, Any],
+    *,
+    physical_gpus: Sequence[int] | str | None = None,
+    job_ordinal: int | None = None,
+    physical_gpu: int | None = None,
+) -> dict[str, Any]:
     output = _candidate_root(candidate)
-    gpu = int(V23_FORMAL_CELL_GPU[candidate["cell"]])
+    selected_gpus = validate_physical_gpus(physical_gpus)
+    ordinal = canonical_candidate_ordinal(candidate) if job_ordinal is None else job_ordinal
+    mapped_gpu = physical_gpu_for_ordinal(ordinal, selected_gpus)
+    if physical_gpu is not None:
+        if isinstance(physical_gpu, bool) or not isinstance(physical_gpu, int):
+            raise Pooled48Error("manifest physical_gpu must be an integer")
+        if physical_gpu != mapped_gpu:
+            raise Pooled48Error(
+                f"manifest physical_gpu {physical_gpu} disagrees with canonical ordinal {ordinal} "
+                f"and selected mapping {list(selected_gpus)}"
+            )
+        mapped_gpu = physical_gpu
     return {
         "job_id": f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}",
+        "job_ordinal": ordinal,
         "schema": POOLED48_JOB_SCHEMA,
         "source_branch": candidate["source_branch"],
         "plan_id": candidate["plan_id"],
@@ -348,7 +420,7 @@ def _job_plan(candidate: Mapping[str, Any]) -> dict[str, Any]:
         "topology": POOLED48_TOPOLOGY,
         "num_envs": POOLED48_NUM_ENVS,
         "episodes": POOLED48_EPISODES,
-        "physical_gpu": gpu,
+        "physical_gpu": mapped_gpu,
         "logical_gpu": "cuda:0",
         "num_gpus": 1,
         "multi_gpu": False,
@@ -361,10 +433,10 @@ def _job_plan(candidate: Mapping[str, Any]) -> dict[str, Any]:
         "metrics_path": str(output / "metrics_eval.json"),
         "run_receipt_path": str(output / "run_receipt.json"),
         "contact_evidence": "NOT_EXPORTED_UNSUPPORTED_FOR_POOLED48",
-        "command": _command(candidate, output),
+        "command": _command(candidate, output, physical_gpu=mapped_gpu),
         "environment": {
             "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
-            "CUDA_VISIBLE_DEVICES": str(gpu),
+            "CUDA_VISIBLE_DEVICES": str(mapped_gpu),
             "ACCELERATE_TORCH_DEVICE": "cuda:0",
             "WANDB_MODE": "disabled",
         },
@@ -375,14 +447,17 @@ def build_plan(
     *,
     selection_paths: Mapping[str, str | Path] | None = None,
     require_sources: bool = True,
+    physical_gpus: Sequence[int] | str | None = None,
     output: str | Path | None = None,
 ) -> dict[str, Any]:
     selected = load_selected_candidates(selection_paths, require_sources=require_sources)
-    jobs = [_job_plan(candidate) for candidate in selected]
+    selected_gpus = validate_physical_gpus(physical_gpus)
+    jobs = [
+        _job_plan(candidate, physical_gpus=selected_gpus, job_ordinal=ordinal)
+        for ordinal, candidate in enumerate(selected)
+    ]
     if len(jobs) != 16:
         raise Pooled48Error("pooled48 plan must contain exactly 16 jobs")
-    if {job["physical_gpu"] for job in jobs} != set(V23_LEGAL_PHYSICAL_GPUS):
-        raise Pooled48Error("pooled48 plan must use physical GPUs exactly {0,1}")
     payload = {
         "schema": POOLED48_PLAN_SCHEMA,
         "status": "BUILT",
@@ -397,7 +472,9 @@ def build_plan(
         "topology": POOLED48_TOPOLOGY,
         "num_envs": POOLED48_NUM_ENVS,
         "episodes_per_job": POOLED48_EPISODES,
-        "physical_gpus": list(V23_LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+        "physical_gpus": list(selected_gpus),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
         "logical_gpu": "cuda:0",
         "process_count_per_gpu": 1,
         "num_mini_batches": 1,
@@ -409,6 +486,71 @@ def build_plan(
     if output is not None:
         write_json(_absolute(output), payload)
     return payload
+
+
+def _validate_manifest_plan(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Validate a persisted pooled plan before RUN or REDUCE consumes it."""
+
+    if payload.get("schema") != POOLED48_PLAN_SCHEMA or payload.get("status") != "BUILT":
+        raise Pooled48Error("pooled48 manifest schema/status is not BUILT")
+    if payload.get("physical_gpu_domain") != list(PHYSICAL_GPU_DOMAIN):
+        raise Pooled48Error("pooled48 manifest physical_gpu_domain is not exactly 0..7")
+    selected_gpus = validate_physical_gpus(payload.get("physical_gpus"))
+    if payload.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise Pooled48Error("pooled48 manifest physical GPU mapping policy is unsupported")
+    selected = validate_selected_candidates(payload.get("selected_candidates"), require_sources=False)
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list) or len(jobs) != len(selected):
+        raise Pooled48Error("pooled48 manifest must contain exactly 16 jobs")
+    normalized_jobs: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    for ordinal, (candidate, raw_job) in enumerate(zip(selected, jobs)):
+        if not isinstance(raw_job, Mapping):
+            raise Pooled48Error(f"pooled48 manifest job {ordinal} must be an object")
+        job = dict(raw_job)
+        expected_id = f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}"
+        if job.get("job_id") != expected_id or job.get("job_ordinal") != ordinal:
+            raise Pooled48Error(f"pooled48 manifest job {ordinal} identity/order disagrees")
+        if job.get("selected_candidate") != candidate:
+            raise Pooled48Error(f"pooled48 manifest job {expected_id} candidate disagrees")
+        expected_gpu = physical_gpu_for_ordinal(ordinal, selected_gpus)
+        if job.get("physical_gpu") != expected_gpu:
+            raise Pooled48Error(f"pooled48 manifest job {expected_id} physical_gpu disagrees")
+        if job.get("logical_gpu") != "cuda:0":
+            raise Pooled48Error(f"pooled48 manifest job {expected_id} logical_gpu must be cuda:0")
+        environment = job.get("environment")
+        if not isinstance(environment, Mapping) or environment.get("CUDA_VISIBLE_DEVICES") != str(expected_gpu):
+            raise Pooled48Error(f"pooled48 manifest job {expected_id} CUDA mask disagrees")
+        command = job.get("command")
+        if not isinstance(command, list):
+            raise Pooled48Error(f"pooled48 manifest job {expected_id} command must be a list")
+        if "++checkpoint_load_mode=policy_only" not in command:
+            raise Pooled48Error(
+                f"pooled48 manifest job {expected_id} must use checkpoint_load_mode=policy_only"
+            )
+        if "++algo.config.eval.a2_v23_p06_policy_only=true" not in command:
+            raise Pooled48Error(
+                f"pooled48 manifest job {expected_id} must enable the P0.6 policy-only gate"
+            )
+        if "++env.config.a2_v23_d1_sampler_enabled=false" not in command:
+            raise Pooled48Error(
+                f"pooled48 manifest job {expected_id} must disable the D1 sampler explicitly"
+            )
+        if expected_id in seen_ids:
+            raise Pooled48Error(f"pooled48 manifest contains duplicate job {expected_id}")
+        seen_ids.add(expected_id)
+        normalized_jobs.append(job)
+    normalized = dict(payload)
+    normalized["selected_candidates"] = selected
+    normalized["physical_gpus"] = list(selected_gpus)
+    normalized["jobs"] = normalized_jobs
+    return normalized
+
+
+def load_plan(path: str | Path = POOLED48_PLAN_PATH) -> dict[str, Any]:
+    """Load and validate the persisted manifest used by RUN/REDUCE."""
+
+    return _validate_manifest_plan(_load_object(path))
 
 
 def _validate_runtime_files(job: Mapping[str, Any]) -> tuple[list[Any], list[Any], dict[str, Any]]:
@@ -432,6 +574,12 @@ def _validate_runtime_files(job: Mapping[str, Any]) -> tuple[list[Any], list[Any
 
 
 def _run_one(job: Mapping[str, Any]) -> dict[str, Any]:
+    physical_gpu = job.get("physical_gpu")
+    if isinstance(physical_gpu, bool) or not isinstance(physical_gpu, int) or physical_gpu not in PHYSICAL_GPU_DOMAIN:
+        raise Pooled48Error(f"pooled48 job {job.get('job_id')} has an invalid manifest physical_gpu")
+    environment = job.get("environment")
+    if not isinstance(environment, Mapping) or environment.get("CUDA_VISIBLE_DEVICES") != str(physical_gpu):
+        raise Pooled48Error(f"pooled48 job {job.get('job_id')} CUDA mask is not manifest-assigned")
     root = _absolute(job["evaluation_root"])
     receipt_path = root / "run_receipt.json"
     if root.exists():
@@ -456,6 +604,7 @@ def _run_one(job: Mapping[str, Any]) -> dict[str, Any]:
         "status": POOLED48_JOB_STATUS,
         "recorded_at_utc": _now(),
         "job_id": job["job_id"],
+        "job_ordinal": job["job_ordinal"],
         "source_branch": job["source_branch"],
         "plan_id": job["plan_id"],
         "identity_policy": job["identity_policy"],
@@ -466,7 +615,7 @@ def _run_one(job: Mapping[str, Any]) -> dict[str, Any]:
         "trace_row_count": len(trace),
         "trace_env_ids": sorted({row["env_id"] for row in trace if isinstance(row, Mapping)}),
         "metrics_completed_episodes": metrics["completed_episodes"],
-        "physical_gpu": job["physical_gpu"],
+        "physical_gpu": physical_gpu,
         "logical_gpu": "cuda:0",
         "num_mini_batches": 1,
         "process_count": 1,
@@ -492,8 +641,18 @@ def run(
     *,
     selection_paths: Mapping[str, str | Path] | None = None,
     only_job: str | None = None,
+    plan_path: str | Path | None = None,
+    physical_gpus: Sequence[int] | str | None = None,
 ) -> dict[str, Any]:
-    plan = build_plan(selection_paths=selection_paths, require_sources=True)
+    if plan_path is None:
+        raise Pooled48Error("RUN requires a persisted plan_path")
+    if physical_gpus is not None:
+        raise Pooled48Error("RUN rejects live physical_gpus; use the persisted plan mapping")
+    plan = load_plan(plan_path)
+    if selection_paths is not None:
+        expected = load_selected_candidates(selection_paths, require_sources=True)
+        if expected != plan["selected_candidates"]:
+            raise Pooled48Error("pooled48 manifest selected_candidates disagree with selection overrides")
     jobs = plan["jobs"]
     if only_job is not None:
         jobs = [job for job in jobs if job["job_id"] == only_job]
@@ -510,7 +669,13 @@ def run(
     }
 
 
-def _load_job_receipt(path: Path, *, candidate: Mapping[str, Any]) -> dict[str, Any]:
+def _load_job_receipt(
+    path: Path,
+    *,
+    candidate: Mapping[str, Any],
+    expected_physical_gpu: int,
+    expected_job_ordinal: int,
+) -> dict[str, Any]:
     receipt = _load_object(path)
     if receipt.get("schema") != POOLED48_JOB_SCHEMA or receipt.get("status") != POOLED48_JOB_STATUS:
         raise Pooled48Error(f"pooled48 job receipt is not complete: {path}")
@@ -521,7 +686,8 @@ def _load_job_receipt(path: Path, *, candidate: Mapping[str, Any]) -> dict[str, 
         ("num_envs", POOLED48_NUM_ENVS),
         ("episode_record_count", POOLED48_NUM_ENVS),
         ("metrics_completed_episodes", POOLED48_EPISODES),
-        ("physical_gpu", V23_FORMAL_CELL_GPU[candidate["cell"]]),
+        ("physical_gpu", expected_physical_gpu),
+        ("job_ordinal", expected_job_ordinal),
         ("logical_gpu", "cuda:0"),
         ("num_mini_batches", 1),
         ("retry_count", 0),
@@ -536,16 +702,32 @@ def reduce(
     *,
     selection_paths: Mapping[str, str | Path] | None = None,
     output: str | Path = POOLED48_RECEIPT_PATH,
+    plan_path: str | Path | None = None,
+    physical_gpus: Sequence[int] | str | None = None,
 ) -> dict[str, Any]:
-    selected = load_selected_candidates(selection_paths, require_sources=False)
+    if plan_path is None:
+        raise Pooled48Error("REDUCE requires a persisted plan_path")
+    if physical_gpus is not None:
+        raise Pooled48Error("REDUCE rejects live physical_gpus; use the persisted plan mapping")
+    plan = load_plan(plan_path)
+    selected = plan["selected_candidates"]
+    if selection_paths is not None:
+        expected = load_selected_candidates(selection_paths, require_sources=False)
+        if expected != selected:
+            raise Pooled48Error("pooled48 manifest selected_candidates disagree with selection overrides")
     jobs: list[dict[str, Any]] = []
-    for candidate in selected:
-        plan = _job_plan(candidate)
-        receipt_path = _absolute(plan["run_receipt_path"])
-        receipt = _load_job_receipt(receipt_path, candidate=candidate)
+    for ordinal, (candidate, manifest_job) in enumerate(zip(selected, plan["jobs"])):
+        receipt_path = _absolute(manifest_job["run_receipt_path"])
+        receipt = _load_job_receipt(
+            receipt_path,
+            candidate=candidate,
+            expected_physical_gpu=manifest_job["physical_gpu"],
+            expected_job_ordinal=ordinal,
+        )
         jobs.append(
             {
                 "job_id": receipt["job_id"],
+                "job_ordinal": ordinal,
                 "selected_candidate": dict(candidate),
                 "receipt_path": str(receipt_path),
                 "topology": receipt["topology"],
@@ -568,7 +750,9 @@ def reduce(
         "route": "B",
         "stage": "POOLED48",
         "topology": POOLED48_TOPOLOGY,
-        "physical_gpus": list(V23_LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+        "physical_gpus": list(plan["physical_gpus"]),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
         "logical_gpu": "cuda:0",
         "process_count_per_gpu": 1,
         "num_mini_batches": 1,
@@ -608,6 +792,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--mode", choices=("PLAN", "BUILD", "RUN", "REDUCE"), required=True)
     parser.add_argument("--job", default=None)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--plan", type=Path, default=POOLED48_PLAN_PATH)
+    parser.add_argument(
+        "--physical-gpus",
+        type=parse_physical_gpus,
+        default=None,
+        help="ordered unique local physical GPU ids, subset of 0..7; PLAN/BUILD only",
+    )
     parser.add_argument(
         "--allow-missing-sources",
         action="store_true",
@@ -616,21 +807,28 @@ def main(argv: Sequence[str] | None = None) -> int:
     _selection_args(parser)
     args = parser.parse_args(argv)
     try:
+        if args.mode not in {"PLAN", "BUILD"} and args.physical_gpus is not None:
+            raise Pooled48Error("--physical-gpus is valid only for PLAN and BUILD")
         selection_paths = _selection_paths_from_args(args)
         if args.mode in {"PLAN", "BUILD"}:
             payload = build_plan(
                 selection_paths=selection_paths,
                 require_sources=not args.allow_missing_sources,
+                physical_gpus=args.physical_gpus,
                 output=(args.output if args.mode == "BUILD" else None),
             )
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
         elif args.mode == "RUN":
             if args.allow_missing_sources:
                 raise Pooled48Error("--allow-missing-sources is not valid for RUN")
-            payload = run(selection_paths=selection_paths, only_job=args.job)
+            payload = run(selection_paths=selection_paths, only_job=args.job, plan_path=args.plan)
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
         else:
-            payload = reduce(selection_paths=selection_paths, output=args.output or POOLED48_RECEIPT_PATH)
+            payload = reduce(
+                selection_paths=selection_paths,
+                plan_path=args.plan,
+                output=args.output or POOLED48_RECEIPT_PATH,
+            )
             print(json.dumps({"status": "WRITTEN", "path": str(_absolute(args.output or POOLED48_RECEIPT_PATH))}, indent=2))
     except (OSError, TypeError, ValueError, V23Error) as exc:
         print(f"V23 POOLED48 {args.mode} FAIL: {exc}", file=sys.stderr)

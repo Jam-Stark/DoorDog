@@ -54,6 +54,7 @@ class A2Base(LeggedRobotBase):
         "HIGHER_EFFORT_RESCUE",
         "ORACLE_TANGENTIAL_ASSIST",
     )
+    A2_V23_P08_V2_ROUTE_B_MODES = A2_V23_P08_V2_MODES + ("FULL",)
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -431,15 +432,33 @@ class A2Base(LeggedRobotBase):
         if not isinstance(enabled, bool):
             raise RuntimeError("env.config.a2_v23_p08_v2_enabled must be bool.")
         self._a2_v23_p08_v2_enabled = enabled
+        route_b_enabled = self.config.get("a2_v23_route_b_p08_v2_enabled", False)
+        if not isinstance(route_b_enabled, bool):
+            raise RuntimeError("env.config.a2_v23_route_b_p08_v2_enabled must be bool.")
+        self._a2_v23_route_b_p08_v2_enabled = route_b_enabled
+        if route_b_enabled and not enabled:
+            raise RuntimeError(
+                "Route-B P0.8 preformal-v2 requires env.config.a2_v23_p08_v2_enabled=true."
+            )
         if not enabled:
             return
         mode = self.config.get("a2_v23_p08_v2_mode")
-        if mode not in self.A2_V23_P08_V2_MODES:
+        allowed_modes = (
+            self.A2_V23_P08_V2_ROUTE_B_MODES
+            if route_b_enabled
+            else self.A2_V23_P08_V2_MODES
+        )
+        if mode not in allowed_modes:
             raise RuntimeError(
                 "P0.8 preformal-v2 requires env.config.a2_v23_p08_v2_mode in "
-                f"{self.A2_V23_P08_V2_MODES}; got {mode!r}."
+                f"{allowed_modes}; got {mode!r}."
             )
-        if self.num_envs != 1:
+        if route_b_enabled:
+            if self.num_envs != 16:
+                raise RuntimeError(
+                    "Route-B P0.8 preformal-v2 requires the canonical16 environment topology."
+                )
+        elif self.num_envs != 1:
             raise RuntimeError("P0.8 preformal-v2 requires exactly one environment.")
         if self.config.get("a2_v23_p05_runtime_enabled", False) is True:
             raise RuntimeError(
@@ -821,8 +840,13 @@ class A2Base(LeggedRobotBase):
         mode = actor_state.get("a2_v23_p08_v2_mode", self._a2_v23_p08_v2_mode)
         active = actor_state.get("a2_v23_p08_v2_active_mask")
         steps = actor_state.get("a2_v23_p08_v2_control_step")
+        allowed_modes = (
+            self.A2_V23_P08_V2_ROUTE_B_MODES
+            if getattr(self, "_a2_v23_route_b_p08_v2_enabled", False)
+            else self.A2_V23_P08_V2_MODES
+        )
         if (
-            mode not in self.A2_V23_P08_V2_MODES
+            mode not in allowed_modes
             or not torch.is_tensor(active)
             or tuple(active.shape) != (self.num_envs,)
             or active.dtype != torch.bool
@@ -832,7 +856,15 @@ class A2Base(LeggedRobotBase):
         if not torch.is_tensor(steps) or tuple(steps.shape) != (self.num_envs,):
             raise ValueError("P0.8 preformal-v2 actor_state control_step contract is invalid.")
         base = high_level_actions[:, : self.A2_BASE_COMMAND_ACTION_DIM]
-        if mode == "ACUTE_RP0":
+        if mode == "FULL":
+            intervened = base.clone()
+            metadata = {
+                "mode": mode,
+                "forward_only": True,
+                "state_clone_supported": False,
+                "no_switch_baseline": True,
+            }
+        elif mode == "ACUTE_RP0":
             candidate, metadata = a2_v23_apply_forward_intervention(
                 base, mode="ACUTE_RP0"
             )

@@ -53,6 +53,10 @@ STRATIFIED_STATUS = "V23_STRATIFIED_EVAL_COMPLETE"
 INTERVENTION_STATUS = "V23_INTERVENTION_EVAL_COMPLETE"
 CANDIDATE_FREEZE_SCHEMA = "a2_piper_v23_candidate_freeze_v1"
 CANDIDATE_FREEZE_STATUS = "V23_CANDIDATE_FREEZE_COMPLETE"
+PHYSICAL_GPU_DOMAIN = tuple(range(8))
+PHYSICAL_GPU_MAPPING_POLICY = "CANONICAL_JOB_ORDINAL_MODULO_ORDERED_SELECTED_LIST"
+LOGICAL_GPU = "cuda:0"
+EXPECTED_CANDIDATE_COUNT = 16
 
 SOURCE_SPECS = {
     "pooled48": (POOLED48_PATH, POOLED48_SCHEMA, POOLED48_STATUS),
@@ -84,6 +88,23 @@ class RouteBAnalysisError(V23Error):
     """A fixed Route-B producer interface is missing or inconsistent."""
 
 
+def validate_gpu_provenance(payload: Mapping[str, Any], *, label: str) -> list[int]:
+    """Validate the producer-owned physical GPU manifest and return its order."""
+
+    if payload.get("physical_gpu_domain") != list(PHYSICAL_GPU_DOMAIN):
+        raise RouteBAnalysisError(f"{label} physical_gpu_domain must be exactly 0..7")
+    if payload.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise RouteBAnalysisError(f"{label} physical_gpu_mapping_policy is unsupported")
+    selected = payload.get("physical_gpus")
+    if not isinstance(selected, list) or not selected:
+        raise RouteBAnalysisError(f"{label} physical_gpus must be a non-empty ordered list")
+    if any(isinstance(gpu, bool) or not isinstance(gpu, int) or gpu not in PHYSICAL_GPU_DOMAIN for gpu in selected):
+        raise RouteBAnalysisError(f"{label} physical_gpus must be an ordered subset of 0..7")
+    if len(set(selected)) != len(selected):
+        raise RouteBAnalysisError(f"{label} physical_gpus must not contain duplicates")
+    return list(selected)
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -100,6 +121,9 @@ def _load_receipt(path: Path, *, schema: str, status: str, name: str) -> dict[st
         raise RouteBAnalysisError(f"{name} schema must be {schema}: {target}")
     if payload.get("status") != status:
         raise RouteBAnalysisError(f"{name} status must be {status}: {target}")
+    validate_gpu_provenance(payload, label=name)
+    if payload.get("logical_gpu") != LOGICAL_GPU:
+        raise RouteBAnalysisError(f"{name} logical_gpu must be {LOGICAL_GPU}: {target}")
     selected = payload.get("selected_candidates")
     if not isinstance(selected, list) or not selected:
         raise RouteBAnalysisError(
@@ -215,6 +239,19 @@ def build_candidate_freeze(
         name: _canonical_candidates(receipts[name].get("selected_candidates"), name=name)
         for name in SOURCE_SPECS
     }
+    if len(canonical_by_source["pooled48"]) != EXPECTED_CANDIDATE_COUNT:
+        raise RouteBAnalysisError(
+            f"Route-B candidate freeze requires exactly {EXPECTED_CANDIDATE_COUNT} selected candidates"
+        )
+    gpu_by_source = {
+        name: validate_gpu_provenance(receipts[name], label=name)
+        for name in SOURCE_SPECS
+    }
+    reference_gpus = gpu_by_source["pooled48"]
+    if any(gpus != reference_gpus for gpus in gpu_by_source.values()):
+        raise RouteBAnalysisError(
+            "Route-B producer receipts disagree on manifest-authoritative physical_gpus"
+        )
     reference = canonical_by_source["pooled48"]
     reference_json = json.dumps(reference, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     for name in ("stratified", "intervention"):
@@ -245,8 +282,10 @@ def build_candidate_freeze(
         "plan_id": V23_PLAN_ID,
         "identity_policy": "OWNER_NO_HASH_PATH_IDENTITY",
         "route": "B",
-        "physical_gpus": [0, 1],
-        "logical_gpu": "cuda:0",
+        "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+        "physical_gpus": reference_gpus,
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "logical_gpu": LOGICAL_GPU,
         "process_count_per_gpu": 1,
         "num_mini_batches": 1,
         "selection_policy": "PRESERVE_ALL_UNIQUE_EVIDENCE_COMPLETE_SELECTED_IDENTITIES",
@@ -259,6 +298,9 @@ def build_candidate_freeze(
                 "path": paths[name],
                 "schema": SOURCE_SPECS[name][1],
                 "status": SOURCE_SPECS[name][2],
+                "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+                "physical_gpus": gpu_by_source[name],
+                "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
             }
             for name in SOURCE_SPECS
         ],

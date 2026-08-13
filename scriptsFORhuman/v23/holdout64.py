@@ -1,8 +1,9 @@
 """Strict holdout64 planner/runner/reducer for frozen Route-B candidates.
 
 Each frozen candidate receives four fresh canonical16 jobs (seeds 3--6), for
-exactly 64 episode records.  The runner is one-shot per job, uses physical
-GPU0/1 with logical ``cuda:0``, and never retries or silently fills evidence.
+exactly 64 episode records.  The runner is one-shot per job, uses an explicit
+ordered physical-GPU manifest from 0--7 with logical ``cuda:0``, and never
+retries or silently fills evidence.
 """
 
 from __future__ import annotations
@@ -18,7 +19,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 try:
-    from ._v23_common import REPO_ROOT, V23Error, V23_GPU_SUBWAVES, read_json, write_json
+    from ._v23_common import REPO_ROOT, V23Error, V23_CELL_FACTORS, V23_GPU_SUBWAVES, read_json, write_json
     from .route_b_analysis import (
         CANDIDATE_FREEZE_SCHEMA,
         CANDIDATE_FREEZE_STATUS,
@@ -33,7 +34,7 @@ except ImportError:  # direct script invocation
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
-    from scriptsFORhuman.v23._v23_common import REPO_ROOT, V23Error, V23_GPU_SUBWAVES, read_json, write_json
+    from scriptsFORhuman.v23._v23_common import REPO_ROOT, V23Error, V23_CELL_FACTORS, V23_GPU_SUBWAVES, read_json, write_json
     from scriptsFORhuman.v23.route_b_analysis import (
         CANDIDATE_FREEZE_SCHEMA,
         CANDIDATE_FREEZE_STATUS,
@@ -47,8 +48,12 @@ except ImportError:  # direct script invocation
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-PHYSICAL_GPUS = (0, 1)
+LEGAL_PHYSICAL_GPUS = tuple(range(8))
+PHYSICAL_GPUS = LEGAL_PHYSICAL_GPUS
+DEFAULT_PHYSICAL_GPUS = LEGAL_PHYSICAL_GPUS
+PHYSICAL_GPU_MAPPING_POLICY = "CANONICAL_JOB_ORDINAL_MODULO_ORDERED_SELECTED_LIST"
 LOGICAL_DEVICE = "cuda:0"
+D1_SAMPLER_DISABLE_OVERRIDE = "++env.config.a2_v23_d1_sampler_enabled=false"
 HOLDOUT_SEEDS = (3, 4, 5, 6)
 EPISODES_PER_SEED = 16
 CANONICAL_EPISODES = 64
@@ -64,6 +69,48 @@ EXPECTED_CANDIDATE_COUNT = 16
 
 class Holdout64Error(V23Error):
     """A holdout candidate, raw record, or topology is invalid."""
+
+
+def _candidate_door_regime(candidate: Mapping[str, Any]) -> str:
+    cell = candidate.get("cell")
+    factors = V23_CELL_FACTORS.get(cell)
+    if not isinstance(factors, Mapping) or factors.get("door_regime") not in {"D0", "D1"}:
+        raise Holdout64Error(f"candidate cell has no canonical door regime: {cell!r}")
+    return str(factors["door_regime"])
+
+
+def _validate_physical_gpu_manifest(value: Any, *, label: str = "physical_gpus") -> list[int]:
+    """Validate an ordered, unique physical-GPU manifest for this run."""
+
+    if not isinstance(value, (list, tuple)) or not value:
+        raise Holdout64Error(f"{label} must be a non-empty ordered list")
+    manifest: list[int] = []
+    seen: set[int] = set()
+    for index, gpu in enumerate(value):
+        if isinstance(gpu, bool) or not isinstance(gpu, int) or gpu not in LEGAL_PHYSICAL_GPUS:
+            raise Holdout64Error(f"{label}[{index}] must be a physical GPU in 0..7")
+        if gpu in seen:
+            raise Holdout64Error(f"{label} must contain unique physical GPUs")
+        seen.add(gpu)
+        manifest.append(gpu)
+    return manifest
+
+
+def _parse_physical_gpu_tokens(values: Sequence[str] | None) -> list[int]:
+    """Parse CLI GPU tokens while preserving the explicit user order."""
+
+    if values is None:
+        return list(DEFAULT_PHYSICAL_GPUS)
+    tokens: list[str] = []
+    for value in values:
+        tokens.extend(part.strip() for part in str(value).split(","))
+    if not tokens or any(not token for token in tokens):
+        raise Holdout64Error("--physical-gpus requires one or more GPU ids in 0..7")
+    try:
+        parsed = [int(token) for token in tokens]
+    except ValueError as exc:
+        raise Holdout64Error("--physical-gpus values must be integer GPU ids in 0..7") from exc
+    return _validate_physical_gpu_manifest(parsed, label="--physical-gpus")
 
 
 def _utc_now() -> str:
@@ -97,8 +144,9 @@ def _validate_candidate_freeze_payload(payload: Mapping[str, Any]) -> dict[str, 
         raise Holdout64Error(f"candidate freeze schema must be {CANDIDATE_FREEZE_SCHEMA}")
     if payload.get("status") != CANDIDATE_FREEZE_STATUS:
         raise Holdout64Error(f"candidate freeze status must be {CANDIDATE_FREEZE_STATUS}")
-    if payload.get("physical_gpus") != [0, 1] or payload.get("logical_gpu") != LOGICAL_DEVICE:
-        raise Holdout64Error("candidate freeze GPU contract must be physical [0,1] and logical cuda:0")
+    _validate_physical_gpu_manifest(payload.get("physical_gpus"), label="candidate freeze physical_gpus")
+    if payload.get("logical_gpu") != LOGICAL_DEVICE:
+        raise Holdout64Error("candidate freeze GPU contract must use logical cuda:0")
     if payload.get("candidate_count") != EXPECTED_CANDIDATE_COUNT:
         raise Holdout64Error("candidate freeze must contain exactly 16 candidates")
     candidates = payload.get("selected_candidates")
@@ -170,6 +218,7 @@ def _validate_holdout_job(
     candidate_freeze_path: Path,
     holdout_root: Path,
     index: int,
+    physical_gpus: Sequence[int],
 ) -> tuple[str, int, tuple[str, int, str]]:
     expected_candidate_fields = set(CANDIDATE_KEYS) | {"freeze_id", "evidence_status"}
     if not isinstance(job, Mapping):
@@ -195,9 +244,29 @@ def _validate_holdout_job(
         raise Holdout64Error(f"holdout job {index} has invalid partition seed")
     if job.get("partition_id") != f"seed{seed}_canonical16":
         raise Holdout64Error(f"holdout job {index} partition identity is invalid")
-    expected_gpu = PHYSICAL_GPUS[HOLDOUT_SEEDS.index(seed) % len(PHYSICAL_GPUS)]
+    manifest = _validate_physical_gpu_manifest(physical_gpus)
+    job_ordinal = job.get("job_ordinal")
+    if isinstance(job_ordinal, bool) or not isinstance(job_ordinal, int) or job_ordinal < 0:
+        raise Holdout64Error(f"holdout job {index} job_ordinal is invalid")
+    if job.get("physical_gpus") != manifest:
+        raise Holdout64Error(f"holdout job {index} physical GPU manifest disagrees with plan")
+    if job.get("physical_gpu_domain") != list(LEGAL_PHYSICAL_GPUS) or job.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise Holdout64Error(f"holdout job {index} physical GPU domain/mapping policy is invalid")
+    expected_gpu = manifest[job_ordinal % len(manifest)]
     if job.get("physical_gpu") != expected_gpu or job.get("logical_gpu") != LOGICAL_DEVICE:
         raise Holdout64Error(f"holdout job {index} GPU binding is invalid")
+    environment = job.get("environment")
+    if not isinstance(environment, Mapping) or environment.get("CUDA_VISIBLE_DEVICES") != str(expected_gpu) or environment.get("ACCELERATE_TORCH_DEVICE") != LOGICAL_DEVICE:
+        raise Holdout64Error(f"holdout job {index} environment GPU binding is invalid")
+    command = job.get("command")
+    if not isinstance(command, list) or "++algo.config.num_mini_batches=1" not in {str(value) for value in command}:
+        raise Holdout64Error(f"holdout job {index} command mini-batch contract is invalid")
+    command_values = {str(value) for value in command}
+    if _candidate_door_regime(bound_candidate) == "D1":
+        if D1_SAMPLER_DISABLE_OVERRIDE not in command_values:
+            raise Holdout64Error(f"holdout D1 job {index} must disable the training-only sampler")
+    elif D1_SAMPLER_DISABLE_OVERRIDE in command_values:
+        raise Holdout64Error(f"holdout D0 job {index} must not carry the D1 sampler override")
     if job.get("process_count") != 1 or job.get("num_envs") != EPISODES_PER_SEED or job.get("episode_count") != EPISODES_PER_SEED:
         raise Holdout64Error(f"holdout job {index} topology is not canonical16")
     if job.get("num_mini_batches") != 1 or job.get("retry_policy") != "none":
@@ -242,8 +311,13 @@ def _validate_plan_topology(plan: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(holdout_root_value, str) or not holdout_root_value or not Path(holdout_root_value).is_absolute():
         raise Holdout64Error("holdout plan must bind an absolute canonical holdout_root")
     holdout_root = Path(holdout_root_value).resolve()
-    if plan.get("physical_gpus") != [0, 1] or plan.get("logical_gpu") != LOGICAL_DEVICE:
-        raise Holdout64Error("holdout plan GPU contract must be physical [0,1] and logical cuda:0")
+    physical_gpus = _validate_physical_gpu_manifest(plan.get("physical_gpus"), label="holdout plan physical_gpus")
+    if plan.get("logical_gpu") != LOGICAL_DEVICE:
+        raise Holdout64Error("holdout plan GPU contract must use logical cuda:0")
+    if plan.get("gpu_assignment") != "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST":
+        raise Holdout64Error("holdout plan GPU assignment must be ordinal modulo its manifest")
+    if plan.get("physical_gpu_domain") != list(LEGAL_PHYSICAL_GPUS) or plan.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise Holdout64Error("holdout plan physical GPU domain/mapping policy is invalid")
     if plan.get("process_count_per_gpu") != 1:
         raise Holdout64Error("holdout plan process count must be one per physical GPU")
     if plan.get("holdout_seeds") != list(HOLDOUT_SEEDS):
@@ -277,7 +351,10 @@ def _validate_plan_topology(plan: Mapping[str, Any]) -> dict[str, Any]:
             candidate_freeze_path=candidate_freeze_path,
             holdout_root=holdout_root,
             index=index,
+            physical_gpus=physical_gpus,
         )
+        if job.get("job_ordinal") != index:
+            raise Holdout64Error(f"holdout job {index} job_ordinal must equal its ordered plan index")
         candidate_identity_keys.add(identity)
         candidate_ids.add(str(freeze_id))
         combination = (str(freeze_id), seed)
@@ -308,8 +385,8 @@ def _validate_plan_topology(plan: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _build_command(candidate: Mapping[str, Any], *, seed: int, physical_gpu: int, output_root: Path) -> tuple[list[str], dict[str, str]]:
-    if physical_gpu not in PHYSICAL_GPUS:
-        raise Holdout64Error(f"physical GPU must be one of {PHYSICAL_GPUS}")
+    if physical_gpu not in LEGAL_PHYSICAL_GPUS:
+        raise Holdout64Error(f"physical GPU must be one of {LEGAL_PHYSICAL_GPUS}")
     freeze_id = str(candidate["freeze_id"])
     config_stem = Path(str(candidate["config_path"])).stem
     command = [
@@ -337,6 +414,8 @@ def _build_command(candidate: Mapping[str, Any], *, seed: int, physical_gpu: int
         f"++env.config.a2_v23_route_b_candidate_config={candidate['config_path']}",
         f"++eval_output_dir={output_root}",
     ]
+    if _candidate_door_regime(candidate) == "D1":
+        command.append(D1_SAMPLER_DISABLE_OVERRIDE)
     environment = {
         "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
         "CUDA_VISIBLE_DEVICES": str(physical_gpu),
@@ -352,6 +431,7 @@ def build_holdout_plan(
     *,
     output_root: str | Path = HOLDOUT_ROOT,
     candidate_freeze_path: str | Path = CANDIDATE_FREEZE_PATH,
+    physical_gpus: Sequence[int] = DEFAULT_PHYSICAL_GPUS,
 ) -> dict[str, Any]:
     """Build all one-shot canonical16 jobs without launching Isaac Sim."""
 
@@ -359,13 +439,15 @@ def build_holdout_plan(
         raise Holdout64Error("holdout requires a complete candidate freeze")
     root = _absolute(output_root).resolve()
     freeze_path = _absolute(candidate_freeze_path).resolve()
+    gpu_manifest = _validate_physical_gpu_manifest(physical_gpus, label="physical_gpus")
     frozen_candidates = _candidate_rows(freeze)
     candidate_freeze_ids = [candidate["freeze_id"] for candidate in frozen_candidates]
     jobs: list[dict[str, Any]] = []
     for candidate in frozen_candidates:
         freeze_id = str(candidate["freeze_id"])
-        for seed_index, seed in enumerate(HOLDOUT_SEEDS):
-            gpu = PHYSICAL_GPUS[seed_index % len(PHYSICAL_GPUS)]
+        for seed in HOLDOUT_SEEDS:
+            job_ordinal = len(jobs)
+            gpu = gpu_manifest[job_ordinal % len(gpu_manifest)]
             job_root = _job_root(root, freeze_id, seed)
             command, environment = _build_command(candidate, seed=seed, physical_gpu=gpu, output_root=job_root)
             raw_path, trace_path = _raw_paths(job_root)
@@ -375,6 +457,10 @@ def build_holdout_plan(
                     "candidate": dict(candidate),
                     "candidate_freeze_path": str(freeze_path),
                     "holdout_root": str(root),
+                    "physical_gpus": list(gpu_manifest),
+                    "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+                    "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+                    "job_ordinal": job_ordinal,
                     "job_id": f"{freeze_id}:seed{seed}_canonical16",
                     "checkpoint_path": str(candidate["checkpoint_path"]),
                     "config_path": str(candidate["config_path"]),
@@ -411,7 +497,10 @@ def build_holdout_plan(
         "candidate_freeze_path": str(freeze_path),
         "candidate_freeze_ids": candidate_freeze_ids,
         "holdout_root": str(root),
-        "physical_gpus": [0, 1],
+        "physical_gpus": list(gpu_manifest),
+        "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "gpu_assignment": "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST",
         "logical_gpu": LOGICAL_DEVICE,
         "process_count_per_gpu": 1,
         "holdout_seeds": list(HOLDOUT_SEEDS),
@@ -429,11 +518,13 @@ def build_plan(
     *,
     freeze_path: str | Path = CANDIDATE_FREEZE_PATH,
     output_root: str | Path = HOLDOUT_ROOT,
+    physical_gpus: Sequence[int] = DEFAULT_PHYSICAL_GPUS,
 ) -> dict[str, Any]:
     payload = build_holdout_plan(
         _load_candidate_freeze(freeze_path),
         output_root=output_root,
         candidate_freeze_path=freeze_path,
+        physical_gpus=physical_gpus,
     )
     _validate_plan_topology(payload)
     return payload
@@ -455,6 +546,7 @@ def run_once(job: Mapping[str, Any]) -> dict[str, Any]:
         candidate_freeze_path=candidate_freeze_path,
         holdout_root=holdout_root.resolve(),
         index=0,
+        physical_gpus=_validate_physical_gpu_manifest(job.get("physical_gpus"), label="holdout job physical_gpus"),
     )
     root = _absolute(str(job["output_root"]))
     if root.exists():
@@ -480,11 +572,15 @@ def run_once(job: Mapping[str, Any]) -> dict[str, Any]:
         "freeze_id": job["freeze_id"],
         "candidate": dict(job["candidate"]),
         "partition_id": job["partition_id"],
+        "job_ordinal": job["job_ordinal"],
         "checkpoint_path": job["checkpoint_path"],
         "config_path": job["config_path"],
         "scenario_path": job["scenario_path"],
         "seed": job["seed"],
         "physical_gpu": job["physical_gpu"],
+        "physical_gpus": list(job["physical_gpus"]),
+        "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
         "logical_gpu": LOGICAL_DEVICE,
         "process_count": 1,
         "num_envs": EPISODES_PER_SEED,
@@ -552,10 +648,10 @@ def _validate_job_receipt(receipt: Mapping[str, Any], job: Mapping[str, Any]) ->
     path = Path(str(job["job_receipt_path"]))
     if receipt.get("schema") != RAW_SCHEMA or receipt.get("status") != RAW_STATUS:
         raise Holdout64Error(f"holdout job receipt schema/status is incomplete: {path}")
-    for field in ("job_id", "freeze_id", "partition_id", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "returncode", "output_root", "raw_records_path", "trace_path", "retry_count", "candidate"):
+    for field in ("job_id", "freeze_id", "partition_id", "job_ordinal", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "physical_gpus", "physical_gpu_domain", "physical_gpu_mapping_policy", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "returncode", "output_root", "raw_records_path", "trace_path", "retry_count", "candidate"):
         if field not in receipt:
             raise Holdout64Error(f"holdout job receipt is missing {field}: {path}")
-    for field in ("job_id", "freeze_id", "partition_id", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "output_root", "raw_records_path", "trace_path"):
+    for field in ("job_id", "freeze_id", "partition_id", "job_ordinal", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "physical_gpus", "physical_gpu_domain", "physical_gpu_mapping_policy", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "output_root", "raw_records_path", "trace_path"):
         if receipt[field] != job[field]:
             raise Holdout64Error(f"holdout job receipt {path} field {field} disagrees with plan")
     if receipt["candidate"] != job["candidate"]:
@@ -583,9 +679,13 @@ def reduce_receipt(
         _validate_trace(trace_path)
         grouped.setdefault(freeze_id, []).append(
             {
+                "job_ordinal": job["job_ordinal"],
                 "seed": job["seed"],
                 "partition_id": job["partition_id"],
                 "physical_gpu": job["physical_gpu"],
+                "physical_gpus": list(job["physical_gpus"]),
+                "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+                "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
                 "record_count": len(records),
                 "raw_records_path": str(records_path),
                 "trace_path": str(trace_path),
@@ -608,7 +708,10 @@ def reduce_receipt(
         "status": RECEIPT_STATUS,
         "recorded_at_utc": _utc_now(),
         "source_branch": "A2_Piper",
-        "physical_gpus": [0, 1],
+        "physical_gpus": list(plan["physical_gpus"]),
+        "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "gpu_assignment": "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST",
         "logical_gpu": LOGICAL_DEVICE,
         "process_count_per_gpu": 1,
         "candidate_freeze_path": plan["candidate_freeze_path"],
@@ -637,25 +740,40 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--plan", type=Path, default=None)
     parser.add_argument("--job-index", type=int, default=None)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument(
+        "--physical-gpus",
+        nargs="+",
+        default=None,
+        help="ordered physical GPU ids (0..7), e.g. --physical-gpus 0 1 2 3",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.mode != "PLAN" and args.physical_gpus is not None:
+            raise Holdout64Error("--physical-gpus is valid only for PLAN")
+        if args.mode != "PLAN" and args.plan is None:
+            raise Holdout64Error(f"{args.mode} requires an existing persisted --plan")
+        physical_gpus = _parse_physical_gpu_tokens(args.physical_gpus) if args.mode == "PLAN" else None
         if args.mode == "PLAN":
-            payload = build_plan(freeze_path=args.freeze, output_root=args.output_root)
+            payload = build_plan(
+                freeze_path=args.freeze,
+                output_root=args.output_root,
+                physical_gpus=physical_gpus,
+            )
             if args.output is not None:
                 write_json(_absolute(args.output), payload)
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
         elif args.mode == "RUN":
-            plan = read_json(_absolute(args.plan)) if args.plan is not None else build_plan(freeze_path=args.freeze, output_root=args.output_root)
+            plan = read_json(_absolute(args.plan))
             _validate_plan_topology(plan)
             if args.job_index is None or args.job_index not in range(len(plan["jobs"])):
                 raise Holdout64Error("RUN requires a valid --job-index")
             print(json.dumps(run_once(plan["jobs"][args.job_index]), ensure_ascii=False, indent=2, sort_keys=True))
         else:
-            plan = read_json(_absolute(args.plan)) if args.plan is not None else build_plan(freeze_path=args.freeze, output_root=args.output_root)
+            plan = read_json(_absolute(args.plan))
             receipt = reduce_receipt(plan, output=args.output or HOLDOUT_RECEIPT_PATH)
             print(json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True))
     except (OSError, TypeError, ValueError, V23Error) as exc:

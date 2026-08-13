@@ -16,13 +16,33 @@ from typing import Any, Mapping, Sequence
 
 try:
     from ._v23_common import REPO_ROOT, V23_GPU_SUBWAVES, V23_INTERVENTION_MODES, V23_PLAN_ID, V23_ROUTE_A_STEPS, V23Error, read_json, write_json
-    from .route_b_analysis import CANDIDATE_KEYS, SUBWAVE_ORDER, _canonical_candidates, _freeze_id, _validate_candidate
+    from .route_b_analysis import (
+        CANDIDATE_KEYS,
+        LOGICAL_GPU,
+        PHYSICAL_GPU_DOMAIN,
+        PHYSICAL_GPU_MAPPING_POLICY,
+        SUBWAVE_ORDER,
+        _canonical_candidates,
+        _freeze_id,
+        _validate_candidate,
+        validate_gpu_provenance,
+    )
 except ImportError:  # direct script invocation
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
     from scriptsFORhuman.v23._v23_common import REPO_ROOT, V23_GPU_SUBWAVES, V23_INTERVENTION_MODES, V23_PLAN_ID, V23_ROUTE_A_STEPS, V23Error, read_json, write_json
-    from scriptsFORhuman.v23.route_b_analysis import CANDIDATE_KEYS, SUBWAVE_ORDER, _canonical_candidates, _freeze_id, _validate_candidate
+    from scriptsFORhuman.v23.route_b_analysis import (
+        CANDIDATE_KEYS,
+        LOGICAL_GPU,
+        PHYSICAL_GPU_DOMAIN,
+        PHYSICAL_GPU_MAPPING_POLICY,
+        SUBWAVE_ORDER,
+        _canonical_candidates,
+        _freeze_id,
+        _validate_candidate,
+        validate_gpu_provenance,
+    )
 
 
 FINAL_ROOT = REPO_ROOT / "logs_eval/base_v23/final_analysis"
@@ -89,6 +109,13 @@ class FinalAnalysisError(V23Error):
     """A final-analysis input or typed report contract is invalid."""
 
 
+def _gpu_provenance(payload: Mapping[str, Any], *, label: str) -> list[int]:
+    try:
+        return validate_gpu_provenance(payload, label=label)
+    except V23Error as exc:
+        raise FinalAnalysisError(str(exc)) from exc
+
+
 def _validate_candidate_freeze_contract(payload: Mapping[str, Any], *, path: Path) -> list[dict[str, Any]]:
     required = {
         "schema",
@@ -97,7 +124,9 @@ def _validate_candidate_freeze_contract(payload: Mapping[str, Any], *, path: Pat
         "plan_id",
         "identity_policy",
         "route",
+        "physical_gpu_domain",
         "physical_gpus",
+        "physical_gpu_mapping_policy",
         "logical_gpu",
         "process_count_per_gpu",
         "num_mini_batches",
@@ -113,6 +142,7 @@ def _validate_candidate_freeze_contract(payload: Mapping[str, Any], *, path: Pat
     }
     if not required <= set(payload):
         raise FinalAnalysisError(f"candidate freeze contract is shallow or incomplete: {path}")
+    freeze_gpus = _gpu_provenance(payload, label="candidate freeze")
     if (
         payload.get("schema") != EXPECTED_RECEIPTS["route_b"][0]
         or payload.get("status") != EXPECTED_RECEIPTS["route_b"][1]
@@ -120,8 +150,7 @@ def _validate_candidate_freeze_contract(payload: Mapping[str, Any], *, path: Pat
         or payload.get("plan_id") != V23_PLAN_ID
         or payload.get("identity_policy") != "OWNER_NO_HASH_PATH_IDENTITY"
         or payload.get("route") != "B"
-        or payload.get("physical_gpus") != [0, 1]
-        or payload.get("logical_gpu") != "cuda:0"
+        or payload.get("logical_gpu") != LOGICAL_GPU
         or payload.get("process_count_per_gpu") != 1
         or payload.get("num_mini_batches") != 1
         or payload.get("ranking_gate") != "NOT_APPLIED"
@@ -163,13 +192,24 @@ def _validate_candidate_freeze_contract(payload: Mapping[str, Any], *, path: Pat
         raise FinalAnalysisError(f"candidate freeze source provenance is incomplete: {path}")
     observed_sources = set()
     for source in source_receipts:
-        if not isinstance(source, Mapping) or set(source) != {"name", "path", "schema", "status"}:
+        if not isinstance(source, Mapping) or set(source) != {
+            "name",
+            "path",
+            "schema",
+            "status",
+            "physical_gpu_domain",
+            "physical_gpus",
+            "physical_gpu_mapping_policy",
+        }:
             raise FinalAnalysisError(f"candidate freeze source provenance row is invalid: {path}")
         name = source.get("name")
         if name not in expected_sources or name in observed_sources or not isinstance(source.get("path"), str) or not source["path"]:
             raise FinalAnalysisError(f"candidate freeze source provenance identity is invalid: {path}")
         if (source.get("schema"), source.get("status")) != expected_sources[name]:
             raise FinalAnalysisError(f"candidate freeze source provenance schema/status is invalid: {path}")
+        source_gpus = _gpu_provenance(source, label=f"candidate freeze source {name}")
+        if source_gpus != freeze_gpus:
+            raise FinalAnalysisError(f"candidate freeze source GPU provenance disagrees: {path}")
         observed_sources.add(name)
     if observed_sources != set(expected_sources):
         raise FinalAnalysisError(f"candidate freeze source provenance is incomplete: {path}")
@@ -200,7 +240,13 @@ def _project_intervention_candidate(item: Any, *, index: int, path: Path) -> dic
     return projected
 
 
-def _validate_intervention_contract(payload: Mapping[str, Any], *, path: Path, freeze_rows: Sequence[Mapping[str, Any]]) -> None:
+def _validate_intervention_contract(
+    payload: Mapping[str, Any],
+    *,
+    path: Path,
+    freeze_rows: Sequence[Mapping[str, Any]],
+    expected_physical_gpus: Sequence[int],
+) -> None:
     freeze_projections = [
         {key: row[key] for key in CANDIDATE_KEYS}
         for row in freeze_rows
@@ -209,6 +255,7 @@ def _validate_intervention_contract(payload: Mapping[str, Any], *, path: Path, f
         tuple(row[key] for key in CANDIDATE_KEYS): row
         for row in freeze_rows
     }
+    observed_physical_gpus = _gpu_provenance(payload, label="intervention receipt")
     if (
         payload.get("source_branch") != "A2_Piper"
         or payload.get("plan_id") != V23_PLAN_ID
@@ -216,8 +263,8 @@ def _validate_intervention_contract(payload: Mapping[str, Any], *, path: Path, f
         or payload.get("route") != "B"
         or payload.get("stage") != "INTERVENTIONS"
         or payload.get("topology") != "canonical16"
-        or payload.get("physical_gpus") != [0, 1]
-        or payload.get("logical_gpu") != "cuda:0"
+        or observed_physical_gpus != list(expected_physical_gpus)
+        or payload.get("logical_gpu") != LOGICAL_GPU
         or payload.get("num_mini_batches") != 1
         or payload.get("modes") != list(V23_INTERVENTION_MODES)
         or payload.get("candidate_count") != EXPECTED_CANDIDATE_COUNT
@@ -242,8 +289,9 @@ def _validate_intervention_contract(payload: Mapping[str, Any], *, path: Path, f
     if projected_selected != freeze_projections:
         raise FinalAnalysisError(f"intervention selected candidates do not match the freeze projection: {path}")
     jobs = payload.get("jobs")
-    if not isinstance(jobs, list) or len(jobs) != 80:
-        raise FinalAnalysisError(f"intervention receipt must contain exactly 80 jobs: {path}")
+    expected_job_count = EXPECTED_CANDIDATE_COUNT * len(V23_INTERVENTION_MODES)
+    if not isinstance(jobs, list) or len(jobs) != expected_job_count:
+        raise FinalAnalysisError(f"intervention receipt must contain exactly {expected_job_count} jobs: {path}")
     by_id = {row["freeze_id"]: row for row in freeze_rows}
     seen: set[tuple[str, str]] = set()
     for index, job in enumerate(jobs):
@@ -262,6 +310,8 @@ def _validate_intervention_contract(payload: Mapping[str, Any], *, path: Path, f
         seen.add(key)
         if (
             job.get("topology") != "canonical16"
+            or job.get("job_ordinal") != index
+            or job.get("physical_gpu") != expected_physical_gpus[index % len(expected_physical_gpus)]
             or job.get("episode_record_count") != 16
             or job.get("outcome_status") != "PENDING_RUNTIME_FORWARD_ADJUDICATION"
             or job.get("forward_only") is not True
@@ -274,12 +324,20 @@ def _validate_intervention_contract(payload: Mapping[str, Any], *, path: Path, f
         raise FinalAnalysisError(f"intervention receipt does not cover exact 16x5 jobs: {path}")
 
 
-def _validate_holdout_contract(payload: Mapping[str, Any], *, path: Path, freeze_rows: Sequence[Mapping[str, Any]]) -> None:
+def _validate_holdout_contract(
+    payload: Mapping[str, Any],
+    *,
+    path: Path,
+    freeze_rows: Sequence[Mapping[str, Any]],
+    expected_physical_gpus: Sequence[int],
+) -> None:
     freeze_ids = [row["freeze_id"] for row in freeze_rows]
+    observed_physical_gpus = _gpu_provenance(payload, label="holdout receipt")
     if (
         payload.get("source_branch") != "A2_Piper"
-        or payload.get("physical_gpus") != [0, 1]
-        or payload.get("logical_gpu") != "cuda:0"
+        or observed_physical_gpus != list(expected_physical_gpus)
+        or payload.get("gpu_assignment") != "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST"
+        or payload.get("logical_gpu") != LOGICAL_GPU
         or payload.get("process_count_per_gpu") != 1
         or payload.get("candidate_count") != 16
         or payload.get("candidate_freeze_schema") != EXPECTED_RECEIPTS["route_b"][0]
@@ -294,6 +352,9 @@ def _validate_holdout_contract(payload: Mapping[str, Any], *, path: Path, freeze
         or payload.get("release_receipt") is not False
     ):
         raise FinalAnalysisError(f"holdout receipt topology/provenance is invalid: {path}")
+    candidate_freeze_path = payload.get("candidate_freeze_path")
+    if not isinstance(candidate_freeze_path, str) or not candidate_freeze_path or not Path(candidate_freeze_path).is_absolute():
+        raise FinalAnalysisError(f"holdout receipt candidate-freeze path is not absolute: {path}")
     candidates = payload.get("candidates")
     if not isinstance(candidates, list) or len(candidates) != EXPECTED_CANDIDATE_COUNT:
         raise FinalAnalysisError(f"holdout receipt must contain exactly 16 candidates: {path}")
@@ -314,9 +375,14 @@ def _validate_holdout_contract(payload: Mapping[str, Any], *, path: Path, freeze
             if isinstance(seed, bool) or seed not in EXPECTED_HOLDOUT_SEEDS or seed in seen_seeds:
                 raise FinalAnalysisError(f"holdout candidate {index} partition seed is invalid: {path}")
             seen_seeds.add(seed)
+            expected_job_ordinal = index * len(EXPECTED_HOLDOUT_SEEDS) + EXPECTED_HOLDOUT_SEEDS.index(seed)
             if (
                 job.get("partition_id") != f"seed{seed}_canonical16"
-                or job.get("physical_gpu") != (0 if seed in (3, 5) else 1)
+                or job.get("job_ordinal") != expected_job_ordinal
+                or job.get("physical_gpus") != list(expected_physical_gpus)
+                or job.get("physical_gpu_domain") != list(PHYSICAL_GPU_DOMAIN)
+                or job.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY
+                or job.get("physical_gpu") != expected_physical_gpus[expected_job_ordinal % len(expected_physical_gpus)]
                 or job.get("record_count") != 16
                 or not isinstance(job.get("raw_records_path"), str)
                 or not isinstance(job.get("trace_path"), str)
@@ -342,12 +408,21 @@ def _render_scenario_parameters(name: str) -> dict[str, float]:
     raise FinalAnalysisError(f"render receipt contains an unknown scenario {name!r}")
 
 
-def _validate_render_contract(payload: Mapping[str, Any], *, path: Path, freeze_rows: Sequence[Mapping[str, Any]]) -> None:
+def _validate_render_contract(
+    payload: Mapping[str, Any],
+    *,
+    path: Path,
+    freeze_rows: Sequence[Mapping[str, Any]],
+    expected_physical_gpus: Sequence[int],
+) -> None:
     freeze_ids = [row["freeze_id"] for row in freeze_rows]
+    observed_physical_gpus = _gpu_provenance(payload, label="render receipt")
+    selected_ids = payload.get("selected_candidate_ids")
     if (
         payload.get("source_branch") != "A2_Piper"
-        or payload.get("physical_gpus") != [0, 1]
-        or payload.get("logical_gpu") != "cuda:0"
+        or observed_physical_gpus != list(expected_physical_gpus)
+        or payload.get("gpu_assignment") != "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST"
+        or payload.get("logical_gpu") != LOGICAL_GPU
         or payload.get("process_count_per_gpu") != 1
         or payload.get("candidate_count") != 16
         or payload.get("scenario_count_per_candidate") != 5
@@ -360,14 +435,39 @@ def _validate_render_contract(payload: Mapping[str, Any], *, path: Path, freeze_
         or payload.get("release_receipt") is not False
         or payload.get("retry_policy") != "none"
         or payload.get("cameras") != list(EXPECTED_RENDER_CAMERAS)
+        or not isinstance(selected_ids, list)
+        or len(selected_ids) not in (1, 2, 3)
+        or any(not isinstance(candidate_id, str) or not candidate_id for candidate_id in selected_ids)
+        or len(set(selected_ids)) != len(selected_ids)
+        or any(candidate_id not in freeze_ids for candidate_id in selected_ids)
+        or payload.get("selected_candidate_count") != len(selected_ids)
     ):
         raise FinalAnalysisError(f"render receipt topology/provenance is invalid: {path}")
     if payload.get("candidate_freeze_ids") != freeze_ids:
-        raise FinalAnalysisError(f"render receipt candidate IDs disagree with freeze: {path}")
+        raise FinalAnalysisError(f"render receipt full candidate-freeze IDs disagree with freeze: {path}")
+    if payload.get("candidate_freeze_schema") != EXPECTED_RECEIPTS["route_b"][0] or payload.get("candidate_freeze_status") != EXPECTED_RECEIPTS["route_b"][1]:
+        raise FinalAnalysisError(f"render receipt candidate-freeze schema/status is invalid: {path}")
+    candidate_freeze_path = payload.get("candidate_freeze_path")
+    holdout_path = payload.get("holdout_path")
+    if (
+        not isinstance(candidate_freeze_path, str)
+        or not candidate_freeze_path
+        or not Path(candidate_freeze_path).is_absolute()
+        or payload.get("holdout_schema") != "a2_piper_v23_holdout64_receipt_v1"
+        or payload.get("holdout_status") != "V23_HOLDOUT64_COMPLETE"
+        or not isinstance(holdout_path, str)
+        or not holdout_path
+        or not Path(holdout_path).is_absolute()
+    ):
+        raise FinalAnalysisError(f"render receipt full lineage paths/schema are invalid: {path}")
+    if payload.get("holdout_candidate_freeze_ids") != freeze_ids:
+        raise FinalAnalysisError(f"render receipt holdout full candidate-freeze IDs disagree with freeze: {path}")
     jobs = payload.get("jobs")
-    if not isinstance(jobs, list) or len(jobs) != 80:
-        raise FinalAnalysisError(f"render receipt must contain exactly 80 jobs: {path}")
+    expected_job_count = len(selected_ids) * len(EXPECTED_RENDER_SCENARIOS)
+    if not isinstance(jobs, list) or len(jobs) != expected_job_count:
+        raise FinalAnalysisError(f"render receipt must contain exactly {expected_job_count} jobs for its explicit candidate subset: {path}")
     seen_jobs: set[tuple[str, str]] = set()
+    observed_candidate_order: list[str] = []
     seen_media: set[str] = set()
     expected_scenarios = {row[0] for row in EXPECTED_RENDER_SCENARIOS}
     for index, job in enumerate(jobs):
@@ -375,23 +475,34 @@ def _validate_render_contract(payload: Mapping[str, Any], *, path: Path, freeze_
             raise FinalAnalysisError(f"render job {index} is invalid: {path}")
         freeze_id = job.get("freeze_id")
         scenario = job.get("scenario")
-        if freeze_id not in freeze_ids or scenario not in expected_scenarios:
+        if freeze_id not in selected_ids or scenario not in expected_scenarios:
             raise FinalAnalysisError(f"render job {index} identity is invalid: {path}")
         key = (freeze_id, scenario)
         if key in seen_jobs:
             raise FinalAnalysisError(f"render receipt duplicates job {key}: {path}")
         seen_jobs.add(key)
+        if freeze_id not in observed_candidate_order:
+            observed_candidate_order.append(freeze_id)
         params = _render_scenario_parameters(scenario)
+        freeze_row = next(row for row in freeze_rows if row["freeze_id"] == freeze_id)
+        expected_identity = {
+            field: freeze_row[field]
+            for field in ("freeze_id", "checkpoint_path", "config_path", "seed", "subwave", "cell")
+        }
         if (
             job.get("status") != "QUALITATIVE_RENDER_COMPLETE"
-            or job.get("candidate_identity", {}).get("freeze_id") != freeze_id
+            or job.get("candidate_identity") != expected_identity
             or job.get("scenario_parameters") != params
             or job.get("scenario_manifest_schema") != "a2_piper_v23_route_b_render_scenario_manifest_v1"
             or job.get("scenario_manifest_status") != "STATIC_RENDER"
             or job.get("scenario_manifest_topology") != "render16"
             or job.get("topology") != "render16"
-            or job.get("physical_gpu") not in (0, 1)
-            or job.get("logical_gpu") != "cuda:0"
+            or job.get("job_ordinal") != index
+            or job.get("physical_gpus") != list(expected_physical_gpus)
+            or job.get("physical_gpu_domain") != list(PHYSICAL_GPU_DOMAIN)
+            or job.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY
+            or job.get("physical_gpu") != expected_physical_gpus[index % len(expected_physical_gpus)]
+            or job.get("logical_gpu") != LOGICAL_GPU
             or job.get("process_count") != 1
             or job.get("num_envs") != 16
             or job.get("num_mini_batches") != 1
@@ -425,9 +536,11 @@ def _validate_render_contract(payload: Mapping[str, Any], *, path: Path, freeze_
             seen_media.add(media_row["path"])
         if identities != {(env_id, camera) for env_id in range(16) for camera in EXPECTED_RENDER_CAMERAS}:
             raise FinalAnalysisError(f"render job {index} media_rows do not cover exact 16x3 topology: {path}")
-    if seen_jobs != {(freeze_id, scenario) for freeze_id in freeze_ids for scenario in expected_scenarios}:
-        raise FinalAnalysisError(f"render receipt does not cover exact 16x5 jobs: {path}")
-    if len(seen_media) != 80 * 48:
+    if seen_jobs != {(freeze_id, scenario) for freeze_id in selected_ids for scenario in expected_scenarios}:
+        raise FinalAnalysisError(f"render receipt does not cover exact selected-subset x 5 jobs: {path}")
+    if observed_candidate_order != selected_ids:
+        raise FinalAnalysisError(f"render receipt candidate order does not preserve the explicit subset: {path}")
+    if len(seen_media) != expected_job_count * 48:
         raise FinalAnalysisError(f"render receipt media paths are not globally unique: {path}")
 
 
@@ -436,6 +549,7 @@ def _validate_input_contracts(inputs: Mapping[str, Mapping[str, Any]]) -> None:
     if route_b.get("state") != "PASS" or not isinstance(route_b.get("payload"), Mapping):
         raise FinalAnalysisError("candidate freeze input is not PASS")
     freeze_rows = _validate_candidate_freeze_contract(route_b["payload"], path=Path(route_b["path"]))
+    expected_physical_gpus = _gpu_provenance(route_b["payload"], label="candidate freeze")
     for name in ("physics", "p08", "d1_full", "formal"):
         item = inputs[name]
         if item.get("state") != "PASS" or not isinstance(item.get("payload"), Mapping):
@@ -450,9 +564,24 @@ def _validate_input_contracts(inputs: Mapping[str, Mapping[str, Any]]) -> None:
         raise FinalAnalysisError("holdout input is not PASS")
     if render.get("state") != "PASS" or not isinstance(render.get("payload"), Mapping):
         raise FinalAnalysisError("render input is not PASS")
-    _validate_intervention_contract(intervention["payload"], path=Path(intervention["path"]), freeze_rows=freeze_rows)
-    _validate_holdout_contract(holdout["payload"], path=Path(holdout["path"]), freeze_rows=freeze_rows)
-    _validate_render_contract(render["payload"], path=Path(render["path"]), freeze_rows=freeze_rows)
+    _validate_intervention_contract(
+        intervention["payload"],
+        path=Path(intervention["path"]),
+        freeze_rows=freeze_rows,
+        expected_physical_gpus=expected_physical_gpus,
+    )
+    _validate_holdout_contract(
+        holdout["payload"],
+        path=Path(holdout["path"]),
+        freeze_rows=freeze_rows,
+        expected_physical_gpus=expected_physical_gpus,
+    )
+    _validate_render_contract(
+        render["payload"],
+        path=Path(render["path"]),
+        freeze_rows=freeze_rows,
+        expected_physical_gpus=expected_physical_gpus,
+    )
 
 
 def _route_a_string(value: Any, *, field: str) -> str:
@@ -757,6 +886,10 @@ def build_final_analysis(inputs: Mapping[str, Mapping[str, Any]]) -> dict[str, A
     if set(inputs) != required_names:
         raise FinalAnalysisError("final analysis requires physics, p08, d1_full, formal, route_a, route_b, holdout, and render inputs")
     _validate_input_contracts(inputs)
+    route_b_payload = inputs["route_b"]["payload"]
+    physical_gpus = _gpu_provenance(route_b_payload, label="candidate freeze")
+    holdout_payload = inputs["holdout"]["payload"]
+    render_payload = inputs["render"]["payload"]
     hypotheses = {name: _adjudicate_hypothesis(name, inputs) for name in HYPOTHESES}
     evidence = _typed_evidence_summary(inputs)
     missing_sources = [name for name, item in inputs.items() if item.get("state") != "PASS"]
@@ -766,10 +899,19 @@ def build_final_analysis(inputs: Mapping[str, Mapping[str, Any]]) -> dict[str, A
         "status": FINAL_STATUS,
         "recorded_at_utc": _utc_now(),
         "source_branch": "A2_Piper",
-        "physical_gpus": [0, 1],
-        "logical_gpu": "cuda:0",
+        "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+        "physical_gpus": physical_gpus,
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "logical_gpu": LOGICAL_GPU,
         "process_count_per_gpu": 1,
         "num_mini_batches": 1,
+        "candidate_freeze_count": route_b_payload["candidate_count"],
+        "candidate_freeze_ids": [row["freeze_id"] for row in route_b_payload["selected_candidates"]],
+        "render_selected_candidate_ids": list(render_payload["selected_candidate_ids"]),
+        "render_selected_candidate_count": render_payload["selected_candidate_count"],
+        "render_job_count": len(render_payload["jobs"]),
+        "holdout_candidate_count": holdout_payload["candidate_count"],
+        "holdout_episode_count": holdout_payload["candidate_count"] * holdout_payload["canonical_episodes_per_candidate"],
         "evidence": evidence,
         "missing_evidence": missing_sources,
         "hypotheses": hypotheses,
@@ -811,6 +953,17 @@ def _markdown(payload: Mapping[str, Any]) -> str:
     ]
     for name, item in payload["evidence"].items():
         lines.append(f"- `{name}`: `{item['state']}` — {item.get('reason', item.get('status', ''))}")
+    lines.extend(
+        [
+            "",
+            "## Frozen candidates and explicit render subset",
+            "",
+            f"- Full Route-B candidate freeze: `{payload['candidate_freeze_count']}` candidates",
+            f"- Holdout coverage: `{payload['holdout_candidate_count']}` candidates × `{payload['holdout_episode_count'] // payload['holdout_candidate_count']}` episodes",
+            f"- Explicit render subset: `{payload['render_selected_candidate_count']}` candidates × 5 scenarios = `{payload['render_job_count']}` jobs",
+            "",
+        ]
+    )
     lines.extend(["", "## H1–H5 adjudications", ""])
     for name, item in payload["hypotheses"].items():
         lines.extend(

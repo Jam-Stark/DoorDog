@@ -8791,7 +8791,7 @@ class DoorPregrasp(
         self._a2_v23_p05_completed_episode_evidence = [None] * self.num_envs
 
     def _init_a2_v23_p08_v2_evidence(self) -> None:
-        """Initialize the default-off four-mode P0.8 preformal-v2 evidence path."""
+        """Initialize the default-off P0.8 preformal-v2 evidence path."""
 
         if not getattr(self, "_a2_v23_p08_v2_enabled", False):
             return
@@ -8799,7 +8799,12 @@ class DoorPregrasp(
             raise RuntimeError(
                 "P0.8 preformal-v2 must not alter or share the strict P0.5 16-env contract."
             )
-        if self.num_envs != 1:
+        if getattr(self, "_a2_v23_route_b_p08_v2_enabled", False):
+            if self.num_envs != 16:
+                raise RuntimeError(
+                    "Route-B P0.8 preformal-v2 requires the canonical16 environment topology."
+                )
+        elif self.num_envs != 1:
             raise RuntimeError("P0.8 preformal-v2 requires exactly one environment.")
         mode = self._a2_v23_p08_v2_mode
         config = self.config
@@ -8994,6 +8999,8 @@ class DoorPregrasp(
         if not getattr(self, "_a2_v23_p08_v2_enabled", False):
             return
         mode = self._a2_v23_p08_v2_mode
+        if mode == "FULL":
+            return
         if mode == "BASE0_AT_GRASP":
             stable = self._a2_stage3_grasp_streak_highwater.clone()
             self._a2_v23_p08_v2_observed_stable |= stable
@@ -9178,7 +9185,13 @@ class DoorPregrasp(
                 )
             switch_step = int(self._a2_v23_p08_v2_switch_step[env_id].item())
             observed = bool(self._a2_v23_p08_v2_trigger_mask[env_id].item())
-            if mode == "ACUTE_RP0":
+            if mode == "FULL":
+                observed_latch = {
+                    "event": "NO_SWITCH_BASELINE",
+                    "observed": False,
+                    "step": -1,
+                }
+            elif mode == "ACUTE_RP0":
                 observed_latch = {"event": "EPISODE_START", "observed": True, "step": 0}
             elif mode == "BASE0_AT_GRASP":
                 observed_latch = {
@@ -9195,7 +9208,12 @@ class DoorPregrasp(
                     "predicates": dict(self._a2_v23_p08_v2_latch_predicates[env_id]),
                     "failure_flags": dict(self._a2_v23_p08_v2_failure_flags[env_id]),
                 }
-            if mode in ("ACUTE_RP0", "BASE0_AT_GRASP"):
+            if mode == "FULL":
+                mode_readback = {
+                    "no_switch": True,
+                    "active_mask": [False],
+                }
+            elif mode in ("ACUTE_RP0", "BASE0_AT_GRASP"):
                 mode_readback = {
                     "post_indices_3_4_zero": action.get("post_indices_3_4") == [0.0, 0.0]
                 }
@@ -9214,7 +9232,7 @@ class DoorPregrasp(
                         [float(value) for value in row]
                         for row in oracle_delta_raw
                     ]
-                delta_vector = oracle_delta_raw[0]
+                delta_vector = oracle_delta_raw[env_id]
                 pre_action = action.get("pre_action_5d")
                 post_action = action.get("post_action_5d")
                 post_equals_pre_plus_delta = bool(observed) and all(
@@ -9235,6 +9253,15 @@ class DoorPregrasp(
                     "active_mask": [bool(observed)],
                     "post_equals_pre_plus_delta": post_equals_pre_plus_delta,
                 }
+            excluded_claims = [
+                "NO_CAUSAL_EFFECT_CLAIM",
+                "NO_POLICY_QUALITY_CLAIM",
+                "NO_EXACT_STATE_CLONE",
+                "NO_RECURRENT_STATE_RESTORE",
+                "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
+            ]
+            if not getattr(self, "_a2_v23_route_b_p08_v2_enabled", False):
+                excluded_claims.append("NO_ROUTE_B_SUITE_EXECUTION")
             record = {
                 "schema": "a2_piper_v23_p08_preformal_v2_raw_v1",
                 "mode": mode,
@@ -9254,15 +9281,11 @@ class DoorPregrasp(
                 "recurrent_state_restore_supported": False,
                 "forward_only": True,
                 "mode_readback": mode_readback,
-                "excluded_claims": [
-                    "NO_CAUSAL_EFFECT_CLAIM",
-                    "NO_POLICY_QUALITY_CLAIM",
-                    "NO_EXACT_STATE_CLONE",
-                    "NO_RECURRENT_STATE_RESTORE",
-                    "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
-                    "NO_ROUTE_B_SUITE_EXECUTION",
-                ],
+                "excluded_claims": excluded_claims,
             }
+            if getattr(self, "_a2_v23_route_b_p08_v2_enabled", False):
+                record["route"] = "B"
+                record["topology"] = "canonical16"
             self._a2_v23_p08_v2_terminal_records[env_id] = record
 
     def get_a2_v23_p08_v2_episode_record(self, env_id: int) -> dict[str, Any]:

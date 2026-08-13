@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 try:
-    from ._v23_common import REPO_ROOT, V23Error, read_json, write_json
+    from ._v23_common import REPO_ROOT, V23Error, V23_CELL_FACTORS, read_json, write_json
     from .holdout64 import (
         CANDIDATE_FREEZE_PATH,
         CANDIDATE_FREEZE_SCHEMA,
@@ -29,12 +29,14 @@ try:
         RECEIPT_STATUS as HOLDOUT_RECEIPT_STATUS,
         _absolute,
         _load_candidate_freeze,
+        _validate_physical_gpu_manifest,
+        _parse_physical_gpu_tokens,
     )
 except ImportError:  # direct script invocation
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
         sys.path.insert(0, str(repo_root))
-    from scriptsFORhuman.v23._v23_common import REPO_ROOT, V23Error, read_json, write_json
+    from scriptsFORhuman.v23._v23_common import REPO_ROOT, V23Error, V23_CELL_FACTORS, read_json, write_json
     from scriptsFORhuman.v23.holdout64 import (
         CANDIDATE_FREEZE_PATH,
         CANDIDATE_FREEZE_SCHEMA,
@@ -44,12 +46,19 @@ except ImportError:  # direct script invocation
         RECEIPT_STATUS as HOLDOUT_RECEIPT_STATUS,
         _absolute,
         _load_candidate_freeze,
+        _validate_physical_gpu_manifest,
+        _parse_physical_gpu_tokens,
     )
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-PHYSICAL_GPUS = (0, 1)
+LEGAL_PHYSICAL_GPUS = tuple(range(8))
+PHYSICAL_GPUS = LEGAL_PHYSICAL_GPUS
+DEFAULT_PHYSICAL_GPUS = LEGAL_PHYSICAL_GPUS
+PHYSICAL_GPU_MAPPING_POLICY = "CANONICAL_JOB_ORDINAL_MODULO_ORDERED_SELECTED_LIST"
 LOGICAL_DEVICE = "cuda:0"
+POLICY_ONLY_OVERRIDE = "++algo.config.eval.a2_v23_p06_policy_only=true"
+D1_SAMPLER_DISABLE_OVERRIDE = "++env.config.a2_v23_d1_sampler_enabled=false"
 RENDER_ROOT = REPO_ROOT / "logs_eval/base_v23/render"
 PLAN_SCHEMA = "a2_piper_v23_render_plan_v1"
 RECEIPT_SCHEMA = "a2_piper_v23_render_qa_receipt_v1"
@@ -59,6 +68,7 @@ SCENARIO_MANIFEST_STATUS = "STATIC_RENDER"
 SCENARIO_MANIFEST_TOPOLOGY = "render16"
 CAMERAS = ("main", "handle_top", "handle_side")
 EXPECTED_CANDIDATE_COUNT = 16
+CANONICAL_HOLDOUT_EPISODES = 64
 EXPECTED_SCENARIO_COUNT = 5
 EXPECTED_ENV_COUNT = 16
 EXPECTED_MEDIA_COUNT = EXPECTED_ENV_COUNT * len(CAMERAS)
@@ -132,6 +142,14 @@ class RenderError(V23Error):
     """A render topology or qualitative artifact is invalid."""
 
 
+def _candidate_door_regime(candidate: Mapping[str, Any]) -> str:
+    cell = candidate.get("cell")
+    factors = V23_CELL_FACTORS.get(cell)
+    if not isinstance(factors, Mapping) or factors.get("door_regime") not in {"D0", "D1"}:
+        raise RenderError(f"candidate cell has no canonical door regime: {cell!r}")
+    return str(factors["door_regime"])
+
+
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -147,13 +165,39 @@ def _finite_positive(value: Any, label: str) -> float:
 
 def _load_holdout(path: str | Path) -> dict[str, Any]:
     target = _absolute(path)
-    payload = read_json(target)
+    return _validate_holdout_payload(read_json(target), source=str(target))
+
+
+def _validate_holdout_payload(payload: Mapping[str, Any], *, source: str = "holdout receipt") -> dict[str, Any]:
+    if not isinstance(payload, Mapping):
+        raise RenderError(f"holdout receipt must be an object: {source}")
     if payload.get("schema") != HOLDOUT_RECEIPT_SCHEMA:
-        raise RenderError(f"holdout receipt schema must be {HOLDOUT_RECEIPT_SCHEMA}: {target}")
+        raise RenderError(f"holdout receipt schema must be {HOLDOUT_RECEIPT_SCHEMA}: {source}")
     if payload.get("status") != HOLDOUT_RECEIPT_STATUS:
-        raise RenderError(f"holdout receipt status must be {HOLDOUT_RECEIPT_STATUS}: {target}")
-    if payload.get("physical_gpus") != [0, 1] or payload.get("logical_gpu") != LOGICAL_DEVICE:
-        raise RenderError("holdout receipt GPU contract must be physical [0,1] and logical cuda:0")
+        raise RenderError(f"holdout receipt status must be {HOLDOUT_RECEIPT_STATUS}: {source}")
+    try:
+        _validate_physical_gpu_manifest(payload.get("physical_gpus"), label="holdout receipt physical_gpus")
+    except V23Error as exc:
+        raise RenderError(str(exc)) from exc
+    if payload.get("gpu_assignment") != "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST":
+        raise RenderError("holdout receipt GPU assignment must be ordinal modulo its manifest")
+    if payload.get("physical_gpu_domain") != list(LEGAL_PHYSICAL_GPUS) or payload.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise RenderError("holdout receipt physical GPU domain/mapping policy is invalid")
+    if payload.get("logical_gpu") != LOGICAL_DEVICE:
+        raise RenderError("holdout receipt GPU contract must use logical cuda:0")
+    if payload.get("candidate_freeze_schema") != CANDIDATE_FREEZE_SCHEMA or payload.get("candidate_freeze_status") != CANDIDATE_FREEZE_STATUS:
+        raise RenderError("holdout receipt candidate-freeze provenance is invalid")
+    holdout_freeze_path = payload.get("candidate_freeze_path")
+    if not isinstance(holdout_freeze_path, str) or not holdout_freeze_path or not Path(holdout_freeze_path).is_absolute():
+        raise RenderError("holdout receipt must bind an absolute candidate-freeze receipt path")
+    freeze_ids = payload.get("candidate_freeze_ids")
+    if (
+        not isinstance(freeze_ids, list)
+        or len(freeze_ids) != EXPECTED_CANDIDATE_COUNT
+        or any(not isinstance(item, str) or not item for item in freeze_ids)
+        or len(set(freeze_ids)) != EXPECTED_CANDIDATE_COUNT
+    ):
+        raise RenderError("holdout receipt must bind exactly 16 unique candidate-freeze ids")
     candidates = payload.get("candidates")
     if not isinstance(candidates, list) or len(candidates) != EXPECTED_CANDIDATE_COUNT:
         raise RenderError("holdout receipt must contain exactly 16 candidates")
@@ -166,7 +210,9 @@ def _load_holdout(path: str | Path) -> dict[str, Any]:
         if candidate["freeze_id"] in identities:
             raise RenderError("holdout receipt candidate identities must be unique")
         identities.add(candidate["freeze_id"])
-    return payload
+    if identities != set(freeze_ids):
+        raise RenderError("holdout receipt candidate identities disagree with its freeze provenance")
+    return dict(payload)
 
 
 def _candidate_by_id(freeze: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
@@ -207,6 +253,61 @@ def _candidate_by_id(freeze: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
             raise RenderError(f"candidate freeze contains duplicate freeze_id={row['freeze_id']}")
         result[row["freeze_id"]] = dict(row)
     return result
+
+
+def _holdout_by_id(holdout: Mapping[str, Any]) -> dict[str, dict[str, Any]]:
+    candidates = holdout.get("candidates")
+    if not isinstance(candidates, list) or len(candidates) != EXPECTED_CANDIDATE_COUNT:
+        raise RenderError("holdout receipt must contain exactly 16 candidate rows")
+    result: dict[str, dict[str, Any]] = {}
+    for index, row in enumerate(candidates):
+        if not isinstance(row, Mapping) or not isinstance(row.get("freeze_id"), str) or not row["freeze_id"]:
+            raise RenderError(f"holdout candidate row {index} identity is invalid")
+        freeze_id = str(row["freeze_id"])
+        if freeze_id in result:
+            raise RenderError(f"holdout receipt contains duplicate freeze_id={freeze_id}")
+        if row.get("episode_count") != 64 or not isinstance(row.get("candidate"), Mapping):
+            raise RenderError(f"holdout candidate row {index} is not a canonical64 provenance row")
+        result[freeze_id] = dict(row)
+    return result
+
+
+def _normalize_candidate_ids(
+    candidate_ids: Sequence[str] | None,
+    *,
+    freeze_candidates: Mapping[str, Mapping[str, Any]],
+    holdout_candidates: Mapping[str, Mapping[str, Any]],
+) -> list[str]:
+    if candidate_ids is None or isinstance(candidate_ids, (str, bytes)):
+        raise RenderError("render PLAN requires explicit 1-3 candidate IDs")
+    if any(not isinstance(item, str) for item in candidate_ids):
+        raise RenderError("render candidate IDs must be strings")
+    ids = list(candidate_ids)
+    if len(ids) not in (1, 2, 3):
+        raise RenderError("render PLAN requires exactly 1-3 explicit candidate IDs")
+    if any(not item for item in ids):
+        raise RenderError("render candidate IDs must be non-empty strings")
+    if len(set(ids)) != len(ids):
+        raise RenderError("render candidate IDs must be unique; duplicates are not permitted")
+    freeze_ids = set(freeze_candidates)
+    holdout_ids = set(holdout_candidates)
+    for freeze_id in ids:
+        if freeze_id not in freeze_ids:
+            raise RenderError(f"render candidate ID is not present in the validated freeze: {freeze_id}")
+        if freeze_id not in holdout_ids:
+            raise RenderError(f"render candidate ID is not present in the validated holdout: {freeze_id}")
+    return ids
+
+
+def _parse_candidate_id_tokens(values: Sequence[str] | None) -> list[str] | None:
+    if values is None:
+        return None
+    tokens: list[str] = []
+    for value in values:
+        tokens.extend(part.strip() for part in str(value).split(","))
+    if not tokens or any(not token for token in tokens):
+        raise RenderError("candidate-ID input must contain one or more non-empty IDs")
+    return tokens
 
 
 def _load_bound_candidate_freeze(path_value: Any) -> tuple[Path, dict[str, Any]]:
@@ -294,8 +395,8 @@ def _build_command(
     output_root: Path,
     manifest_path: Path,
 ) -> tuple[list[str], dict[str, str]]:
-    if physical_gpu not in PHYSICAL_GPUS:
-        raise RenderError(f"physical GPU must be one of {PHYSICAL_GPUS}")
+    if physical_gpu not in LEGAL_PHYSICAL_GPUS:
+        raise RenderError(f"physical GPU must be one of {LEGAL_PHYSICAL_GPUS}")
     config_stem = Path(str(candidate["config_path"])).stem
     command = [
         str(PROJECT_PYTHON),
@@ -304,6 +405,7 @@ def _build_command(
         f"+ablation=wbmanip/{config_stem}",
         f"++checkpoint={candidate['checkpoint_path']}",
         "++checkpoint_load_mode=policy_only",
+        POLICY_ONLY_OVERRIDE,
         "++auto_load_latest=false",
         "++headless=true",
         "++num_envs=16",
@@ -323,6 +425,8 @@ def _build_command(
         "++env.config.a2_v23_warm_head_reset_enabled=false",
         f"++eval_output_dir={output_root}",
     ]
+    if _candidate_door_regime(candidate) == "D1":
+        command.append(D1_SAMPLER_DISABLE_OVERRIDE)
     environment = {
         "CUDA_DEVICE_ORDER": "PCI_BUS_ID",
         "CUDA_VISIBLE_DEVICES": str(physical_gpu),
@@ -339,31 +443,46 @@ def build_render_plan(
     *,
     output_root: str | Path = RENDER_ROOT,
     candidate_freeze_path: str | Path = CANDIDATE_FREEZE_PATH,
+    holdout_path: str | Path = HOLDOUT_RECEIPT_PATH,
+    candidate_ids: Sequence[str] | None = None,
+    physical_gpus: Sequence[int] = DEFAULT_PHYSICAL_GPUS,
 ) -> dict[str, Any]:
     if not isinstance(freeze, Mapping):
         raise RenderError("candidate freeze must be a mapping")
+    if not isinstance(holdout, Mapping):
+        raise RenderError("render PLAN requires a validated holdout receipt")
     bound_freeze_path, bound_freeze = _load_bound_candidate_freeze(str(_absolute(candidate_freeze_path).resolve()))
     if dict(freeze) != dict(bound_freeze):
         raise RenderError("render plan candidate freeze rows do not match the bound receipt")
     freeze_candidates = _candidate_by_id(bound_freeze)
-    if holdout is not None:
-        holdout_candidates = holdout.get("candidates")
-        if not isinstance(holdout_candidates, list) or len(holdout_candidates) != EXPECTED_CANDIDATE_COUNT:
-            raise RenderError("holdout candidates must contain exactly 16 rows")
-        holdout_ids = {
-            item["freeze_id"]
-            for item in holdout_candidates
-            if isinstance(item, Mapping) and isinstance(item.get("freeze_id"), str)
-        }
-        if holdout_ids != set(freeze_candidates):
-            raise RenderError("holdout/candidate freeze identities do not match")
+    validated_holdout = _validate_holdout_payload(holdout)
+    holdout_candidates = _holdout_by_id(validated_holdout)
+    if set(holdout_candidates) != set(freeze_candidates):
+        raise RenderError("holdout/candidate freeze identities do not match")
+    if Path(str(validated_holdout["candidate_freeze_path"])).resolve() != bound_freeze_path:
+        raise RenderError("holdout receipt candidate-freeze path disagrees with the bound freeze receipt")
+    if holdout.get("candidate_freeze_ids") != list(freeze_candidates):
+        raise RenderError("holdout candidate-freeze ids are not in canonical freeze order")
+    for freeze_id, holdout_row in holdout_candidates.items():
+        if holdout_row.get("candidate") != freeze_candidates[freeze_id]:
+            raise RenderError(f"holdout candidate {freeze_id} does not bind the freeze candidate")
+    selected_ids = _normalize_candidate_ids(
+        candidate_ids,
+        freeze_candidates=freeze_candidates,
+        holdout_candidates=holdout_candidates,
+    )
+    gpu_manifest = _validate_physical_gpu_manifest(physical_gpus, label="physical_gpus")
+    bound_holdout_path = _absolute(holdout_path).resolve()
     root = _absolute(output_root)
     jobs: list[dict[str, Any]] = []
     seen_job_keys: set[tuple[str, str]] = set()
     seen_paths: set[str] = set()
-    for candidate_index, (freeze_id, candidate) in enumerate(freeze_candidates.items()):
-        for scenario_index, scenario in enumerate(SCENARIOS):
-            gpu = PHYSICAL_GPUS[(candidate_index * EXPECTED_SCENARIO_COUNT + scenario_index) % len(PHYSICAL_GPUS)]
+    for freeze_id in selected_ids:
+        candidate = freeze_candidates[freeze_id]
+        holdout_row = holdout_candidates[freeze_id]
+        for scenario in SCENARIOS:
+            job_ordinal = len(jobs)
+            gpu = gpu_manifest[job_ordinal % len(gpu_manifest)]
             job_root = _job_root(root, freeze_id, scenario["name"])
             manifest_path = job_root / "render_scenario_manifest.json"
             manifest = build_scenario_manifest(scenario)
@@ -392,10 +511,20 @@ def build_render_plan(
                     "candidate_freeze_path": str(bound_freeze_path),
                     "candidate_freeze_schema": CANDIDATE_FREEZE_SCHEMA,
                     "candidate_freeze_status": CANDIDATE_FREEZE_STATUS,
+                    "holdout_path": str(bound_holdout_path),
+                    "holdout_schema": HOLDOUT_RECEIPT_SCHEMA,
+                    "holdout_status": HOLDOUT_RECEIPT_STATUS,
+                    "holdout_candidate_freeze_ids": list(holdout["candidate_freeze_ids"]),
+                    "holdout_candidate_id": freeze_id,
+                    "holdout_episode_count": holdout_row["episode_count"],
                     "scenario": dict(scenario),
                     "scenario_manifest": manifest,
                     "scenario_manifest_path": str(manifest_path.resolve()),
                     "physical_gpu": gpu,
+                    "physical_gpus": list(gpu_manifest),
+                    "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+                    "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+                    "job_ordinal": job_ordinal,
                     "logical_gpu": LOGICAL_DEVICE,
                     "render_root": str(root.resolve()),
                     "process_count": 1,
@@ -411,8 +540,9 @@ def build_render_plan(
                     "retry_policy": "none",
                 }
             )
-    if len(jobs) != EXPECTED_CANDIDATE_COUNT * EXPECTED_SCENARIO_COUNT:
-        raise RenderError("render plan must contain exactly 80 candidate×scenario jobs")
+    expected_job_count = len(selected_ids) * EXPECTED_SCENARIO_COUNT
+    if len(jobs) != expected_job_count:
+        raise RenderError("render plan job cardinality does not match the explicit candidate subset")
     payload = {
         "schema": PLAN_SCHEMA,
         "status": "PLAN_ONLY",
@@ -422,11 +552,20 @@ def build_render_plan(
         "candidate_freeze_schema": CANDIDATE_FREEZE_SCHEMA,
         "candidate_freeze_status": CANDIDATE_FREEZE_STATUS,
         "candidate_freeze_ids": list(freeze_candidates),
+        "holdout_path": str(bound_holdout_path),
+        "holdout_schema": HOLDOUT_RECEIPT_SCHEMA,
+        "holdout_status": HOLDOUT_RECEIPT_STATUS,
+        "holdout_candidate_freeze_ids": list(holdout["candidate_freeze_ids"]),
         "render_root": str(root.resolve()),
-        "physical_gpus": [0, 1],
+        "physical_gpus": list(gpu_manifest),
+        "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "gpu_assignment": "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST",
         "logical_gpu": LOGICAL_DEVICE,
         "process_count_per_gpu": 1,
         "candidate_count": EXPECTED_CANDIDATE_COUNT,
+        "selected_candidate_ids": selected_ids,
+        "selected_candidate_count": len(selected_ids),
         "scenario_count_per_candidate": EXPECTED_SCENARIO_COUNT,
         "camera_count_per_scenario": len(CAMERAS),
         "scenarios": [dict(row) for row in SCENARIOS],
@@ -446,6 +585,8 @@ def build_plan(
     freeze_path: str | Path = CANDIDATE_FREEZE_PATH,
     holdout_path: str | Path = HOLDOUT_RECEIPT_PATH,
     output_root: str | Path = RENDER_ROOT,
+    candidate_ids: Sequence[str] | None = None,
+    physical_gpus: Sequence[int] = DEFAULT_PHYSICAL_GPUS,
 ) -> dict[str, Any]:
     freeze = _load_candidate_freeze(freeze_path)
     holdout = _load_holdout(holdout_path)
@@ -454,6 +595,9 @@ def build_plan(
         holdout,
         output_root=output_root,
         candidate_freeze_path=freeze_path,
+        holdout_path=holdout_path,
+        candidate_ids=candidate_ids,
+        physical_gpus=physical_gpus,
     )
 
 
@@ -543,6 +687,7 @@ def _validate_render_job(
     *,
     render_root: Path,
     selected_candidate: Mapping[str, Any] | None = None,
+    physical_gpus: Sequence[int] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(job, Mapping):
         raise RenderError("render plan job must be an object")
@@ -561,8 +706,20 @@ def _validate_render_job(
     for field in SCENARIO_SCALAR_FIELDS:
         if scenario.get(field) != canonical_scenario[field]:
             raise RenderError(f"render scenario {scenario.get('name')} has non-canonical {field}")
-    if isinstance(job.get("physical_gpu"), bool) or job.get("physical_gpu") not in PHYSICAL_GPUS:
-        raise RenderError("render job physical_gpu must be 0 or 1")
+    manifest = _validate_physical_gpu_manifest(
+        physical_gpus if physical_gpus is not None else job.get("physical_gpus"),
+        label="render physical_gpus",
+    )
+    if job.get("physical_gpus") != manifest:
+        raise RenderError("render job physical GPU manifest disagrees with plan")
+    if job.get("physical_gpu_domain") != list(LEGAL_PHYSICAL_GPUS) or job.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise RenderError("render job physical GPU domain/mapping policy is invalid")
+    job_ordinal = job.get("job_ordinal")
+    if isinstance(job_ordinal, bool) or not isinstance(job_ordinal, int) or job_ordinal < 0:
+        raise RenderError("render job job_ordinal is invalid")
+    expected_gpu = manifest[job_ordinal % len(manifest)]
+    if isinstance(job.get("physical_gpu"), bool) or job.get("physical_gpu") != expected_gpu:
+        raise RenderError("render job physical_gpu does not follow its ordinal/modulo manifest binding")
     if job.get("logical_gpu") != LOGICAL_DEVICE:
         raise RenderError("render job logical_gpu must be cuda:0")
     if job.get("process_count") != 1 or job.get("num_envs") != EXPECTED_ENV_COUNT or job.get("num_mini_batches") != 1:
@@ -588,6 +745,26 @@ def _validate_render_job(
         raise RenderError("render job candidate identity disagrees with freeze_id")
     if job.get("candidate_identity") != expected_identity:
         raise RenderError("render job candidate_identity is not canonically bound")
+    if job.get("holdout_schema") != HOLDOUT_RECEIPT_SCHEMA or job.get("holdout_status") != HOLDOUT_RECEIPT_STATUS:
+        raise RenderError("render job holdout provenance schema/status is invalid")
+    holdout_path = job.get("holdout_path")
+    if not isinstance(holdout_path, str) or not holdout_path or not Path(holdout_path).is_absolute():
+        raise RenderError("render job must bind an absolute holdout receipt path")
+    holdout_ids = job.get("holdout_candidate_freeze_ids")
+    if (
+        not isinstance(holdout_ids, list)
+        or len(holdout_ids) != EXPECTED_CANDIDATE_COUNT
+        or holdout_ids != list(frozen_candidates)
+    ):
+        raise RenderError("render job holdout provenance ids are invalid")
+    if job.get("holdout_candidate_id") != freeze_id or job.get("holdout_episode_count") != CANONICAL_HOLDOUT_EPISODES:
+        raise RenderError("render job holdout candidate binding is invalid")
+    holdout = _load_holdout(holdout_path)
+    if holdout.get("candidate_freeze_ids") != holdout_ids:
+        raise RenderError("render job holdout provenance ids disagree with the bound receipt")
+    holdout_row = _holdout_by_id(holdout).get(freeze_id)
+    if holdout_row is None or holdout_row.get("candidate") != bound_candidate or holdout_row.get("episode_count") != CANONICAL_HOLDOUT_EPISODES:
+        raise RenderError("render job holdout candidate does not bind the selected freeze candidate")
     root = _absolute(str(render_root)).resolve()
     expected_root = _job_root(root, freeze_id, canonical_scenario["name"]).resolve()
     expected_paths = {
@@ -609,6 +786,8 @@ def _validate_render_job(
     command_text = " ".join(str(value) for value in command)
     required_command_fields = (
         "++checkpoint_load_mode=policy_only",
+        POLICY_ONLY_OVERRIDE,
+        "++algo.config.num_mini_batches=1",
         "++simulator.config.cameras.enable_cameras=false",
         "++simulator.config.render_results=true",
         "++env.config.a2_v23_route_b_render_enabled=true",
@@ -616,6 +795,12 @@ def _validate_render_job(
     )
     if any(field not in command_text for field in required_command_fields):
         raise RenderError("render job command is missing a required qualitative-render override")
+    command_values = {str(value) for value in command}
+    if _candidate_door_regime(bound_candidate) == "D1":
+        if D1_SAMPLER_DISABLE_OVERRIDE not in command_values:
+            raise RenderError("render D1 job must disable the training-only sampler")
+    elif D1_SAMPLER_DISABLE_OVERRIDE in command_values:
+        raise RenderError("render D0 job must not carry the D1 sampler override")
     legacy_fields = (
         "a2_v23_route_b_render_candidate_id",
         "a2_v23_route_b_render_scenario",
@@ -672,12 +857,25 @@ def run_once(job: Mapping[str, Any]) -> dict[str, Any]:
         "recorded_at_utc": _utc_now(),
         "freeze_id": job["freeze_id"],
         "candidate_identity": dict(job["candidate_identity"]),
+        "candidate_freeze_path": job["candidate_freeze_path"],
+        "candidate_freeze_schema": CANDIDATE_FREEZE_SCHEMA,
+        "candidate_freeze_status": CANDIDATE_FREEZE_STATUS,
+        "holdout_path": job["holdout_path"],
+        "holdout_schema": HOLDOUT_RECEIPT_SCHEMA,
+        "holdout_status": HOLDOUT_RECEIPT_STATUS,
+        "holdout_candidate_freeze_ids": list(job["holdout_candidate_freeze_ids"]),
+        "holdout_candidate_id": job["holdout_candidate_id"],
+        "holdout_episode_count": job["holdout_episode_count"],
+        "job_ordinal": job["job_ordinal"],
         "scenario": scenario["name"],
         "scenario_parameters": _scenario_parameters(scenario),
         "scenario_manifest_schema": SCENARIO_MANIFEST_SCHEMA,
         "scenario_manifest_status": SCENARIO_MANIFEST_STATUS,
         "scenario_manifest_topology": SCENARIO_MANIFEST_TOPOLOGY,
         "physical_gpu": job["physical_gpu"],
+        "physical_gpus": list(job["physical_gpus"]),
+        "physical_gpu_domain": list(job["physical_gpu_domain"]),
+        "physical_gpu_mapping_policy": job["physical_gpu_mapping_policy"],
         "logical_gpu": LOGICAL_DEVICE,
         "process_count": 1,
         "num_envs": EXPECTED_ENV_COUNT,
@@ -718,8 +916,28 @@ def _validate_qa(job: Mapping[str, Any]) -> dict[str, Any]:
     expected_identity = job.get("candidate_identity")
     if expected_identity is not None and payload.get("candidate_identity") != expected_identity:
         raise RenderError(f"render QA candidate identity disagrees with plan: {path}")
-    if payload.get("physical_gpu") != job["physical_gpu"] or payload.get("logical_gpu") != LOGICAL_DEVICE:
+    if (
+        payload.get("physical_gpu") != job["physical_gpu"]
+        or payload.get("physical_gpus") != job["physical_gpus"]
+        or payload.get("physical_gpu_domain") != job["physical_gpu_domain"]
+        or payload.get("physical_gpu_mapping_policy") != job["physical_gpu_mapping_policy"]
+        or payload.get("job_ordinal") != job["job_ordinal"]
+        or payload.get("logical_gpu") != LOGICAL_DEVICE
+    ):
         raise RenderError(f"render QA GPU identity disagrees with plan: {path}")
+    for field in (
+        "candidate_freeze_path",
+        "candidate_freeze_schema",
+        "candidate_freeze_status",
+        "holdout_path",
+        "holdout_schema",
+        "holdout_status",
+        "holdout_candidate_freeze_ids",
+        "holdout_candidate_id",
+        "holdout_episode_count",
+    ):
+        if payload.get(field) != job.get(field):
+            raise RenderError(f"render QA provenance field {field} disagrees with plan: {path}")
     if (
         payload.get("topology") != SCENARIO_MANIFEST_TOPOLOGY
         or payload.get("scenario_manifest_schema") != SCENARIO_MANIFEST_SCHEMA
@@ -765,8 +983,13 @@ def _validate_qa(job: Mapping[str, Any]) -> dict[str, Any]:
 def _validate_render_plan(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     if plan.get("schema") != PLAN_SCHEMA or plan.get("status") != "PLAN_ONLY":
         raise RenderError("render reduction requires a PLAN_ONLY render plan")
-    if plan.get("physical_gpus") != [0, 1] or plan.get("logical_gpu") != LOGICAL_DEVICE:
-        raise RenderError("render plan GPU contract must be physical [0,1] and logical cuda:0")
+    physical_gpus = _validate_physical_gpu_manifest(plan.get("physical_gpus"), label="render plan physical_gpus")
+    if plan.get("gpu_assignment") != "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST":
+        raise RenderError("render plan GPU assignment must be ordinal modulo its manifest")
+    if plan.get("physical_gpu_domain") != list(LEGAL_PHYSICAL_GPUS) or plan.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise RenderError("render plan physical GPU domain/mapping policy is invalid")
+    if plan.get("logical_gpu") != LOGICAL_DEVICE:
+        raise RenderError("render plan GPU contract must use logical cuda:0")
     bound_freeze_path, bound_freeze = _load_bound_candidate_freeze(plan.get("candidate_freeze_path"))
     if (
         plan.get("candidate_freeze_path") != str(bound_freeze_path)
@@ -787,6 +1010,35 @@ def _validate_render_plan(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         or freeze_ids != frozen_ids
     ):
         raise RenderError("render plan candidate freeze must bind the exact 16 receipt identities")
+    holdout_path_value = plan.get("holdout_path")
+    if not isinstance(holdout_path_value, str) or not holdout_path_value or not Path(holdout_path_value).is_absolute():
+        raise RenderError("render plan must bind an absolute holdout receipt path")
+    if plan.get("holdout_schema") != HOLDOUT_RECEIPT_SCHEMA or plan.get("holdout_status") != HOLDOUT_RECEIPT_STATUS:
+        raise RenderError("render plan holdout provenance schema/status is invalid")
+    holdout = _load_holdout(holdout_path_value)
+    if plan.get("holdout_candidate_freeze_ids") != freeze_ids:
+        raise RenderError("render plan holdout provenance ids disagree with the freeze")
+    if holdout.get("candidate_freeze_ids") != freeze_ids:
+        raise RenderError("render plan holdout receipt ids disagree with the freeze")
+    if Path(str(holdout["candidate_freeze_path"])).resolve() != bound_freeze_path:
+        raise RenderError("render plan holdout candidate-freeze path disagrees with the freeze")
+    holdout_candidates = _holdout_by_id(holdout)
+    frozen_candidate_rows = _candidate_by_id(bound_freeze)
+    if set(holdout_candidates) != set(frozen_candidate_rows):
+        raise RenderError("render plan holdout receipt does not cover the full freeze")
+    for freeze_id, row in holdout_candidates.items():
+        if row.get("candidate") != frozen_candidate_rows[freeze_id] or row.get("episode_count") != CANONICAL_HOLDOUT_EPISODES:
+            raise RenderError(f"render plan holdout provenance row is invalid for {freeze_id}")
+    selected_ids = plan.get("selected_candidate_ids")
+    if (
+        not isinstance(selected_ids, list)
+        or len(selected_ids) not in (1, 2, 3)
+        or any(not isinstance(item, str) or not item for item in selected_ids)
+        or len(set(selected_ids)) != len(selected_ids)
+        or any(item not in freeze_ids for item in selected_ids)
+        or plan.get("selected_candidate_count") != len(selected_ids)
+    ):
+        raise RenderError("render plan selected_candidate_ids must be an explicit unique 1-3 subset of the freeze")
     render_root_value = plan.get("render_root")
     if not isinstance(render_root_value, str) or not render_root_value or not Path(render_root_value).is_absolute():
         raise RenderError("render plan must bind an absolute render_root")
@@ -806,21 +1058,23 @@ def _validate_render_plan(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
             if observed.get(field) != canonical[field]:
                 raise RenderError(f"render plan scenario {canonical['name']} has non-canonical {field}")
     jobs = plan.get("jobs")
-    if not isinstance(jobs, list) or len(jobs) != EXPECTED_CANDIDATE_COUNT * EXPECTED_SCENARIO_COUNT:
-        raise RenderError("render plan must contain exactly 80 jobs")
+    expected_job_count = len(selected_ids) * EXPECTED_SCENARIO_COUNT
+    if not isinstance(jobs, list) or len(jobs) != expected_job_count:
+        raise RenderError("render plan job count must equal selected candidates × five scenarios")
     expected_scenarios = {row["name"] for row in SCENARIOS}
     selected_candidates: dict[str, Mapping[str, Any]] = {}
+    observed_candidate_order: list[str] = []
     seen: set[tuple[str, str]] = set()
     seen_paths: set[str] = set()
-    for job in jobs:
+    for job_index, job in enumerate(jobs):
         if not isinstance(job, Mapping):
             raise RenderError("render plan job must be an object")
         scenario = job.get("scenario")
         if not isinstance(scenario, Mapping) or scenario.get("name") not in expected_scenarios:
             raise RenderError("render plan job scenario is invalid")
         freeze_id = job.get("freeze_id")
-        if freeze_id not in set(freeze_ids):
-            raise RenderError("render plan job references an unknown frozen candidate")
+        if freeze_id not in set(selected_ids):
+            raise RenderError("render plan job references a candidate outside the explicit subset")
         selected_candidate = job.get("selected_candidate")
         if job.get("candidate_freeze_path") != str(bound_freeze_path):
             raise RenderError("render plan job candidate-freeze path disagrees with the bound receipt")
@@ -832,6 +1086,7 @@ def _validate_render_plan(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         previous = selected_candidates.get(freeze_id)
         if previous is None:
             selected_candidates[freeze_id] = dict(selected_candidate)
+            observed_candidate_order.append(str(freeze_id))
         elif dict(previous) != dict(selected_candidate):
             raise RenderError("render plan rebinds one freeze_id to multiple candidates")
         key = (str(freeze_id), str(scenario["name"]))
@@ -842,17 +1097,26 @@ def _validate_render_plan(plan: Mapping[str, Any]) -> list[Mapping[str, Any]]:
             job,
             render_root=Path(render_root_value),
             selected_candidate=selected_candidates[freeze_id],
+            physical_gpus=physical_gpus,
         )
+        if job.get("job_ordinal") != job_index:
+            raise RenderError("render plan job_ordinal must follow ordered job position")
+        if job.get("holdout_path") != holdout_path_value or job.get("holdout_candidate_freeze_ids") != freeze_ids:
+            raise RenderError("render plan job holdout provenance disagrees with the plan")
+        if job.get("holdout_candidate_id") != freeze_id or job.get("holdout_episode_count") != CANONICAL_HOLDOUT_EPISODES:
+            raise RenderError("render plan job holdout candidate binding is invalid")
         for field in ("output_root", "scenario_manifest_path", "qa_path", "media_root"):
             path = str(Path(job[field]).resolve())
             if path in seen_paths:
                 raise RenderError("render plan contains aliased job/path bindings")
             seen_paths.add(path)
     expected = {(str(job["freeze_id"]), str(job["scenario"]["name"])) for job in jobs}
-    if {freeze_id for freeze_id, _ in expected} != set(freeze_ids) or len(expected) != 80:
-        raise RenderError("render plan must cover exactly 16 candidates × 5 scenarios")
-    if set(selected_candidates) != set(freeze_ids):
-        raise RenderError("render plan selected candidates do not cover the exact 16 freeze ids")
+    if {freeze_id for freeze_id, _ in expected} != set(selected_ids) or len(expected) != expected_job_count:
+        raise RenderError("render plan must cover exactly the explicit candidates × five scenarios")
+    if set(selected_candidates) != set(selected_ids):
+        raise RenderError("render plan selected candidates do not cover the explicit candidate IDs")
+    if observed_candidate_order != selected_ids:
+        raise RenderError("render plan candidate order does not preserve the explicit candidate-ID input")
     return jobs
 
 
@@ -880,11 +1144,23 @@ def reduce_receipt(
         "status": RECEIPT_STATUS,
         "recorded_at_utc": _utc_now(),
         "source_branch": "A2_Piper",
-        "physical_gpus": [0, 1],
+        "candidate_freeze_path": plan["candidate_freeze_path"],
+        "candidate_freeze_schema": CANDIDATE_FREEZE_SCHEMA,
+        "candidate_freeze_status": CANDIDATE_FREEZE_STATUS,
+        "candidate_freeze_ids": list(plan["candidate_freeze_ids"]),
+        "holdout_path": plan["holdout_path"],
+        "holdout_schema": HOLDOUT_RECEIPT_SCHEMA,
+        "holdout_status": HOLDOUT_RECEIPT_STATUS,
+        "holdout_candidate_freeze_ids": list(plan["holdout_candidate_freeze_ids"]),
+        "physical_gpus": list(plan["physical_gpus"]),
+        "physical_gpu_domain": list(LEGAL_PHYSICAL_GPUS),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "gpu_assignment": "JOB_ORDINAL_MODULO_PHYSICAL_GPU_MANIFEST",
         "logical_gpu": LOGICAL_DEVICE,
         "process_count_per_gpu": 1,
-        "candidate_freeze_ids": list(plan["candidate_freeze_ids"]),
         "candidate_count": EXPECTED_CANDIDATE_COUNT,
+        "selected_candidate_ids": list(plan["selected_candidate_ids"]),
+        "selected_candidate_count": plan["selected_candidate_count"],
         "scenario_count_per_candidate": EXPECTED_SCENARIO_COUNT,
         "camera_count_per_scenario": len(CAMERAS),
         "cameras": list(CAMERAS),
@@ -911,24 +1187,61 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--plan", type=Path, default=None)
     parser.add_argument("--job-index", type=int, default=None)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument(
+        "--candidate-id",
+        dest="candidate_ids_single",
+        action="append",
+        default=None,
+        help="explicit candidate freeze_id (repeat 1-3 times)",
+    )
+    parser.add_argument(
+        "--candidate-ids",
+        dest="candidate_ids_multi",
+        nargs="+",
+        default=None,
+        help="explicit candidate freeze_ids (1-3 ids; comma-separated values are accepted)",
+    )
+    parser.add_argument(
+        "--physical-gpus",
+        nargs="+",
+        default=None,
+        help="ordered physical GPU ids (0..7), e.g. --physical-gpus 0 1 2 3",
+    )
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.mode != "PLAN" and args.physical_gpus is not None:
+            raise RenderError("--physical-gpus is valid only for PLAN")
+        if args.mode != "PLAN" and args.plan is None:
+            raise RenderError(f"{args.mode} requires an existing persisted --plan")
+        candidate_values = []
+        if args.candidate_ids_single:
+            candidate_values.extend(args.candidate_ids_single)
+        if args.candidate_ids_multi:
+            candidate_values.extend(args.candidate_ids_multi)
+        candidate_ids = _parse_candidate_id_tokens(candidate_values or None)
+        physical_gpus = _parse_physical_gpu_tokens(args.physical_gpus) if args.mode == "PLAN" else None
         if args.mode == "PLAN":
-            payload = build_plan(freeze_path=args.freeze, holdout_path=args.holdout, output_root=args.output_root)
+            payload = build_plan(
+                freeze_path=args.freeze,
+                holdout_path=args.holdout,
+                output_root=args.output_root,
+                candidate_ids=candidate_ids,
+                physical_gpus=physical_gpus,
+            )
             if args.output is not None:
                 write_json(_absolute(args.output), payload)
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
         elif args.mode == "RUN":
-            plan = read_json(_absolute(args.plan)) if args.plan is not None else build_plan(freeze_path=args.freeze, holdout_path=args.holdout, output_root=args.output_root)
+            plan = read_json(_absolute(args.plan))
             if args.job_index is None or args.job_index not in range(len(plan["jobs"])):
                 raise RenderError("RUN requires a valid --job-index")
             print(json.dumps(run_once(plan["jobs"][args.job_index]), ensure_ascii=False, sort_keys=True, indent=2))
         else:
-            plan = read_json(_absolute(args.plan)) if args.plan is not None else build_plan(freeze_path=args.freeze, holdout_path=args.holdout, output_root=args.output_root)
+            plan = read_json(_absolute(args.plan))
             receipt = reduce_receipt(plan, output=args.output or RENDER_ROOT / "V23_RENDER_QA.json")
             print(json.dumps(receipt, ensure_ascii=False, sort_keys=True, indent=2))
     except (OSError, TypeError, ValueError, V23Error) as exc:

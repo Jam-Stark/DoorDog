@@ -21,8 +21,6 @@ from typing import Any, Mapping, Sequence
 try:
     from ._v23_common import (
         REPO_ROOT,
-        V23_GPU_SUBWAVES,
-        V23_LEGAL_PHYSICAL_GPUS,
         V23_PLAN_ID,
         V23Error,
         write_json,
@@ -33,9 +31,10 @@ try:
         POOLED48_RECEIPT_PATH,
         POOLED48_SCHEMA,
         POOLED48_STATUS,
-        SUBWAVE_ORDER,
+        PHYSICAL_GPU_DOMAIN,
+        PHYSICAL_GPU_MAPPING_POLICY,
         _absolute as _pooled_absolute,
-        _job_plan,
+        validate_physical_gpus,
         load_selected_candidates,
         validate_selected_candidates,
     )
@@ -45,8 +44,6 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/stratified_eval.py``
         sys.path.insert(0, str(repo_root))
     from scriptsFORhuman.v23._v23_common import (
         REPO_ROOT,
-        V23_GPU_SUBWAVES,
-        V23_LEGAL_PHYSICAL_GPUS,
         V23_PLAN_ID,
         V23Error,
         write_json,
@@ -57,9 +54,10 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/stratified_eval.py``
         POOLED48_RECEIPT_PATH,
         POOLED48_SCHEMA,
         POOLED48_STATUS,
-        SUBWAVE_ORDER,
+        PHYSICAL_GPU_DOMAIN,
+        PHYSICAL_GPU_MAPPING_POLICY,
         _absolute as _pooled_absolute,
-        _job_plan,
+        validate_physical_gpus,
         load_selected_candidates,
         validate_selected_candidates,
     )
@@ -383,8 +381,32 @@ def _load_pooled_receipt(path: str | Path = POOLED48_RECEIPT_PATH) -> dict[str, 
         raise StratifiedEvalError(f"pooled48 upstream receipt is not complete: {_absolute(path)}")
     if payload.get("topology") != "pooled48" or payload.get("job_count") != 16:
         raise StratifiedEvalError("pooled48 upstream topology/cardinality is invalid")
+    if payload.get("physical_gpu_domain") != list(PHYSICAL_GPU_DOMAIN):
+        raise StratifiedEvalError("pooled48 upstream physical_gpu_domain is not exactly 0..7")
+    physical_gpus = validate_physical_gpus(payload.get("physical_gpus"))
+    if payload.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise StratifiedEvalError("pooled48 upstream physical GPU mapping policy is unsupported")
     selected = validate_selected_candidates(payload.get("selected_candidates"), require_sources=False)
+    jobs = payload.get("jobs")
+    if not isinstance(jobs, list) or len(jobs) != len(selected):
+        raise StratifiedEvalError("pooled48 upstream jobs must contain exactly 16 entries")
+    seen_ids: set[str] = set()
+    for ordinal, (candidate, job) in enumerate(zip(selected, jobs)):
+        if not isinstance(job, Mapping):
+            raise StratifiedEvalError(f"pooled48 upstream job {ordinal} is not an object")
+        expected_id = f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}"
+        if job.get("job_id") != expected_id or job.get("job_ordinal") != ordinal:
+            raise StratifiedEvalError(f"pooled48 upstream job {ordinal} identity/order disagrees")
+        if job.get("selected_candidate") != candidate:
+            raise StratifiedEvalError(f"pooled48 upstream job {expected_id} candidate disagrees")
+        expected_gpu = physical_gpus[ordinal % len(physical_gpus)]
+        if job.get("physical_gpu") != expected_gpu:
+            raise StratifiedEvalError(f"pooled48 upstream job {expected_id} physical_gpu disagrees")
+        if expected_id in seen_ids:
+            raise StratifiedEvalError(f"pooled48 upstream duplicate job {expected_id}")
+        seen_ids.add(expected_id)
     payload["selected_candidates"] = selected
+    payload["physical_gpus"] = list(physical_gpus)
     return payload
 
 
@@ -401,15 +423,23 @@ def _job_record_path(candidate: Mapping[str, Any]) -> Path:
 def _classify_candidate(
     candidate: Mapping[str, Any],
     *,
+    pooled_job: Mapping[str, Any],
+    physical_gpus: Sequence[int],
     r190: Mapping[str, Any],
     atlas: Mapping[str, tuple[float, float, float, float]],
+    r190_receipt_path: str | Path,
+    realized_atlas_path: str | Path,
 ) -> dict[str, Any]:
-    pooled_job = _job_plan(candidate)
-    job_receipt = _load_object(pooled_job["run_receipt_path"])
+    receipt_path = pooled_job.get("receipt_path", pooled_job.get("run_receipt_path"))
+    if not isinstance(receipt_path, str) or not receipt_path:
+        raise StratifiedEvalError(f"pooled48 upstream job has no receipt path: {candidate['cell']}")
+    job_receipt = _load_object(receipt_path)
     if job_receipt.get("schema") != POOLED48_JOB_SCHEMA or job_receipt.get("status") != POOLED48_JOB_STATUS:
-        raise StratifiedEvalError(f"pooled48 job receipt is incomplete: {pooled_job['run_receipt_path']}")
+        raise StratifiedEvalError(f"pooled48 job receipt is incomplete: {receipt_path}")
     if job_receipt.get("selected_candidate") != dict(candidate):
-        raise StratifiedEvalError(f"pooled48 job receipt identity disagrees: {pooled_job['run_receipt_path']}")
+        raise StratifiedEvalError(f"pooled48 job receipt identity disagrees: {receipt_path}")
+    if job_receipt.get("physical_gpu") != pooled_job.get("physical_gpu") or job_receipt.get("logical_gpu") != "cuda:0":
+        raise StratifiedEvalError(f"pooled48 job receipt GPU provenance disagrees: {receipt_path}")
     records = _load_any(job_receipt["records_path"])
     trace = _load_any(job_receipt["raw_trace_path"])
     if not isinstance(records, list) or not isinstance(trace, list):
@@ -424,9 +454,12 @@ def _classify_candidate(
         "identity_policy": candidate["identity_policy"],
         "selected_candidate": dict(candidate),
         "topology": "pooled48",
-        "pooled_job_receipt_path": str(_absolute(pooled_job["run_receipt_path"])),
-        "r190_receipt_path": str(R190_RECEIPT_PATH),
-        "realized_atlas_path": str(REALIZED_ATLAS_PATH),
+        "physical_gpu": pooled_job["physical_gpu"],
+        "logical_gpu": "cuda:0",
+        "physical_gpus": list(physical_gpus),
+        "pooled_job_receipt_path": str(_absolute(receipt_path)),
+        "r190_receipt_path": str(_absolute(r190_receipt_path)),
+        "realized_atlas_path": str(_absolute(realized_atlas_path)),
         **classified,
         "missing_evidence": [],
     }
@@ -437,26 +470,33 @@ def build_plan(
     pooled_receipt: str | Path = POOLED48_RECEIPT_PATH,
     r190_receipt: str | Path = R190_RECEIPT_PATH,
     realized_atlas: str | Path = REALIZED_ATLAS_PATH,
+    physical_gpus: Sequence[int] | str | None = None,
     output: str | Path | None = None,
 ) -> dict[str, Any]:
     pooled = _load_pooled_receipt(pooled_receipt)
     _load_r190(r190_receipt)
     _load_atlas(realized_atlas)
     selected = pooled["selected_candidates"]
+    pooled_gpus = validate_physical_gpus(pooled["physical_gpus"])
+    selected_gpus = validate_physical_gpus(physical_gpus) if physical_gpus is not None else pooled_gpus
+    if selected_gpus != pooled_gpus:
+        raise StratifiedEvalError("stratified physical GPU mapping must match pooled48 provenance exactly")
     if len(selected) != 16:
         raise StratifiedEvalError("stratified plan requires exactly 16 selected candidates")
     jobs = [
         {
             "job_id": f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}",
+            "job_ordinal": ordinal,
             "selected_candidate": dict(candidate),
-            "pooled_job_receipt_path": str(_absolute(_job_plan(candidate)["run_receipt_path"])),
+            "physical_gpu": pooled["jobs"][ordinal]["physical_gpu"],
+            "physical_gpus": list(selected_gpus),
+            "pooled_job_receipt_path": str(_absolute(pooled["jobs"][ordinal]["receipt_path"])),
             "output_path": str(_job_record_path(candidate)),
             "runtime_mode": "POOLED_TRACE_REALIZED_DYNAMICS_REDUCE",
-            "physical_gpus": list(V23_LEGAL_PHYSICAL_GPUS),
             "logical_gpu": "cuda:0",
             "no_retry": True,
         }
-        for candidate in selected
+        for ordinal, candidate in enumerate(selected)
     ]
     payload = {
         "schema": STRATIFIED_PLAN_SCHEMA,
@@ -470,6 +510,9 @@ def build_plan(
         "selected_candidates": selected,
         "selected_candidate_count": len(selected),
         "topology": "pooled48_posthoc_realized_dynamics",
+        "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+        "physical_gpus": list(selected_gpus),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
         "zones": list(ALLOWED_ZONES),
         "r190_receipt_path": str(_absolute(r190_receipt)),
         "realized_atlas_path": str(_absolute(realized_atlas)),
@@ -482,26 +525,124 @@ def build_plan(
     return payload
 
 
+def _assert_persisted_path(
+    supplied: str | Path | None,
+    persisted: str | Path,
+    *,
+    field: str,
+) -> None:
+    if supplied is not None and _absolute(supplied) != _absolute(persisted):
+        raise StratifiedEvalError(
+            f"stratified {field} disagrees with the persisted plan path: "
+            f"{_absolute(supplied)} != {_absolute(persisted)}"
+        )
+
+
+def _load_plan(
+    path: str | Path,
+    *,
+    pooled_receipt: str | Path | None = None,
+    r190_receipt: str | Path | None = None,
+    realized_atlas: str | Path | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, tuple[float, float, float, float]]]:
+    """Load one persisted stratification plan and all of its bound parents.
+
+    RUN and REDUCE must consume the paths and GPU mapping recorded by BUILD;
+    they never rebuild a manifest from live defaults.
+    """
+
+    manifest = _load_object(path)
+    if manifest.get("schema") != STRATIFIED_PLAN_SCHEMA or manifest.get("status") != "BUILT":
+        raise StratifiedEvalError("stratified manifest schema/status is not BUILT")
+    if manifest.get("physical_gpu_domain") != list(PHYSICAL_GPU_DOMAIN):
+        raise StratifiedEvalError("stratified manifest physical_gpu_domain is not exactly 0..7")
+    manifest_gpus = validate_physical_gpus(manifest.get("physical_gpus"))
+    if manifest.get("physical_gpu_mapping_policy") != PHYSICAL_GPU_MAPPING_POLICY:
+        raise StratifiedEvalError("stratified manifest physical GPU mapping policy is unsupported")
+    persisted_pooled = manifest.get("pooled_receipt_path")
+    persisted_r190 = manifest.get("r190_receipt_path")
+    persisted_atlas = manifest.get("realized_atlas_path")
+    for field, value in (
+        ("pooled_receipt_path", persisted_pooled),
+        ("r190_receipt_path", persisted_r190),
+        ("realized_atlas_path", persisted_atlas),
+    ):
+        if not isinstance(value, str) or not value:
+            raise StratifiedEvalError(f"stratified manifest {field} must be a persisted path")
+    _assert_persisted_path(pooled_receipt, persisted_pooled, field="pooled_receipt")
+    _assert_persisted_path(r190_receipt, persisted_r190, field="r190_receipt")
+    _assert_persisted_path(realized_atlas, persisted_atlas, field="realized_atlas")
+    pooled = _load_pooled_receipt(persisted_pooled)
+    r190 = _load_r190(persisted_r190)
+    atlas = _load_atlas(persisted_atlas)
+    if manifest.get("selected_candidates") != pooled["selected_candidates"]:
+        raise StratifiedEvalError("stratified manifest selected_candidates disagree with pooled provenance")
+    if manifest_gpus != tuple(pooled["physical_gpus"]):
+        raise StratifiedEvalError("stratified manifest GPU mapping disagrees with pooled provenance")
+    selected = pooled["selected_candidates"]
+    jobs = manifest.get("jobs")
+    if not isinstance(jobs, list) or len(jobs) != len(selected) or len(selected) != 16:
+        raise StratifiedEvalError("stratified manifest must contain exactly 16 jobs")
+    for ordinal, (candidate, job, pooled_job) in enumerate(zip(selected, jobs, pooled["jobs"])):
+        if not isinstance(job, Mapping):
+            raise StratifiedEvalError(f"stratified manifest job {ordinal} must be an object")
+        expected_id = f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}"
+        if job.get("job_id") != expected_id or job.get("job_ordinal") != ordinal:
+            raise StratifiedEvalError(f"stratified manifest job {ordinal} identity/order disagrees")
+        if job.get("selected_candidate") != candidate:
+            raise StratifiedEvalError(f"stratified manifest job {expected_id} candidate disagrees")
+        if job.get("physical_gpu") != pooled_job.get("physical_gpu"):
+            raise StratifiedEvalError(f"stratified manifest job {expected_id} physical_gpu disagrees")
+        if job.get("physical_gpus") != list(manifest_gpus):
+            raise StratifiedEvalError(f"stratified manifest job {expected_id} physical_gpus disagrees")
+        if _absolute(job.get("pooled_job_receipt_path")) != _absolute(pooled_job.get("receipt_path")):
+            raise StratifiedEvalError(f"stratified manifest job {expected_id} pooled receipt path disagrees")
+        if not isinstance(job.get("output_path"), str) or not job["output_path"]:
+            raise StratifiedEvalError(f"stratified manifest job {expected_id} lacks output_path")
+    manifest["selected_candidates"] = selected
+    manifest["physical_gpus"] = list(manifest_gpus)
+    return manifest, pooled, r190, atlas
+
+
 def run(
     *,
-    pooled_receipt: str | Path = POOLED48_RECEIPT_PATH,
-    r190_receipt: str | Path = R190_RECEIPT_PATH,
-    realized_atlas: str | Path = REALIZED_ATLAS_PATH,
+    pooled_receipt: str | Path | None = None,
+    r190_receipt: str | Path | None = None,
+    realized_atlas: str | Path | None = None,
     only_job: str | None = None,
+    plan_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    pooled = _load_pooled_receipt(pooled_receipt)
-    r190 = _load_r190(r190_receipt)
-    atlas = _load_atlas(realized_atlas)
+    if plan_path is None:
+        raise StratifiedEvalError("RUN requires a persisted stratified plan path")
+    manifest, pooled, r190, atlas = _load_plan(
+        plan_path,
+        pooled_receipt=pooled_receipt,
+        r190_receipt=r190_receipt,
+        realized_atlas=realized_atlas,
+    )
+    manifest_gpus = validate_physical_gpus(manifest["physical_gpus"])
+    manifest_jobs = manifest["jobs"]
     jobs = []
-    for candidate in pooled["selected_candidates"]:
+    for ordinal, candidate in enumerate(pooled["selected_candidates"]):
         job_id = f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}"
         if only_job is not None and job_id != only_job:
             continue
-        output = _job_record_path(candidate)
+        manifest_job = manifest_jobs[ordinal]
+        if manifest_job.get("physical_gpu") != pooled["jobs"][ordinal]["physical_gpu"]:
+            raise StratifiedEvalError(f"stratified manifest physical_gpu disagrees for {job_id}")
+        output = _absolute(manifest_job["output_path"])
         if output.exists():
             raise StratifiedEvalError(f"stratified output exists; refusing overwrite: {output}")
         output.parent.mkdir(parents=True, exist_ok=False)
-        record = _classify_candidate(candidate, r190=r190, atlas=atlas)
+        record = _classify_candidate(
+            candidate,
+            pooled_job=pooled["jobs"][ordinal],
+            physical_gpus=manifest_gpus,
+            r190=r190,
+            atlas=atlas,
+            r190_receipt_path=manifest["r190_receipt_path"],
+            realized_atlas_path=manifest["realized_atlas_path"],
+        )
         write_json(output, record)
         jobs.append(job_id)
     if only_job is not None and not jobs:
@@ -513,33 +654,56 @@ def run(
         "job_count": len(jobs),
         "completed_jobs": jobs,
         "runtime_mode": "POOLED_TRACE_REALIZED_DYNAMICS_REDUCE",
+        "stratified_plan_path": str(_absolute(plan_path)),
+        "pooled_receipt_path": manifest["pooled_receipt_path"],
+        "r190_receipt_path": manifest["r190_receipt_path"],
+        "realized_atlas_path": manifest["realized_atlas_path"],
         "no_retry": True,
     }
 
 
 def reduce(
     *,
-    pooled_receipt: str | Path = POOLED48_RECEIPT_PATH,
-    r190_receipt: str | Path = R190_RECEIPT_PATH,
-    realized_atlas: str | Path = REALIZED_ATLAS_PATH,
+    pooled_receipt: str | Path | None = None,
+    r190_receipt: str | Path | None = None,
+    realized_atlas: str | Path | None = None,
     output: str | Path = STRATIFIED_RECEIPT_PATH,
+    plan_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    pooled = _load_pooled_receipt(pooled_receipt)
-    r190 = _load_r190(r190_receipt)
-    atlas = _load_atlas(realized_atlas)
+    if plan_path is None:
+        raise StratifiedEvalError("REDUCE requires a persisted stratified plan path")
+    manifest, pooled, _r190, _atlas = _load_plan(
+        plan_path,
+        pooled_receipt=pooled_receipt,
+        r190_receipt=r190_receipt,
+        realized_atlas=realized_atlas,
+    )
     selected = validate_selected_candidates(pooled["selected_candidates"], require_sources=False)
+    pooled_gpus = validate_physical_gpus(pooled["physical_gpus"])
+    manifest_jobs = manifest["jobs"]
     if len(selected) != 16:
         raise StratifiedEvalError("stratified reduction requires exactly 16 selected candidates")
     jobs: list[dict[str, Any]] = []
     normal_counts: Counter[str] = Counter()
     lite_counts: Counter[str] = Counter()
-    for candidate in selected:
-        path = _job_record_path(candidate)
+    for ordinal, candidate in enumerate(selected):
+        path = _absolute(manifest_jobs[ordinal]["output_path"])
         record = _load_object(path)
         if record.get("schema") != STRATIFIED_JOB_SCHEMA or record.get("status") != STRATIFIED_JOB_STATUS:
             raise StratifiedEvalError(f"stratified job record is incomplete: {path}")
         if record.get("selected_candidate") != dict(candidate):
             raise StratifiedEvalError(f"stratified job identity disagrees: {path}")
+        if record.get("pooled_job_receipt_path") != manifest_jobs[ordinal]["pooled_job_receipt_path"]:
+            raise StratifiedEvalError(f"stratified job pooled receipt path disagrees: {path}")
+        if record.get("r190_receipt_path") != manifest["r190_receipt_path"]:
+            raise StratifiedEvalError(f"stratified job R190 receipt path disagrees: {path}")
+        if record.get("realized_atlas_path") != manifest["realized_atlas_path"]:
+            raise StratifiedEvalError(f"stratified job realized atlas path disagrees: {path}")
+        expected_gpu = pooled["jobs"][ordinal]["physical_gpu"]
+        if record.get("physical_gpu") != expected_gpu or record.get("physical_gpus") != list(pooled_gpus):
+            raise StratifiedEvalError(f"stratified job GPU provenance disagrees: {path}")
+        if manifest_jobs[ordinal].get("physical_gpu") != expected_gpu:
+            raise StratifiedEvalError(f"stratified manifest physical_gpu disagrees: {path}")
         if record.get("episode_count") != 48 or record.get("missing_evidence") != []:
             raise StratifiedEvalError(f"stratified job has incomplete evidence: {path}")
         # Re-validate the typed result shape without re-running the simulator.
@@ -550,7 +714,9 @@ def reduce(
         jobs.append(
             {
                 "job_id": f"{candidate['subwave']}:{candidate['cell']}:step{candidate['step']:04d}",
+                "job_ordinal": ordinal,
                 "selected_candidate": dict(candidate),
+                "physical_gpu": record["physical_gpu"],
                 "record_path": str(path),
                 "episode_count": record["episode_count"],
                 "normal_zone_counts": dict(record["normal_zone_counts"]),
@@ -571,6 +737,9 @@ def reduce(
         "route": "B",
         "stage": "STRATIFIED_EVAL",
         "topology": "pooled48_posthoc_realized_dynamics",
+        "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
+        "physical_gpus": list(pooled_gpus),
+        "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
         "zones": list(ALLOWED_ZONES),
         "confirmed_E2": False,
         "selected_candidates": selected,
@@ -579,9 +748,10 @@ def reduce(
         "episode_count": len(jobs) * 48,
         "normal_zone_counts": dict(normal_counts),
         "lite_zone_counts": dict(lite_counts),
-        "r190_receipt_path": str(_absolute(r190_receipt)),
-        "realized_atlas_path": str(_absolute(realized_atlas)),
-        "pooled_receipt_path": str(_absolute(pooled_receipt)),
+        "r190_receipt_path": manifest["r190_receipt_path"],
+        "realized_atlas_path": manifest["realized_atlas_path"],
+        "pooled_receipt_path": manifest["pooled_receipt_path"],
+        "stratified_plan_path": str(_absolute(plan_path)),
         "jobs": jobs,
         "missing_evidence": [],
         "no_retry": True,
@@ -593,18 +763,28 @@ def reduce(
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=("PLAN", "BUILD", "RUN", "REDUCE"), required=True)
-    parser.add_argument("--pooled48", type=Path, default=POOLED48_RECEIPT_PATH)
-    parser.add_argument("--r190", type=Path, default=R190_RECEIPT_PATH)
-    parser.add_argument("--atlas", type=Path, default=REALIZED_ATLAS_PATH)
+    parser.add_argument("--pooled48", type=Path, default=None)
+    parser.add_argument("--r190", type=Path, default=None)
+    parser.add_argument("--atlas", type=Path, default=None)
     parser.add_argument("--job", default=None)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--plan", type=Path, default=STRATIFIED_PLAN_PATH)
+    parser.add_argument(
+        "--physical-gpus",
+        type=lambda value: validate_physical_gpus(value),
+        default=None,
+        help="ordered unique local physical GPU ids, subset of 0..7; PLAN/BUILD only",
+    )
     args = parser.parse_args(argv)
     try:
+        if args.mode not in {"PLAN", "BUILD"} and args.physical_gpus is not None:
+            raise StratifiedEvalError("--physical-gpus is valid only for PLAN and BUILD")
         if args.mode in {"PLAN", "BUILD"}:
             payload = build_plan(
-                pooled_receipt=args.pooled48,
-                r190_receipt=args.r190,
-                realized_atlas=args.atlas,
+                pooled_receipt=args.pooled48 or POOLED48_RECEIPT_PATH,
+                r190_receipt=args.r190 or R190_RECEIPT_PATH,
+                realized_atlas=args.atlas or REALIZED_ATLAS_PATH,
+                physical_gpus=args.physical_gpus,
                 output=args.output if args.mode == "BUILD" else None,
             )
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
@@ -614,6 +794,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 r190_receipt=args.r190,
                 realized_atlas=args.atlas,
                 only_job=args.job,
+                plan_path=args.plan,
             )
             print(json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2))
         else:
@@ -621,6 +802,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 pooled_receipt=args.pooled48,
                 r190_receipt=args.r190,
                 realized_atlas=args.atlas,
+                plan_path=args.plan,
                 output=args.output or STRATIFIED_RECEIPT_PATH,
             )
             print(json.dumps({"status": "WRITTEN", "path": str(_absolute(args.output or STRATIFIED_RECEIPT_PATH))}, indent=2))

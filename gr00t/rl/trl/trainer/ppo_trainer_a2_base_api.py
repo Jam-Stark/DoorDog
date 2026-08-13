@@ -2622,7 +2622,7 @@ def _read_a2_v23_p08_v2_config(
     env,
     process_count,
 ):
-    """Resolve the strict opt-in one-env P0.8 preformal-v2 export contract."""
+    """Resolve the strict opt-in P0.8 preformal-v2 export contract."""
 
     enabled = eval_config.get("a2_v23_p08_v2_export", False)
     if not isinstance(enabled, bool):
@@ -2640,7 +2640,15 @@ def _read_a2_v23_p08_v2_config(
         raise RuntimeError(
             "P0.8 preformal-v2 export requires eval.eval_num_envs_episodes=true."
         )
-    if int(env.num_envs) != 1:
+    route_b_enabled = env.config.get("a2_v23_route_b_p08_v2_enabled", False)
+    if not isinstance(route_b_enabled, bool):
+        raise RuntimeError("env.config.a2_v23_route_b_p08_v2_enabled must be bool.")
+    expected_num_envs = 16 if route_b_enabled else 1
+    if int(env.num_envs) != expected_num_envs:
+        if route_b_enabled:
+            raise RuntimeError(
+                "Route-B P0.8 preformal-v2 export requires the canonical16 environment topology."
+            )
         raise RuntimeError("P0.8 preformal-v2 export requires exactly one environment.")
     if eval_config.get("a2_v23_p05_runtime_export") is not False:
         raise RuntimeError(
@@ -2660,6 +2668,12 @@ def _read_a2_v23_p08_v2_config(
         )
     mode = env.config.get("a2_v23_p08_v2_mode")
     allowed_modes = (
+        "FULL",
+        "ACUTE_RP0",
+        "BASE0_AT_GRASP",
+        "HIGHER_EFFORT_RESCUE",
+        "ORACLE_TANGENTIAL_ASSIST",
+    ) if route_b_enabled else (
         "ACUTE_RP0",
         "BASE0_AT_GRASP",
         "HIGHER_EFFORT_RESCUE",
@@ -2670,11 +2684,6 @@ def _read_a2_v23_p08_v2_config(
             "P0.8 preformal-v2 export requires a registered four-mode env configuration; "
             f"got {mode!r}."
         )
-    record_env_id = eval_config.get("a2_v23_p08_v2_record_env_id", 0)
-    if isinstance(record_env_id, bool) or not isinstance(record_env_id, int):
-        raise RuntimeError("eval.a2_v23_p08_v2_record_env_id must be an integer.")
-    if not 0 <= record_env_id < int(env.num_envs):
-        raise RuntimeError("eval.a2_v23_p08_v2_record_env_id is outside the live env range.")
     filename = eval_config.get(
         "a2_v23_p08_v2_raw_filename", "a2_v23_p08_v2_raw.json"
     )
@@ -2682,6 +2691,20 @@ def _read_a2_v23_p08_v2_config(
         raise RuntimeError("eval.a2_v23_p08_v2_raw_filename must be a non-empty string.")
     if Path(filename).name != filename:
         raise RuntimeError("eval.a2_v23_p08_v2_raw_filename must be a basename.")
+    if route_b_enabled:
+        return {
+            "enabled": True,
+            "route_b": True,
+            "mode": mode,
+            "record_env_ids": list(range(int(env.num_envs))),
+            "raw_filename": filename,
+            "num_envs": int(env.num_envs),
+        }
+    record_env_id = eval_config.get("a2_v23_p08_v2_record_env_id", 0)
+    if isinstance(record_env_id, bool) or not isinstance(record_env_id, int):
+        raise RuntimeError("eval.a2_v23_p08_v2_record_env_id must be an integer.")
+    if not 0 <= record_env_id < int(env.num_envs):
+        raise RuntimeError("eval.a2_v23_p08_v2_record_env_id is outside the live env range.")
     return {
         "enabled": True,
         "mode": mode,
@@ -7782,29 +7805,76 @@ class TRLPPOTrainer(PPOTrainer):
             os.makedirs(eval_output_dir, exist_ok=True)
 
         if a2_v23_p08_v2["enabled"]:
-            selected_env_id = a2_v23_p08_v2["record_env_id"]
-            raw_record = a2_v23_p08_v2_terminal_records.get(selected_env_id)
-            if raw_record is None:
-                raise RuntimeError(
-                    "P0.8 preformal-v2 export requires the selected env's terminal snapshot; "
-                    f"env_id={selected_env_id} has no terminal record."
+            if a2_v23_p08_v2.get("route_b", False):
+                expected_env_ids = set(a2_v23_p08_v2["record_env_ids"])
+                if set(a2_v23_p08_v2_terminal_records) != expected_env_ids:
+                    missing = sorted(expected_env_ids - set(a2_v23_p08_v2_terminal_records))
+                    extra = sorted(set(a2_v23_p08_v2_terminal_records) - expected_env_ids)
+                    raise RuntimeError(
+                        "Route-B P0.8 preformal-v2 export requires one observed terminal record "
+                        f"for each canonical env; missing={missing}, extra={extra}."
+                    )
+                raw_records = []
+                for env_id in a2_v23_p08_v2["record_env_ids"]:
+                    raw_record = a2_v23_p08_v2_terminal_records.get(env_id)
+                    if not isinstance(raw_record, dict):
+                        raise RuntimeError(
+                            "Route-B P0.8 preformal-v2 export requires mapping terminal records; "
+                            f"env_id={env_id}."
+                        )
+                    if raw_record.get("mode") != a2_v23_p08_v2["mode"]:
+                        raise RuntimeError(
+                            "Route-B P0.8 preformal-v2 terminal record mode disagrees with the run; "
+                            f"env_id={env_id}."
+                        )
+                    raw_records.append(dict(raw_record))
+                raw_record = {
+                    "schema": "a2_piper_v23_route_b_p08_v2_raw_v1",
+                    "status": "RUNTIME_VERIFIED",
+                    "route": "B",
+                    "topology": "canonical16",
+                    "mode": a2_v23_p08_v2["mode"],
+                    "num_envs": int(self.env.num_envs),
+                    "process_count": int(self.accelerator.num_processes),
+                    "physical_gpu": os.environ.get("CUDA_VISIBLE_DEVICES"),
+                    "logical_gpu": "cuda:0",
+                    "records": raw_records,
+                    "forward_only": True,
+                    "state_clone_supported": False,
+                    "recurrent_state_restore_supported": False,
+                    "actual_torque_claim": False,
+                    "excluded_claims": [
+                        "NO_CAUSAL_EFFECT_CLAIM",
+                        "NO_POLICY_QUALITY_CLAIM",
+                        "NO_EXACT_STATE_CLONE",
+                        "NO_RECURRENT_STATE_RESTORE",
+                        "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
+                    ],
+                }
+            else:
+                selected_env_id = a2_v23_p08_v2["record_env_id"]
+                raw_record = a2_v23_p08_v2_terminal_records.get(selected_env_id)
+                if raw_record is None:
+                    raise RuntimeError(
+                        "P0.8 preformal-v2 export requires the selected env's terminal snapshot; "
+                        f"env_id={selected_env_id} has no terminal record."
+                    )
+                raw_record = dict(raw_record)
+                raw_record["physical_gpu"] = os.environ.get("CUDA_VISIBLE_DEVICES")
+                raw_record["logical_gpu"] = "cuda:0"
+                raw_record["num_envs"] = int(self.env.num_envs)
+                raw_record["process_count"] = int(self.accelerator.num_processes)
+                raw_record.setdefault(
+                    "excluded_claims",
+                    [
+                        "NO_CAUSAL_EFFECT_CLAIM",
+                        "NO_POLICY_QUALITY_CLAIM",
+                        "NO_EXACT_STATE_CLONE",
+                        "NO_RECURRENT_STATE_RESTORE",
+                        "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
+                        "NO_ROUTE_B_SUITE_EXECUTION",
+                    ],
                 )
-            raw_record = dict(raw_record)
-            raw_record["physical_gpu"] = os.environ.get("CUDA_VISIBLE_DEVICES")
-            raw_record["logical_gpu"] = "cuda:0"
-            raw_record["num_envs"] = int(self.env.num_envs)
-            raw_record["process_count"] = int(self.accelerator.num_processes)
-            raw_record.setdefault(
-                "excluded_claims",
-                [
-                    "NO_CAUSAL_EFFECT_CLAIM",
-                    "NO_POLICY_QUALITY_CLAIM",
-                    "NO_EXACT_STATE_CLONE",
-                    "NO_RECURRENT_STATE_RESTORE",
-                    "NO_ACTUAL_PHYSX_TORQUE_CLAIM",
-                    "NO_ROUTE_B_SUITE_EXECUTION",
-                ],
-            )
             raw_path = os.path.join(eval_output_dir, a2_v23_p08_v2["raw_filename"])
             raw_tmp_path = f"{raw_path}.tmp"
             with open(raw_tmp_path, "w", encoding="utf-8") as raw_stream:

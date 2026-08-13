@@ -274,6 +274,7 @@ def _eval_command(
         "++auto_load_latest=false",
         "++headless=true",
         f"++num_envs={ROUTE_A_ENVS}",
+        "++env.config.a2_v23_d1_sampler_enabled=false",
         "++num_gpus=1",
         "++multi_gpu=false",
         f"++seed={seed}",

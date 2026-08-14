@@ -43,11 +43,20 @@ from gr00t.rl.trl.modules.homie_modules import (
     HomieActorModule,
     init_actor_critic_dict,
 )
+from gr00t.rl.envs.door.a2_pull_telemetry import (
+    A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD,
+    A2_PULL_V5_RELEASE_TUCK_DURATION_S,
+    a2_pull_v5_release_tuck_override,
+)
 
 
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 _A2_PULL_V5_PLAN_ID = "a2_piper_pull_v5_bridge_occupancy_and_release_persistence"
-_A2_PULL_V5_LOAD_RECEIPT_SCHEMA = "a2_piper_pull_v5_load_receipt_v1"
+_A2_PULL_V5_LOAD_RECEIPT_SCHEMA = "a2_piper_pull_v5_1_load_receipt_v2"
+_A2_PULL_P2_INTERVENTION_ENABLE_KEY = "a2_pull_p2_intervention_enabled"
+_A2_PULL_P2_INTERVENTION_DURATION_KEY = "a2_pull_p2_intervention_duration_s"
+_A2_PULL_P2_INTERVENTION_HINGE_KEY = "a2_pull_p2_intervention_hinge_threshold_rad"
+_A2_PULL_P2_INTERVENTION_TRACE_KEY = "a2_pull_p2_intervention_trace_path"
 _V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
 _V21B_METRIC_SOURCES = {
     "send_latch_fire_rate": "a2_v21B_send_latch_fire_rate",
@@ -924,6 +933,68 @@ def _apply_a2_eval_p2_posture_axis(action_mean, action_layout, posture_axis):
     return applied
 
 
+def _read_a2_pull_p2_intervention_config(eval_config):
+    """Parse the evaluator-owned paired release+tuck intervention contract."""
+
+    enabled = eval_config.get(_A2_PULL_P2_INTERVENTION_ENABLE_KEY, False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            f"eval.{_A2_PULL_P2_INTERVENTION_ENABLE_KEY} must be bool; got {enabled!r}."
+        )
+
+    duration_s = eval_config.get(
+        _A2_PULL_P2_INTERVENTION_DURATION_KEY,
+        A2_PULL_V5_RELEASE_TUCK_DURATION_S,
+    )
+    if (
+        isinstance(duration_s, bool)
+        or not isinstance(duration_s, (int, float))
+        or not math.isfinite(float(duration_s))
+        or float(duration_s) <= 0.0
+        or float(duration_s) != A2_PULL_V5_RELEASE_TUCK_DURATION_S
+    ):
+        raise RuntimeError(
+            f"eval.{_A2_PULL_P2_INTERVENTION_DURATION_KEY} must be exactly "
+            f"{A2_PULL_V5_RELEASE_TUCK_DURATION_S!r}; got {duration_s!r}."
+        )
+    duration_s = float(duration_s)
+
+    hinge_threshold_rad = eval_config.get(
+        _A2_PULL_P2_INTERVENTION_HINGE_KEY,
+        A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD,
+    )
+    if (
+        isinstance(hinge_threshold_rad, bool)
+        or not isinstance(hinge_threshold_rad, (int, float))
+        or not math.isfinite(float(hinge_threshold_rad))
+        or float(hinge_threshold_rad) <= 0.0
+        or float(hinge_threshold_rad) != A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD
+    ):
+        raise RuntimeError(
+            f"eval.{_A2_PULL_P2_INTERVENTION_HINGE_KEY} must be exactly "
+            f"{A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD!r}; got {hinge_threshold_rad!r}."
+        )
+    hinge_threshold_rad = float(hinge_threshold_rad)
+
+    trace_path = eval_config.get(_A2_PULL_P2_INTERVENTION_TRACE_KEY, None)
+    if trace_path is not None and (not isinstance(trace_path, str) or not trace_path):
+        raise RuntimeError(
+            f"eval.{_A2_PULL_P2_INTERVENTION_TRACE_KEY} must be a non-empty string when set."
+        )
+    if enabled and trace_path is None:
+        raise RuntimeError(
+            f"eval.{_A2_PULL_P2_INTERVENTION_TRACE_KEY} is required when "
+            f"eval.{_A2_PULL_P2_INTERVENTION_ENABLE_KEY}=true."
+        )
+
+    return {
+        "enabled": enabled,
+        "duration_s": duration_s,
+        "hinge_threshold_rad": hinge_threshold_rad,
+        "trace_path": trace_path,
+    }
+
+
 def _canonicalize_a2_metric_device(device):
     """Resolve an indexless CUDA device before strict telemetry validation."""
     if not isinstance(device, torch.device):
@@ -1784,6 +1855,7 @@ def _make_json_safe(value, path="root"):
 
 def _read_a2_eval_diagnostic_config(eval_config):
     p2_posture_axis = _read_a2_eval_p2_posture_axis(eval_config)
+    p2_intervention = _read_a2_pull_p2_intervention_config(eval_config)
     strict_m41_telemetry = eval_config.get(_A2_EVAL_M41_STRICT_TELEMETRY_KEY, False)
     if not isinstance(strict_m41_telemetry, bool):
         raise RuntimeError(
@@ -1875,8 +1947,148 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "forced_close_value": forced_close_value,
         "forced_close_stages": forced_close_stages,
         "p2_posture_axis": p2_posture_axis,
+        "p2_intervention": p2_intervention,
         "strict_m41_telemetry": strict_m41_telemetry,
         "strict_v20_telemetry": strict_v20_telemetry,
+    }
+
+
+def _a2_pull_p2_runtime_state(env, action_mean, action_layout):
+    """Read the existing A2 runtime state needed by evaluator-side P2."""
+
+    if not isinstance(action_layout, dict) or action_layout.get("dim") != 12:
+        raise RuntimeError(
+            "P2 evaluator intervention requires the canonical 12-dimensional A2 action layout."
+        )
+    expected_slices = {
+        "base_start": 0,
+        "base_end": 5,
+        "arm_start": 5,
+        "arm_end": 11,
+        "gripper_index": 11,
+    }
+    for key, expected in expected_slices.items():
+        value = action_layout.get(key)
+        if isinstance(value, bool) or not isinstance(value, int) or value != expected:
+            raise RuntimeError(
+                f"P2 evaluator intervention requires action_layout[{key!r}]={expected}; got {value!r}."
+            )
+    if (
+        not torch.is_tensor(action_mean)
+        or action_mean.ndim != 2
+        or tuple(action_mean.shape) != (env.num_envs, action_layout["dim"])
+    ):
+        shape = None if not torch.is_tensor(action_mean) else tuple(action_mean.shape)
+        raise RuntimeError(
+            "P2 evaluator intervention requires a [num_envs, 12] policy action tensor; "
+            f"got {shape}."
+        )
+
+    get_door_joint_pos = getattr(env, "_get_door_joint_pos", None)
+    if get_door_joint_pos is None:
+        raise RuntimeError("P2 evaluator intervention requires the existing door joint-position accessor.")
+    door_joint_pos = get_door_joint_pos("P2 evaluator intervention", 3)
+    if (
+        not torch.is_tensor(door_joint_pos)
+        or tuple(door_joint_pos.shape[:1]) != (env.num_envs,)
+        or door_joint_pos.ndim != 2
+        or door_joint_pos.shape[1] < 3
+        or door_joint_pos.device != action_mean.device
+    ):
+        shape = None if not torch.is_tensor(door_joint_pos) else tuple(door_joint_pos.shape)
+        raise RuntimeError(
+            "P2 evaluator intervention requires door joint positions on the action device; "
+            f"got shape={shape}."
+        )
+    hinge_position_rad = door_joint_pos[:, 0]
+    if not torch.all(torch.isfinite(hinge_position_rad)):
+        raise RuntimeError("P2 evaluator intervention requires finite hinge positions.")
+
+    aperture_ready = getattr(env, "_a2_pull_aperture_ready", None)
+    if (
+        not torch.is_tensor(aperture_ready)
+        or tuple(aperture_ready.shape) != (env.num_envs,)
+        or aperture_ready.dtype != torch.bool
+        or aperture_ready.device != action_mean.device
+    ):
+        shape = None if not torch.is_tensor(aperture_ready) else tuple(aperture_ready.shape)
+        raise RuntimeError(
+            "P2 evaluator intervention requires _a2_pull_aperture_ready bool tensor on the action device; "
+            f"got shape={shape}, dtype={getattr(aperture_ready, 'dtype', None)}."
+        )
+
+    cumulative_delta = getattr(env, "_delta_actions", None)
+    if (
+        not torch.is_tensor(cumulative_delta)
+        or tuple(cumulative_delta.shape) != (env.num_envs, 6)
+        or cumulative_delta.dtype != action_mean.dtype
+        or cumulative_delta.device != action_mean.device
+        or not torch.all(torch.isfinite(cumulative_delta))
+    ):
+        shape = None if not torch.is_tensor(cumulative_delta) else tuple(cumulative_delta.shape)
+        raise RuntimeError(
+            "P2 evaluator intervention requires finite cumulative arm deltas with shape (num_envs, 6); "
+            f"got shape={shape}, dtype={getattr(cumulative_delta, 'dtype', None)}."
+        )
+    delta_action_scale = getattr(env, "_delta_action_scale", None)
+    if (
+        isinstance(delta_action_scale, bool)
+        or not isinstance(delta_action_scale, (int, float))
+        or not math.isfinite(float(delta_action_scale))
+        or float(delta_action_scale) <= 0.0
+    ):
+        raise RuntimeError(
+            "P2 evaluator intervention requires a finite positive _delta_action_scale; "
+            f"got {delta_action_scale!r}."
+        )
+    default_arm_action = -cumulative_delta / float(delta_action_scale)
+
+    get_contacts = getattr(env, "_get_a2_stage3_stage4_contact_squeeze_masks", None)
+    if get_contacts is None:
+        raise RuntimeError(
+            "P2 evaluator intervention requires the existing handle-contact mask accessor."
+        )
+    contact_masks = get_contacts("P2 evaluator intervention")
+    if not isinstance(contact_masks, dict) or "contacting" not in contact_masks:
+        raise RuntimeError(
+            "P2 evaluator intervention contact accessor must return a contacting mask mapping."
+        )
+    contacting = contact_masks["contacting"]
+    if (
+        not torch.is_tensor(contacting)
+        or contacting.ndim < 1
+        or contacting.shape[0] != env.num_envs
+        or contacting.dtype != torch.bool
+        or contacting.device != action_mean.device
+    ):
+        shape = None if not torch.is_tensor(contacting) else tuple(contacting.shape)
+        raise RuntimeError(
+            "P2 evaluator intervention requires bool contacting mask with leading env axis; "
+            f"got shape={shape}, dtype={getattr(contacting, 'dtype', None)}."
+        )
+    handle_contact = torch.any(contacting.reshape(env.num_envs, -1), dim=-1)
+
+    dt = getattr(env, "dt", None)
+    if torch.is_tensor(dt):
+        if dt.numel() != 1:
+            raise RuntimeError(f"P2 evaluator intervention requires scalar env.dt; got shape={tuple(dt.shape)}.")
+        dt = float(dt.detach().cpu().item())
+    if (
+        isinstance(dt, bool)
+        or not isinstance(dt, (int, float))
+        or not math.isfinite(float(dt))
+        or float(dt) <= 0.0
+    ):
+        raise RuntimeError(f"P2 evaluator intervention requires finite positive env.dt; got {dt!r}.")
+
+    return {
+        "hinge_position_rad": hinge_position_rad,
+        "aperture_ready": aperture_ready,
+        "contacting": contacting,
+        "handle_contact": handle_contact,
+        "no_handle_contact": ~handle_contact,
+        "default_arm_action": default_arm_action,
+        "dt": float(dt),
     }
 
 
@@ -4657,6 +4869,8 @@ class TRLPPOTrainer(PPOTrainer):
                 "worker_output_dir": str(Path(worker_output_dir_raw).resolve()),
                 "actor": {
                     "loaded": True,
+                    "reset": False,
+                    "not_loaded": False,
                     "source_key": actor_key,
                 },
                 "critic": {
@@ -4674,6 +4888,12 @@ class TRLPPOTrainer(PPOTrainer):
                     "loaded": False,
                     "reset": True,
                     "not_loaded": True,
+                },
+                "methodology": {
+                    "eval_requested_checkpoint_load_mode": "policy_only",
+                    "eval_effective_checkpoint_load_mode": "full",
+                    "eval_policy_only_normalized_to_full": True,
+                    "eval_wrapper_behavior": "record_only_no_wrapper_change",
                 },
                 "status": "ACTUAL",
             }
@@ -4749,16 +4969,7 @@ class TRLPPOTrainer(PPOTrainer):
         self.policy_model.eval_mode()
         self.policy_model.init_rollout()
         capture_env_config = getattr(self.env, "config", None)
-        if isinstance(capture_env_config, Mapping) and capture_env_config.get(
-            "a2_pull_v5_bank_capture_provenance"
-        ) == "bank_constructed":
-            construct_source_b = getattr(self.env, "construct_a2_pull_v5_source_b_states", None)
-            if construct_source_b is None:
-                raise RuntimeError("Source-B capture requires high-level articulation state writers.")
-            construct_source_b()
         obs_dict = self.env.reset_all()
-        for obs_key in obs_dict.keys():
-            obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
 
         eval_num_envs_episodes = self.config.get("eval", {}).get("eval_num_envs_episodes", False)
         dump_eval_to_log_metrics = self.config.get("eval", {}).get(
@@ -4767,6 +4978,7 @@ class TRLPPOTrainer(PPOTrainer):
         a2_eval_diagnostics = _read_a2_eval_diagnostic_config(
             self.config.get("eval", {})
         )
+        a2_p2_intervention = a2_eval_diagnostics["p2_intervention"]
         eval_to_log_records = []
 
         if eval_num_envs_episodes:
@@ -4835,6 +5047,17 @@ class TRLPPOTrainer(PPOTrainer):
             hold_detail_enabled = False
             a2_hold_runtime_metadata = None
 
+        if isinstance(capture_env_config, Mapping) and capture_env_config.get(
+            "a2_pull_v5_bank_capture_provenance"
+        ) == "bank_constructed":
+            construct_source_b = getattr(self.env, "construct_a2_pull_v5_source_b_states", None)
+            if construct_source_b is None:
+                raise RuntimeError("Source-B capture requires high-level articulation state writers.")
+            construct_source_b()
+            obs_dict = self.env.obs_buf_dict
+        for obs_key in obs_dict.keys():
+            obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
+
         forced_close_stage_ids = a2_eval_diagnostics["forced_close_stages"]
         if a2_eval_diagnostics["forced_close_enabled"]:
             allowed_forced_close_stages = {
@@ -4851,6 +5074,48 @@ class TRLPPOTrainer(PPOTrainer):
             dtype=torch.long,
             device=self.accelerator.device,
         )
+
+        p2_trace_records = []
+        p2_fixture_id = None
+        p2_trigger_mask = None
+        p2_fired_mask = None
+        p2_active_mask = None
+        p2_elapsed_steps = None
+        p2_duration_steps = None
+        if a2_p2_intervention["trace_path"] is not None:
+            trace_path = Path(a2_p2_intervention["trace_path"]).expanduser()
+            p2_fixture_id = trace_path.parent.parent.name if trace_path.parent.name == "eval" else trace_path.parent.name
+            if not p2_fixture_id or p2_fixture_id in {".", ".."}:
+                raise RuntimeError(
+                    "P2 evaluator intervention trace path must identify a fixture directory."
+                )
+        if a2_p2_intervention["enabled"] or a2_p2_intervention["trace_path"] is not None:
+            if not self.use_a2_base:
+                raise RuntimeError("P2 evaluator intervention requires A2_Base high-level actions.")
+            env_dt = getattr(self.env, "dt", None)
+            if torch.is_tensor(env_dt):
+                if env_dt.numel() != 1:
+                    raise RuntimeError("P2 evaluator intervention requires scalar env.dt.")
+                env_dt = float(env_dt.detach().cpu().item())
+            if (
+                isinstance(env_dt, bool)
+                or not isinstance(env_dt, (int, float))
+                or not math.isfinite(float(env_dt))
+                or float(env_dt) <= 0.0
+            ):
+                raise RuntimeError(f"P2 evaluator intervention requires finite positive env.dt; got {env_dt!r}.")
+            p2_duration_steps = max(
+                1,
+                math.ceil(a2_p2_intervention["duration_s"] / float(env_dt)),
+            )
+            p2_trigger_mask = torch.zeros(
+                self.env.num_envs, dtype=torch.bool, device=self.accelerator.device
+            )
+            p2_fired_mask = torch.zeros_like(p2_trigger_mask)
+            p2_active_mask = torch.zeros_like(p2_trigger_mask)
+            p2_elapsed_steps = torch.zeros(
+                self.env.num_envs, dtype=torch.long, device=self.accelerator.device
+            )
 
         # Initialize episode tracking
         self.cur_reward_sum = torch.zeros(
@@ -4981,19 +5246,132 @@ class TRLPPOTrainer(PPOTrainer):
                             )
 
                         env_config = getattr(self.env, "config", None)
-                        if isinstance(env_config, Mapping) and env_config.get(
-                            "a2_pull_v5_intervention_enabled", False
-                        ):
-                            apply_pull_v5_intervention = getattr(
-                                self.env, "apply_a2_pull_v5_intervention", None
+                        p2_runtime_state = None
+                        p2_policy_action = post_oracle_override_pre_env_action
+                        p2_applied_action = post_oracle_override_pre_env_action
+                        if p2_trigger_mask is not None:
+                            p2_runtime_state = _a2_pull_p2_runtime_state(
+                                self.env,
+                                p2_policy_action,
+                                action_layout,
                             )
-                            if apply_pull_v5_intervention is None:
-                                raise RuntimeError(
-                                    "Pull-v5 intervention requires the environment action hook."
+                            p2_trigger_mask = (
+                                p2_runtime_state["aperture_ready"]
+                                & (
+                                    p2_runtime_state["hinge_position_rad"]
+                                    >= a2_p2_intervention["hinge_threshold_rad"]
                                 )
-                            post_oracle_override_pre_env_action, _ = apply_pull_v5_intervention(
-                                post_oracle_override_pre_env_action
+                                & first_episode_active_mask
                             )
+                            if a2_p2_intervention["enabled"]:
+                                newly_fired = p2_trigger_mask & ~p2_fired_mask
+                                p2_fired_mask |= newly_fired
+                                p2_active_mask = p2_fired_mask & (
+                                    p2_elapsed_steps < p2_duration_steps
+                                )
+                                latched_hinge = torch.where(
+                                    p2_active_mask,
+                                    torch.full_like(
+                                        p2_runtime_state["hinge_position_rad"],
+                                        a2_p2_intervention["hinge_threshold_rad"],
+                                    ),
+                                    p2_runtime_state["hinge_position_rad"],
+                                )
+                                latched_aperture = (
+                                    p2_runtime_state["aperture_ready"] | p2_active_mask
+                                )
+                                p2_applied_action, helper_active = a2_pull_v5_release_tuck_override(
+                                    p2_policy_action,
+                                    latched_hinge,
+                                    latched_aperture,
+                                    p2_elapsed_steps,
+                                    dt=p2_runtime_state["dt"],
+                                    enabled=True,
+                                    arm_action=p2_runtime_state["default_arm_action"],
+                                )
+                                if not torch.equal(helper_active, p2_active_mask):
+                                    raise RuntimeError(
+                                        "P2 evaluator intervention helper active mask disagrees with evaluator state."
+                                    )
+                            else:
+                                p2_active_mask = torch.zeros_like(p2_trigger_mask)
+                                p2_applied_action, helper_active = a2_pull_v5_release_tuck_override(
+                                    p2_policy_action,
+                                    p2_runtime_state["hinge_position_rad"],
+                                    p2_runtime_state["aperture_ready"],
+                                    p2_elapsed_steps,
+                                    dt=p2_runtime_state["dt"],
+                                    enabled=False,
+                                    arm_action=p2_runtime_state["default_arm_action"],
+                                )
+                                if torch.any(helper_active):
+                                    raise RuntimeError(
+                                        "Disabled P2 evaluator intervention unexpectedly activated."
+                                    )
+                            post_oracle_override_pre_env_action = p2_applied_action
+
+                            if a2_p2_intervention["trace_path"] is not None:
+                                base_start = action_layout["base_start"]
+                                base_end = action_layout["base_end"]
+                                arm_start = action_layout["arm_start"]
+                                arm_end = action_layout["arm_end"]
+                                gripper_index = action_layout["gripper_index"]
+                                policy_base = p2_policy_action[:, base_start:base_end].detach().cpu().tolist()
+                                policy_arm = p2_policy_action[:, arm_start:arm_end].detach().cpu().tolist()
+                                policy_gripper = p2_policy_action[:, gripper_index].detach().cpu().tolist()
+                                applied_base = p2_applied_action[:, base_start:base_end].detach().cpu().tolist()
+                                applied_arm = p2_applied_action[:, arm_start:arm_end].detach().cpu().tolist()
+                                applied_gripper = p2_applied_action[:, gripper_index].detach().cpu().tolist()
+                                trace_episode_indices = eval_episode_indices.detach().cpu().tolist()
+                                trace_step_indices = self.cur_episode_length.detach().cpu().tolist()
+                                trace_trigger = p2_trigger_mask.detach().cpu().tolist()
+                                trace_fired = p2_fired_mask.detach().cpu().tolist()
+                                trace_active = p2_active_mask.detach().cpu().tolist()
+                                trace_elapsed = p2_elapsed_steps.detach().cpu().tolist()
+                                trace_hinge = p2_runtime_state["hinge_position_rad"].detach().cpu().tolist()
+                                trace_aperture = p2_runtime_state["aperture_ready"].detach().cpu().tolist()
+                                trace_handle_contact = p2_runtime_state["handle_contact"].detach().cpu().tolist()
+                                trace_no_handle_contact = p2_runtime_state["no_handle_contact"].detach().cpu().tolist()
+                                trace_contacting = p2_runtime_state["contacting"].detach().cpu().tolist()
+                                for env_id in range(self.env.num_envs):
+                                    episode_index = int(trace_episode_indices[env_id])
+                                    p2_trace_records.append(
+                                        {
+                                            "fixture_id": p2_fixture_id,
+                                            "env_id": env_id,
+                                            "episode_index": episode_index,
+                                            "episode_id": f"{p2_fixture_id}:env{env_id}:episode{episode_index}",
+                                            "step_index": int(trace_step_indices[env_id]),
+                                            "trigger_mask": bool(trace_trigger[env_id]),
+                                            "fired_mask": bool(trace_fired[env_id]),
+                                            "active_mask": bool(trace_active[env_id]),
+                                            "elapsed_steps": int(trace_elapsed[env_id]),
+                                            "policy": {
+                                                "base": policy_base[env_id],
+                                                "arm": policy_arm[env_id],
+                                                "gripper": policy_gripper[env_id],
+                                            },
+                                            "applied": {
+                                                "base": applied_base[env_id],
+                                                "arm": applied_arm[env_id],
+                                                "gripper": applied_gripper[env_id],
+                                            },
+                                            "base_slice_equal": bool(
+                                                torch.equal(
+                                                    p2_policy_action[env_id, base_start:base_end],
+                                                    p2_applied_action[env_id, base_start:base_end],
+                                                )
+                                            ),
+                                            "hinge_position_rad": float(trace_hinge[env_id]),
+                                            "aperture_ready": bool(trace_aperture[env_id]),
+                                            "handle_contact": bool(trace_handle_contact[env_id]),
+                                            "no_handle_contact": bool(trace_no_handle_contact[env_id]),
+                                            "contacting": trace_contacting[env_id],
+                                        }
+                                    )
+                                if a2_p2_intervention["enabled"]:
+                                    p2_elapsed_steps[p2_active_mask] += 1
+                                    p2_active_mask &= p2_elapsed_steps < p2_duration_steps
 
                         if isinstance(env_config, Mapping) and env_config.get(
                             "a2_pull_v5_probe_enabled", False
@@ -5063,6 +5441,21 @@ class TRLPPOTrainer(PPOTrainer):
 
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
 
+                    if (
+                        isinstance(capture_env_config, Mapping)
+                        and capture_env_config.get("a2_pull_v5_bank_capture_path")
+                        and capture_env_config.get("a2_pull_v5_bank_capture_provenance")
+                        != "bank_constructed"
+                    ):
+                        update_capture_window = getattr(
+                            self.env, "update_a2_pull_v5_capture_window", None
+                        )
+                        if update_capture_window is None:
+                            raise RuntimeError(
+                                "Natural Source-A capture requires the capture-window environment hook."
+                            )
+                        update_capture_window()
+
                     for obs_key in obs_dict.keys():
                         obs_dict[obs_key] = obs_dict[obs_key].to(device)
 
@@ -5129,6 +5522,12 @@ class TRLPPOTrainer(PPOTrainer):
                         self.cur_reward_sum[new_ids] = 0
                         self.cur_episode_length[new_ids] = 0
                         eval_episode_indices[new_ids.flatten()] += 1
+                        if p2_fired_mask is not None:
+                            reset_ids = new_ids.flatten()
+                            p2_trigger_mask[reset_ids] = False
+                            p2_fired_mask[reset_ids] = False
+                            p2_active_mask[reset_ids] = False
+                            p2_elapsed_steps[reset_ids] = 0
 
                         # Reset environment episode tracking
                         self.env.reset_eval_episode_tracking(new_ids)
@@ -5165,6 +5564,33 @@ class TRLPPOTrainer(PPOTrainer):
         import os
 
         eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
+        if a2_p2_intervention["trace_path"] is not None:
+            p2_trace_path = Path(a2_p2_intervention["trace_path"]).expanduser()
+            if not p2_trace_path.is_absolute():
+                p2_trace_path = Path.cwd() / p2_trace_path
+            if p2_trace_path.exists():
+                raise RuntimeError(
+                    f"P2 evaluator intervention trace already exists; refusing overwrite: {p2_trace_path}"
+                )
+            p2_trace_path.parent.mkdir(parents=True, exist_ok=True)
+            p2_trace_payload = {
+                "schema": "a2_piper_pull_p2_intervention_trace_v1",
+                "fixture_id": p2_fixture_id,
+                "enabled": a2_p2_intervention["enabled"],
+                "duration_s": a2_p2_intervention["duration_s"],
+                "hinge_threshold_rad": a2_p2_intervention["hinge_threshold_rad"],
+                "duration_steps": p2_duration_steps,
+                "plan_id": (
+                    getattr(self.env, "config", {}).get("a2_v20_R1_plan_id")
+                    if isinstance(getattr(self.env, "config", None), Mapping)
+                    else None
+                ),
+                "rows": p2_trace_records,
+            }
+            with p2_trace_path.open("x", encoding="utf-8") as stream:
+                json.dump(p2_trace_payload, stream, indent=2, allow_nan=False)
+                stream.write("\n")
+            logger.info(f"Saved evaluator-owned P2 intervention trace to {p2_trace_path}")
         strict_m41_telemetry = a2_eval_diagnostics["strict_m41_telemetry"]
         strict_v20_telemetry = a2_eval_diagnostics["strict_v20_telemetry"]
         strict_stage2_trace_records = None
@@ -5359,6 +5785,12 @@ class TRLPPOTrainer(PPOTrainer):
                 "forced_gripper_close_stages": list(forced_close_stage_ids),
                 "forced_gripper_close_applied_counts": forced_close_applied_counts,
                 "p2_posture_axis": a2_eval_diagnostics["p2_posture_axis"],
+                "p2_intervention": {
+                    "enabled": a2_p2_intervention["enabled"],
+                    "duration_s": a2_p2_intervention["duration_s"],
+                    "hinge_threshold_rad": a2_p2_intervention["hinge_threshold_rad"],
+                    "trace_path": a2_p2_intervention["trace_path"],
+                },
                 "m41_strict_telemetry": a2_eval_diagnostics["strict_m41_telemetry"],
                 "v20_strict_telemetry": a2_eval_diagnostics["strict_v20_telemetry"],
                 "canonical_high_level_action_layout": get_action_layout(),
@@ -5477,6 +5909,8 @@ class TRLPPOTrainer(PPOTrainer):
                 provenance=env_config["a2_pull_v5_bank_capture_provenance"],
                 settle_valid=env_config["a2_pull_v5_bank_capture_settle_valid"],
                 settle_steps=env_config["a2_pull_v5_bank_capture_settle_steps"],
+                capture_tier=env_config["a2_pull_v5_bank_capture_tier"],
+                source_row=env_config["a2_pull_v5_bank_capture_source_row"],
             )
             self._a2_pull_v5_bank_capture_exported = True
         census_output_path = env_config.get("a2_pull_v5_census_output_path") if isinstance(env_config, Mapping) else None

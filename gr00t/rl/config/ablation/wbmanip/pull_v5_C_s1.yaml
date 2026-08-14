@@ -34,10 +34,12 @@ env:
     a2_v20_R1_plan_id: a2_piper_pull_v5_bridge_occupancy_and_release_persistence
     a2_pull_v5_stage4_bank_injection_enabled: true
     a2_pull_v5_stage4_bank_injection_ratio: 0.9
+    a2_pull_v5_reset_source: natural
     a2_pull_v5_release_streak_steps: 25
     a2_pull_v5_intervention_enabled: false
     a2_pull_v5_snapshot_freeze_enabled: true
     a2_pull_v5_reset_source_telemetry_enabled: true
     a2_pull_v5_state_bank_min_samples: 64
+    a2_pull_v5_state_bank_allow_g8_pure_a: false
     a2_pull_v5_state_bank_path: logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt
     a2_pull_v5_load_receipt_path: logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_C_s1.json

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict dual-source Pull-v5 terminal-record analyzer.
+"""Strict dual-source Pull-v5.1 terminal-record analyzer.
 
 Only explicit terminal episode collections are accepted.  Step traces, control
 records, and recursively discovered nested mappings are intentionally rejected
@@ -18,10 +18,8 @@ from typing import Any, Iterable, Mapping
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "logs_eval/a2_piper_pull_v5"
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_ANALYSIS.json"
-TERMINAL_FILENAMES = frozenset(
-    {"terminal_diagnostics.json", "episode_records.json", "metrics_eval.json", "PULL_V5_TERMINAL.json"}
-)
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_1_ANALYSIS.json"
+TERMINAL_FILENAME = "terminal_records.json"
 INVARIANTS = (
     "fake_e4",
     "stage4_snapshot_below_hinge_gate",
@@ -36,28 +34,32 @@ INVARIANTS = (
 )
 
 
-def _json_documents(input_root: Path) -> Iterable[tuple[Path, Any]]:
-    if not input_root.is_dir():
-        raise FileNotFoundError(input_root)
-    for path in sorted(input_root.rglob("*.json")):
-        if path.name not in TERMINAL_FILENAMES:
-            continue
+def _json_documents(input_roots: Iterable[Path]) -> Iterable[tuple[Path, Any]]:
+    """Read only explicitly supplied v5.1 cell roots; never recurse a log tree."""
+
+    for root in input_roots:
+        root = root.resolve()
+        if root.is_file():
+            if root.name != TERMINAL_FILENAME:
+                raise ValueError(f"an explicit analyzer file must be named {TERMINAL_FILENAME}: {root}")
+            path = root
+        elif root.is_dir():
+            if not root.name.startswith("pull_v5_1_"):
+                raise ValueError(f"analyzer cell root must be an explicit pull_v5_1_* directory: {root}")
+            path = root / TERMINAL_FILENAME
+            if not path.is_file():
+                raise FileNotFoundError(path)
+        else:
+            raise FileNotFoundError(root)
         yield path, json.loads(path.read_text(encoding="utf-8"))
 
 
 def _terminal_rows(path: Path, document: Any) -> list[dict[str, Any]]:
     """Extract one explicit terminal collection from a known terminal file."""
 
-    candidates: Any = None
-    if isinstance(document, list):
-        candidates = document
-    elif isinstance(document, Mapping):
-        for key in ("terminal_episode_records", "episode_terminal_diagnostics", "episode_records", "records"):
-            if key in document:
-                candidates = document[key]
-                break
-        if candidates is None and path.name in {"terminal_diagnostics.json", "episode_records.json", "PULL_V5_TERMINAL.json"}:
-            candidates = [document]
+    candidates: Any = document if isinstance(document, list) else (
+        document.get("records") if isinstance(document, Mapping) else None
+    )
     if not isinstance(candidates, list) or not candidates:
         raise ValueError(f"{path} must contain a non-empty explicit terminal episode collection")
     rows: list[dict[str, Any]] = []
@@ -97,34 +99,14 @@ def _required_finite(row: Mapping[str, Any], key: str) -> float:
     return float(value)
 
 
-def _episode_value(row: Mapping[str, Any], *keys: str) -> Any:
-    for key in keys:
-        if key in row:
-            return row[key]
-    episode = row.get("pull_v0_episode")
-    if isinstance(episode, Mapping):
-        for key in keys:
-            if key in episode:
-                return episode[key]
-    return None
-
-
-def _event_bool(row: Mapping[str, Any], name: str, aliases: tuple[str, ...] = ()) -> bool:
-    event = row.get("event_reached")
-    if isinstance(event, Mapping) and name in event:
-        value = event[name]
-    else:
-        value = _episode_value(row, name, *aliases)
-    if not isinstance(value, bool):
-        raise ValueError(f"terminal row is missing bool event field {name!r}")
-    return value
-
-
 def _source(row: Mapping[str, Any]) -> str:
-    pull_v5 = row.get("pull_v5")
-    value = pull_v5.get("reset_source") if isinstance(pull_v5, Mapping) else row.get("reset_source")
-    if value not in {"natural", "canonical_bank"}:
-        raise ValueError(f"terminal row reset_source must be natural or canonical_bank; got {value!r}")
+    value = row.get("reset_source")
+    if value is None and isinstance(row.get("pull_v5"), Mapping):
+        value = row["pull_v5"].get("reset_source")
+    if value != "natural" and (not isinstance(value, str) or value not in {
+        "bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"
+    }):
+        raise ValueError(f"terminal row reset_source must be natural or bank_*; got {value!r}")
     return str(value)
 
 
@@ -144,32 +126,52 @@ def _invariant_values(row: Mapping[str, Any]) -> dict[str, bool]:
 
 
 def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
+    if row.get("schema") != "a2_piper_pull_v5_1_terminal_record_v1":
+        raise ValueError("terminal row schema must be a normalized Pull-v5.1 terminal record")
     run_id = _required_string(row, "run_id")
     cell = _required_string(row, "cell")
     checkpoint = _required_string(row, "checkpoint")
     episode_id = row.get("episode_id")
     if isinstance(episode_id, bool) or not isinstance(episode_id, int) or episode_id < 0:
         raise ValueError("terminal row episode_id must be a non-negative integer")
-    source = _source(row)
+    source_provenance = _source(row)
+    source = "canonical_bank" if source_provenance.startswith("bank_") else "natural"
+    declared_source = row.get("source")
+    if declared_source not in {"canonical_bank", "natural"} or declared_source != source:
+        raise ValueError(
+            f"terminal row source must explicitly match reset_source-derived source {source!r}; "
+            f"got {declared_source!r}"
+        )
     dv_source = row.get("dv_source")
     if dv_source not in {"natural", "canonical_bank"}:
         raise ValueError("terminal row dv_source must be natural or canonical_bank")
     frame_passage = _required_bool(row, "frame_passage")
     persistent_release = _required_bool(row, "persistent_release")
     complete = _required_bool(row, "complete")
-    e6 = _event_bool(row, "E6_PATH_REVERSAL_ENTRY", ("e6", "path_reversal"))
-    e7 = _event_bool(row, "E7_WHOLE_BODY_CLEAR", ("e7", "whole_body_clear"))
+    e6 = row.get("E6_PATH_REVERSAL_ENTRY")
+    e7 = row.get("E7_WHOLE_BODY_CLEAR")
+    if not isinstance(e6, bool) or not isinstance(e7, bool):
+        raise ValueError("terminal row requires bool E6_PATH_REVERSAL_ENTRY/E7_WHOLE_BODY_CLEAR")
     settle_valid = _required_bool(row, "settle_valid")
+    bank_settle_valid = row.get("bank_settle_valid")
+    if source == "canonical_bank":
+        if bank_settle_valid is not True:
+            raise ValueError("canonical terminal row requires bank_settle_valid=true")
+    elif bank_settle_valid is not None:
+        raise ValueError("natural terminal row must not carry bank_settle_valid")
     force = _required_finite(row, "hinge_drive_max_force_nm")
     invariants = _invariant_values(row)
-    invariants["canonical_not_counted_as_natural_start"] = source == "canonical_bank" and dv_source == "natural"
-    invariants["failed_settle_not_in_bank"] = source == "canonical_bank" and not settle_valid
+    if source == "canonical_bank" and dv_source == "natural":
+        raise ValueError("canonical source row cannot use natural dv_source")
+    if source == "natural" and dv_source != "natural":
+        raise ValueError("natural source row cannot use canonical dv_source")
     return {
         "run_id": run_id,
         "cell": cell,
         "checkpoint": checkpoint,
         "episode_id": episode_id,
         "source": source,
+        "source_provenance": source_provenance,
         "dv_source": dv_source,
         "frame_passage": frame_passage,
         "persistent_release": persistent_release,
@@ -177,6 +179,7 @@ def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
         "e6": e6,
         "e7": e7,
         "settle_valid": settle_valid,
+        "bank_settle_valid": bank_settle_valid,
         "hinge_drive_max_force_nm": force,
         "invariants": invariants,
     }
@@ -192,9 +195,14 @@ def _bucket(force: float) -> str:
     return "outside"
 
 
-def analyze(input_root: Path) -> dict[str, Any]:
+def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
+    if isinstance(input_roots, (str, Path)):
+        input_roots = [Path(input_roots)]
     raw_rows: list[dict[str, Any]] = []
-    for path, document in _json_documents(input_root):
+    roots = [Path(root).resolve() for root in input_roots]
+    if not roots:
+        raise ValueError("analyzer requires at least one explicit v5.1 cell root")
+    for path, document in _json_documents(roots):
         raw_rows.extend(_terminal_rows(path, document))
     if not raw_rows:
         raise ValueError("no explicit terminal episode records found")
@@ -236,12 +244,15 @@ def analyze(input_root: Path) -> dict[str, Any]:
         }
     status = "PASS" if not any(violations.values()) else "FAIL"
     return {
-        "schema": "a2_piper_pull_v5_analysis_v2",
+        "schema": "a2_piper_pull_v5_1_analysis_v3",
         "status": status,
-        "input_root": str(input_root),
+        "input_roots": [str(root) for root in roots],
         "episode_count": len(rows),
         "cell_checkpoint_counts": {f"{cell}|{checkpoint}": dict(counts) for (cell, checkpoint), counts in groups.items()},
-        "sources": {source: summarize(source) for source in ("canonical_bank", "natural")},
+        "sources": {
+            "canonical": summarize("canonical_bank"),
+            "natural": summarize("natural"),
+        },
         "closer_buckets": dict(closer),
         "invariants": {name: {"status": "FAIL" if count else "PASS", "violations": count} for name, count in violations.items()},
     }
@@ -249,10 +260,14 @@ def analyze(input_root: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input-root", type=Path, default=DEFAULT_INPUT)
+    parser.add_argument("--input-root", type=Path)
+    parser.add_argument("--cell-root", type=Path, action="append", dest="cell_roots")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args()
-    report = analyze(args.input_root.resolve())
+    roots = args.cell_roots or ([args.input_root] if args.input_root is not None else None)
+    if roots is None:
+        raise SystemExit("analyzer requires --cell-root at least once")
+    report = analyze(roots)
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

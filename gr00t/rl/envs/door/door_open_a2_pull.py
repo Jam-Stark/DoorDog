@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import json
 from collections.abc import Mapping
+from collections import Counter
 from pathlib import Path
 
 import torch
@@ -44,6 +45,10 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V3_PLAN_ID,
     A2_PULL_V4_PLAN_ID,
     A2_PULL_V5_PLAN_ID,
+    A2_PULL_V5_CLOSER_BUCKETS,
+    A2_PULL_V5_RESET_SOURCES,
+    A2_PULL_V5_STATE_BANK_SCHEMA,
+    A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA,
     A2_PULL_V5_RELEASE_STREAK_STEPS,
 )
 from gr00t.rl.envs.door.door_open_a2_base import (
@@ -71,6 +76,8 @@ class DoorOpenA2Pull(DoorPregrasp):
     # envelope is approximately 0.398 m;
     # use the source-grounded 0.40 m circular footprint for report-only clearance.
     _A2_PULL_TRUNK_FOOTPRINT_RADIUS_M = 0.40
+    _A2_PULL_V5_PROBE_WAYPOINT_TOLERANCE_M = 0.20
+    _A2_PULL_V5_PROBE_YAW_TOLERANCE_RAD = 0.25
 
     def __init__(self, config, device):
         config_mapping = config.get("config", config)
@@ -383,9 +390,50 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_solvable = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            self._a2_pull_v5_probe_anchor_initialized = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_waypoint_target_xy = torch.full(
+                (self.num_envs, 2), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_probe_yaw_target = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_probe_waypoint_error_m = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_probe_yaw_error_rad = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_probe_waypoint_arrived = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_yaw_arrived = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_anchor_pass = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_capture_e5_seen = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_capture_pending = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_capture_recorded = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_capture_target_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_source_b_capture_frozen = False
             self._a2_pull_v5_reset_source = ["natural" for _ in range(self.num_envs)]
             self._a2_pull_v5_pending_reset_source = ["natural" for _ in range(self.num_envs)]
             self._a2_pull_v5_bank_slot_sources: list[str] = []
+            self._a2_pull_v5_bank_slot_indices: list[int] = []
+            self._a2_pull_v5_bank_metadata: dict[str, object] = {}
+            self._a2_pull_v5_bank_eval_indices: list[int] = []
+            self._a2_pull_v5_bank_cursor = 0
             self._a2_pull_v5_bank_loaded = False
 
     @override
@@ -403,7 +451,13 @@ class DoorOpenA2Pull(DoorPregrasp):
             )
         if self._is_a2_pull_v5():
             self._register_a2_pull_v5_staged_reset_buffers()
-            self._load_a2_pull_v5_state_bank()
+            injection_enabled = self.config["a2_pull_v5_stage4_bank_injection_enabled"]
+            if not isinstance(injection_enabled, bool):
+                raise RuntimeError("Pull-v5 stage4 bank injection must be an explicit bool.")
+            if injection_enabled:
+                self._load_a2_pull_v5_state_bank()
+            elif self.config.get("a2_pull_v5_reset_source", "natural") != "natural":
+                self._load_a2_pull_v5_eval_state_bank()
 
     def _register_a2_pull_v5_staged_reset_buffers(self) -> None:
         """Track every pull telemetry tensor restored with a Stage-4 bank state."""
@@ -595,20 +649,96 @@ class DoorOpenA2Pull(DoorPregrasp):
             or not torch.all(torch.isfinite(robot_root_quat))
         ):
             raise RuntimeError("Pull-v5 probe requires finite robot root quaternions with shape (N,4).")
+        lattice_scale = self.config.get("a2_pull_v5_lattice_scale", 1.0)
+        if (
+            isinstance(lattice_scale, bool)
+            or not isinstance(lattice_scale, (int, float))
+            or not math.isfinite(float(lattice_scale))
+            or float(lattice_scale) <= 0.0
+        ):
+            raise RuntimeError("Pull-v5 probe lattice scale must be a finite positive number.")
+        lattice_scale = float(lattice_scale)
         command_xy = torch.tensor(
             command_library[command_name][:2], device=self.device, dtype=policy_action.dtype
-        ).expand(self.num_envs, 2)
+        ).expand(self.num_envs, 2) * lattice_scale
+        command_yaw = torch.full(
+            (self.num_envs,),
+            float(command_library[command_name][2]) * lattice_scale,
+            device=self.device,
+            dtype=policy_action.dtype,
+        )
+        robot = self.simulator.scene.articulations["robot"]
+        if fixture == "anchor":
+            uninitialized = ~self._a2_pull_v5_probe_anchor_initialized
+            if torch.any(uninitialized):
+                env_ids = torch.where(uninitialized)[0]
+                anchor_root = robot.data.default_root_state[env_ids].clone()
+                anchor_root[:, :3] += self.env_origins[env_ids]
+                anchor_root[:, 0] = self.env_origins[env_ids, 0] + (
+                    float(self._pull_direction.approach_side_x) * 1.0
+                )
+                anchor_root[:, 1] = self.env_origins[env_ids, 1]
+                anchor_root[:, 7:13] = 0.0
+                robot.write_root_state_to_sim(anchor_root, env_ids)
+                anchor_dof_pos = self.default_dof_pos.to(self.device).expand(len(env_ids), -1).clone()
+                anchor_dof_pos[:, self._upper_non_gripper_dof_idx] = self._get_a2_arm_default_dof_pos(
+                    env_ids
+                )
+                anchor_dof_pos[:, self._a2_gripper_dof_indices] = self._a2_gripper_open_target
+                robot.write_joint_state_to_sim(
+                    anchor_dof_pos,
+                    torch.zeros_like(anchor_dof_pos),
+                    env_ids=env_ids,
+                )
+                robot.reset(env_ids)
+                self._refresh_sim_tensors()
+                _, _, anchor_root_yaw = euler_xyz_from_quat(anchor_root[:, 3:7])
+                self._a2_pull_v5_probe_waypoint_target_xy[env_ids] = (
+                    anchor_root[:, :2] + command_xy[env_ids]
+                )
+                self._a2_pull_v5_probe_yaw_target[env_ids] = (
+                    anchor_root_yaw + command_yaw[env_ids]
+                )
+                self._a2_pull_v5_probe_anchor_initialized[env_ids] = True
+        root_pos = self.simulator.scene.articulations["robot"].data.root_pos_w
+        root_quat_w = self.simulator.scene.articulations["robot"].data.root_quat_w
+        _, _, root_yaw = euler_xyz_from_quat(root_quat_w)
+        initialize_target = torch.isnan(self._a2_pull_v5_probe_yaw_target)
+        self._a2_pull_v5_probe_waypoint_target_xy[initialize_target] = (
+            root_pos[initialize_target, :2] + command_xy[initialize_target]
+        )
+        self._a2_pull_v5_probe_yaw_target[initialize_target] = (
+            root_yaw[initialize_target] + command_yaw[initialize_target]
+        )
+        waypoint_error = self._a2_pull_v5_probe_waypoint_target_xy - root_pos[:, :2]
+        waypoint_error_m = torch.linalg.norm(waypoint_error, dim=-1)
+        yaw_error = wrap_to_pi(self._a2_pull_v5_probe_yaw_target - root_yaw)
         _residual, solvable, _body_velocity, raw_base = a2_hold_base_relief_command(
-            command_xy,
+            waypoint_error,
             robot_root_quat,
             torch.ones(self.num_envs, dtype=torch.bool, device=self.device),
             physical_speed_mps=0.30,
             base_command_scale=self._a2_base_command_scale,
             min_solvable_horizontal_error_m=1.0e-3,
         )
+        yaw_command = -torch.sign(yaw_error) * torch.minimum(
+            torch.abs(yaw_error), torch.abs(command_yaw)
+        )
+        solvable |= torch.abs(yaw_error) >= 1.0e-3
         applied = policy_action.clone()
         applied[:, :5] = raw_base
-        applied[:, 2] = float(command_library[command_name][2]) / float(self._a2_base_command_scale)
+        applied[:, 2] = yaw_command / float(self._a2_base_command_scale)
+        waypoint_arrived = waypoint_error_m <= self._A2_PULL_V5_PROBE_WAYPOINT_TOLERANCE_M
+        yaw_arrived = torch.abs(yaw_error) <= self._A2_PULL_V5_PROBE_YAW_TOLERANCE_RAD
+        self._a2_pull_v5_probe_waypoint_error_m[:] = waypoint_error_m
+        self._a2_pull_v5_probe_yaw_error_rad[:] = torch.abs(yaw_error)
+        self._a2_pull_v5_probe_waypoint_arrived |= waypoint_arrived
+        self._a2_pull_v5_probe_yaw_arrived |= yaw_arrived
+        if fixture == "anchor":
+            self._a2_pull_v5_probe_anchor_pass |= (
+                self._a2_pull_v5_probe_waypoint_arrived
+                & self._a2_pull_v5_probe_yaw_arrived
+            )
         self._a2_pull_v5_probe_solvable |= solvable
         return applied, solvable
 
@@ -623,24 +753,110 @@ class DoorOpenA2Pull(DoorPregrasp):
         return path
 
     def _load_a2_pull_v5_state_bank(self) -> None:
-        capture_only = self.config.get("a2_pull_v5_bank_capture_only", False)
-        if not isinstance(capture_only, bool):
-            raise RuntimeError("Pull-v5 bank capture-only selector must be bool.")
-        if capture_only:
-            # Source producers run the same v5 staged writers but intentionally
-            # omit bank injection; the builder consumes their snapshots.
-            return
         enabled = self.config["a2_pull_v5_stage4_bank_injection_enabled"]
-        if enabled is not True:
-            raise RuntimeError("Pull-v5 runtime requires stage4 bank injection enabled for training configs.")
+        if not isinstance(enabled, bool):
+            raise RuntimeError("Pull-v5 stage4 bank injection must be an explicit bool.")
+        if enabled is False:
+            return
+        self._load_a2_pull_v5_bank_payload(eval_mode=False)
+
+    def _load_a2_pull_v5_eval_state_bank(self) -> None:
+        """Load canonical evaluation rows without enabling training injection."""
+
+        enabled = self.config["a2_pull_v5_stage4_bank_injection_enabled"]
+        if enabled is not False:
+            raise RuntimeError("Canonical evaluation bank provider requires injection=false.")
+        reset_source = self.config.get("a2_pull_v5_reset_source")
+        if reset_source not in {"bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"}:
+            raise RuntimeError(
+                "Canonical evaluation requires reset_source bank_natural_e5, "
+                f"bank_natural_e5_plus, or bank_constructed; got {reset_source!r}."
+            )
+        self._load_a2_pull_v5_bank_payload(eval_mode=True)
+
+    @staticmethod
+    def _pull_v5_metadata_sequence(payload: Mapping[str, object], key: str, count: int) -> list[object]:
+        value = payload.get(key)
+        if not isinstance(value, (list, tuple)) or len(value) != count:
+            raise RuntimeError(f"Pull-v5 state bank metadata {key!r} must have one entry per row.")
+        return list(value)
+
+    def _select_a2_pull_v5_eval_bank_indices(
+        self,
+        provenance: list[str],
+        closer_buckets: list[str],
+    ) -> list[int]:
+        requested_bucket = self.config.get("a2_pull_v5_eval_closer_bucket", "all")
+        if requested_bucket != "all" and requested_bucket not in A2_PULL_V5_CLOSER_BUCKETS:
+            raise RuntimeError(
+                "Pull-v5 eval closer bucket must be 'all' or one of "
+                f"{A2_PULL_V5_CLOSER_BUCKETS!r}; got {requested_bucket!r}."
+            )
+        count = self.config.get("a2_pull_v5_eval_state_count", 16)
+        if isinstance(count, bool) or not isinstance(count, int) or count != 16:
+            raise RuntimeError("Pull-v5 canonical evaluation requires exactly 16 bank rows.")
+        candidates = [
+            index
+            for index, bucket in enumerate(closer_buckets)
+            if requested_bucket == "all" or bucket == requested_bucket
+        ]
+        if len(candidates) < count:
+            raise RuntimeError(
+                f"Pull-v5 canonical evaluation requires 16 rows for bucket {requested_bucket!r}; "
+                f"got {len(candidates)}."
+            )
+        by_group: dict[tuple[str, str], list[int]] = {}
+        for index in candidates:
+            by_group.setdefault((provenance[index], closer_buckets[index]), []).append(index)
+        selected: list[int] = []
+        group_order = tuple(sorted(by_group))
+        while len(selected) < count:
+            progressed = False
+            for group in group_order:
+                rows = by_group[group]
+                if rows:
+                    selected.append(rows.pop(0))
+                    progressed = True
+                    if len(selected) == count:
+                        break
+            if not progressed:
+                raise RuntimeError("Pull-v5 canonical evaluation bank selection exhausted rows.")
+        return selected
+
+    @staticmethod
+    def _select_a2_pull_v5_training_bank_indices(
+        provenance: list[str], closer_buckets: list[str], count: int
+    ) -> list[int]:
+        if count <= 0:
+            raise RuntimeError("Pull-v5 training bank selection requires a positive count.")
+        groups: dict[tuple[str, str], list[int]] = {}
+        for index, key in enumerate(zip(provenance, closer_buckets)):
+            groups.setdefault(key, []).append(index)
+        selected: list[int] = []
+        for rows in groups.values():
+            rows.sort()
+        while len(selected) < count:
+            progressed = False
+            for key in sorted(groups):
+                rows = groups[key]
+                if rows:
+                    selected.append(rows.pop(0))
+                    progressed = True
+                    if len(selected) == count:
+                        break
+            if not progressed:
+                raise RuntimeError("Pull-v5 training bank selection exhausted rows.")
+        return selected
+
+    def _load_a2_pull_v5_bank_payload(self, *, eval_mode: bool) -> None:
         bank_path = self._pull_v5_repo_path(
             self.config["a2_pull_v5_state_bank_path"], "state bank path"
         )
         if not bank_path.is_file():
             raise FileNotFoundError(f"Pull-v5 state bank is required before v5 construction: {bank_path}")
         payload = torch.load(bank_path, map_location=self.device, weights_only=False)
-        if not isinstance(payload, Mapping) or payload.get("schema") != "a2_piper_pull_v5_state_bank_v1":
-            raise RuntimeError("Pull-v5 state bank schema must be a2_piper_pull_v5_state_bank_v1.")
+        if not isinstance(payload, Mapping) or payload.get("schema") != A2_PULL_V5_STATE_BANK_SCHEMA:
+            raise RuntimeError(f"Pull-v5 state bank schema must be {A2_PULL_V5_STATE_BANK_SCHEMA}.")
         required = (
             "robot_root_state",
             "robot_dof_pos",
@@ -651,6 +867,13 @@ class DoorOpenA2Pull(DoorPregrasp):
             "source_env_origin",
             "provenance",
             "buffers",
+            "hinge_drive_max_force_nm",
+            "closer_bucket",
+            "capture_tier",
+            "capture_delay_steps",
+            "settle_valid",
+            "settle_steps",
+            "source_row",
         )
         missing = [name for name in required if name not in payload]
         if missing:
@@ -664,10 +887,57 @@ class DoorOpenA2Pull(DoorPregrasp):
         provenance = [str(item) for item in payload["provenance"]]
         if provenance[0] != "bank_natural_e5":
             raise RuntimeError("Pull-v5 state bank must prioritize source A bank_natural_e5 entries first.")
-        if any(item not in {"bank_natural_e5", "bank_constructed"} for item in provenance):
+        if any(item not in {"bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"} for item in provenance):
             raise RuntimeError(
-                "Pull-v5 state bank provenance must use only bank_natural_e5 or bank_constructed."
+                "Pull-v5 state bank provenance must use only bank_natural_e5, "
+                "bank_natural_e5_plus, or bank_constructed."
             )
+        force_values = self._pull_v5_metadata_sequence(payload, "hinge_drive_max_force_nm", bank_size)
+        bucket_values = [str(item) for item in self._pull_v5_metadata_sequence(payload, "closer_bucket", bank_size)]
+        capture_tiers = [str(item) for item in self._pull_v5_metadata_sequence(payload, "capture_tier", bank_size)]
+        capture_delay_steps = self._pull_v5_metadata_sequence(payload, "capture_delay_steps", bank_size)
+        settle_valid = self._pull_v5_metadata_sequence(payload, "settle_valid", bank_size)
+        settle_steps = self._pull_v5_metadata_sequence(payload, "settle_steps", bank_size)
+        source_rows = self._pull_v5_metadata_sequence(payload, "source_row", bank_size)
+        if any(bucket not in A2_PULL_V5_CLOSER_BUCKETS for bucket in bucket_values):
+            raise RuntimeError("Pull-v5 state bank closer_bucket metadata contains an unsupported bucket.")
+        if any(tier not in {"e5", "e5_plus_2s", "e5_plus_4s", "constructed"} for tier in capture_tiers):
+            raise RuntimeError("Pull-v5 state bank capture_tier metadata contains an unsupported tier.")
+        for index, (source, tier) in enumerate(zip(provenance, capture_tiers)):
+            expected_tiers = {
+                "bank_natural_e5": {"e5"},
+                "bank_natural_e5_plus": {"e5_plus_2s", "e5_plus_4s"},
+                "bank_constructed": {"constructed"},
+            }[source]
+            if tier not in expected_tiers:
+                raise RuntimeError(
+                    f"Pull-v5 bank row {index} capture tier {tier!r} contradicts provenance {source!r}."
+                )
+        for index, (force, valid, steps, capture_delay, source_row) in enumerate(
+            zip(force_values, settle_valid, settle_steps, capture_delay_steps, source_rows)
+        ):
+            if isinstance(force, bool) or not isinstance(force, (int, float)) or not math.isfinite(float(force)):
+                raise RuntimeError(f"Pull-v5 bank closer force row {index} must be finite numeric.")
+            if not isinstance(valid, bool) or not valid:
+                raise RuntimeError(f"Pull-v5 bank row {index} is not settle-valid.")
+            if isinstance(steps, bool) or not isinstance(steps, int) or steps < 50:
+                raise RuntimeError(f"Pull-v5 bank settle_steps row {index} must be >=50.")
+            if isinstance(capture_delay, bool) or not isinstance(capture_delay, int) or capture_delay < 0:
+                raise RuntimeError(
+                    f"Pull-v5 bank capture_delay_steps row {index} must be a non-negative integer."
+                )
+            if isinstance(source_row, bool) or not isinstance(source_row, int) or source_row < 0:
+                raise RuntimeError(f"Pull-v5 bank source_row {index} must be a non-negative integer.")
+        counts = Counter(provenance)
+        allow_g8_pure_a = self.config["a2_pull_v5_state_bank_allow_g8_pure_a"]
+        if not isinstance(allow_g8_pure_a, bool):
+            raise RuntimeError("Pull-v5 G8 pure-Source-A allowance must be an explicit bool.")
+        if counts["bank_natural_e5_plus"] < 8 and not allow_g8_pure_a:
+            raise RuntimeError("Pull-v5 state bank does not satisfy G13 natural_e5_plus count.")
+        if counts["bank_constructed"] < 16 and not allow_g8_pure_a:
+            raise RuntimeError("Pull-v5 state bank does not satisfy G13 provenance counts.")
+        if set(bucket_values) != set(A2_PULL_V5_CLOSER_BUCKETS):
+            raise RuntimeError("Pull-v5 state bank must populate all closer buckets.")
         source_origin = payload["source_env_origin"]
         if (
             not torch.is_tensor(source_origin)
@@ -720,8 +990,27 @@ class DoorOpenA2Pull(DoorPregrasp):
                     f"got {getattr(value, 'shape', None)}/{getattr(value, 'dtype', None)}."
                 )
             tensors[f"buffer:{name}"] = value
+        if eval_mode:
+            selected_indices = self._select_a2_pull_v5_eval_bank_indices(provenance, bucket_values)
+        else:
+            selected_indices = self._select_a2_pull_v5_training_bank_indices(
+                provenance,
+                bucket_values,
+                min(int(self.staged_reset_max_samples_per_stage), bank_size),
+            )
         self._a2_pull_v5_bank = {**tensors, "source_env_origin": source_origin}
-        self._a2_pull_v5_bank_slot_sources = provenance
+        self._a2_pull_v5_bank_metadata = {
+            "hinge_drive_max_force_nm": [float(value) for value in force_values],
+            "closer_bucket": bucket_values,
+            "capture_tier": capture_tiers,
+            "capture_delay_steps": [int(value) for value in capture_delay_steps],
+            "settle_valid": settle_valid,
+            "settle_steps": settle_steps,
+            "source_row": source_rows,
+        }
+        self._a2_pull_v5_bank_slot_indices = selected_indices
+        self._a2_pull_v5_bank_slot_sources = [provenance[index] for index in selected_indices]
+        self._a2_pull_v5_bank_eval_indices = selected_indices if eval_mode else []
         self._inject_a2_pull_v5_stage4_bank()
         self._a2_pull_v5_bank_loaded = True
 
@@ -730,31 +1019,51 @@ class DoorOpenA2Pull(DoorPregrasp):
         if bank is None:
             raise RuntimeError("Pull-v5 stage4 bank injection requires a loaded state bank.")
         capacity = int(self.staged_reset_max_samples_per_stage)
-        bank_size = len(self._a2_pull_v5_bank_slot_sources)
-        count = min(capacity, bank_size)
-        if count < int(self.config["a2_pull_v5_state_bank_min_samples"]):
-            raise RuntimeError("Pull-v5 staged-reset capacity is smaller than the required bank minimum.")
+        bank_size = len(self._a2_pull_v5_bank_slot_indices)
+        eval_selected_count = len(self._a2_pull_v5_bank_eval_indices)
+        if eval_selected_count:
+            if eval_selected_count != 16:
+                raise RuntimeError(
+                    "Pull-v5 canonical evaluation injection requires exactly 16 selected rows; "
+                    f"got {eval_selected_count}."
+                )
+            if bank_size != eval_selected_count:
+                raise RuntimeError(
+                    "Pull-v5 canonical evaluation bank slot count must match selected rows; "
+                    f"got {bank_size} for {eval_selected_count} selected rows."
+                )
+            if capacity < eval_selected_count:
+                raise RuntimeError(
+                    "Pull-v5 canonical evaluation staged-reset capacity is smaller than the "
+                    f"selected row count: capacity={capacity}, selected={eval_selected_count}."
+                )
+            count = eval_selected_count
+        else:
+            count = min(capacity, bank_size)
+            if count < int(self.config["a2_pull_v5_state_bank_min_samples"]):
+                raise RuntimeError("Pull-v5 staged-reset capacity is smaller than the required bank minimum.")
         stage = self.STAGE_SWING
         source_origin = bank["source_env_origin"]
         for env_id in range(self.num_envs):
             target_origin = self.env_origins[env_id]
             for slot in range(count):
-                robot_root = bank["robot_root_state"][slot].clone()
-                door_root = bank["door_root_state"][slot].clone()
-                robot_root[:3] = robot_root[:3] - source_origin[slot] + target_origin
-                door_root[:3] = door_root[:3] - source_origin[slot] + target_origin
+                bank_index = self._a2_pull_v5_bank_slot_indices[slot]
+                robot_root = bank["robot_root_state"][bank_index].clone()
+                door_root = bank["door_root_state"][bank_index].clone()
+                robot_root[:3] = robot_root[:3] - source_origin[bank_index] + target_origin
+                door_root[:3] = door_root[:3] - source_origin[bank_index] + target_origin
                 robot_case = self.staged_reset_buf["robot"]
                 robot_case["root_state"][stage, slot, env_id] = robot_root
-                robot_case["dof_state"][stage, slot, env_id, :, 0] = bank["robot_dof_pos"][slot]
-                robot_case["dof_state"][stage, slot, env_id, :, 1] = bank["robot_dof_vel"][slot]
+                robot_case["dof_state"][stage, slot, env_id, :, 0] = bank["robot_dof_pos"][bank_index]
+                robot_case["dof_state"][stage, slot, env_id, :, 1] = bank["robot_dof_vel"][bank_index]
                 door_case = self.staged_reset_buf["door"]
                 door_case["root_state"][stage, slot, env_id] = door_root
-                door_case["dof_state"][stage, slot, env_id, :, 0] = bank["door_dof_pos"][slot]
-                door_case["dof_state"][stage, slot, env_id, :, 1] = bank["door_dof_vel"][slot]
+                door_case["dof_state"][stage, slot, env_id, :, 0] = bank["door_dof_pos"][bank_index]
+                door_case["dof_state"][stage, slot, env_id, :, 1] = bank["door_dof_vel"][bank_index]
                 for name, state_case in self.staged_reset_buf.items():
                     if state_case["type"] == "buffer":
-                        value = bank[f"buffer:{name}"][slot].clone()
-                        origin_delta = target_origin - source_origin[slot]
+                        value = bank[f"buffer:{name}"][bank_index].clone()
+                        origin_delta = target_origin - source_origin[bank_index]
                         if name == "a2_pull_prev_base_pos_xy":
                             if tuple(value.shape) != (2,) or not value.is_floating_point():
                                 raise RuntimeError(
@@ -776,8 +1085,12 @@ class DoorOpenA2Pull(DoorPregrasp):
         ratio = float(self.config["a2_pull_v5_stage4_bank_injection_ratio"])
         if not 0.0 <= ratio <= 1.0:
             raise RuntimeError(f"Pull-v5 Stage-4 bank ratio must be in [0,1]; got {ratio}.")
-        # v5 occupancy is exactly [1-p, 0, 0, 0, p, 0]: natural stage-0
-        # starts and canonical Stage-4 bank starts only.
+        if self.config.get("a2_pull_v5_reset_source", "natural") != "natural" and not self.config.get(
+            "a2_pull_v5_stage4_bank_injection_enabled", False
+        ):
+            ratio = 1.0
+        # Training uses [1-p, 0, 0, 0, p, 0]; canonical evaluation uses bank-only
+        # Stage-4 rows while the training injection flag remains false.
         self.staged_reset_ratios.zero_()
         self.staged_reset_ratios[0] = 1.0 - ratio
         self.staged_reset_ratios[stage] = ratio
@@ -789,6 +1102,8 @@ class DoorOpenA2Pull(DoorPregrasp):
         provenance: str,
         settle_valid: bool,
         settle_steps: int,
+        capture_tier: str | None = None,
+        source_row: int | None = None,
     ) -> dict[str, object]:
         """Export stage-4 snapshots through the existing high-level state writers.
 
@@ -798,55 +1113,116 @@ class DoorOpenA2Pull(DoorPregrasp):
         silently mixed.
         """
 
-        if provenance not in {"bank_natural_e5", "bank_constructed"}:
+        if provenance not in {"bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"}:
             raise RuntimeError(f"Pull-v5 bank export provenance is unsupported: {provenance!r}.")
         if not isinstance(settle_valid, bool) or not settle_valid:
             raise RuntimeError("Pull-v5 bank export requires an explicitly valid settle window.")
         if isinstance(settle_steps, bool) or not isinstance(settle_steps, int) or settle_steps < 50:
             raise RuntimeError("Pull-v5 bank export requires settle_steps >= 50.")
+        if capture_tier is None:
+            capture_tier = {
+                "bank_natural_e5": "e5",
+                "bank_natural_e5_plus": "e5_plus_2s",
+                "bank_constructed": "constructed",
+            }[provenance]
+        if capture_tier not in {"e5", "e5_plus_2s", "e5_plus_4s", "constructed"}:
+            raise RuntimeError(f"Pull-v5 bank capture tier is unsupported: {capture_tier!r}.")
+        if source_row is None:
+            source_row = int(self.config.get("a2_pull_v5_bank_capture_source_row", 0))
+        if isinstance(source_row, bool) or not isinstance(source_row, int) or source_row < 0:
+            raise RuntimeError("Pull-v5 bank export source_row must be a non-negative integer.")
         if not self.enable_staged_reset or self.staged_reset_num_samples is None:
             raise RuntimeError("Pull-v5 bank export requires staged reset snapshots.")
         stage = self.STAGE_SWING
         counts = self.staged_reset_num_samples[stage]
-        count = int(counts.min().item())
-        if count <= 0:
+        if torch.any(counts < 0) or torch.any(counts > self.staged_reset_max_samples_per_stage):
+            raise RuntimeError("Pull-v5 bank export encountered invalid per-environment snapshot counts.")
+        valid_env_ids = torch.where(counts > 0)[0]
+        if len(valid_env_ids) == 0:
             raise RuntimeError("Pull-v5 bank export has no Stage-4 snapshots after settle.")
         robot_case = self.staged_reset_buf.get("robot")
         door_case = self.staged_reset_buf.get("door")
         if not isinstance(robot_case, Mapping) or not isinstance(door_case, Mapping):
             raise RuntimeError("Pull-v5 bank export requires tracked robot and door states.")
-        robot_root = robot_case["root_state"][:]
-        door_root = door_case["root_state"][:]
-        robot_dof = robot_case["dof_state"][:]
-        door_dof = door_case["dof_state"][:]
-        rows = count * self.num_envs
+        robot_root_chunks: list[torch.Tensor] = []
+        robot_dof_pos_chunks: list[torch.Tensor] = []
+        robot_dof_vel_chunks: list[torch.Tensor] = []
+        door_root_chunks: list[torch.Tensor] = []
+        door_dof_pos_chunks: list[torch.Tensor] = []
+        door_dof_vel_chunks: list[torch.Tensor] = []
+        origin_chunks: list[torch.Tensor] = []
+        force_chunks: list[torch.Tensor] = []
+        rows = 0
+        for env_id in valid_env_ids.tolist():
+            count = int(counts[env_id].item())
+            robot_root_chunks.append(robot_case["root_state"][stage, :count, env_id])
+            robot_dof_pos_chunks.append(robot_case["dof_state"][stage, :count, env_id, :, 0])
+            robot_dof_vel_chunks.append(robot_case["dof_state"][stage, :count, env_id, :, 1])
+            door_root_chunks.append(door_case["root_state"][stage, :count, env_id])
+            door_dof_pos_chunks.append(door_case["dof_state"][stage, :count, env_id, :, 0])
+            door_dof_vel_chunks.append(door_case["dof_state"][stage, :count, env_id, :, 1])
+            origin_chunks.append(self.env_origins[env_id].expand(count, 3))
+            force_chunks.append(self.door_hinge_drive_max_force[env_id].expand(count))
+            rows += count
+        robot_root = torch.cat(robot_root_chunks, dim=0)
+        robot_dof_pos = torch.cat(robot_dof_pos_chunks, dim=0)
+        robot_dof_vel = torch.cat(robot_dof_vel_chunks, dim=0)
+        door_root = torch.cat(door_root_chunks, dim=0)
+        door_dof_pos = torch.cat(door_dof_pos_chunks, dim=0)
+        door_dof_vel = torch.cat(door_dof_vel_chunks, dim=0)
+        source_origins = torch.cat(origin_chunks, dim=0)
+        force_values = torch.cat(force_chunks, dim=0)
+        delay_seconds = {
+            "e5": 0.0,
+            "e5_plus_2s": 2.0,
+            "e5_plus_4s": 4.0,
+            "constructed": 0.0,
+        }[capture_tier]
+        capture_delay_steps = int(round(delay_seconds / float(self.dt))) if delay_seconds else 0
         payload: dict[str, object] = {
-            "schema": "a2_piper_pull_v5_state_bank_source_v1",
-            "robot_root_state": robot_root[stage, :count].permute(1, 0, 2).reshape(rows, 13).detach().cpu(),
-            "robot_dof_pos": robot_dof[stage, :count, :, :, 0].permute(1, 0, 2).reshape(rows, robot_dof.shape[3]).detach().cpu(),
-            "robot_dof_vel": robot_dof[stage, :count, :, :, 1].permute(1, 0, 2).reshape(rows, robot_dof.shape[3]).detach().cpu(),
-            "door_root_state": door_root[stage, :count].permute(1, 0, 2).reshape(rows, 13).detach().cpu(),
-            "door_dof_pos": door_dof[stage, :count, :, :, 0].permute(1, 0, 2).reshape(rows, door_dof.shape[3]).detach().cpu(),
-            "door_dof_vel": door_dof[stage, :count, :, :, 1].permute(1, 0, 2).reshape(rows, door_dof.shape[3]).detach().cpu(),
-            "source_env_origin": self.env_origins[:, None, :]
-            .expand(self.num_envs, count, 3)
-            .reshape(rows, 3)
-            .detach()
-            .cpu(),
+            "schema": A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA,
+            "robot_root_state": robot_root.detach().cpu(),
+            "robot_dof_pos": robot_dof_pos.detach().cpu(),
+            "robot_dof_vel": robot_dof_vel.detach().cpu(),
+            "door_root_state": door_root.detach().cpu(),
+            "door_dof_pos": door_dof_pos.detach().cpu(),
+            "door_dof_vel": door_dof_vel.detach().cpu(),
+            "source_env_origin": source_origins.detach().cpu(),
             "provenance": [provenance] * rows,
             "settle_valid": torch.ones(rows, dtype=torch.bool),
             "settle_steps": torch.full((rows,), settle_steps, dtype=torch.long),
+            "capture_delay_steps": torch.full((rows,), capture_delay_steps, dtype=torch.long),
+            "hinge_drive_max_force_nm": force_values.detach().cpu(),
+            "closer_bucket": [],
+            "capture_tier": [capture_tier] * rows,
+            "source_row": [source_row] * rows,
             "buffers": {},
         }
+        force_values = payload["hinge_drive_max_force_nm"]
+        if not torch.is_tensor(force_values) or tuple(force_values.shape) != (rows,):
+            raise RuntimeError("Pull-v5 bank export closer-force metadata shape mismatch.")
+        closer_buckets: list[str] = []
+        for force in force_values.tolist():
+            value = float(force)
+            if 2.5 <= value < 5.0:
+                closer_buckets.append("2.5-5")
+            elif 5.0 <= value < 9.0:
+                closer_buckets.append("5-9")
+            elif 9.0 <= value <= 12.0:
+                closer_buckets.append("9-12")
+            else:
+                raise RuntimeError(f"Pull-v5 closer force outside planned buckets: {value!r}")
+        payload["closer_bucket"] = closer_buckets
         buffers = payload["buffers"]
         assert isinstance(buffers, dict)
         for name, state_case in self.staged_reset_buf.items():
             if state_case["type"] != "buffer":
                 continue
-            data = state_case["data"][stage, :count]
-            # [samples, envs, ...] -> [envs, samples, ...] -> flat rows.
-            data = data.permute(1, 0, *range(2, data.ndim)).reshape(rows, *data.shape[2:])
-            buffers[name] = data.detach().cpu()
+            chunks = [
+                state_case["data"][stage, : int(counts[env_id].item()), env_id]
+                for env_id in valid_env_ids.tolist()
+            ]
+            buffers[name] = torch.cat(chunks, dim=0).detach().cpu()
         path = self._pull_v5_repo_path(output_path, "bank capture path")
         path.parent.mkdir(parents=True, exist_ok=True)
         if path.exists():
@@ -854,8 +1230,77 @@ class DoorOpenA2Pull(DoorPregrasp):
         torch.save(payload, path)
         return {"schema": payload["schema"], "status": "PASS", "samples": rows, "output": str(path)}
 
+    def capture_a2_pull_v5_source_snapshot(self, output_path: str) -> dict[str, object]:
+        """Capture one configured E5/holding/constructed source tier.
+
+        Source-A replay uses the same 86-buffer payload for E5, E5+2 s, and
+        E5+4 s windows; only provenance/capture metadata changes.
+        """
+
+        tier = self.config.get("a2_pull_v5_bank_capture_tier", "e5")
+        provenance = {
+            "e5": "bank_natural_e5",
+            "e5_plus_2s": "bank_natural_e5_plus",
+            "e5_plus_4s": "bank_natural_e5_plus",
+            "constructed": "bank_constructed",
+        }.get(tier)
+        if provenance is None:
+            raise RuntimeError(f"Pull-v5 bank capture tier is unsupported: {tier!r}.")
+        return self.export_a2_pull_v5_state_bank(
+            output_path,
+            provenance=provenance,
+            settle_valid=True,
+            settle_steps=int(self.config.get("a2_pull_v5_bank_capture_settle_steps", 50)),
+            capture_tier=tier,
+            source_row=int(self.config.get("a2_pull_v5_bank_capture_source_row", 0)),
+        )
+
+    def update_a2_pull_v5_capture_window(self) -> None:
+        """Capture natural Source-A rows at E5 or the configured delayed hold tier."""
+
+        if not self._is_a2_pull_v5():
+            raise RuntimeError("Pull-v5 source capture requires the v5 plan guard.")
+        if self.config.get("a2_pull_v5_bank_capture_provenance") == "bank_constructed":
+            raise RuntimeError("Natural capture-window updates cannot run for Source-B.")
+        if self.config.get("a2_pull_v5_bank_capture_only") is not True:
+            raise RuntimeError("Pull-v5 capture-window updates require capture_only=true.")
+        tier = self.config.get("a2_pull_v5_bank_capture_tier", "e5")
+        delay_seconds = {
+            "e5": 0.0,
+            "e5_plus_2s": 2.0,
+            "e5_plus_4s": 4.0,
+        }.get(tier)
+        if delay_seconds is None:
+            raise RuntimeError(f"Pull-v5 natural capture tier is unsupported: {tier!r}.")
+        dt = float(self.dt)
+        if not math.isfinite(dt) or dt <= 0.0:
+            raise RuntimeError("Pull-v5 capture-window updates require a positive finite dt.")
+        delay_steps = int(round(delay_seconds / dt)) if delay_seconds else 0
+        e5 = self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
+        new_e5 = e5 & ~self._a2_pull_v5_capture_e5_seen
+        self._a2_pull_v5_capture_e5_seen |= e5
+        self._a2_pull_v5_capture_pending[new_e5] = True
+        self._a2_pull_v5_capture_target_step[new_e5] = (
+            self.episode_length_buf[new_e5] + delay_steps
+        )
+        due = self._a2_pull_v5_capture_pending & (
+            self.episode_length_buf >= self._a2_pull_v5_capture_target_step
+        )
+        due &= ~self._a2_pull_v5_capture_recorded
+        if torch.any(due):
+            if torch.any(self.stage_buf[due] != self.STAGE_SWING):
+                raise RuntimeError("Pull-v5 Source-A capture reached its tier outside Stage-4 swing.")
+            self._take_snapshot_of_buffered_states(due)
+            self._a2_pull_v5_capture_pending[due] = False
+            self._a2_pull_v5_capture_recorded[due] = True
+
     def construct_a2_pull_v5_source_b_states(self) -> None:
-        """Capture settled Source-B Stage-4 states through the simulator API."""
+        """Capture Source-B states with direct IsaacLab articulation writers.
+
+        This route intentionally bypasses staged-reset sampling.  It writes a
+        world-frame robot/door template, settles the articulations, and only
+        then snapshots valid rows.  ``staged_reset_ratios`` is never touched.
+        """
 
         if not self._is_a2_pull_v5():
             raise RuntimeError("Source-B construction requires the v5 plan guard.")
@@ -870,32 +1315,55 @@ class DoorOpenA2Pull(DoorPregrasp):
                 "Source-B construction requires a2_pull_v5_bank_capture_settle_steps >= 50."
             )
 
+        if not self.enable_staged_reset or self.staged_reset_num_samples is None:
+            raise RuntimeError("Source-B capture requires staged reset buffers for snapshot export.")
+        if self.config.get("a2_pull_v5_bank_capture_only") is not True:
+            raise RuntimeError("Source-B capture requires bank_capture_only=true.")
         env_ids = torch.arange(self.num_envs, device=self.device, dtype=torch.long)
-        self._reset_buffers_callback(env_ids, None)
-        self._reset_tasks_callback(env_ids)
-        self._reset_past_obs_callback(env_ids)
-        self._reset_root_states(env_ids)
-        self._reset_dofs(env_ids)
-        self._reset_object_states_callback(env_ids)
-        self._post_reset_callback(env_ids)
+        robot = self.simulator.scene.articulations["robot"]
+        door = self.simulator.scene.articulations["door"]
+        robot.reset(env_ids)
+        door.reset(env_ids)
 
-        # The reset writers above populate the canonical target tensors.  Apply
-        # those targets with the existing simulator articulation writers before
-        # settling; no synthetic state is introduced on this route.
-        self.simulator.set_actor_root_state_tensor(env_ids, self.target_robot_root_states)
-        self.simulator.set_dof_state_tensor(env_ids, self.target_robot_dof_state)
-        self._refresh_sim_tensors()
+        # Build a local template, translate roots by each environment origin,
+        # and zero every velocity before the high-level writes.
+        robot_root = self.base_init_state.to(device=self.device).expand(self.num_envs, -1).clone()
+        robot_root[:, 3:7] = xyzw_to_wxyz(robot_root[:, 3:7])
+        robot_root[:, :3] += self.env_origins
+        robot_root[:, 0] = self.env_origins[:, 0] + self._pull_direction.approach_side_x * 0.9
+        robot_root[:, 1] = self.env_origins[:, 1]
+        robot_root[:, 7:13] = 0.0
+        robot.write_root_state_to_sim(robot_root, env_ids)
 
-        self.set_to_stage(
-            env_ids,
-            torch.full_like(env_ids, self.STAGE_SWING),
+        robot_dof_pos = self.default_dof_pos.to(device=self.device).expand(self.num_envs, -1).clone()
+        robot_dof_pos[:, self._upper_non_gripper_dof_idx] = self._get_a2_arm_default_dof_pos(env_ids)
+        robot_dof_pos[:, self._a2_gripper_dof_indices] = self._a2_gripper_open_target
+        robot_dof_vel = torch.zeros_like(robot_dof_pos)
+        robot.write_joint_state_to_sim(robot_dof_pos, robot_dof_vel, env_ids=env_ids)
+
+        door_root = door.data.default_root_state[env_ids].clone()
+        door_root[:, :3] += self.env_origins
+        door_root[:, 7:13] = 0.0
+        door.write_root_state_to_sim(door_root, env_ids)
+        door_joint_pos = torch.zeros(
+            (self.num_envs, door.num_joints), device=self.device, dtype=door.data.joint_pos.dtype
         )
+        door_joint_pos[:, 0] = torch.linspace(1.6, 2.1, self.num_envs, device=self.device)
+        door_joint_vel = torch.zeros_like(door_joint_pos)
+        door.write_joint_state_to_sim(door_joint_pos, door_joint_vel, env_ids=env_ids)
+        robot.reset(env_ids)
+        door.reset(env_ids)
+        self._refresh_sim_tensors()
+        self._reset_buffers_callback(env_ids, None)
+        self.set_to_stage(env_ids, torch.full_like(env_ids, self.STAGE_SWING))
+        self.staged_reset_num_samples[self.STAGE_SWING, :] = 0
         self.reset_buf[:] = 0
         self.need_to_refresh_envs[env_ids] = False
 
         gravity_x_limit = float(self.config.termination_scales.termination_gravity_x)
         gravity_y_limit = float(self.config.termination_scales.termination_gravity_y)
         minimum_base_height = float(self.config.termination_scales.termination_min_base_height)
+        settle_valid_mask = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
         for _ in range(settle_steps):
             hold_action = self._action_backmap()
             expected_action_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
@@ -940,29 +1408,54 @@ class DoorOpenA2Pull(DoorPregrasp):
             root_ang_speed = torch.linalg.norm(root_state[:, 10:13], dim=-1)
             gravity = self.projected_gravity
             unstable = (
-                not finite_state
-                or torch.any(root_height < minimum_base_height)
-                or torch.any(torch.abs(gravity[:, 0]) > gravity_x_limit)
-                or torch.any(torch.abs(gravity[:, 1]) > gravity_y_limit)
-                or torch.any(root_speed > 1.0)
-                or torch.any(root_ang_speed > 1.0)
-                or torch.any(self.reset_buf != 0)
+                torch.full((self.num_envs,), not finite_state, dtype=torch.bool, device=self.device)
+                | (root_height < minimum_base_height)
+                | (torch.abs(gravity[:, 0]) > gravity_x_limit)
+                | (torch.abs(gravity[:, 1]) > gravity_y_limit)
+                | (root_speed > 1.0)
+                | (root_ang_speed > 1.0)
+                | (self.reset_buf != 0)
             )
             clearance = self._get_a2_pull_minimum_panel_robot_clearance()
-            frame_contact = self._get_door_frame_contact_force_per_env(
-                "Pull-v5 Source-B settle"
-            )
-            unstable = unstable or torch.any(clearance < 0.0) or torch.any(frame_contact > 0.0)
-            if unstable:
-                raise RuntimeError(
-                    "Source-B settle rejected an actual fall, penetration, contact, or unstable state."
-                )
+            frame_contact = self._get_door_frame_contact_force_per_env("Pull-v5 Source-B settle")
+            unstable |= (clearance < 0.0) | (frame_contact > 0.0)
+            settle_valid_mask &= ~unstable
 
-        settled_mask = torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
-        self._take_snapshot_of_buffered_states(settled_mask)
+        final_door_data = self.simulator.scene.articulations["door"].data
+        final_hinge = final_door_data.joint_pos[:, 0]
+        arm_default = self._get_a2_arm_default_dof_pos()
+        arm_tolerance = self._get_required_positive_float_config(
+            "a2_stage0_arm_default_max_deviation", "Pull-v5 Source-B final admission"
+        )
+        arm_near_default = torch.abs(
+            self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx] - arm_default
+        ).amax(dim=-1) <= arm_tolerance
+        gripper_near_open = torch.abs(
+            self.simulator.dof_pos[:, self._a2_gripper_dof_indices] - self._a2_gripper_open_target
+        ).amax(dim=-1) <= arm_tolerance
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "Pull-v5 Source-B final admission"
+        )
+        no_handle_contact = ~torch.any(contact_masks["contacting"], dim=-1)
+        settle_valid_mask &= (
+            (final_hinge >= 1.6)
+            & (final_hinge <= 2.1)
+            & (torch.abs(final_door_data.joint_vel) <= 0.05).all(dim=-1)
+            & (torch.abs(self.simulator.dof_vel) <= 0.05).all(dim=-1)
+            & (torch.linalg.norm(self.simulator.robot_root_states[:, 7:10], dim=-1) <= 0.05)
+            & (torch.linalg.norm(self.simulator.robot_root_states[:, 10:13], dim=-1) <= 0.05)
+            & arm_near_default
+            & gripper_near_open
+            & no_handle_contact
+        )
+        if not bool(torch.any(settle_valid_mask).item()):
+            raise RuntimeError("Source-B settle rejected every constructed row.")
+        self.staged_reset_num_samples[self.STAGE_SWING, :] = 0
+        self._take_snapshot_of_buffered_states(settle_valid_mask)
         stage_counts = self.staged_reset_num_samples[self.STAGE_SWING, env_ids]
-        if torch.any(stage_counts < 1):
-            raise RuntimeError("Source-B settle did not produce a Stage-4 staged snapshot.")
+        if torch.any(stage_counts[settle_valid_mask] < 1):
+            raise RuntimeError("Source-B settle did not produce a Stage-4 snapshot for every valid row.")
+        self._a2_pull_v5_source_b_capture_frozen = True
 
     def export_a2_pull_v5_census(self, output_path: str, *, variant: str, seed: int) -> dict[str, object]:
         """Export staged-reset occupancy and state summaries for the census runner."""
@@ -977,9 +1470,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         for stage in range(self.num_stages):
             count_by_env = self.staged_reset_num_samples[stage]
             sample_count = int(count_by_env.sum().item())
-            source_counts = {"natural": sample_count}
-            if variant == "v5" and stage == self.STAGE_SWING:
-                source_counts = {"canonical_bank": sample_count}
+            source_counts: dict[str, int] = {"natural": sample_count}
+            if variant == "v5" and stage == self.STAGE_SWING and self._a2_pull_v5_bank_slot_sources:
+                source_counts = dict(Counter(self._a2_pull_v5_bank_slot_sources[: int(count_by_env.max().item())]))
             row: dict[str, object] = {
                 "snapshot_count": sample_count,
                 "reset_source_counts": source_counts,
@@ -1034,6 +1527,8 @@ class DoorOpenA2Pull(DoorPregrasp):
         capture_only = self.config.get("a2_pull_v5_bank_capture_only", False)
         if not isinstance(capture_only, bool):
             raise RuntimeError("a2_pull_v5_bank_capture_only must be a boolean.")
+        if self._is_a2_pull_v5() and capture_only:
+            return torch.zeros_like(filtered)
         if (
             self._is_a2_pull_v5()
             and self.config["a2_pull_v5_snapshot_freeze_enabled"]
@@ -1052,7 +1547,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                         raise RuntimeError(
                             f"Pull-v5 canonical bank sample index is out of range: {sample}."
                         )
-                    self._a2_pull_v5_pending_reset_source[env_id] = "canonical_bank"
+                    self._a2_pull_v5_pending_reset_source[env_id] = self._a2_pull_v5_bank_slot_sources[sample]
                 else:
                     self._a2_pull_v5_pending_reset_source[env_id] = "natural"
         return selected
@@ -1102,14 +1597,24 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_intervention_active[env_ids] = False
             self._a2_pull_v5_intervention_fired[env_ids] = False
             self._a2_pull_v5_probe_solvable[env_ids] = False
+            self._a2_pull_v5_probe_anchor_initialized[env_ids] = False
+            self._a2_pull_v5_probe_waypoint_target_xy[env_ids] = float("nan")
+            self._a2_pull_v5_probe_yaw_target[env_ids] = float("nan")
+            self._a2_pull_v5_probe_waypoint_error_m[env_ids] = float("nan")
+            self._a2_pull_v5_probe_yaw_error_rad[env_ids] = float("nan")
+            self._a2_pull_v5_probe_waypoint_arrived[env_ids] = False
+            self._a2_pull_v5_probe_yaw_arrived[env_ids] = False
+            self._a2_pull_v5_probe_anchor_pass[env_ids] = False
+            self._a2_pull_v5_capture_e5_seen[env_ids] = False
+            self._a2_pull_v5_capture_pending[env_ids] = False
+            self._a2_pull_v5_capture_recorded[env_ids] = False
+            self._a2_pull_v5_capture_target_step[env_ids] = -1
             for env_id in env_ids.tolist():
                 self._a2_pull_v5_reset_source[env_id] = self._a2_pull_v5_pending_reset_source[env_id]
-                if self._a2_pull_v5_reset_source[env_id] not in {
-                    "natural",
-                    "canonical_bank",
-                }:
+                if self._a2_pull_v5_reset_source[env_id] not in A2_PULL_V5_RESET_SOURCES:
                     raise RuntimeError(
-                        "Pull-v5 reset_source must be exactly natural or canonical_bank."
+                        "Pull-v5 reset_source must be exactly natural, bank_natural_e5, "
+                        "bank_natural_e5_plus, or bank_constructed."
                     )
         self._a2_pull_first_negative_x_motion_step[env_ids] = -1
         self._a2_pull_prev_stable_contact[env_ids] = False
@@ -1869,6 +2374,53 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_runtime_telemetry_contract_checked = True
         return result
 
+    def _get_a2_pull_v5_terminal_invariants(
+        self, env_id: int, reached: Mapping[str, bool]
+    ) -> dict[str, bool]:
+        source = self._a2_pull_v5_reset_source[env_id]
+        e2 = bool(reached[A2PullEvent.E2_TENSILE_CAPTURE.name])
+        e4 = bool(reached[A2PullEvent.E4_POSITIVE_HINGE_RETAINED.name])
+        e7 = bool(reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name])
+        first_e4_step = int(self._a2_pull_first_event_step[env_id, A2PullEvent.E4_POSITIVE_HINGE_RETAINED].item())
+        first_activation_step = int(self._a2_pull_first_scripted_activation_step[env_id].item())
+        hinge_at_decision = self._a2_pull_hinge_at_decision_rad[env_id]
+        stage4_below_gate = source != "natural" and (
+            not torch.isfinite(hinge_at_decision) or hinge_at_decision < 1.60
+        )
+        return {
+            "fake_e4": e4 and not e2,
+            "stage4_snapshot_below_hinge_gate": bool(stage4_below_gate),
+            "dont_push_before_true_stage3_to4": bool(
+                e4 and first_activation_step >= 0 and first_e4_step >= 0 and first_activation_step < first_e4_step
+            ),
+            "target_root_before_aperture_ready": bool(
+                not self._a2_pull_aperture_ready[env_id].item()
+                and self._a2_pull_frame_approach_active[env_id].item()
+            ),
+            "corridor_active_before_aperture_ready": bool(
+                self._a2_pull_corridor_door_wide_pre_aperture_steps[env_id].item() > 0
+                or self._a2_pull_corridor_clean_passage_pre_aperture_steps[env_id].item() > 0
+            ),
+            "complete_without_frame_passage": bool(
+                e7 and not self._a2_pull_frame_passage[env_id].item()
+            ),
+            "frame_approach_active_before_aperture_ready": bool(
+                self._a2_pull_frame_approach_pre_aperture_steps[env_id].item() > 0
+            ),
+            "frame_approach_active_after_frame_passage": bool(
+                self._a2_pull_frame_approach_post_frame_passage_steps[env_id].item() > 0
+            ),
+            "canonical_not_counted_as_natural_start": bool(
+                source.startswith("bank_") and self._a2_pull_v5_reset_source[env_id] == "natural"
+            ),
+            "failed_settle_not_in_bank": bool(
+                source != "natural" and self._get_a2_pull_v5_bank_settle_valid(env_id) is not True
+            ),
+        }
+
+    def _get_a2_pull_v5_bank_settle_valid(self, env_id: int) -> bool | None:
+        return True if self._a2_pull_v5_reset_source[env_id] != "natural" else None
+
     @override
     def _get_a2_terminal_diagnostics(self, env_ids):
         records = super()._get_a2_terminal_diagnostics(env_ids)
@@ -2039,6 +2591,14 @@ class DoorOpenA2Pull(DoorPregrasp):
                 if self._is_a2_pull_v5():
                     record["pull_v5"] = {
                         "reset_source": self._a2_pull_v5_reset_source[env_id],
+                        "settle_valid": True,
+                        "bank_settle_valid": self._get_a2_pull_v5_bank_settle_valid(env_id),
+                        "hinge_drive_max_force_nm": float(
+                            self.door_hinge_drive_max_force[env_id].item()
+                        ),
+                        "invariants": self._get_a2_pull_v5_terminal_invariants(
+                            env_id, episode_record["event_reached"]
+                        ),
                         "persistent_release": bool(
                             self._a2_pull_v5_persistent_release[env_id].item()
                         ),
@@ -2058,14 +2618,44 @@ class DoorOpenA2Pull(DoorPregrasp):
                         "deliberate_release_semantics": "report_only_one_step_contact_transition",
                     }
                     if self.config.get("a2_pull_v5_probe_enabled", False):
+                        probe_root_xy = self.simulator.robot_root_states[env_id, :2]
+                        probe_root_quat_w = xyzw_to_wxyz(
+                            self.simulator.robot_root_states[env_id, 3:7].unsqueeze(0)
+                        )
+                        _, _, probe_root_yaw = euler_xyz_from_quat(probe_root_quat_w)
+                        if (
+                            not torch.isfinite(self._a2_pull_v5_probe_waypoint_target_xy[env_id]).all()
+                            or not torch.isfinite(self._a2_pull_v5_probe_yaw_target[env_id])
+                            or not torch.isfinite(probe_root_xy).all()
+                            or not torch.isfinite(probe_root_yaw).all()
+                        ):
+                            raise RuntimeError("Pull-v5 probe terminal telemetry requires a measured target and root pose.")
                         record["pull_v5_probe"] = {
                             "fixture": self.config["a2_pull_v5_probe_fixture"],
                             "command": self.config["a2_pull_v5_probe_command"],
+                            "command_primitive": self.config["a2_pull_v5_probe_command"],
                             "command_solvable": bool(self._a2_pull_v5_probe_solvable[env_id].item()),
+                            "waypoint_arrived": bool(self._a2_pull_v5_probe_waypoint_arrived[env_id].item()),
+                            "yaw_arrived": bool(self._a2_pull_v5_probe_yaw_arrived[env_id].item()),
+                            "waypoint_position_error_m": float(
+                                self._a2_pull_v5_probe_waypoint_error_m[env_id].item()
+                            ),
+                            "yaw_error_rad": float(self._a2_pull_v5_probe_yaw_error_rad[env_id].item()),
                             "anchor_pass": bool(
                                 self.config["a2_pull_v5_probe_fixture"] == "anchor"
-                                and self._a2_pull_v5_probe_solvable[env_id].item()
+                                and self._a2_pull_v5_probe_anchor_pass[env_id].item()
                             ),
+                            "requested_waypoint_xy": self._a2_pull_v5_probe_waypoint_target_xy[
+                                env_id
+                            ].detach().cpu().tolist(),
+                            "realized_waypoint_xy": probe_root_xy.detach().cpu().tolist(),
+                            "requested_base_motion_xy": self._a2_pull_v5_probe_waypoint_target_xy[
+                                env_id
+                            ].detach().cpu().tolist(),
+                            "realized_base_motion_xy": probe_root_xy.detach().cpu().tolist(),
+                            "requested_yaw_rad": float(self._a2_pull_v5_probe_yaw_target[env_id].item()),
+                            "realized_yaw_rad": float(probe_root_yaw.item()),
+                            "lattice_scale": float(self.config.get("a2_pull_v5_lattice_scale", 1.0)),
                         }
         return records
 
@@ -2210,6 +2800,12 @@ class DoorOpenA2Pull(DoorPregrasp):
             if self._is_a2_pull_v5():
                 record["pull_v5"] = {
                     "reset_source": self._a2_pull_v5_reset_source[env_id],
+                    "settle_valid": True,
+                    "bank_settle_valid": self._get_a2_pull_v5_bank_settle_valid(env_id),
+                    "hinge_drive_max_force_nm": float(
+                        self.door_hinge_drive_max_force[env_id].item()
+                    ),
+                    "invariants": self._get_a2_pull_v5_terminal_invariants(env_id, reached),
                     "persistent_release": bool(
                         self._a2_pull_v5_persistent_release[env_id].item()
                     ),

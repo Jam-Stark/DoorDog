@@ -64,7 +64,15 @@ def build_command(*, variant: str, seed: int, gpu: int, output_dir: Path) -> tup
     if variant == "v5":
         command.extend((
             "algo.config.load_optimizer=false",
+            "env.config.a2_pull_v5_stage4_bank_injection_enabled=false",
+            "env.config.a2_pull_v5_reset_source=natural",
+            "env.config.a2_pull_v5_state_bank_allow_g8_pure_a=false",
             "env.config.a2_pull_v5_state_bank_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt",
+        ))
+    else:
+        command.extend((
+            "+env.config.a2_pull_v5_stage4_bank_injection_enabled=false",
+            "+env.config.a2_pull_v5_reset_source=natural",
         ))
     return command, {
         "PYTHONPATH": str(ROOT), "CUDA_VISIBLE_DEVICES": str(gpu),
@@ -81,7 +89,7 @@ def summarize_census(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("census payload requires a stages mapping")
     if not stages:
         raise ValueError("census stages mapping must be non-empty")
-    result = {"schema": "a2_piper_pull_v5_census_v2", "status": "PASS", "stages": {}}
+    result = {"schema": "a2_piper_pull_v5_1_census_v3", "status": "PASS", "stages": {}}
     for stage, value in stages.items():
         if not isinstance(value, Mapping):
             raise ValueError(f"stage {stage!r} census row must be a mapping")
@@ -93,8 +101,8 @@ def summarize_census(payload: Mapping[str, Any]) -> dict[str, Any]:
             raise ValueError(f"stage {stage!r} snapshot_count must be a non-negative integer")
         if not isinstance(value["reset_source_counts"], Mapping):
             raise ValueError(f"stage {stage!r} reset_source_counts must be a mapping")
-        if any(source not in {"natural", "canonical_bank"} for source in value["reset_source_counts"]):
-            raise ValueError(f"stage {stage!r} reset sources must be natural/canonical_bank")
+        if any(source not in {"natural", "bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"} for source in value["reset_source_counts"]):
+            raise ValueError(f"stage {stage!r} reset sources must be natural or bank_*")
         result["stages"][str(stage)] = {
             "snapshot_count": value["snapshot_count"],
             "reset_source_counts": dict(value["reset_source_counts"]),
@@ -117,7 +125,7 @@ def _produce_census_from_run(output_dir: Path) -> dict[str, Any]:
     payload = json.loads(candidates[0].read_text(encoding="utf-8"))
     summary = summarize_census(payload)
     receipt = {
-        "schema": "a2_piper_pull_v5_census_receipt_v2",
+        "schema": "a2_piper_pull_v5_1_census_receipt_v3",
         "status": summary["status"],
         "variant": payload.get("variant"),
         "seed": payload.get("seed"),

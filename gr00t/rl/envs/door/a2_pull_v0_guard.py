@@ -42,6 +42,15 @@ A2_PULL_V5_MAX_EPISODE_LENGTH_S = A2_PULL_V3_MAX_EPISODE_LENGTH_S
 A2_PULL_V5_RELEASE_STREAK_STEPS = 25
 A2_PULL_V5_MIN_STATE_BANK_SAMPLES = 64
 A2_PULL_V5_CLOSER_BUCKETS = ("2.5-5", "5-9", "9-12")
+A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA = "a2_piper_pull_v5_state_bank_source_v2"
+A2_PULL_V5_STATE_BANK_SCHEMA = "a2_piper_pull_v5_state_bank_v2"
+A2_PULL_V5_RESET_SOURCES = (
+    "natural",
+    "bank_natural_e5",
+    "bank_natural_e5_plus",
+    "bank_constructed",
+)
+A2_PULL_V5_STATE_BANK_ALLOW_G8_PURE_A_DEFAULT = False
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 A2_PULL_V0_SOURCE_FREEZE_PATH = _REPO_ROOT / "scriptsFORhuman/pull_v0/PULL_V0_SOURCE_FREEZE.json"
 A2_PULL_V0_RESOLVED_G4_CONFIG_PATH = (
@@ -1050,6 +1059,22 @@ def _validate_a2_pull_v5_bank_config(config: Mapping[str, Any]) -> dict[str, Any
             "Pull-v5 load receipt path must be repository-relative under logs_rl/; "
             f"got {receipt_path!r}."
         )
+    reset_source = config.get("a2_pull_v5_reset_source", "natural")
+    if reset_source not in A2_PULL_V5_RESET_SOURCES:
+        raise RuntimeError(
+            "Pull-v5 reset source must be exactly one of "
+            f"{A2_PULL_V5_RESET_SOURCES!r}; got {reset_source!r}."
+        )
+    allow_g8_pure_a = _mapping_item(
+        config,
+        "a2_pull_v5_state_bank_allow_g8_pure_a",
+        "Pull-v5 config",
+    )
+    if not isinstance(allow_g8_pure_a, bool):
+        raise RuntimeError(
+            "Pull-v5 G8 pure-Source-A allowance must be an explicit bool; "
+            f"got {allow_g8_pure_a!r}."
+        )
     return {
         "stage4_bank_injection_enabled": injection_enabled,
         "stage4_bank_injection_ratio": ratio,
@@ -1060,6 +1085,8 @@ def _validate_a2_pull_v5_bank_config(config: Mapping[str, Any]) -> dict[str, Any
         "state_bank_min_samples": bank_min,
         "state_bank_path": bank_path,
         "load_receipt_path": receipt_path,
+        "reset_source": reset_source,
+        "state_bank_allow_g8_pure_a": allow_g8_pure_a,
     }
 
 
@@ -1140,6 +1167,10 @@ __all__ = [
     "A2_PULL_V5_RELEASE_STREAK_STEPS",
     "A2_PULL_V5_MIN_STATE_BANK_SAMPLES",
     "A2_PULL_V5_CLOSER_BUCKETS",
+    "A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA",
+    "A2_PULL_V5_STATE_BANK_SCHEMA",
+    "A2_PULL_V5_RESET_SOURCES",
+    "A2_PULL_V5_STATE_BANK_ALLOW_G8_PURE_A_DEFAULT",
     "A2_PULL_V0_TARGET_FRAME_VERSION",
     "A2_PULL_V0_TARGET_ORIENTATION_WXYZ",
     "validate_a2_pull_v0_guard",

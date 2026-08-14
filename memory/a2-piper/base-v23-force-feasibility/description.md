@@ -1,8 +1,8 @@
 ---
 name: base-v23-force-feasibility
 scope: A2+Piper base_v23 P0 force-feasibility calibration, certificate, and D1 admission boundary
-status: formal_A1_route_a_complete
-last_updated: 2026-08-13 12:14 HKT
+status: formal_W1_route_a_complete
+last_updated: 2026-08-14 16:02 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v23-force-feasibility/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Purpose
 
-本 entry 保存 `base_v23` P0 的可复用 calibration / force-feasibility 事实及其 admission 边界。历史 R54 的 `INTERIM_TYPED_ADJUDICATION / FORMAL_NO-GO` 只保留为其 capability-source reducer 的 typed result；owner 的 `OPTION_2_PLUS_3_COMBINED` 已用 physics-first D1/D1-lite 与 P0.8 preformal-v2 取代该 admission gate。A1 四个 seed0 FULL cells 均已 natural complete；canonical Route-A A1 已形成 exact `40` rows / `640` episodes 的 index、analysis 与 selection。F3 endpoint reducer 为 `F3_NOT_TRIGGERED`，因此后续 seed1 D1 使用原始 `normal`，不标 `D1_PRIME_NOT_REPLICATION`。
+本 entry 保存 `base_v23` P0 的可复用 calibration / force-feasibility 事实及其 admission 边界。历史 R54 的 `INTERIM_TYPED_ADJUDICATION / FORMAL_NO-GO` 只保留为其 capability-source reducer 的 typed result；owner 的 `OPTION_2_PLUS_3_COMBINED` 已用 physics-first D1/D1-lite 与 P0.8 preformal-v2 取代该 admission gate。A1 与 W1（A2/B1）共 12 个 formal cells 均已 natural complete；Route-A A1/A2/B1 各有 exact `40` rows / `640` episodes 的 complete index、analysis 与 selection。F3 为 `F3_NOT_TRIGGERED`，所有 seed1 D1 保持 `normal`。
 
 ## Hard Boundaries
 
@@ -100,11 +100,12 @@ read_when:
 - A1 G1/G3/G5/G7 canonical cell/slice/subwave records establish scoped natural-completion evidence only; Route-A selection and F3 have their own append-only receipts.
 - A1 terminal closure and Route-A A1：G1/G3/G5/G7 均有 natural `rc0`、trainer global step `2500` 与 final checkpoint；A1 Route-A `V23_ROUTE_A_EVIDENCE_INDEX.json` status `COMPLETE`、`row_count=40`，覆盖 canonical16 共 `640` episodes。Mechanical selections 为 G1 step2000、G3 step0250、G5 step0500、G7 step1500。
 - F3 endpoint adjudication：canonical `V23_F3_D1_ENDPOINT_REDUCER.json` status `COMPLETE` / result `F3_NOT_TRIGGERED`。G5 和 G7 的 step2500 raw trace 各覆盖 `16` 个 stage3 env，因此 seed1 D1 保持 `normal`；该结果不改变 D1 provisional physics-first 标签或构成 policy-quality/release 结论。
+- W1 与 Route-A closure：A2 G2/G4/G6/G8 和 B1 G1/G3/G5/G7 均有 `FORMAL_CELL_COMPLETE`、natural `rc0`、global step2500、normal D1 binding；A2/B1 slice 与 subwave barriers complete。Route-A A2/B1 各 exact40/640 complete。A2 selections 为 G2 step1250、G4 step1000、G6 step1500、G8 step0750；B1 selections 为 G1 step1000、G3 step0500、G5 step1500、G7 step0500。
 
 ## DONE Summary
 
-P0.2 effort freeze, P0.4 raw producer outputs, P0.5 bands, R49 typed-negative certificate, R50 A0 source freeze, historical R54 exact16 producer plus typed incomplete reduction, R190 physics-first D1/D1-lite freeze, P0.6 common-reward/stationary-rent runtime, the separate R21 RP0 contract, R78 plumbing plus P0.8 preformal-v2 four-trigger closure, R112 D0 P0.9 four-type smokes, R170/R173 P0.1/P0.3 runtime typed adjudication, R160 P0.10 terminal adjudication, R177/R180--R182 F1 head-reset two-type smokes, R238 D1-FULL bucket-plumbing gate, R257 start-admission lock, A1 four-cell natural closure, Route-A A1 exact40/640, and F3 `NOT_TRIGGERED` have verified receipts. Remaining formal cells, Route B runtime, holdout, render, release, and goal outcome remain unproved.
+P0 prerequisites, A1, W1 A2/B1, Route-A A1/A2/B1, and F3 `NOT_TRIGGERED` have verified receipts. B2, Route-A B2, Route B runtime, holdout, render, release, and goal outcome remain unproved.
 
 ## TODO Summary
 
-Next durable barrier is W1 natural closure for A2/B1 followed by their reducers and Route-A rows; then B2, Route B full interventions, holdout64, render, and final analysis remain pending. Step250 or launch evidence alone must not be recorded as completion.
+Next durable barrier is B2 natural closure followed by its reducers and Route-A B2; then Route B full interventions, holdout64, render, and final analysis remain pending. Step250 or launch evidence alone must not be recorded as completion.

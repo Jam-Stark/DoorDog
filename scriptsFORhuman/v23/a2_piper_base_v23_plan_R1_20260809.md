@@ -3,7 +3,7 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** admission and A1 are complete; W1 (A2 seed0 RP0 + B1 seed1 FULL) is in progress on physical GPU0--7. A1 G1/G3/G5/G7 naturally reached step2500. Route-A A1 is `COMPLETE` at exact 40 rows / 640 canonical16 episodes and selected G1 step2000, G3 step0250, G5 step0500, G7 step1500. F3 is `F3_NOT_TRIGGERED` because G5/G7 endpoints each observed stage3 in 16/16 envs, so all later seed1 D1 cells use `normal`. W1 launched in eight independent tmux sessions on 2026-08-13 around 09:56 HKT; step250 is timing evidence only, not completion.
+**Runtime state:** admission, A1, W1 A2/B1, and Route-A A1/A2/B1 are complete; B2 seed1 RP0 is in progress on GPU0--3. F3 is `F3_NOT_TRIGGERED`, so all seed1 D1 uses `normal`. Route-A A1 selected G1 step2000/G3 step0250/G5 step0500/G7 step1500; A2 selected G2 step1250/G4 step1000/G6 step1500/G8 step0750; B1 selected G1 step1000/G3 step0500/G5 step1500/G7 step0500. Each completed subwave has exact 40 rows / 640 canonical16 episodes. B2 step250 files are timing evidence only, not completion.
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified

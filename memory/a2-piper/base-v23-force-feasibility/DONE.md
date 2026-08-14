@@ -1,5 +1,8 @@
 # DONE
 
+- 2026-08-14 16:02 HKT - Recorded W1 eight-cell natural closure and reducers. A2 G2/G4/G6/G8 and B1 G1/G3/G5/G7 each have `FORMAL_CELL_COMPLETE`, natural `rc0`, trainer global step `2500`, final checkpoint, and `normal` D1 binding; four slice receipts and both subwave receipts are complete with Route-A admission true.
+- 2026-08-14 16:02 HKT - Recorded Route-A A2 and B1 exact40/640 completion. Both evidence indexes, analyses, and selections are `COMPLETE`. A2 selects G2 step1250, G4 step1000, G6 step1500, G8 step0750; B1 selects G1 step1000, G3 step0500, G5 step1500, G7 step0500. These remain mechanical selections, not statistical/release/goal conclusions.
+
 - 2026-08-13 12:14 HKT - Recorded A1 four-cell natural closure and canonical Route-A A1 completion. G1/G3/G5/G7 each reached trainer global step `2500` with natural return code `0` and final checkpoint. `logs_eval/base_v23/route_a/seed0/A1/V23_ROUTE_A_EVIDENCE_INDEX.json` is `COMPLETE` with exact `40` rows / `640` canonical16 episodes; mechanical selections are G1 step2000, G3 step0250, G5 step0500, and G7 step1500. This is scoped completion/selection evidence, not full-matrix, statistical, release, or goal completion.
 - 2026-08-13 12:14 HKT - Recorded canonical F3 receipt `logs_eval/base_v23/route_a/seed0/A1/V23_F3_D1_ENDPOINT_REDUCER.json`: result `F3_NOT_TRIGGERED`. Endpoint G5 and G7 step2500 traces each contain stage3 observations for all 16 env IDs, so later seed1 D1 cells retain `normal`; no symmetry or completeness criterion was added.
 

@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-14 22:35 HKT (pull-v5.1 repair closure)。
+创建:2026-07-21;最近更新:2026-08-15 03:08 HKT (pull-v5.2 G3/G11 closure)。
 
 ---
 
@@ -39,6 +39,7 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
+| Pull HOMIE 世界坐标 waypoint + terminal yaw-hold interface / residual-policy 决策 | 新的门侧 occupancy round 前；先做独立接口表征 | pull-v5.2 三次 natural anchor 均 command-solvable，但 terminal yaw 最多 `5/16`；不得当作门侧 passage zero，也不得靠放宽阈值救 PASS |
 
 ## E. 维护性挂账(小,勿丢)
 
@@ -49,6 +50,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-15 03:08 HKT:**pull-v5.2 anchored probe 收口(G3/G11,未达门侧 P1)**——T0 完成 S1–S4、G8 admission、evaluator P2 trace、50-step canonical arm/gripper override 与 invariant 11；唯一 formal review 仍为 FAIL，targeted fixes/runtime evidence 不构成第二轮 PASS。三次 natural anchor 共 `192` terminal rows、natural-anchor scope 内未观测到 invariant violation；每序列均 command_solvable `16/16`，但 attempt1/2/3 waypoint 为 `9/10/10/9`、`8/12/12/8`、`7/11/10/8`，yaw 为 `0/0/0/0`、`0/0/0/0`、`1/0/1/5`。v5.1 S1/S2 yaw PASS 被证实是 initialization latch。三桶、G1/G2、P3/P4、双源 DV NOT_RUN，无 passage denominator；stopping condition 未达。依据：`scriptsFORhuman/pull_v5/PULL_V5_2_ROUND_REPORT.md`。
 
 - [x] 2026-08-14 22:35 HKT:**pull-v5.1 repair 收口(G3/G11,未达门侧 P1)**——F5 load-only 为 ACTUAL；P2 frozen v4-B paired intervention 的 K25 为 `3/16→16/16`，13 个 favorable discordants、0 unfavorable、exact `p=0.0001220703125`，确认 release persistence binding，但 +2s hinge retention 仅 `5/16` 且 E6/frame passage 仍 `0/16`。Source-A E5/E5+2s/E5+4s=`64/64/63`，按 G8 建成 191-row pure-natural bank，closer 三桶=`45/54/92`、逐态 metadata 完整。P1 四 primitive anchor 三次均 waypoint/solvable=`64/64`、yaw=`32/64`，故三桶、G2、P3/P4、双源 DV NOT_RUN，stopping condition 未达。P2 的 release+tuck 不是 brace/regrasp 证据；有效 G2 未达，pull longterm TODO #1 仍不触发。正式 review 保持一轮 FAIL，无第二轮 PASS claim。依据：`scriptsFORhuman/pull_v5/PULL_V5_1_ROUND_REPORT.md`。
 

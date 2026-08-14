@@ -1,23 +1,31 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge-occupancy/release-persistence closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe closure
 status: active
-last_updated: 2026-08-14 22:35 HKT
+last_updated: 2026-08-15 03:08 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续任何新的 occupancy/traversal round，或复用 pull-v5.1 closure / pull-v4 负结果前
+  - 继续任何新的 occupancy/traversal round，或复用 pull-v5.2 anchor boundary / pull-v5.1 closure / pull-v4 负结果前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1 closure)
+# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1/v5.2 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation 与 pull-v5/v5.1 bridge-occupancy/release-persistence closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence 与 pull-v5.2 anchored-probe closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v5.2 Anchored Probe Closure (2026-08-15 03:08 HKT) — G3/G11 stop
+
+- Rule 5 只认证门侧实际使用的 sequence set；从 v5.2 起，认证必须使用 terminal current-state waypoint + yaw retention，不能把 episode 初始时刻或中途的 historical latch 当作终点保持。v5.1 所谓 S1/S2 yaw PASS 实际来自 initialization latch，不能继续当作 terminal-yaw capability。
+- T0 落地了 S1–S4 sequence、G8 pure-A 显式许可、door-only evaluator P2 trace 证明、P3 canonical 前 50 步 env-side arm/gripper override、`bank_natural_e5_override` provenance 与 invariant 11。正式 review 仍只有一轮且 verdict FAIL；r3 findings 以 targeted fixes + runtime acceptance 处理，未生成第二轮 reviewer PASS。
+- 三次 natural open-field anchor 均完成四 sequence×16 行，command_solvable 每序列均 `16/16`。attempt1/2/3 waypoint 分别为 `9/10/10/9`、`8/12/12/8`、`7/11/10/8`；yaw 分别为 `0/0/0/0`、`0/0/0/0`、`1/0/1/5`。r4 给 zero-yaw phase 增加 active hold 后未改善；r5 将 open-field root 对齐 bank 的 yaw≈π 后降低了 yaw error，但仍未达到 terminal `16/16`。
+- 三次共 `192` 个 natural-anchor terminal episodes，在该 scope 内十一项 invariant 未观测到 violation；natural anchor 未加载 bank，故不能把这写成 canonical bank/override runtime PASS。三桶、G1/G2、P3/P4、dual-source eval 均 NOT_RUN，无 passage denominator；canonical+natural frame-passage stopping condition 未满足。完整英文证据见 `scriptsFORhuman/pull_v5/PULL_V5_2_ROUND_REPORT.md`。
+- v5 的 external-review pointer、7 条 metric 语义与 occupancy 规律继续有效；P2 release-persistence binding、F5 ACTUAL 与 191-row `PASS_G8_PURE_A` bank 仍是 v5.1 version-scoped evidence。residual policy 仍属用户/架构决策，不能在无有效 G2 时由 worker 自行采用。
 
 ## Pull-v5.1 Repair Closure (2026-08-14 22:35 HKT) — G3/G11 stop
 

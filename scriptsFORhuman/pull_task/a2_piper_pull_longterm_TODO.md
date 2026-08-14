@@ -6,7 +6,7 @@
 
 - **动机:** 当前门资产 closer 关门慢(max_force/damping = 0.05–0.24 rad/s,全关 11–52 s),release-then-cross 窗口从容,回弹撞击不构成现实失败模式。但更强 closer/更快回弹的资产变体下,release 后 arm 收回默认姿态、门扇回摆撞上正在过门的机器人将成为主要失败模式。期望行为:**穿门过程中检测到门回摆逼近时,arm 重新伸出抵住门板(brace),身体继续通过,清出后收臂**。
 - **触发:** 仅在 direct observation 证明强 closer/回摆确实威胁通过、且有效 G2 lattice 达成后，才可单独立项；v3/v4 的 post-release recontact tails 不是 brace 触发证据。
-- **v3/v4/v5/v5.1 语义勾稽(2026-08-14 22:35 HKT):** v3 seed0 step500 max=`18`、median=`0`（其余格 max≤`1`）；v4 base 六格 max=`10`、最大单格 median=`0`，G6 六格 max=`108`、最大单格 median=`3`。这些数只表示 deliberate-release 后 body/arm-to-panel 的 contact-transition tails，不测 handle regrasp、arm re-extension 或 learned brace；G6 的 E6/E7/complete 仍未改变。v5 固定此解释。v5.1 P2 的显式 release+tuck intervention 把 K25 从 `3/16` 提到 `16/16`，但 +2s hinge retention 仅 `5/16`、E6/frame passage 仍 `0/16`；它证明的是 release persistence 与 reclosure/base route 的耦合，不是 arm re-extension、regrasp 或 learned brace。v5.1 未达有效 G2 lattice，故第 1 条触发条件仍未满足，不实现 brace，也不据此改 reward/threshold。
+- **v3/v4/v5/v5.1/v5.2 语义勾稽(2026-08-15 03:08 HKT):** v3 seed0 step500 max=`18`、median=`0`（其余格 max≤`1`）；v4 base 六格 max=`10`、最大单格 median=`0`，G6 六格 max=`108`、最大单格 median=`3`。这些数只表示 deliberate-release 后 body/arm-to-panel 的 contact-transition tails，不测 handle regrasp、arm re-extension 或 learned brace；G6 的 E6/E7/complete 仍未改变。v5 固定此解释。v5.1 P2 的显式 release+tuck intervention把 K25 从 `3/16` 提到 `16/16`，但 +2s hinge retention 仅 `5/16`、E6/frame passage 仍 `0/16`；它证明的是 release persistence 与 reclosure/base route 的耦合，不是 arm re-extension、regrasp 或 learned brace。v5.2 三次都停在 natural open-field anchor，门侧 release+tuck、reclosure race 与 G2 均 NOT_RUN；因此 anchor 的 HOMIE yaw failure 不是 direct door-reclosure threat，更不是 brace 触发证据。第 1 条触发条件仍未满足。
 - **做法要点:** brace 仍是未实现的 future skill；需要直接的回摆威胁/arm intervention telemetry 和单独授权。不可把现有 panel-contact transition 计数转换为 regrasp 或 brace 行为结论。
 
 ## 2. add_walls=True 受限空间 pull(hardening 轮)
@@ -61,3 +61,9 @@
 - **动机:** 论文主张 minimal base intervention(u_base = u_user + gate(s)·u_assist);pull 是 finger/workspace 双约束场。v3 起已含 base path/reversal 遥测,但从未做过"力可行 vs base 介入"的正式归因。
 - **触发:** pull E7 稳定后,与第 5 条(10 N profile)合并设计一轮。
 - **做法要点:** 以 10 N/45 N × 固定几何的分层对照读 base 介入量变化,直接喂论文 DV。
+
+## 11. HOMIE 世界坐标 waypoint + terminal yaw-hold interface
+
+- **动机:** v5.2 将 rule-5 改为 terminal current-state 判据后，三次 S1–S4 natural anchor 虽然 command_solvable 每序列均 `16/16`，但最终 yaw 仅 `0/0/0/0`、`0/0/0/0`、`1/0/1/5`；yaw-π 初始化只缩小 error，没有形成稳定 hold。v5.1 的 S1/S2 yaw PASS 是 initialization latch，不是 terminal capability。
+- **触发:** 下一次门侧 occupancy/traversal round 前，或用户批准 residual policy/低层接口变更时；未解决前禁止把 anchor failure 解释成 door-side passage zero。
+- **做法要点:** 单独表征 requested/applied/realized world-frame XY+yaw、HOMIE command slice 与 terminal drift；先证明 frozen low-level interface 能同时到达 waypoint 并保持 yaw，再决定 command adapter 还是 residual policy。该项是架构/接口决策，不得通过放宽 waypoint/yaw 阈值伪造 PASS。

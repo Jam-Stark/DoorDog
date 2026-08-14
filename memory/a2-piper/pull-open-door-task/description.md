@@ -1,23 +1,32 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5 bridge-occupancy/release-persistence closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge-occupancy/release-persistence closure
 status: active
-last_updated: 2026-08-12 07:45 HKT
+last_updated: 2026-08-14 22:35 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续任何新的 occupancy/traversal round，或复用 pull-v5 closure / pull-v4 负结果前
+  - 继续任何新的 occupancy/traversal round，或复用 pull-v5.1 closure / pull-v4 负结果前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5 closure)
+# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation 与 pull-v5 bridge-occupancy/release-persistence closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation 与 pull-v5/v5.1 bridge-occupancy/release-persistence closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v5.1 Repair Closure (2026-08-14 22:35 HKT) — G3/G11 stop
+
+- v5 的 external-review pointer、7 条 metric 语义与 occupancy 规律继续有效：`deliberate_release` 仍只是一帧 contact-transition，persistent release 仍是 K=25；recontact 仍不是 regrasp/brace；`frame_approach` 仍是 strip occupancy；E3 可先于 E2；E5 仍是自动 telemetry；E7 仍是 strict whole-body -X clearance；base reversal 仍无 deadband。外部原文指针仍为 `scriptsFORhuman/pull_v4/pro—feedback/a2_piper_pull_external_review_package_20260812.zip::a2_piper_pull_external_review_package_20260812/a2_piper_pull_external_review_20260812.md`。
+- F5 load-only runtime 为 `ACTUAL`：actor 从 `policy_state_dict` 加载；critic/optimizer/scheduler 未加载并 reset；`load_optimizer=false`。receipt 同时记录 eval wrapper 把 requested `policy_only` 归一化为 effective `full`，v5.1 只记录、不改 wrapper。
+- P2 frozen v4-B paired intervention 完成：32 个 matched screening keys 中 22 对严格 admissible，稳定取前 16 对；control K25=`3/16`，release+tuck intervention K25=`16/16`，discordant `0/13`、ties `3`，one-sided exact McNemar/binomial `p=0.0001220703125`（SciPy 1.15.3），故 release persistence 是 binding constraint。两组 E6/frame passage 都是 `0/16`；intervention 的 +2s hinge≥1.6 仅 `5/16`（control `16/16`），说明 release 与 door reclosure/base route 仍是耦合问题，不是 traversal success。
+- Source-A legacy 64-row/86-buffer payload 经逐态 closer metadata 修复保持不变，并补采 E5+2s/E5+4s `64/63`。Source B 三次 G9 后仍无 settle-admitted row，按 G8 建成 pure-natural bank：总 `191`，provenance E5/E5-plus=`64/127`，closer buckets=`45/54/92`，manifest 每态含 force/bucket/tier/settle/source-row；状态为 `PASS_G8_PURE_A`。
+- P1 三次 G9 修复后进入真实 rule-5 anchor；三次 G3 scientific correction 都完成四 primitive×16 rows，waypoint=`64/64`、command_solvable=`64/64`、yaw=`32/64`，最终 receipt 仍 FAIL。门侧三桶从未启动，因此 P1 是 anchor BLOCKED，不是 passage=0；G2/P3/P4/dual-source eval 均 NOT_RUN，canonical/natural stopping condition 未满足。residual policy 仍须等有效 G2 lattice 后由用户决定。
+- review provenance 不变：正式 review 只有 r1 一轮且 verdict FAIL；r2 findings 以 targeted fixes + runtime validation 处理，未声称第二轮 reviewer PASS。完整英文证据见 `scriptsFORhuman/pull_v5/PULL_V5_1_ROUND_REPORT.md`。
 
 ## Pull-v5 Closure (2026-08-12 07:45 HKT) — stopped before G2
 
@@ -151,12 +160,13 @@ read_when:
 
 ## TODO Summary
 
-- 2026-08-12 07:45 HKT - 新 occupancy/traversal round 的唯一 v5 前置是先修复/验证 pure-A builder、per-state closer metadata、真实 holding-near-frame/release capture、anchor/P2 对 bank 的独立性与 load-only guard；G2 未达，residual policy 仅在有效 G2 lattice 后由用户决策。brace 仍是独立的 future 行为提案，不可由既有 panel-contact transition tails 推定。
+- 2026-08-14 22:35 HKT - v5.1 已清偿 pure-A builder、per-state closer metadata、P2 bank 独立性与 load-only receipt；下一 occupancy/traversal round 的唯一 active blocker 是 rule-5 四 primitive yaw execution（当前稳定 32/64），必须先得到 anchor PASS 才能启动三桶门侧 P1/G2/P3。P2 已确认 release persistence binding，但 +2s reclosure 与 E6=0 表明不可单独据此扩 P3；residual policy 仍只在有效 G2 lattice 后由用户决策。
 - 2026-08-06 14:30 HKT - v0 E6/E7 capability boundary remains a separate historical problem: the policy never attempts path reversal (first_path_reversal_step=N/A for all episodes), ends at E5 with stage_overtime at 654 steps, and has tiny outward excursion (0.013-0.099m). Possible causes remain clear-phase reward, stage-time budget, or base-motion action space; investigate only under separately authorized scope.
 - 2026-08-06 14:00 HKT - v0 seed1 E2-E5 instability remains historical context: checkpoints oscillated between 2/16 and 16/16 uniformly across strata, not explained by spawnHook or hinge force. Matched replicates or longer training remain a separate option.
 
 ## DONE Summary
 
+- 2026-08-14 22:35 HKT - pull-v5.1 repair closure: F5 ACTUAL、P2 paired verdict PASS、Source-A metadata/delayed capture 与 191-row G8 pure-natural bank 完成；P2 K25 `3/16→16/16`、13 个 favorable discordants、`p=0.0001220703125`，确认 release persistence binding，但 E6/frame passage 仍 `0/16`。P1 四 primitive anchor 三次均 waypoint/solvable `64/64`、yaw `32/64`，按 G3/G11 在 anchor BLOCKED 收口；三桶、G2、P3/P4、双源 DV NOT_RUN，stopping condition 未达。正式 review 保持一轮 FAIL，无第二轮 PASS claim。
 - 2026-08-12 07:45 HKT - pull-v5 bridge-occupancy/release-persistence closure: adopted external review Rank1/FactD/§3.3 and corrected metric semantics; P0 v4-B census runtime PASS (`12800/64/64/64/64/0`, Stage4 hinge `.252803` / `.250109–.256819`) proves early-open reset occupancy with no post-release/frame-transition mass. Source A produced 64 settle-valid E5 states/86 buffers but omitted per-state closer force; Source B failed stage0 ratio invariant, so no canonical bank exists. P0 load-only receipt remains unresolved; P0-C archive PASS (`302,913,787` bytes, 195 entries, 75 projected traces, no hash). P1 anchor+door BLOCKED, P2 INCONCLUSIVE, P3/P4/G2 NOT_RUN; stopping condition not met. One formal review wave remains FAIL; r3–r5 targeted repairs/runtime evidence are not reviewer PASS.
 - 2026-08-12 00:07 HKT - Handoff preparation completed: the capped derivative excerpt is at `a2_piper_pull_v1_to_v4_evidence_20260811.zip` (untracked root artifact; 108,407,774 bytes, 120 entries, within the 500,000,000-byte cap). Its tracked-source manifest and builder are `scriptsFORhuman/pull_v4/MANIFEST.md` and `scriptsFORhuman/pull_v4/build_pull_v1_v4_evidence.py`; source render evidence is under `logs_eval/a2_piper_pull_v4/renders/`. Tier1 has 97 files, Tier2 has 22 files, and the six R1 logical video omissions are explicit. Four unavailable v2 full runner logs remain omitted and `.hydra/train.log` was not substituted. R1 is INCONCLUSIVE/NOT_RUN after three launcher attempts with zero videos; this launcher-lifecycle limitation is not a policy or product-runtime verdict. R2-R4 each natural-exited and produced six full-decode 1280×720@20fps MP4s. The archive is a derivative excerpt; original evidence units remain untouched. No behavior-success claim is made.
 - 2026-08-11 19:53 HKT - pull-v4 negative closure: A/L5 与 B/L1 仅从 pull-v2 Wave2 seed1 step750 warm start；B D0-lite、B0 smoke、四个 Wave1 与 12 cell eval 完成。所有 base cell 的 E6/E7/complete `0/16`、八项 invariant 零；L5-only 不成立，L1 改善 release/proximity 但未创造 frame-neighborhood/E6。G6 不再扩时，G10 只记录不实现 brace。formal static review FAIL；targeted repairs + runtime validation；依指令无第二轮 review。

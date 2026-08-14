@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-12 07:45 HKT (pull-v5 closure)。
+创建:2026-07-21;最近更新:2026-08-14 22:35 HKT (pull-v5.1 repair closure)。
 
 ---
 
@@ -49,6 +49,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-14 22:35 HKT:**pull-v5.1 repair 收口(G3/G11,未达门侧 P1)**——F5 load-only 为 ACTUAL；P2 frozen v4-B paired intervention 的 K25 为 `3/16→16/16`，13 个 favorable discordants、0 unfavorable、exact `p=0.0001220703125`，确认 release persistence binding，但 +2s hinge retention 仅 `5/16` 且 E6/frame passage 仍 `0/16`。Source-A E5/E5+2s/E5+4s=`64/64/63`，按 G8 建成 191-row pure-natural bank，closer 三桶=`45/54/92`、逐态 metadata 完整。P1 四 primitive anchor 三次均 waypoint/solvable=`64/64`、yaw=`32/64`，故三桶、G2、P3/P4、双源 DV NOT_RUN，stopping condition 未达。P2 的 release+tuck 不是 brace/regrasp 证据；有效 G2 未达，pull longterm TODO #1 仍不触发。正式 review 保持一轮 FAIL，无第二轮 PASS claim。依据：`scriptsFORhuman/pull_v5/PULL_V5_1_ROUND_REPORT.md`。
 
 - [x] 2026-08-12 07:45 HKT:**pull-v5 bridge-occupancy/release-persistence 收口(未达 G2)**——外部评审 Rank1/FactD/§3.3 已采纳：`deliberate_release` 是一步 contact-transition，post-release recontact 是 body/arm-panel transition tail，不是 regrasp 或 learned brace；`frame_approach` 是 frame-strip occupancy，E3 可先于 E2，E5 是自动 telemetry milestone，E7 是 strict whole-body -X clearance，`base_reversal_count` 无 deadband。P0 v4-B census runtime PASS：Stage0/1/2/3/4/5=`12800/64/64/64/64/0`，Stage4 hinge mean `.252803`、range `.250109–.256819`；early-open reset occupancy 已证实，post-release/frame-transition mass 为零。Source A 导出 64 个 settle-valid E5 states/86 buffers，Source B stage0 ratio invariant FAIL，故无 usable canonical bank；P0 load-only unresolved，P0-C archive PASS（`302,913,787` bytes、195 entries、75 projected traces、无 hash）。P1 anchor+door BLOCKED（非 passage=0），P2 INCONCLUSIVE，P3/P4/G2 NOT_RUN；stopping condition 未达。brace 仍未实现/future，只有 direct observation + 有效 G2 lattice 后才可另行立项。正式 review 仍一轮 FAIL；r3–r5 runtime/targeted repair 不是第二个 reviewer PASS。
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare/run the Pull-v5.1 dual-source evaluation for one checkpoint."""
+"""Prepare/run the Pull-v5.2 dual-source evaluation for one checkpoint."""
 
 from __future__ import annotations
 
@@ -26,6 +26,7 @@ INVARIANTS = (
     "frame_approach_active_after_frame_passage",
     "canonical_not_counted_as_natural_start",
     "failed_settle_not_in_bank",
+    "override_active_outside_canonical_start",
 )
 
 
@@ -56,6 +57,12 @@ def _required_float(value: object, *, name: str) -> float:
     return float(value)
 
 
+def _required_int(value: object, *, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ValueError(f"terminal producer field {name} must be a non-negative int; got {value!r}")
+    return value
+
+
 def _event_map(row: dict[str, object]) -> dict[str, bool]:
     value = _nested_value(row, ("pull_v0_episode", "event_reached"), ("event_reached",))
     if not isinstance(value, dict):
@@ -71,8 +78,8 @@ def _normalize_terminal_rows(
 ) -> list[dict[str, object]]:
     raw = metrics.get("episode_terminal_diagnostics")
     if not isinstance(raw, list) or len(raw) != 16 or not all(isinstance(row, dict) for row in raw):
-        raise ValueError("Pull-v5.1 evaluator requires exactly 16 explicit terminal diagnostics")
-    expected_source = "bank_natural_e5" if source == "canonical" else "natural"
+        raise ValueError("Pull-v5.2 evaluator requires exactly 16 explicit terminal diagnostics")
+    expected_source = "bank_natural_e5_override" if source == "canonical" else "natural"
     normalized: list[dict[str, object]] = []
     seen_env_ids: set[int] = set()
     for row in raw:
@@ -85,7 +92,7 @@ def _normalize_terminal_rows(
                 raise ValueError(f"terminal producer row {env_id} is nonterminal")
         source_provenance = _nested_value(row, ("pull_v5", "reset_source"), ("reset_source",))
         if source == "canonical":
-            if not isinstance(source_provenance, str) or not source_provenance.startswith("bank_"):
+            if source_provenance != expected_source:
                 raise ValueError(f"canonical evaluator row {env_id} has invalid reset_source {source_provenance!r}")
         elif source_provenance != expected_source:
             raise ValueError(f"natural evaluator row {env_id} has reset_source {source_provenance!r}")
@@ -122,15 +129,58 @@ def _normalize_terminal_rows(
             bank_settle_valid = None
         invariants_value = _nested_value(row, ("pull_v5", "invariants"), ("invariants",))
         if not isinstance(invariants_value, dict):
-            raise ValueError(f"terminal producer row {env_id} is missing the ten pull_v5 invariants")
+            raise ValueError(f"terminal producer row {env_id} is missing the eleven pull_v5 invariants")
         invariants = {
             name: _required_bool(invariants_value.get(name), name=f"invariants.{name}")
             for name in INVARIANTS
         }
+        pull_v5 = row.get("pull_v5")
+        if not isinstance(pull_v5, dict):
+            raise ValueError(f"terminal producer row {env_id} is missing pull_v5 telemetry")
+        start_override_active = _required_bool(
+            pull_v5.get("start_override_active"), name="pull_v5.start_override_active"
+        )
+        start_override_steps = _required_int(
+            pull_v5.get("start_override_active_steps"), name="pull_v5.start_override_active_steps"
+        )
+        start_override_base_equal = _required_bool(
+            pull_v5.get("start_override_base_slice_equal"), name="pull_v5.start_override_base_slice_equal"
+        )
+        if source == "canonical" and not start_override_active:
+            raise ValueError(f"canonical evaluator row {env_id} did not activate the start override")
+        if source == "natural" and start_override_active:
+            raise ValueError(f"natural evaluator row {env_id} activated the start override")
+        passage_attempt_hinge = pull_v5.get("passage_attempt_hinge_rad")
+        if frame_passage:
+            passage_attempt_hinge = _required_float(
+                passage_attempt_hinge, name="pull_v5.passage_attempt_hinge_rad"
+            )
+        elif passage_attempt_hinge is not None:
+            raise ValueError(
+                f"terminal producer row {env_id} has non-null passage_attempt_hinge_rad without frame passage"
+            )
+        panel = row.get("pull_v0_episode")
+        if not isinstance(panel, dict):
+            raise ValueError(f"terminal producer row {env_id} is missing pull_v0_episode telemetry")
+        panel_contact_steps = _required_int(
+            panel.get("body_panel_contact_steps_per_20s"),
+            name="pull_v0_episode.body_panel_contact_steps_per_20s",
+        )
+        post_release_recontact_count = _required_int(
+            traversal.get("post_release_recontact_count"),
+            name="pull_v3_traversal.post_release_recontact_count",
+        )
+        frame_midpoint_distance = _required_float(
+            traversal.get("frame_midpoint_distance_min_m"),
+            name="pull_v3_traversal.frame_midpoint_distance_min_m",
+        )
+        door_hinge_joint_pos = _required_float(
+            row.get("door_hinge_joint_pos"), name="door_hinge_joint_pos"
+        )
         normalized.append(
             {
-                "schema": "a2_piper_pull_v5_1_terminal_record_v1",
-                "run_id": f"pull_v5_1_{cell}_step{checkpoint.stem.rsplit('_', 1)[-1]}_{source}",
+                "schema": "a2_piper_pull_v5_2_terminal_record_v1",
+                "run_id": f"pull_v5_2_{cell}_step{checkpoint.stem.rsplit('_', 1)[-1]}_{source}",
                 "cell": cell,
                 "checkpoint": str(checkpoint),
                 "episode_id": env_id,
@@ -146,6 +196,14 @@ def _normalize_terminal_rows(
                 "E7_WHOLE_BODY_CLEAR": events["E7_WHOLE_BODY_CLEAR"],
                 "settle_valid": settle_valid,
                 "bank_settle_valid": bank_settle_valid,
+                "start_override_active": start_override_active,
+                "start_override_active_steps": start_override_steps,
+                "start_override_base_slice_equal": start_override_base_equal,
+                "passage_attempt_hinge_rad": passage_attempt_hinge,
+                "door_hinge_joint_pos": door_hinge_joint_pos,
+                "panel_contact_steps_per_20s": panel_contact_steps,
+                "post_release_recontact_count": post_release_recontact_count,
+                "frame_midpoint_distance_min_m": frame_midpoint_distance,
                 "hinge_drive_max_force_nm": _required_float(
                     _nested_value(
                         row,
@@ -170,13 +228,13 @@ def build_command(
     if source not in SOURCES:
         raise ValueError(f"unknown evaluation source: {source!r}")
     if gpu not in ALLOWED_GPUS:
-        raise ValueError(f"Pull-v5.1 eval only permits physical GPU4-7; got GPU{gpu}")
+        raise ValueError(f"Pull-v5.2 eval only permits physical GPU4-7; got GPU{gpu}")
     if step % 50 != 0 or step < 50 or step > 250:
-        raise ValueError("Pull-v5.1 eval checkpoints are the saved 50-step cells through step250")
+        raise ValueError("Pull-v5.2 eval checkpoints are the saved 50-step cells through step250")
     if not checkpoint.is_file() and not allow_missing_checkpoint:
         raise FileNotFoundError(checkpoint)
     if output_dir.parent.resolve() != EVAL_ROOT.resolve():
-        raise ValueError(f"Pull-v5.1 eval output must be directly under {EVAL_ROOT}")
+        raise ValueError(f"Pull-v5.2 eval output must be directly under {EVAL_ROOT}")
     reset_source = "bank_natural_e5" if source == "canonical" else "natural"
     command = [
         str(PYTHON), "-B", "-m", "gr00t.rl.eval_agent_trl",
@@ -190,6 +248,8 @@ def build_command(
         "env.config.a2_pull_v5_stage4_bank_injection_enabled=false",
         "env.config.a2_pull_v5_stage4_bank_injection_ratio=0.0",
         f"env.config.a2_pull_v5_reset_source={reset_source}",
+        "env.config.a2_pull_v5_start_override_enabled=true",
+        "env.config.a2_pull_v5_start_override_steps=50",
         "env.config.a2_pull_v5_release_streak_steps=25",
         "env.config.a2_pull_v5_intervention_enabled=false",
         "env.config.a2_pull_v5_snapshot_freeze_enabled=true",
@@ -197,7 +257,7 @@ def build_command(
         "env.config.a2_pull_v5_state_bank_min_samples=64",
         f"env.config.a2_pull_v5_state_bank_allow_g8_pure_a={'true' if allow_g8_pure_a else 'false'}",
         "env.config.a2_pull_v5_state_bank_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt",
-        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_eval_{cell}_step{step}_{source}.json",
+        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_2_eval_{cell}_step{step}_{source}.json",
         f"eval_output_dir={output_dir / 'eval'}", f"hydra.run.dir={output_dir / 'hydra'}",
         f"env.config.save_rendering_dir={output_dir / 'renderings'}", "+device=cuda:0",
         f"+main_process_port={30100 + gpu * 100 + step * 2 + (0 if source == 'canonical' else 1)}",
@@ -229,18 +289,18 @@ def main() -> int:
     args = parser.parse_args()
     checkpoint = args.checkpoint.resolve()
     for source in SOURCES:
-        output_dir = (args.output_root / f"pull_v5_1_{args.cell}_step{args.step}_{source}").resolve()
+        output_dir = (args.output_root / f"pull_v5_2_{args.cell}_step{args.step}_{source}").resolve()
         command, process_env = build_command(
             checkpoint=checkpoint, cell=args.cell, step=args.step, source=source,
             gpu=args.gpu, output_dir=output_dir, allow_missing_checkpoint=args.dry_run,
             allow_g8_pure_a=args.allow_g8_pure_a,
         )
-        print(f"[pull-v5.1 eval {source}] command:", " ".join(command))
-        print(f"[pull-v5.1 eval {source}] environment:", process_env)
+        print(f"[pull-v5.2 eval {source}] command:", " ".join(command))
+        print(f"[pull-v5.2 eval {source}] environment:", process_env)
         if not args.run:
             continue
         if output_dir.exists():
-            raise FileExistsError(f"refusing to overwrite Pull-v5.1 eval output: {output_dir}")
+            raise FileExistsError(f"refusing to overwrite Pull-v5.2 eval output: {output_dir}")
         output_dir.mkdir(parents=True, exist_ok=False)
         run_env = os.environ.copy(); run_env.update(process_env)
         with (output_dir / "runner.log").open("x", encoding="utf-8") as stream:
@@ -249,15 +309,15 @@ def main() -> int:
             return result.returncode
         metrics_path = output_dir / "eval" / "metrics_eval.json"
         if not metrics_path.is_file():
-            raise RuntimeError(f"Pull-v5.1 eval exited without terminal metrics: {metrics_path}")
+            raise RuntimeError(f"Pull-v5.2 eval exited without terminal metrics: {metrics_path}")
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         if not isinstance(metrics, dict):
-            raise ValueError("Pull-v5.1 evaluator metrics must be a mapping")
+            raise ValueError("Pull-v5.2 evaluator metrics must be a mapping")
         terminal = _normalize_terminal_rows(metrics, cell=args.cell, checkpoint=checkpoint, source=source)
         terminal_path = output_dir / "terminal_records.json"
         terminal_path.write_text(json.dumps(terminal, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         receipt = {
-            "schema": "a2_piper_pull_v5_1_eval_receipt_v3",
+            "schema": "a2_piper_pull_v5_2_eval_receipt_v1",
             "status": "PASS",
             "cell": args.cell,
             "checkpoint": str(checkpoint),
@@ -267,8 +327,11 @@ def main() -> int:
             "terminal_records": len(terminal),
             "output_dir": str(output_dir),
             "injection_enabled": False,
+            "eval_reset_provider": "bank" if source == "canonical" else "stage0",
+            "start_override_enabled": True,
+            "start_override_steps": 50,
             "load_optimizer": False,
-            "load_receipt_path": str((ROOT / f"logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_eval_{args.cell}_step{args.step}_{source}.json").resolve()),
+            "load_receipt_path": str((ROOT / f"logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_2_eval_{args.cell}_step{args.step}_{source}.json").resolve()),
             "terminal_records_path": str(terminal_path.resolve()),
             "reset_sources": sorted({row["reset_source"] for row in terminal}),
         }

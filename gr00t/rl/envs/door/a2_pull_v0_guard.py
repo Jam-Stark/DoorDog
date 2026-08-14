@@ -40,6 +40,7 @@ A2_PULL_V4_FRAME_APPROACH_SCALE_B = 6.0
 A2_PULL_V5_STAGE_TIME_BUDGET_STEPS = A2_PULL_V3_STAGE_TIME_BUDGET_STEPS
 A2_PULL_V5_MAX_EPISODE_LENGTH_S = A2_PULL_V3_MAX_EPISODE_LENGTH_S
 A2_PULL_V5_RELEASE_STREAK_STEPS = 25
+A2_PULL_V5_START_OVERRIDE_STEPS = 50
 A2_PULL_V5_MIN_STATE_BANK_SAMPLES = 64
 A2_PULL_V5_CLOSER_BUCKETS = ("2.5-5", "5-9", "9-12")
 A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA = "a2_piper_pull_v5_state_bank_source_v2"
@@ -49,6 +50,7 @@ A2_PULL_V5_RESET_SOURCES = (
     "bank_natural_e5",
     "bank_natural_e5_plus",
     "bank_constructed",
+    "bank_natural_e5_override",
 )
 A2_PULL_V5_STATE_BANK_ALLOW_G8_PURE_A_DEFAULT = False
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -1065,6 +1067,29 @@ def _validate_a2_pull_v5_bank_config(config: Mapping[str, Any]) -> dict[str, Any
             "Pull-v5 reset source must be exactly one of "
             f"{A2_PULL_V5_RESET_SOURCES!r}; got {reset_source!r}."
         )
+    start_override_enabled = config.get("a2_pull_v5_start_override_enabled", False)
+    if not isinstance(start_override_enabled, bool):
+        raise RuntimeError(
+            "Pull-v5 start override selector must be an explicit bool; "
+            f"got {start_override_enabled!r}."
+        )
+    start_override_steps = config.get(
+        "a2_pull_v5_start_override_steps", A2_PULL_V5_START_OVERRIDE_STEPS
+    )
+    if isinstance(start_override_steps, bool) or not isinstance(start_override_steps, int):
+        raise RuntimeError(
+            "Pull-v5 start override steps must be an explicit integer; "
+            f"got {start_override_steps!r}."
+        )
+    if start_override_enabled and start_override_steps != A2_PULL_V5_START_OVERRIDE_STEPS:
+        raise RuntimeError(
+            "Pull-v5 canonical-start override requires exactly 50 control steps; "
+            f"got {start_override_steps!r}."
+        )
+    if reset_source == "bank_natural_e5_override" and not start_override_enabled:
+        raise RuntimeError(
+            "Pull-v5 reset_source bank_natural_e5_override requires start override enabled."
+        )
     allow_g8_pure_a = _mapping_item(
         config,
         "a2_pull_v5_state_bank_allow_g8_pure_a",
@@ -1086,6 +1111,8 @@ def _validate_a2_pull_v5_bank_config(config: Mapping[str, Any]) -> dict[str, Any
         "state_bank_path": bank_path,
         "load_receipt_path": receipt_path,
         "reset_source": reset_source,
+        "start_override_enabled": start_override_enabled,
+        "start_override_steps": start_override_steps,
         "state_bank_allow_g8_pure_a": allow_g8_pure_a,
     }
 
@@ -1165,6 +1192,7 @@ __all__ = [
     "A2_PULL_V5_STAGE_TIME_BUDGET_STEPS",
     "A2_PULL_V5_MAX_EPISODE_LENGTH_S",
     "A2_PULL_V5_RELEASE_STREAK_STEPS",
+    "A2_PULL_V5_START_OVERRIDE_STEPS",
     "A2_PULL_V5_MIN_STATE_BANK_SAMPLES",
     "A2_PULL_V5_CLOSER_BUCKETS",
     "A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA",

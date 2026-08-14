@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict dual-source Pull-v5.1 terminal-record analyzer.
+"""Strict dual-source Pull-v5.2 terminal-record analyzer.
 
 Only explicit terminal episode collections are accepted.  Step traces, control
 records, and recursively discovered nested mappings are intentionally rejected
@@ -18,7 +18,7 @@ from typing import Any, Iterable, Mapping
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "logs_eval/a2_piper_pull_v5"
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_1_ANALYSIS.json"
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_2_ANALYSIS.json"
 TERMINAL_FILENAME = "terminal_records.json"
 INVARIANTS = (
     "fake_e4",
@@ -31,21 +31,24 @@ INVARIANTS = (
     "frame_approach_active_after_frame_passage",
     "canonical_not_counted_as_natural_start",
     "failed_settle_not_in_bank",
+    "override_active_outside_canonical_start",
 )
 
 
 def _json_documents(input_roots: Iterable[Path]) -> Iterable[tuple[Path, Any]]:
-    """Read only explicitly supplied v5.1 cell roots; never recurse a log tree."""
+    """Read only explicitly supplied v5.2 cell roots; never recurse a log tree."""
 
     for root in input_roots:
         root = root.resolve()
         if root.is_file():
             if root.name != TERMINAL_FILENAME:
                 raise ValueError(f"an explicit analyzer file must be named {TERMINAL_FILENAME}: {root}")
+            if root.parent.parent.resolve() != DEFAULT_INPUT.resolve() or not root.parent.name.startswith("pull_v5_2_"):
+                raise ValueError(f"analyzer terminal file must be under an explicit pull_v5_2_* directory: {root}")
             path = root
         elif root.is_dir():
-            if not root.name.startswith("pull_v5_1_"):
-                raise ValueError(f"analyzer cell root must be an explicit pull_v5_1_* directory: {root}")
+            if root.parent.resolve() != DEFAULT_INPUT.resolve() or not root.name.startswith("pull_v5_2_"):
+                raise ValueError(f"analyzer cell root must be an explicit pull_v5_2_* directory under {DEFAULT_INPUT}: {root}")
             path = root / TERMINAL_FILENAME
             if not path.is_file():
                 raise FileNotFoundError(path)
@@ -103,10 +106,8 @@ def _source(row: Mapping[str, Any]) -> str:
     value = row.get("reset_source")
     if value is None and isinstance(row.get("pull_v5"), Mapping):
         value = row["pull_v5"].get("reset_source")
-    if value != "natural" and (not isinstance(value, str) or value not in {
-        "bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"
-    }):
-        raise ValueError(f"terminal row reset_source must be natural or bank_*; got {value!r}")
+    if value != "natural" and value != "bank_natural_e5_override":
+        raise ValueError(f"terminal row reset_source must be natural or bank_natural_e5_override; got {value!r}")
     return str(value)
 
 
@@ -126,8 +127,8 @@ def _invariant_values(row: Mapping[str, Any]) -> dict[str, bool]:
 
 
 def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
-    if row.get("schema") != "a2_piper_pull_v5_1_terminal_record_v1":
-        raise ValueError("terminal row schema must be a normalized Pull-v5.1 terminal record")
+    if row.get("schema") != "a2_piper_pull_v5_2_terminal_record_v1":
+        raise ValueError("terminal row schema must be a normalized Pull-v5.2 terminal record")
     run_id = _required_string(row, "run_id")
     cell = _required_string(row, "cell")
     checkpoint = _required_string(row, "checkpoint")
@@ -135,7 +136,7 @@ def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(episode_id, bool) or not isinstance(episode_id, int) or episode_id < 0:
         raise ValueError("terminal row episode_id must be a non-negative integer")
     source_provenance = _source(row)
-    source = "canonical_bank" if source_provenance.startswith("bank_") else "natural"
+    source = "canonical_bank" if source_provenance == "bank_natural_e5_override" else "natural"
     declared_source = row.get("source")
     if declared_source not in {"canonical_bank", "natural"} or declared_source != source:
         raise ValueError(
@@ -165,6 +166,28 @@ def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("canonical source row cannot use natural dv_source")
     if source == "natural" and dv_source != "natural":
         raise ValueError("natural source row cannot use canonical dv_source")
+    start_override_active = _required_bool(row, "start_override_active")
+    start_override_steps = row.get("start_override_active_steps")
+    if isinstance(start_override_steps, bool) or not isinstance(start_override_steps, int) or start_override_steps < 0:
+        raise ValueError("terminal row start_override_active_steps must be a non-negative integer")
+    start_override_base_slice_equal = _required_bool(row, "start_override_base_slice_equal")
+    if source == "canonical_bank" and not start_override_active:
+        raise ValueError("canonical terminal row must activate start override")
+    if source == "natural" and start_override_active:
+        raise ValueError("natural terminal row must not activate start override")
+    passage_hinge = row.get("passage_attempt_hinge_rad")
+    if frame_passage:
+        passage_hinge = _required_finite(row, "passage_attempt_hinge_rad")
+    elif passage_hinge is not None:
+        raise ValueError("non-passage terminal row must carry null passage_attempt_hinge_rad")
+    panel_contact_steps = row.get("panel_contact_steps_per_20s")
+    if isinstance(panel_contact_steps, bool) or not isinstance(panel_contact_steps, int) or panel_contact_steps < 0:
+        raise ValueError("terminal row panel_contact_steps_per_20s must be a non-negative integer")
+    recontact = row.get("post_release_recontact_count")
+    if isinstance(recontact, bool) or not isinstance(recontact, int) or recontact < 0:
+        raise ValueError("terminal row post_release_recontact_count must be a non-negative integer")
+    midpoint = _required_finite(row, "frame_midpoint_distance_min_m")
+    door_hinge = _required_finite(row, "door_hinge_joint_pos")
     return {
         "run_id": run_id,
         "cell": cell,
@@ -180,6 +203,14 @@ def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
         "e7": e7,
         "settle_valid": settle_valid,
         "bank_settle_valid": bank_settle_valid,
+        "start_override_active": start_override_active,
+        "start_override_active_steps": start_override_steps,
+        "start_override_base_slice_equal": start_override_base_slice_equal,
+        "passage_attempt_hinge_rad": passage_hinge,
+        "door_hinge_joint_pos": door_hinge,
+        "panel_contact_steps_per_20s": panel_contact_steps,
+        "post_release_recontact_count": recontact,
+        "frame_midpoint_distance_min_m": midpoint,
         "hinge_drive_max_force_nm": force,
         "invariants": invariants,
     }
@@ -201,7 +232,7 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
     raw_rows: list[dict[str, Any]] = []
     roots = [Path(root).resolve() for root in input_roots]
     if not roots:
-        raise ValueError("analyzer requires at least one explicit v5.1 cell root")
+        raise ValueError("analyzer requires at least one explicit v5.2 cell root")
     for path, document in _json_documents(roots):
         raw_rows.extend(_terminal_rows(path, document))
     if not raw_rows:
@@ -210,7 +241,28 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
     seen: set[tuple[str, str, str, int, str]] = set()
     groups: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     violations = Counter({name: 0 for name in INVARIANTS})
-    closer: dict[str, dict[str, int]] = defaultdict(lambda: {"episodes": 0, "frame_passage": 0, "persistent_release": 0})
+    closer: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {
+            "episodes": 0,
+            "frame_passage": 0,
+            "persistent_release": 0,
+            "panel_contact_steps_per_20s": 0,
+            "post_release_recontact_count": 0,
+            "frame_midpoint_distance_min_m": None,
+            "passage_attempt_hinge_rad": [],
+            "by_source": defaultdict(
+                lambda: {
+                    "episodes": 0,
+                    "frame_passage": 0,
+                    "persistent_release": 0,
+                    "panel_contact_steps_per_20s": 0,
+                    "post_release_recontact_count": 0,
+                    "frame_midpoint_distance_min_m": None,
+                    "passage_attempt_hinge_rad": [],
+                }
+            ),
+        }
+    )
     for row in rows:
         identity = (row["run_id"], row["cell"], row["checkpoint"], row["episode_id"], row["source"])
         if identity in seen:
@@ -224,6 +276,22 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
         bucket["episodes"] += 1
         bucket["frame_passage"] += int(row["frame_passage"])
         bucket["persistent_release"] += int(row["persistent_release"])
+        bucket["panel_contact_steps_per_20s"] += row["panel_contact_steps_per_20s"]
+        bucket["post_release_recontact_count"] += row["post_release_recontact_count"]
+        midpoint = bucket["frame_midpoint_distance_min_m"]
+        bucket["frame_midpoint_distance_min_m"] = row["frame_midpoint_distance_min_m"] if midpoint is None else min(midpoint, row["frame_midpoint_distance_min_m"])
+        if row["passage_attempt_hinge_rad"] is not None:
+            bucket["passage_attempt_hinge_rad"].append(row["passage_attempt_hinge_rad"])
+        source_bucket = bucket["by_source"][row["source"]]
+        source_bucket["episodes"] += 1
+        source_bucket["frame_passage"] += int(row["frame_passage"])
+        source_bucket["persistent_release"] += int(row["persistent_release"])
+        source_bucket["panel_contact_steps_per_20s"] += row["panel_contact_steps_per_20s"]
+        source_bucket["post_release_recontact_count"] += row["post_release_recontact_count"]
+        source_midpoint = source_bucket["frame_midpoint_distance_min_m"]
+        source_bucket["frame_midpoint_distance_min_m"] = row["frame_midpoint_distance_min_m"] if source_midpoint is None else min(source_midpoint, row["frame_midpoint_distance_min_m"])
+        if row["passage_attempt_hinge_rad"] is not None:
+            source_bucket["passage_attempt_hinge_rad"].append(row["passage_attempt_hinge_rad"])
     for key, counts in groups.items():
         if counts["canonical_bank"] != 16 or counts["natural"] != 16:
             raise ValueError(
@@ -243,8 +311,24 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
             "settle_valid_rate": sum(row["settle_valid"] for row in subset) / count,
         }
     status = "PASS" if not any(violations.values()) else "FAIL"
+    def _finalize_strata(value: Mapping[str, Any]) -> dict[str, Any]:
+        result = dict(value)
+        by_source = result.get("by_source")
+        if isinstance(by_source, Mapping):
+            result["by_source"] = {
+                source: _finalize_strata(source_value)
+                for source, source_value in by_source.items()
+            }
+        hinges = result.get("passage_attempt_hinge_rad")
+        if isinstance(hinges, list):
+            result["passage_attempt_hinge_rad"] = {
+                "count": len(hinges),
+                "values": hinges,
+            }
+        return result
+
     return {
-        "schema": "a2_piper_pull_v5_1_analysis_v3",
+        "schema": "a2_piper_pull_v5_2_analysis_v1",
         "status": status,
         "input_roots": [str(root) for root in roots],
         "episode_count": len(rows),
@@ -253,7 +337,17 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
             "canonical": summarize("canonical_bank"),
             "natural": summarize("natural"),
         },
-        "closer_buckets": dict(closer),
+        "closer_buckets": {bucket: _finalize_strata(summary) for bucket, summary in closer.items()},
+        "dual_source": {
+            source: {
+                "frame_passage": summarize(source)["frame_passage_rate"],
+                "K25_persistent_release": summarize(source)["persistent_release_rate"],
+                "passage_hinge_count": sum(
+                    1 for row in rows if row["source"] == source and row["passage_attempt_hinge_rad"] is not None
+                ),
+            }
+            for source in ("canonical_bank", "natural")
+        },
         "invariants": {name: {"status": "FAIL" if count else "PASS", "violations": count} for name, count in violations.items()},
     }
 

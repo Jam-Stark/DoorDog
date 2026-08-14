@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare or run one Pull-v5.1 2×2 short training cell."""
+"""Prepare or run one Pull-v5.2 2×2 short training cell."""
 
 from __future__ import annotations
 
@@ -13,9 +13,9 @@ ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 TRAIN_ROOT = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull"
 WARM_CHECKPOINT = TRAIN_ROOT / "pull_v4_B_wave1_seed1/model_step_000750.pt"
-LOAD_RECEIPT_EXPERIMENT_NAME = "pull_v5_1_policy_only_load_attempt2"
+LOAD_RECEIPT_EXPERIMENT_NAME = "pull_v5_2_policy_only_load"
 LOAD_RECEIPT_EXPERIMENT = TRAIN_ROOT / LOAD_RECEIPT_EXPERIMENT_NAME
-LOAD_RECEIPT_PATH = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_policy_only.json"
+LOAD_RECEIPT_PATH = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_2_policy_only.json"
 ALLOWED_GPUS = (4, 5, 6, 7)
 CELLS = {
     "M_s0": ("pull_v5_M_s0", 0, 0.5),
@@ -35,7 +35,7 @@ def build_command(*, cell: str, gpu: int, checkpoint: Path, allow_missing_checkp
     if not checkpoint.is_file() and not allow_missing_checkpoint:
         raise FileNotFoundError(checkpoint)
     config_name, seed, ratio = CELLS[cell]
-    experiment_dir = TRAIN_ROOT / f"pull_v5_1_{cell}"
+    experiment_dir = TRAIN_ROOT / f"pull_v5_2_{cell}"
     if experiment_dir.exists():
         raise FileExistsError(f"refusing to overwrite Pull-v5 output: {experiment_dir}")
     command = [
@@ -49,13 +49,15 @@ def build_command(*, cell: str, gpu: int, checkpoint: Path, allow_missing_checkp
         "use_wandb=false", "simulator.config.render_results=false",
         "simulator.config.cameras.enable_cameras=false", "algo.config.load_optimizer=false",
         f"checkpoint={checkpoint}", f"base_dir={TRAIN_ROOT}",
-        "project_name=a2_piper_full_stage_a2_pull", f"experiment_name=pull_v5_1_{cell}",
+        "project_name=a2_piper_full_stage_a2_pull", f"experiment_name=pull_v5_2_{cell}",
         f"experiment_dir={experiment_dir}",
         "env.config.a2_v20_R1_plan_id=a2_piper_pull_v5_bridge_occupancy_and_release_persistence",
         "env.config.max_episode_length_s=24", "env.config.max_stage_time=[250,100,100,100,250,300]",
         "env.config.enable_staged_reset=true", "env.config.staged_reset_max_samples_per_stage=200",
         "env.config.a2_pull_v5_stage4_bank_injection_enabled=true",
         f"env.config.a2_pull_v5_stage4_bank_injection_ratio={ratio}",
+        "env.config.a2_pull_v5_start_override_enabled=true",
+        "env.config.a2_pull_v5_start_override_steps=50",
         "env.config.a2_pull_v5_release_streak_steps=25",
         "env.config.a2_pull_v5_intervention_enabled=false",
         "env.config.a2_pull_v5_snapshot_freeze_enabled=true",
@@ -63,7 +65,7 @@ def build_command(*, cell: str, gpu: int, checkpoint: Path, allow_missing_checkp
         "env.config.a2_pull_v5_state_bank_min_samples=64",
         f"env.config.a2_pull_v5_state_bank_allow_g8_pure_a={'true' if allow_g8_pure_a else 'false'}",
         "env.config.a2_pull_v5_state_bank_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt",
-        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_{cell}.json",
+        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_2_{cell}.json",
         "env.config.a2_pull_v5_reset_source=natural",
         "+device=cuda:0",
     ]
@@ -112,6 +114,8 @@ def build_load_receipt_command(
         "env.config.max_episode_length_s=24", "env.config.enable_staged_reset=true",
         "env.config.staged_reset_max_samples_per_stage=200",
         "env.config.a2_pull_v5_stage4_bank_injection_enabled=false",
+        "env.config.a2_pull_v5_start_override_enabled=false",
+        "env.config.a2_pull_v5_start_override_steps=50",
         "env.config.a2_pull_v5_snapshot_freeze_enabled=true",
         "env.config.a2_pull_v5_reset_source_telemetry_enabled=true",
         "env.config.a2_pull_v5_release_streak_steps=25",

@@ -50,6 +50,7 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V5_STATE_BANK_SCHEMA,
     A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA,
     A2_PULL_V5_RELEASE_STREAK_STEPS,
+    A2_PULL_V5_START_OVERRIDE_STEPS,
 )
 from gr00t.rl.envs.door.door_open_a2_base import (
     DoorPregrasp,
@@ -78,6 +79,18 @@ class DoorOpenA2Pull(DoorPregrasp):
     _A2_PULL_TRUNK_FOOTPRINT_RADIUS_M = 0.40
     _A2_PULL_V5_PROBE_WAYPOINT_TOLERANCE_M = 0.20
     _A2_PULL_V5_PROBE_YAW_TOLERANCE_RAD = 0.25
+    _A2_PULL_V5_PROBE_SEQUENCES = {
+        "S1": ("straight_minus_x",),
+        "S2": ("side_step",),
+        "S3": ("side_step", "straight_minus_x"),
+        "S4": ("straight_minus_x", "side_step"),
+    }
+    _A2_PULL_V5_PROBE_PRIMITIVES = {
+        "straight_minus_x": (-0.30, 0.0, 0.0),
+        "turn_then_forward": (0.0, 0.0, -0.55),
+        "side_step": (-0.18, 0.24, 0.0),
+        "arc": (-0.22, 0.0, 0.35),
+    }
 
     def __init__(self, config, device):
         config_mapping = config.get("config", config)
@@ -88,6 +101,76 @@ class DoorOpenA2Pull(DoorPregrasp):
             door_open_lr=config_mapping["a2_pull_door_open_lr"],
         )
         super().__init__(config, device)
+
+    @override
+    def step(self, actor_state):
+        """Apply the canonical bank-start arm release before DeltaActionBase accumulation."""
+
+        if not self._is_a2_pull_v5():
+            return super().step(actor_state)
+        enabled = self.config.get("a2_pull_v5_start_override_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("a2_pull_v5_start_override_enabled must be bool.")
+        steps = self.config.get("a2_pull_v5_start_override_steps", A2_PULL_V5_START_OVERRIDE_STEPS)
+        if isinstance(steps, bool) or not isinstance(steps, int):
+            raise RuntimeError("a2_pull_v5_start_override_steps must be an integer.")
+        if enabled and steps != A2_PULL_V5_START_OVERRIDE_STEPS:
+            raise RuntimeError(
+                "a2_pull_v5_start_override_steps must be exactly 50 when enabled; "
+                f"got {steps!r}."
+            )
+        if not enabled:
+            self._a2_pull_v5_start_override_active[:] = False
+            return super().step(actor_state)
+
+        actions = actor_state["actions"]
+        expected_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.num_envs, expected_dim)
+            or actions.device != torch.device(self.device)
+            or not actions.is_floating_point()
+            or not torch.all(torch.isfinite(actions))
+        ):
+            raise RuntimeError(
+                "Pull-v5 start override requires a finite device-local trainer action with "
+                f"shape ({self.num_envs}, {expected_dim})."
+            )
+        if tuple(self._delta_actions.shape) != (self.num_envs, 6):
+            raise RuntimeError(
+                "Pull-v5 start override requires cumulative arm state shape "
+                f"({self.num_envs}, 6); got {tuple(self._delta_actions.shape)}."
+            )
+        if not isinstance(self._delta_action_scale, (int, float)) or self._delta_action_scale <= 0.0:
+            raise RuntimeError("Pull-v5 start override requires a positive delta_action_scale.")
+
+        reset_source = torch.tensor(
+            [source == "bank_natural_e5_override" for source in self._a2_pull_v5_reset_source],
+            dtype=torch.bool,
+            device=self.device,
+        )
+        episode_step = self.episode_length_buf.to(dtype=torch.long)
+        in_window = (episode_step >= 0) & (episode_step < steps)
+        requested = torch.full_like(reset_source, enabled) & reset_source
+        active = requested & in_window
+        self._a2_pull_v5_start_override_active[:] = active
+        self._a2_pull_v5_start_override_active_steps += active.long()
+        self._a2_pull_v5_start_override_outside_window |= active & ~in_window
+
+        applied_actions = actions.clone()
+        if torch.any(active):
+            applied_actions[active, 5:11] = (
+                -self._delta_actions[active] / float(self._delta_action_scale)
+            )
+            applied_actions[active, 11] = 1.0
+            base_equal = torch.all(applied_actions[:, :5] == actions[:, :5], dim=-1)
+            self._a2_pull_v5_start_override_base_slice_equal &= torch.where(
+                active, base_equal, torch.ones_like(base_equal)
+            )
+
+        next_actor_state = dict(actor_state)
+        next_actor_state["actions"] = applied_actions
+        return super().step(next_actor_state)
 
     def _is_a2_pull_v5(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V5_PLAN_ID
@@ -368,6 +451,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             dtype=torch.bool,
             device=self.device,
         )
+        self._a2_pull_passage_attempt_hinge_rad = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
         self._a2_pull_last_raw_reward_components: dict[str, torch.Tensor] = {}
         self._a2_pull_runtime_telemetry_contract_checked = False
         self._a2_pull_runtime_telemetry_contract_sample: list[dict] = []
@@ -385,6 +471,18 @@ class DoorOpenA2Pull(DoorPregrasp):
                 self.num_envs, dtype=torch.bool, device=self.device
             )
             self._a2_pull_v5_intervention_fired = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_start_override_active = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_start_override_active_steps = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_start_override_base_slice_equal = torch.ones(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_start_override_outside_window = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
             self._a2_pull_v5_probe_solvable = torch.zeros(
@@ -414,6 +512,23 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_anchor_pass = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            self._a2_pull_v5_probe_phase_index = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_probe_phase_initialized = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_phase_waypoint_arrived = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_phase_yaw_arrived = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_sequence_complete = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v5_probe_sequence_id: str | None = None
+            self._a2_pull_v5_probe_sequence_phases: tuple[str, ...] = ()
             self._a2_pull_v5_capture_e5_seen = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
@@ -619,20 +734,27 @@ class DoorOpenA2Pull(DoorPregrasp):
         command_name: str,
         fixture: str,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Apply one registered P1 locomotion command through the A2 action path."""
+        """Apply one registered P1 sequence through the A2 action path."""
 
         if not self._is_a2_pull_v5():
             raise RuntimeError("Pull-v5 probe commands require the v5 plan guard.")
         if fixture not in {"anchor", "door"}:
             raise RuntimeError(f"Pull-v5 probe fixture must be anchor or door; got {fixture!r}.")
-        command_library = {
-            "straight_minus_x": (-0.30, 0.0, 0.0),
-            "turn_then_forward": (0.0, 0.0, -0.55),
-            "side_step": (-0.18, 0.24, 0.0),
-            "arc": (-0.22, 0.0, 0.35),
-        }
-        if command_name not in command_library:
+        if command_name in self._A2_PULL_V5_PROBE_SEQUENCES:
+            sequence_id = command_name
+            sequence_phases = self._A2_PULL_V5_PROBE_SEQUENCES[command_name]
+        elif command_name in self._A2_PULL_V5_PROBE_PRIMITIVES:
+            sequence_id = command_name
+            sequence_phases = (command_name,)
+        else:
             raise RuntimeError(f"Pull-v5 probe command is not registered: {command_name!r}.")
+        if self._a2_pull_v5_probe_sequence_id not in (None, sequence_id):
+            raise RuntimeError(
+                "Pull-v5 probe sequence cannot change while phase state is live; "
+                f"got {self._a2_pull_v5_probe_sequence_id!r} then {sequence_id!r}."
+            )
+        self._a2_pull_v5_probe_sequence_id = sequence_id
+        self._a2_pull_v5_probe_sequence_phases = tuple(sequence_phases)
         if (
             not torch.is_tensor(policy_action)
             or tuple(policy_action.shape) != (self.num_envs, 12)
@@ -641,14 +763,6 @@ class DoorOpenA2Pull(DoorPregrasp):
             or not torch.all(torch.isfinite(policy_action))
         ):
             raise RuntimeError("Pull-v5 probe requires a finite device-local high-level action (N,12).")
-        robot_root_quat = self.simulator.scene.articulations["robot"].data.root_quat_w
-        if (
-            tuple(robot_root_quat.shape) != (self.num_envs, 4)
-            or robot_root_quat.device != policy_action.device
-            or robot_root_quat.dtype != policy_action.dtype
-            or not torch.all(torch.isfinite(robot_root_quat))
-        ):
-            raise RuntimeError("Pull-v5 probe requires finite robot root quaternions with shape (N,4).")
         lattice_scale = self.config.get("a2_pull_v5_lattice_scale", 1.0)
         if (
             isinstance(lattice_scale, bool)
@@ -658,15 +772,40 @@ class DoorOpenA2Pull(DoorPregrasp):
         ):
             raise RuntimeError("Pull-v5 probe lattice scale must be a finite positive number.")
         lattice_scale = float(lattice_scale)
-        command_xy = torch.tensor(
-            command_library[command_name][:2], device=self.device, dtype=policy_action.dtype
-        ).expand(self.num_envs, 2) * lattice_scale
-        command_yaw = torch.full(
-            (self.num_envs,),
-            float(command_library[command_name][2]) * lattice_scale,
+        waypoint_tolerance = self.config.get(
+            "a2_pull_v5_probe_waypoint_tolerance_m",
+            self._A2_PULL_V5_PROBE_WAYPOINT_TOLERANCE_M,
+        )
+        if (
+            isinstance(waypoint_tolerance, bool)
+            or not isinstance(waypoint_tolerance, (int, float))
+            or not math.isfinite(float(waypoint_tolerance))
+            or float(waypoint_tolerance) <= 0.0
+        ):
+            raise RuntimeError("Pull-v5 probe waypoint tolerance must be a finite positive number.")
+        waypoint_tolerance = float(waypoint_tolerance)
+        yaw_tolerance = self.config.get(
+            "a2_pull_v5_probe_yaw_tolerance_rad",
+            self._A2_PULL_V5_PROBE_YAW_TOLERANCE_RAD,
+        )
+        if (
+            isinstance(yaw_tolerance, bool)
+            or not isinstance(yaw_tolerance, (int, float))
+            or not math.isfinite(float(yaw_tolerance))
+            or float(yaw_tolerance) <= 0.0
+        ):
+            raise RuntimeError("Pull-v5 probe yaw tolerance must be a finite positive number.")
+        yaw_tolerance = float(yaw_tolerance)
+        phase_commands = torch.tensor(
+            [self._A2_PULL_V5_PROBE_PRIMITIVES[name] for name in sequence_phases],
             device=self.device,
             dtype=policy_action.dtype,
-        )
+        ) * lattice_scale
+        phase_xy_commands = phase_commands[:, :2]
+        phase_yaw_commands = phase_commands[:, 2]
+        phase_index = self._a2_pull_v5_probe_phase_index
+        if torch.any(phase_index >= len(sequence_phases)):
+            raise RuntimeError("Pull-v5 probe phase index exceeded the configured sequence.")
         robot = self.simulator.scene.articulations["robot"]
         if fixture == "anchor":
             uninitialized = ~self._a2_pull_v5_probe_anchor_initialized
@@ -678,6 +817,12 @@ class DoorOpenA2Pull(DoorPregrasp):
                     float(self._pull_direction.approach_side_x) * 1.0
                 )
                 anchor_root[:, 1] = self.env_origins[env_ids, 1]
+                anchor_roll, anchor_pitch, _ = euler_xyz_from_quat(anchor_root[:, 3:7])
+                anchor_root[:, 3:7] = quat_from_euler_xyz(
+                    anchor_roll,
+                    anchor_pitch,
+                    torch.full_like(anchor_roll, math.pi),
+                )
                 anchor_root[:, 7:13] = 0.0
                 robot.write_root_state_to_sim(anchor_root, env_ids)
                 anchor_dof_pos = self.default_dof_pos.to(self.device).expand(len(env_ids), -1).clone()
@@ -694,50 +839,107 @@ class DoorOpenA2Pull(DoorPregrasp):
                 self._refresh_sim_tensors()
                 _, _, anchor_root_yaw = euler_xyz_from_quat(anchor_root[:, 3:7])
                 self._a2_pull_v5_probe_waypoint_target_xy[env_ids] = (
-                    anchor_root[:, :2] + command_xy[env_ids]
+                    anchor_root[:, :2] + phase_xy_commands[0]
                 )
                 self._a2_pull_v5_probe_yaw_target[env_ids] = (
-                    anchor_root_yaw + command_yaw[env_ids]
+                    anchor_root_yaw + phase_yaw_commands[0]
                 )
                 self._a2_pull_v5_probe_anchor_initialized[env_ids] = True
         root_pos = self.simulator.scene.articulations["robot"].data.root_pos_w
         root_quat_w = self.simulator.scene.articulations["robot"].data.root_quat_w
+        if (
+            tuple(root_pos.shape) != (self.num_envs, 3)
+            or tuple(root_quat_w.shape) != (self.num_envs, 4)
+            or root_pos.device != policy_action.device
+            or root_quat_w.device != policy_action.device
+            or root_quat_w.dtype != policy_action.dtype
+            or not torch.all(torch.isfinite(root_pos))
+            or not torch.all(torch.isfinite(root_quat_w))
+        ):
+            raise RuntimeError("Pull-v5 probe requires finite robot root state tensors on the action device.")
         _, _, root_yaw = euler_xyz_from_quat(root_quat_w)
-        initialize_target = torch.isnan(self._a2_pull_v5_probe_yaw_target)
+        phase_xy = phase_xy_commands[phase_index]
+        phase_yaw = phase_yaw_commands[phase_index]
+        initialize_target = ~self._a2_pull_v5_probe_phase_initialized
         self._a2_pull_v5_probe_waypoint_target_xy[initialize_target] = (
-            root_pos[initialize_target, :2] + command_xy[initialize_target]
+            root_pos[initialize_target, :2] + phase_xy[initialize_target]
         )
         self._a2_pull_v5_probe_yaw_target[initialize_target] = (
-            root_yaw[initialize_target] + command_yaw[initialize_target]
+            root_yaw[initialize_target] + phase_yaw[initialize_target]
         )
+        self._a2_pull_v5_probe_phase_initialized[initialize_target] = True
         waypoint_error = self._a2_pull_v5_probe_waypoint_target_xy - root_pos[:, :2]
         waypoint_error_m = torch.linalg.norm(waypoint_error, dim=-1)
         yaw_error = wrap_to_pi(self._a2_pull_v5_probe_yaw_target - root_yaw)
+        phase_complete = (
+            self._a2_pull_v5_probe_phase_initialized
+            & (waypoint_error_m <= waypoint_tolerance)
+            & (torch.abs(yaw_error) <= yaw_tolerance)
+            & ~self._a2_pull_v5_probe_sequence_complete
+        )
+        next_phase = phase_index + 1
+        advance_phase = phase_complete & (next_phase < len(sequence_phases))
+        if torch.any(advance_phase):
+            next_phase_index = next_phase[advance_phase]
+            self._a2_pull_v5_probe_phase_index[advance_phase] = next_phase_index
+            self._a2_pull_v5_probe_phase_waypoint_arrived[advance_phase] = False
+            self._a2_pull_v5_probe_phase_yaw_arrived[advance_phase] = False
+            self._a2_pull_v5_probe_waypoint_target_xy[advance_phase] = (
+                root_pos[advance_phase, :2] + phase_xy_commands[next_phase_index]
+            )
+            self._a2_pull_v5_probe_yaw_target[advance_phase] = (
+                root_yaw[advance_phase] + phase_yaw_commands[next_phase_index]
+            )
+            phase_index = self._a2_pull_v5_probe_phase_index
+            phase_xy = phase_xy_commands[phase_index]
+            phase_yaw = phase_yaw_commands[phase_index]
+            waypoint_error = self._a2_pull_v5_probe_waypoint_target_xy - root_pos[:, :2]
+            waypoint_error_m = torch.linalg.norm(waypoint_error, dim=-1)
+            yaw_error = wrap_to_pi(self._a2_pull_v5_probe_yaw_target - root_yaw)
         _residual, solvable, _body_velocity, raw_base = a2_hold_base_relief_command(
             waypoint_error,
-            robot_root_quat,
+            root_quat_w,
             torch.ones(self.num_envs, dtype=torch.bool, device=self.device),
             physical_speed_mps=0.30,
             base_command_scale=self._a2_base_command_scale,
             min_solvable_horizontal_error_m=1.0e-3,
         )
+        registered_yaw_limit = max(
+            abs(command[2]) for command in self._A2_PULL_V5_PROBE_PRIMITIVES.values()
+        )
+        yaw_command_limit = torch.where(
+            torch.abs(phase_yaw) > 0.0,
+            torch.abs(phase_yaw),
+            torch.full_like(phase_yaw, registered_yaw_limit),
+        )
         yaw_command = -torch.sign(yaw_error) * torch.minimum(
-            torch.abs(yaw_error), torch.abs(command_yaw)
+            torch.abs(yaw_error), yaw_command_limit
         )
         solvable |= torch.abs(yaw_error) >= 1.0e-3
         applied = policy_action.clone()
         applied[:, :5] = raw_base
         applied[:, 2] = yaw_command / float(self._a2_base_command_scale)
-        waypoint_arrived = waypoint_error_m <= self._A2_PULL_V5_PROBE_WAYPOINT_TOLERANCE_M
-        yaw_arrived = torch.abs(yaw_error) <= self._A2_PULL_V5_PROBE_YAW_TOLERANCE_RAD
+        waypoint_arrived = waypoint_error_m <= waypoint_tolerance
+        yaw_arrived = torch.abs(yaw_error) <= yaw_tolerance
+        final_phase_arrived = (
+            waypoint_arrived
+            & yaw_arrived
+            & (phase_index == len(sequence_phases) - 1)
+            & self._a2_pull_v5_probe_phase_initialized
+        )
+        self._a2_pull_v5_probe_phase_waypoint_arrived[:] = waypoint_arrived
+        self._a2_pull_v5_probe_phase_yaw_arrived[:] = yaw_arrived
+        self._a2_pull_v5_probe_sequence_complete |= final_phase_arrived
         self._a2_pull_v5_probe_waypoint_error_m[:] = waypoint_error_m
         self._a2_pull_v5_probe_yaw_error_rad[:] = torch.abs(yaw_error)
-        self._a2_pull_v5_probe_waypoint_arrived |= waypoint_arrived
-        self._a2_pull_v5_probe_yaw_arrived |= yaw_arrived
+        self._a2_pull_v5_probe_waypoint_arrived[:] = waypoint_arrived
+        self._a2_pull_v5_probe_yaw_arrived[:] = yaw_arrived
         if fixture == "anchor":
-            self._a2_pull_v5_probe_anchor_pass |= (
-                self._a2_pull_v5_probe_waypoint_arrived
-                & self._a2_pull_v5_probe_yaw_arrived
+            self._a2_pull_v5_probe_anchor_pass[:] = (
+                self._a2_pull_v5_probe_sequence_complete
+                & waypoint_arrived
+                & yaw_arrived
+                & (phase_index == len(sequence_phases) - 1)
             )
         self._a2_pull_v5_probe_solvable |= solvable
         return applied, solvable
@@ -767,10 +969,15 @@ class DoorOpenA2Pull(DoorPregrasp):
         if enabled is not False:
             raise RuntimeError("Canonical evaluation bank provider requires injection=false.")
         reset_source = self.config.get("a2_pull_v5_reset_source")
-        if reset_source not in {"bank_natural_e5", "bank_natural_e5_plus", "bank_constructed"}:
+        if reset_source not in {
+            "bank_natural_e5",
+            "bank_natural_e5_plus",
+            "bank_constructed",
+            "bank_natural_e5_override",
+        }:
             raise RuntimeError(
                 "Canonical evaluation requires reset_source bank_natural_e5, "
-                f"bank_natural_e5_plus, or bank_constructed; got {reset_source!r}."
+                f"bank_natural_e5_plus, bank_constructed, or bank_natural_e5_override; got {reset_source!r}."
             )
         self._load_a2_pull_v5_bank_payload(eval_mode=True)
 
@@ -1610,7 +1817,12 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_capture_recorded[env_ids] = False
             self._a2_pull_v5_capture_target_step[env_ids] = -1
             for env_id in env_ids.tolist():
-                self._a2_pull_v5_reset_source[env_id] = self._a2_pull_v5_pending_reset_source[env_id]
+                source = self._a2_pull_v5_pending_reset_source[env_id]
+                if self.config.get("a2_pull_v5_start_override_enabled", False) and source.startswith(
+                    "bank_"
+                ):
+                    source = "bank_natural_e5_override"
+                self._a2_pull_v5_reset_source[env_id] = source
                 if self._a2_pull_v5_reset_source[env_id] not in A2_PULL_V5_RESET_SOURCES:
                     raise RuntimeError(
                         "Pull-v5 reset_source must be exactly natural, bank_natural_e5, "
@@ -1642,6 +1854,17 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_prev_handle_to_tcp_pos[env_ids] = float("nan")
         self._a2_pull_handle_local_slip_xyz_mps[env_ids] = float("nan")
         self._a2_pull_handle_local_slip_valid[env_ids] = False
+        self._a2_pull_passage_attempt_hinge_rad[env_ids] = float("nan")
+        if self._is_a2_pull_v5():
+            self._a2_pull_v5_start_override_active[env_ids] = False
+            self._a2_pull_v5_start_override_active_steps[env_ids] = 0
+            self._a2_pull_v5_start_override_base_slice_equal[env_ids] = True
+            self._a2_pull_v5_start_override_outside_window[env_ids] = False
+            self._a2_pull_v5_probe_phase_index[env_ids] = 0
+            self._a2_pull_v5_probe_phase_initialized[env_ids] = False
+            self._a2_pull_v5_probe_phase_waypoint_arrived[env_ids] = False
+            self._a2_pull_v5_probe_phase_yaw_arrived[env_ids] = False
+            self._a2_pull_v5_probe_sequence_complete[env_ids] = False
         return result
 
     def record_a2_pull_release_or_hold_decision(self, decision_mask: torch.Tensor) -> None:
@@ -2045,6 +2268,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         door_joint_pos = self._get_door_joint_pos("pull event telemetry", 3)
         threshold_mode = self._get_a2_pull_threshold_mode()
         latch_threshold_m = self._get_a2_pull_e3_latch_threshold_m()
+        self._a2_pull_passage_attempt_hinge_rad[new_frame_passage] = door_joint_pos[
+            new_frame_passage, 0
+        ]
         handle_unlatched = door_joint_pos[:, 1] >= 0.3
         latch_released = door_joint_pos[:, 2] >= latch_threshold_m
         stable_unlatch_handle_now = stable_contact & handle_unlatched
@@ -2384,6 +2610,14 @@ class DoorOpenA2Pull(DoorPregrasp):
         first_e4_step = int(self._a2_pull_first_event_step[env_id, A2PullEvent.E4_POSITIVE_HINGE_RETAINED].item())
         first_activation_step = int(self._a2_pull_first_scripted_activation_step[env_id].item())
         hinge_at_decision = self._a2_pull_hinge_at_decision_rad[env_id]
+        override_steps = self.config.get(
+            "a2_pull_v5_start_override_steps", A2_PULL_V5_START_OVERRIDE_STEPS
+        )
+        episode_step = int(self.episode_length_buf[env_id].item())
+        override_active_now = bool(self._a2_pull_v5_start_override_active[env_id].item())
+        override_active_outside_window = override_active_now and not (
+            0 <= episode_step < int(override_steps)
+        )
         stage4_below_gate = source != "natural" and (
             not torch.isfinite(hinge_at_decision) or hinge_at_decision < 1.60
         )
@@ -2415,6 +2649,18 @@ class DoorOpenA2Pull(DoorPregrasp):
             ),
             "failed_settle_not_in_bank": bool(
                 source != "natural" and self._get_a2_pull_v5_bank_settle_valid(env_id) is not True
+            ),
+            "override_active_outside_canonical_start": bool(
+                (
+                    source != "bank_natural_e5_override"
+                    and self._a2_pull_v5_start_override_active_steps[env_id].item() > 0
+                )
+                or (
+                    source != "bank_natural_e5_override" and override_active_now
+                )
+                or override_active_outside_window
+                or self._a2_pull_v5_start_override_outside_window[env_id].item()
+                or not self._a2_pull_v5_start_override_base_slice_equal[env_id].item()
             ),
         }
 
@@ -2606,6 +2852,20 @@ class DoorOpenA2Pull(DoorPregrasp):
                             self._a2_pull_v5_persistent_release_streak[env_id].item()
                         ),
                         "release_streak_required_steps": A2_PULL_V5_RELEASE_STREAK_STEPS,
+                        "start_override_active": bool(
+                            self._a2_pull_v5_start_override_active_steps[env_id].item() > 0
+                        ),
+                        "start_override_active_steps": int(
+                            self._a2_pull_v5_start_override_active_steps[env_id].item()
+                        ),
+                        "start_override_base_slice_equal": bool(
+                            self._a2_pull_v5_start_override_base_slice_equal[env_id].item()
+                        ),
+                        "passage_attempt_hinge_rad": (
+                            float(self._a2_pull_passage_attempt_hinge_rad[env_id].item())
+                            if torch.isfinite(self._a2_pull_passage_attempt_hinge_rad[env_id])
+                            else None
+                        ),
                         "intervention_active": bool(
                             self._a2_pull_v5_intervention_active[env_id].item()
                         ),
@@ -2634,6 +2894,15 @@ class DoorOpenA2Pull(DoorPregrasp):
                             "fixture": self.config["a2_pull_v5_probe_fixture"],
                             "command": self.config["a2_pull_v5_probe_command"],
                             "command_primitive": self.config["a2_pull_v5_probe_command"],
+                            "sequence": self._a2_pull_v5_probe_sequence_id
+                            or self.config["a2_pull_v5_probe_command"],
+                            "sequence_phases": list(self._a2_pull_v5_probe_sequence_phases),
+                            "sequence_phase_index": int(
+                                self._a2_pull_v5_probe_phase_index[env_id].item()
+                            ),
+                            "sequence_complete": bool(
+                                self._a2_pull_v5_probe_sequence_complete[env_id].item()
+                            ),
                             "command_solvable": bool(self._a2_pull_v5_probe_solvable[env_id].item()),
                             "waypoint_arrived": bool(self._a2_pull_v5_probe_waypoint_arrived[env_id].item()),
                             "yaw_arrived": bool(self._a2_pull_v5_probe_yaw_arrived[env_id].item()),
@@ -2813,6 +3082,20 @@ class DoorOpenA2Pull(DoorPregrasp):
                         self._a2_pull_v5_persistent_release_streak[env_id].item()
                     ),
                     "release_streak_required_steps": A2_PULL_V5_RELEASE_STREAK_STEPS,
+                    "start_override_active": bool(
+                        self._a2_pull_v5_start_override_active_steps[env_id].item() > 0
+                    ),
+                    "start_override_active_steps": int(
+                        self._a2_pull_v5_start_override_active_steps[env_id].item()
+                    ),
+                    "start_override_base_slice_equal": bool(
+                        self._a2_pull_v5_start_override_base_slice_equal[env_id].item()
+                    ),
+                    "passage_attempt_hinge_rad": (
+                        float(self._a2_pull_passage_attempt_hinge_rad[env_id].item())
+                        if torch.isfinite(self._a2_pull_passage_attempt_hinge_rad[env_id])
+                        else None
+                    ),
                     "deliberate_release_semantics": "report_only_one_step_contact_transition",
                 }
             records.append(record)
@@ -3052,6 +3335,20 @@ class DoorOpenA2Pull(DoorPregrasp):
                         self._a2_pull_v5_persistent_release_streak[env_id].item()
                     ),
                     "release_streak_required_steps": A2_PULL_V5_RELEASE_STREAK_STEPS,
+                    "start_override_active": bool(
+                        self._a2_pull_v5_start_override_active[env_id].item()
+                    ),
+                    "start_override_active_steps": int(
+                        self._a2_pull_v5_start_override_active_steps[env_id].item()
+                    ),
+                    "start_override_base_slice_equal": bool(
+                        self._a2_pull_v5_start_override_base_slice_equal[env_id].item()
+                    ),
+                    "passage_attempt_hinge_rad": (
+                        float(self._a2_pull_passage_attempt_hinge_rad[env_id].item())
+                        if torch.isfinite(self._a2_pull_passage_attempt_hinge_rad[env_id])
+                        else None
+                    ),
                     "intervention_active": bool(
                         self._a2_pull_v5_intervention_active[env_id].item()
                     ),
@@ -3059,6 +3356,21 @@ class DoorOpenA2Pull(DoorPregrasp):
                         self._a2_pull_v5_intervention_elapsed_steps[env_id].item()
                     ),
                 }
+                if self.config.get("a2_pull_v5_probe_enabled", False):
+                    record["pull_v5_probe"] = {
+                        "fixture": self.config["a2_pull_v5_probe_fixture"],
+                        "command": self.config["a2_pull_v5_probe_command"],
+                        "command_primitive": self.config["a2_pull_v5_probe_command"],
+                        "sequence": self._a2_pull_v5_probe_sequence_id
+                        or self.config["a2_pull_v5_probe_command"],
+                        "sequence_phases": list(self._a2_pull_v5_probe_sequence_phases),
+                        "sequence_phase_index": int(
+                            self._a2_pull_v5_probe_phase_index[env_id].item()
+                        ),
+                        "sequence_complete": bool(
+                            self._a2_pull_v5_probe_sequence_complete[env_id].item()
+                        ),
+                    }
             record["pull_v2_unlatch"] = {
                 "stable_unlatch_handle_based": bool(
                     self._a2_pull_stable_unlatch_handle_ever[env_id].item()

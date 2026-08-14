@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Generate and execute the Pull-v5.1 S1→S7 dependency topology.
+"""Generate and execute the Pull-v5.2 T0→T4 workflow.
 
-The phase graph is executable state, not a descriptive checklist.  Every
-downstream phase names the receipts it consumes, commands are emitted with
-stable output directories, and GPU work is represented as detached tmux-ready
-launches.  Runtime execution is opt-in; command generation never starts Isaac
-Sim.
+T1 is deliberately serialized on GPU4: the narrow anchor completes before any
+door-side probe launches.  T2 is a real G1/G2 gate; training is never started
+from an all-zero probe receipt.  T3 is the conditional four-GPU training wave,
+and T4 evaluates every saved checkpoint through the strict v5.2 analyzer.
 """
 
 from __future__ import annotations
@@ -22,33 +21,20 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = Path(__file__).resolve().parent
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 TRAIN_ROOT = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull"
-STATE_BANK_ROOT = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank"
-BANK = STATE_BANK_ROOT / "pull_v5_state_bank.pt"
-BANK_RECEIPT = BANK.with_suffix(BANK.suffix + ".receipt.json")
 EVAL_ROOT = ROOT / "logs_eval/a2_piper_pull_v5"
-P2_ROOT = EVAL_ROOT / "p2_intervention_v5_1"
-P2_RECEIPT = P2_ROOT / "P2_INTERVENTION_RECEIPT.json"
-ANALYSIS = SCRIPT_DIR / "PULL_V5_1_ANALYSIS.json"
-CELLS = (("M_s0", 4), ("M_s1", 5), ("C_s0", 6), ("C_s1", 7))
+P1_ROOT = EVAL_ROOT / "pull_v5_2_p1_anchor_probe"
+GATE_ROOT = EVAL_ROOT / "pull_v5_2_gates"
+ANCHOR_DIR = P1_ROOT / "anchor"
+ANCHOR_RECEIPT = ANCHOR_DIR / "P1_v5_2_anchor_natural_attempt1_RECEIPT.json"
 BUCKETS = ("2.5-5", "5-9", "9-12")
+SEQUENCES = ("S1", "S2", "S3", "S4")
+CELLS = (("M_s0", 4), ("M_s1", 5), ("C_s0", 6), ("C_s1", 7))
 CHECKPOINT_STEPS = (50, 100, 150, 200, 250)
-P1_ATTEMPTS = (1, 2, 3)
-SOURCE_A_LEGACY = STATE_BANK_ROOT / "source_a_actor_e5_r5.pt"
-SOURCE_A_LEGACY_METRICS = STATE_BANK_ROOT / "source_a_actor_e5_r5_eval/metrics_eval.json"
-SOURCE_A_DEFAULT = STATE_BANK_ROOT / "source_a_actor_e5_v5_1.pt"
-SOURCE_A_PLUS2_DEFAULT = STATE_BANK_ROOT / "source_a_actor_e5_plus2s_v5_1.pt"
-SOURCE_A_PLUS4_DEFAULT = STATE_BANK_ROOT / "source_a_actor_e5_plus4s_v5_1.pt"
-SOURCE_B_DEFAULT = STATE_BANK_ROOT / "source_b_constructed_v5_1.pt"
-PHASES = ("s1", "s2", "s3", "s4", "s5", "s6", "s7")
-PHASE_DEPENDENCIES = {
-    "s1": (),
-    "s2": ("s1",),
-    "s3": ("s2",),
-    "s4": ("s3",),
-    "s5": ("s4",),
-    "s6": ("s5",),
-    "s7": ("s6",),
-}
+PHASES = ("T0", "T1", "T2", "T3", "T4")
+PHASE_DEPENDENCIES = {"T0": (), "T1": ("T0",), "T2": ("T1",), "T3": ("T2",), "T4": ("T3",)}
+ANALYSIS = SCRIPT_DIR / "PULL_V5_2_ANALYSIS.json"
+GATE_RECEIPT = GATE_ROOT / "T2_GATE_RECEIPT.json"
+G2_RECEIPT = GATE_ROOT / "G2_lattice_RECEIPT.json"
 
 
 def _script(name: str) -> list[str]:
@@ -56,8 +42,6 @@ def _script(name: str) -> list[str]:
 
 
 def _tmux(name: str, command: Sequence[str]) -> list[str]:
-    """Return a detached, directly launchable tmux command."""
-
     return ["tmux", "new-session", "-d", "-s", name, "--", *command]
 
 
@@ -80,329 +64,212 @@ def _command_record(
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=PHASES + ("p0", "state_bank", "p1", "p2", "p3", "eval", "analyze"), required=True)
-    parser.add_argument("--p1-attempt", type=int, choices=P1_ATTEMPTS, default=1)
-    parser.add_argument("--source-a", type=Path, default=SOURCE_A_DEFAULT)
-    parser.add_argument("--source-a-plus2", type=Path, default=SOURCE_A_PLUS2_DEFAULT)
-    parser.add_argument("--source-a-plus4", type=Path, default=SOURCE_A_PLUS4_DEFAULT)
-    parser.add_argument("--source-b", type=Path, default=SOURCE_B_DEFAULT)
+    parser.add_argument("--phase", choices=PHASES, required=True)
+    parser.add_argument("--p1-attempt", type=int, choices=(1, 2, 3), default=1)
     parser.add_argument("--checkpoint-root", type=Path, default=TRAIN_ROOT)
     parser.add_argument("--step", type=int)
     parser.add_argument("--run", action="store_true")
-    parser.add_argument("--allow-g8-pure-a", action="store_true")
     return parser.parse_args()
 
 
-def _read_json(path: Path, *, label: str) -> Mapping[str, Any]:
-    if not path.is_file():
-        raise RuntimeError(f"{label} barrier receipt is missing: {path}")
-    value = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(value, Mapping):
-        raise RuntimeError(f"{label} barrier receipt must be a mapping: {path}")
-    return value
-
-
-def _require_pass(path: Path, *, label: str, schemas: tuple[str, ...]) -> Mapping[str, Any]:
-    receipt = _read_json(path, label=label)
-    schema = receipt.get("schema")
-    if not isinstance(schema, str) or not any(schema.startswith(prefix) for prefix in schemas):
-        raise RuntimeError(f"{label} receipt has an unexpected schema: {schema!r}")
-    if receipt.get("status") not in {"PASS", "PASS_G8_PURE_A"}:
-        raise RuntimeError(f"{label} receipt is not PASS: {receipt.get('status')!r}")
-    return receipt
-
-
-def _require_f5_actual(path: Path, *, label: str) -> Mapping[str, Any]:
-    receipt = _read_json(path, label=label)
-    if receipt.get("schema") != "a2_piper_pull_v5_1_load_receipt_v2":
-        raise RuntimeError(f"{label} receipt has an unexpected schema: {receipt.get('schema')!r}")
-    if receipt.get("status") != "ACTUAL":
-        raise RuntimeError(f"{label} receipt is not ACTUAL: {receipt.get('status')!r}")
-    return receipt
-
-
-def _phase_for_cli(phase: str) -> str:
-    return {"p0": "s1", "state_bank": "s3", "p1": "s4", "p2": "s2", "p3": "s5", "eval": "s6", "analyze": "s6"}.get(phase, phase)
-
-
-def _s1_commands() -> list[dict[str, Any]]:
-    return [_command_record(
-        name="s1_repair_runtime_startup_gate", gpu=None, command=[],
-        output_dir=SCRIPT_DIR,
-    )]
-
-
-def _s2_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
-    source_a = args.source_a.resolve()
-    source_a_plus2 = args.source_a_plus2.resolve()
-    source_a_plus4 = args.source_a_plus4.resolve()
-    source_b = args.source_b.resolve()
-    checkpoint = TRAIN_ROOT / "pull_v4_B_wave1_seed1/model_step_000750.pt"
-    records: list[dict[str, Any]] = []
-    repair_command = _script("build_pull_v5_state_bank.py") + [
-        "--repair-legacy-source-a", str(SOURCE_A_LEGACY),
-        "--repair-legacy-metrics", str(SOURCE_A_LEGACY_METRICS),
-        "--repair-output", str(source_a),
-    ]
-    records.append(_command_record(
-        name="s2_source_a_repair_gpu7", gpu=7, command=repair_command,
-        output_dir=source_a.parent,
-        consumes=(SOURCE_A_LEGACY, SOURCE_A_LEGACY_METRICS), produces=(source_a,),
-    ))
-    f5_receipt = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_policy_only.json"
-    records.insert(0, _command_record(
-        name="s2_f5_load_receipt_gpu6", gpu=6,
-        command=_script("run_pull_v5_training.py") + ["--load-receipt-only", "--gpu", "6", "--run"],
-        output_dir=TRAIN_ROOT / "pull_v5_1_policy_only_load", produces=(f5_receipt,),
-    ))
-    p2_dir = P2_ROOT
-    records.append(_command_record(
-        name="s2_p2_intervention_gpu5", gpu=5,
-        command=_script("run_pull_v5_p2_intervention.py") + [
-            "--gpu", "5", "--output-root", str(p2_dir), "--run",
-        ],
-        output_dir=p2_dir, produces=(P2_RECEIPT,),
-    ))
-    for label, tier, output in (
-        ("plus2s", "e5_plus_2s", source_a_plus2),
-        ("plus4s", "e5_plus_4s", source_a_plus4),
-    ):
-        command = _script("build_pull_v5_state_bank.py") + [
-            "--source-a", str(output), "--run-source-a", "--source-a-tier", tier,
-            "--capture-only", "--checkpoint", str(checkpoint), "--gpu", "7",
-        ]
-        records.append(_command_record(
-            name=f"s2_source_a_{label}_gpu7", gpu=7, command=command, output_dir=output.parent,
-            produces=(output,),
-        ))
-    source_b_command = _script("build_pull_v5_state_bank.py") + [
-        "--source-a", str(source_a), "--source-b", str(source_b), "--run-source-b",
-        "--capture-only", "--checkpoint", str(checkpoint), "--gpu", "4",
-    ]
-    records.append(_command_record(
-        name="s2_source_b_gpu4", gpu=4, command=source_b_command, output_dir=source_b.parent,
-        produces=(source_b,),
-    ))
-    return records
-
-
-def _s3_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
-    source_a = args.source_a.resolve()
-    plus2 = args.source_a_plus2.resolve()
-    plus4 = args.source_a_plus4.resolve()
-    # The first E5 payload is the source-A anchor; delayed captures are explicit
-    # products and are consumed only after all S2 commands have completed.
-    command = _script("build_pull_v5_state_bank.py") + [
-        "--source-a", str(source_a), "--source-a-plus", str(plus2), "--source-a-plus", str(plus4),
-    ]
-    if not args.allow_g8_pure_a:
-        command.extend(("--source-b", str(args.source_b.resolve())))
-    command.extend(("--output", str(BANK)))
-    if args.allow_g8_pure_a:
-        command.append("--allow-g8-pure-a")
-    consumes = [record_path for record_path in (
-        source_a, plus2, plus4,
-        ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_policy_only.json",
-        P2_RECEIPT,
-    )]
-    if not args.allow_g8_pure_a:
-        consumes.append(args.source_b.resolve())
-    return [_command_record(
-        name="s3_state_bank_g13", gpu=None, command=command, output_dir=STATE_BANK_ROOT,
-        consumes=consumes, produces=(BANK, BANK_RECEIPT, STATE_BANK_ROOT / "pull_v5_state_bank_manifest.json"),
-    )]
-
-
 def _p1_paths(attempt: int) -> tuple[Path, Path, tuple[Path, ...]]:
-    if attempt not in P1_ATTEMPTS:
-        raise ValueError(f"P1 attempt must be one of {P1_ATTEMPTS}; got {attempt}")
-    root = EVAL_ROOT / "pull_v5_1_p1_anchor_probe"
     suffix = "" if attempt == 1 else f"_attempt{attempt}"
+    root = EVAL_ROOT / "pull_v5_2_p1_anchor_probe"
     anchor_dir = root / ("anchor" if attempt == 1 else f"anchor{suffix}")
-    anchor_receipt = anchor_dir / f"P1_anchor_natural_attempt{attempt}_RECEIPT.json"
+    anchor_receipt = anchor_dir / f"P1_v5_2_anchor_natural_attempt{attempt}_RECEIPT.json"
     probe_receipts = tuple(
         root / (f"probe_{bucket.replace('-', '_')}" if attempt == 1 else f"probe_{bucket.replace('-', '_')}{suffix}")
-        / f"P1_probe_canonical_attempt{attempt}_RECEIPT.json"
+        / f"P1_v5_2_probe_canonical_attempt{attempt}_RECEIPT.json"
         for bucket in BUCKETS
     )
     return anchor_dir, anchor_receipt, probe_receipts
 
 
-def _s4_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
-    anchor_dir, anchor_receipt, probe_receipts = _p1_paths(args.p1_attempt)
-    anchor = _script("run_pull_v5_p1_anchor_probe.py") + [
-        "--mode", "anchor", "--source", "natural", "--gpu", "4", "--anchor-attempt", str(args.p1_attempt),
-        "--output-dir", str(anchor_dir), "--run",
-    ]
-    if args.allow_g8_pure_a:
-        anchor.append("--allow-g8-pure-a")
-    records = [_command_record(
-        name="s4_anchor_open_field_gpu4", gpu=4, command=anchor, output_dir=anchor_dir,
-        consumes=(BANK_RECEIPT,), produces=(anchor_receipt,),
-    )]
-    for bucket, probe_receipt in zip(BUCKETS, probe_receipts):
-        output = probe_receipt.parent
-        command = _script("run_pull_v5_p1_anchor_probe.py") + [
-            "--mode", "probe", "--source", "canonical", "--gpu", "4", "--closer-bucket", bucket,
-            "--anchor-attempt", str(args.p1_attempt), "--output-dir", str(output), "--run",
-        ]
-        if args.allow_g8_pure_a:
-            command.append("--allow-g8-pure-a")
-        records.append(_command_record(
-            name=f"s4_probe_{bucket.replace('-', '_')}_gpu4", gpu=4, command=command, output_dir=output,
-            consumes=(anchor_receipt, BANK_RECEIPT),
-            produces=(probe_receipt,),
-        ))
-    return records
-
-
-def _s5_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
-    _anchor_dir, anchor_receipt, probe_receipts = _p1_paths(args.p1_attempt)
-    p2_receipt = P2_RECEIPT
-    return [
-        _command_record(
-            name=f"s5_train_{cell}_gpu{gpu}", gpu=gpu,
-            command=_script("run_pull_v5_training.py") + ["--cell", cell, "--gpu", str(gpu), "--run"] + (["--allow-g8-pure-a"] if args.allow_g8_pure_a else []),
-            output_dir=TRAIN_ROOT / f"pull_v5_1_{cell}", consumes=(anchor_receipt, p2_receipt, BANK_RECEIPT, *probe_receipts),
-            produces=(TRAIN_ROOT / f"pull_v5_1_{cell}/model_step_000250.pt",),
-        )
-        for cell, gpu in CELLS
-    ]
-
-
-def _s6_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
-    steps = (args.step,) if args.step is not None else CHECKPOINT_STEPS
-    records: list[dict[str, Any]] = []
-    for cell, gpu in CELLS:
-        training_checkpoint = args.checkpoint_root.resolve() / f"pull_v5_1_{cell}/model_step_000250.pt"
-        for step in steps:
-            checkpoint = args.checkpoint_root.resolve() / f"pull_v5_1_{cell}/model_step_{step:06d}.pt"
-            output = EVAL_ROOT / f"pull_v5_1_{cell}_step{step}"
-            command = _script("run_pull_v5_eval.py") + [
-                "--checkpoint", str(checkpoint), "--cell", cell, "--step", str(step), "--gpu", str(gpu), "--run",
-            ] + (["--allow-g8-pure-a"] if args.allow_g8_pure_a else [])
-            records.append(_command_record(
-                name=f"s6_eval_{cell}_step{step}_gpu{gpu}", gpu=gpu, command=command, output_dir=output,
-                consumes=(training_checkpoint,),
-                produces=(
-                    EVAL_ROOT / f"pull_v5_1_{cell}_step{step}_canonical/terminal_records.json",
-                    EVAL_ROOT / f"pull_v5_1_{cell}_step{step}_natural/terminal_records.json",
-                ),
-            ))
-    records.append(_command_record(
-        name="s6_analyze_v5_1", gpu=None,
-        command=_script("analyze_pull_v5.py") + [
-            *sum((
-                ["--cell-root", str(Path(product).parent)]
-                for item in records
-                if item["name"].startswith("s6_eval_")
-                for product in item["produces"]
-            ), []),
-            "--output", str(ANALYSIS),
-        ],
-        output_dir=ANALYSIS.parent,
-        consumes=tuple(Path(product) for record in records if record["name"].startswith("s6_eval_") for product in record["produces"]),
-        produces=(ANALYSIS,),
-    ))
-    return records
-
-
-def _s7_commands() -> list[dict[str, Any]]:
+def _t0_commands() -> list[dict[str, Any]]:
     return [{
-        "name": "s7_closure_artifacts",
+        "name": "t0_contract_preflight",
         "gpu": None,
         "tmux_ready": False,
         "command": [],
         "shell": "",
         "tmux_command": [],
         "output_dir": str(SCRIPT_DIR),
-        "consumes": [str(ANALYSIS)],
-        "produces": [
-            str(SCRIPT_DIR / "PULL_V5_1_ROUND_REPORT.md"),
-            "memory/a2-piper/pull-open-door-task/description.md",
-            "memory/a2-piper/pull-open-door-task/TODO.md",
-            "memory/a2-piper/pull-open-door-task/DONE.md",
-        ],
-        "conditional_p4": {
-            "record_only": True,
-            "condition": "canonical frame_passage_rate > 0 and natural frame_passage_rate > 0",
-            "otherwise": "record G5/G6/G7/G11/G12 decision and stop",
+        "consumes": [],
+        "produces": [],
+        "contract": {
+            "sequence_ids": list(SEQUENCES),
+            "sequence_phases": {
+                "S1": ["straight_minus_x"],
+                "S2": ["side_step"],
+                "S3": ["side_step", "straight_minus_x"],
+                "S4": ["straight_minus_x", "side_step"],
+            },
+            "rows_per_sequence": 16,
+            "allow_g8_pure_a": True,
+            "start_override_keys": [
+                "a2_pull_v5_start_override_enabled",
+                "a2_pull_v5_start_override_steps",
+            ],
+            "invariants": 11,
         },
     }]
 
 
+def _t1_commands(attempt: int) -> list[dict[str, Any]]:
+    anchor_dir, anchor_receipt, probe_receipts = _p1_paths(attempt)
+    anchor = _script("run_pull_v5_p1_anchor_probe.py") + [
+        "--mode", "anchor", "--source", "natural", "--gpu", "4",
+        "--anchor-attempt", str(attempt), "--output-dir", str(anchor_dir), "--allow-g8-pure-a", "--run",
+    ]
+    records = [_command_record(
+        name="t1_anchor_gpu4", gpu=4, command=anchor, output_dir=anchor_dir,
+        produces=(anchor_receipt,),
+    )]
+    for bucket, probe_receipt in zip(BUCKETS, probe_receipts):
+        output = probe_receipt.parent
+        probe = _script("run_pull_v5_p1_anchor_probe.py") + [
+            "--mode", "probe", "--source", "canonical", "--gpu", "4",
+            "--closer-bucket", bucket, "--anchor-attempt", str(attempt),
+            "--anchor-receipt", str(anchor_receipt), "--output-dir", str(output), "--allow-g8-pure-a", "--run",
+        ]
+        records.append(_command_record(
+            name=f"t1_probe_{bucket.replace('-', '_')}_gpu4", gpu=4, command=probe,
+            output_dir=output, consumes=(anchor_receipt,), produces=(probe_receipt,),
+        ))
+    return records
+
+
+def _t2_commands(attempt: int) -> list[dict[str, Any]]:
+    _anchor_dir, anchor_receipt, probe_receipts = _p1_paths(attempt)
+    lattice_dir = P1_ROOT / ("lattice" if attempt == 1 else f"lattice_attempt{attempt}")
+    lattice_command = _script("run_pull_v5_p1_anchor_probe.py") + [
+        "--mode", "lattice", "--source", "canonical", "--gpu", "4",
+        "--anchor-attempt", str(attempt), "--output-dir", str(lattice_dir), "--receipt", str(G2_RECEIPT), "--allow-g8-pure-a", "--run",
+    ]
+    return [
+        _command_record(
+            name="t2_g1_gate", gpu=None, command=[], output_dir=GATE_ROOT,
+            consumes=(*probe_receipts,), produces=(GATE_RECEIPT,),
+        ),
+        _command_record(
+            name="t2_g2_lattice_gpu4", gpu=4, command=lattice_command, output_dir=lattice_dir,
+            consumes=(*probe_receipts, anchor_receipt), produces=(G2_RECEIPT,),
+        ),
+    ]
+
+
+def _t3_commands(attempt: int) -> list[dict[str, Any]]:
+    _anchor_dir, anchor_receipt, probe_receipts = _p1_paths(attempt)
+    records = []
+    for cell, gpu in CELLS:
+        output = TRAIN_ROOT / f"pull_v5_2_{cell}"
+        command = _script("run_pull_v5_training.py") + ["--cell", cell, "--gpu", str(gpu), "--allow-g8-pure-a", "--run"]
+        records.append(_command_record(
+            name=f"t3_train_{cell}_gpu{gpu}", gpu=gpu, command=command, output_dir=output,
+            consumes=(GATE_RECEIPT, anchor_receipt, *probe_receipts),
+            produces=(output / "model_step_000250.pt",),
+        ))
+    return records
+
+
+def _t4_commands(args: argparse.Namespace, attempt: int) -> list[dict[str, Any]]:
+    steps = (args.step,) if args.step is not None else CHECKPOINT_STEPS
+    records: list[dict[str, Any]] = []
+    for cell, gpu in CELLS:
+        for step in steps:
+            checkpoint = args.checkpoint_root.resolve() / f"pull_v5_2_{cell}/model_step_{step:06d}.pt"
+            output = EVAL_ROOT / f"pull_v5_2_{cell}_step{step}"
+            command = _script("run_pull_v5_eval.py") + [
+                "--checkpoint", str(checkpoint), "--cell", cell, "--step", str(step),
+                "--gpu", str(gpu), "--allow-g8-pure-a", "--run",
+            ]
+            records.append(_command_record(
+                name=f"t4_eval_{cell}_step{step}_gpu{gpu}", gpu=gpu, command=command,
+                output_dir=output, consumes=(TRAIN_ROOT / f"pull_v5_2_{cell}/model_step_000250.pt",),
+                produces=(
+                    EVAL_ROOT / f"pull_v5_2_{cell}_step{step}_canonical/terminal_records.json",
+                    EVAL_ROOT / f"pull_v5_2_{cell}_step{step}_natural/terminal_records.json",
+                ),
+            ))
+    eval_records = tuple(records)
+    analysis_command = _script("analyze_pull_v5.py") + [
+        *sum((["--cell-root", str(Path(product).parent)] for record in eval_records for product in record["produces"]), []),
+        "--output", str(ANALYSIS),
+    ]
+    records.append(_command_record(
+        name="t4_analyze_v5_2", gpu=None, command=analysis_command, output_dir=ANALYSIS.parent,
+        consumes=tuple(Path(product) for record in eval_records for product in record["produces"]),
+        produces=(ANALYSIS,),
+    ))
+    return records
+
+
 def phase_commands(args: argparse.Namespace) -> list[dict[str, Any]]:
-    phase = _phase_for_cli(args.phase)
-    if phase == "s1":
-        return _s1_commands()
-    if phase == "s2":
-        return _s2_commands(args)
-    if phase == "s3":
-        return _s3_commands(args)
-    if phase == "s4":
-        return _s4_commands(args)
-    if phase == "s5":
-        return _s5_commands(args)
-    if phase == "s6":
-        return _s6_commands(args)
-    if phase == "s7":
-        return _s7_commands()
-    raise AssertionError(phase)
+    if args.phase == "T0":
+        return _t0_commands()
+    if args.phase == "T1":
+        return _t1_commands(args.p1_attempt)
+    if args.phase == "T2":
+        return _t2_commands(args.p1_attempt)
+    if args.phase == "T3":
+        return _t3_commands(args.p1_attempt)
+    if args.phase == "T4":
+        return _t4_commands(args, args.p1_attempt)
+    raise AssertionError(args.phase)
 
 
-def _barrier_paths(phase: str, args: argparse.Namespace) -> list[tuple[Path, str, tuple[str, ...]]]:
-    phase = _phase_for_cli(phase)
-    if phase == "s1":
-        return []
-    if phase == "s2":
-        return []
-    if phase == "s3":
-        paths = [
-            (ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_1_policy_only.json", "S2/F5", ("a2_piper_pull_v5_1",)),
-            (P2_RECEIPT, "S2/P2", ("a2_piper_pull_v5_1_p2",)),
-            (args.source_a.resolve(), "S2/SourceA E5", ()),
-            (args.source_a_plus2.resolve(), "S2/SourceA +2s", ()),
-            (args.source_a_plus4.resolve(), "S2/SourceA +4s", ()),
-        ]
-        if not args.allow_g8_pure_a:
-            paths.append((args.source_b.resolve(), "S2/SourceB", ()))
-        return paths
-    if phase == "s4":
-        return [(BANK_RECEIPT, "S3/G13", ("a2_piper_pull_v5_state_bank_v2",))]
-    if phase == "s5":
-        _anchor_dir, anchor, probe_receipts = _p1_paths(args.p1_attempt)
-        paths = [
-            (BANK_RECEIPT, "S3/G13", ("a2_piper_pull_v5_state_bank_v2",)),
-            (anchor, "S4/anchor", ("a2_piper_pull_v5_1_p1_receipt",)),
-            (P2_RECEIPT, "S2/P2", ("a2_piper_pull_v5_1_p2",)),
-        ]
-        paths.extend(
-            (
-                probe_receipt,
-                f"S4/probe_{bucket}",
-                ("a2_piper_pull_v5_1_p1_receipt",),
-            )
-            for bucket, probe_receipt in zip(BUCKETS, probe_receipts)
-        )
-        return paths
-    if phase == "s6":
-        return [
-            (TRAIN_ROOT / f"pull_v5_1_{cell}/model_step_000250.pt", f"S5/{cell}", ())
-            for cell, _gpu in CELLS
-        ] + [(BANK_RECEIPT, "S3/G13", ("a2_piper_pull_v5_state_bank_v2",))]
-    if phase == "s7":
-        return [(ANALYSIS, "S6/analysis", ("a2_piper_pull_v5_1_analysis",))]
-    raise AssertionError(phase)
+def _read_json(path: Path, label: str) -> Mapping[str, Any]:
+    if not path.is_file():
+        raise RuntimeError(f"{label} product is missing: {path}")
+    value = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(value, Mapping):
+        raise RuntimeError(f"{label} product must be a mapping: {path}")
+    return value
 
 
-def enforce_barriers(phase: str, args: argparse.Namespace) -> None:
-    for path, label, schemas in _barrier_paths(phase, args):
-        if not path.is_file():
-            raise RuntimeError(f"{label} barrier product is missing: {path}")
-        if label == "S2/F5":
-            _require_f5_actual(path, label=label)
-        elif schemas:
-            _require_pass(path, label=label, schemas=schemas)
+def _require_schema(path: Path, label: str, prefix: str) -> Mapping[str, Any]:
+    value = _read_json(path, label)
+    schema = value.get("schema")
+    if not isinstance(schema, str) or not schema.startswith(prefix):
+        raise RuntimeError(f"{label} has unexpected schema {schema!r}")
+    return value
+
+
+def _probe_passage(receipt: Mapping[str, Any]) -> int:
+    records = receipt.get("bucket_sequence_records")
+    if not isinstance(records, Mapping):
+        raise RuntimeError("v5.2 probe receipt requires bucket_sequence_records")
+    requested_bucket = receipt.get("closer_bucket")
+    if requested_bucket not in BUCKETS:
+        raise RuntimeError(f"v5.2 probe receipt must identify one closer bucket; got {requested_bucket!r}")
+    total = 0
+    for bucket, sequence_records in records.items():
+        if bucket not in BUCKETS or not isinstance(sequence_records, Mapping):
+            raise RuntimeError(f"invalid bucket×sequence receipt entry: {bucket!r}")
+        for sequence, summary in sequence_records.items():
+            if sequence not in SEQUENCES or not isinstance(summary, Mapping):
+                raise RuntimeError(f"invalid bucket×sequence receipt entry: {bucket}×{sequence}")
+            episodes = summary.get("episodes")
+            passage = summary.get("passage")
+            expected = 16 if bucket == requested_bucket else 0
+            if episodes != expected or isinstance(passage, bool) or not isinstance(passage, int) or passage < 0 or passage > episodes:
+                raise RuntimeError(f"invalid actual denominator/passage for {bucket}×{sequence}: {summary!r}")
+            total += passage
+    return total
+
+
+def _write_gate(*, attempt: int, status: str, probe_passage: int, lattice_passage: int | None = None) -> None:
+    GATE_ROOT.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "schema": "a2_piper_pull_v5_2_gate_receipt_v1",
+        "status": status,
+        "p1_attempt": attempt,
+        "probe_frame_passage": probe_passage,
+        "lattice_frame_passage": lattice_passage,
+        "training_gate": status in {"G1_PASS", "G2_PASS"},
+        "all_zero_routes_to_g2": probe_passage == 0,
+    }
+    GATE_RECEIPT.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def _run_wave(records: Sequence[Mapping[str, Any]]) -> None:
@@ -412,120 +279,97 @@ def _run_wave(records: Sequence[Mapping[str, Any]]) -> None:
         if not command:
             continue
         env = os.environ.copy()
-        gpu = record.get("gpu")
-        if gpu is not None:
-            env["CUDA_VISIBLE_DEVICES"] = str(gpu)
+        if record.get("gpu") is not None:
+            env["CUDA_VISIBLE_DEVICES"] = str(record["gpu"])
             env["ACCELERATE_TORCH_DEVICE"] = "cuda:0"
         processes.append(subprocess.Popen(command, cwd=ROOT, env=env))
     statuses = [process.wait() for process in processes]
     if any(status != 0 for status in statuses):
-        raise RuntimeError(f"phase wave failed with return codes {statuses}")
+        raise RuntimeError(f"workflow wave failed with return codes {statuses}")
 
 
-def _run_s6_eval_wave(records: Sequence[Mapping[str, Any]]) -> None:
-    """Run one checkpoint at a time per cell while keeping cells parallel."""
+def _run_t1(records: Sequence[Mapping[str, Any]]) -> None:
+    anchor = [record for record in records if record["name"] == "t1_anchor_gpu4"]
+    _run_wave(anchor)
+    anchor_record = records[0]
+    anchor_receipt = Path(anchor_record["produces"][0])
+    anchor_payload = _require_schema(anchor_receipt, "T1 anchor", "a2_piper_pull_v5_2_p1_receipt")
+    if anchor_payload.get("anchor_pass") is not True:
+        raise RuntimeError("T1 anchor failed; door probes are not admissible")
+    for record in records[1:]:
+        _run_wave([record])
 
+
+def _run_t2(records: Sequence[Mapping[str, Any]], attempt: int) -> None:
+    _anchor_dir, _anchor_receipt, probe_receipts = _p1_paths(attempt)
+    passage = 0
+    for path in probe_receipts:
+        receipt = _require_schema(path, f"T2 probe {path.name}", "a2_piper_pull_v5_2_p1_receipt")
+        passage += _probe_passage(receipt)
+    if passage > 0:
+        _write_gate(attempt=attempt, status="G1_PASS", probe_passage=passage)
+        return
+    lattice_record = next(record for record in records if record["name"] == "t2_g2_lattice_gpu4")
+    _run_wave([lattice_record])
+    lattice_payload = _require_schema(G2_RECEIPT, "T2 G2 lattice", "a2_piper_pull_v5_2_p1_receipt")
+    lattice_passage = int(lattice_payload.get("frame_passage_count", 0))
+    _write_gate(
+        attempt=attempt,
+        status="G2_PASS" if lattice_passage > 0 else "G2_STOP",
+        probe_passage=passage,
+        lattice_passage=lattice_passage,
+    )
+
+
+def _require_training_gate() -> None:
+    gate = _require_schema(GATE_RECEIPT, "T3 gate", "a2_piper_pull_v5_2_gate_receipt")
+    if gate.get("status") not in {"G1_PASS", "G2_PASS"}:
+        raise RuntimeError(f"T3 cannot start without a passage-positive gate: {gate.get('status')!r}")
+
+
+def _run_t4(records: Sequence[Mapping[str, Any]]) -> None:
+    eval_records = [record for record in records if record["gpu"] is not None]
     by_cell: dict[str, list[Mapping[str, Any]]] = {cell: [] for cell, _gpu in CELLS}
-    for record in records:
-        name = str(record["name"])
-        cell = next(
-            (candidate for candidate, _gpu in CELLS if f"s6_eval_{candidate}_" in name),
-            None,
-        )
-        if cell is None:
-            raise RuntimeError(f"S6 eval record is not bound to a known cell: {name}")
+    for record in eval_records:
+        cell = next(cell for cell, _gpu in CELLS if f"t4_eval_{cell}_" in record["name"])
         by_cell[cell].append(record)
     for cell_records in by_cell.values():
-        cell_records.sort(key=lambda record: str(record["name"]))
+        cell_records.sort(key=lambda record: record["name"])
     for index in range(max(len(cell_records) for cell_records in by_cell.values())):
-        _run_wave(
-            [cell_records[index] for cell_records in by_cell.values() if index < len(cell_records)]
-        )
-
-
-def _run_s2_wave(records: Sequence[Mapping[str, Any]], *, allow_g8_pure_a: bool) -> None:
-    """Run S2's independent lanes with Source-A captures serialized on GPU7."""
-
-    source_a = [record for record in records if str(record["name"]).startswith("s2_source_a_")]
-    other_lanes = [record for record in records if record not in source_a]
-    if allow_g8_pure_a:
-        other_lanes = [record for record in other_lanes if record["name"] != "s2_source_b_gpu4"]
-    if not source_a:
-        raise RuntimeError("S2 requires the three Source-A capture commands")
-    _run_wave([source_a[0], *other_lanes])
-    for record in source_a[1:]:
-        _run_wave([record])
+        _run_wave([items[index] for items in by_cell.values() if index < len(items)])
+    _run_wave([record for record in records if record["name"] == "t4_analyze_v5_2"])
 
 
 def main() -> int:
     args = _parse_args()
-    phase = _phase_for_cli(args.phase)
-    if args.run:
-        enforce_barriers(phase, args)
     records = phase_commands(args)
     receipt = {
-        "schema": "a2_piper_pull_v5_1_orchestration_v3",
-        "phase": phase,
-        "p1_attempt": args.p1_attempt,
+        "schema": "a2_piper_pull_v5_2_orchestration_v1",
+        "phase": args.phase,
         "phase_order": list(PHASES),
         "dependencies": {name: list(deps) for name, deps in PHASE_DEPENDENCIES.items()},
-        "barriers_enforced_on_run": True,
         "commands": records,
-        "s2_contract": {
-            "f5_phase": "s2",
-            "f5_gpu": 6,
-            "p2_gpu": 5,
-            "source_a_gpu": 7,
-            "source_b_gpu": 4,
-            "source_a_tiers": ["e5_repaired_offline", "e5_plus_2s", "e5_plus_4s"],
-            "source_a_serialized_on_gpu7": True,
-            "capture_only": True,
-        },
-        "s1_contract": {"purpose": "F1 guard and F2 P2 decoupling repair/runtime-startup gate"},
-        "s4_contract": {"anchor_first": True, "anchor_retry_limit": 3, "selected_attempt": args.p1_attempt, "closer_buckets": list(BUCKETS)},
-        "s5_contract": {"p1_p2_gates": ["anchor_pass", "p2_pass"], "concurrent_cells": [f"{cell}:GPU{gpu}" for cell, gpu in CELLS]},
-        "s6_contract": {"checkpoint_steps": list(args.step and (args.step,) or CHECKPOINT_STEPS), "sources": ["canonical", "natural"], "episodes_per_source": 16},
-        "s7_contract": _s7_commands()[0],
         "run": args.run,
+        "gpu_scope": [4, 5, 6, 7],
+        "t1_contract": {"anchor_first": True, "gpu": 4, "rows_per_sequence": 16, "sequence_ids": list(SEQUENCES)},
+        "t2_contract": {"g1_any_bucket_sequence_passage": True, "all_zero_routes_to": "G2_lattice", "g2_gpu": 4},
+        "t3_contract": {"conditional": True, "cells": [f"{cell}:GPU{gpu}" for cell, gpu in CELLS], "num_envs": 256, "batches": 250, "save_frequency": 50},
+        "t4_contract": {"sources": ["canonical", "natural"], "episodes_per_source": 16, "checkpoint_steps": list(args.step and (args.step,) or CHECKPOINT_STEPS), "invariants": 11},
     }
     print(json.dumps(receipt, indent=2, sort_keys=True))
     if not args.run:
         return 0
-    if phase == "s4":
-        anchor = [record for record in records if record["name"] == "s4_anchor_open_field_gpu4"]
-        _run_wave(anchor)
-        _anchor_dir, anchor_receipt, _probe_receipts = _p1_paths(args.p1_attempt)
-        anchor_payload = _require_pass(
-            anchor_receipt, label="S4/anchor", schemas=("a2_piper_pull_v5_1_p1_receipt",)
-        )
-        if anchor_payload.get("anchor_pass") is not True:
-            raise RuntimeError("S4 door probes require measured anchor_pass=true")
-        measurements = anchor_payload.get("anchor_measurements")
-        if (
-            not isinstance(measurements, list)
-            or not measurements
-            or any(
-                not isinstance(measurement, Mapping)
-                or measurement.get("waypoint_arrived") is not True
-                or measurement.get("yaw_arrived") is not True
-                for measurement in measurements
-            )
-        ):
-            raise RuntimeError("S4 door probes require measured waypoint and yaw arrival for every anchor row")
-        for probe in (record for record in records if record["name"] != "s4_anchor_open_field_gpu4"):
-            _run_wave([probe])
-    elif phase == "s5":
+    if args.phase == "T0":
+        return 0
+    if args.phase == "T1":
+        _run_t1(records)
+    elif args.phase == "T2":
+        _run_t2(records, args.p1_attempt)
+    elif args.phase == "T3":
+        _require_training_gate()
         _run_wave(records)
-    elif phase == "s6":
-        # Training products are already a barrier; each GPU advances one cell's
-        # checkpoints sequentially while the four cells run in parallel.
-        _run_s6_eval_wave([record for record in records if record.get("gpu") is not None])
-        analysis = [record for record in records if record.get("name") == "s6_analyze_v5_1"]
-        _run_wave(analysis)
-    elif phase == "s2":
-        _run_s2_wave(records, allow_g8_pure_a=args.allow_g8_pure_a)
-    else:
-        _run_wave(records)
+    elif args.phase == "T4":
+        _run_t4(records)
     return 0
 
 

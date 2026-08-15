@@ -1,5 +1,9 @@
 # DONE
 
+- 2026-08-15 23:40 HKT - Completed B2 and Route-A B2 closure. Seed1 G2/G4/G6/G8 are `FORMAL_CELL_COMPLETE`, natural `rc0`, global step2500, and Route-A B2 is exact40/640 with selections G2 step1750, G4 step1000, G6 step1750, G8 step0500. All 16 formal cells and all four Route-A subwaves are now complete.
+- 2026-08-15 23:40 HKT - Completed postformal runtime. Route-B R7 sealed pooled48 `16/16`, realized stratification `16/16`, and five-mode interventions `80/80`; the F8 candidate freeze preserves 16 candidates. R8 holdout sealed `1024` episodes (`961` goal, `983` max-stage5, `977` crossing, `2` unsafe). R10 render naturally completed `15/15` jobs with `720` canonical episode0 media and `78` preserved/excluded extras, no retry and no missing evidence.
+- 2026-08-15 23:40 HKT - Wrote canonical `logs_eval/base_v23/final_analysis/V23_FINAL_ANALYSIS.{json,md}` with status `V23_FINAL_ANALYSIS_COMPLETE` and outcome `V23_RESEARCH_PASS_NO_RELEASE`. H1 is `V23_WARM_START_INHERITANCE_NOT_SUPPORTED`; H2/H3/H5 are typed inconclusive; H4 is `V23_E2_BOUNDARY_NOT_ESTABLISHED` with `V23_DOOR_MODEL_INSUFFICIENT_FOR_E2`. Plan R1, memory, and the already-present LT-23-12 constraint are synchronized; no cleanup or POST-v23 implementation was performed.
+
 - 2026-08-14 16:02 HKT - Recorded W1 eight-cell natural closure and reducers. A2 G2/G4/G6/G8 and B1 G1/G3/G5/G7 each have `FORMAL_CELL_COMPLETE`, natural `rc0`, trainer global step `2500`, final checkpoint, and `normal` D1 binding; four slice receipts and both subwave receipts are complete with Route-A admission true.
 - 2026-08-14 16:02 HKT - Recorded Route-A A2 and B1 exact40/640 completion. Both evidence indexes, analyses, and selections are `COMPLETE`. A2 selects G2 step1250, G4 step1000, G6 step1500, G8 step0750; B1 selects G1 step1000, G3 step0500, G5 step1500, G7 step0500. These remain mechanical selections, not statistical/release/goal conclusions.
 

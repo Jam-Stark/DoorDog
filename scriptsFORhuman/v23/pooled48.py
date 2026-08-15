@@ -48,7 +48,6 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/pooled48.py``
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-EVAL_EXPERIMENT = "wbmanip/door_open_a2_base_lstm"
 
 POOLED48_SCHEMA = "a2_piper_v23_pooled48_receipt_v1"
 POOLED48_STATUS = "V23_POOLED48_COMPLETE"
@@ -58,9 +57,21 @@ POOLED48_PLAN_SCHEMA = "a2_piper_v23_pooled48_plan_v1"
 POOLED48_TOPOLOGY = "pooled48"
 POOLED48_NUM_ENVS = 48
 POOLED48_EPISODES = 48
-POOLED48_ROOT = REPO_ROOT / "logs_eval/base_v23/pooled48"
+# R1-R3 exposed composition/evidence-hook utility errors.  R4 completed real
+# pooled episodes and showed that diagnostic stage traces are naturally sparse.
+# All typed F8 attempts remain immutable and R7 writes to a fresh child root.
+POOLED48_ROOT = REPO_ROOT / "logs_eval/base_v23/pooled48/R7_F8_NULL_LEGACY_MODE"
 POOLED48_RECEIPT_PATH = POOLED48_ROOT / "V23_POOLED48.json"
 POOLED48_PLAN_PATH = POOLED48_ROOT / "V23_POOLED48_PLAN.json"
+POOLED48_DIAGNOSTIC_REWARD_TERMS = (
+    "push_door_hinge",
+    "a2_stage3_unlatch_hold",
+    "a2_stage3_stage4_hold_and_drive",
+    "a2_corridor_door_wide",
+    "a2_corridor_clean_passage",
+    "penalty_a2_door_body_contact",
+    "complete",
+)
 
 # Route-B may be scheduled on any local physical GPU in this workstation.  The
 # common v23 formal-training map remains intentionally untouched; Route-B
@@ -348,15 +359,12 @@ def _candidate_root(candidate: Mapping[str, Any]) -> Path:
 
 
 def _command(candidate: Mapping[str, Any], output: Path, *, physical_gpu: int) -> list[str]:
-    config = Path(str(candidate["config_path"]))
     if physical_gpu not in PHYSICAL_GPU_DOMAIN:
         raise Pooled48Error(f"selected candidate maps to illegal physical GPU {physical_gpu}")
     return [
         str(PROJECT_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
-        f"+exp={EVAL_EXPERIMENT}",
-        f"+ablation=wbmanip/{config.stem}",
         f"++checkpoint={candidate['checkpoint_path']}",
         "++checkpoint_load_mode=policy_only",
         "++algo.config.eval.a2_v23_p06_policy_only=true",
@@ -372,6 +380,10 @@ def _command(candidate: Mapping[str, Any], output: Path, *, physical_gpu: int) -
         f"++algo.config.eval.num_eval_episodes={POOLED48_EPISODES}",
         "++algo.config.eval.eval_num_envs_episodes=true",
         "++algo.config.eval.a2_diagnostic_trace_enabled=true",
+        "++algo.config.eval.a2_diagnostic_reward_terms=["
+        + ",".join(POOLED48_DIAGNOSTIC_REWARD_TERMS)
+        + "]",
+        "++env.config.a2_v20_R2_evidence_enabled=false",
         "++algo.config.num_mini_batches=1",
         "++env.config.a2_v23_d1_sampler_enabled=false",
         "++env.config.a2_v23_route_a_unsafe_contact_enabled=false",
@@ -565,9 +577,14 @@ def _validate_runtime_files(job: Mapping[str, Any]) -> tuple[list[Any], list[Any
         raise Pooled48Error(f"pooled48 records must cover env ids 0..47: {root}")
     if not isinstance(trace_value, list) or not trace_value:
         raise Pooled48Error(f"pooled48 raw trace is empty: {root}")
-    trace_ids = {row.get("env_id") for row in trace_value if isinstance(row, Mapping)}
-    if trace_ids != set(range(POOLED48_NUM_ENVS)):
-        raise Pooled48Error(f"pooled48 raw trace must cover env ids 0..47: {root}")
+    trace_ids: set[int] = set()
+    for row_index, row in enumerate(trace_value):
+        if not isinstance(row, Mapping):
+            raise Pooled48Error(f"pooled48 raw trace row {row_index} is not an object: {root}")
+        env_id = row.get("env_id")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in range(POOLED48_NUM_ENVS):
+            raise Pooled48Error(f"pooled48 raw trace row {row_index} has invalid env_id: {root}")
+        trace_ids.add(env_id)
     if not isinstance(metrics_value, Mapping) or metrics_value.get("completed_episodes") != POOLED48_EPISODES:
         raise Pooled48Error(f"pooled48 metrics must report completed_episodes=48: {root}")
     return records_value, trace_value, dict(metrics_value)
@@ -599,6 +616,11 @@ def _run_one(job: Mapping[str, Any]) -> dict[str, Any]:
     if return_code != 0:
         raise Pooled48Error(f"pooled48 job {job['job_id']} exited {return_code}; no retry")
     records, trace, metrics = _validate_runtime_files(job)
+    trace_env_ids = sorted({row["env_id"] for row in trace})
+    trace_missing_env_ids = sorted(set(range(POOLED48_NUM_ENVS)) - set(trace_env_ids))
+    missing_evidence = ["unsafe_contacts_not_exported_for_pooled48"]
+    if trace_missing_env_ids:
+        missing_evidence.append("stage_trace_sparse_expected")
     receipt = {
         "schema": POOLED48_JOB_SCHEMA,
         "status": POOLED48_JOB_STATUS,
@@ -613,7 +635,9 @@ def _run_one(job: Mapping[str, Any]) -> dict[str, Any]:
         "num_envs": POOLED48_NUM_ENVS,
         "episode_record_count": len(records),
         "trace_row_count": len(trace),
-        "trace_env_ids": sorted({row["env_id"] for row in trace if isinstance(row, Mapping)}),
+        "trace_env_ids": trace_env_ids,
+        "trace_missing_env_ids": trace_missing_env_ids,
+        "trace_coverage_status": "COMPLETE" if not trace_missing_env_ids else "SPARSE_TYPED",
         "metrics_completed_episodes": metrics["completed_episodes"],
         "physical_gpu": physical_gpu,
         "logical_gpu": "cuda:0",
@@ -622,7 +646,7 @@ def _run_one(job: Mapping[str, Any]) -> dict[str, Any]:
         "retry_count": 0,
         "natural_completion": True,
         "contact_evidence": "NOT_EXPORTED_UNSUPPORTED_FOR_POOLED48",
-        "missing_evidence": ["unsafe_contacts_not_exported_for_pooled48"],
+        "missing_evidence": missing_evidence,
         "process": {
             "pid": process.pid,
             "started_at_utc": started,

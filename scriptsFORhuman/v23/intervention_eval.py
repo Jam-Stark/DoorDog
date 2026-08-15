@@ -31,6 +31,7 @@ try:
         POOLED48_RECEIPT_PATH,
         POOLED48_SCHEMA,
         POOLED48_STATUS,
+        POOLED48_DIAGNOSTIC_REWARD_TERMS,
         PHYSICAL_GPU_DOMAIN,
         PHYSICAL_GPU_MAPPING_POLICY,
         _absolute as _pooled_absolute,
@@ -56,6 +57,7 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/intervention_eval.py`
         POOLED48_RECEIPT_PATH,
         POOLED48_SCHEMA,
         POOLED48_STATUS,
+        POOLED48_DIAGNOSTIC_REWARD_TERMS,
         PHYSICAL_GPU_DOMAIN,
         PHYSICAL_GPU_MAPPING_POLICY,
         _absolute as _pooled_absolute,
@@ -69,14 +71,13 @@ except ImportError:  # direct ``python scriptsFORhuman/v23/intervention_eval.py`
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-EVAL_EXPERIMENT = "wbmanip/door_open_a2_base_lstm"
 INTERVENTION_SCHEMA = "a2_piper_v23_intervention_record_v1"
 INTERVENTION_JOB_SCHEMA = "a2_piper_v23_intervention_job_receipt_v1"
 INTERVENTION_JOB_STATUS = "V23_INTERVENTION_JOB_COMPLETE"
 INTERVENTION_PLAN_SCHEMA = "a2_piper_v23_intervention_plan_v1"
 INTERVENTION_RECEIPT_SCHEMA = "a2_piper_v23_intervention_eval_receipt_v1"
 INTERVENTION_RECEIPT_STATUS = "V23_INTERVENTION_EVAL_COMPLETE"
-INTERVENTION_ROOT = REPO_ROOT / "logs_eval/base_v23/interventions"
+INTERVENTION_ROOT = REPO_ROOT / "logs_eval/base_v23/interventions/R7_F8_NULL_LEGACY_MODE"
 INTERVENTION_RECEIPT_PATH = INTERVENTION_ROOT / "V23_INTERVENTION_EVAL.json"
 INTERVENTION_PLAN_PATH = INTERVENTION_ROOT / "V23_INTERVENTION_EVAL_PLAN.json"
 INTERVENTION_TOPOLOGY = "canonical16"
@@ -170,13 +171,10 @@ def _command(candidate: Mapping[str, Any], mode: str, output: Path, *, physical_
         raise InterventionEvalError(f"unsupported v23 intervention mode: {mode!r}")
     if physical_gpu not in PHYSICAL_GPU_DOMAIN:
         raise InterventionEvalError(f"selected candidate maps to illegal physical GPU {physical_gpu}")
-    config = Path(str(candidate["config_path"]))
     command = [
         str(PROJECT_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
-        f"+exp={EVAL_EXPERIMENT}",
-        f"+ablation=wbmanip/{config.stem}",
         f"++checkpoint={candidate['checkpoint_path']}",
         "++checkpoint_load_mode=policy_only",
         "++algo.config.eval.a2_v23_p06_policy_only=true",
@@ -192,13 +190,21 @@ def _command(candidate: Mapping[str, Any], mode: str, output: Path, *, physical_
         f"++algo.config.eval.num_eval_episodes={INTERVENTION_EPISODES}",
         "++algo.config.eval.eval_num_envs_episodes=true",
         "++algo.config.eval.a2_diagnostic_trace_enabled=true",
+        "++algo.config.eval.a2_diagnostic_reward_terms=["
+        + ",".join(POOLED48_DIAGNOSTIC_REWARD_TERMS)
+        + "]",
+        "++env.config.a2_v20_R2_evidence_enabled=false",
         "++algo.config.num_mini_batches=1",
         "++env.config.a2_v23_route_a_unsafe_contact_enabled=false",
         "++algo.config.eval.a2_v23_route_a_unsafe_contact_export=false",
         "++algo.config.eval.save_videos=false",
         "++algo.config.eval.save_trajectories=false",
+        "++algo.config.eval.a2_v23_p05_runtime_export=false",
+        "++algo.config.eval.a2_v23_p08_state_bank_export=false",
         "++algo.config.eval.a2_v23_p08_v2_export=true",
         "++env.config.a2_v23_d1_sampler_enabled=false",
+        "++env.config.a2_v23_p05_runtime_enabled=false",
+        "++env.config.a2_v23_forward_intervention_mode=null",
         "++env.config.a2_v23_p08_v2_enabled=true",
         "++env.config.a2_v23_route_b_p08_v2_enabled=true",
         f"++env.config.a2_v23_p08_v2_mode={mode}",
@@ -412,15 +418,23 @@ def _validate_manifest_plan(payload: Mapping[str, Any]) -> dict[str, Any]:
         required_command_flags = {
             "++checkpoint_load_mode=policy_only",
             "++algo.config.eval.a2_v23_p06_policy_only=true",
+            "++algo.config.eval.a2_v23_p05_runtime_export=false",
+            "++algo.config.eval.a2_v23_p08_state_bank_export=false",
             "++algo.config.eval.a2_v23_p08_v2_export=true",
             "++env.config.a2_v23_d1_sampler_enabled=false",
+            "++env.config.a2_v23_p05_runtime_enabled=false",
+            "++env.config.a2_v23_forward_intervention_mode=null",
             "++env.config.a2_v23_p08_v2_enabled=true",
             "++env.config.a2_v23_route_b_p08_v2_enabled=true",
             f"++env.config.a2_v23_p08_v2_mode={mode}",
         }
         if not isinstance(command, list) or not required_command_flags.issubset(command):
             raise InterventionEvalError(f"intervention manifest job {expected_id} does not use Route-B P0.8-v2 flags")
-        if any("a2_v23_forward_intervention_mode" in str(flag) for flag in command):
+        if any(
+            str(flag).startswith("++env.config.a2_v23_forward_intervention_mode=")
+            and flag != "++env.config.a2_v23_forward_intervention_mode=null"
+            for flag in command
+        ):
             raise InterventionEvalError(f"intervention manifest job {expected_id} uses the legacy forward mode")
         if any("a2_v23_oracle_active_mask" in str(flag) for flag in command):
             raise InterventionEvalError(f"intervention manifest job {expected_id} uses a configured oracle active mask")

@@ -30,6 +30,7 @@ try:
         _freeze_id,
         _validate_candidate,
     )
+    from .pooled48 import POOLED48_DIAGNOSTIC_REWARD_TERMS
 except ImportError:  # direct script invocation
     repo_root = Path(__file__).resolve().parents[2]
     if str(repo_root) not in sys.path:
@@ -45,6 +46,7 @@ except ImportError:  # direct script invocation
         _freeze_id,
         _validate_candidate,
     )
+    from scriptsFORhuman.v23.pooled48 import POOLED48_DIAGNOSTIC_REWARD_TERMS
 
 
 PROJECT_PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
@@ -388,12 +390,10 @@ def _build_command(candidate: Mapping[str, Any], *, seed: int, physical_gpu: int
     if physical_gpu not in LEGAL_PHYSICAL_GPUS:
         raise Holdout64Error(f"physical GPU must be one of {LEGAL_PHYSICAL_GPUS}")
     freeze_id = str(candidate["freeze_id"])
-    config_stem = Path(str(candidate["config_path"])).stem
     command = [
         str(PROJECT_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
-        f"+ablation=wbmanip/{config_stem}",
         f"++checkpoint={candidate['checkpoint_path']}",
         "++checkpoint_load_mode=full",
         "++auto_load_latest=false",
@@ -408,6 +408,10 @@ def _build_command(candidate: Mapping[str, Any], *, seed: int, physical_gpu: int
         "++algo.config.eval.eval_num_envs_episodes=true",
         "++algo.config.eval.num_eval_episodes=16",
         "++algo.config.eval.a2_diagnostic_trace_enabled=true",
+        "++algo.config.eval.a2_diagnostic_reward_terms=["
+        + ",".join(POOLED48_DIAGNOSTIC_REWARD_TERMS)
+        + "]",
+        "++env.config.a2_v20_R2_evidence_enabled=false",
         "++simulator.config.cameras.enable_cameras=false",
         "++simulator.config.render_results=false",
         f"++env.config.a2_v23_route_b_candidate_id={freeze_id}",
@@ -565,6 +569,8 @@ def run_once(job: Mapping[str, Any]) -> dict[str, Any]:
         raise Holdout64Error(f"holdout job exited with returncode={result.returncode}; no retry is permitted")
     if not raw_path.is_file() or not trace_path.is_file():
         raise Holdout64Error("holdout job exited without both raw records and trace")
+    trace_env_ids = _validate_trace(trace_path)
+    trace_missing_env_ids = sorted(set(range(EPISODES_PER_SEED)) - set(trace_env_ids))
     receipt = {
         "schema": RAW_SCHEMA,
         "status": RAW_STATUS,
@@ -590,8 +596,11 @@ def run_once(job: Mapping[str, Any]) -> dict[str, Any]:
         "output_root": str(root),
         "raw_records_path": str(raw_path),
         "trace_path": str(trace_path),
+        "trace_env_ids": trace_env_ids,
+        "trace_missing_env_ids": trace_missing_env_ids,
+        "trace_coverage_status": "COMPLETE" if not trace_missing_env_ids else "SPARSE_TYPED",
         "retry_count": 0,
-        "missing_evidence": [],
+        "missing_evidence": ["stage_trace_sparse_expected"] if trace_missing_env_ids else [],
     }
     write_json(receipt_path, receipt)
     return receipt
@@ -628,7 +637,7 @@ def _load_records(path: Path, *, job: Mapping[str, Any]) -> list[dict[str, Any]]
     return normalized
 
 
-def _validate_trace(path: Path) -> None:
+def _validate_trace(path: Path) -> list[int]:
     payload = _read_json_any(path)
     if not isinstance(payload, list) or not payload:
         raise Holdout64Error(f"holdout trace must be a non-empty list: {path}")
@@ -640,15 +649,14 @@ def _validate_trace(path: Path) -> None:
         if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in range(EPISODES_PER_SEED):
             raise Holdout64Error(f"holdout trace row {index} has invalid env_id: {path}")
         env_ids.add(env_id)
-    if env_ids != set(range(EPISODES_PER_SEED)):
-        raise Holdout64Error(f"holdout trace does not cover env ids 0..15: {path}")
+    return sorted(env_ids)
 
 
 def _validate_job_receipt(receipt: Mapping[str, Any], job: Mapping[str, Any]) -> dict[str, Any]:
     path = Path(str(job["job_receipt_path"]))
     if receipt.get("schema") != RAW_SCHEMA or receipt.get("status") != RAW_STATUS:
         raise Holdout64Error(f"holdout job receipt schema/status is incomplete: {path}")
-    for field in ("job_id", "freeze_id", "partition_id", "job_ordinal", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "physical_gpus", "physical_gpu_domain", "physical_gpu_mapping_policy", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "returncode", "output_root", "raw_records_path", "trace_path", "retry_count", "candidate"):
+    for field in ("job_id", "freeze_id", "partition_id", "job_ordinal", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "physical_gpus", "physical_gpu_domain", "physical_gpu_mapping_policy", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "returncode", "output_root", "raw_records_path", "trace_path", "trace_env_ids", "trace_missing_env_ids", "trace_coverage_status", "retry_count", "candidate"):
         if field not in receipt:
             raise Holdout64Error(f"holdout job receipt is missing {field}: {path}")
     for field in ("job_id", "freeze_id", "partition_id", "job_ordinal", "checkpoint_path", "config_path", "scenario_path", "seed", "physical_gpu", "physical_gpus", "physical_gpu_domain", "physical_gpu_mapping_policy", "logical_gpu", "process_count", "num_envs", "num_mini_batches", "episode_count", "output_root", "raw_records_path", "trace_path"):
@@ -656,7 +664,18 @@ def _validate_job_receipt(receipt: Mapping[str, Any], job: Mapping[str, Any]) ->
             raise Holdout64Error(f"holdout job receipt {path} field {field} disagrees with plan")
     if receipt["candidate"] != job["candidate"]:
         raise Holdout64Error(f"holdout job receipt candidate disagrees with plan: {path}")
-    if receipt["returncode"] != 0 or receipt["retry_count"] != 0 or receipt.get("missing_evidence") != []:
+    trace_env_ids = receipt["trace_env_ids"]
+    trace_missing_env_ids = receipt["trace_missing_env_ids"]
+    if not isinstance(trace_env_ids, list) or not trace_env_ids or trace_env_ids != sorted(set(trace_env_ids)):
+        raise Holdout64Error(f"holdout job receipt trace_env_ids are invalid: {path}")
+    if any(isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in range(EPISODES_PER_SEED) for env_id in trace_env_ids):
+        raise Holdout64Error(f"holdout job receipt trace_env_ids are outside canonical16: {path}")
+    expected_missing = sorted(set(range(EPISODES_PER_SEED)) - set(trace_env_ids))
+    expected_status = "COMPLETE" if not expected_missing else "SPARSE_TYPED"
+    expected_missing_evidence = ["stage_trace_sparse_expected"] if expected_missing else []
+    if trace_missing_env_ids != expected_missing or receipt["trace_coverage_status"] != expected_status:
+        raise Holdout64Error(f"holdout job receipt trace coverage typing is inconsistent: {path}")
+    if receipt["returncode"] != 0 or receipt["retry_count"] != 0 or receipt.get("missing_evidence") != expected_missing_evidence:
         raise Holdout64Error(f"holdout job receipt is not a strict successful no-retry record: {path}")
     return dict(receipt)
 
@@ -676,7 +695,9 @@ def reduce_receipt(
         records_path = _absolute(str(job["raw_records_path"]))
         trace_path = _absolute(str(job["trace_path"]))
         records = _load_records(records_path, job=job)
-        _validate_trace(trace_path)
+        trace_env_ids = _validate_trace(trace_path)
+        if trace_env_ids != receipt["trace_env_ids"]:
+            raise Holdout64Error(f"holdout trace coverage disagrees with job receipt: {trace_path}")
         grouped.setdefault(freeze_id, []).append(
             {
                 "job_ordinal": job["job_ordinal"],
@@ -689,6 +710,10 @@ def reduce_receipt(
                 "record_count": len(records),
                 "raw_records_path": str(records_path),
                 "trace_path": str(trace_path),
+                "trace_env_ids": trace_env_ids,
+                "trace_missing_env_ids": list(receipt["trace_missing_env_ids"]),
+                "trace_coverage_status": receipt["trace_coverage_status"],
+                "missing_evidence": list(receipt["missing_evidence"]),
                 "job_receipt_path": str(receipt_path),
                 "records": records,
             }
@@ -722,7 +747,9 @@ def reduce_receipt(
         "holdout_seeds": list(HOLDOUT_SEEDS),
         "candidate_count": EXPECTED_CANDIDATE_COUNT,
         "candidates": candidates,
-        "missing_evidence": [],
+        "missing_evidence": ["stage_trace_sparse_expected"]
+        if any(row["trace_missing_env_ids"] for item in candidates for row in item["jobs"])
+        else [],
         "invalid_evidence": [],
         "policy_quality_claim": False,
         "formal_admission": False,

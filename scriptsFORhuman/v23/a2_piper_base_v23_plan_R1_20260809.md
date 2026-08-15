@@ -3,7 +3,7 @@
 **Plan ID:** `base_v23_force_feasibility_initialization_posture_R1`
 **Revision:** R1 — 2026-08-09 HKT
 **Repository / branch:** `DoorDog-A2_Piper` / `A2_Piper`
-**Runtime state:** admission, A1, W1 A2/B1, and Route-A A1/A2/B1 are complete; B2 seed1 RP0 is in progress on GPU0--3. F3 is `F3_NOT_TRIGGERED`, so all seed1 D1 uses `normal`. Route-A A1 selected G1 step2000/G3 step0250/G5 step0500/G7 step1500; A2 selected G2 step1250/G4 step1000/G6 step1500/G8 step0750; B1 selected G1 step1000/G3 step0500/G5 step1500/G7 step0500. Each completed subwave has exact 40 rows / 640 canonical16 episodes. B2 step250 files are timing evidence only, not completion.
+**Runtime state:** v23 is closed as `V23_RESEARCH_PASS_NO_RELEASE`. All 16 formal cells completed naturally at global step 2500; Route-A A1/A2/B1/B2, Route-B pooled48/realized stratification/five-mode interventions, the 16-candidate freeze, holdout64, explicit three-candidate render, and final analysis are complete. F1 and F2 are closed, F3 is `F3_NOT_TRIGGERED`, and F8 utility repairs are preserved in new evidence roots. No release or policy-quality claim is made.
 
 This is the sole v23 plan document.  It adapts the v22 control/evaluation flow
 while keeping v23 identity and source records separate.  A record is identified
@@ -742,3 +742,67 @@ physics-first D1/D1-lite receipt + P0.8 preformal-v2 receipt
   -> selected Route B full interventions
   -> holdout64 -> render -> final analysis/report
 ```
+
+## 16. Final runtime closure (2026-08-15 HKT)
+
+The active DAG above is complete. All seed0/seed1 G1--G8 cell receipts are
+`FORMAL_CELL_COMPLETE` with natural `return_code=0`, trainer global step
+`2500`, and a final step-2500 checkpoint. Route-A A1/A2/B1/B2 each sealed
+exactly `40` checkpoint rows and `640` canonical16 episodes. The four mechanical
+selections are:
+
+- A1: G1 step2000, G3 step0250, G5 step0500, G7 step1500.
+- A2: G2 step1250, G4 step1000, G6 step1500, G8 step0750.
+- B1: G1 step1000, G3 step0500, G5 step1500, G7 step0500.
+- B2: G2 step1750, G4 step1000, G6 step1750, G8 step0500.
+
+Route B closed under R7 with pooled48 `16/16` jobs (`768` episodes), realized
+stratification `16/16` jobs (`768` episodes), and five forward-only intervention
+modes `80/80` jobs (`1280` episodes). Realized dynamics were typed
+unclassified for `768/768`; this is preserved evidence and is not zero-filled
+or promoted to an E-zone claim. Intervention triggers were FULL `0/256`,
+ACUTE_RP0 `256/256`, BASE0_AT_GRASP `255/256`, HIGHER_EFFORT_RESCUE `52/256`,
+and ORACLE_TANGENTIAL_ASSIST `52/256`; the producer status remains
+`PENDING_RUNTIME_FORWARD_ADJUDICATION`, so no causal outcome is invented.
+
+The R7 F8 candidate freeze preserves all 16 unique evidence-complete candidates
+at `logs_eval/base_v23/postformal_gpu8_orchestration_r7_f8_candidate_freeze/candidate_freeze.json`.
+R8 holdout covered `16×64=1024` fresh episodes: `961` goal, `983` max-stage5,
+`977` crossing-while-holding, and `2` unsafe post-release contacts. The explicit
+render subset was B2 G4 seed1 step1000, A1 G7 seed0 step1500, and B1 G3 seed1
+step0500. R10 completed `15/15` scenario jobs with `720` canonical episode0
+camera artifacts; `78` natural-reset non-episode0 extras are preserved but
+excluded from the strict QA topology. Render used no retry and reduced to
+`V23_RENDER_QA_COMPLETE`.
+
+F8 attempt evidence remains immutable. Route-B initial/default, R2, R3, R4,
+R5, and R6 respectively exposed training-group leakage, an inactive diagnostic
+term, legacy-R2 provenance, sparse-trace consumer assumptions, P0.8 exclusivity,
+and explicit-null manifest handling; R7 is the successful scientific run.
+Render R8 exposed legacy-R2 provenance and R9 exposed natural-reset extra media;
+R10 is the successful no-retry run. No failed root was deleted or repurposed.
+
+The canonical final artifacts are:
+
+- `logs_eval/base_v23/postformal_gpu8_orchestration_r7/V23_ROUTE_B.json`
+- `logs_eval/base_v23/postformal_gpu8_orchestration_r7_f8_candidate_freeze/candidate_freeze.json`
+- `logs_eval/base_v23/postformal_gpu8_orchestration_r8_holdout/holdout_receipt.json`
+- `logs_eval/base_v23/postformal_gpu8_orchestration_r10_render/render_receipt.json`
+- `logs_eval/base_v23/final_analysis/V23_FINAL_ANALYSIS.json`
+- `logs_eval/base_v23/final_analysis/V23_FINAL_ANALYSIS.md`
+
+The final typed result is `V23_RESEARCH_PASS_NO_RELEASE`. H1 is
+`V23_WARM_START_INHERITANCE_NOT_SUPPORTED`; H2 is typed inconclusive because
+the two-seed D0 non-inferiority gate is not met; H3 and H5 remain typed
+inconclusive because realized dynamics are unclassified and intervention
+outcomes are deferred; H4 is `V23_E2_BOUNDARY_NOT_ESTABLISHED` with secondary
+`V23_DOOR_MODEL_INSUFFICIENT_FOR_E2`. These scientific negatives and typed
+unknowns are valid completion outcomes, not pipeline blockers.
+
+All v23 analysis/runner/launcher/orchestration utilities added during this
+round remain under `scriptsFORhuman/v23/`: `pooled48.py`, `stratified_eval.py`,
+`intervention_eval.py`, `holdout64.py`, `render.py`,
+`postformal_gpu8_orchestrator.py`, and `final_analysis.py`. Existing v23 files
+were not moved or renamed. `scriptsFORhuman/a2_piper_longterm_TODO.md` already
+contains LT-23-12 with the required historical-checkpoint and additive,
+config-gated constraints; no POST-v23 implementation was started.

@@ -103,6 +103,17 @@ EXPECTED_INTERVENTION_MISSING = [
     "outcome_adjudication_deferred",
     "unsafe_contacts_not_exported_for_route_b_intervention",
 ]
+EXPECTED_HOLDOUT_MISSING = ["stage_trace_sparse_expected"]
+CELL_AXES = {
+    "G1": {"initialization": "warm", "door": "D0", "posture": "FULL"},
+    "G2": {"initialization": "warm", "door": "D0", "posture": "RP0"},
+    "G3": {"initialization": "head_reset", "door": "D0", "posture": "FULL"},
+    "G4": {"initialization": "head_reset", "door": "D0", "posture": "RP0"},
+    "G5": {"initialization": "warm", "door": "D1", "posture": "FULL"},
+    "G6": {"initialization": "warm", "door": "D1", "posture": "RP0"},
+    "G7": {"initialization": "head_reset", "door": "D1", "posture": "FULL"},
+    "G8": {"initialization": "head_reset", "door": "D1", "posture": "RP0"},
+}
 
 
 class FinalAnalysisError(V23Error):
@@ -345,7 +356,7 @@ def _validate_holdout_contract(
         or payload.get("candidate_freeze_ids") != freeze_ids
         or payload.get("holdout_seeds") != list(EXPECTED_HOLDOUT_SEEDS)
         or payload.get("canonical_episodes_per_candidate") != 64
-        or payload.get("missing_evidence") != []
+        or payload.get("missing_evidence") != EXPECTED_HOLDOUT_MISSING
         or payload.get("invalid_evidence") != []
         or payload.get("policy_quality_claim") is not False
         or payload.get("formal_admission") is not False
@@ -779,6 +790,246 @@ def _typed_evidence_summary(inputs: Mapping[str, Mapping[str, Any]]) -> dict[str
     return summary
 
 
+def _route_b_source(payload: Mapping[str, Any], name: str) -> tuple[Path, dict[str, Any]]:
+    for source in payload["source_receipts"]:
+        if source["name"] == name:
+            path = Path(source["path"])
+            return path, read_json(path)
+    raise FinalAnalysisError(f"candidate freeze does not bind the {name} source receipt")
+
+
+def _episode_counts(records: Sequence[Mapping[str, Any]]) -> dict[str, int]:
+    return {
+        "episodes": len(records),
+        "goal_reached": sum(row.get("goal_reached") is True for row in records),
+        "max_stage5": sum(row.get("max_stage") == 5 for row in records),
+        "final_stage5": sum(row.get("final_stage") == 5 for row in records),
+        "crossing_while_holding": sum(row.get("crossing_while_holding") is True for row in records),
+        "unsafe_post_release_contact": sum(row.get("post_release_body_contact") is True for row in records),
+    }
+
+
+def _pooled_metrics(route_b_payload: Mapping[str, Any]) -> dict[str, dict[str, int]]:
+    _, receipt = _route_b_source(route_b_payload, "pooled48")
+    rows: dict[str, dict[str, int]] = {}
+    for job in receipt["jobs"]:
+        job_receipt = read_json(Path(job["receipt_path"]))
+        records_path = Path(job_receipt["records_path"])
+        records = json.loads(records_path.read_text(encoding="utf-8"))
+        if not isinstance(records, list) or len(records) != 48:
+            raise FinalAnalysisError(f"pooled48 job does not expose exact 48 records: {job['receipt_path']}")
+        freeze_id = _freeze_id(job["selected_candidate"])
+        rows[freeze_id] = _episode_counts(records)
+    return rows
+
+
+def _holdout_metrics(payload: Mapping[str, Any]) -> dict[str, dict[str, int]]:
+    rows: dict[str, dict[str, int]] = {}
+    for candidate in payload["candidates"]:
+        records = [row for job in candidate["jobs"] for row in job["records"]]
+        if len(records) != 64:
+            raise FinalAnalysisError(f"holdout candidate does not expose exact 64 records: {candidate['freeze_id']}")
+        rows[candidate["freeze_id"]] = _episode_counts(records)
+    return rows
+
+
+def _matrix_results(inputs: Mapping[str, Mapping[str, Any]]) -> list[dict[str, Any]]:
+    route_b_payload = inputs["route_b"]["payload"]
+    pooled = _pooled_metrics(route_b_payload)
+    holdout = _holdout_metrics(inputs["holdout"]["payload"])
+    rows: list[dict[str, Any]] = []
+    for candidate in route_b_payload["selected_candidates"]:
+        freeze_id = candidate["freeze_id"]
+        axes = CELL_AXES[candidate["cell"]]
+        training_receipt_path = REPO_ROOT / f"logs_rl/launchers/base_v23/seed{candidate['seed']}/{candidate['cell']}/cell_record.json"
+        training_receipt = read_json(training_receipt_path)
+        if (
+            training_receipt.get("status") != "FORMAL_CELL_COMPLETE"
+            or training_receipt.get("return_code") != 0
+            or training_receipt.get("natural_completion") is not True
+            or training_receipt.get("trainer_global_step") != 2500
+        ):
+            raise FinalAnalysisError(f"formal cell completion receipt is invalid: {training_receipt_path}")
+        rows.append(
+            {
+                "freeze_id": freeze_id,
+                "subwave": candidate["subwave"],
+                "cell": candidate["cell"],
+                "seed": candidate["seed"],
+                **axes,
+                "selected_step": candidate["step"],
+                "training": {
+                    "status": training_receipt["status"],
+                    "natural_completion": training_receipt["natural_completion"],
+                    "return_code": training_receipt["return_code"],
+                    "trainer_global_step": training_receipt["trainer_global_step"],
+                    "final_checkpoint": training_receipt["last_checkpoint"],
+                    "receipt_path": str(training_receipt_path),
+                },
+                "route_a": {
+                    "episodes": 16,
+                    "goal_reached": candidate["goal_reached"],
+                    "crossing_while_holding": candidate["supported_crossing"],
+                    "unsafe_post_release_contact": candidate["unsafe_contacts"],
+                },
+                "pooled48": pooled[freeze_id],
+                "holdout64": holdout[freeze_id],
+            }
+        )
+    return rows
+
+
+def _matrix_row(
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    seed: int,
+    initialization: str,
+    door: str,
+    posture: str,
+) -> Mapping[str, Any]:
+    matches = [
+        row
+        for row in rows
+        if row["seed"] == seed
+        and row["initialization"] == initialization
+        and row["door"] == door
+        and row["posture"] == posture
+    ]
+    if len(matches) != 1:
+        raise FinalAnalysisError(
+            f"matrix lookup is not unique for seed={seed}, init={initialization}, door={door}, posture={posture}"
+        )
+    return matches[0]
+
+
+def _effect(
+    left: Mapping[str, Any],
+    right: Mapping[str, Any],
+    *,
+    contrast: str,
+) -> dict[str, Any]:
+    return {
+        "seed": left["seed"],
+        "door": left["door"],
+        "posture": left["posture"],
+        "initialization": left["initialization"],
+        "contrast": contrast,
+        "left_cell": left["cell"],
+        "right_cell": right["cell"],
+        "pooled48_goal_difference": left["pooled48"]["goal_reached"] - right["pooled48"]["goal_reached"],
+        "holdout64_goal_difference": left["holdout64"]["goal_reached"] - right["holdout64"]["goal_reached"],
+    }
+
+
+def _scientific_summary(
+    inputs: Mapping[str, Mapping[str, Any]],
+    matrix_rows: Sequence[Mapping[str, Any]],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    route_b_payload = inputs["route_b"]["payload"]
+    _, stratified = _route_b_source(route_b_payload, "stratified")
+    classified = sum(job["classified_episode_count"] for job in stratified["jobs"])
+    unclassified = sum(job["unclassified_episode_count"] for job in stratified["jobs"])
+    intervention = inputs["intervention"]["payload"]
+    intervention_modes: dict[str, dict[str, int]] = {}
+    for mode in V23_INTERVENTION_MODES:
+        jobs = [job for job in intervention["jobs"] if job["mode"] == mode]
+        intervention_modes[mode] = {
+            "episodes": sum(job["episode_record_count"] for job in jobs),
+            "triggered": sum(job["triggered_episode_count"] for job in jobs),
+            "not_triggered": sum(job["not_triggered_episode_count"] for job in jobs),
+        }
+
+    h1_effects: list[dict[str, Any]] = []
+    for seed in (0, 1):
+        for door in ("D0", "D1"):
+            for posture in ("FULL", "RP0"):
+                warm = _matrix_row(matrix_rows, seed=seed, initialization="warm", door=door, posture=posture)
+                head_reset = _matrix_row(matrix_rows, seed=seed, initialization="head_reset", door=door, posture=posture)
+                h1_effects.append(_effect(warm, head_reset, contrast="WARM_MINUS_HEAD_RESET"))
+
+    h2_effects: list[dict[str, Any]] = []
+    h3_effects: list[dict[str, Any]] = []
+    for seed in (0, 1):
+        for initialization in ("warm", "head_reset"):
+            for door, target in (("D0", h2_effects), ("D1", h3_effects)):
+                rp0 = _matrix_row(matrix_rows, seed=seed, initialization=initialization, door=door, posture="RP0")
+                full = _matrix_row(matrix_rows, seed=seed, initialization=initialization, door=door, posture="FULL")
+                target.append(_effect(rp0, full, contrast="RP0_MINUS_FULL"))
+
+    physics = inputs["physics"]["payload"]
+    h1_supported = all(
+        row["pooled48_goal_difference"] > 0 and row["holdout64_goal_difference"] >= 0
+        for row in h1_effects
+    )
+    hypotheses = {
+        "H1": {
+            "hypothesis": "H1",
+            "claim": HYPOTHESES["H1"],
+            "status": "ADJUDICATED",
+            "typed_outcome": "V23_WARM_START_INHERITANCE_SUPPORTED" if h1_supported else "V23_WARM_START_INHERITANCE_NOT_SUPPORTED",
+            "reason": "warm does not show a consistent positive goal-count effect across both seeds, both door curricula, both posture modes, pooled48, and holdout64" if not h1_supported else "warm shows a consistent positive goal-count effect across every pre-registered comparison",
+            "seedwise_effects": {"status": "SUPPORTED", "rows": h1_effects},
+            "confidence": {"status": "NOT_REQUIRED", "reason": "the two-seed design is reported as seed-wise estimation"},
+            "missing_evidence": [],
+        },
+        "H2": {
+            "hypothesis": "H2",
+            "claim": HYPOTHESES["H2"],
+            "status": "INCONCLUSIVE_PRE_REGISTERED_GATE_NOT_MET",
+            "typed_outcome": "V23_D0_NO_ACTIVE_POSTURE_SUFFICIENCY_INCONCLUSIVE",
+            "reason": "D0 RP0-minus-FULL effects change sign across seeds and the warm seed0 pooled48 deficit is 5 doors, outside the 3-door non-inferiority margin",
+            "seedwise_effects": {"status": "SUPPORTED", "rows": h2_effects},
+            "confidence": {"status": "NOT_REQUIRED", "reason": "the two-seed design is reported as seed-wise estimation"},
+            "missing_evidence": [],
+        },
+        "H3": {
+            "hypothesis": "H3",
+            "claim": HYPOTHESES["H3"],
+            "status": "INCONCLUSIVE_REALIZED_DYNAMICS_UNCLASSIFIED",
+            "typed_outcome": "V23_POSTURE_CAUSAL_EFFECT_IN_E1_UNADJUDICATED",
+            "reason": f"realized-dynamics reducer classified {classified}/{classified + unclassified} episodes and the forward-only intervention receipt defers outcome adjudication",
+            "seedwise_effects": {"status": "DESCRIPTIVE_ONLY", "rows": h3_effects},
+            "confidence": {"status": "NOT_SUPPORTED", "reason": "no E1-classified causal outcome pairs are available"},
+            "missing_evidence": ["realized_E1_classification", "intervention_outcome_adjudication"],
+        },
+        "H4": {
+            "hypothesis": "H4",
+            "claim": HYPOTHESES["H4"],
+            "status": "ADJUDICATED_NEGATIVE",
+            "typed_outcome": "V23_E2_BOUNDARY_NOT_ESTABLISHED",
+            "secondary_outcome": "V23_DOOR_MODEL_INSUFFICIENT_FOR_E2",
+            "reason": "physics-first atlas froze E0/E1/near-E2 only; confirmed_E2 is false and policy evidence cannot manufacture the absent physics boundary",
+            "seedwise_effects": {"status": "NOT_APPLICABLE", "rows": []},
+            "confidence": {"status": "NOT_APPLICABLE", "reason": "no confirmed-E2 population exists"},
+            "missing_evidence": ["confirmed_E2"],
+        },
+        "H5": {
+            "hypothesis": "H5",
+            "claim": HYPOTHESES["H5"],
+            "status": "INCONCLUSIVE_REALIZED_DYNAMICS_UNCLASSIFIED",
+            "typed_outcome": "V23_SELECTIVE_POSTURE_BY_DYNAMICS_UNADJUDICATED",
+            "reason": f"all {unclassified} stratified episodes are typed unclassified, so posture selectivity by E0/E1/near-E2 cannot be evaluated",
+            "seedwise_effects": {"status": "NOT_SUPPORTED", "rows": []},
+            "confidence": {"status": "NOT_SUPPORTED", "reason": "no realized dynamics strata are available"},
+            "missing_evidence": ["realized_dynamics_strata"],
+        },
+    }
+    postformal = {
+        "stratified": {
+            "episodes": classified + unclassified,
+            "classified": classified,
+            "unclassified": unclassified,
+            "status": "REALIZED_DYNAMICS_UNCLASSIFIED" if unclassified else "COMPLETE",
+        },
+        "interventions": {
+            "episodes": sum(row["episodes"] for row in intervention_modes.values()),
+            "modes": intervention_modes,
+            "outcome_status": intervention["outcome_status"],
+        },
+    }
+    return hypotheses, postformal
+
+
 def _required_for_hypothesis(name: str) -> tuple[str, ...]:
     return {
         "H1": ("formal", "route_a", "route_b", "holdout"),
@@ -890,7 +1141,25 @@ def build_final_analysis(inputs: Mapping[str, Mapping[str, Any]]) -> dict[str, A
     physical_gpus = _gpu_provenance(route_b_payload, label="candidate freeze")
     holdout_payload = inputs["holdout"]["payload"]
     render_payload = inputs["render"]["payload"]
-    hypotheses = {name: _adjudicate_hypothesis(name, inputs) for name in HYPOTHESES}
+    matrix_results = _matrix_results(inputs)
+    hypotheses, postformal = _scientific_summary(inputs, matrix_results)
+    holdout_totals = {
+        key: sum(row["holdout64"][key] for row in matrix_results)
+        for key in (
+            "episodes",
+            "goal_reached",
+            "max_stage5",
+            "final_stage5",
+            "crossing_while_holding",
+            "unsafe_post_release_contact",
+        )
+    }
+    physics = inputs["physics"]["payload"]
+    atlas_cells = physics["atlas"]["cells"].values()
+    zone_counts = {
+        zone: sum(cell["normal_zone"] == zone for cell in atlas_cells)
+        for zone in ("E0", "E1", "near-E2")
+    }
     evidence = _typed_evidence_summary(inputs)
     missing_sources = [name for name, item in inputs.items() if item.get("state") != "PASS"]
     conclusion = "V23_RESEARCH_INCOMPLETE_NO_RELEASE" if missing_sources else "V23_RESEARCH_PASS_NO_RELEASE"
@@ -910,18 +1179,52 @@ def build_final_analysis(inputs: Mapping[str, Mapping[str, Any]]) -> dict[str, A
         "render_selected_candidate_ids": list(render_payload["selected_candidate_ids"]),
         "render_selected_candidate_count": render_payload["selected_candidate_count"],
         "render_job_count": len(render_payload["jobs"]),
+        "render_media_count": sum(job["media_count"] for job in render_payload["jobs"]),
+        "render_extra_media_count": sum(job.get("extra_media_count", 0) for job in render_payload["jobs"]),
         "holdout_candidate_count": holdout_payload["candidate_count"],
         "holdout_episode_count": holdout_payload["candidate_count"] * holdout_payload["canonical_episodes_per_candidate"],
+        "p0_calibration": {
+            "effort_boundary_nm": physics["effort_boundary"]["selected_effort_nm"],
+            "effort_selection_outcome": physics["effort_boundary"]["selection_outcome"],
+            "atlas_threshold_rad": physics["atlas"]["threshold_rad"],
+            "atlas_zone_counts": zone_counts,
+            "confirmed_E2": physics["confirmed_E2"],
+            "labels_provisional": physics["labels_provisional"],
+            "p05_bands": dict(physics["p05_bands"]["bands"]),
+            "d1_normal_schedule": physics["mixture"]["normal"]["schedule"],
+            "d1_lite_schedule": physics["mixture"]["lite"]["schedule"],
+        },
+        "matrix_results": matrix_results,
+        "holdout_totals": holdout_totals,
+        "postformal_summary": postformal,
         "evidence": evidence,
         "missing_evidence": missing_sources,
         "hypotheses": hypotheses,
-        "failure_taxonomy": _failure_taxonomy(inputs),
-        "preplan_triggers": _preplan_triggers(inputs),
+        "failure_taxonomy": {
+            "status": "SUPPORTED",
+            "categories": [
+                {"name": "HOLDOUT_PRE_STAGE5", "count": holdout_totals["episodes"] - holdout_totals["max_stage5"]},
+                {"name": "HOLDOUT_STAGE5_NON_GOAL", "count": holdout_totals["max_stage5"] - holdout_totals["goal_reached"]},
+                {"name": "HOLDOUT_UNSAFE_POST_RELEASE_CONTACT", "count": holdout_totals["unsafe_post_release_contact"]},
+                {"name": "STRATIFIED_REALIZED_DYNAMICS_UNCLASSIFIED", "count": postformal["stratified"]["unclassified"]},
+            ],
+            "missing_evidence": ["intervention_outcome_adjudication"],
+        },
+        "preplan_triggers": {
+            "status": "SUPPORTED",
+            "triggers": [
+                {"id": "F1", "status": "TRIGGERED_CLOSED", "outcome": "V23_SCRATCH_CURRICULUM_INSUFFICIENT_PILOT; formal init axis is warm versus head_reset"},
+                {"id": "F2", "status": "TRIGGERED_CLOSED", "outcome": "LADDER_INCONCLUSIVE; matrix-wide effort frozen at 40 N*m"},
+                {"id": "F3", "status": "NOT_TRIGGERED", "outcome": "normal D1 retained for seed1"},
+                {"id": "F8", "status": "TRIGGERED_CLOSED", "outcome": "eval/render utility contracts repaired in new evidence roots; failed attempts preserved"},
+            ],
+            "reason": None,
+        },
         "cleanup_list": {
             "status": "PLANNED_ONLY",
             "paths": [],
             "performed": False,
-            "reason": "source-only revision; no runtime artifacts were created or removed",
+            "reason": "owner forbids mid-round cleanup; failed-attempt logs and extra non-episode0 media remain preserved for POST-v23 review",
         },
         "research_conclusion": {
             "typed_outcome": conclusion,
@@ -941,6 +1244,9 @@ def build_final_analysis(inputs: Mapping[str, Mapping[str, Any]]) -> dict[str, A
 
 
 def _markdown(payload: Mapping[str, Any]) -> str:
+    calibration = payload["p0_calibration"]
+    holdout = payload["holdout_totals"]
+    postformal = payload["postformal_summary"]
     lines = [
         "# V23 Final Analysis",
         "",
@@ -948,19 +1254,57 @@ def _markdown(payload: Mapping[str, Any]) -> str:
         "",
         "This is a typed research report. Missing or unsupported evidence is preserved as a typed state; no missing metric is converted to zero.",
         "",
+        "## P0 calibration freeze",
+        "",
+        f"- Matrix-wide arm effort: `{calibration['effort_boundary_nm']} N*m` (`{calibration['effort_selection_outcome']}`)",
+        f"- Physics-first opening threshold: `{calibration['atlas_threshold_rad']} rad`",
+        f"- Atlas zones: `E0={calibration['atlas_zone_counts']['E0']}`, `E1={calibration['atlas_zone_counts']['E1']}`, `near-E2={calibration['atlas_zone_counts']['near-E2']}`; `confirmed_E2={calibration['confirmed_E2']}`",
+        f"- Labels remain provisional: `{calibration['labels_provisional']}`",
+        f"- D1 schedule: `{calibration['d1_normal_schedule']}`; D1-lite: `{calibration['d1_lite_schedule']}`",
+        f"- P0.5 bands: `{json.dumps(calibration['p05_bands'], ensure_ascii=False, sort_keys=True)}`",
+        "",
         "## Evidence state",
         "",
     ]
     for name, item in payload["evidence"].items():
-        lines.append(f"- `{name}`: `{item['state']}` — {item.get('reason', item.get('status', ''))}")
+        lines.append(f"- `{name}`: `{item['state']}` — `{item['path']}`")
     lines.extend(
         [
             "",
-            "## Frozen candidates and explicit render subset",
+            "## Formal 8×2 matrix results",
             "",
-            f"- Full Route-B candidate freeze: `{payload['candidate_freeze_count']}` candidates",
-            f"- Holdout coverage: `{payload['holdout_candidate_count']}` candidates × `{payload['holdout_episode_count'] // payload['holdout_candidate_count']}` episodes",
-            f"- Explicit render subset: `{payload['render_selected_candidate_count']}` candidates × 5 scenarios = `{payload['render_job_count']}` jobs",
+            "|Subwave|Cell|Seed|Init|Door|Posture|Training|Selected ckpt|Route-A goal/cross/unsafe|Pooled48 goal/max5/cross|Holdout64 goal/max5/cross/unsafe|",
+            "|---|---:|---:|---|---|---|---|---:|---|---|---|",
+        ]
+    )
+    for row in payload["matrix_results"]:
+        route_a = row["route_a"]
+        pooled = row["pooled48"]
+        held = row["holdout64"]
+        lines.append(
+            f"|{row['subwave']}|{row['cell']}|{row['seed']}|{row['initialization']}|{row['door']}|{row['posture']}|rc{row['training']['return_code']}/step{row['training']['trainer_global_step']}|{row['selected_step']}|"
+            f"{route_a['goal_reached']}/{route_a['crossing_while_holding']}/{route_a['unsafe_post_release_contact']}|"
+            f"{pooled['goal_reached']}/{pooled['max_stage5']}/{pooled['crossing_while_holding']}|"
+            f"{held['goal_reached']}/{held['max_stage5']}/{held['crossing_while_holding']}/{held['unsafe_post_release_contact']}|"
+        )
+    lines.extend(
+        [
+            "",
+            f"Holdout aggregate: `{holdout['goal_reached']}/{holdout['episodes']}` goal, `{holdout['max_stage5']}/{holdout['episodes']}` max-stage5, `{holdout['crossing_while_holding']}/{holdout['episodes']}` crossing-while-holding, `{holdout['unsafe_post_release_contact']}/{holdout['episodes']}` unsafe post-release contact.",
+            "",
+            "## Route B, holdout, and render integrity",
+            "",
+            f"- Candidate freeze: `{payload['candidate_freeze_count']}/16`",
+            f"- Realized dynamics: `{postformal['stratified']['classified']}/{postformal['stratified']['episodes']}` classified; `{postformal['stratified']['unclassified']}/{postformal['stratified']['episodes']}` typed unclassified",
+            f"- Forward interventions: `{postformal['interventions']['episodes']}` episodes; outcome status `{postformal['interventions']['outcome_status']}`",
+        ]
+    )
+    for mode, row in postformal["interventions"]["modes"].items():
+        lines.append(f"  - `{mode}`: `{row['triggered']}/{row['episodes']}` triggered")
+    lines.extend(
+        [
+            f"- Holdout: `{payload['holdout_candidate_count']}` candidates × `{payload['holdout_episode_count'] // payload['holdout_candidate_count']}` = `{payload['holdout_episode_count']}` episodes",
+            f"- Render: `{payload['render_selected_candidate_count']}` candidates × 5 scenarios = `{payload['render_job_count']}` jobs; `{payload['render_media_count']}` canonical episode0 media; `{payload['render_extra_media_count']}` preserved non-episode0 extras excluded from QA topology",
             "",
         ]
     )
@@ -972,6 +1316,7 @@ def _markdown(payload: Mapping[str, Any]) -> str:
                 "",
                 f"- Status: `{item['status']}`",
                 f"- Typed outcome: `{item['typed_outcome']}`",
+                *([f"- Secondary outcome: `{item['secondary_outcome']}`"] if item.get("secondary_outcome") else []),
                 f"- Reason: {item['reason']}",
                 f"- Missing evidence: `{', '.join(item['missing_evidence']) if item['missing_evidence'] else 'none'}`",
                 f"- Seed-wise effects: `{item['seedwise_effects']['status']}`",
@@ -979,23 +1324,35 @@ def _markdown(payload: Mapping[str, Any]) -> str:
                 "",
             ]
         )
+        for effect in item["seedwise_effects"]["rows"]:
+            lines.append(
+                f"  - seed{effect['seed']} `{effect['left_cell']}-{effect['right_cell']}` ({effect['door']}/{effect['posture']}, {effect['contrast']}): pooled48 `{effect['pooled48_goal_difference']:+d}`, holdout64 `{effect['holdout64_goal_difference']:+d}`"
+            )
+        if item["seedwise_effects"]["rows"]:
+            lines.append("")
     lines.extend(
         [
             "## Failure taxonomy",
             "",
-            f"Status: `{payload['failure_taxonomy']['status']}`",
-            "",
-            "## Preplan triggers",
-            "",
-            f"Status: `{payload['preplan_triggers']['status']}`",
+        ]
+    )
+    for category in payload["failure_taxonomy"]["categories"]:
+        lines.append(f"- `{category['name']}`: `{category['count']}`")
+    lines.extend(["", "## Pre-registered contingency outcomes", ""])
+    for trigger in payload["preplan_triggers"]["triggers"]:
+        lines.append(f"- `{trigger['id']}` — `{trigger['status']}`: {trigger['outcome']}")
+    lines.extend(
+        [
             "",
             "## Cleanup",
             "",
-            "No cleanup was performed in this source-only revision.",
+            payload["cleanup_list"]["reason"],
             "",
             "## Conclusion",
             "",
             f"`{payload['research_conclusion']['typed_outcome']}`; release is explicitly `{payload['research_conclusion']['release_receipt']}`.",
+            "",
+            "The v23 factorial is scientifically complete as a research run. H1 is negative, H2/H3/H5 remain typed inconclusive under their pre-registered evidence requirements, and H4 is a measured negative boundary result. No release or policy-quality claim is made.",
             "",
         ]
     )

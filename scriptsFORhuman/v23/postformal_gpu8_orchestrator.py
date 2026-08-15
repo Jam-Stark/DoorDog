@@ -594,6 +594,7 @@ def run_workflow(
     physical_gpus: Sequence[int] = DEFAULT_PHYSICAL_GPUS,
     candidate_ids: Sequence[str] | None = None,
     freeze_path: str | Path | None = None,
+    holdout_path: str | Path | None = None,
 ) -> dict[str, Any]:
     manifest = _parse_physical_gpus(physical_gpus)
     if workflow == "ROUTE_B":
@@ -611,7 +612,7 @@ def run_workflow(
             physical_gpus=manifest,
             candidate_ids=ids,
             freeze_path=freeze_path,
-            holdout_path=_paths(root)["holdout_receipt"],
+            holdout_path=holdout_path or _paths(root)["holdout_receipt"],
         )
         return {"workflow": workflow, "paths": {key: str(value) for key, value in paths.items()}}
     if workflow == "FINAL":
@@ -641,6 +642,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--candidate-id", dest="candidate_ids_single", action="append", default=None)
     parser.add_argument("--candidate-ids", dest="candidate_ids_multi", nargs="+", default=None)
     parser.add_argument("--freeze", type=Path, default=None)
+    parser.add_argument("--holdout", type=Path, default=None)
     return parser
 
 
@@ -662,6 +664,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             physical_gpus=physical_gpus,
             candidate_ids=candidate_ids,
             freeze_path=args.freeze,
+            holdout_path=args.holdout,
         )
         print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True))
     except (OSError, TypeError, ValueError, V23Error) as exc:

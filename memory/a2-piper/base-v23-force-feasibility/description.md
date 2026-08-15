@@ -1,8 +1,8 @@
 ---
 name: base-v23-force-feasibility
 scope: A2+Piper base_v23 P0 force-feasibility calibration, certificate, and D1 admission boundary
-status: formal_W1_route_a_complete
-last_updated: 2026-08-14 16:02 HKT
+status: v23_research_pass_no_release
+last_updated: 2026-08-15 23:40 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v23-force-feasibility/description.md
@@ -17,7 +17,7 @@ read_when:
 
 ## Purpose
 
-本 entry 保存 `base_v23` P0 的可复用 calibration / force-feasibility 事实及其 admission 边界。历史 R54 的 `INTERIM_TYPED_ADJUDICATION / FORMAL_NO-GO` 只保留为其 capability-source reducer 的 typed result；owner 的 `OPTION_2_PLUS_3_COMBINED` 已用 physics-first D1/D1-lite 与 P0.8 preformal-v2 取代该 admission gate。A1 与 W1（A2/B1）共 12 个 formal cells 均已 natural complete；Route-A A1/A2/B1 各有 exact `40` rows / `640` episodes 的 complete index、analysis 与 selection。F3 为 `F3_NOT_TRIGGERED`，所有 seed1 D1 保持 `normal`。
+本 entry 保存 `base_v23` P0 的可复用 calibration / force-feasibility 事实及其 admission 边界。历史 R54 的 `INTERIM_TYPED_ADJUDICATION / FORMAL_NO-GO` 只保留为其 capability-source reducer 的 typed result；owner 的 `OPTION_2_PLUS_3_COMBINED` 已用 physics-first D1/D1-lite 与 P0.8 preformal-v2 取代该 admission gate。16 个 formal cells、四个 Route-A subwaves、Route B、holdout64、render 与 final analysis 均已完成；终态为 `V23_RESEARCH_PASS_NO_RELEASE`。F3 为 `F3_NOT_TRIGGERED`，所有 seed1 D1 保持 `normal`。
 
 ## Hard Boundaries
 
@@ -34,6 +34,7 @@ read_when:
 - P0.10 terminal adjudication 是 operational `NO-GO`，scientific result 为 Branch B 未测量的 `INCONCLUSIVE`；它不构成 Branch B outcome、D1、formal admission、policy quality、release 或 goal success。F1 已完成 bounded head-reset implementation 与 two-type runtime smoke，但并未 adjudicate Branch B；此前 D1 blocked 时 G7/G8 未 launch，这不是对已完成 prerequisite 后 A1 的否定。
 - R257 lock `logs_eval/base_v23/locks/V23_FORMAL_ADMISSION_PASS.json`（schema `a2_piper_v23_formal_admission_v1`, status `V23_FORMAL_ADMISSION_PASS`）验证 FORMAL_PLAN、D1_PHYSICS_FIRST、P0_8_PREFORMAL_V2、D1_FULL_64X10 后，令 `formal_admission=true`，其 scope 严格为 `START_FORMAL_TRAINING_ONLY`。它不意味着 policy quality、release receipt 或 `formal_training_completed`；后三者均为 false。Owner 后续资源更新将 physical GPU0--7 授予 v23：formal training 使用每 cell 独立 tmux、显式 physical `cuda:N`、不设 `CUDA_VISIBLE_DEVICES`、独立 port；eval 使用持久化 GPU plan 与每卡最多一个进程。
 - A1 formal completion 与 Route-A A1 selection 只证明 scoped natural process completion 和 mechanical checkpoint selection，不构成全矩阵完成、统计结论、release 或 goal success。F3 只执行 endpoint stage3 判据；G5/G7 endpoint 各有 `16/16` stage3 env，故未触发 lite，未添加 symmetry/completeness 判据。
+- Final analysis 的 `V23_RESEARCH_PASS_NO_RELEASE` 是 research completion，不是 release。H1 为 `V23_WARM_START_INHERITANCE_NOT_SUPPORTED`；H2/H3/H5 保持 typed inconclusive；H4 为 `V23_E2_BOUNDARY_NOT_ESTABLISHED` / `V23_DOOR_MODEL_INSUFFICIENT_FOR_E2`。Route-B `768/768` realized-dynamics unclassified 与 intervention outcome deferred 都是保留的 evidence limitation，不得补零或提升为 causal/E-zone claim。
 
 ## Measured Facts and Typed Adjudication
 
@@ -52,6 +53,8 @@ read_when:
 - R170/R173 P0.1/P0.3：FULL exact16 runtime 产生 `45,776` joined phase frames，覆盖 `PRE_ACTUATOR_COMPUTE/PRE` 与 `POST_PHYSICS/POST`。P0.1 computed/applied 均为 PRE state 导出的 POST actuator estimate，actual PhysX drive torque remains `UNKNOWN/ACTUAL_PHYSX_DRIVE_FORCE_UNAVAILABLE`。P0.3 有 16 个 controller identities，live action→articulation permutation 为 `[0,4,9,2,6,11,1,5,10,3,7,12,8,13,14,15,16,17,18,19]`；arm slots `[12,13,14,15,16,17]` 对应 articulation IDs `[8,13,14,15,16,17]`，执行 `effort40` clipping，且为 FULL checkpoint load。该结果仅 P0.1/P0.3，D1/formal/release 均为 false。
 - P0.10 terminal R160：top status `P0_10_SCRATCH_ADMISSION_NO_GO_BRANCH_A_FAILED_BRANCH_B_OBSERVABILITY_BLOCKED`；Branch A 是有效 measured fail，evaluated/stage2/stable-grasp counts 为 `16/12/0`。Branch B 为 `UNMEASURED_OBSERVABILITY_BLOCKED`，policy outcome `UNADJUDICATED`：checkpoint 缺少 `staged_reset_buf` / `staged_reset_num_samples`，且 canonical16 没有 `stage>=3` birth-stage source。scientific outcome 是 `P0_10_SCIENTIFIC_INCONCLUSIVE_BRANCH_B_UNMEASURED`，并触发 F1 marker `V23_SCRATCH_CURRICULUM_INSUFFICIENT_PILOT`。
 - P0.10 F1 R177/R180--R182：`warm_head_reset` 在 strict post-policy-only-load 后，只 reset actor final rows `[3:5]` 的 weight/bias 及 `std[3:5]=0.8`，使用 local seed/device generator；其余 actor rows、LSTM、RMS 以及 fresh critic/optimizer state 保持既定状态。G3/G4/G7/G8 route `warm_head_reset`，G1/G2/G5/G6 保持 warm；D1 blocked 时 G7/G8 仍 unlaunched。R180 `HR_FULL_D0`（physical0/logical0）与 R181 `HR_RP0_D0`（physical1/logical0）各 natural `rc0`、no retry、`64×10`，均有 finite step-10 checkpoint。R182 canonical aggregate 为 `P0_10_F1_D0_HEAD_RESET_TWO_TYPE_SMOKES_RUNTIME_VERIFIED`、`f1_smoke_complete=true`、`p010_f1_status=COMPLETE`，但 D1/formal/release 均 false。
+- Formal/postformal closure：seed0/seed1 G1--G8 全部 `FORMAL_CELL_COMPLETE`、natural `rc0`、global step2500；Route-A 四个 subwave 各 exact40/640。Route-B R7 完成 pooled48 `16/16`、stratified `16/16` 与 interventions `80/80`；F8 candidate freeze 为 `16/16`。R8 holdout 共 `1024` episodes，goal/max-stage5/crossing/unsafe 为 `961/983/977/2`。R10 render 为 `15/15` jobs、`720` canonical episode0 media，另保留并排除 `78` 个 non-episode0 extras。Final analysis 为 `V23_FINAL_ANALYSIS_COMPLETE` / `V23_RESEARCH_PASS_NO_RELEASE`。
+- F8 reusable gotchas：eval 不得携带 training-only `+exp/+ablation` groups；必须显式传 live diagnostic reward terms 并关闭 legacy R2；P0.8 manifest 的 explicit `null` 是合法 exclusivity 状态；sparse stage traces 必须 typed，而非要求虚假的 full coverage；render QA 只选择 episode0 的 `16 env × 3 camera`，自然 reset extras 保留但排除。每次 utility repair 使用新 evidence root，旧失败 root 不重用、不删除。
 
 ## Canonical Evidence
 
@@ -82,6 +85,11 @@ read_when:
 - R160 P0.10 terminal adjudication: `logs_eval/base_v23/p0/p010_scratch_full_d0_terminal_adjudication.json`
 - R182 P0.10 F1 canonical receipt: `logs_eval/base_v23/p0/p010_f1_head_reset_d0_type_smoke_receipt.json`
 - Human-readable adjudication: `scriptsFORhuman/v23/V23_P0_INTERIM_REPORT_20260810.md`
+- Route-B R7: `logs_eval/base_v23/postformal_gpu8_orchestration_r7/V23_ROUTE_B.json`
+- Candidate freeze F8: `logs_eval/base_v23/postformal_gpu8_orchestration_r7_f8_candidate_freeze/candidate_freeze.json`
+- Holdout64 R8: `logs_eval/base_v23/postformal_gpu8_orchestration_r8_holdout/holdout_receipt.json`
+- Render R10: `logs_eval/base_v23/postformal_gpu8_orchestration_r10_render/render_receipt.json`
+- Final analysis JSON/Markdown: `logs_eval/base_v23/final_analysis/V23_FINAL_ANALYSIS.{json,md}`
 
 ## Validation Status
 
@@ -101,11 +109,12 @@ read_when:
 - A1 terminal closure and Route-A A1：G1/G3/G5/G7 均有 natural `rc0`、trainer global step `2500` 与 final checkpoint；A1 Route-A `V23_ROUTE_A_EVIDENCE_INDEX.json` status `COMPLETE`、`row_count=40`，覆盖 canonical16 共 `640` episodes。Mechanical selections 为 G1 step2000、G3 step0250、G5 step0500、G7 step1500。
 - F3 endpoint adjudication：canonical `V23_F3_D1_ENDPOINT_REDUCER.json` status `COMPLETE` / result `F3_NOT_TRIGGERED`。G5 和 G7 的 step2500 raw trace 各覆盖 `16` 个 stage3 env，因此 seed1 D1 保持 `normal`；该结果不改变 D1 provisional physics-first 标签或构成 policy-quality/release 结论。
 - W1 与 Route-A closure：A2 G2/G4/G6/G8 和 B1 G1/G3/G5/G7 均有 `FORMAL_CELL_COMPLETE`、natural `rc0`、global step2500、normal D1 binding；A2/B1 slice 与 subwave barriers complete。Route-A A2/B1 各 exact40/640 complete。A2 selections 为 G2 step1250、G4 step1000、G6 step1500、G8 step0750；B1 selections 为 G1 step1000、G3 step0500、G5 step1500、G7 step0500。
+- Final runtime closure：B2 G2/G4/G6/G8 natural complete；Route-A B2 exact40/640；Route-B R7、candidate-freeze F8、holdout R8、render R10 与 final PLAN/WRITE 均有 natural/strict consumer evidence。Render R8/R9 失败与 Route-B earlier F8 roots 保留为 utility provenance。Final report binds all 16 formal completion receipts, all Route-A selections, 16-candidate freeze, 1024 holdout records and 720 canonical render media without release claim。
 
 ## DONE Summary
 
-P0 prerequisites, A1, W1 A2/B1, Route-A A1/A2/B1, and F3 `NOT_TRIGGERED` have verified receipts. B2, Route-A B2, Route B runtime, holdout, render, release, and goal outcome remain unproved.
+P0 prerequisites、16 个 formal cells、Route-A A1/A2/B1/B2、F3 `NOT_TRIGGERED`、Route-B、holdout64、render 与 final analysis 均有 verified receipts。终态是 `V23_RESEARCH_PASS_NO_RELEASE`；release 始终为 false。
 
 ## TODO Summary
 
-Next durable barrier is B2 natural closure followed by its reducers and Route-A B2; then Route B full interventions, holdout64, render, and final analysis remain pending. Step250 or launch evidence alone must not be recorded as completion.
+v23 core 无剩余 active TODO。POST-v23 工作只按 `scriptsFORhuman/a2_piper_longterm_TODO.md` 执行；LT-23-12 已登记但未在 v23 core 实施。

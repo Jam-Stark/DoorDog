@@ -3,8 +3,9 @@
 The v23 evaluator does not expose a D1 global-step sampler hook.  Route-B
 therefore classifies the already-realized pooled traces post hoc, using the
 R190 physics-first labels and the measured external-atlas parameter tuples.
-Missing or changing dynamics are typed failures; they are never mapped to a
-default zone and never filled with zero.
+Naturally sparse stage traces and realized tuples without an exact atlas match
+remain typed unclassified episodes; they are never mapped to a nearest/default
+zone and never filled with zero.
 """
 
 from __future__ import annotations
@@ -68,7 +69,7 @@ STRATIFIED_STATUS = "V23_STRATIFIED_EVAL_COMPLETE"
 STRATIFIED_JOB_SCHEMA = "a2_piper_v23_stratified_job_record_v1"
 STRATIFIED_JOB_STATUS = "V23_STRATIFIED_JOB_COMPLETE"
 STRATIFIED_PLAN_SCHEMA = "a2_piper_v23_stratified_plan_v1"
-STRATIFIED_ROOT = REPO_ROOT / "logs_eval/base_v23/stratified"
+STRATIFIED_ROOT = REPO_ROOT / "logs_eval/base_v23/stratified/R7_F8_NULL_LEGACY_MODE"
 STRATIFIED_RECEIPT_PATH = STRATIFIED_ROOT / "V23_STRATIFIED_EVAL.json"
 STRATIFIED_PLAN_PATH = STRATIFIED_ROOT / "V23_STRATIFIED_EVAL_PLAN.json"
 
@@ -233,15 +234,15 @@ def _match_cell(
     atlas: Mapping[str, tuple[float, float, float, float]],
     *,
     env_id: int,
-) -> str:
+) -> str | None:
     matches = [
         cell
         for cell, expected in atlas.items()
         if all(_close(observed, reference) for observed, reference in zip(dynamics, expected))
     ]
+    if not matches:
+        return None
     if len(matches) != 1:
-        if not matches:
-            raise StratifiedEvalError(f"REALIZED_DYNAMICS_UNAVAILABLE: env {env_id} tuple has no R190 atlas match")
         raise StratifiedEvalError(f"REALIZED_DYNAMICS_AMBIGUOUS: env {env_id} matches {matches}")
     return matches[0]
 
@@ -260,7 +261,9 @@ def _validate_zone_counts(value: Any, *, field: str, expected_sum: int | None = 
     return normalized
 
 
-def _validate_job_record_counts(record: Mapping[str, Any], *, path: str) -> tuple[dict[str, int], dict[str, int]]:
+def _validate_job_record_counts(
+    record: Mapping[str, Any], *, path: str
+) -> tuple[dict[str, int], dict[str, int], int, Counter[str]]:
     episodes = record.get("episodes")
     if not isinstance(episodes, list) or len(episodes) != 48:
         raise StratifiedEvalError(f"stratified job episodes must contain exactly 48 rows: {path}")
@@ -276,15 +279,60 @@ def _validate_job_record_counts(record: Mapping[str, Any], *, path: str) -> tupl
             "lite_zone",
             "lite_adjudication",
             "goal_reached",
+            "classification_status",
         }:
             raise StratifiedEvalError(f"stratified episode row {index} key set is invalid: {path}")
+        classification_status = episode.get("classification_status")
+        if classification_status == "CLASSIFIED_EXACT_ATLAS_MATCH":
+            if episode.get("atlas_cell") not in EXPECTED_CELLS:
+                raise StratifiedEvalError(f"stratified episode row {index} classified atlas cell is invalid: {path}")
+            if not isinstance(episode.get("realized_dynamics"), Mapping):
+                raise StratifiedEvalError(f"stratified episode row {index} classified dynamics are missing: {path}")
+            if episode.get("normal_zone") not in ALLOWED_ZONES:
+                raise StratifiedEvalError(f"stratified episode row {index} classified normal zone is invalid: {path}")
+        elif classification_status == "UNCLASSIFIED_NO_TRACE":
+            if any(episode.get(field) is not None for field in ("atlas_cell", "realized_dynamics", "normal_zone", "lite_zone")):
+                raise StratifiedEvalError(f"stratified episode row {index} no-trace fields must remain null: {path}")
+        elif classification_status == "UNCLASSIFIED_NO_ATLAS_MATCH":
+            if episode.get("atlas_cell") is not None or not isinstance(episode.get("realized_dynamics"), Mapping):
+                raise StratifiedEvalError(f"stratified episode row {index} unmatched dynamics are malformed: {path}")
+            if episode.get("normal_zone") is not None or episode.get("lite_zone") is not None:
+                raise StratifiedEvalError(f"stratified episode row {index} unmatched zones must remain null: {path}")
+        else:
+            raise StratifiedEvalError(f"stratified episode row {index} classification status is invalid: {path}")
         if episode.get("lite_adjudication") == "ADMITTED":
             admitted += 1
-        elif episode.get("lite_adjudication") != "EXCLUDED_FROM_LITE_CURRICULUM":
+        elif episode.get("lite_adjudication") not in {"EXCLUDED_FROM_LITE_CURRICULUM", "UNCLASSIFIED"}:
             raise StratifiedEvalError(f"stratified episode row {index} lite adjudication is invalid: {path}")
-    normal = _validate_zone_counts(record.get("normal_zone_counts"), field=f"{path}.normal_zone_counts", expected_sum=48)
+    classified = record.get("classified_episode_count")
+    unclassified = record.get("unclassified_episode_count")
+    if (
+        isinstance(classified, bool)
+        or not isinstance(classified, int)
+        or isinstance(unclassified, bool)
+        or not isinstance(unclassified, int)
+        or classified < 0
+        or unclassified < 0
+        or classified + unclassified != 48
+    ):
+        raise StratifiedEvalError(f"stratified classified/unclassified counts are invalid: {path}")
+    reasons_value = record.get("unclassified_reason_counts")
+    if not isinstance(reasons_value, Mapping):
+        raise StratifiedEvalError(f"stratified unclassified reason counts are missing: {path}")
+    reasons: Counter[str] = Counter()
+    for reason, count in reasons_value.items():
+        if reason not in {"UNCLASSIFIED_NO_TRACE", "UNCLASSIFIED_NO_ATLAS_MATCH"} or isinstance(count, bool) or not isinstance(count, int) or count < 0:
+            raise StratifiedEvalError(f"stratified unclassified reason count is invalid: {path}")
+        reasons[reason] = count
+    if sum(reasons.values()) != unclassified:
+        raise StratifiedEvalError(f"stratified unclassified reason counts disagree: {path}")
+    normal = _validate_zone_counts(
+        record.get("normal_zone_counts"),
+        field=f"{path}.normal_zone_counts",
+        expected_sum=classified,
+    )
     lite = _validate_zone_counts(record.get("lite_zone_counts"), field=f"{path}.lite_zone_counts", expected_sum=admitted)
-    return normal, lite
+    return normal, lite, classified, reasons
 
 
 def classify_trace(
@@ -322,9 +370,45 @@ def classify_trace(
     episodes: list[dict[str, Any]] = []
     normal_counts: Counter[str] = Counter()
     lite_counts: Counter[str] = Counter()
+    unclassified_counts: Counter[str] = Counter()
     for env_id in range(48):
+        if not by_env[env_id]:
+            status = "UNCLASSIFIED_NO_TRACE"
+            unclassified_counts[status] += 1
+            episodes.append(
+                {
+                    "env_id": env_id,
+                    "atlas_cell": None,
+                    "realized_dynamics": None,
+                    "normal_zone": None,
+                    "lite_zone": None,
+                    "lite_adjudication": "UNCLASSIFIED",
+                    "goal_reached": record_by_env[env_id].get("goal_reached"),
+                    "classification_status": status,
+                }
+            )
+            continue
         dynamics = _episode_dynamics(by_env[env_id], env_id=env_id)
         cell = _match_cell(dynamics, atlas, env_id=env_id)
+        realized_dynamics = {
+            field: dynamics[index] for index, field in enumerate(REALIZED_FIELDS)
+        }
+        if cell is None:
+            status = "UNCLASSIFIED_NO_ATLAS_MATCH"
+            unclassified_counts[status] += 1
+            episodes.append(
+                {
+                    "env_id": env_id,
+                    "atlas_cell": None,
+                    "realized_dynamics": realized_dynamics,
+                    "normal_zone": None,
+                    "lite_zone": None,
+                    "lite_adjudication": "UNCLASSIFIED",
+                    "goal_reached": record_by_env[env_id].get("goal_reached"),
+                    "classification_status": status,
+                }
+            )
+            continue
         normal_zone = _zone_for_cell(zones["normal"], cell, variant="normal", env_id=env_id)
         lite_admitted = cell in {
             admitted_cell
@@ -343,19 +427,19 @@ def classify_trace(
             {
                 "env_id": env_id,
                 "atlas_cell": cell,
-                "realized_dynamics": {
-                    field: dynamics[index] for index, field in enumerate(REALIZED_FIELDS)
-                },
+                "realized_dynamics": realized_dynamics,
                 "normal_zone": normal_zone,
                 "lite_zone": lite_zone,
                 "lite_adjudication": "ADMITTED" if lite_zone is not None else "EXCLUDED_FROM_LITE_CURRICULUM",
                 "goal_reached": record_by_env[env_id].get("goal_reached"),
+                "classification_status": "CLASSIFIED_EXACT_ATLAS_MATCH",
             }
         )
+    classified_count = len(episodes) - sum(unclassified_counts.values())
     normal_zone_counts = _validate_zone_counts(
         {zone: normal_counts[zone] for zone in ALLOWED_ZONES},
         field="normal_zone_counts",
-        expected_sum=len(episodes),
+        expected_sum=classified_count,
     )
     lite_admitted_count = sum(
         episode["lite_adjudication"] == "ADMITTED" for episode in episodes
@@ -367,11 +451,15 @@ def classify_trace(
     )
     return {
         "episode_count": len(episodes),
+        "classified_episode_count": classified_count,
+        "unclassified_episode_count": sum(unclassified_counts.values()),
+        "unclassified_reason_counts": dict(unclassified_counts),
         "episodes": episodes,
         "normal_zone_counts": normal_zone_counts,
         "lite_zone_counts": lite_zone_counts,
-        "classification_source": "POOLED_TRACE_REALIZED_DYNAMICS_PLUS_R190_ATLAS",
+        "classification_source": "POOLED_TRACE_REALIZED_DYNAMICS_EXACT_R190_ATLAS_WITH_TYPED_UNCLASSIFIED",
         "confirmed_E2": False,
+        "missing_evidence": ["realized_dynamics_unclassified"] if unclassified_counts else [],
     }
 
 
@@ -461,7 +549,7 @@ def _classify_candidate(
         "r190_receipt_path": str(_absolute(r190_receipt_path)),
         "realized_atlas_path": str(_absolute(realized_atlas_path)),
         **classified,
-        "missing_evidence": [],
+        "missing_evidence": list(classified["missing_evidence"]),
     }
 
 
@@ -686,6 +774,8 @@ def reduce(
     jobs: list[dict[str, Any]] = []
     normal_counts: Counter[str] = Counter()
     lite_counts: Counter[str] = Counter()
+    unclassified_counts: Counter[str] = Counter()
+    classified_total = 0
     for ordinal, candidate in enumerate(selected):
         path = _absolute(manifest_jobs[ordinal]["output_path"])
         record = _load_object(path)
@@ -704,10 +794,12 @@ def reduce(
             raise StratifiedEvalError(f"stratified job GPU provenance disagrees: {path}")
         if manifest_jobs[ordinal].get("physical_gpu") != expected_gpu:
             raise StratifiedEvalError(f"stratified manifest physical_gpu disagrees: {path}")
-        if record.get("episode_count") != 48 or record.get("missing_evidence") != []:
-            raise StratifiedEvalError(f"stratified job has incomplete evidence: {path}")
+        if record.get("episode_count") != 48:
+            raise StratifiedEvalError(f"stratified job episode cardinality is incomplete: {path}")
         # Re-validate the typed result shape without re-running the simulator.
-        normal, lite = _validate_job_record_counts(record, path=str(path))
+        normal, lite, classified, reasons = _validate_job_record_counts(record, path=str(path))
+        classified_total += classified
+        unclassified_counts.update(reasons)
         for zone in ALLOWED_ZONES:
             normal_counts[zone] += normal[zone]
             lite_counts[zone] += lite[zone]
@@ -719,14 +811,22 @@ def reduce(
                 "physical_gpu": record["physical_gpu"],
                 "record_path": str(path),
                 "episode_count": record["episode_count"],
+                "classified_episode_count": record["classified_episode_count"],
+                "unclassified_episode_count": record["unclassified_episode_count"],
+                "unclassified_reason_counts": dict(record["unclassified_reason_counts"]),
                 "normal_zone_counts": dict(record["normal_zone_counts"]),
                 "lite_zone_counts": dict(record["lite_zone_counts"]),
+                "missing_evidence": list(record["missing_evidence"]),
             }
         )
     if len(jobs) != 16:
         raise StratifiedEvalError("stratified reduction requires exactly 16 complete jobs")
-    if sum(normal_counts.values()) != len(jobs) * 48:
-        raise StratifiedEvalError("stratified normal zone totals must equal 16 x 48 episodes")
+    episode_total = len(jobs) * 48
+    unclassified_total = sum(unclassified_counts.values())
+    if classified_total + unclassified_total != episode_total:
+        raise StratifiedEvalError("stratified classified/unclassified totals must equal 16 x 48 episodes")
+    if sum(normal_counts.values()) != classified_total:
+        raise StratifiedEvalError("stratified normal zone totals must equal the classified episode count")
     payload = {
         "schema": STRATIFIED_SCHEMA,
         "status": STRATIFIED_STATUS,
@@ -740,12 +840,16 @@ def reduce(
         "physical_gpu_domain": list(PHYSICAL_GPU_DOMAIN),
         "physical_gpus": list(pooled_gpus),
         "physical_gpu_mapping_policy": PHYSICAL_GPU_MAPPING_POLICY,
+        "logical_gpu": "cuda:0",
         "zones": list(ALLOWED_ZONES),
         "confirmed_E2": False,
         "selected_candidates": selected,
         "candidate_count": len(selected),
         "job_count": len(jobs),
-        "episode_count": len(jobs) * 48,
+        "episode_count": episode_total,
+        "classified_episode_count": classified_total,
+        "unclassified_episode_count": unclassified_total,
+        "unclassified_reason_counts": dict(unclassified_counts),
         "normal_zone_counts": dict(normal_counts),
         "lite_zone_counts": dict(lite_counts),
         "r190_receipt_path": manifest["r190_receipt_path"],
@@ -753,7 +857,7 @@ def reduce(
         "pooled_receipt_path": manifest["pooled_receipt_path"],
         "stratified_plan_path": str(_absolute(plan_path)),
         "jobs": jobs,
-        "missing_evidence": [],
+        "missing_evidence": ["realized_dynamics_unclassified"] if unclassified_total else [],
         "no_retry": True,
     }
     write_json(_absolute(output), payload)

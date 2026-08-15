@@ -397,12 +397,10 @@ def _build_command(
 ) -> tuple[list[str], dict[str, str]]:
     if physical_gpu not in LEGAL_PHYSICAL_GPUS:
         raise RenderError(f"physical GPU must be one of {LEGAL_PHYSICAL_GPUS}")
-    config_stem = Path(str(candidate["config_path"])).stem
     command = [
         str(PROJECT_PYTHON),
         "-m",
         "gr00t.rl.eval_agent_trl",
-        f"+ablation=wbmanip/{config_stem}",
         f"++checkpoint={candidate['checkpoint_path']}",
         "++checkpoint_load_mode=policy_only",
         POLICY_ONLY_OVERRIDE,
@@ -417,6 +415,7 @@ def _build_command(
         "++algo.config.num_mini_batches=1",
         "++algo.config.eval.eval_num_envs_episodes=true",
         "++algo.config.eval.num_eval_episodes=16",
+        "++env.config.a2_v20_R2_evidence_enabled=false",
         "++simulator.config.cameras.enable_cameras=false",
         "++simulator.config.render_results=true",
         f"++env.config.save_rendering_dir={output_root / 'renderings'}",
@@ -605,7 +604,7 @@ def _job_root(root: Path, freeze_id: str, scenario: str) -> Path:
     return root / freeze_id / scenario
 
 
-def _media_record(path: Path, media_root: Path) -> tuple[int, str, Path]:
+def _media_record(path: Path, media_root: Path) -> tuple[int, str, int, Path]:
     if not path.is_absolute() or path.is_symlink() or not path.is_file():
         raise RenderError(f"render media must be a regular finalized file: {path}")
     resolved_root = media_root.resolve()
@@ -621,9 +620,9 @@ def _media_record(path: Path, media_root: Path) -> tuple[int, str, Path]:
     episode = int(match.group("episode"))
     camera_suffix = match.group("camera")
     camera = "main" if camera_suffix is None else camera_suffix[1:]
-    if env_id not in range(EXPECTED_ENV_COUNT) or episode != 0 or camera not in CAMERAS:
+    if env_id not in range(EXPECTED_ENV_COUNT) or camera not in CAMERAS:
         raise RenderError(f"render media topology is invalid: {path.name}")
-    return env_id, camera, resolved_path
+    return env_id, camera, episode, resolved_path
 
 
 def _classify_render_media(media_root: str | Path) -> dict[str, Any]:
@@ -634,13 +633,15 @@ def _classify_render_media(media_root: str | Path) -> dict[str, Any]:
     if writing:
         raise RenderError(f"unfinished .writing.mp4 render media remains: {writing[0]}")
     media = sorted(path for path in root.rglob("*.mp4") if path.is_file() or path.is_symlink())
-    if len(media) != EXPECTED_MEDIA_COUNT:
-        raise RenderError(f"render media must contain exactly {EXPECTED_MEDIA_COUNT} finalized MP4s; got {len(media)}")
     rows: list[dict[str, Any]] = []
     identities: set[tuple[int, str]] = set()
     paths: list[str] = []
+    extra_paths: list[str] = []
     for path in media:
-        env_id, camera, resolved_path = _media_record(path, root)
+        env_id, camera, episode, resolved_path = _media_record(path, root)
+        if episode != 0:
+            extra_paths.append(str(resolved_path))
+            continue
         identity = (env_id, camera)
         if identity in identities:
             raise RenderError(f"duplicate render media identity env{env_id:04d}/{camera}")
@@ -652,7 +653,15 @@ def _classify_render_media(media_root: str | Path) -> dict[str, Any]:
         raise RenderError("render media must contain one episode0 MP4 for every env0..15 and camera")
     rows.sort(key=lambda row: (row["env_id"], CAMERAS.index(row["camera"])))
     paths.sort()
-    return {"media_paths": paths, "media_rows": rows, "media_count": len(paths)}
+    extra_paths.sort()
+    return {
+        "media_paths": paths,
+        "media_rows": rows,
+        "media_count": len(paths),
+        "extra_media_paths": extra_paths,
+        "extra_media_count": len(extra_paths),
+        "extra_media_policy": "PRESERVED_EXCLUDED_NON_EPISODE0",
+    }
 
 
 def _scenario_manifest_for_job(job: Mapping[str, Any]) -> dict[str, Any]:
@@ -886,6 +895,9 @@ def run_once(job: Mapping[str, Any]) -> dict[str, Any]:
         "media_paths": media["media_paths"],
         "media_rows": media["media_rows"],
         "media_count": EXPECTED_MEDIA_COUNT,
+        "extra_media_paths": media["extra_media_paths"],
+        "extra_media_count": media["extra_media_count"],
+        "extra_media_policy": media["extra_media_policy"],
         "qa_path": str(qa_path),
         "qualitative_only": True,
         "success_gate": "NOT_APPLIED",
@@ -967,6 +979,12 @@ def _validate_qa(job: Mapping[str, Any]) -> dict[str, Any]:
     if payload.get("media_count") != EXPECTED_MEDIA_COUNT:
         raise RenderError(f"render QA media_count must be {EXPECTED_MEDIA_COUNT}: {path}")
     actual = _classify_render_media(_absolute(str(job["media_root"])))
+    if (
+        payload.get("extra_media_paths") != actual["extra_media_paths"]
+        or payload.get("extra_media_count") != actual["extra_media_count"]
+        or payload.get("extra_media_policy") != actual["extra_media_policy"]
+    ):
+        raise RenderError(f"render QA extra-media preservation record is invalid: {path}")
     if any(not isinstance(item, str) or not Path(item).is_absolute() for item in media_paths):
         raise RenderError(f"render QA media paths must be absolute paths: {path}")
     expected_paths = [str(Path(item).resolve()) for item in media_paths]
@@ -1132,11 +1150,13 @@ def reduce_receipt(
     jobs = _validate_plan_for_reduction(plan)
     qa_rows = [_validate_qa(job) for job in jobs]
     all_media: list[str] = []
+    all_extra_media: list[str] = []
     for row in qa_rows:
         paths = row["media_paths"]
         if len(paths) != EXPECTED_MEDIA_COUNT:
             raise RenderError("each reduced job must contain exactly 48 finalized media paths")
         all_media.extend(str(Path(path).resolve()) for path in paths)
+        all_extra_media.extend(str(Path(path).resolve()) for path in row["extra_media_paths"])
     if len(all_media) != len(set(all_media)):
         raise RenderError("reduced render receipt contains duplicate media paths across jobs")
     receipt = {
@@ -1167,6 +1187,9 @@ def reduce_receipt(
         "qualitative_only": True,
         "success_gate": "NOT_APPLIED",
         "jobs": qa_rows,
+        "extra_media_paths": all_extra_media,
+        "extra_media_count": len(all_extra_media),
+        "extra_media_policy": "PRESERVED_EXCLUDED_NON_EPISODE0",
         "missing_evidence": [],
         "invalid_evidence": [],
         "policy_quality_claim": False,

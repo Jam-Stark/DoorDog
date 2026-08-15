@@ -1,0 +1,170 @@
+schema: doordog_v23_planner_worker_execution_contract_v1
+date: '2026-08-09'
+repository: https://github.com/Jam-Stark/DoorDog
+branch: A2_Piper
+authoritative_design: DoorDog_v23_training_design_v0.1_20260809.docx
+formal_training_ready: false
+planner_decision_required: true
+legal_physical_gpus:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+- 6
+- 7
+formal:
+  num_envs_per_run: 4096
+  waves:
+  - wave: S0
+    training_seed: 0
+    groups:
+    - G1
+    - G2
+    - G3
+    - G4
+    - G5
+    - G6
+    - G7
+    - G8
+  - wave: S1
+    training_seed: 1
+    groups:
+    - G1
+    - G2
+    - G3
+    - G4
+    - G5
+    - G6
+    - G7
+    - G8
+  groups:
+  - group: G1
+    gpu: 0
+    initialization: v22_warm
+    door_regime: D0
+    posture: FULL
+  - group: G2
+    gpu: 1
+    initialization: v22_warm
+    door_regime: D0
+    posture: RP0
+  - group: G3
+    gpu: 2
+    initialization: scratch
+    door_regime: D0
+    posture: FULL
+  - group: G4
+    gpu: 3
+    initialization: scratch
+    door_regime: D0
+    posture: RP0
+  - group: G5
+    gpu: 4
+    initialization: v22_warm
+    door_regime: D1
+    posture: FULL
+  - group: G6
+    gpu: 5
+    initialization: v22_warm
+    door_regime: D1
+    posture: RP0
+  - group: G7
+    gpu: 6
+    initialization: scratch
+    door_regime: D1
+    posture: FULL
+  - group: G8
+    gpu: 7
+    initialization: scratch
+    door_regime: D1
+    posture: RP0
+  num_total_batches: PLANNER_MUST_FREEZE
+  save_frequency: PLANNER_MUST_FREEZE
+  warm_start_checkpoint: PLANNER_MUST_FREEZE
+  warm_start_sha256: PLANNER_MUST_FREEZE
+  common_reward_manifest: P0_FREEZE_REQUIRED
+  d0_manifest: PLANNER_MUST_FREEZE
+  d1_manifest: P0_FREEZE_REQUIRED
+p0_required_artifacts:
+- V23_SOURCE_LOCK.json
+- V23_ACTION_SEMANTICS_PASS.json
+- V23_TORQUE_TELEMETRY_PASS.json
+- V23_EFFORT_PROFILE_FREEZE.json
+- V23_DOOR_ATLAS_FREEZE.json
+- V23_FEASIBILITY_CERTIFICATE_FREEZE.json
+- V23_COMMON_REWARD_FREEZE.json
+- V23_RP0_CONTRACT_PASS.json
+- V23_STATE_BANK_FREEZE.json
+- V23_STATIC_PASS.json
+- V23_RUNTIME_SEMANTIC_PASS.json
+- V23_FORMAL_ADMISSION_PASS.json
+route_a:
+  checkpoint_steps:
+  - 250
+  - 500
+  - 750
+  - 1000
+  - 1250
+  - 1500
+  - 1750
+  - 2000
+  - 2250
+  - 2500
+  episodes_per_checkpoint: 16
+  expected_checkpoint_evals_per_wave: 80
+  expected_episode_records_per_wave: 1280
+  selection_rule: PLANNER_MUST_FREEZE
+route_b:
+  pooled48: true
+  stratified_e0_e1_e2: true
+  matched_interventions:
+  - FULL
+  - ACUTE_RP0
+  - BASE0_AT_GRASP
+  - HIGHER_EFFORT_RESCUE
+  - ORACLE_TANGENTIAL_ASSIST
+  holdout64: true
+  render_if_motion_quality_claim: true
+nonwaivable:
+- source_config_checkpoint_hash_identity
+- finite_physics_and_metrics
+- strict_record_trace_topology
+- legal_gpu_lease
+- rp0_distribution_logprob_correctness
+- no_hidden_training_control
+- no_missing_to_zero
+- staged_reset_roundtrip
+- scenario_and_seed_identity
+- unsafe_contact_and_collision_limits
+worker_adaptable_preformal:
+- effort_ladder_rung
+- d1_mixture_within_planner_bounds
+- e0_e1_e2_numeric_thresholds_within_planner_bounds
+- diagnostic_sample_counts
+- binding_vs_report_only_for_insufficient_denominator
+artifact_roots:
+  eval: logs_eval/base_v23
+  training: logs_rl/a2_piper_full_stage_a2_base/base_v23
+  launchers: logs_rl/launchers/base_v23
+  scripts: scriptsFORhuman/v23
+attempt_limits:
+  implementation_candidates: 2
+  formal_process_per_run: 1
+  infra_restart_before_first_optimizer_update: 1
+  restart_after_optimizer_progress: 0
+  scratch_extension_waves: 1
+post_v23_todo_only:
+- true_piper_torque_thermal_calibration
+- real_hinge_friction_model
+- dynamics_oracle_and_system_identification
+- three_branch_factorized_actor
+- matched_state_history_clone_runner
+- intervention_supervised_coupling_critic
+- counterfactual_branch_ppo
+- learned_sparse_posture_gate
+- handoff_downstream_critic
+- body_assist_curriculum
+- student_dynamics_coupling_distillation
+- active_anti_rebound_gripper_bracing

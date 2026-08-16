@@ -1953,6 +1953,57 @@ def _read_a2_eval_diagnostic_config(eval_config):
     }
 
 
+def _read_a2_pull_v5_characterization_config(
+    env_config,
+    *,
+    eval_num_envs_episodes: bool,
+    use_a2_base: bool,
+    p2_intervention: Mapping[str, object],
+) -> dict[str, object]:
+    """Validate the evaluator-owned, non-scientific interface trace contract."""
+
+    if not isinstance(env_config, Mapping):
+        return {"enabled": False}
+    enabled = env_config.get("a2_pull_v5_characterization_enabled", False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError("env.config.a2_pull_v5_characterization_enabled must be bool.")
+    if not enabled:
+        return {"enabled": False}
+    if not use_a2_base:
+        raise RuntimeError("HOMIE characterization requires the A2_Base action path.")
+    if not eval_num_envs_episodes:
+        raise RuntimeError(
+            "HOMIE characterization requires eval.eval_num_envs_episodes=true for first-episode rows."
+        )
+    if env_config.get("a2_v20_R1_plan_id") != _A2_PULL_V5_PLAN_ID:
+        raise RuntimeError("HOMIE characterization requires the v5 plan guard.")
+    for key in (
+        "a2_pull_v5_stage4_bank_injection_enabled",
+        "a2_pull_v5_intervention_enabled",
+        "a2_pull_v5_start_override_enabled",
+        "a2_pull_v5_probe_enabled",
+    ):
+        value = env_config.get(key, False)
+        if value is not False:
+            raise RuntimeError(
+                f"HOMIE characterization requires env.config.{key}=false; got {value!r}."
+            )
+    if env_config.get("a2_pull_v5_reset_source", "natural") != "natural":
+        raise RuntimeError("HOMIE characterization requires natural reset_source.")
+    if p2_intervention.get("enabled") is not False:
+        raise RuntimeError("HOMIE characterization forbids the evaluator P2 intervention.")
+    trace_path = env_config.get("a2_pull_v5_characterization_trace_path")
+    if not isinstance(trace_path, str) or not trace_path:
+        raise RuntimeError(
+            "HOMIE characterization requires env.config.a2_pull_v5_characterization_trace_path."
+        )
+    return {
+        "enabled": True,
+        "trace_path": trace_path,
+        "cell_id": env_config.get("a2_pull_v5_characterization_cell_id"),
+    }
+
+
 def _a2_pull_p2_runtime_state(env, action_mean, action_layout):
     """Read the existing A2 runtime state needed by evaluator-side P2."""
 
@@ -4979,7 +5030,22 @@ class TRLPPOTrainer(PPOTrainer):
             self.config.get("eval", {})
         )
         a2_p2_intervention = a2_eval_diagnostics["p2_intervention"]
+        a2_characterization = _read_a2_pull_v5_characterization_config(
+            capture_env_config,
+            eval_num_envs_episodes=eval_num_envs_episodes,
+            use_a2_base=self.use_a2_base,
+            p2_intervention=a2_p2_intervention,
+        )
+        characterization_contract = None
+        if a2_characterization["enabled"]:
+            get_characterization_contract = getattr(
+                self.env, "get_a2_pull_v5_characterization_contract", None
+            )
+            if get_characterization_contract is None:
+                raise RuntimeError("HOMIE characterization requires the environment contract getter.")
+            characterization_contract = get_characterization_contract()
         eval_to_log_records = []
+        characterization_trace_records = []
 
         if eval_num_envs_episodes:
             max_episodes = self.env.num_envs  # One episode per environment
@@ -5393,6 +5459,20 @@ class TRLPPOTrainer(PPOTrainer):
                                 post_oracle_override_pre_env_action, command_name, fixture
                             )
 
+                        if a2_characterization["enabled"]:
+                            apply_characterization = getattr(
+                                self.env, "apply_a2_pull_v5_characterization_command", None
+                            )
+                            if apply_characterization is None:
+                                raise RuntimeError(
+                                    "HOMIE characterization requires the environment action hook."
+                                )
+                            post_oracle_override_pre_env_action, _ = apply_characterization(
+                                post_oracle_override_pre_env_action,
+                                first_episode_active_mask,
+                                eval_episode_indices,
+                            )
+
                         if a2_eval_diagnostics["diagnostic_enabled"]:
                             set_diagnostic_actions = getattr(
                                 self.env, "set_a2_eval_diagnostic_actions", None
@@ -5440,6 +5520,51 @@ class TRLPPOTrainer(PPOTrainer):
                     actor_state["actions"] = step_actions
 
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
+
+                    if a2_characterization["enabled"]:
+                        if (
+                            not torch.is_tensor(dones)
+                            or dones.numel() != self.env.num_envs
+                        ):
+                            raise RuntimeError(
+                                "HOMIE characterization requires env.step() dones with one value per environment."
+                            )
+                        dones_after_physics = dones.reshape(-1)
+                        consume_characterization = getattr(
+                            self.env, "consume_a2_pull_v5_characterization_trace_rows", None
+                        )
+                        if consume_characterization is None:
+                            raise RuntimeError(
+                                "HOMIE characterization requires the environment trace consumer."
+                            )
+                        step_characterization_rows = consume_characterization()
+                        if not isinstance(step_characterization_rows, list):
+                            raise RuntimeError(
+                                "HOMIE characterization trace consumer must return a list."
+                            )
+                        for row in step_characterization_rows:
+                            if not isinstance(row, dict):
+                                raise RuntimeError(
+                                    "HOMIE characterization trace rows must be mappings."
+                                )
+                            env_id = row.get("env_id")
+                            if (
+                                isinstance(env_id, bool)
+                                or not isinstance(env_id, int)
+                                or env_id < 0
+                                or env_id >= self.env.num_envs
+                            ):
+                                raise RuntimeError(
+                                    f"HOMIE characterization row has invalid env_id={env_id!r}."
+                                )
+                            # The environment emits rows during its post-physics
+                            # callback, before _check_termination runs.  Bind the
+                            # field to the actual dones returned by this physics
+                            # step so it cannot inherit stale pre-check reset_buf.
+                            row["terminal_after_step"] = bool(
+                                dones_after_physics[env_id].item() > 0
+                            )
+                        characterization_trace_records.extend(step_characterization_rows)
 
                     if (
                         isinstance(capture_env_config, Mapping)
@@ -5712,6 +5837,93 @@ class TRLPPOTrainer(PPOTrainer):
 
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if a2_characterization["enabled"]:
+            if not isinstance(characterization_contract, dict):
+                raise RuntimeError("HOMIE characterization contract was not resolved.")
+            window_steps = characterization_contract["window_steps"]
+            if isinstance(window_steps, bool) or not isinstance(window_steps, int) or window_steps <= 0:
+                raise RuntimeError("HOMIE characterization window_steps must be a positive int.")
+            by_env = {env_id: [] for env_id in range(self.env.num_envs)}
+            for row in characterization_trace_records:
+                if not isinstance(row, dict):
+                    raise RuntimeError("HOMIE characterization trace rows must be mappings.")
+                if (
+                    row.get("schema") != characterization_contract["schema"]
+                    or row.get("record_class") != "interface_characterization"
+                    or row.get("episode_index") != 0
+                ):
+                    raise RuntimeError(
+                        "HOMIE characterization rows must be first-episode, versioned interface records."
+                    )
+                env_id = row.get("env_id")
+                if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in by_env:
+                    raise RuntimeError(f"HOMIE characterization row has invalid env_id={env_id!r}.")
+                raw_base = row.get("applied_raw_base_slice")
+                requested_u = row.get("requested_u")
+                if (
+                    not isinstance(raw_base, list)
+                    or len(raw_base) != 5
+                    or not isinstance(requested_u, (int, float))
+                    or not math.isclose(float(raw_base[2]), float(requested_u), rel_tol=0.0, abs_tol=1.0e-6)
+                ):
+                    raise RuntimeError(
+                        "HOMIE characterization raw yaw write is not auditable at applied[:,2]."
+                    )
+                by_env[env_id].append(row)
+            for env_id, rows in by_env.items():
+                if len(rows) != window_steps:
+                    raise RuntimeError(
+                        "HOMIE characterization requires complete command+hold coverage: "
+                        f"env{env_id} has {len(rows)} rows, expected {window_steps}."
+                    )
+                steps = [row.get("step_index") for row in rows]
+                if steps != list(range(window_steps)):
+                    raise RuntimeError(
+                        f"HOMIE characterization env{env_id} steps must be contiguous 0..{window_steps - 1}."
+                    )
+            trace_path = Path(str(a2_characterization["trace_path"])).expanduser()
+            if not trace_path.is_absolute():
+                trace_path = Path.cwd() / trace_path
+            trace_path = trace_path.resolve()
+            if "logs_eval/a2_piper_pull_v5" not in trace_path.as_posix():
+                raise RuntimeError(
+                    "HOMIE characterization trace must be under logs_eval/a2_piper_pull_v5/."
+                )
+            if trace_path.exists():
+                raise RuntimeError(
+                    f"HOMIE characterization trace refuses to overwrite existing path: {trace_path}"
+                )
+            trace_path.parent.mkdir(parents=True, exist_ok=True)
+            trace_payload = {
+                "schema": characterization_contract["schema"],
+                "record_class": "interface_characterization",
+                "version": 1,
+                "cell_id": characterization_contract["cell_id"],
+                "fixture": characterization_contract["fixture"],
+                "plan_id": characterization_contract["plan_id"],
+                "num_envs": self.env.num_envs,
+                "first_episode_only": True,
+                "command_steps": characterization_contract["command_steps"],
+                "hold_steps": characterization_contract["hold_steps"],
+                "window_steps": window_steps,
+                "duration_s": characterization_contract["duration_s"],
+                "hold_s": characterization_contract["hold_s"],
+                "requested_u": characterization_contract["requested_u"],
+                "xy_primitive": characterization_contract["xy_primitive"],
+                "control_dt": characterization_contract["dt"],
+                "scientific_denominator_included": False,
+                "denominator_scope": "none",
+                "trace_writer": "TRLPPOTrainer.eval",
+                "rows": sorted(
+                    characterization_trace_records,
+                    key=lambda row: (int(row["env_id"]), int(row["episode_index"]), int(row["step_index"])),
+                ),
+            }
+            with trace_path.open("x", encoding="utf-8") as stream:
+                json.dump(trace_payload, stream, indent=2, allow_nan=False)
+                stream.write("\n")
+            logger.info("Saved evaluator-owned HOMIE characterization trace to %s", trace_path)
 
         if strict_v20_payload is not None:
             v20_path = os.path.join(eval_output_dir, "a2_v20_strict_telemetry.json")

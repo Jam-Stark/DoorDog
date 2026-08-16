@@ -56,9 +56,78 @@ from gr00t.rl.envs.door.door_open_a2_base import (
     DoorPregrasp,
     a2_hold_base_relief_command,
     a2_hold_pd_effort_estimates,
+    a2_v20_mask_stage_overtime_for_arc_probe,
 )
 from gr00t.rl.isaac_utils.rotations import xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
+
+
+def _a2_pull_v5_characterization_termination(
+    reset_after_super: torch.Tensor,
+    terminal_reason_bufs: Mapping[str, torch.Tensor],
+    characterization_active: torch.Tensor,
+    episode_length_buf: torch.Tensor,
+    window_steps: int,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Mask only stage overtime until the diagnostic first-episode window ends."""
+
+    if (
+        not torch.is_tensor(reset_after_super)
+        or reset_after_super.ndim != 1
+        or reset_after_super.dtype != torch.long
+        or not torch.is_tensor(characterization_active)
+        or characterization_active.shape != reset_after_super.shape
+        or characterization_active.dtype != torch.bool
+        or not torch.is_tensor(episode_length_buf)
+        or episode_length_buf.shape != reset_after_super.shape
+        or episode_length_buf.dtype not in (torch.int32, torch.int64)
+        or isinstance(window_steps, bool)
+        or not isinstance(window_steps, int)
+        or window_steps <= 0
+    ):
+        raise RuntimeError("HOMIE characterization termination tensors have invalid contracts.")
+    expected_device = reset_after_super.device
+    if (
+        characterization_active.device != expected_device
+        or episode_length_buf.device != expected_device
+    ):
+        raise RuntimeError("HOMIE characterization termination tensors must share a device.")
+    if not isinstance(terminal_reason_bufs, Mapping) or "stage_overtime" not in terminal_reason_bufs:
+        raise RuntimeError("HOMIE characterization requires the stage_overtime terminal reason buffer.")
+    stage_overtime_reason = terminal_reason_bufs["stage_overtime"]
+    if (
+        not torch.is_tensor(stage_overtime_reason)
+        or stage_overtime_reason.shape != reset_after_super.shape
+        or stage_overtime_reason.dtype != torch.bool
+        or stage_overtime_reason.device != expected_device
+    ):
+        raise RuntimeError("HOMIE characterization stage_overtime reason has an invalid contract.")
+    other_terminal_reason = torch.zeros_like(stage_overtime_reason)
+    for reason_name, reason_buf in terminal_reason_bufs.items():
+        if reason_name == "stage_overtime":
+            continue
+        if (
+            not torch.is_tensor(reason_buf)
+            or reason_buf.shape != reset_after_super.shape
+            or reason_buf.dtype != torch.bool
+            or reason_buf.device != expected_device
+        ):
+            raise RuntimeError(
+                "HOMIE characterization terminal reason buffers must share the reset contract."
+            )
+        other_terminal_reason |= reason_buf
+    if torch.any(characterization_active & (episode_length_buf > window_steps)):
+        raise RuntimeError("HOMIE characterization overran its exact first-episode window.")
+    pending_window = characterization_active & (episode_length_buf < window_steps)
+    updated_reset, updated_stage_overtime, _ = a2_v20_mask_stage_overtime_for_arc_probe(
+        reset_after_super,
+        stage_overtime_reason,
+        other_terminal_reason,
+        pending_window,
+    )
+    diagnostic_done = characterization_active & (episode_length_buf == window_steps)
+    updated_stage_overtime &= ~diagnostic_done
+    return updated_reset, updated_stage_overtime, diagnostic_done
 
 
 class DoorOpenA2Pull(DoorPregrasp):
@@ -91,6 +160,16 @@ class DoorOpenA2Pull(DoorPregrasp):
         "side_step": (-0.18, 0.24, 0.0),
         "arc": (-0.22, 0.0, 0.35),
     }
+    _A2_PULL_V5_CHARACTERIZATION_RAW_YAW_LIMIT = 2.0
+    _A2_PULL_V5_CHARACTERIZATION_YAW_MAGNITUDES = (0.05, 0.1, 0.2, 0.4, 0.8, 2.0)
+    _A2_PULL_V5_CHARACTERIZATION_DURATIONS_S = (1.0, 2.0, 4.0)
+    _A2_PULL_V5_CHARACTERIZATION_PRIMITIVES = ("none", "straight_minus_x", "side_step")
+    _A2_PULL_V5_CHARACTERIZATION_TRACE_SCHEMA = (
+        "a2_piper_pull_v5_interface_characterization_trace_v1"
+    )
+    _A2_PULL_V5_CHARACTERIZATION_PLAN_ID = (
+        "a2_piper_pull_v5_3_locomotion_interface_probe"
+    )
 
     def __init__(self, config, device):
         config_mapping = config.get("config", config)
@@ -171,6 +250,26 @@ class DoorOpenA2Pull(DoorPregrasp):
         next_actor_state = dict(actor_state)
         next_actor_state["actions"] = applied_actions
         return super().step(next_actor_state)
+
+    @override
+    def _check_termination(self):
+        super()._check_termination()
+        if not self._a2_pull_v5_characterization_enabled:
+            return
+        contract = self._get_a2_pull_v5_characterization_contract()
+        updated_reset, updated_stage_overtime, diagnostic_done = (
+            _a2_pull_v5_characterization_termination(
+                self.reset_buf,
+                self._terminal_reason_bufs,
+                self._a2_pull_v5_characterization_active,
+                self.episode_length_buf,
+                int(contract["window_steps"]),
+            )
+        )
+        self.reset_buf[:] = updated_reset
+        self._terminal_reason_bufs["stage_overtime"][:] = updated_stage_overtime
+        self._mark_terminal_reason("complete", diagnostic_done)
+        self.reset_buf |= diagnostic_done.to(dtype=self.reset_buf.dtype)
 
     def _is_a2_pull_v5(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V5_PLAN_ID
@@ -542,6 +641,15 @@ class DoorOpenA2Pull(DoorPregrasp):
                 (self.num_envs,), -1, dtype=torch.long, device=self.device
             )
             self._a2_pull_v5_source_b_capture_frozen = False
+            declared_reset_source = self.config.get("a2_pull_v5_reset_source", "natural")
+            if declared_reset_source not in A2_PULL_V5_RESET_SOURCES:
+                raise RuntimeError(
+                    "Pull-v5 declared reset_source must be one of "
+                    f"{A2_PULL_V5_RESET_SOURCES!r}; got {declared_reset_source!r}."
+                )
+            self._a2_pull_v5_declared_reset_source = [
+                str(declared_reset_source) for _ in range(self.num_envs)
+            ]
             self._a2_pull_v5_reset_source = ["natural" for _ in range(self.num_envs)]
             self._a2_pull_v5_pending_reset_source = ["natural" for _ in range(self.num_envs)]
             self._a2_pull_v5_bank_slot_sources: list[str] = []
@@ -550,6 +658,53 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_bank_eval_indices: list[int] = []
             self._a2_pull_v5_bank_cursor = 0
             self._a2_pull_v5_bank_loaded = False
+
+        characterization_enabled = self.config.get(
+            "a2_pull_v5_characterization_enabled", False
+        )
+        if not isinstance(characterization_enabled, bool):
+            raise RuntimeError("a2_pull_v5_characterization_enabled must be bool.")
+        if characterization_enabled and not self._is_a2_pull_v5():
+            raise RuntimeError("HOMIE characterization requires the v5 plan guard.")
+        self._a2_pull_v5_characterization_enabled = characterization_enabled
+        self._a2_pull_v5_characterization_pending = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v5_characterization_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v5_characterization_xy_target_initialized = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v5_characterization_xy_target = torch.full(
+            (self.num_envs, 2), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_episode_indices = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_v5_characterization_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_v5_characterization_requested_u = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_phase_u = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_raw_base = torch.zeros(
+            self.num_envs, 5, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_physical_base = torch.zeros(
+            self.num_envs, 5, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_pre_root_pos = torch.full(
+            (self.num_envs, 3), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_pre_root_yaw = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v5_characterization_phase = ["inactive" for _ in range(self.num_envs)]
+        self._a2_pull_v5_characterization_trace_rows: list[dict[str, object]] = []
 
     @override
     def _init_a2_door_pregrasp_state(self):
@@ -943,6 +1098,346 @@ class DoorOpenA2Pull(DoorPregrasp):
             )
         self._a2_pull_v5_probe_solvable |= solvable
         return applied, solvable
+
+    def _get_a2_pull_v5_characterization_contract(self) -> dict[str, object]:
+        """Resolve the preregistered open-field characterization cell contract."""
+
+        if not self._a2_pull_v5_characterization_enabled:
+            raise RuntimeError("HOMIE characterization is not enabled for this evaluator.")
+        if not self._is_a2_pull_v5():
+            raise RuntimeError("HOMIE characterization requires the v5 plan guard.")
+        characterization_plan_id = self.config.get("a2_pull_v5_characterization_plan_id")
+        if characterization_plan_id != self._A2_PULL_V5_CHARACTERIZATION_PLAN_ID:
+            raise RuntimeError(
+                "HOMIE characterization requires characterization_plan_id="
+                f"{self._A2_PULL_V5_CHARACTERIZATION_PLAN_ID!r}; "
+                f"got {characterization_plan_id!r}."
+            )
+        fixture = self.config.get("a2_pull_v5_characterization_fixture")
+        if fixture != "open_field":
+            raise RuntimeError(
+                "HOMIE characterization fixture must be exactly 'open_field'; "
+                f"got {fixture!r}."
+            )
+        cell_id = self.config.get("a2_pull_v5_characterization_cell_id")
+        if not isinstance(cell_id, str) or not cell_id:
+            raise RuntimeError("HOMIE characterization requires a non-empty cell_id.")
+        requested_u = self.config.get("a2_pull_v5_characterization_requested_u")
+        if (
+            isinstance(requested_u, bool)
+            or not isinstance(requested_u, (int, float))
+            or not math.isfinite(float(requested_u))
+            or abs(float(requested_u)) > self._A2_PULL_V5_CHARACTERIZATION_RAW_YAW_LIMIT
+            or abs(float(requested_u)) < 0.05
+        ):
+            raise RuntimeError(
+                "HOMIE characterization requested_u must be finite and within the "
+                f"registered raw range +/-{self._A2_PULL_V5_CHARACTERIZATION_RAW_YAW_LIMIT}; "
+                f"got {requested_u!r}."
+            )
+        requested_u = float(requested_u)
+        if not any(
+            math.isclose(abs(requested_u), magnitude, rel_tol=0.0, abs_tol=1.0e-9)
+            for magnitude in self._A2_PULL_V5_CHARACTERIZATION_YAW_MAGNITUDES
+        ):
+            raise RuntimeError(
+                "HOMIE characterization requested_u is outside the preregistered grid; "
+                f"got {requested_u!r}."
+            )
+        duration_s = self.config.get("a2_pull_v5_characterization_duration_s")
+        if (
+            isinstance(duration_s, bool)
+            or not isinstance(duration_s, (int, float))
+            or not math.isfinite(float(duration_s))
+            or not any(
+                math.isclose(float(duration_s), value, rel_tol=0.0, abs_tol=1.0e-9)
+                for value in self._A2_PULL_V5_CHARACTERIZATION_DURATIONS_S
+            )
+        ):
+            raise RuntimeError(
+                "HOMIE characterization duration_s must be one of "
+                f"{self._A2_PULL_V5_CHARACTERIZATION_DURATIONS_S}; got {duration_s!r}."
+            )
+        duration_s = float(duration_s)
+        hold_s = self.config.get("a2_pull_v5_characterization_hold_s", 2.0)
+        if (
+            isinstance(hold_s, bool)
+            or not isinstance(hold_s, (int, float))
+            or not math.isfinite(float(hold_s))
+            or float(hold_s) < 2.0
+        ):
+            raise RuntimeError(
+                "HOMIE characterization hold_s must be a finite duration >= 2.0s; "
+                f"got {hold_s!r}."
+            )
+        hold_s = float(hold_s)
+        primitive = self.config.get("a2_pull_v5_characterization_xy_primitive", "none")
+        if primitive not in self._A2_PULL_V5_CHARACTERIZATION_PRIMITIVES:
+            raise RuntimeError(
+                "HOMIE characterization XY primitive is not registered; "
+                f"got {primitive!r}."
+            )
+        if primitive != "none" and not any(
+            math.isclose(abs(requested_u), magnitude, rel_tol=0.0, abs_tol=1.0e-9)
+            for magnitude in (0.2, 0.8)
+        ):
+            raise RuntimeError(
+                "HOMIE characterization coupling cells only permit |u| in {0.2, 0.8}; "
+                f"got u={requested_u!r}, primitive={primitive!r}."
+            )
+        dt = float(self.dt)
+        if not math.isfinite(dt) or dt <= 0.0:
+            raise RuntimeError(f"HOMIE characterization requires finite positive dt; got {dt!r}.")
+        command_steps = max(1, math.ceil(duration_s / dt))
+        hold_steps = max(1, math.ceil(hold_s / dt))
+        window_steps = command_steps + hold_steps
+        return {
+            "schema": self._A2_PULL_V5_CHARACTERIZATION_TRACE_SCHEMA,
+            "record_class": "interface_characterization",
+            "fixture": fixture,
+            "cell_id": cell_id,
+            "requested_u": requested_u,
+            "duration_s": duration_s,
+            "hold_s": hold_s,
+            "command_steps": command_steps,
+            "hold_steps": hold_steps,
+            "window_steps": window_steps,
+            "xy_primitive": primitive,
+            "dt": dt,
+            "num_envs": self.num_envs,
+            "plan_id": characterization_plan_id,
+        }
+
+    def get_a2_pull_v5_characterization_contract(self) -> dict[str, object]:
+        """Return the evaluator-facing characterization schema and timing contract."""
+
+        return dict(self._get_a2_pull_v5_characterization_contract())
+
+    def apply_a2_pull_v5_characterization_command(
+        self,
+        policy_action: torch.Tensor,
+        first_episode_active_mask: torch.Tensor,
+        episode_indices: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Write the open-loop yaw command at the final high-level action mapping."""
+
+        contract = self._get_a2_pull_v5_characterization_contract()
+        expected_action_shape = (self.num_envs, 12)
+        if (
+            not torch.is_tensor(policy_action)
+            or tuple(policy_action.shape) != expected_action_shape
+            or not policy_action.is_floating_point()
+            or policy_action.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(policy_action))
+        ):
+            raise RuntimeError(
+                "HOMIE characterization requires a finite device-local high-level action "
+                f"shape {expected_action_shape}."
+            )
+        for name, value in (
+            ("first_episode_active_mask", first_episode_active_mask),
+            ("episode_indices", episode_indices),
+        ):
+            expected_dtype = torch.bool if name == "first_episode_active_mask" else torch.long
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.dtype != expected_dtype
+                or value.device != policy_action.device
+            ):
+                raise RuntimeError(
+                    f"HOMIE characterization {name} requires shape ({self.num_envs},) "
+                    f"with dtype {expected_dtype} on {policy_action.device}."
+                )
+        if not self._use_a2_base:
+            raise RuntimeError("HOMIE characterization requires the A2_Base high-level action path.")
+
+        robot_data = self.simulator.scene.articulations["robot"].data
+        root_pos = robot_data.root_pos_w
+        root_quat_w = robot_data.root_quat_w
+        if (
+            tuple(root_pos.shape) != (self.num_envs, 3)
+            or tuple(root_quat_w.shape) != (self.num_envs, 4)
+            or root_pos.device != policy_action.device
+            or root_quat_w.device != policy_action.device
+            or root_quat_w.dtype != policy_action.dtype
+            or not torch.all(torch.isfinite(root_pos))
+            or not torch.all(torch.isfinite(root_quat_w))
+        ):
+            raise RuntimeError(
+                "HOMIE characterization requires finite WXYZ robot root tensors on the action device."
+            )
+        _, _, root_yaw = euler_xyz_from_quat(root_quat_w)
+        episode_step = self.episode_length_buf.to(dtype=torch.long)
+        command_active = first_episode_active_mask & (
+            episode_step < int(contract["command_steps"])
+        )
+        window_active = first_episode_active_mask & (
+            episode_step < int(contract["window_steps"])
+        )
+        phase_u = torch.where(
+            command_active,
+            torch.full_like(episode_step, float(contract["requested_u"]), dtype=policy_action.dtype),
+            torch.zeros_like(episode_step, dtype=policy_action.dtype),
+        )
+        raw_base = torch.zeros(
+            self.num_envs, 5, dtype=policy_action.dtype, device=policy_action.device
+        )
+        primitive = str(contract["xy_primitive"])
+        if primitive != "none":
+            primitive_xy = torch.tensor(
+                self._A2_PULL_V5_PROBE_PRIMITIVES[primitive][:2],
+                dtype=policy_action.dtype,
+                device=policy_action.device,
+            )
+            initialize_target = command_active & ~self._a2_pull_v5_characterization_xy_target_initialized
+            if torch.any(initialize_target):
+                self._a2_pull_v5_characterization_xy_target[initialize_target] = (
+                    root_pos[initialize_target, :2] + primitive_xy
+                )
+                self._a2_pull_v5_characterization_xy_target_initialized[initialize_target] = True
+            waypoint_target = torch.where(
+                command_active[:, None],
+                self._a2_pull_v5_characterization_xy_target,
+                root_pos[:, :2],
+            )
+            waypoint_error = waypoint_target - root_pos[:, :2]
+            _, _, _, raw_base = a2_hold_base_relief_command(
+                waypoint_error,
+                root_quat_w,
+                command_active,
+                physical_speed_mps=0.30,
+                base_command_scale=self._a2_base_command_scale,
+                min_solvable_horizontal_error_m=1.0e-3,
+            )
+        raw_base = torch.where(window_active[:, None], raw_base, torch.zeros_like(raw_base))
+        raw_base[:, 2] = phase_u
+        applied = policy_action.clone()
+        applied[:, :5] = raw_base
+        # This is deliberately a direct raw high-level write.  No waypoint/yaw
+        # error, sign, or closed-loop assignment is used in characterization.
+
+        self._a2_pull_v5_characterization_pending[:] = window_active
+        self._a2_pull_v5_characterization_active[:] = window_active
+        self._a2_pull_v5_characterization_episode_indices[:] = episode_indices
+        self._a2_pull_v5_characterization_step[:] = episode_step
+        self._a2_pull_v5_characterization_requested_u[:] = float(contract["requested_u"])
+        self._a2_pull_v5_characterization_phase_u[:] = phase_u
+        self._a2_pull_v5_characterization_pre_root_pos[:] = root_pos
+        self._a2_pull_v5_characterization_pre_root_yaw[:] = root_yaw
+        self._a2_pull_v5_characterization_raw_base[:] = raw_base
+        for env_id in range(self.num_envs):
+            if not window_active[env_id]:
+                self._a2_pull_v5_characterization_phase[env_id] = "inactive"
+            elif command_active[env_id]:
+                self._a2_pull_v5_characterization_phase[env_id] = "command"
+            else:
+                self._a2_pull_v5_characterization_phase[env_id] = "zero_hold"
+        return applied, window_active
+
+    @override
+    def _a2_base_pre_physics_command_callback(
+        self,
+        raw_base_action: torch.Tensor,
+        physical_base_command: torch.Tensor,
+        lower_body_action: torch.Tensor,
+    ) -> None:
+        super()._a2_base_pre_physics_command_callback(
+            raw_base_action, physical_base_command, lower_body_action
+        )
+        if not self._a2_pull_v5_characterization_enabled:
+            return
+        active = self._a2_pull_v5_characterization_pending
+        self._a2_pull_v5_characterization_physical_base[active] = physical_base_command[active]
+
+    def _finalize_a2_pull_v5_characterization_step(self) -> None:
+        if not self._a2_pull_v5_characterization_enabled:
+            return
+        pending = self._a2_pull_v5_characterization_pending
+        if not torch.any(pending):
+            return
+        robot_data = self.simulator.scene.articulations["robot"].data
+        post_root_pos = robot_data.root_pos_w
+        post_root_quat_w = robot_data.root_quat_w
+        if (
+            tuple(post_root_pos.shape) != (self.num_envs, 3)
+            or tuple(post_root_quat_w.shape) != (self.num_envs, 4)
+            or not torch.all(torch.isfinite(post_root_pos))
+            or not torch.all(torch.isfinite(post_root_quat_w))
+        ):
+            raise RuntimeError("HOMIE characterization post-physics root tensors must be finite.")
+        _, _, post_root_yaw = euler_xyz_from_quat(post_root_quat_w)
+        dt = float(self.dt)
+        for env_id in torch.where(pending)[0].tolist():
+            pre_pos = self._a2_pull_v5_characterization_pre_root_pos[env_id]
+            post_pos = post_root_pos[env_id]
+            yaw_delta = wrap_to_pi(
+                post_root_yaw[env_id] - self._a2_pull_v5_characterization_pre_root_yaw[env_id]
+            )
+            xy_delta = post_pos[:2] - pre_pos[:2]
+            phase = self._a2_pull_v5_characterization_phase[env_id]
+            row = {
+                "record_class": "interface_characterization",
+                "schema": self._A2_PULL_V5_CHARACTERIZATION_TRACE_SCHEMA,
+                "cell_id": self.config["a2_pull_v5_characterization_cell_id"],
+                "fixture": self.config["a2_pull_v5_characterization_fixture"],
+                "env_id": int(env_id),
+                "episode_index": int(self._a2_pull_v5_characterization_episode_indices[env_id].item()),
+                "episode_id": (
+                    f"{self.config['a2_pull_v5_characterization_cell_id']}:env{env_id}:"
+                    f"episode{int(self._a2_pull_v5_characterization_episode_indices[env_id].item())}"
+                ),
+                "step_index": int(self._a2_pull_v5_characterization_step[env_id].item()),
+                "command_phase": phase == "command",
+                "zero_hold_phase": phase == "zero_hold",
+                "phase": phase,
+                "requested_u": float(self._a2_pull_v5_characterization_phase_u[env_id].item()),
+                "cell_requested_u": float(self._a2_pull_v5_characterization_requested_u[env_id].item()),
+                "xy_primitive": self.config.get(
+                    "a2_pull_v5_characterization_xy_primitive", "none"
+                ),
+                "applied_raw_base_slice": self._a2_pull_v5_characterization_raw_base[
+                    env_id
+                ].detach().cpu().tolist(),
+                "scaled_clipped_physical_base_command": self._a2_pull_v5_characterization_physical_base[
+                    env_id
+                ].detach().cpu().tolist(),
+                "realized_world_yaw_pre": float(
+                    self._a2_pull_v5_characterization_pre_root_yaw[env_id].item()
+                ),
+                "realized_world_yaw_post": float(post_root_yaw[env_id].item()),
+                "yaw_delta_rad": float(yaw_delta.item()),
+                "yaw_velocity_rad_s": float(yaw_delta.item() / dt),
+                "root_pos_pre_world": pre_pos.detach().cpu().tolist(),
+                "root_pos_post_world": post_pos.detach().cpu().tolist(),
+                "root_motion_xy_world": xy_delta.detach().cpu().tolist(),
+                "root_motion_m": float(torch.linalg.norm(xy_delta).item()),
+                "control_dt": dt,
+            }
+            self._a2_pull_v5_characterization_trace_rows.append(row)
+        self._a2_pull_v5_characterization_pending[:] = False
+
+    def consume_a2_pull_v5_characterization_trace_rows(self) -> list[dict[str, object]]:
+        """Transfer evaluator rows without writing any artifact from the environment."""
+
+        if not self._a2_pull_v5_characterization_enabled:
+            raise RuntimeError("HOMIE characterization is not enabled for this evaluator.")
+        rows = list(self._a2_pull_v5_characterization_trace_rows)
+        self._a2_pull_v5_characterization_trace_rows.clear()
+        return rows
+
+    @override
+    def _reset_robot_states_callback(self, env_ids, target_states=None):
+        super()._reset_robot_states_callback(env_ids, target_states)
+        if not self._a2_pull_v5_characterization_enabled:
+            return
+        root_state = self.target_robot_root_states[env_ids].clone()
+        roll, pitch, _ = euler_xyz_from_quat(root_state[:, 3:7])
+        root_state[:, 3:7] = quat_from_euler_xyz(
+            roll, pitch, torch.full_like(roll, math.pi)
+        )
+        root_state[:, 7:13] = 0.0
+        self.target_robot_root_states[env_ids] = root_state
 
     @staticmethod
     def _pull_v5_repo_path(raw_path: str, label: str) -> Path:
@@ -1865,6 +2360,21 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_phase_waypoint_arrived[env_ids] = False
             self._a2_pull_v5_probe_phase_yaw_arrived[env_ids] = False
             self._a2_pull_v5_probe_sequence_complete[env_ids] = False
+        if self._a2_pull_v5_characterization_enabled:
+            self._a2_pull_v5_characterization_pending[env_ids] = False
+            self._a2_pull_v5_characterization_active[env_ids] = False
+            self._a2_pull_v5_characterization_xy_target_initialized[env_ids] = False
+            self._a2_pull_v5_characterization_xy_target[env_ids] = float("nan")
+            self._a2_pull_v5_characterization_episode_indices[env_ids] = 0
+            self._a2_pull_v5_characterization_step[env_ids] = -1
+            self._a2_pull_v5_characterization_requested_u[env_ids] = 0.0
+            self._a2_pull_v5_characterization_phase_u[env_ids] = 0.0
+            self._a2_pull_v5_characterization_raw_base[env_ids] = 0.0
+            self._a2_pull_v5_characterization_physical_base[env_ids] = 0.0
+            self._a2_pull_v5_characterization_pre_root_pos[env_ids] = float("nan")
+            self._a2_pull_v5_characterization_pre_root_yaw[env_ids] = float("nan")
+            for env_id in env_ids.tolist():
+                self._a2_pull_v5_characterization_phase[env_id] = "inactive"
         return result
 
     def record_a2_pull_release_or_hold_decision(self, decision_mask: torch.Tensor) -> None:
@@ -2046,6 +2556,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         super()._pre_compute_observations_callback(env_ids, post_physics=post_physics)
         if post_physics:
             self._update_a2_pull_event_telemetry(env_ids)
+            self._finalize_a2_pull_v5_characterization_step()
 
     @override
     def _get_a2_route_crossing_coordinate(self, root_x: torch.Tensor) -> torch.Tensor:
@@ -2604,6 +3115,9 @@ class DoorOpenA2Pull(DoorPregrasp):
         self, env_id: int, reached: Mapping[str, bool]
     ) -> dict[str, bool]:
         source = self._a2_pull_v5_reset_source[env_id]
+        declared_source = self._a2_pull_v5_declared_reset_source[env_id]
+        declared_group = "bank" if declared_source.startswith("bank_") else "natural"
+        actual_group = "bank" if source.startswith("bank_") else "natural"
         e2 = bool(reached[A2PullEvent.E2_TENSILE_CAPTURE.name])
         e4 = bool(reached[A2PullEvent.E4_POSITIVE_HINGE_RETAINED.name])
         e7 = bool(reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name])
@@ -2645,7 +3159,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                 self._a2_pull_frame_approach_post_frame_passage_steps[env_id].item() > 0
             ),
             "canonical_not_counted_as_natural_start": bool(
-                source.startswith("bank_") and self._a2_pull_v5_reset_source[env_id] == "natural"
+                declared_group != actual_group
             ),
             "failed_settle_not_in_bank": bool(
                 source != "natural" and self._get_a2_pull_v5_bank_settle_valid(env_id) is not True
@@ -2837,6 +3351,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                 if self._is_a2_pull_v5():
                     record["pull_v5"] = {
                         "reset_source": self._a2_pull_v5_reset_source[env_id],
+                        "declared_reset_source": self._a2_pull_v5_declared_reset_source[env_id],
                         "settle_valid": True,
                         "bank_settle_valid": self._get_a2_pull_v5_bank_settle_valid(env_id),
                         "hinge_drive_max_force_nm": float(
@@ -3069,6 +3584,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             if self._is_a2_pull_v5():
                 record["pull_v5"] = {
                     "reset_source": self._a2_pull_v5_reset_source[env_id],
+                    "declared_reset_source": self._a2_pull_v5_declared_reset_source[env_id],
                     "settle_valid": True,
                     "bank_settle_valid": self._get_a2_pull_v5_bank_settle_valid(env_id),
                     "hinge_drive_max_force_nm": float(
@@ -3328,6 +3844,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             if self._is_a2_pull_v5():
                 record["pull_v5"] = {
                     "reset_source": self._a2_pull_v5_reset_source[env_id],
+                    "declared_reset_source": self._a2_pull_v5_declared_reset_source[env_id],
                     "persistent_release": bool(
                         self._a2_pull_v5_persistent_release[env_id].item()
                     ),

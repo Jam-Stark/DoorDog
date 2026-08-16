@@ -1,11 +1,13 @@
 """v24 P1a native hinge-friction probe.
 
-The first permitted runtime mode is ``TORQUE_RAMP``.  It builds the source-
-locked v23 door-only ``InteractiveScene`` and drives its door articulation
-through IsaacLab's high-level API, records the requested friction profile and a
-measured breakaway bracket, then clears/restores the hinge state.
-``OFF_PARITY`` and ``FOOT_FORCE_DETECT`` are planning specifications for later
-P1 lanes; this producer does not execute them.
+``TORQUE_RAMP`` builds the source-locked v23 door-only ``InteractiveScene``
+and drives its door articulation through IsaacLab's high-level API, records the
+requested friction profile and a measured breakaway bracket, then
+clears/restores the hinge state.  ``A_I_ACCEPTANCE`` composes the registered
+door-only A--G acceptance trials on the same native backend and emits typed
+pending receipts for the external H/I gates.  ``OFF_PARITY`` and
+``FOOT_FORCE_DETECT`` remain planning specifications for later P1 lanes; this
+producer does not execute them.
 
 ``--plan`` is CPU-only and never imports or starts IsaacSim.  Runtime output
 folders are deliberately supplied by the caller under the canonical
@@ -16,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -49,11 +52,27 @@ except ImportError:  # direct ``python scriptsFORhuman/v24/...py`` invocation
         write_json,
     )
 
+try:
+    from .p0_unit_contract import (
+        USD_DEGREE_SURFACE,
+        TRACE_CONFIG_SURFACE,
+        normalize_realized_dynamics,
+        scaled_distance,
+    )
+except ImportError:  # direct ``python scriptsFORhuman/v24/...py`` invocation
+    from scriptsFORhuman.v24.p0_unit_contract import (
+        USD_DEGREE_SURFACE,
+        TRACE_CONFIG_SURFACE,
+        normalize_realized_dynamics,
+        scaled_distance,
+    )
+
 
 PROBE_SCHEMA = "a2_piper_v24_p1_native_friction_probe_v1"
 FRICTION_BACKEND = "native_joint_friction_v1"
-MODE_ORDER = ("TORQUE_RAMP", "OFF_PARITY", "FOOT_FORCE_DETECT")
 FIRST_RUNTIME_MODE = "TORQUE_RAMP"
+AI_ACCEPTANCE_MODE = "A_I_ACCEPTANCE"
+MODE_ORDER = (FIRST_RUNTIME_MODE, AI_ACCEPTANCE_MODE, "OFF_PARITY", "FOOT_FORCE_DETECT")
 PRODUCTION_CONFIG = REPO_ROOT / "gr00t/rl/config/ablation/wbmanip/base_v24_p1_native_probe.yaml"
 SELECTED_CHECKPOINT = REPO_ROOT / (
     "logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt"
@@ -95,26 +114,29 @@ DOOR_FIXED_CONFIG = {
 }
 
 
-def _door_fixture_profile(probe_seed: int) -> dict[str, Any]:
+def _door_fixture_profile(
+    probe_seed: int, door_config: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
+    fixture_config = DOOR_FIXED_CONFIG if door_config is None else door_config
     return {
         "probe_seed": probe_seed,
         "geometry": {
-            "door_width_m": DOOR_FIXED_CONFIG["rand_door_width"],
-            "door_height_m": DOOR_FIXED_CONFIG["rand_door_height"],
-            "handle_height_m": DOOR_FIXED_CONFIG["rand_door_handle_height"],
-            "handle_width_m": DOOR_FIXED_CONFIG["rand_door_handle_width"],
-            "total_wall_height_m": DOOR_FIXED_CONFIG["rand_total_wall_height"],
-            "axle_length_m": DOOR_FIXED_CONFIG["rand_axle_length"],
-            "handle_length_m": DOOR_FIXED_CONFIG["rand_handle_length"],
-            "hook_length_m": DOOR_FIXED_CONFIG["rand_hook_length"],
-            "handle_radius_m": DOOR_FIXED_CONFIG["rand_handle_radius"],
-            "handle_type": DOOR_FIXED_CONFIG["rand_door_handle_type"],
-            "open_lr": DOOR_FIXED_CONFIG["rand_door_open_lr"],
-            "open_io": DOOR_FIXED_CONFIG["rand_door_open_io"],
-            "spawn_hook": DOOR_FIXED_CONFIG["rand_spawn_hook"],
+            "door_width_m": fixture_config["rand_door_width"],
+            "door_height_m": fixture_config["rand_door_height"],
+            "handle_height_m": fixture_config["rand_door_handle_height"],
+            "handle_width_m": fixture_config["rand_door_handle_width"],
+            "total_wall_height_m": fixture_config["rand_total_wall_height"],
+            "axle_length_m": fixture_config["rand_axle_length"],
+            "handle_length_m": fixture_config["rand_handle_length"],
+            "hook_length_m": fixture_config["rand_hook_length"],
+            "handle_radius_m": fixture_config["rand_handle_radius"],
+            "handle_type": fixture_config["rand_door_handle_type"],
+            "open_lr": fixture_config["rand_door_open_lr"],
+            "open_io": fixture_config["rand_door_open_io"],
+            "spawn_hook": fixture_config["rand_spawn_hook"],
         },
         "mass_inertia_inputs": {
-            "door_panel_mass_kg": DOOR_FIXED_CONFIG["rand_door_weight"],
+            "door_panel_mass_kg": fixture_config["rand_door_weight"],
             "top_frame_mass_kg": 100.0,
             "axle_mass_kg": 0.2,
             "handle_inside_mass_kg": 0.1,
@@ -123,21 +145,21 @@ def _door_fixture_profile(probe_seed: int) -> dict[str, Any]:
             "grasp_target_mass_kg": 0.001,
         },
         "dynamics": {
-            "hinge_drive_max_force_nm": DOOR_FIXED_CONFIG["rand_hinge_drive_max_force"],
-            "hinge_drive_damping_native": DOOR_FIXED_CONFIG["rand_hinge_drive_damping"],
-            "hinge_drive_stiffness_native": DOOR_FIXED_CONFIG["rand_hinge_drive_stiffness"],
-            "handle_drive_max_force_nm": DOOR_FIXED_CONFIG["rand_handle_drive_max_force"],
+            "hinge_drive_max_force_nm": fixture_config["rand_hinge_drive_max_force"],
+            "hinge_drive_damping_native": fixture_config["rand_hinge_drive_damping"],
+            "hinge_drive_stiffness_native": fixture_config["rand_hinge_drive_stiffness"],
+            "handle_drive_max_force_nm": fixture_config["rand_handle_drive_max_force"],
         },
         "isolation": {
-            "build_latch": DOOR_FIXED_CONFIG["build_latch"],
-            "randomize_material": DOOR_FIXED_CONFIG["randomize_material"],
-            "use_preloaded_materials": DOOR_FIXED_CONFIG["use_preloaded_materials"],
-            "dynamic_material_randomization": DOOR_FIXED_CONFIG["dynamic_material_randomization"],
-            "activate_contact_sensors": DOOR_FIXED_CONFIG["activate_contact_sensors"],
-            "add_walls": DOOR_FIXED_CONFIG["add_walls"],
-            "add_floors": DOOR_FIXED_CONFIG["add_floors"],
-            "add_lights": DOOR_FIXED_CONFIG["add_lights"],
-            "add_ceiling": DOOR_FIXED_CONFIG["add_ceiling"],
+            "build_latch": fixture_config["build_latch"],
+            "randomize_material": fixture_config["randomize_material"],
+            "use_preloaded_materials": fixture_config["use_preloaded_materials"],
+            "dynamic_material_randomization": fixture_config["dynamic_material_randomization"],
+            "activate_contact_sensors": fixture_config["activate_contact_sensors"],
+            "add_walls": fixture_config["add_walls"],
+            "add_floors": fixture_config["add_floors"],
+            "add_lights": fixture_config["add_lights"],
+            "add_ceiling": fixture_config["add_ceiling"],
         },
     }
 
@@ -264,6 +286,197 @@ def _probe_config_values(config_path: Path = PRODUCTION_CONFIG) -> dict[str, Any
     }
 
 
+AI_PROFILE_ORDER = ("F00", "F05", "F10")
+AI_SPEED_ORDER = (-0.2, -0.1, 0.1, 0.2)
+AI_SPARSE_CELL_ORDER = ("A0", "A1", "A4", "A5", "A8", "F10")
+AI_SURFACE_TAGS = {
+    "joint_position": "rad",
+    "joint_velocity": "rad_s",
+    "effort": "Nm_command_target_only",
+    "degree_surface": "not_used_for_acceptance",
+}
+
+
+def _ai_acceptance_config(config_path: Path, friction: Mapping[str, Any]) -> dict[str, Any]:
+    payload = _read_yaml(config_path)
+    raw = payload.get("v24_ai_acceptance")
+    if not isinstance(raw, Mapping):
+        raise ValueError("v24_ai_acceptance config block is required")
+    if raw.get("enabled") is not True:
+        raise ValueError("v24_ai_acceptance.enabled must be true for A_I_ACCEPTANCE")
+    batch_id = raw.get("batch_id")
+    device = raw.get("device")
+    if not isinstance(batch_id, str) or not batch_id:
+        raise ValueError("v24_ai_acceptance.batch_id must be a non-empty string")
+    if device != "cuda:0":
+        raise ValueError("v24_ai_acceptance.device must be the single leased GPU0 device cuda:0")
+
+    raw_profiles = raw.get("friction_profiles")
+    if not isinstance(raw_profiles, Mapping) or tuple(raw_profiles.keys()) != AI_PROFILE_ORDER:
+        raise ValueError("v24_ai_acceptance.friction_profiles must be ordered F00/F05/F10")
+    profiles: dict[str, dict[str, float]] = {}
+    expected_profiles = {
+        "F00": (0.0, 0.0, 0.0),
+        "F05": (0.5, 0.375, 0.0),
+        "F10": (1.0, 0.75, 0.0),
+    }
+    for name in AI_PROFILE_ORDER:
+        item = raw_profiles[name]
+        if not isinstance(item, Mapping):
+            raise TypeError(f"v24_ai_acceptance friction profile {name} must be a mapping")
+        values = (
+            finite_number(item.get("static_effort_nm"), label=f"{name}.static_effort_nm"),
+            finite_number(item.get("dynamic_effort_nm"), label=f"{name}.dynamic_effort_nm"),
+            finite_number(
+                item.get("viscous_coefficient_nm_s_per_rad"),
+                label=f"{name}.viscous_coefficient_nm_s_per_rad",
+            ),
+        )
+        if values != expected_profiles[name]:
+            raise ValueError(f"{name} friction profile must remain exactly {expected_profiles[name]!r}")
+        profiles[name] = {
+            "static_effort_nm": values[0],
+            "dynamic_effort_nm": values[1],
+            "viscous_coefficient_nm_s_per_rad": values[2],
+        }
+    if tuple(profiles["F10"].values()) != (
+        friction["static_effort_nm"],
+        friction["dynamic_effort_nm"],
+        friction["viscous_coefficient_nm_s_per_rad"],
+    ):
+        raise ValueError("F10 acceptance profile must match the frozen native probe profile")
+
+    plateau = raw.get("plateau")
+    control = raw.get("control")
+    dissipation = raw.get("dissipation")
+    chatter = raw.get("chatter")
+    fine = raw.get("fine_dt")
+    orthogonality = raw.get("orthogonality")
+    for name, value in (
+        ("plateau", plateau),
+        ("control", control),
+        ("dissipation", dissipation),
+        ("chatter", chatter),
+        ("fine_dt", fine),
+        ("orthogonality", orthogonality),
+    ):
+        if not isinstance(value, Mapping):
+            raise TypeError(f"v24_ai_acceptance.{name} must be a mapping")
+
+    initial_angle = finite_number(plateau.get("initial_angle_rad"), label="plateau.initial_angle_rad")
+    interior_margin = finite_number(plateau.get("interior_margin_rad"), label="plateau.interior_margin_rad")
+    speeds_raw = plateau.get("speeds_rad_s")
+    if not isinstance(speeds_raw, list) or tuple(float(value) for value in speeds_raw) != AI_SPEED_ORDER:
+        raise ValueError("plateau.speeds_rad_s must remain exactly [-0.2, -0.1, 0.1, 0.2]")
+    plateau_frames = plateau.get("frames")
+    if plateau_frames != V23_STATIC_TRIAL_FRAMES:
+        raise ValueError("plateau.frames must remain exactly 100")
+    plateau_relative_spread_max = finite_number(
+        plateau.get("relative_spread_max"), label="plateau.relative_spread_max"
+    )
+    plateau_direction_asymmetry_max = finite_number(
+        plateau.get("direction_asymmetry_max"), label="plateau.direction_asymmetry_max"
+    )
+    if (interior_margin, plateau_relative_spread_max, plateau_direction_asymmetry_max) != (0.25, 0.25, 0.25):
+        raise ValueError("plateau interior/acceptance limits must remain exactly 0.25/0.25/0.25")
+
+    friction_ratio_low = finite_number(control.get("friction_ratio_low"), label="control.friction_ratio_low")
+    friction_ratio_high = finite_number(control.get("friction_ratio_high"), label="control.friction_ratio_high")
+    damping_ratio_min = finite_number(control.get("damping_ratio_min"), label="control.damping_ratio_min")
+    if (friction_ratio_low, friction_ratio_high, damping_ratio_min) != (0.75, 1.25, 1.5):
+        raise ValueError("control ratio bounds must remain exactly [0.75, 1.25] and >=1.5")
+
+    dissipation_increment_max = finite_number(
+        dissipation.get("max_positive_abs_speed_increment_rad_s"),
+        label="dissipation.max_positive_abs_speed_increment_rad_s",
+    )
+    if dissipation_increment_max != 1.0e-4:
+        raise ValueError("dissipation increment limit must remain exactly 1e-4 rad/s")
+
+    chatter_threshold = finite_number(
+        chatter.get("slip_velocity_threshold_rad_s"), label="chatter.slip_velocity_threshold_rad_s"
+    )
+    max_slip_reentries = chatter.get("max_slip_reentries")
+    if chatter_threshold != friction["velocity_threshold_rad_s"] or max_slip_reentries != 1:
+        raise ValueError("chatter threshold/re-entry bound must match the frozen 0.001 rad/s and <2 contract")
+
+    fine_dt = finite_number(fine.get("dt_s"), label="fine_dt.dt_s")
+    fine_frames = fine.get("frames")
+    fine_duration = finite_number(fine.get("duration_s"), label="fine_dt.duration_s")
+    if fine_dt != 0.0025 or fine_frames != 200 or fine_duration != 0.5:
+        raise ValueError("fine dt contract must remain 0.0025 s × 200 frames = 0.5 s")
+    if fine_dt * fine_frames != fine_duration:
+        raise ValueError("fine dt duration does not equal the declared physical observation duration")
+
+    realized_scaled_distance_max = finite_number(
+        orthogonality.get("realized_scaled_distance_max"),
+        label="orthogonality.realized_scaled_distance_max",
+    )
+    if realized_scaled_distance_max != 1.0e-4:
+        raise ValueError("orthogonality realized scaled-distance limit must remain exactly 1e-4")
+
+    raw_cells = raw.get("sparse_cells")
+    if not isinstance(raw_cells, list) or tuple(item.get("id") for item in raw_cells if isinstance(item, Mapping)) != AI_SPARSE_CELL_ORDER:
+        raise ValueError("sparse_cells must be ordered A0/A1/A4/A5/A8/F10")
+    expected_cells = {
+        "A0": (120.0, 50.0, 2.0),
+        "A1": (120.0, 50.0, 30.0),
+        "A4": (120.0, 200.0, 6.0),
+        "A5": (160.0, 50.0, 6.0),
+        "A8": (160.0, 200.0, 30.0),
+        "F10": (120.0, 50.0, 6.0),
+    }
+    sparse_cells: list[dict[str, Any]] = []
+    for item in raw_cells:
+        if not isinstance(item, Mapping):
+            raise TypeError("each sparse cell must be a mapping")
+        cell_id = item.get("id")
+        values = (
+            finite_number(item.get("door_weight_kg"), label=f"{cell_id}.door_weight_kg"),
+            finite_number(item.get("damping_native"), label=f"{cell_id}.damping_native"),
+            finite_number(item.get("stiffness_native"), label=f"{cell_id}.stiffness_native"),
+        )
+        if values != expected_cells[cell_id]:
+            raise ValueError(f"sparse cell {cell_id} must remain exactly {expected_cells[cell_id]!r}")
+        sparse_cells.append(
+            {
+                "id": cell_id,
+                "door_weight_kg": values[0],
+                "damping_native": values[1],
+                "stiffness_native": values[2],
+            }
+        )
+    return {
+        "enabled": True,
+        "batch_id": batch_id,
+        "device": device,
+        "friction_profiles": profiles,
+        "plateau": {
+            "initial_angle_rad": initial_angle,
+            "interior_margin_rad": interior_margin,
+            "speeds_rad_s": list(AI_SPEED_ORDER),
+            "frames": plateau_frames,
+            "relative_spread_max": plateau_relative_spread_max,
+            "direction_asymmetry_max": plateau_direction_asymmetry_max,
+        },
+        "control": {
+            "friction_ratio_low": friction_ratio_low,
+            "friction_ratio_high": friction_ratio_high,
+            "damping_ratio_min": damping_ratio_min,
+        },
+        "dissipation": {"max_positive_abs_speed_increment_rad_s": dissipation_increment_max},
+        "chatter": {
+            "slip_velocity_threshold_rad_s": chatter_threshold,
+            "max_slip_reentries": max_slip_reentries,
+        },
+        "fine_dt": {"dt_s": fine_dt, "frames": fine_frames, "duration_s": fine_duration},
+        "orthogonality": {"realized_scaled_distance_max": realized_scaled_distance_max},
+        "sparse_cells": sparse_cells,
+        "surface_tags": dict(AI_SURFACE_TAGS),
+        "parameter_range_freeze": "NOT_PERFORMED",
+    }
+
+
 def _assert_selected_sources(config_path: Path = PRODUCTION_CONFIG) -> None:
     config_path = absolute(config_path).resolve()
     if config_path != PRODUCTION_CONFIG.resolve():
@@ -369,9 +582,122 @@ def detect_foot_force_source(simulator: Any) -> dict[str, Any]:
     }
 
 
+def build_ai_acceptance_plan(ai: Mapping[str, Any], friction: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "status": "PLANNED_NOT_EXECUTED",
+        "mode": AI_ACCEPTANCE_MODE,
+        "batch_id": ai["batch_id"],
+        "device": ai["device"],
+        "overall_status": "PENDING_H_I",
+        "provisional_allowed_typed_result": "V24_FRICTION_AUTHORITY_INSUFFICIENT",
+        "H": "PENDING_PRODUCTION_RESET_RECEIPT",
+        "I": "PENDING_P0_PARITY_RECEIPT",
+        "scene_isolation": {
+            "acceptance_ordinary_stage": True,
+            "cleanup": "SimulationContext.stop -> clear -> clear_all_callbacks -> clear_instance",
+        },
+        "surface_tags": ai["surface_tags"],
+        "orthogonality": ai["orthogonality"],
+        "parameter_range_freeze": ai["parameter_range_freeze"],
+        "grid": {
+            "resolution_effort_nm": friction["resolution_effort_nm"],
+            "ramp_start_effort_nm": friction["ramp_start_effort_nm"],
+            "ramp_end_effort_nm": friction["ramp_end_effort_nm"],
+            "trial_frames": V23_STATIC_TRIAL_FRAMES,
+            "stop_at_first_breakaway": True,
+            "containment_formula": "lower <= requested <= upper",
+        },
+        "A": {
+            "friction_profiles": ai["friction_profiles"],
+            "independent_trials": True,
+            "literal_containment": True,
+            "common_full_joint_state_captured_before_f00": True,
+            "profile_start_joint_position": "common_captured_full_joint_position",
+            "profile_start_joint_velocity": "full_zero_joint_velocity",
+            "cleanup_restores_full_captured_joint_state": True,
+            "upper_brackets_non_decreasing": True,
+            "f10_upper_strictly_greater_than_f00": True,
+        },
+        "B": {
+            "profile": "F10",
+            "zero_stiffness_damping_viscous": True,
+            "initial_angle_rad": ai["plateau"]["initial_angle_rad"],
+            "interior_margin_rad": ai["plateau"]["interior_margin_rad"],
+            "initial_speeds_rad_s": ai["plateau"]["speeds_rad_s"],
+            "frames": ai["plateau"]["frames"],
+            "dynamic_readback": ai["friction_profiles"]["F10"]["dynamic_effort_nm"],
+            "endpoint_abs_speed_loss_rate_positive": True,
+            "relative_spread_max": ai["plateau"]["relative_spread_max"],
+            "direction_asymmetry_max": ai["plateau"]["direction_asymmetry_max"],
+            "authority": "BEHAVIORAL_SEMANTIC_ONLY_NO_FRICTION_TORQUE",
+        },
+        "C": {
+            "control_profile": "F00",
+            "damping_native": 50.0,
+            "stiffness_native": 0.0,
+            "frames": ai["plateau"]["frames"],
+            "friction_high_low_ratio": [
+                ai["control"]["friction_ratio_low"],
+                ai["control"]["friction_ratio_high"],
+            ],
+            "damping_high_low_ratio_min": ai["control"]["damping_ratio_min"],
+            "both_directions_must_agree": True,
+            "authority": "BEHAVIORAL_SEMANTIC_ONLY_NO_FRICTION_TORQUE",
+        },
+        "D": {
+            "status": "AUTHORITY_INSUFFICIENT",
+            "source": "UNAVAILABLE_NO_SOLVER_FRICTION_TORQUE_VIEW",
+            "direct_criterion": "AUTHORITY_INSUFFICIENT",
+            "runtime_guard_positive_abs_speed_increment_rad_s": ai["dissipation"]["max_positive_abs_speed_increment_rad_s"],
+            "proxy_final_abs_speed_le_initial": True,
+            "proxy_max_positive_abs_speed_increment_rad_s": ai["dissipation"]["max_positive_abs_speed_increment_rad_s"],
+            "cannot_pass_literal": "tau_friction * omega",
+        },
+        "E": {
+            "profile": "F10",
+            "frames": V23_STATIC_TRIAL_FRAMES,
+            "slip_threshold_rad_s": ai["chatter"]["slip_velocity_threshold_rad_s"],
+            "max_slip_reentries": ai["chatter"]["max_slip_reentries"],
+            "record_sign_reversals_separately": True,
+            "sign_reversal_state": "abs(velocity_rad_s) >= slip_threshold_rad_s",
+        },
+        "F": {
+            "profile": "F10",
+            "dt_s": ai["fine_dt"]["dt_s"],
+            "frames": ai["fine_dt"]["frames"],
+            "duration_s": ai["fine_dt"]["duration_s"],
+            "qualitative_only": True,
+            "compare_raw_metrics": False,
+            "requires_observed_base_and_fine_breakaway": True,
+            "requires_observed_base_and_fine_e_classification": True,
+        },
+        "G": {
+            "sparse_cells": ai["sparse_cells"],
+            "friction_profile": "F10",
+            "independent_trials": True,
+            "trial_frames": V23_STATIC_TRIAL_FRAMES,
+            "finite_state_and_readback_required": True,
+            "realized_fixture_gate": {
+                "body_lookup": "Articulation.find_bodies('door_panel', preserve_order=True)",
+                "mass_readback": "ArticulationData.default_mass",
+                "joint_readbacks": ["joint_damping", "joint_stiffness", "joint_effort_limits"],
+                "unit_contract": "DoorMechanicsUnitContractV1",
+                "requested_surface": "TRACE_CONFIG_RAD",
+                "realized_surface": "USD_DEGREE_READBACK",
+                "usd_degree_readback_used": True,
+                "scaled_distance_max": ai["orthogonality"]["realized_scaled_distance_max"],
+            },
+            "unexpected_sign_reversal_or_chatter": "FAIL",
+            "parameter_range_freeze": "NOT_PERFORMED",
+            "surface_tags": ai["surface_tags"],
+        },
+    }
+
+
 def build_plan(config_path: Path = PRODUCTION_CONFIG) -> dict[str, Any]:
     _assert_selected_sources(config_path)
     friction = _probe_config_values(config_path)
+    ai = _ai_acceptance_config(config_path, friction)
     return {
         "schema": PROBE_SCHEMA,
         "status": "PLAN_ONLY",
@@ -444,14 +770,19 @@ def build_plan(config_path: Path = PRODUCTION_CONFIG) -> dict[str, Any]:
                 "friction_readback",
             ],
         },
+        "a_i_acceptance": build_ai_acceptance_plan(ai, friction),
         "off_parity": build_off_parity_plan(config_path),
         "foot_force_detect": build_foot_force_detect_plan(),
     }
 
 
 def _build_door_only_scene(
-    *, device: str, dt: float, probe_seed: int
-) -> tuple[Any, Any, Any, dict[str, Any]]:
+    *,
+    device: str,
+    dt: float,
+    probe_seed: int,
+    door_configs: Sequence[Mapping[str, Any]] | None = None,
+) -> tuple[Any, Any, Any, list[dict[str, Any]]]:
     """Build the source-locked v23 door-only InteractiveScene pattern."""
 
     import numpy as np
@@ -474,9 +805,26 @@ def _build_door_only_scene(
     if not base_assets or not isinstance(base_assets[0], DoorSpawnerCfg):
         raise TypeError("v24 torque ramp requires the source-backed DoorSpawnerCfg base asset")
     base_asset = base_assets[0]
-    source_asset = base_asset.replace(**DOOR_FIXED_CONFIG)
+    if door_configs is None:
+        source_configs = [dict(DOOR_FIXED_CONFIG)]
+    else:
+        source_configs = [dict(config) for config in door_configs]
+    if not source_configs:
+        raise ValueError("door_configs must contain at least the base environment configuration")
+    if door_configs is not None:
+        allowed_overrides = {
+            "rand_door_weight",
+            "rand_hinge_drive_damping",
+            "rand_hinge_drive_stiffness",
+        }
+        for source_config in source_configs:
+            if not set(source_config).issuperset(DOOR_FIXED_CONFIG):
+                raise ValueError("each door config must provide the complete fixed source configuration")
+            if not set(source_config).difference(DOOR_FIXED_CONFIG).issubset(allowed_overrides):
+                raise ValueError("A-I sparse cells may override only mass, damping, and stiffness")
+    source_assets = [base_asset.replace(**source_config) for source_config in source_configs]
     door_spawn = base_spawn.replace(
-        assets_cfg=[source_asset],
+        assets_cfg=source_assets,
         random_choice=False,
         activate_contact_sensors=False,
     )
@@ -500,9 +848,14 @@ def _build_door_only_scene(
         )
         door: ArticulationCfg = door_cfg
 
-    sim = sim_utils.SimulationContext(sim_utils.SimulationCfg(dt=dt, device=device))
+    sim = sim_utils.SimulationContext(
+        sim_utils.SimulationCfg(
+            dt=dt,
+            device=device,
+        )
+    )
     scene = InteractiveScene(
-        DoorFrictionSceneCfg(num_envs=1, env_spacing=6.0, replicate_physics=False)
+        DoorFrictionSceneCfg(num_envs=len(source_configs), env_spacing=6.0, replicate_physics=False)
     )
     sim.reset()
     if set(scene.articulations) != {"door"}:
@@ -510,7 +863,26 @@ def _build_door_only_scene(
     if scene.sensors:
         raise RuntimeError("v24 torque ramp scene must not create contact or other sensors")
     door = scene["door"]
-    return sim, scene, door, _door_fixture_profile(probe_seed)
+    fixtures = [_door_fixture_profile(probe_seed, source_config) for source_config in source_configs]
+    return sim, scene, door, fixtures
+
+
+def _single_env_ids(door: Any, *, selected_env_index: int, device: str) -> Any:
+    import torch
+
+    if isinstance(selected_env_index, bool) or not isinstance(selected_env_index, int) or selected_env_index < 0:
+        raise ValueError("selected_env_index must be a non-negative integer")
+    joint_pos = door.data.joint_pos
+    if not torch.is_tensor(joint_pos) or joint_pos.ndim != 2:
+        raise RuntimeError("door.data.joint_pos must be a (num_envs, joint) tensor")
+    if selected_env_index >= joint_pos.shape[0]:
+        raise IndexError(
+            f"selected_env_index {selected_env_index} is outside the scene environment count {joint_pos.shape[0]}"
+        )
+    env_ids = torch.tensor([selected_env_index], dtype=torch.long, device=joint_pos.device)
+    if env_ids.shape != (1,) or env_ids.device != joint_pos.device:
+        raise RuntimeError("selected door environment index/device contract failed")
+    return env_ids
 
 
 def _step_door_scene(sim: Any, scene: Any, dt: float) -> None:
@@ -549,6 +921,112 @@ def _selected_hinge_field(door: Any, field: str, env_ids: Any, hinge_id: int) ->
     return selected
 
 
+def _read_g_fixture_gate(
+    door: Any,
+    door_fixture: Mapping[str, Any],
+    *,
+    device: str,
+    selected_env_index: int,
+    realized_scaled_distance_max: float,
+) -> dict[str, Any]:
+    """Read and compare the realized sparse-cell fixture through public data tensors."""
+
+    import torch
+
+    hinge_id, hinge_name = _select_single_hinge(door)
+    body_ids, body_names = door.find_bodies("door_panel", preserve_order=True)
+    if len(body_ids) != 1 or list(body_names) != ["door_panel"]:
+        raise RuntimeError(
+            "G fixture gate requires exactly one public door_panel body; "
+            f"got ids={body_ids!r}, names={body_names!r}"
+        )
+    body_id = int(body_ids[0])
+    env_ids = _single_env_ids(door, selected_env_index=selected_env_index, device=device)
+    default_mass = getattr(door.data, "default_mass", None)
+    if (
+        not torch.is_tensor(default_mass)
+        or default_mass.ndim != 2
+        or default_mass.shape[0] < env_ids.numel()
+        or default_mass.shape[1] <= body_id
+    ):
+        raise RuntimeError("G fixture gate requires ArticulationData.default_mass with body columns")
+    mass_value = default_mass[selected_env_index, body_id].reshape(1)
+    if mass_value.shape != (1,) or not bool(torch.isfinite(mass_value).all().item()):
+        raise RuntimeError("G fixture gate received a nonfinite door_panel mass readback")
+    damping_value = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
+    stiffness_value = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
+    effort_limit_value = _selected_hinge_field(door, "joint_effort_limits", env_ids, hinge_id)
+    if not bool(torch.isfinite(damping_value).all().item()) or not bool(torch.isfinite(stiffness_value).all().item()):
+        raise RuntimeError("G fixture gate received a nonfinite hinge damping/stiffness readback")
+    if not bool(torch.isfinite(effort_limit_value).all().item()):
+        raise RuntimeError("G fixture gate received a nonfinite hinge effort-limit readback")
+
+    requested = {
+        "door_weight_kg": door_fixture["mass_inertia_inputs"]["door_panel_mass_kg"],
+        "hinge_damping_native": door_fixture["dynamics"]["hinge_drive_damping_native"],
+        "hinge_stiffness_native": door_fixture["dynamics"]["hinge_drive_stiffness_native"],
+        "hinge_effort_limit_nm": door_fixture["dynamics"]["hinge_drive_max_force_nm"],
+    }
+    realized = {
+        "door_weight_kg": float(mass_value[0].item()),
+        "hinge_damping_native": float(damping_value[0, 0].item()),
+        "hinge_stiffness_native": float(stiffness_value[0, 0].item()),
+        "hinge_effort_limit_nm": float(effort_limit_value[0, 0].item()),
+    }
+    requested_normalized = normalize_realized_dynamics(
+        requested,
+        angular_surface=TRACE_CONFIG_SURFACE,
+        authority_prefix="TRACE_CONFIG",
+    )
+    realized_normalized = normalize_realized_dynamics(
+        realized,
+        angular_surface=USD_DEGREE_SURFACE,
+        authority_prefix="ARTICULATION_DATA_HIGH_LEVEL",
+    )
+    field_values = {
+        "door_mass_kg": {
+            "requested": requested_normalized["door_mass_kg"],
+            "realized": realized_normalized["door_mass_kg"],
+        },
+        "damping_rad": {
+            "requested": requested_normalized["damping_rad"],
+            "realized": realized_normalized["damping_rad"],
+        },
+        "stiffness_rad": {
+            "requested": requested_normalized["stiffness_rad"],
+            "realized": realized_normalized["stiffness_rad"],
+        },
+        "effort_limit_nm": {
+            "requested": requested_normalized["effort_limit_nm"],
+            "realized": realized_normalized["effort_limit_nm"],
+        },
+    }
+    realized_scaled_distance = scaled_distance(realized_normalized, requested_normalized)
+    if not math.isfinite(realized_scaled_distance):
+        raise RuntimeError("G fixture gate produced a nonfinite realized scaled distance")
+    scaled_distance_passed = realized_scaled_distance <= realized_scaled_distance_max
+    return {
+        "status": "PASS" if scaled_distance_passed else "FAIL_REALIZED_FIXTURE_SCALED_DISTANCE",
+        "passed": scaled_distance_passed,
+        "hinge_joint_name": hinge_name,
+        "hinge_joint_id": hinge_id,
+        "door_panel_body_name": body_names[0],
+        "door_panel_body_id": body_id,
+        "unit_contract": "DoorMechanicsUnitContractV1",
+        "requested_angular_surface": TRACE_CONFIG_SURFACE,
+        "realized_angular_surface": USD_DEGREE_SURFACE,
+        "usd_degree_readback_used": True,
+        "conversion_metadata": realized_normalized["fields"],
+        "field_values_descriptive": field_values,
+        "realized_scaled_distance": realized_scaled_distance,
+        "realized_scaled_distance_max": realized_scaled_distance_max,
+        "scaled_distance_passed": scaled_distance_passed,
+        "requested_normalized": requested_normalized,
+        "realized_normalized": realized_normalized,
+        "authority": "PUBLIC_ARTICULATION_DATA_HIGH_LEVEL",
+    }
+
+
 def _restore_friction(door: Any, env_ids: Any, hinge_id: int, original: Mapping[str, Any]) -> dict[str, Any]:
     import torch
 
@@ -584,8 +1062,14 @@ def run_torque_ramp(
     door_fixture: Mapping[str, Any],
     device: str,
     dt: float,
+    record_raw_traces: bool = False,
+    trial_frame_authority: str = "V23_EXTERNAL_TORQUE_PROBE_100_FRAME_TRIAL",
+    neutralize_damping_stiffness: bool = True,
+    trial_baseline_position: Any | None = None,
+    trial_baseline_velocity: Any | None = None,
+    selected_env_index: int = 0,
 ) -> dict[str, Any]:
-    """Run independent 100-frame static-friction trials in the door-only scene."""
+    """Run independent static-friction trials in the door-only scene."""
 
     import torch
 
@@ -593,10 +1077,7 @@ def run_torque_ramp(
 
     door = scene["door"]
     hinge_id, hinge_name = _select_single_hinge(door)
-    env_ids = torch.arange(1, dtype=torch.long, device=device)
-    env_ids = env_ids.to(door.data.joint_pos.device)
-    if env_ids.device != door.data.joint_pos.device:
-        raise RuntimeError("door-only probe env id/device mismatch")
+    env_ids = _single_env_ids(door, selected_env_index=selected_env_index, device=device)
 
     friction_config = V24FrictionConfig.from_mapping(
         {
@@ -616,9 +1097,32 @@ def run_torque_ramp(
     original_stiffness = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
     original_effort_limit = _selected_hinge_field(door, "joint_effort_limits", env_ids, hinge_id)
     original_targets = door.data.joint_effort_target[env_ids].clone()
-    baseline_joint_position = door.data.joint_pos[env_ids].clone()
+    captured_baseline_position = door.data.joint_pos[env_ids].clone()
     captured_baseline_velocity = door.data.joint_vel[env_ids].clone()
-    baseline_joint_velocity = torch.zeros_like(captured_baseline_velocity)
+    if trial_baseline_position is None:
+        baseline_joint_position = captured_baseline_position.clone()
+    else:
+        if (
+            not torch.is_tensor(trial_baseline_position)
+            or trial_baseline_position.shape != captured_baseline_position.shape
+            or trial_baseline_position.device != captured_baseline_position.device
+            or trial_baseline_position.dtype != captured_baseline_position.dtype
+        ):
+            raise TypeError("trial_baseline_position must match the full door joint-position tensor")
+        baseline_joint_position = trial_baseline_position.clone()
+    if trial_baseline_velocity is None:
+        baseline_joint_velocity = torch.zeros_like(captured_baseline_velocity)
+    else:
+        if (
+            not torch.is_tensor(trial_baseline_velocity)
+            or trial_baseline_velocity.shape != captured_baseline_velocity.shape
+            or trial_baseline_velocity.device != captured_baseline_velocity.device
+            or trial_baseline_velocity.dtype != captured_baseline_velocity.dtype
+        ):
+            raise TypeError("trial_baseline_velocity must match the full door joint-velocity tensor")
+        baseline_joint_velocity = trial_baseline_velocity.clone()
+    if not bool(torch.isfinite(baseline_joint_position).all().item()) or not bool(torch.isfinite(baseline_joint_velocity).all().item()):
+        raise RuntimeError("trial baseline joint state is nonfinite")
     max_command = float(friction["ramp_end_effort_nm"])
     limit_value = float(original_effort_limit.min().item())
     if limit_value <= max_command:
@@ -631,12 +1135,16 @@ def run_torque_ramp(
     receipt: dict[str, Any] | None = None
     try:
         receipt = backend.apply(env_ids)
-        door.write_joint_damping_to_sim(torch.zeros_like(original_damping), joint_ids=[hinge_id], env_ids=env_ids)
-        door.write_joint_stiffness_to_sim(torch.zeros_like(original_stiffness), joint_ids=[hinge_id], env_ids=env_ids)
-        neutral_damping = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
-        neutral_stiffness = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
-        if not bool(torch.all(neutral_damping == 0.0).item()) or not bool(torch.all(neutral_stiffness == 0.0).item()):
-            raise RuntimeError("damping/stiffness neutralization readback failed")
+        if neutralize_damping_stiffness:
+            door.write_joint_damping_to_sim(torch.zeros_like(original_damping), joint_ids=[hinge_id], env_ids=env_ids)
+            door.write_joint_stiffness_to_sim(torch.zeros_like(original_stiffness), joint_ids=[hinge_id], env_ids=env_ids)
+            neutral_damping = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
+            neutral_stiffness = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
+            if not bool(torch.all(neutral_damping == 0.0).item()) or not bool(torch.all(neutral_stiffness == 0.0).item()):
+                raise RuntimeError("damping/stiffness neutralization readback failed")
+        else:
+            neutral_damping = original_damping.clone()
+            neutral_stiffness = original_stiffness.clone()
 
         _clear_hinge_target(door, hinge_id, env_ids)
         scene.write_data_to_sim()
@@ -682,6 +1190,8 @@ def run_torque_ramp(
             _step_door_scene(sim, scene, dt)
             trial_start_angle = float(door.data.joint_pos[env_ids, hinge_id].item())
             trial_start_velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+            if not math.isfinite(trial_start_angle) or not math.isfinite(trial_start_velocity):
+                raise RuntimeError("independent trial reset produced a nonfinite hinge state")
             if abs(trial_start_velocity) > friction["stationarity_velocity_tolerance_rad_s"]:
                 raise RuntimeError(
                     "independent trial reset did not reach the stationarity velocity tolerance: "
@@ -691,10 +1201,17 @@ def run_torque_ramp(
                 (env_ids.numel(), 1), command, dtype=door.data.joint_pos.dtype, device=door.data.joint_pos.device
             )
             door.set_joint_effort_target(command_tensor, joint_ids=[hinge_id], env_ids=env_ids)
+            angle_trace: list[float] = []
+            velocity_trace: list[float] = []
             for _ in range(friction["hold_window_steps"]):
                 _step_door_scene(sim, scene, dt)
-            angle = float(door.data.joint_pos[env_ids, hinge_id].item())
-            velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+                angle = float(door.data.joint_pos[env_ids, hinge_id].item())
+                velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+                if not math.isfinite(angle) or not math.isfinite(velocity):
+                    raise RuntimeError("static-friction trial produced a nonfinite hinge state")
+                if record_raw_traces:
+                    angle_trace.append(angle)
+                    velocity_trace.append(velocity)
             delta = abs(angle - trial_start_angle)
             rows.append(
                 {
@@ -711,6 +1228,9 @@ def run_torque_ramp(
                     "independent_reset": True,
                 }
             )
+            if record_raw_traces:
+                rows[-1]["angle_trace_rad"] = angle_trace
+                rows[-1]["velocity_trace_rad_s"] = velocity_trace
             if (
                 delta >= friction["angle_resolution_rad"]
                 and abs(velocity) >= friction["velocity_threshold_rad_s"]
@@ -743,10 +1263,21 @@ def run_torque_ramp(
             door.write_joint_stiffness_to_sim(original_stiffness, joint_ids=[hinge_id], env_ids=env_ids)
             door.write_joint_effort_limit_to_sim(original_effort_limit, joint_ids=[hinge_id], env_ids=env_ids)
             cleanup_friction = _restore_friction(door, env_ids, hinge_id, original_friction)
+            door.write_joint_state_to_sim(
+                captured_baseline_position,
+                captured_baseline_velocity,
+                env_ids=env_ids,
+            )
             scene.write_data_to_sim()
             final_targets = door.data.joint_effort_target[env_ids].clone()
+            final_joint_position = door.data.joint_pos[env_ids].clone()
+            final_joint_velocity = door.data.joint_vel[env_ids].clone()
             if not bool(torch.all(final_targets[:, hinge_id] == 0.0).item()):
                 raise RuntimeError("hinge effort target cleanup readback failed")
+            if not bool(torch.allclose(final_joint_position, captured_baseline_position, atol=1.0e-6, rtol=0.0)):
+                raise RuntimeError("full joint-position cleanup readback failed")
+            if not bool(torch.allclose(final_joint_velocity, captured_baseline_velocity, atol=1.0e-6, rtol=0.0)):
+                raise RuntimeError("full joint-velocity cleanup readback failed")
             final_damping = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
             final_stiffness = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
             final_effort_limit = _selected_hinge_field(door, "joint_effort_limits", env_ids, hinge_id)
@@ -793,10 +1324,12 @@ def run_torque_ramp(
             "reset_order": "clear_hinge_target -> write_joint_state_to_sim -> scene.write_data_to_sim -> sim.step -> scene.update",
             "state_writer": "Articulation.write_joint_state_to_sim",
             "trial_frames": friction["hold_window_steps"],
-            "trial_frame_authority": "V23_EXTERNAL_TORQUE_PROBE_100_FRAME_TRIAL",
+            "trial_frame_authority": trial_frame_authority,
             "baseline_joint_position": baseline_joint_position.detach().cpu().tolist(),
+            "captured_baseline_position": captured_baseline_position.detach().cpu().tolist(),
             "captured_baseline_velocity": captured_baseline_velocity.detach().cpu().tolist(),
             "baseline_joint_velocity_written": baseline_joint_velocity.detach().cpu().tolist(),
+            "common_profile_baseline_supplied": trial_baseline_position is not None,
             "stationarity_velocity_tolerance_rad_s": friction["stationarity_velocity_tolerance_rad_s"],
             "containment_formula": "lower <= requested <= upper",
             "stop_at_first_breakaway": True,
@@ -805,8 +1338,8 @@ def run_torque_ramp(
         "neutralization": {
             "damping_recorded": original_damping.detach().cpu().tolist(),
             "stiffness_recorded": original_stiffness.detach().cpu().tolist(),
-            "hinge_damping_neutralized": True,
-            "hinge_stiffness_neutralized": True,
+            "hinge_damping_neutralized": neutralize_damping_stiffness,
+            "hinge_stiffness_neutralized": neutralize_damping_stiffness,
             "damping_neutral_readback": neutral_damping.detach().cpu().tolist(),
             "stiffness_neutral_readback": neutral_stiffness.detach().cpu().tolist(),
         },
@@ -833,7 +1366,7 @@ def run_torque_ramp(
                 "angle_resolution_rad": friction["angle_resolution_rad"],
                 "velocity_threshold_rad_s": friction["velocity_threshold_rad_s"],
                 "hold_window_steps": friction["hold_window_steps"],
-                "hold_window_authority": "V23_EXTERNAL_TORQUE_PROBE_100_FRAME_TRIAL",
+                "hold_window_authority": trial_frame_authority,
             },
             "measured_bracket_nm": measured_bracket,
             "measured_threshold_nm": breakaway_threshold,
@@ -860,6 +1393,11 @@ def run_torque_ramp(
             "restored_original_stiffness": True,
             "restored_original_effort_limit": True,
             "restored_original_friction": cleanup_friction,
+            "restored_full_joint_state": True,
+            "restored_joint_position": final_joint_position.detach().cpu().tolist(),
+            "restored_joint_velocity": final_joint_velocity.detach().cpu().tolist(),
+            "restored_joint_state_atol": 1.0e-6,
+            "restored_joint_state_rtol": 0.0,
         },
         "timing": {
             "physics_order": "scene.write_data_to_sim -> sim.step -> scene.update",
@@ -867,7 +1405,7 @@ def run_torque_ramp(
             "grid_spacing_nm": actual_spacing,
             "dt_s": friction["dt_s"],
             "hold_window_steps": friction["hold_window_steps"],
-            "trial_frame_authority": "V23_EXTERNAL_TORQUE_PROBE_100_FRAME_TRIAL",
+            "trial_frame_authority": trial_frame_authority,
             "independent_reset_per_command": True,
             "executed_command_count": len(rows),
             "stopped_at_first_breakaway": breakaway_index is not None,
@@ -876,14 +1414,877 @@ def run_torque_ramp(
     }
 
 
+def _profile_friction(friction: Mapping[str, Any], profile: Mapping[str, Any]) -> dict[str, Any]:
+    result = dict(friction)
+    result.update(profile)
+    return result
+
+
+def _trace_quality(velocity_trace: Sequence[float], slip_threshold: float) -> dict[str, Any]:
+    if not velocity_trace:
+        raise RuntimeError("behavioral trace is empty")
+    previous_slip_sign = 0
+    first_slip_index: int | None = None
+    slip_reentries = 0
+    was_slipping = False
+    sign_reversals = 0
+    for index, velocity in enumerate(velocity_trace):
+        if not math.isfinite(float(velocity)):
+            raise RuntimeError("behavioral trace contains a nonfinite velocity")
+        value = float(velocity)
+        slipping = abs(value) >= slip_threshold
+        sign = 1 if value > 0.0 else -1 if value < 0.0 else 0
+        if slipping:
+            if previous_slip_sign != 0 and sign != previous_slip_sign:
+                sign_reversals += 1
+            previous_slip_sign = sign
+        if slipping and first_slip_index is None:
+            first_slip_index = index
+        elif slipping and first_slip_index is not None and not was_slipping:
+            slip_reentries += 1
+        was_slipping = slipping
+    return {
+        "first_slip_index": first_slip_index,
+        "slip_reentries_after_first": slip_reentries,
+        "sign_reversals": sign_reversals,
+        "slip_threshold_rad_s": slip_threshold,
+    }
+
+
+def _run_behavioral_decay_trials(
+    *,
+    sim: Any,
+    scene: Any,
+    friction: Mapping[str, Any],
+    door_fixture: Mapping[str, Any],
+    profile: Mapping[str, Any],
+    device: str,
+    dt: float,
+    initial_angle_rad: float,
+    interior_margin_rad: float,
+    speeds_rad_s: Sequence[float],
+    frames: int,
+    damping_native: float,
+    stiffness_native: float,
+    max_positive_abs_speed_increment: float,
+    trial_frame_authority: str,
+    selected_env_index: int = 0,
+) -> dict[str, Any]:
+    import torch
+
+    from gr00t.rl.envs.door.a2_v24_friction import A2V24DoorFrictionBackend, V24FrictionConfig
+
+    door = scene["door"]
+    hinge_id, hinge_name = _select_single_hinge(door)
+    env_ids = _single_env_ids(door, selected_env_index=selected_env_index, device=device)
+    friction_config = V24FrictionConfig.from_mapping(
+        {
+            "a2_v24_friction_enabled": True,
+            "a2_v24_friction_backend": friction["backend"],
+            "a2_v24_friction_static_effort": profile["static_effort_nm"],
+            "a2_v24_friction_dynamic_effort": profile["dynamic_effort_nm"],
+            "a2_v24_friction_viscous_coefficient": profile["viscous_coefficient_nm_s_per_rad"],
+        }
+    )
+    backend = A2V24DoorFrictionBackend(door, friction_config, device=door.data.joint_pos.device)
+    original_friction = {
+        field: _selected_hinge_field(door, field, env_ids, hinge_id)
+        for field in ("joint_friction_coeff", "joint_dynamic_friction_coeff", "joint_viscous_friction_coeff")
+    }
+    original_damping = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
+    original_stiffness = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
+    original_targets = door.data.joint_effort_target[env_ids].clone()
+    baseline_position = door.data.joint_pos[env_ids].clone()
+    captured_baseline_velocity = door.data.joint_vel[env_ids].clone()
+    baseline_velocity = torch.zeros_like(captured_baseline_velocity)
+    primary_error: BaseException | None = None
+    cleanup_error: BaseException | None = None
+    result: dict[str, Any] | None = None
+    try:
+        friction_receipt = backend.apply(env_ids)
+        dynamic_readback_rows = friction_receipt["readback"]["joint_dynamic_friction_coeff"]
+        if len(dynamic_readback_rows) != 1 or len(dynamic_readback_rows[0]) != 1:
+            raise RuntimeError("behavioral dynamic-friction readback shape mismatch")
+        dynamic_readback = float(dynamic_readback_rows[0][0])
+        if not math.isfinite(dynamic_readback) or abs(dynamic_readback - profile["dynamic_effort_nm"]) > 1.0e-6:
+            raise RuntimeError(
+                "behavioral dynamic-friction readback does not match the registered profile: "
+                f"readback={dynamic_readback}, expected={profile['dynamic_effort_nm']}"
+            )
+        requested_damping = torch.full_like(original_damping, damping_native)
+        requested_stiffness = torch.full_like(original_stiffness, stiffness_native)
+        door.write_joint_damping_to_sim(requested_damping, joint_ids=[hinge_id], env_ids=env_ids)
+        door.write_joint_stiffness_to_sim(requested_stiffness, joint_ids=[hinge_id], env_ids=env_ids)
+        damping_readback = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
+        stiffness_readback = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
+        if not bool(torch.allclose(damping_readback, requested_damping, atol=1.0e-6, rtol=0.0)):
+            raise RuntimeError("behavioral damping readback mismatch")
+        if not bool(torch.allclose(stiffness_readback, requested_stiffness, atol=1.0e-6, rtol=0.0)):
+            raise RuntimeError("behavioral stiffness readback mismatch")
+        limits = door.data.joint_pos_limits[env_ids][:, hinge_id, :].clone()
+        if tuple(limits.shape) != (env_ids.numel(), 2) or not bool(torch.all(torch.isfinite(limits)).item()):
+            raise RuntimeError("behavioral hinge position limits are unavailable or nonfinite")
+        lower_limit = float(limits[:, 0].min().item())
+        upper_limit = float(limits[:, 1].min().item())
+        if not lower_limit + interior_margin_rad < initial_angle_rad < upper_limit - interior_margin_rad:
+            raise RuntimeError("behavioral initial hinge angle is not safely interior")
+
+        trials: list[dict[str, Any]] = []
+        for requested_speed in speeds_rad_s:
+            _clear_hinge_target(door, hinge_id, env_ids)
+            trial_position = baseline_position.clone()
+            trial_position[:, hinge_id] = initial_angle_rad
+            trial_velocity = baseline_velocity.clone()
+            trial_velocity[:, hinge_id] = requested_speed
+            door.write_joint_state_to_sim(trial_position, trial_velocity, env_ids=env_ids)
+            scene.write_data_to_sim()
+            start_angle = float(door.data.joint_pos[env_ids, hinge_id].item())
+            start_velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+            if not math.isfinite(start_angle) or not math.isfinite(start_velocity):
+                raise RuntimeError("behavioral trial start state is nonfinite")
+            if abs(start_velocity - requested_speed) > 1.0e-6:
+                raise RuntimeError("behavioral trial start velocity readback mismatch")
+            angle_trace = [start_angle]
+            velocity_trace = [start_velocity]
+            previous_abs_speed = abs(start_velocity)
+            for _ in range(frames):
+                _step_door_scene(sim, scene, dt)
+                angle = float(door.data.joint_pos[env_ids, hinge_id].item())
+                velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+                if not math.isfinite(angle) or not math.isfinite(velocity):
+                    raise RuntimeError("behavioral decay produced a nonfinite state")
+                abs_speed_increment = abs(velocity) - previous_abs_speed
+                if abs_speed_increment > max_positive_abs_speed_increment:
+                    raise RuntimeError(
+                        "behavioral decay positive abs-speed increment exceeded the registered tolerance: "
+                        f"increment={abs_speed_increment}, limit={max_positive_abs_speed_increment}"
+                    )
+                previous_abs_speed = abs(velocity)
+                angle_trace.append(angle)
+                velocity_trace.append(velocity)
+            final_abs_speed = abs(velocity_trace[-1])
+            initial_abs_speed = abs(velocity_trace[0])
+            loss_rate = (initial_abs_speed - final_abs_speed) / (frames * dt)
+            trials.append(
+                {
+                    "requested_speed_rad_s": requested_speed,
+                    "start_angle_rad": start_angle,
+                    "start_velocity_rad_s": start_velocity,
+                    "final_angle_rad": angle_trace[-1],
+                    "final_velocity_rad_s": velocity_trace[-1],
+                    "initial_abs_speed_rad_s": initial_abs_speed,
+                    "final_abs_speed_rad_s": final_abs_speed,
+                    "endpoint_abs_speed_loss_rate_rad_s2": loss_rate,
+                    "frames": frames,
+                    "dt_s": dt,
+                    "angle_trace_rad": angle_trace,
+                    "velocity_trace_rad_s": velocity_trace,
+                    "authority": "BEHAVIORAL_SEMANTIC_ONLY_NO_FRICTION_TORQUE",
+                }
+            )
+        result = {
+            "status": "MEASURED_BEHAVIORAL",
+            "profile": dict(profile),
+            "hinge_joint_name": hinge_name,
+            "friction_readback": friction_receipt,
+            "damping_requested_native": damping_native,
+            "damping_readback_native": damping_readback.detach().cpu().tolist(),
+            "stiffness_requested_native": stiffness_native,
+            "stiffness_readback_native": stiffness_readback.detach().cpu().tolist(),
+            "dynamic_friction_readback": dynamic_readback,
+            "initial_angle_rad": initial_angle_rad,
+            "joint_limits_rad": limits.detach().cpu().tolist(),
+            "interior_margin_rad": interior_margin_rad,
+            "frames": frames,
+            "dt_s": dt,
+            "max_positive_abs_speed_increment_rad_s": max_positive_abs_speed_increment,
+            "trial_frame_authority": trial_frame_authority,
+            "trials": trials,
+            "authority": "BEHAVIORAL_SEMANTIC_ONLY_NO_FRICTION_TORQUE",
+        }
+    except BaseException as exc:
+        primary_error = exc
+    finally:
+        try:
+            cleanup_target = original_targets.clone()
+            cleanup_target[:, hinge_id] = 0.0
+            door.set_joint_effort_target(cleanup_target, env_ids=env_ids)
+            door.write_joint_damping_to_sim(original_damping, joint_ids=[hinge_id], env_ids=env_ids)
+            door.write_joint_stiffness_to_sim(original_stiffness, joint_ids=[hinge_id], env_ids=env_ids)
+            cleanup_friction = _restore_friction(door, env_ids, hinge_id, original_friction)
+            door.write_joint_state_to_sim(baseline_position, captured_baseline_velocity, env_ids=env_ids)
+            scene.write_data_to_sim()
+            final_targets = door.data.joint_effort_target[env_ids].clone()
+            if not bool(torch.all(final_targets[:, hinge_id] == 0.0).item()):
+                raise RuntimeError("behavioral cleanup hinge target readback failed")
+            if result is not None:
+                result["cleanup"] = {
+                    "restored_friction": cleanup_friction,
+                    "restored_damping": True,
+                    "restored_stiffness": True,
+                    "baseline_state_restored": True,
+                }
+        except BaseException as exc:
+            cleanup_error = exc
+    if primary_error is not None:
+        if cleanup_error is not None:
+            raise RuntimeError("behavioral trial failed and cleanup also failed") from primary_error
+        raise primary_error
+    if cleanup_error is not None:
+        raise cleanup_error
+    if result is None:
+        raise RuntimeError("behavioral trial completed without a receipt")
+    return result
+
+
+def _summarize_plateau(trials: Sequence[Mapping[str, Any]], relative_spread_max: float, direction_asymmetry_max: float) -> dict[str, Any]:
+    rates = {float(trial["requested_speed_rad_s"]): float(trial["endpoint_abs_speed_loss_rate_rad_s2"]) for trial in trials}
+    if set(rates) != set(AI_SPEED_ORDER):
+        raise RuntimeError("plateau receipt does not contain the registered speed set")
+    positive_rates = list(rates.values())
+    endpoint_positive = all(rate > 0.0 for rate in positive_rates)
+    rate_max = max(positive_rates)
+    relative_spread = (max(positive_rates) - min(positive_rates)) / rate_max if rate_max > 0.0 else math.inf
+    direction_asymmetries = {
+        str(magnitude): abs(rates[magnitude] - rates[-magnitude]) / max(rates[magnitude], rates[-magnitude])
+        for magnitude in (0.1, 0.2)
+    }
+    direction_asymmetry = max(direction_asymmetries.values())
+    return {
+        "loss_rates_rad_s2": {str(speed): rate for speed, rate in rates.items()},
+        "endpoint_abs_speed_loss_rate_positive": endpoint_positive,
+        "relative_spread": relative_spread,
+        "relative_spread_max": relative_spread_max,
+        "direction_asymmetries": direction_asymmetries,
+        "direction_asymmetry": direction_asymmetry,
+        "direction_asymmetry_max": direction_asymmetry_max,
+        "passed": endpoint_positive and relative_spread <= relative_spread_max and direction_asymmetry <= direction_asymmetry_max,
+        "authority": "BEHAVIORAL_SEMANTIC_ONLY_NO_FRICTION_TORQUE",
+    }
+
+
+def _summarize_control_ratios(
+    friction_trials: Sequence[Mapping[str, Any]],
+    damping_trials: Sequence[Mapping[str, Any]],
+    friction_ratio_low: float,
+    friction_ratio_high: float,
+    damping_ratio_min: float,
+) -> dict[str, Any]:
+    friction_rates = {float(trial["requested_speed_rad_s"]): float(trial["endpoint_abs_speed_loss_rate_rad_s2"]) for trial in friction_trials}
+    damping_rates = {float(trial["requested_speed_rad_s"]): float(trial["endpoint_abs_speed_loss_rate_rad_s2"]) for trial in damping_trials}
+    friction_ratios = {
+        str(magnitude): {
+            "positive": friction_rates[magnitude] / friction_rates[magnitude / 2.0],
+            "negative": friction_rates[-magnitude] / friction_rates[-magnitude / 2.0],
+        }
+        for magnitude in (0.2,)
+    }
+    damping_ratios = {
+        str(magnitude): {
+            "positive": damping_rates[magnitude] / damping_rates[magnitude / 2.0],
+            "negative": damping_rates[-magnitude] / damping_rates[-magnitude / 2.0],
+        }
+        for magnitude in (0.2,)
+    }
+    friction_pass = all(
+        friction_ratio_low <= value <= friction_ratio_high
+        for values in friction_ratios.values()
+        for value in values.values()
+    )
+    damping_pass = all(value >= damping_ratio_min for values in damping_ratios.values() for value in values.values())
+    return {
+        "friction_high_low_ratios": friction_ratios,
+        "damping_high_low_ratios": damping_ratios,
+        "friction_ratio_range": [friction_ratio_low, friction_ratio_high],
+        "damping_ratio_min": damping_ratio_min,
+        "both_directions_agree": friction_pass and damping_pass,
+        "friction_pass": friction_pass,
+        "damping_pass": damping_pass,
+        "passed": friction_pass and damping_pass,
+        "authority": "BEHAVIORAL_SEMANTIC_ONLY_NO_FRICTION_TORQUE",
+    }
+
+
+def _summarize_dissipation(
+    trials: Sequence[Mapping[str, Any]], max_positive_increment: float
+) -> dict[str, Any]:
+    rows = []
+    final_le_initial = True
+    max_increment = 0.0
+    for trial in trials:
+        trace = [abs(float(value)) for value in trial["velocity_trace_rad_s"]]
+        increments = [trace[index] - trace[index - 1] for index in range(1, len(trace))]
+        trial_max_increment = max(increments) if increments else 0.0
+        max_increment = max(max_increment, trial_max_increment)
+        trial_final_le_initial = trace[-1] <= trace[0]
+        final_le_initial = final_le_initial and trial_final_le_initial
+        rows.append(
+            {
+                "requested_speed_rad_s": trial["requested_speed_rad_s"],
+                "final_abs_speed_le_initial": trial_final_le_initial,
+                "max_positive_abs_speed_increment_rad_s": trial_max_increment,
+            }
+        )
+    proxy_pass = final_le_initial and max_increment <= max_positive_increment
+    return {
+        "status": "AUTHORITY_INSUFFICIENT",
+        "direct_criterion": "AUTHORITY_INSUFFICIENT",
+        "source": "UNAVAILABLE_NO_SOLVER_FRICTION_TORQUE_VIEW",
+        "literal_target": "tau_friction * omega",
+        "cannot_pass_literal_target": True,
+        "proxy": {
+            "final_abs_speed_le_initial": final_le_initial,
+            "max_positive_abs_speed_increment_rad_s": max_increment,
+            "increment_limit_rad_s": max_positive_increment,
+            "proxy_pass": proxy_pass,
+            "trials": rows,
+        },
+        "authority": "BEHAVIORAL_PROXY_ONLY",
+    }
+
+
+def _run_chatter_trial(
+    *,
+    sim: Any,
+    scene: Any,
+    friction: Mapping[str, Any],
+    door_fixture: Mapping[str, Any],
+    profile: Mapping[str, Any],
+    command_effort_nm: float,
+    device: str,
+    dt: float,
+    frames: int,
+    slip_threshold: float,
+    trial_frame_authority: str,
+    selected_env_index: int = 0,
+) -> dict[str, Any]:
+    import torch
+
+    from gr00t.rl.envs.door.a2_v24_friction import A2V24DoorFrictionBackend, V24FrictionConfig
+
+    door = scene["door"]
+    hinge_id, hinge_name = _select_single_hinge(door)
+    env_ids = _single_env_ids(door, selected_env_index=selected_env_index, device=device)
+    friction_config = V24FrictionConfig.from_mapping(
+        {
+            "a2_v24_friction_enabled": True,
+            "a2_v24_friction_backend": friction["backend"],
+            "a2_v24_friction_static_effort": profile["static_effort_nm"],
+            "a2_v24_friction_dynamic_effort": profile["dynamic_effort_nm"],
+            "a2_v24_friction_viscous_coefficient": profile["viscous_coefficient_nm_s_per_rad"],
+        }
+    )
+    backend = A2V24DoorFrictionBackend(door, friction_config, device=door.data.joint_pos.device)
+    original_friction = {
+        field: _selected_hinge_field(door, field, env_ids, hinge_id)
+        for field in ("joint_friction_coeff", "joint_dynamic_friction_coeff", "joint_viscous_friction_coeff")
+    }
+    original_damping = _selected_hinge_field(door, "joint_damping", env_ids, hinge_id)
+    original_stiffness = _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id)
+    original_targets = door.data.joint_effort_target[env_ids].clone()
+    baseline_position = door.data.joint_pos[env_ids].clone()
+    baseline_velocity = torch.zeros_like(door.data.joint_vel[env_ids])
+    primary_error: BaseException | None = None
+    cleanup_error: BaseException | None = None
+    result: dict[str, Any] | None = None
+    try:
+        friction_receipt = backend.apply(env_ids)
+        door.write_joint_damping_to_sim(torch.zeros_like(original_damping), joint_ids=[hinge_id], env_ids=env_ids)
+        door.write_joint_stiffness_to_sim(torch.zeros_like(original_stiffness), joint_ids=[hinge_id], env_ids=env_ids)
+        _clear_hinge_target(door, hinge_id, env_ids)
+        door.write_joint_state_to_sim(baseline_position, baseline_velocity, env_ids=env_ids)
+        _step_door_scene(sim, scene, dt)
+        start_velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+        if abs(start_velocity) > friction["stationarity_velocity_tolerance_rad_s"]:
+            raise RuntimeError("chatter trial reset did not meet stationarity velocity tolerance")
+        command_tensor = torch.full(
+            (env_ids.numel(), 1), command_effort_nm, dtype=door.data.joint_pos.dtype, device=door.data.joint_pos.device
+        )
+        door.set_joint_effort_target(command_tensor, joint_ids=[hinge_id], env_ids=env_ids)
+        angle_trace = []
+        velocity_trace = []
+        for _ in range(frames):
+            _step_door_scene(sim, scene, dt)
+            angle = float(door.data.joint_pos[env_ids, hinge_id].item())
+            velocity = float(door.data.joint_vel[env_ids, hinge_id].item())
+            if not math.isfinite(angle) or not math.isfinite(velocity):
+                raise RuntimeError("chatter trial produced a nonfinite hinge state")
+            angle_trace.append(angle)
+            velocity_trace.append(velocity)
+        quality = _trace_quality(velocity_trace, slip_threshold)
+        result = {
+            "status": "MEASURED_CHATTER_BEHAVIOR",
+            "profile": dict(profile),
+            "hinge_joint_name": hinge_name,
+            "command_effort_nm": command_effort_nm,
+            "frames": frames,
+            "dt_s": dt,
+            "trial_frame_authority": trial_frame_authority,
+            "start_velocity_rad_s": start_velocity,
+            "angle_trace_rad": angle_trace,
+            "velocity_trace_rad_s": velocity_trace,
+            "quality": quality,
+            "chatter_passed": quality["slip_reentries_after_first"] < 2,
+            "friction_readback": friction_receipt,
+            "authority": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+        }
+    except BaseException as exc:
+        primary_error = exc
+    finally:
+        try:
+            cleanup_target = original_targets.clone()
+            cleanup_target[:, hinge_id] = 0.0
+            door.set_joint_effort_target(cleanup_target, env_ids=env_ids)
+            door.write_joint_damping_to_sim(original_damping, joint_ids=[hinge_id], env_ids=env_ids)
+            door.write_joint_stiffness_to_sim(original_stiffness, joint_ids=[hinge_id], env_ids=env_ids)
+            cleanup_friction = _restore_friction(door, env_ids, hinge_id, original_friction)
+            door.write_joint_state_to_sim(baseline_position, baseline_velocity, env_ids=env_ids)
+            scene.write_data_to_sim()
+            if result is not None:
+                result["cleanup"] = {"restored_friction": cleanup_friction, "restored_damping": True, "restored_stiffness": True}
+        except BaseException as exc:
+            cleanup_error = exc
+    if primary_error is not None:
+        if cleanup_error is not None:
+            raise RuntimeError("chatter trial failed and cleanup also failed") from primary_error
+        raise primary_error
+    if cleanup_error is not None:
+        raise cleanup_error
+    if result is None:
+        raise RuntimeError("chatter trial completed without a receipt")
+    return result
+
+
+def _summarize_breakaway_profiles(receipts: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    brackets: dict[str, list[float] | None] = {}
+    literal_results: dict[str, bool] = {}
+    valid = True
+    for name in AI_PROFILE_ORDER:
+        breakaway = receipts[name]["breakaway"]
+        bracket = breakaway["measured_bracket_nm"]
+        brackets[name] = bracket
+        literal_results[name] = bool(breakaway["requested_static_in_bracket"])
+        valid = valid and isinstance(bracket, list) and len(bracket) == 2
+        if valid and bracket is not None:
+            valid = all(math.isfinite(float(value)) for value in bracket)
+    upper_non_decreasing = False
+    f10_upper_greater = False
+    if valid:
+        uppers = [float(brackets[name][1]) for name in AI_PROFILE_ORDER if brackets[name] is not None]
+        upper_non_decreasing = uppers[0] <= uppers[1] <= uppers[2]
+        f10_upper_greater = uppers[2] > uppers[0]
+    passed = valid and all(literal_results.values()) and upper_non_decreasing and f10_upper_greater
+    return {
+        "profiles": brackets,
+        "literal_containment": literal_results,
+        "upper_brackets_non_decreasing": upper_non_decreasing,
+        "f10_upper_strictly_greater_than_f00": f10_upper_greater,
+        "passed": passed,
+        "authority": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+    }
+
+
+def _valid_breakaway_evidence(receipt: Mapping[str, Any]) -> bool:
+    breakaway = receipt.get("breakaway")
+    if not isinstance(breakaway, Mapping):
+        return False
+    bracket = breakaway.get("measured_bracket_nm")
+    threshold = breakaway.get("measured_threshold_nm")
+    return (
+        receipt.get("status") == "PASS"
+        and isinstance(bracket, list)
+        and len(bracket) == 2
+        and all(math.isfinite(float(value)) for value in bracket)
+        and isinstance(threshold, (int, float))
+        and math.isfinite(float(threshold))
+        and breakaway.get("requested_static_in_bracket") is True
+        and receipt.get("timing", {}).get("stopped_at_first_breakaway") is True
+    )
+
+
+def _valid_chatter_classification(receipt: Mapping[str, Any]) -> bool:
+    quality = receipt.get("quality")
+    if not isinstance(quality, Mapping):
+        return False
+    reentries = quality.get("slip_reentries_after_first")
+    reversals = quality.get("sign_reversals")
+    return (
+        receipt.get("status") == "MEASURED_CHATTER_BEHAVIOR"
+        and isinstance(receipt.get("chatter_passed"), bool)
+        and isinstance(reentries, int)
+        and reentries >= 0
+        and isinstance(reversals, int)
+        and reversals >= 0
+    )
+
+
+def _summarize_g_cell(
+    receipt: Mapping[str, Any],
+    slip_threshold: float,
+    fixture_gate: Mapping[str, Any],
+) -> dict[str, Any]:
+    quality_rows = []
+    finite = True
+    unexpected_sign_reversal = False
+    unexpected_chatter = False
+    for row in receipt["samples"]:
+        velocity_trace = row.get("velocity_trace_rad_s")
+        if not isinstance(velocity_trace, list):
+            raise RuntimeError("G receipt is missing registered raw velocity traces")
+        quality = _trace_quality(velocity_trace, slip_threshold)
+        quality_rows.append({"command_effort_nm": row["command_effort_nm"], **quality})
+        unexpected_sign_reversal = unexpected_sign_reversal or quality["sign_reversals"] > 0
+        unexpected_chatter = unexpected_chatter or quality["slip_reentries_after_first"] >= 2
+        finite = finite and all(math.isfinite(float(value)) for value in velocity_trace)
+    passed = bool(fixture_gate["passed"]) and finite and not unexpected_sign_reversal and not unexpected_chatter
+    return {
+        "finite_state_and_readback": finite,
+        "realized_fixture_gate": dict(fixture_gate),
+        "unexpected_sign_reversal": unexpected_sign_reversal,
+        "unexpected_chatter": unexpected_chatter,
+        "quality_rows": quality_rows,
+        "passed": passed,
+        "surface_tags": dict(AI_SURFACE_TAGS),
+    }
+
+
+def _build_ai_receipt(
+    *,
+    ai: Mapping[str, Any],
+    friction: Mapping[str, Any],
+    a_receipts: Mapping[str, Mapping[str, Any]],
+    a_summary: Mapping[str, Any],
+    b_receipt: Mapping[str, Any],
+    b_summary: Mapping[str, Any],
+    c_receipt: Mapping[str, Any],
+    c_summary: Mapping[str, Any],
+    d_summary: Mapping[str, Any],
+    e_receipt: Mapping[str, Any],
+    e_summary: Mapping[str, Any],
+    f_summary: Mapping[str, Any],
+    g_receipts: Mapping[str, Any],
+    g_summary: Mapping[str, Any],
+) -> dict[str, Any]:
+    return {
+        "schema": PROBE_SCHEMA,
+        "mode": AI_ACCEPTANCE_MODE,
+        "status": "PENDING_H_I",
+        "overall_status": "PENDING_H_I",
+        "batch_id": ai["batch_id"],
+        "device": ai["device"],
+        "surface_tags": ai["surface_tags"],
+        "orthogonality": ai["orthogonality"],
+        "provisional_allowed_typed_result": "V24_FRICTION_AUTHORITY_INSUFFICIENT",
+        "authority_boundary": {
+            "command_effort_authority": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+            "solver_friction_torque_source": "UNAVAILABLE",
+            "no_friction_torque_inference": True,
+        },
+        "A": {"summary": dict(a_summary), "raw_profile_receipts": dict(a_receipts)},
+        "B": {"summary": dict(b_summary), "raw_behavioral_receipt": dict(b_receipt)},
+        "C": {"summary": dict(c_summary), "raw_behavioral_receipt": dict(c_receipt)},
+        "D": dict(d_summary),
+        "E": {"summary": dict(e_summary), "raw_chatter_receipt": dict(e_receipt)},
+        "F": dict(f_summary),
+        "G": {"summary": dict(g_summary), "raw_sparse_cell_receipts": dict(g_receipts)},
+        "H": {"status": "PENDING_PRODUCTION_RESET_RECEIPT"},
+        "I": {"status": "PENDING_P0_PARITY_RECEIPT"},
+        "parameter_range_freeze": "NOT_PERFORMED",
+        "friction_profile_contract": {
+            "static_effort_nm": friction["static_effort_nm"],
+            "dynamic_effort_nm": friction["dynamic_effort_nm"],
+            "viscous_coefficient_nm_s_per_rad": friction["viscous_coefficient_nm_s_per_rad"],
+            "grid_resolution_nm": friction["resolution_effort_nm"],
+        },
+    }
+
+
+def _run_ai_runtime(config_path: Path, *, device: str, output: Path) -> None:
+    import torch
+
+    _assert_selected_sources(config_path)
+    friction = _probe_config_values(config_path)
+    ai = _ai_acceptance_config(config_path, friction)
+    if device != ai["device"]:
+        raise ValueError(f"A_I_ACCEPTANCE requires the configured single GPU0 device {ai['device']!r}")
+    profiles = ai["friction_profiles"]
+
+    source_configs: list[dict[str, Any]] = [dict(DOOR_FIXED_CONFIG)]
+    for cell in ai["sparse_cells"]:
+        source_config = dict(DOOR_FIXED_CONFIG)
+        source_config.update(
+            {
+                "rand_door_weight": cell["door_weight_kg"],
+                "rand_hinge_drive_damping": cell["damping_native"],
+                "rand_hinge_drive_stiffness": cell["stiffness_native"],
+            }
+        )
+        source_configs.append(source_config)
+
+    sim = None
+    try:
+        sim, scene, door, fixtures = _build_door_only_scene(
+            device=device,
+            dt=friction["dt_s"],
+            probe_seed=friction["probe_seed"],
+            door_configs=source_configs,
+        )
+        if len(fixtures) != len(source_configs) or len(fixtures) != 1 + len(ai["sparse_cells"]):
+            raise RuntimeError("A-I scene fixture order/count does not match the registered sparse cells")
+        base_fixture = fixtures[0]
+        base_env_ids = _single_env_ids(door, selected_env_index=0, device=device)
+        common_profile_position = door.data.joint_pos[base_env_ids].clone()
+        common_profile_velocity = door.data.joint_vel[base_env_ids].clone()
+        common_trial_velocity = torch.zeros_like(common_profile_velocity)
+        if not bool(torch.isfinite(common_profile_position).all().item()) or not bool(torch.isfinite(common_profile_velocity).all().item()):
+            raise RuntimeError("common A-profile baseline joint state is nonfinite")
+        a_receipts: dict[str, Mapping[str, Any]] = {}
+        for profile_name in AI_PROFILE_ORDER:
+            a_receipts[profile_name] = run_torque_ramp(
+                sim=sim,
+                scene=scene,
+                friction=_profile_friction(friction, profiles[profile_name]),
+                door_fixture=base_fixture,
+                device=device,
+                dt=friction["dt_s"],
+                record_raw_traces=True,
+                trial_baseline_position=common_profile_position,
+                trial_baseline_velocity=common_trial_velocity,
+                selected_env_index=0,
+            )
+        a_summary = _summarize_breakaway_profiles(a_receipts)
+        b_receipt = _run_behavioral_decay_trials(
+            sim=sim,
+            scene=scene,
+            friction=friction,
+            door_fixture=base_fixture,
+            profile=profiles["F10"],
+            device=device,
+            dt=friction["dt_s"],
+            initial_angle_rad=ai["plateau"]["initial_angle_rad"],
+            interior_margin_rad=ai["plateau"]["interior_margin_rad"],
+            speeds_rad_s=ai["plateau"]["speeds_rad_s"],
+            frames=ai["plateau"]["frames"],
+            damping_native=0.0,
+            stiffness_native=0.0,
+            max_positive_abs_speed_increment=ai["dissipation"]["max_positive_abs_speed_increment_rad_s"],
+            trial_frame_authority="V23_BEHAVIORAL_100_FRAME_TRIAL",
+            selected_env_index=0,
+        )
+        b_summary = _summarize_plateau(
+            b_receipt["trials"],
+            ai["plateau"]["relative_spread_max"],
+            ai["plateau"]["direction_asymmetry_max"],
+        )
+        c_receipt = _run_behavioral_decay_trials(
+            sim=sim,
+            scene=scene,
+            friction=friction,
+            door_fixture=base_fixture,
+            profile=profiles["F00"],
+            device=device,
+            dt=friction["dt_s"],
+            initial_angle_rad=ai["plateau"]["initial_angle_rad"],
+            interior_margin_rad=ai["plateau"]["interior_margin_rad"],
+            speeds_rad_s=ai["plateau"]["speeds_rad_s"],
+            frames=ai["plateau"]["frames"],
+            damping_native=50.0,
+            stiffness_native=0.0,
+            max_positive_abs_speed_increment=ai["dissipation"]["max_positive_abs_speed_increment_rad_s"],
+            trial_frame_authority="V23_CONTROL_100_FRAME_TRIAL",
+            selected_env_index=0,
+        )
+        c_summary = _summarize_control_ratios(
+            b_receipt["trials"],
+            c_receipt["trials"],
+            ai["control"]["friction_ratio_low"],
+            ai["control"]["friction_ratio_high"],
+            ai["control"]["damping_ratio_min"],
+        )
+        d_summary = _summarize_dissipation(
+            b_receipt["trials"], ai["dissipation"]["max_positive_abs_speed_increment_rad_s"]
+        )
+        f10_threshold = a_receipts["F10"]["breakaway"]["measured_threshold_nm"]
+        if f10_threshold is None:
+            e_receipt = {
+                "status": "PENDING_F10_BREAKAWAY",
+                "reason": "F10 did not produce a measured first-breakaway command",
+                "authority": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+            }
+            e_summary = {"status": "PENDING_F10_BREAKAWAY", "passed": False}
+        else:
+            e_receipt = _run_chatter_trial(
+                sim=sim,
+                scene=scene,
+                friction=friction,
+                door_fixture=base_fixture,
+                profile=profiles["F10"],
+                command_effort_nm=float(f10_threshold),
+                device=device,
+                dt=friction["dt_s"],
+                frames=V23_STATIC_TRIAL_FRAMES,
+                slip_threshold=ai["chatter"]["slip_velocity_threshold_rad_s"],
+                trial_frame_authority="V23_CHATTER_100_FRAME_TRIAL",
+                selected_env_index=0,
+            )
+            e_summary = {
+                "status": "PASS" if e_receipt["chatter_passed"] else "FAIL_CHATTER",
+                "passed": e_receipt["chatter_passed"],
+                "first_breakaway_command_nm": f10_threshold,
+                "slip_reentries_after_first": e_receipt["quality"]["slip_reentries_after_first"],
+                "sign_reversals": e_receipt["quality"]["sign_reversals"],
+                "slip_threshold_rad_s": ai["chatter"]["slip_velocity_threshold_rad_s"],
+            }
+
+        g_receipts: dict[str, Mapping[str, Any]] = {}
+        g_summary: dict[str, Any] = {"cells": {}, "parameter_range_freeze": "NOT_PERFORMED"}
+        for cell_offset, cell in enumerate(ai["sparse_cells"], start=1):
+            cell_id = cell["id"]
+            cell_fixture = fixtures[cell_offset]
+            fixture_gate = _read_g_fixture_gate(
+                door,
+                cell_fixture,
+                device=device,
+                selected_env_index=cell_offset,
+                realized_scaled_distance_max=ai["orthogonality"]["realized_scaled_distance_max"],
+            )
+            if not fixture_gate["passed"]:
+                raise RuntimeError(
+                    f"G sparse cell {cell_id} failed the realized fixture scaled-distance gate: "
+                    f"{fixture_gate['realized_scaled_distance']} > "
+                    f"{fixture_gate['realized_scaled_distance_max']}"
+                )
+            cell_receipt = run_torque_ramp(
+                sim=sim,
+                scene=scene,
+                friction=_profile_friction(friction, profiles["F10"]),
+                door_fixture=cell_fixture,
+                device=device,
+                dt=friction["dt_s"],
+                record_raw_traces=True,
+                neutralize_damping_stiffness=False,
+                selected_env_index=cell_offset,
+            )
+            g_receipts[cell_id] = {
+                "cell": cell,
+                "fixture_gate": fixture_gate,
+                "receipt": cell_receipt,
+            }
+            g_summary["cells"][cell_id] = _summarize_g_cell(
+                cell_receipt,
+                ai["chatter"]["slip_velocity_threshold_rad_s"],
+                fixture_gate,
+            )
+        g_summary["passed"] = all(item["passed"] for item in g_summary["cells"].values())
+        g_summary["surface_tags"] = dict(ai["surface_tags"])
+
+        fine_friction = dict(friction)
+        fine_friction["hold_window_steps"] = ai["fine_dt"]["frames"]
+        fine_friction["dt_s"] = ai["fine_dt"]["dt_s"]
+        sim.set_simulation_dt(
+            physics_dt=ai["fine_dt"]["dt_s"],
+            rendering_dt=ai["fine_dt"]["dt_s"],
+        )
+        sim.reset()
+        scene.update(ai["fine_dt"]["dt_s"])
+        fine_fixture = fixtures[0]
+        fine_a_receipt = run_torque_ramp(
+            sim=sim,
+            scene=scene,
+            friction=_profile_friction(fine_friction, profiles["F10"]),
+            door_fixture=fine_fixture,
+            device=device,
+            dt=ai["fine_dt"]["dt_s"],
+            record_raw_traces=True,
+            trial_frame_authority="V24_FINE_DT_200_FRAME_0P5S_TRIAL",
+            selected_env_index=0,
+        )
+        fine_threshold = fine_a_receipt["breakaway"]["measured_threshold_nm"]
+        if fine_threshold is None:
+            fine_e_receipt = {"status": "PENDING_FINE_F10_BREAKAWAY", "passed": False}
+        else:
+            fine_e_receipt = _run_chatter_trial(
+                sim=sim,
+                scene=scene,
+                friction=fine_friction,
+                door_fixture=fine_fixture,
+                profile=profiles["F10"],
+                command_effort_nm=float(fine_threshold),
+                device=device,
+                dt=ai["fine_dt"]["dt_s"],
+                frames=ai["fine_dt"]["frames"],
+                slip_threshold=ai["chatter"]["slip_velocity_threshold_rad_s"],
+                trial_frame_authority="V24_FINE_DT_200_FRAME_0P5S_CHATTER_TRIAL",
+                selected_env_index=0,
+            )
+        base_a_observed = _valid_breakaway_evidence(a_receipts["F10"])
+        fine_a_observed = _valid_breakaway_evidence(fine_a_receipt)
+        base_e_observed = _valid_chatter_classification(e_receipt)
+        fine_e_observed = _valid_chatter_classification(fine_e_receipt)
+        base_a_class = bool(a_receipts["F10"]["breakaway"].get("requested_static_in_bracket")) if base_a_observed else False
+        fine_a_class = bool(fine_a_receipt.get("breakaway", {}).get("requested_static_in_bracket")) if fine_a_observed else False
+        base_e_class = bool(e_receipt.get("chatter_passed")) if base_e_observed else False
+        fine_e_class = bool(fine_e_receipt.get("chatter_passed")) if fine_e_observed else False
+        f_summary = {
+            "base_dt_s": friction["dt_s"],
+            "base_frames": friction["hold_window_steps"],
+            "fine_dt_s": ai["fine_dt"]["dt_s"],
+            "fine_frames": ai["fine_dt"]["frames"],
+            "fine_duration_s": ai["fine_dt"]["duration_s"],
+            "base_f10_breakaway_observed": base_a_observed,
+            "fine_f10_breakaway_observed": fine_a_observed,
+            "base_e_classification_observed": base_e_observed,
+            "fine_e_classification_observed": fine_e_observed,
+            "breakaway_containment_classification_match": base_a_class == fine_a_class,
+            "chatter_classification_match": base_e_class == fine_e_class,
+            "qualitative_only": True,
+            "compare_raw_metrics": False,
+            "base_f10_containment": base_a_class,
+            "fine_f10_containment": fine_a_class,
+            "base_f10_chatter_pass": base_e_class,
+            "fine_f10_chatter_pass": fine_e_class,
+            "fine_a_receipt": fine_a_receipt,
+            "fine_e_receipt": fine_e_receipt,
+        }
+        f_summary["passed"] = (
+            base_a_observed
+            and fine_a_observed
+            and base_e_observed
+            and fine_e_observed
+            and f_summary["breakaway_containment_classification_match"]
+            and f_summary["chatter_classification_match"]
+        )
+        payload = _build_ai_receipt(
+            ai=ai,
+            friction=friction,
+            a_receipts=a_receipts,
+            a_summary=a_summary,
+            b_receipt=b_receipt,
+            b_summary=b_summary,
+            c_receipt=c_receipt,
+            c_summary=c_summary,
+            d_summary=d_summary,
+            e_receipt=e_receipt,
+            e_summary=e_summary,
+            f_summary=f_summary,
+            g_receipts=g_receipts,
+            g_summary=g_summary,
+        )
+        write_json(output, payload)
+    finally:
+        if sim is not None:
+            sim.clear_instance()
+
+
 def _run_runtime(config_path: Path, *, device: str, output: Path) -> None:
     _assert_selected_sources(config_path)
     friction = _probe_config_values(config_path)
-    sim, scene, _door, door_fixture = _build_door_only_scene(
+    sim, scene, _door, door_fixtures = _build_door_only_scene(
         device=device,
         dt=friction["dt_s"],
         probe_seed=friction["probe_seed"],
     )
+    door_fixture = door_fixtures[0]
     try:
         payload = run_torque_ramp(
             sim=sim,
@@ -918,26 +2319,31 @@ def main(argv: Sequence[str] | None = None) -> int:
         else:
             write_json(args.output, plan)
         return 0
-    if args.mode != FIRST_RUNTIME_MODE:
+    if args.mode not in (FIRST_RUNTIME_MODE, AI_ACCEPTANCE_MODE):
         raise RuntimeError(
-            f"{args.mode} is planned for a later P1 lane and is not executable in this first runtime producer"
+            f"{args.mode} is not an executable v24 P1 runtime mode"
         )
     if args.output is None:
-        raise ValueError("runtime TORQUE_RAMP requires --output under the canonical v24 artifact root")
+        raise ValueError(f"runtime {args.mode} requires --output under the canonical v24 artifact root")
     output = absolute(args.output)
     if V24_P1_FRICTION_ROOT not in output.parents:
         raise ValueError(
             "runtime output must be under logs_eval/base_v24/p1/friction_backend/"
         )
     _assert_selected_sources(config_path)
-    _probe_config_values(config_path)
+    friction = _probe_config_values(config_path)
+    if args.mode == AI_ACCEPTANCE_MODE:
+        ai = _ai_acceptance_config(config_path, friction)
+        if args.device != ai["device"]:
+            raise ValueError(f"A_I_ACCEPTANCE requires the configured single GPU0 device {ai['device']!r}")
     from isaaclab.app import AppLauncher
 
     launcher = AppLauncher({"headless": True, "device": args.device, "enable_cameras": False})
-    try:
+    if args.mode == AI_ACCEPTANCE_MODE:
+        _run_ai_runtime(config_path, device=args.device, output=output)
+    else:
         _run_runtime(config_path, device=args.device, output=output)
-    finally:
-        launcher.app.close()
+    launcher.app.close()
     return 0
 
 

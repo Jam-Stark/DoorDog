@@ -1,8 +1,8 @@
 ---
 name: base-v24-friction-force-boundary
 scope: A2+Piper base_v24 friction-calibrated force boundary, posture final adjudication, coupling groundwork, and gated-posture pilot
-status: in_progress_p0
-last_updated: 2026-08-16 19:27 HKT
+status: in_progress_p1
+last_updated: 2026-08-16 22:05 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v24-friction-force-boundary/description.md
@@ -62,10 +62,25 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 - The command effort target is not actual generalized torque. This result is a door-only unit-semantics probe, not policy parity, production reset persistence, A–I physical characterization, training, release, or causal evidence.
 - R1 remains a reusable gotcha: its cumulative 10-frame trajectory produced invalid `[1.5, 2.0]` and falsely widened containment by ±resolution. Do not widen bracket tolerance or infer static calibration from a cumulative post-motion trajectory; retain the R1 evidence as failure provenance.
 
+## P1 A–G Physical Characterization
+
+- GPU0 `A_I_ACCEPTANCE` runtime smoke is recorded at `logs_eval/base_v24/p1/friction_backend/a_g_acceptance_r9_gpu0/P1_A_G_RECEIPT.json`. A–G receipt semantics pass; its device is `cuda:0`, overall receipt status is `PENDING_H_I`, and parameter-range freeze is `NOT_PERFORMED`.
+- A passes literal bracket containment: F00 and F05 are `[0, 0.5] Nm`, F10 is `[0.5, 1.0] Nm`. B passes the registered spread and direction-asymmetry limits. C passes both directional friction and damping ratios. E passes first-breakaway/chatter behavior; F is `PASS_QUALITATIVE_ONLY` for the base/fine-dt classification match.
+- G passes all requested fixture gates using public normalized-rad readback. The observed scaled distances are `3.11e-08`–`2.26e-07`, all within the `1e-4` maximum.
+- D cannot pass its literal `tau_friction * omega` target: solver friction-torque authority is unavailable, so only the behavioral proxy passes. The sole provisional typed boundary is `V24_FRICTION_AUTHORITY_INSUFFICIENT`; it is never `MODEL_VALID` and does not infer actual generalized torque.
+- H production-reset receipt and I P0 parity receipt remain pending. P2/P3 and later conditional science waves are not admitted until an admissible P1 result; this A–G smoke does not establish training, policy parity, release, or causal posture value.
+
+## Reusable Runtime Gotchas
+
+- The custom `DoorSpawner` uses the `omni.usd` context stage; do not route this fixture through `create_stage_in_memory`.
+- Closing the Isaac application in `finally` can mask the original traceback and exit code; preserve producer failure evidence before application close.
+- `ArticulationData.default_mass` requires integer CPU indexing, while joint buffers require device-resident `env_ids`; do not reuse CUDA `env_ids` for the mass readback.
+- After `set_simulation_dt`, hard-reset and run `scene.update` before reusing the articulation.
+
 ## DONE Summary
 
-Memory routing and the v24 authority/starting-fact skeleton are established. P0.1 unit/posthoc, P0.2 checkpoint-start/static compatibility, and P1A native-friction door-only unit semantics are complete with scoped validation; no policy/runtime-parity, A–I, training, causal, or release gate is recorded.
+Memory routing and the v24 authority/starting-fact skeleton are established. P0.1 unit/posthoc, P0.2 checkpoint-start/static compatibility, P1A door-only unit semantics, and P1 A–G runtime-smoke physical characterization are complete with scoped validation. D remains `V24_FRICTION_AUTHORITY_INSUFFICIENT`; H/I, parameter freeze, policy/runtime parity, training, causal, and release gates are not recorded.
 
 ## TODO Summary
 
-Execute the remaining phase-gated work in `TODO.md`: establish deterministic friction-off/gate-off observation/action/terminal parity, foot-GRF runtime feature detection, production reset persistence, A–I physical characterization, then P2/P3 and conditional science waves.
+Execute the remaining phase-gated work in `TODO.md`: establish deterministic friction-off/gate-off observation/action/terminal parity, foot-GRF runtime feature detection, H production-reset persistence, and I receipt; parameter freeze remains unperformed. P2/P3 and conditional science waves require an admissible P1 result and are not yet admitted.

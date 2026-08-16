@@ -5,4 +5,5 @@ __all__ = [
     "p0_unit_contract",
     "p0_v23_posthoc",
     "p0_checkpoint_freeze",
+    "p1_friction_probe",
 ]

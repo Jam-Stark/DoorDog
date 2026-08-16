@@ -131,6 +131,10 @@ from gr00t.rl.envs.door.a2_v23_evidence import (
     a2_v23_reset_torque_accumulator,
     a2_v23_validate_p05_bands,
 )
+from gr00t.rl.envs.door.a2_v24_friction import (
+    A2V24DoorFrictionBackend,
+    V24FrictionConfig,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -6241,6 +6245,8 @@ class DoorPregrasp(
         return super().close_render_results_for_envs(selected, episode_lengths=selected_lengths, terminal_reasons=selected_reasons)
 
     def __init__(self, config, device):
+        self._a2_v24_friction_config = V24FrictionConfig.from_mapping(config)
+        self._a2_v24_friction_backend = None
         self._a2_v23_d1_enabled = False
         self._a2_v23_d1_sampler = None
         self._a2_v23_d1_mass_event_cfg = None
@@ -6274,6 +6280,7 @@ class DoorPregrasp(
         )
         self._a2_v20_r2_trace_root = config.get("a2_v20_R2_trace_root")
         super().__init__(config, device)
+        self._init_a2_v24_friction_runtime()
 
         if self._use_a2_base:
             if self._reset_from_dataset_enabled():
@@ -6429,6 +6436,20 @@ class DoorPregrasp(
         self.target_root_pos = torch.tensor(self.config.target_root_pos, device=self.device)[
             None, :
         ]
+
+    def _init_a2_v24_friction_runtime(self) -> None:
+        """Bind the opt-in native hinge-friction profile to the door articulation."""
+
+        if not self._a2_v24_friction_config.enabled:
+            return
+        door_articulation = self.simulator.scene.articulations["door"]
+        self._a2_v24_friction_backend = A2V24DoorFrictionBackend(
+            door_articulation,
+            self._a2_v24_friction_config,
+            device=self.device,
+        )
+        env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
+        self._a2_v24_friction_backend.apply(env_ids)
 
     def _init_a2_v23_d1_runtime(self):
         """Initialize the opt-in D1 physics-first runtime consumer.
@@ -25465,6 +25486,23 @@ class DoorPregrasp(
                 self._a2_v23_p08_v2_requested_profile[env_id] = {"status": "NOT_REQUESTED"}
                 self._a2_v23_p08_v2_applied_profile[env_id] = {"status": "NOT_EXECUTED"}
         return super()._reset_buffers_callback(env_ids, target_buf)
+
+    @override
+    def reset_envs_idx(self, env_ids, target_states=None, target_buf=None):
+        """Reapply native friction after ordinary or staged state writes complete.
+
+        ``LeggedRobotBase.reset_envs_idx`` writes the ordinary door state via
+        ``_reset_object_states_callback``.  ``StagedTaskBase.reset_envs_idx``
+        instead writes sampled door root/joint tensors directly before it
+        returns.  This outer hook therefore runs after both state-write paths,
+        while the disabled backend remains a true no-write path.
+        """
+
+        result = super().reset_envs_idx(env_ids, target_states, target_buf)
+        backend = self._a2_v24_friction_backend
+        if backend is not None and env_ids.numel() > 0:
+            backend.apply(env_ids)
+        return result
 
 
     @override

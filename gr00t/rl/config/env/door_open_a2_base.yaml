@@ -9,6 +9,28 @@ env:
   config:
     max_episode_length_s: 20
 
+    # v24 native hinge friction is additive and deliberately disabled in the
+    # shared/default path.  Coefficients stay unset until a v24 probe overlay
+    # supplies a measured profile; the disabled path performs no writes.
+    a2_v24_friction_enabled: false
+    a2_v24_friction_backend: native_joint_friction_v1
+    a2_v24_friction_static_effort: null
+    a2_v24_friction_dynamic_effort: null
+    a2_v24_friction_viscous_coefficient: null
+    a2_v24_gate_enabled: false
+    a2_v24_probe_mode: torque_ramp
+    a2_v24_probe_resolution_effort: 0.5
+    a2_v24_probe_hold_window_steps: 10
+    a2_v24_probe_ramp_start_effort: 0.0
+    a2_v24_probe_ramp_end_effort: 40.0
+    a2_v24_probe_ramp_steps: 80
+    a2_v24_probe_settle_steps: 20
+    a2_v24_probe_angle_resolution_rad: 0.0001
+    a2_v24_probe_velocity_threshold_rad_s: 0.001
+    a2_v24_probe_stationarity_angle_tolerance_rad: 0.0001
+    a2_v24_probe_stationarity_velocity_tolerance_rad_s: 0.001
+    a2_v24_probe_dt_s: 0.005
+
     normalization:
       clip_actions: 100.0
       clip_observations: 100.0

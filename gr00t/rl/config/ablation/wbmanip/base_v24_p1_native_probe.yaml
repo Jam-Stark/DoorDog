@@ -1,0 +1,46 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v23_G7_scratch_D1_full
+  - _self_
+
+v24_schema: a2_piper_base_v24_p1_native_friction_probe_v1
+v24_plan_id: base_v24_friction_calibrated_force_boundary_R1
+v24_initialization: warm_head_reset
+v24_door_regime: D1
+v24_posture_mode: FULL
+v24_runtime_mode: TORQUE_RAMP
+v24_probe_seed: 0
+v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+v24_checkpoint_load_mode: selected_policy_only
+checkpoint_load_mode: policy_only
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+auto_load_latest: false
+seed: 0
+num_envs: 1
+headless: true
+
+env:
+  config:
+    a2_v23_formal_launch: false
+    a2_v23_d1_sampler_enabled: false
+    a2_v23_warm_head_reset_enabled: false
+    a2_v24_friction_enabled: true
+    a2_v24_friction_backend: native_joint_friction_v1
+    # Initial probe profile only; final profiles are frozen after the ramp
+    # receipt and are not inferred from this overlay.
+    a2_v24_friction_static_effort: 1.0
+    a2_v24_friction_dynamic_effort: 0.75
+    a2_v24_friction_viscous_coefficient: 0.0
+    a2_v24_gate_enabled: false
+    a2_v24_probe_mode: torque_ramp
+    a2_v24_probe_resolution_effort: 0.5
+    a2_v24_probe_hold_window_steps: 100
+    a2_v24_probe_ramp_start_effort: 0.0
+    a2_v24_probe_ramp_end_effort: 40.0
+    a2_v24_probe_ramp_steps: 80
+    a2_v24_probe_settle_steps: 20
+    a2_v24_probe_angle_resolution_rad: 0.0001
+    a2_v24_probe_velocity_threshold_rad_s: 0.001
+    a2_v24_probe_stationarity_angle_tolerance_rad: 0.0001
+    a2_v24_probe_stationarity_velocity_tolerance_rad_s: 0.001
+    a2_v24_probe_dt_s: 0.005

@@ -18,6 +18,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 V24_ARTIFACT_ROOT = REPO_ROOT / "logs_eval/base_v24"
 V24_P0_ROOT = V24_ARTIFACT_ROOT / "p0/v23_posthoc"
 V24_CHECKPOINT_FREEZE_ROOT = V24_ARTIFACT_ROOT / "p0/checkpoint_freeze"
+V24_P1_FRICTION_ROOT = V24_ARTIFACT_ROOT / "p1/friction_backend"
 
 V23_ROUTE_B_PATH = REPO_ROOT / "logs_eval/base_v23/postformal_gpu8_orchestration_r7/V23_ROUTE_B.json"
 V23_STRATIFIED_PATH = REPO_ROOT / "logs_eval/base_v23/postformal_gpu8_orchestration_r7/V23_STRATIFIED_EVAL.json"
@@ -197,6 +198,7 @@ __all__ = [
     "V23_ROUTE_B_PATH",
     "V23_STRATIFIED_PATH",
     "V24_P0_ROOT",
+    "V24_P1_FRICTION_ROOT",
     "V24_CHECKPOINT_FREEZE_ROOT",
     "V23_ROUTE_A_ROOT",
     "V24Error",

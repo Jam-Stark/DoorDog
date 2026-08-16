@@ -2,7 +2,7 @@
 name: base-v24-friction-force-boundary
 scope: A2+Piper base_v24 friction-calibrated force boundary, posture final adjudication, coupling groundwork, and gated-posture pilot
 status: in_progress_p0
-last_updated: 2026-08-16 18:00 HKT
+last_updated: 2026-08-16 19:27 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v24-friction-force-boundary/description.md
@@ -55,10 +55,17 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 - Static compatibility is `V24_COMPATIBILITY_STATIC_COMPLETE_RUNTIME_PENDING` across five representative categories. The policy contract is 20 state-dict keys, RMS 133, two-layer LSTM with hidden size 256, and action dimension 12.
 - Frozen-source `CODE_QUALITY PASS` and CPU `NO_SIM PASS` (~5.53s) validate the selection and static inspection. They do not establish IsaacSim parity; deterministic friction-off/gate-off observation, action, and terminal parity remains a later P0 runtime gate.
 
+## P1A Native Friction and Door-only Torque Unit Probe
+
+- Branch A native friction integration uses the high-level IsaacLab friction path and has static review plus unit-semantics runtime authority. The corrected R2 probe ran deterministically on physical GPU0 in a door-only fixture.
+- Requested and native-readback static/dynamic/viscous friction are `1.0/0.75/0.0`. Independent 100-frame trials at command efforts `0.0`, `0.5`, and `1.0` measure breakaway bracket `[0.5, 1.0] Nm` at `0.5 Nm` resolution; strict literal containment is true. Stationarity, effort headroom, target cleanup, and friction readback pass.
+- The command effort target is not actual generalized torque. This result is a door-only unit-semantics probe, not policy parity, production reset persistence, A–I physical characterization, training, release, or causal evidence.
+- R1 remains a reusable gotcha: its cumulative 10-frame trajectory produced invalid `[1.5, 2.0]` and falsely widened containment by ±resolution. Do not widen bracket tolerance or infer static calibration from a cumulative post-motion trajectory; retain the R1 evidence as failure provenance.
+
 ## DONE Summary
 
-Memory routing and the v24 authority/starting-fact skeleton are established. P0.1 unit/posthoc and P0.2 checkpoint-start/static-compatibility work are complete with scoped `CODE_QUALITY PASS` and CPU `NO_SIM PASS`; no IsaacSim/runtime-training PASS, causal upgrade, or P1 scientific/runtime gate is recorded.
+Memory routing and the v24 authority/starting-fact skeleton are established. P0.1 unit/posthoc, P0.2 checkpoint-start/static compatibility, and P1A native-friction door-only unit semantics are complete with scoped validation; no policy/runtime-parity, A–I, training, causal, or release gate is recorded.
 
 ## TODO Summary
 
-Execute the remaining phase-gated work in `TODO.md`: after P1 default-off hooks, establish deterministic friction-off/gate-off observation/action/terminal parity and foot-GRF runtime feature detection, then P1–P3 and conditional science waves.
+Execute the remaining phase-gated work in `TODO.md`: establish deterministic friction-off/gate-off observation/action/terminal parity, foot-GRF runtime feature detection, production reset persistence, A–I physical characterization, then P2/P3 and conditional science waves.

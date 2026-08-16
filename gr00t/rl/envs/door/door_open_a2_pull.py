@@ -62,6 +62,264 @@ from gr00t.rl.isaac_utils.rotations import xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
 
 
+# v5.4 measured-model scheduler contract.  Every value is paired with its
+# Stage-A receipt location; these are intentionally constants rather than
+# config knobs.
+A2_PULL_V5_4_SCHEDULER_CONSTANTS = {
+    "dt_s": {
+        "value": 0.02,
+        "receipt_jsonpath": "$.scheduler_derived.constants.dt_s.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "planning_a_rad": {
+        "value": 0.10,
+        "receipt_jsonpath": "$.scheduler_derived.constants.planning_a_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "b_trim_rad": {
+        "value": 0.22435537973512823,
+        "receipt_jsonpath": "$.scheduler_derived.constants.b_trim_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_raw_negative": {
+        "value": -2.0,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_raw_negative.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_raw_positive": {
+        "value": 2.0,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_raw_positive.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_rate_negative_rad_s": {
+        "value": -0.463556439676557,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_rate_negative_rad_s.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_rate_positive_rad_s": {
+        "value": 0.4286859929561615,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_rate_positive_rad_s.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_stop_drift_negative_rad": {
+        "value": -0.2168513536453247,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_stop_drift_negative_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_stop_drift_positive_rad": {
+        "value": 0.03908896446228027,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_stop_drift_positive_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "minimum_settle_steps_negative": {
+        "value": 56,
+        "receipt_jsonpath": "$.scheduler_derived.constants.minimum_settle_steps_negative.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "minimum_settle_steps_positive": {
+        "value": 53,
+        "receipt_jsonpath": "$.scheduler_derived.constants.minimum_settle_steps_positive.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "settle_deadline_steps": {
+        "value": 100,
+        "receipt_jsonpath": "$.scheduler_derived.constants.settle_deadline_steps.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "settle_velocity_threshold_rad_s": {
+        "value": 0.05,
+        "receipt_jsonpath": "$.scheduler_derived.constants.settle_velocity_threshold_rad_s.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_cutoff_negative_e_rad": {
+        "value": -0.4412067333804529,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_cutoff_negative_e_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "coarse_cutoff_positive_e_rad": {
+        "value": -0.18526641527284796,
+        "receipt_jsonpath": "$.scheduler_derived.constants.coarse_cutoff_positive_e_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "trim_raw": {
+        "value": 0.05,
+        "receipt_jsonpath": "$.scheduler_derived.constants.trim_raw.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "trim_realized_rate_rad_s": {
+        "value": -0.030965522923741773,
+        "receipt_jsonpath": "$.scheduler_derived.constants.trim_realized_rate_rad_s.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "trim_one_step_rad": {
+        "value": -0.0006193104584748354,
+        "receipt_jsonpath": "$.scheduler_derived.constants.trim_one_step_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "trim_stop_drift_rad": {
+        "value": -0.0004932880401611328,
+        "receipt_jsonpath": "$.scheduler_derived.constants.trim_stop_drift_rad.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "trim_step_cap": {
+        "value": 200,
+        "receipt_jsonpath": "$.scheduler_derived.constants.trim_step_cap.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+    "terminal_hold_steps": {
+        "value": 100,
+        "receipt_jsonpath": "$.scheduler_derived.constants.terminal_hold_steps.value",
+        "source": "scriptsFORhuman/pull_v5/V5_4_STAGE_A_FEASIBILITY.json",
+    },
+}
+
+A2_PULL_V5_4_SCHEDULER_SCHEMA = "a2_piper_pull_v5_4_terminal_yaw_scheduler_v1"
+
+
+def _a2_pull_v5_4_wrap_error(target_yaw: float, measured_yaw: float) -> float:
+    """Return the registered scheduler sign e=wrap(target-measured)."""
+
+    return math.remainder(float(target_yaw) - float(measured_yaw), 2.0 * math.pi)
+
+
+class A2PullV54TerminalYawScheduler:
+    """Scalar reference state machine used by dry-run fixtures and the env hook."""
+
+    XY_TRACK = "XY_TRACK"
+    PLAN_YAW = "PLAN_YAW"
+    COARSE = "COARSE"
+    SETTLE = "SETTLE"
+    TRIM = "TRIM"
+    FINAL = "FINAL"
+    TERMINAL_HOLD = "TERMINAL_HOLD"
+    DONE = "DONE"
+    FAILED = "FAILED"
+
+    def __init__(self, target_yaw: float, measured_yaw: float = 0.0) -> None:
+        self.target_yaw = float(target_yaw)
+        self.state = self.XY_TRACK
+        self.coarse_raw = 0.0
+        self.coarse_cutoff = 0.0
+        self.minimum_settle_steps = 0
+        self.settle_steps = 0
+        self.trim_steps = 0
+        self.terminal_hold_steps = 0
+        self.failure_reason: str | None = None
+        self.last_error = _a2_pull_v5_4_wrap_error(target_yaw, measured_yaw)
+
+    @staticmethod
+    def _constant(name: str) -> float:
+        return float(A2_PULL_V5_4_SCHEDULER_CONSTANTS[name]["value"])
+
+    def _fail(self, reason: str, error: float) -> dict[str, object]:
+        self.state = self.FAILED
+        self.failure_reason = reason
+        self.last_error = float(error)
+        return self.telemetry(raw=0.0, error=error)
+
+    def telemetry(self, *, raw: float, error: float) -> dict[str, object]:
+        return {
+            "schema": A2_PULL_V5_4_SCHEDULER_SCHEMA,
+            "state": self.state,
+            "raw_yaw_command": float(raw),
+            "error_rad": float(error),
+            "failure_reason": self.failure_reason,
+            "settle_steps": int(self.settle_steps),
+            "trim_steps": int(self.trim_steps),
+            "terminal_hold_steps": int(self.terminal_hold_steps),
+            "terminal": self.state == self.DONE,
+        }
+
+    def step(
+        self,
+        measured_yaw: float,
+        *,
+        waypoint_arrived: bool,
+        yaw_rate_rad_s: float,
+    ) -> dict[str, object]:
+        error = _a2_pull_v5_4_wrap_error(self.target_yaw, measured_yaw)
+        self.last_error = error
+        if (
+            isinstance(yaw_rate_rad_s, bool)
+            or not isinstance(yaw_rate_rad_s, (int, float))
+            or not math.isfinite(float(yaw_rate_rad_s))
+        ):
+            raise ValueError("scheduler yaw_rate_rad_s must be a finite numeric world-frame rate")
+        yaw_rate_rad_s = float(yaw_rate_rad_s)
+        if self.state == self.XY_TRACK:
+            if waypoint_arrived:
+                self.state = self.PLAN_YAW
+            return self.telemetry(raw=0.0, error=error)
+        if self.state == self.PLAN_YAW:
+            band = self._constant("b_trim_rad")
+            if abs(error) <= band:
+                if error > 0.0:
+                    return self._fail("positive_error_inside_trim_band", error)
+                self.state = self.TRIM
+                return self.telemetry(raw=0.0, error=error)
+            if error > 0.0:
+                self.coarse_raw = self._constant("coarse_raw_positive")
+                self.coarse_cutoff = self._constant("coarse_cutoff_positive_e_rad")
+                self.minimum_settle_steps = int(self._constant("minimum_settle_steps_positive"))
+            else:
+                self.coarse_raw = self._constant("coarse_raw_negative")
+                self.coarse_cutoff = self._constant("coarse_cutoff_negative_e_rad")
+                self.minimum_settle_steps = int(self._constant("minimum_settle_steps_negative"))
+            self.state = self.COARSE
+            return self.telemetry(raw=self.coarse_raw, error=error)
+        if self.state == self.COARSE:
+            reached_cutoff = (
+                error <= self.coarse_cutoff if self.coarse_raw > 0.0 else error >= self.coarse_cutoff
+            )
+            if reached_cutoff:
+                self.state = self.SETTLE
+                self.settle_steps = 0
+                return self.telemetry(raw=0.0, error=error)
+            return self.telemetry(raw=self.coarse_raw, error=error)
+        if self.state == self.SETTLE:
+            self.settle_steps += 1
+            settle_ready = (
+                self.settle_steps >= self.minimum_settle_steps
+                and abs(yaw_rate_rad_s)
+                <= self._constant("settle_velocity_threshold_rad_s")
+            )
+            if (
+                self.settle_steps >= int(self._constant("settle_deadline_steps"))
+                and not settle_ready
+            ):
+                return self._fail("settle_deadline_exceeded", error)
+            if settle_ready:
+                self.state = self.TRIM
+            return self.telemetry(raw=0.0, error=error)
+        if self.state == self.TRIM:
+            band = self._constant("b_trim_rad")
+            if error > 0.0 and abs(error) <= band:
+                return self._fail("positive_error_inside_trim_band", error)
+            predicted = error - self._constant("trim_one_step_rad") - self._constant("trim_stop_drift_rad")
+            if abs(predicted) <= self._constant("planning_a_rad"):
+                self.state = self.FINAL
+                return self.telemetry(raw=0.0, error=error)
+            if self.trim_steps >= int(self._constant("trim_step_cap")):
+                return self._fail("trim_step_cap_exceeded", error)
+            self.trim_steps += 1
+            return self.telemetry(raw=self._constant("trim_raw"), error=error)
+        if self.state == self.FINAL:
+            self.state = self.TERMINAL_HOLD
+            self.terminal_hold_steps = 0
+            return self.telemetry(raw=0.0, error=error)
+        if self.state == self.TERMINAL_HOLD:
+            self.terminal_hold_steps += 1
+            if self.terminal_hold_steps >= int(self._constant("terminal_hold_steps")):
+                if abs(error) <= 0.15 and waypoint_arrived:
+                    self.state = self.DONE
+                else:
+                    return self._fail("terminal_hold_yaw_error", error)
+            return self.telemetry(raw=0.0, error=error)
+        if self.state == self.DONE:
+            return self.telemetry(raw=0.0, error=error)
+        return self._fail(self.failure_reason or "scheduler_failed", error)
+
+
 def _a2_pull_v5_characterization_termination(
     reset_after_super: torch.Tensor,
     terminal_reason_bufs: Mapping[str, torch.Tensor],
@@ -130,6 +388,86 @@ def _a2_pull_v5_characterization_termination(
     return updated_reset, updated_stage_overtime, diagnostic_done
 
 
+def _a2_pull_v5_scheduler_termination(
+    reset_after_super: torch.Tensor,
+    terminal_reason_bufs: Mapping[str, torch.Tensor],
+    scheduler_episode_indices: torch.Tensor,
+    scheduler_state: torch.Tensor,
+    scheduler_state_ids: Mapping[str, int],
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Mask stage overtime only while the first scheduler episode is live."""
+
+    if (
+        not torch.is_tensor(reset_after_super)
+        or reset_after_super.ndim != 1
+        or reset_after_super.dtype != torch.long
+        or not torch.is_tensor(scheduler_episode_indices)
+        or scheduler_episode_indices.shape != reset_after_super.shape
+        or scheduler_episode_indices.dtype != torch.long
+        or not torch.is_tensor(scheduler_state)
+        or scheduler_state.shape != reset_after_super.shape
+        or scheduler_state.dtype != torch.long
+        or not isinstance(scheduler_state_ids, Mapping)
+    ):
+        raise RuntimeError("Pull-v5.4 scheduler termination tensors have invalid contracts.")
+    expected_device = reset_after_super.device
+    if (
+        scheduler_episode_indices.device != expected_device
+        or scheduler_state.device != expected_device
+    ):
+        raise RuntimeError("Pull-v5.4 scheduler termination tensors must share a device.")
+    if not isinstance(terminal_reason_bufs, Mapping) or "stage_overtime" not in terminal_reason_bufs:
+        raise RuntimeError("Pull-v5.4 scheduler termination requires the stage_overtime reason buffer.")
+    stage_overtime_reason = terminal_reason_bufs["stage_overtime"]
+    if (
+        not torch.is_tensor(stage_overtime_reason)
+        or stage_overtime_reason.shape != reset_after_super.shape
+        or stage_overtime_reason.dtype != torch.bool
+        or stage_overtime_reason.device != expected_device
+    ):
+        raise RuntimeError("Pull-v5.4 scheduler stage_overtime reason has an invalid contract.")
+    try:
+        done_state = int(scheduler_state_ids["DONE"])
+        failed_state = int(scheduler_state_ids["FAILED"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise RuntimeError("Pull-v5.4 scheduler state IDs require DONE and FAILED integers.") from exc
+    known_state = torch.zeros_like(scheduler_state, dtype=torch.bool)
+    for state_value in scheduler_state_ids.values():
+        if isinstance(state_value, bool) or not isinstance(state_value, int):
+            raise RuntimeError("Pull-v5.4 scheduler state IDs must be integers.")
+        known_state |= scheduler_state == state_value
+    if torch.any(~known_state):
+        raise RuntimeError("Pull-v5.4 scheduler state contains an unknown state ID.")
+    other_terminal_reason = torch.zeros_like(stage_overtime_reason)
+    for reason_name, reason_buf in terminal_reason_bufs.items():
+        if reason_name == "stage_overtime":
+            continue
+        if (
+            not torch.is_tensor(reason_buf)
+            or reason_buf.shape != reset_after_super.shape
+            or reason_buf.dtype != torch.bool
+            or reason_buf.device != expected_device
+        ):
+            raise RuntimeError(
+                "Pull-v5.4 scheduler terminal reason buffers must share the reset contract."
+            )
+        other_terminal_reason |= reason_buf
+    first_episode = scheduler_episode_indices == 0
+    scheduler_terminal = first_episode & (
+        (scheduler_state == done_state) | (scheduler_state == failed_state)
+    )
+    scheduler_live = first_episode & ~scheduler_terminal
+    updated_reset, updated_stage_overtime, _ = a2_v20_mask_stage_overtime_for_arc_probe(
+        reset_after_super,
+        stage_overtime_reason,
+        other_terminal_reason,
+        scheduler_live,
+    )
+    updated_reset |= scheduler_terminal.to(dtype=updated_reset.dtype)
+    non_scheduler_terminal = scheduler_live & other_terminal_reason
+    return updated_reset, updated_stage_overtime, scheduler_terminal, non_scheduler_terminal
+
+
 class DoorOpenA2Pull(DoorPregrasp):
     """Pull-v0 specialization that leaves the push environment namespace unchanged."""
 
@@ -170,6 +508,19 @@ class DoorOpenA2Pull(DoorPregrasp):
     _A2_PULL_V5_CHARACTERIZATION_PLAN_ID = (
         "a2_piper_pull_v5_3_locomotion_interface_probe"
     )
+    _A2_PULL_V5_4_SCHEDULER_SCHEMA = A2_PULL_V5_4_SCHEDULER_SCHEMA
+    _A2_PULL_V5_4_SCHEDULER_CONSTANTS = A2_PULL_V5_4_SCHEDULER_CONSTANTS
+    _A2_PULL_V5_4_SCHEDULER_STATES = {
+        "XY_TRACK": 0,
+        "PLAN_YAW": 1,
+        "COARSE": 2,
+        "SETTLE": 3,
+        "TRIM": 4,
+        "FINAL": 5,
+        "TERMINAL_HOLD": 6,
+        "DONE": 7,
+        "FAILED": 8,
+    }
 
     def __init__(self, config, device):
         config_mapping = config.get("config", config)
@@ -254,6 +605,38 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _check_termination(self):
         super()._check_termination()
+        if getattr(self, "_a2_pull_v5_scheduler_enabled", False):
+            (
+                updated_reset,
+                updated_stage_overtime,
+                _scheduler_terminal,
+                non_scheduler_terminal,
+            ) = _a2_pull_v5_scheduler_termination(
+                self.reset_buf,
+                self._terminal_reason_bufs,
+                self._a2_pull_v5_scheduler_episode_indices,
+                self._a2_pull_v5_scheduler_state,
+                self._A2_PULL_V5_4_SCHEDULER_STATES,
+            )
+            self.reset_buf[:] = updated_reset
+            self._terminal_reason_bufs["stage_overtime"][:] = updated_stage_overtime
+            if torch.any(non_scheduler_terminal):
+                failed_state = self._A2_PULL_V5_4_SCHEDULER_STATES["FAILED"]
+                self._a2_pull_v5_scheduler_state[non_scheduler_terminal] = failed_state
+                for env_id in torch.where(non_scheduler_terminal)[0].tolist():
+                    reasons = "+".join(
+                        name
+                        for name, reason_buf in self._terminal_reason_bufs.items()
+                        if name != "stage_overtime" and bool(reason_buf[env_id].item())
+                    )
+                    if not reasons:
+                        raise RuntimeError(
+                            "Pull-v5.4 scheduler non-scheduler termination has no terminal reason."
+                        )
+                    self._a2_pull_v5_scheduler_failure_reason[env_id] = (
+                        f"non_scheduler_terminal:{reasons}"
+                    )
+                self._mark_a2_pull_v5_scheduler_trace_failures(non_scheduler_terminal)
         if not self._a2_pull_v5_characterization_enabled:
             return
         contract = self._get_a2_pull_v5_characterization_contract()
@@ -596,6 +979,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_yaw_target = torch.full(
                 (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
             )
+            self._a2_pull_v5_probe_original_yaw_target = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
             self._a2_pull_v5_probe_waypoint_error_m = torch.full(
                 (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
             )
@@ -626,6 +1012,42 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_sequence_complete = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            self._a2_pull_v5_scheduler_enabled = self.config.get(
+                "a2_pull_v5_scheduler_enabled", False
+            )
+            if not isinstance(self._a2_pull_v5_scheduler_enabled, bool):
+                raise RuntimeError("Pull-v5.4 scheduler_enabled must be bool.")
+            self._a2_pull_v5_scheduler_state = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_scheduler_coarse_raw = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_scheduler_cutoff = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_scheduler_min_settle_steps = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_scheduler_settle_steps = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_scheduler_trim_steps = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_scheduler_terminal_hold_steps = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_scheduler_raw_yaw_command = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v5_scheduler_failure_reason = [
+                None for _ in range(self.num_envs)
+            ]
+            self._a2_pull_v5_scheduler_episode_indices = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v5_scheduler_trace_rows: list[dict[str, object]] = []
             self._a2_pull_v5_probe_sequence_id: str | None = None
             self._a2_pull_v5_probe_sequence_phases: tuple[str, ...] = ()
             self._a2_pull_v5_capture_e5_seen = torch.zeros(
@@ -883,6 +1305,22 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v5_intervention_active &= active
         return applied, active
 
+    def set_a2_pull_v5_scheduler_episode_indices(self, episode_indices: torch.Tensor) -> None:
+        """Bind scheduler telemetry to the trainer's first-episode index."""
+
+        if (
+            not self._a2_pull_v5_scheduler_enabled
+            or not torch.is_tensor(episode_indices)
+            or tuple(episode_indices.shape) != (self.num_envs,)
+            or episode_indices.dtype != torch.long
+            or episode_indices.device != torch.device(self.device)
+            or torch.any(episode_indices < 0)
+        ):
+            raise RuntimeError(
+                "Pull-v5.4 scheduler episode indices require a device-local long tensor of shape (N,)."
+            )
+        self._a2_pull_v5_scheduler_episode_indices[:] = episode_indices
+
     def apply_a2_pull_v5_probe_command(
         self,
         policy_action: torch.Tensor,
@@ -893,8 +1331,10 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         if not self._is_a2_pull_v5():
             raise RuntimeError("Pull-v5 probe commands require the v5 plan guard.")
-        if fixture not in {"anchor", "door"}:
-            raise RuntimeError(f"Pull-v5 probe fixture must be anchor or door; got {fixture!r}.")
+        if fixture not in {"anchor", "door", "rehearsal"}:
+            raise RuntimeError(
+                f"Pull-v5 probe fixture must be anchor, door, or rehearsal; got {fixture!r}."
+            )
         if command_name in self._A2_PULL_V5_PROBE_SEQUENCES:
             sequence_id = command_name
             sequence_phases = self._A2_PULL_V5_PROBE_SEQUENCES[command_name]
@@ -956,13 +1396,42 @@ class DoorOpenA2Pull(DoorPregrasp):
             device=self.device,
             dtype=policy_action.dtype,
         ) * lattice_scale
+        original_phase_commands = phase_commands.clone()
+        rehearsal_delta = self.config.get("a2_pull_v5_scheduler_rehearsal_target_yaw_delta")
+        rehearsal_original_delta = self.config.get(
+            "a2_pull_v5_scheduler_rehearsal_original_target_yaw_delta"
+        )
+        if rehearsal_delta is not None:
+            if (
+                fixture != "rehearsal"
+                or isinstance(rehearsal_delta, bool)
+                or not isinstance(rehearsal_delta, (int, float))
+                or not math.isfinite(float(rehearsal_delta))
+            ):
+                raise RuntimeError(
+                    "Rehearsal yaw target override is finite and only valid for fixture='rehearsal'."
+                )
+            phase_commands[0, 2] = float(rehearsal_delta)
+            if (
+                isinstance(rehearsal_original_delta, bool)
+                or not isinstance(rehearsal_original_delta, (int, float))
+                or not math.isfinite(float(rehearsal_original_delta))
+            ):
+                raise RuntimeError(
+                    "Rehearsal original yaw target must be finite when planning target is overridden."
+                )
+            original_phase_commands[0, 2] = float(rehearsal_original_delta)
+        elif rehearsal_original_delta is not None:
+            raise RuntimeError(
+                "Rehearsal original target is only valid with a rehearsal planning target override."
+            )
         phase_xy_commands = phase_commands[:, :2]
         phase_yaw_commands = phase_commands[:, 2]
         phase_index = self._a2_pull_v5_probe_phase_index
         if torch.any(phase_index >= len(sequence_phases)):
             raise RuntimeError("Pull-v5 probe phase index exceeded the configured sequence.")
         robot = self.simulator.scene.articulations["robot"]
-        if fixture == "anchor":
+        if fixture in {"anchor", "rehearsal"}:
             uninitialized = ~self._a2_pull_v5_probe_anchor_initialized
             if torch.any(uninitialized):
                 env_ids = torch.where(uninitialized)[0]
@@ -999,6 +1468,9 @@ class DoorOpenA2Pull(DoorPregrasp):
                 self._a2_pull_v5_probe_yaw_target[env_ids] = (
                     anchor_root_yaw + phase_yaw_commands[0]
                 )
+                self._a2_pull_v5_probe_original_yaw_target[env_ids] = (
+                    anchor_root_yaw + original_phase_commands[0, 2]
+                )
                 self._a2_pull_v5_probe_anchor_initialized[env_ids] = True
         root_pos = self.simulator.scene.articulations["robot"].data.root_pos_w
         root_quat_w = self.simulator.scene.articulations["robot"].data.root_quat_w
@@ -1022,16 +1494,131 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v5_probe_yaw_target[initialize_target] = (
             root_yaw[initialize_target] + phase_yaw[initialize_target]
         )
+        self._a2_pull_v5_probe_original_yaw_target[initialize_target] = (
+            root_yaw[initialize_target] + original_phase_commands[phase_index[initialize_target], 2]
+        )
         self._a2_pull_v5_probe_phase_initialized[initialize_target] = True
         waypoint_error = self._a2_pull_v5_probe_waypoint_target_xy - root_pos[:, :2]
         waypoint_error_m = torch.linalg.norm(waypoint_error, dim=-1)
         yaw_error = wrap_to_pi(self._a2_pull_v5_probe_yaw_target - root_yaw)
-        phase_complete = (
-            self._a2_pull_v5_probe_phase_initialized
-            & (waypoint_error_m <= waypoint_tolerance)
-            & (torch.abs(yaw_error) <= yaw_tolerance)
-            & ~self._a2_pull_v5_probe_sequence_complete
-        )
+        root_yaw_rate = robot.data.root_ang_vel_w[:, 2]
+        if (
+            tuple(root_yaw_rate.shape) != (self.num_envs,)
+            or root_yaw_rate.device != policy_action.device
+            or not torch.all(torch.isfinite(root_yaw_rate))
+        ):
+            raise RuntimeError("Pull-v5.4 scheduler requires finite world-frame root yaw angular velocity.")
+        waypoint_arrived = waypoint_error_m <= waypoint_tolerance
+        if self._a2_pull_v5_scheduler_enabled:
+            states = self._a2_pull_v5_scheduler_state
+            state_ids = self._A2_PULL_V5_4_SCHEDULER_STATES
+            constants = self._A2_PULL_V5_4_SCHEDULER_CONSTANTS
+            in_live = ~self._a2_pull_v5_probe_sequence_complete
+            plan = in_live & (states == state_ids["XY_TRACK"]) & waypoint_arrived
+            states[plan] = state_ids["PLAN_YAW"]
+            plan = in_live & (states == state_ids["PLAN_YAW"])
+            trim_band = float(constants["b_trim_rad"]["value"])
+            positive_fail = plan & (torch.abs(yaw_error) <= trim_band) & (yaw_error > 0.0)
+            if torch.any(positive_fail):
+                states[positive_fail] = state_ids["FAILED"]
+                for env_id in torch.where(positive_fail)[0].tolist():
+                    self._a2_pull_v5_scheduler_failure_reason[env_id] = "positive_error_inside_trim_band"
+            trim_plan = plan & ~positive_fail & (torch.abs(yaw_error) <= trim_band)
+            states[trim_plan] = state_ids["TRIM"]
+            coarse_plan = plan & ~positive_fail & ~trim_plan
+            positive_coarse = coarse_plan & (yaw_error > 0.0)
+            negative_coarse = coarse_plan & ~positive_coarse
+            self._a2_pull_v5_scheduler_coarse_raw[positive_coarse] = float(constants["coarse_raw_positive"]["value"])
+            self._a2_pull_v5_scheduler_cutoff[positive_coarse] = float(constants["coarse_cutoff_positive_e_rad"]["value"])
+            self._a2_pull_v5_scheduler_min_settle_steps[positive_coarse] = int(constants["minimum_settle_steps_positive"]["value"])
+            self._a2_pull_v5_scheduler_coarse_raw[negative_coarse] = float(constants["coarse_raw_negative"]["value"])
+            self._a2_pull_v5_scheduler_cutoff[negative_coarse] = float(constants["coarse_cutoff_negative_e_rad"]["value"])
+            self._a2_pull_v5_scheduler_min_settle_steps[negative_coarse] = int(constants["minimum_settle_steps_negative"]["value"])
+            states[positive_coarse | negative_coarse] = state_ids["COARSE"]
+
+            coarse = in_live & (states == state_ids["COARSE"])
+            reached_positive = coarse & (self._a2_pull_v5_scheduler_coarse_raw > 0.0) & (yaw_error <= self._a2_pull_v5_scheduler_cutoff)
+            reached_negative = coarse & (self._a2_pull_v5_scheduler_coarse_raw < 0.0) & (yaw_error >= self._a2_pull_v5_scheduler_cutoff)
+            reached = reached_positive | reached_negative
+            states[reached] = state_ids["SETTLE"]
+            self._a2_pull_v5_scheduler_settle_steps[reached] = 0
+
+            settle = in_live & (states == state_ids["SETTLE"])
+            self._a2_pull_v5_scheduler_settle_steps[settle] += 1
+            settle_rate_ok = torch.abs(root_yaw_rate) <= float(
+                constants["settle_velocity_threshold_rad_s"]["value"]
+            )
+            settle_ready = settle & (
+                self._a2_pull_v5_scheduler_settle_steps
+                >= self._a2_pull_v5_scheduler_min_settle_steps
+            ) & settle_rate_ok
+            settle_deadline = settle & (
+                self._a2_pull_v5_scheduler_settle_steps
+                >= int(constants["settle_deadline_steps"]["value"])
+            ) & ~settle_ready
+            if torch.any(settle_deadline):
+                states[settle_deadline] = state_ids["FAILED"]
+                for env_id in torch.where(settle_deadline)[0].tolist():
+                    self._a2_pull_v5_scheduler_failure_reason[env_id] = "settle_deadline_exceeded"
+            states[settle_ready] = state_ids["TRIM"]
+
+            # A settle-completing invocation must remain a full zero-command
+            # physics step; trim is eligible only on the following invocation.
+            trim = in_live & (states == state_ids["TRIM"]) & ~settle_ready
+            trim_positive_fail = trim & (yaw_error > 0.0) & (torch.abs(yaw_error) <= trim_band)
+            if torch.any(trim_positive_fail):
+                states[trim_positive_fail] = state_ids["FAILED"]
+                for env_id in torch.where(trim_positive_fail)[0].tolist():
+                    self._a2_pull_v5_scheduler_failure_reason[env_id] = "positive_error_inside_trim_band"
+            predicted_error = yaw_error - float(constants["trim_one_step_rad"]["value"]) - float(constants["trim_stop_drift_rad"]["value"])
+            trim_final = trim & ~trim_positive_fail & (
+                torch.abs(predicted_error) <= float(constants["planning_a_rad"]["value"])
+            )
+            states[trim_final] = state_ids["FINAL"]
+            trim_cap = trim & ~trim_positive_fail & ~trim_final & (
+                self._a2_pull_v5_scheduler_trim_steps
+                >= int(constants["trim_step_cap"]["value"])
+            )
+            if torch.any(trim_cap):
+                states[trim_cap] = state_ids["FAILED"]
+                for env_id in torch.where(trim_cap)[0].tolist():
+                    self._a2_pull_v5_scheduler_failure_reason[env_id] = "trim_step_cap_exceeded"
+            trim_pulse = trim & ~trim_positive_fail & ~trim_final & ~trim_cap
+            self._a2_pull_v5_scheduler_trim_steps[trim_pulse] += 1
+
+            final = in_live & (states == state_ids["FINAL"])
+            states[final] = state_ids["TERMINAL_HOLD"]
+            self._a2_pull_v5_scheduler_terminal_hold_steps[final] = 0
+            hold = in_live & (states == state_ids["TERMINAL_HOLD"])
+            self._a2_pull_v5_scheduler_terminal_hold_steps[hold] += 1
+            hold_done = hold & (
+                self._a2_pull_v5_scheduler_terminal_hold_steps
+                >= int(constants["terminal_hold_steps"]["value"])
+            )
+            hold_pass = hold_done & waypoint_arrived & (torch.abs(yaw_error) <= yaw_tolerance)
+            hold_fail = hold_done & ~hold_pass
+            states[hold_pass] = state_ids["DONE"]
+            if torch.any(hold_fail):
+                states[hold_fail] = state_ids["FAILED"]
+                for env_id in torch.where(hold_fail)[0].tolist():
+                    self._a2_pull_v5_scheduler_failure_reason[env_id] = "terminal_hold_yaw_error"
+            scheduler_yaw_command = torch.zeros(self.num_envs, dtype=policy_action.dtype, device=policy_action.device)
+            coarse_active = states == state_ids["COARSE"]
+            scheduler_yaw_command[coarse_active] = self._a2_pull_v5_scheduler_coarse_raw[coarse_active].to(policy_action.dtype)
+            scheduler_yaw_command[trim_pulse] = float(constants["trim_raw"]["value"])
+            phase_complete = (
+                (states == state_ids["DONE"])
+                & waypoint_arrived
+                & (torch.abs(yaw_error) <= yaw_tolerance)
+                & ~self._a2_pull_v5_probe_sequence_complete
+            )
+        else:
+            phase_complete = (
+                self._a2_pull_v5_probe_phase_initialized
+                & waypoint_arrived
+                & (torch.abs(yaw_error) <= yaw_tolerance)
+                & ~self._a2_pull_v5_probe_sequence_complete
+            )
         next_phase = phase_index + 1
         advance_phase = phase_complete & (next_phase < len(sequence_phases))
         if torch.any(advance_phase):
@@ -1045,12 +1632,25 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_yaw_target[advance_phase] = (
                 root_yaw[advance_phase] + phase_yaw_commands[next_phase_index]
             )
+            self._a2_pull_v5_probe_original_yaw_target[advance_phase] = (
+                root_yaw[advance_phase] + original_phase_commands[next_phase_index, 2]
+            )
+            if getattr(self, "_a2_pull_v5_scheduler_enabled", False):
+                self._a2_pull_v5_scheduler_state[advance_phase] = self._A2_PULL_V5_4_SCHEDULER_STATES["XY_TRACK"]
+                self._a2_pull_v5_scheduler_settle_steps[advance_phase] = 0
+                self._a2_pull_v5_scheduler_trim_steps[advance_phase] = 0
+                self._a2_pull_v5_scheduler_terminal_hold_steps[advance_phase] = 0
+                self._a2_pull_v5_scheduler_failure_reason = [
+                    None if bool(mask) else reason
+                    for mask, reason in zip(advance_phase.detach().cpu().tolist(), self._a2_pull_v5_scheduler_failure_reason)
+                ]
             phase_index = self._a2_pull_v5_probe_phase_index
             phase_xy = phase_xy_commands[phase_index]
             phase_yaw = phase_yaw_commands[phase_index]
             waypoint_error = self._a2_pull_v5_probe_waypoint_target_xy - root_pos[:, :2]
             waypoint_error_m = torch.linalg.norm(waypoint_error, dim=-1)
             yaw_error = wrap_to_pi(self._a2_pull_v5_probe_yaw_target - root_yaw)
+            waypoint_arrived = waypoint_error_m <= waypoint_tolerance
         _residual, solvable, _body_velocity, raw_base = a2_hold_base_relief_command(
             waypoint_error,
             root_quat_w,
@@ -1059,29 +1659,48 @@ class DoorOpenA2Pull(DoorPregrasp):
             base_command_scale=self._a2_base_command_scale,
             min_solvable_horizontal_error_m=1.0e-3,
         )
-        registered_yaw_limit = max(
-            abs(command[2]) for command in self._A2_PULL_V5_PROBE_PRIMITIVES.values()
-        )
-        yaw_command_limit = torch.where(
-            torch.abs(phase_yaw) > 0.0,
-            torch.abs(phase_yaw),
-            torch.full_like(phase_yaw, registered_yaw_limit),
-        )
-        yaw_command = -torch.sign(yaw_error) * torch.minimum(
-            torch.abs(yaw_error), yaw_command_limit
-        )
-        solvable |= torch.abs(yaw_error) >= 1.0e-3
+        if self._a2_pull_v5_scheduler_enabled:
+            solvable |= self._a2_pull_v5_scheduler_state != self._A2_PULL_V5_4_SCHEDULER_STATES["XY_TRACK"]
+        if self._a2_pull_v5_scheduler_enabled:
+            yaw_command = scheduler_yaw_command
+            solvable |= torch.abs(yaw_error) >= 1.0e-3
+        else:
+            registered_yaw_limit = max(
+                abs(command[2]) for command in self._A2_PULL_V5_PROBE_PRIMITIVES.values()
+            )
+            yaw_command_limit = torch.where(
+                torch.abs(phase_yaw) > 0.0,
+                torch.abs(phase_yaw),
+                torch.full_like(phase_yaw, registered_yaw_limit),
+            )
+            yaw_command = -torch.sign(yaw_error) * torch.minimum(
+                torch.abs(yaw_error), yaw_command_limit
+            )
+            solvable |= torch.abs(yaw_error) >= 1.0e-3
+        if self._a2_pull_v5_scheduler_enabled:
+            self._a2_pull_v5_scheduler_raw_yaw_command[:] = yaw_command
         applied = policy_action.clone()
         applied[:, :5] = raw_base
-        applied[:, 2] = yaw_command / float(self._a2_base_command_scale)
+        # v5.4 scheduler constants are already raw action units.  Preserve the
+        # existing base slice/order and write only the scheduler yaw index.
+        applied[:, 2] = yaw_command
         waypoint_arrived = waypoint_error_m <= waypoint_tolerance
         yaw_arrived = torch.abs(yaw_error) <= yaw_tolerance
-        final_phase_arrived = (
-            waypoint_arrived
-            & yaw_arrived
-            & (phase_index == len(sequence_phases) - 1)
-            & self._a2_pull_v5_probe_phase_initialized
-        )
+        if self._a2_pull_v5_scheduler_enabled:
+            final_phase_arrived = (
+                (self._a2_pull_v5_scheduler_state == self._A2_PULL_V5_4_SCHEDULER_STATES["DONE"])
+                & waypoint_arrived
+                & yaw_arrived
+                & (phase_index == len(sequence_phases) - 1)
+                & self._a2_pull_v5_probe_phase_initialized
+            )
+        else:
+            final_phase_arrived = (
+                waypoint_arrived
+                & yaw_arrived
+                & (phase_index == len(sequence_phases) - 1)
+                & self._a2_pull_v5_probe_phase_initialized
+            )
         self._a2_pull_v5_probe_phase_waypoint_arrived[:] = waypoint_arrived
         self._a2_pull_v5_probe_phase_yaw_arrived[:] = yaw_arrived
         self._a2_pull_v5_probe_sequence_complete |= final_phase_arrived
@@ -1089,7 +1708,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v5_probe_yaw_error_rad[:] = torch.abs(yaw_error)
         self._a2_pull_v5_probe_waypoint_arrived[:] = waypoint_arrived
         self._a2_pull_v5_probe_yaw_arrived[:] = yaw_arrived
-        if fixture == "anchor":
+        if fixture in {"anchor", "rehearsal"}:
             self._a2_pull_v5_probe_anchor_pass[:] = (
                 self._a2_pull_v5_probe_sequence_complete
                 & waypoint_arrived
@@ -1098,6 +1717,128 @@ class DoorOpenA2Pull(DoorPregrasp):
             )
         self._a2_pull_v5_probe_solvable |= solvable
         return applied, solvable
+
+    def _append_a2_pull_v5_scheduler_trace_rows(self) -> None:
+        """Append one scheduler row from the current post-physics state."""
+
+        if not self._a2_pull_v5_scheduler_enabled:
+            raise RuntimeError("Pull-v5.4 scheduler trace requires scheduler_enabled=true.")
+        sequence_id = self._a2_pull_v5_probe_sequence_id
+        if not isinstance(sequence_id, str) or not sequence_id:
+            raise RuntimeError("Pull-v5.4 scheduler trace requires an active probe sequence.")
+        fixture = self.config.get("a2_pull_v5_probe_fixture")
+        if not isinstance(fixture, str) or not fixture:
+            raise RuntimeError("Pull-v5.4 scheduler trace requires a configured probe fixture.")
+        robot = self.simulator.scene.articulations["robot"]
+        root_pos = robot.data.root_pos_w
+        root_quat_w = robot.data.root_quat_w
+        root_yaw_rate = robot.data.root_ang_vel_w[:, 2]
+        expected_shape = (self.num_envs,)
+        if (
+            not torch.is_tensor(root_pos)
+            or tuple(root_pos.shape) != (self.num_envs, 3)
+            or not torch.is_tensor(root_quat_w)
+            or tuple(root_quat_w.shape) != (self.num_envs, 4)
+            or not torch.is_tensor(root_yaw_rate)
+            or tuple(root_yaw_rate.shape) != expected_shape
+            or root_pos.device != torch.device(self.device)
+            or root_quat_w.device != torch.device(self.device)
+            or root_yaw_rate.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(root_pos))
+            or not torch.all(torch.isfinite(root_quat_w))
+            or not torch.all(torch.isfinite(root_yaw_rate))
+        ):
+            raise RuntimeError("Pull-v5.4 scheduler trace requires finite post-physics root state tensors.")
+        if (
+            self._a2_pull_v5_probe_yaw_target.shape != expected_shape
+            or self._a2_pull_v5_probe_original_yaw_target.shape != expected_shape
+            or self._a2_pull_v5_scheduler_raw_yaw_command.shape != expected_shape
+            or not torch.all(torch.isfinite(self._a2_pull_v5_probe_yaw_target))
+            or not torch.all(torch.isfinite(self._a2_pull_v5_probe_original_yaw_target))
+            or not torch.all(torch.isfinite(self._a2_pull_v5_scheduler_raw_yaw_command))
+        ):
+            raise RuntimeError("Pull-v5.4 scheduler trace requires finite target and action tensors.")
+        _, _, root_yaw = euler_xyz_from_quat(root_quat_w)
+        yaw_error = wrap_to_pi(self._a2_pull_v5_probe_yaw_target - root_yaw)
+        original_error = wrap_to_pi(self._a2_pull_v5_probe_original_yaw_target - root_yaw)
+        if not torch.all(torch.isfinite(yaw_error)) or not torch.all(torch.isfinite(original_error)):
+            raise RuntimeError("Pull-v5.4 scheduler trace requires finite post-physics yaw errors.")
+        state_names = {value: key for key, value in self._A2_PULL_V5_4_SCHEDULER_STATES.items()}
+        for env_id in range(self.num_envs):
+            state_name = state_names[int(self._a2_pull_v5_scheduler_state[env_id].item())]
+            episode_index = int(self._a2_pull_v5_scheduler_episode_indices[env_id].item())
+            self._a2_pull_v5_scheduler_trace_rows.append(
+                {
+                    "schema": self._A2_PULL_V5_4_SCHEDULER_SCHEMA,
+                    "record_class": "interface_characterization",
+                    "env_id": env_id,
+                    "episode_index": episode_index,
+                    "episode_id": f"{fixture}:env{env_id}:episode{episode_index}",
+                    "step_index": int(self.episode_length_buf[env_id].item()),
+                    "sequence": sequence_id,
+                    "phase_index": int(self._a2_pull_v5_probe_phase_index[env_id].item()),
+                    "state": state_name,
+                    "requested_yaw_rad": float(self._a2_pull_v5_probe_yaw_target[env_id].item()),
+                    "original_target_yaw_rad": float(
+                        self._a2_pull_v5_probe_original_yaw_target[env_id].item()
+                    ),
+                    "realized_yaw_rad": float(root_yaw[env_id].item()),
+                    "error_rad": float(yaw_error[env_id].item()),
+                    "terminal_error_original_target_rad": float(original_error[env_id].item()),
+                    "abs_error_rad": float(torch.abs(yaw_error[env_id]).item()),
+                    "yaw_rate_rad_s": float(root_yaw_rate[env_id].item()),
+                    "raw_yaw_command": float(self._a2_pull_v5_scheduler_raw_yaw_command[env_id].item()),
+                    "settle_steps": int(self._a2_pull_v5_scheduler_settle_steps[env_id].item()),
+                    "trim_steps": int(self._a2_pull_v5_scheduler_trim_steps[env_id].item()),
+                    "terminal_hold_steps": int(
+                        self._a2_pull_v5_scheduler_terminal_hold_steps[env_id].item()
+                    ),
+                    "failure_reason": self._a2_pull_v5_scheduler_failure_reason[env_id],
+                    "terminal_after_step": None,
+                    "terminal_current_state": state_name == "DONE",
+                    "scientific_denominator_included": False,
+                    "denominator_scope": "none",
+                }
+            )
+
+    def _mark_a2_pull_v5_scheduler_trace_failures(self, failed_mask: torch.Tensor) -> None:
+        """Reflect non-scheduler terminal failure in the just-appended row."""
+
+        if (
+            not torch.is_tensor(failed_mask)
+            or failed_mask.shape != (self.num_envs,)
+            or failed_mask.dtype != torch.bool
+            or failed_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("Pull-v5.4 scheduler trace failure mask has an invalid contract.")
+        state_name = "FAILED"
+        for env_id in torch.where(failed_mask)[0].tolist():
+            episode_index = int(self._a2_pull_v5_scheduler_episode_indices[env_id].item())
+            step_index = int(self.episode_length_buf[env_id].item())
+            matching_rows = [
+                row
+                for row in reversed(self._a2_pull_v5_scheduler_trace_rows)
+                if row.get("env_id") == env_id
+                and row.get("episode_index") == episode_index
+                and row.get("step_index") == step_index
+            ]
+            if len(matching_rows) != 1:
+                raise RuntimeError(
+                    "Pull-v5.4 scheduler non-scheduler termination requires exactly one current trace row."
+                )
+            row = matching_rows[0]
+            row["state"] = state_name
+            row["failure_reason"] = self._a2_pull_v5_scheduler_failure_reason[env_id]
+            row["terminal_current_state"] = False
+
+    def consume_a2_pull_v5_scheduler_trace_rows(self) -> list[dict[str, object]]:
+        """Transfer evaluator-owned v5.4 scheduler rows without writing artifacts."""
+
+        if not self._a2_pull_v5_scheduler_enabled:
+            raise RuntimeError("Pull-v5.4 scheduler trace consumer requires scheduler_enabled=true.")
+        rows = list(self._a2_pull_v5_scheduler_trace_rows)
+        self._a2_pull_v5_scheduler_trace_rows.clear()
+        return rows
 
     def _get_a2_pull_v5_characterization_contract(self) -> dict[str, object]:
         """Resolve the preregistered open-field characterization cell contract."""
@@ -2302,6 +3043,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_anchor_initialized[env_ids] = False
             self._a2_pull_v5_probe_waypoint_target_xy[env_ids] = float("nan")
             self._a2_pull_v5_probe_yaw_target[env_ids] = float("nan")
+            self._a2_pull_v5_probe_original_yaw_target[env_ids] = float("nan")
             self._a2_pull_v5_probe_waypoint_error_m[env_ids] = float("nan")
             self._a2_pull_v5_probe_yaw_error_rad[env_ids] = float("nan")
             self._a2_pull_v5_probe_waypoint_arrived[env_ids] = False
@@ -2360,6 +3102,16 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v5_probe_phase_waypoint_arrived[env_ids] = False
             self._a2_pull_v5_probe_phase_yaw_arrived[env_ids] = False
             self._a2_pull_v5_probe_sequence_complete[env_ids] = False
+            self._a2_pull_v5_scheduler_state[env_ids] = self._A2_PULL_V5_4_SCHEDULER_STATES["XY_TRACK"]
+            self._a2_pull_v5_scheduler_coarse_raw[env_ids] = 0.0
+            self._a2_pull_v5_scheduler_cutoff[env_ids] = 0.0
+            self._a2_pull_v5_scheduler_min_settle_steps[env_ids] = 0
+            self._a2_pull_v5_scheduler_settle_steps[env_ids] = 0
+            self._a2_pull_v5_scheduler_trim_steps[env_ids] = 0
+            self._a2_pull_v5_scheduler_terminal_hold_steps[env_ids] = 0
+            self._a2_pull_v5_scheduler_raw_yaw_command[env_ids] = 0.0
+            for env_id in env_ids.tolist():
+                self._a2_pull_v5_scheduler_failure_reason[env_id] = None
         if self._a2_pull_v5_characterization_enabled:
             self._a2_pull_v5_characterization_pending[env_ids] = False
             self._a2_pull_v5_characterization_active[env_ids] = False
@@ -2557,6 +3309,12 @@ class DoorOpenA2Pull(DoorPregrasp):
         if post_physics:
             self._update_a2_pull_event_telemetry(env_ids)
             self._finalize_a2_pull_v5_characterization_step()
+            if getattr(self, "_a2_pull_v5_scheduler_enabled", False):
+                if env_ids is not None:
+                    raise RuntimeError(
+                        "Pull-v5.4 scheduler trace requires the full post-physics callback."
+                    )
+                self._append_a2_pull_v5_scheduler_trace_rows()
 
     @override
     def _get_a2_route_crossing_coordinate(self, root_x: torch.Tensor) -> torch.Tensor:
@@ -3401,10 +4159,22 @@ class DoorOpenA2Pull(DoorPregrasp):
                         if (
                             not torch.isfinite(self._a2_pull_v5_probe_waypoint_target_xy[env_id]).all()
                             or not torch.isfinite(self._a2_pull_v5_probe_yaw_target[env_id])
+                            or not torch.isfinite(self._a2_pull_v5_probe_original_yaw_target[env_id])
                             or not torch.isfinite(probe_root_xy).all()
                             or not torch.isfinite(probe_root_yaw).all()
                         ):
                             raise RuntimeError("Pull-v5 probe terminal telemetry requires a measured target and root pose.")
+                        terminal_scheduler_error = float(
+                            wrap_to_pi(
+                                self._a2_pull_v5_probe_yaw_target[env_id] - probe_root_yaw.squeeze(0)
+                            ).item()
+                        )
+                        terminal_original_error = float(
+                            wrap_to_pi(
+                                self._a2_pull_v5_probe_original_yaw_target[env_id]
+                                - probe_root_yaw.squeeze(0)
+                            ).item()
+                        )
                         record["pull_v5_probe"] = {
                             "fixture": self.config["a2_pull_v5_probe_fixture"],
                             "command": self.config["a2_pull_v5_probe_command"],
@@ -3426,7 +4196,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                             ),
                             "yaw_error_rad": float(self._a2_pull_v5_probe_yaw_error_rad[env_id].item()),
                             "anchor_pass": bool(
-                                self.config["a2_pull_v5_probe_fixture"] == "anchor"
+                                self.config["a2_pull_v5_probe_fixture"] in {"anchor", "rehearsal"}
                                 and self._a2_pull_v5_probe_anchor_pass[env_id].item()
                             ),
                             "requested_waypoint_xy": self._a2_pull_v5_probe_waypoint_target_xy[
@@ -3438,9 +4208,43 @@ class DoorOpenA2Pull(DoorPregrasp):
                             ].detach().cpu().tolist(),
                             "realized_base_motion_xy": probe_root_xy.detach().cpu().tolist(),
                             "requested_yaw_rad": float(self._a2_pull_v5_probe_yaw_target[env_id].item()),
+                            "original_target_yaw_rad": float(self._a2_pull_v5_probe_original_yaw_target[env_id].item()),
                             "realized_yaw_rad": float(probe_root_yaw.item()),
                             "lattice_scale": float(self.config.get("a2_pull_v5_lattice_scale", 1.0)),
                         }
+                        if self._a2_pull_v5_scheduler_enabled:
+                            state_names = {
+                                value: key for key, value in self._A2_PULL_V5_4_SCHEDULER_STATES.items()
+                            }
+                            record["pull_v5_probe"]["scheduler"] = {
+                                "schema": self._A2_PULL_V5_4_SCHEDULER_SCHEMA,
+                                "state": state_names[int(self._a2_pull_v5_scheduler_state[env_id].item())],
+                                "failure_reason": self._a2_pull_v5_scheduler_failure_reason[env_id],
+                                "settle_steps": int(self._a2_pull_v5_scheduler_settle_steps[env_id].item()),
+                                "trim_steps": int(self._a2_pull_v5_scheduler_trim_steps[env_id].item()),
+                                "terminal_hold_steps": int(self._a2_pull_v5_scheduler_terminal_hold_steps[env_id].item()),
+                                "error_rad": terminal_scheduler_error,
+                                "planning_error_rad": terminal_scheduler_error,
+                                "terminal_error_original_target_rad": terminal_original_error,
+                                "episode_index": int(self._a2_pull_v5_scheduler_episode_indices[env_id].item()),
+                                "episode_id": (
+                                    f"{self.config['a2_pull_v5_probe_fixture']}:env{env_id}:episode"
+                                    f"{int(self._a2_pull_v5_scheduler_episode_indices[env_id].item())}"
+                                ),
+                                "terminal_current_state": (
+                                    state_names[int(self._a2_pull_v5_scheduler_state[env_id].item())]
+                                    == "DONE"
+                                ),
+                                "scientific_denominator_included": False,
+                                "denominator_scope": "none",
+                            }
+                            record["episode_index"] = int(
+                                self._a2_pull_v5_scheduler_episode_indices[env_id].item()
+                            )
+                            record["episode_id"] = (
+                                f"{self.config['a2_pull_v5_probe_fixture']}:env{env_id}:episode"
+                                f"{int(self._a2_pull_v5_scheduler_episode_indices[env_id].item())}"
+                            )
         return records
 
     def get_a2_pull_episode_records(self, env_ids, terminal_records=None) -> list[dict]:
@@ -3888,6 +4692,24 @@ class DoorOpenA2Pull(DoorPregrasp):
                             self._a2_pull_v5_probe_sequence_complete[env_id].item()
                         ),
                     }
+                    if self._a2_pull_v5_scheduler_enabled:
+                        state_names = {
+                            value: key for key, value in self._A2_PULL_V5_4_SCHEDULER_STATES.items()
+                        }
+                        record["pull_v5_probe"]["scheduler"] = {
+                            "schema": self._A2_PULL_V5_4_SCHEDULER_SCHEMA,
+                            "state": state_names[int(self._a2_pull_v5_scheduler_state[env_id].item())],
+                            "failure_reason": self._a2_pull_v5_scheduler_failure_reason[env_id],
+                            "settle_steps": int(self._a2_pull_v5_scheduler_settle_steps[env_id].item()),
+                            "trim_steps": int(self._a2_pull_v5_scheduler_trim_steps[env_id].item()),
+                            "terminal_hold_steps": int(self._a2_pull_v5_scheduler_terminal_hold_steps[env_id].item()),
+                            "terminal_current_state": (
+                                state_names[int(self._a2_pull_v5_scheduler_state[env_id].item())]
+                                == "DONE"
+                            ),
+                            "scientific_denominator_included": False,
+                            "denominator_scope": "none",
+                        }
             record["pull_v2_unlatch"] = {
                 "stable_unlatch_handle_based": bool(
                     self._a2_pull_stable_unlatch_handle_ever[env_id].item()

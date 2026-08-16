@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict dual-source Pull-v5.3 terminal-record analyzer.
+"""Strict dual-source Pull-v5.4 terminal-record analyzer.
 
 Only explicit terminal episode collections are accepted.  Step traces, control
 records, and recursively discovered nested mappings are intentionally rejected
@@ -15,12 +15,17 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
+try:
+    from .pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, GateRejected, require_chain
+except ImportError:
+    from pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, GateRejected, require_chain
+
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "logs_eval/a2_piper_pull_v5"
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_3_ANALYSIS.json"
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_4_ANALYSIS.json"
 TERMINAL_FILENAME = "terminal_records.json"
-VERSIONS = ("5.2", "5.3")
+VERSIONS = ("5.2", "5.3", "5.4")
 INVARIANTS = (
     "fake_e4",
     "stage4_snapshot_below_hinge_gate",
@@ -246,7 +251,7 @@ def _bucket(force: float) -> str:
     return "outside"
 
 
-def analyze(input_roots: Iterable[Path], *, version: str = "5.3") -> dict[str, Any]:
+def analyze(input_roots: Iterable[Path], *, version: str = "5.4") -> dict[str, Any]:
     if isinstance(input_roots, (str, Path)):
         input_roots = [Path(input_roots)]
     raw_rows: list[dict[str, Any]] = []
@@ -384,13 +389,27 @@ def main() -> int:
     parser.add_argument("--input-root", type=Path)
     parser.add_argument("--cell-root", type=Path, action="append", dest="cell_roots")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--version", choices=VERSIONS, default="5.3")
+    parser.add_argument("--version", choices=VERSIONS, default="5.4")
+    parser.add_argument("--decision", type=Path, default=DEFAULT_DECISION)
+    parser.add_argument("--stage-a", type=Path, default=DEFAULT_STAGE_A)
+    parser.add_argument("--rehearsal", type=Path, default=DEFAULT_REHEARSAL)
+    parser.add_argument("--anchor-receipt", type=Path, required=True)
     parser.add_argument(
         "--not-run", action="store_true",
         help="write an explicit NOT_RUN closure without inventing a zero denominator",
     )
     parser.add_argument("--not-run-reason", default="downstream gate not opened")
     args = parser.parse_args()
+    try:
+        require_chain(
+            "anchor",
+            decision_path=args.decision,
+            stage_a_path=args.stage_a,
+            rehearsal_path=args.rehearsal,
+            anchor_path=args.anchor_receipt,
+        )
+    except GateRejected as exc:
+        raise SystemExit(f"REJECTED: {exc}") from exc
     if args.not_run:
         report = {
             "schema": f"a2_piper_pull_v{args.version.replace('.', '_')}_analysis_v1",

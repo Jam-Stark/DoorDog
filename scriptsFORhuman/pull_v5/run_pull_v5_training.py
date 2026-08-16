@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Prepare or run Pull-v5.3 P3 cells and evidence-selected P4 continuations.
+"""Prepare or run Pull-v5.4 P3 cells and evidence-selected P4 continuations.
 
-The explicit ``version`` parameter keeps legacy v5.2 command generation
-available for receipt inspection; v5.3 is the default and owns all new
-artifacts.
+The explicit ``version`` parameter is retained for receipt naming; v5.4 is the
+only admitted route and owns all new artifacts.
 """
 
 from __future__ import annotations
@@ -14,16 +13,16 @@ import subprocess
 from pathlib import Path
 
 try:
-    from .write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from .pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, require_chain, require_v5_4_downstream_gate
 except ImportError:
-    from write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, require_chain, require_v5_4_downstream_gate
 
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 TRAIN_ROOT = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull"
 WARM_CHECKPOINT = TRAIN_ROOT / "pull_v4_B_wave1_seed1/model_step_000750.pt"
-LOAD_RECEIPT_PATH = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_3_policy_only.json"
+LOAD_RECEIPT_PATH = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_4_policy_only.json"
 ALLOWED_GPUS = (4, 5, 6, 7)
 CELLS = {
     "M_s0": ("pull_v5_M_s0", 0, 0.5),
@@ -31,7 +30,7 @@ CELLS = {
     "C_s0": ("pull_v5_C_s0", 0, 0.9),
     "C_s1": ("pull_v5_C_s1", 1, 0.9),
 }
-VERSIONS = ("5.2", "5.3")
+VERSIONS = ("5.4",)
 
 
 def _version_tag(version: str) -> str:
@@ -41,11 +40,13 @@ def _version_tag(version: str) -> str:
 
 
 def build_command(
-    *, cell: str, gpu: int, checkpoint: Path, version: str = "5.3",
+    *, cell: str, gpu: int, checkpoint: Path, version: str = "5.4",
     allow_missing_checkpoint: bool = False, allow_g8_pure_a: bool = False,
-    p0_adjudication: Path,
+    decision_path: Path = DEFAULT_DECISION, stage_a_path: Path = DEFAULT_STAGE_A,
+    rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_receipt: Path, gate_receipt: Path,
 ) -> tuple[list[str], dict[str, str], Path]:
-    require_p0_adjudication(p0_adjudication)
+    require_chain("anchor", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path, anchor_path=anchor_receipt)
+    require_v5_4_downstream_gate(gate_receipt, anchor_path=anchor_receipt)
     if cell not in CELLS:
         raise ValueError(f"unknown Pull-v5 cell: {cell!r}")
     if gpu not in ALLOWED_GPUS:
@@ -99,9 +100,10 @@ def build_command(
 
 def build_p4_command(
     *, cell: str, gpu: int, checkpoint: Path, ratio: float,
-    additional_batches: int = 250, version: str = "5.3", anneal_index: int = 0,
+    additional_batches: int = 250, version: str = "5.4", anneal_index: int = 0,
     allow_missing_checkpoint: bool = False, allow_g8_pure_a: bool = False,
-    p0_adjudication: Path,
+    decision_path: Path = DEFAULT_DECISION, stage_a_path: Path = DEFAULT_STAGE_A,
+    rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_receipt: Path, gate_receipt: Path,
 ) -> tuple[list[str], dict[str, str], Path]:
     """Build one evidence-selected P4 continuation command.
 
@@ -110,7 +112,8 @@ def build_p4_command(
     pre-registered ``0.9 → 0.5 → 0.3`` anneal, or use one fixed ratio.
     """
 
-    require_p0_adjudication(p0_adjudication)
+    require_chain("anchor", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path, anchor_path=anchor_receipt)
+    require_v5_4_downstream_gate(gate_receipt, anchor_path=anchor_receipt)
     if cell not in CELLS:
         raise ValueError(f"unknown Pull-v5 cell: {cell!r}")
     if gpu not in ALLOWED_GPUS:
@@ -170,12 +173,15 @@ def build_p4_command(
 
 
 def build_load_receipt_command(
-    *, gpu: int, checkpoint: Path, receipt_path: Path, version: str = "5.3",
-    allow_missing_checkpoint: bool = False, p0_adjudication: Path,
+    *, gpu: int, checkpoint: Path, receipt_path: Path, version: str = "5.4",
+    allow_missing_checkpoint: bool = False,
+    decision_path: Path = DEFAULT_DECISION, stage_a_path: Path = DEFAULT_STAGE_A,
+    rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_receipt: Path, gate_receipt: Path,
 ) -> tuple[list[str], dict[str, str], Path]:
     """Build the train-module policy-only initialization route without updates."""
 
-    require_p0_adjudication(p0_adjudication)
+    require_chain("anchor", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path, anchor_path=anchor_receipt)
+    require_v5_4_downstream_gate(gate_receipt, anchor_path=anchor_receipt)
     if gpu not in ALLOWED_GPUS:
         raise ValueError(f"Pull-v5 training only permits physical GPU4-7; got GPU{gpu}")
     tag = _version_tag(version)
@@ -235,10 +241,14 @@ def main() -> int:
     parser.add_argument("--cell", choices=tuple(CELLS))
     parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, required=True)
     parser.add_argument("--checkpoint", type=Path, default=WARM_CHECKPOINT)
-    parser.add_argument("--version", choices=VERSIONS, default="5.3")
+    parser.add_argument("--version", choices=VERSIONS, default="5.4")
     parser.add_argument("--load-receipt-only", action="store_true")
     parser.add_argument("--receipt-path", type=Path, default=LOAD_RECEIPT_PATH)
-    parser.add_argument("--p0-adjudication", type=Path, required=True)
+    parser.add_argument("--decision", type=Path, default=DEFAULT_DECISION)
+    parser.add_argument("--stage-a", type=Path, default=DEFAULT_STAGE_A)
+    parser.add_argument("--rehearsal", type=Path, default=DEFAULT_REHEARSAL)
+    parser.add_argument("--anchor-receipt", type=Path, required=True)
+    parser.add_argument("--gate-receipt", type=Path, required=True)
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--allow-g8-pure-a", action="store_true")
@@ -254,7 +264,8 @@ def main() -> int:
             receipt_path=args.receipt_path,
             version=args.version,
             allow_missing_checkpoint=args.dry_run,
-            p0_adjudication=args.p0_adjudication,
+            decision_path=args.decision, stage_a_path=args.stage_a,
+            rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt, gate_receipt=args.gate_receipt,
         )
         expected = args.receipt_path.resolve()
     else:
@@ -264,7 +275,8 @@ def main() -> int:
             command, process_env, experiment_dir = build_command(
                 cell=args.cell, gpu=args.gpu, checkpoint=checkpoint, version=args.version,
                 allow_missing_checkpoint=args.dry_run, allow_g8_pure_a=args.allow_g8_pure_a,
-                p0_adjudication=args.p0_adjudication,
+                decision_path=args.decision, stage_a_path=args.stage_a,
+                rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt, gate_receipt=args.gate_receipt,
             )
             expected = experiment_dir / "model_step_000250.pt"
         else:
@@ -273,7 +285,8 @@ def main() -> int:
                 additional_batches=args.p4_additional_batches, version=args.version,
                 anneal_index=args.p4_anneal_index, allow_missing_checkpoint=args.dry_run,
                 allow_g8_pure_a=args.allow_g8_pure_a,
-                p0_adjudication=args.p0_adjudication,
+                decision_path=args.decision, stage_a_path=args.stage_a,
+                rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt, gate_receipt=args.gate_receipt,
             )
             expected = experiment_dir / f"model_step_{args.p4_additional_batches:06d}.pt"
     print("[pull-v5 training] command:", " ".join(command))

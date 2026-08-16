@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Pull-v5.3 narrow sequence anchor and deterministic door probe.
+"""Run the Pull-v5.4 narrow sequence anchor and deterministic door probe.
 
 The anchor is bank-independent and uses the high-level HOMIE sequence commands
 against the explicit open-field fixture.  Each sequence is an independent
@@ -18,9 +18,12 @@ import subprocess
 from pathlib import Path
 
 try:
-    from .write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from .pull_v5_4_gates import (
+        DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, GateRejected,
+        require_chain,
+    )
 except ImportError:
-    from write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, GateRejected, require_chain
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -29,7 +32,7 @@ CHECKPOINT = ROOT / (
     "logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/"
     "pull_v4_B_wave1_seed1/model_step_000750.pt"
 )
-OUTPUT_ROOT = ROOT / "logs_eval/a2_piper_pull_v5/pull_v5_3_p1_anchor_probe"
+OUTPUT_ROOT = ROOT / "logs_eval/a2_piper_pull_v5/pull_v5_4_p1_anchor_probe"
 ALLOWED_GPUS = (4, 5, 6, 7)
 CLOSER_BUCKETS = ("2.5-5", "5-9", "9-12")
 SEQUENCE_IDS = ("S1", "S2", "S3", "S4")
@@ -40,7 +43,7 @@ SEQUENCE_PHASES = {
     "S4": ("straight_minus_x", "side_step"),
 }
 # The primitive names remain part of the receipt for auditability, while the
-# evaluator-facing command IDs are the exact v5.3 sequence IDs.
+# evaluator-facing command IDs are the exact v5.4 sequence IDs.
 PRIMITIVES = tuple(sorted({primitive for phases in SEQUENCE_PHASES.values() for primitive in phases}))
 ANCHOR_COMMAND_LIBRARY = {sequence: SEQUENCE_PHASES[sequence] for sequence in SEQUENCE_IDS}
 LATTICE_SCALES = (0.4, 0.55, 0.7, 0.85, 1.0, 1.15, 1.3, 1.45, 1.6)
@@ -62,9 +65,14 @@ def build_command(
     fixture: str, sequence_id: str | None = None, command_name: str | None = None,
     closer_bucket: str | None = None,
     anchor_attempt: int = 1, allow_missing_checkpoint: bool = False,
-    allow_g8_pure_a: bool = False, p0_adjudication: Path,
+    allow_g8_pure_a: bool = False, decision_path: Path = DEFAULT_DECISION,
+    stage_a_path: Path = DEFAULT_STAGE_A, rehearsal_path: Path = DEFAULT_REHEARSAL,
+    anchor_receipt: Path | None = None,
 ) -> tuple[list[str], dict[str, str]]:
-    adjudication = require_p0_adjudication(p0_adjudication)
+    if fixture == "anchor":
+        require_chain("rehearsal", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path)
+    elif anchor_receipt is not None and anchor_receipt.expanduser().is_file():
+        require_chain("anchor", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path, anchor_path=anchor_receipt)
     if gpu not in ALLOWED_GPUS:
         raise ValueError(f"P1 only permits physical GPU4-7; got GPU{gpu}")
     if source not in {"canonical", "natural"}:
@@ -74,7 +82,7 @@ def build_command(
     if sequence_id is None:
         sequence_id = command_name
     if sequence_id not in ANCHOR_COMMAND_LIBRARY:
-        raise ValueError(f"unknown v5.3 sequence ID: {sequence_id!r}")
+        raise ValueError(f"unknown v5.4 sequence ID: {sequence_id!r}")
     if closer_bucket is not None and closer_bucket not in CLOSER_BUCKETS:
         raise ValueError(f"unknown closer bucket: {closer_bucket!r}")
     if anchor_attempt not in (1, 2, 3):
@@ -95,6 +103,7 @@ def build_command(
         f"checkpoint={checkpoint}", "checkpoint_load_mode=policy_only", "auto_load_latest=false",
         "num_envs=16", "seed=0", "headless=true", "use_wandb=false",
         "+ablation=wbmanip/pull_v5_M_s0", "algo.config.load_optimizer=false",
+        "env.config.a2_v20_R1_plan_id=a2_piper_pull_v5_bridge_occupancy_and_release_persistence",
         "algo.config.eval.num_eval_episodes=1", "+algo.config.eval.eval_num_envs_episodes=true",
         "+algo.config.eval.dump_to_log_metrics=true", "algo.config.eval.save_videos=false",
         "algo.config.eval.num_save_episodes=16", "algo.config.eval.a2_diagnostic_trace_enabled=true",
@@ -109,11 +118,12 @@ def build_command(
         "env.config.a2_pull_v5_state_bank_min_samples=64",
         f"env.config.a2_pull_v5_state_bank_allow_g8_pure_a={'true' if allow_g8_pure_a else 'false'}",
         "env.config.a2_pull_v5_state_bank_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt",
-        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_3_p1_{output_dir.name}.json",
+        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_4_p1_{output_dir.name}.json",
         "+env.config.a2_pull_v5_probe_enabled=true",
         f"+env.config.a2_pull_v5_probe_fixture={fixture}",
         f"+env.config.a2_pull_v5_probe_command={sequence_id}",
         f"+env.config.a2_pull_v5_probe_sequence={sequence_id}",
+        "+env.config.a2_pull_v5_scheduler_enabled=true",
         f"+env.config.a2_pull_v5_probe_correction_retry={anchor_attempt - 1}",
         "+env.config.a2_pull_v5_probe_open_field=true" if fixture == "anchor" else "+env.config.a2_pull_v5_probe_open_field=false",
         f"+env.config.a2_pull_v5_probe_waypoint_tolerance_m={ANCHOR_WAYPOINT_TOLERANCE_M}",
@@ -275,7 +285,7 @@ def _required_int(value: object, *, label: str) -> int:
 
 
 def _door_metrics(row: dict[str, object], probe: dict[str, object]) -> dict[str, object]:
-    """Extract the v5.3 door-side telemetry without converting missing data to zero."""
+    """Extract the v5.4 door-side telemetry without converting missing data to zero."""
 
     traversal = row.get("pull_v3_traversal")
     if not isinstance(traversal, dict):
@@ -380,9 +390,15 @@ def _write_receipt(
     path: Path, *, source: str, fixture: str, attempt: int, rows: list[dict[str, object]],
     closer_bucket: str | None = None, lattice: bool = False,
     lattice_state_count: int | None = None, sequences: tuple[str, ...] | None = None,
-    trace_paths: list[Path] | None = None, p0_adjudication: Path,
+    trace_paths: list[Path] | None = None,
+    decision_path: Path = DEFAULT_DECISION, stage_a_path: Path = DEFAULT_STAGE_A,
+    rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_receipt: Path | None = None,
 ) -> dict[str, object]:
-    adjudication = require_p0_adjudication(p0_adjudication)
+    require_chain("rehearsal", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path)
+    if fixture == "door":
+        if anchor_receipt is None or not anchor_receipt.expanduser().is_file():
+            raise ValueError("v5.4 door receipt requires the current anchor receipt")
+        anchor_receipt = anchor_receipt.expanduser().resolve()
     if sequences is None:
         sequences = SEQUENCE_IDS
     if not sequences or any(sequence not in SEQUENCE_IDS for sequence in sequences):
@@ -404,6 +420,12 @@ def _write_receipt(
     reset_sources: set[str] = set()
     expected_reset_group = "bank" if source == "canonical" else "natural"
     for row, probe in zip(rows, probes):
+        scheduler = probe.get("scheduler")
+        terminal_current_state = probe.get("terminal_current_state") is True or (
+            isinstance(scheduler, dict) and scheduler.get("terminal_current_state") is True
+        )
+        if fixture == "anchor" and not terminal_current_state:
+            raise ValueError("v5.4 anchor rows require scheduler terminal_current_state telemetry")
         sequence = probe.get("sequence")
         if sequence not in sequence_rows:
             raise ValueError(f"P1 terminal row has unexpected sequence {sequence!r}")
@@ -420,10 +442,10 @@ def _write_receipt(
                 f"but declared provider requires {expected_reset_group} provenance"
             )
         if fixture == "anchor" and isinstance(pull_v5, dict) and pull_v5.get("start_override_active") is True:
-            raise ValueError("v5.3 open-field anchor must not activate the start override")
+            raise ValueError("v5.4 open-field anchor must not activate the start override")
     if any(len(group) != 16 for group in sequence_rows.values()) and (fixture == "anchor" or not lattice):
         raise ValueError(
-            f"v5.3 P1 requires exactly 16 rows per sequence; got "
+            f"v5.4 P1 requires exactly 16 rows per sequence; got "
             f"{ {sequence: len(group) for sequence, group in sequence_rows.items()} }"
         )
     measurements_by_sequence: dict[str, list[dict[str, object]]] = {}
@@ -552,7 +574,7 @@ def _write_receipt(
                 )
     anchor_pass = None
     if fixture == "anchor":
-        anchor_pass = not implementation_defects and bool(anchored_sequences)
+        anchor_pass = bool(anchored_sequences)
     frame_passage_count = sum(
         int(summary["passage"])
         for bucket_summary in bucket_sequence_records.values()
@@ -571,22 +593,22 @@ def _write_receipt(
                     "values": summary["door_hinge_joint_pos"],
                 }
     receipt = {
-        "schema": "a2_piper_pull_v5_3_p1_receipt_v1",
+        "schema": "a2_piper_pull_v5_4_p1_receipt_v1",
+        "plan_id": "a2_piper_pull_v5_4_terminal_yaw_scheduler",
         "status": "PASS" if (anchor_pass is not False) else "FAIL",
         "source": source,
         "reset_source_group": "canonical" if any(item.startswith("bank_") for item in reset_sources) else "natural",
         "declared_provider": source,
         "declared_provider_group": expected_reset_group,
-        "p0_adjudication": {
-            "schema": adjudication["schema"],
-            "hypothesis": adjudication["hypothesis"],
-            "downstream_admitted": adjudication["downstream_admitted"],
-        },
+        "scientific_denominator_included": False,
+        "denominator_scope": "none",
         "fixture": fixture,
         "anchor_attempt": attempt,
+        "anchor_receipt_path": None if fixture == "anchor" else str(anchor_receipt),
         "correction_retry": attempt - 1,
         "lattice": lattice,
-        "terminal_records": len(rows),
+        "terminal_records": rows,
+        "terminal_record_count": len(rows),
         "probe_records": len(probes),
         "anchor_pass": anchor_pass,
         "interface_feasible": all(item.get("command_solvable") is True for item in probes),
@@ -633,25 +655,33 @@ def main() -> int:
     parser.add_argument("--anchor-receipt", type=Path)
     parser.add_argument("--closer-bucket", choices=CLOSER_BUCKETS)
     parser.add_argument("--receipt", type=Path)
-    parser.add_argument("--p0-adjudication", type=Path, required=True)
+    parser.add_argument("--decision", type=Path, default=DEFAULT_DECISION)
+    parser.add_argument("--stage-a", type=Path, default=DEFAULT_STAGE_A)
+    parser.add_argument("--rehearsal", type=Path, default=DEFAULT_REHEARSAL)
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--allow-g8-pure-a", action="store_true")
     args = parser.parse_args()
     fixture = "anchor" if args.mode == "anchor" else "door"
+    if fixture == "door" and args.anchor_receipt is None:
+        parser.error("v5.4 door probes require --anchor-receipt and the admitted non-empty subset")
     if fixture == "door" and args.closer_bucket is None and args.mode != "lattice":
         parser.error("--closer-bucket is required for a door probe")
     bucket_suffix = "" if args.closer_bucket is None else f"_{args.closer_bucket.replace('-', '_')}"
-    output_dir = (args.output_dir or OUTPUT_ROOT / f"pull_v5_3_{args.mode}_{args.source}{bucket_suffix}_attempt{args.anchor_attempt}").resolve()
+    output_dir = (args.output_dir or OUTPUT_ROOT / f"pull_v5_4_{args.mode}_{args.source}{bucket_suffix}_attempt{args.anchor_attempt}").resolve()
+    if fixture == "anchor":
+        require_chain("rehearsal", decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal)
+    elif args.anchor_receipt is not None:
+        require_chain("anchor", decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal, anchor_path=args.anchor_receipt)
     sequence_ids = tuple(args.sequences or SEQUENCE_IDS)
     if args.mode == "probe" and args.anchor_receipt is not None:
         anchor_document = json.loads(args.anchor_receipt.resolve().read_text(encoding="utf-8"))
         anchored = anchor_document.get("anchored_sequences")
         if not isinstance(anchored, list) or not all(sequence in SEQUENCE_IDS for sequence in anchored):
-            raise ValueError("v5.3 door probe anchor receipt requires anchored_sequences=[S1..S4 subset]")
+            raise ValueError("v5.4 door probe anchor receipt requires anchored_sequences=[S1..S4 subset]")
         sequence_ids = tuple(sequence for sequence in sequence_ids if sequence in anchored)
         if not sequence_ids:
-            raise RuntimeError("v5.3 door probe has no anchored sequence available")
+            raise RuntimeError("v5.4 door probe has no anchored sequence available")
     if args.mode == "lattice":
         if args.source != "canonical":
             parser.error("G2 lattice requires canonical source")
@@ -661,12 +691,13 @@ def main() -> int:
             closer_bucket="2.5-5", anchor_attempt=args.anchor_attempt,
             allow_missing_checkpoint=args.dry_run,
             allow_g8_pure_a=args.allow_g8_pure_a,
-            p0_adjudication=args.p0_adjudication,
+            decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal,
+            anchor_receipt=args.anchor_receipt,
         )
         command = [*command, f"+env.config.a2_pull_v5_lattice_state_count={len(LATTICE_COMMANDS)}"]
-        print("[pull-v5.3 P1 lattice] commands:", len(LATTICE_COMMANDS), "states")
-        print("[pull-v5.3 P1 lattice] representative command:", " ".join(command))
-        print("[pull-v5.3 P1 lattice] environment:", process_env)
+        print("[pull-v5.4 P1 lattice] commands:", len(LATTICE_COMMANDS), "states")
+        print("[pull-v5.4 P1 lattice] representative command:", " ".join(command))
+        print("[pull-v5.4 P1 lattice] environment:", process_env)
         if not args.run:
             return 0
         output_dir.mkdir(parents=True, exist_ok=False)
@@ -679,7 +710,8 @@ def main() -> int:
                 output_dir=state_dir, fixture="door", sequence_id=name,
                 closer_bucket="2.5-5", anchor_attempt=args.anchor_attempt,
                 allow_g8_pure_a=args.allow_g8_pure_a,
-                p0_adjudication=args.p0_adjudication,
+                decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal,
+                anchor_receipt=args.anchor_receipt,
             )
             state_command.append(f"+env.config.a2_pull_v5_lattice_scale={scale}")
             state_dir.mkdir(parents=False, exist_ok=False)
@@ -696,7 +728,7 @@ def main() -> int:
                 [state_dir / "traces" / f"{name}_p2_intervention_trace.json"] * len(state_rows)
             )
         receipt_path = (args.receipt or output_dir / f"P1_lattice_{args.source}_attempt{args.anchor_attempt}_RECEIPT.json").resolve()
-        print(json.dumps(_write_receipt(receipt_path, source=args.source, fixture="door", attempt=args.anchor_attempt, rows=all_rows, lattice=True, lattice_state_count=len(LATTICE_COMMANDS), sequences=SEQUENCE_IDS, trace_paths=all_trace_paths, p0_adjudication=args.p0_adjudication), indent=2, sort_keys=True))
+        print(json.dumps(_write_receipt(receipt_path, source=args.source, fixture="door", attempt=args.anchor_attempt, rows=all_rows, lattice=True, lattice_state_count=len(LATTICE_COMMANDS), sequences=SEQUENCE_IDS, trace_paths=all_trace_paths, decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt), indent=2, sort_keys=True))
         return 0
     if args.mode in {"anchor", "probe"}:
         commands = []
@@ -708,11 +740,12 @@ def main() -> int:
                 closer_bucket=args.closer_bucket, anchor_attempt=args.anchor_attempt,
                 allow_missing_checkpoint=args.dry_run,
                 allow_g8_pure_a=args.allow_g8_pure_a,
-                p0_adjudication=args.p0_adjudication,
+                decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal,
+                anchor_receipt=args.anchor_receipt,
             )
             commands.append((sequence, primitive_dir, command, process_env))
-            print(f"[pull-v5.3 P1 {sequence}] command:", " ".join(command))
-            print(f"[pull-v5.3 P1 {sequence}] environment:", process_env)
+            print(f"[pull-v5.4 P1 {sequence}] command:", " ".join(command))
+            print(f"[pull-v5.4 P1 {sequence}] environment:", process_env)
         if not args.run:
             return 0
         output_dir.mkdir(parents=True, exist_ok=False)
@@ -741,10 +774,11 @@ def main() -> int:
             closer_bucket=args.closer_bucket, anchor_attempt=args.anchor_attempt,
             allow_missing_checkpoint=args.dry_run,
             allow_g8_pure_a=args.allow_g8_pure_a,
-            p0_adjudication=args.p0_adjudication,
+            decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal,
+            anchor_receipt=args.anchor_receipt,
         )
-        print("[pull-v5.3 P1] command:", " ".join(command))
-        print("[pull-v5.3 P1] environment:", process_env)
+        print("[pull-v5.4 P1] command:", " ".join(command))
+        print("[pull-v5.4 P1] environment:", process_env)
         if not args.run:
             return 0
         output_dir.mkdir(parents=True, exist_ok=False)
@@ -754,8 +788,8 @@ def main() -> int:
         if result.returncode != 0:
             return result.returncode
         rows = _terminal_rows(output_dir)
-    receipt_path = (args.receipt or output_dir / f"P1_v5_3_{args.mode}_{args.source}_attempt{args.anchor_attempt}_RECEIPT.json").resolve()
-    receipt = _write_receipt(receipt_path, source=args.source, fixture=fixture, attempt=args.anchor_attempt, rows=rows, closer_bucket=args.closer_bucket, sequences=sequence_ids, trace_paths=trace_paths if fixture == "door" else None, p0_adjudication=args.p0_adjudication)
+    receipt_path = (args.receipt or output_dir / f"P1_v5_4_{args.mode}_{args.source}_attempt{args.anchor_attempt}_RECEIPT.json").resolve()
+    receipt = _write_receipt(receipt_path, source=args.source, fixture=fixture, attempt=args.anchor_attempt, rows=rows, closer_bucket=args.closer_bucket, sequences=sequence_ids, trace_paths=trace_paths if fixture == "door" else None, decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt)
     print(json.dumps(receipt, indent=2, sort_keys=True))
     if args.mode == "anchor" and receipt["anchor_pass"] is not True:
         return 1

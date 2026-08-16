@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render selected Pull-v5.3 episodes with the project eval camera lifecycle.
+"""Render selected Pull-v5.4 episodes with the project eval camera lifecycle.
 
 Rendering is an evidence-only producer.  It reads a completed anchor, door
 probe, or dual-source evaluation receipt, replays exactly one explicitly
@@ -16,14 +16,14 @@ import subprocess
 from pathlib import Path
 
 try:
-    from .write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from .pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, require_chain, require_v5_4_downstream_gate
 except ImportError:
-    from write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, require_chain, require_v5_4_downstream_gate
 
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-RENDER_ROOT = ROOT / "logs_eval/a2_piper_pull_v5/render_v5_3"
+RENDER_ROOT = ROOT / "logs_eval/a2_piper_pull_v5/render_v5_4"
 ALLOWED_GPUS = (4, 5, 6, 7)
 FIXTURES = ("anchor", "door", "final_eval")
 SOURCES = ("canonical", "natural")
@@ -51,8 +51,8 @@ def _read_receipt(path: Path) -> dict[str, object]:
     if not isinstance(document, dict):
         raise ValueError(f"render receipt must be a mapping: {path}")
     schema = document.get("schema")
-    if not isinstance(schema, str) or not schema.startswith("a2_piper_pull_v5_3_"):
-        raise ValueError(f"render receipt is not a v5.3 receipt: {path}")
+    if not isinstance(schema, str) or not schema.startswith("a2_piper_pull_v5_4_"):
+        raise ValueError(f"render receipt is not a v5.4 receipt: {path}")
     return document
 
 
@@ -156,9 +156,11 @@ def _validate_selection(
 def build_render_command(
     *, checkpoint: Path, gpu: int, fixture: str, source: str, output_dir: Path,
     episode_id: int, sequence: str | None, closer_bucket: str | None,
-    p0_adjudication: Path,
+    decision_path: Path = DEFAULT_DECISION, stage_a_path: Path = DEFAULT_STAGE_A,
+    rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_receipt: Path, gate_receipt: Path,
 ) -> tuple[list[str], dict[str, str]]:
-    require_p0_adjudication(p0_adjudication)
+    require_chain("anchor", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path, anchor_path=anchor_receipt)
+    require_v5_4_downstream_gate(gate_receipt, anchor_path=anchor_receipt)
     if gpu not in ALLOWED_GPUS:
         raise ValueError(f"render only permits physical GPU4-7; got GPU{gpu}")
     checkpoint = _require_file(checkpoint, "render checkpoint")
@@ -173,6 +175,7 @@ def build_render_command(
         f"checkpoint={checkpoint}", "checkpoint_load_mode=policy_only", "auto_load_latest=false",
         "num_envs=1", f"seed={episode_id}", "headless=true", "use_wandb=false",
         "+ablation=wbmanip/pull_v5_M_s0", "algo.config.load_optimizer=false",
+        "env.config.a2_v20_R1_plan_id=a2_piper_pull_v5_bridge_occupancy_and_release_persistence",
         "+algo.config.eval.eval_num_envs_episodes=true", "algo.config.eval.num_eval_episodes=1",
         "+algo.config.eval.dump_to_log_metrics=true", "algo.config.eval.save_videos=false",
         "algo.config.eval.save_trajectories=false", "algo.config.eval.num_save_episodes=1",
@@ -189,7 +192,7 @@ def build_render_command(
         "env.config.a2_pull_v5_state_bank_min_samples=64",
         "env.config.a2_pull_v5_state_bank_allow_g8_pure_a=true",
         "env.config.a2_pull_v5_state_bank_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt",
-        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_3_render_{output_dir.name}.json",
+        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_4_render_{output_dir.name}.json",
         f"+env.config.a2_pull_v5_render_episode_id={episode_id}",
         "simulator.config.render_results=true", "simulator.config.cameras.enable_cameras=true",
         f"eval_output_dir={output_dir / 'eval'}", f"hydra.run.dir={output_dir / 'hydra'}",
@@ -201,6 +204,7 @@ def build_render_command(
             raise ValueError(f"{fixture} render requires one of S1..S4")
         command.extend((
             "+env.config.a2_pull_v5_probe_enabled=true",
+            "+env.config.a2_pull_v5_scheduler_enabled=true",
             f"+env.config.a2_pull_v5_probe_fixture={fixture}",
             f"+env.config.a2_pull_v5_probe_command={sequence}",
             f"+env.config.a2_pull_v5_probe_sequence={sequence}",
@@ -243,7 +247,7 @@ def _write_index(output_dir: Path, metadata: dict[str, object], videos: list[Pat
             "command": command,
         })
     index = {
-        "schema": "a2_piper_pull_v5_3_render_index_v1",
+        "schema": "a2_piper_pull_v5_4_render_index_v1",
         "status": "PASS",
         "record_class": "render_only",
         "scientific_denominator_included": False,
@@ -266,11 +270,16 @@ def main() -> int:
     parser.add_argument("--selection", choices=("auto", "pass", "fail"), default="auto")
     parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, default=4)
     parser.add_argument("--output-dir", type=Path)
-    parser.add_argument("--p0-adjudication", type=Path, required=True)
+    parser.add_argument("--decision", type=Path, default=DEFAULT_DECISION)
+    parser.add_argument("--stage-a", type=Path, default=DEFAULT_STAGE_A)
+    parser.add_argument("--rehearsal", type=Path, default=DEFAULT_REHEARSAL)
+    parser.add_argument("--anchor-receipt", type=Path, required=True)
+    parser.add_argument("--gate-receipt", type=Path, required=True)
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
-    require_p0_adjudication(args.p0_adjudication)
+    require_chain("anchor", decision_path=args.decision, stage_a_path=args.stage_a, rehearsal_path=args.rehearsal, anchor_path=args.anchor_receipt)
+    require_v5_4_downstream_gate(args.gate_receipt, anchor_path=args.anchor_receipt)
     receipt = _read_receipt(args.receipt)
     metadata = _validate_selection(
         receipt=receipt, fixture=args.fixture, source=args.source, episode_id=args.episode_id,
@@ -286,14 +295,15 @@ def main() -> int:
         checkpoint=args.checkpoint, gpu=args.gpu, fixture=args.fixture, source=args.source,
         output_dir=output_dir, episode_id=args.episode_id, sequence=args.sequence,
         closer_bucket=args.closer_bucket,
-        p0_adjudication=args.p0_adjudication,
+        decision_path=args.decision, stage_a_path=args.stage_a,
+        rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt, gate_receipt=args.gate_receipt,
     )
     metadata["checkpoint"] = str(_require_file(args.checkpoint, "render checkpoint"))
     metadata["output_dir"] = str(output_dir)
-    print("[pull-v5.3 render] command:", " ".join(command))
-    print("[pull-v5.3 render] environment:", process_env)
+    print("[pull-v5.4 render] command:", " ".join(command))
+    print("[pull-v5.4 render] environment:", process_env)
     if not args.run:
-        print(json.dumps({"schema": "a2_piper_pull_v5_3_render_plan_v1", **metadata, "command": command, "environment": process_env}, indent=2, sort_keys=True))
+        print(json.dumps({"schema": "a2_piper_pull_v5_4_render_plan_v1", **metadata, "command": command, "environment": process_env}, indent=2, sort_keys=True))
         return 0
     output_dir.mkdir(parents=True, exist_ok=False)
     run_env = os.environ.copy()
@@ -306,7 +316,7 @@ def main() -> int:
     if not videos:
         raise RuntimeError(f"render evaluator exited zero without MP4 output: {output_dir / 'videos'}")
     index_path = _write_index(output_dir, metadata, videos, command)
-    print(json.dumps({"schema": "a2_piper_pull_v5_3_render_index_v1", "status": "PASS", "index": str(index_path), "videos": [str(path) for path in videos]}, indent=2, sort_keys=True))
+    print(json.dumps({"schema": "a2_piper_pull_v5_4_render_index_v1", "status": "PASS", "index": str(index_path), "videos": [str(path) for path in videos]}, indent=2, sort_keys=True))
     return 0
 
 

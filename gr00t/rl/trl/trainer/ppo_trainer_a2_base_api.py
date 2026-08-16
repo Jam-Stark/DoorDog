@@ -2004,6 +2004,50 @@ def _read_a2_pull_v5_characterization_config(
     }
 
 
+def _read_a2_pull_v5_4_scheduler_config(env_config, *, use_a2_base: bool) -> dict[str, object]:
+    """Validate the v5.4 probe scheduler contract before evaluator stepping."""
+
+    if not isinstance(env_config, Mapping):
+        return {"enabled": False}
+    enabled = env_config.get("a2_pull_v5_scheduler_enabled", False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError("env.config.a2_pull_v5_scheduler_enabled must be bool.")
+    if not enabled:
+        return {"enabled": False}
+    if not use_a2_base:
+        raise RuntimeError("Pull-v5.4 scheduler requires the A2_Base action path.")
+    if env_config.get("a2_v20_R1_plan_id") != _A2_PULL_V5_PLAN_ID:
+        raise RuntimeError("Pull-v5.4 scheduler requires the v5 plan guard.")
+    if env_config.get("a2_pull_v5_probe_enabled") is not True:
+        raise RuntimeError("Pull-v5.4 scheduler requires a probe-enabled evaluator.")
+    fixture = env_config.get("a2_pull_v5_probe_fixture")
+    if fixture not in {"anchor", "door", "rehearsal"}:
+        raise RuntimeError("Pull-v5.4 scheduler fixture must be anchor, door, or rehearsal.")
+    command = env_config.get("a2_pull_v5_probe_command")
+    if not isinstance(command, str) or not command:
+        raise RuntimeError("Pull-v5.4 scheduler requires a registered probe command.")
+    target_delta = env_config.get("a2_pull_v5_scheduler_rehearsal_target_yaw_delta")
+    original_target_delta = env_config.get(
+        "a2_pull_v5_scheduler_rehearsal_original_target_yaw_delta"
+    )
+    if fixture == "rehearsal":
+        if isinstance(target_delta, bool) or not isinstance(target_delta, (int, float)) or not math.isfinite(float(target_delta)):
+            raise RuntimeError("v5.4 rehearsal scheduler target delta must be finite numeric.")
+        if isinstance(original_target_delta, bool) or not isinstance(original_target_delta, (int, float)) or not math.isfinite(float(original_target_delta)):
+            raise RuntimeError("v5.4 rehearsal scheduler original target delta must be finite numeric.")
+    elif target_delta is not None:
+        raise RuntimeError("Rehearsal target delta is only valid for fixture='rehearsal'.")
+    elif original_target_delta is not None:
+        raise RuntimeError("Rehearsal original target delta is only valid for fixture='rehearsal'.")
+    return {
+        "enabled": True,
+        "fixture": fixture,
+        "command": command,
+        "target_delta": None if target_delta is None else float(target_delta),
+        "original_target_delta": None if original_target_delta is None else float(original_target_delta),
+    }
+
+
 def _a2_pull_p2_runtime_state(env, action_mean, action_layout):
     """Read the existing A2 runtime state needed by evaluator-side P2."""
 
@@ -5036,6 +5080,9 @@ class TRLPPOTrainer(PPOTrainer):
             use_a2_base=self.use_a2_base,
             p2_intervention=a2_p2_intervention,
         )
+        a2_scheduler = _read_a2_pull_v5_4_scheduler_config(
+            capture_env_config, use_a2_base=self.use_a2_base
+        )
         characterization_contract = None
         if a2_characterization["enabled"]:
             get_characterization_contract = getattr(
@@ -5046,6 +5093,7 @@ class TRLPPOTrainer(PPOTrainer):
             characterization_contract = get_characterization_contract()
         eval_to_log_records = []
         characterization_trace_records = []
+        scheduler_trace_records = []
 
         if eval_num_envs_episodes:
             max_episodes = self.env.num_envs  # One episode per environment
@@ -5455,6 +5503,15 @@ class TRLPPOTrainer(PPOTrainer):
                                 raise RuntimeError(
                                     "Pull-v5 probe requires string command and fixture selectors."
                                 )
+                            if a2_scheduler["enabled"]:
+                                set_scheduler_episode_indices = getattr(
+                                    self.env, "set_a2_pull_v5_scheduler_episode_indices", None
+                                )
+                                if set_scheduler_episode_indices is None:
+                                    raise RuntimeError(
+                                        "Pull-v5.4 scheduler requires trainer episode-index binding."
+                                    )
+                                set_scheduler_episode_indices(eval_episode_indices)
                             post_oracle_override_pre_env_action, _ = apply_pull_v5_probe(
                                 post_oracle_override_pre_env_action, command_name, fixture
                             )
@@ -5565,6 +5622,75 @@ class TRLPPOTrainer(PPOTrainer):
                                 dones_after_physics[env_id].item() > 0
                             )
                         characterization_trace_records.extend(step_characterization_rows)
+
+                    if a2_scheduler["enabled"]:
+                        if (
+                            not torch.is_tensor(dones)
+                            or dones.numel() != self.env.num_envs
+                        ):
+                            raise RuntimeError(
+                                "Pull-v5.4 scheduler requires env.step() dones with one value per environment."
+                            )
+                        consume_scheduler = getattr(
+                            self.env, "consume_a2_pull_v5_scheduler_trace_rows", None
+                        )
+                        if consume_scheduler is None:
+                            raise RuntimeError(
+                                "Pull-v5.4 scheduler requires the environment trace consumer."
+                            )
+                        step_scheduler_rows = consume_scheduler()
+                        if not isinstance(step_scheduler_rows, list):
+                            raise RuntimeError(
+                                "Pull-v5.4 scheduler trace consumer must return a list."
+                            )
+                        if len(step_scheduler_rows) != self.env.num_envs:
+                            raise RuntimeError(
+                                "Pull-v5.4 scheduler trace must emit exactly one row per environment per physics step."
+                            )
+                        dones_after_physics = dones.reshape(-1)
+                        seen_scheduler_envs: set[int] = set()
+                        for row in step_scheduler_rows:
+                            if not isinstance(row, dict):
+                                raise RuntimeError("Pull-v5.4 scheduler rows must be mappings.")
+                            env_id = row.get("env_id")
+                            if (
+                                isinstance(env_id, bool)
+                                or not isinstance(env_id, int)
+                                or env_id < 0
+                                or env_id >= self.env.num_envs
+                            ):
+                                raise RuntimeError(
+                                    f"Pull-v5.4 scheduler row has invalid env_id={env_id!r}."
+                                )
+                            if row.get("record_class") != "interface_characterization":
+                                raise RuntimeError(
+                                    "Pull-v5.4 scheduler rows must be interface_characterization records."
+                                )
+                            if row.get("scientific_denominator_included") is not False or row.get("denominator_scope") != "none":
+                                raise RuntimeError(
+                                    "Pull-v5.4 scheduler rows are diagnostic-only and require denominator=false/none."
+                                )
+                            if env_id in seen_scheduler_envs:
+                                raise RuntimeError(
+                                    f"Pull-v5.4 scheduler emitted duplicate env_id={env_id} for one physics step."
+                                )
+                            seen_scheduler_envs.add(env_id)
+                            expected_episode_index = int(eval_episode_indices[env_id].item())
+                            if row.get("episode_index") != expected_episode_index:
+                                raise RuntimeError(
+                                    "Pull-v5.4 scheduler row episode_index does not match trainer episode state."
+                                )
+                            expected_episode_id = f"{fixture}:env{env_id}:episode{expected_episode_index}"
+                            if row.get("episode_id") != expected_episode_id:
+                                raise RuntimeError(
+                                    "Pull-v5.4 scheduler row episode_id does not match trainer episode state."
+                                )
+                            row["terminal_after_step"] = bool(dones_after_physics[env_id].item() > 0)
+                        if seen_scheduler_envs != set(range(self.env.num_envs)):
+                            raise RuntimeError(
+                                "Pull-v5.4 scheduler trace env coverage does not match env.step()."
+                            )
+                        scheduler_trace_records.extend(step_scheduler_rows)
 
                     if (
                         isinstance(capture_env_config, Mapping)
@@ -5924,6 +6050,31 @@ class TRLPPOTrainer(PPOTrainer):
                 json.dump(trace_payload, stream, indent=2, allow_nan=False)
                 stream.write("\n")
             logger.info("Saved evaluator-owned HOMIE characterization trace to %s", trace_path)
+
+        if a2_scheduler["enabled"]:
+            scheduler_trace_path = Path(eval_output_dir) / "scheduler_trace.json"
+            if scheduler_trace_path.exists():
+                raise RuntimeError(
+                    f"Pull-v5.4 scheduler trace refuses to overwrite existing path: {scheduler_trace_path}"
+                )
+            scheduler_trace_path.parent.mkdir(parents=True, exist_ok=True)
+            scheduler_payload = {
+                "schema": "a2_piper_pull_v5_4_stage_b_scheduler_trace_v1",
+                "record_class": "interface_characterization",
+                "version": 1,
+                "fixture": a2_scheduler["fixture"],
+                "command": a2_scheduler["command"],
+                "target_delta": a2_scheduler["target_delta"],
+                "original_target_delta": a2_scheduler["original_target_delta"],
+                "scientific_denominator_included": False,
+                "denominator_scope": "none",
+                "terminal_timing_source": "env.step returned dones",
+                "rows": scheduler_trace_records,
+            }
+            with scheduler_trace_path.open("x", encoding="utf-8") as stream:
+                json.dump(scheduler_payload, stream, indent=2, allow_nan=False)
+                stream.write("\n")
+            logger.info("Saved evaluator-owned v5.4 scheduler trace to %s", scheduler_trace_path)
 
         if strict_v20_payload is not None:
             v20_path = os.path.join(eval_output_dir, "a2_v20_strict_telemetry.json")

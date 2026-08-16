@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare/run the Pull-v5.3 dual-source evaluation for one checkpoint."""
+"""Prepare/run the Pull-v5.4 dual-source evaluation for one checkpoint."""
 
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ import subprocess
 from pathlib import Path
 
 try:
-    from .write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from .pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, require_chain, require_v5_4_downstream_gate
 except ImportError:
-    from write_pull_v5_3_p0_adjudication import require_p0_adjudication
+    from pull_v5_4_gates import DEFAULT_DECISION, DEFAULT_REHEARSAL, DEFAULT_STAGE_A, require_chain, require_v5_4_downstream_gate
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,7 +20,7 @@ PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 EVAL_ROOT = ROOT / "logs_eval/a2_piper_pull_v5"
 ALLOWED_GPUS = (4, 5, 6, 7)
 SOURCES = ("canonical", "natural")
-VERSIONS = ("5.2", "5.3")
+VERSIONS = ("5.4",)
 INVARIANTS = (
     "fake_e4",
     "stage4_snapshot_below_hinge_gate",
@@ -259,21 +259,24 @@ def _normalize_terminal_rows(
 
 def build_command(
     *, checkpoint: Path, cell: str, step: int, source: str, gpu: int,
-    output_dir: Path, version: str = "5.3", allow_missing_checkpoint: bool = False,
-    allow_g8_pure_a: bool = False, p0_adjudication: Path,
+    output_dir: Path, version: str = "5.4", allow_missing_checkpoint: bool = False,
+    allow_g8_pure_a: bool = False, decision_path: Path = DEFAULT_DECISION,
+    stage_a_path: Path = DEFAULT_STAGE_A, rehearsal_path: Path = DEFAULT_REHEARSAL,
+    anchor_receipt: Path, gate_receipt: Path,
 ) -> tuple[list[str], dict[str, str]]:
-    require_p0_adjudication(p0_adjudication)
+    require_chain("anchor", decision_path=decision_path, stage_a_path=stage_a_path, rehearsal_path=rehearsal_path, anchor_path=anchor_receipt)
+    require_v5_4_downstream_gate(gate_receipt, anchor_path=anchor_receipt)
     if source not in SOURCES:
         raise ValueError(f"unknown evaluation source: {source!r}")
     if gpu not in ALLOWED_GPUS:
         raise ValueError(f"Pull eval only permits physical GPU4-7; got GPU{gpu}")
     tag = _version_tag(version)
     if step % 50 != 0 or step < 50 or step > 250:
-        raise ValueError("Pull-v5.2 eval checkpoints are the saved 50-step cells through step250")
+        raise ValueError("Pull-v5.4 eval checkpoints are the saved 50-step cells through step250")
     if not checkpoint.is_file() and not allow_missing_checkpoint:
         raise FileNotFoundError(checkpoint)
     if output_dir.parent.resolve() != EVAL_ROOT.resolve():
-        raise ValueError(f"Pull-v5.2 eval output must be directly under {EVAL_ROOT}")
+        raise ValueError(f"Pull-v5.4 eval output must be directly under {EVAL_ROOT}")
     reset_source = "bank_natural_e5" if source == "canonical" else "natural"
     command = [
         str(PYTHON), "-B", "-m", "gr00t.rl.eval_agent_trl",
@@ -321,11 +324,15 @@ def main() -> int:
     parser.add_argument("--cell", required=True)
     parser.add_argument("--step", type=int, required=True)
     parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, required=True)
-    parser.add_argument("--version", choices=VERSIONS, default="5.3")
+    parser.add_argument("--version", choices=VERSIONS, default="5.4")
     parser.add_argument("--output-root", type=Path, default=EVAL_ROOT)
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
-    parser.add_argument("--p0-adjudication", type=Path, required=True)
+    parser.add_argument("--decision", type=Path, default=DEFAULT_DECISION)
+    parser.add_argument("--stage-a", type=Path, default=DEFAULT_STAGE_A)
+    parser.add_argument("--rehearsal", type=Path, default=DEFAULT_REHEARSAL)
+    parser.add_argument("--anchor-receipt", type=Path, required=True)
+    parser.add_argument("--gate-receipt", type=Path, required=True)
     parser.add_argument("--allow-g8-pure-a", action="store_true")
     args = parser.parse_args()
     checkpoint = args.checkpoint.resolve()
@@ -337,14 +344,15 @@ def main() -> int:
             gpu=args.gpu, output_dir=output_dir, version=args.version,
             allow_missing_checkpoint=args.dry_run,
             allow_g8_pure_a=args.allow_g8_pure_a,
-            p0_adjudication=args.p0_adjudication,
+            decision_path=args.decision, stage_a_path=args.stage_a,
+            rehearsal_path=args.rehearsal, anchor_receipt=args.anchor_receipt, gate_receipt=args.gate_receipt,
         )
         print(f"[pull-{args.version} eval {source}] command:", " ".join(command))
         print(f"[pull-{args.version} eval {source}] environment:", process_env)
         if not args.run:
             continue
         if output_dir.exists():
-            raise FileExistsError(f"refusing to overwrite Pull-v5.2 eval output: {output_dir}")
+            raise FileExistsError(f"refusing to overwrite Pull-v5.4 eval output: {output_dir}")
         output_dir.mkdir(parents=True, exist_ok=False)
         run_env = os.environ.copy(); run_env.update(process_env)
         with (output_dir / "runner.log").open("x", encoding="utf-8") as stream:
@@ -353,10 +361,10 @@ def main() -> int:
             return result.returncode
         metrics_path = output_dir / "eval" / "metrics_eval.json"
         if not metrics_path.is_file():
-            raise RuntimeError(f"Pull-v5.2 eval exited without terminal metrics: {metrics_path}")
+            raise RuntimeError(f"Pull-v5.4 eval exited without terminal metrics: {metrics_path}")
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         if not isinstance(metrics, dict):
-            raise ValueError("Pull-v5.2 evaluator metrics must be a mapping")
+            raise ValueError("Pull-v5.4 evaluator metrics must be a mapping")
         terminal = _normalize_terminal_rows(
             metrics, cell=args.cell, checkpoint=checkpoint, source=source, version=args.version,
         )
@@ -385,7 +393,10 @@ def main() -> int:
                 "natural": ["natural"],
                 "training_injection_enabled": False,
             },
-            "p0_adjudication_path": str(args.p0_adjudication.resolve()),
+            "plan_id": "a2_piper_pull_v5_4_terminal_yaw_scheduler",
+            "scientific_denominator_included": True,
+            "denominator_scope": "dual_source_terminal_eval",
+            "anchor_receipt_path": str(args.anchor_receipt.resolve()),
         }
         (output_dir / "eval_receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(json.dumps(receipt, indent=2, sort_keys=True))

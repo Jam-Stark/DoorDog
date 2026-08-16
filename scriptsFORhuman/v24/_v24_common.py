@@ -17,6 +17,7 @@ from typing import Any, Iterator, Mapping
 REPO_ROOT = Path(__file__).resolve().parents[2]
 V24_ARTIFACT_ROOT = REPO_ROOT / "logs_eval/base_v24"
 V24_P0_ROOT = V24_ARTIFACT_ROOT / "p0/v23_posthoc"
+V24_CHECKPOINT_FREEZE_ROOT = V24_ARTIFACT_ROOT / "p0/checkpoint_freeze"
 
 V23_ROUTE_B_PATH = REPO_ROOT / "logs_eval/base_v23/postformal_gpu8_orchestration_r7/V23_ROUTE_B.json"
 V23_STRATIFIED_PATH = REPO_ROOT / "logs_eval/base_v23/postformal_gpu8_orchestration_r7/V23_STRATIFIED_EVAL.json"
@@ -25,6 +26,7 @@ V23_FREEZE_PATH = REPO_ROOT / "logs_eval/base_v23/postformal_gpu8_orchestration_
 V23_HOLDOUT_PATH = REPO_ROOT / "logs_eval/base_v23/postformal_gpu8_orchestration_r8_holdout/holdout_receipt.json"
 V23_FINAL_PATH = REPO_ROOT / "logs_eval/base_v23/final_analysis/V23_FINAL_ANALYSIS.json"
 V23_P05_BANDS_PATH = REPO_ROOT / "logs_eval/base_v23/p0/r35_p05_cert_20260809/p05_bands.json"
+V23_ROUTE_A_ROOT = REPO_ROOT / "logs_eval/base_v23/route_a"
 
 EXPECTED_CANDIDATES = 16
 EXPECTED_REALIZED_EPISODES = 768
@@ -195,6 +197,8 @@ __all__ = [
     "V23_ROUTE_B_PATH",
     "V23_STRATIFIED_PATH",
     "V24_P0_ROOT",
+    "V24_CHECKPOINT_FREEZE_ROOT",
+    "V23_ROUTE_A_ROOT",
     "V24Error",
     "absolute",
     "finite_number",

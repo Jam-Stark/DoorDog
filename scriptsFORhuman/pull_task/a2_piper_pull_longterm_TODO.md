@@ -62,8 +62,8 @@
 - **触发:** pull E7 稳定后,与第 5 条(10 N profile)合并设计一轮。
 - **做法要点:** 以 10 N/45 N × 固定几何的分层对照读 base 介入量变化,直接喂论文 DV。
 
-## 11. HOMIE 世界坐标 waypoint + terminal yaw-hold interface (2026-08-16 16:58 HKT — v5.3 H-D)
+## 11. HOMIE terminal-yaw three-rung ladder (2026-08-16 23:44 HKT — v5.4 Stage-B FAIL)
 
-- **已完成的接口表征:** v5.3 P0 完成 `44/44` cells×`8` env，diagnostic `interface_characterization` 不入 scientific denominator，T1/T2/T4 exact windows=`150/200/300` steps。`u=-2` 在 T1/T2/T4 的两秒 zero-command hold drift mean=`-0.226979/-0.219226/-0.216827 rad`，每 cell `8/8` 超 absolute `0.15 rad`；`u=-0.8,T1` mean=`-0.154359 rad`、`5/8` 超。frozen HOMIE 在 high-|u| 区域 rate-like 但 asymmetric，终点 hold 不合格，选 H-D；它不能解释为 door-side passage zero。
-- **停车与触发:** P1 mapping fix、anchor、door buckets、G2、P3/P4、dual-source eval/render 均 `NOT_RUN`，无 passage denominator。下一次门侧 occupancy/traversal round 前此项保持 parked；只有用户以新 approved contract 选择 residual yaw adapter/policy 或 HOMIE fine-tune 时才能重新进入。不得放宽 immutable `0.05 m/0.15 rad`。
-- **边界:** v5.2 terminal-current-state rule-5 与 v5.1 S1/S2 initialization latch 事实仍为 version-scoped。唯一 formal review 仍 `FAIL`；H-D fail-closed artifact、dones-derived terminal telemetry、independent declared-versus-actual provenance 已 targeted-fixed/runtime-accepted，不构成第二轮 reviewer PASS。
+- **第一 rung（scheduler，已完成/失败）:** v5.3 `44` traces、`352` env trajectories、`75,200` rows支持 Stage A `GO`；selected raw `+0.05` realized yaw 却为 negative。v5.4 Stage B 的 sole shared correction=`-0.3672668933868408 rad` 将两组 corrected max error 降至 `0.0900235176/0.0588076115 rad`，但全部 `16` corrected rows `trim_step_cap_exceeded`、scheduler `FAILED`、terminal-current false、`terminal_hold_steps=0`、无 `DONE`。数值 error≤`0.15 rad` 不满足 terminal-current/100-step-hold contract，故 valid Stage B `FAIL`，零 G3 attempt。
+- **第二 rung（residual terminal-hold adapter，已激活）:** 下一项必须是用户另发的 v5.5 planner contract；本轮 worker 未启动 residual。anchor、door buckets、G2、P3/P4、dual-source eval/render 保持 `NOT_RUN`，无 passage denominator，stopping condition 未满足。Earlier G9 invalid/blocked attempts 不入 science；valid Stage B diagnostics denominator=false/none。
+- **第三 rung（HOMIE fine-tune，deferred）:** 仅当 residual route 被证伪后才可进入，当前 indefinitely deferred。immutable `0.05 m/0.15 rad` 不得放宽。v5.2 terminal-current rule-5、v5.1 initialization-latch 与 v5.3 H-D 仍 version-scoped。唯一 formal review 仍 `FAIL`；targeted fixes/runtime acceptance 不构成 reviewer PASS 或第二轮 review。

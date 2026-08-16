@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-16 16:58 HKT — pull-v5.3 已完成 44-cell ×8-env HOMIE locomotion-interface characterization 并选定 H-D/G11：high-|u| yaw 为 rate-like 但 asymmetric，negative-command terminal zero-hold drift 违反 immutable `0.15 rad`。P1 mapping/anchor/door/G2/P3/P4/dual-source eval/render 均 NOT_RUN，无 passage denominator，stopping condition 未满足。唯一 formal review 仍 FAIL；三项 finding 已 targeted-fixed/bounded-accepted，非第二轮 reviewer PASS。residual yaw adapter/policy 或 HOMIE fine-tune 是用户-owned decision；v5.2/v5.1 保持 version-scoped。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-16 23:44 HKT — pull-v5.4 terminal-yaw scheduler 完成 Stage A `GO`，但 valid Stage B rehearsal 在 shared correction 后仍因 zero terminal hold 而 `FAIL`/G11 close。数值误差进入 immutable `0.15 rad` 不等于 terminal-current/100-step-hold 成功；anchor/door/G2/P3/P4/dual-source eval/render 均 NOT_RUN，无 passage denominator。下一 rung 是 v5.5 residual terminal-hold adapter precommit；HOMIE fine-tune 仅在 residual 被证伪后考虑。唯一 formal review 仍 FAIL，targeted acceptance 非 reviewer PASS；v5.3/v5.2/v5.1 保持 version-scoped。
 
 ## Update Rules
 

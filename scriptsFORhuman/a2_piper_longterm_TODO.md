@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-16 16:58 HKT (pull-v5.3 H-D/G11 closure)。
+创建:2026-07-21;最近更新:2026-08-16 23:44 HKT (pull-v5.4 scheduler Stage-A GO / Stage-B FAIL closure)。
 
 ---
 
@@ -39,7 +39,7 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| Pull HOMIE 世界坐标 waypoint + terminal yaw-hold interface / residual-policy 决策 | **已完成独立表征并选 H-D；下一次门侧 occupancy round 前保持 parked，等待用户的新 approved contract** | pull-v5.3 P0=`44/44` cells×`8` env：`u=-2` T1/T2/T4 两秒 hold drift mean=`-0.226979/-0.219226/-0.216827 rad`、每 cell `8/8` 超 `0.15 rad`；`u=-0.8,T1` 为 `-0.154359 rad`、`5/8` 超。HOMIE high-|u| rate-like 但 asymmetric，terminal hold FAIL；不得当作 door-side passage zero，也不得放宽 `0.05 m/0.15 rad`。下一决策为 residual yaw adapter/policy 或 HOMIE fine-tune，非本轮自行实施。|
+| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **scheduler 已完成/失败；residual terminal-hold adapter 已激活，等待用户 v5.5 planner contract；fine-tune 仅在 residual 被证伪后 indefinitely deferred** | v5.4 Stage A=`GO`（44 traces/352 trajectories/75,200 rows；selected raw `+0.05` realized yaw negative）。Stage B sole shared correction 后 max error=`0.0900235176/0.0588076115 rad` 虽在 `0.15 rad` 内，但 `16/16` corrected rows `trim_step_cap_exceeded`、terminal-current false、100-step hold=`0`、无 `DONE`，故 valid `FAIL`；不得当作 passage zero，也不得放宽 `0.05 m/0.15 rad`。|
 
 ## E. 维护性挂账(小,勿丢)
 
@@ -50,6 +50,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-16 23:44 HKT:**pull-v5.4 terminal-yaw scheduler 收口(Stage A GO / Stage B FAIL / G11)**——Stage A 使用 `44` traces、`352` env trajectories、`75,200` rows，selected raw `+0.05` 的 realized yaw 为 negative。Stage B sole shared correction=`-0.3672668933868408 rad` 后两组 corrected max error=`0.0900235176/0.0588076115 rad`，皆低于 `0.15 rad`；但全部 `16` corrected rows `trim_step_cap_exceeded`、terminal-current false、100-step hold=`0`、无 `DONE`，所以 valid rehearsal `FAIL`、零 G3 attempt。Earlier G9 attempts invalid/blocked 且不入 science；valid diagnostics denominator=false/none。anchor/door/G2/P3/P4/dual eval/render 均 NOT_RUN，无 passage denominator，stopping condition 未达。唯一 formal review 仍 FAIL；targeted/runtime acceptance 不构成 reviewer PASS。三 rung ladder 转入 residual terminal-hold adapter v5.5 precommit；HOMIE fine-tune 仅 residual 被证伪后考虑。依据：`scriptsFORhuman/pull_v5/PULL_V5_4_ROUND_REPORT.md`。
 
 - [x] 2026-08-16 16:58 HKT:**pull-v5.3 HOMIE interface characterization 收口(H-D/G11,未达门侧 P1)**——P0 完成 `44/44` cells×`8` env，diagnostic `interface_characterization` 不进入 scientific denominator，T1/T2/T4 exact windows=`150/200/300` steps。`u=-2` T1/T2/T4 两秒 hold drift mean=`-0.226979/-0.219226/-0.216827 rad`，每 cell `8/8` 超 `0.15 rad`；`u=-0.8,T1` mean=`-0.154359 rad`、`5/8` 超，选 H-D。frozen HOMIE high-|u| rate-like 但 asymmetric，terminal zero-command hold FAIL。P1 mapping fix、anchor、door buckets、G2、P3/P4、dual-source eval/render 均 NOT_RUN，无 passage denominator，stopping condition 未达。唯一 formal review 仍 FAIL；H-D gate、dones-derived terminal telemetry、independent provenance 已 targeted-fixed/runtime-accepted，不构成第二轮 reviewer PASS。下一架构决策留给用户：residual yaw adapter/policy 或 HOMIE fine-tune。依据：`scriptsFORhuman/pull_v5/PULL_V5_3_ROUND_REPORT.md`。
 

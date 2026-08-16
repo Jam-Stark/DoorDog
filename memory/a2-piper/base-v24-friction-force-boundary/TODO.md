@@ -1,5 +1,5 @@
 # TODO
 
-- 2026-08-16 18:00 HKT - P0: after P1 default-off hooks, run deterministic `friction=off, gate=off` observation/action/terminal parity and foot-GRF runtime feature detection. `DoorMechanicsUnitContractV1`, `V23_POSTHOC_ANALYSIS.{json,md}`, warm-start selection/identity, and static compatibility freeze are complete; CPU static evidence does not prove IsaacSim parity.
-- 2026-08-16 22:05 HKT - P1 H/I: A–G physical characterization is complete at `logs_eval/base_v24/p1/friction_backend/a_g_acceptance_r9_gpu0/P1_A_G_RECEIPT.json`; retain `V24_FRICTION_AUTHORITY_INSUFFICIENT` for literal D and do not call it `MODEL_VALID`. Complete H production-reset runtime persistence and I P0 parity receipt; parameter-range freeze is not performed. P2/P3 are only considered after an admissible P1 result and are not admitted by the A–G smoke.
-- 2026-08-16 15:51 HKT - Conditional science waves: if Phase 3 is GO, run Wave 1 S0/S1 with Route A, Route B, RQ3/RQ4 and shadow critic; run Wave 2a and only conditionally Wave 2b; close final analysis, ledger, memory, and local commits.
+## Terminal State
+
+2026-08-17 00:01 HKT - No active base_v24 work remains under R1. `V24_FRICTION_AUTHORITY_INSUFFICIENT` stops at the P1 authority gate: P2/P3 and all conditional waves are not admitted. Any future downstream work requires a newly authorized plan and new authority; it is not a current TODO.

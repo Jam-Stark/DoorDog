@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Strict dual-source Pull-v5.2 terminal-record analyzer.
+"""Strict dual-source Pull-v5.3 terminal-record analyzer.
 
 Only explicit terminal episode collections are accepted.  Step traces, control
 records, and recursively discovered nested mappings are intentionally rejected
@@ -18,8 +18,9 @@ from typing import Any, Iterable, Mapping
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "logs_eval/a2_piper_pull_v5"
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_2_ANALYSIS.json"
+DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_3_ANALYSIS.json"
 TERMINAL_FILENAME = "terminal_records.json"
+VERSIONS = ("5.2", "5.3")
 INVARIANTS = (
     "fake_e4",
     "stage4_snapshot_below_hinge_gate",
@@ -35,20 +36,32 @@ INVARIANTS = (
 )
 
 
-def _json_documents(input_roots: Iterable[Path]) -> Iterable[tuple[Path, Any]]:
-    """Read only explicitly supplied v5.2 cell roots; never recurse a log tree."""
+def _version_tag(version: str) -> str:
+    if version not in VERSIONS:
+        raise ValueError(f"unsupported Pull version: {version!r}")
+    return f"v{version.replace('.', '_')}"
+
+
+def _canonical_reset_source(value: object) -> bool:
+    return isinstance(value, str) and value.startswith("bank_")
+
+
+def _json_documents(input_roots: Iterable[Path], *, version: str) -> Iterable[tuple[Path, Any]]:
+    """Read only explicitly supplied versioned cell roots; never recurse a log tree."""
+
+    tag = _version_tag(version)
 
     for root in input_roots:
         root = root.resolve()
         if root.is_file():
             if root.name != TERMINAL_FILENAME:
                 raise ValueError(f"an explicit analyzer file must be named {TERMINAL_FILENAME}: {root}")
-            if root.parent.parent.resolve() != DEFAULT_INPUT.resolve() or not root.parent.name.startswith("pull_v5_2_"):
-                raise ValueError(f"analyzer terminal file must be under an explicit pull_v5_2_* directory: {root}")
+            if root.parent.parent.resolve() != DEFAULT_INPUT.resolve() or not root.parent.name.startswith(f"{tag}_"):
+                raise ValueError(f"analyzer terminal file must be under an explicit {tag}_* directory: {root}")
             path = root
         elif root.is_dir():
-            if root.parent.resolve() != DEFAULT_INPUT.resolve() or not root.name.startswith("pull_v5_2_"):
-                raise ValueError(f"analyzer cell root must be an explicit pull_v5_2_* directory under {DEFAULT_INPUT}: {root}")
+            if root.parent.resolve() != DEFAULT_INPUT.resolve() or not root.name.startswith(f"{tag}_"):
+                raise ValueError(f"analyzer cell root must be an explicit {tag}_* directory under {DEFAULT_INPUT}: {root}")
             path = root / TERMINAL_FILENAME
             if not path.is_file():
                 raise FileNotFoundError(path)
@@ -106,8 +119,11 @@ def _source(row: Mapping[str, Any]) -> str:
     value = row.get("reset_source")
     if value is None and isinstance(row.get("pull_v5"), Mapping):
         value = row["pull_v5"].get("reset_source")
-    if value != "natural" and value != "bank_natural_e5_override":
-        raise ValueError(f"terminal row reset_source must be natural or bank_natural_e5_override; got {value!r}")
+    if value != "natural" and not _canonical_reset_source(value):
+        raise ValueError(
+            "terminal row reset_source must be natural or a bank_* provenance; "
+            f"got {value!r}"
+        )
     return str(value)
 
 
@@ -126,17 +142,21 @@ def _invariant_values(row: Mapping[str, Any]) -> dict[str, bool]:
     return values
 
 
-def _normalize(row: Mapping[str, Any]) -> dict[str, Any]:
-    if row.get("schema") != "a2_piper_pull_v5_2_terminal_record_v1":
-        raise ValueError("terminal row schema must be a normalized Pull-v5.2 terminal record")
+def _normalize(row: Mapping[str, Any], *, version: str) -> dict[str, Any]:
+    expected_schema = f"a2_piper_pull_v{version.replace('.', '_')}_terminal_record_v1"
+    if row.get("schema") != expected_schema:
+        raise ValueError(f"terminal row schema must be {expected_schema}")
     run_id = _required_string(row, "run_id")
     cell = _required_string(row, "cell")
     checkpoint = _required_string(row, "checkpoint")
     episode_id = row.get("episode_id")
     if isinstance(episode_id, bool) or not isinstance(episode_id, int) or episode_id < 0:
         raise ValueError("terminal row episode_id must be a non-negative integer")
+    for terminal_flag in ("terminal", "is_terminal"):
+        if terminal_flag in row and row[terminal_flag] is not True:
+            raise ValueError(f"terminal row {episode_id} is nonterminal")
     source_provenance = _source(row)
-    source = "canonical_bank" if source_provenance == "bank_natural_e5_override" else "natural"
+    source = "canonical_bank" if _canonical_reset_source(source_provenance) else "natural"
     declared_source = row.get("source")
     if declared_source not in {"canonical_bank", "natural"} or declared_source != source:
         raise ValueError(
@@ -226,18 +246,18 @@ def _bucket(force: float) -> str:
     return "outside"
 
 
-def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
+def analyze(input_roots: Iterable[Path], *, version: str = "5.3") -> dict[str, Any]:
     if isinstance(input_roots, (str, Path)):
         input_roots = [Path(input_roots)]
     raw_rows: list[dict[str, Any]] = []
     roots = [Path(root).resolve() for root in input_roots]
     if not roots:
-        raise ValueError("analyzer requires at least one explicit v5.2 cell root")
-    for path, document in _json_documents(roots):
+        raise ValueError("analyzer requires at least one explicit cell root")
+    for path, document in _json_documents(roots, version=version):
         raw_rows.extend(_terminal_rows(path, document))
     if not raw_rows:
         raise ValueError("no explicit terminal episode records found")
-    rows = [_normalize(row) for row in raw_rows]
+    rows = [_normalize(row, version=version) for row in raw_rows]
     seen: set[tuple[str, str, str, int, str]] = set()
     groups: dict[tuple[str, str], Counter[str]] = defaultdict(Counter)
     violations = Counter({name: 0 for name in INVARIANTS})
@@ -328,8 +348,10 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
         return result
 
     return {
-        "schema": "a2_piper_pull_v5_2_analysis_v1",
+        "schema": f"a2_piper_pull_v{version.replace('.', '_')}_analysis_v1",
+        "version": version,
         "status": status,
+        "scientific_denominator_included": True,
         "input_roots": [str(root) for root in roots],
         "episode_count": len(rows),
         "cell_checkpoint_counts": {f"{cell}|{checkpoint}": dict(counts) for (cell, checkpoint), counts in groups.items()},
@@ -349,6 +371,11 @@ def analyze(input_roots: Iterable[Path]) -> dict[str, Any]:
             for source in ("canonical_bank", "natural")
         },
         "invariants": {name: {"status": "FAIL" if count else "PASS", "violations": count} for name, count in violations.items()},
+        "population_isolation": {
+            "canonical_reset_sources": sorted({row["source_provenance"] for row in rows if row["source"] == "canonical_bank"}),
+            "natural_reset_sources": sorted({row["source_provenance"] for row in rows if row["source"] == "natural"}),
+            "canonical_counted_as_natural": sum(1 for row in rows if row["source"] == "canonical_bank" and row["dv_source"] == "natural"),
+        },
     }
 
 
@@ -357,11 +384,33 @@ def main() -> int:
     parser.add_argument("--input-root", type=Path)
     parser.add_argument("--cell-root", type=Path, action="append", dest="cell_roots")
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--version", choices=VERSIONS, default="5.3")
+    parser.add_argument(
+        "--not-run", action="store_true",
+        help="write an explicit NOT_RUN closure without inventing a zero denominator",
+    )
+    parser.add_argument("--not-run-reason", default="downstream gate not opened")
     args = parser.parse_args()
+    if args.not_run:
+        report = {
+            "schema": f"a2_piper_pull_v{args.version.replace('.', '_')}_analysis_v1",
+            "version": args.version,
+            "status": "NOT_RUN",
+            "scientific_denominator_included": False,
+            "reason": args.not_run_reason,
+            "episode_count": 0,
+            "sources": {"canonical": None, "natural": None},
+            "invariants": {name: {"status": "NOT_RUN", "violations": None} for name in INVARIANTS},
+        }
+        output = args.output.resolve()
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return 0
     roots = args.cell_roots or ([args.input_root] if args.input_root is not None else None)
     if roots is None:
         raise SystemExit("analyzer requires --cell-root at least once")
-    report = analyze(roots)
+    report = analyze(roots, version=args.version)
     output = args.output.resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")

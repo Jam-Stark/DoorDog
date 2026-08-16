@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare/run the Pull-v5.2 dual-source evaluation for one checkpoint."""
+"""Prepare/run the Pull-v5.3 dual-source evaluation for one checkpoint."""
 
 from __future__ import annotations
 
@@ -9,12 +9,18 @@ import os
 import subprocess
 from pathlib import Path
 
+try:
+    from .write_pull_v5_3_p0_adjudication import require_p0_adjudication
+except ImportError:
+    from write_pull_v5_3_p0_adjudication import require_p0_adjudication
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
 EVAL_ROOT = ROOT / "logs_eval/a2_piper_pull_v5"
 ALLOWED_GPUS = (4, 5, 6, 7)
 SOURCES = ("canonical", "natural")
+VERSIONS = ("5.2", "5.3")
 INVARIANTS = (
     "fake_e4",
     "stage4_snapshot_below_hinge_gate",
@@ -28,6 +34,16 @@ INVARIANTS = (
     "failed_settle_not_in_bank",
     "override_active_outside_canonical_start",
 )
+
+
+def _version_tag(version: str) -> str:
+    if version not in VERSIONS:
+        raise ValueError(f"unsupported Pull version: {version!r}")
+    return f"v{version.replace('.', '_')}"
+
+
+def _canonical_reset_sources() -> tuple[str, ...]:
+    return ("bank_natural_e5", "bank_natural_e5_plus", "bank_constructed", "bank_natural_e5_override")
 
 
 def _nested_value(row: dict[str, object], *paths: tuple[str, ...]) -> object:
@@ -74,12 +90,12 @@ def _event_map(row: dict[str, object]) -> dict[str, bool]:
 
 
 def _normalize_terminal_rows(
-    metrics: dict[str, object], *, cell: str, checkpoint: Path, source: str,
+    metrics: dict[str, object], *, cell: str, checkpoint: Path, source: str, version: str,
 ) -> list[dict[str, object]]:
     raw = metrics.get("episode_terminal_diagnostics")
     if not isinstance(raw, list) or len(raw) != 16 or not all(isinstance(row, dict) for row in raw):
-        raise ValueError("Pull-v5.2 evaluator requires exactly 16 explicit terminal diagnostics")
-    expected_source = "bank_natural_e5_override" if source == "canonical" else "natural"
+        raise ValueError("Pull evaluator requires exactly 16 explicit terminal diagnostics")
+    expected_source = _canonical_reset_sources() if source == "canonical" else ("natural",)
     normalized: list[dict[str, object]] = []
     seen_env_ids: set[int] = set()
     for row in raw:
@@ -92,11 +108,31 @@ def _normalize_terminal_rows(
                 raise ValueError(f"terminal producer row {env_id} is nonterminal")
         source_provenance = _nested_value(row, ("pull_v5", "reset_source"), ("reset_source",))
         if source == "canonical":
-            if source_provenance != expected_source:
+            if source_provenance not in expected_source:
                 raise ValueError(f"canonical evaluator row {env_id} has invalid reset_source {source_provenance!r}")
-        elif source_provenance != expected_source:
+        elif source_provenance not in expected_source:
             raise ValueError(f"natural evaluator row {env_id} has reset_source {source_provenance!r}")
         source_provenance = str(source_provenance)
+        declared_provenance = _nested_value(
+            row,
+            ("pull_v5", "declared_reset_source"),
+            ("declared_reset_source",),
+        )
+        if not isinstance(declared_provenance, str) or not declared_provenance:
+            raise ValueError(f"terminal producer row {env_id} is missing declared_reset_source")
+        declared_group = "bank" if declared_provenance.startswith("bank_") else "natural"
+        expected_group = "bank" if source == "canonical" else "natural"
+        if declared_group != expected_group:
+            raise ValueError(
+                f"{source} evaluator row {env_id} declares {declared_provenance!r}, "
+                f"expected {expected_group} provider"
+            )
+        actual_group = "bank" if source_provenance.startswith("bank_") else "natural"
+        if actual_group != declared_group:
+            raise ValueError(
+                f"terminal producer row {env_id} mixes declared={declared_provenance!r} "
+                f"with actual={source_provenance!r} provenance"
+            )
         dv_source = "canonical_bank" if source_provenance.startswith("bank_") else "natural"
         traversal = row.get("pull_v3_traversal")
         if not isinstance(traversal, dict):
@@ -179,14 +215,15 @@ def _normalize_terminal_rows(
         )
         normalized.append(
             {
-                "schema": "a2_piper_pull_v5_2_terminal_record_v1",
-                "run_id": f"pull_v5_2_{cell}_step{checkpoint.stem.rsplit('_', 1)[-1]}_{source}",
+                "schema": f"a2_piper_pull_v{version.replace('.', '_')}_terminal_record_v1",
+                "run_id": f"pull_v{version.replace('.', '_')}_{cell}_step{checkpoint.stem.rsplit('_', 1)[-1]}_{source}",
                 "cell": cell,
                 "checkpoint": str(checkpoint),
                 "episode_id": env_id,
                 "env_id": env_id,
                 "source": "canonical_bank" if dv_source == "canonical_bank" else "natural",
                 "source_provenance": source_provenance,
+                "declared_reset_source": declared_provenance,
                 "reset_source": source_provenance,
                 "dv_source": dv_source,
                 "frame_passage": frame_passage,
@@ -222,13 +259,15 @@ def _normalize_terminal_rows(
 
 def build_command(
     *, checkpoint: Path, cell: str, step: int, source: str, gpu: int,
-    output_dir: Path, allow_missing_checkpoint: bool = False,
-    allow_g8_pure_a: bool = False,
+    output_dir: Path, version: str = "5.3", allow_missing_checkpoint: bool = False,
+    allow_g8_pure_a: bool = False, p0_adjudication: Path,
 ) -> tuple[list[str], dict[str, str]]:
+    require_p0_adjudication(p0_adjudication)
     if source not in SOURCES:
         raise ValueError(f"unknown evaluation source: {source!r}")
     if gpu not in ALLOWED_GPUS:
-        raise ValueError(f"Pull-v5.2 eval only permits physical GPU4-7; got GPU{gpu}")
+        raise ValueError(f"Pull eval only permits physical GPU4-7; got GPU{gpu}")
+    tag = _version_tag(version)
     if step % 50 != 0 or step < 50 or step > 250:
         raise ValueError("Pull-v5.2 eval checkpoints are the saved 50-step cells through step250")
     if not checkpoint.is_file() and not allow_missing_checkpoint:
@@ -257,7 +296,7 @@ def build_command(
         "env.config.a2_pull_v5_state_bank_min_samples=64",
         f"env.config.a2_pull_v5_state_bank_allow_g8_pure_a={'true' if allow_g8_pure_a else 'false'}",
         "env.config.a2_pull_v5_state_bank_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt",
-        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_2_eval_{cell}_step{step}_{source}.json",
+        f"env.config.a2_pull_v5_load_receipt_path=logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_{tag}_eval_{cell}_step{step}_{source}.json",
         f"eval_output_dir={output_dir / 'eval'}", f"hydra.run.dir={output_dir / 'hydra'}",
         f"env.config.save_rendering_dir={output_dir / 'renderings'}", "+device=cuda:0",
         f"+main_process_port={30100 + gpu * 100 + step * 2 + (0 if source == 'canonical' else 1)}",
@@ -282,21 +321,26 @@ def main() -> int:
     parser.add_argument("--cell", required=True)
     parser.add_argument("--step", type=int, required=True)
     parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, required=True)
+    parser.add_argument("--version", choices=VERSIONS, default="5.3")
     parser.add_argument("--output-root", type=Path, default=EVAL_ROOT)
     parser.add_argument("--run", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--p0-adjudication", type=Path, required=True)
     parser.add_argument("--allow-g8-pure-a", action="store_true")
     args = parser.parse_args()
     checkpoint = args.checkpoint.resolve()
+    tag = _version_tag(args.version)
     for source in SOURCES:
-        output_dir = (args.output_root / f"pull_v5_2_{args.cell}_step{args.step}_{source}").resolve()
+        output_dir = (args.output_root / f"{tag}_{args.cell}_step{args.step}_{source}").resolve()
         command, process_env = build_command(
             checkpoint=checkpoint, cell=args.cell, step=args.step, source=source,
-            gpu=args.gpu, output_dir=output_dir, allow_missing_checkpoint=args.dry_run,
+            gpu=args.gpu, output_dir=output_dir, version=args.version,
+            allow_missing_checkpoint=args.dry_run,
             allow_g8_pure_a=args.allow_g8_pure_a,
+            p0_adjudication=args.p0_adjudication,
         )
-        print(f"[pull-v5.2 eval {source}] command:", " ".join(command))
-        print(f"[pull-v5.2 eval {source}] environment:", process_env)
+        print(f"[pull-{args.version} eval {source}] command:", " ".join(command))
+        print(f"[pull-{args.version} eval {source}] environment:", process_env)
         if not args.run:
             continue
         if output_dir.exists():
@@ -313,11 +357,13 @@ def main() -> int:
         metrics = json.loads(metrics_path.read_text(encoding="utf-8"))
         if not isinstance(metrics, dict):
             raise ValueError("Pull-v5.2 evaluator metrics must be a mapping")
-        terminal = _normalize_terminal_rows(metrics, cell=args.cell, checkpoint=checkpoint, source=source)
+        terminal = _normalize_terminal_rows(
+            metrics, cell=args.cell, checkpoint=checkpoint, source=source, version=args.version,
+        )
         terminal_path = output_dir / "terminal_records.json"
         terminal_path.write_text(json.dumps(terminal, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         receipt = {
-            "schema": "a2_piper_pull_v5_2_eval_receipt_v1",
+            "schema": f"a2_piper_pull_v{args.version.replace('.', '_')}_eval_receipt_v1",
             "status": "PASS",
             "cell": args.cell,
             "checkpoint": str(checkpoint),
@@ -331,9 +377,15 @@ def main() -> int:
             "start_override_enabled": True,
             "start_override_steps": 50,
             "load_optimizer": False,
-            "load_receipt_path": str((ROOT / f"logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_v5_2_eval_{args.cell}_step{args.step}_{source}.json").resolve()),
+            "load_receipt_path": str((ROOT / f"logs_rl/a2_piper_full_stage_a2_pull/pull_v5_load_receipts/pull_{tag}_eval_{args.cell}_step{args.step}_{source}.json").resolve()),
             "terminal_records_path": str(terminal_path.resolve()),
             "reset_sources": sorted({row["reset_source"] for row in terminal}),
+            "reset_source_contract": {
+                "canonical": list(_canonical_reset_sources()),
+                "natural": ["natural"],
+                "training_injection_enabled": False,
+            },
+            "p0_adjudication_path": str(args.p0_adjudication.resolve()),
         }
         (output_dir / "eval_receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         print(json.dumps(receipt, indent=2, sort_keys=True))

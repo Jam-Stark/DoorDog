@@ -1,23 +1,30 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface closure
 status: active
-last_updated: 2026-08-15 03:08 HKT
+last_updated: 2026-08-16 16:58 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续任何新的 occupancy/traversal round，或复用 pull-v5.2 anchor boundary / pull-v5.1 closure / pull-v4 负结果前
+  - 继续任何新的 occupancy/traversal round，或复用 pull-v5.3 H-D interface boundary / pull-v5.2 anchor boundary / pull-v5.1 closure / pull-v4 负结果前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1/v5.2 closure)
+# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1/v5.2/v5.3 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence 与 pull-v5.2 anchored-probe closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe 与 pull-v5.3 locomotion-interface closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v5.3 HOMIE Locomotion-Interface Closure (2026-08-16 16:58 HKT) — H-D/G11 stop
+
+- P0 完成 `44/44` 个 versioned `interface_characterization` cell、每 cell `8` 个 env；诊断记录严格排除 scientific numerator/denominator。T1/T2/T4 的诊断窗口分别精确为 `150/200/300` steps，P0 不改变 frozen stage topology。
+- H-D 由 immutable terminal zero-command hold 判据选定：`u=-2` 的 T1/T2/T4 两秒 hold drift mean 分别为 `-0.226979/-0.219226/-0.216827 rad`，每 cell `8/8` 均超过 absolute `0.15 rad`；`u=-0.8,T1` mean=`-0.154359 rad`，`5/8` 超过。frozen HOMIE high-|u| 响应呈 rate-like 但 asymmetric；这不是可由 probe-side gain/sign patch 修复的门侧结论。
+- P1 mapping fix、narrow anchor、door closer buckets、G2、P3/P4、dual-source eval 与 render 均 `NOT_RUN`，无 door-side passage denominator；canonical+natural `frame_passage` stopping condition 未满足。`0.05 m/0.15 rad` 阈值不可放宽。
+- 唯一 formal review verdict 为 `FAIL`。H-D fail-closed artifact、由 `dones` 派生的 terminal telemetry、independent declared-versus-actual provenance 已定向修复并通过 bounded acceptance；按用户一轮 review 约束未运行第二轮，绝不表述为 reviewer PASS。下一步 residual yaw adapter/policy 或 HOMIE fine-tune 必须由用户以新 approved contract 决定；v5.2 terminal-current-state rule-5 与 v5.1 P2/F5/G8 保持 version-scoped。
 
 ## Pull-v5.2 Anchored Probe Closure (2026-08-15 03:08 HKT) — G3/G11 stop
 

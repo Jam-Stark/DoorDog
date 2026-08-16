@@ -62,8 +62,8 @@
 - **触发:** pull E7 稳定后,与第 5 条(10 N profile)合并设计一轮。
 - **做法要点:** 以 10 N/45 N × 固定几何的分层对照读 base 介入量变化,直接喂论文 DV。
 
-## 11. HOMIE 世界坐标 waypoint + terminal yaw-hold interface
+## 11. HOMIE 世界坐标 waypoint + terminal yaw-hold interface (2026-08-16 16:58 HKT — v5.3 H-D)
 
-- **动机:** v5.2 将 rule-5 改为 terminal current-state 判据后，三次 S1–S4 natural anchor 虽然 command_solvable 每序列均 `16/16`，但最终 yaw 仅 `0/0/0/0`、`0/0/0/0`、`1/0/1/5`；yaw-π 初始化只缩小 error，没有形成稳定 hold。v5.1 的 S1/S2 yaw PASS 是 initialization latch，不是 terminal capability。
-- **触发:** 下一次门侧 occupancy/traversal round 前，或用户批准 residual policy/低层接口变更时；未解决前禁止把 anchor failure 解释成 door-side passage zero。
-- **做法要点:** 单独表征 requested/applied/realized world-frame XY+yaw、HOMIE command slice 与 terminal drift；先证明 frozen low-level interface 能同时到达 waypoint 并保持 yaw，再决定 command adapter 还是 residual policy。该项是架构/接口决策，不得通过放宽 waypoint/yaw 阈值伪造 PASS。
+- **已完成的接口表征:** v5.3 P0 完成 `44/44` cells×`8` env，diagnostic `interface_characterization` 不入 scientific denominator，T1/T2/T4 exact windows=`150/200/300` steps。`u=-2` 在 T1/T2/T4 的两秒 zero-command hold drift mean=`-0.226979/-0.219226/-0.216827 rad`，每 cell `8/8` 超 absolute `0.15 rad`；`u=-0.8,T1` mean=`-0.154359 rad`、`5/8` 超。frozen HOMIE 在 high-|u| 区域 rate-like 但 asymmetric，终点 hold 不合格，选 H-D；它不能解释为 door-side passage zero。
+- **停车与触发:** P1 mapping fix、anchor、door buckets、G2、P3/P4、dual-source eval/render 均 `NOT_RUN`，无 passage denominator。下一次门侧 occupancy/traversal round 前此项保持 parked；只有用户以新 approved contract 选择 residual yaw adapter/policy 或 HOMIE fine-tune 时才能重新进入。不得放宽 immutable `0.05 m/0.15 rad`。
+- **边界:** v5.2 terminal-current-state rule-5 与 v5.1 S1/S2 initialization latch 事实仍为 version-scoped。唯一 formal review 仍 `FAIL`；H-D fail-closed artifact、dones-derived terminal telemetry、independent declared-versus-actual provenance 已 targeted-fixed/runtime-accepted，不构成第二轮 reviewer PASS。

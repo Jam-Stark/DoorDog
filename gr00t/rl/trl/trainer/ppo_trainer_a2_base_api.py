@@ -169,6 +169,12 @@ _A2_V23_FULL_REQUIRED_TRAINER_STATE_FIELDS = (
 )
 _A2_V23_FULL_ENV_RESET_STATE_FIELDS = frozenset(("cur_reward_sum", "cur_episode_length"))
 _A2_V23_ROUTE_A_UNSAFE_CONTACT_FIELD = "v23_unsafe_contact"
+_A2_P0_COMPAT_TRACE_SCHEMA = "a2_piper_v24_p0_compatibility_trace_v1"
+_A2_P0_COMPAT_TRACE_ENABLED_KEY = "a2_p0_compatibility_trace_enabled"
+_A2_P0_COMPAT_TRACE_PATH_KEY = "a2_p0_compatibility_trace_path"
+_A2_P0_COMPAT_ACTOR_OBS_DIM = 133
+_A2_P0_COMPAT_RAW_ACTION_DIM = 12
+_A2_P0_COMPAT_FINAL_ACTION_DIM = 24
 
 
 def _read_a2_v23_route_a_unsafe_contact_config(
@@ -2244,6 +2250,109 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "strict_m41_telemetry": strict_m41_telemetry,
         "strict_v20_telemetry": strict_v20_telemetry,
     }
+
+
+def _read_a2_p0_compatibility_trace_config(
+    eval_config,
+    *,
+    env,
+    eval_num_envs_episodes,
+    checkpoint_load_mode,
+    checkpoint_path,
+    seed,
+    process_count,
+):
+    """Resolve the narrowly opt-in v24 first-episode compatibility trace."""
+
+    enabled = eval_config.get(_A2_P0_COMPAT_TRACE_ENABLED_KEY, False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            f"eval.{_A2_P0_COMPAT_TRACE_ENABLED_KEY} must be bool; got {enabled!r}."
+        )
+    if not enabled:
+        return {"enabled": False}
+    if eval_num_envs_episodes is not True:
+        raise RuntimeError(
+            "v24 P0 compatibility trace requires eval.eval_num_envs_episodes=true."
+        )
+    if process_count != 1:
+        raise RuntimeError("v24 P0 compatibility trace requires one process.")
+    if int(env.num_envs) != 16:
+        raise RuntimeError("v24 P0 compatibility trace requires exactly 16 environments.")
+    if checkpoint_load_mode != "policy_only":
+        raise RuntimeError(
+            "v24 P0 compatibility trace requires checkpoint_load_mode='policy_only'."
+        )
+    if isinstance(seed, bool) or not isinstance(seed, int) or seed != 0:
+        raise RuntimeError("v24 P0 compatibility trace requires seed=0.")
+    if not bool(getattr(env, "_use_a2_base", False)):
+        raise RuntimeError("v24 P0 compatibility trace requires an A2_Base environment.")
+    if checkpoint_path is None or not Path(str(checkpoint_path)).is_file():
+        raise RuntimeError(
+            "v24 P0 compatibility trace requires an explicit checkpoint file."
+        )
+    trace_path = eval_config.get(_A2_P0_COMPAT_TRACE_PATH_KEY)
+    if not isinstance(trace_path, (str, Path)) or not str(trace_path):
+        raise RuntimeError(
+            f"eval.{_A2_P0_COMPAT_TRACE_PATH_KEY} must be a non-empty output path "
+            "when compatibility tracing is enabled."
+        )
+    trace_path = Path(str(trace_path)).expanduser().resolve()
+    if trace_path.exists():
+        raise RuntimeError(f"v24 P0 compatibility trace output already exists: {trace_path}")
+    if trace_path.is_symlink():
+        raise RuntimeError("v24 P0 compatibility trace output must not be a symlink.")
+    return {
+        "enabled": True,
+        "path": trace_path,
+        "num_envs": 16,
+        "actor_obs_dim": _A2_P0_COMPAT_ACTOR_OBS_DIM,
+        "action_dim": _A2_P0_COMPAT_RAW_ACTION_DIM,
+        "final_action_dim": _A2_P0_COMPAT_FINAL_ACTION_DIM,
+        "checkpoint_path": str(Path(str(checkpoint_path)).expanduser().resolve()),
+    }
+
+
+def _serialize_a2_p0_foot_force_feature(feature, *, num_envs: int) -> dict:
+    """Serialize the typed production foot-force feature for the opt-in trace."""
+
+    if not isinstance(feature, Mapping):
+        raise RuntimeError("v24 P0 foot-force getter must return a mapping.")
+    status = feature.get("status")
+    schema = feature.get("schema", "a2_piper_v24_foot_force_feature_v1")
+    if schema != "a2_piper_v24_foot_force_feature_v1":
+        raise RuntimeError(f"v24 P0 foot-force feature schema mismatch: {schema!r}.")
+    if status == "FOOT_FORCE_SOURCE_UNAVAILABLE":
+        if "normal_force_tensor" in feature:
+            raise RuntimeError(
+                "v24 P0 unavailable foot-force feature must not contain numeric force data."
+            )
+        return dict(feature)
+    if status != "FOOT_FORCE_SOURCE_AVAILABLE":
+        raise RuntimeError(f"v24 P0 foot-force feature has unknown status: {status!r}.")
+    body_names = feature.get("body_names")
+    body_ids = feature.get("body_ids")
+    normal_axis = feature.get("normal_axis")
+    force = feature.get("normal_force_tensor")
+    if body_names != ["FL_foot", "RL_foot", "FR_foot", "RR_foot"]:
+        raise RuntimeError("v24 P0 available foot-force feature body order is not canonical.")
+    if (
+        not isinstance(body_ids, list)
+        or len(body_ids) != 4
+        or any(isinstance(value, bool) or not isinstance(value, int) for value in body_ids)
+        or normal_axis != 2
+        or not torch.is_tensor(force)
+        or tuple(force.shape) != (num_envs, 4)
+        or not torch.is_floating_point(force)
+        or not torch.all(torch.isfinite(force))
+    ):
+        raise RuntimeError(
+            "v24 P0 available foot-force feature requires canonical finite "
+            f"({num_envs}, 4) normal-force data."
+        )
+    serialized = {key: value for key, value in feature.items() if key != "normal_force_tensor"}
+    serialized["normal_force_z"] = force.detach().cpu().tolist()
+    return serialized
 
 
 def _read_a2_v23_stationary_rent_config(eval_config):
@@ -6954,6 +7063,29 @@ class TRLPPOTrainer(PPOTrainer):
                 "eval.a2_v23_p05_runtime_export must be bool; "
                 f"got {a2_v23_p05_runtime_export!r}."
             )
+        a2_p0_compatibility_trace = _read_a2_p0_compatibility_trace_config(
+            self.config.get("eval", {}),
+            env=self.env,
+            eval_num_envs_episodes=eval_num_envs_episodes,
+            checkpoint_load_mode=self.checkpoint_load_mode,
+            checkpoint_path=self.checkpoint_path,
+            seed=int(self.args.seed),
+            process_count=self.accelerator.num_processes,
+        )
+        a2_p0_compat_foot_force_feature = None
+        if a2_p0_compatibility_trace["enabled"]:
+            get_foot_force_feature = getattr(self.env, "get_a2_v24_foot_force_feature", None)
+            if callable(get_foot_force_feature):
+                a2_p0_compat_foot_force_feature = _serialize_a2_p0_foot_force_feature(
+                    get_foot_force_feature(), num_envs=int(self.env.num_envs)
+                )
+            else:
+                a2_p0_compat_foot_force_feature = {
+                    "schema": "a2_piper_v24_foot_force_feature_v1",
+                    "status": "FOOT_FORCE_SOURCE_UNAVAILABLE",
+                    "reason": "public_foot_force_getter_missing",
+                    "authority": "MISSING_SOURCE_TYPED_STATUS",
+                }
         a2_v23_route_a_unsafe_contact = _read_a2_v23_route_a_unsafe_contact_config(
             self.config.get("eval", {}),
             env=self.env,
@@ -7159,6 +7291,20 @@ class TRLPPOTrainer(PPOTrainer):
         p08_prefix_rows = [[] for _ in range(self.env.num_envs)] if a2_v23_p08_state_bank["enabled"] else None
         p08_captured_entries = {} if a2_v23_p08_state_bank["enabled"] else None
         p08_physical_readbacks = [] if a2_v23_p08_state_bank["enabled"] else None
+        a2_p0_compat_active = (
+            torch.ones(
+                self.env.num_envs,
+                dtype=torch.bool,
+                device=self.accelerator.device,
+            )
+            if a2_p0_compatibility_trace["enabled"]
+            else None
+        )
+        a2_p0_compat_rows = (
+            [[] for _ in range(self.env.num_envs)]
+            if a2_p0_compatibility_trace["enabled"]
+            else None
+        )
         self.env.render_results(frame_type="initial")
 
         def terminate_rollout():
@@ -7188,6 +7334,27 @@ class TRLPPOTrainer(PPOTrainer):
                     homie_stand_model = model.homie_stand_model
 
                     actor_state = {}
+
+                    a2_p0_compat_actor_obs = None
+                    if a2_p0_compatibility_trace["enabled"]:
+                        a2_p0_compat_actor_obs = obs_dict.get("actor_obs")
+                        if (
+                            not torch.is_tensor(a2_p0_compat_actor_obs)
+                            or tuple(a2_p0_compat_actor_obs.shape)
+                            != (self.env.num_envs, a2_p0_compatibility_trace["actor_obs_dim"])
+                            or not torch.is_floating_point(a2_p0_compat_actor_obs)
+                            or not torch.all(torch.isfinite(a2_p0_compat_actor_obs))
+                        ):
+                            shape = (
+                                None
+                                if not torch.is_tensor(a2_p0_compat_actor_obs)
+                                else tuple(a2_p0_compat_actor_obs.shape)
+                            )
+                            raise RuntimeError(
+                                "v24 P0 compatibility trace requires finite actor_obs "
+                                f"shape (16, {a2_p0_compatibility_trace['actor_obs_dim']}); got {shape}."
+                            )
+                        a2_p0_compat_actor_obs = a2_p0_compat_actor_obs.detach().clone()
 
                     actions = policy_model.rollout(obs_dict=obs_dict)
                     action_mean = policy_model.action_mean.detach()
@@ -7427,9 +7594,129 @@ class TRLPPOTrainer(PPOTrainer):
                         )
                         step_actions = torch.cat([action_mean, homie_actions], dim=-1)
 
+                    a2_p0_compat_raw_action_mean = None
+                    a2_p0_compat_post_env_action = None
+                    a2_p0_compat_final_action = None
+                    if a2_p0_compatibility_trace["enabled"]:
+                        if (
+                            not torch.is_tensor(action_mean)
+                            or tuple(action_mean.shape)
+                            != (self.env.num_envs, a2_p0_compatibility_trace["action_dim"])
+                            or not torch.is_floating_point(action_mean)
+                            or not torch.all(torch.isfinite(action_mean))
+                        ):
+                            shape = None if not torch.is_tensor(action_mean) else tuple(action_mean.shape)
+                            raise RuntimeError(
+                                "v24 P0 compatibility trace requires finite raw action_mean "
+                                f"shape (16, {a2_p0_compatibility_trace['action_dim']}); got {shape}."
+                            )
+                        if (
+                            not torch.is_tensor(step_actions)
+                            or step_actions.ndim != 2
+                            or tuple(step_actions.shape)
+                            != (self.env.num_envs, a2_p0_compatibility_trace["final_action_dim"])
+                            or not torch.is_floating_point(step_actions)
+                            or not torch.all(torch.isfinite(step_actions))
+                        ):
+                            shape = None if not torch.is_tensor(step_actions) else tuple(step_actions.shape)
+                            raise RuntimeError(
+                                "v24 P0 compatibility trace requires finite final action tensor "
+                                f"shape ({self.env.num_envs}, {a2_p0_compatibility_trace['final_action_dim']}); "
+                                f"got shape={shape}."
+                            )
+                        a2_p0_compat_raw_action_mean = action_mean.detach().clone()
+                        if (
+                            not torch.is_tensor(applied_high_level_action)
+                            or tuple(applied_high_level_action.shape)
+                            != (self.env.num_envs, a2_p0_compatibility_trace["action_dim"])
+                            or not torch.is_floating_point(applied_high_level_action)
+                            or not torch.all(torch.isfinite(applied_high_level_action))
+                        ):
+                            shape = (
+                                None
+                                if not torch.is_tensor(applied_high_level_action)
+                                else tuple(applied_high_level_action.shape)
+                            )
+                            raise RuntimeError(
+                                "v24 P0 compatibility trace requires finite post-env "
+                                f"12-D action shape (16, {a2_p0_compatibility_trace['action_dim']}); got {shape}."
+                            )
+                        a2_p0_compat_post_env_action = applied_high_level_action.detach().clone()
+                        a2_p0_compat_final_action = step_actions.detach().clone()
+
                     actor_state["actions"] = step_actions
 
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
+
+                    if a2_p0_compatibility_trace["enabled"]:
+                        dones_flat = dones.reshape(-1)
+                        if (
+                            tuple(dones_flat.shape) != (self.env.num_envs,)
+                            or dones_flat.dtype not in (torch.bool, torch.uint8, torch.long)
+                            or not torch.all((dones_flat == 0) | (dones_flat == 1))
+                        ):
+                            raise RuntimeError(
+                                "v24 P0 compatibility trace requires one boolean done value "
+                                f"per environment; got shape={tuple(dones_flat.shape)}, "
+                                f"dtype={dones_flat.dtype}."
+                            )
+                        a2_p0_compat_reset_receipt = None
+                        if bool(torch.any(dones_flat).item()):
+                            get_reset_receipt = getattr(
+                                self.env, "get_a2_v24_last_reset_friction_receipt", None
+                            )
+                            if callable(get_reset_receipt):
+                                a2_p0_compat_reset_receipt = get_reset_receipt()
+                                if not isinstance(a2_p0_compat_reset_receipt, Mapping):
+                                    raise RuntimeError(
+                                        "v24 P0 compatibility trace reset friction receipt "
+                                        "must be a mapping."
+                                    )
+                        for env_id in torch.nonzero(
+                            a2_p0_compat_active, as_tuple=False
+                        ).flatten().tolist():
+                            compat_row = {
+                                "env_id": int(env_id),
+                                "episode_index": int(eval_episode_indices[env_id].item()),
+                                "control_step": int(self.cur_episode_length[env_id].item()),
+                                "actor_obs": [
+                                    float(value)
+                                    for value in a2_p0_compat_actor_obs[env_id]
+                                    .detach()
+                                    .cpu()
+                                    .tolist()
+                                ],
+                                "raw_action_mean": [
+                                    float(value)
+                                    for value in a2_p0_compat_raw_action_mean[env_id]
+                                    .detach()
+                                    .cpu()
+                                    .tolist()
+                                ],
+                                "post_env_action": [
+                                    float(value)
+                                    for value in a2_p0_compat_post_env_action[env_id]
+                                    .detach()
+                                    .cpu()
+                                    .tolist()
+                                ],
+                                "final_action": [
+                                    float(value)
+                                    for value in a2_p0_compat_final_action[env_id]
+                                    .detach()
+                                    .cpu()
+                                    .tolist()
+                                ],
+                                "done": bool(dones_flat[env_id].item()),
+                            }
+                            if (
+                                compat_row["done"]
+                                and a2_p0_compat_reset_receipt is not None
+                            ):
+                                compat_row["reset_friction_receipt"] = dict(
+                                    a2_p0_compat_reset_receipt
+                                )
+                            a2_p0_compat_rows[env_id].append(compat_row)
 
                     if stationary_rent_pending is not None:
                         stationary_rent_records.extend(
@@ -7533,6 +7820,64 @@ class TRLPPOTrainer(PPOTrainer):
                             self.env.process_eval_episode_completions(
                                 valid_new_ids, self.cur_reward_sum, self.cur_episode_length
                             )
+
+                            if a2_p0_compatibility_trace["enabled"]:
+                                terminal_diagnostics = self.env.eval_metrics[
+                                    "episode_terminal_diagnostics"
+                                ]
+                                terminal_goals = self.env.eval_metrics[
+                                    "episode_goal_reached_buffer"
+                                ]
+                                terminal_stages = self.env.eval_metrics[
+                                    "episode_max_stage_reached"
+                                ]
+                                completion_count = int(valid_new_ids.numel())
+                                if (
+                                    len(terminal_diagnostics) < completion_count
+                                    or len(terminal_goals) < completion_count
+                                    or len(terminal_stages) < completion_count
+                                ):
+                                    raise RuntimeError(
+                                        "v24 P0 compatibility trace terminal facts were not "
+                                        "published for every completed environment."
+                                    )
+                                terminal_diagnostics = terminal_diagnostics[-completion_count:]
+                                terminal_goals = terminal_goals[-completion_count:]
+                                terminal_stages = terminal_stages[-completion_count:]
+                                for offset, env_id_value in enumerate(
+                                    valid_new_ids.flatten().detach().cpu().tolist()
+                                ):
+                                    env_id = int(env_id_value)
+                                    terminal = terminal_diagnostics[offset]
+                                    if (
+                                        not isinstance(terminal, Mapping)
+                                        or terminal.get("env_id") != env_id
+                                        or not isinstance(terminal.get("terminal_reasons"), str)
+                                        or not terminal["terminal_reasons"]
+                                    ):
+                                        raise RuntimeError(
+                                            "v24 P0 compatibility trace requires typed terminal "
+                                            f"facts for env_id={env_id}."
+                                        )
+                                    if not a2_p0_compat_rows[env_id] or not a2_p0_compat_rows[
+                                        env_id
+                                    ][-1]["done"]:
+                                        raise RuntimeError(
+                                            "v24 P0 compatibility trace terminal fact has no "
+                                            f"matching final done row for env_id={env_id}."
+                                        )
+                                    a2_p0_compat_rows[env_id][-1]["terminal_facts"] = {
+                                        "terminal_reasons": terminal["terminal_reasons"],
+                                        "goal_reached": bool(terminal_goals[offset]),
+                                        "max_stage_reached": int(terminal_stages[offset]),
+                                        "episode_length": int(
+                                            terminal.get(
+                                                "episode_length_buf",
+                                                a2_p0_compat_rows[env_id][-1]["control_step"] + 1,
+                                            )
+                                        ),
+                                    }
+                                    a2_p0_compat_active[env_id] = False
 
                             if a2_v23_p0_runtime_export:
                                 get_v23_torque_evidence = getattr(
@@ -7669,6 +8014,52 @@ class TRLPPOTrainer(PPOTrainer):
                             ]
                         self.env.render_results(env_ids=non_terminal_env_ids, frame_type="step")
 
+        if a2_p0_compatibility_trace["enabled"]:
+            if torch.any(a2_p0_compat_active):
+                missing_env_ids = torch.nonzero(
+                    a2_p0_compat_active, as_tuple=False
+                ).flatten().detach().cpu().tolist()
+                raise RuntimeError(
+                    "v24 P0 compatibility trace ended before first episodes completed; "
+                    f"missing env_ids={missing_env_ids}."
+                )
+            for env_id, rows in enumerate(a2_p0_compat_rows):
+                if not rows or "terminal_facts" not in rows[-1]:
+                    raise RuntimeError(
+                        "v24 P0 compatibility trace requires a terminal fact on the final "
+                        f"row for env_id={env_id}."
+                    )
+            trace_path = a2_p0_compatibility_trace["path"]
+            payload = {
+                "schema": _A2_P0_COMPAT_TRACE_SCHEMA,
+                "status": "RUNTIME_VERIFIED",
+                "source_identity": {
+                    "checkpoint_path": a2_p0_compatibility_trace["checkpoint_path"],
+                    "resolved_config_path": str(
+                        Path(a2_p0_compatibility_trace["checkpoint_path"]).parent
+                        / "config.yaml"
+                    ),
+                    "seed": int(self.args.seed),
+                    "num_envs": int(self.env.num_envs),
+                },
+                "topology": {
+                    "name": "canonical16",
+                    "episode_count": int(self.env.num_envs),
+                    "first_episode_only": True,
+                    "single_process": True,
+                },
+                "actor_obs_dim": a2_p0_compatibility_trace["actor_obs_dim"],
+                "raw_action_dim": a2_p0_compatibility_trace["action_dim"],
+                "final_action_dim": a2_p0_compatibility_trace["final_action_dim"],
+                "foot_force_feature": a2_p0_compat_foot_force_feature,
+                "rows_by_env": a2_p0_compat_rows,
+            }
+            trace_path.parent.mkdir(parents=True, exist_ok=True)
+            trace_tmp_path = trace_path.with_name(trace_path.name + ".tmp")
+            with trace_tmp_path.open("w", encoding="utf-8") as trace_stream:
+                json.dump(payload, trace_stream, indent=2, allow_nan=False)
+            os.replace(trace_tmp_path, trace_path)
+
         self.env.end_render_results()
         self.policy_model.clear_rollout()
         print(f"Evaluation completed - {completed_episodes} episodes finished")
@@ -7678,9 +8069,6 @@ class TRLPPOTrainer(PPOTrainer):
         eval_dict["completed_episodes"] = completed_episodes
 
         # save eval_dict to a file
-        import json
-        import os
-
         eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
         strict_m41_telemetry = a2_eval_diagnostics["strict_m41_telemetry"]
         strict_v20_telemetry = a2_eval_diagnostics["strict_v20_telemetry"]

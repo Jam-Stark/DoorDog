@@ -5249,6 +5249,12 @@ class DoorPregrasp(
         "arm_body7",
         "arm_body8",
     )
+    # v24 keeps foot-force measurement strictly feature-detected.  The source
+    # is the simulator-owned robot ContactSensor; no alternate simulator
+    # tensor or zero-valued placeholder is accepted.
+    A2_V24_FOOT_FORCE_SENSOR_KEY = "contact_sensor"
+    A2_V24_FOOT_BODY_NAMES = ("FL_foot", "RL_foot", "FR_foot", "RR_foot")
+    A2_P0_H_RESET_AUDIT_ENABLED_CONFIG_KEY = "a2_p0_h_reset_audit_enabled"
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
         if key not in self.config:
@@ -6247,6 +6253,18 @@ class DoorPregrasp(
     def __init__(self, config, device):
         self._a2_v24_friction_config = V24FrictionConfig.from_mapping(config)
         self._a2_v24_friction_backend = None
+        self._a2_v24_last_reset_friction_receipt = None
+        self._a2_p0_h_reset_audit_enabled = config.get(
+            self.A2_P0_H_RESET_AUDIT_ENABLED_CONFIG_KEY, False
+        )
+        if not isinstance(self._a2_p0_h_reset_audit_enabled, bool):
+            raise RuntimeError(
+                f"env.config.{self.A2_P0_H_RESET_AUDIT_ENABLED_CONFIG_KEY} must be bool; "
+                f"got {self._a2_p0_h_reset_audit_enabled!r}."
+            )
+        self._a2_p0_h_reset_sequence = 0
+        self._a2_p0_h_pending_stage_selection = None
+        self._a2_p0_h_pending_sample_selection = None
         self._a2_v23_d1_enabled = False
         self._a2_v23_d1_sampler = None
         self._a2_v23_d1_mass_event_cfg = None
@@ -6450,6 +6468,67 @@ class DoorPregrasp(
         )
         env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
         self._a2_v24_friction_backend.apply(env_ids)
+
+    def get_a2_v24_foot_force_feature(self) -> dict[str, Any]:
+        """Return the measured foot normal-force feature when its source exists.
+
+        The feature is intentionally not part of the observation contract.  It
+        is a production measurement hook for v24 post-hoc telemetry and keeps
+        a missing sensor/body as a typed unavailable result instead of inventing
+        numeric values.
+        """
+
+        sensor = self.simulator.scene.sensors.get(self.A2_V24_FOOT_FORCE_SENSOR_KEY)
+        if sensor is None:
+            return {
+                "schema": "a2_piper_v24_foot_force_feature_v1",
+                "status": "FOOT_FORCE_SOURCE_UNAVAILABLE",
+                "reason": "contact_sensor_missing",
+                "source": "simulator.scene.sensors['contact_sensor']",
+                "authority": "MISSING_SOURCE_TYPED_STATUS",
+            }
+
+        sensor_body_names = tuple(str(name) for name in sensor.body_names)
+        missing = [
+            name for name in self.A2_V24_FOOT_BODY_NAMES if name not in sensor_body_names
+        ]
+        if missing:
+            return {
+                "schema": "a2_piper_v24_foot_force_feature_v1",
+                "status": "FOOT_FORCE_SOURCE_UNAVAILABLE",
+                "reason": "foot_body_missing_from_contact_sensor",
+                "missing_body_names": missing,
+                "source": "simulator.scene.sensors['contact_sensor']",
+                "authority": "MISSING_SOURCE_TYPED_STATUS",
+            }
+
+        body_ids = [sensor_body_names.index(name) for name in self.A2_V24_FOOT_BODY_NAMES]
+        net_forces_w = sensor.data.net_forces_w
+        if (
+            not torch.is_tensor(net_forces_w)
+            or net_forces_w.ndim != 3
+            or net_forces_w.shape[0] != self.num_envs
+            or net_forces_w.shape[1] <= max(body_ids)
+            or net_forces_w.shape[2] != 3
+        ):
+            shape = None if not torch.is_tensor(net_forces_w) else tuple(net_forces_w.shape)
+            raise RuntimeError(
+                "v24 foot force source requires contact_sensor.data.net_forces_w "
+                f"shape ({self.num_envs}, body, 3); got {shape}."
+            )
+        if not torch.all(torch.isfinite(net_forces_w)):
+            raise RuntimeError("v24 foot force source contains non-finite net_forces_w values.")
+
+        return {
+            "schema": "a2_piper_v24_foot_force_feature_v1",
+            "status": "FOOT_FORCE_SOURCE_AVAILABLE",
+            "source": "simulator.scene.sensors['contact_sensor']",
+            "body_names": list(self.A2_V24_FOOT_BODY_NAMES),
+            "body_ids": body_ids,
+            "normal_axis": 2,
+            "normal_force_tensor": net_forces_w[:, body_ids, 2],
+            "authority": "MEASURED_CONTACT_SENSOR_NET_FORCE_WORLD_Z",
+        }
 
     def _init_a2_v23_d1_runtime(self):
         """Initialize the opt-in D1 physics-first runtime consumer.
@@ -25488,6 +25567,101 @@ class DoorPregrasp(
         return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override
+    def _sample_reset_stages(self, env_ids):
+        selected_stages = super()._sample_reset_stages(env_ids)
+        if self._a2_p0_h_reset_audit_enabled:
+            self._a2_p0_h_pending_stage_selection = (
+                env_ids.detach().clone(),
+                selected_stages.detach().clone(),
+            )
+        return selected_stages
+
+    @override
+    def _sample_reset_sample_indices(self, env_ids, selected_stages):
+        selected_sample_indices = super()._sample_reset_sample_indices(
+            env_ids, selected_stages
+        )
+        if self._a2_p0_h_reset_audit_enabled:
+            self._a2_p0_h_pending_sample_selection = (
+                env_ids.detach().clone(),
+                selected_stages.detach().clone(),
+                selected_sample_indices.detach().clone(),
+            )
+        return selected_sample_indices
+
+    def _a2_p0_h_write_sentinel(self, env_ids):
+        backend = self._a2_v24_friction_backend
+        if backend is None:
+            raise RuntimeError("P0 H reset audit requires an enabled native friction backend.")
+        articulation = self.simulator.scene.articulations["door"]
+        ordinal = torch.arange(
+            env_ids.numel(), dtype=backend.dtype, device=backend.device
+        )[:, None]
+        base = ordinal + torch.tensor(
+            1.0 + self._a2_p0_h_reset_sequence,
+            dtype=backend.dtype,
+            device=backend.device,
+        )
+        sentinel_requested = {
+            "joint_friction_coeff": base,
+            "joint_dynamic_friction_coeff": base * 0.5,
+            "joint_viscous_friction_coeff": base * 0.25,
+        }
+        articulation.write_joint_friction_coefficient_to_sim(
+            sentinel_requested["joint_friction_coeff"],
+            sentinel_requested["joint_dynamic_friction_coeff"],
+            sentinel_requested["joint_viscous_friction_coeff"],
+            joint_ids=[backend.hinge_joint_id],
+            env_ids=env_ids,
+        )
+        sentinel_readback = {}
+        for field in (
+            "joint_friction_coeff",
+            "joint_dynamic_friction_coeff",
+            "joint_viscous_friction_coeff",
+        ):
+            data = getattr(articulation.data, field, None)
+            if (
+                not torch.is_tensor(data)
+                or data.ndim != 2
+                or data.shape[1] <= backend.hinge_joint_id
+            ):
+                raise RuntimeError(
+                    f"P0 H sentinel requires articulation.data.{field} readback."
+                )
+            selected = data[env_ids][:, [backend.hinge_joint_id]].clone()
+            if selected.shape != (env_ids.numel(), 1) or selected.device != backend.device:
+                raise RuntimeError(f"P0 H sentinel {field} readback shape/device mismatch.")
+            sentinel_readback[field] = selected
+        matches = {
+            field: bool(
+                torch.allclose(
+                    sentinel_requested[field], sentinel_readback[field], atol=1.0e-6, rtol=0.0
+                )
+            )
+            for field in sentinel_requested
+        }
+        if not all(matches.values()):
+            raise RuntimeError(
+                f"P0 H sentinel friction readback mismatch: requested={sentinel_requested!r}, "
+                f"readback={sentinel_readback!r}."
+            )
+        sequence = self._a2_p0_h_reset_sequence
+        self._a2_p0_h_reset_sequence += 1
+        return {
+            "sequence": sequence,
+            "requested": {
+                field: values.detach().cpu().tolist()
+                for field, values in sentinel_requested.items()
+            },
+            "readback": {
+                field: values.detach().cpu().tolist()
+                for field, values in sentinel_readback.items()
+            },
+            "matches": matches,
+        }
+
+    @override
     def reset_envs_idx(self, env_ids, target_states=None, target_buf=None):
         """Reapply native friction after ordinary or staged state writes complete.
 
@@ -25498,11 +25672,215 @@ class DoorPregrasp(
         while the disabled backend remains a true no-write path.
         """
 
+        self._a2_p0_h_pending_stage_selection = None
+        self._a2_p0_h_pending_sample_selection = None
+        sentinel_receipt = None
+        if self._a2_p0_h_reset_audit_enabled and env_ids.numel() > 0:
+            sentinel_receipt = self._a2_p0_h_write_sentinel(env_ids)
+
         result = super().reset_envs_idx(env_ids, target_states, target_buf)
         backend = self._a2_v24_friction_backend
         if backend is not None and env_ids.numel() > 0:
-            backend.apply(env_ids)
+            receipt = backend.apply(env_ids)
+            receipt["backend"] = backend.receipt_fragment()
+            if self.enable_staged_reset:
+                if (
+                    self._a2_p0_h_reset_audit_enabled
+                    and self._a2_p0_h_pending_stage_selection is None
+                ):
+                    raise RuntimeError("P0 H staged reset did not expose its selected stages.")
+                if (
+                    self._a2_p0_h_reset_audit_enabled
+                    and self._a2_p0_h_pending_sample_selection is None
+                ):
+                    raise RuntimeError("P0 H staged reset did not expose its selected samples.")
+                selected_stages = self.stage_buf[env_ids]
+                selected_sample_indices = None
+                if self._a2_p0_h_reset_audit_enabled:
+                    pending_env_ids, pending_stages = self._a2_p0_h_pending_stage_selection
+                    sample_env_ids, sample_stages, pending_samples = (
+                        self._a2_p0_h_pending_sample_selection
+                    )
+                    if (
+                        not torch.equal(pending_env_ids, env_ids)
+                        or not torch.equal(sample_env_ids, env_ids)
+                        or not torch.equal(pending_stages, sample_stages)
+                        or not torch.equal(selected_stages, pending_stages)
+                    ):
+                        raise RuntimeError("P0 H staged reset selection provenance changed during reset.")
+                    selected_sample_indices = pending_samples
+                else:
+                    pending_stages = selected_stages
+                    pending_samples = None
+                nonzero_mask = selected_stages > 0
+                if torch.any(nonzero_mask):
+                    staged_env_ids = env_ids[nonzero_mask]
+                    staged_stages = selected_stages[nonzero_mask]
+                    sample_counts = self.staged_reset_num_samples[staged_stages, staged_env_ids]
+                    if torch.any(sample_counts <= 0):
+                        raise RuntimeError(
+                            "v24 friction reset persistence requires every nonzero staged reset "
+                            "to come from a populated production snapshot/bank."
+                        )
+                    all_stages = selected_stages.detach().cpu().tolist()
+                    all_sample_indices = (
+                        [
+                            int(sample_index) if stage > 0 else None
+                            for stage, sample_index in zip(
+                                all_stages,
+                                selected_sample_indices.detach().cpu().tolist(),
+                            )
+                        ]
+                        if selected_sample_indices is not None
+                        else None
+                    )
+                    all_sample_counts = [
+                        int(sample_count) if stage > 0 else None
+                        for stage, sample_count in zip(
+                            all_stages,
+                            self.staged_reset_num_samples[selected_stages, env_ids]
+                            .detach()
+                            .cpu()
+                            .tolist(),
+                        )
+                    ]
+                    receipt["staged_snapshot"] = {
+                        "status": "LEGITIMATE_NONZERO_PRODUCTION_SNAPSHOT",
+                        "env_ids": staged_env_ids.detach().cpu().tolist(),
+                        "stages": staged_stages.detach().cpu().tolist(),
+                        "sample_indices": selected_sample_indices[nonzero_mask].detach().cpu().tolist()
+                        if selected_sample_indices is not None
+                        else None,
+                        "sample_counts": sample_counts.detach().cpu().tolist(),
+                        "all_env_ids": env_ids.detach().cpu().tolist(),
+                        "all_stages": all_stages,
+                        "all_sample_indices": all_sample_indices,
+                        "all_sample_counts": all_sample_counts,
+                    }
+                else:
+                    all_env_ids = env_ids.detach().cpu().tolist()
+                    all_stages = selected_stages.detach().cpu().tolist()
+                    receipt["staged_snapshot"] = {
+                        "status": "STAGE0_ORDINARY_RESET",
+                        "env_ids": all_env_ids,
+                        "stages": all_stages,
+                        "sample_indices": [None for _ in all_env_ids],
+                        "sample_counts": [None for _ in all_env_ids],
+                        "all_env_ids": all_env_ids,
+                        "all_stages": all_stages,
+                        "all_sample_indices": [None for _ in all_env_ids],
+                        "all_sample_counts": [None for _ in all_env_ids],
+                    }
+            else:
+                selected_stages = torch.zeros_like(env_ids)
+                receipt["staged_snapshot"] = {
+                    "status": "ORDINARY_RESET",
+                    "env_ids": env_ids.detach().cpu().tolist(),
+                    "stages": [],
+                    "sample_indices": [],
+                    "sample_counts": [],
+                    "all_env_ids": env_ids.detach().cpu().tolist(),
+                    "all_stages": [],
+                    "all_sample_indices": [],
+                    "all_sample_counts": [],
+                }
+            if self._a2_p0_h_reset_audit_enabled:
+                configured_requested = receipt["requested"]
+                configured_readback = receipt["readback"]
+                snapshot = receipt["staged_snapshot"]
+                per_env = []
+                for row_index, env_id in enumerate(env_ids.detach().cpu().tolist()):
+                    stage = int(selected_stages[row_index].item())
+                    sample_index = (
+                        int(selected_sample_indices[row_index].item())
+                        if selected_sample_indices is not None and stage > 0
+                        else None
+                    )
+                    sample_count = (
+                        int(self.staged_reset_num_samples[stage, env_ids[row_index]].item())
+                        if self.enable_staged_reset and stage > 0
+                        else None
+                    )
+                    reset_kind = (
+                        "staged"
+                        if self.enable_staged_reset and stage > 0
+                        else "stage0_ordinary"
+                        if self.enable_staged_reset
+                        else "ordinary"
+                    )
+                    staged_provenance = {
+                        "status": snapshot["status"]
+                        if reset_kind == "staged"
+                        else "STAGE0_ORDINARY_RESET"
+                        if reset_kind == "stage0_ordinary"
+                        else "ORDINARY_RESET",
+                        "env_ids": [int(env_id)],
+                        "stages": [stage]
+                        if self.enable_staged_reset and stage > 0
+                        else [],
+                        "sample_indices": [
+                            int(selected_sample_indices[row_index].item())
+                        ]
+                        if self.enable_staged_reset
+                        and stage > 0
+                        and selected_sample_indices is not None
+                        else [],
+                        "sample_counts": [sample_count]
+                        if sample_count is not None
+                        else [],
+                    }
+                    per_env.append(
+                        {
+                            "env_id": int(env_id),
+                            "reset_kind": reset_kind,
+                            "production_stage": stage,
+                            "production_sample_index": sample_index,
+                            "production_sample_count": sample_count,
+                            "sentinel": {
+                                "sequence": sentinel_receipt["sequence"],
+                                "requested": {
+                                    field: [sentinel_receipt["requested"][field][row_index]]
+                                    for field in sentinel_receipt["requested"]
+                                },
+                                "readback": {
+                                    field: [sentinel_receipt["readback"][field][row_index]]
+                                    for field in sentinel_receipt["readback"]
+                                },
+                                "matches": dict(sentinel_receipt["matches"]),
+                            },
+                            "configured": {
+                                "requested": {
+                                    field: [configured_requested[field][row_index]]
+                                    for field in configured_requested
+                                },
+                                "readback": {
+                                    field: [configured_readback[field][row_index]]
+                                    for field in configured_readback
+                                },
+                                "matches": dict(receipt["matches"]),
+                            },
+                            "staged_provenance": staged_provenance,
+                        }
+                    )
+                receipt["sentinel_sequence"] = sentinel_receipt["sequence"]
+                receipt["per_env"] = per_env
+            self._a2_v24_last_reset_friction_receipt = receipt
         return result
+
+    def get_a2_v24_last_reset_friction_receipt(self) -> dict[str, Any]:
+        """Return the latest production reset readback for v24 H acceptance."""
+
+        if self._a2_v24_friction_backend is None:
+            return {
+                "status": "FRICTION_BACKEND_DISABLED",
+                "authority": "DEFAULT_OFF_NO_WRITE",
+            }
+        receipt = self._a2_v24_last_reset_friction_receipt
+        if not isinstance(receipt, dict):
+            raise RuntimeError(
+                "v24 friction reset receipt requested before an enabled production reset."
+            )
+        return dict(receipt)
 
 
     @override

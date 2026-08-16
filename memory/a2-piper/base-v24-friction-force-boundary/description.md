@@ -1,8 +1,8 @@
 ---
 name: base-v24-friction-force-boundary
 scope: A2+Piper base_v24 friction-calibrated force boundary, posture final adjudication, coupling groundwork, and gated-posture pilot
-status: complete_p1_authority_stop
-last_updated: 2026-08-17 00:01 HKT
+status: active_p2_p3_admitted_after_d_v2
+last_updated: 2026-08-17 01:40 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v24-friction-force-boundary/description.md
@@ -70,13 +70,22 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 - D cannot pass its literal `tau_friction * omega` target: solver friction-torque authority is unavailable, so only the behavioral proxy passes. The sole provisional typed boundary is `V24_FRICTION_AUTHORITY_INSUFFICIENT`; it is never `MODEL_VALID` and does not infer actual generalized torque.
 - This A–G receipt itself was `PENDING_H_I`; subsequent P0/H/I runtime evidence and the terminal authority adjudication are recorded below. Its D boundary remains unchanged: the behavioral proxy is not literal D authority.
 
-## Final P0 Runtime and P1 H/I Closure
+## Historical R1 P0 Runtime and P1 H/I Closure
 
 - R8-QA6 completed on physical GPU0 with exit `0` in `443.9 s`. It compares 7,326 canonical16 first-episode rows at seed0 under policy-only loading: actor observation 133-D, raw action mean 12-D, and post-environment/final action 24-D. All four float max-absolute differences are `0.0`; done and terminal facts are exact. The 16 default-off reset receipts are `DEFAULT_OFF_NO_WRITE`.
 - The current public `contact_sensor` foot-force source is finite `(16,4)` and ordered `FL/RL/FR/RR` on the z axis. The direct baseline getter is typed unavailable, with no numeric payload and no zero fill.
 - H reset persistence passes with native profile `1.0/0.75/0.0`: 16 terminal receipts comprise 10 ordinary plus six legitimate nonzero production snapshots for env `2/4/5/7/8/13`, stages `4/4/3/4/5/4`, each with sample count `1`. Sentinel/write readback and configured post-reset readback both pass.
 - Final A–I typed outcome is exactly `V24_FRICTION_AUTHORITY_INSUFFICIENT`. A–C and E–I pass within their stated qualifications; D has only a passing behavioral dissipation proxy because literal solver friction-torque authority is unavailable. This is never `MODEL_VALID` and makes no actual generalized-torque claim.
-- Parameter-range freeze is `NOT_PERFORMED_STOPPED_AT_P1_AUTHORITY_GATE`. P2, P3, Wave 1, Route A/B, RQ3/RQ4, shadow critic, and Wave 2 are `NOT_ADMITTED`; Phase 3 F2 and its user decision point were not reached, so no owner decision is required.
+- Parameter-range freeze is `NOT_PERFORMED_STOPPED_AT_P1_AUTHORITY_GATE`. At this historical R1 terminal, P2, P3, Wave 1, Route A/B, RQ3/RQ4, shadow critic, and Wave 2 were `NOT_ADMITTED`; Phase 3 F2 and its user decision point were not reached.
+
+## Owner D-v2 Behavioral Energy-accounting Revision
+
+- The 2026-08-17 Owner decision `OWNER_GATE_REVISION_D_V2 + CONTINUE_FROM_P2` supersedes `FINAL_STOP_AT_P1` as the round terminal. It preserves the historical `V24_FRICTION_AUTHORITY_INSUFFICIENT` closure and its immutable receipts as provenance, while replacing literal D with D-v2 behavioral total mechanical energy accounting.
+- Frozen D-v2 source/config review is `CODE_QUALITY PASS` and `ISAACLAB_SEMANTICS PASS`; these are static gates, not runtime proof. Fresh physical GPU0 / logical `cuda:0` producer runtime (seed `24017`, 19.814 s) and QA1 scientific/runtime validation pass. QA2 historical-input immutability is a metadata closure, not a new physical runtime result.
+- D-v2 uses `I_model=36.1 kg*m^2`, `k=6 N*m/rad`, and `theta_ref=0.5 rad`. Both fresh F00 signs completed before tolerance freeze: `tol_step=9.93409096170439e-06 J` and `tol_cumulative=0.0008802263651532332 J`. Both F10 signs then completed 200 intervals (100 command + 100 coast): final D is `0.007680328808102447 J` for sign -1 and `0.007679495205304246 J` for sign +1. Raw-row continuity, motion, step/cumulative tolerance, final dissipation, readback, and cleanup checks pass.
+- The verified typed result is exactly `V24_FRICTION_MODEL_VALID_BEHAVIORAL`; P2/P3 admission is true and this gate requires no owner decision. P2/P3 have not been executed.
+- Authority remains explicit: door friction/model-torque fields are `MODELED_FROM_PARAMS`; solver friction torque is `UNAVAILABLE_NOT_USED`; command work is `COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE`. No actual generalized torque or solver-applied torque is claimed.
+- Canonical additive artifacts are `logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/D_V2_TOLERANCE_FREEZE.json`, `logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/D_V2_ENERGY_RECEIPT.json`, `logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/QA_SEMANTIC_VALIDATION.json`, and `logs_eval/base_v24/p1/final_adjudication/d_v2_r1/V24_P1_D_V2_FINAL_ADJUDICATION.json`.
 
 ## Reusable Runtime Gotchas
 
@@ -90,8 +99,8 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 
 ## DONE Summary
 
-Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, and P1 H/I are complete with their scoped runtime evidence. The terminal P1 result is `V24_FRICTION_AUTHORITY_INSUFFICIENT`; parameter freeze is not performed and no model, training, causal, release, or downstream-phase admission is recorded.
+Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, and P1 H/I are complete with scoped evidence. The historical R1 P1 terminal is preserved as `V24_FRICTION_AUTHORITY_INSUFFICIENT`; the Owner D-v2 revision then passed behavioral energy accounting as `V24_FRICTION_MODEL_VALID_BEHAVIORAL`, admitting but not executing P2/P3. The parameter-range freeze remains `NOT_PERFORMED` and is active P2 work; no training, causal, or release result is recorded.
 
 ## TODO Summary
 
-There is no active base_v24 work under R1. Reopening any downstream work requires a newly authorized plan and new authority; it is not a current TODO.
+Active ordered work is P2 directional capacity, lambda, friction-ladder recalibration, and E-region certificate including the previously `NOT_PERFORMED` parameter-range freeze; then P3 frozen historical zero-sample scan. Only `V24_FRICTION_AXIS_NONDISCRIMINATIVE` is an Owner decision point. After GO, continue Wave 1 and later R1 work; none of these downstream phases has executed.

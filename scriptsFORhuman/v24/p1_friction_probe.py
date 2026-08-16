@@ -72,11 +72,18 @@ PROBE_SCHEMA = "a2_piper_v24_p1_native_friction_probe_v1"
 FRICTION_BACKEND = "native_joint_friction_v1"
 FIRST_RUNTIME_MODE = "TORQUE_RAMP"
 AI_ACCEPTANCE_MODE = "A_I_ACCEPTANCE"
-MODE_ORDER = (FIRST_RUNTIME_MODE, AI_ACCEPTANCE_MODE, "OFF_PARITY", "FOOT_FORCE_DETECT")
+ENERGY_MODE = "D_V2_ENERGY"
+MODE_ORDER = (FIRST_RUNTIME_MODE, AI_ACCEPTANCE_MODE, ENERGY_MODE, "OFF_PARITY", "FOOT_FORCE_DETECT")
 PRODUCTION_CONFIG = REPO_ROOT / "gr00t/rl/config/ablation/wbmanip/base_v24_p1_native_probe.yaml"
+D_V2_CONFIG = REPO_ROOT / "gr00t/rl/config/ablation/wbmanip/base_v24_p1_d_v2_energy.yaml"
 SELECTED_CHECKPOINT = REPO_ROOT / (
     "logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt"
 )
+D_V2_PRODUCER_SCHEMA = "a2_piper_v24_p1_d_v2_energy_v1"
+D_V2_TOLERANCE_SCHEMA = "a2_piper_v24_p1_d_v2_tolerance_freeze_v1"
+D_V2_ADJUDICATION_SCHEMA = "a2_piper_base_v24_p1_d_v2_owner_revision_adjudication_v1"
+D_V2_ARTIFACT_ROOT = V24_P1_FRICTION_ROOT / "d_v2_energy_r1_gpu0"
+D_V2_SEED = 24017
 ACTOR_INPUT_DIM = 133
 ACTION_DIM = 12
 FOOT_BODY_NAMES = ("FL_foot", "RL_foot", "FR_foot", "RR_foot")
@@ -283,6 +290,158 @@ def _probe_config_values(config_path: Path = PRODUCTION_CONFIG) -> dict[str, Any
         "stationarity_velocity_tolerance_rad_s": stationarity_velocity_tolerance,
         "ramp_interval_count": int(interval_count),
         "dt_s": dt_s,
+    }
+
+
+def _d_v2_config_values(config_path: Path = D_V2_CONFIG) -> dict[str, Any]:
+    """Read the dedicated D-v2 overlay without resolving Hydra defaults."""
+
+    config_path = absolute(config_path).resolve()
+    if config_path != D_V2_CONFIG.resolve():
+        raise ValueError("D_V2_ENERGY requires the dedicated D-v2 overlay config")
+    payload = _read_yaml(config_path)
+    if payload.get("v24_schema") != D_V2_PRODUCER_SCHEMA:
+        raise ValueError("D-v2 overlay schema does not match the producer schema")
+    if payload.get("v24_runtime_mode") != ENERGY_MODE:
+        raise ValueError("D-v2 overlay runtime mode must be D_V2_ENERGY")
+    raw = payload.get("v24_d_v2")
+    if not isinstance(raw, Mapping) or raw.get("enabled") is not True:
+        raise ValueError("v24_d_v2.enabled must be true")
+    if raw.get("producer_schema") != D_V2_PRODUCER_SCHEMA:
+        raise ValueError("v24_d_v2.producer_schema mismatch")
+    if raw.get("tolerance_schema") != D_V2_TOLERANCE_SCHEMA:
+        raise ValueError("v24_d_v2.tolerance_schema mismatch")
+    if raw.get("adjudication_schema") != D_V2_ADJUDICATION_SCHEMA:
+        raise ValueError("v24_d_v2.adjudication_schema mismatch")
+    probe_seed = raw.get("probe_seed")
+    if isinstance(probe_seed, bool) or not isinstance(probe_seed, int) or probe_seed != D_V2_SEED:
+        raise ValueError(f"v24_d_v2.probe_seed must be exactly {D_V2_SEED}")
+    if raw.get("device") != "cuda:0":
+        raise ValueError("v24_d_v2.device must be exactly cuda:0")
+
+    model = raw.get("model")
+    spring = raw.get("spring")
+    trajectories = raw.get("trajectories")
+    profiles_raw = raw.get("friction_profiles")
+    tolerance = raw.get("tolerance")
+    authorities = raw.get("authority_labels")
+    for name, value in (
+        ("model", model),
+        ("spring", spring),
+        ("trajectories", trajectories),
+        ("friction_profiles", profiles_raw),
+        ("tolerance", tolerance),
+        ("authority_labels", authorities),
+    ):
+        if not isinstance(value, Mapping):
+            raise TypeError(f"v24_d_v2.{name} must be a mapping")
+
+    panel_mass = finite_number(model.get("panel_mass_kg"), label="d_v2.model.panel_mass_kg")
+    panel_width = finite_number(model.get("panel_width_m"), label="d_v2.model.panel_width_m")
+    inertia = finite_number(model.get("inertia_kg_m2"), label="d_v2.model.inertia_kg_m2")
+    if panel_mass != 120.0 or panel_width != 0.95 or inertia != 36.1:
+        raise ValueError("D-v2 model parameters must remain 120.0 kg, 0.95 m, and 36.1 kg*m^2")
+    if model.get("inertia_formula") != "(1/3)*120*0.95^2=36.1 kg*m^2":
+        raise ValueError("D-v2 inertia formula must remain explicit and parameter-derived")
+    if model.get("inertia_authority") != "MODELED_FROM_PARAMS_UNIFORM_PANEL_EDGE":
+        raise ValueError("D-v2 inertia authority must remain modeled-from-params")
+    if "default_inertia" in model:
+        raise ValueError("D-v2 must not use default_inertia")
+
+    stiffness = finite_number(spring.get("stiffness_nm_per_rad"), label="d_v2.spring.stiffness_nm_per_rad")
+    damping = finite_number(spring.get("damping_nm_s_per_rad"), label="d_v2.spring.damping_nm_s_per_rad")
+    theta_ref = finite_number(spring.get("theta_ref_rad"), label="d_v2.spring.theta_ref_rad")
+    theta_initial = finite_number(spring.get("theta_initial_rad"), label="d_v2.spring.theta_initial_rad")
+    velocity_target = finite_number(spring.get("velocity_target_rad_s"), label="d_v2.spring.velocity_target_rad_s")
+    if (stiffness, damping, theta_ref, theta_initial, velocity_target) != (6.0, 0.0, 0.5, 0.5, 0.0):
+        raise ValueError("D-v2 spring/target values must remain k=6, damping=0, theta=0.5, omega=0")
+    if spring.get("surface") != "HIGH_LEVEL_RAD_SURFACE" or spring.get("target_dependency") != "NONE":
+        raise ValueError("D-v2 targets must identify the high-level rad surface with no USD dependency")
+
+    raw_signs = trajectories.get("signs")
+    if not isinstance(raw_signs, list) or tuple(raw_signs) != (-1, 1):
+        raise ValueError("D-v2 trajectory signs must remain exactly [-1, +1]")
+    stationarity_steps = trajectories.get("stationarity_steps")
+    command_steps = trajectories.get("command_steps")
+    coast_steps = trajectories.get("coast_steps")
+    for name, value in (("stationarity_steps", stationarity_steps), ("command_steps", command_steps), ("coast_steps", coast_steps)):
+        if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+            raise ValueError(f"D-v2 {name} must be a positive integer")
+    command_effort = finite_number(trajectories.get("command_effort_nm"), label="d_v2.trajectories.command_effort_nm")
+    dt_s = finite_number(trajectories.get("dt_s"), label="d_v2.trajectories.dt_s")
+    if (stationarity_steps, command_steps, coast_steps, command_effort, dt_s) != (20, 100, 100, 2.0, 0.005):
+        raise ValueError("D-v2 trajectory contract must remain 20/100/100 steps, 2.0 Nm, dt=0.005")
+
+    if tuple(profiles_raw.keys()) != ("F00", "F10"):
+        raise ValueError("D-v2 friction profiles must be ordered F00/F10")
+    expected_profiles = {"F00": (0.0, 0.0, 0.0), "F10": (1.0, 0.75, 0.0)}
+    profiles: dict[str, dict[str, float]] = {}
+    for profile_name in ("F00", "F10"):
+        profile = profiles_raw[profile_name]
+        if not isinstance(profile, Mapping):
+            raise TypeError(f"D-v2 friction profile {profile_name} must be a mapping")
+        values = (
+            finite_number(profile.get("static_effort_nm"), label=f"d_v2.{profile_name}.static_effort_nm"),
+            finite_number(profile.get("dynamic_effort_nm"), label=f"d_v2.{profile_name}.dynamic_effort_nm"),
+            finite_number(profile.get("viscous_coefficient_nm_s_per_rad"), label=f"d_v2.{profile_name}.viscous_coefficient_nm_s_per_rad"),
+        )
+        if values != expected_profiles[profile_name]:
+            raise ValueError(f"D-v2 {profile_name} friction profile must remain {expected_profiles[profile_name]!r}")
+        profiles[profile_name] = {
+            "static_effort_nm": values[0],
+            "dynamic_effort_nm": values[1],
+            "viscous_coefficient_nm_s_per_rad": values[2],
+        }
+
+    multiplier = finite_number(tolerance.get("multiplier"), label="d_v2.tolerance.multiplier")
+    floor_j = finite_number(tolerance.get("floor_j"), label="d_v2.tolerance.floor_j")
+    if (multiplier, floor_j) != (2.0, 1.0e-12):
+        raise ValueError("D-v2 tolerance overlay must fix multiplier=2.0 and floor=1e-12 J")
+    expected_authorities = {
+        "solver_friction_torque_component": "UNAVAILABLE_NOT_USED",
+        "actual_generalized_torque_claim": False,
+        "friction_params": "MODELED_FROM_PARAMS",
+        "modeled_torque": "MODELED_FROM_PARAMS",
+        "command_work": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+        "state": "HIGH_LEVEL_ARTICULATION_DATA",
+        "stiffness": "CONFIGURED_HIGH_LEVEL_RAD_SURFACE_READBACK",
+    }
+    if dict(authorities) != expected_authorities:
+        raise ValueError("D-v2 authority labels do not match the owner contract")
+    return {
+        "schema": D_V2_PRODUCER_SCHEMA,
+        "tolerance_schema": D_V2_TOLERANCE_SCHEMA,
+        "adjudication_schema": D_V2_ADJUDICATION_SCHEMA,
+        "probe_seed": probe_seed,
+        "device": "cuda:0",
+        "config_path": config_path,
+        "model": {
+            "panel_mass_kg": panel_mass,
+            "panel_width_m": panel_width,
+            "inertia_kg_m2": inertia,
+            "inertia_formula": model["inertia_formula"],
+            "inertia_authority": model["inertia_authority"],
+        },
+        "spring": {
+            "stiffness_nm_per_rad": stiffness,
+            "damping_nm_s_per_rad": damping,
+            "theta_ref_rad": theta_ref,
+            "theta_initial_rad": theta_initial,
+            "velocity_target_rad_s": velocity_target,
+            "surface": spring["surface"],
+            "target_dependency": spring["target_dependency"],
+        },
+        "trajectories": {
+            "signs": list(raw_signs),
+            "stationarity_steps": stationarity_steps,
+            "command_steps": command_steps,
+            "coast_steps": coast_steps,
+            "command_effort_nm": command_effort,
+            "dt_s": dt_s,
+        },
+        "friction_profiles": profiles,
+        "tolerance": {"multiplier": multiplier, "floor_j": floor_j},
+        "authority_labels": dict(authorities),
     }
 
 
@@ -691,6 +850,58 @@ def build_ai_acceptance_plan(ai: Mapping[str, Any], friction: Mapping[str, Any])
             "parameter_range_freeze": "NOT_PERFORMED",
             "surface_tags": ai["surface_tags"],
         },
+    }
+
+
+def build_d_v2_plan(config_path: Path = D_V2_CONFIG) -> dict[str, Any]:
+    d_v2 = _d_v2_config_values(config_path)
+    return {
+        "schema": D_V2_PRODUCER_SCHEMA,
+        "status": "PLAN_ONLY",
+        "mode": ENERGY_MODE,
+        "config": rel_path(d_v2["config_path"]),
+        "device": d_v2["device"],
+        "probe_seed": d_v2["probe_seed"],
+        "runtime_artifact_root": rel_path(D_V2_ARTIFACT_ROOT),
+        "required_runtime_outputs": {
+            "tolerance": rel_path(D_V2_ARTIFACT_ROOT / "D_V2_TOLERANCE_FREEZE.json"),
+            "receipt": rel_path(D_V2_ARTIFACT_ROOT / "D_V2_ENERGY_RECEIPT.json"),
+            "caller_supplied": True,
+            "no_overwrite": True,
+        },
+        "model": d_v2["model"],
+        "spring_and_targets": d_v2["spring"],
+        "trajectory": {
+            **d_v2["trajectories"],
+            "fresh_calibration_before_tolerance": True,
+            "calibration_profile": "F00",
+            "test_profile": "F10",
+            "trajectory_order": ["F00/-1", "F00/+1", "WRITE_TOLERANCE_FREEZE", "F10/-1", "F10/+1"],
+            "physics_order": "scene.write_data_to_sim -> sim.step -> scene.update",
+            "accounting": {
+                "work": "dW=tau_cmd*(theta_next-theta)",
+                "mechanical_energy": "E=0.5*I_model*omega^2+0.5*k*(theta-theta_ref)^2",
+                "dissipation": "dD=dW-(E_next-E); D starts at 0 and accumulates",
+            },
+        },
+        "friction_profiles": d_v2["friction_profiles"],
+        "tolerance": {
+            **d_v2["tolerance"],
+            "freeze_formula": "tol_step=2*noise_step+floor; tol_cum=2*noise_cumulative+floor",
+            "source": "both fresh F00 calibration trajectories only",
+            "f10_recompute_forbidden": True,
+        },
+        "f10_acceptance": {
+            "finite": True,
+            "readbacks_match": True,
+            "motion_angle": "max(sign*(theta-theta0)) >= 1e-4 rad",
+            "motion_velocity": "max(sign*omega) >= 1e-3 rad/s",
+            "d_cumulative": "every D >= -tol_cum",
+            "d_step": "every dD >= -tol_step",
+            "final": "D_final > tol_cum",
+            "overall": "both signs PASS",
+        },
+        "authority_labels": d_v2["authority_labels"],
     }
 
 
@@ -1412,6 +1623,510 @@ def run_torque_ramp(
             "settle_steps_preregistered": friction["settle_steps"],
         },
     }
+
+
+def _d_v2_energy(theta: float, omega: float, *, inertia: float, stiffness: float, theta_ref: float) -> float:
+    value = 0.5 * inertia * omega**2 + 0.5 * stiffness * (theta - theta_ref) ** 2
+    if not math.isfinite(value):
+        raise RuntimeError("D-v2 mechanical energy became nonfinite")
+    return value
+
+
+def _d_v2_configure_profile(
+    *,
+    door: Any,
+    scene: Any,
+    env_ids: Any,
+    hinge_id: int,
+    d_v2: Mapping[str, Any],
+    profile_name: str,
+    original: Mapping[str, Any],
+) -> dict[str, Any]:
+    import torch
+
+    profile = d_v2["friction_profiles"][profile_name]
+    door.write_joint_friction_coefficient_to_sim(
+        torch.full_like(original["joint_friction_coeff"], profile["static_effort_nm"]),
+        torch.full_like(original["joint_dynamic_friction_coeff"], profile["dynamic_effort_nm"]),
+        torch.full_like(original["joint_viscous_friction_coeff"], profile["viscous_coefficient_nm_s_per_rad"]),
+        joint_ids=[hinge_id],
+        env_ids=env_ids,
+    )
+    door.write_joint_stiffness_to_sim(
+        torch.full_like(original["joint_stiffness"], d_v2["spring"]["stiffness_nm_per_rad"]),
+        joint_ids=[hinge_id],
+        env_ids=env_ids,
+    )
+    door.write_joint_damping_to_sim(
+        torch.full_like(original["joint_damping"], d_v2["spring"]["damping_nm_s_per_rad"]),
+        joint_ids=[hinge_id],
+        env_ids=env_ids,
+    )
+    target_position = torch.full_like(
+        original["joint_pos_target"][:, [hinge_id]], d_v2["spring"]["theta_ref_rad"]
+    )
+    target_velocity = torch.full_like(
+        original["joint_vel_target"][:, [hinge_id]], d_v2["spring"]["velocity_target_rad_s"]
+    )
+    target_effort = torch.zeros_like(original["joint_effort_target"][:, [hinge_id]])
+    door.set_joint_position_target(target_position, joint_ids=[hinge_id], env_ids=env_ids)
+    door.set_joint_velocity_target(target_velocity, joint_ids=[hinge_id], env_ids=env_ids)
+    door.set_joint_effort_target(target_effort, joint_ids=[hinge_id], env_ids=env_ids)
+    scene.write_data_to_sim()
+
+    readback = {
+        "profile": {
+            "static_effort_nm": _selected_hinge_field(door, "joint_friction_coeff", env_ids, hinge_id),
+            "dynamic_effort_nm": _selected_hinge_field(door, "joint_dynamic_friction_coeff", env_ids, hinge_id),
+            "viscous_coefficient_nm_s_per_rad": _selected_hinge_field(
+                door, "joint_viscous_friction_coeff", env_ids, hinge_id
+            ),
+        },
+        "stiffness_nm_per_rad": _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id),
+        "damping_nm_s_per_rad": _selected_hinge_field(door, "joint_damping", env_ids, hinge_id),
+        "theta_ref_rad": _selected_hinge_field(door, "joint_pos_target", env_ids, hinge_id),
+        "velocity_target_rad_s": _selected_hinge_field(door, "joint_vel_target", env_ids, hinge_id),
+    }
+    expected = {
+        "profile": {
+            "static_effort_nm": profile["static_effort_nm"],
+            "dynamic_effort_nm": profile["dynamic_effort_nm"],
+            "viscous_coefficient_nm_s_per_rad": profile["viscous_coefficient_nm_s_per_rad"],
+        },
+        "stiffness_nm_per_rad": d_v2["spring"]["stiffness_nm_per_rad"],
+        "damping_nm_s_per_rad": d_v2["spring"]["damping_nm_s_per_rad"],
+        "theta_ref_rad": d_v2["spring"]["theta_ref_rad"],
+        "velocity_target_rad_s": d_v2["spring"]["velocity_target_rad_s"],
+    }
+    matches = {
+        "static_effort_nm": bool(torch.all(readback["profile"]["static_effort_nm"] == expected["profile"]["static_effort_nm"]).item()),
+        "dynamic_effort_nm": bool(torch.all(readback["profile"]["dynamic_effort_nm"] == expected["profile"]["dynamic_effort_nm"]).item()),
+        "viscous_coefficient_nm_s_per_rad": bool(
+            torch.all(readback["profile"]["viscous_coefficient_nm_s_per_rad"] == expected["profile"]["viscous_coefficient_nm_s_per_rad"]).item()
+        ),
+        "stiffness_nm_per_rad": bool(torch.all(readback["stiffness_nm_per_rad"] == expected["stiffness_nm_per_rad"]).item()),
+        "damping_nm_s_per_rad": bool(torch.all(readback["damping_nm_s_per_rad"] == expected["damping_nm_s_per_rad"]).item()),
+        "theta_ref_rad": bool(torch.all(readback["theta_ref_rad"] == expected["theta_ref_rad"]).item()),
+        "velocity_target_rad_s": bool(torch.all(readback["velocity_target_rad_s"] == expected["velocity_target_rad_s"]).item()),
+    }
+    if not all(matches.values()):
+        raise RuntimeError(f"D-v2 configured high-level readback mismatch: {matches!r}")
+    return {
+        "profile_name": profile_name,
+        "requested": expected,
+        "readback": {
+            "static_effort_nm": readback["profile"]["static_effort_nm"].detach().cpu().tolist(),
+            "dynamic_effort_nm": readback["profile"]["dynamic_effort_nm"].detach().cpu().tolist(),
+            "viscous_coefficient_nm_s_per_rad": readback["profile"]["viscous_coefficient_nm_s_per_rad"].detach().cpu().tolist(),
+            "stiffness_nm_per_rad": readback["stiffness_nm_per_rad"].detach().cpu().tolist(),
+            "damping_nm_s_per_rad": readback["damping_nm_s_per_rad"].detach().cpu().tolist(),
+            "theta_ref_rad": readback["theta_ref_rad"].detach().cpu().tolist(),
+            "velocity_target_rad_s": readback["velocity_target_rad_s"].detach().cpu().tolist(),
+        },
+        "matches": matches,
+        "authority": d_v2["authority_labels"],
+    }
+
+
+def _d_v2_run_trajectory(
+    *,
+    sim: Any,
+    scene: Any,
+    door: Any,
+    env_ids: Any,
+    hinge_id: int,
+    d_v2: Mapping[str, Any],
+    profile_name: str,
+    sign: int,
+    original: Mapping[str, Any],
+) -> dict[str, Any]:
+    import torch
+
+    profile_readback = _d_v2_configure_profile(
+        door=door,
+        scene=scene,
+        env_ids=env_ids,
+        hinge_id=hinge_id,
+        d_v2=d_v2,
+        profile_name=profile_name,
+        original=original,
+    )
+    theta_ref = d_v2["spring"]["theta_ref_rad"]
+    theta_initial = d_v2["spring"]["theta_initial_rad"]
+    velocity_target = d_v2["spring"]["velocity_target_rad_s"]
+    _clear_hinge_target(door, hinge_id, env_ids)
+    stationarity_rows: list[dict[str, float]] = []
+    for stationarity_index in range(d_v2["trajectories"]["stationarity_steps"]):
+        _step_door_scene(sim, scene, d_v2["trajectories"]["dt_s"])
+        theta = float(door.data.joint_pos[env_ids, hinge_id].item())
+        omega = float(door.data.joint_vel[env_ids, hinge_id].item())
+        if not math.isfinite(theta) or not math.isfinite(omega):
+            raise RuntimeError("D-v2 zero-command stationarity state became nonfinite")
+        stationarity_rows.append({"step": stationarity_index, "theta_rad": theta, "omega_rad_s": omega})
+
+    exact_position = torch.full_like(_selected_hinge_field(door, "joint_pos", env_ids, hinge_id), theta_initial)
+    exact_velocity = torch.full_like(_selected_hinge_field(door, "joint_vel", env_ids, hinge_id), velocity_target)
+    door.write_joint_state_to_sim(exact_position, exact_velocity, joint_ids=[hinge_id], env_ids=env_ids)
+    theta_before_rewrite = float(door.data.joint_pos[env_ids, hinge_id].item())
+    omega_before_rewrite = float(door.data.joint_vel[env_ids, hinge_id].item())
+    if theta_before_rewrite != theta_initial or omega_before_rewrite != velocity_target:
+        raise RuntimeError("D-v2 exact initial-state rewrite readback mismatch")
+
+    inertia = d_v2["model"]["inertia_kg_m2"]
+    stiffness = d_v2["spring"]["stiffness_nm_per_rad"]
+    cumulative_dissipation = 0.0
+    rows: list[dict[str, Any]] = []
+    phases = (
+        ("command", d_v2["trajectories"]["command_steps"], sign * d_v2["trajectories"]["command_effort_nm"]),
+        ("coast", d_v2["trajectories"]["coast_steps"], 0.0),
+    )
+    for phase, phase_steps, command_effort in phases:
+        command_tensor = torch.full(
+            (env_ids.numel(), 1), command_effort, dtype=door.data.joint_pos.dtype, device=door.data.joint_pos.device
+        )
+        door.set_joint_effort_target(command_tensor, joint_ids=[hinge_id], env_ids=env_ids)
+        for phase_step in range(phase_steps):
+            theta = float(door.data.joint_pos[env_ids, hinge_id].item())
+            omega = float(door.data.joint_vel[env_ids, hinge_id].item())
+            energy = _d_v2_energy(theta, omega, inertia=inertia, stiffness=stiffness, theta_ref=theta_ref)
+            _step_door_scene(sim, scene, d_v2["trajectories"]["dt_s"])
+            theta_next = float(door.data.joint_pos[env_ids, hinge_id].item())
+            omega_next = float(door.data.joint_vel[env_ids, hinge_id].item())
+            if not all(math.isfinite(value) for value in (theta, omega, theta_next, omega_next)):
+                raise RuntimeError("D-v2 energy trajectory state became nonfinite")
+            energy_next = _d_v2_energy(
+                theta_next, omega_next, inertia=inertia, stiffness=stiffness, theta_ref=theta_ref
+            )
+            work = command_effort * (theta_next - theta)
+            delta_energy = energy_next - energy
+            delta_dissipation = work - delta_energy
+            cumulative_dissipation += delta_dissipation
+            if not all(math.isfinite(value) for value in (work, delta_energy, delta_dissipation, cumulative_dissipation)):
+                raise RuntimeError("D-v2 energy accounting became nonfinite")
+            rows.append(
+                {
+                    "step": len(rows),
+                    "phase": phase,
+                    "phase_step": phase_step,
+                    "tau_cmd_nm": command_effort,
+                    "theta_rad": theta,
+                    "omega_rad_s": omega,
+                    "theta_next_rad": theta_next,
+                    "omega_next_rad_s": omega_next,
+                    "E_j": energy,
+                    "E_next_j": energy_next,
+                    "dW_j": work,
+                    "delta_E_j": delta_energy,
+                    "dD_j": delta_dissipation,
+                    "D_j": cumulative_dissipation,
+                }
+            )
+
+    max_signed_angle = max(sign * (row["theta_next_rad"] - theta_initial) for row in rows)
+    max_signed_velocity = max(sign * row["omega_next_rad_s"] for row in rows)
+    noise_step = max(abs(row["dD_j"]) for row in rows)
+    noise_cumulative = max(abs(row["D_j"]) for row in rows)
+    return {
+        "profile": profile_name,
+        "sign": sign,
+        "stationarity": {
+            "steps": len(stationarity_rows),
+            "rows": stationarity_rows,
+            "theta_initial_rad": theta_initial,
+            "omega_initial_rad_s": velocity_target,
+        },
+        "exact_state_rewrite": {
+            "theta_initial_rad": theta_initial,
+            "omega_initial_rad_s": velocity_target,
+            "readback_theta_rad": theta_before_rewrite,
+            "readback_omega_rad_s": omega_before_rewrite,
+            "matches": theta_before_rewrite == theta_initial and omega_before_rewrite == velocity_target,
+        },
+        "readbacks": profile_readback,
+        "rows": rows,
+        "noise_step_j": noise_step,
+        "noise_cumulative_j": noise_cumulative,
+        "D_final_j": cumulative_dissipation,
+        "motion": {
+            "theta0_rad": theta_initial,
+            "max_signed_angle_rad": max_signed_angle,
+            "max_signed_velocity_rad_s": max_signed_velocity,
+        },
+        "finite": True,
+    }
+
+
+def _d_v2_tolerance_freeze(d_v2: Mapping[str, Any], calibration: Sequence[Mapping[str, Any]], tolerance_path: Path) -> dict[str, Any]:
+    noise_step = max(float(item["noise_step_j"]) for item in calibration)
+    noise_cumulative = max(float(item["noise_cumulative_j"]) for item in calibration)
+    multiplier = d_v2["tolerance"]["multiplier"]
+    floor_j = d_v2["tolerance"]["floor_j"]
+    tol_step = multiplier * noise_step + floor_j
+    tol_cumulative = multiplier * noise_cumulative + floor_j
+    if not all(math.isfinite(value) for value in (noise_step, noise_cumulative, tol_step, tol_cumulative)):
+        raise RuntimeError("D-v2 tolerance calibration became nonfinite")
+    return {
+        "schema": D_V2_TOLERANCE_SCHEMA,
+        "mode": ENERGY_MODE,
+        "status": "FROZEN",
+        "device": d_v2["device"],
+        "probe_seed": d_v2["probe_seed"],
+        "profile": "F00",
+        "trajectory_signs": list(d_v2["trajectories"]["signs"]),
+        "calibration_trajectory_count": len(calibration),
+        "calibration_trajectories": list(calibration),
+        "noise_step_j": noise_step,
+        "noise_cumulative_j": noise_cumulative,
+        "multiplier": multiplier,
+        "floor_j": floor_j,
+        "tol_step_j": tol_step,
+        "tol_cumulative_j": tol_cumulative,
+        "freeze_formula": "tol_step=2*noise_step+floor; tol_cum=2*noise_cumulative+floor",
+        "source": "both fresh F00 calibration trajectories only",
+        "f10_recompute_forbidden": True,
+        "tolerance_path": rel_path(tolerance_path),
+    }
+
+
+def _d_v2_cleanup(
+    *,
+    scene: Any,
+    door: Any,
+    env_ids: Any,
+    hinge_id: int,
+    original: Mapping[str, Any],
+) -> dict[str, Any]:
+    import torch
+
+    friction_cleanup = _restore_friction(
+        door,
+        env_ids,
+        hinge_id,
+        {
+            "joint_friction_coeff": original["joint_friction_coeff"],
+            "joint_dynamic_friction_coeff": original["joint_dynamic_friction_coeff"],
+            "joint_viscous_friction_coeff": original["joint_viscous_friction_coeff"],
+        },
+    )
+    door.set_joint_effort_target(original["joint_effort_target"], env_ids=env_ids)
+    door.set_joint_position_target(original["joint_pos_target"], env_ids=env_ids)
+    door.set_joint_velocity_target(original["joint_vel_target"], env_ids=env_ids)
+    door.write_joint_stiffness_to_sim(original["joint_stiffness"], joint_ids=[hinge_id], env_ids=env_ids)
+    door.write_joint_damping_to_sim(original["joint_damping"], joint_ids=[hinge_id], env_ids=env_ids)
+    door.write_joint_effort_limit_to_sim(original["joint_effort_limits"], joint_ids=[hinge_id], env_ids=env_ids)
+    door.write_joint_state_to_sim(original["joint_pos"], original["joint_vel"], env_ids=env_ids)
+    scene.write_data_to_sim()
+    restored = {
+        "joint_pos": door.data.joint_pos[env_ids].clone(),
+        "joint_vel": door.data.joint_vel[env_ids].clone(),
+        "joint_effort_target": door.data.joint_effort_target[env_ids].clone(),
+        "joint_pos_target": door.data.joint_pos_target[env_ids].clone(),
+        "joint_vel_target": door.data.joint_vel_target[env_ids].clone(),
+        "joint_stiffness": _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id),
+        "joint_damping": _selected_hinge_field(door, "joint_damping", env_ids, hinge_id),
+        "joint_effort_limits": _selected_hinge_field(door, "joint_effort_limits", env_ids, hinge_id),
+        "joint_friction_coeff": _selected_hinge_field(door, "joint_friction_coeff", env_ids, hinge_id),
+        "joint_dynamic_friction_coeff": _selected_hinge_field(
+            door, "joint_dynamic_friction_coeff", env_ids, hinge_id
+        ),
+        "joint_viscous_friction_coeff": _selected_hinge_field(
+            door, "joint_viscous_friction_coeff", env_ids, hinge_id
+        ),
+    }
+    matches = {
+        "joint_pos": bool(torch.allclose(restored["joint_pos"], original["joint_pos"], atol=1.0e-6, rtol=0.0)),
+        "joint_vel": bool(torch.allclose(restored["joint_vel"], original["joint_vel"], atol=1.0e-6, rtol=0.0)),
+        "joint_effort_target": bool(torch.equal(restored["joint_effort_target"], original["joint_effort_target"])),
+        "joint_pos_target": bool(torch.equal(restored["joint_pos_target"], original["joint_pos_target"])),
+        "joint_vel_target": bool(torch.equal(restored["joint_vel_target"], original["joint_vel_target"])),
+        "joint_stiffness": bool(torch.allclose(restored["joint_stiffness"], original["joint_stiffness"], atol=1.0e-6, rtol=0.0)),
+        "joint_damping": bool(torch.allclose(restored["joint_damping"], original["joint_damping"], atol=1.0e-6, rtol=0.0)),
+        "joint_effort_limits": bool(
+            torch.allclose(restored["joint_effort_limits"], original["joint_effort_limits"], atol=1.0e-6, rtol=0.0)
+        ),
+        "joint_friction_coeff": friction_cleanup["matches"]["joint_friction_coeff"],
+        "joint_dynamic_friction_coeff": friction_cleanup["matches"]["joint_dynamic_friction_coeff"],
+        "joint_viscous_friction_coeff": friction_cleanup["matches"]["joint_viscous_friction_coeff"],
+    }
+    if not all(matches.values()):
+        raise RuntimeError(f"D-v2 cleanup readback mismatch: {matches!r}")
+    return {"matches": matches, "friction": friction_cleanup, "authority": "HIGH_LEVEL_ARTICULATION_DATA"}
+
+
+def _raise_d_v2_lifecycle_errors(errors: Sequence[BaseException]) -> None:
+    if not errors:
+        return
+    if len(errors) == 1:
+        raise errors[0]
+    raise BaseExceptionGroup("D-v2 lifecycle failures", list(errors))
+
+
+def _run_d_v2_runtime(config_path: Path, *, device: str, tolerance_path: Path, output: Path) -> None:
+    d_v2 = _d_v2_config_values(config_path)
+    if device != d_v2["device"]:
+        raise ValueError("D_V2_ENERGY requires the configured device cuda:0")
+    tolerance_path = absolute(tolerance_path).resolve()
+    output = absolute(output).resolve()
+    if tolerance_path.parent != D_V2_ARTIFACT_ROOT.resolve() or tolerance_path.name != "D_V2_TOLERANCE_FREEZE.json":
+        raise ValueError("D-v2 tolerance output must be the canonical D_V2_TOLERANCE_FREEZE.json path")
+    if output.parent != D_V2_ARTIFACT_ROOT.resolve() or output.name != "D_V2_ENERGY_RECEIPT.json":
+        raise ValueError("D-v2 receipt output must be the canonical D_V2_ENERGY_RECEIPT.json path")
+    if tolerance_path.exists() or output.exists():
+        raise ValueError("D-v2 runtime refuses to overwrite an existing artifact")
+
+    sim = None
+    scene = None
+    door = None
+    env_ids = None
+    hinge_id = None
+    hinge_name = None
+    original = None
+    cleanup_ready = False
+    primary_error: BaseException | None = None
+    teardown_errors: list[BaseException] = []
+    receipt_payload: dict[str, Any] | None = None
+    cleanup_result: dict[str, Any] | None = None
+    try:
+        sim, scene, door, fixtures = _build_door_only_scene(
+            device=device,
+            dt=d_v2["trajectories"]["dt_s"],
+            probe_seed=d_v2["probe_seed"],
+        )
+        if len(fixtures) != 1:
+            raise RuntimeError("D-v2 requires exactly one door-only fixture")
+        env_ids = _single_env_ids(door, selected_env_index=0, device=device)
+        hinge_id, hinge_name = _select_single_hinge(door)
+        original = {
+            "joint_friction_coeff": _selected_hinge_field(door, "joint_friction_coeff", env_ids, hinge_id),
+            "joint_dynamic_friction_coeff": _selected_hinge_field(door, "joint_dynamic_friction_coeff", env_ids, hinge_id),
+            "joint_viscous_friction_coeff": _selected_hinge_field(door, "joint_viscous_friction_coeff", env_ids, hinge_id),
+            "joint_stiffness": _selected_hinge_field(door, "joint_stiffness", env_ids, hinge_id),
+            "joint_damping": _selected_hinge_field(door, "joint_damping", env_ids, hinge_id),
+            "joint_effort_limits": _selected_hinge_field(door, "joint_effort_limits", env_ids, hinge_id),
+            "joint_pos_target": door.data.joint_pos_target[env_ids].clone(),
+            "joint_vel_target": door.data.joint_vel_target[env_ids].clone(),
+            "joint_effort_target": door.data.joint_effort_target[env_ids].clone(),
+            "joint_pos": door.data.joint_pos[env_ids].clone(),
+            "joint_vel": door.data.joint_vel[env_ids].clone(),
+        }
+        cleanup_ready = True
+        calibration = [
+            _d_v2_run_trajectory(
+                sim=sim,
+                scene=scene,
+                door=door,
+                env_ids=env_ids,
+                hinge_id=hinge_id,
+                d_v2=d_v2,
+                profile_name="F00",
+                sign=sign,
+                original=original,
+            )
+            for sign in d_v2["trajectories"]["signs"]
+        ]
+        tolerance = _d_v2_tolerance_freeze(d_v2, calibration, tolerance_path)
+        write_json(tolerance_path, tolerance)
+        f10_trajectories = [
+            _d_v2_run_trajectory(
+                sim=sim,
+                scene=scene,
+                door=door,
+                env_ids=env_ids,
+                hinge_id=hinge_id,
+                d_v2=d_v2,
+                profile_name="F10",
+                sign=sign,
+                original=original,
+            )
+            for sign in d_v2["trajectories"]["signs"]
+        ]
+        f10_results: list[dict[str, Any]] = []
+        for trajectory in f10_trajectories:
+            finite = bool(trajectory["finite"])
+            readbacks_match = all(trajectory["readbacks"]["matches"].values())
+            motion_angle = trajectory["motion"]["max_signed_angle_rad"] >= 1.0e-4
+            motion_velocity = trajectory["motion"]["max_signed_velocity_rad_s"] >= 1.0e-3
+            d_cumulative = all(row["D_j"] >= -tolerance["tol_cumulative_j"] for row in trajectory["rows"])
+            d_step = all(row["dD_j"] >= -tolerance["tol_step_j"] for row in trajectory["rows"])
+            final = trajectory["D_final_j"] > tolerance["tol_cumulative_j"]
+            checks = {
+                "finite": finite,
+                "readbacks_match": readbacks_match,
+                "motion_angle": motion_angle,
+                "motion_velocity": motion_velocity,
+                "D_nonnegative_within_tol": d_cumulative,
+                "dD_nonnegative_within_tol": d_step,
+                "D_final_above_tol": final,
+            }
+            f10_results.append(
+                {
+                    "sign": trajectory["sign"],
+                    "checks": checks,
+                    "scientific_verdict": "PASS" if all(checks.values()) else "FAIL",
+                    "trajectory": trajectory,
+                }
+            )
+        overall_pass = all(result["scientific_verdict"] == "PASS" for result in f10_results)
+        receipt_payload = {
+            "schema": D_V2_PRODUCER_SCHEMA,
+            "mode": ENERGY_MODE,
+            "status": "PASS" if overall_pass else "FAIL",
+            "overall_status": "PASS" if overall_pass else "FAIL",
+            "device": d_v2["device"],
+            "probe_seed": d_v2["probe_seed"],
+            "config": rel_path(d_v2["config_path"]),
+            "door_only": True,
+            "hinge_joint_name": hinge_name,
+            "hinge_joint_id": hinge_id,
+            "model": d_v2["model"],
+            "spring_and_targets": d_v2["spring"],
+            "trajectory_contract": d_v2["trajectories"],
+            "authority_labels": d_v2["authority_labels"],
+            "accounting_formula": {
+                "dW": "tau_cmd*(theta_next-theta)",
+                "E": "0.5*I_model*omega^2+0.5*k*(theta-theta_ref)^2",
+                "dD": "dW-(E_next-E)",
+                "D": "D starts at 0 and accumulates",
+            },
+            "calibration": {
+                "profile": "F00",
+                "trajectory_signs": list(d_v2["trajectories"]["signs"]),
+                "trajectories": calibration,
+                "completed_before_tolerance": True,
+            },
+            "tolerance_freeze": tolerance,
+            "f10": {
+                "profile": "F10",
+                "trajectory_signs": list(d_v2["trajectories"]["signs"]),
+                "per_sign": f10_results,
+                "overall_pass": overall_pass,
+                "tolerance_recomputed_from_f10": False,
+            },
+            "scientific_verdict": "PASS" if overall_pass else "FAIL",
+            "cleanup": None,
+        }
+    except BaseException as exc:
+        primary_error = exc
+    finally:
+        if cleanup_ready:
+            try:
+                cleanup_result = _d_v2_cleanup(
+                    scene=scene, door=door, env_ids=env_ids, hinge_id=hinge_id, original=original
+                )
+            except BaseException as exc:
+                teardown_errors.append(exc)
+        if sim is not None:
+            try:
+                sim.clear_instance()
+            except BaseException as exc:
+                teardown_errors.append(exc)
+    lifecycle_errors = ([] if primary_error is None else [primary_error]) + teardown_errors
+    if lifecycle_errors:
+        _raise_d_v2_lifecycle_errors(lifecycle_errors)
+    if receipt_payload is None or cleanup_result is None:
+        raise RuntimeError("D-v2 runtime completed without receipt and cleanup payloads")
+    receipt_payload["cleanup"] = cleanup_result
+    write_json(output, receipt_payload)
 
 
 def _profile_friction(friction: Mapping[str, Any], profile: Mapping[str, Any]) -> dict[str, Any]:
@@ -2305,6 +3020,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--mode", choices=MODE_ORDER, default=FIRST_RUNTIME_MODE)
     parser.add_argument("--config", type=Path, default=PRODUCTION_CONFIG)
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument("--tolerance", type=Path, default=None)
     parser.add_argument("--device", default="cuda:0")
     return parser
 
@@ -2313,13 +3029,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     config_path = absolute(args.config)
     if args.plan:
-        plan = build_plan(config_path)
+        plan = build_d_v2_plan(config_path) if args.mode == ENERGY_MODE else build_plan(config_path)
         if args.output is None:
             print(json.dumps(plan, ensure_ascii=False, sort_keys=True, indent=2))
         else:
             write_json(args.output, plan)
         return 0
-    if args.mode not in (FIRST_RUNTIME_MODE, AI_ACCEPTANCE_MODE):
+    if args.mode not in (FIRST_RUNTIME_MODE, AI_ACCEPTANCE_MODE, ENERGY_MODE):
         raise RuntimeError(
             f"{args.mode} is not an executable v24 P1 runtime mode"
         )
@@ -2330,6 +3046,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         raise ValueError(
             "runtime output must be under logs_eval/base_v24/p1/friction_backend/"
         )
+    if args.mode == ENERGY_MODE:
+        if args.tolerance is None:
+            raise ValueError("D_V2_ENERGY requires an explicit --tolerance path")
+        _d_v2_config_values(config_path)
+        tolerance_path = absolute(args.tolerance)
+        from isaaclab.app import AppLauncher
+
+        launcher = AppLauncher({"headless": True, "device": args.device, "enable_cameras": False})
+        _run_d_v2_runtime(config_path, device=args.device, tolerance_path=tolerance_path, output=output)
+        launcher.app.close()
+        return 0
     _assert_selected_sources(config_path)
     friction = _probe_config_values(config_path)
     if args.mode == AI_ACCEPTANCE_MODE:

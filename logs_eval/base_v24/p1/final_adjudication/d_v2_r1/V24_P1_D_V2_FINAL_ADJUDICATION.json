@@ -1,0 +1,93 @@
+{
+  "acceptance": {
+    "A_breakaway": "PASS",
+    "B_kinetic_plateau": "PASS",
+    "C_distinct_from_damping": "PASS",
+    "D_v2_energy_accounting": "PASS",
+    "E_chatter": "PASS",
+    "F_timestep": "PASS_QUALITATIVE_ONLY",
+    "G_orthogonality": "PASS",
+    "H_reset_persistence": "PASS",
+    "I_legacy_default_off_parity": "PASS"
+  },
+  "admission": {
+    "P2": true,
+    "P3": true,
+    "owner_decision_required": false,
+    "reason": "D-v2 behavioral energy accounting is the Owner-revised P1 gate"
+  },
+  "authority_boundary": {
+    "actual_generalized_torque_claim": false,
+    "command_work": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+    "friction_params": "MODELED_FROM_PARAMS",
+    "modeled_torque": "MODELED_FROM_PARAMS",
+    "solver_friction_torque_component": "UNAVAILABLE_NOT_USED",
+    "state": "HIGH_LEVEL_ARTICULATION_DATA",
+    "stiffness": "CONFIGURED_HIGH_LEVEL_RAD_SURFACE_READBACK"
+  },
+  "d_v2": {
+    "overall_pass": true,
+    "per_sign": [
+      {
+        "checks": {
+          "D_final_above_tol": true,
+          "D_nonnegative_within_tol": true,
+          "dD_nonnegative_within_tol": true,
+          "finite": true,
+          "motion_angle": true,
+          "motion_velocity": true,
+          "readbacks_match": true
+        },
+        "scientific_verdict": "PASS",
+        "sign": -1
+      },
+      {
+        "checks": {
+          "D_final_above_tol": true,
+          "D_nonnegative_within_tol": true,
+          "dD_nonnegative_within_tol": true,
+          "finite": true,
+          "motion_angle": true,
+          "motion_velocity": true,
+          "readbacks_match": true
+        },
+        "scientific_verdict": "PASS",
+        "sign": 1
+      }
+    ],
+    "receipt": "logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/D_V2_ENERGY_RECEIPT.json",
+    "tolerance": "logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/D_V2_TOLERANCE_FREEZE.json"
+  },
+  "historical": {
+    "a_g": "logs_eval/base_v24/p1/friction_backend/a_g_acceptance_r9_gpu0/P1_A_G_RECEIPT.json",
+    "acceptance": {
+      "A_breakaway": "PASS",
+      "B_kinetic_plateau": "PASS",
+      "C_distinct_from_damping": "PASS",
+      "E_chatter": "PASS",
+      "F_timestep": "PASS_QUALITATIVE_ONLY",
+      "G_orthogonality": "PASS",
+      "H_reset_persistence": "PASS",
+      "I_legacy_default_off_parity": "PASS"
+    },
+    "facts": {
+      "A": true,
+      "B": true,
+      "C": true,
+      "E": true,
+      "F": true,
+      "G": true,
+      "H": true,
+      "I": true
+    },
+    "h_i": "logs_eval/base_v24/p0/runtime_compatibility/r6/P0_P1_RUNTIME_COMPATIBILITY_RECEIPT.json",
+    "old_final": "logs_eval/base_v24/p1/final_adjudication/r1/V24_P1_FINAL_ADJUDICATION.json"
+  },
+  "owner_authority": {
+    "decision": "OWNER_GATE_REVISION_D_V2 + CONTINUE_FROM_P2",
+    "path": "scriptsFORhuman/v24/DoorDog_v24_owner_decision_d_gate_revision_20260817.md"
+  },
+  "schema": "a2_piper_base_v24_p1_d_v2_owner_revision_adjudication_v1",
+  "status": "FINAL_ADJUDICATION",
+  "typed_result": "V24_FRICTION_MODEL_VALID_BEHAVIORAL"
+}

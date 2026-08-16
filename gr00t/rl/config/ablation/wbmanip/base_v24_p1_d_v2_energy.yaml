@@ -1,0 +1,57 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v24_p1_native_probe
+  - _self_
+
+v24_schema: a2_piper_v24_p1_d_v2_energy_v1
+v24_plan_id: base_v24_friction_calibrated_force_boundary_R1_D_V2
+v24_runtime_mode: D_V2_ENERGY
+
+v24_d_v2:
+  enabled: true
+  producer_schema: a2_piper_v24_p1_d_v2_energy_v1
+  tolerance_schema: a2_piper_v24_p1_d_v2_tolerance_freeze_v1
+  adjudication_schema: a2_piper_base_v24_p1_d_v2_owner_revision_adjudication_v1
+  probe_seed: 24017
+  device: cuda:0
+  model:
+    panel_mass_kg: 120.0
+    panel_width_m: 0.95
+    inertia_kg_m2: 36.1
+    inertia_formula: "(1/3)*120*0.95^2=36.1 kg*m^2"
+    inertia_authority: MODELED_FROM_PARAMS_UNIFORM_PANEL_EDGE
+  spring:
+    stiffness_nm_per_rad: 6.0
+    damping_nm_s_per_rad: 0.0
+    theta_ref_rad: 0.5
+    theta_initial_rad: 0.5
+    velocity_target_rad_s: 0.0
+    surface: HIGH_LEVEL_RAD_SURFACE
+    target_dependency: NONE
+  trajectories:
+    signs: [-1, 1]
+    stationarity_steps: 20
+    command_steps: 100
+    coast_steps: 100
+    command_effort_nm: 2.0
+    dt_s: 0.005
+  friction_profiles:
+    F00:
+      static_effort_nm: 0.0
+      dynamic_effort_nm: 0.0
+      viscous_coefficient_nm_s_per_rad: 0.0
+    F10:
+      static_effort_nm: 1.0
+      dynamic_effort_nm: 0.75
+      viscous_coefficient_nm_s_per_rad: 0.0
+  tolerance:
+    multiplier: 2.0
+    floor_j: 1.0e-12
+  authority_labels:
+    solver_friction_torque_component: UNAVAILABLE_NOT_USED
+    actual_generalized_torque_claim: false
+    friction_params: MODELED_FROM_PARAMS
+    modeled_torque: MODELED_FROM_PARAMS
+    command_work: COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE
+    state: HIGH_LEVEL_ARTICULATION_DATA
+    stiffness: CONFIGURED_HIGH_LEVEL_RAD_SURFACE_READBACK

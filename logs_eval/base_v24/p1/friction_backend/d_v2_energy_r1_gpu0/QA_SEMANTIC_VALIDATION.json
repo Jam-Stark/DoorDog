@@ -1,0 +1,149 @@
+{
+  "authority_labels": {
+    "actual_generalized_torque_claim": false,
+    "command_work": "COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE",
+    "friction_params": "MODELED_FROM_PARAMS",
+    "modeled_torque": "MODELED_FROM_PARAMS",
+    "solver_friction_torque_component": "UNAVAILABLE_NOT_USED",
+    "state": "HIGH_LEVEL_ARTICULATION_DATA",
+    "stiffness": "CONFIGURED_HIGH_LEVEL_RAD_SURFACE_READBACK"
+  },
+  "cleanup": {
+    "all_true": true,
+    "authority": "HIGH_LEVEL_ARTICULATION_DATA",
+    "exact_match_field_set": [
+      "joint_damping",
+      "joint_dynamic_friction_coeff",
+      "joint_effort_limits",
+      "joint_effort_target",
+      "joint_friction_coeff",
+      "joint_pos",
+      "joint_pos_target",
+      "joint_stiffness",
+      "joint_vel",
+      "joint_vel_target",
+      "joint_viscous_friction_coeff"
+    ],
+    "friction_all_true": true,
+    "friction_exact_match_field_set": [
+      "joint_dynamic_friction_coeff",
+      "joint_friction_coeff",
+      "joint_viscous_friction_coeff"
+    ]
+  },
+  "f00": {
+    "noise_cumulative_j": 0.0004401131820766166,
+    "noise_step_j": 4.967044980852195e-06,
+    "per_sign": [
+      {
+        "D_final_j": 0.0004401131820766166,
+        "coast_intervals": 100,
+        "command_intervals": 100,
+        "continuity": true,
+        "finite": true,
+        "max_signed_angle_rad": 0.02020058035850525,
+        "max_signed_velocity_rad_s": 0.02718653343617916,
+        "noise_cumulative_j": 0.0004401131820766166,
+        "noise_step_j": 4.754156500506174e-06,
+        "profile": "F00",
+        "readbacks_match": true,
+        "row0_exact": true,
+        "rows": 200,
+        "sign": -1
+      },
+      {
+        "D_final_j": 0.00043741328942907554,
+        "coast_intervals": 100,
+        "command_intervals": 100,
+        "continuity": true,
+        "finite": true,
+        "max_signed_angle_rad": 0.02024686336517334,
+        "max_signed_velocity_rad_s": 0.027233541011810303,
+        "noise_cumulative_j": 0.00043741328942907554,
+        "noise_step_j": 4.967044980852195e-06,
+        "profile": "F00",
+        "readbacks_match": true,
+        "row0_exact": true,
+        "rows": 200,
+        "sign": 1
+      }
+    ]
+  },
+  "f10": {
+    "overall_pass": true,
+    "per_sign": [
+      {
+        "D_final_j": 0.007680328808102447,
+        "checks": {
+          "D_final_above_tol": true,
+          "D_nonnegative_within_tol": true,
+          "dD_nonnegative_within_tol": true,
+          "finite": true,
+          "motion_angle": true,
+          "motion_velocity": true,
+          "readbacks_match": true
+        },
+        "coast_intervals": 100,
+        "command_intervals": 100,
+        "continuity": true,
+        "finite": true,
+        "max_signed_angle_rad": 0.010062038898468018,
+        "max_signed_velocity_rad_s": 0.01701931096613407,
+        "noise_cumulative_j": 0.007680328808102447,
+        "noise_step_j": 6.574021647012818e-05,
+        "profile": "F10",
+        "readbacks_match": true,
+        "row0_exact": true,
+        "rows": 200,
+        "scientific_verdict": "PASS",
+        "sign": -1
+      },
+      {
+        "D_final_j": 0.007679495205304246,
+        "checks": {
+          "D_final_above_tol": true,
+          "D_nonnegative_within_tol": true,
+          "dD_nonnegative_within_tol": true,
+          "finite": true,
+          "motion_angle": true,
+          "motion_velocity": true,
+          "readbacks_match": true
+        },
+        "coast_intervals": 100,
+        "command_intervals": 100,
+        "continuity": true,
+        "finite": true,
+        "max_signed_angle_rad": 0.010063230991363525,
+        "max_signed_velocity_rad_s": 0.01702137105166912,
+        "noise_cumulative_j": 0.007679495205304246,
+        "noise_step_j": 6.571414163148055e-05,
+        "profile": "F10",
+        "readbacks_match": true,
+        "row0_exact": true,
+        "rows": 200,
+        "scientific_verdict": "PASS",
+        "sign": 1
+      }
+    ]
+  },
+  "no_hashes_used": true,
+  "producer_scientific_verdict": "PASS",
+  "receipt_path": "logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/D_V2_ENERGY_RECEIPT.json",
+  "receipt_status": "PASS",
+  "revision": "R5-FROZEN-QA1",
+  "schema": "a2_piper_v24_p1_d_v2_runtime_qa_semantic_validation_v1",
+  "status": "PASS",
+  "task_id": "V24-OWNER-DV2",
+  "tolerance": {
+    "all_f00_precedes_f10": true,
+    "f10_recompute_forbidden": true,
+    "receipt_mtime_ns": 1786901709828200197,
+    "standalone_equals_embedded": true,
+    "tol_cumulative_j": 0.0008802263651532332,
+    "tol_step_j": 9.93409096170439e-06,
+    "tolerance_mtime_ns": 1786901708012647821,
+    "tolerance_precedes_receipt": true
+  },
+  "tolerance_path": "logs_eval/base_v24/p1/friction_backend/d_v2_energy_r1_gpu0/D_V2_TOLERANCE_FREEZE.json",
+  "validation_level": "RUNTIME_SMOKE_PASS"
+}

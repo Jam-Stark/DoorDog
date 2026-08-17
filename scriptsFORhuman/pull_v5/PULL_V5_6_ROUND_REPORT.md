@@ -1,9 +1,9 @@
 # A2+Piper Pull-v5.6 Round Report
 
-**Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`  
-**Execution date:** 2026-08-17 HKT  
-**Branch:** `codex/a2-piper-pull-v0-20260803`  
-**Final route:** `G9 × 3 -> G11` at T0 step-0  
+**Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`
+**Execution date:** 2026-08-17 HKT
+**Branch:** `codex/a2-piper-pull-v0-20260803`
+**Final route:** `G9 × 3 -> G11` at T0 step-0
 **Scientific verdict:** `INCONCLUSIVE` — the terminal-hold specialist was implemented and its warm start was validated, but no valid step-0 episode receipt was produced and no fine-tuning run started.
 
 ## 1. Executive outcome
@@ -169,4 +169,3 @@ There were no accepted rows from which to infer runtime invariant rates.
 - The three-rung ladder reached its final rung operationally, but the final rung was not scientifically adjudicated. The first two rungs remain completed/failed under their own contracts.
 - The current autonomous execution path is exhausted under G9/G11. The task returns to the planner; a future decision may either authorize a fresh v5.6 execution revision after completing the eval wrapper root schema or choose task-level redesign. It must not reinterpret this blocked run as passage zero or introduce an unapproved rung 4.
 - The canonical-plus-natural reproducible `frame_passage` stopping condition remains unmet.
-

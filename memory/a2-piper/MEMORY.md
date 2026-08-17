@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-17 08:13 HKT — pull-v5.5 preregistered residual terminal-hold adapter 完成 initial run 与唯一 target-offset curriculum retrain，但 T1 admission `FAIL`/G11 return-to-planner。r13 仅 step500 `near_rest` env15 达 K100；250/500/750 gate=`0/80,1/80,0/80`，远低于每 family `15/16` 且 overall `77/80`。sampled/applied carrier provenance 是 reusable PPO gotcha。T2/T3/door/G2/P3/P4/dual eval/render 均 NOT_RUN，无 passage denominator；rung3 HOMIE fine-tune 未自动授权。formal review 仍 FAIL，targeted acceptance 非 reviewer PASS；v5.4–v5.1 保持 version-scoped。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-17 12:27 HKT — pull-v5.6 已授权/实现末级 terminal-hold specialist；raw eager actor strict-load、fresh critic/optimizer/scheduler、std=`1.0` 与 static/CPU/synthetic acceptance PASS。sole formal review 保持 FAIL。step0 三次 G9 invalid attempt 依次因 eval root Hydra schema 缺 `experiment_dir`、`output_dir`、`multi_gpu` 阻塞，零 valid receipt；rung3 capability `INCONCLUSIVE/BLOCKED`，T1 以后全部 NOT_RUN、无 passage denominator，G11 return-to-planner，不得自创 rung4。
 
 ## Update Rules
 

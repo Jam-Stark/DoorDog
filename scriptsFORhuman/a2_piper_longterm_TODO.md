@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-17 08:13 HKT (pull-v5.5 residual-adapter T1/G11 return-to-planner closure)。
+创建:2026-07-21;最近更新:2026-08-17 12:27 HKT (pull-v5.6 specialist T0/G9×3/G11 closure)。
 
 ---
 
@@ -39,7 +39,7 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **scheduler、registered residual adapter 均 completed/failed；return to planner。fine-tune/rung3 非自动授权，须 planner decision** | v5.5 r13 T1 gate=`0/80,1/80,0/80`，仅 step500 `near_rest` env15 K100（XY=`0.0396828391 m`、yaw=`0.0298886299 rad`），远低于 each family `15/16` 与 overall `77/80`；不得将 scoped adapter FAIL 泛化为所有 residual architecture，也不得当作 passage zero 或放宽 `0.05 m/0.15 rad`。sampled/applied carrier provenance 是 PPO reusable gotcha。|
+| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **rung1/rung2 completed/failed；rung3 已授权并实现，但 step0 在 G9×3 后 infrastructure-blocked，capability INCONCLUSIVE；return to planner** | v5.6 warm-start/static contract PASS；80-row step0 因 eval root Hydra schema 依次缺 `experiment_dir`/`output_dir`/`multi_gpu` 而零 valid receipt，T1 后全部 NOT_RUN。新 decision 只能先完整证明 wrapper root schema 后重开 execution revision，或 task-level redesign；不得写 passage zero、自创 rung4或放宽 `0.05 m/0.15 rad`。|
 
 ## E. 维护性挂账(小,勿丢)
 
@@ -50,6 +50,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-17 12:27 HKT:**pull-v5.6 terminal-hold specialist T0/G11 收口**——末级 rung3 经 planner 授权，add-only eager specialist 与 versioned warm asset 落地；raw actor strict-load、fresh critic/optimizer/scheduler、std=`1.0` 和 static/CPU/synthetic acceptance PASS。sole formal review 保持 FAIL，targeted fix 不构成第二轮 PASS。step0 三次 G9 invalid attempt 依次暴露 eval root struct 缺 `experiment_dir`、`output_dir`、`multi_gpu`；第三次在 IsaacSim startup 后、task construction 前失败，零 valid receipt。能力为 INCONCLUSIVE/BLOCKED；T1/T2/T3/door/G2/P3/P4/dual eval/render NOT_RUN，无 passage denominator。G11 return-to-planner，不得自创 rung4。依据：`scriptsFORhuman/pull_v5/PULL_V5_6_ROUND_REPORT.md`。
 
 - [x] 2026-08-17 08:13 HKT:**pull-v5.5 residual terminal-hold adapter 收口(T1 FAIL / G11 return-to-planner)**——rung2 完成 750-batch initial run 与唯一 target-offset curriculum retrain；corrected r13 `750/750` complete，但 gate=`0/80,1/80,0/80`，只在 step500 `near_rest` env15 出现 valid K100（terminal-current、hold100、XY=`0.0396828391 m`、yaw=`0.0298886299 rad`），不满足 each family `15/16` / overall `77/80`。scripted prelude/handoff 必须从 PPO actor/entropy denominator 排除，而 critic 保留 trajectory；r13 sampled/applied carrier fix 是 reusable gotcha。T2/T3/door/G2/P3/P4/dual eval/render NOT_RUN，zero G3 attempts，无 passage denominator；diagnostics denominator=false/none。formal review 仍 FAIL，targeted/runtime acceptance 非 reviewer PASS。rung3 HOMIE fine-tune 未授权，返回 planner。依据：`scriptsFORhuman/pull_v5/PULL_V5_5_ROUND_REPORT.md`。
 

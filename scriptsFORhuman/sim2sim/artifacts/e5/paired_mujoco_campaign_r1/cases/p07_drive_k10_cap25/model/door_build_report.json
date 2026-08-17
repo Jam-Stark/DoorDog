@@ -1,0 +1,186 @@
+{
+  "schema_version": "doordog.mjcf_door_build_report.v1",
+  "result_classification": "VALID_COMPARABLE",
+  "instance_identity": {
+    "family_id": "a2_piper_legacy_lever_paired_subdomain",
+    "instance_id": "p07_drive_k10_cap25",
+    "materialization": "EXPLICIT_VALUES_NO_RNG",
+    "source_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+    "source_path": "gr00t/rl/isaac_utils/playground/env_rand/door.py"
+  },
+  "latch_mode": "no_latch",
+  "door_resistance_mode": "capped_position_actuator",
+  "self_collision_exclusions": [
+    "door_panel<->door_handle",
+    "door_root<->door_panel",
+    "door_root<->door_handle"
+  ],
+  "names": {
+    "bodies": [
+      "door_root",
+      "door_panel",
+      "door_handle"
+    ],
+    "joints": [
+      "door_hinge",
+      "handle_hinge"
+    ],
+    "sites": [
+      "door_grasp_target",
+      "door_pregrasp_target",
+      "door_hinge_axis",
+      "door_handle_center",
+      "door_passage_center",
+      "door_goal"
+    ],
+    "actuators": [
+      "door_hinge_capped_position",
+      "handle_capped_position"
+    ]
+  },
+  "hinge_limits_rad": [
+    0.0,
+    2.6179938779914944
+  ],
+  "handle_limits_rad": [
+    0.0,
+    0.7853981633974483
+  ],
+  "equilibrium_ctrl_rad": [
+    -0.17453292519943295,
+    -0.2617993877991494
+  ],
+  "panel_mass_kg": 100.0,
+  "panel_diagonal_inertia_kgm2": [
+    40.083333333333336,
+    33.346666666666664,
+    6.7633333333333345
+  ],
+  "friction_mapping": {
+    "isaac_static_effort": 0.0,
+    "isaac_dynamic_effort": 0.0,
+    "isaac_viscous_coefficient": 0.0,
+    "mujoco_frictionloss": 0.0,
+    "mujoco_joint_damping_from_viscous": 0.0,
+    "classification": "FRICTION_SEMANTICS_ALIGNED",
+    "authority": "MODELED_FROM_PARAMS;SOLVER_APPLIED_GENERALIZED_TORQUE_NOT_CLAIMED"
+  },
+  "mechanics_three_face_receipt": {
+    "unit_contract": "DoorMechanicsUnitContractV1",
+    "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+    "canonical_surface": "RAD",
+    "requested_angular_surface": "TRACE_CONFIG_RAD",
+    "realized_angular_surface": "USD_DEGREE_READBACK",
+    "requested": {
+      "door_weight_kg": 100.0,
+      "hinge_damping_native": 50.0,
+      "hinge_effort_limit_nm": 2.5,
+      "hinge_stiffness_native": 10.0
+    },
+    "usd_readback": {
+      "door_weight_kg": 100.0,
+      "hinge_damping_native": 2864.7889756541163,
+      "hinge_effort_limit_nm": 2.5,
+      "hinge_stiffness_native": 572.9577951308232
+    },
+    "requested_normalized": {
+      "canonical_surface": "RAD",
+      "damping_rad": 50.0,
+      "stiffness_rad": 10.0,
+      "effort_limit_nm": 2.5,
+      "door_mass_kg": 100.0,
+      "fields": {
+        "damping": {
+          "source_value": 50.0,
+          "source_surface": "TRACE_CONFIG_RAD",
+          "value_rad": 50.0,
+          "conversion": "identity_on_rad_surface",
+          "authority": "TRACE_CONFIG:HINGE_DAMPING"
+        },
+        "stiffness": {
+          "source_value": 10.0,
+          "source_surface": "TRACE_CONFIG_RAD",
+          "value_rad": 10.0,
+          "conversion": "identity_on_rad_surface",
+          "authority": "TRACE_CONFIG:HINGE_STIFFNESS"
+        },
+        "effort": {
+          "value": 2.5,
+          "unit": "N*m",
+          "conversion": "pass_through",
+          "authority": "TRACE_CONFIG:HINGE_EFFORT"
+        },
+        "mass": {
+          "value": 100.0,
+          "unit": "kg",
+          "conversion": "pass_through",
+          "authority": "TRACE_CONFIG:DOOR_MASS"
+        }
+      }
+    },
+    "realized_normalized": {
+      "canonical_surface": "RAD",
+      "damping_rad": 50.0,
+      "stiffness_rad": 10.0,
+      "effort_limit_nm": 2.5,
+      "door_mass_kg": 100.0,
+      "fields": {
+        "damping": {
+          "source_value": 2864.7889756541163,
+          "source_surface": "USD_DEGREE_READBACK",
+          "value_rad": 50.0,
+          "conversion": "usd_degree_surface_times_pi_over_180",
+          "authority": "USD_READBACK:HINGE_DAMPING"
+        },
+        "stiffness": {
+          "source_value": 572.9577951308232,
+          "source_surface": "USD_DEGREE_READBACK",
+          "value_rad": 10.0,
+          "conversion": "usd_degree_surface_times_pi_over_180",
+          "authority": "USD_READBACK:HINGE_STIFFNESS"
+        },
+        "effort": {
+          "value": 2.5,
+          "unit": "N*m",
+          "conversion": "pass_through",
+          "authority": "USD_READBACK:HINGE_EFFORT"
+        },
+        "mass": {
+          "value": 100.0,
+          "unit": "kg",
+          "conversion": "pass_through",
+          "authority": "USD_READBACK:DOOR_MASS"
+        }
+      }
+    },
+    "conversion_metadata": {
+      "damping": {
+        "source_value": 2864.7889756541163,
+        "source_surface": "USD_DEGREE_READBACK",
+        "value_rad": 50.0,
+        "conversion": "usd_degree_surface_times_pi_over_180",
+        "authority": "USD_READBACK:HINGE_DAMPING"
+      },
+      "stiffness": {
+        "source_value": 572.9577951308232,
+        "source_surface": "USD_DEGREE_READBACK",
+        "value_rad": 10.0,
+        "conversion": "usd_degree_surface_times_pi_over_180",
+        "authority": "USD_READBACK:HINGE_STIFFNESS"
+      },
+      "effort": {
+        "value": 2.5,
+        "unit": "N*m",
+        "conversion": "pass_through",
+        "authority": "USD_READBACK:HINGE_EFFORT"
+      },
+      "mass": {
+        "value": 100.0,
+        "unit": "kg",
+        "conversion": "pass_through",
+        "authority": "USD_READBACK:DOOR_MASS"
+      }
+    },
+    "degree_per_rad": 57.29577951308232
+  }
+}

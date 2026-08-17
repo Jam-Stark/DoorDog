@@ -1,0 +1,27 @@
+{
+  "schema": "doordog.sim2sim.mujoco_asset_render_receipt.v1",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "backend": "mujoco.Renderer",
+  "camera": "axis_overview",
+  "initial_screenshot": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/mujoco_asset_initial.png",
+  "terminal_screenshot": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/mujoco_asset_terminal.png",
+  "image_width": 640,
+  "image_height": 480,
+  "image_format": "RGB PNG",
+  "environment": {
+    "MUJOCO_GL": "glx",
+    "LIBGL_ALWAYS_SOFTWARE": "1",
+    "display_provider": "xvfb-run",
+    "gl_vendor": "Mesa",
+    "gl_renderer": "llvmpipe (LLVM 20.1.2, 256 bits)",
+    "gl_version": "4.5 Compatibility Profile Mesa 25.2.8-0ubuntu0.24.04.2",
+    "accelerated": false,
+    "gpu_lease": "NONE"
+  },
+  "scene": "cases/p00_baseline/model/scene.xml",
+  "producer_identity": {
+    "git_commit": "ce0dc9a5d16cb2eead6a4e18630d2ca9441c0d85",
+    "path": "gr00t/rl/sim2sim/cli/run_paired_mujoco_campaign.py"
+  },
+  "interpretation": "Actual MuJoCo software-rendered asset evidence; not an Isaac pixel-parity or Student regression claim."
+}

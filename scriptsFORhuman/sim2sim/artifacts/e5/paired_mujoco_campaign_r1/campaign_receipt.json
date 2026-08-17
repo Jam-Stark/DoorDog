@@ -1,0 +1,1567 @@
+{
+  "asset_render": {
+    "camera": "axis_overview",
+    "initial_screenshot": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/mujoco_asset_initial.png",
+    "render_contract": "MuJoCo Renderer under CPU GLX/Xvfb llvmpipe; zero GPU",
+    "terminal_screenshot": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/mujoco_asset_terminal.png"
+  },
+  "backend": "mujoco_cpu",
+  "case_count": 8,
+  "device": "cpu",
+  "episode_receipts": [
+    {
+      "case_id": "p00_baseline",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p00_baseline/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p00_baseline.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 100.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p00_baseline/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 0,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 51,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 51,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 213,
+          "mean_rgb": [
+            31.353496476715687,
+            22.314472273284313,
+            16.435834099264707
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1039
+        },
+        "left": {
+          "max_uint8": 54,
+          "mean_rgb": [
+            24.195191936728396,
+            14.720365547839506,
+            8.58738425925926
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 157
+        },
+        "right": {
+          "max_uint8": 85,
+          "mean_rgb": [
+            29.109748746141975,
+            17.29030430169753,
+            9.63865981867284
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 283
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41001,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p00_baseline/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p01_mass80",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p01_mass80/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p01_mass80.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 80.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 80.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 80.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 80.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 80.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 80.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 80.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p01_mass80/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 1,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 51,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 51,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 213,
+          "mean_rgb": [
+            31.35125612745098,
+            22.312078737745097,
+            16.433115042892158
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1039
+        },
+        "left": {
+          "max_uint8": 54,
+          "mean_rgb": [
+            24.195179880401234,
+            14.720377604166666,
+            8.58738425925926
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 157
+        },
+        "right": {
+          "max_uint8": 85,
+          "mean_rgb": [
+            29.110267168209877,
+            17.29076244212963,
+            9.639081790123457
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 283
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41002,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p01_mass80/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p02_mass120",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p02_mass120/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p02_mass120.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 120.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 120.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 120.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 120.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 120.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 120.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 120.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p02_mass120/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 2,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 51,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 51,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 213,
+          "mean_rgb": [
+            31.353458180147058,
+            22.314319087009803,
+            16.435527726715687
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1040
+        },
+        "left": {
+          "max_uint8": 54,
+          "mean_rgb": [
+            24.19578269675926,
+            14.72118537808642,
+            8.58836082175926
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 156
+        },
+        "right": {
+          "max_uint8": 85,
+          "mean_rgb": [
+            29.114462770061728,
+            17.294825424382715,
+            9.642939814814815
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 282
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41003,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p02_mass120/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p03_width080",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p03_width080/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p03_width080.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 100.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p03_width080/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 3,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 51,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 51,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 221,
+          "mean_rgb": [
+            29.191693474264707,
+            21.200367647058822,
+            16.029373468137255
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1058
+        },
+        "left": {
+          "max_uint8": 55,
+          "mean_rgb": [
+            23.753556616512345,
+            14.507101176697532,
+            8.541799286265432
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 166
+        },
+        "right": {
+          "max_uint8": 98,
+          "mean_rgb": [
+            28.066092785493826,
+            16.69656635802469,
+            9.32813705632716
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 299
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41004,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p03_width080/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p04_width110",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p04_width110/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p04_width110.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 100.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p04_width110/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 4,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 52,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 52,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 225,
+          "mean_rgb": [
+            38.960669424019606,
+            29.533854166666668,
+            23.733570772058822
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1203
+        },
+        "left": {
+          "max_uint8": 140,
+          "mean_rgb": [
+            44.34278549382716,
+            25.343617380401234,
+            14.745744116512345
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 320
+        },
+        "right": {
+          "max_uint8": 142,
+          "mean_rgb": [
+            44.50460551697531,
+            25.475429205246915,
+            14.626181520061728
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 319
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41005,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p04_width110/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p05_height190",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p05_height190/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p05_height190.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 100.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p05_height190/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 5,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 51,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 51,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 221,
+          "mean_rgb": [
+            31.280962775735293,
+            22.223039215686274,
+            16.316310508578432
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1076
+        },
+        "left": {
+          "max_uint8": 54,
+          "mean_rgb": [
+            25.931218653549383,
+            15.564489293981481,
+            8.881245177469136
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 157
+        },
+        "right": {
+          "max_uint8": 87,
+          "mean_rgb": [
+            27.747998649691358,
+            16.39532696759259,
+            9.076015142746913
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 298
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41006,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p05_height190/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p06_height220",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p06_height220/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p06_height220.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 4.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 100.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 114.59155902616465,
+              "value_rad": 2.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 114.59155902616465,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "requested": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 2.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 4.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 4.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 2.0,
+                "value_rad": 2.0
+              }
+            },
+            "stiffness_rad": 2.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 4.5,
+            "hinge_stiffness_native": 114.59155902616465
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p06_height220/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 6,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 50,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 50,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 221,
+          "mean_rgb": [
+            31.231981464460784,
+            22.178327971813726,
+            16.296281403186274
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1008
+        },
+        "left": {
+          "max_uint8": 54,
+          "mean_rgb": [
+            24.414183063271604,
+            14.843098958333334,
+            8.652524594907407
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 149
+        },
+        "right": {
+          "max_uint8": 85,
+          "mean_rgb": [
+            29.67555217978395,
+            17.237003279320987,
+            9.162000868055555
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 247
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41007,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p06_height220/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    },
+    {
+      "case_id": "p07_drive_k10_cap25",
+      "door_realization": {
+        "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p07_drive_k10_cap25/model/door_build_report.json",
+        "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p07_drive_k10_cap25.json",
+        "friction_classification": "FRICTION_SEMANTICS_ALIGNED",
+        "mechanics_three_face_receipt": {
+          "canonical_surface": "RAD",
+          "conversion_metadata": {
+            "damping": {
+              "authority": "USD_READBACK:HINGE_DAMPING",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 2864.7889756541163,
+              "value_rad": 50.0
+            },
+            "effort": {
+              "authority": "USD_READBACK:HINGE_EFFORT",
+              "conversion": "pass_through",
+              "unit": "N*m",
+              "value": 2.5
+            },
+            "mass": {
+              "authority": "USD_READBACK:DOOR_MASS",
+              "conversion": "pass_through",
+              "unit": "kg",
+              "value": 100.0
+            },
+            "stiffness": {
+              "authority": "USD_READBACK:HINGE_STIFFNESS",
+              "conversion": "usd_degree_surface_times_pi_over_180",
+              "source_surface": "USD_DEGREE_READBACK",
+              "source_value": 572.9577951308232,
+              "value_rad": 10.0
+            }
+          },
+          "degree_per_rad": 57.29577951308232,
+          "realized_angular_surface": "USD_DEGREE_READBACK",
+          "realized_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 2.5,
+            "fields": {
+              "damping": {
+                "authority": "USD_READBACK:HINGE_DAMPING",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 2864.7889756541163,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "USD_READBACK:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 2.5
+              },
+              "mass": {
+                "authority": "USD_READBACK:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "USD_READBACK:HINGE_STIFFNESS",
+                "conversion": "usd_degree_surface_times_pi_over_180",
+                "source_surface": "USD_DEGREE_READBACK",
+                "source_value": 572.9577951308232,
+                "value_rad": 10.0
+              }
+            },
+            "stiffness_rad": 10.0
+          },
+          "requested": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 50.0,
+            "hinge_effort_limit_nm": 2.5,
+            "hinge_stiffness_native": 10.0
+          },
+          "requested_angular_surface": "TRACE_CONFIG_RAD",
+          "requested_normalized": {
+            "canonical_surface": "RAD",
+            "damping_rad": 50.0,
+            "door_mass_kg": 100.0,
+            "effort_limit_nm": 2.5,
+            "fields": {
+              "damping": {
+                "authority": "TRACE_CONFIG:HINGE_DAMPING",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 50.0,
+                "value_rad": 50.0
+              },
+              "effort": {
+                "authority": "TRACE_CONFIG:HINGE_EFFORT",
+                "conversion": "pass_through",
+                "unit": "N*m",
+                "value": 2.5
+              },
+              "mass": {
+                "authority": "TRACE_CONFIG:DOOR_MASS",
+                "conversion": "pass_through",
+                "unit": "kg",
+                "value": 100.0
+              },
+              "stiffness": {
+                "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+                "conversion": "identity_on_rad_surface",
+                "source_surface": "TRACE_CONFIG_RAD",
+                "source_value": 10.0,
+                "value_rad": 10.0
+              }
+            },
+            "stiffness_rad": 10.0
+          },
+          "unit_contract": "DoorMechanicsUnitContractV1",
+          "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+          "usd_readback": {
+            "door_weight_kg": 100.0,
+            "hinge_damping_native": 2864.7889756541163,
+            "hinge_effort_limit_nm": 2.5,
+            "hinge_stiffness_native": 572.9577951308232
+          }
+        },
+        "scene_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p07_drive_k10_cap25/model/scene_build_report.json"
+      },
+      "episode_complete": true,
+      "episode_index": 7,
+      "expectation": {
+        "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+        "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+        "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+        "student_level": "PILOT_GRPO_STEP10"
+      },
+      "external_pd_clip_applications": 51,
+      "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+      "physics_steps": 51,
+      "pixel_domain_gap_data": {
+        "head": {
+          "max_uint8": 213,
+          "mean_rgb": [
+            31.353419883578432,
+            22.314357383578432,
+            16.435527726715687
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 1039
+        },
+        "left": {
+          "max_uint8": 54,
+          "mean_rgb": [
+            24.195650077160494,
+            14.720896026234568,
+            8.587938850308642
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 157
+        },
+        "right": {
+          "max_uint8": 85,
+          "mean_rgb": [
+            29.11254581404321,
+            17.292908468364196,
+            9.64110725308642
+          ],
+          "min_uint8": 0,
+          "unique_rgb_count": 281
+        }
+      },
+      "policy_steps": 13,
+      "result_classification": "VALID_WITH_WARNINGS",
+      "schema": "doordog.sim2sim.paired_mujoco_episode_receipt.v1",
+      "seed": 41008,
+      "task_metrics": {
+        "first_open_time_s": null,
+        "first_unlatch_time_s": null,
+        "max_handle_rad": 0.0,
+        "max_hinge_rad": 0.0,
+        "open_threshold_crossed": false,
+        "open_threshold_hinge_rad": 0.174533,
+        "source": "DIRECT_MUJOCO_DOOR_STATE",
+        "unlatch_threshold_handle_rad": 0.5235987755982988,
+        "unlatched": false
+      },
+      "termination_reason": "BASE_HEIGHT",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1/cases/p07_drive_k10_cap25/trace.jsonl",
+      "warnings": [
+        "GRPO step10 is a pilot Student; episode outcome is not Student quality evidence.",
+        "MuJoCo RGB statistics are domain-gap data and do not decide policy regression."
+      ]
+    }
+  ],
+  "evidence_level": "E4_FULL_CAMPAIGN_E5_MUJOCO_INPUT",
+  "expectation": {
+    "claim": "PIPELINE_AND_PHYSICS_EVIDENCE_ONLY",
+    "failed_episode_policy": "KEEP_COMPLETE_TRACE_AND_TYPED_TERMINATION",
+    "paired_purpose": "TRAJECTORY_AND_MECHANICS_COMPARISON_NOT_SUCCESS_RATE",
+    "student_level": "PILOT_GRPO_STEP10"
+  },
+  "external_pd_clip_applications": 408,
+  "input_status": "MUJOCO_CAMPAIGN_COMPLETE_ISAAC_PAIRED_TRACE_PENDING",
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/paired_case_manifest.json",
+  "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+  "policy_bundle": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
+  "producer_identity": {
+    "git_commit": "ce0dc9a5d16cb2eead6a4e18630d2ca9441c0d85",
+    "path": "gr00t/rl/sim2sim/cli/run_paired_mujoco_campaign.py"
+  },
+  "result_classification": "VALID_WITH_WARNINGS",
+  "schema": "doordog.sim2sim.paired_mujoco_campaign_receipt.v1",
+  "total_physics_steps": 408,
+  "total_policy_steps": 104,
+  "warnings": [
+    "This formal campaign proves the pipeline and physics evidence path, not pilot Student quality.",
+    "Failed episodes remain in their complete terminal traces.",
+    "Success rate is not used as the paired trajectory/mechanics verdict.",
+    "Isaac paired input remains typed pending until transferred by the user."
+  ]
+}

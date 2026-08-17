@@ -2,7 +2,7 @@
 
 ## Authority
 
-worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro feedback；2026-08-17 Owner D-v2 decision supersedes `FINAL_STOP_AT_P1` as the round terminal。GPU0–3 only；截至 D-v2 只使用 GPU0；无 push。
+worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro feedback；2026-08-17 Owner D-v2 decision supersedes `FINAL_STOP_AT_P1` as the round terminal。GPU0–3 only；D-v2 与 P2 只使用 physical GPU0；无 push。
 
 ## Phase ledger
 
@@ -15,11 +15,11 @@ worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro fee
 | P0 runtime parity + foot + P1 H/I | COMPLETE | `f45473b` | R8-QA6, combined receipt r6 |
 | Historical R1 P1 final adjudication | SUPERSEDED_AS_ROUND_TERMINAL | product at `f45473b` | Historical `V24_FRICTION_AUTHORITY_INSUFFICIENT`; receipts immutable |
 | Owner D-v2 behavioral gate | COMPLETE | `eb8aeda` | `V24_FRICTION_MODEL_VALID_BEHAVIORAL`; P2/P3 admitted |
-| P2 capacity/lambda/E-region | ADMITTED_PENDING | — | Includes parameter-range freeze previously `NOT_PERFORMED` |
-| P3 historical friction scan | GATED_ON_P2 | — | True Owner decision remains only `V24_FRICTION_AXIS_NONDISCRIMINATIVE` |
-| Wave 1 / Route A/B | GATED_ON_P3 | — | Not executed |
-| RQ3/RQ4 / shadow critic | GATED_ON_P3_AND_WAVE1 | — | Not executed |
-| Wave 2a/2b | GATED_ON_PRIOR_RESULTS | — | Not executed |
+| P2 capacity/lambda/E-region | TERMINAL | `f0a3a44` | `V24_E1_DENOMINATOR_INSUFFICIENT`; `P3_ADMITTED=false` |
+| P3 historical friction scan | NOT_ADMITTED | — | P2 registered terminal；未执行，不触发 Owner decision |
+| Wave 1 / Route A/B | NOT_ADMITTED | — | P3 未准入；未执行 |
+| RQ3/RQ4 / shadow critic | NOT_ADMITTED | — | P3/Wave 1 未准入；未执行 |
+| Wave 2a/2b | NOT_ADMITTED | — | 前序 gate 未准入；未执行 |
 
 ## Runtime closure
 
@@ -29,7 +29,7 @@ worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro fee
 - Foot: current source available `(16,4)`; baseline typed unavailable without numeric fill.
 - Reset persistence: 16 receipts = 10 ordinary + 6 legitimate staged; sentinel/readback and configured post-reset readback PASS.
 - Final typed result: `V24_FRICTION_AUTHORITY_INSUFFICIENT`.
-- Owner decision: not requested; the sole decision point is Phase 3 axis nondiscrimination, and Phase 3 was not reached.
+- Owner decision: not requested. P2 已以注册终点阻断 P3；Phase 3 axis nondiscrimination 未执行，故唯一 Owner decision point 未触发。
 
 ## Failure provenance
 
@@ -47,4 +47,15 @@ P2/P3 and every downstream conditional wave are closed by preregistered admissio
 - Fresh F00 tolerances: `tol_step=9.93409096170439e-06 J`, `tol_cumulative=0.0008802263651532332 J`. Fresh F10 final D is `0.007680328808102447 J` / `0.007679495205304246 J`; both signs pass raw continuity, motion, readback, cleanup, step/cumulative tolerance, and final-dissipation checks.
 - Typed result: `V24_FRICTION_MODEL_VALID_BEHAVIORAL`; P2/P3 admission `true`. D-v2 source is `CODE_QUALITY PASS` / `ISAACLAB_SEMANTICS PASS`; QA1 runtime/scientific PASS and QA2 historical-input immutability closure PASS.
 - Authority: friction/model torque is `MODELED_FROM_PARAMS`; solver friction torque is `UNAVAILABLE_NOT_USED`; command work is `COMMAND_EFFORT_TARGET_NOT_ACTUAL_GENERALIZED_TORQUE`. No solver-applied or actual generalized-torque claim is made.
-- Next ordered work: P2 directional capacity / lambda / ladder recalibration / E-region certificate plus parameter-range freeze, then P3 frozen historical zero-sample scan. No P2/P3/training/release result is claimed here.
+- D-v2 准入后的 P2 已按下节完成并到达注册终点；本节不回写或替换任何旧 receipt。
+
+## P2 registered terminal closure
+
+- Stable product/evidence commit: `f0a3a44`。Canonical root：`logs_eval/base_v24/p2/force_boundary/r10/`；旧 r1–r8 receipt 保持不变且不作为裁决输入。
+- Parameter-range freeze 已执行。Physical GPU0 smoke exit `0`（`175.36 s`）；calibration exit `0`（`2860.99 s`），得到 288 rows = 6 caps × 3 friction profiles × 16 paired scenarios。
+- Foot source `AVAILABLE` 288/288；`stable_grasp` 0/288。有效 model/capacity rows 为 42/288，有限 `tau`/`lambda` 为 42/42；有效 loaded-foot slip window 为 0，E0/E1 denominator count 为 0/0。
+- `command_path_binding=true`；`tau_hi_nm`、`tau_boundary_nm`、`tau_rescue_nm` 均为 null；contingency 未触发。正常 `>=8` / Q99 / full-heldout E-region 路径未执行，不声明该路径 PASS。
+- CPU-only freeze → heldout → adjudicate → QA 全部 exit `0`，独立重算一致。Heldout 是 exact zero-row `NOT_ADMITTED_BY_P2_TERMINAL` receipt。
+- Final typed result 仅为 `V24_E1_DENOMINATOR_INSUFFICIENT`，`terminal=true`、`P3_ADMITTED=false`、`owner_decision_required=false`。P3、Wave 1 及后续条件工作自动停止；这不是 `V24_FRICTION_AXIS_NONDISCRIMINATIVE` Owner decision point。
+- Authority 保持：door friction/model torque 为 `MODELED_FROM_PARAMS`，`solver_applied=false`；不声称 solver-applied friction torque。
+- 新 P2 裁决：`scriptsFORhuman/v24/a2_piper_base_v24_p2_final_adjudication_20260817.md`。

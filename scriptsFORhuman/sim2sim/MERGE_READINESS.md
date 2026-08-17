@@ -1,6 +1,6 @@
 # Sim2sim merge readiness
 
-Last updated: 2026-08-17 20:04 HKT
+Last updated: 2026-08-17 20:20 HKT
 
 ## Boundary
 
@@ -60,6 +60,8 @@ Forbidden shared production paths include:
 
 This list is updated after each phase.
 
+The exact final file inventory is `scriptsFORhuman/sim2sim/CHANGED_FILES.txt`; it is the authoritative file-level list rather than a directory summary.
+
 ## Mainline synchronization
 
 | Phase | Sim2sim commit before merge | `A2_Piper` merged | Result | Behind after merge |
@@ -72,7 +74,17 @@ This list is updated after each phase.
 | Phase 5 / E4 | `c5e1194` | `45c9decb` | already up to date | 0 |
 | Phase 6 / E5 | `78ff837` | `45c9decb` | already up to date | 0 |
 | Phase 7 / E6 | `ba2d304` | `45c9decb` | already up to date | 0 |
+| Phase 8 / closure | `24430d6` | `45c9decb` | already up to date | 0 |
 
 ## Non-intersection proof
 
-Final proof will compare `git diff --name-status A2_Piper...HEAD` against the forbidden list once, after the final narrow runtime proof. No reverse merge into the dirty original worktree is performed by this session.
+Final proof compares `git diff --name-status A2_Piper...HEAD` against the forbidden list once after the closure commit. Expected changed roots are only:
+
+- `gr00t/rl/sim2sim/`
+- `gr00t/rl/data/mujoco/A2_Piper/`
+- `scriptsFORhuman/sim2sim/`
+- `memory/a2-piper/sim2sim-shadow-evaluator/`
+
+Forbidden intersections must be empty. No reverse merge into the dirty original worktree is performed by this session.
+
+The original owner package under `/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/sim2sim/` was read-only reference. This worktree's identically named additive evidence directory is branch-owned and does not modify a path tracked by base `A2_Piper`.

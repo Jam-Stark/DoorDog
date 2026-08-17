@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 20:04 HKT
+Last updated: 2026-08-17 20:20 HKT
 
 ## Scope and authority
 
@@ -116,4 +116,13 @@ Phase-completion merge record: `git merge A2_Piper` returned `Already up to date
 
 ## Next action
 
-Finalize the R1-R10 crosswalk, typed limitations/handoff, memory entry, full changed-file boundary, and final local commit without push.
+Implementation is complete. Owner handoff is the typed E5 Isaac trace input plus the separately authorized shared-production adapter/Isaac DoorSpec integration described in `FINAL_REPORT.md`.
+
+## Final state
+
+- Independent MuJoCo stack: `VALID_WITH_WARNINGS`.
+- Formal paired Isaac↔MuJoCo conclusion: `EXPLORATORY_NON_COMPARABLE`, `BLOCKED_INPUT_ISAAC_PAIRED_TRACE`.
+- Shared production changes: none.
+- GPU leases: none.
+- Push: none.
+- Durable memory entry added without changing the routed memory index.

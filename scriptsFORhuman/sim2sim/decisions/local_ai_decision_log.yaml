@@ -1,5 +1,5 @@
 schema_version: doordog.sim2sim.decision_log.v1
-updated_at_hkt: "2026-08-17 17:49 HKT"
+updated_at_hkt: "2026-08-17 20:20 HKT"
 decisions:
   - id: D-001
     topic: implementation_location
@@ -8,9 +8,9 @@ decisions:
     consequence: shared Isaac production files remain untouched; BaseSimulator and Isaac DoorSpec hooks are deferred.
   - id: D-002
     topic: mujoco_builder
-    decision: pending_local_api_probe
-    evidence: contract_unknowns.md
-    consequence: use XML builder if MjSpec/URDF import is unavailable or unstable, preserving generated XML.
+    decision: mjspec_urdf_import_then_deterministic_xml_augmentation
+    evidence: artifacts/e1/robot_build_report.json
+    consequence: preserve compiled MJCF and explicit restored trunk/arm-base inertias.
   - id: D-003
     topic: door_resistance
     decision: capped_position_actuator_for_parity
@@ -26,3 +26,18 @@ decisions:
     decision: five_class_typed_results
     evidence: 10_VALIDATION_WITHOUT_OVERGATING.md
     consequence: missing inputs remain typed; pixel domain gap is evidence rather than a policy regression verdict.
+  - id: D-006
+    topic: latch_realization
+    decision: constraint_gate
+    evidence: artifacts/e2/door_probe_receipt.json
+    consequence: physical_collision is not promoted or claimed.
+  - id: D-007
+    topic: render_backend
+    decision: glx_xvfb_llvmpipe_cpu
+    evidence: artifacts/e1/axis_marker/axis_marker_probe_receipt.json
+    consequence: OSMesa is typed unavailable; no GPU was leased.
+  - id: D-008
+    topic: formal_paired_evidence
+    decision: blocked_input_isaac_paired_trace
+    evidence: artifacts/e5/paired_trace_receipt.json
+    consequence: comparison remains null and strict exact-hash mode is not entered.

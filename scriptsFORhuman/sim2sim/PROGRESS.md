@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 18:56 HKT
+Last updated: 2026-08-17 19:09 HKT
 
 ## Scope and authority
 
@@ -16,7 +16,7 @@ Last updated: 2026-08-17 18:56 HKT
 |---|---|---|
 | E0 Contract / golden | COMPLETE_WITH_WARNING | READY native-Hydra Student bundle; CPU action/LSTM golden replay 3/3 rows, max diff 0. Legacy gripper face remains typed. |
 | E1 Robot | COMPLETE_WITH_WARNING | Floating-base MJCF compiled 27/26/20 at 44.741 kg; 54D/1620D and 12→19→20 proofs pass; CPU axis marker captured. |
-| E2 Door | IN_PROGRESS | v24 unit/friction source and door-generator path under trace; builder not built yet. |
+| E2 Door | COMPLETE_WITH_WARNING | Door compiles 2/2/2 + one gate; rad three-face diff 0; capped resistance hits 4.5 Nm; friction semantic gap explicit. |
 | E3 Open-loop | NOT_STARTED | Requires E0 action transform plus compiled robot/door. |
 | E4 Closed-loop proprio/pixel | NOT_STARTED | Requires E0 policy runtime and camera contract. |
 | E5 Paired cases | NOT_STARTED | Requires comparable independent backend traces. |
@@ -51,6 +51,17 @@ Phase-completion merge record: local `A2_Piper` was already at the worktree base
 
 Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
 
+### Phase 3 — E2 door mechanics and latch (complete)
+
+- Materialized an explicit right-hinge/out-opening v24-friction door instance with no RNG and generated standalone MJCF plus build receipt.
+- `DoorMechanicsUnitContractV1` prints requested trace-rad, realized USD-degree, and canonical rad faces. The 57.2957795 degree/rad conversion returns damping/stiffness to `50/2` with normalized maximum difference `0.0`; mass and effort pass through.
+- Parity resistance is a capped position actuator. At the open-range force probe the hinge actuator reaches exactly its `4.5 Nm` cap; passive spring is not used.
+- MuJoCo `frictionloss=0.75` maps the dynamic Coulomb face and joint damping `0.0` maps the viscous face. Static `1.0 != 0.75` is retained as `FRICTION_SEMANTIC_GAP` rather than dropped.
+- Actual latch mode is `constraint_gate`: it held the closed hinge, released at the configured handle threshold, and the door then opened to `0.2301 rad` under external torque with finite state. Physical-collision latch is not claimed.
+- Internal frame/panel/handle collision pairs are excluded because the inherited collision envelopes overlap at the closed pose; robot-to-door collision remains enabled.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
 ### Phase 2 — E1 robot, controller, and camera-basis probe (complete)
 
 - Converted the repository A2+Piper URDF through MuJoCo 3.10 `MjSpec`, then materialized a floating `trunk`, restored the URDF trunk and fixed arm-base inertia faces, and added 20 named torque motors.
@@ -65,4 +76,4 @@ Phase-completion merge record: `git merge A2_Piper` returned `Already up to date
 
 ## Next action
 
-Compile and probe the materialized door, including the v24 three-face unit receipt, capped-position resistance, friction semantic gap, and latch-mode evidence.
+Compose the independent robot+door scene and run E3 open-loop reset/hold/push/task-metric receipts before any Student closed-loop claim.

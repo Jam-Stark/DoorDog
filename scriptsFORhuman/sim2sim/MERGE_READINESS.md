@@ -1,6 +1,6 @@
 # Sim2sim merge readiness
 
-Last updated: 2026-08-17 18:56 HKT
+Last updated: 2026-08-17 19:09 HKT
 
 ## Boundary
 
@@ -39,6 +39,11 @@ Forbidden shared production paths include:
 - `gr00t/rl/sim2sim/cli/render_axis_marker_probe.py`
 - `gr00t/rl/data/mujoco/A2_Piper/`
 - `scriptsFORhuman/sim2sim/artifacts/e1/`
+- `gr00t/rl/sim2sim/doors/`
+- `gr00t/rl/sim2sim/cli/build_mjcf_door.py`
+- `gr00t/rl/sim2sim/cli/probe_e2_door.py`
+- `scriptsFORhuman/sim2sim/artifacts/door/`
+- `scriptsFORhuman/sim2sim/artifacts/e2/`
 
 This list is updated after each phase.
 
@@ -49,6 +54,7 @@ This list is updated after each phase.
 | Phase 0 | base `45c9decb` | `45c9decb` | already up to date | 0 |
 | Phase 1 / E0 | `2842df8` | `45c9decb` | already up to date | 0 |
 | Phase 2 / E1 | `9e5659a` | `45c9decb` | already up to date | 0 |
+| Phase 3 / E2 | `485a8f2` | `45c9decb` | already up to date | 0 |
 
 ## Non-intersection proof
 

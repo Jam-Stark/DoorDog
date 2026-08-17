@@ -1,0 +1,97 @@
+{
+  "schema_version": "doordog.door_instance.v1",
+  "identity": {
+    "family_id": "a2_piper_legacy_lever_v24_friction",
+    "instance_id": "sim2sim_bootstrap_right_out_0001",
+    "source_commit": "45c9decb0080e07e7e3941a9c9b0a176d6bb24b0",
+    "source_path": "gr00t/rl/isaac_utils/playground/env_rand/door.py",
+    "materialization": "EXPLICIT_VALUES_NO_RNG"
+  },
+  "frames": {
+    "convention": "right_handed_z_up",
+    "quaternion_order": "wxyz",
+    "angular_unit": "rad"
+  },
+  "geometry": {
+    "panel_width_m": 0.9,
+    "panel_height_m": 2.0,
+    "panel_thickness_m": 0.04,
+    "frame_width_m": 0.05,
+    "handle_height_m": 0.9,
+    "handle_edge_offset_m": 0.1,
+    "handle_radius_m": 0.013,
+    "handle_axle_length_m": 0.195,
+    "handle_lever_length_m": 0.125
+  },
+  "kinematics": {
+    "hinge_side": "right",
+    "open_direction": "out",
+    "hinge_axis": [0.0, 0.0, 1.0],
+    "hinge_limits_rad": [0.0, 2.6179938779914944],
+    "handle_axis": [1.0, 0.0, 0.0],
+    "handle_limits_rad": [0.0, 0.7853981633974483],
+    "latch_mode": "constraint_gate",
+    "latch_travel_per_handle_rad_m": -0.03819718634205488,
+    "constraint_gate_release_handle_rad": 0.5235987755982988
+  },
+  "dynamics": {
+    "panel_mass_kg": 100.0,
+    "panel_diagonal_inertia_kgm2": [40.083333333333336, 33.346666666666664, 6.763333333333334],
+    "handle_mass_kg": 0.2,
+    "hinge": {
+      "equilibrium_rad": -0.17453292519943295,
+      "stiffness_nm_per_rad": 2.0,
+      "damping_nms_per_rad": 50.0,
+      "effort_cap_nm": 4.5,
+      "static_friction_effort": 1.0,
+      "dynamic_friction_effort": 0.75,
+      "viscous_friction_coefficient": 0.0
+    },
+    "handle": {
+      "equilibrium_rad": -0.2617993877991494,
+      "stiffness_nm_per_rad": 50.0,
+      "damping_nms_per_rad": 0.5,
+      "effort_cap_nm": 2.0,
+      "static_friction_effort": 0.0,
+      "dynamic_friction_effort": 0.0,
+      "viscous_friction_coefficient": 0.0
+    }
+  },
+  "contact": {
+    "geom_friction": [1.0, 0.005, 0.0001],
+    "condim": 4,
+    "restitution": 0.0
+  },
+  "named_sites": {
+    "door_passage_center": {"position_m": [0.0, 0.0, 1.0]},
+    "door_goal": {"position_m": [1.0, 0.0, 0.0]}
+  },
+  "visual": {
+    "material_slots": ["frame", "panel", "handle"],
+    "renderer_parity": "DOMAIN_GAP_DATA_ONLY"
+  },
+  "backend_overrides": {
+    "isaac_physx": {
+      "friction_api": "write_joint_friction_coefficient_to_sim(static,dynamic,viscous)",
+      "mechanics_faces": {
+        "requested_trace_config_rad": {
+          "door_weight_kg": 100.0,
+          "hinge_damping_native": 50.0,
+          "hinge_stiffness_native": 2.0,
+          "hinge_effort_limit_nm": 4.5
+        },
+        "usd_degree_readback": {
+          "door_weight_kg": 100.0,
+          "hinge_damping_native": 2864.7889756541163,
+          "hinge_stiffness_native": 114.59155902616465,
+          "hinge_effort_limit_nm": 4.5
+        }
+      }
+    },
+    "mujoco": {
+      "door_resistance_mode": "capped_position_actuator",
+      "frictionloss_source": "dynamic_friction_effort",
+      "calibration_status": "bootstrap_unverified"
+    }
+  }
+}

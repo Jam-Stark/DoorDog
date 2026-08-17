@@ -1,0 +1,32 @@
+{
+  "schema": "doordog.sim2sim.e2_build_report.v1",
+  "evidence_level": "E2",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "door_instance": "scriptsFORhuman/sim2sim/artifacts/door/door_instance.json",
+  "door_xml": "scriptsFORhuman/sim2sim/artifacts/door/door.xml",
+  "builder_report": "scriptsFORhuman/sim2sim/artifacts/door/door_build_report.json",
+  "runtime_probe": "scriptsFORhuman/sim2sim/artifacts/e2/door_probe_receipt.json",
+  "compiled": {
+    "nq": 2,
+    "nv": 2,
+    "nu": 2,
+    "neq": 1
+  },
+  "selected_realization": {
+    "door_resistance": "capped_position_actuator",
+    "latch_mode": "constraint_gate",
+    "hinge_frictionloss_nm": 0.75,
+    "hinge_viscous_damping": 0.0
+  },
+  "unit_contract": {
+    "name": "DoorMechanicsUnitContractV1",
+    "canonical_surface": "RAD",
+    "requested_to_usd_degree_factor": 57.29577951308232,
+    "requested_vs_realized_normalized_max_abs_diff": 0.0
+  },
+  "scientific_boundaries": [
+    "FRICTION_SEMANTIC_GAP: requested static effort 1.0 differs from dynamic effort 0.75; MuJoCo frictionloss maps the dynamic face only.",
+    "Door internal frame/panel/handle collision pairs are excluded because the source collision envelopes intersect at the closed pose; robot-to-door contact remains enabled.",
+    "Constraint-gate passed bring-up and is the actual latch mode. Physical-collision latch is not claimed."
+  ]
+}

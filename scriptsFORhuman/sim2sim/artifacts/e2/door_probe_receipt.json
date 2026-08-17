@@ -1,0 +1,163 @@
+{
+  "addresses": {
+    "constraint_gate_equality": 0,
+    "door_hinge_dof": 0,
+    "door_hinge_qpos": 0,
+    "handle_hinge_qpos": 1
+  },
+  "compiled_dims": {
+    "neq": 1,
+    "nq": 2,
+    "nu": 2,
+    "nv": 2
+  },
+  "door_resistance_mode": "capped_position_actuator",
+  "evidence_level": "E2",
+  "final_state_finite": true,
+  "friction_mapping": {
+    "classification": "FRICTION_SEMANTIC_GAP",
+    "compiled_mujoco_damping": 0.0,
+    "compiled_mujoco_frictionloss": 0.75,
+    "dynamic_effort": 0.75,
+    "static_effort": 1.0,
+    "viscous_coefficient": 0.0
+  },
+  "hinge_actuator_force_cap_nm": 4.5,
+  "hinge_actuator_force_probe_nm": -4.5,
+  "latch": {
+    "closed_hold_angle_rad": -1.1447790087e-07,
+    "equality_active_after_release": false,
+    "mode": "constraint_gate",
+    "opened_angle_after_external_torque_rad": 0.23009092552373592,
+    "release_handle_angle_rad": 0.7856689992416382,
+    "release_handle_threshold_rad": 0.5235987755982988,
+    "release_step": 3
+  },
+  "mechanics_normalized_max_abs_diff": 0.0,
+  "mechanics_three_face_receipt": {
+    "canonical_surface": "RAD",
+    "conversion_metadata": {
+      "damping": {
+        "authority": "USD_READBACK:HINGE_DAMPING",
+        "conversion": "usd_degree_surface_times_pi_over_180",
+        "source_surface": "USD_DEGREE_READBACK",
+        "source_value": 2864.7889756541163,
+        "value_rad": 50.0
+      },
+      "effort": {
+        "authority": "USD_READBACK:HINGE_EFFORT",
+        "conversion": "pass_through",
+        "unit": "N*m",
+        "value": 4.5
+      },
+      "mass": {
+        "authority": "USD_READBACK:DOOR_MASS",
+        "conversion": "pass_through",
+        "unit": "kg",
+        "value": 100.0
+      },
+      "stiffness": {
+        "authority": "USD_READBACK:HINGE_STIFFNESS",
+        "conversion": "usd_degree_surface_times_pi_over_180",
+        "source_surface": "USD_DEGREE_READBACK",
+        "source_value": 114.59155902616465,
+        "value_rad": 2.0
+      }
+    },
+    "degree_per_rad": 57.29577951308232,
+    "realized_angular_surface": "USD_DEGREE_READBACK",
+    "realized_normalized": {
+      "canonical_surface": "RAD",
+      "damping_rad": 50.0,
+      "door_mass_kg": 100.0,
+      "effort_limit_nm": 4.5,
+      "fields": {
+        "damping": {
+          "authority": "USD_READBACK:HINGE_DAMPING",
+          "conversion": "usd_degree_surface_times_pi_over_180",
+          "source_surface": "USD_DEGREE_READBACK",
+          "source_value": 2864.7889756541163,
+          "value_rad": 50.0
+        },
+        "effort": {
+          "authority": "USD_READBACK:HINGE_EFFORT",
+          "conversion": "pass_through",
+          "unit": "N*m",
+          "value": 4.5
+        },
+        "mass": {
+          "authority": "USD_READBACK:DOOR_MASS",
+          "conversion": "pass_through",
+          "unit": "kg",
+          "value": 100.0
+        },
+        "stiffness": {
+          "authority": "USD_READBACK:HINGE_STIFFNESS",
+          "conversion": "usd_degree_surface_times_pi_over_180",
+          "source_surface": "USD_DEGREE_READBACK",
+          "source_value": 114.59155902616465,
+          "value_rad": 2.0
+        }
+      },
+      "stiffness_rad": 2.0
+    },
+    "requested": {
+      "door_weight_kg": 100.0,
+      "hinge_damping_native": 50.0,
+      "hinge_effort_limit_nm": 4.5,
+      "hinge_stiffness_native": 2.0
+    },
+    "requested_angular_surface": "TRACE_CONFIG_RAD",
+    "requested_normalized": {
+      "canonical_surface": "RAD",
+      "damping_rad": 50.0,
+      "door_mass_kg": 100.0,
+      "effort_limit_nm": 4.5,
+      "fields": {
+        "damping": {
+          "authority": "TRACE_CONFIG:HINGE_DAMPING",
+          "conversion": "identity_on_rad_surface",
+          "source_surface": "TRACE_CONFIG_RAD",
+          "source_value": 50.0,
+          "value_rad": 50.0
+        },
+        "effort": {
+          "authority": "TRACE_CONFIG:HINGE_EFFORT",
+          "conversion": "pass_through",
+          "unit": "N*m",
+          "value": 4.5
+        },
+        "mass": {
+          "authority": "TRACE_CONFIG:DOOR_MASS",
+          "conversion": "pass_through",
+          "unit": "kg",
+          "value": 100.0
+        },
+        "stiffness": {
+          "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+          "conversion": "identity_on_rad_surface",
+          "source_surface": "TRACE_CONFIG_RAD",
+          "source_value": 2.0,
+          "value_rad": 2.0
+        }
+      },
+      "stiffness_rad": 2.0
+    },
+    "unit_contract": "DoorMechanicsUnitContractV1",
+    "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+    "usd_readback": {
+      "door_weight_kg": 100.0,
+      "hinge_damping_native": 2864.7889756541163,
+      "hinge_effort_limit_nm": 4.5,
+      "hinge_stiffness_native": 114.59155902616465
+    }
+  },
+  "model": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/door/door.xml",
+  "mujoco_version": "3.10.0",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "schema": "doordog.sim2sim.e2_door_probe_receipt.v1",
+  "warnings": [
+    "FRICTION_SEMANTIC_GAP: MuJoCo frictionloss represents dynamic Coulomb effort and cannot express a distinct static effort.",
+    "Constraint-gate is the realized latch mode; physical-collision latch was not promoted."
+  ]
+}

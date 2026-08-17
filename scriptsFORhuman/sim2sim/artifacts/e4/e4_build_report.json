@@ -1,0 +1,34 @@
+{
+  "schema": "doordog.sim2sim.e4_build_report.v1",
+  "evidence_level": "E4",
+  "result_classification": "EXPLORATORY_NON_COMPARABLE",
+  "image_replay_receipt": "scriptsFORhuman/sim2sim/artifacts/e4/image_replay_receipt.json",
+  "closed_loop_receipt": "scriptsFORhuman/sim2sim/artifacts/e4/closed_loop_receipt.json",
+  "execution": {
+    "device": "cpu",
+    "render_backend": "GLX/Xvfb/Mesa llvmpipe",
+    "student_policy_steps": 6,
+    "physics_steps": 24,
+    "external_pd_clip_applications": 24,
+    "final_state_finite": true
+  },
+  "image_replay": {
+    "rows": 6,
+    "max_abs_diff": 0.0,
+    "atol": 1e-06,
+    "input_domain": "MUJOCO_NATIVE_RGB_AND_MUJOCO_PROPRIO"
+  },
+  "camera_schedule": {
+    "physics_hz": 200,
+    "policy_hz": 50,
+    "left_hz": 30,
+    "right_hz": 30,
+    "head_hz": 15,
+    "age_normalization_seconds": 0.1
+  },
+  "scientific_boundaries": [
+    "Native MuJoCo RGB statistics are domain-gap data and are not a Student regression verdict.",
+    "No paired Isaac RTX frames were available during the v24 activity window.",
+    "The production stage machine is intentionally not migrated; arm-delta execution uses one fixed nonzero enable only to prove the deployable loop."
+  ]
+}

@@ -1,0 +1,159 @@
+{
+  "device": "cpu",
+  "evidence_level": "E4_NATIVE_RGB_CLOSED_LOOP",
+  "external_pd_clip_applications": 24,
+  "final_state_finite": true,
+  "image_replay": {
+    "atol": 1e-06,
+    "evidence_level": "E4_IMAGE_REPLAY",
+    "input_domain": "MUJOCO_NATIVE_RGB_AND_MUJOCO_PROPRIO",
+    "max_abs_diff": 0.0,
+    "policy_boundary": "native Hydra Student action_mean plus recurrent sequence",
+    "result_classification": "VALID_COMPARABLE",
+    "rows": 6,
+    "schema": "doordog.sim2sim.e4_image_replay_receipt.v1"
+  },
+  "physics_steps": 24,
+  "pixel_domain_gap_data": {
+    "head": {
+      "max_uint8": 228,
+      "mean_rgb": [
+        30.356943167892158,
+        21.31117876838235,
+        15.339250153186274
+      ],
+      "min_uint8": 0,
+      "unique_rgb_count": 961
+    },
+    "left": {
+      "max_uint8": 70,
+      "mean_rgb": [
+        27.494779610339506,
+        17.091266396604937,
+        10.66479793595679
+      ],
+      "min_uint8": 0,
+      "unique_rgb_count": 170
+    },
+    "right": {
+      "max_uint8": 103,
+      "mean_rgb": [
+        29.71560329861111,
+        17.397593557098766,
+        9.839421778549383
+      ],
+      "min_uint8": 0,
+      "unique_rgb_count": 196
+    }
+  },
+  "policy_bundle": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
+  "policy_rows": [
+    {
+      "camera_meta": [
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "door_hinge_rad": 0.0,
+      "leg_action_max_abs": 2.458570718765259,
+      "policy_step": 0,
+      "student_action_max_abs": 4.099602699279785,
+      "time_s": 0.0
+    },
+    {
+      "camera_meta": [
+        0.20000000298023224,
+        0.20000000298023224,
+        0.20000000298023224,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "door_hinge_rad": -6.6428992403641e-08,
+      "leg_action_max_abs": 2.5072336196899414,
+      "policy_step": 1,
+      "student_action_max_abs": 4.505360126495361,
+      "time_s": 0.02
+    },
+    {
+      "camera_meta": [
+        0.05000000074505806,
+        0.05000000074505806,
+        0.4000000059604645,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "door_hinge_rad": -1.008029930615611e-07,
+      "leg_action_max_abs": 2.4490368366241455,
+      "policy_step": 2,
+      "student_action_max_abs": 4.265595436096191,
+      "time_s": 0.04
+    },
+    {
+      "camera_meta": [
+        0.25,
+        0.25,
+        0.6000000238418579,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "door_hinge_rad": -1.114934444780442e-07,
+      "leg_action_max_abs": 2.908946990966797,
+      "policy_step": 3,
+      "student_action_max_abs": 3.321139097213745,
+      "time_s": 0.05999999999999999
+    },
+    {
+      "camera_meta": [
+        0.10000000149011612,
+        0.10000000149011612,
+        0.10000000149011612,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "door_hinge_rad": -1.1401362892353517e-07,
+      "leg_action_max_abs": 3.683805465698242,
+      "policy_step": 4,
+      "student_action_max_abs": 3.026846408843994,
+      "time_s": 0.08
+    },
+    {
+      "camera_meta": [
+        0.0,
+        0.0,
+        0.30000001192092896,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "door_hinge_rad": -1.14455963799155e-07,
+      "leg_action_max_abs": 4.4709696769714355,
+      "policy_step": 5,
+      "student_action_max_abs": 4.0277419090271,
+      "time_s": 0.10000000000000002
+    }
+  ],
+  "policy_steps": 6,
+  "result_classification": "EXPLORATORY_NON_COMPARABLE",
+  "scene": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e3/shadow_scene.xml",
+  "schema": "doordog.sim2sim.e4_rgb_closed_loop_receipt.v1",
+  "stage_semantics": "NOT_MIGRATED; fixed nonzero arm-delta enable for execution probe",
+  "task_metrics": {
+    "first_open_time_s": null,
+    "max_handle_rad": -0.018583405472939005,
+    "max_hinge_rad": -1.68988121465648e-08,
+    "open_threshold_rad": 0.174533,
+    "opened": false,
+    "source": "DIRECT_MUJOCO_DOOR_STATE"
+  },
+  "warnings": [
+    "No Isaac RTX pixels are available for paired comparison; MuJoCo pixel statistics are domain-gap data only.",
+    "R6 excludes the production stage machine, so this short native-RGB loop is not a policy success/regression verdict."
+  ]
+}

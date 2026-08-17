@@ -1,0 +1,10 @@
+{
+  "atol": 1e-06,
+  "evidence_level": "E4_IMAGE_REPLAY",
+  "input_domain": "MUJOCO_NATIVE_RGB_AND_MUJOCO_PROPRIO",
+  "max_abs_diff": 0.0,
+  "policy_boundary": "native Hydra Student action_mean plus recurrent sequence",
+  "result_classification": "VALID_COMPARABLE",
+  "rows": 6,
+  "schema": "doordog.sim2sim.e4_image_replay_receipt.v1"
+}

@@ -1,6 +1,6 @@
 # Sim2sim merge readiness
 
-Last updated: 2026-08-17 19:23 HKT
+Last updated: 2026-08-17 19:44 HKT
 
 ## Boundary
 
@@ -49,6 +49,9 @@ Forbidden shared production paths include:
 - `gr00t/rl/sim2sim/cli/build_shadow_scene.py`
 - `gr00t/rl/sim2sim/cli/run_e3_open_loop.py`
 - `scriptsFORhuman/sim2sim/artifacts/e3/`
+- `gr00t/rl/sim2sim/policy/observations.py`
+- `gr00t/rl/sim2sim/cli/run_e4_rgb_closed_loop.py`
+- `scriptsFORhuman/sim2sim/artifacts/e4/`
 
 This list is updated after each phase.
 
@@ -61,6 +64,7 @@ This list is updated after each phase.
 | Phase 2 / E1 | `9e5659a` | `45c9decb` | already up to date | 0 |
 | Phase 3 / E2 | `485a8f2` | `45c9decb` | already up to date | 0 |
 | Phase 4 / E3 | `ad8b1f3` | `45c9decb` | already up to date | 0 |
+| Phase 5 / E4 | `c5e1194` | `45c9decb` | already up to date | 0 |
 
 ## Non-intersection proof
 

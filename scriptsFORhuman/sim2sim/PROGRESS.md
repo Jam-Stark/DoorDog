@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 19:23 HKT
+Last updated: 2026-08-17 19:44 HKT
 
 ## Scope and authority
 
@@ -18,7 +18,7 @@ Last updated: 2026-08-17 19:23 HKT
 | E1 Robot | COMPLETE_WITH_WARNING | Floating-base MJCF compiled 27/26/20 at 44.741 kg; 54D/1620D and 12→19→20 proofs pass; CPU axis marker captured. |
 | E2 Door | COMPLETE_WITH_WARNING | Door compiles 2/2/2 + one gate; rad three-face diff 0; capped resistance hits 4.5 Nm; friction semantic gap explicit. |
 | E3 Open-loop | COMPLETE_WITH_WARNING | Composed scene 29/28/22; 600-step CPU trace finite; direct door state crossed 0.174533 rad at 1.81 s. |
-| E4 Closed-loop proprio/pixel | NOT_STARTED | Requires E0 policy runtime and camera contract. |
+| E4 Closed-loop proprio/pixel | EXPLORATORY_COMPLETE | 6 native-RGB Student rows replay at diff 0; 24-step CPU loop finite; pixel data recorded, no policy verdict. |
 | E5 Paired cases | NOT_STARTED | Requires comparable independent backend traces. |
 | E6 Robustness | NOT_STARTED | Requires at least one interpretable E4/E5 path. |
 
@@ -48,6 +48,17 @@ Phase-completion merge record: local `A2_Piper` was already at the worktree base
 - Replayed three deterministic contract rows through a newly instantiated native actor; action means and recurrent hidden/cell state matched at `atol=1e-6`, maximum absolute difference `0.0`.
 - Retained the source discrepancy: the selected config declares gripper `80/3/10`; the bundle does not silently replace it. The robot realization separately uses the owner-resolved evaluated `1300/32/45` face.
 - No GPU was leased.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
+### Phase 5 — E4 image replay and native-RGB loop (complete at exploratory level)
+
+- Added the exact deployable 81D Student observation order and raw uint8 NHWC normalization surface. Proprio components use the production semantics: local base angular velocity, projected gravity, 20D position delta, 20D velocity, previous 19D action, raw 6D delta, physical 5D command, and raw 5D command.
+- Ran the native Student actor and the repository A2_Base TorchScript policy together against the composed MuJoCo scene on CPU. Six Student decisions / 24 physics steps remained finite and applied torque clip on all 24 physics steps.
+- Captured left/right at 30 Hz and head at 15 Hz against the 50 Hz policy clock; camera age metadata uses the production 0.1 s normalization and exact `[ages, valid]` order.
+- Replayed the six cached MuJoCo RGB+proprio rows through a reset native recurrent Student actor; all mean actions matched with maximum absolute difference `0.0` at `1e-6`.
+- Recorded min/max/mean/unique-color data for each MuJoCo camera. No Isaac RTX pixels were acquired while v24 held its activity window, so pixel observations remain domain-gap data under R10.
+- Production stage logic was not migrated under R6. The fixed nonzero arm-delta enable makes the native-RGB loop `EXPLORATORY_NON_COMPARABLE`, not a task-quality or regression verdict.
 
 Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
 
@@ -86,4 +97,4 @@ Phase-completion merge record: `git merge A2_Piper` returned `Already up to date
 
 ## Next action
 
-Run E4 policy image-replay and a typed MuJoCo RGB closed-loop boundary, keeping native-render domain gap separate from policy golden regression.
+Materialize the E5 ordered paired-trace harness and typed missing-Isaac receipt, then run E6 CPU robustness sweeps over the declared door friction/mechanics axes.

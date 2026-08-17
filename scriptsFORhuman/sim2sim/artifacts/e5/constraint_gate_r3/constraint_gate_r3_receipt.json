@@ -1,0 +1,39 @@
+{
+  "backend": "mujoco_cpu",
+  "build_reports": {
+    "door": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/constraint_gate_r3/door_build_report_v2.json",
+    "scene": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/constraint_gate_r3/scene_build_report_v2.json"
+  },
+  "campaign_authorization": "AUTHORIZED",
+  "derived_door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/constraint_gate_r3/door_instance_constraint_gate_r3.json",
+  "equality_effectiveness": {
+    "active_at_reset": 1,
+    "applied_hinge_torque_nm": 20.0,
+    "compiled_equality_count": 1,
+    "duration_s": 1.0,
+    "gate_equality_id": 0,
+    "locked_max_abs_hinge_rad": 3.2095381527275745e-05,
+    "result": "PASS"
+  },
+  "locked_door_validation": {
+    "locked_max_abs_hinge_rad": 3.2095381527275745e-05,
+    "matched_applied_hinge_torque_nm": 20.0,
+    "post_release_hinge_motion_rad": 0.29518285375167086,
+    "result": "PASS"
+  },
+  "producer_identity": {
+    "git_commit": "549f8c892af1fd5f22fd60cb796dd87c8335bba0",
+    "path": "gr00t/rl/sim2sim/cli/run_constraint_gate_r3.py"
+  },
+  "release_logic": {
+    "active_after_release": 0,
+    "active_below_threshold": 1,
+    "below_threshold_released": false,
+    "release_handle_rad": 0.5235987755982988,
+    "result": "PASS",
+    "threshold_released": true
+  },
+  "result": "PASS",
+  "schema": "doordog.sim2sim.constraint_gate_r3.v1",
+  "source_door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p00_baseline.json"
+}

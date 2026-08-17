@@ -1,0 +1,77 @@
+# @package _global_
+
+defaults:
+  - /algo: ppo
+  - /env: pull_v5_6_hold_specialist
+  - /simulator: isaacsim
+  - /domain_rand: NO_domain_rand
+  - /rewards: wbmanip/reward_pull_v5_6_hold_specialist
+  - /robot: A2_Piper/a2_piper
+  - /terrain: terrain_locomotion_plane
+  - /obs: wbmanip/pull_v5_6_hold_specialist
+  - /opt: wandb
+  - override /trainer: trl_pull_v5_6_hold_specialist
+
+exp_base: ${hydra:runtime.choices.exp}
+exp_var: hold_specialist
+experiment_name: pull_v5_6_hold_specialist
+project_name: a2_piper_pull_v5_6_hold_specialist
+num_envs: 256
+
+algo:
+  trl:
+    num_total_batches: 750
+  config:
+    use_new_actor_critic: true
+    use_a2_base: true
+    opt_homie: false
+    a2_base:
+      enabled: true
+      policy_path: ./gr00t/rl/data/policies/A2_Base/policy.pt
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      obs_dim: 1620
+      action_dim: 12
+      leg_action_scale: 0.25
+      command_scale: 0.25
+      body_pitch_roll_scale: 0.4
+      command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      action_sigma: 0.0
+    num_steps_per_env: 64
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    actor_learning_rate: 1.0e-3
+    critic_learning_rate: 1.0e-3
+    entropy_coef: 0.01
+    num_learning_iterations: 750
+    save_interval: 250
+    load_optimizer: false
+    init_noise_std: 1.0
+    max_noise_std: 1.0
+    freeze_noise_std: false
+    adapter_from_scratch: true
+    adapter_trainable_action_dim: 12
+    original_homie_immutable: true
+    specialist_terminal_only: true
+    scientific_denominator_included: false
+    denominator_scope: none
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v5_6_hold_specialist_actor.PullV56HoldSpecialistActor
+      raw_checkpoint_path: /home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_dog/ac_weights_last.pt
+      obs_dim: 1620
+      latent_dim: 25
+      num_actions: 12
+      hidden_dims: [512, 256, 128]
+      init_noise_std: 1.0
+    critic:
+      _target_: gr00t.rl.trl.modules.pull_v5_6_hold_specialist_actor.PullV56HoldSpecialistCritic
+      obs_dim: 12
+      hidden_dims: [128, 64]
+      fresh_init: true
+
+robot:
+  actions_dim: 20
+  check_action_dim: true
+
+callbacks:
+  model_save:
+    save_frequency: 250

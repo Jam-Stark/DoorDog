@@ -1,0 +1,101 @@
+# @package _global_
+
+defaults:
+  - legged_base
+  - _self_
+
+env:
+  _target_: gr00t.rl.envs.base_task.pull_v5_6_hold_specialist.PullV56HoldSpecialist
+  _recursive_: False
+  config:
+    max_episode_length_s: 12.0
+    env_spacing: 5.0
+    robot: ${robot}
+    domain_rand: ${domain_rand}
+    rewards: ${rewards}
+    terrain: ${terrain}
+    obs: ${obs}
+    adapter_active: true
+    adapter_checkpoint: null
+    adapter_checkpoint_step: null
+    adapter_probe_phase: train
+    adapter_eval_max_steps: 600
+    adapter_rehearsal_yaw_delta_rad: null
+    adapter_rehearsal_xy_delta_m: null
+    adapter_anchor_sequence: null
+    adapter_anchor_attempt: 0
+    adapter_family: near_rest
+    # v5.6 holds the original HOMIE actor immutable and trains only the
+    # terminal specialist loaded from the raw dog checkpoint.
+    original_homie_checkpoint: ./gr00t/rl/data/policies/A2_Base/policy.pt
+    original_homie_jit_path: ./gr00t/rl/data/policies/A2_Base/policy.pt
+    specialist_checkpoint: null
+    specialist_checkpoint_step: null
+    hold_specialist_active: true
+    normalization:
+      clip_actions: 100.0
+      clip_observations: 100.0
+    termination:
+      terminate_when_close_to_dof_pos_limit: false
+      terminate_when_close_to_dof_vel_limit: false
+      terminate_when_close_to_torque_limit: false
+      terminate_by_contact: false
+      terminate_by_gravity: false
+      terminate_by_low_height: false
+    termination_scales:
+      termination_close_to_dof_pos_limit: 0.98
+      termination_close_to_dof_vel_limit: 0.98
+      termination_close_to_torque_limit: 0.98
+      termination_gravity_x: 0.5
+      termination_gravity_y: 0.5
+      termination_min_base_height: 0.3
+      termination_contact_force: 10.0
+    a2_base:
+      enabled: true
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      high_level_action_dim: 12
+      leg_action_dim: 12
+      obs_history_length: 30
+      obs_frame_dim: 54
+      command_scale: 0.25
+      base_command_scale: 0.25
+      dog_joint_vel_scale: 0.05
+      command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      base_command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      body_pitch_roll_scale: 0.4
+      gait_frequency: 2.0
+      gait_initial_phase: 0.0
+      gait_standing_command_thresholds: [0.1, 0.1, 0.2]
+      ref_dof_legs_sigma: 0.1
+      ref_dof_legs_phase_offset: 0.5
+      ref_dof_legs_target_joint_pos_thd: 0.1
+      ref_dof_legs_target_joint_pos_scale: 0.35
+      ref_dof_legs_calf_scale_factor: 2.0
+      gripper_close_target: [0.0, 0.0]
+      gripper_open_target: [0.035, -0.035]
+      gripper_primitive_limit: 1.0
+      gripper_primitive_limit_tolerance: 1.1
+      policy_leg_order: [
+        FL_hip_joint, FR_hip_joint, RL_hip_joint, RR_hip_joint,
+        FL_thigh_joint, FR_thigh_joint, RL_thigh_joint, RR_thigh_joint,
+        FL_calf_joint, FR_calf_joint, RL_calf_joint, RR_calf_joint
+      ]
+    a2_stage2_contact_force_threshold: 1.0
+    a2_stage2_squeeze_force_min: 0.5
+    a2_stage2_squeeze_force_max: 20.0
+    a2_stage2_over_force_threshold: 40.0
+    adapter_raw_action_low: [-0.30, 0.0, -2.0]
+    adapter_raw_action_high: [0.0, 0.24, 2.0]
+    adapter_waypoint_tolerance_m: 0.05
+    adapter_yaw_tolerance_rad: 0.15
+    adapter_terminal_hold_steps: 100
+    adapter_entry_step_cap: 250
+    adapter_step_budget: 350
+    adapter_record_class: interface_characterization
+    adapter_scientific_denominator_included: false
+    adapter_denominator_scope: none
+    task:
+      type: locomotion
+      name: pull_v5_6_hold_specialist
+      objects: []
+      target_obj: null

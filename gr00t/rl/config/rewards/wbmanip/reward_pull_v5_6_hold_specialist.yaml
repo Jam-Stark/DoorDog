@@ -1,0 +1,31 @@
+# @package _global_
+
+rewards:
+  set_reward: PullV56HoldSpecialist
+  set_reward_date: 20260817
+  only_positive_rewards: false
+  reward_scales:
+    # v5.5 scales stay frozen.  The delta term is the selected 12-D
+    # specialist leg delta and is inactive while original HOMIE is selected.
+    adapter_dense_error: 1.0
+    adapter_in_tolerance: 0.25
+    adapter_hold_progress: 0.50
+    adapter_done: 4.0
+    penalty_adapter_action_delta: -0.01
+  reward_limit:
+    soft_dof_pos_limit: 0.95
+    soft_dof_vel_limit: 0.95
+    soft_torque_limit: 0.9
+    reward_limits_curriculum:
+      soft_dof_pos_curriculum: false
+      soft_dof_vel_curriculum: false
+      soft_torque_curriculum: false
+  reward_penalty_curriculum: false
+  reward_initial_penalty_scale: 1.0
+  reward_min_penalty_scale: 1.0
+  reward_max_penalty_scale: 1.0
+  reward_penalty_level_down_threshold: 0.5
+  reward_penalty_level_up_threshold: 0.7
+  reward_penalty_degree: 0.0
+  num_compute_average_epl: 10000
+  reward_penalty_reward_names: []

@@ -1,0 +1,79 @@
+# @package _global_
+# C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2 camera-only overlay.
+# Nominal geometry: baseline 130 mm, y = +/-65 mm, toe-out = +/-6 deg,
+# D435i pitch = -50 deg. Quaternion convention is WXYZ / world.
+
+simulator:
+  config:
+    cameras:
+      enable_cameras: true
+      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+      topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+
+      # Left D435i: RPY [0, -50, +6] deg, outward toward trunk +Y.
+      camera_parent: trunk
+      camera_prim_suffix: d435i_left_portrait_policy_camera
+      camera_pos: [0.215, 0.065, 0.165]
+      camera_rot_wxyz: [0.905065723713, 0.022118130854, -0.422039078101, 0.047432484685]
+      camera_convention: world
+      camera_focal_length: 1.0
+      camera_focus_distance: 0.5
+      camera_horizontal_aperture: 0.7777574637059793
+      camera_vertical_aperture: 1.3826799354772965
+      camera_clipping_range: [0.1, 20.0]
+      camera_update_period: 0.03333333333333333
+      camera_types: [{rgb: true}]
+      camera_resolutions: [384, 216]
+      image_mean: [0.485, 0.456, 0.406]
+      image_std: [0.229, 0.224, 0.225]
+
+      policy_multiview:
+        enabled: true
+        architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+        topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+        layout: channel_stacked_raw_rgb
+        primary_resolution: [384, 216]
+        output_resolution: [384, 216]
+        output_shape: [384, 216, 6]
+        view_order: [left, right]
+
+        # Right D435i: RPY [0, -50, -6] deg, outward toward trunk -Y.
+        right:
+          sensor_name: d435i_right_portrait_policy
+          parent: trunk
+          prim_suffix: d435i_right_portrait_policy_camera
+          position_m: [0.215, -0.065, 0.165]
+          rotation_wxyz: [0.905065723713, -0.022118130854, -0.422039078101, -0.047432484685]
+          convention: world
+          resolution: [384, 216]
+          focal_length: 1.0
+          focus_distance: 0.5
+          horizontal_aperture: 0.7777574637059793
+          vertical_aperture: 1.3826799354772965
+          clipping_range: [0.1, 20.0]
+          update_period: 0.03333333333333333
+
+        context:
+          sensor_name: a2_head_oem_policy
+          parent: trunk
+          prim_suffix: a2_head_oem_policy_camera
+          position_m: [0.3381, 0.0336, 0.0525]
+          rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+          convention: world
+          resolution: [136, 384]
+          focal_length: 1.0
+          focus_distance: 0.5
+          horizontal_aperture: 4.492073547808433
+          vertical_aperture: 1.59094271484882
+          clipping_range: [0.1, 20.0]
+          update_period: 0.06666666666666667
+
+        camera_meta:
+          enabled: true
+          order:
+            - left_age_normalized
+            - right_age_normalized
+            - head_age_normalized
+            - left_valid
+            - right_valid
+            - head_valid

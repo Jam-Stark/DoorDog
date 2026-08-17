@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 18:34 HKT
+Last updated: 2026-08-17 18:56 HKT
 
 ## Scope and authority
 
@@ -15,7 +15,7 @@ Last updated: 2026-08-17 18:34 HKT
 | Level | State | Current evidence |
 |---|---|---|
 | E0 Contract / golden | COMPLETE_WITH_WARNING | READY native-Hydra Student bundle; CPU action/LSTM golden replay 3/3 rows, max diff 0. Legacy gripper face remains typed. |
-| E1 Robot | IN_PROGRESS | Repository URDF and A2_Base policy assets located; MJCF not built yet. |
+| E1 Robot | COMPLETE_WITH_WARNING | Floating-base MJCF compiled 27/26/20 at 44.741 kg; 54D/1620D and 12→19→20 proofs pass; CPU axis marker captured. |
 | E2 Door | IN_PROGRESS | v24 unit/friction source and door-generator path under trace; builder not built yet. |
 | E3 Open-loop | NOT_STARTED | Requires E0 action transform plus compiled robot/door. |
 | E4 Closed-loop proprio/pixel | NOT_STARTED | Requires E0 policy runtime and camera contract. |
@@ -51,6 +51,18 @@ Phase-completion merge record: local `A2_Piper` was already at the worktree base
 
 Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
 
+### Phase 2 — E1 robot, controller, and camera-basis probe (complete)
+
+- Converted the repository A2+Piper URDF through MuJoCo 3.10 `MjSpec`, then materialized a floating `trunk`, restored the URDF trunk and fixed arm-base inertia faces, and added 20 named torque motors.
+- Compiled dimensions are `nq=27`, `nv=26`, `nu=20`; compiled body mass sums to the URDF total `44.741 kg`. Joint and actuator order are exact name-derived contracts.
+- External PD runs at 200 Hz and applies torque clipping on every physics step. A 200-step CPU probe remained finite; synthetic gripper saturation is exactly `[45,45]` under the owner-fixed `1300/32/45` face.
+- The A2_Base builder produces the exact 54D frame and frame-major 30×54=1620 history. Name mapping from simulator order to policy order is `[0,6,3,9,1,7,4,10,2,8,5,11]`.
+- The Student/action surface proves 12 high-level → 19 logical → 20 simulator joints, including open gripper target `[0.035,-0.035]`.
+- `MUJOCO_GL=osmesa` failed on the host because the OSMesa context library is unavailable. The required axis-marker probe instead ran with GLX/Xvfb and Mesa llvmpipe, with no GPU lease.
+- The camera conversion follows the local IsaacLab source definition exactly: Isaac `world` (+X forward,+Z up) to OpenGL (-Z forward,+Y up), with red X, green Y, blue Z markers. The Isaac side of the comparison is a contract diagram rather than a runtime RGB capture, so pixel parity remains unclaimed.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
 ## Next action
 
-Build and compile the floating-base A2+Piper MJCF with name/order/PD receipts, then run the E1 external-PD and 54D-frame proofs.
+Compile and probe the materialized door, including the v24 three-face unit receipt, capped-position resistance, friction semantic gap, and latch-mode evidence.

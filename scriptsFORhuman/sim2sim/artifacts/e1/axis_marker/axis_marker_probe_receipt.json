@@ -1,0 +1,24 @@
+{
+  "axis_color_contract": {
+    "X": "red",
+    "Y": "green",
+    "Z": "blue"
+  },
+  "comparison_image": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e1/axis_marker/axis_marker_comparison.png",
+  "conversion": "q_mujoco = q_isaac_world * (0.5,0.5,-0.5,-0.5) wxyz",
+  "evidence_level": "E1_CAMERA_CONTRACT",
+  "gl_renderer": [
+    "llvmpipe (LLVM 20.1.2, 256 bits)"
+  ],
+  "gpu_lease": false,
+  "model": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/data/mujoco/A2_Piper/a2_piper.xml",
+  "render_backend": "GLX under Xvfb with LIBGL_ALWAYS_SOFTWARE=1",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "schema": "doordog.sim2sim.axis_marker_probe_receipt.v1",
+  "source_camera_basis": "IsaacLab world: +X forward, +Y left, +Z up",
+  "target_camera_basis": "MuJoCo/OpenGL: -Z forward, +Y up, +X right",
+  "warnings": [
+    "Isaac reference panel is the local IsaacLab camera-basis contract, not a runtime Isaac RGB capture.",
+    "Pixel/domain parity remains non-comparable until paired Isaac frames exist."
+  ]
+}

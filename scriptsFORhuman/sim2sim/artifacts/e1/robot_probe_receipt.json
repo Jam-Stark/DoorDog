@@ -1,0 +1,74 @@
+{
+  "a2_base_first_history_replicated": true,
+  "a2_base_frame_dim": 54,
+  "a2_base_history_dim": 1620,
+  "action_dims": {
+    "logical_applied": 19,
+    "position_target": 20,
+    "simulator_raw": 20,
+    "student_high_level": 12
+  },
+  "compiled_dims": {
+    "nq": 27,
+    "nu": 20,
+    "nv": 26
+  },
+  "evidence_level": "E1",
+  "external_pd": {
+    "clip_cadence": "EVERY_PHYSICS_STEP",
+    "physics_steps": 200,
+    "runtime_max_abs_ctrl": 180.0,
+    "synthetic_gripper_saturated_torque": [
+      45.0,
+      45.0
+    ],
+    "synthetic_saturated_torque": [
+      120.0,
+      120.0,
+      180.0,
+      120.0,
+      120.0,
+      180.0,
+      120.0,
+      120.0,
+      180.0,
+      120.0,
+      120.0,
+      180.0,
+      40.0,
+      40.0,
+      40.0,
+      40.0,
+      40.0,
+      40.0,
+      45.0,
+      45.0
+    ],
+    "torque_clip_applications": 200
+  },
+  "final_base_height_m": 0.5343231959826001,
+  "final_state_finite": true,
+  "final_time_s": 1.0000000000000007,
+  "model": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/data/mujoco/A2_Piper/a2_piper.xml",
+  "mujoco_version": "3.10.0",
+  "open_gripper_target": [
+    0.035,
+    -0.035
+  ],
+  "policy_leg_indices_in_sim_order": [
+    0,
+    6,
+    3,
+    9,
+    1,
+    7,
+    4,
+    10,
+    2,
+    8,
+    5,
+    11
+  ],
+  "result_classification": "VALID_COMPARABLE",
+  "schema": "doordog.sim2sim.e1_robot_probe_receipt.v1"
+}

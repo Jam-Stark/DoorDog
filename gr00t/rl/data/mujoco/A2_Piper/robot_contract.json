@@ -1,0 +1,303 @@
+{
+  "action_scale": 0.25,
+  "actuator_names": [
+    "FL_hip_joint_motor",
+    "FL_thigh_joint_motor",
+    "FL_calf_joint_motor",
+    "RL_hip_joint_motor",
+    "RL_thigh_joint_motor",
+    "RL_calf_joint_motor",
+    "FR_hip_joint_motor",
+    "FR_thigh_joint_motor",
+    "FR_calf_joint_motor",
+    "RR_hip_joint_motor",
+    "RR_thigh_joint_motor",
+    "RR_calf_joint_motor",
+    "arm_j1_motor",
+    "arm_j2_motor",
+    "arm_j3_motor",
+    "arm_j4_motor",
+    "arm_j5_motor",
+    "arm_j6_motor",
+    "arm_j7_motor",
+    "arm_j8_motor"
+  ],
+  "camera_receipts": [
+    {
+      "clipping_range_m": [
+        0.1,
+        20.0
+      ],
+      "fixed_right_multiplier_wxyz": [
+        0.5,
+        0.5,
+        -0.5,
+        -0.5
+      ],
+      "fovy_deg": 69.31530939375226,
+      "mujoco_convention": "opengl:-Z_forward,+Y_up",
+      "mujoco_rotation_wxyz": [
+        0.254170499721456,
+        0.6983277086763793,
+        -0.6287770931373912,
+        -0.2288561458904604
+      ],
+      "name": "left",
+      "parent": "trunk",
+      "position_m": [
+        0.215,
+        0.065,
+        0.165
+      ],
+      "resolution_hw": [
+        384,
+        216
+      ],
+      "source_convention": "world:+X_forward,+Z_up",
+      "source_rotation_wxyz": [
+        0.905065723713,
+        0.022118130854,
+        -0.422039078101,
+        0.047432484685
+      ]
+    },
+    {
+      "clipping_range_m": [
+        0.1,
+        20.0
+      ],
+      "fixed_right_multiplier_wxyz": [
+        0.5,
+        0.5,
+        -0.5,
+        -0.5
+      ],
+      "fovy_deg": 69.31530939375226,
+      "mujoco_convention": "opengl:-Z_forward,+Y_up",
+      "mujoco_rotation_wxyz": [
+        0.2288561458904604,
+        0.6287770931373912,
+        -0.6983277086763793,
+        -0.254170499721456
+      ],
+      "name": "right",
+      "parent": "trunk",
+      "position_m": [
+        0.215,
+        -0.065,
+        0.165
+      ],
+      "resolution_hw": [
+        384,
+        216
+      ],
+      "source_convention": "world:+X_forward,+Z_up",
+      "source_rotation_wxyz": [
+        0.905065723713,
+        -0.022118130854,
+        -0.422039078101,
+        -0.047432484685
+      ]
+    },
+    {
+      "clipping_range_m": [
+        0.1,
+        20.0
+      ],
+      "fixed_right_multiplier_wxyz": [
+        0.5,
+        0.5,
+        -0.5,
+        -0.5
+      ],
+      "fovy_deg": 77.0024873497374,
+      "mujoco_convention": "opengl:-Z_forward,+Y_up",
+      "mujoco_rotation_wxyz": [
+        0.5,
+        0.5,
+        -0.5,
+        -0.5
+      ],
+      "name": "head",
+      "parent": "trunk",
+      "position_m": [
+        0.3381,
+        0.0336,
+        0.0525
+      ],
+      "resolution_hw": [
+        136,
+        384
+      ],
+      "source_convention": "world:+X_forward,+Z_up",
+      "source_rotation_wxyz": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "damping": [
+    4.5,
+    4.5,
+    9.0,
+    4.5,
+    4.5,
+    9.0,
+    4.5,
+    4.5,
+    9.0,
+    4.5,
+    4.5,
+    9.0,
+    3.0,
+    4.5,
+    3.0,
+    3.0,
+    3.0,
+    3.0,
+    32.0,
+    32.0
+  ],
+  "default_dof_pos": [
+    0.0,
+    0.5,
+    -1.0,
+    0.0,
+    0.5,
+    -1.0,
+    0.0,
+    0.5,
+    -1.0,
+    0.0,
+    0.5,
+    -1.0,
+    0.0,
+    0.0,
+    0.0,
+    0.25,
+    0.5,
+    1.57,
+    0.0,
+    0.0
+  ],
+  "external_pd": {
+    "clip_cadence": "EVERY_PHYSICS_STEP",
+    "formula": "clip(kp*(q_target-q)-kd*qvel,-torque_limit,+torque_limit)",
+    "gripper_evaluated_face": {
+      "damping": 32.0,
+      "stiffness": 1300.0,
+      "torque_limit": 45.0
+    },
+    "physics_hz": 200
+  },
+  "floating_base_joint": "floating_base",
+  "policy_bundle_identity": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
+    "source_commit": "a197255212fa65dd9e02337b7971daac71c944fe"
+  },
+  "policy_leg_joint_names": [
+    "FL_hip_joint",
+    "FR_hip_joint",
+    "RL_hip_joint",
+    "RR_hip_joint",
+    "FL_thigh_joint",
+    "FR_thigh_joint",
+    "RL_thigh_joint",
+    "RR_thigh_joint",
+    "FL_calf_joint",
+    "FR_calf_joint",
+    "RL_calf_joint",
+    "RR_calf_joint"
+  ],
+  "qpos_layout": {
+    "actuated": [
+      7,
+      27
+    ],
+    "floating_base": [
+      0,
+      7
+    ]
+  },
+  "qvel_layout": {
+    "actuated": [
+      6,
+      26
+    ],
+    "floating_base": [
+      0,
+      6
+    ]
+  },
+  "robot_xml": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/data/mujoco/A2_Piper/a2_piper.xml",
+  "schema": "a2_piper_mujoco_robot_contract_v1",
+  "sim_joint_names": [
+    "FL_hip_joint",
+    "FL_thigh_joint",
+    "FL_calf_joint",
+    "RL_hip_joint",
+    "RL_thigh_joint",
+    "RL_calf_joint",
+    "FR_hip_joint",
+    "FR_thigh_joint",
+    "FR_calf_joint",
+    "RR_hip_joint",
+    "RR_thigh_joint",
+    "RR_calf_joint",
+    "arm_j1",
+    "arm_j2",
+    "arm_j3",
+    "arm_j4",
+    "arm_j5",
+    "arm_j6",
+    "arm_j7",
+    "arm_j8"
+  ],
+  "source_urdf": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/data/robots/A2_Piper/a2_piper.urdf",
+  "stiffness": [
+    140.0,
+    140.0,
+    220.0,
+    140.0,
+    140.0,
+    220.0,
+    140.0,
+    140.0,
+    220.0,
+    140.0,
+    140.0,
+    220.0,
+    64.0,
+    128.0,
+    64.0,
+    64.0,
+    64.0,
+    64.0,
+    1300.0,
+    1300.0
+  ],
+  "torque_limit": [
+    120.0,
+    120.0,
+    180.0,
+    120.0,
+    120.0,
+    180.0,
+    120.0,
+    120.0,
+    180.0,
+    120.0,
+    120.0,
+    180.0,
+    40.0,
+    40.0,
+    40.0,
+    40.0,
+    40.0,
+    40.0,
+    45.0,
+    45.0
+  ]
+}

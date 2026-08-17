@@ -1,0 +1,72 @@
+{
+  "actuator_ids": {
+    "FL_calf_joint_motor": 2,
+    "FL_hip_joint_motor": 0,
+    "FL_thigh_joint_motor": 1,
+    "FR_calf_joint_motor": 8,
+    "FR_hip_joint_motor": 6,
+    "FR_thigh_joint_motor": 7,
+    "RL_calf_joint_motor": 5,
+    "RL_hip_joint_motor": 3,
+    "RL_thigh_joint_motor": 4,
+    "RR_calf_joint_motor": 11,
+    "RR_hip_joint_motor": 9,
+    "RR_thigh_joint_motor": 10,
+    "arm_j1_motor": 12,
+    "arm_j2_motor": 13,
+    "arm_j3_motor": 14,
+    "arm_j4_motor": 15,
+    "arm_j5_motor": 16,
+    "arm_j6_motor": 17,
+    "arm_j7_motor": 18,
+    "arm_j8_motor": 19
+  },
+  "camera_ids": {
+    "axis_overview": 0,
+    "head_policy": 3,
+    "left_policy": 1,
+    "right_policy": 2
+  },
+  "compiled": {
+    "nbody": 27,
+    "ncam": 4,
+    "ngeom": 48,
+    "njnt": 21,
+    "nq": 27,
+    "nu": 20,
+    "nv": 26,
+    "total_body_mass_kg": 44.741
+  },
+  "evidence_level": "E1",
+  "home_keyframe_qpos_dim": 27,
+  "joint_ids": {
+    "FL_calf_joint": 3,
+    "FL_hip_joint": 1,
+    "FL_thigh_joint": 2,
+    "FR_calf_joint": 9,
+    "FR_hip_joint": 7,
+    "FR_thigh_joint": 8,
+    "RL_calf_joint": 6,
+    "RL_hip_joint": 4,
+    "RL_thigh_joint": 5,
+    "RR_calf_joint": 12,
+    "RR_hip_joint": 10,
+    "RR_thigh_joint": 11,
+    "arm_j1": 13,
+    "arm_j2": 14,
+    "arm_j3": 15,
+    "arm_j4": 16,
+    "arm_j5": 17,
+    "arm_j6": 18,
+    "arm_j7": 19,
+    "arm_j8": 20,
+    "floating_base": 0
+  },
+  "mujoco_version": "3.10.0",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "schema": "doordog.sim2sim.a2_piper_mjcf_build_report.v1",
+  "warnings": [
+    "Camera convention is transformed from the IsaacLab-defined world basis to OpenGL algebraically; runtime image parity still requires the axis-marker probe.",
+    "The checkpoint-adjacent config gripper 80/3/10 face is not used for E1; owner audit R4 fixes the evaluated controller face at 1300/32/45."
+  ]
+}

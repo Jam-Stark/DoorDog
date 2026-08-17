@@ -28,13 +28,13 @@ Main 同时启动三个不同 axis：
 
 ## Wave B: Review Coordination
 
-使用同一个 immutable text candidate，并发：
+使用同一个 immutable text candidate、TASK_ID/REVISION 与 exact FROZEN_PATHS，并发：
 
 1. `goal_reviewer:CANDIDATE_GATE`
 2. `code_reviewer:CODE_QUALITY`
 3. `isaaclab_reviewer`
 
-验证三个结果绑定相同 synthetic `CANDIDATE_ID`，互不代替。Main 对一个 completed/idle agent使用 `followup_task` 请求 bounded evidence clarification，必须携带最新 revision/candidate。
+验证三个结果绑定相同 synthetic `TASK_ID`、`REVISION` 与 `FROZEN_PATHS`，互不代替。Main 对一个 completed/idle agent使用 `followup_task` 请求 bounded evidence clarification，必须携带最新 revision 与 frozen paths。
 
 ## Wave C: Independence-Proven Expansion
 

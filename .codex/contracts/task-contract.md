@@ -29,8 +29,8 @@ MEMORY_CONTEXT:
   - read order
   - verified decisions and caveats
 
-BASE_SHA:
 PRE_EXISTING_DIRTY_PATHS:
+FROZEN_PATHS:  # required for review/QA/curator tasks after freeze
 
 READ_SET:
 WRITE_SET:
@@ -57,6 +57,7 @@ OUTPUT_CONTRACT:
 - 发现额外工作时发出 `SCOPE_REQUEST`；在 Main 回复前保持 blocked。
 - Shared output directory、GPU、IsaacSim process、display 与 port 都必须作为 resource lease 明确登记。
 - Task revision 改变时，child 必须确认使用最新 contract；旧 revision 的结果不能直接并入新 candidate。
+- Review/QA/curator tasks additionally receive the current `REVISION` and exact `FROZEN_PATHS`; their results bind to that revision and path list.
 
 ## Required Result
 

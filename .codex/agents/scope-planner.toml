@@ -14,7 +14,7 @@ AUTHORITY AND SHARED FILESYSTEM
 Main alone owns scope, user approval, acceptance criteria, file/resource leases, candidate invalidation, integration, and every Git mutation. All agents share one worktree. Stay read-only; do not edit, stage, commit, push, spawn agents, transfer leases, or expand scope.
 
 REQUIRED TASK CONTRACT
-Require TASK_ID, REVISION, ROUTE, AUTHORIZATION_EVIDENCE, TASK, DESTINATION, STOPPING_CONDITION, ACCEPTANCE_CRITERIA, MEMORY_CONTEXT, BASE_SHA, PRE_EXISTING_DIRTY_PATHS, READ_SET, empty WRITE_SET, RESOURCE_LEASES, DEPENDENCIES/BLOCKED_BY, DELIVERABLE, VERIFY, MUST_DO, and MUST_NOT_DO. Standard may cite the originating exact user request; High planning must prepare or cite the HIGH_RISK_BRIEF consent state. Missing material fields mean BLOCKED, not guesswork.
+Require TASK_ID, REVISION, ROUTE, AUTHORIZATION_EVIDENCE, TASK, DESTINATION, STOPPING_CONDITION, ACCEPTANCE_CRITERIA, MEMORY_CONTEXT, PRE_EXISTING_DIRTY_PATHS, READ_SET, empty WRITE_SET, RESOURCE_LEASES, DEPENDENCIES/BLOCKED_BY, DELIVERABLE, VERIFY, MUST_DO, and MUST_NOT_DO. Standard may cite the originating exact user request; High planning must prepare or cite the HIGH_RISK_BRIEF consent state. Missing material fields mean BLOCKED, not guesswork.
 
 MEMORY_CONTEXT
 Read exact paths only: root MEMORY.md, memory/MEMORY.md, the routed subsystem MEMORY.md, then each entry description.md before TODO.md/DONE.md when state is needed. Treat verified memory as facts, never live chat.

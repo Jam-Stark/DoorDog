@@ -1,0 +1,28 @@
+schema_version: doordog.sim2sim.decision_log.v1
+updated_at_hkt: "2026-08-17 17:49 HKT"
+decisions:
+  - id: D-001
+    topic: implementation_location
+    decision: additive_feature_branch_only
+    evidence: branch_snapshot.json
+    consequence: shared Isaac production files remain untouched; BaseSimulator and Isaac DoorSpec hooks are deferred.
+  - id: D-002
+    topic: mujoco_builder
+    decision: pending_local_api_probe
+    evidence: contract_unknowns.md
+    consequence: use XML builder if MjSpec/URDF import is unavailable or unstable, preserving generated XML.
+  - id: D-003
+    topic: door_resistance
+    decision: capped_position_actuator_for_parity
+    evidence: OWNER_AUDIT_claude_20260817.md R3
+    consequence: passive spring is limited to door-only bring-up.
+  - id: D-004
+    topic: robot_control
+    decision: external_pd_with_per_physics_step_torque_clip
+    evidence: OWNER_AUDIT_claude_20260817.md R4
+    consequence: gains and caps must come from the selected checkpoint's resolved config.
+  - id: D-005
+    topic: result_classification
+    decision: five_class_typed_results
+    evidence: 10_VALIDATION_WITHOUT_OVERGATING.md
+    consequence: missing inputs remain typed; pixel domain gap is evidence rather than a policy regression verdict.

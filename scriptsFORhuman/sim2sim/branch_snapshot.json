@@ -1,0 +1,26 @@
+{
+  "captured_at_hkt": "2026-08-17 17:49 HKT",
+  "worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim",
+  "branch": "sim2sim/a2-mujoco-shadow-evaluator-20260817",
+  "branch_commit": "45c9decb0080e07e7e3941a9c9b0a176d6bb24b0",
+  "a2_piper": {
+    "branch": "A2_Piper",
+    "commit": "45c9decb0080e07e7e3941a9c9b0a176d6bb24b0",
+    "original_worktree": "/home/baoquanc/workspace/DoorDog-A2_Piper",
+    "original_worktree_policy": "READ_ONLY_ACTIVE_V24_DIRTY"
+  },
+  "distillation": {
+    "branch": "codex/a2-v13-student-distillation-20260717_2103",
+    "commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+    "merge_base_with_a2_piper": "4b29411101a1de4949f42140b61f1ccb4c2e67e7",
+    "a2_piper_only_commits": 106,
+    "distillation_only_commits": 32,
+    "source_worktree": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103",
+    "source_policy": "READ_ONLY"
+  },
+  "owner_package": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/sim2sim",
+    "tracking_state_at_capture": "UNTRACKED_IN_READ_ONLY_ORIGINAL_WORKTREE"
+  },
+  "network_fetch_performed": false
+}

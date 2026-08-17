@@ -1,0 +1,32 @@
+{
+  "schema": "doordog.sim2sim.bundle_payload_correction.r3.v1",
+  "applies_to_bundle_id": "student-c-b2h-dualraw-sharedenc-toeout6-v19-p2",
+  "applies_to_checkpoint_global_step": 10,
+  "correction_semantics": "ADDITIVE_AUTHORITATIVE_OVERLAY; ORIGINAL_READY_R2_MANIFEST_PRESERVED",
+  "payload": {
+    "classification": "GRPO_FINETUNED_STUDENT",
+    "formal_isaac_evaluation": {
+      "episode_count": 512,
+      "goal_reached_count": 467,
+      "success_fraction_exact": 0.912109375,
+      "success_percent_reported": 91.2,
+      "source_report_root": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/large_eval",
+      "source_files": "student_gpu*/seed_*/formal_student_metrics.json"
+    },
+    "baseline_isaac_evaluation": {
+      "episode_count": 512,
+      "goal_reached_count": 459,
+      "success_fraction_exact": 0.896484375,
+      "success_percent_reported": 89.6,
+      "source_report_root": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_eval/by_batch/cb2h_v19_toeout6_pitch50_largescale_camera_eval_20260810",
+      "source_files": "**/formal_student_metrics.json"
+    }
+  },
+  "supersedes_descriptions": [
+    "PILOT_GRPO_STEP10",
+    "pilot Student",
+    "乱飞是pilot级student的预期"
+  ],
+  "retained_interpretation": "MuJoCo campaign outcomes are pipeline/physics/domain-gap evidence and are not a Student-quality verdict.",
+  "owner_adjudication": "A 91.2% Isaac policy collapsing in MuJoCo requires pipeline-defect versus visual-domain-gap diagnosis."
+}

@@ -1,0 +1,35 @@
+{
+  "schema": "doordog.sim2sim.mujoco_asset_render_receipt.v2",
+  "result": "PASS",
+  "campaign": "paired_mujoco_campaign_r2",
+  "renderer": {
+    "api": "mujoco.Renderer",
+    "mujoco_gl": "glx",
+    "display": "xvfb-run allocated",
+    "libgl_always_software": true,
+    "vendor": "Mesa",
+    "device": "llvmpipe (LLVM 20.1.2, 256 bits)",
+    "mesa_version": "25.2.8",
+    "accelerated": false,
+    "gpu_lease": "NONE"
+  },
+  "images": {
+    "initial": {
+      "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2/mujoco_asset_initial.png",
+      "shape_hwc": [480, 640, 3],
+      "content": "corrected A2+Piper, two-sided handle door, floor, and axis markers in one MuJoCo scene"
+    },
+    "terminal": {
+      "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2/mujoco_asset_terminal.png",
+      "shape_hwc": [480, 640, 3],
+      "content": "p00_baseline terminal horizon scene"
+    },
+    "handle_outside": "scriptsFORhuman/sim2sim/artifacts/e5/handle_parity_v2/handle_outside_closeup.png",
+    "handle_inside": "scriptsFORhuman/sim2sim/artifacts/e5/handle_parity_v2/handle_inside_closeup.png"
+  },
+  "gpu_observation": "GPU compute activity existed on all cards during the renderer check; this campaign used llvmpipe and did not lease or touch a GPU.",
+  "producer_identity": {
+    "git_commit": "83f176a31675e3b581819310fe9aca68e5dc9084",
+    "path": "gr00t/rl/sim2sim/cli/run_paired_mujoco_campaign_r2.py"
+  }
+}

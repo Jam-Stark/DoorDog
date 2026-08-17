@@ -205,7 +205,7 @@
   },
   "physics_dt_s": 0.005,
   "producer_identity": {
-    "git_commit": "d7e9aa9dd8fd8714e1a00826015f92a9a1f28df0",
+    "git_commit": "8b2f3020a047a40d265b01d9a70830c414a93c47",
     "path": "gr00t/rl/sim2sim/cli/run_standing_vitals_gate.py"
   },
   "resolved_armature_by_joint": {

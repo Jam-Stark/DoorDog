@@ -1,0 +1,112 @@
+{
+  "comparator_identity": {
+    "git_commit": "8b2f3020a047a40d265b01d9a70830c414a93c47",
+    "path": "gr00t/rl/sim2sim/cli/compare_paired_campaign.py"
+  },
+  "comparison": null,
+  "comparison_policy": {
+    "alignment": "physics_step from the same fixed case/initial-state/seed",
+    "event_metrics": "direct handle unlatch and hinge open-threshold crossing",
+    "pixel_role": "DOMAIN_GAP_DATA_NOT_POLICY_REGRESSION",
+    "success_rate_role": "RECORDED_NOT_A_PARITY_VERDICT",
+    "trajectory_metrics": "raw max-absolute difference and RMSE; no universal hard threshold"
+  },
+  "evidence_level": "E5",
+  "input_status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE",
+  "isaac_root": null,
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/paired_case_manifest.json",
+  "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+  "mujoco_cases": [
+    {
+      "case_id": "p00_baseline",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450452,
+      "max_hinge_rad": -1.0864552809731442e-07,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p01_mass80",
+      "final_time_s": 2.4349999999999703,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.00398385152145033,
+      "max_hinge_rad": -1.3560684151791362e-07,
+      "rows": 487,
+      "termination_reason": "BASE_HEIGHT"
+    },
+    {
+      "case_id": "p02_mass120",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450528,
+      "max_hinge_rad": -9.062698185571855e-08,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p03_width080",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 3.6999999999999433,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": 0.5186000646593494,
+      "max_hinge_rad": 2.251379352294796,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p04_width110",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450513,
+      "max_hinge_rad": -7.263419911540273e-08,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p05_height190",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450457,
+      "max_hinge_rad": -1.0864552809731442e-07,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p06_height220",
+      "final_time_s": 1.9049999999999814,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450443,
+      "max_hinge_rad": -1.0864552809731433e-07,
+      "rows": 381,
+      "termination_reason": "BASE_HEIGHT"
+    },
+    {
+      "case_id": "p07_drive_k10_cap25",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": null,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521447182,
+      "max_hinge_rad": -5.432226265168134e-07,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    }
+  ],
+  "mujoco_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2",
+  "numeric_error": null,
+  "result_classification": "EXPLORATORY_NON_COMPARABLE",
+  "schema": "doordog.sim2sim.e5_paired_campaign_report.v1",
+  "trace_schema": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/sim2sim/schemas/paired_trace_row.schema.json",
+    "source_commit": "2bf0ac417858128ab761fca3fa3aa8451b7ea843"
+  },
+  "warnings": [
+    "Isaac paired campaign input has not been transferred; no formal comparison is claimed."
+  ]
+}

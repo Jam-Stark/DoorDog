@@ -1,0 +1,16 @@
+{
+  "schema": "doordog.sim2sim.campaign_attempt_failure.v1",
+  "classification": "INVALID_NUMERICS",
+  "status": "SUPERSEDED_BY_CORRECTED_R2_RUN",
+  "failure": "Student observation rejected a constant native RGB frame after a moving robot camera saw only the untextured black MuJoCo background.",
+  "failure_point": {
+    "case_id": "p00_baseline",
+    "completed_trace_rows": 300,
+    "last_time_s": 1.49999999999999,
+    "last_base_height_m": 0.5411178258844629,
+    "last_row_done": false
+  },
+  "evidence_boundary": "Failure occurred before an episode receipt or campaign receipt. Partial trace is retained and is not formal campaign input.",
+  "repair": "PairedSceneBuilderV2 added a render-only gradient skybox and checker floor material; contact and friction attributes were unchanged.",
+  "formal_output": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2"
+}

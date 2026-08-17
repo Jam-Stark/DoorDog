@@ -73,7 +73,7 @@
     }
   },
   "producer_identity": {
-    "git_commit": "7a7221061ce2789d7cc7caf51cd02b89307f8eb8",
+    "git_commit": "d7e9aa9dd8fd8714e1a00826015f92a9a1f28df0",
     "path": "gr00t/rl/sim2sim/cli/render_handle_parity_v2.py"
   },
   "renderer": "mujoco.Renderer",

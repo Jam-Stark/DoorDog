@@ -1,0 +1,28 @@
+{
+  "schema": "doordog.sim2sim.physics_supersession_receipt.v1",
+  "superseded_campaign": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r1",
+  "superseding_campaign": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2",
+  "classification": "INVALID_PHYSICS_SUPERSEDED_BY_R2",
+  "r1_preservation": "UNCHANGED_ON_DISK",
+  "causes": [
+    "r1 omitted robot.dof_armature_list from the evaluated READY r2 composed config; all 12 leg joints require armature=0.03",
+    "r1 had no standing-vitals gate and treated finite state as sufficient evidence",
+    "r1 wrote data.ctrl[:20] instead of a name-resolved actuator map",
+    "r1 external_pd_clip_applications counted clip-function invocations rather than actual saturation"
+  ],
+  "r1_actual_mapping_finding": "The retained r1 scene happened to compile robot motors at IDs 0..19 and door actuators at 20..21, so the slice did not misplace r1 torques. It nevertheless violated the composed-scene name-resolution contract and would fail with door-first actuator order.",
+  "r1_p00_saturation_reanalysis": {
+    "physics_rows": 51,
+    "rows_with_any_actual_saturation": 50,
+    "saturated_joint_steps": 381,
+    "clip_invocations": 51
+  },
+  "r2_repairs": {
+    "standing_vitals_gate": "PASS",
+    "resolved_leg_armature": 0.03,
+    "compiled_actuator_order": "door IDs 0..1, robot IDs 2..21",
+    "robot_write": "data.ctrl[name_resolved_robot_actuator_ids]",
+    "force_audit_max_error": 0.0,
+    "systematic_early_fall_removed": "6/8 r2 episodes reached the 20 s horizon"
+  }
+}

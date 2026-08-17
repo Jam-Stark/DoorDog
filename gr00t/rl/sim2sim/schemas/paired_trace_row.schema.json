@@ -1,0 +1,254 @@
+{
+  "$id": "https://doordog.local/schemas/paired_trace_row.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DoorDog Isaac-MuJoCo Paired Physics Trace Row v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "case_id",
+    "door_instance_id",
+    "initial_state_id",
+    "policy_bundle_id",
+    "backend",
+    "episode_index",
+    "seed",
+    "physics_step",
+    "policy_step",
+    "substep",
+    "time_s",
+    "policy_update",
+    "student_action_mean",
+    "applied_action",
+    "position_target_rad",
+    "robot_qpos",
+    "robot_qvel",
+    "robot_ctrl_nm",
+    "base",
+    "door",
+    "camera_input",
+    "done",
+    "termination_reason"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "doordog.sim2sim.paired_trace_row.v1"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "door_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "initial_state_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy_bundle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "backend": {
+      "enum": ["isaac_physx", "mujoco_cpu"]
+    },
+    "episode_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "seed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "physics_step": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "policy_step": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "substep": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3
+    },
+    "time_s": {
+      "type": "number"
+    },
+    "policy_update": {
+      "type": "boolean"
+    },
+    "student_action_mean": {
+      "$ref": "#/$defs/vector12"
+    },
+    "applied_action": {
+      "$ref": "#/$defs/vector19"
+    },
+    "position_target_rad": {
+      "$ref": "#/$defs/vector20"
+    },
+    "robot_qpos": {
+      "$ref": "#/$defs/vector20"
+    },
+    "robot_qvel": {
+      "$ref": "#/$defs/vector20"
+    },
+    "robot_ctrl_nm": {
+      "$ref": "#/$defs/vector20"
+    },
+    "base": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position_m", "quaternion_wxyz", "linear_velocity_mps", "angular_velocity_radps"],
+      "properties": {
+        "position_m": {
+          "$ref": "#/$defs/vector3"
+        },
+        "quaternion_wxyz": {
+          "$ref": "#/$defs/vector4"
+        },
+        "linear_velocity_mps": {
+          "$ref": "#/$defs/vector3"
+        },
+        "angular_velocity_radps": {
+          "$ref": "#/$defs/vector3"
+        }
+      }
+    },
+    "door": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hinge_rad",
+        "hinge_velocity_radps",
+        "handle_rad",
+        "handle_velocity_radps",
+        "hinge_drive_force_nm",
+        "handle_drive_force_nm",
+        "latch_state",
+        "unlatched",
+        "open_threshold_crossed"
+      ],
+      "properties": {
+        "hinge_rad": {
+          "type": "number"
+        },
+        "hinge_velocity_radps": {
+          "type": "number"
+        },
+        "handle_rad": {
+          "type": "number"
+        },
+        "handle_velocity_radps": {
+          "type": "number"
+        },
+        "hinge_drive_force_nm": {
+          "type": "number"
+        },
+        "handle_drive_force_nm": {
+          "type": "number"
+        },
+        "latch_state": {
+          "enum": ["NO_LATCH", "GATE_ACTIVE", "GATE_RELEASED"]
+        },
+        "unlatched": {
+          "type": "boolean"
+        },
+        "open_threshold_crossed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "camera_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frame_ids", "age_normalized", "valid"],
+      "properties": {
+        "frame_ids": {
+          "$ref": "#/$defs/intVector3"
+        },
+        "age_normalized": {
+          "$ref": "#/$defs/vector3"
+        },
+        "valid": {
+          "$ref": "#/$defs/boolVector3"
+        }
+      }
+    },
+    "done": {
+      "type": "boolean"
+    },
+    "termination_reason": {
+      "enum": ["NONE", "HORIZON", "BASE_HEIGHT", "INVALID_NUMERICS"]
+    }
+  },
+  "$defs": {
+    "finiteNumber": {
+      "type": "number"
+    },
+    "vector3": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "vector4": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "vector12": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      },
+      "minItems": 12,
+      "maxItems": 12
+    },
+    "vector19": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      },
+      "minItems": 19,
+      "maxItems": 19
+    },
+    "vector20": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finiteNumber"
+      },
+      "minItems": 20,
+      "maxItems": 20
+    },
+    "intVector3": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "boolVector3": {
+      "type": "array",
+      "items": {
+        "type": "boolean"
+      },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}

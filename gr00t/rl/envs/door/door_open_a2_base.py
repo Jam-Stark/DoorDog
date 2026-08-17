@@ -136,10 +136,18 @@ from gr00t.rl.envs.door.a2_v24_friction import (
     V24FrictionConfig,
 )
 from gr00t.rl.envs.door.a2_v24_force_boundary import (
+    A2V24F3NativeAssignmentRuntime,
     A2V24ForceBoundaryRuntime,
     V24P2ForceBoundaryConfig,
     build_hinge_geometry,
 )
+from gr00t.rl.envs.door.a2_v24_r12_marginal_e1_evidence import (
+    R12_CHECKPOINT_ID,
+    R12_CONDITION,
+    R12F3EvidenceExporter,
+    R12F3EvidenceMetadata,
+)
+from gr00t.rl.envs.door.a2_v24_df1_sampler import F3Sampler
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -207,6 +215,11 @@ _A2_V23_D1_VARIANT_KEY = "a2_v23_d1_variant"
 _A2_V23_D1_BUCKET_SEED_KEY = "a2_v23_d1_bucket_seed"
 _A2_V23_D1_TOTAL_STEPS_KEY = "a2_v23_d1_total_steps"
 _A2_V23_D1_CONFIRMED_E2_KEY = "a2_v23_d1_confirmed_e2_enabled"
+_A2_V24_F3_ENABLED_KEY = "a2_v24_f3_marginal_e1_enabled"
+_A2_V24_F3_TRAINING_SEED_KEY = "a2_v24_f3_marginal_e1_training_seed"
+_A2_V24_F3_BUCKET_SEED_KEY = "a2_v24_f3_marginal_e1_bucket_seed"
+_A2_V24_F3_TOTAL_BATCHES_KEY = "a2_v24_f3_marginal_e1_total_batches"
+_A2_V24_F3_NUM_ENVS_KEY = "a2_v24_f3_marginal_e1_num_envs"
 V23_D1_CLIPPED_UTILIZATION_MIN = 0.90
 
 
@@ -6262,6 +6275,7 @@ class DoorPregrasp(
         self._a2_v24_force_boundary_config = V24P2ForceBoundaryConfig.from_mapping(config)
         self._a2_v24_force_boundary_runtime = None
         self._a2_v24_force_boundary_last = None
+        self._a2_v24_f3_evidence_exporter = None
         self._a2_p0_h_reset_audit_enabled = config.get(
             self.A2_P0_H_RESET_AUDIT_ENABLED_CONFIG_KEY, False
         )
@@ -6281,6 +6295,11 @@ class DoorPregrasp(
         self._a2_v23_d1_panel_body_id = None
         self._a2_v23_d1_last_global_step = None
         self._a2_v23_d1_last_phase = None
+        self._a2_v24_f3_enabled = False
+        self._a2_v24_f3_sampler = None
+        self._a2_v24_f3_assignment_runtime = None
+        self._a2_v24_f3_last_global_batch = None
+        self._a2_v24_f3_last_phase = None
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
         route_a_unsafe_contact_enabled = config.get(
             self.A2_V23_ROUTE_A_UNSAFE_CONTACT_ENABLED_CONFIG_KEY,
@@ -6317,7 +6336,9 @@ class DoorPregrasp(
             self._init_a2_v23_p05_evidence()
             self._init_a2_v23_p08_v2_evidence()
             self._init_a2_v23_d1_runtime()
+            self._init_a2_v24_f3_runtime()
             self._init_a2_v24_force_boundary_runtime()
+            self._init_a2_v24_f3_evidence_runtime()
             return
 
         # finger primitive related
@@ -6495,8 +6516,152 @@ class DoorPregrasp(
             device=self.device,
         )
 
+    def _init_a2_v24_f3_runtime(self) -> None:
+        """Bind the opt-in F3 sampler and native per-environment assignment face."""
+
+        enabled = self.config.get(_A2_V24_F3_ENABLED_KEY, False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(f"env.config.{_A2_V24_F3_ENABLED_KEY} must be bool; got {enabled!r}.")
+        if not enabled:
+            return
+        if not self._use_a2_base:
+            raise RuntimeError("F3 marginal-E1 runtime requires A2_Base mode.")
+        if self._a2_v23_d1_enabled:
+            raise RuntimeError("F3 marginal-E1 runtime requires the legacy v23 D1 sampler to be disabled.")
+        if self._a2_v24_force_boundary_config.enabled:
+            raise RuntimeError("F3 assignment runtime cannot overlap the P2 force-boundary mutation face.")
+        sampler = F3Sampler.from_config(self.config)
+        if sampler.num_envs != self.num_envs:
+            raise RuntimeError(
+                f"F3 sampler topology requires num_envs={sampler.num_envs}; got {self.num_envs}."
+            )
+        robot = self.simulator.scene.articulations["robot"]
+        door = self.simulator.scene.articulations["door"]
+        self._a2_v24_f3_assignment_runtime = A2V24F3NativeAssignmentRuntime(
+            robot,
+            door,
+            device=self.device,
+            num_envs=self.num_envs,
+        )
+        self._a2_v24_f3_sampler = sampler
+        self._a2_v24_f3_enabled = True
+
+    def _init_a2_v24_f3_evidence_runtime(self) -> None:
+        """Bind evaluation-only F3 evidence to the live P2 telemetry stream."""
+
+        enabled = self.config.get("a2_v24_f3_marginal_e1_evidence_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v24_f3_marginal_e1_evidence_enabled must be bool.")
+        if not enabled:
+            return
+        if self._a2_v24_f3_enabled:
+            raise RuntimeError("F3 evaluation evidence requires the F3 assignment runtime to remain disabled.")
+        runtime = self._a2_v24_force_boundary_runtime
+        if runtime is None or not self._a2_v24_force_boundary_config.enabled:
+            raise RuntimeError("F3 evaluation evidence requires enabled P2 force-boundary telemetry.")
+        condition = self.config.get("a2_v24_f3_marginal_e1_condition")
+        if condition != R12_CONDITION or self.num_envs != 16:
+            raise RuntimeError("r12 F3 checkpoint evaluation requires R12_PILOT_CELL with exactly 16 envs.")
+        if runtime.config.friction_profile != "F05" or runtime.config.active_cap_nm != 20.0:
+            raise RuntimeError("r12 F3 checkpoint evaluation requires the registered F05/cap20 face.")
+        cell = self.config.get("a2_v24_f3_marginal_e1_cell")
+        posture = self.config.get("a2_v24_f3_marginal_e1_posture")
+        seed = self.config.get("a2_v24_f3_marginal_e1_training_seed")
+        checkpoint_path = self.config.get("a2_v24_f3_marginal_e1_checkpoint_path")
+        checkpoint_id = self.config.get("a2_v24_f3_marginal_e1_checkpoint_id")
+        global_step = self.config.get("a2_v24_f3_marginal_e1_global_step")
+        output_path = self.config.get("a2_v24_f3_marginal_e1_evidence_path")
+        if not isinstance(cell, str) or not isinstance(posture, str) or not isinstance(seed, int) or not isinstance(checkpoint_path, str) or checkpoint_id != R12_CHECKPOINT_ID or global_step != 500 or not isinstance(output_path, str) or not output_path:
+            raise RuntimeError("r12 F3 evaluation requires explicit cell/final-step500/output provenance.")
+        metadata = []
+        for env_id in range(self.num_envs):
+            metadata.append(R12F3EvidenceMetadata(
+                cell=cell,
+                posture=posture,
+                seed=seed,
+                checkpoint_path=checkpoint_path,
+                checkpoint_id=checkpoint_id,
+                global_step=global_step,
+                scenario_id=f"S{env_id:02d}",
+                evidence_path=output_path,
+            ))
+        self._a2_v24_f3_evidence_exporter = R12F3EvidenceExporter(
+            num_envs=self.num_envs,
+            metadata_by_env=metadata,
+            output_path=output_path,
+        )
+
+    def apply_a2_v24_f3_global_batch(self, global_batch: int) -> dict[str, Any] | None:
+        """Apply one absolute F3 batch and report phase/reset semantics."""
+
+        if not self._a2_v24_f3_enabled:
+            return None
+        if isinstance(global_batch, bool) or not isinstance(global_batch, int):
+            raise TypeError("F3 global_batch must be an absolute integer.")
+        if (
+            self._a2_v24_f3_last_global_batch is not None
+            and global_batch < self._a2_v24_f3_last_global_batch
+        ):
+            raise RuntimeError(
+                "F3 global_batch must be monotonic; "
+                f"previous={self._a2_v24_f3_last_global_batch}, current={global_batch}."
+            )
+        sampler = self._a2_v24_f3_sampler
+        runtime = self._a2_v24_f3_assignment_runtime
+        if sampler is None or runtime is None:
+            raise RuntimeError("F3 runtime is enabled without its sampler/native assignment runtime.")
+        phase = sampler.phase_index(global_batch)
+        phase_changed = self._a2_v24_f3_last_phase is None or phase != self._a2_v24_f3_last_phase
+        assignments = sampler.assignments(global_batch)
+        if phase_changed:
+            receipt = runtime.apply_assignments(assignments, full_reset_boundary=True)
+        else:
+            receipt = runtime.cached_assignment_receipt(
+                global_batch=global_batch,
+                full_reset_boundary=False,
+            )
+        self._a2_v24_f3_last_global_batch = global_batch
+        self._a2_v24_f3_last_phase = phase
+        return {
+            "schema": "a2_piper_v24_f3_marginal_e1_runtime_v1",
+            "global_batch": global_batch,
+            "phase": phase,
+            "phase_end_batch": sampler.phase_ends[phase],
+            "intended_bucket_counts": sampler.bucket_counts(global_batch),
+            "assignments": sampler.telemetry(global_batch),
+            "full_reset_boundary": phase_changed,
+            "reset_scope": "full_environment" if phase_changed else "none",
+            "assignments_applied": phase_changed,
+            "assignment_receipt": receipt,
+            "confirmed_e2": False,
+            "forbidden_cap_nm": 10.0,
+        }
+
+    def get_a2_v24_f3_assignment_receipt(self) -> dict[str, Any]:
+        """Return the latest intended/readback assignment receipt."""
+
+        runtime = self._a2_v24_f3_assignment_runtime
+        if runtime is None:
+            return {
+                "schema": "a2_piper_v24_f3_marginal_e1_assignment_receipt_v1",
+                "status": "F3_DISABLED",
+                "authority": "DEFAULT_OFF_NO_WRITE",
+            }
+        return runtime.assignment_receipt(
+            global_batch=self._a2_v24_f3_last_global_batch,
+            full_reset_boundary=False,
+        )
+
     def close(self):
+        if self._a2_v24_f3_assignment_runtime is not None:
+            self._a2_v24_f3_assignment_runtime.close()
+            self._a2_v24_f3_assignment_runtime = None
+            self._a2_v24_f3_sampler = None
+            self._a2_v24_f3_enabled = False
         if self._a2_v24_force_boundary_runtime is not None:
+            if self._a2_v24_f3_evidence_exporter is not None:
+                self._a2_v24_f3_evidence_exporter.publish()
+                self._a2_v24_f3_evidence_exporter = None
             self._a2_v24_force_boundary_runtime.close()
             self._a2_v24_force_boundary_runtime = None
             self._a2_v24_force_boundary_last = None
@@ -6507,6 +6672,9 @@ class DoorPregrasp(
 
         if self._a2_v24_force_boundary_runtime is None:
             return
+        if self._a2_v24_f3_evidence_exporter is not None:
+            self._a2_v24_f3_evidence_exporter.publish()
+            self._a2_v24_f3_evidence_exporter = None
         self._a2_v24_force_boundary_runtime.close()
         self._a2_v24_force_boundary_runtime = None
         self._a2_v24_force_boundary_last = None
@@ -6558,19 +6726,34 @@ class DoorPregrasp(
             foot_normal_force_n=foot_force,
             foot_body_lin_vel_w=foot_velocity,
         )
-        stable_grasp = getattr(self, "_a2_stage3_grasp_streak_highwater", None)
-        if stable_grasp is not None and (
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "v24 P2 current stable-grasp telemetry"
+        )
+        stable_grasp = (
+            self._get_a2_stage3_stage4_contact_stability_mask()
+            & contact_masks["both_contact"]
+            & contact_masks["sufficient_squeeze"]
+            & contact_masks["opposite_squeeze"]
+        )
+        if (
             not torch.is_tensor(stable_grasp)
-            or stable_grasp.shape != (self.num_envs,)
+            or tuple(stable_grasp.shape) != (self.num_envs,)
             or stable_grasp.dtype != torch.bool
+            or stable_grasp.device != expected_device
         ):
-            raise RuntimeError("P2 exporter stable-grasp source has an invalid shape or dtype.")
+            raise RuntimeError(
+                "P2 exporter current stable-grasp predicate requires a device-local "
+                f"bool tensor with shape ({self.num_envs},)."
+            )
         export_rows = runtime.build_export_rows(
             result,
             episode_step=self.episode_length_buf,
+            stage_buf=self.stage_buf,
             stable_grasp=stable_grasp,
         )
         runtime.exporter.record(export_rows)
+        if self._a2_v24_f3_evidence_exporter is not None:
+            self._a2_v24_f3_evidence_exporter.record(export_rows)
         self._a2_v24_force_boundary_last = result
         self.log_dict["a2_v24_force_boundary_tau_required_nm"] = result["tau_required_nm"]
         self.log_dict["a2_v24_force_boundary_tau_available_nm"] = result["tau_available_directional_nm"]
@@ -25695,7 +25878,15 @@ class DoorPregrasp(
             completed_env_ids = env_ids[self.episode_length_buf[env_ids] > 0]
             if completed_env_ids.numel() > 0:
                 self._a2_v24_force_boundary_runtime.exporter.mark_completed(completed_env_ids)
+                if self._a2_v24_f3_evidence_exporter is not None:
+                    lengths = self.episode_length_buf[completed_env_ids].detach().cpu().tolist()
+                    self._a2_v24_f3_evidence_exporter.mark_completed(
+                        completed_env_ids,
+                        [int(value) for value in lengths],
+                    )
             self._a2_v24_force_boundary_runtime.reset_envs(env_ids)
+            if self._a2_v24_f3_evidence_exporter is not None and completed_env_ids.numel() > 0:
+                self._a2_v24_f3_evidence_exporter.reset_envs(completed_env_ids)
             self._a2_v24_force_boundary_last = None
         return super()._reset_buffers_callback(env_ids, target_buf)
 
@@ -25998,6 +26189,8 @@ class DoorPregrasp(
                 receipt["sentinel_sequence"] = sentinel_receipt["sequence"]
                 receipt["per_env"] = per_env
             self._a2_v24_last_reset_friction_receipt = receipt
+        if self._a2_v24_f3_assignment_runtime is not None and env_ids.numel() > 0:
+            self._a2_v24_f3_assignment_runtime.reset_envs(env_ids)
         return result
 
     def get_a2_v24_last_reset_friction_receipt(self) -> dict[str, Any]:

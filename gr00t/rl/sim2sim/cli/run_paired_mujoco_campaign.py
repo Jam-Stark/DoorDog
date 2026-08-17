@@ -132,7 +132,7 @@ def _run_case(
         "right": mujoco.Renderer(model, height=384, width=216),
         "head": mujoco.Renderer(model, height=136, width=384),
     }
-    overview_renderer = mujoco.Renderer(model, height=720, width=1280)
+    overview_renderer = mujoco.Renderer(model, height=480, width=640)
     cached_rgb = {
         name: _render(policy_renderers[name], data, f"{name}_policy") for name in CAMERA_NAMES
     }

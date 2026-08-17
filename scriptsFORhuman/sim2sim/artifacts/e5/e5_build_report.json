@@ -1,0 +1,20 @@
+{
+  "schema": "doordog.sim2sim.e5_build_report.v1",
+  "evidence_level": "E5",
+  "result_classification": "EXPLORATORY_NON_COMPARABLE",
+  "paired_receipt": "scriptsFORhuman/sim2sim/artifacts/e5/paired_trace_receipt.json",
+  "harness": {
+    "ordered_rows": true,
+    "float_atol": 1e-06,
+    "discrete_exact": true,
+    "self_check_rows": 8,
+    "self_check_max_abs_diff": 0.0
+  },
+  "reused_pattern": {
+    "source": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v24/p0/runtime_compatibility/r6/P0_P1_RUNTIME_COMPATIBILITY_RECEIPT.json",
+    "source_runtime_verified_rows": 7326
+  },
+  "formal_input_status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE",
+  "formal_comparison": null,
+  "reason": "The required current Student/scene Isaac trace does not exist. Shared Isaac hook integration is deferred by branch scope and v24's GPU activity window was not disturbed."
+}

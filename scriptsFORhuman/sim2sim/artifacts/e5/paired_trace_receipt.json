@@ -1,0 +1,77 @@
+{
+  "comparison": null,
+  "evidence_level": "E5",
+  "harness_identity": {
+    "git_commit": "78ff83791003927e4cc09fd5a11abb1429caf3b7",
+    "path": "gr00t/rl/sim2sim/evaluation/paired_trace.py"
+  },
+  "harness_self_check": {
+    "atol": 1e-06,
+    "authority": "HARNESS_OPERATION_ONLY_NOT_PAIRED_EVIDENCE",
+    "compared_rows": 8,
+    "discrete_fields": [
+      "step",
+      "constraint_gate_active"
+    ],
+    "field_max_abs_diff": {
+      "base_height_m": 0.0,
+      "door_external_torque_nm": 0.0,
+      "door_hinge_rad": 0.0,
+      "handle_hinge_rad": 0.0,
+      "max_abs_robot_ctrl_nm": 0.0,
+      "time_s": 0.0
+    },
+    "float_fields": [
+      "time_s",
+      "base_height_m",
+      "max_abs_robot_ctrl_nm",
+      "door_hinge_rad",
+      "handle_hinge_rad",
+      "door_external_torque_nm"
+    ],
+    "max_abs_diff": 0.0,
+    "status": "PASS"
+  },
+  "input_status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE",
+  "isaac_trace": null,
+  "mujoco_trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e3/open_loop/open_loop_trace.csv",
+  "paired_cases": [
+    {
+      "case": "reset",
+      "status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+    },
+    {
+      "case": "hold",
+      "status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+    },
+    {
+      "case": "handle_release",
+      "status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+    },
+    {
+      "case": "door_open",
+      "status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+    },
+    {
+      "case": "post_release",
+      "status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+    }
+  ],
+  "provenance_policy": {
+    "identity": "git_commit_plus_path",
+    "strict_exact_hash": false,
+    "strict_exact_hash_scope": "FORMAL_PAIRED_EVIDENCE_ONLY"
+  },
+  "reason": "No current Student/scene Isaac trace was produced because the shared production hook is deferred and the v24 GPU activity window was not disturbed.",
+  "result_classification": "EXPLORATORY_NON_COMPARABLE",
+  "schema": "doordog.sim2sim.e5_paired_trace_receipt.v1",
+  "v24_p0_pattern": {
+    "discrete_exact": true,
+    "ordered_row_float_atol": 1e-06,
+    "proven_zero_diff_rows": 7326,
+    "source_commit": "ba1c4b4cbe5d954eff80ac541b5b412a3ed016ae",
+    "source_path": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_eval/base_v24/p0/runtime_compatibility/r6/P0_P1_RUNTIME_COMPATIBILITY_RECEIPT.json",
+    "source_schema": "a2_piper_v24_p0_p1_runtime_compatibility_receipt_v1",
+    "source_status": "RUNTIME_VERIFIED"
+  }
+}

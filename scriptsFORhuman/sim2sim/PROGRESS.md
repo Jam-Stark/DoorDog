@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 19:44 HKT
+Last updated: 2026-08-17 19:54 HKT
 
 ## Scope and authority
 
@@ -19,7 +19,7 @@ Last updated: 2026-08-17 19:44 HKT
 | E2 Door | COMPLETE_WITH_WARNING | Door compiles 2/2/2 + one gate; rad three-face diff 0; capped resistance hits 4.5 Nm; friction semantic gap explicit. |
 | E3 Open-loop | COMPLETE_WITH_WARNING | Composed scene 29/28/22; 600-step CPU trace finite; direct door state crossed 0.174533 rad at 1.81 s. |
 | E4 Closed-loop proprio/pixel | EXPLORATORY_COMPLETE | 6 native-RGB Student rows replay at diff 0; 24-step CPU loop finite; pixel data recorded, no policy verdict. |
-| E5 Paired cases | NOT_STARTED | Requires comparable independent backend traces. |
+| E5 Paired cases | TYPED_BLOCKED | Ordered-row harness operational; current MuJoCo trace present; current Student Isaac trace is BLOCKED_INPUT_ISAAC_PAIRED_TRACE. |
 | E6 Robustness | NOT_STARTED | Requires at least one interpretable E4/E5 path. |
 
 Missing evidence is typed and is never filled with zero.
@@ -48,6 +48,15 @@ Phase-completion merge record: local `A2_Piper` was already at the worktree base
 - Replayed three deterministic contract rows through a newly instantiated native actor; action means and recurrent hidden/cell state matched at `atol=1e-6`, maximum absolute difference `0.0`.
 - Retained the source discrepancy: the selected config declares gripper `80/3/10`; the bundle does not silently replace it. The robot realization separately uses the owner-resolved evaluated `1300/32/45` face.
 - No GPU was leased.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
+### Phase 6 — E5 paired harness and typed input boundary (complete as blocked evidence)
+
+- Implemented the v24 P0-style ordered-row comparator: float fields use `atol=1e-6`; step/gate fields are exact. An eight-row operational self-check passed at zero difference and is explicitly not treated as paired evidence.
+- Reused the read-only v24 r6 receipt as the harness pattern. That source proves its own 7,326 zero-diff rows; it is not reused as a current Student Isaac trace.
+- The current 600-row MuJoCo trace exists. The corresponding current Student/scene Isaac trace does not, so reset/hold/handle-release/door-open/post-release cases all carry `BLOCKED_INPUT_ISAAC_PAIRED_TRACE` and the formal comparison field is `null`, never zero-filled.
+- Producing the missing trace would require the deferred shared Isaac integration hook and a GPU activity window that does not conflict with v24. Neither was expanded into this additive branch.
 
 Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
 
@@ -97,4 +106,4 @@ Phase-completion merge record: `git merge A2_Piper` returned `Already up to date
 
 ## Next action
 
-Materialize the E5 ordered paired-trace harness and typed missing-Isaac receipt, then run E6 CPU robustness sweeps over the declared door friction/mechanics axes.
+Run E6 CPU robustness sweeps over the declared door friction/mechanics axes, preserving the friction semantic gap in every case.

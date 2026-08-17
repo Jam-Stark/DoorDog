@@ -46,6 +46,50 @@ class PairedSceneBuilderV2:
         mesh_dir = (self.robot_xml.parent / compiler.attrib["meshdir"]).resolve(strict=True)
         compiler.set("meshdir", os.path.relpath(mesh_dir, output_xml.parent))
 
+        asset = robot.find("asset")
+        if asset is None:
+            raise ValueError("robot MJCF lacks asset section")
+        ET.SubElement(
+            asset,
+            "texture",
+            {
+                "name": "sim2sim_skybox",
+                "type": "skybox",
+                "builtin": "gradient",
+                "rgb1": "0.18 0.24 0.32",
+                "rgb2": "0.02 0.025 0.035",
+                "width": "512",
+                "height": "3072",
+            },
+        )
+        ET.SubElement(
+            asset,
+            "texture",
+            {
+                "name": "sim2sim_floor_checker",
+                "type": "2d",
+                "builtin": "checker",
+                "rgb1": "0.24 0.25 0.27",
+                "rgb2": "0.34 0.35 0.37",
+                "width": "512",
+                "height": "512",
+            },
+        )
+        ET.SubElement(
+            asset,
+            "material",
+            {
+                "name": "sim2sim_floor_material",
+                "texture": "sim2sim_floor_checker",
+                "texrepeat": "8 8",
+                "reflectance": "0.05",
+            },
+        )
+        floor = robot.find(".//geom[@name='floor']")
+        if floor is None:
+            raise ValueError("robot MJCF lacks floor geom")
+        floor.set("material", "sim2sim_floor_material")
+
         for joint_name, armature in self.armature_by_joint.items():
             joint = robot.find(f".//joint[@name='{joint_name}']")
             if joint is None:
@@ -153,6 +197,12 @@ class PairedSceneBuilderV2:
             "foot_floor_contact_surface": {
                 "floor_geom_id": floor_id,
                 "feet": contact_surface,
+            },
+            "visual_background": {
+                "skybox": "sim2sim_skybox gradient",
+                "floor_material": "sim2sim_floor_material checker",
+                "purpose": "native RGB must remain informative when a moving robot camera sees only background",
+                "physics_effect": "NONE; geom contact attributes are unchanged",
             },
             "latch_realization": "NO_LATCH" if model.neq == 0 else "EQUALITY_PRESENT",
         }

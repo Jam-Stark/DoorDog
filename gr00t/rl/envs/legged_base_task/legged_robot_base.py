@@ -36,6 +36,21 @@ from gr00t.rl.utils.torch_utils import to_torch
 
 
 
+_DUAL_D435_POLICY_ARCHITECTURES = {
+    "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+    "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+}
+
+
+def _is_dual_d435_policy(policy_multiview):
+    return (
+        isinstance(policy_multiview, dict)
+        and policy_multiview.get("architecture_id") in _DUAL_D435_POLICY_ARCHITECTURES
+    )
+
+
 class LeggedRobotBase(BaseTask):
     # pyright: ignore[reportUninitializedInstanceVariable]
 
@@ -258,6 +273,20 @@ class LeggedRobotBase(BaseTask):
             self.past_length = self.config.obs.get("past_length", 1)
 
         self.visualize_env_id = 0
+        self._terminal_reason_names = (
+            "complete",
+            "stage_overtime",
+            "episode_timeout",
+            "low_height",
+            "bad_orientation",
+            "door_distance",
+            "upper_dof_overspeed",
+            "unknown_reset",
+        )
+        self._terminal_reason_bufs = {
+            name: torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            for name in self._terminal_reason_names
+        }
 
     def _domain_rand_config(self):
         if self.config.domain_rand.push_robots:
@@ -285,6 +314,141 @@ class LeggedRobotBase(BaseTask):
         self.push_robot_counter[:] += 1
         self.push_robot_plot_counter[:] += 1
         self.command_counter[:] += 1
+
+    def _clear_terminal_reason_buffers(self):
+        for reason_buf in self._terminal_reason_bufs.values():
+            reason_buf[:] = False
+
+    def _mark_terminal_reason(self, reason, mask):
+        if reason not in self._terminal_reason_bufs:
+            raise KeyError(f"unknown terminal reason {reason!r}")
+        if mask.shape != (self.num_envs,):
+            raise ValueError(
+                f"terminal reason mask {reason!r} must have shape {(self.num_envs,)}, "
+                f"got {tuple(mask.shape)}"
+            )
+        if mask.dtype != torch.bool:
+            raise TypeError(
+                f"terminal reason mask {reason!r} must have dtype torch.bool, got {mask.dtype}"
+            )
+        self._terminal_reason_bufs[reason] |= mask
+
+    def _terminal_reasons_for_env_ids(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        reasons = []
+        reason_names = [name for name in self._terminal_reason_names if name != "unknown_reset"]
+        for env_id in env_ids.tolist():
+            env_reasons = [
+                name
+                for name in reason_names
+                if bool(self._terminal_reason_bufs[name][env_id].item())
+            ]
+            if not env_reasons:
+                env_reasons = ["unknown_reset"]
+            reasons.append("+".join(env_reasons))
+        return reasons
+
+    def _get_terminal_diagnostics(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
+        diagnostics = []
+        for idx, env_id in enumerate(env_ids.tolist()):
+            diagnostic = {
+                "env_id": int(env_id),
+                "episode_length_buf": int(self.episode_length_buf[env_id].item()),
+                "terminal_reasons": terminal_reasons[idx],
+            }
+            if hasattr(self, "stage_buf"):
+                diagnostic["stage_buf"] = int(self.stage_buf[env_id].item())
+            if hasattr(self, "time_in_stage_buf"):
+                diagnostic["time_in_stage_buf"] = int(
+                    self.time_in_stage_buf[env_id].item()
+                )
+            diagnostics.append(diagnostic)
+        return diagnostics
+
+    def _capture_terminal_diagnostics(self, env_ids):
+        if "_pending_terminal_diagnostics" not in self.__dict__:
+            return
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        if getattr(self, "_use_a2_base", False):
+            get_a2_diagnostics = getattr(self, "_get_a2_terminal_diagnostics", None)
+            if get_a2_diagnostics is None:
+                raise RuntimeError(
+                    "A2 eval terminal diagnostics requires _get_a2_terminal_diagnostics()."
+                )
+            diagnostics = get_a2_diagnostics(env_ids)
+        else:
+            diagnostics = self._get_terminal_diagnostics(env_ids)
+
+        if not isinstance(diagnostics, list):
+            raise TypeError(
+                "terminal diagnostics helper must return a list of dicts, "
+                f"got {type(diagnostics).__name__}"
+            )
+        if len(diagnostics) != env_ids.numel():
+            raise RuntimeError(
+                "terminal diagnostics helper returned "
+                f"{len(diagnostics)} entries for {env_ids.numel()} env ids"
+            )
+
+        for env_id, diagnostic in zip(env_ids.tolist(), diagnostics):
+            if not isinstance(diagnostic, dict):
+                raise TypeError(
+                    "terminal diagnostics entries must be dicts, "
+                    f"got {type(diagnostic).__name__} for env_id {env_id}"
+                )
+            if diagnostic.get("env_id") != int(env_id):
+                raise RuntimeError(
+                    "terminal diagnostics env_id mismatch: "
+                    f"expected {int(env_id)}, got {diagnostic.get('env_id')!r}"
+                )
+            self._pending_terminal_diagnostics[int(env_id)] = diagnostic
+
+    def _pop_pending_terminal_diagnostics(self, env_ids):
+        if "_pending_terminal_diagnostics" not in self.__dict__:
+            raise RuntimeError(
+                "eval terminal diagnostics requested before init_eval_metrics_tracking()."
+            )
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        diagnostics = []
+        missing_env_ids = []
+        sentinel = object()
+        for env_id in env_ids.tolist():
+            diagnostic = self._pending_terminal_diagnostics.pop(int(env_id), sentinel)
+            if diagnostic is sentinel:
+                missing_env_ids.append(int(env_id))
+            else:
+                diagnostics.append(diagnostic)
+        if missing_env_ids:
+            raise RuntimeError(
+                "missing pending terminal diagnostics for completed eval env ids "
+                f"{missing_env_ids}; terminal diagnostics must be captured before reset."
+            )
+        return diagnostics
+
+    def _capture_terminal_render_results(self, env_ids):
+        if not self._render_results_enabled():
+            return
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        render_config = self._get_eval_rendering_config()
+        if render_config["write_terminal_frame"]:
+            self.render_results(env_ids=env_ids, frame_type="terminal")
+
+        self.close_render_results_for_envs(
+            env_ids,
+            episode_lengths=[int(self.episode_length_buf[env_id].item()) for env_id in env_ids],
+            terminal_reasons=self._terminal_reasons_for_env_ids(env_ids),
+        )
 
     def _init_domain_rand_buffers(self):
         ######################################### DR related tensors #########################################
@@ -532,51 +696,400 @@ class LeggedRobotBase(BaseTask):
                 :, self.end_effector_index, :
             ]
 
-    def render_results(self):
-        if (
+    def _render_results_enabled(self):
+        return (
             self.config.simulator.config.get("render_results", False)
             and self.config.simulator.config.name == "isaacsim"
-        ):
-            if self.debug_viz:
-                self._draw_debug_vis()
+        )
 
-            root_pos = self.simulator._rigid_body_pos[:, 0]
-            eye = root_pos + torch.tensor([2, 2, 1], device=self.device)
+    def _get_eval_rendering_config(self):
+        if "_eval_rendering_config_cache" in self.__dict__:
+            return self._eval_rendering_config_cache
 
-            self.simulator.eval_camera.set_world_poses_from_view(eye, root_pos)
-            rgb_viewer = self.simulator.eval_camera.data.output["rgb"].clone()
+        render_config = self.config.get("eval_rendering", None)
+        if render_config is None:
+            raise KeyError(
+                "env.config.eval_rendering is required when simulator.config.render_results=true"
+            )
 
-            if "writers_rendering_results" not in self.__dict__:
+        required_keys = (
+            "camera_mode",
+            "camera_eye",
+            "camera_lookat",
+            "fps",
+            "write_initial_frame",
+            "write_terminal_frame",
+        )
+        missing_keys = [key for key in required_keys if key not in render_config]
+        if missing_keys:
+            raise KeyError(
+                "env.config.eval_rendering missing required keys: "
+                + ", ".join(missing_keys)
+            )
 
-                os.makedirs(self.config.save_rendering_dir, exist_ok=True)
-                self.writers_rendering_results = []
-                time_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        valid_camera_modes = (
+            "env_static",
+            "root_tracking",
+            "door_top_down",
+            "handle_top_down",
+            "handle_side",
+        )
+        camera_mode = render_config["camera_mode"]
+        if camera_mode not in valid_camera_modes:
+            raise ValueError(
+                "env.config.eval_rendering.camera_mode must be one of "
+                f"{valid_camera_modes}, got {camera_mode!r}"
+            )
 
-                for i in range(self.num_envs):
-                    file_name = f"{self.config.save_rendering_dir}/{time_str}_viewer_{i}.mp4"
-                    print(f"Saving rendering to {file_name}")
-                    writer = imageio.get_writer(file_name, fps=int(1 / self.dt))
-                    writer.append_data(rgb_viewer[i].cpu().numpy())
-                    self.writers_rendering_results.append(writer)
+        def _read_vec3(key):
+            value = torch.tensor(
+                list(render_config[key]), dtype=torch.float32, device=self.device
+            )
+            if value.shape != (3,):
+                raise ValueError(
+                    f"env.config.eval_rendering.{key} must contain exactly 3 values, "
+                    f"got shape {tuple(value.shape)}"
+                )
+            return value
+
+        fps = render_config["fps"]
+        if isinstance(fps, bool) or not isinstance(fps, (int, np.integer)) or fps <= 0:
+            raise ValueError(
+                f"env.config.eval_rendering.fps must be a positive integer, got {fps!r}"
+            )
+
+        write_initial_frame = render_config["write_initial_frame"]
+        write_terminal_frame = render_config["write_terminal_frame"]
+        if not isinstance(write_initial_frame, bool):
+            raise TypeError(
+                "env.config.eval_rendering.write_initial_frame must be bool, "
+                f"got {type(write_initial_frame).__name__}"
+            )
+        if not isinstance(write_terminal_frame, bool):
+            raise TypeError(
+                "env.config.eval_rendering.write_terminal_frame must be bool, "
+                f"got {type(write_terminal_frame).__name__}"
+            )
+
+        # Optional additional cameras (multi-camera eval). Missing or empty =>
+        # backward-compatible single-camera behavior (only "main").
+        additional_cameras_raw = render_config.get("additional_cameras", [])
+        if additional_cameras_raw is None:
+            additional_cameras_raw = []
+        if not isinstance(additional_cameras_raw, (list, tuple)):
+            from omegaconf import ListConfig as _LC
+            if not isinstance(additional_cameras_raw, _LC):
+                raise TypeError(
+                    "env.config.eval_rendering.additional_cameras must be a list, "
+                    f"got {type(additional_cameras_raw).__name__}"
+                )
+
+        additional_cameras: list[dict] = []
+        seen_names = {"main"}
+        for idx, cam_cfg in enumerate(additional_cameras_raw):
+            if not isinstance(cam_cfg, dict):
+                from omegaconf import DictConfig as _DC
+                if not isinstance(cam_cfg, _DC):
+                    raise TypeError(
+                        "env.config.eval_rendering.additional_cameras entries must be "
+                        f"dicts, got {type(cam_cfg).__name__} at index {idx}"
+                    )
+            cam_required_keys = ("name", "camera_mode", "camera_eye", "camera_lookat")
+            cam_missing = [k for k in cam_required_keys if k not in cam_cfg]
+            if cam_missing:
+                raise KeyError(
+                    "env.config.eval_rendering.additional_cameras[] missing keys: "
+                    + ", ".join(cam_missing)
+                )
+
+            name = cam_cfg["name"]
+            if not isinstance(name, str) or not name:
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].name must be "
+                    f"a non-empty string, got {name!r}"
+                )
+            if not all(c.isalnum() or c == "_" for c in name):
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].name must be "
+                    f"alphanumeric/underscore, got {name!r}"
+                )
+            if name in seen_names:
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].name must be "
+                    f"unique (and not 'main'), duplicate {name!r}"
+                )
+            seen_names.add(name)
+
+            cam_mode = cam_cfg["camera_mode"]
+            if cam_mode not in valid_camera_modes:
+                raise ValueError(
+                    "env.config.eval_rendering.additional_cameras[].camera_mode must "
+                    f"be one of {valid_camera_modes}, got {cam_mode!r}"
+                )
+
+            def _read_cam_vec3(key):
+                value = torch.tensor(
+                    list(cam_cfg[key]), dtype=torch.float32, device=self.device
+                )
+                if value.shape != (3,):
+                    raise ValueError(
+                        "env.config.eval_rendering.additional_cameras[]."
+                        f"{key} must contain exactly 3 values, "
+                        f"got shape {tuple(value.shape)}"
+                    )
+                return value
+
+            additional_cameras.append(
+                {
+                    "name": name,
+                    "camera_mode": cam_mode,
+                    "camera_eye": _read_cam_vec3("camera_eye"),
+                    "camera_lookat": _read_cam_vec3("camera_lookat"),
+                }
+            )
+
+        self._eval_rendering_config_cache = {
+            "camera_mode": camera_mode,
+            "camera_eye": _read_vec3("camera_eye"),
+            "camera_lookat": _read_vec3("camera_lookat"),
+            "fps": int(fps),
+            "write_initial_frame": write_initial_frame,
+            "write_terminal_frame": write_terminal_frame,
+            "additional_cameras": additional_cameras,
+        }
+        return self._eval_rendering_config_cache
+
+    def _normalize_render_env_ids(self, env_ids):
+        if env_ids is None:
+            return torch.arange(self.num_envs, device=self.device, dtype=torch.long)
+        if not torch.is_tensor(env_ids):
+            env_ids = torch.tensor(env_ids, device=self.device, dtype=torch.long)
+        env_ids = env_ids.to(device=self.device, dtype=torch.long).flatten()
+        if env_ids.numel() == 0:
+            return env_ids
+        if torch.any(env_ids < 0) or torch.any(env_ids >= self.num_envs):
+            raise IndexError(f"render env_ids out of range: {env_ids.tolist()}")
+        return env_ids
+
+    def _get_handle_anchor_pos(self):
+        """World-space anchor (e.g. lever center) for handle_* camera modes.
+
+        Base class cannot provide this; A2 subclass overrides to return the
+        grasp_target world pos. Shape: (num_envs, 3).
+        """
+        raise NotImplementedError(
+            "handle_* eval camera modes require an override of _get_handle_anchor_pos"
+        )
+
+    def _compute_eval_render_camera_poses(self):
+        """Compute eye/lookat poses for every eval camera.
+
+        Returns:
+            dict[str, tuple[torch.Tensor, torch.Tensor]]: keyed by camera name
+            ("main" plus any additional cameras). Each value is (eye, lookat)
+            with shape (num_envs, 3).
+        """
+        render_config = self._get_eval_rendering_config()
+        poses: dict[str, tuple[torch.Tensor, torch.Tensor]] = {}
+
+        def _compute_for_mode(mode, eye_offset, lookat_offset):
+            if mode == "env_static":
+                origins = self.env_origins.to(self.device)
+                eye = origins + eye_offset[None, :]
+                lookat = origins + lookat_offset[None, :]
+            elif mode == "root_tracking":
+                root_pos = self.simulator._rigid_body_pos[:, 0]
+                eye = root_pos + eye_offset[None, :]
+                lookat = root_pos + lookat_offset[None, :]
+            elif mode == "door_top_down":
+                door_root_pos = self.simulator.get_task_root_state("door")[:, :3]
+                eye = door_root_pos + eye_offset[None, :]
+                lookat = door_root_pos + lookat_offset[None, :]
+            elif mode in ("handle_top_down", "handle_side"):
+                anchor = self._get_handle_anchor_pos()
+                eye = anchor + eye_offset[None, :]
+                lookat = anchor + lookat_offset[None, :]
             else:
-                for i in range(self.num_envs):
-                    self.writers_rendering_results[i].append_data(rgb_viewer[i].cpu().numpy())
+                raise ValueError(f"unknown eval rendering camera mode {mode!r}")
+            return eye, lookat
+
+        poses["main"] = _compute_for_mode(
+            render_config["camera_mode"],
+            render_config["camera_eye"],
+            render_config["camera_lookat"],
+        )
+        for cam_cfg in render_config["additional_cameras"]:
+            poses[cam_cfg["name"]] = _compute_for_mode(
+                cam_cfg["camera_mode"],
+                cam_cfg["camera_eye"],
+                cam_cfg["camera_lookat"],
+            )
+        return poses
+
+    def _init_eval_rendering_state(self):
+        if "_eval_render_writers" in self.__dict__:
+            return
+
+        if self.config.save_rendering_dir is None:
+            raise ValueError(
+                "env.config.save_rendering_dir must be set when render_results is enabled"
+            )
+        os.makedirs(self.config.save_rendering_dir, exist_ok=True)
+        # Per-env, per-camera writer dict: _eval_render_writers[env_id][cam_name]
+        self._eval_render_writers: list[dict] = [dict() for _ in range(self.num_envs)]
+        self._eval_render_tmp_paths: list[dict] = [dict() for _ in range(self.num_envs)]
+        self._eval_render_episode_indices = [0 for _ in range(self.num_envs)]
+        self._eval_render_session = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    def _eval_render_camera_names(self):
+        """Names of all eval cameras to render, in deterministic order."""
+        render_config = self._get_eval_rendering_config()
+        names = ["main"]
+        names.extend(cam["name"] for cam in render_config["additional_cameras"])
+        return names
+
+    def _eval_render_filename(self, env_id, cam_name, suffix, ext):
+        """Build a render filename. cam_name='main' => no name suffix."""
+        episode_index = self._eval_render_episode_indices[env_id]
+        name_part = "" if cam_name == "main" else f"_{cam_name}"
+        return (
+            f"{self._eval_render_session}_env{env_id:04d}_episode{episode_index:04d}"
+            f"{name_part}{suffix}.{ext}"
+        )
+
+    def _open_eval_render_writer(self, env_id, cam_name):
+        self._init_eval_rendering_state()
+        if cam_name in self._eval_render_writers[env_id]:
+            return self._eval_render_writers[env_id][cam_name]
+
+        filename = self._eval_render_filename(env_id, cam_name, ".writing", "mp4")
+        filepath = str(Path(self.config.save_rendering_dir) / filename)
+        print(f"Saving rendering to {filepath}")
+        writer = imageio.get_writer(filepath, fps=self._get_eval_rendering_config()["fps"])
+        self._eval_render_writers[env_id][cam_name] = writer
+        self._eval_render_tmp_paths[env_id][cam_name] = filepath
+        return writer
+
+    def _sanitize_render_reason(self, reason):
+        return "".join(c if c.isalnum() or c in ("-", "_", "+") else "_" for c in reason)
+
+    def _close_eval_render_writer(
+        self, env_id, cam_name, episode_length=None, terminal_reason="rollout_end"
+    ):
+        self._init_eval_rendering_state()
+        writer = self._eval_render_writers[env_id].get(cam_name)
+        tmp_path = self._eval_render_tmp_paths[env_id].get(cam_name)
+
+        if writer is not None:
+            writer.close()
+            reason = self._sanitize_render_reason(terminal_reason)
+            if episode_length is None:
+                episode_length = int(self.episode_length_buf[env_id].item())
+            filename = self._eval_render_filename(
+                env_id,
+                cam_name,
+                f"_len{int(episode_length)}_reason-{reason}",
+                "mp4",
+            )
+            final_path = str(Path(self.config.save_rendering_dir) / filename)
+            os.replace(tmp_path, final_path)
+
+        self._eval_render_writers[env_id].pop(cam_name, None)
+        self._eval_render_tmp_paths[env_id].pop(cam_name, None)
+
+    def render_results(self, env_ids=None, frame_type="step"):
+        if not self._render_results_enabled():
+            return
+
+        render_config = self._get_eval_rendering_config()
+        if frame_type == "initial" and not render_config["write_initial_frame"]:
+            return
+        if frame_type == "terminal" and not render_config["write_terminal_frame"]:
+            return
+        if frame_type not in ("initial", "step", "terminal"):
+            raise ValueError(f"unknown render frame_type {frame_type!r}")
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        if self.debug_viz:
+            self._draw_debug_vis()
+
+        poses = self._compute_eval_render_camera_poses()
+        eval_cameras = self.simulator.eval_cameras
+
+        # PHASE 1 — set all camera poses (USD mirror + view transform).
+        for cam_name, (eye, lookat) in poses.items():
+            camera = eval_cameras[cam_name]
+            if not hasattr(camera._view, "_sync_usd_on_fabric_write"):
+                raise RuntimeError(
+                    f"eval camera '{cam_name}' view does not expose USD/Fabric sync control"
+                )
+            # Tiled render products consume USD-authored camera transforms. TiledCamera's
+            # XformPrimView defaults to Fabric-only writes, so mirror pose writes to USD.
+            camera._view._sync_usd_on_fabric_write = True
+            camera.set_world_poses_from_view(eye, lookat)
+
+        # PHASE 2 — single render for ALL cameras.
+        self.simulator.sim.render()
+
+        # PHASE 3 — read rgb + append to per-camera writers.
+        env_id_list = env_ids.tolist()
+        for cam_name in poses:
+            camera = eval_cameras[cam_name]
+            camera.update(dt=0.0, force_recompute=True)
+            rgb = camera.data.output["rgb"].clone()
+            for env_id in env_id_list:
+                writer = self._open_eval_render_writer(env_id, cam_name)
+                writer.append_data(rgb[env_id].cpu().numpy())
+
+    def close_render_results_for_envs(self, env_ids, episode_lengths=None, terminal_reasons=None):
+        if not self._render_results_enabled():
+            return
+
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if env_ids.numel() == 0:
+            return
+
+        if episode_lengths is None:
+            episode_lengths = [None for _ in range(env_ids.numel())]
+        if terminal_reasons is None:
+            terminal_reasons = ["rollout_end" for _ in range(env_ids.numel())]
+
+        if len(episode_lengths) != env_ids.numel():
+            raise ValueError("episode_lengths must match env_ids length")
+        if len(terminal_reasons) != env_ids.numel():
+            raise ValueError("terminal_reasons must match env_ids length")
+
+        cam_names = self._eval_render_camera_names()
+        for env_id, episode_length, terminal_reason in zip(
+            env_ids.tolist(), episode_lengths, terminal_reasons
+        ):
+            for cam_name in cam_names:
+                self._close_eval_render_writer(
+                    env_id, cam_name, episode_length, terminal_reason
+                )
+            self._eval_render_episode_indices[env_id] += 1
 
     def end_render_results(self):
-        if (
-            self.config.simulator.config.get("render_results", False)
-            and self.config.simulator.config.name == "isaacsim"
-        ):
-            for writer in self.writers_rendering_results:
-                writer.close()
+        if not self._render_results_enabled() or "_eval_render_writers" not in self.__dict__:
+            return
 
-    def end_render_results(self):
-        if (
-            self.config.simulator.config.get("render_results", False)
-            and self.config.simulator.config.name == "isaacsim"
-        ):
-            for writer in self.writers_rendering_results:
-                writer.close()
+        open_env_ids = [
+            env_id
+            for env_id, writers in enumerate(self._eval_render_writers)
+            if writers
+        ]
+        if not open_env_ids:
+            return
+        self.close_render_results_for_envs(
+            open_env_ids,
+            episode_lengths=[
+                int(self.episode_length_buf[env_id].item()) for env_id in open_env_ids
+            ],
+            terminal_reasons=["rollout_end" for _ in open_env_ids],
+        )
 
     def _update_meta_pd_scale(self, sim_sub_t):
         use_meta_pd = self.config.robot.get("use_meta_pd", False)
@@ -660,16 +1173,22 @@ class LeggedRobotBase(BaseTask):
         ) / self.config.robot.control.action_scale
 
     def reset_all(self):
-        self.reset_envs_idx(torch.arange(self.num_envs, device=self.device))
+        all_env_ids = torch.arange(self.num_envs, device=self.device)
+        self.reset_envs_idx(all_env_ids)
         self.simulator.set_actor_root_state_tensor(
-            torch.arange(self.num_envs, device=self.device), self.target_robot_root_states
+            all_env_ids, self.target_robot_root_states
         )
         self.simulator.set_dof_state_tensor(
-            torch.arange(self.num_envs, device=self.device), self.target_robot_dof_state
+            all_env_ids, self.target_robot_dof_state
         )
         # self.simulator.set_task_root_state_tensor(torch.arange(self.num_envs, device=self.device), self.target_task_root_states)
         # self.simulator.set_task_visual_state_tensor(torch.arange(self.num_envs, device=self.device))
         self._refresh_sim_tensors()
+        policy_multiview = getattr(self.simulator, "_policy_multiview", None)
+        if (
+            _is_dual_d435_policy(policy_multiview)
+        ):
+            self.simulator.prime_c_b2h_camera_cache(all_env_ids)
 
         self._pre_compute_observations_callback()
         self._compute_observations()
@@ -694,6 +1213,11 @@ class LeggedRobotBase(BaseTask):
         self._compute_reward()
         # check terminations
         env_ids = self.reset_buf.nonzero(as_tuple=False).flatten()
+        capture_a2_step_trace = getattr(self, "_capture_a2_eval_stage2_step_trace", None)
+        if capture_a2_step_trace is not None:
+            capture_a2_step_trace()
+        self._capture_terminal_diagnostics(env_ids)
+        self._capture_terminal_render_results(env_ids)
         self.reset_envs_idx(env_ids)
 
         # set envs
@@ -707,6 +1231,13 @@ class LeggedRobotBase(BaseTask):
             # self.simulator.set_task_root_state_tensor(refresh_env_ids, self.target_task_root_states)
             # self.simulator.set_task_visual_state_tensor(refresh_env_ids)
             self.need_to_refresh_envs[refresh_env_ids] = False
+
+        policy_multiview = getattr(self.simulator, "_policy_multiview", None)
+        if (
+            len(refresh_env_ids) > 0
+            and _is_dual_d435_policy(policy_multiview)
+        ):
+            self.simulator.prime_c_b2h_camera_cache(refresh_env_ids)
 
         # [Hardcoded] set world pose for the ego camera
         base_pos = self.simulator.robot_root_states[:, 0:3]
@@ -863,6 +1394,7 @@ class LeggedRobotBase(BaseTask):
         # Note: DO NOT USE FOLLOWING TWO LINES STYLE
         self.reset_buf[:] = 0
         self.time_out_buf[:] = 0
+        self._clear_terminal_reason_buffers()
 
         self._update_reset_buf()
         self._update_timeout_buf()
@@ -897,9 +1429,12 @@ class LeggedRobotBase(BaseTask):
         if self.config.termination.terminate_by_low_height:
             # import ipdb; ipdb.set_trace()
             robot_height = self.simulator.robot_root_states[:, 2:3] - self.ground_height
-            self.reset_buf |= torch.any(
-                robot_height < self.config.termination_scales.termination_min_base_height, dim=1
+            low_height = torch.any(
+                robot_height < self.config.termination_scales.termination_min_base_height,
+                dim=1,
             )
+            self._mark_terminal_reason("low_height", low_height)
+            self.reset_buf |= low_height
         if self.config.termination.get("terminate_by_hand_object_contact", False):
             termination_contact_force = self.config.termination_scales.get(
                 "termination_contact_force", 1.0
@@ -961,9 +1496,9 @@ class LeggedRobotBase(BaseTask):
                 self.reset_buf |= out_of_torque_limits > 0.0
 
     def _update_timeout_buf(self):
-        self.time_out_buf |= (
-            self.episode_length_buf > self.max_episode_length
-        )  # no terminal reward for time-outs
+        episode_timeout = self.episode_length_buf > self.max_episode_length
+        self._mark_terminal_reason("episode_timeout", episode_timeout)
+        self.time_out_buf |= episode_timeout  # no terminal reward for time-outs
 
     def reset_envs_idx(self, env_ids, target_states=None, target_buf=None):
         """Reset some environments.
@@ -985,6 +1520,11 @@ class LeggedRobotBase(BaseTask):
         self._reset_object_states_callback(env_ids)
         self._reset_past_obs_callback(env_ids)
         self._post_reset_callback(env_ids)
+        policy_multiview = getattr(self.simulator, "_policy_multiview", None)
+        if (
+            _is_dual_d435_policy(policy_multiview)
+        ):
+            self.simulator.invalidate_c_b2h_camera_cache(env_ids)
 
         # fill extras
         self.extras["episode"] = {}
@@ -1083,10 +1623,25 @@ class LeggedRobotBase(BaseTask):
         """
         self.rew_buf[:] = 0.0
         reward_dict = {}
+        begin_eval_reward_diagnostics = getattr(
+            self, "_begin_eval_reward_term_diagnostics", None
+        )
+        capture_eval_reward_diagnostics = getattr(
+            self, "_capture_eval_reward_term_diagnostics", None
+        )
+        if (begin_eval_reward_diagnostics is None) != (
+            capture_eval_reward_diagnostics is None
+        ):
+            raise RuntimeError(
+                "Eval reward diagnostics must define both begin and capture hooks."
+            )
+        if begin_eval_reward_diagnostics is not None:
+            begin_eval_reward_diagnostics(tuple(self.reward_names))
         for i in range(len(self.reward_functions)):
             name = self.reward_names[i]
             try:
-                rew = self.reward_functions[i]() * self.reward_scales[name]
+                raw_rew = self.reward_functions[i]()
+                rew = raw_rew * self.reward_scales[name]
             except:
                 import ipdb
 
@@ -1102,6 +1657,8 @@ class LeggedRobotBase(BaseTask):
             if name in self.config.rewards.reward_penalty_reward_names:
                 if self.config.rewards.reward_penalty_curriculum:
                     rew *= self.reward_penalty_scale
+            if capture_eval_reward_diagnostics is not None:
+                capture_eval_reward_diagnostics(name, raw_rew, rew)
             self.rew_buf += rew
             self.episode_sums[name] += rew
             reward_dict[name] = rew.mean().item() / self.dt
@@ -1882,8 +2439,47 @@ class LeggedRobotBase(BaseTask):
             torch.Tensor: Flattened RGB image tensor of shape [batch_size, width*height*3]
         """
         if hasattr(self.simulator, "ego_camera") and self.simulator.ego_camera is not None:
-            # Get RGB image from simulator - shape is typically [batch_size, height, width, 3]
+            cameras_cfg = self.config.simulator.config.cameras
+            policy_multiview = cameras_cfg.get("policy_multiview", None)
+            if (
+                policy_multiview is not None
+                and policy_multiview.get("architecture_id")
+                in {
+                    "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                    "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+                }
+            ):
+                if self.config.domain_rand.image_augmentation.enabled:
+                    raise ValueError(
+                        "Dual-D435 observations require image augmentation to be disabled"
+                    )
+                rgb_image = self.simulator.get_rgb_image()
+                expected_shape = (self.num_envs, 384, 216, 6)
+                if tuple(rgb_image.shape) != expected_shape:
+                    raise RuntimeError(
+                        f"Dual-D435 vision_obs shape mismatch: expected {expected_shape}, got {tuple(rgb_image.shape)}"
+                    )
+                if rgb_image.dtype != torch.float32 or not torch.all(torch.isfinite(rgb_image)):
+                    raise RuntimeError("C-B2H vision_obs must be finite float32")
+                return rgb_image
+            # Get RGB image from simulator - shape is [batch_size, height, width, 3].
+            # The simulator owns strict sensor/dtype/zero-frame checks; do not
+            # fabricate an image when a vision sensor is missing.
             rgb_image = self.simulator.get_rgb_image()
+            expected_shape = (
+                self.num_envs,
+                int(self.config.simulator.config.cameras.camera_resolutions[0]),
+                int(self.config.simulator.config.cameras.camera_resolutions[1]),
+                3,
+            )
+            if tuple(rgb_image.shape) != expected_shape:
+                raise RuntimeError(
+                    f"RGB observation shape mismatch: expected {expected_shape}, got {tuple(rgb_image.shape)}"
+                )
+            if not torch.all(torch.isfinite(rgb_image)):
+                raise RuntimeError("RGB observation contains non-finite values")
             # ----------- Image Augmentation (see domain_rand.image_augmentation) -----------
 
             rgb_image = self._image_augmentation(rgb_image)
@@ -1941,15 +2537,69 @@ class LeggedRobotBase(BaseTask):
 
             return rgb_image
         else:
-            # Return zero tensor if camera is not enabled
-            camera_resolution = self.config.simulator.config.cameras.camera_resolutions
-            # Shape needs to be [batch_size, width*height*3]
-            zero_image = torch.zeros(
-                (self.num_envs, camera_resolution[0] * camera_resolution[1] * 3),
-                device=self.device,
-                dtype=torch.float,
+            raise RuntimeError(
+                "RGB observation requested but simulator ego_camera is unavailable; "
+                "vision routes must enable a validated sensor"
             )
-            return zero_image
+
+    def _get_obs_context_rgb_image(self):
+        cameras_cfg = self.config.simulator.config.cameras
+        policy_multiview = cameras_cfg.get("policy_multiview", None)
+        if (
+            policy_multiview is None
+            or policy_multiview.get("architecture_id")
+            not in {
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            }
+        ):
+            raise RuntimeError("context_rgb_image is only valid for the C-B2H tri-view branch")
+        if self.config.domain_rand.image_augmentation.enabled:
+            raise ValueError("C-B2H tri-view observations require image augmentation to be disabled")
+        context_image = self.simulator.get_context_vision_image()
+        expected_shape = (self.num_envs, 136, 384, 3)
+        if tuple(context_image.shape) != expected_shape:
+            raise RuntimeError(
+                f"C-B2H context_vision_obs shape mismatch: expected {expected_shape}, got {tuple(context_image.shape)}"
+            )
+        if context_image.dtype != torch.float32 or not torch.all(torch.isfinite(context_image)):
+            raise RuntimeError("C-B2H context_vision_obs must be finite float32")
+        return context_image
+
+    def _get_obs_camera_meta(self):
+        cameras_cfg = self.config.simulator.config.cameras
+        policy_multiview = cameras_cfg.get("policy_multiview", None)
+        if (
+            policy_multiview is None
+            or policy_multiview.get("architecture_id")
+            not in {
+                "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19",
+                "C-B2H-DUALRAW-SHAREDENC-TOEIN20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT20-V19-P2",
+                "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+            }
+        ):
+            raise RuntimeError("camera_meta is only valid for the dual-D435 branch")
+        if self.config.domain_rand.image_augmentation.enabled:
+            raise ValueError("C-B2H tri-view observations require image augmentation to be disabled")
+        camera_meta = self.simulator.get_camera_meta()
+        architecture_id = policy_multiview.get("architecture_id")
+        expected_meta_dim = 4 if architecture_id == "C-B1-DUALRAW-SHAREDENC-TOEIN20-V19-P2" else 6
+        age_dim = 2 if expected_meta_dim == 4 else 3
+        expected_shape = (self.num_envs, expected_meta_dim)
+        if tuple(camera_meta.shape) != expected_shape:
+            raise RuntimeError(
+                f"Dual-D435 camera_meta shape mismatch: expected {expected_shape}, got {tuple(camera_meta.shape)}"
+            )
+        if camera_meta.dtype != torch.float32 or not torch.all(torch.isfinite(camera_meta)):
+            raise RuntimeError("Dual-D435 camera_meta must be finite float32")
+        if bool((camera_meta[:, :age_dim] < 0.0).any().item()) or bool((camera_meta[:, :age_dim] > 1.0).any().item()):
+            raise RuntimeError("Dual-D435 camera_meta age values must be normalized to [0,1]")
+        if not bool(torch.all((camera_meta[:, age_dim:] == 0.0) | (camera_meta[:, age_dim:] == 1.0)).item()):
+            raise RuntimeError("Dual-D435 camera_meta validity values must be exactly 0 or 1")
+        return camera_meta
 
     def _get_obs_rgb_image_history(self):
         """Get RGB image history from the history handler.
@@ -2431,8 +3081,15 @@ class LeggedRobotBase(BaseTask):
     def init_eval_metrics_tracking(self, device):
         self.eval_metrics = {
             "episode_goal_reached": torch.zeros(self.num_envs, dtype=torch.bool, device=device),
-            "goal_reached_buffer": [torch.zeros(self.num_envs, dtype=torch.bool, device=device)],
+            "goal_reached_buffer": [],
+            "episode_lengths": [],
+            "episode_rewards": [],
+            "episode_goal_reached_buffer": [],
+            "episode_max_stage_reached": [],
+            "episode_terminal_reasons": [],
+            "episode_terminal_diagnostics": [],
         }
+        self._pending_terminal_diagnostics = {}
 
     def update_eval_metrics_per_step(self, infos):
         pass
@@ -2440,13 +3097,79 @@ class LeggedRobotBase(BaseTask):
     def process_eval_episode_completions(
         self, completed_env_ids, cur_reward_sum, cur_episode_length
     ):
-        pass
+        env_ids = completed_env_ids.to(device=self.device, dtype=torch.long).flatten()
+        if env_ids.numel() == 0:
+            return
+
+        reward_env_ids = completed_env_ids.to(
+            device=cur_reward_sum.device, dtype=torch.long
+        ).flatten()
+        length_env_ids = completed_env_ids.to(
+            device=cur_episode_length.device, dtype=torch.long
+        ).flatten()
+
+        episode_rewards = (
+            cur_reward_sum[reward_env_ids].detach().cpu().reshape(-1).tolist()
+        )
+        episode_lengths = (
+            cur_episode_length[length_env_ids].detach().cpu().reshape(-1).tolist()
+        )
+
+        if hasattr(self, "last_completed_task_buf"):
+            goal_reached = self.last_completed_task_buf[env_ids].bool()
+        else:
+            goal_reached = self._terminal_reason_bufs["complete"][env_ids]
+
+        if hasattr(self, "last_max_stage_buf"):
+            max_stage_reached = self.last_max_stage_buf[env_ids]
+        else:
+            max_stage_reached = torch.zeros(
+                env_ids.numel(), dtype=torch.long, device=self.device
+            )
+
+        terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
+        terminal_diagnostics = self._pop_pending_terminal_diagnostics(env_ids)
+
+        metric_env_ids = completed_env_ids.to(
+            device=self.eval_metrics["episode_goal_reached"].device, dtype=torch.long
+        ).flatten()
+        self.eval_metrics["episode_goal_reached"][metric_env_ids] = goal_reached.to(
+            self.eval_metrics["episode_goal_reached"].device
+        )
+        goal_reached_list = goal_reached.detach().cpu().reshape(-1).tolist()
+
+        self.eval_metrics["episode_rewards"].extend(float(value) for value in episode_rewards)
+        self.eval_metrics["episode_lengths"].extend(int(value) for value in episode_lengths)
+        self.eval_metrics["episode_goal_reached_buffer"].extend(
+            bool(value) for value in goal_reached_list
+        )
+        self.eval_metrics["goal_reached_buffer"].extend(
+            bool(value) for value in goal_reached_list
+        )
+        self.eval_metrics["episode_max_stage_reached"].extend(
+            int(value) for value in max_stage_reached.detach().cpu().reshape(-1).tolist()
+        )
+        self.eval_metrics["episode_terminal_reasons"].extend(terminal_reasons)
+        self.eval_metrics["episode_terminal_diagnostics"].extend(terminal_diagnostics)
 
     def reset_eval_episode_tracking(self, completed_env_ids):
-        pass
+        env_ids = completed_env_ids.to(
+            device=self.eval_metrics["episode_goal_reached"].device, dtype=torch.long
+        ).flatten()
+        self.eval_metrics["episode_goal_reached"][env_ids] = False
 
     def get_eval_metrics_summary(self):
-        return self.eval_metrics
+        return {
+            "episode_lengths": self.eval_metrics["episode_lengths"],
+            "episode_rewards": self.eval_metrics["episode_rewards"],
+            "episode_goal_reached": self.eval_metrics["episode_goal_reached_buffer"],
+            "episode_max_stage_reached": self.eval_metrics["episode_max_stage_reached"],
+            "episode_terminal_reasons": self.eval_metrics["episode_terminal_reasons"],
+            "episode_terminal_diagnostics": self.eval_metrics[
+                "episode_terminal_diagnostics"
+            ],
+            "goal_reached_buffer": self.eval_metrics["goal_reached_buffer"],
+        }
 
     @staticmethod
     def _tracking_reward_util(

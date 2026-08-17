@@ -44,6 +44,180 @@ from gr00t.rl.utils.config_utils import register_rl_resolvers
 register_rl_resolvers()
 
 
+_A2_STAGE2_LEGACY_CONTACT_FORCE_KEY = "a2_stage2_single_finger_contact_force_threshold"
+_A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS = {
+    "a2_stage2_squeeze_force_min": 0.5,
+    "a2_stage2_squeeze_force_max": 20.0,
+    "a2_stage2_over_force_threshold": 40.0,
+}
+_A2_STAGE2_GRASP_REWARD_CONFIG_KEYS = (
+    "a2_stage2_contact_force_threshold",
+    *_A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS.keys(),
+)
+_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY = "a2_stage3_to4_door_hinge_threshold"
+_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT = 0.174533
+_A2_STAGE3_BASE_UNLOCKED_KEY = "a2_stage3_base_unlocked"
+_A2_STAGE3_BASE_UNLOCKED_LEGACY_DEFAULT = False
+_A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS = {
+    "a2_gripper_source_tcp_offset_z": 0.085,
+    "a2_hold_diagnostic_contact_detail_enabled": False,
+    "a2_hold_diagnostic_max_contact_data_count_per_prim": 8,
+    "a2_hold_diagnostic_friction_override": None,
+}
+_A2_BASE_API_TRAINER_TARGET = (
+    "gr00t.rl.trl.trainer.ppo_trainer_a2_base_api.TRLPPOTrainer"
+)
+_A2_GRPO_TRAINER_TARGET = (
+    "gr00t.rl.trl.trainer.grpo_trainer_a2_base_api.GRPOTrainerA2BaseAPI"
+)
+_CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+
+
+def _validate_checkpoint_load_mode(checkpoint_load_mode, context):
+    if not isinstance(checkpoint_load_mode, str) or checkpoint_load_mode not in (
+        _CHECKPOINT_LOAD_MODES
+    ):
+        raise ValueError(
+            f"{context} checkpoint_load_mode must be exactly one of "
+            f"{sorted(_CHECKPOINT_LOAD_MODES)}; got {checkpoint_load_mode!r}."
+        )
+    return checkpoint_load_mode
+
+
+def _normalize_eval_checkpoint_load_mode(config):
+    requested_mode = _validate_checkpoint_load_mode(
+        config.checkpoint_load_mode,
+        "Evaluation runtime",
+    )
+    if requested_mode != "full":
+        logger.warning(
+            "Evaluation requested checkpoint_load_mode={!r}; normalizing to 'full' so "
+            "trainer state/global_step and checkpoint naming are restored.",
+            requested_mode,
+        )
+    config.checkpoint_load_mode = "full"
+
+
+def migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path):
+    """Migrate checkpoint-adjacent legacy A2 stage2 grasp reward config."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    missing_keys = [
+        key for key in _A2_STAGE2_GRASP_REWARD_CONFIG_KEYS if key not in env_config
+    ]
+    if not missing_keys:
+        return
+
+    present_keys = [
+        key for key in _A2_STAGE2_GRASP_REWARD_CONFIG_KEYS if key in env_config
+    ]
+    if present_keys:
+        raise RuntimeError(
+            "Partial legacy A2 stage2 grasp reward config in "
+            f"{config_path}; missing keys: {missing_keys}"
+        )
+
+    if _A2_STAGE2_LEGACY_CONTACT_FORCE_KEY not in env_config:
+        raise RuntimeError(
+            "Missing A2 stage2 grasp reward config in "
+            f"{config_path}; missing keys: {missing_keys}"
+        )
+
+    env_config.a2_stage2_contact_force_threshold = env_config[
+        _A2_STAGE2_LEGACY_CONTACT_FORCE_KEY
+    ]
+    for key, value in _A2_STAGE2_GRASP_REWARD_CONFIG_DEFAULTS.items():
+        env_config[key] = value
+    logger.info(
+        "Migrated legacy A2 stage2 grasp reward config from "
+        f"{config_path} using {_A2_STAGE2_LEGACY_CONTACT_FORCE_KEY}"
+    )
+
+
+def migrate_legacy_a2_stage3_to4_threshold_config(train_config, config_path):
+    """Add the historical A2 hinge threshold to pre-parameterization checkpoints."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    if _A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY in env_config:
+        return
+    env_config[_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_KEY] = (
+        _A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT
+    )
+    logger.info(
+        "Migrated legacy A2 stage3->4 hinge threshold config from "
+        f"{config_path} using historical default "
+        f"{_A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_LEGACY_DEFAULT}"
+    )
+
+
+def migrate_legacy_a2_stage3_base_unlocked_config(train_config, config_path):
+    """Add historical locked stage3 base semantics to legacy A2 checkpoints."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    if _A2_STAGE3_BASE_UNLOCKED_KEY in env_config:
+        return
+    env_config[_A2_STAGE3_BASE_UNLOCKED_KEY] = (
+        _A2_STAGE3_BASE_UNLOCKED_LEGACY_DEFAULT
+    )
+    logger.info(
+        "Migrated legacy A2 stage3 base mobility config from "
+        f"{config_path} using historical a2_stage3_base_unlocked="
+        f"{_A2_STAGE3_BASE_UNLOCKED_LEGACY_DEFAULT}"
+    )
+
+
+def migrate_legacy_a2_hold_diagnostic_env_config(train_config, config_path):
+    """Add the complete historical/default-off hold-diagnostic group to legacy A2 checkpoints."""
+
+    uses_a2_base = bool(
+        OmegaConf.select(train_config, "algo.config.use_a2_base", default=False)
+    )
+    robot_type = OmegaConf.select(train_config, "robot.asset.robot_type", default=None)
+    if not uses_a2_base and robot_type != "a2_piper":
+        return
+
+    env_config = train_config.env.config
+    present = [key for key in _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS if key in env_config]
+    if len(present) == len(_A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS):
+        return
+    if present:
+        missing = [
+            key for key in _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS if key not in env_config
+        ]
+        raise RuntimeError(
+            "Partial legacy A2 hold diagnostic env config in "
+            f"{config_path}; present={present}, missing={missing}."
+        )
+    for key, value in _A2_HOLD_DIAGNOSTIC_ENV_CONFIG_DEFAULTS.items():
+        env_config[key] = value
+    logger.info(
+        "Migrated legacy A2 hold diagnostic env config from {} using historical "
+        "TCP z=0.085 and default-off detailed/material settings",
+        config_path,
+    )
+
+
 def process_output_dim_in_config(config):
     """Process and adapt output dimensions for actor and teacher_actor backbones.
 
@@ -121,13 +295,27 @@ def main(override_config: OmegaConf):
             with open(config_path) as file:
                 train_config = OmegaConf.load(file)
 
+            if "checkpoint_load_mode" in train_config:
+                saved_training_mode = _validate_checkpoint_load_mode(
+                    train_config.checkpoint_load_mode,
+                    f"Saved training config {config_path}",
+                )
+                if saved_training_mode == "policy_only":
+                    logger.info(
+                        "Saved training config uses checkpoint_load_mode='policy_only'; "
+                        "evaluation normalizes checkpoint loading to 'full'."
+                    )
+
             if train_config.eval_overrides is not None:
                 train_config = OmegaConf.merge(train_config, train_config.eval_overrides)
 
+            migrate_legacy_a2_stage2_grasp_reward_config(train_config, config_path)
+            migrate_legacy_a2_stage3_to4_threshold_config(train_config, config_path)
+            migrate_legacy_a2_stage3_base_unlocked_config(train_config, config_path)
+            migrate_legacy_a2_hold_diagnostic_env_config(train_config, config_path)
             config = OmegaConf.merge(train_config, override_config)
         else:
             config = override_config
-
         config.experiment_dir = checkpoint.parent
     else:
         if override_config.eval_overrides is not None:
@@ -142,6 +330,8 @@ def main(override_config: OmegaConf):
             config = OmegaConf.merge(config, eval_overrides)
         else:
             config = override_config
+
+    _normalize_eval_checkpoint_load_mode(config)
 
     # Resume wandb run if meta.yaml exists
     meta_path = Path(config.experiment_dir) / "meta.yaml"
@@ -251,6 +441,12 @@ def main(override_config: OmegaConf):
         config.seed += accelerator.process_index
         config.algo.config.global_rank = accelerator.process_index
         config.algo.config.world_size = accelerator.num_processes
+
+    if accelerator.is_main_process:
+        eval_runtime_config_path = (
+            Path(HydraConfig.get().runtime.output_dir) / ".hydra" / "runtime_config.yaml"
+        )
+        OmegaConf.save(config, eval_runtime_config_path)
     seeding(config.seed)
 
     # --- Create environment ---
@@ -323,6 +519,13 @@ def main(override_config: OmegaConf):
         callbacks.append(instantiate(callback))
 
     # --- Build trainer (loads checkpoint weights) ---
+    checkpoint_load_kwargs = {}
+    if config.trainer["_target_"] in (
+        _A2_BASE_API_TRAINER_TARGET,
+        _A2_GRPO_TRAINER_TARGET,
+    ):
+        checkpoint_load_kwargs["checkpoint_load_mode"] = "full"
+
     trainer = custom_instantiate(
         config.trainer,
         args=training_args,
@@ -338,6 +541,7 @@ def main(override_config: OmegaConf):
         checkpoint=config.checkpoint,
         local_seed=config.seed,
         accelerator=accelerator,
+        **checkpoint_load_kwargs,
     )
 
     # --- Optional ONNX export (only with single env) ---

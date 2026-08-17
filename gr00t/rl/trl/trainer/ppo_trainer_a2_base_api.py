@@ -1,0 +1,3965 @@
+# Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+
+from collections import deque
+from collections.abc import Mapping
+from contextlib import contextmanager
+from copy import deepcopy
+import json
+import math
+from pathlib import Path
+from typing import Dict, Optional
+
+import numpy as np
+import pandas as pd
+import torch
+import torchvision
+from omegaconf import ListConfig
+from rich.console import Console
+from rich.live import Live
+from rich.panel import Panel
+from transformers.trainer import *
+from trl.trainer.ppo_trainer import *
+
+from gr00t.rl.agents.modules.data_utils import RolloutStorage
+from gr00t.rl.trl.callbacks.hv_callback_handler import HVCallbackHandler
+from gr00t.rl.trl.utils.common import wandb_run_exists
+from gr00t.rl.trl.utils.rl import compute_episode_attnmask
+from gr00t.rl.trl.utils.scheduler import update_scheduled_params
+from gr00t.rl.utils.average_meters import TensorAverageMeterDict
+
+console = Console()
+import time
+
+import onnxruntime as ort
+
+from gr00t.rl.trl.modules.homie_modules import (
+    HIMActorCritic,
+    HomieActorModule,
+    init_actor_critic_dict,
+)
+
+
+_CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
+
+
+def _validate_a2_single_gpu_binding(accelerator, model, identity) -> None:
+    """Fail fast on the post-prepare single-visible CUDA0 contract."""
+    from accelerate.state import DistributedType
+
+    host_gpu_index = int(identity["host_gpu_index"])
+    logical_gpu_index = int(identity["logical_gpu_index"])
+    if logical_gpu_index != 0:
+        raise RuntimeError("A2 single-visible trainer requires logical_gpu_index=0")
+    expected_device = torch.device("cuda", logical_gpu_index)
+    if int(identity["world_size"]) != 1:
+        raise RuntimeError("A2 single-visible trainer requires world_size=1")
+    if accelerator.num_processes != 1 or accelerator.process_index != 0:
+        raise RuntimeError(
+            "A2 single-visible trainer requires one Accelerator process at rank 0; "
+            f"got world_size={accelerator.num_processes} rank={accelerator.process_index}"
+        )
+    state = getattr(accelerator, "state", None)
+    if state is None or state.distributed_type is not DistributedType.NO or state.backend is not None:
+        raise RuntimeError(
+            "A2 single-visible trainer requires DistributedType.NO with backend=None"
+        )
+    if torch.device(accelerator.device) != expected_device:
+        raise RuntimeError(
+            "A2 single-visible trainer Accelerator device mismatch; "
+            f"expected={expected_device} actual={accelerator.device}"
+        )
+    if torch.cuda.current_device() != 0:
+        raise RuntimeError(
+            "A2 single-visible trainer current logical CUDA device mismatch; "
+            f"expected=0 actual={torch.cuda.current_device()}"
+        )
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        raise RuntimeError("A2 single-visible trainer must not initialize torch.distributed")
+    model_type = type(model).__name__
+    if model_type == "DistributedDataParallel" or getattr(model, "device_ids", None) is not None:
+        raise RuntimeError("A2 single-visible trainer rejects distributed model wrappers")
+    for name, parameter in model.named_parameters():
+        if parameter.device != expected_device:
+            raise RuntimeError(
+                "A2 single-visible trainer parameter device mismatch; "
+                f"name={name!r} expected={expected_device} actual={parameter.device}"
+            )
+    print(
+        "[A2_SINGLE_CUDA_BINDING] "
+        f"mode={identity['mode']} CVD={host_gpu_index} host_gpu_index={host_gpu_index} "
+        f"logical_gpu_index={identity['logical_gpu_index']} UUID={identity['pinned_uuid']} "
+        "world_size=1 distributed_type=NO model_wrapper=none",
+        flush=True,
+    )
+
+
+def _validate_a2_mgpu_ddp_binding(accelerator, model, identity) -> None:
+    """Validate the strict four-rank Accelerate/DDP post-prepare contract."""
+    from accelerate.state import DistributedType
+
+    if identity.get("mode") != "accelerate-ddp-4rank-64e-v1":
+        raise RuntimeError("A2 DDP validator received a non-DDP binding identity")
+    rank = int(identity["rank"])
+    local_rank = int(identity["local_rank"])
+    single_cvd = identity.get("single_visible") is True
+    if identity.get("topology_id") != "A2-ACCELERATE-DDP-4RANK-64E-V1":
+        raise RuntimeError("A2 DDP topology identity drifted")
+    if int(identity.get("world_size", -1)) != 4 or rank not in range(4):
+        raise RuntimeError("A2 DDP binding requires ranks 0..3 and world_size=4")
+    if not single_cvd and local_rank != rank:
+        raise RuntimeError("A2 legacy four-visible DDP binding requires local_rank == rank")
+    expected_local_rank = 0 if single_cvd else local_rank
+    if accelerator.num_processes != 4 or accelerator.process_index != rank:
+        raise RuntimeError("A2 DDP Accelerator world/rank mismatch")
+    state = getattr(accelerator, "state", None)
+    if state is None or state.distributed_type is not DistributedType.MULTI_GPU:
+        raise RuntimeError("A2 DDP Accelerator must use DistributedType.MULTI_GPU")
+    expected_device = torch.device("cuda", expected_local_rank)
+    if torch.device(accelerator.device) != expected_device:
+        raise RuntimeError(
+            "A2 DDP Accelerator device mismatch; "
+            f"expected={expected_device} actual={accelerator.device}"
+        )
+    if torch.cuda.current_device() != expected_local_rank:
+        raise RuntimeError("A2 DDP current CUDA device does not match the validated logical device")
+    if not (torch.distributed.is_available() and torch.distributed.is_initialized()):
+        raise RuntimeError("A2 DDP requires initialized torch.distributed")
+    if type(model).__name__ != "DistributedDataParallel":
+        raise RuntimeError(
+            "A2 DDP strict mode requires Accelerate's DistributedDataParallel wrapper; "
+            f"got {type(model).__name__}"
+        )
+    device_ids = getattr(model, "device_ids", None)
+    if device_ids not in ([expected_local_rank], (expected_local_rank,)):
+        raise RuntimeError(
+            "A2 DDP device_ids must contain exactly the validated logical device; "
+            f"expected={[expected_local_rank]} actual={device_ids!r}"
+        )
+    for name, parameter in model.module.named_parameters():
+        if parameter.device != expected_device:
+            raise RuntimeError(
+                "A2 DDP model parameter device mismatch; "
+                f"name={name!r} expected={expected_device} actual={parameter.device}"
+            )
+    print(
+        "[A2_MGPU_DDP] "
+        f"topology={identity['topology_id']} rank={rank} local_rank={local_rank} "
+        f"logical_cuda={expected_local_rank} single_cvd={single_cvd} "
+        f"device={expected_device} wrapper=DistributedDataParallel world_size=4",
+        flush=True,
+    )
+
+
+def _seed_a2_local_generators(seed: int) -> int:
+    """Seed CPU's default generator and only the selected current CUDA device."""
+    torch.default_generator.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    return seed
+
+
+@contextmanager
+def _a2_hold_oracle_finalize_guard(env, enabled):
+    if not isinstance(enabled, bool):
+        raise RuntimeError(f"A2 hold oracle finalize guard requires bool; got {enabled!r}.")
+    try:
+        yield
+    finally:
+        if enabled:
+            finalize = getattr(env, "finalize_a2_eval_hold_oracle", None)
+            if finalize is None:
+                raise RuntimeError("A2 hold oracle requires a finalizer for exact gain restore.")
+            finalize()
+
+
+def validate_checkpoint_load_mode(checkpoint_load_mode):
+    if not isinstance(checkpoint_load_mode, str) or checkpoint_load_mode not in (
+        _CHECKPOINT_LOAD_MODES
+    ):
+        raise ValueError(
+            "checkpoint_load_mode must be exactly one of "
+            f"{sorted(_CHECKPOINT_LOAD_MODES)}; got {checkpoint_load_mode!r}."
+        )
+    return checkpoint_load_mode
+
+
+def _load_a2_base_metadata(metadata_path):
+    path = Path(metadata_path).expanduser()
+    with path.open("r", encoding="utf-8") as f:
+        metadata = json.load(f)
+    obs_contract = metadata["contracts"]["obs"]
+    action_contract = metadata["contracts"]["action"]
+    contract = {
+        "obs_dim": int(obs_contract["flattened_dim"]),
+        "history_length": int(obs_contract["history_length"]),
+        "frame_dim": int(obs_contract["dog_frame_dim"]),
+        "action_dim": int(action_contract["dim"]),
+        "leg_joint_names": list(action_contract["leg_joint_names"]),
+        "leg_action_scale": float(action_contract["leg_action_scale"]),
+        "use_default_offset": bool(action_contract["use_default_offset"]),
+    }
+    if contract["obs_dim"] != contract["history_length"] * contract["frame_dim"]:
+        raise ValueError(f"A2_Base metadata obs contract is inconsistent: {contract}")
+    return contract
+
+
+_A2_EVAL_OPTIONAL_RATIO_SPECS = {
+    "a2_stage3_contact_stability_conditional_frac": (
+        "a2_stage3_contact_stability_numerator_frac",
+        "a2_stage3_contact_stability_denominator_frac"
+    ),
+    "a2_stage4_contact_stability_conditional_frac": (
+        "a2_stage4_contact_stability_numerator_frac",
+        "a2_stage4_contact_stability_denominator_frac"
+    ),
+    "a2_stage3_hold_and_drive_frac": (
+        "a2_stage3_hold_and_drive_numerator_frac",
+        "a2_stage3_hold_and_drive_denominator_frac",
+    ),
+    "a2_stage3_stage4_hold_and_drive_frac": (
+        "a2_stage3_stage4_hold_and_drive_numerator_frac",
+        "a2_stage3_stage4_hold_and_drive_denominator_frac",
+    ),
+    "a2_stage3_unlatch_hold_issued_frac": (
+        "a2_stage3_unlatch_hold_issued_numerator_frac",
+        "a2_stage3_unlatch_hold_issued_denominator_frac"
+    ),
+    "a2_stage3_stage4_coasting_frac": (
+        "a2_stage3_stage4_coasting_numerator_frac",
+        "a2_stage3_stage4_coasting_denominator_frac"
+    ),
+    "a2_stage3_stage4_over_force_frac": (
+        "a2_stage3_stage4_over_force_numerator_frac",
+        "a2_stage3_stage4_over_force_denominator_frac",
+    ),
+    "a2_stage3_handle_hard_limit_frac": (
+        "a2_stage3_handle_hard_limit_numerator_frac",
+        "a2_stage3_handle_hard_limit_denominator_frac"
+    ),
+    "a2_stage4_release_gate_frac": (
+        "a2_stage4_release_gate_numerator_frac",
+        "a2_stage4_release_gate_denominator_frac",
+    ),
+}
+
+
+_A2_GLOBAL_ENV_QUANTILE_SPECS = {
+    "a2_stage5_forward_velocity": (
+        "_a2_stage5_forward_velocity_samples",
+        "_a2_stage5_forward_velocity_sample_mask",
+        "a2_stage5_forward_velocity_p50",
+        "a2_stage5_forward_velocity_p95",
+    ),
+    "a2_stage45_doorframe_contact_force": (
+        "_a2_stage45_doorframe_contact_force_samples",
+        "_a2_stage45_doorframe_contact_force_sample_mask",
+        "a2_stage45_doorframe_contact_force_p50",
+        "a2_stage45_doorframe_contact_force_p95",
+    ),
+    "a2_hinge_at_crossing": (
+        "_a2_hinge_at_crossing_samples",
+        "_a2_hinge_at_crossing_sample_mask",
+        "a2_hinge_at_crossing_p50",
+        "a2_hinge_at_crossing_p95",
+    ),
+    "a2_stage3_stage4_hinge_velocity": (
+        "_a2_stage3_stage4_hinge_velocity_samples",
+        "_a2_stage3_stage4_hinge_velocity_sample_mask",
+        "a2_stage3_stage4_hinge_velocity_p50",
+        "a2_stage3_stage4_hinge_velocity_p95",
+    ),
+    "a2_hinge_at_release": (
+        "_a2_hinge_at_release_samples",
+        "_a2_hinge_at_release_sample_mask",
+        "a2_hinge_at_release_p50",
+        "a2_hinge_at_release_p95",
+    ),
+    "a2_root_x_at_release": (
+        "_a2_root_x_at_release_samples",
+        "_a2_root_x_at_release_sample_mask",
+        "a2_root_x_at_release_p50",
+        "a2_root_x_at_release_p95",
+    ),
+    "a2_post_release_body_force_max": (
+        "_a2_post_release_body_force_max_samples",
+        "_a2_post_release_body_force_max_sample_mask",
+        "a2_post_release_body_force_max_p50",
+        "a2_post_release_body_force_max_p95",
+    ),
+    "a2_stage0_to1_staging_standoff": (
+        "_a2_stage0_to1_staging_standoff_samples",
+        "_a2_stage0_to1_staging_standoff_sample_mask",
+        "a2_stage0_to1_staging_standoff_p50",
+        "a2_stage0_to1_staging_standoff_p95",
+    ),
+    "a2_stage0_actual_root_height": (
+        "_a2_stage0_actual_root_height_samples",
+        "_a2_stage0_actual_root_height_sample_mask",
+        "a2_stage0_actual_root_height_p50",
+        "a2_stage0_actual_root_height_p95",
+    ),
+    "a2_stage1_actual_root_height": (
+        "_a2_stage1_actual_root_height_samples",
+        "_a2_stage1_actual_root_height_sample_mask",
+        "a2_stage1_actual_root_height_p50",
+        "a2_stage1_actual_root_height_p95",
+    ),
+}
+_A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
+
+
+def _prepare_a2_env_metrics_for_aggregation(step_env_metrics, accelerator, device):
+    """Prepare A2 telemetry for rank-global metering and eval logging."""
+    if not isinstance(step_env_metrics, dict):
+        raise TypeError(
+            "A2 step environment metrics must be a shallow dict; "
+            f"got {type(step_env_metrics).__name__}."
+        )
+    if not isinstance(device, torch.device):
+        raise TypeError(f"A2 metric aggregation device must be torch.device; got {device!r}.")
+    gather = getattr(accelerator, "gather", None)
+    if not callable(gather):
+        raise TypeError("A2 metric aggregation requires accelerator.gather().")
+
+    prepared = dict(step_env_metrics)
+    count_key = _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY
+    if count_key in prepared:
+        count = prepared[count_key]
+        if (
+            not torch.is_tensor(count)
+            or count.ndim != 0
+            or not count.is_floating_point()
+            or not bool(torch.all(torch.isfinite(count)))
+            or bool(torch.any(count < 0.0))
+            or count.device != device
+        ):
+            raise ValueError(
+                "A2 root-X crossing count requires a finite non-negative floating "
+                f"scalar on {device}; got {count!r}."
+            )
+        gathered_count = gather(count)
+        if (
+            not torch.is_tensor(gathered_count)
+            or gathered_count.dtype != count.dtype
+            or gathered_count.device != device
+        ):
+            raise RuntimeError(
+                "A2 root-X crossing count gather must preserve floating dtype and device; "
+                f"got {gathered_count!r}."
+            )
+        global_count = gathered_count.sum()
+        if (
+            global_count.ndim != 0
+            or not global_count.is_floating_point()
+            or not bool(torch.all(torch.isfinite(global_count)))
+            or bool(global_count < 0.0)
+        ):
+            raise RuntimeError("A2 gathered root-X crossing count is invalid.")
+        prepared[count_key] = global_count
+
+    active_ratio_specs = []
+    for ratio_key, (numerator_key, denominator_key) in {
+        **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+        "a2_crossing_while_holding_frac": (
+            "a2_crossing_while_holding_numerator_frac",
+            "a2_crossing_while_holding_denominator_frac",
+        ),
+    }.items():
+        ratio_keys = (ratio_key, numerator_key, denominator_key)
+        present = tuple(key in prepared for key in ratio_keys)
+        if not any(present):
+            continue
+        if not all(present):
+            raise ValueError(
+                "A2 conditional ratio telemetry requires complete public, numerator, "
+                f"and denominator fields for {ratio_key!r}."
+            )
+
+        ratio = prepared[ratio_key]
+        numerator = prepared[numerator_key]
+        denominator = prepared[denominator_key]
+        values = (ratio, numerator, denominator)
+        if (
+            not all(torch.is_tensor(value) for value in values)
+            or not all(value.ndim == 0 for value in values)
+            or not all(value.is_floating_point() for value in values)
+            or not all(value.device == device for value in values)
+            or len({value.dtype for value in values}) != 1
+            or not all(bool(torch.all(torch.isfinite(value))) for value in values)
+            or bool(numerator < 0.0)
+            or bool(numerator > denominator)
+            or bool(denominator < 0.0)
+        ):
+            raise ValueError(
+                "A2 conditional ratio telemetry requires finite floating scalar "
+                f"tensors on {device} with 0 <= numerator <= denominator; got "
+                f"ratio={ratio!r}, numerator={numerator!r}, denominator={denominator!r}."
+            )
+        active_ratio_specs.append((ratio_key, numerator_key, denominator_key))
+
+    if active_ratio_specs:
+        packed_values = []
+        for _ratio_key, numerator_key, denominator_key in active_ratio_specs:
+            packed_values.extend((prepared[numerator_key], prepared[denominator_key]))
+        packed = torch.stack(packed_values)
+        packed_width = packed.numel()
+        gathered_ratios = gather(packed)
+        if (
+            not torch.is_tensor(gathered_ratios)
+            or gathered_ratios.dtype != packed.dtype
+            or gathered_ratios.device != device
+            or gathered_ratios.ndim == 0
+            or gathered_ratios.numel() == 0
+            or gathered_ratios.numel() % packed_width != 0
+            or (
+                gathered_ratios.ndim > 1
+                and gathered_ratios.shape[-1] != packed_width
+            )
+        ):
+            raise RuntimeError(
+                "A2 conditional ratio gather must preserve dtype/device and expose "
+                f"a packed width of {packed_width}; got {gathered_ratios!r}."
+            )
+        gathered_ratios = gathered_ratios.reshape(-1, packed_width)
+        if not bool(torch.all(torch.isfinite(gathered_ratios))):
+            raise RuntimeError("A2 gathered conditional ratio telemetry must be finite.")
+        global_ratios = gathered_ratios.sum(dim=0)
+        for index, (_ratio_key, numerator_key, denominator_key) in enumerate(
+            active_ratio_specs
+        ):
+            numerator = global_ratios[2 * index]
+            denominator = global_ratios[2 * index + 1]
+            if (
+                not bool(torch.all(torch.isfinite(numerator)))
+                or not bool(torch.all(torch.isfinite(denominator)))
+                or bool(numerator < 0.0)
+                or bool(numerator > denominator)
+                or bool(denominator < 0.0)
+            ):
+                raise RuntimeError(
+                    "A2 gathered conditional ratio telemetry must satisfy "
+                    f"0 <= numerator <= denominator; got numerator={numerator!r}, "
+                    f"denominator={denominator!r}."
+                )
+            prepared[numerator_key] = numerator
+            prepared[denominator_key] = denominator
+            del prepared[_ratio_key]
+    for (
+        _metric_name,
+        (samples_key, mask_key, p50_key, p95_key),
+    ) in _A2_GLOBAL_ENV_QUANTILE_SPECS.items():
+        quantile_keys = (samples_key, mask_key, p50_key, p95_key)
+        if not any(key in prepared for key in quantile_keys):
+            continue
+        if samples_key not in prepared or mask_key not in prepared:
+            raise ValueError(
+                f"A2 quantile telemetry requires both {samples_key!r} and {mask_key!r}."
+            )
+        samples = prepared[samples_key]
+        sample_mask = prepared[mask_key]
+        if (
+            not torch.is_tensor(samples)
+            or samples.ndim != 1
+            or samples.numel() == 0
+            or not samples.is_floating_point()
+            or not bool(torch.all(torch.isfinite(samples)))
+            or samples.device != device
+            or not torch.is_tensor(sample_mask)
+            or sample_mask.ndim != 1
+            or sample_mask.shape != samples.shape
+            or sample_mask.dtype != torch.bool
+            or sample_mask.device != device
+        ):
+            raise ValueError(
+                "A2 quantile telemetry requires non-empty finite floating samples and "
+                f"a same-shape bool mask on {device}; got samples={samples!r}, "
+                f"mask={sample_mask!r}."
+            )
+
+        gathered_samples = gather(samples)
+        gathered_mask = gather(sample_mask)
+        if (
+            not torch.is_tensor(gathered_samples)
+            or gathered_samples.dtype != samples.dtype
+            or gathered_samples.device != device
+            or not torch.is_tensor(gathered_mask)
+            or gathered_mask.dtype != torch.bool
+            or gathered_mask.device != device
+        ):
+            raise RuntimeError(
+                "A2 quantile gather must preserve sample/mask dtype and device."
+            )
+        global_samples = gathered_samples.reshape(-1)
+        global_mask = gathered_mask.reshape(-1)
+        if global_samples.shape != global_mask.shape or global_samples.numel() == 0:
+            raise RuntimeError(
+                "A2 gathered quantile samples and mask must be non-empty and same-shape."
+            )
+        if not bool(torch.all(torch.isfinite(global_samples))):
+            raise RuntimeError("A2 gathered quantile samples must be finite.")
+        active_samples = global_samples[global_mask]
+        if active_samples.numel() == 0:
+            p50 = torch.zeros((), dtype=samples.dtype, device=device)
+            p95 = torch.zeros((), dtype=samples.dtype, device=device)
+        else:
+            p50 = torch.quantile(active_samples, 0.50)
+            p95 = torch.quantile(active_samples, 0.95)
+        prepared[p50_key] = p50
+        prepared[p95_key] = p95
+        del prepared[samples_key]
+        del prepared[mask_key]
+
+    return prepared
+
+
+def _finalize_a2_conditional_ratios(metrics):
+    """Reconstruct finalized conditional ratios after temporal metering."""
+    if not isinstance(metrics, dict):
+        raise TypeError(
+            "A2 conditional ratio finalization requires a dict; "
+            f"got {type(metrics).__name__}."
+        )
+
+    finalized = dict(metrics)
+    for ratio_key, (numerator_key, denominator_key) in {
+        **_A2_EVAL_OPTIONAL_RATIO_SPECS,
+        "a2_crossing_while_holding_frac": (
+            "a2_crossing_while_holding_numerator_frac",
+            "a2_crossing_while_holding_denominator_frac",
+        ),
+    }.items():
+        ratio_keys = (ratio_key, numerator_key, denominator_key)
+        present = tuple(key in finalized for key in ratio_keys)
+        if not any(present):
+            continue
+        if ratio_key in finalized:
+            raise ValueError(
+                f"A2 conditional ratio {ratio_key!r} must be absent before finalization."
+            )
+        if numerator_key not in finalized or denominator_key not in finalized:
+            raise ValueError(
+                "A2 conditional ratio finalization requires complete numerator and "
+                f"denominator fields for {ratio_key!r}."
+            )
+
+        numerator = finalized[numerator_key]
+        denominator = finalized[denominator_key]
+        if (
+            not torch.is_tensor(numerator)
+            or not torch.is_tensor(denominator)
+            or numerator.ndim != 0
+            or denominator.ndim != 0
+            or not numerator.is_floating_point()
+            or not denominator.is_floating_point()
+            or numerator.dtype != denominator.dtype
+            or numerator.device != denominator.device
+            or not bool(torch.all(torch.isfinite(numerator)))
+            or not bool(torch.all(torch.isfinite(denominator)))
+            or bool(numerator < 0.0)
+            or bool(numerator > denominator)
+            or bool(denominator < 0.0)
+        ):
+            raise ValueError(
+                "A2 conditional ratio finalization requires finite floating scalar "
+                "numerator/denominator tensors with 0 <= numerator <= denominator; "
+                f"got numerator={numerator!r}, denominator={denominator!r}."
+            )
+
+        ratio = torch.where(
+            denominator > 0.0,
+            numerator / denominator,
+            torch.zeros_like(denominator),
+        )
+        if not bool(torch.all(torch.isfinite(ratio))):
+            raise RuntimeError(
+                f"A2 finalized conditional ratio {ratio_key!r} must be finite."
+            )
+        finalized[ratio_key] = ratio
+
+    return finalized
+
+
+def _normalize_a2_eval_optional_ratios(records):
+    """Convert undefined eval-only ratios to JSON null while retaining raw fields."""
+    if not isinstance(records, list):
+        raise TypeError(
+            "A2 eval optional-ratio records must be a list; "
+            f"got {type(records).__name__}."
+        )
+
+    for record_index, record in enumerate(records):
+        if not isinstance(record, dict):
+            raise TypeError(
+                "A2 eval optional-ratio records must contain dictionaries; "
+                f"record {record_index} is {type(record).__name__}."
+            )
+        for ratio_key, (_numerator_key, denominator_key) in _A2_EVAL_OPTIONAL_RATIO_SPECS.items():
+            if ratio_key not in record:
+                continue
+            if denominator_key not in record:
+                raise ValueError(
+                    f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                    f"requires explicit denominator {denominator_key!r}; missing."
+                )
+
+            denominator = record[denominator_key]
+            if isinstance(denominator, torch.Tensor):
+                if (
+                    denominator.ndim != 0
+                    or denominator.dtype == torch.bool
+                    or denominator.is_complex()
+                ):
+                    raise ValueError(
+                        f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                        f"requires a finite non-negative scalar denominator "
+                        f"{denominator_key!r}; got tensor shape={tuple(denominator.shape)}, "
+                        f"dtype={denominator.dtype}."
+                    )
+                denominator = denominator.detach().cpu().item()
+            elif isinstance(denominator, np.ndarray):
+                if denominator.ndim != 0:
+                    raise ValueError(
+                        f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                        f"requires a finite non-negative scalar denominator "
+                        f"{denominator_key!r}; got array shape={denominator.shape}."
+                    )
+                denominator = denominator.item()
+            elif isinstance(denominator, np.generic):
+                denominator = denominator.item()
+
+            if isinstance(denominator, (bool, np.bool_)) or not isinstance(
+                denominator, (int, float, np.integer, np.floating)
+            ):
+                raise ValueError(
+                    f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                    f"requires a finite non-negative scalar numeric denominator "
+                    f"{denominator_key!r}; got {type(denominator).__name__}."
+                )
+            denominator_value = float(denominator)
+            if not math.isfinite(denominator_value) or denominator_value < 0.0:
+                raise ValueError(
+                    f"A2 eval ratio {ratio_key!r} at record {record_index} "
+                    f"requires a finite non-negative scalar denominator "
+                    f"{denominator_key!r}; got {denominator!r}."
+                )
+            if denominator_value == 0.0:
+                record[ratio_key] = None
+
+    return records
+
+
+def _validate_optional_a2_config_value(config, key, metadata_value):
+    if key in config and config.get(key) != metadata_value:
+        raise ValueError(
+            f"A2_Base config {key}={config.get(key)} disagrees with metadata {metadata_value}"
+        )
+
+
+def _make_json_safe(value, path="root"):
+    if isinstance(value, torch.Tensor):
+        tensor = value.detach().cpu()
+        if tensor.ndim == 0:
+            return _make_json_safe(tensor.item(), path)
+        return _make_json_safe(tensor.tolist(), path)
+    if isinstance(value, np.ndarray):
+        return _make_json_safe(value.tolist(), path)
+    if isinstance(value, np.generic):
+        return _make_json_safe(value.item(), path)
+    if isinstance(value, dict):
+        converted = {}
+        for key, item in value.items():
+            if not isinstance(key, (str, int, float, bool, type(None))):
+                raise TypeError(
+                    f"Unsupported eval metrics key type at {path}: "
+                    f"{type(key).__name__}"
+                )
+            key_path = f"{path}.{key}" if isinstance(key, str) else f"{path}[{repr(key)}]"
+            converted[key] = _make_json_safe(item, key_path)
+        return converted
+    if isinstance(value, (list, tuple)):
+        return [_make_json_safe(item, f"{path}[{idx}]") for idx, item in enumerate(value)]
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError(f"Non-finite eval artifact value at {path}: {value!r}")
+    if isinstance(value, (str, int, float, bool, type(None))):
+        return value
+    raise TypeError(f"Unsupported eval metrics value type at {path}: {type(value).__name__}")
+
+
+def _read_a2_eval_diagnostic_config(eval_config):
+    diagnostic_enabled = eval_config.get("a2_diagnostic_trace_enabled", False)
+    forced_close_enabled = eval_config.get("a2_forced_gripper_close_enabled", False)
+    for key, value in (
+        ("a2_diagnostic_trace_enabled", diagnostic_enabled),
+        ("a2_forced_gripper_close_enabled", forced_close_enabled),
+    ):
+        if not isinstance(value, bool):
+            raise RuntimeError(f"eval.{key} must be bool; got {value!r}.")
+    if forced_close_enabled and not diagnostic_enabled:
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_enabled=true requires "
+            "eval.a2_diagnostic_trace_enabled=true for action auditability."
+        )
+
+    reward_terms = eval_config.get("a2_diagnostic_reward_terms", ())
+    if diagnostic_enabled:
+        if not isinstance(reward_terms, (list, tuple, ListConfig)):
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must be a list of reward names; "
+                f"got {type(reward_terms).__name__}."
+            )
+        reward_terms = tuple(reward_terms)
+        if not reward_terms:
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must be non-empty when diagnostics are enabled."
+            )
+        if any(not isinstance(name, str) or not name for name in reward_terms):
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must contain non-empty strings; "
+                f"got {reward_terms}."
+            )
+        if len(set(reward_terms)) != len(reward_terms):
+            raise RuntimeError(
+                "eval.a2_diagnostic_reward_terms must be unique; "
+                f"got {reward_terms}."
+            )
+    else:
+        reward_terms = ()
+
+    forced_close_value = eval_config.get("a2_forced_gripper_close_value", -1.0)
+    if (
+        isinstance(forced_close_value, bool)
+        or not isinstance(forced_close_value, (int, float))
+        or not math.isfinite(float(forced_close_value))
+        or float(forced_close_value) >= 0.0
+    ):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_value must be a finite negative number; "
+            f"got {forced_close_value!r}."
+        )
+    forced_close_value = float(forced_close_value)
+
+    forced_close_stages = eval_config.get("a2_forced_gripper_close_stages", (3, 4))
+    if not isinstance(forced_close_stages, (list, tuple, ListConfig)):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_stages must be a list of stage ids; "
+            f"got {type(forced_close_stages).__name__}."
+        )
+    forced_close_stages = tuple(forced_close_stages)
+    if not forced_close_stages or any(
+        isinstance(stage, bool) or not isinstance(stage, int)
+        for stage in forced_close_stages
+    ):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_stages must contain integer stage ids; "
+            f"got {forced_close_stages}."
+        )
+    if len(set(forced_close_stages)) != len(forced_close_stages):
+        raise RuntimeError(
+            "eval.a2_forced_gripper_close_stages must be unique; "
+            f"got {forced_close_stages}."
+        )
+
+    return {
+        "diagnostic_enabled": diagnostic_enabled,
+        "reward_terms": reward_terms,
+        "forced_close_enabled": forced_close_enabled,
+        "forced_close_value": forced_close_value,
+        "forced_close_stages": forced_close_stages,
+    }
+
+
+def _build_a2_eval_first_episode_active_mask(
+    eval_num_envs_episodes,
+    env_episode_completed,
+    num_envs,
+    device,
+):
+    if not isinstance(eval_num_envs_episodes, bool):
+        raise RuntimeError(
+            "A2 eval first-episode mode flag must be bool; "
+            f"got {eval_num_envs_episodes!r}."
+        )
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs <= 0:
+        raise RuntimeError(f"A2 eval num_envs must be a positive int; got {num_envs!r}.")
+    expected_device = torch.device(device)
+    if not eval_num_envs_episodes:
+        return torch.ones(num_envs, dtype=torch.bool, device=expected_device)
+    if (
+        not torch.is_tensor(env_episode_completed)
+        or tuple(env_episode_completed.shape) != (num_envs,)
+        or env_episode_completed.dtype != torch.bool
+        or env_episode_completed.device != expected_device
+    ):
+        shape = (
+            None
+            if not torch.is_tensor(env_episode_completed)
+            else tuple(env_episode_completed.shape)
+        )
+        dtype = (
+            None if not torch.is_tensor(env_episode_completed) else env_episode_completed.dtype
+        )
+        actual_device = (
+            None if not torch.is_tensor(env_episode_completed) else env_episode_completed.device
+        )
+        raise RuntimeError(
+            "A2 eval first-episode completion bookkeeping requires bool tensor shape "
+            f"({num_envs},) on {expected_device}; got shape={shape}, dtype={dtype}, "
+            f"device={actual_device}."
+        )
+    return ~env_episode_completed
+
+
+def _build_a2_eval_forced_close_mask(
+    stage_buf,
+    first_episode_active_mask,
+    forced_close_enabled,
+    forced_close_stage_ids,
+):
+    if not isinstance(forced_close_enabled, bool):
+        raise RuntimeError(
+            "A2 eval forced-close enabled flag must be bool; "
+            f"got {forced_close_enabled!r}."
+        )
+    if (
+        not torch.is_tensor(stage_buf)
+        or stage_buf.ndim != 1
+        or stage_buf.dtype != torch.long
+    ):
+        shape = None if not torch.is_tensor(stage_buf) else tuple(stage_buf.shape)
+        dtype = None if not torch.is_tensor(stage_buf) else stage_buf.dtype
+        raise RuntimeError(
+            "A2 eval forced-close stage_buf requires a 1D long tensor; "
+            f"got shape={shape}, dtype={dtype}."
+        )
+    if (
+        not torch.is_tensor(first_episode_active_mask)
+        or tuple(first_episode_active_mask.shape) != tuple(stage_buf.shape)
+        or first_episode_active_mask.dtype != torch.bool
+        or first_episode_active_mask.device != stage_buf.device
+    ):
+        shape = (
+            None
+            if not torch.is_tensor(first_episode_active_mask)
+            else tuple(first_episode_active_mask.shape)
+        )
+        dtype = (
+            None
+            if not torch.is_tensor(first_episode_active_mask)
+            else first_episode_active_mask.dtype
+        )
+        device = (
+            None
+            if not torch.is_tensor(first_episode_active_mask)
+            else first_episode_active_mask.device
+        )
+        raise RuntimeError(
+            "A2 eval forced-close first-episode active mask requires bool tensor "
+            f"shape {tuple(stage_buf.shape)} on {stage_buf.device}; got "
+            f"shape={shape}, dtype={dtype}, device={device}."
+        )
+    forced_close_mask = torch.zeros_like(first_episode_active_mask)
+    if forced_close_enabled:
+        for stage_id in forced_close_stage_ids:
+            forced_close_mask |= stage_buf == stage_id
+    return forced_close_mask & first_episode_active_mask
+
+
+class PolicyAndValueWrapper(nn.Module):
+    def __init__(
+        self,
+        policy,
+        value_model,
+        homie_walk_model=None,
+        homie_stand_model=None,
+        ref_model=None,
+        a2_base_model=None,
+        a2_base_command_scale=0.25,
+        a2_base_body_pitch_roll_scale=0.4,
+        a2_base_command_multipliers=None,
+        a2_base_obs_dim=1620,
+        a2_base_frame_dim=54,
+        a2_base_action_dim=12,
+        a2_base_action_sigma=0.0,
+        a2_base_command_clip_enabled=False,
+        a2_base_command_clip_low=None,
+        a2_base_command_clip_high=None,
+    ) -> None:
+        super().__init__()
+        self.policy = policy
+        self.value_model = value_model
+        self.homie_walk_model = homie_walk_model
+        self.homie_stand_model = homie_stand_model
+        self.ref_model = ref_model
+        object.__setattr__(self, "_a2_base_model", a2_base_model)
+        self.use_a2_base = a2_base_model is not None
+        self.a2_base_command_scale = a2_base_command_scale
+        self.a2_base_body_pitch_roll_scale = a2_base_body_pitch_roll_scale
+        self.a2_base_obs_dim = a2_base_obs_dim
+        self.a2_base_frame_dim = a2_base_frame_dim
+        self.a2_base_action_dim = a2_base_action_dim
+        self.a2_base_action_sigma = a2_base_action_sigma
+        self.a2_base_command_clip_enabled = a2_base_command_clip_enabled
+        if a2_base_command_multipliers is None:
+            a2_base_command_multipliers = [2.0, 2.0, 0.25, 1.0, 1.0]
+        self.register_buffer(
+            "a2_base_command_multipliers",
+            torch.tensor(a2_base_command_multipliers, dtype=torch.float32),
+        )
+        if a2_base_command_clip_low is None:
+            a2_base_command_clip_low = [
+                -float("inf"),
+                -float("inf"),
+                -float("inf"),
+                -float("inf"),
+                -float("inf"),
+            ]
+        if a2_base_command_clip_high is None:
+            a2_base_command_clip_high = [
+                float("inf"),
+                float("inf"),
+                float("inf"),
+                float("inf"),
+                float("inf"),
+            ]
+        self.register_buffer(
+            "a2_base_command_clip_low",
+            torch.tensor(a2_base_command_clip_low, dtype=torch.float32),
+        )
+        self.register_buffer(
+            "a2_base_command_clip_high",
+            torch.tensor(a2_base_command_clip_high, dtype=torch.float32),
+        )
+        self.opt_homie = False
+        self.homie_switch_threshold = 0.5
+
+    @property
+    def a2_base_model(self):
+        return self._a2_base_model
+
+    def set_mode(self, mode):
+        if hasattr(self.policy, "mode"):
+            self.policy.mode = mode
+        if self.use_a2_base:
+            self.a2_base_model.eval()
+            return
+        if hasattr(self.homie_walk_model, "train") and hasattr(self.homie_walk_model, "eval"):
+            if self.opt_homie and mode == "train":
+                self.homie_walk_model.train()
+            else:
+                self.homie_walk_model.eval()
+        if hasattr(self.homie_stand_model, "train") and hasattr(self.homie_stand_model, "eval"):
+            if self.opt_homie and mode == "train":
+                self.homie_stand_model.train()
+            else:
+                self.homie_stand_model.eval()
+
+    def transform_train(self):
+        if hasattr(self.policy, "transform_train"):
+            self.policy.transform_train()
+
+    def transform_eval(self):
+        if hasattr(self.policy, "transform_eval"):
+            self.policy.transform_eval()
+
+    def forward(self, modes, input_kwargs):
+        results = {}
+        for mode in modes:
+            results[mode] = self.forward_component(mode, **input_kwargs[mode])
+        return results
+
+    def _a2_base_actions(self, obs_dict, high_level_actions, masks=None, original_dones=None):
+        a2_base_obs = obs_dict["a2_base_obs"].clone()
+        obs_shape = a2_base_obs.shape
+        if obs_shape[-1] != self.a2_base_obs_dim:
+            raise ValueError(
+                f"A2_Base obs dim mismatch: got {obs_shape[-1]}, expected {self.a2_base_obs_dim}"
+            )
+        action_shape = high_level_actions.shape
+        if obs_shape[:-1] != action_shape[:-1]:
+            if masks is None or original_dones is None:
+                raise ValueError(
+                    "A2_Base obs/action leading shape mismatch without recurrent masks: "
+                    f"obs leading dims {tuple(obs_shape[:-1])}, "
+                    f"high_level_actions leading dims {tuple(action_shape[:-1])}"
+                )
+            if masks.dim() != 2 or original_dones.dim() != 2:
+                raise ValueError(
+                    "A2_Base recurrent unsplit expects masks [num_trajectories, max_traj_len] "
+                    f"and original_dones [num_envs, num_steps], got {masks.shape=} "
+                    f"{original_dones.shape=}"
+                )
+            if obs_shape[:2] != masks.shape or action_shape[:2] != original_dones.shape:
+                raise ValueError(
+                    "A2_Base recurrent obs/action layout mismatch: expected obs leading dims "
+                    f"{tuple(masks.shape)} and action leading dims "
+                    f"{tuple(original_dones.shape)}, got obs {tuple(obs_shape[:-1])} "
+                    f"and actions {tuple(action_shape[:-1])}"
+                )
+
+            from gr00t.rl.trl.utils.rl import unsplit_trajectories
+
+            a2_base_obs = unsplit_trajectories(a2_base_obs, masks, original_dones)
+            obs_shape = a2_base_obs.shape
+            if obs_shape[:-1] != action_shape[:-1]:
+                raise ValueError(
+                    "A2_Base unsplit obs/action leading shape mismatch: "
+                    f"unsplit obs leading dims {tuple(obs_shape[:-1])}, "
+                    f"high_level_actions leading dims {tuple(action_shape[:-1])}"
+                )
+        flat_obs = a2_base_obs.reshape(-1, obs_shape[-1])
+        flat_high_level_actions = high_level_actions.reshape(-1, action_shape[-1])
+        final_frame_start = flat_obs.shape[-1] - self.a2_base_frame_dim
+        command_scale = self.a2_base_command_multipliers.to(
+            device=flat_obs.device, dtype=flat_obs.dtype
+        )
+        scaled_base_command = torch.cat(
+            [
+                flat_high_level_actions[:, :3] * self.a2_base_command_scale,
+                flat_high_level_actions[:, 3:5].clamp(-1.0, 1.0)
+                * self.a2_base_body_pitch_roll_scale,
+            ],
+            dim=-1,
+        )
+        if self.a2_base_command_clip_enabled:
+            scaled_base_command = torch.clamp(
+                scaled_base_command,
+                self.a2_base_command_clip_low.to(device=flat_obs.device, dtype=flat_obs.dtype),
+                self.a2_base_command_clip_high.to(device=flat_obs.device, dtype=flat_obs.dtype),
+            )
+        flat_obs[:, final_frame_start + 39 : final_frame_start + 44] = (
+            scaled_base_command * command_scale
+        )
+        with torch.no_grad():
+            flat_actions = self.a2_base_model(flat_obs)
+        if flat_actions.shape[-1] != self.a2_base_action_dim:
+            raise ValueError(
+                f"A2_Base action dim mismatch: got {flat_actions.shape[-1]}, expected {self.a2_base_action_dim}"
+            )
+        return flat_actions.reshape(*action_shape[:-1], flat_actions.shape[-1])
+
+    def forward_component(self, mode, actions=None, **kwargs):
+        if mode == "policy_from_latent":
+            policy_state_dict = self.policy.act_from_latent(
+                actor_obs=kwargs["actor_obs"],
+                latent=kwargs["latent"],
+                masks=kwargs.get("masks"),
+                hidden_states=kwargs.get("hidden_states"),
+            )
+            high_level_actions = actions[..., : self.policy.num_actions]
+            return {
+                "logprobs": self.policy.get_actions_log_prob(actions=high_level_actions),
+                "action_mean": policy_state_dict["action_mean"],
+                "action_std": policy_state_dict["action_sigma"],
+            }
+        if mode == "policy":
+            self.policy.act(**kwargs)
+            if self.use_a2_base:
+                high_level_actions = actions[..., : self.policy.num_actions]
+                a2_actions = self._a2_base_actions(
+                    kwargs["obs_dict"],
+                    high_level_actions,
+                    masks=kwargs.get("masks"),
+                    original_dones=kwargs.get("original_dones"),
+                )
+                policy_log_probs = self.policy.get_actions_log_prob(actions=high_level_actions)
+                a2_sigma = torch.full_like(a2_actions, self.a2_base_action_sigma)
+                results = {
+                    "logprobs": policy_log_probs,
+                    "action_mean": torch.cat([self.policy.action_mean, a2_actions], dim=-1),
+                    "action_std": torch.cat([self.policy.action_std, a2_sigma], dim=-1),
+                    "entropy": self.policy.entropy,
+                }
+                return results
+            homie_obs = kwargs["obs_dict"]["homie_obs"]
+            stand_homie_obs = homie_obs.clone()
+            reshaped_obs = stand_homie_obs.view(
+                stand_homie_obs.shape[0],
+                stand_homie_obs.shape[1],
+                6,
+                stand_homie_obs.shape[-1] // 6,
+            )
+            reshaped_obs[..., :3] = 0.0
+            stand_homie_obs = reshaped_obs.view_as(stand_homie_obs)
+
+            # If recurrent policy, unsplit observations for homie models
+            if (
+                hasattr(self.policy, "is_recurrent")
+                and self.policy.is_recurrent
+                and "masks" in kwargs
+                and "original_dones" in kwargs
+            ):
+                from gr00t.rl.trl.utils.rl import unsplit_trajectories
+
+                masks = kwargs["masks"]
+                original_dones = kwargs["original_dones"]
+                # Unsplit homie_obs from [num_trajectories, max_traj_len, ...] to [num_envs, num_steps, ...]
+                homie_obs = unsplit_trajectories(homie_obs, masks, original_dones)
+                stand_homie_obs = unsplit_trajectories(stand_homie_obs, masks, original_dones)
+
+            walk_out = self.homie_walk_model(homie_obs)
+            stand_out = self.homie_stand_model(stand_homie_obs)
+            homie_one_step_obs = init_actor_critic_dict["num_one_step_obs"]
+            commands = homie_obs[..., -homie_one_step_obs : -(homie_one_step_obs - 3)]
+            walk_mask = torch.norm(commands, dim=-1, keepdim=True) > self.homie_switch_threshold
+
+            def _sel(a_walk, a_stand):
+                m = walk_mask
+                while m.dim() < a_walk.dim():
+                    m = m.unsqueeze(-1)
+                while m.dim() > a_walk.dim():
+                    m = m.squeeze(-1)
+                return torch.where(m, a_walk, a_stand)
+
+            homie_actions = _sel(walk_out["actions"], stand_out["actions"])
+            homie_mean = _sel(walk_out["action_mean"], stand_out["action_mean"])
+            homie_sigma = _sel(walk_out["action_sigma"], stand_out["action_sigma"])
+            homie_entropy = _sel(walk_out["entropy"], stand_out["entropy"])
+
+            policy_log_probs = self.policy.get_actions_log_prob(
+                actions=actions[..., : self.policy.num_actions]
+            )
+            walk_lp = self.homie_walk_model.get_actions_log_prob(actions=homie_actions)
+            stand_lp = self.homie_stand_model.get_actions_log_prob(actions=homie_actions)
+            homie_log_probs = torch.where(walk_mask.squeeze(-1), walk_lp, stand_lp)
+            if getattr(self, "opt_homie", True):
+                logprobs = policy_log_probs + homie_log_probs
+                entropy = self.policy.entropy + homie_entropy
+            else:
+                logprobs = policy_log_probs
+                entropy = self.policy.entropy
+            results = {
+                "logprobs": logprobs,
+                "action_mean": torch.cat([self.policy.action_mean, homie_mean], dim=-1),
+                "action_std": torch.cat([self.policy.action_std, homie_sigma], dim=-1),
+                "entropy": entropy,
+            }
+        elif mode == "policy_distill":
+            results = self.policy.act(**kwargs)
+        elif mode == "policy_distill_ppo":
+            policy_state_dict = self.policy.act(**kwargs)
+            log_probs = self.policy.get_actions_log_prob(actions=actions)
+            results = {
+                "actions": policy_state_dict["actions"],
+                "logprobs": log_probs,
+                "action_mean": policy_state_dict["action_mean"],
+                "action_std": policy_state_dict["action_sigma"],
+                "entropy": self.policy.entropy,
+            }
+            if "normalized_actions" in policy_state_dict:
+                results["normalized_actions"] = policy_state_dict["normalized_actions"]
+        elif mode == "policy_w_and_wo_imgaug":
+            # The first forward is without image augmentation
+            self.policy.transform_eval()
+            policy_state_dict = self.policy.act(**kwargs)
+            # Use the distribution without image augmentation to get the log_probs
+            log_probs = self.policy.get_actions_log_prob(actions=actions)
+            results = {
+                "actions": policy_state_dict["actions"],
+                "logprobs": log_probs,
+                "action_mean": policy_state_dict["action_mean"],
+                "action_std": policy_state_dict["action_sigma"],
+                "entropy": self.policy.entropy,
+            }
+
+            # The second forward is with image augmentation
+            self.policy.transform_train()
+            # The second time doesn't need deepcopy
+            policy_state_dict_w_imgaug = self.policy.act(**kwargs)
+            results["action_mean_w_imgaug"] = policy_state_dict_w_imgaug["action_mean"]
+            results["actions_w_imgaug"] = policy_state_dict_w_imgaug["actions"]
+            if "normalized_actions" in policy_state_dict_w_imgaug:
+                results["normalized_actions_w_imgaug"] = policy_state_dict_w_imgaug[
+                    "normalized_actions"
+                ]
+        elif mode == "policy_deterministic":
+            self.policy.act(**kwargs)
+            results = {
+                "action_mean": self.policy.action_mean,
+            }
+        elif mode == "vae_policy_deterministic":
+            self.policy.act(**kwargs)
+            prior_mu, prior_log_var = self.policy.eval_prior(**kwargs)
+            results = {
+                "action_mean": self.policy.action_mean,
+                "vae_mu": self.policy.z_mu,
+                "vae_log_var": self.policy.z_log_sigma,
+                "prior_mu": prior_mu,
+                "prior_log_var": prior_log_var,
+            }
+        elif mode == "value":
+            results = self.value_model.evaluate(**kwargs)
+        else:
+            raise ValueError(f"Invalid mode: {mode}")
+
+        return results
+
+
+class PrinterHVCallback(TrainerCallback):
+    """
+    A bare [`TrainerCallback`] that just prints the logs.
+    """
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        _ = logs.pop("total_flos", None)
+        if state.is_local_process_zero:
+            width = 80
+            pad = 35
+            print_str = f" \033[1m Learning iteration {state.global_step}  \033[0m "
+
+            log_string = (
+                f"""{print_str.center(width, ' ')}\n\n"""
+                f"""{'Computation:':>{pad}} {logs['fps']:.0f} steps/s (Collection: {logs['collection_time']:.3f}s, Learning {logs['learn_time']:.3f}s)\n"""
+                f"""{'Mean action noise std:':>{pad}} {logs['Policy/mean_noise_std']:.2f}\n"""
+            )
+
+            for k, v in logs.items():
+                if k.startswith("objective/"):
+                    # Keep the original logic
+                    if k.startswith("objective/kin_"):
+                        log_string += f"""{f'{k}:':>{pad}} {v:.5f}\n"""
+                    else:
+                        new_key = k.replace("objective/", "")
+                        log_string += f"""{f'Mean {new_key}:':>{pad}} {v:.5f}\n"""
+
+            env_log_string = ""
+            ep_string = ""
+            for k, v in logs.items():
+                if k.startswith("Env/"):
+                    entry = f"{f'{k}:':>{pad}} {v:.4f}"
+                    env_log_string += f"{entry}\n"
+                if k.startswith("Episode/"):
+                    new_key = k.replace("Episode/", "")
+                    ep_string += f"""{f'Mean episode {new_key}:':>{pad}} {v:.4f}\n"""
+
+            log_string += env_log_string
+            log_string += ep_string
+            log_string += (
+                f"""{'-' * width}\n"""
+                f"""{'Total episodes:':>{pad}} {logs['episode']}\n"""
+                f"""{'Total timesteps:':>{pad}} {logs['tot_timesteps']}\n"""
+                f"""{'Iteration time:':>{pad}} {logs['collection_time'] + logs['learn_time']:.2f}s\n"""
+                f"""{'Total time:':>{pad}} {logs['tot_time']:.2f}s\n"""
+                f"""{'ETA:':>{pad}} {logs['tot_time'] / logs['batch_idx'] * (logs['num_total_batches'] - logs['batch_idx']):.1f}s\n"""
+            )
+
+            log_string += f"Logging Directory: {logs['experiment_save_dir']}"
+            with Live(
+                Panel(log_string, title="Training Log"), refresh_per_second=4, console=console
+            ):
+                # Your training loop or other operations
+                pass
+
+
+def process_ep_infos(ep_infos, device):
+    infos = {}
+    for key in ep_infos[0]:
+        infotensor = torch.tensor([], device=device)
+        for ep_info in ep_infos:
+            # handle scalar and zero dimensional tensor infos
+            if not isinstance(ep_info[key], torch.Tensor):
+                ep_info[key] = torch.Tensor([ep_info[key]])
+            if len(ep_info[key].shape) == 0:
+                ep_info[key] = ep_info[key].unsqueeze(0)
+            infotensor = torch.cat((infotensor, ep_info[key].to(device)))
+        value = torch.mean(infotensor)
+        infos[key] = value
+    return infos
+
+
+def load_onnx_policy(path, device):
+    model = ort.InferenceSession(path)
+
+    def run_inference(input_tensor):
+        ort_inputs = {model.get_inputs()[0].name: input_tensor.cpu().numpy()}
+        ort_outs = model.run(None, ort_inputs)
+        return torch.tensor(ort_outs[0], device=device)
+
+    return run_inference
+
+
+class TRLPPOTrainer(PPOTrainer):
+    """
+    Custom PPO Trainer that adapts TRL's PPOTrainer to work with Humanoid environments.
+    """
+
+    _tag_names = ["trl", "humanoid_ppo"]
+
+    def __init__(
+        self,
+        args,
+        config,
+        env,
+        model,
+        ref_model=None,
+        reward_model=None,
+        processing_class=None,
+        value_model=None,
+        data_collator=None,
+        train_dataset=None,
+        eval_dataset=None,
+        log_dir=None,
+        # less commonly used
+        optimizers=(None, None),
+        callbacks=None,
+        peft_config=None,
+        use_ref_model=False,
+        checkpoint=None,
+        checkpoint_load_mode="full",
+        local_seed=None,
+        schedule_dict=None,
+        accelerator=None,
+        a2_gpu_identity=None,
+    ) -> None:
+        self.a2_gpu_identity = a2_gpu_identity
+        self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
+        if self.checkpoint_load_mode == "policy_only" and not checkpoint:
+            raise ValueError(
+                "checkpoint_load_mode='policy_only' requires a non-empty checkpoint path."
+            )
+        self.accelerator = accelerator
+        self._init_trl(
+            args,
+            config,
+            env,
+            processing_class,
+            model,
+            ref_model,
+            reward_model,
+            train_dataset,
+            value_model,
+            data_collator,
+            eval_dataset,
+            optimizers,
+            callbacks,
+            peft_config,
+            use_ref_model,
+            local_seed,
+            log_dir,
+            schedule_dict=schedule_dict,
+        )
+        self._init_config()
+        self._setup_storage()
+
+        # Initialize trajectory counter for recurrent policy training
+        self._current_first_traj = 0
+
+        if checkpoint is not None:
+            if self.checkpoint_load_mode == "full":
+                self.load_checkpoint(checkpoint)
+            else:
+                self.load_policy_checkpoint(checkpoint)
+
+    def _init_trl(
+        self,
+        args,
+        config,
+        env,
+        processing_class,
+        model,
+        ref_model,
+        reward_model,
+        train_dataset,
+        value_model,
+        data_collator,
+        eval_dataset,
+        optimizers,
+        callbacks,
+        peft_config,
+        use_ref_model,
+        local_seed,
+        log_dir,
+        schedule_dict=None,
+    ):
+        self.args = args
+        self.config = config
+        self.env = env
+        self.processing_class = processing_class
+        self.policy_model = model
+        self.learn_normalized_actions = model.has_normalized_actions
+        self.episode_env_tensors = TensorAverageMeterDict()
+        self.ep_infos = []
+        self.eval_callbacks = []
+        self.log_dir = log_dir
+        self.schedule_dict = schedule_dict
+        self.scheduled_params_dict = {}
+        # peft support
+        if not is_peft_available() and peft_config is not None:
+            raise ImportError(
+                "PEFT is not installed and you passed a `peft_config` in the trainer's kwargs, please install it to use the PEFT models"
+            )
+        elif is_peft_available() and peft_config is not None:
+            # if model is a peft model and we have a peft_confg, we merge and unload it first
+            if isinstance(self.policy_model, PeftModel):
+                self.policy_model = self.policy_model.merge_and_unload()
+
+            # get peft model with the given config
+            self.policy_model = get_peft_model(self.policy_model, peft_config)
+            if args.bf16 and getattr(self.policy_model, "is_loaded_in_4bit", False):
+                peft_module_casting_to_bf16(self.policy_model)
+
+        self.is_peft_model = is_peft_available() and isinstance(self.policy_model, PeftModel)
+        self.model_adapter_name = args.model_adapter_name
+        self.ref_adapter_name = args.ref_adapter_name
+
+        if use_ref_model:
+            if ref_model:
+                self.ref_model = ref_model
+            elif self.is_peft_model:
+                self.ref_model = None
+            else:
+                self.ref_model = create_reference_model(self.policy_model)
+        else:
+            self.ref_model = None
+
+        self.reward_model = reward_model
+        self.train_dataset = train_dataset
+        self.train_dataset_len = (
+            len(train_dataset) if train_dataset is not None else self.env.config.num_envs
+        )
+        self.value_model = value_model
+        self.data_collator = data_collator
+        self.eval_dataset = eval_dataset
+
+        self.optimizer, self.lr_scheduler = optimizers
+        self.optimizer_cls_and_kwargs = None  # needed for transformers >= 4.47
+        #########
+        # calculate various batch sizes
+        #########
+
+        accelerator = self.accelerator
+
+        self.device = accelerator.device
+        args.global_rank = accelerator.process_index
+        args.world_size = accelerator.num_processes
+        args.is_main_process = accelerator.is_main_process
+        args.local_batch_size = self.env.config.num_envs
+        args.batch_size = int(args.local_batch_size * args.world_size)
+        args.mini_batch_size = exact_div(
+            args.batch_size,
+            args.num_mini_batches,
+            "`batch_size` must be a multiple of `num_mini_batches`",
+        )
+        args.local_mini_batch_size = exact_div(
+            args.local_batch_size,
+            args.num_mini_batches,
+            "`local_batch_size` must be a multiple of `num_mini_batches`",
+        )
+
+        if args.per_device_train_batch_size is None:
+            args.per_device_train_batch_size = (
+                args.local_mini_batch_size
+            )  # same as mini-batch size, which implies no micro-batching (num_micro_batches = 1)
+        args.num_micro_batches = args.local_mini_batch_size // args.per_device_train_batch_size
+        args.micro_batch_size = int(args.per_device_train_batch_size * args.world_size)
+        # `per_rank_rollout_batch_size` is our `args.local_batch_size`
+        # `per_rank_minibatch_size` is our `args.local_mini_batch_size`
+        if args.total_episodes is None:
+            assert args.num_total_batches is not None
+            args.total_episodes = args.num_total_batches * args.batch_size
+        args.num_total_batches = math.ceil(
+            args.total_episodes / args.batch_size
+        )  # we may train for more than `total_episodes`
+        time_tensor = torch.tensor(int(time.time()), device=accelerator.device)
+        time_int = broadcast(time_tensor, 0).item()  # avoid different timestamps across processes
+        args.run_name = f"{args.exp_name}__{args.seed}__{time_int}"
+        self.local_seed = local_seed
+        if args.num_sample_generations > 0:
+            self.sample_generations_freq = max(
+                1, args.num_total_batches // args.num_sample_generations
+            )
+        self.local_dataloader_batch_size = args.local_batch_size
+
+        self.use_a2_base = bool(self.config.get("use_a2_base", False))
+        if self.config.get("a2_base", None) is not None:
+            self.use_a2_base = self.use_a2_base or bool(
+                self.config.a2_base.get("enabled", False)
+            )
+
+        self.homie_walk_model = None
+        self.homie_stand_model = None
+        self.a2_base_model = None
+        self.a2_base_action_dim = 0
+        self.a2_base_obs_dim = 0
+        self.a2_base_frame_dim = 0
+        self.a2_base_leg_action_scale = 0.0
+        self.a2_base_command_scale = 0.25
+        self.a2_base_body_pitch_roll_scale = 0.4
+        self.a2_base_command_multipliers = [2.0, 2.0, 0.25, 1.0, 1.0]
+        self.a2_base_action_sigma = 0.0
+        self.a2_base_command_clip_enabled = False
+        self.a2_base_command_clip_low = None
+        self.a2_base_command_clip_high = None
+
+        if self.use_a2_base:
+            a2_base_config = self.config.get("a2_base", {})
+            a2_base_policy_path = a2_base_config.get(
+                "policy_path", "./gr00t/rl/data/policies/A2_Base/policy.pt"
+            )
+            a2_base_metadata_path = a2_base_config.get(
+                "metadata_path", "./gr00t/rl/data/policies/A2_Base/policy_metadata.json"
+            )
+            a2_base_contract = _load_a2_base_metadata(a2_base_metadata_path)
+            _validate_optional_a2_config_value(
+                a2_base_config, "obs_dim", a2_base_contract["obs_dim"]
+            )
+            _validate_optional_a2_config_value(
+                a2_base_config, "action_dim", a2_base_contract["action_dim"]
+            )
+            _validate_optional_a2_config_value(
+                a2_base_config, "leg_action_scale", a2_base_contract["leg_action_scale"]
+            )
+            if not a2_base_contract["use_default_offset"]:
+                raise ValueError("A2_Base metadata requires use_default_offset=true")
+            self.a2_base_obs_dim = a2_base_contract["obs_dim"]
+            self.a2_base_frame_dim = a2_base_contract["frame_dim"]
+            self.a2_base_leg_action_scale = a2_base_contract["leg_action_scale"]
+            self.a2_base_action_dim = a2_base_contract["action_dim"]
+            self.a2_base_command_scale = float(a2_base_config.get("command_scale", 0.25))
+            self.a2_base_body_pitch_roll_scale = float(
+                a2_base_config.get("body_pitch_roll_scale", 0.4)
+            )
+            if (
+                "command_obs_multipliers" in a2_base_config
+                and "command_multipliers" in a2_base_config
+                and list(a2_base_config.get("command_obs_multipliers"))
+                != list(a2_base_config.get("command_multipliers"))
+            ):
+                raise ValueError(
+                    "A2_Base config command_obs_multipliers disagrees with command_multipliers"
+                )
+            self.a2_base_command_multipliers = list(
+                a2_base_config.get(
+                    "command_obs_multipliers",
+                    a2_base_config.get(
+                        "command_multipliers", [2.0, 2.0, 0.25, 1.0, 1.0]
+                    ),
+                )
+            )
+            self.a2_base_action_sigma = float(a2_base_config.get("action_sigma", 0.0))
+            self.a2_base_command_clip_enabled = bool(
+                self.env.config.get("clip_homie_command", False)
+            )
+            if self.a2_base_command_clip_enabled:
+                self.a2_base_command_clip_low = [
+                    -float(self.env.config.clip_homie_linvel_x_threshold),
+                    -float(self.env.config.clip_homie_linvel_y_threshold),
+                    -float(self.env.config.clip_homie_angvel_threshold),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_pitch_lower_threshold",
+                            -self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_roll_lower_threshold",
+                            -self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
+                ]
+                self.a2_base_command_clip_high = [
+                    float(self.env.config.clip_homie_linvel_x_threshold),
+                    float(self.env.config.clip_homie_linvel_y_threshold),
+                    float(self.env.config.clip_homie_angvel_threshold),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_pitch_upper_threshold",
+                            self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
+                    float(
+                        self.env.config.get(
+                            "clip_homie_torso_roll_upper_threshold",
+                            self.a2_base_body_pitch_roll_scale,
+                        )
+                    ),
+                ]
+            self.a2_base_model = torch.jit.load(a2_base_policy_path, map_location=self.device)
+            self.a2_base_model.eval()
+            self.a2_base_model.to(self.device)
+            for p in self.a2_base_model.parameters():
+                p.requires_grad = False
+        else:
+            # homie policy import
+            homie_walk_state_dict = torch.load(
+                self.config.homie_walk_model_path, map_location=self.device
+            )
+            homie_walk_model = HIMActorCritic(**init_actor_critic_dict)
+            homie_walk_model.load_state_dict(homie_walk_state_dict["model_state_dict"])
+            self.homie_walk_model = HomieActorModule(homie_walk_model).to(self.device)
+
+            homie_stand_state_dict = torch.load(
+                self.config.homie_stand_model_path, map_location=self.device
+            )
+            homie_stand_model = HIMActorCritic(**init_actor_critic_dict)
+            homie_stand_model.load_state_dict(homie_stand_state_dict["model_state_dict"])
+            self.homie_stand_model = HomieActorModule(homie_stand_model).to(self.device)
+
+        #########
+        # setup model, optimizer, and others
+        #########
+        if self.config.get("disable_dropout", True):
+            for module in [
+                self.policy_model,
+                self.ref_model,
+                self.value_model,
+                self.reward_model,
+                self.homie_walk_model,
+                self.homie_stand_model,
+                self.a2_base_model,
+            ]:
+                if module is not None:
+                    disable_dropout_in_model(module)
+
+        if self.use_a2_base:
+            print("Using frozen A2_Base policy for low-level leg actions")
+            disable_dropout_in_model(self.a2_base_model)
+        elif not self.config.get("opt_homie", False):
+            print("Freezing homie model parameters")
+            for p in self.homie_walk_model.parameters():
+                p.requires_grad = False
+            for p in self.homie_stand_model.parameters():
+                p.requires_grad = False
+            self.homie_walk_model.eval()
+            disable_dropout_in_model(self.homie_walk_model)
+            self.homie_stand_model.eval()
+            disable_dropout_in_model(self.homie_stand_model)
+        self.model = PolicyAndValueWrapper(
+            self.policy_model,
+            self.value_model,
+            self.homie_walk_model,
+            self.homie_stand_model,
+            a2_base_model=self.a2_base_model,
+            a2_base_command_scale=self.a2_base_command_scale,
+            a2_base_body_pitch_roll_scale=self.a2_base_body_pitch_roll_scale,
+            a2_base_command_multipliers=self.a2_base_command_multipliers,
+            a2_base_obs_dim=self.a2_base_obs_dim,
+            a2_base_frame_dim=self.a2_base_frame_dim,
+            a2_base_action_dim=self.a2_base_action_dim,
+            a2_base_action_sigma=self.a2_base_action_sigma,
+            a2_base_command_clip_enabled=self.a2_base_command_clip_enabled,
+            a2_base_command_clip_low=self.a2_base_command_clip_low,
+            a2_base_command_clip_high=self.a2_base_command_clip_high,
+        )
+        if self.use_a2_base:
+            self.homie_switch_threshold = 0.0
+            self.opt_homie = False
+        else:
+            if hasattr(self.model, "homie_switch_threshold"):
+                self.homie_switch_threshold = self.model.homie_switch_threshold
+            else:
+                self.homie_switch_threshold = self.model.module.homie_switch_threshold
+
+            if hasattr(self.model, "opt_homie"):
+                self.model.opt_homie = self.config.get("opt_homie", False)
+                self.opt_homie = self.model.opt_homie
+            else:
+                self.model.module.opt_homie = self.config.get("opt_homie", False)
+                self.opt_homie = self.model.module.opt_homie
+
+            if hasattr(self.model, "homie_switch_threshold"):
+                self.model.homie_switch_threshold = self.config.get("homie_switch_threshold", 0.5)
+            else:
+                self.model.module.homie_switch_threshold = self.config.get(
+                    "homie_switch_threshold", 0.5
+                )
+
+        # self.homie_policy = load_onnx_policy(path=config.homie_policy_path, device=self.device)
+
+        # self.model.config = self.policy_model.config  # needed for pushing to hub
+        self.create_optimizer_and_scheduler(
+            num_training_steps=args.num_total_batches
+        )  # note that we are calling `self.lr_scheduler.step()` manually only at the batch level
+
+        #########
+        ### trainer specifics
+        #########
+
+        default_callbacks = DEFAULT_CALLBACKS + get_reporting_integration_callbacks(
+            self.args.report_to
+        )
+        self.callbacks = default_callbacks if callbacks is None else default_callbacks + callbacks
+
+        self.callback_handler = HVCallbackHandler(
+            self.callbacks,
+            self.model,
+            self.processing_class,
+            self.optimizer,
+            self.lr_scheduler,
+            self.env,
+            self.accelerator,
+        )
+        self.add_callback(
+            PrinterHVCallback if self.args.disable_tqdm else DEFAULT_PROGRESS_CALLBACK
+        )
+        self.control = TrainerControl()
+        self.state = OnlineTrainerState(
+            is_local_process_zero=self.is_local_process_zero(),
+            is_world_process_zero=self.is_world_process_zero(),
+            stateful_callbacks=[
+                cb
+                for cb in self.callback_handler.callbacks + [self.control]
+                if isinstance(cb, ExportableState)
+            ],
+        )
+        self.current_flos = 0
+        self.hp_search_backend = None
+        self.is_deepspeed_enabled = (
+            getattr(self.accelerator.state, "deepspeed_plugin", None) is not None
+        )
+        self.is_fsdp_enabled = getattr(self.accelerator.state, "fsdp_plugin", None) is not None
+        # Create distant repo and output directory if needed
+        self.hub_model_id = None
+        if self.args.push_to_hub:
+            self.init_hf_repo()
+        if self.args.should_save:
+            os.makedirs(self.args.output_dir, exist_ok=True)
+
+        # Add tags for models that have been loaded with the correct transformers version
+        if hasattr(self.model, "add_model_tags"):
+            self.model.add_model_tags(self._tag_names)
+
+        #########
+        ### setup dataloader
+        #########
+        if self.train_dataset is not None:
+            self.dataloader = DataLoader(
+                self.train_dataset,
+                batch_size=self.local_dataloader_batch_size,
+                shuffle=True,
+                collate_fn=self.data_collator,
+                drop_last=False,  # needed; otherwise the last batch will be of ragged shape
+            )
+        else:
+            self.dataloader = None
+        # sync random states for DataLoader(shuffle=True) before `accelerator.prepare`
+        # see https://gist.github.com/vwxyzjn/2581bff1e48e185e0b85b6dfe1def79c
+        if self.a2_gpu_identity is None:
+            torch.manual_seed(args.seed)
+        else:
+            _seed_a2_local_generators(args.seed)
+
+        self.model, self.optimizer, self.dataloader = accelerator.prepare(
+            self.model, self.optimizer, self.dataloader
+        )
+        if self.a2_gpu_identity is not None:
+            if self.a2_gpu_identity.get("mode") == "accelerate-ddp-4rank-64e-v1":
+                _validate_a2_mgpu_ddp_binding(accelerator, self.model, self.a2_gpu_identity)
+            else:
+                _validate_a2_single_gpu_binding(accelerator, self.model, self.a2_gpu_identity)
+        self.unwrapped_model = unwrap_model(self.model)
+        if self.a2_gpu_identity is None:
+            torch.manual_seed(self.local_seed)  # reset the local seed again
+        else:
+            _seed_a2_local_generators(self.local_seed)
+
+        if self.eval_dataset is not None:
+            self.eval_dataloader = DataLoader(
+                self.eval_dataset,
+                batch_size=args.per_device_eval_batch_size,
+                collate_fn=self.data_collator,
+                drop_last=False,
+            )  # no need to shuffle eval dataset
+            self.eval_dataloader = accelerator.prepare(self.eval_dataloader)
+        else:
+            self.eval_dataloader = None
+
+        if self.is_deepspeed_enabled:
+            if self.reward_model is not None:
+                self.reward_model = prepare_deepspeed(
+                    self.reward_model, args.per_device_train_batch_size, args.fp16, args.bf16
+                )
+
+            if self.ref_model is None:
+                if not self.is_peft_model:
+                    raise ValueError("No reference model and model is not a Peft model.")
+            else:
+                self.ref_model = prepare_deepspeed(
+                    self.ref_model, args.per_device_train_batch_size, args.fp16, args.bf16
+                )
+        else:
+            if self.ref_model is None:
+                # if not self.is_peft_model:
+                #     raise ValueError("No reference model and model is not a Peft model.")
+                pass
+            else:
+                self.ref_model = self.ref_model.to(self.accelerator.device)
+            if self.reward_model is not None:
+                self.reward_model = self.reward_model.to(self.accelerator.device)
+        self.use_apex = False
+
+        self.train_with_evaluating_env = self.config.get("train_with_evaluating_env", False)
+
+        # Camera resolution
+        if "vision_obs" in self.env.config.obs.obs_dict:
+            if self.env.config.obs.obs_dict.vision_obs[0] in ["depth_image", "height_map"]:
+                num_channels = 1
+            elif self.env.config.obs.obs_dict.vision_obs[0] in ["rgb_image"]:
+                num_channels = 3
+            else:
+                raise ValueError(
+                    f"Invalid vision observation type: {self.env.config.obs.obs_dict.vision_obs[0]}"
+                )
+
+            if self.env.config.obs.obs_dict.vision_obs[0] == "height_map":
+                heightmap_resolution = self.env.config.simulator.config.heightmap.resolution
+                self.camera_resolution = [heightmap_resolution, heightmap_resolution] + [
+                    num_channels
+                ]
+            else:
+                self.camera_resolution = (
+                    self.env.config.simulator.config.cameras.camera_resolutions + [num_channels]
+                )
+        else:
+            self.camera_resolution = None
+
+    def _init_config(self):
+        # Env related Config
+        self.num_envs: int = self.env.config.num_envs
+        self.algo_obs_dim_dict = self.env.config.robot.algo_obs_dim_dict
+        if self.use_a2_base:
+            self.num_act = self.policy_model.num_actions + self.a2_base_action_dim
+        else:
+            self.num_act = self.policy_model.num_actions + self.homie_walk_model.num_actions
+
+        self.num_steps_per_env = self.config.num_steps_per_env
+        self.use_padding_mask = self.config.get("use_padding_mask", False)
+        self.ppo_shuffle_every_epoch = self.config.get("ppo_shuffle_every_epoch", True)
+        self.empty_cache_every_n_ppo_epoch = self.config.get("empty_cache_every_n_ppo_epoch", -1)
+
+        self.entropy_coef = self.config.entropy_coef
+        self.desired_kl = self.config.desired_kl
+        self.gamma = self.args.gamma
+        self.lam = self.args.lam
+        self.sync_advantage_normalization = self.config.get("sync_advantage_normalization", True)
+
+        self.compute_imgaug_bc_loss = self.config.get("compute_imgaug_bc_loss", False)
+        self.imgaug_bc_loss_coef = self.config.get("imgaug_bc_loss_coef", 1.0)
+        self.imgaug_bc_loss_fn = torch.nn.MSELoss()
+
+    def _setup_storage(self):
+        self.storage = RolloutStorage(
+            self.env.num_envs, self.num_steps_per_env, device=self.accelerator.device
+        )
+        ## Register obs keys
+        for obs_key, obs_dim in self.algo_obs_dim_dict.items():
+            if obs_key == "vision_obs":
+                assert obs_dim == np.prod(
+                    self.camera_resolution
+                ), f"{obs_dim=}, {self.camera_resolution=}"
+                self.storage.register_key(
+                    obs_key, shape=tuple(self.camera_resolution), dtype=torch.float
+                )
+            else:
+                self.storage.register_key(obs_key, shape=(obs_dim,), dtype=torch.float)
+
+        ## Register others
+        self.storage.register_key("actions", shape=(self.num_act,), dtype=torch.float)
+        self.storage.register_key("rewards", shape=(1,), dtype=torch.float)
+        self.storage.register_key("dones", shape=(1,), dtype=torch.bool)
+        self.storage.register_key("time_outs", shape=(1,), dtype=torch.bool)
+        self.storage.register_key("values", shape=(1,), dtype=torch.float)
+        self.storage.register_key("returns", shape=(1,), dtype=torch.float)
+        self.storage.register_key("advantages", shape=(1,), dtype=torch.float)
+        self.storage.register_key("actions_log_prob", shape=(1,), dtype=torch.float)
+        self.storage.register_key("action_mean", shape=(self.num_act,), dtype=torch.float)
+        self.storage.register_key("action_sigma", shape=(self.num_act,), dtype=torch.float)
+
+        # Register hidden states for recurrent models (if applicable)
+        # Note: hidden states are stored as nested structures (not tensors directly)
+        # We'll handle them separately in the rollout loop
+
+        if self.learn_normalized_actions:
+            self.storage.register_key(
+                "normalized_actions", shape=(self.num_act,), dtype=torch.float
+            )
+
+        self.state.rewbuffer = deque(maxlen=100)
+        self.state.lenbuffer = deque(maxlen=100)
+        self.cur_reward_sum = torch.zeros(
+            self.env.num_envs, dtype=torch.float, device=self.accelerator.device
+        )
+        self.cur_episode_length = torch.zeros(
+            self.env.num_envs, dtype=torch.float, device=self.accelerator.device
+        )
+        self.state.cur_reward_sum = self.cur_reward_sum
+        self.state.cur_episode_length = self.cur_episode_length
+        self.ep_infos = []
+        self.state.tot_timesteps = 0
+        self.state.tot_time = 0
+        self.state.eval_step = 0
+        self.state.eval_render_step = 0
+
+    def policy_step(
+        self,
+        policy_model,
+        homie_walk_model,
+        homie_stand_model,
+        obs_dict,
+        cur_dones=None,
+        store_hidden_states=True,
+    ):
+        actor_obs_dict = deepcopy(obs_dict)
+
+        if cur_dones is None:
+            dones = (
+                self.storage.query_key("dones")
+                .to(self.accelerator.device)[: self.storage.step + 1]
+                .squeeze(-1)
+                .transpose(0, 1)
+            )
+            episode_attnmask = compute_episode_attnmask(dones)
+        else:
+            episode_attnmask = None
+
+        # Store hidden states BEFORE rollout for recurrent policies
+        actor_hidden_states = None
+        if (
+            store_hidden_states
+            and hasattr(policy_model, "is_recurrent")
+            and policy_model.is_recurrent
+        ):
+            actor_hidden_states = policy_model.get_hidden_states()
+
+        policy_out = policy_model.rollout(
+            obs_dict=actor_obs_dict, episode_attnmask=episode_attnmask, cur_dones=cur_dones
+        )
+
+        if self.use_a2_base:
+            a2_actions = self.unwrapped_model._a2_base_actions(
+                obs_dict, policy_out["actions"]
+            )
+            actions_log_prob = policy_model.get_actions_log_prob(
+                actions=policy_out["actions"]
+            ).unsqueeze(1)
+            a2_sigma = torch.full_like(a2_actions, self.a2_base_action_sigma)
+            policy_state_dict = {
+                "actions": torch.cat([policy_out["actions"], a2_actions], dim=-1),
+                "action_mean": torch.cat([policy_out["action_mean"], a2_actions], dim=-1),
+                "action_sigma": torch.cat([policy_out["action_sigma"], a2_sigma], dim=-1),
+                "actions_log_prob": actions_log_prob,
+            }
+
+            if store_hidden_states and actor_hidden_states is not None:
+                policy_state_dict["hidden_states"] = (
+                    actor_hidden_states,
+                    None,
+                )
+
+            return policy_state_dict
+
+        homie_obs = obs_dict["homie_obs"]
+        stand_homie_obs = homie_obs.clone()
+        reshaped_obs = stand_homie_obs.view(
+            stand_homie_obs.shape[0], 6, stand_homie_obs.shape[-1] // 6
+        )
+        reshaped_obs[..., :3] = 0.0
+        stand_homie_obs = reshaped_obs.view_as(stand_homie_obs)
+        walk_out = self.homie_walk_model(homie_obs)
+        stand_out = self.homie_stand_model(stand_homie_obs)
+        homie_one_step_obs = init_actor_critic_dict["num_one_step_obs"]
+        commands = obs_dict["homie_obs"][..., -homie_one_step_obs : -(homie_one_step_obs - 3)]
+
+        walk_mask = (
+            torch.norm(commands, dim=-1, keepdim=True) > self.homie_switch_threshold
+        )  # [B,1]
+
+        def _sel(a_walk, a_stand):
+            m = walk_mask
+            while m.dim() < a_walk.dim():
+                m = m.unsqueeze(-1)
+            return torch.where(m, a_walk, a_stand)
+
+        homie_actions = _sel(walk_out["actions"], stand_out["actions"])
+        homie_mean = _sel(walk_out["action_mean"], stand_out["action_mean"])
+        homie_sigma = _sel(walk_out["action_sigma"], stand_out["action_sigma"])
+        homie_entropy = _sel(walk_out["entropy"], stand_out["entropy"])
+
+        policy_actions_log_prob = policy_model.get_actions_log_prob(actions=policy_out["actions"])
+        walk_lp = homie_walk_model.get_actions_log_prob(actions=homie_actions)
+        stand_lp = homie_stand_model.get_actions_log_prob(actions=homie_actions)
+        homie_actions_log_prob = torch.where(walk_mask.squeeze(-1), walk_lp, stand_lp)
+
+        if self.opt_homie:
+            actions_log_prob = (policy_actions_log_prob + homie_actions_log_prob).unsqueeze(1)
+        else:
+            actions_log_prob = policy_actions_log_prob.unsqueeze(1)
+
+        actions = torch.cat([policy_out["actions"], homie_actions], dim=-1)
+        action_mean = torch.cat([policy_out["action_mean"], homie_mean], dim=-1)
+        action_sigma = torch.cat([policy_out["action_sigma"], homie_sigma], dim=-1)
+
+        policy_state_dict = {
+            "actions": actions,
+            "action_mean": action_mean,
+            "action_sigma": action_sigma,
+            "actions_log_prob": actions_log_prob,
+        }
+
+        # Add hidden states to return dict if they were captured
+        if store_hidden_states and actor_hidden_states is not None:
+            policy_state_dict["hidden_states"] = (
+                actor_hidden_states,
+                None,
+            )  # (actor, critic) - critic is computed separately
+
+        return policy_state_dict
+
+    def _chunked_value_evaluate(self, value_model, obs_dict, episode_attnmask, chunk_size=1024):
+        batch_size = list(obs_dict.values())[0].shape[0]
+        if batch_size <= chunk_size:
+            return value_model.evaluate(obs_dict=obs_dict, episode_attnmask=episode_attnmask)
+
+        obs_chunks = {}
+        for key, value in obs_dict.items():
+            obs_chunks[key] = torch.split(value, chunk_size, dim=0)
+        if episode_attnmask is not None:
+            attnmask_chunks = torch.split(episode_attnmask, chunk_size, dim=0)
+        else:
+            attnmask_chunks = [None] * len(obs_chunks[list(obs_chunks.keys())[0]])
+
+        value_chunks = []
+        for i in range(len(attnmask_chunks)):
+            chunk_obs_dict = {key: obs_chunks[key][i] for key in obs_chunks}
+            chunk_values = value_model.evaluate(
+                obs_dict=chunk_obs_dict, episode_attnmask=attnmask_chunks[i]
+            )
+            value_chunks.append(chunk_values)
+        return torch.cat(value_chunks, dim=0)
+
+    def _rollout_step(self, model, obs_dict):
+        self._train_rollout_mode()
+        device = self.accelerator.device
+        policy_model = model.policy
+        value_model = model.value_model
+        homie_walk_model = model.homie_walk_model
+        homie_stand_model = model.homie_stand_model
+        policy_model.init_rollout()
+        self.storage.clear()
+
+        dones = torch.zeros(self.env.num_envs, device=device)
+        # Check if we need to compute values step-by-step for recurrent models
+        is_recurrent = hasattr(policy_model, "is_recurrent") and policy_model.is_recurrent
+
+        with torch.no_grad():
+            for i in range(self.num_steps_per_env):
+                # Compute the actions and values
+                # TODO: 1: unsqueeze to [B, 1, ...]
+                policy_state_dict = self.policy_step(
+                    policy_model, homie_walk_model, homie_stand_model, obs_dict, cur_dones=dones
+                )
+                # homie_actions = homie_model(obs_dict['homie_obs'])
+                # step_actions = torch.cat([policy_state_dict["actions"], homie_actions["actions"]], dim=-1) # commands + arm_hand_actions + leg_waist_actions
+
+                # For recurrent models, compute values step-by-step to maintain critic hidden states
+                if self.value_model is not None:
+                    # Check if value model is also recurrent
+                    value_is_recurrent = (
+                        hasattr(self.value_model, "is_recurrent") and self.value_model.is_recurrent
+                    )
+                    if value_is_recurrent:
+                        # Get critic hidden states BEFORE evaluation
+                        critic_hidden_states = (
+                            self.value_model.get_hidden_states()
+                            if hasattr(self.value_model, "get_hidden_states")
+                            else None
+                        )
+                        # Evaluate the critic to update its hidden states and get values
+                        # For recurrent critics, we MUST compute values step-by-step during rollout
+                        critic_obs_dict = {k: v for k, v in obs_dict.items() if k != "actor_obs"}
+                        step_values = self.value_model.evaluate(obs_dict=critic_obs_dict)
+                        # Save values to storage for GAE computation
+                        policy_state_dict["values"] = step_values
+                        # Store both actor and critic hidden states
+                        combined_hidden_states = (
+                            policy_state_dict.get("hidden_states", (None, None))[0],
+                            critic_hidden_states,
+                        )
+                        policy_state_dict["hidden_states"] = combined_hidden_states
+
+                # Append states to storage
+                for key, value in obs_dict.items():
+                    self.storage.update_key(key, value)
+                for key, value in policy_state_dict.items():
+                    # Skip hidden_states as they're stored separately
+                    if key != "hidden_states":
+                        self.storage.update_key(key, value)
+
+                # Store hidden states separately for recurrent policies
+                if "hidden_states" in policy_state_dict:
+                    self.storage._save_hidden_states(policy_state_dict["hidden_states"])
+                # Step the environment
+                actor_state = {"actions": policy_state_dict["actions"]}
+                # Pass gt_actions to environment if available (for distillation mode)
+                if "gt_actions" in policy_state_dict:
+                    actor_state["gt_actions"] = policy_state_dict["gt_actions"]
+                obs_dict, rewards, dones, infos = self.env.step(actor_state)
+                for obs_key in obs_dict.keys():
+                    obs_dict[obs_key] = obs_dict[obs_key].to(device)
+                rewards, dones = rewards.to(device), dones.to(device)
+                rewards_stored = rewards.clone().unsqueeze(1)
+                assert len(rewards_stored.shape) == 2
+
+                self.ep_infos.append(infos["episode"])
+                self.storage.update_key("rewards", rewards_stored)
+                self.storage.update_key("dones", dones.unsqueeze(1))
+                self.storage.update_key("time_outs", infos["time_outs"].unsqueeze(1))
+                self.storage.increment_step()
+
+                self._process_env_step(rewards, dones, infos)
+
+                self.cur_reward_sum += rewards
+                self.cur_episode_length += 1
+                new_ids = (dones > 0).nonzero(as_tuple=False)
+                self.state.rewbuffer.extend(
+                    self.cur_reward_sum[new_ids][:, 0].cpu().numpy().tolist()
+                )
+                self.state.lenbuffer.extend(
+                    self.cur_episode_length[new_ids][:, 0].cpu().numpy().tolist()
+                )
+                self.cur_reward_sum[new_ids] = 0
+                self.cur_episode_length[new_ids] = 0
+
+            if self.value_model is not None:
+                # Check if critic is recurrent
+                value_is_recurrent = (
+                    hasattr(self.value_model, "is_recurrent") and self.value_model.is_recurrent
+                )
+
+                if value_is_recurrent:
+                    # For recurrent critics: values were already computed step-by-step during rollout
+                    # We only need to compute the final bootstrapping value
+                    critic_obs_dict = {k: v for k, v in obs_dict.items() if k != "actor_obs"}
+                    last_values = self.value_model.evaluate(
+                        obs_dict=critic_obs_dict
+                    )  # Shape: [num_envs, 1]
+                    # Values are already in storage from step-by-step computation
+                    values = self.storage.query_key("values").to(
+                        device
+                    )  # Shape: [num_steps, num_envs, 1]
+                else:
+                    # For non-recurrent critics: compute all values at once
+                    dones = self.storage.query_key("dones").to(device).squeeze(-1).transpose(0, 1)
+                    dones = torch.cat([dones, torch.zeros_like(dones[:, :1])], dim=1)
+                    episode_attnmask = compute_episode_attnmask(dones)
+                    all_obs_dict = {}
+                    for key in obs_dict.keys():
+                        if key not in ["actor_obs"]:  # actor_obs not required by value model
+                            obs_value = self.storage.query_key(key).to(device)
+                            obs_value = torch.cat([obs_value, obs_dict[key].unsqueeze(0)], dim=0)
+                            all_obs_dict[key] = obs_value.transpose(0, 1)
+                    all_values = self._chunked_value_evaluate(
+                        value_model, all_obs_dict, episode_attnmask
+                    ).transpose(0, 1)
+                    values, last_values = all_values[:-1], all_values[-1]
+
+                rewards = self.storage.query_key("rewards")
+                new_rewards = (
+                    rewards.to(device)
+                    + self.gamma * self.storage.query_key("time_outs").to(device) * values
+                )
+                self.storage.batch_update_data("rewards", new_rewards)
+
+                returns, advantages = self._compute_returns(
+                    values=values,
+                    last_values=last_values,
+                    policy_state_dict={
+                        "dones": self.storage.query_key("dones"),
+                        "rewards": self.storage.query_key("rewards"),
+                    },
+                )
+                self.storage.batch_update_data("values", values)
+                self.storage.batch_update_data("returns", returns)
+                self.storage.batch_update_data("advantages", advantages)
+
+        policy_model.clear_rollout()
+        return obs_dict
+
+    def _process_env_step(self, rewards, dones, infos):
+        self.policy_model.reset(dones)
+        if self.value_model is not None:
+            self.value_model.reset(dones)
+        prepared_env_metrics = _prepare_a2_env_metrics_for_aggregation(
+            infos["to_log"], self.accelerator, self.accelerator.device
+        )
+        self.episode_env_tensors.add(prepared_env_metrics)
+
+    def _register_stats_buffer(self):
+        args = self.args
+        device = self.accelerator.device
+
+        stats_shape = (args.num_ppo_epochs, args.num_mini_batches, args.num_micro_batches)
+        approxkl_stats = torch.zeros(stats_shape, device=device)
+        pg_clipfrac_stats = torch.zeros(stats_shape, device=device)
+        pg_loss_stats = torch.zeros(stats_shape, device=device)
+        vf_loss_stats = torch.zeros(stats_shape, device=device)
+        entropy_stats = torch.zeros(stats_shape, device=device)
+        weighted_ppo_loss_stats = torch.zeros(stats_shape, device=device)
+        vf_clipfrac_stats = torch.zeros(stats_shape, device=device)
+        ratio_stats = torch.zeros(stats_shape, device=device)
+        if self.compute_imgaug_bc_loss:
+            imgaug_bc_loss_stats = torch.zeros(stats_shape, device=device)
+            weighted_imgaug_bc_loss_stats = torch.zeros(stats_shape, device=device)
+
+        self.approxkl_stats = approxkl_stats
+        self.pg_clipfrac_stats = pg_clipfrac_stats
+        self.pg_loss_stats = pg_loss_stats
+        self.vf_loss_stats = vf_loss_stats
+        self.entropy_stats = entropy_stats
+        self.weighted_ppo_loss_stats = weighted_ppo_loss_stats
+        self.vf_clipfrac_stats = vf_clipfrac_stats
+        self.ratio_stats = ratio_stats
+        if self.compute_imgaug_bc_loss:
+            self.imgaug_bc_loss_stats = imgaug_bc_loss_stats
+            self.weighted_imgaug_bc_loss_stats = weighted_imgaug_bc_loss_stats
+
+    def _get_rollout_data(self, obs_keys):
+        device = self.accelerator.device
+
+        all_obs_dict = {
+            key: self.storage.query_key(key).transpose(0, 1).to(device) for key in obs_keys
+        }
+        actions = self.storage.actions.transpose(0, 1).to(device)
+        logprobs = self.storage.actions_log_prob.transpose(0, 1).squeeze(-1).to(device)
+        values = self.storage.values.transpose(0, 1).squeeze(-1).to(device)
+        rewards = self.storage.rewards.transpose(0, 1).squeeze(-1).to(device)
+        dones = self.storage.dones.transpose(0, 1).squeeze(-1).to(device)
+        old_mu_batch = self.storage.action_mean.transpose(0, 1).to(device)
+        old_sigma_batch = self.storage.action_sigma.transpose(0, 1).to(device)
+        returns = self.storage.returns.transpose(0, 1).squeeze(-1).to(device)
+        advantages = self.storage.advantages.transpose(0, 1).squeeze(-1).to(device)
+
+        if self.use_padding_mask:
+            padding_mask = dones.clone()
+            padding_mask_p1 = padding_mask.clone()
+            for i in range(padding_mask.shape[0]):
+                true_indices = torch.where(padding_mask[i])[0]
+                if len(true_indices) > 0:
+                    padding_mask[i, true_indices[0]] = False
+                    padding_mask_p1[
+                        i, true_indices[0] : min(true_indices[0] + 2, padding_mask_p1.shape[1])
+                    ] = False
+            logprobs = torch.masked_fill(logprobs, padding_mask, INVALID_LOGPROB)
+            values = torch.masked_fill(values, padding_mask_p1, 0)
+        else:
+            padding_mask = torch.zeros_like(dones)
+            padding_mask_p1 = torch.zeros_like(dones)
+
+        # CRITICAL FIX: For recurrent policies, split trajectories ONCE globally
+        # This ensures CONSISTENT max_traj_len across all mini-batches and epochs
+        # Without this, LSTM sees same data with different padding -> can't learn temporal patterns
+        padded_obs_dict = None
+        trajectory_masks = None
+        if (hasattr(self.policy_model, "is_recurrent") and self.policy_model.is_recurrent) or (
+            hasattr(self.value_model, "is_recurrent") and self.value_model.is_recurrent
+        ):
+            from gr00t.rl.trl.utils.rl import split_and_pad_trajectories
+
+            padded_obs_dict = {}
+            for key in obs_keys:
+                # all_obs_dict[key]: [num_envs, num_steps, ...]
+                # Transpose to [num_steps, num_envs, ...] for split_and_pad_trajectories
+                obs_transposed = all_obs_dict[key].transpose(0, 1)
+                dones_transposed = dones.transpose(0, 1)
+                padded_obs, traj_masks = split_and_pad_trajectories(
+                    obs_transposed, dones_transposed
+                )
+                # padded_obs: [max_traj_len, num_trajectories, ...]
+                # Transpose to [num_trajectories, max_traj_len, ...]
+                padded_obs_dict[key] = padded_obs.transpose(0, 1)
+                if trajectory_masks is None:
+                    # traj_masks: [max_traj_len, num_trajectories]
+                    # Transpose to [num_trajectories, max_traj_len]
+                    trajectory_masks = traj_masks.transpose(0, 1)
+
+        return dict(
+            all_obs_dict=all_obs_dict,
+            actions=actions,
+            logprobs=logprobs,
+            values=values,
+            rewards=rewards,
+            dones=dones,
+            old_mu_batch=old_mu_batch,
+            old_sigma_batch=old_sigma_batch,
+            returns=returns,
+            advantages=advantages,
+            padding_mask=padding_mask,
+            padding_mask_p1=padding_mask_p1,
+            padded_obs_dict=padded_obs_dict,  # Globally pre-split observations
+            trajectory_masks=trajectory_masks,  # Globally pre-split masks
+        )
+
+    def _get_mb_rollout_data(self, rollout_data, micro_batch_inds):
+        mb_advantage = rollout_data["advantages"][micro_batch_inds]
+        mb_logprobs = rollout_data["logprobs"][micro_batch_inds]
+        mb_return = rollout_data["returns"][micro_batch_inds]
+        mb_values = rollout_data["values"][micro_batch_inds]
+        mb_dones = rollout_data["dones"][micro_batch_inds]
+        mb_actions = rollout_data["actions"][micro_batch_inds]
+        mb_old_mu = rollout_data["old_mu_batch"][micro_batch_inds]
+        mb_old_sigma = rollout_data["old_sigma_batch"][micro_batch_inds]
+        mb_padding_mask = rollout_data["padding_mask"][micro_batch_inds]
+        mb_padding_mask_p1 = rollout_data["padding_mask_p1"][micro_batch_inds]
+
+        episode_attnmask = compute_episode_attnmask(mb_dones)
+
+        # CRITICAL FIX: For recurrent policies, SLICE pre-split trajectories instead of re-splitting
+        # This ensures consistent max_traj_len across all mini-batches and epochs
+        mb_hidden_states = None
+        if hasattr(self.policy_model, "is_recurrent") and self.policy_model.is_recurrent:
+            if (
+                rollout_data.get("padded_obs_dict") is None
+                or rollout_data.get("trajectory_masks") is None
+            ):
+                raise RuntimeError(
+                    "Recurrent policy requires padded_obs_dict and trajectory_masks in rollout_data! "
+                    "This should have been created in _get_rollout_data."
+                )
+
+            # Calculate how many trajectories are in this mini-batch
+            # A trajectory starts after each done (including implicit done at t=0)
+            last_was_done = torch.zeros_like(mb_dones, dtype=torch.bool)
+            last_was_done[:, 1:] = mb_dones[:, :-1].bool()
+            last_was_done[:, 0] = True  # First timestep is always after an implicit done
+            num_trajectories = torch.sum(last_was_done).item()
+
+            # Slice from globally pre-split trajectories using trajectory counter
+            first_traj = self._current_first_traj
+            last_traj = first_traj + num_trajectories
+
+            mb_obs_dict = {
+                key: rollout_data["padded_obs_dict"][key][first_traj:last_traj]
+                for key in rollout_data["padded_obs_dict"].keys()
+            }
+            mb_masks = rollout_data["trajectory_masks"][first_traj:last_traj]
+
+            # Update trajectory counter for next mini-batch
+            self._current_first_traj = last_traj
+
+            # Extract hidden states for this mini-batch at trajectory boundaries
+            # Following rsl_rl's approach: extract hidden states right after dones (start of trajectories)
+            if (
+                self.storage.saved_hidden_states_a is not None
+                or self.storage.saved_hidden_states_c is not None
+            ):
+                # Determine which timesteps are right after dones (first step of each trajectory)
+                # mb_dones: [batch_size, num_steps]
+                dones_for_extraction = mb_dones.clone()  # [batch_size, num_steps]
+                last_was_done = torch.zeros_like(dones_for_extraction, dtype=torch.bool)
+                last_was_done[:, 1:] = dones_for_extraction[:, :-1].bool()
+                last_was_done[:, 0] = True  # First timestep is always after an implicit "done"
+
+                # Count trajectories in this mini-batch
+                trajectories_in_batch = torch.sum(last_was_done)
+
+                # Extract hidden states at trajectory boundaries
+                # Storage shape: [num_steps, num_layers, num_envs, hidden_dim]
+                # We need: [num_layers, num_trajectories, hidden_dim]
+
+                # Get the environment indices for this mini-batch
+                # micro_batch_inds are the environment indices: [batch_size]
+
+                # Permute last_was_done to [num_steps, batch_size] for extraction
+                last_was_done_transposed = last_was_done.transpose(0, 1)  # [num_steps, batch_size]
+
+                # Extract actor hidden states
+                if self.storage.saved_hidden_states_a is not None:
+                    hid_a_batch = []
+                    for saved_hidden_states in self.storage.saved_hidden_states_a:
+                        # saved_hidden_states: [num_steps, num_layers, num_envs, hidden_dim]
+                        # Select the environments in this mini-batch
+                        saved_hid_mb = saved_hidden_states[
+                            :, :, micro_batch_inds, :
+                        ]  # [num_steps, num_layers, batch_size, hidden_dim]
+                        # Permute to [batch_size, num_steps, num_layers, hidden_dim]
+                        saved_hid_mb = saved_hid_mb.permute(
+                            2, 0, 1, 3
+                        )  # [batch_size, num_steps, num_layers, hidden_dim]
+                        # Flatten to [batch_size * num_steps, num_layers, hidden_dim]
+                        saved_hid_mb_flat = saved_hid_mb.reshape(
+                            -1, saved_hid_mb.shape[2], saved_hid_mb.shape[3]
+                        )
+                        # Select only trajectory starts using last_was_done mask
+                        last_was_done_flat = last_was_done.reshape(-1)
+                        hid_at_traj_starts = saved_hid_mb_flat[
+                            last_was_done_flat
+                        ]  # [num_trajectories, num_layers, hidden_dim]
+                        # Transpose to [num_layers, num_trajectories, hidden_dim]
+                        hid_at_traj_starts = hid_at_traj_starts.transpose(1, 0).contiguous()
+                        hid_a_batch.append(hid_at_traj_starts)
+
+                    # Remove the tuple for GRU (single element list)
+                    hid_a_batch = hid_a_batch[0] if len(hid_a_batch) == 1 else tuple(hid_a_batch)
+                else:
+                    hid_a_batch = None
+
+                # Extract critic hidden states
+                if self.storage.saved_hidden_states_c is not None:
+                    hid_c_batch = []
+                    for saved_hidden_states in self.storage.saved_hidden_states_c:
+                        # saved_hidden_states: [num_steps, num_layers, num_envs, hidden_dim]
+                        # Select the environments in this mini-batch
+                        saved_hid_mb = saved_hidden_states[
+                            :, :, micro_batch_inds, :
+                        ]  # [num_steps, num_layers, batch_size, hidden_dim]
+                        # Permute to [batch_size, num_steps, num_layers, hidden_dim]
+                        saved_hid_mb = saved_hid_mb.permute(
+                            2, 0, 1, 3
+                        )  # [batch_size, num_steps, num_layers, hidden_dim]
+                        # Flatten to [batch_size * num_steps, num_layers, hidden_dim]
+                        saved_hid_mb_flat = saved_hid_mb.reshape(
+                            -1, saved_hid_mb.shape[2], saved_hid_mb.shape[3]
+                        )
+                        # Select only trajectory starts using last_was_done mask
+                        last_was_done_flat = last_was_done.reshape(-1)
+                        hid_at_traj_starts = saved_hid_mb_flat[
+                            last_was_done_flat
+                        ]  # [num_trajectories, num_layers, hidden_dim]
+                        # Transpose to [num_layers, num_trajectories, hidden_dim]
+                        hid_at_traj_starts = hid_at_traj_starts.transpose(1, 0).contiguous()
+                        hid_c_batch.append(hid_at_traj_starts)
+
+                    # Remove the tuple for GRU (single element list)
+                    hid_c_batch = hid_c_batch[0] if len(hid_c_batch) == 1 else tuple(hid_c_batch)
+                else:
+                    hid_c_batch = None
+
+                mb_hidden_states = (hid_a_batch, hid_c_batch)
+            else:
+                mb_hidden_states = None
+        else:
+            # Non-recurrent: standard [batch_size, num_steps, ...] format
+            mb_obs_dict = {
+                key: rollout_data["all_obs_dict"][key][micro_batch_inds]
+                for key in rollout_data["all_obs_dict"].keys()
+            }
+            mb_masks = None
+
+        mb_rollout_data = dict(
+            micro_batch_inds=micro_batch_inds,
+            mb_obs_dict=mb_obs_dict,
+            mb_advantage=mb_advantage,
+            mb_logprobs=mb_logprobs,
+            mb_return=mb_return,
+            mb_values=mb_values,
+            mb_dones=mb_dones,
+            mb_actions=mb_actions,
+            mb_old_mu=mb_old_mu,
+            mb_old_sigma=mb_old_sigma,
+            mb_padding_mask=mb_padding_mask,
+            mb_padding_mask_p1=mb_padding_mask_p1,
+            episode_attnmask=episode_attnmask,
+            mb_masks=mb_masks,  # [num_trajectories, max_traj_len] for recurrent, None otherwise
+            mb_hidden_states=mb_hidden_states,  # Hidden states for recurrent policies
+        )
+        return mb_rollout_data
+
+    def _forward_model(self, model, mb_rollout_data):
+        mb_obs_dict = mb_rollout_data["mb_obs_dict"]
+        mb_actions = mb_rollout_data["mb_actions"]
+        episode_attnmask = mb_rollout_data["episode_attnmask"]
+        mb_masks = mb_rollout_data.get("mb_masks", None)  # Get masks for recurrent policies
+        mb_dones = mb_rollout_data["mb_dones"]  # Original dones for unsplitting
+        mb_hidden_states = mb_rollout_data.get(
+            "mb_hidden_states", None
+        )  # Hidden states for recurrent policies
+
+        # Extract separate hidden states for actor and critic (like rsl_rl)
+        actor_hidden_states = mb_hidden_states[0] if mb_hidden_states is not None else None
+        critic_hidden_states = mb_hidden_states[1] if mb_hidden_states is not None else None
+
+        # We should only do one forward pass for especially DDP model
+        if self.compute_imgaug_bc_loss:
+            results = model.forward(
+                modes=["policy_w_and_wo_imgaug", "value"],
+                input_kwargs=dict(
+                    policy_w_and_wo_imgaug=dict(
+                        obs_dict=mb_obs_dict,
+                        actions=mb_actions,
+                        episode_attnmask=episode_attnmask,
+                        masks=mb_masks,
+                        hidden_states=actor_hidden_states,
+                        original_dones=mb_dones,
+                    ),
+                    value=dict(
+                        obs_dict=mb_obs_dict,
+                        episode_attnmask=episode_attnmask,
+                        masks=mb_masks,
+                        hidden_states=critic_hidden_states,
+                        original_dones=mb_dones,
+                    ),
+                ),
+            )
+            policy_results = results["policy_w_and_wo_imgaug"]
+        else:
+            results = model.forward(
+                modes=["policy", "value"],
+                input_kwargs=dict(
+                    policy=dict(
+                        obs_dict=mb_obs_dict,
+                        actions=mb_actions,
+                        episode_attnmask=episode_attnmask,
+                        masks=mb_masks,
+                        hidden_states=actor_hidden_states,
+                        original_dones=mb_dones,
+                    ),
+                    value=dict(
+                        obs_dict=mb_obs_dict,
+                        episode_attnmask=episode_attnmask,
+                        masks=mb_masks,
+                        hidden_states=critic_hidden_states,
+                        original_dones=mb_dones,
+                    ),
+                ),
+            )
+            policy_results = results["policy"]
+
+        return dict(
+            policy_results=policy_results,
+            value_results=results["value"],
+        )
+
+    def _compute_loss(self, forward_results, mb_rollout_data):
+        ppo_loss_dict = self._compute_ppo_loss(forward_results, mb_rollout_data)
+
+        loss = ppo_loss_dict["ppo_loss"] * self.config.get("ppo_loss_coef", 1.0)
+
+        ret_dict = dict(
+            ppo_loss_dict=ppo_loss_dict,
+        )
+
+        if self.compute_imgaug_bc_loss:
+            imgaug_bc_loss_dict = self._compute_imgaug_bc_loss(forward_results, mb_rollout_data)
+            loss += imgaug_bc_loss_dict["imgaug_bc_loss"] * self.config.imgaug_bc_loss_coef
+            ret_dict["imgaug_bc_loss_dict"] = imgaug_bc_loss_dict
+
+        ret_dict["loss"] = loss
+
+        return ret_dict
+
+    def _compute_ppo_loss(self, forward_results, mb_rollout_data):
+        args = self.args
+        optimizer = self.optimizer
+
+        policy_results = forward_results["policy_results"]
+        value_results = forward_results["value_results"]
+
+        mb_old_mu = mb_rollout_data["mb_old_mu"]
+        mb_old_sigma = mb_rollout_data["mb_old_sigma"]
+        mb_values = mb_rollout_data["mb_values"]
+        mb_return = mb_rollout_data["mb_return"]
+        mb_logprobs = mb_rollout_data["mb_logprobs"]
+        mb_advantage = mb_rollout_data["mb_advantage"]
+        padding_mask = mb_rollout_data["mb_padding_mask"]
+        padding_mask_p1 = mb_rollout_data["mb_padding_mask_p1"]
+        micro_batch_inds = mb_rollout_data["micro_batch_inds"]
+
+        new_logprobs = policy_results["logprobs"]
+        sigma_batch = policy_results["action_std"]
+        mu_batch = policy_results["action_mean"]
+        entropy_batch = policy_results["entropy"]
+
+        if not self.config.get("opt_homie", False):
+            if mu_batch.shape[-1] > self.policy_model.num_actions:
+                mu_batch = mu_batch[..., : self.policy_model.num_actions]
+                sigma_batch = sigma_batch[..., : self.policy_model.num_actions]
+            mb_old_mu = mb_old_mu[..., : self.policy_model.num_actions]
+            mb_old_sigma = mb_old_sigma[..., : self.policy_model.num_actions]
+
+        with torch.no_grad():
+            kl = torch.sum(
+                torch.log(sigma_batch / mb_old_sigma + 1.0e-5)
+                + (torch.square(mb_old_sigma) + torch.square(mb_old_mu - mu_batch))
+                / (2.0 * torch.square(sigma_batch))
+                - 0.5,
+                dim=-1,
+            )
+            local_kl_mean = torch.mean(kl)
+            kl_mean = self.accelerator.gather(local_kl_mean).mean()
+            self._adjust_learning_rate_based_on_kl(kl_mean, optimizer)
+
+        # Forward a DDP model twice will cause the error: "one of the variables needed for gradient computation has been modified by an inplace operation"
+        vpred = value_results.squeeze(-1)
+        vpredclipped = torch.clamp(
+            vpred,
+            mb_values - args.cliprange_value,
+            mb_values + args.cliprange_value,
+        )
+        vf_losses1 = torch.square(vpred - mb_return)
+        vf_losses2 = torch.square(vpredclipped - mb_return)
+        vf_loss_max = torch.max(vf_losses1, vf_losses2)
+        vf_loss = masked_mean(vf_loss_max, ~padding_mask_p1)
+        vf_clipfrac = masked_mean((vf_losses2 > vf_losses1).float(), ~padding_mask_p1)
+        logprobs_diff = new_logprobs - mb_logprobs
+        ratio = torch.exp(logprobs_diff)
+        pg_losses = -mb_advantage * ratio
+        pg_losses2 = -mb_advantage * torch.clamp(ratio, 1.0 - args.cliprange, 1.0 + args.cliprange)
+        pg_loss_max = torch.max(pg_losses, pg_losses2)
+        pg_loss = masked_mean(pg_loss_max, ~padding_mask)
+
+        entropy_loss = -masked_mean(entropy_batch, ~padding_mask)
+
+        loss = pg_loss + args.vf_coef * vf_loss + self.entropy_coef * entropy_loss
+
+        return dict(
+            ppo_loss=loss,
+            # logging metrics
+            local_kl_mean=local_kl_mean,
+            pg_losses=pg_losses,
+            pg_losses2=pg_losses2,
+            pg_loss=pg_loss,
+            vf_loss=vf_loss,
+            entropy_loss=entropy_loss,
+            ratio=ratio,
+            vf_clipfrac=vf_clipfrac,
+        )
+
+    def _compute_imgaug_bc_loss(self, forward_results, mb_rollout_data):
+        policy_results = forward_results["policy_results"]
+        mu_batch = policy_results["action_mean"]
+
+        action_mean_w_imgaug = policy_results["action_mean_w_imgaug"]
+        imgaug_bc_loss = self.imgaug_bc_loss_fn(action_mean_w_imgaug, mu_batch.detach())
+
+        return dict(
+            imgaug_bc_loss=imgaug_bc_loss,
+        )
+
+    def _update_stats_buffer(
+        self,
+        ppo_epoch_idx,
+        minibatch_idx,
+        microbatch_idx,
+        loss_dict,
+        forward_results,
+        mb_rollout_data,
+    ):
+        local_kl_mean = loss_dict["ppo_loss_dict"]["local_kl_mean"]
+        pg_losses = loss_dict["ppo_loss_dict"]["pg_losses"]
+        pg_losses2 = loss_dict["ppo_loss_dict"]["pg_losses2"]
+        pg_loss = loss_dict["ppo_loss_dict"]["pg_loss"]
+        vf_loss = loss_dict["ppo_loss_dict"]["vf_loss"]
+        entropy_loss = loss_dict["ppo_loss_dict"]["entropy_loss"]
+        weighted_ppo_loss = loss_dict["ppo_loss_dict"]["ppo_loss"] * self.config.get(
+            "ppo_loss_coef", 1.0
+        )
+        ratio = loss_dict["ppo_loss_dict"]["ratio"]
+        vf_clipfrac = loss_dict["ppo_loss_dict"]["vf_clipfrac"]
+
+        padding_mask = mb_rollout_data["mb_padding_mask"]
+        micro_batch_inds = mb_rollout_data["micro_batch_inds"]
+
+        self.approxkl_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = local_kl_mean
+        pg_clipfrac = masked_mean((pg_losses2 > pg_losses).float(), ~padding_mask)
+        self.pg_clipfrac_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = pg_clipfrac
+        self.pg_loss_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = pg_loss
+        self.vf_loss_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = vf_loss
+        if self.compute_imgaug_bc_loss:
+            imgaug_bc_loss = loss_dict["imgaug_bc_loss_dict"]["imgaug_bc_loss"]
+            self.imgaug_bc_loss_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = imgaug_bc_loss
+            self.weighted_imgaug_bc_loss_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = (
+                self.config.imgaug_bc_loss_coef * imgaug_bc_loss
+            )
+        self.entropy_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = -entropy_loss
+        self.weighted_ppo_loss_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = (
+            weighted_ppo_loss
+        )
+        self.vf_clipfrac_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = vf_clipfrac
+        self.ratio_stats[ppo_epoch_idx, minibatch_idx, microbatch_idx] = ratio.mean()
+
+    def _get_train_metrics(self):
+        metrics = {}
+
+        approxkl_avg = self.accelerator.gather_for_metrics(self.approxkl_stats).mean().item()
+
+        metrics["policy/approxkl_avg"] = approxkl_avg
+        metrics["policy/clipfrac_avg"] = (
+            self.accelerator.gather_for_metrics(self.pg_clipfrac_stats).mean().item()
+        )
+        metrics["loss/policy_avg"] = (
+            self.accelerator.gather_for_metrics(self.pg_loss_stats).mean().item()
+        )
+        if self.compute_imgaug_bc_loss:
+            metrics["loss/imgaug_bc_avg"] = (
+                self.accelerator.gather_for_metrics(self.imgaug_bc_loss_stats).mean().item()
+            )
+            metrics["loss/weighted_imgaug_bc_avg"] = (
+                self.accelerator.gather_for_metrics(self.weighted_imgaug_bc_loss_stats)
+                .mean()
+                .item()
+            )
+        metrics["loss/value_avg"] = (
+            self.accelerator.gather_for_metrics(self.vf_loss_stats).mean().item()
+        )
+        metrics["loss/entropy_avg"] = (
+            self.accelerator.gather_for_metrics(self.entropy_stats).mean().item()
+        )
+        metrics["loss/weighted_ppo_loss_avg"] = (
+            self.accelerator.gather_for_metrics(self.weighted_ppo_loss_stats).mean().item()
+        )
+        metrics["val/clipfrac_avg"] = (
+            self.accelerator.gather_for_metrics(self.vf_clipfrac_stats).mean().item()
+        )
+        metrics["val/ratio"] = self.accelerator.gather_for_metrics(self.ratio_stats).mean().item()
+        metrics["val/ratio_var"] = (
+            self.accelerator.gather_for_metrics(self.ratio_stats).var().item()
+        )
+        metrics["objective/entropy"] = metrics["loss/entropy_avg"]
+
+        return metrics
+
+    def train(self):
+        args = self.args
+        accelerator = self.accelerator
+        optimizer = self.optimizer
+        model = self.model
+        dataloader = self.dataloader
+        device = accelerator.device
+
+        def repeat_generator():
+            while True:
+                if dataloader is not None:
+                    yield from dataloader
+                else:
+                    yield None
+
+        iter_dataloader = iter(repeat_generator())
+
+        accelerator.print("===training policy===")
+        start_time = time.time()
+        self._register_stats_buffer()
+        model.train()
+
+        # trainer state initialization
+        self.state.max_steps = args.num_total_batches
+        self.state.num_train_epochs = args.total_episodes / self.train_dataset_len
+        # Compute absolute values for logging, eval, and save if given as ratio
+        if args.logging_steps is not None:
+            if args.logging_steps < 1:
+                self.state.logging_steps = math.ceil(self.state.max_steps * args.logging_steps)
+            else:
+                self.state.logging_steps = args.logging_steps
+        if args.eval_steps is not None:
+            if args.eval_steps < 1:
+                self.state.eval_steps = math.ceil(self.state.max_steps * args.eval_steps)
+            else:
+                self.state.eval_steps = args.eval_steps
+        if args.save_steps is not None:
+            if args.save_steps < 1:
+                self.state.save_steps = math.ceil(self.state.max_steps * args.save_steps)
+            else:
+                self.state.save_steps = args.save_steps
+        self.control = self.callback_handler.on_train_begin(args, self.state, self.control)
+
+        # backward compatibility
+        if self.is_deepspeed_enabled:
+            self.deepspeed = self.model
+            self.model_wrapped = self.model
+
+        # env
+        obs_dict = self.env.reset_all()
+        if self.config.get("init_at_random_ep_len", False):
+            self.env.episode_length_buf = torch.randint_like(
+                self.env.episode_length_buf, high=int(self.env.max_episode_length)
+            )
+            from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
+
+            if isinstance(self.env, StagedTaskBase):
+                self.env.time_in_stage_buf[:] = torch.randint_like(
+                    self.env.time_in_stage_buf, high=int(self.env.max_stage_time[0])
+                )
+                self.env.actual_time_in_stage_buf[:] = self.env.time_in_stage_buf
+        for obs_key in obs_dict.keys():
+            obs_dict[obs_key] = obs_dict[obs_key].to(device)
+
+        for batch_idx in range(1, args.num_total_batches + 1):
+            batch_start_time = time.time()
+            self.state.episode += 1 * args.batch_size
+            data = next(iter_dataloader)
+            # update scheduled params
+            if self.schedule_dict is not None:
+                self.scheduled_params_dict = update_scheduled_params(
+                    self, self.schedule_dict, self.state.global_step
+                )
+
+            reinit_sim_freq = self.env.config.get("reinit_sim_freq", 0)
+            if reinit_sim_freq > 0 and (self.state.global_step + 1) % reinit_sim_freq == 0:
+                self.env.reinit_sim()
+                obs_dict = self.env.reset_all()
+                for obs_key in obs_dict.keys():
+                    obs_dict[obs_key] = obs_dict[obs_key].to(device)
+
+            # DEBUG: Print model type and distributed configuration (every 5 batches to reduce clutter)
+            if batch_idx == 0:
+                # Check if model is wrapped in DDP
+                model_type = type(self.model).__name__
+                if self.accelerator.process_index == 0:
+                    print(f"\n{'='*80}")
+                    print(f"[CRITICAL] Model type: {model_type}")
+                    print(f"[CRITICAL] Num processes: {self.accelerator.num_processes}")
+                    print(f"[CRITICAL] Distributed type: {self.accelerator.distributed_type}")
+                    print(f"[CRITICAL] Use distributed: {self.accelerator.use_distributed}")
+                    print("  >> Model should be DistributedDataParallel if multi-GPU!")
+                    print(f"{'='*80}\n")
+
+            with torch.no_grad():
+                with unwrap_model_for_generation(
+                    self.model,
+                    self.accelerator,
+                    gather_deepspeed3_params=self.args.ds3_gather_for_generation,
+                ) as model:
+                    obs_dict = self._rollout_step(model, obs_dict)
+                end_collection_time = time.time()
+                collection_time = end_collection_time - batch_start_time
+
+                rollout_data = self._get_rollout_data(obs_keys=obs_dict.keys())
+                torch.cuda.empty_cache()
+                gc.collect()
+
+            model = self.model
+            self._train_mode()
+            for ppo_epoch_idx in range(args.num_ppo_epochs):
+                # CRITICAL FIX: Reset trajectory counter at start of each epoch
+                # Without this, trajectory indexing breaks in epoch 2+
+                self._current_first_traj = 0
+
+                minibatch_idx = 0
+                if self.ppo_shuffle_every_epoch or ppo_epoch_idx == 0:
+                    # CRITICAL FIX: Disable shuffling for recurrent policies
+                    # Trajectory slicing requires contiguous environment indices
+                    # Shuffling breaks the env->trajectory mapping
+                    policy_model = self.accelerator.unwrap_model(model).policy
+                    if hasattr(policy_model, "is_recurrent") and policy_model.is_recurrent:
+                        b_inds = torch.arange(args.local_batch_size, device=device)
+                    else:
+                        b_inds = torch.randperm(args.local_batch_size, device=device)
+                for mini_batch_start in range(0, args.local_batch_size, args.local_mini_batch_size):
+                    mini_batch_end = mini_batch_start + args.local_mini_batch_size
+                    mini_batch_inds = b_inds[mini_batch_start:mini_batch_end]
+                    microbatch_idx = 0
+                    for micro_batch_start in range(
+                        0, args.local_mini_batch_size, args.per_device_train_batch_size
+                    ):
+                        with accelerator.accumulate(model):
+                            micro_batch_end = micro_batch_start + args.per_device_train_batch_size
+                            micro_batch_inds = mini_batch_inds[micro_batch_start:micro_batch_end]
+
+                            mb_rollout_data = self._get_mb_rollout_data(
+                                rollout_data, micro_batch_inds
+                            )
+
+                            forward_results = self._forward_model(model, mb_rollout_data)
+
+                            loss_dict = self._compute_loss(forward_results, mb_rollout_data)
+
+                            accelerator.backward(loss_dict["loss"])
+                            self._gradient_clipping()
+                            optimizer.step()
+                            optimizer.zero_grad()
+                            with torch.no_grad():
+                                self._update_stats_buffer(
+                                    ppo_epoch_idx,
+                                    minibatch_idx,
+                                    microbatch_idx,
+                                    loss_dict,
+                                    forward_results,
+                                    mb_rollout_data,
+                                )
+                            del loss_dict, forward_results, mb_rollout_data
+                            microbatch_idx += 1
+                    minibatch_idx += 1
+                    # del everything and empty cache
+                    # fmt: off
+                if (
+                    self.empty_cache_every_n_ppo_epoch > 0
+                    and ppo_epoch_idx % self.empty_cache_every_n_ppo_epoch == 0
+                ):
+                    print(f"Empty cache at ppo_epoch_idx {ppo_epoch_idx}")
+                    torch.cuda.empty_cache()
+                    gc.collect()
+
+            with torch.no_grad():
+                learn_time = time.time() - end_collection_time
+                eps = int(self.state.episode / (time.time() - start_time))
+
+                metrics = {}
+                train_metrics = self._get_train_metrics()
+                metrics.update(train_metrics)
+                metrics["eps"] = eps
+                metrics["objective/rewards"] = (
+                    self.accelerator.gather_for_metrics(
+                        torch.tensor(np.mean(self.state.rewbuffer)).to(device)
+                    )
+                    .mean()
+                    .item()
+                )
+                metrics["objective/length"] = (
+                    self.accelerator.gather_for_metrics(
+                        torch.tensor(np.mean(self.state.lenbuffer)).to(device)
+                    )
+                    .mean()
+                    .item()
+                )
+                metrics["lr"] = self.lr_scheduler.get_last_lr()[0]
+                metrics["episode"] = self.state.episode
+                env_log_dict_local = self.episode_env_tensors.mean_and_clear()
+                env_log_dict_local = _finalize_a2_conditional_ratios(env_log_dict_local)
+                # Synchronize every environment metric across ranks before logging.
+                env_log_dict = {
+                    k: (
+                        self.accelerator.gather_for_metrics(
+                            torch.tensor(v, dtype=torch.float32).to(device)
+                        )
+                        .mean()
+                        .item()
+                        if not isinstance(v, (int, float))
+                        else self.accelerator.gather_for_metrics(
+                            torch.tensor(v, dtype=torch.float32).to(device)
+                        )
+                        .mean()
+                        .item()
+                    )
+                    for k, v in env_log_dict_local.items()
+                }
+
+                ep_infos = process_ep_infos(self.ep_infos, device)
+                self.state.tot_timesteps += (
+                    self.num_steps_per_env * self.env.num_envs * accelerator.num_processes
+                )
+                self.state.tot_time += collection_time + learn_time
+                log_dict = {
+                    "collection_time": collection_time,
+                    "learn_time": learn_time,
+                    "tot_timesteps": self.state.tot_timesteps,
+                    "tot_time": self.state.tot_time,
+                    "it": self.state.global_step,
+                    "fps": int(
+                        self.num_steps_per_env
+                        * self.env.num_envs
+                        * accelerator.num_processes
+                        / (collection_time + learn_time)
+                    ),
+                    "experiment_save_dir": self.args.output_dir,
+                    "batch_idx": batch_idx,
+                    "num_total_batches": args.num_total_batches,
+                }
+
+                for key, value in ep_infos.items():
+                    log_dict[f"Episode/{key}"] = value
+
+                # Add scheduled parameters to metrics
+                for param_name, param_value in self.scheduled_params_dict.items():
+                    log_dict[f"scheduled_params/{param_name}"] = param_value
+
+                if hasattr(self.policy_model, "std"):
+                    metrics["Policy/mean_noise_std"] = self.policy_model.std.mean().item()
+                else:
+                    metrics["Policy/mean_noise_std"] = 0.0
+
+                metrics.update({f"Env/{k}": v for k, v in env_log_dict.items()})
+                metrics.update(log_dict)
+
+                self.state.epoch = self.state.episode / self.train_dataset_len  # used by self.log
+                self.state.global_step += 1
+
+                self.log(metrics)
+                self.ep_infos.clear()
+
+            self.lr_scheduler.step()
+
+            self.control = self.callback_handler.on_step_end(args, self.state, self.control)
+
+            del (
+                metrics,
+                rollout_data,
+            )
+            torch.cuda.empty_cache()
+            gc.collect()
+
+            if self.control.should_training_stop:
+                break
+
+        if self.control.should_training_stop:
+            return
+
+        # HF trainer specifics
+        self.control = self.callback_handler.on_train_end(args, self.state, self.control)
+        if self.control.should_save:
+            self._save_checkpoint(model, trial=None, metrics=None)
+            self.control = self.callback_handler.on_save(self.args, self.state, self.control)
+
+        if wandb_run_exists():
+            wandb.finish()
+
+    def _eval_mode(self):
+        self.model.eval()
+        model = self.accelerator.unwrap_model(self.model)
+        model.set_mode("eval")
+        model.transform_eval()
+        self.env.set_is_evaluating(is_evaluating=True, log_info=False)
+
+    def _train_rollout_mode(self):
+        self.model.eval()
+        model = self.accelerator.unwrap_model(self.model)
+        model.set_mode("train_rollout")
+        model.transform_eval()
+        if self.train_with_evaluating_env:
+            self.env.set_is_evaluating(True, log_info=False)
+        else:
+            self.env.set_is_evaluating(False, log_info=False)
+
+    def _train_mode(self):
+        self.model.train()
+        model = self.accelerator.unwrap_model(self.model)
+        model.set_mode("train")
+        model.transform_train()
+        if self.train_with_evaluating_env:
+            self.env.set_is_evaluating(True, log_info=False)
+        else:
+            self.env.set_is_evaluating(False, log_info=False)
+
+    def log(self, logs: Dict[str, float], start_time: Optional[float] = None) -> None:
+        """
+        Log `logs` on the various objects watching training.
+
+        Subclass and override this method to inject custom behavior.
+
+        Args:
+            logs (`Dict[str, float]`):
+                The values to log.
+            start_time (`Optional[float]`):
+                The start of training.
+        """
+        if self.state.epoch is not None:
+            logs["epoch"] = self.state.epoch
+        if self.args.include_num_input_tokens_seen:
+            logs["num_input_tokens_seen"] = self.state.num_input_tokens_seen
+            if start_time is not None:
+                speed_metrics("train", start_time, num_tokens=self.state.num_input_tokens_seen)
+
+        output = {**logs, **{"step": self.state.global_step}}
+        self.state.log_history.append(output)
+
+        self.control = self.callback_handler.on_log(self.args, self.state, self.control, logs)
+
+    def _gradient_clipping(self):
+        # Gradient clipping
+        args = self.args
+        model = self.model
+        if args.max_grad_norm is not None and args.max_grad_norm > 0:
+            # deepspeed does its own clipping
+
+            if is_sagemaker_mp_enabled() and args.fp16:
+                _grad_norm = self.optimizer.clip_master_grads(args.max_grad_norm)
+            elif self.use_apex:
+                # Revert to normal clipping otherwise, handling Apex or full precision
+                _grad_norm = nn.utils.clip_grad_norm_(
+                    amp.master_params(self.optimizer),
+                    args.max_grad_norm,
+                )
+            else:
+                _grad_norm = self.accelerator.clip_grad_norm_(
+                    model.parameters(),
+                    args.max_grad_norm,
+                )
+
+            if (
+                is_accelerate_available()
+                and self.accelerator.distributed_type == DistributedType.DEEPSPEED
+            ):
+                grad_norm = model.get_global_grad_norm()
+                # In some cases the grad norm may not return a float
+                if hasattr(grad_norm, "item"):
+                    grad_norm = grad_norm.item()
+            else:
+                grad_norm = _grad_norm
+
+        return grad_norm
+
+    def _compute_returns(self, values, last_values, policy_state_dict):
+        """Compute the returns and advantages for the given policy state.
+        This function calculates the returns and advantages for each step in the
+        environment based on the provided observations and policy state. It uses
+        Generalized Advantage Estimation (GAE) to compute the advantages, which
+        helps in reducing the variance of the policy gradient estimates.
+        Args:
+            values (torch.Tensor): The values for each step.
+            last_values (torch.Tensor): The last values for the last step.
+            policy_state_dict (dict): A dictionary containing the policy state
+                          information, including 'values', 'dones',
+                          and 'rewards'.
+        Returns:
+            tuple: A tuple containing:
+            - returns (torch.Tensor): The computed returns for each step.
+            - advantages (torch.Tensor): The normalized advantages for each step.
+        """
+        device = self.accelerator.device
+        advantage = 0
+
+        dones = policy_state_dict["dones"]
+        rewards = policy_state_dict["rewards"]
+
+        dones = dones.to(device)
+        rewards = rewards.to(device)
+
+        returns = torch.zeros_like(values)
+
+        num_steps = returns.shape[0]
+
+        for step in reversed(range(num_steps)):
+            if step == num_steps - 1:
+                next_values = last_values
+            else:
+                next_values = values[step + 1]
+            next_is_not_terminal = 1.0 - dones[step].float()
+            delta = rewards[step] + next_is_not_terminal * self.gamma * next_values - values[step]
+            advantage = delta + next_is_not_terminal * self.gamma * self.lam * advantage
+            returns[step] = advantage + values[step]
+
+        # Compute and normalize the advantages
+        advantages = returns - values
+        if self.sync_advantage_normalization:
+            # gather advantages from all processes before normalization
+            advantages = self.accelerator.gather(advantages)
+            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+            # ungather advantages
+            advantages = advantages.reshape(
+                self.accelerator.num_processes, -1, *advantages.shape[1:]
+            )[self.accelerator.process_index].to(device)
+        else:
+            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        return returns, advantages
+
+    def _adjust_learning_rate_based_on_kl(self, kl_mean, optimizer):
+        """Adjust the learning rate based on the KL divergence.
+
+        This function implements a learning rate schedule that adjusts the learning rate
+        based on the KL divergence between the current policy and the old policy.
+        If the KL divergence is too high, the learning rate is decreased.
+        If the KL divergence is too low, the learning rate is increased.
+
+        Args:
+            kl_mean (float): The mean KL divergence across all processes.
+            optimizer (torch.optim.Optimizer): The optimizer to update.
+        """
+        if self.desired_kl is None:
+            return
+
+        if kl_mean > self.desired_kl * 2.0:
+            new_lr = max(1e-5, self.args.learning_rate / 1.5)
+        elif kl_mean < self.desired_kl / 2.0 and kl_mean > 0.0:
+            new_lr = min(1e-2, self.args.learning_rate * 1.5)
+        else:
+            new_lr = self.args.learning_rate
+        self.args.learning_rate = new_lr
+
+        for param_group in optimizer.param_groups:
+            param_group["lr"] = self.args.learning_rate
+
+    def load_policy_checkpoint(self, checkpoint_path):
+        """Strictly load only the actor policy weights from a checkpoint."""
+        print(f"Loading policy-only checkpoint from {checkpoint_path}")
+        checkpoint = torch.load(
+            checkpoint_path, map_location="cpu", weights_only=False
+        )
+        actor_keys = (
+            "policy_state_dict",
+            "actor_model_state_dict",
+        )
+        present_actor_keys = [key for key in actor_keys if key in checkpoint]
+        if len(present_actor_keys) != 1:
+            raise RuntimeError(
+                "Policy-only checkpoint must contain exactly one actor state key from "
+                f"{actor_keys}; found {present_actor_keys}."
+            )
+
+        model = self.accelerator.unwrap_model(self.model)
+        actor_key = present_actor_keys[0]
+        model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+        print(f"Loaded policy-only checkpoint actor from key {actor_key!r}")
+
+    def load_checkpoint(self, checkpoint_path):
+        """Load a checkpoint to restore the state of model, optimizer, trainer etc.
+
+        Args:
+            checkpoint_path (str): Path to the checkpoint file
+        """
+        print(f"Loading checkpoint from {checkpoint_path}")
+        checkpoint = torch.load(
+            checkpoint_path, map_location=self.accelerator.device, weights_only=False
+        )
+
+        # Load model state
+        model = self.accelerator.unwrap_model(self.model)
+        if "actor_model_state_dict" in checkpoint:
+            model.policy.load_state_dict(checkpoint["actor_model_state_dict"])
+        elif "policy_state_dict" in checkpoint:
+            model.policy.load_state_dict(checkpoint["policy_state_dict"])
+        if "value_state_dict" in checkpoint and model.value_model is not None:
+            model.value_model.load_state_dict(checkpoint["value_state_dict"])
+        if "homie_state_dict" in checkpoint and model.homie_model is not None:
+            model.homie_model.load_state_dict(checkpoint["homie_state_dict"])
+        # Load optimizer state
+        if "optimizer_state_dict" in checkpoint and checkpoint["optimizer_state_dict"] is not None:
+            self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+            # Update learning rate if available
+            if "args" in checkpoint and hasattr(checkpoint["args"], "learning_rate"):
+                self.args.learning_rate = checkpoint["args"].learning_rate
+                for param_group in self.optimizer.param_groups:
+                    param_group["lr"] = self.args.learning_rate
+
+        # Load learning rate scheduler state
+        if (
+            "lr_scheduler_state_dict" in checkpoint
+            and checkpoint["lr_scheduler_state_dict"] is not None
+        ):
+            self.lr_scheduler.load_state_dict(checkpoint["lr_scheduler_state_dict"])
+
+        if "env_state_dict" in checkpoint:
+            self.env.load_env_state_dict(checkpoint["env_state_dict"])
+
+        if "state" in checkpoint:
+            for key, value in checkpoint["state"].__dict__.items():
+                # Skip loading cur_reward_sum and cur_episode_length from checkpoint
+                # as they are environment-dependent and should match current env size
+                if key in ["cur_reward_sum", "cur_episode_length"]:
+                    continue  # Skip loading these, keep the ones initialized for current env size
+                if key not in [
+                    "stateful_callbacks",
+                    "is_local_process_zero",
+                    "is_world_process_zero",
+                    "log_history",
+                ]:
+                    setattr(self.state, key, value)
+
+        print(f"Loaded checkpoint from step {self.state.global_step}")
+        return checkpoint
+
+    def eval(self):
+        self._eval_mode()
+        self.env.set_is_evaluating()
+        self.policy_model.eval_mode()
+        a2_eval_action_provider = getattr(self, "_a2_eval_action_provider", None)
+        if a2_eval_action_provider is not None:
+            if not callable(a2_eval_action_provider):
+                raise RuntimeError("A2 eval action provider must be callable")
+            provider_begin = getattr(self, "_a2_eval_action_provider_begin", None)
+            if not callable(provider_begin):
+                raise RuntimeError("A2 eval action provider requires an explicit begin hook")
+            provider_begin()
+        else:
+            self.policy_model.init_rollout()
+        obs_dict = self.env.reset_all()
+        for obs_key in obs_dict.keys():
+            obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
+
+        eval_num_envs_episodes = self.config.get("eval", {}).get("eval_num_envs_episodes", False)
+        dump_eval_to_log_metrics = self.config.get("eval", {}).get(
+            "dump_to_log_metrics", False
+        )
+        a2_eval_diagnostics = _read_a2_eval_diagnostic_config(
+            self.config.get("eval", {})
+        )
+        eval_to_log_records = []
+
+        if eval_num_envs_episodes:
+            max_episodes = self.env.num_envs  # One episode per environment
+        else:
+            max_episodes = self.config.get("eval", {}).get("num_eval_episodes", self.env.num_envs)
+
+        if eval_num_envs_episodes:
+            self.env_episode_completed = torch.zeros(
+                self.env.num_envs, dtype=torch.bool, device=self.accelerator.device
+            )
+        eval_episode_indices = torch.zeros(
+            self.env.num_envs,
+            dtype=torch.long,
+            device=self.accelerator.device,
+        )
+        dones = torch.zeros(self.env.num_envs, device=self.accelerator.device)
+
+        # Initialize environment-based metrics tracking
+        self.env.init_eval_metrics_tracking(self.accelerator.device)
+        a2_stage2_trace_enabled = bool(getattr(self.env, "_use_a2_base", False))
+        if a2_eval_diagnostics["diagnostic_enabled"] and not a2_stage2_trace_enabled:
+            raise RuntimeError("A2 eval diagnostics can only be enabled for an A2_Base env.")
+        if a2_stage2_trace_enabled:
+            init_stage2_trace = getattr(self.env, "init_a2_eval_stage2_step_trace", None)
+            if init_stage2_trace is None:
+                raise RuntimeError(
+                    "A2 eval stage2 step trace requires "
+                    "env.init_a2_eval_stage2_step_trace()."
+                )
+            init_stage2_trace(
+                diagnostic_enabled=a2_eval_diagnostics["diagnostic_enabled"],
+                diagnostic_reward_terms=a2_eval_diagnostics["reward_terms"],
+            )
+            init_hold_oracle = getattr(self.env, "init_a2_eval_hold_oracle", None)
+            if init_hold_oracle is None:
+                raise RuntimeError("A2 eval requires env.init_a2_eval_hold_oracle().")
+            a2_hold_oracle_config = init_hold_oracle(
+                self.config.get("eval", {}),
+                diagnostic_enabled=a2_eval_diagnostics["diagnostic_enabled"],
+            )
+            if a2_hold_oracle_config["enabled"] and not eval_num_envs_episodes:
+                raise RuntimeError(
+                    "A2 hold oracle requires eval.eval_num_envs_episodes=true for strict first-episode isolation."
+                )
+            if a2_hold_oracle_config["enabled"] and a2_eval_diagnostics["forced_close_enabled"]:
+                raise RuntimeError(
+                    "A2 hold oracle and generic eval forced-close intervention are mutually exclusive."
+                )
+            hold_detail_enabled = self.env._get_a2_hold_contact_detail_enabled()
+            if hold_detail_enabled and not a2_eval_diagnostics["diagnostic_enabled"]:
+                raise RuntimeError(
+                    "A2 detailed hold diagnostics require eval.a2_diagnostic_trace_enabled=true."
+                )
+            a2_hold_runtime_metadata = None
+            if hold_detail_enabled:
+                get_hold_metadata = getattr(
+                    self.env, "get_a2_hold_diagnostic_runtime_metadata", None
+                )
+                if get_hold_metadata is None:
+                    raise RuntimeError(
+                        "A2 detailed hold diagnostics require runtime metadata getter."
+                    )
+                a2_hold_runtime_metadata = get_hold_metadata()
+        else:
+            a2_hold_oracle_config = {"enabled": False}
+            hold_detail_enabled = False
+            a2_hold_runtime_metadata = None
+
+        forced_close_stage_ids = a2_eval_diagnostics["forced_close_stages"]
+        if a2_eval_diagnostics["forced_close_enabled"]:
+            allowed_forced_close_stages = {
+                self.env.STAGE_OPEN,
+                self.env.STAGE_SWING,
+            }
+            if not set(forced_close_stage_ids).issubset(allowed_forced_close_stages):
+                raise RuntimeError(
+                    "A2 eval forced gripper close may only target stage3/open and "
+                    f"stage4/swing; got {forced_close_stage_ids}."
+                )
+        forced_close_applied_counts = torch.zeros(
+            self.env.num_envs,
+            dtype=torch.long,
+            device=self.accelerator.device,
+        )
+
+        # Initialize episode tracking
+        self.cur_reward_sum = torch.zeros(
+            self.env.num_envs, dtype=torch.float32, device=self.accelerator.device
+        )
+        self.cur_episode_length = torch.zeros(
+            self.env.num_envs, dtype=torch.int32, device=self.accelerator.device
+        )
+        completed_episodes = 0
+        self.env.render_results(frame_type="initial")
+
+        def terminate_rollout():
+            if eval_num_envs_episodes:
+                # Stop when all environments have completed their first episode
+                return torch.all(self.env_episode_completed).item()
+            else:
+                # Original behavior: stop when we have collected max_episodes episodes total
+                return completed_episodes >= max_episodes
+
+        print(
+            f"Starting evaluation with {'one episode per environment' if eval_num_envs_episodes else f'{max_episodes} total episodes'}"
+        )
+
+        with _a2_hold_oracle_finalize_guard(
+            self.env, bool(a2_hold_oracle_config["enabled"])
+        ), torch.no_grad():
+            with unwrap_model_for_generation(
+                self.model,
+                self.accelerator,
+                gather_deepspeed3_params=self.args.ds3_gather_for_generation,
+            ) as model:
+                while not terminate_rollout():
+                    device = self.accelerator.device
+                    policy_model = model.policy
+                    homie_walk_model = model.homie_walk_model
+                    homie_stand_model = model.homie_stand_model
+
+                    actor_state = {}
+
+                    provider_state = None
+                    if a2_eval_action_provider is not None:
+                        provider_state = a2_eval_action_provider(
+                            policy_model, obs_dict, cur_dones=dones
+                        )
+                        if not isinstance(provider_state, Mapping):
+                            raise RuntimeError("A2 eval action provider must return a mapping")
+                        action_mean = provider_state.get("high_level_action")
+                        if (
+                            not torch.is_tensor(action_mean)
+                            or tuple(action_mean.shape) != (self.env.num_envs, 12)
+                            or not torch.is_floating_point(action_mean)
+                            or not torch.all(torch.isfinite(action_mean))
+                        ):
+                            raise RuntimeError(
+                                "A2 eval action provider high-level action must be finite "
+                                "floating [num_envs,12]"
+                            )
+                    else:
+                        policy_model.rollout(obs_dict=obs_dict)
+                        action_mean = policy_model.action_mean.detach()
+
+                    if self.use_a2_base:
+                        get_action_layout = getattr(
+                            self.env, "get_a2_high_level_action_layout", None
+                        )
+                        if get_action_layout is None:
+                            raise RuntimeError(
+                                "A2 eval requires env.get_a2_high_level_action_layout()."
+                            )
+                        action_layout = get_action_layout()
+                        expected_action_shape = (
+                            self.env.num_envs,
+                            action_layout["dim"],
+                        )
+                        if (
+                            not torch.is_tensor(action_mean)
+                            or tuple(action_mean.shape) != expected_action_shape
+                            or not torch.is_floating_point(action_mean)
+                            or not torch.all(torch.isfinite(action_mean))
+                        ):
+                            shape = (
+                                None
+                                if not torch.is_tensor(action_mean)
+                                else tuple(action_mean.shape)
+                            )
+                            dtype = (
+                                None
+                                if not torch.is_tensor(action_mean)
+                                else action_mean.dtype
+                            )
+                            raise RuntimeError(
+                                "A2 eval policy action_mean requires finite floating tensor "
+                                f"shape {expected_action_shape}; got shape={shape}, "
+                                f"dtype={dtype}."
+                            )
+
+                        env_episode_completed = (
+                            self.env_episode_completed
+                            if eval_num_envs_episodes
+                            else None
+                        )
+                        first_episode_active_mask = (
+                            _build_a2_eval_first_episode_active_mask(
+                                eval_num_envs_episodes=eval_num_envs_episodes,
+                                env_episode_completed=env_episode_completed,
+                                num_envs=self.env.num_envs,
+                                device=action_mean.device,
+                            )
+                        )
+                        stage_buf = getattr(self.env, "stage_buf", None)
+                        forced_close_mask = _build_a2_eval_forced_close_mask(
+                            stage_buf=stage_buf,
+                            first_episode_active_mask=first_episode_active_mask,
+                            forced_close_enabled=a2_eval_diagnostics[
+                                "forced_close_enabled"
+                            ],
+                            forced_close_stage_ids=forced_close_stage_ids,
+                        )
+                        post_forced_override_pre_env_action = action_mean
+                        if provider_state is not None and (
+                            a2_eval_diagnostics["forced_close_enabled"]
+                            or a2_hold_oracle_config["enabled"]
+                        ):
+                            raise RuntimeError(
+                                "A2 eval action provider does not permit forced-close or hold-oracle intervention"
+                            )
+                        if a2_eval_diagnostics["forced_close_enabled"]:
+                            post_forced_override_pre_env_action = action_mean.clone()
+                            post_forced_override_pre_env_action[
+                                forced_close_mask,
+                                action_layout["gripper_index"],
+                            ] = a2_eval_diagnostics["forced_close_value"]
+                            forced_close_applied_counts += forced_close_mask.long()
+
+                        post_oracle_override_pre_env_action = (
+                            post_forced_override_pre_env_action
+                        )
+                        if a2_hold_oracle_config["enabled"]:
+                            apply_hold_oracle = getattr(
+                                self.env, "apply_a2_eval_hold_oracle_action_override", None
+                            )
+                            if apply_hold_oracle is None:
+                                raise RuntimeError(
+                                    "A2 hold oracle requires env action override hook."
+                                )
+                            post_oracle_override_pre_env_action, _ = apply_hold_oracle(
+                                post_forced_override_pre_env_action,
+                                first_episode_active_mask,
+                            )
+
+                        if a2_eval_diagnostics["diagnostic_enabled"]:
+                            set_diagnostic_actions = getattr(
+                                self.env, "set_a2_eval_diagnostic_actions", None
+                            )
+                            if set_diagnostic_actions is None:
+                                raise RuntimeError(
+                                    "A2 eval diagnostics require "
+                                    "env.set_a2_eval_diagnostic_actions()."
+                                )
+                            set_diagnostic_actions(
+                                policy_high_level_action_raw=action_mean,
+                                post_forced_override_pre_env_action=(
+                                    post_forced_override_pre_env_action
+                                ),
+                                forced_gripper_close_mask=forced_close_mask,
+                                first_episode_active_mask=first_episode_active_mask,
+                                episode_indices=eval_episode_indices,
+                            )
+
+                        if provider_state is not None:
+                            step_actions = provider_state.get("actions")
+                            if (
+                                not torch.is_tensor(step_actions)
+                                or tuple(step_actions.shape)
+                                != (self.env.num_envs, action_layout["dim"] + self.a2_base_action_dim)
+                                or not torch.is_floating_point(step_actions)
+                                or not torch.all(torch.isfinite(step_actions))
+                            ):
+                                raise RuntimeError(
+                                    "A2 eval action provider must return one finite composed action per env"
+                                )
+                            if not torch.equal(
+                                step_actions[:, : action_layout["dim"]],
+                                post_oracle_override_pre_env_action,
+                            ):
+                                raise RuntimeError(
+                                    "A2 eval provider composed action high-level prefix differs from diagnostic action"
+                                )
+                        else:
+                            a2_actions = model._a2_base_actions(
+                                obs_dict, post_oracle_override_pre_env_action
+                            )
+                            step_actions = torch.cat(
+                                [post_oracle_override_pre_env_action, a2_actions], dim=-1
+                            )
+                    else:
+                        homie_obs = obs_dict["homie_obs"]
+                        walk_out = homie_walk_model(homie_obs)
+                        stand_out = homie_stand_model(homie_obs)
+                        homie_one_step_obs = init_actor_critic_dict["num_one_step_obs"]
+                        commands = homie_obs[..., -homie_one_step_obs : -(homie_one_step_obs - 3)]
+                        walk_mask = (
+                            torch.norm(commands, dim=-1, keepdim=True)
+                            > self.homie_switch_threshold
+                        )
+                        m = walk_mask
+                        while m.dim() < walk_out["actions"].dim():
+                            m = m.unsqueeze(-1)
+
+                        homie_actions = torch.where(
+                            m, walk_out["action_mean"], stand_out["action_mean"]
+                        )
+                        step_actions = torch.cat([action_mean, homie_actions], dim=-1)
+
+                    actor_state["actions"] = step_actions
+
+                    obs_dict, rewards, dones, infos = self.env.step(actor_state)
+
+                    for obs_key in obs_dict.keys():
+                        obs_dict[obs_key] = obs_dict[obs_key].to(device)
+
+                    rewards, dones = rewards.to(device), dones.to(device)
+
+                    if a2_eval_action_provider is not None:
+                        provider_reset = getattr(self, "_a2_eval_action_provider_reset", None)
+                        if not callable(provider_reset):
+                            raise RuntimeError("A2 eval action provider requires an explicit reset hook")
+                        provider_reset(dones)
+
+                    if dump_eval_to_log_metrics:
+                        if "to_log" not in infos or not isinstance(infos["to_log"], dict):
+                            raise RuntimeError(
+                                "eval.dump_to_log_metrics requires env.step() infos['to_log'] "
+                                f"to be a dict; got {type(infos.get('to_log', None)).__name__}."
+                            )
+                        to_log_record = {
+                            "step_index": len(eval_to_log_records),
+                            "episode_length_buf": self.cur_episode_length.clone(),
+                            "dones": dones.clone(),
+                        }
+                        prepared_env_metrics = _prepare_a2_env_metrics_for_aggregation(
+                            infos["to_log"], self.accelerator, device
+                        )
+                        prepared_env_metrics = _finalize_a2_conditional_ratios(prepared_env_metrics)
+                        to_log_record.update(prepared_env_metrics)
+                        eval_to_log_records.append(to_log_record)
+
+                    self.cur_reward_sum += rewards
+                    self.cur_episode_length += 1
+
+                    self.env.update_eval_metrics_per_step(infos)
+
+                    new_ids = (dones > 0).nonzero(as_tuple=False)
+
+                    if len(new_ids) > 0:
+                        if eval_num_envs_episodes:
+                            valid_new_ids = new_ids[~self.env_episode_completed[new_ids][:, 0]]
+                        else:
+                            valid_new_ids = new_ids
+
+                        if len(valid_new_ids) > 0:
+                            completed_episodes += len(valid_new_ids)
+
+                            self.env.process_eval_episode_completions(
+                                valid_new_ids, self.cur_reward_sum, self.cur_episode_length
+                            )
+
+                            for env_idx in valid_new_ids:
+                                reward = self.cur_reward_sum[env_idx].item()
+                                length = self.cur_episode_length[env_idx].item()
+
+                            if eval_num_envs_episodes:
+                                self.env_episode_completed[valid_new_ids] = True
+
+                        self.cur_reward_sum[new_ids] = 0
+                        self.cur_episode_length[new_ids] = 0
+                        eval_episode_indices[new_ids.flatten()] += 1
+
+                        # Reset environment episode tracking
+                        self.env.reset_eval_episode_tracking(new_ids)
+
+                        if not terminate_rollout():
+                            if eval_num_envs_episodes:
+                                restart_env_ids = new_ids[
+                                    ~self.env_episode_completed[new_ids][:, 0]
+                                ]
+                            else:
+                                restart_env_ids = new_ids
+                            self.env.render_results(
+                                env_ids=restart_env_ids.flatten(), frame_type="initial"
+                            )
+
+                    if not terminate_rollout():
+                        non_terminal_env_ids = (dones == 0).nonzero(as_tuple=False).flatten()
+                        if eval_num_envs_episodes:
+                            non_terminal_env_ids = non_terminal_env_ids[
+                                ~self.env_episode_completed[non_terminal_env_ids]
+                            ]
+                        self.env.render_results(env_ids=non_terminal_env_ids, frame_type="step")
+
+        self.env.end_render_results()
+        if a2_eval_action_provider is not None:
+            provider_end = getattr(self, "_a2_eval_action_provider_end", None)
+            if not callable(provider_end):
+                raise RuntimeError("A2 eval action provider requires an explicit end hook")
+            provider_end()
+        else:
+            self.policy_model.clear_rollout()
+        print(f"Evaluation completed - {completed_episodes} episodes finished")
+
+        # Get evaluation summary from environment (includes class-wise metrics)
+        eval_dict = self.env.get_eval_metrics_summary()
+        eval_dict["completed_episodes"] = completed_episodes
+
+        # save eval_dict to a file
+        import json
+        import os
+
+        eval_output_dir = getattr(self.args, "eval_output_dir", self.args.output_dir)
+        if not os.path.exists(eval_output_dir):
+            os.makedirs(eval_output_dir, exist_ok=True)
+
+        if dump_eval_to_log_metrics:
+            to_log_metrics_path = os.path.join(eval_output_dir, "eval_to_log_metrics.json")
+            to_log_metrics_tmp_path = f"{to_log_metrics_path}.tmp"
+            # Eval-only conversion; training keeps raw finite tensor metrics in its meter.
+            _normalize_a2_eval_optional_ratios(eval_to_log_records)
+            safe_to_log_metrics = _make_json_safe(
+                eval_to_log_records, path="eval_to_log_metrics"
+            )
+            with open(to_log_metrics_tmp_path, "w") as f:
+                json.dump(safe_to_log_metrics, f, indent=4, allow_nan=False)
+            os.replace(to_log_metrics_tmp_path, to_log_metrics_path)
+            logger.info(f"Saved eval to_log metrics to {to_log_metrics_path}")
+
+        if a2_eval_diagnostics["diagnostic_enabled"]:
+            get_action_layout = getattr(
+                self.env, "get_a2_high_level_action_layout", None
+            )
+            get_hinge_threshold = getattr(
+                self.env, "_get_a2_stage3_to4_door_hinge_threshold", None
+            )
+            if get_action_layout is None or get_hinge_threshold is None:
+                raise RuntimeError(
+                    "A2 eval diagnostic metadata requires canonical action layout and "
+                    "stage3->4 hinge threshold accessors."
+                )
+            diagnostic_metadata = {
+                "diagnostic_trace_enabled": True,
+                "reward_terms": list(a2_eval_diagnostics["reward_terms"]),
+                "forced_gripper_close_enabled": a2_eval_diagnostics[
+                    "forced_close_enabled"
+                ],
+                "forced_gripper_close_value": a2_eval_diagnostics[
+                    "forced_close_value"
+                ],
+                "forced_gripper_close_stages": list(forced_close_stage_ids),
+                "forced_gripper_close_applied_counts": forced_close_applied_counts,
+                "canonical_high_level_action_layout": get_action_layout(),
+                "stage3_to4_door_hinge_threshold": get_hinge_threshold(),
+                "trace_timing": {
+                    "policy_and_post_forced_override": (
+                        "computed from the pre-step observation and pre-step stage_buf"
+                    ),
+                    "post_delta_post_warp_env_action": (
+                        "captured inside A2Base after DeltaActionBase and "
+                        "WarpedActionBase, before action-to-joint-target mapping"
+                    ),
+                    "articulation_state_contact_reward": (
+                        "captured after physics tensor refresh and reward computation, "
+                        "before reset and before staged-task stage advancement"
+                    ),
+                    "joint_pos_target": (
+                        "the Articulation position target used for the completed physics "
+                        "step, read after physics and before reset"
+                    ),
+                    "stage_buf": "pre-stage-advance for the completed physics step",
+                },
+                "first_episode_contract": (
+                    "when eval_num_envs_episodes=true, intervention, counts, and expanded "
+                    "trace include only envs whose first episode is still active; "
+                    "episode_index audits reset boundaries"
+                ),
+            }
+            diagnostic_metadata_path = os.path.join(
+                eval_output_dir, "a2_eval_diagnostic_metadata.json"
+            )
+            diagnostic_metadata_tmp_path = f"{diagnostic_metadata_path}.tmp"
+            safe_diagnostic_metadata = _make_json_safe(
+                diagnostic_metadata, path="a2_eval_diagnostic_metadata"
+            )
+            with open(diagnostic_metadata_tmp_path, "w") as f:
+                json.dump(safe_diagnostic_metadata, f, indent=4, allow_nan=False)
+            os.replace(diagnostic_metadata_tmp_path, diagnostic_metadata_path)
+            logger.info(
+                "Saved A2 eval diagnostic metadata to "
+                f"{diagnostic_metadata_path}"
+            )
+
+        if hold_detail_enabled:
+            hold_metadata_path = os.path.join(
+                eval_output_dir, "a2_hold_diagnostic_runtime_metadata.json"
+            )
+            hold_metadata_tmp_path = f"{hold_metadata_path}.tmp"
+            safe_hold_metadata = _make_json_safe(
+                a2_hold_runtime_metadata, path="a2_hold_diagnostic_runtime_metadata"
+            )
+            with open(hold_metadata_tmp_path, "w") as f:
+                json.dump(safe_hold_metadata, f, indent=4, allow_nan=False)
+            os.replace(hold_metadata_tmp_path, hold_metadata_path)
+            logger.info(f"Saved A2 hold runtime metadata to {hold_metadata_path}")
+
+        if a2_hold_oracle_config["enabled"]:
+            get_hold_summary = getattr(self.env, "get_a2_hold_oracle_summary", None)
+            if get_hold_summary is None:
+                raise RuntimeError("A2 hold oracle requires env summary getter.")
+            hold_summary_path = os.path.join(
+                eval_output_dir, "a2_hold_oracle_summary.json"
+            )
+            hold_summary_tmp_path = f"{hold_summary_path}.tmp"
+            safe_hold_summary = _make_json_safe(
+                get_hold_summary(), path="a2_hold_oracle_summary"
+            )
+            with open(hold_summary_tmp_path, "w") as f:
+                json.dump(safe_hold_summary, f, indent=4, allow_nan=False)
+            os.replace(hold_summary_tmp_path, hold_summary_path)
+            logger.info(f"Saved A2 hold oracle summary to {hold_summary_path}")
+
+        if a2_stage2_trace_enabled:
+            get_stage2_trace = getattr(
+                self.env, "get_a2_eval_stage2_step_trace_records", None
+            )
+            if get_stage2_trace is None:
+                raise RuntimeError(
+                    "A2 eval stage2 step trace requires "
+                    "env.get_a2_eval_stage2_step_trace_records()."
+                )
+            safe_stage2_trace = _make_json_safe(
+                get_stage2_trace(), path="stage2_step_trace"
+            )
+            for trace_filename in ("stage2_5_step_trace.json", "stage2_step_trace.json"):
+                stage2_trace_path = os.path.join(eval_output_dir, trace_filename)
+                stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
+                with open(stage2_trace_tmp_path, "w") as f:
+                    json.dump(safe_stage2_trace, f, indent=4, allow_nan=False)
+                os.replace(stage2_trace_tmp_path, stage2_trace_path)
+                logger.info(f"Saved A2 stage2-5 step trace to {stage2_trace_path}")
+
+            if a2_eval_diagnostics["diagnostic_enabled"]:
+                get_stage0_1_trace = getattr(
+                    self.env, "get_a2_eval_stage0_1_step_trace_records", None
+                )
+                if get_stage0_1_trace is None:
+                    raise RuntimeError(
+                        "A2 expanded eval diagnostics require "
+                        "env.get_a2_eval_stage0_1_step_trace_records()."
+                    )
+                safe_stage0_1_trace = _make_json_safe(
+                    get_stage0_1_trace(), path="stage0_1_step_trace"
+                )
+                stage0_1_trace_path = os.path.join(
+                    eval_output_dir, "stage0_1_step_trace.json"
+                )
+                stage0_1_trace_tmp_path = f"{stage0_1_trace_path}.tmp"
+                with open(stage0_1_trace_tmp_path, "w") as f:
+                    json.dump(safe_stage0_1_trace, f, indent=4, allow_nan=False)
+                os.replace(stage0_1_trace_tmp_path, stage0_1_trace_path)
+                logger.info(f"Saved A2 stage0/1 step trace to {stage0_1_trace_path}")
+
+        metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
+        metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"
+        safe_eval_dict = _make_json_safe(eval_dict)
+        with open(metrics_eval_tmp_path, "w") as f:
+            json.dump(safe_eval_dict, f, indent=4, allow_nan=False)
+        os.replace(metrics_eval_tmp_path, metrics_eval_path)
+
+        logger.info(f"Saved eval_dict to {metrics_eval_path}")  # self.args.eval_output_dir
+
+        return eval_dict
+
+    def batch_write_frame(self, vision_obs):
+        """
+        vision_obs: [B, H*W*C], [0, 1/255], float32 (The range is a bug)
+        This function is for eval time, save all envs' frames,
+            as opposed to write_frame, which is for training time, only save the frames for self.visualize_env_idx
+        """
+        flattened_rgb_images = vision_obs.clone()
+
+        batch_size = flattened_rgb_images.shape[0]
+
+        rgb_images = flattened_rgb_images.reshape(
+            batch_size, *self.camera_resolution
+        )  # [B, H, W, C]
+
+        # To uint8
+        rgb_images = (rgb_images * 255.0).to(torch.uint8)  # [B, H, W, C]
+
+        # Append to frames list
+        for i in range(self.env.num_envs):
+            self.batch_frames[i].append(rgb_images[i])  # [H, W, C]
+
+    def batch_write_low_dim_obs(
+        self,
+        actor_obs,
+        student_obs,
+        actions,
+        rewards,
+        dones,
+    ):
+        """
+        actor_obs: [B, dim_actor_obs]
+        student_obs: [B, dim_student_obs]
+        actions: [B, dim_actions]
+        rewards: [B]
+        dones: [B]
+        """
+        for i in range(self.env.num_envs):
+            self.actor_obs_to_save[i].append(actor_obs[i].cpu().numpy())
+            self.student_obs_to_save[i].append(student_obs[i].cpu().numpy())
+            self.actions_to_save[i].append(actions[i].cpu().numpy())
+            self.reward_to_save[i].append(rewards[i].item())
+            # Convert to bool
+            self.done_to_save[i].append(bool(dones[i].item()))
+
+    def batch_reset_data_writer(self, env_indices, save_dirpath):
+        """
+        :param env_indices: list of env indices that have finished the episode
+        """
+        for env_idx in env_indices:
+            do_not_save = False
+
+            cur_reward_sum = self.cur_reward_sum[env_idx].item()
+            goal_reached = self.goal_reached_buf[env_idx].item()
+
+            if self.config.eval.save_goal_reached_only:
+                if goal_reached == 0:
+                    do_not_save = True
+
+            if np.random.rand() > self.config.eval.video_save_prob:
+                do_not_save = True
+
+            if do_not_save:
+                # Simply empty the buffers
+                self.batch_frames[env_idx] = []
+                if self.config.eval.save_trajectories:
+                    self.actor_obs_to_save[env_idx] = []
+                    self.student_obs_to_save[env_idx] = []
+                    self.actions_to_save[env_idx] = []
+                    self.reward_to_save[env_idx] = []
+                    self.done_to_save[env_idx] = []
+                continue
+
+            # Video saving
+            video_save_dirpath = Path(save_dirpath) / "videos"
+
+            save_filename = f"eps{self.saved_episode_cnt}_env{env_idx.item()}_len{len(self.batch_frames[env_idx])}_reward{cur_reward_sum:.2f}_goal{int(goal_reached)}_rank{self.accelerator.process_index}"
+            video_path = video_save_dirpath / f"{save_filename}.mp4"
+            video_path.parent.mkdir(parents=True, exist_ok=True)
+
+            video_tensor = torch.stack(self.batch_frames[env_idx][1:])  # [T, H, W, C]
+
+            fps = 20
+            torchvision.io.write_video(str(video_path), video_tensor, fps=fps, video_codec="h264")
+
+            # print(f"Video saved to {video_path}")
+
+            self.batch_frames[env_idx] = []
+            self.saved_episode_cnt += 1
+
+            # Low dim data saving
+            if self.config.eval.save_trajectories:
+                low_dim_data_save_dirpath = Path(save_dirpath) / "data"
+                low_dim_data_save_dirpath.mkdir(parents=True, exist_ok=True)
+
+                save_data = {
+                    "observation.state": self.student_obs_to_save[env_idx][1:],
+                    "actor_obs": self.actor_obs_to_save[env_idx][1:],
+                    "action": self.actions_to_save[env_idx][1:],
+                    "reward": self.reward_to_save[env_idx][1:],
+                    "done": self.done_to_save[env_idx][1:],
+                }
+
+                episode_length = len(video_tensor)
+                for key, value in save_data.items():
+                    assert len(value) == episode_length, f"{key}: {len(value)} != {episode_length}"
+
+                save_data["timestamp"] = np.arange(episode_length) / fps
+
+                data_save_path = low_dim_data_save_dirpath / f"{save_filename}.parquet"
+
+                df = pd.DataFrame(save_data)
+                df.to_parquet(data_save_path)
+
+                # Empty the buffers
+                self.actor_obs_to_save[env_idx] = []
+                self.student_obs_to_save[env_idx] = []
+                self.actions_to_save[env_idx] = []
+                self.reward_to_save[env_idx] = []
+                self.done_to_save[env_idx] = []
+
+            if self.saved_episode_cnt >= self.config.eval.num_save_episodes:
+                break
+
+    @torch.no_grad()
+    def get_example_obs(self):
+        obs_dict = self.env.reset_all()
+        for obs_key in obs_dict.keys():
+            print(obs_key, sorted(self.env.config.obs.obs_dict[obs_key]))
+        # move to cpu
+        for k in obs_dict:
+            obs_dict[k] = obs_dict[k].cpu()
+        return obs_dict
+
+    @property
+    def inference_model(self):
+        return {"actor": self.model.policy, "critic": self.model.value_model}

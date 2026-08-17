@@ -15,14 +15,19 @@ from transformers import TrainerCallback
 class ModelSaveCallback(TrainerCallback):
     """Callback to save model state_dict during training."""
 
-    def __init__(self, save_dir, save_frequency=1000):
+    def __init__(self, save_dir, save_frequency=1000, strict_mode=False):
         """
         Args:
             save_dir (str): Directory to save model checkpoints
             save_frequency (int): Save model every N steps
         """
         self.save_dir = Path(save_dir)
+        if isinstance(save_frequency, bool) or not isinstance(save_frequency, int) or save_frequency <= 0:
+            raise ValueError(f"save_frequency must be a positive integer; got {save_frequency!r}")
         self.save_frequency = save_frequency
+        if type(strict_mode) is not bool:
+            raise TypeError(f"strict_mode must be an exact bool; got {strict_mode!r}")
+        self.strict_mode = strict_mode
         self.save_dir.mkdir(parents=True, exist_ok=True)
 
     def on_step_end(self, args, state, control, **kwargs):
@@ -31,6 +36,35 @@ class ModelSaveCallback(TrainerCallback):
         optimizer = kwargs.get("optimizer")
         lr_scheduler = kwargs.get("lr_scheduler")
         env = kwargs.get("env")
+
+        if self.strict_mode:
+            if not state.is_world_process_zero:
+                return control
+            if env is None:
+                raise RuntimeError("strict checkpoint persistence requires the environment")
+            accelerator = kwargs.get("accelerator")
+            if accelerator is not None and hasattr(accelerator, "unwrap_model"):
+                model = accelerator.unwrap_model(model)
+            elif type(model).__name__ == "DistributedDataParallel":
+                model = model.module
+            if type(model).__name__ == "DistributedDataParallel":
+                raise RuntimeError("strict checkpoint persistence received a wrapped model")
+            if state.global_step % self.save_frequency == 0 and not env.is_evaluating:
+                save_path = self.save_dir / f"model_step_{state.global_step:06d}.pt"
+                if save_path.name == "last.pt" or save_path.name.endswith("_last.pt"):
+                    raise RuntimeError("strict checkpoint persistence forbids mutable checkpoint names")
+                env_state_dict = env.get_env_state_dict()
+                self.save_checkpoint(
+                    model,
+                    optimizer,
+                    lr_scheduler,
+                    state,
+                    env_state_dict,
+                    args,
+                    str(save_path),
+                    strict_persistence=True,
+                )
+            return control
 
         if (
             state.is_world_process_zero
@@ -89,7 +123,8 @@ class ModelSaveCallback(TrainerCallback):
 
     @classmethod
     def save_checkpoint(
-        cls, model, optimizer, lr_scheduler, state, env_state_dict, args, save_path
+        cls, model, optimizer, lr_scheduler, state, env_state_dict, args, save_path,
+        strict_persistence=False,
     ):
         if model is not None:
             # Save model, optimizer, scheduler and training state
@@ -110,13 +145,17 @@ class ModelSaveCallback(TrainerCallback):
             }
             if hasattr(model, "homie_model") and model.homie_model is not None:
                 checkpoint["homie_state_dict"] = model.homie_model.state_dict()
-            for attempt in range(5):
-                try:
-                    torch.save(checkpoint, save_path)
-                    print(f"Saved model checkpoint to {save_path}")
-                    break
-                except Exception as e:
-                    if attempt == 4:  # Last attempt
-                        print(f"Failed to save checkpoint after 5 attempts. Error: {e}")
-                        raise
-                    print(f"Attempt {attempt + 1} failed to save checkpoint. Retrying...")
+            if strict_persistence:
+                torch.save(checkpoint, save_path)
+                print(f"Saved strict rank-zero checkpoint to {save_path}")
+            else:
+                for attempt in range(5):
+                    try:
+                        torch.save(checkpoint, save_path)
+                        print(f"Saved model checkpoint to {save_path}")
+                        break
+                    except Exception as e:
+                        if attempt == 4:  # Last attempt
+                            print(f"Failed to save checkpoint after 5 attempts. Error: {e}")
+                            raise
+                        print(f"Attempt {attempt + 1} failed to save checkpoint. Retrying...")

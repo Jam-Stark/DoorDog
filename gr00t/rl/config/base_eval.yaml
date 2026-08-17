@@ -1,6 +1,7 @@
 # @package _global_
 
 checkpoint: ???
+checkpoint_load_mode: full
 
 # algo:
 #   config:
@@ -20,12 +21,97 @@ algo:
       # The following two parameters are about saving trajectories
       save_trajectories: false
       num_save_episodes: 200  # number of episodes to save per device; will override num_eval_episodes
+
+      # A2 eval-only causal diagnostics. The expanded step trace is opt-in;
+      # forced close is additionally gated on the expanded trace for auditability.
+      a2_diagnostic_trace_enabled: false
+      a2_diagnostic_reward_terms:
+        - gripper_handle_orientation
+        - grasp_target_distance
+        - grasp
+        - penalty_not_standing_still
+        - push_door_handle
+        - push_door_hinge
+        - dont_push_door_handle
+        - target_root_distance
+        - penalty_standing_still
+        - stage
+        - penalty_door_frame_contact
+        - penalty_door_panel_contact
+        - penalty_base_roll_pitch_l2
+      a2_forced_gripper_close_enabled: false
+      a2_forced_gripper_close_value: -1.0
+      a2_forced_gripper_close_stages: [3, 4]
+      # Formal-eval, first-episode-only deterministic hold oracle. The normal
+      # policy path is bit-for-bit unchanged while this flag is false.
+      a2_hold_oracle_enabled: false
+      a2_hold_oracle_center_timeout_steps: 80
+      a2_hold_oracle_center_position_tolerance_m: 0.005
+      a2_hold_oracle_center_orientation_tolerance_rad: 0.10
+      a2_hold_oracle_depress_timeout_steps: 100
+      a2_hold_oracle_push_timeout_steps: 150
+      a2_hold_oracle_depress_offset_m: 0.012
+      a2_hold_oracle_push_offset_m: 0.012
+      a2_hold_oracle_offset_ramp_steps: 20
+      a2_hold_oracle_sign_smoke_steps: 10
+      a2_hold_oracle_sign_min_delta: 0.005
+      a2_hold_oracle_handle_target_rad: 0.50
+      a2_hold_oracle_hinge_progress_target_rad: 0.20
+      a2_hold_oracle_contact_slip_grace_steps: 5
+      a2_hold_oracle_dls_lambda: 0.01
+      a2_hold_oracle_max_position_step_m: 0.002
+      a2_hold_oracle_max_orientation_step_rad: 0.02
+      a2_hold_oracle_jacobian_condition_max: 1000000.0
+      a2_hold_oracle_joint_limit_margin: 0.0001
+      a2_hold_oracle_soft_limit_progress_tolerance: 0.000001
+      a2_hold_oracle_raw_action_abs_max: 10.0
+      # Eval-only deterministic base relief. Relief steps still consume the
+      # current oracle phase timeout budget.
+      a2_hold_oracle_base_relief_speed_mps: 0.15
+      a2_hold_oracle_base_relief_sign_window_steps: 20
+      a2_hold_oracle_base_relief_min_residual_decrease_m: 0.001
+      a2_hold_oracle_base_relief_timeout_steps: 60
+      a2_hold_oracle_base_relief_max_displacement_m: 0.10
+      a2_hold_oracle_base_relief_min_solvable_horizontal_error_m: 0.002
+      # Eval-only anti-backdrive probe. When enabled, the oracle snapshots the
+      # close-gate gripper gains, writes these static gains for exactly the
+      # configured number of physics actions, then restores the snapshot.
+      a2_hold_oracle_static_clamp_enabled: false
+      a2_hold_oracle_static_clamp_steps: 40
+      a2_hold_oracle_static_clamp_stiffness: 80.0
+      a2_hold_oracle_static_clamp_damping: 3.0
+      a2_hold_oracle_static_clamp_offset_probe_enabled: false
+      a2_hold_oracle_static_clamp_offset_m: 0.0
+      a2_hold_oracle_static_clamp_offset_placement_steps: 20
+      a2_hold_oracle_static_clamp_offset_position_tolerance_m: 0.0005
+      a2_hold_oracle_static_clamp_offset_orientation_tolerance_rad: 0.02
+      a2_hold_oracle_open_stabilization_preflight_enabled: false
+      a2_hold_oracle_open_stabilization_steps: 40
+      a2_hold_oracle_open_stabilization_quiet_window_steps: 5
+      a2_hold_oracle_open_stabilization_root_linear_speed_max_mps: 0.01
+      a2_hold_oracle_open_stabilization_root_angular_speed_max_radps: 0.02
+      a2_hold_oracle_open_stabilization_pose_per_call_translation_max_m: 0.0005
+      a2_hold_oracle_open_stabilization_pose_per_call_rotation_max_rad: 0.0005
+      a2_hold_oracle_open_stabilization_pose_window_translation_max_m: 0.001
+      a2_hold_oracle_open_stabilization_pose_window_rotation_max_rad: 0.002
+      a2_hold_oracle_open_stabilization_contact_force_max_n: 1.0
+      # Eval-only matched clean reacquisition / stabilize-before-capture Phase-0.
+      # Mutually exclusive with static clamp, offset probe, and old open stabilization.
+      a2_hold_oracle_matched_clean_reacquisition_preflight_enabled: false
+      a2_hold_oracle_matched_clean_retreat_timeout_steps: 80
+      a2_hold_oracle_matched_clean_release_qualification_steps: 5
+      a2_hold_oracle_matched_clean_pregrasp_position_tolerance_m: 0.005
+      a2_hold_oracle_matched_clean_pregrasp_orientation_tolerance_rad: 0.10
       
 
 eval_timestamp: ${now:%Y%m%d_%H%M%S}
 eval_name: TEST
 eval_base_dir: logs_eval
-eval_log_dir: ${eval_base_dir}/${eval_timestamp}-${eval_name}
+eval_output_dir: ${eval_base_dir}/${eval_timestamp}-${eval_name}
+eval_log_dir: ${eval_output_dir}
+env:
+  config:
+    save_rendering_dir: ${eval_output_dir}/renderings
 hydra:
   run:
     dir: ${eval_log_dir}

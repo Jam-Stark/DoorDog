@@ -27,6 +27,9 @@ class DeltaActionBase(LeggedRobotBase):
             self.num_envs, len(self._delta_action_indices), device=self.device, requires_grad=False
         )
 
+    def _apply_delta_action_overrides(self):
+        pass
+
     # @override
     # def step(self, actor_state):
     #     actions = actor_state["actions"]
@@ -61,6 +64,7 @@ class DeltaActionBase(LeggedRobotBase):
         self._delta_actions = torch.clamp(
             self._delta_actions, -delta_actions_clip, delta_actions_clip
         )
+        self._apply_delta_action_overrides()
 
         # Configration - 0
         # self._delta_actions[:, :3] *= 0.0
@@ -112,7 +116,7 @@ class DeltaActionBase(LeggedRobotBase):
                     .nonzero(as_tuple=False)
                     .squeeze(-1)
                 )
-                actor_state["actions"][zero_env_ids, 10] = 0.5
+                actor_state["actions"][zero_env_ids, 11] = 0.5
 
         if self.config.get("print_delta_actions", False):
             logger.info(f"policy actions: {self._last_delta_actions}")

@@ -1,0 +1,96 @@
+# @package _global_
+
+# Eval-only D435i landscape pitch sweep. Ranking and human review deliberately
+# target stage0-3; stage4-5 handle visibility is outside this ablation gate.
+simulator:
+  config:
+    cameras:
+      enable_cameras: true
+      camera_parent: trunk
+      camera_prim_suffix: d435i_landscape_pitch_sweep_camera
+      camera_pos: [0.28, 0.0, 0.25]
+      camera_rot_wxyz: [0.9238795325112867, 0.0, -0.3826834323650898, 0.0]
+      camera_convention: world
+      camera_focal_length: 1.0
+      camera_focus_distance: 0.5
+      camera_horizontal_aperture: 1.3745619172032262
+      camera_vertical_aperture: 0.7731910784268148
+      camera_clipping_range: [0.1, 20.0]
+      camera_update_period: 0.0
+      colorize_instance_id_segmentation: false
+      camera_types:
+        - rgb: true
+        - instance_id_segmentation_fast: true
+      camera_resolutions: [216, 384]
+      eval_camera_resolutions: [216, 384]
+      image_mean: [0.485, 0.456, 0.406]
+      image_std: [0.229, 0.224, 0.225]
+    render_results: false
+
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_camera_pose_sweep.DoorPregraspCameraPoseSweep
+  config:
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_camera_pose_sweep:
+      enabled: true
+      sample_interval_control_steps: 5
+      ranking_stage_indices: [0, 1, 2, 3]
+      video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_dir: ${eval_output_dir}/d435i_landscape_stage0_3_pitch_videos
+      minimum_visible_pixels:
+        handle: 8
+        finger7: 4
+        finger8: 4
+        door_panel: 64
+      target_path_tokens:
+        handle: /door/door_handle
+        finger7: /Robot/arm_body7
+        finger8: /Robot/arm_body8
+        door_panel: /door/door_panel
+      nominal_intrinsics:
+        source: Intel RealSense D435i nominal RGB FoV; landscape housing; not calibrated hardware
+        isaaclab_projection: preserve landscape horizontal FoV with centered square pixels
+        native_resolution: [1080, 1920]
+        native_fov_deg: [42.0, 69.0]
+        policy_resolution: [216, 384]
+        physical_housing_rotation_deg: 0.0
+        sim_policy_fx_fy_cx_cy: [279.36173350510944, 279.36173350510944, 192.0, 108.0]
+        sim_effective_fov_deg: [42.27255895009058, 69.0]
+      candidates:
+        - name: pitch_up45_control
+          role: control
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9238795325112867, 0.0, -0.3826834323650898, 0.0]
+          rpy_deg: [0.0, -45.0, 0.0]
+        - name: pitch_up30
+          role: search
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9659258262890683, 0.0, -0.25881904510252074, 0.0]
+          rpy_deg: [0.0, -30.0, 0.0]
+        - name: pitch_up35
+          role: search
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9537169507482269, 0.0, -0.3007057995042731, 0.0]
+          rpy_deg: [0.0, -35.0, 0.0]
+        - name: pitch_up40
+          role: search
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9396926207859084, 0.0, -0.3420201433256687, 0.0]
+          rpy_deg: [0.0, -40.0, 0.0]
+        - name: pitch_up50
+          role: search
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9063077870366499, 0.0, -0.42261826174069944, 0.0]
+          rpy_deg: [0.0, -50.0, 0.0]
+
+algo:
+  config:
+    eval:
+      eval_num_envs_episodes: true
+      num_eval_episodes: 16
+      save_videos: false
+      save_trajectories: false

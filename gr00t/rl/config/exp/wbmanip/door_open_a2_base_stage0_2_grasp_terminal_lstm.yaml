@@ -1,0 +1,132 @@
+# @package _global_
+
+defaults:
+  - /algo: ppo
+  - /env: door_open_a2_base
+  - /simulator: isaacsim
+  - /domain_rand: NO_domain_rand
+  - /rewards: wbmanip/reward_door_open_a2_base
+  - /robot: A2_Piper/a2_piper
+  - /terrain: terrain_locomotion_plane
+  - /obs: wbmanip/door_open_a2_base
+  - /opt: wandb
+  - override /trainer: trl_a2_base_api
+
+exp_base: ${hydra:runtime.choices.exp}
+exp_var: lstm
+experiment_name: door_open_a2_base_stage0_2_grasp_terminal_lstm
+experiment_dir: ${base_dir}/${project_name}/${experiment_name}-${timestamp}
+
+num_envs: 4096
+project_name: a2_piper_stage0_2_grasp_terminal_a2_base
+
+algo:
+  config:
+    entropy_coef: 0.01
+    use_new_actor_critic: True
+    num_steps_per_env: 64
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    use_padding_mask: False
+    ppo_shuffle_every_epoch: True
+    sync_advantage_normalization: True
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    use_a2_base: True
+    a2_base:
+      enabled: True
+      policy_path: ./gr00t/rl/data/policies/A2_Base/policy.pt
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      obs_dim: 1620
+      action_dim: 12
+      command_scale: 0.25
+      command_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      body_pitch_roll_scale: 0.4
+      action_sigma: 0.0
+    base_command_dim: 5
+    manipulation_action_dim: 7  # 6D Piper arm + 1D gripper primitive
+    opt_homie: False
+    desired_kl: 0.005
+
+    init_noise_std: 0.8
+    max_noise_std: 0.8
+    clamp_noise_std: True
+    save_interval: 500
+
+    gamma: 0.9975
+    lam: 0.985
+
+    init_at_random_ep_len: True
+
+    actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
+      running_mean_std: True
+      rnn_type: "lstm"
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          input_dim: [actor_obs]
+          output_dim:
+            - ${eval:'${algo.config.base_command_dim} + ${algo.config.manipulation_action_dim}'}
+          layer_config:
+            type: MLP
+            hidden_dims: [512, 256, 128]
+            activation: SiLU
+    critic:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentCritic
+      running_mean_std: True
+      rnn_type: "lstm"
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          type: MLP
+          input_dim: [critic_obs]
+          output_dim: [1]
+          layer_config:
+            type: MLP
+            hidden_dims: [512, 256, 128]
+            activation: SiLU
+
+simulator:
+  config:
+    scene:
+      replicate_physics: False
+      env_spacing: 20.0
+    sim:
+      physx:
+        num_position_iterations: 4
+        num_velocity_iterations: 0
+        max_depenetration_velocity: 300.0
+
+robot:
+  asset:
+    self_collisions: 0
+  use_primitive: False
+  actions_dim: 20
+  check_action_dim: True
+  terminate_after_contacts_on : []
+
+env:
+  config:
+    max_stage_time: [250, 100, 100]
+    stage_reward_scale: [1.0, 1.0, 1.0]
+    staged_reset_ratios: [0.6, 0.2, 0.2]
+    reset_on_complete: True
+    reset_on_complete_delay: 0
+    reset_from_dataset:
+      enabled: False
+
+rewards:
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 0.0
+    push_door_force: 0.0
+    dont_push_door_handle: 0.0
+    target_root_distance: 0.0
+    penalty_standing_still: 0.0

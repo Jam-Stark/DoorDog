@@ -14,6 +14,7 @@
 
 ## Notes For This Repo
 
+- 当任务涉及 IsaacLab API、AppLauncher、standalone workflow、SimulationContext、InteractiveScene、asset conversion 或版本相关行为时，优先用 Context7 查询 official docs；再用 local source checkout `/home/baoquanc/workspace/IsaacLab` 对照当前安装行为。
 - AppLauncher / standalone workflow: simulation apps should be launched before simulation-dependent imports; use this to interpret direct import smoke failures.
 - Pip package / Isaac Sim compatibility: current docs index includes Isaac Sim `5.1.0` pip package route and IsaacLab pip installation route; local repo memory records Isaac Sim `5.1`.
 - IsaacLab source checkout exists at `/home/baoquanc/workspace/IsaacLab`; prefer local source for exact installed behavior and official docs for version-aware workflow expectations.

@@ -1,0 +1,64 @@
+# @package _global_
+
+# Current-source v10_A scratch factorial, not a historical v9 reproduction.
+# Cell A: Kp/Kd = 80/3; H = 0.5. H is the proposed mild single-scalar
+# factor on a2_stage3_stage4_contact_stability.
+
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+headless: true
+
+algo:
+  trl:
+    num_total_batches: 3000
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_stage2_contact_force_threshold: 1.0
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_base_unlocked: false
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_initial_penalty_scale: 1.0
+  reward_min_penalty_scale: 1.0
+  reward_max_penalty_scale: 1.0
+  reward_penalty_degree: 0.0
+  reward_scales:
+    push_door_handle: 6.0
+    push_door_hinge: 6.0
+    push_door_force: 0.0
+    a2_stage3_stage4_keep_close_command: 0.5
+    penalty_a2_stage3_stage4_open_command: -1.0
+    a2_stage3_stage4_both_contact: 0.5
+    a2_stage3_stage4_opposite_squeeze: 0.5
+    a2_stage3_stage4_squeeze_force_window: 0.5
+    a2_stage3_stage4_contact_stability: 0.5
+    penalty_a2_stage3_stage4_over_force: -1.0
+
+robot:
+  control:
+    # Only j7/j8 leaves are overridden; the complete gain mapping stays in
+    # robot/A2_Piper/a2_piper.yaml.
+    stiffness:
+      arm_j7: 80.0
+      arm_j8: 80.0
+    damping:
+      arm_j7: 3.0
+      arm_j8: 3.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 1

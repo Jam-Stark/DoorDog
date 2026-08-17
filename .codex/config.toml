@@ -1,0 +1,52 @@
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
+
+[features.multi_agent_v2]
+enabled = true
+max_concurrent_threads_per_session = 6
+hide_spawn_agent_metadata = false
+tool_namespace = "agents"
+
+[agents]
+max_depth = 1
+interrupt_message = true
+
+[agents.role_probe]
+description = "Read-only sentinel for continuing effective child role, model, effort, sandbox, and no-write observability evidence."
+config_file = "agents/role-probe.toml"
+
+[agents.scope_planner]
+description = "Read-only planner for scope, architecture, dependency DAGs, acceptance criteria, and approval-ready plans."
+config_file = "agents/scope-planner.toml"
+
+[agents.context_researcher]
+description = "Read-only researcher for repository discovery, IsaacLab documentation, memory experience, and memory-context review."
+config_file = "agents/context-researcher.toml"
+
+[agents.deep_researcher]
+description = "User-approved-only read-only Sol Ultra researcher for questions normal lanes cannot resolve."
+config_file = "agents/deep-researcher.toml"
+
+[agents.isaaclab_worker]
+description = "Lease-bound IsaacLab implementation and debugging worker for approved product changes."
+config_file = "agents/isaaclab-worker.toml"
+
+[agents.goal_reviewer]
+description = "Independent read-only goal and constraint reviewer for plan and frozen-candidate gates."
+config_file = "agents/goal-reviewer.toml"
+
+[agents.code_reviewer]
+description = "Independent read-only code-quality reviewer with conditional security, performance, and data-compatibility modes."
+config_file = "agents/code-reviewer.toml"
+
+[agents.isaaclab_reviewer]
+description = "Independent read-only IsaacLab and fail-fast reviewer for APIs, tensors, rewards, transitions, and training semantics."
+config_file = "agents/isaaclab-reviewer.toml"
+
+[agents.runtime_qa]
+description = "Runtime QA executor that may write only leased evidence and output paths, never the candidate."
+config_file = "agents/runtime-qa.toml"
+
+[agents.memory_curator]
+description = "Post-review single writer for approved atomic project-memory updates."
+config_file = "agents/memory-curator.toml"

@@ -1,0 +1,6 @@
+# @package _global_
+
+env:
+  config:
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_base_unlocked: true

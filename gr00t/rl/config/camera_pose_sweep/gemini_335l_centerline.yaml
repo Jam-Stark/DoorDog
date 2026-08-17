@@ -1,0 +1,116 @@
+# @package _global_
+
+# Diagnostic-only single-camera pose sweep. These intrinsics are derived from
+# Orbbec's nominal 94x68 degree FoV, not from a calibrated physical camera.
+simulator:
+  config:
+    cameras:
+      enable_cameras: true
+      camera_parent: trunk
+      camera_prim_suffix: ego_camera
+      camera_pos: [0.32, 0.0, 0.25]
+      camera_rot_wxyz: [0.9986295347545738, 0.0, -0.052335956242943835, 0.0]
+      camera_convention: world
+      camera_focal_length: 1.0
+      camera_focus_distance: 0.5
+      camera_horizontal_aperture: 2.144737420049365
+      camera_vertical_aperture: 1.2064147987777678
+      camera_clipping_range: [0.1, 20.0]
+      camera_update_period: 0.0
+      colorize_instance_id_segmentation: false
+      camera_types:
+        - rgb: true
+        - instance_id_segmentation_fast: true
+      camera_resolutions: [216, 384]
+      eval_camera_resolutions: [720, 1280]
+      image_mean: [0.485, 0.456, 0.406]
+      image_std: [0.229, 0.224, 0.225]
+    render_results: false
+
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_camera_pose_sweep.DoorPregraspCameraPoseSweep
+  config:
+    # Keep these canonical stage parameters explicit across sealed Teacher profiles;
+    # the camera sweep must not inherit ambiguous checkpoint-era defaults.
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_camera_pose_sweep:
+      enabled: true
+      sample_interval_control_steps: 5
+      ranking_stage_indices: [1, 2, 3, 4, 5]
+      video:
+        enabled: true
+        env_id: 1
+        fps: 10
+        output_dir: ${eval_output_dir}/camera_pose_videos
+      minimum_visible_pixels:
+        handle: 8
+        finger7: 4
+        finger8: 4
+        door_panel: 64
+      target_path_tokens:
+        handle: /door/door_handle
+        finger7: /Robot/arm_body7
+        finger8: /Robot/arm_body8
+        door_panel: /door/door_panel
+      nominal_intrinsics:
+        source: Orbbec Gemini 335L nominal RGB FoV; centered crop; not calibrated hardware
+        isaaclab_projection: preserve horizontal FoV with centered square pixels
+        native_resolution: [800, 1280]
+        native_fov_deg: [68.0, 94.0]
+        centered_crop_resolution: [720, 1280]
+        policy_resolution: [216, 384]
+        spec_derived_policy_fx_fy_cx_cy: [179.04289653843105, 177.90731622152882, 192.0, 108.0]
+        spec_derived_effective_fov_deg: [62.520330193409286, 94.0]
+        sim_policy_fx_fy_cx_cy: [179.04289653843105, 179.04289653843105, 192.0, 108.0]
+        sim_effective_fov_deg: [62.19738135214164, 94.0]
+        sim_fy_minus_spec_fy_px: 1.1355803169022352
+      candidates:
+        - name: legacy_pose_control
+          role: control
+          position_m: [0.25, 0.0, 0.14]
+          rotation_wxyz: [0.315631686, 0.134503192, -0.390177116, -0.854428083]
+          rpy_deg: [48.743528, -0.943012, -139.878054]
+        - name: center_seed
+          role: search
+          position_m: [0.32, 0.0, 0.25]
+          rotation_wxyz: [0.9986295347545738, 0.0, -0.052335956242943835, 0.0]
+          rpy_deg: [0.0, -6.0, 0.0]
+        - name: x_near_028
+          role: search
+          position_m: [0.28, 0.0, 0.25]
+          rotation_wxyz: [0.9986295347545738, 0.0, -0.052335956242943835, 0.0]
+          rpy_deg: [0.0, -6.0, 0.0]
+        - name: x_far_036
+          role: search
+          position_m: [0.36, 0.0, 0.25]
+          rotation_wxyz: [0.9986295347545738, 0.0, -0.052335956242943835, 0.0]
+          rpy_deg: [0.0, -6.0, 0.0]
+        - name: z_low_020
+          role: search
+          position_m: [0.32, 0.0, 0.20]
+          rotation_wxyz: [0.9986295347545738, 0.0, -0.052335956242943835, 0.0]
+          rpy_deg: [0.0, -6.0, 0.0]
+        - name: z_high_030
+          role: search
+          position_m: [0.32, 0.0, 0.30]
+          rotation_wxyz: [0.9986295347545738, 0.0, -0.052335956242943835, 0.0]
+          rpy_deg: [0.0, -6.0, 0.0]
+        - name: pitch_up_12
+          role: search
+          position_m: [0.32, 0.0, 0.25]
+          rotation_wxyz: [0.9945218953682733, 0.0, -0.10452846326765347, 0.0]
+          rpy_deg: [0.0, -12.0, 0.0]
+        - name: pitch_level_00
+          role: search
+          position_m: [0.32, 0.0, 0.25]
+          rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+          rpy_deg: [0.0, 0.0, 0.0]
+
+algo:
+  config:
+    eval:
+      eval_num_envs_episodes: true
+      num_eval_episodes: 16
+      save_videos: false
+      save_trajectories: false

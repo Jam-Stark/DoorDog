@@ -1,0 +1,252 @@
+# @package _global_
+
+defaults:
+  - legged_base
+
+# Env structure
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_base.DoorPregrasp
+  config:
+    max_episode_length_s: 20
+
+    normalization:
+      clip_actions: 100.0
+      clip_observations: 100.0
+
+    # simulator:
+    #   sim:
+    #     fps: 200 # 1/dt , dt = 0.005
+    #     control_decimation: 4  # decimation
+    #     substeps: 1
+    termination:
+      terminate_when_close_to_dof_pos_limit: False
+      terminate_when_close_to_dof_vel_limit: False
+      terminate_when_close_to_torque_limit: False
+      terminate_by_contact: False
+      terminate_by_gravity: False
+      terminate_by_low_height: True
+    termination_scales:
+      termination_close_to_dof_pos_limit : 0.98
+      termination_close_to_dof_vel_limit : 0.98
+      termination_close_to_torque_limit : 0.98
+      termination_gravity_x : 0.5
+      termination_gravity_y : 0.5
+      termination_min_base_height : 0.3
+      termination_contact_force : 10.0
+    termination_probality:
+      terminate_when_close_to_dof_pos_limit: 0.25
+      terminate_when_close_to_dof_vel_limit: 0.25
+      terminate_when_close_to_torque_limit: 0.25
+
+    noise_to_initial_level: 0
+    init_noise_scale: 
+      dof_pos: 0.1
+      dof_vel: 0.15
+      root_pos: 0.05
+      root_rot: 10 # degree, * 3.14 / 180
+      root_vel: 0.01
+      root_ang_vel: 0.01
+
+    task:
+      type: "manipulation"
+      name: "door"
+      objects: ["door"]
+      target_obj: "door"
+      thershold: 0.05
+      target_obj_contact_sensor: False
+      target_obj_contact_sub_prim_path: "door_handle"
+      target_obj_transform_sub_prim_path: "grasp_target"
+      which_hand: "any_hand"
+
+    ref_height: 0.75
+
+    a2_base:
+      enabled: True
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      high_level_action_dim: 12
+      leg_action_dim: 12
+      obs_history_length: 30
+      obs_frame_dim: 54
+      command_scale: 0.25
+      base_command_scale: 0.25
+      dog_joint_vel_scale: 0.05
+      command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      base_command_obs_multipliers: [2.0, 2.0, 0.25, 1.0, 1.0]
+      body_pitch_roll_scale: 0.4
+      bad_orientation_limit_angle: 0.9
+      gait_frequency: 2.0
+      gait_initial_phase: 0.0
+      gait_standing_command_thresholds: [0.1, 0.1, 0.2]
+      ref_dof_legs_sigma: 0.1
+      ref_dof_legs_phase_offset: 0.5
+      ref_dof_legs_target_joint_pos_thd: 0.1
+      ref_dof_legs_target_joint_pos_scale: 0.35
+      ref_dof_legs_calf_scale_factor: 2.0
+      gripper_close_target: [0.0, 0.0]
+      gripper_open_target: [0.035, -0.035]
+      gripper_primitive_limit: 1.0
+      gripper_primitive_limit_tolerance: 1.1
+      policy_leg_order: [
+        "FL_hip_joint", "FR_hip_joint", "RL_hip_joint", "RR_hip_joint",
+        "FL_thigh_joint", "FR_thigh_joint", "RL_thigh_joint", "RR_thigh_joint",
+        "FL_calf_joint", "FR_calf_joint", "RL_calf_joint", "RR_calf_joint"
+      ]
+
+    pregrasp_target_vel: 0.3
+    target_root_vel: 0.3
+
+    a2_stage0_staging_x_min: 0.50
+    a2_stage0_staging_x_max: 0.80
+    a2_stage0_staging_y_tol: 0.15
+    non_a2_stage0_staging_x_offset: 0.70
+    # A2 Piper virtual TCP. 0.09755 is the measured finger-collider longitudinal
+    # midpoint; the current policy/training default remains 0.085.
+    a2_gripper_source_tcp_offset_z: 0.085
+    # Eval-only detailed hold diagnostics. Keep disabled for training/default eval.
+    a2_hold_diagnostic_contact_detail_enabled: false
+    a2_hold_diagnostic_max_contact_data_count_per_prim: 8
+    a2_hold_diagnostic_friction_override: null
+    a2_stage0_arm_default_max_deviation: 0.10
+    a2_stage1_stage2_base_forward_creep_deadband: 0.05
+    a2_stage1_stage2_base_forward_creep_scale: 0.10
+    stage2_grasp_contact_history_length: 5
+    # control_streak samples the latest sensor frame once per 50 Hz control step.
+    # physics_history preserves the legacy all-physics-frame gate for ablations.
+    a2_grasp_gate_mode: control_streak
+    a2_grasp_streak_control_steps: 5
+    # v13 door semantics. A/B select the stage3->4 grasp requirement explicitly.
+    a2_stage3_to4_requires_grasp_streak: false
+    # 0.6rad is the v13 provisional unlatch normalization; telemetry monitors
+    # whether the policy farms the 0.785398rad handle hard limit.
+    a2_stage3_unlatch_handle_position_norm: 0.6
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
+    a2_stage3_stage4_coasting_velocity_threshold: 0.1
+    a2_stage3_handle_hard_limit_position: 0.785398
+    a2_stage3_handle_hard_limit_tolerance: 0.005
+    stage2_close_gate_y_tol: 0.022
+    stage2_close_gate_z_tol: 0.015
+    stage2_close_gate_x_tol: 0.02
+    a2_stage2_handle_center_y_std: 0.015
+    a2_stage2_handle_approach_xz_std: 0.05
+    a2_grasp_target_distance_std: 0.05
+    a2_stage2_contact_force_threshold: 1.0
+    a2_stage2_squeeze_force_min: 0.5
+    a2_stage2_squeeze_force_max: 20.0
+    a2_stage2_over_force_threshold: 40.0
+    a2_stage2_completion_close_gate_required: false
+    a2_stage2_completion_gripper_close_command_threshold: -0.2
+    a2_stage2_completion_gripper_close_progress_min: 0.45
+    # Single source of truth for the A2 stage3->4 door hinge transition and
+    # matching A2 door-open bypass diagnostics. Override to 0.6 for D1.
+    a2_stage3_to4_door_hinge_threshold: 0.174533
+    a2_stage3_base_unlocked: false
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
+    max_stage_time: [250, 100, 100, 100, 100, 200]
+    award_remaining_time_on_advance: True
+    accumulate_stage_reward: False
+    reset_on_complete: True
+    reset_on_complete_delay: 50.0
+    reset_on_overtime: True
+    # no_reward_for_overtime: True
+    stage_reward_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+    delta_action_indices: [5, 6, 7, 8, 9, 10]
+    delta_action_scale: 0.3
+    delta_action_clip: 15.0
+    reset_delta_actions_with_backmap: True
+
+    warped_action:
+      indices: [0, 1, 2, 3, 4]
+      k: 0.0
+      s: 0.0
+
+    enable_staged_reset: True
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+    staged_reset_max_samples_per_stage: 200
+
+    target_root_pos: [2.0, 0.0, 0.5]
+
+    randomize_door_init_state: False
+
+    resting_dof_pos: [
+      0.0, 0.5, -1.0,
+      0.0, 0.5, -1.0,
+      0.0, 0.5, -1.0,
+      0.0, 0.5, -1.0,
+      0.0, 1.48, -0.63, -0.84, 0.0, 1.57, 0.0, 0.0
+    ]
+
+    clip_homie_command: True
+    clip_homie_linvel_x_threshold: 0.5
+    clip_homie_linvel_y_threshold: 0.5
+    clip_homie_angvel_threshold: 0.5
+    clip_homie_lower_height_threshold: 0.3
+    clip_homie_upper_height_threshold: 0.75
+    clip_homie_torso_roll_lower_threshold: -0.5
+    clip_homie_torso_roll_upper_threshold: 0.5
+    clip_homie_torso_pitch_lower_threshold: -0.5
+    clip_homie_torso_pitch_upper_threshold: 0.5
+    clip_homie_torso_yaw_lower_threshold: -0.5
+    clip_homie_torso_yaw_upper_threshold: 0.5
+    homie_command_scale: 0.25
+
+    termination_curriculum:
+      level_down_ave_goal_reached_rate: 0.5
+      level_up_ave_goal_reached_rate: 0.7
+      degree: -0.0001
+      min_level: 0.1
+      max_level: 1.0
+      initial_level: 1.0
+
+    pred_model_path: "pred_model.pth"
+    random_model_path: "random_model.pth"
+    pred_model_num_per_sample: 10
+    pred_model_stride: 5
+    pred_model_baseline_error: 0.001357
+    pred_model:
+      in_features: 3101
+      hidden_features: [1024, 1024, 1024, 1024]
+      out_features: 1
+      activation: relu
+      normalization: batch_norm
+
+    random_model:
+      in_features: 3101
+      hidden_features: [1024, 1024, 1024, 1024]
+      out_features: 1
+      activation: relu
+      normalization: batch_norm
+    reset_from_dataset:
+      use_motion_file_dir: True
+      motion_file_dir: ${oc.env:HOME}/projects/LAFAN-G1
+      motion_files: []
+      device: ""
+      num_per_sample: 10
+      sample_interval_s: 0.1
+      resample_every: 1000
+
+    # latent_model_path: "epoch_90_model.pth"
+    # latent_model_num_per_sample: 10
+    # latent_model_stride: 5
+    # latent_model_baseline_error: 0.026
+    # latent_model_config:
+    #   encoder_type: mlp
+    #   decoder_type: mlp
+    #   encoder:
+    #     in_features: 3101
+    #     hidden_features: [1024, 1024, 1024, 1024]
+    #     out_features: 256
+    #     activation: relu
+    #     normalization: batch_norm
+    #   decoder:
+    #     in_features: 128
+    #     hidden_features: [1024, 1024, 1024, 1024]
+    #     out_features: 3101
+    #     activation: relu
+    #     normalization: batch_norm
+
+# Globally accessible parameters
+log_task_name: door_open

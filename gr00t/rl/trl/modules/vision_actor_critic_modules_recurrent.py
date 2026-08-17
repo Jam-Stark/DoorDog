@@ -132,9 +132,87 @@ class VisionRecurrentActor(VisionActor):
         """Reset memory hidden states for done environments."""
         self.memory.reset(dones)
 
+    def _normalize_actor_obs(self, actor_obs, masks):
+        """Normalize actor observations while excluding recurrent padding rows."""
+        if actor_obs.ndim == 2:
+            if masks is not None:
+                raise ValueError("Recurrent masks are only valid for [B,T,D] actor observations")
+            return self.running_mean_std(actor_obs) if self.running_mean_std is not None else actor_obs
+        if actor_obs.ndim != 3:
+            raise ValueError(
+                "Recurrent actor observations must be [B,D] or [B,T,D]; "
+                f"got {tuple(actor_obs.shape)}"
+            )
+        if masks is None:
+            raise ValueError("Recurrent [B,T,D] actor observations require a [B,T] boolean mask")
+        if not torch.is_tensor(masks) or masks.dtype != torch.bool:
+            raise ValueError("Recurrent masks must be a boolean tensor")
+        if masks.ndim != 2 or tuple(masks.shape) != tuple(actor_obs.shape[:2]):
+            raise ValueError(
+                "Recurrent masks must have shape [B,T] matching actor observations; "
+                f"got {getattr(masks, 'shape', None)} for {tuple(actor_obs.shape)}"
+            )
+        if masks.device != actor_obs.device:
+            raise ValueError(
+                f"Recurrent masks device must match actor observations: {masks.device} vs {actor_obs.device}"
+            )
+        if not bool(masks.any().item()):
+            raise ValueError("Recurrent masks must contain at least one valid timestep")
+
+        flat_obs = actor_obs.reshape(-1, actor_obs.shape[-1])
+        flat_masks = masks.reshape(-1)
+        if self.running_mean_std is None:
+            normalized = torch.where(
+                flat_masks.unsqueeze(-1), flat_obs, torch.zeros_like(flat_obs)
+            )
+            return normalized.reshape_as(actor_obs)
+
+        mean = self.running_mean_std.running_mean.to(device=actor_obs.device, dtype=actor_obs.dtype)
+        var = self.running_mean_std.running_var.to(device=actor_obs.device, dtype=actor_obs.dtype)
+        epsilon = self.running_mean_std.epsilon
+        if self.running_mean_std.norm_only:
+            normalized = flat_obs / torch.sqrt(var + epsilon)
+        else:
+            normalized = (flat_obs - mean) / torch.sqrt(var + epsilon)
+            normalized = torch.clamp(normalized, min=-5.0, max=5.0)
+        normalized = torch.where(
+            flat_masks.unsqueeze(-1), normalized, torch.zeros_like(normalized)
+        )
+
+        valid_obs = flat_obs[flat_masks].detach()
+        if self.training and not self.running_mean_std.frozen:
+            batch_count = valid_obs.shape[0]
+            batch_mean = valid_obs.mean(dim=0)
+            batch_var = (
+                valid_obs.var(dim=0, unbiased=True)
+                if batch_count > 1
+                else torch.zeros_like(batch_mean)
+            )
+            count = self.running_mean_std.count.to(device=actor_obs.device, dtype=actor_obs.dtype)
+            total_count = count + batch_count
+            delta = batch_mean - mean
+            new_mean = mean + delta * batch_count / total_count
+            m_a = var * count
+            m_b = batch_var * batch_count
+            new_var = (m_a + m_b + delta.square() * count * batch_count / total_count) / total_count
+            with torch.no_grad():
+                if self.running_mean_std.frozen_partial:
+                    diff = self.running_mean_std.diff
+                    self.running_mean_std.running_mean[-diff:] = new_mean[-diff:].to(
+                        self.running_mean_std.running_mean
+                    )
+                    self.running_mean_std.running_var[-diff:] = new_var[-diff:].to(
+                        self.running_mean_std.running_var
+                    )
+                else:
+                    self.running_mean_std.running_mean.copy_(new_mean.to(self.running_mean_std.running_mean))
+                    self.running_mean_std.running_var.copy_(new_var.to(self.running_mean_std.running_var))
+                self.running_mean_std.count.copy_(total_count.to(self.running_mean_std.count))
+        return normalized.reshape_as(actor_obs)
+
     def forward(self, obs_dict, masks=None, hidden_states=None, episode_attnmask=None, **kwargs):
-        if self.running_mean_std is not None:
-            obs_dict[self.input_key] = self.running_mean_std(obs_dict[self.input_key])
+        obs_dict = obs_dict.copy()
+        obs_dict[self.input_key] = self._normalize_actor_obs(obs_dict[self.input_key], masks)
 
         # Handle both vision_obs and rgb_image_history
         if "rgb_image_history" in obs_dict:
@@ -162,12 +240,23 @@ class VisionRecurrentActor(VisionActor):
 
         encoder_type = self.vision_module_config_dict.layer_config.type
 
-        if encoder_type in ["CNN", "ResNet"]:
-            image_permuted = image_reshaped.permute(0, 3, 1, 2)
-            latent = self.vision_module(image_permuted).reshape(effective_batch_size, -1)
+        valid_image_mask = masks.reshape(-1) if seq_len is not None else None
+        if valid_image_mask is not None:
+            valid_images = image_reshaped[valid_image_mask]
         else:
-            flat_image = image_reshaped.reshape(effective_batch_size, -1).contiguous()
-            latent = self.vision_module(flat_image).reshape(effective_batch_size, -1)
+            valid_images = image_reshaped
+        if encoder_type in ["CNN", "ResNet"]:
+            image_permuted = valid_images.permute(0, 3, 1, 2)
+            encoded_valid = self.vision_module(image_permuted).reshape(image_permuted.shape[0], -1)
+        else:
+            flat_image = valid_images.reshape(valid_images.shape[0], -1).contiguous()
+            encoded_valid = self.vision_module(flat_image).reshape(flat_image.shape[0], -1)
+        if valid_image_mask is not None:
+            latent_flat = encoded_valid.new_zeros((effective_batch_size, encoded_valid.shape[-1]))
+            latent_flat[valid_image_mask] = encoded_valid
+            latent = latent_flat
+        else:
+            latent = encoded_valid
 
         if seq_len is not None:
             latent = latent.reshape(batch_size, seq_len, -1).contiguous()
@@ -186,8 +275,6 @@ class VisionRecurrentActor(VisionActor):
             # Reshape for RNN: [seq_len, batch_size, concat_dim]
             concated_obs = concated_obs.transpose(0, 1)
             memory_out = self.memory(concated_obs, masks=masks, hidden_states=hidden_states)
-            # Reshape back: [batch_size, seq_len, hidden_dim]
-            memory_out = memory_out.transpose(0, 1)
 
         result = self.mlp_module(memory_out)
         return result
@@ -198,20 +285,14 @@ class VisionRecurrentActor(VisionActor):
 
     def act(self, obs_dict, episode_attnmask=None, masks=None, hidden_states=None, **kwargs):
         """Forward pass for sampling actions during training."""
-        try:
-            self.update_distribution(
-                obs_dict,
-                episode_attnmask=episode_attnmask,
-                last_step_only=False,
-                masks=masks,
-                hidden_states=hidden_states,
-                **kwargs,
-            )
-        except Exception as e:
-            import ipdb
-
-            ipdb.set_trace()
-            raise e
+        self.update_distribution(
+            obs_dict,
+            episode_attnmask=episode_attnmask,
+            last_step_only=False,
+            masks=masks,
+            hidden_states=hidden_states,
+            **kwargs,
+        )
         actions = self.distribution.sample()
         return {
             "actions": actions,

@@ -22,6 +22,7 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.zip
 *.swp
 *.swo
 gear_working_dir/
@@ -70,7 +71,13 @@ instance/
 .cursor/
 .cursor*
 .claude/
+
 CLAUDE.md
+
+# OpenCode runtime state + project-local config (kept branch-local, not tracked)
+AGENTS.md
+.omo
+.github
 
 # Scrapy stuff:
 .scrapy
@@ -182,6 +189,7 @@ source/
 .DS_Store
 sim_dependencies/
 .venv/*
+${data}
 
 
 # Mujoco

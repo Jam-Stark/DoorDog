@@ -1,0 +1,29 @@
+# TODO
+
+- 2026-07-13 16:37 HKT - Full-stage `base_v9+` push/open-door optimization 已迁移到 `memory/a2-piper/push-open-door-optimization/`。本 entry 不再安排 matched-clean、fresh O0、O-/O+ 或其他 `base_v9` diagnostic；仅保留 reward-specific implementation/runtime TODO，未来 `base_v10` RL plan 统一从新 entry 进入 approval gate。
+- 2026-07-11 16:44 HKT - Workspace-margin shaping 延后到 exact geometry diagnosis 之后，不是 immediate fix。只有 geometry/contact reachability 已证实合理，且后续 matched evidence 仍显示 normalized arm margin `<0.05`、`arm_j6` soft-limit saturation 与 door progress plateau，才做单独 A/B workspace-margin shaping；不要与 geometry/gripper dynamics 或其他 factor 同轮混入，也不要默认启用 arm default-pose reward。
+- 2026-07-03 21:59 HKT - 后续 reward debug / ablation 继续把 `termination_level` 与 `reward_penalty_scale` 纳入默认检查项；同时验证 A2 Piper `arm_j1..j6` overspeed threshold `3.0 rad/s` 是否能减少 strict curriculum 下 arm reach 过慢和 `upper_dof_overspeed`，且不重新诱发 violent fast-complete / orientation drift。
+- 2026-07-07 16:17 HKT - `base_v4` four-way 2k eval 已完成。下一步不要继续优先扩大 threshold/Kd/velocity-iteration sweep；先修 `_get_a2_stage2_grasp_completion_masks()`，让 hard completion history 使用 `squeeze_window` 并排除 `over_force`，补 `completion_squeeze_window` / `completion_over_force_blocked` diagnostics。当前 retrain/eval 候选优先从 `threshold=1.0, arm_j7/j8 Kd=3, num_velocity_iterations=1` 开始；不要把 history 3、threshold 0.5 或 `thr0p8_kd5_vel0` 作为默认。
+- 2026-07-02 16:17 HKT - 暂停验证 stage0 reward/transition 数据分布 trial：`a2_stage0_staging_x_offset=0.50` 与 `doorHandleHeight 0.80~1.35m` 先不作为当前 active config；先运行 `restrictPre-Grasp_v2` reproduction control config（stage0 offset config `0.70`，online handle height `0.85~0.95m`），再决定是否恢复该 trial。
+- 2026-06-30 19:31 HKT - Stage0 Arm Default Pose Fix 已完成 static/review，但未跑 PPO/IsaacSim smoke；后续 runtime/eval 需要确认 stage0 行走时 `arm_j1..arm_j6` 维持 `default_dof_pos`、stage0 action gate 不影响 stage1+ arm reaching、`a2_stage0_arm_default_max_deviation: 0.10` 不造成 stage0->1 cadence regression。
+- 2026-07-06 20:35 HKT - Continuous aperture primitive 与 primitive rate/hysteresis 仍 deferred；当前 `base_v3` data 显示 raw sign flip 与 over-force 不是主 blocker，不要优先改 gripper primitive 或 actuator gain。下一步聚焦 completion tolerance/history 与 bilateral contact stability，不要直接把 contact threshold 降到 `0.5`。
+- 2026-06-17 16:47 HKT - 对已标 PASS 的 stage0/global/stage1 carrier reward 继续做 A2 footprint review：凡是沿用 G1 root-to-door/root-to-handle 距离、heading、standing-still、door contact 或 base height/orientation 假设的 term，都需要在 full GUI smoke 中检查是否因 A2 四足长 base 与 trunk reference 产生碰门、过近、过度站正或误触发。
+- 2026-06-17 16:47 HKT - A2 footprint review priority：优先检查 `walk_to_door` 是否继续把 A2 root 推向 door root、`penalty_face_door` 是否过度要求正对门、`penalty_not_standing_still` 是否阻止 stage1 micro-adjustment、door frame/panel 与 `penalty_undesired_contact` 是否高频触发；仅在 smoke 证明问题后再调 target/threshold/scale。
+- 2026-06-17 22:34 HKT - Stage2 static PASS 后的剩余 TODO：跑 bounded smoke，确认 stage2 dwell、strict completion route、stage3/open entry timing，以及是否存在 contact spike 误判；A2 door-open bypass diagnostic visibility 已由 2026-07-04 strict route fix 补齐。
+- 2026-06-29 21:30 HKT - Stage5 reward code work 完成（`pregrasp_gripper_dof_pos_l1` gate_mask 修正 + `penalty_face_door` stage5 disabled，Oracle PASS）。stage0-5 全部 reward code work + transition conditions 已 static PASS。剩余全部是 runtime/smoke 验证项：
+  - Stage3-5 bounded smoke 需统计：stage3→4 route、stage4 dwell、handle 回弹 timing、hinge 持续 progress、root locomotion（target_root_pos z=0.5）、door contact penalties、reset/overtime。
+  - `penalty_standing_still` std=0.05 是否匹配 A2 四足走动量级。
+  - `walked_through_door: root_x > 0.0` 是否过早（A2 四足 trunk 在身体中间，trunk x>0 时后腿可能还没过门）。
+  - `complete: root_x > 1.5` 是否匹配 A2 步态速度。
+  - A2 stage2→3 strict completion route 与 `a2_stage2_to3_bypass_blocked_frac`；non-A2/G1 door-open bypass ratio 仅在对照需要时检查。
+  - `pregrasp_gripper_dof_pos_l1` stage5 close target tracking 是否有效（gate_mask 修复后 stage0/5 都主动给 reward）。
+  - `penalty_face_door` stage5 disabled 后 A2 穿门姿态是否合理。
+- 2026-06-17 00:00 HKT - Stage1+ reward adaptation 已建立 mapping docs；后续进入 open/swing/through reward implementation 或 grasp completion semantics 时继续沿用表格记录 G1 term、A2 replacement、数据源、scale、stage gating、direct workflow update timing 与验证方式，并同步更新 human docs 的 `A2适配状态` 列。
+- 2026-06-15 22:33 HKT - 后续若新增来自 LMP manager-based 的 reward term，仍需先提取原始计算逻辑，再决定 direct path 迁移方案；本轮 `orientation_control` 已按 LMP source logic 完成 direct buffer 实现。
+- 2026-06-14 21:48 HKT - 对来自 G1 Doorman 的 reward/stage semantics，先让 Ava 给出带 code reference 的核查意见；破坏性修改必须经 Ava 和 user 同意。
+- 2026-06-15 14:32 HKT - `walk_to_door` 未来如 stage0 target 与 A2/Piper reach envelope 不匹配，将 reward target 参数化为 `door_root` / `grasp_target` / `approach_anchor`。
+- 2026-06-15 14:32 HKT - `penalty_face_door` 未来如 full-quat penalty 对 A2 trunk roll/pitch 或必要侧向站姿过强，将改为 yaw-only heading error 或加入 desired heading offset。
+- 2026-06-15 14:59 HKT - 后续迁移 reward scale 时同步核对 origin `reward_penalty_reward_names` membership；不要仅根据 reward scale 正负决定是否加入 penalty curriculum。
+- 2026-06-15 16:59 HKT - 后续单独做 homie compatibility naming cleanup：`_homie_commands`、`get_physical_homie_commands`、`b_homie_commands` 等仍是历史兼容名，本轮只完成 reward-facing `penalty_base_command_limit` rename。
+- 2026-06-15 21:29 HKT - 后续若 gripper action 改为 continuous aperture primitive，同步更新 `limits_gripper_primitive_action` 为 raw range penalty：`relu(abs(raw) - 1.1)`；runtime control 先 clamp raw 到 `[-1, 1]`，再用 `alpha = (clipped + 1) * 0.5` 映射 aperture。该 term 只约束 policy raw action 幅度，不根据 actual gripper joint pose/contact 判定。
+- 2026-06-15 21:24 HKT - 后续 grasp-stage reward 设计应从“完全闭合 target”转向 aperture/contact/force/stability：避免奖励 gripper 把 handle 硬夹到 fully closed target，改为奖励合适开合度、双侧接触、不过大的 contact force、handle 与 gripper 相对稳定。

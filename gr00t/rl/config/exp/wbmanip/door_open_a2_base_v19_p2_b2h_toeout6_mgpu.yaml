@@ -1,0 +1,264 @@
+# @package _global_
+# Standalone C-B2H toe-out6 + four-rank Accelerate/DDP route.
+# Historical P2 B1/B2 TOEIN configs remain separate and unchanged.
+defaults:
+  - /algo: dagger_vision_distributed
+  - /env: door_open_a2_base
+  - /simulator: isaacsim
+  - /domain_rand: domain_rand_visual_ImageRand
+  - /rewards: wbmanip/reward_door_open_a2_base
+  - /robot: A2_Piper/a2_piper
+  - /terrain: terrain_locomotion_plane
+  - /obs: wbmanip/door_open_a2_base_dagger_triview
+  - /opt: wandb
+  - override /trainer: trl_distill_a2_base_api
+
+exp_base: cb2h_v19_toeout6_mgpu
+exp_var: 4x64_8k
+experiment_name: cb2h_v19_toeout6_mgpu
+project_name: a2_piper_open_door_cb2h_v19_toeout6_mgpu
+num_envs: 64
+num_gpus: 4
+headless: True
+enable_cameras: True
+domain_rand:
+  image_augmentation:
+    enabled: False
+seed: 0
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: False
+multi_gpu: True
+topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+gpu_binding_mode: accelerate-ddp-4rank-64e-v1
+approved_output_root: logs_rl/by_batch/cb2h_v19_toeout6_pitch50_20260804
+distributed_master_port: 29640
+
+# The only immutable Teacher allowed by this route.
+teacher_actor_path: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/model_step_002000.pt
+teacher_config_path: /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/a2_piper_full_stage_a2_base/base_v19/base_v19_G2_norm_control-20260727_012027/config.yaml
+teacher_manifest_path: logs_rl/cb2h_v19_runtime/g2_step2000_c18_reconstruction_candidate6168e6a2/teacher_manifest.json
+teacher_checkpoint_sha256: b331c9a343c71dccf6cce31f71c1727a24298d72808c25763a0f702c369a866d
+teacher_config_sha256: 65c1537b38d670097bc8498428e0aad1705c3fd66eeef41a93d63e3b6da4cf96
+teacher_manifest_sha256: 479f4460d4dc05feea9d87d3189fa0617b21078f91b6f5176f4a9c41b141d1b7
+runtime_repository: /tmp/cb2h_v19_runtime.waPJHftX/c18
+runtime_commit: c18aea8bdc1c76ce850b5223663d0ad8a7474c0a
+
+callbacks:
+  model_save:
+    save_frequency: 500
+    strict_mode: True
+
+algo:
+  trl:
+    num_total_batches: 8000
+    world_size: 4
+    per_device_train_batch_size: 16
+    num_ppo_epochs: 1
+    gradient_accumulation_steps: 1
+  config:
+    use_new_actor_critic: True
+    use_dagger: True
+    distill_only: True
+    num_steps_per_env: 8
+    num_learning_epochs: 1
+    num_mini_batches: 4
+    per_device_train_batch_size: 16
+    gradient_accumulation_steps: 1
+    rank_seed: 0
+    use_padding_mask: False
+    ppo_shuffle_every_epoch: True
+    sync_advantage_normalization: True
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    dagger_bc_loss_type: l2
+    dagger_bc_loss_coef: 1.0
+    compute_dagger_bc_loss_w_imgaug: False
+    train_with_evaluating_env: False
+    enforce_teacher_rollout: True
+    ratio_teacher_rollout: 1.0
+    mixed_rollout_schedule:
+      - {phase: L0, start_step: 0, end_step: 1000, ratio: 1.0}
+      - {phase: L1, start_step: 1000, end_step: 2000, ratio: 0.75}
+      - {phase: L2, start_step: 2000, end_step: 4000, ratio: 0.5}
+      - {phase: L3, start_step: 4000, end_step: 8000, ratio: 0.25}
+    student_action_dim: 12
+    teacher_action_dim: 12
+    rollout_action_dim: 24
+    teacher_obs_dim: 133
+    critic_obs_dim: 138
+    a2_base_obs_dim: 1620
+    a2_base_action_dim: 12
+    use_a2_base: True
+    a2_base:
+      enabled: True
+      policy_path: ./gr00t/rl/data/policies/A2_Base/policy.pt
+      metadata_path: ./gr00t/rl/data/policies/A2_Base/policy_metadata.json
+      obs_dim: 1620
+      action_dim: 12
+    teacher_artifact:
+      checkpoint_path: ${teacher_actor_path}
+      config_path: ${teacher_config_path}
+      manifest_path: ${teacher_manifest_path}
+      checkpoint_sha256: ${teacher_checkpoint_sha256}
+      config_sha256: ${teacher_config_sha256}
+      manifest_sha256: ${teacher_manifest_sha256}
+      runtime_repository: ${runtime_repository}
+      runtime_commit: ${runtime_commit}
+    fresh_ddp_init:
+      enabled: True
+      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+      topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+      seed: 0
+      rank_seed_offset: global_rank
+      load_before_optimizer: True
+      strict_model_hash: True
+      checkpoint: null
+      auto_load_latest: False
+      rank0_init_dir: ${experiment_dir}/fresh_init
+    p2_lifecycle:
+      enabled: True
+      target_global_step: 8000
+    p2_common_init:
+      enabled: False
+    init_noise_std: 0.001
+    max_noise_std: 0.001
+    clamp_noise_std: True
+    freeze_noise_std: True
+    gamma: 0.9966
+    lam: 0.983
+    desired_kl: 0.005
+    init_at_random_ep_len: False
+    use_obj_pred: False
+    obj_pred_loss_coef: 0.0
+    module_dim: {actor_obs: -1, teacher_obs: -1, critic_obs: -1, vision_feature_dim: 128}
+    actor:
+      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_p2_recurrent.DualD435HeadVisionRecurrentToeOut6Actor
+      input_key: actor_obs
+      running_mean_std: True
+      rnn_type: lstm
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      view_contract:
+        camera_meta_dim: 6
+        d435i_forward_mode: packed
+      backbone:
+        d435i_vision_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: True
+          module_config_dict:
+            input_dim: [vision_obs]
+            output_dim: [128]
+            layer_config: {type: ResNet, resnet_type: resnet18, pretrained: True, trainable: True}
+        head_vision_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: True
+          module_config_dict:
+            input_dim: [context_vision_obs]
+            output_dim: [128]
+            layer_config: {type: ResNet, resnet_type: resnet18, pretrained: True, trainable: True}
+        mlp_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: True
+          module_config_dict:
+            input_dim: [actor_obs]
+            output_dim: [12]
+            layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
+    teacher_actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
+      input_key: teacher_obs
+      running_mean_std: True
+      rnn_type: lstm
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          input_dim: [teacher_obs]
+          output_dim: [12]
+          layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
+    critic:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentCritic
+      running_mean_std: True
+      rnn_type: lstm
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          input_dim: [critic_obs]
+          output_dim: [1]
+          layer_config: {type: MLP, hidden_dims: [512, 256, 128], activation: SiLU}
+
+env:
+  config:
+    reset_from_dataset:
+      enabled: False
+
+simulator:
+  config:
+    randomize_dome_light: False
+    cameras:
+      enable_cameras: True
+      architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+      topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+      camera_parent: trunk
+      camera_prim_suffix: d435i_left_portrait_policy_camera
+      camera_pos: [0.215, 0.065, 0.165]
+      camera_rot_wxyz: [0.905065723713, 0.022118130854, -0.422039078101, 0.047432484685]
+      camera_convention: world
+      camera_focal_length: 1.0
+      camera_focus_distance: 0.5
+      camera_horizontal_aperture: 0.7777574637059793
+      camera_vertical_aperture: 1.3826799354772965
+      camera_clipping_range: [0.1, 20.0]
+      camera_update_period: 0.03333333333333333
+      camera_types: [{rgb: True}]
+      camera_resolutions: [384, 216]
+      image_mean: [0.485, 0.456, 0.406]
+      image_std: [0.229, 0.224, 0.225]
+      policy_multiview:
+        enabled: True
+        architecture_id: C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2
+        topology_id: A2-ACCELERATE-DDP-4RANK-64E-V1
+        layout: channel_stacked_raw_rgb
+        primary_resolution: [384, 216]
+        output_resolution: [384, 216]
+        output_shape: [384, 216, 6]
+        view_order: [left, right]
+        right:
+          sensor_name: d435i_right_portrait_policy
+          parent: trunk
+          prim_suffix: d435i_right_portrait_policy_camera
+          position_m: [0.215, -0.065, 0.165]
+          rotation_wxyz: [0.905065723713, -0.022118130854, -0.422039078101, -0.047432484685]
+          convention: world
+          resolution: [384, 216]
+          focal_length: 1.0
+          focus_distance: 0.5
+          horizontal_aperture: 0.7777574637059793
+          vertical_aperture: 1.3826799354772965
+          clipping_range: [0.1, 20.0]
+          update_period: 0.03333333333333333
+        context:
+          sensor_name: a2_head_oem_policy
+          parent: trunk
+          prim_suffix: a2_head_oem_policy_camera
+          position_m: [0.3381, 0.0336, 0.0525]
+          rotation_wxyz: [1.0, 0.0, 0.0, 0.0]
+          convention: world
+          resolution: [136, 384]
+          focal_length: 1.0
+          focus_distance: 0.5
+          horizontal_aperture: 4.492073547808433
+          vertical_aperture: 1.59094271484882
+          clipping_range: [0.1, 20.0]
+          update_period: 0.06666666666666667
+        camera_meta:
+          enabled: True
+          order: [left_age_normalized, right_age_normalized, head_age_normalized, left_valid, right_valid, head_valid]
+    scene: {replicate_physics: False, env_spacing: 20.0}
+    sim:
+      physx: {num_position_iterations: 4, num_velocity_iterations: 2, max_depenetration_velocity: 300.0}

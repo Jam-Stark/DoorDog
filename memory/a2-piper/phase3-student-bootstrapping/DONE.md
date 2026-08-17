@@ -1,0 +1,4 @@
+# DONE
+
+- 2026-07-08 15:22 HKT - Recorded Phase3 finding: Doorman paper Phase3 `Student Bootstrapping` is GRPO-style student self-improvement after Phase2 DAgger distillation, intended to reduce partial observability / closed-loop consistency gap; current A2 worktree and G1/HOMIE reference worktree do not contain a complete Phase3 / GRPO implementation.
+- 2026-08-12 05:26 HKT - `A2_V19_GRPO_FINETUNE_EDGE_COMPLETE`: implemented `GRPOTrainerA2BaseAPI`, GRPO config and GPU2/3 DDP launcher; exact latent/stepwise recurrent replay, success extraction and trajectory-advantage broadcast passed smoke. Pilot selected `std=0.08`、`λ_ar=0.5`、learning rate `3.75e-6`、32 env/rank. Step10/20/30/40 seed0 gates were all `16/16`, triggering early stop at 40/200; best step10 quick was `45/48`. Same-seed 512 eval was `467/512 = 91.2109375%` versus `459/512`, with failure Stage0/1/2/4 `20/0/23/2` versus `15/2/35/1`; verdict is §6 `88–93%` edge, not ≥93% closeout or <88% rollback.

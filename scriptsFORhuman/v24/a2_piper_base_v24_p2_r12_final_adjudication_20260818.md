@@ -84,4 +84,4 @@ The population contains 64 unique completed windows and 12 admitted sustained-E1
 
 ## Stop boundary
 
-P2 heldout, P3, Wave 1, Route A/B, RQ3, and Wave 2 are not admitted. No training-wave, causal posture-value, E2, release, or solver-applied-torque claim is made. The already completed P0 descriptive posthoc remains valid. Under R1 F3, only the measurement-level RQ4 closure remains outside the stopped science wave.
+P2 heldout, P3, Wave 1, Route A/B, RQ3, and Wave 2 are not admitted. No training-wave, causal posture-value, E2, release, or solver-applied-torque claim is made. The already completed P0 descriptive posthoc remains valid. The separate R1 F3 measurement-only RQ4 deliverable subsequently closed as `V24_COUPLING_FORWARD_PROXY_ONLY`; see `scriptsFORhuman/v24/a2_piper_base_v24_rq4_measurement_only_20260818.md`.

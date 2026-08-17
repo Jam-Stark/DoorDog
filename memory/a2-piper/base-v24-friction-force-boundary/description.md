@@ -1,8 +1,8 @@
 ---
 name: base-v24-friction-force-boundary
 scope: A2+Piper base_v24 friction-calibrated force boundary, posture final adjudication, coupling groundwork, and gated-posture pilot
-status: p2_r12_terminal_e1_denominator_insufficient_post_f3_rq4_measurement_pending
-last_updated: 2026-08-18 03:30 HKT
+status: complete_post_f3_terminal_rq4_forward_proxy_only
+last_updated: 2026-08-18 03:38 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v24-friction-force-boundary/description.md
@@ -95,7 +95,7 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 - The registered F3 pilot completed FULL/RP0 × seeds 0/1, each `4096 env × 500 batches`, on GPU0–3 with four distinct final step500 checkpoints. The final retry5 evaluation completed 16 canonical F05/cap20 episodes per cell, all exit `0`, yielding exactly 64 unique rows with valid model, grasp, and foot source vitals.
 - The runtime exposed three reusable measurement distinctions: clipped negative residual margin is valid zero additional capacity rather than missing; a typed direction exclusion retains finite modeled torque/lambda but remains scientifically excluded; and a non-admissible fallback must still select a measurement-vital-valid window. Window selection does not use the lambda band.
 - Admitted sustained-E1 counts are FULL seed0 `5`, FULL seed1 `1`, RP0 seed0 `3`, and RP0 seed1 `3`; each is below the registered minimum `8`. The exact terminal is `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`, `terminal=true`, `P3_ADMITTED=false`, with heldout `NOT_ADMITTED_BY_POST_F3_TERMINAL`.
-- P3, Wave 1, Route A/B, RQ3, shadow critic, and Wave 2 are not admitted. This is not the Phase 3 `V24_FRICTION_AXIS_NONDISCRIMINATIVE` Owner decision. The R1 F3 measurement-only RQ4 closure remains pending outside the stopped science wave.
+- P3, Wave 1, Route A/B, RQ3, shadow critic, and Wave 2 are not admitted. This is not the Phase 3 `V24_FRICTION_AXIS_NONDISCRIMINATIVE` Owner decision. The R1 F3 measurement-only RQ4 closure completed as `V24_COUPLING_FORWARD_PROXY_ONLY`; the critic is uncalibrated and was not trained.
 - Authority remains `MODELED_FROM_PARAMS` for door friction/model torque with `solver_applied=false`, and `ESTIMATE_ONLY_DIRECTIONAL_MARGIN` for capacity/lambda. Canonical r12 evidence is `logs_eval/base_v24/p2/force_boundary/r12/`.
 
 ## Reusable Runtime Gotchas
@@ -112,6 +112,13 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 
 Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, P1 H/I, Owner D-v2, and P2 r12 are complete with scoped evidence. The historical P1 and r10 P2 outcomes are preserved as provenance but do not control r12. The valid current terminal is `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`: P3 and the science waves are not admitted. No causal posture-value, release, E2, or solver-applied-friction-torque result is recorded.
 
+## RQ4 Measurement-only Closure
+
+- The valid r12 population provides 32 chronic FULL–RP0 pairs matched by seed and scenario. Pooled FULL−RP0 medians are utilization `-0.3771484`, clip fraction `-0.20`, modeled required torque `-5.618907 N·m`, hinge progress `-0.0110707 rad`, and max loaded-foot slip `+0.0564594 m/s`; these mixed descriptive differences do not identify a coupling mechanism.
+- Continuous lambda is right-censored when zero additional capacity uses the frozen epsilon denominator, so r2 reports only E0/E1/above-boundary zones and right-censor counts. Do not use continuous lambda deltas as an effect size.
+- Arm directional estimates, modeled door values, grasp, and max loaded-foot slip are available. Base/leg dynamics, 3D GRF, handle wrench, actual generalized torque, door work/power, and registered 2×2 forward interventions are unavailable/not performed.
+- Typed results are `V24_COUPLING_FORWARD_PROXY_ONLY` and `V24_COUPLING_CRITIC_UNCALIBRATED`. No critic training, causal coupling, or posture-force-value claim is supported. Canonical evidence is `logs_eval/base_v24/rq4/measurement_only/r2/`.
+
 ## TODO Summary
 
-The P2/P3/science-wave path has no remaining active execution: the r12 post-F3 terminal does not admit heldout or P3. Under R1 F3, the remaining active v24 item is the measurement-only RQ4 closure; it must not be presented as an E1 or causal result.
+There is no remaining active v24 execution under the post-F3 branch. P2 heldout, P3, and the science waves are not admitted; the preserved measurement-only RQ4 deliverable is complete as a forward proxy only.

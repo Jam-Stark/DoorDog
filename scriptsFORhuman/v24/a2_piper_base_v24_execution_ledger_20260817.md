@@ -20,7 +20,7 @@ worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro fee
 | P3 historical friction scan | NOT_ADMITTED | — | P2 r12 post-F3 terminal；未执行，不触发 Owner decision |
 | Wave 1 / Route A/B | NOT_ADMITTED | — | P3 未准入；未执行 |
 | RQ3 / shadow critic | NOT_ADMITTED | — | E1 per-cell denominator gate failed；未执行 |
-| RQ4 measurement-only closure | PENDING | — | R1 F3 preserves measurement-only delivery outside the stopped science wave |
+| RQ4 measurement-only closure | COMPLETE | local CPU closure | `V24_COUPLING_FORWARD_PROXY_ONLY`; critic uncalibrated/not trained |
 | Wave 2a/2b | NOT_ADMITTED | — | 前序 gate 未准入；未执行 |
 
 ## Runtime closure
@@ -75,6 +75,15 @@ The old P1 and P2 receipts remain immutable provenance. The Owner D-v2 decision 
 - Runtime measurement defects were retained as additive blocked/inconclusive receipts. Clipped negative residual margin is now valid zero additional capacity; direction exclusions retain finite modeled torque/lambda; non-admissible fallback selection requires complete measurement vitals. None of these repairs selects on the lambda/E1 outcome.
 - Final retry5 evaluation completed four cells × 16 canonical F05/cap20 episodes, all exit `0`. The canonical population has 64 unique completed rows and 64/64 valid model, grasp, and foot source vitals.
 - Admitted sustained-E1 counts are FULL seed0 `5`, FULL seed1 `1`, RP0 seed0 `3`, and RP0 seed1 `3`, versus the preregistered minimum `8` in every cell.
-- Final typed result is exactly `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`, `terminal=true`, `P3_ADMITTED=false`; heldout is `NOT_ADMITTED_BY_POST_F3_TERMINAL`. P3/Wave 1/Route A/B/RQ3/Wave 2 stop without execution. The measurement-only RQ4 closure remains separately pending under R1 F3.
+- Final typed result is exactly `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`, `terminal=true`, `P3_ADMITTED=false`; heldout is `NOT_ADMITTED_BY_POST_F3_TERMINAL`. P3/Wave 1/Route A/B/RQ3/Wave 2 stop without execution. The R1 F3 measurement-only RQ4 closure is recorded below.
 - Authority remains `MODELED_FROM_PARAMS` for door friction/model torque, `solver_applied=false`, and `ESTIMATE_ONLY_DIRECTIONAL_MARGIN` for capacity/lambda. Missing/excluded/blocked states are not numeric zeroes.
 - Canonical evidence root: `logs_eval/base_v24/p2/force_boundary/r12/`. Final report: `scriptsFORhuman/v24/a2_piper_base_v24_p2_r12_final_adjudication_20260818.md`.
+
+## RQ4 measurement-only closure
+
+- The canonical valid r12 population supplied 64/64 source-vital-valid rows and 32 chronic FULL–RP0 pairs matched by training seed and scenario. This is descriptive pairing, not an acute or exact counterfactual intervention.
+- Pooled FULL−RP0 medians are directional utilization `-0.3771484`, clip fraction `-0.20`, modeled required torque `-5.618907 N·m`, hinge progress `-0.0110707 rad`, and max loaded-foot slip `+0.0564594 m/s`. The signs are mixed and policy visitation/load are not separated.
+- Continuous lambda deltas are not interpreted because zero additional capacity produces epsilon-denominator right-censoring. r2 uses frozen E0/E1/above-boundary zones; r1 is retained as superseded analysis provenance.
+- Available telemetry is limited to arm directional estimates, modeled door quantities, grasp, stage, and max loaded-foot slip. Base/leg dynamics, 3D GRF, handle wrench, actual generalized torque, door work/power, and the registered base-neutral × arm-safe-hold forward interventions are unavailable/not performed.
+- Typed results: `V24_COUPLING_FORWARD_PROXY_ONLY` and `V24_COUPLING_CRITIC_UNCALIBRATED`. The shadow critic is not trained because its intervention-derived vector targets and sufficient per-cell E1 denominators do not exist.
+- Canonical evidence: `logs_eval/base_v24/rq4/measurement_only/r2/`. Report: `scriptsFORhuman/v24/a2_piper_base_v24_rq4_measurement_only_20260818.md`.

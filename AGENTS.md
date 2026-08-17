@@ -21,6 +21,7 @@ These defaults do not authorize scope expansion. The approved task and actual re
 
 - **Codex runtime**: follow this file and `.codex/TEAM.md`; use project agents from standalone `.codex/agents/*.toml` files.
 - **opencode/omo runtime**: follow `.omo/AGENTS.md`; this file's §2, §3, and §12 still apply and take precedence.
+- **Claude/Claude Code runtime**: Read the Coding Role, but do not refer to/use the documentation's multi-agent system.
 
 Authorization is compact:
 

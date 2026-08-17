@@ -225,7 +225,7 @@
   "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
   "paired_trace_schema": {
     "schema_version": "doordog.sim2sim.paired_trace_row.v1",
-    "source_commit": "0e82607dac859ac7cf35ab25faff69aed357a9af",
+    "source_commit": "2bf0ac417858128ab761fca3fa3aa8451b7ea843",
     "source_path": "gr00t/rl/sim2sim/schemas/paired_trace_row.schema.json",
     "transport": "UTF-8 JSON Lines; one row after every 200 Hz physics step"
   },
@@ -238,7 +238,7 @@
   },
   "provenance": {
     "identity_policy": "git_commit_plus_path",
-    "materializer_commit_at_execution": "37d56bf4f669189a55b9cf9501a871a87a660a8e",
+    "materializer_commit_at_execution": "2bf0ac417858128ab761fca3fa3aa8451b7ea843",
     "materializer_path": "gr00t/rl/sim2sim/cli/materialize_paired_case_manifest.py",
     "strict_exact_hash": false
   },

@@ -15,7 +15,7 @@ After spawn, print a `DoorMechanicsUnitContractV1` receipt containing requested 
 
 ## Trace producer
 
-Copy `gr00t/rl/sim2sim/schemas/paired_trace_row.schema.json` from sim2sim commit `0e82607dac859ac7cf35ab25faff69aed357a9af`. Record that commit and path in the Isaac producer receipt; no content hash is required. Emit UTF-8 JSON Lines, one row after every 200 Hz physics step, using the schema exactly. Reset the Student LSTM, action/delta state, A2_Base 30-frame history, camera caches, robot/door state, and seed from `paired_case_manifest.json` for every case. Keep terminal and failed episodes in the dataset.
+Copy `gr00t/rl/sim2sim/schemas/paired_trace_row.schema.json` from sim2sim commit `2bf0ac417858128ab761fca3fa3aa8451b7ea843`. Record that commit and path in the Isaac producer receipt; no content hash is required. Emit UTF-8 JSON Lines, one row after every 200 Hz physics step, using the schema exactly. Reset the Student LSTM, action/delta state, A2_Base 30-frame history, camera caches, robot/door state, and seed from `paired_case_manifest.json` for every case. Keep terminal and failed episodes in the dataset.
 
 Task fields are direct state facts: `unlatched` is `handle_hinge >= pi/6`; `open_threshold_crossed` is `door_hinge >= 0.174533 rad`. They are not reward or stage-machine outputs. Pixel data remains domain-gap evidence and must not decide policy regression.
 

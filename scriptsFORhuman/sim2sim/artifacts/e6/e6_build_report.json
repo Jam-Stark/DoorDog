@@ -1,0 +1,23 @@
+{
+  "schema": "doordog.sim2sim.e6_build_report.v1",
+  "evidence_level": "E6",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "robustness_receipt": "scriptsFORhuman/sim2sim/artifacts/e6/robustness_receipt.json",
+  "case_trace": "scriptsFORhuman/sim2sim/artifacts/e6/robustness_cases.csv",
+  "case_count": 9,
+  "all_cases_finite": true,
+  "final_hinge_response_range_rad": [0.1694673941868772, 0.3585891059784306],
+  "baseline_final_hinge_rad": 0.23007869033449105,
+  "swept_axes": [
+    "mass",
+    "capped drive stiffness/damping/effort",
+    "static/dynamic Coulomb effort",
+    "viscous coefficient"
+  ],
+  "interpretation": [
+    "Dynamic friction changes the realized MuJoCo response as expected.",
+    "Changing only static effort leaves MuJoCo response unchanged and remains explicit FRICTION_SEMANTIC_GAP evidence.",
+    "Every capped actuator force stayed at or below its per-case declared force cap.",
+    "Optional renderer variants were not run because E4 already records the native llvmpipe RGB domain and E6 renderer variation is optional."
+  ]
+}

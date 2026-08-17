@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 19:54 HKT
+Last updated: 2026-08-17 20:04 HKT
 
 ## Scope and authority
 
@@ -20,7 +20,7 @@ Last updated: 2026-08-17 19:54 HKT
 | E3 Open-loop | COMPLETE_WITH_WARNING | Composed scene 29/28/22; 600-step CPU trace finite; direct door state crossed 0.174533 rad at 1.81 s. |
 | E4 Closed-loop proprio/pixel | EXPLORATORY_COMPLETE | 6 native-RGB Student rows replay at diff 0; 24-step CPU loop finite; pixel data recorded, no policy verdict. |
 | E5 Paired cases | TYPED_BLOCKED | Ordered-row harness operational; current MuJoCo trace present; current Student Isaac trace is BLOCKED_INPUT_ISAAC_PAIRED_TRACE. |
-| E6 Robustness | NOT_STARTED | Requires at least one interpretable E4/E5 path. |
+| E6 Robustness | COMPLETE_WITH_WARNING | 9 CPU door cases finite across mass/drive/friction axes; response 0.1695–0.3586 rad; static gap retained. |
 
 Missing evidence is typed and is never filled with zero.
 
@@ -48,6 +48,16 @@ Phase-completion merge record: local `A2_Piper` was already at the worktree base
 - Replayed three deterministic contract rows through a newly instantiated native actor; action means and recurrent hidden/cell state matched at `atol=1e-6`, maximum absolute difference `0.0`.
 - Retained the source discrepancy: the selected config declares gripper `80/3/10`; the bundle does not silently replace it. The robot realization separately uses the owner-resolved evaluated `1300/32/45` face.
 - No GPU was leased.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
+### Phase 7 — E6 robustness sweep (complete)
+
+- Ran nine deterministic CPU door-only variants around the explicit instance: mass, capped drive stiffness/damping/effort, static/dynamic Coulomb effort, and viscous coefficient.
+- All cases stayed finite. Under the same release and 10 Nm external excitation, final hinge response spanned `0.16947–0.35859 rad`; baseline was `0.23008 rad`.
+- Every capped actuator peak equaled or stayed below its declared per-case cap. Lower dynamic friction increased opening; higher dynamic friction reduced it.
+- Changing only static effort produced the same MuJoCo response as baseline, which is the expected observable form of `FRICTION_SEMANTIC_GAP`, not an omitted input.
+- Optional renderer variants were not run. E4 already records the actual llvmpipe native RGB domain; E6 renderer variation is optional and would not close the absent Isaac RTX pair.
 
 Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
 
@@ -106,4 +116,4 @@ Phase-completion merge record: `git merge A2_Piper` returned `Already up to date
 
 ## Next action
 
-Run E6 CPU robustness sweeps over the declared door friction/mechanics axes, preserving the friction semantic gap in every case.
+Finalize the R1-R10 crosswalk, typed limitations/handoff, memory entry, full changed-file boundary, and final local commit without push.

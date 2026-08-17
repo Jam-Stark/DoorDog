@@ -1,18 +1,17 @@
 # Codex Agent System Memory
 
-本 subsystem 记录 repository-wide Codex multi-agent foundation、runtime compatibility 与 role rollout evidence。它不属于 A2_Piper product implementation，也不记录 live task ledger、heartbeat 或 mailbox message。
+This subsystem records the active repository-wide Codex workflow and concrete runtime compatibility facts. It is durable knowledge, not a live task ledger, heartbeat, mailbox, or recurring audit program.
 
-## Entries
+## Active entries
 
-- [architecture/description.md](architecture/description.md): canonical policy、Phase 2 role routing、lease/candidate/review/memory/Git gates。
-- [runtime-compatibility/description.md](runtime-compatibility/description.md): project config/TOML、model catalog、strict startup 与 runtime observability evidence。
-- [role-evaluations/description.md](role-evaluations/description.md): `ROLE_PROBE_V1` 与十角色 contract/runtime eval 状态。
-- [production-role-rollout/description.md](production-role-rollout/description.md): Phase 2 direct registration、model/permission matrix、parallel waves 与后续 rollout gates。
+- [architecture/description.md](architecture/description.md): current lean Codex multi-agent policy, role routing, direct communication, implementation-first flow, effort matrix, and review limits.
+- [runtime-compatibility/description.md](runtime-compatibility/description.md): current project config schema, user-confirmed Luna availability, and concrete future compatibility evidence.
 
-## Evidence Rule
+The previous role-evaluation and production-rollout entries were removed because they described an obsolete probe/contract/eval workflow. Git history and the pre-migration tag are the archive; future agents must not treat historical gates as active requirements.
 
-- `STATIC PASS` 只证明 files 可解析且内部一致。
-- Runtime role/model/effort/sandbox/no-write evidence 不完整时只能记录 `NOT_RUN` 或 `INCONCLUSIVE`。
-- Production profiles 已按 user 明确决定直接注册；effective runtime metadata 未暴露时仍必须保持 `UNKNOWN/INCONCLUSIVE`。
-- Deep invocation、write-safety runtime eval 与 hook implementation 各自保留 separate user approval gate。
-- Timestamp 使用 `YYYY-MM-DD HH:MM HKT`；entry 更新必须同步 `description.md`、`TODO.md` 与 `DONE.md`。
+## Evidence rules
+
+- `STATIC_PASS` proves parse and internal consistency only.
+- The user confirms the current machine accepts Luna subagents; use Luna normally without a probe lane.
+- Record a future incompatibility only when a real invocation produces a concrete error. Do not run periodic role, model, sandbox, or metadata matrices.
+- Memory updates use one `YYYY-MM-DD HH:MM HKT` timestamp across `description.md`, `TODO.md`, and `DONE.md`.

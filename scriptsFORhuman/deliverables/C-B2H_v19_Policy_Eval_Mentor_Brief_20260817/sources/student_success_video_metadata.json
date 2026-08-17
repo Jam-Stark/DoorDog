@@ -1,0 +1,26 @@
+{
+  "video": "videos/student_policy_success_env13_dual_d435.mp4",
+  "policy": "baseline Student model_step_008000.pt",
+  "policy_action_source": "student_policy_action_mean",
+  "teacher_rollout": false,
+  "teacher_rollout_ratio": 0.0,
+  "seed": 0,
+  "env_id": 13,
+  "source_formal_outcome": {
+    "goal_reached": true,
+    "max_stage": 5,
+    "terminal_reason": "complete",
+    "reward": 77.3603515625
+  },
+  "render_replay_outcome": {
+    "goal_reached": true,
+    "max_stage": 5,
+    "terminal_reason": "complete",
+    "reward": 77.12503814697266
+  },
+  "view": "left and right D435 policy cameras side by side",
+  "frame_count": 606,
+  "fps": 20,
+  "duration_seconds": 30.3,
+  "role_in_report": "single-case qualitative illustration; not aggregate evidence"
+}

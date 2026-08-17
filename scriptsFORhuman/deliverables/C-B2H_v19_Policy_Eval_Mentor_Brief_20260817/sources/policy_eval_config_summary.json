@@ -1,0 +1,56 @@
+{
+  "report_date": "2026-08-17 HKT",
+  "shared_eval_contract": {
+    "environment": "C-B2H v19, toe-out 6 degrees, pitch -50 degrees, fixed-G2",
+    "stage0_g2": "0.50 <= dx <= 0.80; abs(dy) < 0.15; arm deviation < 0.10; physical base-command norm <= 0.10",
+    "episode_protocol": "16 parallel environments, one first episode per (seed, env_id)",
+    "action_composition": "12D high-level action + 12D frozen A2_Base leg action = 24D rollout action",
+    "training_during_eval": false
+  },
+  "teacher_eval": {
+    "policy": "base_v19_G2_norm_control/model_step_002000.pt",
+    "observation": "133D privileged Teacher observation",
+    "output": "12D high-level action",
+    "source": "TRLDistillTrainerA2BaseAPI.policy_step.gt_actions",
+    "teacher_rollout_ratio": 1.0,
+    "student_rollout_calls": 0,
+    "seeds": "0-15",
+    "episodes": 256,
+    "successes": 255,
+    "success_rate": 0.99609375,
+    "wilson95": "97.82%-99.93%",
+    "failures_by_stage": {"stage0": 0, "stage1": 0, "stage2": 1, "stage4": 0}
+  },
+  "baseline_student_eval": {
+    "policy": "formal_4x64_8k_gpu4-7_timeoutfix_retry/model_step_008000.pt",
+    "architecture": "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2 recurrent Student",
+    "observation": "81D proprio + dual D435 RGB packed as 384x216x6 + OEM Head RGB 384x136 + 6D camera metadata",
+    "depth_enabled": false,
+    "output": "12D high-level action",
+    "teacher_rollout_ratio": 0.0,
+    "pure_student": true,
+    "seeds": "0-31",
+    "episodes": 512,
+    "successes": 459,
+    "success_rate": 0.896484375,
+    "wilson95": "86.71%-92.00%",
+    "failures_by_stage": {"stage0": 15, "stage1": 2, "stage2": 35, "stage4": 1}
+  },
+  "grpo_step10_student_eval": {
+    "policy": "pilot_2x32_lr375e8_syncreset/model_step_000010.pt",
+    "update_scope": "Student LSTM and action head only; vision encoder, Head encoder and noise std frozen",
+    "eval_contract": "same fixed-G2 seeds 0-31, 16 env per seed, one episode per env",
+    "episodes": 512,
+    "successes": 467,
+    "success_rate": 0.912109375,
+    "wilson95": "88.44%-93.37%",
+    "absolute_change_vs_baseline_pp": 1.5625,
+    "failures_by_stage": {"stage0": 20, "stage1": 0, "stage2": 23, "stage4": 2},
+    "verdict": "88%-93% edge; improvement but not closeout"
+  },
+  "source_documents": [
+    "C-B2H_v19_LargeScale_Camera_Eval_Report_20260810.md",
+    "C-B2H_v19_GRPO_Finetune_Report_20260812.md",
+    "student_success_video_metadata.json"
+  ]
+}

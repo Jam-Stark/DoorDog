@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-16 23:44 HKT (pull-v5.4 scheduler Stage-A GO / Stage-B FAIL closure)。
+创建:2026-07-21;最近更新:2026-08-17 08:13 HKT (pull-v5.5 residual-adapter T1/G11 return-to-planner closure)。
 
 ---
 
@@ -39,7 +39,7 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **scheduler 已完成/失败；residual terminal-hold adapter 已激活，等待用户 v5.5 planner contract；fine-tune 仅在 residual 被证伪后 indefinitely deferred** | v5.4 Stage A=`GO`（44 traces/352 trajectories/75,200 rows；selected raw `+0.05` realized yaw negative）。Stage B sole shared correction 后 max error=`0.0900235176/0.0588076115 rad` 虽在 `0.15 rad` 内，但 `16/16` corrected rows `trim_step_cap_exceeded`、terminal-current false、100-step hold=`0`、无 `DONE`，故 valid `FAIL`；不得当作 passage zero，也不得放宽 `0.05 m/0.15 rad`。|
+| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **scheduler、registered residual adapter 均 completed/failed；return to planner。fine-tune/rung3 非自动授权，须 planner decision** | v5.5 r13 T1 gate=`0/80,1/80,0/80`，仅 step500 `near_rest` env15 K100（XY=`0.0396828391 m`、yaw=`0.0298886299 rad`），远低于 each family `15/16` 与 overall `77/80`；不得将 scoped adapter FAIL 泛化为所有 residual architecture，也不得当作 passage zero 或放宽 `0.05 m/0.15 rad`。sampled/applied carrier provenance 是 PPO reusable gotcha。|
 
 ## E. 维护性挂账(小,勿丢)
 
@@ -50,6 +50,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-17 08:13 HKT:**pull-v5.5 residual terminal-hold adapter 收口(T1 FAIL / G11 return-to-planner)**——rung2 完成 750-batch initial run 与唯一 target-offset curriculum retrain；corrected r13 `750/750` complete，但 gate=`0/80,1/80,0/80`，只在 step500 `near_rest` env15 出现 valid K100（terminal-current、hold100、XY=`0.0396828391 m`、yaw=`0.0298886299 rad`），不满足 each family `15/16` / overall `77/80`。scripted prelude/handoff 必须从 PPO actor/entropy denominator 排除，而 critic 保留 trajectory；r13 sampled/applied carrier fix 是 reusable gotcha。T2/T3/door/G2/P3/P4/dual eval/render NOT_RUN，zero G3 attempts，无 passage denominator；diagnostics denominator=false/none。formal review 仍 FAIL，targeted/runtime acceptance 非 reviewer PASS。rung3 HOMIE fine-tune 未授权，返回 planner。依据：`scriptsFORhuman/pull_v5/PULL_V5_5_ROUND_REPORT.md`。
 
 - [x] 2026-08-16 23:44 HKT:**pull-v5.4 terminal-yaw scheduler 收口(Stage A GO / Stage B FAIL / G11)**——Stage A 使用 `44` traces、`352` env trajectories、`75,200` rows，selected raw `+0.05` 的 realized yaw 为 negative。Stage B sole shared correction=`-0.3672668933868408 rad` 后两组 corrected max error=`0.0900235176/0.0588076115 rad`，皆低于 `0.15 rad`；但全部 `16` corrected rows `trim_step_cap_exceeded`、terminal-current false、100-step hold=`0`、无 `DONE`，所以 valid rehearsal `FAIL`、零 G3 attempt。Earlier G9 attempts invalid/blocked 且不入 science；valid diagnostics denominator=false/none。anchor/door/G2/P3/P4/dual eval/render 均 NOT_RUN，无 passage denominator，stopping condition 未达。唯一 formal review 仍 FAIL；targeted/runtime acceptance 不构成 reviewer PASS。三 rung ladder 转入 residual terminal-hold adapter v5.5 precommit；HOMIE fine-tune 仅 residual 被证伪后考虑。依据：`scriptsFORhuman/pull_v5/PULL_V5_4_ROUND_REPORT.md`。
 

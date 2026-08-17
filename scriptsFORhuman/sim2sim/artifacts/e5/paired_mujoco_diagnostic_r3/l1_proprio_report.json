@@ -1,0 +1,216 @@
+{
+  "components": [
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.05000000074505806,
+        "max": 0.0,
+        "mean": -0.016249999403953552,
+        "min": -0.05000000074505806,
+        "std": 0.02298852428793907
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 2.2491676807403564,
+        "max": 2.2491676807403564,
+        "mean": -0.015405571088194847,
+        "min": -2.067157745361328,
+        "std": 0.420272558927536
+      },
+      "live_to_fixture_abs_max_ratio": 44.98335294450293,
+      "name": "base_ang_vel",
+      "scale": 0.5,
+      "slice": [
+        0,
+        3
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 1.0,
+        "max": 0.0,
+        "mean": -0.12611110508441925,
+        "min": -1.0,
+        "std": 0.30964890122413635
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 1.0,
+        "max": 0.39394161105155945,
+        "mean": -0.3394049406051636,
+        "min": -1.0,
+        "std": 0.46705204248428345
+      },
+      "live_to_fixture_abs_max_ratio": 1.0,
+      "name": "projected_gravity",
+      "scale": 1.0,
+      "slice": [
+        3,
+        6
+      ],
+      "suspect": null
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.042500000447034836,
+        "max": 0.0,
+        "mean": -0.01020833384245634,
+        "min": -0.042500000447034836,
+        "std": 0.015024574473500252
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 4.870144367218018,
+        "max": 2.10105037689209,
+        "mean": 0.01431012898683548,
+        "min": -4.870144367218018,
+        "std": 0.4842623770236969
+      },
+      "live_to_fixture_abs_max_ratio": 114.59163096450744,
+      "name": "a2_student_dof_pos",
+      "scale": 1.0,
+      "slice": [
+        6,
+        26
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.017500000074505806,
+        "max": 0.0062500000931322575,
+        "mean": -0.0018749999580904841,
+        "min": -0.017500000074505806,
+        "std": 0.004934466443955898
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 28.691532135009766,
+        "max": 28.691532135009766,
+        "mean": -0.050027720630168915,
+        "min": -25.202451705932617,
+        "std": 2.156116247177124
+      },
+      "live_to_fixture_abs_max_ratio": 1639.5161150203598,
+      "name": "a2_student_dof_vel",
+      "scale": 0.05,
+      "slice": [
+        26,
+        46
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.029999999329447746,
+        "max": 0.029999999329447746,
+        "mean": 0.0062500000931322575,
+        "min": 0.0,
+        "std": 0.009682458825409412
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 4.443315029144287,
+        "max": 4.443315029144287,
+        "mean": 0.2808457911014557,
+        "min": -3.560929298400879,
+        "std": 0.9714716672897339
+      },
+      "live_to_fixture_abs_max_ratio": 148.11050428200397,
+      "name": "actions",
+      "scale": 1.0,
+      "slice": [
+        46,
+        65
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.03750000149011612,
+        "max": 0.03750000149011612,
+        "mean": 0.011458332650363445,
+        "min": 0.0,
+        "std": 0.01625133492052555
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 12.761066436767578,
+        "max": 11.387603759765625,
+        "mean": 0.4668862223625183,
+        "min": -12.761066436767578,
+        "std": 3.830735445022583
+      },
+      "live_to_fixture_abs_max_ratio": 340.2950914583567,
+      "name": "delta_actions",
+      "scale": 1.0,
+      "slice": [
+        65,
+        71
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.04374999925494194,
+        "max": 0.04374999925494194,
+        "mean": 0.013750000856816769,
+        "min": 0.0,
+        "std": 0.01947220042347908
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 2.603888988494873,
+        "max": 2.342360734939575,
+        "mean": 0.15082545578479767,
+        "min": -2.603888988494873,
+        "std": 0.6540073156356812
+      },
+      "live_to_fixture_abs_max_ratio": 59.517463607744894,
+      "name": "a2_base_command",
+      "scale": 1.0,
+      "slice": [
+        71,
+        76
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.05000000074505806,
+        "max": 0.05000000074505806,
+        "mean": 0.015833333134651184,
+        "min": 0.0,
+        "std": 0.022414961829781532
+      },
+      "live_exact_pre_inference": {
+        "abs_max": 5.207777976989746,
+        "max": 4.68472146987915,
+        "mean": 0.4403866231441498,
+        "min": -5.207777976989746,
+        "std": 1.4417132139205933
+      },
+      "live_to_fixture_abs_max_ratio": 104.15555798775617,
+      "name": "a2_base_command_raw",
+      "scale": 1.0,
+      "slice": [
+        76,
+        81
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    }
+  ],
+  "contract_checks": {
+    "a2_base_command_warp": "raw k=s=0; physical [0:3]*0.25 and [3:5] clip*0.4; echo scales [2,2,.25,1,1]",
+    "actions_echo": "PREVIOUS_APPLIED_12_LEG_6_ARM_1_GRIP",
+    "actor_obs_dim": 81,
+    "base_ang_vel_frame": "MUJOCO_TRUNK_LOCAL_FRAME",
+    "delta_actions_echo": "PREVIOUS_RAW_ACTION_5_11",
+    "delta_reset_backmap": "CONFIG_TRUE_BUT_PRODUCTION_IMPLEMENTATION_IS_NOOP; RESET_ZERO_RETAINED",
+    "dof_order": "NAME_RESOLVED_CONTRACT_ORDER",
+    "dof_pos": "QPOS_MINUS_RESOLVED_DEFAULT",
+    "stage_action_fix": "R2_FIXED_STAGE_ONE_REPLACED_BY_PRODUCTION_WALK_TO_DOOR_STAGE_ZERO"
+  },
+  "golden_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+  "magnitude_warning": "Over-10x flags compare against synthetic contract fixtures, not empirical Isaac rollout statistics.",
+  "r2_trace_limitation": {
+    "actor_obs_present": false,
+    "dynamic_state_timing": "R2 ROW WRITTEN AFTER FIRST PHYSICS SUBSTEP; EXACT POLICY INPUT CANNOT_BE_RECONSTRUCTED",
+    "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2/cases/p00_baseline/trace.jsonl"
+  },
+  "result": "PIPELINE_DEFECT_FOUND_TRACE_INSTRUMENTATION_AND_STAGE_ACTION_SEMANTICS",
+  "schema": "doordog.sim2sim.r3_l1_proprio_report.v1"
+}

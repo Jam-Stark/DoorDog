@@ -1,0 +1,144 @@
+{
+  "capture_steps": [
+    0,
+    10,
+    50
+  ],
+  "captures": {
+    "0": {
+      "head": {
+        "bgr_hypothesis_mean_abs_uint8": 16.841962826797385,
+        "channel_separation_images": [
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_head_channel_R.png",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_head_channel_G.png",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_head_channel_B.png"
+        ],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          136,
+          384,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 19.954656862745097
+      },
+      "left": {
+        "bgr_hypothesis_mean_abs_uint8": 20.504509066358025,
+        "channel_separation_images": [
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_left_channel_R.png",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_left_channel_G.png",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_left_channel_B.png"
+        ],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          384,
+          216,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 32.26991705246913
+      },
+      "right": {
+        "bgr_hypothesis_mean_abs_uint8": 21.96973861882716,
+        "channel_separation_images": [
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_right_channel_R.png",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_right_channel_G.png",
+          "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_right_channel_B.png"
+        ],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          384,
+          216,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 25.65260898919753
+      }
+    },
+    "10": {
+      "head": {
+        "bgr_hypothesis_mean_abs_uint8": 17.78778594771242,
+        "channel_separation_images": [],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          136,
+          384,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 22.186963848039216
+      },
+      "left": {
+        "bgr_hypothesis_mean_abs_uint8": 19.9414464377572,
+        "channel_separation_images": [],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          384,
+          216,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 29.741857960390945
+      },
+      "right": {
+        "bgr_hypothesis_mean_abs_uint8": 20.876575360082306,
+        "channel_separation_images": [],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          384,
+          216,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 29.22116930298354
+      }
+    },
+    "50": {
+      "head": {
+        "bgr_hypothesis_mean_abs_uint8": 21.337622549019606,
+        "channel_separation_images": [],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          136,
+          384,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 16.09991574754902
+      },
+      "left": {
+        "bgr_hypothesis_mean_abs_uint8": 20.91059027777778,
+        "channel_separation_images": [],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          384,
+          216,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 23.953333976337447
+      },
+      "right": {
+        "bgr_hypothesis_mean_abs_uint8": 20.316092785493826,
+        "channel_separation_images": [],
+        "raw_roundtrip_max_abs_uint8": 0,
+        "shape_hwc": [
+          384,
+          216,
+          3
+        ],
+        "vertical_flip_hypothesis_mean_abs_uint8": 26.363345550411523
+      }
+    }
+  },
+  "golden_image_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+  "golden_images_equal_imagenet_mean_after_inverse_normalization": true,
+  "normalization": {
+    "mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "std": [
+      0.229,
+      0.224,
+      0.225
+    ]
+  },
+  "packing": "vision_obs NHWC left RGB channels 0:3 then right RGB channels 3:6; head context_vision_obs NHWC",
+  "readback": "mujoco.Renderer RGB; no vertical flip and no BGR swap on the tensor path",
+  "result": "PASS_EXACT_POLICY_TENSOR_ROUNDTRIP",
+  "schema": "doordog.sim2sim.r3_l2_image_pipeline_report.v1"
+}

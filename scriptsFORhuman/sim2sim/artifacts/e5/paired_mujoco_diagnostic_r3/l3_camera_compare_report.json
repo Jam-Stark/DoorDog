@@ -1,0 +1,127 @@
+{
+  "comparison_limit": "Isaac source is a real eval video but not the transferred paired p00 trace; formal first-discrete-point attribution remains E5 pending.",
+  "finding": "Door/handle direction and gross framing are comparable; background, materials, illumination, occlusion, and exact scene state differ. No evidence-authorized extrinsic/FOV edit was made.",
+  "mujoco_camera_contract": [
+    {
+      "channels": 3,
+      "convention": "world",
+      "dtype": "uint8",
+      "name": "left",
+      "packing": "vision_obs.channel_stack[0:3]",
+      "parent": "trunk",
+      "position_m": [
+        0.215,
+        0.065,
+        0.165
+      ],
+      "resolution_hw": [
+        384,
+        216
+      ],
+      "rotation_wxyz": [
+        0.905065723713,
+        0.022118130854,
+        -0.422039078101,
+        0.047432484685
+      ],
+      "update_period_s": 0.03333333333333333
+    },
+    {
+      "channels": 3,
+      "convention": "world",
+      "dtype": "uint8",
+      "name": "right",
+      "packing": "vision_obs.channel_stack[3:6]",
+      "parent": "trunk",
+      "position_m": [
+        0.215,
+        -0.065,
+        0.165
+      ],
+      "resolution_hw": [
+        384,
+        216
+      ],
+      "rotation_wxyz": [
+        0.905065723713,
+        -0.022118130854,
+        -0.422039078101,
+        -0.047432484685
+      ],
+      "update_period_s": 0.03333333333333333
+    },
+    {
+      "channels": 3,
+      "convention": "world",
+      "dtype": "uint8",
+      "name": "head",
+      "packing": "context_vision_obs",
+      "parent": "trunk",
+      "position_m": [
+        0.3381,
+        0.0336,
+        0.0525
+      ],
+      "resolution_hw": [
+        136,
+        384
+      ],
+      "rotation_wxyz": [
+        1.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "update_period_s": 0.06666666666666667
+    }
+  ],
+  "result": "GEOMETRICALLY_DIRECTIONALLY_COMPARABLE_WITH_VISUAL_DOMAIN_GAP",
+  "schema": "doordog.sim2sim.r3_l3_camera_compare_report.v1",
+  "sources": {
+    "head": {
+      "isaac_first_frame_shape_hwc": [
+        136,
+        384,
+        3
+      ],
+      "isaac_video": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_eval/by_batch/cb2h_v19_toeout6_pitch50_diag_20260808/failure_renders_seed0/env0000_gpu3/policy_camera_videos/oem_head_env0000.mp4",
+      "mujoco_exact_policy_input": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_head_inverse_from_policy_tensor.png",
+      "mujoco_shape_hwc": [
+        136,
+        384,
+        3
+      ],
+      "side_by_side": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l3/isaac_vs_mujoco_head.png"
+    },
+    "left": {
+      "isaac_first_frame_shape_hwc": [
+        384,
+        216,
+        3
+      ],
+      "isaac_video": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_eval/by_batch/cb2h_v19_toeout6_pitch50_diag_20260808/failure_renders_seed0/env0000_gpu3/policy_camera_videos/d435_left_env0000.mp4",
+      "mujoco_exact_policy_input": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_left_inverse_from_policy_tensor.png",
+      "mujoco_shape_hwc": [
+        384,
+        216,
+        3
+      ],
+      "side_by_side": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l3/isaac_vs_mujoco_left.png"
+    },
+    "right": {
+      "isaac_first_frame_shape_hwc": [
+        384,
+        216,
+        3
+      ],
+      "isaac_video": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_eval/by_batch/cb2h_v19_toeout6_pitch50_diag_20260808/failure_renders_seed0/env0000_gpu3/policy_camera_videos/d435_right_env0000.mp4",
+      "mujoco_exact_policy_input": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2/step0000_right_inverse_from_policy_tensor.png",
+      "mujoco_shape_hwc": [
+        384,
+        216,
+        3
+      ],
+      "side_by_side": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l3/isaac_vs_mujoco_right.png"
+    }
+  }
+}

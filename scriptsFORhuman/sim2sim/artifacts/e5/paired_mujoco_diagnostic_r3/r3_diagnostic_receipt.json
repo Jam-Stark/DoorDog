@@ -1,0 +1,26 @@
+{
+  "constraint_gate": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/constraint_gate_r3/constraint_gate_r3_receipt.json",
+    "result": "PASS"
+  },
+  "levels": {
+    "L1": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l1_proprio_report.json",
+    "L2": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2_image_pipeline_report.json",
+    "L3": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l3_camera_compare_report.json",
+    "L4": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4_ablation_report.json",
+    "L5": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+  },
+  "producer_identity": {
+    "git_commit": "9bb3c7ce0f1c164380a844e021da4d7c5ad4976c",
+    "path": "gr00t/rl/sim2sim/cli/run_diagnostic_ladder_r3.py"
+  },
+  "r2_disposition": "INVALID_PIPELINE_SUPERSEDED_BY_R3_DIAGNOSTIC",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "schema": "doordog.sim2sim.r3_diagnostic_receipt.v1",
+  "standing_vitals_gate": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/standing_vitals_gate_r1/standing_vitals_gate_receipt.json",
+    "result": "PASS"
+  },
+  "student_quality_disposition": "NO_STUDENT_QUALITY_VERDICT_FROM_MUJOCO",
+  "typed_conclusion": "PIPELINE_DEFECT_FOUND_STAGE_ACTION_SEMANTICS"
+}

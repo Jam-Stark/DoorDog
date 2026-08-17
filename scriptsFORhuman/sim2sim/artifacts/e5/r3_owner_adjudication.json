@@ -1,0 +1,88 @@
+{
+  "schema": "doordog.sim2sim.r3_owner_adjudication.v1",
+  "typed_conclusion": "PIPELINE_DEFECT_FOUND_ACTION_CONTROL_CONTRACT",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "campaign_authorization": "DENIED_UNTIL_RESOLVED_CONTROL_STANDING_GATE_PASS",
+  "door_gate": {
+    "path": "scriptsFORhuman/sim2sim/artifacts/e5/constraint_gate_r3/constraint_gate_r3_receipt.json",
+    "result": "PASS",
+    "equality_locked_max_abs_hinge_rad": 0.000032095381527275745,
+    "post_release_hinge_motion_rad": 0.29518285375167086
+  },
+  "pipeline_defects": [
+    {
+      "component": "STAGE_ACTION_SEMANTICS",
+      "status": "CONFIRMED",
+      "r2_behavior": "ArmDeltaAccumulator was called with fixed stage=1 from the first policy step.",
+      "production_behavior": "STAGE_WALK_TO_DOOR=0 clears the applied six-axis arm accumulator after the raw delta is recorded for observation echo.",
+      "r2_evidence": {
+        "first_applied_arm_delta_cap_policy_step": 18,
+        "applied_arm_delta_abs_max": 15.0,
+        "robot_qvel_abs_max_radps": 483.1522287893094
+      }
+    },
+    {
+      "component": "RESOLVED_EFFORT_LIMIT",
+      "status": "CONFIRMED",
+      "r2_arm_j1_to_j6_effort_limit_nm": 40.0,
+      "ready_bundle_resolved_arm_j1_to_j6_effort_limit_nm": 100.0,
+      "owner_resolved_gripper_effort_limit_nm": 45.0,
+      "resolved_surface_probe": {
+        "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3_resolved_effort/standing_vitals_gate_r3_receipt.json",
+        "result": "FAIL",
+        "classification": "INVALID_NUMERICS",
+        "campaign_authorization": "DENIED",
+        "first_mujoco_huge_qacc_warning_time_s": 0.065,
+        "passive_final_base_height_m": 0.13313519240253838,
+        "frozen_final_base_height_m": 0.1891675058231838
+      },
+      "interpretation": "The r2 40 N*m surface accidentally suppressed a deeper MuJoCo arm-dynamics/discrete-PD instability; it is not the evaluated checkpoint contract and cannot authorize a formal campaign."
+    }
+  ],
+  "diagnostic_levels": {
+    "L1": {
+      "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l1_r2_proprio_report.json",
+      "policy_steps": 1000,
+      "actor_obs_dump": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l1_r2_actor_obs_81d_boundary_reconstruction.jsonl",
+      "finding": "Every requested component exceeds the synthetic fixture by >10x except projected_gravity. The fixture is not an empirical Isaac trace, so ratios are screens rather than parity verdicts."
+    },
+    "L2": {
+      "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l2_image_pipeline_report.json",
+      "result": "PASS_EXACT_POLICY_TENSOR_ROUNDTRIP",
+      "steps": [0, 10, 50],
+      "max_raw_roundtrip_error_uint8": 0,
+      "finding": "RGB channel order, no-vertical-flip path, left/right packing, head shape, and ImageNet inverse normalization are proven on the exact tensor passed to the actor."
+    },
+    "L3": {
+      "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l3/",
+      "result": "UNRESOLVED_PENDING_PAIRED_SAME_STATE_RGB",
+      "finding": "Actual Isaac eval frames and MuJoCo exact input frames show a material visual/framing gap, but the available Isaac video is not the fixed p00 state. Extrinsic/FOV was not changed from unmatched evidence."
+    },
+    "L4": {
+      "path": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4_ablation_report.json",
+      "classification": "INVALID_CONTROL_CONTRACT_DIAGNOSTIC_ONLY",
+      "all_modes_policy_steps": 1000,
+      "all_modes_applied_arm_delta_abs_max": 0.0,
+      "arm_joint_displacement_range_rad": [4.870144348602516, 5.597875406594072],
+      "golden_images_equal_imagenet_mean": true,
+      "fresh_meta_uniquely_stable": false,
+      "finding": "All four survive in base height after stage-0 repair, but all retain large physical arm motion under the non-resolved 40 N*m controller. This identifies a control-path defect before a visual-dominance claim can be made."
+    },
+    "L5": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+  },
+  "hypotheses": {
+    "proprio_or_action_pipeline_hard_bug": "CONFIRMED",
+    "rgb_pack_bgr_or_vertical_flip": "REJECTED",
+    "camera_meta_only_cause": "REJECTED",
+    "visual_domain_gap_exists": "SUPPORTED_BUT_DOMINANCE_UNRESOLVED",
+    "camera_extrinsic_or_fovy_mismatch": "UNRESOLVED_PENDING_PAIRED_SAME_STATE_RGB"
+  },
+  "supersession": {
+    "paired_mujoco_campaign_r2": "INVALID_PIPELINE_SUPERSEDED_BY_R3",
+    "r2_door_learning_result": "VOID",
+    "paired_mujoco_diagnostic_r3_40nm": "INVALID_CONTROL_CONTRACT_DIAGNOSTIC_ONLY",
+    "paired_mujoco_diagnostic_r3_resolved_effort": "INVALID_NUMERICS_STANDING_GATE_DENIED"
+  },
+  "student_quality_disposition": "NO_STUDENT_QUALITY_VERDICT_FROM_MUJOCO; READY payload is GRPO-finetuned 467/512 (91.2%) versus baseline 459/512 (89.6%).",
+  "bundle_payload_correction": "scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/manifest_payload_correction_r3.json"
+}

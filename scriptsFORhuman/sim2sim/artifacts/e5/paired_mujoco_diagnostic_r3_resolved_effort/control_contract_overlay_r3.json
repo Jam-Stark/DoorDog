@@ -1,0 +1,134 @@
+{
+  "finding": "R2 used 40 N*m for arm_j1..arm_j6; evaluated READY config resolves 100 N*m.",
+  "owner_override": {
+    "arm_j7": 45.0,
+    "arm_j8": 45.0
+  },
+  "realized_actuator_ctrlrange_by_joint": {
+    "FL_calf_joint": [
+      -180.0,
+      180.0
+    ],
+    "FL_hip_joint": [
+      -120.0,
+      120.0
+    ],
+    "FL_thigh_joint": [
+      -120.0,
+      120.0
+    ],
+    "FR_calf_joint": [
+      -180.0,
+      180.0
+    ],
+    "FR_hip_joint": [
+      -120.0,
+      120.0
+    ],
+    "FR_thigh_joint": [
+      -120.0,
+      120.0
+    ],
+    "RL_calf_joint": [
+      -180.0,
+      180.0
+    ],
+    "RL_hip_joint": [
+      -120.0,
+      120.0
+    ],
+    "RL_thigh_joint": [
+      -120.0,
+      120.0
+    ],
+    "RR_calf_joint": [
+      -180.0,
+      180.0
+    ],
+    "RR_hip_joint": [
+      -120.0,
+      120.0
+    ],
+    "RR_thigh_joint": [
+      -120.0,
+      120.0
+    ],
+    "arm_j1": [
+      -100.0,
+      100.0
+    ],
+    "arm_j2": [
+      -100.0,
+      100.0
+    ],
+    "arm_j3": [
+      -100.0,
+      100.0
+    ],
+    "arm_j4": [
+      -100.0,
+      100.0
+    ],
+    "arm_j5": [
+      -100.0,
+      100.0
+    ],
+    "arm_j6": [
+      -100.0,
+      100.0
+    ],
+    "arm_j7": [
+      -45.0,
+      45.0
+    ],
+    "arm_j8": [
+      -45.0,
+      45.0
+    ]
+  },
+  "resolved_dof_effort_limit_by_joint": {
+    "FL_calf_joint": 180.0,
+    "FL_hip_joint": 120.0,
+    "FL_thigh_joint": 120.0,
+    "FR_calf_joint": 180.0,
+    "FR_hip_joint": 120.0,
+    "FR_thigh_joint": 120.0,
+    "RL_calf_joint": 180.0,
+    "RL_hip_joint": 120.0,
+    "RL_thigh_joint": 120.0,
+    "RR_calf_joint": 180.0,
+    "RR_hip_joint": 120.0,
+    "RR_thigh_joint": 120.0,
+    "arm_j1": 100.0,
+    "arm_j2": 100.0,
+    "arm_j3": 100.0,
+    "arm_j4": 100.0,
+    "arm_j5": 100.0,
+    "arm_j6": 100.0,
+    "arm_j7": 45.0,
+    "arm_j8": 45.0
+  },
+  "source": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/config_snapshot.yaml",
+  "source_dof_effort_limit_by_joint": {
+    "FL_calf_joint": 180.0,
+    "FL_hip_joint": 120.0,
+    "FL_thigh_joint": 120.0,
+    "FR_calf_joint": 180.0,
+    "FR_hip_joint": 120.0,
+    "FR_thigh_joint": 120.0,
+    "RL_calf_joint": 180.0,
+    "RL_hip_joint": 120.0,
+    "RL_thigh_joint": 120.0,
+    "RR_calf_joint": 180.0,
+    "RR_hip_joint": 120.0,
+    "RR_thigh_joint": 120.0,
+    "arm_j1": 100.0,
+    "arm_j2": 100.0,
+    "arm_j3": 100.0,
+    "arm_j4": 100.0,
+    "arm_j5": 100.0,
+    "arm_j6": 100.0,
+    "arm_j7": 10.0,
+    "arm_j8": 10.0
+  }
+}

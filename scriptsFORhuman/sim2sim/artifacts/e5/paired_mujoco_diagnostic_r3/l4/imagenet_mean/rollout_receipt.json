@@ -1,0 +1,51 @@
+{
+  "applied_arm_delta": {
+    "abs_max": 0.0,
+    "max": 0.0,
+    "mean": 0.0,
+    "min": 0.0,
+    "std": 0.0
+  },
+  "arm_joint_displacement_from_initial_abs_max_rad": 5.354102761574127,
+  "arm_raw_action_5_11": {
+    "abs_max": 13.055915832519531,
+    "max": 10.894098281860352,
+    "mean": 0.2548133134841919,
+    "min": -13.055915832519531,
+    "std": 3.651151418685913
+  },
+  "base_action_0_5": {
+    "abs_max": 6.4113969802856445,
+    "max": 5.626034736633301,
+    "mean": 0.29483887553215027,
+    "min": -6.4113969802856445,
+    "std": 1.4477049112319946
+  },
+  "base_command_physical": {
+    "abs_max": 1.6028492450714111,
+    "max": 1.4065086841583252,
+    "mean": 0.0795496329665184,
+    "min": -1.6028492450714111,
+    "std": 0.3754504323005676
+  },
+  "base_height_m": {
+    "abs_max": 0.62,
+    "max": 0.62,
+    "mean": 0.48650836423518984,
+    "min": 0.4414759006185728,
+    "std": 0.014255057849285832
+  },
+  "constraint_gate_release_count": 0,
+  "max_name_resolved_ctrl_write_error": 0.0,
+  "mode": "imagenet_mean",
+  "policy_steps": 1000,
+  "student_action": {
+    "abs_max": 13.055915832519531,
+    "max": 10.894098281860352,
+    "mean": 0.2728337347507477,
+    "min": -13.055915832519531,
+    "std": 2.755622148513794
+  },
+  "termination_reason": "HORIZON",
+  "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4/imagenet_mean/policy_step_trace.jsonl"
+}

@@ -1,0 +1,243 @@
+{
+  "actor_obs_dump": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l1_r2_actor_obs_81d_boundary_reconstruction.jsonl",
+  "components": [
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.05000000074505806,
+        "max": 0.0,
+        "mean": -0.016249999403953552,
+        "min": -0.05000000074505806,
+        "std": 0.02298852428793907
+      },
+      "name": "base_ang_vel",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 3.2112717628479004,
+        "max": 3.2112717628479004,
+        "mean": -0.009533834643661976,
+        "min": -2.1540050506591797,
+        "std": 0.26702600717544556
+      },
+      "r2_to_fixture_abs_max_ratio": 64.22543429992446,
+      "scale": 0.5,
+      "slice": [
+        0,
+        3
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 1.0,
+        "max": 0.0,
+        "mean": -0.12611110508441925,
+        "min": -1.0,
+        "std": 0.30964890122413635
+      },
+      "name": "projected_gravity",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 1.0,
+        "max": 0.39373767375946045,
+        "mean": -0.12642799317836761,
+        "min": -1.0,
+        "std": 0.5633376240730286
+      },
+      "r2_to_fixture_abs_max_ratio": 1.0,
+      "scale": 1.0,
+      "slice": [
+        3,
+        6
+      ],
+      "suspect": null
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.042500000447034836,
+        "max": 0.0,
+        "mean": -0.01020833384245634,
+        "min": -0.042500000447034836,
+        "std": 0.015024574473500252
+      },
+      "name": "a2_student_dof_pos",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 4.986983776092529,
+        "max": 3.145524740219116,
+        "mean": 0.0817212164402008,
+        "min": -4.986983776092529,
+        "std": 1.2198907136917114
+      },
+      "r2_to_fixture_abs_max_ratio": 117.3407934973437,
+      "scale": 1.0,
+      "slice": [
+        6,
+        26
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.017500000074505806,
+        "max": 0.0062500000931322575,
+        "mean": -0.0018749999580904841,
+        "min": -0.017500000074505806,
+        "std": 0.004934466443955898
+      },
+      "name": "a2_student_dof_vel",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 18.02818489074707,
+        "max": 18.02818489074707,
+        "mean": 0.002610565163195133,
+        "min": -16.489593505859375,
+        "std": 0.7035695910453796
+      },
+      "r2_to_fixture_abs_max_ratio": 1030.1819893710017,
+      "scale": 0.05,
+      "slice": [
+        26,
+        46
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.029999999329447746,
+        "max": 0.029999999329447746,
+        "mean": 0.0062500000931322575,
+        "min": 0.0,
+        "std": 0.009682458825409412
+      },
+      "name": "actions",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 15.0,
+        "max": 15.0,
+        "mean": 0.06631667166948318,
+        "min": -15.0,
+        "std": 8.035881042480469
+      },
+      "r2_to_fixture_abs_max_ratio": 500.0000111758711,
+      "scale": 1.0,
+      "slice": [
+        46,
+        65
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.03750000149011612,
+        "max": 0.03750000149011612,
+        "mean": 0.011458332650363445,
+        "min": 0.0,
+        "std": 0.01625133492052555
+      },
+      "name": "delta_actions",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 9.476893424987793,
+        "max": 9.476893424987793,
+        "mean": -0.410193532705307,
+        "min": -9.256698608398438,
+        "std": 1.6463992595672607
+      },
+      "r2_to_fixture_abs_max_ratio": 252.71714795759726,
+      "scale": 1.0,
+      "slice": [
+        65,
+        71
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.04374999925494194,
+        "max": 0.04374999925494194,
+        "mean": 0.013750000856816769,
+        "min": 0.0,
+        "std": 0.01947220042347908
+      },
+      "name": "a2_base_command",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 2.3091259002685547,
+        "max": 2.3091259002685547,
+        "mean": -0.14846684038639069,
+        "min": -2.0372419357299805,
+        "std": 0.6739948987960815
+      },
+      "r2_to_fixture_abs_max_ratio": 52.78002147640537,
+      "scale": 1.0,
+      "slice": [
+        71,
+        76
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    },
+    {
+      "bundle_golden_contract_fixture": {
+        "abs_max": 0.05000000074505806,
+        "max": 0.05000000074505806,
+        "mean": 0.015833333134651184,
+        "min": 0.0,
+        "std": 0.022414961829781532
+      },
+      "name": "a2_base_command_raw",
+      "r2_actual_boundary_reconstruction": {
+        "abs_max": 4.618251800537109,
+        "max": 4.618251800537109,
+        "mean": -0.3767184913158417,
+        "min": -4.074483871459961,
+        "std": 1.5465526580810547
+      },
+      "r2_to_fixture_abs_max_ratio": 92.36503463439591,
+      "scale": 1.0,
+      "slice": [
+        76,
+        81
+      ],
+      "suspect": "MAGNITUDE_OVER_10X_CONTRACT_FIXTURE"
+    }
+  ],
+  "contract_checks": {
+    "a2_base_command": "PHYSICAL_COMMAND_ECHO_WITH_[2,2,.25,1,1]_MULTIPLIER",
+    "a2_base_command_raw": "PREVIOUS_RAW_ACTION_0_5; WARP_K_AND_S_ARE_ZERO",
+    "actions_echo": "PREVIOUS_APPLIED_12_LEG_6_ARM_1_GRIP",
+    "actor_obs_dim": 81,
+    "base_ang_vel_frame": "BASE_LOCAL_NOT_WORLD",
+    "delta_actions_echo": "PREVIOUS_RAW_ACTION_5_11",
+    "dof_order": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint",
+      "arm_j1",
+      "arm_j2",
+      "arm_j3",
+      "arm_j4",
+      "arm_j5",
+      "arm_j6",
+      "arm_j7",
+      "arm_j8"
+    ],
+    "dof_position_surface": "RECORDED_QPOS_MINUS_RESOLVED_DEFAULT",
+    "r2_stage_semantics": "FIXED_STAGE_ONE_FROM_FIRST_POLICY_STEP; DEFECT",
+    "r3_stage_semantics": "WALK_TO_DOOR_STAGE_ZERO; APPLIED_ARM_DELTA_ZERO; RAW_DELTA_ECHO_RETAINED",
+    "reset_delta_actions_with_backmap": "CONFIG_TRUE_BUT_PRODUCTION_METHOD_IS_NOOP; RESET_ZERO_IS_ACTUAL_IMPLEMENTATION"
+  },
+  "golden_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+  "magnitude_warning": "The requested over-10x screen is retained, but its reference is synthetic contract data rather than empirical Isaac rollout statistics.",
+  "policy_step_count": 1000,
+  "reconstruction_authority": {
+    "base_ang_vel": "TRACE_WORLD_ANGULAR_VELOCITY_ROTATED_BY_RECORDED_BASE_QUATERNION_INTO_BASE_FRAME",
+    "step0": "PAIRED_MANIFEST_FIXED_INITIAL_STATE",
+    "step1_plus": "PREVIOUS_POLICY_STEP_FINAL_SUBSTEP_ROW_IS_THE_NEXT_PRE_INFERENCE_PHYSICS_BOUNDARY",
+    "warning": "r2 did not directly serialize actor_obs; this is deterministic boundary reconstruction, not a fabricated direct-capture claim."
+  },
+  "result": "PIPELINE_DEFECT_FOUND_STAGE_ACTION_SEMANTICS",
+  "schema": "doordog.sim2sim.r3_l1_r2_proprio_report.v1",
+  "source_r2_trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r2/cases/p00_baseline/trace.jsonl"
+}

@@ -1,0 +1,217 @@
+{
+  "interpretation": {
+    "camera_meta_test": "Compare live_rgb against live_rgb_fresh_meta metrics; fresh meta is not adopted unless it alone stabilizes behavior.",
+    "golden_vs_mean": "IDENTICAL_INPUTS",
+    "golden_vs_mean_reason": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+    "hard_defect": "r2 forced stage=1 although production starts WALK_TO_DOOR at stage=0; r3 stage=0 zeros applied arm delta while retaining raw delta echo",
+    "visual_domain": "L3 records a material visual gap; causal dominance cannot replace E5 Isaac-image replay/paired trace attribution."
+  },
+  "modes": {
+    "frozen_contract_golden_images": {
+      "applied_arm_delta": {
+        "abs_max": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "std": 0.0
+      },
+      "arm_joint_displacement_from_initial_abs_max_rad": 5.354102761574127,
+      "arm_raw_action_5_11": {
+        "abs_max": 13.055915832519531,
+        "max": 10.894098281860352,
+        "mean": 0.2548133134841919,
+        "min": -13.055915832519531,
+        "std": 3.651151418685913
+      },
+      "base_action_0_5": {
+        "abs_max": 6.4113969802856445,
+        "max": 5.626034736633301,
+        "mean": 0.29483887553215027,
+        "min": -6.4113969802856445,
+        "std": 1.4477049112319946
+      },
+      "base_command_physical": {
+        "abs_max": 1.6028492450714111,
+        "max": 1.4065086841583252,
+        "mean": 0.0795496329665184,
+        "min": -1.6028492450714111,
+        "std": 0.3754504323005676
+      },
+      "base_height_m": {
+        "abs_max": 0.62,
+        "max": 0.62,
+        "mean": 0.48650836423518984,
+        "min": 0.4414759006185728,
+        "std": 0.014255057849285832
+      },
+      "constraint_gate_release_count": 0,
+      "max_name_resolved_ctrl_write_error": 0.0,
+      "mode": "frozen_contract_golden_images",
+      "policy_steps": 1000,
+      "student_action": {
+        "abs_max": 13.055915832519531,
+        "max": 10.894098281860352,
+        "mean": 0.2728337347507477,
+        "min": -13.055915832519531,
+        "std": 2.755622148513794
+      },
+      "termination_reason": "HORIZON",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4/frozen_contract_golden_images/policy_step_trace.jsonl"
+    },
+    "imagenet_mean": {
+      "applied_arm_delta": {
+        "abs_max": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "std": 0.0
+      },
+      "arm_joint_displacement_from_initial_abs_max_rad": 5.354102761574127,
+      "arm_raw_action_5_11": {
+        "abs_max": 13.055915832519531,
+        "max": 10.894098281860352,
+        "mean": 0.2548133134841919,
+        "min": -13.055915832519531,
+        "std": 3.651151418685913
+      },
+      "base_action_0_5": {
+        "abs_max": 6.4113969802856445,
+        "max": 5.626034736633301,
+        "mean": 0.29483887553215027,
+        "min": -6.4113969802856445,
+        "std": 1.4477049112319946
+      },
+      "base_command_physical": {
+        "abs_max": 1.6028492450714111,
+        "max": 1.4065086841583252,
+        "mean": 0.0795496329665184,
+        "min": -1.6028492450714111,
+        "std": 0.3754504323005676
+      },
+      "base_height_m": {
+        "abs_max": 0.62,
+        "max": 0.62,
+        "mean": 0.48650836423518984,
+        "min": 0.4414759006185728,
+        "std": 0.014255057849285832
+      },
+      "constraint_gate_release_count": 0,
+      "max_name_resolved_ctrl_write_error": 0.0,
+      "mode": "imagenet_mean",
+      "policy_steps": 1000,
+      "student_action": {
+        "abs_max": 13.055915832519531,
+        "max": 10.894098281860352,
+        "mean": 0.2728337347507477,
+        "min": -13.055915832519531,
+        "std": 2.755622148513794
+      },
+      "termination_reason": "HORIZON",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4/imagenet_mean/policy_step_trace.jsonl"
+    },
+    "live_rgb": {
+      "applied_arm_delta": {
+        "abs_max": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "std": 0.0
+      },
+      "arm_joint_displacement_from_initial_abs_max_rad": 4.870144348602516,
+      "arm_raw_action_5_11": {
+        "abs_max": 12.761066436767578,
+        "max": 11.387603759765625,
+        "mean": 0.46585386991500854,
+        "min": -12.761066436767578,
+        "std": 3.8331499099731445
+      },
+      "base_action_0_5": {
+        "abs_max": 5.207777976989746,
+        "max": 4.68472146987915,
+        "mean": 0.4417346715927124,
+        "min": -5.207777976989746,
+        "std": 1.441949725151062
+      },
+      "base_command_physical": {
+        "abs_max": 1.3019444942474365,
+        "max": 1.1711803674697876,
+        "mean": 0.1175958588719368,
+        "min": -1.3019444942474365,
+        "std": 0.37501242756843567
+      },
+      "base_height_m": {
+        "abs_max": 0.62,
+        "max": 0.62,
+        "mean": 0.4857136786416901,
+        "min": 0.45270052527952,
+        "std": 0.013457648301874335
+      },
+      "constraint_gate_release_count": 0,
+      "max_name_resolved_ctrl_write_error": 0.0,
+      "mode": "live_rgb",
+      "policy_steps": 1000,
+      "student_action": {
+        "abs_max": 12.761066436767578,
+        "max": 11.387603759765625,
+        "mean": 0.4349353015422821,
+        "min": -12.761066436767578,
+        "std": 2.8762075901031494
+      },
+      "termination_reason": "HORIZON",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4/live_rgb/policy_step_trace.jsonl"
+    },
+    "live_rgb_fresh_meta": {
+      "applied_arm_delta": {
+        "abs_max": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "std": 0.0
+      },
+      "arm_joint_displacement_from_initial_abs_max_rad": 5.597875406594072,
+      "arm_raw_action_5_11": {
+        "abs_max": 11.410301208496094,
+        "max": 10.443902015686035,
+        "mean": -0.023728465661406517,
+        "min": -11.410301208496094,
+        "std": 3.597583532333374
+      },
+      "base_action_0_5": {
+        "abs_max": 5.769407272338867,
+        "max": 4.794854640960693,
+        "mean": 0.38015222549438477,
+        "min": -5.769407272338867,
+        "std": 1.405967354774475
+      },
+      "base_command_physical": {
+        "abs_max": 1.4423518180847168,
+        "max": 1.1987136602401733,
+        "mean": 0.10223893076181412,
+        "min": -1.4423518180847168,
+        "std": 0.3646727204322815
+      },
+      "base_height_m": {
+        "abs_max": 0.62,
+        "max": 0.62,
+        "mean": 0.48916951893758265,
+        "min": 0.4640218647127515,
+        "std": 0.012568022166485214
+      },
+      "constraint_gate_release_count": 0,
+      "max_name_resolved_ctrl_write_error": 0.0,
+      "mode": "live_rgb_fresh_meta",
+      "policy_steps": 1000,
+      "student_action": {
+        "abs_max": 11.410301208496094,
+        "max": 10.443902015686035,
+        "mean": 0.18378666043281555,
+        "min": -11.410301208496094,
+        "std": 2.7178239822387695
+      },
+      "termination_reason": "HORIZON",
+      "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4/live_rgb_fresh_meta/policy_step_trace.jsonl"
+    }
+  },
+  "result": "PIPELINE_DEFECT_FOUND_STAGE_ACTION_SEMANTICS",
+  "schema": "doordog.sim2sim.r3_l4_ablation_report.v1"
+}

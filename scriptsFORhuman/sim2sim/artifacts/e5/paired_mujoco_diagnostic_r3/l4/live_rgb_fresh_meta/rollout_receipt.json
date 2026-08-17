@@ -1,0 +1,51 @@
+{
+  "applied_arm_delta": {
+    "abs_max": 0.0,
+    "max": 0.0,
+    "mean": 0.0,
+    "min": 0.0,
+    "std": 0.0
+  },
+  "arm_joint_displacement_from_initial_abs_max_rad": 5.597875406594072,
+  "arm_raw_action_5_11": {
+    "abs_max": 11.410301208496094,
+    "max": 10.443902015686035,
+    "mean": -0.023728465661406517,
+    "min": -11.410301208496094,
+    "std": 3.597583532333374
+  },
+  "base_action_0_5": {
+    "abs_max": 5.769407272338867,
+    "max": 4.794854640960693,
+    "mean": 0.38015222549438477,
+    "min": -5.769407272338867,
+    "std": 1.405967354774475
+  },
+  "base_command_physical": {
+    "abs_max": 1.4423518180847168,
+    "max": 1.1987136602401733,
+    "mean": 0.10223893076181412,
+    "min": -1.4423518180847168,
+    "std": 0.3646727204322815
+  },
+  "base_height_m": {
+    "abs_max": 0.62,
+    "max": 0.62,
+    "mean": 0.48916951893758265,
+    "min": 0.4640218647127515,
+    "std": 0.012568022166485214
+  },
+  "constraint_gate_release_count": 0,
+  "max_name_resolved_ctrl_write_error": 0.0,
+  "mode": "live_rgb_fresh_meta",
+  "policy_steps": 1000,
+  "student_action": {
+    "abs_max": 11.410301208496094,
+    "max": 10.443902015686035,
+    "mean": 0.18378666043281555,
+    "min": -11.410301208496094,
+    "std": 2.7178239822387695
+  },
+  "termination_reason": "HORIZON",
+  "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_diagnostic_r3/l4/live_rgb_fresh_meta/policy_step_trace.jsonl"
+}

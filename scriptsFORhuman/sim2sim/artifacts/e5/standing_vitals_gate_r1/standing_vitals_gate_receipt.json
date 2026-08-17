@@ -1,0 +1,236 @@
+{
+  "actuator_mapping_audit": {
+    "frozen_a2_trace": {
+      "clip_invocation_is_not_saturation": true,
+      "clip_invocations": 1000,
+      "max_actuator_force_error": 0.0,
+      "max_ctrl_write_error": 0.0,
+      "max_generalized_force_error": 0.0,
+      "rows_with_any_saturation": 998,
+      "saturated_joint_steps": 3962
+    },
+    "mapping": {
+      "compiled_actuator_order": [
+        "door_hinge_capped_position",
+        "handle_capped_position",
+        "FL_hip_joint_motor",
+        "FL_thigh_joint_motor",
+        "FL_calf_joint_motor",
+        "RL_hip_joint_motor",
+        "RL_thigh_joint_motor",
+        "RL_calf_joint_motor",
+        "FR_hip_joint_motor",
+        "FR_thigh_joint_motor",
+        "FR_calf_joint_motor",
+        "RR_hip_joint_motor",
+        "RR_thigh_joint_motor",
+        "RR_calf_joint_motor",
+        "arm_j1_motor",
+        "arm_j2_motor",
+        "arm_j3_motor",
+        "arm_j4_motor",
+        "arm_j5_motor",
+        "arm_j6_motor",
+        "arm_j7_motor",
+        "arm_j8_motor"
+      ],
+      "door_actuator_ids": {
+        "door_hinge_capped_position": 0,
+        "handle_capped_position": 1
+      },
+      "robot_actuator_ids": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "robot_actuator_names": [
+        "FL_hip_joint_motor",
+        "FL_thigh_joint_motor",
+        "FL_calf_joint_motor",
+        "RL_hip_joint_motor",
+        "RL_thigh_joint_motor",
+        "RL_calf_joint_motor",
+        "FR_hip_joint_motor",
+        "FR_thigh_joint_motor",
+        "FR_calf_joint_motor",
+        "RR_hip_joint_motor",
+        "RR_thigh_joint_motor",
+        "RR_calf_joint_motor",
+        "arm_j1_motor",
+        "arm_j2_motor",
+        "arm_j3_motor",
+        "arm_j4_motor",
+        "arm_j5_motor",
+        "arm_j6_motor",
+        "arm_j7_motor",
+        "arm_j8_motor"
+      ],
+      "robot_joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint",
+        "arm_j1",
+        "arm_j2",
+        "arm_j3",
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "trace_contract": "robot_ctrl_effort follows robot_joint_names and reads actuator_force by the same IDs",
+      "write_contract": "data.ctrl[name_resolved_robot_actuator_ids]"
+    },
+    "passive_trace": {
+      "clip_invocation_is_not_saturation": true,
+      "clip_invocations": 400,
+      "max_actuator_force_error": 0.0,
+      "max_ctrl_write_error": 0.0,
+      "max_generalized_force_error": 0.0,
+      "rows_with_any_saturation": 392,
+      "saturated_joint_steps": 1541
+    },
+    "r1_clip_explanation": "r1 external_pd_clip_applications counted clip-function invocations. It did not count actual saturation. V2 separates invocations, rows_with_any_saturation, and saturated_joint_steps.",
+    "result": "PASS"
+  },
+  "armature_source": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/config_snapshot.yaml",
+  "backend": "mujoco_cpu",
+  "campaign_authorization": "AUTHORIZED",
+  "foot_floor_contact_pair": {
+    "all_feet_produced_nonzero_force_in_passive_tail": true,
+    "floor_geom_id": 0,
+    "foot_geom_ids": {
+      "FL_foot_collision": 13,
+      "FR_foot_collision": 29,
+      "RL_foot_collision": 21,
+      "RR_foot_collision": 37
+    }
+  },
+  "frozen_a2_standing": {
+    "acceptance": {
+      "evaluated_height_band_m": [
+        0.44000000000000006,
+        0.66
+      ],
+      "explicit_contact_solver_margin_m": 0.01,
+      "foot_force_required": true,
+      "requested_approximate_height_band_m": [
+        0.45000000000000007,
+        0.65
+      ],
+      "tail_height_span_max_m": 0.03,
+      "tail_max_abs_roll_or_pitch_rad": 0.35
+    },
+    "duration_s": 5.0,
+    "final_base_height_m": 0.4458682967050749,
+    "final_foot_normal_force_n": {
+      "FL_foot_collision": 118.21282598048853,
+      "FR_foot_collision": 105.13757045074637,
+      "RL_foot_collision": 110.41607161692846,
+      "RR_foot_collision": 86.81670520996445
+    },
+    "final_roll_pitch_rad": [
+      0.03631442910694734,
+      -0.022646958328199112
+    ],
+    "final_vertical_velocity_mps": 0.014211879615813511,
+    "mode": "FROZEN_A2_BASE_ZERO_COMMAND",
+    "result": "PASS",
+    "tail_base_height_max_m": 0.4493410158324029,
+    "tail_base_height_min_m": 0.444871972619958,
+    "tail_base_height_span_m": 0.004469043212444901,
+    "tail_max_abs_roll_or_pitch_rad": 0.054528295380256955,
+    "tail_max_abs_vertical_velocity_mps": 0.11295823601342808,
+    "tail_mean_total_foot_normal_force_n": 444.6073768729437,
+    "tail_steps_with_nonzero_foot_force": 200
+  },
+  "passive_landing": {
+    "acceptance": {
+      "final_abs_vertical_velocity_max_mps": 0.05,
+      "foot_force_required": true,
+      "height_band_m": [
+        0.45000000000000007,
+        0.65
+      ],
+      "tail_height_span_max_m": 0.02
+    },
+    "duration_s": 2.0,
+    "final_base_height_m": 0.4964972473565517,
+    "final_foot_normal_force_n": {
+      "FL_foot_collision": 95.77896316906323,
+      "FR_foot_collision": 60.509617629946995,
+      "RL_foot_collision": 132.97348382915118,
+      "RR_foot_collision": 126.67847663230735
+    },
+    "final_roll_pitch_rad": [
+      0.0014765074788890922,
+      -0.006350114284342142
+    ],
+    "final_vertical_velocity_mps": 0.010256672827266252,
+    "mode": "POLICY_FREE_DEFAULT_POSTURE_PD_LANDING",
+    "result": "PASS",
+    "tail_base_height_max_m": 0.49816121493548277,
+    "tail_base_height_min_m": 0.495737028972086,
+    "tail_base_height_span_m": 0.0024241859633967744,
+    "tail_max_abs_roll_or_pitch_rad": 0.026771619227992767,
+    "tail_max_abs_vertical_velocity_mps": 0.0686987792561955,
+    "tail_mean_total_foot_normal_force_n": 433.2734218926204,
+    "tail_steps_with_nonzero_foot_force": 100
+  },
+  "physics_dt_s": 0.005,
+  "producer_identity": {
+    "git_commit": "d7e9aa9dd8fd8714e1a00826015f92a9a1f28df0",
+    "path": "gr00t/rl/sim2sim/cli/run_standing_vitals_gate.py"
+  },
+  "resolved_armature_by_joint": {
+    "FL_calf_joint": 0.03,
+    "FL_hip_joint": 0.03,
+    "FL_thigh_joint": 0.03,
+    "FR_calf_joint": 0.03,
+    "FR_hip_joint": 0.03,
+    "FR_thigh_joint": 0.03,
+    "RL_calf_joint": 0.03,
+    "RL_hip_joint": 0.03,
+    "RL_thigh_joint": 0.03,
+    "RR_calf_joint": 0.03,
+    "RR_hip_joint": 0.03,
+    "RR_thigh_joint": 0.03,
+    "arm_j1": 0.0,
+    "arm_j2": 0.0,
+    "arm_j3": 0.0,
+    "arm_j4": 0.0,
+    "arm_j5": 0.0,
+    "arm_j6": 0.0,
+    "arm_j7": 0.0,
+    "arm_j8": 0.0
+  },
+  "result": "PASS",
+  "rule": "INSTRUMENT_VITALS_BEFORE_MEASUREMENT_INTERPRETATION",
+  "schema": "doordog.sim2sim.standing_vitals_gate.v1"
+}

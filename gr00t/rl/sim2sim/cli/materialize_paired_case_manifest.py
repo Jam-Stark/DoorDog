@@ -18,6 +18,7 @@ DISTILLATION_COMMIT = "a197255212fa65dd9e02337b7971daac71c944fe"
 DISTILLATION_DOOR_PATH = "gr00t/rl/isaac_utils/playground/env_rand/door.py"
 MANIFEST_ID = "a2_piper_grpo_step10_legacy_door_subset_r1"
 INITIAL_STATE_ID = "scene_home_fixed_v1"
+CHECKPOINT_GLOBAL_STEP = 10
 
 
 CASES = (
@@ -149,7 +150,7 @@ def main() -> None:
             "artifact_status": bundle["artifact_status"],
             "path": str(bundle_dir),
             "source_commit": bundle["native_loader"]["source_commit"],
-            "checkpoint_global_step": bundle["native_loader"]["checkpoint_global_step"],
+            "checkpoint_global_step": CHECKPOINT_GLOBAL_STEP,
         },
         "paired_trace_schema": {
             "schema_version": "doordog.sim2sim.paired_trace_row.v1",

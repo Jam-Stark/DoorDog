@@ -55,7 +55,7 @@ Do not repeat compilation, diff inspection, path-boundary checks, review, or val
 
 Waiting policy:
 
-- Do not poll repeatedly. Use one appropriate `wait_agent` barrier or wait such as `sleep 30`, `sleep 200`, `sleep 600`, `sleep 1800`, or the actual expected duration, including very long waits such as 20 hours.
+- Do not poll repeatedly. Use one appropriate `wait_agent` barrier or wait such as `sleep 30`, `sleep 200`, `sleep 600`, `sleep 1800`, or the actual expected duration, including very long waits such as 20+ hours. While sleeping, do not perform any thinking, send progress updates, or read status. Resume only after the sleep naturally returns, to minimize token consumption.
 - A task expected to run longer than 30 minutes must run in a named detached `tmux` session with command, session name, and output path recorded.
 - Main should continue non-overlapping orchestration or implementation while a worker owns the wait. Check again only after the expected interval or a concrete failure signal.
 

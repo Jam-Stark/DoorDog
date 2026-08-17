@@ -1,6 +1,6 @@
 # Sim2sim merge readiness
 
-Last updated: 2026-08-17 17:49 HKT
+Last updated: 2026-08-17 18:34 HKT
 
 ## Boundary
 
@@ -22,6 +22,16 @@ Forbidden shared production paths include:
 - `scriptsFORhuman/sim2sim/branch_snapshot.json`
 - `scriptsFORhuman/sim2sim/contract_unknowns.md`
 - `scriptsFORhuman/sim2sim/decisions/local_ai_decision_log.yaml`
+- `gr00t/rl/sim2sim/contracts/`
+- `gr00t/rl/sim2sim/policy/`
+- `gr00t/rl/sim2sim/schemas/student_policy_bundle.schema.json`
+- `gr00t/rl/sim2sim/cli/export_student_policy_bundle.py`
+- `gr00t/rl/sim2sim/cli/inspect_policy_bundle.py`
+- `gr00t/rl/sim2sim/cli/produce_native_hydra_actor.py`
+- `gr00t/rl/sim2sim/cli/replay_native_hydra_golden.py`
+- `scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10/`
+- `scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/`
+- `scriptsFORhuman/sim2sim/artifacts/e0/`
 
 This list is updated after each phase.
 
@@ -30,6 +40,7 @@ This list is updated after each phase.
 | Phase | Sim2sim commit before merge | `A2_Piper` merged | Result | Behind after merge |
 |---|---|---|---|---|
 | Phase 0 | base `45c9decb` | `45c9decb` | already up to date | 0 |
+| Phase 1 / E0 | `2842df8` | `45c9decb` | already up to date | 0 |
 
 ## Non-intersection proof
 

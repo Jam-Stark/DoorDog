@@ -1,0 +1,28 @@
+{
+  "atol": 1e-06,
+  "bundle": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
+  "device": "cpu",
+  "input_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+  "max_abs_diff": 0.0,
+  "per_field_max_abs_diff": {
+    "row_0.action_mean": 0.0,
+    "row_0.hidden_c_after": 0.0,
+    "row_0.hidden_c_before": 0.0,
+    "row_0.hidden_h_after": 0.0,
+    "row_0.hidden_h_before": 0.0,
+    "row_1.action_mean": 0.0,
+    "row_1.hidden_c_after": 0.0,
+    "row_1.hidden_c_before": 0.0,
+    "row_1.hidden_h_after": 0.0,
+    "row_1.hidden_h_before": 0.0,
+    "row_2.action_mean": 0.0,
+    "row_2.hidden_c_after": 0.0,
+    "row_2.hidden_c_before": 0.0,
+    "row_2.hidden_h_after": 0.0,
+    "row_2.hidden_h_before": 0.0
+  },
+  "result_classification": "VALID_COMPARABLE",
+  "rows": 3,
+  "schema": "doordog.sim2sim.policy_golden_replay_receipt.v1",
+  "source_commit": "a197255212fa65dd9e02337b7971daac71c944fe"
+}

@@ -1,0 +1,7 @@
+{
+  "checkpoint": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/model_step_000010.pt",
+  "manifest": "manifest.json",
+  "reason": "native Hydra loader has not produced actor state and receipt",
+  "schema": "doordog.sim2sim.policy_bundle_export_receipt.v1",
+  "status": "BLOCKED_NATIVE_LOADER"
+}

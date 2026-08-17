@@ -1,0 +1,21 @@
+{
+  "action_dim": 12,
+  "actor_obs_dim": 81,
+  "checkpoint_payload_key": "policy_state_dict",
+  "device": "cpu",
+  "golden": "golden/golden_manifest.json",
+  "golden_input_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+  "loader_scope": "POLICY_ONLY_NATIVE_HYDRA_NO_ISAAC_ENV",
+  "policy_tensor_count": 293,
+  "recurrent_hidden_shape": [
+    2,
+    1,
+    256
+  ],
+  "schema": "doordog.sim2sim.native_loader_receipt.v1",
+  "source_checkpoint_path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/model_step_000010.pt",
+  "source_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+  "source_config_path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/resolved_config.yaml",
+  "status": "NATIVE_LOADER_READY",
+  "strict_state_dict_load": true
+}

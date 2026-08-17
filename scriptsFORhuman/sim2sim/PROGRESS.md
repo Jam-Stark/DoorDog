@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 17:49 HKT
+Last updated: 2026-08-17 18:34 HKT
 
 ## Scope and authority
 
@@ -14,7 +14,7 @@ Last updated: 2026-08-17 17:49 HKT
 
 | Level | State | Current evidence |
 |---|---|---|
-| E0 Contract / golden | IN_PROGRESS | Production source and Student checkpoint reconnaissance started. |
+| E0 Contract / golden | COMPLETE_WITH_WARNING | READY native-Hydra Student bundle; CPU action/LSTM golden replay 3/3 rows, max diff 0. Legacy gripper face remains typed. |
 | E1 Robot | IN_PROGRESS | Repository URDF and A2_Base policy assets located; MJCF not built yet. |
 | E2 Door | IN_PROGRESS | v24 unit/friction source and door-generator path under trace; builder not built yet. |
 | E3 Open-loop | NOT_STARTED | Requires E0 action transform plus compiled robot/door. |
@@ -39,6 +39,18 @@ Missing evidence is typed and is never filled with zero.
 
 Phase-completion merge record: local `A2_Piper` was already at the worktree base; merge result is recorded in `MERGE_READINESS.md`.
 
+### Phase 1 — E0 Student bundle and golden boundary (complete)
+
+- Opened detached read-only producer checkout `/tmp/DoorDog-student-producer-sim2sim-20260817` at distillation commit `a197255212fa65dd9e02337b7971daac71c944fe`; no files were committed to that branch.
+- Preserved the pre-producer typed `BLOCKED_NATIVE_LOADER` bundle, then used the producer branch's native Hydra actor constructor and strict `policy_state_dict` load on CPU.
+- Exported only the deployable Student actor surface. Actor observation 81, action 12, applied action 19, physics/control cadence 200/50 Hz, camera cadence 30/30/15 Hz, orders, and shapes all come from the adjacent composed config.
+- Corrected a producer-only recurrent row-layout error before formal export. The READY r2 golden stores hidden/cell tensors as `[row, layer, batch, hidden]`.
+- Replayed three deterministic contract rows through a newly instantiated native actor; action means and recurrent hidden/cell state matched at `atol=1e-6`, maximum absolute difference `0.0`.
+- Retained the source discrepancy: the selected config declares gripper `80/3/10`; the bundle does not silently replace it. The robot realization separately uses the owner-resolved evaluated `1300/32/45` face.
+- No GPU was leased.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
 ## Next action
 
-Freeze the source map and unknowns, then implement the additive schemas/contracts/validator/exporter and golden harness before any policy-driven physics claim.
+Build and compile the floating-base A2+Piper MJCF with name/order/PD receipts, then run the E1 external-PD and 54D-frame proofs.

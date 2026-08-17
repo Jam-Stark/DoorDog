@@ -1,0 +1,51 @@
+{
+  "$id": "https://doordog.local/sim2sim/student_policy_bundle.v1.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DoorDog StudentPolicyBundle V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "bundle_id",
+    "artifact_status",
+    "loader",
+    "policy",
+    "observation",
+    "action",
+    "camera_rig",
+    "control",
+    "robot",
+    "timebase",
+    "provenance",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {"const": "doordog.student.bundle.v1"},
+    "bundle_id": {"type": "string", "minLength": 1},
+    "artifact_status": {
+      "enum": ["NATIVE_LOADER_BLOCKED", "READY"]
+    },
+    "loader": {"type": "object", "required": ["kind", "target"]},
+    "native_loader": {"type": "object", "required": ["schema", "status", "source_commit"]},
+    "policy": {
+      "type": "object",
+      "required": ["interface_id", "action_dim", "deterministic_eval", "recurrent"]
+    },
+    "observation": {
+      "type": "object",
+      "required": ["contract_id", "actor_obs_dim", "components"]
+    },
+    "action": {
+      "type": "object",
+      "required": ["contract_id", "high_level_dim", "segments", "applied_action_dim"]
+    },
+    "camera_rig": {"type": "object", "required": ["rig_id", "streams", "meta_order"]},
+    "control": {"type": "object", "required": ["robot_pd", "gripper_pd"]},
+    "robot": {"type": "object", "required": ["student_dof_order", "policy_leg_order"]},
+    "timebase": {"type": "object", "required": ["physics_hz", "control_hz", "control_decimation"]},
+    "provenance": {"type": "object", "required": ["checkpoint", "resolved_config", "source_identity"]},
+    "files": {"type": "object"},
+    "golden_io": {"type": "object"},
+    "formal_paired_evidence": {"type": "boolean"}
+  }
+}

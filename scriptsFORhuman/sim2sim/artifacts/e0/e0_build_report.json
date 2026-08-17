@@ -1,0 +1,46 @@
+{
+  "schema": "doordog.sim2sim.e0_build_report.v1",
+  "evidence_level": "E0",
+  "result_classification": "VALID_WITH_WARNINGS",
+  "formal_bundle": "scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
+  "pre_producer_bundle": "scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10",
+  "student_source": {
+    "git_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+    "producer_checkout": "/tmp/DoorDog-student-producer-sim2sim-20260817",
+    "loader": "native_hydra",
+    "checkpoint_payload_key": "policy_state_dict",
+    "strict_state_dict_load": true,
+    "device": "cpu"
+  },
+  "contract": {
+    "actor_obs_dim": 81,
+    "student_action_dim": 12,
+    "applied_action_dim": 19,
+    "physics_hz": 200,
+    "control_hz": 50,
+    "camera_stream_hz": {
+      "left": 30,
+      "right": 30,
+      "head": 15
+    },
+    "all_dimensions_and_orders_source": "checkpoint-adjacent composed resolved_config.yaml"
+  },
+  "golden_replay": {
+    "receipt": "scriptsFORhuman/sim2sim/artifacts/e0/policy_golden_replay_receipt.json",
+    "rows": 3,
+    "atol": 1e-06,
+    "max_abs_diff": 0.0,
+    "surface": "native Student actor action_mean plus LSTM hidden/cell state",
+    "input_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE"
+  },
+  "warnings": [
+    "The selected checkpoint-adjacent resolved config declares gripper gains 80/3/10 rather than the owner-resolved evaluated face 1300/32/45; the bundle reports this as UNRESOLVED_CONFIG_FIELD and does not inject defaults.",
+    "E0 proves the deployable policy boundary, not Isaac observation parity or physics parity.",
+    "The first producer capture concatenated recurrent rows on the layer axis. It was discarded before formal export; r2 stores [row, layer, batch, hidden] and is the only READY bundle."
+  ],
+  "provenance_identity": {
+    "sim2sim_branch_commit_at_export": "2842df8",
+    "bundle_path": "scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
+    "exact_hash_policy": "NOT_REQUESTED; strict exact-hash mode remains reserved for formal paired evidence"
+  }
+}

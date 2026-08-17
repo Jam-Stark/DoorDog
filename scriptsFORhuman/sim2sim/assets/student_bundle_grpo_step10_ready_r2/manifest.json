@@ -1,0 +1,538 @@
+{
+  "action": {
+    "applied_action_dim": 19,
+    "contract_id": "a2_piper_student_high_level_action.v1",
+    "delta_action_clip": 15.0,
+    "delta_action_scale": 0.3,
+    "gripper_close_target": [
+      0.0,
+      0.0
+    ],
+    "gripper_open_target": [
+      0.035,
+      -0.035
+    ],
+    "gripper_primitive_limit": 1.0,
+    "high_level_dim": 12,
+    "reset_delta_actions_with_backmap": true,
+    "segments": [
+      {
+        "indices": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "name": "a2_base_command"
+      },
+      {
+        "indices": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "name": "piper_arm_delta"
+      },
+      {
+        "indices": [
+          11
+        ],
+        "name": "gripper_primitive"
+      }
+    ]
+  },
+  "artifact_status": "READY",
+  "bundle_id": "student-c-b2h-dualraw-sharedenc-toeout6-v19-p2",
+  "camera_rig": {
+    "image_mean": [
+      0.485,
+      0.456,
+      0.406
+    ],
+    "image_std": [
+      0.229,
+      0.224,
+      0.225
+    ],
+    "layout": "channel_stacked_raw_rgb",
+    "meta_order": [
+      "left_age_normalized",
+      "right_age_normalized",
+      "head_age_normalized",
+      "left_valid",
+      "right_valid",
+      "head_valid"
+    ],
+    "rig_id": "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+    "streams": [
+      {
+        "channels": 3,
+        "convention": "world",
+        "dtype": "uint8",
+        "name": "left",
+        "packing": "vision_obs.channel_stack[0:3]",
+        "parent": "trunk",
+        "position_m": [
+          0.215,
+          0.065,
+          0.165
+        ],
+        "resolution_hw": [
+          384,
+          216
+        ],
+        "rotation_wxyz": [
+          0.905065723713,
+          0.022118130854,
+          -0.422039078101,
+          0.047432484685
+        ],
+        "update_period_s": 0.03333333333333333
+      },
+      {
+        "channels": 3,
+        "convention": "world",
+        "dtype": "uint8",
+        "name": "right",
+        "packing": "vision_obs.channel_stack[3:6]",
+        "parent": "trunk",
+        "position_m": [
+          0.215,
+          -0.065,
+          0.165
+        ],
+        "resolution_hw": [
+          384,
+          216
+        ],
+        "rotation_wxyz": [
+          0.905065723713,
+          -0.022118130854,
+          -0.422039078101,
+          -0.047432484685
+        ],
+        "update_period_s": 0.03333333333333333
+      },
+      {
+        "channels": 3,
+        "convention": "world",
+        "dtype": "uint8",
+        "name": "head",
+        "packing": "context_vision_obs",
+        "parent": "trunk",
+        "position_m": [
+          0.3381,
+          0.0336,
+          0.0525
+        ],
+        "resolution_hw": [
+          136,
+          384
+        ],
+        "rotation_wxyz": [
+          1.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "update_period_s": 0.06666666666666667
+      }
+    ]
+  },
+  "control": {
+    "clip_torques_per_physics_step": true,
+    "control_type": "P",
+    "gripper_pd": {
+      "reason": "resolved config does not expose a dedicated gripper PD mapping",
+      "required_fields": [
+        "stiffness",
+        "damping",
+        "effort_limit"
+      ],
+      "status": "UNRESOLVED_CONFIG_FIELD"
+    },
+    "robot_pd": {
+      "FL_calf_joint": {
+        "damping": 9.0,
+        "effort_limit": 180.0,
+        "stiffness": 220.0
+      },
+      "FL_hip_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "FL_thigh_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "FR_calf_joint": {
+        "damping": 9.0,
+        "effort_limit": 180.0,
+        "stiffness": 220.0
+      },
+      "FR_hip_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "FR_thigh_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "RL_calf_joint": {
+        "damping": 9.0,
+        "effort_limit": 180.0,
+        "stiffness": 220.0
+      },
+      "RL_hip_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "RL_thigh_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "RR_calf_joint": {
+        "damping": 9.0,
+        "effort_limit": 180.0,
+        "stiffness": 220.0
+      },
+      "RR_hip_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "RR_thigh_joint": {
+        "damping": 4.5,
+        "effort_limit": 120.0,
+        "stiffness": 140.0
+      },
+      "arm_j1": {
+        "damping": 3.0,
+        "effort_limit": 100.0,
+        "stiffness": 64.0
+      },
+      "arm_j2": {
+        "damping": 4.5,
+        "effort_limit": 100.0,
+        "stiffness": 128.0
+      },
+      "arm_j3": {
+        "damping": 3.0,
+        "effort_limit": 100.0,
+        "stiffness": 64.0
+      },
+      "arm_j4": {
+        "damping": 3.0,
+        "effort_limit": 100.0,
+        "stiffness": 64.0
+      },
+      "arm_j5": {
+        "damping": 3.0,
+        "effort_limit": 100.0,
+        "stiffness": 64.0
+      },
+      "arm_j6": {
+        "damping": 3.0,
+        "effort_limit": 100.0,
+        "stiffness": 64.0
+      },
+      "arm_j7": {
+        "damping": 3.0,
+        "effort_limit": 10.0,
+        "stiffness": 80.0
+      },
+      "arm_j8": {
+        "damping": 3.0,
+        "effort_limit": 10.0,
+        "stiffness": 80.0
+      }
+    }
+  },
+  "files": {
+    "actor_state_dict": "actor_state_dict.pt",
+    "config_snapshot": "config_snapshot.yaml",
+    "golden_io": "golden/golden_io.npz",
+    "golden_manifest": "golden/golden_manifest.json",
+    "native_loader_receipt": "native_loader_receipt.json"
+  },
+  "golden_io": {
+    "arrays": {
+      "action_mean": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          12
+        ]
+      },
+      "actor_obs": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          81
+        ]
+      },
+      "camera_meta": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          6
+        ]
+      },
+      "context_vision_obs": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          136,
+          384,
+          3
+        ]
+      },
+      "done": {
+        "dtype": "bool",
+        "shape": [
+          3
+        ]
+      },
+      "hidden_c_after": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          2,
+          1,
+          256
+        ]
+      },
+      "hidden_c_before": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          2,
+          1,
+          256
+        ]
+      },
+      "hidden_h_after": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          2,
+          1,
+          256
+        ]
+      },
+      "hidden_h_before": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          2,
+          1,
+          256
+        ]
+      },
+      "vision_obs": {
+        "dtype": "float32",
+        "shape": [
+          3,
+          384,
+          216,
+          6
+        ]
+      }
+    },
+    "input_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+    "row_order": [
+      "reset_contract",
+      "standing_contract",
+      "intermediate_contract"
+    ],
+    "schema": "doordog.sim2sim.policy_golden_io.v1",
+    "status": "CAPTURED_POLICY_ONLY_NATIVE_HYDRA"
+  },
+  "loader": {
+    "checkpoint_payload_key": "policy_state_dict",
+    "kind": "native_hydra",
+    "native_receipt_schema": "doordog.sim2sim.native_loader_receipt.v1",
+    "target": "gr00t.rl.trl.modules.vision_actor_critic_modules_p2_recurrent.DualD435HeadVisionRecurrentToeOut6Actor"
+  },
+  "native_loader": {
+    "action_dim": 12,
+    "actor_obs_dim": 81,
+    "checkpoint_payload_key": "policy_state_dict",
+    "device": "cpu",
+    "golden": "golden/golden_manifest.json",
+    "golden_input_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+    "loader_scope": "POLICY_ONLY_NATIVE_HYDRA_NO_ISAAC_ENV",
+    "policy_tensor_count": 293,
+    "recurrent_hidden_shape": [
+      2,
+      1,
+      256
+    ],
+    "schema": "doordog.sim2sim.native_loader_receipt.v1",
+    "source_checkpoint_path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/model_step_000010.pt",
+    "source_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+    "source_config_path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/resolved_config.yaml",
+    "status": "NATIVE_LOADER_READY",
+    "strict_state_dict_load": true
+  },
+  "observation": {
+    "actor_obs_dim": 81,
+    "camera_meta_dim": 6,
+    "components": [
+      {
+        "dim": 3,
+        "dtype": "float32",
+        "name": "base_ang_vel",
+        "scale": 0.5
+      },
+      {
+        "dim": 3,
+        "dtype": "float32",
+        "name": "projected_gravity",
+        "scale": 1.0
+      },
+      {
+        "dim": 20,
+        "dtype": "float32",
+        "name": "a2_student_dof_pos",
+        "scale": 1.0
+      },
+      {
+        "dim": 20,
+        "dtype": "float32",
+        "name": "a2_student_dof_vel",
+        "scale": 0.05
+      },
+      {
+        "dim": 19,
+        "dtype": "float32",
+        "name": "actions",
+        "scale": 1.0
+      },
+      {
+        "dim": 6,
+        "dtype": "float32",
+        "name": "delta_actions",
+        "scale": 1.0
+      },
+      {
+        "dim": 5,
+        "dtype": "float32",
+        "name": "a2_base_command",
+        "scale": 1.0
+      },
+      {
+        "dim": 5,
+        "dtype": "float32",
+        "name": "a2_base_command_raw",
+        "scale": 1.0
+      }
+    ],
+    "context_vision_obs_dim": 156672,
+    "contract_id": "a2_piper_student_actor_obs.v1",
+    "vision_obs_dim": 497664
+  },
+  "policy": {
+    "action_dim": 12,
+    "architecture_id": "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2",
+    "deterministic_eval": true,
+    "deterministic_output": "act_inference.mean",
+    "interface_id": "C-B2H-DUALRAW-SHAREDENC-TOEOUT6-V19-P2.student12.v1",
+    "recurrent": {
+      "hidden_dim": 256,
+      "num_layers": 2,
+      "reset": "done",
+      "state": "lstm_hidden_and_cell",
+      "type": "lstm"
+    }
+  },
+  "provenance": {
+    "checkpoint": {
+      "exists": true,
+      "path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/model_step_000010.pt"
+    },
+    "resolved_config": {
+      "path": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103/logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/resolved_config.yaml"
+    },
+    "source_identity": {
+      "git_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+      "source_root": "/home/baoquanc/workspace/DoorDog-A2-Piper-v13-student-distillation-20260717_2103"
+    }
+  },
+  "robot": {
+    "default_joint_angles": {
+      "FL_calf_joint": -1.0,
+      "FL_hip_joint": 0.0,
+      "FL_thigh_joint": 0.5,
+      "FR_calf_joint": -1.0,
+      "FR_hip_joint": 0.0,
+      "FR_thigh_joint": 0.5,
+      "RL_calf_joint": -1.0,
+      "RL_hip_joint": 0.0,
+      "RL_thigh_joint": 0.5,
+      "RR_calf_joint": -1.0,
+      "RR_hip_joint": 0.0,
+      "RR_thigh_joint": 0.5,
+      "arm_j1": 0.0,
+      "arm_j2": 0.0,
+      "arm_j3": 0.0,
+      "arm_j4": 0.25,
+      "arm_j5": 0.5,
+      "arm_j6": 1.57,
+      "arm_j7": 0.0,
+      "arm_j8": 0.0
+    },
+    "policy_leg_order": [
+      "FL_hip_joint",
+      "FR_hip_joint",
+      "RL_hip_joint",
+      "RR_hip_joint",
+      "FL_thigh_joint",
+      "FR_thigh_joint",
+      "RL_thigh_joint",
+      "RR_thigh_joint",
+      "FL_calf_joint",
+      "FR_calf_joint",
+      "RL_calf_joint",
+      "RR_calf_joint"
+    ],
+    "student_dof_order": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint",
+      "arm_j1",
+      "arm_j2",
+      "arm_j3",
+      "arm_j4",
+      "arm_j5",
+      "arm_j6",
+      "arm_j7",
+      "arm_j8"
+    ]
+  },
+  "schema_version": "doordog.student.bundle.v1",
+  "timebase": {
+    "control_decimation": 4,
+    "control_hz": 50,
+    "physics_hz": 200
+  }
+}

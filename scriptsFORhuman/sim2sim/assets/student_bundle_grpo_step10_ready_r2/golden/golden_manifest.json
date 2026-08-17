@@ -1,0 +1,93 @@
+{
+  "arrays": {
+    "action_mean": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        12
+      ]
+    },
+    "actor_obs": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        81
+      ]
+    },
+    "camera_meta": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        6
+      ]
+    },
+    "context_vision_obs": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        136,
+        384,
+        3
+      ]
+    },
+    "done": {
+      "dtype": "bool",
+      "shape": [
+        3
+      ]
+    },
+    "hidden_c_after": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        2,
+        1,
+        256
+      ]
+    },
+    "hidden_c_before": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        2,
+        1,
+        256
+      ]
+    },
+    "hidden_h_after": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        2,
+        1,
+        256
+      ]
+    },
+    "hidden_h_before": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        2,
+        1,
+        256
+      ]
+    },
+    "vision_obs": {
+      "dtype": "float32",
+      "shape": [
+        3,
+        384,
+        216,
+        6
+      ]
+    }
+  },
+  "input_authority": "DETERMINISTIC_CONTRACT_FIXTURES_NOT_ISAAC_STATE_TRACE",
+  "row_order": [
+    "reset_contract",
+    "standing_contract",
+    "intermediate_contract"
+  ],
+  "schema": "doordog.sim2sim.policy_golden_io.v1",
+  "status": "CAPTURED_POLICY_ONLY_NATIVE_HYDRA"
+}

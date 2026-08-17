@@ -21,10 +21,10 @@
     "policy_update",
     "student_action_mean",
     "applied_action",
-    "position_target_rad",
+    "position_target_sim_units",
     "robot_qpos",
     "robot_qvel",
-    "robot_ctrl_nm",
+    "robot_ctrl_effort",
     "base",
     "door",
     "camera_input",
@@ -91,7 +91,7 @@
     "applied_action": {
       "$ref": "#/$defs/vector19"
     },
-    "position_target_rad": {
+    "position_target_sim_units": {
       "$ref": "#/$defs/vector20"
     },
     "robot_qpos": {
@@ -100,7 +100,7 @@
     "robot_qvel": {
       "$ref": "#/$defs/vector20"
     },
-    "robot_ctrl_nm": {
+    "robot_ctrl_effort": {
       "$ref": "#/$defs/vector20"
     },
     "base": {

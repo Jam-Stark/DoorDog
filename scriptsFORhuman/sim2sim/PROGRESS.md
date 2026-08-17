@@ -1,6 +1,6 @@
 # DoorDog MuJoCo shadow evaluator progress
 
-Last updated: 2026-08-17 19:09 HKT
+Last updated: 2026-08-17 19:23 HKT
 
 ## Scope and authority
 
@@ -17,7 +17,7 @@ Last updated: 2026-08-17 19:09 HKT
 | E0 Contract / golden | COMPLETE_WITH_WARNING | READY native-Hydra Student bundle; CPU action/LSTM golden replay 3/3 rows, max diff 0. Legacy gripper face remains typed. |
 | E1 Robot | COMPLETE_WITH_WARNING | Floating-base MJCF compiled 27/26/20 at 44.741 kg; 54D/1620D and 12→19→20 proofs pass; CPU axis marker captured. |
 | E2 Door | COMPLETE_WITH_WARNING | Door compiles 2/2/2 + one gate; rad three-face diff 0; capped resistance hits 4.5 Nm; friction semantic gap explicit. |
-| E3 Open-loop | NOT_STARTED | Requires E0 action transform plus compiled robot/door. |
+| E3 Open-loop | COMPLETE_WITH_WARNING | Composed scene 29/28/22; 600-step CPU trace finite; direct door state crossed 0.174533 rad at 1.81 s. |
 | E4 Closed-loop proprio/pixel | NOT_STARTED | Requires E0 policy runtime and camera contract. |
 | E5 Paired cases | NOT_STARTED | Requires comparable independent backend traces. |
 | E6 Robustness | NOT_STARTED | Requires at least one interpretable E4/E5 path. |
@@ -51,6 +51,16 @@ Phase-completion merge record: local `A2_Piper` was already at the worktree base
 
 Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
 
+### Phase 4 — E3 composed open-loop scene (complete)
+
+- Composed the proven robot and door artifacts without touching either production simulator. The resulting scene compiles as `nq=29`, `nv=28`, `nu=22`, `neq=1` with explicit robot/door qpos, qvel, and actuator layouts.
+- Scoped the door defaults to class `door` before composition so door friction/density do not leak onto robot geoms.
+- Ran 600 CPU physics steps at 200 Hz. External robot PD torque clipping was applied 600/600 steps; the full scene remained finite and final base height was `0.5999 m`.
+- The constraint gate released at `0.515 s`. A declared 10 Nm E3 hinge excitation then opened the door; direct door-state metrics crossed `0.174533 rad` at `1.81 s` and reached `0.5967 rad`.
+- This is open-loop bring-up evidence. The explicit hinge excitation is not attributed to the Student policy and no paired Isaac trajectory is claimed.
+
+Phase-completion merge record: `git merge A2_Piper` returned `Already up to date`; behind remains 0.
+
 ### Phase 3 — E2 door mechanics and latch (complete)
 
 - Materialized an explicit right-hinge/out-opening v24-friction door instance with no RNG and generated standalone MJCF plus build receipt.
@@ -76,4 +86,4 @@ Phase-completion merge record: `git merge A2_Piper` returned `Already up to date
 
 ## Next action
 
-Compose the independent robot+door scene and run E3 open-loop reset/hold/push/task-metric receipts before any Student closed-loop claim.
+Run E4 policy image-replay and a typed MuJoCo RGB closed-loop boundary, keeping native-render domain gap separate from policy golden regression.

@@ -1,0 +1,59 @@
+{
+  "compiled": {
+    "nbody": 30,
+    "ncam": 4,
+    "neq": 1,
+    "ngeom": 54,
+    "nq": 29,
+    "nu": 22,
+    "nv": 28
+  },
+  "door_pose": {
+    "orientation_wxyz": [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_m": [
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  "evidence_level": "E3",
+  "layouts": {
+    "door_actuator": [
+      20,
+      22
+    ],
+    "door_qpos": [
+      27,
+      29
+    ],
+    "door_qvel": [
+      26,
+      28
+    ],
+    "robot_actuator": [
+      0,
+      20
+    ],
+    "robot_qpos": [
+      0,
+      27
+    ],
+    "robot_qvel": [
+      0,
+      26
+    ]
+  },
+  "mujoco_version": "3.10.0",
+  "result_classification": "VALID_COMPARABLE",
+  "scene_xml": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e3/shadow_scene.xml",
+  "schema": "doordog.sim2sim.shadow_scene_build_report.v1",
+  "source_identity": {
+    "door": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/door/door.xml",
+    "robot": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/data/mujoco/A2_Piper/a2_piper.xml"
+  }
+}

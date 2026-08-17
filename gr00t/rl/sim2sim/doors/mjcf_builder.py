@@ -53,14 +53,15 @@ class MjcfDoorBuilder:
         root = ET.Element("mujoco", {"model": "doordog_materialized_door"})
         ET.SubElement(root, "compiler", {"angle": "radian", "coordinate": "local"})
         ET.SubElement(root, "option", {"timestep": "0.005", "gravity": "0 0 -9.81"})
-        default = ET.SubElement(root, "default")
+        default_root = ET.SubElement(root, "default")
+        default = ET.SubElement(default_root, "default", {"class": "door"})
         ET.SubElement(default, "geom", {
             "friction": _s(contact["geom_friction"]),
             "condim": str(contact["condim"]),
             "density": "0",
         })
         world = ET.SubElement(root, "worldbody")
-        door_root = ET.SubElement(world, "body", {"name": "door_root"})
+        door_root = ET.SubElement(world, "body", {"name": "door_root", "childclass": "door"})
         _add_geom(
             door_root,
             name="door_frame_left",

@@ -1,0 +1,82 @@
+{
+  "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/handle_parity_v2/door_build_report_v2.json",
+  "door_instance": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/door_instances/p00_baseline.json",
+  "handle_geometry_parity": {
+    "authority": {
+      "axle_and_levers_lines": "416-473",
+      "grasp_target_lines": "637-652",
+      "hook_lines": "461-490",
+      "source_path": "gr00t/rl/isaac_utils/playground/env_rand/door.py"
+    },
+    "axle": {
+      "axis": "X",
+      "length_m": 0.195,
+      "name": "handle_axle"
+    },
+    "closeup_cameras": [
+      "handle_outside_closeup",
+      "handle_inside_closeup"
+    ],
+    "door_grasp_target_local_m": [
+      -0.0975,
+      0.0625,
+      0.0
+    ],
+    "door_open_lr": -1.0,
+    "grasp_target_authority": "Isaac grasp_target fixed-joint localPos1 on the negative-X lever center",
+    "hooks": {
+      "absence_semantics": "LEGACY_PAIRED_DOOR_INSTANCE_HAS_NO_SPAWN_HOOK_FIELD; PRESERVE_NO_HOOK_R1_SUBDOMAIN",
+      "door_instance_spawn_hook": null,
+      "hook_length_m": null,
+      "names": [],
+      "realized": false
+    },
+    "levers": {
+      "direction_signed_by_door_open_lr": true,
+      "inside_center_m": [
+        -0.0975,
+        0.0625,
+        0.0
+      ],
+      "length_m": 0.125,
+      "outside_center_m": [
+        0.0975,
+        0.0625,
+        0.0
+      ],
+      "rotation": "90_DEG_ABOUT_X"
+    },
+    "result": "PASS"
+  },
+  "images": {
+    "inside": {
+      "camera": "handle_inside_closeup",
+      "max_uint8": 165,
+      "min_uint8": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/handle_parity_v2/handle_inside_closeup.png",
+      "shape_hwc": [
+        480,
+        640,
+        3
+      ]
+    },
+    "outside": {
+      "camera": "handle_outside_closeup",
+      "max_uint8": 164,
+      "min_uint8": 0,
+      "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/handle_parity_v2/handle_outside_closeup.png",
+      "shape_hwc": [
+        480,
+        640,
+        3
+      ]
+    }
+  },
+  "producer_identity": {
+    "git_commit": "7a7221061ce2789d7cc7caf51cd02b89307f8eb8",
+    "path": "gr00t/rl/sim2sim/cli/render_handle_parity_v2.py"
+  },
+  "renderer": "mujoco.Renderer",
+  "result": "PASS",
+  "schema": "doordog.sim2sim.handle_parity_render_receipt.v2"
+}

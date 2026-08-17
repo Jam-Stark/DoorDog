@@ -1,0 +1,48 @@
+# @package _global_
+
+obs:
+  obs_dict:
+    actor_obs:
+      - adapter_goal_error
+      - adapter_root_planar_vel
+      - adapter_yaw_rate
+      - adapter_projected_gravity
+      - adapter_last_action
+    critic_obs:
+      - adapter_goal_error
+      - adapter_root_planar_vel
+      - adapter_yaw_rate
+      - adapter_projected_gravity
+      - adapter_last_action
+    a2_base_obs:
+      - a2_base_obs
+  obs_auxiliary: {}
+  homie_history_length: 1
+  obs_scales:
+    adapter_goal_error: 1.0
+    adapter_root_planar_vel: 1.0
+    adapter_yaw_rate: 1.0
+    adapter_projected_gravity: 1.0
+    adapter_last_action: 1.0
+    a2_base_obs: 1.0
+    a2_base_command: 1.0
+  noise_scales:
+    adapter_goal_error: 0.0
+    adapter_root_planar_vel: 0.0
+    adapter_yaw_rate: 0.0
+    adapter_projected_gravity: 0.0
+    adapter_last_action: 0.0
+    a2_base_obs: 0.0
+    a2_base_command: 0.0
+  obs_dims:
+    - adapter_goal_error: 3
+    - adapter_root_planar_vel: 2
+    - adapter_yaw_rate: 1
+    - adapter_projected_gravity: 3
+    - adapter_last_action: 3
+    - a2_base_obs: 1620
+    - a2_base_command: 5
+  add_noise_currculum: false
+  noise_initial_value: 0.0
+  noise_value_max: 0.0
+  noise_value_min: 0.0

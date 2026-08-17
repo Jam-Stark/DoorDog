@@ -1,0 +1,18 @@
+# @package _global_
+
+# Eval-only composition for the v5.5 adapter workflow.
+#
+# The training experiment uses ``override /trainer``. ``base_eval`` has no
+# trainer entry in its defaults list, so that training experiment cannot be
+# composed directly for evaluation. Keep this route intentionally small:
+# checkpoint loading supplies the trained algorithm/environment config, while
+# this file contributes only the trainer target and eval command defaults.
+
+defaults:
+  - /trainer: trl_pull_v5_5_adapter
+
+num_envs: 256
+seed: 0
+headless: true
+use_wandb: false
+auto_load_latest: false

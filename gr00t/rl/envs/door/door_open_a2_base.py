@@ -135,6 +135,11 @@ from gr00t.rl.envs.door.a2_v24_friction import (
     A2V24DoorFrictionBackend,
     V24FrictionConfig,
 )
+from gr00t.rl.envs.door.a2_v24_force_boundary import (
+    A2V24ForceBoundaryRuntime,
+    V24P2ForceBoundaryConfig,
+    build_hinge_geometry,
+)
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -5249,11 +5254,11 @@ class DoorPregrasp(
         "arm_body7",
         "arm_body8",
     )
-    # v24 keeps foot-force measurement strictly feature-detected.  The source
-    # is the simulator-owned robot ContactSensor; no alternate simulator
-    # tensor or zero-valued placeholder is accepted.
-    A2_V24_FOOT_FORCE_SENSOR_KEY = "contact_sensor"
+    # v24 foot-force telemetry follows the established simulator contact-force
+    # tensor and the canonical quadruped foot order.
     A2_V24_FOOT_BODY_NAMES = ("FL_foot", "RL_foot", "FR_foot", "RR_foot")
+    A2_V24_FORCE_BOUNDARY_ENABLED_CONFIG_KEY = "a2_v24_force_boundary_enabled"
+    A2_V24_FORCE_BOUNDARY_MODE_CONFIG_KEY = "a2_v24_force_boundary_mode"
     A2_P0_H_RESET_AUDIT_ENABLED_CONFIG_KEY = "a2_p0_h_reset_audit_enabled"
 
     def _get_required_positive_float_config(self, key: str, context: str) -> float:
@@ -6254,6 +6259,9 @@ class DoorPregrasp(
         self._a2_v24_friction_config = V24FrictionConfig.from_mapping(config)
         self._a2_v24_friction_backend = None
         self._a2_v24_last_reset_friction_receipt = None
+        self._a2_v24_force_boundary_config = V24P2ForceBoundaryConfig.from_mapping(config)
+        self._a2_v24_force_boundary_runtime = None
+        self._a2_v24_force_boundary_last = None
         self._a2_p0_h_reset_audit_enabled = config.get(
             self.A2_P0_H_RESET_AUDIT_ENABLED_CONFIG_KEY, False
         )
@@ -6309,6 +6317,7 @@ class DoorPregrasp(
             self._init_a2_v23_p05_evidence()
             self._init_a2_v23_p08_v2_evidence()
             self._init_a2_v23_d1_runtime()
+            self._init_a2_v24_force_boundary_runtime()
             return
 
         # finger primitive related
@@ -6469,65 +6478,182 @@ class DoorPregrasp(
         env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
         self._a2_v24_friction_backend.apply(env_ids)
 
-    def get_a2_v24_foot_force_feature(self) -> dict[str, Any]:
-        """Return the measured foot normal-force feature when its source exists.
+    def _init_a2_v24_force_boundary_runtime(self) -> None:
+        """Bind the additive, default-off P2 directional-capacity hook."""
 
-        The feature is intentionally not part of the observation contract.  It
-        is a production measurement hook for v24 post-hoc telemetry and keeps
-        a missing sensor/body as a typed unavailable result instead of inventing
-        numeric values.
-        """
+        config = self._a2_v24_force_boundary_config
+        if not config.enabled:
+            return
+        if not self._use_a2_base:
+            raise RuntimeError("v24 P2 force boundary requires A2_Base mode.")
+        robot = self.simulator.scene.articulations["robot"]
+        door = self.simulator.scene.articulations["door"]
+        self._a2_v24_force_boundary_runtime = A2V24ForceBoundaryRuntime(
+            robot,
+            door,
+            config,
+            device=self.device,
+        )
 
-        sensor = self.simulator.scene.sensors.get(self.A2_V24_FOOT_FORCE_SENSOR_KEY)
-        if sensor is None:
-            return {
-                "schema": "a2_piper_v24_foot_force_feature_v1",
-                "status": "FOOT_FORCE_SOURCE_UNAVAILABLE",
-                "reason": "contact_sensor_missing",
-                "source": "simulator.scene.sensors['contact_sensor']",
-                "authority": "MISSING_SOURCE_TYPED_STATUS",
-            }
+    def close(self):
+        if self._a2_v24_force_boundary_runtime is not None:
+            self._a2_v24_force_boundary_runtime.close()
+            self._a2_v24_force_boundary_runtime = None
+            self._a2_v24_force_boundary_last = None
+        return super().close()
 
-        sensor_body_names = tuple(str(name) for name in sensor.body_names)
-        missing = [
-            name for name in self.A2_V24_FOOT_BODY_NAMES if name not in sensor_body_names
+    def finalize_a2_v24_force_boundary(self) -> None:
+        """Flush first-episode P2 rows and restore all mutated native properties."""
+
+        if self._a2_v24_force_boundary_runtime is None:
+            return
+        self._a2_v24_force_boundary_runtime.close()
+        self._a2_v24_force_boundary_runtime = None
+        self._a2_v24_force_boundary_last = None
+
+    def _update_a2_v24_force_boundary(self) -> None:
+        """Capture one post-physics P2 estimate without changing task semantics."""
+
+        runtime = self._a2_v24_force_boundary_runtime
+        if runtime is None:
+            return
+        door = self.simulator.scene.articulations["door"]
+        data = door.data
+        root_pos = data.root_pos_w
+        root_quat = data.root_quat_w
+        width = self.door_width.to(dtype=root_pos.dtype, device=root_pos.device)
+        opening = self.door_open_lr.to(dtype=root_pos.dtype, device=root_pos.device)
+        hinge_axis, hinge_position = build_hinge_geometry(root_pos, root_quat, width, opening)
+        hinge_velocity = data.joint_vel[:, runtime.hinge_joint_id]
+        foot_feature = self.get_a2_v24_foot_force_feature()
+        if foot_feature.get("status") != "FOOT_FORCE_SOURCE_AVAILABLE":
+            raise RuntimeError("v24 foot-force feature must be AVAILABLE for P2 telemetry.")
+        foot_force = foot_feature["normal_force_tensor"]
+        foot_velocity = self.simulator.scene.articulations["robot"].data.body_lin_vel_w[
+            :, runtime.foot_body_ids
         ]
-        if missing:
-            return {
-                "schema": "a2_piper_v24_foot_force_feature_v1",
-                "status": "FOOT_FORCE_SOURCE_UNAVAILABLE",
-                "reason": "foot_body_missing_from_contact_sensor",
-                "missing_body_names": missing,
-                "source": "simulator.scene.sensors['contact_sensor']",
-                "authority": "MISSING_SOURCE_TYPED_STATUS",
-            }
-
-        body_ids = [sensor_body_names.index(name) for name in self.A2_V24_FOOT_BODY_NAMES]
-        net_forces_w = sensor.data.net_forces_w
+        expected_device = torch.device(self.device)
         if (
-            not torch.is_tensor(net_forces_w)
-            or net_forces_w.ndim != 3
-            or net_forces_w.shape[0] != self.num_envs
-            or net_forces_w.shape[1] <= max(body_ids)
-            or net_forces_w.shape[2] != 3
+            not torch.is_tensor(foot_force)
+            or tuple(foot_force.shape) != (self.num_envs, 4)
+            or not torch.is_floating_point(foot_force)
+            or foot_force.device != expected_device
+            or not torch.is_tensor(foot_velocity)
+            or tuple(foot_velocity.shape) != (self.num_envs, 4, 3)
+            or not torch.is_floating_point(foot_velocity)
+            or foot_velocity.device != expected_device
+            or foot_force.dtype != foot_velocity.dtype
+            or not torch.all(torch.isfinite(foot_force))
+            or not torch.all(torch.isfinite(foot_velocity))
         ):
-            shape = None if not torch.is_tensor(net_forces_w) else tuple(net_forces_w.shape)
             raise RuntimeError(
-                "v24 foot force source requires contact_sensor.data.net_forces_w "
-                f"shape ({self.num_envs}, body, 3); got {shape}."
+                "v24 foot force/velocity source requires finite floating tensors on the "
+                f"{expected_device} device with shapes ({self.num_envs}, 4) and "
+                f"({self.num_envs}, 4, 3)."
             )
-        if not torch.all(torch.isfinite(net_forces_w)):
-            raise RuntimeError("v24 foot force source contains non-finite net_forces_w values.")
+        result = runtime.sample(
+            hinge_axis,
+            hinge_position,
+            opening_direction=torch.ones_like(hinge_velocity),
+            foot_normal_force_n=foot_force,
+            foot_body_lin_vel_w=foot_velocity,
+        )
+        stable_grasp = getattr(self, "_a2_stage3_grasp_streak_highwater", None)
+        if stable_grasp is not None and (
+            not torch.is_tensor(stable_grasp)
+            or stable_grasp.shape != (self.num_envs,)
+            or stable_grasp.dtype != torch.bool
+        ):
+            raise RuntimeError("P2 exporter stable-grasp source has an invalid shape or dtype.")
+        export_rows = runtime.build_export_rows(
+            result,
+            episode_step=self.episode_length_buf,
+            stable_grasp=stable_grasp,
+        )
+        runtime.exporter.record(export_rows)
+        self._a2_v24_force_boundary_last = result
+        self.log_dict["a2_v24_force_boundary_tau_required_nm"] = result["tau_required_nm"]
+        self.log_dict["a2_v24_force_boundary_tau_available_nm"] = result["tau_available_directional_nm"]
+        self.log_dict["a2_v24_force_boundary_lambda"] = result["lambda_load"]
+        self.log_dict["a2_v24_force_boundary_directional_utilization"] = result[
+            "directional_load_utilization"
+        ]
+        self.log_dict["a2_v24_force_boundary_directional_clip_fraction"] = result[
+            "directional_clip_fraction"
+        ]
 
+    def get_a2_v24_force_boundary(self) -> dict[str, Any]:
+        """Return the latest P2 estimate or the explicit disabled state."""
+
+        if self._a2_v24_force_boundary_runtime is None:
+            return {
+                "schema": "a2_piper_v24_p2_force_boundary_v1",
+                "status": "FORCE_BOUNDARY_DISABLED",
+                "authority": "DEFAULT_OFF_NO_WRITE",
+            }
+        if not isinstance(self._a2_v24_force_boundary_last, dict):
+            raise RuntimeError("v24 P2 force boundary was enabled but has no post-physics sample yet.")
+        return dict(self._a2_v24_force_boundary_last)
+
+    def get_a2_v24_foot_force_feature(self) -> dict[str, Any]:
+        """Return the measured simulator contact-force normal feature."""
+
+        configured_foot_names = tuple(
+            name for name in self.body_names if self.config.robot.foot_name in name
+        )
+        if configured_foot_names != self.A2_V24_FOOT_BODY_NAMES:
+            raise RuntimeError(
+                "v24 foot body order must be "
+                f"{self.A2_V24_FOOT_BODY_NAMES!r}; got {configured_foot_names!r}."
+            )
+        expected_device = torch.device(self.device)
+        if (
+            not torch.is_tensor(self.feet_indices)
+            or tuple(self.feet_indices.shape) != (4,)
+            or self.feet_indices.dtype != torch.long
+            or self.feet_indices.device != expected_device
+            or torch.any(self.feet_indices < 0)
+        ):
+            raise RuntimeError(
+                "v24 foot indices must be a device-local long tensor with shape (4,) "
+                f"for {self.A2_V24_FOOT_BODY_NAMES!r}."
+            )
+        contact_forces = self.simulator.contact_forces
+        if (
+            not torch.is_tensor(contact_forces)
+            or contact_forces.ndim != 3
+            or tuple(contact_forces.shape[:1]) != (self.num_envs,)
+            or contact_forces.shape[2] != 3
+            or not torch.is_floating_point(contact_forces)
+            or contact_forces.device != expected_device
+        ):
+            shape = None if not torch.is_tensor(contact_forces) else tuple(contact_forces.shape)
+            raise RuntimeError(
+                "v24 foot force source requires simulator.contact_forces floating tensor "
+                f"shape ({self.num_envs}, body, 3) on {expected_device}; got {shape}."
+            )
+        if torch.any(self.feet_indices >= contact_forces.shape[1]):
+            raise RuntimeError(
+                "v24 foot indices exceed simulator.contact_forces body dimension."
+            )
+        normal_force = contact_forces[:, self.feet_indices, 2]
+        if tuple(normal_force.shape) != (self.num_envs, 4):
+            raise RuntimeError(
+                "v24 foot force source requires simulator.contact_forces[:, "
+                f"self.feet_indices, 2] shape ({self.num_envs}, 4); "
+                f"got {tuple(normal_force.shape)}."
+            )
+        if not torch.all(torch.isfinite(normal_force)):
+            raise RuntimeError("v24 simulator contact-force normal tensor contains non-finite values.")
         return {
             "schema": "a2_piper_v24_foot_force_feature_v1",
             "status": "FOOT_FORCE_SOURCE_AVAILABLE",
-            "source": "simulator.scene.sensors['contact_sensor']",
+            "source": "simulator.contact_forces[:, self.feet_indices, 2]",
             "body_names": list(self.A2_V24_FOOT_BODY_NAMES),
-            "body_ids": body_ids,
+            "body_ids": [int(item) for item in self.feet_indices.detach().cpu().tolist()],
             "normal_axis": 2,
-            "normal_force_tensor": net_forces_w[:, body_ids, 2],
-            "authority": "MEASURED_CONTACT_SENSOR_NET_FORCE_WORLD_Z",
+            "normal_force_tensor": normal_force,
+            "authority": "MEASURED_SIMULATOR_CONTACT_FORCES_WORLD_Z",
         }
 
     def _init_a2_v23_d1_runtime(self):
@@ -12509,6 +12635,7 @@ class DoorPregrasp(
                 self._update_a2_v20_r2_evidence_accumulators()
                 self._update_a2_v21b_arm_evidence_accumulators()
                 self._update_a2_v23_torque_telemetry()
+                self._update_a2_v24_force_boundary()
                 self._update_a2_v22_state()
         env_ids = torch.arange(self.num_envs, device=self.device) if env_ids is None else env_ids
 
@@ -25564,6 +25691,12 @@ class DoorPregrasp(
                 self._a2_v23_p08_v2_failure_flags[env_id] = {}
                 self._a2_v23_p08_v2_requested_profile[env_id] = {"status": "NOT_REQUESTED"}
                 self._a2_v23_p08_v2_applied_profile[env_id] = {"status": "NOT_EXECUTED"}
+        if self._a2_v24_force_boundary_runtime is not None:
+            completed_env_ids = env_ids[self.episode_length_buf[env_ids] > 0]
+            if completed_env_ids.numel() > 0:
+                self._a2_v24_force_boundary_runtime.exporter.mark_completed(completed_env_ids)
+            self._a2_v24_force_boundary_runtime.reset_envs(env_ids)
+            self._a2_v24_force_boundary_last = None
         return super()._reset_buffers_callback(env_ids, target_buf)
 
     @override

@@ -1,0 +1,45 @@
+{
+  "all_six_primary_valid_nonbinding": false,
+  "candidate_order_descending_nm": [
+    100.0,
+    60.0,
+    40.0,
+    30.0,
+    25.0,
+    20.0,
+    10.0
+  ],
+  "command_path_binding": true,
+  "contingency_nonbinding": false,
+  "contingency_one_shot_required": false,
+  "contingency_result": "NOT_TRIGGERED",
+  "contingency_rows_present": false,
+  "contingency_triggered": false,
+  "qualifying_caps_nm": [],
+  "registered_contingency_cap_nm": 10.0,
+  "registered_primary_caps_nm": [
+    100.0,
+    60.0,
+    40.0,
+    30.0,
+    25.0,
+    20.0
+  ],
+  "schema": "a2_piper_v24_p2_ladder_freeze_v1",
+  "selection": {
+    "common_boundary": true,
+    "denominator_per_profile": 8,
+    "nondecreasing_lambda": true,
+    "progress_gain_rad": 0.02,
+    "qualifying_episodes": 8,
+    "strict_tau_req_order": [
+      "F00",
+      "F05",
+      "F10"
+    ]
+  },
+  "status": "EXECUTED",
+  "tau_boundary_nm": null,
+  "tau_hi_nm": null,
+  "tau_rescue_nm": null
+}

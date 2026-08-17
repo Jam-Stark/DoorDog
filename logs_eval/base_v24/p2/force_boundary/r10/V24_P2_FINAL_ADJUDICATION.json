@@ -1,0 +1,31 @@
+{
+  "allowed_typed_results": [
+    "V24_E1_BOUNDARY_ESTABLISHED",
+    "V24_E1_DENOMINATOR_INSUFFICIENT",
+    "V24_E2_BOUNDARY_ESTABLISHED",
+    "V24_E2_BOUNDARY_NOT_ESTABLISHED",
+    "V24_ARM_COMMAND_PATH_NOT_BINDING",
+    "V24_DOOR_MODEL_REMAINS_INSUFFICIENT"
+  ],
+  "authority_gates_pass": false,
+  "command_path_binding": true,
+  "e0_anchor_count": 0,
+  "e0_anchor_sufficient": false,
+  "e1_denominator_count": 0,
+  "e1_denominator_sufficient": false,
+  "e1_established": false,
+  "e2_confirmed_count": 0,
+  "heldout_pairing_complete": false,
+  "heldout_required": false,
+  "heldout_source_gates_pass": null,
+  "heldout_status": "NOT_ADMITTED_BY_P2_TERMINAL",
+  "owner_decision_required": false,
+  "p3_admitted": false,
+  "raw_recomputation": true,
+  "schema": "a2_piper_v24_p2_final_adjudication_v1",
+  "source_gates_pass": false,
+  "terminal": true,
+  "typed_results": [
+    "V24_E1_DENOMINATOR_INSUFFICIENT"
+  ]
+}

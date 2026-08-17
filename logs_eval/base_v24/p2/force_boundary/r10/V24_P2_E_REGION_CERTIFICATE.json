@@ -1,0 +1,10 @@
+{
+  "e2_confirmed_count": 0,
+  "heldout_status": "NOT_ADMITTED_BY_P2_TERMINAL",
+  "pairing_complete": false,
+  "raw_recomputation": true,
+  "rows": 0,
+  "schema": "a2_piper_v24_p2_e_region_certificate_v1",
+  "status": "TERMINAL",
+  "terminal_result": "V24_E1_DENOMINATOR_INSUFFICIENT"
+}

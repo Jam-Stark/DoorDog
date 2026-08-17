@@ -1,0 +1,9 @@
+{
+  "heldout_status": "NOT_ADMITTED_BY_P2_TERMINAL",
+  "mode_caps_nm": null,
+  "rows": 0,
+  "schema": "a2_piper_v24_p2_heldout_receipt_v1",
+  "seed": 24022,
+  "status": "NOT_ADMITTED_BY_P2_TERMINAL",
+  "terminal_result": "V24_E1_DENOMINATOR_INSUFFICIENT"
+}

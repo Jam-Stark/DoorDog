@@ -1,0 +1,24 @@
+{
+  "artifact_order": [
+    "V24_P2_PARAMETER_RANGE_FREEZE.json",
+    "smoke/P2_SMOKE_RECEIPT.json",
+    "calibration/P2_CALIBRATION_ROWS.jsonl",
+    "calibration/P2_CALIBRATION_RECEIPT.json",
+    "V24_P2_LADDER_FREEZE.json",
+    "V24_P2_CERTIFICATE_THRESHOLD_FREEZE.json",
+    "heldout/P2_HELDOUT_ROWS.jsonl",
+    "heldout/P2_HELDOUT_RECEIPT.json",
+    "V24_P2_E_REGION_CERTIFICATE.json",
+    "V24_P2_FINAL_ADJUDICATION.json",
+    "QA_SEMANTIC_VALIDATION.json"
+  ],
+  "final_schema": "a2_piper_v24_p2_final_adjudication_v1",
+  "heldout_status": "NOT_ADMITTED_BY_P2_TERMINAL",
+  "raw_recomputation": true,
+  "schema": "a2_piper_v24_p2_qa_semantic_validation_v1",
+  "status": "EXECUTED",
+  "terminal": true,
+  "typed_results": [
+    "V24_E1_DENOMINATOR_INSUFFICIENT"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "denominator_min": 8,
+  "directional_clip_fraction_min": 0.3,
+  "directional_utilization_min": 0.9,
+  "exclusions": [
+    "GEOMETRY",
+    "GRASP",
+    "DIRECTION",
+    "SLIP",
+    "PATHOLOGY"
+  ],
+  "foot_loading": {
+    "body_order": [
+      "FL_foot",
+      "RL_foot",
+      "FR_foot",
+      "RR_foot"
+    ],
+    "source": "simulator.contact_forces[:, feet_indices, 2]",
+    "threshold_fraction_of_body_weight": 0.1
+  },
+  "lambda_zones": {
+    "E0": "lambda < 0.5",
+    "E1": "0.5 <= lambda < 1.0",
+    "E2": "confirmed only in held-out with rescue",
+    "NEAR_E2": "lambda >= 1.0 with incomplete rescue"
+  },
+  "low_progress_rad": 0.04,
+  "meaningful_progress_rad": 0.1,
+  "qualifying_min": 8,
+  "rescue_gain_rad": 0.02,
+  "schema": "a2_piper_v24_p2_certificate_threshold_freeze_v1",
+  "slip": {
+    "freeze_before_heldout": true,
+    "source": "simulator.contact_forces[:, feet_indices, 2] + Articulation.data.body_lin_vel_w[:, foot_body_ids, :]",
+    "threshold": "Q99_from_valid_F00_100Nm_calibration_windows"
+  },
+  "stable_grasp_steps": 20,
+  "status": "NOT_ADMITTED_BY_P2_TERMINAL",
+  "terminal": true,
+  "terminal_result": "V24_E1_DENOMINATOR_INSUFFICIENT",
+  "window_control_steps": 25
+}

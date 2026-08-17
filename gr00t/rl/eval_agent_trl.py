@@ -489,6 +489,22 @@ def _align_app_launcher_device_with_accelerate(args_cli):
         args_cli.device = os.environ["ACCELERATE_TORCH_DEVICE"]
 
 
+def _finalize_p2_eval_if_enabled(config, env) -> None:
+    enabled = OmegaConf.select(
+        config,
+        "env.config.a2_v24_force_boundary_enabled",
+        default=False,
+    )
+    if enabled is not True:
+        return
+    finalizer = getattr(env, "finalize_a2_v24_force_boundary", None)
+    if not callable(finalizer):
+        raise RuntimeError(
+            "enabled P2 evaluation requires env.finalize_a2_v24_force_boundary()"
+        )
+    finalizer()
+
+
 @hydra.main(config_path="config", config_name="base_eval")
 def main(override_config: OmegaConf):
     # --- Logging setup ---
@@ -843,10 +859,12 @@ def main(override_config: OmegaConf):
         )
 
     if config.get("export_onnx_only", False):
+        _finalize_p2_eval_if_enabled(config, env)
         exit()
 
     # --- Run evaluation ---
     trainer.eval()
+    _finalize_p2_eval_if_enabled(config, env)
     logger.info("Finished evaluation")
     os._exit(0)
 

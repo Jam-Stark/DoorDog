@@ -1,0 +1,121 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v24_p1_d_v2_energy
+  - _self_
+
+v24_schema: a2_piper_v24_p2_force_boundary_v1
+v24_plan_id: base_v24_force_boundary_R1
+v24_runtime_mode: P2_TELEMETRY
+v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+v24_checkpoint_load_mode: selected_policy_only
+
+v24_p2:
+  schema: a2_piper_v24_p2_force_boundary_v1
+  checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+  checkpoint_load_mode: selected_policy_only
+  calibration_seed: 24021
+  heldout_seed: 24022
+  envs_per_run: 48
+  envs_per_profile: 16
+  control_steps_max: 1000
+  dt_s: 0.005
+  control_decimation: 4
+  paired_scenarios: 16
+  geometry:
+    panel_mass_kg: 120.0
+    panel_width_m: 0.95
+    panel_height_m: 2.05
+    handle_height_m: 0.975
+    handle_width_m: 0.12
+    handle_type: lever
+    opening_lr: right
+    opening_io: out
+    hinge_axis_local: [0.0, 0.0, 1.0]
+  door_model:
+    inertia_kg_m2: 36.1
+    inertia_formula: "(1/3)*120*0.95^2=36.1 kg*m^2"
+    damping_nm_s_per_rad: 50.0
+    stiffness_nm_per_rad: 6.0
+    theta_ref_rad: 0.0
+    alpha_source: unavailable_not_zero
+    friction_authority: MODELED_FROM_PARAMS
+    required_torque_authority: MODELED_FROM_PARAMS
+    solver_applied: false
+  friction_profiles:
+    F00:
+      static_effort_nm: 0.0
+      dynamic_effort_nm: 0.0
+      viscous_coefficient_nm_s_per_rad: 0.0
+      dynamic_to_static_ratio: N/A
+    F05:
+      static_effort_nm: 0.5
+      dynamic_effort_nm: 0.375
+      viscous_coefficient_nm_s_per_rad: 0.0
+      dynamic_to_static_ratio: 0.75
+    F10:
+      static_effort_nm: 1.0
+      dynamic_effort_nm: 0.75
+      viscous_coefficient_nm_s_per_rad: 0.0
+      dynamic_to_static_ratio: 0.75
+  arm_caps_nm: [100.0, 60.0, 40.0, 30.0, 25.0, 20.0]
+  contingency_cap_nm: 10.0
+  authorities:
+    capacity_lambda: ESTIMATE_ONLY_DIRECTIONAL_MARGIN
+    pd_command: ESTIMATE_ONLY_IMPLICIT_PD_COMMAND
+    gravity: ISAACLAB_GRAVITY_COMPENSATION_ESTIMATE
+    state: HIGH_LEVEL_ARTICULATION_DATA
+    actual_generalized_torque: UNAVAILABLE_NOT_USED
+  runtime_modes: [HI_FULL, BOUNDARY_FULL, BOUNDARY_RP0, RESCUE_FULL]
+  exclusions: [GEOMETRY, GRASP, DIRECTION, SLIP, PATHOLOGY]
+  artifacts:
+    root: logs_eval/base_v24/p2/force_boundary/r10
+    append_only: true
+    files:
+      - V24_P2_PARAMETER_RANGE_FREEZE.json
+      - smoke/P2_SMOKE_RECEIPT.json
+      - calibration/P2_CALIBRATION_ROWS.jsonl
+      - calibration/P2_CALIBRATION_RECEIPT.json
+      - V24_P2_LADDER_FREEZE.json
+      - V24_P2_CERTIFICATE_THRESHOLD_FREEZE.json
+      - heldout/P2_HELDOUT_ROWS.jsonl
+      - heldout/P2_HELDOUT_RECEIPT.json
+      - V24_P2_E_REGION_CERTIFICATE.json
+      - V24_P2_FINAL_ADJUDICATION.json
+      - QA_SEMANTIC_VALIDATION.json
+
+env:
+  config:
+    # Additive P2 hook: all legacy configs remain default-off because this key
+    # is absent there.  This overlay is the explicit P2 opt-in.
+    a2_v20_R2_evidence_enabled: false
+    a2_v23_d1_sampler_enabled: false
+    a2_v24_force_boundary_enabled: true
+    a2_v24_force_boundary_mode: P2_TELEMETRY
+    a2_v24_force_boundary_friction_profile: F00
+    a2_v24_force_boundary_runtime_mode: HI_FULL
+    a2_v24_force_boundary_seed: 24021
+    a2_v24_force_boundary_continuity_id: CALIBRATION
+    a2_v24_force_boundary_scenario_ids: [S00, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15]
+    a2_v24_force_boundary_runtime_export_path: logs_eval/base_v24/p2/force_boundary/r10/_runtime/P2_RUNTIME_ROWS.jsonl
+    a2_v24_force_boundary_checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+    a2_v24_force_boundary_checkpoint_load_mode: selected_policy_only
+    a2_v24_force_boundary_panel_mass_kg: 120.0
+    a2_v24_force_boundary_panel_width_m: 0.95
+    a2_v24_force_boundary_panel_height_m: 2.05
+    a2_v24_force_boundary_handle_height_m: 0.975
+    a2_v24_force_boundary_handle_width_m: 0.12
+    a2_v24_force_boundary_opening_lr: right
+    a2_v24_force_boundary_opening_io: out
+    a2_v24_force_boundary_hinge_axis_local: [0.0, 0.0, 1.0]
+    a2_v24_force_boundary_theta_ref_rad: 0.0
+    a2_v24_force_boundary_inertia_kg_m2: 36.1
+    a2_v24_force_boundary_damping_nm_s_per_rad: 50.0
+    a2_v24_force_boundary_stiffness_nm_per_rad: 6.0
+    a2_v24_force_boundary_static_friction_nm: 0.0
+    a2_v24_force_boundary_dynamic_friction_nm: 0.0
+    a2_v24_force_boundary_viscous_friction_nm_s_per_rad: 0.0
+    a2_v24_force_boundary_primary_caps_nm: [100.0, 60.0, 40.0, 30.0, 25.0, 20.0]
+    a2_v24_force_boundary_contingency_cap_nm: 10.0
+    a2_v24_force_boundary_epsilon_g_m: 1.0e-6
+    a2_v24_force_boundary_control_period_s: 0.02
+    a2_v24_force_boundary_velocity_epsilon_rad_s: 0.001

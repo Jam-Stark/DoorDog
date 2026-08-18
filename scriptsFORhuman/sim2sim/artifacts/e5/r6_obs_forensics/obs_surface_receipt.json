@@ -1,0 +1,95 @@
+{
+  "component_ranges_full_run": {
+    "a2_base_command": {
+      "abs_max": 1.0,
+      "finite": true,
+      "max": 1.0,
+      "min": -1.0,
+      "scale": 1.0
+    },
+    "a2_base_command_raw": {
+      "abs_max": 5.035783767700195,
+      "finite": true,
+      "max": 3.629490852355957,
+      "min": -5.035783767700195,
+      "scale": 1.0
+    },
+    "a2_student_dof_pos": {
+      "abs_max": 1.3928654193878174,
+      "finite": true,
+      "max": 0.7147766947746277,
+      "min": -1.3928654193878174,
+      "scale": 1.0
+    },
+    "a2_student_dof_vel": {
+      "abs_max": 0.5420690178871155,
+      "finite": true,
+      "max": 0.5420690178871155,
+      "min": -0.39019522070884705,
+      "scale": 0.05
+    },
+    "actions": {
+      "abs_max": 5.793440341949463,
+      "finite": true,
+      "max": 2.6284711360931396,
+      "min": -5.793440341949463,
+      "scale": 1.0
+    },
+    "base_ang_vel": {
+      "abs_max": 1.0820815563201904,
+      "finite": true,
+      "max": 0.7793731093406677,
+      "min": -1.0820815563201904,
+      "scale": 0.5
+    },
+    "delta_actions": {
+      "abs_max": 5.75311803817749,
+      "finite": true,
+      "max": 2.714698314666748,
+      "min": -5.75311803817749,
+      "scale": 1.0
+    },
+    "projected_gravity": {
+      "abs_max": 1.0,
+      "finite": true,
+      "max": 0.37695202231407166,
+      "min": -1.0,
+      "scale": 1.0
+    }
+  },
+  "construction_layer": "pre running_mean_std: exactly the tensor fed as actor_obs",
+  "coordinate_conventions": {
+    "base_ang_vel": {
+      "mujoco": "mj_objectVelocity(flg_local=1)[:3] = body frame; same convention",
+      "production": "distillation legged_robot_base.py:171 quat_rotate_inverse(base_quat, root_ang_vel) = body frame"
+    },
+    "projected_gravity": {
+      "mujoco": "xmat.T @ [0,0,-1]; same convention",
+      "production": "distillation legged_robot_base.py:199 quat_rotate_inverse(base_quat, [0,0,-1]) = body-frame unit down"
+    },
+    "scales": "obs config door_open_a2_base.yaml:137-141 (base_ang_vel 0.5, dof_vel 0.05, projected_gravity 1.0) applied at construction, matching bundle manifest components"
+  },
+  "determinism_vs_stored_probe_trace": {
+    "compared_steps": 1000,
+    "max_abs_norm_diff": 0.0,
+    "row_identical": true
+  },
+  "dump": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/r6_obs_forensics/actor_obs_surface.npz",
+  "loop": "staging_band_probe_r5 identical loop, seed 41001, dx 0.65, llvmpipe",
+  "schema": "doordog.sim2sim.obs_surface_forensics.r6.v1",
+  "t0_anchor_notes": {
+    "detail": "dof_pos-default at t=0 equals the home keyframe minus default; if the keyframe equals default this is exactly zero",
+    "dof_pos_offset_expected_zero": true
+  },
+  "t0_anchors": {
+    "a2_base_command_echo_zero": true,
+    "a2_base_command_raw_echo_zero": true,
+    "actions_echo_zero": true,
+    "base_ang_vel_scaled_is_zero": true,
+    "delta_actions_echo_zero": true,
+    "dof_pos_offset_vs_home_keyframe_max_abs_diff": 0.0,
+    "dof_vel_scaled_is_zero": true,
+    "projected_gravity_vs_analytic_max_abs_diff": 0.0
+  },
+  "typed_verdict": "NONVISUAL_OBS_SURFACE_CLOSED"
+}

@@ -1,0 +1,56 @@
+/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torchvision/models/_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+  warnings.warn(
+/home/baoquanc/anaconda3/envs/isaaclab/lib/python3.11/site-packages/torchvision/models/_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=ResNet18_Weights.IMAGENET1K_V1`. You can also use `weights=ResNet18_Weights.DEFAULT` to get the most up-to-date weights.
+  warnings.warn(msg)
+Building ResNet layer
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+RunningMeanStd:  (81,)
+Building ResNet layer
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+0.1
+{"case_id": "p00_baseline", "final_stage": 0, "max_root_x_progress_m": 2.247997760772705, "open_threshold_crossed": false, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p01_mass80", "final_stage": 0, "max_root_x_progress_m": 1.4261870384216309, "open_threshold_crossed": true, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p02_mass120", "final_stage": 0, "max_root_x_progress_m": 1.9300888776779175, "open_threshold_crossed": false, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p03_width080", "final_stage": 0, "max_root_x_progress_m": 1.4807870388031006, "open_threshold_crossed": true, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p04_width110", "final_stage": 0, "max_root_x_progress_m": 1.4710415601730347, "open_threshold_crossed": false, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p05_height190", "final_stage": 0, "max_root_x_progress_m": 1.3719205856323242, "open_threshold_crossed": false, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p06_height220", "final_stage": 0, "max_root_x_progress_m": 1.5231088399887085, "open_threshold_crossed": true, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_id": "p07_drive_k10_cap25", "final_stage": 0, "max_root_x_progress_m": 1.5243741273880005, "open_threshold_crossed": true, "physics_steps": 4000, "purposeful_arm": false, "termination_reason": "HORIZON"}
+{"case_count": 8, "native_position_control": {"integrator": "implicitfast", "max_abs_qacc": 1935.2151253616685, "max_effort_over_limit": 0.0, "max_generalized_force_error": 0.0, "max_target_write_error": 0.0, "mode": "MUJOCO_NATIVE_POSITION_TRUE_100_45"}, "stage_summary": {"cases_reaching_stage1": 0, "cases_walking_toward_door": 8, "cases_with_major_progress_signal": 0, "cases_with_purposeful_arm_after_stage_enable": 0, "contract": "STAGE_CONTRACT_MINIMAL"}, "task_summary": {"cases_open_threshold_crossed": 4, "cases_unlatched": 0, "termination_reasons": {"BASE_HEIGHT": 0, "HORIZON": 8, "INVALID_NUMERICS": 0}}, "total_physics_steps": 32000}

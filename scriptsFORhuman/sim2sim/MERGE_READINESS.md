@@ -1,6 +1,6 @@
 # Sim2sim merge readiness
 
-Last updated: 2026-08-17 20:20 HKT
+Last updated: 2026-08-18 11:35 HKT
 
 ## Boundary
 
@@ -60,7 +60,16 @@ Forbidden shared production paths include:
 
 This list is updated after each phase.
 
-The exact final file inventory is `scriptsFORhuman/sim2sim/CHANGED_FILES.txt`; it is the authoritative file-level list rather than a directory summary.
+### r4 additions
+
+- `gr00t/rl/sim2sim/{mujoco,doors,cli}/*r4.py` and `mujoco/stage_contract_minimal.py`
+- `scriptsFORhuman/sim2sim/artifacts/e5/{stage_contract_r4,qacc_localization_r4,standing_vitals_gate_r4,visual_parity_r4,paired_mujoco_campaign_r4}/`
+- `scriptsFORhuman/sim2sim/CAMPAIGN_R4_{REPORT,PROGRESS,MERGE_READINESS}.md`
+- `memory/a2-piper/sim2sim-r4-campaign/`
+
+The owner-requested `t=0` Isaac RGB requirement is appended to the branch-owned paired distillation handoff. The paired manifest and paired row schema remain unchanged.
+
+The original E0–E6 file inventory is `scriptsFORhuman/sim2sim/CHANGED_FILES.txt`; the additive r4 inventory is recorded separately in `scriptsFORhuman/sim2sim/CAMPAIGN_R4_MERGE_READINESS.md`.
 
 ## Mainline synchronization
 
@@ -75,6 +84,17 @@ The exact final file inventory is `scriptsFORhuman/sim2sim/CHANGED_FILES.txt`; i
 | Phase 6 / E5 | `78ff837` | `45c9decb` | already up to date | 0 |
 | Phase 7 / E6 | `ba2d304` | `45c9decb` | already up to date | 0 |
 | Phase 8 / closure | `24430d6` | `45c9decb` | already up to date | 0 |
+
+### r4 synchronization
+
+| Phase | Sim2sim commit before merge | Result | Behind after merge |
+|---|---|---|---:|
+| pre-r4 mainline sync | `a3ace7e` | merged A2_Piper | 0 |
+| P1 stage contract | `ab65398` | already up to date | 0 |
+| P2 true 100/45 | `ca8abe7` | already up to date | 0 |
+| P3 visual parity | `536e6b0` | already up to date | 0 |
+| P4 campaign | `ab82c51` | already up to date | 0 |
+| receipt classification correction | `5389ef6` | already up to date | 0 |
 
 ## Non-intersection proof
 

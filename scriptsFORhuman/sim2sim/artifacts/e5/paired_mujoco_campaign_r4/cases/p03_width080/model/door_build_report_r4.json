@@ -1,0 +1,297 @@
+{
+  "door_resistance_mode": "capped_position_actuator",
+  "equilibrium_ctrl_rad": [
+    -0.17453292519943295,
+    -0.2617993877991494
+  ],
+  "friction_mapping": {
+    "authority": "MODELED_FROM_PARAMS;SOLVER_APPLIED_GENERALIZED_TORQUE_NOT_CLAIMED",
+    "classification": "FRICTION_SEMANTICS_ALIGNED",
+    "isaac_dynamic_effort": 0.0,
+    "isaac_static_effort": 0.0,
+    "isaac_viscous_coefficient": 0.0,
+    "mujoco_frictionloss": 0.0,
+    "mujoco_joint_damping_from_viscous": 0.0
+  },
+  "handle_geometry_parity": {
+    "authority": {
+      "axle_and_levers_lines": "416-473",
+      "grasp_target_lines": "637-652",
+      "hook_lines": "461-490",
+      "source_path": "gr00t/rl/isaac_utils/playground/env_rand/door.py"
+    },
+    "axle": {
+      "axis": "X",
+      "length_m": 0.195,
+      "name": "handle_axle"
+    },
+    "closeup_cameras": [
+      "handle_outside_closeup",
+      "handle_inside_closeup"
+    ],
+    "door_grasp_target_local_m": [
+      -0.0975,
+      0.0625,
+      0.0
+    ],
+    "door_open_lr": -1.0,
+    "grasp_target_authority": "Isaac grasp_target fixed-joint localPos1 on the negative-X lever center",
+    "hooks": {
+      "absence_semantics": "LEGACY_PAIRED_DOOR_INSTANCE_HAS_NO_SPAWN_HOOK_FIELD; PRESERVE_NO_HOOK_R1_SUBDOMAIN",
+      "door_instance_spawn_hook": null,
+      "hook_length_m": null,
+      "names": [],
+      "realized": false
+    },
+    "levers": {
+      "direction_signed_by_door_open_lr": true,
+      "inside_center_m": [
+        -0.0975,
+        0.0625,
+        0.0
+      ],
+      "length_m": 0.125,
+      "outside_center_m": [
+        0.0975,
+        0.0625,
+        0.0
+      ],
+      "rotation": "90_DEG_ABOUT_X"
+    },
+    "result": "PASS"
+  },
+  "handle_limits_rad": [
+    0.0,
+    0.7853981633974483
+  ],
+  "hinge_limits_rad": [
+    0.0,
+    2.6179938779914944
+  ],
+  "instance_identity": {
+    "family_id": "a2_piper_legacy_lever_paired_subdomain",
+    "instance_id": "p03_width080",
+    "materialization": "EXPLICIT_VALUES_NO_RNG",
+    "source_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+    "source_path": "gr00t/rl/isaac_utils/playground/env_rand/door.py"
+  },
+  "latch_mode": "no_latch",
+  "mechanics_three_face_receipt": {
+    "canonical_surface": "RAD",
+    "conversion_metadata": {
+      "damping": {
+        "authority": "USD_READBACK:HINGE_DAMPING",
+        "conversion": "usd_degree_surface_times_pi_over_180",
+        "source_surface": "USD_DEGREE_READBACK",
+        "source_value": 2864.7889756541163,
+        "value_rad": 50.0
+      },
+      "effort": {
+        "authority": "USD_READBACK:HINGE_EFFORT",
+        "conversion": "pass_through",
+        "unit": "N*m",
+        "value": 4.5
+      },
+      "mass": {
+        "authority": "USD_READBACK:DOOR_MASS",
+        "conversion": "pass_through",
+        "unit": "kg",
+        "value": 100.0
+      },
+      "stiffness": {
+        "authority": "USD_READBACK:HINGE_STIFFNESS",
+        "conversion": "usd_degree_surface_times_pi_over_180",
+        "source_surface": "USD_DEGREE_READBACK",
+        "source_value": 114.59155902616465,
+        "value_rad": 2.0
+      }
+    },
+    "degree_per_rad": 57.29577951308232,
+    "realized_angular_surface": "USD_DEGREE_READBACK",
+    "realized_normalized": {
+      "canonical_surface": "RAD",
+      "damping_rad": 50.0,
+      "door_mass_kg": 100.0,
+      "effort_limit_nm": 4.5,
+      "fields": {
+        "damping": {
+          "authority": "USD_READBACK:HINGE_DAMPING",
+          "conversion": "usd_degree_surface_times_pi_over_180",
+          "source_surface": "USD_DEGREE_READBACK",
+          "source_value": 2864.7889756541163,
+          "value_rad": 50.0
+        },
+        "effort": {
+          "authority": "USD_READBACK:HINGE_EFFORT",
+          "conversion": "pass_through",
+          "unit": "N*m",
+          "value": 4.5
+        },
+        "mass": {
+          "authority": "USD_READBACK:DOOR_MASS",
+          "conversion": "pass_through",
+          "unit": "kg",
+          "value": 100.0
+        },
+        "stiffness": {
+          "authority": "USD_READBACK:HINGE_STIFFNESS",
+          "conversion": "usd_degree_surface_times_pi_over_180",
+          "source_surface": "USD_DEGREE_READBACK",
+          "source_value": 114.59155902616465,
+          "value_rad": 2.0
+        }
+      },
+      "stiffness_rad": 2.0
+    },
+    "requested": {
+      "door_weight_kg": 100.0,
+      "hinge_damping_native": 50.0,
+      "hinge_effort_limit_nm": 4.5,
+      "hinge_stiffness_native": 2.0
+    },
+    "requested_angular_surface": "TRACE_CONFIG_RAD",
+    "requested_normalized": {
+      "canonical_surface": "RAD",
+      "damping_rad": 50.0,
+      "door_mass_kg": 100.0,
+      "effort_limit_nm": 4.5,
+      "fields": {
+        "damping": {
+          "authority": "TRACE_CONFIG:HINGE_DAMPING",
+          "conversion": "identity_on_rad_surface",
+          "source_surface": "TRACE_CONFIG_RAD",
+          "source_value": 50.0,
+          "value_rad": 50.0
+        },
+        "effort": {
+          "authority": "TRACE_CONFIG:HINGE_EFFORT",
+          "conversion": "pass_through",
+          "unit": "N*m",
+          "value": 4.5
+        },
+        "mass": {
+          "authority": "TRACE_CONFIG:DOOR_MASS",
+          "conversion": "pass_through",
+          "unit": "kg",
+          "value": 100.0
+        },
+        "stiffness": {
+          "authority": "TRACE_CONFIG:HINGE_STIFFNESS",
+          "conversion": "identity_on_rad_surface",
+          "source_surface": "TRACE_CONFIG_RAD",
+          "source_value": 2.0,
+          "value_rad": 2.0
+        }
+      },
+      "stiffness_rad": 2.0
+    },
+    "unit_contract": "DoorMechanicsUnitContractV1",
+    "unit_contract_schema": "a2_piper_v24_door_mechanics_unit_contract_v1",
+    "usd_readback": {
+      "door_weight_kg": 100.0,
+      "hinge_damping_native": 2864.7889756541163,
+      "hinge_effort_limit_nm": 4.5,
+      "hinge_stiffness_native": 114.59155902616465
+    }
+  },
+  "names": {
+    "actuators": [
+      "door_hinge_capped_position",
+      "handle_capped_position"
+    ],
+    "bodies": [
+      "door_root",
+      "door_panel",
+      "door_handle"
+    ],
+    "geometries": [
+      "handle_axle",
+      "handle_lever_inside",
+      "handle_lever_outside",
+      "door_inset_outside_0",
+      "door_inset_outside_1",
+      "door_panel_band_outside_left",
+      "door_panel_band_outside_right",
+      "door_panel_band_outside_bottom",
+      "door_panel_band_outside_middle",
+      "door_panel_band_outside_top",
+      "door_inset_inside_0",
+      "door_inset_inside_1",
+      "door_panel_band_inside_left",
+      "door_panel_band_inside_right",
+      "door_panel_band_inside_bottom",
+      "door_panel_band_inside_middle",
+      "door_panel_band_inside_top"
+    ],
+    "joints": [
+      "door_hinge",
+      "handle_hinge"
+    ],
+    "sites": [
+      "door_grasp_target",
+      "door_pregrasp_target",
+      "door_hinge_axis",
+      "door_handle_center",
+      "door_passage_center",
+      "door_goal"
+    ]
+  },
+  "panel_diagonal_inertia_kgm2": [
+    38.66666666666667,
+    33.346666666666664,
+    5.346666666666668
+  ],
+  "panel_mass_kg": 100.0,
+  "policy_visibility": {
+    "all_sites_assigned_group": 5,
+    "policy_renderer_requirement": "sitegroup[5]=0"
+  },
+  "result_classification": "VALID_COMPARABLE",
+  "schema_version": "doordog.mjcf_door_build_report.r4.v1",
+  "self_collision_exclusions": [
+    "door_panel<->door_handle",
+    "door_root<->door_panel",
+    "door_root<->door_handle"
+  ],
+  "visual_structure_parity": {
+    "authority": "gr00t/rl/isaac_utils/playground/env_rand/door.py:build_frame; owner r4 requires cheap two-sided inset boxes and frame color bands",
+    "band_rgba": [
+      0.82,
+      0.71,
+      0.52,
+      1.0
+    ],
+    "decorative_geom_names": [
+      "door_inset_outside_0",
+      "door_inset_outside_1",
+      "door_panel_band_outside_left",
+      "door_panel_band_outside_right",
+      "door_panel_band_outside_bottom",
+      "door_panel_band_outside_middle",
+      "door_panel_band_outside_top",
+      "door_inset_inside_0",
+      "door_inset_inside_1",
+      "door_panel_band_inside_left",
+      "door_panel_band_inside_right",
+      "door_panel_band_inside_bottom",
+      "door_panel_band_inside_middle",
+      "door_panel_band_inside_top"
+    ],
+    "inset_rgba": [
+      0.62,
+      0.43,
+      0.24,
+      1.0
+    ],
+    "panel_rgba": [
+      0.73,
+      0.57,
+      0.36,
+      1.0
+    ],
+    "physics_effect": "NONE; mass=0, contype=0, conaffinity=0",
+    "result": "PASS",
+    "two_sided_frame_bands": 10,
+    "two_sided_insets": 4
+  }
+}

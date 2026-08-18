@@ -1,0 +1,86 @@
+{
+  "camera_extrinsic_fov": {
+    "after": {
+      "head_policy": {
+        "fovy": "77.0024873497",
+        "name": "head_policy",
+        "resolution": "384 136"
+      },
+      "left_policy": {
+        "fovy": "69.3153093938",
+        "name": "left_policy",
+        "resolution": "216 384"
+      },
+      "right_policy": {
+        "fovy": "69.3153093938",
+        "name": "right_policy",
+        "resolution": "216 384"
+      }
+    },
+    "before": {
+      "head_policy": {
+        "fovy": "77.0024873497",
+        "name": "head_policy",
+        "resolution": "384 136"
+      },
+      "left_policy": {
+        "fovy": "69.3153093938",
+        "name": "left_policy",
+        "resolution": "216 384"
+      },
+      "right_policy": {
+        "fovy": "69.3153093938",
+        "name": "right_policy",
+        "resolution": "216 384"
+      }
+    },
+    "status": "FROZEN_UNCHANGED_PENDING_PAIRED_T0_ISAAC_FRAMES"
+  },
+  "compiled": {
+    "ncam": 6,
+    "ngeom": 69,
+    "nsite": 18
+  },
+  "illumination_material_overlay": {
+    "floor_checker_rgb1": [
+      0.82,
+      0.8,
+      0.74
+    ],
+    "floor_checker_rgb2": [
+      0.94,
+      0.92,
+      0.86
+    ],
+    "key_light_ambient": [
+      0.9,
+      0.9,
+      0.9
+    ],
+    "key_light_diffuse": [
+      1.0,
+      1.0,
+      1.0
+    ],
+    "skybox_rgb1": [
+      0.96,
+      0.97,
+      0.98
+    ],
+    "skybox_rgb2": [
+      0.7,
+      0.73,
+      0.78
+    ]
+  },
+  "output_scene": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r4/cases/p06_height220/model/scene.xml",
+  "policy_visibility": {
+    "debug_geom_names": [],
+    "hard_bug_status": "FIXED",
+    "policy_option": "sitegroup[5]=0; geomgroup[5]=0",
+    "site_group": 5
+  },
+  "result": "PASS",
+  "schema": "doordog.sim2sim.policy_visual_scene.r4.v1",
+  "source_scene": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r4/cases/p06_height220/model/native_position_scene_r4.xml"
+}

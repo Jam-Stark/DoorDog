@@ -1,0 +1,20 @@
+{
+  "schema": "doordog.sim2sim.stage_predicate_diagnostics.r4.v1",
+  "result": "PASS_CONTRACT_NO_RUNTIME_TRANSITION",
+  "contract": "STAGE_CONTRACT_MINIMAL",
+  "case_count": 8,
+  "cases_reaching_stage1": 0,
+  "blocking_finding": "physical_base_command_norm_first3 never reached the production <=0.1 base-still threshold in any case",
+  "per_case": {
+    "p00_baseline": {"x_band_steps": 25, "x_y_band_steps": 0, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.2945362627506256},
+    "p01_mass80": {"x_band_steps": 117, "x_y_band_steps": 41, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.2920990586280823},
+    "p02_mass120": {"x_band_steps": 103, "x_y_band_steps": 17, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.2960839867591858},
+    "p03_width080": {"x_band_steps": 114, "x_y_band_steps": 0, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.3293852210044861},
+    "p04_width110": {"x_band_steps": 24, "x_y_band_steps": 0, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.2360251545906067},
+    "p05_height190": {"x_band_steps": 24, "x_y_band_steps": 0, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.34323397278785706},
+    "p06_height220": {"x_band_steps": 74, "x_y_band_steps": 0, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.28317880630493164},
+    "p07_drive_k10_cap25": {"x_band_steps": 125, "x_y_band_steps": 47, "arm_default_steps": 1000, "base_still_steps": 0, "minimum_base_command_norm": 0.307822585105896}
+  },
+  "interpretation": "The tracker enforced the production contract: stage-0 arm deltas remained disabled. The four hinge crossings occurred without unlatch or stage1 and are collision-driven door motion, not purposeful arm behavior.",
+  "source": "cases/<case_id>/stage_trace.jsonl"
+}

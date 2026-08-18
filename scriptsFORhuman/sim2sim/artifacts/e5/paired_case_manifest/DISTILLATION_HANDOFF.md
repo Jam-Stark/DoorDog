@@ -20,3 +20,7 @@ Copy `gr00t/rl/sim2sim/schemas/paired_trace_row.schema.json` from sim2sim commit
 Task fields are direct state facts: `unlatched` is `handle_hinge >= pi/6`; `open_threshold_crossed` is `door_hinge >= 0.174533 rad`. They are not reward or stage-machine outputs. Pixel data remains domain-gap evidence and must not decide policy regression.
 
 Return one directory containing the copied schema, the unchanged manifest and DoorInstanceSpecs, `isaac_physx/<case_id>/trace.jsonl`, per-case realized mechanics receipts, and a top-level producer receipt with commit+path identities. The sim2sim comparator will consume that directory without modifying the distillation branch.
+
+## r4 mandatory t=0 camera handoff
+
+The Isaac producer must also return the exact policy-input `left`, `right`, and `head` RGB frames at `t=0` for a small paired subset that includes `p00_baseline`. Save the tensors after the production crop/readback path and before ImageNet normalization, identify camera name/case/seed, and link them from the producer receipt. These three frames are mandatory evidence for the formal framing and appearance adjudication; until they arrive, MuJoCo camera extrinsics and FOV remain frozen and no view-match claim is made.

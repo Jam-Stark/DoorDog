@@ -1,0 +1,12 @@
+{
+  "schema": "doordog.sim2sim.mujoco_asset_render_receipt.r4.v1",
+  "result": "PASS",
+  "backend": "mujoco_cpu_llvmpipe",
+  "gpu_used": false,
+  "camera": "axis_overview",
+  "policy_visibility_mask_applied": true,
+  "initial_screenshot": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r4/mujoco_asset_initial.png",
+  "terminal_screenshot": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r4/mujoco_asset_terminal.png",
+  "visual_content": "composed A2_Piper plus r4 inset-panel door rendered by MuJoCo; debug sites and marker geoms hidden",
+  "camera_extrinsic_fov": "UNCHANGED_PENDING_PAIRED_T0_ISAAC_FRAMES"
+}

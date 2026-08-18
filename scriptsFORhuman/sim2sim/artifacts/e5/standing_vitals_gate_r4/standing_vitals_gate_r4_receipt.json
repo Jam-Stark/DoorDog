@@ -1,0 +1,199 @@
+{
+  "actuator_mapping_audit": {
+    "effort_limit_by_joint": {
+      "FL_calf_joint": 180.0,
+      "FL_hip_joint": 120.0,
+      "FL_thigh_joint": 120.0,
+      "FR_calf_joint": 180.0,
+      "FR_hip_joint": 120.0,
+      "FR_thigh_joint": 120.0,
+      "RL_calf_joint": 180.0,
+      "RL_hip_joint": 120.0,
+      "RL_thigh_joint": 120.0,
+      "RR_calf_joint": 180.0,
+      "RR_hip_joint": 120.0,
+      "RR_thigh_joint": 120.0,
+      "arm_j1": 100.0,
+      "arm_j2": 100.0,
+      "arm_j3": 100.0,
+      "arm_j4": 100.0,
+      "arm_j5": 100.0,
+      "arm_j6": 100.0,
+      "arm_j7": 45.0,
+      "arm_j8": 45.0
+    },
+    "frozen_a2_trace": {
+      "max_abs_qacc": 1852.3600697068248,
+      "max_effort_over_limit": 0.0,
+      "max_generalized_force_error": 0.0,
+      "max_target_write_error": 0.0,
+      "position_target_writes": 1000
+    },
+    "mapping": {
+      "compiled_actuator_order": [
+        "door_hinge_capped_position",
+        "handle_capped_position",
+        "FL_hip_joint_position",
+        "FL_thigh_joint_position",
+        "FL_calf_joint_position",
+        "RL_hip_joint_position",
+        "RL_thigh_joint_position",
+        "RL_calf_joint_position",
+        "FR_hip_joint_position",
+        "FR_thigh_joint_position",
+        "FR_calf_joint_position",
+        "RR_hip_joint_position",
+        "RR_thigh_joint_position",
+        "RR_calf_joint_position",
+        "arm_j1_position",
+        "arm_j2_position",
+        "arm_j3_position",
+        "arm_j4_position",
+        "arm_j5_position",
+        "arm_j6_position",
+        "arm_j7_position",
+        "arm_j8_position"
+      ],
+      "door_actuator_ids": {
+        "door_hinge_capped_position": 0,
+        "handle_capped_position": 1
+      },
+      "robot_actuator_ids": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21
+      ],
+      "robot_actuator_names": [
+        "FL_hip_joint_position",
+        "FL_thigh_joint_position",
+        "FL_calf_joint_position",
+        "RL_hip_joint_position",
+        "RL_thigh_joint_position",
+        "RL_calf_joint_position",
+        "FR_hip_joint_position",
+        "FR_thigh_joint_position",
+        "FR_calf_joint_position",
+        "RR_hip_joint_position",
+        "RR_thigh_joint_position",
+        "RR_calf_joint_position",
+        "arm_j1_position",
+        "arm_j2_position",
+        "arm_j3_position",
+        "arm_j4_position",
+        "arm_j5_position",
+        "arm_j6_position",
+        "arm_j7_position",
+        "arm_j8_position"
+      ],
+      "robot_joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint",
+        "arm_j1",
+        "arm_j2",
+        "arm_j3",
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "trace_contract": "robot_ctrl_effort reads actuator_force in robot_joint_names order",
+      "write_contract": "data.ctrl[name_resolved_robot_position_actuator_ids] = position_target"
+    },
+    "passive_trace": {
+      "max_abs_qacc": 1852.3600697068248,
+      "max_effort_over_limit": 0.0,
+      "max_generalized_force_error": 0.0,
+      "max_target_write_error": 0.0,
+      "position_target_writes": 400
+    },
+    "result": "PASS"
+  },
+  "backend": "mujoco_cpu",
+  "campaign_authorization": "AUTHORIZED",
+  "control_mode": "MUJOCO_NATIVE_POSITION_TRUE_100_45",
+  "d5_authorized_deviation": {
+    "external_pd_per_step_clip": "REMOVED",
+    "replacement": "native position actuator forcerange inside implicitfast solve",
+    "robot_scope": "all 20 joints",
+    "true_arm_gripper_effort_surface": "100/45"
+  },
+  "foot_floor_contact_pair": {
+    "all_feet_nonzero_in_passive_tail": true,
+    "floor_geom_id": 0,
+    "foot_geom_ids": {
+      "FL_foot_collision": 13,
+      "FR_foot_collision": 29,
+      "RL_foot_collision": 21,
+      "RR_foot_collision": 37
+    }
+  },
+  "frozen_a2_standing": {
+    "duration_s": 5.0,
+    "final_base_height_m": 0.44315480930327317,
+    "final_foot_normal_force_n": {
+      "FL_foot_collision": 134.3486928122678,
+      "FR_foot_collision": 126.20220311991977,
+      "RL_foot_collision": 80.82437754497617,
+      "RR_foot_collision": 97.38213500342584
+    },
+    "final_vertical_velocity_mps": -0.0037321458282334446,
+    "mode": "FROZEN_A2_BASE_ZERO_COMMAND_NATIVE_POSITION",
+    "result": "PASS",
+    "tail_base_height_span_m": 0.0038634433044603123,
+    "tail_max_abs_roll_or_pitch_rad": 0.0357725411407121,
+    "tail_steps_with_nonzero_foot_force": 200
+  },
+  "integrator": "implicitfast",
+  "passive_landing": {
+    "duration_s": 2.0,
+    "final_base_height_m": 0.492419715302226,
+    "final_foot_normal_force_n": {
+      "FL_foot_collision": 86.23886960159582,
+      "FR_foot_collision": 86.31179114678889,
+      "RL_foot_collision": 133.49104900239763,
+      "RR_foot_collision": 133.53921360414046
+    },
+    "final_vertical_velocity_mps": -0.011523825454966375,
+    "mode": "POLICY_FREE_NATIVE_POSITION_DEFAULT_TARGET_LANDING",
+    "result": "PASS",
+    "tail_base_height_span_m": 0.0045836822106283814,
+    "tail_max_abs_roll_or_pitch_rad": 0.0171671522166692,
+    "tail_steps_with_nonzero_foot_force": 100
+  },
+  "physics_dt_s": 0.005,
+  "producer_identity": {
+    "git_commit_before_phase_commit": "ab65398ff6d304573fd351a5113528eaa4926f37",
+    "path": "gr00t/rl/sim2sim/cli/run_standing_vitals_gate_r4.py"
+  },
+  "result": "PASS",
+  "rule": "INSTRUMENT_VITALS_BEFORE_MEASUREMENT_INTERPRETATION",
+  "schema": "doordog.sim2sim.standing_vitals_gate.r4.v1"
+}

@@ -1,0 +1,1279 @@
+{
+  "actuator_mapping": {
+    "compiled_actuator_order": [
+      "door_hinge_capped_position",
+      "handle_capped_position",
+      "FL_hip_joint_motor",
+      "FL_thigh_joint_motor",
+      "FL_calf_joint_motor",
+      "RL_hip_joint_motor",
+      "RL_thigh_joint_motor",
+      "RL_calf_joint_motor",
+      "FR_hip_joint_motor",
+      "FR_thigh_joint_motor",
+      "FR_calf_joint_motor",
+      "RR_hip_joint_motor",
+      "RR_thigh_joint_motor",
+      "RR_calf_joint_motor",
+      "arm_j1_motor",
+      "arm_j2_motor",
+      "arm_j3_motor",
+      "arm_j4_motor",
+      "arm_j5_motor",
+      "arm_j6_motor",
+      "arm_j7_motor",
+      "arm_j8_motor"
+    ],
+    "door_actuator_ids": {
+      "door_hinge_capped_position": 0,
+      "handle_capped_position": 1
+    },
+    "robot_actuator_ids": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ],
+    "robot_actuator_names": [
+      "FL_hip_joint_motor",
+      "FL_thigh_joint_motor",
+      "FL_calf_joint_motor",
+      "RL_hip_joint_motor",
+      "RL_thigh_joint_motor",
+      "RL_calf_joint_motor",
+      "FR_hip_joint_motor",
+      "FR_thigh_joint_motor",
+      "FR_calf_joint_motor",
+      "RR_hip_joint_motor",
+      "RR_thigh_joint_motor",
+      "RR_calf_joint_motor",
+      "arm_j1_motor",
+      "arm_j2_motor",
+      "arm_j3_motor",
+      "arm_j4_motor",
+      "arm_j5_motor",
+      "arm_j6_motor",
+      "arm_j7_motor",
+      "arm_j8_motor"
+    ],
+    "robot_joint_names": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint",
+      "arm_j1",
+      "arm_j2",
+      "arm_j3",
+      "arm_j4",
+      "arm_j5",
+      "arm_j6",
+      "arm_j7",
+      "arm_j8"
+    ],
+    "trace_contract": "robot_ctrl_effort follows robot_joint_names and reads actuator_force by the same IDs",
+    "write_contract": "data.ctrl[name_resolved_robot_actuator_ids]"
+  },
+  "control_surface": {
+    "arm_effort_nm": 100.0,
+    "gripper_effort_n": 45.0,
+    "mode": "EXTERNAL_PD_PER_PHYSICS_STEP_CLIP",
+    "resolved_armature": {
+      "FL_calf_joint": 0.03,
+      "FL_hip_joint": 0.03,
+      "FL_thigh_joint": 0.03,
+      "FR_calf_joint": 0.03,
+      "FR_hip_joint": 0.03,
+      "FR_thigh_joint": 0.03,
+      "RL_calf_joint": 0.03,
+      "RL_hip_joint": 0.03,
+      "RL_thigh_joint": 0.03,
+      "RR_calf_joint": 0.03,
+      "RR_hip_joint": 0.03,
+      "RR_thigh_joint": 0.03,
+      "arm_j1": 0.0,
+      "arm_j2": 0.0,
+      "arm_j3": 0.0,
+      "arm_j4": 0.0,
+      "arm_j5": 0.0,
+      "arm_j6": 0.0,
+      "arm_j7": 0.0,
+      "arm_j8": 0.0
+    }
+  },
+  "first_huge_qacc": {
+    "contacts": [
+      {
+        "distance_m": 0.0,
+        "geom1": "floor",
+        "geom2": "door_panel_collision",
+        "normal_force_n": 0.0
+      },
+      {
+        "distance_m": 0.0,
+        "geom1": "floor",
+        "geom2": "door_panel_collision",
+        "normal_force_n": 0.0
+      },
+      {
+        "distance_m": 0.0,
+        "geom1": "floor",
+        "geom2": "door_panel_collision",
+        "normal_force_n": 0.0
+      },
+      {
+        "distance_m": 0.0,
+        "geom1": "floor",
+        "geom2": "door_panel_collision",
+        "normal_force_n": 0.0
+      }
+    ],
+    "max_abs_qacc": 2758195.4497982133,
+    "max_abs_raw_pd_effort_nm": 6530.06917566691,
+    "max_qacc_dof": "arm_j4:0",
+    "max_qacc_dof_id": 21,
+    "physics_step": 11,
+    "saturated_joint_names": [
+      "FL_hip_joint",
+      "RL_hip_joint",
+      "FR_hip_joint",
+      "RR_hip_joint",
+      "arm_j1",
+      "arm_j2",
+      "arm_j3",
+      "arm_j4",
+      "arm_j5",
+      "arm_j6",
+      "arm_j7",
+      "arm_j8"
+    ],
+    "time_s_before_step": 0.05499999999999999
+  },
+  "integrator": "EULER",
+  "interpretation": "The first unstable generalized coordinate and contemporaneous contact pair are reported directly; actuator saturation alone is not assigned as the cause.",
+  "peak_before_mujoco_reset": {
+    "contacts": [
+      {
+        "distance_m": -0.6756926059898646,
+        "geom1": "floor",
+        "geom2": null,
+        "normal_force_n": 309376507434.7259
+      },
+      {
+        "distance_m": -0.6764855871658014,
+        "geom1": "floor",
+        "geom2": null,
+        "normal_force_n": 308878006990.16315
+      },
+      {
+        "distance_m": -0.6763248258628202,
+        "geom1": "floor",
+        "geom2": null,
+        "normal_force_n": 308863330573.8222
+      },
+      {
+        "distance_m": -0.05268858725229001,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 265035169363.84363
+      },
+      {
+        "distance_m": -0.032879181075265336,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 127957392642.37614
+      },
+      {
+        "distance_m": -0.04141607919049027,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 29596476714.682602
+      },
+      {
+        "distance_m": -0.04141607919049027,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 29449564702.50356
+      },
+      {
+        "distance_m": -0.04141607919049027,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 29355714331.96069
+      },
+      {
+        "distance_m": -0.06294879106454418,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 26438306329.914375
+      },
+      {
+        "distance_m": -0.0008239459640982835,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 16713687031.745914
+      },
+      {
+        "distance_m": -0.02044381966534462,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 16359284418.275177
+      },
+      {
+        "distance_m": -0.04969584742657914,
+        "geom1": null,
+        "geom2": null,
+        "normal_force_n": 12273917360.903246
+      }
+    ],
+    "max_abs_qacc": 4799444868172.119,
+    "max_abs_raw_pd_effort_nm": 4502099.117339251,
+    "max_qacc_dof": "arm_j7:0",
+    "max_qacc_dof_id": 24,
+    "physics_step": 13,
+    "saturated_joint_names": [
+      "FL_hip_joint",
+      "FL_thigh_joint",
+      "FL_calf_joint",
+      "RL_hip_joint",
+      "RL_thigh_joint",
+      "RL_calf_joint",
+      "FR_hip_joint",
+      "FR_thigh_joint",
+      "FR_calf_joint",
+      "RR_hip_joint",
+      "RR_thigh_joint",
+      "RR_calf_joint",
+      "arm_j1",
+      "arm_j2",
+      "arm_j3",
+      "arm_j4",
+      "arm_j5",
+      "arm_j6",
+      "arm_j7",
+      "arm_j8"
+    ],
+    "time_s_before_step": 0.06499999999999999
+  },
+  "physics_dt_s": 0.005,
+  "qacc_evidence_threshold": 1000000.0,
+  "result": "REPRODUCED_EXTERNAL_PD_NUMERICAL_INSTABILITY",
+  "schema": "doordog.sim2sim.qacc_localization_r4.v1",
+  "timeline": [
+    {
+      "contacts": [
+        {
+          "distance_m": -1.7868028330832614e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.3782886453938879e-06
+        },
+        {
+          "distance_m": -1.7868028330832614e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.3782886453938582e-06
+        },
+        {
+          "distance_m": -1.7868028330832614e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.3782886453938582e-06
+        },
+        {
+          "distance_m": -1.7868028330832614e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.3782886453938582e-06
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 1852.3600697068248,
+      "max_abs_raw_pd_effort_nm": 0.0,
+      "max_qacc_dof": "handle_hinge:0",
+      "max_qacc_dof_id": 27,
+      "physics_step": 0,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.0
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -1.6765341200519486e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.1086544381519943e-05
+        },
+        {
+          "distance_m": -1.6765341200519486e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.1086544381519943e-05
+        },
+        {
+          "distance_m": -1.6765341200519486e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.1086544381519943e-05
+        },
+        {
+          "distance_m": -1.6765341200519486e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.1086544381519943e-05
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 1296.657784996074,
+      "max_abs_raw_pd_effort_nm": 4.245357615985845e-05,
+      "max_qacc_dof": "handle_hinge:0",
+      "max_qacc_dof_id": 27,
+      "physics_step": 1,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.005
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -1.528633304852039e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 3.707740800878356e-05
+        },
+        {
+          "distance_m": -1.528633304852039e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 3.707740800878356e-05
+        },
+        {
+          "distance_m": -1.528633304852039e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 3.707740800878356e-05
+        },
+        {
+          "distance_m": -1.528633304852039e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 3.707740800878356e-05
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 787.2584204131886,
+      "max_abs_raw_pd_effort_nm": 6.416177958081489e-05,
+      "max_qacc_dof": "handle_hinge:0",
+      "max_qacc_dof_id": 27,
+      "physics_step": 2,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.01
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -1.3928136078602e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.724435129169656e-05
+        },
+        {
+          "distance_m": -1.3928136078602e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.724435129169656e-05
+        },
+        {
+          "distance_m": -1.3928136078602e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.7244351291696534e-05
+        },
+        {
+          "distance_m": -1.3928136078602e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 1.7244351291696534e-05
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 335.7384022238573,
+      "max_abs_raw_pd_effort_nm": 6.912451326898767e-05,
+      "max_qacc_dof": "handle_hinge:0",
+      "max_qacc_dof_id": 27,
+      "physics_step": 3,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.015
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -1.255394706545776e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 2.1426733647261006e-05
+        },
+        {
+          "distance_m": -1.255394706545776e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 2.1426733647260992e-05
+        },
+        {
+          "distance_m": -1.255394706545776e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 2.1426733647260992e-05
+        },
+        {
+          "distance_m": -1.255394706545776e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 2.1426733647260992e-05
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 26.04197706145673,
+      "max_abs_raw_pd_effort_nm": 0.0001980394941142429,
+      "max_qacc_dof": "handle_hinge:0",
+      "max_qacc_dof_id": 27,
+      "physics_step": 4,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.02
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -1.129112338733697e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -1.129112338733697e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -1.129112338733697e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -1.129112338733697e-07,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 135.31574405452608,
+      "max_abs_raw_pd_effort_nm": 0.008858671026245275,
+      "max_qacc_dof": "handle_hinge:0",
+      "max_qacc_dof_id": 27,
+      "physics_step": 5,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.025
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 1110.413390513062,
+      "max_abs_raw_pd_effort_nm": 0.39907337747724136,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 6,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.030000000000000002
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -3.450419003616648e-05,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -3.450419003616648e-05,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -3.450419003616648e-05,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -3.450419003616648e-05,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 50101.392769737526,
+      "max_abs_raw_pd_effort_nm": 17.995243246932635,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 7,
+      "saturated_joint_names": [],
+      "time_s_before_step": 0.035
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 303403.4853186511,
+      "max_abs_raw_pd_effort_nm": 811.9497609639963,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 8,
+      "saturated_joint_names": [
+        "arm_j4",
+        "arm_j6"
+      ],
+      "time_s_before_step": 0.04
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 465910.658956558,
+      "max_abs_raw_pd_effort_nm": 4146.123982660745,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 9,
+      "saturated_joint_names": [
+        "arm_j4",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "time_s_before_step": 0.045
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 407821.90280420723,
+      "max_abs_raw_pd_effort_nm": 3180.971492173143,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 10,
+      "saturated_joint_names": [
+        "arm_j3",
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "time_s_before_step": 0.049999999999999996
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 2758195.4497982133,
+      "max_abs_raw_pd_effort_nm": 6530.06917566691,
+      "max_qacc_dof": "arm_j4:0",
+      "max_qacc_dof_id": 21,
+      "physics_step": 11,
+      "saturated_joint_names": [
+        "FL_hip_joint",
+        "RL_hip_joint",
+        "FR_hip_joint",
+        "RR_hip_joint",
+        "arm_j1",
+        "arm_j2",
+        "arm_j3",
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "time_s_before_step": 0.05499999999999999
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -0.010586336396194529,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 6482091.312034187
+        },
+        {
+          "distance_m": -0.5042642592980902,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 2553765.9506425387
+        },
+        {
+          "distance_m": -0.5020605992126153,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 2179724.8081290005
+        },
+        {
+          "distance_m": -0.5006758331825351,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 2166461.744835181
+        },
+        {
+          "distance_m": -0.006833298732130123,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 243106.01993578242
+        },
+        {
+          "distance_m": -0.025490062067513447,
+          "geom1": "floor",
+          "geom2": "FR_foot_collision",
+          "normal_force_n": 9956.642254016277
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": 0.0,
+          "geom1": "floor",
+          "geom2": "door_panel_collision",
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -0.0022424130590910224,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -0.0022424130590910224,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 52976705.43949997,
+      "max_abs_raw_pd_effort_nm": 44767.10451053992,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 12,
+      "saturated_joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "FR_hip_joint",
+        "RR_hip_joint",
+        "arm_j1",
+        "arm_j2",
+        "arm_j3",
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "time_s_before_step": 0.05999999999999999
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -0.6756926059898646,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 309376507434.7259
+        },
+        {
+          "distance_m": -0.6764855871658014,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 308878006990.16315
+        },
+        {
+          "distance_m": -0.6763248258628202,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 308863330573.8222
+        },
+        {
+          "distance_m": -0.05268858725229001,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 265035169363.84363
+        },
+        {
+          "distance_m": -0.032879181075265336,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 127957392642.37614
+        },
+        {
+          "distance_m": -0.04141607919049027,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 29596476714.682602
+        },
+        {
+          "distance_m": -0.04141607919049027,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 29449564702.50356
+        },
+        {
+          "distance_m": -0.04141607919049027,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 29355714331.96069
+        },
+        {
+          "distance_m": -0.06294879106454418,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 26438306329.914375
+        },
+        {
+          "distance_m": -0.0008239459640982835,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 16713687031.745914
+        },
+        {
+          "distance_m": -0.02044381966534462,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 16359284418.275177
+        },
+        {
+          "distance_m": -0.04969584742657914,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 12273917360.903246
+        }
+      ],
+      "max_abs_qacc": 4799444868172.119,
+      "max_abs_raw_pd_effort_nm": 4502099.117339251,
+      "max_qacc_dof": "arm_j7:0",
+      "max_qacc_dof_id": 24,
+      "physics_step": 13,
+      "saturated_joint_names": [
+        "FL_hip_joint",
+        "FL_thigh_joint",
+        "FL_calf_joint",
+        "RL_hip_joint",
+        "RL_thigh_joint",
+        "RL_calf_joint",
+        "FR_hip_joint",
+        "FR_thigh_joint",
+        "FR_calf_joint",
+        "RR_hip_joint",
+        "RR_thigh_joint",
+        "RR_calf_joint",
+        "arm_j1",
+        "arm_j2",
+        "arm_j3",
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "time_s_before_step": 0.06499999999999999
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -0.5479457042340046,
+          "geom1": "floor",
+          "geom2": "FR_foot_collision",
+          "normal_force_n": 3488.001804718975
+        },
+        {
+          "distance_m": -0.5478276464489378,
+          "geom1": "floor",
+          "geom2": "RR_foot_collision",
+          "normal_force_n": 3446.1711114039417
+        },
+        {
+          "distance_m": -0.547821772011713,
+          "geom1": "floor",
+          "geom2": "RL_foot_collision",
+          "normal_force_n": 3422.059834616654
+        },
+        {
+          "distance_m": -0.5479406956083607,
+          "geom1": "floor",
+          "geom2": "FL_foot_collision",
+          "normal_force_n": 3402.3170138659943
+        },
+        {
+          "distance_m": -0.016278870237765773,
+          "geom1": null,
+          "geom2": null,
+          "normal_force_n": 2471.07595717765
+        },
+        {
+          "distance_m": -0.4917409315741333,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 1133.8652441803863
+        },
+        {
+          "distance_m": -0.49161178897239116,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 1104.2488233744782
+        },
+        {
+          "distance_m": -0.4916001603189338,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 1075.9432143069416
+        },
+        {
+          "distance_m": -0.4917300740146284,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 1052.6286354010642
+        },
+        {
+          "distance_m": -0.49158854935511964,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 1018.8591389311188
+        },
+        {
+          "distance_m": -0.4914748038763739,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 986.9909170962453
+        },
+        {
+          "distance_m": -0.4914743763476645,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 971.565903462412
+        }
+      ],
+      "max_abs_qacc": 327715.1429199239,
+      "max_abs_raw_pd_effort_nm": 151.03954637235177,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 14,
+      "saturated_joint_names": [
+        "arm_j6"
+      ],
+      "time_s_before_step": 0.005
+    },
+    {
+      "contacts": [
+        {
+          "distance_m": -0.49680955486794043,
+          "geom1": "floor",
+          "geom2": "FR_foot_collision",
+          "normal_force_n": 2736.9059651938132
+        },
+        {
+          "distance_m": -0.4966274201066283,
+          "geom1": "floor",
+          "geom2": "RR_foot_collision",
+          "normal_force_n": 1359.8277952631809
+        },
+        {
+          "distance_m": -0.44270594066516467,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 983.9127905800531
+        },
+        {
+          "distance_m": -0.44236678447159944,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 865.7251186910116
+        },
+        {
+          "distance_m": -0.4967302834101053,
+          "geom1": "floor",
+          "geom2": "FL_foot_collision",
+          "normal_force_n": 621.3707620602411
+        },
+        {
+          "distance_m": -0.4477330293537944,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 506.25841094696545
+        },
+        {
+          "distance_m": -0.44739387316022916,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 421.40131852409564
+        },
+        {
+          "distance_m": -0.4966020051856994,
+          "geom1": "floor",
+          "geom2": "RL_foot_collision",
+          "normal_force_n": 71.98001417847958
+        },
+        {
+          "distance_m": -0.09248819471607164,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -0.09341566420511654,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -0.09215343409431001,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 0.0
+        },
+        {
+          "distance_m": -0.09308090358335491,
+          "geom1": "floor",
+          "geom2": null,
+          "normal_force_n": 0.0
+        }
+      ],
+      "max_abs_qacc": 469620.6273913384,
+      "max_abs_raw_pd_effort_nm": 5337.738911364817,
+      "max_qacc_dof": "arm_j6:0",
+      "max_qacc_dof_id": 23,
+      "physics_step": 15,
+      "saturated_joint_names": [
+        "arm_j4",
+        "arm_j5",
+        "arm_j6",
+        "arm_j7",
+        "arm_j8"
+      ],
+      "time_s_before_step": 0.01
+    }
+  ]
+}

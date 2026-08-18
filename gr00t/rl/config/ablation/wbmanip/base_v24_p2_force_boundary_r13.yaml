@@ -1,0 +1,104 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v24_p1_d_v2_energy
+  - _self_
+
+v24_schema: a2_piper_v24_p2_force_boundary_r13_v1
+v24_plan_id: base_v24_force_boundary_R13_DOMAIN_ESCALATION
+v24_runtime_mode: P2_TELEMETRY
+v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+v24_checkpoint_load_mode: selected_policy_only
+v24_owner_decision: scriptsFORhuman/v24/DoorDog_v24_owner_decision_friction_domain_escalation_20260818.md
+
+v24_p2:
+  schema: a2_piper_v24_p2_force_boundary_r13_v1
+  checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+  checkpoint_load_mode: selected_policy_only
+  calibration_seed: 24041
+  heldout_seed: 24042
+  envs_per_profile: 16
+  control_steps_max: 1000
+  dt_s: 0.005
+  control_decimation: 4
+  paired_scenarios: 16
+  e1_semantics:
+    revision: R13_DOMAIN_ESCALATION
+    demand_floor_nm: 2.0
+    capacity_floor_nm: 2.0
+    capacity_collapse_status: CAPACITY_COLLAPSED_WINDOW
+    lambda_denominator_rule: INVALIDATE_BELOW_FLOOR_NO_NUMERIC_CLAMP
+  magnitude_anchor:
+    p1_receipt: logs_eval/base_v24/p1/friction_backend/p1_lite_domain_escalation_r13_gpu0/P1_LITE_DOMAIN_ESCALATION_RECEIPT.json
+    repository_source: gr00t/rl/config/ablation/wbmanip/base_v22_G3_randomized_seed0.yaml
+    established_solvable_drive_resistance_nm: 24.0
+  friction_profiles:
+    F00: {static_effort_nm: 0.0, dynamic_effort_nm: 0.0, viscous_coefficient_nm_s_per_rad: 0.0, dynamic_to_static_ratio: N/A}
+    P02: {static_effort_nm: 2.0, dynamic_effort_nm: 1.5, viscous_coefficient_nm_s_per_rad: 0.0, dynamic_to_static_ratio: 0.75}
+    P05: {static_effort_nm: 5.0, dynamic_effort_nm: 3.75, viscous_coefficient_nm_s_per_rad: 0.0, dynamic_to_static_ratio: 0.75}
+    P10: {static_effort_nm: 10.0, dynamic_effort_nm: 7.5, viscous_coefficient_nm_s_per_rad: 0.0, dynamic_to_static_ratio: 0.75}
+    P20: {static_effort_nm: 20.0, dynamic_effort_nm: 15.0, viscous_coefficient_nm_s_per_rad: 0.0, dynamic_to_static_ratio: 0.75}
+  calibration_profiles: [P02, P05, P10, P20]
+  arm_caps_nm: [100.0, 60.0, 40.0, 30.0, 25.0, 20.0]
+  contingency_cap_nm: 10.0
+  runtime_modes: [HI_FULL, BOUNDARY_FULL, BOUNDARY_RP0, RESCUE_FULL]
+  gradient_gate:
+    tau_required_medians_strictly_increasing: true
+    matched_tau_strict_min: 72
+    matched_tau_total: 96
+    progress_medians_nonincreasing: true
+    low_high_progress_span_min_rad: 0.02
+    matched_low_progress_gt_high_min: 48
+    matched_low_high_total: 96
+  ladder_gate:
+    tau_hi: highest cap with at least 8 eligible nonbinding P02 E0 windows
+    tau_boundary_primary: highest cap below tau_hi with at least 8 eligible E1 windows in any escalated profile
+    tau_boundary_marginal_fallback: highest cap below tau_hi with at least 1 eligible E1 window in any escalated profile, admitted only to F3_prime
+    tau_rescue: immediately higher registered cap than tau_boundary
+    require_all_nonnull: true
+  f3_prime:
+    registered_before_calibration: true
+    cells: [DF1_FULL_SEED0, DF1_FULL_SEED1, DF1_RP0_SEED0, DF1_RP0_SEED1]
+    episodes_per_cell: 32
+    sustained_e1_min_per_cell: 8
+    terminal_if_insufficient: V24_E1_DENOMINATOR_INSUFFICIENT_FINAL
+  artifacts:
+    root: logs_eval/base_v24/p2/force_boundary/r13
+    append_only: true
+
+env:
+  config:
+    a2_v20_R2_evidence_enabled: false
+    a2_v23_d1_sampler_enabled: false
+    a2_v24_force_boundary_enabled: true
+    a2_v24_force_boundary_mode: P2_TELEMETRY
+    a2_v24_force_boundary_friction_profile: P02
+    a2_v24_force_boundary_runtime_mode: HI_FULL
+    a2_v24_force_boundary_seed: 24041
+    a2_v24_force_boundary_continuity_id: CALIBRATION_R13
+    a2_v24_force_boundary_scenario_ids: [S00, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15]
+    a2_v24_force_boundary_runtime_export_path: logs_eval/base_v24/p2/force_boundary/r13/vitals/runtime/P2_RUNTIME_ROWS.jsonl
+    a2_v24_force_boundary_checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+    a2_v24_force_boundary_checkpoint_load_mode: selected_policy_only
+    a2_v24_force_boundary_panel_mass_kg: 120.0
+    a2_v24_force_boundary_panel_width_m: 0.95
+    a2_v24_force_boundary_panel_height_m: 2.05
+    a2_v24_force_boundary_handle_height_m: 0.975
+    a2_v24_force_boundary_handle_width_m: 0.12
+    a2_v24_force_boundary_opening_lr: right
+    a2_v24_force_boundary_opening_io: out
+    a2_v24_force_boundary_hinge_axis_local: [0.0, 0.0, 1.0]
+    a2_v24_force_boundary_theta_ref_rad: 0.0
+    a2_v24_force_boundary_inertia_kg_m2: 36.1
+    a2_v24_force_boundary_damping_nm_s_per_rad: 50.0
+    a2_v24_force_boundary_stiffness_nm_per_rad: 6.0
+    a2_v24_force_boundary_static_friction_nm: 2.0
+    a2_v24_force_boundary_dynamic_friction_nm: 1.5
+    a2_v24_force_boundary_viscous_friction_nm_s_per_rad: 0.0
+    a2_v24_force_boundary_primary_caps_nm: [100.0, 60.0, 40.0, 30.0, 25.0, 20.0]
+    a2_v24_force_boundary_contingency_cap_nm: 10.0
+    a2_v24_force_boundary_epsilon_g_m: 1.0e-6
+    a2_v24_force_boundary_control_period_s: 0.02
+    a2_v24_force_boundary_velocity_epsilon_rad_s: 0.001
+    a2_v24_force_boundary_e1_semantics_revision: R13_DOMAIN_ESCALATION
+    a2_v24_force_boundary_demand_floor_nm: 2.0
+    a2_v24_force_boundary_capacity_floor_nm: 2.0

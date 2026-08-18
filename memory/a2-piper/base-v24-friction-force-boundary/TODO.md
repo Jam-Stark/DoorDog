@@ -1,5 +1,5 @@
 # TODO
 
-## No active v24 execution
+## Owner decision required at the r13 gradient gate
 
-2026-08-18 03:38 HKT - P2 r12 reached `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`; P2 heldout, P3, and the science waves are not admitted. The preserved R1 F3 RQ4 measurement-only deliverable is complete as `V24_COUPLING_FORWARD_PROXY_ONLY`, with `V24_COUPLING_CRITIC_UNCALIBRATED`. No active v24 runtime remains.
+2026-08-18 16:10 HKT - The immutable r13 gradient artifact emits `V24_FRICTION_AXIS_NONDISCRIMINATIVE` because matched modeled-torque strict ordering is `47/96 < 72/96`; however progress medians are strictly decreasing across P02/P05/P10/P20 and P02>P20 in `96/96`, so the report does not equate the artifact with absence of a behavioral gradient. Await the sole Owner decision before F3-prime, P3, or downstream science. No active v24 runtime remains.

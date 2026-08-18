@@ -62,6 +62,14 @@ FRICTION_PROFILES = {
     "F05": (0.5, 0.375, 0.0),
     "F10": (1.0, 0.75, 0.0),
 }
+R13_FRICTION_PROFILES = {
+    "P02": (2.0, 1.5, 0.0),
+    "P05": (5.0, 3.75, 0.0),
+    "P10": (10.0, 7.5, 0.0),
+    "P20": (20.0, 15.0, 0.0),
+}
+REGISTERED_FRICTION_PROFILES = {**FRICTION_PROFILES, **R13_FRICTION_PROFILES}
+R13_E1_SEMANTICS_REVISION = "R13_DOMAIN_ESCALATION"
 RUNTIME_MODES = ("HI_FULL", "BOUNDARY_FULL", "BOUNDARY_RP0", "RESCUE_FULL")
 AUTHORITY_SET = {
     "capacity_lambda": MARGIN_AUTHORITY,
@@ -153,6 +161,9 @@ class V24P2ForceBoundaryConfig:
     epsilon_g_m: float
     control_period_s: float
     velocity_epsilon_rad_s: float
+    e1_semantics_revision: str
+    demand_floor_nm: float
+    capacity_floor_nm: float
 
     @classmethod
     def from_mapping(cls, config: Mapping[str, Any]) -> "V24P2ForceBoundaryConfig":
@@ -192,6 +203,9 @@ class V24P2ForceBoundaryConfig:
                 epsilon_g_m=EPS_G_M,
                 control_period_s=CONTROL_PERIOD_S,
                 velocity_epsilon_rad_s=VELOCITY_EPSILON_RAD_S,
+                e1_semantics_revision="R12_LEGACY",
+                demand_floor_nm=0.0,
+                capacity_floor_nm=0.0,
             )
 
         def required(name: str) -> Any:
@@ -255,11 +269,22 @@ class V24P2ForceBoundaryConfig:
         if active_cap not in (*caps, contingency):
             raise ValueError("P2 active cap must be one of the registered primary/contingency caps.")
         friction_profile = config.get("a2_v24_force_boundary_friction_profile")
-        if friction_profile not in FRICTION_PROFILES:
-            raise ValueError("P2 friction profile must be exactly F00, F05, or F10.")
-        expected_friction = FRICTION_PROFILES[friction_profile]
+        if friction_profile not in REGISTERED_FRICTION_PROFILES:
+            raise ValueError(f"P2 friction profile must be one of {tuple(REGISTERED_FRICTION_PROFILES)!r}.")
+        expected_friction = REGISTERED_FRICTION_PROFILES[friction_profile]
         if (numeric["static_friction_nm"], numeric["dynamic_friction_nm"], numeric["viscous_friction_nm_s_per_rad"]) != expected_friction:
             raise ValueError("P2 friction coefficients must match the selected registered profile.")
+        e1_semantics_revision = config.get("a2_v24_force_boundary_e1_semantics_revision", "R12_LEGACY")
+        if e1_semantics_revision not in {"R12_LEGACY", R13_E1_SEMANTICS_REVISION}:
+            raise ValueError("P2 E1 semantics revision is unsupported.")
+        if e1_semantics_revision == R13_E1_SEMANTICS_REVISION:
+            demand_floor_nm = _finite_nonnegative(required("a2_v24_force_boundary_demand_floor_nm"), name="demand_floor_nm")
+            capacity_floor_nm = _finite_nonnegative(required("a2_v24_force_boundary_capacity_floor_nm"), name="capacity_floor_nm")
+            if demand_floor_nm != 2.0 or capacity_floor_nm != 2.0:
+                raise ValueError("r13 E1 demand/capacity floors are frozen to 2 N*m.")
+        else:
+            demand_floor_nm = 0.0
+            capacity_floor_nm = 0.0
         runtime_mode = config.get("a2_v24_force_boundary_runtime_mode")
         if runtime_mode not in RUNTIME_MODES:
             raise ValueError(f"P2 runtime mode must be one of {RUNTIME_MODES!r}.")
@@ -313,6 +338,9 @@ class V24P2ForceBoundaryConfig:
             epsilon_g_m=numeric["epsilon_g_m"],
             control_period_s=numeric["control_period_s"],
             velocity_epsilon_rad_s=numeric["velocity_epsilon_rad_s"],
+            e1_semantics_revision=e1_semantics_revision,
+            demand_floor_nm=demand_floor_nm,
+            capacity_floor_nm=capacity_floor_nm,
         )
 
 
@@ -466,6 +494,7 @@ def compute_directional_capacity(
     epsilon_g_m: float = EPS_G_M,
     tau_required_nm: torch.Tensor | None = None,
     tau_required_valid: torch.Tensor | None = None,
+    capacity_floor_nm: float | None = None,
 ) -> dict[str, Any]:
     """Estimate directional force/torque capacity from implicit PD margins."""
 
@@ -576,7 +605,14 @@ def compute_directional_capacity(
             ):
                 raise TypeError("valid_mask must be a device-local bool tensor matching torque shape.")
             lambda_valid_mask = valid & tau_required_valid
-        result.update(compute_lambda(tau_required_nm, tau_available_nm, valid_mask=lambda_valid_mask))
+        result.update(
+            compute_lambda(
+                tau_required_nm,
+                tau_available_nm,
+                valid_mask=lambda_valid_mask,
+                denominator_floor_nm=capacity_floor_nm,
+            )
+        )
     return result
 
 
@@ -585,6 +621,7 @@ def compute_lambda(
     tau_available_nm: torch.Tensor,
     *,
     valid_mask: torch.Tensor | None = None,
+    denominator_floor_nm: float | None = None,
 ) -> dict[str, torch.Tensor]:
     if not torch.is_tensor(tau_required_nm) or tau_required_nm.ndim != 1 or not tau_required_nm.is_floating_point():
         raise TypeError("tau_required_nm must be a floating tensor with ndim=1.")
@@ -605,9 +642,22 @@ def compute_lambda(
     if torch.any(valid & (~finite_required | ~finite_available)):
         raise ValueError("tau_required_nm must be finite wherever valid_mask is true.")
     valid = valid & (available >= 0.0)
-    denominator = available + torch.full_like(available, 1.0e-6)
+    if denominator_floor_nm is None:
+        denominator = available + torch.full_like(available, 1.0e-6)
+        capacity_collapsed = torch.zeros_like(valid)
+    else:
+        if isinstance(denominator_floor_nm, bool) or not isinstance(denominator_floor_nm, Real) or not math.isfinite(float(denominator_floor_nm)) or float(denominator_floor_nm) <= 0.0:
+            raise ValueError("denominator_floor_nm must be finite and positive when supplied.")
+        denominator = available
+        capacity_collapsed = valid & (available < float(denominator_floor_nm))
+        valid = valid & ~capacity_collapsed
     values = torch.where(valid, required / denominator, torch.full_like(required, float("nan")))
-    return {"lambda_load": values, "lambda_denominator_nm": denominator, "lambda_valid": valid}
+    return {
+        "lambda_load": values,
+        "lambda_denominator_nm": denominator,
+        "lambda_valid": valid,
+        "capacity_collapsed": capacity_collapsed,
+    }
 
 
 def compute_door_required_torque(
@@ -912,8 +962,14 @@ class P2RuntimeExporter:
             if index and not math.isclose(theta_pre, theta_post_values[index - 1], rel_tol=1.0e-6, abs_tol=1.0e-6):
                 raise RuntimeError(f"P2 force-window transition angle chain mismatch at index={index}.")
         tau_values = P2RuntimeExporter._finite_values(window, "tau_required_nm")
+        tau_available_values = P2RuntimeExporter._finite_values(window, "tau_available_directional_nm")
         lambda_values = P2RuntimeExporter._finite_values(window, "lambda_load")
         utilization_values = P2RuntimeExporter._finite_values(window, "directional_utilization")
+        capacity_collapsed_values = [row.get("capacity_collapsed") for row in window]
+        if any(not isinstance(value, bool) for value in capacity_collapsed_values):
+            raise RuntimeError("P2 capacity-collapse typing must be explicit for every transition.")
+        capacity_collapsed_count = sum(capacity_collapsed_values)
+        capacity_collapsed_window = capacity_collapsed_count > 0
         clip_count = sum(bool(row.get("directional_clipped")) for row in window)
         stable_values = [row.get("stable_grasp") for row in window]
         stable_available = all(isinstance(value, bool) for value in stable_values)
@@ -927,7 +983,13 @@ class P2RuntimeExporter:
         for row in window:
             if row["grasp_source_unavailable"] is not (row.get("stable_grasp") is None):
                 raise RuntimeError("P2 force-window grasp source typing contradicts stable-grasp value.")
-            model_values = (row.get("tau_required_nm"), row.get("lambda_load"), row.get("directional_utilization"))
+            model_values = (
+                row.get("tau_required_nm"),
+                row.get("tau_available_directional_nm"),
+                row.get("directional_utilization"),
+            )
+            if row.get("capacity_collapsed") is not True:
+                model_values = (*model_values, row.get("lambda_load"))
             model_unavailable = any(
                 isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value))
                 for value in model_values
@@ -936,17 +998,21 @@ class P2RuntimeExporter:
                 raise RuntimeError("P2 force-window model source typing contradicts required numerics.")
         foot_valid = all(row.get("foot_slip_valid") is True for row in window)
         foot_values = P2RuntimeExporter._finite_values(window, "foot_slip_m_s") if foot_valid else []
-        required_available = (
+        mechanics_available = (
             len(tau_values) == FORCE_WINDOW_TRANSITIONS
-            and len(lambda_values) == FORCE_WINDOW_TRANSITIONS
+            and len(tau_available_values) == FORCE_WINDOW_TRANSITIONS
             and len(utilization_values) == FORCE_WINDOW_TRANSITIONS
         )
-        model_source_unavailable = model_source_unavailable or not required_available
+        lambda_available = len(lambda_values) == FORCE_WINDOW_TRANSITIONS
+        model_source_unavailable = model_source_unavailable or not mechanics_available
         source_unavailable = grasp_source_unavailable or model_source_unavailable
-        model_valid = all(row.get("valid") is True for row in window) and required_available
+        model_valid = all(row.get("mechanics_valid") is True for row in window) and mechanics_available
+        demand_floor_nm = float(first.get("demand_floor_nm", 0.0))
+        demand_floor_pass = len(tau_values) == FORCE_WINDOW_TRANSITIONS and median(tau_values) >= demand_floor_nm
+        e1_measurement_valid = model_valid and lambda_available and not capacity_collapsed_window and demand_floor_pass
         window_selection_valid = selection_status == FORCE_WINDOW_SELECTION_STABLE_OPENING
         excluded_window_selection = not window_selection_valid
-        valid = model_valid if window_selection_valid else False
+        valid = e1_measurement_valid if window_selection_valid else False
         window_selection_admission_status = (
             "ADMITTED_FIRST_STABLE_GRASP_OPENING"
             if window_selection_valid
@@ -966,7 +1032,9 @@ class P2RuntimeExporter:
             "theta_post_rad",
             "theta_delta_rad",
             "tau_required_nm",
+            "tau_available_directional_nm",
             "lambda_load",
+            "lambda_denominator_nm",
             "directional_utilization",
             "directional_clipped",
             "foot_slip_m_s",
@@ -995,8 +1063,23 @@ class P2RuntimeExporter:
                 "rescue_progress_rad": None,
                 "rescue_gain_rad": None,
                 "tau_req_median_nm": median(tau_values) if len(tau_values) == FORCE_WINDOW_TRANSITIONS else None,
+                "tau_available_directional_median_nm": median(tau_available_values) if len(tau_available_values) == FORCE_WINDOW_TRANSITIONS else None,
                 "lambda_median": median(lambda_values) if len(lambda_values) == FORCE_WINDOW_TRANSITIONS else None,
                 "lambda": median(lambda_values) if len(lambda_values) == FORCE_WINDOW_TRANSITIONS else None,
+                "capacity_collapsed_window": capacity_collapsed_window,
+                "capacity_collapsed_transition_count": capacity_collapsed_count,
+                "capacity_collapsed_fraction": capacity_collapsed_count / FORCE_WINDOW_TRANSITIONS,
+                "capacity_window_status": "CAPACITY_COLLAPSED_WINDOW" if capacity_collapsed_window else "CAPACITY_VALID_WINDOW",
+                "demand_floor_pass": demand_floor_pass,
+                "e1_admission_status": (
+                    "CAPACITY_COLLAPSED_WINDOW"
+                    if capacity_collapsed_window
+                    else "DEMAND_BELOW_FLOOR"
+                    if not demand_floor_pass
+                    else "E1_MEASUREMENT_ELIGIBLE"
+                    if e1_measurement_valid
+                    else "MEASUREMENT_INVALID"
+                ),
                 "directional_utilization_median": median(utilization_values) if len(utilization_values) == FORCE_WINDOW_TRANSITIONS else None,
                 "directional_clip_fraction_median": clip_count / FORCE_WINDOW_TRANSITIONS,
                 "stable_grasp_fraction": stable_fraction,
@@ -1246,7 +1329,7 @@ class A2V24ForceBoundaryRuntime:
         arm_readback = self.robot.data.joint_effort_limits[ids][:, self.arm_joint_id_tensor]
         if not torch.allclose(arm_readback, arm_requested, atol=1.0e-5, rtol=0.0):
             raise RuntimeError(f"P2 parameter vitals arm cap readback mismatch for env_id={env_id}.")
-        static, dynamic, viscous = FRICTION_PROFILES[self.config.friction_profile]
+        static, dynamic, viscous = REGISTERED_FRICTION_PROFILES[self.config.friction_profile]
         friction_requested = {
             "static_friction_nm": float(static),
             "dynamic_friction_nm": float(dynamic),
@@ -1368,10 +1451,10 @@ class A2V24ForceBoundaryRuntime:
         self._invalidate_parameter_vitals(ids)
 
     def apply_friction(self, profile: str, env_ids: torch.Tensor | None = None) -> None:
-        if profile not in FRICTION_PROFILES:
-            raise ValueError(f"P2 friction profile must be one of {tuple(FRICTION_PROFILES)!r}.")
+        if profile not in REGISTERED_FRICTION_PROFILES:
+            raise ValueError(f"P2 friction profile must be one of {tuple(REGISTERED_FRICTION_PROFILES)!r}.")
         ids = self._normalize_env_ids(env_ids)
-        static, dynamic, viscous = FRICTION_PROFILES[profile]
+        static, dynamic, viscous = REGISTERED_FRICTION_PROFILES[profile]
         requested = {
             "joint_friction_coeff": torch.full((ids.numel(), 1), static, dtype=self.dtype, device=self.device),
             "joint_dynamic_friction_coeff": torch.full((ids.numel(), 1), dynamic, dtype=self.dtype, device=self.device),
@@ -1508,10 +1591,23 @@ class A2V24ForceBoundaryRuntime:
             foot_valid = bool(foot["valid"][env_id].item())
             tau_value = self._row_tensor(sample["tau_required_nm"], env_id)
             lambda_value = self._row_tensor(sample["lambda_load"], env_id)
-            model_source_unavailable = any(
+            tau_available_value = self._row_tensor(sample["tau_available_directional_nm"], env_id)
+            lambda_denominator_value = self._row_tensor(sample["lambda_denominator_nm"], env_id)
+            capacity_collapsed = bool(sample["capacity_collapsed"][env_id].item())
+            mechanics_source_unavailable = any(
                 isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value))
-                for value in (tau_value, lambda_value, utilization)
+                for value in (tau_value, tau_available_value, utilization)
             )
+            lambda_source_unavailable = (
+                not capacity_collapsed
+                and (
+                    isinstance(lambda_value, bool)
+                    or not isinstance(lambda_value, (int, float))
+                    or not math.isfinite(float(lambda_value))
+                )
+            )
+            model_source_unavailable = mechanics_source_unavailable or lambda_source_unavailable
+            mechanics_valid = bool(sample["capacity_valid"][env_id].item()) and not mechanics_source_unavailable
             if bool(sample["alpha_valid"][env_id].item()) and (
                 not isinstance(theta_pre_value, (int, float))
                 or not isinstance(theta_delta_value, (int, float))
@@ -1539,10 +1635,22 @@ class A2V24ForceBoundaryRuntime:
                 "theta_post_rad": theta_value,
                 "theta_delta_rad": theta_delta_value,
                 "tau_required_nm": tau_value,
+                "tau_available_directional_nm": tau_available_value,
                 "lambda_load": lambda_value,
+                "lambda_denominator_nm": lambda_denominator_value,
+                "lambda_denominator_floor_nm": self.config.capacity_floor_nm,
+                "lambda_denominator_status": (
+                    "CAPACITY_COLLAPSED_BELOW_FLOOR"
+                    if capacity_collapsed
+                    else "VALID_ABOVE_FLOOR"
+                    if self.config.e1_semantics_revision == R13_E1_SEMANTICS_REVISION
+                    else "R12_LEGACY_EPSILON"
+                ),
+                "capacity_collapsed": capacity_collapsed,
                 "directional_utilization": utilization,
                 "directional_clipped": bool(sample["directional_clipped_joints"][env_id].any().item()),
-                "valid": bool(sample["capacity_valid"][env_id].item()) and bool(sample["lambda_valid"][env_id].item()),
+                "mechanics_valid": mechanics_valid,
+                "valid": mechanics_valid and (bool(sample["lambda_valid"][env_id].item()) or capacity_collapsed),
                 "stable_grasp": stable_value,
                 "foot_slip_m_s": self._row_tensor(foot["max_loaded_planar_speed_m_s"], env_id),
                 "foot_slip_valid": foot_valid,
@@ -1561,6 +1669,9 @@ class A2V24ForceBoundaryRuntime:
                 "excluded_pathology": False,
                 "alpha_valid": bool(sample["alpha_valid"][env_id].item()),
                 "door_friction_profile": self.config.friction_profile,
+                "e1_semantics_revision": self.config.e1_semantics_revision,
+                "demand_floor_nm": self.config.demand_floor_nm,
+                "capacity_floor_nm": self.config.capacity_floor_nm,
                 "door_friction_parameters": {
                     "static_friction_nm": self.config.static_friction_nm,
                     "dynamic_friction_nm": self.config.dynamic_friction_nm,
@@ -1645,6 +1756,11 @@ class A2V24ForceBoundaryRuntime:
             epsilon_g_m=self.config.epsilon_g_m,
             tau_required_nm=required["tau_required_nm"],
             tau_required_valid=tau_valid,
+            capacity_floor_nm=(
+                self.config.capacity_floor_nm
+                if self.config.e1_semantics_revision == R13_E1_SEMANTICS_REVISION
+                else None
+            ),
         )
         capacity["lambda_valid"] &= tau_valid
         capacity["lambda_load"] = torch.where(

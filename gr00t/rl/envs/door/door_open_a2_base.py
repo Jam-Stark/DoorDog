@@ -148,6 +148,13 @@ from gr00t.rl.envs.door.a2_v24_r12_marginal_e1_evidence import (
     R12F3EvidenceMetadata,
 )
 from gr00t.rl.envs.door.a2_v24_df1_sampler import F3Sampler
+from gr00t.rl.envs.door.a2_v24_r13_f3_evidence import (
+    R13_F3_CHECKPOINT_ID,
+    R13_F3_CONDITION,
+    R13F3EvidenceExporter,
+    R13F3EvidenceMetadata,
+)
+from gr00t.rl.envs.door.a2_v24_r13_f3_sampler import R13F3Sampler
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
@@ -6530,7 +6537,13 @@ class DoorPregrasp(
             raise RuntimeError("F3 marginal-E1 runtime requires the legacy v23 D1 sampler to be disabled.")
         if self._a2_v24_force_boundary_config.enabled:
             raise RuntimeError("F3 assignment runtime cannot overlap the P2 force-boundary mutation face.")
-        sampler = F3Sampler.from_config(self.config)
+        semantics = self.config.get("a2_v24_f3_semantics_revision", "R12_LEGACY")
+        if semantics == "R12_LEGACY":
+            sampler = F3Sampler.from_config(self.config)
+        elif semantics == "R13_BEHAVIORAL":
+            sampler = R13F3Sampler.from_config(self.config)
+        else:
+            raise RuntimeError(f"unsupported F3 semantics revision: {semantics!r}.")
         if sampler.num_envs != self.num_envs:
             raise RuntimeError(
                 f"F3 sampler topology requires num_envs={sampler.num_envs}; got {self.num_envs}."
@@ -6560,10 +6573,6 @@ class DoorPregrasp(
         if runtime is None or not self._a2_v24_force_boundary_config.enabled:
             raise RuntimeError("F3 evaluation evidence requires enabled P2 force-boundary telemetry.")
         condition = self.config.get("a2_v24_f3_marginal_e1_condition")
-        if condition != R12_CONDITION or self.num_envs != 16:
-            raise RuntimeError("r12 F3 checkpoint evaluation requires R12_PILOT_CELL with exactly 16 envs.")
-        if runtime.config.friction_profile != "F05" or runtime.config.active_cap_nm != 20.0:
-            raise RuntimeError("r12 F3 checkpoint evaluation requires the registered F05/cap20 face.")
         cell = self.config.get("a2_v24_f3_marginal_e1_cell")
         posture = self.config.get("a2_v24_f3_marginal_e1_posture")
         seed = self.config.get("a2_v24_f3_marginal_e1_training_seed")
@@ -6571,25 +6580,53 @@ class DoorPregrasp(
         checkpoint_id = self.config.get("a2_v24_f3_marginal_e1_checkpoint_id")
         global_step = self.config.get("a2_v24_f3_marginal_e1_global_step")
         output_path = self.config.get("a2_v24_f3_marginal_e1_evidence_path")
-        if not isinstance(cell, str) or not isinstance(posture, str) or not isinstance(seed, int) or not isinstance(checkpoint_path, str) or checkpoint_id != R12_CHECKPOINT_ID or global_step != 500 or not isinstance(output_path, str) or not output_path:
-            raise RuntimeError("r12 F3 evaluation requires explicit cell/final-step500/output provenance.")
-        metadata = []
-        for env_id in range(self.num_envs):
-            metadata.append(R12F3EvidenceMetadata(
-                cell=cell,
-                posture=posture,
-                seed=seed,
-                checkpoint_path=checkpoint_path,
-                checkpoint_id=checkpoint_id,
-                global_step=global_step,
-                scenario_id=f"S{env_id:02d}",
-                evidence_path=output_path,
-            ))
-        self._a2_v24_f3_evidence_exporter = R12F3EvidenceExporter(
-            num_envs=self.num_envs,
-            metadata_by_env=metadata,
-            output_path=output_path,
-        )
+        if not isinstance(cell, str) or not isinstance(posture, str) or not isinstance(seed, int) or not isinstance(checkpoint_path, str) or global_step != 500 or not isinstance(output_path, str) or not output_path:
+            raise RuntimeError("F3 evaluation requires explicit cell/final-step500/output provenance.")
+        if condition == R12_CONDITION:
+            if self.num_envs != 16 or runtime.config.friction_profile != "F05" or runtime.config.active_cap_nm != 20.0 or checkpoint_id != R12_CHECKPOINT_ID:
+                raise RuntimeError("r12 F3 evaluation contract mismatch.")
+            metadata = [
+                R12F3EvidenceMetadata(
+                    cell=cell,
+                    posture=posture,
+                    seed=seed,
+                    checkpoint_path=checkpoint_path,
+                    checkpoint_id=checkpoint_id,
+                    global_step=global_step,
+                    scenario_id=f"S{env_id:02d}",
+                    evidence_path=output_path,
+                )
+                for env_id in range(self.num_envs)
+            ]
+            self._a2_v24_f3_evidence_exporter = R12F3EvidenceExporter(
+                num_envs=self.num_envs,
+                metadata_by_env=metadata,
+                output_path=output_path,
+            )
+        elif condition == R13_F3_CONDITION:
+            if self.num_envs != 32 or runtime.config.friction_profile != "P10" or runtime.config.active_cap_nm != 20.0 or checkpoint_id != R13_F3_CHECKPOINT_ID:
+                raise RuntimeError("r13 F3 behavioral evaluation contract mismatch.")
+            metadata = [
+                R13F3EvidenceMetadata(
+                    cell=cell,
+                    posture=posture,
+                    seed=seed,
+                    checkpoint_path=checkpoint_path,
+                    checkpoint_id=checkpoint_id,
+                    global_step=global_step,
+                    scenario_id=f"S{env_id % 16:02d}",
+                    episode_ordinal=env_id // 16,
+                    evidence_path=output_path,
+                )
+                for env_id in range(self.num_envs)
+            ]
+            self._a2_v24_f3_evidence_exporter = R13F3EvidenceExporter(
+                num_envs=self.num_envs,
+                metadata_by_env=metadata,
+                output_path=output_path,
+            )
+        else:
+            raise RuntimeError(f"unsupported F3 evidence condition: {condition!r}.")
 
     def apply_a2_v24_f3_global_batch(self, global_batch: int) -> dict[str, Any] | None:
         """Apply one absolute F3 batch and report phase/reset semantics."""

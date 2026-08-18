@@ -24,8 +24,8 @@ import torch
 
 from gr00t.rl.envs.door.a2_v24_df1_sampler import (
     F3Assignment,
-    F3_FRICTION_PARAMETERS,
 )
+from gr00t.rl.envs.door.a2_v24_r13_f3_sampler import R13F3Assignment
 
 
 FORCE_BOUNDARY_SCHEMA = "a2_piper_v24_p2_force_boundary_v1"
@@ -1903,7 +1903,7 @@ class A2V24F3NativeAssignmentRuntime:
             ):
                 raise RuntimeError(f"F3 door.data.{field} must be finite and match door joint_pos.")
             self.original_door_friction_all[field] = value.detach().clone()
-        self._assignments: tuple[F3Assignment, ...] | None = None
+        self._assignments: tuple[F3Assignment | R13F3Assignment, ...] | None = None
         self._last_receipt: dict[str, Any] | None = None
 
     def _validate_gripper_face(self, context: str) -> None:
@@ -1944,20 +1944,27 @@ class A2V24F3NativeAssignmentRuntime:
             if not torch.all(torch.isfinite(current)) or not torch.allclose(current, expected, atol=1.0e-6, rtol=0.0):
                 raise RuntimeError(f"F3 non-hinge {field} changed during {context}.")
 
-    def _normalize_assignments(self, assignments: Sequence[F3Assignment]) -> tuple[F3Assignment, ...]:
+    def _normalize_assignments(
+        self,
+        assignments: Sequence[F3Assignment | R13F3Assignment],
+    ) -> tuple[F3Assignment | R13F3Assignment, ...]:
         if len(assignments) != self.num_envs:
             raise ValueError(f"F3 assignment count must equal num_envs={self.num_envs}.")
         ordered = tuple(assignments)
         for env_index, assignment in enumerate(ordered):
-            if not isinstance(assignment, F3Assignment) or assignment.env_index != env_index:
+            if not isinstance(assignment, (F3Assignment, R13F3Assignment)) or assignment.env_index != env_index:
                 raise RuntimeError("F3 assignments must be ordered by contiguous env_index.")
             if assignment.cap_nm == 10.0 or assignment.confirmed_e2:
                 raise RuntimeError("F3 rejects the contingency cap10 and confirmed-E2 assignments.")
-            if assignment.friction_profile not in F3_FRICTION_PARAMETERS:
+            if assignment.friction_profile not in REGISTERED_FRICTION_PROFILES:
                 raise RuntimeError(f"F3 friction profile is unsupported: {assignment.friction_profile!r}.")
         return ordered
 
-    def _write_groups(self, assignments: Sequence[F3Assignment], env_ids: torch.Tensor) -> None:
+    def _write_groups(
+        self,
+        assignments: Sequence[F3Assignment | R13F3Assignment],
+        env_ids: torch.Tensor,
+    ) -> None:
         if env_ids.numel() == 0:
             return
         groups: dict[tuple[float, str], list[int]] = {}
@@ -1968,7 +1975,7 @@ class A2V24F3NativeAssignmentRuntime:
             ids = torch.tensor(indices, dtype=torch.long, device=self.device)
             cap = torch.full((ids.numel(), len(self.arm_joint_ids)), cap_nm, dtype=self.dtype, device=self.device)
             self.robot.write_joint_effort_limit_to_sim(cap, joint_ids=list(self.arm_joint_ids), env_ids=ids)
-            static, dynamic, viscous = F3_FRICTION_PARAMETERS[profile]
+            static, dynamic, viscous = REGISTERED_FRICTION_PROFILES[profile]
             shape = (ids.numel(), 1)
             self.door.write_joint_friction_coefficient_to_sim(
                 torch.full(shape, static, dtype=self.dtype, device=self.device),
@@ -1990,7 +1997,7 @@ class A2V24F3NativeAssignmentRuntime:
 
     def _readbacks(
         self,
-        assignments: Sequence[F3Assignment],
+        assignments: Sequence[F3Assignment | R13F3Assignment],
         env_ids: torch.Tensor | None = None,
     ) -> list[dict[str, Any]]:
         selected_ids = (
@@ -2020,7 +2027,7 @@ class A2V24F3NativeAssignmentRuntime:
 
     def assignment_receipt(
         self,
-        assignments: Sequence[F3Assignment] | None = None,
+        assignments: Sequence[F3Assignment | R13F3Assignment] | None = None,
         *,
         global_batch: int | None = None,
         full_reset_boundary: bool = False,
@@ -2033,7 +2040,7 @@ class A2V24F3NativeAssignmentRuntime:
         self._validate_gripper_face("assignment receipt")
         self._validate_non_hinge_friction("assignment receipt")
         for env_id, assignment in enumerate(selected):
-            static, dynamic, viscous = F3_FRICTION_PARAMETERS[assignment.friction_profile]
+            static, dynamic, viscous = REGISTERED_FRICTION_PROFILES[assignment.friction_profile]
             if not torch.allclose(
                 self.robot.data.joint_effort_limits[env_id, self.arm_joint_ids],
                 torch.full((len(self.arm_joint_ids),), assignment.cap_nm, dtype=self.dtype, device=self.device),
@@ -2066,7 +2073,12 @@ class A2V24F3NativeAssignmentRuntime:
             "forbidden_cap_nm": 10.0,
         }
 
-    def apply_assignments(self, assignments: Sequence[F3Assignment], *, full_reset_boundary: bool = True) -> dict[str, Any]:
+    def apply_assignments(
+        self,
+        assignments: Sequence[F3Assignment | R13F3Assignment],
+        *,
+        full_reset_boundary: bool = True,
+    ) -> dict[str, Any]:
         normalized = self._normalize_assignments(assignments)
         env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
         self._write_groups(normalized, env_ids)

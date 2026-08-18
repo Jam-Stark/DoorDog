@@ -1,8 +1,8 @@
 ---
 name: base-v24-friction-force-boundary
 scope: A2+Piper base_v24 friction-calibrated force boundary, posture final adjudication, coupling groundwork, and gated-posture pilot
-status: complete_post_f3_terminal_rq4_forward_proxy_only
-last_updated: 2026-08-18 03:38 HKT
+status: complete_v24_final_e1_denominator_insufficient
+last_updated: 2026-08-18 23:02 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v24-friction-force-boundary/description.md
@@ -110,7 +110,7 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 
 ## DONE Summary
 
-Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, P1 H/I, Owner D-v2, P2 r12, and the Owner-authorized r13 domain escalation are complete through the registered gradient gate. Historical P1/r10/r12 outcomes remain immutable provenance; the current state is an r13 Owner stop at the `V24_FRICTION_AXIS_NONDISCRIMINATIVE` artifact, with the behavioral-gradient semantic conflict documented below. P3 and the science waves are not admitted. No causal posture-value, release, E2, or solver-applied-friction-torque result is recorded.
+Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, P1 H/I, Owner D-v2, P2 r12, and the Owner-authorized r13 domain escalation/adjudication/F3-prime lifecycle are complete. Historical P1/r10/r12/r13 gate artifacts remain immutable provenance. The final controlling result is `V24_E1_DENOMINATOR_INSUFFICIENT_FINAL`; P3 and the science waves are not admitted. No causal posture-value, release, confirmed E2, or solver-applied-friction-torque result is recorded.
 
 ## RQ4 Measurement-only Closure
 
@@ -121,7 +121,7 @@ Memory routing and the v24 authority/starting-fact skeleton are established. P0.
 
 ## TODO Summary
 
-There is no active runtime. The r13 registered gradient artifact reached the sole Owner decision point; F3-prime, P3, and the science waves remain stopped pending Owner interpretation.
+There is no active runtime or remaining v24 execution item. The final E1 denominator terminal forbids another gate revision; P3 and all science waves remain not admitted. Future work requires a new owner-approved round/site rather than reopening v24.
 
 ## Owner Friction-domain Escalation and r13 Gradient Stop
 
@@ -131,3 +131,13 @@ There is no active runtime. The r13 registered gradient artifact reached the sol
 - Capacity collapse is 358/384. Only 26 windows receive finite admission lambda (`0.0532308..0.738496`), so the r12 epsilon-denominator explosion does not enter r13 admission. E1 counts are two P02 windows and zero in P05/P10/P20; the ladder remains null.
 - The immutable gradient artifact emits `V24_FRICTION_AXIS_NONDISCRIMINATIVE` because matched modeled-torque strict ordering is 47/96 versus the registered 72 minimum. Behavioral progress nevertheless decreases strictly P02>P05>P10>P20, spans `0.0222685 rad`, and has P02>P20 in 96/96 pairs. Do not paraphrase the artifact as absence of a behavioral gradient; Owner interpretation is required before any continuation.
 - Door friction/model torque authority is `MODELED_FROM_PARAMS`, solver-applied is false, and capacity/lambda is `ESTIMATE_ONLY_DIRECTIONAL_MARGIN`. No actual generalized or solver-applied torque is claimed. Canonical evidence roots are `logs_eval/base_v24/p1/friction_backend/p1_lite_domain_escalation_r13_gpu0/` and `logs_eval/base_v24/p2/force_boundary/r13/`.
+
+## Owner r13 Gradient Adjudication and Final F3-prime Closure
+
+- 2026-08-18 23:02 HKT - The Owner ruled the matched modeled-torque `47/96` predictor non-controlling because speed adaptation confounds its monotonicity. The historical artifact remains unchanged; the additive typed result is `V24_FRICTION_AXIS_DISCRIMINATIVE_BEHAVIORAL`, and the predictor is report-only as `MODELED_TAU_MATCHED_ORDERING_CONFOUNDED_BY_SPEED_ADAPTATION`.
+- The behavioral classifier froze before F3-prime data at deficit `[0.020,0.040] rad`, directional clip fraction `>=0.40`, utilization `>=0.50`, with both load floors required. The non-null ladder is `tau_hi/tau_boundary/tau_rescue=40/20/25 N·m`; boundary is P10/cap20 and near-E2 candidate is P20/cap20.
+- The capacity estimator is typed `CAPACITY_ESTIMATOR_LOWER_BOUND_DEGENERATE`: it collapsed in `358/384` calibration windows despite continued opening. Capacity/lambda is now `ESTIMATE_ONLY_REPORT_ONLY`; collapsed windows remain an RQ3 mediator and do not control E admission.
+- FULL/RP0 smoke passes. Four FULL/RP0 x seed0/1 production cells each complete `4096 env x 500 batches`, exit0, with four step500 checkpoints. Per-checkpoint Rule16 F00/cap40 sham passes `16/16` in all cells, then 32 P10/cap20 episodes per cell complete with 128/128 measurement-valid windows.
+- Sustained-E1 counts are FULL seed0 `4`, FULL seed1 `1`, RP0 seed0 `8`, RP0 seed1 `4`, below the registered `8` in every cell. The final controlling result is `V24_E1_DENOMINATOR_INSUFFICIENT_FINAL`, `terminal=true`, `P3_ADMITTED=false`; no further gate revision is permitted.
+- P3, Wave 1, Route A/B, RQ3, and Wave 2 are not executed. Friction-axis validity is positive, while posture force value remains `UNRESOLVED_NOT_ADMITTED`. Canonical evidence is `logs_eval/base_v24/p2/force_boundary/r13/behavioral_reentry/`; final report is `scriptsFORhuman/v24/a2_piper_base_v24_final_analysis_20260818.md`.
+- Durable Rule16 (same-checkpoint measurement vitals), Rule17 (repository-evidence magnitude anchor), and Rule18 candidate (prove a derived gate's monotonicity/validity assumption or keep it report-only) are recorded in the execution/long-term ledgers.

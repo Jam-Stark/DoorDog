@@ -80,6 +80,9 @@ _A2_V23_D1_RUNTIME_EXPORT_KEY = "a2_v23_d1_runtime_export"
 _A2_V23_D1_RUNTIME_RAW_PATH_KEY = "a2_v23_d1_runtime_raw_path"
 _A2_V23_D1_SAMPLER_ENABLED_KEY = "a2_v23_d1_sampler_enabled"
 _A2_V23_D1_TOTAL_STEPS_KEY = "a2_v23_d1_total_steps"
+_A2_V24_F3_ENABLED_KEY = "a2_v24_f3_marginal_e1_enabled"
+_A2_V24_F3_TOTAL_BATCHES_KEY = "a2_v24_f3_marginal_e1_total_batches"
+_A2_V24_F3_NUM_ENVS_KEY = "a2_v24_f3_marginal_e1_num_envs"
 _A2_V23_WARM_HEAD_RESET_ENABLED_KEY = "a2_v23_warm_head_reset_enabled"
 _A2_V23_RP0_RUNTIME_ENVS = 64
 _A2_V23_STATIONARY_RENT_PASS_SCHEMA = "a2_piper_v23_stationary_rent_pass_v1"
@@ -566,7 +569,7 @@ _A2_ROOT_X_FIRST_CROSSING_ENV_COUNT_KEY = "a2_root_x_first_crossing_env_count"
 _A2_EVAL_P2_POSTURE_AXIS_KEY = "a2_eval_p2_posture_axis"
 _A2_EVAL_M41_STRICT_TELEMETRY_KEY = "a2_eval_m41_strict_telemetry"
 _A2_EVAL_V20_STRICT_TELEMETRY_KEY = "a2_eval_v20_strict_telemetry"
-_A2_EVAL_P2_POSTURE_AXES = frozenset(("none", "pitch_zero", "roll_zero"))
+_A2_EVAL_P2_POSTURE_AXES = frozenset(("none", "pitch_zero", "roll_zero", "rp0"))
 
 
 _A2_V20_TYPED_TELEMETRY_GROUPS = {
@@ -1143,9 +1146,13 @@ def _apply_a2_eval_p2_posture_axis(action_mean, action_layout, posture_axis):
             "A2 P2 posture selector requires a canonical five-dimensional base action "
             f"slice; got base_start={base_start!r}, base_end={base_end!r}, dim={expected_dim}."
         )
-    selected_index = base_start + (3 if posture_axis == "pitch_zero" else 4)
     applied = action_mean.clone()
-    applied[:, selected_index] = 0.0
+    if posture_axis == "rp0":
+        applied[:, base_start + 3] = 0.0
+        applied[:, base_start + 4] = 0.0
+    else:
+        selected_index = base_start + (3 if posture_axis == "pitch_zero" else 4)
+        applied[:, selected_index] = 0.0
     return applied
 
 
@@ -3709,6 +3716,9 @@ class TRLPPOTrainer(PPOTrainer):
         self._a2_v23_d1_runtime_raw_path = None
         self._a2_v23_d1_phase_rows = []
         self._resolve_a2_v23_d1_runtime_config()
+        self._a2_v24_f3_enabled = False
+        self._a2_v24_f3_phase_rows = []
+        self._resolve_a2_v24_f3_runtime_config()
 
         self._a2_v23_runtime_receipt_enabled = False
         self._a2_v23_runtime_receipt_config = None
@@ -4594,6 +4604,52 @@ class TRLPPOTrainer(PPOTrainer):
                 raise RuntimeError(f"D1 raw export refuses an existing output path: {resolved}")
             self._a2_v23_d1_runtime_raw_path = resolved
         self._a2_v23_d1_runtime_export = export
+
+    def _resolve_a2_v24_f3_runtime_config(self) -> None:
+        """Resolve the additive absolute-batch F3 lifecycle gate."""
+
+        env_config = self.env.config
+        enabled = env_config.get(_A2_V24_F3_ENABLED_KEY, False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(f"env.config.{_A2_V24_F3_ENABLED_KEY} must be bool; got {enabled!r}.")
+        d1_enabled = env_config.get(_A2_V23_D1_SAMPLER_ENABLED_KEY, False)
+        if not isinstance(d1_enabled, bool):
+            raise RuntimeError(f"env.config.{_A2_V23_D1_SAMPLER_ENABLED_KEY} must be bool; got {d1_enabled!r}.")
+        if enabled and d1_enabled:
+            raise RuntimeError("F3 absolute-batch lifecycle requires v23 D1 to remain disabled.")
+        if enabled:
+            total_batches = env_config.get(_A2_V24_F3_TOTAL_BATCHES_KEY)
+            num_envs = env_config.get(_A2_V24_F3_NUM_ENVS_KEY)
+            if isinstance(total_batches, bool) or not isinstance(total_batches, int) or total_batches not in (10, 500):
+                raise RuntimeError("F3 trainer requires total_batches=10 (smoke) or 500 (production).")
+            if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs not in (64, 4096):
+                raise RuntimeError("F3 trainer requires num_envs=64 (smoke) or 4096 (production).")
+            if num_envs != int(self.env.num_envs):
+                raise RuntimeError("F3 trainer topology does not match the live environment count.")
+            if total_batches != int(self.args.num_total_batches):
+                raise RuntimeError("F3 trainer absolute lifecycle requires args.num_total_batches to match the sampler.")
+        self._a2_v24_f3_enabled = enabled
+
+    def _a2_v24_f3_prepare_step(self, global_batch: int) -> bool:
+        """Apply an absolute F3 batch and return whether a full reset is due."""
+
+        if not self._a2_v24_f3_enabled:
+            return False
+        if isinstance(global_batch, bool) or not isinstance(global_batch, int):
+            raise RuntimeError(f"F3 trainer global_batch must be an absolute integer; got {global_batch!r}.")
+        row = self.env.apply_a2_v24_f3_global_batch(global_batch)
+        if not isinstance(row, Mapping) or row.get("global_batch") != global_batch:
+            raise RuntimeError("F3 env step hook did not return the requested absolute global_batch.")
+        if self._a2_v24_f3_phase_rows:
+            previous = self._a2_v24_f3_phase_rows[-1]["global_batch"]
+            if global_batch < previous:
+                raise RuntimeError("F3 trainer phase telemetry must be monotonic.")
+            if global_batch == previous:
+                if row.get("full_reset_boundary"):
+                    raise RuntimeError("F3 repeated absolute batch cannot request an additional full reset.")
+                return False
+        self._a2_v24_f3_phase_rows.append(dict(row))
+        return bool(row.get("full_reset_boundary"))
 
     def _a2_v23_d1_prepare_step(self, global_step: int) -> bool:
         """Apply the env-owned absolute step and return its reset boundary."""
@@ -6177,12 +6233,18 @@ class TRLPPOTrainer(PPOTrainer):
 
         # env
         d1_enabled = bool(self.env.config.get(_A2_V23_D1_SAMPLER_ENABLED_KEY, False))
+        f3_enabled = self._a2_v24_f3_enabled
         if d1_enabled and self.env.config.get("reinit_sim_freq", 0) > 0:
             raise RuntimeError("D1 absolute-step runtime does not support reinit_sim_freq resets.")
+        if f3_enabled and self.env.config.get("reinit_sim_freq", 0) > 0:
+            raise RuntimeError("F3 absolute-batch runtime does not support reinit_sim_freq resets.")
         d1_initial_boundary = self._a2_v23_d1_prepare_step(int(self.state.global_step)) if d1_enabled else False
+        f3_initial_boundary = self._a2_v24_f3_prepare_step(int(self.state.global_step)) if f3_enabled else False
         obs_dict = self.env.reset_all()
         if d1_enabled and not d1_initial_boundary:
             raise RuntimeError("D1 first absolute-step invocation must be a full-reset boundary.")
+        if f3_enabled and not f3_initial_boundary:
+            raise RuntimeError("F3 first absolute-batch invocation must be a full-reset boundary.")
         if self.config.get("init_at_random_ep_len", False):
             self.env.episode_length_buf = torch.randint_like(
                 self.env.episode_length_buf, high=int(self.env.max_episode_length)
@@ -6215,7 +6277,8 @@ class TRLPPOTrainer(PPOTrainer):
                     obs_dict[obs_key] = obs_dict[obs_key].to(device)
 
             d1_boundary = self._a2_v23_d1_prepare_step(int(self.state.global_step)) if d1_enabled else False
-            if d1_enabled and d1_boundary:
+            f3_boundary = self._a2_v24_f3_prepare_step(int(self.state.global_step)) if f3_enabled else False
+            if (d1_enabled and d1_boundary) or (f3_enabled and f3_boundary):
                 obs_dict = self.env.reset_all()
                 for obs_key in obs_dict.keys():
                     obs_dict[obs_key] = obs_dict[obs_key].to(device)

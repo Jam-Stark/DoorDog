@@ -1,0 +1,73 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v23_G7_scratch_D1_full
+  - _self_
+
+v24_schema: a2_piper_v24_r1_f3_marginal_e1_pilot_v1
+v24_plan_id: base_v24_force_boundary_R12
+v24_pilot_registration_id: R12_R1_F3_MARGINAL_E1_PILOT_01
+v24_pilot_status: MARGINAL_E1_PILOT_REQUIRED
+v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+v24_checkpoint_load_mode: selected_policy_only
+v24_semantics_inheritance:
+  reward: base_v23_G7_scratch_D1_full
+  stage_contract: base_v23_G7_scratch_D1_full
+  optimizer: base_v23_G7_scratch_D1_full
+  full_training_base: base_v23_G7_scratch_D1_full
+  rp0_training_base: base_v23_G7_scratch_D1_full
+v24_f3:
+  door_regime: DF1
+  d1_variant: normal
+  schedule:
+    - {step_fraction: 0.0, F00: 100, F05: 0, F10: 0}
+    - {step_fraction: 0.2, F00: 60, F05: 40, F10: 0}
+    - {step_fraction: 0.5, F00: 30, F05: 60, F10: 10}
+  candidate_buckets: [F00, F05, F10]
+  rescue_cap_nm: 25.0
+  confirmed_e2_share: 0.0
+  training_cap_nm: 20.0
+  total_batches: 500
+  num_envs: 4096
+  training_seed: 0
+  bucket_seed: 24030
+  sampler: gr00t.rl.envs.door.a2_v24_df1_sampler.F3Sampler
+  pilot_cells: [DF1_FULL_SEED0, DF1_FULL_SEED1, DF1_RP0_SEED0, DF1_RP0_SEED1]
+  rp0_distribution_contract: gr00t.rl.trl.modules.actor_critic_modules.Actor
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+headless: true
+num_envs: 4096
+seed: 0
+use_wandb: false
+
+algo:
+  config:
+    rp0_enabled: false
+    rp0_mask_indices: [3, 4]
+    rp0_neutral_value: 0.0
+  trl:
+    num_total_batches: 500
+    report_to: none
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v23_formal_launch: true
+    a2_v23_effort_profile_nm: 40.0
+    a2_v23_d1_sampler_enabled: false
+    a2_v23_d1_variant: normal
+    a2_v23_d1_confirmed_e2_enabled: false
+    a2_v23_warm_head_reset_enabled: true
+    a2_v23_rp0_enabled: false
+    a2_v23_rp0_mask_indices: [3, 4]
+    a2_v23_rp0_neutral_value: 0.0
+    a2_v24_f3_marginal_e1_enabled: true
+    a2_v24_f3_marginal_e1_training_seed: 0
+    a2_v24_f3_marginal_e1_bucket_seed: 24030
+    a2_v24_f3_marginal_e1_total_batches: 500
+    a2_v24_f3_marginal_e1_num_envs: 4096
+    a2_v24_f3_marginal_e1_confirmed_e2_enabled: false

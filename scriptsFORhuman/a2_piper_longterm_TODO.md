@@ -64,6 +64,7 @@
 
 ## 归档(已完成/已否决)
 
+- [x] 2026-08-18:**规则 16（measurement-vitals admission）**——任何 calibration/eval population 必须先用同一 checkpoint 在 easy/sham cell 复现已知基线体征；只有体征 PASS 后，派生 denominator、partition 与 typed terminal 才可解释。零分母不是自动的“分母不足”，且零分母终局必须附体征 PASS。该规则由 base_v24 P2 r10 的 0/288 grasp 仪器特征触发，并由 r12 sham 16/16 与 post-F3 64/64 source-vitals-valid population 完成闭环。
 - [x] 2026-08-16:**v23 收口(`V23_RESEARCH_PASS_NO_RELEASE`,三重负结果高信息量)**——16/16 cell rc0;H1 继承不支持(head-reset 250 步复满分,goal 差全在噪声);**RP0 全面平价**(8 RP0 cell ≈ 8 FULL cell,D0 与 D1 皆是,chronic 禁姿态零代价)→ 0.4 pitch 降级为"免费动作"非问题;H4 `E2_BOUNDARY_NOT_ESTABLISHED` + `DOOR_MODEL_INSUFFICIENT`(atlas confirmed_E2=0);effort ladder 100→20 零样本无退化(`LADDER_INCONCLUSIVE`,冻结 40)→ 指令侧饱和是 Kp 增益伪影,任务执行力矩需求 ≤20 N·m。H2/H3/H5 因分析层欠账 typed inconclusive(数据在盘,v24 P0 清偿)。沉淀规则:**规则 13**(成功率天花板下 success-rate 轴对变体无区分力,测量轴必须换行为质量/力学量);**规则 14**(E 区/桶分层必须按 realized dynamics telemetry,intended bucket 只作抽样器——v22 bucket MISMATCH 与 v23 0/768 同源);**规则 15**(reducer/gate 只准执行已授权判据;acute 探针标签是 policy-relative 的,不得当门属性用)。
 - [x] 2026-08-16:v20 遗留 A 表两行处置——"真实 arm 限位轮 + θ_send rider"被 v21B(theta ladder DV1 未达带)与 v23(effort ladder null)合并 supersede;"release 时补 v20 Route B"降级入 E 挂账。
 - [x] 2026-08-08(补录):**v22 收口(NO_RELEASE)**——labels `RESEARCH_PASS / RANDOMIZATION_BOUNDARY_IDENTIFIED / POSTURE_CONDITIONALLY_USEFUL / BODY_ASSIST_UNSAFE / HOLD_OPEN_DOMINANT`;三候选 pooled goal 46-47/48 但 clearance 29/9/16 of 48;H3/H4 hinge 类 unrealized(25/30 N·m below resolution);posture gate `REPORT_ONLY_INSUFFICIENT_DENOMINATOR`;P0-B 独立标签 37/40 POSTURE_NEEDED(acute)。

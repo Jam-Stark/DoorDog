@@ -4,10 +4,14 @@ defaults:
   - _self_
 
 v24_schema: a2_piper_v24_p2_force_boundary_v1
-v24_plan_id: base_v24_force_boundary_R1
+v24_plan_id: base_v24_force_boundary_R12
 v24_runtime_mode: P2_TELEMETRY
 v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
 v24_checkpoint_load_mode: selected_policy_only
+v24_pilot_registration_id: R12_R1_F3_MARGINAL_E1_PILOT_01
+v24_pilot_status_before_run: MARGINAL_E1_PILOT_REQUIRED
+v24_rule16_stage_reach_reference_band: {stage_ids: [3, 4], window_transition_count: 25, minimum_current_stable_grasp_rows: 20, required_env_count: 16}
+v24_gradient_admission_status: PASS_OWNER_PROXY_ADJUDICATED
 
 v24_p2:
   schema: a2_piper_v24_p2_force_boundary_v1
@@ -66,9 +70,9 @@ v24_p2:
     state: HIGH_LEVEL_ARTICULATION_DATA
     actual_generalized_torque: UNAVAILABLE_NOT_USED
   runtime_modes: [HI_FULL, BOUNDARY_FULL, BOUNDARY_RP0, RESCUE_FULL]
-  exclusions: [GEOMETRY, GRASP, DIRECTION, SLIP, PATHOLOGY]
+  exclusions: [GEOMETRY, GRASP, DIRECTION, SLIP, PATHOLOGY, WINDOW_SELECTION]
   artifacts:
-    root: logs_eval/base_v24/p2/force_boundary/r10
+    root: logs_eval/base_v24/p2/force_boundary/r12
     append_only: true
     files:
       - V24_P2_PARAMETER_RANGE_FREEZE.json
@@ -82,6 +86,15 @@ v24_p2:
       - V24_P2_E_REGION_CERTIFICATE.json
       - V24_P2_FINAL_ADJUDICATION.json
       - QA_SEMANTIC_VALIDATION.json
+      - vitals/P2_SHAM_ROWS.jsonl
+      - vitals/runtime/P2_RUNTIME_ROWS.jsonl
+      - vitals/P2_SHAM_VITALS_RECEIPT.json
+      - marginal_e1/P2_MARGINAL_E1_PILOT_REGISTRATION.json
+      - marginal_e1/P2_MARGINAL_E1_PILOT_COMMANDS.json
+      - marginal_e1/P2_MARGINAL_E1_PILOT_ADJUDICATION.json
+      - marginal_e1/P2_MARGINAL_E1_POST_PILOT_FINALIZATION.json
+      - marginal_e1/P2_MARGINAL_E1_PILOT_POPULATION.jsonl
+      - marginal_e1/P2_MARGINAL_E1_POST_TRAINING_EVAL_COMMANDS.json
 
 env:
   config:
@@ -96,7 +109,7 @@ env:
     a2_v24_force_boundary_seed: 24021
     a2_v24_force_boundary_continuity_id: CALIBRATION
     a2_v24_force_boundary_scenario_ids: [S00, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10, S11, S12, S13, S14, S15]
-    a2_v24_force_boundary_runtime_export_path: logs_eval/base_v24/p2/force_boundary/r10/_runtime/P2_RUNTIME_ROWS.jsonl
+    a2_v24_force_boundary_runtime_export_path: logs_eval/base_v24/p2/force_boundary/r12/vitals/runtime/P2_RUNTIME_ROWS.jsonl
     a2_v24_force_boundary_checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
     a2_v24_force_boundary_checkpoint_load_mode: selected_policy_only
     a2_v24_force_boundary_panel_mass_kg: 120.0

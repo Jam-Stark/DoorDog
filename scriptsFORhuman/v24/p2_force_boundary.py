@@ -40,9 +40,35 @@ LADDER_SCHEMA = "a2_piper_v24_p2_ladder_freeze_v1"
 THRESHOLD_SCHEMA = "a2_piper_v24_p2_certificate_threshold_freeze_v1"
 E_REGION_SCHEMA = "a2_piper_v24_p2_e_region_certificate_v1"
 FINAL_SCHEMA = "a2_piper_v24_p2_final_adjudication_v1"
+VITALS_RECEIPT_SCHEMA = "a2_piper_v24_p2_sham_vitals_receipt_v1"
+RULE16_SCHEMA = "a2_piper_v24_rule16_admission_v1"
 CONFIG_PATH = REPO_ROOT / "gr00t/rl/config/ablation/wbmanip/base_v24_p2_force_boundary.yaml"
-ARTIFACT_ROOT = "logs_eval/base_v24/p2/force_boundary/r10"
+ARTIFACT_ROOT = "logs_eval/base_v24/p2/force_boundary/r12"
+VITALS_RUNTIME_ARTIFACT = "vitals/runtime/P2_RUNTIME_ROWS.jsonl"
+VITALS_SOURCE = f"{ARTIFACT_ROOT}/{VITALS_RUNTIME_ARTIFACT}"
+OWNER_DECISION = "scriptsFORhuman/v24/DoorDog_v24_owner_decision_p2_invalid_measurement_20260817.md"
 CHECKPOINT = "logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt"
+PILOT_REGISTRATION_ID = "R12_R1_F3_MARGINAL_E1_PILOT_01"
+PILOT_ARTIFACT_ROOT = "logs_eval/base_v24/p2/force_boundary/r12/marginal_e1"
+PILOT_REQUIRED_STATUS = "MARGINAL_E1_PILOT_REQUIRED"
+STAGE_REACH_REFERENCE_BAND = {
+    "stage_ids": [3, 4],
+    "window_transition_count": 25,
+    "minimum_current_stable_grasp_rows": 20,
+    "required_env_count": 16,
+}
+GRADIENT_ADMISSION = {
+    "schema": "a2_piper_v24_p2_gradient_admission_v1",
+    "status": "PASS_OWNER_PROXY_ADJUDICATED",
+    "authorizes_marginal_e1_pilot": True,
+    "strong_model_evidence": False,
+    "all_window_medians": {"F00": 0.0828638, "F05": 0.0817359, "F10": 0.0799669},
+    "matched_strict_triples": 78,
+    "matched_strict_triples_total": 96,
+    "model_valid_subset_medians": {"F00": 0.0988929, "F05": 0.1086381, "F10": 0.1030480},
+    "directional_high_effort_count": 0,
+    "directional_high_effort_total": 288,
+}
 PRIMARY_CAPS_NM = (100.0, 60.0, 40.0, 30.0, 25.0, 20.0)
 CONTINGENCY_CAP_NM = 10.0
 REGISTERED_CAPS_NM = (*PRIMARY_CAPS_NM, CONTINGENCY_CAP_NM)
@@ -54,7 +80,11 @@ FRICTION_PROFILES = {
     "F10": {"static_effort_nm": 1.0, "dynamic_effort_nm": 0.75, "viscous_coefficient_nm_s_per_rad": 0.0, "dynamic_to_static_ratio": 0.75},
 }
 RUNTIME_MODES = ("HI_FULL", "BOUNDARY_FULL", "BOUNDARY_RP0", "RESCUE_FULL")
-EXCLUSIONS = ("GEOMETRY", "GRASP", "DIRECTION", "SLIP", "PATHOLOGY")
+WINDOW_SELECTION_ADMITTED = "FIRST_STABLE_GRASP_OPENING_20_OF_25"
+WINDOW_SELECTION_FALLBACK = "NO_QUALIFYING_STABLE_GRASP_OPENING_FALLBACK_FIRST_ALPHA_VALID"
+WINDOW_SELECTION_ADMITTED_STATUS = "ADMITTED_FIRST_STABLE_GRASP_OPENING"
+WINDOW_SELECTION_FALLBACK_STATUS = "NON_ADMISSIBLE_NO_QUALIFYING_STABLE_GRASP_OPENING"
+EXCLUSIONS = ("GEOMETRY", "GRASP", "DIRECTION", "SLIP", "PATHOLOGY", "WINDOW_SELECTION")
 SCENARIO_IDS = tuple(f"S{index:02d}" for index in range(16))
 STAGE_ARTIFACTS = (
     "V24_P2_PARAMETER_RANGE_FREEZE.json",
@@ -69,6 +99,20 @@ STAGE_ARTIFACTS = (
     "V24_P2_FINAL_ADJUDICATION.json",
     "QA_SEMANTIC_VALIDATION.json",
 )
+VITAL_ARTIFACTS = (
+    "vitals/P2_SHAM_ROWS.jsonl",
+    VITALS_RUNTIME_ARTIFACT,
+    "vitals/P2_SHAM_VITALS_RECEIPT.json",
+)
+PILOT_ARTIFACTS = (
+    "marginal_e1/P2_MARGINAL_E1_PILOT_REGISTRATION.json",
+    "marginal_e1/P2_MARGINAL_E1_PILOT_COMMANDS.json",
+    "marginal_e1/P2_MARGINAL_E1_PILOT_ADJUDICATION.json",
+    "marginal_e1/P2_MARGINAL_E1_POST_PILOT_FINALIZATION.json",
+    "marginal_e1/P2_MARGINAL_E1_PILOT_POPULATION.jsonl",
+    "marginal_e1/P2_MARGINAL_E1_POST_TRAINING_EVAL_COMMANDS.json",
+)
+REGISTERED_ARTIFACTS = STAGE_ARTIFACTS + VITAL_ARTIFACTS + PILOT_ARTIFACTS
 AUTHORITY_SET = {
     "capacity_lambda": "ESTIMATE_ONLY_DIRECTIONAL_MARGIN",
     "pd_command": "ESTIMATE_ONLY_IMPLICIT_PD_COMMAND",
@@ -84,6 +128,8 @@ RUNTIME_AUTHORITY_SET = {
 TYPED_RESULTS = (
     "V24_E1_BOUNDARY_ESTABLISHED",
     "V24_E1_DENOMINATOR_INSUFFICIENT",
+    "V24_E1_BOUNDARY_ESTABLISHED_POST_F3",
+    "V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3",
     "V24_E2_BOUNDARY_ESTABLISHED",
     "V24_E2_BOUNDARY_NOT_ESTABLISHED",
     "V24_ARM_COMMAND_PATH_NOT_BINDING",
@@ -92,7 +138,6 @@ TYPED_RESULTS = (
 PREHELDOUT_TERMINAL_RESULTS = frozenset(
     (
         "V24_ARM_COMMAND_PATH_NOT_BINDING",
-        "V24_E1_DENOMINATOR_INSUFFICIENT",
         "V24_DOOR_MODEL_REMAINS_INSUFFICIENT",
     )
 )
@@ -165,7 +210,12 @@ def parameter_range_freeze(*, status: str = "PLANNED_NOT_EXECUTED") -> dict[str,
     }
 
 
-def ladder_freeze(rows: Sequence[Mapping[str, Any]] | None = None, *, status: str = "PLANNED_NOT_EXECUTED") -> dict[str, Any]:
+def ladder_freeze(
+    rows: Sequence[Mapping[str, Any]] | None = None,
+    *,
+    status: str = "PLANNED_NOT_EXECUTED",
+    rule16_admission: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     if rows is None:
         return {
         "schema": LADDER_SCHEMA,
@@ -188,13 +238,25 @@ def ladder_freeze(rows: Sequence[Mapping[str, Any]] | None = None, *, status: st
             "contingency_nonbinding_result": "V24_ARM_COMMAND_PATH_NOT_BINDING",
         },
         }
-    return _derive_ladder(rows, status=status)
+    payload = _derive_ladder(rows, status=status)
+    if rule16_admission is not None:
+        payload["rule16_admission"] = dict(rule16_admission)
+    return payload
 
 
-def certificate_threshold_freeze(rows: Sequence[Mapping[str, Any]] | None = None, *, status: str = "PLANNED_NOT_EXECUTED", tau_hi_nm: float | None = None) -> dict[str, Any]:
+def certificate_threshold_freeze(
+    rows: Sequence[Mapping[str, Any]] | None = None,
+    *,
+    status: str = "PLANNED_NOT_EXECUTED",
+    tau_hi_nm: float | None = None,
+    rule16_admission: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     if rows is not None:
-        return _derive_threshold(rows, status=status, tau_hi_nm=tau_hi_nm)
-    return {
+        payload = _derive_threshold(rows, status=status, tau_hi_nm=tau_hi_nm)
+        if rule16_admission is not None:
+            payload["rule16_admission"] = dict(rule16_admission)
+        return payload
+    payload = {
         "schema": THRESHOLD_SCHEMA,
         "status": status,
         "window_control_steps": 25,
@@ -224,24 +286,231 @@ def certificate_threshold_freeze(rows: Sequence[Mapping[str, Any]] | None = None
         },
         "exclusions": list(EXCLUSIONS),
     }
+    if rule16_admission is not None:
+        payload["rule16_admission"] = dict(rule16_admission)
+    return payload
 
 
 def artifact_plan() -> dict[str, Any]:
     return {
         "root": ARTIFACT_ROOT,
         "append_only": True,
-        "files": list(STAGE_ARTIFACTS),
+        "files": list(REGISTERED_ARTIFACTS),
+        "vitals": {
+            "source": VITALS_SOURCE,
+            "rows": VITAL_ARTIFACTS[0],
+            "runtime_rows": VITAL_ARTIFACTS[1],
+            "receipt": VITAL_ARTIFACTS[2],
+            "owner_decision": OWNER_DECISION,
+            "grasp_threshold": "14/16",
+            "stage_reach_reference_band": dict(STAGE_REACH_REFERENCE_BAND),
+            "parameter_health": "16/16",
+            "measurement_vital_status": "PASS_VALID_MEASUREMENT_ADMISSION",
+            "rule16_schema": RULE16_SCHEMA,
+        },
+        "gradient_admission": dict(GRADIENT_ADMISSION),
+        "marginal_e1_pilot": {
+            "registration_id": PILOT_REGISTRATION_ID,
+            "status_before_pilot": PILOT_REQUIRED_STATUS,
+            "artifact_root": PILOT_ARTIFACT_ROOT,
+            "cells": ["DF1_FULL_SEED0", "DF1_FULL_SEED1", "DF1_RP0_SEED0", "DF1_RP0_SEED1"],
+            "batches": 500,
+            "save_frequency": 250,
+            "num_envs": 4096,
+            "candidate_buckets": ["F00", "F05", "F10"],
+            "rescue_cap_nm": 25.0,
+            "confirmed_e2_share": 0.0,
+        },
         "foot_loading": {
             "threshold_fraction_of_body_weight": 0.10,
             "source": "simulator.contact_forces[:, feet_indices, 2]",
             "body_order": ["FL_foot", "RL_foot", "FR_foot", "RR_foot"],
         },
         "foot_slip_source": "simulator.contact_forces[:, feet_indices, 2] + Articulation.data.body_lin_vel_w[:, foot_body_ids, :]",
-        "smoke": {"envs": 3, "profiles": ["F00", "F05", "F10"], "control_steps": 64, "effort_nm": 100.0, "evidentiary": False},
+        "smoke": {
+            "envs": 3,
+            "profiles": ["F00", "F05", "F10"],
+            "modes": ["HI_FULL"],
+            "control_steps": 64,
+            "rows": 9,
+            "evidentiary": False,
+        },
         "heldout_modes": list(RUNTIME_MODES),
-        "heldout_terminal_status": "NOT_ADMITTED_BY_P2_TERMINAL",
+        "heldout_terminal_status": PILOT_REQUIRED_STATUS,
         "no_duplicate_rescue_when_same_as_hi": True,
     }
+
+
+def _exact_float_list(value: Any, expected: Sequence[float], *, label: str) -> None:
+    if not isinstance(value, (list, tuple)) or len(value) != len(expected):
+        raise ValueError(f"{label} must contain exactly {len(expected)} values")
+    actual = [_finite(item, label=f"{label}[{index}]") for index, item in enumerate(value)]
+    if actual != [float(item) for item in expected]:
+        raise ValueError(f"{label} does not match the frozen contract")
+
+
+def _validate_parameter_vitals(
+    row: Mapping[str, Any],
+    *,
+    expected_cap: float,
+    expected_profile: str,
+    label: str,
+) -> None:
+    vitals = row.get("parameter_vitals")
+    if not isinstance(vitals, Mapping):
+        raise ValueError(f"{label}.parameter_vitals must be a mapping")
+    if (
+        vitals.get("schema") != "a2_piper_v24_p2_parameter_vitals_v1"
+        or vitals.get("authority") != "MODELED_FROM_PARAMS"
+        or vitals.get("solver_applied") is not False
+        or vitals.get("actual_generalized_torque") != "UNAVAILABLE_NOT_USED"
+    ):
+        raise ValueError(f"{label}.parameter_vitals top authority/schema contract mismatch")
+
+    arm = vitals.get("arm")
+    if not isinstance(arm, Mapping):
+        raise ValueError(f"{label}.parameter_vitals.arm must be a mapping")
+    if arm.get("joint_names") != [f"arm_j{index}" for index in range(1, 7)]:
+        raise ValueError(f"{label}.parameter_vitals arm joint names mismatch")
+    if arm.get("registered_cap_values_nm") != list(REGISTERED_CAPS_NM):
+        raise ValueError(f"{label}.parameter_vitals registered arm caps mismatch")
+    if _finite(arm.get("registered_active_cap_nm"), label=f"{label}.parameter_vitals.arm.registered_active_cap_nm") != expected_cap:
+        raise ValueError(f"{label}.parameter_vitals active cap disagrees with row treatment")
+    for field in ("requested_effort_limit_nm", "readback_effort_limit_nm", "contract_effort_limit_nm"):
+        _exact_float_list(arm.get(field), [expected_cap] * 6, label=f"{label}.parameter_vitals.arm.{field}")
+
+    gripper = vitals.get("gripper")
+    if not isinstance(gripper, Mapping) or gripper.get("joint_names") != ["arm_j7", "arm_j8"]:
+        raise ValueError(f"{label}.parameter_vitals gripper face mismatch")
+    if gripper.get("swept_by_arm_cap") is not False or gripper.get("unchanged_by_arm_cap") is not True:
+        raise ValueError(f"{label}.parameter_vitals gripper sweep/unchanged flags mismatch")
+    for field, expected in (
+        ("effort_limit_nm", (45.0, 45.0)),
+        ("stiffness_nm_per_rad", (1300.0, 1300.0)),
+        ("damping_nm_s_per_rad", (32.0, 32.0)),
+    ):
+        face = gripper.get(field)
+        if not isinstance(face, Mapping):
+            raise ValueError(f"{label}.parameter_vitals.gripper.{field} must be a mapping")
+        _exact_float_list(face.get("readback"), expected, label=f"{label}.parameter_vitals.gripper.{field}.readback")
+        _exact_float_list(face.get("contract"), expected, label=f"{label}.parameter_vitals.gripper.{field}.contract")
+
+    profile = FRICTION_PROFILES.get(expected_profile)
+    if profile is None:
+        raise ValueError(f"unknown expected friction profile {expected_profile!r}")
+    expected_friction = {
+        "static_friction_nm": profile["static_effort_nm"],
+        "dynamic_friction_nm": profile["dynamic_effort_nm"],
+        "viscous_friction_nm_s_per_rad": profile["viscous_coefficient_nm_s_per_rad"],
+    }
+    door = vitals.get("door_friction")
+    if not isinstance(door, Mapping):
+        raise ValueError(f"{label}.parameter_vitals.door_friction must be a mapping")
+    if (
+        not isinstance(door.get("hinge_joint_name"), str)
+        or isinstance(door.get("hinge_joint_id"), bool)
+        or not isinstance(door.get("hinge_joint_id"), int)
+        or door.get("non_hinge_unchanged") is not True
+        or door.get("authority") != "MODELED_FROM_PARAMS"
+        or door.get("solver_applied") is not False
+        or door.get("actual_generalized_torque") != "UNAVAILABLE_NOT_USED"
+        or door.get("units") != {
+            "static_friction_nm": "N*m",
+            "dynamic_friction_nm": "N*m",
+            "viscous_friction_nm_s_per_rad": "N*m*s/rad",
+        }
+    ):
+        raise ValueError(f"{label}.parameter_vitals door authority/identity/units mismatch")
+    non_hinge_ids = door.get("non_hinge_joint_ids")
+    if (
+        not isinstance(non_hinge_ids, (list, tuple))
+        or any(isinstance(item, bool) or not isinstance(item, int) for item in non_hinge_ids)
+        or door["hinge_joint_id"] in non_hinge_ids
+    ):
+        raise ValueError(f"{label}.parameter_vitals non-hinge joint identity mismatch")
+    for field in ("requested", "readback", "contract"):
+        values = door.get(field)
+        if not isinstance(values, Mapping) or dict(values) != expected_friction:
+            raise ValueError(f"{label}.parameter_vitals.door_friction.{field} disagrees with {expected_profile}")
+    if (
+        not isinstance(door.get("non_hinge_before"), Mapping)
+        or not isinstance(door.get("non_hinge_after"), Mapping)
+        or door["non_hinge_before"] != door["non_hinge_after"]
+    ):
+        raise ValueError(f"{label}.parameter_vitals non-hinge before/after mismatch")
+
+    unit_boundary = vitals.get("unit_boundary")
+    if not isinstance(unit_boundary, Mapping) or (
+        unit_boundary.get("analysis_surface") != "radian"
+        or unit_boundary.get("degree_per_radian_boundary") != 57.3
+        or unit_boundary.get("static_dynamic_effort_conversion_applied") is not False
+        or unit_boundary.get("viscous_conversion_applied") is not False
+    ):
+        raise ValueError(f"{label}.parameter_vitals unit boundary mismatch")
+
+
+def _validate_window_selection(row: Mapping[str, Any], *, label: str) -> None:
+    selection = row.get("window_selection")
+    status = row.get("window_selection_status")
+    reason = row.get("window_selection_reason")
+    admission_status = row.get("window_selection_admission_status")
+    if selection not in {WINDOW_SELECTION_ADMITTED, WINDOW_SELECTION_FALLBACK}:
+        raise ValueError(f"{label} window selection enum is unsupported")
+    if status != selection or reason != selection:
+        raise ValueError(f"{label} window selection enum/status/reason mismatch")
+    if not isinstance(row.get("window_selection_valid"), bool) or not isinstance(row.get("excluded_window_selection"), bool):
+        raise TypeError(f"{label} window selection flags must be bool")
+    if row["window_selection_valid"] is not (not row["excluded_window_selection"]):
+        raise ValueError(f"{label} window selection flags are not exact inverses")
+    if not isinstance(row.get("model_valid"), bool):
+        raise TypeError(f"{label}.model_valid must be bool")
+    stable_count = row.get("window_stable_grasp_count")
+    if stable_count is not None and (isinstance(stable_count, bool) or not isinstance(stable_count, int) or not 0 <= stable_count <= 25):
+        raise ValueError(f"{label}.window_stable_grasp_count must be null or an integer in 0..25")
+    stage_ids = row.get("window_stage_ids")
+    if not isinstance(stage_ids, (list, tuple)) or any(isinstance(stage, bool) or not isinstance(stage, int) for stage in stage_ids):
+        raise ValueError(f"{label}.window_stage_ids must be an integer sequence")
+    if "window_stage_reach_valid" in row and row.get("window_stage_reach_valid") is not all(stage in {3, 4} for stage in stage_ids):
+        raise ValueError(f"{label}.window_stage_reach_valid disagrees with the stage-id reference band")
+    source_status = row.get("source_status")
+    grasp_available = row.get("grasp_source_unavailable") is False and isinstance(source_status, Mapping) and source_status.get("grasp") == "AVAILABLE"
+    if selection == WINDOW_SELECTION_ADMITTED:
+        if (
+            admission_status != WINDOW_SELECTION_ADMITTED_STATUS
+            or row["window_selection_valid"] is not True
+            or row["excluded_window_selection"] is not False
+            or row.get("stable_grasp") is not True
+            or stable_count is None
+            or stable_count < 20
+            or not stage_ids
+            or any(stage not in {3, 4} for stage in stage_ids)
+            or not grasp_available
+            or row.get("valid") is not row.get("model_valid")
+        ):
+            raise ValueError(f"{label} admitted window selection contract failed")
+    else:
+        missing_grasp = (
+            stable_count is None
+            and row.get("stable_grasp") is None
+            and row.get("grasp_source_unavailable") is True
+            and isinstance(source_status, Mapping)
+            and source_status.get("grasp") == "SOURCE_UNAVAILABLE"
+        )
+        available_grasp = (
+            stable_count is not None
+            and row.get("stable_grasp") is not None
+            and row.get("grasp_source_unavailable") is False
+            and isinstance(source_status, Mapping)
+            and source_status.get("grasp") == "AVAILABLE"
+        )
+        if (
+            admission_status != WINDOW_SELECTION_FALLBACK_STATUS
+            or row["window_selection_valid"] is not False
+            or row["excluded_window_selection"] is not True
+            or row.get("valid") is not False
+            or not (missing_grasp or available_grasp)
+        ):
+            raise ValueError(f"{label} fallback window selection must be explicitly non-admissible")
 
 
 def _validate_raw_rows(
@@ -325,7 +594,7 @@ def _validate_raw_rows(
         directional_high_effort = row.get("directional_high_effort")
         if not isinstance(directional_high_effort, bool):
             raise TypeError(f"{kind}[{index}].directional_high_effort must be bool")
-        for field in ("valid", "nonbinding", "foot_slip_valid"):
+        for field in ("valid", "model_valid", "nonbinding", "foot_slip_valid"):
             if not isinstance(row.get(field), bool):
                 raise TypeError(f"{kind}[{index}].{field} must be bool")
         if row.get("alpha_valid") is not True:
@@ -397,6 +666,8 @@ def _validate_raw_rows(
             raise ValueError(f"{kind}[{index}] cannot exclude grasp when the grasp source is unavailable")
         if row["stable_grasp"] is not None and row["excluded_grasp"] is not (not row["stable_grasp"]):
             raise ValueError(f"{kind}[{index}] grasp exclusion must reflect the frozen 20/25 window threshold")
+        _validate_window_selection(row, label=f"{kind}[{index}]")
+        _validate_parameter_vitals(row, expected_cap=cap, expected_profile=profile, label=f"{kind}[{index}]")
         if row.get("rescue_progress_rad") is not None or row.get("rescue_gain_rad") is not None:
             raise ValueError(f"{kind}[{index}] rescue progress/gain must be derived from matched cells, not a raw row")
         row["source_unavailable"] = source_unavailable
@@ -423,6 +694,226 @@ def _validate_raw_rows(
         extra = sorted(actual_identity - expected_identity)
         raise ValueError(f"{kind} rows must contain exact registered identities; missing={missing[:3]!r} extra={extra[:3]!r}")
     return normalized
+
+
+def _read_vital_source_rows() -> list[dict[str, Any]]:
+    source = require_file(VITALS_SOURCE, label="P2 immutable sham vitals source")
+    rows = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if len(rows) != len(SCENARIO_IDS) or any(not isinstance(row, dict) for row in rows):
+        raise ValueError("P2 immutable sham vitals source must contain exactly 16 mapping rows")
+    return rows
+
+
+def _validate_vital_rows(rows: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    if isinstance(rows, (str, bytes)) or len(rows) != len(SCENARIO_IDS):
+        raise ValueError("P2 immutable sham vitals require exactly 16 rows")
+    normalized: list[dict[str, Any]] = []
+    seen: set[tuple[Any, ...]] = set()
+    for index, raw in enumerate(rows):
+        if not isinstance(raw, Mapping):
+            raise TypeError(f"vitals row {index} must be a mapping")
+        label = f"vitals[{index}]"
+        if (
+            raw.get("env_id") != index
+            or raw.get("scenario_id") != SCENARIO_IDS[index]
+            or raw.get("seed") != 0
+            or raw.get("profile") != "F00"
+            or raw.get("cap_nm") != 40.0
+            or raw.get("mode") != "HI_FULL"
+            or raw.get("continuity_id") != "VITALS_R12_FIXED_SHAM"
+        ):
+            raise ValueError(f"{label} identity must be env{index}/S{index:02d}, seed0, F00, cap40, HI_FULL")
+        if raw.get("authority") != RUNTIME_AUTHORITY_SET:
+            raise ValueError(f"{label} authority set mismatch")
+        if raw.get("window_transition_count") != 25:
+            raise ValueError(f"{label} must summarize exactly 25 transitions")
+        for field in ("valid", "model_valid", "foot_slip_valid", "grasp_source_unavailable", "model_source_unavailable"):
+            if not isinstance(raw.get(field), bool):
+                raise TypeError(f"{label}.{field} must be bool")
+        if raw.get("source_unavailable") != ("SOURCE_UNAVAILABLE" if raw["grasp_source_unavailable"] or raw["model_source_unavailable"] else None):
+            raise ValueError(f"{label}.source_unavailable disagrees with typed source fields")
+        source_status = raw.get("source_status")
+        if not isinstance(source_status, Mapping) or source_status.get("foot") != "AVAILABLE":
+            raise ValueError(f"{label} foot source status must be AVAILABLE")
+        expected_grasp_status = "SOURCE_UNAVAILABLE" if raw["grasp_source_unavailable"] else "AVAILABLE"
+        if source_status.get("grasp") != expected_grasp_status:
+            raise ValueError(f"{label}.source_status.grasp disagrees with typed grasp source flag")
+        expected_model_status = "SOURCE_UNAVAILABLE" if raw["model_source_unavailable"] else "AVAILABLE"
+        if source_status.get("model") != expected_model_status:
+            raise ValueError(f"{label}.source_status.model disagrees with model source flag")
+        stable_grasp = raw.get("stable_grasp")
+        if stable_grasp is not None and not isinstance(stable_grasp, bool):
+            raise TypeError(f"{label}.stable_grasp must be bool or null")
+        if stable_grasp is None and raw["grasp_source_unavailable"] is not True:
+            raise ValueError(f"{label} missing stable-grasp source must be typed unavailable")
+        if stable_grasp is not None and raw["grasp_source_unavailable"] is not False:
+            raise ValueError(f"{label} stable-grasp source availability flag mismatch")
+        if not isinstance(raw.get("source_api"), Mapping) or not raw["source_api"]:
+            raise ValueError(f"{label}.source_api must identify source tensors")
+        key = (raw["env_id"], raw["scenario_id"], raw["seed"], raw["profile"], raw["cap_nm"], raw["mode"], raw["continuity_id"])
+        if key in seen:
+            raise ValueError(f"duplicate vital identity {key!r}")
+        seen.add(key)
+        _validate_window_selection(raw, label=label)
+        _validate_parameter_vitals(raw, expected_cap=40.0, expected_profile="F00", label=label)
+        item = dict(raw)
+        item["excluded"] = tuple(name for name in EXCLUSIONS if item.get(f"excluded_{name.lower()}") is True)
+        normalized.append(item)
+    expected_keys = {
+        (index, SCENARIO_IDS[index], 0, "F00", 40.0, "HI_FULL", "VITALS_R12_FIXED_SHAM")
+        for index in range(len(SCENARIO_IDS))
+    }
+    if seen != expected_keys:
+        raise ValueError("P2 immutable sham vitals identities are not exactly env0..15/S00..S15")
+    return normalized
+
+
+def _path_reference(path: str | Path, *, require_file_exists: bool = True) -> dict[str, str]:
+    target = Path(path)
+    if not target.is_absolute():
+        target = REPO_ROOT / target
+    if require_file_exists:
+        target = require_file(target, label="P2 referenced artifact").resolve()
+    else:
+        target = target.resolve()
+    return {"relative": rel_path(target), "absolute": str(target)}
+
+
+def _receipt_reference(relative: str) -> dict[str, str]:
+    target = (REPO_ROOT / ARTIFACT_ROOT / relative).resolve()
+    return {"relative": rel_path(target), "absolute": str(target)}
+
+
+def _build_rule16_admission(
+    *,
+    grasp_count: int,
+    stage_reach_count: int,
+    parameter_count: int,
+) -> dict[str, Any]:
+    admission = {
+        "schema": RULE16_SCHEMA,
+        "admission_id": "RULE16_P2_R12",
+        "status": "PASS",
+        "owner_decision_artifact": _path_reference(OWNER_DECISION),
+        "vitals_receipt_artifact": _receipt_reference(VITAL_ARTIFACTS[2]),
+        "source_artifact": _path_reference(VITALS_SOURCE, require_file_exists=False),
+        "grasp_vital": {"count": grasp_count, "required": 14, "pass": grasp_count >= 14},
+        "stage_reach_vital": {
+            "count": stage_reach_count,
+            "required": STAGE_REACH_REFERENCE_BAND["required_env_count"],
+            "pass": stage_reach_count == STAGE_REACH_REFERENCE_BAND["required_env_count"],
+            "reference_band": dict(STAGE_REACH_REFERENCE_BAND),
+        },
+        "parameter_vital": {"count": parameter_count, "required": 16, "pass": parameter_count == 16},
+        "gradient_admission": dict(GRADIENT_ADMISSION),
+    }
+    if not all(
+        admission[key]["pass"] for key in ("grasp_vital", "stage_reach_vital", "parameter_vital")
+    ):
+        raise ValueError("Rule16 vitals did not pass grasp/stage-reach/parameter admission")
+    return admission
+
+
+def _validate_rule16_admission(payload: Mapping[str, Any], *, require_source_files: bool = False) -> None:
+    if not isinstance(payload, Mapping) or payload.get("schema") != RULE16_SCHEMA:
+        raise ValueError("Rule16 admission schema is missing or invalid")
+    if payload.get("admission_id") != "RULE16_P2_R12" or payload.get("status") != "PASS":
+        raise ValueError("Rule16 admission identity/status is invalid")
+    if payload.get("owner_decision_artifact") != _path_reference(OWNER_DECISION):
+        raise ValueError("Rule16 owner-decision provenance is not canonical")
+    if payload.get("source_artifact") != _path_reference(VITALS_SOURCE, require_file_exists=False):
+        raise ValueError("Rule16 source-vitals provenance is not canonical")
+    expected_receipt = _receipt_reference(VITAL_ARTIFACTS[2])
+    if payload.get("vitals_receipt_artifact") != expected_receipt:
+        raise ValueError("Rule16 receipt provenance is not canonical")
+    stage = payload.get("stage_reach_vital")
+    if not isinstance(stage, Mapping) or stage.get("reference_band") != STAGE_REACH_REFERENCE_BAND:
+        raise ValueError("Rule16 stage-reach reference band is missing or mutated")
+    for key, required in (("grasp_vital", 14), ("stage_reach_vital", 16), ("parameter_vital", 16)):
+        vital = payload.get(key)
+        if not isinstance(vital, Mapping) or vital.get("required") != required or vital.get("pass") is not True:
+            raise ValueError(f"Rule16 {key} is not admitted")
+        if isinstance(vital.get("count"), bool) or not isinstance(vital.get("count"), int) or vital["count"] < required:
+            raise ValueError(f"Rule16 {key} count is below its requirement")
+    if payload.get("gradient_admission") != GRADIENT_ADMISSION:
+        raise ValueError("Rule16 gradient-admission provenance is not canonical")
+    if require_source_files:
+        require_file(payload["owner_decision_artifact"]["absolute"], label="Rule16 owner decision")
+        require_file(payload["source_artifact"]["absolute"], label="Rule16 vitals source")
+
+
+def _build_vital_receipt(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    normalized = _validate_vital_rows(rows)
+    grasp_count = sum(
+        row.get("stable_grasp") is True
+        and row.get("window_selection_valid") is True
+        and row.get("excluded_window_selection") is False
+        and row.get("grasp_source_unavailable") is False
+        and isinstance(row.get("source_status"), Mapping)
+        and row["source_status"].get("grasp") == "AVAILABLE"
+        for row in normalized
+    )
+    parameter_count = len(normalized)
+    stage_reach_count = sum(
+        row.get("window_transition_count") == STAGE_REACH_REFERENCE_BAND["window_transition_count"]
+        and row.get("window_stable_grasp_count", 0) >= STAGE_REACH_REFERENCE_BAND["minimum_current_stable_grasp_rows"]
+        and row.get("window_selection_valid") is True
+        and row.get("stable_grasp") is True
+        and set(row.get("window_stage_ids", ())).issubset(set(STAGE_REACH_REFERENCE_BAND["stage_ids"]))
+        and bool(row.get("window_stage_ids"))
+        for row in normalized
+    )
+    model_valid_count = sum(row.get("model_valid") is True for row in normalized)
+    model_unavailable_count = sum(row.get("model_source_unavailable") is True for row in normalized)
+    foot_valid_count = sum(row.get("foot_slip_valid") is True for row in normalized)
+    grasp_pass = grasp_count >= 14
+    parameter_pass = parameter_count == 16
+    rule16 = _build_rule16_admission(
+        grasp_count=grasp_count,
+        stage_reach_count=stage_reach_count,
+        parameter_count=parameter_count,
+    )
+    return {
+        "schema": VITALS_RECEIPT_SCHEMA,
+        "status": "PASS",
+        "measurement_vital_status": "PASS_VALID_MEASUREMENT_ADMISSION",
+        "r10_terminal_result": "V24_E1_DENOMINATOR_INSUFFICIENT",
+        "r10_scientific_reclassification": "SUSPECTED_INVALID_MEASUREMENT_PENDING_VITALS",
+        "p2_scientific_verdict": None,
+        "scientific_verdict": None,
+        "owner_decision": "P2_TERMINAL_RECLASSIFIED + DIAGNOSE_THEN_RERUN",
+        "owner_decision_artifact": _path_reference(OWNER_DECISION),
+        "source_artifact": _path_reference(VITALS_SOURCE, require_file_exists=False),
+        "grasp_vital": {"count": grasp_count, "required": 14, "pass": grasp_pass},
+        "stage_reach_vital": rule16["stage_reach_vital"],
+        "parameter_vitals": {"count": parameter_count, "required": 16, "pass": parameter_pass},
+        "rule16_admission": rule16,
+        "descriptive_counts": {
+            "model_valid": model_valid_count,
+            "model_source_unavailable": model_unavailable_count,
+            "foot_slip_valid": foot_valid_count,
+        },
+        "row_count": len(normalized),
+        "does_not_adjudicate": ["denominator", "ladder", "E_region", "physics"],
+    }
+
+
+def _require_completed_vital_receipt(payload: Mapping[str, Any], *, require_source_files: bool = True) -> None:
+    if (
+        payload.get("schema") != VITALS_RECEIPT_SCHEMA
+        or payload.get("status") != "PASS"
+        or payload.get("measurement_vital_status") != "PASS_VALID_MEASUREMENT_ADMISSION"
+        or payload.get("r10_terminal_result") != "V24_E1_DENOMINATOR_INSUFFICIENT"
+        or payload.get("r10_scientific_reclassification") != "SUSPECTED_INVALID_MEASUREMENT_PENDING_VITALS"
+        or payload.get("p2_scientific_verdict") is not None
+        or payload.get("grasp_vital", {}).get("pass") is not True
+        or payload.get("parameter_vitals", {}).get("pass") is not True
+    ):
+        raise RuntimeError("P2 smoke/calibration and downstream stages require a completed PASS sham-vitals receipt")
+    try:
+        _validate_rule16_admission(payload.get("rule16_admission"), require_source_files=require_source_files)
+    except (TypeError, ValueError, KeyError) as exc:
+        raise RuntimeError("P2 downstream stages require a completed Rule16 vitals admission") from exc
 
 
 def _derive_ladder(rows: Sequence[Mapping[str, Any]], *, status: str) -> dict[str, Any]:
@@ -518,12 +1009,41 @@ def _derive_threshold(rows: Sequence[Mapping[str, Any]], *, status: str, tau_hi_
     }
 
 
-def _terminal_threshold_freeze(terminal_result: str) -> dict[str, Any]:
+def _terminal_threshold_freeze(
+    terminal_result: str,
+    *,
+    rule16_admission: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     if terminal_result not in PREHELDOUT_TERMINAL_RESULTS:
         raise ValueError(f"unsupported pre-heldout terminal result: {terminal_result!r}")
     payload = certificate_threshold_freeze(status="NOT_ADMITTED_BY_P2_TERMINAL")
     payload.update({"terminal": True, "terminal_result": terminal_result})
+    if rule16_admission is not None:
+        _validate_rule16_admission(rule16_admission)
+        payload["rule16_admission"] = dict(rule16_admission)
     return payload
+
+
+def _pilot_required_threshold_freeze(rule16_admission: Mapping[str, Any]) -> dict[str, Any]:
+    _validate_rule16_admission(rule16_admission)
+    return {
+        "schema": THRESHOLD_SCHEMA,
+        "status": PILOT_REQUIRED_STATUS,
+        "pilot_required": True,
+        "terminal": False,
+        "terminal_result": None,
+        "pilot_registration_id": PILOT_REGISTRATION_ID,
+        "gradient_admission": dict(GRADIENT_ADMISSION),
+        "rule16_admission": dict(rule16_admission),
+        "window_control_steps": 25,
+        "stable_grasp_steps": 20,
+        "denominator_min": 8,
+        "qualifying_min": 8,
+        "candidate_buckets": ["F00", "F05", "F10"],
+        "rescue_cap_nm": 25.0,
+        "confirmed_e2_share": 0.0,
+        "heldout_status": "BLOCKED_PENDING_MARGINAL_E1_PILOT",
+    }
 
 
 def _validate_terminal_heldout_receipt(payload: Mapping[str, Any] | None, *, terminal_result: str) -> bool:
@@ -541,18 +1061,9 @@ def _validate_terminal_heldout_receipt(payload: Mapping[str, Any] | None, *, ter
 
 
 def _preheldout_terminal_result(calibration: Sequence[Mapping[str, Any]], ladder: Mapping[str, Any]) -> str | None:
-    if ladder.get("command_path_binding") is not True:
-        return "V24_ARM_COMMAND_PATH_NOT_BINDING"
-    boundary = ladder.get("tau_boundary_nm")
-    tau_hi = ladder.get("tau_hi_nm")
-    if boundary is None or tau_hi is None:
-        return "V24_E1_DENOMINATOR_INSUFFICIENT"
-    anchor = _calibration_e0_anchor_scenarios(calibration, float(tau_hi))
-    matched = _calibration_e1_scenarios(calibration, float(boundary))
-    if len(anchor) < 8 or len(matched) < 8:
-        return "V24_E1_DENOMINATOR_INSUFFICIENT"
-    if not qualifies_boundary_cap(calibration, float(boundary)):
-        return "V24_DOOR_MODEL_REMAINS_INSUFFICIENT"
+    # r12 deliberately does not convert a pre-pilot measurement shortfall into
+    # a terminal result.  The owner-directed one-shot F3 pilot is the required
+    # next measurement; only post-pilot adjudication may emit a typed terminal.
     return None
 
 
@@ -562,6 +1073,10 @@ def validate_overlay(payload: Mapping[str, Any], *, source_path: str | Path = CO
     p2 = payload.get("v24_p2")
     _require(isinstance(p2, Mapping), "overlay must define v24_p2")
     _require(payload.get("v24_schema") == "a2_piper_v24_p2_force_boundary_v1", "overlay schema mismatch")
+    _require(payload.get("v24_plan_id") == "base_v24_force_boundary_R12", "overlay plan id must be the r12 candidate")
+    _require(payload.get("v24_pilot_registration_id") == PILOT_REGISTRATION_ID, "overlay pilot registration id mismatch")
+    _require(payload.get("v24_pilot_status_before_run") == PILOT_REQUIRED_STATUS, "overlay must gate pre-pilot execution")
+    _require(payload.get("v24_gradient_admission_status") == GRADIENT_ADMISSION["status"], "overlay gradient-admission status mismatch")
     _require(p2.get("checkpoint") == CHECKPOINT, "overlay checkpoint mismatch")
     _require(p2.get("checkpoint_load_mode") == "selected_policy_only", "overlay load mode mismatch")
     _require(p2.get("calibration_seed") == 24021 and p2.get("heldout_seed") == 24022, "overlay seeds mismatch")
@@ -581,7 +1096,7 @@ def validate_overlay(payload: Mapping[str, Any], *, source_path: str | Path = CO
     artifacts = p2.get("artifacts")
     _require(isinstance(artifacts, Mapping), "overlay artifact map is missing")
     _require(artifacts.get("root") == ARTIFACT_ROOT and artifacts.get("append_only") is True, "overlay artifact root/append-only contract mismatch")
-    _require(tuple(artifacts.get("files", ())) == STAGE_ARTIFACTS, "overlay artifact file map mismatch")
+    _require(tuple(artifacts.get("files", ())) == REGISTERED_ARTIFACTS, "overlay artifact file map mismatch")
     profiles = p2.get("friction_profiles")
     _require(profiles == FRICTION_PROFILES, "overlay friction profile set mismatch")
     door_model = p2.get("door_model")
@@ -603,7 +1118,7 @@ def validate_overlay(payload: Mapping[str, Any], *, source_path: str | Path = CO
         "a2_v24_force_boundary_seed": 24021,
         "a2_v24_force_boundary_continuity_id": "CALIBRATION",
         "a2_v24_force_boundary_scenario_ids": list(SCENARIO_IDS),
-        "a2_v24_force_boundary_runtime_export_path": "logs_eval/base_v24/p2/force_boundary/r10/_runtime/P2_RUNTIME_ROWS.jsonl",
+        "a2_v24_force_boundary_runtime_export_path": VITALS_SOURCE,
         "a2_v24_force_boundary_control_period_s": 0.02,
         "a2_v24_force_boundary_velocity_epsilon_rad_s": 0.001,
     }.items():
@@ -622,7 +1137,7 @@ def _row_is_usable(row: Mapping[str, Any], *, require_slip: bool = True) -> bool
         return False
     if any(row.get(field) is not False for field in ("grasp_source_unavailable", "model_source_unavailable")):
         return False
-    if row.get("stable_grasp") is not True or row.get("excluded"):
+    if row.get("stable_grasp") is not True or row.get("window_selection_valid") is not True or row.get("excluded"):
         return False
     if require_slip and row.get("foot_slip_valid") is not True:
         return False
@@ -891,7 +1406,14 @@ def _validate_ladder_payload(payload: Mapping[str, Any], *, require_executed: bo
             return False
     elif rescue != _immediate_higher_cap(boundary):
         return False
-    return payload.get("registered_primary_caps_nm") == list(PRIMARY_CAPS_NM) and payload.get("registered_contingency_cap_nm") == CONTINGENCY_CAP_NM
+    if payload.get("registered_primary_caps_nm") != list(PRIMARY_CAPS_NM) or payload.get("registered_contingency_cap_nm") != CONTINGENCY_CAP_NM:
+        return False
+    if require_executed:
+        try:
+            _validate_rule16_admission(payload.get("rule16_admission"))
+        except (TypeError, ValueError):
+            return False
+    return True
 
 
 def _validate_threshold_payload(payload: Mapping[str, Any], *, require_executed: bool) -> bool:
@@ -902,8 +1424,34 @@ def _validate_threshold_payload(payload: Mapping[str, Any], *, require_executed:
             return False
         if "foot_slip_q99_m_s" in payload or "tau_hi_nm" in payload:
             return False
-        expected = _terminal_threshold_freeze(str(payload["terminal_result"]))
+        expected = _terminal_threshold_freeze(str(payload["terminal_result"]), rule16_admission=payload.get("rule16_admission"))
+        if payload.get("rule16_admission") is not None:
+            try:
+                _validate_rule16_admission(payload["rule16_admission"])
+            except (TypeError, ValueError):
+                return False
         return dict(payload) == expected
+    if payload.get("status") == PILOT_REQUIRED_STATUS:
+        if payload.get("terminal") is not False or payload.get("pilot_required") is not True:
+            return False
+        if payload.get("pilot_registration_id") != PILOT_REGISTRATION_ID:
+            return False
+        if payload.get("gradient_admission") != GRADIENT_ADMISSION:
+            return False
+        try:
+            _validate_rule16_admission(payload.get("rule16_admission"))
+        except (TypeError, ValueError):
+            return False
+        return (
+            payload.get("window_control_steps") == 25
+            and payload.get("stable_grasp_steps") == 20
+            and payload.get("denominator_min") == 8
+            and payload.get("qualifying_min") == 8
+            and payload.get("candidate_buckets") == ["F00", "F05", "F10"]
+            and payload.get("rescue_cap_nm") == 25.0
+            and payload.get("confirmed_e2_share") == 0.0
+            and payload.get("heldout_status") == "BLOCKED_PENDING_MARGINAL_E1_PILOT"
+        )
     if payload.get("status") != "EXECUTED":
         return False
     if "terminal" in payload or "terminal_result" in payload:
@@ -913,6 +1461,11 @@ def _validate_threshold_payload(payload: Mapping[str, Any], *, require_executed:
         tau_hi = _finite(payload.get("tau_hi_nm"), label="tau_hi_nm")
     except (TypeError, ValueError):
         return False
+    if require_executed:
+        try:
+            _validate_rule16_admission(payload.get("rule16_admission"))
+        except (TypeError, ValueError):
+            return False
     return (
         tau_hi in PRIMARY_CAPS_NM
         and payload.get("window_control_steps") == 25
@@ -935,11 +1488,21 @@ def _authority_source_gate(rows: Sequence[Mapping[str, Any]]) -> bool:
             return False
         if row.get("stable_grasp") is not True or row.get("grasp_source_unavailable") is not False:
             return False
+        if row.get("window_selection_valid") is not True or row.get("excluded_window_selection") is not False:
+            return False
     return True
 
 
 def _require_completed_smoke_receipt(payload: Mapping[str, Any]) -> None:
-    if payload.get("status") != "EXECUTED" or payload.get("evidentiary") is not False:
+    if (
+        payload.get("status") != "EXECUTED"
+        or payload.get("evidentiary") is not False
+        or payload.get("rows") != 9
+        or payload.get("envs") != 3
+        or payload.get("profiles") != ["F00", "F05", "F10"]
+        or payload.get("modes") != ["HI_FULL"]
+        or payload.get("control_steps") != 64
+    ):
         raise RuntimeError("P2 calibration requires a completed non-evidentiary smoke receipt")
 
 
@@ -956,17 +1519,28 @@ def adjudicate_p2(
     parameter_range_payload: Mapping[str, Any] | None = None,
     ladder_payload: Mapping[str, Any] | None = None,
     threshold_payload: Mapping[str, Any] | None = None,
+    vitals_receipt: Mapping[str, Any] | None = None,
+    pilot_adjudication: Mapping[str, Any] | None = None,
+    require_vitals_source_files: bool = True,
 ) -> dict[str, Any]:
     """Recompute P2/E1/E2 from immutable raw rows and typed source gates."""
 
     _require(parameter_range_payload is not None and _validate_parameter_range_payload(parameter_range_payload, require_executed=True), "P2 parameter freeze artifact is invalid")
     _require(ladder_payload is not None and _validate_ladder_payload(ladder_payload, require_executed=True), "P2 ladder freeze artifact is invalid")
     _require(threshold_payload is not None and _validate_threshold_payload(threshold_payload, require_executed=True), "P2 threshold freeze artifact is invalid")
+    _require(vitals_receipt is not None, "P2 Rule16 vitals receipt is required for adjudication")
+    _require_completed_vital_receipt(vitals_receipt, require_source_files=require_vitals_source_files)
     _require(parameter_range_valid and ladder_valid and threshold_valid, "P2 freeze gates are incomplete")
     _require(authority_set is not None and dict(authority_set) == AUTHORITY_SET, "P2 authority set is missing or mutated")
     calibration_has_contingency = any(isinstance(row, Mapping) and row.get("cap_nm") == CONTINGENCY_CAP_NM for row in calibration_rows)
     calibration = _validate_raw_rows(calibration_rows, kind="calibration_with_contingency" if calibration_has_contingency else "calibration")
     ladder = select_boundary_cap(calibration)
+    if ladder_payload.get("rule16_admission") != vitals_receipt.get("rule16_admission"):
+        raise ValueError("P2 ladder artifact does not carry the completed Rule16 admission")
+    if threshold_payload.get("rule16_admission") != vitals_receipt.get("rule16_admission"):
+        raise ValueError("P2 threshold artifact does not carry the completed Rule16 admission")
+    if threshold_payload.get("status") == PILOT_REQUIRED_STATUS:
+        raise ValueError("P2 marginal-E1 pilot is required before final adjudication")
     for key in ("tau_hi_nm", "tau_boundary_nm", "tau_rescue_nm", "command_path_binding", "contingency_result"):
         if ladder_payload.get(key) != ladder.get(key):
             raise ValueError(f"P2 ladder artifact disagrees with raw calibration for {key}")
@@ -983,6 +1557,9 @@ def adjudicate_p2(
     matched = _calibration_e1_scenarios(calibration, float(boundary)) if boundary is not None else set()
     denominator_sufficient = len(matched) >= 8
     anchor_sufficient = len(anchor) >= 8
+    if not denominator_sufficient:
+        if not isinstance(pilot_adjudication, Mapping) or pilot_adjudication.get("schema") != "a2_piper_v24_r12_f3_marginal_e1_adjudication_v1" or pilot_adjudication.get("status") not in {"PILOT_COMPLETE_VALID", "V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3"}:
+            raise ValueError("P2 denominator insufficiency is admissible only after the registered marginal-E1 pilot")
     sensitivity = boundary is not None and qualifies_boundary_cap(calibration, float(boundary))
     e1_established = anchor_sufficient and denominator_sufficient and sensitivity
     command_path_binding = bool(ladder.get("command_path_binding"))
@@ -1043,6 +1620,10 @@ def adjudicate_p2(
         "heldout_required": not preheldout_terminal,
         "raw_recomputation": True,
         "owner_decision_required": False,
+        "rule16_admission": dict(vitals_receipt["rule16_admission"]),
+        "owner_decision_artifact": dict(vitals_receipt["owner_decision_artifact"]),
+        "vitals_receipt_artifact": _receipt_reference(VITAL_ARTIFACTS[2]),
+        "pilot_adjudication": dict(pilot_adjudication) if pilot_adjudication is not None else None,
     }
 
 
@@ -1101,7 +1682,7 @@ def build_plan(config_path: str | Path = CONFIG_PATH) -> dict[str, Any]:
                 "posture_intervention": {
                     "HI_FULL": "none",
                     "BOUNDARY_FULL": "none",
-                    "BOUNDARY_RP0": "pitch_zero",
+                    "BOUNDARY_RP0": "rp0_distribution_mask_indices_3_4",
                     "RESCUE_FULL": "none",
                 },
             },
@@ -1120,7 +1701,9 @@ def build_plan(config_path: str | Path = CONFIG_PATH) -> dict[str, Any]:
             ],
             "actual_generalized_torque": "UNAVAILABLE_NOT_USED",
             "window_contract": {
-                "selection": "first_complete_nonrolling_window",
+                "selection": WINDOW_SELECTION_ADMITTED,
+                "fallback": WINDOW_SELECTION_FALLBACK,
+                "fallback_admission": "non-admissible; WINDOW_SELECTION exclusion",
                 "transitions": 25,
                 "progress": "sum(theta_delta_rad) across all 25 transitions",
                 "stable_grasp_threshold": "20_of_25",
@@ -1128,9 +1711,10 @@ def build_plan(config_path: str | Path = CONFIG_PATH) -> dict[str, Any]:
             },
             "terminal_outcomes": [
                 "V24_ARM_COMMAND_PATH_NOT_BINDING",
-                "V24_E1_DENOMINATOR_INSUFFICIENT",
                 "V24_DOOR_MODEL_REMAINS_INSUFFICIENT",
             ],
+            "pre_pilot_gate": PILOT_REQUIRED_STATUS,
+            "post_pilot_terminal_outcomes": ["V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3"],
         },
         "artifacts": artifact_plan(),
         "typed_results": list(TYPED_RESULTS),
@@ -1284,7 +1868,7 @@ def _policy_only_eval_command(
         "++algo.config.eval.a2_v23_p06_policy_only=true",
         "++algo.config.eval.eval_num_envs_episodes=true",
         f"++algo.config.eval.num_eval_episodes={num_envs}",
-        f"++algo.config.eval.a2_eval_p2_posture_axis={'pitch_zero' if mode == 'BOUNDARY_RP0' else 'none'}",
+        f"++algo.config.eval.a2_eval_p2_posture_axis={'rp0' if mode == 'BOUNDARY_RP0' else 'none'}",
         "++simulator.config.cameras.enable_cameras=false",
         "++simulator.config.render_results=false",
         "++env.config.a2_base.enabled=true",
@@ -1301,7 +1885,7 @@ def _policy_only_eval_command(
     command.extend(
         [
             "++v24_schema=a2_piper_v24_p2_force_boundary_v1",
-            "++v24_plan_id=base_v24_force_boundary_R1",
+            "++v24_plan_id=base_v24_force_boundary_R12",
             "++v24_runtime_mode=P2_TELEMETRY",
             f"++v24_checkpoint_provenance={checkpoint}",
             "++v24_checkpoint_load_mode=selected_policy_only",
@@ -1360,10 +1944,10 @@ def _run_policy_only_first_episode(
         )
         if completed.returncode != 0:
             output_lines = (completed.stdout or "").splitlines()
-            tail = "\n".join(output_lines[-40:]) or "<no evaluator output>"
+            tail = "\n".join(output_lines[-400:]) or "<no evaluator output>"
             raise RuntimeError(
                 "P2 policy-only evaluator failed "
-                f"(return code {completed.returncode}); trailing evaluator output (up to 40 lines):\n{tail}"
+                f"(return code {completed.returncode}); trailing evaluator output (up to 400 lines):\n{tail}"
             )
         rows_path = output_dir / "P2_RUNTIME_ROWS.jsonl"
         if not rows_path.is_file():
@@ -1412,16 +1996,40 @@ def run_stage(
     parameter = _read_json(root, STAGE_ARTIFACTS[0])
     if not _validate_parameter_range_payload(parameter, require_executed=True):
         raise RuntimeError("P2 parameter-range freeze is not executable/complete")
+    if mode == "vitals":
+        root.mkdir(parents=True, exist_ok=True)
+        source_rows = _run_policy_only_first_episode(
+            config_path=target_config,
+            device=device,
+            seed=0,
+            profile="F00",
+            cap_nm=40.0,
+            mode="HI_FULL",
+            num_envs=16,
+            scenario_ids=SCENARIO_IDS,
+            continuity_id="VITALS_R12_FIXED_SHAM",
+            control_steps=1000,
+        )
+        normalized = _validate_vital_rows(source_rows)
+        raw_path = _write_jsonl(root, VITAL_ARTIFACTS[1], source_rows)
+        receipt = _build_vital_receipt(normalized)
+        rows_path = _write_jsonl(root, VITAL_ARTIFACTS[0], normalized)
+        receipt["normalized_rows_artifact"] = {"relative": VITAL_ARTIFACTS[0], "absolute": str(rows_path)}
+        receipt["runtime_source_artifact"] = {"relative": VITAL_ARTIFACTS[1], "absolute": str(raw_path)}
+        receipt_path = _write_json(root, VITAL_ARTIFACTS[2], receipt)
+        return {"stage": mode, "artifacts": [str(rows_path), str(receipt_path)]}
+    if mode in {"smoke", "calibrate", "freeze", "freeze_or_register", "heldout", "adjudicate", "qa"}:
+        _require_completed_vital_receipt(_read_json(root, VITAL_ARTIFACTS[2]))
     if mode == "smoke":
-        rows = []
-        for profile in FRICTION_PROFILES:
+        rows: list[dict[str, Any]] = []
+        for profile in ("F00", "F05", "F10"):
             rows.extend(
                 _run_policy_only_first_episode(
                     config_path=target_config,
                     device=device,
-                    seed=24021,
+                    seed=0,
                     profile=profile,
-                    cap_nm=100.0,
+                    cap_nm=40.0,
                     mode="HI_FULL",
                     num_envs=3,
                     scenario_ids=SCENARIO_IDS[:3],
@@ -1429,9 +2037,24 @@ def run_stage(
                     control_steps=64,
                 )
             )
-        if len(rows) != 9 or {row.get("profile") for row in rows} != set(FRICTION_PROFILES) or any(row.get("window_transition_count") != 25 for row in rows):
-            raise RuntimeError("P2 smoke must produce exactly 3 env rows for each F00/F05/F10 profile")
-        return {"stage": mode, "artifact": str(_write_json(root, STAGE_ARTIFACTS[1], {"schema": "a2_piper_v24_p2_smoke_receipt_v1", "status": "EXECUTED", "evidentiary": False, "rows": len(rows)}))}
+        if (
+            len(rows) != 9
+            or {row.get("profile") for row in rows} != {"F00", "F05", "F10"}
+            or {row.get("mode") for row in rows} != {"HI_FULL"}
+            or any(row.get("window_transition_count") != 25 for row in rows)
+        ):
+            raise RuntimeError("P2 smoke must produce exactly 3 env rows at 64 control steps for each F00/F05/F10 profile")
+        receipt = {
+            "schema": "a2_piper_v24_p2_smoke_receipt_v1",
+            "status": "EXECUTED",
+            "evidentiary": False,
+            "rows": len(rows),
+            "envs": 3,
+            "profiles": ["F00", "F05", "F10"],
+            "modes": ["HI_FULL"],
+            "control_steps": 64,
+        }
+        return {"stage": mode, "artifact": str(_write_json(root, STAGE_ARTIFACTS[1], receipt))}
     if mode == "calibrate":
         smoke = _read_json(root, STAGE_ARTIFACTS[1])
         _require_completed_smoke_receipt(smoke)
@@ -1474,7 +2097,7 @@ def run_stage(
             normalized = _validate_raw_rows(rows, kind="calibration_with_contingency")
         _write_jsonl(root, STAGE_ARTIFACTS[2], normalized)
         return {"stage": mode, "artifact": str(_write_json(root, STAGE_ARTIFACTS[3], {"schema": "a2_piper_v24_p2_calibration_receipt_v1", "status": "EXECUTED", "rows": len(normalized), "seed": 24021}))}
-    if mode == "freeze":
+    if mode in {"freeze", "freeze_or_register"}:
         smoke = _read_json(root, STAGE_ARTIFACTS[1])
         if smoke.get("status") != "EXECUTED":
             raise RuntimeError("P2 smoke receipt is incomplete")
@@ -1484,17 +2107,31 @@ def run_stage(
         receipt = _read_json(root, STAGE_ARTIFACTS[3])
         if receipt.get("status") != "EXECUTED":
             raise RuntimeError("P2 calibration receipt is incomplete")
-        ladder = ladder_freeze(calibration, status="EXECUTED")
+        vitals_receipt = _read_json(root, VITAL_ARTIFACTS[2])
+        _require_completed_vital_receipt(vitals_receipt)
+        rule16 = vitals_receipt["rule16_admission"]
+        ladder = ladder_freeze(calibration, status="EXECUTED", rule16_admission=rule16)
         if not _validate_ladder_payload(ladder, require_executed=True):
             raise RuntimeError("P2 ladder freeze is invalid")
-        terminal_result = _preheldout_terminal_result(calibration, ladder)
-        threshold = (
-            _terminal_threshold_freeze(terminal_result)
-            if terminal_result is not None
-            else certificate_threshold_freeze(calibration, status="EXECUTED", tau_hi_nm=ladder.get("tau_hi_nm"))
-        )
+        # The r12 pre-pilot path is intentionally one-shot gated.  Even if a
+        # future calibration happens to look sufficient, it must first pass the
+        # registered marginal-E1 pilot before any heldout/final artifact.
+        threshold = _pilot_required_threshold_freeze(rule16)
         _write_json(root, STAGE_ARTIFACTS[4], ladder)
-        return {"stage": mode, "artifacts": [str(_write_json(root, STAGE_ARTIFACTS[5], threshold))]}
+        threshold_path = _write_json(root, STAGE_ARTIFACTS[5], threshold)
+        if threshold["status"] == PILOT_REQUIRED_STATUS:
+            from scriptsFORhuman.v24 import p2_marginal_e1_pilot
+
+            registration_path = p2_marginal_e1_pilot.write_registration(
+                vitals_receipt=vitals_receipt,
+                gradient_admission=GRADIENT_ADMISSION,
+            )
+            return {
+                "stage": "freeze_or_register",
+                "status": PILOT_REQUIRED_STATUS,
+                "artifacts": [str(_artifact_path(root, STAGE_ARTIFACTS[4])), str(threshold_path), str(registration_path)],
+            }
+        return {"stage": mode, "status": "EXECUTED", "artifacts": [str(threshold_path)]}
     if mode == "heldout":
         ladder = _read_json(root, STAGE_ARTIFACTS[4])
         threshold = _read_json(root, STAGE_ARTIFACTS[5])
@@ -1504,6 +2141,8 @@ def run_stage(
         calibration_has_contingency = any(row.get("cap_nm") == CONTINGENCY_CAP_NM for row in calibration_rows)
         calibration = _validate_raw_rows(calibration_rows, kind="calibration_with_contingency" if calibration_has_contingency else "calibration")
         terminal_result = _preheldout_terminal_result(calibration, ladder)
+        if threshold.get("status") == PILOT_REQUIRED_STATUS:
+            raise RuntimeError("MARGINAL_E1_PILOT_REQUIRED: generate and adjudicate the one-shot F3 pilot before heldout")
         threshold_is_terminal = threshold.get("status") == "NOT_ADMITTED_BY_P2_TERMINAL"
         if threshold_is_terminal:
             if terminal_result is None or threshold.get("terminal_result") != terminal_result:
@@ -1555,6 +2194,10 @@ def run_stage(
     if mode == "adjudicate":
         ladder = _read_json(root, STAGE_ARTIFACTS[4])
         threshold = _read_json(root, STAGE_ARTIFACTS[5])
+        vitals_receipt = _read_json(root, VITAL_ARTIFACTS[2])
+        _require_completed_vital_receipt(vitals_receipt)
+        if threshold.get("status") == PILOT_REQUIRED_STATUS:
+            raise RuntimeError("MARGINAL_E1_PILOT_REQUIRED: post-pilot finalization is required before P2 adjudication")
         parameter = _read_json(root, STAGE_ARTIFACTS[0])
         calibration_receipt = _read_json(root, STAGE_ARTIFACTS[3])
         heldout_receipt_path = _artifact_path(root, STAGE_ARTIFACTS[7])
@@ -1602,30 +2245,173 @@ def run_stage(
             "pairing_complete": pairing_complete,
             "e2_confirmed_count": sum(1 for pair in pairs if pair["e2_confirmed"]),
             "raw_recomputation": True,
+            "rule16_admission": vitals_receipt["rule16_admission"],
+            "owner_decision_artifact": vitals_receipt["owner_decision_artifact"],
+            "vitals_receipt_artifact": _receipt_reference(VITAL_ARTIFACTS[2]),
         }
         _write_json(root, STAGE_ARTIFACTS[8], e_certificate)
-        final = adjudicate_p2(calibration_rows=calibration, heldout_rows=heldout, parameter_range_valid=_validate_parameter_range_payload(parameter, require_executed=True), ladder_valid=_validate_ladder_payload(ladder, require_executed=True), threshold_valid=_validate_threshold_payload(threshold, require_executed=True), authority_gates_pass=_authority_source_gate(calibration) and (not heldout or _authority_source_gate(heldout)), authority_set=AUTHORITY_SET, heldout_mode_caps=heldout_mode_caps, parameter_range_payload=parameter, ladder_payload=ladder, threshold_payload=threshold)
+        final = adjudicate_p2(calibration_rows=calibration, heldout_rows=heldout, parameter_range_valid=_validate_parameter_range_payload(parameter, require_executed=True), ladder_valid=_validate_ladder_payload(ladder, require_executed=True), threshold_valid=_validate_threshold_payload(threshold, require_executed=True), authority_gates_pass=_authority_source_gate(calibration) and (not heldout or _authority_source_gate(heldout)), authority_set=AUTHORITY_SET, heldout_mode_caps=heldout_mode_caps, parameter_range_payload=parameter, ladder_payload=ladder, threshold_payload=threshold, vitals_receipt=vitals_receipt)
+        final["rule16_admission"] = vitals_receipt["rule16_admission"]
+        final["owner_decision_artifact"] = vitals_receipt["owner_decision_artifact"]
+        final["vitals_receipt_artifact"] = _receipt_reference(VITAL_ARTIFACTS[2])
         return {"stage": mode, "artifact": str(_write_json(root, STAGE_ARTIFACTS[9], final))}
     if mode == "qa":
         final = _read_json(root, STAGE_ARTIFACTS[9])
         e_certificate = _read_json(root, STAGE_ARTIFACTS[8])
+        vitals_receipt = _read_json(root, VITAL_ARTIFACTS[2])
+        _require_completed_vital_receipt(vitals_receipt)
         if final.get("schema") != FINAL_SCHEMA:
             raise RuntimeError("P2 final adjudication prerequisite is incomplete")
         if final.get("raw_recomputation") is not True:
             raise RuntimeError("P2 QA requires actual raw recomputation")
+        _validate_rule16_admission(final.get("rule16_admission"), require_source_files=True)
+        if final.get("rule16_admission") != vitals_receipt.get("rule16_admission"):
+            raise RuntimeError("P2 QA Rule16 admission does not match the vitals receipt")
+        if final.get("owner_decision_artifact") != vitals_receipt.get("owner_decision_artifact"):
+            raise RuntimeError("P2 QA owner-decision provenance is not bound to the final result")
         if final.get("terminal"):
             if final.get("p3_admitted") is not False or final.get("heldout_status") != "NOT_ADMITTED_BY_P2_TERMINAL" or e_certificate.get("status") != "TERMINAL":
                 raise RuntimeError("P2 terminal QA receipt is inconsistent")
         elif e_certificate.get("status") != "EXECUTED":
             raise RuntimeError("P2 full-heldout QA receipt is incomplete")
-        qa = {"schema": "a2_piper_v24_p2_qa_semantic_validation_v1", "status": "EXECUTED", "final_schema": final.get("schema"), "typed_results": final.get("typed_results"), "terminal": final.get("terminal") is True, "heldout_status": final.get("heldout_status"), "raw_recomputation": True, "artifact_order": list(STAGE_ARTIFACTS)}
+        qa = {"schema": "a2_piper_v24_p2_qa_semantic_validation_v1", "status": "EXECUTED", "final_schema": final.get("schema"), "typed_results": final.get("typed_results"), "terminal": final.get("terminal") is True, "heldout_status": final.get("heldout_status"), "raw_recomputation": True, "rule16_admission": final["rule16_admission"], "owner_decision_artifact": final["owner_decision_artifact"], "vitals_receipt_artifact": final["vitals_receipt_artifact"], "artifact_order": list(STAGE_ARTIFACTS)}
         return {"stage": mode, "artifact": str(_write_json(root, STAGE_ARTIFACTS[10], qa))}
+    if mode in {"pilot_commands", "pilot_adjudicate", "post_pilot_finalize"}:
+        from scriptsFORhuman.v24 import p2_marginal_e1_pilot
+
+        if mode == "pilot_commands":
+            registration = p2_marginal_e1_pilot.build_registration(
+                vitals_receipt=_read_json(root, VITAL_ARTIFACTS[2]),
+                gradient_admission=GRADIENT_ADMISSION,
+            )
+            return {"stage": mode, "artifact": str(p2_marginal_e1_pilot.write_commands(registration=registration))}
+        raise RuntimeError(
+            f"{mode} requires explicit pilot input; use p2_marginal_e1_pilot.py to avoid implicit runtime/evidence reads"
+        )
     raise ValueError(f"unsupported P2 stage {mode!r}")
 
 
 def _cpu_utilization(load_bearing: Sequence[bool], pd_command: Sequence[float], limits: Sequence[float]) -> float | None:
     values = [abs(float(command)) / float(limit) for flag, command, limit in zip(load_bearing, pd_command, limits) if flag]
     return max(values) if values else None
+
+
+def _synthetic_parameter_vitals(cap: float, profile_name: str) -> dict[str, Any]:
+    profile = FRICTION_PROFILES[profile_name]
+    friction = {
+        "static_friction_nm": profile["static_effort_nm"],
+        "dynamic_friction_nm": profile["dynamic_effort_nm"],
+        "viscous_friction_nm_s_per_rad": profile["viscous_coefficient_nm_s_per_rad"],
+    }
+    return {
+        "schema": "a2_piper_v24_p2_parameter_vitals_v1",
+        "authority": "MODELED_FROM_PARAMS",
+        "solver_applied": False,
+        "actual_generalized_torque": "UNAVAILABLE_NOT_USED",
+        "arm": {
+            "joint_names": [f"arm_j{index}" for index in range(1, 7)],
+            "joint_ids": list(range(6)),
+            "registered_active_cap_nm": cap,
+            "registered_cap_values_nm": list(REGISTERED_CAPS_NM),
+            "requested_effort_limit_nm": [cap] * 6,
+            "readback_effort_limit_nm": [cap] * 6,
+            "contract_effort_limit_nm": [cap] * 6,
+        },
+        "gripper": {
+            "joint_names": ["arm_j7", "arm_j8"],
+            "joint_ids": [6, 7],
+            "effort_limit_nm": {"readback": [45.0, 45.0], "contract": [45.0, 45.0]},
+            "stiffness_nm_per_rad": {"readback": [1300.0, 1300.0], "contract": [1300.0, 1300.0]},
+            "damping_nm_s_per_rad": {"readback": [32.0, 32.0], "contract": [32.0, 32.0]},
+            "swept_by_arm_cap": False,
+            "unchanged_by_arm_cap": True,
+        },
+        "door_friction": {
+            "hinge_joint_name": "hinge_joint",
+            "hinge_joint_id": 0,
+            "requested": dict(friction),
+            "readback": dict(friction),
+            "contract": dict(friction),
+            "units": {
+                "static_friction_nm": "N*m",
+                "dynamic_friction_nm": "N*m",
+                "viscous_friction_nm_s_per_rad": "N*m*s/rad",
+            },
+            "authority": "MODELED_FROM_PARAMS",
+            "solver_applied": False,
+            "actual_generalized_torque": "UNAVAILABLE_NOT_USED",
+            "non_hinge_joint_ids": [1],
+            "non_hinge_unchanged": True,
+            "non_hinge_before": {"joint_friction_coeff": [0.0], "joint_dynamic_friction_coeff": [0.0], "joint_viscous_friction_coeff": [0.0]},
+            "non_hinge_after": {"joint_friction_coeff": [0.0], "joint_dynamic_friction_coeff": [0.0], "joint_viscous_friction_coeff": [0.0]},
+        },
+        "unit_boundary": {
+            "analysis_surface": "radian",
+            "degree_per_radian_boundary": 57.3,
+            "static_dynamic_effort_conversion_applied": False,
+            "viscous_conversion_applied": False,
+        },
+    }
+
+
+def _synthetic_vital_rows() -> list[dict[str, Any]]:
+    """Build deterministic CPU-only rows for contract self-checks."""
+
+    rows: list[dict[str, Any]] = []
+    for env_id, scenario_id in enumerate(SCENARIO_IDS):
+        rows.append(
+            {
+                "env_id": env_id,
+                "scenario_id": scenario_id,
+                "seed": 0,
+                "profile": "F00",
+                "cap_nm": 40.0,
+                "mode": "HI_FULL",
+                "continuity_id": "VITALS_R12_FIXED_SHAM",
+                "authority": RUNTIME_AUTHORITY_SET,
+                "window_transition_count": 25,
+                "window_start_step": 0,
+                "window_end_step": 24,
+                "window_stable_grasp_count": 20,
+                "window_stage_ids": [3],
+                "window_stage_reach_valid": True,
+                "window_selection": WINDOW_SELECTION_ADMITTED,
+                "window_selection_status": WINDOW_SELECTION_ADMITTED,
+                "window_selection_reason": WINDOW_SELECTION_ADMITTED,
+                "window_selection_admission_status": WINDOW_SELECTION_ADMITTED_STATUS,
+                "window_selection_valid": True,
+                "excluded_window_selection": False,
+                "stable_grasp": True,
+                "stable_grasp_fraction": 0.8,
+                "grasp_source_unavailable": False,
+                "model_source_unavailable": False,
+                "source_unavailable": None,
+                "source_status": {"foot": "AVAILABLE", "grasp": "AVAILABLE", "model": "AVAILABLE"},
+                "source_api": {"state": "IsaacLab.Articulation.data", "foot": "simulator.contact_forces"},
+                "valid": True,
+                "model_valid": True,
+                "foot_slip_valid": True,
+                "max_loaded_foot_slip_m_s": 0.01,
+                "alpha_valid": True,
+                "theta_start_rad": 0.0,
+                "theta_end_rad": 0.1,
+                "progress_recovery_delta_rad": 0.1,
+                "tau_req_median_nm": 12.0,
+                "lambda_median": 0.7,
+                "lambda": 0.7,
+                "directional_utilization_median": 0.95,
+                "directional_clip_fraction_median": 0.4,
+                "directional_high_effort": True,
+                "nonbinding": False,
+                "excluded_geometry": False,
+                "excluded_grasp": False,
+                "excluded_direction": False,
+                "excluded_slip": False,
+                "excluded_pathology": False,
+                "parameter_vitals": _synthetic_parameter_vitals(40.0, "F00"),
+            }
+        )
+    return rows
 
 
 def _self_check() -> dict[str, Any]:
@@ -1651,6 +2437,7 @@ def _self_check() -> dict[str, Any]:
             "theta_start_rad": 0.0,
             "theta_end_rad": progress,
             "valid": True,
+            "model_valid": True,
             "nonbinding": nonbinding,
             "stable_grasp": stable,
             "stable_grasp_fraction": 1.0 if stable else 0.0,
@@ -1675,6 +2462,16 @@ def _self_check() -> dict[str, Any]:
             "excluded_direction": False,
             "excluded_slip": False,
             "excluded_pathology": False,
+            "excluded_window_selection": False,
+            "window_selection": WINDOW_SELECTION_ADMITTED,
+            "window_selection_status": WINDOW_SELECTION_ADMITTED,
+            "window_selection_reason": WINDOW_SELECTION_ADMITTED,
+            "window_selection_admission_status": WINDOW_SELECTION_ADMITTED_STATUS,
+            "window_selection_valid": True,
+            "window_stable_grasp_count": 20 if stable else 19,
+            "window_stage_ids": [3],
+            "window_opening_stages": [3, 4],
+            "parameter_vitals": _synthetic_parameter_vitals(cap, profile),
             "source_api": {"state": "synthetic-self-check"},
         }
 
@@ -1707,9 +2504,10 @@ def _self_check() -> dict[str, Any]:
                     )
                 )
     calibration = _validate_raw_rows(calibration, kind="calibration")
-    ladder = ladder_freeze(calibration, status="EXECUTED")
+    vitals_receipt = _build_vital_receipt(_synthetic_vital_rows())
+    ladder = ladder_freeze(calibration, status="EXECUTED", rule16_admission=vitals_receipt["rule16_admission"])
     _require(ladder["tau_hi_nm"] == 100.0 and ladder["tau_boundary_nm"] == 60.0 and ladder["tau_rescue_nm"] == 100.0, "self-check calibration ladder pairing failed")
-    threshold = certificate_threshold_freeze(calibration, status="EXECUTED", tau_hi_nm=ladder["tau_hi_nm"])
+    threshold = certificate_threshold_freeze(calibration, status="EXECUTED", tau_hi_nm=ladder["tau_hi_nm"], rule16_admission=vitals_receipt["rule16_admission"])
 
     mode_caps = {"HI_FULL": 100.0, "BOUNDARY_FULL": 60.0, "BOUNDARY_RP0": 60.0, "RESCUE_FULL": 100.0}
     heldout: list[dict[str, Any]] = []
@@ -1744,6 +2542,8 @@ def _self_check() -> dict[str, Any]:
         parameter_range_payload=parameter_range_freeze(status="EXECUTED"),
         ladder_payload=ladder,
         threshold_payload=threshold,
+        vitals_receipt=vitals_receipt,
+        require_vitals_source_files=False,
     )
     _require(final["e1_established"] is True and final["p3_admitted"] is True and "V24_E2_BOUNDARY_ESTABLISHED" in final["typed_results"], "self-check adjudication truth failed")
 
@@ -1853,12 +2653,18 @@ def _self_check() -> dict[str, Any]:
         return final
 
     aggregate = cpu_window_aggregate(raw_window)
-    _require(aggregate["window_transition_count"] == 25 and aggregate["tau_req_median_nm"] == 13.0 and aggregate["directional_clip_fraction_median"] == 12 / 25 and aggregate["max_loaded_foot_slip_m_s"] == 0.024 and aggregate["theta_start_rad"] == 0.0 and aggregate["theta_end_rad"] == 0.25 and aggregate["progress_recovery_delta_rad"] == 0.25, "self-check 25-transition aggregation failed")
+    _require(aggregate["window_transition_count"] == 25 and aggregate["tau_req_median_nm"] == 13.0 and aggregate["directional_clip_fraction_median"] == 12 / 25 and aggregate["max_loaded_foot_slip_m_s"] == 0.024 and aggregate["theta_start_rad"] == 0.0 and aggregate["theta_end_rad"] == 0.25 and math.isclose(aggregate["progress_recovery_delta_rad"], 0.25, rel_tol=0.0, abs_tol=1.0e-12), "self-check 25-transition aggregation failed")
     _require(aggregate["rescue_progress_rad"] is None and aggregate["rescue_gain_rad"] is None, "self-check rejected within-row causal rescue values")
 
     runtime_source = (REPO_ROOT / "gr00t/rl/envs/door/a2_v24_force_boundary.py").read_text(encoding="utf-8")
-    _require("self._rows[env_id] = self._aggregate_window(self._windows[env_id])" in runtime_source, "self-check runtime aggregation hook missing")
-    _require("len(self._windows[int(env_id)]) != FORCE_WINDOW_TRANSITIONS" in runtime_source, "self-check runtime full-window completion gate missing")
+    door_source = (REPO_ROOT / "gr00t/rl/envs/door/door_open_a2_base.py").read_text(encoding="utf-8")
+    force_update_start = door_source.index("    def _update_a2_v24_force_boundary")
+    force_update_end = door_source.index("    def get_a2_v24_force_boundary", force_update_start)
+    force_update_source = door_source[force_update_start:force_update_end]
+    _require("_get_a2_stage3_stage4_contact_squeeze_masks" in force_update_source and "_get_a2_stage3_stage4_contact_stability_mask" in force_update_source, "self-check current stable-grasp diagnostic predicate missing")
+    _require("_a2_stage3_grasp_streak_highwater" not in force_update_source, "self-check exporter must not use grasp highwater as current stable-grasp telemetry")
+    _require("self._aggregate_window(" in runtime_source and "self._fallback_windows" in runtime_source, "self-check runtime window-selection hook missing")
+    _require("len(fallback) != FORCE_WINDOW_TRANSITIONS" in runtime_source, "self-check runtime fallback completion gate missing")
     _require("if not bool(torch.all(self._completed).item())" in runtime_source, "self-check runtime publish gate missing")
 
     def cpu_publish(path: Path, rows: Sequence[Mapping[str, Any]], completed: Sequence[bool]) -> None:
@@ -1924,7 +2730,7 @@ def _self_check() -> dict[str, Any]:
     bad_source = dict(heldout[0])
     bad_source["source_unavailable"] = None
     bad_source["foot_slip_valid"] = False
-    bad_source["max_loaded_foot_slip_m_s"] = None
+    bad_source["max_loaded_foot_slip_m_s"] = 0.01
     expect_error(lambda: _validate_raw_rows([bad_source] + heldout[1:], kind="heldout", heldout_mode_caps=mode_caps), "missing source")
     expect_error(lambda: _require_completed_smoke_receipt({}), "calibrate before smoke")
     expect_error(lambda: adjudicate_p2(calibration_rows=calibration, heldout_rows=heldout, parameter_range_valid=True, ladder_valid=True, threshold_valid=True, authority_gates_pass=True, authority_set=AUTHORITY_SET, heldout_mode_caps=mode_caps), "missing freeze artifacts")
@@ -1934,35 +2740,42 @@ def _self_check() -> dict[str, Any]:
     binding_ladder = _derive_ladder(contingency_binding + contingency_rows, status="EXECUTED")
     nonbinding_ladder = _derive_ladder(contingency_binding + [dict(row, nonbinding=True) for row in contingency_rows], status="EXECUTED")
     _require(binding_ladder["command_path_binding"] is True and nonbinding_ladder["command_path_binding"] is False, "self-check contingency binding/nonbinding distinction failed")
-    nonbinding_terminal = adjudicate_p2(
-        calibration_rows=contingency_binding + [dict(row, nonbinding=True) for row in contingency_rows],
-        heldout_rows=[],
-        parameter_range_valid=True,
-        ladder_valid=True,
-        threshold_valid=True,
-        authority_gates_pass=True,
-        authority_set=AUTHORITY_SET,
-        parameter_range_payload=parameter_range_freeze(status="EXECUTED"),
-        ladder_payload=nonbinding_ladder,
-        threshold_payload=threshold,
+    expect_error(
+        lambda: adjudicate_p2(
+            calibration_rows=contingency_binding + [dict(row, nonbinding=True) for row in contingency_rows],
+            heldout_rows=[],
+            parameter_range_valid=True,
+            ladder_valid=True,
+            threshold_valid=True,
+            authority_gates_pass=True,
+            authority_set=AUTHORITY_SET,
+            parameter_range_payload=parameter_range_freeze(status="EXECUTED"),
+            ladder_payload=nonbinding_ladder,
+            threshold_payload=_terminal_threshold_freeze("V24_ARM_COMMAND_PATH_NOT_BINDING", rule16_admission=vitals_receipt["rule16_admission"]),
+            vitals_receipt=vitals_receipt,
+        ),
+        "pre-pilot command-path terminal",
     )
-    _require(nonbinding_terminal["terminal"] is True and nonbinding_terminal["p3_admitted"] is False and nonbinding_terminal["heldout_status"] == "NOT_ADMITTED_BY_P2_TERMINAL" and "V24_ARM_COMMAND_PATH_NOT_BINDING" in nonbinding_terminal["typed_results"], "self-check nonbinding terminal adjudication failed")
     no_boundary = [dict(row, directional_utilization_median=0.80, directional_clip_fraction_median=0.10, directional_high_effort=False) for row in calibration]
     no_boundary_ladder = _derive_ladder(no_boundary, status="EXECUTED")
-    no_boundary_threshold = certificate_threshold_freeze(no_boundary, status="EXECUTED", tau_hi_nm=no_boundary_ladder["tau_hi_nm"])
-    insuff_terminal = adjudicate_p2(
-        calibration_rows=no_boundary,
-        heldout_rows=[],
-        parameter_range_valid=True,
-        ladder_valid=True,
-        threshold_valid=True,
-        authority_gates_pass=True,
-        authority_set=AUTHORITY_SET,
-        parameter_range_payload=parameter_range_freeze(status="EXECUTED"),
-        ladder_payload=no_boundary_ladder,
-        threshold_payload=no_boundary_threshold,
+    no_boundary_ladder["rule16_admission"] = vitals_receipt["rule16_admission"]
+    no_boundary_threshold = _pilot_required_threshold_freeze(vitals_receipt["rule16_admission"])
+    expect_error(
+        lambda: adjudicate_p2(
+            calibration_rows=no_boundary,
+            heldout_rows=[],
+            parameter_range_valid=True,
+            ladder_valid=True,
+            threshold_valid=True,
+            authority_gates_pass=True,
+            authority_set=AUTHORITY_SET,
+            parameter_range_payload=parameter_range_freeze(status="EXECUTED"),
+            ladder_payload=no_boundary_ladder,
+            threshold_payload=no_boundary_threshold,
+            vitals_receipt=vitals_receipt,
+        ),
+        "pre-pilot denominator terminal",
     )
-    _require(insuff_terminal["terminal"] is True and insuff_terminal["p3_admitted"] is False and insuff_terminal["heldout_status"] == "NOT_ADMITTED_BY_P2_TERMINAL" and insuff_terminal["typed_results"] == ["V24_E1_DENOMINATOR_INSUFFICIENT"], "self-check pre-heldout denominator terminal failed")
     _require(mode_caps["HI_FULL"] == ladder["tau_hi_nm"], "self-check HI_FULL must read tau_hi artifact")
     reset_source = runtime_source[runtime_source.index("    def reset_envs("):runtime_source.index("    def close(", runtime_source.index("    def reset_envs("))]
     _require(reset_source.index("self.door.write_joint_friction_coefficient_to_sim") < reset_source.index("self.apply_friction"), "self-check friction reset order failed")
@@ -1978,7 +2791,7 @@ def _self_check() -> dict[str, Any]:
         "stream_lengths": [25, 64, 1000],
         "stable_grasp_threshold": "20/25",
         "source_typing": ["foot", "grasp", "model"],
-        "terminal_results": [nonbinding_terminal["typed_results"], insuff_terminal["typed_results"]],
+        "terminal_results": ["PRE_PILOT_TERMINAL_FORBIDDEN"],
         "e2_confirmed_count": final["e2_confirmed_count"],
     }
 
@@ -1987,7 +2800,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="v24 P2 force-boundary plan and canonical runtime stages")
     parser.add_argument("--plan", action="store_true", help="validate and print the CPU-only frozen P2 plan")
     parser.add_argument("--self-check", action="store_true", help="run bounded CPU pure-function and append-only self-check")
-    parser.add_argument("--mode", choices=("prepare", "smoke", "calibrate", "freeze", "heldout", "adjudicate", "qa"), help="execute one canonical P2 stage")
+    parser.add_argument("--mode", choices=("prepare", "vitals", "smoke", "calibrate", "freeze", "freeze_or_register", "heldout", "adjudicate", "qa", "pilot_commands", "pilot_adjudicate", "post_pilot_finalize"), help="execute one canonical P2 stage")
     parser.add_argument("--config", default=str(CONFIG_PATH), help="canonical P2 overlay path")
     parser.add_argument("--output", default=str(REPO_ROOT / ARTIFACT_ROOT), help="canonical P2 artifact root")
     parser.add_argument("--device", default="cuda:0", help="IsaacLab device for runtime stages")
@@ -2013,7 +2826,20 @@ __all__ = [
     "ARTIFACT_ROOT",
     "CONFIG_PATH",
     "FINAL_SCHEMA",
+    "GRADIENT_ADMISSION",
+    "OWNER_DECISION",
+    "PILOT_ARTIFACT_ROOT",
+    "PILOT_REGISTRATION_ID",
+    "REGISTERED_ARTIFACTS",
+    "RULE16_SCHEMA",
+    "STAGE_REACH_REFERENCE_BAND",
     "TYPED_RESULTS",
+    "VITALS_RECEIPT_SCHEMA",
+    "VITALS_RUNTIME_ARTIFACT",
+    "VITALS_SOURCE",
+    "VITAL_ARTIFACTS",
+    "WINDOW_SELECTION_ADMITTED",
+    "WINDOW_SELECTION_FALLBACK",
     "adjudicate_p2",
     "artifact_plan",
     "build_plan",
@@ -2025,4 +2851,9 @@ __all__ = [
     "run_stage",
     "select_boundary_cap",
     "validate_overlay",
+    "_build_vital_receipt",
+    "_synthetic_vital_rows",
+    "_validate_parameter_vitals",
+    "_validate_vital_rows",
+    "_validate_window_selection",
 ]

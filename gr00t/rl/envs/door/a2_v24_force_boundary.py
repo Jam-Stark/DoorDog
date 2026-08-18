@@ -9,6 +9,7 @@ the articulation command path.
 
 from __future__ import annotations
 
+import copy
 import math
 import json
 import os
@@ -20,6 +21,11 @@ from statistics import median
 from typing import Any, Mapping, Sequence
 
 import torch
+
+from gr00t.rl.envs.door.a2_v24_df1_sampler import (
+    F3Assignment,
+    F3_FRICTION_PARAMETERS,
+)
 
 
 FORCE_BOUNDARY_SCHEMA = "a2_piper_v24_p2_force_boundary_v1"
@@ -42,6 +48,10 @@ ACTUAL_TORQUE_AUTHORITY = "UNAVAILABLE_NOT_USED"
 PRIMARY_CAPS_NM = (100.0, 60.0, 40.0, 30.0, 25.0, 20.0)
 CONTINGENCY_CAP_NM = 10.0
 FORCE_WINDOW_TRANSITIONS = 25
+FORCE_WINDOW_STABLE_GRASP_MIN_COUNT = 20
+FORCE_WINDOW_OPENING_STAGES = frozenset((3, 4))
+FORCE_WINDOW_SELECTION_STABLE_OPENING = "FIRST_STABLE_GRASP_OPENING_20_OF_25"
+FORCE_WINDOW_SELECTION_ALPHA_FALLBACK = "NO_QUALIFYING_STABLE_GRASP_OPENING_FALLBACK_FIRST_ALPHA_VALID"
 CONTROL_DT_S = 0.005
 CONTROL_DECIMATION = 4
 CONTROL_PERIOD_S = CONTROL_DT_S * CONTROL_DECIMATION
@@ -60,6 +70,16 @@ AUTHORITY_SET = {
     "state": STATE_AUTHORITY,
     "actual_generalized_torque": ACTUAL_TORQUE_AUTHORITY,
     "door_friction": MODELED_TORQUE_AUTHORITY,
+}
+PARAMETER_VITALS_SCHEMA = "a2_piper_v24_p2_parameter_vitals_v1"
+GRIPPER_JOINT_NAMES = ("arm_j7", "arm_j8")
+GRIPPER_EFFORT_LIMITS_NM = (45.0, 45.0)
+GRIPPER_STIFFNESS_NM_PER_RAD = (1300.0, 1300.0)
+GRIPPER_DAMPING_NM_S_PER_RAD = (32.0, 32.0)
+FRICTION_UNITS = {
+    "static_friction_nm": "N*m",
+    "dynamic_friction_nm": "N*m",
+    "viscous_friction_nm_s_per_rad": "N*m*s/rad",
 }
 
 
@@ -472,7 +492,8 @@ def compute_directional_capacity(
     if g_i.shape[0] != gravity.shape[0] or g_i.device != gravity.device or g_i.dtype != gravity.dtype:
         raise ValueError("directional coefficients and joint tensors must share batch, dtype, and device.")
     b_i = gravity + kp * (q_target - q) - kd * qdot
-    margin_i = limits - torch.sign(g_i) * b_i
+    margin_preclip_i = limits - torch.sign(g_i) * b_i
+    margin_i = torch.clamp_min(margin_preclip_i, 0.0)
     active = torch.abs(g_i) > float(epsilon_g_m)
     load_bearing = active & (b_i * g_i > 0.0)
     directional_clipped = load_bearing & (torch.abs(b_i) > limits)
@@ -481,9 +502,9 @@ def compute_directional_capacity(
     has_active = torch.any(active, dim=-1)
     load_bearing_count = load_bearing.sum(dim=-1)
     has_load_bearing = load_bearing_count > 0
-    negative_margin = torch.any(active & (margin_i < 0.0), dim=-1)
+    exhausted_margin = torch.any(active & (margin_preclip_i < 0.0), dim=-1)
     radius_valid = kin["radius_valid"] & kin["axis_valid"] & kin["tangent_valid"]
-    valid = has_active & has_load_bearing & ~negative_margin & radius_valid & torch.isfinite(fmax_raw)
+    valid = has_active & has_load_bearing & radius_valid & torch.isfinite(fmax_raw)
     fmax_n = torch.where(valid, fmax_raw, torch.full_like(fmax_raw, float("nan")))
     tau_available_nm = kin["radius_m"] * fmax_n
     utilization_ratio = torch.where(
@@ -506,8 +527,8 @@ def compute_directional_capacity(
             status_by_sample.append("INVALID_NO_LOAD_BEARING")
         elif not bool(has_active[index].item()):
             status_by_sample.append("INVALID_NO_ACTIVE_JOINT")
-        elif bool(negative_margin[index].item()):
-            status_by_sample.append("INVALID_NEGATIVE_MARGIN")
+        elif bool(exhausted_margin[index].item()):
+            status_by_sample.append("VALID_ZERO_MARGIN_DIRECTIONAL_CLIP")
         else:
             status_by_sample.append("VALID")
     result: dict[str, Any] = {
@@ -521,6 +542,7 @@ def compute_directional_capacity(
         "joint_damping": kd,
         "pd_command_estimate_nm": b_i,
         "joint_margin_nm": margin_i,
+        "joint_margin_preclip_nm": margin_preclip_i,
         "active_relevant_joints": active,
         "load_bearing_joints": load_bearing,
         "directional_clipped_joints": directional_clipped,
@@ -609,7 +631,8 @@ def compute_door_required_torque(
 
     ``alpha_rad_s2=None`` is intentionally represented as an unavailable
     inertia component, never as zero.  Non-positive opening slip is marked
-    ``DIRECTION_EXCLUDED`` for directional boundary analysis.
+    ``DIRECTION_EXCLUDED`` for directional boundary analysis while retaining
+    the finite modeled torque as measurement evidence.
     """
 
     theta = _finite_tensor(theta_rad, name="theta_rad", ndim=1)
@@ -669,16 +692,17 @@ def compute_door_required_torque(
     if alpha is None:
         inertia_term = None
         tau_required = damping_term + stiffness_term + friction_term
-        tau_required = torch.where(direction_valid, tau_required, torch.full_like(tau_required, float("nan")))
         opening_direction_valid = direction_valid
+        model_valid = torch.isfinite(tau_required)
         direction_valid = opening_direction_valid & torch.isfinite(tau_required) & (tau_required > 0.0)
         status = ["DIRECTION_EXCLUDED" if not bool(flag.item()) else "ALPHA_UNAVAILABLE_PROSPECTIVE" if bool(direction_valid[index].item()) else "DIRECTION_EXCLUDED" for index, flag in enumerate(opening_direction_valid)]
     else:
         inertia_term = torch.where(alpha_valid_mask, inertia * alpha, torch.full_like(alpha, float("nan")))
         modeled = inertia * torch.where(alpha_valid_mask, alpha, torch.zeros_like(alpha)) + damping_term + stiffness_term + friction_term
-        modeled = torch.where(direction_valid & alpha_valid_mask, modeled, torch.full_like(modeled, float("nan")))
+        modeled = torch.where(alpha_valid_mask, modeled, torch.full_like(modeled, float("nan")))
         tau_required = modeled
         opening_direction_valid = direction_valid
+        model_valid = alpha_valid_mask & torch.isfinite(tau_required)
         direction_valid = opening_direction_valid & alpha_valid_mask & torch.isfinite(tau_required) & (tau_required > 0.0)
         status = [
             "DIRECTION_EXCLUDED" if not bool(opening_direction_valid[index].item())
@@ -696,6 +720,7 @@ def compute_door_required_torque(
         "opening_speed_rad_s": opening_speed,
         "direction_valid": direction_valid,
         "opening_direction_valid": opening_direction_valid,
+        "model_valid": model_valid,
         "status_by_sample": status,
         "friction_mode": friction_mode,
         "alpha_available": alpha is not None,
@@ -794,6 +819,8 @@ class P2RuntimeExporter:
         self.num_envs = int(num_envs)
         self.config = config
         self._windows: list[list[dict[str, Any]]] = [[] for _ in range(self.num_envs)]
+        self._fallback_windows: list[list[dict[str, Any]] | None] = [None] * self.num_envs
+        self._selected_windows: list[list[dict[str, Any]] | None] = [None] * self.num_envs
         self._rows: list[dict[str, Any] | None] = [None] * self.num_envs
         self._completed = torch.zeros(self.num_envs, dtype=torch.bool)
         self._published = False
@@ -804,19 +831,30 @@ class P2RuntimeExporter:
         if len(rows) != self.num_envs:
             raise ValueError("P2 runtime exporter requires one row per live environment.")
         for env_id, row in enumerate(rows):
-            if self._completed[env_id] or self._rows[env_id] is not None:
+            if self._completed[env_id] or self._rows[env_id] is not None or self._selected_windows[env_id] is not None:
                 continue
             if not isinstance(row, Mapping):
                 raise TypeError("P2 runtime exporter row must be a mapping.")
             if row.get("authority") != {**AUTHORITY_SET, "solver_applied": False}:
                 raise RuntimeError("P2 exporter received a row with incomplete/mutated authority.")
             if row.get("alpha_valid") is not True:
-                if self._windows[env_id]:
-                    self._windows[env_id].clear()
+                self._windows[env_id] = []
                 continue
+            step = row.get("episode_step")
+            if isinstance(step, bool) or not isinstance(step, int):
+                raise RuntimeError("P2 alpha-valid exporter rows require integer episode_step values.")
+            if self._windows[env_id] and step != self._windows[env_id][-1].get("episode_step", None) + 1:
+                self._windows[env_id] = []
             self._windows[env_id].append(dict(row))
-            if len(self._windows[env_id]) == FORCE_WINDOW_TRANSITIONS:
-                self._rows[env_id] = self._aggregate_window(self._windows[env_id])
+            if len(self._windows[env_id]) > FORCE_WINDOW_TRANSITIONS:
+                self._windows[env_id] = self._windows[env_id][-FORCE_WINDOW_TRANSITIONS:]
+            if len(self._windows[env_id]) < FORCE_WINDOW_TRANSITIONS:
+                continue
+            candidate = self._windows[env_id][-FORCE_WINDOW_TRANSITIONS:]
+            if self._fallback_windows[env_id] is None:
+                self._fallback_windows[env_id] = [dict(item) for item in candidate]
+            if self._qualifies_stable_opening(candidate):
+                self._selected_windows[env_id] = [dict(item) for item in candidate]
 
     @staticmethod
     def _finite_values(window: Sequence[Mapping[str, Any]], field: str) -> list[float]:
@@ -825,9 +863,29 @@ class P2RuntimeExporter:
             return []
         return [float(value) for value in values]
 
-    def _aggregate_window(self, window: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    @staticmethod
+    def _qualifies_stable_opening(window: Sequence[Mapping[str, Any]]) -> bool:
+        if len(window) != FORCE_WINDOW_TRANSITIONS:
+            raise RuntimeError("P2 stable-opening selection requires exactly 25 transitions.")
+        stages = [row.get("stage_buf") for row in window]
+        if any(isinstance(stage, bool) or not isinstance(stage, int) for stage in stages):
+            raise RuntimeError("P2 stable-opening selection requires integer stage_buf values.")
+        if any(stage not in FORCE_WINDOW_OPENING_STAGES for stage in stages):
+            return False
+        stable_values = [row.get("stable_grasp") for row in window]
+        if any(not isinstance(value, bool) for value in stable_values):
+            return False
+        return sum(value is True for value in stable_values) >= FORCE_WINDOW_STABLE_GRASP_MIN_COUNT
+
+    @staticmethod
+    def _aggregate_window(window: Sequence[Mapping[str, Any]], *, selection_status: str) -> dict[str, Any]:
         if len(window) != FORCE_WINDOW_TRANSITIONS:
             raise RuntimeError("P2 force-window aggregation requires exactly 25 transitions.")
+        if selection_status not in {
+            FORCE_WINDOW_SELECTION_STABLE_OPENING,
+            FORCE_WINDOW_SELECTION_ALPHA_FALLBACK,
+        }:
+            raise RuntimeError(f"P2 force-window selection status is unsupported: {selection_status!r}.")
         first, last = window[0], window[-1]
         authority = first.get("authority")
         if authority != {**AUTHORITY_SET, "solver_applied": False}:
@@ -837,9 +895,15 @@ class P2RuntimeExporter:
         steps = [row.get("episode_step") for row in window]
         if any(isinstance(step, bool) or not isinstance(step, int) for step in steps) or steps != list(range(steps[0], steps[0] + FORCE_WINDOW_TRANSITIONS)):
             raise RuntimeError("P2 force-window episode steps must be 25 contiguous transitions.")
-        theta_pre_values = self._finite_values(window, "theta_pre_rad")
-        theta_post_values = self._finite_values(window, "theta_post_rad")
-        theta_delta_values = self._finite_values(window, "theta_delta_rad")
+        stage_values = [row.get("stage_buf") for row in window]
+        if any(isinstance(stage, bool) or not isinstance(stage, int) for stage in stage_values):
+            raise RuntimeError("P2 force-window stage_buf values must be integers.")
+        stable_opening = P2RuntimeExporter._qualifies_stable_opening(window)
+        if selection_status == FORCE_WINDOW_SELECTION_STABLE_OPENING and not stable_opening:
+            raise RuntimeError("P2 selected stable-opening window no longer satisfies its selection predicate.")
+        theta_pre_values = P2RuntimeExporter._finite_values(window, "theta_pre_rad")
+        theta_post_values = P2RuntimeExporter._finite_values(window, "theta_post_rad")
+        theta_delta_values = P2RuntimeExporter._finite_values(window, "theta_delta_rad")
         if not all(len(values) == FORCE_WINDOW_TRANSITIONS for values in (theta_pre_values, theta_post_values, theta_delta_values)):
             raise RuntimeError("P2 force-window pre/post hinge angles and deltas must remain finite.")
         for index, (theta_pre, theta_post, theta_delta) in enumerate(zip(theta_pre_values, theta_post_values, theta_delta_values)):
@@ -847,9 +911,9 @@ class P2RuntimeExporter:
                 raise RuntimeError(f"P2 force-window transition delta mismatch at index={index}.")
             if index and not math.isclose(theta_pre, theta_post_values[index - 1], rel_tol=1.0e-6, abs_tol=1.0e-6):
                 raise RuntimeError(f"P2 force-window transition angle chain mismatch at index={index}.")
-        tau_values = self._finite_values(window, "tau_required_nm")
-        lambda_values = self._finite_values(window, "lambda_load")
-        utilization_values = self._finite_values(window, "directional_utilization")
+        tau_values = P2RuntimeExporter._finite_values(window, "tau_required_nm")
+        lambda_values = P2RuntimeExporter._finite_values(window, "lambda_load")
+        utilization_values = P2RuntimeExporter._finite_values(window, "directional_utilization")
         clip_count = sum(bool(row.get("directional_clipped")) for row in window)
         stable_values = [row.get("stable_grasp") for row in window]
         stable_available = all(isinstance(value, bool) for value in stable_values)
@@ -871,7 +935,7 @@ class P2RuntimeExporter:
             if row["model_source_unavailable"] is not model_unavailable:
                 raise RuntimeError("P2 force-window model source typing contradicts required numerics.")
         foot_valid = all(row.get("foot_slip_valid") is True for row in window)
-        foot_values = self._finite_values(window, "foot_slip_m_s") if foot_valid else []
+        foot_values = P2RuntimeExporter._finite_values(window, "foot_slip_m_s") if foot_valid else []
         required_available = (
             len(tau_values) == FORCE_WINDOW_TRANSITIONS
             and len(lambda_values) == FORCE_WINDOW_TRANSITIONS
@@ -879,7 +943,20 @@ class P2RuntimeExporter:
         )
         model_source_unavailable = model_source_unavailable or not required_available
         source_unavailable = grasp_source_unavailable or model_source_unavailable
-        valid = all(row.get("valid") is True for row in window) and required_available
+        model_valid = all(row.get("valid") is True for row in window) and required_available
+        window_selection_valid = selection_status == FORCE_WINDOW_SELECTION_STABLE_OPENING
+        excluded_window_selection = not window_selection_valid
+        valid = model_valid if window_selection_valid else False
+        window_selection_admission_status = (
+            "ADMITTED_FIRST_STABLE_GRASP_OPENING"
+            if window_selection_valid
+            else "NON_ADMISSIBLE_NO_QUALIFYING_STABLE_GRASP_OPENING"
+        )
+        window_selection_reason = (
+            FORCE_WINDOW_SELECTION_STABLE_OPENING
+            if window_selection_valid
+            else FORCE_WINDOW_SELECTION_ALPHA_FALLBACK
+        )
         progress = sum(theta_delta_values)
         final = dict(first)
         for raw_field in (
@@ -893,6 +970,7 @@ class P2RuntimeExporter:
             "directional_utilization",
             "directional_clipped",
             "foot_slip_m_s",
+            "stage_buf",
         ):
             final.pop(raw_field, None)
         final.update(
@@ -900,6 +978,17 @@ class P2RuntimeExporter:
                 "window_transition_count": FORCE_WINDOW_TRANSITIONS,
                 "window_start_step": int(first["episode_step"]),
                 "window_end_step": int(last["episode_step"]),
+                "window_selection": selection_status,
+                "window_selection_status": selection_status,
+                "window_selection_valid": window_selection_valid,
+                "excluded_window_selection": excluded_window_selection,
+                "window_selection_admission_status": window_selection_admission_status,
+                "window_selection_reason": window_selection_reason,
+                "window_stable_grasp_min_count": FORCE_WINDOW_STABLE_GRASP_MIN_COUNT,
+                "window_stable_grasp_count": stable_count,
+                "window_opening_stages": sorted(FORCE_WINDOW_OPENING_STAGES),
+                "window_stage_ids": sorted(set(stage_values)),
+                "window_stage_reach_valid": all(stage in FORCE_WINDOW_OPENING_STAGES for stage in stage_values),
                 "theta_start_rad": theta_pre_values[0],
                 "theta_end_rad": theta_post_values[-1],
                 "progress_recovery_delta_rad": progress,
@@ -923,10 +1012,12 @@ class P2RuntimeExporter:
                     "model": "SOURCE_UNAVAILABLE" if model_source_unavailable else "AVAILABLE",
                 },
                 "directional_high_effort": (
-                    len(utilization_values) == FORCE_WINDOW_TRANSITIONS
+                    not model_source_unavailable
+                    and len(utilization_values) == FORCE_WINDOW_TRANSITIONS
                     and median(utilization_values) >= 0.90
                     and clip_count / FORCE_WINDOW_TRANSITIONS >= 0.30
                 ),
+                "model_valid": model_valid,
                 "valid": valid,
                 "nonbinding": clip_count == 0,
                 "excluded_geometry": any(row.get("excluded_geometry") is True for row in window),
@@ -945,8 +1036,27 @@ class P2RuntimeExporter:
         if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype != torch.long:
             raise TypeError("P2 completed env ids must be a one-dimensional torch.long tensor.")
         for env_id in env_ids.detach().cpu().tolist():
-            if self._rows[int(env_id)] is None or len(self._windows[int(env_id)]) != FORCE_WINDOW_TRANSITIONS:
-                raise RuntimeError(f"P2 episode completed without a frozen 25-transition window for env_id={env_id}.")
+            index = int(env_id)
+            if self._rows[index] is not None:
+                self._completed[index] = True
+                continue
+            selected = self._selected_windows[index]
+            if selected is not None:
+                self._rows[index] = self._aggregate_window(
+                    selected,
+                    selection_status=FORCE_WINDOW_SELECTION_STABLE_OPENING,
+                )
+            else:
+                fallback = self._fallback_windows[index]
+                if fallback is None or len(fallback) != FORCE_WINDOW_TRANSITIONS:
+                    raise RuntimeError(
+                        "P2 episode completed without a qualifying stable-opening window or a complete "
+                        f"first alpha-valid fallback for env_id={index}."
+                    )
+                self._rows[index] = self._aggregate_window(
+                    fallback,
+                    selection_status=FORCE_WINDOW_SELECTION_ALPHA_FALLBACK,
+                )
             self._completed[int(env_id)] = True
 
     def publish(self) -> None:
@@ -971,6 +1081,21 @@ class P2RuntimeExporter:
     @property
     def published(self) -> bool:
         return self._published
+
+
+def aggregate_p2_force_window(
+    window: Sequence[Mapping[str, Any]],
+    *,
+    selection_status: str,
+) -> dict[str, Any]:
+    """Pure public P2 window aggregation shared by training/eval evidence.
+
+    The implementation is the existing P2 aggregation contract expressed as a
+    static operation.  It has no exporter state and therefore cannot mutate or
+    overwrite the current first-episode P2 lifecycle.
+    """
+
+    return P2RuntimeExporter._aggregate_window(window, selection_status=selection_status)
 
 
 class A2V24ForceBoundaryRuntime:
@@ -999,6 +1124,11 @@ class A2V24ForceBoundaryRuntime:
         self.robot_body_id = self.signature["body_id"]
         self.arm_joint_ids = tuple(self.signature["arm_joint_ids"])
         self.arm_joint_id_tensor = torch.tensor(self.arm_joint_ids, dtype=torch.long, device=self.device)
+        gripper_joint_ids, gripper_joint_names = robot.find_joints(list(GRIPPER_JOINT_NAMES), preserve_order=True)
+        if list(gripper_joint_names) != list(GRIPPER_JOINT_NAMES) or len(gripper_joint_ids) != len(GRIPPER_JOINT_NAMES):
+            raise RuntimeError(f"v24 P2 requires the exact gripper joint set {GRIPPER_JOINT_NAMES!r}; got {gripper_joint_names!r}.")
+        self.gripper_joint_ids = tuple(int(item) for item in gripper_joint_ids)
+        self.gripper_joint_id_tensor = torch.tensor(self.gripper_joint_ids, dtype=torch.long, device=self.device)
         self.foot_body_ids = tuple(int(item) for item in foot_ids)
         joint_pos = robot.data.joint_pos
         effort_limits = robot.data.joint_effort_limits
@@ -1009,15 +1139,37 @@ class A2V24ForceBoundaryRuntime:
         self.num_envs = int(joint_pos.shape[0])
         self.dtype = joint_pos.dtype
         self.original_effort_limits = effort_limits.detach().clone()
+        self.original_gripper_effort_limits = effort_limits[:, self.gripper_joint_id_tensor].detach().clone()
+        gripper_stiffness = getattr(robot.data, "joint_stiffness", None)
+        gripper_damping = getattr(robot.data, "joint_damping", None)
+        for field, value in (("joint_stiffness", gripper_stiffness), ("joint_damping", gripper_damping)):
+            if not torch.is_tensor(value) or value.shape != joint_pos.shape or value.device != self.device:
+                raise RuntimeError(f"v24 P2 requires robot.data.{field} matching joint_pos for gripper vitals.")
+        self.original_gripper_stiffness = gripper_stiffness[:, self.gripper_joint_id_tensor].detach().clone()
+        self.original_gripper_damping = gripper_damping[:, self.gripper_joint_id_tensor].detach().clone()
+        self._validate_gripper_face(torch.arange(self.num_envs, dtype=torch.long, device=self.device), "initialization")
         door_joint_pos = door.data.joint_pos
         if not torch.is_tensor(door_joint_pos) or door_joint_pos.ndim != 2 or door_joint_pos.device != self.device:
             raise TypeError("P2 door data.joint_pos must be a device-local (N,J) tensor.")
         self.original_door_friction = {}
+        self.original_door_friction_all = {}
         for field in ("joint_friction_coeff", "joint_dynamic_friction_coeff", "joint_viscous_friction_coeff"):
             value = getattr(door.data, field, None)
-            if not torch.is_tensor(value) or value.ndim != 2 or value.shape[0] != self.num_envs or value.shape[1] <= self.hinge_joint_id or value.device != self.device:
+            if (
+                not torch.is_tensor(value)
+                or value.ndim != 2
+                or value.shape[0] != self.num_envs
+                or value.shape[1] != door_joint_pos.shape[1]
+                or value.shape[1] <= self.hinge_joint_id
+                or value.device != self.device
+            ):
                 raise RuntimeError(f"P2 requires Articulation.data.{field} for native friction readback.")
+            if not value.is_floating_point() or not torch.all(torch.isfinite(value)):
+                raise RuntimeError(f"P2 requires finite floating Articulation.data.{field} for native friction readback.")
             self.original_door_friction[field] = value[:, [self.hinge_joint_id]].detach().clone()
+            self.original_door_friction_all[field] = value.detach().clone()
+        self.door_joint_count = int(door_joint_pos.shape[1])
+        self.non_hinge_joint_ids = tuple(index for index in range(self.door_joint_count) if index != self.hinge_joint_id)
         if not hasattr(door, "write_joint_friction_coefficient_to_sim"):
             raise RuntimeError("P2 requires Articulation.write_joint_friction_coefficient_to_sim for native door friction.")
         self.current_cap_nm = torch.full((self.num_envs,), float("nan"), dtype=self.dtype, device=self.device)
@@ -1025,6 +1177,7 @@ class A2V24ForceBoundaryRuntime:
         self._previous_hinge_valid = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         self.last_sample: dict[str, Any] | None = None
         self._previous_hinge_theta = torch.full((self.num_envs,), float("nan"), dtype=self.dtype, device=self.device)
+        self._parameter_vitals_cache: list[dict[str, Any] | None] = [None] * self.num_envs
         self.exporter = P2RuntimeExporter(config.runtime_export_path, num_envs=self.num_envs, config=config)
         self._closed = False
         all_env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
@@ -1040,6 +1193,163 @@ class A2V24ForceBoundaryRuntime:
             raise ValueError("P2 env_ids are outside the live environment range.")
         return env_ids
 
+    def _validate_gripper_face(self, env_ids: torch.Tensor, context: str) -> None:
+        ids = self._normalize_env_ids(env_ids)
+        expected_effort = torch.tensor(GRIPPER_EFFORT_LIMITS_NM, dtype=self.dtype, device=self.device).expand(ids.numel(), -1)
+        expected_stiffness = torch.tensor(GRIPPER_STIFFNESS_NM_PER_RAD, dtype=self.dtype, device=self.device).expand(ids.numel(), -1)
+        expected_damping = torch.tensor(GRIPPER_DAMPING_NM_S_PER_RAD, dtype=self.dtype, device=self.device).expand(ids.numel(), -1)
+        current_effort = self.robot.data.joint_effort_limits[ids][:, self.gripper_joint_id_tensor]
+        current_stiffness = self.robot.data.joint_stiffness[ids][:, self.gripper_joint_id_tensor]
+        current_damping = self.robot.data.joint_damping[ids][:, self.gripper_joint_id_tensor]
+        for name, current, expected, original in (
+            ("effort limits", current_effort, expected_effort, self.original_gripper_effort_limits[ids]),
+            ("stiffness", current_stiffness, expected_stiffness, self.original_gripper_stiffness[ids]),
+            ("damping", current_damping, expected_damping, self.original_gripper_damping[ids]),
+        ):
+            if not torch.is_tensor(current) or tuple(current.shape) != tuple(expected.shape) or not torch.all(torch.isfinite(current)):
+                raise RuntimeError(f"P2 gripper {name} readback is not finite with the exact expected shape during {context}.")
+            if not torch.allclose(current, expected, atol=1.0e-5, rtol=0.0):
+                raise RuntimeError(f"P2 gripper {name} changed from the frozen [arm_j7, arm_j8] face during {context}.")
+            if not torch.allclose(current, original, atol=1.0e-5, rtol=0.0):
+                raise RuntimeError(f"P2 gripper {name} changed relative to its initialization readback during {context}.")
+
+    def _validate_non_hinge_friction_unchanged(self, env_ids: torch.Tensor, context: str) -> None:
+        ids = self._normalize_env_ids(env_ids)
+        if not self.non_hinge_joint_ids:
+            return
+        joint_ids = list(self.non_hinge_joint_ids)
+        for field, original_all in self.original_door_friction_all.items():
+            current = getattr(self.door.data, field)[ids][:, joint_ids]
+            original = original_all[ids][:, joint_ids]
+            if not torch.is_tensor(current) or not torch.all(torch.isfinite(current)):
+                raise RuntimeError(f"P2 non-hinge {field} readback is not finite during {context}.")
+            if not torch.allclose(current, original, atol=1.0e-6, rtol=0.0):
+                raise RuntimeError(f"P2 non-hinge {field} changed during {context}.")
+
+    @staticmethod
+    def _finite_list(value: torch.Tensor, *, label: str) -> list[float]:
+        if not torch.is_tensor(value) or not value.is_floating_point() or not torch.all(torch.isfinite(value)):
+            raise RuntimeError(f"P2 parameter vitals {label} must be finite floating values.")
+        return [float(item) for item in value.detach().cpu().reshape(-1).tolist()]
+
+    def _build_parameter_vitals(self, env_id: int) -> dict[str, Any]:
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise ValueError(f"P2 parameter vitals env_id must be within 0..{self.num_envs - 1}; got {env_id!r}.")
+        ids = torch.tensor([env_id], dtype=torch.long, device=self.device)
+        self._validate_gripper_face(ids, f"aggregate env_id={env_id}")
+        self._validate_non_hinge_friction_unchanged(ids, f"aggregate env_id={env_id}")
+        cap = self.current_cap_nm[env_id]
+        if not torch.is_tensor(cap) or not torch.isfinite(cap):
+            raise RuntimeError(f"P2 parameter vitals active arm cap is not finite for env_id={env_id}.")
+        cap_value = float(cap.item())
+        arm_requested = torch.full((1, len(self.arm_joint_ids)), cap_value, dtype=self.dtype, device=self.device)
+        arm_readback = self.robot.data.joint_effort_limits[ids][:, self.arm_joint_id_tensor]
+        if not torch.allclose(arm_readback, arm_requested, atol=1.0e-5, rtol=0.0):
+            raise RuntimeError(f"P2 parameter vitals arm cap readback mismatch for env_id={env_id}.")
+        static, dynamic, viscous = FRICTION_PROFILES[self.config.friction_profile]
+        friction_requested = {
+            "static_friction_nm": float(static),
+            "dynamic_friction_nm": float(dynamic),
+            "viscous_friction_nm_s_per_rad": float(viscous),
+        }
+        friction_readback: dict[str, float] = {}
+        friction_fields = {
+            "static_friction_nm": "joint_friction_coeff",
+            "dynamic_friction_nm": "joint_dynamic_friction_coeff",
+            "viscous_friction_nm_s_per_rad": "joint_viscous_friction_coeff",
+        }
+        for output_name, data_field in friction_fields.items():
+            value = getattr(self.door.data, data_field)[env_id, self.hinge_joint_id]
+            if not torch.is_tensor(value) or not torch.isfinite(value):
+                raise RuntimeError(f"P2 parameter vitals {data_field} readback is not finite for env_id={env_id}.")
+            actual = float(value.item())
+            if actual != friction_requested[output_name]:
+                raise RuntimeError(f"P2 parameter vitals {data_field} disagrees with requested/contract value for env_id={env_id}.")
+            friction_readback[output_name] = actual
+        non_hinge_before = {
+            field: self._finite_list(original_all[env_id, list(self.non_hinge_joint_ids)], label=f"{field}.before")
+            for field, original_all in self.original_door_friction_all.items()
+        }
+        non_hinge_after = {
+            field: self._finite_list(getattr(self.door.data, field)[env_id, list(self.non_hinge_joint_ids)], label=f"{field}.after")
+            for field in self.original_door_friction_all
+        }
+        if non_hinge_before != non_hinge_after:
+            raise RuntimeError(f"P2 parameter vitals non-hinge friction changed for env_id={env_id}.")
+        gripper_effort = self._finite_list(self.robot.data.joint_effort_limits[env_id, self.gripper_joint_id_tensor], label="gripper_effort_limits")
+        gripper_stiffness = self._finite_list(self.robot.data.joint_stiffness[env_id, self.gripper_joint_id_tensor], label="gripper_stiffness")
+        gripper_damping = self._finite_list(self.robot.data.joint_damping[env_id, self.gripper_joint_id_tensor], label="gripper_damping")
+        return {
+            "schema": PARAMETER_VITALS_SCHEMA,
+            "authority": MODELED_TORQUE_AUTHORITY,
+            "solver_applied": False,
+            "actual_generalized_torque": ACTUAL_TORQUE_AUTHORITY,
+            "arm": {
+                "joint_names": list(ARM_JOINT_NAMES),
+                "joint_ids": list(self.arm_joint_ids),
+                "registered_active_cap_nm": cap_value,
+                "registered_cap_values_nm": [*self.config.arm_caps_nm, self.config.contingency_cap_nm],
+                "requested_effort_limit_nm": [cap_value] * len(self.arm_joint_ids),
+                "readback_effort_limit_nm": self._finite_list(arm_readback[0], label="arm_effort_limits"),
+                "contract_effort_limit_nm": [cap_value] * len(self.arm_joint_ids),
+                "authority": STATE_AUTHORITY,
+            },
+            "gripper": {
+                "joint_names": list(GRIPPER_JOINT_NAMES),
+                "joint_ids": list(self.gripper_joint_ids),
+                "effort_limit_nm": {
+                    "readback": gripper_effort,
+                    "contract": list(GRIPPER_EFFORT_LIMITS_NM),
+                },
+                "stiffness_nm_per_rad": {
+                    "readback": gripper_stiffness,
+                    "contract": list(GRIPPER_STIFFNESS_NM_PER_RAD),
+                },
+                "damping_nm_s_per_rad": {
+                    "readback": gripper_damping,
+                    "contract": list(GRIPPER_DAMPING_NM_S_PER_RAD),
+                },
+                "swept_by_arm_cap": False,
+                "unchanged_by_arm_cap": True,
+            },
+            "door_friction": {
+                "hinge_joint_name": self.hinge_joint_name,
+                "hinge_joint_id": self.hinge_joint_id,
+                "requested": dict(friction_requested),
+                "readback": dict(friction_readback),
+                "contract": dict(friction_requested),
+                "units": dict(FRICTION_UNITS),
+                "authority": MODELED_TORQUE_AUTHORITY,
+                "solver_applied": False,
+                "actual_generalized_torque": ACTUAL_TORQUE_AUTHORITY,
+                "non_hinge_joint_ids": list(self.non_hinge_joint_ids),
+                "non_hinge_unchanged": True,
+                "non_hinge_before": non_hinge_before,
+                "non_hinge_after": non_hinge_after,
+            },
+            "unit_boundary": {
+                "analysis_surface": "radian",
+                "degree_per_radian_boundary": 57.3,
+                "static_dynamic_effort_conversion_applied": False,
+                "viscous_conversion_applied": False,
+                "viscous_nonzero_conversion_test": "NOT_APPLICABLE_ZERO_PROFILE" if viscous == 0.0 else "DECLARED_RAD_ANALYSIS_FACE",
+            },
+        }
+
+    def _get_parameter_vitals(self, env_id: int) -> dict[str, Any]:
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or not 0 <= env_id < self.num_envs:
+            raise ValueError(f"P2 parameter vitals env_id must be within 0..{self.num_envs - 1}; got {env_id!r}.")
+        cached = self._parameter_vitals_cache[env_id]
+        if cached is None:
+            cached = self._build_parameter_vitals(env_id)
+            self._parameter_vitals_cache[env_id] = cached
+        return cached
+
+    def _invalidate_parameter_vitals(self, env_ids: torch.Tensor | None = None) -> None:
+        ids = self._normalize_env_ids(env_ids)
+        for env_id in ids.detach().cpu().tolist():
+            self._parameter_vitals_cache[int(env_id)] = None
+
     def apply_cap(self, cap_nm: float, env_ids: torch.Tensor | None = None) -> None:
         if self._closed:
             raise RuntimeError("v24 P2 force-boundary runtime is closed.")
@@ -1053,7 +1363,9 @@ class A2V24ForceBoundaryRuntime:
         readback = self.robot.data.joint_effort_limits[ids][:, self.arm_joint_id_tensor]
         if tuple(readback.shape) != tuple(requested.shape) or not torch.allclose(readback, requested, atol=1.0e-5, rtol=0.0):
             raise RuntimeError("v24 P2 effort-cap write/readback mismatch.")
+        self._validate_gripper_face(ids, "arm-cap application")
         self.current_cap_nm[ids] = cap
+        self._invalidate_parameter_vitals(ids)
 
     def apply_friction(self, profile: str, env_ids: torch.Tensor | None = None) -> None:
         if profile not in FRICTION_PROFILES:
@@ -1077,6 +1389,8 @@ class A2V24ForceBoundaryRuntime:
             readback = readback_all[ids][:, [self.hinge_joint_id]]
             if not torch.allclose(readback, values, atol=1.0e-6, rtol=0.0):
                 raise RuntimeError(f"P2 native friction {field} write/readback mismatch.")
+        self._validate_non_hinge_friction_unchanged(ids, "friction application")
+        self._invalidate_parameter_vitals(ids)
 
     def reset_envs(self, env_ids: torch.Tensor) -> None:
         ids = self._normalize_env_ids(env_ids)
@@ -1097,6 +1411,8 @@ class A2V24ForceBoundaryRuntime:
         readback = self.robot.data.joint_effort_limits[ids][:, self.arm_joint_id_tensor]
         if not torch.allclose(readback, reapplied, atol=1.0e-5, rtol=0.0):
             raise RuntimeError("v24 P2 reset failed to reapply the current effort cap.")
+        self._validate_gripper_face(ids, "reset arm-cap reapplication")
+        self._invalidate_parameter_vitals(ids)
         self.door.write_joint_friction_coefficient_to_sim(
             self.original_door_friction["joint_friction_coeff"][ids],
             self.original_door_friction["joint_dynamic_friction_coeff"][ids],
@@ -1109,6 +1425,7 @@ class A2V24ForceBoundaryRuntime:
             readback = getattr(self.door.data, field)[ids][:, [self.hinge_joint_id]]
             if not torch.allclose(readback, original, atol=1.0e-6, rtol=0.0):
                 raise RuntimeError(f"P2 reset failed to restore original {field}.")
+        self._validate_non_hinge_friction_unchanged(ids, "reset friction restoration")
         self.apply_friction(self.config.friction_profile, ids)
 
     def close(self) -> None:
@@ -1120,6 +1437,7 @@ class A2V24ForceBoundaryRuntime:
         readback = self.robot.data.joint_effort_limits[:, self.arm_joint_id_tensor]
         if not torch.allclose(readback, original, atol=1.0e-5, rtol=0.0):
             raise RuntimeError("v24 P2 close failed to restore original effort limits.")
+        self._validate_gripper_face(all_env_ids, "close arm-cap restoration")
         self.door.write_joint_friction_coefficient_to_sim(
             self.original_door_friction["joint_friction_coeff"],
             self.original_door_friction["joint_dynamic_friction_coeff"],
@@ -1131,6 +1449,7 @@ class A2V24ForceBoundaryRuntime:
             readback = getattr(self.door.data, field)[:, [self.hinge_joint_id]]
             if not torch.allclose(readback, original, atol=1.0e-6, rtol=0.0):
                 raise RuntimeError(f"P2 close did not restore original {field}.")
+        self._validate_non_hinge_friction_unchanged(all_env_ids, "close friction restoration")
         self.exporter.publish()
         self._closed = True
         self.last_sample = None
@@ -1151,10 +1470,26 @@ class A2V24ForceBoundaryRuntime:
         sample: Mapping[str, Any],
         *,
         episode_step: torch.Tensor,
+        stage_buf: torch.Tensor,
         stable_grasp: torch.Tensor | None = None,
     ) -> list[dict[str, Any]]:
         if not torch.is_tensor(episode_step) or episode_step.shape != (self.num_envs,) or episode_step.dtype not in (torch.long, torch.int32, torch.int64):
             raise TypeError("P2 exporter episode_step must be a device-local (N,) integer tensor.")
+        if (
+            not torch.is_tensor(stage_buf)
+            or stage_buf.shape != (self.num_envs,)
+            or stage_buf.dtype != torch.long
+            or stage_buf.device != self.device
+        ):
+            shape = None if not torch.is_tensor(stage_buf) else tuple(stage_buf.shape)
+            dtype = None if not torch.is_tensor(stage_buf) else stage_buf.dtype
+            device = None if not torch.is_tensor(stage_buf) else stage_buf.device
+            raise TypeError(
+                "P2 exporter stage_buf must be a device-local torch.long tensor with "
+                f"shape ({self.num_envs},); got shape={shape}, dtype={dtype}, device={device}."
+            )
+        if episode_step.device != self.device:
+            raise TypeError("P2 exporter episode_step must be a device-local integer tensor.")
         authority = sample.get("authority")
         if authority != {**AUTHORITY_SET, "solver_applied": False}:
             raise RuntimeError("P2 runtime sample authority set is incomplete or mutated.")
@@ -1185,6 +1520,7 @@ class A2V24ForceBoundaryRuntime:
             ):
                 raise RuntimeError(f"P2 exporter requires a finite pre/post theta delta for env_id={env_id}.")
             grasp_source_unavailable = stable_value is None
+            parameter_vitals = self._get_parameter_vitals(env_id)
             row = {
                 "schema": FORCE_BOUNDARY_SCHEMA + ".runtime_row",
                 "seed": self.config.seed,
@@ -1193,6 +1529,7 @@ class A2V24ForceBoundaryRuntime:
                 "episode_index": 0,
                 "episode_id": f"v24-p2-env{env_id}-episode0",
                 "episode_step": int(episode_step[env_id].item()),
+                "stage_buf": int(stage_buf[env_id].item()),
                 "profile": self.config.friction_profile,
                 "mode": self.config.runtime_mode,
                 "cap_nm": self.config.active_cap_nm,
@@ -1231,6 +1568,7 @@ class A2V24ForceBoundaryRuntime:
                     "authority": MODELED_TORQUE_AUTHORITY,
                     "solver_applied": False,
                 },
+                "parameter_vitals": parameter_vitals,
                 "authority": {**AUTHORITY_SET, "solver_applied": False},
                 "actual_generalized_torque": ACTUAL_TORQUE_AUTHORITY,
                 "source_api": sample["source_api"],
@@ -1289,7 +1627,7 @@ class A2V24ForceBoundaryRuntime:
             friction_mode="slip",
             velocity_epsilon_rad_s=self.config.velocity_epsilon_rad_s,
         )
-        tau_valid = required["direction_valid"] & alpha_valid & torch.isfinite(required["tau_required_nm"])
+        tau_valid = required["model_valid"] & alpha_valid
         capacity = compute_directional_capacity(
             jacobian,
             gravity,
@@ -1370,11 +1708,334 @@ class A2V24ForceBoundaryRuntime:
         }
 
 
+class A2V24F3NativeAssignmentRuntime:
+    """Apply F3 assignments through IsaacLab high-level articulation APIs.
+
+    The runtime owns only the arm effort-limit face and the door hinge friction
+    face.  It records the gripper and non-hinge door properties at construction
+    and rejects any drift after assignment or reset reapplication.
+    """
+
+    def __init__(self, robot: Any, door: Any, *, device: str | torch.device, num_envs: int) -> None:
+        if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs <= 0:
+            raise ValueError("F3 native assignment runtime requires a positive num_envs.")
+        self.robot = robot
+        self.door = door
+        self.device = torch.device(device)
+        self.num_envs = num_envs
+        for target, name in ((robot, "robot"), (door, "door")):
+            if not callable(getattr(target, "find_joints", None)):
+                raise RuntimeError(f"F3 requires {name}.find_joints().")
+        if not callable(getattr(robot, "write_joint_effort_limit_to_sim", None)):
+            raise RuntimeError("F3 requires Articulation.write_joint_effort_limit_to_sim().")
+        if not callable(getattr(door, "write_joint_friction_coefficient_to_sim", None)):
+            raise RuntimeError("F3 requires Articulation.write_joint_friction_coefficient_to_sim().")
+
+        arm_ids, arm_names = robot.find_joints(list(ARM_JOINT_NAMES), preserve_order=True)
+        if list(arm_names) != list(ARM_JOINT_NAMES) or len(arm_ids) != len(ARM_JOINT_NAMES):
+            raise RuntimeError(f"F3 arm joints must be exactly {ARM_JOINT_NAMES!r}; got {arm_names!r}.")
+        gripper_ids, gripper_names = robot.find_joints(list(GRIPPER_JOINT_NAMES), preserve_order=True)
+        if list(gripper_names) != list(GRIPPER_JOINT_NAMES) or len(gripper_ids) != len(GRIPPER_JOINT_NAMES):
+            raise RuntimeError(f"F3 gripper joints must be exactly {GRIPPER_JOINT_NAMES!r}; got {gripper_names!r}.")
+        hinge_ids, hinge_names = door.find_joints(HINGE_PATTERN, preserve_order=True)
+        if len(hinge_ids) != 1:
+            raise RuntimeError(f"F3 requires exactly one door hinge joint; got {hinge_names!r}.")
+        self.arm_joint_ids = tuple(int(item) for item in arm_ids)
+        self.gripper_joint_ids = tuple(int(item) for item in gripper_ids)
+        self.hinge_joint_id = int(hinge_ids[0])
+
+        robot_data = getattr(robot, "data", None)
+        door_data = getattr(door, "data", None)
+        if robot_data is None or door_data is None:
+            raise RuntimeError("F3 requires robot.data and door.data readback objects.")
+        joint_pos = getattr(robot_data, "joint_pos", None)
+        door_joint_pos = getattr(door_data, "joint_pos", None)
+        if not torch.is_tensor(joint_pos) or joint_pos.ndim != 2 or joint_pos.shape[0] != num_envs or joint_pos.device != self.device:
+            raise RuntimeError("F3 robot.data.joint_pos must be device-local with shape (num_envs,joints).")
+        if not torch.is_tensor(door_joint_pos) or door_joint_pos.ndim != 2 or door_joint_pos.shape[0] != num_envs or door_joint_pos.device != self.device:
+            raise RuntimeError("F3 door.data.joint_pos must be device-local with shape (num_envs,joints).")
+        self.dtype = joint_pos.dtype
+        self.door_joint_count = int(door_joint_pos.shape[1])
+        if self.hinge_joint_id >= self.door_joint_count:
+            raise RuntimeError("F3 hinge joint id is outside door.data.joint_pos.")
+        self.non_hinge_joint_ids = tuple(index for index in range(self.door_joint_count) if index != self.hinge_joint_id)
+
+        effort_limits = getattr(robot_data, "joint_effort_limits", None)
+        stiffness = getattr(robot_data, "joint_stiffness", None)
+        damping = getattr(robot_data, "joint_damping", None)
+        for name, value in (("joint_effort_limits", effort_limits), ("joint_stiffness", stiffness), ("joint_damping", damping)):
+            if not torch.is_tensor(value) or value.shape != joint_pos.shape or value.device != self.device:
+                raise RuntimeError(f"F3 robot.data.{name} must match joint_pos on the runtime device.")
+            if not value.is_floating_point() or not torch.all(torch.isfinite(value)):
+                raise RuntimeError(f"F3 robot.data.{name} must be finite floating values.")
+        self.original_gripper_effort_limits = effort_limits[:, self.gripper_joint_ids].detach().clone()
+        self.original_gripper_stiffness = stiffness[:, self.gripper_joint_ids].detach().clone()
+        self.original_gripper_damping = damping[:, self.gripper_joint_ids].detach().clone()
+        self.original_arm_effort_limits = effort_limits[:, self.arm_joint_ids].detach().clone()
+        self._validate_gripper_face("initialization")
+
+        self.original_door_friction_all: dict[str, torch.Tensor] = {}
+        for field in ("joint_friction_coeff", "joint_dynamic_friction_coeff", "joint_viscous_friction_coeff"):
+            value = getattr(door_data, field, None)
+            if (
+                not torch.is_tensor(value)
+                or value.ndim != 2
+                or value.shape != door_joint_pos.shape
+                or value.device != self.device
+                or not value.is_floating_point()
+                or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(f"F3 door.data.{field} must be finite and match door joint_pos.")
+            self.original_door_friction_all[field] = value.detach().clone()
+        self._assignments: tuple[F3Assignment, ...] | None = None
+        self._last_receipt: dict[str, Any] | None = None
+
+    def _validate_gripper_face(self, context: str) -> None:
+        robot_data = self.robot.data
+        expected_effort = torch.tensor(GRIPPER_EFFORT_LIMITS_NM, dtype=self.dtype, device=self.device)
+        expected_stiffness = torch.tensor(GRIPPER_STIFFNESS_NM_PER_RAD, dtype=self.dtype, device=self.device)
+        expected_damping = torch.tensor(GRIPPER_DAMPING_NM_S_PER_RAD, dtype=self.dtype, device=self.device)
+        current = {
+            "effort_limit_nm": robot_data.joint_effort_limits[:, self.gripper_joint_ids],
+            "stiffness_nm_per_rad": robot_data.joint_stiffness[:, self.gripper_joint_ids],
+            "damping_nm_s_per_rad": robot_data.joint_damping[:, self.gripper_joint_ids],
+        }
+        expected = {
+            "effort_limit_nm": expected_effort,
+            "stiffness_nm_per_rad": expected_stiffness,
+            "damping_nm_s_per_rad": expected_damping,
+        }
+        original = {
+            "effort_limit_nm": self.original_gripper_effort_limits,
+            "stiffness_nm_per_rad": self.original_gripper_stiffness,
+            "damping_nm_s_per_rad": self.original_gripper_damping,
+        }
+        for name, value in current.items():
+            if not torch.all(torch.isfinite(value)):
+                raise RuntimeError(f"F3 gripper {name} readback is non-finite during {context}.")
+            expected_value = expected[name].expand_as(value)
+            if not torch.allclose(value, expected_value, atol=1.0e-5, rtol=0.0):
+                raise RuntimeError(f"F3 gripper {name} differs from the frozen contract during {context}.")
+            if not torch.allclose(value, original[name], atol=1.0e-5, rtol=0.0):
+                raise RuntimeError(f"F3 gripper {name} changed during {context}.")
+
+    def _validate_non_hinge_friction(self, context: str) -> None:
+        if not self.non_hinge_joint_ids:
+            return
+        for field, original in self.original_door_friction_all.items():
+            current = getattr(self.door.data, field)[:, self.non_hinge_joint_ids]
+            expected = original[:, self.non_hinge_joint_ids]
+            if not torch.all(torch.isfinite(current)) or not torch.allclose(current, expected, atol=1.0e-6, rtol=0.0):
+                raise RuntimeError(f"F3 non-hinge {field} changed during {context}.")
+
+    def _normalize_assignments(self, assignments: Sequence[F3Assignment]) -> tuple[F3Assignment, ...]:
+        if len(assignments) != self.num_envs:
+            raise ValueError(f"F3 assignment count must equal num_envs={self.num_envs}.")
+        ordered = tuple(assignments)
+        for env_index, assignment in enumerate(ordered):
+            if not isinstance(assignment, F3Assignment) or assignment.env_index != env_index:
+                raise RuntimeError("F3 assignments must be ordered by contiguous env_index.")
+            if assignment.cap_nm == 10.0 or assignment.confirmed_e2:
+                raise RuntimeError("F3 rejects the contingency cap10 and confirmed-E2 assignments.")
+            if assignment.friction_profile not in F3_FRICTION_PARAMETERS:
+                raise RuntimeError(f"F3 friction profile is unsupported: {assignment.friction_profile!r}.")
+        return ordered
+
+    def _write_groups(self, assignments: Sequence[F3Assignment], env_ids: torch.Tensor) -> None:
+        if env_ids.numel() == 0:
+            return
+        groups: dict[tuple[float, str], list[int]] = {}
+        for env_id in env_ids.detach().cpu().tolist():
+            assignment = assignments[int(env_id)]
+            groups.setdefault((assignment.cap_nm, assignment.friction_profile), []).append(int(env_id))
+        for (cap_nm, profile), indices in groups.items():
+            ids = torch.tensor(indices, dtype=torch.long, device=self.device)
+            cap = torch.full((ids.numel(), len(self.arm_joint_ids)), cap_nm, dtype=self.dtype, device=self.device)
+            self.robot.write_joint_effort_limit_to_sim(cap, joint_ids=list(self.arm_joint_ids), env_ids=ids)
+            static, dynamic, viscous = F3_FRICTION_PARAMETERS[profile]
+            shape = (ids.numel(), 1)
+            self.door.write_joint_friction_coefficient_to_sim(
+                torch.full(shape, static, dtype=self.dtype, device=self.device),
+                torch.full(shape, dynamic, dtype=self.dtype, device=self.device),
+                torch.full(shape, viscous, dtype=self.dtype, device=self.device),
+                joint_ids=[self.hinge_joint_id],
+                env_ids=ids,
+            )
+            readback_cap = self.robot.data.joint_effort_limits[ids][:, self.arm_joint_ids]
+            readback_static = self.door.data.joint_friction_coeff[ids][:, [self.hinge_joint_id]]
+            readback_dynamic = self.door.data.joint_dynamic_friction_coeff[ids][:, [self.hinge_joint_id]]
+            readback_viscous = self.door.data.joint_viscous_friction_coeff[ids][:, [self.hinge_joint_id]]
+            if not torch.allclose(readback_cap, cap, atol=1.0e-5, rtol=0.0):
+                raise RuntimeError("F3 arm cap write/readback disagreed with the intended assignment.")
+            expected = (static, dynamic, viscous)
+            for value, expected_value in zip((readback_static, readback_dynamic, readback_viscous), expected):
+                if not torch.allclose(value, torch.full_like(value, expected_value), atol=1.0e-6, rtol=0.0):
+                    raise RuntimeError("F3 hinge friction write/readback disagreed with the intended assignment.")
+
+    def _readbacks(
+        self,
+        assignments: Sequence[F3Assignment],
+        env_ids: torch.Tensor | None = None,
+    ) -> list[dict[str, Any]]:
+        selected_ids = (
+            list(range(self.num_envs))
+            if env_ids is None
+            else [int(value) for value in env_ids.detach().cpu().tolist()]
+        )
+        rows = []
+        for env_id in selected_ids:
+            assignment = assignments[env_id]
+            hinge = self.hinge_joint_id
+            rows.append(
+                {
+                    "env_index": env_id,
+                    "intended_bucket": assignment.intended_bucket,
+                    "friction_profile": assignment.friction_profile,
+                    "cap_nm": float(self.robot.data.joint_effort_limits[env_id, self.arm_joint_ids[0]].item()),
+                    "hinge_static_friction": float(self.door.data.joint_friction_coeff[env_id, hinge].item()),
+                    "hinge_dynamic_friction": float(self.door.data.joint_dynamic_friction_coeff[env_id, hinge].item()),
+                    "hinge_viscous_friction": float(self.door.data.joint_viscous_friction_coeff[env_id, hinge].item()),
+                    "gripper_effort_limit_nm": [float(value) for value in self.robot.data.joint_effort_limits[env_id, self.gripper_joint_ids].detach().cpu().tolist()],
+                    "gripper_stiffness_nm_per_rad": [float(value) for value in self.robot.data.joint_stiffness[env_id, self.gripper_joint_ids].detach().cpu().tolist()],
+                    "gripper_damping_nm_s_per_rad": [float(value) for value in self.robot.data.joint_damping[env_id, self.gripper_joint_ids].detach().cpu().tolist()],
+                }
+            )
+        return rows
+
+    def assignment_receipt(
+        self,
+        assignments: Sequence[F3Assignment] | None = None,
+        *,
+        global_batch: int | None = None,
+        full_reset_boundary: bool = False,
+    ) -> dict[str, Any]:
+        selected = self._assignments if assignments is None else self._normalize_assignments(assignments)
+        if selected is None:
+            raise RuntimeError("F3 assignment receipt requested before an assignment was applied.")
+        if global_batch is None:
+            global_batch = selected[0].global_batch
+        self._validate_gripper_face("assignment receipt")
+        self._validate_non_hinge_friction("assignment receipt")
+        for env_id, assignment in enumerate(selected):
+            static, dynamic, viscous = F3_FRICTION_PARAMETERS[assignment.friction_profile]
+            if not torch.allclose(
+                self.robot.data.joint_effort_limits[env_id, self.arm_joint_ids],
+                torch.full((len(self.arm_joint_ids),), assignment.cap_nm, dtype=self.dtype, device=self.device),
+                atol=1.0e-5,
+                rtol=0.0,
+            ):
+                raise RuntimeError(f"F3 assignment receipt arm cap mismatch for env_id={env_id}.")
+            current_friction = (
+                self.door.data.joint_friction_coeff[env_id, self.hinge_joint_id],
+                self.door.data.joint_dynamic_friction_coeff[env_id, self.hinge_joint_id],
+                self.door.data.joint_viscous_friction_coeff[env_id, self.hinge_joint_id],
+            )
+            if any(abs(float(value.item()) - expected) > 1.0e-6 for value, expected in zip(current_friction, (static, dynamic, viscous))):
+                raise RuntimeError(f"F3 assignment receipt hinge friction mismatch for env_id={env_id}.")
+        return {
+            "schema": "a2_piper_v24_f3_marginal_e1_assignment_receipt_v1",
+            "global_batch": int(global_batch),
+            "full_reset_boundary": bool(full_reset_boundary),
+            "intended_assignments": [assignment.as_dict() for assignment in selected],
+            "applied_parameter_readbacks": self._readbacks(selected),
+            "gripper_contract": {
+                "joint_names": list(GRIPPER_JOINT_NAMES),
+                "effort_limit_nm": list(GRIPPER_EFFORT_LIMITS_NM),
+                "stiffness_nm_per_rad": list(GRIPPER_STIFFNESS_NM_PER_RAD),
+                "damping_nm_s_per_rad": list(GRIPPER_DAMPING_NM_S_PER_RAD),
+                "unchanged": True,
+            },
+            "door_non_hinge_unchanged": True,
+            "confirmed_e2": False,
+            "forbidden_cap_nm": 10.0,
+        }
+
+    def apply_assignments(self, assignments: Sequence[F3Assignment], *, full_reset_boundary: bool = True) -> dict[str, Any]:
+        normalized = self._normalize_assignments(assignments)
+        env_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
+        self._write_groups(normalized, env_ids)
+        self._validate_gripper_face("assignment application")
+        self._validate_non_hinge_friction("assignment application")
+        self._assignments = normalized
+        receipt = self.assignment_receipt(
+            normalized,
+            global_batch=normalized[0].global_batch,
+            full_reset_boundary=full_reset_boundary,
+        )
+        self._last_receipt = copy.deepcopy(receipt)
+        return receipt
+
+    def cached_assignment_receipt(self, *, global_batch: int, full_reset_boundary: bool = False) -> dict[str, Any]:
+        if self._last_receipt is None:
+            raise RuntimeError("F3 cached assignment receipt requested before the first phase application.")
+        receipt = copy.deepcopy(self._last_receipt)
+        receipt["global_batch"] = int(global_batch)
+        receipt["full_reset_boundary"] = bool(full_reset_boundary)
+        for assignment in receipt["intended_assignments"]:
+            assignment["global_batch"] = int(global_batch)
+        return receipt
+
+    def reset_envs(self, env_ids: torch.Tensor) -> dict[str, Any]:
+        if self._assignments is None:
+            raise RuntimeError("F3 reset reapplication requires a current absolute-batch assignment.")
+        if not torch.is_tensor(env_ids) or env_ids.ndim != 1 or env_ids.dtype != torch.long or env_ids.device != self.device:
+            raise TypeError("F3 reset env_ids must be a device-local torch.long vector.")
+        if torch.any(env_ids < 0) or torch.any(env_ids >= self.num_envs):
+            raise ValueError("F3 reset env_ids are outside the live environment range.")
+        self._write_groups(self._assignments, env_ids)
+        self._validate_gripper_face("reset reapplication")
+        self._validate_non_hinge_friction("reset reapplication")
+        return {
+            "schema": "a2_piper_v24_f3_marginal_e1_assignment_receipt_v1",
+            "global_batch": self._assignments[0].global_batch,
+            "full_reset_boundary": False,
+            "reset_env_ids": [int(value) for value in env_ids.detach().cpu().tolist()],
+            "intended_assignments": [self._assignments[int(value)].as_dict() for value in env_ids.detach().cpu().tolist()],
+            "applied_parameter_readbacks": self._readbacks(self._assignments, env_ids),
+            "gripper_contract": {
+                "joint_names": list(GRIPPER_JOINT_NAMES),
+                "effort_limit_nm": list(GRIPPER_EFFORT_LIMITS_NM),
+                "stiffness_nm_per_rad": list(GRIPPER_STIFFNESS_NM_PER_RAD),
+                "damping_nm_s_per_rad": list(GRIPPER_DAMPING_NM_S_PER_RAD),
+                "unchanged": True,
+            },
+            "door_non_hinge_unchanged": True,
+            "confirmed_e2": False,
+            "forbidden_cap_nm": 10.0,
+        }
+
+    def close(self) -> None:
+        all_ids = torch.arange(self.num_envs, dtype=torch.long, device=self.device)
+        self.robot.write_joint_effort_limit_to_sim(
+            self.original_arm_effort_limits,
+            joint_ids=list(self.arm_joint_ids),
+            env_ids=all_ids,
+        )
+        for field, values in self.original_door_friction_all.items():
+            if field == "joint_friction_coeff":
+                static = values
+            elif field == "joint_dynamic_friction_coeff":
+                dynamic = values
+            else:
+                viscous = values
+        self.door.write_joint_friction_coefficient_to_sim(
+            static,
+            dynamic,
+            viscous,
+            joint_ids=list(range(self.door_joint_count)),
+            env_ids=all_ids,
+        )
+        self._validate_gripper_face("close")
+        self._validate_non_hinge_friction("close")
+
+
 __all__ = [
     "ACTUAL_TORQUE_AUTHORITY",
     "ARM_BODY_NAME",
     "ARM_JOINT_NAMES",
     "A2V24ForceBoundaryRuntime",
+    "A2V24F3NativeAssignmentRuntime",
+    "aggregate_p2_force_window",
     "CHECKPOINT_LOAD_MODE",
     "CHECKPOINT_PATH",
     "CONTINGENCY_CAP_NM",
@@ -1382,7 +2043,14 @@ __all__ = [
     "DOOR_HANDLE_NAME",
     "EPS_G_M",
     "FORCE_BOUNDARY_SCHEMA",
+    "FORCE_WINDOW_OPENING_STAGES",
+    "FORCE_WINDOW_SELECTION_ALPHA_FALLBACK",
+    "FORCE_WINDOW_SELECTION_STABLE_OPENING",
+    "FORCE_WINDOW_STABLE_GRASP_MIN_COUNT",
+    "FORCE_WINDOW_TRANSITIONS",
+    "PARAMETER_VITALS_SCHEMA",
     "GRAVITY_AUTHORITY",
+    "GRIPPER_JOINT_NAMES",
     "MARGIN_AUTHORITY",
     "MODELED_TORQUE_AUTHORITY",
     "PD_AUTHORITY",

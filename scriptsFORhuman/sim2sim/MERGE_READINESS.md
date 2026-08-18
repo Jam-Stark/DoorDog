@@ -114,7 +114,7 @@ r4 artifacts are byte-preserved; the r4→r5 supersession is recorded in `paired
 | pre-r5 mainline sync | `b000ecf` | merged A2_Piper (`609daa5`) | 0 |
 | P0/P0b action warp | `8894dad` | already up to date | 0 |
 | P1 campaign + P2 probe + closure | `8990ba4` | already up to date | 0 |
-| post-closure mainline sync | `8990ba4` | merged A2_Piper (`0097ad2`, v24 round; disjoint paths) | 0 |
+| post-closure mainline sync | `8990ba4` | merged A2_Piper (`0097ad2`) as merge commit `2ab9f7f`; disjoint v24 paths | 0 |
 
 ## Non-intersection proof
 

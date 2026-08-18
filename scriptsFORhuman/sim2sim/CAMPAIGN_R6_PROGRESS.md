@@ -43,3 +43,9 @@
 - **D2 外观扫掠**: 27 变体+8 阶梯深化, min_norm 随 panel 亮度单调降(0.45→0.21), 无一触发 base-still → 外观有真实系统性效应(~2.2x)但单外观不充分。receipt: `r6_visual_probes/appearance_sweep_receipt.json` + `brightness_ladder_receipt.json`。
 - **C1c 视频补跑中**(render_results 总开关);D1 待 C1c 帧提取后跑。
 - 插桩声明: scratch 克隆 env-gated dump 补丁(只 scratch,默认行为零变化)。
+
+## 2026-08-19 03:0x HKT — Phase F 收口
+
+- D1 收口(SINGLE_VISUAL_CHANNEL_NOT_SUFFICIENT; Isaac帧 -52% min norm, live≡frozen) + C1c 24 个 Isaac 参考 mp4。
+- CAMPAIGN_R6_REPORT.md 落盘(首屏视频/receipt 路径+三行结论+owner 待决清单);ledger merge commit 更正为 2ab9f7f;memory r6 条目落盘。
+- 最终: 全部 commit + merge A2_Piper + behind=0 证明。E 支线 NOT_STARTED(铁序让位)。

@@ -1,0 +1,63 @@
+# @package _global_
+
+v24_schema: a2_piper_v24_p1_lite_friction_domain_escalation_v1
+v24_runtime_mode: P1_LITE_DOMAIN_ESCALATION
+v24_probe_seed: 24018
+v24_owner_decision: scriptsFORhuman/v24/DoorDog_v24_owner_decision_friction_domain_escalation_20260818.md
+v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+
+v24_p1_lite:
+  enabled: true
+  device: cuda:0
+  magnitude_anchor:
+    source: gr00t/rl/config/ablation/wbmanip/base_v22_G3_randomized_seed0.yaml
+    established_solvable_drive_resistance_nm: 24.0
+    interpretation: REPOSITORY_EVIDENCE_MAGNITUDE_ANCHOR_NOT_FRICTION_EQUIVALENCE
+  friction_profiles:
+    P02: {static_effort_nm: 2.0, dynamic_effort_nm: 1.5, viscous_coefficient_nm_s_per_rad: 0.0}
+    P05: {static_effort_nm: 5.0, dynamic_effort_nm: 3.75, viscous_coefficient_nm_s_per_rad: 0.0}
+    P10: {static_effort_nm: 10.0, dynamic_effort_nm: 7.5, viscous_coefficient_nm_s_per_rad: 0.0}
+    P20: {static_effort_nm: 20.0, dynamic_effort_nm: 15.0, viscous_coefficient_nm_s_per_rad: 0.0}
+  kinetic_trials:
+    initial_angle_rad: 0.5
+    interior_margin_rad: 0.25
+    speeds_rad_s: [-0.2, -0.1, 0.1, 0.2]
+    frames: 20
+    relative_spread_max: 0.25
+    direction_asymmetry_max: 0.25
+    max_positive_abs_speed_increment_rad_s: 0.0001
+  damping_control:
+    damping_native: 50.0
+    stiffness_native: 0.0
+    friction_ratio_low: 0.75
+    friction_ratio_high: 1.25
+    damping_ratio_min: 1.5
+  chatter:
+    slip_velocity_threshold_rad_s: 0.001
+    max_slip_reentries: 1
+    frames: 100
+  orthogonality:
+    realized_scaled_distance_max: 0.0001
+    cells:
+      - {id: A0, door_weight_kg: 120.0, damping_native: 50.0, stiffness_native: 2.0}
+      - {id: A8, door_weight_kg: 160.0, damping_native: 200.0, stiffness_native: 30.0}
+
+env:
+  config:
+    a2_v24_friction_enabled: true
+    a2_v24_friction_backend: native_joint_friction_v1
+    a2_v24_friction_static_effort: 20.0
+    a2_v24_friction_dynamic_effort: 15.0
+    a2_v24_friction_viscous_coefficient: 0.0
+    a2_v24_probe_resolution_effort: 0.5
+    a2_v24_probe_hold_window_steps: 100
+    a2_v24_probe_ramp_start_effort: 0.0
+    a2_v24_probe_ramp_end_effort: 40.0
+    a2_v24_probe_ramp_steps: 80
+    a2_v24_probe_settle_steps: 20
+    a2_v24_probe_angle_resolution_rad: 0.0001
+    a2_v24_probe_velocity_threshold_rad_s: 0.001
+    a2_v24_probe_stationarity_angle_tolerance_rad: 0.0001
+    a2_v24_probe_stationarity_velocity_tolerance_rad_s: 0.001
+    a2_v24_probe_dt_s: 0.005

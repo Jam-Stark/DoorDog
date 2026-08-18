@@ -1803,7 +1803,11 @@ def _policy_only_eval_command(
     overlay_env = overlay.get("env", {}).get("config") if isinstance(overlay.get("env"), Mapping) else None
     if not isinstance(overlay_env, Mapping):
         raise ValueError("v24 P2 canonical overlay must contain env.config")
-    if profile not in FRICTION_PROFILES:
+    overlay_p2 = overlay.get("v24_p2")
+    if not isinstance(overlay_p2, Mapping):
+        raise ValueError("v24 P2 overlay must contain v24_p2")
+    profile_table = overlay_p2.get("friction_profiles")
+    if not isinstance(profile_table, Mapping) or profile not in profile_table:
         raise ValueError(f"unknown P2 friction profile {profile!r}")
     if mode not in RUNTIME_MODES:
         raise ValueError(f"unknown P2 runtime mode {mode!r}")
@@ -1829,7 +1833,9 @@ def _policy_only_eval_command(
             return "[" + ",".join(hydra_value(item) for item in value) + "]"
         return str(value)
 
-    profile_params = FRICTION_PROFILES[profile]
+    profile_params = profile_table[profile]
+    if not isinstance(profile_params, Mapping):
+        raise TypeError(f"P2 friction profile {profile!r} must be a mapping")
     runtime_env = {
         key: value
         for key, value in overlay_env.items()
@@ -1884,15 +1890,15 @@ def _policy_only_eval_command(
     )
     command.extend(
         [
-            "++v24_schema=a2_piper_v24_p2_force_boundary_v1",
-            "++v24_plan_id=base_v24_force_boundary_R12",
+            f"++v24_schema={overlay.get('v24_schema')}",
+            f"++v24_plan_id={overlay.get('v24_plan_id')}",
             "++v24_runtime_mode=P2_TELEMETRY",
             f"++v24_checkpoint_provenance={checkpoint}",
             "++v24_checkpoint_load_mode=selected_policy_only",
             f"++v24_p2.checkpoint={checkpoint}",
             "++v24_p2.checkpoint_load_mode=selected_policy_only",
-            f"++v24_p2.calibration_seed=24021",
-            f"++v24_p2.heldout_seed=24022",
+            f"++v24_p2.calibration_seed={overlay_p2.get('calibration_seed')}",
+            f"++v24_p2.heldout_seed={overlay_p2.get('heldout_seed')}",
             "++v24_p2.runtime_modes=[HI_FULL,BOUNDARY_FULL,BOUNDARY_RP0,RESCUE_FULL]",
         ]
     )
@@ -1917,8 +1923,11 @@ def _run_policy_only_first_episode(
     scenario_ids: Sequence[str] | None = None,
     continuity_id: str = "HELDOUT",
     control_steps: int | None = None,
+    temp_root: Path | None = None,
 ) -> list[dict[str, Any]]:
-    with tempfile.TemporaryDirectory(prefix="v24_p2_runtime_", dir=str(REPO_ROOT / ARTIFACT_ROOT)) as temp_dir:
+    scratch_root = REPO_ROOT / ARTIFACT_ROOT if temp_root is None else Path(temp_root)
+    scratch_root.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="v24_p2_runtime_", dir=str(scratch_root)) as temp_dir:
         output_dir = Path(temp_dir)
         command, env = _policy_only_eval_command(
             config_path=config_path,

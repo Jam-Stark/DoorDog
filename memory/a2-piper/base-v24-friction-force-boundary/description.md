@@ -110,7 +110,7 @@ Static inspection is not runtime proof. P1 requires the preregistered A–I phys
 
 ## DONE Summary
 
-Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, P1 H/I, Owner D-v2, and P2 r12 are complete with scoped evidence. The historical P1 and r10 P2 outcomes are preserved as provenance but do not control r12. The valid current terminal is `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`: P3 and the science waves are not admitted. No causal posture-value, release, E2, or solver-applied-friction-torque result is recorded.
+Memory routing and the v24 authority/starting-fact skeleton are established. P0.1/P0.2, P0 runtime parity/foot detection, P1A, P1 A–G, P1 H/I, Owner D-v2, P2 r12, and the Owner-authorized r13 domain escalation are complete through the registered gradient gate. Historical P1/r10/r12 outcomes remain immutable provenance; the current state is an r13 Owner stop at the `V24_FRICTION_AXIS_NONDISCRIMINATIVE` artifact, with the behavioral-gradient semantic conflict documented below. P3 and the science waves are not admitted. No causal posture-value, release, E2, or solver-applied-friction-torque result is recorded.
 
 ## RQ4 Measurement-only Closure
 
@@ -121,4 +121,13 @@ Memory routing and the v24 authority/starting-fact skeleton are established. P0.
 
 ## TODO Summary
 
-There is no remaining active v24 execution under the post-F3 branch. P2 heldout, P3, and the science waves are not admitted; the preserved measurement-only RQ4 deliverable is complete as a forward proxy only.
+There is no active runtime. The r13 registered gradient artifact reached the sole Owner decision point; F3-prime, P3, and the science waves remain stopped pending Owner interpretation.
+
+## Owner Friction-domain Escalation and r13 Gradient Stop
+
+- 2026-08-18 16:10 HKT - P1-lite on GPU0 validated the full escalated `tau_s={2,5,10,20} N·m` domain: A/B/C/E pass at every profile and P20 A0/A8 G passes. The stable maximum is 20 N·m; no contraction was used. This freeze cites the v22 solvable 24 N·m drive face as a magnitude anchor only, not friction equivalence (Rule17 candidate).
+- r13 froze before data: demand floor `2 N·m`, directional-capacity floor `2 N·m`, and typed no-clamp `CAPACITY_COLLAPSED_WINDOW`; F3-prime was registered at 32 episodes and at least eight sustained-E1 windows in each FULL/RP0 x seed0/1 cell.
+- Rule16 passes 16/16 stable grasp, stage reach, and parameter vitals. Smoke and formal GPU0 calibration exit0; the population is 384/384 unique, stable-grasp, stage-valid, parameter-vital-valid, and source-valid.
+- Capacity collapse is 358/384. Only 26 windows receive finite admission lambda (`0.0532308..0.738496`), so the r12 epsilon-denominator explosion does not enter r13 admission. E1 counts are two P02 windows and zero in P05/P10/P20; the ladder remains null.
+- The immutable gradient artifact emits `V24_FRICTION_AXIS_NONDISCRIMINATIVE` because matched modeled-torque strict ordering is 47/96 versus the registered 72 minimum. Behavioral progress nevertheless decreases strictly P02>P05>P10>P20, spans `0.0222685 rad`, and has P02>P20 in 96/96 pairs. Do not paraphrase the artifact as absence of a behavioral gradient; Owner interpretation is required before any continuation.
+- Door friction/model torque authority is `MODELED_FROM_PARAMS`, solver-applied is false, and capacity/lambda is `ESTIMATE_ONLY_DIRECTIONAL_MARGIN`. No actual generalized or solver-applied torque is claimed. Canonical evidence roots are `logs_eval/base_v24/p1/friction_backend/p1_lite_domain_escalation_r13_gpu0/` and `logs_eval/base_v24/p2/force_boundary/r13/`.

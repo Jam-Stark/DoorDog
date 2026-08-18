@@ -1,0 +1,33 @@
+{
+  "schema": "doordog.sim2sim.physics_supersession_receipt.v1",
+  "superseded_campaign": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r4",
+  "superseding_campaign": "scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r5",
+  "classification": "INVALID_PIPELINE_SUPERSEDED_BY_R5",
+  "adjudication": "scriptsFORhuman/sim2sim/artifacts/e5/r4_owner_adjudication.json",
+  "r4_preservation": "UNCHANGED_ON_DISK",
+  "causes": [
+    "r4 scaled the base action but omitted the resolved post-scale 5D clamp (BASE_COMMAND_CLIP) at gr00t/rl/sim2sim/cli/run_paired_mujoco_campaign_r4.py:263-269; production truth is gr00t/rl/envs/base_task/a2_base.py:1163-1188 with config_snapshot.yaml:1564-1567 (clip_homie_command thresholds 0.5/0.5/0.5 and body_pitch_roll_scale 0.4)",
+    "r4 formed simulator position targets without the production FINAL_20D_ACTION_CLIP transform (action_clip_value=100, legged_robot_base.py:651-674)",
+    "the stage predicate therefore consumed out-of-contract physical commands, voiding the r4 0/8 base-still observation and all downstream behavior interpretation"
+  ],
+  "r4_retained_valid_structure": [
+    "STAGE_CONTRACT_MINIMAL deployable stage gate",
+    "true 100/45 native-position actuator surface and standing-vitals gate",
+    "door scene, manifest, seeds, and paired trace schema",
+    "visual visibility structure and luma/hue envelope; camera extrinsics/FOV still frozen pending paired t=0 Isaac frames"
+  ],
+  "r5_repairs": {
+    "full_action_warp": "PASS/NONE_MISSING (action_warp_r5/action_warp_contract_receipt.json) with scripted full-path probe feeding raw high-level actions",
+    "standing_vitals_gate_r5": "PASS through the full warp (standing_vitals_gate_r5/standing_vitals_gate_r5_receipt.json)",
+    "base_clip_thresholds_source": "resolved config snapshot, never hardcoded",
+    "clipped_physical_command_consistency": "gait clock, A2 base frame builder, observation echo (multipliers + deadband), stage predicate, stage_trace, and receipt norm fields all consume the clipped physical command",
+    "campaign": "8/8 complete 20 s episodes, 32000 physics steps, zero numerics/effort/mapping failures"
+  },
+  "r5_behavioral_outcome": {
+    "typed_conclusion": "IN_CONTRACT_0_OF_8_BASE_STILL_STUDENT_UNDER_GAP_EVIDENCE",
+    "stage1_cases": 0,
+    "min_physical_base_command_norm_by_case_range": [0.379, 0.436],
+    "open_threshold_crossings": "8/8 collision-driven, 0/8 unlatch",
+    "p2_discriminative_probe": "COMMAND_DYNAMICS_NEVER_CONVERGE_FROM_CLEAN_IN_BAND_START (staging_band_probe_r5/staging_band_probe_r5_receipt.json)"
+  }
+}

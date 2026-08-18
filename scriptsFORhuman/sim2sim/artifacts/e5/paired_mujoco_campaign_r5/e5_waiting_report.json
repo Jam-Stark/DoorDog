@@ -1,0 +1,112 @@
+{
+  "comparator_identity": {
+    "git_commit": "8894daddceb6b6df7fc6072469635d618e493d39",
+    "path": "gr00t/rl/sim2sim/cli/compare_paired_campaign.py"
+  },
+  "comparison": null,
+  "comparison_policy": {
+    "alignment": "physics_step from the same fixed case/initial-state/seed",
+    "event_metrics": "direct handle unlatch and hinge open-threshold crossing",
+    "pixel_role": "DOMAIN_GAP_DATA_NOT_POLICY_REGRESSION",
+    "success_rate_role": "RECORDED_NOT_A_PARITY_VERDICT",
+    "trajectory_metrics": "raw max-absolute difference and RMSE; no universal hard threshold"
+  },
+  "evidence_level": "E5",
+  "input_status": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE",
+  "isaac_root": null,
+  "manifest": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_case_manifest/paired_case_manifest.json",
+  "manifest_id": "a2_piper_grpo_step10_legacy_door_subset_r1",
+  "mujoco_cases": [
+    {
+      "case_id": "p00_baseline",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 13.510000000000712,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.0039838515214507325,
+      "max_hinge_rad": 0.4563929852378187,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p01_mass80",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 13.575000000000722,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450386,
+      "max_hinge_rad": 0.46391229127817635,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p02_mass120",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 13.965000000000783,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.00398385152145081,
+      "max_hinge_rad": 0.4275820443520409,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p03_width080",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 14.45500000000086,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450439,
+      "max_hinge_rad": 0.42196190338399603,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p04_width110",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 12.785000000000599,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450679,
+      "max_hinge_rad": 0.4365120902865562,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p05_height190",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 13.990000000000787,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521450538,
+      "max_hinge_rad": 0.4415031265974625,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p06_height220",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 13.375000000000691,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.00398385152145057,
+      "max_hinge_rad": 0.44908086079404463,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    },
+    {
+      "case_id": "p07_drive_k10_cap25",
+      "final_time_s": 20.000000000000306,
+      "first_open_time_s": 13.655000000000735,
+      "first_unlatch_time_s": null,
+      "max_handle_rad": -0.003983851521447465,
+      "max_hinge_rad": 0.5453672313744343,
+      "rows": 4000,
+      "termination_reason": "HORIZON"
+    }
+  ],
+  "mujoco_root": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r5",
+  "numeric_error": null,
+  "result_classification": "EXPLORATORY_NON_COMPARABLE",
+  "schema": "doordog.sim2sim.e5_paired_campaign_report.v1",
+  "trace_schema": {
+    "path": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/sim2sim/schemas/paired_trace_row.schema.json",
+    "source_commit": "2bf0ac417858128ab761fca3fa3aa8451b7ea843"
+  },
+  "warnings": [
+    "Isaac paired campaign input has not been transferred; no formal comparison is claimed."
+  ]
+}

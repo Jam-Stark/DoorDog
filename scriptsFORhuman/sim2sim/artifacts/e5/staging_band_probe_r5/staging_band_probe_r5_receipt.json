@@ -1,0 +1,60 @@
+{
+  "base_still_steps": 0,
+  "campaign_receipt": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/paired_mujoco_campaign_r5/campaign_receipt.json",
+  "case_id": "p00_baseline",
+  "control_surface": {
+    "integrator": "implicitfast",
+    "max_abs_qacc": 1996.817214747838,
+    "mode": "MUJOCO_NATIVE_POSITION_TRUE_100_45_R5_FULL_ACTION_WARP"
+  },
+  "final_stage": 0,
+  "first_stage_transition": null,
+  "in_band_steps": 37,
+  "initialization": {
+    "command_history_zeroed": true,
+    "initial_root_position_m": [
+      0.25249999999999995,
+      -0.28750000000000003,
+      0.62
+    ],
+    "initial_staging_dx_m": 0.65,
+    "initial_staging_dy_m": 0.0,
+    "lstm_state": "RESET_THEN_NATURAL_EVOLUTION",
+    "mode": "STATIONARY_INSIDE_STAGING_BAND"
+  },
+  "physical_base_command_norm_first3": {
+    "max": 0.8660253882408142,
+    "min": 0.4948050379753113,
+    "p25": 0.7095074951648712,
+    "p50": 0.7805315554141998,
+    "p75": 0.8660253882408142
+  },
+  "physics_steps": 4000,
+  "policy_steps": 1000,
+  "producer_identity": {
+    "git_commit_before_phase_commit": "8894daddceb6b6df7fc6072469635d618e493d39",
+    "path": "gr00t/rl/sim2sim/cli/probe_staging_band_r5.py"
+  },
+  "root_motion": {
+    "final_position_m": [
+      1.4024368785765948,
+      -0.4503724387578775,
+      0.46801295866996945
+    ],
+    "initial_position_m": [
+      0.25249999999999995,
+      -0.28750000000000003,
+      0.62
+    ],
+    "net_x_m": 1.1499368785765949
+  },
+  "rule": "P2_PRE_AUTHORIZED_DISCRIMINATIVE_PROBE_AFTER_CAMPAIGN",
+  "schema": "doordog.sim2sim.staging_band_probe.r5.v1",
+  "seed": 41001,
+  "trace": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/staging_band_probe_r5/probe_trace.jsonl",
+  "typed_conclusion": "COMMAND_DYNAMICS_NEVER_CONVERGE_FROM_CLEAN_IN_BAND_START",
+  "warnings": [
+    "Probe evidence splits command-dynamics vs in-band visual recognition; it does not replace the campaign or the paired t=0 Isaac adjudication.",
+    "Formal visual attribution remains blocked on the mandatory paired t=0 Isaac frames."
+  ]
+}

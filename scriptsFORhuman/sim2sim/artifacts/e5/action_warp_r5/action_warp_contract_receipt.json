@@ -1,7 +1,7 @@
 {
   "coverage": "NONE_MISSING",
   "producer_identity": {
-    "git_commit_before_phase_commit": "b000ecf0e9b0c2caa552a9028e7ac2467cd65c21",
+    "git_commit_before_phase_commit": "8894daddceb6b6df7fc6072469635d618e493d39",
     "path": "gr00t/rl/sim2sim/cli/probe_action_warp_r5.py"
   },
   "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/config_snapshot.yaml",

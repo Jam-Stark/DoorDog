@@ -1,0 +1,77 @@
+{
+  "blocking_finding": "clipped physical_base_command_norm_first3 never reached the production <=0.1 base-still threshold in any case",
+  "case_count": 8,
+  "cases_reaching_stage1": 0,
+  "contract": "STAGE_CONTRACT_MINIMAL",
+  "interpretation": "The tracker enforced the production contract over the r5 clipped physical commands. The Student commands saturate the resolved 0.5/0.5/0.5 caps for most of every episode and its minimum in-contract xyz command norm stays near 0.4, so stage1 never enables and the arm correctly remains held. Open-threshold crossings remain collision-driven.",
+  "measurement_surface": "CLIPPED_IN_CONTRACT_PHYSICAL_COMMAND_R5",
+  "per_case": {
+    "p00_baseline": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.4021751880645752,
+      "rows": 1000,
+      "x_band_steps": 101,
+      "x_y_band_steps": 0
+    },
+    "p01_mass80": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.40381941199302673,
+      "rows": 1000,
+      "x_band_steps": 146,
+      "x_y_band_steps": 0
+    },
+    "p02_mass120": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.40071651339530945,
+      "rows": 1000,
+      "x_band_steps": 45,
+      "x_y_band_steps": 0
+    },
+    "p03_width080": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.4225255846977234,
+      "rows": 1000,
+      "x_band_steps": 45,
+      "x_y_band_steps": 0
+    },
+    "p04_width110": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.42709842324256897,
+      "rows": 1000,
+      "x_band_steps": 255,
+      "x_y_band_steps": 0
+    },
+    "p05_height190": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.4356144964694977,
+      "rows": 1000,
+      "x_band_steps": 52,
+      "x_y_band_steps": 0
+    },
+    "p06_height220": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.37888237833976746,
+      "rows": 1000,
+      "x_band_steps": 75,
+      "x_y_band_steps": 0
+    },
+    "p07_drive_k10_cap25": {
+      "arm_default_steps": 1000,
+      "base_still_steps": 0,
+      "minimum_base_command_norm": 0.4057422876358032,
+      "rows": 1000,
+      "x_band_steps": 231,
+      "x_y_band_steps": 0
+    }
+  },
+  "result": "PASS_CONTRACT_NO_RUNTIME_TRANSITION",
+  "schema": "doordog.sim2sim.stage_predicate_diagnostics.r5.v1",
+  "source": "cases/<case_id>/stage_trace.jsonl"
+}

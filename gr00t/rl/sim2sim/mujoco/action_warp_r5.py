@@ -187,8 +187,35 @@ class FullActionWarpR5:
         if tuple(default_dof_pos.shape) != (1, len(self.joint_map.sim_joint_names)):
             raise ValueError("r5 default joint position width mismatch")
         stage_action = self.stage_tracker.apply_high_level_action(raw_high_level_action)
+        base = self.warp_base_command(stage_action.effective_high_level_action[:, :5])
+        return self.compose_simulator_action(
+            stage_action=stage_action,
+            base=base,
+            policy_leg_action=policy_leg_action,
+            default_dof_pos=default_dof_pos,
+        )
+
+    def compose_simulator_action(
+        self,
+        *,
+        stage_action: StageActionResult,
+        base: BaseCommandWarpResultR5,
+        policy_leg_action: torch.Tensor,
+        default_dof_pos: torch.Tensor,
+    ) -> FullActionWarpResultR5:
+        """Finish the warp after the low-level leg policy step.
+
+        Production interleaves the base-command warp with the low-level leg
+        policy: the clipped physical base command feeds the leg policy frame,
+        and the arm/gripper/final-clip composition happens afterwards. The
+        campaign runner therefore applies the stage gate and base warp first,
+        runs the leg policy, and completes the warp here.
+        """
+        if tuple(policy_leg_action.shape) != (1, 12):
+            raise ValueError("r5 low-level leg action must have shape (1, 12)")
+        if tuple(default_dof_pos.shape) != (1, len(self.joint_map.sim_joint_names)):
+            raise ValueError("r5 default joint position width mismatch")
         effective = stage_action.effective_high_level_action
-        base = self.warp_base_command(effective[:, :5])
         logical_action = torch.cat(
             (policy_leg_action, effective[:, 5:11], effective[:, 11:12]), dim=1
         )

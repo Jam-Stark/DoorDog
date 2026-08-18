@@ -1,0 +1,357 @@
+{
+  "camera_extrinsic_fov": "FROZEN_UNCHANGED_PENDING_PAIRED_T0_ISAAC_FRAMES",
+  "comparison_image": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/visual_parity_r4/isaac_nominal_vs_mujoco_r4.png",
+  "per_camera": {
+    "head": {
+      "brightness_envelope": [
+        0.7,
+        2.0
+      ],
+      "brightness_ratio": 0.9174818905471533,
+      "brightness_result": "PASS",
+      "circular_hue_delta": 0.04813856950382919,
+      "hue_result": "PASS",
+      "isaac_nominal": {
+        "luma_histogram_16": [
+          3040,
+          1925,
+          748,
+          382,
+          459,
+          1796,
+          1970,
+          1398,
+          1561,
+          1388,
+          1326,
+          1569,
+          15644,
+          9141,
+          1957,
+          7920
+        ],
+        "luma_histogram_edges": [
+          0.0,
+          16.0,
+          32.0,
+          48.0,
+          64.0,
+          80.0,
+          96.0,
+          112.0,
+          128.0,
+          144.0,
+          160.0,
+          176.0,
+          192.0,
+          208.0,
+          224.0,
+          240.0,
+          256.0
+        ],
+        "luma_mean": 174.0334720320159,
+        "mean_rgb": [
+          183.44956341911765,
+          173.93158318014707,
+          147.31615732230392
+        ],
+        "mean_saturation": 0.2735567450019223,
+        "saturation_weighted_circular_hue": 0.14516699092813493
+      },
+      "mujoco_r4": {
+        "luma_histogram_16": [
+          0,
+          4287,
+          2150,
+          1564,
+          1523,
+          1172,
+          1754,
+          1014,
+          4057,
+          4297,
+          4568,
+          2075,
+          1454,
+          17670,
+          4639,
+          0
+        ],
+        "luma_histogram_edges": [
+          0.0,
+          16.0,
+          32.0,
+          48.0,
+          64.0,
+          80.0,
+          96.0,
+          112.0,
+          128.0,
+          144.0,
+          160.0,
+          176.0,
+          192.0,
+          208.0,
+          224.0,
+          240.0,
+          256.0
+        ],
+        "luma_mean": 159.6725589384191,
+        "mean_rgb": [
+          170.61331954656862,
+          158.13779105392157,
+          142.65954350490196
+        ],
+        "mean_saturation": 0.222041777801807,
+        "saturation_weighted_circular_hue": 0.09702842142430573
+      },
+      "owner_hue_envelope": 0.1
+    },
+    "left": {
+      "brightness_envelope": [
+        0.7,
+        2.0
+      ],
+      "brightness_ratio": 0.7019792464248544,
+      "brightness_result": "PASS",
+      "circular_hue_delta": 0.06062274844700877,
+      "hue_result": "PASS",
+      "isaac_nominal": {
+        "luma_histogram_16": [
+          571,
+          267,
+          208,
+          134,
+          204,
+          4999,
+          2107,
+          406,
+          5480,
+          3120,
+          1219,
+          1219,
+          30436,
+          4196,
+          5584,
+          22794
+        ],
+        "luma_histogram_edges": [
+          0.0,
+          16.0,
+          32.0,
+          48.0,
+          64.0,
+          80.0,
+          96.0,
+          112.0,
+          128.0,
+          144.0,
+          160.0,
+          176.0,
+          192.0,
+          208.0,
+          224.0,
+          240.0,
+          256.0
+        ],
+        "luma_mean": 196.567977898341,
+        "mean_rgb": [
+          203.12384259259258,
+          197.07249469521605,
+          172.26593846450618
+        ],
+        "mean_saturation": 0.18166057703945773,
+        "saturation_weighted_circular_hue": 0.14788955914236213
+      },
+      "mujoco_r4": {
+        "luma_histogram_16": [
+          1335,
+          448,
+          415,
+          4974,
+          13107,
+          18148,
+          6847,
+          5709,
+          2539,
+          2669,
+          18,
+          12,
+          102,
+          100,
+          5753,
+          20768
+        ],
+        "luma_histogram_edges": [
+          0.0,
+          16.0,
+          32.0,
+          48.0,
+          64.0,
+          80.0,
+          96.0,
+          112.0,
+          128.0,
+          144.0,
+          160.0,
+          176.0,
+          192.0,
+          208.0,
+          224.0,
+          240.0,
+          256.0
+        ],
+        "luma_mean": 137.98664099633487,
+        "mean_rgb": [
+          149.6814838927469,
+          136.21269772376544,
+          121.12238377700618
+        ],
+        "mean_saturation": 0.3088767663701282,
+        "saturation_weighted_circular_hue": 0.08726681069535336
+      },
+      "owner_hue_envelope": 0.1
+    },
+    "right": {
+      "brightness_envelope": [
+        0.7,
+        2.0
+      ],
+      "brightness_ratio": 0.7339368595145638,
+      "brightness_result": "PASS",
+      "circular_hue_delta": 0.09755881453785555,
+      "hue_result": "PASS",
+      "isaac_nominal": {
+        "luma_histogram_16": [
+          2838,
+          1221,
+          771,
+          460,
+          636,
+          4693,
+          3944,
+          490,
+          190,
+          137,
+          234,
+          353,
+          8969,
+          3054,
+          4075,
+          50879
+        ],
+        "luma_histogram_edges": [
+          0.0,
+          16.0,
+          32.0,
+          48.0,
+          64.0,
+          80.0,
+          96.0,
+          112.0,
+          128.0,
+          144.0,
+          160.0,
+          176.0,
+          192.0,
+          208.0,
+          224.0,
+          240.0,
+          256.0
+        ],
+        "luma_mean": 203.90791394917045,
+        "mean_rgb": [
+          205.80183015046296,
+          204.64676167052468,
+          191.01220100308643
+        ],
+        "mean_saturation": 0.13923407808339386,
+        "saturation_weighted_circular_hue": 0.1871503368433186
+      },
+      "mujoco_r4": {
+        "luma_histogram_16": [
+          160,
+          216,
+          124,
+          6210,
+          13538,
+          15856,
+          5278,
+          4113,
+          1433,
+          2660,
+          47,
+          13,
+          69,
+          18,
+          6789,
+          26420
+        ],
+        "luma_histogram_edges": [
+          0.0,
+          16.0,
+          32.0,
+          48.0,
+          64.0,
+          80.0,
+          96.0,
+          112.0,
+          128.0,
+          144.0,
+          160.0,
+          176.0,
+          192.0,
+          208.0,
+          224.0,
+          240.0,
+          256.0
+        ],
+        "luma_mean": 149.65553399402006,
+        "mean_rgb": [
+          161.98436294367283,
+          147.86231674382717,
+          131.11536699459876
+        ],
+        "mean_saturation": 0.3144028666636407,
+        "saturation_weighted_circular_hue": 0.08959152230546306
+      },
+      "owner_hue_envelope": 0.1
+    }
+  },
+  "policy_visibility": {
+    "geomgroup_5_visible": false,
+    "policy_frames_rendered_through_masked_scene_option": true,
+    "result": "PASS",
+    "sitegroup_5_visible": false
+  },
+  "producer_identity": {
+    "git_commit_before_phase_commit": "ca8abe7f8479f892004c3dbf7b2bb2a2646090ac",
+    "path": "gr00t/rl/sim2sim/cli/probe_visual_parity_r4.py"
+  },
+  "reference_limit": "Isaac nominal frames are real eval frames but not the paired p00 t=0 state; this probe judges illumination/material envelope only.",
+  "result": "PASS",
+  "schema": "doordog.sim2sim.visual_parity_probe.r4.v1",
+  "structural_parity": {
+    "door_build_report": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/visual_parity_r4/door_build_report_r4.json",
+    "result": "PASS",
+    "two_sided_inset_panels_and_color_bands": true
+  },
+  "training_visual_truth": {
+    "distillation_commit": "a197255212fa65dd9e02337b7971daac71c944fe",
+    "exact_selected_asset_color": "TYPED_NOT_AVAILABLE_WITHOUT_PAIRED_T0_ISAAC_CASE",
+    "fixed_material_conclusion": "NO_SINGLE_FIXED_TRAINING_DOOR_MATERIAL_OR_COLOR; each spawned asset binding is fixed during its episode, while the 4096-asset scenario is randomized",
+    "generator_source": "gr00t/rl/isaac_utils/playground/env_rand/door.py: frame/panel/handle materials are independently sampled from preloaded pools at asset spawn",
+    "owner_measurement_envelopes_still_applied": {
+      "brightness_ratio": [
+        0.7,
+        2.0
+      ],
+      "hue_delta": [
+        -0.1,
+        0.1
+      ]
+    },
+    "resolved_image_augmentation_enabled": false,
+    "scenario_source": "gr00t/rl/data/tasks/door/scenario_cfg/isaacsim.py: randomize_material=True, use_preloaded_materials=True, preloaded_materials_num_transform=20, preloaded_materials_num_color=100, dynamic_material_randomization=False"
+  }
+}

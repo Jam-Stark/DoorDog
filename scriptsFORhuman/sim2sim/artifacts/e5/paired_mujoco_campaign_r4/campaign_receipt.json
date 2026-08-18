@@ -2857,9 +2857,12 @@
   },
   "policy_bundle": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2",
   "prior_campaign_status": {
-    "meaning": "prior door-learning outcomes remain void; their evidence is retained",
-    "r2": "INVALID_PHYSICS_SUPERSEDED_BY_R4",
-    "r3": "INVALID_PHYSICS_SUPERSEDED_BY_R4"
+    "meaning": "owner-accepted r2/r3 classifications are retained verbatim",
+    "r2_campaign": "INVALID_PIPELINE_SUPERSEDED_BY_R3",
+    "r2_door_learning_result": "VOID",
+    "r3_40_nm_ablation": "INVALID_CONTROL_CONTRACT_DIAGNOSTIC_ONLY",
+    "r3_overall_diagnostic": "VALID_WITH_WARNINGS; PIPELINE_DEFECT_FOUND_ACTION_CONTROL_CONTRACT",
+    "r3_resolved_effort_attempt": "INVALID_NUMERICS"
   },
   "producer_identity": {
     "git_commit_before_phase_commit": "536e6b03b323e1fa395885a4898fd952715cf047",

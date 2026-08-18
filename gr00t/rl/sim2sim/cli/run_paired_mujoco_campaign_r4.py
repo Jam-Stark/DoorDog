@@ -725,9 +725,14 @@ def main() -> None:
             "render_contract": "MuJoCo Renderer under CPU Xvfb/llvmpipe; zero GPU",
         },
         "prior_campaign_status": {
-            "r2": "INVALID_PHYSICS_SUPERSEDED_BY_R4",
-            "r3": "INVALID_PHYSICS_SUPERSEDED_BY_R4",
-            "meaning": "prior door-learning outcomes remain void; their evidence is retained",
+            "r2_campaign": "INVALID_PIPELINE_SUPERSEDED_BY_R3",
+            "r2_door_learning_result": "VOID",
+            "r3_resolved_effort_attempt": "INVALID_NUMERICS",
+            "r3_40_nm_ablation": "INVALID_CONTROL_CONTRACT_DIAGNOSTIC_ONLY",
+            "r3_overall_diagnostic": (
+                "VALID_WITH_WARNINGS; PIPELINE_DEFECT_FOUND_ACTION_CONTROL_CONTRACT"
+            ),
+            "meaning": "owner-accepted r2/r3 classifications are retained verbatim",
         },
         "producer_identity": {
             "git_commit_before_phase_commit": commit,

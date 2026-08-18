@@ -1,0 +1,67 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v23_G7_scratch_D1_full
+  - _self_
+
+v24_schema: a2_piper_v24_r13_f3_behavioral_pilot_v1
+v24_plan_id: base_v24_r13_f3_behavioral_reentry
+v24_owner_decision: scriptsFORhuman/v24/DoorDog_v24_owner_decision_r13_gradient_adjudication_20260818.md
+v24_checkpoint_provenance: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+v24_checkpoint_load_mode: selected_policy_only
+v24_f3:
+  semantics_revision: R13_BEHAVIORAL
+  candidate_buckets: [E0_SHAM, E1_BOUNDARY, NEAR_E2]
+  bucket_faces:
+    E0_SHAM: {profile: F00, cap_nm: 40.0}
+    E1_BOUNDARY: {profile: P10, cap_nm: 20.0}
+    NEAR_E2: {profile: P20, cap_nm: 20.0}
+  rescue_face: {profile: P10, cap_nm: 25.0}
+  confirmed_e2_share: 0.0
+  schedule:
+    - {step_fraction: 0.0, E0_SHAM: 100, E1_BOUNDARY: 0, NEAR_E2: 0}
+    - {step_fraction: 0.2, E0_SHAM: 60, E1_BOUNDARY: 40, NEAR_E2: 0}
+    - {step_fraction: 0.5, E0_SHAM: 30, E1_BOUNDARY: 60, NEAR_E2: 10}
+  total_batches: 500
+  num_envs: 4096
+  sampler: gr00t.rl.envs.door.a2_v24_r13_f3_sampler.R13F3Sampler
+  cells: [DF1_FULL_SEED0, DF1_FULL_SEED1, DF1_RP0_SEED0, DF1_RP0_SEED1]
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+headless: true
+num_envs: 4096
+seed: 0
+use_wandb: false
+
+algo:
+  config:
+    rp0_enabled: false
+    rp0_mask_indices: [3, 4]
+    rp0_neutral_value: 0.0
+  trl:
+    num_total_batches: 500
+    report_to: none
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v23_formal_launch: true
+    a2_v23_effort_profile_nm: 40.0
+    a2_v23_d1_sampler_enabled: false
+    a2_v23_d1_variant: normal
+    a2_v23_d1_confirmed_e2_enabled: false
+    a2_v23_warm_head_reset_enabled: true
+    a2_v23_rp0_enabled: false
+    a2_v23_rp0_mask_indices: [3, 4]
+    a2_v23_rp0_neutral_value: 0.0
+    a2_v24_f3_marginal_e1_enabled: true
+    a2_v24_f3_semantics_revision: R13_BEHAVIORAL
+    a2_v24_f3_marginal_e1_training_seed: 0
+    a2_v24_f3_marginal_e1_bucket_seed: 24050
+    a2_v24_f3_marginal_e1_total_batches: 500
+    a2_v24_f3_marginal_e1_num_envs: 4096
+    a2_v24_f3_marginal_e1_confirmed_e2_enabled: false

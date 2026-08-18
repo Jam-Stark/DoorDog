@@ -2,7 +2,7 @@
 
 ## Authority
 
-worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro feedback；2026-08-17 Owner D-v2 decision supersedes `FINAL_STOP_AT_P1`，Owner P2 invalid-measurement decision supersedes the r10 scientific terminal；2026-08-18 Owner friction-domain escalation preserves r12 as procedural history and makes r13 the current P2 authority。GPU0–3 only；r13 P1-lite/calibration used physical GPU0；无 push。
+worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro feedback；2026-08-17 Owner D-v2 decision supersedes `FINAL_STOP_AT_P1`，Owner P2 invalid-measurement decision supersedes the r10 scientific terminal；2026-08-18 Owner friction-domain escalation preserves r12 as procedural history and makes r13 the current P2 authority；the later r13 gradient adjudication makes the behavioral classifier controlling and defines the final F3-prime denominator terminal。GPU0–3 only；r13 P1-lite/calibration used physical GPU0，F3-prime used physical GPU0–3 concurrently；无 push。
 
 ## Phase ledger
 
@@ -18,10 +18,11 @@ worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro fee
 | Historical P2 r10 capacity/lambda | RECLASSIFIED | historical product retained | `SUSPECTED_INVALID_MEASUREMENT_PENDING_VITALS`; receipts immutable |
 | P2 r12 Rule16 + marginal-E1 F3 | TERMINAL | local r12 closure | `V24_E1_DENOMINATOR_INSUFFICIENT_POST_F3`; valid 64-row population; `P3_ADMITTED=false` |
 | P1-lite domain escalation | COMPLETE | local r13 closure pending | `{2,5,10,20} N·m` all stable；A/B/C/E + P20 A0/A8 G pass |
-| P2 r13 Rule16 + calibration | OWNER_STOP | local r13 closure pending | registered artifact `V24_FRICTION_AXIS_NONDISCRIMINATIVE`; behavioral-gradient semantic conflict requires Owner decision |
-| P3 historical friction scan | NOT_ADMITTED | — | r13 gradient Owner stop；未执行 |
+| P2 r13 Rule16 + calibration | COMPLETE | local r13 final closure | historical artifact preserved；Owner typed `V24_FRICTION_AXIS_DISCRIMINATIVE_BEHAVIORAL` |
+| P2 r13 F3-prime | FINAL_TERMINAL | local r13 final closure | valid counts `4/1/8/4 < 8/cell`；`V24_E1_DENOMINATOR_INSUFFICIENT_FINAL` |
+| P3 historical friction scan | NOT_ADMITTED | — | final F3-prime denominator terminal；未执行 |
 | Wave 1 / Route A/B | NOT_ADMITTED | — | P3 未准入；未执行 |
-| RQ3 / shadow critic | NOT_ADMITTED | — | E1 per-cell denominator gate failed；未执行 |
+| RQ3 / shadow critic | NOT_ADMITTED | — | final E1 per-cell denominator gate failed；未执行 |
 | RQ4 measurement-only closure | COMPLETE | local CPU closure | `V24_COUPLING_FORWARD_PROXY_ONLY`; critic uncalibrated/not trained |
 | Wave 2a/2b | NOT_ADMITTED | — | 前序 gate 未准入；未执行 |
 
@@ -33,7 +34,8 @@ worker prompt → v24 R1 plan → v23 final adjudication → R1 imported pro fee
 - Foot: current source available `(16,4)`; baseline typed unavailable without numeric fill.
 - Reset persistence: 16 receipts = 10 ordinary + 6 legitimate staged; sentinel/readback and configured post-reset readback PASS.
 - Historical R1 P1 typed result: `V24_FRICTION_AUTHORITY_INSUFFICIENT`; it was later superseded as the round terminal by the Owner D-v2 revision.
-- Current r13 registered artifact: `V24_FRICTION_AXIS_NONDISCRIMINATIVE`, so the sole Owner decision point is reached and downstream execution is stopped. Scientific wording remains qualified because behavioral progress is monotone and P02>P20 in `96/96`; the sole failed registered predicate is modeled-torque matched strict order `47/96 < 72/96`.
+- Historical r13 registered artifact: `V24_FRICTION_AXIS_NONDISCRIMINATIVE`; it remains immutable. The Owner adjudicated its modeled-torque matched ordering predictor as non-controlling/report-only and issued the additive typed result `V24_FRICTION_AXIS_DISCRIMINATIVE_BEHAVIORAL`.
+- Current/final r13 result: all four Rule16 checkpoint sham vitals pass `16/16`; the complete F3-prime boundary population yields sustained-E1 `4/1/8/4` versus required `8` in every cell, so `V24_E1_DENOMINATOR_INSUFFICIENT_FINAL` is controlling.
 
 ## Failure provenance
 
@@ -90,7 +92,7 @@ The old P1 and P2 receipts remain immutable provenance. The Owner D-v2 decision 
 - Typed results: `V24_COUPLING_FORWARD_PROXY_ONLY` and `V24_COUPLING_CRITIC_UNCALIBRATED`. The shadow critic is not trained because its intervention-derived vector targets and sufficient per-cell E1 denominators do not exist.
 - Canonical evidence: `logs_eval/base_v24/rq4/measurement_only/r2/`. Report: `scriptsFORhuman/v24/a2_piper_base_v24_rq4_measurement_only_20260818.md`.
 
-## Owner friction-domain escalation and r13 Owner stop
+## Owner friction-domain escalation and historical r13 Owner stop
 
 - Authority: `scriptsFORhuman/v24/DoorDog_v24_owner_decision_friction_domain_escalation_20260818.md`. All r10/r11/r12 receipts remain immutable.
 - P1-lite GPU0 exit `0`: A/B/C/E pass for `tau_s={2,5,10,20} N·m`; P20 G passes A0/A8. Stable maximum is `20 N·m`, so the one-time domain contraction was not used.
@@ -100,3 +102,16 @@ The old P1 and P2 receipts remain immutable provenance. The Owner D-v2 decision 
 - `tau_hi/tau_boundary/tau_rescue` remain null; E-region and F3-prime are not admitted. P3 and all downstream training/science remain unexecuted pending Owner interpretation.
 - Rule17 candidate: a parameter-domain freeze must carry a repository-evidence magnitude anchor. The r13 anchor is the v22 solvable `24 N·m` drive-resistance face, used as magnitude calibration rather than friction equivalence.
 - Canonical evidence: `logs_eval/base_v24/p1/friction_backend/p1_lite_domain_escalation_r13_gpu0/` and `logs_eval/base_v24/p2/force_boundary/r13/`. Report: `scriptsFORhuman/v24/a2_piper_base_v24_p2_r13_gradient_owner_stop_20260818.md`.
+
+## Owner r13 gradient adjudication and final F3-prime terminal
+
+- Authority: `scriptsFORhuman/v24/DoorDog_v24_owner_decision_r13_gradient_adjudication_20260818.md`. The historical `47/96 < 72/96` modeled-torque artifact remains unchanged, but the predictor is non-controlling and report-only as `MODELED_TAU_MATCHED_ORDERING_CONFOUNDED_BY_SPEED_ADAPTATION`.
+- Additive typed gradient result: `V24_FRICTION_AXIS_DISCRIMINATIVE_BEHAVIORAL`. P1-lite breakaway containment passes all four escalated profiles; progress medians are strictly P02>P05>P10>P20, P02>P20 in `96/96`, span `0.0222685 rad > 0.02`.
+- Frozen behavioral E-region: `delta_lo=0.020 rad`, `delta_hi=0.040 rad`, directional clip fraction floor `0.40`, utilization floor `0.50`, with both load floors required. Non-null ladder is `tau_hi/tau_boundary/tau_rescue = 40/20/25 N·m`, boundary P10/cap20, near-E2 P20/cap20.
+- The min-over-joints capacity estimator is typed `CAPACITY_ESTIMATOR_LOWER_BOUND_DEGENERATE` because `358/384` calibration windows collapsed while the door still opened. Capacity/lambda is `ESTIMATE_ONLY_REPORT_ONLY`; collapse remains an RQ3 mediator, not E admission.
+- FULL/RP0 `64×10` smoke exits `0`. Four FULL/RP0 × seed0/1 production cells each complete `4096 env × 500 batches`, exit `0`, with four distinct step500 checkpoints on GPU0–3.
+- Each checkpoint passes its own Rule16 F00/cap40 sham at `16/16` stable-grasp/stage-valid and `16/16` parameter vitals. Four P10/cap20 evaluations then complete `32` episodes each, all exit `0`, producing 128/128 unique, measurement-valid windows.
+- Behavioral zones (E0/E1/near-E2/unclassified/invalid) are FULL seed0 `20/4/1/7/0`, FULL seed1 `23/1/0/8/0`, RP0 seed0 `5/8/3/16/0`, RP0 seed1 `12/4/1/15/0`.
+- Final typed result is `V24_E1_DENOMINATOR_INSUFFICIENT_FINAL`, `terminal=true`, `P3_ADMITTED=false`. No further gate revision is permitted. P3, Wave 1, Route A/B, RQ3, and Wave 2 are not executed; RQ3 remains unresolved, not negative.
+- Durable rules: Rule16 measurement-vitals admission and Rule17 magnitude-anchored parameter freeze are empirically closed. Rule18 candidate is added: a derived-quantity gate must first establish its monotonicity/validity assumption, otherwise the quantity is report-only.
+- Canonical evidence: `logs_eval/base_v24/p2/force_boundary/r13/behavioral_reentry/` and `logs_eval/base_v24/final/V24_FINAL_ANALYSIS.json`. Final report: `scriptsFORhuman/v24/a2_piper_base_v24_final_analysis_20260818.md`.

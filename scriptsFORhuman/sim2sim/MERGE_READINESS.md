@@ -1,6 +1,6 @@
 # Sim2sim merge readiness
 
-Last updated: 2026-08-18 11:35 HKT
+Last updated: 2026-08-18 23:57 HKT
 
 ## Boundary
 
@@ -71,6 +71,17 @@ The owner-requested `t=0` Isaac RGB requirement is appended to the branch-owned 
 
 The original E0–E6 file inventory is `scriptsFORhuman/sim2sim/CHANGED_FILES.txt`; the additive r4 inventory is recorded separately in `scriptsFORhuman/sim2sim/CAMPAIGN_R4_MERGE_READINESS.md`.
 
+### r5 additions
+
+- `gr00t/rl/sim2sim/mujoco/action_warp_r5.py`
+- `gr00t/rl/sim2sim/cli/{probe_action_warp_r5,run_standing_vitals_gate_r5,run_paired_mujoco_campaign_r5,probe_staging_band_r5}.py`
+- `scriptsFORhuman/sim2sim/artifacts/e5/{action_warp_r5,standing_vitals_gate_r5,paired_mujoco_campaign_r5,staging_band_probe_r5,runtime_logs_r5}/`
+- `scriptsFORhuman/sim2sim/artifacts/e5/r4_owner_adjudication.json`
+- `scriptsFORhuman/sim2sim/CAMPAIGN_R5_REPORT.md`
+- `memory/a2-piper/sim2sim-r5-campaign/`
+
+r4 artifacts are byte-preserved; the r4→r5 supersession is recorded in `paired_mujoco_campaign_r5/r4_supersession_receipt.json`.
+
 ## Mainline synchronization
 
 | Phase | Sim2sim commit before merge | `A2_Piper` merged | Result | Behind after merge |
@@ -95,6 +106,14 @@ The original E0–E6 file inventory is `scriptsFORhuman/sim2sim/CHANGED_FILES.tx
 | P3 visual parity | `536e6b0` | already up to date | 0 |
 | P4 campaign | `ab82c51` | already up to date | 0 |
 | receipt classification correction | `5389ef6` | already up to date | 0 |
+
+### r5 synchronization
+
+| Phase | Sim2sim commit before merge | Result | Behind after merge |
+|---|---|---|---:|
+| pre-r5 mainline sync | `b000ecf` | merged A2_Piper (`609daa5`) | 0 |
+| P0/P0b action warp | `8894dad` | already up to date | 0 |
+| P1 campaign + P2 probe + closure | r5 campaign commits | already up to date | 0 |
 
 ## Non-intersection proof
 

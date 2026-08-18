@@ -34,3 +34,12 @@
 - 三次 config 级失败已修(+num_envs/PYTHONPATH/num_mini_batches 整除);一次 SIGKILL(137) 发生在 co-tenant DepthADD(GPU5/6, 01:36 启动)拉起前窗口,typed CO_TENANT_LAUNCH_WINDOW_SUSPECTED;GPU0 重试存活。
 - attempt1 保持运行作 nominal 聚合参照(200 episodes)。receipt: `artifacts/e5/r6_isaac_self_eval/c0_feasibility_receipt.json`。
 - scratch 待清理登记: /home/baoquanc/workspace/sim2sim_scratch_r6/{distill_frozen,c0_out}。
+
+## 2026-08-19 02:5x HKT — Phase C 主体完成 + Phase D2 完成
+
+- **C0/C1(聚合+插桩)**: Isaac 自评估 150 集(0 goal, 2/150 stage1, 全 stage_overtime@5s) + 16 集插桩 dump(step_actions/_homie_commands clipped+unclipped/81D obs/root/stage)。
+- **C3 对拍(钱结果)**: Isaac 命令 p50 0.526/贴帽 99.6%/真实 base-still 0/1000(4 个边界零已识别为 reset 伪影并撤回) ↔ MuJoCo min 0.38-0.50/贴帽 ~95%/0 base-still。**贴帽疾走=策略属性,两侧一致,MuJoCo shadow 忠实**。receipt: `r6_isaac_self_eval/c3_cross_backend_commands.json`。
+- **C2**: typed `ATTEMPTED_SCOPED_DOWN`(reset_from_dataset 为随机运动重置,配对钉死+200Hz schema 生产器为数小时级子项目,非本轮预算;C1 插桩已回答本轮问题)。
+- **D2 外观扫掠**: 27 变体+8 阶梯深化, min_norm 随 panel 亮度单调降(0.45→0.21), 无一触发 base-still → 外观有真实系统性效应(~2.2x)但单外观不充分。receipt: `r6_visual_probes/appearance_sweep_receipt.json` + `brightness_ladder_receipt.json`。
+- **C1c 视频补跑中**(render_results 总开关);D1 待 C1c 帧提取后跑。
+- 插桩声明: scratch 克隆 env-gated dump 补丁(只 scratch,默认行为零变化)。

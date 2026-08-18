@@ -1,0 +1,359 @@
+{
+  "control_min_norm": 0.4917346239089966,
+  "horizon": 200,
+  "isaac_envelope_truth": "wood MDL family (Ash/Bamboo/Birch/Cherry planks), texture rotate U[0,360], translate U[0,100]^2, diffuse_tint per-channel Exp(0.02); MuJoCo flat colors bracket the resulting luminance/hue range but do not reproduce textures",
+  "min_norm_across_variants": 0.20663432776927948,
+  "result_classification": "EXPLORATORY_FLAT_COLOR_BRACKET_NOT_TEXTURE_REPRODUCTION",
+  "results": [
+    {
+      "base_still_steps": 0,
+      "brightness": 1.0,
+      "norm_p10": 0.7072451114654541,
+      "norm_p50": 0.7748840749263763,
+      "panel_hsl": null,
+      "physical_base_command_norm_min": 0.4917346239089966,
+      "variant": "control_production"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.1794909296721223,
+      "norm_p10": 0.7072691023349762,
+      "norm_p50": 0.784733235836029,
+      "panel_hsl": [
+        0.09175479393483998,
+        0.3531099274026081,
+        0.48593128468356267
+      ],
+      "physical_base_command_norm_min": 0.4708600342273712,
+      "variant": "wood_00"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.211453542629926,
+      "norm_p10": 0.7072534263134003,
+      "norm_p50": 0.7827864289283752,
+      "panel_hsl": [
+        0.09625767643815283,
+        0.6868548080219636,
+        0.5308463802232473
+      ],
+      "physical_base_command_norm_min": 0.3990356922149658,
+      "variant": "wood_01"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.1731066013599685,
+      "norm_p10": 0.7073313295841217,
+      "norm_p50": 0.7844412922859192,
+      "panel_hsl": [
+        0.049149436510104026,
+        0.5455795448591821,
+        0.2788342232410937
+      ],
+      "physical_base_command_norm_min": 0.5095745921134949,
+      "variant": "wood_02"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.23391205562623,
+      "norm_p10": 0.7072537422180176,
+      "norm_p50": 0.7812019288539886,
+      "panel_hsl": [
+        0.1114516209872142,
+        0.6414851116616455,
+        0.4502063677337715
+      ],
+      "physical_base_command_norm_min": 0.40729960799217224,
+      "variant": "wood_03"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.7072799435784014,
+      "norm_p10": 0.7072979152202606,
+      "norm_p50": 0.7821812331676483,
+      "panel_hsl": [
+        0.034722617689938215,
+        0.26563711549805336,
+        0.2014498518430345
+      ],
+      "physical_base_command_norm_min": 0.5349993705749512,
+      "variant": "wood_04"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.2839020345911192,
+      "norm_p10": 0.7072456121444702,
+      "norm_p50": 0.7840788662433624,
+      "panel_hsl": [
+        0.09021859941738276,
+        0.3695825146770776,
+        0.3790347454706002
+      ],
+      "physical_base_command_norm_min": 0.49276626110076904,
+      "variant": "wood_05"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.2569886985806318,
+      "norm_p10": 0.7072126865386963,
+      "norm_p50": 0.77725949883461,
+      "panel_hsl": [
+        0.12909616253653955,
+        0.6117650381079764,
+        0.5697863317668572
+      ],
+      "physical_base_command_norm_min": 0.38839736580848694,
+      "variant": "wood_06"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.8478824335119424,
+      "norm_p10": 0.7072182834148407,
+      "norm_p50": 0.7822967767715454,
+      "panel_hsl": [
+        0.06805978163220772,
+        0.5236203242175004,
+        0.467431616292237
+      ],
+      "physical_base_command_norm_min": 0.4847204387187958,
+      "variant": "wood_07"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.8038311518620523,
+      "norm_p10": 0.7072591006755828,
+      "norm_p50": 0.7860167920589447,
+      "panel_hsl": [
+        0.050739400538518664,
+        0.6243768930108021,
+        0.7320349059751563
+      ],
+      "physical_base_command_norm_min": 0.4864875078201294,
+      "variant": "wood_08"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.125919842586335,
+      "norm_p10": 0.7072668015956879,
+      "norm_p50": 0.7835965156555176,
+      "panel_hsl": [
+        0.06067757478114458,
+        0.21606559366252964,
+        0.7510756758300754
+      ],
+      "physical_base_command_norm_min": 0.3785911202430725,
+      "variant": "wood_09"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.002887496605879,
+      "norm_p10": 0.7072614848613739,
+      "norm_p50": 0.783910721540451,
+      "panel_hsl": [
+        0.12516771345565406,
+        0.354882933132728,
+        0.7766648397419553
+      ],
+      "physical_base_command_norm_min": 0.4433290362358093,
+      "variant": "wood_10"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.9251041443946386,
+      "norm_p10": 0.7072985649108887,
+      "norm_p50": 0.7860764265060425,
+      "panel_hsl": [
+        0.12139573668029106,
+        0.2895835997085259,
+        0.4886946809005094
+      ],
+      "physical_base_command_norm_min": 0.4924640357494354,
+      "variant": "wood_11"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.9829514421043877,
+      "norm_p10": 0.7072658836841583,
+      "norm_p50": 0.7839903235435486,
+      "panel_hsl": [
+        0.12257607384921304,
+        0.5266698542185626,
+        0.5270203583053574
+      ],
+      "physical_base_command_norm_min": 0.4475241005420685,
+      "variant": "wood_12"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.2409553461752543,
+      "norm_p10": 0.7072706758975983,
+      "norm_p50": 0.7795210778713226,
+      "panel_hsl": [
+        0.12381237989164466,
+        0.6342287225309317,
+        0.535399454345344
+      ],
+      "physical_base_command_norm_min": 0.3965747058391571,
+      "variant": "wood_13"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.1699898957007933,
+      "norm_p10": 0.7072776138782502,
+      "norm_p50": 0.7835634648799896,
+      "panel_hsl": [
+        0.11673169765177929,
+        0.4031068411665709,
+        0.26872343051036535
+      ],
+      "physical_base_command_norm_min": 0.5070148706436157,
+      "variant": "wood_14"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.0788651799474587,
+      "norm_p10": 0.7072985410690308,
+      "norm_p50": 0.7846758365631104,
+      "panel_hsl": [
+        0.09630674105757399,
+        0.5335787734850168,
+        0.3995950972503566
+      ],
+      "physical_base_command_norm_min": 0.48129570484161377,
+      "variant": "wood_15"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.9512190721371685,
+      "norm_p10": 0.7072704136371613,
+      "norm_p50": 0.7859721779823303,
+      "panel_hsl": [
+        0.06449025889756886,
+        0.16321745448276173,
+        0.422816516056326
+      ],
+      "physical_base_command_norm_min": 0.4893684387207031,
+      "variant": "wood_16"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.1416511861720855,
+      "norm_p10": 0.7072778344154358,
+      "norm_p50": 0.7804874181747437,
+      "panel_hsl": [
+        0.028181338113119875,
+        0.47764711593349685,
+        0.7038271671497804
+      ],
+      "physical_base_command_norm_min": 0.43462082743644714,
+      "variant": "wood_17"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.8775247144635977,
+      "norm_p10": 0.7072417438030243,
+      "norm_p50": 0.7810534834861755,
+      "panel_hsl": [
+        0.08927691245083624,
+        0.34433695607234455,
+        0.529834768131626
+      ],
+      "physical_base_command_norm_min": 0.4967508018016815,
+      "variant": "wood_18"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.7268597853174927,
+      "norm_p10": 0.7073131084442139,
+      "norm_p50": 0.782272070646286,
+      "panel_hsl": [
+        0.061442943606171266,
+        0.19182564778239064,
+        0.3285725235829744
+      ],
+      "physical_base_command_norm_min": 0.5096770524978638,
+      "variant": "wood_19"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.9140734348435954,
+      "norm_p10": 0.7072790384292602,
+      "norm_p50": 0.7842511236667633,
+      "panel_hsl": [
+        0.12289473051311801,
+        0.4226207261570376,
+        0.5903018520670026
+      ],
+      "physical_base_command_norm_min": 0.4888460636138916,
+      "variant": "wood_20"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.9311820639656739,
+      "norm_p10": 0.7072856843471527,
+      "norm_p50": 0.7816674411296844,
+      "panel_hsl": [
+        0.10648148309287611,
+        0.32967190243618283,
+        0.4499023483120538
+      ],
+      "physical_base_command_norm_min": 0.5002726912498474,
+      "variant": "wood_21"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.8967215572050455,
+      "norm_p10": 0.7073141455650329,
+      "norm_p50": 0.780006617307663,
+      "panel_hsl": [
+        0.07822470684831302,
+        0.1654478606704659,
+        0.3471308184901605
+      ],
+      "physical_base_command_norm_min": 0.49495598673820496,
+      "variant": "wood_22"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.8032929660467664,
+      "norm_p10": 0.7072189092636109,
+      "norm_p50": 0.7849505245685577,
+      "panel_hsl": [
+        0.033369178395765704,
+        0.6270878207148151,
+        0.6623145095116278
+      ],
+      "physical_base_command_norm_min": 0.48179885745048523,
+      "variant": "wood_23"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 0.5,
+      "norm_p10": 0.7074493825435638,
+      "norm_p50": 0.7894231081008911,
+      "panel_hsl": [
+        0.08,
+        0.3,
+        0.03
+      ],
+      "physical_base_command_norm_min": 0.5510307550430298,
+      "variant": "bracket_dark_tint_exp002"
+    },
+    {
+      "base_still_steps": 0,
+      "brightness": 1.35,
+      "norm_p10": 0.707098126411438,
+      "norm_p50": 0.7559740245342255,
+      "panel_hsl": [
+        0.1,
+        0.05,
+        0.92
+      ],
+      "physical_base_command_norm_min": 0.20663432776927948,
+      "variant": "bracket_bright_white"
+    }
+  ],
+  "schema": "doordog.sim2sim.appearance_sweep.r6.v1",
+  "variant_count": 27,
+  "variants_with_base_still": []
+}

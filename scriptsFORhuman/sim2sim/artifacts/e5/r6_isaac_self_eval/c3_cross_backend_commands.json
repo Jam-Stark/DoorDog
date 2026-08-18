@@ -1,0 +1,34 @@
+{
+  "schema": "doordog.sim2sim.r6_c3_cross_backend_commands.v1",
+  "timestamp_hkt": "2026-08-19 02:5x HKT",
+  "result_classification": "EXPLORATORY_NON_PAIRED",
+  "inputs": {
+    "isaac": "r6_isaac_self_eval/c1_nominal/isaac_action_obs_dump.jsonl (16 episodes x 250 steps, frozen a1972552 + declared scratch instrumentation recording step_actions/_homie_commands(_unclipped)/actor_obs/root/stage after each env.step)",
+    "mujoco": "paired_mujoco_campaign_r5 (8 cases x 1000 steps) + staging_band_probe_r5 (1000 steps)"
+  },
+  "isaac_command_profile": {
+    "clipped_xyz_norm": {"min": 0.0, "p10": 0.328, "p50": 0.526, "max": 0.762},
+    "clip_changed_command_rows_pct": 99.6,
+    "raw_base_action_absmax": 3.86,
+    "genuine_base_still_steps": 0,
+    "boundary_artifact_correction": "4 rows showed exactly-zero commands at episode-final steps 249/499/749/999 with simultaneously nonzero raw actions (~0.7 norm); these are post-reset zeroed _homie_commands at episode boundaries, not policy-issued base-still commands. Retracted as evidence."
+  },
+  "mujoco_command_profile": {
+    "campaign_min_norm_by_case": [0.379, 0.436],
+    "campaign_base_still_steps": 0,
+    "probe_min_norm": 0.495,
+    "probe_base_still_steps": 0,
+    "clip_saturation": "x/z ~95% of steps, y ~44% (r5 receipt)"
+  },
+  "cross_backend_verdict": "COMMAND_PROFILE_CONSISTENT_CAP_PINNED_IN_BOTH_BACKENDS: the Student issues high, clip-saturating base commands as its dominant mode in its own Isaac environment and in the MuJoCo shadow; it never converges to base-still within either engine's episode horizon in these samples. The MuJoCo 0/8 base-still r5 result is therefore a faithful shadow of Isaac-side behavior, not a MuJoCo-domain artifact.",
+  "stage_advancement_context": {
+    "isaac_aggregate_c0": "2/150 episodes reached stage1 (terminal reason otherwise stage_overtime 150/150; 5 s stage-0 window)",
+    "isaac_c1": "0/16 episodes reached stage1 in the instrumented sample",
+    "mujoco_r5": "0/8 campaign episodes; 0/1000 probe steps"
+  },
+  "caveats": [
+    "Isaac eval episode contract is stage_overtime-limited at 250 steps (5 s), shorter than the MuJoCo 20 s horizon; neither shows convergence, but the horizons differ.",
+    "The GRPO receipt's 91.2%/512 figure comes from the training-time protocol and is NOT reproduced by this eval config (goal_reached 0 in both C0 and C1); provenance difference recorded, no attempt to conflate.",
+    "Isaac runs are the frozen commit plus the declared env-gated dump patch on the scratch clone only; MuJoCo comparison is unpaired (different init distribution and door instances)."
+  ]
+}

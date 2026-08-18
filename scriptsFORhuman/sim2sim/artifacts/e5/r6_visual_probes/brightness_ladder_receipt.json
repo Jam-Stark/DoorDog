@@ -1,0 +1,106 @@
+[
+  {
+    "variant": "ladder_L60",
+    "panel_hsl": [
+      0.1,
+      0.08,
+      0.6
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.4530668258666992,
+    "norm_p10": 0.7074205338954925,
+    "norm_p50": 0.7826449275016785,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_L70",
+    "panel_hsl": [
+      0.1,
+      0.08,
+      0.7
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.4203653931617737,
+    "norm_p10": 0.7073280572891235,
+    "norm_p50": 0.781736820936203,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_L80",
+    "panel_hsl": [
+      0.1,
+      0.08,
+      0.8
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.30938130617141724,
+    "norm_p10": 0.7073106288909912,
+    "norm_p50": 0.7774527966976166,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_L90",
+    "panel_hsl": [
+      0.1,
+      0.08,
+      0.9
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.2224566638469696,
+    "norm_p10": 0.7071983337402343,
+    "norm_p50": 0.7744404375553131,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_L96",
+    "panel_hsl": [
+      0.1,
+      0.08,
+      0.96
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.20929503440856934,
+    "norm_p10": 0.7071890294551849,
+    "norm_p50": 0.7735675871372223,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_bright_sat02",
+    "panel_hsl": [
+      0.09,
+      0.02,
+      0.9
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.22107407450675964,
+    "norm_p10": 0.7072199821472168,
+    "norm_p50": 0.7722564041614532,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_bright_sat15",
+    "panel_hsl": [
+      0.09,
+      0.15,
+      0.9
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.2346431016921997,
+    "norm_p10": 0.7073472559452056,
+    "norm_p50": 0.7765772044658661,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "ladder_bright_sat35",
+    "panel_hsl": [
+      0.09,
+      0.35,
+      0.9
+    ],
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.29552727937698364,
+    "norm_p10": 0.7073818683624268,
+    "norm_p50": 0.7781044244766235,
+    "base_still_steps": 0
+  }
+]

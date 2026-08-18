@@ -1,0 +1,44 @@
+{
+  "schema": "doordog.sim2sim.owner_adjudication.r4.v1",
+  "owner_ruling": "R4_BEHAVIOR_INVALID_PIPELINE_SUPERSEDED_BY_R5",
+  "typed_conclusion": "PIPELINE_DEFECT_FOUND_BASE_COMMAND_CLIP",
+  "defect": {
+    "component": "BASE_COMMAND_CLIP",
+    "production_truth": [
+      "scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/config_snapshot.yaml:1564-1567",
+      "gr00t/rl/envs/base_task/a2_base.py:251-265",
+      "gr00t/rl/envs/base_task/a2_base.py:1163-1188"
+    ],
+    "r4_fault": "gr00t/rl/sim2sim/cli/run_paired_mujoco_campaign_r4.py:263-269 scales base action but omits the resolved post-scale 5D clamp",
+    "behavioral_effect": "r4 stage predicate consumed out-of-contract physical commands, so its 0/8 base-still and all downstream behavior interpretation are void"
+  },
+  "additional_p0b_finding": {
+    "component": "FINAL_20D_ACTION_CLIP",
+    "production_truth": "gr00t/rl/envs/legged_base_task/legged_robot_base.py:651-674 with config_snapshot.yaml:498-502",
+    "r4_fault": "r4 forms position targets without the production action_clip_value=100 transform",
+    "required_r5_disposition": "implement and include in NONE_MISSING full action-warp receipt"
+  },
+  "preserved_r4_evidence": {
+    "artifacts": "BYTE_PRESERVED",
+    "stage_contract_structure": "VALID",
+    "true_100_45_native_position_and_standing_gate": "VALID",
+    "door_scene_manifest_seeds_and_paired_schema": "VALID_UNCHANGED",
+    "visual_visibility_structure_and_luma_hue_envelope": "VALID",
+    "formal_camera_extrinsic_fov": "UNRESOLVED_PENDING_PAIRED_T0_ISAAC_FRAMES",
+    "e5": "BLOCKED_INPUT_ISAAC_PAIRED_TRACE"
+  },
+  "superseded_r4_claims": [
+    "all policy behavior metrics",
+    "0/8 base-still as Student-under-gap evidence",
+    "8/8 approach and 4/8 collision crossing interpretation",
+    "UNRESOLVED_PENDING_E5 as the complete r4 behavior disposition"
+  ],
+  "r5_requirements": {
+    "same_manifest_seeds_scene_schema": true,
+    "standing_vitals_before_campaign": true,
+    "base_clip_thresholds_must_be_loaded_from_resolved_config": true,
+    "full_action_warp_coverage": "NONE_MISSING",
+    "cpu_llvmpipe_zero_gpu": true,
+    "r4_artifact_mutation": false
+  }
+}

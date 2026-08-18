@@ -1,0 +1,202 @@
+{
+  "coverage": "NONE_MISSING",
+  "producer_identity": {
+    "git_commit_before_phase_commit": "b000ecf0e9b0c2caa552a9028e7ac2467cd65c21",
+    "path": "gr00t/rl/sim2sim/cli/probe_action_warp_r5.py"
+  },
+  "resolved_config": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/config_snapshot.yaml",
+  "resolved_values": {
+    "base_clip_high": [
+      0.5,
+      0.5,
+      0.5,
+      0.4,
+      0.4
+    ],
+    "base_clip_low": [
+      -0.5,
+      -0.5,
+      -0.5,
+      -0.4,
+      -0.4
+    ],
+    "base_command_scale": 0.25,
+    "body_pitch_roll_scale": 0.4,
+    "command_deadband_norm": 0.1,
+    "command_obs_multipliers": [
+      2.0,
+      2.0,
+      0.25,
+      1.0,
+      1.0
+    ],
+    "delta_action_clip": 15.0,
+    "delta_action_scale": 0.3,
+    "robot_action_clip": 100.0,
+    "robot_action_scale": 0.25
+  },
+  "result": "PASS",
+  "schema": "doordog.sim2sim.action_warp_contract.r5.v1",
+  "scripted_full_path": {
+    "advanced_after_zero_command": true,
+    "axis_at_cap": [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "axis_clipped": [
+      true,
+      true,
+      true,
+      false,
+      false
+    ],
+    "final_20d_clip_count": 12,
+    "first_stage1_effective_arm": [
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896,
+      0.30000001192092896
+    ],
+    "input_is_raw_high_level_action": true,
+    "observation_echo": [
+      1.0,
+      -1.0,
+      0.125,
+      0.4000000059604645,
+      -0.4000000059604645
+    ],
+    "physical_clipped": [
+      0.5,
+      -0.5,
+      0.5,
+      0.4000000059604645,
+      -0.4000000059604645
+    ],
+    "pre_final_clip": [
+      1.0,
+      -1.0,
+      1.0,
+      0.4000000059604645,
+      -0.4000000059604645
+    ],
+    "raw_base": [
+      4.0,
+      -4.0,
+      4.0,
+      2.0,
+      -2.0
+    ],
+    "scaled_unclipped": [
+      1.0,
+      -1.0,
+      1.0,
+      0.800000011920929,
+      -0.800000011920929
+    ],
+    "stage0_effective_arm": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "staging_zero_physical_command": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "transform_chain": [
+    {
+      "node": "DELTA_ACTION_ACCUMULATE_CLIP_STAGE_GATE",
+      "production": [
+        "gr00t/rl/envs/base_task/delta_action_base.py:59-90",
+        "gr00t/rl/envs/door/door_open_a2_base.py:7390-7419"
+      ],
+      "r5": "StageContractMinimal from config scale=0.3, clip=15, stage0 zero",
+      "resolved_config": "config_snapshot.yaml:1510-1519",
+      "status": "MATCH"
+    },
+    {
+      "node": "BASE_WARP",
+      "production": "gr00t/rl/envs/base_task/warped_action_base.py:32-43",
+      "r5": "explicit identity",
+      "resolved_config": "config_snapshot.yaml:1520-1528 k=0,s=0",
+      "status": "MATCH"
+    },
+    {
+      "node": "V22_V23_BASE_INTERVENTIONS",
+      "production": "gr00t/rl/envs/base_task/a2_base.py:610-685,1137-1139",
+      "r5": "disabled; raw base unchanged",
+      "resolved_config": "keys absent",
+      "status": "MATCH_DISABLED"
+    },
+    {
+      "node": "BASE_SCALE_POSTURE_CLAMP_FINAL_5D_CLAMP",
+      "production": "gr00t/rl/envs/base_task/a2_base.py:1163-1188",
+      "r5": "scale raw; pitch/roll clamp; final clamp from resolved thresholds",
+      "resolved_config": "config_snapshot.yaml:1401-1416,1564-1567",
+      "status": "MATCH"
+    },
+    {
+      "node": "BASE_ECHO_AND_DEADBAND",
+      "production": "gr00t/rl/envs/base_task/a2_base.py:1264-1271",
+      "r5": "clipped physical command * multipliers; xyz zero below norm 0.1",
+      "resolved_config": "config_snapshot.yaml:1404-1415",
+      "status": "MATCH"
+    },
+    {
+      "node": "GRIPPER_PRIMITIVE",
+      "production": "gr00t/rl/envs/base_task/a2_base.py:1140-1161",
+      "r5": "raw >0 open else close; target-to-raw by action_scale",
+      "resolved_config": "config_snapshot.yaml:1429-1435,498",
+      "status": "MATCH"
+    },
+    {
+      "node": "LEG_POLICY_NAME_MAP",
+      "production": "gr00t/rl/envs/base_task/a2_base.py:325-340,1145-1151",
+      "r5": "A2PiperJointMap policy order to sim order",
+      "resolved_config": "config_snapshot.yaml:1437-1448",
+      "status": "MATCH"
+    },
+    {
+      "node": "FINAL_20D_ACTION_CLIP",
+      "production": "gr00t/rl/envs/legged_base_task/legged_robot_base.py:651-674",
+      "r5": "clip raw simulator action before default+0.25*action target",
+      "resolved_config": "config_snapshot.yaml:498-502 action_clip_value=100",
+      "status": "MATCH"
+    },
+    {
+      "node": "CONTROL_DELAY",
+      "production": "gr00t/rl/envs/legged_base_task/legged_robot_base.py:667-674",
+      "r5": "no delay",
+      "resolved_config": "config_snapshot.yaml:823-826 randomize_ctrl_delay=false",
+      "status": "MATCH_DISABLED"
+    },
+    {
+      "node": "POSITION_TARGET_AND_MUJOCO_WRITE",
+      "production": "gr00t/rl/envs/legged_base_task/legged_robot_base.py:1142-1155",
+      "r5": "default + clipped raw*0.25; name-resolved native position write",
+      "resolved_config": "config_snapshot.yaml:498 action_scale=0.25",
+      "status": "MATCH_WITH_D5_DECLARED_NATIVE_ACTUATOR_DEVIATION"
+    },
+    {
+      "node": "ACTION_AND_DELTA_OBSERVATION_ECHO",
+      "production": [
+        "gr00t/rl/envs/base_task/a2_base.py:1298-1307",
+        "gr00t/rl/envs/base_task/delta_action_base.py:61-63,132-133"
+      ],
+      "r5": "previous leg+effective arm+raw gripper; previous raw delta; reset zero",
+      "resolved_config": "config_snapshot.yaml:1519 reset backmap=true but production callback is pass",
+      "status": "MATCH"
+    }
+  ]
+}

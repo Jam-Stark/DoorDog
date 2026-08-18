@@ -1,0 +1,56 @@
+{
+  "scriptsFORhuman/sim2sim/artifacts/e5/r6_behavior_deliverables/p00_baseline_overview.mp4": {
+    "duration_s": 20.0,
+    "fps": 25.0,
+    "frames": 500,
+    "size": "640x480",
+    "valid": true
+  },
+  "scriptsFORhuman/sim2sim/artifacts/e5/r6_behavior_deliverables/p00_baseline_policy_tiled.mp4": {
+    "duration_s": 20.0,
+    "fps": 25.0,
+    "frames": 500,
+    "size": "398x480",
+    "valid": true
+  },
+  "scriptsFORhuman/sim2sim/artifacts/e5/r6_behavior_deliverables/p01_mass80_overview.mp4": {
+    "duration_s": 20.0,
+    "fps": 25.0,
+    "frames": 500,
+    "size": "640x480",
+    "valid": true
+  },
+  "scriptsFORhuman/sim2sim/artifacts/e5/r6_behavior_deliverables/p01_mass80_policy_tiled.mp4": {
+    "duration_s": 20.0,
+    "fps": 25.0,
+    "frames": 500,
+    "size": "398x480",
+    "valid": true
+  },
+  "scriptsFORhuman/sim2sim/artifacts/e5/r6_behavior_deliverables/p07_drive_k10_cap25_overview.mp4": {
+    "duration_s": 20.0,
+    "fps": 25.0,
+    "frames": 500,
+    "size": "640x480",
+    "valid": true
+  },
+  "scriptsFORhuman/sim2sim/artifacts/e5/r6_behavior_deliverables/p07_drive_k10_cap25_policy_tiled.mp4": {
+    "duration_s": 20.0,
+    "fps": 25.0,
+    "frames": 500,
+    "size": "398x480",
+    "valid": true
+  },
+  "staging_band_probe/staging_band_probe_overview.mp4": {
+    "fps": 25.0,
+    "frames": 501,
+    "size": "640x480",
+    "valid": true
+  },
+  "staging_band_probe/staging_band_probe_policy_tiled.mp4": {
+    "fps": 25.0,
+    "frames": 501,
+    "size": "398x480",
+    "valid": true
+  }
+}

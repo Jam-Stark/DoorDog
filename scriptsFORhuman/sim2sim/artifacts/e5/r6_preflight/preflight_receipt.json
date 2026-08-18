@@ -1,0 +1,24 @@
+{
+  "schema": "doordog.sim2sim.r6_preflight.v1",
+  "timestamp_hkt": "2026-08-19 00:54 HKT",
+  "result": "PASS",
+  "gpu_occupancy": {
+    "observed": "8x NVIDIA RTX A6000 49140 MiB; all indices 0-7 at ~1 MiB used / 0% util at measurement time; query-compute-apps returned empty",
+    "authorization": "owner r6 directive: GPU0-3 authorized this window",
+    "standing_exclusion": "GPU5/6 are reserved for isaaclab v24 processes per owner instruction and remain excluded regardless of observed idleness; no process on any GPU was touched",
+    "pinning": "CUDA_VISIBLE_DEVICES=0 (single-GPU sufficient for MuJoCo EGL and the Isaac 1-env eval); never 5/6"
+  },
+  "egl_smoke": {
+    "result": "PASS",
+    "detail": "MUJOCO_GL=egl 320x240 render of standing_vitals_scene_r5 returned finite frame (sum 4338880)"
+  },
+  "isaacsim_import_smoke": {
+    "result": "PASS",
+    "detail": "isaaclab conda env python -c 'import isaacsim' OK"
+  },
+  "video_toolchain": {
+    "result": "PASS",
+    "detail": "imageio 2.37.0 + imageio_ffmpeg bundled ffmpeg v7.0.2 + cv2 4.11.0 available for mp4 encoding"
+  },
+  "llvmpipe_fallback": "NOT_NEEDED_EGL_PASS"
+}

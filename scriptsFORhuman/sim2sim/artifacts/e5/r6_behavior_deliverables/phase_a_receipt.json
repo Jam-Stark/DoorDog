@@ -1,0 +1,37 @@
+{
+  "schema": "doordog.sim2sim.r6_behavior_deliverables.v1",
+  "timestamp_hkt": "2026-08-19 01:2x HKT",
+  "phase": "A_BEHAVIOR_VISUALIZATION",
+  "visual_judgement": "PENDING_USER_VISUAL_REVIEW (agent is non-visual; acceptance here is data-level only)",
+  "videos": {
+    "campaign_replay_source": "REPLAY_FROM_STORED_TRACE_ROW_BY_ROW (no policy re-run; scene rebuilt from stored per-case model files)",
+    "p00_baseline": ["r6_behavior_deliverables/p00_baseline_overview.mp4", "r6_behavior_deliverables/p00_baseline_policy_tiled.mp4"],
+    "p01_mass80": ["r6_behavior_deliverables/p01_mass80_overview.mp4", "r6_behavior_deliverables/p01_mass80_policy_tiled.mp4"],
+    "p07_drive_k10_cap25": ["r6_behavior_deliverables/p07_drive_k10_cap25_overview.mp4", "r6_behavior_deliverables/p07_drive_k10_cap25_policy_tiled.mp4"],
+    "staging_band_probe": {
+      "source": "SAME_SEED_RERUN_WITH_RECORDING (seed 41001, dx 0.65, identical loop)",
+      "determinism_vs_stored_probe_trace": {
+        "compared_steps": 1000,
+        "max_abs_norm_diff": 0.0,
+        "row_identical": true
+      },
+      "files": ["r6_behavior_deliverables/staging_band_probe/staging_band_probe_overview.mp4", "r6_behavior_deliverables/staging_band_probe/staging_band_probe_policy_tiled.mp4"]
+    },
+    "container_validation": "video_validation.json: 8/8 mp4 valid, 25 fps, 20 s, <=640x480"
+  },
+  "joint_kinematics": {
+    "receipt": "r6_behavior_deliverables/joint_kinematics_vitals.json",
+    "typed_verdict": "JOINT_KINEMATICS_SANE",
+    "checks": {
+      "all_states_finite": true,
+      "stage0_arm_abs_qvel_lt_2_radps": "PASS (max 1.013)",
+      "legs_abs_qvel_gait_envelope": "PASS (max 11.29 vs 3x standing reference 21.1)",
+      "qacc_below_1e5": "PASS (max 1946.8)"
+    },
+    "notable_facts": [
+      "Arm stays in stage-0 hold with max deviation <= 0.047 rad across all cases (mean ~0.015): no arm flailing.",
+      "Gripper max qvel 9.04 rad/s is the position-actuator snap of the 0.035 rad open/close primitive toggle; bounded, not a runaway; not part of the declared checks.",
+      "Measured base speed averages 0.21 m/s against commanded norm average 0.78 (ratio ~0.27): the 'cap-pinned run' is command-layer saturation with moderate realized locomotion, not a physical sprint."
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "doordog.sim2sim.r6_isaac_self_eval_feasibility.v1",
+  "timestamp_hkt": "2026-08-19 01:5x HKT",
+  "phase": "C0",
+  "result": "ISAAC_SELF_EVAL_FEASIBLE",
+  "method": {
+    "frozen_code": "git clone of distillation ws checked out at bundle source_commit a197255212fa65dd9e02337b7971daac71c944fe into /home/baoquanc/workspace/sim2sim_scratch_r6/distill_frozen (scratch, registered for cleanup)",
+    "checkpoint": "read-only load of ws logs_rl/by_batch/cb2h_v19_toeout6_pitch50_grpo_20260811/pilot_2x32_lr375e8_syncreset/model_step_000010.pt",
+    "launch": "cd scratch_clone && PYTHONPATH=clone CUDA_VISIBLE_DEVICES=0 eval_agent_trl.py +checkpoint=<abs> +num_envs=4 ++env.config.save_rendering_dir=<scratch>",
+    "outputs": "all logs/hydra outputs land in scratch clone outputs/ and scratch c0_out; distillation ws verified untouched (find -newer empty)"
+  },
+  "evidence": {
+    "isaac_boot": "Isaac Sim 5.1 boots headless; env class DoorPregrasp instantiates with cameras enabled",
+    "checkpoint_load": "'Loaded checkpoint from step 10'; env is_evaluating=True",
+    "live_process": "attempt1 alive past prior kill window on GPU0 (~6.2 GiB), evaluating"
+  },
+  "fixes_needed_on_the_way": [
+    "hydra struct: use +num_envs (append) not num_envs",
+    "repo root must be on PYTHONPATH (scriptsFORhuman namespace import inside door_open_a2_base at frozen commit)",
+    "GRPO trainer arg check requires num_envs divisible by num_mini_batches=4 -> num_envs=4",
+    "eval entry would copy checkpoint next to source if step file missing; here model_step_000010.pt already exists so no ws write occurred (verified)"
+  ],
+  "incident_log": [
+    "attempt 0-2 failures were config/arg issues (struct override, module path, batch divisibility) - resolved",
+    "one run (01:27-01:35) exited SIGKILL(137) immediately before an unrelated co-tenant DepthADD DDP run (GPU5/6) started at 01:36; RAM was not exhausted (477G free); killer unconfirmed, typed as CO_TENANT_LAUNCH_WINDOW_SUSPECTED; retry on GPU0 survived the same window",
+    "co-tenant: pid 2480393/2480395 on GPU5/6 (7.5 GiB each) - protected per owner instruction, untouched"
+  ],
+  "smoke_run_disposition": "attempt1 left running as nominal aggregate reference (200 episodes); C1 recording run launches after it completes"
+}

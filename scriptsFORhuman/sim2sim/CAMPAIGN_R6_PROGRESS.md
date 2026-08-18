@@ -27,3 +27,10 @@
 - 坐标惯例已锚:生产 legged_robot_base.py:171/199(body-frame)≡ MuJoCo 取法;缩放 0.5/0.05/1.0 于构造层(obs yaml:137-141)。
 - 全程范围有限合理;第三次逐行确定性对拍 1000/1000 全同。receipt: `r6_obs_forensics/obs_surface_receipt.json`。
 - 无 proprio 异常 → D 不让位,C 优先。下一步: C0(蒸馏分支冻结代码 a1972552 scratch 克隆 + eval_agent_trl 1env 冒烟,硬帽 1h)。
+
+## 2026-08-19 01:5x HKT — C0 可行性 PASS(ISAAC_SELF_EVAL_FEASIBLE)
+
+- 冻结代码: 蒸馏 ws 克隆→scratch 检出 a1972552;checkpoint 只读加载;全部输出落 scratch。ws find -newer 验证零写入。
+- 三次 config 级失败已修(+num_envs/PYTHONPATH/num_mini_batches 整除);一次 SIGKILL(137) 发生在 co-tenant DepthADD(GPU5/6, 01:36 启动)拉起前窗口,typed CO_TENANT_LAUNCH_WINDOW_SUSPECTED;GPU0 重试存活。
+- attempt1 保持运行作 nominal 聚合参照(200 episodes)。receipt: `artifacts/e5/r6_isaac_self_eval/c0_feasibility_receipt.json`。
+- scratch 待清理登记: /home/baoquanc/workspace/sim2sim_scratch_r6/{distill_frozen,c0_out}。

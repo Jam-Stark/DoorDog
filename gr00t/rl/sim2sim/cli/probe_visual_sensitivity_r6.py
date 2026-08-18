@@ -370,8 +370,7 @@ def main() -> None:
         "results": {k: {kk: vv for kk, vv in v.items() if kk != "norms"} for k, v in results.items()},
         "summary": summary,
     }
-    args.output.resolve().parent.mkdir(parents=True, exist_ok=True)
-    args.output.resolve().write_text(
+    (output_dir / "d1_receipt.json").write_text(
         json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
 

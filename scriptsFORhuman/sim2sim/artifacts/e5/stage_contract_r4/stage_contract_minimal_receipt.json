@@ -1,0 +1,114 @@
+{
+  "contract": "STAGE_CONTRACT_MINIMAL",
+  "exact_thresholds": {
+    "arm_default_max_deviation_rad_strict": 0.1,
+    "arm_delta_clip": 15.0,
+    "arm_delta_scale": 0.3,
+    "base_still_norm_max_inclusive": 0.1,
+    "staging_x_max_m": 0.8,
+    "staging_x_min_m": 0.5,
+    "staging_y_tolerance_m_strict": 0.15
+  },
+  "producer_identity": {
+    "git_commit_before_phase_commit": "a3ace7ec5a4584b9e35b38a0fcb91e9c956ee4f0",
+    "path": "gr00t/rl/sim2sim/cli/probe_stage_contract_r4.py"
+  },
+  "production_sources": {
+    "delta_accumulator": "gr00t/rl/envs/base_task/delta_action_base.py:DeltaActionBase.step",
+    "delta_gate": "gr00t/rl/envs/door/door_open_a2_base.py:_apply_delta_action_overrides",
+    "gripper_primitive": "gr00t/rl/envs/base_task/a2_base.py:_step_a2_base",
+    "resolved_config": "scriptsFORhuman/sim2sim/assets/student_bundle_grpo_step10_ready_r2/config_snapshot.yaml",
+    "stage0_advance": "gr00t/rl/envs/door/door_open_a2_base.py:_stage_0_to_1_advance_condition",
+    "transition_order": "gr00t/rl/envs/base_task/staged_task_base.py:_post_compute_observations_callback"
+  },
+  "result": "PASS",
+  "schema": "doordog.sim2sim.stage_contract_minimal_probe.v1",
+  "scripted_approach": [
+    {
+      "advanced_after_step": false,
+      "effective_arm_delta": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "label": "BEFORE_STAGING_BAND",
+      "raw_arm_delta_echo": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "stage_used": 0
+    },
+    {
+      "advanced_after_step": false,
+      "effective_arm_delta": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "label": "IN_BAND_BASE_NOT_STILL",
+      "stage_used": 0
+    },
+    {
+      "advanced_after_step": true,
+      "effective_arm_delta": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "label": "IN_BAND_BASE_STILL_ADVANCE_AFTER_ACTION",
+      "stage_after_observation": 1,
+      "stage_used": 0
+    },
+    {
+      "effective_arm_delta": [
+        0.30000001192092896,
+        0.30000001192092896,
+        0.30000001192092896,
+        0.30000001192092896,
+        0.30000001192092896,
+        0.30000001192092896
+      ],
+      "gripper_positive_target": [
+        0.03500000014901161,
+        -0.03500000014901161
+      ],
+      "gripper_zero_target": [
+        0.0,
+        0.0
+      ],
+      "hit_delta_clip": false,
+      "label": "FIRST_STAGE1_ACTION",
+      "stage_used": 1
+    }
+  ],
+  "stage_action_branch_audit": {
+    "excluded_non_deploy_paths": [
+      "teacher-only zero_vel branch (READY config disabled)",
+      "teacher-only zero_finger branch (READY config disabled)",
+      "evaluation oracle/intervention actions",
+      "reward, termination, and staged-reset-only branches"
+    ],
+    "normal_student_deploy_path": {
+      "gripper_primitive_all_stages": "RAW_GT_ZERO_OPEN_ELSE_CLOSE",
+      "stage0_arm_delta_gate": "IMPLEMENTED_EXACTLY",
+      "stage0_to_stage1": "IMPLEMENTED_FROM_OBSERVABLE_STATE",
+      "stage1_plus_arm_action_override": "NONE",
+      "stage1_plus_base_action_override": "NONE",
+      "stage1_plus_gripper_action_override": "NONE",
+      "stage1_plus_leg_action_override": "NONE"
+    }
+  }
+}

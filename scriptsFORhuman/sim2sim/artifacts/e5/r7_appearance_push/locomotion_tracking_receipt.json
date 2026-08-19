@@ -1,0 +1,10 @@
+{
+  "command_mps": 0.5,
+  "duration_s": 10.000000000000163,
+  "net_y_m": 3.2981618381537854,
+  "mean_vy_second_half": 0.34611390565130973,
+  "tracking_ratio": 0.6922278113026195,
+  "max_vx": 0.47930975832043643,
+  "final_base_height_m": 0.49740235353608153,
+  "min_base_height_m": 0.49100701025335164
+}

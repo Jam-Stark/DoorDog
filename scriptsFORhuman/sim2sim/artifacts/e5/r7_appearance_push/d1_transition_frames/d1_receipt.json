@@ -1,0 +1,43 @@
+{
+  "frame_state_mismatch_disclosure": "Isaac frames, when used, are fixed images whose capture state does not match the MuJoCo robot state; this probe measures sensitivity to frame content only and makes no paired claim",
+  "probe": "staging_band_stationary_init_same_seed",
+  "result_classification": "EXPLORATORY_NON_PAIRED",
+  "results": {
+    "frozen-mujoco": {
+      "base_still_steps": 0,
+      "dx": 0.65,
+      "frame_source": "FROZEN_MUJOCO_T0_FRAMES",
+      "mode": "frozen-mujoco",
+      "net_root_x_m": 0.6129287149705605,
+      "physical_base_command_norm_first3": {
+        "max": 0.8660253882408142,
+        "min": 0.4948050379753113,
+        "p10": 0.7076957404613495,
+        "p50": 0.7697449922561646
+      },
+      "policy_steps": 400,
+      "seed": 41001
+    },
+    "isaac-frames": {
+      "base_still_steps": 0,
+      "dx": 0.65,
+      "frame_source": "FIXED_ISAAC_FRAMES_SUBSTITUTED",
+      "mode": "isaac-frames",
+      "net_root_x_m": 0.5756646115476916,
+      "physical_base_command_norm_first3": {
+        "max": 0.8660253882408142,
+        "min": 0.25727131962776184,
+        "p10": 0.7073376178741455,
+        "p50": 0.7391238212585449
+      },
+      "policy_steps": 400,
+      "seed": 41001
+    }
+  },
+  "schema": "doordog.sim2sim.visual_sensitivity_probe.r6.v1",
+  "summary": {
+    "interpretation": "SINGLE_VISUAL_CHANNEL_NOT_SUFFICIENT_NO_CONVERGENCE_UNDER_ISAAC_FRAMES",
+    "isaac_vs_frozen_mujoco_min_norm_delta": -0.23753371834754944,
+    "typed": "EXPLORATORY_NON_PAIRED"
+  }
+}

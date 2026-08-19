@@ -1,0 +1,37 @@
+[
+  {
+    "variant": "isaac_nominal_like",
+    "panel_hsl": [
+      0.12,
+      0.1,
+      0.87
+    ],
+    "brightness": 1.25,
+    "physical_base_command_norm_min": 0.18562999367713928,
+    "norm_p10": 0.7071942389011383,
+    "norm_p50": 0.771742194890976,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "all_bright_max",
+    "panel_hsl": [
+      0.1,
+      0.03,
+      0.95
+    ],
+    "brightness": 1.45,
+    "physical_base_command_norm_min": 0.2247929722070694,
+    "norm_p10": 0.7071986317634582,
+    "norm_p50": 0.7711688578128815,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "control_production",
+    "panel_hsl": null,
+    "brightness": 1.0,
+    "physical_base_command_norm_min": 0.4948050379753113,
+    "norm_p10": 0.7073700666427613,
+    "norm_p50": 0.7791553139686584,
+    "base_still_steps": 0
+  }
+]

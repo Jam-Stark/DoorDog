@@ -56,3 +56,10 @@
 - **我此前的 Isaac eval 参照系双重错误**: (1) eval_agent_trl + base_eval 默认跑在 250 步 stage_overtime 契约(训练为 ~615 步);(2) policy 视觉输入在我的 eval 路径下逐字节冻结(12 个 policy-view 视频全同)——0/150 是 harness 伪影,不是策略行为。
 - **作废声明**: C3 `COMMAND_PROFILE_CONSISTENT_CAP_PINNED_IN_BOTH_BACKENDS` 撤回;Isaac eval 视频(白场)typed INVALID;D1"Isaac 帧"实为近白噪声帧。
 - **真实的 MuJoCo gap 重新成立且很大**: Isaac 92%+ vs MuJoCo 0/8——r7 目标( MuJoCo 自主到 stage5)是真问题,r6 归因方向(视觉外观效应)保留但基准重置。
+
+## 2026-08-20 02:5x HKT — r7 关键突破与路线修正
+
+- **真参照剖面(训练协议 rollout dump, 21440 步)**: 63 集中 31 集 stage5、40 集有真 base-still;成功集 stage 链 0→1@44 →2@89 →3@168 →4@274 →5@436(~9s 全链);命令 norm 平滑衰减,min 0.017-0.026。存于 scratch grpo_repro_dump3(时代锚 a1972552)。
+- **决定性切分实验**: MuJoCo 物理 + **Isaac 视觉逐步回放** → 策略在 600 步内产出 base-still(min 0.0711, 2 步 ≤0.1)——**视觉时间序列是解锁钥匙**;静态真帧单独不行(0.257 地板),纯外观梯度和 LSTM 零历史也不够。证据: `artifacts/e5/r7_appearance_push/vision_replay/d1_receipt.json`。
+- **含义**: MuJoCo 实况视觉序列缺少让策略减速的触发——候选: 外观(白门亮地)、接近轨迹几何、取景。正在跑: isaaclike 外观 + 0.9m campaign 式起始的 102 集 fishing(6 worker 并行)。
+- 时代纪律: Isaac 侧一切运行仅冻结克隆(a1972552);MuJoCo student_source_root 待切冻结克隆(验证过 actor 类文件 era-identical);蒸馏 ws HEAD 被 co-tenant 活跃推进(DepthADD,且对方在建配对 trace 生产器)。

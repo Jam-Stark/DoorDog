@@ -1,0 +1,30 @@
+[
+  {
+    "variant": "isaac_true_look",
+    "dx": 0.55,
+    "min_norm": 0.24942649900913239,
+    "p10": 0.7071556091308594,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "isaac_true_look",
+    "dx": 0.65,
+    "min_norm": 0.1820349246263504,
+    "p10": 0.7071927666664124,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "isaac_true_look_cool",
+    "dx": 0.55,
+    "min_norm": 0.2460412085056305,
+    "p10": 0.7071919143199921,
+    "base_still_steps": 0
+  },
+  {
+    "variant": "isaac_true_look_cool",
+    "dx": 0.65,
+    "min_norm": 0.18113690614700317,
+    "p10": 0.7072571098804474,
+    "base_still_steps": 0
+  }
+]

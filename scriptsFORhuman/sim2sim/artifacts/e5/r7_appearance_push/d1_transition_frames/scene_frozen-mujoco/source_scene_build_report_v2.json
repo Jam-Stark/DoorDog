@@ -1,0 +1,97 @@
+{
+  "actuator_order": [
+    "door_hinge_capped_position",
+    "handle_capped_position",
+    "FL_hip_joint_motor",
+    "FL_thigh_joint_motor",
+    "FL_calf_joint_motor",
+    "RL_hip_joint_motor",
+    "RL_thigh_joint_motor",
+    "RL_calf_joint_motor",
+    "FR_hip_joint_motor",
+    "FR_thigh_joint_motor",
+    "FR_calf_joint_motor",
+    "RR_hip_joint_motor",
+    "RR_thigh_joint_motor",
+    "RR_calf_joint_motor",
+    "arm_j1_motor",
+    "arm_j2_motor",
+    "arm_j3_motor",
+    "arm_j4_motor",
+    "arm_j5_motor",
+    "arm_j6_motor",
+    "arm_j7_motor",
+    "arm_j8_motor"
+  ],
+  "actuator_order_contract": "DOOR_TWO_POSITION_ACTUATORS_FIRST; ROBOT_MOTORS_NAME_RESOLVED",
+  "compiled": {
+    "nbody": 30,
+    "ncam": 6,
+    "neq": 0,
+    "ngeom": 69,
+    "nq": 29,
+    "nu": 22,
+    "nv": 28
+  },
+  "foot_floor_contact_surface": {
+    "feet": {
+      "FL_foot_collision": {
+        "floor_pair_enabled_by_masks": true,
+        "geom_id": 13
+      },
+      "FR_foot_collision": {
+        "floor_pair_enabled_by_masks": true,
+        "geom_id": 29
+      },
+      "RL_foot_collision": {
+        "floor_pair_enabled_by_masks": true,
+        "geom_id": 21
+      },
+      "RR_foot_collision": {
+        "floor_pair_enabled_by_masks": true,
+        "geom_id": 37
+      }
+    },
+    "floor_geom_id": 0
+  },
+  "latch_realization": "NO_LATCH",
+  "mujoco_version": "3.10.0",
+  "resolved_robot_dynamics": {
+    "armature_by_joint": {
+      "FL_calf_joint": 0.03,
+      "FL_hip_joint": 0.03,
+      "FL_thigh_joint": 0.03,
+      "FR_calf_joint": 0.03,
+      "FR_hip_joint": 0.03,
+      "FR_thigh_joint": 0.03,
+      "RL_calf_joint": 0.03,
+      "RL_hip_joint": 0.03,
+      "RL_thigh_joint": 0.03,
+      "RR_calf_joint": 0.03,
+      "RR_hip_joint": 0.03,
+      "RR_thigh_joint": 0.03,
+      "arm_j1": 0.0,
+      "arm_j2": 0.0,
+      "arm_j3": 0.0,
+      "arm_j4": 0.0,
+      "arm_j5": 0.0,
+      "arm_j6": 0.0,
+      "arm_j7": 0.0,
+      "arm_j8": 0.0
+    },
+    "source": "READY r2 config_snapshot.yaml robot.dof_armature_list by robot.dof_names"
+  },
+  "result_classification": "VALID_COMPARABLE",
+  "scene_xml": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/r7_appearance_push/d1_transition_frames/scene_frozen-mujoco/external_pd_source_scene.xml",
+  "schema": "doordog.sim2sim.paired_scene_build_report.v2",
+  "source_identity": {
+    "door": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/scriptsFORhuman/sim2sim/artifacts/e5/r7_appearance_push/d1_transition_frames/scene_frozen-mujoco/door_r4.xml",
+    "robot": "/home/baoquanc/workspace/DoorDog-A2_Piper_sim2sim/gr00t/rl/data/mujoco/A2_Piper/a2_piper.xml"
+  },
+  "visual_background": {
+    "floor_material": "sim2sim_floor_material checker",
+    "physics_effect": "NONE; geom contact attributes are unchanged",
+    "purpose": "native RGB must remain informative when a moving robot camera sees only background",
+    "skybox": "sim2sim_skybox gradient"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "variant": "isaac_nominal_like_long40s",
+  "panel_hsl": [
+    0.12,
+    0.1,
+    0.87
+  ],
+  "brightness": 1.25,
+  "physical_base_command_norm_min": 0.18562999367713928,
+  "norm_p10": 0.7071375191211701,
+  "norm_p50": 0.7780239582061768,
+  "base_still_steps": 0
+}

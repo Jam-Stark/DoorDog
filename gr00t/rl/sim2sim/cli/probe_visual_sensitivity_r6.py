@@ -67,6 +67,14 @@ def _load_isaac_frames(frame_dir: Path) -> dict[str, np.ndarray]:
     return frames
 
 
+def _load_isaac_replay(npz_path: Path) -> dict[str, np.ndarray]:
+    data = np.load(npz_path.resolve(strict=True))
+    return {
+        "vision_obs": data["vision_obs"].astype(np.float32),
+        "context_vision_obs": data["context_vision_obs"].astype(np.float32),
+    }
+
+
 def run_mode(
     *,
     mode: str,
@@ -136,6 +144,13 @@ def run_mode(
             raise ValueError("isaac-frames mode requires --isaac-frame-dir")
         cached_rgb = _load_isaac_frames(isaac_frame_dir)
         frame_source = "FIXED_ISAAC_FRAMES_SUBSTITUTED"
+    elif mode == "isaac-replay":
+        if isaac_frame_dir is None:
+            raise ValueError("isaac-replay mode requires --isaac-frame-dir pointing at a vision npz")
+        replay = _load_isaac_replay(isaac_frame_dir)
+        replay_len = int(replay["vision_obs"].shape[0])
+        cached_rgb = {}
+        frame_source = f"ISAAC_VISION_REPLAY_NPZ_{replay_len}_STEPS"
     else:
         cached_rgb = {}
         for name in CAMERA_NAMES:
@@ -181,8 +196,8 @@ def run_mode(
     next_capture = dict(CAMERA_PERIODS)
     norms = []
     initial_root = data.qpos[:3].copy()
-    frames_pil = {name: Image.fromarray(cached_rgb[name]) for name in CAMERA_NAMES}
-    for name in CAMERA_NAMES:
+    frames_pil = {name: Image.fromarray(cached_rgb[name]) for name in CAMERA_NAMES if name in cached_rgb}
+    for name in frames_pil:
         frames_pil[name].save(output_dir / f"input_frame_{mode}_{name}.png")
     for policy_step in range(horizon):
         local_angular_velocity, projected_gravity, roll_pitch, _ = _body_state(
@@ -206,19 +221,28 @@ def run_mode(
         ages = [
             min(1.0, (float(data.time) - last_capture[name]) / 0.1) for name in CAMERA_NAMES
         ]
-        obs = {
-            "actor_obs": actor_obs,
-            "vision_obs": compose_dual_rgb(
+        if mode == "isaac-replay":
+            ridx = min(policy_step, replay_len - 1)
+            vision_tensor = torch.from_numpy(replay["vision_obs"][ridx].copy()).unsqueeze(0)
+            context_tensor = torch.from_numpy(
+                replay["context_vision_obs"][ridx].copy()
+            ).unsqueeze(0)
+        else:
+            vision_tensor = compose_dual_rgb(
                 torch.from_numpy(cached_rgb["left"].copy()).unsqueeze(0),
                 torch.from_numpy(cached_rgb["right"].copy()).unsqueeze(0),
                 image_mean=image_mean,
                 image_std=image_std,
-            ),
-            "context_vision_obs": normalize_rgb_nhwc(
+            )
+            context_tensor = normalize_rgb_nhwc(
                 torch.from_numpy(cached_rgb["head"].copy()).unsqueeze(0),
                 image_mean=image_mean,
                 image_std=image_std,
-            ),
+            )
+        obs = {
+            "actor_obs": actor_obs,
+            "vision_obs": vision_tensor,
+            "context_vision_obs": context_tensor,
             "camera_meta": torch.tensor([[*ages, 1.0, 1.0, 1.0]], dtype=torch.float32),
         }
         with torch.inference_mode():

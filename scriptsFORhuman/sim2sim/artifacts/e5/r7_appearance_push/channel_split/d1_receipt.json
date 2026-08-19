@@ -1,0 +1,41 @@
+{
+  "frame_state_mismatch_disclosure": "Isaac frames, when used, are fixed images whose capture state does not match the MuJoCo robot state; this probe measures sensitivity to frame content only and makes no paired claim",
+  "probe": "staging_band_stationary_init_same_seed",
+  "result_classification": "EXPLORATORY_NON_PAIRED",
+  "results": {
+    "replay-d435-only": {
+      "base_still_steps": 0,
+      "dx": 0.65,
+      "frame_source": "SPLIT_REPLAY_replay-d435-only_648_STEPS",
+      "mode": "replay-d435-only",
+      "net_root_x_m": -0.05225247058749413,
+      "physical_base_command_norm_first3": {
+        "max": 0.8660253882408142,
+        "min": 0.4882894456386566,
+        "p10": 0.6442228376865387,
+        "p50": 0.7315295934677124
+      },
+      "policy_steps": 300,
+      "seed": 41001
+    },
+    "replay-head-only": {
+      "base_still_steps": 0,
+      "dx": 0.65,
+      "frame_source": "SPLIT_REPLAY_replay-head-only_648_STEPS",
+      "mode": "replay-head-only",
+      "net_root_x_m": 0.19633872254120655,
+      "physical_base_command_norm_first3": {
+        "max": 0.8660253882408142,
+        "min": 0.5070772767066956,
+        "p10": 0.7073473930358887,
+        "p50": 0.790076494216919
+      },
+      "policy_steps": 300,
+      "seed": 41001
+    }
+  },
+  "schema": "doordog.sim2sim.visual_sensitivity_probe.r6.v1",
+  "summary": {
+    "typed": "EXPLORATORY_NON_PAIRED"
+  }
+}

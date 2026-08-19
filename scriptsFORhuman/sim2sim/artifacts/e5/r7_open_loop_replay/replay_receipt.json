@@ -1,0 +1,30 @@
+{
+  "frame_pairs_saved": [
+    0,
+    20,
+    40,
+    44,
+    60,
+    90,
+    168,
+    274
+  ],
+  "horizon": 600,
+  "isaac_final_rel_xy": [
+    2.1849403381347656,
+    -0.07116317749023438
+  ],
+  "mujoco_final_rel_xy": [
+    1.205690657677482,
+    -2.8665979842393643
+  ],
+  "norm_min": 0.036554817110300064,
+  "reference": "grpo rollout dump env0 episode0 (policy_action_mean open loop)",
+  "schema": "doordog.sim2sim.open_loop_replay.r7.v1",
+  "trajectory_drift_xy_m": {
+    "at_final": 2.9619901578938843,
+    "at_step_168": 0.08837616255068553,
+    "at_step_44": 0.021587713957678955,
+    "max": 2.9619901578938843
+  }
+}

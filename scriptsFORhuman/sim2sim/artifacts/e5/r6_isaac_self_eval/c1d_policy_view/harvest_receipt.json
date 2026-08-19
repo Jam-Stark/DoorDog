@@ -1,0 +1,164 @@
+{
+  "schema": "doordog.sim2sim.c1d_harvest.r6.v1",
+  "harvested_at": "2026-08-19T23:50:00+08:00",
+  "harvester": "c1d-harvester",
+  "stage": "r7-stage5-push",
+  "source": {
+    "scratch_dir_read_only": "/home/baoquanc/workspace/sim2sim_scratch_r6",
+    "policy_videos_src": "/home/baoquanc/workspace/sim2sim_scratch_r6/c1_out/policy_videos/",
+    "step_dump_src": "/home/baoquanc/workspace/sim2sim_scratch_r6/c1_out/isaac_action_obs_dump_c1d.jsonl"
+  },
+  "artifact_dir": "scriptsFORhuman/sim2sim/artifacts/e5/r6_isaac_self_eval/c1d_policy_view",
+  "copied_files": {
+    "note": "filenames preserved; body identical to scratch source (md5 verified)",
+    "videos": [
+      "policy_view_head_env0_ep000.mp4",
+      "policy_view_head_env0_ep001.mp4",
+      "policy_view_head_env0_ep002.mp4",
+      "policy_view_head_env0_ep003.mp4",
+      "policy_view_left_env0_ep000.mp4",
+      "policy_view_left_env0_ep001.mp4",
+      "policy_view_left_env0_ep002.mp4",
+      "policy_view_left_env0_ep003.mp4",
+      "policy_view_right_env0_ep000.mp4",
+      "policy_view_right_env0_ep001.mp4",
+      "policy_view_right_env0_ep002.mp4",
+      "policy_view_right_env0_ep003.mp4"
+    ],
+    "step_dump": "isaac_action_obs_dump_c1d.jsonl",
+    "video_md5_by_camera": {
+      "head_all4_identical": "1870f4571e91fe58",
+      "left_all4_identical": "1c805a18138d5abe",
+      "right_all4_identical": "66aa7da95245c9db"
+    },
+    "step_dump_md5": "9ef26a58b029cad8"
+  },
+  "video_integrity_verdict": {
+    "status": "FAILED_RECORDING_ARTIFACT",
+    "probe": "full sequential decode of all 250 frames per video; mean abs diff vs frame0 (8-bit)",
+    "head": {
+      "mean_diff_vs_frame0": 0.0378,
+      "max_diff_vs_frame0": 0.0443,
+      "frames": 250,
+      "size": [384, 136],
+      "fps": 50.0,
+      "verdict": "near-static; whole video is essentially one frame with tiny jitter"
+    },
+    "left": {
+      "mean_diff_vs_frame0": 0.0,
+      "max_diff_vs_frame0": 0.0,
+      "frames": 250,
+      "size": [216, 384],
+      "fps": 50.0,
+      "verdict": "FULLY FROZEN - all 250 frames bit-identical"
+    },
+    "right": {
+      "mean_diff_vs_frame0": 0.0044,
+      "max_diff_vs_frame0": 0.006,
+      "frames": 250,
+      "size": [216, 384],
+      "fps": 50.0,
+      "verdict": "essentially frozen; max pixel drift 0.6%"
+    },
+    "cross_episode": "for each camera the 4 episode-files are BYTE-IDENTICAL (same md5). ep000==ep001==ep002==ep003. The policy-view videos therefore do NOT encode per-episode trajectory information.",
+    "impact": "videos are NOT valid per-episode motion evidence. The JSONL step dump is the authoritative motion evidence and remains fully valid. Terminal frames are meaningless as 'end-of-walk' states because the recordings are near-frozen."
+  },
+  "stats": {
+    "note": "episode partition: 4 x 250 dump rows; rows 249/499/749/999 are boundary reset rows (zeroed clipped commands, root teleported to next-episode spawn pose, root_z=0.55 vs walking 0.47). Reset rows are artifacts and are EXCLUDED from all distributions. Stage field is constant value 0 across all 1000 rows.",
+    "n_rows_total": 1000,
+    "n_episodes": 4,
+    "rows_per_evidence_episode_excl_reset": 249,
+    "per_episode": [
+      {
+        "episode": "ep000",
+        "dump_rows": [0, 249],
+        "clipped_xyz_norm": { "min": 0.0625, "p10": 0.247, "p50": 0.5212, "p90": 0.6213, "max": 0.8232 },
+        "base_still_steps_norm_le_0.1_excl_reset": 3,
+        "action12d_abs_max": 3.844,
+        "action12d_abs_mean": 0.8463,
+        "root_x_range": [9.375, 9.5669]
+      },
+      {
+        "episode": "ep001",
+        "dump_rows": [250, 499],
+        "clipped_xyz_norm": { "min": 0.0801, "p10": 0.2499, "p50": 0.5273, "p90": 0.6017, "max": 0.7473 },
+        "base_still_steps_norm_le_0.1_excl_reset": 4,
+        "action12d_abs_max": 3.7415,
+        "action12d_abs_mean": 0.8353,
+        "root_x_range": [7.7297, 8.7925]
+      },
+      {
+        "episode": "ep002",
+        "dump_rows": [500, 749],
+        "clipped_xyz_norm": { "min": 0.1172, "p10": 0.2437, "p50": 0.5283, "p90": 0.6018, "max": 0.7639 },
+        "base_still_steps_norm_le_0.1_excl_reset": 0,
+        "action12d_abs_max": 3.7648,
+        "action12d_abs_mean": 0.8273,
+        "root_x_range": [8.2161, 8.953]
+      },
+      {
+        "episode": "ep003",
+        "dump_rows": [750, 999],
+        "clipped_xyz_norm": { "min": 0.1369, "p10": 0.2543, "p50": 0.5292, "p90": 0.6131, "max": 0.7548 },
+        "base_still_steps_norm_le_0.1_excl_reset": 0,
+        "action12d_abs_max": 3.9644,
+        "action12d_abs_mean": 0.8305,
+        "root_x_range": [8.5706, 8.9161]
+      }
+    ],
+    "global": {
+      "clipped_xyz_norm": { "min": 0.0625, "p10": 0.2475, "p50": 0.5267, "p90": 0.6112, "max": 0.8232, "n": 996 },
+      "base_still_steps_global_excl_reset": 7,
+      "frac_base_still_of_evidence_rows": 0.007,
+      "action12d_abs_max": 3.9644,
+      "action12d_abs_mean": 0.8348,
+      "action12d_abs_max_per_dim": [2.369, 3.964, 2.258, 2.187, 2.159, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.191],
+      "note_12d": "action dims 5..10 are identically zero across all 1000 rows (6 unused/grip channels); only dims 0,1,2,3,4,11 carry signal",
+      "stage_histogram_row_level": { "0": 1000 },
+      "stage_note": "stage field constant 0 for all rows; no stage progression recorded in this dump",
+      "root_x_range_all": [7.7297, 9.5669],
+      "clipped_full5d_abs_mean": [0.1662, 0.3944, 0.1415, 0.2169, 0.3275],
+      "unclipped_vs_clipped_abs_delta_mean": [0.0004, 0.0763, 0.0002, 0.0516, 0.1016],
+      "clip_note": "dim 1 (vy) and dim 4 most affected by clipping: |unclipped - clipped| mean 0.076 and 0.102"
+    }
+  },
+  "frames": {
+    "dir": "scriptsFORhuman/sim2sim/artifacts/e5/r6_isaac_self_eval/c1d_policy_view/frames",
+    "extraction": "cv2 sequential-decode; t0 = frame 0, terminal = frame 249 of each video",
+    "inventory": [
+      { "file": "ep001_head_t0.png", "episode": "ep001", "camera": "head", "tag": "t0", "frame_index": 0, "md5": "77bcd441ce00de82" },
+      { "file": "ep001_head_terminal.png", "episode": "ep001", "camera": "head", "tag": "terminal", "frame_index": 249, "md5": "b5cc0d031d861e70" },
+      { "file": "ep001_left_t0.png", "episode": "ep001", "camera": "left", "tag": "t0", "frame_index": 0, "md5": "8e87ab9784edc0ae" },
+      { "file": "ep001_left_terminal.png", "episode": "ep001", "camera": "left", "tag": "terminal", "frame_index": 249, "md5": "8e87ab9784edc0ae" },
+      { "file": "ep001_right_t0.png", "episode": "ep001", "camera": "right", "tag": "t0", "frame_index": 0, "md5": "84bd445574de2686" },
+      { "file": "ep001_right_terminal.png", "episode": "ep001", "camera": "right", "tag": "terminal", "frame_index": 249, "md5": "d4661b77597fd944" },
+      { "file": "ep002_head_t0.png", "episode": "ep002", "camera": "head", "tag": "t0", "frame_index": 0, "md5": "77bcd441ce00de82" },
+      { "file": "ep002_head_terminal.png", "episode": "ep002", "camera": "head", "tag": "terminal", "frame_index": 249, "md5": "b5cc0d031d861e70" },
+      { "file": "ep002_left_t0.png", "episode": "ep002", "camera": "left", "tag": "t0", "frame_index": 0, "md5": "8e87ab9784edc0ae" },
+      { "file": "ep002_left_terminal.png", "episode": "ep002", "camera": "left", "tag": "terminal", "frame_index": 249, "md5": "8e87ab9784edc0ae" },
+      { "file": "ep002_right_t0.png", "episode": "ep002", "camera": "right", "tag": "t0", "frame_index": 0, "md5": "84bd445574de2686" },
+      { "file": "ep002_right_terminal.png", "episode": "ep002", "camera": "right", "tag": "terminal", "frame_index": 249, "md5": "d4661b77597fd944" },
+      { "file": "ep003_head_t0.png", "episode": "ep003", "camera": "head", "tag": "t0", "frame_index": 0, "md5": "77bcd441ce00de82" },
+      { "file": "ep003_head_terminal.png", "episode": "ep003", "camera": "head", "tag": "terminal", "frame_index": 249, "md5": "b5cc0d031d861e70" },
+      { "file": "ep003_left_t0.png", "episode": "ep003", "camera": "left", "tag": "t0", "frame_index": 0, "md5": "8e87ab9784edc0ae" },
+      { "file": "ep003_left_terminal.png", "episode": "ep003", "camera": "left", "tag": "terminal", "frame_index": 249, "md5": "8e87ab9784edc0ae" },
+      { "file": "ep003_right_t0.png", "episode": "ep003", "camera": "right", "tag": "t0", "frame_index": 0, "md5": "84bd445574de2686" },
+      { "file": "ep003_right_terminal.png", "episode": "ep003", "camera": "right", "tag": "terminal", "frame_index": 249, "md5": "d4661b77597fd944" }
+    ],
+    "distinct_content": "18 PNGs collapse to 5 distinct images by md5: head_t0 (x3), head_terminal (x3), left single image (x6), right_t0 (x3), right_terminal (x3)",
+    "camera_content_notes_method": "multimodal image viewer unavailable in this runtime (look_at agent returned no response, model lacks image input); one-line descriptions below are derived from decoded-pixel statistics of the PNGs (mean brightness, std, dark fraction, edge density, color fraction) plus known camera geometry",
+    "camera_descriptions_one_line": {
+      "head": "384x136 egocentric view, mean brightness 202.5 (std 51.7), 1.2% dark px, edge density 0.026, 0.4% colored px - lit indoor door-task scene with structural content, but effectively ONE frozen frame (max intra-episode drift 0.044/255).",
+      "left": "216x384 external side view, mean brightness 234.2 (std 23.5), 0% dark, 0% colored, edge density 0.008 - very bright near-blank low-texture image, FULLY static (all 250 frames bit-identical, same image in every episode).",
+      "right": "216x384 external side view, mean brightness 234.8 (std 23.2), 0% dark, 0% colored, edge density 0.012 - very bright near-blank low-texture image, essentially frozen (max drift 0.006/255)."
+    },
+    "caveat": "because recordings are frozen artifacts, t0/terminal extraction yields no genuine motion content; do not cite extracted frames as evidence of walked distance/pose"
+  },
+  "limitations": [
+    "Policy-view videos are recording artifacts (near-frozen, per-camera byte-identical across episodes); visual evidence limited to the JSONL.",
+    "t0/terminal frame pairing is preserved (frame 0 vs 249) but content is degenerate.",
+    "stage field never advances beyond '0' in the dump; stage progression must be sourced elsewhere.",
+    "Episode-row alignment between videos and dump is degenerate (videos identical per camera) and cannot be used to disambiguate reset-row placement."
+  ],
+  "blockers": []
+}

@@ -63,3 +63,16 @@
 - **决定性切分实验**: MuJoCo 物理 + **Isaac 视觉逐步回放** → 策略在 600 步内产出 base-still(min 0.0711, 2 步 ≤0.1)——**视觉时间序列是解锁钥匙**;静态真帧单独不行(0.257 地板),纯外观梯度和 LSTM 零历史也不够。证据: `artifacts/e5/r7_appearance_push/vision_replay/d1_receipt.json`。
 - **含义**: MuJoCo 实况视觉序列缺少让策略减速的触发——候选: 外观(白门亮地)、接近轨迹几何、取景。正在跑: isaaclike 外观 + 0.9m campaign 式起始的 102 集 fishing(6 worker 并行)。
 - 时代纪律: Isaac 侧一切运行仅冻结克隆(a1972552);MuJoCo student_source_root 待切冻结克隆(验证过 actor 类文件 era-identical);蒸馏 ws HEAD 被 co-tenant 活跃推进(DepthADD,且对方在建配对 trace 生产器)。
+
+## 2026-08-20 04:0x HKT — r7 过程记录
+
+- 性能修复: MuJoCo fishing 进程未限线程导致 load 317/128 超订,重跑为 OMP_NUM_THREADS=8 × 4 worker。被踩死的两批半成品(bright 2 集/markers 2 集,均无命中)已删除并在此登记: min_norm 分别 0.352/0.457,样本太小不作结论。
+- 在跑: r7_fishing_v2 = isaaclike 外观 + 目标标记球(绿 grasp/红 pregrasp/蓝 band 边界) + dx∈[0.55,0.95] 抖动, 4×12=48 集。
+
+## 2026-08-20 04:30 HKT — r7 收口(阶段性结论)
+
+- **目标**: MuJoCo 自主开门到 stage5。**当前结论: 唯一阻塞=视觉域差**。
+- **解锁证明**: Isaac 视觉序列回放进 MuJoCo 物理 → 策略产出真 base-still(min 0.071)。动力学/动作链/低级栈全部验证忠实(跟踪比 0.69≈0.70;开环轨迹 2.2cm@stop)。
+- **活视觉解锁尝试全图谱(均未过阈)**: 外观 27+8 变体、Isaac 真外观平色、目标标记、FOV 缩放、统计仿射、长窗、prime-release(切回即反弹)、通道切分(单路不够,需三路一致)。
+- 团队处置: c1d-harvester 交付收割包; d1-corrector 任务被更优实验取代; stage-extender 反复 errored(其产物已由主线实验替代); 队已关闭。
+- 综合 verdict: `artifacts/e5/r7_consolidated_verdict.json`。下一步路线 A-D 见该文件与报告。

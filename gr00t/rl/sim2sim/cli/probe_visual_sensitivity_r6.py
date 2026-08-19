@@ -151,6 +151,28 @@ def run_mode(
         replay_len = int(replay["vision_obs"].shape[0])
         cached_rgb = {}
         frame_source = f"ISAAC_VISION_REPLAY_NPZ_{replay_len}_STEPS"
+    elif mode in ("replay-d435-only", "replay-head-only"):
+        if isaac_frame_dir is None:
+            raise ValueError("split replay mode requires --isaac-frame-dir pointing at a vision npz")
+        replay = _load_isaac_replay(isaac_frame_dir)
+        replay_len = int(replay["vision_obs"].shape[0])
+        cached_rgb = {}
+        for name in CAMERA_NAMES:
+            renderers[name].update_scene(data, camera=f"{name}_policy", scene_option=render_option)
+            cached_rgb[name] = renderers[name].render().copy()
+        frame_source = f"SPLIT_REPLAY_{mode}_{replay_len}_STEPS"
+    elif mode == "live-matched":
+        cached_rgb = {}
+        for name in CAMERA_NAMES:
+            renderers[name].update_scene(data, camera=f"{name}_policy", scene_option=render_option)
+            cached_rgb[name] = renderers[name].render().copy()
+        # per-channel affine: measured MuJoCo-live -> Isaac-rollout statistics (r7)
+        match_affine = {
+            "left": ([1.055, 0.892, 0.847], [0.262, 0.411, 0.471]),
+            "right": ([1.055, 0.892, 0.847], [0.262, 0.411, 0.471]),
+            "head": ([1.20, 1.15, 1.03], [-0.085, 0.015, 0.138]),
+        }
+        frame_source = "LIVE_MUJOCO_WITH_ISAAC_STATISTICS_AFFINE"
     else:
         cached_rgb = {}
         for name in CAMERA_NAMES:
@@ -227,6 +249,39 @@ def run_mode(
             context_tensor = torch.from_numpy(
                 replay["context_vision_obs"][ridx].copy()
             ).unsqueeze(0)
+        elif mode == "replay-d435-only":
+            ridx = min(policy_step, replay_len - 1)
+            vision_tensor = torch.from_numpy(replay["vision_obs"][ridx].copy()).unsqueeze(0)
+            context_tensor = normalize_rgb_nhwc(
+                torch.from_numpy(cached_rgb["head"].copy()).unsqueeze(0),
+                image_mean=image_mean,
+                image_std=image_std,
+            )
+        elif mode == "replay-head-only":
+            ridx = min(policy_step, replay_len - 1)
+            vision_tensor = compose_dual_rgb(
+                torch.from_numpy(cached_rgb["left"].copy()).unsqueeze(0),
+                torch.from_numpy(cached_rgb["right"].copy()).unsqueeze(0),
+                image_mean=image_mean,
+                image_std=image_std,
+            )
+            context_tensor = torch.from_numpy(
+                replay["context_vision_obs"][ridx].copy()
+            ).unsqueeze(0)
+        elif mode == "live-matched":
+            def _match(name: str) -> torch.Tensor:
+                gain, offset = match_affine[name]
+                img = cached_rgb[name].astype(np.float32) / 255.0
+                img = img * np.asarray(gain, dtype=np.float32) + np.asarray(offset, dtype=np.float32)
+                return torch.from_numpy((np.clip(img, 0.0, 1.0) * 255.0).astype(np.uint8).copy()).unsqueeze(0)
+
+            vision_tensor = compose_dual_rgb(
+                _match("left"), _match("right"),
+                image_mean=image_mean, image_std=image_std,
+            )
+            context_tensor = normalize_rgb_nhwc(
+                _match("head"), image_mean=image_mean, image_std=image_std,
+            )
         else:
             vision_tensor = compose_dual_rgb(
                 torch.from_numpy(cached_rgb["left"].copy()).unsqueeze(0),
@@ -282,7 +337,7 @@ def run_mode(
             )
             mujoco.mj_step(model, data)
             gait.advance(warped.base.physical[:, :3])
-            if mode == "live":
+            if mode in ("live", "replay-d435-only", "replay-head-only", "live-matched"):
                 for name in CAMERA_NAMES:
                     if float(data.time) + 1.0e-12 >= next_capture[name]:
                         renderers[name].update_scene(

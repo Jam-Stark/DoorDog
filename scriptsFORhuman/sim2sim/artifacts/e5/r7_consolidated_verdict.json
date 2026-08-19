@@ -1,0 +1,38 @@
+{
+  "schema": "doordog.sim2sim.r7_consolidated_verdict.v1",
+  "timestamp_hkt": "2026-08-20 04:30 HKT",
+  "question": "Can the READY GRPO Student autonomously complete the door task (reach stage5) in MuJoCo?",
+  "reference_reestablished": {
+    "isaac_training_protocol_reproduction": "success_rate 0.96875 (31/32), episode length ~615-621 steps, three independent runs identical (grpo_repro, grpo_repro_dump3, grpo_repro_vis on frozen commit a1972552 scratch clone, GPU0)",
+    "successful_episode_profile": "stage chain 0->1@step44 ->2@89 ->3@168 ->4@274 ->5@436 (~9 s full chain); command norm decays smoothly, genuine base-still min 0.017-0.026; 40/63 episodes have >=1 genuine base-still step",
+    "broken_reference_retracted": "prior eval_agent_trl+base_eval harness fed the policy frozen vision (policy-view videos bit-identical) under a 250-step stage_overtime contract; its 0/150-goal and the C3 cross-backend-consistency conclusion are INVALID and retracted"
+  },
+  "unlock_proof": {
+    "experiment": "MuJoCo physics + step-indexed replay of the Isaac rollout vision sequence (vision_ep00.npz)",
+    "result": "policy produces genuine base-still commands in MuJoCo physics: min norm 0.0711, 2 steps <= 0.1, no other changes",
+    "receipt": "scriptsFORhuman/sim2sim/artifacts/e5/r7_appearance_push/vision_replay/d1_receipt.json"
+  },
+  "blocked_paths_live_vision": {
+    "production_appearance": "min norm 0.49 floor, 0 base-still (all campaigns/probes)",
+    "appearance_sweep_27_plus_8": "monotone brightness gradient 0.45->0.21, no stop",
+    "isaac_true_look_flat_colors": "0.18 floor, no stop",
+    "target_markers_unmasked": "no stop (r7_fishing_v2 32 episodes, min 0.27)",
+    "fov_scale_sweep": "0.7/0.55/0.45 -> 0.26/0.39/0.38, no stop",
+    "statistics_affine_match": "0.234 floor, no stop",
+    "long_horizon_40s": "no change",
+    "prime_then_release": "open-loop Isaac commands stop the robot; the instant vision switches back to live MuJoCo frames the policy re-accelerates above 0.7",
+    "channel_split": "D435-only replay 0.488 no stop; head-only replay 0.507 no stop; only the full three-channel Isaac sequence unlocks"
+  },
+  "dynamics_fidelity": {
+    "locomotion_tracking_ratio": "MuJoCo 0.692 vs Isaac ~0.70 (constant 0.5 m/s lateral command)",
+    "open_loop_trajectory_drift": "2.2 cm at step 44 (stop point), 8.8 cm at step 168 (unlatch) under identical recorded commands",
+    "verdict": "MuJoCo physics + action warp + low-level stack faithfully reproduce the Isaac approach; physics is NOT the blocker"
+  },
+  "conclusion": "The stage5-in-MuJoCo blocker is precisely the visual domain gap: the policy's arrival/stop behavior fires only on the Isaac appearance+dynamics visual stream (all three policy cameras, temporally coherent). MuJoCo's renders, even after appearance/marker/FOV/statistics corrections, do not cross the policy's recognition threshold. All nonvisual contracts (obs surface, action warp, locomotion, camera timing, age normalization) are verified closed.",
+  "paths_forward": [
+    "A. render-fidelity project: true texture mapping (wood MDL look), exact material/lighting/camera-intrinsics match, validated frame-by-frame against rollout frames",
+    "B. train-side robustness: domain randomization over MuJoCo-style renders or fine-tune with MuJoCo frames in the loop (training-side decision)",
+    "C. learned visual adapter: map MuJoCo frames into the policy's Isaac input distribution (a small image-to-image model) - classic sim2sim adapter",
+    "D. formal paired t=0 frames remain the extrinsics/FOV adjudicator; the co-tenant is building run_a2_paired_isaac_trace.py on the distillation branch (do not duplicate)"
+  ]
+}

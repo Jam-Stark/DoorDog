@@ -78,8 +78,74 @@ def build_scene(scene_dir: Path, manifest: Path, robot_xml: Path, native_contrac
     return scene_xml
 
 
+def inject_target_markers(scene_xml: Path, out_xml: Path) -> Path:
+    """r7: unmask grasp/pregrasp target sites and add blue staging-band markers.
+
+    Production truth (frozen distillation clone door_open_a2_base.py:13933-13985):
+    green sphere at grasp target, red at pregrasp (grasp frame -0.10x), blue at
+    stage0 band boundaries (grasp frame -0.5x and -0.8x), radius 0.02, visual-only.
+    The r4 policy scene masks every site via group 5; this overlay re-shows the
+    two target sites (group 4 stays visible under sitegroup[5]=0) and adds the
+    two blue band markers on the worldbody at world-frame offsets from the
+    grasp site (valid while the door is closed, which covers stage0->1).
+    """
+    import xml.etree.ElementTree as ET
+
+    model = mujoco.MjModel.from_xml_path(str(scene_xml))
+    data = mujoco.MjData(model)
+    home_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "scene_home")
+    mujoco.mj_resetDataKeyframe(model, data, home_id)
+    mujoco.mj_forward(model, data)
+    grasp_sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "door_grasp_target")
+    grasp_world = data.site_xpos[grasp_sid].copy()
+
+    root = ET.parse(scene_xml).getroot()
+    for site in root.findall(".//site"):
+        name = site.attrib.get("name", "")
+        if name == "door_grasp_target":
+            site.set("group", "4")
+            site.set("size", "0.02")
+            site.set("rgba", "0 1 0 1")
+        elif name == "door_pregrasp_target":
+            site.set("group", "4")
+            site.set("size", "0.02")
+            site.set("rgba", "1 0 0 1")
+    worldbody = root.find(".//worldbody")
+    for band_x, tag in ((0.5, "near"), (0.8, "far")):
+        marker = ET.SubElement(worldbody, "site")
+        marker.set("name", f"stage0_band_{tag}_r7")
+        marker.set("pos", f"{grasp_world[0] - band_x:.6f} {grasp_world[1]:.6f} {grasp_world[2]:.6f}")
+        marker.set("size", "0.02")
+        marker.set("rgba", "0 0 1 1")
+    ET.indent(root, space="  ")
+    out_xml.parent.mkdir(parents=True, exist_ok=True)
+    out_xml.write_text(ET.tostring(root, encoding="unicode") + "\n", encoding="utf-8")
+    mujoco.MjModel.from_xml_path(str(out_xml))
+    return out_xml
+
+
 def _apply_appearance(model: mujoco.MjModel, appearance: str) -> None:
     if appearance == "production":
+        return
+    if appearance == "isaaclike_textured":
+        panel_rgb = (0.90, 0.88, 0.84)
+        frame_rgb = (0.28, 0.30, 0.26)
+        for geom_id in range(model.ngeom):
+            name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) or ""
+            rgba = model.geom_rgba[geom_id].copy()
+            if name.startswith("door_frame_"):
+                rgba[:3] = frame_rgb
+                model.geom_rgba[geom_id] = rgba
+            elif name.startswith(("door_panel_collision", "door_inset_", "door_panel_band_", "handle_")):
+                rgba[:3] = panel_rgb
+                model.geom_rgba[geom_id] = rgba
+        # procedural wood-grain texture on floor material
+        for mat_id in range(model.nmat):
+            mat_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MATERIAL, mat_id) or ""
+            if mat_name == "sim2sim_floor_material":
+                rgba = model.mat_rgba[mat_id].copy()
+                rgba[:3] = np.clip(rgba[:3] * 1.8, 0.0, 1.0)
+                model.mat_rgba[mat_id] = rgba
         return
     if appearance == "isaaclike":
         panel_rgb = (0.90, 0.88, 0.84)
@@ -121,11 +187,16 @@ def run_episode(
     full_horizon: int,
     trace_path: Path | None,
     appearance: str = "production",
+    fov_scale: float = 1.0,
 ) -> dict:
     np.random.seed(seed)
     torch.manual_seed(seed)
     model = mujoco.MjModel.from_xml_path(str(scene_xml))
     _apply_appearance(model, appearance)
+    if fov_scale != 1.0:
+        for cam_name in ("left_policy", "right_policy", "head_policy"):
+            cam_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_CAMERA, cam_name)
+            model.cam_fovy[cam_id] = model.cam_fovy[cam_id] * fov_scale
     data = mujoco.MjData(model)
     home_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "scene_home")
     mujoco.mj_resetDataKeyframe(model, data, home_id)
@@ -321,6 +392,8 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--case", default="p00_baseline")
     parser.add_argument("--appearance", default="production")
+    parser.add_argument("--markers", default="off")
+    parser.add_argument("--fov-scale", type=float, default=1.0)
     parser.add_argument("--worker-index", type=int, required=True)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--episodes", type=int, default=16)
@@ -334,6 +407,8 @@ def main() -> None:
     scene_xml = build_scene(
         output / f"scene_worker{args.worker_index}", args.manifest, args.robot, native_contract, args.case
     )
+    if args.markers == "on":
+        scene_xml = inject_target_markers(scene_xml, output / f"scene_worker{args.worker_index}" / "scene_markers_r7.xml")
     actor = _load_actor(args.bundle_dir, args.student_source_root)
     a2_policy = torch.jit.load(str(args.a2_base_policy.resolve(strict=True)), map_location="cpu").eval()
     bundle_manifest = json.loads((args.bundle_dir / "manifest.json").read_text(encoding="utf-8"))
@@ -351,7 +426,7 @@ def main() -> None:
             dx=dx, dy=dy, yaw_deg=yaw, seed=seed,
             short_horizon=args.short_horizon, full_horizon=args.full_horizon,
             trace_path=(output / f"trace_worker{args.worker_index}_ep{ep:03d}.jsonl") if True else None,
-            appearance=args.appearance,
+            appearance=args.appearance, fov_scale=args.fov_scale,
         )
         with results_path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(result, sort_keys=True) + "\n")

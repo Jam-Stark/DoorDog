@@ -49,3 +49,10 @@
 - D1 收口(SINGLE_VISUAL_CHANNEL_NOT_SUFFICIENT; Isaac帧 -52% min norm, live≡frozen) + C1c 24 个 Isaac 参考 mp4。
 - CAMPAIGN_R6_REPORT.md 落盘(首屏视频/receipt 路径+三行结论+owner 待决清单);ledger merge commit 更正为 2ab9f7f;memory r6 条目落盘。
 - 最终: 全部 commit + merge A2_Piper + behind=0 证明。E 支线 NOT_STARTED(铁序让位)。
+
+## 2026-08-20 01:2x HKT — 重大更正(用户挑战成立)
+
+- **训练协议复现: success_rate 0.96875 (31/32), episode 长度 615 步** —— Student 在 IsaacLab 训练协议下 ~92-97% 完整开门,与 GRPO metrics.jsonl (0.90-0.98/batch) 一致。
+- **我此前的 Isaac eval 参照系双重错误**: (1) eval_agent_trl + base_eval 默认跑在 250 步 stage_overtime 契约(训练为 ~615 步);(2) policy 视觉输入在我的 eval 路径下逐字节冻结(12 个 policy-view 视频全同)——0/150 是 harness 伪影,不是策略行为。
+- **作废声明**: C3 `COMMAND_PROFILE_CONSISTENT_CAP_PINNED_IN_BOTH_BACKENDS` 撤回;Isaac eval 视频(白场)typed INVALID;D1"Isaac 帧"实为近白噪声帧。
+- **真实的 MuJoCo gap 重新成立且很大**: Isaac 92%+ vs MuJoCo 0/8——r7 目标( MuJoCo 自主到 stage5)是真问题,r6 归因方向(视觉外观效应)保留但基准重置。

@@ -1,17 +1,19 @@
 ---
 name: sim2sim-r6-attribution
 scope: r6 behavior deliverables, Isaac self-eval, and cap-pinned attribution closure
-status: r6_complete_e5_formal_pairing_still_open
-last_updated: 2026-08-19 03:05 HKT
+status: superseded_by_r7_reference_retraction
+last_updated: 2026-08-20 16:31 HKT
 read_when:
-  - interpreting the cap-pinned locomotion attribution or planning the formal Isaac paired producer
+  - interpreting the cap-pinned attribution or planning the formal Isaac paired producer
   - running any Isaac self-eval of the READY Student bundle
   - planning appearance/DR work based on the visual-magnitude effect
 ---
 
 # Sim2sim r6 attribution round
 
-The READY GRPO Student's "cap-pinned run without stopping" is a policy property, not a MuJoCo artifact: in its own Isaac environment (frozen commit a1972552, scratch clone with a declared env-gated dump patch) the clipped base-command norm is clip-saturated on 99.6% of steps with 0/1000 genuine base-still steps (4 exactly-zero rows at episode boundaries are post-reset zeroed buffers and were retracted). MuJoCo r5 shows the same profile (min 0.38-0.50, 0 base-still in 9000+ steps). Cross-backend verdict: `COMMAND_PROFILE_CONSISTENT_CAP_PINNED_IN_BOTH_BACKENDS`. Isaac aggregate: 150 episodes all `stage_overtime` at the 5 s stage-0 window, 2/150 reached stage1; goal_reached 0 — the 91.2%/512 training-time figure is a different protocol and must not be conflated.
+> 2026-08-20 RETRACTION: the r6 Isaac eval harness (eval_agent_trl + base_eval) fed the policy frozen vision under a 250-step stage_overtime contract. The r6 "cross-backend verdict" (cap-pinned consistent in both backends) and all numbers derived from that harness are INVALID. The working reference is the training-protocol reproduction (success 0.96875, 31/32). See sim2sim-r7-stage5-push for the corrected picture and the owner-adjudicated root cause (no visual DR in the C-B2H distillation).
+
+The READY GRPO Student's "cap-pinned run without stopping" ~~is a policy property, not a MuJoCo artifact~~ [RETRACTED 2026-08-20: the Isaac-side numbers came from a broken eval harness with frozen vision and a wrong 250-step episode contract; the training-protocol reproduction gives 0.96875 success. See sim2sim-r7-stage5-push.]: in its own Isaac environment (frozen commit a1972552, scratch clone with a declared env-gated dump patch) the clipped base-command norm is clip-saturated on 99.6% of steps with 0/1000 genuine base-still steps (4 exactly-zero rows at episode boundaries are post-reset zeroed buffers and were retracted). MuJoCo r5 shows the same profile (min 0.38-0.50, 0 base-still in 9000+ steps). Cross-backend verdict: `COMMAND_PROFILE_CONSISTENT_CAP_PINNED_IN_BOTH_BACKENDS`. Isaac aggregate: 150 episodes all `stage_overtime` at the 5 s stage-0 window, 2/150 reached stage1; goal_reached 0 — the 91.2%/512 training-time figure is a different protocol and must not be conflated.
 
 Visual channel has a real systematic effect on command magnitude but is not sufficient to flip convergence: substituting real Isaac terminal frames (crude rotated triplet, typed EXPLORATORY_NON_PAIRED) cuts min command norm 0.495→0.235 with still 0 base-still steps; a flat-color brightness ladder is monotone (L0.60→0.453 ... L0.96→0.209, 400 steps, no stop). Nonvisual 81D obs surface is anchor-verified closed (`NONVISUAL_OBS_SURFACE_CLOSED`, t=0 analytic anchors exact, coordinate conventions anchored at distillation legged_robot_base.py:171/199). Joint kinematics sane (arm stage-0 |qvel| max 1.01 rad/s, deviation ≤0.047 rad; qacc ≤1947; measured/commanded speed ≈0.27).
 

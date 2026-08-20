@@ -76,3 +76,9 @@
 - **活视觉解锁尝试全图谱(均未过阈)**: 外观 27+8 变体、Isaac 真外观平色、目标标记、FOV 缩放、统计仿射、长窗、prime-release(切回即反弹)、通道切分(单路不够,需三路一致)。
 - 团队处置: c1d-harvester 交付收割包; d1-corrector 任务被更优实验取代; stage-extender 反复 errored(其产物已由主线实验替代); 队已关闭。
 - 综合 verdict: `artifacts/e5/r7_consolidated_verdict.json`。下一步路线 A-D 见该文件与报告。
+
+## 2026-08-20 16:31 HKT — 任务终止(owner 裁决)
+
+- **Owner 裁决根因**: C-B2H Student 蒸馏时无视觉 randomization(exp config `image_augmentation.enabled: False` + 冻结代码硬校验)——视觉过拟合 Isaac 外观,MuJoCo 视觉差不可由场景侧修补。任务"该 checkpoint 在 MuJoCo 自主到 stage5"终止,定性为训练配方问题,非 MuJoCo 管线问题。
+- memory: 新建 `sim2sim-r7-stage5-push/`(description/TODO/DONE);r6 条目加撤回横幅并标注失效句。
+- 下一步(待 owner): 带视觉 randomization 重蒸馏 → 重跑 r5 式配对 campaign;co-tenant 的配对 trace 生产器落地后跑正式 E5。

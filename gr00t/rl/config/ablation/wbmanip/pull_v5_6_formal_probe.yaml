@@ -1,0 +1,71 @@
+# @package _global_
+# Pull-v5.6 formal anchor/door positioning probe.
+#
+# v4-B remains the primary pull actor.  The specialist is a secondary,
+# terminal-positioning-only leg source and is never composed into P3/P4/DV.
+
+defaults:
+  - /ablation/wbmanip/pull_v4_B_frame_approach
+  - _self_
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 16
+headless: true
+use_wandb: false
+experiment_name: pull_v5_6_formal_probe
+project_name: a2_piper_pull_v5_6_formal_bridge
+
+algo:
+  config:
+    use_a2_base: true
+    load_optimizer: false
+    act_inference: true
+    action_layout: carrier12_legs12
+    specialist_terminal_only: true
+    scientific_denominator_included: false
+    denominator_scope: none
+  trl:
+    num_total_batches: 1
+
+env:
+  _target_: gr00t.rl.envs.door.door_open_a2_pull_v5_6_specialist.DoorOpenA2PullV56Specialist
+  _recursive_: false
+  config:
+    formal_probe_phase: anchor
+    formal_sequence: S1
+    formal_closer_bucket: 2.5-5
+    formal_positioning_enabled: true
+    formal_terminal_hold_steps: 100
+    formal_waypoint_tolerance_m: 0.05
+    formal_yaw_tolerance_rad: 0.15
+    formal_g3_attempt_cap: 3
+    formal_scientific_denominator_included: false
+    formal_denominator_scope: none
+    formal_g2_lattice: false
+    formal_primary_checkpoint: logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt
+    formal_specialist_checkpoint: logs_rl/a2_piper_pull_v5_6_hold_specialist/model_step_000750.pt
+    original_homie_checkpoint: ./gr00t/rl/data/policies/A2_Base/policy.pt
+    a2_v20_R1_plan_id: a2_piper_pull_v5_6_formal_bridge
+    a2_pull_door_open_io: in
+    a2_pull_door_open_lr: right
+    a2_pull_target_orientation_wxyz: [-0.5, -0.5, 0.5, 0.5]
+    a2_pull_robot_initial_side_x_sign: 1.0
+    a2_pull_robot_initial_yaw_rad: 3.141592653589793
+    a2_pull_active_handle_face_x_sign: 1.0
+    a2_pull_travel_dir_x: -1.0
+    a2_pull_threshold_mode: report_only
+    a2_pull_effort_provenance: ESTIMATE_ONLY
+    a2_pull_add_walls: false
+    a2_pull_hook_profile: STOCHASTIC_BASELINE
+    a2_pull_friction_profile: RESOLVED_V20_G4
+    a2_pull_finger_profile: V20_G4_45N_KP1300_KD32
+    a2_pull_v5_6_formal_launch: true
+    a2_pull_v5_6_scientific_denominator_included: false
+    a2_pull_v5_6_denominator_scope: none
+
+callbacks:
+  model_save:
+    save_frequency: 250

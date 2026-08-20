@@ -15,14 +15,16 @@ PLAN_ID = "a2_piper_pull_v5_6_terminal_hold_specialist_finetune"
 PLANNER_SCHEMA = "a2_piper_pull_v5_6_planner_architecture_decision_v1"
 WARM_START_SCHEMA = "a2_piper_pull_v5_6_specialist_warm_start_v1"
 STEP0_SCHEMA = "a2_piper_pull_v5_6_specialist_step0_gate_v1"
+MICRO_SCHEMA = "a2_piper_pull_v5_6_specialist_t0_5_micro_v1"
 TRAINING_SCHEMA = "a2_piper_pull_v5_6_specialist_training_gate_v1"
 REHEARSAL_SCHEMA = "a2_piper_pull_v5_6_specialist_rehearsal_v1"
 ANCHOR_SCHEMA = "a2_piper_pull_v5_6_specialist_anchor_v1"
-TRACE_SCHEMA = "a2_piper_pull_v5_6_specialist_trace_v1"
+TRACE_SCHEMA = "a2_piper_pull_v5_6_hold_specialist_trace_v1"
 
 DEFAULT_PLANNER = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_planner_architecture_decision.json"
 DEFAULT_WARM_START = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_specialist_t0/WARM_START.json"
 DEFAULT_STEP0 = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_specialist_gate_step0/STEP0_GATE.json"
+DEFAULT_MICRO = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_specialist_t0_5_micro/MICRO_SMOKE.json"
 DEFAULT_TRAINING = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_specialist_gate/TRAINING_GATE.json"
 DEFAULT_REHEARSAL = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_specialist_rehearsal/REHEARSAL.json"
 DEFAULT_ANCHOR = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_specialist_anchor/ANCHOR.json"
@@ -215,6 +217,103 @@ def validate_warm_start(path: Path = DEFAULT_WARM_START, *, planner_path: Path =
     return dict(receipt)
 
 
+def validate_micro_smoke(
+    path: Path = DEFAULT_MICRO,
+    *,
+    planner_path: Path = DEFAULT_PLANNER,
+    warm_start_path: Path = DEFAULT_WARM_START,
+) -> dict[str, Any]:
+    """Validate the T0.5 boundary receipt without admitting it to T1.
+
+    This is deliberately separate from ``validate_step0``: the micro run uses
+    the same evaluator phase and immutable warm asset, but its eight rows are
+    only an execution-chain diagnostic and can never satisfy the exact-80
+    step-0 prerequisite.
+    """
+    validate_warm_start(warm_start_path, planner_path=planner_path)
+    receipt = _read(path, "v5.6 T0.5 micro-smoke receipt")
+    if receipt.get("schema") != MICRO_SCHEMA or receipt.get("plan_id") != PLAN_ID:
+        raise GateRejected("micro-smoke schema/plan_id mismatch")
+    if receipt.get("status") != "PASS":
+        raise GateRejected(f"micro-smoke status is not PASS: {receipt.get('status')!r}")
+    if receipt.get("fixture") != "step0_micro" or receipt.get("phase") != "step0":
+        raise GateRejected("micro-smoke must bind to the step0 evaluator phase")
+    if receipt.get("mode") != "original_jit_gain1_carrier":
+        raise GateRejected("micro-smoke must use the original JIT gain-1 carrier mode")
+    if receipt.get("scientific_denominator_included") is not False or receipt.get("denominator_scope") != "none":
+        raise GateRejected("micro-smoke must be excluded from every scientific denominator")
+    if receipt.get("hold_specialist_active") is not False or receipt.get("specialist_active") is not False:
+        raise GateRejected("micro-smoke must disable the specialist")
+    if receipt.get("training_gate_registered_full") is not False or receipt.get("full_source") is not False:
+        raise GateRejected("micro-smoke must not claim the full training-gate distribution")
+    if receipt.get("t1_prerequisite") is not False or receipt.get("training_launch_eligible") is not False:
+        raise GateRejected("micro-smoke must explicitly remain outside the T1 prerequisite chain")
+    if receipt.get("num_envs") != 8:
+        raise GateRejected("micro-smoke must use exactly eight environments")
+    lifecycle = receipt.get("terminal_receipt_lifecycle")
+    if not isinstance(lifecycle, Mapping):
+        raise GateRejected("micro-smoke is missing terminal receipt lifecycle evidence")
+    if lifecycle.get("first_episode_only") is not True:
+        raise GateRejected("micro-smoke must be first-episode-only")
+    if lifecycle.get("returned_dones_binding") != "env.step returned dones":
+        raise GateRejected("micro-smoke lifecycle must bind terminal rows to returned dones")
+    if lifecycle.get("terminal_after_step") is not True or lifecycle.get("all_envs_completed") is not True:
+        raise GateRejected("micro-smoke lifecycle is incomplete")
+    rows = receipt.get("rows")
+    if not isinstance(rows, list) or len(rows) != 8:
+        raise GateRejected("micro-smoke must contain exactly eight first-episode rows")
+    expected_ids = set(range(8))
+    seen_ids: set[int] = set()
+    original_homie = receipt.get("original_homie_checkpoint")
+    if not isinstance(original_homie, str) or not original_homie:
+        raise GateRejected("micro-smoke must record the immutable original-JIT provenance")
+    for index, row in enumerate(rows):
+        if not isinstance(row, Mapping):
+            raise GateRejected(f"micro-smoke row {index} must be an object")
+        _diagnostic(row, f"micro-smoke row {index}")
+        env_id = row.get("env_id")
+        if isinstance(env_id, bool) or not isinstance(env_id, int) or env_id not in expected_ids or env_id in seen_ids:
+            raise GateRejected(f"micro-smoke row {index} has duplicate/invalid env_id")
+        seen_ids.add(env_id)
+        if _row_phase(row) != "step0" or row.get("episode_index") != 0:
+            raise GateRejected(f"micro-smoke row {index} is not a first step0 episode")
+        if row.get("hold_specialist_active") is not False:
+            raise GateRejected(f"micro-smoke row {index} must disable the specialist")
+        if row.get("specialist_checkpoint") not in (None, "") or row.get("specialist_checkpoint_step") not in (None, ""):
+            raise GateRejected(f"micro-smoke row {index} must not claim specialist provenance")
+        if row.get("original_homie_checkpoint") != original_homie:
+            raise GateRejected(f"micro-smoke row {index} disagrees on original-JIT provenance")
+        if row.get("terminal_after_step") is not True or row.get("returned_dones_binding") != "env.step returned dones":
+            raise GateRejected(f"micro-smoke row {index} lacks returned-dones terminal lifecycle")
+        if not isinstance(row.get("done"), bool) or not isinstance(row.get("terminal_current_state"), bool):
+            raise GateRejected(f"micro-smoke row {index} done/current fields must be bool")
+        hold_steps = row.get("terminal_hold_steps")
+        if isinstance(hold_steps, bool) or not isinstance(hold_steps, int) or not 0 <= hold_steps <= TERMINAL_HOLD_STEPS:
+            raise GateRejected(f"micro-smoke row {index}.terminal_hold_steps must be in [0,100]")
+        _finite(row.get("xy_error_m"), f"micro-smoke row {index}.xy_error_m")
+        _finite(row.get("yaw_error_rad"), f"micro-smoke row {index}.yaw_error_rad")
+    if seen_ids != expected_ids:
+        raise GateRejected(f"micro-smoke env coverage is incomplete: {sorted(seen_ids)}")
+    if lifecycle.get("terminal_rows") != len(rows) or lifecycle.get("completed_env_ids") != list(range(8)):
+        raise GateRejected("micro-smoke lifecycle counts do not match rows")
+    raw_path = receipt.get("raw_step0_receipt_path")
+    if not isinstance(raw_path, str) or not raw_path:
+        raise GateRejected("micro-smoke must bind its raw evaluator receipt")
+    raw = _read(Path(raw_path), "raw micro-smoke evaluator receipt")
+    if raw.get("schema") != STEP0_SCHEMA or raw.get("status") != "PASS":
+        raise GateRejected("micro-smoke raw receipt is not a successful step0 evaluator receipt")
+    if raw.get("rows") != rows:
+        raise GateRejected("micro-smoke rows do not match the raw evaluator receipt")
+    return {
+        "status": "PASS",
+        "path": str(path.expanduser().resolve()),
+        "rows": len(rows),
+        "scientific_denominator_included": False,
+        "t1_prerequisite": False,
+        "original_homie_checkpoint": original_homie,
+    }
+
+
 def validate_step0(path: Path = DEFAULT_STEP0, *, planner_path: Path = DEFAULT_PLANNER, warm_start_path: Path = DEFAULT_WARM_START) -> dict[str, Any]:
     validate_warm_start(warm_start_path, planner_path=planner_path)
     receipt = _read(path, "v5.6 step0 gate receipt")
@@ -289,7 +388,19 @@ def training_gate_pass(counts: Mapping[str, int]) -> bool:
     return all(counts[family] >= 15 for family in PRELUDE_FAMILIES) and sum(counts.values()) >= 77
 
 
-def _validate_training_matrix_entry(entry: Mapping[str, Any], label: str) -> dict[str, Any]:
+def validate_checkpoint_gate_entry(entry: Mapping[str, Any], label: str = "training checkpoint gate entry") -> dict[str, Any]:
+    """Validate one raw 80-env checkpoint receipt and derive its gate result.
+
+    The evaluator's raw ``status`` records whether every terminal row completed
+    before the horizon.  The registered scientific gate is the predeclared
+    per-family/overall threshold, so a raw FAIL remains admissible evidence and
+    is adjudicated from the recorded family counts below.  A raw PASS may not
+    claim success below that threshold.
+    """
+    if not isinstance(entry, Mapping):
+        raise GateRejected(f"{label} must be an object")
+    if entry.get("schema") != TRAINING_SCHEMA or entry.get("plan_id") != PLAN_ID:
+        raise GateRejected(f"{label} schema/plan_id mismatch")
     entry_status = entry.get("status")
     if entry_status not in {"PASS", "FAIL"}:
         raise GateRejected(f"{label}.status must be PASS or FAIL")
@@ -333,8 +444,13 @@ def _validate_training_matrix_entry(entry: Mapping[str, Any], label: str) -> dic
     if entry.get("family_row_counts") != row_counts or entry.get("family_done_counts") != done_counts:
         raise GateRejected(f"{label} family counts do not match rows")
     _require_invariant_receipt(entry, rows, phase="training_gate")
+    threshold_status = "PASS" if training_gate_pass(done_counts) else "FAIL"
+    if entry_status == "PASS" and threshold_status != "PASS":
+        raise GateRejected(f"{label}.status PASS is inconsistent with the 15/16 and 77/80 threshold")
     return {
-        "status": entry_status,
+        "status": threshold_status,
+        "raw_status": entry_status,
+        "threshold_status": threshold_status,
         "checkpoint": checkpoint,
         "checkpoint_step": step,
         "family_row_counts": row_counts,
@@ -342,6 +458,11 @@ def _validate_training_matrix_entry(entry: Mapping[str, Any], label: str) -> dic
         "overall_done": sum(done_counts.values()),
         "rows": rows,
     }
+
+
+def _validate_training_matrix_entry(entry: Mapping[str, Any], label: str) -> dict[str, Any]:
+    """Compatibility alias for the aggregate validator's internal call sites."""
+    return validate_checkpoint_gate_entry(entry, label)
 
 
 def validate_training_gate(path: Path = DEFAULT_TRAINING, *, planner_path: Path = DEFAULT_PLANNER, warm_start_path: Path = DEFAULT_WARM_START) -> dict[str, Any]:
@@ -395,8 +516,9 @@ def validate_rehearsal(path: Path = DEFAULT_REHEARSAL, *, planner_path: Path = D
     receipt = _read(path, "v5.6 rehearsal receipt")
     if receipt.get("schema") != REHEARSAL_SCHEMA or receipt.get("plan_id") != PLAN_ID:
         raise GateRejected("rehearsal schema/plan_id mismatch")
-    if receipt.get("status") != "PASS":
-        raise GateRejected(f"rehearsal status is not PASS: {receipt.get('status')!r}")
+    status = receipt.get("status")
+    if status not in {"PASS", "FAIL"}:
+        raise GateRejected(f"rehearsal status must be PASS or FAIL: {status!r}")
     cells = receipt.get("cells")
     if not isinstance(cells, list) or len(cells) != 2:
         raise GateRejected("rehearsal must contain exactly two cells")
@@ -411,13 +533,19 @@ def validate_rehearsal(path: Path = DEFAULT_REHEARSAL, *, planner_path: Path = D
         rows = cell.get("rows")
         if not isinstance(rows, list) or len(rows) != 8:
             raise GateRejected("each rehearsal cell requires exactly eight rows")
+        cell_status = cell.get("status")
+        if cell_status not in {"PASS", "FAIL"}:
+            raise GateRejected(f"rehearsal cell {cell_index} status must be PASS or FAIL")
         for row_index, row in enumerate(rows):
             _specialist_row(row, f"rehearsal cell {cell_index} row {row_index}", expected_episode_prefix="rehearsal:")
     if seen_targets != {(-2.5, 0.3), (1.0, 0.3)}:
         raise GateRejected("rehearsal cells do not cover both registered targets")
+    expected_status = "PASS" if all(cell.get("status") == "PASS" for cell in cells) else "FAIL"
+    if status != expected_status:
+        raise GateRejected("rehearsal aggregate status disagrees with the two cell statuses")
     flattened_rows = [row for cell in cells for row in cell["rows"]]
     _require_invariant_receipt(receipt, flattened_rows, phase="rehearsal")
-    return {"status": "PASS", "path": str(path.expanduser().resolve()), "cells": 2}
+    return {"status": status, "path": str(path.expanduser().resolve()), "cells": 2}
 
 
 def validate_anchor(path: Path = DEFAULT_ANCHOR, *, planner_path: Path = DEFAULT_PLANNER, warm_start_path: Path = DEFAULT_WARM_START, training_path: Path = DEFAULT_TRAINING, rehearsal_path: Path = DEFAULT_REHEARSAL) -> dict[str, Any]:
@@ -427,32 +555,79 @@ def validate_anchor(path: Path = DEFAULT_ANCHOR, *, planner_path: Path = DEFAULT
     receipt = _read(path, "v5.6 anchor receipt")
     if receipt.get("schema") != ANCHOR_SCHEMA or receipt.get("plan_id") != PLAN_ID:
         raise GateRejected("anchor schema/plan_id mismatch")
-    if receipt.get("status") != "PASS":
-        raise GateRejected(f"anchor status is not PASS: {receipt.get('status')!r}")
+    status = receipt.get("status")
+    if status not in {"PASS", "FAIL"}:
+        raise GateRejected(f"anchor status must be PASS or FAIL: {status!r}")
     attempts = receipt.get("attempts")
     if not isinstance(attempts, list) or not attempts or len(attempts) > MAX_ANCHOR_ATTEMPTS:
         raise GateRejected("anchor permits one through three attempts")
-    if [item.get("attempt") for item in attempts if isinstance(item, Mapping)] != list(range(len(attempts))):
+    if any(not isinstance(item, Mapping) for item in attempts):
+        raise GateRejected("anchor attempts must be objects")
+    if [item.get("attempt") for item in attempts] != list(range(len(attempts))):
         raise GateRejected("anchor attempt revisions must be contiguous 0..2")
+    invariant_rows: list[Mapping[str, Any]] = []
+    for attempt_index, attempt in enumerate(attempts):
+        attempt_status = attempt.get("status")
+        if attempt_status not in {"PASS", "FAIL"}:
+            raise GateRejected(f"anchor attempt {attempt_index} status must be PASS or FAIL")
+        admitted = attempt.get("admitted_sequences")
+        if not isinstance(admitted, list) or any(sequence not in SEQUENCES for sequence in admitted) or len(set(admitted)) != len(admitted):
+            raise GateRejected(f"anchor attempt {attempt_index} admitted sequence subset is invalid")
+        sequence_results = attempt.get("sequence_results")
+        if not isinstance(sequence_results, list) or len(sequence_results) != len(SEQUENCES):
+            raise GateRejected(f"anchor attempt {attempt_index} must retain all four sequence receipts")
+        seen_sequences: set[str] = set()
+        pass_rows: list[Mapping[str, Any]] = []
+        for sequence_index, sequence_result in enumerate(sequence_results):
+            if not isinstance(sequence_result, Mapping):
+                raise GateRejected(f"anchor attempt {attempt_index} sequence {sequence_index} must be an object")
+            sequence = sequence_result.get("sequence")
+            if sequence not in SEQUENCES or sequence in seen_sequences:
+                raise GateRejected(f"anchor attempt {attempt_index} sequence coverage is invalid")
+            seen_sequences.add(sequence)
+            sequence_status = sequence_result.get("status")
+            if sequence_status not in {"PASS", "FAIL"}:
+                raise GateRejected(f"anchor attempt {attempt_index} sequence {sequence} status must be PASS or FAIL")
+            rows = sequence_result.get("rows")
+            if not isinstance(rows, list) or len(rows) != 16:
+                raise GateRejected(f"anchor attempt {attempt_index} sequence {sequence} requires sixteen rows")
+            for row_index, row in enumerate(rows):
+                if not isinstance(row, Mapping) or row.get("sequence") != sequence:
+                    raise GateRejected(f"anchor attempt {attempt_index} sequence {sequence} row {row_index} provenance mismatch")
+                _specialist_row(row, f"anchor attempt {attempt_index} sequence {sequence} row {row_index}", expected_episode_prefix="anchor:")
+            invariant_rows.extend(rows)
+            if sequence_status == "PASS":
+                if sequence not in admitted:
+                    raise GateRejected(f"anchor attempt {attempt_index} omits admitted sequence {sequence}")
+                pass_rows.extend(rows)
+            elif sequence in admitted:
+                raise GateRejected(f"anchor attempt {attempt_index} admits failed sequence {sequence}")
+        if seen_sequences != set(SEQUENCES):
+            raise GateRejected(f"anchor attempt {attempt_index} does not cover S1-S4")
+        expected_attempt_status = "PASS" if admitted else "FAIL"
+        if attempt_status != expected_attempt_status:
+            raise GateRejected(f"anchor attempt {attempt_index} status disagrees with admitted sequences")
+        rows = attempt.get("rows")
+        if not isinstance(rows, list) or len(rows) != 16 * len(admitted):
+            raise GateRejected(f"anchor attempt {attempt_index} admitted row count is incomplete")
+        if rows != pass_rows:
+            raise GateRejected(f"anchor attempt {attempt_index} rows do not match admitted sequence receipts")
     final = attempts[-1]
-    if not isinstance(final, Mapping) or final.get("status") != "PASS":
-        raise GateRejected("final anchor attempt is not PASS")
+    if status != final.get("status"):
+        raise GateRejected("anchor aggregate status disagrees with the final attempt")
     admitted = final.get("admitted_sequences")
     rows = final.get("rows")
-    if not isinstance(admitted, list) or not admitted or any(sequence not in SEQUENCES for sequence in admitted) or len(set(admitted)) != len(admitted):
-        raise GateRejected("anchor final attempt must declare a non-empty admitted sequence subset")
-    if not isinstance(rows, list) or len(rows) != 16 * len(admitted):
-        raise GateRejected("anchor requires sixteen terminal rows per admitted sequence")
+    if not isinstance(admitted, list) or not isinstance(rows, list):
+        raise GateRejected("anchor final attempt lacks admitted rows")
     counts = {sequence: 0 for sequence in admitted}
     for index, row in enumerate(rows):
         if not isinstance(row, Mapping) or row.get("sequence") not in counts:
             raise GateRejected(f"anchor row {index} has an invalid sequence")
-        _specialist_row(row, f"anchor row {index}", expected_episode_prefix="anchor:")
         counts[row["sequence"]] += 1
     if counts != {sequence: 16 for sequence in admitted}:
         raise GateRejected(f"anchor admitted sequence coverage is incomplete: {counts}")
-    _require_invariant_receipt(receipt, rows, phase="anchor")
-    return {"status": "PASS", "path": str(path.expanduser().resolve()), "attempts": len(attempts), "sequence_counts": counts, "admitted_sequences": list(admitted)}
+    _require_invariant_receipt(receipt, invariant_rows, phase="anchor")
+    return {"status": status, "path": str(path.expanduser().resolve()), "attempts": len(attempts), "sequence_counts": counts, "admitted_sequences": list(admitted)}
 
 
 def validate_invariant12_prime(
@@ -505,12 +680,14 @@ def validate_invariant12_prime(
     return {"status": "PASS", "checked_rows": checked, "invariant": "12-prime"}
 
 
-def require_chain(level: str, *, planner_path: Path = DEFAULT_PLANNER, warm_start_path: Path = DEFAULT_WARM_START, step0_path: Path = DEFAULT_STEP0, training_path: Path = DEFAULT_TRAINING, rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_path: Path = DEFAULT_ANCHOR) -> dict[str, Any]:
-    if level not in {"planner", "warm", "step0", "training", "rehearsal", "anchor"}:
+def require_chain(level: str, *, planner_path: Path = DEFAULT_PLANNER, warm_start_path: Path = DEFAULT_WARM_START, micro_path: Path = DEFAULT_MICRO, step0_path: Path = DEFAULT_STEP0, training_path: Path = DEFAULT_TRAINING, rehearsal_path: Path = DEFAULT_REHEARSAL, anchor_path: Path = DEFAULT_ANCHOR) -> dict[str, Any]:
+    if level not in {"planner", "warm", "micro", "step0", "training", "rehearsal", "anchor"}:
         raise GateRejected(f"unknown chain level: {level!r}")
     result: dict[str, Any] = {"level": level, "planner": validate_planner_decision(planner_path)}
-    if level in {"warm", "step0", "training", "rehearsal", "anchor"}:
+    if level in {"warm", "micro", "step0", "training", "rehearsal", "anchor"}:
         result["warm_start"] = validate_warm_start(warm_start_path, planner_path=planner_path)
+    if level == "micro":
+        result["micro_smoke"] = validate_micro_smoke(micro_path, planner_path=planner_path, warm_start_path=warm_start_path)
     if level == "step0":
         result["step0"] = validate_step0(step0_path, planner_path=planner_path, warm_start_path=warm_start_path)
     if level in {"training", "rehearsal", "anchor"}:
@@ -527,21 +704,24 @@ def require_chain(level: str, *, planner_path: Path = DEFAULT_PLANNER, warm_star
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--level", choices=("planner", "warm", "step0", "training", "rehearsal", "anchor"), required=True)
+    parser.add_argument("--level", choices=("planner", "warm", "micro", "step0", "training", "rehearsal", "anchor"), required=True)
     parser.add_argument("--planner", type=Path, default=DEFAULT_PLANNER)
     parser.add_argument("--warm-start", type=Path, default=DEFAULT_WARM_START)
+    parser.add_argument("--micro", type=Path, default=DEFAULT_MICRO)
     parser.add_argument("--step0", type=Path, default=DEFAULT_STEP0)
     parser.add_argument("--training", type=Path, default=DEFAULT_TRAINING)
     parser.add_argument("--rehearsal", type=Path, default=DEFAULT_REHEARSAL)
     parser.add_argument("--anchor", type=Path, default=DEFAULT_ANCHOR)
     args = parser.parse_args()
     try:
-        result = require_chain(args.level, planner_path=args.planner, warm_start_path=args.warm_start, step0_path=args.step0, training_path=args.training, rehearsal_path=args.rehearsal, anchor_path=args.anchor)
+        result = require_chain(args.level, planner_path=args.planner, warm_start_path=args.warm_start, micro_path=args.micro, step0_path=args.step0, training_path=args.training, rehearsal_path=args.rehearsal, anchor_path=args.anchor)
     except GateRejected as exc:
         parser.exit(2, f"REJECTED: {exc}\n")
     status = "PASS"
     if result.get("step0", {}).get("status") == "NOT_RUN" or result.get("training", {}).get("status") == "NOT_RUN":
         status = "NOT_RUN"
+    elif any(result.get(level, {}).get("status") == "FAIL" for level in ("rehearsal", "anchor")):
+        status = "FAIL"
     print(json.dumps({"schema": "a2_piper_pull_v5_6_gate_result_v1", "status": status, **result}, indent=2, sort_keys=True))
     return 3 if status == "NOT_RUN" else 0
 

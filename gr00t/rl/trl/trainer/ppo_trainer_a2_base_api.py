@@ -79,6 +79,54 @@ _V21B_MATERIALIZATION_PHASES = frozenset(("POST_CENSUS", "FORMAL_PROMOTED"))
 _V21B_MISSING_CONFIG = object()
 
 
+def _apply_v5_6_formal_eval_seam(
+    env,
+    carrier_action: torch.Tensor,
+    original_leg_actions: torch.Tensor,
+    first_episode_active_mask: torch.Tensor,
+    episode_indices: torch.Tensor,
+    a2_base_obs: torch.Tensor | None = None,
+) -> torch.Tensor:
+    """Apply the optional v5.6 formal bridge after original-leg inference.
+
+    The normal A2 evaluator path remains a direct 12-D carrier plus original
+    12-D legs.  A formal v5.6 environment opts in by exposing one explicit
+    hook; malformed hook output is an execution error rather than a fallback.
+    """
+
+    packed = torch.cat((carrier_action, original_leg_actions), dim=-1)
+    hook = getattr(env, "apply_v5_6_formal_bridge", None)
+    if hook is None:
+        return packed
+    if not callable(hook):
+        raise RuntimeError("v5.6 formal bridge attribute must be callable when present")
+    result = hook(
+        carrier_action=carrier_action,
+        original_leg_actions=original_leg_actions,
+        first_episode_active_mask=first_episode_active_mask,
+        episode_indices=episode_indices,
+        a2_base_obs=a2_base_obs,
+    )
+    if not isinstance(result, Mapping):
+        raise RuntimeError("v5.6 formal bridge hook must return a mapping")
+    formal_actions = result.get("actions")
+    expected_shape = (env.num_envs, packed.shape[-1])
+    if (
+        not torch.is_tensor(formal_actions)
+        or tuple(formal_actions.shape) != expected_shape
+        or formal_actions.device != packed.device
+        or not formal_actions.is_floating_point()
+        or not torch.all(torch.isfinite(formal_actions))
+    ):
+        raise RuntimeError(
+            "v5.6 formal bridge returned an invalid packed action; "
+            f"expected device-local finite shape {expected_shape}"
+        )
+    if result.get("carrier_slice") != [0, 12] or result.get("legs_slice") != [12, 24]:
+        raise RuntimeError("v5.6 formal bridge must declare carrier[0:12]/legs[12:24]")
+    return formal_actions
+
+
 def _v21b_scalar(value, *, key: str):
     """Extract one scalar trainer value without accepting synthetic fallbacks."""
 
@@ -5552,8 +5600,13 @@ class TRLPPOTrainer(PPOTrainer):
                         a2_actions = model._a2_base_actions(
                             obs_dict, post_oracle_override_pre_env_action
                         )
-                        step_actions = torch.cat(
-                            [post_oracle_override_pre_env_action, a2_actions], dim=-1
+                        step_actions = _apply_v5_6_formal_eval_seam(
+                            self.env,
+                            post_oracle_override_pre_env_action,
+                            a2_actions,
+                            first_episode_active_mask,
+                            eval_episode_indices,
+                            obs_dict.get("a2_base_obs"),
                         )
                     else:
                         homie_obs = obs_dict["homie_obs"]

@@ -15,6 +15,11 @@ from gr00t.rl.trl.modules.pull_v5_6_hold_specialist_actor import (
     SPECIALIST_OBS_DIM,
     PullV56HoldSpecialistActor,
 )
+from gr00t.rl.trl.modules.pull_v5_6_formal_bridge import (
+    carrier_from_goal_error as formal_carrier_from_goal_error,
+    inject_carrier_into_a2_obs as formal_inject_carrier_into_a2_obs,
+    validate_carrier as _validate_carrier,
+)
 from gr00t.rl.trl.trainer.ppo_trainer_a2_base_api import TRLPPOTrainer as A2TRLPPOTrainer
 
 
@@ -38,18 +43,6 @@ def _checkpoint_step(checkpoint: str | None) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def _validate_carrier(carrier: torch.Tensor) -> None:
-    if (
-        not torch.is_tensor(carrier)
-        or carrier.shape[-1] != HIGH_LEVEL_ACTION_DIM
-        or not carrier.is_floating_point()
-        or not torch.all(torch.isfinite(carrier))
-    ):
-        raise ValueError("v5.6 applied carrier must be finite floating 12-D tensor")
-    if not torch.all(carrier[..., 3:11] == 0.0) or not torch.all(carrier[..., 11] == 1.0):
-        raise ValueError("v5.6 carrier padding must be zeros/open gripper")
-
-
 class PullV56HoldSpecialistPPOTrainer(A2TRLPPOTrainer):
     """Use the original JIT dog only for transit and the eager specialist in terminal phase."""
 
@@ -66,6 +59,10 @@ class PullV56HoldSpecialistPPOTrainer(A2TRLPPOTrainer):
             config = args[1]
         if not bool(config.get("use_a2_base", False)):
             raise ValueError("v5.6 trainer requires the original A2 JIT path")
+        workflow_config = kwargs.get("workflow_config")
+        if workflow_config is None:
+            workflow_config = config
+        kwargs["workflow_config"] = workflow_config
         super().__init__(*args, **kwargs)
         if self.policy_model.num_actions != SPECIALIST_ACTION_DIM:
             raise ValueError("v5.6 specialist action dimension changed during trainer setup")
@@ -80,46 +77,13 @@ class PullV56HoldSpecialistPPOTrainer(A2TRLPPOTrainer):
 
     @staticmethod
     def carrier_from_goal_error(goal_error: torch.Tensor) -> torch.Tensor:
-        if (
-            not torch.is_tensor(goal_error)
-            or goal_error.shape[-1] != 3
-            or not goal_error.is_floating_point()
-            or not torch.all(torch.isfinite(goal_error))
-        ):
-            raise ValueError("v5.6 goal error must be finite floating (ex, ey, wrapped eyaw)")
-        low = goal_error.new_tensor(REGISTERED_ADAPTER_RAW_ACTION_LOW)
-        high = goal_error.new_tensor(REGISTERED_ADAPTER_RAW_ACTION_HIGH)
-        command = torch.clamp(goal_error, min=low, max=high)
-        carrier = torch.zeros(
-            *command.shape[:-1], HIGH_LEVEL_ACTION_DIM,
-            dtype=command.dtype,
-            device=command.device,
-        )
-        carrier[..., :3] = command
-        carrier[..., 11] = 1.0
-        _validate_carrier(carrier)
-        return carrier
+        return formal_carrier_from_goal_error(goal_error)
 
     @staticmethod
     def inject_carrier_into_a2_obs(
         a2_base_obs: torch.Tensor, applied_carrier: torch.Tensor
     ) -> torch.Tensor:
-        if (
-            not torch.is_tensor(a2_base_obs)
-            or a2_base_obs.shape[-1] != SPECIALIST_OBS_DIM
-            or a2_base_obs.shape[:-1] != applied_carrier.shape[:-1]
-        ):
-            raise ValueError("v5.6 A2 observation/carrier leading shapes must match")
-        _validate_carrier(applied_carrier)
-        injected = a2_base_obs.clone()
-        frame_start = SPECIALIST_OBS_DIM - 54
-        multipliers = applied_carrier.new_tensor((2.0, 2.0, 0.25, 1.0, 1.0))
-        physical_command = torch.cat(
-            (applied_carrier[..., :3] * 0.25, applied_carrier[..., 3:5].clamp(-1.0, 1.0) * 0.4),
-            dim=-1,
-        ) * multipliers
-        injected[..., frame_start + 39 : frame_start + 44] = physical_command
-        return injected
+        return formal_inject_carrier_into_a2_obs(a2_base_obs, applied_carrier)
 
     def _original_homie_actions(self, injected_obs: torch.Tensor) -> torch.Tensor:
         if self.a2_base_model is None:

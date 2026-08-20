@@ -21,6 +21,12 @@ experiment_name: pull_v5_6_hold_specialist_eval
 project_name: a2_piper_pull_v5_6_hold_specialist
 experiment_dir: ${eval_output_dir}
 output_dir: ${eval_output_dir}
+# The evaluator accesses these root keys after the versioned warm asset
+# fallback.  Keep them explicit in this composition so struct mode does not
+# turn a missing saved config into a runtime field-by-field failure.
+eval_overrides: null
+multi_gpu: false
+global_rank: 0
 num_envs: 256
 seed: 0
 headless: true

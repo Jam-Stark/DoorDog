@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_INPUT = ROOT / "logs_eval/a2_piper_pull_v5"
 DEFAULT_OUTPUT = Path(__file__).resolve().parent / "PULL_V5_4_ANALYSIS.json"
 TERMINAL_FILENAME = "terminal_records.json"
-VERSIONS = ("5.2", "5.3", "5.4")
+VERSIONS = ("5.2", "5.3", "5.4", "5.6")
 INVARIANTS = (
     "fake_e4",
     "stage4_snapshot_below_hinge_gate",

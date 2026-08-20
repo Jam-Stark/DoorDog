@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-16(v23 收口归档;v24 friction/force-feasibility 轮排期;三 worktree 分工记录)。
+创建:2026-07-21;最近更新:2026-08-18(v24 收口归档与 owner insight 补充;规则 16-18 入册;下一轮场地决策待 owner)。
 
 ## Worktree 分工(2026-08-16 起)
 
@@ -16,9 +16,8 @@
 
 | 条目 | 排期 | 出处 |
 |---|---|---|
-| **v24 P0:v23 分析层欠账清偿(零 GPU)**——修 realized-dynamics 分类器(v23 为 0/768 unclassified)、裁决 1280 个 forward-intervention episodes(ΔJ_φ)、从 step trace 计算各 cell posture saturation dwell / FP_φ / S_φ 与 clearance×posture 预注册分析,把 H1 行为版 / H3 / H5 真正关闭;同时按机械规则选出 v24 warm-start | **v24 前置,先于任何训练** | v23 final analysis:H3/H5 `INCONCLUSIVE_REALIZED_DYNAMICS_UNCLASSIFIED`、干预裁决 `PENDING` |
-| **v24 P1:LT-23-02 hinge friction retrofit(晋升为 v24 主线)**——PhysX joint friction(Coulomb 常阻力矩)+ breakaway 语义接入 door.py per-env randomization;physics 探针验证准静态阻力、单调响应与数值稳定;重建 atlas / effort ladder / E0-E2 certificate | **v24 主线** | v23 `V23_DOOR_MODEL_INSUFFICIENT_FOR_E2`(drive 模型 damping/stiffness/max_force≤24 表达不了力边界);joint friction 机制 PhysX/IsaacLab 已有(robot 侧 `dof_joint_friction_list` 即是),door hinge 只差 plumbing |
-| LT-23-12 源码版本隔离重构 + 根目录垃圾清理(用户自查清单已有) | v24/v25 轮间窗口 | v23 owner 决策:mid-round 禁清理 |
+| **下一轮场地决策(owner)**:force-feasibility 主线迁移拉门 worktree(A,推荐)/ 既有 F3′ checkpoints 上的 RQ3 measurement-only 池化大 N 评估(B,轻量,需新 scope 注册)/ v25-push E1 密度导向设计(C)。v24 已交付可迁移资产:friction Branch A 基建(per-env τ_s/τ_d/c_v)、行为 E 区分类器、certificate/gate 工具链、五个跨 worktree schema | **待 owner 决策** | v24 收口(2026-08-18) |
+| LT-23-12 源码版本隔离重构 + 根目录垃圾清理(用户自查清单已有) | 轮间窗口 | v23 owner 决策:mid-round 禁清理 |
 
 ## B. 下一批候选(状态更新 2026-08-16)
 
@@ -40,7 +39,7 @@
 6. **[v23 校准] C.2/C.3 证据更新**:v23 证明 sim 内 arm effort 不是约束(20 N·m 零样本无退化)、drive 门模型表达不了力边界、chronic RP0 与 FULL 全面平价——"实验底座为真"的缺口在门侧摩擦(LT-23-02/v24 P1),不在 arm 限位;gate 机制(C.3/LT-23-08)入场条件改为"friction 门上 E1 certificate 成立"。
 7. **[v24+ novelty] arm-base 力耦合测量与建模**:高 arm wrench 下的足底反力 / frozen locomotion 抗滑耦合从未被进入过(v23 rescue latch 仅 52/256 触发)。friction 门建立力负载后先做测量级研究(反作用力路径、姿态-足底力分布、locomotion 补偿行为),再决定 coupling critic(LT-23-06/07)的监督数据形态;1280 个 forward-intervention episode 的基础设施已在 v23 建成。
 8. **[跨 worktree novelty] push↔pull 通用 posture/协同接口**:posture command 语义、gate 输入(force/progress/margin history,不含任务特有量)、E-region certificate 工具链保持 task-agnostic;推门 worktree 产出的 gate/coupling 机制以"拉门 worktree 可直接复用"为验收条件之一。
-9. **[叙事修正] 论文主张按 v23/v22 证据定位**:"minimal base intervention" 的力通道主角候选是 bracing(body-assist)与 planar 站位;roll/pitch 在当前几何是可达性资源(v22 atlas:抓稳后 neutral 方向性容量近最优)——机制设计与实验叙事据此定位,不把 posture 硬写成力资源。
+9. **[叙事定位,2026-08-16 晚修订] 论文主张按证据等级表述**:"roll/pitch 的可达性/协调作用"有中等证据(v22 P0-B acute 37/40 + atlas);"roll/pitch 的力价值"为 `UNRESOLVED`,由 v24 RQ3 在 friction-calibrated E1 上做终裁(四分支预注册,负结果同样成文)。"minimal base intervention" 的力通道候选主角是 bracing(body-assist)与 planar 站位——作为工作假设而非已证结论。
 
 ## D. 停车场(有明确入场条件,暂不排期)
 
@@ -68,7 +67,8 @@
 - [x] 2026-08-18:**规则 17（参数域量级锚）**——任何 parameter-domain freeze 必须携带仓库内已验证证据的 magnitude anchor，并明确锚只校准量级、不自动声明物理等价。base_v24 r13 以 v22 可解 `24 N·m` drive-resistance face 为量级锚，将 friction `tau_s` 从 null 域 `[0,1]` 升至稳定的 `{2,5,10,20} N·m`，P1-lite 四档 breakaway literal containment 全过。
 - [x] 2026-08-18:**规则 18（派生量 gate 有效性）**——gate 若依赖 derived quantity 的单调性/可识别性，必须先证明该假设；未证明或被行为自适应混杂时，该量只能 report-only。base_v24 r13 的 modeled `tau_req=I*theta_ddot+c*omega+k*theta+tau_f` 因 policy 随摩擦升高而减速，只得到 matched strict `47/96`，而物理 breakaway 与行为 progress 梯度均强通过；该预测子因此降级为 `MODELED_TAU_MATCHED_ORDERING_CONFOUNDED_BY_SPEED_ADAPTATION`。
 - [x] 2026-08-18:**base_v24 最终收口 (`V24_E1_DENOMINATOR_INSUFFICIENT_FINAL`)**——Owner 裁决 friction 轴为 `V24_FRICTION_AXIS_DISCRIMINATIVE_BEHAVIORAL`；行为 E 区冻结 `delta=[0.02,0.04] rad`、clip/util floors `0.40/0.50`、ladder `40/20/25 N·m`。F3-prime 四个 `4096×500` cell 全 exit0，四 checkpoint Rule16 sham 均 16/16；P10/cap20 各 32 episode 的 sustained-E1 为 `4/1/8/4`，三 cell 低于注册 `8`，故合法终局且禁止再修 gate。P3/Wave1/Route/RQ3/Wave2 不准入；friction 轴非 null，RQ3 posture force value 保持 `UNRESOLVED_NOT_ADMITTED`。
-- [x] 2026-08-16:**v23 收口(`V23_RESEARCH_PASS_NO_RELEASE`,三重负结果高信息量)**——16/16 cell rc0;H1 继承不支持(head-reset 250 步复满分,goal 差全在噪声);**RP0 全面平价**(8 RP0 cell ≈ 8 FULL cell,D0 与 D1 皆是,chronic 禁姿态零代价)→ 0.4 pitch 降级为"免费动作"非问题;H4 `E2_BOUNDARY_NOT_ESTABLISHED` + `DOOR_MODEL_INSUFFICIENT`(atlas confirmed_E2=0);effort ladder 100→20 零样本无退化(`LADDER_INCONCLUSIVE`,冻结 40)→ 指令侧饱和是 Kp 增益伪影,任务执行力矩需求 ≤20 N·m。H2/H3/H5 因分析层欠账 typed inconclusive(数据在盘,v24 P0 清偿)。沉淀规则:**规则 13**(成功率天花板下 success-rate 轴对变体无区分力,测量轴必须换行为质量/力学量);**规则 14**(E 区/桶分层必须按 realized dynamics telemetry,intended bucket 只作抽样器——v22 bucket MISMATCH 与 v23 0/768 同源);**规则 15**(reducer/gate 只准执行已授权判据;acute 探针标签是 policy-relative 的,不得当门属性用)。
+- [x] 2026-08-18:**base_v24 owner 终裁补充(insight 层,配套上一行)**——(1) **E1-per-cell 准入 gate 与被检假设混杂**:同一批 P10/cap20 边界门上,FULL cells 的 E0 计数 20/23(of 32)vs RP0 cells 仅 5/12,RP0 的 E1+near-E2 与 unclassified 均约两倍——若 posture 真有助于处理边界负载,FULL 就*应该* E1 稀少;对称的 ≥8/cell 要求在结构上惩罚"假设为真"。**未来 E 区准入必须锚定在门/场景侧(policy-free)或以 RP0 侧为密度参照,不得对全部 policy cell 施加对称密度要求**(规则 18 的姊妹教训)。该 E0 不对称本身是 RQ3 方向性的初步描述证据(混杂:RP0 仅 500-batch 适应 + unclassified 不对称,不升级为因果)。(2) **容量估计器退化为 RQ4 finding**:min-over-joints 方向性余量在 358/384 加载窗口塌缩而门照常打开(`CAPACITY_ESTIMATOR_LOWER_BOUND_DEGENERATE`)——"arm 在名义方向性容量之外靠什么完成开门"是耦合研究的直接素材;RQ4 measurement-only 收口 `V24_COUPLING_FORWARD_PROXY_ONLY` + `V24_COUPLING_CRITIC_UNCALIBRATED`(32 FULL-RP0 配对)。(3) 可迁移资产:friction Branch A 基建、行为 E 区分类器、certificate/ladder 工具链、五 schema——对 in/out 门即插即用;场地决策见 A 表。
+- [x] 2026-08-16:**v23 收口(`V23_RESEARCH_PASS_NO_RELEASE`,负结果高信息量;本行 2026-08-16 晚经双 pro 评审与本地复核修订,取代同日早版过强表述)**——16/16 cell rc0。typed 终局:H1 `INHERITANCE_NOT_SUPPORTED`(**仅收窄到 output-head-only**:F1 用 head-reset 替代了真 scratch,深层 recurrent/visitation 继承未裁决);H2 `INCONCLUSIVE`(D0 RP0−FULL 跨 seed 变号,G2-s0 pooled −5 超 margin;goal 层替代性强烈提示但未过预注册门槛);H3/H5 `UNADJUDICATED`(realized 分类 0/768:**已实锤 root cause = 单位面 bug**,classifier atlas 的 `*_native` 字段实为 degree 面数值,=源生值×57.2958(180/π),755/768 因此 NO_ATLAS_MATCH);H4 `E2_NOT_ESTABLISHED`+`DOOR_MODEL_INSUFFICIENT`(atlas confirmed_E2=0)。**行为层不平价**(holdout 复算):FULL crossing-while-holding 506/512 vs RP0 471/512;release 记录缺失 191/1024 且强烈随策略分布(D0 FULL 缺 85 vs D0 RP0 缺 9 = FULL 抓着过门不触发 release 事件);hinge@release 全部聚在 1.60 latch(release 行为由固定阈值经济主导,非自主选择)。effort ladder:`LADDER_INCONCLUSIVE`→冻结 40 N·m;**正确表述为"被选 stable-grasp 短窗 progress 探针对 20-100 N·m 不具判别力"(clipping 尾部随 cap 降低单调增长 1/16→7/16 而中位 progress 不变),不是"任务力矩需求≤20 N·m"**。scratch pilot:stage2 12/16、stable grasp 0/16;Branch B `OBSERVABILITY_BLOCKED`(checkpoint 不含 `staged_reset_buf`)——且 staged-reset bank 为策略自举填充,scratch 到不了晚期 stage 则 bank 永空,**结构性无法 bootstrap scratch**。沉淀规则:**规则 13**(成功率天花板下 success-rate 轴无区分力,测量轴换力学量/行为质量);**规则 14**(分层按 realized telemetry 且必须单位面统一,intended bucket 只作抽样器);**规则 15**(reducer/gate 只准执行已授权判据;acute 探针标签 policy-relative,不得当门属性)。姿态定位:**可达性/协调作用中等证据支持;力价值 `UNRESOLVED`,由 v24 RQ3 在 friction-calibrated E1 上终裁**。posthoc 修复只能产出 DESCRIPTIVE 结论,不得追溯升级 H3/H5 为因果 pass。
 - [x] 2026-08-16:v20 遗留 A 表两行处置——"真实 arm 限位轮 + θ_send rider"被 v21B(theta ladder DV1 未达带)与 v23(effort ladder null)合并 supersede;"release 时补 v20 Route B"降级入 E 挂账。
 - [x] 2026-08-08(补录):**v22 收口(NO_RELEASE)**——labels `RESEARCH_PASS / RANDOMIZATION_BOUNDARY_IDENTIFIED / POSTURE_CONDITIONALLY_USEFUL / BODY_ASSIST_UNSAFE / HOLD_OPEN_DOMINANT`;三候选 pooled goal 46-47/48 但 clearance 29/9/16 of 48;H3/H4 hinge 类 unrealized(25/30 N·m below resolution);posture gate `REPORT_ONLY_INSUFFICIENT_DENOMINATOR`;P0-B 独立标签 37/40 POSTURE_NEEDED(acute)。
 - [x] 2026-08-04(补录):**v21B 收口(`COMPLETED_SCIENTIFIC_NO_RELEASE`)**——R10 census right-censored(heavy 门 raw PD 需求 62.5% ≥100 N·m)→ ARM_REALISTIC 未获训练,F3 回退 ARM_V20 + theta ladder;torque authority `ESTIMATE_ONLY`;Route-B pooled48 科学判定 FAIL,candidate set 空。

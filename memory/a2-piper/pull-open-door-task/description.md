@@ -1,32 +1,32 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist migration pause
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure
 status: active
-last_updated: 2026-08-20 19:53 HKT
+last_updated: 2026-08-20 23:55 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 继续 pull-v5.6-r2 T1/conditional downstream，或复用 pull-v5.5 T1 adapter gate boundary / pull-v5.4 scheduler boundary / pull-v5.3 H-D boundary 前
+  - 规划 pull-v5.6-r2 之后的新架构，或复用 pull-v5.6/v5.5 T1 gate boundary / pull-v5.4 scheduler boundary / pull-v5.3 H-D boundary 前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1/v5.2/v5.3/v5.4/v5.5 closures + v5.6-r2 active)
+# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1/v5.2/v5.3/v5.4/v5.5/v5.6-r2 closures)
 
 ## Purpose
 
 记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter 与 pull-v5.6-r2 specialist active execution 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
 
-## Pull-v5.6-r2 Terminal-Hold Specialist (2026-08-20 19:53 HKT) — T0.5/STEP0 PASS / T1 MIGRATION PAUSE
+## Pull-v5.6-r2 Terminal-Hold Specialist (2026-08-20 23:55 HKT) — T1 FAIL / G11 RETURN-TO-PLANNER
 
-- r1 的 infrastructure closure 已由 planner 更正：G9 对 infrastructure root-cause 修复无次数上限，step0 能力计数只作 diagnostic。r2 完整枚举 eval root schema 并补齐 `experiment_dir`、`output_dir`、`multi_gpu`、`global_rank`、`eval_overrides`；8-env T0.5 已贯通 compose→IsaacSim→task→warm load→returned-dones receipt，strict micro validator `PASS`。
-- exact 80-env step0 runtime `PASS`：80 unique rows、五 family 各 16，全部 `interface_characterization`、denominator=`false/none`、original JIT、specialist disabled、returned-dones binding。能力计数 `0/80` 只作诊断且按 r2 契约不阻塞 T1。
-- 首个 T1 run 完成 batch1 后因 v5.6 subclass 未向 base evidence writer 传 `workflow_config` 而 G9 fail，checkpoint 250/500/750 均未产生。根因已按 v5.5 proven pattern 定向修复；compile/YAML/Hydra/generated-command/synthetic acceptance `PASS`，但修复后的 T1 runtime 因 GPU4–7 被外部作业占用而未启动。当前为 migration pause，不是 G11/scientific closure。
-- specialist formal bridge 与 door/P3/P4/dual-eval/render orchestration 已 static/synthetic acceptance，但尚无 downstream IsaacSim runtime。下一机器必须先恢复 archive、跑静态 migration verifier、IsaacLab headless smoke 与新的 8-env migration micro，再启动 unchanged T1；T1 PASS 后才按 rehearsal→formal anchor→条件 door/P3/P4/DV/render DAG 前进。
-- durable path gotcha：accepted `WARM_START.json` 绑定 `/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0`，runner 绑定 `/home/baoquanc/anaconda3/envs/isaaclab/bin/python`；迁移机优先复现这两个绝对路径。忽略资产通过顶层 `a2_piper_pull_v5_6_r2_runtime_assets_20260820.zip` 恢复相对路径。
-- sole formal review 仍为 `FAIL`；targeted/static/runtime acceptance 不构成第二轮 reviewer PASS。T1 retry、T2/T3/door/G2/P3/P4/dual eval/render 均 `NOT_RUN`，无 passage denominator，stopping condition 未裁决。完整状态与 handoff：`scriptsFORhuman/pull_v5/PULL_V5_6_R2_ROUND_REPORT.md`、`PULL_V5_6_R2_MIGRATION_AND_SETUP.md`、`PULL_V5_6_R2_AI_HANDOFF.md`。
+- 迁移机按绑定路径恢复 Python/IsaacSim/IsaacLab 与 16 项 archive；static migration verifier、IsaacLab headless smoke、fresh 8-env migration micro 全部 `PASS`。目标机 GPU0–3 经用户显式授权；T1 用 GPU0，checkpoint gates 用 GPU1。
+- destination micro 暴露 actor constructor 在框架 strict-load warm checkpoint 前仍硬读 source-host raw checkpoint。已把 runtime actor 构造与一次性 raw warm-asset producer 分离；eval/T1 统一通过现有 trainer strict checkpoint loader 恢复 accepted warm/训练 checkpoint。无需补传 raw checkpoint。
+- T1 retry 从 accepted step0 warm asset 启动，越过旧 batch1 `workflow_config` 边界并完成 `750/750`、`12,288,000` timesteps，生成 step250/500/750 三个 checkpoint，process exit `0`。
+- 三个 registered five-family×16 gate 全部为 `0/80`；每格 row count 与 Invariant 12′ `PASS`，能力阈值均 `FAIL`。aggregate `infrastructure_status=PASS`、`scientific_status=FAIL`、`valid_fail_matrix=true`、`selected_checkpoint=null`。
+- 因 T1 无 admitted checkpoint，rehearsal、formal anchor、door/G2/P3/P4/dual eval/render 全部 `NOT_RUN`；zero G3 attempts、无 passage denominator，canonical+natural `frame_passage` stopping condition 未满足。v5.6-r2 在 G11 return-to-planner 关闭，不自创 rung4、不放宽 `0.05 m/0.15 rad`。
+- sole formal review 仍为 `FAIL`；targeted/runtime acceptance 不构成第二轮 reviewer PASS。终局证据：`scriptsFORhuman/pull_v5/PULL_V5_6_R2_ROUND_REPORT.md` 与 `logs_eval/a2_piper_pull_v5/v5_6_specialist_gate/TRAINING_GATE.json`。
 
 ## Pull-v5.5 Residual Terminal-Hold Adapter Closure (2026-08-17 08:13 HKT) — T1 FAIL / G11 return-to-planner
 
@@ -198,6 +198,7 @@ read_when:
 
 ## TODO Summary
 
+- 2026-08-20 23:55 HKT - v5.6-r2 rung3 已完成/失败：T1 `750/750` 后 step250/500/750 gate 全为 `0/80`，没有 selected checkpoint，故 G11 return-to-planner。三 rung ladder 均已在各自 registered contract 下完成/失败；新架构或新预算必须由用户另行授权，不得自动进入 rung4。rehearsal/anchor/door/P3/P4/DV/render 保持 NOT_RUN，无 passage denominator。
 - 2026-08-17 08:13 HKT - v5.5 rung2 residual terminal-hold adapter 已在 registered T1 contract 下完成/失败：r13 gate=`0/80,1/80,0/80`，唯一 valid K100 不能满足 `≥15/16` per-family 与 `≥77/80` overall。当前状态为 return-to-planner；rung3 HOMIE fine-tune 非自动授权，须新的 planner decision。sampled/applied carrier provenance 是后续 PPO 工作必须复用的经验。
 - 2026-08-16 23:44 HKT - v5.4 scheduler rung 已以 Stage A `GO`、valid Stage B `FAIL` 收口：shared correction 后 corrected max error=`0.0900235176/0.0588076115 rad` 虽低于 `0.15 rad`，但全部 `16` rows `trim_step_cap_exceeded`、terminal hold=`0`，不能启动 G3 或门侧下游。当前 active architecture item 是用户须另发 v5.5 planner contract 的 residual terminal-hold adapter；HOMIE fine-tune 仅在 residual 被证伪后考虑。
 - 2026-08-14 22:35 HKT - v5.1 已清偿 pure-A builder、per-state closer metadata、P2 bank 独立性与 load-only receipt；下一 occupancy/traversal round 的唯一 active blocker 是 rule-5 四 primitive yaw execution（当前稳定 32/64），必须先得到 anchor PASS 才能启动三桶门侧 P1/G2/P3。P2 已确认 release persistence binding，但 +2s reclosure 与 E6=0 表明不可单独据此扩 P3；residual policy 仍只在有效 G2 lattice 后由用户决策。

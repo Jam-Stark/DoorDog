@@ -1,7 +1,7 @@
 # A2+Piper 远期工作 TODO(跨版本长效清单)
 
 维护规则:每轮新 plan 落成时核对本清单一次;完成/否决的条目移入文末归档区并注明依据;新远期项随发现追加。时间戳 HKT。
-创建:2026-07-21;最近更新:2026-08-20 19:53 HKT (pull-v5.6-r2 migration pause / T1 resume)。
+创建:2026-07-21;最近更新:2026-08-20 23:55 HKT (pull-v5.6-r2 T1 FAIL / G11 return-to-planner)。
 
 ---
 
@@ -39,7 +39,7 @@
 | latch/handle 几何进一步 randomization(hook 概率、handle 长径、latch 行程) | lr 镜像之后 | v13 §2.5、门生成器已有参数 |
 | privileged obs 加门动力学参数(输入层扩展手术保 warm-start) | 仅当分桶显示策略对门参数自适应失败 | v14 plan M20.4(v14/v15 均未触发) |
 | Phase3 student bootstrapping / GRPO | distillation 之后 | memory `phase3-student-bootstrapping` |
-| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **rung1/rung2 completed/failed；rung3 v5.6-r2 active，T0.5/step0 PASS，迁移后续跑 T1** | eval root schema 已完整修复；8-row micro 与 exact 80-row step0 runtime PASS，`0/80` 仅 diagnostic、不阻塞 T1。T1 首跑 batch1 后 `workflow_config` G9、零 checkpoint；根因 static-fixed。迁移机恢复顶层 runtime archive，过 verifier/headless/micro 后重启 unchanged T1；不得写 passage zero、自创 rung4或放宽 `0.05 m/0.15 rad`。|
+| Pull HOMIE terminal-yaw 三 rung ladder（scheduler → residual adapter → HOMIE fine-tune） | **三 rung 均 completed/failed；v5.6-r2 rung3 T1 FAIL / G11 return-to-planner** | 迁移 verifier/headless/micro PASS；T1 `750/750` complete，但 step250/500/750 gate 均 `0/80`，selected checkpoint null。rehearsal/anchor/door/P3/P4/DV/render NOT_RUN；不得写 passage zero、自创 rung4或放宽 `0.05 m/0.15 rad`。|
 
 ## E. 维护性挂账(小,勿丢)
 
@@ -50,6 +50,8 @@
 - [ ] eval 汇报:strict_trace_topology FAIL 时(缺 env trace)在报告中给出缺失原因归类(v15 step500/1000/2000 曾出现)。
 
 ## 归档(已完成/已否决)
+
+- [x] 2026-08-20 23:55 HKT:**pull-v5.6-r2 rung3 T1/G11 terminal closure**——destination verifier、IsaacLab headless smoke 与 fresh 8-env micro PASS；runtime actor 与 source raw checkpoint 解耦后，从 accepted warm asset 启动的 T1 完成 `750/750`、`12,288,000` timesteps、step250/500/750 三个 checkpoint。三个五 family×16 held-out gate 全部 `0/80`，结构/Invariant 12′ PASS 但能力阈值 FAIL；aggregate infrastructure PASS / scientific FAIL / selected checkpoint null。rehearsal/formal anchor/door/G2/P3/P4/dual eval/render NOT_RUN、zero G3 attempts、无 passage denominator；stopping condition 未达并 return-to-planner。sole formal review 仍 FAIL。依据：`scriptsFORhuman/pull_v5/PULL_V5_6_R2_ROUND_REPORT.md`。
 
 - [x] 2026-08-20 19:53 HKT:**pull-v5.6-r2 migration handoff**——r1 infrastructure closure 已被 r2 restart 裁决取代：完整 eval schema、8-env T0.5 与 exact 80-env step0 runtime PASS；step0 `0/80` 为 non-gating diagnostic。T1 首跑只到 batch1，`workflow_config` plumbing G9 后零 checkpoint；修复 static PASS，外部 GPU 占用后转机器迁移。16 项 ignored runtime assets 已打入顶层 archive，setup/AI handoff 固化 exact path 与 continuation DAG。rung3 仍 active，T1 后 NOT_RUN、无 passage denominator；sole formal review 仍 FAIL。依据：`scriptsFORhuman/pull_v5/PULL_V5_6_R2_ROUND_REPORT.md`。
 

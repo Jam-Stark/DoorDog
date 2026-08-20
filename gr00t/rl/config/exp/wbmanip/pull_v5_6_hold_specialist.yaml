@@ -56,7 +56,6 @@ algo:
     denominator_scope: none
     actor:
       _target_: gr00t.rl.trl.modules.pull_v5_6_hold_specialist_actor.PullV56HoldSpecialistActor
-      raw_checkpoint_path: /home/baoquanc/workspace/LMP/logs/manager_dual_rl/lmp_dual_policy/stage1_locomotion_a2_piper/2026-06-05_16-12-09/checkpoints_dog/ac_weights_last.pt
       obs_dim: 1620
       latent_dim: 25
       num_actions: 12

@@ -19,16 +19,16 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-ALLOWED_GPUS = (4, 5, 6, 7)
+ALLOWED_GPUS = (0, 1, 2, 3)
 PLAN_ID = "a2_piper_pull_v5_6_formal_bridge"
 TRAIN_ROOT = ROOT / "logs_rl/a2_piper_pull_v5_6_formal"
 EVAL_ROOT = ROOT / "logs_eval/a2_piper_pull_v5/v5_6_formal"
-P3_CELLS = (("M_s0", 4, 0.5), ("M_s1", 5, 0.5), ("C_s0", 6, 0.9), ("C_s1", 7, 0.9))
+P3_CELLS = (("M_s0", 0, 0.5), ("M_s1", 1, 0.5), ("C_s0", 2, 0.9), ("C_s1", 3, 0.9))
 
 
 def _cuda_env(gpu: int) -> dict[str, str]:
     if gpu not in ALLOWED_GPUS:
-        raise ValueError(f"downstream work is restricted to GPU4-7; got GPU{gpu}")
+        raise ValueError(f"downstream work is restricted to GPU0-3; got GPU{gpu}")
     env = dict(os.environ)
     env.update({"CUDA_VISIBLE_DEVICES": str(gpu), "HYDRA_FULL_ERROR": "1", "WANDB_MODE": "offline"})
     return env
@@ -155,7 +155,7 @@ def build_p4_command(*, cell: str, gpu: int, ratio: float, checkpoint: Path, out
     }
 
 
-def build_dual_eval_command(*, source: str, checkpoint: Path, output_dir: Path, gpu: int = 4) -> dict[str, Any]:
+def build_dual_eval_command(*, source: str, checkpoint: Path, output_dir: Path, gpu: int = 0) -> dict[str, Any]:
     if source not in {"canonical", "natural"}:
         raise ValueError(f"dual eval source must be canonical or natural, got {source!r}")
     command = _command(
@@ -198,7 +198,7 @@ def build_dual_eval_command(*, source: str, checkpoint: Path, output_dir: Path, 
     }
 
 
-def build_render_command(*, source: str, checkpoint: Path, output_dir: Path, gpu: int = 4) -> dict[str, Any]:
+def build_render_command(*, source: str, checkpoint: Path, output_dir: Path, gpu: int = 0) -> dict[str, Any]:
     if source not in {"canonical", "natural"}:
         raise ValueError(f"render source must be canonical or natural, got {source!r}")
     command = build_dual_eval_command(

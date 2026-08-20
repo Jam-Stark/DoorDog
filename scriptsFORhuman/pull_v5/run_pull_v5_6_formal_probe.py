@@ -14,7 +14,7 @@ from typing import Any, Sequence
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-ALLOWED_GPUS = (4, 5, 6, 7)
+ALLOWED_GPUS = (0, 1, 2, 3)
 PRIMARY_CHECKPOINT = ROOT / "logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt"
 SPECIALIST_CHECKPOINT = ROOT / "logs_rl/a2_piper_pull_v5_6_hold_specialist/model_step_000750.pt"
 ORIGINAL_HOMIE = ROOT / "gr00t/rl/data/policies/A2_Base/policy.pt"
@@ -25,7 +25,7 @@ BUCKETS = ("2.5-5", "5-9", "9-12")
 
 def _cuda_env(gpu: int) -> dict[str, str]:
     if gpu not in ALLOWED_GPUS:
-        raise ValueError(f"formal probe is restricted to GPU4-7; got GPU{gpu}")
+        raise ValueError(f"formal probe is restricted to GPU0-3; got GPU{gpu}")
     env = dict(os.environ)
     env.update({"CUDA_VISIBLE_DEVICES": str(gpu), "HYDRA_FULL_ERROR": "1", "WANDB_MODE": "offline"})
     return env
@@ -92,7 +92,7 @@ def _assert_command(command: Sequence[str], *, num_envs: int, phase: str) -> Non
         raise AssertionError("formal probe must not compose a scheduler")
 
 
-def build_anchor_command(*, sequence: str, attempt: int, gpu: int = 4, output_root: Path = OUTPUT_ROOT) -> dict[str, Any]:
+def build_anchor_command(*, sequence: str, attempt: int, gpu: int = 0, output_root: Path = OUTPUT_ROOT) -> dict[str, Any]:
     if sequence not in SEQUENCES:
         raise ValueError(f"unknown formal sequence {sequence!r}")
     if isinstance(attempt, bool) or attempt not in range(3):
@@ -114,7 +114,7 @@ def build_anchor_command(*, sequence: str, attempt: int, gpu: int = 4, output_ro
     }
 
 
-def build_door_command(*, bucket: str, sequence: str, gpu: int = 4, output_root: Path = OUTPUT_ROOT) -> dict[str, Any]:
+def build_door_command(*, bucket: str, sequence: str, gpu: int = 0, output_root: Path = OUTPUT_ROOT) -> dict[str, Any]:
     if bucket not in BUCKETS:
         raise ValueError(f"unknown closer bucket {bucket!r}")
     if sequence not in SEQUENCES:
@@ -135,7 +135,7 @@ def build_door_command(*, bucket: str, sequence: str, gpu: int = 4, output_root:
     }
 
 
-def build_g2_command(*, gpu: int = 4, output_root: Path = OUTPUT_ROOT) -> dict[str, Any]:
+def build_g2_command(*, gpu: int = 0, output_root: Path = OUTPUT_ROOT) -> dict[str, Any]:
     output_dir = output_root / "g2_lattice"
     command = _common_command(output_dir=output_dir, gpu=gpu, phase="anchor", num_envs=36)
     command.extend(
@@ -156,7 +156,7 @@ def build_g2_command(*, gpu: int = 4, output_root: Path = OUTPUT_ROOT) -> dict[s
     }
 
 
-def command_matrix(*, gpu: int = 4) -> list[dict[str, Any]]:
+def command_matrix(*, gpu: int = 0) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for attempt in range(3):
         records.extend(build_anchor_command(sequence=sequence, attempt=attempt, gpu=gpu) for sequence in SEQUENCES)
@@ -175,7 +175,7 @@ def main() -> int:
     parser.add_argument("--sequence", choices=SEQUENCES, default="S1")
     parser.add_argument("--bucket", choices=BUCKETS, default="2.5-5")
     parser.add_argument("--attempt", type=int, choices=(0, 1, 2), default=0)
-    parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, default=4)
+    parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, default=0)
     parser.add_argument("--run", action="store_true")
     args = parser.parse_args()
     if args.phase == "anchor":

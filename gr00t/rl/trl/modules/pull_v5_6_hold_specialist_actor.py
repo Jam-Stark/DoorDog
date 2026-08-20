@@ -46,11 +46,10 @@ def _state_dict_from_checkpoint(path: Path) -> Mapping[str, torch.Tensor]:
 
 
 class PullV56HoldSpecialistActor(nn.Module):
-    """Eager reconstruction of the original dog actor with trainable leg noise.
+    """Reconstructed dog-actor architecture with trainable leg noise.
 
-    The raw A2 dog actor is loaded into the adaptation and actor branches.  The
-    source ``std`` tensor is intentionally ignored: rung-3 fine-tuning starts
-    with the original fresh-training standard deviation of one.
+    Runtime weights are restored by the trainer's strict checkpoint loader.
+    Raw A2 weights are used only when producing the accepted warm-start asset.
     """
 
     is_recurrent = False
@@ -60,7 +59,6 @@ class PullV56HoldSpecialistActor(nn.Module):
 
     def __init__(
         self,
-        raw_checkpoint_path: str = SPECIALIST_RAW_CHECKPOINT,
         obs_dim: int = SPECIALIST_OBS_DIM,
         latent_dim: int = SPECIALIST_LATENT_DIM,
         num_actions: int = SPECIALIST_ACTION_DIM,
@@ -95,8 +93,15 @@ class PullV56HoldSpecialistActor(nn.Module):
         self.log_std = nn.Parameter(
             torch.full((SPECIALIST_ACTION_DIM,), math.log(FRESH_DOG_STD), dtype=torch.float32)
         )
-        self.raw_checkpoint_path = str(Path(raw_checkpoint_path).expanduser().resolve())
-        state = _state_dict_from_checkpoint(Path(self.raw_checkpoint_path))
+        self._distribution: Normal | None = None
+        self._current_entropy: torch.Tensor | None = None
+        self._last_log_prob: torch.Tensor | None = None
+        self.steps = 0
+        self.is_eval_mode = False
+
+    def load_raw_warm_start(self, raw_checkpoint_path: str = SPECIALIST_RAW_CHECKPOINT) -> None:
+        """Load raw A2 actor branches while intentionally resetting ``std``."""
+        state = _state_dict_from_checkpoint(Path(raw_checkpoint_path).expanduser().resolve())
         actor_state = {
             key: value
             for key, value in state.items()
@@ -108,11 +113,6 @@ class PullV56HoldSpecialistActor(nn.Module):
                 "v5.6 specialist actor warm-start keys are incompatible: "
                 f"missing={missing}, unexpected={unexpected}"
             )
-        self._distribution: Normal | None = None
-        self._current_entropy: torch.Tensor | None = None
-        self._last_log_prob: torch.Tensor | None = None
-        self.steps = 0
-        self.is_eval_mode = False
 
     @property
     def fresh_std(self) -> torch.Tensor:

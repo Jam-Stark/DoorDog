@@ -71,7 +71,7 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[2]
 PYTHON = Path("/home/baoquanc/anaconda3/envs/isaaclab/bin/python")
-ALLOWED_GPUS = (4, 5, 6, 7)
+ALLOWED_GPUS = (0, 1, 2, 3)
 NUM_ENVS = 256
 CHECKPOINT_INTERVAL = 250
 DEFAULT_TRAIN_OUTPUT = ROOT / "logs_rl/a2_piper_pull_v5_6_hold_specialist"
@@ -147,7 +147,7 @@ def _warm_start_payload(*, checkpoint_path: Path, receipt_path: Path) -> dict[st
     }
     if not isinstance(loaded, dict) or set(loaded) != required_keys:
         raise GateRejected(f"warm-start checkpoint keys do not match gr00t eval-load format: {sorted(loaded) if isinstance(loaded, dict) else type(loaded).__name__}")
-    actor = PullV56HoldSpecialistActor(raw_checkpoint_path=str(RAW_DOG_CHECKPOINT), init_noise_std=FRESH_DOG_STD, max_noise_std=1.0)
+    actor = PullV56HoldSpecialistActor(init_noise_std=FRESH_DOG_STD, max_noise_std=1.0)
     critic = PullV56HoldSpecialistCritic()
     actor.load_state_dict(loaded["policy_state_dict"], strict=True)
     critic.load_state_dict(loaded["value_state_dict"], strict=True)
@@ -209,7 +209,8 @@ def write_planner_artifact(path: Path = DEFAULT_PLANNER) -> Path:
 def write_warm_start_receipt(path: Path = DEFAULT_WARM_START) -> Path:
     checkpoint_path = WARM_START_CHECKPOINT
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    actor = PullV56HoldSpecialistActor(raw_checkpoint_path=str(RAW_DOG_CHECKPOINT), init_noise_std=FRESH_DOG_STD, max_noise_std=1.0)
+    actor = PullV56HoldSpecialistActor(init_noise_std=FRESH_DOG_STD, max_noise_std=1.0)
+    actor.load_raw_warm_start(str(RAW_DOG_CHECKPOINT))
     critic = PullV56HoldSpecialistCritic()
     checkpoint = {
         "policy_state_dict": {key: value.detach().cpu() for key, value in actor.state_dict().items()},
@@ -238,7 +239,7 @@ def _command(*parts: str) -> str:
 
 def _cuda_env(gpu: int) -> dict[str, str]:
     if gpu not in ALLOWED_GPUS:
-        raise ValueError(f"phase is restricted to GPU4-7; got GPU{gpu}")
+        raise ValueError(f"phase is restricted to GPU0-3; got GPU{gpu}")
     return {
         "PYTHONPATH": str(ROOT),
         "CUDA_VISIBLE_DEVICES": str(gpu),
@@ -248,11 +249,11 @@ def _cuda_env(gpu: int) -> dict[str, str]:
     }
 
 
-def build_train_command(*, output_dir: Path, gpu: int = 4) -> tuple[str, dict[str, str]]:
+def build_train_command(*, output_dir: Path, gpu: int = 0) -> tuple[str, dict[str, str]]:
     command = _command(
         str(PYTHON), "-B", "-m", "gr00t.rl.train_agent_trl",
         "+exp=wbmanip/pull_v5_6_hold_specialist", "seed=0", f"num_envs={NUM_ENVS}",
-        "headless=true", "use_wandb=false", "checkpoint=null", "checkpoint_load_mode=full",
+        "headless=true", "use_wandb=false", f"checkpoint={WARM_START_CHECKPOINT}", "checkpoint_load_mode=full",
         "algo.config.load_optimizer=false", "algo.config.num_learning_iterations=750",
         f"algo.config.save_interval={CHECKPOINT_INTERVAL}", "algo.trl.num_total_batches=750",
         "callbacks.model_save.save_frequency=250", "algo.config.use_a2_base=true",
@@ -263,7 +264,7 @@ def build_train_command(*, output_dir: Path, gpu: int = 4) -> tuple[str, dict[st
     return command, _cuda_env(gpu)
 
 
-def build_step0_command(*, output_dir: Path, gpu: int = 4) -> tuple[str, dict[str, str]]:
+def build_step0_command(*, output_dir: Path, gpu: int = 0) -> tuple[str, dict[str, str]]:
     command = _command(
         str(PYTHON), "-B", "-m", "gr00t.rl.eval_agent_trl",
         f"checkpoint={WARM_START_CHECKPOINT}", "checkpoint_load_mode=full", "auto_load_latest=false",
@@ -277,7 +278,7 @@ def build_step0_command(*, output_dir: Path, gpu: int = 4) -> tuple[str, dict[st
     return command, _cuda_env(gpu)
 
 
-def build_micro_smoke_command(*, output_dir: Path = DEFAULT_MICRO_OUTPUT, gpu: int = 4) -> tuple[str, dict[str, str]]:
+def build_micro_smoke_command(*, output_dir: Path = DEFAULT_MICRO_OUTPUT, gpu: int = 0) -> tuple[str, dict[str, str]]:
     """Build the bounded T0.5 command using the exact step0 evaluator phase."""
     output_dir = output_dir.expanduser().resolve()
     if output_dir == DEFAULT_STEP0.parent.expanduser().resolve():
@@ -298,7 +299,7 @@ def build_micro_smoke_command(*, output_dir: Path = DEFAULT_MICRO_OUTPUT, gpu: i
     return command, _cuda_env(gpu)
 
 
-def build_training_gate_command(*, checkpoint: Path, output_dir: Path, gpu: int = 4) -> tuple[str, dict[str, str]]:
+def build_training_gate_command(*, checkpoint: Path, output_dir: Path, gpu: int = 0) -> tuple[str, dict[str, str]]:
     if not checkpoint:
         raise ValueError("training gate requires the frozen specialist checkpoint")
     command = _command(
@@ -334,7 +335,7 @@ def build_rehearsal_cell_command(
     output_root: Path,
     cell: str,
     revision: int = 0,
-    gpu: int = 4,
+    gpu: int = 0,
 ) -> tuple[str, dict[str, str]]:
     if not checkpoint:
         raise ValueError("rehearsal requires the frozen specialist checkpoint")
@@ -354,7 +355,7 @@ def build_rehearsal_cell_command(
     return command, _cuda_env(gpu)
 
 
-def build_rehearsal_commands(*, checkpoint: Path, output_root: Path, gpu: int = 4, revision: int = 0) -> list[tuple[str, dict[str, str]]]:
+def build_rehearsal_commands(*, checkpoint: Path, output_root: Path, gpu: int = 0, revision: int = 0) -> list[tuple[str, dict[str, str]]]:
     return [
         build_rehearsal_cell_command(checkpoint=checkpoint, output_root=output_root, cell=cell, revision=revision, gpu=gpu)
         for cell in REHEARSAL_CELL_NAMES
@@ -367,7 +368,7 @@ def build_anchor_sequence_command(
     output_root: Path,
     attempt: int,
     sequence: str,
-    gpu: int = 4,
+    gpu: int = 0,
 ) -> tuple[str, dict[str, str]]:
     if attempt not in (0, 1, 2):
         raise ValueError("anchor attempt must be 0, 1, or 2")
@@ -391,7 +392,7 @@ def build_anchor_sequence_command(
     return command, _cuda_env(gpu)
 
 
-def build_anchor_commands(*, checkpoint: Path, output_root: Path, attempt: int, gpu: int = 4) -> list[tuple[str, dict[str, str]]]:
+def build_anchor_commands(*, checkpoint: Path, output_root: Path, attempt: int, gpu: int = 0) -> list[tuple[str, dict[str, str]]]:
     return [
         build_anchor_sequence_command(checkpoint=checkpoint, output_root=output_root, attempt=attempt, sequence=sequence, gpu=gpu)
         for sequence in ANCHOR_SEQUENCES
@@ -689,14 +690,14 @@ def _aggregate_anchor(output_root: Path, target: Path, attempt: int) -> dict[str
 
 
 def dry_run_payload(*, planner_path: Path = DEFAULT_PLANNER) -> dict[str, Any]:
-    train, train_env = build_train_command(output_dir=DEFAULT_TRAIN_OUTPUT, gpu=4)
-    step0, step0_env = build_step0_command(output_dir=DEFAULT_STEP0.parent, gpu=4)
-    micro, micro_env = build_micro_smoke_command(output_dir=DEFAULT_MICRO_OUTPUT, gpu=4)
-    gate, gate_env = build_training_gate_command(checkpoint=DEFAULT_CHECKPOINT, output_dir=DEFAULT_GATE_OUTPUT, gpu=4)
-    rehearsal = build_rehearsal_commands(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_REHEARSAL_OUTPUT, gpu=4)
-    rehearsal_cell, rehearsal_cell_env = build_rehearsal_cell_command(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_REHEARSAL_OUTPUT, cell="cell_-2.5", gpu=4)
-    anchor = build_anchor_commands(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_ANCHOR_OUTPUT, attempt=0, gpu=4)
-    anchor_sequence, anchor_sequence_env = build_anchor_sequence_command(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_ANCHOR_OUTPUT, attempt=0, sequence="S1", gpu=4)
+    train, train_env = build_train_command(output_dir=DEFAULT_TRAIN_OUTPUT, gpu=0)
+    step0, step0_env = build_step0_command(output_dir=DEFAULT_STEP0.parent, gpu=0)
+    micro, micro_env = build_micro_smoke_command(output_dir=DEFAULT_MICRO_OUTPUT, gpu=0)
+    gate, gate_env = build_training_gate_command(checkpoint=DEFAULT_CHECKPOINT, output_dir=DEFAULT_GATE_OUTPUT, gpu=0)
+    rehearsal = build_rehearsal_commands(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_REHEARSAL_OUTPUT, gpu=0)
+    rehearsal_cell, rehearsal_cell_env = build_rehearsal_cell_command(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_REHEARSAL_OUTPUT, cell="cell_-2.5", gpu=0)
+    anchor = build_anchor_commands(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_ANCHOR_OUTPUT, attempt=0, gpu=0)
+    anchor_sequence, anchor_sequence_env = build_anchor_sequence_command(checkpoint=DEFAULT_CHECKPOINT, output_root=DEFAULT_ANCHOR_OUTPUT, attempt=0, sequence="S1", gpu=0)
     if "num_envs=8" not in micro or "num_envs=80" not in step0 or str(DEFAULT_MICRO_OUTPUT) == str(DEFAULT_STEP0.parent):
         raise AssertionError("T0.5 micro command must be bounded and output-isolated from exact-80 step0")
     train_requirements = (
@@ -722,7 +723,7 @@ def dry_run_payload(*, planner_path: Path = DEFAULT_PLANNER) -> dict[str, Any]:
         for gpu in ALLOWED_GPUS
     }
     if any(env["CUDA_VISIBLE_DEVICES"] != gpu for gpu, commands in gpu_commands.items() for env in commands.values()):
-        raise AssertionError("train_only/checkpoint_gate GPU mapping must stay restricted to GPU4-7")
+        raise AssertionError("train_only/checkpoint_gate GPU mapping must stay restricted to GPU0-3")
     return {
         "schema": "a2_piper_pull_v5_6_hold_specialist_dry_run_v1",
         "status": "NOT_RUN",
@@ -769,7 +770,7 @@ def main() -> int:
     parser.add_argument("--anchor-output", type=Path, default=DEFAULT_ANCHOR_OUTPUT)
     parser.add_argument("--anchor-sequence", choices=ANCHOR_SEQUENCES)
     parser.add_argument("--checkpoint", type=Path, default=None)
-    parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, default=4)
+    parser.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, default=0)
     parser.add_argument("--attempt", type=int, choices=(0, 1, 2), default=0)
     parser.add_argument("--level", choices=("planner", "warm", "micro", "step0", "training", "train_only", "checkpoint_gate", "aggregate_training", "rehearsal", "rehearsal_cell", "aggregate_rehearsal", "anchor", "anchor_sequence", "aggregate_anchor"))
     args = parser.parse_args()

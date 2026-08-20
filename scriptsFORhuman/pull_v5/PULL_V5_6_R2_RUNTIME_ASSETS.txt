@@ -1,0 +1,19 @@
+# Pull-v5.6-r2 runtime assets excluded from normal Git history.
+# The archive preserves these repository-relative paths and must be extracted at
+# the repository root on the destination machine.
+logs_rl/a2_piper_pull_v5_6_hold_specialist/warm_start/model_step_000000.pt
+logs_eval/a2_piper_pull_v5/v5_6_planner_architecture_decision.json
+logs_eval/a2_piper_pull_v5/v5_6_specialist_t0/WARM_START.json
+logs_eval/a2_piper_pull_v5/v5_6_specialist_t0_5_micro_r2/MICRO_SMOKE.json
+logs_eval/a2_piper_pull_v5/v5_6_specialist_t0_5_micro_r2/STEP0_GATE.json
+logs_eval/a2_piper_pull_v5/v5_6_specialist_t0_5_micro_r2/micro_stdout_stderr.log
+logs_eval/a2_piper_pull_v5/v5_6_specialist_gate_step0/STEP0_GATE.json
+logs_eval/a2_piper_pull_v5/v5_6_specialist_gate_step0/r2_step0_stdout_stderr.log
+logs_eval/a2_piper_pull_v5/v5_5_adapter_gate/TRAINING_GATE.json
+logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt
+logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank.pt.receipt.json
+logs_rl/a2_piper_full_stage_a2_pull/pull_v5_state_bank/pull_v5_state_bank_manifest.json
+logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt
+logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/config.yaml
+logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/meta.yaml
+logs_rl/a2_piper_pull_v5_6_hold_specialist/r2_train_stdout_stderr.log

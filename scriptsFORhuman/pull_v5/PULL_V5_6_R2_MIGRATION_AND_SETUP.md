@@ -1,8 +1,11 @@
 # Pull-v5.6-r2 Migration and IsaacLab/Isaac Sim Setup
 
-**Prepared:** 2026-08-20 19:53 HKT  
-**Branch:** `codex/a2-piper-pull-v0-20260803`  
-**Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`  
+**Prepared:** 2026-08-20 19:53 HKT
+
+**Branch:** `codex/a2-piper-pull-v0-20260803`
+
+**Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`
+
 **Runtime archive:** `a2_piper_pull_v5_6_r2_runtime_assets_20260820.zip`
 
 ## 1. Exact migration boundary

@@ -1,8 +1,11 @@
 # Pull-v5.6-r2 AI Handoff
 
-**Handoff state:** `RESUME_REQUIRED_AFTER_MIGRATION`  
-**Prepared:** 2026-08-20 19:53 HKT  
-**Branch:** `codex/a2-piper-pull-v0-20260803`  
+**Handoff state:** `RESUME_REQUIRED_AFTER_MIGRATION`
+
+**Prepared:** 2026-08-20 19:53 HKT
+
+**Branch:** `codex/a2-piper-pull-v0-20260803`
+
 **Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`
 
 ## 1. Mission and current truth

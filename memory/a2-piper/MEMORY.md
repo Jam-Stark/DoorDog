@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-17 12:27 HKT — pull-v5.6 已授权/实现末级 terminal-hold specialist；raw eager actor strict-load、fresh critic/optimizer/scheduler、std=`1.0` 与 static/CPU/synthetic acceptance PASS。sole formal review 保持 FAIL。step0 三次 G9 invalid attempt 依次因 eval root Hydra schema 缺 `experiment_dir`、`output_dir`、`multi_gpu` 阻塞，零 valid receipt；rung3 capability `INCONCLUSIVE/BLOCKED`，T1 以后全部 NOT_RUN、无 passage denominator，G11 return-to-planner，不得自创 rung4。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-20 19:53 HKT — pull-v5.6-r2 已修复完整 eval root schema；8-env T0.5 与 exact 80-env step0 runtime PASS，step0 `0/80` 为 diagnostic-only 且放行 T1。T1 首跑在 batch1 后暴露 `workflow_config` plumbing G9、零 checkpoint；根因已 static-fixed，因外部 GPU 占用与机器迁移暂未重跑。当前是 active migration pause，非 G11/scientific closure；顶层 runtime archive 与 setup/AI handoff 已准备，目标机先做 restore+micro 再续 T1。
 
 ## Update Rules
 

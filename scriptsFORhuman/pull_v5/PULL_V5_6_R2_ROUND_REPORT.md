@@ -1,9 +1,13 @@
 # A2+Piper Pull-v5.6-r2 Round Report
 
-**Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`  
-**Execution window:** 2026-08-17 to 2026-08-20 HKT  
-**Branch:** `codex/a2-piper-pull-v0-20260803`  
-**Route:** consented `HIGH_RISK_PATH`  
+**Plan ID:** `a2_piper_pull_v5_6_terminal_hold_specialist_finetune`
+
+**Execution window:** 2026-08-17 to 2026-08-20 HKT
+
+**Branch:** `codex/a2-piper-pull-v0-20260803`
+
+**Route:** consented `HIGH_RISK_PATH`
+
 **Current scientific disposition:** `IN_PROGRESS / MIGRATION_PAUSE`
 
 ## Technical summary

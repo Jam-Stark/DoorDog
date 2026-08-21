@@ -28,6 +28,10 @@ from transformers.trainer import *
 from trl.trainer.ppo_trainer import *
 
 from gr00t.rl.agents.modules.data_utils import RolloutStorage
+from gr00t.rl.envs.door.a2_v25_intervention import (
+    V25MatchedPrefixIntervention,
+    read_v25_intervention_config,
+)
 from gr00t.rl.trl.callbacks.hv_callback_handler import HVCallbackHandler
 from gr00t.rl.trl.utils.common import wandb_run_exists
 from gr00t.rl.trl.utils.rl import compute_episode_attnmask
@@ -1465,6 +1469,8 @@ def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs, *, include_m3
             )
 
     metadata_fields = (
+        "door_open_lr",
+        "door_handle_side",
         "door_hinge_drive_max_force",
         "door_handle_drive_max_force",
         "door_handle_height",
@@ -7171,6 +7177,16 @@ class TRLPPOTrainer(PPOTrainer):
             env=self.env,
             process_count=self.accelerator.num_processes,
         )
+        a2_v25_intervention = read_v25_intervention_config(
+            self.config.get("eval", {}),
+            env=self.env,
+            process_count=self.accelerator.num_processes,
+        )
+        a2_v25_intervention_runner = (
+            V25MatchedPrefixIntervention(self.env, a2_v25_intervention)
+            if a2_v25_intervention["enabled"]
+            else None
+        )
         if a2_v23_p08_state_bank["enabled"] and a2_v23_stationary_rent["enabled"]:
             raise RuntimeError(
                 "P0.8 state-bank capture cannot share a rollout with stationary-rent export."
@@ -7568,7 +7584,16 @@ class TRLPPOTrainer(PPOTrainer):
                             actor_state.update(v2_actor_state)
                             actor_state["a2_v23_p08_v2_pre_low_level_applied"] = True
 
-                        applied_high_level_action = post_oracle_override_pre_env_action
+                        if a2_v25_intervention_runner is not None:
+                            applied_high_level_action = a2_v25_intervention_runner.apply(
+                                post_oracle_override_pre_env_action,
+                                first_episode_active_mask=first_episode_active_mask,
+                                control_steps=self.cur_episode_length.clone().to(
+                                    dtype=torch.long
+                                ),
+                            )
+                        else:
+                            applied_high_level_action = post_oracle_override_pre_env_action
                         if a2_v23_stationary_rent["enabled"]:
                             stationary_target_stage = a2_v23_stationary_rent["target_stage"]
                             stationary_capture_mask = (
@@ -7816,6 +7841,9 @@ class TRLPPOTrainer(PPOTrainer):
                         obs_dict[obs_key] = obs_dict[obs_key].to(device)
 
                     rewards, dones = rewards.to(device), dones.to(device)
+
+                    if a2_v25_intervention_runner is not None:
+                        a2_v25_intervention_runner.after_step(dones)
 
                     if a2_hold_oracle_config["enabled"]:
                         update_hold_oracle_after_step = getattr(
@@ -8254,6 +8282,24 @@ class TRLPPOTrainer(PPOTrainer):
 
         if not os.path.exists(eval_output_dir):
             os.makedirs(eval_output_dir, exist_ok=True)
+
+        if a2_v25_intervention_runner is not None:
+            intervention_path = os.path.join(
+                eval_output_dir, a2_v25_intervention["raw_filename"]
+            )
+            intervention_tmp_path = f"{intervention_path}.tmp"
+            intervention_payload = a2_v25_intervention_runner.payload(
+                checkpoint=str(self.checkpoint_path), seed=int(self.args.seed)
+            )
+            with open(intervention_tmp_path, "w", encoding="utf-8") as stream:
+                json.dump(
+                    _make_json_safe(intervention_payload, path="a2_v25_intervention"),
+                    stream,
+                    indent=2,
+                    allow_nan=False,
+                )
+            os.replace(intervention_tmp_path, intervention_path)
+            logger.info("Saved v25 matched-prefix intervention records to %s", intervention_path)
 
         if a2_v23_p08_v2["enabled"]:
             if a2_v23_p08_v2.get("route_b", False):

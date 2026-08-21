@@ -1,0 +1,53 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v23_d1_full_64x10_smoke
+  - _self_
+
+v25_schema: a2_piper_base_v25_m2_mixed_lr_64x8_smoke_v1
+v25_plan_id: base_v25_left_right_teacher_posture_causality_R2
+v25_milestone: M2_MIXED_LR_64X8_SMOKE
+v25_formal_launchable: false
+
+v23_contract_only: false
+v23_training_enabled: true
+checkpoint: logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 64
+num_gpus: 1
+multi_gpu: false
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    num_mini_batches: 1
+    rp0_enabled: false
+    eval:
+      eval_num_envs_episodes: false
+  trl:
+    num_total_batches: 8
+    report_to: none
+
+callbacks:
+  model_save:
+    save_frequency: 8
+
+env:
+  config:
+    a2_v25_door_open_lr: [left, right]
+    a2_v23_d1_sampler_enabled: false
+    a2_v24_friction_enabled: false
+    enable_staged_reset: true
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+rewards:
+  reward_penalty_curriculum: false
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false

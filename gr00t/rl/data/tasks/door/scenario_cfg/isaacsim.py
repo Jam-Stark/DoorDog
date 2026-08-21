@@ -1746,6 +1746,44 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    v25_handedness_key = "a2_v25_door_open_lr"
+    v25_handedness = env_config.get(v25_handedness_key)
+    if v25_handedness is not None:
+        if isinstance(v25_handedness, str):
+            if v25_handedness not in ("left", "right"):
+                raise ValueError(
+                    f"env.config.{v25_handedness_key} must be 'left', 'right', "
+                    "or [left, right]"
+                )
+            v25_handedness_options = [v25_handedness]
+            v25_fixed_handedness = v25_handedness
+        elif isinstance(v25_handedness, Sequence):
+            v25_handedness_options = list(v25_handedness)
+            if v25_handedness_options != ["left", "right"]:
+                raise ValueError(
+                    f"env.config.{v25_handedness_key} mixed mode must be exactly "
+                    "[left, right]"
+                )
+            v25_fixed_handedness = None
+        else:
+            raise ValueError(
+                f"env.config.{v25_handedness_key} must be 'left', 'right', "
+                "or [left, right]"
+            )
+        if any(
+            env_config.get(key) is True
+            for key in (
+                "a2_v23_d1_sampler_enabled",
+                _V23_P0_PLAIN_MANIFEST_FLAG,
+                _V23_P0_BOUND_MANIFEST_FLAG,
+                _V21B_SIGNED_PROBE_FLAG,
+                _V22_MANIFEST_FLAG,
+            )
+        ) or env_config.get(_V22_BUCKET_MIXTURE_KEY) is not None:
+            raise ValueError(
+                "v25 deterministic handedness cannot be combined with an inherited "
+                "scenario selector"
+            )
     if env_config.get("a2_v23_d1_sampler_enabled") is True:
         if any(
             env_config.get(key) is True
@@ -1826,6 +1864,24 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
             env_config[height_grid_key],
             task_obj_cfg_dict=result,
         )
+    if v25_handedness is not None:
+        door_cfg = result["door"]
+        spawn_cfg = door_cfg.spawn
+        assets_cfg = [
+            asset_cfg.replace(
+                door_open_lr=v25_handedness_options,
+                door_open_io=["out"],
+                rand_door_open_lr=v25_fixed_handedness,
+                rand_door_open_io="out",
+            )
+            for asset_cfg in spawn_cfg.assets_cfg
+        ]
+        result = {
+            **result,
+            "door": door_cfg.replace(
+                spawn=spawn_cfg.replace(assets_cfg=assets_cfg, random_choice=False)
+            ),
+        }
     return result
 door_spawner_cfg = DoorSpawnerCfg(
     func=spawn_door,

@@ -1,0 +1,18 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v25_formal_full_p10
+  - _self_
+
+v25_schema: a2_piper_base_v25_formal_rp0_p10_v1
+v25_milestone: M2_FORMAL_RP0
+v25_cell: V25_RP0_S0
+v25_posture_mode: RP0
+
+algo:
+  config:
+    rp0_enabled: true
+
+env:
+  config:
+    a2_v23_rp0_enabled: true

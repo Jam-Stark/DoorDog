@@ -1,0 +1,54 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v25_m2_mixed_lr_64x8_smoke
+  - _self_
+
+v25_schema: a2_piper_base_v25_formal_full_p10_v1
+v25_plan_id: base_v25_left_right_teacher_posture_causality_R2
+v25_milestone: M2_FORMAL_FULL
+v25_formal_launchable: true
+v25_cell: V25_FULL_S0
+v25_posture_mode: FULL
+v25_friction_profile: P10
+
+seed: 0
+num_envs: 4096
+
+algo:
+  config:
+    num_mini_batches: 4
+    rp0_enabled: false
+    rp0_mask_indices: [3, 4]
+    rp0_neutral_value: 0.0
+  trl:
+    num_total_batches: 1500
+    report_to: none
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    a2_v25_door_open_lr: [left, right]
+    a2_v23_d1_sampler_enabled: false
+    a2_v23_rp0_enabled: false
+    a2_v23_rp0_mask_indices: [3, 4]
+    a2_v23_rp0_neutral_value: 0.0
+    a2_v24_friction_enabled: true
+    a2_v24_friction_backend: native_joint_friction_v1
+    a2_v24_friction_static_effort: 10.0
+    a2_v24_friction_dynamic_effort: 7.5
+    a2_v24_friction_viscous_coefficient: 0.0
+    enable_staged_reset: true
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+rewards:
+  reward_penalty_curriculum: false
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false

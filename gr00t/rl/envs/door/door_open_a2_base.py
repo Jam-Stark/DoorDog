@@ -7192,6 +7192,11 @@ class DoorPregrasp(
             self.door_open_lr[env_id] = door_metadata["doorOpenLR"]
             self.door_open_io[env_id] = door_metadata["doorOpenIO"]
 
+        if not torch.all((self.door_open_lr == 1.0) | (self.door_open_lr == -1.0)):
+            raise RuntimeError("A2 door metadata requires doorOpenLR values in {-1, +1}.")
+        left_count = int((self.door_open_lr == 1.0).sum().item())
+        right_count = int((self.door_open_lr == -1.0).sum().item())
+
         for field_name in (
             "door_handle_height",
             "door_hinge_drive_max_force",
@@ -7214,8 +7219,11 @@ class DoorPregrasp(
                 )
         logger.info(
             "A2 runtime evidence: door metadata validated num_envs={} "
+            "handle_side_left_count={} handle_side_right_count={} "
             "hinge_drive_max_force_min={} hinge_drive_max_force_max={} device={}",
             self.num_envs,
+            left_count,
+            right_count,
             self.door_hinge_drive_max_force.min().item(),
             self.door_hinge_drive_max_force.max().item(),
             self.door_hinge_drive_max_force.device,
@@ -13707,6 +13715,7 @@ class DoorPregrasp(
         stage1_count = self._a2_stage1_root_height_count
 
         float_fields = {
+            "door_open_lr": self.door_open_lr,
             "door_hinge_drive_max_force": self.door_hinge_drive_max_force,
             "door_handle_drive_max_force": self.door_handle_drive_max_force,
             "door_handle_height": self.door_handle_height,
@@ -13765,7 +13774,8 @@ class DoorPregrasp(
                     f"tensor shape ({self.num_envs},) on {self.device}."
                 )
         if (
-            not torch.all(torch.isfinite(self.door_hinge_drive_max_force))
+            not torch.all((self.door_open_lr == 1.0) | (self.door_open_lr == -1.0))
+            or not torch.all(torch.isfinite(self.door_hinge_drive_max_force))
             or not torch.all(torch.isfinite(self.door_handle_drive_max_force))
             or not torch.all(torch.isfinite(self.door_handle_height))
             or not torch.all(torch.isfinite(self.door_weight))
@@ -13789,6 +13799,7 @@ class DoorPregrasp(
         }
         records = []
         for index in range(env_ids.numel()):
+            door_open_lr = float(selected["door_open_lr"][index])
             crossing_is_valid = bool(
                 selected["_a2_crossing_event_valid"][index]
             )
@@ -13804,6 +13815,8 @@ class DoorPregrasp(
             )
             records.append(
                 {
+                    "door_open_lr": door_open_lr,
+                    "door_handle_side": "left" if door_open_lr > 0.0 else "right",
                     "door_hinge_drive_max_force": float(
                         selected["door_hinge_drive_max_force"][index]
                     ),

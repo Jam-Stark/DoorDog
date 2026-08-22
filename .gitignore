@@ -226,3 +226,10 @@ data/door_assets/*
 
 # Local cloud-session handoff archives (eval/render evidence; never commit)
 *.zip
+
+# BEGIN jam-coding-role-v1.3.0 runtime
+.ai/runtime/
+.ai/outgoing-artifacts/
+.ai/run-receipts/
+.ai/pending-events/
+# END jam-coding-role-v1.3.0 runtime

@@ -579,6 +579,12 @@ def upload(args: argparse.Namespace) -> int:
         cmd.append("--dry-run")
     print("RUN:", " ".join(cmd))
     completed = subprocess.run(cmd, cwd=root, check=False)
+    if completed.returncode == 0 and not args.dry_run:
+        if source.is_dir():
+            shutil.rmtree(source)
+        else:
+            source.unlink()
+        print(f"LOCAL_BUNDLE_REMOVED: {source}")
     return completed.returncode
 
 

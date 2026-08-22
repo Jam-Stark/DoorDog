@@ -1,40 +1,39 @@
 ---
 name: codex-agent-system-architecture
-scope: repository-wide Codex multi-agent workflow and authority model
-status: lean_current_schema_static_pass_runtime_not_run
-last_updated: 2026-08-17 16:31 HKT
-evidence_level: STATIC_PASS; RUNTIME_NOT_RUN
+scope: repository-wide AI workflow and authority model
+status: adaptive_v1_3_static_pass_runtime_not_run
+last_updated: 2026-08-22 HKT
+evidence_level: STATIC_PASS; PRODUCTION_RUNTIME_NOT_RUN
 owned_paths:
   - AGENTS.md
+  - .ai/
   - .codex/AGENTS.md
   - .codex/TEAM.md
-  - .codex/config.toml
-  - .codex/agents/
+  - .codex/hooks.json
+  - .omo/AGENTS.md
+  - opencode.json
+  - CLAUDE.md
   - memory/agent-system/architecture/
 ---
 
 ## Purpose
 
-Record the active lean Codex multi-agent workflow for DoorDog. This entry replaces the previous contract/frozen-candidate/eval-heavy workflow.
+Record Jam Coding Role v1.3.0 for DoorDog: a lean default workflow with optional coordination facilities.
 
 ## Current decisions
 
-- Current project config uses documented `[agents]` settings. Five spawned threads are allowed in addition to Main; generic children default to Terra/high.
-- Standalone `.codex/agents/*.toml` files are the role-definition source. The old feature table, duplicate role registry, role probe, contracts, evals, and rollout gates are not active.
-- Active roles are `scope_planner`, `context_researcher`, `deep_researcher`, `isaaclab_worker`, `code_reviewer`, `isaaclab_reviewer`, `runtime_qa`, and `memory_curator`.
-- Main is Sol/high. Terra/high handles ordinary planning, implementation, and code review. Luna/high handles repository/API research and runtime proof interpretation. Luna/medium is reserved for mechanical memory curation. Sol/high handles rare IsaacLab semantic review; Sol/Ultra is explicit deep research.
-- Routine work is implementation-first: minimal memory, real-path trace, smallest end-to-end implementation, one narrow existing proof, one Main diff/path check, then user report.
-- Review/QA/curation are trigger-driven, not mandatory stages. One concern has one owner for one pass; a reviewer returns at most three blocking findings.
-- Task IDs, revisions, frozen candidates, manifests, recurring metadata probes, contract matrices, and default review waves were removed.
-- Direct messages carry bounded peer questions/findings/handoffs. Only material scope, ownership, model/cost, blocker, and integration decisions are mirrored to Main.
-- One path/resource has one writer. Parallelism is favored for read-heavy work and clearly disjoint writers.
-- Independent tool calls are batched. Long waits use one appropriate barrier/sleep; runs over 30 minutes use a named detached tmux session.
-- No new tests, compatibility, guardrails, mutation coverage, or speculative defensive handling are added before the user confirms implemented behavior unless a concrete failure requires one targeted check.
+- FAST and ordinary STANDARD tasks use Main or a small focused set of agents without mandatory ledger、disk contract、candidate freeze、memory curator or artifact handoff.
+- HIGH_RISK is an approval overlay for destructive/external/hardware/expensive or difficult-to-reverse work; it does not force a fixed review pipeline.
+- Codex MultiAgentV2 P2P is retained. Technical facts may flow directly between peers; authority remains with Main.
+- Team state is inactive by default. It is activated only for multiple writers、exclusive resources、cross-session DAG、formal review/QA or verdict dependency.
+- Contracts apply only to controlled tasks while coordination is active. Read-only agents and ordinary spawns do not receive leases.
+- Candidate freeze applies to formal review/QA or otherwise ambiguous candidates, not normal implementation.
+- Memory curation is triggered by a durable verified candidate or real routing debt. It is not a closure ceremony.
+- Long-run receipts and tmux may be used independently of the full team ledger for a single authorized run.
+- Artifact bundling/upload occurs only when Owner or the stage contract explicitly enables handoff.
+- Root `AGENTS.md` is a route table. Optional documents are not a full-reading checklist.
+- Git commits require explicit authorization in the current task. Migration tooling defaults to no commit and no push.
 
-## TODO summary
+## Evidence boundary
 
-- No scheduled audit or eval. Add a targeted TODO only after a concrete workflow defect is observed.
-
-## DONE summary
-
-- 2026-08-17 16:31 HKT - Migrated to the lean current standalone-agent workflow, selectively raised Terra/Luna code and runtime roles to high, retained medium only for mechanical memory curation, removed obsolete audit infrastructure, and statically parsed the replacement TOML. Runtime spawning, simulation, and training were not run by the migration.
+This entry records the static workflow migration. It does not claim a production Codex P2P session、OMO Team Mode run、IsaacLab simulation、training、Google Drive upload or hardware validation.

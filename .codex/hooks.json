@@ -1,0 +1,43 @@
+{
+  "description": "DoorDog v1.3 adaptive coordination hooks; no-op while team state is inactive",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^(spawn_agent)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" pre",
+            "timeout": 10,
+            "statusMessage": "Checking optional coordination policy"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^(spawn_agent|send_message|followup_task|interrupt_agent)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" post",
+            "timeout": 10,
+            "statusMessage": "Recording active coordination metadata"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.ai/scripts/codex_team_hook.py\" session-start",
+            "timeout": 10,
+            "statusMessage": "Loading pending long-run events"
+          }
+        ]
+      }
+    ]
+  }
+}

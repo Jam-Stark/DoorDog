@@ -1,0 +1,43 @@
+# DoorDog A2_Piper Coding Role v1.2.0 package manifest
+
+FILE_COUNT=39
+TOTAL_UNCOMPRESSED_BYTES_EXCLUDING_MANIFEST=102397
+
+    2787  APPLY_PROMPT.md
+    3562  CHANGELOG.md
+    1664  README.md
+    1563  VERIFICATION.md
+       6  VERSION
+    6244  apply_doordog_v1_2.py
+    2297  overlay/.ai/ARTIFACT_HANDOFF.md
+    1442  overlay/.ai/LONG_RUNNING_TASKS.md
+    1947  overlay/.ai/MEMORY_GOVERNANCE.md
+    2576  overlay/.ai/PROJECT.md
+    5637  overlay/.ai/ROLE.md
+       6  overlay/.ai/ROLE_VERSION
+    2160  overlay/.ai/RUNTIME_ADAPTERS.md
+    5264  overlay/.ai/SCIENTIFIC_ENGINEERING.md
+    3234  overlay/.ai/STAGE_DECISION.md
+    2007  overlay/.ai/TEAM_STATE.md
+    3738  overlay/.ai/WORKFLOW.md
+     861  overlay/.ai/artifact-sync.toml
+     261  overlay/.ai/artifact-targets.toml
+    3394  overlay/.ai/scripts/codex_team_hook.py
+    4221  overlay/.ai/scripts/memory_curator.py
+    4475  overlay/.ai/scripts/run_supervisor.py
+   16596  overlay/.ai/scripts/stage_artifacts.py
+   14804  overlay/.ai/scripts/team_state.py
+     850  overlay/.ai/team-state.toml
+      77  overlay/.claude/settings.json
+     662  overlay/.codex/AGENTS.md
+    2137  overlay/.codex/TEAM.md
+    1064  overlay/.codex/hooks.json
+     212  overlay/.github/instructions/codingRole.instructions.md
+     221  overlay/.github/instructions/omo-coding-role.instructions.md
+     874  overlay/.omo/AGENTS.md
+     204  overlay/.omo/omo.jsonc
+    2677  overlay/AGENTS.md
+     240  overlay/CLAUDE.md
+    2024  overlay/memory/agent-system/architecture/description.md
+     348  overlay/opencode.json
+      61  protected-paths.txt

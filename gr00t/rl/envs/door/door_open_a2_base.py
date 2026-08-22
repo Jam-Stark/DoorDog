@@ -5099,6 +5099,16 @@ class DoorPregrasp(
     A2_STAGE0_STAGING_X_MIN_CONFIG_KEY = "a2_stage0_staging_x_min"
     A2_STAGE0_STAGING_X_MAX_CONFIG_KEY = "a2_stage0_staging_x_max"
     A2_STAGE0_STAGING_Y_TOL_CONFIG_KEY = "a2_stage0_staging_y_tol"
+    A2_V26_NATURAL_START_ENABLED_CONFIG_KEY = "a2_v26_natural_start_enabled"
+    A2_V26_NATURAL_START_DISTANCE_RANGE_CONFIG_KEY = (
+        "a2_v26_natural_start_door_normal_distance_range"
+    )
+    A2_V26_NATURAL_START_LATERAL_RANGE_CONFIG_KEY = (
+        "a2_v26_natural_start_lateral_offset_range"
+    )
+    A2_V26_NATURAL_START_YAW_RANGE_CONFIG_KEY = (
+        "a2_v26_natural_start_relative_yaw_range"
+    )
     A2_STAGE3_TO4_DOOR_HINGE_THRESHOLD_CONFIG_KEY = (
         "a2_stage3_to4_door_hinge_threshold"
     )
@@ -6212,6 +6222,37 @@ class DoorPregrasp(
             ),
         )
 
+    def _get_a2_v26_natural_start_ranges(
+        self,
+    ) -> tuple[tuple[float, float], tuple[float, float], tuple[float, float]] | None:
+        enabled = self.config.get(self.A2_V26_NATURAL_START_ENABLED_CONFIG_KEY, False)
+        if not isinstance(enabled, bool):
+            raise TypeError(f"{self.A2_V26_NATURAL_START_ENABLED_CONFIG_KEY} must be bool")
+        if not enabled:
+            return None
+
+        def _range(key: str, *, positive: bool) -> tuple[float, float]:
+            value = self.config.get(key)
+            if isinstance(value, (str, bytes)) or value is None or len(value) != 2:
+                raise TypeError(f"env.config.{key} must contain two bounds")
+            if any(isinstance(bound, bool) for bound in value):
+                raise TypeError(f"env.config.{key} bounds must be real numbers")
+            try:
+                low, high = float(value[0]), float(value[1])
+            except (TypeError, ValueError) as exc:
+                raise TypeError(f"env.config.{key} bounds must be real numbers") from exc
+            if not math.isfinite(low) or not math.isfinite(high) or low >= high:
+                raise ValueError(f"env.config.{key} must be finite and strictly ordered")
+            if positive and low <= 0.0:
+                raise ValueError(f"env.config.{key} must stay positive")
+            return low, high
+
+        return (
+            _range(self.A2_V26_NATURAL_START_DISTANCE_RANGE_CONFIG_KEY, positive=True),
+            _range(self.A2_V26_NATURAL_START_LATERAL_RANGE_CONFIG_KEY, positive=False),
+            _range(self.A2_V26_NATURAL_START_YAW_RANGE_CONFIG_KEY, positive=False),
+        )
+
     def _get_a2_stage3_to4_door_hinge_threshold(self) -> float:
         threshold = getattr(self, "_a2_stage3_to4_door_hinge_threshold", None)
         if isinstance(threshold, bool) or not isinstance(threshold, float):
@@ -7253,6 +7294,7 @@ class DoorPregrasp(
             )
         )
         self._init_door_metadata()
+        self._init_a2_v26_training_metrics()
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
         a2_gripper_body_names = ("arm_body7", "arm_body8")
         missing_gripper_bodies = [
@@ -7335,6 +7377,132 @@ class DoorPregrasp(
         self._a2_stage3_stage4_last_gripper_raw_sign_flip = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+
+    def _init_a2_v26_training_metrics(self) -> None:
+        mode = self.config.get("a2_v26_door_open_lr")
+        if mode is not None:
+            if mode not in ("bilateral", "left", "right"):
+                raise ValueError("a2_v26_door_open_lr must be bilateral, left, or right")
+            left_count = int((self.door_open_lr == 1.0).sum().item())
+            right_count = int((self.door_open_lr == -1.0).sum().item())
+            expected = {
+                "bilateral": (self.num_envs // 2, self.num_envs // 2),
+                "left": (self.num_envs, 0),
+                "right": (0, self.num_envs),
+            }[mode]
+            if mode == "bilateral" and self.num_envs % 2 != 0:
+                raise RuntimeError("v26 bilateral runtime requires an even num_envs")
+            if (left_count, right_count) != expected:
+                raise RuntimeError(
+                    "v26 fixed-side runtime count mismatch: "
+                    f"mode={mode!r}, actual={(left_count, right_count)}, expected={expected}"
+                )
+
+        enabled = self.config.get("a2_v26_bilateral_metrics_enabled", False)
+        if not isinstance(enabled, bool):
+            raise TypeError("a2_v26_bilateral_metrics_enabled must be bool")
+        self._a2_v26_bilateral_metrics_enabled = enabled
+        if not enabled:
+            return
+        if mode is None:
+            raise RuntimeError("v26 bilateral metrics require a2_v26_door_open_lr")
+        self._a2_v26_episode_started = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v26_episode_start_stage = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_episode_count_by_side = torch.zeros(
+            2, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_natural_episode_count_by_side = torch.zeros(
+            2, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_goal_count_by_side = torch.zeros(
+            2, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_max_stage_seen_by_side = torch.zeros(
+            2, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_reset_use_count_by_side_stage = torch.zeros(
+            2, self.num_stages, dtype=torch.long, device=self.device
+        )
+        self._log_a2_v26_training_metrics()
+
+    def _record_a2_v26_completed_episodes(self, env_ids: torch.Tensor) -> None:
+        if not self._a2_v26_bilateral_metrics_enabled or env_ids.numel() == 0:
+            return
+        started = self._a2_v26_episode_started[env_ids]
+        for side_index, side_sign in enumerate((1.0, -1.0)):
+            selected = started & (self.door_open_lr[env_ids] == side_sign)
+            if not torch.any(selected):
+                continue
+            selected_env_ids = env_ids[selected]
+            self._a2_v26_episode_count_by_side[side_index] += selected_env_ids.numel()
+            self._a2_v26_natural_episode_count_by_side[side_index] += (
+                self._a2_v26_episode_start_stage[selected_env_ids] == 0
+            ).sum()
+            self._a2_v26_goal_count_by_side[side_index] += self.current_completed_task_buf[
+                selected_env_ids
+            ].sum()
+            self._a2_v26_max_stage_seen_by_side[side_index] = torch.maximum(
+                self._a2_v26_max_stage_seen_by_side[side_index],
+                self.current_max_stage_buf[selected_env_ids].max(),
+            )
+
+    def _record_a2_v26_reset_origins(self, env_ids: torch.Tensor) -> None:
+        if not self._a2_v26_bilateral_metrics_enabled or env_ids.numel() == 0:
+            return
+        start_stages = self.stage_buf[env_ids]
+        self._a2_v26_episode_start_stage[env_ids] = start_stages
+        self._a2_v26_episode_started[env_ids] = True
+        for side_index, side_sign in enumerate((1.0, -1.0)):
+            side_mask = self.door_open_lr[env_ids] == side_sign
+            for stage in range(self.num_stages):
+                self._a2_v26_reset_use_count_by_side_stage[side_index, stage] += (
+                    side_mask & (start_stages == stage)
+                ).sum()
+        self._log_a2_v26_training_metrics()
+
+    def _log_a2_v26_training_metrics(self) -> None:
+        if not getattr(self, "_a2_v26_bilateral_metrics_enabled", False):
+            return
+        for side_index, (side_name, side_sign) in enumerate(
+            (("left", 1.0), ("right", -1.0))
+        ):
+            side_mask = self.door_open_lr == side_sign
+            side_count = side_mask.sum()
+            self.log_dict[f"a2_v26_{side_name}_env_count"] = side_count.float()
+            if side_count == 0:
+                continue
+            self.log_dict[f"a2_v26_{side_name}_episode_count"] = (
+                self._a2_v26_episode_count_by_side[side_index].float()
+            )
+            self.log_dict[f"a2_v26_{side_name}_natural_start_episode_count"] = (
+                self._a2_v26_natural_episode_count_by_side[side_index].float()
+            )
+            self.log_dict[f"a2_v26_{side_name}_goal_count"] = (
+                self._a2_v26_goal_count_by_side[side_index].float()
+            )
+            current_side_max = self.current_max_stage_buf[side_mask].max()
+            self.log_dict[f"a2_v26_{side_name}_max_stage_reached"] = torch.maximum(
+                self._a2_v26_max_stage_seen_by_side[side_index], current_side_max
+            ).float()
+            for stage in range(self.num_stages):
+                self.log_dict[f"a2_v26_{side_name}_stage{stage}_occupancy"] = (
+                    self.stage_buf[side_mask] == stage
+                ).float().mean()
+                self.log_dict[f"a2_v26_{side_name}_stage{stage}_reset_use_count"] = (
+                    self._a2_v26_reset_use_count_by_side_stage[side_index, stage].float()
+                )
+                if self.enable_staged_reset:
+                    counts = self.staged_reset_num_samples[stage, side_mask]
+                    self.log_dict[
+                        f"a2_v26_{side_name}_stage{stage}_snapshot_available_env_count"
+                    ] = (counts > 0).sum().float()
+                    self.log_dict[
+                        f"a2_v26_{side_name}_stage{stage}_snapshot_sample_count"
+                    ] = counts.clamp(max=self.staged_reset_max_samples_per_stage).sum().float()
 
     def _register_a2_v20_staged_reset_buffers(self) -> None:
         """Register all v20 event/reference state that affects reward or termination."""
@@ -16527,6 +16695,7 @@ class DoorPregrasp(
                 "A2 full-stage route diagnostics require stage_buf shape "
                 f"({self.num_envs},); got {shape}."
             )
+        self._log_a2_v26_training_metrics()
 
         stage0_active = stage_buf == self.STAGE_WALK_TO_DOOR
         stage1_active = stage_buf == self.STAGE_PREGRASP
@@ -25575,6 +25744,8 @@ class DoorPregrasp(
         )
 
     def _get_obs_privileged_door_info(self):
+        left = (self.door_open_lr == 1.0).to(dtype=self.door_width.dtype)
+        right = (self.door_open_lr == -1.0).to(dtype=self.door_width.dtype)
         return torch.stack(
             [
                 self.door_width,
@@ -25582,8 +25753,8 @@ class DoorPregrasp(
                 self.door_handle_height,
                 self.door_handle_width,
                 self.door_weight / 100.0,
-                self.door_open_lr,
-                1.0 - self.door_open_lr,
+                left,
+                right,
                 self.door_open_io,
             ],
             dim=1,
@@ -26053,6 +26224,7 @@ class DoorPregrasp(
             sentinel_receipt = self._a2_p0_h_write_sentinel(env_ids)
 
         result = super().reset_envs_idx(env_ids, target_states, target_buf)
+        self._record_a2_v26_reset_origins(env_ids)
         backend = self._a2_v24_friction_backend
         if backend is not None and env_ids.numel() > 0:
             receipt = backend.apply(env_ids)
@@ -26243,6 +26415,13 @@ class DoorPregrasp(
             self._a2_v24_f3_assignment_runtime.reset_envs(env_ids)
         return result
 
+    @override
+    def _reset_tasks_callback(self, env_ids: torch.Tensor):
+        self._record_a2_v26_completed_episodes(env_ids)
+        result = super()._reset_tasks_callback(env_ids)
+        self._log_a2_v26_training_metrics()
+        return result
+
     def get_a2_v24_last_reset_friction_receipt(self) -> dict[str, Any]:
         """Return the latest production reset readback for v24 H acceptance."""
 
@@ -26277,22 +26456,58 @@ class DoorPregrasp(
                 return A2Base._reset_root_states(self, env_ids, target_root_states)
 
             self.target_robot_root_states[env_ids] = self.base_init_state
-            self.target_robot_root_states[env_ids, :3] += self.env_origins[env_ids]
-            self.target_robot_root_states[env_ids, 0:1] = (
-                torch_rand_float(-1.5, -0.6, (len(env_ids), 1), device=str(self.device))
-                + self.env_origins[env_ids, 0:1]
-            )
-            self.target_robot_root_states[env_ids, 1:2] = (
-                torch_rand_float(-0.5, 0.5, (len(env_ids), 1), device=str(self.device))
-                + self.env_origins[env_ids, 1:2]
-            )
-            r, p, _ = euler_xyz_from_quat(self.target_robot_root_states[env_ids, 3:7])
-            random_yaw = torch_rand_float(
-                -torch.pi / 4, torch.pi / 4, (len(env_ids), 1), device=str(self.device)
-            )[:, 0]
-            self.target_robot_root_states[env_ids, 3:7] = quat_from_euler_xyz(
-                r, p, random_yaw
-            )
+            v26_ranges = self._get_a2_v26_natural_start_ranges()
+            if v26_ranges is None:
+                self.target_robot_root_states[env_ids, :3] += self.env_origins[env_ids]
+                self.target_robot_root_states[env_ids, 0:1] = (
+                    torch_rand_float(-1.5, -0.6, (len(env_ids), 1), device=str(self.device))
+                    + self.env_origins[env_ids, 0:1]
+                )
+                self.target_robot_root_states[env_ids, 1:2] = (
+                    torch_rand_float(-0.5, 0.5, (len(env_ids), 1), device=str(self.device))
+                    + self.env_origins[env_ids, 1:2]
+                )
+                r, p, _ = euler_xyz_from_quat(self.target_robot_root_states[env_ids, 3:7])
+                random_yaw = torch_rand_float(
+                    -torch.pi / 4, torch.pi / 4, (len(env_ids), 1), device=str(self.device)
+                )[:, 0]
+                self.target_robot_root_states[env_ids, 3:7] = quat_from_euler_xyz(
+                    r, p, random_yaw
+                )
+            else:
+                distance_range, lateral_range, yaw_range = v26_ranges
+                door_root_state = self.simulator.get_task_root_state("door")[env_ids]
+                door_pos = door_root_state[:, :3]
+                door_yaw = yaw_quat(door_root_state[:, 3:7])
+                distance = torch_rand_float(
+                    distance_range[0],
+                    distance_range[1],
+                    (len(env_ids), 1),
+                    device=str(self.device),
+                )[:, 0]
+                lateral = torch_rand_float(
+                    lateral_range[0],
+                    lateral_range[1],
+                    (len(env_ids), 1),
+                    device=str(self.device),
+                )[:, 0]
+                local_offset = torch.stack(
+                    (-distance, lateral, torch.zeros_like(distance)), dim=-1
+                )
+                target_pos = door_pos + quat_apply(door_yaw, local_offset)
+                target_pos[:, 2] = door_pos[:, 2] + self.base_init_state[2]
+                relative_yaw = torch_rand_float(
+                    yaw_range[0],
+                    yaw_range[1],
+                    (len(env_ids), 1),
+                    device=str(self.device),
+                )[:, 0]
+                zeros = torch.zeros_like(relative_yaw)
+                self.target_robot_root_states[env_ids, :3] = target_pos
+                self.target_robot_root_states[env_ids, 3:7] = quat_mul(
+                    door_yaw,
+                    quat_from_euler_xyz(zeros, zeros, relative_yaw),
+                )
             self.target_robot_root_states[env_ids, 7:13] = 0.0
             return
 

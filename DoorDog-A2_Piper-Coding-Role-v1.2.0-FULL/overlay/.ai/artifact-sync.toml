@@ -1,0 +1,41 @@
+version = 1
+output_dir = ".ai/outgoing-artifacts"
+
+[selection]
+include = [
+  "logs_rl/**",
+  "logs_eval/**",
+  "logs*/**",
+  "eval*/**",
+  "runs/**",
+  "renders/**",
+  "artifacts/**",
+  "outputs/**"
+]
+exclude = [
+  "**/.env",
+  "**/.env.*",
+  "**/*credential*",
+  "**/*secret*",
+  "**/*token*",
+  "**/*private_key*",
+  "**/*.pem",
+  "**/*.key",
+  "**/__pycache__/**",
+  "**/.cache/**",
+  ".ai/runtime/**",
+  ".ai/outgoing-artifacts/**"
+]
+checkpoint_patterns = ["**/*.pt", "**/*.pth", "**/*.ckpt", "**/*.onnx"]
+include_checkpoints_default = false
+max_file_bytes = 2147483648
+max_bundle_bytes = 10737418240
+
+[upload]
+backend = "capability-router"
+target = "pro_space"
+root_folder_id = "1JWQrkkOrItsKlFUjfxsadUrOcXChGpOf"
+root_folder_name = "Pro_Space"
+visibility = "public-write"
+standing_authorization = "create-only-stage-artifacts"
+rclone_remote = "jam-drive"

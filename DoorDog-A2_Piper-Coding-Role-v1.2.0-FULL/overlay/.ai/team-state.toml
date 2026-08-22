@@ -1,0 +1,30 @@
+version = 1
+database = ".ai/runtime/team/team-state.sqlite3"
+snapshot = ".ai/runtime/team/team-snapshot.json"
+events = ".ai/runtime/team/hook-events.jsonl"
+
+[authority]
+main_path = "/root"
+main_only = ["scope", "acceptance", "revision", "write_lease", "resource_lease", "git", "external_write", "hard_stop"]
+
+[messaging]
+allowed_types = ["PEER_FINDING", "PEER_REQUEST", "AUTHORITY_REQUEST"]
+material_types = ["AUTHORITY_REQUEST"]
+
+[roles.researcher]
+required = ["outcome", "read_set"]
+
+[roles.planner]
+required = ["outcome", "acceptance"]
+
+[roles.writer]
+required = ["outcome", "revision", "write_set", "acceptance"]
+
+[roles.reviewer]
+required = ["outcome", "revision", "read_set", "acceptance"]
+
+[roles.runtime_qa]
+required = ["outcome", "revision", "resources", "acceptance"]
+
+[roles.memory_curator]
+required = ["outcome", "read_set", "write_set"]

@@ -1,0 +1,12 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v26_common_scratch_lr
+  - _self_
+
+v26_cell: V26_L_S0
+seed: 0
+env:
+  config:
+    a2_v26_door_open_lr: left
+    a2_v26_side_permutation_seed: 0
+

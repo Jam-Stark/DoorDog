@@ -1,0 +1,16 @@
+{
+  "instructions": [
+    "AGENTS.md",
+    ".ai/ROLE.md",
+    ".ai/PROJECT.md",
+    ".ai/WORKFLOW.md",
+    ".ai/RUNTIME_ADAPTERS.md",
+    ".ai/TEAM_STATE.md",
+    ".ai/MEMORY_GOVERNANCE.md",
+    ".ai/LONG_RUNNING_TASKS.md",
+    ".ai/SCIENTIFIC_ENGINEERING.md",
+    ".ai/STAGE_DECISION.md",
+    ".ai/ARTIFACT_HANDOFF.md",
+    ".omo/AGENTS.md"
+  ]
+}

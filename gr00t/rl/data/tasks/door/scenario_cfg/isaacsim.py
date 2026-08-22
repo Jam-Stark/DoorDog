@@ -1746,6 +1746,96 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    v26_handedness_key = "a2_v26_door_open_lr"
+    v26_handedness = env_config.get(v26_handedness_key)
+    if v26_handedness is not None:
+        if v26_handedness not in ("bilateral", "left", "right"):
+            raise ValueError(
+                f"env.config.{v26_handedness_key} must be 'bilateral', 'left', or 'right'"
+            )
+        if env_config.get("a2_v25_door_open_lr") is not None:
+            raise ValueError("v26 and v25 handedness selectors are mutually exclusive")
+        if any(
+            env_config.get(key) is True
+            for key in (
+                "a2_v23_d1_sampler_enabled",
+                _V23_P0_PLAIN_MANIFEST_FLAG,
+                _V23_P0_BOUND_MANIFEST_FLAG,
+                _V21B_SIGNED_PROBE_FLAG,
+                _V22_MANIFEST_FLAG,
+            )
+        ) or env_config.get(_V22_BUCKET_MIXTURE_KEY) is not None:
+            raise ValueError("v26 door distribution cannot be combined with a historical scenario selector")
+        if "a2_eval_door_handle_height_linspace" in env_config or "a2_eval_door_handle_height_weight_pairs" in env_config:
+            raise ValueError("v26 training distribution cannot be combined with an eval geometry selector")
+
+        permutation_seed = env_config.get("a2_v26_side_permutation_seed")
+        if isinstance(permutation_seed, bool) or not isinstance(permutation_seed, int):
+            raise TypeError("env.config.a2_v26_side_permutation_seed must be an integer")
+        if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs <= 0:
+            raise ValueError("v26 door distribution requires a positive integer num_envs")
+        if v26_handedness == "bilateral" and num_envs % 2 != 0:
+            raise ValueError("v26 bilateral door distribution requires an even num_envs")
+
+        def _range_pair(key: str, *, positive: bool) -> tuple[float, float]:
+            value = env_config.get(key)
+            if (
+                isinstance(value, (str, bytes))
+                or not isinstance(value, Sequence)
+                or len(value) != 2
+                or any(isinstance(bound, bool) or not isinstance(bound, Real) for bound in value)
+            ):
+                raise TypeError(f"env.config.{key} must contain two real bounds")
+            low, high = float(value[0]), float(value[1])
+            if not math.isfinite(low) or not math.isfinite(high) or low >= high:
+                raise ValueError(f"env.config.{key} must be finite and strictly ordered")
+            if positive and low <= 0.0:
+                raise ValueError(f"env.config.{key} must stay positive")
+            return low, high
+
+        handle_height_low, handle_height_high = _range_pair(
+            "a2_v26_door_handle_height_range", positive=True
+        )
+        door_weight_low, door_weight_high = _range_pair(
+            "a2_v26_door_weight_range", positive=True
+        )
+
+        if v26_handedness == "bilateral":
+            sides = np.asarray(
+                ["left"] * (num_envs // 2) + ["right"] * (num_envs // 2),
+                dtype=object,
+            )
+            sides = sides[np.random.default_rng(permutation_seed).permutation(num_envs)].tolist()
+        else:
+            sides = [v26_handedness] * num_envs
+
+        door_cfg = TaskObjCfgDict["door"]
+        spawn_cfg = door_cfg.spawn
+        base_door_cfg = spawn_cfg.assets_cfg[0]
+        if not isinstance(base_door_cfg, DoorSpawnerCfg):
+            raise TypeError("v26 base door asset must be DoorSpawnerCfg")
+        variants = [
+            base_door_cfg.replace(
+                door_open_lr=[side],
+                door_open_io=["out"],
+                door_handle_tblr=(
+                    handle_height_high,
+                    handle_height_low,
+                    base_door_cfg.door_handle_tblr[2],
+                    base_door_cfg.door_handle_tblr[3],
+                ),
+                door_weight=(door_weight_low, door_weight_high),
+                rand_door_open_lr=side,
+                rand_door_open_io="out",
+            )
+            for side in sides
+        ]
+        return {
+            **TaskObjCfgDict,
+            "door": door_cfg.replace(
+                spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+            ),
+        }
     v25_handedness_key = "a2_v25_door_open_lr"
     v25_handedness = env_config.get(v25_handedness_key)
     if v25_handedness is not None:

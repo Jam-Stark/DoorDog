@@ -279,10 +279,12 @@ def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
     weight_key = "a2_door_weight_range"
     pair_key = "a2_eval_door_handle_height_weight_pairs"
     v25_handedness_key = "a2_v25_door_open_lr"
+    v26_handedness_key = "a2_v26_door_open_lr"
     if (
         weight_key in env_config
         or pair_key in env_config
         or v25_handedness_key in env_config
+        or v26_handedness_key in env_config
     ):
         hook_name = "get_TaskObjCfgDict_for_door_config"
         hook = getattr(task_module, hook_name, None)

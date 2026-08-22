@@ -1,0 +1,89 @@
+# @package _global_
+
+defaults:
+  - override /rewards: wbmanip/reward_door_open_a2_v26_acquisition
+  - _self_
+
+v26_schema: a2_piper_base_v26_common_scratch_lr_v1
+v26_plan_id: base_v26_scratch_bilateral_teacher_R1
+v26_phase: R0_ACQUISITION
+v26_formal_launchable: true
+
+checkpoint: null
+checkpoint_load_mode: full
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+num_gpus: 1
+multi_gpu: false
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    num_mini_batches: 4
+    rp0_enabled: false
+  trl:
+    num_total_batches: 4000
+    report_to: none
+
+callbacks:
+  model_save:
+    save_frequency: 250
+
+env:
+  config:
+    max_episode_length_s: 20
+    max_stage_time: [350, 100, 100, 100, 100, 200]
+    a2_v26_door_open_lr: bilateral
+    a2_v26_side_permutation_seed: 0
+    a2_v26_door_handle_height_range: [0.85, 0.95]
+    a2_v26_door_weight_range: [80.0, 120.0]
+    a2_v26_natural_start_enabled: true
+    a2_v26_natural_start_door_normal_distance_range: [0.90, 1.40]
+    a2_v26_natural_start_lateral_offset_range: [-0.25, 0.25]
+    a2_v26_natural_start_relative_yaw_range: [-0.30, 0.30]
+    a2_v26_bilateral_metrics_enabled: true
+    a2_v23_d1_sampler_enabled: false
+    a2_v24_friction_enabled: false
+    a2_grasp_gate_mode: control_streak
+    a2_grasp_streak_control_steps: 5
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_to4_requires_grasp_streak: true
+    a2_stage3_base_unlocked: true
+    a2_stage3_unlatch_handle_position_norm: 0.6
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_norm: 0.1
+    a2_stage3_stage4_hold_and_drive_velocity_threshold: 0.05
+    a2_stage3_stage4_coasting_velocity_threshold: 0.1
+    a2_stage3_handle_hard_limit_position: 0.785398
+    a2_stage3_handle_hard_limit_tolerance: 0.005
+    a2_stage4_release_hinge_threshold: 1.2
+    a2_stage45_door_frame_contact_scale: 0.2
+    a2_corridor_enabled: false
+    a2_stage5_hold_income_continuity_enabled: false
+    enable_staged_reset: true
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+    staged_reset_max_samples_per_stage: 200
+
+rewards:
+  reward_penalty_curriculum: false
+
+robot:
+  control:
+    stiffness:
+      arm_j7: 800.0
+      arm_j8: 800.0
+    damping:
+      arm_j7: 25.0
+      arm_j8: 25.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2
+

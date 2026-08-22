@@ -1,0 +1,33 @@
+# @package _global_
+
+v26_schema: a2_piper_base_v26_eval_natural_start_v1
+v26_phase: R0_NATURAL_START_EVAL
+v26_formal_launchable: false
+
+checkpoint: null
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+num_envs: 64
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    num_mini_batches: 1
+    eval:
+      eval_num_envs_episodes: true
+      num_eval_episodes: 64
+  trl:
+    report_to: none
+
+env:
+  config:
+    a2_v26_door_open_lr: bilateral
+    a2_v26_side_permutation_seed: 0
+    enable_staged_reset: false
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false

@@ -64,3 +64,5 @@ Public editor permission is not anonymous API authentication.
 ## Command boundary
 
 `pack` and `upload` require an explicit `--confirm-stage-handoff` flag. Large ZIP/upload work does not run in SessionEnd hooks.
+
+After a non-dry-run upload returns success, delete the uploaded local bundle directory or ZIP immediately. Failed uploads retain the local bundle for retry. ZIP files are delivery artifacts and must remain Git-ignored; the project does not track `*.zip`.

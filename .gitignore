@@ -228,3 +228,10 @@ data/door_assets/*
 
 # Local cloud-session handoff archives (eval/render evidence; never commit)
 /a2_piper_v20_cloud_delivery_*.zip
+
+# BEGIN jam-coding-role-v1.3.0 runtime
+.ai/runtime/
+.ai/outgoing-artifacts/
+.ai/run-receipts/
+.ai/pending-events/
+# END jam-coding-role-v1.3.0 runtime

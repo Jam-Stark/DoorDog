@@ -24,14 +24,28 @@ Do not package artifacts merely because a coding task、smoke、review or traini
 ## Namespace
 
 ```text
-ZIP:
-<project>__<worktree>__<stage>__<YYYYMMDD-HHMMSS-HKT>__<sha>__artifacts.zip
+Bundle directory:
+<project>__<worktree>__<stage>__<YYYYMMDD-HHMMSS-HKT>__<sha>__artifacts/
+
+Semantic ZIPs:
+source_and_configs.zip
+logs_and_metrics.zip
+plots_and_evidence.zip
+checkpoints_part01.zip
 
 Drive:
 Pro_Space/<project>/<worktree>/<stage>/<timestamp>__<sha>/
 ```
 
-Each bundle includes `BUNDLE_MANIFEST.json` and `PRO_HANDOFF.md`.
+Each ZIP is a standard archive that can be opened independently and includes `BUNDLE_MANIFEST.json`、`PRO_HANDOFF.md` and its own artifact subset. The bundle directory includes a plain-text `BUNDLE_INDEX.md` describing every ZIP、its contents、order and purpose. No SHA256 manifest is created.
+
+## ZIP size and splitting
+
+- Each ZIP must be at most **95 MiB**. Do not target the connector's exact 100 MiB ceiling.
+- Split oversized bundles by semantic content first: source/config、logs/metrics、plots/evidence and checkpoints.
+- When one semantic group still exceeds the limit, create numbered independent archives such as `logs_and_metrics_part01.zip` or `checkpoints_part01.zip`.
+- Do not create `.z01/.z02/.zip` split archives. Pro/cloud tools must be able to open every ZIP without downloading and reassembling other parts.
+- A single artifact larger than the ZIP payload limit is excluded with an explicit reason. For checkpoints, remove non-essential models or use an explicitly approved `rclone` exception; never cut a checkpoint binary into unusable fragments.
 
 ## Standing authorization
 

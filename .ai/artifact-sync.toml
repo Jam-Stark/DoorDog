@@ -32,6 +32,7 @@ checkpoint_patterns = ["**/*.pt", "**/*.pth", "**/*.ckpt", "**/*.onnx"]
 include_checkpoints_default = false
 max_file_bytes = 2147483648
 max_bundle_bytes = 10737418240
+max_zip_bytes = 99614720
 
 [upload]
 backend = "capability-router"

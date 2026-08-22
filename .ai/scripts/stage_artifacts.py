@@ -40,6 +40,11 @@ SECRET_CONTENT_PATTERNS = [
     ("google-api-key", re.compile(r"\bAIza[0-9A-Za-z_-]{30,}\b")),
 ]
 TEXT_SCAN_LIMIT = 2 * 1024 * 1024
+ZIP_PAYLOAD_MARGIN = 1024 * 1024
+PLOT_EVIDENCE_SUFFIXES = {
+    ".png", ".jpg", ".jpeg", ".webp", ".svg", ".pdf", ".html",
+    ".mp4", ".mov", ".avi", ".mkv", ".webm",
+}
 
 
 @dataclass(frozen=True)
@@ -284,7 +289,132 @@ Cloud analysis may inspect the remote repository and this bundle. It must not as
 """
 
 
-def pack(args: argparse.Namespace) -> tuple[Path, Path, dict[str, Any]]:
+def semantic_group(item: Candidate, checkpoint_patterns: list[str]) -> str:
+    relative = item.relative.lower()
+    parts = PurePosixPath(relative).parts
+    suffix = PurePosixPath(relative).suffix
+    if glob_match(item.relative, checkpoint_patterns):
+        return "checkpoints"
+    if suffix in PLOT_EVIDENCE_SUFFIXES or any(
+        token in parts for token in ("plots", "figures", "renders", "videos", "evidence")
+    ):
+        return "plots_and_evidence"
+    if any(
+        token in relative
+        for token in ("logs", "metrics", "summary", "receipt", "ledger", "telemetry")
+    ):
+        return "logs_and_metrics"
+    return "source_and_configs"
+
+
+def partition_by_size(items: list[Candidate], payload_limit: int) -> list[list[Candidate]]:
+    groups: list[list[Candidate]] = []
+    current: list[Candidate] = []
+    current_size = 0
+    for item in items:
+        if current and current_size + item.size > payload_limit:
+            groups.append(current)
+            current = []
+            current_size = 0
+        current.append(item)
+        current_size += item.size
+    if current:
+        groups.append(current)
+    return groups
+
+
+def archive_name(category: str, part: int, part_count: int) -> str:
+    if category == "checkpoints" or part_count > 1:
+        return f"{category}_part{part:02d}.zip"
+    return f"{category}.zip"
+
+
+def write_archive(
+    path: Path,
+    *,
+    meta: dict[str, Any],
+    handoff: str,
+    category: str,
+    part: int,
+    part_count: int,
+    items: list[Candidate],
+    max_zip_bytes: int,
+) -> None:
+    archive_meta = {
+        **meta,
+        "archive": {
+            "name": path.name,
+            "category": category,
+            "part": part,
+            "part_count": part_count,
+            "included": [
+                {"path": item.relative, "bytes": item.size, "source": item.source}
+                for item in items
+            ],
+        },
+    }
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
+        archive.writestr(
+            "BUNDLE_MANIFEST.json",
+            json.dumps(archive_meta, ensure_ascii=False, indent=2) + "\n",
+        )
+        archive.writestr("PRO_HANDOFF.md", handoff)
+        for item in items:
+            archive.write(item.path, f"artifacts/{item.relative}")
+    if path.stat().st_size > max_zip_bytes:
+        path.unlink()
+        raise SystemExit(
+            f"Archive exceeds 95 MiB after compression: {path.name}. "
+            "Reduce the selected artifacts or route the oversized file through an approved rclone handoff."
+        )
+
+
+def bundle_index(meta: dict[str, Any], archives: list[dict[str, Any]]) -> str:
+    lines = [
+        "# Bundle Index",
+        "",
+        f"- Project: `{meta['project']}`",
+        f"- Worktree: `{meta['worktree']}`",
+        f"- Stage: `{meta['stage']}`",
+        "- ZIP limit: 95 MiB per independently openable standard archive",
+        "- Multi-volume `.z01/.z02/.zip` archives: not used",
+        "- SHA256 manifest: not used",
+        "",
+        "## Archives",
+        "",
+    ]
+    purposes = {
+        "source_and_configs": "Source snapshots and resolved configuration",
+        "logs_and_metrics": "Logs, metrics, summaries, receipts and telemetry",
+        "plots_and_evidence": "Plots, renders, videos and evidence documents",
+        "checkpoints": "Opt-in model checkpoints",
+    }
+    for position, entry in enumerate(archives, start=1):
+        lines.extend([
+            f"### {position}. `{entry['name']}`",
+            "",
+            f"- Purpose: {purposes[entry['category']]}",
+            f"- Part: {entry['part']} of {entry['part_count']}",
+            f"- Files: {len(entry['items'])}",
+            f"- ZIP bytes: {entry['zip_bytes']}",
+            "- Contents:",
+        ])
+        lines.extend(f"  - `{item.relative}`" for item in entry["items"])
+        lines.append("")
+    oversized = [item for item in meta["excluded"] if item["reason"] == "single-file-exceeds-zip-payload-limit"]
+    if oversized:
+        lines.extend([
+            "## Oversized files not packed",
+            "",
+            "These files must be removed from the handoff or transferred through an explicitly approved rclone exception:",
+            "",
+        ])
+        lines.extend(f"- `{item['path']}`" for item in oversized)
+        lines.append("")
+    return "\n".join(lines)
+
+
+def pack(args: argparse.Namespace) -> tuple[list[Path], Path, dict[str, Any]]:
     if not args.confirm_stage_handoff:
         raise SystemExit("Artifact handoff is explicit; pass --confirm-stage-handoff after Owner/stage authorization.")
     root = git_root(args.repo)
@@ -300,8 +430,17 @@ def pack(args: argparse.Namespace) -> tuple[Path, Path, dict[str, Any]]:
         include_checkpoints=include_checkpoints,
         all_matching=args.all_matching,
     )
+    selection = config.get("selection", {})
+    max_zip_bytes = int(selection.get("max_zip_bytes", 95 * 1024**2))
+    payload_limit = max_zip_bytes - ZIP_PAYLOAD_MARGIN
+    oversized = [item for item in candidates if item.size > payload_limit]
+    candidates = [item for item in candidates if item.size <= payload_limit]
+    exclusions.extend(
+        Exclusion(item.relative, "single-file-exceeds-zip-payload-limit")
+        for item in oversized
+    )
     if not candidates and not args.allow_empty:
-        raise SystemExit("No eligible stage artifacts found. Use inspect to review exclusions.")
+        raise SystemExit("No eligible stage artifacts fit the 95 MiB ZIP limit. Use inspect to review exclusions.")
 
     project = slug(args.project or root.name)
     branch = git_text(root, "branch", "--show-current") or "detached"
@@ -324,33 +463,60 @@ def pack(args: argparse.Namespace) -> tuple[Path, Path, dict[str, Any]]:
     output_setting = Path(config.get("output_dir", ".ai/outgoing-artifacts"))
     output_root = args.output or (root / output_setting)
     bundle_dir = output_root / bundle_name
-    zip_path = output_root / f"{bundle_name}.zip"
 
-    if bundle_dir.exists() or zip_path.exists():
+    if bundle_dir.exists():
         raise SystemExit(f"Output already exists: {bundle_name}")
     bundle_dir.mkdir(parents=True, exist_ok=False)
 
-    (bundle_dir / "BUNDLE_MANIFEST.json").write_text(
-        json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    (bundle_dir / "PRO_HANDOFF.md").write_text(handoff_markdown(meta), encoding="utf-8")
-
-    artifact_root = bundle_dir / "artifacts"
+    checkpoint_patterns = list(selection.get("checkpoint_patterns", []))
+    categorized: dict[str, list[Candidate]] = {
+        "source_and_configs": [],
+        "logs_and_metrics": [],
+        "plots_and_evidence": [],
+        "checkpoints": [],
+    }
     for item in candidates:
-        target = artifact_root / item.relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(item.path, target)
+        categorized[semantic_group(item, checkpoint_patterns)].append(item)
 
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
-        for path in sorted(bundle_dir.rglob("*")):
-            if path.is_file():
-                archive.write(path, path.relative_to(bundle_dir.parent).as_posix())
+    handoff = handoff_markdown(meta)
+    archive_paths: list[Path] = []
+    archive_entries: list[dict[str, Any]] = []
+    for category, items in categorized.items():
+        if not items:
+            continue
+        parts = partition_by_size(items, payload_limit)
+        for part, part_items in enumerate(parts, start=1):
+            path = bundle_dir / archive_name(category, part, len(parts))
+            write_archive(
+                path,
+                meta=meta,
+                handoff=handoff,
+                category=category,
+                part=part,
+                part_count=len(parts),
+                items=part_items,
+                max_zip_bytes=max_zip_bytes,
+            )
+            archive_paths.append(path)
+            archive_entries.append({
+                "name": path.name,
+                "category": category,
+                "part": part,
+                "part_count": len(parts),
+                "items": part_items,
+                "zip_bytes": path.stat().st_size,
+            })
 
-    print(f"PACKED: {zip_path}")
+    (bundle_dir / "BUNDLE_INDEX.md").write_text(
+        bundle_index(meta, archive_entries), encoding="utf-8"
+    )
+
+    for path in archive_paths:
+        print(f"PACKED: {path}")
     print(f"BUNDLE_DIR: {bundle_dir}")
     print(f"INCLUDED: {len(candidates)} files")
     print(f"EXCLUDED: {len(exclusions)} candidates")
-    return zip_path, bundle_dir, meta
+    return archive_paths, bundle_dir, meta
 
 
 def inspect(args: argparse.Namespace) -> int:
@@ -413,6 +579,12 @@ def upload(args: argparse.Namespace) -> int:
         cmd.append("--dry-run")
     print("RUN:", " ".join(cmd))
     completed = subprocess.run(cmd, cwd=root, check=False)
+    if completed.returncode == 0 and not args.dry_run:
+        if source.is_dir():
+            shutil.rmtree(source)
+        else:
+            source.unlink()
+        print(f"LOCAL_BUNDLE_REMOVED: {source}")
     return completed.returncode
 
 
@@ -447,7 +619,7 @@ def parser() -> argparse.ArgumentParser:
         help="Explicit reason this artifact handoff is authorized.",
     )
 
-    p_upload = commands.add_parser("upload", help="Upload an existing bundle via rclone")
+    p_upload = commands.add_parser("upload", help="Upload an existing bundle directory or ZIP via rclone")
     p_upload.add_argument("--repo", type=Path, default=Path.cwd())
     p_upload.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     p_upload.add_argument("--bundle", type=Path, required=True)

@@ -23,6 +23,7 @@ A2_PULL_V2_PLAN_ID = "a2_piper_pull_v2_wall_removal_and_unlatch_calibration"
 A2_PULL_V3_PLAN_ID = "a2_piper_pull_v3_release_then_cross_traversal"
 A2_PULL_V4_PLAN_ID = "a2_piper_pull_v4_annuity_removal_and_frame_approach"
 A2_PULL_V5_PLAN_ID = "a2_piper_pull_v5_bridge_occupancy_and_release_persistence"
+A2_PULL_V6_PLAN_ID = "a2_piper_pull_v6_send_door_past_body"
 A2_PULL_V2_E3_LATCH_THRESHOLD_M = 0.02292371541261673
 A2_PULL_V0_TARGET_FRAME_VERSION = "grasp_target_active_face_io_z_pre_v1"
 A2_PULL_V0_TARGET_ORIENTATION_WXYZ = (-0.5, -0.5, 0.5, 0.5)
@@ -1167,6 +1168,86 @@ def validate_a2_pull_v5_guard(
     }
 
 
+def validate_a2_pull_v6_guard(
+    config: Mapping[str, Any],
+    *,
+    actual_finger_effort_n: Any,
+    actual_finger_stiffness: Any,
+    actual_finger_damping: Any,
+    reward_scales: Mapping[str, Any] | None = None,
+    reward_scale_dt: float | None = None,
+) -> dict[str, Any]:
+    """Validate the v6 frozen-policy, send-past-body construction contract."""
+
+    _require_exact(config, "a2_v20_R1_plan_id", A2_PULL_V6_PLAN_ID)
+    _require_exact(config, "a2_pull_door_open_io", "in")
+    _require_exact(config, "a2_pull_door_open_lr", "right")
+    _require_exact(config, "a2_pull_add_walls", False)
+    _require_exact(config, "a2_pull_hook_profile", "ABSENT")
+    _require_exact(config, "a2_pull_finger_profile", "V20_G4_45N_KP1300_KD32")
+    _require_exact(config, "a2_v20_R1_send_curriculum_enabled", False)
+    _require_exact(config, "a2_v20_send_latch_enabled", False)
+    _require_exact(config, "a2_v20_telemetry_enabled", False)
+    _require_exact(config, "a2_v20_traversal_economics_enabled", False)
+    _require_exact(config, "a2_v20_arm_tie_enabled", False)
+    _require_exact(config, "a2_v20_R2_evidence_enabled", False)
+    _require_exact(config, "a2_v20_formal_launch", False)
+    _require_exact_number(config, "a2_v20_arm_tangent_carry_scale", 0.0)
+    _require_exact_number(config, "a2_v20_handle_arc_tracking_scale", 0.0)
+    _require_exact(config, "a2_pull_v6_release_persistence_steps", 25)
+    for key in (
+        "a2_pull_v6_release_hinge_rad",
+        "a2_pull_v6_release_min_hinge_velocity_radps",
+        "a2_pull_v6_release_min_clearance_m",
+        "a2_pull_v6_release_min_arm_margin",
+        "a2_pull_v6_release_min_arm_tangent_share",
+        "a2_pull_v6_target_handle_y_m",
+        "a2_pull_v6_release_handle_y_m",
+        "a2_pull_v6_base_relief_radius_m",
+        "a2_pull_v6_arc_position_tolerance_m",
+        "a2_pull_v6_arc_orientation_tolerance_rad",
+        "a2_pull_v6_tangent_activity_floor_mps",
+    ):
+        value = _mapping_item(config, key, "Pull-v6 config")
+        if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)) or (key != "a2_pull_v6_target_handle_y_m" and float(value) <= 0.0):
+            raise RuntimeError(f"Pull-v6 config.{key} must be finite and positive except signed target Y; got {value!r}.")
+    if float(_mapping_item(config, "a2_pull_v6_target_handle_y_m", "Pull-v6 config")) >= 0.0:
+        raise RuntimeError("Pull-v6 target handle Y must be negative (trunk right side).")
+    if float(_mapping_item(config, "a2_pull_v6_release_min_arm_tangent_share", "Pull-v6 config")) > 1.0:
+        raise RuntimeError("Pull-v6 release minimum arm tangent share must lie in (0, 1].")
+    _require_exact_numeric_sequence(config, "a2_door_weight_range", (90.0, 90.0001))
+    profile = _FINGER_PROFILES["V20_G4_45N_KP1300_KD32"]
+    _require_profile_rows(actual_finger_effort_n, "finger effort", profile["effort_n"])
+    _require_profile_rows(actual_finger_stiffness, "finger stiffness", profile["stiffness"])
+    _require_profile_rows(actual_finger_damping, "finger damping", profile["damping"])
+    if reward_scales is not None:
+        if reward_scale_dt is None or isinstance(reward_scale_dt, bool) or not math.isfinite(float(reward_scale_dt)):
+            raise RuntimeError("Pull-v6 runtime reward-scale validation requires a finite dt.")
+        for name in (
+            "a2_pull_v6_arm_tangent_progress",
+            "a2_pull_v6_handle_side_bonus",
+            "a2_pull_v6_arc_tracking",
+            "a2_pull_v6_pivot_excess_penalty",
+            "a2_pull_v6_hinge_momentum",
+            "a2_pull_v6_clean_release_quality",
+            "a2_pull_v6_premature_release_penalty",
+        ):
+            if name not in reward_scales:
+                raise RuntimeError(f"Pull-v6 runtime reward scales require {name}.")
+        has_general_side = "a2_pull_v6_handle_side_progress" in reward_scales
+        has_handoff_side = "a2_pull_v6_handoff_side_progress" in reward_scales
+        if not (has_general_side or has_handoff_side):
+            raise RuntimeError(
+                "Pull-v6 runtime reward scales require either general handle-side "
+                "progress or gated handoff side progress."
+            )
+        if has_handoff_side and "a2_pull_v6_handoff_hinge_momentum" not in reward_scales:
+            raise RuntimeError(
+                "Pull-v6 gated handoff side progress requires handoff hinge momentum."
+            )
+    return {"plan_id": A2_PULL_V6_PLAN_ID, "release_persistence_steps": 25}
+
+
 __all__ = [
     "A2_PULL_V0_DIRECTION_CONTRACT_VERSION",
     "A2_PULL_V0_PLAN_ID",
@@ -1175,6 +1256,7 @@ __all__ = [
     "A2_PULL_V3_PLAN_ID",
     "A2_PULL_V4_PLAN_ID",
     "A2_PULL_V5_PLAN_ID",
+    "A2_PULL_V6_PLAN_ID",
     "A2_PULL_V2_E3_LATCH_THRESHOLD_M",
     "A2_PULL_V0_RESOLVED_G4_CONFIG_PATH",
     "A2_PULL_V0_SOURCE_FREEZE_PATH",
@@ -1208,4 +1290,5 @@ __all__ = [
     "validate_a2_pull_v3_guard",
     "validate_a2_pull_v4_guard",
     "validate_a2_pull_v5_guard",
+    "validate_a2_pull_v6_guard",
 ]

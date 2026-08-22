@@ -320,6 +320,7 @@ class PullV56HoldSpecialistPPOTrainer(A2TRLPPOTrainer):
         specialist_checkpoint, specialist_checkpoint_step = self._bind_specialist_checkpoint_provenance(phase)
         original_homie_checkpoint = getattr(self.env, "_original_homie_checkpoint", None)
         max_steps = int(adapter_config.get("adapter_eval_max_steps", 600))
+        self.env.render_results(frame_type="initial")
         for _ in range(max_steps):
             if bool(torch.all(completed).item()):
                 break
@@ -347,6 +348,9 @@ class PullV56HoldSpecialistPPOTrainer(A2TRLPPOTrainer):
                 )
             completed |= dones
             obs_dict = {key: value.to(device) for key, value in obs_dict.items()}
+            active_env_ids = torch.where(~completed)[0]
+            self.env.render_results(env_ids=active_env_ids, frame_type="step")
+        self.env.end_render_results()
         if not bool(torch.all(completed).item()):
             raise RuntimeError("v5.6 eval exceeded horizon before all episodes returned done")
         if len(rows) != self.env.num_envs or accepted_env_ids != set(range(self.env.num_envs)):

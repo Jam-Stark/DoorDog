@@ -53,6 +53,11 @@ algo:
       # Formal-eval, first-episode-only deterministic hold oracle. The normal
       # policy path is bit-for-bit unchanged while this flag is false.
       a2_hold_oracle_enabled: false
+      a2_pull_v6_p1_oracle_enabled: false
+      a2_pull_v6_p1_orientation_axis: x
+      a2_pull_v6_p1_target_hinge_velocity_radps: 0.30
+      a2_pull_v6_p1_xy_relief_m: 0.05
+      a2_pull_v6_p1_through_speed_mps: 0.20
       # P1 live-grasp circular-arc feasibility probe.  This is eval-only and
       # mutually exclusive with the legacy clamp/stabilization preflights.
       a2_v20_arc_probe_enabled: false

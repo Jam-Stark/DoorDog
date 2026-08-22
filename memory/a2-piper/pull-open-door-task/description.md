@@ -1,23 +1,34 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure + pull-v6 lightweight send-past-body active plan
 status: active
-last_updated: 2026-08-20 23:55 HKT
+last_updated: 2026-08-22 01:36 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 规划 pull-v5.6-r2 之后的新架构，或复用 pull-v5.6/v5.5 T1 gate boundary / pull-v5.4 scheduler boundary / pull-v5.3 H-D boundary 前
+  - 实施 pull-v6 lightweight send-past-body，或复用 pull-v5.6/v5.5 T1 gate boundary / pull-v5.4 scheduler boundary / pull-v5.3 H-D boundary 前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0 foundations + v1/v2/v3/v4/v5/v5.1/v5.2/v5.3/v5.4/v5.5/v5.6-r2 closures)
+# Pull-Open-Door Task (v0–v5.6-r2 closures + v6 active plan)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter 与 pull-v5.6-r2 specialist active execution 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter、pull-v5.6-r2 specialist closure与 pull-v6 active plan 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v6 Lightweight Send-Past-Body Plan (2026-08-22 01:36 HKT) — AUTHORIZED / PLAN ONLY
+
+- 用户批准将“送门过身”落为 v6 implementation contract；canonical 文档为 `scriptsFORhuman/pull_v6/A2_PIPER_PULL_V6_SEND_DOOR_PAST_BODY_IMPLEMENTATION_PLAN.md`。本次只完成文档与 backlog 整理，未实施 code、runtime、training 或 capability proof。
+- v6 首轮只做 lightweight door：F0 canonical 后再做 F1 mass 80–100 kg / low-closer 2.5–5 N·m 小范围泛化。重门、强 closer 与不同 release 时机/动量策略进入 pull longterm TODO，不混入 behavior-creation 首轮。
+- Stage 0–5 编号保持不变；Stage 4 细分为 4A retreat/clearance、4B arm-dominant send-past-body、4C positive-velocity release、4D immediate through。E5 捕获 root XY pivot 但不锁 yaw；heading 由 policy 在 collision、workspace 与 locomotion objective 下自由调整，不添加 absolute-yaw reward。
+- 行为 attribution 使用 handle-in-trunk 有向换侧、root-relative arm tangent motion 与 `arm_tangent_share`；release 联合 angle、positive hinge velocity、clearance、arm margin 与 passage readiness，不用单一固定角度或 final hinge angle 代替成功。
+- actor 首轮保持 canonical 12D action 与现有 observation order/shape，含 `door_dof_pos` 15-frame history；hinge velocity 先用于 reward/critic/telemetry，避免在 strict warm-start 前静默破坏 actor contract。
+- 当前机器 GPU0–3 全部获用户授权用于 v6 实现验证、训练、实验与 test。P2 默认四 seed 一卡一个；P1/P3 按独立 cell 铺满四卡，gate/render 使用最早空闲 GPU 穿插，一张 GPU 同时只运行一个 Isaac Sim/训练作业。
+- release 后换握另一侧 handle 或用手/臂撑门通过是独立 future contact-role transition；只在 v6 release/through 稳定且强 closer 直接证明 aperture collapse 后立项。
+- pull longterm TODO 已清理为 future-only pull backlog；v0–v5.6 收口历史只保存在本 memory route。
 
 ## Pull-v5.6-r2 Terminal-Hold Specialist (2026-08-20 23:55 HKT) — T1 FAIL / G11 RETURN-TO-PLANNER
 

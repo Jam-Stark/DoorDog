@@ -1,69 +1,62 @@
-# A2+Piper Pull 线 Longterm TODO
+# A2+Piper Pull 分支 Longterm TODO
 
-创建:2026-08-10 HKT(v2 收口、v3 立项时)。本表只放 pull 任务线的跨轮期货;当轮方案不引用则不生效。逐条格式:动机 → 触发条件 → 大致做法。主线全局 TODO 见 `scriptsFORhuman/a2_piper_longterm_TODO.md`。
+更新: `2026-08-22 01:36 HKT`
 
-## 1. 门回弹时 arm 重新伸出抵住门板(用户指定,2026-08-10)
+本表只保留 **尚未实施、且属于 pull 分支** 的未来能力。v0–v5.6 的实验收口、负结果和历史证据统一保存在 `memory/a2-piper/pull-open-door-task/`，不再混入 TODO。
 
-- **动机:** 当前门资产 closer 关门慢(max_force/damping = 0.05–0.24 rad/s,全关 11–52 s),release-then-cross 窗口从容,回弹撞击不构成现实失败模式。但更强 closer/更快回弹的资产变体下,release 后 arm 收回默认姿态、门扇回摆撞上正在过门的机器人将成为主要失败模式。期望行为:**穿门过程中检测到门回摆逼近时,arm 重新伸出抵住门板(brace),身体继续通过,清出后收臂**。
-- **触发:** 仅在 direct observation 证明强 closer/回摆确实威胁通过、且有效 G2 lattice 达成后，才可单独立项；v3/v4 的 post-release recontact tails 不是 brace 触发证据。
-- **v3/v4/v5/v5.1/v5.2 语义勾稽(2026-08-15 03:08 HKT):** v3 seed0 step500 max=`18`、median=`0`（其余格 max≤`1`）；v4 base 六格 max=`10`、最大单格 median=`0`，G6 六格 max=`108`、最大单格 median=`3`。这些数只表示 deliberate-release 后 body/arm-to-panel 的 contact-transition tails，不测 handle regrasp、arm re-extension 或 learned brace；G6 的 E6/E7/complete 仍未改变。v5 固定此解释。v5.1 P2 的显式 release+tuck intervention把 K25 从 `3/16` 提到 `16/16`，但 +2s hinge retention 仅 `5/16`、E6/frame passage 仍 `0/16`；它证明的是 release persistence 与 reclosure/base route 的耦合，不是 arm re-extension、regrasp 或 learned brace。v5.2 三次都停在 natural open-field anchor，门侧 release+tuck、reclosure race 与 G2 均 NOT_RUN；因此 anchor 的 HOMIE yaw failure 不是 direct door-reclosure threat，更不是 brace 触发证据。第 1 条触发条件仍未满足。
-- **做法要点:** brace 仍是未实现的 future skill；需要直接的回摆威胁/arm intervention telemetry 和单独授权。不可把现有 panel-contact transition 计数转换为 regrasp 或 brace 行为结论。
+当前 active 方向是 lightweight pull-v6 “送门过身”，执行合同见：
 
-## 2. add_walls=True 受限空间 pull(hardening 轮)
+- `scriptsFORhuman/pull_v6/A2_PIPER_PULL_V6_SEND_DOOR_PAST_BODY_IMPLEMENTATION_PLAN.md`
 
-- **动机:** 当前无墙,−Y 侧绕行空间无限大,base 避让/绕arc 自由度不现实(worktree 设计文档 R8 已标注为 known optimism)。v3 用 frame_passage 谓词防绕门,但物理上仍是开阔地。
-- **触发:** pull 基本 E7/complete 稳定后的第一个泛化 hardening 轮。
-- **做法要点:** `add_walls=True` 作为独立因子单开一轮;预期 base-yield 走廊收窄,C3(swing-arc-aware 目标结构)问题真正显形;不与其他因子混跑。
+以下条目均为 deferred，不自动进入 v6 首轮。
 
-## 3. Mixed push/pull 训练(方向可观测)
+## 1. 门质量 × closer 动力学的 release 策略泛化
 
-- **动机:** v0 起 pull 全部符号为常量;mixed 需要 `doorOpenIO` 成为 live obs 通道、per-env 方向张量、按 IO 分层的 eval。
-- **触发:** pull-only 达成稳定 E7 + 用户批准观测契约变更(涉及 checkpoint 手术或重训)。
-- **做法要点:** 云端 v0 方案 §F.9 五条前置全部满足后单开一轮;评估必须按 IO 分层,不许平均掩盖单向失败。
+- **动机:** 轻门、重门、弱 closer、强 closer 的最优 release angle、release velocity 与 arm impulse 不同；单一固定时机不能覆盖整个现实门域。
+- **当前边界:** v6 先只在 lightweight stratum 创建“送门过身 → 带正角速度 release → through”行为，不混入重门/强 closer。
+- **触发:** v6 在 F0 canonical 与 F1 lightweight family 上形成稳定 whole-body passage 后。
+- **大致做法:** 将 mass 与 closer strength 分成可解释的二维 family；让 policy 从可观测的 hinge response/history 推断 release 状态，比较 angle-only、angle+velocity 与 learned release；按动力学桶报告，不用总体平均掩盖失败。
 
-## 4. Hook 任务域裁决 + hook × finger-effort 机制景观补测
+## 2. Release 后换握另一侧 handle，或用手撑住门通过
 
-- **动机:** P1 scripted 探针退役后,hook × effort{10,45} × friction 的 load-to-loss 景观从未补测;当前训练 hook p=0.5 随机、结果被平均。钩形把手是否属于主任务族仍是 open decision(云端方案 §H-4)。
-- **触发:** 用户裁决 hook 域;或 policy-as-probe 方式可行时(用成熟 pull checkpoint 分层 eval hook on/off)。
-- **做法要点:** 用成熟 checkpoint 做 hook 分层 eval 即可获得大部分景观,无需复活 scripted 探针。
+- **动机:** 对有明显回弹的门，人常在原侧 handle release 后换握门另一侧的 handle，或用手抵住门板远侧，保持 passage aperture 并穿过。
+- **与简单 brace 的区别:** 目标不是在原侧被动重新伸臂挡一下，而是完成 contact-role transition：`original handle release → opposite-side handle/door contact acquisition → support while through → final release`。
+- **触发:** v6 已稳定掌握同侧“送门过身”和 clean release，且强 closer 场景直接证明 release 后 aperture collapse 是主要失败源。
+- **大致做法:** 新增门两侧 handle/contact surface 的可观测语义、cross-body reachability 与 contact transition stage；分别验证 opposite-handle regrasp 和 palm/forearm bracing，避免把普通 arm-panel collision 误记为 learned support。
+- **状态:** 明确 deferred；复杂度高，不进入当前 lightweight v6。
 
-## 5. 手指力真实性:10 N URDF vs 45 N resolved 的硬件锚定
+## 3. `add_walls=True` 的受限空间 pull hardening
 
-- **动机:** 45 N 是 v20 训练态,10 N 是 URDF 标称;二者都是 simulator profile(云端方案 §H-3)。finger-limited 可行性边界是 force_feasible 论文的第二实验场,至今未测。
-- **触发:** 用户给出硬件真值;或 pull E7 稳定后做 10 N zero-shot/adaptation 对照。
-- **做法要点:** 先 45 N→10 N zero-shot 分层 eval(rule 9),再按需 bounded adaptation;若 10 N 不可行,负结果照登,不许放宽门物理来救。
+- **动机:** 当前 open-field 允许不现实的绕行和 base relief；真实门框/墙体会压缩送门与 through 的可行走廊。
+- **触发:** v6 在无墙 F0/F1 上稳定完成 whole-body clear。
+- **大致做法:** 单独开启墙体因子，保持门动力学与 reward contract 固定，测 swing-arc clearance、arm sweep workspace 和 through corridor；不与重门、hook 等因素同轮混跑。
 
-## 6. 左开门(door_open_lr="left")对称性验证
+## 4. Left-hinge pull 对称性
 
-- **动机:** 全部 pull 证据在 right 上;direction contract 与 latch/mimic 的 lr 分支从未在 left 上运行验证(latch mimic 的 LocalRot0 翻转分支尤其)。
-- **触发:** pull right 线收敛后的廉价泛化检查。
-- **做法要点:** U-probe(left fixture)+ 成熟 checkpoint zero-shot 分层 eval 起步。
+- **动机:** 当前有效证据集中在 right-hinge；handle-in-trunk 有向换侧、latch mimic 与 tangent direction 的 left 分支尚未实证。
+- **触发:** right-hinge v6 收敛后。
+- **大致做法:** 先做 left fixture 的 deterministic geometry/oracle，再对成熟 checkpoint 进行 zero-shot 分层 eval；只有观察到结构性不对称时才启动 bounded adaptation。
 
-## 7. Latch 机制的两个未量化边界
+## 5. Hook、部分解锁与 finger-effort 的抓握真实性
 
-- **动机:** v2 U-probe 已定 θ*=0.6 rad、20 N·m 拉不动锁死门;但 (a) 凸轮硬过框的力阈值上界未测(push 侧 attempt20 证明存在);(b) 部分松把手(θ<0.6)时门在中途回锁/卡滞的动力学未表征(v2 latch-based relock 计数 9–15/16 说明策略常在 0.6 线附近骑行)。
-- **触发:** 任何把 handle-hold 精度当作瓶颈的轮次;或强 closer 变体轮。
-- **做法要点:** 扩展 U-probe:力 sweep 至凸轮过框;θ 骑线动态 sweep。
+- **动机:** hook geometry、把手未完全下压时的 relock，以及 10 N/45 N finger effort 会共同改变 tensile capture 和送门时的握持上限。
+- **触发:** v6 的 arm sweep/release 已稳定，失败能够明确归因到 grasp/latch，而不是 base route。
+- **大致做法:** 先用成熟 pull checkpoint 做 hook on/off、handle angle 与 effort 分层 zero-shot；再对已证实的 binding factor 做单因素适配。硬件 finger effort 真值由用户提供时优先锚定。
 
-## 8. Route B(pooled48/holdout64)pull 版
+## 6. Pull 泛化 holdout / release-level claim
 
-- **动机:** 项目史上 Route B 从未运行;pull 达成稳定 E7 后需要泛化证据才能升 release 级claim。
-- **触发:** E7/complete 在 canonical 上稳定 + 用户批准。
-- **做法要点:** 复用 v21 机制,阈值按 pull 实测重切(anti-block doctrine),不继承 push 数值。
+- **动机:** canonical/lightweight 成功只能证明 specialist capability，不能直接升级为门族泛化结论。
+- **触发:** F1 lightweight family 稳定通过。
+- **大致做法:** 建立 pull 专用 pooled/holdout 门集，按 hinge side、mass、closer、geometry 与 handle family 分层；阈值由 pull 实测重新确定，不继承 push 数值。
 
-## 9. RGB/student 蒸馏 pull 版
+## 7. Pull teacher → RGB/student
 
-- **动机:** pull 存在把手遮挡与相机运动反向问题(云端方案 §C-10),teacher 收敛前无意义。
-- **触发:** pull teacher 稳定 + 蒸馏管线排期。
+- **动机:** pull 过程有 handle 遮挡、门板大幅旋转以及 camera/robot 相对运动，student 的视觉难度高于只看最终门角。
+- **触发:** state teacher 在 canonical 与自然 reset 上稳定完成送门、release、whole-body clear。
+- **大致做法:** 以 v6 telemetry 定义 teacher event labels，覆盖 handle side crossing、release dynamics 和 passage；camera contract 使用真实 pull-side 与 world ±X 观察，不沿用 push-side 镜像错误。
 
-## 10. force_feasible 论文 DV 的 pull 侧正式测量
+## 8. Pull 侧 force-feasible 正式测量
 
-- **动机:** 论文主张 minimal base intervention(u_base = u_user + gate(s)·u_assist);pull 是 finger/workspace 双约束场。v3 起已含 base path/reversal 遥测,但从未做过"力可行 vs base 介入"的正式归因。
-- **触发:** pull E7 稳定后,与第 5 条(10 N profile)合并设计一轮。
-- **做法要点:** 以 10 N/45 N × 固定几何的分层对照读 base 介入量变化,直接喂论文 DV。
-
-## 11. HOMIE terminal-yaw three-rung ladder (2026-08-20 23:55 HKT — all three rungs completed/failed)
-
-- **第一 rung（scheduler，已完成/失败）:** v5.3 `44` traces、`352` env trajectories、`75,200` rows支持 Stage A `GO`；selected raw `+0.05` realized yaw 却为 negative。v5.4 Stage B 的 sole shared correction=`-0.3672668933868408 rad` 将两组 corrected max error 降至 `0.0900235176/0.0588076115 rad`，但全部 `16` corrected rows `trim_step_cap_exceeded`、scheduler `FAILED`、terminal-current false、`terminal_hold_steps=0`、无 `DONE`。数值 error≤`0.15 rad` 不满足 terminal-current/100-step-hold contract，故 valid Stage B `FAIL`，零 G3 attempt。
-- **第二 rung（registered residual terminal-hold adapter，completed/failed）:** 750-batch initial run 后耗尽 sole allowed target-offset curriculum retrain；corrected r13 `750/750` complete，但 T1 gate step250/500/750=`0/80,1/80,0/80`，远低于 each family `≥15/16` 与 overall `≥77/80`。唯一 valid K100 为 step500 `near_rest` env15（terminal-current true、hold100、XY=`0.0396828391 m`、yaw=`0.0298886299 rad`）；它不能升格为 admission，step750 回到零。该结论只覆盖 preregistered adapter/预算/curriculum，不泛化为所有 residual architecture。scripted prelude/handoff 从 PPO actor/entropy denominator 排除、critic 保留完整 trajectory的 sampled/applied provenance 是 reusable gotcha。
-- **第三 rung（HOMIE fine-tune，completed/failed in v5.6-r2）:** destination archive restore、verifier、IsaacLab headless smoke 与 fresh 8-env migration micro 全部 PASS。runtime actor construction 与 source-host raw checkpoint 解耦后，accepted warm asset 由 trainer strict-load；T1 越过旧 batch1 `workflow_config` fault 并完成 `750/750`、`12,288,000` timesteps。step250/500/750 的 five family×16 gate 全为 `0/80`，结构/Invariant 12′ PASS、能力阈值 FAIL，aggregate selected checkpoint null。故 G11 return-to-planner；rehearsal/formal anchor/door/G2/P3/P4/dual eval/render 全部 `NOT_RUN`、zero G3 attempts、无 passage denominator，stopping condition 未达。三 rung ladder 已耗尽其 registered contracts；新架构/预算须用户另行授权，不得自动创建 rung4。唯一 formal review仍 `FAIL`，targeted/runtime acceptance 不构成 reviewer PASS。
+- **动机:** pull 同时受 finger force、arm workspace 与 base intervention 限制，适合测量“力可行性如何改变 base assistance”。
+- **触发:** v6 E7/whole-body clear 稳定，且第 5 条 finger-effort profile 已有可信硬件或 simulator 分层。
+- **大致做法:** 以固定几何下的 10 N/45 N 与轻/重门动力学分层，报告 arm tangent contribution、base relief、release quality 和 passage outcome，作为 pull 侧独立 DV。

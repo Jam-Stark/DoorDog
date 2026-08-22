@@ -24,6 +24,16 @@ _TaskObjCfgMap = dict[str, ArticulationCfg]
 _V21B_MANIFEST_SCHEMA = "a2_piper_base_v21B_heavy16_manifest_v1"
 _V21B_SIGNED_PROBE_FLAG = "a2_v21B_signed_probe_scenarios_enabled"
 _PULL_P2_RESOLVED_WEIGHT_RANGE = (80.0, 160.0)
+_PULL_V6_PLAN_ID = "a2_piper_pull_v6_send_door_past_body"
+_PULL_V6_F0_FIXTURE = {
+    "rand_door_width": 0.925,
+    "rand_door_height": 2.05,
+    "rand_door_handle_height": 0.80,
+    "rand_door_weight": 90.0,
+    "rand_spawn_hook": False,
+    "rand_hinge_drive_max_force": 4.0,
+    "rand_hinge_drive_stiffness": 5.5,
+}
 _PULL_HOOK_PROFILES = frozenset(("STOCHASTIC_BASELINE", "ABSENT", "PRESENT", "P1_PRESENT_0P050M"))
 _PULL_P1_CENTRAL_FIXTURE = {
     "rand_door_width": 0.95,
@@ -394,6 +404,29 @@ def _apply_pull_hook_profile(base_task_obj_cfg_dict: _TaskObjCfgMap, hook_profil
     return result
 
 
+def _apply_pull_v6_f0_fixture(base_task_obj_cfg_dict: _TaskObjCfgMap) -> _TaskObjCfgMap:
+    """Use existing DoorSpawnerCfg deterministic fields for the v6 lightweight F0 door."""
+
+    door_cfg = base_task_obj_cfg_dict.get("door")
+    if not isinstance(door_cfg, ArticulationCfg):
+        raise TypeError("pull-v6 F0 requires an ArticulationCfg door")
+    spawn_cfg = door_cfg.spawn
+    if (
+        not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg)
+        or not isinstance(spawn_cfg.assets_cfg, list)
+        or not spawn_cfg.assets_cfg
+    ):
+        raise TypeError("pull-v6 F0 requires non-empty MultiAssetSpawnerCfg assets")
+    variants = []
+    for index, asset_cfg in enumerate(spawn_cfg.assets_cfg):
+        if not isinstance(asset_cfg, DoorSpawnerCfg):
+            raise TypeError(f"pull-v6 F0 asset {index} must be DoorSpawnerCfg")
+        variants.append(asset_cfg.replace(add_walls=False, **_PULL_V6_F0_FIXTURE))
+    return dict(base_task_obj_cfg_dict) | {
+        "door": door_cfg.replace(spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False))
+    }
+
+
 def _validate_pull_p2_stochastic_baseline_bindings(env_config, central_fixture: bool) -> None:
     if central_fixture:
         raise ValueError("P2 stochastic baseline cannot enable the P1 central fixture")
@@ -690,6 +723,8 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
         if env_config["a2_pull_hook_profile"] == "STOCHASTIC_BASELINE":
             _validate_pull_p2_stochastic_baseline_bindings(env_config, central_fixture)
         result = _apply_pull_hook_profile(result, env_config["a2_pull_hook_profile"])
+    if env_config.get("a2_v20_R1_plan_id") == _PULL_V6_PLAN_ID:
+        result = _apply_pull_v6_f0_fixture(result)
     if central_fixture:
         result = _apply_pull_p1_central_fixture(result, num_envs=num_envs)
     if height_weight_pairs_key in env_config:

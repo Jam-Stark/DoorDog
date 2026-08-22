@@ -16,6 +16,7 @@ from isaaclab.utils.math import (
     quat_from_euler_xyz,
     quat_inv,
     quat_mul,
+    subtract_frame_transforms,
     wrap_to_pi,
 )
 from typing_extensions import override
@@ -39,6 +40,7 @@ from gr00t.rl.envs.door.a2_pull_telemetry import (
     a2_pull_v5_release_tuck_override,
     validate_a2_pull_control_step,
     validate_a2_pull_episode,
+    validate_a2_pull_v6_control_extension,
 )
 from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V0_TARGET_ORIENTATION_WXYZ,
@@ -51,13 +53,18 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V5_STATE_BANK_SOURCE_SCHEMA,
     A2_PULL_V5_RELEASE_STREAK_STEPS,
     A2_PULL_V5_START_OVERRIDE_STEPS,
+    A2_PULL_V6_PLAN_ID,
 )
 from gr00t.rl.envs.door.door_open_a2_base import (
+    A2_HOLD_OUTCOME_TO_ID,
     DoorPregrasp,
     a2_hold_base_relief_command,
+    a2_v20_arc_tracking_quality,
+    a2_v20_handle_opening_tangent,
     a2_hold_pd_effort_estimates,
     a2_v20_mask_stage_overtime_for_arc_probe,
 )
+from gr00t.rl.envs.door.a2_v20_r2_evidence import a2_v20_r2_taskspace_arm_carry
 from gr00t.rl.isaac_utils.rotations import xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
 
@@ -484,6 +491,10 @@ class DoorOpenA2Pull(DoorPregrasp):
     # envelope is approximately 0.398 m;
     # use the source-grounded 0.40 m circular footprint for report-only clearance.
     _A2_PULL_TRUNK_FOOTPRINT_RADIUS_M = 0.40
+    _A2_PULL_V6_PHASE_A = 0
+    _A2_PULL_V6_PHASE_B = 1
+    _A2_PULL_V6_PHASE_C = 2
+    _A2_PULL_V6_PHASE_D = 3
     _A2_PULL_V5_PROBE_WAYPOINT_TOLERANCE_M = 0.20
     _A2_PULL_V5_PROBE_YAW_TOLERANCE_RAD = 0.25
     _A2_PULL_V5_PROBE_SEQUENCES = {
@@ -605,6 +616,23 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _check_termination(self):
         super()._check_termination()
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is not None and cfg.get("v6_p1_oracle_enabled", False):
+            oracle_failure = (
+                (self._a2_pull_v6_p1_phase == 1)
+                & self._a2_hold_oracle_activated
+                & (self._a2_hold_oracle_outcome != A2_HOLD_OUTCOME_TO_ID["PENDING"])
+            )
+            self._mark_terminal_reason("stage_overtime", oracle_failure)
+            self.reset_buf |= oracle_failure
+            pending = (self._a2_pull_v6_p1_phase == 1) | (
+                self._a2_pull_v6_p1_phase == 2
+            ) | (self._a2_pull_v6_p1_phase == 3)
+            timeout = pending & (
+                self._a2_pull_v6_p1_steps >= cfg["v6_p1_phase_timeout_steps"]
+            )
+            self._mark_terminal_reason("stage_overtime", timeout)
+            self.reset_buf |= timeout
         if getattr(self, "_a2_pull_v5_scheduler_enabled", False):
             (
                 updated_reset,
@@ -657,6 +685,9 @@ class DoorOpenA2Pull(DoorPregrasp):
     def _is_a2_pull_v5(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V5_PLAN_ID
 
+    def _is_a2_pull_v6(self) -> bool:
+        return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V6_PLAN_ID
+
     def _is_a2_pull_v3(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V3_PLAN_ID
 
@@ -664,7 +695,7 @@ class DoorOpenA2Pull(DoorPregrasp):
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V4_PLAN_ID
 
     def _is_a2_pull_traversal(self) -> bool:
-        return self._is_a2_pull_v3() or self._is_a2_pull_v4() or self._is_a2_pull_v5()
+        return self._is_a2_pull_v3() or self._is_a2_pull_v4() or self._is_a2_pull_v5() or self._is_a2_pull_v6()
 
     def _get_a2_pull_threshold_mode(self) -> str:
         mode = self.config.get("a2_pull_threshold_mode")
@@ -939,6 +970,53 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_last_raw_reward_components: dict[str, torch.Tensor] = {}
         self._a2_pull_runtime_telemetry_contract_checked = False
         self._a2_pull_runtime_telemetry_contract_sample: list[dict] = []
+        if self._is_a2_pull_v6():
+            self._a2_pull_v6_subphase = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_pull_v6_pivot_xy = torch.full((self.num_envs, 2), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_pivot_valid = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_handle_y_capture = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_y_current = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_y_prev = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_y_best = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_side_progress = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_crossed = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_handle_cross_bonus = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_release_side_qualified = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_handoff_active = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_handoff_reached = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_handoff_active_steps = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_pull_v6_handle_to_tcp_capture_pos = torch.zeros((self.num_envs, 3), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_to_tcp_capture_quat = torch.zeros((self.num_envs, 4), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_handle_to_tcp_capture_quat[:, 0] = 1.0
+            self._a2_pull_v6_handle_to_tcp_valid = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_prev_tcp_pos_w = torch.full((self.num_envs, 3), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_prev_tcp_valid = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_positive_arm_tangent = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_positive_base_tangent = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_positive_total_tangent = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_instantaneous_arm_tangent_share = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_arm_tangent_integral_m = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_total_tangent_integral_m = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_arm_tangent_share = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_last_held_arm_tangent_share = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_arc_error_m = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_arc_quality = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_pivot_displacement_m = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_workspace_margin = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_release_ready = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_prev_release_ready = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_release_event = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_clean_release = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_premature_release = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_clean_release_event = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_premature_release_event = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+            self._a2_pull_v6_release_quality = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_release_persistence = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_pull_v6_hinge_at_release = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_hinge_velocity_at_release = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_root_yaw_at_capture = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_root_yaw_delta = torch.full((self.num_envs,), float("nan"), dtype=torch.float32, device=self.device)
+            self._a2_pull_v6_prev_bilateral_contact = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         if self._is_a2_pull_v5():
             self._a2_pull_v5_persistent_release_streak = torch.zeros(
                 self.num_envs, dtype=torch.long, device=self.device
@@ -3092,6 +3170,58 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_handle_local_slip_xyz_mps[env_ids] = float("nan")
         self._a2_pull_handle_local_slip_valid[env_ids] = False
         self._a2_pull_passage_attempt_hinge_rad[env_ids] = float("nan")
+        if self._is_a2_pull_v6():
+            self._a2_pull_v6_subphase[env_ids] = self._A2_PULL_V6_PHASE_A
+            self._a2_pull_v6_pivot_xy[env_ids] = float("nan")
+            self._a2_pull_v6_pivot_valid[env_ids] = False
+            self._a2_pull_v6_handle_y_capture[env_ids] = float("nan")
+            self._a2_pull_v6_handle_y_current[env_ids] = float("nan")
+            self._a2_pull_v6_handle_y_prev[env_ids] = float("nan")
+            self._a2_pull_v6_handle_y_best[env_ids] = float("nan")
+            self._a2_pull_v6_handle_side_progress[env_ids] = 0.0
+            self._a2_pull_v6_handle_crossed[env_ids] = False
+            self._a2_pull_v6_handle_cross_bonus[env_ids] = False
+            self._a2_pull_v6_release_side_qualified[env_ids] = False
+            self._a2_pull_v6_handoff_active[env_ids] = False
+            self._a2_pull_v6_handoff_reached[env_ids] = False
+            self._a2_pull_v6_handoff_active_steps[env_ids] = 0
+            self._a2_pull_v6_handle_to_tcp_capture_pos[env_ids] = 0.0
+            self._a2_pull_v6_handle_to_tcp_capture_quat[env_ids] = 0.0
+            self._a2_pull_v6_handle_to_tcp_capture_quat[env_ids, 0] = 1.0
+            self._a2_pull_v6_handle_to_tcp_valid[env_ids] = False
+            self._a2_pull_v6_prev_tcp_pos_w[env_ids] = float("nan")
+            self._a2_pull_v6_prev_tcp_valid[env_ids] = False
+            self._a2_pull_v6_positive_arm_tangent[env_ids] = 0.0
+            self._a2_pull_v6_positive_base_tangent[env_ids] = 0.0
+            self._a2_pull_v6_positive_total_tangent[env_ids] = 0.0
+            self._a2_pull_v6_instantaneous_arm_tangent_share[env_ids] = 0.0
+            self._a2_pull_v6_arm_tangent_integral_m[env_ids] = 0.0
+            self._a2_pull_v6_total_tangent_integral_m[env_ids] = 0.0
+            self._a2_pull_v6_arm_tangent_share[env_ids] = 0.0
+            self._a2_pull_v6_last_held_arm_tangent_share[env_ids] = 0.0
+            self._a2_pull_v6_arc_error_m[env_ids] = float("nan")
+            self._a2_pull_v6_arc_quality[env_ids] = 0.0
+            self._a2_pull_v6_pivot_displacement_m[env_ids] = float("nan")
+            self._a2_pull_v6_workspace_margin[env_ids] = float("nan")
+            self._a2_pull_v6_release_ready[env_ids] = False
+            self._a2_pull_v6_prev_release_ready[env_ids] = False
+            self._a2_pull_v6_release_event[env_ids] = False
+            self._a2_pull_v6_clean_release[env_ids] = False
+            self._a2_pull_v6_premature_release[env_ids] = False
+            self._a2_pull_v6_clean_release_event[env_ids] = False
+            self._a2_pull_v6_premature_release_event[env_ids] = False
+            self._a2_pull_v6_release_quality[env_ids] = 0.0
+            self._a2_pull_v6_release_persistence[env_ids] = 0
+            self._a2_pull_v6_hinge_at_release[env_ids] = float("nan")
+            self._a2_pull_v6_hinge_velocity_at_release[env_ids] = float("nan")
+            self._a2_pull_v6_root_yaw_at_capture[env_ids] = float("nan")
+            self._a2_pull_v6_root_yaw_delta[env_ids] = float("nan")
+            self._a2_pull_v6_prev_bilateral_contact[env_ids] = False
+            oracle_cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+            if oracle_cfg is not None and oracle_cfg.get("v6_p1_oracle_enabled", False):
+                self._a2_pull_v6_p1_yaw_pivot_target_reached[env_ids] = False
+                self._a2_pull_v6_p1_yaw_pivot_complete[env_ids] = False
+                self._a2_pull_v6_p1_entry_settled[env_ids] = False
         if self._is_a2_pull_v5():
             self._a2_pull_v5_start_override_active[env_ids] = False
             self._a2_pull_v5_start_override_active_steps[env_ids] = 0
@@ -3178,12 +3308,14 @@ class DoorOpenA2Pull(DoorPregrasp):
 
     def _get_a2_pull_frame_approach_active_mask(self) -> torch.Tensor:
         """Return the exact v4 frame-approach reward activation mask."""
-
-        return (
+        active = (
             self._make_mask([self.STAGE_SWING, self.STAGE_THROUGH])
             & self._a2_pull_aperture_ready
             & ~self._a2_pull_frame_passage
         )
+        if self._is_a2_pull_v6():
+            active &= self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_D
+        return active
 
     def _get_a2_pull_minimum_panel_robot_clearance(self) -> torch.Tensor:
         """Return the signed trunk-footprint clearance to the current door-panel slab."""
@@ -3302,6 +3434,260 @@ class DoorOpenA2Pull(DoorPregrasp):
             & self._a2_pull_proof_active
             & self._a2_pull_proof_valid
         )
+
+    def _update_a2_pull_v6_state(
+        self,
+        *,
+        bilateral_contact: torch.Tensor,
+        no_handle_contact: torch.Tensor,
+        panel_clear: torch.Tensor,
+        door_joint_pos: torch.Tensor,
+        door_joint_vel: torch.Tensor,
+    ) -> None:
+        """Update v6 post-E5 send/release state from live high-level tensors."""
+
+        if not self._is_a2_pull_v6():
+            return
+        expected = (self.num_envs,)
+        for name, value in (("bilateral_contact", bilateral_contact), ("no_handle_contact", no_handle_contact), ("panel_clear", panel_clear)):
+            if not torch.is_tensor(value) or tuple(value.shape) != expected or value.dtype != torch.bool or value.device != torch.device(self.device):
+                raise RuntimeError(f"Pull-v6 {name} must be a device-local bool vector {expected}.")
+        for name, value in (("door_joint_pos", door_joint_pos), ("door_joint_vel", door_joint_vel)):
+            if not torch.is_tensor(value) or tuple(value.shape) != (self.num_envs, 3) or value.device != torch.device(self.device) or not value.is_floating_point() or not torch.all(torch.isfinite(value)):
+                raise RuntimeError(f"Pull-v6 {name} must be a finite device-local ({self.num_envs}, 3) tensor.")
+        frame = self._get_a2_v20_piper_frame_data("Pull-v6 state update")
+        tcp_pos_w = frame["source_pos_w"]
+        tcp_quat_w = frame["source_quat_w"]
+        handle_pos_w = frame["target_pos_w"][:, 0, :]
+        handle_quat_w = frame["target_quat_w"][:, 0, :]
+        robot_data = self.simulator.scene.articulations["robot"].data
+        trunk_pos_w = robot_data.body_pos_w[:, self._a2_pull_trunk_body_id]
+        trunk_quat_w = robot_data.body_quat_w[:, self._a2_pull_trunk_body_id]
+        trunk_link_vel_w = robot_data.body_link_vel_w[:, self._a2_pull_trunk_body_id]
+        for name, value, shape in (
+            ("trunk_pos_w", trunk_pos_w, (self.num_envs, 3)),
+            ("trunk_quat_w", trunk_quat_w, (self.num_envs, 4)),
+            ("trunk_link_vel_w", trunk_link_vel_w, (self.num_envs, 6)),
+        ):
+            if not torch.is_tensor(value) or tuple(value.shape) != shape or value.device != tcp_pos_w.device or value.dtype != tcp_pos_w.dtype or not torch.all(torch.isfinite(value)):
+                raise RuntimeError(f"Pull-v6 requires finite {name} with shape {shape} matching Piper frame dtype/device.")
+        handle_in_trunk, _ = subtract_frame_transforms(trunk_pos_w, trunk_quat_w, handle_pos_w, handle_quat_w)
+        handle_to_tcp_pos, handle_to_tcp_quat = subtract_frame_transforms(handle_pos_w, handle_quat_w, tcp_pos_w, tcp_quat_w)
+        door_frame = self._get_a2_v20_frame_data("Pull-v6 opening tangent")
+        opening_tangent_w = a2_v20_handle_opening_tangent(
+            door_frame["source_pos_w"],
+            door_frame["source_quat_w"],
+            door_frame["target_pos_source"][:, int(door_frame["grasp_target_idx"]), :],
+            self.door_width,
+            self.door_open_lr,
+        )
+        e5 = self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
+        capture = e5 & ~self._a2_pull_v6_pivot_valid
+        root_states = self.simulator.robot_root_states
+        _, _, root_yaw = euler_xyz_from_quat(trunk_quat_w)
+        self._a2_pull_v6_pivot_xy[capture] = trunk_pos_w[capture, :2]
+        self._a2_pull_v6_pivot_valid |= capture
+        self._a2_pull_v6_handle_y_capture[capture] = handle_in_trunk[capture, 1]
+        self._a2_pull_v6_handle_y_best[capture] = handle_in_trunk[capture, 1]
+        self._a2_pull_v6_handle_to_tcp_capture_pos[capture] = handle_to_tcp_pos[capture]
+        self._a2_pull_v6_handle_to_tcp_capture_quat[capture] = handle_to_tcp_quat[capture]
+        self._a2_pull_v6_handle_to_tcp_valid |= capture
+        self._a2_pull_v6_root_yaw_at_capture[capture] = root_yaw[capture]
+        self._a2_pull_v6_subphase[capture] = self._A2_PULL_V6_PHASE_B
+        self._a2_pull_v6_handle_y_current[:] = handle_in_trunk[:, 1]
+        self._a2_pull_v6_pivot_displacement_m[:] = torch.where(
+            self._a2_pull_v6_pivot_valid,
+            torch.linalg.vector_norm(trunk_pos_w[:, :2] - self._a2_pull_v6_pivot_xy, dim=-1),
+            torch.full_like(self._a2_pull_v6_pivot_displacement_m, float("nan")),
+        )
+        self._a2_pull_v6_root_yaw_delta[:] = torch.where(
+            self._a2_pull_v6_pivot_valid,
+            wrap_to_pi(root_yaw - self._a2_pull_v6_root_yaw_at_capture),
+            torch.full_like(root_yaw, float("nan")),
+        )
+        if self.dt <= 0.0 or not math.isfinite(float(self.dt)):
+            raise RuntimeError(f"Pull-v6 requires positive finite dt; got {self.dt!r}.")
+        best_y_valid = self._a2_pull_v6_pivot_valid & torch.isfinite(
+            self._a2_pull_v6_handle_y_best
+        )
+        new_best_y = best_y_valid & (
+            handle_in_trunk[:, 1] < self._a2_pull_v6_handle_y_best
+        )
+        self._a2_pull_v6_handle_side_progress[:] = torch.where(
+            new_best_y,
+            (self._a2_pull_v6_handle_y_best - handle_in_trunk[:, 1]) / float(self.dt),
+            torch.zeros_like(handle_in_trunk[:, 1]),
+        )
+        self._a2_pull_v6_handle_y_best[:] = torch.where(
+            new_best_y,
+            handle_in_trunk[:, 1],
+            self._a2_pull_v6_handle_y_best,
+        )
+        target_y = self.config["a2_pull_v6_target_handle_y_m"]
+        if isinstance(target_y, bool) or not isinstance(target_y, (int, float)) or not math.isfinite(float(target_y)) or float(target_y) >= 0.0:
+            raise RuntimeError("Pull-v6 target-side threshold must be a finite negative Y coordinate.")
+        crossed_now = self._a2_pull_v6_pivot_valid & (handle_in_trunk[:, 1] <= float(target_y))
+        self._a2_pull_v6_handle_crossed |= crossed_now
+        self._a2_pull_v6_handle_y_prev[:] = handle_in_trunk[:, 1]
+
+        tcp_vel_w = torch.where(
+            self._a2_pull_v6_prev_tcp_valid[:, None],
+            (tcp_pos_w - self._a2_pull_v6_prev_tcp_pos_w) / float(self.dt),
+            torch.zeros_like(tcp_pos_w),
+        )
+        send_phase = (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B) | (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C)
+        taskspace = a2_v20_r2_taskspace_arm_carry(
+            trunk_pos_w,
+            trunk_link_vel_w[:, :3],
+            trunk_link_vel_w[:, 3:],
+            tcp_pos_w,
+            tcp_vel_w,
+            opening_tangent_w,
+            self._a2_pull_v6_pivot_valid,
+            bilateral_contact,
+            send_phase,
+            door_joint_vel[:, 0] > 0.0,
+            self._get_required_positive_float_config("a2_pull_v6_tangent_activity_floor_mps", "Pull-v6 tangent activity floor"),
+        )
+        self._a2_pull_v6_positive_arm_tangent[:] = taskspace["positive_arm_tangent"]
+        self._a2_pull_v6_positive_base_tangent[:] = taskspace["positive_base_tangent"]
+        self._a2_pull_v6_positive_total_tangent[:] = taskspace["positive_total_tangent"]
+        self._a2_pull_v6_instantaneous_arm_tangent_share[:] = taskspace[
+            "arm_tangent_share"
+        ]
+        held_send = send_phase & bilateral_contact
+        self._a2_pull_v6_arm_tangent_integral_m += torch.where(
+            held_send,
+            taskspace["positive_arm_tangent"] * float(self.dt),
+            torch.zeros_like(taskspace["positive_arm_tangent"]),
+        )
+        self._a2_pull_v6_total_tangent_integral_m += torch.where(
+            held_send,
+            taskspace["positive_total_tangent"] * float(self.dt),
+            torch.zeros_like(taskspace["positive_total_tangent"]),
+        )
+        accumulated_share = torch.where(
+            self._a2_pull_v6_total_tangent_integral_m > 0.0,
+            self._a2_pull_v6_arm_tangent_integral_m
+            / self._a2_pull_v6_total_tangent_integral_m,
+            torch.zeros_like(self._a2_pull_v6_total_tangent_integral_m),
+        ).clamp(0.0, 1.0)
+        self._a2_pull_v6_arm_tangent_share[:] = accumulated_share
+        self._a2_pull_v6_last_held_arm_tangent_share[:] = torch.where(
+            held_send,
+            accumulated_share,
+            self._a2_pull_v6_last_held_arm_tangent_share,
+        )
+        handoff_active = (
+            (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B)
+            & self._a2_pull_v6_pivot_valid
+            & bilateral_contact
+            & panel_clear
+            & (self._a2_pull_v6_pivot_displacement_m <= self._get_required_positive_float_config(
+                "a2_pull_v6_base_relief_radius_m", "Pull-v6 base relief radius"
+            ))
+            & (accumulated_share >= self._get_required_positive_float_config(
+                "a2_pull_v6_release_min_arm_tangent_share",
+                "Pull-v6 release minimum arm tangent share",
+            ))
+            & (door_joint_vel[:, 0] > 0.0)
+        )
+        self._a2_pull_v6_handoff_active[:] = handoff_active
+        self._a2_pull_v6_handoff_reached |= handoff_active
+        self._a2_pull_v6_handoff_active_steps += handoff_active.long()
+        release_side_qualified = (
+            self._a2_pull_v6_pivot_valid
+            & (handle_in_trunk[:, 1] <= self._get_required_positive_float_config(
+                "a2_pull_v6_release_handle_y_m", "Pull-v6 release handle Y"
+            ))
+            & bilateral_contact
+            & panel_clear
+            & (self._a2_pull_v6_pivot_displacement_m <= self._get_required_positive_float_config(
+                "a2_pull_v6_base_relief_radius_m", "Pull-v6 base relief radius"
+            ))
+            & (accumulated_share >= self._get_required_positive_float_config(
+                "a2_pull_v6_release_min_arm_tangent_share",
+                "Pull-v6 release minimum arm tangent share",
+            ))
+        )
+        self._a2_pull_v6_release_side_qualified[:] = release_side_qualified
+        new_release_side_qualification = (
+            release_side_qualified
+            & (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B)
+        )
+        self._a2_pull_v6_handle_cross_bonus[:] = new_release_side_qualification
+        self._a2_pull_v6_subphase[new_release_side_qualification] = self._A2_PULL_V6_PHASE_C
+        arc = a2_v20_arc_tracking_quality(
+            self._a2_pull_v6_handle_to_tcp_capture_pos,
+            self._a2_pull_v6_handle_to_tcp_capture_quat,
+            handle_to_tcp_pos,
+            handle_to_tcp_quat,
+            self._a2_pull_v6_handle_to_tcp_valid,
+            position_tolerance_m=self._get_required_positive_float_config("a2_pull_v6_arc_position_tolerance_m", "Pull-v6 arc position tolerance"),
+            orientation_tolerance_rad=self._get_required_positive_float_config("a2_pull_v6_arc_orientation_tolerance_rad", "Pull-v6 arc orientation tolerance"),
+        )
+        self._a2_pull_v6_arc_error_m[:] = torch.where(
+            arc["valid"], arc["position_error_m"], torch.full_like(arc["position_error_m"], float("nan"))
+        )
+        self._a2_pull_v6_arc_quality[:] = arc["quality"]
+        arm_pos = self.simulator.dof_pos[:, self._upper_non_gripper_dof_idx]
+        lower = self.dof_pos_humanly_lower_limit[:, self._upper_non_gripper_dof_idx]
+        upper = self.dof_pos_humanly_upper_limit[:, self._upper_non_gripper_dof_idx]
+        if not torch.all(torch.isfinite(arm_pos)) or not torch.all(torch.isfinite(lower)) or not torch.all(torch.isfinite(upper)) or torch.any(upper <= lower):
+            raise RuntimeError("Pull-v6 arm workspace margin requires finite ordered A2 arm limits.")
+        self._a2_pull_v6_workspace_margin[:] = torch.minimum(
+            (arm_pos - lower) / (upper - lower), (upper - arm_pos) / (upper - lower)
+        ).amin(dim=-1)
+        clearance = self._get_a2_pull_minimum_panel_robot_clearance()
+        frame_delta_xy = self._get_a2_pull_door_frame_midpoint(self.simulator.get_task_root_state("door")) - root_states[:, :2]
+        passage_ready = (torch.abs(frame_delta_xy[:, 1]) <= 0.5 * self.door_width) & panel_clear
+        release_ready = (
+            (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C)
+            & (door_joint_pos[:, 0] >= self._get_required_positive_float_config("a2_pull_v6_release_hinge_rad", "Pull-v6 release hinge"))
+            & (door_joint_vel[:, 0] >= self._get_required_positive_float_config("a2_pull_v6_release_min_hinge_velocity_radps", "Pull-v6 release hinge velocity"))
+            & (clearance >= self._get_required_positive_float_config("a2_pull_v6_release_min_clearance_m", "Pull-v6 release clearance"))
+            & (self._a2_pull_v6_workspace_margin >= self._get_required_positive_float_config("a2_pull_v6_release_min_arm_margin", "Pull-v6 release arm margin"))
+            & (self._a2_pull_v6_pivot_displacement_m <= self._get_required_positive_float_config("a2_pull_v6_base_relief_radius_m", "Pull-v6 base relief radius"))
+            & release_side_qualified
+            & passage_ready
+        )
+        self._a2_pull_v6_release_ready[:] = release_ready
+        release_event = self._a2_pull_v6_prev_bilateral_contact & no_handle_contact & ~self._a2_pull_v6_release_event
+        self._a2_pull_v6_release_event |= release_event
+        clean_event = release_event & self._a2_pull_v6_prev_release_ready
+        premature_event = release_event & ~self._a2_pull_v6_prev_release_ready
+        self._a2_pull_v6_clean_release_event[:] = clean_event
+        self._a2_pull_v6_premature_release_event[:] = premature_event
+        self._a2_pull_v6_clean_release |= clean_event
+        self._a2_pull_v6_premature_release |= premature_event
+        self._a2_pull_v6_release_quality[clean_event] = (
+            self._a2_pull_v6_last_held_arm_tangent_share[clean_event]
+        )
+        self._a2_pull_v6_hinge_at_release[release_event] = door_joint_pos[release_event, 0]
+        self._a2_pull_v6_hinge_velocity_at_release[release_event] = door_joint_vel[release_event, 0]
+        self._a2_pull_v6_subphase[release_event] = self._A2_PULL_V6_PHASE_D
+        clean_no_contact = self._a2_pull_v6_clean_release & no_handle_contact
+        self._a2_pull_v6_release_persistence[:] = torch.where(
+            clean_no_contact,
+            self._a2_pull_v6_release_persistence + 1,
+            torch.zeros_like(self._a2_pull_v6_release_persistence),
+        )
+        oracle_cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if oracle_cfg is not None and oracle_cfg.get("v6_p1_oracle_enabled", False):
+            released = self._a2_pull_v6_p1_release_commanded
+            self._a2_pull_v6_p1_no_contact_seen |= released & no_handle_contact
+            recontact = (
+                released
+                & self._a2_pull_v6_p1_no_contact_seen
+                & self._a2_pull_v6_p1_prev_no_handle_contact
+                & ~no_handle_contact
+            )
+            self._a2_pull_v6_p1_handle_recontact_count += recontact.long()
+            self._a2_pull_v6_p1_prev_no_handle_contact[:] = no_handle_contact
+        self._a2_pull_v6_prev_release_ready[:] = release_ready
+        self._a2_pull_v6_prev_bilateral_contact[:] = bilateral_contact
+        self._a2_pull_v6_prev_tcp_pos_w[:] = tcp_pos_w
+        self._a2_pull_v6_prev_tcp_valid[:] = True
 
     @override
     def _pre_compute_observations_callback(self, env_ids=None, *, post_physics=False):
@@ -3434,6 +3820,14 @@ class DoorOpenA2Pull(DoorPregrasp):
         arm_panel_per_filter, arm_panel_total = self._get_a2_door_arm_panel_contact_forces()
         del body_panel_per_filter, arm_panel_per_filter
         panel_clear = (body_panel_total + arm_panel_total) == 0.0
+        if self._is_a2_pull_v6():
+            self._update_a2_pull_v6_state(
+                bilateral_contact=bilateral_contact,
+                no_handle_contact=no_handle_contact,
+                panel_clear=panel_clear,
+                door_joint_pos=self._get_door_joint_pos("Pull-v6 state update", 3),
+                door_joint_vel=self._get_door_joint_vel("Pull-v6 state update", 3),
+            )
 
         # v3 traversal telemetry is pull-local and does not alter v0/v1/v2
         # predicates.  A frame passage is latched only inside the measured
@@ -3722,12 +4116,19 @@ class DoorOpenA2Pull(DoorPregrasp):
             if self._is_a2_pull_traversal()
             else torch.ones_like(self._a2_pull_event_reached[:, 0])
         )
+        release_requirement = (
+            self._a2_pull_v6_clean_release
+            & (self._a2_pull_v6_release_persistence >= 25)
+            if self._is_a2_pull_v6()
+            else torch.ones_like(self._a2_pull_event_reached[:, 0])
+        )
         evidence[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY] = (
             reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
             & (signed_crossing > 0.0)
             & (self._pull_direction.travel_dir_x * root_states[:, 7] > 0.0)
             & panel_clear
             & frame_requirement
+            & release_requirement
         )
         evidence[:, A2PullEvent.E7_WHOLE_BODY_CLEAR] = (
             reached[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY]
@@ -3821,9 +4222,9 @@ class DoorOpenA2Pull(DoorPregrasp):
                 raise RuntimeError(f"Pull raw reward component {name!r} must be finite.")
             captured[name] = value.detach().clone()
         self._a2_pull_last_raw_reward_components = captured
-        if (self._is_a2_pull_v4() or self._is_a2_pull_v5()) and "a2_pull_frame_approach" not in self.reward_scales:
+        if (self._is_a2_pull_v4() or self._is_a2_pull_v5() or self._is_a2_pull_v6()) and "a2_pull_frame_approach" not in self.reward_scales:
             self._a2_pull_frame_approach_active[:] = False
-        if self._is_a2_pull_v4() or self._is_a2_pull_v5():
+        if self._is_a2_pull_v4() or self._is_a2_pull_v5() or self._is_a2_pull_v6():
             self._a2_pull_frame_approach_pre_aperture_steps += (
                 self._a2_pull_frame_approach_active & ~self._a2_pull_aperture_ready
             ).long()
@@ -3839,7 +4240,7 @@ class DoorOpenA2Pull(DoorPregrasp):
                 if (
                     raw_value is None
                     and reward_name == "a2_corridor_door_wide"
-                    and (self._is_a2_pull_v4() or self._is_a2_pull_v5())
+                    and (self._is_a2_pull_v4() or self._is_a2_pull_v5() or self._is_a2_pull_v6())
                     and reward_name not in self.reward_scales
                 ):
                     raw_value = torch.zeros(self.num_envs, device=self.device)
@@ -3940,6 +4341,186 @@ class DoorOpenA2Pull(DoorPregrasp):
         return True if self._a2_pull_v5_reset_source[env_id] != "natural" else None
 
     @override
+    def init_a2_eval_hold_oracle(self, eval_config, *, diagnostic_enabled: bool) -> dict:
+        cfg = super().init_a2_eval_hold_oracle(
+            eval_config, diagnostic_enabled=diagnostic_enabled
+        )
+        if not cfg["v6_p1_oracle_enabled"]:
+            return cfg
+        if not self._is_a2_pull_v6():
+            raise RuntimeError("A2 pull v6 P1 oracle requires the v6 pull plan.")
+        self._a2_pull_v6_p1_phase = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_v6_p1_arc_reached = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_release_commanded = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_v6_p1_no_contact_seen = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_handle_recontact_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_v6_p1_prev_no_handle_contact = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_translation_relief_pending = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_yaw_pivot_complete = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_yaw_pivot_target_reached = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v6_p1_entry_settled = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        return cfg
+
+    @override
+    def update_a2_eval_hold_oracle_after_step(
+        self, first_episode_active_mask: torch.Tensor, done_mask: torch.Tensor
+    ) -> None:
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg["v6_p1_oracle_enabled"]:
+            return super().update_a2_eval_hold_oracle_after_step(
+                first_episode_active_mask, done_mask
+            )
+        _, contact_masks = self._a2_v20_arc_probe_bilateral_gate()
+        bilateral = (
+            contact_masks["both_contact"]
+            & self._get_a2_stage3_stage4_contact_stability_mask()
+            & ~contact_masks["over_force"]
+        )
+        wait_e5 = self._a2_pull_v6_p1_phase == 0
+        qualifying = (
+            wait_e5
+            & first_episode_active_mask
+            & ~done_mask
+            & self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION]
+            & self._a2_pull_v6_pivot_valid
+            & self._a2_pull_v6_handle_to_tcp_valid
+            & bilateral
+            & self._get_a2_hold_streak_ok_mask()
+        )
+        self._a2_v20_arc_probe_handoff_streak[:] = torch.where(
+            qualifying,
+            self._a2_v20_arc_probe_handoff_streak + 1,
+            torch.zeros_like(self._a2_v20_arc_probe_handoff_streak),
+        )
+        ready = qualifying & (
+            self._a2_v20_arc_probe_handoff_streak
+            >= cfg["v20_arc_probe_handoff_streak_steps"]
+        )
+        self._a2_v20_arc_probe_handoff_ready |= ready
+        self._a2_pull_v6_p1_phase[
+            self._a2_pull_event_reached[:, A2PullEvent.E7_WHOLE_BODY_CLEAR]
+        ] = 4
+
+    @override
+    def apply_a2_eval_hold_oracle_action_override(
+        self, policy_action: torch.Tensor, first_episode_active_mask: torch.Tensor
+    ):
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg["v6_p1_oracle_enabled"]:
+            return super().apply_a2_eval_hold_oracle_action_override(
+                policy_action, first_episode_active_mask
+            )
+        activate = (
+            (self._a2_pull_v6_p1_phase == 0)
+            & first_episode_active_mask
+            & self._a2_v20_arc_probe_handoff_ready
+        )
+        if torch.any(activate):
+            self._a2_hold_oracle_activated[activate] = True
+            self._a2_pull_v6_p1_phase[activate] = 1
+        arc = self._a2_pull_v6_p1_phase == 1
+        if torch.any(arc):
+            robot_data = self.simulator.scene.articulations["robot"].data
+            planar_root_speed = torch.linalg.vector_norm(
+                robot_data.root_lin_vel_w[:, :2], dim=-1
+            )
+            self._a2_pull_v6_p1_entry_settled |= (
+                arc
+                & (planar_root_speed <= 0.10)
+                & (torch.abs(robot_data.root_ang_vel_w[:, 2]) <= 0.10)
+            )
+            self._a2_pull_v6_p1_yaw_pivot_target_reached |= (
+                arc
+                & self._a2_pull_v6_p1_entry_settled
+            )
+            self._a2_pull_v6_p1_yaw_pivot_complete |= (
+                arc
+                & self._a2_pull_v6_p1_entry_settled
+            )
+            action, mask = self._apply_a2_v20_arc_probe_action(
+                policy_action, first_episode_active_mask, activate
+            )
+            pre_entry_settle_rows = (
+                arc & mask & ~self._a2_pull_v6_p1_entry_settled
+            )
+            action[pre_entry_settle_rows, :3] = 0.0
+            self._a2_hold_oracle_base_relief_body_velocity_command[
+                pre_entry_settle_rows, :3
+            ] = 0.0
+            self._a2_hold_oracle_base_relief_raw_command[
+                pre_entry_settle_rows, :3
+            ] = 0.0
+            self._a2_v20_arc_probe_f1_physical_yaw_command[
+                pre_entry_settle_rows
+            ] = 0.0
+            self._a2_v20_arc_probe_f1_raw_yaw_command[pre_entry_settle_rows] = 0.0
+            self._a2_hold_oracle_post_override_action = action
+            self._a2_pull_v6_p1_steps[arc] += 1
+            return action, mask
+        controlled = (self._a2_pull_v6_p1_phase == 2) | (
+            self._a2_pull_v6_p1_phase == 3
+        )
+        if not torch.any(controlled):
+            self._a2_hold_oracle_last_override_mask.zero_()
+            self._a2_hold_oracle_post_override_action = policy_action
+            return policy_action, self._a2_hold_oracle_last_override_mask
+        action = policy_action.clone()
+        action[controlled, :11] = 0.0
+        action[controlled, 5:11] = (
+            -self._delta_actions[controlled] / self._delta_action_scale
+        )
+        desired_world = torch.zeros(
+            self.num_envs, 2, dtype=action.dtype, device=action.device
+        )
+        desired_world[:, 0] = self._pull_direction.travel_dir_x
+        door_root_y = self.simulator.get_task_root_state("door")[:, 1]
+        robot_root_y = self.simulator.scene.articulations["robot"].data.root_pos_w[:, 1]
+        desired_world[:, 1] = torch.clamp(
+            2.0 * (door_root_y - robot_root_y), min=-0.5, max=0.5
+        )
+        _, _, _, through_raw = a2_hold_base_relief_command(
+            desired_world,
+            self.simulator.scene.articulations["robot"].data.root_quat_w,
+            controlled,
+            cfg["v6_p1_through_speed_mps"],
+            self._a2_base_command_scale,
+            1.0e-6,
+        )
+        action[controlled, :2] = through_raw[controlled, :2]
+        action[controlled, 11] = 1.0
+        release = controlled & (self._a2_pull_v6_p1_phase == 2)
+        self._a2_pull_v6_p1_release_commanded |= release
+        self._a2_pull_v6_p1_phase[release] = 3
+        self._a2_pull_v6_p1_steps[release] = 0
+        self._a2_pull_v6_p1_steps[controlled] += 1
+        self._a2_hold_oracle_last_override_mask = controlled.clone()
+        self._a2_hold_oracle_post_override_action = action
+        return action, controlled
+
+    @override
     def _get_a2_terminal_diagnostics(self, env_ids):
         records = super()._get_a2_terminal_diagnostics(env_ids)
         pull_records = self.get_a2_pull_control_step_telemetry(env_ids)
@@ -3975,6 +4556,53 @@ class DoorOpenA2Pull(DoorPregrasp):
                 "admission_stage2_grasp_gate": False,
                 "proof_world_direction": "+X",
             }
+            cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+            if cfg is not None and cfg.get("v6_p1_oracle_enabled", False):
+                reached = episode_record["event_reached"]
+                record["pull_v6_oracle"] = {
+                    "cell": [
+                        self.config["a2_pull_v6_release_hinge_rad"],
+                        cfg["v6_p1_target_hinge_velocity_radps"],
+                        cfg["v6_p1_xy_relief_m"],
+                    ],
+                    "phase": ("WAIT_E5", "ARC_DLS", "RELEASE", "THROUGH", "DONE")[
+                        4 if reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]
+                        else int(self._a2_pull_v6_p1_phase[env_id].item())
+                    ],
+                    "activated": bool(self._a2_hold_oracle_activated[env_id].item()),
+                    "arc_reached": bool(self._a2_pull_v6_p1_arc_reached[env_id].item()),
+                    "yaw_pivot_complete": bool(
+                        self._a2_pull_v6_p1_yaw_pivot_complete[env_id].item()
+                    ),
+                    "yaw_pivot_target_reached": bool(
+                        self._a2_pull_v6_p1_yaw_pivot_target_reached[env_id].item()
+                    ),
+                    "entry_settled": bool(
+                        self._a2_pull_v6_p1_entry_settled[env_id].item()
+                    ),
+                    "release_commanded": bool(self._a2_pull_v6_p1_release_commanded[env_id].item()),
+                    "steps": int(self._a2_pull_v6_p1_steps[env_id].item()),
+                    "handle_crossed": bool(self._a2_pull_v6_handle_crossed[env_id].item()),
+                    "clean_release": bool(self._a2_pull_v6_clean_release[env_id].item()),
+                    "release_persistence": int(self._a2_pull_v6_release_persistence[env_id].item()),
+                    "recontact": int(self._a2_pull_v6_p1_handle_recontact_count[env_id].item()),
+                    "frame_passage": bool(self._a2_pull_frame_passage[env_id].item()),
+                    "E6": bool(reached[A2PullEvent.E6_PATH_REVERSAL_ENTRY.name]),
+                    "E7": bool(reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]),
+                    "whole_clear": bool(self._get_a2_pull_whole_body_clear_mask(
+                        self.simulator.get_task_root_state("door")[env_id : env_id + 1, 0]
+                    )[0].item()),
+                    "pivot_displacement_m": (
+                        float(self._a2_pull_v6_pivot_displacement_m[env_id].item())
+                        if torch.isfinite(self._a2_pull_v6_pivot_displacement_m[env_id])
+                        else A2_PULL_NA
+                    ),
+                    "root_yaw_delta_rad": (
+                        float(self._a2_pull_v6_root_yaw_delta[env_id].item())
+                        if torch.isfinite(self._a2_pull_v6_root_yaw_delta[env_id])
+                        else A2_PULL_NA
+                    ),
+                }
             record["pull_v2_unlatch"] = {
                 "stable_unlatch_handle_based": bool(
                     self._a2_pull_stable_unlatch_handle_ever[env_id].item()
@@ -4645,6 +5273,36 @@ class DoorOpenA2Pull(DoorPregrasp):
                 },
             }
             validate_a2_pull_control_step(record)
+            if self._is_a2_pull_v6():
+                record["pull_v6"] = {
+                    "stage4_subphase": int(self._a2_pull_v6_subphase[env_id].item()),
+                    "pivot_valid": bool(self._a2_pull_v6_pivot_valid[env_id].item()),
+                    "pivot_displacement_m": float(self._a2_pull_v6_pivot_displacement_m[env_id].item()) if torch.isfinite(self._a2_pull_v6_pivot_displacement_m[env_id]) else A2_PULL_NA,
+                    "handle_y_current_m": float(self._a2_pull_v6_handle_y_current[env_id].item()) if torch.isfinite(self._a2_pull_v6_handle_y_current[env_id]) else A2_PULL_NA,
+                    "handle_y_capture_m": float(self._a2_pull_v6_handle_y_capture[env_id].item()) if torch.isfinite(self._a2_pull_v6_handle_y_capture[env_id]) else A2_PULL_NA,
+                    "handle_crossed": bool(self._a2_pull_v6_handle_crossed[env_id].item()),
+                    "release_side_qualified": bool(self._a2_pull_v6_release_side_qualified[env_id].item()),
+                    "handoff_active": bool(self._a2_pull_v6_handoff_active[env_id].item()),
+                    "handoff_reached": bool(self._a2_pull_v6_handoff_reached[env_id].item()),
+                    "handoff_active_steps": int(self._a2_pull_v6_handoff_active_steps[env_id].item()),
+                    "positive_arm_tangent_mps": float(self._a2_pull_v6_positive_arm_tangent[env_id].item()),
+                    "positive_base_tangent_mps": float(self._a2_pull_v6_positive_base_tangent[env_id].item()),
+                    "positive_total_tangent_mps": float(self._a2_pull_v6_positive_total_tangent[env_id].item()),
+                    "arm_tangent_share": float(self._a2_pull_v6_arm_tangent_share[env_id].item()),
+                    "arc_error_m": float(self._a2_pull_v6_arc_error_m[env_id].item()) if torch.isfinite(self._a2_pull_v6_arc_error_m[env_id]) else A2_PULL_NA,
+                    "arc_quality": float(self._a2_pull_v6_arc_quality[env_id].item()),
+                    "panel_clearance_m": float(self._a2_pull_minimum_panel_robot_clearance_m[env_id].item()) if torch.isfinite(self._a2_pull_minimum_panel_robot_clearance_m[env_id]) else A2_PULL_NA,
+                    "workspace_margin": float(self._a2_pull_v6_workspace_margin[env_id].item()) if torch.isfinite(self._a2_pull_v6_workspace_margin[env_id]) else A2_PULL_NA,
+                    "release_ready": bool(self._a2_pull_v6_release_ready[env_id].item()),
+                    "release_event": bool(self._a2_pull_v6_release_event[env_id].item()),
+                    "clean_release": bool(self._a2_pull_v6_clean_release[env_id].item()),
+                    "release_quality": float(self._a2_pull_v6_release_quality[env_id].item()),
+                    "release_persistence_steps": int(self._a2_pull_v6_release_persistence[env_id].item()),
+                    "hinge_at_release_rad": float(self._a2_pull_v6_hinge_at_release[env_id].item()) if torch.isfinite(self._a2_pull_v6_hinge_at_release[env_id]) else A2_PULL_NA,
+                    "hinge_velocity_at_release_radps": float(self._a2_pull_v6_hinge_velocity_at_release[env_id].item()) if torch.isfinite(self._a2_pull_v6_hinge_velocity_at_release[env_id]) else A2_PULL_NA,
+                    "root_yaw_delta_rad": float(self._a2_pull_v6_root_yaw_delta[env_id].item()) if torch.isfinite(self._a2_pull_v6_root_yaw_delta[env_id]) else A2_PULL_NA,
+                }
+                validate_a2_pull_v6_control_extension(record["pull_v6"])
             if self._is_a2_pull_v5():
                 record["pull_v5"] = {
                     "reset_source": self._a2_pull_v5_reset_source[env_id],
@@ -5073,7 +5731,28 @@ class DoorOpenA2Pull(DoorPregrasp):
             / 0.785398
         )
         reward = (handle_velocity + handle_position).clamp(max=1.0, min=-1.0)
-        return reward * self._get_a2_pull_load_bearing_income_mask().float()
+        result = reward * self._get_a2_pull_load_bearing_income_mask().float()
+        if self._is_a2_pull_v6():
+            result = torch.where(
+                self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION],
+                torch.zeros_like(result),
+                result,
+            )
+        return result
+
+    @StagedTaskBase.effective_in_stage(
+        [DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH]
+    )
+    @override
+    def _reward_a2_stage3_stage4_hold_and_drive(self):
+        reward = super()._reward_a2_stage3_stage4_hold_and_drive()
+        if not self._is_a2_pull_v6():
+            return reward
+        return torch.where(
+            self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION],
+            torch.zeros_like(reward),
+            reward,
+        )
 
     @StagedTaskBase.effective_in_stage(
         [DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH]
@@ -5091,7 +5770,22 @@ class DoorOpenA2Pull(DoorPregrasp):
             & self._get_a2_pull_load_bearing_income_mask()
         )
         reward = (hinge_velocity + hinge_position).clamp(max=1.0, min=-1.0)
-        return reward * income_mask.float()
+        result = reward * income_mask.float()
+        if self._is_a2_pull_v6():
+            result = torch.where(
+                self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION],
+                torch.zeros_like(result),
+                result,
+            )
+        return result
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
+    @override
+    def _reward_a2_stage3_stage4_keep_close_command(self):
+        reward = super()._reward_a2_stage3_stage4_keep_close_command()
+        if not self._is_a2_pull_v6():
+            return reward
+        return torch.where(self._a2_pull_v6_release_ready, torch.zeros_like(reward), reward)
 
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
     @override
@@ -5105,6 +5799,10 @@ class DoorOpenA2Pull(DoorPregrasp):
         pull_v3_hold_mask = (self.stage_buf == self.STAGE_OPEN) | (
             (self.stage_buf == self.STAGE_SWING) & ~self._a2_pull_aperture_ready
         )
+        if self._is_a2_pull_v6():
+            pull_v3_hold_mask = (self.stage_buf == self.STAGE_OPEN) | (
+                (self.stage_buf == self.STAGE_SWING) & ~self._a2_pull_v6_release_ready
+            )
         return reward * pull_v3_hold_mask.float()
 
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
@@ -5139,6 +5837,86 @@ class DoorOpenA2Pull(DoorPregrasp):
         active = self._get_a2_pull_frame_approach_active_mask()
         self._a2_pull_frame_approach_active[:] = active
         return raw * active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_arm_tangent_progress(self):
+        active = (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B) | (
+            self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C
+        )
+        return self._a2_pull_v6_positive_arm_tangent * active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_base_tangent_penalty(self):
+        active = (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B) | (
+            self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C
+        )
+        return self._a2_pull_v6_positive_base_tangent * active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_handle_side_progress(self):
+        active = (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B) | (
+            self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C
+        )
+        return (
+            self._a2_pull_v6_handle_side_progress
+            * self._a2_pull_v6_instantaneous_arm_tangent_share
+            * active.float()
+        )
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_handoff_side_progress(self):
+        return (
+            self._a2_pull_v6_handle_side_progress
+            * self._a2_pull_v6_instantaneous_arm_tangent_share
+            * self._a2_pull_v6_handoff_active.float()
+        )
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_handle_side_bonus(self):
+        return self._a2_pull_v6_handle_cross_bonus.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_arc_tracking(self):
+        active = (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B) | (
+            self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C
+        )
+        return self._a2_pull_v6_arc_quality * active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_pivot_excess_penalty(self):
+        active = (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_B) | (
+            self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C
+        )
+        radius = self._get_required_positive_float_config("a2_pull_v6_base_relief_radius_m", "Pull-v6 base relief radius")
+        if torch.any(active & ~torch.isfinite(self._a2_pull_v6_pivot_displacement_m)):
+            raise RuntimeError("Pull-v6 active send phase requires finite captured pivot displacement.")
+        excess = torch.relu(
+            torch.where(
+                active,
+                self._a2_pull_v6_pivot_displacement_m,
+                torch.zeros_like(self._a2_pull_v6_pivot_displacement_m),
+            ) - radius
+        )
+        return torch.where(active, excess, torch.zeros_like(excess))
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_hinge_momentum(self):
+        active = self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C
+        hinge_vel = self._get_door_joint_vel("Pull-v6 hinge momentum reward", 1)[:, 0]
+        return torch.relu(hinge_vel) * active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_handoff_hinge_momentum(self):
+        hinge_vel = self._get_door_joint_vel("Pull-v6 handoff hinge momentum reward", 1)[:, 0]
+        return torch.relu(hinge_vel) * self._a2_pull_v6_handoff_active.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_clean_release_quality(self):
+        return self._a2_pull_v6_release_quality * self._a2_pull_v6_clean_release_event.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v6_premature_release_penalty(self):
+        return self._a2_pull_v6_premature_release_event.float()
 
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
     @override
@@ -5188,6 +5966,9 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _reward_target_root_distance(self):
         reward = super()._reward_target_root_distance()
+        if self._is_a2_pull_v6():
+            masked = self._a2_pull_v6_subphase != self._A2_PULL_V6_PHASE_A
+            return torch.where(masked, torch.zeros_like(reward), reward)
         if self._get_a2_pull_threshold_mode() == "hard_gate":
             return torch.where(
                 self._a2_pull_aperture_ready,
@@ -5215,13 +5996,19 @@ class DoorOpenA2Pull(DoorPregrasp):
             if self._is_a2_pull_traversal()
             else torch.ones_like(self._a2_pull_event_reached[:, 0])
         )
-        return (
+        result = (
             self._a2_pull_event_reached[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY]
             & (signed_crossing > 0.0)
             & (self._pull_direction.travel_dir_x * root_states[:, 7] > 0.0)
             & ((body_total + arm_total) == 0.0)
             & frame_requirement
         )
+        if self._is_a2_pull_v6():
+            result &= (
+                self._a2_pull_v6_clean_release
+                & (self._a2_pull_v6_release_persistence >= 25)
+            )
+        return result
 
     @override
     def _stage_5_to_complete_condition(self):

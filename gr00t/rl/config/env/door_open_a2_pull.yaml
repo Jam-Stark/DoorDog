@@ -6,6 +6,9 @@ defaults:
 env:
   _target_: gr00t.rl.envs.door.door_open_a2_pull.DoorOpenA2Pull
   config:
+    eval_rendering:
+      camera_eye: [2.5, -2.5, 2.2]
+      camera_lookat: [0.5, 0.0, 0.45]
     a2_v20_R1_plan_id: a2_piper_pull_v0_tensile_feasibility_v1
     a2_pull_direction_contract_version: a2_piper_pull_direction_v1
     a2_pull_target_frame_version: grasp_target_active_face_io_z_pre_v1

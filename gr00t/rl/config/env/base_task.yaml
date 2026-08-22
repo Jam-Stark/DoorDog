@@ -25,6 +25,14 @@ env:
           camera_mode: handle_side
           camera_eye: [0.0, 0.62, 0.02]
           camera_lookat: [0.0, 0.0, 0.0]
+        - name: door_front_pos_x
+          camera_mode: door_top_down
+          camera_eye: [4.5, 0.0, 1.025]
+          camera_lookat: [0.0, 0.0, 1.025]
+        - name: door_front_neg_x
+          camera_mode: door_top_down
+          camera_eye: [-4.5, 0.0, 1.025]
+          camera_lookat: [0.0, 0.0, 1.025]
     experiment_dir: null
     ckpt_dir: null
 

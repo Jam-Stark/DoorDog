@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-20 23:55 HKT — pull-v5.6-r2 destination migration verifier/headless/micro PASS；actor runtime construction 已与 source raw checkpoint 解耦，T1 从 accepted warm asset 完成 `750/750`。step250/500/750 五 family×16 gate 均 `0/80`，aggregate infrastructure PASS / scientific FAIL / selected checkpoint null；G11 return-to-planner，rehearsal/anchor/door/P3/P4/DV/render NOT_RUN，无 passage denominator。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-22 01:36 HKT — v0–v5.6-r2 已收口；pull-v6 lightweight “送门过身” implementation contract active：E5 后由 base-dominant retreat 切到 arm-dominant handle 换侧，heading 自由，positive-velocity release 后 immediate through。首轮只做轻门；GPU0–3 全部授权并行训练/实验/test。当前仅 PLAN，code/runtime/training NOT_RUN。
 
 ## Update Rules
 

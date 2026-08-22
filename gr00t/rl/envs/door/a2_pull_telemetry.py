@@ -115,6 +115,60 @@ A2_PULL_EPISODE_STRATIFICATION_UNITS = {
     "hinge_drive_max_force_nm": "N*m",
 }
 
+A2_PULL_V6_CONTROL_EXTENSION_UNITS = {
+    "stage4_subphase": "integer",
+    "pivot_valid": "bool",
+    "pivot_displacement_m": "m_or_N/A",
+    "handle_y_current_m": "m_or_N/A",
+    "handle_y_capture_m": "m_or_N/A",
+    "handle_crossed": "bool",
+    "release_side_qualified": "bool",
+    "handoff_active": "bool",
+    "handoff_reached": "bool",
+    "handoff_active_steps": "count",
+    "positive_arm_tangent_mps": "m/s",
+    "positive_base_tangent_mps": "m/s",
+    "positive_total_tangent_mps": "m/s",
+    "arm_tangent_share": "ratio",
+    "arc_error_m": "m_or_N/A",
+    "arc_quality": "ratio",
+    "panel_clearance_m": "m_or_N/A",
+    "workspace_margin": "ratio_or_N/A",
+    "release_ready": "bool",
+    "release_event": "bool",
+    "clean_release": "bool",
+    "release_quality": "ratio",
+    "release_persistence_steps": "count",
+    "hinge_at_release_rad": "rad_or_N/A",
+    "hinge_velocity_at_release_radps": "rad/s_or_N/A",
+    "root_yaw_delta_rad": "rad_or_N/A",
+}
+
+
+def validate_a2_pull_v6_control_extension(record: Mapping[str, Any]) -> None:
+    """Validate the version-scoped v6 telemetry extension without changing legacy rows."""
+
+    _require_exact_fields(record, A2_PULL_V6_CONTROL_EXTENSION_UNITS, "pull_v6 telemetry")
+    for name in ("stage4_subphase", "release_persistence_steps", "handoff_active_steps"):
+        value = record[name]
+        if isinstance(value, bool) or not isinstance(value, Integral) or int(value) < 0:
+            raise ValueError(f"pull_v6 telemetry.{name} must be a non-negative integer.")
+    if int(record["stage4_subphase"]) > 3:
+        raise ValueError("pull_v6 telemetry.stage4_subphase must be one of 0/1/2/3.")
+    for name in ("pivot_valid", "handle_crossed", "release_side_qualified", "handoff_active", "handoff_reached", "release_ready", "release_event", "clean_release"):
+        if not isinstance(record[name], bool):
+            raise ValueError(f"pull_v6 telemetry.{name} must be bool.")
+    for name in set(A2_PULL_V6_CONTROL_EXTENSION_UNITS).difference(
+        {"stage4_subphase", "release_persistence_steps", "handoff_active_steps", "pivot_valid", "handle_crossed", "release_side_qualified", "handoff_active", "handoff_reached", "release_ready", "release_event", "clean_release"}
+    ):
+        value = record[name]
+        if value != A2_PULL_NA and not _is_finite_real(value):
+            raise ValueError(f"pull_v6 telemetry.{name} must be finite or N/A; got {value!r}.")
+    for name in ("arm_tangent_share", "arc_quality", "release_quality"):
+        value = record[name]
+        if not 0.0 <= float(value) <= 1.0:
+            raise ValueError(f"pull_v6 telemetry.{name} must lie in [0, 1].")
+
 
 def _is_finite_real(value: Any) -> bool:
     return (
@@ -662,6 +716,7 @@ __all__ = [
     "A2_PULL_V5_PERSISTENT_RELEASE_STREAK_STEPS",
     "A2_PULL_V5_RELEASE_HINGE_THRESHOLD_RAD",
     "A2_PULL_V5_RELEASE_TUCK_DURATION_S",
+    "A2_PULL_V6_CONTROL_EXTENSION_UNITS",
     "a2_pull_event_funnel",
     "a2_pull_event_state_names",
     "a2_pull_hinge_drive_force_bucket",
@@ -669,4 +724,5 @@ __all__ = [
     "advance_a2_pull_events",
     "validate_a2_pull_control_step",
     "validate_a2_pull_episode",
+    "validate_a2_pull_v6_control_extension",
 ]

@@ -79,12 +79,14 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
     A2_PULL_V3_PLAN_ID,
     A2_PULL_V4_PLAN_ID,
     A2_PULL_V5_PLAN_ID,
+    A2_PULL_V6_PLAN_ID,
     validate_a2_pull_v0_guard,
     validate_a2_pull_v1_guard,
     validate_a2_pull_v2_guard,
     validate_a2_pull_v3_guard,
     validate_a2_pull_v4_guard,
     validate_a2_pull_v5_guard,
+    validate_a2_pull_v6_guard,
 )
 from gr00t.rl.envs.door.a2_pull_direction import (
     A2DoorDirection,
@@ -831,8 +833,8 @@ def a2_v20_arc_probe_target_pose(
     advance_mask: torch.Tensor,
     target_hinge_rad: float,
     lead_rad: float,
-) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-    """Return a monotonically advancing TCP target on the live handle arc."""
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return a TCP target at the monotonic reference plus one bounded lead."""
     if not torch.is_tensor(door_source_pos_w) or door_source_pos_w.ndim != 2 or door_source_pos_w.shape[1] != 3:
         raise ValueError("v20 arc probe door_source_pos_w requires shape (N,3).")
     n = door_source_pos_w.shape[0]
@@ -867,8 +869,6 @@ def a2_v20_arc_probe_target_pose(
     for value, name in ((target_hinge_rad, "target_hinge_rad"), (lead_rad, "lead_rad")):
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0.0:
             raise ValueError(f"v20 arc probe {name} must be finite and positive.")
-    if float(target_hinge_rad) not in (0.9, 1.0, 1.1, 1.2):
-        raise ValueError("v20 arc probe target_hinge_rad must be one of 0.9/1.0/1.1/1.2.")
     candidate_reference_hinge = torch.maximum(
         reference_hinge_position, hinge_position
     ).clamp(max=float(target_hinge_rad))
@@ -888,7 +888,11 @@ def a2_v20_arc_probe_target_pose(
         ),
         torch.zeros_like(remaining_reference),
     )
-    signed_step = -door_open_lr * command_delta
+    command_hinge = torch.minimum(
+        next_reference_hinge + command_delta,
+        torch.full_like(next_reference_hinge, float(target_hinge_rad)),
+    )
+    signed_step = -door_open_lr * (command_hinge - hinge_position)
     zero = torch.zeros_like(signed_step)
     delta_quat_source = quat_from_euler_xyz(zero, zero, signed_step)
     hinge_local = torch.stack(
@@ -917,7 +921,13 @@ def a2_v20_arc_probe_target_pose(
     )
     if not torch.all(torch.isfinite(target_tcp_pos_w)) or not torch.all(torch.isfinite(target_tcp_quat_w)):
         raise ValueError("v20 arc probe target pose is non-finite.")
-    return target_tcp_pos_w, target_tcp_quat_w, command_delta, next_reference_hinge
+    return (
+        target_tcp_pos_w,
+        target_tcp_quat_w,
+        target_handle_pos_w,
+        command_delta,
+        next_reference_hinge,
+    )
 
 
 def a2_v20_arc_probe_activation_mask(
@@ -5998,6 +6008,25 @@ class DoorPregrasp(
 
     def _validate_a2_v20_r1_config(self) -> None:
         plan_id = self._get_a2_v20_r1_plan_id()
+        if plan_id == A2_PULL_V6_PLAN_ID:
+            finger_joint_names = ("arm_j7", "arm_j8")
+            actual_dof_names = tuple(self.simulator.dof_names)
+            if any(actual_dof_names.count(name) != 1 for name in finger_joint_names):
+                raise RuntimeError(
+                    "Pull-v6 construction requires exactly one arm_j7 and arm_j8 joint; "
+                    f"got {actual_dof_names!r}."
+                )
+            finger_joint_ids = [actual_dof_names.index(name) for name in finger_joint_names]
+            robot_data = self.simulator.scene.articulations["robot"].data
+            validate_a2_pull_v6_guard(
+                self.config,
+                actual_finger_effort_n=robot_data.joint_effort_limits[:, finger_joint_ids].detach().cpu().tolist(),
+                actual_finger_stiffness=robot_data.joint_stiffness[:, finger_joint_ids].detach().cpu().tolist(),
+                actual_finger_damping=robot_data.joint_damping[:, finger_joint_ids].detach().cpu().tolist(),
+                reward_scales=self.reward_scales,
+                reward_scale_dt=float(self.dt),
+            )
+            return
         if plan_id == A2_PULL_V5_PLAN_ID:
             finger_joint_names = ("arm_j7", "arm_j8")
             actual_dof_names = tuple(self.simulator.dof_names)
@@ -15357,8 +15386,29 @@ class DoorPregrasp(
                 raise RuntimeError(f"eval.{key} must be bool; got {value!r}.")
             return value
 
+        v6_p1_orientation_axis = eval_config.get(
+            "a2_pull_v6_p1_orientation_axis", "x"
+        )
+        if v6_p1_orientation_axis not in ("x", "z"):
+            raise RuntimeError(
+                "eval.a2_pull_v6_p1_orientation_axis must be exactly 'x' or 'z'; "
+                f"got {v6_p1_orientation_axis!r}."
+            )
+
         config = {
             "enabled": enabled,
+            "v6_p1_oracle_enabled": required_bool("a2_pull_v6_p1_oracle_enabled", False),
+            "v6_p1_orientation_axis": v6_p1_orientation_axis,
+            "v6_p1_target_hinge_velocity_radps": positive_float(
+                "a2_pull_v6_p1_target_hinge_velocity_radps", 0.30
+            ),
+            "v6_p1_xy_relief_m": positive_float("a2_pull_v6_p1_xy_relief_m", 0.05),
+            "v6_p1_through_speed_mps": positive_float(
+                "a2_pull_v6_p1_through_speed_mps", 0.20
+            ),
+            "v6_p1_phase_timeout_steps": positive_int(
+                "a2_pull_v6_p1_phase_timeout_steps", 300
+            ),
             "v20_arc_probe_enabled": required_bool("a2_v20_arc_probe_enabled", False),
             "v20_arc_probe_mode": eval_config.get("a2_v20_arc_probe_mode", "F0"),
             "v20_arc_probe_target_hinge_rad": finite_float(
@@ -15795,7 +15845,20 @@ class DoorPregrasp(
                     "A2 matched-clean reacquisition requires the exact approved protocol tuple; "
                     f"mismatched={mismatched}."
                 )
-        if config["v20_arc_probe_enabled"]:
+        if config["v6_p1_oracle_enabled"]:
+            if not config["enabled"] or not config["v20_arc_probe_enabled"]:
+                raise RuntimeError("A2 pull v6 P1 oracle requires the enabled v20 DLS transaction.")
+            if config["v20_arc_probe_target_hinge_rad"] != 2.0943951024:
+                raise RuntimeError("A2 pull v6 P1 controller target hinge must be 120 degrees.")
+            if config["v6_p1_target_hinge_velocity_radps"] not in (0.30, 0.45, 0.60):
+                raise RuntimeError("A2 pull v6 P1 target velocity must be one planned grid value.")
+            if config["v6_p1_xy_relief_m"] not in (0.05, 0.10, 0.15):
+                raise RuntimeError("A2 pull v6 P1 XY relief must be one planned grid value.")
+            if config["v20_arc_probe_mode"] != "F1":
+                raise RuntimeError("A2 pull v6 P1 requires F1 DLS relief mode.")
+            if config["v20_arc_probe_terminal_window_steps"] != 1:
+                raise RuntimeError("A2 pull v6 P1 terminal window must be one step.")
+        elif config["v20_arc_probe_enabled"]:
             if not config["enabled"]:
                 raise RuntimeError("A2 v20 arc probe requires a2_hold_oracle_enabled=true.")
             if config["v20_arc_probe_mode"] not in ("F0", "F1"):
@@ -15853,6 +15916,40 @@ class DoorPregrasp(
         if not self._use_a2_base or not getattr(self, "is_evaluating", False):
             raise RuntimeError("A2 hold oracle can only initialize in an evaluating A2 env.")
         cfg = self._parse_a2_hold_oracle_config(eval_config)
+        if cfg["v6_p1_oracle_enabled"]:
+            if self.num_envs != 1:
+                raise RuntimeError("A2 pull v6 P1 oracle requires one deterministic environment.")
+            if (
+                not torch.is_tensor(self.door_width)
+                or tuple(self.door_width.shape) != (self.num_envs,)
+                or not self.door_width.is_floating_point()
+                or not torch.all(torch.isfinite(self.door_width))
+                or torch.any(self.door_width <= 0.0)
+            ):
+                raise RuntimeError("A2 pull v6 P1 requires a finite positive resolved door_width.")
+            lookahead_steps = 8
+            cfg["v20_arc_probe_lead_rad"] = (
+                cfg["v6_p1_target_hinge_velocity_radps"]
+                * self.dt
+                * lookahead_steps
+            )
+            cfg["v20_arc_probe_relief_translation_max_m"] = cfg["v6_p1_xy_relief_m"]
+            cfg["v20_arc_probe_relief_yaw_gain"] = 10.0
+            cfg["v20_arc_probe_relief_yaw_speed_max_radps"] = 0.80
+            # The arm target uses its independent 16-control-step rate limit,
+            # rather than the legacy diagnostic 0.001-rad microstep.  It covers
+            # the 0.096-rad first target at the
+            # 0.30-rad/s cell and scales through the approved 0.60-rad/s grid.
+            cfg["v20_arc_probe_joint_target_step_max_rad"] = (
+                16.0 * cfg["v6_p1_target_hinge_velocity_radps"] * self.dt
+            )
+            cfg["max_position_step_m"] = float(
+                (
+                    self.door_width[0]
+                    * cfg["v20_arc_probe_lead_rad"]
+                ).item()
+            )
+            cfg["max_orientation_step_rad"] = cfg["v20_arc_probe_lead_rad"]
         cfg["tcp_offset_z"] = self._get_a2_gripper_source_tcp_offset_z()
         if cfg["pull_p1_probe_enabled"]:
             expected_io = (
@@ -16372,6 +16469,9 @@ class DoorPregrasp(
         )
         self._a2_v20_arc_probe_handle_to_tcp_quat[:, 0] = 1.0
         self._a2_v20_arc_probe_capture_valid = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v20_arc_probe_v6_entry_pivot_recaptured = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
         self._a2_v20_arc_probe_handoff_ready = torch.zeros(
@@ -18770,14 +18870,28 @@ class DoorPregrasp(
             piper_frames["target_quat_w"][:, 0, :],
         )
         hinge_position = self._get_door_joint_pos("A2 v20 arc probe target", 1)[:, 0]
-        target_pos_w, target_quat_w, lead_step, next_reference_hinge = (
+        (
+            target_pos_w,
+            target_quat_w,
+            target_handle_pos_w,
+            lead_step,
+            next_reference_hinge,
+        ) = (
             a2_v20_arc_probe_target_pose(
             door_frame["source_pos_w"],
             door_frame["source_quat_w"],
             handle_pos_source,
             handle_quat_source,
-            self._a2_v20_arc_probe_handle_to_tcp_pos,
-            self._a2_v20_arc_probe_handle_to_tcp_quat,
+            (
+                piper_frames["handle_to_tcp_pos"]
+                if self._a2_hold_oracle_cfg["v6_p1_oracle_enabled"]
+                else self._a2_v20_arc_probe_handle_to_tcp_pos
+            ),
+            (
+                piper_frames["handle_to_tcp_quat"]
+                if self._a2_hold_oracle_cfg["v6_p1_oracle_enabled"]
+                else self._a2_v20_arc_probe_handle_to_tcp_quat
+            ),
             self.door_width,
             self.door_open_lr,
             hinge_position,
@@ -18790,6 +18904,22 @@ class DoorPregrasp(
         source_pos_root, source_quat_root = subtract_frame_transforms(
             frames["root_pos_w"], frames["root_quat_w"], piper_frames["source_pos_w"], piper_frames["source_quat_w"]
         )
+        if self._a2_hold_oracle_cfg["v6_p1_oracle_enabled"]:
+            trunk_pos_w = frames["robot"].data.body_pos_w[
+                :, self._a2_pull_trunk_body_id
+            ]
+            trunk_quat_w = frames["robot"].data.body_quat_w[
+                :, self._a2_pull_trunk_body_id
+            ]
+            trunk_link_vel_w = frames["robot"].data.body_link_vel_w[
+                :, self._a2_pull_trunk_body_id
+            ]
+            handle_in_trunk, _ = subtract_frame_transforms(
+                trunk_pos_w,
+                trunk_quat_w,
+                piper_frames["target_pos_w"][:, 0, :],
+                piper_frames["target_quat_w"][:, 0, :],
+            )
         body_pos_root, _ = subtract_frame_transforms(
             frames["root_pos_w"], frames["root_quat_w"], frames["body_pos_w"], frames["body_quat_w"]
         )
@@ -18818,11 +18948,269 @@ class DoorPregrasp(
             self._a2_hold_oracle_cfg["max_position_step_m"],
             self._a2_hold_oracle_cfg["v20_arc_probe_max_orientation_step_rad"],
         )
-        self._a2_hold_oracle_controller.set_command(torch.cat((command_pos, command_quat), dim=-1))
         q_pre = frames["robot"].data.joint_pos[:, self._a2_hold_oracle_joint_ids].clone()
-        q_des = self._a2_hold_oracle_controller.compute(
-            source_pos_root, source_quat_root, jacobian_root, q_pre
+        wholebody_raw = torch.zeros(
+            self.num_envs, 5, dtype=q_pre.dtype, device=q_pre.device
         )
+        relief_base_raw = torch.zeros_like(wholebody_raw)
+        if self._a2_hold_oracle_cfg["v6_p1_oracle_enabled"]:
+            grasp_target_idx = int(door_frame["grasp_target_idx"])
+            native_grasp_quat_w = quat_mul(
+                door_frame["source_quat_w"],
+                door_frame["target_quat_source"][:, grasp_target_idx, :],
+            )
+            native_grasp_quat_root = quat_mul(
+                quat_inv(frames["root_quat_w"]), native_grasp_quat_w
+            )
+            local_axis_x = torch.zeros_like(command_pos)
+            local_axis_x[:, 0] = 1.0
+            local_axis_z = torch.zeros_like(command_pos)
+            local_axis_z[:, 2] = 1.0
+            native_axis_x_root = quat_apply(native_grasp_quat_root, local_axis_x)
+            native_axis_z_root = quat_apply(native_grasp_quat_root, local_axis_z)
+            p5 = torch.zeros(
+                self.num_envs, 5, 6, dtype=jacobian_root.dtype, device=jacobian_root.device
+            )
+            p5[:, :3, :3] = torch.eye(
+                3, dtype=jacobian_root.dtype, device=jacobian_root.device
+            )
+            p5[:, 3, 3:] = native_axis_x_root
+            p5[:, 4, 3:] = native_axis_z_root
+            e5 = torch.bmm(p5, bounded_delta.unsqueeze(-1)).squeeze(-1)
+            jarm5 = torch.bmm(p5, jacobian_root)
+            p4 = torch.zeros(
+                self.num_envs, 4, 6, dtype=jacobian_root.dtype, device=jacobian_root.device
+            )
+            p4[:, :3, :3] = torch.eye(
+                3, dtype=jacobian_root.dtype, device=jacobian_root.device
+            )
+            p4[:, 3, 3:] = native_axis_z_root
+            e4 = torch.bmm(p4, bounded_delta.unsqueeze(-1)).squeeze(-1)
+            jarm4 = torch.bmm(p4, jacobian_root)
+            base_scales = torch.tensor(
+                [
+                    self._a2_hold_oracle_cfg["base_relief_speed_mps"],
+                    self._a2_hold_oracle_cfg["base_relief_speed_mps"],
+                    self._a2_hold_oracle_cfg[
+                        "v20_arc_probe_relief_yaw_speed_max_radps"
+                    ],
+                ],
+                dtype=jacobian_root.dtype,
+                device=jacobian_root.device,
+            ).expand(self.num_envs, -1)
+            b6 = torch.zeros(
+                self.num_envs, 6, 3, dtype=jacobian_root.dtype, device=jacobian_root.device
+            )
+            yaw_frame_quat_w = yaw_quat(frames["root_quat_w"])
+            world_axis_x = torch.zeros_like(source_pos_root)
+            world_axis_x[:, 0] = 1.0
+            world_axis_y = torch.zeros_like(source_pos_root)
+            world_axis_y[:, 1] = 1.0
+            world_axis_z = torch.zeros_like(source_pos_root)
+            world_axis_z[:, 2] = 1.0
+            yaw_axis_x_root = quat_apply_inverse(
+                frames["root_quat_w"], quat_apply(yaw_frame_quat_w, world_axis_x)
+            )
+            yaw_axis_y_root = quat_apply_inverse(
+                frames["root_quat_w"], quat_apply(yaw_frame_quat_w, world_axis_y)
+            )
+            yaw_axis_root = quat_apply_inverse(
+                frames["root_quat_w"], world_axis_z
+            )
+            b6[:, :3, 0] = yaw_axis_x_root
+            b6[:, :3, 1] = yaw_axis_y_root
+            b6[:, :3, 2] = torch.linalg.cross(
+                yaw_axis_root, source_pos_root, dim=-1
+            )
+            b6[:, 3:, 2] = yaw_axis_root
+            b5 = torch.bmm(p5, b6 * (float(self.dt) * base_scales[:, None, :]))
+            b4 = torch.bmm(p4, b6 * (float(self.dt) * base_scales[:, None, :]))
+            root_axis_x_w = quat_apply(yaw_frame_quat_w, world_axis_x)
+            root_axis_y_w = quat_apply(yaw_frame_quat_w, world_axis_y)
+            trunk_axis_y_w = quat_apply(trunk_quat_w, world_axis_y)
+            handle_pos_w = piper_frames["target_pos_w"][:, 0, :]
+            side_goal_error = torch.clamp(
+                0.8
+                * (
+                    torch.full_like(
+                        handle_in_trunk[:, 1],
+                        self.config["a2_pull_v6_target_handle_y_m"],
+                    )
+                    - handle_in_trunk[:, 1]
+                )
+                * float(self.dt),
+                min=-0.25 * float(self.dt),
+                max=0.25 * float(self.dt),
+            )
+            side_base = torch.stack(
+                (
+                    -torch.sum(trunk_axis_y_w * root_axis_x_w, dim=-1),
+                    -torch.sum(trunk_axis_y_w * root_axis_y_w, dim=-1),
+                    -torch.sum(
+                        trunk_axis_y_w
+                        * torch.linalg.cross(
+                            world_axis_z, handle_pos_w - trunk_pos_w, dim=-1
+                        ),
+                        dim=-1,
+                    ),
+                ),
+                dim=-1,
+            )
+            bside = side_base * (float(self.dt) * base_scales)
+            cyaw = bside[:, 2]
+            pivot_velocity_world_xy = (
+                2.0 * (self._a2_pull_v6_pivot_xy - trunk_pos_w[:, :2])
+                - 0.5 * trunk_link_vel_w[:, :2]
+            )
+            pivot_speed = torch.linalg.vector_norm(pivot_velocity_world_xy, dim=-1)
+            pivot_speed_scale = torch.minimum(
+                torch.ones_like(pivot_speed),
+                torch.full_like(
+                    pivot_speed,
+                    self._a2_hold_oracle_cfg["base_relief_speed_mps"],
+                )
+                / pivot_speed.clamp_min(torch.finfo(pivot_speed.dtype).eps),
+            )
+            pivot_velocity_world_xy *= pivot_speed_scale[:, None]
+            pivot_velocity_body_xy = quat_apply_inverse(
+                yaw_frame_quat_w,
+                torch.cat(
+                    (
+                        pivot_velocity_world_xy,
+                        torch.zeros_like(pivot_velocity_world_xy[:, :1]),
+                    ),
+                    dim=-1,
+                ),
+            )[:, :2]
+            z_xy = pivot_velocity_body_xy / base_scales[:, :2]
+            z_yaw = torch.clamp(
+                (
+                    side_goal_error
+                    - torch.sum(bside[:, :2] * z_xy, dim=-1)
+                )
+                / cyaw,
+                min=-1.0,
+                max=1.0,
+            )
+            z_base = torch.cat((z_xy, z_yaw[:, None]), dim=-1) * advance_mask[
+                :, None
+            ]
+            damping = self._a2_hold_oracle_cfg["dls_lambda"]
+            soft_limits = frames["robot"].data.soft_joint_pos_limits[
+                :, self._a2_hold_oracle_joint_ids
+            ]
+            q_mid = 0.5 * (soft_limits[..., 0] + soft_limits[..., 1])
+            if self._a2_hold_oracle_cfg["v6_p1_orientation_axis"] == "x":
+                e_arm = e5 - torch.bmm(b5, z_base.unsqueeze(-1)).squeeze(-1)
+                row_scale = torch.ones_like(e5)
+                row_scale[:, 4] = 0.10
+                j_weighted = jarm5 * row_scale[:, :, None]
+                e_weighted = e_arm * row_scale
+                identity6 = torch.eye(
+                    6, dtype=jacobian_root.dtype, device=jacobian_root.device
+                ).expand(self.num_envs, -1, -1)
+                posture_weight = 1.0e-3
+                dq_arm = torch.linalg.solve(
+                    torch.bmm(j_weighted.transpose(1, 2), j_weighted)
+                    + (damping**2 + posture_weight) * identity6,
+                    torch.bmm(j_weighted.transpose(1, 2), e_weighted.unsqueeze(-1))
+                    + posture_weight * (q_mid - q_pre).unsqueeze(-1),
+                ).squeeze(-1)
+                augmented_task_jacobian = torch.cat(
+                    (
+                        torch.cat(
+                            (j_weighted, b5[:, :, 2:3] * row_scale[:, :, None]),
+                            dim=-1,
+                        ),
+                        torch.cat(
+                            (
+                                torch.zeros_like(jarm5[:, :1, :]),
+                                cyaw[:, None, None],
+                            ),
+                            dim=-1,
+                        ),
+                    ),
+                    dim=1,
+                )
+            else:
+                e_arm = e4 - torch.bmm(b4, z_base.unsqueeze(-1)).squeeze(-1)
+                identity4 = torch.eye(
+                    4, dtype=jacobian_root.dtype, device=jacobian_root.device
+                ).expand(self.num_envs, -1, -1)
+                dq_arm = torch.bmm(
+                    jarm4.transpose(1, 2),
+                    torch.linalg.solve(
+                        torch.bmm(jarm4, jarm4.transpose(1, 2))
+                        + damping**2 * identity4,
+                        e_arm.unsqueeze(-1),
+                    ),
+                ).squeeze(-1)
+                identity6 = torch.eye(
+                    6, dtype=jacobian_root.dtype, device=jacobian_root.device
+                ).expand(self.num_envs, -1, -1)
+                translation_nullspace = identity6 - torch.bmm(
+                    jarm4.transpose(1, 2),
+                    torch.linalg.solve(
+                        torch.bmm(jarm4, jarm4.transpose(1, 2)), jarm4
+                    ),
+                )
+                dq_arm += 0.10 * torch.bmm(
+                    translation_nullspace, (q_mid - q_pre).unsqueeze(-1)
+                ).squeeze(-1) * advance_mask[:, None]
+                augmented_task_jacobian = torch.cat(
+                    (
+                        torch.cat((jarm4, b4[:, :, 2:3]), dim=-1),
+                        torch.cat(
+                            (
+                                torch.zeros_like(jarm4[:, :1, :]),
+                                cyaw[:, None, None],
+                            ),
+                            dim=-1,
+                        ),
+                    ),
+                    dim=1,
+                )
+            q_des = q_pre + dq_arm
+            arm_base_raw = torch.zeros_like(wholebody_raw)
+            arm_base_raw[:, :3] = (
+                base_scales * z_base / self._a2_base_command_scale
+            )
+            relief_base_raw = arm_base_raw.clone()
+            whitened_augmented_task_jacobian = torch.bmm(
+                augmented_task_jacobian,
+                torch.diag_embed(
+                    torch.rsqrt(
+                        torch.tensor(
+                            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 16.0],
+                            dtype=jacobian_root.dtype,
+                            device=jacobian_root.device,
+                        ).expand(self.num_envs, -1)
+                    )
+                ),
+            )
+            task_singular_values = torch.linalg.svdvals(
+                whitened_augmented_task_jacobian
+            )
+            if self._a2_hold_oracle_cfg["v6_p1_orientation_axis"] == "x":
+                singular_values = task_singular_values
+                condition = task_singular_values[:, 0] / task_singular_values[:, 5]
+            else:
+                singular_values = torch.cat(
+                    (task_singular_values, torch.zeros_like(task_singular_values[:, :1])),
+                    dim=-1,
+                )
+                condition = task_singular_values[:, 0] / task_singular_values[:, 4]
+            ik_valid = torch.isfinite(condition) & (
+                condition <= self._a2_hold_oracle_cfg["jacobian_condition_max"]
+            )
+            wholebody_raw[:] = arm_base_raw
+        else:
+            self._a2_hold_oracle_controller.set_command(
+                torch.cat((command_pos, command_quat), dim=-1)
+            )
+            q_des = self._a2_hold_oracle_controller.compute(
+                source_pos_root, source_quat_root, jacobian_root, q_pre
+            )
         if not torch.all(torch.isfinite(q_des)):
             raise RuntimeError("A2 v20 arc probe DLS returned non-finite q_des.")
         actual_rel_pos = piper_frames["handle_to_tcp_pos"]
@@ -18861,6 +19249,8 @@ class DoorPregrasp(
             source_quat_root,
             actual_rel_pos,
             actual_rel_quat,
+            wholebody_raw,
+            relief_base_raw,
         )
 
     def _apply_a2_v20_arc_probe_action(
@@ -18886,6 +19276,8 @@ class DoorPregrasp(
             action = a2_hold_action_with_exact_disabled_equivalence(action, active)
         if not torch.any(active):
             self._a2_v20_arc_probe_f1_relief_pending.zero_()
+            if cfg["v6_p1_oracle_enabled"]:
+                self._a2_pull_v6_p1_translation_relief_pending.zero_()
             self._a2_v20_arc_probe_f1_target_update_applied.zero_()
             self._a2_hold_oracle_last_override_mask = empty_override.clone()
             self._a2_hold_oracle_post_override_action = action
@@ -18893,6 +19285,11 @@ class DoorPregrasp(
 
         self._a2_v20_arc_probe_command_sequence[active] += 1
         bilateral, contact_masks = self._a2_v20_arc_probe_bilateral_gate()
+        if cfg["v6_p1_oracle_enabled"]:
+            bilateral = (
+                contact_masks["both_contact"]
+                & self._get_a2_stage3_stage4_contact_stability_mask()
+            )
         self._a2_hold_oracle_last_single_body7[active] = contact_masks[
             "single_contact_arm_body7"
         ][active]
@@ -18904,6 +19301,16 @@ class DoorPregrasp(
             torch.zeros_like(self._a2_hold_oracle_slip_steps[active]),
             self._a2_hold_oracle_slip_steps[active] + 1,
         )
+        if cfg["v6_p1_oracle_enabled"]:
+            self._set_a2_hold_outcome(
+                active
+                & ~bilateral
+                & (
+                    self._a2_hold_oracle_slip_steps
+                    >= cfg["contact_slip_grace_steps"]
+                ),
+                "CONTACT_SLIP",
+            )
         door_joint_pos = self._get_door_joint_pos("A2 v20 arc probe", 1)[:, 0]
         door_joint_vel = self._get_door_joint_vel("A2 v20 arc probe", 1)[:, 0]
         self._a2_v20_arc_probe_max_hinge = torch.where(
@@ -18912,6 +19319,49 @@ class DoorPregrasp(
             torch.maximum(self._a2_v20_arc_probe_max_hinge, door_joint_pos),
         )
         frame_data = self._get_a2_v20_frame_data("A2 v20 arc probe bounds")
+        robot_data_for_hold = self.simulator.scene.articulations["robot"].data
+        if cfg["v6_p1_oracle_enabled"]:
+            entry_recapture = (
+                active
+                & self._a2_pull_v6_p1_yaw_pivot_complete
+                & ~self._a2_v20_arc_probe_v6_entry_pivot_recaptured
+            )
+            if torch.any(entry_recapture):
+                piper_frames = self._get_a2_v20_piper_frame_data(
+                    "A2 v20 arc probe stable-entry recapture"
+                )
+                trunk_pos_w = robot_data_for_hold.body_pos_w[
+                    :, self._a2_pull_trunk_body_id
+                ]
+                trunk_quat_w = robot_data_for_hold.body_quat_w[
+                    :, self._a2_pull_trunk_body_id
+                ]
+                handle_in_trunk, _ = subtract_frame_transforms(
+                    trunk_pos_w,
+                    trunk_quat_w,
+                    piper_frames["target_pos_w"][:, 0, :],
+                    piper_frames["target_quat_w"][:, 0, :],
+                )
+                _, _, trunk_yaw = euler_xyz_from_quat(trunk_quat_w)
+                root_se2_at_entry = self._a2_v20_current_root_se2(frame_data)
+                self._a2_pull_v6_pivot_xy[entry_recapture] = trunk_pos_w[
+                    entry_recapture, :2
+                ]
+                self._a2_pull_v6_root_yaw_at_capture[entry_recapture] = trunk_yaw[
+                    entry_recapture
+                ]
+                self._a2_pull_v6_handle_y_capture[entry_recapture] = handle_in_trunk[
+                    entry_recapture, 1
+                ]
+                self._a2_v20_arc_probe_root_capture_se2[entry_recapture] = (
+                    root_se2_at_entry[entry_recapture]
+                )
+                self._a2_v20_arc_probe_f1_hold_target_se2[entry_recapture] = (
+                    root_se2_at_entry[entry_recapture]
+                )
+                self._a2_v20_arc_probe_root_translation_max[entry_recapture] = 0.0
+                self._a2_v20_arc_probe_root_yaw_max[entry_recapture] = 0.0
+                self._a2_v20_arc_probe_v6_entry_pivot_recaptured |= entry_recapture
         if cfg["v20_arc_probe_mode"] == "F0":
             root_se2 = self._apply_a2_v20_f0_planar_root_clamp(active, frame_data)
         else:
@@ -18919,14 +19369,15 @@ class DoorPregrasp(
         root_delta = root_se2 - self._a2_v20_arc_probe_root_capture_se2
         root_translation = torch.linalg.norm(root_delta[:, :2], dim=-1)
         root_yaw = torch.abs(wrap_to_pi(root_delta[:, 2]))
-        robot_data_for_hold = self.simulator.scene.articulations["robot"].data
         self._a2_v20_arc_probe_root_translation_max = torch.maximum(
             self._a2_v20_arc_probe_root_translation_max, root_translation
         )
         self._a2_v20_arc_probe_root_yaw_max = torch.maximum(
             self._a2_v20_arc_probe_root_yaw_max, root_yaw
         )
-        root_crossing = active & (root_se2[:, 0] > 0.0)
+        root_crossing = active & (root_se2[:, 0] > 0.0) & ~torch.full_like(
+            active, cfg["v6_p1_oracle_enabled"]
+        )
         self._a2_v20_arc_probe_root_crossing |= root_crossing
         self._set_a2_hold_outcome(root_crossing, "ARC_PROBE_ROOT_CROSSING")
         translation_limit = (
@@ -18939,10 +19390,10 @@ class DoorPregrasp(
             if cfg["v20_arc_probe_mode"] == "F0"
             else cfg["v20_arc_probe_relief_yaw_max_rad"]
         )
-        self._set_a2_hold_outcome(
-            active & ((root_translation > translation_limit) | (root_yaw > yaw_limit)),
-            "ARC_PROBE_ROOT_BOUND",
-        )
+        root_bound = root_translation > translation_limit
+        if not cfg["v6_p1_oracle_enabled"]:
+            root_bound |= root_yaw > yaw_limit
+        self._set_a2_hold_outcome(active & root_bound, "ARC_PROBE_ROOT_BOUND")
         _, body_force = self._get_a2_door_body_panel_contact_forces()
         self._a2_v20_arc_probe_max_body_force = torch.maximum(
             self._a2_v20_arc_probe_max_body_force, body_force
@@ -18970,9 +19421,13 @@ class DoorPregrasp(
             active & torch.any(arm_velocity > overspeed_threshold, dim=-1),
             "ARC_PROBE_OVERSPEED",
         )
-        target_reached = active & (
-            door_joint_pos >= cfg["v20_arc_probe_target_hinge_rad"]
-        )
+        target_reached = active & (door_joint_pos >= cfg["v20_arc_probe_target_hinge_rad"])
+        if cfg["v6_p1_oracle_enabled"]:
+            target_reached = (
+                active
+                & self._a2_pull_v6_release_ready
+                & ~contact_masks["over_force"]
+            )
         if cfg["pull_p1_probe_enabled"]:
             pull_p1_door_joint_pos = self._get_door_joint_pos(
                 "Pull P1 arc probe", 3
@@ -18981,9 +19436,14 @@ class DoorPregrasp(
             self._a2_pull_p1_max_handle_rad = torch.maximum(
                 self._a2_pull_p1_max_handle_rad, pull_p1_door_joint_pos[:, 1]
             )
+        terminal_contact = (
+            torch.ones_like(bilateral[active])
+            if cfg["v6_p1_oracle_enabled"]
+            else bilateral[active]
+        )
         self._a2_v20_arc_probe_terminal_window_count[active] = torch.where(
             target_reached[active]
-            & bilateral[active]
+            & terminal_contact
             & (
                 self._a2_pull_p1_latch_released_ever[active]
                 if cfg["pull_p1_probe_enabled"]
@@ -19000,7 +19460,12 @@ class DoorPregrasp(
             active & (self._a2_hold_oracle_phase_step >= cfg["v20_arc_probe_timeout_steps"]),
             "ARC_PROBE_TIMEOUT",
         )
-        self._set_a2_hold_outcome(probe_complete, "ARC_PROBE_REACHED")
+        if cfg["v6_p1_oracle_enabled"]:
+            self._a2_pull_v6_p1_arc_reached |= probe_complete
+            self._a2_pull_v6_p1_phase[probe_complete] = 2
+            self._a2_pull_v6_p1_steps[probe_complete] = 0
+        else:
+            self._set_a2_hold_outcome(probe_complete, "ARC_PROBE_REACHED")
         self._a2_v20_arc_probe_f1_target_update_applied.zero_()
         hold_target = (
             self._a2_v20_arc_probe_root_capture_se2
@@ -19008,12 +19473,18 @@ class DoorPregrasp(
             else self._a2_v20_arc_probe_f1_hold_target_se2
         )
         active &= self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        active &= ~probe_complete
         if not torch.any(active):
             self._a2_v20_arc_probe_f1_relief_pending.zero_()
             self._a2_hold_oracle_last_override_mask = empty_override.clone()
             self._a2_hold_oracle_post_override_action = action
             return action, empty_override
         reference_before = self._a2_v20_arc_probe_reference_hinge.clone()
+        advance_mask = (
+            active & self._a2_pull_v6_p1_yaw_pivot_complete
+            if cfg["v6_p1_oracle_enabled"]
+            else active
+        )
         (
             q_des, ik_valid, singular_values, condition, target_pos_root,
             target_quat_root, pos_error, orientation_error, command_pos,
@@ -19022,7 +19493,9 @@ class DoorPregrasp(
             proposed_reference_hinge, bounded_delta, jacobian_root, q_pre,
             source_pos_root, source_quat_root,
             current_handle_to_tcp_pos, current_handle_to_tcp_quat,
-        ) = self._compute_a2_v20_arc_probe_joint_target(active, active)
+            wholebody_raw,
+            relief_base_raw,
+        ) = self._compute_a2_v20_arc_probe_joint_target(active, advance_mask)
         robot = self.simulator.scene.articulations["robot"]
         joint_ids = self._a2_hold_oracle_joint_ids
         current_q = robot.data.joint_pos[:, joint_ids]
@@ -19044,19 +19517,6 @@ class DoorPregrasp(
             q_des,
             active,
             cfg["v20_arc_probe_joint_target_step_max_rad"],
-        )
-        q_executed = q_des.clone()
-        dls_realization = a2_v20_arc_probe_dls_realization_telemetry(
-            [robot.joint_names[joint_id] for joint_id in joint_ids],
-            jacobian_root,
-            q_pre,
-            q_raw_dls,
-            q_executed,
-            source_pos_root,
-            source_quat_root,
-            bounded_delta,
-            current_handle_to_tcp_pos,
-            current_handle_to_tcp_quat,
         )
         hard_limits = robot.data.joint_pos_limits[:, joint_ids]
         soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
@@ -19087,6 +19547,15 @@ class DoorPregrasp(
         relief_solvable = relief_command["solvable"]
         relief_velocity = relief_command["commanded_body_velocity"]
         relief_raw = relief_command["raw_command"]
+        yaw_solvable = relief_command["yaw_solvable"]
+        if cfg["v6_p1_oracle_enabled"]:
+            yaw_priority = (
+                relief_candidate
+                & yaw_solvable
+                & ~self._a2_pull_v6_p1_yaw_pivot_complete
+            )
+            relief_raw[yaw_priority, :2] = 0.0
+            relief_velocity[yaw_priority] = 0.0
         self._a2_v20_arc_probe_f1_yaw_residual[:] = relief_command["yaw_residual_rad"]
         self._a2_v20_arc_probe_f1_physical_yaw_command[:] = relief_command[
             "physical_yaw_command_radps"
@@ -19094,7 +19563,10 @@ class DoorPregrasp(
         self._a2_v20_arc_probe_f1_raw_yaw_command[:] = relief_command[
             "raw_yaw_command"
         ]
-        if cfg["v20_arc_probe_mode"] == "F0":
+        if cfg["v6_p1_oracle_enabled"]:
+            self._set_a2_hold_outcome(relief_candidate, "JOINT_LIMIT")
+            relief_mask = torch.zeros_like(active)
+        elif cfg["v20_arc_probe_mode"] == "F0":
             self._set_a2_hold_outcome(relief_candidate, "JOINT_LIMIT")
             relief_mask = torch.zeros_like(active)
             self._a2_v20_arc_probe_f1_yaw_residual.zero_()
@@ -19108,17 +19580,29 @@ class DoorPregrasp(
             self._a2_hold_oracle_outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"]
         )
         if cfg["v20_arc_probe_mode"] == "F1":
-            updated_target, target_update = a2_v20_update_f1_hold_target(
-                self._a2_v20_arc_probe_f1_hold_target_se2,
-                self._a2_v20_arc_probe_root_capture_se2,
-                root_se2,
-                self._a2_v20_arc_probe_f1_relief_pending,
-                probe_outcome_pending,
-                root_translation,
-                root_yaw,
-                cfg["v20_arc_probe_relief_translation_max_m"],
-                cfg["v20_arc_probe_relief_yaw_max_rad"],
-            )
+            if cfg["v6_p1_oracle_enabled"]:
+                target_update = (
+                    self._a2_v20_arc_probe_f1_relief_pending
+                    & self._a2_pull_v6_p1_translation_relief_pending
+                    & probe_outcome_pending
+                    & (root_translation < cfg["v20_arc_probe_relief_translation_max_m"])
+                )
+                updated_target = torch.where(
+                    target_update[:, None], root_se2,
+                    self._a2_v20_arc_probe_f1_hold_target_se2,
+                )
+            else:
+                updated_target, target_update = a2_v20_update_f1_hold_target(
+                    self._a2_v20_arc_probe_f1_hold_target_se2,
+                    self._a2_v20_arc_probe_root_capture_se2,
+                    root_se2,
+                    self._a2_v20_arc_probe_f1_relief_pending,
+                    probe_outcome_pending,
+                    root_translation,
+                    root_yaw,
+                    cfg["v20_arc_probe_relief_translation_max_m"],
+                    cfg["v20_arc_probe_relief_yaw_max_rad"],
+                )
             self._a2_v20_arc_probe_f1_hold_target_se2[:] = updated_target
             self._a2_v20_arc_probe_f1_target_update_applied[:] = target_update
         else:
@@ -19177,6 +19661,8 @@ class DoorPregrasp(
             probe_base_raw = (
                 root_hold_raw * cfg["v20_arc_probe_f1_root_hold_scale"]
             )
+        if cfg["v6_p1_oracle_enabled"]:
+            probe_base_raw[arm_mask, 2] = 0.0
         relief_raw = relief_raw.clone()
         if cfg["v20_arc_probe_mode"] == "F0":
             # F0 is the strict fixed-planar-root control: yaw must be exactly zero.
@@ -19186,7 +19672,11 @@ class DoorPregrasp(
             (0, 5), (5, 11), 11,
         )
         combined_override_mask = override_mask
-        action[arm_mask, :5] = probe_base_raw[arm_mask]
+        if cfg["v6_p1_oracle_enabled"]:
+            action[arm_mask, :5] = wholebody_raw[arm_mask]
+            action[relief_mask, :5] = relief_base_raw[relief_mask]
+        else:
+            action[arm_mask, :5] = probe_base_raw[arm_mask]
         executed_q_target = torch.where(
             arm_mask[:, None], q_des, robot.data.joint_pos_target[:, joint_ids]
         )
@@ -19198,6 +19688,18 @@ class DoorPregrasp(
             cfg["joint_limit_margin"],
             cfg["joint_limit_margin"],
             cfg["soft_limit_progress_tolerance"],
+        )
+        dls_realization = a2_v20_arc_probe_dls_realization_telemetry(
+            [robot.joint_names[joint_id] for joint_id in joint_ids],
+            jacobian_root,
+            q_pre,
+            q_raw_dls,
+            executed_q_target,
+            source_pos_root,
+            source_quat_root,
+            bounded_delta,
+            current_handle_to_tcp_pos,
+            current_handle_to_tcp_quat,
         )
         self._a2_hold_oracle_q_des[:] = q_des
         self._a2_hold_oracle_d_des[:] = d_des
@@ -19221,11 +19723,40 @@ class DoorPregrasp(
         self._a2_hold_oracle_horizontal_residual[:] = horizontal_residual
         self._a2_hold_oracle_base_relief_body_velocity_command[:] = relief_velocity
         self._a2_hold_oracle_base_relief_raw_command[:] = relief_raw
+        if cfg["v6_p1_oracle_enabled"]:
+            self._a2_hold_oracle_base_relief_body_velocity_command[arm_mask] = (
+                wholebody_raw[arm_mask, :2] * self._a2_base_command_scale
+            )
+            self._a2_hold_oracle_base_relief_body_velocity_command[relief_mask] = (
+                relief_base_raw[relief_mask, :2] * self._a2_base_command_scale
+            )
+            self._a2_hold_oracle_base_relief_raw_command[arm_mask] = wholebody_raw[
+                arm_mask
+            ]
+            self._a2_hold_oracle_base_relief_raw_command[relief_mask] = relief_base_raw[
+                relief_mask
+            ]
+            self._a2_v20_arc_probe_f1_physical_yaw_command[arm_mask] = (
+                wholebody_raw[arm_mask, 2] * self._a2_base_command_scale
+            )
+            self._a2_v20_arc_probe_f1_physical_yaw_command[relief_mask] = (
+                relief_base_raw[relief_mask, 2] * self._a2_base_command_scale
+            )
+            self._a2_v20_arc_probe_f1_raw_yaw_command[arm_mask] = wholebody_raw[
+                arm_mask, 2
+            ]
+            self._a2_v20_arc_probe_f1_raw_yaw_command[relief_mask] = relief_base_raw[
+                relief_mask, 2
+            ]
         self._a2_hold_oracle_arm_dls_branch[:] = arm_mask
         self._a2_hold_oracle_base_relief_branch_applied[:] = relief_mask
         self._a2_v20_arc_probe_f1_relief_pending[:] = (
             relief_mask & (cfg["v20_arc_probe_mode"] == "F1")
         )
+        if cfg["v6_p1_oracle_enabled"]:
+            self._a2_pull_v6_p1_translation_relief_pending[:] = (
+                relief_mask & ~yaw_solvable
+            )
         self._a2_hold_oracle_phase_step[override_mask] += 1
         joint_margin = torch.minimum(
             robot.data.joint_pos[:, joint_ids] - hard_limits[..., 0],
@@ -24046,6 +24577,8 @@ class DoorPregrasp(
                 self._a2_v20_arc_probe_handoff_streak[env_ids] = 0
                 self._a2_v20_arc_probe_handoff_ready[env_ids] = False
                 self._a2_v20_arc_probe_command_sequence[env_ids] = 0
+                if cfg.get("v6_p1_oracle_enabled", False):
+                    self._a2_v20_arc_probe_v6_entry_pivot_recaptured[env_ids] = False
                 self._a2_v20_arc_probe_f1_hold_target_se2[env_ids] = 0.0
                 self._a2_v20_arc_probe_f1_relief_pending[env_ids] = False
                 self._a2_v20_arc_probe_f1_target_update_applied[env_ids] = False
@@ -24329,6 +24862,11 @@ class DoorPregrasp(
                 & first_episode_active
                 & (outcome == A2_HOLD_OUTCOME_TO_ID["PENDING"])
             )
+            if cfg["v6_p1_oracle_enabled"]:
+                probe_pending_mask &= (
+                    (self._a2_pull_v6_p1_phase == 1)
+                    & (self._a2_pull_v6_p1_steps < cfg["v6_p1_phase_timeout_steps"])
+                )
             updated_reset, updated_stage_overtime_reason, _ = (
                 a2_v20_mask_stage_overtime_for_arc_probe(
                     self.reset_buf,

@@ -1,13 +1,10 @@
 # `.codex` local policy
 
-Root `../AGENTS.md` is canonical. Read it first. Read `TEAM.md` only when a Codex task needs role selection, delegation, direct agent communication, or long-job coordination.
+Root `../AGENTS.md` is canonical. Read it first.
 
-The active Codex workflow consists only of:
-
-- `.codex/config.toml` for current `[agents]` defaults and concurrency;
-- standalone `.codex/agents/*.toml` custom-agent definitions;
-- `.codex/TEAM.md` for lean routing and communication.
-
-Do not recreate the removed contracts, evals, frozen-candidate lifecycle, role probe, model matrix, rollout gates, or recurring compatibility ceremony unless the user explicitly requests one concrete evaluation after an observed defect.
-
-When changing agent config, parse the affected TOML files once and perform one final path/reference check. Do not run repeated catalog, sandbox, metadata, compile, or diff audits for reassurance. Do not modify global `~/.codex/config.toml`.
+- For FAST work, do not read `TEAM.md` and do not initialize team state.
+- Read `TEAM.md` only when using project roles、P2P、multiple agents or formal coordinated work.
+- `.codex/config.toml` and `.codex/agents/*.toml` are project-owned and must not be overwritten by this role pack.
+- `.codex/hooks.json` is adaptive: inactive coordination is a no-op; active coordination enforces only the selected controlled tasks.
+- Do not recreate a contract/freeze/review pipeline for ordinary implementation.
+- Git commit/push require explicit authorization in the current task; never modify global `~/.codex/config.toml`.

@@ -50,6 +50,11 @@ class NameResolvedActuatorMapV2:
             raise ValueError(f"robot effort shape {effort.shape} does not match the joint contract")
         data.ctrl[self.robot_actuator_ids] = effort
 
+    def write_robot_position_target(self, data: mujoco.MjData, target: np.ndarray) -> None:
+        if target.shape != (len(self.robot_joint_names),):
+            raise ValueError(f"robot target shape {target.shape} does not match the joint contract")
+        data.ctrl[self.robot_actuator_ids] = target
+
     def robot_actuator_force(self, data: mujoco.MjData) -> np.ndarray:
         return data.actuator_force[self.robot_actuator_ids].copy()
 

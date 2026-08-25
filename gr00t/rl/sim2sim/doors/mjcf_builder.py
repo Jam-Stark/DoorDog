@@ -119,7 +119,7 @@ class MjcfDoorBuilder:
         ET.SubElement(handle_body, "joint", {
             "name": "handle_hinge",
             "type": "hinge",
-            "axis": "1 0 0",
+            "axis": _s(kinematics["handle_axis"]),
             "range": _s(kinematics["handle_limits_rad"]),
             "damping": f"{float(handle['viscous_friction_coefficient']):.12g}",
             "frictionloss": f"{float(handle['dynamic_friction_effort']):.12g}",
@@ -204,7 +204,7 @@ class MjcfDoorBuilder:
         elif latch_mode == "physical_collision":
             latch = ET.SubElement(panel, "body", {
                 "name": "latch_link",
-                "pos": _s([0, side * (width - 0.01), handle_z]),
+                "pos": _s([-0.083, side * (width - 0.01), height - 0.1]),
             })
             ET.SubElement(latch, "joint", {
                 "name": "latch_slide",
@@ -213,7 +213,15 @@ class MjcfDoorBuilder:
                 "range": "-0.03 0",
                 "limited": "true",
             })
-            _add_geom(latch, name="latch_collision", type="box", size="0.02 0.025 0.012", mass="0.05")
+            _add_geom(
+                latch,
+                name="latch_collision",
+                type="cylinder",
+                size="0.025 0.025",
+                euler=_s([-math.pi / 2.0 * side, 0.0, -math.radians(26.56) * side]),
+                mass="0.1",
+                group="5",
+            )
             ET.SubElement(equality, "joint", {
                 "name": "handle_latch_mimic",
                 "joint1": "latch_slide",

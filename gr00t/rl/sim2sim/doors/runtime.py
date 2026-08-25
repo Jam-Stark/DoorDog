@@ -13,7 +13,10 @@ class ConstraintGate:
         self.release_handle_rad = float(release_handle_rad)
 
     def update(self, data: mujoco.MjData) -> bool:
-        if data.eq_active[self.eq_id] and data.qpos[self.handle_qpos_address] >= self.release_handle_rad:
+        if self.active(data) and data.qpos[self.handle_qpos_address] >= self.release_handle_rad:
             data.eq_active[self.eq_id] = 0
             return True
         return False
+
+    def active(self, data: mujoco.MjData) -> bool:
+        return bool(data.eq_active[self.eq_id])

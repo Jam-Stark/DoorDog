@@ -154,8 +154,37 @@ class PairedSceneBuilderV2:
         ET.indent(robot, space="  ")
         output_xml.write_text(ET.tostring(robot, encoding="unicode") + "\n", encoding="utf-8")
         model = mujoco.MjModel.from_xml_path(str(output_xml))
-        if (model.nq, model.nv, model.nu) != (29, 28, 22):
-            raise ValueError(f"paired model dimensions {(model.nq, model.nv, model.nu)} != (29, 28, 22)")
+        gate_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_EQUALITY, "door_constraint_gate"
+        )
+        latch_slide_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_JOINT, "latch_slide"
+        )
+        latch_mimic_id = mujoco.mj_name2id(
+            model, mujoco.mjtObj.mjOBJ_EQUALITY, "handle_latch_mimic"
+        )
+        if latch_slide_id >= 0:
+            if gate_id >= 0 or latch_mimic_id < 0 or model.neq != 1:
+                raise ValueError("physical_collision latch topology is not uniquely realized")
+            latch_mode = "physical_collision"
+            expected_dimensions = (30, 29, 22)
+        else:
+            if latch_mimic_id >= 0:
+                raise ValueError("latch mimic exists without latch_slide")
+            if gate_id >= 0:
+                if model.neq != 1:
+                    raise ValueError("constraint_gate latch topology is not uniquely realized")
+                latch_mode = "constraint_gate"
+            else:
+                if model.neq != 0:
+                    raise ValueError("no_latch model has an undeclared equality")
+                latch_mode = "no_latch"
+            expected_dimensions = (29, 28, 22)
+        actual_dimensions = (model.nq, model.nv, model.nu)
+        if actual_dimensions != expected_dimensions:
+            raise ValueError(
+                f"paired {latch_mode} model dimensions {actual_dimensions} != {expected_dimensions}"
+            )
         actuator_order = [
             mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_ACTUATOR, index)
             for index in range(model.nu)
@@ -204,7 +233,14 @@ class PairedSceneBuilderV2:
                 "purpose": "native RGB must remain informative when a moving robot camera sees only background",
                 "physics_effect": "NONE; geom contact attributes are unchanged",
             },
-            "latch_realization": "NO_LATCH" if model.neq == 0 else "EQUALITY_PRESENT",
+            "latch_realization": {
+                "mode": latch_mode,
+                "expected_dimensions": expected_dimensions,
+                "actual_dimensions": actual_dimensions,
+                "door_constraint_gate_equality_id": gate_id,
+                "latch_slide_joint_id": latch_slide_id,
+                "handle_latch_mimic_equality_id": latch_mimic_id,
+            },
         }
         output_report.write_text(
             json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"

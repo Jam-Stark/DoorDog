@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Inspect, explicitly package, and optionally upload stage artifacts.
+"""Explicit stage-artifact inspector, semantic ZIP packer, and rclone uploader.
 
-Packing/upload require --confirm-stage-handoff. Ordinary task closure must not invoke this tool automatically.
+No command runs automatically at task closure. Cloud-facing ZIP files are
+ordinary, independently readable archives capped at 95 MiB by default. The
+tool never creates split-volume .z01/.z02 archives or binary-slices a model.
 """
-
 from __future__ import annotations
 
 import argparse
@@ -13,7 +14,7 @@ import os
 import re
 import shutil
 import subprocess
-import sys
+import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime
@@ -23,28 +24,35 @@ from zoneinfo import ZoneInfo
 
 try:
     import tomllib
-except ModuleNotFoundError as exc:  # pragma: no cover - Python <3.11
-    raise SystemExit("Python 3.11+ is required (tomllib missing).") from exc
+except ModuleNotFoundError as exc:
+    raise SystemExit('Python 3.11+ is required') from exc
 
-DEFAULT_CONFIG = Path(".ai/artifact-sync.toml")
-HARD_EXCLUDE_PARTS = {".git", ".venv", "venv", "node_modules"}
-SECRET_NAME_RE = re.compile(
-    r"(^|[._-])(secret|secrets|token|tokens|credential|credentials|private[_-]?key)([._-]|$)",
-    re.IGNORECASE,
-)
-SECRET_CONTENT_PATTERNS = [
-    ("private-key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
-    ("openai-key", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b")),
-    ("github-token", re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b")),
-    ("aws-access-key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
-    ("google-api-key", re.compile(r"\bAIza[0-9A-Za-z_-]{30,}\b")),
+MIB = 1024 * 1024
+DEFAULT_LIMIT = 95 * MIB
+DEFAULT_CONFIG = Path('.ai/artifact-sync.toml')
+DEFAULT_WORKER_PREFIX = 'worker_delivery__'
+DEFAULT_PRO_PREFIX = 'pro_delivery__'
+DEFAULT_PRO_ZIP = 'pro_delivery__full_review.zip'
+CHECKPOINT_SUFFIXES = {'.pt','.pth','.ckpt','.onnx','.safetensors','.bin'}
+MEDIA_SUFFIXES = {'.png','.jpg','.jpeg','.webp','.gif','.svg','.pdf','.mp4','.mov','.avi','.mkv','.webm','.html'}
+SOURCE_SUFFIXES = {'.py','.pyi','.ipynb','.toml','.yaml','.yml','.json','.jsonc','.ini','.cfg','.conf','.xml','.urdf','.md'}
+LOG_SUFFIXES = {'.log','.json','.jsonl','.csv','.tsv','.txt','.out','.err'}
+SPLIT_RE = re.compile(r'(?:\.z\d{2,}|\.zip\.\d+)$', re.I)
+SECRET_NAME_RE = re.compile(r'(^|[._-])(secret|token|credential|private[_-]?key)([._-]|$)', re.I)
+SECRET_PATTERNS = [
+    re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),
+    re.compile(r'\bsk-[A-Za-z0-9_-]{20,}\b'),
+    re.compile(r'\bgh[pousr]_[A-Za-z0-9]{20,}\b'),
+    re.compile(r'\bAKIA[0-9A-Z]{16}\b'),
 ]
-TEXT_SCAN_LIMIT = 2 * 1024 * 1024
-ZIP_PAYLOAD_MARGIN = 1024 * 1024
-PLOT_EVIDENCE_SUFFIXES = {
-    ".png", ".jpg", ".jpeg", ".webp", ".svg", ".pdf", ".html",
-    ".mp4", ".mov", ".avi", ".mkv", ".webm",
+PURPOSE = {
+    'source_and_configs': '源文件、resolved config、运行配置与说明文档。',
+    'logs_and_metrics': '训练/评估日志、指标、summary、receipt 与 ledger。',
+    'plots_and_evidence': '图表、render、视频、PDF 与其他可视化证据。',
+    'checkpoints': '经显式 opt-in 选择且可独立读取的模型/checkpoint。',
+    'other_evidence': '未落入以上类别的其他阶段证据。',
 }
+ORDER = tuple(PURPOSE)
 
 
 @dataclass(frozen=True)
@@ -61,593 +69,255 @@ class Exclusion:
     reason: str
 
 
-def run(cmd: list[str], *, cwd: Path, check: bool = True) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(cmd, cwd=cwd, check=check, capture_output=True)
+@dataclass(frozen=True)
+class Archive:
+    name: str
+    group: str
+    files: tuple[Candidate, ...]
+    size: int
+
+
+def run(cmd: list[str], cwd: Path, check: bool=True) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(cmd, cwd=cwd, capture_output=True, check=check)
 
 
 def git_root(start: Path) -> Path:
-    result = run(["git", "rev-parse", "--show-toplevel"], cwd=start)
-    return Path(result.stdout.decode().strip()).resolve()
+    return Path(run(['git','rev-parse','--show-toplevel'], start).stdout.decode().strip()).resolve()
 
 
 def git_text(root: Path, *args: str) -> str:
-    return run(["git", *args], cwd=root).stdout.decode(errors="replace").strip()
+    return run(['git',*args], root).stdout.decode(errors='replace').strip()
 
 
-def load_config(root: Path, config_path: Path) -> dict[str, Any]:
-    path = config_path if config_path.is_absolute() else root / config_path
-    if not path.is_file():
-        raise SystemExit(f"Config not found: {path}")
-    with path.open("rb") as handle:
+def load_config(root: Path, raw: Path) -> dict[str, Any]:
+    path = raw if raw.is_absolute() else root / raw
+    with path.open('rb') as handle:
         return tomllib.load(handle)
 
 
-def nul_paths(data: bytes) -> list[str]:
-    return [part.decode(errors="surrogateescape") for part in data.split(b"\0") if part]
+def slug(text: str) -> str:
+    return re.sub(r'-+', '-', re.sub(r'[^A-Za-z0-9._-]+','-',text.strip())).strip('-._') or 'unknown'
 
 
-def discover_untracked(root: Path) -> dict[str, str]:
-    result: dict[str, str] = {}
-    ordinary = run(
-        ["git", "ls-files", "--others", "--exclude-standard", "-z"], cwd=root
-    ).stdout
-    ignored = run(
-        ["git", "ls-files", "--others", "--ignored", "--exclude-standard", "-z"],
-        cwd=root,
-    ).stdout
-    for relative in nul_paths(ordinary):
-        result[PurePosixPath(relative).as_posix()] = "untracked"
-    for relative in nul_paths(ignored):
-        result[PurePosixPath(relative).as_posix()] = "ignored"
-    return result
-
-
-def glob_match(path: str, patterns: Iterable[str]) -> bool:
-    # fnmatch handles ** sufficiently for repository-relative paths.
+def match(path: str, patterns: Iterable[str]) -> bool:
     return any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)
 
 
-def secret_name(path: str) -> bool:
-    pp = PurePosixPath(path)
-    if any(part in HARD_EXCLUDE_PARTS for part in pp.parts):
-        return True
-    if any(part.startswith(".env") for part in pp.parts):
-        return True
-    return any(SECRET_NAME_RE.search(part) for part in pp.parts)
+def naming(cfg: dict[str,Any]) -> tuple[str,str,str]:
+    values = cfg.get('naming', {})
+    worker = str(values.get('worker_prefix', DEFAULT_WORKER_PREFIX))
+    pro = str(values.get('pro_prefix', DEFAULT_PRO_PREFIX))
+    pro_zip = str(values.get('pro_full_review_zip', DEFAULT_PRO_ZIP))
+    for label, value in (('worker_prefix', worker), ('pro_prefix', pro), ('pro_full_review_zip', pro_zip)):
+        if not value or '/' in value or '\\' in value:
+            raise SystemExit(f'invalid naming.{label}: {value!r}')
+    if not worker.endswith('__') or not pro.endswith('__'):
+        raise SystemExit('worker_prefix and pro_prefix must end with double underscore')
+    if not pro_zip.startswith(pro) or not pro_zip.endswith('.zip'):
+        raise SystemExit('pro_full_review_zip must use pro_prefix and end with .zip')
+    return worker, pro, pro_zip
 
 
-def scan_secret_content(path: Path) -> str | None:
-    if path.stat().st_size > TEXT_SCAN_LIMIT:
-        return None
-    try:
-        data = path.read_bytes()
-    except OSError:
-        return "unreadable"
-    if b"\x00" in data[:4096]:
-        return None
-    text = data.decode("utf-8", errors="ignore")
-    for label, pattern in SECRET_CONTENT_PATTERNS:
-        if pattern.search(text):
-            return f"secret-content:{label}"
-    return None
+def discover(root: Path) -> dict[str,str]:
+    result: dict[str,str] = {}
+    for source, args in (
+        ('untracked',['git','ls-files','--others','--exclude-standard','-z']),
+        ('ignored',['git','ls-files','--others','--ignored','--exclude-standard','-z']),
+    ):
+        for raw in run(args, root).stdout.split(b'\0'):
+            if raw:
+                result[PurePosixPath(raw.decode(errors='surrogateescape')).as_posix()] = source
+    return result
 
 
-def slug(value: str) -> str:
-    normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", value.strip())
-    normalized = re.sub(r"-+", "-", normalized).strip("-._")
-    return normalized or "unknown"
+def sensitive_name(relative: str) -> bool:
+    parts = PurePosixPath(relative).parts
+    return any(part in {'.git','.venv','venv','node_modules'} or part.startswith('.env') or SECRET_NAME_RE.search(part) for part in parts)
 
 
-def select_candidates(
-    root: Path,
-    config: dict[str, Any],
-    *,
-    stage: str,
-    selectors: list[str],
-    include_checkpoints: bool,
-    all_matching: bool,
-) -> tuple[list[Candidate], list[Exclusion]]:
-    selection = config.get("selection", {})
-    includes = list(selection.get("include", []))
-    excludes = list(selection.get("exclude", []))
-    checkpoint_patterns = list(selection.get("checkpoint_patterns", []))
-    max_file = int(selection.get("max_file_bytes", 2 * 1024**3))
-    max_bundle = int(selection.get("max_bundle_bytes", 10 * 1024**3))
+def sensitive_content(path: Path) -> bool:
+    if path.stat().st_size > 2*MIB:
+        return False
+    data = path.read_bytes()
+    if b'\0' in data[:4096]:
+        return False
+    text = data.decode('utf-8', errors='ignore')
+    return any(pattern.search(text) for pattern in SECRET_PATTERNS)
 
+
+def select(root: Path, cfg: dict[str,Any], args: argparse.Namespace) -> tuple[list[Candidate],list[Exclusion]]:
+    scfg = cfg.get('selection', {})
+    includes = list(scfg.get('include', [])); excludes = list(scfg.get('exclude', []))
+    checkpoints = list(scfg.get('checkpoint_patterns', [])); max_file = int(scfg.get('max_file_bytes', 2*1024**3)); max_bundle = int(scfg.get('max_bundle_bytes',10*1024**3))
     if not includes:
-        raise SystemExit("selection.include must contain at least one allowlist pattern")
-
-    stage_tokens = [slug(stage).lower(), stage.lower()]
-    selector_tokens = [token.lower() for token in selectors if token]
-    discovered = discover_untracked(root)
-    accepted: list[Candidate] = []
-    rejected: list[Exclusion] = []
-    total = 0
-
-    for relative, source in sorted(discovered.items()):
+        raise SystemExit('selection.include must not be empty')
+    stage_tokens = {args.stage.lower(), slug(args.stage).lower()}; selectors = [x.lower() for x in args.selector]
+    accepted: list[Candidate] = []; rejected: list[Exclusion] = []; total = 0
+    for relative, source in sorted(discover(root).items()):
         path = root / relative
-        if not path.is_file() or path.is_symlink():
+        if not path.is_file() or path.is_symlink() or not match(relative, includes):
             continue
-        if not glob_match(relative, includes):
-            continue
-        if glob_match(relative, excludes) or secret_name(relative):
-            rejected.append(Exclusion(relative, "excluded-or-sensitive-name"))
-            continue
-        if checkpoint_patterns and glob_match(relative, checkpoint_patterns) and not include_checkpoints:
-            rejected.append(Exclusion(relative, "checkpoint-opt-in-required"))
-            continue
-        lower = relative.lower()
-        if not all_matching and not selector_tokens and not any(token in lower for token in stage_tokens):
-            rejected.append(Exclusion(relative, "stage-not-in-path"))
-            continue
-        if selector_tokens and not any(token in lower for token in selector_tokens):
-            rejected.append(Exclusion(relative, "selector-mismatch"))
-            continue
-        size = path.stat().st_size
-        if size > max_file:
-            rejected.append(Exclusion(relative, f"file-too-large:{size}"))
-            continue
-        secret_reason = scan_secret_content(path)
-        if secret_reason:
-            rejected.append(Exclusion(relative, secret_reason))
-            continue
-        if total + size > max_bundle:
-            rejected.append(Exclusion(relative, "bundle-size-limit"))
-            continue
-        accepted.append(Candidate(path, relative, size, source))
-        total += size
-
+        reason = None
+        if match(relative, excludes) or sensitive_name(relative): reason = 'excluded-or-sensitive-name'
+        elif checkpoints and match(relative, checkpoints) and not args.include_checkpoints: reason = 'checkpoint-opt-in-required'
+        elif not args.all_matching and not selectors and not any(x in relative.lower() for x in stage_tokens): reason = 'stage-not-in-path'
+        elif selectors and not any(x in relative.lower() for x in selectors): reason = 'selector-mismatch'
+        elif path.stat().st_size > max_file: reason = f'file-too-large:{path.stat().st_size}'
+        elif sensitive_content(path): reason = 'secret-content'
+        elif total + path.stat().st_size > max_bundle: reason = 'bundle-size-limit'
+        if reason:
+            rejected.append(Exclusion(relative, reason)); continue
+        item = Candidate(path, relative, path.stat().st_size, source); accepted.append(item); total += item.size
     return accepted, rejected
 
 
-def repository_url(root: Path) -> str | None:
-    try:
-        return git_text(root, "remote", "get-url", "origin") or None
-    except subprocess.CalledProcessError:
-        return None
+def group(item: Candidate) -> str:
+    suffix = item.path.suffix.lower(); lower = item.relative.lower()
+    if suffix in CHECKPOINT_SUFFIXES: return 'checkpoints'
+    if suffix in MEDIA_SUFFIXES or any(x in lower for x in ('plot','render','video','figure','evidence')): return 'plots_and_evidence'
+    if suffix in SOURCE_SUFFIXES or any(x in lower for x in ('config','source','script')): return 'source_and_configs'
+    if suffix in LOG_SUFFIXES or any(x in lower for x in ('log','metric','summary','receipt','ledger','eval')): return 'logs_and_metrics'
+    return 'other_evidence'
 
 
-def build_metadata(
-    root: Path,
-    config: dict[str, Any],
-    *,
-    project: str,
-    worktree: str,
-    stage: str,
-    candidates: list[Candidate],
-    exclusions: list[Exclusion],
-    questions: list[str],
-    trigger: str,
-) -> dict[str, Any]:
-    now = datetime.now(ZoneInfo("Asia/Hong_Kong"))
-    sha = git_text(root, "rev-parse", "--short=12", "HEAD")
-    branch = git_text(root, "branch", "--show-current") or "detached"
-    status = git_text(root, "status", "--short")
+def zip_once(destination: Path, files: list[Candidate]) -> int:
+    with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for item in files:
+            zf.write(item.path, arcname=item.relative)
+    return destination.stat().st_size
+
+
+def split_to_limit(out: Path, base: str, files: list[Candidate], limit: int, checkpoint_group: bool, worker_prefix: str) -> tuple[list[Archive],list[Exclusion]]:
+    if not files:
+        return [], []
+    probe = out / f'.{base}-{os.getpid()}-probe.zip'
+    size = zip_once(probe, files); probe.unlink()
+    if size <= limit:
+        name = f'{base}.zip'; final = out / name; size = zip_once(final, files)
+        group_name = base.removeprefix(worker_prefix).split('_part')[0]
+        return [Archive(name, group_name, tuple(files), size)], []
+    if len(files) == 1:
+        reason = 'checkpoint-over-cloud-limit-use-rclone-exception' if checkpoint_group else 'single-file-over-cloud-limit'
+        return [], [Exclusion(files[0].relative, reason)]
+    files = sorted(files, key=lambda x: x.size, reverse=True)
+    left: list[Candidate] = []; right: list[Candidate] = []; lsize = rsize = 0
+    for item in files:
+        if lsize <= rsize: left.append(item); lsize += item.size
+        else: right.append(item); rsize += item.size
+    records: list[Archive] = []; excluded: list[Exclusion] = []
+    for idx, subset in enumerate((left,right), 1):
+        sub_records, sub_excluded = split_to_limit(out, f'{base}_part{idx:02d}', subset, limit, checkpoint_group, worker_prefix)
+        records.extend(sub_records); excluded.extend(sub_excluded)
+    return records, excluded
+
+
+def metadata(root: Path, args: argparse.Namespace, accepted: list[Candidate], rejected: list[Exclusion], worker_prefix: str, pro_prefix: str, pro_zip: str) -> dict[str,Any]:
+    current = datetime.now(ZoneInfo('Asia/Hong_Kong'))
     return {
-        "schema_version": 1,
-        "project": project,
-        "repository_url": repository_url(root),
-        "repository_root": str(root),
-        "branch": branch,
-        "worktree": worktree,
-        "stage": stage,
-        "timestamp_hkt": now.isoformat(timespec="seconds"),
-        "timestamp_compact": now.strftime("%Y%m%d-%H%M%S-HKT"),
-        "git_revision": git_text(root, "rev-parse", "HEAD"),
-        "git_short_sha": sha,
-        "dirty_summary": status.splitlines(),
-        "selection": config.get("selection", {}),
-        "included": [
-            {"path": item.relative, "bytes": item.size, "source": item.source}
-            for item in candidates
-        ],
-        "excluded": [
-            {"path": item.relative, "reason": item.reason} for item in exclusions
-        ],
-        "evidence_boundary": (
-            "Bundle contents are stage artifacts selected from untracked/ignored files. "
-            "Their presence does not by itself prove runtime, experiment, or hardware success."
-        ),
-        "cloud_planner_questions": questions,
-        "handoff_trigger": trigger,
-        "upload": config.get("upload", {}),
+        'schema_version': 4, 'project': args.project or root.name, 'worktree': args.worktree or root.name,
+        'stage': args.stage, 'timestamp_hkt': current.isoformat(timespec='seconds'),
+        'release': f"{current.strftime('%Y%m%d-%H%M%S-HKT')}__{git_text(root,'rev-parse','--short=12','HEAD')}",
+        'branch': git_text(root,'branch','--show-current') or 'detached', 'git_revision': git_text(root,'rev-parse','HEAD'),
+        'handoff_trigger': args.trigger, 'included': [{'path':x.relative,'bytes':x.size,'source':x.source} for x in accepted],
+        'excluded': [{'path':x.relative,'reason':x.reason} for x in rejected],
+        'questions': args.question or [],
+        'delivery_naming': {'worker_prefix': worker_prefix, 'pro_prefix': pro_prefix, 'pro_full_review_zip': pro_zip},
+        'evidence_boundary': 'Selected artifact presence does not by itself prove runtime, experiment, or hardware success.',
     }
 
 
-def handoff_markdown(meta: dict[str, Any]) -> str:
-    questions = meta["cloud_planner_questions"] or [
-        "请独立分析本阶段结果、失败模式、替代解释和下一阶段候选。",
-        "请区分 remote-code/artifact 证据与需要本地 planner 核验的运行条件。",
-    ]
-    q_lines = "\n".join(f"- {q}" for q in questions)
-    return f"""# Cloud Planner Handoff
-
-## Context
-
-- Project: `{meta['project']}`
-- Worktree: `{meta['worktree']}`
-- Branch: `{meta['branch']}`
-- Stage: `{meta['stage']}`
-- Git revision: `{meta['git_revision']}`
-- Timestamp: `{meta['timestamp_hkt']}`
-
-## Evidence boundary
-
-{meta['evidence_boundary']}
-
-Cloud analysis may inspect the remote repository and this bundle. It must not assume local IsaacLab, GPU, driver, resolved-config, checkpoint, or unbundled log facts. Mark local feasibility claims for the local planner to verify.
-
-## Questions
-
-{q_lines}
-
-## Bundle contents
-
-- Included files: {len(meta['included'])}
-- Excluded candidates: {len(meta['excluded'])}
-- See `BUNDLE_MANIFEST.json` for exact paths and reasons.
-"""
+def index_text(meta: dict[str,Any], archives: list[Archive], excluded: list[Exclusion], limit: int) -> str:
+    lines = [f"# Worker Bundle Index — {meta['project']} / {meta['stage']}",'',f"Release: `{meta['release']}`",f"Single-ZIP ceiling: `{limit}` bytes (95 MiB default, final compressed size)",'','## Worker delivery archives']
+    for idx, record in enumerate(archives,1):
+        lines += ['',f"### {idx}. `{record.name}`",'',f"Purpose: {PURPOSE.get(record.group,'阶段证据。')}",f"Compressed bytes: `{record.size}`",'','Contents:']
+        lines += [f"- `{item.relative}`" for item in record.files]
+    lines += ['','## Not packaged']
+    lines += [f"- `{item.relative}` — {item.reason}" for item in excluded] or ['- None.']
+    lines += ['',f"The cloud Pro full-review archive will be uploaded later into this same task folder as `{meta['delivery_naming']['pro_full_review_zip']}`.",'Each ZIP above is a normal independent archive. No `.z01/.z02` or binary reconstruction is required.','']
+    return '\n'.join(lines)
 
 
-def semantic_group(item: Candidate, checkpoint_patterns: list[str]) -> str:
-    relative = item.relative.lower()
-    parts = PurePosixPath(relative).parts
-    suffix = PurePosixPath(relative).suffix
-    if glob_match(item.relative, checkpoint_patterns):
-        return "checkpoints"
-    if suffix in PLOT_EVIDENCE_SUFFIXES or any(
-        token in parts for token in ("plots", "figures", "renders", "videos", "evidence")
-    ):
-        return "plots_and_evidence"
-    if any(
-        token in relative
-        for token in ("logs", "metrics", "summary", "receipt", "ledger", "telemetry")
-    ):
-        return "logs_and_metrics"
-    return "source_and_configs"
+def handoff_text(meta: dict[str,Any]) -> str:
+    questions = meta['questions'] or ['请独立分析本阶段结果、失败模式、替代解释和下一阶段候选。']
+    return '\n'.join([f"# Worker-to-Pro handoff — {meta['project']} / {meta['stage']}",'',f"Git revision: `{meta['git_revision']}`",f"Branch: `{meta['branch']}`",'', '## Questions', *[f'- {q}' for q in questions], '', '## Evidence boundary', meta['evidence_boundary'], '', '## Expected Pro delivery', f"Upload `{meta['delivery_naming']['pro_full_review_zip']}` into this same release folder after review.", ''])
 
 
-def partition_by_size(items: list[Candidate], payload_limit: int) -> list[list[Candidate]]:
-    groups: list[list[Candidate]] = []
-    current: list[Candidate] = []
-    current_size = 0
-    for item in items:
-        if current and current_size + item.size > payload_limit:
-            groups.append(current)
-            current = []
-            current_size = 0
-        current.append(item)
-        current_size += item.size
-    if current:
-        groups.append(current)
-    return groups
-
-
-def archive_name(category: str, part: int, part_count: int) -> str:
-    if category == "checkpoints" or part_count > 1:
-        return f"{category}_part{part:02d}.zip"
-    return f"{category}.zip"
-
-
-def write_archive(
-    path: Path,
-    *,
-    meta: dict[str, Any],
-    handoff: str,
-    category: str,
-    part: int,
-    part_count: int,
-    items: list[Candidate],
-    max_zip_bytes: int,
-) -> None:
-    archive_meta = {
-        **meta,
-        "archive": {
-            "name": path.name,
-            "category": category,
-            "part": part,
-            "part_count": part_count,
-            "included": [
-                {"path": item.relative, "bytes": item.size, "source": item.source}
-                for item in items
-            ],
-        },
-    }
-    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=True) as archive:
-        archive.writestr(
-            "BUNDLE_MANIFEST.json",
-            json.dumps(archive_meta, ensure_ascii=False, indent=2) + "\n",
-        )
-        archive.writestr("PRO_HANDOFF.md", handoff)
-        for item in items:
-            archive.write(item.path, f"artifacts/{item.relative}")
-    if path.stat().st_size > max_zip_bytes:
-        path.unlink()
-        raise SystemExit(
-            f"Archive exceeds 95 MiB after compression: {path.name}. "
-            "Reduce the selected artifacts or route the oversized file through an approved rclone handoff."
-        )
-
-
-def bundle_index(meta: dict[str, Any], archives: list[dict[str, Any]]) -> str:
-    lines = [
-        "# Bundle Index",
-        "",
-        f"- Project: `{meta['project']}`",
-        f"- Worktree: `{meta['worktree']}`",
-        f"- Stage: `{meta['stage']}`",
-        "- ZIP limit: 95 MiB per independently openable standard archive",
-        "- Multi-volume `.z01/.z02/.zip` archives: not used",
-        "- SHA256 manifest: not used",
-        "",
-        "## Archives",
-        "",
-    ]
-    purposes = {
-        "source_and_configs": "Source snapshots and resolved configuration",
-        "logs_and_metrics": "Logs, metrics, summaries, receipts and telemetry",
-        "plots_and_evidence": "Plots, renders, videos and evidence documents",
-        "checkpoints": "Opt-in model checkpoints",
-    }
-    for position, entry in enumerate(archives, start=1):
-        lines.extend([
-            f"### {position}. `{entry['name']}`",
-            "",
-            f"- Purpose: {purposes[entry['category']]}",
-            f"- Part: {entry['part']} of {entry['part_count']}",
-            f"- Files: {len(entry['items'])}",
-            f"- ZIP bytes: {entry['zip_bytes']}",
-            "- Contents:",
-        ])
-        lines.extend(f"  - `{item.relative}`" for item in entry["items"])
-        lines.append("")
-    oversized = [item for item in meta["excluded"] if item["reason"] == "single-file-exceeds-zip-payload-limit"]
-    if oversized:
-        lines.extend([
-            "## Oversized files not packed",
-            "",
-            "These files must be removed from the handoff or transferred through an explicitly approved rclone exception:",
-            "",
-        ])
-        lines.extend(f"- `{item['path']}`" for item in oversized)
-        lines.append("")
-    return "\n".join(lines)
-
-
-def pack(args: argparse.Namespace) -> tuple[list[Path], Path, dict[str, Any]]:
+def pack(args: argparse.Namespace) -> int:
     if not args.confirm_stage_handoff:
-        raise SystemExit("Artifact handoff is explicit; pass --confirm-stage-handoff after Owner/stage authorization.")
-    root = git_root(args.repo)
-    config = load_config(root, args.config)
-    include_checkpoints = args.include_checkpoints or bool(
-        config.get("selection", {}).get("include_checkpoints_default", False)
-    )
-    candidates, exclusions = select_candidates(
-        root,
-        config,
-        stage=args.stage,
-        selectors=args.selector,
-        include_checkpoints=include_checkpoints,
-        all_matching=args.all_matching,
-    )
-    selection = config.get("selection", {})
-    max_zip_bytes = int(selection.get("max_zip_bytes", 95 * 1024**2))
-    payload_limit = max_zip_bytes - ZIP_PAYLOAD_MARGIN
-    oversized = [item for item in candidates if item.size > payload_limit]
-    candidates = [item for item in candidates if item.size <= payload_limit]
-    exclusions.extend(
-        Exclusion(item.relative, "single-file-exceeds-zip-payload-limit")
-        for item in oversized
-    )
-    if not candidates and not args.allow_empty:
-        raise SystemExit("No eligible stage artifacts fit the 95 MiB ZIP limit. Use inspect to review exclusions.")
-
-    project = slug(args.project or root.name)
-    branch = git_text(root, "branch", "--show-current") or "detached"
-    worktree = slug(args.worktree or branch)
-    stage = slug(args.stage)
-    meta = build_metadata(
-        root,
-        config,
-        project=project,
-        worktree=worktree,
-        stage=stage,
-        candidates=candidates,
-        exclusions=exclusions,
-        questions=args.question,
-        trigger=args.trigger,
-    )
-    stamp = meta["timestamp_compact"]
-    sha = meta["git_short_sha"]
-    bundle_name = f"{project}__{worktree}__{stage}__{stamp}__{sha}__artifacts"
-    output_setting = Path(config.get("output_dir", ".ai/outgoing-artifacts"))
-    output_root = args.output or (root / output_setting)
-    bundle_dir = output_root / bundle_name
-
-    if bundle_dir.exists():
-        raise SystemExit(f"Output already exists: {bundle_name}")
-    bundle_dir.mkdir(parents=True, exist_ok=False)
-
-    checkpoint_patterns = list(selection.get("checkpoint_patterns", []))
-    categorized: dict[str, list[Candidate]] = {
-        "source_and_configs": [],
-        "logs_and_metrics": [],
-        "plots_and_evidence": [],
-        "checkpoints": [],
-    }
-    for item in candidates:
-        categorized[semantic_group(item, checkpoint_patterns)].append(item)
-
-    handoff = handoff_markdown(meta)
-    archive_paths: list[Path] = []
-    archive_entries: list[dict[str, Any]] = []
-    for category, items in categorized.items():
-        if not items:
-            continue
-        parts = partition_by_size(items, payload_limit)
-        for part, part_items in enumerate(parts, start=1):
-            path = bundle_dir / archive_name(category, part, len(parts))
-            write_archive(
-                path,
-                meta=meta,
-                handoff=handoff,
-                category=category,
-                part=part,
-                part_count=len(parts),
-                items=part_items,
-                max_zip_bytes=max_zip_bytes,
-            )
-            archive_paths.append(path)
-            archive_entries.append({
-                "name": path.name,
-                "category": category,
-                "part": part,
-                "part_count": len(parts),
-                "items": part_items,
-                "zip_bytes": path.stat().st_size,
-            })
-
-    (bundle_dir / "BUNDLE_INDEX.md").write_text(
-        bundle_index(meta, archive_entries), encoding="utf-8"
-    )
-
-    for path in archive_paths:
-        print(f"PACKED: {path}")
-    print(f"BUNDLE_DIR: {bundle_dir}")
-    print(f"INCLUDED: {len(candidates)} files")
-    print(f"EXCLUDED: {len(exclusions)} candidates")
-    return archive_paths, bundle_dir, meta
-
-
-def inspect(args: argparse.Namespace) -> int:
-    root = git_root(args.repo)
-    config = load_config(root, args.config)
-    candidates, exclusions = select_candidates(
-        root,
-        config,
-        stage=args.stage,
-        selectors=args.selector,
-        include_checkpoints=args.include_checkpoints,
-        all_matching=args.all_matching,
-    )
-    print("ELIGIBLE")
-    for item in candidates:
-        print(f"  {item.relative}\t{item.size}\t{item.source}")
-    print("EXCLUDED")
-    for item in exclusions:
-        print(f"  {item.relative}\t{item.reason}")
-    print(f"SUMMARY eligible={len(candidates)} excluded={len(exclusions)}")
+        raise SystemExit('pass --confirm-stage-handoff after Owner/stage authorization')
+    root = git_root(args.repo); cfg = load_config(root, args.config); accepted, rejected = select(root,cfg,args)
+    if not accepted and not args.allow_empty:
+        raise SystemExit('no eligible artifacts')
+    worker_prefix, pro_prefix, pro_zip = naming(cfg)
+    meta = metadata(root,args,accepted,rejected,worker_prefix,pro_prefix,pro_zip); base = args.output or root / '.ai/outgoing-artifacts'
+    release = base / meta['project'] / meta['worktree'] / slug(args.stage) / meta['release']
+    release.mkdir(parents=True, exist_ok=False)
+    limit = int(cfg.get('packaging',{}).get('max_single_zip_bytes', DEFAULT_LIMIT))
+    if limit > DEFAULT_LIMIT:
+        raise SystemExit('max_single_zip_bytes must not exceed 95 MiB for cloud-facing bundles')
+    records: list[Archive] = []; oversized: list[Exclusion] = []
+    try:
+        grouped = {name: [] for name in ORDER}
+        for item in accepted: grouped[group(item)].append(item)
+        for name in ORDER:
+            rec, exc = split_to_limit(release, f'{worker_prefix}{name}', grouped[name], limit, name=='checkpoints', worker_prefix)
+            records.extend(rec); oversized.extend(exc)
+        delivered = {item.relative for rec in records for item in rec.files}
+        meta['included'] = [x for x in meta['included'] if x['path'] in delivered]
+        all_excluded = rejected + oversized; meta['excluded'] = [{'path':x.relative,'reason':x.reason} for x in all_excluded]
+        meta['packaging'] = {'max_single_zip_bytes':limit,'strategy':'semantic-independent-standard-zips','split_volume_archives':False,'archives':[{'name':r.name,'group':r.group,'compressed_bytes':r.size,'files':[x.relative for x in r.files]} for r in records]}
+        (release/f'{worker_prefix}BUNDLE_MANIFEST.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        (release/f'{worker_prefix}BUNDLE_INDEX.md').write_text(index_text(meta,records,all_excluded,limit),encoding='utf-8')
+        (release/f'{worker_prefix}PRO_HANDOFF.md').write_text(handoff_text(meta),encoding='utf-8')
+        if not records and not args.allow_empty: raise SystemExit('no cloud-readable archive produced')
+    except BaseException:
+        shutil.rmtree(release, ignore_errors=True); raise
+    print(release)
+    for record in records: print(f'{record.name}\t{record.size}')
     return 0
 
 
+def inspect(args: argparse.Namespace) -> int:
+    root=git_root(args.repo); cfg=load_config(root,args.config); accepted,rejected=select(root,cfg,args)
+    for item in accepted: print(f'ELIGIBLE\t{item.relative}\t{item.size}\t{group(item)}')
+    for item in rejected: print(f'EXCLUDED\t{item.relative}\t{item.reason}')
+    return 0
+
+
+def validate_upload(source: Path, limit: int, oversize_exception: bool) -> None:
+    files = [source] if source.is_file() else [x for x in source.rglob('*') if x.is_file()]
+    if not files: raise SystemExit('upload source is empty')
+    bad = [x for x in files if SPLIT_RE.search(x.name)]
+    if bad: raise SystemExit('split-volume archives are prohibited: ' + ', '.join(map(str,bad)))
+    large = [x for x in files if x.stat().st_size > limit]
+    if large and not oversize_exception: raise SystemExit('file exceeds cloud limit: ' + ', '.join(map(str,large)))
+
+
 def upload(args: argparse.Namespace) -> int:
-    if not args.confirm_stage_handoff:
-        raise SystemExit("Artifact upload is explicit; pass --confirm-stage-handoff after Owner/stage authorization.")
-    root = git_root(args.repo)
-    config = load_config(root, args.config)
-    upload_cfg = config.get("upload", {})
-    backend = upload_cfg.get("backend", "rclone")
-    if backend not in {"rclone", "capability-router"}:
-        raise SystemExit(f"Unsupported upload backend: {backend}")
-    if backend == "capability-router" and shutil.which("rclone") is None:
-        raise SystemExit("No CLI upload capability is available; use a connected Drive/browser runtime or configure rclone.")
-    standing = upload_cfg.get("standing_authorization") == "create-only-stage-artifacts"
-    if not standing and not args.confirm_external_write:
-        raise SystemExit("Upload is an external write; pass --confirm-external-write.")
-    source = args.bundle.resolve()
-    if not source.exists():
-        raise SystemExit(f"Bundle path not found: {source}")
-    remote = str(upload_cfg.get("rclone_remote", upload_cfg.get("remote", ""))).strip()
-    folder_id = str(upload_cfg.get("root_folder_id", "")).strip()
-    if not remote or not folder_id:
-        raise SystemExit("upload.remote and upload.root_folder_id are required")
-    print(f"HANDOFF_TRIGGER: {args.trigger}")
-    destination = "/".join(
-        [slug(args.project), slug(args.worktree), slug(args.stage), slug(args.release)]
-    )
-    cmd = [
-        "rclone",
-        "copy",
-        str(source),
-        f"{remote}:{destination}",
-        "--drive-root-folder-id",
-        folder_id,
-        "--no-traverse",
-        "--progress",
-    ]
-    if args.dry_run:
-        cmd.append("--dry-run")
-    print("RUN:", " ".join(cmd))
-    completed = subprocess.run(cmd, cwd=root, check=False)
-    if completed.returncode == 0 and not args.dry_run:
-        if source.is_dir():
-            shutil.rmtree(source)
-        else:
-            source.unlink()
-        print(f"LOCAL_BUNDLE_REMOVED: {source}")
-    return completed.returncode
+    if not args.confirm_stage_handoff: raise SystemExit('pass --confirm-stage-handoff')
+    root=git_root(args.repo); cfg=load_config(root,args.config); source=args.bundle.resolve()
+    if not source.exists(): raise SystemExit(f'not found: {source}')
+    limit=int(cfg.get('packaging',{}).get('max_single_zip_bytes',DEFAULT_LIMIT)); validate_upload(source,limit,args.allow_oversize_rclone_exception)
+    if shutil.which('rclone') is None: raise SystemExit('rclone unavailable; use a connected Drive/browser runtime or configure rclone')
+    up=cfg.get('upload',{}); remote=str(up.get('rclone_remote',up.get('remote',''))).strip(); folder=str(up.get('root_folder_id','')).strip()
+    if not remote or not folder: raise SystemExit('upload remote/root_folder_id missing')
+    destination='/'.join(map(slug,[args.project,args.worktree,args.stage,args.release]))
+    cmd=['rclone','copy',str(source),f'{remote}:{destination}','--drive-root-folder-id',folder,'--no-traverse','--progress']
+    if args.dry_run: cmd.append('--dry-run')
+    return subprocess.run(cmd,cwd=root,check=False).returncode
 
 
-def add_selection_args(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--repo", type=Path, default=Path.cwd())
-    parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
-    parser.add_argument("--stage", required=True)
-    parser.add_argument("--selector", action="append", default=[])
-    parser.add_argument("--all-matching", action="store_true")
-    parser.add_argument("--include-checkpoints", action="store_true")
+def selection_args(p: argparse.ArgumentParser) -> None:
+    p.add_argument('--repo',type=Path,default=Path.cwd()); p.add_argument('--config',type=Path,default=DEFAULT_CONFIG); p.add_argument('--stage',required=True); p.add_argument('--selector',action='append',default=[]); p.add_argument('--all-matching',action='store_true'); p.add_argument('--include-checkpoints',action='store_true')
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(description=__doc__)
-    commands = root.add_subparsers(dest="command", required=True)
-
-    p_inspect = commands.add_parser("inspect", help="List eligible and excluded files")
-    add_selection_args(p_inspect)
-
-    p_pack = commands.add_parser("pack", help="Create bundle directory and ZIP")
-    add_selection_args(p_pack)
-    p_pack.add_argument("--project")
-    p_pack.add_argument("--worktree")
-    p_pack.add_argument("--output", type=Path)
-    p_pack.add_argument("--question", action="append", default=[])
-    p_pack.add_argument("--allow-empty", action="store_true")
-    p_pack.add_argument("--confirm-stage-handoff", action="store_true")
-    p_pack.add_argument(
-        "--trigger",
-        choices=("owner-request", "stage-closure"),
-        required=True,
-        help="Explicit reason this artifact handoff is authorized.",
-    )
-
-    p_upload = commands.add_parser("upload", help="Upload an existing bundle directory or ZIP via rclone")
-    p_upload.add_argument("--repo", type=Path, default=Path.cwd())
-    p_upload.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
-    p_upload.add_argument("--bundle", type=Path, required=True)
-    p_upload.add_argument("--project", required=True)
-    p_upload.add_argument("--worktree", required=True)
-    p_upload.add_argument("--stage", required=True)
-    p_upload.add_argument("--release", required=True, help="timestamp__sha directory name")
-    p_upload.add_argument(
-        "--trigger",
-        choices=("owner-request", "stage-closure"),
-        required=True,
-        help="Explicit reason this external handoff is authorized.",
-    )
-    p_upload.add_argument("--confirm-external-write", action="store_true")
-    p_upload.add_argument("--confirm-stage-handoff", action="store_true")
-    p_upload.add_argument("--dry-run", action="store_true")
-    return root
+    p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest='cmd',required=True)
+    i=sub.add_parser('inspect'); selection_args(i); i.set_defaults(func=inspect)
+    k=sub.add_parser('pack'); selection_args(k); k.add_argument('--project'); k.add_argument('--worktree'); k.add_argument('--output',type=Path); k.add_argument('--question',action='append',default=[]); k.add_argument('--allow-empty',action='store_true'); k.add_argument('--confirm-stage-handoff',action='store_true'); k.add_argument('--trigger',choices=['owner-request','stage-closure'],required=True); k.set_defaults(func=pack)
+    u=sub.add_parser('upload'); u.add_argument('--repo',type=Path,default=Path.cwd()); u.add_argument('--config',type=Path,default=DEFAULT_CONFIG); u.add_argument('--bundle',type=Path,required=True); u.add_argument('--project',required=True); u.add_argument('--worktree',required=True); u.add_argument('--stage',required=True); u.add_argument('--release',required=True); u.add_argument('--confirm-stage-handoff',action='store_true'); u.add_argument('--allow-oversize-rclone-exception',action='store_true'); u.add_argument('--dry-run',action='store_true'); u.set_defaults(func=upload)
+    return p
 
 
-def main() -> int:
-    args = parser().parse_args()
-    if args.command == "inspect":
-        return inspect(args)
-    if args.command == "pack":
-        pack(args)
-        return 0
-    return upload(args)
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__ == '__main__':
+    args=parser().parse_args(); raise SystemExit(args.func(args))

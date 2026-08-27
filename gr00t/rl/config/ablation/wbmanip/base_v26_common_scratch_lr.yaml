@@ -4,9 +4,10 @@ defaults:
   - override /rewards: wbmanip/reward_door_open_a2_v26_acquisition
   - _self_
 
-v26_schema: a2_piper_base_v26_common_scratch_lr_v1
+v26_schema: a2_piper_base_v26_common_scratch_lr_v2
 v26_plan_id: base_v26_scratch_bilateral_teacher_R1
-v26_phase: R0_ACQUISITION
+v26_supplement_id: base_v26_acquisition_supplement_20260823
+v26_phase: R0_ACQUISITION_SUPPLEMENT
 v26_formal_launchable: true
 
 checkpoint: null
@@ -46,6 +47,10 @@ env:
     a2_v26_bilateral_metrics_enabled: true
     a2_v23_d1_sampler_enabled: false
     a2_v24_friction_enabled: false
+    a2_stage0_staging_x_min: 0.68
+    a2_stage0_staging_x_max: 0.72
+    a2_stage0_staging_y_tol: 0.15
+    a2_stage1_stage2_base_forward_creep_deadband: 0.02
     a2_grasp_gate_mode: control_streak
     a2_grasp_streak_control_steps: 5
     a2_stage3_to4_door_hinge_threshold: 0.25
@@ -72,11 +77,11 @@ rewards:
 robot:
   control:
     stiffness:
-      arm_j7: 800.0
-      arm_j8: 800.0
+      arm_j7: 80.0
+      arm_j8: 80.0
     damping:
-      arm_j7: 25.0
-      arm_j8: 25.0
+      arm_j7: 3.0
+      arm_j8: 3.0
 
 simulator:
   config:
@@ -85,5 +90,4 @@ simulator:
       enable_cameras: false
     sim:
       physx:
-        num_velocity_iterations: 2
-
+        num_velocity_iterations: 1

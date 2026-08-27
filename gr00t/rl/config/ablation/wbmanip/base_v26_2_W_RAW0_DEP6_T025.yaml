@@ -1,0 +1,17 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_2_pull_derived
+  - _self_
+
+v26_cell: V26_2_W_RAW0_DEP6_T025
+
+env:
+  config:
+    a2_v26_2_handle_depression_scale: 6.0
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.25
+
+rewards:
+  reward_scales:
+    push_door_handle: 0.0
+    a2_stage3_handle_depression: 6.0

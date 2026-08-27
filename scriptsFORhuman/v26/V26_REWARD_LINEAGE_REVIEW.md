@@ -4,6 +4,12 @@
 **范围：** `base_v26` formal optimizer update 前的一次性 focused comparison  
 **authority：** 当前 `A2_Piper` source/config；不是 historical checkpoint 行为推断
 
+> **2026-08-23 post-v26 correction:** 下表把 v13.1 的 `800/25` 归类为
+> acquisition capability 过强。历史证明的是 v12_C 以 `80/3` scratch 形成 grasp
+> 后，v13_A policy-only warm-start 到 `800/25` 获得 retention/full-chain margin；
+> 没有证明 `800/25` 适合从 batch 0 做 scratch discovery。修订路线见
+> `a2_piper_base_v26_acquisition_supplement_20260823.md`。
+
 ## Runtime binding
 
 | Surface | Current binding | v26 decision |
@@ -24,7 +30,7 @@
 | handle depression | `push_door_handle=+6` in current base | enabled | disabled after warm-start | disabled in v23/v25 | restore `+6` because scratch needs an explicit handle-direction signal |
 | hinge progress | `push_door_hinge=+6` | enabled | enabled | enabled | retain `+6` in Stage3/4 |
 | grasp-to-opening bridge | base defaults keep v13 terms at zero | absent | `unlatch_hold=3`, `hold_and_drive=8`, Stage3 base unlocked | retained | retain v13 terms and active planar base |
-| gripper capability | current robot baseline is `80/3`, effort `10/10`, PhysX velocity iter 1 | `80/3`, velocity iter 1 | `800/25`, velocity iter 2 | warm configs inherit mature capability | use the proven v13.1 acquisition capability `800/25`, effort `10/10`, velocity iter 2, frozen across cells |
+| gripper capability | current robot baseline is `80/3`, effort `10/10`, PhysX velocity iter 1 | `80/3`, velocity iter 1 | policy-only warm-start 后使用 `800/25`, velocity iter 2 | warm configs inherit mature capability | R0 当时从 batch 0 使用 `800/25`；post-v26 结论是该 scratch 假设未被历史证明 |
 | release/handoff | current source contains release latch/suppression | source capability exists but v12 recipe did not establish full chain | v13.1 adds hinge `1.2 rad` release and target-root handoff | retained plus later behavior economics | retain v13.1 release/handoff only; keep later corridor/carry economics off |
 | mature behavior terms | current base defaults mostly zero | absent | absent | corridor, carry, clearance, fling, body/posture pricing active in later registries | set all v16+ behavior-aesthetic terms to zero during acquisition |
 | force randomization | native v24 backend default-off | off | off | P10 used by v25 | R0 off; moderate P00/P02/P05 with small P10 only after bilateral goal exists |
@@ -44,4 +50,3 @@
 5. v26 R0 therefore uses current repaired Stage0–2 guidance, restores the
    scratch handle term, retains v13/v13.1 full-chain capability, and excludes
    later behavior-aesthetic taxes.
-

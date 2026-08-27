@@ -1,0 +1,42 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/base_v26_common_scratch_lr
+  - _self_
+
+v26_schema: a2_piper_base_v26_lr_policy_continuation_v1
+v26_phase: R0_POLICY_ONLY_ACTUATOR_CONTINUATION
+v26_cell: V26A_LR_S1_POLICY800
+v26_source_candidate: LR_S1_STEP3000
+
+checkpoint: logs_rl/by_batch/base_v26_acquisition_supplement_20260823/formal/V26A_LR_S1/model_step_003000.pt
+checkpoint_load_mode: policy_only
+policy_only_load_actor_rms: false
+auto_load_latest: false
+seed: 1
+num_envs: 4096
+num_gpus: 1
+multi_gpu: false
+
+algo:
+  trl:
+    num_total_batches: 3000
+
+env:
+  config:
+    a2_v26_door_open_lr: bilateral
+    a2_v26_side_permutation_seed: 1
+
+robot:
+  control:
+    stiffness:
+      arm_j7: 800.0
+      arm_j8: 800.0
+    damping:
+      arm_j7: 25.0
+      arm_j8: 25.0
+
+simulator:
+  config:
+    sim:
+      physx:
+        num_velocity_iterations: 2

@@ -1,0 +1,104 @@
+{
+  "schema": "a2_piper_base_v26_teacher_handoff_v2",
+  "created_at": "2026-08-22 23:33 HKT",
+  "updated_at": "2026-08-25 02:07 HKT",
+  "phase_status": "V26_SUPPLEMENT_COMPLETE_CONTINUATION_REQUIRED",
+  "student_binding_decision": "DO_NOT_BIND_A_V26_CHECKPOINT",
+  "typed_outcomes": [
+    "V26_ACQUISITION_SUPPLEMENT_PROTOCOL_VALID",
+    "V26_NATURAL_BILATERAL_K5_RECOVERED",
+    "V26_POLICY_ONLY_RETENTION_PASS",
+    "V26_STAGE3_UNLATCH_EXPLORATION_BLOCKED",
+    "V26_R1_NOT_ADMITTED",
+    "V26_CONTINUATION_REQUIRED"
+  ],
+  "teacher_lr_acquisition": {
+    "available": false,
+    "checkpoint": null,
+    "reason": "The supplement recovered repeated bilateral natural strict-K5/Stage3 acquisition, but every scratch and continuation Route-A episode produced zero full goals."
+  },
+  "teacher_lr_load_robust": {
+    "available": false,
+    "checkpoint": null,
+    "reason": "R1 was not admitted because the mandatory repeated bilateral natural full-goal prerequisite was not met."
+  },
+  "diagnostic_checkpoint": {
+    "label": "V26A_LR_S1_POLICY800_STEP2000",
+    "checkpoint": "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt",
+    "saved_config": "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/config.yaml",
+    "source_checkpoint": "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/formal/V26A_LR_S1/model_step_003000.pt",
+    "allowed_use": "SCIENCE_AND_FUTURE_CONTINUATION_DIAGNOSTIC_ONLY",
+    "student_teacher_qualified": false,
+    "natural_stage3_or_later": {
+      "episodes_per_side": 64,
+      "left": 64,
+      "right": 61
+    },
+    "natural_goals": {
+      "left": 0,
+      "right": 0
+    }
+  },
+  "policy_only_contract": {
+    "checkpoint_load_mode": "policy_only",
+    "actor_rms_loaded": false,
+    "inherited": [
+      "actor_mlp",
+      "actor_std",
+      "actor_lstm"
+    ],
+    "fresh": [
+      "actor_observation_rms",
+      "critic",
+      "optimizer",
+      "scheduler",
+      "trainer_state",
+      "environment",
+      "staged_reset_buffers"
+    ]
+  },
+  "evaluation": {
+    "original_formal_progression": "logs_eval/base_v26/r0_progress.json",
+    "original_route_a_summary": "logs_eval/base_v26/final/v26_eval_summary.json",
+    "supplement_scratch_progression": "logs_eval/base_v26/acquisition_supplement_20260823/progress.json",
+    "supplement_scratch_route_a": {
+      "summary": "logs_eval/base_v26/acquisition_supplement_20260823/route_a_summary.json",
+      "episodes": 2176,
+      "leader": "LR_S1_STEP3000",
+      "leader_stage3_or_later": {
+        "left": 3,
+        "right": 2,
+        "episodes_per_side": 64
+      },
+      "goals": 0
+    },
+    "continuation_progression": "logs_eval/base_v26/acquisition_supplement_20260823/continuation_progress.json",
+    "continuation_route_a": {
+      "summary": "logs_eval/base_v26/acquisition_supplement_20260823/continuation_route_a_summary.json",
+      "episodes": 896,
+      "balanced_leader": "CONT_STEP2000",
+      "leader_stage3_or_later": {
+        "left": 64,
+        "right": 61,
+        "episodes_per_side": 64
+      },
+      "goals": 0,
+      "orchestrator_receipt": "RC1_TRANSIENT_EXTERNAL_MDL_ASSET_SERVER_ON_FINAL_RIGHT_CELL",
+      "missing_cell_recovery": "EXACT_PROTOCOL_RERUN_EXIT0"
+    }
+  },
+  "student_contract": {
+    "current_baseline_label": "RIGHT_ONLY_BASELINE",
+    "current_baseline_checkpoint": "logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/model_step_001500.pt",
+    "current_baseline_saved_config": "logs_rl/a2_piper_full_stage_a2_base/base_v23/seed0/G7/config.yaml",
+    "current_binding_action": "UNCHANGED",
+    "future_bilateral_student_requirements": [
+      "Use a new experiment root.",
+      "Include LEFT and RIGHT from the first training batch.",
+      "Use a later scratch LR Teacher only after clean repeated natural-start goals on both sides.",
+      "Do not inherit the right-only optimizer or observation RMS by default.",
+      "Do not expose the Teacher privileged side one-hot to the Student actor."
+    ]
+  },
+  "known_boundary": "The supplement recovered bilateral natural strict-K5 acquisition and policy-only 800/25 retention. At CONT_STEP2000, 64/64 LEFT and 61/64 RIGHT episodes reached Stage3, but handle depression and hinge motion remained negligible and all goals were zero. The remaining boundary is Stage3 unlatch exploration, not close persistence."
+}

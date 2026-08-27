@@ -7295,6 +7295,7 @@ class DoorPregrasp(
         )
         self._init_door_metadata()
         self._init_a2_v26_training_metrics()
+        self._init_a2_v26_2_handle_depression_telemetry()
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
         a2_gripper_body_names = ("arm_body7", "arm_body8")
         missing_gripper_bodies = [
@@ -7428,6 +7429,74 @@ class DoorPregrasp(
             2, self.num_stages, dtype=torch.long, device=self.device
         )
         self._log_a2_v26_training_metrics()
+
+    def _init_a2_v26_2_handle_depression_telemetry(self) -> None:
+        enabled = self.config.get("a2_v26_2_telemetry_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v26_2_telemetry_enabled must be bool; "
+                f"got {enabled!r}."
+            )
+        self._a2_v26_2_handle_depression_telemetry_enabled = enabled
+        if not enabled:
+            return
+        self._a2_v26_2_max_handle_rad = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v26_2_max_hinge_rad = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v26_2_k5_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_negative_close_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_bilateral_contact_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_opposite_squeeze_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_force_window_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_stable_contact_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_unlatch_band_dwell_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_unlatch_hold_active_steps = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_handle_depression_raw_income = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v26_2_handle_depression_scaled_income = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v26_2_handle_depression_last_raw = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v26_2_handle_depression_last_scaled = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_v26_2_handle_depression_last_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v26_2_handle_depression_active_outside_stage3 = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_handle_depression_active_without_k5 = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_handle_depression_raw_nonzero_while_inactive = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_v26_2_stage4_below_threshold_on_first_admission = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
 
     def _record_a2_v26_completed_episodes(self, env_ids: torch.Tensor) -> None:
         if not self._a2_v26_bilateral_metrics_enabled or env_ids.numel() == 0:
@@ -15266,6 +15335,74 @@ class DoorPregrasp(
         )
         return (handle_vel_reward + handle_pos_reward).clamp(max=1.0, min=-1.0)
 
+    def _get_a2_stage3_handle_depression_raw_and_active(self):
+        if not self._use_a2_base:
+            raise RuntimeError(
+                "a2_stage3_handle_depression is only defined for A2 Piper configs."
+            )
+        door_joint_pos = self._get_door_joint_pos(
+            "a2_stage3_handle_depression", 2
+        )
+        door_joint_vel = self._get_door_joint_vel(
+            "a2_stage3_handle_depression", 2
+        )
+        stage_buf = getattr(self, "stage_buf", None)
+        if (
+            not torch.is_tensor(stage_buf)
+            or tuple(stage_buf.shape) != (self.num_envs,)
+            or stage_buf.dtype != torch.long
+            or stage_buf.device != torch.device(self.device)
+        ):
+            shape = None if not torch.is_tensor(stage_buf) else tuple(stage_buf.shape)
+            dtype = None if not torch.is_tensor(stage_buf) else stage_buf.dtype
+            device = None if not torch.is_tensor(stage_buf) else stage_buf.device
+            raise RuntimeError(
+                "a2_stage3_handle_depression requires a device-local long stage buffer "
+                f"shape ({self.num_envs},); got shape={shape}, dtype={dtype}, device={device}."
+            )
+        handle_pos = door_joint_pos[:, 1]
+        handle_vel = door_joint_vel[:, 1]
+        if (
+            not handle_pos.is_floating_point()
+            or handle_pos.dtype != handle_vel.dtype
+            or handle_pos.device != torch.device(self.device)
+            or handle_vel.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(handle_pos))
+        ):
+            raise RuntimeError(
+                "a2_stage3_handle_depression requires finite same-dtype handle "
+                "position and velocity vectors on the environment device."
+            )
+        if (
+            self._get_a2_grasp_gate_mode()
+            != self.A2_GRASP_GATE_MODE_CONTROL_STREAK
+            or self._get_a2_grasp_streak_control_steps() != 5
+        ):
+            raise RuntimeError(
+                "a2_stage3_handle_depression requires the strict control-step K5 grasp gate."
+            )
+        active = (
+            (stage_buf == self.STAGE_OPEN) & self._get_a2_hold_streak_ok_mask()
+        )
+        raw = (
+            handle_vel
+            + handle_pos.clamp(min=0.0, max=0.785398) / 0.785398
+        ).clamp(min=-1.0, max=1.0) * active.to(dtype=handle_pos.dtype)
+        if (
+            tuple(raw.shape) != (self.num_envs,)
+            or raw.dtype != handle_pos.dtype
+            or raw.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(raw))
+        ):
+            raise RuntimeError(
+                "a2_stage3_handle_depression produced a non-finite or malformed raw vector."
+            )
+        return raw, active
+
+    @StagedTaskBase.effective_in_stage(STAGE_OPEN)
+    def _reward_a2_stage3_handle_depression(self):
+        return self._get_a2_stage3_handle_depression_raw_and_active()[0]
+
     @StagedTaskBase.effective_in_stage(STAGE_OPEN)
     def _reward_a2_stage3_unlatch_hold(self):
         if not self._use_a2_base:
@@ -15363,6 +15500,175 @@ class DoorPregrasp(
             return raw_component
         return event.float() * self._get_a2_v20_pre_send_crossing_penalty_component()
 
+    def _record_a2_v26_2_handle_depression_telemetry(
+        self, raw_components, scaled_components
+    ) -> None:
+        if not getattr(self, "_a2_v26_2_handle_depression_telemetry_enabled", False):
+            return
+        if not isinstance(raw_components, Mapping) or not isinstance(scaled_components, Mapping):
+            raise RuntimeError(
+                "v26-2 handle-depression telemetry requires raw/scaled reward mappings."
+            )
+        if set(raw_components) != set(scaled_components):
+            raise RuntimeError(
+                "v26-2 handle-depression telemetry requires exact raw/scaled reward coverage."
+            )
+        raw, active = self._get_a2_stage3_handle_depression_raw_and_active()
+        term = "a2_stage3_handle_depression"
+        reward_scales = getattr(self, "reward_scales", None)
+        configured_scale = self.config.get("a2_v26_2_handle_depression_scale")
+        if (
+            isinstance(configured_scale, bool)
+            or not isinstance(configured_scale, (int, float))
+            or float(configured_scale) not in (0.0, 6.0)
+        ):
+            raise RuntimeError(
+                "v26-2 telemetry requires a2_v26_2_handle_depression_scale in {0, 6}."
+            )
+        if reward_scales is None or not hasattr(reward_scales, "keys"):
+            raise RuntimeError(
+                "v26-2 telemetry requires the prepared reward-scale mapping."
+            )
+        if float(configured_scale) > 0.0:
+            if term not in reward_scales or term not in raw_components:
+                raise RuntimeError(
+                    "v26-2 enabled handle-depression scale did not produce its reward component."
+                )
+            scale = reward_scales[term]
+            if (
+                isinstance(scale, bool)
+                or not isinstance(scale, (int, float))
+                or not math.isclose(
+                    float(scale), float(configured_scale) * float(self.dt), rel_tol=0.0, abs_tol=1.0e-12
+                )
+            ):
+                raise RuntimeError(
+                    "v26-2 prepared handle-depression scale does not match configured scale times control dt."
+                )
+            raw_component = raw_components[term]
+            scaled_component = scaled_components[term]
+            for value_name, value in (
+                ("raw", raw_component),
+                ("scaled", scaled_component),
+            ):
+                if (
+                    not torch.is_tensor(value)
+                    or tuple(value.shape) != (self.num_envs,)
+                    or value.dtype != raw.dtype
+                    or value.device != raw.device
+                    or not torch.all(torch.isfinite(value))
+                ):
+                    raise RuntimeError(
+                        "v26-2 handle-depression "
+                        f"{value_name} component requires finite {raw.dtype} shape "
+                        f"({self.num_envs},) on {self.device}."
+                    )
+            if not torch.equal(raw_component, raw):
+                raise RuntimeError(
+                    "v26-2 handle-depression raw component is not bound to the "
+                    "strict Stage3 control-step K5 source."
+                )
+        else:
+            if term in reward_scales or term in raw_components or term in scaled_components:
+                raise RuntimeError(
+                    "v26-2 zero handle-depression scale must not retain a prepared reward component."
+                )
+            raw_component = torch.zeros_like(raw)
+            scaled_component = torch.zeros_like(raw)
+
+        unlatch_term = "a2_stage3_unlatch_hold"
+        if unlatch_term not in raw_components:
+            raise RuntimeError(
+                "v26-2 telemetry requires active a2_stage3_unlatch_hold raw telemetry."
+            )
+        unlatch_raw = raw_components[unlatch_term]
+        if (
+            not torch.is_tensor(unlatch_raw)
+            or tuple(unlatch_raw.shape) != (self.num_envs,)
+            or unlatch_raw.dtype != raw.dtype
+            or unlatch_raw.device != raw.device
+            or not torch.all(torch.isfinite(unlatch_raw))
+        ):
+            raise RuntimeError(
+                "v26-2 unlatch-hold raw telemetry requires a finite device-local vector."
+            )
+        door_joint_pos = self._get_door_joint_pos("v26-2 telemetry", 2)
+        stage3 = self.stage_buf == self.STAGE_OPEN
+        contact_masks = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "v26-2 telemetry"
+        )
+        primitive = self._get_a2_gripper_primitive_raw_column("v26-2 telemetry")
+        handle_pos = door_joint_pos[:, 1]
+        hinge_pos = door_joint_pos[:, 0]
+        actual_time_in_stage = getattr(self, "actual_time_in_stage_buf", None)
+        if (
+            not torch.is_tensor(actual_time_in_stage)
+            or tuple(actual_time_in_stage.shape) != (self.num_envs,)
+            or actual_time_in_stage.dtype != torch.long
+            or actual_time_in_stage.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "v26-2 telemetry requires device-local actual_time_in_stage_buf."
+            )
+        strict_k5 = self._get_a2_hold_streak_ok_mask()
+        first_stage4_admission = (
+            (self.stage_buf == self.STAGE_SWING) & (actual_time_in_stage == 0)
+        )
+        near_closed = self._get_a2_stage3_unlatch_near_closed_hinge_threshold()
+        if near_closed not in (0.1, 0.25):
+            raise RuntimeError(
+                "v26-2 telemetry requires the registered near-closed threshold 0.1 or 0.25."
+            )
+        stage3_both_contact = stage3 & contact_masks["both_contact"]
+        stage3_opposite_squeeze = stage3_both_contact & contact_masks["opposite_squeeze"]
+        stage3_force_window = stage3 & contact_masks["squeeze_window"]
+        stage3_contact_stability = stage3 & self._get_a2_stage3_stage4_contact_stability_mask()
+        stage3_negative_close = stage3 & (primitive < -0.2)
+        unlatch_band = stage3 & (hinge_pos > 0.1) & (hinge_pos < 0.25)
+        self._a2_v26_2_max_handle_rad[:] = torch.maximum(
+            self._a2_v26_2_max_handle_rad,
+            torch.where(active, handle_pos.clamp_min(0.0), torch.zeros_like(handle_pos)),
+        )
+        self._a2_v26_2_max_hinge_rad[:] = torch.maximum(
+            self._a2_v26_2_max_hinge_rad, hinge_pos.clamp_min(0.0)
+        )
+        self._a2_v26_2_k5_steps += active.long()
+        self._a2_v26_2_negative_close_steps += stage3_negative_close.long()
+        self._a2_v26_2_bilateral_contact_steps += stage3_both_contact.long()
+        self._a2_v26_2_opposite_squeeze_steps += stage3_opposite_squeeze.long()
+        self._a2_v26_2_force_window_steps += stage3_force_window.long()
+        self._a2_v26_2_stable_contact_steps += stage3_contact_stability.long()
+        self._a2_v26_2_unlatch_band_dwell_steps += unlatch_band.long()
+        self._a2_v26_2_unlatch_hold_active_steps += (stage3 & (unlatch_raw > 0.0)).long()
+        self._a2_v26_2_handle_depression_raw_income += raw_component
+        self._a2_v26_2_handle_depression_scaled_income += scaled_component
+        self._a2_v26_2_handle_depression_last_raw[:] = raw_component
+        self._a2_v26_2_handle_depression_last_scaled[:] = scaled_component
+        self._a2_v26_2_handle_depression_last_active[:] = active
+        self._a2_v26_2_handle_depression_active_outside_stage3 += (
+            active & ~stage3
+        ).long()
+        self._a2_v26_2_handle_depression_active_without_k5 += (
+            active & ~strict_k5
+        ).long()
+        self._a2_v26_2_handle_depression_raw_nonzero_while_inactive += (
+            raw_component.ne(0.0) & ~active
+        ).long()
+        self._a2_v26_2_stage4_below_threshold_on_first_admission += (
+            first_stage4_admission & (hinge_pos < 0.25)
+        ).long()
+        active_count = active.float().sum()
+        self.log_dict["a2_v26_2_handle_depression_raw_income"] = raw_component.sum()
+        self.log_dict["a2_v26_2_handle_depression_scaled_income"] = scaled_component.sum()
+        self.log_dict["a2_v26_2_handle_depression_active_steps"] = active_count
+        empty_active_income = torch.zeros_like(active_count)
+        self.log_dict["a2_v26_2_handle_depression_raw_income_per_active_step"] = torch.where(
+            active_count > 0.0, raw_component.sum() / active_count, empty_active_income
+        )
+        self.log_dict["a2_v26_2_handle_depression_scaled_income_per_active_step"] = torch.where(
+            active_count > 0.0, scaled_component.sum() / active_count, empty_active_income
+        )
+
     def _after_reward_components(self, raw_components, scaled_components):
         """Accumulate exact reward components for R2 without changing reward semantics."""
         stationary_rent_enabled = self.config.get(
@@ -15427,6 +15733,9 @@ class DoorPregrasp(
             self._a2_v23_stationary_rent_last_raw_components = raw_snapshot
             self._a2_v23_stationary_rent_last_scaled_components = scaled_snapshot
             self._a2_v23_stationary_rent_last_reward_stage = reward_stage.detach().clone()
+        self._record_a2_v26_2_handle_depression_telemetry(
+            raw_components, scaled_components
+        )
         if not self._a2_v20_r2_evidence_enabled:
             return None
         # raw_components is the authoritative set of reward terms the env
@@ -17764,6 +18073,181 @@ class DoorPregrasp(
             )
         return records
 
+    def _get_a2_v26_2_terminal_diagnostic_fields(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if not getattr(self, "_a2_v26_2_handle_depression_telemetry_enabled", False):
+            return [{} for _ in env_ids.tolist()]
+        required = {
+            "max_handle_rad": ("_a2_v26_2_max_handle_rad", torch.float32),
+            "max_hinge_rad": ("_a2_v26_2_max_hinge_rad", torch.float32),
+            "k5_steps": ("_a2_v26_2_k5_steps", torch.long),
+            "negative_close_steps": ("_a2_v26_2_negative_close_steps", torch.long),
+            "bilateral_contact_steps": ("_a2_v26_2_bilateral_contact_steps", torch.long),
+            "opposite_squeeze_steps": ("_a2_v26_2_opposite_squeeze_steps", torch.long),
+            "force_window_steps": ("_a2_v26_2_force_window_steps", torch.long),
+            "stable_contact_steps": ("_a2_v26_2_stable_contact_steps", torch.long),
+            "unlatch_band_dwell_steps": ("_a2_v26_2_unlatch_band_dwell_steps", torch.long),
+            "unlatch_hold_active_steps": ("_a2_v26_2_unlatch_hold_active_steps", torch.long),
+            "handle_depression_raw_income": (
+                "_a2_v26_2_handle_depression_raw_income",
+                torch.float32,
+            ),
+            "handle_depression_scaled_income": (
+                "_a2_v26_2_handle_depression_scaled_income",
+                torch.float32,
+            ),
+            "handle_depression_raw": (
+                "_a2_v26_2_handle_depression_last_raw",
+                torch.float32,
+            ),
+            "handle_depression_scaled": (
+                "_a2_v26_2_handle_depression_last_scaled",
+                torch.float32,
+            ),
+            "handle_depression_active": (
+                "_a2_v26_2_handle_depression_last_active",
+                torch.bool,
+            ),
+            "active_outside_stage3": (
+                "_a2_v26_2_handle_depression_active_outside_stage3",
+                torch.long,
+            ),
+            "active_without_k5": (
+                "_a2_v26_2_handle_depression_active_without_k5",
+                torch.long,
+            ),
+            "raw_nonzero_while_inactive": (
+                "_a2_v26_2_handle_depression_raw_nonzero_while_inactive",
+                torch.long,
+            ),
+            "stage4_below_threshold_on_first_admission": (
+                "_a2_v26_2_stage4_below_threshold_on_first_admission",
+                torch.long,
+            ),
+        }
+        values = {}
+        for key, (name, dtype) in required.items():
+            value = getattr(self, name, None)
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.dtype != dtype
+                or value.device != torch.device(self.device)
+                or (value.is_floating_point() and not torch.all(torch.isfinite(value)))
+            ):
+                raise RuntimeError(
+                    "v26-2 terminal diagnostics requires "
+                    f"finite device-local {dtype} vector {name}."
+                )
+            values[key] = value[env_ids].detach().cpu()
+        max_stage = getattr(self, "current_max_stage_buf", None)
+        if (
+            not torch.is_tensor(max_stage)
+            or tuple(max_stage.shape) != (self.num_envs,)
+            or max_stage.dtype != torch.long
+            or max_stage.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "v26-2 terminal diagnostics requires device-local current_max_stage_buf."
+            )
+        door_joint_pos = self._get_door_joint_pos("v26-2 terminal diagnostics", 2)
+        actual_time_in_stage = getattr(self, "actual_time_in_stage_buf", None)
+        if (
+            not torch.is_tensor(actual_time_in_stage)
+            or tuple(actual_time_in_stage.shape) != (self.num_envs,)
+            or actual_time_in_stage.dtype != torch.long
+            or actual_time_in_stage.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "v26-2 terminal diagnostics requires device-local actual_time_in_stage_buf."
+            )
+        strict_k5 = self._get_a2_hold_streak_ok_mask()
+        first_stage4_admission = (
+            (self.stage_buf == self.STAGE_SWING) & (actual_time_in_stage == 0)
+        )
+        records = []
+        for index in range(env_ids.numel()):
+            integrity_detail = {
+                "active_outside_stage3": int(
+                    values["active_outside_stage3"][index].item()
+                ),
+                "active_without_k5": int(
+                    values["active_without_k5"][index].item()
+                ),
+                "raw_nonzero_while_inactive": int(
+                    values["raw_nonzero_while_inactive"][index].item()
+                ),
+                "stage4_below_threshold_on_first_admission": int(
+                    values["stage4_below_threshold_on_first_admission"][index].item()
+                ),
+            }
+            records.append(
+                {
+                    "v26_2": {
+                        "max_handle_rad": float(values["max_handle_rad"][index].item()),
+                        "max_hinge_rad": float(values["max_hinge_rad"][index].item()),
+                        "stage3_or_later": int(
+                            max_stage[env_ids[index]].item() >= self.STAGE_OPEN
+                        ),
+                        "stage4_or_later": int(
+                            max_stage[env_ids[index]].item() >= self.STAGE_SWING
+                        ),
+                        "stage5_or_later": int(
+                            max_stage[env_ids[index]].item() >= self.STAGE_THROUGH
+                        ),
+                        "k5_steps": int(values["k5_steps"][index].item()),
+                        "negative_close_steps": int(
+                            values["negative_close_steps"][index].item()
+                        ),
+                        "bilateral_contact_steps": int(
+                            values["bilateral_contact_steps"][index].item()
+                        ),
+                        "opposite_squeeze_steps": int(
+                            values["opposite_squeeze_steps"][index].item()
+                        ),
+                        "force_window_steps": int(
+                            values["force_window_steps"][index].item()
+                        ),
+                        "stable_contact_steps": int(
+                            values["stable_contact_steps"][index].item()
+                        ),
+                        "handle_depression_raw_income": float(
+                            values["handle_depression_raw_income"][index].item()
+                        ),
+                        "handle_depression_scaled_income": float(
+                            values["handle_depression_scaled_income"][index].item()
+                        ),
+                        "handle_depression_active_steps": int(
+                            values["k5_steps"][index].item()
+                        ),
+                        "unlatch_band_dwell_steps": int(
+                            values["unlatch_band_dwell_steps"][index].item()
+                        ),
+                        "unlatch_hold_active_steps": int(
+                            values["unlatch_hold_active_steps"][index].item()
+                        ),
+                        "integrity_violations": sum(integrity_detail.values()),
+                        "integrity_violation_counts": integrity_detail,
+                        **integrity_detail,
+                        "strict_k5": bool(strict_k5[env_ids[index]].item()),
+                        "first_stage4_admission": bool(
+                            first_stage4_admission[env_ids[index]].item()
+                        ),
+                        "hinge_rad": float(door_joint_pos[env_ids[index], 0].item()),
+                        "handle_depression_raw": float(
+                            values["handle_depression_raw"][index].item()
+                        ),
+                        "handle_depression_scaled": float(
+                            values["handle_depression_scaled"][index].item()
+                        ),
+                        "handle_depression_active": bool(
+                            values["handle_depression_active"][index].item()
+                        ),
+                    }
+                }
+            )
+        return records
+
     def _get_a2_terminal_diagnostics(self, env_ids):
         env_ids = self._normalize_render_env_ids(env_ids)
         if not self._use_a2_base:
@@ -18038,6 +18522,7 @@ class DoorPregrasp(
         terminal_reasons = self._terminal_reasons_for_env_ids(env_ids)
         v14_telemetry_fields = self._get_a2_v14_telemetry_fields(env_ids)
         v20_telemetry_fields = self._get_a2_v20_diagnostic_fields(env_ids)
+        v26_2_telemetry_fields = self._get_a2_v26_2_terminal_diagnostic_fields(env_ids)
         control_dt, selected_reward_episode_sums = (
             self._get_a2_reward_episode_sums_for_diagnostics(env_ids)
         )
@@ -18279,6 +18764,7 @@ class DoorPregrasp(
                     "env_id": int(env_id),
                     **v14_telemetry_fields[idx],
                     **v20_telemetry_fields[idx],
+                    **v26_2_telemetry_fields[idx],
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
@@ -26003,6 +26489,38 @@ class DoorPregrasp(
             self._a2_v20_handle_slip_valid[env_ids] = False
             self._a2_v20_taskspace_active[env_ids] = False
             self._a2_v20_root_x_rel[env_ids] = 0.0
+        if getattr(self, "_a2_v26_2_handle_depression_telemetry_enabled", False):
+            for name in (
+                "_a2_v26_2_max_handle_rad",
+                "_a2_v26_2_max_hinge_rad",
+                "_a2_v26_2_k5_steps",
+                "_a2_v26_2_negative_close_steps",
+                "_a2_v26_2_bilateral_contact_steps",
+                "_a2_v26_2_opposite_squeeze_steps",
+                "_a2_v26_2_force_window_steps",
+                "_a2_v26_2_stable_contact_steps",
+                "_a2_v26_2_unlatch_band_dwell_steps",
+                "_a2_v26_2_unlatch_hold_active_steps",
+                "_a2_v26_2_handle_depression_raw_income",
+                "_a2_v26_2_handle_depression_scaled_income",
+                "_a2_v26_2_handle_depression_last_raw",
+                "_a2_v26_2_handle_depression_last_scaled",
+                "_a2_v26_2_handle_depression_last_active",
+                "_a2_v26_2_handle_depression_active_outside_stage3",
+                "_a2_v26_2_handle_depression_active_without_k5",
+                "_a2_v26_2_handle_depression_raw_nonzero_while_inactive",
+                "_a2_v26_2_stage4_below_threshold_on_first_admission",
+            ):
+                value = getattr(self, name, None)
+                if (
+                    not torch.is_tensor(value)
+                    or value.shape != (self.num_envs,)
+                    or value.device != torch.device(self.device)
+                ):
+                    raise RuntimeError(
+                        f"v26-2 telemetry reset requires device-local vector {name}."
+                    )
+                value[env_ids] = 0
         self._reset_a2_v20_r2_evidence_buffers(env_ids)
         if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
             a2_v21b_reset_arm_episode_accumulator(self._a2_v21b_arm_evidence, env_ids)

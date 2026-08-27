@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -lt 6 || $# -gt 7 ]]; then
-    echo "usage: $0 GPU LABEL CHECKPOINT OUTPUT_ROOT NUM_ENVS SEED [RENDER_RESULTS]" >&2
+if [[ $# -lt 6 || $# -gt 8 ]]; then
+    echo "usage: $0 GPU LABEL CHECKPOINT OUTPUT_ROOT NUM_ENVS SEED [RENDER_RESULTS] [VISIBLE_DEVICES]" >&2
     exit 2
 fi
 
@@ -15,11 +15,12 @@ output_root=$4
 num_envs=$5
 seed=$6
 render_results=${7:-false}
+visible_devices=${8:-0,1,2,3}
 
 for side in left right; do
     output_dir="$output_root/$label/$side"
     rendering_dir="$output_dir/renderings"
-    env CUDA_VISIBLE_DEVICES=0,1,2,3 \
+    env CUDA_VISIBLE_DEVICES="$visible_devices" \
         CUDA_DEVICE_ORDER=PCI_BUS_ID \
         ACCELERATE_TORCH_DEVICE="cuda:$gpu" \
         WANDB_MODE=disabled \

@@ -11,6 +11,12 @@
 **第一科学问题：** v25 的双侧失败主要来自 right-only warm-start 负迁移，还是 LEFT task/init/reward/shared-policy 本身仍有缺陷？  
 **第二科学问题：** 在保留 v25 已证实的 planar 主作用与 posture 接触价值后，怎样组织 randomization 才不会在完整技能形成前稀释学习信号？
 
+> **2026-08-23 Owner addendum:** v26 R0 结束后确认本计划 §5 的 `0.70 m`
+> staging anchor 未进入正式配置；实际保存值继承为 `[0.55, 0.60] m`。后续按
+> [`a2_piper_base_v26_acquisition_supplement_20260823.md`](a2_piper_base_v26_acquisition_supplement_20260823.md)
+> 执行 stand-off / actuator / close-persistence repair。它是 v26 增补任务，不是
+> 新 phase；原 R0 结果与 typed outcome 不回写为成功。
+
 > 本方案面向本地 Worker AI session 执行。由于云端无法读取生产机上的 IsaacLab/IsaacSim 安装源码、实时日志与 checkpoint 内容，本文的数值是执行起点和量级建议，而不是不可修改的远程硬门。Worker 应先读 memory、再读本地 source、证明真实运行路径，并可在 formal optimizer update 前根据本地 runtime 做一次有记录的简化或数值调整。
 
 ---

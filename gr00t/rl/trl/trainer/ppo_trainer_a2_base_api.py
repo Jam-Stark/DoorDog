@@ -6972,12 +6972,46 @@ class TRLPPOTrainer(PPOTrainer):
 
         model = self.accelerator.unwrap_model(self.model)
         actor_key = present_actor_keys[0]
-        load_result = model.policy.load_state_dict(checkpoint[actor_key], strict=True)
+        actor_state = checkpoint[actor_key]
+        load_actor_rms = True
+        if self.workflow_config is not None and "policy_only_load_actor_rms" in self.workflow_config:
+            load_actor_rms = self.workflow_config["policy_only_load_actor_rms"]
+            if not isinstance(load_actor_rms, bool):
+                raise ValueError("policy_only_load_actor_rms must be bool.")
+
+        if load_actor_rms:
+            load_result = model.policy.load_state_dict(actor_state, strict=True)
+        else:
+            actor_rms_keys = {
+                key
+                for key in model.policy.state_dict()
+                if key.startswith("running_mean_std.")
+            }
+            checkpoint_rms_keys = {
+                key for key in actor_state if key.startswith("running_mean_std.")
+            }
+            if checkpoint_rms_keys != actor_rms_keys:
+                raise RuntimeError(
+                    "Policy-only fresh actor RMS requires exact checkpoint RMS keys; "
+                    f"checkpoint={sorted(checkpoint_rms_keys)}, "
+                    f"model={sorted(actor_rms_keys)}."
+                )
+            filtered_actor_state = {
+                key: value for key, value in actor_state.items() if key not in actor_rms_keys
+            }
+            load_result = model.policy.load_state_dict(filtered_actor_state, strict=False)
+            if set(load_result.missing_keys) != actor_rms_keys or load_result.unexpected_keys:
+                raise RuntimeError(
+                    "Policy-only fresh actor RMS load mismatch: "
+                    f"missing={load_result.missing_keys}, "
+                    f"unexpected={load_result.unexpected_keys}."
+                )
         warm_head_reset = self._apply_v23_warm_head_reset(model.policy)
         self._a2_v23_runtime_load_facts["actor"] = {
             "loaded": True,
             "state_key": actor_key,
-            "strict": True,
+            "strict": load_actor_rms,
+            "actor_rms_loaded": load_actor_rms,
             "missing_keys": list(load_result.missing_keys),
             "unexpected_keys": list(load_result.unexpected_keys),
         }
@@ -6985,7 +7019,10 @@ class TRLPPOTrainer(PPOTrainer):
             self._a2_v23_runtime_load_facts["actor"]["warm_head_reset"] = warm_head_reset
         self._a2_v23_runtime_load_facts["load_mode"] = "policy_only"
         self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)
-        print(f"Loaded policy-only checkpoint actor from key {actor_key!r}")
+        print(
+            f"Loaded policy-only checkpoint actor from key {actor_key!r}; "
+            f"actor_rms_loaded={load_actor_rms}"
+        )
 
     def load_checkpoint(self, checkpoint_path):
         """Load a checkpoint to restore the state of model, optimizer, trainer etc.

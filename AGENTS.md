@@ -30,7 +30,20 @@ System、developer、Owner/user 指令优先。本文件只负责路由与不可
 
 没有触发条件时，不为“流程完整”打开对应设施。
 
-## 3. 授权与控制面
+## 3. Mandatory delegation gate
+
+Main 必须自动选择 FAST、STANDARD 或 HIGH_RISK。FAST 由 Main 直接完成；每个非 FAST 任务在进入深度工作前，必须检查：
+
+1. 是否有两个或以上可独立推进的 read-heavy / research lane；
+2. specialist 是否拥有与 Main 显著不同且必要的上下文；
+3. 独立 review / QA 是否能显著降低风险；
+4. 并行执行是否能显著缩短时间或避免 noisy exploration 污染 Main context。
+
+任一条件成立且 runtime 允许 sub-agent 时，Main 必须立即 spawn 最少且有用的 1–3 个 focused agent，不等待 Owner 说“team”，也不先自行完成原本应委托的工作。HIGH_RISK 的 destructive、external、hardware 或昂贵副作用仍需先获得 Owner 授权，但安全的只读 scout、planner、source verification 或 reviewer lane 可按同一 gate 启动。
+
+非 FAST 任务只有在没有独立价值、任务紧耦合且 Main 直接完成成本更低，或更高层/runtime 限制禁止 sub-agent 时，才可保持 single-agent；此时在 task plan 中记录简短的 `NO_DELEGATION_REASON`。scope 扩张或出现新 lane 时重新检查本 gate。
+
+## 4. 授权与控制面
 
 - answer / inspect / diagnose / review / research / plan 默认只读；
 - build / fix / refactor / update 授权执行准确的本地改动与相匹配的非破坏性验证；
@@ -38,7 +51,7 @@ System、developer、Owner/user 指令优先。本文件只负责路由与不可
 - Main `/root` 是唯一控制面，拥有 scope、acceptance、WRITE_SET、排他资源、Git、外部写入和最终整合权；
 - 子 agent 可通过 P2P 直接交换技术事实、复现和有限请求，但不得改变权限。
 
-## 4. DoorDog 不可违反的边界
+## 5. DoorDog 不可违反的边界
 
 - 先 trace 实际执行的 source/config/dependency path，再实现最小端到端版本；
 - memory 是路由和历史，不得覆盖当前 source、resolved config 和 runtime 事实；

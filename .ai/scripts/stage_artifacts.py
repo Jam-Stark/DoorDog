@@ -233,13 +233,13 @@ def index_text(meta: dict[str,Any], archives: list[Archive], excluded: list[Excl
         lines += [f"- `{item.relative}`" for item in record.files]
     lines += ['','## Not packaged']
     lines += [f"- `{item.relative}` — {item.reason}" for item in excluded] or ['- None.']
-    lines += ['',f"The cloud Pro full-review archive will be uploaded later into this same task folder as `{meta['delivery_naming']['pro_full_review_zip']}`.",'Each ZIP above is a normal independent archive. No `.z01/.z02` or binary reconstruction is required.','']
+    lines += ['',f"The cloud Pro full-review archive must be attached in the Pro conversation as `{meta['delivery_naming']['pro_full_review_zip']}` and transferred by the Owner; it is not uploaded to this Drive task folder.",'Each ZIP above is a normal independent archive. No `.z01/.z02` or binary reconstruction is required.','']
     return '\n'.join(lines)
 
 
 def handoff_text(meta: dict[str,Any]) -> str:
     questions = meta['questions'] or ['请独立分析本阶段结果、失败模式、替代解释和下一阶段候选。']
-    return '\n'.join([f"# Worker-to-Pro handoff — {meta['project']} / {meta['stage']}",'',f"Git revision: `{meta['git_revision']}`",f"Branch: `{meta['branch']}`",'', '## Questions', *[f'- {q}' for q in questions], '', '## Evidence boundary', meta['evidence_boundary'], '', '## Expected Pro delivery', f"Upload `{meta['delivery_naming']['pro_full_review_zip']}` into this same release folder after review.", ''])
+    return '\n'.join([f"# Worker-to-Pro handoff — {meta['project']} / {meta['stage']}",'',f"Git revision: `{meta['git_revision']}`",f"Branch: `{meta['branch']}`",'', '## Questions', *[f'- {q}' for q in questions], '', '## Evidence boundary', meta['evidence_boundary'], '', '## Expected Pro delivery', f"Attach `{meta['delivery_naming']['pro_full_review_zip']}` in the Pro conversation for Owner transfer. Do not upload the Pro delivery to Google Drive.", ''])
 
 
 def pack(args: argparse.Namespace) -> int:

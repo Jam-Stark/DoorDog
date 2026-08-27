@@ -15,6 +15,7 @@ import json
 import math
 import os
 from collections import defaultdict
+from contextlib import nullcontext
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
@@ -34,6 +35,8 @@ from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import (
     DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
     MUJOCO_LOCAL_DECLARED_REALIZATION,
     NameResolvedActuatorMapV2,
+    capture_depthadd_v3_native_contact_snapshot,
+    capture_depthadd_v3_pre_step_authority,
     configure_depthadd_v3_contact_solref_2dt,
 )
 from gr00t.rl.sim2sim.mujoco.actor_obs_contract import (
@@ -82,6 +85,10 @@ CAMERA_PERIODS = {"left": 1.0 / 30.0, "right": 1.0 / 30.0, "head": 1.0 / 15.0}
 POLICY_CAMERA_NAMES = ("left", "right", "head")
 MANIFEST_NAME = "materialized_experiment.json"
 STAGE0_ALIGNMENT_MAX_STEPS = 250
+CONTACT_ATLAS_WINDOWS = {
+    "seed41001_base004__fixed": (421, 432),
+    "seed41001_base010__fixed": (262, 273),
+}
 
 
 def _configure_deterministic_torch_runtime() -> None:
@@ -569,6 +576,7 @@ def _run_episode(
     constraint_gate_release_handle_rad: float | None = None,
     diagnostic_force_close_stage34: bool = False,
     diagnostic_policy_prefix_trace: Path | None = None,
+    contact_atlas: bool = False,
 ) -> dict[str, Any]:
     case_dir = output / "episodes" / str(row["case_id"]); case_dir.mkdir(parents=True, exist_ok=True)
     resolved_constraint_gate_release_handle_rad = (
@@ -655,6 +663,10 @@ def _run_episode(
     elif latch_slide_joint >= 0 or latch_mimic_eq >= 0:
         raise RuntimeError("non-physical latch model unexpectedly contains physical latch topology")
     gate_initial_active = None if gate is None else gate.active(data)
+    atlas_window = CONTACT_ATLAS_WINDOWS.get(str(row["case_id"])) if contact_atlas else None
+    atlas_rows = 0
+    atlas_bilateral_streak = 0
+    atlas_previous_bilateral = False
     option = _option(); renderers = {"left_rgb":mujoco.Renderer(model,height=384,width=216),"right_rgb":mujoco.Renderer(model,height=384,width=216),"left_depth":mujoco.Renderer(model,height=384,width=216),"right_depth":mujoco.Renderer(model,height=384,width=216),"head":mujoco.Renderer(model,height=136,width=384),"diag_pos":mujoco.Renderer(model,height=480,width=640),"diag_neg":mujoco.Renderer(model,height=480,width=640)}
     renderers["left_depth"].enable_depth_rendering()
     renderers["right_depth"].enable_depth_rendering()
@@ -718,7 +730,8 @@ def _run_episode(
         else None
     )
     last_control_step = -1
-    with (case_dir/"policy_trace.jsonl").open("w") as policy_trace, (case_dir/"physics_trace.jsonl").open("w") as physics_trace, (case_dir/"first39_policy_diagnostic.jsonl").open("w") as first39_trace:
+    atlas_path = case_dir / "native_contact_atlas.jsonl"
+    with (case_dir/"policy_trace.jsonl").open("w") as policy_trace, (case_dir/"physics_trace.jsonl").open("w") as physics_trace, (case_dir/"first39_policy_diagnostic.jsonl").open("w") as first39_trace, (atlas_path.open("w") if atlas_window is not None else nullcontext(None)) as atlas_trace:
         for step in range(1000):
             last_control_step = step
             control_time_s = float(data.time)
@@ -846,9 +859,87 @@ def _run_episode(
                     released = True
                     gate_release_control_step = step
                     gate_release_substep = sub
-                projection = mapping.step_with_declared_endpoint_velocity_projection(
-                    model, data, velocity_limit20
+                atlas_capture: dict[str, Any] | None = None
+                atlas_active = (
+                    atlas_window is not None
+                    and atlas_window[0] <= step <= atlas_window[1]
                 )
+                if atlas_active:
+                    atlas_pre_step = capture_depthadd_v3_pre_step_authority(
+                        model,
+                        data,
+                        mapping,
+                        raw_target20=target_realization.raw_target20,
+                        drive_target20=target_realization.drive_target20,
+                    )
+                    atlas_pre_step["constraint_gate_active"] = (
+                        None if gate is None else gate.active(data)
+                    )
+
+                    def capture_native_contact_snapshot() -> None:
+                        nonlocal atlas_capture
+                        atlas_capture = capture_depthadd_v3_native_contact_snapshot(
+                            model,
+                            data,
+                            mapping,
+                            raw_target20=target_realization.raw_target20,
+                            drive_target20=target_realization.drive_target20,
+                            pre_step_fullphysics=np.asarray(
+                                atlas_pre_step["mjstate_fullphysics"], dtype=np.float64
+                            ),
+                        )
+
+                    projection = mapping.step_with_declared_endpoint_velocity_projection(
+                        model, data, velocity_limit20, capture_native_contact_snapshot
+                    )
+                else:
+                    projection = mapping.step_with_declared_endpoint_velocity_projection(
+                        model, data, velocity_limit20
+                    )
+                if atlas_active:
+                    if atlas_capture is None or atlas_trace is None:
+                        raise RuntimeError("native contact atlas did not capture its declared primary surface")
+                    bilateral = bool(
+                        atlas_capture["finger_handle"]["bilateral_active_contact"]
+                    )
+                    atlas_bilateral_streak = atlas_bilateral_streak + 1 if bilateral else 0
+                    boundary = (
+                        "ENTRY"
+                        if bilateral and not atlas_previous_bilateral
+                        else "CONTINUE"
+                        if bilateral
+                        else "EXIT"
+                        if atlas_previous_bilateral
+                        else "NONE"
+                    )
+                    _row_json(
+                        atlas_trace,
+                        {
+                            "schema": "doordog.sim2sim.depthadd_v3_native_contact_atlas.v1",
+                            "case_id": row["case_id"],
+                            "control_step": step,
+                            "physics_substep": sub,
+                            "primary_realization": MUJOCO_LOCAL_DECLARED_REALIZATION,
+                            "pre_native_step_authority": atlas_pre_step,
+                            "primary": atlas_capture,
+                            "bilateral_contact_boundary": boundary,
+                            "bilateral_contact_streak_native_substeps": atlas_bilateral_streak,
+                            "endpoint_projection_backup": {
+                                "realization": DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
+                                "applied_count": projection.projected_count,
+                                "mask20": projection.projected_mask20.tolist(),
+                                "qpos_correction20_rad": projection.qpos_correction20.tolist(),
+                                "native_velocity_limit_max_ratio": projection.native_max_velocity_limit_ratio,
+                                "projected_velocity_limit_max_ratio": projection.projected_max_velocity_limit_ratio,
+                            },
+                            "post_projection_state": {
+                                "robot_joint_pos20_rad": data.qpos[mapping.robot_qpos_addresses].tolist(),
+                                "robot_joint_vel20_rad_s": data.qvel[mapping.robot_qvel_addresses].tolist(),
+                            },
+                        },
+                    )
+                    atlas_rows += 1
+                    atlas_previous_bilateral = bilateral
                 torque = projection.native_actuator_force20
                 if not np.isfinite(torque).all(): raise FloatingPointError(f"nonfinite torque in {row['case_id']} step {step}.{sub}")
                 max_handle_hinge_rad = max(max_handle_hinge_rad, float(data.qpos[ids["handle_qpos"]]))
@@ -951,6 +1042,12 @@ def _run_episode(
         active_stage2_close_span["duration_s"] = float(active_stage2_close_span["control_steps"]) * CONTROL_DT
         stage2_close_spans.append(active_stage2_close_span)
     for renderer in renderers.values(): renderer.close()
+    if atlas_window is not None:
+        expected_atlas_rows = 4 * (atlas_window[1] - atlas_window[0] + 1)
+        if atlas_rows != expected_atlas_rows:
+            raise RuntimeError(
+                f"native contact atlas for {row['case_id']} wrote {atlas_rows} rows, expected {expected_atlas_rows}"
+            )
     if alignment is not None:
         _write_alignment_trace(
             case_dir, alignment, alignment_count, row=row, scene=scene,
@@ -1040,6 +1137,20 @@ def _run_episode(
             "valid_squeeze_control_steps": stage2_valid_squeeze_steps,
             "max_squeeze_streak_control_steps": stage2_max_squeeze_streak,
         },
+        "native_contact_atlas": (
+            {
+                "status": "COMPLETE" if atlas_rows == 4 * (atlas_window[1] - atlas_window[0] + 1) else "INCOMPLETE",
+                "path": str(atlas_path),
+                "control_window_inclusive": list(atlas_window),
+                "expected_rows": 4 * (atlas_window[1] - atlas_window[0] + 1),
+                "recorded_rows": atlas_rows,
+                "pre_step_authority": "mjSTATE_FULLPHYSICS + data.ctrl + data.eq_active after gate update",
+                "primary_timing": "after native MuJoCo mj_step and before endpoint projection or mj_forward",
+                "projection_role": "secondary endpoint-projection backup telemetry",
+            }
+            if atlas_window is not None
+            else {"status": "NOT_SELECTED_CASE" if contact_atlas else "NOT_REQUESTED"}
+        ),
     }
     _json_dump(case_dir/"receipt.json",receipt); return receipt
 
@@ -1084,6 +1195,22 @@ def run(args: argparse.Namespace) -> None:
     ):
         raise ValueError(
             "fixed latch diagnostics require --suite primary --lane fixed"
+        )
+    if args.contact_atlas and (
+        args.suite != "primary"
+        or args.lane != "fixed"
+        or args.limit_base_cases != 16
+        or args.shard_index != 0
+        or args.shard_count != 1
+        or args.fixed_latch_mode != "constraint_gate"
+        or args.constraint_gate_release_handle_rad is not None
+        or args.diagnostic_force_close_stage34
+        or args.diagnostic_policy_prefix_trace is not None
+        or args.empirical_source_nominal_appearance_calibration
+        or args.fixed_nominal_appearance_factor is not None
+    ):
+        raise ValueError(
+            "--contact-atlas requires the unmodified production-default fixed16 primary run without sharding"
         )
     output=args.output_dir.resolve(); prepare_receipt=json.loads(_prepared_paths(output)["prepare_receipt"].read_text());
     if prepare_receipt["result"]!="PASS": raise RuntimeError("prepare receipt is not PASS")
@@ -1134,6 +1261,10 @@ def run(args: argparse.Namespace) -> None:
                 raise RuntimeError(
                     f"existing receipt does not match requested policy prefix trace: {receipt}"
                 )
+            atlas_receipt = completed.get("native_contact_atlas", {})
+            if args.contact_atlas and str(row["case_id"]) in CONTACT_ATLAS_WINDOWS:
+                if atlas_receipt.get("status") != "COMPLETE":
+                    raise RuntimeError(f"existing target atlas receipt is incomplete: {receipt}")
             continue
         _run_episode(
             row,
@@ -1148,6 +1279,7 @@ def run(args: argparse.Namespace) -> None:
             constraint_gate_release_handle_rad=args.constraint_gate_release_handle_rad,
             diagnostic_force_close_stage34=args.diagnostic_force_close_stage34,
             diagnostic_policy_prefix_trace=args.diagnostic_policy_prefix_trace,
+            contact_atlas=args.contact_atlas,
         )
 
 
@@ -1604,7 +1736,7 @@ def reduce(args: argparse.Namespace) -> None:
 
 def main() -> None:
     _configure_deterministic_torch_runtime()
-    parser=argparse.ArgumentParser(); parser.add_argument("--mode",choices=("prepare","run","reduce-admission","reduce","export-alignment"),required=True); parser.add_argument("--bundle-dir",type=Path,required=True); parser.add_argument("--source-workspace",type=Path,required=True); parser.add_argument("--robot-urdf",type=Path,required=True); parser.add_argument("--experiment-yaml",type=Path,required=True); parser.add_argument("--output-dir",type=Path,required=True); parser.add_argument("--baseline-output-dir",type=Path); parser.add_argument("--device",default="cuda:0"); parser.add_argument("--suite",choices=("primary","stress"),default="primary"); parser.add_argument("--lane",choices=("fixed","visual_only","door_only","combined")); parser.add_argument("--limit-base-cases",type=int); parser.add_argument("--shard-index",type=int,default=0); parser.add_argument("--shard-count",type=int,default=1); parser.add_argument("--empirical-source-nominal-appearance-calibration",action="store_true",help="legacy fixed-only empirical t0 calibration; not material/shader authority"); parser.add_argument("--fixed-nominal-appearance-factor",choices=fixed_nominal_appearance_factor_names(),help="fixed-only controlled ablation: stable_baseline applies all factors; named factors withhold exactly that factor"); parser.add_argument("--fixed-latch-mode",choices=("constraint_gate","physical_collision","no_latch"),default="constraint_gate",help="fixed-only mechanics diagnostic; default preserves the existing constraint gate"); parser.add_argument("--constraint-gate-release-handle-rad",type=float,help="constraint_gate-only release threshold in (0, pi/4]"); parser.add_argument("--diagnostic-force-close-stage34",action="store_true",help="apply the existing Isaac diagnostic -1 gripper override only while the tracker is in Stage3/4"); parser.add_argument("--diagnostic-policy-prefix-trace",type=Path,help="replay recorded high-level and leg actions through Stage2, then return to the live policy"); args=parser.parse_args()
+    parser=argparse.ArgumentParser(); parser.add_argument("--mode",choices=("prepare","run","reduce-admission","reduce","export-alignment"),required=True); parser.add_argument("--bundle-dir",type=Path,required=True); parser.add_argument("--source-workspace",type=Path,required=True); parser.add_argument("--robot-urdf",type=Path,required=True); parser.add_argument("--experiment-yaml",type=Path,required=True); parser.add_argument("--output-dir",type=Path,required=True); parser.add_argument("--baseline-output-dir",type=Path); parser.add_argument("--device",default="cuda:0"); parser.add_argument("--suite",choices=("primary","stress"),default="primary"); parser.add_argument("--lane",choices=("fixed","visual_only","door_only","combined")); parser.add_argument("--limit-base-cases",type=int); parser.add_argument("--shard-index",type=int,default=0); parser.add_argument("--shard-count",type=int,default=1); parser.add_argument("--empirical-source-nominal-appearance-calibration",action="store_true",help="legacy fixed-only empirical t0 calibration; not material/shader authority"); parser.add_argument("--fixed-nominal-appearance-factor",choices=fixed_nominal_appearance_factor_names(),help="fixed-only controlled ablation: stable_baseline applies all factors; named factors withhold exactly that factor"); parser.add_argument("--fixed-latch-mode",choices=("constraint_gate","physical_collision","no_latch"),default="constraint_gate",help="fixed-only mechanics diagnostic; default preserves the existing constraint gate"); parser.add_argument("--constraint-gate-release-handle-rad",type=float,help="constraint_gate-only release threshold in (0, pi/4]"); parser.add_argument("--diagnostic-force-close-stage34",action="store_true",help="apply the existing Isaac diagnostic -1 gripper override only while the tracker is in Stage3/4"); parser.add_argument("--diagnostic-policy-prefix-trace",type=Path,help="replay recorded high-level and leg actions through Stage2, then return to the live policy"); parser.add_argument("--contact-atlas",action="store_true",help="capture native pre-projection contact telemetry for base004/base010 during full fixed16"); args=parser.parse_args()
     if args.constraint_gate_release_handle_rad is not None:
         if args.fixed_latch_mode != "constraint_gate":
             raise ValueError("--constraint-gate-release-handle-rad requires --fixed-latch-mode constraint_gate")

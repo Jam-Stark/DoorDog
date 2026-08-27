@@ -16,7 +16,7 @@ import json
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import mujoco
 import numpy as np
@@ -27,6 +27,8 @@ from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import (
     DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
     MUJOCO_LOCAL_DECLARED_REALIZATION,
     NameResolvedActuatorMapV2,
+    capture_depthadd_v3_native_contact_snapshot,
+    capture_depthadd_v3_pre_step_authority,
     configure_depthadd_v3_contact_solref_2dt,
 )
 from gr00t.rl.sim2sim.mujoco.paired_scene_builder_v2 import PairedSceneBuilderV2
@@ -137,6 +139,10 @@ class ReplayInputs:
 def _json_dump(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _row_json(stream, value: Mapping[str, Any]) -> None:
+    stream.write(json.dumps(value, separators=(",", ":")) + "\n")
 
 
 def _finite_vector(value: Any, *, width: int, field: str, step: int) -> np.ndarray:
@@ -1271,6 +1277,7 @@ def _step_with_velocity_realization(
     mapping: NameResolvedActuatorMapV2,
     velocity_limit20: np.ndarray,
     velocity_realization: str,
+    native_snapshot_callback: Callable[[], None] | None = None,
 ) -> VelocityRealizationTelemetry:
     """Advance native MuJoCo once and optionally apply the declared endpoint projection.
 
@@ -1308,6 +1315,8 @@ def _step_with_velocity_realization(
     )
     if not all(np.isfinite(values).all() for values in native_values):
         raise FloatingPointError("native MuJoCo endpoint telemetry is non-finite")
+    if native_snapshot_callback is not None:
+        native_snapshot_callback()
     theoretical_projected_qvel20 = np.clip(native_qvel20, -limits, limits)
     theoretical_qpos_correction20 = (
         theoretical_projected_qvel20 - native_qvel20
@@ -1971,6 +1980,165 @@ def _typed_verdict(
     }
 
 
+def _run_source_contact_atlas(
+    *,
+    output: Path,
+    scene: Path,
+    pairing: Mapping[str, Any],
+    inputs: ReplayInputs,
+    velocity_realization: str,
+) -> dict[str, Any]:
+    """Export the bounded Isaac-state source window with native MuJoCo snapshots.
+
+    Each control restores the preceding recorded Isaac state and advances four
+    native MuJoCo substeps.  This is a source-state/target prefix probe, not a
+    claim that it is the closed-loop MuJoCo successor used by production.
+    """
+
+    control_start, control_end = 104, 110
+    by_control = {step.control_step: step for step in inputs.source_steps}
+    required = list(range(control_start - 1, control_end + 1))
+    if any(control not in by_control for control in required):
+        raise RuntimeError("source contact atlas requires contiguous env13 controls 103 through 110")
+    model = mujoco.MjModel.from_xml_path(str(scene))
+    data = mujoco.MjData(model)
+    mapping = NameResolvedActuatorMapV2.from_model(model, inputs.robot_joint_names)
+    plant_realization = _configure_plant_variant(
+        model=model,
+        mapping=mapping,
+        plant_variant=PLANT_VARIANT_VELOCITY_LIMITED_PD_TARGET_CONTACT_SOLREF_2DT,
+    )
+    source_door_names = _source_door_to_mujoco_names(inputs.source_steps[0].door_joint_names)
+    door_qpos, door_qvel = _joint_addresses(model, source_door_names)
+    rows = 0
+    bilateral_streak = 0
+    previous_bilateral = False
+    atlas_path = output / "source_env13_native_contact_atlas.jsonl"
+    with atlas_path.open("w", encoding="utf-8") as stream:
+        for control_step in range(control_start, control_end + 1):
+            previous = by_control[control_step - 1]
+            current = by_control[control_step]
+            _restore_source_state(
+                model=model,
+                data=data,
+                mapping=mapping,
+                source=previous,
+                target_joint_names=inputs.robot_joint_names,
+                door_qpos=door_qpos,
+                door_qvel=door_qvel,
+            )
+            raw_target20 = _reorder(
+                current.final_target20, current.joint_names, inputs.robot_joint_names
+            )
+            for physics_substep in range(PHYSICS_STEPS_PER_CONTROL):
+                drive_target20, target_realization = _realize_position_target(
+                    model=model,
+                    data=data,
+                    mapping=mapping,
+                    raw_target20=raw_target20,
+                    velocity_limit20=inputs.velocity_limit20,
+                    plant_variant=PLANT_VARIANT_VELOCITY_LIMITED_PD_TARGET_CONTACT_SOLREF_2DT,
+                )
+                mapping.write_robot_position_target(data, drive_target20)
+                pre_native_step = capture_depthadd_v3_pre_step_authority(
+                    model,
+                    data,
+                    mapping,
+                    raw_target20=raw_target20,
+                    drive_target20=drive_target20,
+                )
+                native_capture: dict[str, Any] | None = None
+
+                def capture_native_contact_snapshot() -> None:
+                    nonlocal native_capture
+                    native_capture = capture_depthadd_v3_native_contact_snapshot(
+                        model,
+                        data,
+                        mapping,
+                        raw_target20=raw_target20,
+                        drive_target20=drive_target20,
+                        pre_step_fullphysics=np.asarray(
+                            pre_native_step["mjstate_fullphysics"], dtype=np.float64
+                        ),
+                    )
+
+                projection = _step_with_velocity_realization(
+                    model=model,
+                    data=data,
+                    mapping=mapping,
+                    velocity_limit20=inputs.velocity_limit20,
+                    velocity_realization=velocity_realization,
+                    native_snapshot_callback=capture_native_contact_snapshot,
+                )
+                if native_capture is None:
+                    raise RuntimeError("source contact atlas did not capture its native primary surface")
+                bilateral = bool(native_capture["finger_handle"]["bilateral_active_contact"])
+                bilateral_streak = bilateral_streak + 1 if bilateral else 0
+                boundary = (
+                    "ENTRY"
+                    if bilateral and not previous_bilateral
+                    else "CONTINUE"
+                    if bilateral
+                    else "EXIT"
+                    if previous_bilateral
+                    else "NONE"
+                )
+                _row_json(
+                    stream,
+                    {
+                        "schema": "doordog.sim2sim.depthadd_v3_native_contact_atlas.v1",
+                        "case_id": "isaac_env13_source_state_prefix",
+                        "source_control_step": control_step,
+                        "physics_substep": physics_substep,
+                        "source_state_restore": {
+                            "from_source_control_step": previous.control_step,
+                            "to_source_control_step": current.control_step,
+                            "mode": "RESTORE_RECORDED_ISAAC_STATE_THEN_FOUR_MUJOCO_SUBSTEPS",
+                        },
+                        "primary_realization": MUJOCO_LOCAL_DECLARED_REALIZATION,
+                        "pre_native_step_authority": pre_native_step,
+                        "primary": native_capture,
+                        "target_shaping": target_realization,
+                        "bilateral_contact_boundary": boundary,
+                        "bilateral_contact_streak_native_substeps": bilateral_streak,
+                        "endpoint_projection_backup": {
+                            "realization": velocity_realization,
+                            "applied_count": projection.applied_count,
+                            "mask20": projection.applied_mask20.tolist(),
+                            "qpos_correction20_rad": projection.applied_qpos_correction20.tolist(),
+                            "native_velocity_limit_max_ratio": projection.native_max_velocity_limit_ratio,
+                            "post_realization_velocity_limit_max_ratio": projection.realized_max_velocity_limit_ratio,
+                        },
+                        "post_projection_state": {
+                            "robot_joint_pos20_rad": data.qpos[mapping.robot_qpos_addresses].tolist(),
+                            "robot_joint_vel20_rad_s": data.qvel[mapping.robot_qvel_addresses].tolist(),
+                            "door_joint_pos": data.qpos[door_qpos].tolist(),
+                            "door_joint_vel": data.qvel[door_qvel].tolist(),
+                        },
+                    },
+                )
+                rows += 1
+                previous_bilateral = bilateral
+    expected_rows = (control_end - control_start + 1) * PHYSICS_STEPS_PER_CONTROL
+    if rows != expected_rows:
+        raise RuntimeError(f"source contact atlas wrote {rows} rows, expected {expected_rows}")
+    receipt = {
+        "schema": "doordog.sim2sim.depthadd_v3_source_native_contact_atlas_receipt.v1",
+        "result": "COMPLETE",
+        "path": str(atlas_path),
+        "source_env_id": 13,
+        "source_control_window_inclusive": [control_start, control_end],
+        "expected_rows": expected_rows,
+        "recorded_rows": rows,
+        "pairing": dict(pairing),
+        "plant_realization": plant_realization,
+        "primary_timing": "after native MuJoCo mj_step and before endpoint projection or mj_forward",
+        "causal_boundary": "state-reset source prefix; not production closed-loop MuJoCo successor evidence",
+    }
+    _json_dump(output / "source_env13_native_contact_atlas_receipt.json", receipt)
+    return receipt
+
+
 def run(args: argparse.Namespace) -> None:
     output = args.output_dir.resolve()
     if output.exists() and any(output.iterdir()):
@@ -1993,6 +2161,15 @@ def run(args: argparse.Namespace) -> None:
             f"producer has {len(inputs.source_steps)} Stage2 states, so at most {len(inputs.source_steps) - 1} transitions are available"
         )
     scene, pairing = _build_matched_scene(output, inputs)
+    if args.contact_atlas:
+        _run_source_contact_atlas(
+            output=output,
+            scene=scene,
+            pairing=pairing,
+            inputs=inputs,
+            velocity_realization=args.velocity_realization,
+        )
+        return
     kinematic_rows, kinematic_summary = _run_kinematic_pairing_prefix(
         scene=scene, inputs=inputs, states=transitions + 1
     )
@@ -2165,6 +2342,11 @@ def parse_args() -> argparse.Namespace:
             PLANT_VARIANT_VELOCITY_LIMITED_PD_TARGET_CONTACT_SOLREF_2DT_FRICTION09,
         ),
         default=PLANT_VARIANT_BASELINE,
+    )
+    parser.add_argument(
+        "--contact-atlas",
+        action="store_true",
+        help="write only the env13 controls 104..110 native pre-projection contact atlas",
     )
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser.parse_args()

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Any, Callable
 
 import mujoco
 import numpy as np
@@ -92,6 +93,323 @@ def configure_depthadd_v3_contact_solref_2dt(model: mujoco.MjModel) -> dict[str,
         "friction": "UNCHANGED",
         "geometry": "UNCHANGED",
         "geoms": geoms,
+    }
+
+
+def _named_id(model: mujoco.MjModel, object_type: mujoco.mjtObj, object_id: int) -> str:
+    """Return a stable MuJoCo name for an already-resolved object ID."""
+
+    return mujoco.mj_id2name(model, object_type, object_id) or f"object_{object_id}"
+
+
+def _collision_geoms_for_body(model: mujoco.MjModel, body_id: int) -> tuple[int, ...]:
+    return tuple(
+        geom_id
+        for geom_id, geom_body_id in enumerate(model.geom_bodyid)
+        if int(geom_body_id) == body_id
+        and not (
+            int(model.geom_contype[geom_id]) == 0
+            and int(model.geom_conaffinity[geom_id]) == 0
+        )
+    )
+
+
+def _body_point_velocity_world(
+    model: mujoco.MjModel, data: mujoco.MjData, *, body_id: int, point_world: np.ndarray
+) -> np.ndarray:
+    jacobian_position = np.zeros((3, model.nv), dtype=np.float64)
+    jacobian_rotation = np.zeros((3, model.nv), dtype=np.float64)
+    mujoco.mj_jac(
+        model, data, jacobian_position, jacobian_rotation, point_world, body_id
+    )
+    return jacobian_position @ data.qvel
+
+
+def capture_depthadd_v3_pre_step_authority(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    mapping: "NameResolvedActuatorMapV2",
+    *,
+    raw_target20: np.ndarray,
+    drive_target20: np.ndarray,
+) -> dict[str, Any]:
+    """Capture the exact MuJoCo state authority immediately before one native step."""
+
+    raw_target = np.asarray(raw_target20, dtype=np.float64)
+    drive_target = np.asarray(drive_target20, dtype=np.float64)
+    if raw_target.shape != (20,) or drive_target.shape != (20,):
+        raise ValueError("pre-step authority requires raw_target20[20] and drive_target20[20]")
+    state_spec = mujoco.mjtState.mjSTATE_FULLPHYSICS
+    state = np.empty(mujoco.mj_stateSize(model, state_spec), dtype=np.float64)
+    mujoco.mj_getState(model, data, state, state_spec)
+    values = (
+        state,
+        data.ctrl,
+        data.qpos[mapping.robot_qpos_addresses],
+        data.qvel[mapping.robot_qvel_addresses],
+        raw_target,
+        drive_target,
+    )
+    if not all(np.isfinite(value).all() for value in values):
+        raise FloatingPointError("pre-step authority contains a non-finite value")
+    return {
+        "sample_timing": "immediately before native MuJoCo mj_step",
+        "mjstate_spec": "mjSTATE_FULLPHYSICS",
+        "mjstate_fullphysics": state.tolist(),
+        "qvel_full_pre_integration_rad_s": data.qvel.tolist(),
+        "data_ctrl": data.ctrl.tolist(),
+        "eq_active": data.eq_active.tolist(),
+        "time_s": float(data.time),
+        "raw_target20_rad": raw_target.tolist(),
+        "drive_target20_rad": drive_target.tolist(),
+        "model_runtime": {
+            "timestep_s": float(model.opt.timestep),
+            "nq": int(model.nq),
+            "nv": int(model.nv),
+            "nu": int(model.nu),
+        },
+    }
+
+
+def capture_depthadd_v3_native_contact_snapshot(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    mapping: "NameResolvedActuatorMapV2",
+    *,
+    raw_target20: np.ndarray,
+    drive_target20: np.ndarray,
+    pre_step_fullphysics: np.ndarray,
+) -> dict[str, Any]:
+    """Capture the native contact surface immediately after ``mj_step``.
+
+    This deliberately has no projection or ``mj_forward`` side effect.  Callers
+    invoke it while the native endpoint remains resident, then may separately
+    apply their declared endpoint-projection backup.
+    """
+
+    raw_target = np.asarray(raw_target20, dtype=np.float64)
+    drive_target = np.asarray(drive_target20, dtype=np.float64)
+    pre_state = np.asarray(pre_step_fullphysics, dtype=np.float64)
+    if raw_target.shape != (20,) or drive_target.shape != (20,):
+        raise ValueError("native contact snapshot requires raw_target20[20] and drive_target20[20]")
+    if pre_state.shape != (mujoco.mj_stateSize(model, mujoco.mjtState.mjSTATE_FULLPHYSICS),):
+        raise ValueError("native contact snapshot requires the exact pre-step mjSTATE_FULLPHYSICS")
+    pre_integration_data = mujoco.MjData(model)
+    mujoco.mj_setState(
+        model, pre_integration_data, pre_state, mujoco.mjtState.mjSTATE_FULLPHYSICS
+    )
+    mujoco.mj_forward(model, pre_integration_data)
+    finger_body_ids = tuple(
+        mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+        for name in ("arm_body7", "arm_body8")
+    )
+    handle_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "door_handle")
+    if any(body_id < 0 for body_id in finger_body_ids) or handle_body_id < 0:
+        raise RuntimeError("native contact snapshot requires arm_body7/arm_body8/door_handle")
+    finger_geoms = tuple(
+        _collision_geoms_for_body(model, body_id) for body_id in finger_body_ids
+    )
+    handle_geoms = _collision_geoms_for_body(model, handle_body_id)
+    if not all(finger_geoms) or not handle_geoms:
+        raise RuntimeError("native contact snapshot requires collision-enabled finger and handle geoms")
+
+    closest_pairs: list[dict[str, Any]] = []
+    for finger_index, geoms in enumerate(finger_geoms):
+        for finger_geom_id in geoms:
+            for handle_geom_id in handle_geoms:
+                fromto = np.empty(6, dtype=np.float64)
+                distance = float(
+                    mujoco.mj_geomDistance(
+                        model, data, finger_geom_id, handle_geom_id, 10.0, fromto
+                    )
+                )
+                fromto_valid = distance < 10.0
+                closest_pairs.append(
+                    {
+                        "finger_index": finger_index,
+                        "finger_geom": _named_id(model, mujoco.mjtObj.mjOBJ_GEOM, finger_geom_id),
+                        "handle_geom": _named_id(model, mujoco.mjtObj.mjOBJ_GEOM, handle_geom_id),
+                        "mj_geomDistance_m": distance,
+                        "fromto_valid": fromto_valid,
+                        "closest_point_finger_world_m": fromto[:3].tolist() if fromto_valid else None,
+                        "closest_point_handle_world_m": fromto[3:].tolist() if fromto_valid else None,
+                    }
+                )
+
+    detected_contacts: list[dict[str, Any]] = []
+    active_contacts: list[dict[str, Any]] = []
+    finger_handle_contact_counts = [0, 0]
+    finger_handle_force_on_handle_world = np.zeros((2, 3), dtype=np.float64)
+    for contact_index in range(data.ncon):
+        contact = data.contact[contact_index]
+        geom1 = int(contact.geom1)
+        geom2 = int(contact.geom2)
+        body1 = int(model.geom_bodyid[geom1])
+        body2 = int(model.geom_bodyid[geom2])
+        efc_address = int(contact.efc_address)
+        solver_active = efc_address >= 0
+        wrench_contact = np.zeros(6, dtype=np.float64)
+        mujoco.mj_contactForce(model, data, contact_index, wrench_contact)
+        contact_to_world = contact.frame.reshape(3, 3).T
+        relative_velocity_world = _body_point_velocity_world(
+            model, pre_integration_data, body_id=body2, point_world=contact.pos
+        ) - _body_point_velocity_world(
+            model, pre_integration_data, body_id=body1, point_world=contact.pos
+        )
+        finger_index = next(
+            (
+                index
+                for index, finger_body_id in enumerate(finger_body_ids)
+                if handle_body_id in (body1, body2) and finger_body_id in (body1, body2)
+            ),
+            None,
+        )
+        if solver_active and finger_index is not None:
+            finger_handle_contact_counts[finger_index] += 1
+            force_world = contact_to_world @ wrench_contact[:3]
+            if body1 == finger_body_ids[finger_index] and body2 == handle_body_id:
+                finger_handle_force_on_handle_world[finger_index] += force_world
+            elif body2 == finger_body_ids[finger_index] and body1 == handle_body_id:
+                finger_handle_force_on_handle_world[finger_index] -= force_world
+        contact_row = (
+            {
+                "contact_index": contact_index,
+                "geom1": _named_id(model, mujoco.mjtObj.mjOBJ_GEOM, geom1),
+                "geom2": _named_id(model, mujoco.mjtObj.mjOBJ_GEOM, geom2),
+                "body1": _named_id(model, mujoco.mjtObj.mjOBJ_BODY, body1),
+                "body2": _named_id(model, mujoco.mjtObj.mjOBJ_BODY, body2),
+                "solver_active": solver_active,
+                "exclude": int(contact.exclude),
+                "efc_address": efc_address,
+                "distance_m": float(contact.dist),
+                "pre_integration_position_world_m": contact.pos.tolist(),
+                "pre_integration_frame_contact_to_world": contact.frame.tolist(),
+                "normal_force_n": float(wrench_contact[0]),
+                "tangent_force_n": wrench_contact[1:3].tolist(),
+                "force_torque_contact_frame": wrench_contact.tolist(),
+                "force_world_n": (contact_to_world @ wrench_contact[:3]).tolist(),
+                "pre_integration_relative_velocity_body2_minus_body1_world_m_s": relative_velocity_world.tolist(),
+                "pre_integration_relative_velocity_body2_minus_body1_contact_m_s": (
+                    contact_to_world.T @ relative_velocity_world
+                ).tolist(),
+                "finger_handle_pair": finger_index is not None,
+                "finger_index": finger_index,
+            }
+        )
+        detected_contacts.append(contact_row)
+        if solver_active:
+            active_contacts.append(contact_row)
+
+    handle_rotation_world = data.xmat[handle_body_id].reshape(3, 3)
+    handle_position_world = data.xpos[handle_body_id]
+    finger_poses = []
+    for finger_index, body_id in enumerate(finger_body_ids):
+        finger_rotation_world = data.xmat[body_id].reshape(3, 3)
+        finger_poses.append(
+            {
+                "finger_index": finger_index,
+                "body": _named_id(model, mujoco.mjtObj.mjOBJ_BODY, body_id),
+                "position_handle_frame_m": (
+                    handle_rotation_world.T @ (data.xpos[body_id] - handle_position_world)
+                ).tolist(),
+                "rotation_handle_to_finger": (
+                    handle_rotation_world.T @ finger_rotation_world
+                ).tolist(),
+            }
+        )
+
+    door_joints = tuple(
+        name
+        for name in ("door_hinge", "handle_hinge", "latch_slide")
+        if mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name) >= 0
+    )
+    door_qpos_addresses = np.asarray(
+        [
+            model.jnt_qposadr[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)]
+            for name in door_joints
+        ],
+        dtype=np.int32,
+    )
+    door_qvel_addresses = np.asarray(
+        [
+            model.jnt_dofadr[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)]
+            for name in door_joints
+        ],
+        dtype=np.int32,
+    )
+    j7_j8_indices = np.asarray(
+        [mapping.robot_joint_names.index("arm_j7"), mapping.robot_joint_names.index("arm_j8")],
+        dtype=np.int32,
+    )
+    robot_qpos20 = data.qpos[mapping.robot_qpos_addresses].copy()
+    robot_qvel20 = data.qvel[mapping.robot_qvel_addresses].copy()
+    actuator_force20 = mapping.robot_actuator_force(data)
+    qfrc_actuator20 = mapping.robot_generalized_force(data)
+    qfrc_constraint20 = data.qfrc_constraint[mapping.robot_qvel_addresses].copy()
+    qacc20 = data.qacc[mapping.robot_qvel_addresses].copy()
+    qfrc_passive20 = data.qfrc_passive[mapping.robot_qvel_addresses].copy()
+    qfrc_smooth20 = data.qfrc_smooth[mapping.robot_qvel_addresses].copy()
+    finite_vectors = (
+        raw_target,
+        drive_target,
+        robot_qpos20,
+        robot_qvel20,
+        actuator_force20,
+        qfrc_actuator20,
+        qfrc_constraint20,
+        qacc20,
+        qfrc_passive20,
+        qfrc_smooth20,
+        data.qpos[door_qpos_addresses],
+        data.qvel[door_qvel_addresses],
+    )
+    if not all(np.isfinite(values).all() for values in finite_vectors):
+        raise FloatingPointError("native contact snapshot contains a non-finite primary surface")
+    return {
+        "sample_timing": "after native MuJoCo mj_step and before endpoint projection or mj_forward",
+        "raw_target20_rad": raw_target.tolist(),
+        "drive_target20_rad": drive_target.tolist(),
+        "native_state": {
+            "robot_joint_pos20_rad": robot_qpos20.tolist(),
+            "robot_joint_vel20_rad_s": robot_qvel20.tolist(),
+            "qacc20_rad_s2": qacc20.tolist(),
+            "qfrc_actuator20_Nm": qfrc_actuator20.tolist(),
+            "qfrc_constraint20_Nm": qfrc_constraint20.tolist(),
+            "qfrc_passive20_Nm": qfrc_passive20.tolist(),
+            "qfrc_smooth20_Nm": qfrc_smooth20.tolist(),
+            "actuator_force20": actuator_force20.tolist(),
+            "door_joint_names": list(door_joints),
+            "door_joint_pos": data.qpos[door_qpos_addresses].tolist(),
+            "door_joint_vel": data.qvel[door_qvel_addresses].tolist(),
+        },
+        "j7_j8": {
+            "joint_names": [mapping.robot_joint_names[index] for index in j7_j8_indices],
+            "qpos_rad": robot_qpos20[j7_j8_indices].tolist(),
+            "qvel_rad_s": robot_qvel20[j7_j8_indices].tolist(),
+            "raw_target_rad": raw_target[j7_j8_indices].tolist(),
+            "drive_target_rad": drive_target[j7_j8_indices].tolist(),
+            "actuator_force": actuator_force20[j7_j8_indices].tolist(),
+            "qfrc_actuator_Nm": qfrc_actuator20[j7_j8_indices].tolist(),
+            "qfrc_constraint_Nm": qfrc_constraint20[j7_j8_indices].tolist(),
+        },
+        "finger_handle": {
+            "finger_collision_geoms": [
+                [_named_id(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) for geom_id in geoms]
+                for geoms in finger_geoms
+            ],
+            "handle_collision_geoms": [
+                _named_id(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) for geom_id in handle_geoms
+            ],
+            "closest_pairs": closest_pairs,
+            "detected_contacts": detected_contacts,
+            "active_contacts": active_contacts,
+            "solver_active_finger_handle_contact_counts": finger_handle_contact_counts,
+            "solver_active_finger_handle_force_on_handle_world_N": (
+                finger_handle_force_on_handle_world.tolist()
+            ),
+            "bilateral_active_contact": bool(all(finger_handle_contact_counts)),
+            "finger_pose_in_handle_frame": finger_poses,
+        },
     }
 
 
@@ -199,6 +517,7 @@ class NameResolvedActuatorMapV2:
         model: mujoco.MjModel,
         data: mujoco.MjData,
         velocity_limit20: np.ndarray,
+        native_snapshot_callback: Callable[[], None] | None = None,
     ) -> EndpointVelocityProjectionTelemetry:
         """Advance one native substep, then realize the declared 20D velocity surface.
 
@@ -241,6 +560,8 @@ class NameResolvedActuatorMapV2:
             and np.isfinite(native_qfrc_constraint20_nm).all()
         ):
             raise FloatingPointError("native MuJoCo endpoint telemetry is non-finite")
+        if native_snapshot_callback is not None:
+            native_snapshot_callback()
 
         projected_qvel20 = np.clip(native_qvel20, -limits, limits)
         qpos_correction20 = (projected_qvel20 - native_qvel20) * float(model.opt.timestep)

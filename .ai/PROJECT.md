@@ -55,3 +55,14 @@ A self-contained typo、prose edit 或 isolated syntax check may skip deep memor
 ## Stage decisions and cloud handoff
 
 Owner chooses whether a stage uses local Claude planner、cloud GPT Pro、both independently，or another roster. Artifact packaging and Pro_Space upload happen only when Owner requests them or the current stage contract explicitly enables handoff. Ordinary task completion does not create a bundle.
+
+### Cloud Pro delivery configuration
+
+- Git remote used by cloud reviewer: `origin`
+- Branch or review branch: current approved task branch
+- Owner-requested Cloud Pro handoff authorizes in-scope commit and push unless Owner explicitly says otherwise
+- Drive task folder: stores only `worker_delivery__*` input artifacts
+- Pro delivery transfer: Owner uploads `pro_delivery__full_review.zip` in the local Worker conversation; Cloud Pro does not upload it to Drive
+- Pro review document root: `scriptsFORhuman/pro_reviews`
+- Placement rule: `scriptsFORhuman/pro_reviews/<stage-or-release>/<commit-short>/`
+- Cloud conclusions do not replace local source、resolved config、IsaacLab/GPU runtime、logs or hardware evidence

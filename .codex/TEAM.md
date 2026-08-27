@@ -1,5 +1,14 @@
 # DoorDog Codex MultiAgentV2 workflow v1.3
 
+## Proactive delegation gate
+
+- FAST：Main 直接完成。
+- STANDARD：深度工作前检查独立 lane、specialist context、独立 review/QA 的材料性价值，以及并行对速度或 Main context 的实质收益。任一条件命中时，立即 spawn 最少必要的 1–3 个 focused agent，不等待 Owner 说“team”，也不推迟到 Main 已经完成应委托工作之后。
+- HIGH_RISK：破坏性、外部、硬件或昂贵副作用仍需 Owner 授权；安全的只读 scout、planner、source verification 或 reviewer lane 适用同一主动委托 gate，可在等待授权时开始。
+- 非 FAST 使用单 agent 时，必须记录具体 `NO_DELEGATION_REASON`：没有独立价值、任务紧耦合且直接完成更便宜，或更高层/runtime 禁止 sub-agent。
+
+P2P 传递技术事实，不传递权限。Main 仍负责等待结果、集成、scope、acceptance、write/resource authority、Git、外部写入和最终关闭。
+
 ## Lean default
 
 FAST and ordinary STANDARD work use Main or a small focused set of agents with prompt-level boundaries. Persistent team state is OFF by default.

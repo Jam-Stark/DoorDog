@@ -1,6 +1,6 @@
 # DoorDog AI entrypoint
 
-System、developer、Owner/user 指令优先。本文件只负责路由与不可违反的项目边界，不要求每次任务全量读取所有 workflow 文档。
+System、developer、Owner/user 指令优先。本文件是项目级 workflow authority，负责路由与不可违反的项目边界；runtime adapter 和子目录规则可以补充实现细节，但不得静默关闭这里要求的自动路由。若更高层 system/developer 明确禁止 sub-agent，则遵守该限制并退化为单 agent。
 
 ## 1. 最小读取集
 
@@ -15,6 +15,25 @@ System、developer、Owner/user 指令优先。本文件只负责路由与不可
 - Codex：`.codex/AGENTS.md`，需要委托或 P2P 时再读 `.codex/TEAM.md`；
 - OpenCode/OMO：`.omo/AGENTS.md`；
 - standalone Claude Code：`CLAUDE.md`，固定 single-agent。
+
+## 1.1 自动路由与 Mandatory delegation gate
+
+Main 必须自主把任务分类为 FAST、STANDARD 或 HIGH_RISK，不等待 Owner 指定模式。
+
+- FAST：简单问答、临时检查或边界清楚的小改动，由 Main 直接完成。
+- STANDARD：普通实现或调试。出现独立 workstream、specialist context 或独立 review/QA 的材料性收益时，Main 必须主动委托。
+- HIGH_RISK：破坏性、外部写入、硬件、昂贵长跑或难回滚操作；副作用仍需 Owner 授权，但安全的只读调查可按以下 gate 委托。
+
+每个非 FAST 任务在进入深度工作前，Main 必须检查：
+
+1. 是否有两个以上可以独立推进的 read-heavy/research lane；
+2. specialist 是否拥有与 Main 材料性不同的上下文；
+3. 独立 reviewer/QA 是否会实质降低风险；
+4. 并行是否会实质缩短完成时间或隔离 noisy exploration。
+
+任一条件命中且 runtime 允许 sub-agent 时，Main 必须立即 spawn 最少必要的 agent，不能等 Owner 说“team”，也不能先自行完成原本应委托的工作。STANDARD 通常按触发条件使用 1–3 个 focused agent。
+
+非 FAST 仍保持 single-agent 时，必须在 task plan 中记录简短的 `NO_DELEGATION_REASON`：没有独立价值、任务紧耦合且直接完成成本更低，或更高层/runtime 禁止委托。Scope 扩大或出现新独立 lane 时重新检查。
 
 ## 2. 条件读取表
 

@@ -35,9 +35,11 @@ from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import (
     DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
     MUJOCO_LOCAL_DECLARED_REALIZATION,
     NameResolvedActuatorMapV2,
+    capture_depthadd_v3_integration_state,
     capture_depthadd_v3_native_contact_snapshot,
     capture_depthadd_v3_pre_step_authority,
-    configure_depthadd_v3_contact_solref_2dt,
+    configure_depthadd_v3_production_contact_solref_surface,
+    restore_depthadd_v3_pre_step_authority,
 )
 from gr00t.rl.sim2sim.mujoco.actor_obs_contract import (
     compose_depthadd_v3_actor_obs,
@@ -89,6 +91,10 @@ CONTACT_ATLAS_WINDOWS = {
     "seed41001_base004__fixed": (421, 432),
     "seed41001_base010__fixed": (262, 273),
 }
+STAGE34_TARGET_DISCRIMINATOR_CASE_ID = "seed41001_base006__fixed"
+STAGE34_TARGET_DISCRIMINATOR_CONTROLS = 12
+CONTACT_RETENTION_KD_SELECTOR = (7, 1)
+CONTACT_RETENTION_KD_SUBSTEPS = 19
 
 
 def _configure_deterministic_torch_runtime() -> None:
@@ -107,6 +113,548 @@ def _json_dump(path: Path, value: Any) -> None:
 
 def _row_json(stream, value: Mapping[str, Any]) -> None:
     stream.write(json.dumps(value, separators=(",", ":")) + "\n")
+
+
+def _stage34_discriminator_core(
+    model: mujoco.MjModel,
+    mapping: NameResolvedActuatorMapV2,
+    data: mujoco.MjData,
+    *,
+    pre_step_authority: Mapping[str, Any],
+    native_endpoint_integration: list[float],
+    native_contact: Mapping[str, Any],
+    projection: Any,
+) -> dict[str, Any]:
+    """Return the strict same-engine state/contact surface for one replay row."""
+
+    return {
+        "strict_integration_authority": {
+            "pre_native_integration": pre_step_authority["mjstate_integration"],
+            "native_endpoint_integration": native_endpoint_integration,
+            "post_projection_integration": capture_depthadd_v3_integration_state(model, data),
+            "raw_target20": pre_step_authority["raw_target20_rad"],
+            "drive_target20": pre_step_authority["drive_target20_rad"],
+            "data_ctrl": pre_step_authority["data_ctrl"],
+            "eq_active": pre_step_authority["eq_active"],
+            "qfrc_applied": pre_step_authority["qfrc_applied"],
+            "xfrc_applied": pre_step_authority["xfrc_applied"],
+            "mocap_pos": pre_step_authority["mocap_pos"],
+            "mocap_quat": pre_step_authority["mocap_quat"],
+            "userdata": pre_step_authority["userdata"],
+        },
+        "post_projection_telemetry": {
+            "qpos20": data.qpos[mapping.robot_qpos_addresses].tolist(),
+            "qvel20": data.qvel[mapping.robot_qvel_addresses].tolist(),
+            "projection_mask20": projection.projected_mask20.tolist(),
+            "projection_count": projection.projected_count,
+            "qpos_correction20_rad": projection.qpos_correction20.tolist(),
+            "native_velocity_limit_max_ratio": projection.native_max_velocity_limit_ratio,
+            "projected_velocity_limit_max_ratio": projection.projected_max_velocity_limit_ratio,
+        },
+        "native_contact_telemetry": dict(native_contact),
+    }
+
+
+def _stage34_strict_mismatch(
+    expected_pre_step: Mapping[str, Any],
+    actual_pre_step: Mapping[str, Any],
+    expected_core: Mapping[str, Any],
+    actual_core: Mapping[str, Any],
+) -> dict[str, bool]:
+    """Name each strict next-integration authority mismatch without comparing telemetry."""
+
+    expected = expected_core["strict_integration_authority"]
+    actual = actual_core["strict_integration_authority"]
+    return {
+        "pre_native_integration": (
+            expected_pre_step["mjstate_integration"]
+            != actual_pre_step["mjstate_integration"]
+        ),
+        "raw_target20": expected["raw_target20"] != actual["raw_target20"],
+        "drive_target20": expected["drive_target20"] != actual["drive_target20"],
+        "data_ctrl": expected["data_ctrl"] != actual["data_ctrl"],
+        "eq_active": expected["eq_active"] != actual["eq_active"],
+        "qfrc_applied": expected["qfrc_applied"] != actual["qfrc_applied"],
+        "xfrc_applied": expected["xfrc_applied"] != actual["xfrc_applied"],
+        "mocap_pos": expected["mocap_pos"] != actual["mocap_pos"],
+        "mocap_quat": expected["mocap_quat"] != actual["mocap_quat"],
+        "userdata": expected["userdata"] != actual["userdata"],
+        "native_endpoint_integration": (
+            expected["native_endpoint_integration"]
+            != actual["native_endpoint_integration"]
+        ),
+        "post_projection_integration": (
+            expected["post_projection_integration"]
+            != actual["post_projection_integration"]
+        ),
+    }
+
+
+def _stage34_discriminator_summary(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Reduce the two local open-loop lanes without asserting engine equivalence."""
+
+    bilateral_by_control: dict[int, int] = defaultdict(int)
+    first_contact_loss: dict[str, int] | None = None
+    contact_seen = False
+    max_control_streak = 0
+    streak = 0
+    previous_control: int | None = None
+    gaps_by_finger: list[list[float]] = [[], []]
+    forces_by_finger: list[list[float]] = [[], []]
+    for row in rows:
+        contact = row["core"]["native_contact_telemetry"]["finger_handle"]
+        bilateral = bool(contact["bilateral_active_contact"])
+        control_index = int(row["control_index"])
+        bilateral_by_control[control_index] += int(bilateral)
+        if contact_seen and not bilateral and first_contact_loss is None:
+            first_contact_loss = {
+                "control_index": control_index,
+                "physics_substep": int(row["physics_substep"]),
+            }
+        contact_seen = contact_seen or bilateral
+        for pair in contact["closest_pairs"]:
+            finger_index = int(pair["finger_index"])
+            gaps_by_finger[finger_index].append(float(pair["mj_geomDistance_m"]))
+        force_vectors = contact["solver_active_finger_handle_force_on_handle_world_N"]
+        for finger_index, force in enumerate(force_vectors):
+            forces_by_finger[finger_index].append(float(np.linalg.norm(force)))
+    for control_index in range(STAGE34_TARGET_DISCRIMINATOR_CONTROLS):
+        if bilateral_by_control.get(control_index, 0) > 0:
+            streak = streak + 1 if previous_control == control_index - 1 else 1
+            max_control_streak = max(max_control_streak, streak)
+        else:
+            streak = 0
+        previous_control = control_index
+    first = rows[0]["core"]["native_contact_telemetry"]["native_state"]["door_joint_pos"]
+    last = rows[-1]["core"]["native_contact_telemetry"]["native_state"]["door_joint_pos"]
+    return {
+        "bilateral_native_rows": int(sum(bilateral_by_control.values())),
+        "bilateral_native_rows_by_control": {
+            str(index): int(bilateral_by_control.get(index, 0))
+            for index in range(STAGE34_TARGET_DISCRIMINATOR_CONTROLS)
+        },
+        "max_bilateral_control_streak": max_control_streak,
+        "first_bilateral_contact_loss": first_contact_loss,
+        "finger_min_signed_gap_m": [
+            None if not values else float(min(values)) for values in gaps_by_finger
+        ],
+        "finger_max_handle_force_norm_N": [
+            None if not values else float(max(values)) for values in forces_by_finger
+        ],
+        "door_joint_pos_delta": (np.asarray(last, dtype=np.float64) - np.asarray(first, dtype=np.float64)).tolist(),
+        "projection": {
+            "rows_with_projection": int(
+                sum(int(row["core"]["post_projection_telemetry"]["projection_count"] > 0) for row in rows)
+            ),
+            "joint_events": int(
+                sum(int(row["core"]["post_projection_telemetry"]["projection_count"]) for row in rows)
+            ),
+            "max_native_velocity_limit_ratio": float(
+                max(row["core"]["post_projection_telemetry"]["native_velocity_limit_max_ratio"] for row in rows)
+            ),
+            "max_abs_qpos_correction_rad": float(
+                max(
+                    np.max(np.abs(row["core"]["post_projection_telemetry"]["qpos_correction20_rad"]))
+                    for row in rows
+                )
+            ),
+        },
+    }
+
+
+def _contact_retention_kd_metrics(rows: list[Mapping[str, Any]]) -> dict[str, Any]:
+    """Reduce the bounded gripper-KD lanes without making production claims."""
+
+    summary = _stage34_discriminator_summary(rows)
+    first_positive_gap: dict[str, Any] | None = None
+    first_finger1_contact_loss: dict[str, int] | None = None
+    finger1_contact_seen = False
+    j7_j8_qpos: list[list[float]] = []
+    j7_j8_qvel: list[list[float]] = []
+    door_joint_names: list[str] | None = None
+    for row in rows:
+        native = row["core"]["native_contact_telemetry"]
+        finger_handle = native["finger_handle"]
+        finger1_gaps = [
+            float(pair["mj_geomDistance_m"])
+            for pair in finger_handle["closest_pairs"]
+            if int(pair["finger_index"]) == 1
+        ]
+        if first_positive_gap is None and finger1_gaps and min(finger1_gaps) > 0.0:
+            first_positive_gap = {
+                "control_index": int(row["control_index"]),
+                "physics_substep": int(row["physics_substep"]),
+                "minimum_signed_gap_m": float(min(finger1_gaps)),
+            }
+        finger1_active = int(
+            finger_handle["solver_active_finger_handle_contact_counts"][1]
+        ) > 0
+        if finger1_contact_seen and not finger1_active and first_finger1_contact_loss is None:
+            first_finger1_contact_loss = {
+                "control_index": int(row["control_index"]),
+                "physics_substep": int(row["physics_substep"]),
+            }
+        finger1_contact_seen = finger1_contact_seen or finger1_active
+        j7_j8_qpos.append(list(native["j7_j8"]["qpos_rad"]))
+        j7_j8_qvel.append(list(native["j7_j8"]["qvel_rad_s"]))
+        door_joint_names = list(native["native_state"]["door_joint_names"])
+    if door_joint_names is None:
+        raise RuntimeError("contact-retention KD discriminator produced no rows")
+    summary["first_finger1_positive_gap"] = first_positive_gap
+    summary["first_finger1_solver_contact_loss"] = first_finger1_contact_loss
+    summary["j7_j8"] = {
+        "joint_names": ["arm_j7", "arm_j8"],
+        "initial_qpos_rad": j7_j8_qpos[0],
+        "final_qpos_rad": j7_j8_qpos[-1],
+        "initial_qvel_rad_s": j7_j8_qvel[0],
+        "final_qvel_rad_s": j7_j8_qvel[-1],
+    }
+    summary["door_joint_names"] = door_joint_names
+    return summary
+
+
+def contact_retention_kd_discriminator(args: argparse.Namespace) -> None:
+    """Run the r4 hold c7.s1 bounded same-engine gripper-KD discriminator."""
+
+    if args.baseline_output_dir is None:
+        raise ValueError("--baseline-output-dir is required for contact-retention-kd-discriminator")
+    baseline = args.baseline_output_dir.resolve(strict=True)
+    case_id = STAGE34_TARGET_DISCRIMINATOR_CASE_ID
+    trace_path = baseline / "episodes" / case_id / "stage34_target_discriminator_hold_transition_target.jsonl"
+    source_rows = [json.loads(line) for line in trace_path.open(encoding="utf-8")]
+    selector_index = next(
+        (
+            index
+            for index, row in enumerate(source_rows)
+            if (int(row["control_index"]), int(row["physics_substep"]))
+            == CONTACT_RETENTION_KD_SELECTOR
+        ),
+        None,
+    )
+    if selector_index is None:
+        raise RuntimeError("r4 hold trace lacks the c7.s1 authority selector")
+    expected_rows = source_rows[
+        selector_index : selector_index + CONTACT_RETENTION_KD_SUBSTEPS
+    ]
+    expected_coordinates = [
+        (control_index, physics_substep)
+        for control_index in range(7, 12)
+        for physics_substep in range(4)
+        if (control_index, physics_substep) >= CONTACT_RETENTION_KD_SELECTOR
+    ]
+    if len(expected_rows) != CONTACT_RETENTION_KD_SUBSTEPS or [
+        (int(row["control_index"]), int(row["physics_substep"]))
+        for row in expected_rows
+    ] != expected_coordinates:
+        raise RuntimeError("r4 hold trace does not contain the exact c7.s1-through-c11.s3 window")
+    raw_target20 = np.asarray(source_rows[0]["raw_target20"], dtype=np.float64)
+    if raw_target20.shape != (20,):
+        raise RuntimeError("r4 hold trace has no fixed raw target20[20]")
+    if any(
+        not np.array_equal(np.asarray(row["raw_target20"], dtype=np.float64), raw_target20)
+        for row in expected_rows
+    ):
+        raise RuntimeError("r4 hold window does not retain one fixed raw target20")
+    manifest = _load_manifest(baseline)
+    case_rows = [row for row in manifest["primary_rows"] if row["case_id"] == case_id]
+    if len(case_rows) != 1:
+        raise RuntimeError("r4 baseline manifest does not contain exactly base006 fixed")
+    case_row = case_rows[0]
+    scene = baseline / "episodes" / case_id / "model" / "scene.xml"
+    contract = json.loads((_prepared_paths(baseline)["robot_contract"]).read_text())
+    velocity_limit20 = np.asarray(contract["position_pd"]["velocity_limit"], dtype=np.float64)
+    release_handle_rad = float(
+        case_row["door_geometry"].get("constraint_gate_release_handle_rad", math.pi / 6.0)
+    )
+    initial_authority = expected_rows[0]["pre_native_step_authority"]
+    output = args.output_dir.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+
+    def new_lane(*, gripper_kd: float) -> tuple[mujoco.MjModel, mujoco.MjData, NameResolvedActuatorMapV2, ConstraintGate]:
+        model = mujoco.MjModel.from_xml_path(str(scene))
+        data = mujoco.MjData(model)
+        mapping = NameResolvedActuatorMapV2.from_model(
+            model, tuple(contract["sim_joint_names"])
+        )
+        configure_depthadd_v3_production_contact_solref_surface(model)
+        kp_before = model.actuator_gainprm.copy()
+        force_before = model.actuator_forcerange.copy()
+        armature_before = model.dof_armature.copy()
+        bias_before = model.actuator_biasprm.copy()
+        joint_indices = np.asarray(
+            [mapping.robot_joint_names.index("arm_j7"), mapping.robot_joint_names.index("arm_j8")],
+            dtype=np.int32,
+        )
+        actuator_ids = mapping.robot_actuator_ids[joint_indices]
+        before_kd = -model.actuator_biasprm[actuator_ids, 2].copy()
+        if not np.array_equal(before_kd, np.asarray([32.0, 32.0])):
+            raise RuntimeError(f"gripper KD authority must be exactly [32,32], got {before_kd.tolist()}")
+        if gripper_kd != 32.0:
+            model.actuator_biasprm[actuator_ids, 2] = -gripper_kd
+        expected_bias = bias_before.copy()
+        expected_bias[actuator_ids, 2] = -gripper_kd
+        if (
+            not np.array_equal(model.actuator_gainprm, kp_before)
+            or not np.array_equal(model.actuator_forcerange, force_before)
+            or not np.array_equal(model.dof_armature, armature_before)
+            or not np.array_equal(model.actuator_biasprm, expected_bias)
+        ):
+            raise RuntimeError("gripper KD discriminator changed a non-KD plant authority")
+        after_kd = -model.actuator_biasprm[actuator_ids, 2].copy()
+        if not np.array_equal(after_kd, np.asarray([gripper_kd, gripper_kd])):
+            raise RuntimeError("gripper KD discriminator failed to realize its requested KD")
+        gate = ConstraintGate(model, release_handle_rad=release_handle_rad)
+        restore_depthadd_v3_pre_step_authority(model, data, initial_authority)
+        return model, data, mapping, gate
+
+    lane_receipts: dict[str, Any] = {}
+    for lane_name, gripper_kd in (("baseline_kd32", 32.0), ("gripper_kd64", 64.0)):
+        model, data, mapping, gate = new_lane(gripper_kd=gripper_kd)
+        rows: list[dict[str, Any]] = []
+        path = output / f"contact_retention_kd_{lane_name}.jsonl"
+        with path.open("w", encoding="utf-8") as stream:
+            for expected in expected_rows:
+                target_realization = mapping.realize_velocity_limited_pd_target(
+                    model, data, raw_target20, velocity_limit20
+                )
+                mapping.write_robot_position_target(data, target_realization.drive_target20)
+                gate.update(data)
+                pre_step = capture_depthadd_v3_pre_step_authority(
+                    model,
+                    data,
+                    mapping,
+                    raw_target20=target_realization.raw_target20,
+                    drive_target20=target_realization.drive_target20,
+                )
+                pre_step["constraint_gate_active"] = gate.active(data)
+                native_contact: dict[str, Any] | None = None
+                native_endpoint_integration: list[float] | None = None
+
+                def capture_native_contact_snapshot() -> None:
+                    nonlocal native_contact, native_endpoint_integration
+                    native_endpoint_integration = capture_depthadd_v3_integration_state(model, data)
+                    native_contact = capture_depthadd_v3_native_contact_snapshot(
+                        model,
+                        data,
+                        mapping,
+                        raw_target20=target_realization.raw_target20,
+                        drive_target20=target_realization.drive_target20,
+                        pre_step_integration=np.asarray(
+                            pre_step["mjstate_integration"], dtype=np.float64
+                        ),
+                    )
+
+                projection = mapping.step_with_declared_endpoint_velocity_projection(
+                    model, data, velocity_limit20, capture_native_contact_snapshot
+                )
+                if native_contact is None or native_endpoint_integration is None:
+                    raise RuntimeError("contact-retention KD discriminator missed native contact telemetry")
+                core = _stage34_discriminator_core(
+                    model,
+                    mapping,
+                    data,
+                    pre_step_authority=pre_step,
+                    native_endpoint_integration=native_endpoint_integration,
+                    native_contact=native_contact,
+                    projection=projection,
+                )
+                if lane_name == "baseline_kd32":
+                    mismatch = _stage34_strict_mismatch(
+                        expected["pre_native_step_authority"],
+                        pre_step,
+                        expected["core"],
+                        core,
+                    )
+                    if any(mismatch.values()):
+                        _json_dump(
+                            output / "contact_retention_kd_baseline_strict_mismatch.json",
+                            {
+                                "status": "FAIL",
+                                "source_coordinate": {
+                                    "control_index": expected["control_index"],
+                                    "physics_substep": expected["physics_substep"],
+                                },
+                                "mismatch": mismatch,
+                            },
+                        )
+                        raise RuntimeError("contact-retention KD baseline failed strict r4 hold reproduction")
+                record = {
+                    "schema": "doordog.sim2sim.depthadd_v3.contact_retention_kd_discriminator.v1",
+                    "lane": lane_name,
+                    "gripper_kd": gripper_kd,
+                    "control_index": expected["control_index"],
+                    "physics_substep": expected["physics_substep"],
+                    "raw_target20": target_realization.raw_target20.tolist(),
+                    "drive_target20": target_realization.drive_target20.tolist(),
+                    "pre_native_step_authority": pre_step,
+                    "core": core,
+                }
+                _row_json(stream, record)
+                rows.append(record)
+        if len(rows) != CONTACT_RETENTION_KD_SUBSTEPS:
+            raise RuntimeError("contact-retention KD discriminator did not write 19 rows")
+        lane_receipts[lane_name] = {
+            "gripper_kd": gripper_kd,
+            "path": str(path),
+            "recorded_rows": len(rows),
+            "metrics": _contact_retention_kd_metrics(rows),
+        }
+    _json_dump(
+        output / "contact_retention_kd_discriminator_receipt.json",
+        {
+            "schema": "doordog.sim2sim.depthadd_v3.contact_retention_kd_discriminator.v1",
+            "status": "COMPLETE",
+            "evaluation_classification": "GRIPPER_KD_DIAGNOSTIC_ONLY",
+            "authority": {
+                "baseline_output_dir": str(baseline),
+                "trace": str(trace_path),
+                "selector": {"control_index": 7, "physics_substep": 1},
+                "substeps": CONTACT_RETENTION_KD_SUBSTEPS,
+                "raw_target": "r4 hold row control_index=0 physics_substep=0",
+            },
+            "boundary": "same-engine local KD discriminator; not Isaac equivalence or production admission",
+            "baseline_strict_reproduction": "PASS",
+            "lanes": lane_receipts,
+        },
+    )
+
+
+def _run_stage34_target_discriminator(
+    *,
+    case_dir: Path,
+    model: mujoco.MjModel,
+    mapping: NameResolvedActuatorMapV2,
+    velocity_limit20: np.ndarray,
+    gate: ConstraintGate | None,
+    capture: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Replay two local target schedules from one captured Stage4 pre-step state."""
+
+    pre_step = capture["pre_step_authority"]
+    raw_schedule = np.asarray(capture["raw_target20_schedule"], dtype=np.float64)
+    if raw_schedule.shape != (STAGE34_TARGET_DISCRIMINATOR_CONTROLS, 20):
+        raise RuntimeError(
+            "Stage3/4 target discriminator requires exactly 12 recorded raw target20 controls"
+        )
+    lanes = {
+        "recorded_targets": raw_schedule,
+        "hold_transition_target": np.repeat(raw_schedule[:1], STAGE34_TARGET_DISCRIMINATOR_CONTROLS, axis=0),
+    }
+    lane_receipts: dict[str, Any] = {}
+    expected_first = capture["live_first_core"]
+    expected_first_pre_step = pre_step
+    for lane_name, targets in lanes.items():
+        branch = mujoco.MjData(model)
+        restore_depthadd_v3_pre_step_authority(model, branch, pre_step)
+        rows: list[dict[str, Any]] = []
+        path = case_dir / f"stage34_target_discriminator_{lane_name}.jsonl"
+        with path.open("w", encoding="utf-8") as stream:
+            for control_index, raw_target20 in enumerate(targets):
+                for physics_substep in range(4):
+                    target_realization = mapping.realize_velocity_limited_pd_target(
+                        model, branch, raw_target20, velocity_limit20
+                    )
+                    mapping.write_robot_position_target(branch, target_realization.drive_target20)
+                    if gate is not None:
+                        gate.update(branch)
+                    replay_pre_step = capture_depthadd_v3_pre_step_authority(
+                        model,
+                        branch,
+                        mapping,
+                        raw_target20=target_realization.raw_target20,
+                        drive_target20=target_realization.drive_target20,
+                    )
+                    replay_pre_step["constraint_gate_active"] = (
+                        None if gate is None else gate.active(branch)
+                    )
+                    native_contact: dict[str, Any] | None = None
+                    native_endpoint_integration: list[float] | None = None
+
+                    def capture_native_contact_snapshot() -> None:
+                        nonlocal native_contact, native_endpoint_integration
+                        native_endpoint_integration = capture_depthadd_v3_integration_state(
+                            model, branch
+                        )
+                        native_contact = capture_depthadd_v3_native_contact_snapshot(
+                            model,
+                            branch,
+                            mapping,
+                            raw_target20=target_realization.raw_target20,
+                            drive_target20=target_realization.drive_target20,
+                            pre_step_integration=np.asarray(
+                                replay_pre_step["mjstate_integration"], dtype=np.float64
+                            ),
+                        )
+
+                    projection = mapping.step_with_declared_endpoint_velocity_projection(
+                        model, branch, velocity_limit20, capture_native_contact_snapshot
+                    )
+                    if native_contact is None or native_endpoint_integration is None:
+                        raise RuntimeError("Stage3/4 target discriminator missed its native contact snapshot")
+                    core = _stage34_discriminator_core(
+                        model,
+                        mapping,
+                        branch,
+                        pre_step_authority=replay_pre_step,
+                        native_endpoint_integration=native_endpoint_integration,
+                        native_contact=native_contact,
+                        projection=projection,
+                    )
+                    if lane_name == "recorded_targets" and control_index == 0 and physics_substep == 0:
+                        mismatch = _stage34_strict_mismatch(
+                            expected_first_pre_step,
+                            replay_pre_step,
+                            expected_first,
+                            core,
+                        )
+                        if any(mismatch.values()):
+                            _json_dump(
+                                case_dir / "stage34_target_discriminator_strict_mismatch.json",
+                                {
+                                    "status": "FAIL",
+                                    "lane": lane_name,
+                                    "control_index": control_index,
+                                    "physics_substep": physics_substep,
+                                    "mismatch": mismatch,
+                                    "telemetry_comparison": "NOT_ADMISSION_CRITERION",
+                                },
+                            )
+                            raise RuntimeError(
+                                "Stage3/4 recorded replay failed strict next-integration authority reproduction"
+                            )
+                    record = {
+                        "schema": "doordog.sim2sim.depthadd_v3.stage34_target_discriminator.v1",
+                        "lane": lane_name,
+                        "control_index": control_index,
+                        "physics_substep": physics_substep,
+                        "raw_target20": target_realization.raw_target20.tolist(),
+                        "drive_target20": target_realization.drive_target20.tolist(),
+                        "pre_native_step_authority": replay_pre_step,
+                        "core": core,
+                    }
+                    _row_json(stream, record)
+                    rows.append(record)
+        if len(rows) != 4 * STAGE34_TARGET_DISCRIMINATOR_CONTROLS:
+            raise RuntimeError(
+                f"Stage3/4 {lane_name} lane wrote {len(rows)} rows, expected 48"
+            )
+        lane_receipts[lane_name] = {
+            "path": str(path),
+            "recorded_rows": len(rows),
+            "summary": _stage34_discriminator_summary(rows),
+        }
+    return {
+        "status": "COMPLETE",
+        "case_id": STAGE34_TARGET_DISCRIMINATOR_CASE_ID,
+        "transition_control_step": capture["transition_control_step"],
+        "snapshot_timing": "Stage4 policy control substep0 after target shaping/write ctrl/gate.update and before native mj_step",
+        "authority_boundary": (
+            "MuJoCo-local open-loop branches only; policy/history/camera/warp/tracker are not called "
+            "and no cross-engine or closed-loop successor claim is made"
+        ),
+        "strict_recorded_first_substep_reproduction": "PASS",
+        "lanes": lane_receipts,
+    }
 
 
 def _body_state(model: mujoco.MjModel, data: mujoco.MjData, trunk_id: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -275,7 +823,7 @@ def _standing_gate(robot_xml: Path, nominal_row: Mapping[str, Any], output: Path
     home = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "scene_home")
     mujoco.mj_resetDataKeyframe(model, data, home); mujoco.mj_forward(model, data)
     mapping = NameResolvedActuatorMapV2.from_model(model, tuple(contract["sim_joint_names"]))
-    plant_realization = configure_depthadd_v3_contact_solref_2dt(model)
+    plant_realization = configure_depthadd_v3_production_contact_solref_surface(model)
     velocity_limit20 = np.asarray(contract["position_pd"]["velocity_limit"], dtype=np.float64)
     default = torch.tensor(contract["default_dof_pos"], dtype=torch.float64).unsqueeze(0)
     target = default.clone()
@@ -436,8 +984,11 @@ def _capture_policy_camera(
     return result, receipt
 
 
-def _alignment_trace_arrays() -> dict[str, np.ndarray]:
-    steps = STAGE0_ALIGNMENT_MAX_STEPS
+def _alignment_trace_arrays(steps: int) -> dict[str, np.ndarray]:
+    if not 1 <= steps <= STAGE0_ALIGNMENT_MAX_STEPS:
+        raise ValueError(
+            f"alignment control limit must be in [1,{STAGE0_ALIGNMENT_MAX_STEPS}], got {steps}"
+        )
     return {
         "actor_obs81": np.empty((steps, 81), dtype=np.float32),
         "raw_left_rgb_uint8": np.empty((steps, 384, 216, 3), dtype=np.uint8),
@@ -532,6 +1083,7 @@ def _write_alignment_trace(
     row: Mapping[str, Any],
     scene: Path,
     stop_reason: str,
+    control_limit: int,
 ) -> None:
     if not 0 < count <= STAGE0_ALIGNMENT_MAX_STEPS:
         raise RuntimeError(f"invalid MuJoCo alignment prefix length {count}")
@@ -543,11 +1095,13 @@ def _write_alignment_trace(
         case_dir / "stage0_alignment_trace.json",
         {
             "schema": "doordog.sim2sim.depthadd_v3.stage0_alignment_trace.v1",
+            "evaluation_classification": "RUNTIME_REPRODUCIBILITY_DIAGNOSTIC",
             "case_id": row["case_id"],
             "source_scene_xml": str(scene),
             "control_hz": 50,
             "physics_hz": 200,
             "steps": count,
+            "alignment_control_limit": control_limit,
             "stop_reason": stop_reason,
             "fields": {name: list(value.shape) for name, value in values.items()},
             "spatial_arm_ready_steps": int(np.count_nonzero(ready)),
@@ -570,6 +1124,7 @@ def _run_episode(
     scene_override: Path | None = None,
     prepared_output: Path | None = None,
     alignment_export: bool = False,
+    alignment_control_limit: int = STAGE0_ALIGNMENT_MAX_STEPS,
     empirical_source_nominal_appearance_calibration: bool = False,
     fixed_nominal_appearance_factor: str | None = None,
     fixed_latch_mode: str = "constraint_gate",
@@ -577,6 +1132,7 @@ def _run_episode(
     diagnostic_force_close_stage34: bool = False,
     diagnostic_policy_prefix_trace: Path | None = None,
     contact_atlas: bool = False,
+    stage34_target_discriminator: bool = False,
 ) -> dict[str, Any]:
     case_dir = output / "episodes" / str(row["case_id"]); case_dir.mkdir(parents=True, exist_ok=True)
     resolved_constraint_gate_release_handle_rad = (
@@ -609,7 +1165,7 @@ def _run_episode(
     apply_depthadd_initial_state(data, initial_state, robot_contract=contract)
     mujoco.mj_forward(model, data)
     mapping = NameResolvedActuatorMapV2.from_model(model, tuple(contract["sim_joint_names"]))
-    plant_realization = configure_depthadd_v3_contact_solref_2dt(model)
+    plant_realization = configure_depthadd_v3_production_contact_solref_surface(model)
     velocity_limit20 = np.asarray(contract["position_pd"]["velocity_limit"], dtype=np.float64)
     if (mapping.door_hinge_actuator_id, mapping.handle_actuator_id) != (0, 1): raise RuntimeError("door actuator order contract violated")
     default = torch.tensor(contract["default_dof_pos"], device=device).unsqueeze(0)
@@ -667,6 +1223,8 @@ def _run_episode(
     atlas_rows = 0
     atlas_bilateral_streak = 0
     atlas_previous_bilateral = False
+    stage34_discriminator_capture: dict[str, Any] | None = None
+    stage34_raw_target_schedule: list[list[float]] = []
     option = _option(); renderers = {"left_rgb":mujoco.Renderer(model,height=384,width=216),"right_rgb":mujoco.Renderer(model,height=384,width=216),"left_depth":mujoco.Renderer(model,height=384,width=216),"right_depth":mujoco.Renderer(model,height=384,width=216),"head":mujoco.Renderer(model,height=136,width=384),"diag_pos":mujoco.Renderer(model,height=480,width=640),"diag_neg":mujoco.Renderer(model,height=480,width=640)}
     renderers["left_depth"].enable_depth_rendering()
     renderers["right_depth"].enable_depth_rendering()
@@ -711,7 +1269,7 @@ def _run_episode(
     max_latch_slide_qpos_m = None if latch_slide_qpos is None else float(data.qpos[latch_slide_qpos])
     max_abs_latch_slide_qpos_m = None if latch_slide_qpos is None else abs(float(data.qpos[latch_slide_qpos]))
     stage3_entry: dict[str, Any] | None = None
-    alignment = _alignment_trace_arrays() if alignment_export else None
+    alignment = _alignment_trace_arrays(alignment_control_limit) if alignment_export else None
     alignment_count = 0
     alignment_stop_reason: str | None = None
     stage2_min_tcp_grasp_distance_m = math.inf
@@ -724,10 +1282,17 @@ def _run_episode(
     stage2_max_squeeze_streak = 0
     forced_gripper_close_applied_steps = 0
     policy_prefix_applied_steps = 0
+    target_shaping_exact_nonzero_rows = 0
+    target_shaping_exact_nonzero_joint_events = 0
+    target_shaping_substantive_rows = 0
+    target_shaping_substantive_joint_events = 0
     policy_prefix_rows = (
         [json.loads(line) for line in diagnostic_policy_prefix_trace.resolve(strict=True).open()]
         if diagnostic_policy_prefix_trace is not None
         else None
+    )
+    recorded_prefix_stage34_diagnostic = (
+        stage34_target_discriminator and policy_prefix_rows is not None
     )
     last_control_step = -1
     atlas_path = case_dir / "native_contact_atlas.jsonl"
@@ -749,7 +1314,7 @@ def _run_episode(
             input_augmentation = dict(augmentation)
             obs={"actor_obs":_actor_obs(local_angular_velocity=local,gravity=gravity,qpos=q,qvel=qd,default=default,previous_logical=previous_logical,previous_delta=previous_delta,previous_physical=previous_physical,action_warp=warp).to(device), "vision_obs":compose_dual_rgbd_from_normalized_depth(torch.from_numpy(cached["left_rgb"]).unsqueeze(0),torch.from_numpy(cached["right_rgb"]).unsqueeze(0),torch.from_numpy(cached["left_depth_normalized"]).unsqueeze(0),torch.from_numpy(cached["right_depth_normalized"]).unsqueeze(0),left_depth_valid=torch.from_numpy(cached["left_depth_valid"]).unsqueeze(0),right_depth_valid=torch.from_numpy(cached["right_depth_valid"]).unsqueeze(0),image_mean=[.485,.456,.406],image_std=[.229,.224,.225]).to(device), "context_vision_obs":normalize_rgb_nhwc(torch.from_numpy(cached["head_rgb"]).unsqueeze(0),image_mean=[.485,.456,.406],image_std=[.229,.224,.225]).to(device), "camera_meta":torch.tensor([[*ages,1.,1.,1.]],device=device)}
             if alignment is not None:
-                if alignment_count >= STAGE0_ALIGNMENT_MAX_STEPS:
+                if alignment_count >= alignment_control_limit:
                     raise RuntimeError("MuJoCo Stage0 alignment trace exceeded its declared budget")
                 alignment["actor_obs81"][alignment_count] = obs["actor_obs"].squeeze(0).detach().cpu().numpy()
                 alignment["raw_left_rgb_uint8"][alignment_count] = cached["left_rgb"]
@@ -772,11 +1337,15 @@ def _run_episode(
             policy_raw = live_policy_raw
             recorded_prefix_row = None
             recorded_policy_prefix_applied = (
-                policy_prefix_rows is not None and tracker.stage <= STAGE_GRASP
+                policy_prefix_rows is not None
+                and (
+                    recorded_prefix_stage34_diagnostic
+                    or tracker.stage <= STAGE_GRASP
+                )
             )
             if recorded_policy_prefix_applied:
                 if step >= len(policy_prefix_rows):
-                    raise RuntimeError("diagnostic policy prefix ended before Stage3 entry")
+                    raise RuntimeError("diagnostic policy prefix ended before the local episode")
                 recorded_prefix_row = policy_prefix_rows[step]
                 if recorded_prefix_row.get("step") != step or recorded_prefix_row.get("stage") != tracker.stage:
                     raise RuntimeError("diagnostic policy prefix step/stage differs from live tracker")
@@ -796,6 +1365,25 @@ def _run_episode(
                 raw[:, 11] = -1.0
                 forced_gripper_close_applied_steps += 1
             action=tracker.apply_high_level_action(raw.detach().cpu()); base=warp.warp_base_command(action.effective_high_level_action[:, :5]); frame=frame_builder.build(projected_gravity=_torch(gravity,device),dof_pos=_torch(q,device),default_dof_pos=default,dof_vel=_torch(qd,device),previous_leg_action=previous_leg,physical_base_command=base.physical.to(device),base_roll_pitch=_torch(roll_pitch,device),gait_clock=gait.signal()); live_legs=policy.act_a2_base(history.append(frame)); legs = live_legs if recorded_prefix_row is None else torch.tensor(recorded_prefix_row["leg_action12"], dtype=torch.float32, device=device).unsqueeze(0); warped=warp.compose_simulator_action(stage_action=action,base=base,policy_leg_action=legs.detach().cpu(),default_dof_pos=default.detach().cpu()); target=warped.position_target.double(); previous_logical=warped.logical_action.to(device); previous_delta=action.raw_arm_delta_echo.to(device); previous_physical=base.physical.to(device); previous_leg=legs
+            if recorded_prefix_stage34_diagnostic:
+                source_target20 = np.asarray(recorded_prefix_row["target20"], dtype=np.float64)
+                current_target20 = target.squeeze(0).numpy()
+                if source_target20.shape != (20,) or not np.array_equal(
+                    current_target20, source_target20
+                ):
+                    raise RuntimeError(
+                        "recorded Stage3/4 prefix target20 differs exactly from the current computed target20"
+                    )
+            stage34_schedule_control = (
+                stage34_target_discriminator
+                and len(stage34_raw_target_schedule) < STAGE34_TARGET_DISCRIMINATOR_CONTROLS
+                and (
+                    stage34_discriminator_capture is not None
+                    or action.stage_used_for_action == STAGE_SWING
+                )
+            )
+            if stage34_schedule_control:
+                stage34_raw_target_schedule.append(target.squeeze(0).tolist())
             raw_gripper_primitive = float(raw[0, 11].item())
             is_stage2_close = action.stage_used_for_action == STAGE_GRASP and raw_gripper_primitive <= 0.0
             stage2_pre_physics = {
@@ -853,6 +1441,10 @@ def _run_episode(
                 target_realization = mapping.realize_velocity_limited_pd_target(
                     model, data, target.squeeze(0).numpy(), velocity_limit20
                 )
+                target_shaping_exact_nonzero_rows += int(target_realization.shaping_count > 0)
+                target_shaping_exact_nonzero_joint_events += target_realization.shaping_count
+                target_shaping_substantive_rows += int(target_realization.substantive_count > 0)
+                target_shaping_substantive_joint_events += target_realization.substantive_count
                 mapping.write_robot_position_target(data, target_realization.drive_target20)
                 gate_released_this_substep = gate.update(data) if gate is not None else False
                 if gate_released_this_substep:
@@ -860,11 +1452,19 @@ def _run_episode(
                     gate_release_control_step = step
                     gate_release_substep = sub
                 atlas_capture: dict[str, Any] | None = None
+                stage34_live_capture: dict[str, Any] | None = None
+                stage34_live_native_endpoint_integration: list[float] | None = None
                 atlas_active = (
                     atlas_window is not None
                     and atlas_window[0] <= step <= atlas_window[1]
                 )
-                if atlas_active:
+                stage34_capture_active = (
+                    stage34_target_discriminator
+                    and stage34_discriminator_capture is None
+                    and action.stage_used_for_action == STAGE_SWING
+                    and sub == 0
+                )
+                if atlas_active or stage34_capture_active:
                     atlas_pre_step = capture_depthadd_v3_pre_step_authority(
                         model,
                         data,
@@ -877,17 +1477,25 @@ def _run_episode(
                     )
 
                     def capture_native_contact_snapshot() -> None:
-                        nonlocal atlas_capture
-                        atlas_capture = capture_depthadd_v3_native_contact_snapshot(
+                        nonlocal atlas_capture, stage34_live_capture, stage34_live_native_endpoint_integration
+                        if stage34_capture_active:
+                            stage34_live_native_endpoint_integration = (
+                                capture_depthadd_v3_integration_state(model, data)
+                            )
+                        native_capture = capture_depthadd_v3_native_contact_snapshot(
                             model,
                             data,
                             mapping,
                             raw_target20=target_realization.raw_target20,
                             drive_target20=target_realization.drive_target20,
-                            pre_step_fullphysics=np.asarray(
-                                atlas_pre_step["mjstate_fullphysics"], dtype=np.float64
+                            pre_step_integration=np.asarray(
+                                atlas_pre_step["mjstate_integration"], dtype=np.float64
                             ),
                         )
+                        if atlas_active:
+                            atlas_capture = native_capture
+                        if stage34_capture_active:
+                            stage34_live_capture = native_capture
 
                     projection = mapping.step_with_declared_endpoint_velocity_projection(
                         model, data, velocity_limit20, capture_native_contact_snapshot
@@ -940,6 +1548,26 @@ def _run_episode(
                     )
                     atlas_rows += 1
                     atlas_previous_bilateral = bilateral
+                if stage34_capture_active:
+                    if (
+                        stage34_live_capture is None
+                        or stage34_live_native_endpoint_integration is None
+                    ):
+                        raise RuntimeError("Stage3/4 discriminator missed its live native contact snapshot")
+                    stage34_discriminator_capture = {
+                        "transition_control_step": step,
+                        "pre_step_authority": atlas_pre_step,
+                        "live_first_core": _stage34_discriminator_core(
+                            model,
+                            mapping,
+                            data,
+                            pre_step_authority=atlas_pre_step,
+                            native_endpoint_integration=stage34_live_native_endpoint_integration,
+                            native_contact=stage34_live_capture,
+                            projection=projection,
+                        ),
+                        "raw_target20_schedule": stage34_raw_target_schedule,
+                    }
                 torque = projection.native_actuator_force20
                 if not np.isfinite(torque).all(): raise FloatingPointError(f"nonfinite torque in {row['case_id']} step {step}.{sub}")
                 max_handle_hinge_rad = max(max_handle_hinge_rad, float(data.qpos[ids["handle_qpos"]]))
@@ -947,7 +1575,7 @@ def _run_episode(
                 if max_latch_slide_qpos_m is not None and latch_slide_qpos is not None:
                     max_latch_slide_qpos_m = max(max_latch_slide_qpos_m, float(data.qpos[latch_slide_qpos]))
                     max_abs_latch_slide_qpos_m = max(max_abs_latch_slide_qpos_m, abs(float(data.qpos[latch_slide_qpos])))
-                gait.advance(base.physical[:,:3].to(device)); max_qacc=max(max_qacc,float(np.max(np.abs(data.qacc)))); max_torque=max(max_torque,float(np.max(np.abs(torque)))); _row_json(physics_trace,{"control_step":step,"substep":sub,"time_s":float(data.time),"root_qpos7":data.qpos[:7].tolist(),"root_qvel6":data.qvel[:6].tolist(),"qpos20":data.qpos[mapping.robot_qpos_addresses].tolist(),"qvel20":data.qvel[mapping.robot_qvel_addresses].tolist(),"raw_target20":target_realization.raw_target20.tolist(),"drive_target20":target_realization.drive_target20.tolist(),"target_shaping_mask20":target_realization.shaping_mask20.tolist(),"target_shaping_count":target_realization.shaping_count,"target_shaping_delta20_rad":target_realization.shaping_delta20.tolist(),"target_shaping_max_abs_delta_rad":target_realization.max_abs_delta_rad,"runtime_primary_realization":MUJOCO_LOCAL_DECLARED_REALIZATION,"velocity_limit_runtime_realization":MUJOCO_LOCAL_DECLARED_REALIZATION,"native_pre_projection_qpos20":projection.native_qpos20.tolist(),"native_pre_projection_qvel20":projection.native_qvel20.tolist(),"endpoint_qpos_correction20":projection.qpos_correction20.tolist(),"endpoint_velocity_projection_mask20":projection.projected_mask20.tolist(),"endpoint_velocity_projection_count":projection.projected_count,"native_velocity_limit_max_ratio":projection.native_max_velocity_limit_ratio,"projected_velocity_limit_max_ratio":projection.projected_max_velocity_limit_ratio,"native_pre_projection_actuator_force20":torque.tolist(),"native_pre_projection_qfrc_actuator20_Nm":projection.native_qfrc_actuator20_nm.tolist(),"native_pre_projection_qfrc_constraint20_Nm":projection.native_qfrc_constraint20_nm.tolist(),"endpoint_projection_backup_realization":DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,"endpoint_projection_backup_role":"BACKUP_TELEMETRY","contact_solref_realization":"receipt:plant_realization.geoms","door_hinge_rad":float(data.qpos[ids["door_qpos"]]),"handle_hinge_rad":float(data.qpos[ids["handle_qpos"]]),"latch_mode":fixed_latch_mode,"constraint_gate_active":None if gate is None else gate.active(data),"constraint_gate_released_this_substep":gate_released_this_substep,"latch_slide_qpos_m":None if latch_slide_qpos is None else float(data.qpos[latch_slide_qpos])})
+                gait.advance(base.physical[:,:3].to(device)); max_qacc=max(max_qacc,float(np.max(np.abs(data.qacc)))); max_torque=max(max_torque,float(np.max(np.abs(torque)))); _row_json(physics_trace,{"control_step":step,"substep":sub,"time_s":float(data.time),"root_qpos7":data.qpos[:7].tolist(),"root_qvel6":data.qvel[:6].tolist(),"qpos20":data.qpos[mapping.robot_qpos_addresses].tolist(),"qvel20":data.qvel[mapping.robot_qvel_addresses].tolist(),"raw_target20":target_realization.raw_target20.tolist(),"drive_target20":target_realization.drive_target20.tolist(),"target_shaping_mask20":target_realization.shaping_mask20.tolist(),"target_shaping_count":target_realization.shaping_count,"target_shaping_substantive_mask20":target_realization.substantive_mask20.tolist(),"target_shaping_substantive_count":target_realization.substantive_count,"target_shaping_substantive_epsilon_rad":target_realization.substantive_epsilon_rad,"target_shaping_delta20_rad":target_realization.shaping_delta20.tolist(),"target_shaping_max_abs_delta_rad":target_realization.max_abs_delta_rad,"runtime_primary_realization":MUJOCO_LOCAL_DECLARED_REALIZATION,"velocity_limit_runtime_realization":MUJOCO_LOCAL_DECLARED_REALIZATION,"native_pre_projection_qpos20":projection.native_qpos20.tolist(),"native_pre_projection_qvel20":projection.native_qvel20.tolist(),"endpoint_qpos_correction20":projection.qpos_correction20.tolist(),"endpoint_velocity_projection_mask20":projection.projected_mask20.tolist(),"endpoint_velocity_projection_count":projection.projected_count,"native_velocity_limit_max_ratio":projection.native_max_velocity_limit_ratio,"projected_velocity_limit_max_ratio":projection.projected_max_velocity_limit_ratio,"native_pre_projection_actuator_force20":torque.tolist(),"native_pre_projection_qfrc_actuator20_Nm":projection.native_qfrc_actuator20_nm.tolist(),"native_pre_projection_qfrc_constraint20_Nm":projection.native_qfrc_constraint20_nm.tolist(),"endpoint_projection_backup_realization":DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,"endpoint_projection_backup_role":"BACKUP_TELEMETRY","contact_surface_realization":"receipt:plant_realization.geoms","door_hinge_rad":float(data.qpos[ids["door_qpos"]]),"handle_hinge_rad":float(data.qpos[ids["handle_qpos"]]),"latch_mode":fixed_latch_mode,"constraint_gate_active":None if gate is None else gate.active(data),"constraint_gate_released_this_substep":gate_released_this_substep,"latch_slide_qpos_m":None if latch_slide_qpos is None else float(data.qpos[latch_slide_qpos])})
                 if data.time + 1e-12 >= next_surface_redraw:
                     sampled_redraw = sample_surface_redraw(realization, surface_redraw_index)
                     applied_redraw = apply_surface_redraw_to_model(model, sampled_redraw)
@@ -1025,7 +1653,7 @@ def _run_episode(
                 alignment["post_stage"][alignment_count] = stage.stage
                 alignment["done"][alignment_count] = stage.terminal_reason is not None
                 alignment_count += 1
-                if alignment_count == STAGE0_ALIGNMENT_MAX_STEPS:
+                if alignment_count == alignment_control_limit:
                     alignment_stop_reason = "alignment_prefix_limit"
                     break
                 if stage.terminal_reason is not None:
@@ -1048,10 +1676,38 @@ def _run_episode(
             raise RuntimeError(
                 f"native contact atlas for {row['case_id']} wrote {atlas_rows} rows, expected {expected_atlas_rows}"
             )
+    if stage34_target_discriminator:
+        if stage34_discriminator_capture is None:
+            raise RuntimeError(
+                "Stage3/4 target discriminator requires base006 to enter a real Stage4 policy control"
+            )
+        if len(stage34_raw_target_schedule) != STAGE34_TARGET_DISCRIMINATOR_CONTROLS:
+            raise RuntimeError(
+                "Stage3/4 target discriminator ended before recording 12 Stage4 raw target controls"
+            )
+        stage34_discriminator_capture["raw_target20_schedule"] = stage34_raw_target_schedule
+        stage34_target_discriminator_receipt = _run_stage34_target_discriminator(
+            case_dir=case_dir,
+            model=model,
+            mapping=mapping,
+            velocity_limit20=velocity_limit20,
+            gate=gate,
+            capture=stage34_discriminator_capture,
+        )
+    else:
+        stage34_target_discriminator_receipt = {"status": "NOT_REQUESTED"}
+    if (
+        recorded_prefix_stage34_diagnostic
+        and policy_prefix_applied_steps != len(policy_prefix_rows)
+    ):
+        raise RuntimeError(
+            "recorded Stage3/4 prefix did not cover every source trace control step"
+        )
     if alignment is not None:
         _write_alignment_trace(
             case_dir, alignment, alignment_count, row=row, scene=scene,
             stop_reason=alignment_stop_reason or "episode_end",
+            control_limit=alignment_control_limit,
         )
     status = tracker.status()
     mechanics_diagnostic = {
@@ -1082,6 +1738,16 @@ def _run_episode(
         "lane": row.get("lane"),
         "stress_profile": row.get("stress_profile"),
         "result": "COMPLETE",
+        "evaluation_classification": (
+            "RECORDED_HIGH_AND_LEG_ACTION_PREFIX_LOCAL_DIAGNOSTIC"
+            if recorded_prefix_stage34_diagnostic
+            else "RUNTIME_REPRODUCIBILITY_DIAGNOSTIC"
+            if alignment_export
+            else "FORMAL_STUDENT_POLICY_EVALUATION"
+        ),
+        "outcome_eligibility": (
+            "NOT_FORMAL_OUTCOME" if alignment_export else "FORMAL_OUTCOME_ELIGIBLE"
+        ),
         "torch_runtime_determinism": {
             "torch_deterministic_algorithms": True,
             "cudnn_deterministic": True,
@@ -1105,6 +1771,19 @@ def _run_episode(
                 "role": "BACKUP_TELEMETRY",
                 "realization": DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
             },
+            "shaping_exposure": {
+                "exact_nonzero_rows": target_shaping_exact_nonzero_rows,
+                "exact_nonzero_joint_events": target_shaping_exact_nonzero_joint_events,
+                "substantive_epsilon_rad": 1.0e-6,
+                "substantive_rows": target_shaping_substantive_rows,
+                "substantive_joint_events": target_shaping_substantive_joint_events,
+            },
+        },
+        "stage_budget_semantics": {
+            "timebase": "control_steps_at_50Hz",
+            "carry": "on transition subtract the completed stage budget; any overshoot carries into the next stage",
+            "decision_order": "post-physics complete -> stage_overtime -> advance",
+            "boundary": "a transition predicate true on the overtime step still terminates as stage_overtime",
         },
         "visual_overlay": visual_receipt,
         "mechanics_diagnostic": mechanics_diagnostic,
@@ -1115,7 +1794,12 @@ def _run_episode(
             "forced_gripper_close_applied_control_steps": forced_gripper_close_applied_steps,
             "diagnostic_policy_prefix_trace": None if diagnostic_policy_prefix_trace is None else str(diagnostic_policy_prefix_trace.resolve()),
             "diagnostic_policy_prefix_applied_control_steps": policy_prefix_applied_steps,
-            "authority_boundary": "matches the existing Isaac eval diagnostic override surface; formal Student eval keeps it disabled",
+            "authority_boundary": (
+                "RECORDED_HIGH_AND_LEG_ACTION_PREFIX_LOCAL_DIAGNOSTIC: base006-only local "
+                "plant discriminator; not an unmodified fixed16 or Student-policy outcome"
+                if recorded_prefix_stage34_diagnostic
+                else "matches the existing Isaac eval diagnostic override surface; formal Student eval keeps it disabled"
+            ),
         },
         "surface_redraws": surface_redraw_receipts,
         "surface_redraw_boundary": "after each physics step before due camera capture",
@@ -1144,13 +1828,14 @@ def _run_episode(
                 "control_window_inclusive": list(atlas_window),
                 "expected_rows": 4 * (atlas_window[1] - atlas_window[0] + 1),
                 "recorded_rows": atlas_rows,
-                "pre_step_authority": "mjSTATE_FULLPHYSICS + data.ctrl + data.eq_active after gate update",
+                "pre_step_authority": "mjSTATE_INTEGRATION + ctrl/applied/eq/mocap/userdata after gate update",
                 "primary_timing": "after native MuJoCo mj_step and before endpoint projection or mj_forward",
                 "projection_role": "secondary endpoint-projection backup telemetry",
             }
             if atlas_window is not None
             else {"status": "NOT_SELECTED_CASE" if contact_atlas else "NOT_REQUESTED"}
         ),
+        "stage34_target_discriminator": stage34_target_discriminator_receipt,
     }
     _json_dump(case_dir/"receipt.json",receipt); return receipt
 
@@ -1160,10 +1845,10 @@ def export_alignment(args: argparse.Namespace) -> None:
         raise ValueError("--baseline-output-dir is required for export-alignment")
     baseline = args.baseline_output_dir.resolve(strict=True)
     manifest = _load_manifest(baseline)
-    case_id = "seed41001_base000__fixed"
+    case_id = args.alignment_case_id
     rows = [row for row in manifest["primary_rows"] if row["case_id"] == case_id]
     if len(rows) != 1:
-        raise RuntimeError(f"expected exactly one immutable baseline row {case_id}, got {len(rows)}")
+        raise RuntimeError(f"expected exactly one baseline manifest row {case_id}, got {len(rows)}")
     baseline_scene = baseline / "episodes" / case_id / "model" / "scene.xml"
     policy = load_depthadd_v3_policy(
         args.bundle_dir,
@@ -1180,10 +1865,15 @@ def export_alignment(args: argparse.Namespace) -> None:
         scene_override=baseline_scene,
         prepared_output=baseline,
         alignment_export=True,
+        alignment_control_limit=args.alignment_control_limit,
     )
 
 
 def run(args: argparse.Namespace) -> None:
+    recorded_prefix_stage34_diagnostic = (
+        args.stage34_target_discriminator
+        and args.diagnostic_policy_prefix_trace is not None
+    )
     mechanics_diagnostic_requested = (
         args.fixed_latch_mode != "constraint_gate"
         or args.constraint_gate_release_handle_rad is not None
@@ -1212,6 +1902,39 @@ def run(args: argparse.Namespace) -> None:
         raise ValueError(
             "--contact-atlas requires the unmodified production-default fixed16 primary run without sharding"
         )
+    if args.stage34_target_discriminator and not recorded_prefix_stage34_diagnostic and (
+        args.suite != "primary"
+        or args.lane != "fixed"
+        or args.limit_base_cases != 16
+        or args.shard_index != 0
+        or args.shard_count != 1
+        or args.fixed_latch_mode != "constraint_gate"
+        or args.constraint_gate_release_handle_rad is not None
+        or args.diagnostic_force_close_stage34
+        or args.diagnostic_policy_prefix_trace is not None
+        or args.contact_atlas
+        or args.empirical_source_nominal_appearance_calibration
+        or args.fixed_nominal_appearance_factor is not None
+    ):
+        raise ValueError(
+            "--stage34-target-discriminator requires the unmodified production-default primary fixed16 run without sharding"
+        )
+    if recorded_prefix_stage34_diagnostic and (
+        args.suite != "primary"
+        or args.lane != "fixed"
+        or args.limit_base_cases not in (None, 16)
+        or args.shard_index != 0
+        or args.shard_count != 1
+        or args.fixed_latch_mode != "constraint_gate"
+        or args.constraint_gate_release_handle_rad is not None
+        or args.diagnostic_force_close_stage34
+        or args.contact_atlas
+        or args.empirical_source_nominal_appearance_calibration
+        or args.fixed_nominal_appearance_factor is not None
+    ):
+        raise ValueError(
+            "the Stage3/4 recorded action-prefix discriminator accepts only primary fixed base006 with no other intervention"
+        )
     output=args.output_dir.resolve(); prepare_receipt=json.loads(_prepared_paths(output)["prepare_receipt"].read_text());
     if prepare_receipt["result"]!="PASS": raise RuntimeError("prepare receipt is not PASS")
     manifest=_load_manifest(output); rows=manifest[f"{args.suite}_rows"]
@@ -1221,6 +1944,14 @@ def run(args: argparse.Namespace) -> None:
     if args.lane is not None:
         if args.suite != "primary": raise ValueError("--lane applies only to the primary suite")
         rows=[row for row in rows if row["lane"] == args.lane]
+    if recorded_prefix_stage34_diagnostic:
+        rows = [
+            row
+            for row in rows
+            if str(row["case_id"]) == STAGE34_TARGET_DISCRIMINATOR_CASE_ID
+        ]
+        if len(rows) != 1:
+            raise RuntimeError("recorded Stage3/4 discriminator did not resolve exactly base006 fixed")
     selected=[row for index,row in enumerate(rows) if index % args.shard_count == args.shard_index]
     if not selected: raise RuntimeError("selected shard has no rows")
     if args.diagnostic_policy_prefix_trace is not None and len(selected) != 1:
@@ -1265,6 +1996,22 @@ def run(args: argparse.Namespace) -> None:
             if args.contact_atlas and str(row["case_id"]) in CONTACT_ATLAS_WINDOWS:
                 if atlas_receipt.get("status") != "COMPLETE":
                     raise RuntimeError(f"existing target atlas receipt is incomplete: {receipt}")
+            if (
+                args.stage34_target_discriminator
+                and str(row["case_id"]) == STAGE34_TARGET_DISCRIMINATOR_CASE_ID
+                and completed.get("stage34_target_discriminator", {}).get("status") != "COMPLETE"
+            ):
+                raise RuntimeError(
+                    f"existing Stage3/4 target discriminator receipt is incomplete: {receipt}"
+                )
+            if (
+                recorded_prefix_stage34_diagnostic
+                and completed.get("evaluation_classification")
+                != "RECORDED_HIGH_AND_LEG_ACTION_PREFIX_LOCAL_DIAGNOSTIC"
+            ):
+                raise RuntimeError(
+                    f"existing receipt is not the recorded action-prefix local diagnostic: {receipt}"
+                )
             continue
         _run_episode(
             row,
@@ -1280,6 +2027,10 @@ def run(args: argparse.Namespace) -> None:
             diagnostic_force_close_stage34=args.diagnostic_force_close_stage34,
             diagnostic_policy_prefix_trace=args.diagnostic_policy_prefix_trace,
             contact_atlas=args.contact_atlas,
+            stage34_target_discriminator=(
+                args.stage34_target_discriminator
+                and str(row["case_id"]) == STAGE34_TARGET_DISCRIMINATOR_CASE_ID
+            ),
         )
 
 
@@ -1736,7 +2487,7 @@ def reduce(args: argparse.Namespace) -> None:
 
 def main() -> None:
     _configure_deterministic_torch_runtime()
-    parser=argparse.ArgumentParser(); parser.add_argument("--mode",choices=("prepare","run","reduce-admission","reduce","export-alignment"),required=True); parser.add_argument("--bundle-dir",type=Path,required=True); parser.add_argument("--source-workspace",type=Path,required=True); parser.add_argument("--robot-urdf",type=Path,required=True); parser.add_argument("--experiment-yaml",type=Path,required=True); parser.add_argument("--output-dir",type=Path,required=True); parser.add_argument("--baseline-output-dir",type=Path); parser.add_argument("--device",default="cuda:0"); parser.add_argument("--suite",choices=("primary","stress"),default="primary"); parser.add_argument("--lane",choices=("fixed","visual_only","door_only","combined")); parser.add_argument("--limit-base-cases",type=int); parser.add_argument("--shard-index",type=int,default=0); parser.add_argument("--shard-count",type=int,default=1); parser.add_argument("--empirical-source-nominal-appearance-calibration",action="store_true",help="legacy fixed-only empirical t0 calibration; not material/shader authority"); parser.add_argument("--fixed-nominal-appearance-factor",choices=fixed_nominal_appearance_factor_names(),help="fixed-only controlled ablation: stable_baseline applies all factors; named factors withhold exactly that factor"); parser.add_argument("--fixed-latch-mode",choices=("constraint_gate","physical_collision","no_latch"),default="constraint_gate",help="fixed-only mechanics diagnostic; default preserves the existing constraint gate"); parser.add_argument("--constraint-gate-release-handle-rad",type=float,help="constraint_gate-only release threshold in (0, pi/4]"); parser.add_argument("--diagnostic-force-close-stage34",action="store_true",help="apply the existing Isaac diagnostic -1 gripper override only while the tracker is in Stage3/4"); parser.add_argument("--diagnostic-policy-prefix-trace",type=Path,help="replay recorded high-level and leg actions through Stage2, then return to the live policy"); parser.add_argument("--contact-atlas",action="store_true",help="capture native pre-projection contact telemetry for base004/base010 during full fixed16"); args=parser.parse_args()
+    parser=argparse.ArgumentParser(); parser.add_argument("--mode",choices=("prepare","run","reduce-admission","reduce","export-alignment","contact-retention-kd-discriminator"),required=True); parser.add_argument("--bundle-dir",type=Path,required=True); parser.add_argument("--source-workspace",type=Path,required=True); parser.add_argument("--robot-urdf",type=Path,required=True); parser.add_argument("--experiment-yaml",type=Path,required=True); parser.add_argument("--output-dir",type=Path,required=True); parser.add_argument("--baseline-output-dir",type=Path); parser.add_argument("--device",default="cuda:0"); parser.add_argument("--suite",choices=("primary","stress"),default="primary"); parser.add_argument("--lane",choices=("fixed","visual_only","door_only","combined")); parser.add_argument("--limit-base-cases",type=int); parser.add_argument("--shard-index",type=int,default=0); parser.add_argument("--shard-count",type=int,default=1); parser.add_argument("--empirical-source-nominal-appearance-calibration",action="store_true",help="legacy fixed-only empirical t0 calibration; not material/shader authority"); parser.add_argument("--fixed-nominal-appearance-factor",choices=fixed_nominal_appearance_factor_names(),help="fixed-only controlled ablation: stable_baseline applies all factors; named factors withhold exactly that factor"); parser.add_argument("--fixed-latch-mode",choices=("constraint_gate","physical_collision","no_latch"),default="constraint_gate",help="fixed-only mechanics diagnostic; default preserves the existing constraint gate"); parser.add_argument("--constraint-gate-release-handle-rad",type=float,help="constraint_gate-only release threshold in (0, pi/4]"); parser.add_argument("--diagnostic-force-close-stage34",action="store_true",help="apply the existing Isaac diagnostic -1 gripper override only while the tracker is in Stage3/4"); parser.add_argument("--diagnostic-policy-prefix-trace",type=Path,help="replay recorded high-level and leg actions through Stage2, then return to the live policy"); parser.add_argument("--contact-atlas",action="store_true",help="capture native pre-projection contact telemetry for base004/base010 during full fixed16"); parser.add_argument("--stage34-target-discriminator",action="store_true",help="on unmodified fixed16, capture base006 Stage4 and run recorded-target versus held-target local branches"); parser.add_argument("--alignment-case-id",default="seed41001_base000__fixed",help="export-alignment manifest case id; default preserves base000"); parser.add_argument("--alignment-control-limit",type=int,default=STAGE0_ALIGNMENT_MAX_STEPS,help="export-alignment control steps in [1,250]"); args=parser.parse_args()
     if args.constraint_gate_release_handle_rad is not None:
         if args.fixed_latch_mode != "constraint_gate":
             raise ValueError("--constraint-gate-release-handle-rad requires --fixed-latch-mode constraint_gate")
@@ -1749,10 +2500,13 @@ def main() -> None:
             or args.constraint_gate_release_handle_rad is not None
             or args.diagnostic_force_close_stage34
             or args.diagnostic_policy_prefix_trace is not None
+            or args.stage34_target_discriminator
         )
     ):
         raise ValueError("fixed mechanics/action diagnostics are available only with --mode run")
     if args.limit_base_cases is not None and args.limit_base_cases <= 0: raise ValueError("--limit-base-cases must be positive")
+    if args.mode == "export-alignment" and not 1 <= args.alignment_control_limit <= STAGE0_ALIGNMENT_MAX_STEPS:
+        raise ValueError(f"--alignment-control-limit must be in [1,{STAGE0_ALIGNMENT_MAX_STEPS}]")
     if args.shard_count <= 0 or not 0 <= args.shard_index < args.shard_count: raise ValueError("invalid shard selection")
     if args.empirical_source_nominal_appearance_calibration and args.fixed_nominal_appearance_factor is not None:
         raise ValueError("--empirical-source-nominal-appearance-calibration and --fixed-nominal-appearance-factor are mutually exclusive")
@@ -1760,7 +2514,7 @@ def main() -> None:
         raise ValueError("--empirical-source-nominal-appearance-calibration is valid only for --mode run --suite primary --lane fixed")
     if args.fixed_nominal_appearance_factor is not None and (args.mode != "run" or args.suite != "primary" or args.lane != "fixed"):
         raise ValueError("--fixed-nominal-appearance-factor is valid only for --mode run --suite primary --lane fixed")
-    {"prepare":prepare,"run":run,"reduce-admission":reduce_admission,"reduce":reduce,"export-alignment":export_alignment}[args.mode](args)
+    {"prepare":prepare,"run":run,"reduce-admission":reduce_admission,"reduce":reduce,"export-alignment":export_alignment,"contact-retention-kd-discriminator":contact_retention_kd_discriminator}[args.mode](args)
 
 
 if __name__ == "__main__": main()

@@ -29,7 +29,7 @@ from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import (
     NameResolvedActuatorMapV2,
     capture_depthadd_v3_native_contact_snapshot,
     capture_depthadd_v3_pre_step_authority,
-    configure_depthadd_v3_contact_solref_2dt,
+    configure_depthadd_v3_contact_acquisition_surface,
 )
 from gr00t.rl.sim2sim.mujoco.paired_scene_builder_v2 import PairedSceneBuilderV2
 
@@ -1174,7 +1174,7 @@ def _configure_plant_variant(
             )
             else {"mode": "raw_position_target"}
         ),
-        "contact_impedance_realization": configure_depthadd_v3_contact_solref_2dt(model)
+        "contact_impedance_realization": configure_depthadd_v3_contact_acquisition_surface(model)
         if plant_variant
         in (
             PLANT_VARIANT_VELOCITY_LIMITED_PD_TARGET_CONTACT_SOLREF_2DT,
@@ -1253,6 +1253,9 @@ def _realize_position_target(
             "mode": "raw_position_target",
             "mask20": [False] * 20,
             "count": 0,
+            "substantive_mask20": [False] * 20,
+            "substantive_count": 0,
+            "substantive_epsilon_rad": 1.0e-6,
             "max_abs_delta_rad": 0.0,
         }
     target = mapping.realize_velocity_limited_pd_target(
@@ -1266,6 +1269,9 @@ def _realize_position_target(
         "maximum_delta20_rad": target.maximum_delta20_rad.tolist(),
         "mask20": target.shaping_mask20.tolist(),
         "count": target.shaping_count,
+        "substantive_mask20": target.substantive_mask20.tolist(),
+        "substantive_count": target.substantive_count,
+        "substantive_epsilon_rad": target.substantive_epsilon_rad,
         "max_abs_delta_rad": target.max_abs_delta_rad,
     }
 
@@ -2057,8 +2063,8 @@ def _run_source_contact_atlas(
                         mapping,
                         raw_target20=raw_target20,
                         drive_target20=drive_target20,
-                        pre_step_fullphysics=np.asarray(
-                            pre_native_step["mjstate_fullphysics"], dtype=np.float64
+                        pre_step_integration=np.asarray(
+                            pre_native_step["mjstate_integration"], dtype=np.float64
                         ),
                     )
 

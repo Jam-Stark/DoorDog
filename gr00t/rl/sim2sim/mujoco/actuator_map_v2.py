@@ -14,6 +14,17 @@ DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION = (
     "DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION"
 )
 MUJOCO_LOCAL_DECLARED_REALIZATION = "MUJOCO_LOCAL_DECLARED_REALIZATION"
+DEPTHADD_V3_PHYSX_CONTACT_OFFSET_M_BY_BODY = {
+    "arm_body7": 0.0005299999611452222,
+    "arm_body8": 0.0005299999611452222,
+}
+DEPTHADD_V3_PHYSX_HANDLE_CONTACT_OFFSET_MIN_M = 0.0004905000096186996
+DEPTHADD_V3_PHYSX_HANDLE_RADIUS_SCALE = 0.04
+DEPTHADD_V3_PHYSX_CONTACT_READBACK_SOURCE = (
+    "logs_eval/by_batch/depthadd_v3_20260827/"
+    "physx_contact_readback_env13_s0_r2/a2_hold_diagnostic_runtime_metadata.json"
+)
+TARGET_SHAPING_SUBSTANTIVE_EPSILON_RAD = 1.0e-6
 DEPTHADD_V3_PRODUCTION_JOINT_ORDER = (
     "FL_hip_joint", "FL_thigh_joint", "FL_calf_joint",
     "RL_hip_joint", "RL_thigh_joint", "RL_calf_joint",
@@ -48,6 +59,9 @@ class VelocityLimitedPdTargetTelemetry:
     drive_target20: np.ndarray
     shaping_mask20: np.ndarray
     shaping_count: int
+    substantive_mask20: np.ndarray
+    substantive_count: int
+    substantive_epsilon_rad: float
     shaping_delta20: np.ndarray
     max_abs_delta_rad: float
     kp20: np.ndarray
@@ -55,31 +69,60 @@ class VelocityLimitedPdTargetTelemetry:
     maximum_delta20_rad: np.ndarray
 
 
-def configure_depthadd_v3_contact_solref_2dt(model: mujoco.MjModel) -> dict[str, object]:
-    """Apply the accepted finger/handle MuJoCo contact realization to a compiled scene."""
+def configure_depthadd_v3_contact_acquisition_surface(
+    model: mujoco.MjModel,
+) -> dict[str, object]:
+    """Map source-read PhysX contact offsets onto the MuJoCo active-contact surface."""
 
-    body_ids = set()
-    for name in ("arm_body7", "arm_body8", "door_handle"):
+    handle_body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "door_handle")
+    if handle_body_id < 0:
+        raise RuntimeError("MuJoCo local contact realization lacks body 'door_handle'")
+    handle_geom_ids = _collision_geoms_for_body(model, handle_body_id)
+    if not handle_geom_ids:
+        raise RuntimeError("MuJoCo local contact realization lacks door_handle collision geoms")
+    handle_radii_m = model.geom_size[np.asarray(handle_geom_ids), 0].copy()
+    if not np.allclose(handle_radii_m, handle_radii_m[0], rtol=0.0, atol=1.0e-12):
+        raise RuntimeError(
+            f"DepthADD handle collision radii must agree; got {handle_radii_m.tolist()}"
+        )
+    handle_radius_m = float(handle_radii_m[0])
+    handle_contact_offset_m = max(
+        DEPTHADD_V3_PHYSX_HANDLE_CONTACT_OFFSET_MIN_M,
+        DEPTHADD_V3_PHYSX_HANDLE_RADIUS_SCALE * handle_radius_m,
+    )
+    body_offsets: dict[int, tuple[str, float]] = {}
+    for name, contact_offset_m in DEPTHADD_V3_PHYSX_CONTACT_OFFSET_M_BY_BODY.items():
         body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
         if body_id < 0:
             raise RuntimeError(f"MuJoCo local contact realization lacks body {name!r}")
-        body_ids.add(body_id)
+        body_offsets[body_id] = (name, contact_offset_m)
+    body_offsets[handle_body_id] = ("door_handle", handle_contact_offset_m)
     solref = np.asarray((2.0 * float(model.opt.timestep), 1.0), dtype=np.float64)
     geoms: list[dict[str, object]] = []
     for geom_id, body_id in enumerate(model.geom_bodyid):
-        if int(body_id) not in body_ids:
+        resolved_body_id = int(body_id)
+        if resolved_body_id not in body_offsets:
             continue
         if int(model.geom_contype[geom_id]) == 0 and int(model.geom_conaffinity[geom_id]) == 0:
             continue
-        before = model.geom_solref[geom_id].copy()
+        body_name, contact_offset_m = body_offsets[resolved_body_id]
+        solref_before = model.geom_solref[geom_id].copy()
+        margin_before = float(model.geom_margin[geom_id])
+        gap_before = float(model.geom_gap[geom_id])
         model.geom_solref[geom_id] = solref
+        model.geom_margin[geom_id] = contact_offset_m
+        model.geom_gap[geom_id] = 0.0
         geoms.append(
             {
                 "geom": mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
                 or f"geom_{geom_id}",
-                "body": mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(body_id))
-                or f"body_{body_id}",
-                "solref_before": before.tolist(),
+                "body": body_name,
+                "source_physx_contact_offset_m": contact_offset_m,
+                "margin_before_m": margin_before,
+                "margin_after_m": float(model.geom_margin[geom_id]),
+                "gap_before_m": gap_before,
+                "gap_after_m": float(model.geom_gap[geom_id]),
+                "solref_before": solref_before.tolist(),
                 "solref_after": model.geom_solref[geom_id].tolist(),
             }
         )
@@ -87,11 +130,105 @@ def configure_depthadd_v3_contact_solref_2dt(model: mujoco.MjModel) -> dict[str,
         raise RuntimeError("MuJoCo local contact realization found no finger/handle collision geoms")
     return {
         "status": MUJOCO_LOCAL_DECLARED_REALIZATION,
-        "contact_realization": "geom_solref=[2*model.opt.timestep,1.0] on arm_body7/arm_body8/door_handle collision-enabled geoms",
-        "boundary": "MuJoCo-local declared realization; not PhysX or native-engine equivalence",
+        "contact_realization": (
+            "geom_margin=source PhysX runtime contactOffset per body, geom_gap=0, "
+            "geom_solref=[2*model.opt.timestep,1.0]"
+        ),
+        "source_physx_runtime_readback": DEPTHADD_V3_PHYSX_CONTACT_READBACK_SOURCE,
+        "source_handle_contact_offset_formula": {
+            "formula": "max(minimum_m, radius_scale * compiled_handle_radius_m)",
+            "compiled_handle_radius_m": handle_radius_m,
+            "minimum_m": DEPTHADD_V3_PHYSX_HANDLE_CONTACT_OFFSET_MIN_M,
+            "radius_scale": DEPTHADD_V3_PHYSX_HANDLE_RADIUS_SCALE,
+            "realized_contact_offset_m": handle_contact_offset_m,
+            "readback_validation": "16/16 source envs, max absolute residual 4.67e-11 m",
+        },
+        "source_pair_contact_offset_sums_m": {
+            "arm_body7__door_handle": (
+                DEPTHADD_V3_PHYSX_CONTACT_OFFSET_M_BY_BODY["arm_body7"]
+                + handle_contact_offset_m
+            ),
+            "arm_body8__door_handle": (
+                DEPTHADD_V3_PHYSX_CONTACT_OFFSET_M_BY_BODY["arm_body8"]
+                + handle_contact_offset_m
+            ),
+        },
+        "boundary": (
+            "Source-grounded active-contact threshold mapping only; MuJoCo margin also "
+            "changes the constraint residual, so this is not PhysX solver equivalence"
+        ),
         "solimp": "UNCHANGED",
         "friction": "UNCHANGED",
-        "geometry": "UNCHANGED",
+        "mesh_geometry": "UNCHANGED",
+        "geoms": geoms,
+    }
+
+
+def configure_depthadd_v3_production_contact_solref_surface(
+    model: mujoco.MjModel,
+) -> dict[str, object]:
+    """Restore the formal evaluator's accepted solref-only contact surface.
+
+    The PhysX offset-to-margin mapping above remains available to the bounded
+    replay diagnostic.  It is deliberately not a production realization: the
+    fixed16 margin candidate regressed base006 door motion from the prior
+    Stage4 trajectory (about 0.258 rad) to about 6.3e-5 rad.
+    """
+
+    body_ids: dict[int, str] = {}
+    for body_name in ("arm_body7", "arm_body8", "door_handle"):
+        body_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, body_name)
+        if body_id < 0:
+            raise RuntimeError(f"MuJoCo production contact realization lacks body {body_name!r}")
+        if not _collision_geoms_for_body(model, body_id):
+            raise RuntimeError(
+                f"MuJoCo production contact realization lacks collision geoms for {body_name!r}"
+            )
+        body_ids[body_id] = body_name
+    solref = np.asarray((2.0 * float(model.opt.timestep), 1.0), dtype=np.float64)
+    geoms: list[dict[str, object]] = []
+    for geom_id, body_id in enumerate(model.geom_bodyid):
+        body_name = body_ids.get(int(body_id))
+        if body_name is None:
+            continue
+        if int(model.geom_contype[geom_id]) == 0 and int(model.geom_conaffinity[geom_id]) == 0:
+            continue
+        solref_before = model.geom_solref[geom_id].copy()
+        margin_before = float(model.geom_margin[geom_id])
+        gap_before = float(model.geom_gap[geom_id])
+        model.geom_solref[geom_id] = solref
+        model.geom_margin[geom_id] = 0.0
+        model.geom_gap[geom_id] = 0.0
+        geoms.append(
+            {
+                "geom": mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id)
+                or f"geom_{geom_id}",
+                "body": body_name,
+                "solref_before": solref_before.tolist(),
+                "solref_after": model.geom_solref[geom_id].tolist(),
+                "margin_before_m": margin_before,
+                "margin_after_m": float(model.geom_margin[geom_id]),
+                "gap_before_m": gap_before,
+                "gap_after_m": float(model.geom_gap[geom_id]),
+            }
+        )
+    if not geoms:
+        raise RuntimeError("MuJoCo production contact realization found no target collision geoms")
+    return {
+        "status": MUJOCO_LOCAL_DECLARED_REALIZATION,
+        "contact_realization": "geom_solref=[2*model.opt.timestep,1.0], geom_margin=0, geom_gap=0",
+        "margin_candidate": {
+            "status": "REJECTED_FOR_PRODUCTION",
+            "function": "configure_depthadd_v3_contact_acquisition_surface",
+            "reason": (
+                "fixed16 r3 margin candidate reduced the prior base006 Stage4 door-hinge "
+                "trajectory from about 0.258 rad to about 6.3e-5 rad"
+            ),
+            "boundary": "retained only for bounded replay diagnostics; no production admission",
+        },
+        "solimp": "UNCHANGED",
+        "friction": "UNCHANGED",
+        "mesh_geometry": "UNCHANGED",
         "geoms": geoms,
     }
 
@@ -139,12 +276,17 @@ def capture_depthadd_v3_pre_step_authority(
     drive_target = np.asarray(drive_target20, dtype=np.float64)
     if raw_target.shape != (20,) or drive_target.shape != (20,):
         raise ValueError("pre-step authority requires raw_target20[20] and drive_target20[20]")
-    state_spec = mujoco.mjtState.mjSTATE_FULLPHYSICS
+    state_spec = mujoco.mjtState.mjSTATE_INTEGRATION
     state = np.empty(mujoco.mj_stateSize(model, state_spec), dtype=np.float64)
     mujoco.mj_getState(model, data, state, state_spec)
     values = (
         state,
         data.ctrl,
+        data.qfrc_applied,
+        data.xfrc_applied,
+        data.mocap_pos,
+        data.mocap_quat,
+        data.userdata,
         data.qpos[mapping.robot_qpos_addresses],
         data.qvel[mapping.robot_qvel_addresses],
         raw_target,
@@ -154,11 +296,16 @@ def capture_depthadd_v3_pre_step_authority(
         raise FloatingPointError("pre-step authority contains a non-finite value")
     return {
         "sample_timing": "immediately before native MuJoCo mj_step",
-        "mjstate_spec": "mjSTATE_FULLPHYSICS",
-        "mjstate_fullphysics": state.tolist(),
+        "mjstate_spec": "mjSTATE_INTEGRATION",
+        "mjstate_integration": state.tolist(),
         "qvel_full_pre_integration_rad_s": data.qvel.tolist(),
         "data_ctrl": data.ctrl.tolist(),
         "eq_active": data.eq_active.tolist(),
+        "qfrc_applied": data.qfrc_applied.tolist(),
+        "xfrc_applied": data.xfrc_applied.tolist(),
+        "mocap_pos": data.mocap_pos.tolist(),
+        "mocap_quat": data.mocap_quat.tolist(),
+        "userdata": data.userdata.tolist(),
         "time_s": float(data.time),
         "raw_target20_rad": raw_target.tolist(),
         "drive_target20_rad": drive_target.tolist(),
@@ -171,6 +318,59 @@ def capture_depthadd_v3_pre_step_authority(
     }
 
 
+def capture_depthadd_v3_integration_state(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+) -> list[float]:
+    """Return the full state vector that controls the next MuJoCo integration."""
+
+    state_spec = mujoco.mjtState.mjSTATE_INTEGRATION
+    state = np.empty(mujoco.mj_stateSize(model, state_spec), dtype=np.float64)
+    mujoco.mj_getState(model, data, state, state_spec)
+    if not np.isfinite(state).all():
+        raise FloatingPointError("MuJoCo integration state is non-finite")
+    return state.tolist()
+
+
+def restore_depthadd_v3_pre_step_authority(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    authority: dict[str, Any],
+) -> None:
+    """Restore every runtime component required for the captured next integration."""
+
+    state_spec = mujoco.mjtState.mjSTATE_INTEGRATION
+    state = np.asarray(authority["mjstate_integration"], dtype=np.float64)
+    expected_state_size = mujoco.mj_stateSize(model, state_spec)
+    if state.shape != (expected_state_size,):
+        raise ValueError("pre-step authority has an invalid mjSTATE_INTEGRATION vector")
+    runtime_values = {
+        "data_ctrl": (data.ctrl, np.asarray(authority["data_ctrl"], dtype=np.float64)),
+        "eq_active": (data.eq_active, np.asarray(authority["eq_active"], dtype=np.int32)),
+        "qfrc_applied": (data.qfrc_applied, np.asarray(authority["qfrc_applied"], dtype=np.float64)),
+        "xfrc_applied": (data.xfrc_applied, np.asarray(authority["xfrc_applied"], dtype=np.float64)),
+        "mocap_pos": (data.mocap_pos, np.asarray(authority["mocap_pos"], dtype=np.float64)),
+        "mocap_quat": (data.mocap_quat, np.asarray(authority["mocap_quat"], dtype=np.float64)),
+        "userdata": (data.userdata, np.asarray(authority["userdata"], dtype=np.float64)),
+    }
+    for name, (destination, source) in runtime_values.items():
+        if source.size != destination.size:
+            raise ValueError(f"pre-step authority has invalid {name} size {source.size}")
+        source = source.reshape(destination.shape)
+        runtime_values[name] = (destination, source)
+        if not np.isfinite(source).all():
+            raise FloatingPointError(f"pre-step authority has non-finite {name}")
+    mujoco.mj_setState(model, data, state, state_spec)
+    for destination, source in runtime_values.values():
+        destination[:] = source
+    # Rebuild derived kinematics/contact, then restore integration authority once
+    # more because forward dynamics updates warmstart-related work arrays.
+    mujoco.mj_forward(model, data)
+    mujoco.mj_setState(model, data, state, state_spec)
+    for destination, source in runtime_values.values():
+        destination[:] = source
+
+
 def capture_depthadd_v3_native_contact_snapshot(
     model: mujoco.MjModel,
     data: mujoco.MjData,
@@ -178,7 +378,7 @@ def capture_depthadd_v3_native_contact_snapshot(
     *,
     raw_target20: np.ndarray,
     drive_target20: np.ndarray,
-    pre_step_fullphysics: np.ndarray,
+    pre_step_integration: np.ndarray,
 ) -> dict[str, Any]:
     """Capture the native contact surface immediately after ``mj_step``.
 
@@ -189,14 +389,14 @@ def capture_depthadd_v3_native_contact_snapshot(
 
     raw_target = np.asarray(raw_target20, dtype=np.float64)
     drive_target = np.asarray(drive_target20, dtype=np.float64)
-    pre_state = np.asarray(pre_step_fullphysics, dtype=np.float64)
+    pre_state = np.asarray(pre_step_integration, dtype=np.float64)
     if raw_target.shape != (20,) or drive_target.shape != (20,):
         raise ValueError("native contact snapshot requires raw_target20[20] and drive_target20[20]")
-    if pre_state.shape != (mujoco.mj_stateSize(model, mujoco.mjtState.mjSTATE_FULLPHYSICS),):
-        raise ValueError("native contact snapshot requires the exact pre-step mjSTATE_FULLPHYSICS")
+    if pre_state.shape != (mujoco.mj_stateSize(model, mujoco.mjtState.mjSTATE_INTEGRATION),):
+        raise ValueError("native contact snapshot requires the exact pre-step mjSTATE_INTEGRATION")
     pre_integration_data = mujoco.MjData(model)
     mujoco.mj_setState(
-        model, pre_integration_data, pre_state, mujoco.mjtState.mjSTATE_FULLPHYSICS
+        model, pre_integration_data, pre_state, mujoco.mjtState.mjSTATE_INTEGRATION
     )
     mujoco.mj_forward(model, pre_integration_data)
     finger_body_ids = tuple(
@@ -494,11 +694,15 @@ class NameResolvedActuatorMapV2:
         )
         shaping_delta20 = drive_target20 - raw_target
         shaping_mask20 = shaping_delta20 != 0.0
+        substantive_mask20 = np.abs(shaping_delta20) > TARGET_SHAPING_SUBSTANTIVE_EPSILON_RAD
         return VelocityLimitedPdTargetTelemetry(
             raw_target20=raw_target,
             drive_target20=drive_target20,
             shaping_mask20=shaping_mask20,
             shaping_count=int(np.count_nonzero(shaping_mask20)),
+            substantive_mask20=substantive_mask20,
+            substantive_count=int(np.count_nonzero(substantive_mask20)),
+            substantive_epsilon_rad=TARGET_SHAPING_SUBSTANTIVE_EPSILON_RAD,
             shaping_delta20=shaping_delta20,
             max_abs_delta_rad=float(np.max(np.abs(shaping_delta20))),
             kp20=kp20,

@@ -13,6 +13,7 @@ import argparse
 import csv
 import json
 import math
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -21,6 +22,7 @@ import mujoco
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+import yaml
 from PIL import Image
 
 from gr00t.rl.sim2sim.doors.depthadd_v3 import DepthADDV3DoorBuilder, DepthADDV3DoorFactory
@@ -28,7 +30,16 @@ from gr00t.rl.sim2sim.doors.runtime import ConstraintGate
 from gr00t.rl.sim2sim.evaluation.depthadd_v3_experiment import materialize_depthadd_v3_experiment
 from gr00t.rl.sim2sim.mujoco.a2_base_obs import A2BaseFrameBuilder, A2BaseHistory
 from gr00t.rl.sim2sim.mujoco.action_warp_r5 import FullActionWarpR5, ResolvedActionWarpContractR5
-from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import NameResolvedActuatorMapV2
+from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import (
+    DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
+    MUJOCO_LOCAL_DECLARED_REALIZATION,
+    NameResolvedActuatorMapV2,
+    configure_depthadd_v3_contact_solref_2dt,
+)
+from gr00t.rl.sim2sim.mujoco.actor_obs_contract import (
+    compose_depthadd_v3_actor_obs,
+    depthadd_v3_actor_obs_contract,
+)
 from gr00t.rl.sim2sim.mujoco.depthadd_initial_state import (
     apply_depthadd_initial_state,
     realize_depthadd_initial_state,
@@ -36,6 +47,7 @@ from gr00t.rl.sim2sim.mujoco.depthadd_initial_state import (
 from gr00t.rl.sim2sim.mujoco.depthadd_stage import (
     STAGE_GRASP,
     STAGE_OPEN,
+    STAGE_SWING,
     DepthAddStageAction,
     DepthAddStageObservation,
     DepthAddStageTracker,
@@ -70,6 +82,15 @@ CAMERA_PERIODS = {"left": 1.0 / 30.0, "right": 1.0 / 30.0, "head": 1.0 / 15.0}
 POLICY_CAMERA_NAMES = ("left", "right", "head")
 MANIFEST_NAME = "materialized_experiment.json"
 STAGE0_ALIGNMENT_MAX_STEPS = 250
+
+
+def _configure_deterministic_torch_runtime() -> None:
+    """Select deterministic Torch kernels for the evaluator policy path."""
+
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True)
 
 
 def _json_dump(path: Path, value: Any) -> None:
@@ -114,23 +135,27 @@ def _actor_obs(
 ) -> torch.Tensor:
     device = default.device
     scaled_command = action_warp.observation_command_echo(previous_physical)
-    values = torch.cat((
-        # The deployed Isaac observation assembler sorts term names, then strips
-        # ``_raw`` before lookup.  Consequently a2_base_command_raw resolves to
-        # a second copy of a2_base_command.  The checkpoint was trained and the
-        # batch16 authority was captured with this exact policy-ready layout.
-        scaled_command,
-        scaled_command,
-        torch.from_numpy(qpos).to(device=device, dtype=torch.float32).unsqueeze(0) - default,
-        0.05 * torch.from_numpy(qvel).to(device=device, dtype=torch.float32).unsqueeze(0),
-        previous_logical,
-        0.5 * torch.from_numpy(local_angular_velocity).to(device=device, dtype=torch.float32).unsqueeze(0),
-        previous_delta,
-        torch.from_numpy(gravity).to(device=device, dtype=torch.float32).unsqueeze(0),
-    ), dim=1)
-    if tuple(values.shape) != (1, 81):
-        raise RuntimeError(f"DepthADD actor observation has invalid shape {tuple(values.shape)}")
-    return values
+    return compose_depthadd_v3_actor_obs({
+        "scaled_base_command": scaled_command,
+        "scaled_base_command_duplicate": scaled_command,
+        "q_minus_default": (
+            torch.from_numpy(qpos).to(device=device, dtype=torch.float32).unsqueeze(0) - default
+        ),
+        "dof_velocity_x0p05": (
+            0.05 * torch.from_numpy(qvel).to(device=device, dtype=torch.float32).unsqueeze(0)
+        ),
+        "previous_actions19": previous_logical,
+        "base_angular_velocity_x0p5": (
+            0.5
+            * torch.from_numpy(local_angular_velocity)
+            .to(device=device, dtype=torch.float32)
+            .unsqueeze(0)
+        ),
+        "previous_arm_delta6": previous_delta,
+        "projected_gravity": (
+            torch.from_numpy(gravity).to(device=device, dtype=torch.float32).unsqueeze(0)
+        ),
+    })
 
 
 def _prepared_paths(output: Path) -> dict[str, Path]:
@@ -138,6 +163,7 @@ def _prepared_paths(output: Path) -> dict[str, Path]:
         "robot_xml": output / "prepared" / "robot.xml",
         "robot_contract": output / "prepared" / "robot_contract.json",
         "robot_report": output / "prepared" / "robot_build_receipt.json",
+        "actor_obs_contract": output / "prepared" / "actor_obs_contract.json",
         "manifest": output / "prepared" / MANIFEST_NAME,
         "prepare_receipt": output / "prepared" / "prepare_receipt.json",
     }
@@ -242,12 +268,19 @@ def _standing_gate(robot_xml: Path, nominal_row: Mapping[str, Any], output: Path
     home = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "scene_home")
     mujoco.mj_resetDataKeyframe(model, data, home); mujoco.mj_forward(model, data)
     mapping = NameResolvedActuatorMapV2.from_model(model, tuple(contract["sim_joint_names"]))
+    plant_realization = configure_depthadd_v3_contact_solref_2dt(model)
+    velocity_limit20 = np.asarray(contract["position_pd"]["velocity_limit"], dtype=np.float64)
     default = torch.tensor(contract["default_dof_pos"], dtype=torch.float64).unsqueeze(0)
     target = default.clone()
     heights: list[float] = []
+    default_target_telemetry = None
     for _ in range(400):
-        mapping.write_robot_position_target(data, target.squeeze(0).numpy())
-        mujoco.mj_step(model, data); heights.append(float(data.qpos[2]))
+        default_target_telemetry = mapping.realize_velocity_limited_pd_target(
+            model, data, target.squeeze(0).numpy(), velocity_limit20
+        )
+        mapping.write_robot_position_target(data, default_target_telemetry.drive_target20)
+        mapping.step_with_declared_endpoint_velocity_projection(model, data, velocity_limit20)
+        heights.append(float(data.qpos[2]))
     default_hold = {"final_height_m": heights[-1], "tail_span_m": max(heights[-100:]) - min(heights[-100:])}
     mujoco.mj_resetDataKeyframe(model, data, home); mujoco.mj_forward(model, data)
     joint_map = A2PiperJointMap.from_sim_joint_names(tuple(contract["sim_joint_names"]), device=device)
@@ -258,6 +291,7 @@ def _standing_gate(robot_xml: Path, nominal_row: Mapping[str, Any], output: Path
     default_device = torch.tensor(contract["default_dof_pos"], device=device).unsqueeze(0)
     trunk = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "trunk")
     heights = []
+    frozen_target_telemetry = None
     for step in range(1000):
         if step % 4 == 0:
             _, gravity, roll_pitch = _body_state(model, data, trunk)
@@ -266,11 +300,15 @@ def _standing_gate(robot_xml: Path, nominal_row: Mapping[str, Any], output: Path
             previous_leg = policy.act_a2_base(history.append(frame))
             target = default_device.detach().cpu().double()
             target[:, joint_map.policy_leg_indices.cpu()] += 0.25 * previous_leg.detach().cpu().double()
-        mapping.write_robot_position_target(data, target.squeeze(0).numpy())
-        mujoco.mj_step(model, data); gait.advance(zero[:, :3]); heights.append(float(data.qpos[2]))
+        frozen_target_telemetry = mapping.realize_velocity_limited_pd_target(
+            model, data, target.squeeze(0).numpy(), velocity_limit20
+        )
+        mapping.write_robot_position_target(data, frozen_target_telemetry.drive_target20)
+        mapping.step_with_declared_endpoint_velocity_projection(model, data, velocity_limit20)
+        gait.advance(zero[:, :3]); heights.append(float(data.qpos[2]))
     frozen = {"final_height_m": heights[-1], "tail_span_m": max(heights[-200:]) - min(heights[-200:])}
     result = 0.45 <= default_hold["final_height_m"] <= 0.65 and default_hold["tail_span_m"] <= 0.02 and 0.44 <= frozen["final_height_m"] <= 0.66 and frozen["tail_span_m"] <= 0.03
-    return {"schema": "doordog.sim2sim.depthadd_v3_standing_gate.v1", "result": "PASS" if result else "FAIL", "position_pd": "implicit affine drive at 0.005 s; exact bundle KP/KD/combined effort clipping", "default_target_hold_2s": default_hold, "a2_base_zero_command_5s": frozen}
+    return {"schema": "doordog.sim2sim.depthadd_v3_standing_gate.v2", "result": "PASS" if result else "FAIL", "position_pd": MUJOCO_LOCAL_DECLARED_REALIZATION, "default_target_hold_2s": default_hold, "a2_base_zero_command_5s": frozen, "plant_realization": plant_realization, "last_default_target": {"raw_target20": default_target_telemetry.raw_target20.tolist(), "drive_target20": default_target_telemetry.drive_target20.tolist(), "shaping_mask20": default_target_telemetry.shaping_mask20.tolist(), "shaping_count": default_target_telemetry.shaping_count, "max_abs_delta_rad": default_target_telemetry.max_abs_delta_rad}, "last_frozen_target": {"raw_target20": frozen_target_telemetry.raw_target20.tolist(), "drive_target20": frozen_target_telemetry.drive_target20.tolist(), "shaping_mask20": frozen_target_telemetry.shaping_mask20.tolist(), "shaping_count": frozen_target_telemetry.shaping_count, "max_abs_delta_rad": frozen_target_telemetry.max_abs_delta_rad}, "endpoint_projection_backup": DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION}
 
 
 def prepare(args: argparse.Namespace) -> None:
@@ -280,6 +318,7 @@ def prepare(args: argparse.Namespace) -> None:
     if materialized["counts"] != {"primary": 1536, "stress": 128}:
         raise RuntimeError(f"unexpected experiment counts {materialized['counts']}")
     _json_dump(paths["manifest"], materialized)
+    _json_dump(paths["actor_obs_contract"], depthadd_v3_actor_obs_contract())
     DepthADDV3MjcfBuilder(args.robot_urdf, args.bundle_dir).write(paths["robot_xml"], paths["robot_contract"], paths["robot_report"])
     device = torch.device(args.device); policy = load_depthadd_v3_policy(args.bundle_dir, source_workspace=args.source_workspace, device=device)
     zero_obs = {"actor_obs": torch.zeros((1,81),device=device), "vision_obs": torch.zeros((1,384,216,8),device=device), "context_vision_obs": torch.zeros((1,136,384,3),device=device), "camera_meta": torch.tensor([[0.0,0.0,0.0,1.0,1.0,1.0]],device=device)}
@@ -287,7 +326,7 @@ def prepare(args: argparse.Namespace) -> None:
     if tuple(action.shape) != (1, 12) or not bool(torch.isfinite(action).all()):
         raise RuntimeError("strict loaded Student failed finite action proof")
     standing = _standing_gate(paths["robot_xml"], materialized["primary_rows"][0], output, policy, device)
-    receipt = {"schema": "doordog.sim2sim.depthadd_v3_prepare.v1", "result": "PASS" if standing["result"] == "PASS" else "FAIL", "materialized_counts": materialized["counts"], "strict_loader": {"student_global_step": policy.global_step, "finite_action_shape": list(action.shape), "a2_base_history_dim": 1620}, "robot": str(paths["robot_xml"]), "standing_gate": standing}
+    receipt = {"schema": "doordog.sim2sim.depthadd_v3_prepare.v1", "result": "PASS" if standing["result"] == "PASS" else "FAIL", "materialized_counts": materialized["counts"], "strict_loader": {"student_global_step": policy.global_step, "finite_action_shape": list(action.shape), "a2_base_history_dim": 1620}, "torch_runtime_determinism": {"torch_deterministic_algorithms": True, "cudnn_deterministic": True, "cudnn_benchmark": False, "cublas_workspace_config": ":4096:8", "end_to_end_bitwise_replay": "INCONCLUSIVE_EGL_RENDER_AND_CONTACT_CLOSED_LOOP"}, "robot": str(paths["robot_xml"]), "actor_observation_contract": str(paths["actor_obs_contract"]), "standing_gate": standing}
     _json_dump(paths["prepare_receipt"], receipt)
     if receipt["result"] != "PASS":
         raise RuntimeError("standing vitals gate failed; campaign is not authorized")
@@ -528,6 +567,8 @@ def _run_episode(
     fixed_nominal_appearance_factor: str | None = None,
     fixed_latch_mode: str = "constraint_gate",
     constraint_gate_release_handle_rad: float | None = None,
+    diagnostic_force_close_stage34: bool = False,
+    diagnostic_policy_prefix_trace: Path | None = None,
 ) -> dict[str, Any]:
     case_dir = output / "episodes" / str(row["case_id"]); case_dir.mkdir(parents=True, exist_ok=True)
     resolved_constraint_gate_release_handle_rad = (
@@ -560,6 +601,8 @@ def _run_episode(
     apply_depthadd_initial_state(data, initial_state, robot_contract=contract)
     mujoco.mj_forward(model, data)
     mapping = NameResolvedActuatorMapV2.from_model(model, tuple(contract["sim_joint_names"]))
+    plant_realization = configure_depthadd_v3_contact_solref_2dt(model)
+    velocity_limit20 = np.asarray(contract["position_pd"]["velocity_limit"], dtype=np.float64)
     if (mapping.door_hinge_actuator_id, mapping.handle_actuator_id) != (0, 1): raise RuntimeError("door actuator order contract violated")
     default = torch.tensor(contract["default_dof_pos"], device=device).unsqueeze(0)
     policy_joint_map = A2PiperJointMap.from_sim_joint_names(
@@ -568,7 +611,9 @@ def _run_episode(
     action_joint_map = A2PiperJointMap.from_sim_joint_names(
         tuple(contract["sim_joint_names"]), device="cpu"
     )
-    tracker = DepthAddStageTracker(device="cpu")
+    runtime_config = yaml.safe_load(resolved_config.resolve(strict=True).read_text(encoding="utf-8"))
+    task_config = runtime_config["env"]["config"]
+    tracker = DepthAddStageTracker.from_task_config(task_config, device="cpu")
     warp = FullActionWarpR5(contract=ResolvedActionWarpContractR5.from_config(resolved_config), joint_map=action_joint_map, stage_tracker=tracker)
     frame_builder, history = A2BaseFrameBuilder(policy_joint_map), A2BaseHistory(batch_size=1, device=device, dtype=torch.float32); gait = SensorClock(batch_size=1, physics_dt=PHYSICS_DT, device=device, dtype=torch.float32)
     trunk = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "trunk"); ids = {"tcp":mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_SITE,"a2_piper_tcp"), "pregrasp":mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_SITE,"door_pregrasp_target"), "grasp":mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_SITE,"door_grasp_target")}
@@ -665,6 +710,13 @@ def _run_episode(
     stage2_both_contact_steps = 0
     stage2_valid_squeeze_steps = 0
     stage2_max_squeeze_streak = 0
+    forced_gripper_close_applied_steps = 0
+    policy_prefix_applied_steps = 0
+    policy_prefix_rows = (
+        [json.loads(line) for line in diagnostic_policy_prefix_trace.resolve(strict=True).open()]
+        if diagnostic_policy_prefix_trace is not None
+        else None
+    )
     last_control_step = -1
     with (case_dir/"policy_trace.jsonl").open("w") as policy_trace, (case_dir/"physics_trace.jsonl").open("w") as physics_trace, (case_dir/"first39_policy_diagnostic.jsonl").open("w") as first39_trace:
         for step in range(1000):
@@ -703,7 +755,34 @@ def _run_episode(
                 alignment["camera_frame_ids"][alignment_count] = [frames[name] for name in POLICY_CAMERA_NAMES]
                 alignment["camera_source_timestamps_s"][alignment_count] = [last[name] for name in POLICY_CAMERA_NAMES]
                 alignment["control_time_s"][alignment_count] = float(data.time)
-            raw=policy.act_inference(obs); action=tracker.apply_high_level_action(raw.detach().cpu()); base=warp.warp_base_command(action.effective_high_level_action[:, :5]); frame=frame_builder.build(projected_gravity=_torch(gravity,device),dof_pos=_torch(q,device),default_dof_pos=default,dof_vel=_torch(qd,device),previous_leg_action=previous_leg,physical_base_command=base.physical.to(device),base_roll_pitch=_torch(roll_pitch,device),gait_clock=gait.signal()); legs=policy.act_a2_base(history.append(frame)); warped=warp.compose_simulator_action(stage_action=action,base=base,policy_leg_action=legs.detach().cpu(),default_dof_pos=default.detach().cpu()); target=warped.position_target.double(); previous_logical=warped.logical_action.to(device); previous_delta=action.raw_arm_delta_echo.to(device); previous_physical=base.physical.to(device); previous_leg=legs
+            live_policy_raw = policy.act_inference(obs)
+            policy_raw = live_policy_raw
+            recorded_prefix_row = None
+            recorded_policy_prefix_applied = (
+                policy_prefix_rows is not None and tracker.stage <= STAGE_GRASP
+            )
+            if recorded_policy_prefix_applied:
+                if step >= len(policy_prefix_rows):
+                    raise RuntimeError("diagnostic policy prefix ended before Stage3 entry")
+                recorded_prefix_row = policy_prefix_rows[step]
+                if recorded_prefix_row.get("step") != step or recorded_prefix_row.get("stage") != tracker.stage:
+                    raise RuntimeError("diagnostic policy prefix step/stage differs from live tracker")
+                policy_raw = torch.tensor(
+                    recorded_prefix_row["high_action12"],
+                    dtype=torch.float32,
+                    device=device,
+                ).unsqueeze(0)
+                policy_prefix_applied_steps += 1
+            raw = policy_raw
+            forced_gripper_close_applied = (
+                diagnostic_force_close_stage34
+                and tracker.stage in (STAGE_OPEN, STAGE_SWING)
+            )
+            if forced_gripper_close_applied:
+                raw = policy_raw.clone()
+                raw[:, 11] = -1.0
+                forced_gripper_close_applied_steps += 1
+            action=tracker.apply_high_level_action(raw.detach().cpu()); base=warp.warp_base_command(action.effective_high_level_action[:, :5]); frame=frame_builder.build(projected_gravity=_torch(gravity,device),dof_pos=_torch(q,device),default_dof_pos=default,dof_vel=_torch(qd,device),previous_leg_action=previous_leg,physical_base_command=base.physical.to(device),base_roll_pitch=_torch(roll_pitch,device),gait_clock=gait.signal()); live_legs=policy.act_a2_base(history.append(frame)); legs = live_legs if recorded_prefix_row is None else torch.tensor(recorded_prefix_row["leg_action12"], dtype=torch.float32, device=device).unsqueeze(0); warped=warp.compose_simulator_action(stage_action=action,base=base,policy_leg_action=legs.detach().cpu(),default_dof_pos=default.detach().cpu()); target=warped.position_target.double(); previous_logical=warped.logical_action.to(device); previous_delta=action.raw_arm_delta_echo.to(device); previous_physical=base.physical.to(device); previous_leg=legs
             raw_gripper_primitive = float(raw[0, 11].item())
             is_stage2_close = action.stage_used_for_action == STAGE_GRASP and raw_gripper_primitive <= 0.0
             stage2_pre_physics = {
@@ -758,20 +837,26 @@ def _run_episode(
             if step < 39:
                 _row_json(first39_trace, {"step": step, "control_time_s": float(data.time), "actor_obs81": obs["actor_obs"].squeeze(0).detach().cpu().tolist(), "camera_meta6": obs["camera_meta"].squeeze(0).detach().cpu().tolist(), "camera_frame_ids": [frames[name] for name in POLICY_CAMERA_NAMES], "camera_source_timestamps_s": [last[name] for name in POLICY_CAMERA_NAMES], "student_action12": raw.squeeze(0).detach().cpu().tolist()})
             for sub in range(4):
-                mapping.write_robot_position_target(data,target.squeeze(0).numpy())
+                target_realization = mapping.realize_velocity_limited_pd_target(
+                    model, data, target.squeeze(0).numpy(), velocity_limit20
+                )
+                mapping.write_robot_position_target(data, target_realization.drive_target20)
                 gate_released_this_substep = gate.update(data) if gate is not None else False
                 if gate_released_this_substep:
                     released = True
                     gate_release_control_step = step
                     gate_release_substep = sub
-                mujoco.mj_step(model,data); torque=mapping.robot_actuator_force(data)
+                projection = mapping.step_with_declared_endpoint_velocity_projection(
+                    model, data, velocity_limit20
+                )
+                torque = projection.native_actuator_force20
                 if not np.isfinite(torque).all(): raise FloatingPointError(f"nonfinite torque in {row['case_id']} step {step}.{sub}")
                 max_handle_hinge_rad = max(max_handle_hinge_rad, float(data.qpos[ids["handle_qpos"]]))
                 max_door_hinge_rad = max(max_door_hinge_rad, float(data.qpos[ids["door_qpos"]]))
                 if max_latch_slide_qpos_m is not None and latch_slide_qpos is not None:
                     max_latch_slide_qpos_m = max(max_latch_slide_qpos_m, float(data.qpos[latch_slide_qpos]))
                     max_abs_latch_slide_qpos_m = max(max_abs_latch_slide_qpos_m, abs(float(data.qpos[latch_slide_qpos])))
-                gait.advance(base.physical[:,:3].to(device)); max_qacc=max(max_qacc,float(np.max(np.abs(data.qacc)))); max_torque=max(max_torque,float(np.max(np.abs(torque)))); _row_json(physics_trace,{"control_step":step,"substep":sub,"time_s":float(data.time),"root_qpos7":data.qpos[:7].tolist(),"root_qvel6":data.qvel[:6].tolist(),"qpos20":data.qpos[mapping.robot_qpos_addresses].tolist(),"qvel20":data.qvel[mapping.robot_qvel_addresses].tolist(),"target20":target.squeeze(0).tolist(),"torque20":torque.tolist(),"door_hinge_rad":float(data.qpos[ids["door_qpos"]]),"handle_hinge_rad":float(data.qpos[ids["handle_qpos"]]),"latch_mode":fixed_latch_mode,"constraint_gate_active":None if gate is None else gate.active(data),"constraint_gate_released_this_substep":gate_released_this_substep,"latch_slide_qpos_m":None if latch_slide_qpos is None else float(data.qpos[latch_slide_qpos])})
+                gait.advance(base.physical[:,:3].to(device)); max_qacc=max(max_qacc,float(np.max(np.abs(data.qacc)))); max_torque=max(max_torque,float(np.max(np.abs(torque)))); _row_json(physics_trace,{"control_step":step,"substep":sub,"time_s":float(data.time),"root_qpos7":data.qpos[:7].tolist(),"root_qvel6":data.qvel[:6].tolist(),"qpos20":data.qpos[mapping.robot_qpos_addresses].tolist(),"qvel20":data.qvel[mapping.robot_qvel_addresses].tolist(),"raw_target20":target_realization.raw_target20.tolist(),"drive_target20":target_realization.drive_target20.tolist(),"target_shaping_mask20":target_realization.shaping_mask20.tolist(),"target_shaping_count":target_realization.shaping_count,"target_shaping_delta20_rad":target_realization.shaping_delta20.tolist(),"target_shaping_max_abs_delta_rad":target_realization.max_abs_delta_rad,"runtime_primary_realization":MUJOCO_LOCAL_DECLARED_REALIZATION,"velocity_limit_runtime_realization":MUJOCO_LOCAL_DECLARED_REALIZATION,"native_pre_projection_qpos20":projection.native_qpos20.tolist(),"native_pre_projection_qvel20":projection.native_qvel20.tolist(),"endpoint_qpos_correction20":projection.qpos_correction20.tolist(),"endpoint_velocity_projection_mask20":projection.projected_mask20.tolist(),"endpoint_velocity_projection_count":projection.projected_count,"native_velocity_limit_max_ratio":projection.native_max_velocity_limit_ratio,"projected_velocity_limit_max_ratio":projection.projected_max_velocity_limit_ratio,"native_pre_projection_actuator_force20":torque.tolist(),"native_pre_projection_qfrc_actuator20_Nm":projection.native_qfrc_actuator20_nm.tolist(),"native_pre_projection_qfrc_constraint20_Nm":projection.native_qfrc_constraint20_nm.tolist(),"endpoint_projection_backup_realization":DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,"endpoint_projection_backup_role":"BACKUP_TELEMETRY","contact_solref_realization":"receipt:plant_realization.geoms","door_hinge_rad":float(data.qpos[ids["door_qpos"]]),"handle_hinge_rad":float(data.qpos[ids["handle_qpos"]]),"latch_mode":fixed_latch_mode,"constraint_gate_active":None if gate is None else gate.active(data),"constraint_gate_released_this_substep":gate_released_this_substep,"latch_slide_qpos_m":None if latch_slide_qpos is None else float(data.qpos[latch_slide_qpos])})
                 if data.time + 1e-12 >= next_surface_redraw:
                     sampled_redraw = sample_surface_redraw(realization, surface_redraw_index)
                     applied_redraw = apply_surface_redraw_to_model(model, sampled_redraw)
@@ -841,7 +926,7 @@ def _run_episode(
             }
             vision_stats = torch.stack((obs["vision_obs"].amin(dim=(1,2)), obs["vision_obs"].amax(dim=(1,2)), obs["vision_obs"].mean(dim=(1,2))), dim=1).squeeze(0).detach().cpu().tolist()
             head_stats = torch.stack((obs["context_vision_obs"].amin(dim=(1,2)), obs["context_vision_obs"].amax(dim=(1,2)), obs["context_vision_obs"].mean(dim=(1,2))), dim=1).squeeze(0).detach().cpu().tolist()
-            _row_json(policy_trace,{"step":step,"time_s":control_time_s,"actor_obs81":obs["actor_obs"].squeeze(0).detach().cpu().tolist(),"camera_meta6":obs["camera_meta"].squeeze(0).detach().cpu().tolist(),"vision_obs8_min_max_mean":vision_stats,"context_vision_obs3_min_max_mean":head_stats,"input_frames":input_frames,"high_action12":raw.squeeze(0).detach().cpu().tolist(),"leg_action12":legs.squeeze(0).detach().cpu().tolist(),"logical_action19":warped.logical_action.squeeze(0).tolist(),"target20":target.squeeze(0).tolist(),"stage":action.stage_used_for_action,"stage_after_observation":stage.stage,"augmentation":input_augmentation,"stage2_telemetry":{"pre_physics":stage2_pre_physics,"post_physics":stage2_post_physics}})
+            _row_json(policy_trace,{"step":step,"time_s":control_time_s,"actor_obs81":obs["actor_obs"].squeeze(0).detach().cpu().tolist(),"camera_meta6":obs["camera_meta"].squeeze(0).detach().cpu().tolist(),"vision_obs8_min_max_mean":vision_stats,"context_vision_obs3_min_max_mean":head_stats,"input_frames":input_frames,"live_policy_high_action12":live_policy_raw.squeeze(0).detach().cpu().tolist(),"high_action12":policy_raw.squeeze(0).detach().cpu().tolist(),"post_forced_override_high_action12":raw.squeeze(0).detach().cpu().tolist(),"recorded_policy_prefix_applied":recorded_policy_prefix_applied,"forced_gripper_close_applied":forced_gripper_close_applied,"live_leg_action12":live_legs.squeeze(0).detach().cpu().tolist(),"leg_action12":legs.squeeze(0).detach().cpu().tolist(),"logical_action19":warped.logical_action.squeeze(0).tolist(),"target20":target.squeeze(0).tolist(),"raw_target20":target.squeeze(0).tolist(),"target_authority":"policy/source raw target before MUJOCO_LOCAL_DECLARED_REALIZATION","stage":action.stage_used_for_action,"stage_after_observation":stage.stage,"augmentation":input_augmentation,"stage2_telemetry":{"pre_physics":stage2_pre_physics,"post_physics":stage2_post_physics}})
             if alignment is not None:
                 components = _stage0_alignment_components(stage_observation, tracker)
                 for name, value in components.items():
@@ -900,14 +985,41 @@ def _run_episode(
         "lane": row.get("lane"),
         "stress_profile": row.get("stress_profile"),
         "result": "COMPLETE",
-        "goal_reached": status.terminal_reason == "complete",
+        "torch_runtime_determinism": {
+            "torch_deterministic_algorithms": True,
+            "cudnn_deterministic": True,
+            "cudnn_benchmark": False,
+            "cublas_workspace_config": ":4096:8",
+            "end_to_end_bitwise_replay": "INCONCLUSIVE_EGL_RENDER_AND_CONTACT_CLOSED_LOOP",
+        },
+        "goal_reached": status.goal_reached,
         "max_stage": status.stage,
         "terminal_reason": status.terminal_reason or "horizon",
         "stage": status.as_dict(),
         "realized_parameters": row,
         "initial_state_realization": initial_state.receipt(contract["sim_joint_names"]),
+        "plant_realization": plant_realization,
+        "target_realization": {
+            "status": MUJOCO_LOCAL_DECLARED_REALIZATION,
+            "formula": "drive_target20 = qpos20 + clip(raw_target20 - qpos20, -velocity_limit20 * KD20 / KP20, +velocity_limit20 * KD20 / KP20)",
+            "raw_target_authority": "Student policy/source target20 before local MuJoCo realization",
+            "boundary": "MuJoCo-local declared realization; not PhysX or native-engine equivalence",
+            "endpoint_projection": {
+                "role": "BACKUP_TELEMETRY",
+                "realization": DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
+            },
+        },
         "visual_overlay": visual_receipt,
         "mechanics_diagnostic": mechanics_diagnostic,
+        "action_intervention": {
+            "diagnostic_force_close_stage34": diagnostic_force_close_stage34,
+            "forced_gripper_close_value": -1.0 if diagnostic_force_close_stage34 else None,
+            "forced_gripper_close_stages": [STAGE_OPEN, STAGE_SWING] if diagnostic_force_close_stage34 else [],
+            "forced_gripper_close_applied_control_steps": forced_gripper_close_applied_steps,
+            "diagnostic_policy_prefix_trace": None if diagnostic_policy_prefix_trace is None else str(diagnostic_policy_prefix_trace.resolve()),
+            "diagnostic_policy_prefix_applied_control_steps": policy_prefix_applied_steps,
+            "authority_boundary": "matches the existing Isaac eval diagnostic override surface; formal Student eval keeps it disabled",
+        },
         "surface_redraws": surface_redraw_receipts,
         "surface_redraw_boundary": "after each physics step before due camera capture",
         "t0_views": ["left_raw_renderer_rgb","left_post_color_pipeline_rgb","left_rgbd","right_raw_renderer_rgb","right_post_color_pipeline_rgb","right_rgbd","head_raw_renderer_rgb","head_post_color_pipeline_rgb","head_rgb","door_front_pos_x","door_front_neg_x"],
@@ -964,6 +1076,8 @@ def run(args: argparse.Namespace) -> None:
     mechanics_diagnostic_requested = (
         args.fixed_latch_mode != "constraint_gate"
         or args.constraint_gate_release_handle_rad is not None
+        or args.diagnostic_force_close_stage34
+        or args.diagnostic_policy_prefix_trace is not None
     )
     if mechanics_diagnostic_requested and (
         args.suite != "primary" or args.lane != "fixed"
@@ -982,6 +1096,8 @@ def run(args: argparse.Namespace) -> None:
         rows=[row for row in rows if row["lane"] == args.lane]
     selected=[row for index,row in enumerate(rows) if index % args.shard_count == args.shard_index]
     if not selected: raise RuntimeError("selected shard has no rows")
+    if args.diagnostic_policy_prefix_trace is not None and len(selected) != 1:
+        raise ValueError("--diagnostic-policy-prefix-trace requires exactly one selected episode")
     policy=load_depthadd_v3_policy(args.bundle_dir,source_workspace=args.source_workspace,device=args.device); robot=_prepared_paths(output)["robot_xml"]
     for row in selected:
         receipt=output/"episodes"/str(row["case_id"])/"receipt.json"
@@ -1008,6 +1124,16 @@ def run(args: argparse.Namespace) -> None:
                 raise RuntimeError(
                     f"existing receipt does not match requested fixed latch mode: {receipt}"
                 )
+            completed_intervention = completed.get("action_intervention", {})
+            if completed_intervention.get("diagnostic_force_close_stage34", False) != args.diagnostic_force_close_stage34:
+                raise RuntimeError(
+                    f"existing receipt does not match requested Stage3/4 force-close diagnostic: {receipt}"
+                )
+            expected_prefix = None if args.diagnostic_policy_prefix_trace is None else str(args.diagnostic_policy_prefix_trace.resolve(strict=True))
+            if completed_intervention.get("diagnostic_policy_prefix_trace") != expected_prefix:
+                raise RuntimeError(
+                    f"existing receipt does not match requested policy prefix trace: {receipt}"
+                )
             continue
         _run_episode(
             row,
@@ -1020,6 +1146,8 @@ def run(args: argparse.Namespace) -> None:
             fixed_nominal_appearance_factor=args.fixed_nominal_appearance_factor,
             fixed_latch_mode=args.fixed_latch_mode,
             constraint_gate_release_handle_rad=args.constraint_gate_release_handle_rad,
+            diagnostic_force_close_stage34=args.diagnostic_force_close_stage34,
+            diagnostic_policy_prefix_trace=args.diagnostic_policy_prefix_trace,
         )
 
 
@@ -1475,7 +1603,8 @@ def reduce(args: argparse.Namespace) -> None:
 
 
 def main() -> None:
-    parser=argparse.ArgumentParser(); parser.add_argument("--mode",choices=("prepare","run","reduce-admission","reduce","export-alignment"),required=True); parser.add_argument("--bundle-dir",type=Path,required=True); parser.add_argument("--source-workspace",type=Path,required=True); parser.add_argument("--robot-urdf",type=Path,required=True); parser.add_argument("--experiment-yaml",type=Path,required=True); parser.add_argument("--output-dir",type=Path,required=True); parser.add_argument("--baseline-output-dir",type=Path); parser.add_argument("--device",default="cuda:0"); parser.add_argument("--suite",choices=("primary","stress"),default="primary"); parser.add_argument("--lane",choices=("fixed","visual_only","door_only","combined")); parser.add_argument("--limit-base-cases",type=int); parser.add_argument("--shard-index",type=int,default=0); parser.add_argument("--shard-count",type=int,default=1); parser.add_argument("--empirical-source-nominal-appearance-calibration",action="store_true",help="legacy fixed-only empirical t0 calibration; not material/shader authority"); parser.add_argument("--fixed-nominal-appearance-factor",choices=fixed_nominal_appearance_factor_names(),help="fixed-only controlled ablation: stable_baseline applies all factors; named factors withhold exactly that factor"); parser.add_argument("--fixed-latch-mode",choices=("constraint_gate","physical_collision","no_latch"),default="constraint_gate",help="fixed-only mechanics diagnostic; default preserves the existing constraint gate"); parser.add_argument("--constraint-gate-release-handle-rad",type=float,help="constraint_gate-only release threshold in (0, pi/4]"); args=parser.parse_args()
+    _configure_deterministic_torch_runtime()
+    parser=argparse.ArgumentParser(); parser.add_argument("--mode",choices=("prepare","run","reduce-admission","reduce","export-alignment"),required=True); parser.add_argument("--bundle-dir",type=Path,required=True); parser.add_argument("--source-workspace",type=Path,required=True); parser.add_argument("--robot-urdf",type=Path,required=True); parser.add_argument("--experiment-yaml",type=Path,required=True); parser.add_argument("--output-dir",type=Path,required=True); parser.add_argument("--baseline-output-dir",type=Path); parser.add_argument("--device",default="cuda:0"); parser.add_argument("--suite",choices=("primary","stress"),default="primary"); parser.add_argument("--lane",choices=("fixed","visual_only","door_only","combined")); parser.add_argument("--limit-base-cases",type=int); parser.add_argument("--shard-index",type=int,default=0); parser.add_argument("--shard-count",type=int,default=1); parser.add_argument("--empirical-source-nominal-appearance-calibration",action="store_true",help="legacy fixed-only empirical t0 calibration; not material/shader authority"); parser.add_argument("--fixed-nominal-appearance-factor",choices=fixed_nominal_appearance_factor_names(),help="fixed-only controlled ablation: stable_baseline applies all factors; named factors withhold exactly that factor"); parser.add_argument("--fixed-latch-mode",choices=("constraint_gate","physical_collision","no_latch"),default="constraint_gate",help="fixed-only mechanics diagnostic; default preserves the existing constraint gate"); parser.add_argument("--constraint-gate-release-handle-rad",type=float,help="constraint_gate-only release threshold in (0, pi/4]"); parser.add_argument("--diagnostic-force-close-stage34",action="store_true",help="apply the existing Isaac diagnostic -1 gripper override only while the tracker is in Stage3/4"); parser.add_argument("--diagnostic-policy-prefix-trace",type=Path,help="replay recorded high-level and leg actions through Stage2, then return to the live policy"); args=parser.parse_args()
     if args.constraint_gate_release_handle_rad is not None:
         if args.fixed_latch_mode != "constraint_gate":
             raise ValueError("--constraint-gate-release-handle-rad requires --fixed-latch-mode constraint_gate")
@@ -1486,9 +1615,11 @@ def main() -> None:
         and (
             args.fixed_latch_mode != "constraint_gate"
             or args.constraint_gate_release_handle_rad is not None
+            or args.diagnostic_force_close_stage34
+            or args.diagnostic_policy_prefix_trace is not None
         )
     ):
-        raise ValueError("fixed latch diagnostics are available only with --mode run")
+        raise ValueError("fixed mechanics/action diagnostics are available only with --mode run")
     if args.limit_base_cases is not None and args.limit_base_cases <= 0: raise ValueError("--limit-base-cases must be positive")
     if args.shard_count <= 0 or not 0 <= args.shard_index < args.shard_count: raise ValueError("invalid shard selection")
     if args.empirical_source_nominal_appearance_calibration and args.fixed_nominal_appearance_factor is not None:

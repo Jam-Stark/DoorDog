@@ -20,6 +20,7 @@ class A2PiperRobotContract:
     stiffness: tuple[float, ...]
     damping: tuple[float, ...]
     torque_limit: tuple[float, ...]
+    velocity_limit: tuple[float, ...]
     action_scale: float
 
     def as_dict(self) -> dict[str, object]:
@@ -59,6 +60,13 @@ def resolved_a2_piper_contract() -> A2PiperRobotContract:
             120.0, 120.0, 180.0,
             120.0, 120.0, 180.0,
             40.0, 40.0, 40.0, 40.0, 40.0, 40.0, 45.0, 45.0,
+        ),
+        velocity_limit=(
+            22.0, 22.0, 14.6667,
+            22.0, 22.0, 14.6667,
+            22.0, 22.0, 14.6667,
+            22.0, 22.0, 14.6667,
+            5.0, 5.0, 5.0, 5.0, 5.0, 3.0, 1.0, 1.0,
         ),
         action_scale=0.25,
     )

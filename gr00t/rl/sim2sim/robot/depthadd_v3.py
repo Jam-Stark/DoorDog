@@ -12,6 +12,9 @@ from typing import Any, Mapping
 import mujoco
 import yaml
 
+from gr00t.rl.sim2sim.mujoco.actuator_map_v2 import (
+    DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION,
+)
 from .contract import A2PiperRobotContract
 from .mjcf_builder import WORLD_TO_OPENGL_WXYZ, _id_map, _quat_multiply, _values
 
@@ -44,12 +47,18 @@ class DepthADDV3MjcfBuilder:
         names = tuple(control["joint_order"])
         defaults = tuple(float(value) for value in control["default_joint_pos_in_joint_order"])
         effort = tuple(float(value) for value in control["effort_limit_nm_in_joint_order"])
+        resolved_robot = self.resolved_config["env"]["config"]["robot"]
+        velocity = tuple(float(value) for value in resolved_robot["dof_vel_limit_list"])
         kp = control["kp_by_group"]
         kd = control["kd_by_group"]
         stiffness = tuple(float(kp["hip" if "hip" in name else "thigh" if "thigh" in name else "calf" if "calf" in name else name]) for name in names)
         damping = tuple(float(kd["hip" if "hip" in name else "thigh" if "thigh" in name else "calf" if "calf" in name else name]) for name in names)
-        if len(names) != 20 or not (len(defaults) == len(effort) == len(stiffness) == len(damping) == 20):
+        if len(names) != 20 or not (
+            len(defaults) == len(effort) == len(velocity) == len(stiffness) == len(damping) == 20
+        ):
             raise ValueError("DepthADD handoff must declare exactly 20 controlled joints")
+        if tuple(resolved_robot["dof_names"]) != names:
+            raise ValueError("resolved robot velocity-limit order disagrees with the handoff joint order")
         if int(control["physics_hz"]) != 200 or float(control["physics_dt_s"]) != 0.005:
             raise ValueError("DepthADD handoff requires 200 Hz / 0.005 s physics")
         if tuple(float(value) for value in self.plant_contract["plant"]["arm_effort_limit_nm"]) != effort[12:18]:
@@ -69,6 +78,7 @@ class DepthADDV3MjcfBuilder:
             stiffness=stiffness,
             damping=damping,
             torque_limit=effort,
+            velocity_limit=velocity,
             action_scale=float(self.resolved_config["env"]["config"]["robot"]["control"]["action_scale"]),
         )
 
@@ -194,12 +204,12 @@ class DepthADDV3MjcfBuilder:
         if tcp_site_id < 0 or int(model.site_group[tcp_site_id]) != 5:
             raise ValueError("DepthADD TCP marker must compile into MJCF group 5")
         frame_mapping = {"tcp": {"parent_body": "arm_body6", "tcp_body": "arm_body6_to_gripper", "tcp_site": "a2_piper_tcp", "local_offset_m": [0.0, 0.0, 0.085], "final_mjcf_group": int(model.site_group[tcp_site_id]), "policy_camera_visible": False, "authority": "DepthADD handoff task_and_plant.tcp_offset_z_m"}, "gripper_contact_bodies": ["arm_body7", "arm_body8"]}
-        contract = self.contract.as_dict() | {"robot_xml": str(output_xml.resolve()), "source_urdf": str(self.urdf_path), "floating_base_joint": "floating_base", "qpos_layout": {"floating_base": [0, 7], "actuated": [7, 27]}, "qvel_layout": {"floating_base": [0, 6], "actuated": [6, 26]}, "initial_state": {"root_qpos_mujoco_wxyz": list(self._initial_root_qpos()), "resolved_source_pos": self.resolved_config["env"]["config"]["robot"]["init_state"]["pos"], "resolved_source_rotation_xyzw": self.resolved_config["env"]["config"]["robot"]["init_state"]["rot"], "joint_position": list(self.contract.default_dof_pos)}, "actuator_names": expected_actuators, "position_pd": {"formula": "clip(kp*(q_target-q)-kd*qvel,-effort_limit,+effort_limit)", "mujoco_realization": "implicit affine general actuator with one combined force limit", "cadence": "target refreshed every 0.02 s; drive evaluated every 0.005 s physics step", "physics_hz": 200, "stiffness": self.contract.stiffness, "damping": self.contract.damping, "effort_limit_nm": self.contract.torque_limit}, "collision_masks": {"robot": {"contype": 1, "conaffinity": 2}, "environment": {"contype": 2, "conaffinity": 1}, "self_collisions": False}, "camera_receipts": camera_receipts, "frame_mapping": frame_mapping, "authority": {"policy_manifest": str(self.handoff_dir / "sim2sim_policy_manifest.yaml"), "resolved_config": str(self.handoff_dir / "resolved_config.yaml"), "plant_contract": str(self.handoff_dir / "depthadd_plant_observation_contract.json")}}
+        contract = self.contract.as_dict() | {"robot_xml": str(output_xml.resolve()), "source_urdf": str(self.urdf_path), "floating_base_joint": "floating_base", "qpos_layout": {"floating_base": [0, 7], "actuated": [7, 27]}, "qvel_layout": {"floating_base": [0, 6], "actuated": [6, 26]}, "initial_state": {"root_qpos_mujoco_wxyz": list(self._initial_root_qpos()), "resolved_source_pos": self.resolved_config["env"]["config"]["robot"]["init_state"]["pos"], "resolved_source_rotation_xyzw": self.resolved_config["env"]["config"]["robot"]["init_state"]["rot"], "joint_position": list(self.contract.default_dof_pos)}, "actuator_names": expected_actuators, "position_pd": {"formula": "clip(kp*(q_target-q)-kd*qvel,-effort_limit,+effort_limit)", "mujoco_realization": "implicit affine general actuator with one combined force limit", "cadence": "target refreshed every 0.02 s; drive evaluated every 0.005 s physics step", "physics_hz": 200, "stiffness": self.contract.stiffness, "damping": self.contract.damping, "effort_limit_nm": self.contract.torque_limit, "velocity_limit": self.contract.velocity_limit, "velocity_limit_authority": "resolved env.config.robot.dof_vel_limit_list -> IsaacLab ImplicitActuatorCfg.velocity_limit_sim", "velocity_limit_mujoco_realization": DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION, "velocity_limit_mujoco_realization_semantics": "post-native-step endpoint qvel projection plus implicitfast displacement correction; not a native MuJoCo constraint or PhysX-equivalence claim"}, "collision_masks": {"robot": {"contype": 1, "conaffinity": 2}, "environment": {"contype": 2, "conaffinity": 1}, "self_collisions": False}, "camera_receipts": camera_receipts, "frame_mapping": frame_mapping, "authority": {"policy_manifest": str(self.handoff_dir / "sim2sim_policy_manifest.yaml"), "resolved_config": str(self.handoff_dir / "resolved_config.yaml"), "plant_contract": str(self.handoff_dir / "depthadd_plant_observation_contract.json")}}
         resolved_robot = self.resolved_config["env"]["config"]["robot"]
         if tuple(resolved_robot["dof_names"]) != self.contract.sim_joint_names:
             raise ValueError("resolved armature joint order disagrees with the handoff joint order")
         contract["armature"] = tuple(float(value) for value in resolved_robot["dof_armature_list"])
-        report = {"schema": "doordog.sim2sim.depthadd_v3_robot_build_receipt.v1", "evidence_level": "STATIC_PASS", "mujoco_version": mujoco.__version__, "compiled": {"nq": model.nq, "nv": model.nv, "nu": model.nu, "nbody": model.nbody, "njnt": model.njnt, "ngeom": model.ngeom, "ncam": model.ncam}, "joint_ids": joint_ids, "actuator_ids": actuator_ids, "camera_ids": _id_map(model, mujoco.mjtObj.mjOBJ_CAMERA, model.ncam), "handoff_control": {"physics_hz": 200, "policy_hz": 50, "control_decimation": 4, "arm_effort_limit_nm": list(self.contract.torque_limit[12:18]), "gripper_pd_effort": {"kp": list(self.contract.stiffness[18:]), "kd": list(self.contract.damping[18:]), "effort_limit_nm": list(self.contract.torque_limit[18:])}}, "camera_receipts": camera_receipts, "frame_mapping": frame_mapping}
+        report = {"schema": "doordog.sim2sim.depthadd_v3_robot_build_receipt.v1", "evidence_level": "STATIC_PASS_WITH_DECLARED_PLANT_GAP", "mujoco_version": mujoco.__version__, "compiled": {"nq": model.nq, "nv": model.nv, "nu": model.nu, "nbody": model.nbody, "njnt": model.njnt, "ngeom": model.ngeom, "ncam": model.ncam}, "joint_ids": joint_ids, "actuator_ids": actuator_ids, "camera_ids": _id_map(model, mujoco.mjtObj.mjOBJ_CAMERA, model.ncam), "handoff_control": {"physics_hz": 200, "policy_hz": 50, "control_decimation": 4, "velocity_limit": list(self.contract.velocity_limit), "velocity_limit_mujoco_realization": DECLARED_ENDPOINT_VELOCITY_DISPLACEMENT_PROJECTION, "velocity_limit_mujoco_realization_semantics": "post-native-step endpoint qvel projection plus implicitfast displacement correction; not a native MuJoCo constraint or PhysX-equivalence claim", "arm_effort_limit_nm": list(self.contract.torque_limit[12:18]), "gripper_pd_effort": {"kp": list(self.contract.stiffness[18:]), "kd": list(self.contract.damping[18:]), "effort_limit_nm": list(self.contract.torque_limit[18:])}}, "camera_receipts": camera_receipts, "frame_mapping": frame_mapping}
         output_contract.write_text(json.dumps(contract, indent=2) + "\n")
         output_report.write_text(json.dumps(report, indent=2) + "\n")
 

@@ -28,10 +28,12 @@ class PairedSceneBuilderV2:
         door_xml: Path,
         *,
         armature_by_joint: Mapping[str, float],
+        door_root_position: tuple[float, float, float] = (1.0, 0.0, 0.0),
     ):
         self.robot_xml = robot_xml.resolve(strict=True)
         self.door_xml = door_xml.resolve(strict=True)
         self.armature_by_joint = dict(armature_by_joint)
+        self.door_root_position = door_root_position
 
     def write(self, output_xml: Path, output_report: Path) -> None:
         output_xml = output_xml.resolve()
@@ -114,7 +116,7 @@ class PairedSceneBuilderV2:
         door_root = door_world.find("body[@name='door_root']")
         if door_root is None:
             raise ValueError("door MJCF lacks door_root")
-        door_root.set("pos", "1.0 0 0")
+        door_root.set("pos", _format(self.door_root_position))
         robot_world.append(door_root)
 
         for section_name in ("default", "contact", "equality"):
@@ -208,6 +210,7 @@ class PairedSceneBuilderV2:
             "mujoco_version": mujoco.__version__,
             "scene_xml": str(output_xml),
             "source_identity": {"robot": str(self.robot_xml), "door": str(self.door_xml)},
+            "door_root_position_m": list(self.door_root_position),
             "compiled": {
                 "nq": model.nq,
                 "nv": model.nv,

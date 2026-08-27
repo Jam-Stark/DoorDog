@@ -1,0 +1,11 @@
+# @package _global_
+# Natural Phase-B capture with only handle side missing from pre-release readiness.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6q
+  - _self_
+
+env:
+  config:
+    a2_pull_v6_near_c_capture_mode: handle_side_missing
+    a2_pull_v6_bank_overlay_base_path: logs_rl/a2_piper_pull_v6/pre_release_bank/pull_v6_F0_natural_bc_oracle_d_bank_v3.pt

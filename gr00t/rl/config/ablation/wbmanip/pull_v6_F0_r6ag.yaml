@@ -1,0 +1,21 @@
+# @package _global_
+# P2-r6ag concentrates direct open-action credit on the isolated C/D gripper means.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6af
+  - _self_
+
+experiment_name: pull_v6_F0_r6ag
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  trl:
+    num_total_batches: 25
+
+rewards:
+  reward_scales:
+    a2_pull_v6_release_open_command_quality: 96.0
+    a2_pull_v6_post_release_open_command_quality: 8.0

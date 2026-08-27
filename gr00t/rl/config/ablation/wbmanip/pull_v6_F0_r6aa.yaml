@@ -1,0 +1,16 @@
+# @package _global_
+# P2-r6aa continues r6z from its step-25 checkpoint with action-timed release credit.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6z
+  - _self_
+
+experiment_name: pull_v6_F0_r6aa
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  trl:
+    num_total_batches: 25

@@ -1,0 +1,100 @@
+# @package _global_
+# Lightweight right-hinge, in-opening canonical behavior-creation specialist.
+
+defaults:
+  - /ablation/wbmanip/pull_v4_B_frame_approach
+  - /rewards/wbmanip/reward_pull_v6_send_past_body
+  - _self_
+
+checkpoint: logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 256
+headless: true
+use_wandb: false
+experiment_name: pull_v6_F0
+project_name: a2_piper_pull_v6_send_past_body
+
+algo:
+  trl:
+    num_total_batches: 250
+
+callbacks:
+  model_save:
+    save_frequency: 50
+
+env:
+  config:
+    max_episode_length_s: 24
+    max_stage_time: [250, 100, 100, 100, 250, 300]
+    a2_pull_v4_g6_budget_eval: false
+    a2_v20_R1_plan_id: a2_piper_pull_v6_send_door_past_body
+    a2_pull_door_open_io: in
+    a2_pull_door_open_lr: right
+    a2_pull_add_walls: false
+    a2_door_weight_range: [90.0, 90.0001]
+    a2_pull_hook_profile: ABSENT
+    a2_pull_friction_profile: RESOLVED_V20_G4
+    a2_pull_finger_profile: V20_G4_45N_KP1300_KD32
+    a2_pull_threshold_mode: hard_gate
+    a2_pull_effort_provenance: ESTIMATE_ONLY
+    a2_stage3_to4_door_hinge_threshold: 0.25
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.25
+    a2_pull_e3_latch_threshold_m: 0.02292371541261673
+    a2_stage3_to4_requires_grasp_streak: true
+    a2_stage4_release_hinge_threshold: 1.60
+    a2_stage4_to5_door_hinge_threshold: 1.25
+    a2_v20_send_hinge_threshold: 1.0
+    a2_v20_R1_send_curriculum_enabled: false
+    a2_v20_R1_snapshot_guard_enabled: false
+    a2_v20_send_latch_enabled: false
+    a2_v20_pre_send_crossing_mode: disabled
+    a2_v20_telemetry_enabled: false
+    a2_v20_traversal_economics_enabled: false
+    a2_corridor_latch_mode: legacy_root_or_hinge
+    a2_v20_arm_tie_enabled: false
+    a2_v20_arm_tangent_carry_scale: 0.0
+    a2_v20_handle_arc_tracking_scale: 0.0
+    a2_v20_R2_evidence_enabled: false
+    a2_v20_formal_launch: false
+    a2_pull_v6_release_hinge_rad: 1.3089969389957472
+    a2_pull_v6_release_min_hinge_velocity_radps: 0.15
+    a2_pull_v6_release_min_clearance_m: 0.02
+    a2_pull_v6_release_min_arm_margin: 0.08
+    a2_pull_v6_release_min_arm_tangent_share: 0.60
+    a2_pull_v6_base_relief_radius_m: 0.15
+    a2_pull_v6_target_handle_y_m: -0.08
+    a2_pull_v6_release_handle_y_m: 0.06
+    a2_pull_v6_arc_position_tolerance_m: 0.08
+    a2_pull_v6_arc_orientation_tolerance_rad: 0.35
+    a2_pull_v6_tangent_activity_floor_mps: 0.02
+    a2_pull_v6_release_persistence_steps: 25
+    a2_pull_v6_arm_default_l1_reference: 30.0
+    a2_pull_v6_stage4_bank_row_label: uniform
+    a2_pull_v6_near_c_capture_mode: none
+
+robot:
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
+  ]
+  control:
+    stiffness:
+      arm_j7: 1300.0
+      arm_j8: 1300.0
+    damping:
+      arm_j7: 32.0
+      arm_j8: 32.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2

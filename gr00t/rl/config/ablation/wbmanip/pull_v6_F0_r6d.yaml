@@ -1,0 +1,18 @@
+# @package _global_
+# P2-r6d immediate post-release action-target shaping.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6c_hi
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6c_hi_seed2/model_step_000050.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6d
+
+rewards:
+  reward_scales:
+    penalty_a2_stage4_arm_default_pose_l1: 0.0
+    penalty_a2_pull_v6_post_release_gripper_open_l1: 0.0
+    a2_pull_v6_post_release_arm_default_target_quality: 2.0
+    a2_pull_v6_post_release_open_command_quality: 2.0

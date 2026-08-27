@@ -1,0 +1,19 @@
+# @package _global_
+# P2-r6am replaces D-only lateral sign credit with world waypoint velocity tracking.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6al
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6al_seed3/model_step_000025.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6am
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  trl:
+    num_total_batches: 50

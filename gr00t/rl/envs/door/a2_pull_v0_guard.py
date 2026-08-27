@@ -1241,10 +1241,6 @@ def validate_a2_pull_v6_guard(
                 "Pull-v6 runtime reward scales require either general handle-side "
                 "progress or gated handoff side progress."
             )
-        if has_handoff_side and "a2_pull_v6_handoff_hinge_momentum" not in reward_scales:
-            raise RuntimeError(
-                "Pull-v6 gated handoff side progress requires handoff hinge momentum."
-            )
     return {"plan_id": A2_PULL_V6_PLAN_ID, "release_persistence_steps": 25}
 
 

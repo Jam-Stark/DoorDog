@@ -1,0 +1,15 @@
+# @package _global_
+# P2-r5c in-process true-E5 staged-reset specialist.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r5b
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r5b_seed0/model_step_000200.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r5c
+
+env:
+  config:
+    staged_reset_ratios: [0.1, 0.0, 0.0, 0.0, 0.9, 0.0]

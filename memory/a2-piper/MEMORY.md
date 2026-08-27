@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-22 01:36 HKT — v0–v5.6-r2 已收口；pull-v6 lightweight “送门过身” implementation contract active：E5 后由 base-dominant retreat 切到 arm-dominant handle 换侧，heading 自由，positive-velocity release 后 immediate through。首轮只做轻门；GPU0–3 全部授权并行训练/实验/test。当前仅 PLAN，code/runtime/training NOT_RUN。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-25 14:16 HKT — pull-v6 lightweight “送门过身” 已有首个 90 kg light-door strict-natural E7 winner：r6an seed3 step25 + r6ap time contract 的 env14 完成 clean release、frame passage、E6/E7，并由五相机 68 s render 复现 `reason-complete`。这是 single-episode behavior-creation proof；multi-seed/scenario robustness、重门/强 closer 与 post-release regrasp/brace 仍属 TODO。
 
 ## Update Rules
 

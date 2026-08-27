@@ -1,0 +1,13 @@
+# @package _global_
+# P2-r6c high-energy release screening cell.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6c
+  - _self_
+
+experiment_name: pull_v6_F0_r6c_hi
+
+env:
+  config:
+    a2_pull_v6_release_hinge_rad: 1.3962634015954636
+    a2_pull_v6_release_min_hinge_velocity_radps: 0.20

@@ -1,0 +1,17 @@
+# @package _global_
+# P2-r6l lower-energy release timing continuation.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6k
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6k_seed2/model_step_000100.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6l
+
+env:
+  config:
+    a2_pull_v6_release_hinge_rad: 1.1344640137963142
+    a2_pull_v6_release_min_hinge_velocity_radps: 0.15
+    a2_pull_v6_release_min_arm_margin: 0.07

@@ -1,0 +1,30 @@
+# @package _global_
+# P2-r6ae freezes the best 135-D carrier and trains only the release-mode gripper residual.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ad
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6ab_seed3/model_step_000025_actor_obs135_release_residual.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6ae
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor_learning_rate: 1.0e-3
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_release_residual_actor.PullV6ReleaseResidualActor
+  trl:
+    num_total_batches: 25
+
+env:
+  config:
+    staged_reset_ratios: [0.01, 0.0, 0.0, 0.0, 0.99, 0.0]
+    a2_pull_v6_stage4_bank_enabled: true
+    a2_pull_v6_stage4_bank_path: logs_rl/a2_piper_pull_v6/pre_release_bank/pull_v6_F0_natural_bc_oracle_d_bank_v3.pt
+    a2_pull_v6_stage4_bank_row_label: pre_release_phase_c

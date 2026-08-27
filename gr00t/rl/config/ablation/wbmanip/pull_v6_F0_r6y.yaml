@@ -1,0 +1,11 @@
+# @package _global_
+# P2-r6y signed continuous gripper credit inside the corrected C release window.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6x
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6x_seed0/model_step_000025.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6y

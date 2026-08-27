@@ -1,15 +1,15 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure + pull-v6 lightweight send-past-body active plan
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure + pull-v6 lightweight send-past-body F0 closure
 status: active
-last_updated: 2026-08-22 01:36 HKT
+last_updated: 2026-08-25 14:16 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
   - memory/a2-piper/pull-open-door-task/TODO.md
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
-  - 实施 pull-v6 lightweight send-past-body，或复用 pull-v5.6/v5.5 T1 gate boundary / pull-v5.4 scheduler boundary / pull-v5.3 H-D boundary 前
+  - 复用 pull-v6 lightweight send-past-body F0 winner，或扩展 light-door robustness / heavier-door release strategy 前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
@@ -17,7 +17,14 @@ read_when:
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter、pull-v5.6-r2 specialist closure与 pull-v6 active plan 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter、pull-v5.6-r2 specialist closure与 pull-v6 F0 closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v6 Lightweight Send-Past-Body F0 Closure (2026-08-25 14:16 HKT) — FIRST STRICT-NATURAL E7 WINNER
+
+- Winner checkpoint：`logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt`；最终 eval contract：`gr00t/rl/config/ablation/wbmanip/pull_v6_F0_r6ap.yaml`。r6ap 只把已证明仍在稳定向 −X 行走的 Stage5/global time budget 扩为 `800` steps / `36 s`，不改 actor、observation、reward 或 door physics。
+- Strict-natural 16-env seed3 eval 的 env14 是首个完整 winner：Phase C/release-ready step356、clean release step357、release persistence K25 step384、frame passage step620、E6 step739、E7 step1308，terminal `complete`；`arm_tangent_share=0.7974`、release hinge=`1.2477 rad`、release hinge velocity=`+0.3719 rad/s`、post-release recontact=`2`、最终 persistence=`998`。该 batch 只有 env14 成功，所以这是 behavior-creation proof，不是 light-door population robustness proof。
+- 同 checkpoint/config/seed/env14 的五相机 runtime render 复现 `goal_reached=true`、Stage5、`crossing_while_holding=false`、terminal `reason-complete`，生成 main、handle top、handle side、world +X、world −X 五个 68 s MP4。render 必须保持 `num_envs=16` 才能复现 env14 的 scenario identity，并通过 `render_env_ids=[14]` 只写该 env。
+- v6 最终机制边界：2D release mode observation；ready/released gripper mean override；D-only current-observation absolute base/arm mean；post-release arm tuck progress + persistent arm-default quality；world-frame door-through waypoint velocity tracking。heading 仍自由，release 后不 regrasp；当前已证实 90 kg light-door F0，不外推到重门/强 closer。
 
 ## Pull-v6 Lightweight Send-Past-Body Plan (2026-08-22 01:36 HKT) — AUTHORIZED / PLAN ONLY
 

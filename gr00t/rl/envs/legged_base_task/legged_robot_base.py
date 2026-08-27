@@ -756,6 +756,43 @@ class LeggedRobotBase(BaseTask):
                 f"got {type(write_terminal_frame).__name__}"
             )
 
+        render_env_ids_raw = render_config.get("render_env_ids", None)
+        if render_env_ids_raw is None:
+            render_env_ids = torch.arange(
+                self.num_envs, device=self.device, dtype=torch.long
+            )
+        else:
+            if not isinstance(render_env_ids_raw, (list, tuple)):
+                from omegaconf import ListConfig as _LC
+
+                if not isinstance(render_env_ids_raw, _LC):
+                    raise TypeError(
+                        "env.config.eval_rendering.render_env_ids must be a list of "
+                        f"unique integer env ids, got {type(render_env_ids_raw).__name__}"
+                    )
+            render_env_ids_list = list(render_env_ids_raw)
+            if any(
+                isinstance(env_id, bool)
+                or not isinstance(env_id, (int, np.integer))
+                for env_id in render_env_ids_list
+            ):
+                raise TypeError(
+                    "env.config.eval_rendering.render_env_ids must contain only "
+                    "integer env ids"
+                )
+            if len(set(render_env_ids_list)) != len(render_env_ids_list):
+                raise ValueError(
+                    "env.config.eval_rendering.render_env_ids must contain unique env ids"
+                )
+            if any(env_id < 0 or env_id >= self.num_envs for env_id in render_env_ids_list):
+                raise IndexError(
+                    "env.config.eval_rendering.render_env_ids contains an env id "
+                    f"outside [0, {self.num_envs}): {render_env_ids_list}"
+                )
+            render_env_ids = torch.tensor(
+                render_env_ids_list, device=self.device, dtype=torch.long
+            )
+
         # Optional additional cameras (multi-camera eval). Missing or empty =>
         # backward-compatible single-camera behavior (only "main").
         additional_cameras_raw = render_config.get("additional_cameras", [])
@@ -840,6 +877,7 @@ class LeggedRobotBase(BaseTask):
             "fps": int(fps),
             "write_initial_frame": write_initial_frame,
             "write_terminal_frame": write_terminal_frame,
+            "render_env_ids": render_env_ids,
             "additional_cameras": additional_cameras,
         }
         return self._eval_rendering_config_cache
@@ -995,6 +1033,9 @@ class LeggedRobotBase(BaseTask):
             raise ValueError(f"unknown render frame_type {frame_type!r}")
 
         env_ids = self._normalize_render_env_ids(env_ids)
+        env_ids = env_ids[
+            torch.isin(env_ids, render_config["render_env_ids"])
+        ]
         if env_ids.numel() == 0:
             return
 
@@ -1024,10 +1065,10 @@ class LeggedRobotBase(BaseTask):
         for cam_name in poses:
             camera = eval_cameras[cam_name]
             camera.update(dt=0.0, force_recompute=True)
-            rgb = camera.data.output["rgb"].clone()
-            for env_id in env_id_list:
+            rgb = camera.data.output["rgb"][env_ids].clone()
+            for row_idx, env_id in enumerate(env_id_list):
                 writer = self._open_eval_render_writer(env_id, cam_name)
-                writer.append_data(rgb[env_id].cpu().numpy())
+                writer.append_data(rgb[row_idx].cpu().numpy())
 
     def close_render_results_for_envs(self, env_ids, episode_lengths=None, terminal_reasons=None):
         if not self._render_results_enabled():

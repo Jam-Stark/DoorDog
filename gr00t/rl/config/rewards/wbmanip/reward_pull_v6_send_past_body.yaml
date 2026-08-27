@@ -1,0 +1,32 @@
+# @package _global_
+
+defaults:
+  - /rewards/wbmanip/reward_door_open_a2_pull
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 0.0
+    push_door_force: 0.0
+    a2_stage3_unlatch_hold: 3.0
+    a2_stage3_stage4_hold_and_drive: 8.0
+    dont_push_door_handle: 3.0
+    target_root_distance: 12.0
+    pull_door_handle: 6.0
+    pull_door_hinge: 6.0
+    a2_corridor_door_wide: 0.0
+    a2_corridor_clean_passage: 1.0
+    a2_pull_frame_approach: 6.0
+    penalty_a2_v20_pre_send_crossing: 0.0
+    a2_v20_arm_tangent_carry: 0.0
+    a2_v20_handle_arc_tracking: 0.0
+    a2_pull_v6_arm_tangent_progress: 8.0
+    a2_pull_v6_handle_side_progress: 5.0
+    a2_pull_v6_handle_side_bonus: 12.0
+    a2_pull_v6_arc_tracking: 4.0
+    a2_pull_v6_pivot_excess_penalty: -8.0
+    a2_pull_v6_hinge_momentum: 3.0
+    a2_pull_v6_clean_release_quality: 20.0
+    a2_pull_v6_premature_release_penalty: -12.0
+    a2_pull_v6_post_release_persistence: 2.0

@@ -57,6 +57,12 @@ _A2_PULL_P2_INTERVENTION_ENABLE_KEY = "a2_pull_p2_intervention_enabled"
 _A2_PULL_P2_INTERVENTION_DURATION_KEY = "a2_pull_p2_intervention_duration_s"
 _A2_PULL_P2_INTERVENTION_HINGE_KEY = "a2_pull_p2_intervention_hinge_threshold_rad"
 _A2_PULL_P2_INTERVENTION_TRACE_KEY = "a2_pull_p2_intervention_trace_path"
+_A2_PULL_V6_PASSAGE_LATERAL_ENABLED_KEY = "a2_pull_v6_passage_lateral_counterfactual_enabled"
+_A2_PULL_V6_PASSAGE_LATERAL_TARGET_ENV_KEY = "a2_pull_v6_passage_lateral_target_env_id"
+_A2_PULL_V6_PASSAGE_LATERAL_GAIN_KEY = "a2_pull_v6_passage_lateral_gain_s_inv"
+_A2_PULL_V6_PASSAGE_LATERAL_MAX_SPEED_KEY = "a2_pull_v6_passage_lateral_max_world_y_speed_mps"
+_A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY = "a2_pull_v6_passage_lateral_trigger_max_deficit_m"
+_A2_PULL_V6_PASSAGE_LATERAL_PIVOT_GUARD_KEY = "a2_pull_v6_passage_lateral_pivot_guard_m"
 _V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
 _V21B_METRIC_SOURCES = {
     "send_latch_fire_rate": "a2_v21B_send_latch_fire_rate",
@@ -1929,6 +1935,55 @@ def _read_a2_eval_diagnostic_config(eval_config):
             "eval.a2_diagnostic_trace_enabled=true for action auditability."
         )
 
+    passage_lateral_enabled = eval_config.get(
+        _A2_PULL_V6_PASSAGE_LATERAL_ENABLED_KEY, False
+    )
+    if not isinstance(passage_lateral_enabled, bool):
+        raise RuntimeError(
+            f"eval.{_A2_PULL_V6_PASSAGE_LATERAL_ENABLED_KEY} must be bool; "
+            f"got {passage_lateral_enabled!r}."
+        )
+    passage_lateral = {"enabled": passage_lateral_enabled}
+    if passage_lateral_enabled:
+        if not diagnostic_enabled:
+            raise RuntimeError(
+                "Pull-v6 passage lateral counterfactual requires "
+                "eval.a2_diagnostic_trace_enabled=true."
+            )
+        if eval_config.get("a2_hold_oracle_enabled", False):
+            raise RuntimeError(
+                "Pull-v6 passage lateral counterfactual is standalone and requires "
+                "eval.a2_hold_oracle_enabled=false."
+            )
+        target_env_id = eval_config.get(_A2_PULL_V6_PASSAGE_LATERAL_TARGET_ENV_KEY)
+        if isinstance(target_env_id, bool) or not isinstance(target_env_id, int) or target_env_id < 0:
+            raise RuntimeError(
+                f"eval.{_A2_PULL_V6_PASSAGE_LATERAL_TARGET_ENV_KEY} must be a non-negative int; "
+                f"got {target_env_id!r}."
+            )
+        finite_positive = {}
+        for key in (
+            _A2_PULL_V6_PASSAGE_LATERAL_GAIN_KEY,
+            _A2_PULL_V6_PASSAGE_LATERAL_MAX_SPEED_KEY,
+            _A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY,
+            _A2_PULL_V6_PASSAGE_LATERAL_PIVOT_GUARD_KEY,
+        ):
+            value = eval_config.get(key)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0.0:
+                raise RuntimeError(f"eval.{key} must be a finite positive float; got {value!r}.")
+            finite_positive[key] = float(value)
+        if finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY] > 0.10:
+            raise RuntimeError(
+                f"eval.{_A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY} must be <= 0.10 m."
+            )
+        passage_lateral.update(
+            target_env_id=target_env_id,
+            gain_s_inv=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_GAIN_KEY],
+            max_world_y_speed_mps=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_MAX_SPEED_KEY],
+            trigger_max_deficit_m=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY],
+            pivot_guard_m=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_PIVOT_GUARD_KEY],
+        )
+
     reward_terms = eval_config.get("a2_diagnostic_reward_terms", ())
     if diagnostic_enabled:
         if not isinstance(reward_terms, (list, tuple, ListConfig)):
@@ -1998,6 +2053,7 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "p2_intervention": p2_intervention,
         "strict_m41_telemetry": strict_m41_telemetry,
         "strict_v20_telemetry": strict_v20_telemetry,
+        "passage_lateral": passage_lateral,
     }
 
 
@@ -5122,6 +5178,7 @@ class TRLPPOTrainer(PPOTrainer):
             self.config.get("eval", {})
         )
         a2_p2_intervention = a2_eval_diagnostics["p2_intervention"]
+        a2_passage_lateral = a2_eval_diagnostics["passage_lateral"]
         a2_characterization = _read_a2_pull_v5_characterization_config(
             capture_env_config,
             eval_num_envs_episodes=eval_num_envs_episodes,
@@ -5163,6 +5220,8 @@ class TRLPPOTrainer(PPOTrainer):
         a2_stage2_trace_enabled = bool(getattr(self.env, "_use_a2_base", False))
         if a2_eval_diagnostics["diagnostic_enabled"] and not a2_stage2_trace_enabled:
             raise RuntimeError("A2 eval diagnostics can only be enabled for an A2_Base env.")
+        if a2_passage_lateral["enabled"] and not a2_stage2_trace_enabled:
+            raise RuntimeError("Pull-v6 passage lateral counterfactual requires an A2_Base env.")
         if a2_stage2_trace_enabled:
             init_stage2_trace = getattr(self.env, "init_a2_eval_stage2_step_trace", None)
             if init_stage2_trace is None:
@@ -5189,6 +5248,20 @@ class TRLPPOTrainer(PPOTrainer):
                 raise RuntimeError(
                     "A2 hold oracle and generic eval forced-close intervention are mutually exclusive."
                 )
+            if a2_passage_lateral["enabled"]:
+                if not eval_num_envs_episodes:
+                    raise RuntimeError(
+                        "Pull-v6 passage lateral counterfactual requires "
+                        "eval.eval_num_envs_episodes=true for first-episode isolation."
+                    )
+                init_passage_lateral = getattr(
+                    self.env, "init_a2_eval_r6u_passage_lateral_counterfactual", None
+                )
+                if init_passage_lateral is None:
+                    raise RuntimeError(
+                        "Pull-v6 passage lateral counterfactual requires env init hook."
+                    )
+                init_passage_lateral(a2_passage_lateral)
             hold_detail_enabled = self.env._get_a2_hold_contact_detail_enabled()
             if hold_detail_enabled and not a2_eval_diagnostics["diagnostic_enabled"]:
                 raise RuntimeError(
@@ -5404,6 +5477,21 @@ class TRLPPOTrainer(PPOTrainer):
                                 )
                             post_oracle_override_pre_env_action, _ = apply_hold_oracle(
                                 post_forced_override_pre_env_action,
+                                first_episode_active_mask,
+                            )
+
+                        if a2_passage_lateral["enabled"]:
+                            apply_passage_lateral = getattr(
+                                self.env,
+                                "apply_a2_eval_r6u_passage_lateral_counterfactual",
+                                None,
+                            )
+                            if apply_passage_lateral is None:
+                                raise RuntimeError(
+                                    "Pull-v6 passage lateral counterfactual requires env action hook."
+                                )
+                            post_oracle_override_pre_env_action, _ = apply_passage_lateral(
+                                post_oracle_override_pre_env_action,
                                 first_episode_active_mask,
                             )
 
@@ -6291,13 +6379,14 @@ class TRLPPOTrainer(PPOTrainer):
             safe_stage2_trace = strict_safe_stage2_trace or _make_json_safe(
                 get_stage2_trace(), path="stage2_step_trace"
             )
-            for trace_filename in ("stage2_5_step_trace.json", "stage2_step_trace.json"):
-                stage2_trace_path = os.path.join(eval_output_dir, trace_filename)
-                stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
-                with open(stage2_trace_tmp_path, "w") as f:
-                    json.dump(safe_stage2_trace, f, indent=4, allow_nan=False)
-                os.replace(stage2_trace_tmp_path, stage2_trace_path)
-                logger.info(f"Saved A2 stage2-5 step trace to {stage2_trace_path}")
+            stage2_trace_path = os.path.join(
+                eval_output_dir, "stage2_5_step_trace.json"
+            )
+            stage2_trace_tmp_path = f"{stage2_trace_path}.tmp"
+            with open(stage2_trace_tmp_path, "w") as f:
+                json.dump(safe_stage2_trace, f, indent=4, allow_nan=False)
+            os.replace(stage2_trace_tmp_path, stage2_trace_path)
+            logger.info(f"Saved A2 stage2-5 step trace to {stage2_trace_path}")
 
         metrics_eval_path = os.path.join(eval_output_dir, "metrics_eval.json")
         metrics_eval_tmp_path = f"{metrics_eval_path}.tmp"
@@ -6329,6 +6418,24 @@ class TRLPPOTrainer(PPOTrainer):
                 source_row=env_config["a2_pull_v5_bank_capture_source_row"],
             )
             self._a2_pull_v5_bank_capture_exported = True
+        v6_bank_capture_path = (
+            env_config.get("a2_pull_v6_bank_capture_path")
+            if isinstance(env_config, Mapping)
+            else None
+        )
+        if v6_bank_capture_path is not None:
+            if not isinstance(v6_bank_capture_path, str) or not v6_bank_capture_path:
+                raise RuntimeError("Pull-v6 pre-release bank capture path must be a non-empty string.")
+            if getattr(self, "_a2_pull_v6_bank_capture_exported", False):
+                raise RuntimeError("Pull-v6 pre-release bank exporter may run only once per evaluator.")
+            export_v6_bank = getattr(self.env, "export_a2_pull_v6_pre_release_bank", None)
+            if export_v6_bank is None:
+                raise RuntimeError(
+                    "Pull-v6 pre-release bank capture requires "
+                    "env.export_a2_pull_v6_pre_release_bank()."
+                )
+            export_v6_bank(v6_bank_capture_path)
+            self._a2_pull_v6_bank_capture_exported = True
         census_output_path = env_config.get("a2_pull_v5_census_output_path") if isinstance(env_config, Mapping) else None
         if census_output_path is not None:
             export_census = getattr(self.env, "export_a2_pull_v5_census", None)

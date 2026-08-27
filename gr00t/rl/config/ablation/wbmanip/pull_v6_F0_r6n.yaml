@@ -1,0 +1,16 @@
+# @package _global_
+# P2-r6n dynamic in-process B/C snapshot continuation.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6m
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6k_seed2/model_step_000100.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6n
+
+env:
+  config:
+    staged_reset_ratios: [0.5, 0.0, 0.0, 0.0, 0.5, 0.0]
+    a2_pull_v6_stage4_bank_enabled: false

@@ -1,0 +1,15 @@
+# @package _global_
+# P2-r4 base-tangent ownership cost.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r3
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r3_seed2/model_step_000100.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r4
+
+rewards:
+  reward_scales:
+    a2_pull_v6_base_tangent_penalty: -12.0

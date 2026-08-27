@@ -134,6 +134,9 @@ A2_PULL_V6_CONTROL_EXTENSION_UNITS = {
     "arc_quality": "ratio",
     "panel_clearance_m": "m_or_N/A",
     "workspace_margin": "ratio_or_N/A",
+    "frame_lateral_delta_y_m": "m_or_N/A",
+    "frame_lateral_deficit_m": "m_or_N/A",
+    "passage_ready": "bool",
     "release_ready": "bool",
     "release_event": "bool",
     "clean_release": "bool",
@@ -155,11 +158,11 @@ def validate_a2_pull_v6_control_extension(record: Mapping[str, Any]) -> None:
             raise ValueError(f"pull_v6 telemetry.{name} must be a non-negative integer.")
     if int(record["stage4_subphase"]) > 3:
         raise ValueError("pull_v6 telemetry.stage4_subphase must be one of 0/1/2/3.")
-    for name in ("pivot_valid", "handle_crossed", "release_side_qualified", "handoff_active", "handoff_reached", "release_ready", "release_event", "clean_release"):
+    for name in ("pivot_valid", "handle_crossed", "release_side_qualified", "handoff_active", "handoff_reached", "passage_ready", "release_ready", "release_event", "clean_release"):
         if not isinstance(record[name], bool):
             raise ValueError(f"pull_v6 telemetry.{name} must be bool.")
     for name in set(A2_PULL_V6_CONTROL_EXTENSION_UNITS).difference(
-        {"stage4_subphase", "release_persistence_steps", "handoff_active_steps", "pivot_valid", "handle_crossed", "release_side_qualified", "handoff_active", "handoff_reached", "release_ready", "release_event", "clean_release"}
+        {"stage4_subphase", "release_persistence_steps", "handoff_active_steps", "pivot_valid", "handle_crossed", "release_side_qualified", "handoff_active", "handoff_reached", "passage_ready", "release_ready", "release_event", "clean_release"}
     ):
         value = record[name]
         if value != A2_PULL_NA and not _is_finite_real(value):

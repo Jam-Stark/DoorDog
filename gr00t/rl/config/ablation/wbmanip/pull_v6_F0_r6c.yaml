@@ -1,0 +1,16 @@
+# @package _global_
+# P2-r6c directional post-release arm return and gripper-open shaping.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6b
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6b_seed1/model_step_000050.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6c
+
+rewards:
+  reward_scales:
+    penalty_a2_stage4_arm_default_pose_l1: -1.0
+    penalty_a2_pull_v6_post_release_gripper_open_l1: -2.0

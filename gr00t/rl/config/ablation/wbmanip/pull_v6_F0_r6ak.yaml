@@ -1,0 +1,22 @@
+# @package _global_
+# P2-r6ak replaces D-only carrier means from current actor observations.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6aj
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6ag_seed2/model_step_000025_post_release_obs_override.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6ak
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor.PullV6PostReleaseObsOverrideActor
+  trl:
+    num_total_batches: 50

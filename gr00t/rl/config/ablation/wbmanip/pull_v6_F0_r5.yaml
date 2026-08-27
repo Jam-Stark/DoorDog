@@ -1,0 +1,17 @@
+# @package _global_
+# P2-r5 gated arm-dominant handoff curriculum.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r3
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r4_seed2/model_step_000050.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r5
+
+rewards:
+  reward_scales:
+    a2_pull_v6_handle_side_progress: 0.0
+    a2_pull_v6_handoff_side_progress: 24.0
+    a2_pull_v6_handoff_hinge_momentum: 2.0

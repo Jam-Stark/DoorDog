@@ -1,0 +1,29 @@
+# @package _global_
+# P2-r6ah learns a D-only post-release carrier residual from r6ag seed2.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ag
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6ag_seed2/model_step_000025_post_release_d_head.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6ah
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_actor.PullV6PostReleaseActor
+  trl:
+    num_total_batches: 50
+
+env:
+  config:
+    staged_reset_ratios: [0.01, 0.0, 0.0, 0.0, 0.99, 0.0]
+    a2_pull_v6_stage4_bank_enabled: true
+    a2_pull_v6_stage4_bank_path: logs_rl/a2_piper_pull_v6/pre_release_bank/pull_v6_F0_natural_bc_oracle_d_bank_v3.pt
+    a2_pull_v6_stage4_bank_row_label: uniform

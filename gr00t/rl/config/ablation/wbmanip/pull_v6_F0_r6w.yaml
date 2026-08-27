@@ -1,0 +1,15 @@
+# @package _global_
+# P2-r6w remove the Phase-B hinge-momentum refund for wrong lateral base motion.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6v
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6u_seed0/model_step_000025.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6w
+
+rewards:
+  reward_scales:
+    a2_pull_v6_handoff_hinge_momentum: 0.0

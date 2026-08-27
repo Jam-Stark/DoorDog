@@ -16,6 +16,7 @@ env:
       fps: 20
       write_initial_frame: true
       write_terminal_frame: true
+      render_env_ids: null
       additional_cameras:
         - name: handle_top
           camera_mode: handle_top_down

@@ -1,0 +1,27 @@
+# @package _global_
+# P2-r6af replaces the frozen carrier gripper mean in the explicit release modes.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ae
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6ab_seed3/model_step_000025_actor_obs135_release_mode_override.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6af
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor_learning_rate: 1.0e-3
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_release_mode_actor.PullV6ReleaseModeActor
+  trl:
+    num_total_batches: 25
+
+env:
+  config:
+    staged_reset_ratios: [0.01, 0.0, 0.0, 0.0, 0.99, 0.0]

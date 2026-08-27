@@ -1,0 +1,23 @@
+# @package _global_
+# P2-r6aj adds clean-release lateral command credit in Phase D.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ai
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6ai_seed1/model_step_000050.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6aj
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  trl:
+    num_total_batches: 25
+
+rewards:
+  reward_scales:
+    a2_pull_v6_post_release_lateral_command_alignment: 6.0

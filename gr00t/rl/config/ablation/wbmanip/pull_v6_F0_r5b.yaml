@@ -1,0 +1,11 @@
+# @package _global_
+# P2-r5b strict-entry-latched smooth handoff reward.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r5
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r5_retry1_seed2/model_step_000200.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r5b

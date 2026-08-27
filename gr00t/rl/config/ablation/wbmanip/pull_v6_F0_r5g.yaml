@@ -1,0 +1,15 @@
+# @package _global_
+# P2-r5g strengthen signed hinge ownership during bounded handoff.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r5f
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r5f_seed2/model_step_000050.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r5g
+
+rewards:
+  reward_scales:
+    a2_pull_v6_handoff_hinge_momentum: 12.0

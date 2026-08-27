@@ -1,0 +1,30 @@
+# @package _global_
+# P2-r6t passage-alignment curriculum from the natural Phase-B passage-near-C row.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6s_h0
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6s_h0_seed0/model_step_000050.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6t
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  trl:
+    num_total_batches: 50
+
+env:
+  config:
+    staged_reset_ratios: [0.5, 0.0, 0.0, 0.0, 0.5, 0.0]
+    a2_pull_v6_stage4_bank_enabled: true
+    a2_pull_v6_stage4_bank_path: logs_rl/a2_piper_pull_v6/pre_release_bank/pull_v6_F0_near_c_passage_missing_seed2_bank_v3.pt
+    a2_pull_v6_stage4_bank_row_label: e5_phase_b
+
+rewards:
+  scales:
+    a2_pull_v6_passage_alignment_deficit: -6.0

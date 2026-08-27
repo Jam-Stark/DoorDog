@@ -1,0 +1,16 @@
+# @package _global_
+# P2-r6ap provides the final whole-body-clear census window after proven E6.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6an
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6ap
+
+env:
+  config:
+    max_stage_time: [250, 100, 100, 100, 250, 800]
+    max_episode_length_s: 36

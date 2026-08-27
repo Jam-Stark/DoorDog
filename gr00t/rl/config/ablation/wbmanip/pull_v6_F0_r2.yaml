@@ -1,0 +1,24 @@
+# @package _global_
+# P2 reward-ownership correction: monotone side creation and arm-dominant release.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_seed2/model_step_000150.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r2
+
+env:
+  config:
+    a2_pull_v6_release_min_arm_tangent_share: 0.60
+
+rewards:
+  reward_scales:
+    a2_pull_v6_arm_tangent_progress: 12.0
+    a2_pull_v6_handle_side_progress: 10.0
+    a2_pull_v6_handle_side_bonus: 30.0
+    a2_pull_v6_pivot_excess_penalty: -20.0
+    a2_pull_v6_hinge_momentum: 4.0
+    a2_pull_v6_clean_release_quality: 30.0

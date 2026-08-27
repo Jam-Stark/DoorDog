@@ -1,0 +1,11 @@
+# @package _global_
+# P2-r5e signed bounded-owner hinge shaping.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r5d
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r5d_seed3/model_step_000250.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r5e

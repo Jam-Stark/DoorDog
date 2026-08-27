@@ -1,0 +1,11 @@
+# @package _global_
+# P2-r3 arm-owned side-transfer reward correction.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r2
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r2_seed3/model_step_000150.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r3

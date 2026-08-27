@@ -1,0 +1,23 @@
+# @package _global_
+# P2-r6ab strengthens the action-timed release-open credit from r6aa.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6aa
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6aa_seed0/model_step_000025.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_F0_r6ab
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  trl:
+    num_total_batches: 25
+
+rewards:
+  reward_scales:
+    a2_pull_v6_release_open_command_quality: 24.0

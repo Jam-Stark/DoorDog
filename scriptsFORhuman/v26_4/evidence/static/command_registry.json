@@ -1,0 +1,72 @@
+{
+  "schema": "a2_piper_base_v26_4_command_registry_v1",
+  "status": "STATIC_PASS",
+  "canonicalization_key": "env.config.a2_v26_4_side_canonicalization_enabled",
+  "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt",
+  "cells": [
+    {
+      "cell": "C0_CANONICAL_OFF",
+      "seeds": [
+        0,
+        1
+      ],
+      "canonicalization": false
+    },
+    {
+      "cell": "C1_CANONICAL_ON",
+      "seeds": [
+        0,
+        1
+      ],
+      "canonicalization": true
+    }
+  ],
+  "training_contract": {
+    "num_envs": 4096,
+    "bilateral_runtime_count": {
+      "left": 2048,
+      "right": 2048
+    },
+    "batches": 750,
+    "save_frequency": 125,
+    "canonical_checkpoints": [
+      125,
+      250,
+      500,
+      750
+    ],
+    "checkpoint_load_mode": "policy_only",
+    "policy_only_load_actor_rms": true,
+    "visible_devices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "physical_binding": "ACCELERATE_TORCH_DEVICE=cuda:<physical_gpu>"
+  },
+  "evaluation_contract": {
+    "per_checkpoint": true,
+    "sides": [
+      "left",
+      "right"
+    ],
+    "episodes_per_side": 64,
+    "natural_first_episode_only": true,
+    "checkpoint_load_mode": "full"
+  },
+  "commands": {
+    "train": "orchestrate_base_v26_4.sh main --gpus 0,1,2,3 --canonical-key env.config.a2_v26_4_side_canonicalization_enabled",
+    "eval": "orchestrate_base_v26_4.sh main-eval --gpus 0,1,2,3 --canonical-key env.config.a2_v26_4_side_canonicalization_enabled",
+    "analyze": "orchestrate_base_v26_4.sh analyze",
+    "closure": "orchestrate_base_v26_4.sh closure"
+  },
+  "gates": {
+    "before_train": [
+      "K typed outcome admits canonicalization",
+      "C CANONICAL_IDENTITY_PROOF_PASS"
+    ],
+    "source_lock": "path_size_mtime_no_content_hash",
+    "long_run": "one tmux-backed supervisor receipt per cell"
+  }
+}

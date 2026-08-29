@@ -38,6 +38,30 @@ Lease only actual exclusive resources: overlapping writer paths、GPU、IsaacSim
 - Runtime behavior changes require runtime evidence; policy-quality claims require registered evaluation or experiment evidence.
 - Simulation limits、commands 或 force proxies 不是 hardware safety evidence.
 
+### Verified base_v26-3 command registry (2026-08-27)
+
+The canonical v26-3 entry is `scriptsFORhuman/v26_3/orchestrate_base_v26_3.sh` with
+the registered `diagnostics`, `main`, `main-eval`, `conditional`, `final-eval`,
+`render`, and `closure` subcommands.  Its concrete workers are:
+
+```text
+scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh
+scriptsFORhuman/v26_3/run_base_v26_3_eval_lane.sh
+scriptsFORhuman/v26_3/run_base_v26_3_diagnostic_lane.sh
+scriptsFORhuman/v26_3/run_base_v26_3_main_eval_cell.sh
+scriptsFORhuman/v26_3/run_base_v26_3_f_eval_lane.sh
+scriptsFORhuman/v26_3/launch_base_v26_3_e1_render.sh
+scriptsFORhuman/v26_3/launch_base_v26_3_selected_render.sh
+```
+
+Runtime proof on physical GPU0–3: policy-only training uses all four visible
+devices plus `ACCELERATE_TORCH_DEVICE=cuda:<physical>`; natural evaluation uses
+the same binding; render exposes only the selected physical GPU and uses
+process-local `cuda:0`.  Construction produced a 64-env PPO checkpoint, and the
+D0/E1/E2/D3 evaluator workers completed their exact bilateral outputs through
+tmux-backed supervisor receipts.  Launchers fail on an existing output root and
+never select GPU4–7.
+
 ## Memory routing
 
 For non-trivial implementation、debugging、review 或 stage planning, read only the minimum relevant route:

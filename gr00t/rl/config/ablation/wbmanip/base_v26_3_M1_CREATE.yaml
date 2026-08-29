@@ -1,0 +1,18 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_3_event_time_creation
+  - _self_
+
+v26_cell: V26_3_M1_CREATE_S0
+
+env:
+  config:
+    a2_v26_2_handle_depression_scale: 0.0
+    a2_v26_3_handle_creation_scale: 6.0
+
+rewards:
+  reward_scales:
+    push_door_handle: 0.0
+    a2_stage3_handle_depression: 0.0
+    a2_stage3_handle_creation: 6.0

@@ -1,0 +1,62 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_lr_policy_continuation
+  - _self_
+
+v26_schema: a2_piper_base_v26_4_bilateral_grasp_foundation_v1
+v26_phase: V26_4_BILATERAL_GRASP_FOUNDATION
+v26_cell: V26_4_C0_CANONICAL_OFF_S0
+v26_source_candidate: CONT_STEP2000
+v26_4_plan_id: base_v26_4_bilateral_grasp_foundation_20260828
+
+checkpoint: logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt
+checkpoint_load_mode: policy_only
+policy_only_load_actor_rms: true
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+num_gpus: 1
+multi_gpu: false
+headless: true
+use_wandb: false
+
+algo:
+  trl:
+    num_total_batches: 750
+
+callbacks:
+  model_save:
+    save_frequency: 125
+
+env:
+  config:
+    a2_v26_door_open_lr: bilateral
+    a2_v26_side_permutation_seed: 0
+    a2_v26_4_side_canonicalization_enabled: false
+    a2_v26_2_telemetry_enabled: true
+    a2_v26_2_handle_depression_scale: 0.0
+    a2_v26_3_telemetry_enabled: true
+    a2_v26_3_handle_creation_scale: 6.0
+    a2_stage3_unlatch_near_closed_hinge_threshold: 0.1
+
+rewards:
+  reward_scales:
+    push_door_handle: 0.0
+    a2_stage3_handle_depression: 0.0
+    a2_stage3_handle_creation: 6.0
+
+robot:
+  control:
+    stiffness:
+      arm_j7: 800.0
+      arm_j8: 800.0
+    damping:
+      arm_j7: 25.0
+      arm_j8: 25.0
+
+simulator:
+  config:
+    sim:
+      physx:
+        num_velocity_iterations: 2

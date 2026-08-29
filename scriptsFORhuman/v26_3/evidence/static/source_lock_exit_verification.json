@@ -1,0 +1,63 @@
+{
+  "schema": "a2_piper_base_v26_3_source_lock_verification_v1",
+  "status": "SOURCE_LOCK_VERIFIED",
+  "verified_at": "2026-08-27T17:53:44.851666+00:00",
+  "identity_method": "path_size_mtime_no_content_hash",
+  "capture_receipt": "scriptsFORhuman/v26_3/evidence/static/source_lock.json",
+  "locked_files": {
+    "gr00t/rl/envs/door/a2_v26_3_creation.py": {
+      "size_bytes": 3042,
+      "mtime_ns": 1787831301927410491
+    },
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "size_bytes": 1392843,
+      "mtime_ns": 1787832959338551180
+    },
+    "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py": {
+      "size_bytes": 437336,
+      "mtime_ns": 1787831763922499930
+    },
+    "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v26_acquisition.yaml": {
+      "size_bytes": 5063,
+      "mtime_ns": 1787831864175016960
+    },
+    "gr00t/rl/config/ablation/wbmanip/base_v26_3_event_time_creation.yaml": {
+      "size_bytes": 1330,
+      "mtime_ns": 1787831864176016945
+    },
+    "gr00t/rl/config/ablation/wbmanip/base_v26_3_M0_OLD.yaml": {
+      "size_bytes": 345,
+      "mtime_ns": 1787831864176016945
+    },
+    "gr00t/rl/config/ablation/wbmanip/base_v26_3_M1_CREATE.yaml": {
+      "size_bytes": 348,
+      "mtime_ns": 1787831864176016945
+    },
+    "scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh": {
+      "size_bytes": 3172,
+      "mtime_ns": 1787834244200847068
+    }
+  },
+  "formal_receipts": {
+    "v26_3_main_m0_s0": {
+      "state": "PASS",
+      "process_returncode": 0,
+      "finished_at": null
+    },
+    "v26_3_main_m0_s1": {
+      "state": "PASS",
+      "process_returncode": 0,
+      "finished_at": null
+    },
+    "v26_3_main_m1_s0": {
+      "state": "PASS",
+      "process_returncode": 0,
+      "finished_at": null
+    },
+    "v26_3_main_m1_s1": {
+      "state": "PASS",
+      "process_returncode": 0,
+      "finished_at": null
+    }
+  }
+}

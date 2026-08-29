@@ -45,3 +45,37 @@
   outcome 为 `HANDLE_CREATION_NOT_SUPPORTED`；R→W
   `WALL_REMOVAL_NOT_SUPPORTED_IN_PUSH`。conditional relay 未运行；
   `W_STEP0750` render 为 Stage2/no goal；Teacher/Student handoff 不更新。
+- 2026-08-28 03:25 HKT - 完成v26-3 event-time creation实现、E1 current
+  Stage2-close-gate evaluator selector、M0/M1 configs、orchestrator、matrix/source-lock/
+  construction/mechanism/F reducers与focused test。natural exact1、staged snapshot、
+  64-env common-cap PPO smoke及D0/E1/E2/D3全部真实runtime PASS；E1为
+  `STAGE2_LIMIT_CYCLE_CAUSAL_CONFIRMATION`。
+- 2026-08-28 03:25 HKT - 完成F10/F20/F40每侧exact16与selected replay。较高cap
+  降低tracking error和estimated saturation但无durable creation，关闭为
+  `ACTUATOR_CAPACITY_NOT_CAUSAL_AT_TESTED_RANGE`；10/10成为正式共同配置，actual
+  drive force与handle-axis moment保持`INCONCLUSIVE`。
+- 2026-08-28 03:25 HKT - 完成M0_S0/M0_S1/M1_S0/M1_S1四格GPU0–3
+  4096-env×750、四份PASS receipt、125/250/500/750 checkpoints与32组共2048个
+  bilateral-natural first episodes。M1 RIGHT两seed creation为8/64、13/64，LEFT均0，
+  integrity0，最终`MONOTONE_CREATION_SEED_OR_SIDE_UNSTABLE`。P/W按前置分别
+  `NOT_RUN / PUSH_LOAD_BEARING_SIGNAL_INCONCLUSIVE`与
+  `NOT_RUN / WALL_REMOVAL_NOT_REACHED`；selected M1_S1_STEP0750 bilateral render
+  retry1 PASS。所有goal为0，Teacher/Student manifest不更新，G7 binding保持不变。
+- 2026-08-28 21:24 HKT - 完成v26-4 Wave K runtime：冻结Stage3匹配网格九对候选中
+  LEFT `9/9` reachable，RIGHT `9/9` first reject，唯一首拒为`arm_j4` upper-limit
+  overshoot（`0.003046–0.039405 rad`）；正式K outcome为
+  `BILATERAL_ASYMMETRIC_AT_arm_j4`。
+- 2026-08-28 21:24 HKT - 完成v26-4 C/M terminal routing：C ceiling为
+  `BILATERAL_FOUNDATION_REQUIRES_ASYMMETRIC_POSTURE`且canonical identity `NOT_RUN`；
+  M四格与metrics `NOT_RUN`。focused independent review PASS；Teacher/Student handoff与
+  Student G7 binding不变。
+- 2026-08-29 06:48 HKT - 完成v26-4 R2 K corrected geometry proof：FK mirror与冻结
+  Stage3网格通过，K outcome为`BILATERAL_ASYMMETRIC_IN_ACTION_OFFSET`，并将R1
+  defective-target arm_j4结论保留为历史而不再作为当前事实。
+- 2026-08-29 06:48 HKT - 完成R2 C/M：canonical identity CPU/static PASS、C1
+  runtime smoke PASS；C0/C1×seed0/1四格formal training与32组bilateral-natural
+  exact64 eval全部完成。按冻结§7 reducer，step750 C1 prereg bands未通过且seed1未达
+  三指标strict improvement，终态为`CANONICALIZATION_NOT_SUPPORTED`。training
+  orientation audit发现side-independent target offsets，作为v26-5输入；v2
+  max-handle与v3 high-water的不同exposure semantics已区分。无hardware evidence，
+  Teacher/Student handoff与G7 binding不变。

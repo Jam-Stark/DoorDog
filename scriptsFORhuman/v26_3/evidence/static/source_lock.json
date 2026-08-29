@@ -1,0 +1,79 @@
+{
+  "schema": "a2_piper_base_v26_3_source_lock_v1",
+  "status": "SOURCE_LOCK_CAPTURED",
+  "captured_at": "2026-08-27T12:58:12.251637+00:00",
+  "identity_method": "path_size_mtime_no_content_hash",
+  "locked_files": {
+    "gr00t/rl/envs/door/a2_v26_3_creation.py": {
+      "size_bytes": 3042,
+      "mtime_ns": 1787831301927410491
+    },
+    "gr00t/rl/envs/door/door_open_a2_base.py": {
+      "size_bytes": 1392843,
+      "mtime_ns": 1787832959338551180
+    },
+    "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py": {
+      "size_bytes": 437336,
+      "mtime_ns": 1787831763922499930
+    },
+    "gr00t/rl/config/rewards/wbmanip/reward_door_open_a2_v26_acquisition.yaml": {
+      "size_bytes": 5063,
+      "mtime_ns": 1787831864175016960
+    },
+    "gr00t/rl/config/ablation/wbmanip/base_v26_3_event_time_creation.yaml": {
+      "size_bytes": 1330,
+      "mtime_ns": 1787831864176016945
+    },
+    "gr00t/rl/config/ablation/wbmanip/base_v26_3_M0_OLD.yaml": {
+      "size_bytes": 345,
+      "mtime_ns": 1787831864176016945
+    },
+    "gr00t/rl/config/ablation/wbmanip/base_v26_3_M1_CREATE.yaml": {
+      "size_bytes": 348,
+      "mtime_ns": 1787831864176016945
+    },
+    "scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh": {
+      "size_bytes": 3172,
+      "mtime_ns": 1787834244200847068
+    }
+  },
+  "formal_receipts": {
+    "v26_3_main_m0_s0": {
+      "state": "RUNNING",
+      "launched_at": "2026-08-27T12:56:14+00:00",
+      "command": "bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh 0 M0 /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_3_event_time_creation_20260827/main/M0_S0 0 4096 750 125 10 ",
+      "resources": [
+        "GPU0",
+        "IsaacSim_GPU0"
+      ]
+    },
+    "v26_3_main_m0_s1": {
+      "state": "RUNNING",
+      "launched_at": "2026-08-27T12:56:15+00:00",
+      "command": "bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh 1 M0 /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_3_event_time_creation_20260827/main/M0_S1 1 4096 750 125 10 ",
+      "resources": [
+        "GPU1",
+        "IsaacSim_GPU1"
+      ]
+    },
+    "v26_3_main_m1_s0": {
+      "state": "RUNNING",
+      "launched_at": "2026-08-27T12:56:15+00:00",
+      "command": "bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh 2 M1 /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_3_event_time_creation_20260827/main/M1_S0 0 4096 750 125 10 ",
+      "resources": [
+        "GPU2",
+        "IsaacSim_GPU2"
+      ]
+    },
+    "v26_3_main_m1_s1": {
+      "state": "RUNNING",
+      "launched_at": "2026-08-27T12:56:15+00:00",
+      "command": "bash /home/baoquanc/workspace/DoorDog-A2_Piper/scriptsFORhuman/v26_3/run_base_v26_3_train_cell.sh 3 M1 /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt /home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_3_event_time_creation_20260827/main/M1_S1 1 4096 750 125 10 ",
+      "resources": [
+        "GPU3",
+        "IsaacSim_GPU3"
+      ]
+    }
+  },
+  "mutation_boundary": "do not modify locked source/config until M processes exit"
+}

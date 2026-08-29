@@ -44,6 +44,18 @@ from gr00t.rl.envs.base_task.a2_base import A2Base
 from gr00t.rl.envs.base_task.finger_primitive_base import FingerPrimitiveBase
 from gr00t.rl.envs.base_task.staged_task_base import StagedTaskBase
 from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
+from gr00t.rl.envs.door.a2_v26_3_creation import (
+    A2_V26_3_HANDLE_NORM_RAD,
+    a2_v26_3_update_handle_creation,
+)
+from gr00t.rl.envs.door.a2_v26_4_canonicalization import (
+    a2_v26_4_accumulate_physical_delta,
+    a2_v26_4_canonicalize_dof_values,
+    a2_v26_4_canonicalize_hand_force,
+    a2_v26_4_canonicalize_vector,
+    a2_v26_4_map_action_coordinates,
+    a2_v26_4_physical_delta_origin,
+)
 from gr00t.rl.envs.door.a2_v20_r2_evidence import (
     a2_v20_r2_append_record_set_staging,
     a2_v20_r2_canonical_json_bytes,
@@ -57,6 +69,8 @@ from gr00t.rl.envs.door.a2_v20_r2_evidence import (
     a2_v20_r2_trace_jsonl_bytes,
     a2_v20_r2_validate_trace_rows,
 )
+
+
 from gr00t.rl.envs.door.a2_v21b_evidence import (
     V21B_ARM_JOINT_NAMES,
     V21B_AUTHORITY_LABEL,
@@ -7296,6 +7310,7 @@ class DoorPregrasp(
         self._init_door_metadata()
         self._init_a2_v26_training_metrics()
         self._init_a2_v26_2_handle_depression_telemetry()
+        self._init_a2_v26_3_handle_creation_telemetry()
         self.root_idx = self.simulator.body_names.index(self.config.robot.torso_name)
         a2_gripper_body_names = ("arm_body7", "arm_body8")
         missing_gripper_bodies = [
@@ -7351,6 +7366,7 @@ class DoorPregrasp(
             self._load_delta_actions_buffer,
             dtype=torch.float32,
         )
+        self._register_a2_v26_3_staged_reset_buffers()
         self._register_a2_v20_staged_reset_buffers()
 
         self.resting_dof_pos = torch.tensor([self.config.resting_dof_pos], device=self.device)
@@ -7497,6 +7513,98 @@ class DoorPregrasp(
         self._a2_v26_2_stage4_below_threshold_on_first_admission = torch.zeros(
             self.num_envs, dtype=torch.long, device=self.device
         )
+
+    def _init_a2_v26_3_handle_creation_telemetry(self) -> None:
+        enabled = self.config.get("a2_v26_3_telemetry_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v26_3_telemetry_enabled must be bool.")
+        self._a2_v26_3_telemetry_enabled = enabled
+        if not enabled:
+            return
+        if not self._a2_v26_2_handle_depression_telemetry_enabled:
+            raise RuntimeError("v26-3 telemetry requires the existing v26-2 mechanism telemetry.")
+        float_names = (
+            "handle_pos_prev_control",
+            "handle_highwater",
+            "handle_highwater_prev",
+            "handle_delta_net",
+            "handle_delta_highwater",
+            "creation_raw_cached",
+            "creation_raw_income",
+            "creation_scaled_income",
+            "endpoint_velocity_delta_discrepancy_abs_sum",
+        )
+        for name in float_names:
+            setattr(
+                self,
+                f"_a2_v26_3_{name}",
+                torch.zeros(self.num_envs, dtype=torch.float32, device=self.device),
+            )
+        self._a2_v26_3_creation_active_cached = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v26_3_state_initialized = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_v26_3_staged_store_count_total = 0
+        self._a2_v26_3_staged_load_count_total = 0
+        self._a2_v26_3_staged_restore_cache_clear_count_total = 0
+        for name in (
+            "creation_active_steps",
+            "creation_reward_nonzero_without_positive_highwater_delta",
+            "creation_active_outside_stage3",
+            "creation_active_without_k5",
+            "creation_raw_nonzero_while_inactive",
+        ):
+            setattr(
+                self,
+                f"_a2_v26_3_{name}",
+                torch.zeros(self.num_envs, dtype=torch.long, device=self.device),
+            )
+
+    def _register_a2_v26_3_staged_reset_buffers(self) -> None:
+        if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            return
+        if not self.enable_staged_reset:
+            return
+        specs = (
+            ("handle_pos_prev_control", torch.float32),
+            ("handle_highwater", torch.float32),
+            ("handle_highwater_prev", torch.float32),
+            ("handle_delta_net", torch.float32),
+            ("handle_delta_highwater", torch.float32),
+            ("creation_raw_cached", torch.float32),
+            ("creation_active_cached", torch.bool),
+            ("state_initialized", torch.bool),
+        )
+        for name, dtype in specs:
+            staged_name = f"a2_v26_3_{name}"
+            self._register_buffer_to_track(
+                staged_name,
+                (self.num_envs,),
+                lambda env_ids, name=name: self._store_a2_v26_3_named_buffer(name, env_ids),
+                lambda env_ids, data, name=name: self._load_a2_v26_3_named_buffer(
+                    name, env_ids, data
+                ),
+                dtype=dtype,
+            )
+
+    def _store_a2_v26_3_named_buffer(
+        self, name: str, env_ids: torch.Tensor
+    ) -> torch.Tensor:
+        if name == "handle_pos_prev_control":
+            self._a2_v26_3_staged_store_count_total += int(env_ids.numel())
+        return getattr(self, f"_a2_v26_3_{name}")[env_ids]
+
+    def _load_a2_v26_3_named_buffer(
+        self, name: str, env_ids: torch.Tensor, data: torch.Tensor
+    ) -> None:
+        value = getattr(self, f"_a2_v26_3_{name}")
+        if data.shape != value[env_ids].shape or data.dtype != value.dtype or data.device != value.device:
+            raise RuntimeError(f"v26-3 staged-reset buffer {name} has incompatible state.")
+        value[env_ids] = data
+        if name == "handle_pos_prev_control":
+            self._a2_v26_3_staged_load_count_total += int(env_ids.numel())
 
     def _record_a2_v26_completed_episodes(self, env_ids: torch.Tensor) -> None:
         if not self._a2_v26_bilateral_metrics_enabled or env_ids.numel() == 0:
@@ -7658,15 +7766,124 @@ class DoorPregrasp(
             target_batch = len(env_ids)
 
         if arm_default_pos.shape[0] == 1:
-            return arm_default_pos.repeat(target_batch, 1)
-        if arm_default_pos.shape[0] == self.num_envs:
+            result = arm_default_pos.repeat(target_batch, 1)
+        elif arm_default_pos.shape[0] == self.num_envs:
             if env_ids is None:
-                return arm_default_pos
-            return arm_default_pos[env_ids]
-        raise RuntimeError(
-            "A2 arm default DOF target requires default_dof_pos batch dim to be "
-            f"1 or num_envs={self.num_envs}; got {arm_default_pos.shape[0]}."
+                result = arm_default_pos
+            else:
+                result = arm_default_pos[env_ids]
+        else:
+            raise RuntimeError(
+                "A2 arm default DOF target requires default_dof_pos batch dim to be "
+                f"1 or num_envs={self.num_envs}; got {arm_default_pos.shape[0]}."
+            )
+
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        side = self.door_open_lr if env_ids is None else self.door_open_lr[env_ids]
+        signs = result.new_tensor([-1.0, 1.0, 1.0, -1.0, 1.0, -1.0])
+        return torch.where(side[:, None] == -1.0, result * signs, result)
+
+    def _a2_v26_4_side_canonicalization_enabled(self) -> bool:
+        enabled = self.config.get("a2_v26_4_side_canonicalization_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v26_4_side_canonicalization_enabled must be bool.")
+        return enabled
+
+    def _a2_v26_4_right_mask(self) -> torch.Tensor:
+        return self.door_open_lr == -1.0
+
+    def _a2_v26_4_canonicalize_dof_values(self, values: torch.Tensor) -> torch.Tensor:
+        return a2_v26_4_canonicalize_dof_values(values, self._a2_v26_4_right_mask())
+
+    def _a2_v26_4_canonicalize_vector(self, values: torch.Tensor, signs) -> torch.Tensor:
+        return a2_v26_4_canonicalize_vector(values, self._a2_v26_4_right_mask(), signs)
+
+    def _a2_v26_4_sync_physical_delta_actions(self) -> None:
+        canonical_actions = torch.zeros(
+            self.num_envs,
+            self._a2_high_level_action_dim + self._a2_leg_action_dim,
+            device=self.device,
+            dtype=self._delta_actions.dtype,
         )
+        canonical_actions[:, 5:11] = self._a2_v26_4_canonical_delta_actions
+        physical_actions = a2_v26_4_map_action_coordinates(
+            canonical_actions,
+            self._a2_v26_4_right_mask(),
+            self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
+            self.config.robot.control.action_scale,
+            canonical_to_physical=True,
+        )
+        self._delta_actions[:] = physical_actions[:, 5:11]
+
+    def _a2_v26_4_sync_canonical_delta_actions(self) -> None:
+        physical_actions = torch.zeros(
+            self.num_envs,
+            self._a2_high_level_action_dim + self._a2_leg_action_dim,
+            device=self.device,
+            dtype=self._delta_actions.dtype,
+        )
+        physical_actions[:, 5:11] = self._delta_actions
+        canonical_actions = a2_v26_4_map_action_coordinates(
+            physical_actions,
+            self._a2_v26_4_right_mask(),
+            self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
+            self.config.robot.control.action_scale,
+            canonical_to_physical=False,
+        )
+        self._a2_v26_4_canonical_delta_actions[:] = canonical_actions[:, 5:11]
+
+    @override
+    def _store_delta_actions_buffer(self, env_ids):
+        return super()._store_delta_actions_buffer(env_ids)
+
+    @override
+    def _load_delta_actions_buffer(self, env_ids, data):
+        super()._load_delta_actions_buffer(env_ids, data)
+        if self._a2_v26_4_side_canonicalization_enabled():
+            self._a2_v26_4_sync_canonical_delta_actions()
+
+    @override
+    def step(self, actor_state):
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return super().step(actor_state)
+        if self._k != 0 or self._s != 0:
+            raise RuntimeError("R2 side canonicalization requires the admitted unwarped action path.")
+
+        canonical_actions = actor_state["actions"].clone()
+        self._a2_v26_4_sync_canonical_delta_actions()
+        self._last_delta_actions[:] = canonical_actions[:, self._delta_action_indices]
+        delta_actions_clip = self.config.get("delta_action_clip", 100.0)
+        self._delta_actions[:] = a2_v26_4_accumulate_physical_delta(
+            self._delta_actions,
+            self._last_delta_actions,
+            canonical_actions,
+            self._a2_v26_4_right_mask(),
+            self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
+            self.config.robot.control.action_scale,
+            self._delta_action_scale,
+            delta_actions_clip,
+            self.stage_buf == self.STAGE_WALK_TO_DOOR,
+        )
+        self._apply_delta_action_overrides()
+        self._a2_v26_4_sync_canonical_delta_actions()
+        canonical_actions[:, self._delta_action_indices] = self._a2_v26_4_canonical_delta_actions
+        if self.config.get("zero_vel", False) and "gt_actions" not in actor_state:
+            zero_env_ids = ((self.stage_buf >= 1) & (self.stage_buf < 4)).nonzero(as_tuple=False).squeeze(-1)
+            canonical_actions[zero_env_ids, :3] = 0.0
+        if self.config.get("zero_finger", False) and "gt_actions" not in actor_state:
+            zero_env_ids = ((self.stage_buf == 0) | (self.stage_buf == 1)).nonzero(as_tuple=False).squeeze(-1)
+            canonical_actions[zero_env_ids, 11] = 0.5
+
+        self._unwarped_actions[:] = canonical_actions[:, self._warped_action_indices]
+        physical_actions = a2_v26_4_map_action_coordinates(
+            canonical_actions,
+            self._a2_v26_4_right_mask(),
+            self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
+            self.config.robot.control.action_scale,
+            canonical_to_physical=True,
+        )
+        return A2Base.step(self, {**actor_state, "actions": physical_actions})
 
     @override
     def _apply_delta_action_overrides(self):
@@ -7698,11 +7915,28 @@ class DoorPregrasp(
                 f"({self.num_envs},); got {stage_shape}."
             )
 
-        self._delta_actions[stage_buf == self.STAGE_WALK_TO_DOOR, :] = 0.0
+        stage0 = stage_buf == self.STAGE_WALK_TO_DOOR
+        if self._a2_v26_4_side_canonicalization_enabled():
+            physical_origin = a2_v26_4_physical_delta_origin(
+                torch.zeros(
+                    self.num_envs,
+                    self._a2_high_level_action_dim + self._a2_leg_action_dim,
+                    device=self.device,
+                    dtype=self._delta_actions.dtype,
+                ),
+                self._a2_v26_4_right_mask(),
+                self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
+                self.config.robot.control.action_scale,
+            )
+            self._delta_actions[stage0, :] = physical_origin[stage0, :]
+            return
+        self._delta_actions[stage0, :] = 0.0
 
     def _init_buffers(self):
         super()._init_buffers()
         if self._use_a2_base:
+            if self._a2_v26_4_side_canonicalization_enabled():
+                self._a2_v26_4_canonical_delta_actions = torch.zeros_like(self._delta_actions)
             self._a2_runtime_evidence_sensor_keys_logged = set()
             self._a2_stage2_squeeze_streak = torch.zeros(
                 self.num_envs, dtype=torch.long, device=self.device
@@ -11528,6 +11762,32 @@ class DoorPregrasp(
         super()._validate_loaded_staged_reset_sample(
             selected_env_ids, selected_stages, selected_sample_indices
         )
+        if getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            if (
+                not torch.is_tensor(selected_env_ids)
+                or selected_env_ids.ndim != 1
+                or selected_env_ids.dtype != torch.long
+                or selected_env_ids.device != torch.device(self.device)
+                or torch.any(selected_env_ids < 0)
+                or torch.any(selected_env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "v26-3 staged-reset load requires device-local long env ids in range."
+                )
+            if torch.any(~self._a2_v26_3_state_initialized[selected_env_ids]):
+                raise RuntimeError(
+                    "v26-3 staged-reset snapshots must restore initialized creation state."
+                )
+            self._a2_v26_3_handle_highwater_prev[selected_env_ids] = (
+                self._a2_v26_3_handle_highwater[selected_env_ids]
+            )
+            self._a2_v26_3_handle_delta_net[selected_env_ids] = 0.0
+            self._a2_v26_3_handle_delta_highwater[selected_env_ids] = 0.0
+            self._a2_v26_3_creation_raw_cached[selected_env_ids] = 0.0
+            self._a2_v26_3_creation_active_cached[selected_env_ids] = False
+            self._a2_v26_3_staged_restore_cache_clear_count_total += int(
+                selected_env_ids.numel()
+            )
         if not self._use_a2_base or not self._get_a2_v20_r1_snapshot_guard_enabled():
             return
         if (
@@ -13090,6 +13350,10 @@ class DoorPregrasp(
         super()._pre_compute_observations_callback(env_ids, post_physics=post_physics)
         if self._use_a2_base:
             self._update_a2_grasp_control_streaks(env_ids)
+            if env_ids is None and post_physics:
+                self._update_a2_v26_3_handle_creation_state()
+            elif env_ids is not None and not post_physics:
+                self._initialize_a2_v26_3_natural_reset_state(env_ids)
             self._update_a2_stage5_hold_continuation(env_ids)
             self._update_a2_door_body_contact_event(env_ids)
             self._update_a2_v23_route_a_unsafe_contact(env_ids)
@@ -13117,6 +13381,63 @@ class DoorPregrasp(
         )
         self.relative_door_pos_buf[env_ids] = relative_door_pos
         self.relative_door_rot_buf[env_ids] = wxyz_to_xyzw(relative_door_rot)
+
+    def _initialize_a2_v26_3_natural_reset_state(self, env_ids: torch.Tensor) -> None:
+        if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            return
+        natural_env_ids = env_ids[self.stage_buf[env_ids] == self.STAGE_WALK_TO_DOOR]
+        if natural_env_ids.numel() == 0:
+            return
+        handle_pos = self._get_door_joint_pos("v26-3 natural reset", 2)[
+            natural_env_ids, 1
+        ].clamp(min=0.0, max=A2_V26_3_HANDLE_NORM_RAD)
+        for name in (
+            "handle_pos_prev_control",
+            "handle_highwater",
+            "handle_highwater_prev",
+        ):
+            getattr(self, f"_a2_v26_3_{name}")[natural_env_ids] = handle_pos
+        for name in (
+            "handle_delta_net",
+            "handle_delta_highwater",
+            "creation_raw_cached",
+        ):
+            getattr(self, f"_a2_v26_3_{name}")[natural_env_ids] = 0.0
+        self._a2_v26_3_creation_active_cached[natural_env_ids] = False
+        self._a2_v26_3_state_initialized[natural_env_ids] = True
+
+    def _update_a2_v26_3_handle_creation_state(self) -> None:
+        if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            return
+        if not torch.all(self._a2_v26_3_state_initialized):
+            missing = torch.where(~self._a2_v26_3_state_initialized)[0].tolist()
+            raise RuntimeError(
+                "v26-3 handle creation state was not initialized after reset for envs "
+                f"{missing[:16]}."
+            )
+        if (
+            self._get_a2_grasp_gate_mode()
+            != self.A2_GRASP_GATE_MODE_CONTROL_STREAK
+            or self._get_a2_grasp_streak_control_steps() != 5
+        ):
+            raise RuntimeError("v26-3 handle creation requires strict control-step K5.")
+        handle_pos = self._get_door_joint_pos("v26-3 creation update", 2)[:, 1]
+        stage3 = self.stage_buf == self.STAGE_OPEN
+        strict_k5 = self._get_a2_hold_streak_ok_mask()
+        state = a2_v26_3_update_handle_creation(
+            handle_pos,
+            self._a2_v26_3_handle_pos_prev_control,
+            self._a2_v26_3_handle_highwater,
+            stage3 & strict_k5,
+            control_dt=float(self.dt),
+        )
+        self._a2_v26_3_handle_highwater_prev[:] = state["handle_highwater_prev"]
+        self._a2_v26_3_handle_highwater[:] = state["handle_highwater_current"]
+        self._a2_v26_3_handle_delta_net[:] = state["handle_delta_net"]
+        self._a2_v26_3_handle_delta_highwater[:] = state["handle_delta_highwater"]
+        self._a2_v26_3_creation_raw_cached[:] = state["creation_raw"]
+        self._a2_v26_3_creation_active_cached[:] = state["creation_active"]
+        self._a2_v26_3_handle_pos_prev_control[:] = state["handle_position_current"]
 
     def _get_a2_door_body_contact_event_buffers(
         self, context: str
@@ -15403,6 +15724,29 @@ class DoorPregrasp(
     def _reward_a2_stage3_handle_depression(self):
         return self._get_a2_stage3_handle_depression_raw_and_active()[0]
 
+    def _get_a2_stage3_handle_creation_raw_and_active(self):
+        if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            raise RuntimeError(
+                "a2_stage3_handle_creation requires a2_v26_3_telemetry_enabled=true."
+            )
+        raw = self._a2_v26_3_creation_raw_cached
+        active = self._a2_v26_3_creation_active_cached
+        if (
+            raw.shape != (self.num_envs,)
+            or raw.dtype != torch.float32
+            or raw.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(raw))
+            or active.shape != (self.num_envs,)
+            or active.dtype != torch.bool
+            or active.device != torch.device(self.device)
+        ):
+            raise RuntimeError("a2_stage3_handle_creation cache has an invalid contract.")
+        return raw, active
+
+    @StagedTaskBase.effective_in_stage(STAGE_OPEN)
+    def _reward_a2_stage3_handle_creation(self):
+        return self._get_a2_stage3_handle_creation_raw_and_active()[0]
+
     @StagedTaskBase.effective_in_stage(STAGE_OPEN)
     def _reward_a2_stage3_unlatch_hold(self):
         if not self._use_a2_base:
@@ -15669,6 +16013,74 @@ class DoorPregrasp(
             active_count > 0.0, scaled_component.sum() / active_count, empty_active_income
         )
 
+    def _record_a2_v26_3_handle_creation_telemetry(
+        self, raw_components, scaled_components
+    ) -> None:
+        if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            return
+        raw, active = self._get_a2_stage3_handle_creation_raw_and_active()
+        term = "a2_stage3_handle_creation"
+        configured_scale = self.config.get("a2_v26_3_handle_creation_scale")
+        if (
+            isinstance(configured_scale, bool)
+            or not isinstance(configured_scale, (int, float))
+            or float(configured_scale) not in (0.0, 6.0)
+        ):
+            raise RuntimeError("v26-3 creation scale must be exactly 0 or 6.")
+        if float(configured_scale) > 0.0:
+            if term not in self.reward_scales or term not in raw_components:
+                raise RuntimeError("v26-3 enabled creation reward is absent from the registry.")
+            prepared_scale = self.reward_scales[term]
+            if not math.isclose(
+                float(prepared_scale),
+                float(configured_scale) * float(self.dt),
+                rel_tol=0.0,
+                abs_tol=1.0e-12,
+            ):
+                raise RuntimeError("v26-3 creation reward scale is not configured_scale*dt.")
+            raw_component = raw_components[term]
+            scaled_component = scaled_components[term]
+            if not torch.equal(raw_component, raw):
+                raise RuntimeError("v26-3 reward helper did not read the authoritative cache.")
+        else:
+            if term in self.reward_scales or term in raw_components or term in scaled_components:
+                raise RuntimeError("v26-3 zero creation scale retained a reward component.")
+            raw_component = torch.zeros_like(raw)
+            scaled_component = torch.zeros_like(raw)
+        stage3 = self.stage_buf == self.STAGE_OPEN
+        strict_k5 = self._get_a2_hold_streak_ok_mask()
+        positive_delta = self._a2_v26_3_handle_delta_highwater > 0.0
+        self._a2_v26_3_creation_raw_income += raw_component
+        self._a2_v26_3_creation_scaled_income += scaled_component
+        self._a2_v26_3_creation_active_steps += active.long()
+        self._a2_v26_3_creation_reward_nonzero_without_positive_highwater_delta += (
+            raw_component.ne(0.0) & ~positive_delta
+        ).long()
+        self._a2_v26_3_creation_active_outside_stage3 += (active & ~stage3).long()
+        self._a2_v26_3_creation_active_without_k5 += (active & ~strict_k5).long()
+        self._a2_v26_3_creation_raw_nonzero_while_inactive += (
+            raw_component.ne(0.0) & ~active
+        ).long()
+        endpoint_velocity = self._get_door_joint_vel("v26-3 creation telemetry", 2)[:, 1]
+        finite_difference_velocity = self._a2_v26_3_handle_delta_net / float(self.dt)
+        self._a2_v26_3_endpoint_velocity_delta_discrepancy_abs_sum += torch.abs(
+            endpoint_velocity - finite_difference_velocity
+        )
+        active_count = active.float().sum()
+        self.log_dict["a2_v26_3_creation_raw_income"] = raw_component.sum()
+        self.log_dict["a2_v26_3_creation_scaled_income"] = scaled_component.sum()
+        self.log_dict["a2_v26_3_creation_active_steps"] = active_count
+        self.log_dict["a2_v26_3_handle_highwater_max"] = self._a2_v26_3_handle_highwater.max()
+        self.log_dict["a2_v26_3_staged_store_count_total"] = raw.new_tensor(
+            self._a2_v26_3_staged_store_count_total
+        )
+        self.log_dict["a2_v26_3_staged_load_count_total"] = raw.new_tensor(
+            self._a2_v26_3_staged_load_count_total
+        )
+        self.log_dict["a2_v26_3_staged_restore_cache_clear_count_total"] = raw.new_tensor(
+            self._a2_v26_3_staged_restore_cache_clear_count_total
+        )
+
     def _after_reward_components(self, raw_components, scaled_components):
         """Accumulate exact reward components for R2 without changing reward semantics."""
         stationary_rent_enabled = self.config.get(
@@ -15734,6 +16146,9 @@ class DoorPregrasp(
             self._a2_v23_stationary_rent_last_scaled_components = scaled_snapshot
             self._a2_v23_stationary_rent_last_reward_stage = reward_stage.detach().clone()
         self._record_a2_v26_2_handle_depression_telemetry(
+            raw_components, scaled_components
+        )
+        self._record_a2_v26_3_handle_creation_telemetry(
             raw_components, scaled_components
         )
         if not self._a2_v20_r2_evidence_enabled:
@@ -16280,7 +16695,80 @@ class DoorPregrasp(
 
     def _get_obs_relative_to_door(self):
         relative_door_rot_6d = quat_to_tan_norm(self.relative_door_rot_buf, w_last=True)
-        return torch.cat([self.relative_door_pos_buf, relative_door_rot_6d], dim=-1)
+        result = torch.cat([self.relative_door_pos_buf, relative_door_rot_6d], dim=-1)
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_vector(
+            result, [1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0]
+        )
+
+    @override
+    def _get_obs_dof_pos(self):
+        result = super()._get_obs_dof_pos()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        physical = result + self.default_dof_pos
+        return self._a2_v26_4_canonicalize_dof_values(physical) - self.default_dof_pos
+
+    @override
+    def _get_obs_dof_vel(self):
+        result = super()._get_obs_dof_vel()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_dof_values(result)
+
+    @override
+    def _get_obs_base_lin_vel(self):
+        result = super()._get_obs_base_lin_vel()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_vector(result, [1.0, -1.0, 1.0])
+
+    @override
+    def _get_obs_base_ang_vel(self):
+        result = super()._get_obs_base_ang_vel()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_vector(result, [-1.0, 1.0, -1.0])
+
+    @override
+    def _get_obs_projected_gravity(self):
+        result = super()._get_obs_projected_gravity()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_vector(result, [1.0, -1.0, 1.0])
+
+    @override
+    def _get_obs_a2_base_command(self):
+        result = super()._get_obs_a2_base_command()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_vector(result, [1.0, -1.0, -1.0, 1.0, -1.0])
+
+    @override
+    def _get_obs_actions(self):
+        result = super()._get_obs_actions()
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        physical_actions = torch.zeros(
+            self.num_envs,
+            self._a2_high_level_action_dim + self._a2_leg_action_dim,
+            device=self.device,
+            dtype=result.dtype,
+        )
+        physical_actions[:, 5:11] = result[:, 12:18]
+        physical_actions[:, 11:12] = result[:, 18:19]
+        physical_actions[:, 12:] = result[:, :12]
+        canonical_actions = a2_v26_4_map_action_coordinates(
+            physical_actions,
+            self._a2_v26_4_right_mask(),
+            self.default_dof_pos[:, self._upper_non_gripper_dof_idx],
+            self.config.robot.control.action_scale,
+            canonical_to_physical=False,
+        )
+        return torch.cat(
+            [canonical_actions[:, 12:], canonical_actions[:, 5:11], canonical_actions[:, 11:12]], dim=-1
+        )
 
     def _get_obs_hand_handle_transform(self):
         if self._use_a2_base:
@@ -18248,6 +18736,141 @@ class DoorPregrasp(
             )
         return records
 
+    def _get_a2_v26_3_terminal_diagnostic_fields(self, env_ids):
+        env_ids = self._normalize_render_env_ids(env_ids)
+        if not getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            return [{} for _ in env_ids.tolist()]
+        required = {
+            "handle_pos_prev_control": ("_a2_v26_3_handle_pos_prev_control", torch.float32),
+            "handle_highwater": ("_a2_v26_3_handle_highwater", torch.float32),
+            "handle_highwater_prev": ("_a2_v26_3_handle_highwater_prev", torch.float32),
+            "handle_delta_net": ("_a2_v26_3_handle_delta_net", torch.float32),
+            "handle_delta_highwater": ("_a2_v26_3_handle_delta_highwater", torch.float32),
+            "creation_raw_cached": ("_a2_v26_3_creation_raw_cached", torch.float32),
+            "creation_active_cached": ("_a2_v26_3_creation_active_cached", torch.bool),
+            "creation_raw_income": ("_a2_v26_3_creation_raw_income", torch.float32),
+            "creation_scaled_income": ("_a2_v26_3_creation_scaled_income", torch.float32),
+            "creation_active_steps": ("_a2_v26_3_creation_active_steps", torch.long),
+            "endpoint_velocity_delta_discrepancy_abs_sum": (
+                "_a2_v26_3_endpoint_velocity_delta_discrepancy_abs_sum",
+                torch.float32,
+            ),
+            "reward_nonzero_without_positive_highwater_delta": (
+                "_a2_v26_3_creation_reward_nonzero_without_positive_highwater_delta",
+                torch.long,
+            ),
+            "active_outside_stage3": (
+                "_a2_v26_3_creation_active_outside_stage3",
+                torch.long,
+            ),
+            "active_without_k5": (
+                "_a2_v26_3_creation_active_without_k5",
+                torch.long,
+            ),
+            "raw_nonzero_while_inactive": (
+                "_a2_v26_3_creation_raw_nonzero_while_inactive",
+                torch.long,
+            ),
+            "state_initialized": ("_a2_v26_3_state_initialized", torch.bool),
+        }
+        values = {}
+        for key, (name, dtype) in required.items():
+            value = getattr(self, name, None)
+            if (
+                not torch.is_tensor(value)
+                or tuple(value.shape) != (self.num_envs,)
+                or value.dtype != dtype
+                or value.device != torch.device(self.device)
+                or (value.is_floating_point() and not torch.all(torch.isfinite(value)))
+            ):
+                raise RuntimeError(
+                    "v26-3 terminal diagnostics requires "
+                    f"finite device-local {dtype} vector {name}."
+                )
+            values[key] = value[env_ids].detach().cpu()
+        endpoint_velocity = self._get_door_joint_vel(
+            "v26-3 terminal diagnostics", 2
+        )[env_ids, 1].detach().cpu()
+        configured_scale = self.config.get("a2_v26_3_handle_creation_scale")
+        if (
+            isinstance(configured_scale, bool)
+            or not isinstance(configured_scale, (int, float))
+            or float(configured_scale) not in (0.0, 6.0)
+        ):
+            raise RuntimeError("v26-3 terminal diagnostics requires creation scale 0 or 6.")
+        records = []
+        for index in range(env_ids.numel()):
+            integrity_detail = {
+                key: int(values[key][index].item())
+                for key in (
+                    "reward_nonzero_without_positive_highwater_delta",
+                    "active_outside_stage3",
+                    "active_without_k5",
+                    "raw_nonzero_while_inactive",
+                )
+            }
+            records.append(
+                {
+                    "v26_3": {
+                        "handle_pos_prev_control": float(
+                            values["handle_pos_prev_control"][index].item()
+                        ),
+                        "handle_highwater": float(values["handle_highwater"][index].item()),
+                        "handle_highwater_prev": float(
+                            values["handle_highwater_prev"][index].item()
+                        ),
+                        "handle_delta_net": float(values["handle_delta_net"][index].item()),
+                        "handle_delta_highwater": float(
+                            values["handle_delta_highwater"][index].item()
+                        ),
+                        "creation_raw_cached": float(
+                            values["creation_raw_cached"][index].item()
+                        ),
+                        "creation_scaled_cached": float(
+                            values["creation_raw_cached"][index].item()
+                            * float(configured_scale)
+                            * float(self.dt)
+                        ),
+                        "creation_active_cached": bool(
+                            values["creation_active_cached"][index].item()
+                        ),
+                        "handle_endpoint_velocity": float(endpoint_velocity[index].item()),
+                        "handle_delta_net_over_dt": float(
+                            values["handle_delta_net"][index].item() / float(self.dt)
+                        ),
+                        "creation_raw_income": float(
+                            values["creation_raw_income"][index].item()
+                        ),
+                        "creation_scaled_income": float(
+                            values["creation_scaled_income"][index].item()
+                        ),
+                        "creation_active_steps": int(
+                            values["creation_active_steps"][index].item()
+                        ),
+                        "endpoint_velocity_delta_discrepancy_abs_sum": float(
+                            values["endpoint_velocity_delta_discrepancy_abs_sum"][index].item()
+                        ),
+                        "state_initialized": bool(
+                            values["state_initialized"][index].item()
+                        ),
+                        "control_dt": float(self.dt),
+                        "staged_store_count_total": int(
+                            self._a2_v26_3_staged_store_count_total
+                        ),
+                        "staged_load_count_total": int(
+                            self._a2_v26_3_staged_load_count_total
+                        ),
+                        "staged_restore_cache_clear_count_total": int(
+                            self._a2_v26_3_staged_restore_cache_clear_count_total
+                        ),
+                        "integrity_violations": sum(integrity_detail.values()),
+                        "integrity_violation_counts": integrity_detail,
+                        **integrity_detail,
+                    }
+                }
+            )
+        return records
+
     def _get_a2_terminal_diagnostics(self, env_ids):
         env_ids = self._normalize_render_env_ids(env_ids)
         if not self._use_a2_base:
@@ -18523,6 +19146,7 @@ class DoorPregrasp(
         v14_telemetry_fields = self._get_a2_v14_telemetry_fields(env_ids)
         v20_telemetry_fields = self._get_a2_v20_diagnostic_fields(env_ids)
         v26_2_telemetry_fields = self._get_a2_v26_2_terminal_diagnostic_fields(env_ids)
+        v26_3_telemetry_fields = self._get_a2_v26_3_terminal_diagnostic_fields(env_ids)
         control_dt, selected_reward_episode_sums = (
             self._get_a2_reward_episode_sums_for_diagnostics(env_ids)
         )
@@ -18765,6 +19389,7 @@ class DoorPregrasp(
                     **v14_telemetry_fields[idx],
                     **v20_telemetry_fields[idx],
                     **v26_2_telemetry_fields[idx],
+                    **v26_3_telemetry_fields[idx],
                     "stage_buf": int(selected_stage_buf[idx]),
                     "time_in_stage_buf": int(selected_time_in_stage_buf[idx]),
                     "episode_length_buf": int(selected_episode_length_buf[idx]),
@@ -18978,6 +19603,7 @@ class DoorPregrasp(
         self._a2_eval_post_forced_override_pre_env_action = None
         self._a2_eval_post_delta_post_warp_env_action = None
         self._a2_eval_forced_gripper_close_mask = None
+        self._a2_eval_stage2_close_gate_forced_gripper_close_mask = None
         self._a2_eval_first_episode_active_mask = None
         self._a2_eval_episode_indices = None
         self._a2_eval_reward_raw_by_name = None
@@ -18990,6 +19616,7 @@ class DoorPregrasp(
         policy_high_level_action_raw: torch.Tensor,
         post_forced_override_pre_env_action: torch.Tensor,
         forced_gripper_close_mask: torch.Tensor,
+        stage2_close_gate_forced_gripper_close_mask: torch.Tensor,
         first_episode_active_mask: torch.Tensor,
         episode_indices: torch.Tensor,
     ) -> None:
@@ -19022,6 +19649,10 @@ class DoorPregrasp(
                 )
         for mask_name, mask in (
             ("forced_gripper_close_mask", forced_gripper_close_mask),
+            (
+                "stage2_close_gate_forced_gripper_close_mask",
+                stage2_close_gate_forced_gripper_close_mask,
+            ),
             ("first_episode_active_mask", first_episode_active_mask),
         ):
             if (
@@ -19039,6 +19670,14 @@ class DoorPregrasp(
             raise RuntimeError(
                 "A2 eval forced gripper close mask must be a subset of the "
                 "first-episode active mask."
+            )
+        if torch.any(
+            stage2_close_gate_forced_gripper_close_mask
+            & ~forced_gripper_close_mask
+        ):
+            raise RuntimeError(
+                "A2 Stage2 close-gate forced-close mask must be a subset of the "
+                "combined forced-close mask."
             )
         if (
             not torch.is_tensor(episode_indices)
@@ -19062,6 +19701,10 @@ class DoorPregrasp(
                 post_forced_override_pre_env_action,
             ),
             ("forced_gripper_close_mask", forced_gripper_close_mask),
+            (
+                "stage2_close_gate_forced_gripper_close_mask",
+                stage2_close_gate_forced_gripper_close_mask,
+            ),
             ("first_episode_active_mask", first_episode_active_mask),
             ("episode_indices", episode_indices),
         ):
@@ -19079,6 +19722,9 @@ class DoorPregrasp(
         )
         self._a2_eval_forced_gripper_close_mask = (
             forced_gripper_close_mask.detach().clone()
+        )
+        self._a2_eval_stage2_close_gate_forced_gripper_close_mask = (
+            stage2_close_gate_forced_gripper_close_mask.detach().clone()
         )
         self._a2_eval_first_episode_active_mask = (
             first_episode_active_mask.detach().clone()
@@ -25352,6 +25998,9 @@ class DoorPregrasp(
         post_forced_action = self._a2_eval_post_forced_override_pre_env_action
         post_delta_post_warp_action = self._a2_eval_post_delta_post_warp_env_action
         forced_close_mask = self._a2_eval_forced_gripper_close_mask
+        stage2_close_gate_forced_close_mask = (
+            self._a2_eval_stage2_close_gate_forced_gripper_close_mask
+        )
         for action_name, action in (
             ("policy action", policy_action),
             ("post-forced-override pre-env action", post_forced_action),
@@ -25376,6 +26025,16 @@ class DoorPregrasp(
         ):
             shape = None if not torch.is_tensor(forced_close_mask) else tuple(
                 forced_close_mask.shape
+            )
+        if (
+            not torch.is_tensor(stage2_close_gate_forced_close_mask)
+            or tuple(stage2_close_gate_forced_close_mask.shape) != (self.num_envs,)
+            or stage2_close_gate_forced_close_mask.dtype != torch.bool
+            or torch.any(stage2_close_gate_forced_close_mask & ~forced_close_mask)
+        ):
+            raise RuntimeError(
+                "A2 expanded eval Stage2 close-gate forced-close mask must be a bool "
+                "subset of the combined forced-close mask."
             )
             dtype = None if not torch.is_tensor(forced_close_mask) else forced_close_mask.dtype
             raise RuntimeError(
@@ -25670,6 +26329,9 @@ class DoorPregrasp(
                         ].item()
                     ),
                     "forced_gripper_close_applied": bool(forced_close_mask[env_id].item()),
+                    "stage2_close_gate_forced_gripper_close_applied": bool(
+                        stage2_close_gate_forced_close_mask[env_id].item()
+                    ),
                     "first_episode_active": bool(
                         first_episode_active_mask[env_id].item()
                     ),
@@ -26208,7 +26870,16 @@ class DoorPregrasp(
         pregrasp_rot_6d = quat_to_tan_norm(
             wxyz_to_xyzw(target_quat_source[:, 1, :]), w_last=True
         )
-        return torch.cat([handle_pos, handle_rot_6d, pregrasp_pos, pregrasp_rot_6d], dim=-1)
+        result = torch.cat([handle_pos, handle_rot_6d, pregrasp_pos, pregrasp_rot_6d], dim=-1)
+        if not self._a2_v26_4_side_canonicalization_enabled():
+            return result
+        return self._a2_v26_4_canonicalize_vector(
+            result,
+            [
+                1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0,
+                1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0,
+            ],
+        )
 
     def _get_obs_hand_force(self):
         if self._use_a2_base:
@@ -26218,7 +26889,10 @@ class DoorPregrasp(
                     "arm_body7 and arm_body8."
                 )
             hand_force = self.simulator.contact_forces[:, self._a2_gripper_force_body_indices, :]
-            return hand_force.reshape(hand_force.shape[0], 6)
+            result = hand_force.reshape(hand_force.shape[0], 6)
+            if not self._a2_v26_4_side_canonicalization_enabled():
+                return result
+            return a2_v26_4_canonicalize_hand_force(result, self._a2_v26_4_right_mask())
         left_hand_force = self.simulator.contact_forces[:, self.left_hand_indices, :]
         right_hand_force = self.simulator.contact_forces[:, self.right_hand_indices, :]
         return torch.cat(
@@ -26521,6 +27195,29 @@ class DoorPregrasp(
                         f"v26-2 telemetry reset requires device-local vector {name}."
                     )
                 value[env_ids] = 0
+        if getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            for name in (
+                "handle_pos_prev_control",
+                "handle_highwater",
+                "handle_highwater_prev",
+                "handle_delta_net",
+                "handle_delta_highwater",
+                "creation_raw_cached",
+                "creation_active_cached",
+                "state_initialized",
+                "creation_raw_income",
+                "creation_scaled_income",
+                "creation_active_steps",
+                "creation_reward_nonzero_without_positive_highwater_delta",
+                "creation_active_outside_stage3",
+                "creation_active_without_k5",
+                "creation_raw_nonzero_while_inactive",
+                "endpoint_velocity_delta_discrepancy_abs_sum",
+            ):
+                value = getattr(self, f"_a2_v26_3_{name}", None)
+                if not torch.is_tensor(value) or value.shape != (self.num_envs,):
+                    raise RuntimeError(f"v26-3 reset requires env vector {name}.")
+                value[env_ids] = False if value.dtype == torch.bool else 0
         self._reset_a2_v20_r2_evidence_buffers(env_ids)
         if getattr(self, "_a2_v21b_arm_evidence_enabled", False):
             a2_v21b_reset_arm_episode_accumulator(self._a2_v21b_arm_evidence, env_ids)
@@ -26627,7 +27324,11 @@ class DoorPregrasp(
             if self._a2_v24_f3_evidence_exporter is not None and completed_env_ids.numel() > 0:
                 self._a2_v24_f3_evidence_exporter.reset_envs(completed_env_ids)
             self._a2_v24_force_boundary_last = None
-        return super()._reset_buffers_callback(env_ids, target_buf)
+        result = super()._reset_buffers_callback(env_ids, target_buf)
+        if self._a2_v26_4_side_canonicalization_enabled():
+            self._a2_v26_4_canonical_delta_actions[env_ids] = 0.0
+            self._a2_v26_4_sync_physical_delta_actions()
+        return result
 
     @override
     def _sample_reset_stages(self, env_ids):
@@ -26743,6 +27444,17 @@ class DoorPregrasp(
 
         result = super().reset_envs_idx(env_ids, target_states, target_buf)
         self._record_a2_v26_reset_origins(env_ids)
+        if getattr(self, "_a2_v26_3_telemetry_enabled", False):
+            self._initialize_a2_v26_3_natural_reset_state(env_ids)
+            staged_env_ids = env_ids[
+                self.stage_buf[env_ids] != self.STAGE_WALK_TO_DOOR
+            ]
+            if staged_env_ids.numel() > 0 and torch.any(
+                ~self._a2_v26_3_state_initialized[staged_env_ids]
+            ):
+                raise RuntimeError(
+                    "v26-3 nonzero staged reset did not restore initialized creation state."
+                )
         backend = self._a2_v24_friction_backend
         if backend is not None and env_ids.numel() > 0:
             receipt = backend.apply(env_ids)

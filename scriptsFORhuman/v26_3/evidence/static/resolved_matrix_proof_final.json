@@ -1,0 +1,75 @@
+{
+  "schema": "a2_piper_base_v26_3_resolved_matrix_v1",
+  "status": "STATIC_PASS",
+  "load_contract": {
+    "mode": "policy_only",
+    "actor_rms_loaded": true,
+    "optimizer_value_scheduler_episode_state": "FRESH",
+    "source": "CONT_STEP2000"
+  },
+  "cells": {
+    "M0S0": {
+      "old_scale": 6.0,
+      "creation_scale": 0.0,
+      "seed": 0,
+      "bilateral_runtime_count": {
+        "left": 2048,
+        "right": 2048
+      }
+    },
+    "M0S1": {
+      "old_scale": 6.0,
+      "creation_scale": 0.0,
+      "seed": 1,
+      "bilateral_runtime_count": {
+        "left": 2048,
+        "right": 2048
+      }
+    },
+    "M1S0": {
+      "old_scale": 0.0,
+      "creation_scale": 6.0,
+      "seed": 0,
+      "bilateral_runtime_count": {
+        "left": 2048,
+        "right": 2048
+      }
+    },
+    "M1S1": {
+      "old_scale": 0.0,
+      "creation_scale": 6.0,
+      "seed": 1,
+      "bilateral_runtime_count": {
+        "left": 2048,
+        "right": 2048
+      }
+    }
+  },
+  "verified_changed_leaves": {
+    "M0S0_to_M1S0": [
+      "env.config.a2_v26_2_handle_depression_scale",
+      "env.config.a2_v26_3_handle_creation_scale",
+      "env.config.rewards.reward_scales.a2_stage3_handle_creation",
+      "env.config.rewards.reward_scales.a2_stage3_handle_depression",
+      "rewards.reward_scales.a2_stage3_handle_creation",
+      "rewards.reward_scales.a2_stage3_handle_depression"
+    ],
+    "M0S1_to_M1S1": [
+      "env.config.a2_v26_2_handle_depression_scale",
+      "env.config.a2_v26_3_handle_creation_scale",
+      "env.config.rewards.reward_scales.a2_stage3_handle_creation",
+      "env.config.rewards.reward_scales.a2_stage3_handle_depression",
+      "rewards.reward_scales.a2_stage3_handle_creation",
+      "rewards.reward_scales.a2_stage3_handle_depression"
+    ],
+    "M0S0_to_M0S1": [
+      "env.config.a2_v26_side_permutation_seed",
+      "seed"
+    ],
+    "M1S0_to_M1S1": [
+      "env.config.a2_v26_side_permutation_seed",
+      "seed"
+    ]
+  },
+  "zero_scale_registry_contract": "zero-scale reward keys are removed before reward registry preparation"
+}

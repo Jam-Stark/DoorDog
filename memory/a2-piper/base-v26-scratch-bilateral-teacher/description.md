@@ -1,8 +1,8 @@
 ---
 name: base-v26-scratch-bilateral-teacher
 scope: scratch-born bilateral A2+PiPER Teacher acquisition, far-start navigation, staged reset, and load consolidation
-status: v26_2_complete_not_admitted
-last_updated: 2026-08-25 10:54 HKT
+status: v26_4_r2_complete_canonicalization_not_supported
+last_updated: 2026-08-29 06:48 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/base-v26-scratch-bilateral-teacher/description.md
@@ -16,6 +16,12 @@ owned_paths:
   - scriptsFORhuman/v26_2/a2_piper_base_v26_2_unlatch_reward_plan_20260825.md
   - scriptsFORhuman/v26_2/a2_piper_base_v26_2_pull_derived_plan_20260825.md
   - scriptsFORhuman/v26_2/a2_piper_base_v26_2_handoff_prompt_20260825.md
+  - scriptsFORhuman/v26_3/a2_piper_base_v26_3_event_time_creation_plan_20260827.md
+  - scriptsFORhuman/v26_3/a2_piper_base_v26_3_handoff_prompt_20260827.md
+  - scriptsFORhuman/v26_3/a2_piper_base_v26_3_execution_closure_20260827.md
+  - scriptsFORhuman/v26_4/a2_piper_base_v26_4_bilateral_grasp_foundation_plan_20260828.md
+  - scriptsFORhuman/v26_4/a2_piper_base_v26_4_execution_closure_20260828.md
+  - scriptsFORhuman/v26_4/a2_piper_base_v26_4_r2_execution_closure_20260829.md
 read_when:
   - implementing, training, evaluating, or resuming base_v26
   - selecting the scratch bilateral Teacher or load-robust continuation
@@ -39,6 +45,8 @@ consolidation。
 - Acquisition supplement: `scriptsFORhuman/v26/a2_piper_base_v26_acquisition_supplement_20260823.md`。
 - v26-2 pull-derived unlock plan:
   `scriptsFORhuman/v26_2/a2_piper_base_v26_2_pull_derived_plan_20260825.md`。
+- v26-3 event-time creation plan:
+  `scriptsFORhuman/v26_3/a2_piper_base_v26_3_event_time_creation_plan_20260827.md`。
 - Superseded v26-2 raw-removal-only plan:
   `scriptsFORhuman/v26_2/a2_piper_base_v26_2_unlatch_reward_plan_20260825.md`。
 - Teacher handoff: `scriptsFORhuman/v26/a2_piper_base_v26_teacher_handoff_manifest_20260822.json`。
@@ -89,6 +97,22 @@ consolidation。
 - 当前机器无 GPU-backed X display；interactive GUI preview 不可用。已用真实
   headless runtime 的 asset metadata、root pose、rollout 与训练日志完成对应
   几何/初始化证明，不把该边界写成 GUI PASS。
+- 2026-08-27 19:26 HKT - Owner 接受本地对 Cloud Pro 全量审阅的消化结果并批准
+  落成 v26-3 完整阶段；另批准后续 Worker 自主使用 GPU0–3 完成实现、test、
+  diagnostic、四格训练、全checkpoint bilateral-natural eval、条件分支、render与
+  closure。主矩阵是两seed matched `old velocity credit` vs `monotone high-water
+  creation credit`；wall只在creation与旧0.1 cliff真实暴露后运行，effort/
+  push-axis-work按本地证据条件执行。当前仅plan/handoff落盘，implementation与
+  Isaac/GPU execution均为 `NOT_RUN`。
+- 2026-08-28 03:25 HKT - v26-3已完整执行并关闭。construction、D/E/F、四格
+  4096-env×750、32组all-checkpoint LEFT/RIGHT exact64 natural eval与selected
+  render均落盘。M1_S0/S1在RIGHT产生`8/64`、`13/64` durable creation，LEFT均
+  `0/64`；所有Stage4/goal为0，integrity为0，main typed outcome为
+  `MONOTONE_CREATION_SEED_OR_SIDE_UNSTABLE`。F为
+  `ACTUATOR_CAPACITY_NOT_CAUSAL_AT_TESTED_RANGE`；P/W分别
+  `NOT_RUN / PUSH_LOAD_BEARING_SIGNAL_INCONCLUSIVE`与
+  `NOT_RUN / WALL_REMOVAL_NOT_REACHED`。Teacher holdout未准入，manifest与G7
+  binding保持不变，阶段状态为`v26_3_complete_not_admitted`。
 
 ## Frozen acquisition decisions
 
@@ -162,3 +186,50 @@ causality evidence不能替代 v26 scratch acquisition 结果。
   `WALL_REMOVAL_NOT_SUPPORTED_IN_PUSH`。conditional relay 未运行；选定的
   `W_STEP0750` bilateral render 仅达 Stage2、无 goal。Teacher/Student handoff
   不更新，当前状态为 `v26_2_complete_not_admitted`。
+- 2026-08-27 本地复核对v26-2机制标签作了更精确的解释：W750已有LEFT/RIGHT
+  `32/64`、`36/64` Stage3与大量K5/contact、旧depression income，但handle
+  high-water仍为noise-scale，因此是
+  `HANDLE_VELOCITY_CREDIT_WITHOUT_STATE_CREATION`；R/W从未访问hinge0.1，故wall
+  结论应解释为 `WALL_REMOVAL_NOT_REACHED`，不是wall已被push反证。原始artifact
+  与2026-08-25 closure不改写。
+- 当前A2 eval实际应用 deterministic `policy_model.action_mean`，不是sampled action；
+  selected Stage2 gripper sign cycle应归于deterministic actor/LSTM/closed-loop与binary
+  full-open/full-close mapping，不能归因于sampling。
+- 当前reward registry会把非零scale乘control dt。v26-3 monotone creation raw必须用
+  `delta_highwater/(handle_norm*control_dt)`；high-water state还必须进入natural reset
+  和staged snapshot store/load，避免reset/restore伪creation。
+- 当前hold-detail telemetry可提供contact position/force、joint target/state、gain/
+  effort limit和computed/applied effort estimate；actual implicit-drive force仍不可读。
+  后续capacity结论不得把estimate写成actual torque，pull45N也不自动迁移。
+- v26-3 event-time state必须在completed physics step后、reward与stage advance前只更新
+  一次；natural reset从实际written handle初始化，staged restore保留prev/high-water并
+  清除one-step cache。这样既能记录control-interval monotone creation，又不会把
+  snapshot restore支付成pseudo-creation。
+- v26-3 E1证明Stage2 close-gate的deterministic mean gripper cycle对后续K5有因果影响：
+  两侧forced-close恢复大量Stage3∧K5，结果为
+  `STAGE2_LIMIT_CYCLE_CAUSAL_CONFIRMATION`；但Stage3/4 generic forced-close没有创建
+  durable handle state，不能把E1诊断override当作natural policy能力。
+- v26-3 main首次在同一bilateral lineage看到两条seed一致的RIGHT durable creation，
+  但LEFT仍为0；selected M1_S1 render同样是LEFT high-water `0.000208 rad`、RIGHT
+  `0.597800 rad`。因此monotone credit清除了velocity farming并可在单侧创建state，
+  但尚未形成seed×side稳定机制，不能进入wall wave或Teacher。
+- v26-3 bounded F中20/40 Nm显著降低gripper target error/estimated saturation，却未让
+  任一侧形成durable creation，故common cap保持10/10。actual implicit-drive force与
+  canonical handle-axis moment仍不可读，P必须保持signal-inconclusive而非制造物理claim。
+- 2026-08-28 21:24 HKT - v26-4在预注册Wave K分支上关闭为
+  `v26_4_complete_requires_asymmetric_posture`。K admitted：冻结Stage3匹配网格
+  LEFT `9/9` reachable、RIGHT `9/9` first reject，唯一首拒为`arm_j4` upper-limit
+  overshoot（`0.003046–0.039405 rad`）；C ceiling为
+  `BILATERAL_FOUNDATION_REQUIRES_ASYMMETRIC_POSTURE`，
+  canonical identity为`NOT_RUN`；M四格与全部metrics为`NOT_RUN`。Teacher与Student
+  handoff/G7 binding不变，focused review为PASS。未来仅可另开plan做non-mirror posture
+  discovery，不能由本entry预授权。
+- 2026-08-29 06:48 HKT - v26-4 R2已完成。修正后的geometry-derived target通过FK mirror
+  与冻结Stage3网格，K outcome为`BILATERAL_ASYMMETRIC_IN_ACTION_OFFSET`，supersede
+  R1同世界orientation/arm_j4 defective-target结论（R1 artifacts与closure保留历史）。
+  C canonical identity为CPU/static PASS，C1 runtime smoke PASS；C0/C1×seed0/1四格
+  formal training与32组bilateral-natural exact64 eval全部完成。R2 reducer按预注册
+  §7判为`CANONICALIZATION_NOT_SUPPORTED`：step750 C1未通过preregistered bands，且
+  seed1未达三指标strict improvement。active training orientation audit发现
+  frame-transformer target offsets仍side-independent，列为v26-5输入；无hardware证据。
+  v2 max-handle与v3 high-water保留各自不同exposure semantics，不作错误的一致性断言。

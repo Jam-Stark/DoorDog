@@ -42,6 +42,7 @@ rewards:
     penalty_a2_stage2_single_finger_contact: 0.0
 
     push_door_handle: 6.0
+    a2_stage3_handle_creation: 0.0
     push_door_hinge: 6.0
     push_door_force: 0.0
     a2_stage3_unlatch_hold: 3.0
@@ -138,6 +139,7 @@ rewards:
     - a2_stage2_squeeze_force_window
     - a2_stage2_contact_stability
     - push_door_handle
+    - a2_stage3_handle_creation
     - dont_push_door_handle
     - push_door_hinge
     - a2_stage3_unlatch_hold
@@ -149,4 +151,3 @@ rewards:
     - a2_stage3_stage4_contact_stability
     - target_root_distance
     - a2_stage4_grasp_target_distance_mild
-

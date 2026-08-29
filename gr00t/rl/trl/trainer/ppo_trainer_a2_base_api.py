@@ -2182,16 +2182,28 @@ def _read_a2_eval_diagnostic_config(eval_config):
         )
     diagnostic_enabled = eval_config.get("a2_diagnostic_trace_enabled", False)
     forced_close_enabled = eval_config.get("a2_forced_gripper_close_enabled", False)
+    stage2_close_gate_forced_close_enabled = eval_config.get(
+        "a2_stage2_close_gate_forced_gripper_close_enabled", False
+    )
     for key, value in (
         ("a2_diagnostic_trace_enabled", diagnostic_enabled),
         ("a2_forced_gripper_close_enabled", forced_close_enabled),
+        (
+            "a2_stage2_close_gate_forced_gripper_close_enabled",
+            stage2_close_gate_forced_close_enabled,
+        ),
     ):
         if not isinstance(value, bool):
             raise RuntimeError(f"eval.{key} must be bool; got {value!r}.")
-    if forced_close_enabled and not diagnostic_enabled:
+    if (forced_close_enabled or stage2_close_gate_forced_close_enabled) and not diagnostic_enabled:
         raise RuntimeError(
-            "eval.a2_forced_gripper_close_enabled=true requires "
+            "A2 eval forced-close interventions require "
             "eval.a2_diagnostic_trace_enabled=true for action auditability."
+        )
+    if forced_close_enabled and stage2_close_gate_forced_close_enabled:
+        raise RuntimeError(
+            "Generic Stage3/4 forced-close and Stage2 close-gate forced-close are "
+            "separate diagnostic lanes and cannot be enabled together."
         )
 
     reward_terms = eval_config.get("a2_diagnostic_reward_terms", ())
@@ -2257,6 +2269,9 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "diagnostic_enabled": diagnostic_enabled,
         "reward_terms": reward_terms,
         "forced_close_enabled": forced_close_enabled,
+        "stage2_close_gate_forced_close_enabled": (
+            stage2_close_gate_forced_close_enabled
+        ),
         "forced_close_value": forced_close_value,
         "forced_close_stages": forced_close_stages,
         "p2_posture_axis": p2_posture_axis,
@@ -3224,6 +3239,42 @@ def _build_a2_eval_forced_close_mask(
         for stage_id in forced_close_stage_ids:
             forced_close_mask |= stage_buf == stage_id
     return forced_close_mask & first_episode_active_mask
+
+
+def _build_a2_eval_stage2_close_gate_forced_close_mask(
+    close_gate_mask,
+    first_episode_active_mask,
+    enabled,
+):
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            "A2 Stage2 close-gate forced-close enabled flag must be bool; "
+            f"got {enabled!r}."
+        )
+    if (
+        not torch.is_tensor(close_gate_mask)
+        or close_gate_mask.ndim != 1
+        or close_gate_mask.dtype != torch.bool
+    ):
+        shape = None if not torch.is_tensor(close_gate_mask) else tuple(close_gate_mask.shape)
+        dtype = None if not torch.is_tensor(close_gate_mask) else close_gate_mask.dtype
+        raise RuntimeError(
+            "A2 Stage2 close-gate selector requires a 1D bool gate mask; "
+            f"got shape={shape}, dtype={dtype}."
+        )
+    if (
+        not torch.is_tensor(first_episode_active_mask)
+        or tuple(first_episode_active_mask.shape) != tuple(close_gate_mask.shape)
+        or first_episode_active_mask.dtype != torch.bool
+        or first_episode_active_mask.device != close_gate_mask.device
+    ):
+        raise RuntimeError(
+            "A2 Stage2 close-gate selector requires a matching device-local "
+            "first-episode bool mask."
+        )
+    if not enabled:
+        return torch.zeros_like(first_episode_active_mask)
+    return close_gate_mask & first_episode_active_mask
 
 
 class PolicyAndValueWrapper(nn.Module):
@@ -7344,9 +7395,14 @@ class TRLPPOTrainer(PPOTrainer):
                 raise RuntimeError(
                     "A2 hold oracle requires eval.eval_num_envs_episodes=true for strict first-episode isolation."
                 )
-            if a2_hold_oracle_config["enabled"] and a2_eval_diagnostics["forced_close_enabled"]:
+            if a2_hold_oracle_config["enabled"] and (
+                a2_eval_diagnostics["forced_close_enabled"]
+                or a2_eval_diagnostics[
+                    "stage2_close_gate_forced_close_enabled"
+                ]
+            ):
                 raise RuntimeError(
-                    "A2 hold oracle and generic eval forced-close intervention are mutually exclusive."
+                    "A2 hold oracle and eval forced-close interventions are mutually exclusive."
                 )
             hold_detail_enabled = self.env._get_a2_hold_contact_detail_enabled()
             if hold_detail_enabled and not a2_eval_diagnostics["diagnostic_enabled"]:
@@ -7380,6 +7436,11 @@ class TRLPPOTrainer(PPOTrainer):
                     f"stage4/swing; got {forced_close_stage_ids}."
                 )
         forced_close_applied_counts = torch.zeros(
+            self.env.num_envs,
+            dtype=torch.long,
+            device=self.accelerator.device,
+        )
+        stage2_close_gate_forced_close_applied_counts = torch.zeros(
             self.env.num_envs,
             dtype=torch.long,
             device=self.accelerator.device,
@@ -7540,19 +7601,58 @@ class TRLPPOTrainer(PPOTrainer):
                             ],
                             forced_close_stage_ids=forced_close_stage_ids,
                         )
+                        stage2_close_gate_forced_close_mask = torch.zeros_like(
+                            first_episode_active_mask
+                        )
+                        if a2_eval_diagnostics[
+                            "stage2_close_gate_forced_close_enabled"
+                        ]:
+                            get_stage2_close_gate = getattr(
+                                self.env,
+                                "_get_a2_stage2_close_reward_gate",
+                                None,
+                            )
+                            if get_stage2_close_gate is None:
+                                raise RuntimeError(
+                                    "A2 E1 requires the authoritative current Stage2 close gate."
+                                )
+                            stage2_close_gate_forced_close_mask = (
+                                _build_a2_eval_stage2_close_gate_forced_close_mask(
+                                    close_gate_mask=get_stage2_close_gate(),
+                                    first_episode_active_mask=first_episode_active_mask,
+                                    enabled=True,
+                                )
+                            )
+                        if torch.any(
+                            forced_close_mask & stage2_close_gate_forced_close_mask
+                        ):
+                            raise RuntimeError(
+                                "A2 generic and Stage2 close-gate forced-close masks overlap."
+                            )
+                        forced_close_mask = (
+                            forced_close_mask | stage2_close_gate_forced_close_mask
+                        )
                         p2_posture_axis_action = _apply_a2_eval_p2_posture_axis(
                             action_mean,
                             action_layout,
                             a2_eval_diagnostics["p2_posture_axis"],
                         )
                         post_forced_override_pre_env_action = p2_posture_axis_action
-                        if a2_eval_diagnostics["forced_close_enabled"]:
+                        if (
+                            a2_eval_diagnostics["forced_close_enabled"]
+                            or a2_eval_diagnostics[
+                                "stage2_close_gate_forced_close_enabled"
+                            ]
+                        ):
                             post_forced_override_pre_env_action = p2_posture_axis_action.clone()
                             post_forced_override_pre_env_action[
                                 forced_close_mask,
                                 action_layout["gripper_index"],
                             ] = a2_eval_diagnostics["forced_close_value"]
                             forced_close_applied_counts += forced_close_mask.long()
+                            stage2_close_gate_forced_close_applied_counts += (
+                                stage2_close_gate_forced_close_mask.long()
+                            )
 
                         post_oracle_override_pre_env_action = (
                             post_forced_override_pre_env_action
@@ -7676,6 +7776,9 @@ class TRLPPOTrainer(PPOTrainer):
                                     post_forced_override_pre_env_action
                                 ),
                                 forced_gripper_close_mask=forced_close_mask,
+                                stage2_close_gate_forced_gripper_close_mask=(
+                                    stage2_close_gate_forced_close_mask
+                                ),
                                 first_episode_active_mask=first_episode_active_mask,
                                 episode_indices=eval_episode_indices,
                             )
@@ -8626,11 +8729,19 @@ class TRLPPOTrainer(PPOTrainer):
                 "forced_gripper_close_enabled": a2_eval_diagnostics[
                     "forced_close_enabled"
                 ],
+                "stage2_close_gate_forced_gripper_close_enabled": (
+                    a2_eval_diagnostics[
+                        "stage2_close_gate_forced_close_enabled"
+                    ]
+                ),
                 "forced_gripper_close_value": a2_eval_diagnostics[
                     "forced_close_value"
                 ],
                 "forced_gripper_close_stages": list(forced_close_stage_ids),
                 "forced_gripper_close_applied_counts": forced_close_applied_counts,
+                "stage2_close_gate_forced_gripper_close_applied_counts": (
+                    stage2_close_gate_forced_close_applied_counts
+                ),
                 "p2_posture_axis": a2_eval_diagnostics["p2_posture_axis"],
                 "m41_strict_telemetry": a2_eval_diagnostics["strict_m41_telemetry"],
                 "v20_strict_telemetry": a2_eval_diagnostics["strict_v20_telemetry"],

@@ -3,7 +3,7 @@ set -euo pipefail
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 python_bin=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 root="$repo/logs_eval/base_v26/v26_5_wave1_stage5_20260830_r1/K"
-cases="$root/runtime_contract_cases_attempt3"
+cases="$root/runtime_contract_cases_attempt4"
 [[ ! -e "$root/runtime_contract.json" && ! -e "$cases" ]] || { echo "runtime contract evidence already exists" >&2; exit 1; }
 mkdir -p "$cases"
 for factor in O0 O1; do

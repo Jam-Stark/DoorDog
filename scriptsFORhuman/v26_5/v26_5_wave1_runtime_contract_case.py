@@ -109,7 +109,7 @@ def main(a: argparse.Namespace) -> None:
         raise
     finally:
         if succeeded:
-            app.close()
+            app.close(wait_for_replicator=False, skip_cleanup=True)
 
 
 if __name__ == "__main__":

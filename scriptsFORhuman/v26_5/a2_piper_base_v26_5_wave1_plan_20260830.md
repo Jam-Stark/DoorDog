@@ -15,6 +15,10 @@ handle-depression behavior into bilateral policy-generated door opening?
   750 batches and save frequency 125.
 - O1A0 and O1A1 each run seed0 and seed1 on physical GPU2/4/5/6. Each
   process exposes only its assigned card and uses process-local `cuda:0`.
+- Formal training is deliberately staggered: launch one cell, confirm its
+  Isaac startup, 4096-environment construction and first training iteration,
+  then launch the next cell. This prevents concurrent GPU Foundation startup;
+  it does not alter cell factors, seeds or resources.
 - O0A1 runs only as a matched-prefix diagnostic: it reuses v26-4 C0 step750
   policies under an eval-time rebase. It is not a snapshot clone and cannot
   establish training improvement.

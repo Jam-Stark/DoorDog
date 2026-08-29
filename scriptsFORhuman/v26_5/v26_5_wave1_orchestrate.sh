@@ -7,7 +7,7 @@ usage:
   v26_5_wave1_orchestrate.sh preregister
   v26_5_wave1_orchestrate.sh probe --launch
   v26_5_wave1_orchestrate.sh smoke --launch
-  v26_5_wave1_orchestrate.sh train --launch
+  v26_5_wave1_orchestrate.sh train-cell O1A0_S0|O1A0_S1|O1A1_S0|O1A1_S1 --launch
   v26_5_wave1_orchestrate.sh diagnostic --launch
   v26_5_wave1_orchestrate.sh formal-eval --launch
   v26_5_wave1_orchestrate.sh reduce
@@ -89,15 +89,21 @@ case ${1:-} in
     printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_smoke.sh" 2 "$smoke_root"
     launch v26_5_wave1_r1_smoke 2 "$command" "$runtime_logs/smoke/O1A1_SMOKE64_B1.log" "$smoke_root/model_step_000001.pt"
     ;;
-  train)
-    [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
+  train-cell)
+    [[ $# -eq 3 && ${3:-} == --launch ]] || { usage >&2; exit 2; }
     require_static; require_pass v26_5_wave1_r1_runtime_contract_attempt5; require_pass v26_5_wave1_r1_smoke
-    for gpu in 2 4 5 6; do gpu_idle "$gpu"; done
-    for entry in '2 O1A0_S0' '4 O1A0_S1' '5 O1A1_S0' '6 O1A1_S1'; do
-      read -r gpu label <<<"$entry"; output="$train_root/$label"; [[ ! -e "$output" ]] || { echo "formal output exists: $output" >&2; exit 1; }
-      printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_train_cell.sh" "$gpu" "$label" "$output"
-      launch "v26_5_wave1_r1_train_${label,,}" "$gpu" "$command" "$runtime_logs/train/$label.log" "$output/model_step_000750.pt"
-    done
+    label=$2
+    case "$label" in
+      O1A0_S0) gpu=2 ;;
+      O1A0_S1) gpu=4 ;;
+      O1A1_S0) gpu=5 ;;
+      O1A1_S1) gpu=6 ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    gpu_idle "$gpu"
+    output="$train_root/$label"; [[ ! -e "$output" ]] || { echo "formal output exists: $output" >&2; exit 1; }
+    printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_train_cell.sh" "$gpu" "$label" "$output"
+    launch "v26_5_wave1_r1_train_${label,,}_attempt2" "$gpu" "$command" "$runtime_logs/train_attempt2/$label.log" "$output/model_step_000750.pt"
     ;;
   diagnostic)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
@@ -110,7 +116,7 @@ case ${1:-} in
   formal-eval)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
     require_static
-    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_r1_train_${label,,}"; done
+    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_r1_train_${label,,}_attempt2"; done
     for gpu in 2 4 5 6; do gpu_idle "$gpu"; done
     for entry in '2 O1A0_S0 O1A0' '4 O1A0_S1 O1A0' '5 O1A1_S0 O1A1' '6 O1A1_S1 O1A1'; do
       read -r gpu label factor <<<"$entry"; seed=${label##*_S}; checkpoint="$train_root/$label/model_step_000750.pt"; [[ ! -e "$eval_root/${label}_STEP0750" ]] || { echo "formal eval output exists: $label" >&2; exit 1; }

@@ -1,0 +1,97 @@
+# @package _global_
+# V6.1 Q reward-repair strict-natural evaluation with the exact training actor contract.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_reward_repair_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_reward_repair_eval
+
+env:
+  config:
+    staged_reset_ratios: [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    a2_pull_v6_stage4_bank_enabled: false
+    a2_pull_v61_late_state_bank_enabled: false
+
+algo:
+  config:
+    eval:
+      a2_diagnostic_trace_enabled: true
+      a2_diagnostic_reward_terms:
+        - a2_corridor_clean_passage
+        - a2_pull_frame_approach
+        - a2_pull_v6_arc_tracking
+        - a2_pull_v6_arm_tangent_progress
+        - a2_pull_v6_clean_release_quality
+        - a2_pull_v6_handle_side_bonus
+        - a2_pull_v6_handoff_hinge_angle_deficit
+        - a2_pull_v6_handoff_hinge_momentum
+        - a2_pull_v6_handoff_side_progress
+        - a2_pull_v6_hinge_momentum
+        - a2_pull_v6_pivot_excess_penalty
+        - a2_pull_v6_post_release_arm_default_target_quality
+        - a2_pull_v6_post_release_arm_tuck_progress
+        - a2_pull_v6_post_release_lateral_command_alignment
+        - a2_pull_v6_post_release_open_command_quality
+        - a2_pull_v6_post_release_persistence
+        - a2_pull_v6_post_release_recontact_penalty
+        - a2_pull_v6_premature_release_penalty
+        - a2_pull_v6_release_open_command_quality
+        - a2_pull_v61_e6_event_credit
+        - a2_pull_v61_e7_event_credit
+        - a2_stage2_both_contact
+        - a2_stage2_close_command
+        - a2_stage2_close_progress
+        - a2_stage2_contact_stability
+        - a2_stage2_handle_approach_xz
+        - a2_stage2_handle_center_y
+        - a2_stage2_opposite_squeeze
+        - a2_stage2_squeeze_force_window
+        - a2_stage3_stage4_both_contact
+        - a2_stage3_stage4_contact_stability
+        - a2_stage3_stage4_hold_and_drive
+        - a2_stage3_stage4_keep_close_command
+        - a2_stage3_stage4_opposite_squeeze
+        - a2_stage3_stage4_squeeze_force_window
+        - a2_stage3_unlatch_hold
+        - a2_stage4_grasp_target_distance_mild
+        - complete
+        - dont_push_door_handle
+        - grasp
+        - grasp_target_distance
+        - gripper_handle_orientation
+        - limits_dof_pos
+        - limits_gripper_primitive_action
+        - orientation_control
+        - penalty_a2_stage1_stage2_base_forward_creep
+        - penalty_a2_stage2_open_command_in_close_gate
+        - penalty_a2_stage2_over_force
+        - penalty_a2_stage3_stage4_open_command
+        - penalty_a2_stage3_stage4_over_force
+        - penalty_base_command_limit
+        - penalty_base_roll_pitch_l2
+        - penalty_delta_action_rate
+        - penalty_dof_acc
+        - penalty_dof_overspeed
+        - penalty_dof_vel
+        - penalty_door_frame_contact
+        - penalty_door_panel_contact
+        - penalty_face_door
+        - penalty_not_standing_still
+        - penalty_standing_still
+        - penalty_undesired_contact
+        - penalty_upper_body_non_gripper_deviation_l1
+        - pregrasp_gripper_dof_pos_l1
+        - pregrasp_target_distance
+        - pull_door_handle
+        - pull_door_hinge
+        - ref_dof_legs
+        - stage
+        - success_save_time
+        - target_root_distance
+        - walk_to_door
+      a2_forced_gripper_close_enabled: false
+      a2_hold_oracle_enabled: false
+      a2_pull_v6_passage_lateral_counterfactual_enabled: false
+      a2_pull_p2_intervention_enabled: false
+      a2_pull_v61_post_release_intervention_enabled: false

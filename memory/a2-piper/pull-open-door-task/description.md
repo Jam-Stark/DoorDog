@@ -1,8 +1,8 @@
 ---
 name: pull-open-door-task
-scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure + pull-v6 lightweight send-past-body F0 closure
+scope: A2+Piper pull-door v0 foundations + pull-v1/v2 Stage3→4 + pull-v3/v4 traversal negatives + pull-v5/v5.1 bridge occupancy + pull-v5.2 anchored-probe + pull-v5.3 locomotion-interface + pull-v5.4 scheduler + pull-v5.5 residual-adapter + pull-v5.6-r2 specialist closure + pull-v6 lightweight send-past-body F0 closure + pull-v6.1 winner-quality/population-success closure
 status: active
-last_updated: 2026-08-25 14:16 HKT
+last_updated: 2026-08-29 15:45 HKT
 owned_paths:
   - memory/a2-piper/MEMORY.md
   - memory/a2-piper/pull-open-door-task/description.md
@@ -10,14 +10,26 @@ owned_paths:
   - memory/a2-piper/pull-open-door-task/DONE.md
 read_when:
   - 复用 pull-v6 lightweight send-past-body F0 winner，或扩展 light-door robustness / heavier-door release strategy 前
+  - 实施 pull-v6.1 winner behavior quality、late-state curriculum 或 population integration 前
   - 需要区分 v4 L1/L5 结论、v3 G2(c) traversal negative、v2 wall-removal runtime closure 与 v1/v0 历史边界时
 ---
 
-# Pull-Open-Door Task (v0–v5.6-r2 closures + v6 active plan)
+# Pull-Open-Door Task (v0–v5.6-r2 closures + v6 closure + v6.1 closure)
 
 ## Purpose
 
-记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter、pull-v5.6-r2 specialist closure与 pull-v6 F0 closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+记录 A2+Piper pull-door v0 foundations、pull-v1 physical-gate negative closure、pull-v2 wall-removal/Stage4 occupancy closure、pull-v3 release-then-cross、pull-v4 frame-neighborhood behavior-creation、pull-v5/v5.1 bridge occupancy/release persistence、pull-v5.2 anchored-probe、pull-v5.3 locomotion-interface、pull-v5.4 scheduler、pull-v5.5 residual-adapter、pull-v5.6-r2 specialist closure、pull-v6 F0 closure与 pull-v6.1 closure 的 direction contract、static-vs-runtime evidence boundary、reproducible commands、当前 TODO/DONE。不复制 raw trace 或长日志；只保存可复用结论。
+
+## Pull-v6.1 Winner Quality → Population Success (2026-08-29 15:45 HKT) — QUALITY_PASS / POPULATION_INCONCLUSIVE
+
+- Q/P stage is now complete. Production remains r6an seed3 step25. Formal strict-natural 4×16 baseline funnel is E5/clean/frame/E6/E7=`41/5/3/2/1`; full integrated, grouped-output, and the sole B-focus curriculum revision raised E5 at best to `47/64` but every P checkpoint had E6/E7=`0/64`, so none was promoted. Complete env14 and representative seed0/env3 E6-without-E7 five-camera renders exist. Evidence: `scriptsFORhuman/pull_v6_1/PULL_V6_1_P_POPULATION_REPORT.{json,md}`.
+
+- v6.1 evaluator-only post-release arm/base intervention、reset-pre terminal telemetry、clean-release→E7/reclosure reducer、Q/P actor/config/runner 与 exact late-state bank 已实现。Q1 证明 release-causing action不变、首次 active 为 release+1、arm/base slice ownership正确，15 个非目标行在 narrow smoke 中不变。
+- Q2 A 复现 env14 baseline（release357、frame620、E6739、E71308），且 target prefix、release+1 boundary policy/action均通过；但 B 的 non-target env0 final row 与 A 不完全一致，故四格为 `NOT_ADMITTED`，B/C/D outcome不作因果解释或 population外推。Q3 也为 `NOT_ADMITTED`：B/C/D clean-release tail仅447步，短于预注册 equal horizon569；reward保持不变。
+- Q4 exact bank restore remains `RUNTIME_PASS`: schema `a2_piper_pull_v61_late_state_bank_v1`, ordered labels D25/frame/E6, source steps `385/620/739`, 143 registered buffers.
+- Q D-head, Q integrated (QI), and reward-repair Q (QR; four step25 runs plus seed1 full-resume step50) all had deterministic late gates `0` for D25→frame, frame→E6, and E6→E7; every evaluated row ended in `stage_overtime`. No candidate produced deterministic continuation.
+- H570 reward ranking found timeout tails above successful tails. The E6/E7 one-shot edge-credit repair was runtime-pulsed once each on the natural env14 trace, but did not produce deterministic late-bank continuation.
+- Final verdict is `QUALITY_INCONCLUSIVE`; P population integration was not started and hardware evidence is `NOT_RUN`. Revision scope is `pull-v6.1 QI/QR over r6an`; evidence is `scriptsFORhuman/pull_v6_1/PULL_V6_1_BANK_RESTORE_REPORT.json`, `PULL_V6_1_QI_SEED0_STEP25_LATE_GATE.json` through `PULL_V6_1_QI_SEED3_STEP25_LATE_GATE.json`, `PULL_V6_1_QR_SEED0_STEP25_LATE_GATE.json` through `PULL_V6_1_QR_SEED3_STEP25_LATE_GATE.json`, `PULL_V6_1_QR_SEED1_STEP50_LATE_GATE.json`, `PULL_V6_1_LATE_REWARD_RANKING_REPORT_H570.json`, and `PULL_V6_1_REWARD_REPAIR_RUNTIME_EVIDENCE.json`.
 
 ## Pull-v6 Lightweight Send-Past-Body F0 Closure (2026-08-25 14:16 HKT) — FIRST STRICT-NATURAL E7 WINNER
 

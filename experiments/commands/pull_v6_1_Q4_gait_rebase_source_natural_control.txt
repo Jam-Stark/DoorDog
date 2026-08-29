@@ -1,0 +1,1 @@
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py eval --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --label q4_gait_rebase_source_natural_control --gpu 3 --seed 3 --num-envs 16 --ablation wbmanip/pull_v6_1_Q_reward_repair_source_eval --run

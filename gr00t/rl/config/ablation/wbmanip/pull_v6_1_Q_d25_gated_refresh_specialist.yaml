@@ -1,0 +1,12 @@
+# @package _global_
+# Second policy-iteration pass using the QDG policy's own natural D25 state.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_d25_gated_dynamics_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_d25_gated_refresh_specialist
+
+env:
+  config:
+    a2_pull_v61_late_state_bank_path: logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank_qdg_s3_natural_d25_overlay.pt

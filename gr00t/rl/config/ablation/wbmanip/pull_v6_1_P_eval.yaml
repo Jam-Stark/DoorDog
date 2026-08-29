@@ -1,0 +1,16 @@
+# @package _global_
+# V6.1P formal strict-natural population evaluation.  A selected checkpoint is CLI-bound.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_eval
+  - _self_
+
+checkpoint: REQUIRED_V61_P_CANDIDATE_CHECKPOINT.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_1_P_eval
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_integrated_actor.PullV6PostReleaseIntegratedActor

@@ -1,0 +1,13 @@
+# @package _global_
+# V6.1Q reward-repair specialist with the proven pull-v6 carrier frozen.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_reward_repair_frozen_specialist
+
+rewards:
+  reward_scales:
+    a2_pull_v61_e6_event_credit: 36280.126953125
+    a2_pull_v61_e7_event_credit: 36280.126953125

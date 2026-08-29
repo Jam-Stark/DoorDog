@@ -1,0 +1,112 @@
+{
+  "schema": "a2_piper_pull_v61_counterfactual_report_v1",
+  "target_env_id": 14,
+  "cells": {
+    "A": {
+      "env_id": 14,
+      "control_dt_s": 0.02,
+      "terminal_step": 1357,
+      "terminal_reason_post_step": "complete",
+      "terminal_complete_post_step": true,
+      "e5_step": 319,
+      "clean_release_step": 357,
+      "release_persistence_k25_step": 384,
+      "frame_passage_step": 620,
+      "e6_step": 739,
+      "e7_step": 1308,
+      "clean_release_to_e7_s": 19.02,
+      "base_path_length_m": 7.050575256347656,
+      "base_reversal_count": 30,
+      "post_release_recontact_count": 2,
+      "hinge_reclosure_after_release_rad": 1.1172060072422028,
+      "post_release_contact_steps": {
+        "arm_panel": 9,
+        "body_panel": 8,
+        "arm_frame": 60,
+        "body_frame": 139
+      },
+      "e5_to_e7_s": 19.78000020980835,
+      "timing_semantics": "pull_v61_clean_release_and_explicit_e5"
+    },
+    "B": {
+      "env_id": 14,
+      "control_dt_s": 0.02,
+      "terminal_step": 803,
+      "terminal_reason_post_step": "stage_overtime",
+      "terminal_complete_post_step": false,
+      "e5_step": 319,
+      "clean_release_step": 357,
+      "release_persistence_k25_step": null,
+      "frame_passage_step": null,
+      "e6_step": "N/A",
+      "e7_step": "N/A",
+      "clean_release_to_e7_s": null,
+      "base_path_length_m": 2.8174242973327637,
+      "base_reversal_count": 22,
+      "post_release_recontact_count": 33,
+      "hinge_reclosure_after_release_rad": 0.9590569734573364,
+      "post_release_contact_steps": {
+        "arm_panel": 189,
+        "body_panel": 0,
+        "arm_frame": 0,
+        "body_frame": 0
+      },
+      "e5_to_e7_s": "N/A",
+      "timing_semantics": "pull_v61_clean_release_and_explicit_e5"
+    },
+    "C": {
+      "env_id": 14,
+      "control_dt_s": 0.02,
+      "terminal_step": 803,
+      "terminal_reason_post_step": "stage_overtime",
+      "terminal_complete_post_step": false,
+      "e5_step": 319,
+      "clean_release_step": 357,
+      "release_persistence_k25_step": 392,
+      "frame_passage_step": null,
+      "e6_step": "N/A",
+      "e7_step": "N/A",
+      "clean_release_to_e7_s": null,
+      "base_path_length_m": 3.0290637016296387,
+      "base_reversal_count": 17,
+      "post_release_recontact_count": 9,
+      "hinge_reclosure_after_release_rad": 1.3581398725509644,
+      "post_release_contact_steps": {
+        "arm_panel": 190,
+        "body_panel": 24,
+        "arm_frame": 0,
+        "body_frame": 0
+      },
+      "e5_to_e7_s": "N/A",
+      "timing_semantics": "pull_v61_clean_release_and_explicit_e5"
+    },
+    "D": {
+      "env_id": 14,
+      "control_dt_s": 0.02,
+      "terminal_step": 803,
+      "terminal_reason_post_step": "stage_overtime",
+      "terminal_complete_post_step": false,
+      "e5_step": 319,
+      "clean_release_step": 357,
+      "release_persistence_k25_step": null,
+      "frame_passage_step": null,
+      "e6_step": "N/A",
+      "e7_step": "N/A",
+      "clean_release_to_e7_s": null,
+      "base_path_length_m": 2.1959526538848877,
+      "base_reversal_count": 40,
+      "post_release_recontact_count": 20,
+      "hinge_reclosure_after_release_rad": 0.12844514846801758,
+      "post_release_contact_steps": {
+        "arm_panel": 134,
+        "body_panel": 0,
+        "arm_frame": 0,
+        "body_frame": 0
+      },
+      "e5_to_e7_s": "N/A",
+      "timing_semantics": "pull_v61_clean_release_and_explicit_e5"
+    }
+  },
+  "admission": "NOT_ADMITTED",
+  "admission_reason": "cell-B non-target env0 mismatch row=651 fields=['actual_post_delta_post_warp_arm_action', 'arm_j7_j8_close_error', 'arm_j7_j8_pos', 'arm_joint_pos', 'arm_joint_pos_target', 'arm_joint_vel', 'arm_soft_limit_normalized_margin', 'contact_force_arm_body7_8_norm', 'contact_force_arm_body7_8_w', 'door_handle_joint_pos', 'door_hinge_joint_pos', 'door_hinge_joint_vel', 'gripper_joint_pos', 'gripper_joint_target_error', 'gripper_primitive_raw', 'gripper_source_axes_w', 'gripper_source_quat_w', 'handle_approach_alignment', 'handle_contact_force_norm', 'handle_contact_force_w', 'handle_opening_alignment', 'physical_base_command', 'policy_arm_action_raw', 'policy_base_action_raw', 'policy_gripper_primitive_raw', 'policy_high_level_action_raw', 'post_delta_post_warp_base_action', 'post_delta_post_warp_env_action', 'post_delta_post_warp_gripper_primitive', 'post_forced_override_pre_env_action', 'post_forced_override_pre_env_arm_action', 'post_forced_override_pre_env_base_action', 'post_forced_override_pre_env_gripper_primitive', 'pregrasp_approach_alignment', 'pregrasp_opening_alignment', 'pull_v0', 'pull_v3_traversal', 'reward_episode_sums', 'reward_raw', 'reward_scaled', 'root_ang_vel_w', 'root_lin_vel_w', 'root_pitch', 'root_pos_rel', 'root_pos_w', 'root_quat_w', 'root_roll', 'root_yaw', 'squeeze_y', 'stage3_to4_door_hinge_margin', 'target_axes_source_handle', 'target_axes_source_pregrasp', 'target_offset_norm', 'target_offset_x_abs', 'target_offset_y_abs', 'target_offset_z_abs', 'target_pos_source_handle', 'target_pos_source_handle_distance', 'target_pos_source_pregrasp', 'target_pos_source_pregrasp_distance', 'target_quat_source_handle', 'target_quat_source_pregrasp', 'target_root_distance', 'tcp_to_handle_pos', 'tcp_to_handle_quat']"
+}

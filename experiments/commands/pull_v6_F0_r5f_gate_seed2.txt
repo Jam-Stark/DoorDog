@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=2 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=31182 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6/run_pull_v6_p2_gate.py --seed 2 --gpu 2 --num-envs 16 --run-prefix pull_v6_F0_r5f --label-prefix p2_F0_r5f --run

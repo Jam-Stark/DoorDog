@@ -1,0 +1,13 @@
+set -euo pipefail
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py capture \
+  --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt \
+  --label qdg_seed3_step25_natural_d25_overlay_capture \
+  --gpu 3 \
+  --seed 3 \
+  --num-envs 16 \
+  --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_eval \
+  --bank-path logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank_qdg_s3_natural_d25_overlay.pt \
+  --capture-target-env-id 0 \
+  --overlay-base-bank logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank_qrfn_s3_natural_d25_overlay.pt \
+  --run
+gzip -f logs_eval/a2_piper_pull_v6_1/qdg_seed3_step25_natural_d25_overlay_capture/eval/stage2_5_step_trace.json

@@ -63,6 +63,14 @@ _A2_PULL_V6_PASSAGE_LATERAL_GAIN_KEY = "a2_pull_v6_passage_lateral_gain_s_inv"
 _A2_PULL_V6_PASSAGE_LATERAL_MAX_SPEED_KEY = "a2_pull_v6_passage_lateral_max_world_y_speed_mps"
 _A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY = "a2_pull_v6_passage_lateral_trigger_max_deficit_m"
 _A2_PULL_V6_PASSAGE_LATERAL_PIVOT_GUARD_KEY = "a2_pull_v6_passage_lateral_pivot_guard_m"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_ENABLED_KEY = "a2_pull_v61_post_release_intervention_enabled"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_MODE_KEY = "a2_pull_v61_post_release_intervention_mode"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_TARGET_ENV_KEY = "a2_pull_v61_post_release_intervention_target_env_id"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_ARM_RATE_KEY = "a2_pull_v61_post_release_intervention_arm_rate_rad_per_step"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_WAYPOINT_KEY = "a2_pull_v61_post_release_intervention_base_waypoint_progress_m"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_GAIN_KEY = "a2_pull_v61_post_release_intervention_base_xy_gain_s_inv"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_MAX_SPEED_KEY = "a2_pull_v61_post_release_intervention_base_max_world_speed_mps"
+_A2_PULL_V61_POST_RELEASE_INTERVENTION_MODES = frozenset(("policy", "arm_reset", "base_corridor", "both"))
 _V21B_PLAN_ID = "base_v21B_theta_arm_ablation_v1"
 _V21B_METRIC_SOURCES = {
     "send_latch_fire_rate": "a2_v21B_send_latch_fire_rate",
@@ -1049,6 +1057,58 @@ def _read_a2_pull_p2_intervention_config(eval_config):
     }
 
 
+def _read_a2_pull_v61_post_release_intervention_config(eval_config):
+    """Parse the standalone pull-v6.1 post-release counterfactual contract."""
+
+    enabled = eval_config.get(_A2_PULL_V61_POST_RELEASE_INTERVENTION_ENABLED_KEY, False)
+    if not isinstance(enabled, bool):
+        raise RuntimeError(
+            f"eval.{_A2_PULL_V61_POST_RELEASE_INTERVENTION_ENABLED_KEY} must be bool; "
+            f"got {enabled!r}."
+        )
+    intervention = {"enabled": enabled}
+    if not enabled:
+        return intervention
+
+    mode = eval_config.get(_A2_PULL_V61_POST_RELEASE_INTERVENTION_MODE_KEY)
+    if not isinstance(mode, str) or mode not in _A2_PULL_V61_POST_RELEASE_INTERVENTION_MODES:
+        raise RuntimeError(
+            f"eval.{_A2_PULL_V61_POST_RELEASE_INTERVENTION_MODE_KEY} must be one of "
+            f"{sorted(_A2_PULL_V61_POST_RELEASE_INTERVENTION_MODES)}; got {mode!r}."
+        )
+    target_env_id = eval_config.get(_A2_PULL_V61_POST_RELEASE_INTERVENTION_TARGET_ENV_KEY)
+    if isinstance(target_env_id, bool) or not isinstance(target_env_id, int) or target_env_id < 0:
+        raise RuntimeError(
+            f"eval.{_A2_PULL_V61_POST_RELEASE_INTERVENTION_TARGET_ENV_KEY} must be a non-negative int; "
+            f"got {target_env_id!r}."
+        )
+    finite_positive = {}
+    for key in (
+        _A2_PULL_V61_POST_RELEASE_INTERVENTION_ARM_RATE_KEY,
+        _A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_WAYPOINT_KEY,
+        _A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_GAIN_KEY,
+        _A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_MAX_SPEED_KEY,
+    ):
+        value = eval_config.get(key)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            or float(value) <= 0.0
+        ):
+            raise RuntimeError(f"eval.{key} must be a finite positive float; got {value!r}.")
+        finite_positive[key] = float(value)
+    return {
+        "enabled": True,
+        "mode": mode,
+        "target_env_id": target_env_id,
+        "arm_rate_rad_per_step": finite_positive[_A2_PULL_V61_POST_RELEASE_INTERVENTION_ARM_RATE_KEY],
+        "base_waypoint_progress_m": finite_positive[_A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_WAYPOINT_KEY],
+        "base_xy_gain_s_inv": finite_positive[_A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_GAIN_KEY],
+        "base_max_world_speed_mps": finite_positive[_A2_PULL_V61_POST_RELEASE_INTERVENTION_BASE_MAX_SPEED_KEY],
+    }
+
+
 def _canonicalize_a2_metric_device(device):
     """Resolve an indexless CUDA device before strict telemetry validation."""
     if not isinstance(device, torch.device):
@@ -1910,6 +1970,7 @@ def _make_json_safe(value, path="root"):
 def _read_a2_eval_diagnostic_config(eval_config):
     p2_posture_axis = _read_a2_eval_p2_posture_axis(eval_config)
     p2_intervention = _read_a2_pull_p2_intervention_config(eval_config)
+    v61_post_release_intervention = _read_a2_pull_v61_post_release_intervention_config(eval_config)
     strict_m41_telemetry = eval_config.get(_A2_EVAL_M41_STRICT_TELEMETRY_KEY, False)
     if not isinstance(strict_m41_telemetry, bool):
         raise RuntimeError(
@@ -1934,6 +1995,27 @@ def _read_a2_eval_diagnostic_config(eval_config):
             "eval.a2_forced_gripper_close_enabled=true requires "
             "eval.a2_diagnostic_trace_enabled=true for action auditability."
         )
+    if v61_post_release_intervention["enabled"]:
+        if not diagnostic_enabled:
+            raise RuntimeError(
+                "Pull-v6.1 post-release intervention requires "
+                "eval.a2_diagnostic_trace_enabled=true."
+            )
+        if forced_close_enabled:
+            raise RuntimeError(
+                "Pull-v6.1 post-release intervention requires "
+                "eval.a2_forced_gripper_close_enabled=false."
+            )
+        if eval_config.get("a2_hold_oracle_enabled", False):
+            raise RuntimeError(
+                "Pull-v6.1 post-release intervention requires "
+                "eval.a2_hold_oracle_enabled=false."
+            )
+        if p2_posture_axis != "none" or p2_intervention["enabled"]:
+            raise RuntimeError(
+                "Pull-v6.1 post-release intervention is incompatible with "
+                "the evaluator P2 interventions."
+            )
 
     passage_lateral_enabled = eval_config.get(
         _A2_PULL_V6_PASSAGE_LATERAL_ENABLED_KEY, False
@@ -1982,6 +2064,11 @@ def _read_a2_eval_diagnostic_config(eval_config):
             max_world_y_speed_mps=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_MAX_SPEED_KEY],
             trigger_max_deficit_m=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_TRIGGER_DEFICIT_KEY],
             pivot_guard_m=finite_positive[_A2_PULL_V6_PASSAGE_LATERAL_PIVOT_GUARD_KEY],
+        )
+    if v61_post_release_intervention["enabled"] and passage_lateral_enabled:
+        raise RuntimeError(
+            "Pull-v6.1 post-release intervention is incompatible with the "
+            "pre-release r6u passage lateral counterfactual."
         )
 
     reward_terms = eval_config.get("a2_diagnostic_reward_terms", ())
@@ -2051,6 +2138,7 @@ def _read_a2_eval_diagnostic_config(eval_config):
         "forced_close_stages": forced_close_stages,
         "p2_posture_axis": p2_posture_axis,
         "p2_intervention": p2_intervention,
+        "v61_post_release_intervention": v61_post_release_intervention,
         "strict_m41_telemetry": strict_m41_telemetry,
         "strict_v20_telemetry": strict_v20_telemetry,
         "passage_lateral": passage_lateral,
@@ -4629,7 +4717,18 @@ class TRLPPOTrainer(PPOTrainer):
         for obs_key in obs_dict.keys():
             obs_dict[obs_key] = obs_dict[obs_key].to(device)
 
-        for batch_idx in range(1, args.num_total_batches + 1):
+        first_batch_idx = (
+            self.state.global_step + 1
+            if self.checkpoint_load_mode == "full"
+            else 1
+        )
+        if first_batch_idx > args.num_total_batches:
+            raise RuntimeError(
+                "Full checkpoint resume requires num_total_batches greater than the "
+                f"loaded global step; loaded={self.state.global_step}, "
+                f"requested={args.num_total_batches}."
+            )
+        for batch_idx in range(first_batch_idx, args.num_total_batches + 1):
             batch_start_time = time.time()
             self.state.episode += 1 * args.batch_size
             data = next(iter_dataloader)
@@ -5179,6 +5278,9 @@ class TRLPPOTrainer(PPOTrainer):
         )
         a2_p2_intervention = a2_eval_diagnostics["p2_intervention"]
         a2_passage_lateral = a2_eval_diagnostics["passage_lateral"]
+        a2_v61_post_release_intervention = a2_eval_diagnostics[
+            "v61_post_release_intervention"
+        ]
         a2_characterization = _read_a2_pull_v5_characterization_config(
             capture_env_config,
             eval_num_envs_episodes=eval_num_envs_episodes,
@@ -5222,6 +5324,8 @@ class TRLPPOTrainer(PPOTrainer):
             raise RuntimeError("A2 eval diagnostics can only be enabled for an A2_Base env.")
         if a2_passage_lateral["enabled"] and not a2_stage2_trace_enabled:
             raise RuntimeError("Pull-v6 passage lateral counterfactual requires an A2_Base env.")
+        if a2_v61_post_release_intervention["enabled"] and not a2_stage2_trace_enabled:
+            raise RuntimeError("Pull-v6.1 post-release intervention requires an A2_Base env.")
         if a2_stage2_trace_enabled:
             init_stage2_trace = getattr(self.env, "init_a2_eval_stage2_step_trace", None)
             if init_stage2_trace is None:
@@ -5262,6 +5366,20 @@ class TRLPPOTrainer(PPOTrainer):
                         "Pull-v6 passage lateral counterfactual requires env init hook."
                     )
                 init_passage_lateral(a2_passage_lateral)
+            if a2_v61_post_release_intervention["enabled"]:
+                if not eval_num_envs_episodes:
+                    raise RuntimeError(
+                        "Pull-v6.1 post-release intervention requires "
+                        "eval.eval_num_envs_episodes=true for first-episode isolation."
+                    )
+                init_v61_post_release_intervention = getattr(
+                    self.env, "init_a2_eval_pull_v61_post_release_intervention", None
+                )
+                if init_v61_post_release_intervention is None:
+                    raise RuntimeError(
+                        "Pull-v6.1 post-release intervention requires env init hook."
+                    )
+                init_v61_post_release_intervention(a2_v61_post_release_intervention)
             hold_detail_enabled = self.env._get_a2_hold_contact_detail_enabled()
             if hold_detail_enabled and not a2_eval_diagnostics["diagnostic_enabled"]:
                 raise RuntimeError(
@@ -5455,7 +5573,24 @@ class TRLPPOTrainer(PPOTrainer):
                             action_layout,
                             a2_eval_diagnostics["p2_posture_axis"],
                         )
-                        post_forced_override_pre_env_action = p2_posture_axis_action
+                        v61_policy_action = p2_posture_axis_action
+                        v61_applied_action = v61_policy_action
+                        if a2_v61_post_release_intervention["enabled"]:
+                            apply_v61_post_release_intervention = getattr(
+                                self.env,
+                                "apply_a2_eval_pull_v61_post_release_intervention",
+                                None,
+                            )
+                            if apply_v61_post_release_intervention is None:
+                                raise RuntimeError(
+                                    "Pull-v6.1 post-release intervention requires env action hook."
+                                )
+                            v61_applied_action, _ = apply_v61_post_release_intervention(
+                                v61_policy_action,
+                                first_episode_active_mask,
+                            )
+
+                        post_forced_override_pre_env_action = v61_applied_action
                         if a2_eval_diagnostics["forced_close_enabled"]:
                             post_forced_override_pre_env_action = p2_posture_axis_action.clone()
                             post_forced_override_pre_env_action[
@@ -6295,6 +6430,7 @@ class TRLPPOTrainer(PPOTrainer):
                     "hinge_threshold_rad": a2_p2_intervention["hinge_threshold_rad"],
                     "trace_path": a2_p2_intervention["trace_path"],
                 },
+                "v61_post_release_intervention": dict(a2_v61_post_release_intervention),
                 "m41_strict_telemetry": a2_eval_diagnostics["strict_m41_telemetry"],
                 "v20_strict_telemetry": a2_eval_diagnostics["strict_v20_telemetry"],
                 "canonical_high_level_action_layout": get_action_layout(),
@@ -6436,6 +6572,24 @@ class TRLPPOTrainer(PPOTrainer):
                 )
             export_v6_bank(v6_bank_capture_path)
             self._a2_pull_v6_bank_capture_exported = True
+        v61_late_bank_capture_path = (
+            env_config.get("a2_pull_v61_late_state_bank_capture_path")
+            if isinstance(env_config, Mapping)
+            else None
+        )
+        if v61_late_bank_capture_path is not None:
+            if not isinstance(v61_late_bank_capture_path, str) or not v61_late_bank_capture_path:
+                raise RuntimeError("Pull-v6.1 late-state bank capture path must be a non-empty string.")
+            if getattr(self, "_a2_pull_v61_late_state_bank_capture_exported", False):
+                raise RuntimeError("Pull-v6.1 late-state bank exporter may run only once per evaluator.")
+            export_v61_late_bank = getattr(self.env, "export_a2_pull_v61_late_state_bank", None)
+            if export_v61_late_bank is None:
+                raise RuntimeError(
+                    "Pull-v6.1 late-state bank capture requires "
+                    "env.export_a2_pull_v61_late_state_bank()."
+                )
+            export_v61_late_bank(v61_late_bank_capture_path)
+            self._a2_pull_v61_late_state_bank_capture_exported = True
         census_output_path = env_config.get("a2_pull_v5_census_output_path") if isinstance(env_config, Mapping) else None
         if census_output_path is not None:
             export_census = getattr(self.env, "export_a2_pull_v5_census", None)

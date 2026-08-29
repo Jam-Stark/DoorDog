@@ -1,0 +1,16 @@
+# @package _global_
+# V6.1P one registered curriculum revision: emphasize the natural E5/B-to-C seam.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_P_output_grouped
+  - _self_
+
+checkpoint: REQUIRED_V61_Q_WINNER_CHECKPOINT.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_1_P_output_b_focus
+
+env:
+  config:
+    a2_pull_v61_stage4_row_weights: {e5_phase_b: 0.60, pre_release_phase_c: 0.20, post_release_d25: 0.10, frame_passage: 0.10}
+

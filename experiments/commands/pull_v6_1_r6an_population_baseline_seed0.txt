@@ -1,0 +1,1 @@
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py eval --seed 0 --gpu 0 --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --label pull_v6_1_r6an_population_baseline_seed0 --num-envs 16 --ablation wbmanip/pull_v6_1_Q_eval --run

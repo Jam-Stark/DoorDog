@@ -1,0 +1,12 @@
+# @package _global_
+# Q-stage side-channel specialist with D25-latched heading recovery for through.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_sidechannel_d25_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_sidechannel_heading_specialist
+
+rewards:
+  reward_scales:
+    a2_pull_v61_post_release_heading_error: -6.0

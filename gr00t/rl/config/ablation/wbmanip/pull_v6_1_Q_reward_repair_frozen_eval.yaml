@@ -1,0 +1,13 @@
+# @package _global_
+# Exact full-checkpoint evaluator for the frozen-carrier reward-repair specialist.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_reward_repair_eval
+  - _self_
+
+experiment_name: pull_v6_1_Q_reward_repair_frozen_eval
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor.PullV6PostReleaseObsOverrideActor

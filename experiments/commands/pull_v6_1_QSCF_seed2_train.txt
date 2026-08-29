@@ -1,0 +1,1 @@
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QSCF --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run

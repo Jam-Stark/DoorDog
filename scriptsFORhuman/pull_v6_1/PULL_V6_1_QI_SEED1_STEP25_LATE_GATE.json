@@ -1,0 +1,117 @@
+{
+  "schema": "a2_piper_pull_v61_bank_restore_report_v1",
+  "admission": "ADMITTED",
+  "cold_recurrent_contract": "actor and critic hidden state are zeroed; no LSTM hidden is banked",
+  "evidence_scope": "late-bank capture/restore mechanism only; not strict-natural population evidence",
+  "bank": {
+    "schema": "a2_piper_pull_v61_late_state_bank_v1",
+    "labels": [
+      "post_release_d25",
+      "frame_passage",
+      "e6_stage5_entry"
+    ],
+    "provenance": [
+      {
+        "source_env_id": 14,
+        "source_control_step": 385,
+        "event_label": "post_release_d25",
+        "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt",
+        "source_config": "wbmanip/pull_v6_1_Q_eval"
+      },
+      {
+        "source_env_id": 14,
+        "source_control_step": 620,
+        "event_label": "frame_passage",
+        "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt",
+        "source_config": "wbmanip/pull_v6_1_Q_eval"
+      },
+      {
+        "source_env_id": 14,
+        "source_control_step": 739,
+        "event_label": "e6_stage5_entry",
+        "source_checkpoint": "/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0/logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt",
+        "source_config": "wbmanip/pull_v6_1_Q_eval"
+      }
+    ],
+    "registered_buffer_count": 143,
+    "robot_root_state_shape": [
+      3,
+      13
+    ],
+    "door_dof_pos_shape": [
+      3,
+      3
+    ]
+  },
+  "restores": {
+    "post_release_d25": {
+      "trace": "logs_eval/a2_piper_pull_v6_1/q5_qi_seed1_step25_d25_retry2/eval/stage2_5_step_trace.json.gz",
+      "envs": [
+        {
+          "env_id": 0,
+          "step_index": 0,
+          "stage": 4,
+          "stage4_subphase": 3,
+          "event_state": "E5_CLEARANCE_DECISION",
+          "reset_source": {
+            "label": "post_release_d25",
+            "stage": 4,
+            "sample_index": 0
+          },
+          "first_action_finite": true,
+          "last_step": 649,
+          "last_stage": 4,
+          "terminal_reason": "stage_overtime"
+        }
+      ],
+      "continuation_target": "frame_passage",
+      "continuation_reached_env_ids": []
+    },
+    "frame_passage": {
+      "trace": "logs_eval/a2_piper_pull_v6_1/q5_qi_seed1_step25_frame_retry2/eval/stage2_5_step_trace.json.gz",
+      "envs": [
+        {
+          "env_id": 0,
+          "step_index": 0,
+          "stage": 4,
+          "stage4_subphase": 3,
+          "event_state": "E5_CLEARANCE_DECISION",
+          "reset_source": {
+            "label": "frame_passage",
+            "stage": 4,
+            "sample_index": 1
+          },
+          "first_action_finite": true,
+          "last_step": 649,
+          "last_stage": 4,
+          "terminal_reason": "stage_overtime"
+        }
+      ],
+      "continuation_target": "E6_PATH_REVERSAL_ENTRY",
+      "continuation_reached_env_ids": []
+    },
+    "e6_stage5_entry": {
+      "trace": "logs_eval/a2_piper_pull_v6_1/q5_qi_seed1_step25_e6_retry2/eval/stage2_5_step_trace.json.gz",
+      "envs": [
+        {
+          "env_id": 0,
+          "step_index": 0,
+          "stage": 5,
+          "stage4_subphase": 3,
+          "event_state": "E6_PATH_REVERSAL_ENTRY",
+          "reset_source": {
+            "label": "e6_stage5_entry",
+            "stage": 5,
+            "sample_index": 0
+          },
+          "first_action_finite": true,
+          "last_step": 649,
+          "last_stage": 5,
+          "terminal_reason": "stage_overtime"
+        }
+      ],
+      "continuation_target": "E7_WHOLE_BODY_CLEAR",
+      "continuation_reached_env_ids": []
+    }
+  }
+}

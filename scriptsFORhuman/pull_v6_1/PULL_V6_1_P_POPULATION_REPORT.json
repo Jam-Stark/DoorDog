@@ -1,0 +1,40 @@
+{
+  "schema": "a2_piper_pull_v61_population_stage_report_v1",
+  "status": "QUALITY_PASS__POPULATION_INCONCLUSIVE",
+  "quality_winner": {
+    "checkpoint": "logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt",
+    "reason": "Only checkpoint with a verified strict-natural E7 completion; no v6.1Q or v6.1P checkpoint exceeded it."
+  },
+  "formal_population_denominator": {
+    "eval_seeds": [0, 1, 2, 3],
+    "episodes_per_seed": 16,
+    "total_episodes": 64,
+    "strict_natural": true,
+    "bank_enabled": false,
+    "evaluator_intervention": false
+  },
+  "funnel": {
+    "r6an_baseline": {"e5": 41, "clean_release": 5, "frame_passage": 3, "e6": 2, "e7": 1},
+    "p_integrated_step25": {"e5": 19, "clean_release": 0, "frame_passage": 0, "e6": 0, "e7": 0},
+    "p_integrated_step50": {"e5": 18, "clean_release": 0, "frame_passage": 0, "e6": 0, "e7": 0},
+    "p_grouped_step25": {"e5": 45, "clean_release": 1, "frame_passage": 0, "e6": 0, "e7": 0},
+    "p_grouped_step50": {"e5": 46, "clean_release": 0, "frame_passage": 0, "e6": 0, "e7": 0},
+    "p_b_focus_step25": {"e5": 47, "clean_release": 2, "frame_passage": 1, "e6": 0, "e7": 0},
+    "p_b_focus_step50": {"e5": 46, "clean_release": 2, "frame_passage": 1, "e6": 0, "e7": 0}
+  },
+  "decision": {
+    "promoted_population_checkpoint": null,
+    "production_checkpoint_unchanged": true,
+    "hardware": "NOT_RUN",
+    "reason": "Every P checkpoint lost the baseline E6/E7 chain; higher E5 admission did not convert to stable Phase-C/clean-release behavior."
+  },
+  "evidence": {
+    "baseline_report": "logs_eval/a2_piper_pull_v6_1/R6AN_formal_population_report.json",
+    "integrated_step25": "logs_eval/a2_piper_pull_v6_1/P_step25_matching_population_report.json",
+    "integrated_step50": "logs_eval/a2_piper_pull_v6_1/P_step50_matching_population_report.json",
+    "grouped_step25": "logs_eval/a2_piper_pull_v6_1/PG_step25_matching_population_report.json",
+    "grouped_step50": "logs_eval/a2_piper_pull_v6_1/PG_step50_matching_population_report.json",
+    "b_focus_step25": "logs_eval/a2_piper_pull_v6_1/PB_step25_matching_population_report.json",
+    "b_focus_step50": "logs_eval/a2_piper_pull_v6_1/PB_step50_matching_population_report.json"
+  }
+}

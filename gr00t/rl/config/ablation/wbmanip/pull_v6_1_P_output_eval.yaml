@@ -1,0 +1,12 @@
+# @package _global_
+# Strict-natural population evaluation for grouped-output P checkpoints.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_P_eval
+  - _self_
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_population_output_actor.PullV6PopulationOutputActor
+

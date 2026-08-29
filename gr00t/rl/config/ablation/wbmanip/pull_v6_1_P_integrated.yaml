@@ -1,0 +1,33 @@
+# @package _global_
+# V6.1P integrated population curriculum, warm-started by a selected Q winner.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ap
+  - _self_
+
+checkpoint: REQUIRED_V61_Q_WINNER_CHECKPOINT.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_1_P_integrated
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_integrated_actor.PullV6PostReleaseIntegratedActor
+  trl:
+    num_total_batches: 50
+
+env:
+  config:
+    staged_reset_ratios: [0.50, 0.0, 0.0, 0.0, 0.35, 0.15]
+    a2_pull_v6_stage4_bank_enabled: false
+    a2_pull_v61_late_state_bank_enabled: true
+    a2_pull_v61_late_state_bank_path: logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank.pt
+    a2_pull_v61_pre_release_bank_path: logs_rl/a2_piper_pull_v6/pre_release_bank/pull_v6_F0_natural_bc_oracle_d_bank_v3.pt
+    a2_pull_v61_stage4_row_weights: {e5_phase_b: 0.30, pre_release_phase_c: 0.30, post_release_d25: 0.20, frame_passage: 0.20}
+    a2_pull_v61_stage5_row_weights: {e6_stage5_entry: 1.0}

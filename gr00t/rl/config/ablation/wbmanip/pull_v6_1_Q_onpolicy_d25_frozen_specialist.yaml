@@ -1,0 +1,15 @@
+# @package _global_
+# Q-stage frozen-carrier seam training on the candidate policy's own natural D25 state.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_reward_repair_frozen_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_onpolicy_d25_frozen_specialist
+
+env:
+  config:
+    staged_reset_ratios: [0.25, 0.0, 0.0, 0.0, 0.50, 0.25]
+    a2_pull_v61_late_state_bank_path: logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank_qrfn_s3_natural_d25_overlay.pt
+    a2_pull_v61_stage4_row_weights: {post_release_d25: 0.75, frame_passage: 0.25}
+    a2_pull_v61_stage5_row_weights: {e6_stage5_entry: 1.0}

@@ -1,0 +1,1 @@
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --gpu 0 --label q4_continue_post_release_d25 --row-label post_release_d25 --smoke-stage-steps 650 --num-envs 4 --seed 3 --run

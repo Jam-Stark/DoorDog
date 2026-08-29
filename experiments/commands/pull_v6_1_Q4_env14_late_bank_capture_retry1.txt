@@ -1,0 +1,1 @@
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6_1/capture_pull_v6_1_late_bank.py --gpu 0 --label q4_env14_late_bank_capture_retry1 --bank-path logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank.pt --run

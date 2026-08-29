@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6/run_pull_v6_p1_oracle.py --angle-deg 75 --velocity 0.15 --relief 0.15 --gpu 0 --orientation-axis x --attempt 64 --capture-bank --run

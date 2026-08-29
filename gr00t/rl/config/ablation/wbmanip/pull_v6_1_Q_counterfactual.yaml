@@ -1,0 +1,19 @@
+# @package _global_
+# V6.1 post-release matched counterfactual.  Only env14 is eligible.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_eval
+  - _self_
+
+experiment_name: pull_v6_1_Q_counterfactual
+
+algo:
+  config:
+    eval:
+      a2_pull_v61_post_release_intervention_enabled: true
+      a2_pull_v61_post_release_intervention_mode: policy
+      a2_pull_v61_post_release_intervention_target_env_id: 14
+      a2_pull_v61_post_release_intervention_arm_rate_rad_per_step: 0.01
+      a2_pull_v61_post_release_intervention_base_waypoint_progress_m: 2.2
+      a2_pull_v61_post_release_intervention_base_xy_gain_s_inv: 1.0
+      a2_pull_v61_post_release_intervention_base_max_world_speed_mps: 0.25

@@ -1,0 +1,35 @@
+# @package _global_
+defaults:
+  - /ablation/wbmanip/pull_v6_F0
+  - _self_
+
+experiment_name: pull_v6_P1_oracle
+checkpoint: logs_rl/a2_piper_full_stage_a2_pull/a2_piper_full_stage_a2_pull/pull_v4_B_wave1_seed1/model_step_000750.pt
+checkpoint_load_mode: full
+num_envs: 1
+
+algo:
+  config:
+    eval:
+      eval_num_envs_episodes: true
+      a2_diagnostic_trace_enabled: true
+      a2_hold_oracle_enabled: true
+      a2_pull_v6_p1_oracle_enabled: true
+      a2_pull_v6_p1_orientation_axis: x
+      a2_pull_v6_p1_target_hinge_velocity_radps: 0.45
+      a2_pull_v6_p1_xy_relief_m: 0.10
+      a2_pull_v6_p1_through_speed_mps: 0.60
+      a2_pull_v6_p1_phase_timeout_steps: 1000
+      a2_v20_arc_probe_enabled: true
+      a2_v20_arc_probe_mode: F1
+      a2_v20_arc_probe_target_hinge_rad: 2.0943951024
+      a2_v20_arc_probe_terminal_window_steps: 1
+      a2_v20_arc_probe_timeout_steps: 1200
+
+env:
+  config:
+    a2_hold_diagnostic_contact_detail_enabled: true
+    a2_hold_diagnostic_max_contact_data_count_per_prim: 64
+    a2_pull_v6_release_hinge_rad: 1.3089969390
+    a2_pull_v6_release_min_hinge_velocity_radps: 0.45
+    a2_pull_v6_base_relief_radius_m: 0.10

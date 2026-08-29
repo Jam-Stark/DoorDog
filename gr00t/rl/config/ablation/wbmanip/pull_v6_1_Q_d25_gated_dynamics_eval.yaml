@@ -1,0 +1,32 @@
+# @package _global_
+# Exact evaluator for the 137D D25-gated post-release specialist.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_reward_repair_frozen_eval
+  - _self_
+
+experiment_name: pull_v6_1_Q_d25_gated_dynamics_eval
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_late_post_release_obs_override_actor.PullV6LatePostReleaseObsOverrideActor
+
+env:
+  config:
+    obs:
+      obs_dict:
+        actor_obs: [
+          dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos,
+          base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions,
+          gripper_handle_transform, a2_base_command_raw, a2_base_command,
+          z_a2_pull_v6_hinge_velocity, z_a2_pull_v61_post_release_control,
+          z_a2_pull_v6_release_mode
+        ]
+        critic_obs: [
+          dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos,
+          base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions,
+          gripper_handle_transform, a2_base_command_raw, transition, complete, time_in_stage,
+          actual_time_in_stage, total_time, a2_base_command, z_a2_pull_v6_hinge_velocity,
+          z_a2_pull_v61_post_release_control, z_a2_pull_v6_release_mode
+        ]

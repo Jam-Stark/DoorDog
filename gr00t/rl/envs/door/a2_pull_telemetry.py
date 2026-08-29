@@ -103,6 +103,7 @@ A2_PULL_EPISODE_UNITS = {
     "root_outward_excursion_before_clear_m": "m_or_N/A",
     "first_path_reversal_step": "control_step_or_N/A",
     "release_to_whole_body_clear_s": "s_or_N/A",
+    "e5_to_whole_body_clear_s": "s_or_N/A",
     "hinge_reclosure_after_release_rad": "rad_or_N/A",
     "body_panel_contact_steps_per_20s": "count",
     "body_panel_contact_impulse_Ns": "N*s",

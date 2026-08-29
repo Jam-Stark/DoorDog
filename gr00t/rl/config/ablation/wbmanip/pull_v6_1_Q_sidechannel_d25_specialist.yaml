@@ -1,0 +1,26 @@
+# @package _global_
+# Q-stage 135D carrier with a two-value hinge/D25 side channel for the D head only.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_onpolicy_d25_frozen_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_sidechannel_d25_specialist
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_sidechannel_post_release_actor.PullV6SidechannelPostReleaseActor
+
+env:
+  config:
+    obs:
+      obs_dict:
+        critic_obs: [
+          dof_pos, relative_to_door, dof_vel, actions, projected_gravity, door_dof_pos,
+          base_lin_vel, base_ang_vel, hand_force, stage, privileged_door_info, delta_actions,
+          gripper_handle_transform, a2_base_command_raw, transition, complete, time_in_stage,
+          actual_time_in_stage, total_time, a2_base_command, z_a2_pull_v6_hinge_velocity,
+          z_a2_pull_v61_post_release_control, z_a2_pull_v6_release_mode
+        ]
+        v6_dynamics_obs: [z_a2_pull_v6_hinge_velocity, z_a2_pull_v61_post_release_control]

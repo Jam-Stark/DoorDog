@@ -1,0 +1,531 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Pull-v6.1 Quality Gate: Population Not Admitted",
+    "intent": "Ready technical snapshot for the Pull-v6.1 quality-first decision.",
+    "question": "Did any Q specialist demonstrate the late-state continuation quality required to enter population training?",
+    "rationale": "Exact tables are the primary evidence surface because this is a finite gate and wave audit. The one grouped diverging bar is retained only to make the pre- versus post-repair reward-ranking reversal legible; it is a projection, not a population or PPO result.",
+    "sources": [
+      {
+        "id": "canonical_plan",
+        "label": "V6.1 canonical implementation plan",
+        "path": "scriptsFORhuman/pull_v6/A2_PIPER_PULL_V6_1_WINNER_QUALITY_AND_POPULATION_SUCCESS_IMPLEMENTATION_PLAN.md",
+        "description": "Defines the quality-first sequence, Q5 hard gate, P admission boundary, and allowed close verdicts.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT stage, status, reason FROM population_status;",
+          "description": "Portable snapshot projection of the plan-governed P-stage status rows.",
+          "tables_used": ["snapshot.datasets.population_status"]
+        }
+      },
+      {
+        "id": "implementation_records",
+        "label": "V6.1 command registry and run receipts",
+        "path": "experiments/COMMAND_BATCHES.md",
+        "description": "Training wave registration and result notes. Related receipt set: .ai/runtime/runs/v61_q5_seed*_step25/RUN_RECEIPT.json, .ai/runtime/runs/v61_qi_seed*_step25/RUN_RECEIPT.json, .ai/runtime/runs/v61_qr_seed*_step25/RUN_RECEIPT.json, and .ai/runtime/runs/v61_qr_seed1_r50/RUN_RECEIPT.json.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT wave, seeds, batches_and_timesteps, checkpoint, gate_outcome FROM training_waves;",
+          "description": "Portable snapshot projection of registered training wave and checkpoint rows.",
+          "tables_used": ["snapshot.datasets.training_waves", "snapshot.datasets.implementation_evidence"]
+        }
+      },
+      {
+        "id": "q_gate_reports",
+        "label": "Q, QI, and QR late-state gate reports",
+        "path": "scriptsFORhuman/pull_v6_1/PULL_V6_1_QR_SEED1_STEP50_LATE_GATE.json",
+        "description": "Representative step50 QR gate; companion per-seed reports are PULL_V6_1_Q5_SEED*_STEP25_LATE_GATE.json, PULL_V6_1_QI_SEED*_STEP25_LATE_GATE.json, and PULL_V6_1_QR_SEED*_STEP25_LATE_GATE.json.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT checkpoint_cohort, d25_to_frame, frame_to_e6, e6_to_e7, terminal FROM q_gates;",
+          "description": "Portable snapshot projection of the reviewed Q late-state gate rows.",
+          "tables_used": ["snapshot.datasets.q_gates"]
+        }
+      },
+      {
+        "id": "counterfactual_admission",
+        "label": "2x2 counterfactual admission report",
+        "path": "scriptsFORhuman/pull_v6_1/PULL_V6_1_COUNTERFACTUAL_ADMISSION_REPORT.json",
+        "description": "Reports target-env telemetry and NOT_ADMITTED status from a non-target prefix mismatch.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT area, evidence_grade, observed_result, claim_boundary FROM implementation_evidence WHERE area = 'Post-release 2x2 evaluator';",
+          "description": "Portable snapshot projection of the counterfactual admission boundary.",
+          "tables_used": ["snapshot.datasets.implementation_evidence"]
+        }
+      },
+      {
+        "id": "bank_reports",
+        "label": "Late-state bank capture and restore reports",
+        "path": "scriptsFORhuman/pull_v6_1/PULL_V6_1_BANK_RESTORE_REPORT.json",
+        "description": "Admitted capture/restore contract. Related continuation report is PULL_V6_1_BANK_CONTINUATION_REPORT.json and is NOT_ADMITTED for continuation evidence.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT area, evidence_grade, observed_result, claim_boundary FROM implementation_evidence WHERE area = 'Late-state capture/restore';",
+          "description": "Portable snapshot projection of the bank runtime evidence boundary.",
+          "tables_used": ["snapshot.datasets.implementation_evidence"]
+        }
+      },
+      {
+        "id": "reward_h570",
+        "label": "H570 common-anchor reward ranking",
+        "path": "scriptsFORhuman/pull_v6_1/PULL_V6_1_LATE_REWARD_RANKING_REPORT_H570.json",
+        "description": "Equal-horizon 570-step candidate-timeout minus successful-source return gaps at D25, frame, and E6 anchors.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT anchor, pre_repair_equal_gap, discounted_gap_gamma_09975 FROM reward_h570_details;",
+          "description": "Portable snapshot projection of the reviewed H570 gaps.",
+          "tables_used": ["snapshot.datasets.reward_h570_details"]
+        }
+      },
+      {
+        "id": "reward_projection",
+        "label": "Float32-safe reward-repair projection",
+        "path": "scriptsFORhuman/pull_v6_1/PULL_V6_1_LATE_REWARD_REPAIR_PROJECTION_FLOAT32.json",
+        "description": "Projects the approved E6/E7 one-shot credit against the same H570 windows; it does not establish PPO preference.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT anchor, scenario, candidate_minus_source FROM reward_gap_chart;",
+          "description": "Portable snapshot projection of pre-repair and projected post-repair common-anchor gaps.",
+          "tables_used": ["snapshot.datasets.reward_gap_chart", "snapshot.datasets.reward_h570_details"]
+        }
+      },
+      {
+        "id": "runtime_pulse",
+        "label": "Natural env14 reward-pulse runtime evidence",
+        "path": "scriptsFORhuman/pull_v6_1/PULL_V6_1_REWARD_REPAIR_RUNTIME_EVIDENCE.json",
+        "description": "Records complete env14 outcome, E6/E7 edge timing, raw one-shot pulses, observed prior float32 value, and scalar-only precision correction.",
+        "query": {
+          "engine": "portable_artifact_snapshot",
+          "sql": "SELECT event_or_change, control_step_or_value, trace_row_or_context, raw_observed, scaled_or_margin FROM runtime_pulses;",
+          "description": "Portable snapshot projection of reviewed env14 reward pulse rows.",
+          "tables_used": ["snapshot.datasets.runtime_pulses"]
+        }
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# Pull-v6.1 Quality Gate: Population Not Admitted"
+      },
+      {
+        "id": "technical_summary",
+        "type": "markdown",
+        "body": "## Technical summary\n\n**Verdict: `QUALITY_INCONCLUSIVE`.** The D-only, integrated, and reward-repair Q waves reached their registered step-25 checkpoints; the reward-repair seed-1 continuation also reached step 50. Yet the decisive cold late-bank checks stayed at 0/1 for D25→frame, frame→E6, and E6→E7, each ending in `stage_overtime`. The Q5 hard gate therefore blocks population integration: P0–P3 were not run.\n\nThe evidence supports an implementation and runtime-path conclusion, not a causal or population-success conclusion. The 2×2 post-release counterfactual was `NOT_ADMITTED`, so its intervention outcomes are not interpreted. The reward audit found large pre-repair timeout advantages at all three common anchors; the registered E6/E7 credit reverses those comparisons only in an offline projection. Hardware evidence is `NOT_RUN`."
+      },
+      {
+        "id": "implementation_heading",
+        "type": "markdown",
+        "body": "## The implementation paths ran, but the quality gate did not pass\n\nThe distinction matters: successful process completion, trace generation, bank capture/restore, and training checkpoints establish runtime execution. They do not establish the behavioral continuation required for a winner-quality checkpoint."
+      },
+      {
+        "id": "implementation_table",
+        "type": "table",
+        "tableId": "implementation_evidence"
+      },
+      {
+        "id": "waves_heading",
+        "type": "markdown",
+        "body": "## All explored Q trainability variants failed the same late continuation test\n\nEach specialist wave used the registered 256-environment training geometry. Step-25 execution generated checkpoints; the reward-repair seed-1 continuation to step 50 did not change any of the three 1-episode cold-bank denominators."
+      },
+      {
+        "id": "waves_table",
+        "type": "table",
+        "tableId": "training_waves"
+      },
+      {
+        "id": "gates_heading",
+        "type": "markdown",
+        "body": "## Q hard-gate result: D25, frame, and E6 each remained 0/1\n\nA continuation count is the number of restored single-environment rollouts that reached the next registered event. Every listed row ended with `stage_overtime`; therefore no candidate satisfied the prerequisite for Q6 selection or P entry."
+      },
+      {
+        "id": "gates_table",
+        "type": "table",
+        "tableId": "q_gates"
+      },
+      {
+        "id": "reward_heading",
+        "type": "markdown",
+        "body": "## The H570 reward audit identified a timeout advantage; the repair reverses it only by projection\n\nBefore the E6/E7 credit, candidate timeout trajectories ranked above the successful source at all three event-aligned 570-step windows. The float32-safe one-shot credit changes the candidate-minus-source equal-horizon totals below zero. Negative projected values mean the successful source would rank higher under this arithmetic; they are not observed post-repair learning outcomes and make no PPO-preference claim."
+      },
+      {
+        "id": "reward_chart",
+        "type": "chart",
+        "chartId": "reward_gap_projection"
+      },
+      {
+        "id": "reward_table",
+        "type": "table",
+        "tableId": "reward_h570_details"
+      },
+      {
+        "id": "pulse_heading",
+        "type": "markdown",
+        "body": "## Natural env14 replay proved the event edges and prior float32 pulse realization\n\nThe source replay completed and emitted one raw E6 pulse and one raw E7 pulse. The original scalar realized as 725.6024780273438 in float32, leaving the frame margin just below 1.0. The configuration scalar was rounded upward to 36280.126953125, which corresponds to 725.6025390625 at dt=0.02; no new replay was launched because only the scalar changed."
+      },
+      {
+        "id": "pulse_table",
+        "type": "table",
+        "tableId": "runtime_pulses"
+      },
+      {
+        "id": "scope_heading",
+        "type": "markdown",
+        "body": "## Scope and metric definitions\n\nThe decision unit is a registered Q checkpoint, not a training process. The hard late-state gate evaluates one cold restored rollout per anchor: `post_release_d25` must reach frame passage, frame passage must reach E6, and E6 entry must reach E7. A 0/1 means the sole rollout did not reach that next event. The H570 comparison uses candidate timeout minus successful-source return over an inclusive 570-control-step event-aligned window at gamma 0.9975.\n\nThe report covers the 90 kg light-door F0 Q pathway, 135D observations, 12D actions, and the plan's quality-first admission rule. It does not measure a strict-natural 64-episode population funnel, because no P checkpoint was eligible to enter that stage."
+      },
+      {
+        "id": "methods_heading",
+        "type": "markdown",
+        "body": "## Methods and evidence grading\n\nStatic evidence covers configuration, runner, reducer, and command registration. Runtime evidence covers actual simulator traces, event latches, banks, and process receipts. Experiment evidence is reserved for the registered Q gate result. The counterfactual reducer rejects mismatched prefixes rather than attributing actions; the bank reports distinguish a capture/restore contract from behavior continuation; the reward reducer requires contiguous equal-horizon rows and stable active reward terms."
+      },
+      {
+        "id": "limitations_heading",
+        "type": "markdown",
+        "body": "## Limitations, uncertainty, and robustness boundaries\n\n**No causal result.** The A/B/C/D intervention set is `NOT_ADMITTED` because a non-target prefix mismatch was detected; the observed B/C/D terminal outcomes cannot be used to explain arm or base causality.\n\n**No population result.** P0–P3, formal strict-natural evaluation, and final render selection were not run because the Q hard gate failed. Hardware is also `NOT_RUN`.\n\n**No preference claim from reward totals.** The reward repair is an offline arithmetic projection over common late-state windows. Although source event edges and raw prior pulses were observed at runtime, post-repair learning and strict-natural quality remain unmeasured.\n\n**Limited continuation denominator.** The Q gate denominator is one cold rollout per anchor/report, sufficient for its preregistered hard stop but not an estimate of a population success rate."
+      },
+      {
+        "id": "p_not_run_heading",
+        "type": "markdown",
+        "body": "## Population work remains intentionally unstarted\n\nThe quality-first plan prohibits using a failed Q candidate as a population warm start. Treating completed Q training processes as permission to launch P would convert a preregistered quality stop into an unsupported population experiment."
+      },
+      {
+        "id": "p_not_run_table",
+        "type": "table",
+        "tableId": "population_status"
+      },
+      {
+        "id": "next_steps_heading",
+        "type": "markdown",
+        "body": "## Recommended next steps\n\n1. **Do not launch P0–P3 from the current Q checkpoints.** Preserve `QUALITY_INCONCLUSIVE` as the close state.\n2. **Investigate the late continuation failure before another trainability or reward wave.** The next hypothesis should directly target D25→frame, frame→E6, or E6→E7 behavior and define its continuation evidence in advance.\n3. **If a future Q checkpoint reaches all three continuation targets, run the planned strict-natural Q qualification before selecting any P lineage.** Compare clean release, frame, E6, E7, path, reversal, and contact quality.\n4. **Use the float32-safe reward scale only as the registered scalar correction.** Verify future post-repair training behavior separately; do not treat the offline reversal as an outcome."
+      },
+      {
+        "id": "questions_heading",
+        "type": "markdown",
+        "body": "## Further questions\n\n- Which component of the cold continuation contract is responsible for the common 0/1 outcome: state restoration, recurrent-state treatment, action ownership, or a policy deficit after the anchor?\n- Can a new Q hypothesis recover the three late transitions without losing strict-natural clean release?\n- Does the float32-safe event credit yield the expected one-shot trace value under a future approved training/evaluation run, and does that change late quality rather than only return accounting?\n- If Q eventually qualifies, does its improvement survive the plan's bank-disabled, intervention-disabled 64-episode population evaluation?"
+      }
+    ],
+    "charts": [
+      {
+        "id": "reward_gap_projection",
+        "title": "H570 candidate-minus-source return gap before and after reward repair",
+        "subtitle": "Three common anchors; scaled reward units; zero separates timeout advantage from projected successful-source advantage.",
+        "type": "bar",
+        "dataset": "reward_gap_chart",
+        "sourceId": "reward_projection",
+        "encodings": {
+          "x": { "field": "anchor", "type": "nominal", "label": "Common late-state anchor" },
+          "y": { "field": "candidate_minus_source", "type": "quantitative", "label": "Candidate timeout minus successful source", "format": "number" },
+          "color": { "field": "scenario", "type": "nominal", "label": "Reward accounting" },
+          "tooltip": [
+            { "field": "anchor", "type": "nominal", "label": "Anchor" },
+            { "field": "scenario", "type": "nominal", "label": "Scenario" },
+            { "field": "candidate_minus_source", "type": "quantitative", "label": "Gap", "format": "number" }
+          ]
+        },
+        "yAxisTitle": "Scaled reward units",
+        "referenceLines": [
+          { "axis": "y", "value": 0, "label": "zero" }
+        ]
+      }
+    ],
+    "tables": [
+      {
+        "id": "implementation_evidence",
+        "title": "Implementation evidence grades",
+        "subtitle": "Grade states distinguish executed functionality from behavior and population claims.",
+        "dataset": "implementation_evidence",
+        "sourceId": "implementation_records",
+        "density": "spacious",
+        "defaultSort": { "field": "area", "direction": "asc" },
+        "columns": [
+          { "field": "area", "label": "Area", "type": "text" },
+          { "field": "evidence_grade", "label": "Evidence grade", "type": "text" },
+          { "field": "observed_result", "label": "Observed result", "type": "text" },
+          { "field": "claim_boundary", "label": "Claim boundary", "type": "text" }
+        ]
+      },
+      {
+        "id": "training_waves",
+        "title": "Q training waves, executed timesteps, and checkpoints",
+        "subtitle": "All waves used 256 environments; checkpoint existence is not quality qualification.",
+        "dataset": "training_waves",
+        "sourceId": "implementation_records",
+        "density": "spacious",
+        "defaultSort": { "field": "wave", "direction": "asc" },
+        "columns": [
+          { "field": "wave", "label": "Wave", "type": "text" },
+          { "field": "seeds", "label": "Seeds", "type": "text" },
+          { "field": "batches_and_timesteps", "label": "Batches and training timesteps", "type": "text" },
+          { "field": "checkpoint", "label": "Checkpoint(s)", "type": "text" },
+          { "field": "gate_outcome", "label": "Late-gate outcome", "type": "text" }
+        ]
+      },
+      {
+        "id": "q_gates",
+        "title": "Q late-state hard-gate audit",
+        "subtitle": "Each cell is reached rollouts / one cold restored rollout; all terminal reasons were stage_overtime.",
+        "dataset": "q_gates",
+        "sourceId": "q_gate_reports",
+        "density": "spacious",
+        "defaultSort": { "field": "checkpoint_cohort", "direction": "asc" },
+        "columns": [
+          { "field": "checkpoint_cohort", "label": "Checkpoint cohort", "type": "text" },
+          { "field": "d25_to_frame", "label": "D25 → frame", "type": "text" },
+          { "field": "frame_to_e6", "label": "Frame → E6", "type": "text" },
+          { "field": "e6_to_e7", "label": "E6 → E7", "type": "text" },
+          { "field": "terminal", "label": "Terminal", "type": "text" }
+        ]
+      },
+      {
+        "id": "reward_h570_details",
+        "title": "H570 exact return gaps and repair projection",
+        "subtitle": "Candidate timeout minus successful source; negative projected values favor the successful source in the offline arithmetic.",
+        "dataset": "reward_h570_details",
+        "sourceId": "reward_projection",
+        "density": "spacious",
+        "defaultSort": { "field": "anchor", "direction": "asc" },
+        "columns": [
+          { "field": "anchor", "label": "Anchor", "type": "text" },
+          { "field": "pre_repair_equal_gap", "label": "Pre-repair equal-horizon gap", "type": "number", "format": "number", "movement": true },
+          { "field": "discounted_gap_gamma_09975", "label": "Discounted gap (γ=0.9975)", "type": "number", "format": "number", "movement": true },
+          { "field": "post_repair_projected_gap", "label": "Projected post-repair gap", "type": "number", "format": "number", "movement": true }
+        ]
+      },
+      {
+        "id": "runtime_pulses",
+        "title": "Runtime reward-pulse evidence and precision correction",
+        "subtitle": "Natural env14 complete replay; raw one-shot terms were observed with the prior scalar.",
+        "dataset": "runtime_pulses",
+        "sourceId": "runtime_pulse",
+        "density": "spacious",
+        "defaultSort": { "field": "event_or_change", "direction": "asc" },
+        "columns": [
+          { "field": "event_or_change", "label": "Event or change", "type": "text" },
+          { "field": "control_step_or_value", "label": "Control step / value", "type": "text" },
+          { "field": "trace_row_or_context", "label": "Trace row / context", "type": "text" },
+          { "field": "raw_observed", "label": "Raw observed", "type": "text" },
+          { "field": "scaled_or_margin", "label": "Scaled value / margin", "type": "text" }
+        ]
+      },
+      {
+        "id": "population_status",
+        "title": "Population integration status",
+        "subtitle": "P stages were not started because no Q checkpoint crossed the preregistered hard gate.",
+        "dataset": "population_status",
+        "sourceId": "canonical_plan",
+        "density": "spacious",
+        "defaultSort": { "field": "stage", "direction": "asc" },
+        "columns": [
+          { "field": "stage", "label": "Stage", "type": "text" },
+          { "field": "status", "label": "Status", "type": "text" },
+          { "field": "reason", "label": "Reason", "type": "text" }
+        ]
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "status": "ready",
+    "datasets": {
+      "implementation_evidence": [
+        {
+          "order": 1,
+          "area": "V6.1 code/config/runner/reducer paths",
+          "evidence_grade": "STATIC_PASS",
+          "observed_result": "Independent V6.1 configs, runner, analyzers, telemetry, late-bank and actor interfaces were registered.",
+          "claim_boundary": "Static evidence does not prove simulator or policy behavior."
+        },
+        {
+          "order": 2,
+          "area": "Post-release 2×2 evaluator",
+          "evidence_grade": "RUNTIME_PASS / NOT_ADMITTED",
+          "observed_result": "A/B/C/D traces and target-env telemetry were produced; reducer detected a non-target prefix mismatch.",
+          "claim_boundary": "No arm/base causal interpretation."
+        },
+        {
+          "order": 3,
+          "area": "Late-state capture/restore",
+          "evidence_grade": "RUNTIME_PASS",
+          "observed_result": "D25, frame, and E6 rows were captured and restored with the registered no-hidden-state contract.",
+          "claim_boundary": "Capture/restore is not successful behavior continuation."
+        },
+        {
+          "order": 4,
+          "area": "Q train and cold late gate",
+          "evidence_grade": "EXPERIMENT_PASS",
+          "observed_result": "Registered Q checkpoints and gate rollouts completed; all reported next-event counts were 0/1 with stage_overtime.",
+          "claim_boundary": "Supports QUALITY_INCONCLUSIVE, not a quality pass."
+        },
+        {
+          "order": 5,
+          "area": "Population P0–P3",
+          "evidence_grade": "NOT_RUN",
+          "observed_result": "No population checkpoint or strict-natural population evaluation was launched.",
+          "claim_boundary": "No population claim."
+        },
+        {
+          "order": 6,
+          "area": "Hardware",
+          "evidence_grade": "NOT_RUN",
+          "observed_result": "No hardware run or hardware artifact is in scope.",
+          "claim_boundary": "No hardware claim."
+        }
+      ],
+      "training_waves": [
+        {
+          "order": 1,
+          "wave": "Q D-only specialist",
+          "seeds": "0, 1, 2, 3",
+          "batches_and_timesteps": "25 batches each; 409,600 timesteps and 6,400 episodes per seed",
+          "checkpoint": "pull_v6_1_Q_r6an_dhead_seed{0..3}/model_step_000025.pt",
+          "gate_outcome": "All three late transitions 0/1; step50 not launched"
+        },
+        {
+          "order": 2,
+          "wave": "QI integrated specialist",
+          "seeds": "0, 1, 2, 3",
+          "batches_and_timesteps": "25 batches each; 409,600 timesteps per seed",
+          "checkpoint": "pull_v6_1_QI_r6an_integrated_seed{0..3}/model_step_000025.pt",
+          "gate_outcome": "All three late transitions 0/1"
+        },
+        {
+          "order": 3,
+          "wave": "QR reward-repair specialist",
+          "seeds": "0, 1, 2, 3",
+          "batches_and_timesteps": "25 batches each; 409,600 timesteps per seed",
+          "checkpoint": "pull_v6_1_QR_r6an_reward_repair_seed{0..3}/model_step_000025.pt",
+          "gate_outcome": "All three late transitions 0/1"
+        },
+        {
+          "order": 4,
+          "wave": "QR reward-repair continuation",
+          "seeds": "1",
+          "batches_and_timesteps": "Resumed to 50 batches; 819,200 timesteps total",
+          "checkpoint": "pull_v6_1_QR_r6an_reward_repair_r50_seed1/model_step_000050.pt",
+          "gate_outcome": "D25, frame, and E6 each remained 0/1"
+        }
+      ],
+      "q_gates": [
+        {
+          "order": 1,
+          "checkpoint_cohort": "Q D-only, seeds 0–3, step25",
+          "d25_to_frame": "0/1 per seed",
+          "frame_to_e6": "0/1 per seed",
+          "e6_to_e7": "0/1 per seed",
+          "terminal": "stage_overtime"
+        },
+        {
+          "order": 2,
+          "checkpoint_cohort": "QI integrated, seeds 0–3, step25",
+          "d25_to_frame": "0/1 per seed",
+          "frame_to_e6": "0/1 per seed",
+          "e6_to_e7": "0/1 per seed",
+          "terminal": "stage_overtime"
+        },
+        {
+          "order": 3,
+          "checkpoint_cohort": "QR reward-repair, seeds 0–3, step25",
+          "d25_to_frame": "0/1 per seed",
+          "frame_to_e6": "0/1 per seed",
+          "e6_to_e7": "0/1 per seed",
+          "terminal": "stage_overtime"
+        },
+        {
+          "order": 4,
+          "checkpoint_cohort": "QR reward-repair, seed 1, step50",
+          "d25_to_frame": "0/1",
+          "frame_to_e6": "0/1",
+          "e6_to_e7": "0/1",
+          "terminal": "stage_overtime"
+        }
+      ],
+      "reward_gap_chart": [
+        { "anchor": "D25", "scenario": "Pre-repair", "candidate_minus_source": 620.6509958130582 },
+        { "anchor": "D25", "scenario": "Projected post-repair", "candidate_minus_source": -104.95154324944178 },
+        { "anchor": "Frame", "scenario": "Pre-repair", "candidate_minus_source": 724.6024932378109 },
+        { "anchor": "Frame", "scenario": "Projected post-repair", "candidate_minus_source": -1.0000458246890958 },
+        { "anchor": "E6", "scenario": "Pre-repair", "candidate_minus_source": 671.4963648739657 },
+        { "anchor": "E6", "scenario": "Projected post-repair", "candidate_minus_source": -54.10617418853428 }
+      ],
+      "reward_h570_details": [
+        {
+          "order": 1,
+          "anchor": "post_release_d25",
+          "pre_repair_equal_gap": 620.6509958130582,
+          "discounted_gap_gamma_09975": 182.537721296486,
+          "post_repair_projected_gap": -104.95154324944178
+        },
+        {
+          "order": 2,
+          "anchor": "frame_passage",
+          "pre_repair_equal_gap": 724.6024932378109,
+          "discounted_gap_gamma_09975": 351.5147659287518,
+          "post_repair_projected_gap": -1.0000458246890958
+        },
+        {
+          "order": 3,
+          "anchor": "e6_stage5_entry",
+          "pre_repair_equal_gap": 671.4963648739657,
+          "discounted_gap_gamma_09975": 422.8714595532447,
+          "post_repair_projected_gap": -54.10617418853428
+        }
+      ],
+      "runtime_pulses": [
+        {
+          "order": 1,
+          "event_or_change": "E6 event credit",
+          "control_step_or_value": "event first step 739",
+          "trace_row_or_context": "pulse trace row 738",
+          "raw_observed": "1",
+          "scaled_or_margin": "725.6024780273438 (prior scalar, float32)"
+        },
+        {
+          "order": 2,
+          "event_or_change": "E7 event credit",
+          "control_step_or_value": "event first step 1308",
+          "trace_row_or_context": "pulse trace row 1307",
+          "raw_observed": "1",
+          "scaled_or_margin": "725.6024780273438 (prior scalar, float32)"
+        },
+        {
+          "order": 3,
+          "event_or_change": "Float32-safe scalar correction",
+          "control_step_or_value": "36280.126953125 × 0.02",
+          "trace_row_or_context": "scalar-only; no rerun",
+          "raw_observed": "N/A",
+          "scaled_or_margin": "725.6025390625; frame margin 1.0000458246890958"
+        }
+      ],
+      "population_status": [
+        {
+          "order": 1,
+          "stage": "P0 integrated actor",
+          "status": "NOT_RUN",
+          "reason": "No Q checkpoint passed the late-state hard gate."
+        },
+        {
+          "order": 2,
+          "stage": "P1 population training",
+          "status": "NOT_RUN",
+          "reason": "Quality-first admission prohibits a failed-Q warm start."
+        },
+        {
+          "order": 3,
+          "stage": "P2 strict-natural population evaluation",
+          "status": "NOT_RUN",
+          "reason": "No P checkpoint exists; therefore no 64-episode population denominator exists."
+        },
+        {
+          "order": 4,
+          "stage": "P3 winner selection and final render",
+          "status": "NOT_RUN",
+          "reason": "Population evaluation was not admitted."
+        }
+      ]
+    }
+  },
+  "sources": []
+}

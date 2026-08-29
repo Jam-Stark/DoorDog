@@ -1,0 +1,31 @@
+# @package _global_
+# V6.1Q D-head specialist: natural plus exact late-state occupancy.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ap
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_v6_1_Q_specialist
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor.PullV6PostReleaseObsOverrideActor
+  trl:
+    num_total_batches: 50
+
+env:
+  config:
+    staged_reset_ratios: [0.10, 0.0, 0.0, 0.0, 0.60, 0.30]
+    a2_pull_v6_stage4_bank_enabled: false
+    a2_pull_v61_late_state_bank_enabled: true
+    a2_pull_v61_late_state_bank_path: logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank.pt
+    a2_pull_v61_stage4_row_weights: {post_release_d25: 0.5, frame_passage: 0.5}
+    a2_pull_v61_stage5_row_weights: {e6_stage5_entry: 1.0}

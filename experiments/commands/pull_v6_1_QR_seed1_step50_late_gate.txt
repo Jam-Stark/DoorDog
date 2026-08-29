@@ -1,0 +1,6 @@
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_r50_seed1/model_step_000050.pt --label q5_qr_seed1_step50_d25 --gpu 1 --seed 1 --num-envs 1 --ablation wbmanip/pull_v6_1_Q_reward_repair_eval --row-label post_release_d25 --smoke-stage-steps 650 --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q5_qr_seed1_step50_d25/eval/stage2_5_step_trace.json
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_r50_seed1/model_step_000050.pt --label q5_qr_seed1_step50_frame --gpu 1 --seed 1 --num-envs 1 --ablation wbmanip/pull_v6_1_Q_reward_repair_eval --row-label frame_passage --smoke-stage-steps 650 --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q5_qr_seed1_step50_frame/eval/stage2_5_step_trace.json
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_r50_seed1/model_step_000050.pt --label q5_qr_seed1_step50_e6 --gpu 1 --seed 1 --num-envs 1 --ablation wbmanip/pull_v6_1_Q_reward_repair_eval --row-label e6_stage5_entry --smoke-stage-steps 650 --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q5_qr_seed1_step50_e6/eval/stage2_5_step_trace.json

@@ -1,0 +1,13 @@
+# @package _global_
+# V6.1 Q-integrated strict-natural evaluator with checkpoint-compatible trainability.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_eval
+  - _self_
+
+experiment_name: pull_v6_1_Q_integrated_eval
+
+algo:
+  config:
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_integrated_actor.PullV6PostReleaseIntegratedActor

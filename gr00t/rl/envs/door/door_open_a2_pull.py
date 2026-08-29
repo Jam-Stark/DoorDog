@@ -320,6 +320,12 @@ _A2_PULL_V6_STAGED_RESET_EXTRA_BUFFER_NAMES = (
 )
 
 A2_PULL_V6_STATE_BANK_V3_SCHEMA = "a2_piper_pull_v6_state_bank_v3"
+A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA = "a2_piper_pull_v61_late_state_bank_v1"
+A2_PULL_V61_LATE_STATE_BANK_LABELS = (
+    "post_release_d25",
+    "frame_passage",
+    "e6_stage5_entry",
+)
 
 A2_PULL_V5_4_SCHEDULER_SCHEMA = "a2_piper_pull_v5_4_terminal_yaw_scheduler_v1"
 
@@ -1204,6 +1210,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v6_premature_release_event = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
             self._a2_pull_v6_release_quality = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
             self._a2_pull_v6_release_persistence = torch.zeros(self.num_envs, dtype=torch.long, device=self.device)
+            self._a2_pull_v61_post_release_control_active = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
             self._a2_pull_v6_persistence_income_active = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
@@ -1233,6 +1242,82 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v6_d25_snapshot_captured = torch.zeros(
                 self.num_envs, dtype=torch.bool, device=self.device
             )
+            self._a2_pull_v61_clean_release_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v61_hinge_running_peak_after_release = torch.full(
+                (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v61_hinge_reclosure_after_release_rad = torch.zeros(
+                self.num_envs, dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_v61_e6_event_pulse = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v61_e7_event_pulse = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v61_d25_snapshot_captured = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v61_frame_snapshot_captured = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v61_e6_snapshot_captured = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            self._a2_pull_v61_d25_snapshot_slot = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v61_frame_snapshot_slot = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v61_e6_snapshot_slot = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v61_d25_snapshot_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v61_frame_snapshot_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_v61_e6_snapshot_step = torch.full(
+                (self.num_envs,), -1, dtype=torch.long, device=self.device
+            )
+            capture_path = self.config.get("a2_pull_v61_late_state_bank_capture_path")
+            if capture_path is not None and (not isinstance(capture_path, str) or not capture_path):
+                raise RuntimeError("Pull-v6.1 late-state bank capture path must be a non-empty string when supplied.")
+            self._a2_pull_v61_late_state_bank_capture_enabled = capture_path is not None
+            capture_target = self.config.get("a2_pull_v61_late_state_bank_capture_target_env_id")
+            capture_checkpoint = self.config.get("a2_pull_v61_late_state_bank_capture_source_checkpoint")
+            capture_config = self.config.get("a2_pull_v61_late_state_bank_capture_source_config")
+            capture_overlay_base = self.config.get("a2_pull_v61_late_state_bank_overlay_base_path")
+            if capture_overlay_base is not None and (
+                not isinstance(capture_overlay_base, str) or not capture_overlay_base
+            ):
+                raise RuntimeError("Pull-v6.1 late-state overlay base path must be a non-empty string when supplied.")
+            if self._a2_pull_v61_late_state_bank_capture_enabled:
+                if (
+                    isinstance(capture_target, bool)
+                    or not isinstance(capture_target, int)
+                    or not 0 <= capture_target < self.num_envs
+                    or not isinstance(capture_checkpoint, str)
+                    or not capture_checkpoint
+                    or not isinstance(capture_config, str)
+                    or not capture_config
+                ):
+                    raise RuntimeError(
+                        "Pull-v6.1 late-state capture requires target env, source checkpoint, and source config provenance."
+                    )
+            elif any(value is not None for value in (capture_target, capture_checkpoint, capture_config)):
+                raise RuntimeError("Pull-v6.1 late-state capture provenance requires an explicit capture path.")
+            if capture_overlay_base is not None and not self._a2_pull_v61_late_state_bank_capture_enabled:
+                raise RuntimeError("Pull-v6.1 late-state overlay requires an explicit capture path.")
+            self._a2_pull_v61_late_state_bank_capture_target_env_id = capture_target
+            self._a2_pull_v61_late_state_bank_capture_source_checkpoint = capture_checkpoint
+            self._a2_pull_v61_late_state_bank_capture_source_config = capture_config
+            self._a2_pull_v61_late_state_bank_overlay_base_path = capture_overlay_base
+            self._a2_pull_v61_late_state_bank_enabled = False
             self._a2_pull_v6_stage4_bank_loaded = False
             self._a2_pull_v6_broadcast_first_natural_c_enabled = self.config.get(
                 "a2_pull_v6_broadcast_first_natural_c_enabled", False
@@ -1486,6 +1571,12 @@ class DoorOpenA2Pull(DoorPregrasp):
                 self._load_a2_pull_v6_pre_release_bank()
             elif bank_row_label != "uniform":
                 raise RuntimeError("Pull-v6 Stage-4 bank row selection requires external bank enablement.")
+            v61_bank_enabled = self.config.get("a2_pull_v61_late_state_bank_enabled", False)
+            if not isinstance(v61_bank_enabled, bool):
+                raise RuntimeError("Pull-v6.1 late-state bank enablement must be an explicit bool.")
+            self._a2_pull_v61_late_state_bank_enabled = v61_bank_enabled
+            if v61_bank_enabled:
+                self._load_a2_pull_v61_late_state_bank()
         if self._is_a2_pull_v5():
             self._register_a2_pull_v5_staged_reset_buffers()
             injection_enabled = self.config["a2_pull_v5_stage4_bank_injection_enabled"]
@@ -1552,7 +1643,14 @@ class DoorOpenA2Pull(DoorPregrasp):
                 f"Pull staged buffer {name} shape/dtype/device mismatch: "
                 f"expected={expected}/{value.dtype}/{value.device}, got={tuple(data.shape)}/{data.dtype}/{data.device}."
             )
-        value[env_ids] = data
+        if name == "a2_gait_last_update_step":
+            # The stored value belongs to the source rollout's absolute
+            # common-step clock.  Preserve gait phase/history, but bind its
+            # update timestamp to the receiving rollout so the low-level A2
+            # controller advances on the next control step.
+            value[env_ids] = self._get_a2_gait_current_step()
+        else:
+            value[env_ids] = data
 
     def apply_a2_pull_v5_intervention(self, policy_action: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Apply the paired P2 one-second arm/gripper override to a high-level action."""
@@ -2574,9 +2672,10 @@ class DoorOpenA2Pull(DoorPregrasp):
             raise RuntimeError(f"Pull-v6 {label} escapes the repository: {raw_path!r}.")
         return path
 
-    def _load_a2_pull_v6_pre_release_bank(self) -> None:
+    def _load_a2_pull_v6_pre_release_bank(self, *, raw_path: str | None = None) -> None:
         bank_path = self._pull_v6_repo_path(
-            self.config["a2_pull_v6_stage4_bank_path"], "pre-release bank path"
+            self.config["a2_pull_v6_stage4_bank_path"] if raw_path is None else raw_path,
+            "pre-release bank path",
         )
         if not bank_path.is_file():
             raise FileNotFoundError(f"Pull-v6 pre-release bank is required before construction: {bank_path}")
@@ -2742,6 +2841,193 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v6_e5_snapshot_pending.zero_()
         self._a2_pull_v6_pre_release_snapshot_pending.zero_()
         self._a2_pull_v6_stage4_bank_loaded = True
+
+    def _load_a2_pull_v61_late_state_bank(self) -> None:
+        """Load exact v6.1 late rows into Stage-4/Stage-5 reset slots."""
+
+        if not self._is_a2_pull_v6() or not self.enable_staged_reset:
+            raise RuntimeError("Pull-v6.1 late-state bank requires an enabled v6 staged-reset environment.")
+        if self.config.get("a2_pull_v6_stage4_bank_enabled", False):
+            raise RuntimeError("Pull-v6.1 late-state bank owns Stage-4 injection; disable the legacy v6 bank path.")
+        late_path = self._pull_v6_repo_path(
+            self.config["a2_pull_v61_late_state_bank_path"], "late-state bank path"
+        )
+        if not late_path.is_file():
+            raise FileNotFoundError(f"Pull-v6.1 late-state bank is required before construction: {late_path}")
+
+        def validate_weights(name: str, allowed: set[str]) -> dict[str, float]:
+            raw = self.config[name]
+            if not isinstance(raw, Mapping) or not raw or set(raw).difference(allowed):
+                raise RuntimeError(f"Pull-v6.1 {name} must be a non-empty canonical row-weight mapping.")
+            weights: dict[str, float] = {}
+            for label, value in raw.items():
+                if (
+                    not isinstance(label, str)
+                    or isinstance(value, bool)
+                    or not isinstance(value, (int, float))
+                    or not math.isfinite(float(value))
+                    or float(value) < 0.0
+                ):
+                    raise RuntimeError(f"Pull-v6.1 {name} has an invalid weight for {label!r}.")
+                weights[label] = float(value)
+            if not math.isclose(sum(weights.values()), 1.0, rel_tol=0.0, abs_tol=1.0e-6):
+                raise RuntimeError(f"Pull-v6.1 {name} weights must sum exactly to 1 within 1e-6.")
+            return weights
+
+        stage4_weights = validate_weights(
+            "a2_pull_v61_stage4_row_weights",
+            {"e5_phase_b", "pre_release_phase_c", "post_release_d25", "frame_passage"},
+        )
+        stage5_weights = validate_weights(
+            "a2_pull_v61_stage5_row_weights", {"e6_stage5_entry"}
+        )
+        if stage5_weights != {"e6_stage5_entry": 1.0}:
+            raise RuntimeError("Pull-v6.1 Stage-5 sampling must select the sole E6 entry row.")
+        use_pre_release = any(
+            stage4_weights.get(label, 0.0) > 0.0
+            for label in ("e5_phase_b", "pre_release_phase_c")
+        )
+        pre_release_path = self.config.get("a2_pull_v61_pre_release_bank_path")
+        if use_pre_release:
+            if not isinstance(pre_release_path, str) or not pre_release_path:
+                raise RuntimeError("Pull-v6.1 positive B/C row weights require an exact v3 pre-release bank path.")
+            self._load_a2_pull_v6_pre_release_bank(raw_path=pre_release_path)
+        elif pre_release_path is not None:
+            raise RuntimeError("Pull-v6.1 pre-release bank path is only valid when B/C rows have positive weight.")
+
+        payload = torch.load(late_path, map_location=self.device, weights_only=False)
+        required = {
+            "schema", "robot_root_state", "robot_dof_pos", "robot_dof_vel",
+            "door_root_state", "door_dof_pos", "door_dof_vel", "source_env_origin",
+            "labels", "buffers", "provenance", "door_metadata",
+        }
+        if not isinstance(payload, Mapping) or set(payload) != required:
+            raise RuntimeError("Pull-v6.1 late-state bank must be an exact v1 payload.")
+        if payload["schema"] != A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA:
+            raise RuntimeError(f"Pull-v6.1 late-state bank schema must be {A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA}.")
+        if not isinstance(payload["labels"], (list, tuple)) or tuple(payload["labels"]) != A2_PULL_V61_LATE_STATE_BANK_LABELS:
+            raise RuntimeError("Pull-v6.1 late-state bank labels must be ordered D25/frame/E6.")
+        bank_size = len(A2_PULL_V61_LATE_STATE_BANK_LABELS)
+        if not isinstance(payload["provenance"], (list, tuple)) or len(payload["provenance"]) != bank_size:
+            raise RuntimeError("Pull-v6.1 late-state bank provenance must have one row per label.")
+        if not isinstance(payload["door_metadata"], (list, tuple)) or len(payload["door_metadata"]) != bank_size:
+            raise RuntimeError("Pull-v6.1 late-state bank door metadata must have one row per label.")
+        for label, provenance, metadata in zip(
+            A2_PULL_V61_LATE_STATE_BANK_LABELS, payload["provenance"], payload["door_metadata"]
+        ):
+            if (
+                not isinstance(provenance, Mapping)
+                or set(provenance) != {
+                    "source_env_id", "source_control_step", "event_label",
+                    "source_checkpoint", "source_config",
+                }
+                or isinstance(provenance["source_env_id"], bool)
+                or not isinstance(provenance["source_env_id"], int)
+                or isinstance(provenance["source_control_step"], bool)
+                or not isinstance(provenance["source_control_step"], int)
+                or provenance["source_control_step"] < 0
+                or provenance["event_label"] != label
+                or not isinstance(provenance["source_checkpoint"], str)
+                or not provenance["source_checkpoint"]
+                or not isinstance(provenance["source_config"], str)
+                or not provenance["source_config"]
+                or not isinstance(metadata, Mapping)
+                or set(metadata) != {"door_open_io_sign", "door_open_lr_sign", "travel_dir_x", "hinge_drive_max_force_nm"}
+            ):
+                raise RuntimeError("Pull-v6.1 late-state bank provenance or door metadata is invalid.")
+
+        robot_case = self.staged_reset_buf.get("robot")
+        door_case = self.staged_reset_buf.get("door")
+        if not isinstance(robot_case, Mapping) or not isinstance(door_case, Mapping):
+            raise RuntimeError("Pull-v6.1 late-state bank requires tracked robot and door state.")
+        tensor_specs = {
+            "robot_root_state": (robot_case["root_state"].shape[3:], robot_case["root_state"].dtype),
+            "robot_dof_pos": (robot_case["dof_state"].shape[3:-1], robot_case["dof_state"].dtype),
+            "robot_dof_vel": (robot_case["dof_state"].shape[3:-1], robot_case["dof_state"].dtype),
+            "door_root_state": (door_case["root_state"].shape[3:], door_case["root_state"].dtype),
+            "door_dof_pos": (door_case["dof_state"].shape[3:-1], door_case["dof_state"].dtype),
+            "door_dof_vel": (door_case["dof_state"].shape[3:-1], door_case["dof_state"].dtype),
+        }
+        for name, (row_shape, dtype) in tensor_specs.items():
+            value = payload[name]
+            if (
+                not torch.is_tensor(value) or tuple(value.shape) != (bank_size, *row_shape)
+                or value.dtype != dtype or value.device != torch.device(self.device)
+                or not value.is_floating_point() or not torch.all(torch.isfinite(value))
+            ):
+                raise RuntimeError(f"Pull-v6.1 late-state bank {name} must be finite {(bank_size, *row_shape)}/{dtype}.")
+        source_origin = payload["source_env_origin"]
+        if (
+            not torch.is_tensor(source_origin) or tuple(source_origin.shape) != (bank_size, 3)
+            or source_origin.dtype != self.env_origins.dtype or source_origin.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(source_origin))
+        ):
+            raise RuntimeError("Pull-v6.1 late-state bank source_env_origin must be finite [3,3].")
+        buffers = payload["buffers"]
+        registered = {name for name, case in self.staged_reset_buf.items() if case["type"] == "buffer"}
+        if not isinstance(buffers, Mapping) or set(buffers) != registered:
+            raise RuntimeError("Pull-v6.1 late-state bank buffers must exactly match registered buffers.")
+        for name in registered:
+            value = buffers[name]
+            expected = (bank_size, *self.staged_reset_buf[name]["data"].shape[3:])
+            if (
+                not torch.is_tensor(value) or tuple(value.shape) != expected
+                or value.dtype != self.staged_reset_buf[name]["data"].dtype
+                or value.device != torch.device(self.device)
+            ):
+                raise RuntimeError(f"Pull-v6.1 late-state bank buffer {name} must match {expected}.")
+
+        stage4_slots: dict[str, int] = {}
+        if use_pre_release:
+            stage4_slots.update({"e5_phase_b": 0, "pre_release_phase_c": 1})
+        stage4_start = int(self.staged_reset_num_samples[self.STAGE_SWING, 0].item())
+        if stage4_start + 2 > int(self.staged_reset_max_samples_per_stage):
+            raise RuntimeError("Pull-v6.1 late-state bank exceeds Stage-4 reset capacity.")
+        if int(self.staged_reset_num_samples[self.STAGE_THROUGH, 0].item()) + 1 > int(self.staged_reset_max_samples_per_stage):
+            raise RuntimeError("Pull-v6.1 late-state bank exceeds Stage-5 reset capacity.")
+
+        def write_row(stage: int, slot: int, row: int) -> None:
+            for env_id in range(self.num_envs):
+                origin_delta = self.env_origins[env_id] - source_origin[row]
+                robot_root = payload["robot_root_state"][row].clone()
+                door_root = payload["door_root_state"][row].clone()
+                robot_root[:3] += origin_delta
+                door_root[:3] += origin_delta
+                robot_case["root_state"][stage, slot, env_id] = robot_root
+                robot_case["dof_state"][stage, slot, env_id, :, 0] = payload["robot_dof_pos"][row]
+                robot_case["dof_state"][stage, slot, env_id, :, 1] = payload["robot_dof_vel"][row]
+                door_case["root_state"][stage, slot, env_id] = door_root
+                door_case["dof_state"][stage, slot, env_id, :, 0] = payload["door_dof_pos"][row]
+                door_case["dof_state"][stage, slot, env_id, :, 1] = payload["door_dof_vel"][row]
+                for name in registered:
+                    value = buffers[name][row].clone()
+                    if name in {"a2_pull_prev_base_pos_xy", "a2_pull_v6_pivot_xy"}:
+                        value = value + origin_delta[:2]
+                    elif name in {"a2_pull_proof_start_root_x", "a2_pull_proof_last_root_x", "a2_pull_capture_root_x"}:
+                        value = value + origin_delta[0]
+                    elif name == "a2_pull_v6_prev_tcp_pos_w":
+                        value = value + origin_delta
+                    elif name == "a2_pull_first_event_step":
+                        reached = buffers["a2_pull_event_reached"][row]
+                        value = torch.where(reached, torch.zeros_like(value), torch.full_like(value, -1))
+                    elif name == "a2_pull_first_event_time_s":
+                        reached = buffers["a2_pull_event_reached"][row]
+                        value = torch.where(reached, torch.zeros_like(value), torch.full_like(value, float("nan")))
+                    self.staged_reset_buf[name]["data"][stage, slot, env_id] = value
+
+        write_row(self.STAGE_SWING, stage4_start, 0)
+        write_row(self.STAGE_SWING, stage4_start + 1, 1)
+        write_row(self.STAGE_THROUGH, 0, 2)
+        self.staged_reset_num_samples[self.STAGE_SWING, :] = stage4_start + 2
+        self.staged_reset_num_samples[self.STAGE_THROUGH, :] = 1
+        stage4_slots.update({"post_release_d25": stage4_start, "frame_passage": stage4_start + 1})
+        self._a2_pull_v61_stage4_bank_slots = stage4_slots
+        self._a2_pull_v61_stage4_row_weights = stage4_weights
+        self._a2_pull_v61_stage5_row_weights = stage5_weights
+        self._a2_pull_v61_last_reset_source = [
+            {"label": "not_sampled", "stage": None, "sample_index": None}
+            for _ in range(self.num_envs)
+        ]
 
     def _broadcast_a2_pull_v6_first_natural_c_snapshot(
         self, source_env_id: int, source_slot: int
@@ -3011,6 +3297,143 @@ class DoorOpenA2Pull(DoorPregrasp):
             "samples": len(rows),
             "output": str(path),
         }
+
+    def export_a2_pull_v61_late_state_bank(self, output_path: str) -> dict[str, object]:
+        """Export the exact D25/frame/E6 post-physics bank without LSTM state."""
+
+        if not self._is_a2_pull_v6() or not self._a2_pull_v61_late_state_bank_capture_enabled:
+            raise RuntimeError("Pull-v6.1 late-state export requires its explicit capture mode.")
+        captures = (
+            (
+                "post_release_d25", self.STAGE_SWING, self._a2_pull_v61_d25_snapshot_captured,
+                self._a2_pull_v61_d25_snapshot_slot, self._a2_pull_v61_d25_snapshot_step,
+            ),
+            (
+                "frame_passage", self.STAGE_SWING, self._a2_pull_v61_frame_snapshot_captured,
+                self._a2_pull_v61_frame_snapshot_slot, self._a2_pull_v61_frame_snapshot_step,
+            ),
+            (
+                "e6_stage5_entry", self.STAGE_THROUGH, self._a2_pull_v61_e6_snapshot_captured,
+                self._a2_pull_v61_e6_snapshot_slot, self._a2_pull_v61_e6_snapshot_step,
+            ),
+        )
+        overlay_base_path = self._a2_pull_v61_late_state_bank_overlay_base_path
+        selected_captures = captures[:1] if overlay_base_path is not None else captures
+        rows: list[tuple[str, int, int, int, int]] = []
+        for label, stage, captured, slots, steps in selected_captures:
+            env_ids = torch.where(captured & (slots >= 0) & (steps >= 0))[0]
+            if env_ids.numel() != 1:
+                raise RuntimeError(f"Pull-v6.1 late-state export requires exactly one captured {label} row.")
+            env_id = int(env_ids.item())
+            rows.append((label, stage, env_id, int(slots[env_id].item()), int(steps[env_id].item())))
+        robot_case = self.staged_reset_buf.get("robot")
+        door_case = self.staged_reset_buf.get("door")
+        if not isinstance(robot_case, Mapping) or not isinstance(door_case, Mapping):
+            raise RuntimeError("Pull-v6.1 late-state export requires tracked robot and door state.")
+        registered = {name for name, case in self.staged_reset_buf.items() if case["type"] == "buffer"}
+        captured_payload: dict[str, object] = {
+            "schema": A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA,
+            "robot_root_state": torch.stack([
+                robot_case["root_state"][stage, slot, env_id] for _, stage, env_id, slot, _ in rows
+            ]).detach().cpu(),
+            "robot_dof_pos": torch.stack([
+                robot_case["dof_state"][stage, slot, env_id, :, 0] for _, stage, env_id, slot, _ in rows
+            ]).detach().cpu(),
+            "robot_dof_vel": torch.stack([
+                robot_case["dof_state"][stage, slot, env_id, :, 1] for _, stage, env_id, slot, _ in rows
+            ]).detach().cpu(),
+            "door_root_state": torch.stack([
+                door_case["root_state"][stage, slot, env_id] for _, stage, env_id, slot, _ in rows
+            ]).detach().cpu(),
+            "door_dof_pos": torch.stack([
+                door_case["dof_state"][stage, slot, env_id, :, 0] for _, stage, env_id, slot, _ in rows
+            ]).detach().cpu(),
+            "door_dof_vel": torch.stack([
+                door_case["dof_state"][stage, slot, env_id, :, 1] for _, stage, env_id, slot, _ in rows
+            ]).detach().cpu(),
+            "source_env_origin": torch.stack([
+                self.env_origins[env_id] for _, _, env_id, _, _ in rows
+            ]).detach().cpu(),
+            "labels": [label for label, _, _, _, _ in rows],
+            "buffers": {
+                name: torch.stack([
+                    self.staged_reset_buf[name]["data"][stage, slot, env_id]
+                    for _, stage, env_id, slot, _ in rows
+                ]).detach().cpu()
+                for name in registered
+            },
+            "provenance": [
+                {
+                    "source_env_id": env_id,
+                    "source_control_step": step,
+                    "event_label": label,
+                    "source_checkpoint": self._a2_pull_v61_late_state_bank_capture_source_checkpoint,
+                    "source_config": self._a2_pull_v61_late_state_bank_capture_source_config,
+                }
+                for label, _, env_id, _, step in rows
+            ],
+            "door_metadata": [
+                {
+                    "door_open_io_sign": self._pull_direction.io_sign,
+                    "door_open_lr_sign": self._pull_direction.door_open_lr_sign,
+                    "travel_dir_x": self._pull_direction.travel_dir_x,
+                    "hinge_drive_max_force_nm": float(self.door_hinge_drive_max_force[env_id].item()),
+                }
+                for _, _, env_id, _, _ in rows
+            ],
+        }
+        if overlay_base_path is None:
+            payload = captured_payload
+        else:
+            base_path = self._pull_v6_repo_path(overlay_base_path, "late-state overlay base path")
+            if not base_path.is_file():
+                raise FileNotFoundError(f"Pull-v6.1 late-state overlay base bank is required: {base_path}")
+            base = torch.load(base_path, map_location="cpu", weights_only=False)
+            required = {
+                "schema", "robot_root_state", "robot_dof_pos", "robot_dof_vel", "door_root_state",
+                "door_dof_pos", "door_dof_vel", "source_env_origin", "labels", "buffers",
+                "provenance", "door_metadata",
+            }
+            if not isinstance(base, Mapping) or set(base) != required:
+                raise RuntimeError("Pull-v6.1 late-state overlay base bank must be an exact v1 payload.")
+            if (
+                base["schema"] != A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA
+                or list(base["labels"]) != list(A2_PULL_V61_LATE_STATE_BANK_LABELS)
+                or len(base["provenance"]) != len(A2_PULL_V61_LATE_STATE_BANK_LABELS)
+                or len(base["door_metadata"]) != len(A2_PULL_V61_LATE_STATE_BANK_LABELS)
+            ):
+                raise RuntimeError("Pull-v6.1 late-state overlay base bank labels/provenance are invalid.")
+            if set(base["buffers"]) != registered:
+                raise RuntimeError("Pull-v6.1 late-state overlay base bank buffers must match registered buffers.")
+            payload = {
+                "schema": A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA,
+                "robot_root_state": base["robot_root_state"].clone(),
+                "robot_dof_pos": base["robot_dof_pos"].clone(),
+                "robot_dof_vel": base["robot_dof_vel"].clone(),
+                "door_root_state": base["door_root_state"].clone(),
+                "door_dof_pos": base["door_dof_pos"].clone(),
+                "door_dof_vel": base["door_dof_vel"].clone(),
+                "source_env_origin": base["source_env_origin"].clone(),
+                "labels": list(base["labels"]),
+                "buffers": {name: base["buffers"][name].clone() for name in registered},
+                "provenance": [dict(item) for item in base["provenance"]],
+                "door_metadata": [dict(item) for item in base["door_metadata"]],
+            }
+            for name in (
+                "robot_root_state", "robot_dof_pos", "robot_dof_vel", "door_root_state",
+                "door_dof_pos", "door_dof_vel", "source_env_origin",
+            ):
+                payload[name][0] = captured_payload[name][0]
+            for name in registered:
+                payload["buffers"][name][0] = captured_payload["buffers"][name][0]
+            payload["provenance"][0] = captured_payload["provenance"][0]
+            payload["door_metadata"][0] = captured_payload["door_metadata"][0]
+        path = self._pull_v6_repo_path(output_path, "late-state bank capture path")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if path.exists():
+            raise FileExistsError(f"Pull-v6.1 late-state bank capture refuses to overwrite {path}.")
+        torch.save(payload, path)
+        return {"schema": A2_PULL_V61_LATE_STATE_BANK_V1_SCHEMA, "status": "PASS", "output": str(path)}
 
     def _load_a2_pull_v5_state_bank(self) -> None:
         enabled = self.config["a2_pull_v5_stage4_bank_injection_enabled"]
@@ -3807,6 +4230,43 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _sample_reset_sample_indices(self, env_ids: torch.Tensor, selected_stages: torch.Tensor) -> torch.Tensor:
         selected = super()._sample_reset_sample_indices(env_ids, selected_stages)
+        if getattr(self, "_a2_pull_v61_late_state_bank_enabled", False):
+            stage4_slots = self._a2_pull_v61_stage4_bank_slots
+            stage4_weights = self._a2_pull_v61_stage4_row_weights
+            labels = tuple(stage4_weights)
+            weights = torch.tensor(
+                [stage4_weights[label] for label in labels],
+                dtype=torch.float32,
+                device=self.device,
+            )
+            stage4_mask = selected_stages == self.STAGE_SWING
+            if torch.any(stage4_mask):
+                sampled_labels = torch.multinomial(
+                    weights.expand(int(stage4_mask.sum().item()), -1), 1
+                ).squeeze(-1)
+                selected[stage4_mask] = torch.tensor(
+                    [stage4_slots[labels[index]] for index in sampled_labels.tolist()],
+                    dtype=torch.long,
+                    device=self.device,
+                )
+            stage5_mask = selected_stages == self.STAGE_THROUGH
+            if torch.any(stage5_mask):
+                selected[stage5_mask] = 0
+            stage4_labels_by_slot = {slot: label for label, slot in stage4_slots.items()}
+            for env_id, stage, sample in zip(
+                env_ids.tolist(), selected_stages.tolist(), selected.tolist()
+            ):
+                if stage == self.STAGE_SWING:
+                    label = stage4_labels_by_slot[sample]
+                elif stage == self.STAGE_THROUGH:
+                    label = "e6_stage5_entry"
+                else:
+                    label = "natural"
+                self._a2_pull_v61_last_reset_source[env_id] = {
+                    "label": label,
+                    "stage": stage,
+                    "sample_index": sample,
+                }
         if self._is_a2_pull_v6():
             selected_bank_row = self._a2_pull_v6_stage4_bank_row_index
             if selected_bank_row is not None:
@@ -3922,6 +4382,8 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_handle_local_slip_valid[env_ids] = False
         self._a2_pull_passage_attempt_hinge_rad[env_ids] = float("nan")
         if self._is_a2_pull_v6():
+            self._a2_pull_v61_e6_event_pulse[env_ids] = False
+            self._a2_pull_v61_e7_event_pulse[env_ids] = False
             self._a2_pull_v6_subphase[env_ids] = self._A2_PULL_V6_PHASE_A
             self._a2_pull_v6_pivot_xy[env_ids] = float("nan")
             self._a2_pull_v6_pivot_valid[env_ids] = False
@@ -3980,6 +4442,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v6_premature_release_event[env_ids] = False
             self._a2_pull_v6_release_quality[env_ids] = 0.0
             self._a2_pull_v6_release_persistence[env_ids] = 0
+            self._a2_pull_v61_post_release_control_active[env_ids] = False
             self._a2_pull_v6_persistence_income_active[env_ids] = False
             self._a2_pull_v6_persistence_income_consumed[env_ids] = False
             self._a2_pull_v6_persistence_recontact_event[env_ids] = False
@@ -3993,6 +4456,19 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v6_d1_snapshot_captured[env_ids] = False
             self._a2_pull_v6_d5_snapshot_captured[env_ids] = False
             self._a2_pull_v6_d25_snapshot_captured[env_ids] = False
+            self._a2_pull_v61_clean_release_step[env_ids] = -1
+            self._a2_pull_v61_hinge_running_peak_after_release[env_ids] = float("nan")
+            self._a2_pull_v61_hinge_reclosure_after_release_rad[env_ids] = 0.0
+            if not self._a2_pull_v61_late_state_bank_capture_enabled:
+                self._a2_pull_v61_d25_snapshot_captured[env_ids] = False
+                self._a2_pull_v61_frame_snapshot_captured[env_ids] = False
+                self._a2_pull_v61_e6_snapshot_captured[env_ids] = False
+                self._a2_pull_v61_d25_snapshot_slot[env_ids] = -1
+                self._a2_pull_v61_frame_snapshot_slot[env_ids] = -1
+                self._a2_pull_v61_e6_snapshot_slot[env_ids] = -1
+                self._a2_pull_v61_d25_snapshot_step[env_ids] = -1
+                self._a2_pull_v61_frame_snapshot_step[env_ids] = -1
+                self._a2_pull_v61_e6_snapshot_step[env_ids] = -1
             oracle_cfg = getattr(self, "_a2_hold_oracle_cfg", None)
             if oracle_cfg is not None and oracle_cfg.get("v6_p1_oracle_enabled", False):
                 self._a2_pull_v6_p1_yaw_pivot_target_reached[env_ids] = False
@@ -4068,6 +4544,21 @@ class DoorOpenA2Pull(DoorPregrasp):
             ),
             dim=-1,
         ).float()
+
+    def _get_obs_z_a2_pull_v6_hinge_velocity(self) -> torch.Tensor:
+        """Expose current hinge velocity for post-release door-dynamics disambiguation."""
+
+        return self.simulator.get_task_dof_vel("door")[:, :1]
+
+    def _get_obs_z_a2_pull_v61_post_release_control(self) -> torch.Tensor:
+        """Expose the latched D25 controller handoff without changing release semantics."""
+
+        required = self.config["a2_pull_v6_release_persistence_steps"]
+        active = self._a2_pull_v6_clean_release & (
+            self._a2_pull_v61_post_release_control_active
+            | (self._a2_pull_v6_release_persistence >= required)
+        )
+        return active[:, None].float()
 
     def _get_a2_pull_whole_body_clear_mask(self, door_x: torch.Tensor) -> torch.Tensor:
         """Use every robot body position for the single E7 completion predicate."""
@@ -4567,12 +5058,27 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v6_premature_release_event[:] = premature_event
         self._a2_pull_v6_clean_release |= clean_event
         self._a2_pull_v6_premature_release |= premature_event
+        self._a2_pull_v61_clean_release_step[clean_event] = self.episode_length_buf[clean_event]
+        self._a2_pull_v61_hinge_running_peak_after_release[clean_event] = door_joint_pos[
+            clean_event, 0
+        ]
         self._a2_pull_v6_release_quality[clean_event] = (
             self._a2_pull_v6_last_held_arm_tangent_share[clean_event]
         )
         self._a2_pull_v6_hinge_at_release[release_event] = door_joint_pos[release_event, 0]
         self._a2_pull_v6_hinge_velocity_at_release[release_event] = door_joint_vel[release_event, 0]
         self._a2_pull_v6_subphase[release_event] = self._A2_PULL_V6_PHASE_D
+        post_clean_release = self._a2_pull_v6_clean_release & ~clean_event
+        if torch.any(post_clean_release):
+            running_peak = torch.maximum(
+                self._a2_pull_v61_hinge_running_peak_after_release[post_clean_release],
+                door_joint_pos[post_clean_release, 0],
+            )
+            self._a2_pull_v61_hinge_running_peak_after_release[post_clean_release] = running_peak
+            self._a2_pull_v61_hinge_reclosure_after_release_rad[post_clean_release] = torch.maximum(
+                self._a2_pull_v61_hinge_reclosure_after_release_rad[post_clean_release],
+                running_peak - door_joint_pos[post_clean_release, 0],
+            )
         phase_c_revert = (
             (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_C)
             & ~pre_release_ready
@@ -4580,10 +5086,19 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         self._a2_pull_v6_subphase[phase_c_revert] = self._A2_PULL_V6_PHASE_B
         clean_no_contact = self._a2_pull_v6_clean_release & no_handle_contact
+        required_persistence = self.config["a2_pull_v6_release_persistence_steps"]
+        self._a2_pull_v61_post_release_control_active |= (
+            self._a2_pull_v6_clean_release
+            & (self._a2_pull_v6_release_persistence >= required_persistence)
+        )
         self._a2_pull_v6_release_persistence[:] = torch.where(
             clean_no_contact,
             self._a2_pull_v6_release_persistence + 1,
             torch.zeros_like(self._a2_pull_v6_release_persistence),
+        )
+        self._a2_pull_v61_post_release_control_active |= (
+            self._a2_pull_v6_clean_release
+            & (self._a2_pull_v6_release_persistence >= required_persistence)
         )
         self._a2_pull_v6_persistence_income_active |= (
             clean_event & ~self._a2_pull_v6_persistence_income_consumed
@@ -4759,6 +5274,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             or torch.any(selected >= self.num_envs)
         ):
             raise RuntimeError("Pull event telemetry requires valid device-local env ids.")
+        if self._is_a2_pull_v6():
+            self._a2_pull_v61_e6_event_pulse[selected] = False
+            self._a2_pull_v61_e7_event_pulse[selected] = False
 
         root_states = self.simulator.robot_root_states
         door_states = self.simulator.get_task_root_state("door")
@@ -5192,6 +5710,13 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         newly_reached = updated_reached & ~old_reached
         self._a2_pull_event_reached[selected] = updated_reached
+        if self._is_a2_pull_v6():
+            self._a2_pull_v61_e6_event_pulse[selected] = newly_reached[
+                :, A2PullEvent.E6_PATH_REVERSAL_ENTRY
+            ]
+            self._a2_pull_v61_e7_event_pulse[selected] = newly_reached[
+                :, A2PullEvent.E7_WHOLE_BODY_CLEAR
+            ]
         self._a2_pull_first_event_step[selected] = updated_first
         selected_time = control_step[selected].to(dtype=torch.float32) * dt
         self._a2_pull_first_event_time_s[selected] = torch.where(
@@ -5221,6 +5746,8 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_first_path_reversal_step[selected[new_reversal]] = control_step[
             selected[new_reversal]
         ]
+        self._update_a2_eval_pull_v61_post_release_intervention_after_post_physics()
+        self._capture_a2_pull_v61_late_state_rows()
 
         frame_data = self._get_a2_gripper_handle_frame_transformer().data
         handle_to_tcp_pos = frame_data.target_pos_source[:, 0, :]
@@ -5243,6 +5770,112 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         self._a2_pull_handle_local_slip_valid[:] = derivative_valid
         self._a2_pull_prev_handle_to_tcp_pos[:] = handle_to_tcp_pos
+
+    def _capture_a2_pull_v61_late_state_rows(self) -> None:
+        """Capture canonical v6.1 rows from post-physics event state only."""
+
+        if not self._is_a2_pull_v6() or not self._a2_pull_v61_late_state_bank_capture_enabled:
+            return
+        if not self.enable_staged_reset or self.staged_reset_num_samples is None:
+            raise RuntimeError("Pull-v6.1 late-state capture requires staged-reset snapshots.")
+        first_episode_mask = getattr(self, "_a2_eval_first_episode_active_mask", None)
+        if (
+            not torch.is_tensor(first_episode_mask)
+            or tuple(first_episode_mask.shape) != (self.num_envs,)
+            or first_episode_mask.dtype != torch.bool
+            or first_episode_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("Pull-v6.1 late-state capture requires the evaluator first-episode mask.")
+        capture_eligible = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        capture_eligible[self._a2_pull_v61_late_state_bank_capture_target_env_id] = True
+        capture_eligible &= first_episode_mask
+
+        def capture(
+            mask: torch.Tensor, stage: int, captured: torch.Tensor,
+            slots: torch.Tensor, control_steps: torch.Tensor,
+        ) -> None:
+            pending = mask & capture_eligible & ~captured
+            if not torch.any(pending):
+                return
+            if torch.any(
+                self.staged_reset_num_samples[stage, pending]
+                >= self.staged_reset_max_samples_per_stage
+            ):
+                raise RuntimeError("Pull-v6.1 late-state capture exhausted the selected stage capacity.")
+            self._take_snapshot_of_buffered_states(pending)
+            slots[pending] = (
+                self.staged_reset_num_samples[stage, pending] - 1
+            ).remainder(self.staged_reset_max_samples_per_stage)
+            captured[pending] = True
+            control_steps[pending] = self.episode_length_buf[pending]
+
+        capture(
+            (self.stage_buf == self.STAGE_SWING)
+            & self._a2_pull_v6_clean_release
+            & (self._a2_pull_v6_release_persistence == 25),
+            self.STAGE_SWING,
+            self._a2_pull_v61_d25_snapshot_captured,
+            self._a2_pull_v61_d25_snapshot_slot,
+            self._a2_pull_v61_d25_snapshot_step,
+        )
+        capture(
+            (self.stage_buf == self.STAGE_SWING) & self._a2_pull_frame_passage,
+            self.STAGE_SWING,
+            self._a2_pull_v61_frame_snapshot_captured,
+            self._a2_pull_v61_frame_snapshot_slot,
+            self._a2_pull_v61_frame_snapshot_step,
+        )
+
+    @override
+    def _post_compute_observations_callback(self):
+        """Bind v6.1 E6 provenance to StagedTaskBase's exact Stage-5 snapshot."""
+
+        previous_stage = self.stage_buf.clone()
+        result = super()._post_compute_observations_callback()
+        if not self._is_a2_pull_v6() or not self._a2_pull_v61_late_state_bank_capture_enabled:
+            return result
+        first_episode_mask = getattr(self, "_a2_eval_first_episode_active_mask", None)
+        if first_episode_mask is None:
+            return result
+        if (
+            not torch.is_tensor(first_episode_mask)
+            or tuple(first_episode_mask.shape) != (self.num_envs,)
+            or first_episode_mask.dtype != torch.bool
+            or first_episode_mask.device != torch.device(self.device)
+        ):
+            raise RuntimeError("Pull-v6.1 E6 capture requires the evaluator first-episode mask.")
+        capture_eligible = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        capture_eligible[self._a2_pull_v61_late_state_bank_capture_target_env_id] = True
+        capture_eligible &= first_episode_mask
+        entered_stage5 = (
+            (previous_stage == self.STAGE_SWING)
+            & (self.stage_buf == self.STAGE_THROUGH)
+            & self._a2_pull_event_reached[:, A2PullEvent.E6_PATH_REVERSAL_ENTRY]
+            & capture_eligible
+            & ~self._a2_pull_v61_e6_snapshot_captured
+        )
+        if not torch.any(entered_stage5):
+            return result
+        counts = self.staged_reset_num_samples[self.STAGE_THROUGH, entered_stage5]
+        if torch.any(counts <= 0):
+            raise RuntimeError("Pull-v6.1 E6 capture requires the automatic Stage-5 snapshot.")
+        self._a2_pull_v61_e6_snapshot_slot[entered_stage5] = (
+            counts - 1
+        ).remainder(self.staged_reset_max_samples_per_stage)
+        self._a2_pull_v61_e6_snapshot_step[entered_stage5] = self.episode_length_buf[entered_stage5]
+        self._a2_pull_v61_e6_snapshot_captured[entered_stage5] = True
+        return result
+
+    def _update_a2_eval_pull_v61_post_release_intervention_after_post_physics(self) -> None:
+        """Close active evaluator intervention from the authoritative post-step E7 latch."""
+
+        if getattr(self, "_a2_pull_v61_post_release_intervention_cfg", None) is None:
+            return
+        reached_e7 = self._a2_pull_event_reached[:, A2PullEvent.E7_WHOLE_BODY_CLEAR]
+        stopped = self._a2_pull_v61_post_release_intervention_active & reached_e7
+        self._a2_pull_v61_post_release_intervention_active[stopped] = False
+        for env_id in torch.where(stopped)[0].tolist():
+            self._a2_pull_v61_post_release_intervention_stop_reason[env_id] = "e7"
 
     @override
     def _after_reward_components(self, raw_components, scaled_components):
@@ -5460,6 +6093,155 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_v6_r6u_passage_lateral_stopped = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
         )
+
+    def init_a2_eval_pull_v61_post_release_intervention(self, cfg: Mapping[str, object]) -> None:
+        """Register the evaluator-only v6.1 post-clean-release intervention."""
+
+        required = {
+            "enabled", "mode", "target_env_id", "arm_rate_rad_per_step",
+            "base_waypoint_progress_m", "base_xy_gain_s_inv", "base_max_world_speed_mps",
+        }
+        if not self._is_a2_pull_v6() or not getattr(self, "is_evaluating", False):
+            raise RuntimeError("Pull-v6.1 post-release intervention requires an evaluating v6 pull env.")
+        if not isinstance(cfg, Mapping) or set(cfg) != required or cfg["enabled"] is not True:
+            raise RuntimeError("Pull-v6.1 post-release intervention requires its exact enabled config.")
+        if cfg["mode"] not in {"policy", "arm_reset", "base_corridor", "both"}:
+            raise RuntimeError("Pull-v6.1 intervention mode must be policy, arm_reset, base_corridor, or both.")
+        target_env_id = cfg["target_env_id"]
+        if isinstance(target_env_id, bool) or not isinstance(target_env_id, int) or not 0 <= target_env_id < self.num_envs:
+            raise RuntimeError("Pull-v6.1 intervention target env must index this evaluation batch.")
+        for key in (
+            "arm_rate_rad_per_step", "base_waypoint_progress_m",
+            "base_xy_gain_s_inv", "base_max_world_speed_mps",
+        ):
+            value = cfg[key]
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)) or float(value) <= 0.0:
+                raise RuntimeError(f"Pull-v6.1 intervention {key} must be finite and positive.")
+        if not isinstance(self._a2_base_command_scale, (int, float)) or self._a2_base_command_scale <= 0.0:
+            raise RuntimeError("Pull-v6.1 intervention requires a positive base_command_scale.")
+        if not self._clip_homie_command:
+            raise RuntimeError("Pull-v6.1 corridor intervention requires configured HOMIE XY clips.")
+        clip_x = float(self.config.clip_homie_linvel_x_threshold)
+        clip_y = float(self.config.clip_homie_linvel_y_threshold)
+        if not math.isfinite(clip_x) or not math.isfinite(clip_y) or clip_x <= 0.0 or clip_y <= 0.0:
+            raise RuntimeError("Pull-v6.1 corridor intervention requires finite positive HOMIE XY clips.")
+        if float(cfg["base_max_world_speed_mps"]) > min(clip_x, clip_y):
+            raise RuntimeError("Pull-v6.1 corridor speed exceeds the configured HOMIE XY clips.")
+        self._a2_pull_v61_post_release_intervention_cfg = dict(cfg)
+        self._a2_pull_v61_post_release_intervention_started = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v61_post_release_intervention_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_v61_post_release_intervention_start_step = torch.full(
+            (self.num_envs,), -1, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_v61_post_release_intervention_stop_reason = [None for _ in range(self.num_envs)]
+        self._a2_pull_v61_post_release_policy_action = torch.zeros(
+            (self.num_envs, 12), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v61_post_release_applied_action = torch.zeros(
+            (self.num_envs, 12), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v61_post_release_waypoint_error_xy = torch.full(
+            (self.num_envs, 2), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v61_post_release_desired_world_xy = torch.full(
+            (self.num_envs, 2), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v61_post_release_arm_target = torch.full(
+            (self.num_envs, 6), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_v61_post_release_arm_target_change = torch.zeros(
+            (self.num_envs, 6), dtype=torch.float32, device=self.device
+        )
+
+    def apply_a2_eval_pull_v61_post_release_intervention(
+        self, policy_action: torch.Tensor, first_episode_mask: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Apply only post-release arm/base slices while retaining policy yaw and gripper."""
+
+        cfg = getattr(self, "_a2_pull_v61_post_release_intervention_cfg", None)
+        if cfg is None:
+            raise RuntimeError("Pull-v6.1 post-release intervention requires initialization.")
+        if (
+            not torch.is_tensor(policy_action) or tuple(policy_action.shape) != (self.num_envs, 12)
+            or not policy_action.is_floating_point() or policy_action.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(policy_action))
+            or not torch.is_tensor(first_episode_mask) or tuple(first_episode_mask.shape) != (self.num_envs,)
+            or first_episode_mask.dtype != torch.bool or first_episode_mask.device != policy_action.device
+        ):
+            raise RuntimeError("Pull-v6.1 post-release action hook input contract mismatch.")
+        self._a2_pull_v61_post_release_policy_action[:] = policy_action
+        self._a2_pull_v61_post_release_applied_action[:] = policy_action
+        target_mask = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        target_mask[int(cfg["target_env_id"])] = True
+        active = (
+            target_mask & first_episode_mask & self._a2_pull_v6_clean_release
+            & ~self._a2_pull_event_reached[:, A2PullEvent.E7_WHOLE_BODY_CLEAR]
+        )
+        starting = active & ~self._a2_pull_v61_post_release_intervention_started
+        self._a2_pull_v61_post_release_intervention_started |= starting
+        self._a2_pull_v61_post_release_intervention_active[:] = active
+        self._a2_pull_v61_post_release_intervention_start_step[starting] = self.episode_length_buf[starting]
+        if cfg["mode"] == "policy":
+            return policy_action, active
+        action = policy_action.clone()
+        if cfg["mode"] in {"arm_reset", "both"}:
+            if (
+                not torch.is_tensor(self._delta_actions)
+                or tuple(self._delta_actions.shape) != (self.num_envs, 6)
+                or self._delta_actions.dtype != action.dtype
+                or self._delta_actions.device != action.device
+                or not torch.all(torch.isfinite(self._delta_actions))
+                or not isinstance(self._delta_action_scale, (int, float))
+                or self._delta_action_scale <= 0.0
+            ):
+                raise RuntimeError("Pull-v6.1 arm reset requires finite current delta targets and a positive scale.")
+            delta_change = torch.clamp(
+                -self._delta_actions,
+                min=-float(cfg["arm_rate_rad_per_step"]),
+                max=float(cfg["arm_rate_rad_per_step"]),
+            )
+            d_next = self._delta_actions + delta_change
+            action[active, 5:11] = delta_change[active] / float(self._delta_action_scale)
+            self._a2_pull_v61_post_release_arm_target[:] = d_next
+            self._a2_pull_v61_post_release_arm_target_change[:] = delta_change
+        if cfg["mode"] in {"base_corridor", "both"}:
+            door_root = self.simulator.get_task_root_state("door")
+            robot_root = self.simulator.scene.articulations["robot"].data.root_pos_w
+            robot_quat = self.simulator.scene.articulations["robot"].data.root_quat_w
+            if (
+                not torch.is_tensor(door_root) or tuple(door_root.shape) != (self.num_envs, 13)
+                or not torch.is_tensor(robot_root) or tuple(robot_root.shape) != (self.num_envs, 3)
+                or not torch.is_tensor(robot_quat) or tuple(robot_quat.shape) != (self.num_envs, 4)
+                or not torch.all(torch.isfinite(door_root)) or not torch.all(torch.isfinite(robot_root))
+                or not torch.all(torch.isfinite(robot_quat))
+            ):
+                raise RuntimeError("Pull-v6.1 corridor intervention requires finite door and robot root state.")
+            local_progress = torch.zeros((self.num_envs, 3), dtype=action.dtype, device=self.device)
+            local_progress[:, 0] = self._pull_direction.travel_dir_x * float(cfg["base_waypoint_progress_m"])
+            waypoint_xy = door_root[:, :2] + quat_apply(yaw_quat(door_root[:, 3:7]), local_progress)[:, :2]
+            waypoint_error = waypoint_xy - robot_root[:, :2]
+            desired_world = float(cfg["base_xy_gain_s_inv"]) * waypoint_error
+            desired_speed = torch.linalg.vector_norm(desired_world, dim=-1)
+            desired_world *= torch.clamp(
+                float(cfg["base_max_world_speed_mps"]) / desired_speed, max=1.0
+            )[:, None]
+            desired_body = quat_apply_inverse(
+                yaw_quat(robot_quat),
+                torch.cat((desired_world, torch.zeros_like(desired_speed[:, None])), dim=-1),
+            )[:, :2]
+            clip_x = float(self.config.clip_homie_linvel_x_threshold)
+            clip_y = float(self.config.clip_homie_linvel_y_threshold)
+            if torch.any(active & ((torch.abs(desired_body[:, 0]) > clip_x) | (torch.abs(desired_body[:, 1]) > clip_y))):
+                raise RuntimeError("Pull-v6.1 corridor command violates the configured HOMIE XY clip contract.")
+            action[active, :2] = desired_body[active] / float(self._a2_base_command_scale)
+            self._a2_pull_v61_post_release_waypoint_error_xy[:] = waypoint_error
+            self._a2_pull_v61_post_release_desired_world_xy[:] = desired_world
+        self._a2_pull_v61_post_release_applied_action[:] = action
+        return action, active
 
     def apply_a2_eval_r6u_passage_lateral_counterfactual(
         self, policy_action: torch.Tensor, first_episode_active_mask: torch.Tensor
@@ -5772,6 +6554,26 @@ class DoorOpenA2Pull(DoorPregrasp):
                         if torch.isfinite(self._a2_pull_v6_root_yaw_delta[env_id])
                         else A2_PULL_NA
                     ),
+                }
+            v61_cfg = getattr(self, "_a2_pull_v61_post_release_intervention_cfg", None)
+            if v61_cfg is not None:
+                reached = episode_record["event_reached"]
+                terminal_reason = episode_record["terminal_reason"]
+                stop_reason = self._a2_pull_v61_post_release_intervention_stop_reason[env_id]
+                if (
+                    stop_reason is None
+                    and terminal_reason != "UNKNOWN"
+                    and bool(self._a2_pull_v61_post_release_intervention_started[env_id].item())
+                ):
+                    stop_reason = f"terminal:{terminal_reason}"
+                record["pull_v61_post_release_terminal_snapshot"] = {
+                    "mode": v61_cfg["mode"],
+                    "active": bool(self._a2_pull_v61_post_release_intervention_active[env_id].item()),
+                    "started": bool(self._a2_pull_v61_post_release_intervention_started[env_id].item()),
+                    "complete": bool(reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]),
+                    "e7": bool(reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]),
+                    "terminal_reason": terminal_reason,
+                    "stop_reason": stop_reason,
                 }
             record["pull_v2_unlatch"] = {
                 "stable_unlatch_handle_based": bool(
@@ -6149,6 +6951,18 @@ class DoorOpenA2Pull(DoorPregrasp):
                         self._a2_pull_first_event_time_s[
                             env_id, A2PullEvent.E7_WHOLE_BODY_CLEAR
                         ].item()
+                        - self._a2_pull_v61_clean_release_step[env_id].item() * dt
+                    )
+                    if self._is_a2_pull_v6()
+                    and reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name]
+                    and int(self._a2_pull_v61_clean_release_step[env_id].item()) >= 0
+                    else A2_PULL_NA
+                ),
+                "e5_to_whole_body_clear_s": (
+                    float(
+                        self._a2_pull_first_event_time_s[
+                            env_id, A2PullEvent.E7_WHOLE_BODY_CLEAR
+                        ].item()
                         - self._a2_pull_first_event_time_s[
                             env_id, A2PullEvent.E5_CLEARANCE_DECISION
                         ].item()
@@ -6156,7 +6970,12 @@ class DoorOpenA2Pull(DoorPregrasp):
                     if reached[A2PullEvent.E7_WHOLE_BODY_CLEAR.name] and e5
                     else A2_PULL_NA
                 ),
-                "hinge_reclosure_after_release_rad": A2_PULL_NA,
+                "hinge_reclosure_after_release_rad": (
+                    float(self._a2_pull_v61_hinge_reclosure_after_release_rad[env_id].item())
+                    if self._is_a2_pull_v6()
+                    and int(self._a2_pull_v61_clean_release_step[env_id].item()) >= 0
+                    else A2_PULL_NA
+                ),
                 "body_panel_contact_steps_per_20s": int(
                     self._a2_pull_body_panel_contact_steps[env_id].item()
                 ),
@@ -6476,6 +7295,65 @@ class DoorOpenA2Pull(DoorPregrasp):
                     "root_yaw_delta_rad": float(self._a2_pull_v6_root_yaw_delta[env_id].item()) if torch.isfinite(self._a2_pull_v6_root_yaw_delta[env_id]) else A2_PULL_NA,
                 }
                 validate_a2_pull_v6_control_extension(record["pull_v6"])
+            if getattr(self, "_a2_pull_v61_late_state_bank_enabled", False):
+                record["pull_v61_late_state_bank_reset"] = dict(
+                    self._a2_pull_v61_last_reset_source[env_id]
+                )
+            v61_cfg = getattr(self, "_a2_pull_v61_post_release_intervention_cfg", None)
+            if v61_cfg is not None:
+                record["a2_pull_v61_post_release_intervention_active"] = bool(
+                    self._a2_pull_v61_post_release_intervention_active[env_id].item()
+                )
+                record["pull_v61_post_release_intervention"] = {
+                    "mode": v61_cfg["mode"],
+                    "target_env_id": int(v61_cfg["target_env_id"]),
+                    "active": bool(self._a2_pull_v61_post_release_intervention_active[env_id].item()),
+                    "started": bool(self._a2_pull_v61_post_release_intervention_started[env_id].item()),
+                    "start_step": (
+                        int(self._a2_pull_v61_post_release_intervention_start_step[env_id].item())
+                        if int(self._a2_pull_v61_post_release_intervention_start_step[env_id].item()) >= 0
+                        else None
+                    ),
+                    "stop_reason": self._a2_pull_v61_post_release_intervention_stop_reason[env_id],
+                    "policy_action": self._a2_pull_v61_post_release_policy_action[env_id].detach().cpu().tolist(),
+                    "applied_action": self._a2_pull_v61_post_release_applied_action[env_id].detach().cpu().tolist(),
+                    "base_policy_action": self._a2_pull_v61_post_release_policy_action[env_id, :3].detach().cpu().tolist(),
+                    "base_applied_action": self._a2_pull_v61_post_release_applied_action[env_id, :3].detach().cpu().tolist(),
+                    "arm_policy_action": self._a2_pull_v61_post_release_policy_action[env_id, 5:11].detach().cpu().tolist(),
+                    "arm_applied_action": self._a2_pull_v61_post_release_applied_action[env_id, 5:11].detach().cpu().tolist(),
+                    "waypoint_error_xy_m": (
+                        self._a2_pull_v61_post_release_waypoint_error_xy[env_id].detach().cpu().tolist()
+                        if torch.all(torch.isfinite(self._a2_pull_v61_post_release_waypoint_error_xy[env_id]))
+                        else None
+                    ),
+                    "desired_world_xy_mps": (
+                        self._a2_pull_v61_post_release_desired_world_xy[env_id].detach().cpu().tolist()
+                        if torch.all(torch.isfinite(self._a2_pull_v61_post_release_desired_world_xy[env_id]))
+                        else None
+                    ),
+                    "arm_target_delta_rad": (
+                        self._a2_pull_v61_post_release_arm_target[env_id].detach().cpu().tolist()
+                        if torch.all(torch.isfinite(self._a2_pull_v61_post_release_arm_target[env_id]))
+                        else None
+                    ),
+                    "arm_target_change_rad": self._a2_pull_v61_post_release_arm_target_change[env_id].detach().cpu().tolist(),
+                    "clean_release_step": (
+                        int(self._a2_pull_v61_clean_release_step[env_id].item())
+                        if int(self._a2_pull_v61_clean_release_step[env_id].item()) >= 0
+                        else None
+                    ),
+                    "hinge_running_peak_after_release_rad": (
+                        float(self._a2_pull_v61_hinge_running_peak_after_release[env_id].item())
+                        if torch.isfinite(self._a2_pull_v61_hinge_running_peak_after_release[env_id])
+                        else None
+                    ),
+                    "hinge_reclosure_after_release_rad": float(
+                        self._a2_pull_v61_hinge_reclosure_after_release_rad[env_id].item()
+                    ),
+                    "frame_passage": bool(self._a2_pull_frame_passage[env_id].item()),
+                    "e6": bool(self._a2_pull_event_reached[env_id, A2PullEvent.E6_PATH_REVERSAL_ENTRY].item()),
+                    "e7": bool(self._a2_pull_event_reached[env_id, A2PullEvent.E7_WHOLE_BODY_CLEAR].item()),
+                }
             if self._is_a2_pull_v5():
                 record["pull_v5"] = {
                     "reset_source": self._a2_pull_v5_reset_source[env_id],
@@ -7299,6 +8177,26 @@ class DoorOpenA2Pull(DoorPregrasp):
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
     def _reward_a2_pull_v6_premature_release_penalty(self):
         return self._a2_pull_v6_premature_release_event.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING])
+    def _reward_a2_pull_v61_e6_event_credit(self):
+        return self._a2_pull_v61_e6_event_pulse.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v61_e7_event_credit(self):
+        return self._a2_pull_v61_e7_event_pulse.float()
+
+    @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
+    def _reward_a2_pull_v61_post_release_heading_error(self):
+        active = (
+            self._a2_pull_v61_post_release_control_active
+            & self._a2_pull_v6_clean_release
+            & (self._a2_pull_v6_subphase == self._A2_PULL_V6_PHASE_D)
+        )
+        root_yaw = euler_xyz_from_quat(self.simulator.robot_root_states[:, 3:7])[2]
+        target_yaw = math.pi if self._pull_direction.travel_dir_x < 0.0 else 0.0
+        error = torch.abs(wrap_to_pi(root_yaw - target_yaw))
+        return (error / (0.5 * math.pi)).clamp(max=1.0) * active.float()
 
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_SWING, DoorPregrasp.STAGE_THROUGH])
     @override

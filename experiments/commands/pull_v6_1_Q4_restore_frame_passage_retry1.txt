@@ -1,0 +1,1 @@
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --gpu 1 --label q4_restore_frame_passage_retry1 --row-label frame_passage --num-envs 4 --seed 3 --run

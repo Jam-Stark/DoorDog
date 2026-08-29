@@ -15452,4 +15452,5398 @@ PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.
 ### Manual Result Notes
 - Fill training metrics and play observations.
 <!-- RLCM:BATCH_END pull_v6_F0_r6an_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_Q_r6an_dhead_seed0 -->
+## Batch pull_v6_1_Q_r6an_dhead_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_Q_r6an_dhead_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_Q_r6an_dhead_seed0
+status: step25_gate_failed_escalated
+previous_batch_id: pull_v6_F0_r6an_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T00:16:24
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_Q_r6an_dhead --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34500 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34500) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- `STEP25_CHECKPOINT_PASS`: 409,600 timesteps, 6,400 episodes, process exit 0, checkpoint validated. Late-row gate receipt: `.ai/runtime/runs/v61_q5_gate_seed0_step25/RUN_RECEIPT.json`.
+- `LATE_GATE_FAIL`: D25→frame 0/1, frame→E6 0/1, E6→E7 0/1 in 650-step cold rollouts. Escalated to Q-integrated specialist; D-head step50 is not launched.
+<!-- RLCM:BATCH_END pull_v6_1_Q_r6an_dhead_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_Q_r6an_dhead_seed1 -->
+## Batch pull_v6_1_Q_r6an_dhead_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_Q_r6an_dhead_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_Q_r6an_dhead_seed1
+status: step25_gate_failed_escalated
+previous_batch_id: pull_v6_F0_r6an_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T00:16:25
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_Q_r6an_dhead --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 1 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34501 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 1) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34501) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- `STEP25_CHECKPOINT_PASS`: 409,600 timesteps, 6,400 episodes, process exit 0, checkpoint validated. Late-row gate receipt: `.ai/runtime/runs/v61_q5_gate_seed1_step25/RUN_RECEIPT.json`.
+- `LATE_GATE_FAIL`: D25→frame 0/1, frame→E6 0/1, E6→E7 0/1 in 650-step cold rollouts. Escalated to Q-integrated specialist; D-head step50 is not launched.
+<!-- RLCM:BATCH_END pull_v6_1_Q_r6an_dhead_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_Q_r6an_dhead_seed2 -->
+## Batch pull_v6_1_Q_r6an_dhead_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_Q_r6an_dhead_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_Q_r6an_dhead_seed2
+status: step25_gate_failed_escalated
+previous_batch_id: pull_v6_F0_r6an_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T00:16:25
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_Q_r6an_dhead --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 2 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34502 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 2) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34502) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- `STEP25_CHECKPOINT_PASS`: 409,600 timesteps, 6,400 episodes, process exit 0, checkpoint validated. Late-row gate receipt: `.ai/runtime/runs/v61_q5_gate_seed2_step25/RUN_RECEIPT.json`.
+- `LATE_GATE_FAIL`: D25→frame 0/1, frame→E6 0/1, E6→E7 0/1 in 650-step cold rollouts. Escalated to Q-integrated specialist; D-head step50 is not launched.
+<!-- RLCM:BATCH_END pull_v6_1_Q_r6an_dhead_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_Q_r6an_dhead_seed3 -->
+## Batch pull_v6_1_Q_r6an_dhead_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_Q_r6an_dhead_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_Q_r6an_dhead_seed3
+status: step25_gate_failed_escalated
+previous_batch_id: pull_v6_F0_r6an_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T00:16:25
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_Q_r6an_dhead --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_Q_r6an_dhead_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 3 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34503 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 3) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34503) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- `STEP25_CHECKPOINT_PASS`: 409,600 timesteps, 6,400 episodes, process exit 0, checkpoint validated. Late-row gate receipt: `.ai/runtime/runs/v61_q5_gate_seed3_step25/RUN_RECEIPT.json`.
+- `LATE_GATE_FAIL`: D25→frame 0/1, frame→E6 0/1, E6→E7 0/1 in 650-step cold rollouts. Escalated to Q-integrated specialist; D-head step50 is not launched.
+<!-- RLCM:BATCH_END pull_v6_1_Q_r6an_dhead_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QI_r6an_integrated_seed0 -->
+## Batch pull_v6_1_QI_r6an_integrated_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QI_r6an_integrated_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QI_r6an_integrated_seed0
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_Q_r6an_dhead_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T16:08:21
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QI_r6an_integrated --ablation wbmanip/pull_v6_1_Q_integrated_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps), but D25→frame, frame→E6, and E6→E7 cold late gates all failed with `stage_overtime`; see `scriptsFORhuman/pull_v6_1/PULL_V6_1_QI_SEED0_STEP25_LATE_GATE.json`.
+<!-- RLCM:BATCH_END pull_v6_1_QI_r6an_integrated_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QI_r6an_integrated_seed1 -->
+## Batch pull_v6_1_QI_r6an_integrated_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QI_r6an_integrated_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QI_r6an_integrated_seed1
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_Q_r6an_dhead_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T16:08:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QI_r6an_integrated --ablation wbmanip/pull_v6_1_Q_integrated_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps), but D25→frame, frame→E6, and E6→E7 cold late gates all failed with `stage_overtime`; see `scriptsFORhuman/pull_v6_1/PULL_V6_1_QI_SEED1_STEP25_LATE_GATE.json`.
+<!-- RLCM:BATCH_END pull_v6_1_QI_r6an_integrated_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QI_r6an_integrated_seed2 -->
+## Batch pull_v6_1_QI_r6an_integrated_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QI_r6an_integrated_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QI_r6an_integrated_seed2
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_Q_r6an_dhead_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T16:08:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QI_r6an_integrated --ablation wbmanip/pull_v6_1_Q_integrated_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps), but D25→frame, frame→E6, and E6→E7 cold late gates all failed with `stage_overtime`; see `scriptsFORhuman/pull_v6_1/PULL_V6_1_QI_SEED2_STEP25_LATE_GATE.json`.
+<!-- RLCM:BATCH_END pull_v6_1_QI_r6an_integrated_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QI_r6an_integrated_seed3 -->
+## Batch pull_v6_1_QI_r6an_integrated_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QI_r6an_integrated_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QI_r6an_integrated_seed3
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_Q_r6an_dhead_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T16:08:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QI_r6an_integrated --ablation wbmanip/pull_v6_1_Q_integrated_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps), but D25→frame, frame→E6, and E6→E7 cold late gates all failed with `stage_overtime`; see `scriptsFORhuman/pull_v6_1/PULL_V6_1_QI_SEED3_STEP25_LATE_GATE.json`.
+<!-- RLCM:BATCH_END pull_v6_1_QI_r6an_integrated_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QR_r6an_reward_repair_seed0 -->
+## Batch pull_v6_1_QR_r6an_reward_repair_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QR_r6an_reward_repair_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QR_r6an_reward_repair_seed0
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_QI_r6an_integrated_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T17:46:27
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QR_r6an_reward_repair --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps); deterministic D25/frame/E6 late gates all stage_overtime.
+<!-- RLCM:BATCH_END pull_v6_1_QR_r6an_reward_repair_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QR_r6an_reward_repair_seed1 -->
+## Batch pull_v6_1_QR_r6an_reward_repair_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QR_r6an_reward_repair_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QR_r6an_reward_repair_seed1
+status: advanced_to_step50_gate_failed
+previous_batch_id: pull_v6_1_QI_r6an_integrated_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T17:46:27
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QR_r6an_reward_repair --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps); strongest sampled funnel, advanced to full-resume step50, but step25 deterministic late gates all stage_overtime.
+<!-- RLCM:BATCH_END pull_v6_1_QR_r6an_reward_repair_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QR_r6an_reward_repair_seed2 -->
+## Batch pull_v6_1_QR_r6an_reward_repair_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QR_r6an_reward_repair_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QR_r6an_reward_repair_seed2
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_QI_r6an_integrated_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T17:46:27
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QR_r6an_reward_repair --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps); deterministic D25/frame/E6 late gates all stage_overtime.
+<!-- RLCM:BATCH_END pull_v6_1_QR_r6an_reward_repair_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QR_r6an_reward_repair_seed3 -->
+## Batch pull_v6_1_QR_r6an_reward_repair_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QR_r6an_reward_repair_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QR_r6an_reward_repair_seed3
+status: step25_gate_failed
+previous_batch_id: pull_v6_1_QI_r6an_integrated_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T17:46:27
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QR_r6an_reward_repair --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Step25 training PASS (409600 timesteps); deterministic D25/frame/E6 late gates all stage_overtime.
+<!-- RLCM:BATCH_END pull_v6_1_QR_r6an_reward_repair_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QR_r6an_reward_repair_r50_seed1 -->
+## Batch pull_v6_1_QR_r6an_reward_repair_r50_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QR_r6an_reward_repair_r50_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QR_r6an_reward_repair_r50_seed1
+status: quality_inconclusive
+previous_batch_id: pull_v6_1_QR_r6an_reward_repair_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T18:15:12
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_r50_seed1/model_step_000050.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QR_r6an_reward_repair_r50 --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_seed1/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --resume-full --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QR_r6an_reward_repair_r50_seed1/model_step_000050.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Full-resume batch26–50 PASS (819200 total timesteps); final D25→frame, frame→E6, E6→E7 deterministic gates all 0/1 stage_overtime. Verdict QUALITY_INCONCLUSIVE; P not started.
+<!-- RLCM:BATCH_END pull_v6_1_QR_r6an_reward_repair_r50_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QG_r6an_gait_rebased_seed0 -->
+## Batch pull_v6_1_QG_r6an_gait_rebased_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QG_r6an_gait_rebased_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QG_r6an_gait_rebased_seed0
+status: planned
+previous_batch_id: pull_v6_F0_r6an_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T22:37:24
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34500 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34500) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QG_r6an_gait_rebased_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QG_r6an_gait_rebased_seed1 -->
+## Batch pull_v6_1_QG_r6an_gait_rebased_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QG_r6an_gait_rebased_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QG_r6an_gait_rebased_seed1
+status: planned
+previous_batch_id: pull_v6_F0_r6an_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T22:37:24
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 1 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34501 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 1) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34501) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QG_r6an_gait_rebased_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QG_r6an_gait_rebased_seed2 -->
+## Batch pull_v6_1_QG_r6an_gait_rebased_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QG_r6an_gait_rebased_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QG_r6an_gait_rebased_seed2
+status: planned
+previous_batch_id: pull_v6_F0_r6an_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T22:37:25
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 2 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34502 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 2) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34502) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QG_r6an_gait_rebased_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QG_r6an_gait_rebased_seed3 -->
+## Batch pull_v6_1_QG_r6an_gait_rebased_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QG_r6an_gait_rebased_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QG_r6an_gait_rebased_seed3
+status: planned
+previous_batch_id: pull_v6_F0_r6an_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T22:37:25
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QG_r6an_gait_rebased_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 3 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 34503 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 3) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 34503) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QG_r6an_gait_rebased_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRG_r6an_gait_rebased_seed0 -->
+## Batch pull_v6_1_QRG_r6an_gait_rebased_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRG_r6an_gait_rebased_seed0
+status: planned
+previous_batch_id: pull_v6_1_QG_r6an_gait_rebased_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:11:58
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QRG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRG_r6an_gait_rebased_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRG_r6an_gait_rebased_seed1 -->
+## Batch pull_v6_1_QRG_r6an_gait_rebased_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRG_r6an_gait_rebased_seed1
+status: planned
+previous_batch_id: pull_v6_1_QG_r6an_gait_rebased_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:11:58
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QRG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRG_r6an_gait_rebased_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRG_r6an_gait_rebased_seed2 -->
+## Batch pull_v6_1_QRG_r6an_gait_rebased_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRG_r6an_gait_rebased_seed2
+status: planned
+previous_batch_id: pull_v6_1_QG_r6an_gait_rebased_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:11:58
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QRG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRG_r6an_gait_rebased_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRG_r6an_gait_rebased_seed3 -->
+## Batch pull_v6_1_QRG_r6an_gait_rebased_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRG_r6an_gait_rebased_seed3
+status: planned
+previous_batch_id: pull_v6_1_QG_r6an_gait_rebased_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:11:58
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QRG_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRG_r6an_gait_rebased_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRG_r6an_gait_rebased_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRF_r6an_gait_rebased_seed0 -->
+## Batch pull_v6_1_QRF_r6an_gait_rebased_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRF_r6an_gait_rebased_seed0
+status: planned
+previous_batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:51:36
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QRF_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRF_r6an_gait_rebased_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRF_r6an_gait_rebased_seed1 -->
+## Batch pull_v6_1_QRF_r6an_gait_rebased_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRF_r6an_gait_rebased_seed1
+status: planned
+previous_batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:51:36
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QRF_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRF_r6an_gait_rebased_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRF_r6an_gait_rebased_seed2 -->
+## Batch pull_v6_1_QRF_r6an_gait_rebased_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRF_r6an_gait_rebased_seed2
+status: planned
+previous_batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:51:36
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QRF_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRF_r6an_gait_rebased_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRF_r6an_gait_rebased_seed3 -->
+## Batch pull_v6_1_QRF_r6an_gait_rebased_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRF_r6an_gait_rebased_seed3
+status: planned
+previous_batch_id: pull_v6_1_QRG_r6an_gait_rebased_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-28T23:51:36
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QRF_r6an_gait_rebased --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRF_r6an_gait_rebased_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRFN_from_s1_seed0 -->
+## Batch pull_v6_1_QRFN_from_s1_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRFN_from_s1_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRFN_from_s1_seed0
+status: planned
+previous_batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T00:29:53
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s1_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QRFN_from_s1 --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_natural_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed1/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s1_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRFN_from_s1_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRFN_from_s1_seed1 -->
+## Batch pull_v6_1_QRFN_from_s1_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRFN_from_s1_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRFN_from_s1_seed1
+status: planned
+previous_batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T00:29:53
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s1_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QRFN_from_s1 --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_natural_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed1/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s1_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRFN_from_s1_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRFN_from_s3_seed2 -->
+## Batch pull_v6_1_QRFN_from_s3_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRFN_from_s3_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRFN_from_s3_seed2
+status: planned
+previous_batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T00:29:53
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QRFN_from_s3 --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_natural_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRFN_from_s3_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QRFN_from_s3_seed3 -->
+## Batch pull_v6_1_QRFN_from_s3_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QRFN_from_s3_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QRFN_from_s3_seed3
+status: planned
+previous_batch_id: pull_v6_1_QRF_r6an_gait_rebased_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T00:29:53
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QRFN_from_s3 --ablation wbmanip/pull_v6_1_Q_reward_repair_frozen_natural_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRF_r6an_gait_rebased_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QRFN_from_s3_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QOS_seed0 -->
+## Batch pull_v6_1_QOS_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QOS_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QOS_seed0
+status: planned
+previous_batch_id: pull_v6_1_QRFN_from_s3_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T01:41:52
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QOS --ablation wbmanip/pull_v6_1_Q_onpolicy_d25_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 0 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 0 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QOS_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QOS_seed1 -->
+## Batch pull_v6_1_QOS_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QOS_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QOS_seed1
+status: planned
+previous_batch_id: pull_v6_1_QRFN_from_s3_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T01:41:52
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QOS --ablation wbmanip/pull_v6_1_Q_onpolicy_d25_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 1 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QOS_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QOS_seed2 -->
+## Batch pull_v6_1_QOS_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QOS_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QOS_seed2
+status: planned
+previous_batch_id: pull_v6_1_QRFN_from_s3_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T01:41:52
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QOS --ablation wbmanip/pull_v6_1_Q_onpolicy_d25_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 2 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QOS_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QOS_seed3 -->
+## Batch pull_v6_1_QOS_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QOS_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QOS_seed3
+status: planned
+previous_batch_id: pull_v6_1_QRFN_from_s3_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T01:41:52
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QOS --ablation wbmanip/pull_v6_1_Q_onpolicy_d25_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QOS_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QOS_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QHV_seed0 -->
+## Batch pull_v6_1_QHV_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QHV_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QHV_seed0
+status: planned
+previous_batch_id: pull_v6_1_QOS_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T02:49:20
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QHV --ablation wbmanip/pull_v6_1_Q_dynamics_obs_onpolicy_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs136.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QHV_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QHV_seed1 -->
+## Batch pull_v6_1_QHV_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QHV_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QHV_seed1
+status: planned
+previous_batch_id: pull_v6_1_QOS_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T02:49:20
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QHV --ablation wbmanip/pull_v6_1_Q_dynamics_obs_onpolicy_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs136.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QHV_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QHV_seed2 -->
+## Batch pull_v6_1_QHV_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QHV_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QHV_seed2
+status: planned
+previous_batch_id: pull_v6_1_QOS_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T02:49:21
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QHV --ablation wbmanip/pull_v6_1_Q_dynamics_obs_onpolicy_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs136.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QHV_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QHV_seed3 -->
+## Batch pull_v6_1_QHV_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QHV_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QHV_seed3
+status: planned
+previous_batch_id: pull_v6_1_QOS_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T02:49:21
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QHV --ablation wbmanip/pull_v6_1_Q_dynamics_obs_onpolicy_frozen_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs136.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QHV_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QHV_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDG_seed0 -->
+## Batch pull_v6_1_QDG_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDG_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDG_seed0
+status: planned
+previous_batch_id: pull_v6_1_QHV_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T03:56:15
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QDG --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs137_d25_gated.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDG_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDG_seed1 -->
+## Batch pull_v6_1_QDG_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDG_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDG_seed1
+status: planned
+previous_batch_id: pull_v6_1_QHV_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T03:56:15
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QDG --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs137_d25_gated.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDG_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDG_seed2 -->
+## Batch pull_v6_1_QDG_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDG_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDG_seed2
+status: planned
+previous_batch_id: pull_v6_1_QHV_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T03:56:15
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QDG --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs137_d25_gated.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDG_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDG_seed3 -->
+## Batch pull_v6_1_QDG_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDG_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDG_seed3
+status: planned
+previous_batch_id: pull_v6_1_QHV_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T03:56:15
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QDG --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_actor_obs137_d25_gated.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDG_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDGR_seed0 -->
+## Batch pull_v6_1_QDGR_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDGR_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDGR_seed0
+status: planned
+previous_batch_id: pull_v6_1_QDG_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T04:59:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QDGR --ablation wbmanip/pull_v6_1_Q_d25_gated_refresh_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDGR_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDGR_seed1 -->
+## Batch pull_v6_1_QDGR_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDGR_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDGR_seed1
+status: planned
+previous_batch_id: pull_v6_1_QDG_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T04:59:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QDGR --ablation wbmanip/pull_v6_1_Q_d25_gated_refresh_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDGR_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDGR_seed2 -->
+## Batch pull_v6_1_QDGR_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDGR_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDGR_seed2
+status: planned
+previous_batch_id: pull_v6_1_QDG_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T04:59:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QDGR --ablation wbmanip/pull_v6_1_Q_d25_gated_refresh_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDGR_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QDGR_seed3 -->
+## Batch pull_v6_1_QDGR_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QDGR_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QDGR_seed3
+status: planned
+previous_batch_id: pull_v6_1_QDG_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T04:59:22
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QDGR --ablation wbmanip/pull_v6_1_Q_d25_gated_refresh_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDG_seed3/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QDGR_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSC_seed0 -->
+## Batch pull_v6_1_QSC_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSC_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSC_seed0
+status: planned
+previous_batch_id: pull_v6_1_QDGR_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T05:54:59
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QSC --ablation wbmanip/pull_v6_1_Q_sidechannel_d25_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSC_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSC_seed1 -->
+## Batch pull_v6_1_QSC_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSC_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSC_seed1
+status: planned
+previous_batch_id: pull_v6_1_QDGR_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T05:54:59
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QSC --ablation wbmanip/pull_v6_1_Q_sidechannel_d25_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSC_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSC_seed2 -->
+## Batch pull_v6_1_QSC_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSC_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSC_seed2
+status: planned
+previous_batch_id: pull_v6_1_QDGR_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T05:54:59
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QSC --ablation wbmanip/pull_v6_1_Q_sidechannel_d25_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSC_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSC_seed3 -->
+## Batch pull_v6_1_QSC_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSC_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSC_seed3
+status: planned
+previous_batch_id: pull_v6_1_QDGR_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T05:54:59
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QSC --ablation wbmanip/pull_v6_1_Q_sidechannel_d25_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSC_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCH_seed0 -->
+## Batch pull_v6_1_QSCH_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCH_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCH_seed0
+status: planned
+previous_batch_id: pull_v6_1_QSC_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:05:09
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QSCH --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed1/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 0 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 0 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCH_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCH_seed1 -->
+## Batch pull_v6_1_QSCH_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCH_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCH_seed1
+status: planned
+previous_batch_id: pull_v6_1_QSC_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:05:09
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QSCH --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed1/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCH_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCH_seed2 -->
+## Batch pull_v6_1_QSCH_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCH_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCH_seed2
+status: planned
+previous_batch_id: pull_v6_1_QSC_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:05:09
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QSCH --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed1/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 2 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCH_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCH_seed3 -->
+## Batch pull_v6_1_QSCH_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCH_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCH_seed3
+status: planned
+previous_batch_id: pull_v6_1_QSC_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:05:09
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QSCH --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSC_seed1/model_step_000025.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCH_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 3 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCH_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCF_seed0 -->
+## Batch pull_v6_1_QSCF_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCF_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCF_seed0
+status: planned
+previous_batch_id: pull_v6_1_QSCH_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:54:29
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_QSCF --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed0/model_step_000025.pt --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCF_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCF_seed1 -->
+## Batch pull_v6_1_QSCF_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCF_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCF_seed1
+status: planned
+previous_batch_id: pull_v6_1_QSCH_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:54:29
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_QSCF --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed1/model_step_000025.pt --num_envs 16 --device cuda:1 \
+    agent.device=cuda:1
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCF_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCF_seed2 -->
+## Batch pull_v6_1_QSCF_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCF_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCF_seed2
+status: planned
+previous_batch_id: pull_v6_1_QSCH_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:54:29
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_QSCF --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed2/model_step_000025.pt --num_envs 16 --device cuda:2 \
+    agent.device=cuda:2
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCF_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_QSCF_seed3 -->
+## Batch pull_v6_1_QSCF_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_QSCF_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_QSCF_seed3
+status: planned
+previous_batch_id: pull_v6_1_QSCH_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T07:54:29
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_QSCF --ablation wbmanip/pull_v6_1_Q_sidechannel_heading_specialist --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QRFN_from_s3_seed3/model_step_000025_sidechannel_d25_dual_head.pt --num-envs 256 --batches 25 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QSCF_seed3/model_step_000025.pt --num_envs 16 --device cuda:3 \
+    agent.device=cuda:3
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+No parameter changes.
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed (was cuda:0) | removed (was cuda:0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed (was 0) | removed (was 0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | removed (was 31080) | removed (was 31080) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONPATH | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | removed (was /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed (was 1) | removed (was 1) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.WANDB_MODE | removed (was offline) | removed (was offline) | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_QSCF_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_P_r6an_integrated_seed0 -->
+## Batch pull_v6_1_P_r6an_integrated_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_P_r6an_integrated_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_P_r6an_integrated_seed0
+status: planned
+previous_batch_id: pull_v6_1_QSCF_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T08:44:00
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_P_r6an_integrated --ablation wbmanip/pull_v6_1_P_integrated --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 0 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 0 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_P_r6an_integrated_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_P_r6an_integrated_seed1 -->
+## Batch pull_v6_1_P_r6an_integrated_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_P_r6an_integrated_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_P_r6an_integrated_seed1
+status: planned
+previous_batch_id: pull_v6_1_P_r6an_integrated_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T08:44:01
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_P_r6an_integrated --ablation wbmanip/pull_v6_1_P_integrated --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_P_r6an_integrated_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_P_r6an_integrated_seed2 -->
+## Batch pull_v6_1_P_r6an_integrated_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_P_r6an_integrated_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_P_r6an_integrated_seed2
+status: planned
+previous_batch_id: pull_v6_1_P_r6an_integrated_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T08:44:01
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_P_r6an_integrated --ablation wbmanip/pull_v6_1_P_integrated --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 2 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_P_r6an_integrated_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_P_r6an_integrated_seed3 -->
+## Batch pull_v6_1_P_r6an_integrated_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_P_r6an_integrated_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_P_r6an_integrated_seed3
+status: planned
+previous_batch_id: pull_v6_1_P_r6an_integrated_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T08:44:02
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_P_r6an_integrated --ablation wbmanip/pull_v6_1_P_integrated --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 3 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 2 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_P_r6an_integrated_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PG_r6an_output_seed0 -->
+## Batch pull_v6_1_PG_r6an_output_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PG_r6an_output_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PG_r6an_output_seed0
+status: planned
+previous_batch_id: pull_v6_1_P_r6an_integrated_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T09:58:16
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_PG_r6an_output --ablation wbmanip/pull_v6_1_P_output_grouped --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 0 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 0 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PG_r6an_output_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PG_r6an_output_seed1 -->
+## Batch pull_v6_1_PG_r6an_output_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PG_r6an_output_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PG_r6an_output_seed1
+status: planned
+previous_batch_id: pull_v6_1_PG_r6an_output_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T09:58:17
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_PG_r6an_output --ablation wbmanip/pull_v6_1_P_output_grouped --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PG_r6an_output_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PG_r6an_output_seed2 -->
+## Batch pull_v6_1_PG_r6an_output_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PG_r6an_output_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PG_r6an_output_seed2
+status: planned
+previous_batch_id: pull_v6_1_PG_r6an_output_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T09:58:17
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_PG_r6an_output --ablation wbmanip/pull_v6_1_P_output_grouped --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 2 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PG_r6an_output_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PG_r6an_output_seed3 -->
+## Batch pull_v6_1_PG_r6an_output_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PG_r6an_output_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PG_r6an_output_seed3
+status: planned
+previous_batch_id: pull_v6_1_PG_r6an_output_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T09:58:18
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_PG_r6an_output --ablation wbmanip/pull_v6_1_P_output_grouped --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 3 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 2 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PG_r6an_output_seed3 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PB_r6an_output_seed0 -->
+## Batch pull_v6_1_PB_r6an_output_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PB_r6an_output_seed0
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PB_r6an_output_seed0
+status: planned
+previous_batch_id: pull_v6_1_PG_r6an_output_seed3
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T11:46:37
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 0 --gpu 0 --run-name pull_v6_1_PB_r6an_output --ablation wbmanip/pull_v6_1_P_output_b_focus --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 0 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 0 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PB_r6an_output_seed0 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PB_r6an_output_seed1 -->
+## Batch pull_v6_1_PB_r6an_output_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PB_r6an_output_seed1
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PB_r6an_output_seed1
+status: planned
+previous_batch_id: pull_v6_1_PB_r6an_output_seed0
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T11:46:38
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_PB_r6an_output --ablation wbmanip/pull_v6_1_P_output_b_focus --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 0 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PB_r6an_output_seed1 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PB_r6an_output_seed2 -->
+## Batch pull_v6_1_PB_r6an_output_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PB_r6an_output_seed2
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PB_r6an_output_seed2
+status: planned
+previous_batch_id: pull_v6_1_PB_r6an_output_seed1
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T11:46:38
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 2 --gpu 2 --run-name pull_v6_1_PB_r6an_output --ablation wbmanip/pull_v6_1_P_output_b_focus --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 2 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 2 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 2 | 0 -> 2 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PB_r6an_output_seed2 -->
+
+<!-- RLCM:BATCH_START pull_v6_1_PB_r6an_output_seed3 -->
+## Batch pull_v6_1_PB_r6an_output_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_v6_1_PB_r6an_output_seed3
+task: door_open_a2_pull_lstm
+run_name: pull_v6_1_PB_r6an_output_seed3
+status: planned
+previous_batch_id: pull_v6_1_PB_r6an_output_seed2
+base_id: pull_v6_F0_seed0
+created_at: 2026-08-29T11:46:38
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: <CHECKPOINT_PATH>
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 3 --gpu 3 --run-name pull_v6_1_PB_r6an_output --ablation wbmanip/pull_v6_1_P_output_b_focus --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+PUBLIC_IP=10.13.11.197 LIVESTREAM=1 ENABLE_CAMERAS=1 python scripts/rsl_rl/play.py --task door_open_a2_pull_lstm --resume --checkpoint <CHECKPOINT_PATH> --num_envs 16 --device cuda:0 \
+    agent.device=cuda:0
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 3 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 3 |
+| Runner/Device | prefix_env.ACCELERATE_TORCH_DEVICE | removed | cuda:0 | (missing) |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | removed | 0 | (missing) |
+| Runner/Device | prefix_env.HYDRA_FULL_ERROR | removed | 1 | (missing) |
+| Runner/Device | prefix_env.MASTER_PORT | removed | 31080 | (missing) |
+| Runner/Device | prefix_env.PYTHONPATH | removed | /home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 | (missing) |
+| Runner/Device | prefix_env.PYTHONUNBUFFERED | removed | 1 | (missing) |
+| Runner/Device | prefix_env.WANDB_MODE | removed | offline | (missing) |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 2 -> 3 | 0 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- Fill training metrics and play observations.
+<!-- RLCM:BATCH_END pull_v6_1_PB_r6an_output_seed3 -->
 <!-- RLCM:BATCHES_END -->

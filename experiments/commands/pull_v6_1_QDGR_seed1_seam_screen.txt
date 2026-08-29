@@ -1,0 +1,5 @@
+set -euo pipefail
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed1/model_step_000025.pt --label qdgr_seed1_step25_d25_overlay --gpu 1 --seed 1 --num-envs 4 --row-label post_release_d25 --smoke-stage-steps 650 --late-bank-path logs_rl/a2_piper_pull_v6_1/late_state_bank/pull_v6_1_late_state_bank_qdg_s3_natural_d25_overlay.pt --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_eval --run
+gzip -f logs_eval/a2_piper_pull_v6_1/qdgr_seed1_step25_d25_overlay/eval/stage2_5_step_trace.json
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py eval --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QDGR_seed1/model_step_000025.pt --label qdgr_seed1_step25_natural --gpu 1 --seed 1 --num-envs 16 --ablation wbmanip/pull_v6_1_Q_d25_gated_dynamics_eval --run
+gzip -f logs_eval/a2_piper_pull_v6_1/qdgr_seed1_step25_natural/eval/stage2_5_step_trace.json

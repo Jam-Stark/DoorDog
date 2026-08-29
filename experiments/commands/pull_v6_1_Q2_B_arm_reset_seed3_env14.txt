@@ -1,0 +1,1 @@
+/home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py counterfactual --mode arm_reset --gpu 1 --seed 3 --num-envs 16 --target-env-id 14 --label q2_B_arm_reset_seed3_env14 --run

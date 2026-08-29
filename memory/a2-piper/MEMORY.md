@@ -17,7 +17,7 @@
 - [static-visual-alignment/description.md](static-visual-alignment/description.md): 使用 full Isaac Sim GUI experience 静态观察 A2_Piper 与 door 的相对位置/朝向，并记录 preview script 调整边界与命令规范。
 - [door-asset-openio-sign/description.md](door-asset-openio-sign/description.md): 静态核查 door asset 中 doorOpenIO 字段对 door 构造、hinge joint sign、reward routing 的实际影响。
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
-- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-25 14:16 HKT — pull-v6 lightweight “送门过身” 已有首个 90 kg light-door strict-natural E7 winner：r6an seed3 step25 + r6ap time contract 的 env14 完成 clean release、frame passage、E6/E7，并由五相机 68 s render 复现 `reason-complete`。这是 single-episode behavior-creation proof；multi-seed/scenario robustness、重门/强 closer 与 post-release regrasp/brace 仍属 TODO。
+- [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-29 HKT — pull-v6.1 quality→population stage closed `QUALITY_PASS__POPULATION_INCONCLUSIVE`. r6an remains the sole strict-natural E7 winner; formal 64-episode baseline is E5/clean/frame/E6/E7=`41/5/3/2/1`. Integrated, grouped-output, and one B-focus P revision increased E5 at best to `47/64` but produced no E6/E7, so no population checkpoint was promoted and hardware is `NOT_RUN`.
 
 ## Update Rules
 

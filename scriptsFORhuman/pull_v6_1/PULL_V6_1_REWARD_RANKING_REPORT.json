@@ -1,0 +1,10 @@
+{
+  "schema": "a2_piper_pull_v61_reward_ranking_report_v1",
+  "target_env_id": 14,
+  "equal_horizon_steps": 569,
+  "gamma": 0.9975,
+  "gamma_provenance": "logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/config.yaml:algo.config.gamma",
+  "admission": "NOT_ADMITTED",
+  "admission_reason": "release tail is shorter than registered equal horizon: 447 < 569",
+  "claim_boundary": "No reward-sequence ranking is admitted from unequal horizons."
+}

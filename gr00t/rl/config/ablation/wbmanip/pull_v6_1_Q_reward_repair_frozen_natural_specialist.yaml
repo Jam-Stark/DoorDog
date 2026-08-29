@@ -1,0 +1,12 @@
+# @package _global_
+# Q-stage on-policy transfer for the frozen-carrier D head.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_1_Q_reward_repair_frozen_specialist
+  - _self_
+
+experiment_name: pull_v6_1_Q_reward_repair_frozen_natural_specialist
+
+env:
+  config:
+    staged_reset_ratios: [0.50, 0.0, 0.0, 0.0, 0.30, 0.20]

@@ -1,0 +1,1 @@
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py train --seed 1 --gpu 1 --run-name pull_v6_1_PB_r6an_output --ablation wbmanip/pull_v6_1_P_output_b_focus --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --num-envs 256 --batches 50 --save-frequency 25 --run

@@ -1,0 +1,6 @@
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed3/model_step_000025.pt --label q5_qi_seed3_step25_d25_retry2 --gpu 3 --seed 3 --num-envs 1 --ablation wbmanip/pull_v6_1_Q_integrated_eval --row-label post_release_d25 --smoke-stage-steps 650 --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q5_qi_seed3_step25_d25_retry2/eval/stage2_5_step_trace.json
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed3/model_step_000025.pt --label q5_qi_seed3_step25_frame_retry2 --gpu 3 --seed 3 --num-envs 1 --ablation wbmanip/pull_v6_1_Q_integrated_eval --row-label frame_passage --smoke-stage-steps 650 --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q5_qi_seed3_step25_frame_retry2/eval/stage2_5_step_trace.json
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py restore-smoke --checkpoint logs_rl/a2_piper_pull_v6_1/pull_v6_1_QI_r6an_integrated_seed3/model_step_000025.pt --label q5_qi_seed3_step25_e6_retry2 --gpu 3 --seed 3 --num-envs 1 --ablation wbmanip/pull_v6_1_Q_integrated_eval --row-label e6_stage5_entry --smoke-stage-steps 650 --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q5_qi_seed3_step25_e6_retry2/eval/stage2_5_step_trace.json

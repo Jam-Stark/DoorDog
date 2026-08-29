@@ -1,0 +1,35 @@
+{
+  "schema": "a2_piper_pull_v61_reward_repair_runtime_evidence_v1",
+  "evidence_level": "RUNTIME_PASS",
+  "source_trace": "logs_eval/a2_piper_pull_v6_1/q4_env14_late_bank_capture_retry1/eval/stage2_5_step_trace.json.gz",
+  "env_id": 14,
+  "outcome": {
+    "terminal_reason": "complete",
+    "whole_body_clear": true
+  },
+  "event_first_steps": {
+    "e6_stage5_entry": 739,
+    "e7_whole_body_clear": 1308
+  },
+  "reward_pulses": {
+    "a2_pull_v61_e6_event_credit": {
+      "trace_row": 738,
+      "raw_observed": 1.0,
+      "scaled_observed_with_prior_scale_float32": 725.6024780273438
+    },
+    "a2_pull_v61_e7_event_credit": {
+      "trace_row": 1307,
+      "raw_observed": 1.0,
+      "scaled_observed_with_prior_scale_float32": 725.6024780273438
+    }
+  },
+  "precision_correction": {
+    "prior_configured_raw_scale": 36280.124661890545,
+    "new_configured_raw_scale": 36280.126953125,
+    "control_dt_s": 0.02,
+    "new_scaled_credit": 725.6025390625,
+    "worst_case_frame_margin": 1.0000458246890958,
+    "reason": "Float32 runtime realization of the prior scale was 725.6024780273438, leaving a 0.9999848 frame margin below the registered 1.0 target."
+  },
+  "no_rerun_reason": "The natural env14 replay already proves the E6/E7 edge semantics and one-shot raw pulses; this correction only rounds the configured scalar upward to its next float32-safe value."
+}

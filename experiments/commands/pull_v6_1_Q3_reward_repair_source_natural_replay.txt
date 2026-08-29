@@ -1,0 +1,2 @@
+python scriptsFORhuman/pull_v6_1/run_pull_v6_1.py eval --checkpoint logs_rl/a2_piper_pull_v6/pull_v6_F0_r6an_seed3/model_step_000025.pt --label q3_reward_repair_source_natural_env14 --gpu 0 --seed 3 --num-envs 16 --ablation wbmanip/pull_v6_1_Q_reward_repair_source_eval --run
+gzip -f logs_eval/a2_piper_pull_v6_1/q3_reward_repair_source_natural_env14/eval/stage2_5_step_trace.json

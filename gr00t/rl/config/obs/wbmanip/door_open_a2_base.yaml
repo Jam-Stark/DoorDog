@@ -150,6 +150,8 @@ obs:
     total_time: 1.0,
 
     a2_base_command: 1.0,
+    z_a2_pull_v6_hinge_velocity: 1.0,
+    z_a2_pull_v61_post_release_control: 1.0,
     z_a2_pull_v6_release_mode: 1.0,
     e_homie_dof_pos: 1.0,
     f_homie_dof_vel: 0.05,
@@ -188,6 +190,8 @@ obs:
     total_time: 0.0,
 
     a2_base_command: 0.0,
+    z_a2_pull_v6_hinge_velocity: 0.0,
+    z_a2_pull_v61_post_release_control: 0.0,
     z_a2_pull_v6_release_mode: 0.0,
     e_homie_dof_pos: 0.01,
     f_homie_dof_vel: 0.2,
@@ -224,6 +228,8 @@ obs:
     - privileged_door_info: 8
     - gripper_handle_transform: 18
     - a2_base_command: 5
+    - z_a2_pull_v6_hinge_velocity: 1
+    - z_a2_pull_v61_post_release_control: 1
     - z_a2_pull_v6_release_mode: 2
     - e_homie_dof_pos: ${robot.homie_dof_obs_size}
     - f_homie_dof_vel: ${robot.homie_dof_obs_size}

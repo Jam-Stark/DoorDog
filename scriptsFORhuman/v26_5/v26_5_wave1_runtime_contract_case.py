@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import traceback
 from pathlib import Path
 
 
@@ -67,6 +68,7 @@ def main(a: argparse.Namespace) -> None:
         raise RuntimeError(f"refusing to overwrite runtime contract case: {a.output}")
     from isaaclab.app import AppLauncher
     app = AppLauncher(a).app
+    succeeded = False
     try:
         from hydra.utils import instantiate
         from omegaconf import OmegaConf
@@ -99,8 +101,13 @@ def main(a: argparse.Namespace) -> None:
         door = env.simulator.scene["door"]
         a.output.parent.mkdir(parents=True, exist_ok=True)
         a.output.write_text(json.dumps({"schema": "a2_piper_base_v26_5_live_target_case_v1", "status": "RUNTIME_COMPLETE", "factor": a.factor, "side": a.side, "num_envs": 2, "target_frame_names": names, "active_sensor_target_pos_w": data.target_pos_w.detach().cpu().tolist(), "active_sensor_target_quat_wxyz": data.target_quat_w.detach().cpu().tolist(), "geometry_oracle_target_quat_wxyz": desired.detach().cpu().tolist(), "O1_oracle_double_cover_component_error": errors.detach().cpu().tolist(), "authored_handle_geometry": geometry, "neutral_door_joint_pos": door.data.joint_pos.detach().cpu().tolist()}, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+        succeeded = True
+    except BaseException:
+        traceback.print_exc()
+        raise
     finally:
-        app.close()
+        if succeeded:
+            app.close()
 
 
 if __name__ == "__main__":

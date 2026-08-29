@@ -79,11 +79,11 @@ case ${1:-} in
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
     require_static; gpu_idle 2
     command="bash $repo/scriptsFORhuman/v26_5/run_v26_5_wave1_runtime_contract_probe.sh"
-    launch v26_5_wave1_r1_runtime_contract 2 "$command" "$runtime_logs/runtime_contract.log" "$stage/K/runtime_contract.json"
+    launch v26_5_wave1_r1_runtime_contract_attempt2 2 "$command" "$runtime_logs/runtime_contract_attempt2.log" "$stage/K/runtime_contract.json"
     ;;
   smoke)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; require_pass v26_5_wave1_r1_runtime_contract; gpu_idle 2
+    require_static; require_pass v26_5_wave1_r1_runtime_contract_attempt2; gpu_idle 2
     smoke_root="$repo/logs_rl/by_batch/base_v26/$run_id/smoke/O1A1_SMOKE64_B1"
     [[ ! -e "$smoke_root" ]] || { echo "smoke output exists: $smoke_root" >&2; exit 1; }
     printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_smoke.sh" 2 "$smoke_root"
@@ -91,7 +91,7 @@ case ${1:-} in
     ;;
   train)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; require_pass v26_5_wave1_r1_runtime_contract; require_pass v26_5_wave1_r1_smoke
+    require_static; require_pass v26_5_wave1_r1_runtime_contract_attempt2; require_pass v26_5_wave1_r1_smoke
     for gpu in 2 4 5 6; do gpu_idle "$gpu"; done
     for entry in '2 O1A0_S0' '4 O1A0_S1' '5 O1A1_S0' '6 O1A1_S1'; do
       read -r gpu label <<<"$entry"; output="$train_root/$label"; [[ ! -e "$output" ]] || { echo "formal output exists: $output" >&2; exit 1; }
@@ -101,7 +101,7 @@ case ${1:-} in
     ;;
   diagnostic)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; require_pass v26_5_wave1_r1_runtime_contract; require_pass v26_5_wave1_r1_smoke; gpu_idle 7
+    require_static; require_pass v26_5_wave1_r1_runtime_contract_attempt2; require_pass v26_5_wave1_r1_smoke; gpu_idle 7
     diagnostic_root="$eval_root/diagnostic"
     [[ ! -e "$diagnostic_root" ]] || { echo "diagnostic output exists: $diagnostic_root" >&2; exit 1; }
     printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_diagnostic_serial_gpu7.sh" "$diagnostic_root"

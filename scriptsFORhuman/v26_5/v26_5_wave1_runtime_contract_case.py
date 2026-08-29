@@ -72,8 +72,10 @@ def main(a: argparse.Namespace) -> None:
     try:
         from hydra.utils import instantiate
         from omegaconf import OmegaConf
+        from gr00t.rl.utils.config_utils import register_rl_resolvers
         from gr00t.rl.utils.helpers import pre_process_config
         import torch
+        register_rl_resolvers()
         cfg = OmegaConf.load(BASE_CONFIG)
         cfg.num_envs = 2; cfg.seed = 0; cfg.headless = True
         cfg.env.config.a2_v26_door_open_lr = a.side

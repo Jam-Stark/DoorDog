@@ -27,6 +27,7 @@ from isaaclab.utils.math import (
     matrix_from_quat,
     quat_apply,
     quat_apply_inverse,
+    quat_from_matrix,
     quat_from_euler_xyz,
     quat_inv,
     quat_mul,
@@ -35,7 +36,7 @@ from isaaclab.utils.math import (
     wrap_to_pi,
     yaw_quat,
 )
-from pxr import PhysxSchema, Usd, UsdPhysics
+from pxr import Gf, PhysxSchema, Usd, UsdGeom, UsdPhysics
 from typing import Any, Mapping
 from typing_extensions import override
 
@@ -4878,6 +4879,157 @@ def a2_hold_summarize_outcomes(outcome_names):
 class OrderedTargetFrameTransformer(FrameTransformer):
     """FrameTransformer variant that preserves cfg.target_frames order for duplicate target bodies."""
 
+    def __init__(
+        self,
+        cfg: FrameTransformerCfg,
+        *,
+        a2_v26_5_geometry_target_enabled: bool = False,
+    ):
+        if not isinstance(a2_v26_5_geometry_target_enabled, bool):
+            raise TypeError("a2_v26_5_geometry_target_enabled must be bool.")
+        self._a2_v26_5_geometry_target_enabled = a2_v26_5_geometry_target_enabled
+        super().__init__(cfg)
+
+    def _a2_v26_5_geometry_target_offset_quaternions(self) -> torch.Tensor:
+        """Build the per-clone handle target orientation from authored handle geometry."""
+        if tuple(self._target_frame_names) != ("handle", "pregrasp"):
+            raise RuntimeError(
+                "v26-5 geometry target requires ordered handle/pregrasp target frames; "
+                f"got {self._target_frame_names!r}."
+            )
+
+        stage = omni.usd.get_context().get_stage()
+        cache = UsdGeom.XformCache()
+        target_world_quaternions = []
+        desired_world_matrices = []
+        for env_id in range(self._num_envs):
+            base_path = f"/World/envs/env_{env_id}/door"
+            panel = stage.GetPrimAtPath(f"{base_path}/door_panel")
+            joint = stage.GetPrimAtPath(f"{base_path}/door_panel/handle_joint")
+            grasp = stage.GetPrimAtPath(f"{base_path}/grasp_target")
+            if not panel.IsValid() or not joint.IsValid() or not grasp.IsValid():
+                raise RuntimeError(
+                    "v26-5 geometry target requires authored door_panel, handle_joint, and "
+                    f"grasp_target in env_{env_id}."
+                )
+
+            local_rot = joint.GetAttribute("physics:localRot0").Get()
+            local_pos = joint.GetAttribute("physics:localPos0").Get()
+            if local_rot is None or local_pos is None:
+                raise RuntimeError(
+                    f"v26-5 geometry target requires handle LocalRot0/LocalPos0 in env_{env_id}."
+                )
+
+            handle_joint_rotation = Gf.Rotation(Gf.Quatd(local_rot))
+            handle_axis_local = handle_joint_rotation.TransformDir(Gf.Vec3d(1.0, 0.0, 0.0))
+            if abs(float(handle_axis_local[0])) <= 1.0e-6:
+                raise RuntimeError(
+                    "v26-5 geometry target cannot determine the mirrored opening direction "
+                    f"from handle LocalRot0 in env_{env_id}."
+                )
+            opening_lr = 1.0 if float(handle_axis_local[0]) > 0.0 else -1.0
+
+            panel_transform = cache.GetLocalToWorldTransform(panel)
+            handle_axis_world = panel_transform.TransformDir(
+                handle_joint_rotation.TransformDir(Gf.Vec3d(1.0, 0.0, 0.0))
+            )
+            axis_origin_world = panel_transform.Transform(Gf.Vec3d(local_pos))
+            grasp_transform = cache.GetLocalToWorldTransform(grasp)
+            grasp_translation = grasp_transform.ExtractTranslation()
+
+            def _unit(values: list[float], label: str) -> list[float]:
+                norm = math.sqrt(sum(value * value for value in values))
+                if not math.isfinite(norm) or norm <= 0.0:
+                    raise RuntimeError(
+                        f"v26-5 geometry target {label} is degenerate in env_{env_id}."
+                    )
+                return [value / norm for value in values]
+
+            def _cross(left: list[float], right: list[float]) -> list[float]:
+                return [
+                    left[1] * right[2] - left[2] * right[1],
+                    left[2] * right[0] - left[0] * right[2],
+                    left[0] * right[1] - left[1] * right[0],
+                ]
+
+            gripper_z = _unit(
+                [opening_lr * float(handle_axis_world[index]) for index in range(3)],
+                "gripper_z",
+            )
+            handle_axis = _unit(
+                [float(handle_axis_world[index]) for index in range(3)], "handle_axis"
+            )
+            axis_to_grasp = [
+                float(axis_origin_world[index]) - float(grasp_translation[index])
+                for index in range(3)
+            ]
+            axial_component = sum(
+                axis_to_grasp[index] * handle_axis[index] for index in range(3)
+            )
+            gripper_x = _unit(
+                [
+                    axis_to_grasp[index] - axial_component * handle_axis[index]
+                    for index in range(3)
+                ],
+                "gripper_x",
+            )
+            gripper_y = _unit(_cross(gripper_z, gripper_x), "gripper_y")
+            right_handed = sum(
+                _cross(gripper_x, gripper_y)[index] * gripper_z[index] for index in range(3)
+            )
+            orthogonality = max(
+                abs(sum(left[index] * right[index] for index in range(3)))
+                for left, right in (
+                    (gripper_x, gripper_y),
+                    (gripper_y, gripper_z),
+                    (gripper_z, gripper_x),
+                )
+            )
+            if orthogonality > 1.0e-6 or abs(right_handed - 1.0) > 1.0e-6:
+                raise RuntimeError(
+                    "v26-5 geometry target basis must be orthonormal and right-handed in "
+                    f"env_{env_id}; got orthogonality={orthogonality}, right_handed={right_handed}."
+                )
+
+            target_world_rotation = grasp_transform.ExtractRotationQuat()
+            target_world_quaternions.append(
+                [
+                    float(target_world_rotation.GetReal()),
+                    *[float(value) for value in target_world_rotation.GetImaginary()],
+                ]
+            )
+            desired_world_matrices.append(
+                [
+                    [gripper_x[0], gripper_y[0], gripper_z[0]],
+                    [gripper_x[1], gripper_y[1], gripper_z[1]],
+                    [gripper_x[2], gripper_y[2], gripper_z[2]],
+                ]
+            )
+
+        target_offset_dtype = self._target_frame_offset_quat.dtype
+        target_world_quat = torch.tensor(
+            target_world_quaternions, device=self.device, dtype=target_offset_dtype
+        )
+        desired_world_quat = quat_from_matrix(
+            torch.tensor(desired_world_matrices, device=self.device, dtype=target_offset_dtype)
+        )
+        target_offset_quat = quat_mul(quat_inv(target_world_quat), desired_world_quat)
+        expected_shape = (self._num_envs * 2, 4)
+        target_offset_quat = (
+            target_offset_quat[:, None, :].expand(-1, 2, -1).reshape(expected_shape)
+        )
+        if (
+            target_offset_quat.shape != expected_shape
+            or target_offset_quat.dtype != target_offset_dtype
+            or target_offset_quat.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "v26-5 geometry target offset quaternion contract failed: "
+                f"shape={tuple(target_offset_quat.shape)}, dtype={target_offset_quat.dtype}, "
+                f"device={target_offset_quat.device}."
+            )
+        return target_offset_quat
+
     def _initialize_impl(self):
         super(FrameTransformer, self)._initialize_impl()
 
@@ -5045,6 +5197,18 @@ class OrderedTargetFrameTransformer(FrameTransformer):
             self._target_frame_offset_quat = torch.stack(target_frame_offset_quat).repeat(
                 self._num_envs, 1
             )
+            if self._a2_v26_5_geometry_target_enabled:
+                geometry_target_quat = self._a2_v26_5_geometry_target_offset_quaternions()
+                if (
+                    geometry_target_quat.shape != self._target_frame_offset_quat.shape
+                    or geometry_target_quat.dtype != self._target_frame_offset_quat.dtype
+                    or geometry_target_quat.device != self._target_frame_offset_quat.device
+                ):
+                    raise RuntimeError(
+                        "v26-5 geometry target offset quaternion does not match FrameTransformer "
+                        "env-major target offset storage."
+                    )
+                self._target_frame_offset_quat = geometry_target_quat
 
         self._data.target_frame_names = self._target_frame_names
         self._data.source_pos_w = torch.zeros(self._num_envs, 3, device=self._device)
@@ -7788,6 +7952,20 @@ class DoorPregrasp(
         enabled = self.config.get("a2_v26_4_side_canonicalization_enabled", False)
         if not isinstance(enabled, bool):
             raise RuntimeError("env.config.a2_v26_4_side_canonicalization_enabled must be bool.")
+        return enabled
+
+    def _a2_v26_5_geometry_target_enabled(self) -> bool:
+        enabled = self.config.get("a2_v26_5_geometry_target_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v26_5_geometry_target_enabled must be bool.")
+        return enabled
+
+    def _a2_v26_5_stage3_delta_rebase_enabled(self) -> bool:
+        enabled = self.config.get("a2_v26_5_stage3_delta_rebase_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v26_5_stage3_delta_rebase_enabled must be bool."
+            )
         return enabled
 
     def _a2_v26_4_right_mask(self) -> torch.Tensor:
@@ -13988,6 +14166,60 @@ class DoorPregrasp(
     def _stage_2_to_3_advance_callback(self, env_ids: torch.Tensor) -> None:
         if not self._use_a2_base:
             return
+        if self._a2_v26_5_stage3_delta_rebase_enabled():
+            if self._a2_v26_4_side_canonicalization_enabled():
+                raise RuntimeError(
+                    "v26-5 stage3 delta rebase requires side canonicalization to be OFF."
+                )
+            if (
+                not torch.is_tensor(env_ids)
+                or env_ids.ndim != 1
+                or env_ids.dtype != torch.long
+                or env_ids.device != torch.device(self.device)
+                or torch.any(env_ids < 0)
+                or torch.any(env_ids >= self.num_envs)
+            ):
+                raise RuntimeError(
+                    "v26-5 stage3 delta rebase requires valid device-local env ids."
+                )
+            expected_shape = (env_ids.numel(), len(self._upper_non_gripper_dof_idx))
+            q_actual_arm = self.simulator.dof_pos[env_ids][
+                :, self._upper_non_gripper_dof_idx
+            ]
+            q_default_arm = self._get_a2_arm_default_dof_pos(env_ids)
+            if (
+                tuple(q_actual_arm.shape) != expected_shape
+                or tuple(q_default_arm.shape) != expected_shape
+                or q_actual_arm.dtype != q_default_arm.dtype
+                or q_actual_arm.device != q_default_arm.device
+                or not torch.all(torch.isfinite(q_actual_arm))
+                or not torch.all(torch.isfinite(q_default_arm))
+            ):
+                raise RuntimeError(
+                    "v26-5 stage3 delta rebase requires finite matching actual/default arm "
+                    f"state shape {expected_shape}."
+                )
+            expected_delta_shape = (self.num_envs, expected_shape[1])
+            if (
+                tuple(self._delta_actions.shape) != expected_delta_shape
+                or self._delta_actions.dtype != q_actual_arm.dtype
+                or self._delta_actions.device != q_actual_arm.device
+            ):
+                raise RuntimeError(
+                    "v26-5 stage3 delta rebase requires _delta_actions with shape "
+                    f"{expected_delta_shape} and matching arm state dtype/device."
+                )
+            action_scale = self.config.robot.control.action_scale
+            if (
+                not isinstance(action_scale, (float, int))
+                or isinstance(action_scale, bool)
+                or action_scale <= 0.0
+            ):
+                raise RuntimeError(
+                    "v26-5 stage3 delta rebase requires a positive numeric "
+                    "robot.control.action_scale."
+                )
+            self._delta_actions[env_ids] = (q_actual_arm - q_default_arm) / action_scale
         if not (
             self._get_a2_v20_send_latch_enabled()
             or self._get_a2_v20_traversal_economics_enabled()
@@ -28375,7 +28607,10 @@ class DoorPregrasp(
                 )
             )
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = (
-                OrderedTargetFrameTransformer(piper_gripper_handle_frame_transformer_config)
+                OrderedTargetFrameTransformer(
+                    piper_gripper_handle_frame_transformer_config,
+                    a2_v26_5_geometry_target_enabled=self._a2_v26_5_geometry_target_enabled(),
+                )
             )
             target_contact_sub_prim = simulator.task_config.get(
                 "target_obj_contact_sub_prim_path", None

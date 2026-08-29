@@ -1,0 +1,11 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_eval_natural_start
+  - _self_
+
+env:
+  config:
+    a2_v26_4_side_canonicalization_enabled: false
+    a2_v26_5_geometry_target_enabled: true
+    a2_v26_5_stage3_delta_rebase_enabled: true

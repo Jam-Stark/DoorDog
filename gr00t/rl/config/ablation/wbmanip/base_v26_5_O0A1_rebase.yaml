@@ -1,0 +1,15 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_4_C0_CANONICAL_OFF
+  - _self_
+
+v26_schema: a2_piper_base_v26_5_stage3_delta_rebase_v1
+v26_phase: V26_5_STAGE3_DELTA_REBASE
+v26_cell: V26_5_O0A1_GEOMETRY_OFF_REBASE_ON_S0
+v26_5_plan_id: base_v26_5_stage3_delta_rebase_20260830
+
+env:
+  config:
+    a2_v26_5_geometry_target_enabled: false
+    a2_v26_5_stage3_delta_rebase_enabled: true

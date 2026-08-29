@@ -46,7 +46,7 @@ def main() -> None:
     contract = registry.get("formal_training_contract")
     require(isinstance(contract, dict), "formal training contract missing")
     require(contract == {
-        "cells": "O1A0/O1A1 x seed0/1", "physical_gpus": [0, 1, 2, 3], "num_envs": 4096,
+        "cells": "O1A0/O1A1 x seed0/1", "physical_gpus": [2, 4, 5, 6], "num_envs": 4096,
         "batches": 750, "save_frequency": 125, "source": "CONT_STEP2000",
         "checkpoint_load_mode": "policy_only", "policy_only_load_actor_rms": True,
         "canonicalization": False, "reward_physics_rms": "frozen from v26-4 C0",

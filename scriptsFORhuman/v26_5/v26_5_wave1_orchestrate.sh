@@ -21,7 +21,7 @@ EOF
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 py=/usr/bin/python3
 supervisor="$repo/.ai/scripts/run_supervisor.py"
-run_id=v26_5_wave1_stage5_20260830
+run_id=v26_5_wave1_stage5_20260830_r1
 stage="$repo/logs_eval/base_v26/$run_id"
 static="$stage/M/static"
 registry="$static/command_registry.json"
@@ -77,54 +77,51 @@ case ${1:-} in
     ;;
   probe)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; gpu_idle 0
+    require_static; gpu_idle 2
     command="bash $repo/scriptsFORhuman/v26_5/run_v26_5_wave1_runtime_contract_probe.sh"
-    launch v26_5_wave1_runtime_contract 0 "$command" "$runtime_logs/runtime_contract.log" "$stage/K/runtime_contract.json"
+    launch v26_5_wave1_r1_runtime_contract 2 "$command" "$runtime_logs/runtime_contract.log" "$stage/K/runtime_contract.json"
     ;;
   smoke)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; require_pass v26_5_wave1_runtime_contract; gpu_idle 0
+    require_static; require_pass v26_5_wave1_r1_runtime_contract; gpu_idle 2
     smoke_root="$repo/logs_rl/by_batch/base_v26/$run_id/smoke/O1A1_SMOKE64_B1"
     [[ ! -e "$smoke_root" ]] || { echo "smoke output exists: $smoke_root" >&2; exit 1; }
-    printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_smoke.sh" 0 "$smoke_root"
-    launch v26_5_wave1_smoke 0 "$command" "$runtime_logs/smoke/O1A1_SMOKE64_B1.log" "$smoke_root/model_step_000001.pt"
+    printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_smoke.sh" 2 "$smoke_root"
+    launch v26_5_wave1_r1_smoke 2 "$command" "$runtime_logs/smoke/O1A1_SMOKE64_B1.log" "$smoke_root/model_step_000001.pt"
     ;;
   train)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; require_pass v26_5_wave1_runtime_contract; require_pass v26_5_wave1_smoke
-    for gpu in 0 1 2 3; do gpu_idle "$gpu"; done
-    for entry in '0 O1A0_S0' '1 O1A0_S1' '2 O1A1_S0' '3 O1A1_S1'; do
+    require_static; require_pass v26_5_wave1_r1_runtime_contract; require_pass v26_5_wave1_r1_smoke
+    for gpu in 2 4 5 6; do gpu_idle "$gpu"; done
+    for entry in '2 O1A0_S0' '4 O1A0_S1' '5 O1A1_S0' '6 O1A1_S1'; do
       read -r gpu label <<<"$entry"; output="$train_root/$label"; [[ ! -e "$output" ]] || { echo "formal output exists: $output" >&2; exit 1; }
       printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_train_cell.sh" "$gpu" "$label" "$output"
-      launch "v26_5_wave1_train_${label,,}" "$gpu" "$command" "$runtime_logs/train/$label.log" "$output/model_step_000750.pt"
+      launch "v26_5_wave1_r1_train_${label,,}" "$gpu" "$command" "$runtime_logs/train/$label.log" "$output/model_step_000750.pt"
     done
     ;;
   diagnostic)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static; require_pass v26_5_wave1_runtime_contract; require_pass v26_5_wave1_smoke
-    for gpu in 4 5 6 7; do gpu_idle "$gpu"; done
-    for entry in '4 0 left' '5 0 right' '6 1 left' '7 1 right'; do
-      read -r gpu seed side <<<"$entry"; label="O0A1_DIAG_R2_C0_S${seed}_STEP0750"; checkpoint="$repo/logs_rl/by_batch/base_v26_4_r2_bilateral_grasp_foundation_20260828/main/C0_CANONICAL_OFF_S${seed}/model_step_000750.pt"
-      output="$eval_root/diagnostic/$label/$side"; [[ -f "$checkpoint" && ! -e "$output" ]] || { echo "diagnostic checkpoint missing or output exists: $output" >&2; exit 1; }
-      printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_eval_side.sh" "$gpu" "$label" "$checkpoint" "$eval_root/diagnostic" "$seed" O0A1 "$side"
-      launch "v26_5_wave1_diag_s${seed}_${side}" "$gpu" "$command" "$runtime_logs/diagnostic/${label}_${side}.log" "$output/metrics_eval.json"
-    done
+    require_static; require_pass v26_5_wave1_r1_runtime_contract; require_pass v26_5_wave1_r1_smoke; gpu_idle 7
+    diagnostic_root="$eval_root/diagnostic"
+    [[ ! -e "$diagnostic_root" ]] || { echo "diagnostic output exists: $diagnostic_root" >&2; exit 1; }
+    printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_diagnostic_serial_gpu7.sh" "$diagnostic_root"
+    launch v26_5_wave1_r1_diagnostic_gpu7 7 "$command" "$runtime_logs/diagnostic/GPU7_serial.log" "$diagnostic_root/O0A1_DIAG_R2_C0_S1_STEP0750/right/metrics_eval.json"
     ;;
   formal-eval)
     [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
     require_static
-    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_train_${label,,}"; done
-    for gpu in 0 1 2 3; do gpu_idle "$gpu"; done
-    for entry in '0 O1A0_S0 O1A0' '1 O1A0_S1 O1A0' '2 O1A1_S0 O1A1' '3 O1A1_S1 O1A1'; do
+    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_r1_train_${label,,}"; done
+    for gpu in 2 4 5 6; do gpu_idle "$gpu"; done
+    for entry in '2 O1A0_S0 O1A0' '4 O1A0_S1 O1A0' '5 O1A1_S0 O1A1' '6 O1A1_S1 O1A1'; do
       read -r gpu label factor <<<"$entry"; seed=${label##*_S}; checkpoint="$train_root/$label/model_step_000750.pt"; [[ ! -e "$eval_root/${label}_STEP0750" ]] || { echo "formal eval output exists: $label" >&2; exit 1; }
       printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_eval_cell.sh" "$gpu" "${label}_STEP0750" "$checkpoint" "$eval_root" "$seed" "$factor"
-      launch "v26_5_wave1_eval_${label,,}" "$gpu" "$command" "$runtime_logs/eval/$label.log" "$eval_root/${label}_STEP0750/right/metrics_eval.json"
+      launch "v26_5_wave1_r1_eval_${label,,}" "$gpu" "$command" "$runtime_logs/eval/$label.log" "$eval_root/${label}_STEP0750/right/metrics_eval.json"
     done
     ;;
   reduce)
     [[ $# -eq 1 ]] || { usage >&2; exit 2; }
-    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_eval_${label,,}"; done
-    for name in v26_5_wave1_diag_s0_left v26_5_wave1_diag_s0_right v26_5_wave1_diag_s1_left v26_5_wave1_diag_s1_right; do require_pass "$name"; done
+    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_r1_eval_${label,,}"; done
+    require_pass v26_5_wave1_r1_diagnostic_gpu7
     exec "$py" "$repo/scriptsFORhuman/v26_5/v26_5_wave1_reduce.py" --formal-eval-root "$eval_root" --diagnostic-eval-root "$eval_root/diagnostic" --output "$stage/M/wave1_reducer.json"
     ;;
   *) usage >&2; exit 2 ;;

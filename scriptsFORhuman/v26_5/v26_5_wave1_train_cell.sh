@@ -9,7 +9,7 @@ repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 python_bin=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 source_checkpoint="$repo/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 gpu=$1; label=$2; output=$3
-[[ "$gpu" =~ ^[0-3]$ && "$label" =~ ^O1A[01]_S[01]$ ]] || { usage >&2; exit 2; }
+[[ "$gpu" =~ ^(2|4|5|6)$ && "$label" =~ ^O1A[01]_S[01]$ ]] || { usage >&2; exit 2; }
 [[ -f "$source_checkpoint" && ! -e "$output" ]] || { echo "source checkpoint missing or output exists" >&2; exit 1; }
 seed=${label##*_S}
 case "$label" in
@@ -25,7 +25,7 @@ common=(
   simulator.config.cameras.enable_cameras=false experiment_dir="$output" output_dir="$output/output"
   project_name=base_v26_5_wave1_stage5 experiment_name="V26_5_${label}" v26_cell="V26_5_${label}" v26_phase=V26_5_WAVE1
 )
-runtime=(CUDA_VISIBLE_DEVICES=0,1,2,3 CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE="cuda:$gpu" WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo")
+runtime=(CUDA_VISIBLE_DEVICES="$gpu" CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo")
 env "${runtime[@]}" "$python_bin" -B -m gr00t.rl.train_agent_trl "${common[@]}" --cfg job --resolve > "$output/resolved_config.yaml"
 env "${runtime[@]}" "$python_bin" -B -m gr00t.rl.train_agent_trl "${common[@]}"
 [[ -f "$output/model_step_000750.pt" ]] || { echo "missing Wave1 step750 checkpoint" >&2; exit 1; }

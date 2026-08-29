@@ -9,17 +9,17 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RUN_ID = "v26_5_wave1_stage5_20260830"
+RUN_ID = "v26_5_wave1_stage5_20260830_r1"
 TRAIN_ROOT = ROOT / f"logs_rl/by_batch/base_v26/{RUN_ID}/formal"
 EVAL_ROOT = ROOT / f"logs_eval/base_v26/{RUN_ID}/eval"
 R2_TRAIN_ROOT = ROOT / "logs_rl/by_batch/base_v26_4_r2_bilateral_grasp_foundation_20260828/main"
 SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 
 FORMAL = (
-    ("O1A0_S0", "O1A0", 0, 0, "wbmanip/base_v26_5_O1A0_geometry", "wbmanip/base_v26_5_eval_O1A0"),
-    ("O1A0_S1", "O1A0", 1, 1, "wbmanip/base_v26_5_O1A0_geometry", "wbmanip/base_v26_5_eval_O1A0"),
-    ("O1A1_S0", "O1A1", 0, 2, "wbmanip/base_v26_5_O1A1_geometry_rebase", "wbmanip/base_v26_5_eval_O1A1"),
-    ("O1A1_S1", "O1A1", 1, 3, "wbmanip/base_v26_5_O1A1_geometry_rebase", "wbmanip/base_v26_5_eval_O1A1"),
+    ("O1A0_S0", "O1A0", 0, 2, "wbmanip/base_v26_5_O1A0_geometry", "wbmanip/base_v26_5_eval_O1A0"),
+    ("O1A0_S1", "O1A0", 1, 4, "wbmanip/base_v26_5_O1A0_geometry", "wbmanip/base_v26_5_eval_O1A0"),
+    ("O1A1_S0", "O1A1", 0, 5, "wbmanip/base_v26_5_O1A1_geometry_rebase", "wbmanip/base_v26_5_eval_O1A1"),
+    ("O1A1_S1", "O1A1", 1, 6, "wbmanip/base_v26_5_O1A1_geometry_rebase", "wbmanip/base_v26_5_eval_O1A1"),
 )
 
 
@@ -42,23 +42,25 @@ def main() -> None:
                 "train_root": str(TRAIN_ROOT / label),
                 "checkpoint_step750": str(TRAIN_ROOT / label / "model_step_000750.pt"),
                 "eval_root": str(EVAL_ROOT),
-                "train_receipt": f".ai/runtime/runs/v26_5_wave1_train_{label.lower()}/RUN_RECEIPT.json",
-                "eval_receipt": f".ai/runtime/runs/v26_5_wave1_eval_{label.lower()}/RUN_RECEIPT.json",
+                "train_receipt": f".ai/runtime/runs/v26_5_wave1_r1_train_{label.lower()}/RUN_RECEIPT.json",
+                "eval_receipt": f".ai/runtime/runs/v26_5_wave1_r1_eval_{label.lower()}/RUN_RECEIPT.json",
             }
         )
     diagnostics = []
-    for seed, gpu_base in ((0, 4), (1, 6)):
+    for seed in (0, 1):
         checkpoint = R2_TRAIN_ROOT / f"C0_CANONICAL_OFF_S{seed}/model_step_000750.pt"
-        for side, gpu in (("left", gpu_base), ("right", gpu_base + 1)):
+        for side in ("left", "right"):
             diagnostics.append(
                 {
                     "label": f"O0A1_DIAG_R2_C0_S{seed}_STEP0750",
                     "seed": seed,
                     "side": side,
-                    "gpu": gpu,
+                    "gpu": 7,
+                    "execution": "serial_in_one_GPU7_supervisor_receipt",
                     "checkpoint": str(checkpoint),
                     "selector": "wbmanip/base_v26_5_eval_O0A1",
                     "output": str(EVAL_ROOT / "diagnostic" / f"O0A1_DIAG_R2_C0_S{seed}_STEP0750" / side),
+                    "supervisor_receipt": ".ai/runtime/runs/v26_5_wave1_r1_diagnostic_gpu7/RUN_RECEIPT.json",
                 }
             )
     payload = {
@@ -68,7 +70,7 @@ def main() -> None:
         "source_checkpoint": str(SOURCE),
         "formal_training_contract": {
             "cells": "O1A0/O1A1 x seed0/1",
-            "physical_gpus": [0, 1, 2, 3],
+            "physical_gpus": [2, 4, 5, 6],
             "num_envs": 4096,
             "batches": 750,
             "save_frequency": 125,
@@ -80,7 +82,7 @@ def main() -> None:
         },
         "runtime_smoke_contract": {
             "factor": "O1A1",
-            "physical_gpu": 0,
+            "physical_gpu": 2,
             "num_envs": 64,
             "batches": 1,
             "save_frequency": 1,
@@ -93,7 +95,8 @@ def main() -> None:
             "matched_prefix_not_snapshot_clone": True,
             "R2_checkpoints": "C0 canonical-off seed0/1 step750",
             "factor": "O0A1 only; active rebase is an eval-time diagnostic intervention",
-            "physical_gpus": [4, 5, 6, 7],
+            "physical_gpus": [7],
+            "execution": "four exact64 side lanes serially in one GPU7 tmux receipt",
             "episodes_per_side": 64,
             "sides": ["left", "right"],
         },

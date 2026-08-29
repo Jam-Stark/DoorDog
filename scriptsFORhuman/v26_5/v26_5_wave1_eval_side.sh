@@ -8,7 +8,7 @@ usage() { echo "usage: $0 GPU LABEL CHECKPOINT OUTPUT_ROOT SEED O0A0|O0A1|O1A0|O
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 python_bin=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 gpu=$1; label=$2; checkpoint=$3; output_root=$4; seed=$5; factor=$6; side=$7
-[[ "$gpu" =~ ^[0-7]$ && "$seed" =~ ^[01]$ && "$side" =~ ^(left|right)$ && -f "$checkpoint" ]] || { usage >&2; exit 2; }
+[[ "$gpu" =~ ^(2|4|5|6|7)$ && "$seed" =~ ^[01]$ && "$side" =~ ^(left|right)$ && -f "$checkpoint" ]] || { usage >&2; exit 2; }
 case "$factor" in
   O0A0) selector=wbmanip/base_v26_5_eval_O0A0 ;;
   O0A1) selector=wbmanip/base_v26_5_eval_O0A1 ;;
@@ -18,7 +18,7 @@ case "$factor" in
 esac
 output="$output_root/$label/$side"
 [[ ! -e "$output" ]] || { echo "refusing to overwrite Wave1 eval: $output" >&2; exit 1; }
-env CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE="cuda:$gpu" WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo" \
+env CUDA_VISIBLE_DEVICES="$gpu" CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo" \
   "$python_bin" -B -m gr00t.rl.eval_agent_trl +ablation="$selector" \
   ++checkpoint="$checkpoint" ++checkpoint_load_mode=full ++auto_load_latest=false ++seed="$seed" ++num_envs=64 \
   ++algo.config.num_mini_batches=1 ++algo.config.eval.num_eval_episodes=64 ++algo.config.eval.eval_num_envs_episodes=true \

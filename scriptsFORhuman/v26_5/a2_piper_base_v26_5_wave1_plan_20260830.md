@@ -1,4 +1,4 @@
-# base_v26-5 Wave1: O-by-A Stage5 route
+# base_v26-5 Wave1 R1: O-by-A Stage5 route
 
 ## Question
 
@@ -13,7 +13,8 @@ handle-depression behavior into bilateral policy-generated door opening?
   all non-factor config leaves remain the v26-4 C0 values.
 - Training uses CONT_STEP2000, policy-only loading with actor RMS, 4096 envs,
   750 batches and save frequency 125.
-- O1A0 and O1A1 each run seed0 and seed1 on GPU0--3.
+- O1A0 and O1A1 each run seed0 and seed1 on physical GPU2/4/5/6. Each
+  process exposes only its assigned card and uses process-local `cuda:0`.
 - O0A1 runs only as a matched-prefix diagnostic: it reuses v26-4 C0 step750
   policies under an eval-time rebase. It is not a snapshot clone and cannot
   establish training improvement.
@@ -24,10 +25,11 @@ handle-depression behavior into bilateral policy-generated door opening?
    full A2 environments for O0/O1 and both sides. O1 neutral target quaternion
    must match the independently derived geometry oracle under quaternion
    double-cover; handle/pregrasp positions and frame order must agree across O0/O1.
-2. A real O1A1 64-env, one-PPO-batch smoke must write `model_step_000001.pt`
+2. A real O1A1 64-env, one-PPO-batch smoke on physical GPU2 must write `model_step_000001.pt`
    after the contract probe. It preserves CONT_STEP2000, policy-only actor RMS,
    reward and physics, with only batch/save count reduced.
-3. O0A1 diagnostic is four independent exact64 natural-side lanes on GPU4--7.
+3. O0A1 diagnostic is four independent exact64 natural-side lanes, sequenced
+   under one tmux/supervisor receipt on physical GPU7.
 4. Formal step750 evaluation is exact64 natural first episodes for LEFT and
    RIGHT for every formal cell, retaining only `stage2_5_step_trace.json`.
 5. The reducer reports K5, contact, highwater, sustained

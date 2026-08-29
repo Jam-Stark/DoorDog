@@ -73,6 +73,7 @@ def main(a: argparse.Namespace) -> None:
         from hydra.utils import instantiate
         from omegaconf import OmegaConf
         from gr00t.rl.utils.config_utils import register_rl_resolvers
+        from gr00t.rl.utils.common import seeding
         from gr00t.rl.utils.helpers import pre_process_config
         import torch
         register_rl_resolvers()
@@ -85,6 +86,7 @@ def main(a: argparse.Namespace) -> None:
         cfg.env.config.a2_v26_5_stage3_delta_rebase_enabled = False
         cfg.simulator.config.render_results = False; cfg.simulator.config.cameras.enable_cameras = False
         pre_process_config(cfg)
+        seeding(int(cfg.seed))
         env = instantiate(config=cfg.env, device=a.device)
         env.reset()
         sensor = env.simulator.scene.sensors[env.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER]

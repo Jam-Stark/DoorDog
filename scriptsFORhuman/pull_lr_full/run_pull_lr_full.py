@@ -33,6 +33,7 @@ ABLATIONS = {
     "l": "wbmanip/pull_lr_full_h10m_pose_probe",
     "m": "wbmanip/pull_lr_full_left_stage3_pose_quality",
     "n": "wbmanip/pull_lr_full_left_stage3_taskspace",
+    "o": "wbmanip/pull_lr_full_bilateral_stage3_canonical",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -45,6 +46,7 @@ ACTOR_CONTRACTS = {
     "left_nonlinear": "gr00t.rl.trl.modules.pull_v6_left_stage3_nonlinear_adapter_actor.PullV6LeftStage3NonlinearAdapterActor",
     "left_post_e3": "gr00t.rl.trl.modules.pull_v6_left_stage3_post_e3_adapter_actor.PullV6LeftStage3PostE3AdapterActor",
     "left_taskspace": "gr00t.rl.trl.modules.pull_v6_left_stage3_taskspace_actor.PullV6LeftStage3TaskspaceActor",
+    "bilateral_taskspace": "gr00t.rl.trl.modules.pull_v6_bilateral_stage3_canonical_actor.PullV6BilateralStage3CanonicalActor",
 }
 
 
@@ -73,6 +75,7 @@ def _parse_args() -> argparse.Namespace:
     evaluate.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, required=True)
     evaluate.add_argument("--seed", type=int, default=1001)
     evaluate.add_argument("--num-envs", type=int, default=16)
+    evaluate.add_argument("--completion-stage", type=int, choices=(2, 5))
     evaluate.add_argument(
         "--actor-contract", choices=tuple(ACTOR_CONTRACTS), default="output"
     )
@@ -163,6 +166,30 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
     label = _leaf(args.label, "evaluation label")
     output = EVAL_ROOT / label / args.side
     port = 35280 + args.gpu
+    diagnostic_reward_terms = [
+        "dont_push_door_handle",
+        "target_root_distance",
+        "pull_door_handle",
+        "pull_door_hinge",
+    ]
+    if args.gate in {"m", "n"}:
+        diagnostic_reward_terms.append("a2_pull_stage3_pose_quality")
+    if args.gate == "o":
+        diagnostic_reward_terms.append("a2_pull_stage3_bilateral_pose_quality")
+    diagnostic_reward_terms.extend(
+        [
+            "a2_corridor_clean_passage",
+            "a2_pull_frame_approach",
+            "a2_pull_v6_arm_tangent_progress",
+            "a2_pull_v6_handle_side_bonus",
+            "a2_pull_v6_arc_tracking",
+            "a2_pull_v6_pivot_excess_penalty",
+            "a2_pull_v6_hinge_momentum",
+            "a2_pull_v6_handoff_hinge_angle_deficit",
+            "a2_pull_v6_clean_release_quality",
+            "a2_pull_v6_premature_release_penalty",
+        ]
+    )
     command = [
         str(PYTHON),
         "-B",
@@ -189,7 +216,9 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
         "algo.config.eval.save_videos=false",
         f"algo.config.eval.num_save_episodes={args.num_envs}",
         "algo.config.eval.a2_diagnostic_trace_enabled=true",
-        "algo.config.eval.a2_diagnostic_reward_terms=[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge,a2_pull_stage3_pose_quality,a2_corridor_clean_passage,a2_pull_frame_approach,a2_pull_v6_arm_tangent_progress,a2_pull_v6_handle_side_bonus,a2_pull_v6_arc_tracking,a2_pull_v6_pivot_excess_penalty,a2_pull_v6_hinge_momentum,a2_pull_v6_handoff_hinge_angle_deficit,a2_pull_v6_clean_release_quality,a2_pull_v6_premature_release_penalty]",
+        "algo.config.eval.a2_diagnostic_reward_terms=["
+        + ",".join(diagnostic_reward_terms)
+        + "]",
         "simulator.config.render_results=false",
         "simulator.config.cameras.enable_cameras=false",
         f"eval_output_dir={output / 'eval'}",
@@ -198,6 +227,8 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
         "+device=cuda:0",
         f"+main_process_port={port}",
     ]
+    if args.completion_stage is not None:
+        command.append(f"env.config.completion_stage={args.completion_stage}")
     return command, _runtime_env(args.gpu, port), output
 
 

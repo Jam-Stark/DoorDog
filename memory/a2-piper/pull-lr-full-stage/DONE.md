@@ -25,3 +25,5 @@
 - 2026-08-31 02:16 HKT — H11 256-env×5-batch smoke完成81920 timesteps；coupled pose-quality reward实际非零，carrier25 exact、LEFT Stage3 adapter4全变化、optimizer states20/groups[10,10]，技术门通过。
 - 2026-08-31 03:05 HKT — H11四格75-batch有效screen：E3略升但first-E3 pose/contact不改善，max hinge均<0.02且E4全0，RIGHT逐parent exact；关闭reward-only pose主轴并启动H12独立方向裁决。
 - 2026-08-31 03:28 HKT — H12选择learned handle-frame twist+fixed DLS executor；256-env×5 smoke完成81920 timesteps，parent29 exact、新head4更新，4-env eval中1649 active rows realization residual median0.442≤0.5，技术门通过。
+- 2026-08-31 05:54 HKT — Owner选择clean方案2，H12四格在batch1–2无checkpoint时优雅停止；H13改从bilateral Stage0–2 winner冻结parent23，fresh shared canonical Stage3 head双侧训练。
+- 2026-08-31 05:54 HKT — H13完成sorted 135-D canonical slice、actual-handle-frame twist与acquisition exact修复；256-env×5 smoke通过，matched-container completion2 A/B 567/567 rows全action/event exact，L/R executor residual median0.0014/0.0072，技术门通过。

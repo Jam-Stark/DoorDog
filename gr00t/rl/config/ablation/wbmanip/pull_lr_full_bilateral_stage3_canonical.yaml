@@ -1,0 +1,36 @@
+# @package _global_
+# H13: frozen bilateral acquisition plus a fresh shared canonical Stage3 controller.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_gate_a
+  - _self_
+
+checkpoint: REQUIRED_BILATERAL_STAGE3_CANONICAL_WARMSTART.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_lr_full_bilateral_stage3_canonical
+
+algo:
+  config:
+    load_optimizer: false
+    desired_kl: null
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_bilateral_stage3_canonical_actor.PullV6BilateralStage3CanonicalActor
+  trl:
+    num_total_batches: 75
+
+env:
+  config:
+    staged_reset_ratios: [0.25, 0.0, 0.25, 0.50, 0.0, 0.0]
+    a2_pull_stage3_e3_snapshot_curriculum_enabled: false
+    a2_pull_stage3_taskspace_action_enabled: true
+    a2_pull_stage3_taskspace_side_mode: bilateral_canonical
+    a2_pull_stage3_taskspace_translation_scale_m: 0.004
+    a2_pull_stage3_taskspace_rotation_scale_rad: 0.04
+    a2_pull_stage3_taskspace_raw_action_abs_max: 12.0
+
+rewards:
+  reward_scales:
+    a2_pull_stage3_bilateral_pose_quality: 6.0

@@ -785,14 +785,18 @@ class DoorOpenA2Pull(DoorPregrasp):
                 "Stage3 task-space executor requires finite trainer actions "
                 f"shape ({self.num_envs},{expected_dim}) on {self.device}."
             )
-        active = (self.door_open_lr == 1.0) & (
-            self.stage_buf == self.STAGE_OPEN
+        stage3 = self.stage_buf == self.STAGE_OPEN
+        active = (
+            stage3
+            if self._a2_pull_stage3_taskspace_side_mode == "bilateral_canonical"
+            else stage3 & (self.door_open_lr == 1.0)
         )
         self._a2_pull_stage3_taskspace_active[:] = active
         self._a2_pull_stage3_taskspace_raw.zero_()
         self._a2_pull_stage3_taskspace_scaled.zero_()
         self._a2_pull_stage3_taskspace_joint_raw.zero_()
         self._a2_pull_stage3_taskspace_predicted_twist.zero_()
+        self._a2_pull_stage3_taskspace_commanded_root_twist.zero_()
         self._a2_pull_stage3_taskspace_relative_residual.zero_()
         self._a2_pull_stage3_taskspace_condition.fill_(float("nan"))
         if not torch.any(active):
@@ -800,11 +804,12 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         arm_slice = slice(5, 11)
         raw_twist = torch.clamp(actions[:, arm_slice], min=-1.0, max=1.0)
-        scaled_twist = torch.zeros_like(raw_twist)
-        scaled_twist[:, :3] = raw_twist[:, :3] * float(
+        physical_twist = raw_twist.clone()
+        scaled_twist = torch.zeros_like(physical_twist)
+        scaled_twist[:, :3] = physical_twist[:, :3] * float(
             self.config.a2_pull_stage3_taskspace_translation_scale_m
         )
-        scaled_twist[:, 3:] = raw_twist[:, 3:] * float(
+        scaled_twist[:, 3:] = physical_twist[:, 3:] * float(
             self.config.a2_pull_stage3_taskspace_rotation_scale_rad
         )
         scaled_twist[~active] = 0.0
@@ -958,7 +963,11 @@ class DoorOpenA2Pull(DoorPregrasp):
                 f"finite_invalid={env_ids[~finite_valid[env_ids]].tolist()}, "
                 f"limit_invalid={env_ids[~limit_valid[env_ids]].tolist()}, "
                 f"delta_invalid={env_ids[~delta_valid[env_ids]].tolist()}, "
-                f"raw_invalid={env_ids[~raw_valid[env_ids]].tolist()}."
+                f"raw_invalid={env_ids[~raw_valid[env_ids]].tolist()}, "
+                f"side={self.door_open_lr[env_ids].tolist()}, "
+                f"policy_twist={raw_twist[env_ids].tolist()}, "
+                f"condition={condition[env_ids].tolist()}, "
+                f"converted_joint_raw={converted_joint_raw[env_ids].tolist()}."
             )
 
         position_delta_root = target_pos_root - source_pos_root
@@ -982,10 +991,19 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_stage3_taskspace_scaled[active] = scaled_twist[active]
         self._a2_pull_stage3_taskspace_joint_raw[active] = converted_joint_raw[active]
         self._a2_pull_stage3_taskspace_predicted_twist[active] = predicted_twist[active]
+        self._a2_pull_stage3_taskspace_commanded_root_twist[active] = (
+            commanded_twist_root[active]
+        )
         self._a2_pull_stage3_taskspace_relative_residual[active] = residual[active]
         self._a2_pull_stage3_taskspace_condition[active] = condition[active]
         self._a2_pull_stage3_taskspace_action_count[active] += 1
         self.log_dict["a2_pull_stage3_taskspace_active_count"] = active.float().sum()
+        self.log_dict["a2_pull_stage3_taskspace_left_active_count"] = (
+            active & (self.door_open_lr == 1.0)
+        ).float().sum()
+        self.log_dict["a2_pull_stage3_taskspace_right_active_count"] = (
+            active & (self.door_open_lr == -1.0)
+        ).float().sum()
         self.log_dict["a2_pull_stage3_taskspace_nonzero_count"] = (
             active & (torch.linalg.vector_norm(scaled_twist, dim=-1) > 0.0)
         ).float().sum()
@@ -1795,14 +1813,26 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_pull_stage3_taskspace_action_enabled = enabled
         if not enabled:
             return
+        side_mode = self.config.get("a2_pull_stage3_taskspace_side_mode")
+        if side_mode not in {"left", "bilateral_canonical"}:
+            raise RuntimeError(
+                "a2_pull_stage3_taskspace_side_mode must be left or bilateral_canonical."
+            )
+        self._a2_pull_stage3_taskspace_side_mode = side_mode
         if not self._is_a2_pull_v6():
             raise RuntimeError("Stage3 task-space actions require the pull-v6 plan.")
         exact = {
-            "a2_pull_stage3_taskspace_translation_scale_m": 0.008,
-            "a2_pull_stage3_taskspace_rotation_scale_rad": 0.08,
+            "a2_pull_stage3_taskspace_translation_scale_m": (
+                0.004 if side_mode == "bilateral_canonical" else 0.008
+            ),
+            "a2_pull_stage3_taskspace_rotation_scale_rad": (
+                0.04 if side_mode == "bilateral_canonical" else 0.08
+            ),
             "a2_pull_stage3_taskspace_dls_lambda": 0.01,
             "a2_pull_stage3_taskspace_joint_step_max_rad": 0.05,
-            "a2_pull_stage3_taskspace_raw_action_abs_max": 10.0,
+            "a2_pull_stage3_taskspace_raw_action_abs_max": (
+                12.0 if side_mode == "bilateral_canonical" else 10.0
+            ),
         }
         mismatched = {
             key: (float(self.config[key]), expected)
@@ -1860,6 +1890,9 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_stage3_taskspace_raw
         )
         self._a2_pull_stage3_taskspace_predicted_twist = torch.zeros_like(
+            self._a2_pull_stage3_taskspace_raw
+        )
+        self._a2_pull_stage3_taskspace_commanded_root_twist = torch.zeros_like(
             self._a2_pull_stage3_taskspace_raw
         )
         self._a2_pull_stage3_taskspace_relative_residual = torch.zeros(
@@ -8125,6 +8158,12 @@ class DoorOpenA2Pull(DoorPregrasp):
                         .cpu()
                         .tolist()
                     ),
+                    "commanded_root_frame_twist": (
+                        self._a2_pull_stage3_taskspace_commanded_root_twist[env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
                     "relative_realization_residual": float(
                         self._a2_pull_stage3_taskspace_relative_residual[env_id].item()
                     ),
@@ -8809,8 +8848,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v6_positive_arm_tangent / target_speed
         ).clamp(0.0, 1.0) * active.float()
 
-    @StagedTaskBase.effective_in_stage(DoorPregrasp.STAGE_OPEN)
-    def _reward_a2_pull_stage3_pose_quality(self):
+    def _get_a2_pull_stage3_pose_quality(self) -> torch.Tensor:
         if not self._is_a2_pull_v6():
             raise RuntimeError("Stage3 pose quality requires pull-v6.")
         distance_quality = self._get_a2_grasp_target_distance_reward(
@@ -8833,12 +8871,18 @@ class DoorOpenA2Pull(DoorPregrasp):
             scale=1.0,
             offset=0.0,
         )
+        return distance_quality * opening_quality * approach_quality
+
+    @StagedTaskBase.effective_in_stage(DoorPregrasp.STAGE_OPEN)
+    def _reward_a2_pull_stage3_pose_quality(self):
         active = (self.door_open_lr == 1.0) & (
             self.stage_buf == self.STAGE_OPEN
         )
-        return (
-            distance_quality * opening_quality * approach_quality * active.float()
-        )
+        return self._get_a2_pull_stage3_pose_quality() * active.float()
+
+    @StagedTaskBase.effective_in_stage(DoorPregrasp.STAGE_OPEN)
+    def _reward_a2_pull_stage3_bilateral_pose_quality(self):
+        return self._get_a2_pull_stage3_pose_quality()
 
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
     @override

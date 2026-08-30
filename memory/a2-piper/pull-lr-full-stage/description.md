@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-31 03:28 HKT
+last_updated: 2026-08-31 05:54 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -48,6 +48,10 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/r36_screen_gate_m_s3_step075_evalseed1001_summary.json
   - gr00t/rl/config/ablation/wbmanip/pull_lr_full_left_stage3_taskspace.yaml
   - logs_eval/a2_piper_pull_lr_full_stage/h12_smoke5_eval4/left/eval/stage2_5_step_trace.json
+  - gr00t/rl/config/ablation/wbmanip/pull_lr_full_bilateral_stage3_canonical.yaml
+  - logs_eval/a2_piper_pull_lr_full_stage/h13_acq_parent_matched8/bilateral/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h13_acq_step5_8/bilateral/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h13_r9_tech8/bilateral/eval/stage2_5_step_trace.json
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -57,7 +61,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-31 03:28 HKT)
+## Current evidence (2026-08-31 05:54 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -90,6 +94,9 @@ related_entries:
 - H11四格正式训练均完成75 batches，reward持续非零。parent0 primary/replica LEFT E3=`11/16,9/16`，parent1=`8/16,9/16`，但first-E3 distance仍约`0.0735–0.0771m`、opening alignment约`0.532–0.588`、contact dwell中位`1/1/1/2` steps；四格max hinge=`0.01974/0.00367/0.00360/0.01505rad`且E4全0。RIGHT均parent-exact=`15/15/14/12/7`。coupled reward没有进入pose/hinge中介，H11关闭。
 - H12选择structured action decomposition：冻结parent29并新增同规模zero-final`391→16→6` head，仅raw LEFT Stage3输出normalized handle-frame translation/axis-angle；固定DLS executor把policy自主选择的twist转为joint raw并完全replace legacy arm slice。它不读取grasp/E3/E4目标、不用teacher或eval oracle，训练/eval合同一致，base/gripper/RIGHT/非Stage3保持parent。
 - H12 256-env×5-batch smoke完成81920 timesteps，parent29 exact、新taskspace head4全更新、optimizer仅新head4+critic16。smoke checkpoint fixed-LEFT4 natural eval有1649 active/nonzero rows，twist realization relative residualmedian=`0.4421`、p90=`0.6590`，converted joint raw finite且无reject；按预注册median≤0.5通过技术门，正式四格尚无结果。
+- Owner在H12刚启动batch1–2时选择更clean方案：保留双侧Stage0–2 acquisition、重新初始化左右canonical共享Stage3 controller。H12四格已优雅停止且无step25 checkpoint，禁止把短跑写成policy evidence。
+- H13唯一parent为bilateral Stage0–2 winner seed2 step250（fixed LEFT/RIGHT strict K5均125/128）；冻结其23 actor tensors与RMS/std，fresh shared`58→256→256→9` head不读取parent memory或side bit。58-D feature从真实sorted 135-D layout构造，side one-hot实际为112/113、stage为127:133；head只在Stage3接管base-planar3+arm-twist6，pitch/roll/gripper保持parent，Stage0–2/4+回到parent。
+- H13 action采用实际FrameTransformer handle frame本身作为canonical twist frame，不再做重复LR reflection；base仍按mirror decanonical。bilateral专用scale为0.004m/0.04rad、raw cap12。256-env×5 smoke完成81920 timesteps，parent23 exact、新head6更新、optimizer仅head6+critic16，L/R active约115/112。matched full-state completion2 A/B达到567/567 rows policy/base/arm/gripper/stage/event bitwise exact；step5 bilateral executor residual medianLEFT=`0.00142`、RIGHT=`0.00715`。H13四seed正式训练尚无结果。
 
 ## Evidence boundary
 

@@ -36,6 +36,7 @@ env:
     a2_pull_stage3_hinge_income_mode: live_proof
     a2_pull_stage3_e3_snapshot_curriculum_enabled: false
     a2_pull_stage3_taskspace_action_enabled: false
+    a2_pull_stage3_taskspace_side_mode: left
     a2_pull_stage3_taskspace_translation_scale_m: 0.008
     a2_pull_stage3_taskspace_rotation_scale_rad: 0.08
     a2_pull_stage3_taskspace_dls_lambda: 0.01

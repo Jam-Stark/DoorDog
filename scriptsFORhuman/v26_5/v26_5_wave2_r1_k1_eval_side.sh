@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-[[ $# -eq 7 ]] || { echo "usage: $0 GPU control|dual LABEL OUTPUT_ROOT SEED left|right" >&2; exit 2; }
+[[ $# -eq 6 ]] || { echo "usage: $0 GPU control|dual LABEL OUTPUT_ROOT SEED left|right" >&2; exit 2; }
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 python_bin=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 source_checkpoint="$repo/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"

@@ -9,6 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 ACTOR_SOURCE = ROOT / "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py"
 TRAINER_SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
+RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r2"
 
 def require(value: bool, message: str) -> None:
     if not value: raise RuntimeError(message)
@@ -20,7 +21,7 @@ def flatten(value: Any, prefix: str = "") -> dict[str, Any]:
     return {prefix: value}
 def main() -> None:
     p=argparse.ArgumentParser(description=__doc__); p.add_argument("--registry",type=Path,required=True); p.add_argument("--config",action="append",required=True); a=p.parse_args()
-    r=json.loads(a.registry.read_text(encoding="utf-8")); require(r.get("schema")=="a2_piper_base_v26_5_wave2_r1_registry_v1" and r.get("status")=="PREREGISTERED_NOT_RUN", "R1 registry mismatch")
+    r=json.loads(a.registry.read_text(encoding="utf-8")); require(r.get("schema")=="a2_piper_base_v26_5_wave2_r1_registry_v1" and r.get("status")=="PREREGISTERED_NOT_RUN" and r.get("run_id")==RUN_ID, "R1 registry mismatch")
     paths={}
     for item in a.config:
         name,sep,path=item.partition("="); require(sep and name not in paths, "invalid duplicate R1 config"); paths[name]=Path(path)

@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r1"
+RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r2"
 SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 
 def require(value: bool, message: str) -> None:

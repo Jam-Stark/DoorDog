@@ -1,0 +1,22 @@
+# @package _global_
+# H10-M: oracle-assisted LEFT Stage3 live-handle SE(3) mechanics probe.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_e3_snapshot
+  - _self_
+
+experiment_name: pull_lr_full_h10m_pose_probe
+
+algo:
+  config:
+    eval:
+      a2_diagnostic_trace_enabled: true
+      a2_hold_oracle_enabled: true
+      a2_pull_h10m_live_pose_probe_enabled: true
+      a2_hold_oracle_max_position_step_m: 0.008
+      a2_hold_oracle_max_orientation_step_rad: 0.08
+
+env:
+  config:
+    a2_hold_diagnostic_contact_detail_enabled: true
+    a2_hold_diagnostic_max_contact_data_count_per_prim: 64

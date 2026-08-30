@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-30 23:21 HKT
+last_updated: 2026-08-31 02:10 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -36,6 +36,12 @@ source_of_truth:
   - gr00t/rl/config/ablation/wbmanip/pull_lr_full_left_stage3_post_e3_adapter.yaml
   - logs_eval/a2_piper_pull_lr_full_stage/r26_rng_parent/right/eval/stage2_5_step_trace.json
   - logs_eval/a2_piper_pull_lr_full_stage/r26_rng_zero_fixed/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r30_screen_gate_k_s0_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r30_screen_gate_k_s1_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r30_screen_gate_k_s2_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r30_screen_gate_k_s3_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h10m_r12_probe16/left/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/h10m_r12_probe16/left/eval/a2_hold_oracle_summary.json
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -45,7 +51,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-30 23:21 HKT)
+## Current evidence (2026-08-31 02:10 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -71,6 +77,10 @@ related_entries:
 - H9 global batch75 screen：control seed0/1 LEFT K5/E2/E3/E4/E5=`16/16/8/0/0`与`16/16/10/0/0`；treatment=`16/16/10/0/0`与`16/16/7/0/0`。RIGHT四格仍=`15/15/14/12/7`。treatment pooled hinge≥0.02rad episode=`1`、control=`3`，四格均无≥0.105rad；H9没有产生paired中介改善，按门关闭且不续batch200。
 - H10首轮四格虽完成75 batches，但其natural RIGHT funnel与parent不一致；checkpoint核对证明parent29仍exact。根因是新增`left_stage3_post_e3_gate_obs` group在`parse_observation`里即使noise scale0仍执行`torch.rand_like`，从而在gate激活前平移CUDA action-sampling RNG。该轮全部标记`INVALID/CONFOUNDED`，LEFT E3/E4结果不得引用。
 - RNG-fixed H10不再增加obs group：用与parent相同的8-D gate+6-D stage调用形状，把E3写入parent actor未读取的IO slot，并以`torch.random.fork_rng()`隔离新增head的CPU/CUDA构造随机数。RIGHT parent/zero-head natural A/B达到10230/10230 trace rows完全对齐，policy/base/arm/gripper raw actions、stage、handle/latch/hinge和event均逐项exact、max diff0。固定版activation smoke也完成81920 timesteps，snapshot/load非零、RIGHT manual0、parent29 exact且新head4全更新；正式四格重跑尚无结果。
+- RNG-fixed H10四格正式重跑均完成75 batches。parent0 primary/replica LEFT E3=`10/16`、parent1均=`7/16`，与各自H9 parent pre-E3结果exact；RIGHT四格均parent-exact=`15/15/14/12/7`。然而E3后continuous bilateral-contact中位仍为1 step，四格max hinge仅`0.03798/0.02521/0.02854/0.00580rad`，无episode达到0.10/E4。故post-E3 parameter separation被有效否定。
+- 当前转入H10-M：复用现有DifferentialIK/hold-oracle机制做fixed-LEFT Stage3 live-handle SE(3) causal probe，严格标记oracle-assisted且不可promotion；它只判断恢复pose-follow是否能延长contact并产生≥0.10rad hinge，为下一learned-policy结构提供因果依据。
+- H10-M最终运行16 episodes并生成完整trace，DLS capture/correction实际激活1600 rows，raw condition只作telemetry且correction/limit/raw均受硬门。realized position/orientation residual中位仍`0.07695m/0.62983rad`，每步bounded pose request打满`0.008m/0.08rad`，16/16 outcome=`PUSH_TIMEOUT`；E3=`8/16`、hinge max=`0.00712rad`、E4=0。它没有实现预注册pose中介，因此判`NOT_ADMITTED`，不能据此否定pose-follow假说。
+- H10-M还显示简单oracle residual会持续与policy arm相抵消；下一H11不覆盖action，而让H7 nonlinear adapter从Stage3 entry起直接优化raw LEFT coupled-SE(3) pose quality。该reward路径与正式训练尚未实现。
 
 ## Evidence boundary
 

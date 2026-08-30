@@ -53,6 +53,10 @@ algo:
       # Formal-eval, first-episode-only deterministic hold oracle. The normal
       # policy path is bit-for-bit unchanged while this flag is false.
       a2_hold_oracle_enabled: false
+      a2_pull_h10m_live_pose_probe_enabled: false
+      a2_pull_h10m_hinge_target_rad: 0.105
+      a2_pull_h10m_timeout_steps: 100
+      a2_pull_h10m_joint_correction_step_max_rad: 0.05
       a2_pull_v6_p1_oracle_enabled: false
       a2_pull_v6_p1_orientation_axis: x
       a2_pull_v6_p1_target_hinge_velocity_radps: 0.30

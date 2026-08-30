@@ -25101,7 +25101,7 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h10r1_poste3_p0_r0_s0
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h10r1_poste3_p0_r0_s0
-status: planned
+status: done
 previous_batch_id: pull_lr_full_h10_poste3_p1_r1_s3
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T23:18:44
@@ -25162,6 +25162,7 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 
 ### Manual Result Notes
 - RNG-fixed H10 primary parent0/seed0; same-shape gate substitution preserves the parent sampled-action stream before E3.
+- Completed 75/75. LEFT K5/E2/E3/E4/E5=`16/16/10/0/0`, max hinge `0.03798`; RIGHT parent-exact=`15/15/14/12/7`.
 <!-- RLCM:BATCH_END pull_lr_full_h10r1_poste3_p0_r0_s0 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h10r1_poste3_p0_r1_s2 -->
@@ -25173,7 +25174,7 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h10r1_poste3_p0_r1_s2
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h10r1_poste3_p0_r1_s2
-status: planned
+status: done
 previous_batch_id: pull_lr_full_h10r1_poste3_p0_r0_s0
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T23:18:44
@@ -25233,6 +25234,7 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 
 ### Manual Result Notes
 - RNG-fixed H10 parent0 replica with independent train seed2.
+- Completed 75/75. LEFT K5/E2/E3/E4/E5=`16/16/10/0/0`, max hinge `0.02521`; RIGHT parent-exact=`15/15/14/12/7`.
 <!-- RLCM:BATCH_END pull_lr_full_h10r1_poste3_p0_r1_s2 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h10r1_poste3_p1_r0_s1 -->
@@ -25244,7 +25246,7 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h10r1_poste3_p1_r0_s1
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h10r1_poste3_p1_r0_s1
-status: planned
+status: done
 previous_batch_id: pull_lr_full_h10r1_poste3_p0_r1_s2
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T23:18:44
@@ -25304,6 +25306,7 @@ CUDA_VISIBLE_DEVICES=2 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 
 ### Manual Result Notes
 - RNG-fixed H10 primary parent1/seed1; same-shape gate substitution preserves the parent sampled-action stream before E3.
+- Completed 75/75. LEFT K5/E2/E3/E4/E5=`16/16/7/0/0`, max hinge `0.02854`; RIGHT parent-exact=`15/15/14/12/7`.
 <!-- RLCM:BATCH_END pull_lr_full_h10r1_poste3_p1_r0_s1 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h10r1_poste3_p1_r1_s3 -->
@@ -25315,7 +25318,7 @@ CUDA_VISIBLE_DEVICES=2 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h10r1_poste3_p1_r1_s3
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h10r1_poste3_p1_r1_s3
-status: planned
+status: done
 previous_batch_id: pull_lr_full_h10r1_poste3_p1_r0_s1
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T23:18:44
@@ -25376,5 +25379,6 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 
 ### Manual Result Notes
 - RNG-fixed H10 parent1 replica with independent train seed3.
+- Completed 75/75. LEFT K5/E2/E3/E4/E5=`16/16/7/0/0`, max hinge `0.00580`; RIGHT parent-exact=`15/15/14/12/7`.
 <!-- RLCM:BATCH_END pull_lr_full_h10r1_poste3_p1_r1_s3 -->
 <!-- RLCM:BATCHES_END -->

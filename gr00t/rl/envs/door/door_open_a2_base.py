@@ -15441,6 +15441,18 @@ class DoorPregrasp(
 
         config = {
             "enabled": enabled,
+            "pull_h10m_live_pose_probe_enabled": required_bool(
+                "a2_pull_h10m_live_pose_probe_enabled", False
+            ),
+            "pull_h10m_hinge_target_rad": positive_float(
+                "a2_pull_h10m_hinge_target_rad", 0.105
+            ),
+            "pull_h10m_timeout_steps": positive_int(
+                "a2_pull_h10m_timeout_steps", 100
+            ),
+            "pull_h10m_joint_correction_step_max_rad": positive_float(
+                "a2_pull_h10m_joint_correction_step_max_rad", 0.05
+            ),
             "v6_p1_oracle_enabled": required_bool("a2_pull_v6_p1_oracle_enabled", False),
             "v6_p1_orientation_axis": v6_p1_orientation_axis,
             "v6_p1_target_hinge_velocity_radps": positive_float(
@@ -15692,6 +15704,40 @@ class DoorPregrasp(
                 "a2_hold_oracle_matched_clean_pregrasp_orientation_tolerance_rad"
             ),
         }
+        if config["pull_h10m_live_pose_probe_enabled"]:
+            if not config["enabled"]:
+                raise RuntimeError("H10-M live-pose probe requires hold oracle enabled.")
+            if any(
+                (
+                    config["v6_p1_oracle_enabled"],
+                    config["v20_arc_probe_enabled"],
+                    config["pull_p1_probe_enabled"],
+                    config["static_clamp_enabled"],
+                    config["static_clamp_offset_probe_enabled"],
+                    config["open_stabilization_preflight_enabled"],
+                    config["matched_clean_reacquisition_preflight_enabled"],
+                )
+            ):
+                raise RuntimeError(
+                    "H10-M live-pose probe is mutually exclusive with every other hold oracle mode."
+                )
+            exact_h10m = {
+                "pull_h10m_hinge_target_rad": 0.105,
+                "pull_h10m_timeout_steps": 100,
+                "pull_h10m_joint_correction_step_max_rad": 0.05,
+                "max_position_step_m": 0.008,
+                "max_orientation_step_rad": 0.08,
+                "dls_lambda": 0.01,
+            }
+            mismatched = {
+                key: (config[key], expected)
+                for key, expected in exact_h10m.items()
+                if config[key] != expected
+            }
+            if mismatched:
+                raise RuntimeError(
+                    f"H10-M live-pose probe requires its preregistered tuple: {mismatched}."
+                )
         if config["sign_smoke_steps"] >= config["depress_timeout_steps"]:
             raise RuntimeError("A2 hold depress sign-smoke window must be shorter than its timeout.")
         if config["sign_smoke_steps"] >= config["push_timeout_steps"]:

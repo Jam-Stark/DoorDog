@@ -20,3 +20,5 @@
 - 2026-08-30 21:46 HKT — H10 256-env×5-batch smoke完成81920 timesteps；parent29 tensors exact、新post-E3四tensor全部更新、optimizer为20 states/groups[10,10]，LEFT E3 snapshot非零且RIGHT manual为0，技术门通过。
 - 2026-08-30 23:17 HKT — H10首轮75-batch screen暴露causal-control flaw：新增aux obs group即使noise scale0仍调用`rand_like`并平移sampled-action RNG，故四格全部作废。修复为同shape gate替换unused IO slot并隔离CPU/CUDA constructor RNG；RIGHT parent/zero-head A/B达到10230/10230 trace rows与全部raw action/event/door state逐项exact。
 - 2026-08-30 23:21 HKT — RNG-fixed H10 activation smoke完成81920 timesteps：snapshot/load非零、RIGHT manual0、parent29 exact、新head4全变化、optimizer states20/groups[10,10]；固定版技术门通过并登记四格正式重跑。
+- 2026-08-31 00:09 HKT — RNG-fixed H10四格有效screen：pre-E3 E3 occupancy与RIGHT funnel逐parent exact，但LEFT E3后contact dwell中位仍1步、max hinge仅0.006–0.038rad、E4全0；正式否定post-E3 learned head并转入H10-M SE(3) mechanics probe。
+- 2026-08-31 02:10 HKT — H10-M完成16-env oracle-assisted probe与完整trace：1600 active rows但realized pose residual中位0.077m/0.630rad、16/16 timeout、E3 8/16、hinge max0.0071、E4 0；因未实现pose中介判`NOT_ADMITTED`，不作物理否定或promotion。

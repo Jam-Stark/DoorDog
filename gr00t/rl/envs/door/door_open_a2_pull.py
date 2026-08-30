@@ -62,6 +62,7 @@ from gr00t.rl.envs.door.door_open_a2_base import (
     A2_HOLD_OUTCOME_TO_ID,
     DoorPregrasp,
     a2_hold_base_relief_command,
+    a2_hold_capture_handoff_relative_orientation,
     a2_v20_arc_tracking_quality,
     a2_v20_handle_opening_tangent,
     a2_hold_pd_effort_estimates,
@@ -6181,6 +6182,29 @@ class DoorOpenA2Pull(DoorPregrasp):
         cfg = super().init_a2_eval_hold_oracle(
             eval_config, diagnostic_enabled=diagnostic_enabled
         )
+        if cfg["pull_h10m_live_pose_probe_enabled"]:
+            if not self._is_a2_pull_v6():
+                raise RuntimeError("H10-M live-pose probe requires the pull-v6 plan.")
+            if self.num_envs != 16 or torch.any(self.door_open_lr != 1.0):
+                raise RuntimeError(
+                    "H10-M live-pose probe requires exactly 16 fixed-LEFT environments."
+                )
+            self._a2_pull_h10m_captured_handle_to_tcp_pos = torch.full(
+                (self.num_envs, 3),
+                float("nan"),
+                dtype=torch.float32,
+                device=self.device,
+            )
+            self._a2_pull_h10m_dls_correction_raw = torch.zeros(
+                self.num_envs, 6, dtype=torch.float32, device=self.device
+            )
+            self._a2_pull_h10m_action_count = torch.zeros(
+                self.num_envs, dtype=torch.long, device=self.device
+            )
+            self._a2_pull_h10m_complete = torch.zeros(
+                self.num_envs, dtype=torch.bool, device=self.device
+            )
+            return cfg
         if not cfg["v6_p1_oracle_enabled"]:
             return cfg
         if not self._is_a2_pull_v6():
@@ -6502,6 +6526,31 @@ class DoorOpenA2Pull(DoorPregrasp):
         self, first_episode_active_mask: torch.Tensor, done_mask: torch.Tensor
     ) -> None:
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is not None and cfg.get("pull_h10m_live_pose_probe_enabled", False):
+            hinge = self._get_door_joint_pos("H10-M post-step outcome", 1)[:, 0]
+            pending = (
+                self._a2_hold_oracle_outcome
+                == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            )
+            self._set_a2_hold_outcome(
+                pending
+                & self._a2_hold_oracle_activated
+                & (hinge >= cfg["pull_h10m_hinge_target_rad"]),
+                "RETAINED",
+            )
+            pending = (
+                self._a2_hold_oracle_outcome
+                == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+            )
+            self._set_a2_hold_outcome(
+                pending & done_mask & ~self._a2_hold_oracle_activated,
+                "NO_GATE",
+            )
+            self._set_a2_hold_outcome(
+                pending & done_mask & self._a2_hold_oracle_activated,
+                "PUSH_TIMEOUT",
+            )
+            return
         if cfg is None or not cfg["v6_p1_oracle_enabled"]:
             return super().update_a2_eval_hold_oracle_after_step(
                 first_episode_active_mask, done_mask
@@ -6542,6 +6591,10 @@ class DoorOpenA2Pull(DoorPregrasp):
         self, policy_action: torch.Tensor, first_episode_active_mask: torch.Tensor
     ):
         cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is not None and cfg.get("pull_h10m_live_pose_probe_enabled", False):
+            return self._apply_a2_pull_h10m_live_pose_probe(
+                policy_action, first_episode_active_mask
+            )
         if cfg is None or not cfg["v6_p1_oracle_enabled"]:
             return super().apply_a2_eval_hold_oracle_action_override(
                 policy_action, first_episode_active_mask
@@ -6632,6 +6685,301 @@ class DoorOpenA2Pull(DoorPregrasp):
         self._a2_hold_oracle_last_override_mask = controlled.clone()
         self._a2_hold_oracle_post_override_action = action
         return action, controlled
+
+    def _apply_a2_pull_h10m_live_pose_probe(
+        self,
+        policy_action: torch.Tensor,
+        first_episode_active_mask: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Apply an eval-only LEFT Stage3 DLS arm target at the live handle pose."""
+
+        cfg = self._a2_hold_oracle_cfg
+        if not cfg["enabled"] or not getattr(self, "is_evaluating", False):
+            raise RuntimeError("H10-M live-pose probe requires an evaluating hold oracle.")
+        if torch.any(self.door_open_lr != 1.0):
+            raise RuntimeError("H10-M live-pose probe requires a fixed-LEFT evaluation.")
+        layout = self.get_a2_high_level_action_layout()
+        if tuple(policy_action.shape) != (self.num_envs, layout["dim"]):
+            raise RuntimeError("H10-M live-pose probe policy action shape mismatch.")
+        eligible = (
+            first_episode_active_mask
+            & (self.stage_buf == self.STAGE_OPEN)
+        )
+        entering = eligible & ~self._a2_hold_oracle_activated
+        if torch.any(entering):
+            if torch.any(
+                ~self._a2_pull_event_reached[
+                    entering, A2PullEvent.E2_TENSILE_CAPTURE
+                ]
+            ):
+                raise RuntimeError("H10-M Stage3 entry requires prior E2 evidence.")
+            piper_frame = self._get_a2_v20_piper_frame_data(
+                "H10-M Stage3-entry capture"
+            )
+            self._a2_pull_h10m_captured_handle_to_tcp_pos[entering] = (
+                piper_frame["handle_to_tcp_pos"][entering]
+            )
+            frames = self._get_a2_hold_oracle_world_frames()
+            relative_quat, captured = a2_hold_capture_handoff_relative_orientation(
+                frames["handle_pos_w"],
+                frames["handle_quat_w"],
+                frames["source_pos_w"],
+                frames["source_quat_w"],
+                entering,
+                self._a2_hold_oracle_handoff_relative_quat,
+                self._a2_hold_oracle_handoff_orientation_captured,
+            )
+            self._a2_hold_oracle_handoff_relative_quat = relative_quat
+            self._a2_hold_oracle_handoff_orientation_captured = captured
+            self._a2_hold_oracle_activated |= entering
+            first_activation = entering & (
+                self._a2_pull_first_scripted_activation_step < 0
+            )
+            self._a2_pull_first_scripted_activation_step[first_activation] = (
+                self.episode_length_buf[first_activation]
+            )
+        hinge = self._get_door_joint_pos("H10-M live-pose probe", 1)[:, 0]
+        reached_target = hinge >= cfg["pull_h10m_hinge_target_rad"]
+        timed_out = (
+            self._a2_pull_h10m_action_count >= cfg["pull_h10m_timeout_steps"]
+        )
+        pending = (
+            self._a2_hold_oracle_outcome
+            == A2_HOLD_OUTCOME_TO_ID["PENDING"]
+        )
+        self._set_a2_hold_outcome(
+            pending & self._a2_hold_oracle_activated & reached_target,
+            "RETAINED",
+        )
+        self._set_a2_hold_outcome(
+            pending & self._a2_hold_oracle_activated & timed_out,
+            "PUSH_TIMEOUT",
+        )
+        self._a2_pull_h10m_complete |= reached_target | timed_out
+        active = (
+            eligible
+            & self._a2_hold_oracle_activated
+            & ~self._a2_pull_h10m_complete
+        )
+        if not torch.any(active):
+            self._a2_hold_oracle_last_override_mask.zero_()
+            self._a2_hold_oracle_post_override_action = policy_action
+            return policy_action, self._a2_hold_oracle_last_override_mask
+
+        captured_offset = self._a2_pull_h10m_captured_handle_to_tcp_pos.to(
+            dtype=policy_action.dtype
+        )
+        local_offset = torch.where(
+            active[:, None], captured_offset, torch.zeros_like(captured_offset)
+        )
+        if torch.any(~torch.isfinite(local_offset[active])):
+            raise RuntimeError("H10-M active rows require a captured handle-to-TCP position.")
+        (
+            q_correction_target,
+            ik_valid,
+            singular_values,
+            condition,
+            target_pos_root,
+            target_quat_root,
+            position_residual,
+            orientation_residual,
+            bounded_command_pos_root,
+            bounded_command_quat_root,
+            bounded_position_step,
+            bounded_orientation_step,
+            _,
+            _,
+            _,
+        ) = self._compute_a2_hold_oracle_joint_target(local_offset, active)
+        ik_valid = (
+            torch.all(torch.isfinite(q_correction_target), dim=-1)
+            & torch.all(torch.isfinite(singular_values), dim=-1)
+            & torch.isfinite(condition)
+        )
+        robot = self.simulator.scene.articulations["robot"]
+        joint_ids = self._a2_hold_oracle_joint_ids
+        q_current = robot.data.joint_pos[:, joint_ids]
+        correction = torch.clamp(
+            q_correction_target - q_current,
+            min=-cfg["pull_h10m_joint_correction_step_max_rad"],
+            max=cfg["pull_h10m_joint_correction_step_max_rad"],
+        )
+        arm_slice = slice(layout["arm_start"], layout["arm_end"])
+        d_prev = self._delta_actions.clone()
+        d_policy_next = d_prev + (
+            policy_action[:, arm_slice] * float(self.config.delta_action_scale)
+        )
+        q_default = robot.data.default_joint_pos[:, joint_ids]
+        if q_default.shape[0] == 1:
+            q_default = q_default.repeat(self.num_envs, 1)
+        q_policy_next = q_default + (
+            float(self.config.robot.control.action_scale) * d_policy_next
+        )
+        hard_limits = robot.data.joint_pos_limits[:, joint_ids]
+        soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
+        hard_lower = hard_limits[..., 0] + cfg["joint_limit_margin"]
+        hard_upper = hard_limits[..., 1] - cfg["joint_limit_margin"]
+        soft_lower = soft_limits[..., 0] + cfg["joint_limit_margin"]
+        soft_upper = soft_limits[..., 1] - cfg["joint_limit_margin"]
+        correction = torch.where(
+            (q_current < hard_lower) & (correction < 0.0),
+            torch.zeros_like(correction),
+            correction,
+        )
+        correction = torch.where(
+            (q_current > hard_upper) & (correction > 0.0),
+            torch.zeros_like(correction),
+            correction,
+        )
+        current_inside_hard = (
+            (q_current >= hard_lower) & (q_current <= hard_upper)
+        )
+        projected_hard_target = torch.clamp(
+            q_current + correction, min=hard_lower, max=hard_upper
+        )
+        correction = torch.where(
+            current_inside_hard,
+            projected_hard_target - q_current,
+            correction,
+        )
+        correction = torch.where(
+            (q_current < soft_lower) & (correction < 0.0),
+            torch.zeros_like(correction),
+            correction,
+        )
+        correction = torch.where(
+            (q_current > soft_upper) & (correction > 0.0),
+            torch.zeros_like(correction),
+            correction,
+        )
+        policy_inside_soft = (
+            (q_current >= soft_lower) & (q_current <= soft_upper)
+        )
+        projected_inside_target = torch.clamp(
+            q_current + correction, min=soft_lower, max=soft_upper
+        )
+        correction = torch.where(
+            policy_inside_soft,
+            projected_inside_target - q_current,
+            correction,
+        )
+        q_correction_next = q_current + correction
+        q_applied_next = q_policy_next + correction
+        hard_progress_valid = torch.where(
+            current_inside_hard,
+            (q_correction_next >= hard_lower) & (q_correction_next <= hard_upper),
+            torch.where(
+                q_current < hard_lower,
+                q_correction_next >= q_current,
+                q_correction_next <= q_current,
+            ),
+        )
+        soft_progress_valid = torch.where(
+            policy_inside_soft,
+            (q_correction_next >= soft_lower) & (q_correction_next <= soft_upper),
+            torch.where(
+                q_current < soft_lower,
+                q_correction_next >= q_current,
+                q_correction_next <= q_current,
+            ),
+        )
+        limit_valid = torch.all(hard_progress_valid & soft_progress_valid, dim=-1)
+        correction_raw = correction / (
+            float(self.config.robot.control.action_scale)
+            * float(self.config.delta_action_scale)
+        )
+        applied_arm_raw = policy_action[:, arm_slice] + correction_raw
+        d_des = d_prev + (
+            applied_arm_raw * float(self.config.delta_action_scale)
+        )
+        delta_ok = torch.all(
+            torch.abs(correction)
+            <= (
+                cfg["pull_h10m_joint_correction_step_max_rad"]
+                + torch.finfo(correction.dtype).eps
+            ),
+            dim=-1,
+        )
+        raw_ok = torch.all(
+            torch.abs(applied_arm_raw) <= cfg["raw_action_abs_max"], dim=-1
+        )
+        invalid = active & ~(ik_valid & limit_valid & delta_ok & raw_ok)
+        if torch.any(invalid):
+            env_ids = torch.where(invalid)[0]
+            raise RuntimeError(
+                "H10-M live-pose DLS rejected active rows: "
+                f"env_ids={env_ids.tolist()}, "
+                f"ik_invalid={env_ids[~ik_valid[env_ids]].tolist()}, "
+                f"limit_invalid={env_ids[~limit_valid[env_ids]].tolist()}, "
+                f"delta_invalid={env_ids[~delta_ok[env_ids]].tolist()}, "
+                f"raw_invalid={env_ids[~raw_ok[env_ids]].tolist()}, "
+                f"condition={condition[env_ids].tolist()}, "
+                f"max_abs_raw={torch.abs(applied_arm_raw[env_ids]).amax(dim=-1).tolist()}, "
+                f"q_current={q_current[env_ids].tolist()}, "
+                f"q_policy_next={q_policy_next[env_ids].tolist()}, "
+                f"correction={correction[env_ids].tolist()}, "
+                f"q_applied_next={q_applied_next[env_ids].tolist()}, "
+                f"hard_limits={hard_limits[env_ids].tolist()}, "
+                f"soft_limits={soft_limits[env_ids].tolist()}."
+            )
+        action = policy_action.clone()
+        action[active, arm_slice] = applied_arm_raw[active]
+        self._a2_pull_h10m_dls_correction_raw.zero_()
+        self._a2_pull_h10m_dls_correction_raw[active] = (
+            applied_arm_raw - policy_action[:, arm_slice]
+        )[active]
+        self._a2_pull_h10m_action_count[active] += 1
+        self._a2_hold_oracle_q_des[:] = q_applied_next
+        self._a2_hold_oracle_d_des[:] = d_des
+        self._a2_hold_oracle_d_prev[:] = d_prev
+        self._a2_hold_oracle_a_raw.zero_()
+        self._a2_hold_oracle_a_raw[active] = applied_arm_raw[active]
+        self._a2_hold_oracle_target_pos_root[:] = target_pos_root
+        self._a2_hold_oracle_target_quat_root[:] = target_quat_root
+        self._a2_hold_oracle_bounded_command_pos_root[:] = bounded_command_pos_root
+        self._a2_hold_oracle_bounded_command_quat_root[:] = bounded_command_quat_root
+        self._a2_hold_oracle_bounded_position_step[:] = bounded_position_step
+        self._a2_hold_oracle_bounded_orientation_step[:] = bounded_orientation_step
+        self._a2_hold_oracle_position_residual[:] = position_residual
+        self._a2_hold_oracle_orientation_residual[:] = orientation_residual
+        self._a2_hold_oracle_singular_values[:] = singular_values
+        self._a2_hold_oracle_jacobian_condition[:] = condition
+        self._a2_hold_oracle_ik_valid[:] = ik_valid
+        self._a2_hold_oracle_limit_valid[:] = limit_valid
+        self._a2_hold_oracle_delta_ok[:] = delta_ok
+        self._a2_hold_oracle_raw_ok[:] = raw_ok
+        self._a2_hold_oracle_arm_dls_branch[:] = active
+        self._a2_hold_oracle_base_relief_branch_applied.zero_()
+        self._a2_hold_oracle_last_override_mask = active.clone()
+        self._a2_hold_oracle_post_override_action = action
+        return action, active
+
+    @override
+    def _get_a2_hold_oracle_trace_fields(self, env_ids: torch.Tensor):
+        records = super()._get_a2_hold_oracle_trace_fields(env_ids)
+        cfg = getattr(self, "_a2_hold_oracle_cfg", None)
+        if cfg is None or not cfg.get("pull_h10m_live_pose_probe_enabled", False):
+            return records
+        for env_id, record in zip(env_ids.tolist(), records):
+            captured_pos = self._a2_pull_h10m_captured_handle_to_tcp_pos[env_id]
+            record["pull_lr_h10m_captured_handle_to_tcp_pos"] = (
+                captured_pos.detach().cpu().tolist()
+                if torch.all(torch.isfinite(captured_pos))
+                else None
+            )
+            record["pull_lr_h10m_dls_correction_raw"] = (
+                self._a2_pull_h10m_dls_correction_raw[env_id]
+                .detach()
+                .cpu()
+                .tolist()
+            )
+            record["pull_lr_h10m_action_count"] = int(
+                self._a2_pull_h10m_action_count[env_id].item()
+            )
+            record["pull_lr_h10m_complete"] = bool(
+                self._a2_pull_h10m_complete[env_id].item()
+            )
+        return records
 
     @override
     def _get_a2_terminal_diagnostics(self, env_ids):

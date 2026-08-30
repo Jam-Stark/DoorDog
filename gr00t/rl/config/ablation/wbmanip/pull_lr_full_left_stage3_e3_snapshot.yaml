@@ -1,0 +1,12 @@
+# @package _global_
+# H9: H7 actor trained from same-env LEFT Stage3 snapshots captured at natural E3.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_nonlinear_adapter
+  - _self_
+
+experiment_name: pull_lr_full_left_stage3_e3_snapshot
+
+env:
+  config:
+    a2_pull_stage3_e3_snapshot_curriculum_enabled: true

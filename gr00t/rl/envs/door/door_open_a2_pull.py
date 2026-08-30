@@ -837,6 +837,16 @@ class DoorOpenA2Pull(DoorPregrasp):
     def _is_a2_pull_v6(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V6_PLAN_ID
 
+    def _get_a2_pull_stage3_e3_snapshot_curriculum_enabled(self) -> bool:
+        enabled = self.config.get(
+            "a2_pull_stage3_e3_snapshot_curriculum_enabled", False
+        )
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "a2_pull_stage3_e3_snapshot_curriculum_enabled must be a boolean."
+            )
+        return enabled
+
     def _is_a2_pull_v3(self) -> bool:
         return self.config.get("a2_v20_R1_plan_id") == A2_PULL_V3_PLAN_ID
 
@@ -909,6 +919,12 @@ class DoorOpenA2Pull(DoorPregrasp):
             len(A2PullEvent),
             dtype=torch.bool,
             device=self.device,
+        )
+        self._a2_pull_stage3_e3_manual_snapshot_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
+        self._a2_pull_stage3_e3_loaded_snapshot_count = torch.zeros(
+            (), dtype=torch.long, device=self.device
         )
         self._a2_pull_stable_unlatch_handle_ever = torch.zeros(
             self.num_envs, dtype=torch.bool, device=self.device
@@ -1540,6 +1556,15 @@ class DoorOpenA2Pull(DoorPregrasp):
     @override
     def _init_a2_door_pregrasp_state(self):
         super()._init_a2_door_pregrasp_state()
+        if self._get_a2_pull_stage3_e3_snapshot_curriculum_enabled():
+            if not self._is_a2_pull_v6():
+                raise RuntimeError(
+                    "LEFT Stage-3 E3 snapshot curriculum requires the pull-v6 plan."
+                )
+            if not self.enable_staged_reset:
+                raise RuntimeError(
+                    "LEFT Stage-3 E3 snapshot curriculum requires staged reset."
+                )
         if self.config.get("a2_pull_v5_census_enabled", False) and "a2_pull_prev_stable_contact" not in self.staged_reset_buf:
             self._register_buffer_to_track(
                 "a2_pull_prev_stable_contact",
@@ -4239,7 +4264,47 @@ class DoorOpenA2Pull(DoorPregrasp):
             filtered &= self.stage_buf != self.STAGE_SWING
         if self._is_a2_pull_v6():
             filtered &= self.stage_buf != self.STAGE_SWING
+        if self._get_a2_pull_stage3_e3_snapshot_curriculum_enabled():
+            filtered &= ~(
+                (self.stage_buf == self.STAGE_OPEN) & (self.door_open_lr == 1.0)
+            )
         return filtered
+
+    @override
+    def _validate_loaded_staged_reset_sample(
+        self,
+        selected_env_ids: torch.Tensor,
+        selected_stages: torch.Tensor,
+        selected_sample_indices: torch.Tensor,
+    ) -> None:
+        super()._validate_loaded_staged_reset_sample(
+            selected_env_ids, selected_stages, selected_sample_indices
+        )
+        if not self._get_a2_pull_stage3_e3_snapshot_curriculum_enabled():
+            return
+        left_stage3 = (
+            (selected_stages == self.STAGE_OPEN)
+            & (self.door_open_lr[selected_env_ids] == 1.0)
+        )
+        if not torch.any(left_stage3):
+            return
+        env_ids = selected_env_ids[left_stage3]
+        if torch.any(~self._a2_pull_event_reached[env_ids, A2PullEvent.E3_LATCH_RELEASE]):
+            raise RuntimeError(
+                "LEFT Stage-3 E3 curriculum loaded a snapshot without E3 evidence."
+            )
+        if torch.any(
+            self._a2_pull_first_event_step[env_ids, A2PullEvent.E3_LATCH_RELEASE] != 0
+        ) or torch.any(
+            self._a2_pull_first_event_time_s[env_ids, A2PullEvent.E3_LATCH_RELEASE] != 0.0
+        ):
+            raise RuntimeError(
+                "LEFT Stage-3 E3 curriculum requires rebased E3 step/time equal to zero."
+            )
+        self._a2_pull_stage3_e3_loaded_snapshot_count += env_ids.numel()
+        self.log_dict["a2_pull_stage3_e3_loaded_snapshot_count"] = (
+            self._a2_pull_stage3_e3_loaded_snapshot_count.float()
+        )
 
     @override
     def _sample_reset_sample_indices(self, env_ids: torch.Tensor, selected_stages: torch.Tensor) -> torch.Tensor:
@@ -5794,6 +5859,69 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         self._a2_pull_handle_local_slip_valid[:] = derivative_valid
         self._a2_pull_prev_handle_to_tcp_pos[:] = handle_to_tcp_pos
+        self._capture_a2_pull_stage3_e3_snapshot(
+            selected,
+            newly_reached[:, A2PullEvent.E3_LATCH_RELEASE],
+        )
+
+    def _capture_a2_pull_stage3_e3_snapshot(
+        self,
+        selected_env_ids: torch.Tensor,
+        newly_reached_e3: torch.Tensor,
+    ) -> None:
+        """Store same-env LEFT Stage3 states at the first natural E3 transition."""
+
+        if not self._get_a2_pull_stage3_e3_snapshot_curriculum_enabled():
+            return
+        if not self.enable_staged_reset or self.staged_reset_num_samples is None:
+            raise RuntimeError(
+                "LEFT Stage-3 E3 snapshot capture requires staged-reset buffers."
+            )
+        if (
+            not torch.is_tensor(selected_env_ids)
+            or selected_env_ids.ndim != 1
+            or selected_env_ids.dtype != torch.long
+            or selected_env_ids.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "LEFT Stage-3 E3 snapshot capture requires device-local env ids."
+            )
+        if (
+            not torch.is_tensor(newly_reached_e3)
+            or newly_reached_e3.shape != selected_env_ids.shape
+            or newly_reached_e3.dtype != torch.bool
+            or newly_reached_e3.device != torch.device(self.device)
+        ):
+            raise RuntimeError(
+                "LEFT Stage-3 E3 snapshot capture requires a matching bool event mask."
+            )
+        capture = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
+        capture[selected_env_ids] = newly_reached_e3
+        capture &= (
+            (self.stage_buf == self.STAGE_OPEN)
+            & (self.door_open_lr == 1.0)
+            & ~self._a2_pull_event_reached[:, A2PullEvent.E4_POSITIVE_HINGE_RETAINED]
+        )
+        if torch.any(capture):
+            if torch.any(
+                ~self._a2_pull_event_reached[capture, A2PullEvent.E3_LATCH_RELEASE]
+            ):
+                raise RuntimeError(
+                    "LEFT Stage-3 E3 snapshot capture lost its E3 event evidence."
+                )
+            self._take_snapshot_of_buffered_states(capture)
+            self._a2_pull_stage3_e3_manual_snapshot_count[capture] += 1
+        self.log_dict["a2_pull_stage3_e3_snapshot_count"] = (
+            self._a2_pull_stage3_e3_manual_snapshot_count.float().sum()
+        )
+        self.log_dict["a2_pull_stage3_e3_snapshot_env_count"] = (
+            (self._a2_pull_stage3_e3_manual_snapshot_count > 0).float().sum()
+        )
+        self.log_dict["a2_pull_stage3_e3_snapshot_right_count"] = (
+            self._a2_pull_stage3_e3_manual_snapshot_count[
+                self.door_open_lr == -1.0
+            ].float().sum()
+        )
 
     def _capture_a2_pull_v61_late_state_rows(self) -> None:
         """Capture canonical v6.1 rows from post-physics event state only."""

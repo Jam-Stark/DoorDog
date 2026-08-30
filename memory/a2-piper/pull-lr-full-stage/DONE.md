@@ -10,3 +10,6 @@
 - 2026-08-30 17:43 HKT — H5提高LEFT E3/press但64 episodes仍无E4，且latched hinge credit主要落在relock状态，故关闭H5；H6恢复live-proof并新增E3-gated base3-only residual，smoke3通过27-key strict-load与base-only optimizer门。
 - 2026-08-30 18:41 HKT — H6四seed无LEFT E4且LEFT funnel退化，故关闭H6；H7升级为读取冻结LSTM hidden的nonlinear joint9D adapter，smoke证明29-key strict-load、parent25 exact、adapter-only optimizer与fixed LR `1e-4`。
 - 2026-08-30 19:31 HKT — H7稳定提高LEFT press/E3但0 E4且valid-hold hinge max远低于0.10 rad，按门槛关闭；登记H8为paired LEFT current-latch-hold arm opening-tangent creation reward实验，endpoint仍只认E4。
+- 2026-08-30 20:22 HKT — H8两组matched pairs的LEFT E4均为0，treatment E3各为9/16、低于control各10/16，且RIGHT逐pair完全相同；按预注册门槛拒绝tangent reward，不续训练。
+- 2026-08-30 20:22 HKT — 登记H9为single-intervention matched pair：仅LEFT抑制普通E2-entry Stage3快照，在自然首次E3且未E4时保存同env Stage3状态；RIGHT、actor、reward、ratio和parent/seed保持配对不变。
+- 2026-08-30 20:32 HKT — H9 256-env×5-batch runtime smoke完成81920 timesteps；聚合日志中LEFT capture/load计数均非零、RIGHT manual count为0，且严格E3/step0/time0 restore validator无错误，技术门通过。

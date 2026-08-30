@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-30 19:31 HKT
+last_updated: 2026-08-30 20:32 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -16,6 +16,12 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_a_s1_step025_evalseed1001_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_b_s0_step025_evalseed1001_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_b_s1_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r17_screen_gate_h_s0_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r17_screen_gate_h_s1_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r17_screen_gate_i_s0_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r17_screen_gate_i_s1_step025_evalseed1001_summary.json
+  - gr00t/rl/config/ablation/wbmanip/pull_lr_full_left_stage3_e3_snapshot.yaml
+  - logs_rl/a2_piper_pull_lr_full_stage/h9_smoke5_load_gate_j_seed0/runner.log
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -25,7 +31,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-30 19:31 HKT)
+## Current evidence (2026-08-30 20:32 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -42,8 +48,9 @@ related_entries:
 - H6四seed screen：LEFT pooled64 K5/E2/E3/E4/E5=`60/58/15/0/0`、handle≥0.6/latch=`27/27`，0/4 parents出现E4；RIGHT E4/E5提高但LEFT全面低于H5。H6按stopping condition关闭。
 - H7回到H5-s0 parent与live-proof reward，冻结其25 keys，新增raw LEFT Stage3 gated、zero-final `concat(current135,frozen LSTM hidden256)=391→16→9` SiLU adapter；显式 `desired_kl:null` 固定actor/critic LR `1e-4`。smoke完成1/1，parent25 exact、optimizer actor侧仅4个adapter tensors、LR fixed；H7四seed25-batch已登记，尚无结果。
 - H7四seed screen：LEFT pooled64 K5/E2/E3/E4/E5=`64/64/43/0/0`、handle≥0.6/latch=`57/57`，press/E3稳定但valid-hold hinge max仅0.003–0.009 rad，0/4 seeds达到0.10 rad，故不续75并关闭H7。
-- H8继续H7 actor，新增单一 LEFT Stage3 arm opening-tangent velocity creation income：current latch+K-hold下 raw=`clamp(positive_arm_tangent/0.10,0,1)`、scale1.2。四GPU按同parent同seed做两组paired control/treatment，尚无结果；不改actor、gate、ratio或其他reward。
+- H8两组matched pairs已经完成。control seed0/1 的LEFT K5/E2/E3/E4/E5均为`16/16/10/0/0`，treatment seed0/1均为`16/16/9/0/0`；RIGHT各pair均为`15/15/14/12/7`。tangent reward确实在训练中激活，但没有产生任何LEFT E4且E3略降，按门槛关闭H8。
+- H9回到H7 seed0/1 step25 parent、H7 live-proof reward与同一29-key actor，唯一改变是LEFT Stage3 reset curriculum：抑制普通E2→Stage3 entry snapshot，仅在post-physics最终E3 commit与slip更新后，用`new_E3 & Stage3 & LEFT & ~E4`保存同env状态；RIGHT保留原自动snapshot。加载LEFT Stage3 snapshot时强制验证E3 evidence与归零后的event step/time。256-env×5-batch smoke完成81920 timesteps，聚合日志capture=`55.1719`、loaded=`3.2188`、RIGHT manual=`0`且无validator错误；这是curriculum runtime证据，不是policy/E4证据。matched-pair结果尚未形成。
 
 ## Evidence boundary
 
-以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 summary 记录，未将 infrastructure failure 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED/NOT_RUN`：bilateral E7/goal 与 hardware 均未完成或未运行。旧条目中关于 “P not started” 的表述与 pull-v6.1 的 “P population integration was not started” 语义容易混淆；本 entry 只保留当前 H4 与 held-out qualification TODO，不修改历史条目。
+以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 summary 记录，未将 infrastructure failure 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED/NOT_RUN`：bilateral E7/goal 与 hardware 均未完成或未运行。旧条目中关于 “P not started” 的表述与 pull-v6.1 的 “P population integration was not started” 语义容易混淆；本 entry 只保留当前 H9 与 held-out qualification TODO，不修改历史条目。

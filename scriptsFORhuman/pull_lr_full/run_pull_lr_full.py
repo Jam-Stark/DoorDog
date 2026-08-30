@@ -28,6 +28,7 @@ ABLATIONS = {
     "g": "wbmanip/pull_lr_full_left_stage3_base_recovery",
     "h": "wbmanip/pull_lr_full_left_stage3_nonlinear_adapter",
     "i": "wbmanip/pull_lr_full_left_stage3_tangent_creation",
+    "j": "wbmanip/pull_lr_full_left_stage3_e3_snapshot",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")

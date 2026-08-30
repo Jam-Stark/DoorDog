@@ -27,4 +27,7 @@ bash() {
 set -- 2 K1_S0 /tmp/v26_5_r1_interface 0
 source "$cell"
 [[ $calls -eq 4 ]] || { echo "expected four cell->side calls, got $calls" >&2; exit 1; }
+grep -Fq "trace_reward_terms='[push_door_handle,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'" "$side_script"
+grep -Fq "trace_reward_terms='[a2_stage3_handle_creation,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'" "$side_script"
+grep -Fq '++algo.config.eval.a2_diagnostic_reward_terms="$trace_reward_terms"' "$side_script"
 echo K1_CELL_INTERFACE_PASS

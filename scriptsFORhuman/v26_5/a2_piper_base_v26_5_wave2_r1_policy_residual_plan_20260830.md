@@ -45,9 +45,10 @@ GPU mapping is temporary: `R1_S0=2`, `R1_S1=3`.  Cold Isaac starts are manual
 staggered `train-cell --launch` calls; the orchestrator contains no polling or
 retry loop.  Every launch is tmux-backed through `run_supervisor`.
 
-The first K1 launch generation ended with the corrected `cell -> side` argv
-contract still blocked by the side script's stale seven-argument assertion.
-Those r1 receipts/logs remain evidence of that launcher failure.  The repaired
-attempt is a fresh, non-overwriting r2 root:
-`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r2/` and
-`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r2/`.
+The r1 K1 launch generation ended at the stale seven-argument assertion; r2
+then reached the first O0 control side and correctly failed because it asked
+that source trace for O1's `a2_stage3_handle_creation` instead of
+`push_door_handle`.  Both artifact roots remain preserved as failed launch
+evidence.  The repaired attempt is a fresh, non-overwriting r3 root:
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r3/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r3/`.

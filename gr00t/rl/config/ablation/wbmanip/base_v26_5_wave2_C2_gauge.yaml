@@ -1,0 +1,17 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_5_O1A0_geometry
+  - override /obs: wbmanip/door_open_a2_v26_5_gauge
+  - _self_
+
+v26_schema: a2_piper_base_v26_5_wave2_c2_gauge_v1
+v26_phase: V26_5_WAVE2_C2_ACQUISITION_GAUGE
+v26_cell: V26_5_WAVE2_C2_O1_GAUGE_S0
+
+env:
+  config:
+    a2_v26_4_side_canonicalization_enabled: false
+    a2_v26_5_geometry_target_enabled: true
+    a2_v26_5_stage3_delta_rebase_enabled: false
+    a2_v26_5_actor_gauge_enabled: true

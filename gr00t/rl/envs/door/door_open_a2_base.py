@@ -7968,6 +7968,17 @@ class DoorPregrasp(
             )
         return enabled
 
+    def _a2_v26_5_actor_gauge_enabled(self) -> bool:
+        if "a2_v26_5_actor_gauge_enabled" not in self.config:
+            raise RuntimeError(
+                "env.config.a2_v26_5_actor_gauge_enabled is required for "
+                "gripper_handle_transform_gauge."
+            )
+        enabled = self.config.a2_v26_5_actor_gauge_enabled
+        if not isinstance(enabled, bool):
+            raise RuntimeError("env.config.a2_v26_5_actor_gauge_enabled must be bool.")
+        return enabled
+
     def _a2_v26_4_right_mask(self) -> torch.Tensor:
         return self.door_open_lr == -1.0
 
@@ -27112,6 +27123,37 @@ class DoorPregrasp(
                 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0, -1.0, 1.0,
             ],
         )
+
+    def _get_obs_gripper_handle_transform_gauge(self):
+        if not self._a2_v26_5_actor_gauge_enabled():
+            raise RuntimeError(
+                "gripper_handle_transform_gauge requires "
+                "env.config.a2_v26_5_actor_gauge_enabled=true."
+            )
+        if self._a2_v26_4_side_canonicalization_enabled():
+            raise RuntimeError(
+                "gripper_handle_transform_gauge requires "
+                "a2_v26_4_side_canonicalization_enabled=false."
+            )
+        if self._a2_v26_5_stage3_delta_rebase_enabled():
+            raise RuntimeError(
+                "gripper_handle_transform_gauge requires "
+                "a2_v26_5_stage3_delta_rebase_enabled=false."
+            )
+        if not self._a2_v26_5_geometry_target_enabled():
+            raise RuntimeError(
+                "gripper_handle_transform_gauge requires "
+                "a2_v26_5_geometry_target_enabled=true."
+            )
+
+        raw = self._get_obs_gripper_handle_transform()
+        signs = raw.new_tensor(
+            [
+                1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
+                1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
+            ]
+        )
+        return torch.where(self._a2_v26_4_right_mask()[:, None], raw * signs, raw)
 
     def _get_obs_hand_force(self):
         if self._use_a2_base:

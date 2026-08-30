@@ -1,0 +1,63 @@
+# @package _global_
+
+defaults:
+  - /obs/wbmanip/door_open_a2_base
+  - _self_
+
+# C2 changes only the actor's target-pose representation.  The critic keeps
+# the raw O1 sensor observation as its privileged target-pose input.
+obs:
+  obs_dict:
+    actor_obs: [
+      dof_pos,
+      relative_to_door,
+      dof_vel,
+      actions,
+      projected_gravity,
+      door_dof_pos,
+      base_lin_vel,
+      base_ang_vel,
+      hand_force,
+      stage,
+      privileged_door_info,
+      delta_actions,
+      gripper_handle_transform_gauge,
+      a2_base_command_raw,
+
+      a2_base_command
+    ]
+
+  obs_scales:
+    gripper_handle_transform_gauge: 1.0
+
+  noise_scales:
+    gripper_handle_transform_gauge: 0.0
+
+  obs_dims:
+    - dof_pos: ${robot.dof_obs_size}
+    - hand_force: 6
+    - relative_to_door: 9
+    - dof_vel: ${robot.dof_obs_size}
+    - actions: ${eval:'${env.config.a2_base.leg_action_dim} + ${algo.config.manipulation_action_dim}'}
+    - projected_gravity: 3
+    - door_dof_pos: 2
+    - base_lin_vel: 3
+    - base_ang_vel: 3
+    - stage: ${eval:'len(${env.config.max_stage_time})'}
+    - privileged_door_info: 8
+    - gripper_handle_transform: 18
+    - gripper_handle_transform_gauge: 18
+    - a2_base_command: 5
+    - e_homie_dof_pos: ${robot.homie_dof_obs_size}
+    - f_homie_dof_vel: ${robot.homie_dof_obs_size}
+    - c_homie_base_ang_vel: 3
+    - d_homie_projected_gravity: 3
+    - g_homie_body_actions: ${robot.lower_body_actions_dim}
+    - a2_base_obs: 1620
+    - transition: 1
+    - complete: 1
+    - time_in_stage: 1
+    - actual_time_in_stage: 1
+    - total_time: 1
+    - delta_actions: ${eval:'len(${env.config.delta_action_indices})'}
+    - a2_base_command_raw: ${eval:'len(${env.config.warped_action.indices})'}

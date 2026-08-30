@@ -13,6 +13,7 @@ import omni.usd
 import torch
 import torch.nn.functional as F
 from loguru import logger
+from tensordict import TensorDict
 from isaacsim.core.simulation_manager import SimulationManager
 from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
 from isaaclab.controllers import DifferentialIKController, DifferentialIKControllerCfg
@@ -8060,6 +8061,158 @@ class DoorPregrasp(
         if not isinstance(enabled, bool):
             raise RuntimeError("env.config.a2_v26_5_actor_gauge_enabled must be bool.")
         return enabled
+
+    def _a2_v26_5_shared_residual_observation_enabled(self) -> bool:
+        enabled = self.config.get("a2_v26_5_shared_residual_observation_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "env.config.a2_v26_5_shared_residual_observation_enabled must be bool."
+            )
+        return enabled
+
+    def _build_observation_group(
+        self, obs_key, obs_config, noise_extra_scale, no_noise_obs_keys
+    ) -> None:
+        if not (
+            self._a2_v26_5_shared_residual_observation_enabled()
+            and obs_key == "residual_actor_obs"
+        ):
+            super()._build_observation_group(
+                obs_key, obs_config, noise_extra_scale, no_noise_obs_keys
+            )
+            return
+
+        if "actor_obs" not in self.obs_buf_dict_raw:
+            raise RuntimeError(
+                "shared residual observation requires actor_obs to be built first."
+            )
+        actor_terms = list(self.config.obs.obs_dict.actor_obs)
+        residual_terms = list(obs_config)
+        actor_term_set = set(actor_terms)
+        residual_term_set = set(residual_terms)
+        if len(actor_terms) != len(actor_term_set) or len(residual_terms) != len(residual_term_set):
+            raise RuntimeError("shared residual observation groups must not contain duplicate terms.")
+        if actor_terms.count("gripper_handle_transform") != 1:
+            raise RuntimeError(
+                "shared residual observation actor_obs must contain exactly one "
+                "gripper_handle_transform term."
+            )
+        expected_residual_terms = (
+            actor_term_set - {"gripper_handle_transform"}
+        ) | {"gripper_handle_transform_gauge"}
+        if residual_term_set != expected_residual_terms:
+            raise RuntimeError(
+                "shared residual observation residual_actor_obs terms must equal actor_obs "
+                "with gripper_handle_transform replaced by gripper_handle_transform_gauge."
+            )
+
+        gauge_scale = self.config.obs.obs_scales.get("gripper_handle_transform_gauge")
+        gauge_noise = self.config.obs.noise_scales.get("gripper_handle_transform_gauge")
+        if (
+            isinstance(gauge_scale, bool)
+            or isinstance(gauge_noise, bool)
+            or gauge_scale != 1.0
+            or gauge_noise != 0.0
+        ):
+            raise RuntimeError(
+                "shared residual observation requires gripper_handle_transform_gauge "
+                "scale=1.0 and noise=0.0."
+            )
+
+        actor_raw = self.obs_buf_dict_raw["actor_obs"]
+        if set(actor_raw.keys()) != actor_term_set:
+            raise RuntimeError(
+                "shared residual observation actor_obs raw terms do not match its config."
+            )
+        legacy_target = actor_raw["gripper_handle_transform"]
+        gauge_target = self._get_obs_gripper_handle_transform_gauge().clone()
+        expected_target_shape = (self.num_envs, 18)
+        if (
+            not torch.is_tensor(legacy_target)
+            or not torch.is_tensor(gauge_target)
+            or legacy_target.shape != expected_target_shape
+            or gauge_target.shape != expected_target_shape
+            or legacy_target.dtype != gauge_target.dtype
+            or legacy_target.device != gauge_target.device
+        ):
+            raise RuntimeError(
+                "shared residual observation target pose contract failed: "
+                f"legacy_shape={None if not torch.is_tensor(legacy_target) else tuple(legacy_target.shape)}, "
+                f"gauge_shape={None if not torch.is_tensor(gauge_target) else tuple(gauge_target.shape)}."
+            )
+
+        residual_raw = TensorDict()
+        for term in residual_terms:
+            if term == "gripper_handle_transform_gauge":
+                residual_raw[term] = gauge_target
+            else:
+                residual_raw[term] = actor_raw[term].clone()
+        self.obs_buf_dict_raw[obs_key] = residual_raw
+
+    def _post_config_observation_callback(self):
+        super()._post_config_observation_callback()
+        if not self._a2_v26_5_shared_residual_observation_enabled():
+            return
+
+        actor_terms = list(self.config.obs.obs_dict.actor_obs)
+        residual_terms = list(self.config.obs.obs_dict.residual_actor_obs)
+        actor_obs = self.obs_buf_dict["actor_obs"]
+        residual_actor_obs = self.obs_buf_dict["residual_actor_obs"]
+        expected_shape = (self.num_envs, 133)
+        if (
+            not torch.is_tensor(actor_obs)
+            or not torch.is_tensor(residual_actor_obs)
+            or actor_obs.shape != expected_shape
+            or residual_actor_obs.shape != expected_shape
+            or actor_obs.dtype != residual_actor_obs.dtype
+            or actor_obs.device != residual_actor_obs.device
+        ):
+            raise RuntimeError(
+                "shared residual observation flattened group contract failed: "
+                f"actor_shape={None if not torch.is_tensor(actor_obs) else tuple(actor_obs.shape)}, "
+                f"residual_shape={None if not torch.is_tensor(residual_actor_obs) else tuple(residual_actor_obs.shape)}."
+            )
+
+        def _spans(terms):
+            spans = {}
+            start = 0
+            for term in sorted(terms):
+                if term not in self.config.obs.obs_dims:
+                    raise RuntimeError(f"shared residual observation is missing obs_dim for {term}.")
+                width = self.config.obs.obs_dims[term]
+                if isinstance(width, bool) or not isinstance(width, int) or width <= 0:
+                    raise RuntimeError(
+                        f"shared residual observation obs_dim for {term} must be a positive int."
+                    )
+                spans[term] = (start, start + width)
+                start += width
+            return spans, start
+
+        actor_spans, actor_width = _spans(actor_terms)
+        residual_spans, residual_width = _spans(residual_terms)
+        if actor_width != 133 or residual_width != 133:
+            raise RuntimeError(
+                "shared residual observation flattened width must be exactly 133."
+            )
+        actor_target_span = actor_spans["gripper_handle_transform"]
+        residual_target_span = residual_spans["gripper_handle_transform_gauge"]
+        if actor_target_span != residual_target_span or actor_target_span[1] - actor_target_span[0] != 18:
+            raise RuntimeError(
+                "shared residual observation target pose slice must be an identical 18D span."
+            )
+        for term in set(actor_terms) - {"gripper_handle_transform"}:
+            actor_start, actor_end = actor_spans[term]
+            residual_start, residual_end = residual_spans[term]
+            if (
+                actor_end - actor_start != residual_end - residual_start
+                or not torch.equal(
+                    actor_obs[:, actor_start:actor_end],
+                    residual_actor_obs[:, residual_start:residual_end],
+                )
+            ):
+                raise RuntimeError(
+                    f"shared residual observation common slice mismatch for {term}."
+                )
 
     def _a2_v26_4_right_mask(self) -> torch.Tensor:
         return self.door_open_lr == -1.0

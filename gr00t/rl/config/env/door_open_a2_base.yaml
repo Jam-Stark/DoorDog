@@ -8,6 +8,7 @@ env:
   _target_: gr00t.rl.envs.door.door_open_a2_base.DoorPregrasp
   config:
     max_episode_length_s: 20
+    a2_v26_5_shared_residual_observation_enabled: false
 
     # v24 native hinge friction is additive and deliberately disabled in the
     # shared/default path.  Coefficients stay unset until a v24 probe overlay

@@ -1710,15 +1710,8 @@ class LeggedRobotBase(BaseTask):
         # compute Algo observations
         no_noise_obs_keys = self.config.obs.get("no_noise_obs_keys", ["critic_obs"])
         for obs_key, obs_config in self.config.obs.obs_dict.items():
-            self.obs_buf_dict_raw[obs_key] = TensorDict()
-            parse_observation(
-                self,
-                obs_config,
-                self.obs_buf_dict_raw[obs_key],
-                self.config.obs.obs_scales,
-                self.config.obs.noise_scales,
-                noise_extra_scale,
-                use_noise=obs_key not in no_noise_obs_keys,
+            self._build_observation_group(
+                obs_key, obs_config, noise_extra_scale, no_noise_obs_keys
             )
 
         # Compute history observations
@@ -1755,6 +1748,20 @@ class LeggedRobotBase(BaseTask):
                 )
 
         self._post_config_observation_callback()
+
+    def _build_observation_group(
+        self, obs_key, obs_config, noise_extra_scale, no_noise_obs_keys
+    ) -> None:
+        self.obs_buf_dict_raw[obs_key] = TensorDict()
+        parse_observation(
+            self,
+            obs_config,
+            self.obs_buf_dict_raw[obs_key],
+            self.config.obs.obs_scales,
+            self.config.obs.noise_scales,
+            noise_extra_scale,
+            use_noise=obs_key not in no_noise_obs_keys,
+        )
 
     def get_env_state_dict(self):
         state_dict = super().get_env_state_dict()

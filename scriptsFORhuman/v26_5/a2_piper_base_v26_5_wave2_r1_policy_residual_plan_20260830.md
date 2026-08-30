@@ -251,3 +251,15 @@ Isaac process only after the first has constructed and reached its first
 control tick, using an in-tmux `sleep 600` instead of a polling loop. No
 formal-training receipt, PPO smoke, render, relay, or Teacher/Student action
 is permitted before all four r12 K1 pairs pass.
+
+### r12 immutable wiring parser repair
+
+The original r12 wiring supervisor receipt is retained as `FAIL/1`: evaluation
+had already completed its exact64 two-control-tick raw output, then the inline
+post-eval validator failed at PyYAML's `PosixPath` constructor. The replacement
+validator loads the existing runtime YAML through `OmegaConf.load`, verifies
+the registered dual-input/receipt and exact64 evidence, and writes a separate,
+non-overwrite typed admission artifact. This is a parser-only closure over the
+immutable raw output; it does not reinterpret the original supervisor receipt
+as PASS and does not rerun Isaac. K1 requires that typed artifact and its
+recorded `POST_EVAL_VALIDATOR_YAML_CONSTRUCTOR` failure boundary.

@@ -12,6 +12,7 @@ TRAINER_SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
 EVAL_SOURCE = ROOT / "gr00t/rl/eval_agent_trl.py"
 K1_SIDE_SCRIPT = ROOT / "scriptsFORhuman/v26_5/v26_5_wave2_r1_k1_eval_side.sh"
 REDUCER_SOURCE = ROOT / "scriptsFORhuman/v26_5/v26_5_wave2_r1_reduce.py"
+WIRING_VALIDATOR = ROOT / "scriptsFORhuman/v26_5/v26_5_wave2_r1_r12_wiring_validate.py"
 RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r12"
 SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 RAW_OBS=["dof_pos","relative_to_door","dof_vel","actions","projected_gravity","door_dof_pos","base_lin_vel","base_ang_vel","hand_force","stage","privileged_door_info","delta_actions","gripper_handle_transform","a2_base_command_raw","a2_base_command"]
@@ -55,6 +56,9 @@ def main() -> None:
     reducer_text=REDUCER_SOURCE.read_text(encoding="utf-8")
     for required in ("a2_v26_5_runtime_load_receipt.json", "legacy_identity_control_exact", "legacy_exact_without_residual", "a2_v23_p06_policy_only", "R1_SYNTHETIC_BAD_RECEIPT_FLAGS_AND_MISSING_REJECTED", "R1_SYNTHETIC_UNEQUAL_WINDOW_TYPED_FAILURE_PASS"):
         require(required in reducer_text, f"K1 reducer runtime receipt binding missing: {required}")
+    wiring_text=WIRING_VALIDATOR.read_text(encoding="utf-8")
+    for required in ("OmegaConf.load", "R12_WIRING_ADMITTED_FROM_IMMUTABLE_RAW", "R12_WIRING_ADMITTED", "source_supervisor_state_at_validation", "clean_completed", "POST_EVAL_VALIDATOR_YAML_CONSTRUCTOR", "episode_length_buf", "ConstructorError"):
+        require(required in wiring_text, f"R12 wiring parser closure missing: {required}")
     require(k1.get("cells")==[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}], "K1 GPU mapping mismatch")
     require(r.get("R1",{}).get("cells")==[{"label":"R1_S0","seed":0,"physical_gpu":4},{"label":"R1_S1","seed":1,"physical_gpu":5}], "R1 GPU mapping mismatch")
     require(r.get("R1",{}).get("main_geometry_target_enabled") is False and r.get("R1",{}).get("dual_input_contract")=={"base_input_key":"actor_obs","residual_input_key":"residual_actor_obs","base_pose_term":"gripper_handle_transform","residual_pose_term":"gripper_handle_transform_gauge","width":133,"residual_action_slice":[5,12]}, "R12 main/raw and dual-input contract mismatch")

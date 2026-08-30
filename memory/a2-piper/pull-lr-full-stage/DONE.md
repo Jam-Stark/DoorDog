@@ -7,3 +7,4 @@
 - 2026-08-30 15:04 HKT — event-time rebase fresh retry 四格均完成25/25并保存 step25；r3 screen确认 Gate B只改善 RIGHT，LEFT E4/E5仍全0，故淘汰 Gate B主轴并登记单一 H3 Stage3 handle-income intervention。
 - 2026-08-30 16:10 HKT — H3四seed screen显示LEFT E3/handle0.6未改善并按stopping condition关闭；H4 arm-only zero-residual smoke3通过strict-load、residual-only optimizer和23-key carrier exact-equality门，正式四cell已登记。
 - 2026-08-30 16:48 HKT — H4四seed显示LEFT E3/press概率增加但仍无E4、seed不稳且screen保护不成立，故关闭H4；登记H5为单一 LEFT E3→hinge creation income干预，RIGHT reward和物理gate保持不变。
+- 2026-08-30 17:43 HKT — H5提高LEFT E3/press但64 episodes仍无E4，且latched hinge credit主要落在relock状态，故关闭H5；H6恢复live-proof并新增E3-gated base3-only residual，smoke3通过27-key strict-load与base-only optimizer门。

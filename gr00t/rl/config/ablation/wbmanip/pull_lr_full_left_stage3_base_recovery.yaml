@@ -1,0 +1,23 @@
+# @package _global_
+# H6: freeze H5 arm residual and learn only LEFT Stage3 base planar recovery.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_residual_arm
+  - _self_
+
+checkpoint: REQUIRED_LEFT_STAGE3_BASE_RESIDUAL_WARMSTART.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_lr_full_left_stage3_base_recovery
+
+algo:
+  config:
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_left_stage3_base_residual_actor.PullV6LeftStage3BaseResidualActor
+
+env:
+  config:
+    obs:
+      obs_dict:
+        left_stage3_base_gate_obs: [z_a2_pull_e3_latched]

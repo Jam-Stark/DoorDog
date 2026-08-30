@@ -4567,6 +4567,11 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         return self.simulator.get_task_dof_vel("door")[:, :1]
 
+    def _get_obs_z_a2_pull_e3_latched(self) -> torch.Tensor:
+        return self._a2_pull_event_reached[
+            :, A2PullEvent.E3_LATCH_RELEASE
+        ].float().unsqueeze(-1)
+
     def _get_obs_z_a2_pull_v61_post_release_control(self) -> torch.Tensor:
         """Expose the latched D25 controller handoff without changing release semantics."""
 

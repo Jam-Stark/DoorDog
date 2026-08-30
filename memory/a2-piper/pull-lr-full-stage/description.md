@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-30 16:48 HKT
+last_updated: 2026-08-30 17:43 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -25,7 +25,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-30 16:48 HKT)
+## Current evidence (2026-08-30 17:43 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -37,6 +37,8 @@ related_entries:
 - H4 使用 Gate-A seed0/1 step25 parent，只新增 raw LEFT+Stage3 gated、zero-init `Linear(135,6)` arm residual。carrier/RMS/std/base/gripper和RIGHT/非Stage3 mean冻结；smoke3完成1/1且23个original actor tensors逐项exact equal，optimizer actor侧仅residual weight/bias。H4四个正式cell已登记，尚无结果；base+arm variant保持 `NOT_RUN`。
 - H4四seed screen：LEFT pooled64 K5/E2/E3/E4/E5=`62/62/18/0/0`、handle≥0.6/latch=`22/22`，说明窄residual能改变press概率，但seed2倒退且仍无任何LEFT E4；RIGHT pooled E5=`36/64`低于lineage-weighted Gate-A `48/64`。H4不promotion、不续batch；base+arm仍 `NOT_RUN`。
 - H5从H4较好的seed0/3 parent继续，只在 raw LEFT Stage3 的 E3-latched current K-hold 下延续原 scale6 hinge income；RIGHT reward、actor gate与Stage3→4物理门不变。H5四cell已登记，尚无结果。
+- H5四seed screen：LEFT pooled64 K5/E2/E3/E4/E5=`62/62/22/0/0`、handle≥0.6/latch=`31/31`；RIGHT逐H4 parent保持，但LEFT仍无E4。post-E3分析确认H5 historical-E3 hinge income主要落在已relock rows，H5按stopping condition关闭。
+- H6保留并冻结每个H5 parent的carrier+arm6 residual，恢复Gate-A live-proof hinge reward，只新增 raw LEFT+Stage3+E3-latched gated、zero-init base planar3 residual。smoke3完成1/1，H5 parent25 keys和arm residual exact，optimizer actor侧仅base residual；H6四cell已登记，尚无结果。
 
 ## Evidence boundary
 

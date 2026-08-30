@@ -1,0 +1,26 @@
+# @package _global_
+# H7: frozen H5 actor plus zero-final nonlinear LEFT Stage3 joint adapter.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_residual_arm
+  - _self_
+
+checkpoint: REQUIRED_LEFT_STAGE3_NONLINEAR_ADAPTER_WARMSTART.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_lr_full_left_stage3_nonlinear_adapter
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    desired_kl: null
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_left_stage3_nonlinear_adapter_actor.PullV6LeftStage3NonlinearAdapterActor
+  trl:
+    num_total_batches: 25

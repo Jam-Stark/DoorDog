@@ -8,3 +8,4 @@
 - 2026-08-30 16:10 HKT — H3四seed screen显示LEFT E3/handle0.6未改善并按stopping condition关闭；H4 arm-only zero-residual smoke3通过strict-load、residual-only optimizer和23-key carrier exact-equality门，正式四cell已登记。
 - 2026-08-30 16:48 HKT — H4四seed显示LEFT E3/press概率增加但仍无E4、seed不稳且screen保护不成立，故关闭H4；登记H5为单一 LEFT E3→hinge creation income干预，RIGHT reward和物理gate保持不变。
 - 2026-08-30 17:43 HKT — H5提高LEFT E3/press但64 episodes仍无E4，且latched hinge credit主要落在relock状态，故关闭H5；H6恢复live-proof并新增E3-gated base3-only residual，smoke3通过27-key strict-load与base-only optimizer门。
+- 2026-08-30 18:41 HKT — H6四seed无LEFT E4且LEFT funnel退化，故关闭H6；H7升级为读取冻结LSTM hidden的nonlinear joint9D adapter，smoke证明29-key strict-load、parent25 exact、adapter-only optimizer与fixed LR `1e-4`。

@@ -23382,7 +23382,7 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h6_base_n1024_seed0
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h6_base_n1024_seed0
-status: planned
+status: completed
 previous_batch_id: pull_lr_full_h5_hinge_n1024_seed3
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T17:38:13
@@ -23442,7 +23442,7 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- H6 seed0: freeze H5 seed0 carrier+arm residual; add only zero base3 after E3; restore GateA live-proof hinge reward. No other semantic change.
+- H6 seed0 completed25/25; screen LEFT E3/E4/E5=`6/0/0`, RIGHT=`16/16/9`. H6 not promoted.
 <!-- RLCM:BATCH_END pull_lr_full_h6_base_n1024_seed0 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h6_base_n1024_seed1 -->
@@ -23454,7 +23454,7 @@ CUDA_VISIBLE_DEVICES=0 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h6_base_n1024_seed1
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h6_base_n1024_seed1
-status: planned
+status: completed
 previous_batch_id: pull_lr_full_h6_base_n1024_seed0
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T17:38:13
@@ -23514,7 +23514,7 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- H6 seed1: freeze H5 seed1 carrier+arm residual; add only zero base3 after E3; restore GateA live-proof hinge reward. No other semantic change.
+- H6 seed1 completed25/25; screen LEFT E3/E4/E5=`2/0/0`, RIGHT=`13/12/12`. H6 not promoted.
 <!-- RLCM:BATCH_END pull_lr_full_h6_base_n1024_seed1 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h6_base_n1024_seed2 -->
@@ -23526,7 +23526,7 @@ CUDA_VISIBLE_DEVICES=1 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h6_base_n1024_seed2
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h6_base_n1024_seed2
-status: planned
+status: completed
 previous_batch_id: pull_lr_full_h6_base_n1024_seed1
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T17:38:14
@@ -23584,7 +23584,7 @@ CUDA_VISIBLE_DEVICES=2 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- H6 seed2: freeze H5 seed2 carrier+arm residual; add only zero base3 after E3; restore GateA live-proof hinge reward. No other semantic change.
+- H6 seed2 completed25/25; screen LEFT E3/E4/E5=`5/0/0`, RIGHT=`16/16/9`. H6 not promoted.
 <!-- RLCM:BATCH_END pull_lr_full_h6_base_n1024_seed2 -->
 
 <!-- RLCM:BATCH_START pull_lr_full_h6_base_n1024_seed3 -->
@@ -23596,7 +23596,7 @@ CUDA_VISIBLE_DEVICES=2 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 batch_id: pull_lr_full_h6_base_n1024_seed3
 task: door_open_a2_pull_lr_full_stage
 run_name: pull_lr_full_h6_base_n1024_seed3
-status: planned
+status: completed
 previous_batch_id: pull_lr_full_h6_base_n1024_seed2
 base_id: pull_lr_grasp_h450_xseg_resume_seed2
 created_at: 2026-08-30T17:38:14
@@ -23656,6 +23656,292 @@ CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull
 <!-- RLCM:IMPACT_END -->
 
 ### Manual Result Notes
-- H6 seed3: freeze H5 seed3 carrier+arm residual; add only zero base3 after E3; restore GateA live-proof hinge reward. No other semantic change.
+- H6 seed3 completed25/25; screen LEFT E3/E4/E5=`2/0/0`, RIGHT=`13/12/12`. H6 not promoted.
 <!-- RLCM:BATCH_END pull_lr_full_h6_base_n1024_seed3 -->
+
+<!-- RLCM:BATCH_START pull_lr_full_h7_recurrent_n1024_seed0 -->
+## Batch pull_lr_full_h7_recurrent_n1024_seed0
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_lr_full_h7_recurrent_n1024_seed0
+task: door_open_a2_pull_lr_full_stage
+run_name: pull_lr_full_h7_recurrent_n1024_seed0
+status: planned
+previous_batch_id: pull_lr_full_h6_base_n1024_seed3
+base_id: pull_lr_grasp_h450_xseg_resume_seed2
+created_at: 2026-08-30T18:35:23
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:0
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed0/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=0 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=36280 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py train --gate h --seed 0 --gpu 0 --num-envs 1024 --batches 25 --save-frequency 25 --checkpoint logs_rl/a2_piper_pull_lr_full_stage/warmstarts_h7/h5_seed0_step25_left_stage3_recurrent_adapter_zero.pt --run-prefix pull_lr_full_h7_recurrent_n1024 --port 36280 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=0 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py eval --gate h --side bilateral --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed0/model_step_000025.pt --label pull_lr_full_h7_recurrent_n1024_seed0_evalseed1001 --gpu 0 --seed 1001 --num-envs 16 --actor-contract left_nonlinear --run
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 3 | 0 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 3 | 0 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 36083 | 36280 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 0 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 2 | 0 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 32482 | 36280 |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 3 -> 0 | 2 -> 0 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | 3 -> 0 | 2 -> 0 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | 36083 -> 36280 | 32482 -> 36280 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- H7 seed0: H5-s0 frozen parent, fixed LR1e-4/desired_kl null, zero-final recurrent-state 391→16→9 adapter on raw LEFT Stage3; initial 25-batch screen.
+<!-- RLCM:BATCH_END pull_lr_full_h7_recurrent_n1024_seed0 -->
+
+<!-- RLCM:BATCH_START pull_lr_full_h7_recurrent_n1024_seed1 -->
+## Batch pull_lr_full_h7_recurrent_n1024_seed1
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_lr_full_h7_recurrent_n1024_seed1
+task: door_open_a2_pull_lr_full_stage
+run_name: pull_lr_full_h7_recurrent_n1024_seed1
+status: planned
+previous_batch_id: pull_lr_full_h7_recurrent_n1024_seed0
+base_id: pull_lr_grasp_h450_xseg_resume_seed2
+created_at: 2026-08-30T18:35:23
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:1
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed1/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=1 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=36281 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py train --gate h --seed 1 --gpu 1 --num-envs 1024 --batches 25 --save-frequency 25 --checkpoint logs_rl/a2_piper_pull_lr_full_stage/warmstarts_h7/h5_seed0_step25_left_stage3_recurrent_adapter_zero.pt --run-prefix pull_lr_full_h7_recurrent_n1024 --port 36281 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=1 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py eval --gate h --side bilateral --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed1/model_step_000025.pt --label pull_lr_full_h7_recurrent_n1024_seed1_evalseed1001 --gpu 1 --seed 1001 --num-envs 16 --actor-contract left_nonlinear --run
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 0 | 1 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 0 | 1 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 36280 | 36281 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 1 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 2 | 1 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 32482 | 36281 |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 0 -> 1 | 2 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | 0 -> 1 | 2 -> 1 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | 36280 -> 36281 | 32482 -> 36281 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- H7 seed1: same H5-s0 parent and H7 contract; independent train seed1.
+<!-- RLCM:BATCH_END pull_lr_full_h7_recurrent_n1024_seed1 -->
+
+<!-- RLCM:BATCH_START pull_lr_full_h7_recurrent_n1024_seed2 -->
+## Batch pull_lr_full_h7_recurrent_n1024_seed2
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_lr_full_h7_recurrent_n1024_seed2
+task: door_open_a2_pull_lr_full_stage
+run_name: pull_lr_full_h7_recurrent_n1024_seed2
+status: planned
+previous_batch_id: pull_lr_full_h7_recurrent_n1024_seed1
+base_id: pull_lr_grasp_h450_xseg_resume_seed2
+created_at: 2026-08-30T18:35:24
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:2
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed2/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=2 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=36282 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py train --gate h --seed 2 --gpu 2 --num-envs 1024 --batches 25 --save-frequency 25 --checkpoint logs_rl/a2_piper_pull_lr_full_stage/warmstarts_h7/h5_seed0_step25_left_stage3_recurrent_adapter_zero.pt --run-prefix pull_lr_full_h7_recurrent_n1024 --port 36282 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=2 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py eval --gate h --side bilateral --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed2/model_step_000025.pt --label pull_lr_full_h7_recurrent_n1024_seed2_evalseed1001 --gpu 2 --seed 1001 --num-envs 16 --actor-contract left_nonlinear --run
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 1 | 2 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 1 | 2 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 36281 | 36282 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | prefix_env.MASTER_PORT | changed | 32482 | 36282 |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 1 -> 2 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | 1 -> 2 | no change | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | 36281 -> 36282 | 32482 -> 36282 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- H7 seed2: same H5-s0 parent and H7 contract; independent train seed2.
+<!-- RLCM:BATCH_END pull_lr_full_h7_recurrent_n1024_seed2 -->
+
+<!-- RLCM:BATCH_START pull_lr_full_h7_recurrent_n1024_seed3 -->
+## Batch pull_lr_full_h7_recurrent_n1024_seed3
+
+### Metadata
+<!-- RLCM:METADATA_START -->
+```yaml
+batch_id: pull_lr_full_h7_recurrent_n1024_seed3
+task: door_open_a2_pull_lr_full_stage
+run_name: pull_lr_full_h7_recurrent_n1024_seed3
+status: planned
+previous_batch_id: pull_lr_full_h7_recurrent_n1024_seed2
+base_id: pull_lr_grasp_h450_xseg_resume_seed2
+created_at: 2026-08-30T18:35:24
+analysis_mode: prev+base
+public_ip: 10.13.11.197
+play_device: cuda:3
+play_num_envs: 16
+checkpoint: logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed3/model_step_000025.pt
+```
+<!-- RLCM:METADATA_END -->
+
+### Train Command
+<!-- RLCM:TRAIN_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=3 ACCELERATE_TORCH_DEVICE=cuda:0 HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 WANDB_MODE=offline MASTER_PORT=36283 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py train --gate h --seed 3 --gpu 3 --num-envs 1024 --batches 25 --save-frequency 25 --checkpoint logs_rl/a2_piper_pull_lr_full_stage/warmstarts_h7/h5_seed0_step25_left_stage3_recurrent_adapter_zero.pt --run-prefix pull_lr_full_h7_recurrent_n1024 --port 36283 --run
+```
+<!-- RLCM:TRAIN_COMMAND_END -->
+
+### Play Command (Auto)
+<!-- RLCM:PLAY_COMMAND_START -->
+```bash
+CUDA_VISIBLE_DEVICES=3 PYTHONPATH=/home/baoquanc/workspace/DoorDog-A2_Piper_pull_v0 /home/baoquanc/anaconda3/envs/isaaclab/bin/python scriptsFORhuman/pull_lr_full/run_pull_lr_full.py eval --gate h --side bilateral --checkpoint logs_rl/a2_piper_pull_lr_full_stage/pull_lr_full_h7_recurrent_n1024_gate_h_seed3/model_step_000025.pt --label pull_lr_full_h7_recurrent_n1024_seed3_evalseed1001 --gpu 3 --seed 1001 --num-envs 16 --actor-contract left_nonlinear --run
+```
+<!-- RLCM:PLAY_COMMAND_END -->
+
+### Diff vs Previous (Auto)
+<!-- RLCM:DIFF_PREV_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 3 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 2 | 3 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 36282 | 36283 |
+```
+<!-- RLCM:DIFF_PREV_END -->
+
+### Diff vs Base (Auto)
+<!-- RLCM:DIFF_BASE_START -->
+```markdown
+| group | key | change | from | to |
+|---|---|---|---|---|
+| Runner/Device | cli.--seed | changed | 2 | 3 |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | changed | 2 | 3 |
+| Runner/Device | prefix_env.MASTER_PORT | changed | 32482 | 36283 |
+```
+<!-- RLCM:DIFF_BASE_END -->
+
+### Impact Notes (Auto)
+<!-- RLCM:IMPACT_START -->
+```markdown
+| group | key | change_vs_prev | change_vs_base | expected_impact | risk | monitor |
+|---|---|---|---|---|---|---|
+| Runner/Device | cli.--seed | 2 -> 3 | 2 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.CUDA_VISIBLE_DEVICES | 2 -> 3 | 2 -> 3 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+| Runner/Device | prefix_env.MASTER_PORT | 36282 -> 36283 | 32482 -> 36283 | Changes runtime/training execution context. | Can alter throughput and reproducibility. | Monitor fps, wall-time, and seed consistency. |
+```
+<!-- RLCM:IMPACT_END -->
+
+### Manual Result Notes
+- H7 seed3: same H5-s0 parent and H7 contract; independent train seed3.
+<!-- RLCM:BATCH_END pull_lr_full_h7_recurrent_n1024_seed3 -->
 <!-- RLCM:BATCHES_END -->

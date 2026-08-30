@@ -7240,6 +7240,17 @@ class TRLPPOTrainer(PPOTrainer):
             f"unexpected={sorted(incoming_keys - own_keys)}."
         )
 
+    def _a2_v26_5_policy_only_identity_control_enabled(self):
+        enabled = self.config.get("eval", {}).get(
+            "a2_v26_5_policy_only_identity_control", False
+        )
+        if not isinstance(enabled, bool):
+            raise ValueError(
+                "algo.config.eval.a2_v26_5_policy_only_identity_control must be bool; "
+                f"got {enabled!r}."
+            )
+        return enabled
+
     def load_policy_checkpoint(self, checkpoint_path):
         """Strictly load only the actor policy weights from a checkpoint."""
         print(f"Loading policy-only checkpoint from {checkpoint_path}")
@@ -7266,7 +7277,25 @@ class TRLPPOTrainer(PPOTrainer):
             if not isinstance(load_actor_rms, bool):
                 raise ValueError("policy_only_load_actor_rms must be bool.")
 
-        if getattr(model.policy, "is_v26_5_policy_residual", False):
+        is_residual_policy = getattr(model.policy, "is_v26_5_policy_residual", False)
+        identity_control_enabled = self._a2_v26_5_policy_only_identity_control_enabled()
+        if identity_control_enabled and not is_residual_policy:
+            if load_actor_rms is not True:
+                raise RuntimeError(
+                    "A2 v26-5 identity-control policy-only loading requires inherited actor RMS."
+                )
+            own_keys = set(model.policy.state_dict())
+            incoming_keys = set(actor_state)
+            if incoming_keys != own_keys:
+                raise RuntimeError(
+                    "A2 v26-5 identity-control legacy actor checkpoint key set must match "
+                    f"exactly; missing={sorted(own_keys - incoming_keys)}, "
+                    f"unexpected={sorted(incoming_keys - own_keys)}."
+                )
+            load_result = model.policy.load_state_dict(actor_state, strict=True)
+            actor_state_kind = "legacy_identity_control"
+            actor_load_strict = True
+        elif is_residual_policy:
             if load_actor_rms is not True:
                 raise RuntimeError(
                     "A2 v26-5 residual policy-only loading requires inherited actor RMS."
@@ -7315,7 +7344,14 @@ class TRLPPOTrainer(PPOTrainer):
             "missing_keys": list(load_result.missing_keys),
             "unexpected_keys": list(load_result.unexpected_keys),
         }
-        if getattr(model.policy, "is_v26_5_policy_residual", False):
+        if identity_control_enabled and not is_residual_policy:
+            self._a2_v23_runtime_load_facts["actor"].update(
+                {
+                    "exact_keyset": True,
+                    "keyset_contract": "legacy_identity_control_exact",
+                }
+            )
+        elif is_residual_policy:
             self._a2_v23_runtime_load_facts["actor"].update(
                 {
                     "exact_keyset": True,

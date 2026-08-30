@@ -64,7 +64,13 @@ _A2_BASE_API_TRAINER_TARGET = (
 _CHECKPOINT_LOAD_MODES = frozenset(("full", "policy_only"))
 
 
-def _trainer_runtime_kwargs(*, trainer_target, workflow_config, checkpoint_load_mode):
+def _trainer_runtime_kwargs(
+    *,
+    trainer_target,
+    workflow_config,
+    checkpoint_load_mode,
+    a2_v26_5_runtime_load_receipt_output_dir,
+):
     """Build target-specific runtime kwargs without widening other trainers."""
 
     if trainer_target != _A2_BASE_API_TRAINER_TARGET:
@@ -72,6 +78,10 @@ def _trainer_runtime_kwargs(*, trainer_target, workflow_config, checkpoint_load_
     return {
         "checkpoint_load_mode": checkpoint_load_mode,
         "workflow_config": workflow_config,
+        "a2_v26_5_runtime_load_receipt_output_dir": str(
+            Path(a2_v26_5_runtime_load_receipt_output_dir).resolve()
+        ),
+        "a2_v26_5_runtime_load_receipt_kind": "train",
     }
 
 
@@ -602,6 +612,7 @@ def main(config: OmegaConf):
             trainer_target=trainer_target,
             workflow_config=config,
             checkpoint_load_mode=checkpoint_load_mode,
+            a2_v26_5_runtime_load_receipt_output_dir=experiment_save_dir,
         ),
     )
 

@@ -17,6 +17,7 @@ algo:
   config:
     eval:
       a2_v26_5_policy_only_residual: true
+      a2_v26_5_runtime_load_receipt: true
     actor:
       _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor
       residual_hidden_dim: 128

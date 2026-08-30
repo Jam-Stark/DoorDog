@@ -76,6 +76,8 @@ _A2_V23_RP0_RUNTIME_RECEIPT_SCHEMA = "a2_piper_v23_p07_rp0_runtime_receipt_v1"
 _A2_V23_RP0_RUNTIME_RECEIPT_FILENAME = "a2_v23_p07_runtime_receipt.json"
 _A2_V23_RP0_EFFECTIVE_CONFIG_SCHEMA = "a2_piper_v23_p07_effective_config_v1"
 _A2_V23_RP0_EFFECTIVE_CONFIG_FILENAME = "a2_v23_p07_effective_config.json"
+_A2_V26_5_RUNTIME_LOAD_RECEIPT_SCHEMA = "a2_piper_base_v26_5_runtime_load_receipt_v1"
+_A2_V26_5_RUNTIME_LOAD_RECEIPT_FILENAME = "a2_v26_5_runtime_load_receipt.json"
 _A2_V23_RP0_RUNTIME_MASK_INDICES = (3, 4)
 _A2_V23_RP0_RUNTIME_NEUTRAL = 0.0
 _A2_V23_D1_RAW_SCHEMA = "a2_piper_v23_d1_full_64x10_raw_v1"
@@ -3733,6 +3735,8 @@ class TRLPPOTrainer(PPOTrainer):
         schedule_dict=None,
         accelerator=None,
         workflow_config=None,
+        a2_v26_5_runtime_load_receipt_output_dir=None,
+        a2_v26_5_runtime_load_receipt_kind=None,
     ) -> None:
         self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
         self.checkpoint_path = (
@@ -3741,6 +3745,10 @@ class TRLPPOTrainer(PPOTrainer):
             else str(Path(str(checkpoint)).expanduser().resolve())
         )
         self.workflow_config = workflow_config
+        self._a2_v26_5_runtime_load_receipt_output_dir = (
+            a2_v26_5_runtime_load_receipt_output_dir
+        )
+        self._a2_v26_5_runtime_load_receipt_kind = a2_v26_5_runtime_load_receipt_kind
         self._v21b_training_identity = None
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
@@ -3804,6 +3812,9 @@ class TRLPPOTrainer(PPOTrainer):
         self._a2_v23_runtime_receipt_enabled = (
             self._a2_v23_runtime_receipt_config is not None
         )
+        self._a2_v26_5_runtime_load_receipt_config = (
+            self._resolve_a2_v26_5_runtime_load_receipt_config()
+        )
 
         if checkpoint is not None:
             if self.checkpoint_load_mode == "full":
@@ -3811,6 +3822,7 @@ class TRLPPOTrainer(PPOTrainer):
             else:
                 self.load_policy_checkpoint(checkpoint)
 
+        self._write_a2_v26_5_runtime_load_receipt()
         self._write_a2_v23_effective_config()
 
     def write_r2_training_metric(self, row, output_path):
@@ -4893,6 +4905,196 @@ class TRLPPOTrainer(PPOTrainer):
         with target.open("x", encoding="utf-8") as handle:
             json.dump(raw, handle, sort_keys=True, separators=(",", ":"), allow_nan=False)
             handle.write("\n")
+
+    def _resolve_a2_v26_5_runtime_load_receipt_config(self):
+        """Resolve the explicit v26-5 load receipt destination before loading."""
+
+        eval_config = self.config.get("eval", {})
+        if not isinstance(eval_config, (Mapping, dict, ListConfig)):
+            raise RuntimeError("algo.config.eval must be a mapping when present.")
+        enabled = eval_config.get("a2_v26_5_runtime_load_receipt", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "algo.config.eval.a2_v26_5_runtime_load_receipt must be bool; "
+                f"got {enabled!r}."
+            )
+        if not enabled:
+            return None
+        if self.checkpoint_path is None or not Path(self.checkpoint_path).is_file():
+            raise RuntimeError(
+                "v26-5 runtime load receipt requires an existing explicit checkpoint."
+            )
+        if self._a2_v26_5_runtime_load_receipt_kind not in {"train", "eval"}:
+            raise RuntimeError(
+                "v26-5 runtime load receipt requires entrypoint kind exactly 'train' or 'eval'; "
+                f"got {self._a2_v26_5_runtime_load_receipt_kind!r}."
+            )
+        output_value = self._a2_v26_5_runtime_load_receipt_output_dir
+        if not isinstance(output_value, str) or not output_value:
+            raise RuntimeError(
+                "v26-5 runtime load receipt requires the entrypoint's explicit output root."
+            )
+        output_dir = Path(output_value).expanduser()
+        if not output_dir.is_absolute():
+            raise RuntimeError(
+                "v26-5 runtime load receipt output root must be absolute; "
+                f"got {output_value!r}."
+            )
+        return {
+            "kind": self._a2_v26_5_runtime_load_receipt_kind,
+            "output_dir": str(output_dir.resolve()),
+            "checkpoint_path": str(Path(self.checkpoint_path).resolve()),
+        }
+
+    def _a2_v26_5_runtime_optimizer_facts(self):
+        """Derive the R1 optimizer partition from live parameter identities."""
+
+        model = self.accelerator.unwrap_model(self.model)
+        policy = model.policy
+        if not getattr(policy, "is_v26_5_policy_residual", False):
+            raise RuntimeError(
+                "v26-5 runtime load receipt requires the residual recurrent actor."
+            )
+        if model.value_model is None:
+            raise RuntimeError("v26-5 residual training requires a trainable value model.")
+
+        partitions = {
+            "policy": {id(parameter): name for name, parameter in policy.named_parameters()},
+            "value": {
+                id(parameter): name for name, parameter in model.value_model.named_parameters()
+            },
+        }
+        all_parameters = {id(parameter): name for name, parameter in model.named_parameters()}
+        optimizer_names = {"policy": [], "value": [], "other": []}
+        optimizer_param_ids = set()
+        for group in self.optimizer.param_groups:
+            for parameter in group["params"]:
+                parameter_id = id(parameter)
+                if parameter_id in optimizer_param_ids:
+                    raise RuntimeError(
+                        "v26-5 optimizer has a duplicated parameter identity across param groups."
+                    )
+                optimizer_param_ids.add(parameter_id)
+                if not parameter.requires_grad:
+                    raise RuntimeError(
+                        "v26-5 optimizer includes a frozen parameter."
+                    )
+                for partition, names in partitions.items():
+                    if parameter_id in names:
+                        optimizer_names[partition].append(names[parameter_id])
+                        break
+                else:
+                    optimizer_names["other"].append(
+                        all_parameters.get(parameter_id, f"unrecognized:{parameter_id}")
+                    )
+
+        for names in optimizer_names.values():
+            names.sort()
+        expected_policy = sorted(
+            name for name, parameter in policy.named_parameters() if parameter.requires_grad
+        )
+        residual_policy = sorted(policy.residual_state_keys())
+        expected_value = sorted(
+            name
+            for name, parameter in model.value_model.named_parameters()
+            if parameter.requires_grad
+        )
+        if expected_policy != residual_policy:
+            raise RuntimeError(
+                "v26-5 residual actor has non-residual trainable policy parameters: "
+                f"trainable={expected_policy}, residual={residual_policy}."
+            )
+        if optimizer_names["policy"] != residual_policy:
+            raise RuntimeError(
+                "v26-5 optimizer policy partition is not exactly the residual parameters: "
+                f"actual={optimizer_names['policy']}, expected={residual_policy}."
+            )
+        if optimizer_names["value"] != expected_value or not expected_value:
+            raise RuntimeError(
+                "v26-5 optimizer value partition does not exactly match trainable critic parameters: "
+                f"actual={optimizer_names['value']}, expected={expected_value}."
+            )
+        if optimizer_names["other"]:
+            raise RuntimeError(
+                "v26-5 optimizer contains parameters outside policy/value partitions: "
+                f"{optimizer_names['other']}."
+            )
+        return {
+            "identity_source": "actual_optimizer_param_identity",
+            "policy_parameter_names": optimizer_names["policy"],
+            "value_parameter_names": optimizer_names["value"],
+            "other_parameter_names": optimizer_names["other"],
+        }
+
+    def _write_a2_v26_5_runtime_load_receipt(self) -> None:
+        """Persist actual load facts directly after the trainer completes loading."""
+
+        config = self._a2_v26_5_runtime_load_receipt_config
+        if config is None or not self.accelerator.is_main_process:
+            return
+        output_dir = Path(config["output_dir"])
+        if output_dir.is_symlink() or not output_dir.is_dir():
+            raise RuntimeError(
+                "v26-5 runtime load receipt requires the current output root to exist as a directory: "
+                f"{output_dir}."
+            )
+        output_path = output_dir / _A2_V26_5_RUNTIME_LOAD_RECEIPT_FILENAME
+        if output_path.is_symlink() or output_path.exists():
+            raise RuntimeError(
+                "v26-5 runtime load receipt refuses to overwrite an existing artifact: "
+                f"{output_path}."
+            )
+
+        load_facts = self._a2_v23_runtime_load_facts
+        actor_facts = load_facts["actor"]
+        required_actor_fields = (
+            "loaded",
+            "state_key",
+            "strict",
+            "exact_keyset",
+            "keyset_contract",
+            "missing_keys",
+            "unexpected_keys",
+            "actor_rms_loaded",
+        )
+        missing_actor_fields = [
+            field for field in required_actor_fields if field not in actor_facts
+        ]
+        if missing_actor_fields or not actor_facts.get("loaded"):
+            raise RuntimeError(
+                "v26-5 runtime load receipt requires completed actor load facts: "
+                f"missing={missing_actor_fields}, facts={actor_facts}."
+            )
+        if load_facts.get("load_mode") != self.checkpoint_load_mode:
+            raise RuntimeError(
+                "v26-5 runtime load receipt load mode disagrees with actual loader facts."
+            )
+
+        payload = {
+            "schema": _A2_V26_5_RUNTIME_LOAD_RECEIPT_SCHEMA,
+            "status": "CHECKPOINT_LOAD_COMPLETED",
+            "invocation_kind": config["kind"],
+            "output_root": str(output_dir),
+            "checkpoint_path": config["checkpoint_path"],
+            "checkpoint_load_mode": self.checkpoint_load_mode,
+            "actor": {
+                field: actor_facts[field] for field in required_actor_fields
+            },
+            "value": dict(load_facts["value"]),
+            "optimizer_load": dict(load_facts["optimizer"]),
+            "scheduler": dict(load_facts["scheduler"]),
+            "trainer": dict(load_facts["trainer"]),
+            "environment": dict(load_facts["environment"]),
+        }
+        if config["kind"] == "train":
+            payload["optimizer_parameter_partition"] = (
+                self._a2_v26_5_runtime_optimizer_facts()
+            )
+        with output_path.open("x", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
 
     def _resolve_a2_v23_runtime_receipt_config(self):
         """Resolve the opt-in P0.7 receipt contract without changing default training."""
@@ -7166,6 +7368,7 @@ class TRLPPOTrainer(PPOTrainer):
                 "missing_keys": list(actor_result.missing_keys),
                 "unexpected_keys": list(actor_result.unexpected_keys),
                 "actor_state_kind": actor_state_kind,
+                "actor_rms_loaded": True,
             }
             if getattr(model.policy, "is_v26_5_policy_residual", False):
                 self._a2_v23_runtime_load_facts["actor"].update(
@@ -7188,6 +7391,7 @@ class TRLPPOTrainer(PPOTrainer):
                 "missing_keys": list(actor_result.missing_keys),
                 "unexpected_keys": list(actor_result.unexpected_keys),
                 "actor_state_kind": actor_state_kind,
+                "actor_rms_loaded": True,
             }
             if getattr(model.policy, "is_v26_5_policy_residual", False):
                 self._a2_v23_runtime_load_facts["actor"].update(
@@ -7255,6 +7459,7 @@ class TRLPPOTrainer(PPOTrainer):
                 # Preserve the repository's generic full-resume semantics for
                 # every non-v23 runtime: copy its persisted state exactly as
                 # the pre-v23 loader did, including unknown future fields.
+                applied_fields = []
                 for key, value in checkpoint["state"].__dict__.items():
                     if key in ["cur_reward_sum", "cur_episode_length"]:
                         continue
@@ -7265,6 +7470,13 @@ class TRLPPOTrainer(PPOTrainer):
                         "log_history",
                     ]:
                         setattr(self.state, key, value)
+                        applied_fields.append(key)
+                self._a2_v23_runtime_load_facts["trainer"] = {
+                    "loaded": True,
+                    "state_key": "state",
+                    "global_step": int(self.state.global_step),
+                    "applied_fields": applied_fields,
+                }
 
         self._a2_v23_runtime_load_facts["load_mode"] = "full"
         self._a2_v23_runtime_restored_start_global_step = int(self.state.global_step)

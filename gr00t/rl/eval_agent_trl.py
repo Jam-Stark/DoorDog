@@ -794,6 +794,10 @@ def main(override_config: OmegaConf):
     checkpoint_load_kwargs = {}
     if config.trainer["_target_"] == _A2_BASE_API_TRAINER_TARGET:
         checkpoint_load_kwargs["checkpoint_load_mode"] = config.checkpoint_load_mode
+        checkpoint_load_kwargs["a2_v26_5_runtime_load_receipt_output_dir"] = str(
+            Path(config.eval_output_dir).resolve()
+        )
+        checkpoint_load_kwargs["a2_v26_5_runtime_load_receipt_kind"] = "eval"
 
     trainer = custom_instantiate(
         config.trainer,

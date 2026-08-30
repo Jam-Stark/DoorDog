@@ -4884,10 +4884,19 @@ class OrderedTargetFrameTransformer(FrameTransformer):
         cfg: FrameTransformerCfg,
         *,
         a2_v26_5_geometry_target_enabled: bool = False,
+        a2_v26_5_gauge_cache_enabled: bool = False,
     ):
         if not isinstance(a2_v26_5_geometry_target_enabled, bool):
             raise TypeError("a2_v26_5_geometry_target_enabled must be bool.")
+        if not isinstance(a2_v26_5_gauge_cache_enabled, bool):
+            raise TypeError("a2_v26_5_gauge_cache_enabled must be bool.")
+        if a2_v26_5_geometry_target_enabled and a2_v26_5_gauge_cache_enabled:
+            raise RuntimeError(
+                "v26-5 geometry target and gauge cache modes are mutually exclusive."
+            )
         self._a2_v26_5_geometry_target_enabled = a2_v26_5_geometry_target_enabled
+        self._a2_v26_5_gauge_cache_enabled = a2_v26_5_gauge_cache_enabled
+        self._a2_v26_5_gauge_offset_delta_quat = None
         super().__init__(cfg)
 
     def _a2_v26_5_geometry_target_offset_quaternions(self) -> torch.Tensor:
@@ -5197,7 +5206,10 @@ class OrderedTargetFrameTransformer(FrameTransformer):
             self._target_frame_offset_quat = torch.stack(target_frame_offset_quat).repeat(
                 self._num_envs, 1
             )
-            if self._a2_v26_5_geometry_target_enabled:
+            if (
+                self._a2_v26_5_geometry_target_enabled
+                or self._a2_v26_5_gauge_cache_enabled
+            ):
                 geometry_target_quat = self._a2_v26_5_geometry_target_offset_quaternions()
                 if (
                     geometry_target_quat.shape != self._target_frame_offset_quat.shape
@@ -5208,7 +5220,27 @@ class OrderedTargetFrameTransformer(FrameTransformer):
                         "v26-5 geometry target offset quaternion does not match FrameTransformer "
                         "env-major target offset storage."
                     )
-                self._target_frame_offset_quat = geometry_target_quat
+                if self._a2_v26_5_geometry_target_enabled:
+                    self._target_frame_offset_quat = geometry_target_quat
+                else:
+                    expected_shape = (self._num_envs, 2, 4)
+                    gauge_offset_delta_quat = quat_mul(
+                        quat_inv(self._target_frame_offset_quat), geometry_target_quat
+                    ).reshape(expected_shape)
+                    if (
+                        gauge_offset_delta_quat.shape != expected_shape
+                        or gauge_offset_delta_quat.dtype != self._target_frame_offset_quat.dtype
+                        or gauge_offset_delta_quat.device != self._target_frame_offset_quat.device
+                    ):
+                        raise RuntimeError(
+                            "v26-5 gauge cache quaternion delta contract failed: "
+                            f"shape={tuple(gauge_offset_delta_quat.shape)}, "
+                            f"dtype={gauge_offset_delta_quat.dtype}, "
+                            f"device={gauge_offset_delta_quat.device}."
+                        )
+                    self._a2_v26_5_gauge_offset_delta_quat = gauge_offset_delta_quat
+        elif self._a2_v26_5_gauge_cache_enabled:
+            raise RuntimeError("v26-5 gauge cache requires target-frame offsets.")
 
         self._data.target_frame_names = self._target_frame_names
         self._data.source_pos_w = torch.zeros(self._num_envs, 3, device=self._device)
@@ -5221,6 +5253,56 @@ class OrderedTargetFrameTransformer(FrameTransformer):
         )
         self._data.target_pos_source = torch.zeros_like(self._data.target_pos_w)
         self._data.target_quat_source = torch.zeros_like(self._data.target_quat_w)
+
+    def get_a2_v26_5_gauge_target_pose_source(self) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return the live O0 target pose with the cached O1 orientation gauge."""
+        if (
+            not self._a2_v26_5_gauge_cache_enabled
+            or self._a2_v26_5_geometry_target_enabled
+        ):
+            raise RuntimeError(
+                "v26-5 gauge target pose requires gauge-cache mode with the primary "
+                "geometry target disabled."
+            )
+        if tuple(self._target_frame_names) != ("handle", "pregrasp"):
+            raise RuntimeError(
+                "v26-5 gauge target pose requires ordered handle/pregrasp target frames; "
+                f"got {self._target_frame_names!r}."
+            )
+
+        target_pos_source = self._data.target_pos_source
+        target_quat_source = self._data.target_quat_source
+        gauge_offset_delta_quat = self._a2_v26_5_gauge_offset_delta_quat
+        expected_pos_shape = (self._num_envs, 2, 3)
+        expected_quat_shape = (self._num_envs, 2, 4)
+        if (
+            not torch.is_tensor(target_pos_source)
+            or not torch.is_tensor(target_quat_source)
+            or not torch.is_tensor(gauge_offset_delta_quat)
+            or target_pos_source.shape != expected_pos_shape
+            or target_quat_source.shape != expected_quat_shape
+            or gauge_offset_delta_quat.shape != expected_quat_shape
+            or target_pos_source.dtype != target_quat_source.dtype
+            or target_quat_source.dtype != gauge_offset_delta_quat.dtype
+            or target_pos_source.device != target_quat_source.device
+            or target_quat_source.device != gauge_offset_delta_quat.device
+        ):
+            raise RuntimeError(
+                "v26-5 gauge target pose source contract failed: "
+                f"pos_shape={None if not torch.is_tensor(target_pos_source) else tuple(target_pos_source.shape)}, "
+                f"quat_shape={None if not torch.is_tensor(target_quat_source) else tuple(target_quat_source.shape)}, "
+                f"delta_shape={None if not torch.is_tensor(gauge_offset_delta_quat) else tuple(gauge_offset_delta_quat.shape)}."
+            )
+        gauge_target_quat_source = quat_mul(
+            target_quat_source, gauge_offset_delta_quat
+        )
+        if (
+            gauge_target_quat_source.shape != expected_quat_shape
+            or gauge_target_quat_source.dtype != target_quat_source.dtype
+            or gauge_target_quat_source.device != target_quat_source.device
+        ):
+            raise RuntimeError("v26-5 gauge target pose quaternion output contract failed.")
+        return target_pos_source, gauge_target_quat_source
 
 
 
@@ -5239,9 +5321,6 @@ class DoorPregrasp(
     STAGE_SWING = 4
     STAGE_THROUGH = 5
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
-    A2_V26_5_GAUGE_GRIPPER_HANDLE_FRAME_TRANSFORMER = (
-        "piper_gripper_handle_frame_transformer_gauge"
-    )
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_DOOR_BODY_PANEL_CONTACT_SENSOR = "a2_door_body_panel_contact_sensor"
     A2_DOOR_ARM_PANEL_CONTACT_SENSOR = "a2_door_arm_panel_contact_sensor"
@@ -17060,44 +17139,6 @@ class DoorPregrasp(
             )
         return transformer
 
-    def _get_a2_v26_5_gauge_gripper_handle_frame_transformer(self):
-        sensor_name = self.A2_V26_5_GAUGE_GRIPPER_HANDLE_FRAME_TRANSFORMER
-        transformer = self.simulator.scene.sensors[sensor_name]
-        if not isinstance(transformer, OrderedTargetFrameTransformer):
-            raise RuntimeError(
-                f"A2 v26-5 gauge sensor '{sensor_name}' must be an "
-                "OrderedTargetFrameTransformer."
-            )
-        if not transformer._a2_v26_5_geometry_target_enabled:
-            raise RuntimeError(
-                f"A2 v26-5 gauge sensor '{sensor_name}' must use the O1 geometry target."
-            )
-
-        data = transformer.data
-        target_pos_source = getattr(data, "target_pos_source", None)
-        target_quat_source = getattr(data, "target_quat_source", None)
-        if (
-            target_pos_source is None
-            or target_quat_source is None
-            or target_pos_source.shape != (self.num_envs, 2, 3)
-            or target_quat_source.shape != (self.num_envs, 2, 4)
-        ):
-            pos_shape = None if target_pos_source is None else tuple(target_pos_source.shape)
-            quat_shape = None if target_quat_source is None else tuple(target_quat_source.shape)
-            raise RuntimeError(
-                f"A2 v26-5 gauge sensor '{sensor_name}' requires exactly two "
-                "source-relative target poses; "
-                f"target_pos_source shape={pos_shape}, target_quat_source shape={quat_shape}."
-            )
-        target_names = getattr(data, "target_frame_names", None)
-        expected_names = ["handle", "pregrasp"]
-        if target_names is None or list(target_names) != expected_names:
-            raise RuntimeError(
-                f"A2 v26-5 gauge sensor '{sensor_name}' target order must be "
-                f"{expected_names}; got {None if target_names is None else list(target_names)}."
-            )
-        return transformer
-
     def _get_a2_v20_piper_frame_data(self, context: str) -> dict[str, torch.Tensor]:
         """Read the high-level Piper TCP/handle transformer for v20 geometry.
 
@@ -27187,9 +27228,15 @@ class DoorPregrasp(
                 "a2_v26_5_geometry_target_enabled=false for the main transformer."
             )
 
-        data = self._get_a2_v26_5_gauge_gripper_handle_frame_transformer().data
-        target_pos_source = data.target_pos_source
-        target_quat_source = data.target_quat_source
+        transformer = self._get_a2_gripper_handle_frame_transformer()
+        if not isinstance(transformer, OrderedTargetFrameTransformer):
+            raise RuntimeError(
+                "gripper_handle_transform_gauge requires the primary "
+                "OrderedTargetFrameTransformer."
+            )
+        target_pos_source, target_quat_source = (
+            transformer.get_a2_v26_5_gauge_target_pose_source()
+        )
         handle_pos = target_pos_source[:, 0, :]
         handle_rot_6d = quat_to_tan_norm(
             wxyz_to_xyzw(target_quat_source[:, 0, :]), w_last=True
@@ -28700,22 +28747,17 @@ class DoorPregrasp(
                     ],
                 )
             )
+            a2_v26_5_actor_gauge_enabled = (
+                "a2_v26_5_actor_gauge_enabled" in self.config
+                and self._a2_v26_5_actor_gauge_enabled()
+            )
             simulator.scene.sensors[self.A2_GRIPPER_HANDLE_FRAME_TRANSFORMER] = (
                 OrderedTargetFrameTransformer(
                     piper_gripper_handle_frame_transformer_config,
                     a2_v26_5_geometry_target_enabled=self._a2_v26_5_geometry_target_enabled(),
+                    a2_v26_5_gauge_cache_enabled=a2_v26_5_actor_gauge_enabled,
                 )
             )
-            if (
-                "a2_v26_5_actor_gauge_enabled" in self.config
-                and self._a2_v26_5_actor_gauge_enabled()
-            ):
-                simulator.scene.sensors[
-                    self.A2_V26_5_GAUGE_GRIPPER_HANDLE_FRAME_TRANSFORMER
-                ] = OrderedTargetFrameTransformer(
-                    piper_gripper_handle_frame_transformer_config,
-                    a2_v26_5_geometry_target_enabled=True,
-                )
             target_contact_sub_prim = simulator.task_config.get(
                 "target_obj_contact_sub_prim_path", None
             )

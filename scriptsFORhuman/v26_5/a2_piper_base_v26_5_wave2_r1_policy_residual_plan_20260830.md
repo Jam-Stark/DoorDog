@@ -263,3 +263,97 @@ non-overwrite typed admission artifact. This is a parser-only closure over the
 immutable raw output; it does not reinterpret the original supervisor receipt
 as PASS and does not rerun Isaac. K1 requires that typed artifact and its
 recorded `POST_EVAL_VALIDATOR_YAML_CONSTRUCTOR` failure boundary.
+
+## r13 preregistration — sensor-free gauge from the primary O0 transformer
+
+> **Supersession (r12 → r13).** r12 is immutable historical evidence and its
+> `KILL_IDENTITY_NOT_ADMITTED` outcome is not revised. The diagnostic-heavy
+> live-shadow/control-repeat r13 proposal is `NOT_RUN` and superseded. The
+> active prospective axis is sensor-free O1 gauge realization; it creates new
+> r13 outputs and never overwrites, reruns, or re-reduces r12.
+
+### r12 immutable KILL fact and causal premise
+
+The completed r12 fresh cross-process K1 has one topology/discrete mismatch in
+each registered pair: `S0-L/env15`, `S0-R/env22`, `S1-L/env18`, and
+`S1-R/env23`. All four have `integrity=0`. In every pair the Stage2 physical
+state and action divergence precede the recorded topology difference. The
+four discrepancies have no common directional bias. This evidence rules out
+using r12 cross-process exactness as the identity admission realization; it
+does not establish a reward, press, physics, or policy-learning effect.
+
+### Single axis and frozen realization
+
+r13 removes the duplicate O1 scene sensor/PhysX view. The primary O0
+`OrderedTargetFrameTransformer` remains the sole live scene reader. At its
+initialization it caches the fixed target-local orientation delta
+
+```text
+Delta = inv(q_O0) ⊗ q_O1 .
+```
+
+For every later live observation, the residual-only gauge is constructed from
+the primary transformer's live O0 pose, not from another sensor:
+
+```text
+p_residual = p_O0
+q_residual = q_O0 ⊗ Delta
+```
+
+The cached delta is primary-transformer initialization state, not a registered
+second observation term, second scene update, or second PhysX view. If the
+primary transformer cannot establish this cache at initialization, the r13
+realization fails fast; it must not query an O1 sensor later as a fallback.
+
+- Raw `actor_obs` remains the O0 133D view and is the sole input to frozen
+  base RMS, LSTM, base MLP, action standard deviation, and critic.
+- The pose assembled above is available only inside `residual_actor_obs` for
+  `residual_module.*`; the residual final layer remains zero initialized and
+  acts only on mean indices `5:12` at Stage3 or later.
+- Target source, reward, press behavior, stage logic and thresholds, physics,
+  action transforms, and critic remain O0. C1 and A1 stay off.
+- `CONT_STEP2000`, policy-only loading, inherited RMS, all identity thresholds,
+  and the no-pooling/no-realignment reducer discipline are unchanged.
+
+### Admission before any r13 training allocation
+
+1. **CPU SE(3) source-checkpoint proof.** With the actual source checkpoint,
+   RMS, and matching LSTM states, prove for both target pose slots that the
+   cached construction satisfies the double-cover pose identity to the
+   registered `1e-6` bound: `p_residual=p_O0` and
+   `q_residual=q_O0⊗Delta=q_O1`. Its 18D pose encoding must match the intended
+   gauge representation. In the same proof, raw base actor observation, RMS
+   input/state, hidden/cell, base mean, standard deviation, and final
+   zero-residual action mean are bit-exact where representable, otherwise
+   within the existing `1e-6` bound. Static provenance must show exactly one
+   live transformer/scene reader and no O1 sensor or PhysX view.
+2. **64-env minimal two-control-tick wiring gate.** Run one natural r13 eval
+   with `max_episode_length_s=.02`; the standard condition
+   `episode_length_buf > ceil(max_episode_length_s/.02)` yields the legal
+   length two. Runtime receipts and traces must prove primary-cache gauge
+   construction, separate residual input, policy-only/RMS load, and absence
+   of a second scene reader. This is construction plus dual-input runtime
+   wiring only: no PPO update and no training checkpoint.
+3. **Fresh `K1_R13` exact64.** Only after both prior gates pass, run four
+   independent paired natural first episodes,
+   `seed={0,1} × side={left,right}`: O0 legacy control versus O0 base raw view
+   plus the primary-cache residual gauge and zero residual. Every env's full
+   topology, Stage3/K5/terminal discrete outcomes, integrity, base-path
+   observables, policy mean, and raw action must match under the unchanged
+   reducer. Each pair is independently required to pass; there is no pooling,
+   prefix intersection, seed/side selection, checkpoint selection, or
+   threshold change.
+
+Failure of any gate yields `KILL_R13_IDENTITY_NOT_ADMITTED` and stops before
+training. Only all four exact64 K1 pairs passing yields
+`R13_CAUSAL_IDENTITY_ADMITTED`; this is the prospective, sensor-free identity
+admission and does not relabel r12.
+
+### r13 post-admission boundary
+
+`R13_CAUSAL_IDENTITY_ADMITTED` may start only the existing minimal formal
+budget: fresh `R13_S0` and `R13_S1` cells at `4096×250`, with saves/evaluation
+at 125 and 250 and bilateral natural exact64 evaluation. The existing step250
+reducer, independent seed/side routing, and all no-relay boundaries remain in
+force. No reward soup, press change, physics change, additional cells, PPO
+smoke, render, or Teacher/Student action is authorized before that admission.

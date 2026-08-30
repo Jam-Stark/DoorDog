@@ -32,7 +32,7 @@ def main() -> None:
     for required in ("identity_control=true", "residual_policy_only=false", "identity_control=false", "residual_policy_only=true", '++algo.config.eval.a2_v23_p06_policy_only=false ++algo.config.eval.a2_v26_5_policy_only_identity_control="$identity_control" ++algo.config.eval.a2_v26_5_policy_only_residual="$residual_policy_only" ++algo.config.eval.a2_v26_5_runtime_load_receipt=true', "a2_v26_5_runtime_load_receipt.json", "a2_eval_diagnostic_metadata.json"):
         require(required in k1_side_text, f"K1 control/dual runtime receipt command contract missing: {required}")
     reducer_text=REDUCER_SOURCE.read_text(encoding="utf-8")
-    for required in ("a2_v26_5_runtime_load_receipt.json", "legacy_identity_control_exact", "legacy_exact_without_residual", "a2_v23_p06_policy_only", "R1_SYNTHETIC_BAD_RECEIPT_FLAGS_AND_MISSING_REJECTED"):
+    for required in ("a2_v26_5_runtime_load_receipt.json", "legacy_identity_control_exact", "legacy_exact_without_residual", "a2_v23_p06_policy_only", "R1_SYNTHETIC_BAD_RECEIPT_FLAGS_AND_MISSING_REJECTED", "R1_SYNTHETIC_UNEQUAL_WINDOW_TYPED_FAILURE_PASS"):
         require(required in reducer_text, f"K1 reducer runtime receipt binding missing: {required}")
     require(k1.get("cells")==[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}], "K1 GPU mapping mismatch")
     require(r.get("R1",{}).get("cells")==[{"label":"R1_S0","seed":0,"physical_gpu":4},{"label":"R1_S1","seed":1,"physical_gpu":5}], "R1 GPU mapping mismatch")

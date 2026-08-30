@@ -135,3 +135,10 @@ unexpected keys.  Both require loaded actor RMS, P06 false, their exact
 mutually exclusive policy-only flags, and diagnostic metadata's registered
 reward terms.  Bad receipt, bad flag, and wrong dual missing-key synthetic
 inputs must fail before admission.
+
+For a paired K1 comparison, every env's complete sorted `step_index` sequence
+must be equal.  An unequal window is recorded with env/count/first/last and
+its first differing index, yields `trace_topology_identical=false`, skips
+continuous raw-action verification (`null` rather than an inferred overlap
+value), and produces `KILL_IDENTITY_NOT_ADMITTED` without a reducer exception.
+No intersection, truncation, or re-alignment is permitted.

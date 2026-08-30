@@ -29,7 +29,7 @@ env:
     a2_pull_stage3_taskspace_side_mode: bilateral_canonical
     a2_pull_stage3_taskspace_translation_scale_m: 0.004
     a2_pull_stage3_taskspace_rotation_scale_rad: 0.04
-    a2_pull_stage3_taskspace_raw_action_abs_max: 12.0
+    a2_pull_stage3_taskspace_raw_action_abs_max: 15.0
 
 rewards:
   reward_scales:

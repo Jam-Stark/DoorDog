@@ -1831,7 +1831,7 @@ class DoorOpenA2Pull(DoorPregrasp):
             "a2_pull_stage3_taskspace_dls_lambda": 0.01,
             "a2_pull_stage3_taskspace_joint_step_max_rad": 0.05,
             "a2_pull_stage3_taskspace_raw_action_abs_max": (
-                12.0 if side_mode == "bilateral_canonical" else 10.0
+                15.0 if side_mode == "bilateral_canonical" else 10.0
             ),
         }
         mismatched = {

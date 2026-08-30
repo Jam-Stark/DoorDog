@@ -27,3 +27,4 @@
 - 2026-08-31 03:28 HKT — H12选择learned handle-frame twist+fixed DLS executor；256-env×5 smoke完成81920 timesteps，parent29 exact、新head4更新，4-env eval中1649 active rows realization residual median0.442≤0.5，技术门通过。
 - 2026-08-31 05:54 HKT — Owner选择clean方案2，H12四格在batch1–2无checkpoint时优雅停止；H13改从bilateral Stage0–2 winner冻结parent23，fresh shared canonical Stage3 head双侧训练。
 - 2026-08-31 05:54 HKT — H13完成sorted 135-D canonical slice、actual-handle-frame twist与acquisition exact修复；256-env×5 smoke通过，matched-container completion2 A/B 567/567 rows全action/event exact，L/R executor residual median0.0014/0.0072，技术门通过。
+- 2026-08-31 06:08 HKT — H13首轮四seed在batch1–7共同暴露converted j6 raw约13.5–14.8超过经验cap12，finite/limit/delta均valid；记录为infrastructure failure，无checkpoint/policy verdict，r1仅将bilateral raw cap提高到15。

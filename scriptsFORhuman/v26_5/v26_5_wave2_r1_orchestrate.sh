@@ -16,7 +16,7 @@ script never polls, retries, or starts a competing process automatically.
 EOF
 }
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper; py=/usr/bin/python3; isaac_py=/home/baoquanc/anaconda3/envs/isaaclab/bin/python; supervisor="$repo/.ai/scripts/run_supervisor.py"
-run_id=v26_5_wave2_r1_policy_residual_20260830_r5; stage="$repo/logs_eval/base_v26/$run_id"; static="$stage/M/static"; registry="$static/command_registry.json"; resolved="$static/resolved_configs"; eval_root="$stage/eval"; train_root="$repo/logs_rl/by_batch/base_v26/$run_id/formal"; runtime_logs="$repo/scriptsFORhuman/v26_5/runtime_logs/$run_id"
+run_id=v26_5_wave2_r1_policy_residual_20260830_r7; stage="$repo/logs_eval/base_v26/$run_id"; static="$stage/M/static"; registry="$static/command_registry.json"; resolved="$static/resolved_configs"; eval_root="$stage/eval"; train_root="$repo/logs_rl/by_batch/base_v26/$run_id/formal"; runtime_logs="$repo/scriptsFORhuman/v26_5/runtime_logs/$run_id"
 gpu_idle(){ local gpu=$1 uuid; uuid=$(nvidia-smi --query-gpu=index,uuid --format=csv,noheader | awk -F ', ' -v requested="$gpu" '$1 == requested {print $2}'); [[ -n "$uuid" ]] || { echo "GPU$gpu is not visible" >&2; return 1; }; ! nvidia-smi --query-compute-apps=gpu_uuid,pid --format=csv,noheader | grep -Fq "$uuid" || { echo "GPU$gpu already has compute work" >&2; return 1; }; }
 launch(){ local name=$1 gpu=$2 command=$3 log=$4 checkpoint=$5 receipt; ! tmux has-session -t "$name" 2>/dev/null || { echo "tmux session exists: $name" >&2; exit 1; }; receipt=$("$py" "$supervisor" prepare --name "$name" --session "$name" --cwd "$repo" --command "$command" --output "$log" --checkpoint "$checkpoint" --resource "GPU$gpu" --resource "IsaacSim_GPU$gpu"); "$py" "$supervisor" launch --receipt "$receipt"; }
 require_pass(){ "$py" - "$repo/.ai/runtime/runs/$1/RUN_RECEIPT.json" <<'PY'
@@ -25,7 +25,7 @@ v=json.load(open(sys.argv[1],encoding='utf-8'))
 if v.get('state')!='PASS' or v.get('process_returncode')!=0: raise SystemExit(f"receipt not PASS: {sys.argv[1]}")
 PY
 }
-static_verify(){ "$py" "$repo/scriptsFORhuman/v26_5/v26_5_wave2_r1_verify.py" --registry "$registry" --config "R1_S0_train=$resolved/R1_S0_train.yaml" --config "R1_S0_eval=$resolved/R1_S0_eval.yaml" --config "R1_S1_train=$resolved/R1_S1_train.yaml" --config "R1_S1_eval=$resolved/R1_S1_eval.yaml"; }
+static_verify(){ "$py" "$repo/scriptsFORhuman/v26_5/v26_5_wave2_r1_verify.py" --registry "$registry" --config "R1_eval_ablation_partial=$resolved/R1_eval_ablation_partial.yaml" --config "R1_S0_train=$resolved/R1_S0_train.yaml" --config "R1_S0_eval_left=$resolved/R1_S0_eval_left.yaml" --config "R1_S0_eval_right=$resolved/R1_S0_eval_right.yaml" --config "R1_S1_train=$resolved/R1_S1_train.yaml" --config "R1_S1_eval_left=$resolved/R1_S1_eval_left.yaml" --config "R1_S1_eval_right=$resolved/R1_S1_eval_right.yaml"; }
 case ${1:-} in
   --help|-h|'') usage ;;
   preregister) [[ $# -eq 1 ]] || { usage >&2; exit 2; }; [[ ! -e "$static" ]] || { echo "R1 static root exists" >&2; exit 1; }; "$py" "$repo/scriptsFORhuman/v26_5/v26_5_wave2_r1_registry.py" --output "$registry"; "$py" "$repo/scriptsFORhuman/v26_5/v26_5_wave2_r1_compose.py" --output-dir "$resolved"; static_verify ;;

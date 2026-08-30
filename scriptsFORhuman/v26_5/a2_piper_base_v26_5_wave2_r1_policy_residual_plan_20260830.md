@@ -55,5 +55,21 @@ non-overwriting r4 root:
 `logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r4/` and
 `logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r4/`.
 It did not generate a receipt or start a task-owned process: its `gpu_idle`
-preflight found GPU2 occupied by another workspace.  The resource-remapped
-attempt uses the fresh r5 roots `..._r5/` on GPUs 4/5.
+preflight found GPU2 occupied by another workspace.  The resource-remapped r5
+attempt on GPUs 4/5 preserved its completed control LEFT exact64 artifacts;
+the dual compose failed before a dual receipt.  The r6 static root is retained
+as incomplete evidence: its registry was written before the explicit `/obs`
+selector form exposed the obsolete single-stage compose claim.  The fresh r7
+roots are
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r7/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r7/`.
+The r7 static evidence is deliberately two-stage: it records the R1
+eval-selector partial separately, then invokes the real
+`gr00t.rl.eval_agent_trl` entry with `--cfg job --resolve` on
+CONT_STEP2000's actual checkpoint-directory `config.yaml` host.  The verifier
+binds those two artifacts to the entrypoint's
+`OmegaConf.merge(train_config, override_config)` operation, which is where the
+runtime final actor/obs contract is formed.  This is a source policy-only
+selector/load composition proof, not a pre-run claim
+about a future full composite checkpoint; fixed-step full evaluation remains
+runtime evidence bound by its load receipt and reducer.

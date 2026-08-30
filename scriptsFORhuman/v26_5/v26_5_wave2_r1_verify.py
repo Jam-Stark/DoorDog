@@ -9,7 +9,9 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 ACTOR_SOURCE = ROOT / "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py"
 TRAINER_SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
-RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r5"
+EVAL_SOURCE = ROOT / "gr00t/rl/eval_agent_trl.py"
+RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r7"
+SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 
 def require(value: bool, message: str) -> None:
     if not value: raise RuntimeError(message)
@@ -25,15 +27,32 @@ def main() -> None:
     k1=r.get("K1",{}); require(k1.get("view_trace_contract")=={"control":{"terms":["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":0.0},"dual":{"terms":["a2_stage3_handle_creation","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":6.0}}, "K1 view-specific trace/scale contract mismatch")
     require(k1.get("cells")==[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}], "K1 GPU mapping mismatch")
     require(r.get("R1",{}).get("cells")==[{"label":"R1_S0","seed":0,"physical_gpu":4},{"label":"R1_S1","seed":1,"physical_gpu":5}], "R1 GPU mapping mismatch")
+    require(r.get("R1",{}).get("static_eval_compose")=={"ablation_partial":"R1_eval_ablation_partial.yaml","host_entrypoint":"gr00t.rl.eval_agent_trl","host_hydra_config_path":str(SOURCE.parent),"host_hydra_config_name":"config","host_resolve_args":["--cfg","job","--resolve"],"runtime_merge":"OmegaConf.merge(train_config, override_config)","checkpoint_load_mode":"policy_only"}, "R1 two-stage eval compose contract mismatch")
     paths={}
     for item in a.config:
         name,sep,path=item.partition("="); require(sep and name not in paths, "invalid duplicate R1 config"); paths[name]=Path(path)
-    require(set(paths)=={f"R1_S{s}_{k}" for s in (0,1) for k in ("train","eval")}, "R1 requires four resolved configs")
+    require(set(paths)=={"R1_eval_ablation_partial"} | {f"R1_S{s}_train" for s in (0,1)} | {f"R1_S{s}_eval_{side}" for s in (0,1) for side in ("left","right")}, "R1 requires one eval partial plus two train and four eval-entry resolved configs")
+    partial=flatten(yaml.safe_load(paths["R1_eval_ablation_partial"].read_text(encoding="utf-8")))
+    partial_expected={"v26_schema":"a2_piper_base_v26_5_wave2_r1_eval_policy_residual_v1","env.config.a2_v26_5_geometry_target_enabled":True,"env.config.a2_v26_5_actor_gauge_enabled":True,"algo.config.actor._target_":"gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor"}
+    for key,value in partial_expected.items(): require(partial.get(key)==value, f"R1 eval partial: {key}={partial.get(key)!r}, expected {value!r}")
     for name,path in paths.items():
+        if name == "R1_eval_ablation_partial": continue
         table=flatten(yaml.safe_load(path.read_text(encoding="utf-8"))); seed=int(name[4])
-        expected={"seed":seed,"env.config.a2_v26_side_permutation_seed":seed,"checkpoint_load_mode":"policy_only","policy_only_load_actor_rms":True,"auto_load_latest":False,"env.config.a2_v26_4_side_canonicalization_enabled":False,"env.config.a2_v26_5_geometry_target_enabled":True,"env.config.a2_v26_5_stage3_delta_rebase_enabled":False,"env.config.a2_v26_5_actor_gauge_enabled":True,"algo.config.actor._target_":"gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor","algo.config.actor.residual_stage_obs_slice":[127,133],"algo.config.actor.residual_hidden_dim":128}
+        expected={"seed":seed,"env.config.a2_v26_side_permutation_seed":seed,"checkpoint_load_mode":"policy_only","policy_only_load_actor_rms":True,"auto_load_latest":False}
+        if name.endswith("train"):
+            expected.update({"env.config.a2_v26_4_side_canonicalization_enabled":False,"env.config.a2_v26_5_geometry_target_enabled":True,"env.config.a2_v26_5_stage3_delta_rebase_enabled":False,"env.config.a2_v26_5_actor_gauge_enabled":True,"algo.config.actor._target_":"gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor","algo.config.actor.residual_stage_obs_slice":[127,133],"algo.config.actor.residual_hidden_dim":128})
         for key,value in expected.items(): require(table.get(key)==value, f"{name}: {key}={table.get(key)!r}, expected {value!r}")
+        checkpoint=table.get("checkpoint")
+        require(isinstance(checkpoint, str), f"{name}: checkpoint must be a path string")
+        checkpoint_path=Path(checkpoint)
+        if not checkpoint_path.is_absolute(): checkpoint_path=ROOT / checkpoint_path
+        require(checkpoint_path.resolve() == SOURCE, f"{name}: checkpoint does not resolve to CONT_STEP2000")
         if name.endswith("train"): require(table.get("algo.trl.num_total_batches")==250, f"{name}: train must be 250 batches")
+        else:
+            side=name.rsplit("_", 1)[1]
+            require(table.get("env.config.a2_v26_door_open_lr")==side, f"{name}: eval side mismatch")
+    eval_text=EVAL_SOURCE.read_text(encoding="utf-8")
+    require("OmegaConf.merge(train_config, override_config)" in eval_text, "eval entrypoint no longer merges checkpoint host with eval selector override")
     actor_text=ACTOR_SOURCE.read_text(encoding="utf-8")
     start=actor_text.index("class A2V26_5PolicyResidualRecurrentActor")
     end=actor_text.index("class RecurrentCritic", start)

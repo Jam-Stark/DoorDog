@@ -5239,6 +5239,9 @@ class DoorPregrasp(
     STAGE_SWING = 4
     STAGE_THROUGH = 5
     A2_GRIPPER_HANDLE_FRAME_TRANSFORMER = "piper_gripper_handle_frame_transformer"
+    A2_V26_5_GAUGE_GRIPPER_HANDLE_FRAME_TRANSFORMER = (
+        "piper_gripper_handle_frame_transformer_gauge"
+    )
     A2_GRIPPER_HANDLE_CONTACT_SENSOR = "a2_gripper_handle_contact_sensor"
     A2_DOOR_BODY_PANEL_CONTACT_SENSOR = "a2_door_body_panel_contact_sensor"
     A2_DOOR_ARM_PANEL_CONTACT_SENSOR = "a2_door_arm_panel_contact_sensor"
@@ -17057,6 +17060,44 @@ class DoorPregrasp(
             )
         return transformer
 
+    def _get_a2_v26_5_gauge_gripper_handle_frame_transformer(self):
+        sensor_name = self.A2_V26_5_GAUGE_GRIPPER_HANDLE_FRAME_TRANSFORMER
+        transformer = self.simulator.scene.sensors[sensor_name]
+        if not isinstance(transformer, OrderedTargetFrameTransformer):
+            raise RuntimeError(
+                f"A2 v26-5 gauge sensor '{sensor_name}' must be an "
+                "OrderedTargetFrameTransformer."
+            )
+        if not transformer._a2_v26_5_geometry_target_enabled:
+            raise RuntimeError(
+                f"A2 v26-5 gauge sensor '{sensor_name}' must use the O1 geometry target."
+            )
+
+        data = transformer.data
+        target_pos_source = getattr(data, "target_pos_source", None)
+        target_quat_source = getattr(data, "target_quat_source", None)
+        if (
+            target_pos_source is None
+            or target_quat_source is None
+            or target_pos_source.shape != (self.num_envs, 2, 3)
+            or target_quat_source.shape != (self.num_envs, 2, 4)
+        ):
+            pos_shape = None if target_pos_source is None else tuple(target_pos_source.shape)
+            quat_shape = None if target_quat_source is None else tuple(target_quat_source.shape)
+            raise RuntimeError(
+                f"A2 v26-5 gauge sensor '{sensor_name}' requires exactly two "
+                "source-relative target poses; "
+                f"target_pos_source shape={pos_shape}, target_quat_source shape={quat_shape}."
+            )
+        target_names = getattr(data, "target_frame_names", None)
+        expected_names = ["handle", "pregrasp"]
+        if target_names is None or list(target_names) != expected_names:
+            raise RuntimeError(
+                f"A2 v26-5 gauge sensor '{sensor_name}' target order must be "
+                f"{expected_names}; got {None if target_names is None else list(target_names)}."
+            )
+        return transformer
+
     def _get_a2_v20_piper_frame_data(self, context: str) -> dict[str, torch.Tensor]:
         """Read the high-level Piper TCP/handle transformer for v20 geometry.
 
@@ -27140,13 +27181,24 @@ class DoorPregrasp(
                 "gripper_handle_transform_gauge requires "
                 "a2_v26_5_stage3_delta_rebase_enabled=false."
             )
-        if not self._a2_v26_5_geometry_target_enabled():
+        if self._a2_v26_5_geometry_target_enabled():
             raise RuntimeError(
                 "gripper_handle_transform_gauge requires "
-                "a2_v26_5_geometry_target_enabled=true."
+                "a2_v26_5_geometry_target_enabled=false for the main transformer."
             )
 
-        raw = self._get_obs_gripper_handle_transform()
+        data = self._get_a2_v26_5_gauge_gripper_handle_frame_transformer().data
+        target_pos_source = data.target_pos_source
+        target_quat_source = data.target_quat_source
+        handle_pos = target_pos_source[:, 0, :]
+        handle_rot_6d = quat_to_tan_norm(
+            wxyz_to_xyzw(target_quat_source[:, 0, :]), w_last=True
+        )
+        pregrasp_pos = target_pos_source[:, 1, :]
+        pregrasp_rot_6d = quat_to_tan_norm(
+            wxyz_to_xyzw(target_quat_source[:, 1, :]), w_last=True
+        )
+        raw = torch.cat([handle_pos, handle_rot_6d, pregrasp_pos, pregrasp_rot_6d], dim=-1)
         signs = raw.new_tensor(
             [
                 1.0, 1.0, 1.0, -1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
@@ -28654,6 +28706,16 @@ class DoorPregrasp(
                     a2_v26_5_geometry_target_enabled=self._a2_v26_5_geometry_target_enabled(),
                 )
             )
+            if (
+                "a2_v26_5_actor_gauge_enabled" in self.config
+                and self._a2_v26_5_actor_gauge_enabled()
+            ):
+                simulator.scene.sensors[
+                    self.A2_V26_5_GAUGE_GRIPPER_HANDLE_FRAME_TRANSFORMER
+                ] = OrderedTargetFrameTransformer(
+                    piper_gripper_handle_frame_transformer_config,
+                    a2_v26_5_geometry_target_enabled=True,
+                )
             target_contact_sub_prim = simulator.task_config.get(
                 "target_obj_contact_sub_prim_path", None
             )

@@ -4,11 +4,31 @@ defaults:
   - /obs/wbmanip/door_open_a2_base
   - _self_
 
-# C2 changes only the actor's target-pose representation.  The critic keeps
-# the raw O1 sensor observation as its privileged target-pose input.
+# C2 keeps the frozen actor and critic on the legacy raw target pose.  The
+# residual actor receives a duplicate 133D view whose only changed term is the
+# gauge target pose.
 obs:
   obs_dict:
     actor_obs: [
+      dof_pos,
+      relative_to_door,
+      dof_vel,
+      actions,
+      projected_gravity,
+      door_dof_pos,
+      base_lin_vel,
+      base_ang_vel,
+      hand_force,
+      stage,
+      privileged_door_info,
+      delta_actions,
+      gripper_handle_transform,
+      a2_base_command_raw,
+
+      a2_base_command
+    ]
+
+    residual_actor_obs: [
       dof_pos,
       relative_to_door,
       dof_vel,

@@ -13,6 +13,10 @@ checkpoint_load_mode: policy_only
 policy_only_load_actor_rms: true
 auto_load_latest: false
 
+env:
+  config:
+    a2_v26_5_geometry_target_enabled: false
+
 algo:
   trl:
     num_total_batches: 250
@@ -21,5 +25,7 @@ algo:
       a2_v26_5_runtime_load_receipt: true
     actor:
       _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor
+      input_key: actor_obs
+      residual_input_key: residual_actor_obs
       residual_hidden_dim: 128
       residual_stage_obs_slice: [127, 133]

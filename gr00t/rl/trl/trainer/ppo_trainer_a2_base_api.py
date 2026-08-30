@@ -5086,6 +5086,11 @@ class TRLPPOTrainer(PPOTrainer):
             "trainer": dict(load_facts["trainer"]),
             "environment": dict(load_facts["environment"]),
         }
+        policy = self.accelerator.unwrap_model(self.model).policy
+        if getattr(policy, "is_v26_5_policy_residual", False):
+            payload["actor"]["dual_input_contract"] = (
+                policy.runtime_dual_input_contract_facts()
+            )
         if config["kind"] == "train":
             payload["optimizer_parameter_partition"] = (
                 self._a2_v26_5_runtime_optimizer_facts()

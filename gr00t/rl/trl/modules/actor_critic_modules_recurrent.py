@@ -272,9 +272,29 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
         *args,
         residual_hidden_dim=128,
         residual_stage_obs_slice=(127, 133),
+        residual_input_key="residual_actor_obs",
         **kwargs,
     ):
+        env_config = kwargs.get("env_config", args[0] if args else None)
+        if env_config is None:
+            raise ValueError("A2 v26-5 policy residual requires env_config.")
         super().__init__(*args, **kwargs)
+        if self.input_key != "actor_obs":
+            raise ValueError(
+                "A2 v26-5 policy residual requires base input_key='actor_obs'; "
+                f"got {self.input_key!r}."
+            )
+        if not isinstance(residual_input_key, str) or not residual_input_key:
+            raise ValueError(
+                "residual_input_key must be a non-empty string; "
+                f"got {residual_input_key!r}."
+            )
+        if residual_input_key == self.input_key:
+            raise ValueError(
+                "A2 v26-5 policy residual requires a distinct residual input key; "
+                f"got {residual_input_key!r}."
+            )
+        self.residual_input_key = residual_input_key
         if isinstance(residual_hidden_dim, bool) or not isinstance(residual_hidden_dim, int):
             raise ValueError(
                 "residual_hidden_dim must be a positive integer; "
@@ -306,6 +326,23 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
                 "A2 v26-5 policy residual requires the legacy actor RunningMeanStd."
             )
         actor_obs_dim = self.running_mean_std.mean_size
+        if actor_obs_dim != 133:
+            raise ValueError(
+                "A2 v26-5 policy residual requires exactly 133D base actor observations; "
+                f"got {actor_obs_dim}."
+            )
+        obs_dim_dict = env_config.robot.algo_obs_dim_dict
+        if self.residual_input_key not in obs_dim_dict:
+            raise KeyError(
+                "A2 v26-5 policy residual requires residual observation key "
+                f"{self.residual_input_key!r} in env_config.robot.algo_obs_dim_dict."
+            )
+        residual_obs_dim = obs_dim_dict[self.residual_input_key]
+        if residual_obs_dim != actor_obs_dim:
+            raise ValueError(
+                "A2 v26-5 policy residual requires residual and base observation widths "
+                f"to match: base={actor_obs_dim}, residual={residual_obs_dim}."
+            )
         if stage_end > actor_obs_dim:
             raise ValueError(
                 "residual_stage_obs_slice exceeds actor observation width: "
@@ -357,9 +394,74 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
         if not torch.equal(final_layer.bias, torch.zeros_like(final_layer.bias)):
             raise RuntimeError("A2 v26-5 residual final bias must be zero initialized.")
 
+    def runtime_dual_input_contract_facts(self):
+        """Return live invariants required by the v26-5 load receipt."""
+
+        trainable_policy = sorted(
+            name for name, parameter in self.named_parameters() if parameter.requires_grad
+        )
+        residual_keys = sorted(self.residual_state_keys())
+        if trainable_policy != residual_keys:
+            raise RuntimeError(
+                "A2 v26-5 residual actor has non-residual trainable parameters: "
+                f"trainable={trainable_policy}, residual={residual_keys}."
+            )
+        if any(parameter.requires_grad for module in (self.memory, self.actor_module) for parameter in module.parameters()):
+            raise RuntimeError("A2 v26-5 residual actor base memory/MLP must remain frozen.")
+        if self.std.requires_grad or not self.running_mean_std.frozen:
+            raise RuntimeError("A2 v26-5 residual actor base std/RMS must remain frozen.")
+        final_layer = self.residual_module[-1]
+        return {
+            "base_input_key": self.input_key,
+            "residual_input_key": self.residual_input_key,
+            "base_observation_width": self.running_mean_std.mean_size,
+            "residual_observation_width": self.running_mean_std.mean_size,
+            "base_memory_mlp_frozen": True,
+            "base_std_rms_frozen": True,
+            "residual_action_slice": [5, 12],
+            "residual_final_layer_zero": bool(
+                torch.equal(final_layer.weight, torch.zeros_like(final_layer.weight))
+                and torch.equal(final_layer.bias, torch.zeros_like(final_layer.bias))
+            ),
+        }
+
     def _normalize_frozen_actor_obs(self, actor_obs):
         with torch.no_grad():
             return self.running_mean_std(actor_obs)
+
+    def _dual_actor_obs(self, obs_dict):
+        if self.input_key not in obs_dict:
+            raise KeyError(
+                "A2 v26-5 policy residual is missing base observation key "
+                f"{self.input_key!r}."
+            )
+        if self.residual_input_key not in obs_dict:
+            raise KeyError(
+                "A2 v26-5 policy residual is missing residual observation key "
+                f"{self.residual_input_key!r}."
+            )
+        raw_actor_obs = obs_dict[self.input_key]
+        residual_actor_obs = obs_dict[self.residual_input_key]
+        expected_width = self.running_mean_std.mean_size
+        if raw_actor_obs.ndim not in (2, 3) or raw_actor_obs.shape[-1] != expected_width:
+            raise RuntimeError(
+                "A2 v26-5 residual base actor observations must be [B,133] or [B,T,133]; "
+                f"got {tuple(raw_actor_obs.shape)}."
+            )
+        if residual_actor_obs.shape != raw_actor_obs.shape:
+            raise RuntimeError(
+                "A2 v26-5 residual/base observation shapes must match exactly; "
+                f"base={tuple(raw_actor_obs.shape)}, residual={tuple(residual_actor_obs.shape)}."
+            )
+        stage_start, stage_end = self.residual_stage_obs_slice
+        if not torch.equal(
+            raw_actor_obs[..., stage_start:stage_end],
+            residual_actor_obs[..., stage_start:stage_end],
+        ):
+            raise RuntimeError(
+                "A2 v26-5 residual/base stage observations differ at the configured stage slice."
+            )
+        return raw_actor_obs, residual_actor_obs
 
     def _stage3_or_later_mask(self, raw_actor_obs):
         stage_start, stage_end = self.residual_stage_obs_slice
@@ -371,8 +473,8 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
             )
         return torch.argmax(stage_one_hot, dim=-1) >= 3
 
-    def _add_residual(self, normalized_actor_obs, raw_actor_obs, base_mean):
-        residual_input = torch.cat((normalized_actor_obs, base_mean.detach()), dim=-1)
+    def _add_residual(self, normalized_residual_obs, raw_actor_obs, base_mean):
+        residual_input = torch.cat((normalized_residual_obs, base_mean.detach()), dim=-1)
         residual = self.residual_module(residual_input)
         stage_mask = self._stage3_or_later_mask(raw_actor_obs).unsqueeze(-1)
         mean = base_mean.clone()
@@ -390,8 +492,9 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
         original_dones=None,
         **kwargs,
     ):
-        raw_actor_obs = obs_dict[self.input_key]
+        raw_actor_obs, residual_actor_obs = self._dual_actor_obs(obs_dict)
         normalized_actor_obs = self._normalize_frozen_actor_obs(raw_actor_obs)
+        normalized_residual_obs = self._normalize_frozen_actor_obs(residual_actor_obs)
 
         if normalized_actor_obs.ndim == 2:
             with torch.no_grad():
@@ -408,7 +511,7 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
                     )
                 memory_out = memory_out.squeeze(0)
                 base_mean = self.actor_module(memory_out, **kwargs)
-            return self._add_residual(normalized_actor_obs, raw_actor_obs, base_mean)
+            return self._add_residual(normalized_residual_obs, raw_actor_obs, base_mean)
 
         if normalized_actor_obs.ndim != 3:
             raise RuntimeError(
@@ -421,7 +524,7 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
             with torch.no_grad():
                 memory_out = self.memory(rnn_input, masks=masks, hidden_states=hidden_states)
                 base_mean = self.actor_module(memory_out, **kwargs)
-            residual_mean = self._add_residual(normalized_actor_obs, raw_actor_obs, base_mean)
+            residual_mean = self._add_residual(normalized_residual_obs, raw_actor_obs, base_mean)
             from gr00t.rl.trl.utils.rl import unsplit_trajectories
 
             return unsplit_trajectories(residual_mean, masks, original_dones)
@@ -432,18 +535,19 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
         with torch.no_grad():
             memory_out = self.memory(rnn_input).transpose(0, 1)
             base_mean = self.actor_module(memory_out, **kwargs)
-        return self._add_residual(normalized_actor_obs, raw_actor_obs, base_mean)
+        return self._add_residual(normalized_residual_obs, raw_actor_obs, base_mean)
 
     def rollout(self, obs_dict, episode_attnmask=None, cur_dones=None, **kwargs):
         self._update_obs_buffer(obs_dict, episode_attnmask, cur_dones)
-        raw_actor_obs = obs_dict[self.input_key]
+        raw_actor_obs, residual_actor_obs = self._dual_actor_obs(obs_dict)
         normalized_actor_obs = self._normalize_frozen_actor_obs(raw_actor_obs)
+        normalized_residual_obs = self._normalize_frozen_actor_obs(residual_actor_obs)
         with torch.no_grad():
             memory_out = self.memory(normalized_actor_obs)
             if memory_out.ndim == 3:
                 memory_out = memory_out.squeeze(0)
             base_mean = self.actor_module(memory_out, **kwargs)
-        mean = self._add_residual(normalized_actor_obs, raw_actor_obs, base_mean)
+        mean = self._add_residual(normalized_residual_obs, raw_actor_obs, base_mean)
         if self.clamp_noise_std:
             with torch.no_grad():
                 self.std.clamp_(max=self.max_noise_std)
@@ -459,8 +563,9 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
 
     def act_inference(self, obs_dict, episode_attnmask=None, cur_dones=None, **kwargs):
         self._update_obs_buffer(obs_dict, episode_attnmask, cur_dones)
-        raw_actor_obs = obs_dict[self.input_key]
+        raw_actor_obs, residual_actor_obs = self._dual_actor_obs(obs_dict)
         normalized_actor_obs = self._normalize_frozen_actor_obs(raw_actor_obs)
+        normalized_residual_obs = self._normalize_frozen_actor_obs(residual_actor_obs)
         with torch.no_grad():
             memory_out = self.memory(normalized_actor_obs)
             if memory_out.ndim == 3:
@@ -468,7 +573,7 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
             base_mean = self.actor_module(memory_out, **kwargs)
         self.steps += 1
         return self._mask_inference_actions(
-            self._add_residual(normalized_actor_obs, raw_actor_obs, base_mean)
+            self._add_residual(normalized_residual_obs, raw_actor_obs, base_mean)
         )
 
 

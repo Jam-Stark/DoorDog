@@ -1,5 +1,11 @@
 # base_v26-5 Wave2 R1 — O1 raw authority + C2 gauge + zero residual
 
+> **Supersession (r11 → r12).** The O1 raw-authority + C2 realization
+> specified below is historical only. Its r11 K1 completed with the immutable
+> typed outcome `KILL_IDENTITY_NOT_ADMITTED`; it must not be re-run, repaired
+> in place, or used to admit formal training. The active prospective protocol
+> is the r12 registration appended at the end of this document.
+
 ## Registered question
 
 Can a trainable Stage3-only 7D mean residual preserve the `CONT_STEP2000`
@@ -142,3 +148,102 @@ its first differing index, yields `trace_topology_identical=false`, skips
 continuous raw-action verification (`null` rather than an inferred overlap
 value), and produces `KILL_IDENTITY_NOT_ADMITTED` without a reducer exception.
 No intersection, truncation, or re-alignment is permitted.
+
+## r11 immutable KILL evidence
+
+The fresh r11 root is
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r11/`. Its
+`K1/identity_reducer.json` is an `EXPERIMENT_COMPLETE` artifact with typed
+outcome `KILL_IDENTITY_NOT_ADMITTED`; it is immutable historical evidence.
+
+- Both LEFT pairs passed exactly: seed0 and seed1 each had identical complete
+  topology and discrete outcomes, zero integrity violations, and
+  `policy_mean_raw_action_max_abs=0.0`.
+- Both RIGHT pairs failed. The reducer records five topology mismatches for
+  seed0 RIGHT (`env_id` 0, 24, 38, 47, 53) and three for seed1 RIGHT
+  (`env_id` 9, 28, 46). It consequently reports non-identical discrete
+  outcomes and does not infer a continuous action comparison from mismatched
+  windows.
+- The matched-prefix implementation scan supplies the causal fact that the
+  reducer could not: on RIGHT the frozen base actor action already differs at
+  the first comparable step (`seed0=0.0177`, prefix maximum `6.73`; `seed1=0.0187`,
+  prefix maximum `7.02`). Base action indices `0:5` differ, while the residual
+  final layer is bit-zero.
+- Root cause: the r11 C2 gauge replaces the target-pose slot inside the 133D
+  `actor_obs`, and that gauge is then fed into the frozen legacy RMS, LSTM,
+  and base MLP. A zero residual only prevents the final additive residual; it
+  cannot restore a changed frozen base input. LEFT passing does not rescue the
+  RIGHT counterexample.
+
+The proposed K2 and every "same gauge control" route are therefore retired:
+they address an already disproved simulator-nondeterminism premise rather than
+the observed pre-physics base-policy difference. They are `NOT_RUN` and are
+not authorized by this plan.
+
+## r12 preregistration — base raw view, residual gauge only
+
+### Single axis and frozen boundary
+
+The r12 axis is the placement of the O1-derived gauge: it is available only as
+an independent `residual_actor_obs` input to `residual_module.*`. The frozen
+legacy base path is the raw O0 view:
+
+```text
+O0 raw actor_obs -> frozen RMS -> frozen LSTM -> frozen base MLP -> base mean
+O1-derived residual_actor_obs -------------------------------> residual module
+                                                           -> +mean[5:12], Stage3+
+```
+
+- `CONT_STEP2000`, `policy_only`, and inherited actor RMS remain the source
+  contract. C1 and A1 remain off.
+- The O0 raw 133D `actor_obs` is the sole input to the frozen base RMS, LSTM,
+  base MLP, action standard deviation, and critic. The separate O1-derived
+  gauge may not replace, append to, normalize with, or mutate that base view.
+- Reward, press behavior, stage logic/thresholds, target transformer, physics,
+  action transforms, and critic target inputs remain O0. The O1 gauge must not
+  become `target_quat_source` or another reward/stage/critic input.
+- The Stage3-or-later residual remains limited to mean indices `5:12`; its
+  final layer is zero initialized. Only `residual_module.*` may be trainable;
+  legacy memory, base MLP, standard deviation, and RMS remain frozen.
+- If the O1-derived gauge cannot be emitted without contaminating an O0 base,
+  reward, stage, target, or critic path, r12 fails fast. It must not fall back
+  to r11's same-gauge actor input.
+
+### Admission sequence before any training allocation
+
+1. **Required CPU shadow.** Load the actual source checkpoint/RMS and compare
+   legacy control against r12 under matching raw actor inputs and LSTM states.
+   Base raw actor observation, RMS input/state, LSTM hidden/cell, base mean,
+   standard deviation, and final zero-residual action mean must be bit-exact
+   where representable (otherwise the unchanged registered `1e-6` bound).
+   The residual is exactly zero before Stage3 and zero initialized at Stage3.
+   This is a hard static gate, not a training run.
+2. **Required runtime wiring smoke.** One 64-env, one-control-tick natural
+   eval verifies the separate residual input, policy-only/RMS load, and trace
+   wiring. It is not a PPO update and writes no training checkpoint.
+3. **Fresh `K1_R12` exact64.** Only after both gates pass, run
+   `seed={0,1} × side={left,right}` as paired natural first episodes: O0 legacy
+   control versus O0 base raw view plus O1-derived residual gauge and zero
+   residual. Each pair retains independent provenance and full per-env traces.
+
+Every r12 K1 pair must have identical complete topology, Stage3/K5/terminal
+outcomes, integrity, base-path observables, policy mean, and raw action. It
+also proves that the gauge is present only in the residual branch and has not
+entered target source, reward, stage, critic, or frozen base fields. No
+pooling, prefix intersection, re-alignment, seed selection, checkpoint
+selection, or threshold change is allowed. Any failed CPU shadow, wiring
+smoke, or seed-by-side pair yields `KILL_R12_IDENTITY_NOT_ADMITTED`.
+
+Only `K1_R12_IDENTITY_ADMITTED` after all four pairs pass may start two fresh
+`R12_S0/R12_S1` formal cells (`4096×250`, saves at 125 and 250, bilateral
+natural exact64 evaluation). The existing step250 reducer thresholds and
+side/seed-independent routing remain unchanged.
+
+### r12 resources and stopping point
+
+The CPU shadow uses no GPU. The wiring smoke completes before K1. K1 and any
+later formal cells use separate tmux/supervisor receipts; start the second
+Isaac process only after the first has constructed and reached its first
+control tick, using an in-tmux `sleep 600` instead of a polling loop. No
+formal-training receipt, PPO smoke, render, relay, or Teacher/Student action
+is permitted before all four r12 K1 pairs pass.

@@ -19,7 +19,7 @@
 - [door-asset-randomization-baseline/description.md](door-asset-randomization-baseline/description.md): 记录当前 Doorman/G1 与 A2 training scene 的固定 `right-hinge + out-opening` baseline，以及后续 door asset randomization / push-pull mixed task 的施工边界。
 - [pull-open-door-task/description.md](pull-open-door-task/description.md): 2026-08-29 HKT — pull-v6.1 quality→population stage closed `QUALITY_PASS__POPULATION_INCONCLUSIVE`. r6an remains the sole strict-natural E7 winner; formal 64-episode baseline is E5/clean/frame/E6/E7=`41/5/3/2/1`. Integrated, grouped-output, and one B-focus P revision increased E5 at best to `47/64` but produced no E6/E7, so no population checkpoint was promoted and hardware is `NOT_RUN`.
 - [pull-lr-bilateral-grasp/description.md](pull-lr-bilateral-grasp/description.md): 2026-08-30 HKT — pull Stage0–2 exact LEFT/RIGHT asset mirroring and bilateral acquisition closed with winner `pull_lr_grasp_h450_xseg_resume_seed2/model_step_000250.pt`; two independent fixed-side64 evals give strict K5 LEFT/RIGHT=`125/128` each, and both raw sides have verified five-view successful renders. Full Stage3–5 bilateral pull remains `NOT_RUN`.
-- [pull-lr-full-stage/description.md](pull-lr-full-stage/description.md): 2026-08-30 14:35 HKT — full Stage3–5 LR-mirrored route；r1g shows LEFT Stage3 press/unlatch asymmetry，4096 OOM and first n1024 event-time failure are infrastructure-only，fresh rebase retry pending；bilateral Stage5/E7/goal `NOT_RUN`。
+- [pull-lr-full-stage/description.md](pull-lr-full-stage/description.md): 2026-08-30 15:04 HKT — full Stage3–5 LR-mirrored route；rebase retry 25/25 PASS，Gate B rejected，LEFT E4/E5仍0，single H3 handle-income intervention pending；bilateral Stage5/E7/goal `NOT_RUN`。
 
 ## Update Rules
 

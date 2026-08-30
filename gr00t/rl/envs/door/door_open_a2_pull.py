@@ -7816,7 +7816,20 @@ class DoorOpenA2Pull(DoorPregrasp):
             / 0.785398
         )
         reward = (handle_velocity + handle_position).clamp(max=1.0, min=-1.0)
-        result = reward * self._get_a2_pull_load_bearing_income_mask().float()
+        income_mask = self._get_a2_pull_load_bearing_income_mask()
+        income_mode = self.config["a2_pull_stage3_handle_income_mode"]
+        if income_mode == "e2_latched_k_hold":
+            income_mask |= (
+                (self.stage_buf == self.STAGE_OPEN)
+                & self._a2_pull_event_reached[:, A2PullEvent.E2_TENSILE_CAPTURE]
+                & self._get_a2_hold_streak_ok_mask()
+            )
+        elif income_mode != "live_proof":
+            raise RuntimeError(
+                "a2_pull_stage3_handle_income_mode must be live_proof or "
+                f"e2_latched_k_hold; got {income_mode!r}."
+            )
+        result = reward * income_mask.float()
         if self._is_a2_pull_v6():
             result = torch.where(
                 self._a2_pull_event_reached[:, A2PullEvent.E5_CLEARANCE_DECISION],

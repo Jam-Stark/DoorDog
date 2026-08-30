@@ -21,6 +21,7 @@ EVAL_ROOT = ROOT / "logs_eval/a2_piper_pull_lr_full_stage"
 ABLATIONS = {
     "a": "wbmanip/pull_lr_full_gate_a",
     "b": "wbmanip/pull_lr_full_gate_b",
+    "c": "wbmanip/pull_lr_full_handle_creation",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")

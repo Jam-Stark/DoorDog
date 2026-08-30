@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-30 14:35 HKT
+last_updated: 2026-08-30 15:04 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -12,6 +12,10 @@ source_of_truth:
   - gr00t/rl/config/ablation/wbmanip/pull_lr_full_base.yaml
   - gr00t/rl/config/ablation/wbmanip/pull_lr_full_gate_a.yaml
   - gr00t/rl/config/ablation/wbmanip/pull_lr_full_gate_b.yaml
+  - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_a_s0_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_a_s1_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_b_s0_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r2c_screen_gate_b_s1_step025_evalseed1001_summary.json
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -28,6 +32,8 @@ related_entries:
 - source/full config 已实现 side-canonical handle command（`handle_send_y=-door_open_lr*raw_y`）、gate A/B、banks off、full r6ap、LR `1e-4`、output actor、runner/reducer。此前 actor contract/artifact reducer 已修复，n1024 retry 已登记。
 - 4096-env gate A/B 四个 runs 均精确达到 `2048 LEFT / 2048 RIGHT`，随后在 v6 staged-reset buffer 单次申请 `29.66 GiB` 时 OOM（当前 4×RTX3090、每卡 24 GB）；没有 actor/batch1，也没有 policy verdict。
 - 首轮 n1024 四格均达到 exact `512/512`、strict-load output actor 与 iteration1–2，随后共同暴露 online staged snapshot 保留 donor `first_event_step/time`、在新 episode 时间基准下违反 dependency ordering。当前 fresh rebase retry 只把 snapshot 中已达事件的 step/time 归零，未改 event graph、policy 或 reward，尚无结果。
+- event-time rebase 后四格均完成25/25、每格 `1,638,400` timesteps/`25,600` episodes并保存 step25。r3 fixed-side16 screen pooled：gate A LEFT K5/E2/E3/E4/E5=`32/32/6/0/0`、RIGHT=`31/31/27/25/24`；gate B LEFT=`31/30/4/0/0`、RIGHT=`30/30/30/29/27`。Gate B 只改善 RIGHT、损害 LEFT，已拒绝为主轴。
+- 当前 H3 只在 Stage3 的 E2-latched current K-hold 下延续原 scale6 handle income；hinge income和Stage3→4 gate保持 strict live proof，未添加 action reflection。H3 seeds0–3 已登记，尚无结果。
 
 ## Evidence boundary
 

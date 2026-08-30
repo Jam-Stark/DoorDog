@@ -1,0 +1,12 @@
+# @package _global_
+# H3: keep handle creation income active after E2 while Stage3 K-hold remains live.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_gate_a
+  - _self_
+
+experiment_name: pull_lr_full_handle_creation
+
+env:
+  config:
+    a2_pull_stage3_handle_income_mode: e2_latched_k_hold

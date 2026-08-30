@@ -1633,6 +1633,20 @@ class DoorOpenA2Pull(DoorPregrasp):
 
     def _store_a2_pull_named_buffer(self, name: str, env_ids: torch.Tensor) -> torch.Tensor:
         value = getattr(self, f"_{name}")
+        if name == "a2_pull_first_event_step":
+            reached = self._a2_pull_event_reached[env_ids]
+            return torch.where(
+                reached,
+                torch.zeros_like(value[env_ids]),
+                torch.full_like(value[env_ids], -1),
+            )
+        if name == "a2_pull_first_event_time_s":
+            reached = self._a2_pull_event_reached[env_ids]
+            return torch.where(
+                reached,
+                torch.zeros_like(value[env_ids]),
+                torch.full_like(value[env_ids], float("nan")),
+            )
         return value[env_ids].clone()
 
     def _load_a2_pull_named_buffer(self, name: str, env_ids: torch.Tensor, data: torch.Tensor) -> None:

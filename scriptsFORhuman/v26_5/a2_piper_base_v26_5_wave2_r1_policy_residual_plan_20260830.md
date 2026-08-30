@@ -73,3 +73,14 @@ runtime final actor/obs contract is formed.  This is a source policy-only
 selector/load composition proof, not a pre-run claim
 about a future full composite checkpoint; fixed-step full evaluation remains
 runtime evidence bound by its load receipt and reducer.
+
+The r7 K1 control LEFT exact64 artifacts remain preserved.  Its dual actor
+failed at construction because Hydra supplies `residual_stage_obs_slice` as an
+OmegaConf `ListConfig`, which the former list/tuple-only validator rejected.
+The fresh r8 roots are
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r8/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r8/`.
+Their registry requires the repaired actor contract: accept a non-string
+`collections.abc.Sequence`, require exactly two true integers, and freeze the
+converted `(127, 133)` slice.  This binds the real Hydra construction shape
+without changing reward, environment, or training semantics.

@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ACTOR_SOURCE = ROOT / "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py"
 TRAINER_SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
 EVAL_SOURCE = ROOT / "gr00t/rl/eval_agent_trl.py"
-RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r7"
+RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r8"
 SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 
 def require(value: bool, message: str) -> None:
@@ -27,6 +27,7 @@ def main() -> None:
     k1=r.get("K1",{}); require(k1.get("view_trace_contract")=={"control":{"terms":["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":0.0},"dual":{"terms":["a2_stage3_handle_creation","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":6.0}}, "K1 view-specific trace/scale contract mismatch")
     require(k1.get("cells")==[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}], "K1 GPU mapping mismatch")
     require(r.get("R1",{}).get("cells")==[{"label":"R1_S0","seed":0,"physical_gpu":4},{"label":"R1_S1","seed":1,"physical_gpu":5}], "R1 GPU mapping mismatch")
+    require(r.get("R1",{}).get("actor_hydra_listconfig_contract")=={"selector_value":[127,133],"validator_sequence_type":"collections.abc.Sequence","forbidden_sequence_types":["str","bytes"],"required_length":2,"required_element_type":"int"}, "R1 Hydra ListConfig actor-construction contract mismatch")
     require(r.get("R1",{}).get("static_eval_compose")=={"ablation_partial":"R1_eval_ablation_partial.yaml","host_entrypoint":"gr00t.rl.eval_agent_trl","host_hydra_config_path":str(SOURCE.parent),"host_hydra_config_name":"config","host_resolve_args":["--cfg","job","--resolve"],"runtime_merge":"OmegaConf.merge(train_config, override_config)","checkpoint_load_mode":"policy_only"}, "R1 two-stage eval compose contract mismatch")
     paths={}
     for item in a.config:
@@ -59,6 +60,7 @@ def main() -> None:
     residual_actor=actor_text[start:end]
     require("self.std.requires_grad_(False)" in residual_actor, "R1 residual actor must freeze inherited std")
     require("self.running_mean_std.freeze()" in residual_actor, "R1 residual actor must freeze inherited RMS")
+    require("from collections.abc import Sequence" in actor_text and "not isinstance(residual_stage_obs_slice, Sequence)" in residual_actor and "self.residual_stage_obs_slice = tuple(residual_stage_obs_slice)" in residual_actor, "R1 actor must accept Hydra ListConfig as a Sequence then freeze its exact slice")
     require("mean[..., 5:12]" in residual_actor and "nn.init.zeros_(self.residual_module[-1].weight)" in residual_actor and "nn.init.zeros_(self.residual_module[-1].bias)" in residual_actor, "R1 residual mean/zero-init source contract mismatch")
     trainer_text=TRAINER_SOURCE.read_text(encoding="utf-8")
     require("def _load_a2_v26_5_policy_residual_state" in trainer_text and "legacy_exact_without_residual" in trainer_text and "allow_legacy=True" in trainer_text, "R1 legacy policy-only loader contract missing")

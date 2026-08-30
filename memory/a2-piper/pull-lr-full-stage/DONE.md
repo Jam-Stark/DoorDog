@@ -29,3 +29,4 @@
 - 2026-08-31 05:54 HKT — H13完成sorted 135-D canonical slice、actual-handle-frame twist与acquisition exact修复；256-env×5 smoke通过，matched-container completion2 A/B 567/567 rows全action/event exact，L/R executor residual median0.0014/0.0072，技术门通过。
 - 2026-08-31 06:08 HKT — H13首轮四seed在batch1–7共同暴露converted j6 raw约13.5–14.8超过经验cap12，finite/limit/delta均valid；记录为infrastructure failure，无checkpoint/policy verdict，r1仅将bilateral raw cap提高到15。
 - 2026-08-31 06:22 HKT — H13 r1四seed仍在batch1–7仅因converted raw约15.5–18触发cap15，而final delta/joint均valid；确认raw cap与plant validity重复且过保守，r2删除bilateral独立raw幅值门，保留finite/delta/joint硬门。
+- 2026-08-31 07:10 HKT — H13 r2四seed完成75-batch：双侧E2均16/16，LEFT first-E3 pose/contact显著改善且两侧hinge均进入0.03–0.07rad，但仍无0.105/E4；依据clean双侧中介趋势full-resume四seed到global200。

@@ -1,0 +1,16 @@
+# @package _global_
+# H11: train the H7 adapter from Stage3 entry with coupled LEFT SE(3) pose quality.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_nonlinear_adapter
+  - _self_
+
+experiment_name: pull_lr_full_left_stage3_pose_quality
+
+rewards:
+  reward_scales:
+    a2_pull_stage3_pose_quality: 6.0
+
+algo:
+  trl:
+    num_total_batches: 75

@@ -31,6 +31,7 @@ ABLATIONS = {
     "j": "wbmanip/pull_lr_full_left_stage3_e3_snapshot",
     "k": "wbmanip/pull_lr_full_left_stage3_post_e3_adapter",
     "l": "wbmanip/pull_lr_full_h10m_pose_probe",
+    "m": "wbmanip/pull_lr_full_left_stage3_pose_quality",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -186,7 +187,7 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
         "algo.config.eval.save_videos=false",
         f"algo.config.eval.num_save_episodes={args.num_envs}",
         "algo.config.eval.a2_diagnostic_trace_enabled=true",
-        "algo.config.eval.a2_diagnostic_reward_terms=[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge,a2_corridor_clean_passage,a2_pull_frame_approach,a2_pull_v6_arm_tangent_progress,a2_pull_v6_handle_side_bonus,a2_pull_v6_arc_tracking,a2_pull_v6_pivot_excess_penalty,a2_pull_v6_hinge_momentum,a2_pull_v6_handoff_hinge_angle_deficit,a2_pull_v6_clean_release_quality,a2_pull_v6_premature_release_penalty]",
+        "algo.config.eval.a2_diagnostic_reward_terms=[dont_push_door_handle,target_root_distance,pull_door_handle,pull_door_hinge,a2_pull_stage3_pose_quality,a2_corridor_clean_passage,a2_pull_frame_approach,a2_pull_v6_arm_tangent_progress,a2_pull_v6_handle_side_bonus,a2_pull_v6_arc_tracking,a2_pull_v6_pivot_excess_penalty,a2_pull_v6_hinge_momentum,a2_pull_v6_handoff_hinge_angle_deficit,a2_pull_v6_clean_release_quality,a2_pull_v6_premature_release_penalty]",
         "simulator.config.render_results=false",
         "simulator.config.cameras.enable_cameras=false",
         f"eval_output_dir={output / 'eval'}",

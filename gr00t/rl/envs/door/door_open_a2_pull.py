@@ -8458,6 +8458,37 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._a2_pull_v6_positive_arm_tangent / target_speed
         ).clamp(0.0, 1.0) * active.float()
 
+    @StagedTaskBase.effective_in_stage(DoorPregrasp.STAGE_OPEN)
+    def _reward_a2_pull_stage3_pose_quality(self):
+        if not self._is_a2_pull_v6():
+            raise RuntimeError("Stage3 pose quality requires pull-v6.")
+        distance_quality = self._get_a2_grasp_target_distance_reward(
+            "Stage3 pose quality"
+        )
+        opening_alignment, approach_alignment = (
+            self._get_a2_gripper_handle_orientation_metrics()
+        )
+        opening_quality = self._tracking_reward_util(
+            1.0 - opening_alignment,
+            std=0.25,
+            target=0.0,
+            scale=1.0,
+            offset=0.0,
+        )
+        approach_quality = self._tracking_reward_util(
+            1.0 - approach_alignment,
+            std=0.25,
+            target=0.0,
+            scale=1.0,
+            offset=0.0,
+        )
+        active = (self.door_open_lr == 1.0) & (
+            self.stage_buf == self.STAGE_OPEN
+        )
+        return (
+            distance_quality * opening_quality * approach_quality * active.float()
+        )
+
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
     @override
     def _reward_a2_stage3_stage4_keep_close_command(self):

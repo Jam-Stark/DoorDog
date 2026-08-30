@@ -1,0 +1,31 @@
+# @package _global_
+
+defaults:
+  - /ablation/wbmanip/base_v26_5_wave2_C2_eval_gauge
+  - _self_
+
+v26_schema: a2_piper_base_v26_5_wave2_r15_eval_policy_residual_v1
+v26_phase: V26_5_WAVE2_R15_SHARED_ACTOR_OBSERVATION_EVAL
+v26_cell: V26_5_WAVE2_R15_POLICY_RESIDUAL_EVAL_S0
+v26_checkpoint_contract: legacy_policy_only_eval; full_composite_eval_requires_checkpoint_load_mode_full_override
+
+checkpoint_load_mode: policy_only
+policy_only_load_actor_rms: true
+auto_load_latest: false
+
+env:
+  config:
+    a2_v26_5_geometry_target_enabled: false
+    a2_v26_5_shared_residual_observation_enabled: true
+
+algo:
+  config:
+    eval:
+      a2_v26_5_policy_only_residual: true
+      a2_v26_5_runtime_load_receipt: true
+    actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.A2V26_5PolicyResidualRecurrentActor
+      input_key: actor_obs
+      residual_input_key: residual_actor_obs
+      residual_hidden_dim: 128
+      residual_stage_obs_slice: [127, 133]

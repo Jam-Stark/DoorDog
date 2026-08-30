@@ -1,0 +1,12 @@
+#!/usr/bin/env python3
+"""Write the immutable R15 shared-observation preregistry."""
+from __future__ import annotations
+import argparse,json
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[2];RUN_ID="v26_5_wave2_r1_policy_residual_20260831_r15";SOURCE=ROOT/"logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
+def main():
+ p=argparse.ArgumentParser();p.add_argument("--output",type=Path,required=True);a=p.parse_args()
+ if a.output.exists() or not SOURCE.is_file():raise RuntimeError("R15 fresh registry/source required")
+ payload={"schema":"a2_piper_base_v26_5_wave2_r15_registry_v1","status":"PREREGISTERED_NOT_RUN","run_id":RUN_ID,"source_checkpoint":str(SOURCE),"axis":"R15_SHARED_ACTOR_OBSERVATION","selectors":{"train":"wbmanip/base_v26_5_wave2_R15_policy_residual","eval":"wbmanip/base_v26_5_wave2_R15_eval_policy_residual"},"shared_observation":{"control":False,"dual":True,"raw_key":"actor_obs","residual_key":"residual_actor_obs","shared_width":133,"gauge_replaced_width":18},"reseed":{"flag":"algo.config.eval.a2_v26_5_post_construction_reseed","pilot_trace_flag":"algo.config.eval.a2_v26_5_post_construction_reseed_pilot_trace","trace_schema":"a2_piper_base_v26_5_post_construction_reseed_trace_v2","physical_action_field":"actions_after_delay","physical_action_width":20},"pilot":{"seed":0,"side":"left","gpu":4,"num_envs":64,"max_episode_length_s":.98,"episode_length":50,"pilot_trace":True,"outcome":"R15_SHARED_O0_PILOT_ADMITTED","kills":["KILL_R15_POST_CONSTRUCTION_RESEED_NOT_ALIGNED","KILL_R15_BASE_OR_PHYSICAL_PATH_NOT_IDENTICAL","KILL_R15_CROSS_PROCESS_TRAJECTORY"],"stage2_5_topology":"per-env contiguous step_index; empty/empty is identical"},"K1":{"cells":[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}],"sides":["left","right"],"episodes":64,"pilot_trace":False,"outcome":"K1_R15_IDENTITY_ADMITTED","kill":"KILL_R15_IDENTITY_NOT_ADMITTED","s1_stagger_seconds":600},"formal":{"requires":"K1_R15_IDENTITY_ADMITTED","cells":[{"label":"R15_S0","seed":0,"gpu":4},{"label":"R15_S1","seed":1,"gpu":5}],"num_envs":4096,"batches":250,"save_steps":[125,250],"formal_train_reseed":False,"formal_eval_reseed":False,"formal_eval_pilot_trace":False,"reducer_output":"formal_eval/reducer.json","step250_route":"R1 fixed thresholds"}}
+ a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(json.dumps(payload,indent=2)+"\n");print(a.output)
+if __name__=="__main__":main()

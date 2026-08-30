@@ -396,3 +396,60 @@ evidence. Formal smoke/train/eval are registered fail-closed behind full K1;
 formal train and formal full-checkpoint eval do not enable post-construction
 reseed. Formal eval retains and verifies its full-checkpoint runtime-load
 receipt.
+
+## r15 preregistration — shared actor observation
+
+> **Supersession (r14 → r15).** r14's immutable pilot is
+> `KILL_R14_CROSS_PROCESS_TRAJECTORY`: reset and tick-zero 12D policy actions
+> matched, but the later trace diverged. Source and artifact review locate the
+> intervening cause at the second observation group's independent noise/RNG
+> consumption, not at reward, thresholds, or physics. r15 changes only this
+> observation realization and writes fresh roots under
+> `v26_5_wave2_r1_policy_residual_20260831_r15`.
+
+The dual evaluation builds the legacy O0 `actor_obs` once, then shares every
+noisy non-target term with `residual_actor_obs`; only its 18D target-pose term
+is replaced by the primary-cache O1 gauge. The frozen base actor continues to
+consume raw O0. Control explicitly keeps
+`a2_v26_5_shared_residual_observation_enabled=false`; dual explicitly sets it
+true. No reward, threshold, stage, scene/physics, target source, or action
+transform changes.
+
+The first gate is a sequential cold GPU4 pilot: seed0 LEFT, 64 environments,
+policy-only `CONT_STEP2000` plus RMS, post-construction reseed, and pilot
+trace enabled. `max_episode_length_s=.98` gives the legal exact first-episode
+length 50. Trace-v2 records, for every env and control tick, raw O0
+`actor_obs[133]`, policy mean and applied high-level action `[12]`, and the
+post-delay physical `actions_after_delay[20]`. The reducer requires reset,
+all 50-tick continuous fields, exact64 terminal/discrete evidence, diagnostic
+forced-close-off evidence, and integrity zero at `1e-6`, without pooling or
+alignment.
+
+- reset mismatch: `KILL_R15_POST_CONSTRUCTION_RESEED_NOT_ALIGNED`;
+- first raw/base/physical mismatch:
+  `KILL_R15_BASE_OR_PHYSICAL_PATH_NOT_IDENTICAL`;
+- later continuous, terminal, or topology mismatch:
+  `KILL_R15_CROSS_PROCESS_TRAJECTORY`;
+- all pilot evidence: `R15_SHARED_O0_PILOT_ADMITTED`.
+
+Only that pilot admission may start fresh natural K1
+`seed={0,1}×side={LEFT,RIGHT}`. K1 retains post-construction reseed receipts
+but disables the pilot trace, and uses the existing complete per-env base
+reducer without pooling, altered thresholds, or intersection. All four pairs
+must pass for `K1_R15_IDENTITY_ADMITTED`; any failure is
+`KILL_R15_IDENTITY_NOT_ADMITTED`. K1 S1 stays a separate tmux cold launch with
+`sleep 600`.
+
+Only full K1 admission opens the fail-closed formal sequence: 64-env smoke,
+then `R15_S0/R15_S1` at `4096×250`, saves at 125/250, and bilateral exact64
+full-checkpoint evaluation. Formal training and full-checkpoint evaluation do
+not enable post-construction reseed; the latter retains its runtime-load
+receipt.
+
+Pilot also compares the existing short `stage2_5_step_trace` as per-env sorted
+contiguous `step_index` windows over all `env_id=0..63`; an empty control and
+dual window is identical, but any unequal window is a typed
+`KILL_R15_CROSS_PROCESS_TRAJECTORY` detail. After all four formal supervisor
+receipts pass, `eval-reduce` loads all eight bilateral full-checkpoint outputs,
+validates R15 shared/full/reseed-off provenance and diagnostics, then applies
+the unchanged R1 fixed-step metrics and step250 route.

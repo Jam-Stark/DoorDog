@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[[ $# -eq 3 ]] || exit 2
+repo=/home/baoquanc/workspace/DoorDog-A2_Piper;py=/home/baoquanc/anaconda3/envs/isaaclab/bin/python;gpu=$1;label=$2;output=$3;source="$repo/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
+[[ "$gpu" =~ ^[45]$ && "$label" =~ ^R15_S[01]$ && -f "$source" && ! -e "$output" ]] || exit 1;seed=${label##*_S};mkdir -p "$output"
+common=(+exp=wbmanip/door_open_a2_base_lstm +ablation=wbmanip/base_v26_5_wave2_R15_policy_residual checkpoint="$source" checkpoint_load_mode=policy_only policy_only_load_actor_rms=true auto_load_latest=false seed="$seed" num_envs=4096 algo.trl.num_total_batches=250 callbacks.model_save.save_frequency=125 env.config.a2_v26_side_permutation_seed="$seed" env.config.a2_v26_5_shared_residual_observation_enabled=true headless=true use_wandb=false simulator.config.render_results=false experiment_dir="$output" output_dir="$output/output")
+env CUDA_VISIBLE_DEVICES="$gpu" CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo" "$py" -B -m gr00t.rl.train_agent_trl "${common[@]}" --cfg job --resolve > "$output/resolved_config.yaml"
+env CUDA_VISIBLE_DEVICES="$gpu" CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo" "$py" -B -m gr00t.rl.train_agent_trl "${common[@]}"
+[[ -f "$output/model_step_000125.pt" && -f "$output/model_step_000250.pt" ]] || exit 1

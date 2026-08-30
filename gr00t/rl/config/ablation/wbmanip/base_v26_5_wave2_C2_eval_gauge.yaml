@@ -2,7 +2,7 @@
 
 defaults:
   - /ablation/wbmanip/base_v26_5_eval_O1A0
-  - override /obs: wbmanip/door_open_a2_v26_5_gauge
+  - /obs: wbmanip/door_open_a2_v26_5_gauge
   - _self_
 
 v26_schema: a2_piper_base_v26_5_wave2_c2_gauge_eval_v1

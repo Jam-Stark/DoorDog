@@ -357,3 +357,42 @@ at 125 and 250 and bilateral natural exact64 evaluation. The existing step250
 reducer, independent seed/side routing, and all no-relay boundaries remain in
 force. No reward soup, press change, physics change, additional cells, PPO
 smoke, render, or Teacher/Student action is authorized before that admission.
+
+## r14 preregistration — post-construction reseed
+
+> **Supersession (r13 → r14).** r13 K1 is immutable `KILL`: its four paired
+> natural first episodes diverged at `S0-L/env15`, `S0-R/env22`, `S1-L/env18`,
+> and `S1-R/env23`, matching r12's byte-identical raw evidence. Telemetry is
+> not pre-action evidence and the root cause remains unassigned. r14 changes
+> only the evaluator's post-construction reseed axis; it creates fresh roots
+> under `v26_5_wave2_r1_policy_residual_20260831_r14` and never rewrites r12/r13.
+
+### Pilot admission
+
+The pilot is two sequential cold GPU4 processes, seed0 LEFT, exact64 and
+`max_episode_length_s=.98` (legal first-episode length 50): O0A0 control and
+sensor-free R13 dual. Both load CONT_STEP2000 policy-only with inherited RMS,
+enable `a2_v26_5_post_construction_reseed=true` plus the pilot-only trace
+flag, and write the runtime load, post-construction reseed, and first-episode
+raw O0 observation/action traces.
+The reducer compares every reset snapshot and each env's 50-tick topology,
+raw actor observation, action mean, raw action, terminal/discrete outcomes and
+integrity under `1e-6`, without pooling or prefix alignment.
+
+- reset snapshot mismatch: `KILL_R14_POST_CONSTRUCTION_RESEED_NOT_ALIGNED`;
+- matched snapshot with first mean/action mismatch:
+  `KILL_R14_BASE_PATH_NOT_IDENTICAL`;
+- matched snapshot/action with a later 50-tick observation or physical split:
+  `KILL_R14_CROSS_PROCESS_TRAJECTORY`;
+- all gates: `R14_RESEED_PILOT_ADMITTED`.
+
+The pilot does not train. Its typed admission alone starts fresh full K1:
+seed0/1 × LEFT/RIGHT exact64, reseed receipts plus existing natural-episode
+evidence (the pilot per-step trace is disabled), and unchanged per-env reducer,
+yielding `K1_R14_IDENTITY_ADMITTED` only when all four pairs pass; any failure
+is `KILL_R14_IDENTITY_NOT_ADMITTED`. K1 S1 remains a separate
+tmux cold launch with `sleep 600`. A single-process shadow is non-admission
+evidence. Formal smoke/train/eval are registered fail-closed behind full K1;
+formal train and formal full-checkpoint eval do not enable post-construction
+reseed. Formal eval retains and verifies its full-checkpoint runtime-load
+receipt.

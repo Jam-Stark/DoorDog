@@ -1,0 +1,16 @@
+# @package _global_
+# H8: H7 actor plus LEFT Stage3 arm opening-tangent velocity creation income.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_nonlinear_adapter
+  - _self_
+
+experiment_name: pull_lr_full_left_stage3_tangent_creation
+
+env:
+  config:
+    a2_pull_stage3_tangent_creation_speed_mps: 0.10
+
+rewards:
+  reward_scales:
+    a2_pull_stage3_opening_tangent_creation: 1.2

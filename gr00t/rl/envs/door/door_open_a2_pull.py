@@ -7949,6 +7949,30 @@ class DoorOpenA2Pull(DoorPregrasp):
             )
         return result
 
+    @StagedTaskBase.effective_in_stage(DoorPregrasp.STAGE_OPEN)
+    def _reward_a2_pull_stage3_opening_tangent_creation(self):
+        if not self._is_a2_pull_v6():
+            raise RuntimeError("Stage3 opening-tangent creation requires pull-v6.")
+        contact = self._get_a2_stage3_stage4_contact_squeeze_masks(
+            "Stage3 opening-tangent creation"
+        )["both_contact"]
+        latch_position = self._get_door_joint_pos(
+            "Stage3 opening-tangent creation", 3
+        )[:, 2]
+        active = (
+            (self.door_open_lr == 1.0)
+            & contact
+            & self._get_a2_hold_streak_ok_mask()
+            & (latch_position >= self._get_a2_pull_e3_latch_threshold_m())
+        )
+        target_speed = self._get_required_positive_float_config(
+            "a2_pull_stage3_tangent_creation_speed_mps",
+            "Stage3 opening-tangent creation speed",
+        )
+        return (
+            self._a2_pull_v6_positive_arm_tangent / target_speed
+        ).clamp(0.0, 1.0) * active.float()
+
     @StagedTaskBase.effective_in_stage([DoorPregrasp.STAGE_OPEN, DoorPregrasp.STAGE_SWING])
     @override
     def _reward_a2_stage3_stage4_keep_close_command(self):

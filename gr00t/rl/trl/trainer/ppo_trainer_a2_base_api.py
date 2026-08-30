@@ -85,7 +85,7 @@ _A2_V26_5_POST_CONSTRUCTION_RESEED_RECEIPT_FILENAME = (
     "a2_v26_5_post_construction_reseed_receipt.json"
 )
 _A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_SCHEMA = (
-    "a2_piper_base_v26_5_post_construction_reseed_trace_v1"
+    "a2_piper_base_v26_5_post_construction_reseed_trace_v2"
 )
 _A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_FILENAME = (
     "a2_v26_5_post_construction_reseed_trace.json"
@@ -101,6 +101,7 @@ _A2_V26_5_POST_CONSTRUCTION_RESEED_GENERATORS = (
 )
 _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS = 64
 _A2_V26_5_POST_CONSTRUCTION_RESEED_ACTOR_OBS_DIM = 133
+_A2_V26_5_POST_CONSTRUCTION_RESEED_PHYSICAL_ACTION_DIM = 20
 _A2_V26_5_POST_CONSTRUCTION_RESEED_CONTROL_STEPS = 50
 _A2_V26_5_POST_CONSTRUCTION_RESEED_RESIDUAL_LEGACY_MISSING_KEYS = (
     "residual_module.0.weight",
@@ -5541,6 +5542,23 @@ class TRLPPOTrainer(PPOTrainer):
                         "v26-5 post-construction reseed trace requires 64x12 "
                         f"{action_key} values at control step {expected_step_index}."
                     )
+            physical_action_values = row.get("actions_after_delay")
+            if (
+                not isinstance(physical_action_values, list)
+                or len(physical_action_values)
+                != _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS
+                or any(
+                    not isinstance(values, list)
+                    or len(values)
+                    != _A2_V26_5_POST_CONSTRUCTION_RESEED_PHYSICAL_ACTION_DIM
+                    for values in physical_action_values
+                )
+            ):
+                raise RuntimeError(
+                    "v26-5 post-construction reseed trace requires 64x20 "
+                    "actions_after_delay values at control step "
+                    f"{expected_step_index}."
+                )
         output_dir = Path(config["output_dir"])
         output_path = output_dir / _A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_FILENAME
         if output_path.is_symlink() or output_path.exists():
@@ -8762,8 +8780,48 @@ class TRLPPOTrainer(PPOTrainer):
                         a2_p0_compat_final_action = step_actions.detach().clone()
 
                     actor_state["actions"] = step_actions
+                    if a2_v26_5_post_construction_reseed_row is not None:
+                        actor_state["a2_v26_5_capture_actions_after_delay"] = True
 
                     obs_dict, rewards, dones, infos = self.env.step(actor_state)
+
+                    if a2_v26_5_post_construction_reseed_row is not None:
+                        consume_actions_after_delay = getattr(
+                            self.env,
+                            "consume_a2_v26_5_actions_after_delay_capture",
+                            None,
+                        )
+                        if not callable(consume_actions_after_delay):
+                            raise RuntimeError(
+                                "v26-5 post-construction reseed pilot trace requires "
+                                "env.consume_a2_v26_5_actions_after_delay_capture()."
+                            )
+                        actions_after_delay = consume_actions_after_delay()
+                        physical_action_metadata = (
+                            self._a2_v26_5_post_construction_reseed_tensor_metadata(
+                                actions_after_delay, values=False
+                            )
+                        )
+                        expected_physical_action_shape = [
+                            _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS,
+                            _A2_V26_5_POST_CONSTRUCTION_RESEED_PHYSICAL_ACTION_DIM,
+                        ]
+                        if (
+                            physical_action_metadata["shape"]
+                            != expected_physical_action_shape
+                        ):
+                            raise RuntimeError(
+                                "v26-5 post-construction reseed trace requires "
+                                "actions_after_delay shape "
+                                f"{expected_physical_action_shape}; got "
+                                f"{physical_action_metadata['shape']}."
+                            )
+                        a2_v26_5_post_construction_reseed_row[
+                            "actions_after_delay"
+                        ] = [
+                            [float(value) for value in row]
+                            for row in actions_after_delay.detach().cpu().tolist()
+                        ]
 
                     if a2_p0_compatibility_trace["enabled"]:
                         dones_flat = dones.reshape(-1)

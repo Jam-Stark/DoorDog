@@ -55,6 +55,9 @@ class A2Base(LeggedRobotBase):
         "ORACLE_TANGENTIAL_ASSIST",
     )
     A2_V23_P08_V2_ROUTE_B_MODES = A2_V23_P08_V2_MODES + ("FULL",)
+    A2_V26_5_CAPTURE_ACTIONS_AFTER_DELAY_REQUEST = (
+        "a2_v26_5_capture_actions_after_delay"
+    )
 
     def __init__(self, config, device):
         self._use_a2_base = bool(config.get("a2_base", {}).get("enabled", False))
@@ -424,6 +427,22 @@ class A2Base(LeggedRobotBase):
         # base + Piper arm + gripper layout consumed by _step_a2_base().
         self.get_a2_high_level_action_layout()
         self._init_a2_v23_p08_v2_action_state()
+        self._a2_v26_5_actions_after_delay_capture = None
+
+    def consume_a2_v26_5_actions_after_delay_capture(self):
+        """Consume the requested current-tick physical action exactly once."""
+
+        captured = self._a2_v26_5_actions_after_delay_capture
+        if captured is None:
+            raise RuntimeError(
+                "v26-5 actions_after_delay capture is missing or was already consumed."
+            )
+        if not bool(torch.all(torch.isfinite(captured)).item()):
+            raise RuntimeError(
+                "v26-5 actions_after_delay capture contains non-finite values."
+            )
+        self._a2_v26_5_actions_after_delay_capture = None
+        return captured
 
     def _init_a2_v23_p08_v2_action_state(self) -> None:
         """Initialize the opt-in P0.8 preformal-v2 forward-action contract."""
@@ -1120,6 +1139,17 @@ class A2Base(LeggedRobotBase):
         return result
 
     def _step_a2_base(self, actor_state):
+        if self._a2_v26_5_actions_after_delay_capture is not None:
+            raise RuntimeError(
+                "v26-5 actions_after_delay capture from the previous tick was not consumed."
+            )
+        capture_actions_after_delay = actor_state.get(
+            self.A2_V26_5_CAPTURE_ACTIONS_AFTER_DELAY_REQUEST, False
+        )
+        if not isinstance(capture_actions_after_delay, bool):
+            raise RuntimeError(
+                "v26-5 actions_after_delay capture request must be bool."
+            )
         actions = actor_state["actions"]
         if actions.shape[-1] != self._a2_high_level_action_dim + self._a2_leg_action_dim:
             raise ValueError(
@@ -1191,6 +1221,26 @@ class A2Base(LeggedRobotBase):
         self._last_a2_arm_actions[:] = arm_actions
 
         self._pre_physics_step(final_actions)
+        if capture_actions_after_delay:
+            actions_after_delay = self.actions_after_delay
+            expected_shape = (self.num_envs, 20)
+            if (
+                not torch.is_tensor(actions_after_delay)
+                or tuple(actions_after_delay.shape) != expected_shape
+                or not torch.is_floating_point(actions_after_delay)
+            ):
+                shape = (
+                    None
+                    if not torch.is_tensor(actions_after_delay)
+                    else tuple(actions_after_delay.shape)
+                )
+                raise RuntimeError(
+                    "v26-5 actions_after_delay capture requires a floating tensor "
+                    f"with shape {expected_shape}; got {shape}."
+                )
+            self._a2_v26_5_actions_after_delay_capture = (
+                actions_after_delay.detach().clone()
+            )
         self._physics_step()
         self._post_physics_step()
 

@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 import torch
 import torch.nn as nn
 from tensordict import TensorDict
@@ -283,7 +285,8 @@ class A2V26_5PolicyResidualRecurrentActor(RecurrentActor):
                 f"residual_hidden_dim must be positive; got {residual_hidden_dim}."
             )
         if (
-            not isinstance(residual_stage_obs_slice, (list, tuple))
+            isinstance(residual_stage_obs_slice, (str, bytes))
+            or not isinstance(residual_stage_obs_slice, Sequence)
             or len(residual_stage_obs_slice) != 2
             or any(isinstance(value, bool) or not isinstance(value, int) for value in residual_stage_obs_slice)
         ):

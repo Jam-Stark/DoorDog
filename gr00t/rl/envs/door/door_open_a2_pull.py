@@ -942,10 +942,14 @@ class DoorOpenA2Pull(DoorPregrasp):
         delta_valid = torch.all(
             torch.abs(d_des) <= float(self.config.delta_action_clip), dim=-1
         )
-        raw_valid = torch.all(
-            torch.abs(converted_joint_raw)
-            <= float(self.config.a2_pull_stage3_taskspace_raw_action_abs_max),
-            dim=-1,
+        raw_valid = (
+            torch.ones(self.num_envs, dtype=torch.bool, device=self.device)
+            if self._a2_pull_stage3_taskspace_side_mode == "bilateral_canonical"
+            else torch.all(
+                torch.abs(converted_joint_raw)
+                <= float(self.config.a2_pull_stage3_taskspace_raw_action_abs_max),
+                dim=-1,
+            )
         )
         finite_valid = (
             torch.all(torch.isfinite(singular_values), dim=-1)

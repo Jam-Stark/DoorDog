@@ -16,7 +16,7 @@ TRAIN_ROOT = ROOT / "logs_rl/a2_piper_pull_lr_full_stage"
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gate", choices=("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"), required=True)
+    parser.add_argument("--gate", choices=("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n"), required=True)
     parser.add_argument("--train-seed", type=int, choices=(0, 1, 2, 3), required=True)
     parser.add_argument("--gpu", type=int, choices=(0, 1, 2, 3), required=True)
     parser.add_argument("--eval-seed", type=int, default=1001)
@@ -61,6 +61,9 @@ def main() -> int:
             str(args.num_envs),
             "--actor-contract",
             (
+                "left_taskspace"
+                if args.gate == "n"
+                else
                 "left_post_e3"
                 if args.gate == "k"
                 else

@@ -1,0 +1,23 @@
+# @package _global_
+# H12: learned handle-frame twist with a fixed DLS arm action executor.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_pose_quality
+  - _self_
+
+checkpoint: REQUIRED_LEFT_STAGE3_TASKSPACE_WARMSTART.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_lr_full_left_stage3_taskspace
+
+algo:
+  config:
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_left_stage3_taskspace_actor.PullV6LeftStage3TaskspaceActor
+  trl:
+    num_total_batches: 75
+
+env:
+  config:
+    a2_pull_stage3_taskspace_action_enabled: true

@@ -9,9 +9,12 @@ from collections import Counter
 from pathlib import Path
 
 import torch
+from isaaclab.controllers import DifferentialIKController, DifferentialIKControllerCfg
 from isaaclab.sensors import ContactSensor, ContactSensorCfg
 from isaaclab.utils.math import (
+    apply_delta_pose,
     axis_angle_from_quat,
+    combine_frame_transforms,
     euler_xyz_from_quat,
     quat_apply,
     quat_apply_inverse,
@@ -61,8 +64,11 @@ from gr00t.rl.envs.door.a2_pull_v0_guard import (
 from gr00t.rl.envs.door.door_open_a2_base import (
     A2_HOLD_OUTCOME_TO_ID,
     DoorPregrasp,
+    a2_hold_absolute_target_to_cumulative_action,
+    a2_hold_apply_source_offset_to_jacobian,
     a2_hold_base_relief_command,
     a2_hold_capture_handoff_relative_orientation,
+    a2_hold_rotate_jacobian_to_root,
     a2_v20_arc_tracking_quality,
     a2_v20_handle_opening_tangent,
     a2_hold_pd_effort_estimates,
@@ -697,6 +703,8 @@ class DoorOpenA2Pull(DoorPregrasp):
 
         if self._is_a2_pull_v6():
             self._a2_pull_v6_pre_action_arm_delta_targets[:] = self._delta_actions
+        if self._a2_pull_stage3_taskspace_action_enabled:
+            actor_state = self._apply_a2_pull_stage3_taskspace_action(actor_state)
         if not self._is_a2_pull_v5():
             return super().step(actor_state)
         enabled = self.config.get("a2_pull_v5_start_override_enabled", False)
@@ -762,6 +770,231 @@ class DoorOpenA2Pull(DoorPregrasp):
         next_actor_state = dict(actor_state)
         next_actor_state["actions"] = applied_actions
         return super().step(next_actor_state)
+
+    def _apply_a2_pull_stage3_taskspace_action(self, actor_state):
+        actions = actor_state["actions"]
+        expected_dim = self._a2_high_level_action_dim + self._a2_leg_action_dim
+        if (
+            not torch.is_tensor(actions)
+            or tuple(actions.shape) != (self.num_envs, expected_dim)
+            or not actions.is_floating_point()
+            or actions.device != torch.device(self.device)
+            or not torch.all(torch.isfinite(actions))
+        ):
+            raise RuntimeError(
+                "Stage3 task-space executor requires finite trainer actions "
+                f"shape ({self.num_envs},{expected_dim}) on {self.device}."
+            )
+        active = (self.door_open_lr == 1.0) & (
+            self.stage_buf == self.STAGE_OPEN
+        )
+        self._a2_pull_stage3_taskspace_active[:] = active
+        self._a2_pull_stage3_taskspace_raw.zero_()
+        self._a2_pull_stage3_taskspace_scaled.zero_()
+        self._a2_pull_stage3_taskspace_joint_raw.zero_()
+        self._a2_pull_stage3_taskspace_predicted_twist.zero_()
+        self._a2_pull_stage3_taskspace_relative_residual.zero_()
+        self._a2_pull_stage3_taskspace_condition.fill_(float("nan"))
+        if not torch.any(active):
+            return actor_state
+
+        arm_slice = slice(5, 11)
+        raw_twist = torch.clamp(actions[:, arm_slice], min=-1.0, max=1.0)
+        scaled_twist = torch.zeros_like(raw_twist)
+        scaled_twist[:, :3] = raw_twist[:, :3] * float(
+            self.config.a2_pull_stage3_taskspace_translation_scale_m
+        )
+        scaled_twist[:, 3:] = raw_twist[:, 3:] * float(
+            self.config.a2_pull_stage3_taskspace_rotation_scale_rad
+        )
+        scaled_twist[~active] = 0.0
+
+        piper = self._get_a2_v20_piper_frame_data(
+            "Stage3 task-space action"
+        )
+        handle_pos_w = piper["target_pos_w"][:, 0, :]
+        handle_quat_w = piper["target_quat_w"][:, 0, :]
+        source_pos_w = piper["source_pos_w"]
+        source_quat_w = piper["source_quat_w"]
+        source_pos_handle, source_quat_handle = subtract_frame_transforms(
+            handle_pos_w,
+            handle_quat_w,
+            source_pos_w,
+            source_quat_w,
+        )
+        target_pos_handle, target_quat_handle = apply_delta_pose(
+            source_pos_handle,
+            source_quat_handle,
+            scaled_twist,
+        )
+        target_pos_w, target_quat_w = combine_frame_transforms(
+            handle_pos_w,
+            handle_quat_w,
+            target_pos_handle,
+            target_quat_handle,
+        )
+
+        robot = self.simulator.scene.articulations["robot"]
+        root_pos_w = robot.data.root_pos_w
+        root_quat_w = robot.data.root_quat_w
+        body_pos_w = robot.data.body_pos_w[:, self._a2_pull_stage3_taskspace_body_id]
+        body_quat_w = robot.data.body_quat_w[:, self._a2_pull_stage3_taskspace_body_id]
+        source_pos_root, source_quat_root = subtract_frame_transforms(
+            root_pos_w, root_quat_w, source_pos_w, source_quat_w
+        )
+        body_pos_root, _ = subtract_frame_transforms(
+            root_pos_w, root_quat_w, body_pos_w, body_quat_w
+        )
+        target_pos_root, target_quat_root = subtract_frame_transforms(
+            root_pos_w, root_quat_w, target_pos_w, target_quat_w
+        )
+        jacobian = robot.root_physx_view.get_jacobians()[
+            :,
+            self._a2_pull_stage3_taskspace_body_id,
+            :,
+            self._a2_pull_stage3_taskspace_jacobian_joint_ids,
+        ]
+        if tuple(jacobian.shape) != (self.num_envs, 6, 6) or not torch.all(
+            torch.isfinite(jacobian)
+        ):
+            raise RuntimeError(
+                "Stage3 task-space executor requires a finite (N,6,6) Jacobian."
+            )
+        jacobian_root = a2_hold_rotate_jacobian_to_root(jacobian, root_quat_w)
+        jacobian_root = a2_hold_apply_source_offset_to_jacobian(
+            jacobian_root, source_pos_root - body_pos_root
+        )
+        singular_values = torch.linalg.svdvals(jacobian_root)
+        condition = singular_values[:, 0] / singular_values[:, -1]
+        command = torch.cat((target_pos_root, target_quat_root), dim=-1)
+        self._a2_pull_stage3_taskspace_controller.set_command(command)
+        joint_ids = self._a2_pull_stage3_taskspace_joint_ids
+        q_current = robot.data.joint_pos[:, joint_ids]
+        q_dls = self._a2_pull_stage3_taskspace_controller.compute(
+            source_pos_root,
+            source_quat_root,
+            jacobian_root,
+            q_current,
+        )
+        if not torch.all(torch.isfinite(q_dls)):
+            raise RuntimeError("Stage3 task-space DLS returned non-finite joint targets.")
+        joint_step_max = float(
+            self.config.a2_pull_stage3_taskspace_joint_step_max_rad
+        )
+        correction = torch.clamp(
+            q_dls - q_current, min=-joint_step_max, max=joint_step_max
+        )
+
+        hard_limits = robot.data.joint_pos_limits[:, joint_ids]
+        soft_limits = robot.data.soft_joint_pos_limits[:, joint_ids]
+        margin = 1.0e-4
+        hard_lower = hard_limits[..., 0] + margin
+        hard_upper = hard_limits[..., 1] - margin
+        soft_lower = soft_limits[..., 0] + margin
+        soft_upper = soft_limits[..., 1] - margin
+        for lower, upper in ((hard_lower, hard_upper), (soft_lower, soft_upper)):
+            correction = torch.where(
+                (q_current < lower) & (correction < 0.0),
+                torch.zeros_like(correction),
+                correction,
+            )
+            correction = torch.where(
+                (q_current > upper) & (correction > 0.0),
+                torch.zeros_like(correction),
+                correction,
+            )
+            inside = (q_current >= lower) & (q_current <= upper)
+            projected = torch.clamp(q_current + correction, min=lower, max=upper)
+            correction = torch.where(inside, projected - q_current, correction)
+        q_target = q_current + correction
+        hard_progress_valid = torch.where(
+            (q_current >= hard_lower) & (q_current <= hard_upper),
+            (q_target >= hard_lower) & (q_target <= hard_upper),
+            torch.where(
+                q_current < hard_lower,
+                q_target >= q_current,
+                q_target <= q_current,
+            ),
+        )
+        soft_progress_valid = torch.where(
+            (q_current >= soft_lower) & (q_current <= soft_upper),
+            (q_target >= soft_lower) & (q_target <= soft_upper),
+            torch.where(
+                q_current < soft_lower,
+                q_target >= q_current,
+                q_target <= q_current,
+            ),
+        )
+        limit_valid = torch.all(
+            hard_progress_valid & soft_progress_valid, dim=-1
+        )
+        q_default = robot.data.default_joint_pos[:, joint_ids]
+        if q_default.shape[0] == 1:
+            q_default = q_default.repeat(self.num_envs, 1)
+        d_des, converted_joint_raw = a2_hold_absolute_target_to_cumulative_action(
+            q_target, q_default, self._delta_actions.clone()
+        )
+        delta_valid = torch.all(
+            torch.abs(d_des) <= float(self.config.delta_action_clip), dim=-1
+        )
+        raw_valid = torch.all(
+            torch.abs(converted_joint_raw)
+            <= float(self.config.a2_pull_stage3_taskspace_raw_action_abs_max),
+            dim=-1,
+        )
+        finite_valid = (
+            torch.all(torch.isfinite(singular_values), dim=-1)
+            & torch.isfinite(condition)
+            & torch.all(torch.isfinite(converted_joint_raw), dim=-1)
+        )
+        invalid = active & ~(
+            finite_valid & limit_valid & delta_valid & raw_valid
+        )
+        if torch.any(invalid):
+            env_ids = torch.where(invalid)[0]
+            raise RuntimeError(
+                "Stage3 task-space executor rejected active rows: "
+                f"env_ids={env_ids.tolist()}, "
+                f"finite_invalid={env_ids[~finite_valid[env_ids]].tolist()}, "
+                f"limit_invalid={env_ids[~limit_valid[env_ids]].tolist()}, "
+                f"delta_invalid={env_ids[~delta_valid[env_ids]].tolist()}, "
+                f"raw_invalid={env_ids[~raw_valid[env_ids]].tolist()}."
+            )
+
+        position_delta_root = target_pos_root - source_pos_root
+        orientation_delta_root = axis_angle_from_quat(
+            quat_mul(target_quat_root, quat_inv(source_quat_root))
+        )
+        commanded_twist_root = torch.cat(
+            (position_delta_root, orientation_delta_root), dim=-1
+        )
+        predicted_twist = torch.bmm(
+            jacobian_root, correction.unsqueeze(-1)
+        ).squeeze(-1)
+        command_norm = torch.linalg.vector_norm(commanded_twist_root, dim=-1)
+        residual = torch.linalg.vector_norm(
+            predicted_twist - commanded_twist_root, dim=-1
+        ) / command_norm.clamp_min(torch.finfo(command_norm.dtype).eps)
+
+        applied_actions = actions.clone()
+        applied_actions[active, arm_slice] = converted_joint_raw[active]
+        self._a2_pull_stage3_taskspace_raw[active] = raw_twist[active]
+        self._a2_pull_stage3_taskspace_scaled[active] = scaled_twist[active]
+        self._a2_pull_stage3_taskspace_joint_raw[active] = converted_joint_raw[active]
+        self._a2_pull_stage3_taskspace_predicted_twist[active] = predicted_twist[active]
+        self._a2_pull_stage3_taskspace_relative_residual[active] = residual[active]
+        self._a2_pull_stage3_taskspace_condition[active] = condition[active]
+        self._a2_pull_stage3_taskspace_action_count[active] += 1
+        self.log_dict["a2_pull_stage3_taskspace_active_count"] = active.float().sum()
+        self.log_dict["a2_pull_stage3_taskspace_nonzero_count"] = (
+            active & (torch.linalg.vector_norm(scaled_twist, dim=-1) > 0.0)
+        ).float().sum()
+        self.log_dict["a2_pull_stage3_taskspace_relative_residual_mean"] = (
+            residual[active].mean()
+        )
+        next_actor_state = dict(actor_state)
+        next_actor_state["actions"] = applied_actions
+        return next_actor_state
 
     @override
     def _check_termination(self):
@@ -1553,6 +1786,91 @@ class DoorOpenA2Pull(DoorPregrasp):
         )
         self._a2_pull_v5_characterization_phase = ["inactive" for _ in range(self.num_envs)]
         self._a2_pull_v5_characterization_trace_rows: list[dict[str, object]] = []
+        self._init_a2_pull_stage3_taskspace_executor()
+
+    def _init_a2_pull_stage3_taskspace_executor(self) -> None:
+        enabled = self.config.get("a2_pull_stage3_taskspace_action_enabled", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError("a2_pull_stage3_taskspace_action_enabled must be bool.")
+        self._a2_pull_stage3_taskspace_action_enabled = enabled
+        if not enabled:
+            return
+        if not self._is_a2_pull_v6():
+            raise RuntimeError("Stage3 task-space actions require the pull-v6 plan.")
+        exact = {
+            "a2_pull_stage3_taskspace_translation_scale_m": 0.008,
+            "a2_pull_stage3_taskspace_rotation_scale_rad": 0.08,
+            "a2_pull_stage3_taskspace_dls_lambda": 0.01,
+            "a2_pull_stage3_taskspace_joint_step_max_rad": 0.05,
+            "a2_pull_stage3_taskspace_raw_action_abs_max": 10.0,
+        }
+        mismatched = {
+            key: (float(self.config[key]), expected)
+            for key, expected in exact.items()
+            if float(self.config[key]) != expected
+        }
+        if mismatched:
+            raise RuntimeError(
+                f"Stage3 task-space executor requires its preregistered tuple: {mismatched}."
+            )
+        robot = self.simulator.scene.articulations["robot"]
+        body_ids, body_names = robot.find_bodies(
+            "arm_body6_to_gripper", preserve_order=True
+        )
+        if len(body_ids) != 1 or body_names != ["arm_body6_to_gripper"]:
+            raise RuntimeError(
+                "Stage3 task-space executor requires exactly one arm_body6_to_gripper."
+            )
+        joint_ids, joint_names = robot.find_joints(
+            [f"arm_j{i}" for i in range(1, 7)], preserve_order=True
+        )
+        if joint_names != [f"arm_j{i}" for i in range(1, 7)]:
+            raise RuntimeError(
+                f"Stage3 task-space executor arm joint order mismatch: {joint_names}."
+            )
+        self._a2_pull_stage3_taskspace_body_id = body_ids[0]
+        self._a2_pull_stage3_taskspace_joint_ids = joint_ids
+        self._a2_pull_stage3_taskspace_jacobian_joint_ids = [
+            joint_id + 6 for joint_id in joint_ids
+        ]
+        self._a2_pull_stage3_taskspace_controller = DifferentialIKController(
+            DifferentialIKControllerCfg(
+                command_type="pose",
+                use_relative_mode=False,
+                ik_method="dls",
+                ik_params={
+                    "lambda_val": self.config[
+                        "a2_pull_stage3_taskspace_dls_lambda"
+                    ]
+                },
+            ),
+            num_envs=self.num_envs,
+            device=self.device,
+        )
+        self._a2_pull_stage3_taskspace_active = torch.zeros(
+            self.num_envs, dtype=torch.bool, device=self.device
+        )
+        self._a2_pull_stage3_taskspace_raw = torch.zeros(
+            self.num_envs, 6, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_stage3_taskspace_scaled = torch.zeros_like(
+            self._a2_pull_stage3_taskspace_raw
+        )
+        self._a2_pull_stage3_taskspace_joint_raw = torch.zeros_like(
+            self._a2_pull_stage3_taskspace_raw
+        )
+        self._a2_pull_stage3_taskspace_predicted_twist = torch.zeros_like(
+            self._a2_pull_stage3_taskspace_raw
+        )
+        self._a2_pull_stage3_taskspace_relative_residual = torch.zeros(
+            self.num_envs, dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_stage3_taskspace_condition = torch.full(
+            (self.num_envs,), float("nan"), dtype=torch.float32, device=self.device
+        )
+        self._a2_pull_stage3_taskspace_action_count = torch.zeros(
+            self.num_envs, dtype=torch.long, device=self.device
+        )
 
     @override
     def _init_a2_door_pregrasp_state(self):
@@ -7786,6 +8104,39 @@ class DoorOpenA2Pull(DoorPregrasp):
                 },
             }
             validate_a2_pull_control_step(record)
+            if self._a2_pull_stage3_taskspace_action_enabled:
+                condition = self._a2_pull_stage3_taskspace_condition[env_id]
+                record["pull_lr_stage3_taskspace_action"] = {
+                    "active": bool(
+                        self._a2_pull_stage3_taskspace_active[env_id].item()
+                    ),
+                    "policy_raw_twist": self._a2_pull_stage3_taskspace_raw[
+                        env_id
+                    ].detach().cpu().tolist(),
+                    "scaled_handle_frame_twist": self._a2_pull_stage3_taskspace_scaled[
+                        env_id
+                    ].detach().cpu().tolist(),
+                    "converted_joint_raw": self._a2_pull_stage3_taskspace_joint_raw[
+                        env_id
+                    ].detach().cpu().tolist(),
+                    "predicted_root_frame_twist": (
+                        self._a2_pull_stage3_taskspace_predicted_twist[env_id]
+                        .detach()
+                        .cpu()
+                        .tolist()
+                    ),
+                    "relative_realization_residual": float(
+                        self._a2_pull_stage3_taskspace_relative_residual[env_id].item()
+                    ),
+                    "jacobian_condition": (
+                        float(condition.item())
+                        if torch.isfinite(condition)
+                        else None
+                    ),
+                    "action_count": int(
+                        self._a2_pull_stage3_taskspace_action_count[env_id].item()
+                    ),
+                }
             if self._is_a2_pull_v6():
                 record["pull_v6"] = {
                     "stage4_subphase": int(self._a2_pull_v6_subphase[env_id].item()),

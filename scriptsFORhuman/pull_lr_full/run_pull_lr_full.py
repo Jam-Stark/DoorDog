@@ -32,6 +32,7 @@ ABLATIONS = {
     "k": "wbmanip/pull_lr_full_left_stage3_post_e3_adapter",
     "l": "wbmanip/pull_lr_full_h10m_pose_probe",
     "m": "wbmanip/pull_lr_full_left_stage3_pose_quality",
+    "n": "wbmanip/pull_lr_full_left_stage3_taskspace",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -43,6 +44,7 @@ ACTOR_CONTRACTS = {
     "left_base_residual": "gr00t.rl.trl.modules.pull_v6_left_stage3_base_residual_actor.PullV6LeftStage3BaseResidualActor",
     "left_nonlinear": "gr00t.rl.trl.modules.pull_v6_left_stage3_nonlinear_adapter_actor.PullV6LeftStage3NonlinearAdapterActor",
     "left_post_e3": "gr00t.rl.trl.modules.pull_v6_left_stage3_post_e3_adapter_actor.PullV6LeftStage3PostE3AdapterActor",
+    "left_taskspace": "gr00t.rl.trl.modules.pull_v6_left_stage3_taskspace_actor.PullV6LeftStage3TaskspaceActor",
 }
 
 

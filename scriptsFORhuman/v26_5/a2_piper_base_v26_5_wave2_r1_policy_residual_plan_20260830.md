@@ -84,3 +84,13 @@ Their registry requires the repaired actor contract: accept a non-string
 `collections.abc.Sequence`, require exactly two true integers, and freeze the
 converted `(127, 133)` slice.  This binds the real Hydra construction shape
 without changing reward, environment, or training semantics.
+
+The r8 dual actor and policy-only actor/RMS load completed, then diagnostic
+initialization established the active reward fact: both O0 control and O1+C2
+dual use `push_door_handle`; O1/C2 changes geometry and actor view only.  The
+former view-specific creation-term assumption is retired.  The fresh r9 roots
+are `logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r9/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r9/`.
+For both K1 views, the trace term is `push_door_handle` and the explicit
+depression/creation scales are both `0.0`.  Each side runs dual first then
+control, retaining the same four paired exact64 comparisons.

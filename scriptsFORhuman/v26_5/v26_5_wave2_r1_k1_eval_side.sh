@@ -16,9 +16,9 @@ case "$view" in
     ;;
   dual)
     selector=wbmanip/base_v26_5_wave2_R1_eval_policy_residual
-    trace_reward_terms='[a2_stage3_handle_creation,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'
+    trace_reward_terms='[push_door_handle,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'
     handle_depression_scale=0.0
-    handle_creation_scale=6.0
+    handle_creation_scale=0.0
     ;;
 esac
 output="$output_root/K1/$view/$label/$side"

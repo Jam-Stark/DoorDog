@@ -311,11 +311,31 @@ def _normalize_eval_checkpoint_load_mode(config):
             "algo.config.eval.a2_v26_5_policy_only_residual must be bool; "
             f"got {v26_5_policy_only_residual!r}."
         )
-    if p06_policy_only and v26_5_policy_only_residual:
+    v26_5_policy_only_identity_control = OmegaConf.select(
+        config,
+        "algo.config.eval.a2_v26_5_policy_only_identity_control",
+        default=False,
+    )
+    if not isinstance(v26_5_policy_only_identity_control, bool):
+        raise ValueError(
+            "algo.config.eval.a2_v26_5_policy_only_identity_control must be bool; "
+            f"got {v26_5_policy_only_identity_control!r}."
+        )
+    if sum(
+        (
+            p06_policy_only,
+            v26_5_policy_only_residual,
+            v26_5_policy_only_identity_control,
+        )
+    ) > 1:
         raise ValueError(
             "Evaluation must select at most one policy-only compatibility contract."
         )
-    if p06_policy_only or v26_5_policy_only_residual:
+    if (
+        p06_policy_only
+        or v26_5_policy_only_residual
+        or v26_5_policy_only_identity_control
+    ):
         if requested_mode != "policy_only":
             raise ValueError(
                 "Policy-only evaluation contract requires checkpoint_load_mode='policy_only'; "

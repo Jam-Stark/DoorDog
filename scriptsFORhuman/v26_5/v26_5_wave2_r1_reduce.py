@@ -9,16 +9,30 @@ from omegaconf import OmegaConf
 
 EPISODES=64; SIDES=("left","right"); TOL=1e-6
 SOURCE="/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
+RECEIPT_SCHEMA="a2_piper_base_v26_5_runtime_load_receipt_v1"
+TRACE_REWARD_TERMS=["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"]
+K1_LOAD_CONTRACT={
+    "control":{"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False,"keyset_contract":"legacy_identity_control_exact","strict":True},
+    "dual":{"a2_v26_5_policy_only_identity_control":False,"a2_v26_5_policy_only_residual":True,"keyset_contract":"legacy_exact_without_residual","strict":False},
+}
 def require(v:bool,m:str)->None:
     if not v: raise RuntimeError(m)
 def load(path:Path)->Any:
     require(path.is_file(),f"missing artifact: {path}"); return json.loads(path.read_text(encoding="utf-8"))
 def finite(v:Any,m:str)->float:
     require(isinstance(v,(int,float)) and not isinstance(v,bool),m); v=float(v); require(math.isfinite(v),m); return v
+def canonical_trace_rows(rows:list[dict[str,Any]],path:Path,env:int)->list[dict[str,Any]]:
+    """Order one env's observed trace window without inventing a global origin."""
+    ordered=sorted(rows,key=lambda row: row.get("step_index",-1)); previous=None
+    for row in ordered:
+        step=row.get("step_index")
+        require(isinstance(step,int) and not isinstance(step,bool) and step>=0 and (previous is None or step==previous+1),f"noncontiguous trace topology env{env}: {path}")
+        previous=step
+    return ordered
 def runtime(path:Path)->dict[str,Any]:
     cfg=OmegaConf.to_container(OmegaConf.load(path/".hydra/runtime_config.yaml"),resolve=False)
-    metrics=load(path/"metrics_eval.json"); records=load(path/"a2_v14_per_env_records.json"); trace=load(path/"stage2_5_step_trace.json"); metadata=load(path/"a2_eval_diagnostic_metadata.json")
-    require(isinstance(cfg,dict) and isinstance(metrics,dict) and isinstance(records,list) and isinstance(trace,list) and isinstance(metadata,dict),f"invalid evidence payload: {path}")
+    metrics=load(path/"metrics_eval.json"); records=load(path/"a2_v14_per_env_records.json"); trace=load(path/"stage2_5_step_trace.json"); metadata=load(path/"a2_eval_diagnostic_metadata.json"); receipt=load(path/"a2_v26_5_runtime_load_receipt.json")
+    require(isinstance(cfg,dict) and isinstance(metrics,dict) and isinstance(records,list) and isinstance(trace,list) and isinstance(metadata,dict) and isinstance(receipt,dict),f"invalid evidence payload: {path}")
     terminal=metrics.get("episode_terminal_diagnostics"); stages=metrics.get("episode_max_stage_reached")
     require(isinstance(terminal,list) and isinstance(stages,list) and len(terminal)==len(stages)==len(records)==EPISODES,f"exact64 terminal evidence absent: {path}")
     terminal_by={}; stage_by={}; record_by={}
@@ -30,17 +44,23 @@ def runtime(path:Path)->dict[str,Any]:
     for i,row in enumerate(trace):
         require(isinstance(row,dict) and row.get("first_episode_active") is True and row.get("episode_index")==0,f"non-natural trace row {i}: {path}"); env=row.get("env_id"); require(isinstance(env,int) and 0<=env<EPISODES,f"invalid trace env: {path}"); traces[env].append(row)
     require(set(terminal_by)==set(record_by)==set(traces)==set(range(EPISODES)),f"non-exact env coverage: {path}")
-    for rows in traces.values():
-        rows.sort(key=lambda row: row.get("step_index",-1)); require(all(row.get("step_index")==i for i,row in enumerate(rows)),f"noncontiguous trace topology: {path}")
-    return {"path":str(path),"config":cfg,"metadata":metadata,"terminal":terminal_by,"stage":stage_by,"records":record_by,"trace":traces}
+    for env,rows in traces.items(): traces[env]=canonical_trace_rows(rows,path,env)
+    return {"path":str(path),"config":cfg,"metadata":metadata,"receipt":receipt,"terminal":terminal_by,"stage":stage_by,"records":record_by,"trace":traces}
 def diff(a:Any,b:Any,label:str)->float:
     if isinstance(a,list): require(isinstance(b,list) and len(a)==len(b),f"shape mismatch {label}"); return max((diff(x,y,label) for x,y in zip(a,b,strict=True)),default=0.0)
     return abs(finite(a,label)-finite(b,label))
 def validate_common(x:dict[str,Any],seed:int,side:str,*,mode:str)->None:
     cfg=x["config"]; env=cfg.get("env",{}).get("config",{}); ev=cfg.get("algo",{}).get("config",{}).get("eval",{})
-    require(cfg.get("checkpoint")==SOURCE and cfg.get("checkpoint_load_mode")==mode and cfg.get("auto_load_latest") is False,f"checkpoint contract: {x['path']}"); require(cfg.get("seed")==seed and cfg.get("num_envs")==EPISODES and ev.get("num_eval_episodes")==EPISODES and ev.get("eval_num_envs_episodes") is True,f"population contract: {x['path']}"); require(env.get("a2_v26_door_open_lr")==side and env.get("a2_v26_side_permutation_seed")==seed and env.get("enable_staged_reset") is False,f"natural side contract: {x['path']}"); require(x["metadata"].get("forced_gripper_close_enabled") is False and x["metadata"].get("stage2_close_gate_forced_gripper_close_enabled") is False,f"intervention contamination: {x['path']}")
+    require(cfg.get("checkpoint")==SOURCE and cfg.get("checkpoint_load_mode")==mode and cfg.get("auto_load_latest") is False,f"checkpoint contract: {x['path']}"); require(cfg.get("seed")==seed and cfg.get("num_envs")==EPISODES and ev.get("num_eval_episodes")==EPISODES and ev.get("eval_num_envs_episodes") is True,f"population contract: {x['path']}"); require(env.get("a2_v26_door_open_lr")==side and env.get("a2_v26_side_permutation_seed")==seed and env.get("enable_staged_reset") is False,f"natural side contract: {x['path']}"); require(x["metadata"].get("diagnostic_trace_enabled") is True and x["metadata"].get("reward_terms")==TRACE_REWARD_TERMS and x["metadata"].get("forced_gripper_close_enabled") is False and x["metadata"].get("stage2_close_gate_forced_gripper_close_enabled") is False,f"diagnostic metadata contract: {x['path']}")
+def validate_k1_runtime_load(x:dict[str,Any],view:str)->None:
+    contract=K1_LOAD_CONTRACT[view]; cfg=x["config"]; ev=cfg.get("algo",{}).get("config",{}).get("eval",{}); receipt=x["receipt"]; path=Path(x["path"]).resolve()
+    require(ev.get("a2_v23_p06_policy_only") is False and ev.get("a2_v26_5_runtime_load_receipt") is True and ev.get("a2_v26_5_policy_only_identity_control") is contract["a2_v26_5_policy_only_identity_control"] and ev.get("a2_v26_5_policy_only_residual") is contract["a2_v26_5_policy_only_residual"],f"{view} policy-only runtime flags: {path}")
+    require(receipt.get("schema")==RECEIPT_SCHEMA and receipt.get("status")=="CHECKPOINT_LOAD_COMPLETED" and receipt.get("invocation_kind")=="eval" and receipt.get("output_root")==str(path) and receipt.get("checkpoint_path")==SOURCE and receipt.get("checkpoint_load_mode")=="policy_only",f"{view} runtime receipt provenance: {path}")
+    actor=receipt.get("actor"); require(isinstance(actor,dict) and actor.get("loaded") is True and actor.get("state_key")=="policy_state_dict" and actor.get("exact_keyset") is True and actor.get("keyset_contract")==contract["keyset_contract"] and actor.get("actor_rms_loaded") is True and actor.get("strict") is contract["strict"],f"{view} runtime actor receipt: {path}")
+    require(actor.get("missing_keys")==[] and actor.get("unexpected_keys")==[],f"{view} runtime actor key mismatch: {path}")
 def k1_pair(control:dict[str,Any],dual:dict[str,Any],seed:int,side:str)->dict[str,Any]:
     validate_common(control,seed,side,mode="policy_only"); validate_common(dual,seed,side,mode="policy_only")
+    validate_k1_runtime_load(control,"control"); validate_k1_runtime_load(dual,"dual")
     cenv=control["config"]["env"]["config"]; denv=dual["config"]["env"]["config"]
     require(cenv.get("a2_v26_5_geometry_target_enabled") is False and cenv.get("a2_v26_4_side_canonicalization_enabled") is False and cenv.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"K1 control factor mismatch: {control['path']}")
     require(denv.get("a2_v26_5_geometry_target_enabled") is True and denv.get("a2_v26_5_actor_gauge_enabled") is True and denv.get("a2_v26_4_side_canonicalization_enabled") is False and denv.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"K1 dual factor mismatch: {dual['path']}")
@@ -68,9 +88,26 @@ def metrics(x:dict[str,Any],seed:int,side:str,checkpoint:Path)->dict[str,Any]:
         sustained+=int(hit)
     return {"checkpoint":str(checkpoint),"K5_episode_count":k5,"Stage3_admission_count":stage3,"contact_stability_steps":{"numerator":stable,"denominator":contact,"rate":None if not contact else stable/contact},"sustained_handle_ge_0_1_current_K5_ge_5":{"predicate":"stage_buf==3 and handle>=0.1 and strict_k5 for five controls","episode_count":sustained},"stage_episode_count":{"stage4":stage4,"stage5":stage5,"goal":goal},"integrity_violations":integrity}
 def main()->None:
-    p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest="mode",required=True); k=sub.add_parser("k1"); k.add_argument("--eval-root",type=Path,required=True); k.add_argument("--output",type=Path,required=True); r=sub.add_parser("r1"); r.add_argument("--eval-root",type=Path,required=True);r.add_argument("--train-root",type=Path,required=True);r.add_argument("--output",type=Path,required=True);a=p.parse_args();require(not a.output.exists(),f"refusing to overwrite reducer: {a.output}")
+    p=argparse.ArgumentParser(description=__doc__); sub=p.add_subparsers(dest="mode",required=True); k=sub.add_parser("k1"); k.add_argument("--eval-root",type=Path,required=True); k.add_argument("--output",type=Path,required=True); r=sub.add_parser("r1"); r.add_argument("--eval-root",type=Path,required=True);r.add_argument("--train-root",type=Path,required=True);r.add_argument("--output",type=Path,required=True);sub.add_parser("topology-proof");a=p.parse_args()
+    if a.mode=="topology-proof":
+        rows=[{"step_index":97},{"step_index":99},{"step_index":98}]
+        require([row["step_index"] for row in canonical_trace_rows(rows,Path("synthetic"),0)]==[97,98,99],"synthetic nonzero-origin topology proof failed")
+        base_cfg={"algo":{"config":{"eval":{"a2_v23_p06_policy_only":False,"a2_v26_5_runtime_load_receipt":True,"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False}}}}
+        base_receipt={"schema":RECEIPT_SCHEMA,"status":"CHECKPOINT_LOAD_COMPLETED","invocation_kind":"eval","output_root":str(Path("synthetic/control").resolve()),"checkpoint_path":SOURCE,"checkpoint_load_mode":"policy_only","actor":{"loaded":True,"state_key":"policy_state_dict","exact_keyset":True,"keyset_contract":"legacy_identity_control_exact","actor_rms_loaded":True,"strict":True,"missing_keys":[],"unexpected_keys":[]}}
+        validate_k1_runtime_load({"path":"synthetic/control","config":base_cfg,"receipt":base_receipt},"control")
+        for field,bad_value in (("a2_v26_5_policy_only_identity_control",False),("receipt.loaded",False)):
+            cfg={"algo":{"config":{"eval":dict(base_cfg["algo"]["config"]["eval"])}}}; receipt={**base_receipt,"actor":dict(base_receipt["actor"])}
+            if field.startswith("receipt"): receipt["actor"]["loaded"]=bad_value
+            else: cfg["algo"]["config"]["eval"][field]=bad_value
+            try: validate_k1_runtime_load({"path":"synthetic/control","config":cfg,"receipt":receipt},"control")
+            except RuntimeError: continue
+            raise RuntimeError(f"synthetic bad {field} receipt/flag was admitted")
+        print("R1_SYNTHETIC_PER_ENV_NONZERO_ORIGIN_TOPOLOGY_PASS")
+        print("R1_SYNTHETIC_BAD_RECEIPT_AND_FLAGS_REJECTED")
+        return
+    require(not a.output.exists(),f"refusing to overwrite reducer: {a.output}")
     if a.mode=="k1":
-        rows={f"seed{s}_{side}":k1_pair(runtime(a.eval_root/"K1"/"control"/f"K1_S{s}"/side),runtime(a.eval_root/"K1"/"dual"/f"K1_S{s}"/side),s,side) for s in (0,1) for side in SIDES}; payload={"schema":"a2_piper_base_v26_5_wave2_r1_k1_reducer_v1","status":"EXPERIMENT_COMPLETE","pairs":rows,"typed_outcome":"K1_IDENTITY_ADMITTED" if all(x["pass"] for x in rows.values()) else "KILL_IDENTITY_NOT_ADMITTED"}
+        rows={f"seed{s}_{side}":k1_pair(runtime(a.eval_root/"K1"/"control"/f"K1_S{s}"/side),runtime(a.eval_root/"K1"/"dual"/f"K1_S{s}"/side),s,side) for s in (0,1) for side in SIDES}; payload={"schema":"a2_piper_base_v26_5_wave2_r1_k1_reducer_v2_per_env_window_topology","status":"EXPERIMENT_COMPLETE","raw_input_root":str(a.eval_root/"K1"),"pairs":rows,"typed_outcome":"K1_IDENTITY_ADMITTED" if all(x["pass"] for x in rows.values()) else "KILL_IDENTITY_NOT_ADMITTED"}
     else:
         formal={};
         for seed in (0,1):

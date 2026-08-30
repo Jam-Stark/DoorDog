@@ -94,3 +94,41 @@ are `logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r9/` and
 For both K1 views, the trace term is `push_door_handle` and the explicit
 depression/creation scales are both `0.0`.  Each side runs dual first then
 control, retaining the same four paired exact64 comparisons.
+
+The r9 K1 GPU receipts passed.  Reducer parser revision
+`v2_per_env_window_topology` records raw input root
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r9/eval/K1/`.
+Diagnostic rows are per-env observed windows, so `step_index` is required to
+be non-negative, unique and contiguous within each env after sorting, but is
+not required to begin at global step zero.  No row is dropped or pooled; the
+same per-env topology is then compared pairwise and the existing `1e-6`
+raw-action threshold remains unchanged.
+
+The r9 raw dry parse passed the repaired per-env topology validation for its
+first control input, then correctly refused the unchanged K1 load-mode gate:
+the command override requested `policy_only`, but the actual control runtime
+config records `checkpoint_load_mode: full`.  The O0A0 selector lacks the
+v26-5 policy-only eval contract, so `eval_agent_trl` normalizes it to full;
+the dual runtime records policy-only.  No `identity_reducer.json` was written,
+and this is not treated as a parser or identity admission result.
+
+The r9 GPU raw evidence remains immutable and has no reducer output.  The
+fresh r10 roots are
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r10/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r10/`.
+K1 control explicitly sets `a2_v26_5_policy_only_identity_control=true` and
+`a2_v26_5_policy_only_residual=false`; dual explicitly sets those values to
+`false` and `true`, respectively.  Both require actual policy-only load mode,
+the v26-5 runtime load receipt, and diagnostic metadata.  The per-env parser
+v2 topology criteria and all identity thresholds are unchanged.
+
+The r10 static registry remains immutable.  The fresh r11 roots are
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r11/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r11/`.
+K1 admission now directly reads every side's runtime load receipt and binds
+its source path, policy-only mode, eval kind, exact output root, and actor
+facts.  Control requires `legacy_identity_control_exact` with strict exact
+keys; dual requires `legacy_exact_without_residual`.  Both require loaded
+actor RMS, no missing/unexpected keys, P06 false, their exact mutually
+exclusive policy-only flags, and diagnostic metadata's registered reward
+terms.  Bad receipt and bad-flag synthetic inputs must fail before admission.

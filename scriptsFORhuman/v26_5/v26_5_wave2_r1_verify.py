@@ -10,7 +10,9 @@ ROOT = Path(__file__).resolve().parents[2]
 ACTOR_SOURCE = ROOT / "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py"
 TRAINER_SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
 EVAL_SOURCE = ROOT / "gr00t/rl/eval_agent_trl.py"
-RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r9"
+K1_SIDE_SCRIPT = ROOT / "scriptsFORhuman/v26_5/v26_5_wave2_r1_k1_eval_side.sh"
+REDUCER_SOURCE = ROOT / "scriptsFORhuman/v26_5/v26_5_wave2_r1_reduce.py"
+RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r11"
 SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 
 def require(value: bool, message: str) -> None:
@@ -25,6 +27,13 @@ def main() -> None:
     p=argparse.ArgumentParser(description=__doc__); p.add_argument("--registry",type=Path,required=True); p.add_argument("--config",action="append",required=True); a=p.parse_args()
     r=json.loads(a.registry.read_text(encoding="utf-8")); require(r.get("schema")=="a2_piper_base_v26_5_wave2_r1_registry_v1" and r.get("status")=="PREREGISTERED_NOT_RUN" and r.get("run_id")==RUN_ID, "R1 registry mismatch")
     k1=r.get("K1",{}); require(k1.get("view_trace_contract")=={"control":{"terms":["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":0.0},"dual":{"terms":["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":0.0}}, "K1 common active-reward trace/scale contract mismatch")
+    require(k1.get("runtime_load_contract")=={"control":{"checkpoint_load_mode":"policy_only","a2_v23_p06_policy_only":False,"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False,"actor_keyset_contract":"legacy_identity_control_exact","actor_strict":True},"dual":{"checkpoint_load_mode":"policy_only","a2_v23_p06_policy_only":False,"a2_v26_5_policy_only_identity_control":False,"a2_v26_5_policy_only_residual":True,"actor_keyset_contract":"legacy_exact_without_residual","actor_strict":False},"receipt_schema":"a2_piper_base_v26_5_runtime_load_receipt_v1","required_artifacts":["a2_v26_5_runtime_load_receipt.json","a2_eval_diagnostic_metadata.json"],"metadata_reward_terms":["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"]}, "K1 runtime load/receipt contract mismatch")
+    k1_side_text=K1_SIDE_SCRIPT.read_text(encoding="utf-8")
+    for required in ("identity_control=true", "residual_policy_only=false", "identity_control=false", "residual_policy_only=true", '++algo.config.eval.a2_v23_p06_policy_only=false ++algo.config.eval.a2_v26_5_policy_only_identity_control="$identity_control" ++algo.config.eval.a2_v26_5_policy_only_residual="$residual_policy_only" ++algo.config.eval.a2_v26_5_runtime_load_receipt=true', "a2_v26_5_runtime_load_receipt.json", "a2_eval_diagnostic_metadata.json"):
+        require(required in k1_side_text, f"K1 control/dual runtime receipt command contract missing: {required}")
+    reducer_text=REDUCER_SOURCE.read_text(encoding="utf-8")
+    for required in ("a2_v26_5_runtime_load_receipt.json", "legacy_identity_control_exact", "legacy_exact_without_residual", "a2_v23_p06_policy_only", "R1_SYNTHETIC_BAD_RECEIPT_AND_FLAGS_REJECTED"):
+        require(required in reducer_text, f"K1 reducer runtime receipt binding missing: {required}")
     require(k1.get("cells")==[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}], "K1 GPU mapping mismatch")
     require(r.get("R1",{}).get("cells")==[{"label":"R1_S0","seed":0,"physical_gpu":4},{"label":"R1_S1","seed":1,"physical_gpu":5}], "R1 GPU mapping mismatch")
     require(r.get("R1",{}).get("actor_hydra_listconfig_contract")=={"selector_value":[127,133],"validator_sequence_type":"collections.abc.Sequence","forbidden_sequence_types":["str","bytes"],"required_length":2,"required_element_type":"int"}, "R1 Hydra ListConfig actor-construction contract mismatch")

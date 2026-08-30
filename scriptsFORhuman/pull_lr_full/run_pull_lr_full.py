@@ -29,6 +29,7 @@ ABLATIONS = {
     "h": "wbmanip/pull_lr_full_left_stage3_nonlinear_adapter",
     "i": "wbmanip/pull_lr_full_left_stage3_tangent_creation",
     "j": "wbmanip/pull_lr_full_left_stage3_e3_snapshot",
+    "k": "wbmanip/pull_lr_full_left_stage3_post_e3_adapter",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -39,6 +40,7 @@ ACTOR_CONTRACTS = {
     "left_residual": "gr00t.rl.trl.modules.pull_v6_left_stage3_obs_residual_actor.PullV6LeftStage3ObsResidualActor",
     "left_base_residual": "gr00t.rl.trl.modules.pull_v6_left_stage3_base_residual_actor.PullV6LeftStage3BaseResidualActor",
     "left_nonlinear": "gr00t.rl.trl.modules.pull_v6_left_stage3_nonlinear_adapter_actor.PullV6LeftStage3NonlinearAdapterActor",
+    "left_post_e3": "gr00t.rl.trl.modules.pull_v6_left_stage3_post_e3_adapter_actor.PullV6LeftStage3PostE3AdapterActor",
 }
 
 

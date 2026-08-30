@@ -1,0 +1,25 @@
+# @package _global_
+# H10: freeze H9 and learn one independent LEFT post-E3 Stage3 recurrent head.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_e3_snapshot
+  - _self_
+
+checkpoint: REQUIRED_LEFT_STAGE3_POST_E3_ADAPTER_WARMSTART.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+experiment_name: pull_lr_full_left_stage3_post_e3_adapter
+
+algo:
+  config:
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_left_stage3_post_e3_adapter_actor.PullV6LeftStage3PostE3AdapterActor
+  trl:
+    num_total_batches: 75
+
+env:
+  config:
+    obs:
+      obs_dict:
+        left_stage3_post_e3_gate_obs: [z_a2_pull_e3_latched]

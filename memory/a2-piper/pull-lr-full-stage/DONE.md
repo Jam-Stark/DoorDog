@@ -15,3 +15,6 @@
 - 2026-08-30 20:32 HKT — H9 256-env×5-batch runtime smoke完成81920 timesteps；聚合日志中LEFT capture/load计数均非零、RIGHT manual count为0，且严格E3/step0/time0 restore validator无错误，技术门通过。
 - 2026-08-30 20:39 HKT — 历史pull-v2重新校准H9预算门：旧成功方向在4.096M与8.192M timesteps仍可E4=0、到12.288M才出现E4；因此H9 batch25只作interim trend screen，不再以零E4单独判死。
 - 2026-08-30 20:58 HKT — H9 batch25 matched screen完成：controls LEFT E3各10/16，treatments为8/16与9/16，四格LEFT E4均0且RIGHT逐pair identical；seed1 treatment出现13步0.02–0.105rad band弱趋势，按历史sample-budget证据同步full-resume到batch75。
+- 2026-08-30 21:03 HKT — 两个ultra lane交叉审议H10：确认LEFT first-E3时已出现约7.6cm TCP-handle偏离、opening alignment约0.57、E3后双指接触中位1步；将SE(3) DLS严格限定为不可promotion的mechanics probe，正式policy候选限定为冻结parent的post-E3独立learned head。
+- 2026-08-30 21:37 HKT — H9 full-resume到global75后仍无LEFT E4/≥0.105rad；treatment pooled hinge≥0.02 episode仅1、低于control 3，RIGHT逐pair identical。H9按中介门关闭，不续200；启动H10 post-E3 phase-separated learned head。
+- 2026-08-30 21:46 HKT — H10 256-env×5-batch smoke完成81920 timesteps；parent29 tensors exact、新post-E3四tensor全部更新、optimizer为20 states/groups[10,10]，LEFT E3 snapshot非零且RIGHT manual为0，技术门通过。

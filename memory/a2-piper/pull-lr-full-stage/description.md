@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-30 20:58 HKT
+last_updated: 2026-08-30 21:46 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -27,6 +27,13 @@ source_of_truth:
   - logs_eval/a2_piper_pull_lr_full_stage/r19_screen_gate_h_s1_step025_evalseed1001_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r19_screen_gate_j_s0_step025_evalseed1001_summary.json
   - logs_eval/a2_piper_pull_lr_full_stage/r19_screen_gate_j_s1_step025_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r15_screen_gate_h_s0_step025_evalseed1001/left/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r15_screen_gate_h_s0_step025_evalseed1001/right/eval/stage2_5_step_trace.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r21_screen_gate_h_s0_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r21_screen_gate_h_s1_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r21_screen_gate_j_s0_step075_evalseed1001_summary.json
+  - logs_eval/a2_piper_pull_lr_full_stage/r21_screen_gate_j_s1_step075_evalseed1001_summary.json
+  - gr00t/rl/config/ablation/wbmanip/pull_lr_full_left_stage3_post_e3_adapter.yaml
 related_entries:
   - ../pull-lr-bilateral-grasp/description.md
   - ../pull-open-door-task/description.md
@@ -36,7 +43,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-30 20:58 HKT)
+## Current evidence (2026-08-30 21:46 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -57,6 +64,10 @@ related_entries:
 - H9回到H7 seed0/1 step25 parent、H7 live-proof reward与同一29-key actor，唯一改变是LEFT Stage3 reset curriculum：抑制普通E2→Stage3 entry snapshot，仅在post-physics最终E3 commit与slip更新后，用`new_E3 & Stage3 & LEFT & ~E4`保存同env状态；RIGHT保留原自动snapshot。加载LEFT Stage3 snapshot时强制验证E3 evidence与归零后的event step/time。256-env×5-batch smoke完成81920 timesteps，聚合日志capture=`55.1719`、loaded=`3.2188`、RIGHT manual=`0`且无validator错误；这是curriculum runtime证据，不是policy/E4证据。matched-pair结果尚未形成。
 - 历史pull-v2同类成功方向在256 env×250/500 batch（4.096M/8.192M timesteps）仍可两个seed均E4=0，到batch750（12.288M）才出现10/16与6/16 E4。当前1024 env×25 batch仅1.6384M，因此H9采用25 interim→75 trend gate→必要时200正式E4门；batch25零E4不再单独构成因果拒绝。
 - H9 batch25四格均完成1.6384M timesteps。control seed0/1 LEFT K5/E2/E3/E4/E5均=`16/16/10/0/0`；E3-snapshot treatment为`16/16/8/0/0`与`16/16/9/0/0`。RIGHT四格均=`15/15/14/12/7`，证明干预side-safe。seed1 treatment有1个episode在0.02–0.105rad band累计13 trace steps、max hinge 0.0288rad，seed0无趋势；按历史预算门将matched pairs保留optimizer/trainer/snapshot bank同步full-resume到global batch75。
+- 独立mechanics分析定位了更窄的中介缺口：H7 seed0首次E3时LEFT/RIGHT的TCP→handle距离中位约`0.0762/0.0162m`、opening alignment约`0.571/0.964`、E3后连续双指接触约`1/308.5` steps、post-E3 hinge max中位约`0.00194/1.0129rad`。LEFT在Stage3 entry尚约`0.0435m/0.926`，说明退化发生在压把手到E3的约9 control steps内；H8 +X tangent reward未修复这一SE(3)偏离。
+- H10内部裁决区分两类证据：live-handle SE(3) DLS若运行，只回答“修正pose-follow是否恢复contact/hinge”的oracle-assisted mechanics问题，不可promotion；正式policy候选才是冻结parent、仅post-E3激活的zero-final独立learned head。两者都只有在H9充分预算失败后才触发。
+- H9 global batch75 screen：control seed0/1 LEFT K5/E2/E3/E4/E5=`16/16/8/0/0`与`16/16/10/0/0`；treatment=`16/16/10/0/0`与`16/16/7/0/0`。RIGHT四格仍=`15/15/14/12/7`。treatment pooled hinge≥0.02rad episode=`1`、control=`3`，四格均无≥0.105rad；H9没有产生paired中介改善，按门关闭且不续batch200。
+- H10当前主轴为正式learned policy：冻结H9/H7 parent29 tensors，只新增raw LEFT Stage3且E3-latched后激活的zero-final recurrent-state head，从参数上分离press与post-E3 control；H9 E3 snapshot curriculum与现有reward保持不变。256-env×5-batch smoke完成81920 timesteps，parent29 exact、新head四tensor全部变化、optimizer仅新head4+critic16、snapshot非零且RIGHT manual为0；技术门通过，正式四格尚无结果。
 
 ## Evidence boundary
 

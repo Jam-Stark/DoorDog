@@ -36,6 +36,9 @@ handle-depression behavior into bilateral policy-generated door opening?
    under one tmux/supervisor receipt on physical GPU7.
 4. Formal step750 evaluation is exact64 natural first episodes for LEFT and
    RIGHT for every formal cell, retaining only `stage2_5_step_trace.json`.
+   Launch evaluation one cell at a time: confirm Isaac startup and the LEFT
+   exact64 lane has begun before launching the next cell; each launched cell
+   then naturally completes LEFT followed by RIGHT in parallel with later cells.
 5. The reducer reports K5, contact, highwater, sustained
    `handle >= .1 && current K5` for five controls and time-to-event, hinge .1/.25,
    Stage4, Stage5 and goal. Contact alone never promotes a factor.

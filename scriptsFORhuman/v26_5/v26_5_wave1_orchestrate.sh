@@ -9,7 +9,7 @@ usage:
   v26_5_wave1_orchestrate.sh smoke --launch
   v26_5_wave1_orchestrate.sh train-cell O1A0_S0|O1A0_S1|O1A1_S0|O1A1_S1 --launch
   v26_5_wave1_orchestrate.sh diagnostic --launch
-  v26_5_wave1_orchestrate.sh formal-eval --launch
+  v26_5_wave1_orchestrate.sh eval-cell O1A0_S0|O1A0_S1|O1A1_S0|O1A1_S1 --launch
   v26_5_wave1_orchestrate.sh reduce
 
 All launch modes create one tmux-backed run_supervisor receipt per physical GPU.
@@ -113,16 +113,24 @@ case ${1:-} in
     printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_diagnostic_serial_gpu7.sh" "$diagnostic_root"
     launch v26_5_wave1_r1_diagnostic_gpu7 7 "$command" "$runtime_logs/diagnostic/GPU7_serial.log" "$diagnostic_root/O0A1_DIAG_R2_C0_S1_STEP0750/right/metrics_eval.json"
     ;;
-  formal-eval)
-    [[ $# -eq 2 && ${2:-} == --launch ]] || { usage >&2; exit 2; }
-    require_static
-    for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_r1_train_${label,,}_attempt2"; done
-    for gpu in 2 4 5 6; do gpu_idle "$gpu"; done
-    for entry in '2 O1A0_S0 O1A0' '4 O1A0_S1 O1A0' '5 O1A1_S0 O1A1' '6 O1A1_S1 O1A1'; do
-      read -r gpu label factor <<<"$entry"; seed=${label##*_S}; checkpoint="$train_root/$label/model_step_000750.pt"; [[ ! -e "$eval_root/${label}_STEP0750" ]] || { echo "formal eval output exists: $label" >&2; exit 1; }
-      printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_eval_cell.sh" "$gpu" "${label}_STEP0750" "$checkpoint" "$eval_root" "$seed" "$factor"
-      launch "v26_5_wave1_r1_eval_${label,,}" "$gpu" "$command" "$runtime_logs/eval/$label.log" "$eval_root/${label}_STEP0750/right/metrics_eval.json"
-    done
+  eval-cell)
+    [[ $# -eq 3 && ${3:-} == --launch ]] || { usage >&2; exit 2; }
+    require_static; require_pass v26_5_wave1_r1_runtime_contract_attempt5
+    label=$2
+    case "$label" in
+      O1A0_S0) gpu=2; factor=O1A0; seed=0 ;;
+      O1A0_S1) gpu=4; factor=O1A0; seed=1 ;;
+      O1A1_S0) gpu=5; factor=O1A1; seed=0 ;;
+      O1A1_S1) gpu=6; factor=O1A1; seed=1 ;;
+      *) usage >&2; exit 2 ;;
+    esac
+    require_pass "v26_5_wave1_r1_train_${label,,}_attempt2"
+    gpu_idle "$gpu"
+    checkpoint="$train_root/$label/model_step_000750.pt"
+    output="$eval_root/${label}_STEP0750"
+    [[ -f "$checkpoint" && ! -e "$output" ]] || { echo "formal checkpoint missing or eval output exists: $label" >&2; exit 1; }
+    printf -v command '%q ' bash "$repo/scriptsFORhuman/v26_5/v26_5_wave1_eval_cell.sh" "$gpu" "${label}_STEP0750" "$checkpoint" "$eval_root" "$seed" "$factor"
+    launch "v26_5_wave1_r1_eval_${label,,}" "$gpu" "$command" "$runtime_logs/eval/$label.log" "$output/right/metrics_eval.json"
     ;;
   reduce)
     [[ $# -eq 1 ]] || { usage >&2; exit 2; }

@@ -453,3 +453,25 @@ dual window is identical, but any unequal window is a typed
 receipts pass, `eval-reduce` loads all eight bilateral full-checkpoint outputs,
 validates R15 shared/full/reseed-off provenance and diagnostics, then applies
 the unchanged R1 fixed-step metrics and step250 route.
+
+### R15 formal execution amendment — full-checkpoint diagnostic term
+
+The original `formal_eval/` step125 attempts for `R15_S0` and `R15_S1` are
+preserved as `FAIL/1` launch evidence. Both full checkpoints loaded, then the
+diagnostic initializer failed before evaluation because the command asked for
+`push_door_handle`, while the restored full reward state has the active,
+non-zero `a2_stage3_handle_creation` term. This is a diagnostic selector
+repair only: formal evaluation now records
+`[a2_stage3_handle_creation, a2_stage3_unlatch_hold, push_door_hinge,
+a2_stage3_stage4_hold_and_drive]`. Policy-only pilot and K1 retain their
+registered `push_door_handle` list.
+
+No reward scale, threshold, axis, checkpoint, trainer, or reducer decision
+route is changed. The non-overwriting retry uses
+`formal_eval_retry1/`, fresh `*_eval_retry1_*` supervisor receipts, fresh
+runtime logs, and writes its reducer to `formal_eval_retry1/reducer.json`.
+Before any retry launch, `preregister-retry1` creates the independent
+`M/static_retry1/` execution-amendment registry and selector contract. It
+records the preserved original registry, fresh output/log roots, supervisor
+name template, formal diagnostic terms, and reducer output; neither this
+contract nor retry artifacts overwrite `M/static/`.

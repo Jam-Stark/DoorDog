@@ -7,6 +7,7 @@ from omegaconf import OmegaConf
 ROOT=Path(__file__).resolve().parents[2];BASE=ROOT/"scriptsFORhuman/v26_5/v26_5_wave2_r1_reduce.py";TOL=1e-6;N=64;STEPS=50
 SOURCE=str(ROOT/"logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt")
 TERMS=["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"]
+FORMAL_TERMS=["a2_stage3_handle_creation","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"]
 DUAL={"base_input_key":"actor_obs","residual_input_key":"residual_actor_obs","base_observation_width":133,"residual_observation_width":133,"base_memory_mlp_frozen":True,"base_std_rms_frozen":True,"residual_action_slice":[5,12],"residual_final_layer_zero":True}
 LOAD={"control":{"loaded":True,"state_key":"policy_state_dict","actor_state_kind":"legacy_identity_control","exact_keyset":True,"keyset_contract":"legacy_identity_control_exact","actor_rms_loaded":True,"strict":True,"missing_keys":[],"unexpected_keys":[]},"dual":{"loaded":True,"state_key":"policy_state_dict","actor_state_kind":"legacy","exact_keyset":True,"keyset_contract":"legacy_exact_without_residual","actor_rms_loaded":True,"strict":False,"missing_keys":["residual_module.0.weight","residual_module.0.bias","residual_module.2.weight","residual_module.2.bias"],"unexpected_keys":[]}}
 def require(v,m):
@@ -74,7 +75,7 @@ def formal_metrics(path,seed,side,checkpoint):
  base=base_module();x=base.runtime(path);cfg=x["config"];env=cfg["env"]["config"];ev=cfg["algo"]["config"]["eval"];receipt=x["receipt"];meta=x["metadata"]
  require(env.get("a2_v26_5_shared_residual_observation_enabled") is True and env.get("a2_v26_5_geometry_target_enabled") is False and ev.get("a2_v26_5_policy_only_residual") is False and ev.get("a2_v26_5_post_construction_reseed") is False and ev.get("a2_v26_5_post_construction_reseed_pilot_trace") is False,"R15 formal shared/full semantics")
  require(receipt.get("schema")=="a2_piper_base_v26_5_runtime_load_receipt_v1" and receipt.get("status")=="CHECKPOINT_LOAD_COMPLETED" and receipt.get("invocation_kind")=="eval" and receipt.get("output_root")==str(path.resolve()) and receipt.get("checkpoint_path")==str(checkpoint) and receipt.get("checkpoint_load_mode")=="full" and receipt.get("actor",{}).get("loaded") is True,"R15 formal runtime load provenance")
- require(meta.get("diagnostic_trace_enabled") is True and meta.get("reward_terms")==TERMS and meta.get("forced_gripper_close_enabled") is False and meta.get("stage2_close_gate_forced_gripper_close_enabled") is False,"R15 formal diagnostic metadata")
+ require(meta.get("diagnostic_trace_enabled") is True and meta.get("reward_terms")==FORMAL_TERMS and meta.get("forced_gripper_close_enabled") is False and meta.get("stage2_close_gate_forced_gripper_close_enabled") is False,"R15 formal diagnostic metadata")
  return base.metrics(x,seed,side,checkpoint)
 def formal(eval_root,train_root):
  rows={}

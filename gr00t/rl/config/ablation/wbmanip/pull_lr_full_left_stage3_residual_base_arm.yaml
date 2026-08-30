@@ -1,0 +1,13 @@
+# @package _global_
+# H4-B: learn base planar x/y/yaw plus the six Piper arm residuals.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_residual
+  - _self_
+
+experiment_name: pull_lr_full_left_stage3_residual_base_arm
+
+algo:
+  config:
+    actor:
+      left_stage3_residual_action_indices: [0, 1, 2, 5, 6, 7, 8, 9, 10]

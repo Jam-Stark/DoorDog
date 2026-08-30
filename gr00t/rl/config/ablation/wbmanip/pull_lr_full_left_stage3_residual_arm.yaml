@@ -1,0 +1,13 @@
+# @package _global_
+# H4-A: learn only the six Piper arm action residuals.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_residual
+  - _self_
+
+experiment_name: pull_lr_full_left_stage3_residual_arm
+
+algo:
+  config:
+    actor:
+      left_stage3_residual_action_indices: [5, 6, 7, 8, 9, 10]

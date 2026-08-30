@@ -16,7 +16,7 @@ TRAIN_ROOT = ROOT / "logs_rl/a2_piper_pull_lr_full_stage"
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--gate", choices=("a", "b", "c"), required=True)
+    parser.add_argument("--gate", choices=("a", "b", "c", "d", "e"), required=True)
     parser.add_argument("--train-seed", type=int, choices=(0, 1, 2, 3), required=True)
     parser.add_argument("--gpu", type=int, choices=(0, 1, 2, 3), required=True)
     parser.add_argument("--eval-seed", type=int, default=1001)
@@ -60,7 +60,7 @@ def main() -> int:
             "--num-envs",
             str(args.num_envs),
             "--actor-contract",
-            "output",
+            "left_residual" if args.gate in {"d", "e"} else "output",
         ]
         print("[pull-lr-full-screen]", " ".join(command), flush=True)
         if args.run:

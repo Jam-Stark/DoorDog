@@ -2,7 +2,7 @@
 name: pull-lr-full-stage
 scope: pull branch current handle 左右镜像 randomization 下的 full Stage3–5 training/eval 与 Stage5/E7 goal qualification
 status: active
-last_updated: 2026-08-30 15:04 HKT
+last_updated: 2026-08-30 16:10 HKT
 read_when:
   - 继续 full pull Stage3–5 的 n1024 retry、screen 或 held-out fixed-side/bilateral eval 前
   - 诊断稳定抓握后 LEFT 下压/解锁失败，或判断 bilateral Stage5/E7 是否达标时
@@ -25,7 +25,7 @@ related_entries:
 
 本 entry 记录当前 handle 左右镜像 randomization 下，从已完成的 Stage0–2 acquisition 向 full Stage3–5 goal qualification 的实验状态。当前仍为 `active`，尚无 bilateral full-goal 或 hardware 通过结论。
 
-## Current evidence (2026-08-30 14:23 HKT)
+## Current evidence (2026-08-30 16:10 HKT)
 
 - r1g fixed-side16、seed0、full gate-A/banks-off 的两个 summary 是当前 full-stage 证据边界。r6an L/R funnel K5,E2,E3,E4,E5,E6,E7 为 `2/11,2/11,1/11,0/10,0/10,0/0,0/0`；bilateral winner 为 `15/16,15/16,2/15,0/14,0/13,0/0,0/0`。
 - bilateral winner 的 raw LEFT handle≥0.3 为 `11/16`，但 handle≥0.6/latch/E3 仅 `2/16`；RIGHT handle≥0.6/latch/E3 为 `15/16`。因此当前主要不对称是 LEFT Stage3 press/unlatch，不是 acquisition/E2；full goal 尚未达成。
@@ -33,8 +33,9 @@ related_entries:
 - 4096-env gate A/B 四个 runs 均精确达到 `2048 LEFT / 2048 RIGHT`，随后在 v6 staged-reset buffer 单次申请 `29.66 GiB` 时 OOM（当前 4×RTX3090、每卡 24 GB）；没有 actor/batch1，也没有 policy verdict。
 - 首轮 n1024 四格均达到 exact `512/512`、strict-load output actor 与 iteration1–2，随后共同暴露 online staged snapshot 保留 donor `first_event_step/time`、在新 episode 时间基准下违反 dependency ordering。当前 fresh rebase retry 只把 snapshot 中已达事件的 step/time 归零，未改 event graph、policy 或 reward，尚无结果。
 - event-time rebase 后四格均完成25/25、每格 `1,638,400` timesteps/`25,600` episodes并保存 step25。r3 fixed-side16 screen pooled：gate A LEFT K5/E2/E3/E4/E5=`32/32/6/0/0`、RIGHT=`31/31/27/25/24`；gate B LEFT=`31/30/4/0/0`、RIGHT=`30/30/30/29/27`。Gate B 只改善 RIGHT、损害 LEFT，已拒绝为主轴。
-- 当前 H3 只在 Stage3 的 E2-latched current K-hold 下延续原 scale6 handle income；hinge income和Stage3→4 gate保持 strict live proof，未添加 action reflection。H3 seeds0–3 已登记，尚无结果。
+- H3 四seed screen：LEFT pooled64 K5/E2/E3/E4/E5=`59/59/4/0/0`、handle≥0.6/latch=`7/7`，低于 Gate-A LEFT pooled32 的 E3=`6`、handle/latch=`7/7`；RIGHT E5略升但acquisition下降。H3按 stopping condition 失败，不续batch。
+- H4 使用 Gate-A seed0/1 step25 parent，只新增 raw LEFT+Stage3 gated、zero-init `Linear(135,6)` arm residual。carrier/RMS/std/base/gripper和RIGHT/非Stage3 mean冻结；smoke3完成1/1且23个original actor tensors逐项exact equal，optimizer actor侧仅residual weight/bias。H4四个正式cell已登记，尚无结果；base+arm variant保持 `NOT_RUN`。
 
 ## Evidence boundary
 
-以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 summary 记录，未将 4096-env OOM 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED/NOT_RUN`：bilateral E7/goal 与 hardware 均未完成或未运行。旧条目中关于 “P not started” 的表述与 pull-v6.1 的 “P population integration was not started” 语义容易混淆；本 entry 只保留当前 n1024 retry 与 held-out qualification TODO，不修改历史条目。
+以上是 `INSPECTED`/`RUNTIME_PASS` 的实现与运行事实；训练结果仅按已生成 summary 记录，未将 infrastructure failure 推断为 policy 失败。当前 completion 为 `NOT_SUPPORTED/NOT_RUN`：bilateral E7/goal 与 hardware 均未完成或未运行。旧条目中关于 “P not started” 的表述与 pull-v6.1 的 “P population integration was not started” 语义容易混淆；本 entry 只保留当前 H4 与 held-out qualification TODO，不修改历史条目。

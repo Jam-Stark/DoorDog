@@ -5,3 +5,4 @@
 - 2026-08-30 14:23 HKT — 记录 full config/source 已落地、4096-env staged-reset OOM 的实际边界，以及 n1024 为当前注册 retry；未将 OOM 写成 policy verdict。
 - 2026-08-30 14:35 HKT — 首轮 n1024 四格均越过内存边界并进入 iteration1–2，随后共同暴露 online staged snapshot 的 donor first-event 时间基准缺陷；记录为 runtime infrastructure failure，无 policy verdict，fresh rebase retry 已登记。
 - 2026-08-30 15:04 HKT — event-time rebase fresh retry 四格均完成25/25并保存 step25；r3 screen确认 Gate B只改善 RIGHT，LEFT E4/E5仍全0，故淘汰 Gate B主轴并登记单一 H3 Stage3 handle-income intervention。
+- 2026-08-30 16:10 HKT — H3四seed screen显示LEFT E3/handle0.6未改善并按stopping condition关闭；H4 arm-only zero-residual smoke3通过strict-load、residual-only optimizer和23-key carrier exact-equality门，正式四cell已登记。

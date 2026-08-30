@@ -22,6 +22,8 @@ ABLATIONS = {
     "a": "wbmanip/pull_lr_full_gate_a",
     "b": "wbmanip/pull_lr_full_gate_b",
     "c": "wbmanip/pull_lr_full_handle_creation",
+    "d": "wbmanip/pull_lr_full_left_stage3_residual_arm",
+    "e": "wbmanip/pull_lr_full_left_stage3_residual_base_arm",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
@@ -29,6 +31,7 @@ ACTOR_CONTRACTS = {
     "source": "gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor.PullV6PostReleaseObsOverrideActor",
     "integrated": "gr00t.rl.trl.modules.pull_v6_post_release_integrated_actor.PullV6PostReleaseIntegratedActor",
     "output": "gr00t.rl.trl.modules.pull_v6_population_output_actor.PullV6PopulationOutputActor",
+    "left_residual": "gr00t.rl.trl.modules.pull_v6_left_stage3_obs_residual_actor.PullV6LeftStage3ObsResidualActor",
 }
 
 

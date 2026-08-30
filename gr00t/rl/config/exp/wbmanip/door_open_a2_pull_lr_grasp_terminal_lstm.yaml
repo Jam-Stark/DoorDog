@@ -1,0 +1,143 @@
+# @package _global_
+# Pull/in bilateral grasp adaptation with the full pull-v6 135-D stage topology.
+
+defaults:
+  - /exp/wbmanip/door_open_a2_pull_lstm
+  - _self_
+
+experiment_name: pull_lr_grasp_terminal
+project_name: a2_piper_pull_lr_grasp
+checkpoint: logs_rl/a2_piper_pull_lr_grasp/warmstarts/pull_v6_F0_r6an_seed3_lr_rms_rebased.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+headless: true
+use_wandb: false
+
+algo:
+  config:
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    entropy_coef: 0.01
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_post_release_integrated_actor.PullV6PostReleaseIntegratedActor
+      freeze_running_mean_std: true
+  trl:
+    num_total_batches: 250
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+env:
+  config:
+    max_episode_length_s: 24
+    max_stage_time: [250, 100, 100, 100, 250, 300]
+    stage_reward_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    completion_stage: 2
+    enable_staged_reset: true
+    staged_reset_ratios: [0.50, 0.25, 0.25, 0.0, 0.0, 0.0]
+    reset_on_complete: true
+    reset_on_complete_delay: 0
+    reset_from_dataset:
+      enabled: false
+
+    # Disable all pull-v6 late-stage semantics. The scalar legacy LR remains
+    # only in A2DoorDirection; actual per-env asset handedness comes from the
+    # common distribution selector below.
+    a2_v20_R1_plan_id: disabled
+    a2_pull_door_open_io: in
+    a2_pull_door_open_lr: right
+    a2_door_open_lr_distribution: bilateral
+    a2_door_open_lr_permutation_seed: 0
+    a2_door_fixture_profile: LIGHT_F0
+    a2_door_weight_range: [90.0, 90.0001]
+    a2_pull_add_walls: false
+    a2_pull_hook_profile: ABSENT
+    a2_pull_friction_profile: RESOLVED_V20_G4
+    a2_pull_finger_profile: V20_G4_45N_KP1300_KD32
+    a2_pull_v6_stage4_bank_enabled: false
+    a2_pull_v61_late_state_bank_enabled: false
+
+    obs:
+      obs_dict:
+        actor_obs: [
+          dof_pos,
+          relative_to_door,
+          dof_vel,
+          actions,
+          projected_gravity,
+          door_dof_pos,
+          base_lin_vel,
+          base_ang_vel,
+          hand_force,
+          stage,
+          privileged_door_info,
+          delta_actions,
+          gripper_handle_transform,
+          a2_base_command_raw,
+          a2_base_command,
+          z_a2_pull_v6_release_mode
+        ]
+        critic_obs: [
+          dof_pos,
+          relative_to_door,
+          dof_vel,
+          actions,
+          projected_gravity,
+          door_dof_pos,
+          base_lin_vel,
+          base_ang_vel,
+          hand_force,
+          stage,
+          privileged_door_info,
+          delta_actions,
+          gripper_handle_transform,
+          a2_base_command_raw,
+          transition,
+          complete,
+          time_in_stage,
+          actual_time_in_stage,
+          total_time,
+          a2_base_command,
+          z_a2_pull_v6_release_mode
+        ]
+
+robot:
+  dof_effort_limit_list: [
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    120.0, 120.0, 180.0,
+    100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 45.0, 45.0
+  ]
+  control:
+    stiffness:
+      arm_j7: 1300.0
+      arm_j8: 1300.0
+    damping:
+      arm_j7: 32.0
+      arm_j8: 32.0
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false
+    sim:
+      physx:
+        num_velocity_iterations: 2
+
+rewards:
+  reward_penalty_curriculum: false
+  reward_scales:
+    push_door_handle: 0.0
+    push_door_hinge: 0.0
+    push_door_force: 0.0
+    pull_door_handle: 0.0
+    pull_door_hinge: 0.0
+    dont_push_door_handle: 0.0
+    target_root_distance: 0.0
+    penalty_standing_still: 0.0

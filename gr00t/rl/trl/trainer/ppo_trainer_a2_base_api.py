@@ -1418,6 +1418,8 @@ def _build_a2_v14_eval_records(eval_dict, seed, expected_num_envs, *, include_m3
             )
 
     metadata_fields = (
+        "door_open_lr",
+        "door_handle_side",
         "door_hinge_drive_max_force",
         "door_handle_drive_max_force",
         "door_handle_height",

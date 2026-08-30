@@ -1,0 +1,12 @@
+# @package _global_
+# Intervention: enter Stage3 at strict K5 grasp, then require E2 before Stage4.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_base
+  - _self_
+
+experiment_name: pull_lr_full_gate_b
+
+env:
+  config:
+    a2_pull_stage2_to3_gate_mode: grasp_completion

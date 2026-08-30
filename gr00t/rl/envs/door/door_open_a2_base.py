@@ -6883,14 +6883,42 @@ class DoorPregrasp(
                 f"A2 door metadata requires door_spawn_hook bool tensor "
                 f"shape ({self.num_envs},) on {self.device}."
             )
+        lr_distribution = self.config.get("a2_door_open_lr_distribution")
+        if lr_distribution is not None:
+            left_count = int((self.door_open_lr == 1.0).sum().item())
+            right_count = int((self.door_open_lr == -1.0).sum().item())
+            expected_counts = {
+                "bilateral": (self.num_envs // 2, self.num_envs // 2),
+                "left": (self.num_envs, 0),
+                "right": (0, self.num_envs),
+            }.get(lr_distribution)
+            if expected_counts is None:
+                raise RuntimeError(
+                    "a2_door_open_lr_distribution must be bilateral, left, or right"
+                )
+            if (left_count, right_count) != expected_counts:
+                raise RuntimeError(
+                    "door LR runtime count mismatch: "
+                    f"mode={lr_distribution!r}, actual={(left_count, right_count)}, "
+                    f"expected={expected_counts}"
+                )
+            self.log_dict["a2_door_left_count"] = (
+                self.door_open_lr == 1.0
+            ).sum().float()
+            self.log_dict["a2_door_right_count"] = (
+                self.door_open_lr == -1.0
+            ).sum().float()
         logger.info(
             "A2 runtime evidence: door metadata validated num_envs={} "
             "hinge_drive_max_force_min={} hinge_drive_max_force_max={} "
-            "door_spawn_hook_true_count={} device={}",
+            "door_spawn_hook_true_count={} door_left_count={} door_right_count={} "
+            "device={}",
             self.num_envs,
             self.door_hinge_drive_max_force.min().item(),
             self.door_hinge_drive_max_force.max().item(),
             int(self.door_spawn_hook.sum().item()),
+            int((self.door_open_lr == 1.0).sum().item()),
+            int((self.door_open_lr == -1.0).sum().item()),
             self.door_hinge_drive_max_force.device,
         )
 
@@ -10209,6 +10237,7 @@ class DoorPregrasp(
         stage1_count = self._a2_stage1_root_height_count
 
         float_fields = {
+            "door_open_lr": self.door_open_lr,
             "door_hinge_drive_max_force": self.door_hinge_drive_max_force,
             "door_handle_drive_max_force": self.door_handle_drive_max_force,
             "door_handle_height": self.door_handle_height,
@@ -10267,7 +10296,8 @@ class DoorPregrasp(
                     f"tensor shape ({self.num_envs},) on {self.device}."
                 )
         if (
-            not torch.all(torch.isfinite(self.door_hinge_drive_max_force))
+            not torch.all(torch.isfinite(self.door_open_lr))
+            or not torch.all(torch.isfinite(self.door_hinge_drive_max_force))
             or not torch.all(torch.isfinite(self.door_handle_drive_max_force))
             or not torch.all(torch.isfinite(self.door_handle_height))
             or not torch.all(torch.isfinite(self.door_weight))
@@ -10291,6 +10321,7 @@ class DoorPregrasp(
         }
         records = []
         for index in range(env_ids.numel()):
+            door_open_lr = float(selected["door_open_lr"][index])
             crossing_is_valid = bool(
                 selected["_a2_crossing_event_valid"][index]
             )
@@ -10306,6 +10337,10 @@ class DoorPregrasp(
             )
             records.append(
                 {
+                    "door_open_lr": door_open_lr,
+                    "door_handle_side": (
+                        "left" if door_open_lr > 0.0 else "right"
+                    ),
                     "door_hinge_drive_max_force": float(
                         selected["door_hinge_drive_max_force"][index]
                     ),
@@ -15008,7 +15043,16 @@ class DoorPregrasp(
                             selected_scenario_values["door_open_lr"][idx]
                         ),
                     },
-                    "pull_evidence_direction": pull_direction_metadata,
+                    "pull_evidence_direction": (
+                        {
+                            **pull_direction_metadata,
+                            "a2_pull_door_open_lr": v14_telemetry_fields[idx][
+                                "door_handle_side"
+                            ],
+                        }
+                        if pull_direction_metadata is not None
+                        else None
+                    ),
                     "root_x_ever_crossed": bool(selected_root_x_ever_crossed[idx]),
                     "root_pos_rel": selected_root_pos_rel[idx],
                     "root_roll": float(selected_root_rpy[idx][0]),
@@ -24281,6 +24325,8 @@ class DoorPregrasp(
         )
 
     def _get_obs_privileged_door_info(self):
+        left = (self.door_open_lr == 1.0).to(dtype=self.door_width.dtype)
+        right = (self.door_open_lr == -1.0).to(dtype=self.door_width.dtype)
         return torch.stack(
             [
                 self.door_width,
@@ -24288,8 +24334,8 @@ class DoorPregrasp(
                 self.door_handle_height,
                 self.door_handle_width,
                 self.door_weight / 100.0,
-                self.door_open_lr,
-                1.0 - self.door_open_lr,
+                left,
+                right,
                 self.door_open_io,
             ],
             dim=1,

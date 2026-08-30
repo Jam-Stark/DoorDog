@@ -1,0 +1,44 @@
+# @package _global_
+# Full bilateral pull training from the confirmed Stage0-2 acquisition policy.
+
+defaults:
+  - /ablation/wbmanip/pull_v6_F0_r6ap
+  - _self_
+
+checkpoint: logs_rl/a2_piper_pull_lr_grasp/pull_lr_grasp_h450_xseg_resume_seed2/model_step_000250.pt
+checkpoint_load_mode: policy_only
+auto_load_latest: false
+seed: 0
+num_envs: 4096
+headless: true
+use_wandb: false
+experiment_name: pull_lr_full_base
+project_name: a2_piper_pull_lr_full_stage
+
+callbacks:
+  model_save:
+    save_frequency: 25
+
+algo:
+  config:
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    load_optimizer: false
+    actor:
+      _target_: gr00t.rl.trl.modules.pull_v6_population_output_actor.PullV6PopulationOutputActor
+  trl:
+    num_total_batches: 25
+
+env:
+  config:
+    completion_stage: 5
+    staged_reset_ratios: [0.50, 0.0, 0.25, 0.25, 0.0, 0.0]
+    a2_door_open_lr_distribution: bilateral
+    a2_door_open_lr_permutation_seed: 0
+    a2_pull_v6_stage4_bank_enabled: false
+
+simulator:
+  config:
+    render_results: false
+    cameras:
+      enable_cameras: false

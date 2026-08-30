@@ -19,11 +19,25 @@ class StagedTaskBase(LeggedRobotBase):
         self.max_stage_time = torch.tensor(
             self.config.max_stage_time, dtype=torch.long, device=self.device
         )  # max time allowed in each stage
-        self.total_stage_time = torch.sum(self.max_stage_time).item()
         self.stage_reward_scale = torch.tensor(
             self.config.stage_reward_scale, dtype=torch.float, device=self.device
         )
         self.num_stages = len(self.max_stage_time)
+        completion_stage = self.config.get("completion_stage", self.num_stages - 1)
+        if (
+            isinstance(completion_stage, bool)
+            or not isinstance(completion_stage, int)
+            or completion_stage < 0
+            or completion_stage >= self.num_stages
+        ):
+            raise ValueError(
+                "completion_stage must be an integer inside the configured stage topology; "
+                f"got {completion_stage!r} for {self.num_stages} stages"
+            )
+        self.completion_stage = completion_stage
+        self.total_stage_time = torch.sum(
+            self.max_stage_time[: self.completion_stage + 1]
+        ).item()
         assert torch.all(self.max_stage_time > 0), "max_stage_time must be greater than 0"
         assert (
             len(self.stage_reward_scale) == self.num_stages
@@ -55,12 +69,12 @@ class StagedTaskBase(LeggedRobotBase):
             else:
                 self.stage_advance_callback_funcs.append(None)
 
-        func_name = f"_stage_{self.num_stages - 1}_to_complete_condition"
+        func_name = f"_stage_{self.completion_stage}_to_complete_condition"
         if hasattr(self, func_name):
             self.stage_complete_cond_func = getattr(self, func_name)
         else:
             raise ValueError(
-                f"Stage {self.num_stages - 1} to complete condition function {func_name} not found"
+                f"Stage {self.completion_stage} to complete condition function {func_name} not found"
             )
 
         self.log_dict["average_stage_reached"] = 0.0
@@ -165,6 +179,8 @@ class StagedTaskBase(LeggedRobotBase):
         # advance stage
         advance_mask = torch.zeros(self.num_envs, dtype=torch.bool, device=self.device)
         for i in range(self.num_stages - 1):
+            if i == self.completion_stage:
+                continue
             advance_cond = self.stage_advance_cond_funcs[i]()
             assert advance_cond.shape == (self.num_envs,)
             assert advance_cond.dtype == torch.bool
@@ -246,20 +262,20 @@ class StagedTaskBase(LeggedRobotBase):
     def _check_termination(self):
         super()._check_termination()
         is_overtime = self.time_in_stage_buf >= self.max_stage_time[self.stage_buf]
-        is_last_stage = self._make_mask(self.num_stages - 1)
+        is_completion_stage = self._make_mask(self.completion_stage)
         is_stage_complete = self.stage_complete_cond_func() & (self.episode_length_buf >= 2)
-        is_complete = is_last_stage & is_stage_complete
+        is_complete = is_completion_stage & is_stage_complete
         assert is_complete.shape == (self.num_envs,)
         assert is_complete.dtype == torch.bool
 
-        is_overtime &= ~(is_last_stage & is_complete)
+        is_overtime &= ~is_complete
 
         if self.config.get("reset_on_overtime", True):
             self._mark_terminal_reason("stage_overtime", is_overtime)
             self.reset_buf |= is_overtime
         self.current_completed_task_buf |= is_complete
 
-        self.current_last_stage_completed_task_buf |= is_complete & is_last_stage
+        self.current_last_stage_completed_task_buf |= is_complete
 
         if self.config.get("reset_on_complete", False):
             delay_time = self.config.get("reset_on_complete_delay", 0)
@@ -318,9 +334,9 @@ class StagedTaskBase(LeggedRobotBase):
 
     def _reward_penalty_overtime(self):
         is_overtime = self.time_in_stage_buf >= self.max_stage_time[self.stage_buf]
-        is_last_stage = self._make_mask(self.num_stages - 1)
+        is_completion_stage = self._make_mask(self.completion_stage)
         is_complete = self.stage_complete_cond_func() & (self.episode_length_buf >= 2)
-        is_overtime &= ~(is_last_stage & is_complete)
+        is_overtime &= ~(is_completion_stage & is_complete)
         return is_overtime.float()
 
     def _reward_time_saving(self):

@@ -31,6 +31,7 @@ env:
     a2_pull_control_proof_monotone_tolerance_m: 0.0005
     a2_pull_control_proof_min_streak_steps: 5
     a2_pull_control_clearance_min_m: 0.02
+    a2_pull_stage2_to3_gate_mode: tensile_proof
 
     a2_door_weight_range: [80.0, 160.0]
     a2_m39_gripper_material_enabled: true

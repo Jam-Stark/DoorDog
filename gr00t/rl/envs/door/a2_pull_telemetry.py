@@ -72,6 +72,11 @@ A2_PULL_CONTROL_STEP_UNITS = {
     "target_tcp_position_error_m": "m",
     "target_tcp_orientation_error_rad": "rad",
     "bilateral_handle_contact": "bool",
+    "tensile_proof_active": "bool",
+    "tensile_proof_duration_s": "s",
+    "tensile_proof_displacement_m": "m",
+    "tensile_proof_streak_steps": "count",
+    "tensile_proof_valid": "bool",
     "hook_contact": "bool_or_N/A",
     "handle_local_slip_xyz_mps": "m/s",
     "gripper_handle_separation_m": "m",
@@ -120,8 +125,8 @@ A2_PULL_V6_CONTROL_EXTENSION_UNITS = {
     "stage4_subphase": "integer",
     "pivot_valid": "bool",
     "pivot_displacement_m": "m_or_N/A",
-    "handle_y_current_m": "m_or_N/A",
-    "handle_y_capture_m": "m_or_N/A",
+    "handle_send_y_current_m": "m_or_N/A",
+    "handle_send_y_capture_m": "m_or_N/A",
     "handle_crossed": "bool",
     "release_side_qualified": "bool",
     "handoff_active": "bool",
@@ -284,6 +289,12 @@ def validate_a2_pull_control_step(record: Mapping[str, Any]) -> None:
         raise ValueError(f"event_state is not a pull-v0 event enum: {record['event_state']!r}.")
     if not isinstance(record["bilateral_handle_contact"], bool):
         raise ValueError("bilateral_handle_contact must be bool.")
+    for field_name in ("tensile_proof_active", "tensile_proof_valid"):
+        if not isinstance(record[field_name], bool):
+            raise ValueError(f"{field_name} must be bool.")
+    proof_streak = record["tensile_proof_streak_steps"]
+    if isinstance(proof_streak, bool) or not isinstance(proof_streak, Integral) or proof_streak < 0:
+        raise ValueError("tensile_proof_streak_steps must be a non-negative integer.")
     if record["hook_contact"] != A2_PULL_NA and not isinstance(record["hook_contact"], bool):
         raise ValueError("hook_contact must be bool or 'N/A'.")
     clearance = record["minimum_panel_robot_clearance_m"]
@@ -314,6 +325,8 @@ def validate_a2_pull_control_step(record: Mapping[str, Any]) -> None:
         "stage",
         "event_state",
         "bilateral_handle_contact",
+        "tensile_proof_active",
+        "tensile_proof_valid",
         "hook_contact",
         "handle_local_slip_xyz_mps",
         "finger_pd_effort_estimate_N",

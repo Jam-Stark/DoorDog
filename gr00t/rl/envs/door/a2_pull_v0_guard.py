@@ -1212,7 +1212,7 @@ def validate_a2_pull_v6_guard(
         if isinstance(value, bool) or not isinstance(value, Real) or not math.isfinite(float(value)) or (key != "a2_pull_v6_target_handle_y_m" and float(value) <= 0.0):
             raise RuntimeError(f"Pull-v6 config.{key} must be finite and positive except signed target Y; got {value!r}.")
     if float(_mapping_item(config, "a2_pull_v6_target_handle_y_m", "Pull-v6 config")) >= 0.0:
-        raise RuntimeError("Pull-v6 target handle Y must be negative (trunk right side).")
+        raise RuntimeError("Pull-v6 target handle Y must be negative in the side-canonical send frame.")
     if float(_mapping_item(config, "a2_pull_v6_release_min_arm_tangent_share", "Pull-v6 config")) > 1.0:
         raise RuntimeError("Pull-v6 release minimum arm tangent share must lie in (0, 1].")
     _require_exact_numeric_sequence(config, "a2_door_weight_range", (90.0, 90.0001))

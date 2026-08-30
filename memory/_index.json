@@ -1,0 +1,137 @@
+{
+  "generated_at": "2026-08-29T23:20:36+00:00",
+  "entries": [
+    {
+      "path": "memory/a2-piper/base-v21b-ablation/description.md",
+      "route": "memory/a2-piper/base-v21b-ablation",
+      "title": "base-v21b-ablation",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/door-asset-openio-sign/description.md",
+      "route": "memory/a2-piper/door-asset-openio-sign",
+      "title": "door-asset-openio-sign",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/door-asset-randomization-baseline/description.md",
+      "route": "memory/a2-piper/door-asset-randomization-baseline",
+      "title": "door-asset-randomization-baseline",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/doorman-door-training-goal/description.md",
+      "route": "memory/a2-piper/doorman-door-training-goal",
+      "title": "doorman-door-training-goal",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/log-layout/description.md",
+      "route": "memory/a2-piper/log-layout",
+      "title": "a2-piper-log-layout",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/phase2-student-distillation-a2-piper/description.md",
+      "route": "memory/a2-piper/phase2-student-distillation-a2-piper",
+      "title": "phase2-student-distillation-a2-piper",
+      "status": "TRAINING_PASS"
+    },
+    {
+      "path": "memory/a2-piper/phase3-student-bootstrapping/description.md",
+      "route": "memory/a2-piper/phase3-student-bootstrapping",
+      "title": "phase3-student-bootstrapping",
+      "status": "planned"
+    },
+    {
+      "path": "memory/a2-piper/pull-lr-bilateral-grasp/description.md",
+      "route": "memory/a2-piper/pull-lr-bilateral-grasp",
+      "title": "pull-lr-bilateral-grasp",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/pull-open-door-task/description.md",
+      "route": "memory/a2-piper/pull-open-door-task",
+      "title": "pull-open-door-task",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/push-open-door-optimization/description.md",
+      "route": "memory/a2-piper/push-open-door-optimization",
+      "title": "push-open-door-optimization",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/quicktest-merge/description.md",
+      "route": "memory/a2-piper/quicktest-merge",
+      "title": "quicktest-merge",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/reward-implementation-goal/description.md",
+      "route": "memory/a2-piper/reward-implementation-goal",
+      "title": "reward-implementation-goal",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/stage0-2-grasp-terminal/description.md",
+      "route": "memory/a2-piper/stage0-2-grasp-terminal",
+      "title": "stage0-2-grasp-terminal",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/static-visual-alignment/description.md",
+      "route": "memory/a2-piper/static-visual-alignment",
+      "title": "static-visual-alignment",
+      "status": "active"
+    },
+    {
+      "path": "memory/a2-piper/worktree-routing/description.md",
+      "route": "memory/a2-piper/worktree-routing",
+      "title": "worktree-routing",
+      "status": "active"
+    },
+    {
+      "path": "memory/agent-system/architecture/description.md",
+      "route": "memory/agent-system/architecture",
+      "title": "codex-agent-system-architecture",
+      "status": "adaptive_v1_3_static_pass_runtime_not_run"
+    },
+    {
+      "path": "memory/agent-system/runtime-compatibility/description.md",
+      "route": "memory/agent-system/runtime-compatibility",
+      "title": "codex-agent-runtime-compatibility",
+      "status": "current_schema_static_pass_luna_user_confirmed"
+    },
+    {
+      "path": "memory/origin-reference/assets-and-data/description.md",
+      "route": "memory/origin-reference/assets-and-data",
+      "title": "assets-and-data",
+      "status": "active"
+    },
+    {
+      "path": "memory/origin-reference/documentation-truth-map/description.md",
+      "route": "memory/origin-reference/documentation-truth-map",
+      "title": "documentation-truth-map",
+      "status": "active"
+    },
+    {
+      "path": "memory/origin-reference/door-workflows/description.md",
+      "route": "memory/origin-reference/door-workflows",
+      "title": "door-workflows",
+      "status": "active"
+    },
+    {
+      "path": "memory/origin-reference/repo-baseline/description.md",
+      "route": "memory/origin-reference/repo-baseline",
+      "title": "repo-baseline",
+      "status": "active"
+    },
+    {
+      "path": "memory/origin-reference/runtime-environment/description.md",
+      "route": "memory/origin-reference/runtime-environment",
+      "title": "runtime-environment",
+      "status": "active"
+    }
+  ]
+}

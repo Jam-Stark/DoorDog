@@ -206,7 +206,15 @@ def _get_task_obj_cfg_dict_for_door_eval(task_module, env_config, num_envs):
     weight_key = "a2_door_weight_range"
     pair_key = "a2_eval_door_handle_height_weight_pairs"
     pull_io_key = "a2_pull_door_open_io"
-    if weight_key in env_config or pair_key in env_config or pull_io_key in env_config:
+    lr_distribution_key = "a2_door_open_lr_distribution"
+    fixture_profile_key = "a2_door_fixture_profile"
+    if (
+        weight_key in env_config
+        or pair_key in env_config
+        or pull_io_key in env_config
+        or lr_distribution_key in env_config
+        or fixture_profile_key in env_config
+    ):
         hook_name = "get_TaskObjCfgDict_for_door_config"
         hook = getattr(task_module, hook_name, None)
         if not callable(hook):

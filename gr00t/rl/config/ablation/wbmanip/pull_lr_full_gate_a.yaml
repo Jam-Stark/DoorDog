@@ -1,0 +1,12 @@
+# @package _global_
+# Control: require the historical Stage2 tensile proof before entering Stage3.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_base
+  - _self_
+
+experiment_name: pull_lr_full_gate_a
+
+env:
+  config:
+    a2_pull_stage2_to3_gate_mode: tensile_proof

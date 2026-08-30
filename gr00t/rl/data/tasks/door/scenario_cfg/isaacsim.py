@@ -338,6 +338,72 @@ def _apply_door_open_io(base_task_obj_cfg_dict: dict, door_open_io: str) -> dict
     return result
 
 
+def _apply_door_open_lr_distribution(
+    base_task_obj_cfg_dict: dict,
+    *,
+    num_envs: int,
+    distribution: str,
+    permutation_seed: int,
+) -> dict:
+    """Materialize an exact per-environment LR distribution without changing IO."""
+
+    if distribution not in ("bilateral", "left", "right"):
+        raise ValueError(
+            "a2_door_open_lr_distribution must be 'bilateral', 'left', or 'right'; "
+            f"got {distribution!r}"
+        )
+    if isinstance(num_envs, bool) or not isinstance(num_envs, int) or num_envs <= 0:
+        raise ValueError("door LR distribution requires a positive integer num_envs")
+    if isinstance(permutation_seed, bool) or not isinstance(permutation_seed, int):
+        raise TypeError("a2_door_open_lr_permutation_seed must be an integer")
+    if distribution == "bilateral" and num_envs % 2 != 0:
+        raise ValueError("bilateral door LR distribution requires an even num_envs")
+
+    door_cfg = base_task_obj_cfg_dict.get("door")
+    if not isinstance(door_cfg, ArticulationCfg):
+        raise TypeError("door LR distribution requires an ArticulationCfg door")
+    spawn_cfg = door_cfg.spawn
+    if (
+        not isinstance(spawn_cfg, sim_utils.MultiAssetSpawnerCfg)
+        or not isinstance(spawn_cfg.assets_cfg, list)
+        or not spawn_cfg.assets_cfg
+    ):
+        raise TypeError(
+            "door LR distribution requires non-empty MultiAssetSpawnerCfg assets"
+        )
+
+    if distribution == "bilateral":
+        sides = np.asarray(
+            ["left"] * (num_envs // 2) + ["right"] * (num_envs // 2),
+            dtype=object,
+        )
+        sides = sides[
+            np.random.default_rng(permutation_seed).permutation(num_envs)
+        ].tolist()
+    else:
+        sides = [distribution] * num_envs
+
+    variants = []
+    for env_id, side in enumerate(sides):
+        asset_cfg = spawn_cfg.assets_cfg[env_id % len(spawn_cfg.assets_cfg)]
+        if not isinstance(asset_cfg, DoorSpawnerCfg):
+            raise TypeError(
+                f"door LR distribution asset {env_id} must be DoorSpawnerCfg"
+            )
+        variants.append(
+            asset_cfg.replace(
+                door_open_lr=[side],
+                rand_door_open_lr=side,
+            )
+        )
+
+    result = dict(base_task_obj_cfg_dict)
+    result["door"] = door_cfg.replace(
+        spawn=spawn_cfg.replace(assets_cfg=variants, random_choice=False)
+    )
+    return result
+
+
 def _apply_pull_p1_central_fixture(
     base_task_obj_cfg_dict: dict,
     *,
@@ -703,7 +769,13 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
     """Compose explicit version selectors with the deterministic eval height hook."""
     if isinstance(env_config, (str, bytes)) or not hasattr(env_config, "__contains__"):
         raise TypeError("env_config must be a mapping-like configuration")
+    lr_distribution_key = "a2_door_open_lr_distribution"
+    lr_seed_key = "a2_door_open_lr_permutation_seed"
     if env_config.get("a2_v21B_signed_probe_scenarios_enabled") is True:
+        if lr_distribution_key in env_config:
+            raise ValueError(
+                "door LR distribution cannot be combined with a v21-B scenario manifest"
+            )
         return get_TaskObjCfgDict_for_v21B_scenario_manifest(num_envs, env_config)
     height_grid_key = "a2_eval_door_handle_height_linspace"
     height_weight_pairs_key = "a2_eval_door_handle_height_weight_pairs"
@@ -723,7 +795,16 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
         if env_config["a2_pull_hook_profile"] == "STOCHASTIC_BASELINE":
             _validate_pull_p2_stochastic_baseline_bindings(env_config, central_fixture)
         result = _apply_pull_hook_profile(result, env_config["a2_pull_hook_profile"])
-    if env_config.get("a2_v20_R1_plan_id") == _PULL_V6_PLAN_ID:
+    fixture_profile = env_config.get("a2_door_fixture_profile")
+    if fixture_profile is not None and fixture_profile != "LIGHT_F0":
+        raise ValueError(
+            "a2_door_fixture_profile must be 'LIGHT_F0' when configured; "
+            f"got {fixture_profile!r}"
+        )
+    if (
+        env_config.get("a2_v20_R1_plan_id") == _PULL_V6_PLAN_ID
+        or fixture_profile == "LIGHT_F0"
+    ):
         result = _apply_pull_v6_f0_fixture(result)
     if central_fixture:
         result = _apply_pull_p1_central_fixture(result, num_envs=num_envs)
@@ -738,6 +819,17 @@ def get_TaskObjCfgDict_for_door_config(num_envs: int, env_config) -> dict:
             num_envs,
             env_config[height_grid_key],
             task_obj_cfg_dict=result,
+        )
+    if lr_distribution_key in env_config:
+        if lr_seed_key not in env_config:
+            raise ValueError(
+                f"{lr_distribution_key} requires {lr_seed_key}"
+            )
+        result = _apply_door_open_lr_distribution(
+            result,
+            num_envs=num_envs,
+            distribution=env_config[lr_distribution_key],
+            permutation_seed=env_config[lr_seed_key],
         )
     return result
 door_spawner_cfg = DoorSpawnerCfg(

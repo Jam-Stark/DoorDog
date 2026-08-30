@@ -10,7 +10,9 @@ from gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor import (
 class PullV6PostReleaseIntegratedActor(PullV6PostReleaseObsOverrideActor):
     """Train the existing carrier, release means, D override, and action std together."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self, *args, freeze_running_mean_std: bool = True, **kwargs
+    ) -> None:
         super().__init__(*args, **kwargs)
         for parameter in self.memory.parameters():
             parameter.requires_grad_(True)
@@ -21,4 +23,7 @@ class PullV6PostReleaseIntegratedActor(PullV6PostReleaseObsOverrideActor):
             parameter.requires_grad_(True)
         self.std.requires_grad_(True)
         if self.running_mean_std is not None:
-            self.running_mean_std.freeze()
+            if freeze_running_mean_std:
+                self.running_mean_std.freeze()
+            else:
+                self.running_mean_std.unfreeze()

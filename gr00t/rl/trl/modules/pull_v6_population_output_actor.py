@@ -10,7 +10,13 @@ from gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor import (
 class PullV6PopulationOutputActor(PullV6PostReleaseObsOverrideActor):
     """Train policy outputs and mode heads while preserving the learned LSTM state map."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(
+        self, *args, freeze_running_mean_std: bool = True, **kwargs
+    ) -> None:
+        if freeze_running_mean_std is not True:
+            raise ValueError(
+                "PullV6PopulationOutputActor requires freeze_running_mean_std=true."
+            )
         super().__init__(*args, **kwargs)
         for parameter in self.actor_module.parameters():
             parameter.requires_grad_(True)

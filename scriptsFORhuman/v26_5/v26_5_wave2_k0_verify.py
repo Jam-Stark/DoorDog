@@ -64,6 +64,8 @@ def main() -> None:
             "env.config.a2_v26_4_side_canonicalization_enabled": False,
             "env.config.a2_v26_5_geometry_target_enabled": False,
             "env.config.a2_v26_5_stage3_delta_rebase_enabled": False,
+            "env.config.a2_v26_2_handle_depression_scale": 0.0,
+            "env.config.a2_v26_3_handle_creation_scale": 0.0,
         }
         for key, value in expected.items():
             require(table.get(key) == value, f"{label} violates K0 selector field {key}: {table.get(key)!r}")

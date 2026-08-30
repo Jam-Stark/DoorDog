@@ -8,3 +8,8 @@ v26_schema: a2_piper_base_v26_5_wave2_k0_eval_o0a0_v1
 v26_phase: V26_5_WAVE2_K0_SOURCE_CONTROL
 v26_cell: V26_5_WAVE2_K0_CONT_STEP2000_O0A0_S0
 v26_5_wave2_plan_id: base_v26_5_wave2_identity_20260830
+
+env:
+  config:
+    a2_v26_2_handle_depression_scale: 0.0
+    a2_v26_3_handle_creation_scale: 0.0

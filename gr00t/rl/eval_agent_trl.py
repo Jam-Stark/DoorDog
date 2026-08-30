@@ -811,6 +811,19 @@ def main(override_config: OmegaConf):
         callbacks.append(instantiate(callback))
 
     # --- Build trainer (loads checkpoint weights) ---
+    post_construction_reseed = config.algo.config.get("eval", {}).get(
+        "a2_v26_5_post_construction_reseed", False
+    )
+    if not isinstance(post_construction_reseed, bool):
+        raise RuntimeError(
+            "algo.config.eval.a2_v26_5_post_construction_reseed must be bool; "
+            f"got {post_construction_reseed!r}."
+        )
+    if post_construction_reseed and config.trainer["_target_"] != _A2_BASE_API_TRAINER_TARGET:
+        raise RuntimeError(
+            "algo.config.eval.a2_v26_5_post_construction_reseed requires the A2_Base trainer."
+        )
+
     checkpoint_load_kwargs = {}
     if config.trainer["_target_"] == _A2_BASE_API_TRAINER_TARGET:
         checkpoint_load_kwargs["checkpoint_load_mode"] = config.checkpoint_load_mode
@@ -818,6 +831,11 @@ def main(override_config: OmegaConf):
             Path(config.eval_output_dir).resolve()
         )
         checkpoint_load_kwargs["a2_v26_5_runtime_load_receipt_kind"] = "eval"
+        if post_construction_reseed:
+            checkpoint_load_kwargs[
+                "a2_v26_5_post_construction_reseed_output_dir"
+            ] = str(Path(config.eval_output_dir).resolve())
+            checkpoint_load_kwargs["a2_v26_5_post_construction_reseed_kind"] = "eval"
 
     trainer = custom_instantiate(
         config.trainer,
@@ -901,6 +919,14 @@ def main(override_config: OmegaConf):
         exit()
 
     # --- Run evaluation ---
+    if post_construction_reseed:
+        from isaaclab.utils.seed import configure_seed
+
+        configured_seed = configure_seed(config.seed)
+        trainer.install_a2_v26_5_post_construction_reseed_facts(
+            seed=config.seed,
+            configured_seed=configured_seed,
+        )
     trainer.eval()
     _finalize_p2_eval_if_enabled(config, env)
     logger.info("Finished evaluation")

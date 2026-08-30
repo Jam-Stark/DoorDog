@@ -78,6 +78,36 @@ _A2_V23_RP0_EFFECTIVE_CONFIG_SCHEMA = "a2_piper_v23_p07_effective_config_v1"
 _A2_V23_RP0_EFFECTIVE_CONFIG_FILENAME = "a2_v23_p07_effective_config.json"
 _A2_V26_5_RUNTIME_LOAD_RECEIPT_SCHEMA = "a2_piper_base_v26_5_runtime_load_receipt_v1"
 _A2_V26_5_RUNTIME_LOAD_RECEIPT_FILENAME = "a2_v26_5_runtime_load_receipt.json"
+_A2_V26_5_POST_CONSTRUCTION_RESEED_RECEIPT_SCHEMA = (
+    "a2_piper_base_v26_5_post_construction_reseed_receipt_v1"
+)
+_A2_V26_5_POST_CONSTRUCTION_RESEED_RECEIPT_FILENAME = (
+    "a2_v26_5_post_construction_reseed_receipt.json"
+)
+_A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_SCHEMA = (
+    "a2_piper_base_v26_5_post_construction_reseed_trace_v1"
+)
+_A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_FILENAME = (
+    "a2_v26_5_post_construction_reseed_trace.json"
+)
+_A2_V26_5_POST_CONSTRUCTION_RESEED_PHASE = "POST_CONSTRUCTION_PRE_FIRST_RESET"
+_A2_V26_5_POST_CONSTRUCTION_RESEED_GENERATORS = (
+    "python",
+    "numpy",
+    "torch_cpu",
+    "torch_cuda_current",
+    "torch_cuda_all",
+    "warp",
+)
+_A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS = 64
+_A2_V26_5_POST_CONSTRUCTION_RESEED_ACTOR_OBS_DIM = 133
+_A2_V26_5_POST_CONSTRUCTION_RESEED_CONTROL_STEPS = 50
+_A2_V26_5_POST_CONSTRUCTION_RESEED_RESIDUAL_LEGACY_MISSING_KEYS = (
+    "residual_module.0.weight",
+    "residual_module.0.bias",
+    "residual_module.2.weight",
+    "residual_module.2.bias",
+)
 _A2_V23_RP0_RUNTIME_MASK_INDICES = (3, 4)
 _A2_V23_RP0_RUNTIME_NEUTRAL = 0.0
 _A2_V23_D1_RAW_SCHEMA = "a2_piper_v23_d1_full_64x10_raw_v1"
@@ -3737,6 +3767,8 @@ class TRLPPOTrainer(PPOTrainer):
         workflow_config=None,
         a2_v26_5_runtime_load_receipt_output_dir=None,
         a2_v26_5_runtime_load_receipt_kind=None,
+        a2_v26_5_post_construction_reseed_output_dir=None,
+        a2_v26_5_post_construction_reseed_kind=None,
     ) -> None:
         self.checkpoint_load_mode = validate_checkpoint_load_mode(checkpoint_load_mode)
         self.checkpoint_path = (
@@ -3749,6 +3781,17 @@ class TRLPPOTrainer(PPOTrainer):
             a2_v26_5_runtime_load_receipt_output_dir
         )
         self._a2_v26_5_runtime_load_receipt_kind = a2_v26_5_runtime_load_receipt_kind
+        self._a2_v26_5_post_construction_reseed_output_dir = (
+            a2_v26_5_post_construction_reseed_output_dir
+        )
+        self._a2_v26_5_post_construction_reseed_kind = (
+            a2_v26_5_post_construction_reseed_kind
+        )
+        self._a2_v26_5_post_construction_reseed_facts = None
+        self._a2_v26_5_post_construction_reseed_consumed = False
+        self._a2_v26_5_post_construction_reseed_receipt_written = False
+        self._a2_v26_5_post_construction_reseed_first_policy_rollout = False
+        self._a2_v26_5_post_construction_reseed_actor_load_facts = None
         self._v21b_training_identity = None
         if self.checkpoint_load_mode == "policy_only" and not checkpoint:
             raise ValueError(
@@ -3814,6 +3857,9 @@ class TRLPPOTrainer(PPOTrainer):
         )
         self._a2_v26_5_runtime_load_receipt_config = (
             self._resolve_a2_v26_5_runtime_load_receipt_config()
+        )
+        self._a2_v26_5_post_construction_reseed_config = (
+            self._resolve_a2_v26_5_post_construction_reseed_config()
         )
 
         if checkpoint is not None:
@@ -5095,6 +5141,421 @@ class TRLPPOTrainer(PPOTrainer):
             payload["optimizer_parameter_partition"] = (
                 self._a2_v26_5_runtime_optimizer_facts()
             )
+        with output_path.open("x", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+
+    def _resolve_a2_v26_5_post_construction_reseed_config(self):
+        """Resolve the eval-only r14 reseed contract before evaluation starts."""
+
+        eval_config = self.config.get("eval", {})
+        if not isinstance(eval_config, (Mapping, dict, ListConfig)):
+            raise RuntimeError("algo.config.eval must be a mapping when present.")
+        enabled = eval_config.get("a2_v26_5_post_construction_reseed", False)
+        if not isinstance(enabled, bool):
+            raise RuntimeError(
+                "algo.config.eval.a2_v26_5_post_construction_reseed must be bool; "
+                f"got {enabled!r}."
+            )
+        pilot_trace = eval_config.get(
+            "a2_v26_5_post_construction_reseed_pilot_trace", False
+        )
+        if not isinstance(pilot_trace, bool):
+            raise RuntimeError(
+                "algo.config.eval.a2_v26_5_post_construction_reseed_pilot_trace must be bool; "
+                f"got {pilot_trace!r}."
+            )
+        if pilot_trace and not enabled:
+            raise RuntimeError(
+                "v26-5 post-construction reseed pilot trace requires "
+                "a2_v26_5_post_construction_reseed=true."
+            )
+        if not enabled:
+            return None
+        if self._a2_v26_5_post_construction_reseed_kind != "eval":
+            raise RuntimeError(
+                "v26-5 post-construction reseed is eval-only; "
+                f"got invocation kind {self._a2_v26_5_post_construction_reseed_kind!r}."
+            )
+        if isinstance(self.local_seed, bool) or not isinstance(self.local_seed, int):
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires an integer evaluation seed; "
+                f"got {self.local_seed!r}."
+            )
+        if int(self.accelerator.num_processes) != 1:
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires single-process evaluation; "
+                f"got world_size={self.accelerator.num_processes}."
+            )
+        if not self.use_a2_base or not bool(getattr(self.env, "_use_a2_base", False)):
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires an A2_Base environment."
+            )
+        identity_control = eval_config.get(
+            "a2_v26_5_policy_only_identity_control", False
+        )
+        residual_policy = eval_config.get("a2_v26_5_policy_only_residual", False)
+        if not isinstance(identity_control, bool) or not isinstance(residual_policy, bool):
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires bool policy-only identity/residual flags; "
+                f"identity={identity_control!r}, residual={residual_policy!r}."
+            )
+        if identity_control == residual_policy:
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires exactly one policy-only mode; "
+                f"identity={identity_control!r}, residual={residual_policy!r}."
+            )
+        if self.checkpoint_load_mode != "policy_only":
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires checkpoint_load_mode='policy_only'."
+            )
+        policy = self.accelerator.unwrap_model(self.model).policy
+        is_residual_policy = bool(getattr(policy, "is_v26_5_policy_residual", False))
+        if identity_control and is_residual_policy:
+            raise RuntimeError(
+                "v26-5 post-construction reseed identity-control mode requires the legacy actor."
+            )
+        if residual_policy and not is_residual_policy:
+            raise RuntimeError(
+                "v26-5 post-construction reseed residual mode requires the residual actor."
+            )
+        if int(self.env.num_envs) != _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS:
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires exactly 64 environments; "
+                f"got {self.env.num_envs}."
+            )
+        if pilot_trace:
+            if eval_config.get("eval_num_envs_episodes", False) is not True:
+                raise RuntimeError(
+                    "v26-5 post-construction reseed pilot trace requires "
+                    "eval.eval_num_envs_episodes=true."
+                )
+            if self.env.config.get("max_episode_length_s") != 0.98:
+                raise RuntimeError(
+                    "v26-5 post-construction reseed pilot trace requires "
+                    "env.config.max_episode_length_s=0.98."
+                )
+        output_value = self._a2_v26_5_post_construction_reseed_output_dir
+        if not isinstance(output_value, str) or not output_value:
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires the entrypoint's explicit eval output root."
+            )
+        output_dir = Path(output_value).expanduser()
+        if not output_dir.is_absolute():
+            raise RuntimeError(
+                "v26-5 post-construction reseed output root must be absolute; "
+                f"got {output_value!r}."
+            )
+        return {
+            "output_dir": str(output_dir.resolve()),
+            "seed": int(self.local_seed),
+            "policy_mode": "identity_control" if identity_control else "residual",
+            "pilot_trace": pilot_trace,
+        }
+
+    def install_a2_v26_5_post_construction_reseed_facts(
+        self, *, seed, configured_seed
+    ) -> None:
+        """Install the one reseed fact immediately before the sole eval call."""
+
+        config = self._a2_v26_5_post_construction_reseed_config
+        if config is None:
+            raise RuntimeError(
+                "v26-5 post-construction reseed facts were installed while the feature is disabled."
+            )
+        if self._a2_v26_5_post_construction_reseed_facts is not None:
+            raise RuntimeError("v26-5 post-construction reseed facts may only be installed once.")
+        if isinstance(seed, bool) or not isinstance(seed, int):
+            raise RuntimeError(
+                "v26-5 post-construction reseed install requires an integer seed; "
+                f"got {seed!r}."
+            )
+        if isinstance(configured_seed, bool) or not isinstance(configured_seed, int):
+            raise RuntimeError(
+                "v26-5 post-construction reseed must return an integer configured seed; "
+                f"got {configured_seed!r}."
+            )
+        if seed != config["seed"] or configured_seed != seed:
+            raise RuntimeError(
+                "v26-5 post-construction reseed seed disagrees with the resolved evaluation seed: "
+                f"seed={seed!r}, configured_seed={configured_seed!r}, expected={config['seed']!r}."
+            )
+        self._a2_v26_5_post_construction_reseed_facts = {
+            "seed": seed,
+            "configured_seed": configured_seed,
+            "generators": list(_A2_V26_5_POST_CONSTRUCTION_RESEED_GENERATORS),
+            "calls": 1,
+            "phase": _A2_V26_5_POST_CONSTRUCTION_RESEED_PHASE,
+        }
+
+    def _consume_a2_v26_5_post_construction_reseed_before_reset(self):
+        """Require exactly one explicit reseed before eval's first reset."""
+
+        config = self._a2_v26_5_post_construction_reseed_config
+        if config is None:
+            return None
+        facts = self._a2_v26_5_post_construction_reseed_facts
+        if self._a2_v26_5_post_construction_reseed_consumed:
+            raise RuntimeError("v26-5 post-construction reseed may only be consumed once.")
+        if (
+            not isinstance(facts, dict)
+            or facts.get("calls") != 1
+            or facts.get("phase") != _A2_V26_5_POST_CONSTRUCTION_RESEED_PHASE
+            or facts.get("seed") != config["seed"]
+            or facts.get("configured_seed") != config["seed"]
+            or facts.get("generators")
+            != list(_A2_V26_5_POST_CONSTRUCTION_RESEED_GENERATORS)
+        ):
+            raise RuntimeError(
+                "v26-5 post-construction reseed facts are incomplete before the first reset: "
+                f"{facts!r}."
+            )
+        self._a2_v26_5_post_construction_reseed_actor_load_facts = (
+            self._validate_a2_v26_5_post_construction_reseed_actor_load(config)
+        )
+        self._a2_v26_5_post_construction_reseed_consumed = True
+        return config
+
+    def _validate_a2_v26_5_post_construction_reseed_actor_load(self, config):
+        """Bind the reseed receipt to the exact existing policy-only loader mode."""
+
+        if self._a2_v23_runtime_load_facts.get("load_mode") != "policy_only":
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires actual policy-only load facts."
+            )
+        actor_facts = self._a2_v23_runtime_load_facts["actor"]
+        common = {
+            "loaded": True,
+            "state_key": "policy_state_dict",
+            "exact_keyset": True,
+            "actor_rms_loaded": True,
+            "unexpected_keys": [],
+        }
+        if config["policy_mode"] == "identity_control":
+            expected = {
+                **common,
+                "keyset_contract": "legacy_identity_control_exact",
+                "strict": True,
+                "missing_keys": [],
+                "actor_state_kind": "legacy_identity_control",
+            }
+        else:
+            expected = {
+                **common,
+                "keyset_contract": "legacy_exact_without_residual",
+                "strict": False,
+                "missing_keys": list(
+                    _A2_V26_5_POST_CONSTRUCTION_RESEED_RESIDUAL_LEGACY_MISSING_KEYS
+                ),
+                "actor_state_kind": "legacy",
+            }
+        actual = {field: actor_facts.get(field) for field in expected}
+        if actual != expected:
+            raise RuntimeError(
+                "v26-5 post-construction reseed policy-only actor load contract mismatch: "
+                f"mode={config['policy_mode']!r}, actual={actual}, expected={expected}."
+            )
+        return actual
+
+    @staticmethod
+    def _a2_v26_5_post_construction_reseed_tensor_metadata(tensor, *, values):
+        if not torch.is_tensor(tensor) or tensor.ndim != 2 or not torch.is_floating_point(tensor):
+            raise RuntimeError(
+                "v26-5 post-construction reseed receipt requires a floating rank-2 observation tensor."
+            )
+        if not bool(torch.all(torch.isfinite(tensor)).item()):
+            raise RuntimeError(
+                "v26-5 post-construction reseed receipt requires finite observation values."
+            )
+        payload = {
+            "dtype": str(tensor.dtype),
+            "device": str(tensor.device),
+            "shape": list(tensor.shape),
+        }
+        if values:
+            payload["values"] = [
+                [float(value) for value in row]
+                for row in tensor.detach().cpu().tolist()
+            ]
+        return payload
+
+    def _write_a2_v26_5_post_construction_reseed_receipt(self, obs_dict) -> None:
+        """Record the post-reset raw observation before any policy rollout."""
+
+        config = self._a2_v26_5_post_construction_reseed_config
+        if config is None:
+            return
+        if not self._a2_v26_5_post_construction_reseed_consumed:
+            raise RuntimeError("v26-5 post-construction reseed receipt requires consumed reseed facts.")
+        if self._a2_v26_5_post_construction_reseed_receipt_written:
+            raise RuntimeError("v26-5 post-construction reseed receipt may only be written once.")
+        if self._a2_v26_5_post_construction_reseed_first_policy_rollout:
+            raise RuntimeError(
+                "v26-5 post-construction reseed receipt must precede the first policy rollout."
+            )
+        actor_load_facts = self._a2_v26_5_post_construction_reseed_actor_load_facts
+        if not isinstance(actor_load_facts, dict):
+            raise RuntimeError(
+                "v26-5 post-construction reseed receipt requires validated actor load facts."
+            )
+        if not isinstance(obs_dict, Mapping):
+            raise RuntimeError("v26-5 post-construction reseed reset must return an observation mapping.")
+        actor_obs = obs_dict.get("actor_obs")
+        actor_metadata = self._a2_v26_5_post_construction_reseed_tensor_metadata(
+            actor_obs, values=True
+        )
+        expected_actor_shape = [
+            _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS,
+            _A2_V26_5_POST_CONSTRUCTION_RESEED_ACTOR_OBS_DIM,
+        ]
+        if actor_metadata["shape"] != expected_actor_shape:
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires actor_obs shape "
+                f"{expected_actor_shape}; got {actor_metadata['shape']}."
+            )
+        payload = {
+            "schema": _A2_V26_5_POST_CONSTRUCTION_RESEED_RECEIPT_SCHEMA,
+            "status": "POST_CONSTRUCTION_RESEED_PRE_ACTION_CAPTURED",
+            "seed": config["seed"],
+            "generators": list(_A2_V26_5_POST_CONSTRUCTION_RESEED_GENERATORS),
+            "calls": 1,
+            "guard": {
+                "phase": _A2_V26_5_POST_CONSTRUCTION_RESEED_PHASE,
+                "invocation_kind": "eval",
+                "process_count": int(self.accelerator.num_processes),
+                "a2_base": True,
+                "v26_5_residual_policy": config["policy_mode"] == "residual",
+            },
+            "reset": {
+                "completed": True,
+                "first_policy_rollout": False,
+            },
+            "obs": {"actor_obs": actor_metadata},
+            "policy_mode": config["policy_mode"],
+            "actor_load": dict(actor_load_facts),
+        }
+        residual_actor_obs = obs_dict.get("residual_actor_obs")
+        if config["policy_mode"] == "identity_control":
+            if residual_actor_obs is not None:
+                raise RuntimeError(
+                    "v26-5 post-construction reseed identity-control receipt requires "
+                    "residual_actor_obs to be absent."
+                )
+            payload["residual_actor_obs_absent"] = True
+        else:
+            if residual_actor_obs is None:
+                raise RuntimeError(
+                    "v26-5 post-construction reseed residual receipt requires residual_actor_obs."
+                )
+            policy = self.accelerator.unwrap_model(self.model).policy
+            payload["dual_input_contract"] = policy.runtime_dual_input_contract_facts()
+            payload["obs"]["residual_actor_obs"] = (
+                self._a2_v26_5_post_construction_reseed_tensor_metadata(
+                    residual_actor_obs, values=False
+                )
+            )
+
+        output_dir = Path(config["output_dir"])
+        if output_dir.is_symlink() or not output_dir.is_dir():
+            raise RuntimeError(
+                "v26-5 post-construction reseed requires an existing eval output directory: "
+                f"{output_dir}."
+            )
+        output_path = output_dir / _A2_V26_5_POST_CONSTRUCTION_RESEED_RECEIPT_FILENAME
+        if output_path.is_symlink() or output_path.exists():
+            raise RuntimeError(
+                "v26-5 post-construction reseed receipt refuses to overwrite an existing artifact: "
+                f"{output_path}."
+            )
+        with output_path.open("x", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
+            handle.write("\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        self._a2_v26_5_post_construction_reseed_receipt_written = True
+
+    def _mark_a2_v26_5_post_construction_reseed_first_policy_rollout(self) -> None:
+        if self._a2_v26_5_post_construction_reseed_config is None:
+            return
+        if not self._a2_v26_5_post_construction_reseed_receipt_written:
+            raise RuntimeError(
+                "v26-5 post-construction reseed cannot start policy rollout before its receipt."
+            )
+        if self._a2_v26_5_post_construction_reseed_first_policy_rollout:
+            return
+        self._a2_v26_5_post_construction_reseed_first_policy_rollout = True
+
+    def _write_a2_v26_5_post_construction_reseed_trace(self, rows, completed_episodes) -> None:
+        """Persist the complete exact64 first-episode raw O0/action-mean trace."""
+
+        config = self._a2_v26_5_post_construction_reseed_config
+        if config is None:
+            return
+        if len(rows) != _A2_V26_5_POST_CONSTRUCTION_RESEED_CONTROL_STEPS:
+            raise RuntimeError(
+                "v26-5 post-construction reseed trace requires exactly 50 control steps; "
+                f"got {len(rows)}."
+            )
+        if completed_episodes != _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS:
+            raise RuntimeError(
+                "v26-5 post-construction reseed trace requires exactly 64 completed episodes; "
+                f"got {completed_episodes}."
+            )
+        if not torch.all(self.env_episode_completed):
+            raise RuntimeError(
+                "v26-5 post-construction reseed trace ended before every first episode completed."
+            )
+        for expected_step_index, row in enumerate(rows):
+            if row["step_index"] != expected_step_index or row["active_mask"] != [True] * 64:
+                raise RuntimeError(
+                    "v26-5 post-construction reseed trace requires all 64 first episodes "
+                    f"to remain active through control step {expected_step_index}."
+                )
+            actor_values = row.get("actor_obs")
+            if (
+                not isinstance(actor_values, list)
+                or len(actor_values) != _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS
+                or any(
+                    not isinstance(values, list)
+                    or len(values) != _A2_V26_5_POST_CONSTRUCTION_RESEED_ACTOR_OBS_DIM
+                    for values in actor_values
+                )
+            ):
+                raise RuntimeError(
+                    "v26-5 post-construction reseed trace requires 64x133 actor_obs values "
+                    f"at control step {expected_step_index}."
+                )
+            for action_key in ("action_mean", "applied_high_level_action"):
+                action_values = row.get(action_key)
+                if (
+                    not isinstance(action_values, list)
+                    or len(action_values) != _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS
+                    or any(
+                        not isinstance(values, list) or len(values) != 12
+                        for values in action_values
+                    )
+                ):
+                    raise RuntimeError(
+                        "v26-5 post-construction reseed trace requires 64x12 "
+                        f"{action_key} values at control step {expected_step_index}."
+                    )
+        output_dir = Path(config["output_dir"])
+        output_path = output_dir / _A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_FILENAME
+        if output_path.is_symlink() or output_path.exists():
+            raise RuntimeError(
+                "v26-5 post-construction reseed trace refuses to overwrite an existing artifact: "
+                f"{output_path}."
+            )
+        payload = {
+            "schema": _A2_V26_5_POST_CONSTRUCTION_RESEED_TRACE_SCHEMA,
+            "status": "RUNTIME_VERIFIED",
+            "seed": config["seed"],
+            "num_envs": _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS,
+            "control_steps": _A2_V26_5_POST_CONSTRUCTION_RESEED_CONTROL_STEPS,
+            "rows": rows,
+        }
         with output_path.open("x", encoding="utf-8") as handle:
             json.dump(payload, handle, indent=2, sort_keys=True, allow_nan=False)
             handle.write("\n")
@@ -7526,6 +7987,9 @@ class TRLPPOTrainer(PPOTrainer):
         return checkpoint
 
     def eval(self):
+        a2_v26_5_post_construction_reseed = (
+            self._consume_a2_v26_5_post_construction_reseed_before_reset()
+        )
         self._eval_mode()
         self.env.set_is_evaluating()
         self.policy_model.eval_mode()
@@ -7533,6 +7997,8 @@ class TRLPPOTrainer(PPOTrainer):
         obs_dict = self.env.reset_all()
         for obs_key in obs_dict.keys():
             obs_dict[obs_key] = obs_dict[obs_key].to(self.accelerator.device)
+        if a2_v26_5_post_construction_reseed is not None:
+            self._write_a2_v26_5_post_construction_reseed_receipt(obs_dict)
 
         eval_num_envs_episodes = self.config.get("eval", {}).get("eval_num_envs_episodes", False)
         dump_eval_to_log_metrics = self.config.get("eval", {}).get(
@@ -7816,6 +8282,12 @@ class TRLPPOTrainer(PPOTrainer):
             if a2_p0_compatibility_trace["enabled"]
             else None
         )
+        a2_v26_5_post_construction_reseed_rows = (
+            []
+            if a2_v26_5_post_construction_reseed is not None
+            and a2_v26_5_post_construction_reseed["pilot_trace"]
+            else None
+        )
         self.env.render_results(frame_type="initial")
 
         def terminate_rollout():
@@ -7867,8 +8339,67 @@ class TRLPPOTrainer(PPOTrainer):
                             )
                         a2_p0_compat_actor_obs = a2_p0_compat_actor_obs.detach().clone()
 
+                    a2_v26_5_post_construction_reseed_row = None
+                    if (
+                        a2_v26_5_post_construction_reseed is not None
+                        and a2_v26_5_post_construction_reseed["pilot_trace"]
+                    ):
+                        actor_obs = obs_dict.get("actor_obs")
+                        actor_metadata = (
+                            self._a2_v26_5_post_construction_reseed_tensor_metadata(
+                                actor_obs, values=False
+                            )
+                        )
+                        expected_actor_shape = [
+                            _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS,
+                            _A2_V26_5_POST_CONSTRUCTION_RESEED_ACTOR_OBS_DIM,
+                        ]
+                        if actor_metadata["shape"] != expected_actor_shape:
+                            raise RuntimeError(
+                                "v26-5 post-construction reseed trace requires actor_obs shape "
+                                f"{expected_actor_shape}; got {actor_metadata['shape']}."
+                            )
+                        active_mask = (~self.env_episode_completed).detach().cpu().tolist()
+                        if len(active_mask) != _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS:
+                            raise RuntimeError(
+                                "v26-5 post-construction reseed trace requires one active mask "
+                                "value per environment."
+                            )
+                        a2_v26_5_post_construction_reseed_row = {
+                            "step_index": len(a2_v26_5_post_construction_reseed_rows),
+                            "active_mask": [bool(value) for value in active_mask],
+                            "actor_obs": [
+                                [float(value) for value in row]
+                                for row in actor_obs.detach().cpu().tolist()
+                            ],
+                        }
+
+                    self._mark_a2_v26_5_post_construction_reseed_first_policy_rollout()
                     actions = policy_model.rollout(obs_dict=obs_dict)
                     action_mean = policy_model.action_mean.detach()
+
+                    if a2_v26_5_post_construction_reseed_row is not None:
+                        action_metadata = (
+                            self._a2_v26_5_post_construction_reseed_tensor_metadata(
+                                action_mean, values=False
+                            )
+                        )
+                        expected_action_shape = [
+                            _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS,
+                            12,
+                        ]
+                        if action_metadata["shape"] != expected_action_shape:
+                            raise RuntimeError(
+                                "v26-5 post-construction reseed trace requires action_mean shape "
+                                f"{expected_action_shape}; got {action_metadata['shape']}."
+                            )
+                        a2_v26_5_post_construction_reseed_row["action_mean"] = [
+                            [float(value) for value in row]
+                            for row in action_mean.detach().cpu().tolist()
+                        ]
+                        a2_v26_5_post_construction_reseed_rows.append(
+                            a2_v26_5_post_construction_reseed_row
+                        )
 
                     if self.use_a2_base:
                         get_action_layout = getattr(
@@ -8130,6 +8661,30 @@ class TRLPPOTrainer(PPOTrainer):
                                 prefix_rows=p08_prefix_rows,
                                 captured_entries=p08_captured_entries,
                             )
+
+                        if a2_v26_5_post_construction_reseed_row is not None:
+                            applied_action_metadata = (
+                                self._a2_v26_5_post_construction_reseed_tensor_metadata(
+                                    applied_high_level_action, values=False
+                                )
+                            )
+                            expected_action_shape = [
+                                _A2_V26_5_POST_CONSTRUCTION_RESEED_NUM_ENVS,
+                                12,
+                            ]
+                            if applied_action_metadata["shape"] != expected_action_shape:
+                                raise RuntimeError(
+                                    "v26-5 post-construction reseed trace requires "
+                                    "applied_high_level_action shape "
+                                    f"{expected_action_shape}; got "
+                                    f"{applied_action_metadata['shape']}."
+                                )
+                            a2_v26_5_post_construction_reseed_row[
+                                "applied_high_level_action"
+                            ] = [
+                                [float(value) for value in row]
+                                for row in applied_high_level_action.detach().cpu().tolist()
+                            ]
 
                         a2_actions = model._a2_base_actions(
                             obs_dict, applied_high_level_action
@@ -8624,6 +9179,14 @@ class TRLPPOTrainer(PPOTrainer):
             with trace_tmp_path.open("w", encoding="utf-8") as trace_stream:
                 json.dump(payload, trace_stream, indent=2, allow_nan=False)
             os.replace(trace_tmp_path, trace_path)
+
+        if (
+            a2_v26_5_post_construction_reseed is not None
+            and a2_v26_5_post_construction_reseed["pilot_trace"]
+        ):
+            self._write_a2_v26_5_post_construction_reseed_trace(
+                a2_v26_5_post_construction_reseed_rows, completed_episodes
+            )
 
         self.env.end_render_results()
         self.policy_model.clear_rollout()

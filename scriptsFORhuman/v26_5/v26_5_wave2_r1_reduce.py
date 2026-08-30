@@ -12,8 +12,8 @@ SOURCE="/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acqu
 RECEIPT_SCHEMA="a2_piper_base_v26_5_runtime_load_receipt_v1"
 TRACE_REWARD_TERMS=["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"]
 K1_LOAD_CONTRACT={
-    "control":{"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False,"keyset_contract":"legacy_identity_control_exact","strict":True},
-    "dual":{"a2_v26_5_policy_only_identity_control":False,"a2_v26_5_policy_only_residual":True,"keyset_contract":"legacy_exact_without_residual","strict":False},
+    "control":{"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False,"keyset_contract":"legacy_identity_control_exact","strict":True,"missing_keys":[]},
+    "dual":{"a2_v26_5_policy_only_identity_control":False,"a2_v26_5_policy_only_residual":True,"keyset_contract":"legacy_exact_without_residual","strict":False,"missing_keys":["residual_module.0.weight","residual_module.0.bias","residual_module.2.weight","residual_module.2.bias"]},
 }
 def require(v:bool,m:str)->None:
     if not v: raise RuntimeError(m)
@@ -57,7 +57,7 @@ def validate_k1_runtime_load(x:dict[str,Any],view:str)->None:
     require(ev.get("a2_v23_p06_policy_only") is False and ev.get("a2_v26_5_runtime_load_receipt") is True and ev.get("a2_v26_5_policy_only_identity_control") is contract["a2_v26_5_policy_only_identity_control"] and ev.get("a2_v26_5_policy_only_residual") is contract["a2_v26_5_policy_only_residual"],f"{view} policy-only runtime flags: {path}")
     require(receipt.get("schema")==RECEIPT_SCHEMA and receipt.get("status")=="CHECKPOINT_LOAD_COMPLETED" and receipt.get("invocation_kind")=="eval" and receipt.get("output_root")==str(path) and receipt.get("checkpoint_path")==SOURCE and receipt.get("checkpoint_load_mode")=="policy_only",f"{view} runtime receipt provenance: {path}")
     actor=receipt.get("actor"); require(isinstance(actor,dict) and actor.get("loaded") is True and actor.get("state_key")=="policy_state_dict" and actor.get("exact_keyset") is True and actor.get("keyset_contract")==contract["keyset_contract"] and actor.get("actor_rms_loaded") is True and actor.get("strict") is contract["strict"],f"{view} runtime actor receipt: {path}")
-    require(actor.get("missing_keys")==[] and actor.get("unexpected_keys")==[],f"{view} runtime actor key mismatch: {path}")
+    require(actor.get("missing_keys")==contract["missing_keys"] and actor.get("unexpected_keys")==[],f"{view} runtime actor key mismatch: {path}")
 def k1_pair(control:dict[str,Any],dual:dict[str,Any],seed:int,side:str)->dict[str,Any]:
     validate_common(control,seed,side,mode="policy_only"); validate_common(dual,seed,side,mode="policy_only")
     validate_k1_runtime_load(control,"control"); validate_k1_runtime_load(dual,"dual")
@@ -95,6 +95,9 @@ def main()->None:
         base_cfg={"algo":{"config":{"eval":{"a2_v23_p06_policy_only":False,"a2_v26_5_runtime_load_receipt":True,"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False}}}}
         base_receipt={"schema":RECEIPT_SCHEMA,"status":"CHECKPOINT_LOAD_COMPLETED","invocation_kind":"eval","output_root":str(Path("synthetic/control").resolve()),"checkpoint_path":SOURCE,"checkpoint_load_mode":"policy_only","actor":{"loaded":True,"state_key":"policy_state_dict","exact_keyset":True,"keyset_contract":"legacy_identity_control_exact","actor_rms_loaded":True,"strict":True,"missing_keys":[],"unexpected_keys":[]}}
         validate_k1_runtime_load({"path":"synthetic/control","config":base_cfg,"receipt":base_receipt},"control")
+        dual_cfg={"algo":{"config":{"eval":{"a2_v23_p06_policy_only":False,"a2_v26_5_runtime_load_receipt":True,"a2_v26_5_policy_only_identity_control":False,"a2_v26_5_policy_only_residual":True}}}}
+        dual_receipt={**base_receipt,"output_root":str(Path("synthetic/dual").resolve()),"actor":{**base_receipt["actor"],"keyset_contract":"legacy_exact_without_residual","strict":False,"missing_keys":["residual_module.0.weight","residual_module.0.bias","residual_module.2.weight","residual_module.2.bias"]}}
+        validate_k1_runtime_load({"path":"synthetic/dual","config":dual_cfg,"receipt":dual_receipt},"dual")
         for field,bad_value in (("a2_v26_5_policy_only_identity_control",False),("receipt.loaded",False)):
             cfg={"algo":{"config":{"eval":dict(base_cfg["algo"]["config"]["eval"])}}}; receipt={**base_receipt,"actor":dict(base_receipt["actor"])}
             if field.startswith("receipt"): receipt["actor"]["loaded"]=bad_value
@@ -102,8 +105,12 @@ def main()->None:
             try: validate_k1_runtime_load({"path":"synthetic/control","config":cfg,"receipt":receipt},"control")
             except RuntimeError: continue
             raise RuntimeError(f"synthetic bad {field} receipt/flag was admitted")
+        bad_dual_receipt={**dual_receipt,"actor":{**dual_receipt["actor"],"missing_keys":[]}}
+        try: validate_k1_runtime_load({"path":"synthetic/dual","config":dual_cfg,"receipt":bad_dual_receipt},"dual")
+        except RuntimeError: pass
+        else: raise RuntimeError("synthetic dual bad missing_keys receipt was admitted")
         print("R1_SYNTHETIC_PER_ENV_NONZERO_ORIGIN_TOPOLOGY_PASS")
-        print("R1_SYNTHETIC_BAD_RECEIPT_AND_FLAGS_REJECTED")
+        print("R1_SYNTHETIC_BAD_RECEIPT_FLAGS_AND_MISSING_REJECTED")
         return
     require(not a.output.exists(),f"refusing to overwrite reducer: {a.output}")
     if a.mode=="k1":

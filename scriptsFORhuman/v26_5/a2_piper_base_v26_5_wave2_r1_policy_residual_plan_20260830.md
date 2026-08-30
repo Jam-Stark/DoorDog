@@ -128,7 +128,10 @@ The r10 static registry remains immutable.  The fresh r11 roots are
 K1 admission now directly reads every side's runtime load receipt and binds
 its source path, policy-only mode, eval kind, exact output root, and actor
 facts.  Control requires `legacy_identity_control_exact` with strict exact
-keys; dual requires `legacy_exact_without_residual`.  Both require loaded
-actor RMS, no missing/unexpected keys, P06 false, their exact mutually
-exclusive policy-only flags, and diagnostic metadata's registered reward
-terms.  Bad receipt and bad-flag synthetic inputs must fail before admission.
+keys and no missing/unexpected keys; dual requires
+`legacy_exact_without_residual`, strict false, exactly
+`residual_module.{0.weight,0.bias,2.weight,2.bias}` missing keys, and no
+unexpected keys.  Both require loaded actor RMS, P06 false, their exact
+mutually exclusive policy-only flags, and diagnostic metadata's registered
+reward terms.  Bad receipt, bad flag, and wrong dual missing-key synthetic
+inputs must fail before admission.

@@ -11,6 +11,8 @@ EPISODES=64; SIDES=("left","right"); TOL=1e-6
 SOURCE="/home/baoquanc/workspace/DoorDog-A2_Piper/logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 RECEIPT_SCHEMA="a2_piper_base_v26_5_runtime_load_receipt_v1"
 TRACE_REWARD_TERMS=["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"]
+RAW_OBS=["dof_pos","relative_to_door","dof_vel","actions","projected_gravity","door_dof_pos","base_lin_vel","base_ang_vel","hand_force","stage","privileged_door_info","delta_actions","gripper_handle_transform","a2_base_command_raw","a2_base_command"]
+GAUGE_OBS=[*RAW_OBS[:12],"gripper_handle_transform_gauge",*RAW_OBS[13:]]
 K1_LOAD_CONTRACT={
     "control":{"a2_v26_5_policy_only_identity_control":True,"a2_v26_5_policy_only_residual":False,"keyset_contract":"legacy_identity_control_exact","strict":True,"missing_keys":[]},
     "dual":{"a2_v26_5_policy_only_identity_control":False,"a2_v26_5_policy_only_residual":True,"keyset_contract":"legacy_exact_without_residual","strict":False,"missing_keys":["residual_module.0.weight","residual_module.0.bias","residual_module.2.weight","residual_module.2.bias"]},
@@ -37,8 +39,8 @@ def paired_trace_topology(control:dict[int,list[dict[str,Any]]],dual:dict[int,li
         first=next((index for index,(left,right) in enumerate(zip(control_steps,dual_steps)) if left!=right),min(len(control_steps),len(dual_steps)))
         mismatches.append({"env_id":env,"control":{"count":len(control_steps),"first_step":control_steps[0],"last_step":control_steps[-1]},"dual":{"count":len(dual_steps),"first_step":dual_steps[0],"last_step":dual_steps[-1]},"first_step_mismatch":{"index":first,"control_step":control_steps[first] if first<len(control_steps) else None,"dual_step":dual_steps[first] if first<len(dual_steps) else None}})
     return not mismatches,mismatches
-def k1_pair_passes(topology:bool,discrete:bool,raw_o1:bool,max_action:float|None,integrity:int)->bool:
-    return topology and discrete and raw_o1 and max_action is not None and max_action<=TOL and integrity==0
+def k1_pair_passes(topology:bool,discrete:bool,main_o0:bool,max_action:float|None,integrity:int)->bool:
+    return topology and discrete and main_o0 and max_action is not None and max_action<=TOL and integrity==0
 def runtime(path:Path)->dict[str,Any]:
     cfg=OmegaConf.to_container(OmegaConf.load(path/".hydra/runtime_config.yaml"),resolve=False)
     metrics=load(path/"metrics_eval.json"); records=load(path/"a2_v14_per_env_records.json"); trace=load(path/"stage2_5_step_trace.json"); metadata=load(path/"a2_eval_diagnostic_metadata.json"); receipt=load(path/"a2_v26_5_runtime_load_receipt.json")
@@ -72,9 +74,14 @@ def k1_pair(control:dict[str,Any],dual:dict[str,Any],seed:int,side:str)->dict[st
     validate_common(control,seed,side,mode="policy_only"); validate_common(dual,seed,side,mode="policy_only")
     validate_k1_runtime_load(control,"control"); validate_k1_runtime_load(dual,"dual")
     cenv=control["config"]["env"]["config"]; denv=dual["config"]["env"]["config"]
+    cobs=control["config"].get("obs",{}).get("obs_dict",{}); dobs=dual["config"].get("obs",{}).get("obs_dict",{})
+    require(cobs.get("actor_obs")==RAW_OBS and "residual_actor_obs" not in cobs, f"K1 control raw-only observation contract: {control['path']}")
+    require(dobs.get("actor_obs")==RAW_OBS and dobs.get("residual_actor_obs")==GAUGE_OBS, f"K1 dual observation contract: {dual['path']}")
     require(cenv.get("a2_v26_5_geometry_target_enabled") is False and cenv.get("a2_v26_4_side_canonicalization_enabled") is False and cenv.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"K1 control factor mismatch: {control['path']}")
-    require(denv.get("a2_v26_5_geometry_target_enabled") is True and denv.get("a2_v26_5_actor_gauge_enabled") is True and denv.get("a2_v26_4_side_canonicalization_enabled") is False and denv.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"K1 dual factor mismatch: {dual['path']}")
-    topology,topology_mismatches=paired_trace_topology(control["trace"],dual["trace"],range(EPISODES)); max_action=0.0 if topology else None; discrete=True; raw_o1=True
+    require(denv.get("a2_v26_5_geometry_target_enabled") is False and denv.get("a2_v26_5_actor_gauge_enabled") is True and denv.get("a2_v26_4_side_canonicalization_enabled") is False and denv.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"K1 dual factor mismatch: {dual['path']}")
+    dual_contract=dual["receipt"]["actor"].get("dual_input_contract")
+    require(dual_contract=={"base_input_key":"actor_obs","residual_input_key":"residual_actor_obs","base_observation_width":133,"residual_observation_width":133,"base_memory_mlp_frozen":True,"base_std_rms_frozen":True,"residual_action_slice":[5,12],"residual_final_layer_zero":True},f"K1 dual input receipt contract: {dual['path']}")
+    topology,topology_mismatches=paired_trace_topology(control["trace"],dual["trace"],range(EPISODES)); max_action=0.0 if topology else None; discrete=True; main_o0=True
     for env in range(EPISODES):
         discrete &= control["stage"][env]==dual["stage"][env] and control["records"][env].get("goal_reached")==dual["records"][env].get("goal_reached")
         cv2=control["terminal"][env].get("v26_2",{}); dv2=dual["terminal"][env].get("v26_2",{})
@@ -83,12 +90,12 @@ def k1_pair(control:dict[str,Any],dual:dict[str,Any],seed:int,side:str)->dict[st
         for left,right in zip(cr,dr):
             if topology: max_action=max(max_action,diff(left.get("policy_high_level_action_raw"),right.get("policy_high_level_action_raw"),"policy action"))
         for right in dr:
-            raw_o1 &= isinstance(right.get("target_quat_source_handle"),list) and len(right["target_quat_source_handle"])==4 and isinstance(right.get("target_quat_source_pregrasp"),list) and len(right["target_quat_source_pregrasp"])==4
+            main_o0 &= isinstance(right.get("target_quat_source_handle"),list) and len(right["target_quat_source_handle"])==4 and isinstance(right.get("target_quat_source_pregrasp"),list) and len(right["target_quat_source_pregrasp"])==4
     integrity=sum(int(finite(v.get("v26_2",{}).get("integrity_violations"),"v26_2 integrity"))+int(finite(v.get("v26_3",{}).get("integrity_violations"),"v26_3 integrity")) for v in dual["terminal"].values())
-    passed=k1_pair_passes(topology,discrete,raw_o1,max_action,integrity)
-    return {"control":control["path"],"dual":dual["path"],"trace_topology_identical":topology,"trace_topology_mismatches":topology_mismatches,"continuous_trace_fields_verified":topology,"discrete_identity":discrete,"raw_O1_target_source_retained":raw_o1,"policy_mean_raw_action_max_abs":max_action,"std_evidence":"not emitted by diagnostic trace; see static actor/selector/loader contract and actual-load receipt","integrity_violations":integrity,"pass":passed}
+    passed=k1_pair_passes(topology,discrete,main_o0,max_action,integrity)
+    return {"control":control["path"],"dual":dual["path"],"trace_topology_identical":topology,"trace_topology_mismatches":topology_mismatches,"continuous_trace_fields_verified":topology,"discrete_identity":discrete,"main_O0_target_source_retained":main_o0,"policy_mean_raw_action_max_abs":max_action,"std_evidence":"not emitted by diagnostic trace; see static actor/selector/loader contract and actual-load receipt","integrity_violations":integrity,"pass":passed}
 def metrics(x:dict[str,Any],seed:int,side:str,checkpoint:Path)->dict[str,Any]:
-    cfg=x["config"]; env=cfg.get("env",{}).get("config",{}); ev=cfg.get("algo",{}).get("config",{}).get("eval",{}); require(cfg.get("checkpoint")==str(checkpoint) and cfg.get("checkpoint_load_mode")=="full" and cfg.get("auto_load_latest") is False,f"R1 checkpoint contract: {x['path']}"); require(cfg.get("seed")==seed and cfg.get("num_envs")==EPISODES and ev.get("num_eval_episodes")==EPISODES and ev.get("eval_num_envs_episodes") is True,f"R1 population: {x['path']}"); require(env.get("a2_v26_door_open_lr")==side and env.get("a2_v26_5_geometry_target_enabled") is True and env.get("a2_v26_5_actor_gauge_enabled") is True and env.get("a2_v26_4_side_canonicalization_enabled") is False and env.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"R1 semantics: {x['path']}")
+    cfg=x["config"]; env=cfg.get("env",{}).get("config",{}); ev=cfg.get("algo",{}).get("config",{}).get("eval",{}); require(cfg.get("checkpoint")==str(checkpoint) and cfg.get("checkpoint_load_mode")=="full" and cfg.get("auto_load_latest") is False,f"R1 checkpoint contract: {x['path']}"); require(cfg.get("seed")==seed and cfg.get("num_envs")==EPISODES and ev.get("num_eval_episodes")==EPISODES and ev.get("eval_num_envs_episodes") is True,f"R1 population: {x['path']}"); require(env.get("a2_v26_door_open_lr")==side and env.get("a2_v26_5_geometry_target_enabled") is False and env.get("a2_v26_5_actor_gauge_enabled") is True and env.get("a2_v26_4_side_canonicalization_enabled") is False and env.get("a2_v26_5_stage3_delta_rebase_enabled") is False,f"R1 semantics: {x['path']}")
     stage3=k5=stable=contact=integrity=stage4=stage5=goal=sustained=0
     for env_id in range(EPISODES):
         term=x["terminal"][env_id]; v2=term.get("v26_2"); v3=term.get("v26_3"); require(isinstance(v2,dict) and isinstance(v3,dict),f"missing telemetry: {x['path']}"); stage=x["stage"][env_id]; stage3+=int(stage>=3); k5+=int(int(v2.get("k5_steps",-1))>=5); integrity+=int(finite(v2.get("integrity_violations"),"v2 integrity"))+int(finite(v3.get("integrity_violations"),"v3 integrity")); stage4+=int(stage>=4);stage5+=int(stage>=5);goal+=int(x["records"][env_id].get("goal_reached") is True);run=0;hit=False

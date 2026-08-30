@@ -218,9 +218,13 @@ O1-derived residual_actor_obs -------------------------------> residual module
    where representable (otherwise the unchanged registered `1e-6` bound).
    The residual is exactly zero before Stage3 and zero initialized at Stage3.
    This is a hard static gate, not a training run.
-2. **Required runtime wiring smoke.** One 64-env, one-control-tick natural
-   eval verifies the separate residual input, policy-only/RMS load, and trace
-   wiring. It is not a PPO update and writes no training checkpoint.
+2. **Required runtime wiring smoke.** One 64-env, minimal two-control-tick
+   natural eval verifies the separate residual input, policy-only/RMS load, and
+   trace wiring. The standard eval timeout is
+   `episode_length_buf > ceil(max_episode_length_s/.02)`; the legal minimal
+   `max_episode_length_s=.02` therefore yields length 2. This gate proves only
+   construction plus actor dual-input runtime wiring: it is not a PPO update
+   and writes no training checkpoint.
 3. **Fresh `K1_R12` exact64.** Only after both gates pass, run
    `seed={0,1} × side={left,right}` as paired natural first episodes: O0 legacy
    control versus O0 base raw view plus O1-derived residual gauge and zero

@@ -10,7 +10,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-import yaml
+from omegaconf import OmegaConf
 
 
 EPISODES = 64
@@ -64,7 +64,9 @@ def load_side(path: Path, side: str, seed: int, factor: str) -> dict[str, Any]:
     records = load(path / "a2_v14_per_env_records.json")
     trace = load(path / "stage2_5_step_trace.json")
     metadata = load(path / "a2_eval_diagnostic_metadata.json")
-    config = yaml.safe_load((path / ".hydra/runtime_config.yaml").read_text(encoding="utf-8"))
+    config = OmegaConf.to_container(
+        OmegaConf.load(path / ".hydra/runtime_config.yaml"), resolve=False
+    )
     require(isinstance(metrics, dict) and isinstance(trace, list) and isinstance(metadata, dict) and isinstance(config, dict), f"{path}: invalid eval payload")
     env_cfg = config.get("env", {}).get("config", {})
     eval_cfg = config.get("algo", {}).get("config", {}).get("eval", {})

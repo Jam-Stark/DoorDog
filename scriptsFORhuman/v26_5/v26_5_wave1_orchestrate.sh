@@ -20,6 +20,7 @@ EOF
 
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 py=/usr/bin/python3
+isaac_py=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 supervisor="$repo/.ai/scripts/run_supervisor.py"
 run_id=v26_5_wave1_stage5_20260830_r1
 stage="$repo/logs_eval/base_v26/$run_id"
@@ -136,7 +137,7 @@ case ${1:-} in
     [[ $# -eq 1 ]] || { usage >&2; exit 2; }
     for label in O1A0_S0 O1A0_S1 O1A1_S0 O1A1_S1; do require_pass "v26_5_wave1_r1_eval_${label,,}"; done
     require_pass v26_5_wave1_r1_diagnostic_gpu7
-    exec "$py" "$repo/scriptsFORhuman/v26_5/v26_5_wave1_reduce.py" --formal-eval-root "$eval_root" --diagnostic-eval-root "$eval_root/diagnostic" --output "$stage/M/wave1_reducer.json"
+    exec "$isaac_py" "$repo/scriptsFORhuman/v26_5/v26_5_wave1_reduce.py" --formal-eval-root "$eval_root" --diagnostic-eval-root "$eval_root/diagnostic" --output "$stage/M/wave1_reducer.json"
     ;;
   *) usage >&2; exit 2 ;;
 esac

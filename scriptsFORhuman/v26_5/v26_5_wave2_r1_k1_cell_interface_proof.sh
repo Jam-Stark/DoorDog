@@ -12,7 +12,7 @@ calls=0
 bash() {
   calls=$((calls + 1))
   [[ $# -eq 7 ]] || { echo "cell must invoke bash with side path plus six argv values" >&2; return 1; }
-  [[ ${1##*/} == "${side_script##*/}" && $2 == 2 && $4 == K1_S0 && $5 == /tmp/v26_5_r1_interface && $6 == 0 ]] || {
+  [[ ${1##*/} == "${side_script##*/}" && $2 == 4 && $4 == K1_S0 && $5 == /tmp/v26_5_r1_interface && $6 == 0 ]] || {
     echo "cell forwarded an unexpected fixed argv value" >&2; return 1
   }
   case "$calls" in
@@ -24,7 +24,7 @@ bash() {
   esac
 }
 
-set -- 2 K1_S0 /tmp/v26_5_r1_interface 0
+set -- 4 K1_S0 /tmp/v26_5_r1_interface 0
 source "$cell"
 [[ $calls -eq 4 ]] || { echo "expected four cell->side calls, got $calls" >&2; exit 1; }
 grep -Fq "trace_reward_terms='[push_door_handle,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'" "$side_script"

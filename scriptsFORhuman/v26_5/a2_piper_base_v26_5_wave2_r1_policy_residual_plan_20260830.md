@@ -41,7 +41,7 @@ integrity.  It never pools sides or seeds to admit a route.
 
 ## Resources
 
-GPU mapping is temporary: `R1_S0=2`, `R1_S1=3`.  Cold Isaac starts are manual
+GPU mapping is temporary: `K1_S0/R1_S0=4`, `K1_S1/R1_S1=5`.  Cold Isaac starts are manual
 staggered `train-cell --launch` calls; the orchestrator contains no polling or
 retry loop.  Every launch is tmux-backed through `run_supervisor`.
 
@@ -54,3 +54,6 @@ preserved as failed launch evidence.  The repaired attempt is a fresh,
 non-overwriting r4 root:
 `logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r4/` and
 `logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r4/`.
+It did not generate a receipt or start a task-owned process: its `gpu_idle`
+preflight found GPU2 occupied by another workspace.  The resource-remapped
+attempt uses the fresh r5 roots `..._r5/` on GPUs 4/5.

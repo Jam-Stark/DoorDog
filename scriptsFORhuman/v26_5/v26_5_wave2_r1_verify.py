@@ -9,7 +9,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 ACTOR_SOURCE = ROOT / "gr00t/rl/trl/modules/actor_critic_modules_recurrent.py"
 TRAINER_SOURCE = ROOT / "gr00t/rl/trl/trainer/ppo_trainer_a2_base_api.py"
-RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r4"
+RUN_ID = "v26_5_wave2_r1_policy_residual_20260830_r5"
 
 def require(value: bool, message: str) -> None:
     if not value: raise RuntimeError(message)
@@ -23,6 +23,8 @@ def main() -> None:
     p=argparse.ArgumentParser(description=__doc__); p.add_argument("--registry",type=Path,required=True); p.add_argument("--config",action="append",required=True); a=p.parse_args()
     r=json.loads(a.registry.read_text(encoding="utf-8")); require(r.get("schema")=="a2_piper_base_v26_5_wave2_r1_registry_v1" and r.get("status")=="PREREGISTERED_NOT_RUN" and r.get("run_id")==RUN_ID, "R1 registry mismatch")
     k1=r.get("K1",{}); require(k1.get("view_trace_contract")=={"control":{"terms":["push_door_handle","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":0.0},"dual":{"terms":["a2_stage3_handle_creation","a2_stage3_unlatch_hold","push_door_hinge","a2_stage3_stage4_hold_and_drive"],"a2_v26_2_handle_depression_scale":0.0,"a2_v26_3_handle_creation_scale":6.0}}, "K1 view-specific trace/scale contract mismatch")
+    require(k1.get("cells")==[{"label":"K1_S0","seed":0,"physical_gpu":4},{"label":"K1_S1","seed":1,"physical_gpu":5}], "K1 GPU mapping mismatch")
+    require(r.get("R1",{}).get("cells")==[{"label":"R1_S0","seed":0,"physical_gpu":4},{"label":"R1_S1","seed":1,"physical_gpu":5}], "R1 GPU mapping mismatch")
     paths={}
     for item in a.config:
         name,sep,path=item.partition("="); require(sep and name not in paths, "invalid duplicate R1 config"); paths[name]=Path(path)

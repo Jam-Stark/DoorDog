@@ -4,7 +4,7 @@ set -euo pipefail
 repo=/home/baoquanc/workspace/DoorDog-A2_Piper
 python_bin=/home/baoquanc/anaconda3/envs/isaaclab/bin/python
 gpu=$1; label=$2; checkpoint=$3; output_root=$4; seed=$5; side=$6
-[[ "$gpu" =~ ^(2|3)$ && "$label" =~ ^R1_S[01]_STEP0(125|250)$ && "$seed" =~ ^[01]$ && "$side" =~ ^(left|right)$ && -f "$checkpoint" ]] || exit 2
+[[ "$gpu" =~ ^(4|5)$ && "$label" =~ ^R1_S[01]_STEP0(125|250)$ && "$seed" =~ ^[01]$ && "$side" =~ ^(left|right)$ && -f "$checkpoint" ]] || exit 2
 output="$output_root/$label/$side"; [[ ! -e "$output" ]] || { echo "refusing to overwrite R1 eval: $output" >&2; exit 1; }
 env CUDA_VISIBLE_DEVICES="$gpu" CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DEVICE=cuda:0 WANDB_MODE=disabled HYDRA_FULL_ERROR=1 PYTHONUNBUFFERED=1 PYTHONPATH="$repo" \
   "$python_bin" -B -m gr00t.rl.eval_agent_trl +ablation=wbmanip/base_v26_5_wave2_R1_eval_policy_residual \

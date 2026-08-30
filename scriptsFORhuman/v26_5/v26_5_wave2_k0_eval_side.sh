@@ -18,7 +18,7 @@ env CUDA_VISIBLE_DEVICES="$gpu" CUDA_DEVICE_ORDER=PCI_BUS_ID ACCELERATE_TORCH_DE
   ++checkpoint="$source_checkpoint" ++checkpoint_load_mode=full ++auto_load_latest=false ++seed="$seed" ++num_envs=64 \
   ++algo.config.num_mini_batches=1 ++algo.config.eval.num_eval_episodes=64 ++algo.config.eval.eval_num_envs_episodes=true \
   ++algo.config.eval.dump_to_log_metrics=true ++algo.config.eval.a2_diagnostic_trace_enabled=true \
-  ++algo.config.eval.a2_diagnostic_reward_terms='[a2_stage3_handle_creation,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]' \
+  ++algo.config.eval.a2_diagnostic_reward_terms='[push_door_handle,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]' \
   ++algo.config.eval.a2_forced_gripper_close_enabled=false ++algo.config.eval.a2_stage2_close_gate_forced_gripper_close_enabled=false \
   ++env.config.a2_v26_2_telemetry_enabled=true ++env.config.a2_v26_3_telemetry_enabled=true \
   ++env.config.a2_v26_door_open_lr="$side" ++env.config.a2_v26_side_permutation_seed="$seed" ++env.config.enable_staged_reset=false \

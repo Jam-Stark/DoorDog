@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-RUN_ID = "v26_5_wave2_k0_identity_20260830_r2"
+RUN_ID = "v26_5_wave2_k0_identity_20260830_r3"
 SOURCE = ROOT / "logs_rl/by_batch/base_v26_acquisition_supplement_20260823/continuation/V26A_LR_S1_POLICY800/model_step_002000.pt"
 STAGE = ROOT / "logs_eval/base_v26" / RUN_ID
 

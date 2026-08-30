@@ -39,7 +39,7 @@ it must not reinterpret this O0A0 source control as such evidence.
 ## Execution and artifacts
 
 The output root is independent of Wave1:
-`logs_eval/base_v26/v26_5_wave2_k0_identity_20260830_r2/`.
+`logs_eval/base_v26/v26_5_wave2_k0_identity_20260830_r3/`.
 
 `v26_5_wave2_k0_orchestrate.sh preregister` writes the registry and statically
 composed selector configs.  The two `eval-cell` commands each launch one

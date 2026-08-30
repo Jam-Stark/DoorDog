@@ -48,7 +48,9 @@ retry loop.  Every launch is tmux-backed through `run_supervisor`.
 The r1 K1 launch generation ended at the stale seven-argument assertion; r2
 then reached the first O0 control side and correctly failed because it asked
 that source trace for O1's `a2_stage3_handle_creation` instead of
-`push_door_handle`.  Both artifact roots remain preserved as failed launch
-evidence.  The repaired attempt is a fresh, non-overwriting r3 root:
-`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r3/` and
-`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r3/`.
+`push_door_handle`; r3 subsequently exposed the same active-component
+contract's missing explicit view-specific scales.  All three roots remain
+preserved as failed launch evidence.  The repaired attempt is a fresh,
+non-overwriting r4 root:
+`logs_eval/base_v26/v26_5_wave2_r1_policy_residual_20260830_r4/` and
+`logs_rl/by_batch/base_v26/v26_5_wave2_r1_policy_residual_20260830_r4/`.

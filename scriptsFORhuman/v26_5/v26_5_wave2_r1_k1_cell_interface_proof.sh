@@ -30,4 +30,8 @@ source "$cell"
 grep -Fq "trace_reward_terms='[push_door_handle,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'" "$side_script"
 grep -Fq "trace_reward_terms='[a2_stage3_handle_creation,a2_stage3_unlatch_hold,push_door_hinge,a2_stage3_stage4_hold_and_drive]'" "$side_script"
 grep -Fq '++algo.config.eval.a2_diagnostic_reward_terms="$trace_reward_terms"' "$side_script"
+grep -Fq 'handle_depression_scale=0.0' "$side_script"
+grep -Fq 'handle_creation_scale=0.0' "$side_script"
+grep -Fq 'handle_creation_scale=6.0' "$side_script"
+grep -Fq '++env.config.a2_v26_2_handle_depression_scale="$handle_depression_scale" ++env.config.a2_v26_3_handle_creation_scale="$handle_creation_scale"' "$side_script"
 echo K1_CELL_INTERFACE_PASS

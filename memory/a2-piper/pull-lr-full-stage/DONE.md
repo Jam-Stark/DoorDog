@@ -13,3 +13,5 @@
 - 2026-08-30 20:22 HKT — H8两组matched pairs的LEFT E4均为0，treatment E3各为9/16、低于control各10/16，且RIGHT逐pair完全相同；按预注册门槛拒绝tangent reward，不续训练。
 - 2026-08-30 20:22 HKT — 登记H9为single-intervention matched pair：仅LEFT抑制普通E2-entry Stage3快照，在自然首次E3且未E4时保存同env Stage3状态；RIGHT、actor、reward、ratio和parent/seed保持配对不变。
 - 2026-08-30 20:32 HKT — H9 256-env×5-batch runtime smoke完成81920 timesteps；聚合日志中LEFT capture/load计数均非零、RIGHT manual count为0，且严格E3/step0/time0 restore validator无错误，技术门通过。
+- 2026-08-30 20:39 HKT — 历史pull-v2重新校准H9预算门：旧成功方向在4.096M与8.192M timesteps仍可E4=0、到12.288M才出现E4；因此H9 batch25只作interim trend screen，不再以零E4单独判死。
+- 2026-08-30 20:58 HKT — H9 batch25 matched screen完成：controls LEFT E3各10/16，treatments为8/16与9/16，四格LEFT E4均0且RIGHT逐pair identical；seed1 treatment出现13步0.02–0.105rad band弱趋势，按历史sample-budget证据同步full-resume到batch75。

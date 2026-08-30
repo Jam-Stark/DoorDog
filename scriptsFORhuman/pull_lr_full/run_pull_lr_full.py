@@ -56,6 +56,7 @@ def _parse_args() -> argparse.Namespace:
     train.add_argument("--checkpoint", type=Path, default=WINNER)
     train.add_argument("--run-prefix", default="pull_lr_full")
     train.add_argument("--port", type=int)
+    train.add_argument("--resume-full", action="store_true")
     train.add_argument("--run", action="store_true")
 
     evaluate = commands.add_parser("eval")
@@ -106,6 +107,7 @@ def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str],
     port = args.port if args.port is not None else 35080 + 100 * (args.gate == "b") + args.seed
     if port <= 0 or port > 65535:
         raise ValueError("--port must be in [1, 65535]")
+    checkpoint_load_mode = "full" if args.resume_full else "policy_only"
     command = [
         str(PYTHON),
         "-B",
@@ -127,8 +129,8 @@ def _train_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str],
         f"seed={args.seed}",
         f"num_envs={args.num_envs}",
         f"checkpoint={checkpoint}",
-        "checkpoint_load_mode=policy_only",
-        "algo.config.load_optimizer=false",
+        f"checkpoint_load_mode={checkpoint_load_mode}",
+        f"algo.config.load_optimizer={'true' if args.resume_full else 'false'}",
         f"algo.trl.num_total_batches={args.batches}",
         f"callbacks.model_save.save_frequency={args.save_frequency}",
         f"env.config.a2_door_open_lr_permutation_seed={args.seed}",

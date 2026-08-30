@@ -138,6 +138,7 @@ obs:
     hand_force: 0.01,
     stage: 1.0,
     privileged_door_info: 1.0,
+    a2_pull_h10_gate_info: 1.0,
     delta_actions: 1.0,
     gripper_handle_transform: 1.0,
     a2_base_command_raw: 1.0,
@@ -179,6 +180,7 @@ obs:
     hand_force: 0.0,
     stage: 0.0,
     privileged_door_info: 0.0,
+    a2_pull_h10_gate_info: 0.0,
     delta_actions: 0.0,
     gripper_handle_transform: 0.0,
     a2_base_command_raw: 0.0,
@@ -228,6 +230,7 @@ obs:
     - base_ang_vel: 3
     - stage: ${eval:'len(${env.config.max_stage_time})'}
     - privileged_door_info: 8
+    - a2_pull_h10_gate_info: 8
     - gripper_handle_transform: 18
     - a2_base_command: 5
     - z_a2_pull_v6_hinge_velocity: 1

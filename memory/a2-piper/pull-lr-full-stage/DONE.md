@@ -18,3 +18,5 @@
 - 2026-08-30 21:03 HKT — 两个ultra lane交叉审议H10：确认LEFT first-E3时已出现约7.6cm TCP-handle偏离、opening alignment约0.57、E3后双指接触中位1步；将SE(3) DLS严格限定为不可promotion的mechanics probe，正式policy候选限定为冻结parent的post-E3独立learned head。
 - 2026-08-30 21:37 HKT — H9 full-resume到global75后仍无LEFT E4/≥0.105rad；treatment pooled hinge≥0.02 episode仅1、低于control 3，RIGHT逐pair identical。H9按中介门关闭，不续200；启动H10 post-E3 phase-separated learned head。
 - 2026-08-30 21:46 HKT — H10 256-env×5-batch smoke完成81920 timesteps；parent29 tensors exact、新post-E3四tensor全部更新、optimizer为20 states/groups[10,10]，LEFT E3 snapshot非零且RIGHT manual为0，技术门通过。
+- 2026-08-30 23:17 HKT — H10首轮75-batch screen暴露causal-control flaw：新增aux obs group即使noise scale0仍调用`rand_like`并平移sampled-action RNG，故四格全部作废。修复为同shape gate替换unused IO slot并隔离CPU/CUDA constructor RNG；RIGHT parent/zero-head A/B达到10230/10230 trace rows与全部raw action/event/door state逐项exact。
+- 2026-08-30 23:21 HKT — RNG-fixed H10 activation smoke完成81920 timesteps：snapshot/load非零、RIGHT manual0、parent29 exact、新head4全变化、optimizer states20/groups[10,10]；固定版技术门通过并登记四格正式重跑。

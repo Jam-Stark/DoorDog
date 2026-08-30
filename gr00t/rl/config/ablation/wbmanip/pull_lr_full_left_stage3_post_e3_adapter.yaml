@@ -22,4 +22,4 @@ env:
   config:
     obs:
       obs_dict:
-        left_stage3_post_e3_gate_obs: [z_a2_pull_e3_latched]
+        left_stage3_gate_obs: [a2_pull_h10_gate_info, stage]

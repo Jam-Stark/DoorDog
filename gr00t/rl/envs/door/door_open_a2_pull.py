@@ -4637,6 +4637,15 @@ class DoorOpenA2Pull(DoorPregrasp):
             :, A2PullEvent.E3_LATCH_RELEASE
         ].float().unsqueeze(-1)
 
+    def _get_obs_a2_pull_h10_gate_info(self) -> torch.Tensor:
+        """Reuse the 8-D gate shape while replacing unused IO with live E3."""
+
+        gate = self._get_obs_privileged_door_info().clone()
+        gate[:, 7] = self._a2_pull_event_reached[
+            :, A2PullEvent.E3_LATCH_RELEASE
+        ].float()
+        return gate
+
     def _get_obs_z_a2_pull_v61_post_release_control(self) -> torch.Tensor:
         """Expose the latched D25 controller handoff without changing release semantics."""
 

@@ -7921,6 +7921,19 @@ class DoorOpenA2Pull(DoorPregrasp):
             self._get_a2_stage34_hold_income_mask()
             & self._get_a2_pull_load_bearing_income_mask()
         )
+        income_mode = self.config["a2_pull_stage3_hinge_income_mode"]
+        if income_mode == "left_e3_latched_k_hold":
+            income_mask |= (
+                (self.stage_buf == self.STAGE_OPEN)
+                & (self.door_open_lr == 1.0)
+                & self._a2_pull_event_reached[:, A2PullEvent.E3_LATCH_RELEASE]
+                & self._get_a2_hold_streak_ok_mask()
+            )
+        elif income_mode != "live_proof":
+            raise RuntimeError(
+                "a2_pull_stage3_hinge_income_mode must be live_proof or "
+                f"left_e3_latched_k_hold; got {income_mode!r}."
+            )
         reward = (hinge_velocity + hinge_position).clamp(max=1.0, min=-1.0)
         result = reward * income_mask.float()
         if self._is_a2_pull_v6():

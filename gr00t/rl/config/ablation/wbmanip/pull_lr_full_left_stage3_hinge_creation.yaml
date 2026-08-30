@@ -1,0 +1,12 @@
+# @package _global_
+# H5: continue H4 arm residual with LEFT E3-latched Stage3 hinge creation income.
+
+defaults:
+  - /ablation/wbmanip/pull_lr_full_left_stage3_residual_arm
+  - _self_
+
+experiment_name: pull_lr_full_left_stage3_hinge_creation
+
+env:
+  config:
+    a2_pull_stage3_hinge_income_mode: left_e3_latched_k_hold

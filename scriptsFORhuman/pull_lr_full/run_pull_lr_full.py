@@ -24,6 +24,7 @@ ABLATIONS = {
     "c": "wbmanip/pull_lr_full_handle_creation",
     "d": "wbmanip/pull_lr_full_left_stage3_residual_arm",
     "e": "wbmanip/pull_lr_full_left_stage3_residual_base_arm",
+    "f": "wbmanip/pull_lr_full_left_stage3_hinge_creation",
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")

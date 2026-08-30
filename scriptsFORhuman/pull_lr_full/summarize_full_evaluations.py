@@ -38,6 +38,7 @@ def _load_json(path: Path):
 def _cell(root: Path) -> dict:
     records = _load_json(root / "eval/a2_v14_per_env_records.json")
     trace = _load_json(root / "eval/stage2_5_step_trace.json")
+    metrics = _load_json(root / "eval/metrics_eval.json")
     if not isinstance(records, list) or not records:
         raise ValueError(f"{root}: terminal records must be a non-empty list")
     if not isinstance(trace, list) or not trace:
@@ -48,37 +49,54 @@ def _cell(root: Path) -> dict:
             continue
         by_env[int(row["env_id"])].append(row)
     terminal_by_env = {int(record["env_id"]): record for record in records}
-    if set(by_env) != set(terminal_by_env):
+    terminal_diag_by_env = {
+        int(record["env_id"]): record
+        for record in metrics["episode_terminal_diagnostics"]
+    }
+    if set(terminal_diag_by_env) != set(terminal_by_env):
+        raise ValueError(f"{root}: terminal diagnostics do not cover terminal records")
+    if not set(by_env).issubset(terminal_by_env):
         raise ValueError(
-            f"{root}: trace/terminal env ids differ: {sorted(by_env)} vs {sorted(terminal_by_env)}"
+            f"{root}: trace contains unknown terminal env ids: "
+            f"{sorted(set(by_env).difference(terminal_by_env))}"
         )
 
     episodes = []
     for env_id, record in sorted(terminal_by_env.items()):
         rows = sorted(by_env[env_id], key=lambda row: int(row["step_index"]))
+        terminal_diag = terminal_diag_by_env[env_id]
         side = record.get("door_handle_side")
         if side not in SIDE_SIGNS or float(record.get("door_open_lr")) != SIDE_SIGNS[side]:
             raise ValueError(f"{root}: invalid terminal side provenance for env {env_id}")
+        if (
+            terminal_diag.get("door_handle_side") != side
+            or float(terminal_diag.get("door_open_lr")) != SIDE_SIGNS[side]
+        ):
+            raise ValueError(f"{root}: invalid terminal diagnostic side for env {env_id}")
         if any(
             row.get("door_handle_side") != side
             or float(row.get("door_open_lr")) != SIDE_SIGNS[side]
             for row in rows
         ):
             raise ValueError(f"{root}: trace side provenance changed for env {env_id}")
-        last = rows[-1]
-        episode = last["pull_v0_episode"]
+        episode = terminal_diag["pull_v0_episode"]
         reached = episode["event_reached"]
         if tuple(reached) != EVENTS:
             raise ValueError(f"{root}: unexpected event schema for env {env_id}")
         proof_rows = [row["pull_v0"] for row in rows]
+        proof_rows.append(terminal_diag["pull_v0"])
+        streak_rows = [*rows, terminal_diag]
         episodes.append(
             {
                 "env_id": env_id,
                 "side": side,
                 "goal_reached": bool(record["goal_reached"]),
                 "max_stage": int(record["max_stage"]),
-                "terminal_reason": episode["terminal_reason"],
-                "strict_k5": max(int(row["a2_stage2_squeeze_streak"]) for row in rows) >= 5,
+                "terminal_reason": terminal_diag["terminal_reasons"],
+                "trace_available": bool(rows),
+                "strict_k5": max(
+                    int(row["a2_stage2_squeeze_streak"]) for row in streak_rows
+                ) >= 5,
                 "max_handle_rad": max(float(row["handle_position_rad"]) for row in proof_rows),
                 "max_latch_m": max(float(row["latch_position_m"]) for row in proof_rows),
                 "max_hinge_rad": max(float(row["hinge_position_rad"]) for row in proof_rows),
@@ -93,21 +111,43 @@ def _cell(root: Path) -> dict:
 
 def _aggregate(episodes: list[dict]) -> dict:
     result = {"episodes": len(episodes)}
+    result["mechanics_trace_episodes"] = sum(
+        row["trace_available"] for row in episodes
+    )
     result["strict_k5"] = sum(row["strict_k5"] for row in episodes)
     for stage in (3, 4, 5):
         result[f"max_stage_ge_{stage}"] = sum(row["max_stage"] >= stage for row in episodes)
     for event in EVENTS:
-        result[event] = sum(row["events"][event] for row in episodes)
-    result["handle_ge_0p3"] = sum(row["max_handle_rad"] >= 0.3 for row in episodes)
+        result[event] = sum(row["events"][event] is True for row in episodes)
+        result[f"{event}_observed_episodes"] = sum(
+            row["events"][event] is not None for row in episodes
+        )
+    result["handle_ge_0p3"] = sum(
+        row["max_handle_rad"] is not None and row["max_handle_rad"] >= 0.3
+        for row in episodes
+    )
+    result["handle_ge_0p6"] = sum(
+        row["max_handle_rad"] is not None and row["max_handle_rad"] >= 0.6
+        for row in episodes
+    )
     result["latch_ge_0p0229237154"] = sum(
-        row["max_latch_m"] >= 0.02292371541261673 for row in episodes
+        row["max_latch_m"] is not None
+        and row["max_latch_m"] >= 0.02292371541261673
+        for row in episodes
     )
     result["goal_reached"] = sum(row["goal_reached"] for row in episodes)
     result["terminal_reasons"] = dict(
         sorted(
             (reason, sum(row["terminal_reason"] == reason for row in episodes))
-            for reason in {row["terminal_reason"] for row in episodes}
+            for reason in {
+                row["terminal_reason"]
+                for row in episodes
+                if row["terminal_reason"] is not None
+            }
         )
+    )
+    result["terminal_reason_missing"] = sum(
+        row["terminal_reason"] is None for row in episodes
     )
     return result
 

@@ -24,6 +24,11 @@ ABLATIONS = {
 }
 ALLOWED_GPUS = (0, 1, 2, 3)
 SIDES = ("left", "right", "bilateral")
+ACTOR_CONTRACTS = {
+    "source": "gr00t.rl.trl.modules.pull_v6_post_release_obs_override_actor.PullV6PostReleaseObsOverrideActor",
+    "integrated": "gr00t.rl.trl.modules.pull_v6_post_release_integrated_actor.PullV6PostReleaseIntegratedActor",
+    "output": "gr00t.rl.trl.modules.pull_v6_population_output_actor.PullV6PopulationOutputActor",
+}
 
 
 def _parse_args() -> argparse.Namespace:
@@ -50,6 +55,9 @@ def _parse_args() -> argparse.Namespace:
     evaluate.add_argument("--gpu", type=int, choices=ALLOWED_GPUS, required=True)
     evaluate.add_argument("--seed", type=int, default=1001)
     evaluate.add_argument("--num-envs", type=int, default=16)
+    evaluate.add_argument(
+        "--actor-contract", choices=tuple(ACTOR_CONTRACTS), default="output"
+    )
     evaluate.add_argument("--run", action="store_true")
     return parser.parse_args()
 
@@ -150,6 +158,7 @@ def _eval_command(args: argparse.Namespace) -> tuple[list[str], dict[str, str], 
         "headless=true",
         "use_wandb=false",
         f"+ablation={ABLATIONS[args.gate]}",
+        f"algo.config.actor._target_={ACTOR_CONTRACTS[args.actor_contract]}",
         f"env.config.a2_door_open_lr_distribution={args.side}",
         f"env.config.a2_door_open_lr_permutation_seed={args.seed}",
         "env.config.staged_reset_ratios=[1.0,0.0,0.0,0.0,0.0,0.0]",
